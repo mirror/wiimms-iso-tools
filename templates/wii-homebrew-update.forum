@@ -1,0 +1,63 @@
+
+[size="5"][color="#0000FF"][b]wwt: Wiimms WBFS Tool v@.@@@ - @@@@-@@-@@[/b][/color][/size]
+[size="3"][color="#800000"][b]Ein Kommandozeilen-Toolkit für WBFS und ISO Datateien.[/b][/color][/size]
+
+Dieses hier wird das Ankündigungsthema für den WWT werden. Eunzelheiten zum Programm werde ich nach und nach übersetzen und an dieser Stelle ergänzt. Unter [url=@@URI-HOME@@][b]@@URI-HOME@@[/b][/url] gibt es eine ausfühlichere Übersicht über die Möglichkeiten, allerdings in englisch.
+
+[b]Noch ein paar wichtige Hinweise:[/b]
+Es handelt sich um Kommandozeilen-Tools. Das bedeutet, dass man zur Ausführung vorher ein Kommandofenster aufmachen muss und dann die Kommandos eingeben kann. Dieses hat aber den Vorteil, dass man sich Batch-Dateien für immer wiederkehrnde Aufgaben schreiben kann. Zum Ansprechen der Laufwerke muss das Kommandofenster im Admin-Modus arbeiten. Die Syntax der Kommandos ist stark an Unix angelehnt, da die Programme auch unter Linux entwickelt werden.
+
+
+[size="2"][color="#000080"][b]Download der aktuellen stabilen Version:[/b][/color][/size]
+~[size="2"][color="#000080"][b]Download[/b][/color] [color="#800000"][b]der EXPERIMENTELLEN Version:[/b][/color][/size]
+[list]
+[*] [url=@@URI-DOWNLOAD-I386@@][b]@@DISTRIB-I386@@[/b][/url] : linux/i386 version
+[*] [url=@@URI-DOWNLOAD-X86_64@@][b]@@DISTRIB-X86_64@@[/b][/url] : linux/x86_64 version
+[*] [url=@@URI-DOWNLOAD-MAC@@][b]@@DISTRIB-MAC@@[/b][/url] : Mac OS universal binaries (ppc, i386 and x86-64)
+[*] [url=@@URI-DOWNLOAD-CYGWIN@@][b]@@DISTRIB-CYGWIN@@[/b][/url] : cygwin (win32) version
+[/list]
+
+[size="2"][color="#000080"][b]Download der vorherigen stabilen Version:[/b][/color][/size]
+[*] [url=@@URI-DOWNLOAD-PREV-I386@@][b]@@PREV-DISTRIB-I386@@[/b][/url] : linux/i386 version
+[*] [url=@@URI-DOWNLOAD-PREV-X86_64@@][b]@@PREV-DISTRIB-X86_64@@[/b][/url] : linux/x86_64 version
+[*] [url=@@URI-DOWNLOAD-PREV-MAC@@][b]@@PREV-DISTRIB-MAC@@[/b][/url] : Mac OS universal binaries (ppc, i386 and x86-64)
+[*] [url=@@URI-DOWNLOAD-PREV-CYGWIN@@][b]@@PREV-DISTRIB-CYGWIN@@[/b][/url] : cygwin (win32) version
+[/list]
+
+[size="2"][color="#000080"][b]Download other releases:[/b][/color][/size][list]
+[*] [url=@@URI-DOWNLOAD-PREV-MIPSEL@@][b]@@PREV-DISTRIB-MIPSEL@@[/b][/url] : mipsel release by Bauldrick
+[*] [url=@@URI-DOWNLOAD-PREV-POWERPC@@][b]@@PREV-DISTRIB-POWERPC@@[/b][/url] : powerpc release by Bauldrick
+[/list]
+
+
+[size="2"][color="#000080"][b]Es existiert auch ein GUI:[/b][/color][/size]
+[list]
+[*] [url=@@URI-WIIJMANAGER@@][b]WiiJManager Multiplatform[/b][/url]
+[/list]
+
+
+[size="2"][color="#000080"][b]Highlights dieser Version:[/b][/color][/size]
+[list]
+
+[*] [b]wit besitzt das neue Kommando "VERIFY":[/b]
+Das Kommando erwartet ISO Dateien (alle fünf Formate werden akzeptiert) und testet sie. Dazu werden für jeden verwendeten Sektor die Hash-Werte (H0..H4) berechnet und mit den ebenfalls im ISO image vorhanden Prüfsummern verglichen. So können sog. [i]Bad Dumps[/i] erkannt werden.
+
+Das Kommando arbeitet still und gibt nur Fehler aus. Die Option --quiet macht das Programm völlig still und der Status wird nur über den Exit-Kode ausgegeben. Falls die Option --verbose gesetzt ist, dann werden auch Positivmeldungen ausgegeben. Die Option --long steuert die Ausgabelänge der Fehlermeldungen.
+
+Die gesamte Ausgabe ist noch in der Entwicklung, das Kommando funktioniert aber schon gut. Bei der Ausführung sollte man daran denken, dass pro 1 MiB Daten 64 Entschlüsselungen und 1029 Prüfsummen berechnet werden müssen. Dieses macht die Verifizierung erheblich langsamer als das reine Kopieren.
+
+Hinweis: Das Kommando "wit verify /path/to/wbfs" überprüft alle Discs, die sich im angegebenen WBFS befinden.
+[color="#ffffff"].[/color]
+
+[*][b]Mit der Verfügbarkeit dieses neuen VERIFY-Kommandos besteht keine Notwendigkeit mehr externe MD5-Prüfsummen zu vergleichen um valide Discs herauszufinden. Die Überprüfung der internen Prüfsummen kann automatisiert werden und vereinfacht die Sache enorm.[/b]
+[color="#ffffff"].[/color]
+[/list]
+
+
+[size="2"][color="#000080"][b]Letzte Änderungen:[/b][/color][/size]
+[code]
+@@MODULE(last-history.txt)@@
+[/code]
+
+Die Quellen stehen unter der GPL2 Lizenz. Die Quellen önnen direkt aus dem [url=@@URI-REPOS@@][b]SVN repository[/b][/url] ausgechecked werden oder mit einem [url=@@URI-VIEWVC@@][b]Browser besurft werden[/b][/url].
+

@@ -1,0 +1,2 @@
+../*.sh ;
+../{templates,scripts,src}/&/*.sh

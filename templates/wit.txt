@@ -1,0 +1,1098 @@
+
+@@MODULE(head.txt)@@
+
+This files describes the main tool 'wit'.
+
+
+@@MODULE(content.txt)@@
+
+
+*******************************************************************************
+*******                    Overview about this document               *********
+*******************************************************************************
+
+Contents:
+
+    Output of 'wit --help'
+    @file
+    Commands in detail
+    Processing --source and --recurse
+    Processing ISO files
+    Processing ID6 parameters
+    Processing exclude options
+    Processing title db
+    Processing split options
+    Processing size options
+    Selecting files with --files=rules
+    Some options in detail
+    Hidden options (for testing)
+    Some options in detail
+    Environment variables
+    Signals
+
+
+*******************************************************************************
+*******                      Output of 'wit --help'                   *********
+*******************************************************************************
+@@EXEC(./wit --help)@@
+
+
+*******************************************************************************
+*******                             @file                               *******
+*******************************************************************************
+
+If a parameter beginns with '@' the text behind that '@' is a filename.
+Each line of the file is taken as a parameter (not option, not command).
+Each line may terminate with LF or CR+LF. Handling of '@' is *not* recurse.
+
+The special filename '-' means: read from standard input (stdin).
+
+
+*******************************************************************************
+*******                        Commands in detail                       *******
+*******************************************************************************
+
+The tool 'wit' processes the --source and the --recurse options to built an
+internal ISO database (pure ISO and WDF-ISO files included). Most of the
+follwing commands works with the files of this ISO database (like 'wwt' do it
+with a WBFS). The options --source and --recurse atre described in the section
+"Processing --source and --recurse" in detail.
+
+Command abbreviations are allowed as long as they are unique. The commands
+are listed in alphabetic order:
+
+
+-------------------------------------------------------------------------------
+
+COMMAND: COPY|CP
+
+ Syntax: COPY source_file destination_file
+         COPY [-s path] [-r path] [sources]... destination_dir
+         COPY [-s path] [-r path] [sources]... -d destination_dir
+
+ Copy all sources to the destination directory. The files are converted to WDF
+ or ISO or WBFS controlled by options --wdf, --iso, --ciso and --wbfs) and/or
+ scrubbed (controlled by options --psel and --raw).
+
+ Options:
+
+    -s --source  path  ISO file or directory with ISO files.
+    -r --recurse path  ISO file or base of a directory tree with ISO files.
+       --rdepth  depth Set the maximum recure depth for --recurse (default=10).
+       --psel  p-type  Partition selector: (no-)data|update|channel all(=def) raw.
+       --raw           Short cut for --psel=raw.
+    -d --dest path     Define a destination directory/file.
+    -D --DEST  path    Like --dest, but create directory path automatically.
+    -z --split         Enable output file splitting, default split size = 4 gb.
+    -Z --split-size sz Enable output file splitting and set split size.
+    -p --preserve      Preserve file times (atime+mtime).
+    -R --remove        Remove source if operation is successful.
+    -u --update        Copy only to non existing files, ignore other.
+    -o --overwrite     Overwrite existing ISO images.
+    -i --ignore        Ignore non existing files/discs without warning.
+
+    -W --wdf           Set ISO output file type to WDF. (default)
+    -I --iso           Set ISO output file type to PLAIN ISO.
+    -C --ciso          Set ISO output file type to CISO (=WBI).
+    -B --wbfs          Set ISO output file type to WBFS container.
+
+    -q --quiet         Be quiet   -> print only error messages.
+    -v --verbose       Be verbose -> print continuation infos.
+    -t --test          Run in test mode, modify nothing.
+    -E --esc char      Define an alternative escape character, default is '%'.
+
+ The command COPY copies all given sources into the destination (directory).
+ If the option --dest is not set the last parameter is used as destination.
+ If exact one source file is given the destination can be a file name. If two
+ or more source files given the destination must be a directory. Option --DEST
+ is like --dest, but the directory path is created automaticaly.
+
+ Each source is candidate for copying. Non ISO files are ignored with a warning.
+ The option --ignore suppresses this warning. Existing files will only be
+ overwrtitten if option --overwrite is set. If option --update is set, the
+ operation will be silently ignored if the destuination file already exists.
+
+ The output is scrubbed. The scrubbing can be controlled with the options
+ --psel and --raw. If option --remove is set then the souce file is removed
+ after successfull operation.
+
+ The options --split and --split-size control the splitting of the output
+ files. See section "Processing split options" for details.
+
+ When writing ISO files the option --wdf, --iso, --ciso and --wbfs control the
+ output format. If writing a WBFS file this WBFS is truncated and contains
+ exactly one ISO image. The default file name of this WBFS is '<ID6>.wbfs'. If
+ none of --wdf, --iso, --ciso or --wbfs is set, the destination filename will
+ be analyzed. If the extension (ignoring case) is ".wdf", ".iso", ".ciso",
+ ".wbi" (an alternative for ".ciso") or ".wbfs", the specific output format
+ is used. The default is WDF if all other fails.
+
+ The option --test enables test mode: No files are written or removed. If
+ --test is set at least two times a source list with a trailing destination
+ will be printed.
+
+
+ DESTINATION FILENAME
+
+@@MODULE(output-filename.txt)@@
+
+
+ Usual ERROR/EXIT CODES:
+
+    0 == OK             : all done without erros.
+    SYNTAX ERROR        : at least one syntax error in command line found.
+    READ ERROR          : error while reading a file.
+    WRITE ERROR         : error while writing a file.
+    CANT CREATE         : Can't create output file.
+
+
+-------------------------------------------------------------------------------
+
+COMMAND: DIFF|CMP
+
+ Syntax: DIFF source_file destination_file
+         DIFF [-s path] [-r path] [sources]... destination_dir
+         DIFF [-s path] [-r path] [sources]... -d destination_dir
+
+ Compare all sources with a destination. Source and destinaton can be plain ISO
+ files, WDF-ISO files or WBFS files with a selector. The comparing can be done
+ in scrubbed or raw mode (controlled by options --psel and --raw) or in file
+ mode (--files=). In file mode the ISO images are virtually extracted and
+ compared on file level.
+
+ Options:
+
+    -s --source  path  ISO file or directory with ISO files.
+    -r --recurse path  ISO file or base of a directory tree with ISO files.
+       --rdepth  depth Set the maximum recure depth for --recurse (default=10).
+       --psel  p-type  Partition selector: (no-)data|update|channel all(=def) raw.
+       --raw           Short cut for --psel=raw.
+    -d --dest  path    Define a destination directory/file.
+    -D --DEST  path    Like --dest, but create directory path automatically.
+    -i --ignore        Ignore non existing files/discs without warning.
+    -l --long          Print position of first mismatch.
+    -ll                (--long twice): Print all mismatch positions,
+                       but only 1 per ISO block (0x8000 = 32768 bytes).
+
+       --ignore-fst    Ignore FST directories as input.
+    -F --files rules   Add file select rules. This option can be used multiple
+                       times to extend the rule list. See section
+                       "Selecting files with --files=rules" for details.
+       --pmode p-mode  Prefix mode: auto|none|point|name|index (default=auto).
+       --enc  encoding Encoding: none|hash|decrypt|encrypt|sign|auto(=default).
+ 
+    -W --wdf           Search for *.wdf files in the destination directory.
+    -I --iso           Search for *.iso files in the destination directory.
+    -C --ciso          Search for *.ciso files in the destination directory.
+    -B --wbfs          Search for *.wbfs files in the destination directory.
+
+    -q --quiet         Be quiet   -> print only error messages.
+    -v --verbose       Be verbose -> print continuation infos.
+    -t --test          Run in test mode, compare nothing.
+    -E --esc char      Define an alternative escape character, default is '%'.
+
+ The command DIFF compares all given sources agains a destination (directory).
+ If the option --dest is not set the last parameter is used as destination.
+ If exact one source file is given the destination can be a file name. If two
+ or more source files given the destination must be a directory. Option --DEST
+ is like --dest, but the directory path is created automaticaly.
+
+ Each source is candidate for comparing. Non ISO files are ignored with a warning.
+ The option --ignore suppresses this warning.
+
+ If option --long is set, the first failed position is printed. If option --long
+ is set two or more times all falied positions are printed, but only the first
+ position of each ISO block. The size of an ISO block is 0x8000 = 32768 bytes.
+
+ In file mode (--files=) the rules are changed. The ISO images are compared on
+ file level. System areas like disc and aprtiton headers are also served as
+ files. Only files that matches the defined filters will be compared. In --quiet
+ mode the comparing is done silently. Otherwise all non equal or missing files
+ are reported.
+
+
+ DESTINATION FILENAME
+
+@@MODULE(output-filename.txt)@@
+
+
+ Usual ERROR/EXIT CODES:
+
+    0 == OK             : all done without erros.
+    DIFFER              : At leaset one file pair differ.
+    SYNTAX ERROR        : at least one syntax error in command line found.
+    READ ERROR          : error while reading a file.
+    WRITE ERROR         : error while writing a file.
+    CANT OPEN           : Can't open file.
+
+
+-------------------------------------------------------------------------------
+
+COMMAND: DUMP|D   [path]...
+
+ Dumps the content of each file in the internal database. Additional path
+ parameters are handled like the option --source.
+
+ Options:
+
+    -s --source  path  ISO file or directory with ISO files.
+    -r --recurse path  ISO file or base of a directory tree with ISO files.
+       --rdepth  depth Set the maximum recure depth for --recurse (default=10).
+    -T --titles file   Read file for disc titles. -T0 disables titles lookup.
+
+    -F --files rules   Add file select rules. This option can be used multiple
+                       times to extend the rule list. See section
+                       "Selecting files with --files=rules" for details.
+       --psel  p-type  Partition selector: (no-)data|update|channel all(=def) raw.
+       --raw           Short cut for --psel=raw.
+
+    -l --long          Print memory map for each partition.
+    -ll                Print memory map for whole ISO image.
+
+ DUMP will dumps the data structure of all ISO files. If the option --long is
+ set an additional memory map for each partition is printed. If the option
+ --long is set twice or more an additional memory map for the whole ISO file
+ is printed at the end. Failures (overlapped areas) are marked with '!'. If
+ the option --long is set three times or more a total memory is appended at
+ the end of the dump.
+
+ If the option --files= is set than a file list is included into the dump.
+ The rules define which files are listet. To lsit all files use "--files=+".
+ The section "Selecting files with --files=rules" dicuss more details.
+ The options --psel= and --raw are only used to make a pre selection of
+ the partitions for the file list.
+
+
+ Usual ERROR/EXIT CODES:
+
+    0 == OK             : all done without erros.
+    SYNTAX ERROR        : at least one syntax error in command line found.
+    READ ERROR          : error while read a file given by option --part.
+
+
+-------------------------------------------------------------------------------
+
+COMMAND: ERROR|ERR   [error_code]
+
+ Translate an exit code to a text message. Without parameters print all
+ error names and error messages.
+
+ Options:
+
+    -l --long         Print error messages instead of error names.
+    -H --no-header    Suppress printing of header and footer.
+
+ With a given 'error_code' the error message that belongs the number is
+ printed to stdout and the program exits with exit status is 0 (success).
+ If the error_code is unknown or invalid the error message is '?' and the
+ program exits with exit status is 1 (failure).
+
+ Without 'error_code' a list of all error codes is printed. The output
+ contains three columns separated with colons. The format is:
+
+    error code ':' error name ':' error messages
+
+ If the option --sections is set, then the layout is completly changed to a
+ sections base output. This output is machine readable. The output looks like:
+
+	[error-CODE]
+	code=ERROR_NUMBER
+	name=ERROR_NAME
+	text=ERROR_TEXT
+
+
+ Usual ERROR/EXIT CODES:
+
+    0 == OK        : all done.
+    SYNTAX ERROR   : at least one syntax error in command line found.
+    SEMANTIC ERROR : unkown error_code given.
+
+
+-------------------------------------------------------------------------------
+
+COMMAND: EXCLUDE  [additional_exclude_file]...
+
+ The command 'EXCLUDE' builts the exclude data base and prints the result to
+ stdout. The handling of the additional files works like the --exclude option.
+
+ Options:
+
+   -x --exclude id     Exclude discs with given ID4 or ID6 from operation.
+   -x --exclude @file  Read exclude list from file.
+
+   -X --exclude-path file_or_dir
+                       ISO file or base of directory tree -> scan their ID6
+
+ The section "Processing exclude options" explains the options in detail.
+
+
+ Usual ERROR/EXIT CODES:
+
+    0 == OK        : all done.
+    SYNTAX ERROR   : at least one syntax error in command line found.
+
+
+-------------------------------------------------------------------------------
+
+COMMAND: EXTRACT|X   [path]...
+
+ Extract file of the ISO images.
+
+ Options:
+
+    -s --source  path  ISO file or directory with ISO files.
+    -r --recurse path  ISO file or base of a directory tree with ISO files.
+       --rdepth  depth Set the maximum recure depth for --recurse (default=10).
+    -T --titles file   Read file for disc titles. -T0 disables titles lookup.
+
+    -d --dest path     Define a destination directory/file.
+    -D --DEST  path    Like --dest, but create directory path automatically.
+    -p --preserve      Copy file times (atime+mtime) from ISO image.
+    -o --overwrite     Overwrite existing files.
+    -i --ignore        Ignore non existing files/discs without warning.
+
+    -F --files rules   Add file select rules. This option can be used multiple
+                       times to extend the rule list. See section
+                       "Selecting files with --files=rules" for details.
+       --psel  p-type  Partition selector: (no-)data|update|channel all(=def) raw.
+       --raw           Short cut for --psel=raw.
+
+    -S --sort  list    Sort by: offset|size|name|...|asc|desc
+
+
+ ** no documentation yet **
+
+
+ Usual ERROR/EXIT CODES:
+
+    0 == OK             : all done without erros.
+    SYNTAX ERROR        : at least one syntax error in command line found.
+    READ ERROR          : error while reading a file.
+    WRITE ERROR         : error while writing a file.
+    CANT CREATE         : Can't create output file.
+
+
+-------------------------------------------------------------------------------
+
+COMMAND: FILELIST|FL  [path]...
+
+ Print then filename for each ISO file in the internal database. Additional
+ path parameters are handled like the option --source.
+
+ If neither --source nor --recurse is used and no other source is defined then
+ the default directory is searched for ISO files.
+
+ Options:
+
+    -s --source  path  ISO file or directory with ISO files.
+    -r --recurse path  ISO file or base of a directory tree with ISO files.
+       --rdepth  depth Set the maximum recure depth for --recurse (default=10).
+    -i --ignore        Ignore non existing files/discs without warning.
+    -ii                (--ignore twice) Ignore all non ISO files.
+    -l --long          Print the real path instead of given path.
+
+ The filename of each file in the internal file list is printed as one line.
+ If no source is given, the current working directory is used as source.
+
+
+ Usual ERROR/EXIT CODES:
+
+    0 == OK             : all done without erros.
+    SYNTAX ERROR        : at least one syntax error in command line found.
+    READ ERROR          : error while reading a file.
+
+
+-------------------------------------------------------------------------------
+
+COMMAND: FILETYPE|FT  [path]...
+
+ Print a status line for each file in the internal database. Additional
+ path parameters are handled like the option --source.
+
+ If neither --source nor --recurse is used and no other source is defined then
+ the default directory is searched for ISO files.
+
+ Options:
+
+    -s --source  path  ISO file or directory with ISO files.
+    -r --recurse path  ISO file or base of a directory tree with ISO files.
+       --rdepth  depth Set the maximum recure depth for --recurse (default=10).
+       --psel  p-type  Partition selector: (no-)data|update|channel all(=def) raw.
+       --raw           Short cut for --psel=raw.
+
+    -l --long          Print in long format: Print ID6 for images.
+    -ll                (--long twice) Print REGION for images.
+    -lll               (3x --long) Print real path instead of given path.
+    -i --ignore        Ignore non existing files and don't print status line.
+    -ii                (--ignore twice) Ignore all non ISO files.
+    -H --no-header     Suppress printing of header.
+
+
+ The command 'FILETYPE' prints for each file in the internal file database
+ (build by the options --source and --recurse) one status line like:
+    FILETYPE ID6 SIZE_MIB REGION filename
+ Column 'ID6' is only printed if option --long is set. For non ISO images
+ the ID6 is '-'. Columns 'SIZE_MIB' and 'REGION' are only printed if option
+ --long is set at least two times.
+
+ 'SIZE_MIB' is the calculatet size of a scrubbed ISO image. For this all used
+ sectors of a ISO image are counted. The usage depends of the options --psel
+ and --raw.
+
+ Filetypes are:
+    NO-FILE  : No file found
+    DIR      : Not a file but a directory
+    WBFS     : A WBFS
+    WBFS/    : A WBFS used like directory with id6 or index or pos
+    WDF+WBFS : A WBFS shrinked with WDF (this make no sense expect transporting)
+    ISO      : A ISO image.
+    WDF+ISO  : A ISO image shrinked with WDF.
+    WDF      : Any other WDF file (not WBFS or ISO)
+    OTHER    : Any other file
+
+
+ Usual ERROR/EXIT CODES:
+
+    0 == OK             : all done without erros.
+    SYNTAX ERROR        : at least one syntax error in command line found.
+    READ ERROR          : error while reading a file.
+
+
+-------------------------------------------------------------------------------
+
+COMMAND: HELP|?   [any_options_or_parameters]
+
+ Ignore all options and parameters, print help to standard out (stdout) and
+ exit with status 0 (OK).
+
+ ERROR/EXIT CODES:
+
+    HELP : Help printed.
+
+
+-------------------------------------------------------------------------------
+
+COMMAND: ID6|ID   [path]...
+
+ Print the ID6 for each file in the internal database. Additional path
+ parameters are handled like the option --source.
+
+ If neither --source nor --recurse is used and no other source is defined then
+ the default directory is searched for ISO files.
+
+ Options:
+
+    -s --source  path  ISO file or directory with ISO files.
+    -r --recurse path  ISO file or base of a directory tree with ISO files.
+       --rdepth  depth Set the maximum recure depth for --recurse (default=10).
+    -n --include id    Include oly discs with given ID4 or ID6 from operation.
+    -n --include @file Read include list from file.
+    -N --include-path file_or_dir
+                       ISO file or base of directory tree -> scan their ID6.
+    -x --exclude id    Exclude discs with given ID4 or ID6 from operation.
+    -x --exclude @file Read exclude list from file.
+    -X --exclude-path file_or_dir
+                       ISO file or base of directory tree -> scan their ID6
+
+    -S --sort  list    Sort by: id|title|name|size|*time|file|region|...|asc|desc
+    -U --unique        Print only the first disc of all with same values.
+
+    -q --quiet         Be quiet   -> list only ID6 but nothing else.
+    -v --verbose       Be verbose -> list as much as possible.
+
+ The command 'ID' lists the ID6 of all discs in the internal ISO database, one
+ ID per row. The internal ISO database is build under control of the options
+ --source, --recurse, --include, --include-path, --exclude and --exclude-path.
+ See section "Processing --source and --recurse" for details.
+
+ If --uniqe is set each game disc with same ID6, name, size and region is only
+ printed once. To determine doube entries the list is sorted by ID.
+
+ The output sort order can be set by the --sort option. Sort=none means, that
+ the ID will be shown in order of the WBFS partition. The default sort order
+ is 'ID'.
+
+
+ Usual ERROR/EXIT CODES:
+
+    0 == OK             : all done without erros.
+    SYNTAX ERROR        : at least one syntax error in command line found.
+    READ ERROR          : error while reading a file.
+
+
+-------------------------------------------------------------------------------
+
+COMMAND: ILIST|IL   [path]...
+
+ List files of ISO images.
+
+ Options:
+
+    -s --source  path  ISO file or directory with ISO files.
+    -r --recurse path  ISO file or base of a directory tree with ISO files.
+       --rdepth  depth Set the maximum recure depth for --recurse (default=10).
+    -T --titles file   Read file for disc titles. -T0 disables titles lookup.
+
+    -i --ignore        Ignore non existing files/discs without warning.
+    -l --long          Print in long format. Multiple usage possible.
+    -H --no-header     Suppress printing of header and footer.
+
+    -F --files rules   Add file select rules. This option can be used multiple
+                       times to extend the rule list. See section
+                       "Selecting files with --files=rules" for details.
+       --psel  p-type  Partition selector: (no-)data|update|channel all(=def) raw.
+       --raw           Short cut for --psel=raw.
+
+    -S --sort  list    Sort by: offset|size|name|...|asc|desc
+
+
+ ** no documentation yet **
+
+
+ Usual ERROR/EXIT CODES:
+
+    0 == OK             : all done without erros.
+    SYNTAX ERROR        : at least one syntax error in command line found.
+    READ ERROR          : error while reading a file.
+
+
+-------------------------------------------------------------------------------
+
+COMMANDS:
+    ILIST-L   | ILL    [source]...
+    ILIST-LL  | ILLL   [source]...
+
+ 'ILIST-L'   is a synonym for 'ILIST --long'.
+ 'ILIST-LL'  is a synonym for 'ILIST --long --long'.
+ See command 'ILIST' for options and details.
+
+
+-------------------------------------------------------------------------------
+
+COMMAND: ISOSIZE|SIZE  [path]...
+
+ Print a status line with size calculations for each file in the internal
+ database. Additional path parameters are handled like the option --source.
+
+ If neither --source nor --recurse is used and no other source is defined then
+ the default directory is searched for ISO files.
+
+ Options:
+
+    -s --source  path  ISO file or directory with ISO files.
+    -r --recurse path  ISO file or base of a directory tree with ISO files.
+       --rdepth  depth Set the maximum recure depth for --recurse (default=10).
+       --psel  p-type  Partition selector: (no-)data|update|channel all(=def) raw.
+       --raw           Short cut for --psel=raw.
+
+    -l --long          Print in long format: Print additional SIZE_IN_MIB.
+    -ll                (--long twice) Print additional WBFS calculations.
+    -lll               (3x --long) Print real path instead of given path.
+    -H --no-header     Suppress printing of header.
+
+    -i --ignore        Ignore non existing files and don't print status line.
+    -ii                (--ignore twice) Ignore all non ISO files.
+
+
+ The command 'ISOSIZE' prints for each file in the internal file database
+ (build by the options --source and --recurse) one status line like:
+
+    ISO_BLOCKS  SIZE_IN_MIB  WBFS_FILESIZE  SIZE_IN_500G_WBFS  filename
+
+ The size is calculated for a scrubbed ISO image. For this all used sectors
+ of a ISO image are counted. The usage depends of the options --psel and --raw.
+
+ ISO_BLOCKS
+    The number of used ISO blocks. Each ISO block has a size of 32K.
+
+ SIZE_IN_MIB
+    The number of used ISO blocks in MiB. It's a rounded value ISO_BLOCKS.
+    Column SIZE_IN_MIB is only shown if the option --long is set.
+
+ WBFS_FILESIZE
+    The total size of a wbfs file that contains only 1 disc. The calculation
+    is made under the assumption that the WBFS blocks size is 2 MiB. Column
+    WBFS_FILESIZE is only shown if the option --long is set at least twice.
+
+ SIZE_IN_500G_WBFS
+    The size of a ISO image as part of a WBFS with about 500g total space.
+    The calculation is made under the assumption that the WBFS blocks size
+    is 8 MiB. Column SIZE_IN_500G_WBFS is only shown if the option --long
+    is set at least twice.
+
+
+ Usual ERROR/EXIT CODES:
+
+    0 == OK             : all done without erros.
+    SYNTAX ERROR        : at least one syntax error in command line found.
+    READ ERROR          : error while reading a file.
+
+
+-------------------------------------------------------------------------------
+
+COMMAND: LIST|LS   [path]...
+
+ List all game discs of each file in the internal database. Additional path
+ parameters are handled like the option --source.
+
+ If neither --source nor --recurse is used and no other source is defined then
+ the default directory is searched for ISO files.
+
+ Options:
+
+    -s --source  path  ISO file or directory with ISO files.
+    -r --recurse path  ISO file or base of a directory tree with ISO files.
+       --rdepth  depth Set the maximum recure depth for --recurse (default=10).
+    -n --include id    Include oly discs with given ID4 or ID6 from operation.
+    -n --include @file Read include list from file.
+    -N --include-path file_or_dir
+                       ISO file or base of directory tree -> scan their ID6.
+    -x --exclude id    Exclude discs with given ID4 or ID6 from operation.
+    -x --exclude @file Read exclude list from file.
+    -X --exclude-path file_or_dir
+                       ISO file or base of directory tree -> scan their ID6
+
+    -l --long          Print in long format. Multiple usage possible.
+       --itime         Abbreviation of --time=i. Use 'itime' (insertion time).\n"
+       --mtime         Abbreviation of --time=m. Use 'mtime' (last modification time).\n"
+       --ctime         Abbreviation of --time=c. Use 'ctime' (last status change time).\n"
+       --atime         Abbreviation of --time=a. Use 'atime' (last access time).\n"
+       --time  list    Set time modes (off,i,m,c,a,date,time,min,sec,...).\n"
+    -U --unique        Print only the first disc if all with with same ID6.
+    -H --no-header     Suppress printing of header and footer.
+       --sections      Print output in sections and parameter lines.
+    -S --sort  list    Sort by: id|title|name|size|*time|file|region|...|asc|desc
+    -T --titles file   Read file for disc titles. -T0 disables titles lookup.
+
+    -q --quiet         Be quiet   -> list only ID6 but nothing else.
+    -v --verbose       Be verbose -> list as much as possible.
+    -t --test          Allowed but ignored.
+
+ The command 'LIST' lists infos of all discs in the internal ISO database.
+ The internal ISO database is build under control of the options --source,
+ --recurse, --include, --include-path, --exclude and --exclude-path.
+ See section "Processing --source and --recurse" for details.
+
+ Without --long the ID and the name are printed. With option --long the ID,
+ size, region and the name are printed.  The option --no-header suppress the
+ output of header and footer.
+
+ Printing of timestamps is enabled by the options --time, --itime, --mtime
+ --ctime, --atime or when --long is set at least twice. --time=off disables
+ time printing. All time options (not --long) supersede the previous options.
+ The option --time take a comma separated list of the following keywords:
+
+    OFF    : Disable time printing. All other option enable time printing.
+    ON     : Enable time printing.
+
+    SINGLE : Print only a single column (last time specified.
+    MULTI  : Print columns for all specified times. (default)
+
+    I      : Use itime (insertion time) for processing.
+    M      : Use mtime (last modicifaction time) for processing. (default)
+    C      : Use ctime (last staus change time) for processing.
+    A      : Use atime (last access time) for processing.
+
+    NONE   : Disable all 4 times above
+    ALL    : Enable all 4 times above
+    
+    DATE   : Print time in format 'YYYY-MM-DD'. (default)
+    TIME   : Print time in format 'YYYY-MM-DD HH:MM'.
+    MIN    : Alternative keyword for 'TIME'.
+    SEC    : Print time in format 'YYYY-MM-DD HH:MM:SS'.
+
+    *DATE  : Short cut for '*,DATE'. '*' is one of 'I', 'M', 'C' or 'A'.
+    *TIME  : Short cut for '*,TIME'. '*' is one of 'I', 'M', 'C' or 'A'.
+    *MIN   : Alternative keywords for '*TIME'.
+    *SEC   : Short cut for '*,SEC'.  '*' is one of 'I', 'M', 'C' or 'A'.
+
+ If the option --long is given three or more times a second line with the
+ number of partitions, the file type ('ISO' or 'WDF') and the file path is
+ printed. If the option --long is given three times the real path is printed.
+
+ If the option --sections is set, then the layout is completly changed to a
+ sections base output. This output is machine readable. The output looks like:
+
+	[section_name-index]
+	parameter=value
+	parameter=value
+	...
+
+ If available the name of the title database is used. use the option -T0 to
+ disable database titles.
+
+ If --uniqe is set each game disc identified by ID6 is only printet once.
+ The sort order can be set by the --sort option. Sort=none means, that the ID
+ will be shown in order of scanning. The default sort order is 'TITLE'.
+
+
+ Usual ERROR/EXIT CODES:
+
+    0 == OK             : all done without erros.
+    SYNTAX ERROR        : at least one syntax error in command line found.
+    READ ERROR          : error while reading a file.
+
+
+-------------------------------------------------------------------------------
+
+COMMANDS:
+    LIST-L   | LL    [source]...
+    LIST-LL  | LLL   [source]...
+    LIST-LLL | LLLL  [source]...
+
+ 'LIST-L'   is a synonym for 'LIST --long'.
+ 'LIST-LL'  is a synonym for 'LIST --long --long'.
+ 'LIST-LLL' is a synonym for 'LIST --long --long --long'.
+ See command 'LIST' for options and details.
+
+
+-------------------------------------------------------------------------------
+
+COMMAND: MOVE|MV
+
+ Syntax: MOVE source_file destination_file
+         MOVE [-s path] [-r path] [sources]... destination
+         MOVE [-s path] [-r path] [sources]... -d destination
+
+ Move and/or renames all sources to the destination directory. The contents of
+ the files are unchanged.
+
+ Options:
+
+    -s --source  path  ISO file or directory with ISO files.
+    -r --recurse path  ISO file or base of a directory tree with ISO files.
+       --rdepth  depth Set the maximum recure depth for --recurse (default=10).
+    -d --dest  path    Define a destination directory/file.
+    -D --DEST  path    Like --dest, but create directory path automatically.
+    -o --overwrite     Overwrite existing ISO images.
+    -i --ignore        Ignore non existing files/discs without warning.
+
+    -q --quiet         Be quiet   -> print only error messages.
+    -v --verbose       Be verbose -> print continuation infos.
+    -t --test          Run in test mode, modify nothing.
+    -E --esc char      Define an alternative escape character, default is '%'.
+
+ The command MOVE moves and/or renames all given sources. If the option --dest
+ is not set the last parameter is used as destination. If exact one source file
+ is given the destination can be a file name. Option --DEST  is like --dest,
+ but the directory path is created automaticaly.
+
+ Each source is candidate for moving. Non ISO files are ignored with a warning.
+ The option --ignore suppresses this warning. Existing files will only be
+ overwrtitten if option --overwrite is set.
+
+ The option --test enables test mode: No files are renamed. If --test is set at
+ least two times a source list with a trailing destination will be printed.
+
+
+ DESTINATION FILENAME
+
+@@MODULE(output-filename.txt)@@
+
+
+ Usual ERROR/EXIT CODES:
+
+    0 == OK             : all done without erros.
+    SYNTAX ERROR        : at least one syntax error in command line found.
+    READ ERROR          : error while reading a file.
+    WRITE ERROR         : error while writing a file.
+    CANT CREATE         : Can't create output file.
+
+~
+~-------------------------------------------------------------------------------
+~
+~COMMAND: REMOVE|RM   id6...
+~
+~ Remove ISO image files.
+~
+~ Options:
+~
+~    -s --source  path  ISO file or directory with ISO files.
+~    -r --recurse path  ISO file or base of a directory tree with ISO files.
+~       --rdepth  depth Set the maximum recure depth for --recurse (default=10).
+~    -n --include id    Include oly discs with given ID4 or ID6 from operation.
+~    -n --include @file Read include list from file.
+~    -N --include-path file_or_dir
+~                       ISO file or base of directory tree -> scan their ID6.
+~    -x --exclude id    Exclude discs with given ID4 or ID6 from operation.
+~    -x --exclude @file Read exclude list from file.
+~    -X --exclude-path file_or_dir
+~                       ISO file or base of directory tree -> scan their ID6
+~
+~    -U --unique       Eliminate repeated ID6 from parameter list.
+~    -i --ignore       Ignore non existing discs without warning.
+~
+~    -q --quiet        Be quiet   -> print only error messages.
+~    -v --verbose      Be verbose -> print continuation infos.
+~    -t --test         Run in test mode, modify nothing.
+~    -tt               (--test twice) print a normalized ID6 list and exit.
+~
+~ *** [2do] not implemented yet. ***
+~
+
+-------------------------------------------------------------------------------
+
+COMMAND: RENAME|REN  id6=[new_id6][,title] ...
+
+ Change the ID6 or/and the title of discs.
+
+ Options:
+
+    -s --source  path  ISO file or directory with ISO files.
+    -r --recurse path  ISO file or base of a directory tree with ISO files.
+       --rdepth  depth Set the maximum recure depth for --recurse (default=10).
+    -n --include id    Include oly discs with given ID4 or ID6 from operation.
+    -n --include @file Read include list from file.
+    -N --include-path file_or_dir
+                       ISO file or base of directory tree -> scan their ID6.
+    -x --exclude id    Exclude discs with given ID4 or ID6 from operation.
+    -x --exclude @file Read exclude list from file.
+    -X --exclude-path file_or_dir
+                       ISO file or base of directory tree -> scan their ID6
+    -i --ignore        Ignore non existing discs without warning.
+
+ This command 'RENAME' may change the ID6 and/or the title of discs. The
+ alternative command 'SETTITLE' modifies only titles. The advantage of
+ 'SETTITLE' is, that it can modify all titles with 1 sub command.
+
+ The syntax of a sub comand is: id6=[new_id6][,new_title]
+    'id6' is the ID of the disc to change.
+    The optional 'new_id6' is the new ID of the disc.
+    The optional 'new_title' is the new title of the disc.
+
+@@MODULE(set-title.txt)@@
+
+
+-------------------------------------------------------------------------------
+
+COMMAND: SCRUB|SB  iso_image_path...
+
+ Copy all found ISO images. SCRUB works like COPY but the output file replaces
+ the input files. Scrubbing is coltrolled by the options --psel and --raw.
+
+ Options:
+
+    -s --source  path  ISO file or directory with ISO files.
+    -r --recurse path  ISO file or base of a directory tree with ISO files.
+       --rdepth  depth Set the maximum recure depth for --recurse (default=10).
+       --psel  p-type  Partition selector: (no-)data|update|channel all(=def) raw.
+       --raw           Short cut for --psel=raw.
+    -z --split         Enable output file splitting, default split size = 4 gb.
+    -Z --split-size sz Enable output file splitting and set split size.
+    -p --preserve      Preserve file times (atime+mtime).
+
+    -W --wdf           Set ISO output file type to WDF. (default)
+    -I --iso           Set ISO output file type to PLAIN ISO.
+    -C --ciso          Set ISO output file type to CISO (=WBI).
+    -B --wbfs          Set ISO output file type to WBFS container.
+
+    -q --quiet         Be quiet   -> print only error messages.
+    -v --verbose       Be verbose -> print continuation infos.
+    -t --test          Run in test mode, modify nothing.
+
+ The command SCRUB reorganize all given source files.
+
+ Each source is candidate for scrubbing. Non ISO files are ignored with a
+ warning. The option --ignore suppresses this warning. The output is scrubbed.
+ The scrubbing can be controlled with the options --psel and --raw.
+
+ The options --split and --split-size control the splitting of the output
+ files. See section "Processing split options" for details.
+
+ The option --test enables test mode: No files are written or removed. If
+ --test is set at least two times a source list with a trailing destination
+ will be printed.
+
+
+ Usual ERROR/EXIT CODES:
+
+    0 == OK             : all done without erros.
+    SYNTAX ERROR        : at least one syntax error in command line found.
+    READ ERROR          : error while reading a file.
+    WRITE ERROR         : error while writing a file.
+    CANT CREATE         : Can't create output file.
+
+
+-------------------------------------------------------------------------------
+
+COMMAND: SETTITLE|ST   id6=new_title ...
+
+ Change the title of discs.
+
+ Options:
+
+    -s --source  path  ISO file or directory with ISO files.
+    -r --recurse path  ISO file or base of a directory tree with ISO files.
+       --rdepth  depth Set the maximum recure depth for --recurse (default=10).
+    -n --include id    Include oly discs with given ID4 or ID6 from operation.
+    -n --include @file Read include list from file.
+    -N --include-path file_or_dir
+                       ISO file or base of directory tree -> scan their ID6.
+    -x --exclude id    Exclude discs with given ID4 or ID6 from operation.
+    -x --exclude @file Read exclude list from file.
+    -X --exclude-path file_or_dir
+                       ISO file or base of directory tree -> scan their ID6
+    -i --ignore        Ignore non existing discs without warning.
+
+ This command 'SETTITLE' may change the title of discs. The alternative
+ command 'RENAME' can also change the ID of discs.
+
+ The syntax of a sub comand is: id6=new_title
+    'id6' is the ID of the disc to change. If using '+' all discs are changed.
+    The 'new_title' is the new title of the disc.
+
+@@MODULE(set-title.txt)@@
+
+
+-------------------------------------------------------------------------------
+
+COMMAND: TITLES   [additional_title_file]...
+
+ The command 'TITLES' builts the title data base and prints the result to
+ stdout. The handling of the additional files works like the --title option.
+
+ Options:
+
+    -T --titles file  Read file for disc titles
+       --utf-8        Enables UTF-8 support (default for non CYGWIN).
+       --no-utf-8     Disables UTF-8 support (default for CYGWIN).
+
+ The section "Processing title db" explains the options in detail.
+
+
+ Usual ERROR/EXIT CODES:
+
+    0 == OK        : all done.
+    SYNTAX ERROR   : at least one syntax error in command line found.
+
+
+-------------------------------------------------------------------------------
+
+COMMAND: VERSION   [any_options_or_parameters]
+
+ Recognize option --long and ignore all other options and parameters, print out
+ the program version to standard out (stdout) and exit with status 0 (OK).
+
+ The ouput line looks like:
+@@EXEC(./wit version | sed 's/^/    /')@@
+
+ If option --long is set the output is printed in a machine readable format:
+@@EXEC(./wit --long version | sed 's/^/    /')@@
+
+
+ ERROR/EXIT CODES:
+
+    HELP : Help printed.
+
+
+*******************************************************************************
+*******               Processing --source and --recurse                 *******
+*******************************************************************************
+
+The tool 'wit' processes the --source and the --recurse options to built an
+internal ISO database (pure ISO and WDF-ISO files included). All operations are
+then done with the files of this ISO database (like 'wwt' do it with a WBFS).
+
+ Options:
+    -s --source  path
+    -r --recurse path
+       --rdepth  depth
+
+Both options work similar and both option can be used multiple times. If 'path'
+is a non existing file an error message is printed. If 'path' is an plain file,
+it is opened and analyzed. If that files is an ISO file or and WDF-ISO than it
+is added to the internal ISO database.
+
+The options --source and --recurse differ only if 'path' is an directory.
+Option --source searches that directory but not subdirectories for ISO files.
+Option --recurse searches that directory and all subdirectories (recurse, max
+depth is set by --rlevel, default=10) for ISO files. Subdirectories beginning
+with a dot ('.') are ignored.
+
+The implementation is optimized so that a directory is only searched once.
+The option --recurse is processed before option --source.
+
+
+@@MODULE(proc-iso.txt)@@
+
+
+@@MODULE(proc-id6.txt)@@
+
+
+@@MODULE(proc-exclude.txt)@@
+
+
+@@MODULE(proc-titles.txt)@@
+
+
+@@MODULE(proc-split.txt)@@
+
+
+@@MODULE(proc-size.txt)@@
+
+
+@@MODULE(proc-files.txt)@@
+
+
+*******************************************************************************
+*******                      Some options in detail                     *******
+*******************************************************************************
+
+@@MODULE(opt-sort.txt)@@
+
+-------------------------------------------------------------------------------
+
+@@MODULE(opt-psel.txt)@@
+
+
+*******************************************************************************
+*******                   Hidden options (for testing)                  *******
+*******************************************************************************
+
+There are some hidden options implemented for testing:
+
+ --io value
+
+    wit and the other tools can handle files via open() (file mode) and via
+    fopen() (stream mode). The option --io=value allows to control the method.
+    Bit #0 is for opening WBFS and Bit #1 is for openening ISO images.
+    ('ISO' includes 'WDF-ISO')
+
+    --io=0 : WBFS=open()  ISO=open()  **default**
+    --io=1 : WBFS=fopen() ISO=open()
+    --io=2 : WBFS=open()  ISO=fopen()
+    --io=3 : WBFS=fopen() ISO=fopen()
+
+
+*******************************************************************************
+*******                      Environment variables                      *******
+*******************************************************************************
+
+The user can define environment variables as additional way to submit
+parameters to the tool:
+
+WWT_LANG
+
+ With 'WWT_LANG' (not 'WIT_LANG') the user can spezifiy a default language
+ for wwt and wit titles. If 'WWT_LANG' is empty 'LC_CTYPE' will be scanned.
+ The option --lang overides this default setting.
+
+ Example: WWT_LANG="de"
+
+WIT_OPT
+
+ 'WIT_OPT' is scanned like a command line and before the real command line is
+ scanned. Therefor 'WIT_OPT' will be converted to a parameter list. Each SPACE
+ or other control is a separator. Quoting is not possible. Only options and
+ their parameters will recognized. If such option is not compatible with
+ the command it is silently ignored.
+
+ Example: WIT_OPT="--force --overwrite -vv -T0"
+
+
+@@MODULE(signals.txt)@@
+
+
+*******************************************************************************
+*******                              END                                *******
+*******************************************************************************

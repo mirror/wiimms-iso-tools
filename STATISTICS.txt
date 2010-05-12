@@ -1,0 +1,138 @@
+
+**************************
+ Test objects (game list)
+**************************
+
+   --------------------------------------------------------
+   abbrev  id6   name of disc (sorted by size -> see below)
+   --------------------------------------------------------
+    WCh  RTYP01  Wii Chess
+    WPl  RHAP01  Wii Play
+    WMu  R64P01  Wii Music
+    WSp  RSPP01  Wii Sport
+    TLZ  RZDP01  The Legend of Zelda - Twilight Princess
+    MKW  RMCP01  Mario Kart Wii
+    TRA  RLRP4F  Tomb Raider - Anniversary
+    SSB  RSBP01  Super Smash Bros. Brawl
+    MPT  R3MP01  Metroid Prime Trilogy
+   --------------------------------------------------------
+
+
+
+*******************************************
+ harddisk space statistics (values in MiB)
+*******************************************
+
+Test course:
+
+ A: compress the ISO image with different compression/archive programs.
+
+ B: Extract the test games from the WBFS partition with the linux tool 'wbfs'.
+    Stat the file size and the disc usage.
+
+ C: Copy iso images of B) with command: cp --sparse=always
+
+ D: For each game):
+     - build an empty WBFS and add the game with wwt --fast
+     - extract it twice (ISO and WDF)
+     - convert WDF with 'wdf2iso' to ISO
+     - stat disc usage of all files
+     - compare all generated ISO images with the source to find errors in wwt.
+
+ E: Same as 'D:', but don't use option --fast
+
+
+--------------------------------------------------------------------------------------
+		WCh	WPl	WMu	WSp	TLZ	MKW	TRA	SSB	MPT
+		RTYP01	RHAP01	R64P01	RSPP01	RZDP01	RMCP01	RLRP4F	RSBP01	R3MP01
+--------------------------------------------------------------------------------------
+Overall info:
+ iso size:	4482	4482	4482	4482	4482	4482	4482	7590	8102
+--------------------------------------------------------------------------------------
+A: compress with...
+ gzip		  30	 103	 141	 639    1104    2649    3173    6909    7565
+ bzip2		  26	  99	 138	 638    1106    2659    3183    6920    7581
+ 7z		  27	 101	 139	 644	1116	2683	3211	6981	7649
+ rar		  28	 101	 139	 639    1105    2655    3177    6906    7566
+--------------------------------------------------------------------------------------
+B: wbfs
+ disk usage:	  28	 100	 138	 636	1103	2650	3175	6914	7571
+--------------------------------------------------------------------------------------
+C: cp --sparse=always
+ disk usage:	  27	  99	 137	 636	1102	2650	3174	6914	7570
+--------------------------------------------------------------------------------------
+D: wwt --fast
+  disk usage: 	  28	 100	 138	 636	1103	2650	3175	6914	7571
+  wdf2iso du: 	  28	 100	 138	 636	1103	2650	3175	6914	7571
+  wdf size:  	  28	 100	 138	 636	1102	2648	3172	6908	7564
+--------------------------------------------------------------------------------------
+E: wwt
+  disk usage: 	  27	  99	 137	 636	1102	2650	3174	6914	7570
+  wdf2iso du: 	  27	  99	 137	 636	1102	2650	3174	6914	7570
+  wdf size:  	  27	  99	 137	 635	1101	2647	3171	6907	7563
+--------------------------------------------------------------------------------------
+
+Legend:
+
+  iso size   : size of the iso image in MiB.
+  wdf size   : size of the wdf in MiB.
+  disk usage : disc usage of iso image in MiB after extracting.
+  wdf2iso du : disc usage of iso image in MB after converting by wdf2iso.
+
+
+Conclusions:
+
+  First: WWT and the other WDF tools works well. The exported and converted
+  ISO images are fully identical to the source ISO images. And this means,
+  that WWT including the WDF support is ready for production usage!
+
+  ISO images are cryptes. Thats why packer and archive programs are unable to
+  compress the ISO images effectively. The can only compress the holes and need
+  much time for doing this. Here is the WDF much faster.
+  
+  The tool 'wbfs' and 'wwt --fast' produce the same images with the same holes
+  because both writes directly the ISO disc sectors to the harddrive.
+
+  'wwt' (no fast), 'wdf2iso' and 'cp --sparse=always' analyse the data and are
+  more effective in writing holes.
+
+  WDF files don't need sparse file support and need a little less harddrive
+  space than sparsed ISO images. Handling and transfering to other drives
+  and other filesystems are very easy: just copy it.
+
+  >>> Exporting an ISO image is wasty in disk space and handling time.
+  >>> WDF is the better alternative.
+
+
+
+***********************************
+ timing statistics (values in sec)
+***********************************
+
+---------------------------------------------------------------------
+  WBFS	  WWT	  WWT	  WBFS	  WWT	  WWT	  WWT	  WWT
+  add	  add	  add     ex	  ex	  ex -F	  ex	  ex -F
+  ISO	  ISO	  WDF	  ISO	  ISO	  ISO	  WDF	  WDF	game
+---------------------------------------------------------------------
+  0.885	  0.303	  0.408	  0.425	  0.590	  0.360	  0.419	  0.323	WCh
+  2.387	  1.018	  1.021	  1.379	  1.309	  1.309	  1.474	  1.276	WPl
+  5.843	  1.398	  1.388	  1.867	  1.844	  1.869	  2.064	  1.782	WMu
+ 23.801	 20.322	 17.589	 17.755	 16.739	 16.518	 17.973	 18.642	WSp
+ 42.412	 44.340	 34.799	 28.410	 30.357	 29.603	 30.301	 28.764	TLZ
+122.061	122.146	 85.221	 72.436	 72.966	 72.076	 75.047	 70.812	MKW
+131.309	135.279	120.536	107.310	109.571	110.411	111.564	108.375	TRA
+293.090	301.872	243.489	234.737	236.054	237.705	224.356	216.778	SSB
+237.699	244.471	131.259	249.589	234.737	234.460	241.677	231.888	MPT
+---------------------------------------------------------------------
+
+Legend:
+
+  WBFS : tool 'wbfs'
+  WWT  : tool 'wwt'
+  add  : add image to wbfs partition
+  ex   : extract image from wbfs partition
+  -F   : wwt option --fast
+  ISO  : add/extract ISO image
+  WDF  : add/extract WDF image
+  game : subject of operations
+

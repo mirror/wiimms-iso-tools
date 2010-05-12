@@ -1,0 +1,48 @@
+
+@@MODULE(head.txt)@@
+
+This files describes the tool 'iso2wbfs'.
+
+
+@@MODULE(content.txt)@@
+
+
+*******************************************************************************
+*******                   Output of 'iso2wbfs --help'                 *********
+*******************************************************************************
+@@EXEC(./iso2wbfs --help)@@
+
+
+*******************************************************************************
+*******                             iso2wbfs                            *******
+*******************************************************************************
+
+The tool 'iso2wbfs' converts ISO images to a WBFS files. Splitting is enabled
+by default. The name of the destination file is "<ID6>.wbfs".
+
+Usual ERROR/EXIT CODES:
+
+    OK
+    ERR_WBFS
+    ERR_NO_WBFS_FOUND
+    ERR_WBFS_INVALID
+    CANT_OPEN
+    READ_FAILED
+    WRITE_FAILED
+
+
+@@MODULE(proc-iso.txt)@@
+
+
+@@MODULE(proc-split.txt)@@
+
+
+@@MODULE(proc-size.txt)@@
+
+
+@@MODULE(signals.txt)@@
+
+
+*******************************************************************************
+*******                              END                                *******
+*******************************************************************************

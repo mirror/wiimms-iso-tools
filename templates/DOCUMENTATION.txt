@@ -1,0 +1,245 @@
+
+@@MODULE(head.txt)@@
+
+
+@@MODULE(content.txt)@@
+
+
+*******************************************************************************
+*******                    Overview about this document               *********
+*******************************************************************************
+
+Contents:
+
+    Motivation
+    Some special features
+    WDF support
+~    Feature requests
+~    Known bugs
+    TODO
+    HISTORY
+
+
+*******************************************************************************
+*******                            Motivation                         *********
+*******************************************************************************
+
+The motives for writing a new tool are simple:
+
+1.) I like to work with the linux command line. And the only WBFS tool I found
+    is poor in viewing information and perhaps buggy.
+    (I have destroyed the WBFS 2 times)
+
+2.) I want to learn more about WBFS.
+
+
+*******************************************************************************
+*******                             Features                          *********
+*******************************************************************************
+
+
+Overview
+ - WWT comes as multiple command line tools.
+ - ISO support for 5 files types: Plain ISO, CISO, WDF WBFS and FST (extracted
+   filesystem).
+ - wit can extract ISO images to a file system (SNEEK compatible).
+ - wit can compose ISO images from a file system including trucha signing.
+ - wit can compare ISO images of all 5 formats (raw and scrubbed mode).
+ - Read ISO from pipes (indirect ZIP/RAR support).
+ - Support of splitted files (WBFS, WDF, ISO and CISO).
+ - Scrubbing on the fly.
+ - wwt can manage WBFS on block devices and as plain files.
+ - wwt finds WBFS block devices automatically if option --auto is set.
+ - Multi WBFS support.
+ - Extended indode info with time stamps
+ - Dump the data structure of WBFS images and ISO discs for analysis.
+ - Check and repair WBFS archives.
+ - Advanced shell support.
+
+
+Features in detail:
+
+ - WWT comes as multiple command line tools.
+    - The main tool 'wwt' (Wiimms WBFS Tool) manage WBFS.
+    - The main tool 'wit' (WIimm ISO Tool) manage ISO files (Plain, WDF and
+      ISO files as part of a WBFS).
+    - The tools 'iso2wdf', 'iso2wbfs' and 'wdf2iso' are specialized conversion
+      tools. All their jobs can be done with 'wit' too.
+    - The tools 'wdf-cat' and 'wdf-dump' are for advanced WDF and CISO handling.
+
+ -  ISO support for 5 files types: Plain ISO, CISO, WDF WBFS and FST.
+   When writing an ISO you have the choice between five formats:
+    - Plain ISO file (default extension ".iso")
+    - CISO file (default extension ".ciso" or ".wbi")
+    - WDF ISO file (default extension ".wdf")
+    - WBFS file as container for one ISO file (default extension ".wbfs").
+    - FST: All files are extracted to the local filesystem.
+   When reading an ISO the following files are accepted:
+    - Plain ISO files.
+    - Plain ISO files from a pipe.
+    - CISO files.
+    - WDF ISO files.
+    - WBFS files with or without a selector. A selector is an ID6 or an index
+      or a slot number to specify exact one ISO image within a WBFS.
+    - FST: If a directory contains a valid FST then a virtual ISO image is
+      generated. Many wwt+wit commands can handle this virtual ISO image like
+      a real ISO image.
+
+ - wit can extract ISO images to a file system (SNEEK compatible).
+   wit can extract ISO images to the local file system. It extracts all files
+   and additional system files (like tmd.bin). The written file system is
+   SNEEK compatible and can be used as source for composing a new and modified
+   ISO image. The option --files= (-F) controls which file sare extracted.
+
+ - wit can compose ISO images from a file system including trucha signing.
+   wit can compose a ISO image from a extracted and modified file system.
+   This new image is trucha signed. Composing is done by creating a virtual
+   ISO image in the file layer of the tools. The content is only generated
+   if a read access is done. Because of this most of the commands (all ISO
+   readonly commands) can handle such FST ISO images like other images.
+   For example calling "wit DUMP filesystem" generates a fast overview
+   about the virtual ISO.
+
+ - wit can compare ISO images of all 5 formats (raw and scrubbed mode).
+   wit can compare ISO images in all five formats (ISO, WDF, CISO, WBFS, FST)
+   in raw mode (whole ISO image) and in scribbed mode (only needed sectors.
+   It is planned to implement a compare function on file level.
+    
+ - Read ISO from pipes (indirect ZIP/RAR support)
+   If adding, copying or scrubbing the input can be read from standard
+   input (stdin). This allow to use any preprocessing like decompressing
+   using unzip or unrar.
+
+ - Support of splitted files (WBFS, WDF, ISO and CISO).
+    - While generating a file use --split and --split-size to force splitting.
+    - While opening files for reading splitted files are detected automatically.
+
+ - Scrubbing on the fly.
+   All tools scrubbs the ISO image by default to reduce disk space. The user
+   can select which ISO aprtitions should be copied. A complete (raw) copy
+   is also possible.
+
+ - wwt can manage WBFS on block devices and as plain files.
+   WBFS files are managed on block devices (USB- and other hard drives) and
+   as (splitted) plain files. Sparse files are supported automatically.
+
+ - wwt finds WBFS block devices automatically if option --auto is set.
+    - wwt is able to find a WBFS drive automatically.
+
+ - Multi WBFS support.
+    - List multiple WBFS together.
+    - Copies ISO images to multiple WBFS with one command.
+    - Remove ISO images from multiple WBFS with one command.
+    - Searches multiple WBFS for extracting discs.
+
+ - Extended indode info with time stamps
+   All tools use 'EXTENDED INODE INFO', an extension of WBFS. It is full
+   compatible to all other WBFS tools because it uses non used space in
+   the WBFS inodes. At the moment this INODE INFO contains 5 time stamps:
+    - itime : the disc insertion time
+    - mtime : the last modification time (copied from source)
+    - ctime : the last status changed time
+    - atime : the last access time
+    - dtime : the deletion time
+
+ - Dump the data structure of WBFS images and ISO discs for analysis.
+    - "wwt DUMP" will dump the data structure of WBFS images for analysis.
+       These dumps includes the WBFS header, WBFS main parameters, a disc dump
+       and memory layout dumps for each disc and for the whole WBFS.
+    - "wit DUMP" dumps the data structure of ISO images for analysis. These
+       dumps includes the ISO header, ISO main parameters and a memory layout
+       dumps. The dump work also for ISO images within a WBFS, CISO or WDF.
+
+ - Check and repair WBFS archives.
+   The wwt command CHECK checks a WBFS for block assigning errors. Repairing
+   is also possible. Details:
+    - Find discs with invalid blocks.
+    - Find discs with no valid blocks.
+    - Find discs which uses same blocks.
+    - Find free blocks that marked as used.
+    - Find used blocks that marked as free.
+    - Remove discs with errors.
+    - Repair wrong marked blocks.
+    - Repair times stamps.
+   The check is very fast. The wwt commands ADD, UPDATE, EXTRACT, REMOVE,
+   TRUNCATE and TOUCH do an automatic check before modifying the WBFS file
+   and print a warning if the check fails.
+ 
+ - Advanced shell support.
+    - Exit codes are explained by the tool itself.
+    - Output controlling with --quiet and --verbose.
+    - Several listings, some of them machine readable.
+    - May read parameters from files.
+
+
+*******************************************************************************
+*******                           WDF support                           *******
+*******************************************************************************
+
+I have already implemented the WDF support in my tool 'WWT' and tested it with
+many games. In the tests I have converted games from ISO to WDF and back.
+I done this with the tools iso2wdf and wdf2iso/wdf-cat and with WBFS import
+and export. It work well and have not found any errors.
+
+The advantages are:
+
+ - WDF files are much shorter than ISO images.
+
+ - WDF files needs less disk space than the sparsed ISO images.
+
+ - WDF files can be access by random access. So WBFS manager can extend their
+   code to read from and write to a WDF on the fly. WWT does this.
+
+ - WDF is not a compression and works much faster than usal compressors.
+
+For a full WDF description see the file 'WDF.txt' or try the link:
+  @@URI-FILE@@/WDF.txt
+
+Statistic about WDF can be found here:
+  @@URI-FILE@@/STATISTICS.txt
+
+I have written 4 small tools for handling WDF:
+ - Tool 'wdf-dump' dumps the data structure of a WDF file.
+ - Tool 'iso2wdf' converts ISO images into WDF files.
+ - Tool 'wdf2iso' converts WDF files into ISO images.
+ - Tool 'wdf-cat' is a 'cat' like programm with special handling of WDF.
+
+I have tested the 3 tools 'iso2wdf', 'wdf2iso' and 'wdf-cat' with more than
+2 million files (mixed files including pictures and documents, but only 50 Wii
+ISO images) without any errors. This means that the 3 tools are stable and the
+usage is sure. For more details call the script './scripts/test-wdf-tools.sh'
+from the distribution without parameters.
+
+~
+~*******************************************************************************
+~*******                         Feature requests                        *******
+~*******************************************************************************
+~
+~ - none :)
+~
+~
+~*******************************************************************************
+~*******                           Known bugs                            *******
+~*******************************************************************************
+~
+~ - none :)
+~
+*******************************************************************************
+*******                              TODO                               *******
+*******************************************************************************
+
+ - Think about the options --fast and --trunc: Are they really needed?
+
+
+*******************************************************************************
+*******                             HISTORY                             *******
+*******************************************************************************
+
+For the complete history see file 'HISTORY.txt'. The last changes:
+
+@@MODULE(last-history.txt)@@
+
+
+*******************************************************************************
+*******                              END                                *******
+*******************************************************************************

@@ -1,0 +1,6 @@
+../src/lib-sf.[ch] ;
+../src/lib-std.[ch] ;
+../src/lib-wdf.[ch] ;
+../src/lib-ciso.[ch] ;
+@+all-source.edit-list
+-y 2260 ../src/lib-sf.c ;

@@ -1,0 +1,32 @@
+Ich habe gerade eben eine neue Version hoch geladen.
+
+[size=120][color=#000080][b]Download der aktuellen stabilen Version:[/b][/color][/size]
+~[size=120][color=#000080][b]Download[/b][/color] [color=#800000][b]dieser EXPERIMENTELLEN Version:[/b][/color][/size]
+
+[list]
+[*] [url=@@URI-DOWNLOAD-I386@@][b]@@DISTRIB-I386@@[/b][/url] : linux/i386 version
+[*] [url=@@URI-DOWNLOAD-X86_64@@][b]@@DISTRIB-X86_64@@[/b][/url] : linux/x86_64 version
+[*] [url=@@URI-DOWNLOAD-MAC@@][b]@@DISTRIB-MAC@@[/b][/url] : Mac OS universal binaries (ppc, i386 and x86-64)
+[*] [url=@@URI-DOWNLOAD-CYGWIN@@][b]@@DISTRIB-CYGWIN@@[/b][/url] : cygwin (win32) version
+[/list]
+
+[size=120][color=#000080][b]Download der vorherigen stabilen Version:[/b][/color][/size]
+
+[list]
+[*] [url=@@URI-DOWNLOAD-PREV-I386@@][b]@@PREV-DISTRIB-I386@@[/b][/url] : linux/i386 version
+[*] [url=@@URI-DOWNLOAD-PREV-X86_64@@][b]@@PREV-DISTRIB-X86_64@@[/b][/url] : linux/x86_64 version
+[*] [url=@@URI-DOWNLOAD-PREV-MAC@@][b]@@PREV-DISTRIB-MAC@@[/b][/url] : Mac OS universal binaries (ppc, i386 and x86-64)
+[*] [url=@@URI-DOWNLOAD-PREV-CYGWIN@@][b]@@PREV-DISTRIB-CYGWIN@@[/b][/url] : cygwin (win32) version
+[/list]
+
+[size=120][color=#000080][b]Es existiert eine graphische Oberfläche (GUI) zur Bedienung von WWT:[/b][/color][/size]
+
+[list]
+[*] [url=@@URI-WIIJMANAGER@@][b]WiiJManager Multiplatform[/b][/url]
+[/list]
+
+
+Auszug aus dem change log:
+[code]
+@@MODULE(last-history.txt)@@
+[/code]

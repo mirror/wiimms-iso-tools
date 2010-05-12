@@ -1,0 +1,17 @@
+../src/wit.c ;
+../src/wwt.c ;
+../src/iso2wbfs.c ;
+../src/iso2wdf.c ;
+../src/wdf2iso.c ;
+../src/wdf-dump.c ;
+../src/wdf-cat.c ;
+../src/lib-std.[ch] ;
+../src/lib-error.[ch] ;
+../src/lib-sf.[ch] ;
+../src/lib-wdf.[ch] ;
+../src/lib-ciso.[ch] ;
+../src/iso-interface.[ch] ;
+../src/wbfs-interface.[ch] ;
+../src/*.{c,h} ;
+../src/&/*.{c,h,s,S} ;
+../src/libwbfs/reference.txt ;

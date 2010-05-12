@@ -1,0 +1,10 @@
+../src/iso2wbfs.c ;
+../src/iso2wdf.c ;
+../src/wdf2iso.c ;
+../src/lib-sf.c ;
+../src/wdf-dump.c ;
+../src/wdf-cat.c ;
+../src/wwt.c ;
+../src/wit.c ;
+@+all-source.edit-list
+-y 600 ../src/lib-sf.c ;

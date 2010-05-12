@@ -1,0 +1,61 @@
+
+[size="5"][color="#0000FF"][b]wwt: Wiimms WBFS Tool v@.@@@ - @@@@-@@-@@[/b][/color][/size]
+[size="3"][color="#800000"][b]A command line WBFS tool set for various os.[/b][/color][/size]
+
+I have updated the tool. The [url=@@URI-GBATEMP@@][b]first post with more details[/b][/url] is updated too.
+
+
+[size="2"][color="#000080"][b]Download of the current stable version:[/b][/color][/size]
+~[size="2"][color="#000080"][b]Download[/b][/color] [color="#800000"][b]this EXPERIMENTAL release:[/b][/color][/size]
+[list]
+[*] [url=@@URI-DOWNLOAD-I386@@][b]@@DISTRIB-I386@@[/b][/url] : linux/i386 version
+[*] [url=@@URI-DOWNLOAD-X86_64@@][b]@@DISTRIB-X86_64@@[/b][/url] : linux/x86_64 version
+[*] [url=@@URI-DOWNLOAD-MAC@@][b]@@DISTRIB-MAC@@[/b][/url] : Mac OS universal binaries (ppc, i386 and x86-64)
+[*] [url=@@URI-DOWNLOAD-CYGWIN@@][b]@@DISTRIB-CYGWIN@@[/b][/url] : cygwin (win32) version
+[/list]
+
+[size="2"][color="#000080"][b]Download of the previous stable version:[/b][/color][/size][list]
+[*] [url=@@URI-DOWNLOAD-PREV-I386@@][b]@@PREV-DISTRIB-I386@@[/b][/url] : linux/i386 version
+[*] [url=@@URI-DOWNLOAD-PREV-X86_64@@][b]@@PREV-DISTRIB-X86_64@@[/b][/url] : linux/x86_64 version
+[*] [url=@@URI-DOWNLOAD-PREV-MAC@@][b]@@PREV-DISTRIB-MAC@@[/b][/url] : Mac OS universal binaries (ppc, i386 and x86-64)
+[*] [url=@@URI-DOWNLOAD-PREV-CYGWIN@@][b]@@PREV-DISTRIB-CYGWIN@@[/b][/url] : cygwin (win32) version
+[/list]
+
+[size="2"][color="#000080"][b]Download other releases:[/b][/color][/size][list]
+[*] [url=@@URI-DOWNLOAD-PREV-MIPSEL@@][b]@@PREV-DISTRIB-MIPSEL@@[/b][/url] : mipsel release by Bauldrick
+[*] [url=@@URI-DOWNLOAD-PREV-POWERPC@@][b]@@PREV-DISTRIB-POWERPC@@[/b][/url] : powerpc release by Bauldrick
+[/list]
+
+
+[size="2"][color="#000080"][b]There is also a GUI available:[/b][/color][/size]
+[list]
+[*] [url=@@URI-WIIJMANAGER@@][b]WiiJManager Multiplatform[/b][/url]
+[/list]
+
+
+[size="2"][color="#000080"][b]Highlights of this release:[/b][/color][/size]
+[list]
+
+[b]wit supports the new command "VERIFY":[/b]
+The command expect ISO images (all five formats are accepted) and checks them. For each used sector the hash values (H0..H4) are calculated and compared with the stored values. This command can detect [i]bad dumps[/i].
+
+The command works silent and print only a message if an error was found. The option --quiet makes the command total quiet and the status is only reported as exit value. If the option --verbose is set then positive tests are also reported. The option --long controls the report length of errors.
+
+The output is still in development, but the command works fine. But remember: 64 decryptions and 1029 SHA1 calculations are made for each MiB. This makes verifying much slower than only copying.
+
+BTW, the command "wit verify /path/to/wbfs" will verify all discs within the WBFS.
+[color="#ffffff"].[/color]
+
+[*][b]With this VERIFY command there is no longer a need to compare external MD5 checksums to validate the discs. Using the internal internal checksums is much easier and can be done automatically.[/b]
+[color="#ffffff"].[/color]
+
+[/list]
+
+
+[size="2"][color="#000080"][b]Last changes:[/b][/color][/size]
+[code]
+@@MODULE(last-history.txt)@@
+[/code]
+
+Sources comes with GPL2. Checkout the sources directly from the [url=@@URI-REPOS@@][b]SVN repository[/b][/url] or [url=@@URI-VIEWVC@@][b]browse the source[/b][/url].
+

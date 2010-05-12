@@ -1,0 +1,29 @@
+wwt v0.44a r973 - 2010-05-02
+
+  - wit bug fix: Option --enc was not accepted.
+  - ISO composing supports now UPDATE, DATA and CHANNEL (new!) partitions.
+  - wit DIFF: If option --files= (-F) is set then the ISO images (real or
+    virtual FST) will be compared on file level. The option --files= declares
+    a file filter.
+  - Progress counter for "wit EXTRACT" enabled.
+  - Option --files= (-F): The macros are redifined as positive list.
+    Now we have the following macros:
+    =base =nobase =disc =nodisc =sys =nosys =files =nofiles =wit =wwt =sneek
+  - wit COPY can decrypt or encrypt ISO images on the fly when copying in
+    scrubbed mode. This does not change the signature.
+  - Fix some troubles with new cyygwin release 1.7.5-1. The main problem
+    was file path creation with absolute path names.
+
+wwt v@.@@@ r@@REV-NEXT@@ - @@@@-@@-@@
+
+  - To avoid troubles with platform dependent openssl support I have integrated
+    the SHA1 sources from openssl into WWT.
+  - The new command "wit VERIFY" checks the hash signatures of all needed
+    sectors (keyword "scrubbed"). All five hash levels (H0..H4) are verified.
+    This means 64 decryptions and 1024 SHA1 calculations for each MiB.
+
+Missing docu:
+  - docu of wit commands ILIST + EXTRACT + VERIFY
+  - docu of "wit COPY --fst" => "wit EXTRACT"
+  - docu of options --pmode= --sneek --fst --ignore-fst --logging (-L) --enc=
+

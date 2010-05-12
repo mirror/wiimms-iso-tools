@@ -1,0 +1,79 @@
+
+# optimize mac binaries and/or build universal binaries
+
+# to include this file
+#  => copy Makefile.local to main directory and remove appropriate comments
+
+#-----------------------------------------------------------------------------
+
+CC	 = "gcc-4.0"
+CFLAGS	+= -mmacosx-version-min=10.4 -isysroot /Developer/SDKs/MacOSX10.4u.sdk
+LDFLAGS	+= -mmacosx-version-min=10.4 -isysroot /Developer/SDKs/MacOSX10.4u.sdk
+
+#-----------------------------------------------------------------------------
+
+# build you own rule:
+.PHONY : mac-distrib
+mac-distrib: mac doc $(INSTALL_SCRIPTS) gen-mac-distrib
+
+.PHONY : mac
+mac: mac-ppc mac-i386 mac-x86_64
+
+# commands that built universal binaries
+	@echo "building universal binaries"
+	@for i in $(TOOLS); do \
+	    lipo -create bin/ppc/$${i} bin/i386/$${i} bin/x86_64/$${i} -output bin/$${i}; \
+	    lipo -create bin/ppc/$${i} bin/i386/$${i} bin/x86_64/$${i} -output $${i}; \
+	done;
+	@rm -rf bin/ppc bin/i386 bin/x86_64
+	@echo "done"
+
+#-----------------------------------------------------------------------------
+
+.PHONY : mac-ppc
+mac-ppc:
+	@echo "building PowerPC"
+	@XFLAGS="-arch ppc -mcpu=powerpc" make clean all
+	@mkdir -p bin/ppc
+	@mv $(TOOLS) bin/ppc
+
+#-----------------------------------------------------------------------------
+
+.PHONY : mac-i386
+mac-i386:
+	@echo "building i386"
+	@XFLAGS="-arch i386 -mfpmath=sse -march=prescott" make clean all
+	@mkdir -p bin/i386
+	@mv $(TOOLS) bin/i386
+
+
+#-----------------------------------------------------------------------------
+
+.PHONY : mac-x86_64
+mac-x86_64:
+	@echo "building X86-64"
+	@XFLAGS="-arch x86_64 -mfpmath=sse" make clean all
+	@mkdir -p bin/x86_64
+	@mv $(TOOLS) bin/x86_64
+
+#-----------------------------------------------------------------------------
+
+.PHONY : gen-mac-distrib
+gen-mac-distrib:
+
+	@echo "***  create $(DISTRIB_PATH)"
+
+	@rm -rf $(DISTRIB_PATH)
+	@mkdir -p $(DISTRIB_PATH)/bin $(DISTRIB_PATH)/scripts $(DISTRIB_PATH)/lib $(DISTRIB_PATH)/doc
+
+	@cp -p $(DISTRIB_FILES) $(DISTRIB_PATH)
+	@cp -p $(TOOLS) $(DISTRIB_PATH)/bin
+	@cp -p lib/*.txt $(DISTRIB_PATH)/lib
+	@cp -p $(DOC_FILES) $(DISTRIB_PATH)/doc
+	@cp -p $(SCRIPTS)/*.{sh,txt} $(DISTRIB_PATH)/scripts
+
+	@chmod -R 755 $(DISTRIB_PATH)
+	@chmod a+x $(DISTRIB_PATH)/*.sh $(DISTRIB_PATH)/scripts/*.sh $(DISTRIB_PATH)/bin*/*
+	@chmod -R a+X $(DISTRIB_PATH)
+
+	@tar -czf $(DISTRIB_PATH).tar.gz $(DISTRIB_PATH)

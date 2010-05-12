@@ -1,0 +1,5 @@
+../work/Makefile.user ;
+../Makefile. ;
+../Makefile.* ;
+../makefiles-local/Makefile.* ;
+-R *.bak

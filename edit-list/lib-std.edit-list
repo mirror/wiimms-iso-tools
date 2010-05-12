@@ -1,0 +1,7 @@
+../src/lib-std.[ch] ;
+../src/lib-error.[ch] ;
+../src/lib-wdf.[ch] ;
+../src/lib-sf.[ch] ;
+@+all-source.edit-list
+-y 3580 lib-std.c ;
+-y  615 lib-std.h ;
