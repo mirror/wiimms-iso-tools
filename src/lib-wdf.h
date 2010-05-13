@@ -1,6 +1,6 @@
 
-#ifndef WWT_LIB_WDF_H
-#define WWT_LIB_WDF_H 1
+#ifndef WIT_LIB_WDF_H
+#define WIT_LIB_WDF_H 1
 
 #include "types.h"
 #include "lib-std.h"
@@ -149,5 +149,5 @@ WDF_Chunk_t * NeedChunkWDF ( SUPERFILE * sf, int at_index );
 ///////////////                          END                    ///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-#endif // WWT_LIB_WDF_H
+#endif // WIT_LIB_WDF_H
 

@@ -331,7 +331,7 @@ int main ( int argc, char ** argv )
 
     if ( argc < 2 )
     {
-	printf("\n%s\n\n",TITLE);
+	printf("\n%s\nVisit %s%s for more info.\n\n",TITLE,URI_HOME,NAME);
 	hint_exit(ERR_OK);
     }
 

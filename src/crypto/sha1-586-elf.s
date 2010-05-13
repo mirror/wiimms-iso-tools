@@ -1,10 +1,10 @@
 .file	"sha1-586-elf.s"
 .text
-.globl	wwt_sha1_block_data_order
-.type	wwt_sha1_block_data_order,@function
+.globl	wit_sha1_block_data_order
+.type	wit_sha1_block_data_order,@function
 .align	16
-wwt_sha1_block_data_order:
-.L_wwt_sha1_block_data_order_begin:
+wit_sha1_block_data_order:
+.L_wit_sha1_block_data_order_begin:
 	pushl	%ebp
 	pushl	%ebx
 	pushl	%esi
@@ -1435,7 +1435,7 @@ wwt_sha1_block_data_order:
 	popl	%ebx
 	popl	%ebp
 	ret
-.size	wwt_sha1_block_data_order,.-.L_wwt_sha1_block_data_order_begin
+.size	wit_sha1_block_data_order,.-.L_wit_sha1_block_data_order_begin
 .byte	83,72,65,49,32,98,108,111,99,107,32,116,114,97,110,115
 .byte	102,111,114,109,32,102,111,114,32,120,56,54,44,32,67,82
 .byte	89,80,84,79,71,65,77,83,32,98,121,32,60,97,112,112

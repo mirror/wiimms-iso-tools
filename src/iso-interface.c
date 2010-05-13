@@ -243,7 +243,7 @@ enumError Dump_ISO
 	    id4[2] = pi->ptype >>  8;
 	    id4[3] = pi->ptype;
 	    if ( CheckID(id4) == 4 )
-		snprintf(buf1,sizeof(buf1),"   \"%s\"",id4);
+		snprintf(buf1,sizeof(buf1),"   \"%.4s\"",id4);
 	    else
 		snprintf(buf1,sizeof(buf1),"%9x",pi->ptype);
 	}
@@ -1316,6 +1316,7 @@ int CollectFST ( wiidisc_t * disc, iterator_call_mode_t icm,
 	    part			= AppendPartFST(fst);
 	    fst->part_active		= part;
 	    part->part_offset		= (u64)offset4 << 2;
+	    part->part_index		= disc->partition_index;
 	    part->part_type		= disc->partition_type;
 	    part->is_marked_not_enc	= disc->is_marked_not_enc;
 	    part->is_encrypted		= disc->is_encrypted;
@@ -1352,7 +1353,7 @@ int CollectFST ( wiidisc_t * disc, iterator_call_mode_t icm,
 int CollectPartitions ( wiidisc_t * disc, iterator_call_mode_t icm,
 			u32 offset4, u32 size, const void * data )
 {
-    TRACE("CollectPartitions(icm=%d)\n",icm);
+    noTRACE("CollectPartitions(icm=%d)\n",icm);
 
     ASSERT(disc);
     IsoFileIterator_t * ifi = disc->user_param;
@@ -1377,6 +1378,7 @@ int CollectPartitions ( wiidisc_t * disc, iterator_call_mode_t icm,
 	    part			= AppendPartFST(fst);
 	    fst->part_active		= part;
 	    part->part_offset		= (u64)offset4 << 2;
+	    part->part_index		= disc->partition_index;
 	    part->part_type		= disc->partition_type;
 	    part->is_marked_not_enc	= disc->is_marked_not_enc;
 	    part->is_encrypted		= disc->is_encrypted;
@@ -3146,6 +3148,521 @@ void DecryptSectors
 	dest += WII_SECTOR_SIZE;
     }
 }
+
+//
+///////////////////////////////////////////////////////////////////////////////
+///////////////			    Verify			///////////////
+///////////////////////////////////////////////////////////////////////////////
+
+#ifdef TEST
+  #define WATCH_BLOCK 0
+#else
+  #define WATCH_BLOCK 0
+#endif
+
+///////////////////////////////////////////////////////////////////////////////
+
+void InitializeVerify ( Verify_t * ver, SuperFile_t * sf )
+{
+    TRACE("#VERIFY# InitializeVerify(%p,%p)\n",ver,sf);
+    ASSERT(ver);
+    memset(ver,0,sizeof(*ver));
+
+    ver->sf		= sf;
+    ver->selector	= partition_selector;
+    ver->verbose	= verbose;
+    ver->max_err_msg	= 10;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+void ResetVerify ( Verify_t * ver )
+{
+    TRACE("#VERIFY# ResetVerify(%p)\n",ver);
+    ASSERT(ver);
+    InitializeVerify(ver,ver->sf);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+static enumError PrintVerifyMessage ( Verify_t * ver, ccp msg )
+{
+    DASSERT(ver);
+    if ( ver->verbose >= -1 )
+    {
+	DASSERT(ver->sf);
+	DASSERT(ver->disc);
+	DASSERT(ver->part);
+	DASSERT(msg);
+
+	WiiFstPart_t * part = ver->part;
+
+	char pname_buf[20];
+	wd_print_partition_name(pname_buf,sizeof(pname_buf),part->part_type,0);
+
+	char count_buf[100];
+	if (!ver->disc_index)
+	{
+	    // no index supported
+	    snprintf( count_buf, sizeof(count_buf),".%u%c",
+			part->part_index,
+			part->is_encrypted ? ' ' : 'd' );
+	}
+	else if ( ver->disc_total < 2 )
+	{
+	    // a single check
+	    snprintf( count_buf, sizeof(count_buf),"%u.%u%c",
+			ver->disc_index,
+			part->part_index,
+			part->is_encrypted ? ' ' : 'd' );
+	}
+	else
+	{
+	    // calculate fw
+	    const int fw = snprintf(count_buf,sizeof(count_buf),"%u",ver->disc_total);
+	    snprintf( count_buf, sizeof(count_buf),"%*u.%u/%u%c",
+			fw,
+			ver->disc_index,
+			part->part_index,
+			ver->disc_total,
+			part->is_encrypted ? ' ' : 'd' );
+	}
+
+	printf("%*s%-7s %s %n%-7s %6.6s %s\n",
+		ver->indent, "",
+		msg, count_buf, &ver->info_indent,
+		pname_buf, ver->disc->id6,
+		ver->fname ? ver->fname : ver->sf->f.fname );
+	fflush(stdout);
+    }
+    return ERR_DIFFER;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+static enumError VerifyHash
+	( Verify_t * ver, ccp msg, u8 * data, size_t data_len, u8 * ref )
+{
+    DASSERT(ver);
+    DASSERT(ver->part);
+    DASSERT(ver->part->pc);
+
+ #if WATCH_BLOCK && 0
+    {
+	const u32 delta_off = (ccp)data - iobuf;
+	const u32 delta_blk = delta_off / WII_SECTOR_SIZE;
+	const u64 offset    = ver->part->part_offset
+			    + ver->part->pc->data_off
+			    + ver->group * (u64)WII_GROUP_SIZE
+			    + delta_off;
+	const u32 block	    = offset / WII_SECTOR_SIZE;
+
+	if ( block == WATCH_BLOCK )
+	    printf("WB: %s: delta=%x->%x, cmp(%02x,%02x)\n",
+			msg, delta_off, delta_blk, *hash, *ref );
+    }
+ #endif
+
+    u8 hash[WII_HASH_SIZE];
+    SHA1(data,data_len,hash);
+    if (!memcmp(hash,ref,WII_HASH_SIZE))
+	return ERR_OK;
+
+    PrintVerifyMessage(ver,msg);
+    if ( ver->verbose >= -1 && ver->long_count > 0 )
+    {
+	bool flush = false;
+
+	const u32 delta_off	= (ccp)data - iobuf;
+	const u32 delta_blk	= delta_off / WII_SECTOR_SIZE;
+	const u64 offset	= ver->part->part_offset
+				+ ver->part->pc->data_off
+				+ ver->group * (u64)WII_GROUP_SIZE
+				+ delta_off;
+	const int ref_delta	= ref - data; 
+
+	if ( (ccp)ref >= iobuf && (ccp)ref <= iobuf + sizeof(iobuf) )
+	{
+	    const u32 block	= offset / WII_SECTOR_SIZE;
+	    const u32 block_off	= offset - block * (u64)WII_SECTOR_SIZE;
+	    const u32 sub_block	= block_off / WII_SECTOR_DATA_OFF;
+
+	    printf("%*sgroup=%x.%x, block=%x.%x, data-off=%llx=B+%x, hash-off=%llx=B+%x\n",
+			ver->info_indent, "",
+			ver->group, delta_blk, block, sub_block,
+			offset, block_off, offset + ref_delta, block_off + ref_delta );
+	    flush = true;
+	}
+
+	if ( ver->long_count > 1 )
+	{
+	    printf("%*sDATA",ver->info_indent,"");
+	    HexDump(stdout,0,offset,10,WII_HASH_SIZE,hash,WII_HASH_SIZE);
+
+	    printf("%*sHASH",ver->info_indent,"");
+	    HexDump(stdout,0,offset+ref_delta,10,WII_HASH_SIZE,ref,WII_HASH_SIZE);
+
+	    printf("%*sVERIFY",ver->info_indent,"");
+	    HexDump(stdout,0,0,8,WII_HASH_SIZE,hash,WII_HASH_SIZE);
+
+	    flush = true;
+	}
+
+	if (flush)
+	    fflush(stdout);
+    }
+    return ERR_DIFFER;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+enumError VerifyPartition ( Verify_t * ver )
+{
+    DASSERT(ver);
+    DASSERT(ver->sf);
+    DASSERT(ver->disc);
+    DASSERT(ver->part);
+
+    TRACE("#VERIFY# VerifyPartition(%p) sf=%p disc=%p utab=%p fst=%p part=%p\n",
+		ver, ver->sf, ver->disc, ver->usage_tab, ver->fst, ver->part );
+    TRACE(" - psel=%x, v=%d, lc=%d, maxerr=%d\n",
+		ver->verbose, ver->verbose, ver->long_count, ver->max_err_msg );
+
+ #if WATCH_BLOCK
+    printf("WB: WATCH BLOCK %x = %u\n",WATCH_BLOCK,WATCH_BLOCK);
+ #endif
+
+    DASSERT( sizeof(iobuf) >= 2*WII_GROUP_SIZE );
+    if ( sizeof(iobuf) < WII_GROUP_SIZE )
+	return ERROR0(ERR_INTERNAL,0);
+
+    ver->indent = NormalizeIndent(ver->indent);
+    if ( ver->verbose > 1 )
+	PrintVerifyMessage(ver,">scan");
+
+
+    //----- check partition header
+
+    WiiFstPart_t * part = ver->part;
+
+    if (part->is_marked_not_enc)
+    {
+	PrintVerifyMessage(ver,"!NO-HASH");
+	return ERR_DIFFER;
+    }
+
+    const wd_part_control_t * pc = part->pc;
+    if ( !pc || !pc->is_valid )
+    {
+	PrintVerifyMessage(ver,"!INVALID");
+	return ERR_DIFFER;
+    }
+
+
+    //----- calculate end of blocks
+
+    u32 block = ( part->part_offset + pc->data_off ) / WII_SECTOR_SIZE;
+    u32 block_end = block + pc->data_size / WII_SECTOR_SIZE;
+    if ( block_end > WII_MAX_SECTORS )
+	 block_end = WII_MAX_SECTORS;
+
+    TRACE(" - Partition %u [%s], valid=%d, blocks=%x..%x\n",
+		part->part_type,
+		wd_get_partition_name(part->part_type,"?"),
+		pc->is_valid,
+		block, block_end );
+    TRACE_HEXDUMP16(0,block,ver->usage_tab,block_end-block);
+
+    const int usage_tab_marker = 2 + part->part_index;
+    const int max_differ_count = ver->verbose <= 0
+				? 1
+				: ver->max_err_msg > 0
+					? ver->max_err_msg
+					: INT_MAX;
+    int differ_count = 0;
+
+    for ( ver->group = 0; block < block_end; ver->group++, block += WII_GROUP_SECTORS )
+    {
+	//----- preload data
+
+     #if WATCH_BLOCK
+	bool wb_trigger = false;
+     #endif
+
+	u32 blk = block;
+	int index, found = -1, found_end = -1;
+	for ( index = 0; blk < block_end && index < WII_GROUP_SECTORS; blk++, index++ )
+	{
+	 #if WATCH_BLOCK
+	    if ( blk == WATCH_BLOCK )
+	    {
+		wb_trigger = true;
+		printf("WB: ver->usage_tab[%x] = %x, usage_tab_marker=%x\n",
+			blk, ver->usage_tab[blk], usage_tab_marker );
+	    }
+	 #endif
+	    if ( ver->usage_tab[blk] == usage_tab_marker )
+	    {
+		found_end = index+1;
+		if ( found < 0 )
+		    found = index;
+	    }
+	}
+
+     #if WATCH_BLOCK
+	if (wb_trigger)
+	    printf("WB: found=%d..%d\n",found,found_end);
+     #endif
+
+	if ( found < 0 )
+	{
+	    // nothing to do
+	    continue;
+	}
+
+	const u64 read_off = (block+found) * (u64)WII_SECTOR_SIZE;
+	wd_part_sector_t * read_sect = (wd_part_sector_t*)iobuf + found;
+	if ( part->is_encrypted )
+	    read_sect += WII_GROUP_SECTORS; // inplace decryption not possible
+	const enumError err
+	    = ReadSF( ver->sf, read_off, read_sect, (found_end-found)*WII_SECTOR_SIZE );
+	if (err)
+	    return err;
+
+	//----- iterate through preloaded data
+
+	blk = block;
+	wd_part_sector_t * sect_h2 = 0;
+	int i2; // iterate through H2 elements
+	for ( i2 = 0; i2 < WII_N_ELEMENTS_H2 && blk < block_end; i2++ )
+	{
+	    wd_part_sector_t * sect_h1 = 0;
+	    int i1; // iterate through H1 elements
+	    for ( i1 = 0; i1 < WII_N_ELEMENTS_H1 && blk < block_end; i1++, blk++ )
+	    {
+		if (SIGINT_level>1)
+		    return ERR_INTERRUPT;
+
+		if ( ver->usage_tab[blk] != usage_tab_marker )
+		    continue;
+
+		//----- we have found a used blk -----
+
+		wd_part_sector_t *sect	= (wd_part_sector_t*)iobuf
+					+ i2 * WII_N_ELEMENTS_H1 + i1;
+
+		if ( part->is_encrypted )
+		    DecryptSectors(&part->part_akey,sect+WII_GROUP_SECTORS,sect,1);
+
+
+		//----- check H0 -----
+
+		int i0;
+		for ( i0 = 0; i0 < WII_N_ELEMENTS_H0; i0++ )
+		{
+		    if (VerifyHash(ver,"!H0-ERR",sect->data[i0],WII_H0_DATA_SIZE,sect->h0[i0]))
+		    {
+			if ( ++differ_count >= max_differ_count )
+			    goto abort;
+		    }
+		}
+
+		//----- check H1 -----
+
+		if (VerifyHash(ver,"!H1-ERR",*sect->h0,sizeof(sect->h0),sect->h1[i1]))
+		{
+		    if ( ++differ_count >= max_differ_count )
+			goto abort;
+		    continue;
+		}
+
+		//----- check first H1 -----
+
+		if (!sect_h1)
+		{
+		    // first valid H1 sector
+		    sect_h1 = sect;
+
+		    //----- check H1 -----
+
+		    if (VerifyHash(ver,"!H2-ERR",*sect->h1,sizeof(sect->h1),sect->h2[i2]))
+		    {
+			if ( ++differ_count >= max_differ_count )
+			    goto abort;
+		    }
+		}
+		else
+		{
+		    if (memcmp(sect->h1,sect_h1->h1,sizeof(sect->h1)))
+		    {
+			PrintVerifyMessage(ver,"!H1-DIFF");
+			if ( ++differ_count >= max_differ_count )
+			    goto abort;
+		    }
+		}
+
+		//----- check first H2 -----
+
+		if (!sect_h2)
+		{
+		    // first valid H2 sector
+		    sect_h2 = sect;
+
+		    //----- check H3 -----
+
+		    u8 * h3 = pc->h3 + ver->group * WII_HASH_SIZE;
+		    if (VerifyHash(ver,"!H3-ERR",*sect->h2,sizeof(sect->h2),h3))
+		    {
+			if ( ++differ_count >= max_differ_count )
+			    goto abort;
+		    }
+		}
+		else
+		{
+		    if (memcmp(sect->h2,sect_h2->h2,sizeof(sect->h2)))
+		    {
+			PrintVerifyMessage(ver,"!H2-DIFF");
+			if ( ++differ_count >= max_differ_count )
+			    goto abort;
+		    }
+		}
+	    }
+	}
+    }
+
+    //----- check H4 -----
+
+    if (pc->tmd_content)
+    {
+	u8 hash[WII_HASH_SIZE];
+	SHA1( pc->h3, pc->h3_size, hash );
+	if (memcmp(hash,pc->tmd_content->hash,WII_HASH_SIZE))
+	{
+	    PrintVerifyMessage(ver,"!H4-ERR");
+	    ++differ_count;
+	}
+    }
+
+    //----- terminate partition ------
+
+abort:
+
+    if ( ver->verbose >= 0 )
+    {
+	if (!differ_count)
+	    PrintVerifyMessage(ver,"+OK");
+	else if ( ver->verbose > 0 && differ_count >= max_differ_count )
+	    PrintVerifyMessage(ver,"!ABORT");
+    }
+
+    return differ_count ? ERR_DIFFER : ERR_OK;
+};
+
+///////////////////////////////////////////////////////////////////////////////
+
+enumError VerifyDisc ( Verify_t * ver )
+{
+    DASSERT(ver);
+    DASSERT(ver->sf);
+    TRACE("#VERIFY# VerifyDisc(%p) sf=%p disc=%p utab=%p fst=%p part=%p\n",
+		ver, ver->sf, ver->disc, ver->usage_tab, ver->fst, ver->part );
+    TRACE(" - psel=%x, v=%d, lc=%d, maxerr=%d\n",
+		ver->verbose, ver->verbose, ver->long_count, ver->max_err_msg );
+
+    //----- setup Verify_t data
+
+    wiidisc_t * disc = 0;
+    if (!ver->disc)
+    {
+	TRACE(" - open disc\n");
+	disc = wd_open_disc(WrapperReadSF,ver->sf);
+	if (!disc)
+	    return ERROR0(ERR_CANT_OPEN,"Can't open dics: %s\n",ver->sf->f.fname);
+	ver->disc = disc;
+    }
+
+    u8 local_usage_tab[WII_MAX_SECTORS];
+    if (!ver->usage_tab)
+    {
+	TRACE(" - use local_usage_tab\n");
+	ver->usage_tab = local_usage_tab;
+    }
+    
+    WiiFst_t fst;
+    if (!ver->fst)
+    {
+	TRACE(" - use fst\n");
+	InitializeFST(&fst);
+
+	IsoFileIterator_t ifi;
+	memset(&ifi,0,sizeof(ifi));
+	ifi.sf  = ver->sf;
+	ifi.fst = &fst;
+
+	wd_iterate_files
+	(
+		ver->disc,
+		ver->selector,
+		IPM_DEFAULT,
+		CollectPartitions,
+		&ifi,
+		ver->usage_tab,
+		ver->sf->file_size
+	);
+	
+	ver->fst = &fst;
+    }
+    else if ( ver->usage_tab == local_usage_tab )
+    {
+	TRACE(" - fill usage table\n");
+	wd_build_disc_usage
+	(
+		ver->disc,
+		ver->selector,
+		ver->usage_tab,
+		ver->sf->file_size
+	);
+    }
+
+
+    //----- iterate partitions
+
+    enumError err = ERR_OK;
+    int pi, differ_count = 0;
+    for ( pi = 0; pi < ver->fst->part_used && !SIGINT_level; pi++ )
+    {
+	ver->part = ver->fst->part + pi;
+	err = VerifyPartition(ver);
+	if ( err == ERR_DIFFER )
+	{
+	    differ_count++;
+	    if ( ver->verbose < 0 )
+		break;
+	}
+	else if (err)
+	    break;
+    }
+
+
+    //----- reset Verify_t data
+
+    if ( ver->fst == &fst )
+    {
+	ver->fst = 0;
+	ResetFST(&fst);
+    }
+
+    if ( ver->usage_tab == local_usage_tab )
+	ver->usage_tab = 0;
+
+    if (disc)
+    {
+	ver->disc = 0;
+	wd_close_disc(disc);
+    }
+
+    return err ? err : differ_count ? ERR_DIFFER : ERR_OK;
+};
 
 //
 ///////////////////////////////////////////////////////////////////////////////

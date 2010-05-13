@@ -961,6 +961,7 @@ static enumError OpenWBFSHelper
     if (err)
 	goto abort;
     sf->f.disable_errors = false;
+    sf->oft = OFT_PLAIN;
 
     err = par ? OpenParWBFS(w,sf,print_err,par)
 	      : SetupWBFS(w,sf,print_err,sector_size,recover);
@@ -993,6 +994,140 @@ enumError FormatWBFS
     if ( sector_size < HD_SECTOR_SIZE )
 	sector_size = HD_SECTOR_SIZE;
     return OpenWBFSHelper(w,filename,print_err,par,sector_size,recover);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+enumError RecoverWBFS ( WBFS_t * wbfs, ccp fname, bool testmode )
+{
+    ASSERT(wbfs);
+    ASSERT(wbfs->wbfs);
+    ASSERT(wbfs->sf);
+
+    wbfs_t * w = wbfs->wbfs;
+    ASSERT(w);
+    ASSERT(w->head);
+    ASSERT(w->head->disc_table);
+    ASSERT(w->freeblks);
+
+    enumError err = ERR_OK;
+
+    // load first wbfs sector
+    u8 * first_sector = malloc(w->wbfs_sec_sz);
+    if (!first_sector)
+	OUT_OF_MEMORY;
+    DASSERT(wbfs->sf);
+    err = ReadSF(wbfs->sf,0,first_sector,w->wbfs_sec_sz);
+    if (!err)
+    {
+	bool inodes_dirty = false;
+
+	int slot;
+	for ( slot = 0; slot < w->max_disc; slot++ )
+	{
+	    if (!w->head->disc_table[slot])
+	    {
+		w->head->disc_table[slot] = 5;
+		wd_header_t * head
+		    = (wd_header_t*)( first_sector + w->hd_sec_sz + slot * w->disc_info_sz );
+		if ( ntohl(head->magic) == WII_MAGIC_DELETED )
+		{
+		    head->magic = htonl(WII_MAGIC);
+		    inodes_dirty = true;
+		}
+	    }
+	    else
+		w->head->disc_table[slot] &= ~4;
+	}
+
+	if (inodes_dirty)
+	    WriteSF(wbfs->sf,
+		    w->hd_sec_sz,
+		    first_sector + w->hd_sec_sz,
+		    w->max_disc * w->disc_info_sz );
+
+	memset(w->freeblks,0,w->freeblks_size4*4);
+	SyncWBFS(wbfs);
+
+	CheckWBFS_t ck;
+	InitializeCheckWBFS(&ck);
+	TRACELINE;
+	if (CheckWBFS(&ck,wbfs,-1,0,0))
+	{
+	    err = ERR_DIFFER;
+	    ASSERT(ck.disc);
+	    bool dirty = false;
+	    int n_recoverd = 0;
+	    //u8 * ref = ((wbfs_head_t*)first_sector)->disc_table;
+
+	    for ( slot = 0; slot < w->max_disc; slot++ )
+		if ( w->head->disc_table[slot] & 4 )
+		{
+		    CheckDisc_t * cd = ck.disc + slot;
+		    if (   cd->no_blocks
+			|| cd->bl_overlap
+			|| cd->bl_invalid )
+		    {
+			w->head->disc_table[slot] = 0;
+			dirty = true;
+		    }
+		    else
+			n_recoverd++;
+		}
+
+	    if (n_recoverd)
+	    {
+		if (testmode)
+		    printf(" * WOULD recover %u disc%s:\n",
+			n_recoverd, n_recoverd == 1 ? "" : "s" );
+		else
+		    printf(" * %u disc%s recoverd\n",
+			n_recoverd, n_recoverd == 1 ? "" : "s" );
+
+		for ( slot = 0; slot < w->max_disc; slot++ )
+		    if ( w->head->disc_table[slot] & 4 )
+		    {
+			w->head->disc_table[slot] &= ~4;
+			wd_header_t * inode
+			    = (wd_header_t*)( first_sector + w->hd_sec_sz
+						+ slot * w->disc_info_sz );
+			ccp id6 = (ccp)&inode->wii_disc_id;
+			printf("   - slot #%03u [%.6s] %s\n",
+				slot, id6, GetTitle(id6,(ccp)inode->game_title) );
+		    }
+	    }
+
+	    if (!testmode)
+	    {
+		if (dirty)
+		{
+		    ResetCheckWBFS(&ck);
+		    SyncWBFS(wbfs);
+		    CheckWBFS(&ck,wbfs,-1,0,0);
+		}
+
+		TRACELINE;
+		RepairWBFS(&ck,0,REPAIR_FBT|REPAIR_RM_INVALID|REPAIR_RM_EMPTY,-1,0,0);
+		TRACELINE;
+		ResetCheckWBFS(&ck);
+		SyncWBFS(wbfs);
+		if (CheckWBFS(&ck,wbfs,1,stdout,1))
+		    printf(" *** Run REPAIR %s ***\n\n", fname ? fname : wbfs->sf->f.fname );
+		else
+		    putchar('\n');
+	    }
+	}
+	ResetCheckWBFS(&ck);
+
+	if (testmode)
+	{
+	    WriteSF(wbfs->sf,0,first_sector,w->wbfs_sec_sz);
+	    err = ReloadWBFS(wbfs);
+	}
+    }
+
+    free(first_sector);
+    return err;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -1057,6 +1192,30 @@ enumError SyncWBFS ( WBFS_t * w )
 
 ///////////////////////////////////////////////////////////////////////////////
 
+enumError ReloadWBFS ( WBFS_t * wbfs )
+{
+    ASSERT(wbfs);
+    enumError err = ERR_OK;
+
+    wbfs_t * w = wbfs->wbfs;
+    if (w)
+    {
+	free(w->freeblks);
+	w->freeblks = 0;
+	free(w->id_list);
+	w->id_list = 0;
+	if ( w->head && wbfs->sf )
+	{
+	    err = ReadSF(wbfs->sf,0,w->head,w->hd_sec_sz);
+	    CalcWBFSUsage(wbfs);
+	}
+    }
+
+    return err;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
 enumError OpenPartWBFS ( WBFS_t * w, PartitionInfo_t * info )
 {
     ASSERT(info);
@@ -1088,7 +1247,7 @@ static enumError GetWBFSHelper ( WBFS_t * w, PartitionInfo_t ** p_info )
     {
 	PartitionInfo_t * info;
 	for ( info = *p_info; info; info = info->next )
-	    if ( OpenPartWBFS(w,info) == ERR_OK )
+	    if ( !info->ignore && OpenPartWBFS(w,info) == ERR_OK )
 	    {
 		*p_info = info;
 		return ERR_OK;
@@ -2132,7 +2291,7 @@ enumError CheckWBFS
 
     for ( slot = 0; slot < w->max_disc; slot++ )
     {
-	wbfs_disc_t * d = wbfs_open_disc_by_slot(w,slot,1);
+	wbfs_disc_t * d = wbfs_open_disc_by_slot(w,slot,0);
 	if (!d)
 	    continue;
 

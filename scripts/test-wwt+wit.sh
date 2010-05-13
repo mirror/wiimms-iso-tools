@@ -149,9 +149,9 @@ NOFST=0
 NOPIPE=0
 [[ $TERM = cygwin ]] && NOPIPE=1
 
-export WWT_WBFS=
-export WWT_OPT=
 export WIT_OPT=
+export WWT_OPT=
+export WWT_WBFS=
 
 # error codes
 

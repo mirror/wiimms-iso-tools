@@ -4,8 +4,8 @@
 
 Title files without path specification are search in up to 4 directories:
   1.) In the program path.
-  2.) If the program end with "/bin/" in "<PROGRAM_PATH>/../share/wwt/".
-  3.) In the directory "/usr/local/share/wwt/"
+  2.) If the program end with "/bin/" in "<PROGRAM_PATH>/../share/wit/".
+  3.) In the directory "/usr/local/share/wit/"
   4.) In the current working directory "./"
 If you want to search only in the current working directory prefix the file
 name with './'. If setting option --verbose at least 4 times (e.g. -vvvv)

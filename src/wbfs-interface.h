@@ -1,6 +1,6 @@
 
-#ifndef WWT_WBFS_INTERFACE_H
-#define WWT_WBFS_INTERFACE_H 1
+#ifndef WIT_WBFS_INTERFACE_H
+#define WIT_WBFS_INTERFACE_H 1
 
 #include <stdio.h>
 
@@ -58,6 +58,7 @@ typedef struct PartitionInfo_t
 	ccp  real_path;
 	enumFileMode filemode;
 	bool is_checked;
+	bool ignore;
 	u64  file_size;
 	u64  disk_usage;
 	enumPartMode part_mode;
@@ -248,10 +249,12 @@ enumError CreateGrowingWBFS
 enumError OpenWBFS	( WBFS_t * w, ccp filename, bool print_err, wbfs_param_t * par );
 enumError FormatWBFS	( WBFS_t * w, ccp filename, bool print_err,
 			  wbfs_param_t * par, int sector_size, bool recover );
+enumError RecoverWBFS	( WBFS_t * w, ccp fname, bool testmode );
 enumError TruncateWBFS	( WBFS_t * w );
 
 enumError CalcWBFSUsage	( WBFS_t * w );
 enumError SyncWBFS	( WBFS_t * w );
+enumError ReloadWBFS	( WBFS_t * w );
 
 enumError OpenPartWBFS	( WBFS_t * w, struct PartitionInfo_t *  info );
 enumError GetFirstWBFS	( WBFS_t * w, struct PartitionInfo_t ** info );
@@ -341,4 +344,4 @@ int RenameISOHeader ( void * data, ccp fname,
 ///////////////                          END                    ///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-#endif // WWT_WBFS_INTERFACE_H
+#endif // WIT_WBFS_INTERFACE_H

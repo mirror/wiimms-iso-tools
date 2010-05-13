@@ -101,6 +101,9 @@ enumError cmd_test_options()
 {
     printf("Options (hex=dec):\n");
 
+    printf("  test:        %16d\n",testmode);
+    printf("  verbose:     %16d\n",verbose);
+
  #if IS_WWT
     printf("  size:        %16llx = %lld\n",opt_size,opt_size);
     printf("  hd sec-size: %16x = %d\n",opt_hss,opt_hss);
@@ -112,6 +115,7 @@ enumError cmd_test_options()
     printf("  escape-char: %16x = %d\n",escape_char,escape_char);
     printf("  print-time:  %16x = %d\n",opt_print_time,opt_print_time);
     printf("  sort-mode:   %16x = %d\n",sort_mode,sort_mode);
+    printf("  limit:       %16x = %d\n",opt_limit,opt_limit);
     printf("  enc:         %16x = %d\n",encoding,encoding);
     printf("  rdepth:      %16x = %d\n",opt_recurse_depth,opt_recurse_depth);
 

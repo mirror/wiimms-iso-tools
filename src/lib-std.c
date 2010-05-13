@@ -36,7 +36,9 @@
 #include "lib-sf.h"
 #include "wbfs-interface.h"
 #include "match-pattern.h"
+#include "titles.h"
 #include "crypt.h"
+#include "dclib-utf8.h"
 
 //
 ///////////////////////////////////////////////////////////////////////////////
@@ -135,7 +137,7 @@ static void sig_handler ( int signum )
 	  break;
 
       case SIGUSR1:
-	if ( verbose >= 0 )
+	if ( verbose >= -1 )
 	    verbose--;
 	TRACE("#SIGNAL# USR1: verbose = %d\n",verbose);
 	fprintf(stderr,usr_msg,1,"DECREASED",verbose);
@@ -179,6 +181,9 @@ void SetupLib ( int argc, char ** argv, ccp p_progname, enumProgID prid )
     TRACE("BIG_ENDIAN=%d\n",BIG_ENDIAN);
  #endif
 
+    // numeric types
+
+    TRACE("-");
     TRACE_SIZEOF(bool);
     TRACE_SIZEOF(short);
     TRACE_SIZEOF(int);
@@ -197,49 +202,77 @@ void SetupLib ( int argc, char ** argv, ccp p_progname, enumProgID prid )
     TRACE_SIZEOF(s32);
     TRACE_SIZEOF(s64);
 
-    TRACE_SIZEOF(StringField_t);
-    TRACE_SIZEOF(StringList_t);
-    TRACE_SIZEOF(CommandTab_t);
-    TRACE_SIZEOF(ParamList_t);
-    TRACE_SIZEOF(PartitionInfo_t);
-    TRACE_SIZEOF(MemMapItem_t);
-    TRACE_SIZEOF(MemMap_t);
+    // base types A-Z
 
-    TRACE_SIZEOF(FileCache_t);
-    TRACE_SIZEOF(FileAttrib_t);
-    TRACE_SIZEOF(File_t);
-    TRACE_SIZEOF(SuperFile_t);
-
-    TRACE_SIZEOF(WDF_Hole_t);
-    TRACE_SIZEOF(WDF_Head_t);
-    TRACE_SIZEOF(WDF_Chunk_t);
-
-    TRACE_SIZEOF(CISO_Map_t);
+    TRACE("-");
+    TRACE_SIZEOF(AWData_t);
+    TRACE_SIZEOF(AWRecord_t);
     TRACE_SIZEOF(CISO_Head_t);
     TRACE_SIZEOF(CISO_Info_t);
-
-    TRACE_SIZEOF(WBFS_t);
     TRACE_SIZEOF(CheckDisc_t);
     TRACE_SIZEOF(CheckWBFS_t);
-    TRACE_SIZEOF(AWRecord_t);
-    TRACE_SIZEOF(AWData_t);
-
+    TRACE_SIZEOF(CommandTab_t);
+    TRACE_SIZEOF(FileAttrib_t);
+    TRACE_SIZEOF(FileCache_t);
+    TRACE_SIZEOF(FilePattern_t);
+    TRACE_SIZEOF(File_t);
+    TRACE_SIZEOF(ID_DB_t);
+    TRACE_SIZEOF(ID_t);
+    TRACE_SIZEOF(IsoFileIterator_t);
+    TRACE_SIZEOF(IsoMappingItem_t);
+    TRACE_SIZEOF(IsoMapping_t);
+    TRACE_SIZEOF(Iterator_t);
+    TRACE_SIZEOF(MemMapItem_t);
+    TRACE_SIZEOF(MemMap_t);
+    TRACE_SIZEOF(ParamList_t);
+    TRACE_SIZEOF(PartitionInfo_t);
+    TRACE_SIZEOF(PrintTime_t);
+    TRACE_SIZEOF(StringField_t);
+    TRACE_SIZEOF(StringList_t);
+    TRACE_SIZEOF(SubstString_t);
+    TRACE_SIZEOF(SuperFile_t);
+    TRACE_SIZEOF(Verify_t);
+    TRACE_SIZEOF(WBFS_t);
+    TRACE_SIZEOF(WDF_Chunk_t);
+    TRACE_SIZEOF(WDF_Head_t);
     TRACE_SIZEOF(WDPartInfo_t);
     TRACE_SIZEOF(WDiscInfo_t);
     TRACE_SIZEOF(WDiscListItem_t);
     TRACE_SIZEOF(WDiscList_t);
-
-    TRACE_SIZEOF(FilePattern_t);
     TRACE_SIZEOF(WiiFstFile_t);
+    TRACE_SIZEOF(WiiFstInfo_t);
     TRACE_SIZEOF(WiiFstPart_t);
     TRACE_SIZEOF(WiiFst_t);
-    TRACE_SIZEOF(WiiFstInfo_t);
-    TRACE_SIZEOF(IsoFileIterator_t);
 
-    TRACE_SIZEOF(wiidisc_t);
-    TRACE_SIZEOF(wbfs_t);
+    // base types a-z
+
+    TRACE("-");
+    TRACE_SIZEOF(aes_key_t);
+    TRACE_SIZEOF(dcUnicodeTripel);
+    TRACE_SIZEOF(dol_header_t);
+    TRACE_SIZEOF(wbfs_disc_info_t);
+    TRACE_SIZEOF(wbfs_disc_t);
+    TRACE_SIZEOF(wbfs_head_t);
+    TRACE_SIZEOF(wbfs_inode_info_t);
     TRACE_SIZEOF(wbfs_param_t);
+    TRACE_SIZEOF(wbfs_t);
+    TRACE_SIZEOF(wd_boot_t);
+    TRACE_SIZEOF(wd_fst_item_t);
+    TRACE_SIZEOF(wd_header_t);
+    TRACE_SIZEOF(wd_part_control_t);
+    TRACE_SIZEOF(wd_part_count_t);
+    TRACE_SIZEOF(wd_part_header_t);
+    TRACE_SIZEOF(wd_part_sector_t);
+    TRACE_SIZEOF(wd_part_table_entry_t);
+    TRACE_SIZEOF(wd_region_set_t);
+    TRACE_SIZEOF(wd_ticket_t);
+    TRACE_SIZEOF(wd_tmd_content_t);
+    TRACE_SIZEOF(wd_tmd_t);
+    TRACE_SIZEOF(wiidisc_t);
 
+    // assertions
+
+    TRACE("-");
     ASSERT( 1 == sizeof(u8)  );
     ASSERT( 2 == sizeof(u16) );
     ASSERT( 4 == sizeof(u32) );
@@ -313,8 +346,8 @@ void SetupLib ( int argc, char ** argv, ccp p_progname, enumProgID prid )
     snprintf(proc_path,sizeof(proc_path),"/proc/%u/exe",getpid());
     TRACE("PROC-PATH: %s\n",proc_path);
 
-    static char share[] = "/share/wwt/";
-    static char local_share[] = "/usr/local/share/wwt/";
+    static char share[] = "/share/wit/";
+    static char local_share[] = "/usr/local/share/wit/";
 
     char path[PATH_MAX];
     if (readlink(proc_path,path,sizeof(path)))
@@ -378,11 +411,14 @@ void SetupLib ( int argc, char ** argv, ccp p_progname, enumProgID prid )
 
     //----- setup language info
 
-    char * wwt_lang = getenv("WWT_LANG");
-    if ( wwt_lang && *wwt_lang )
+    char * wit_lang = getenv("WIT_LANG");
+    if ( !wit_lang || !*wit_lang )
+	wit_lang = getenv("WWT_LANG");
+    if ( wit_lang && *wit_lang )
+    if ( wit_lang && *wit_lang )
     {
-	lang_info = strdup(wwt_lang);
-	TRACE("LANG_INFO = %s [WWT_LANG]\n",lang_info);
+	lang_info = strdup(wit_lang);
+	TRACE("LANG_INFO = %s [WIT_LANG]\n",lang_info);
     }
     else
     {

@@ -517,7 +517,7 @@ __attribute__ ((packed)) wbfs_head_t;
 ///////////////			struct wbfs_disc_info_t		///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-typedef struct wbfs_disc_info
+typedef struct wbfs_disc_info_s
 {
     u8 disc_header_copy[0x100];
     be16_t wlba_table[0];   // wbfs_t::n_wbfs_sec_per_disc elements

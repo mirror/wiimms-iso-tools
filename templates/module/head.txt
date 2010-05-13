@@ -1,14 +1,14 @@
 *******************************************************************************
-*******               Wiimms WBFS Tool v@.@@@ - @@@@-@@-@@              *******
+*******              Wiimms ISO Toolset v@.@@@ - @@@@-@@-@@             *******
 *******************************************************************************
 
-Wiimms WBFS Tools (WWT) is a command line tool set for linux and for other
+Wiimms ISO Toolset (WIT) is a command line tool set for linux and for other
 unix like operating systems including cygwin. The tools manage WBFS partitions
 and ISO Images. WWT cotains the following tools:
 
 The both main tools are:
-  wwt      : @@WWT-LONG@@ manage WBFS partitions.
   wit      : @@WIT-LONG@@ manage ISO files.
+  wwt      : @@WWT-LONG@@ manage WBFS partitions.
 
 These are some conversion tools:
   iso2wdf  : converts ISO images into WDF files.

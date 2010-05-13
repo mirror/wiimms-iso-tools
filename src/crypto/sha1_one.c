@@ -58,17 +58,17 @@
 
 #include <stdio.h>
 #include <string.h>
-#include "wwt-sha.h"
+#include "wit-sha.h"
 
-unsigned char *WWT_SHA1(const unsigned char *d, size_t n, unsigned char *md)
+unsigned char *WIT_SHA1(const unsigned char *d, size_t n, unsigned char *md)
 {
-	WWT_SHA_CTX c;
+	WIT_SHA_CTX c;
 	static unsigned char m[SHA_DIGEST_LENGTH];
 
 	if (md == NULL) md=m;
-	if (!WWT_SHA1_Init(&c))
+	if (!WIT_SHA1_Init(&c))
 		return NULL;
-	WWT_SHA1_Update(&c,d,n);
-	WWT_SHA1_Final(md,&c);
+	WIT_SHA1_Update(&c,d,n);
+	WIT_SHA1_Final(md,&c);
 	return(md);
 }

@@ -4,10 +4,12 @@
 // Any changes will be lost!"
 //---------------------------------"
 
-#define WWT_SHORT	"@@WWT-SHORT@@"
-#define WWT_LONG	"@@WWT-LONG@@"
+#define TOOLSET_SHORT	"@@TOOLSET-SHORT@@"
+#define TOOLSET_LONG	"@@TOOLSET-LONG@@"
 #define WIT_SHORT	"@@WIT-SHORT@@"
 #define WIT_LONG	"@@WIT-LONG@@"
+#define WWT_SHORT	"@@WWT-SHORT@@"
+#define WWT_LONG	"@@WWT-LONG@@"
 #define AUTHOR		"@@AUTHOR@@"
 
 #define VERSION		"@@VERSION@@"

@@ -219,7 +219,7 @@ COMMAND: DIFF|CMP
  Usual ERROR/EXIT CODES:
 
     0 == OK             : all done without erros.
-    DIFFER              : At leaset one file pair differ.
+    DIFFER              : At least one file pair differ.
     SYNTAX ERROR        : at least one syntax error in command line found.
     READ ERROR          : error while reading a file.
     WRITE ERROR         : error while writing a file.
@@ -968,6 +968,125 @@ COMMAND: TITLES   [additional_title_file]...
 
 -------------------------------------------------------------------------------
 
+COMMAND: VERIFY|V  iso_image_path...
+
+ Verify the internal SHA1 check sums of each ISO image (find bad dumps).
+
+ Options:
+
+    -s --source  path  ISO file or directory with ISO files.
+    -r --recurse path  ISO file or base of a directory tree with ISO files.
+       --rdepth  depth Set the maximum recure depth for --recurse (default=10).
+    -n --include id    Include oly discs with given ID4 or ID6 from operation.
+    -n --include @file Read include list from file.
+    -N --include-path file_or_dir
+                       ISO file or base of directory tree -> scan their ID6.
+    -x --exclude id    Exclude discs with given ID4 or ID6 from operation.
+    -x --exclude @file Read exclude list from file.
+    -X --exclude-path file_or_dir
+                       ISO file or base of directory tree -> scan their ID6
+    -i --ignore        Ignore non existing discs without warning.
+
+  * -q --quiet         Be quiet and report only errors. If --quiet set at
+                       least twice then wit will print nothing and only the
+                       exit status is set.
+  * -v --verbose       Be verbose. This option can be set multiple times.
+       --limit num     Maximal printed errors of each partition. A zero means
+                       unlimitted. The default is 10.
+  * -l --long          On error print an additional line to localize the exact
+                       position where the error is found. If set at least
+                       twice a hexdump of the hash values is printed too.
+
+
+
+ Every 1024 bytes of user data in every partition has its own SHA1 check sum
+ (called 'H0'). There are also H1 (hash of 31*H0), H2 (hash of 8*H1), H3 (hash
+ of 8*H2) and for the whole partition one H4 (hash of all H3) check sums. To
+ validate a partition it is enought to calculate the check sums and compare
+ them with the stored sums. For a scrubbed image it is enough to compare the
+ check sums of the used sectors. "wit+wwt VERIFY" do exactly this.
+
+ To validate a disc the tool must do 64 AES-128-CBC decryptions and 1029 SHA1
+ calculations for each MiB of data. This slow down the opration rapidly and
+ verifying is much slower then copying. 
+
+ The options --quiet and --verbose control the verbosity level of the command:
+
+  -qq : level -2 : Be abossulte quiet. The status is only reported as exit status.
+  -q  : level -1 : Be quiet and report only the first errors of each partiton.
+        level  0 : Print one status line for each partition (success or error).
+  -v  : level  1 : Print up to --limit error messages for each partition.
+  -vv : level  2 : Print progress information (not implemented yet).
+
+ For levels <=0 the check of a partiton is aborted on the first found error.
+
+
+ Output format:
+ --------------
+
+  The messages are printed in 5 columns (with examples). The first 4 columns
+  never contains spaces or other blanks ('awk' friendly).
+
+	STATUS  COUNTER PARTITION ID6    NAME
+	>scan   1.0/2   DATA      RUUP01 pool/corrupt/animal.wdf
+	!H0-ERR 1.0/2   DATA      RUUP01 pool/corrupt/animal.wdf
+	+OK     2.0/2   DATA      RUUP01 pool/wdf/animal.wdf
+      
+  STATUS:
+    This is tha staus column. The first character describes the message class:
+	> : informative message
+	+ : success
+	! : error message
+
+  COUNTER
+    A counter in the format:
+       DISC_INDEX . PARTITION_INDEX / TOTAL_DISCS 'd'
+    DISC_INDEX and TOTAL_DISCS are not printed if only 1 disc is verified.
+    The 'd' is only printed for decrypted (not encrypted) discs.
+
+  PARTITION
+    Type of the partition. For UPDATE, DATA and CHANNEL partitions the name is
+    printed, for all other the number.
+
+  ID6
+    ID6 of the disc.
+
+  NAME
+    Name (filename if available) of the disc.
+
+
+ Error Mesages:
+ --------------
+
+   +OK      : Success message.
+   !NO-HASH : No hash values found (all zero).
+   !INVALID : Invalid disc (can't find required files).
+   !H#-ERR  : Check sum error in table H0..H4.
+   !H1-DIFF : For each sequence of 8 sectors the H1 table must be identical.
+              'H1-DIFF' means, that at least on table differ.
+   !H2-DIFF : For each sequence of 64 sectors the H2 table must be identical.
+              'H2-DIFF' means, that at least on table differ.
+   !ABORT   : Check aborted because of 10 found errors.
+
+
+ See also:
+ ---------
+    wwt VERIFY
+    wit DIFF
+
+
+ Usual ERROR/EXIT CODES:
+ -----------------------
+
+    0 == OK             : all done without erros.
+    DIFFER              : At least one check sum error found.
+    SYNTAX ERROR        : at least one syntax error in command line found.
+    READ ERROR          : error while reading a file.
+    CANT OPEN           : Can't open file.
+
+
+-------------------------------------------------------------------------------
+
 COMMAND: VERSION   [any_options_or_parameters]
 
  Recognize option --long and ignore all other options and parameters, print out
@@ -1071,13 +1190,13 @@ There are some hidden options implemented for testing:
 The user can define environment variables as additional way to submit
 parameters to the tool:
 
-WWT_LANG
+WIT_LANG
 
- With 'WWT_LANG' (not 'WIT_LANG') the user can spezifiy a default language
- for wwt and wit titles. If 'WWT_LANG' is empty 'LC_CTYPE' will be scanned.
- The option --lang overides this default setting.
+ With 'WIT_LANG' the user can spezifiy a default language for wit and wwt
+ titles. If 'WIT_LANG' is empty 'LC_CTYPE' will be scanned. The option
+ --lang overides this default setting.
 
- Example: WWT_LANG="de"
+ Example: WIT_LANG="de"
 
 WIT_OPT
 

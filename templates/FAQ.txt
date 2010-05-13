@@ -15,19 +15,10 @@
 *******                             Tools                             *********
 *******************************************************************************
 
-* What is "WWT"?
+* What is "WIT"?
 
-    'WWT' is an abbreviation of "Wiimms WBFS Tools". It is a collection of
-    tools to manipulate and convert WBFS and ISO files.
-
-
-* What is "wwt"?
-
-    'wwt' is an abbreviation of "Wiimms WBFS Tool" (not 'tools'). 'wwt' was the
-    first tool of this tool set. It is developed for manipulationg WBFS files.
-    The general syntax is: wwt <command> <option>... <parameter>...
-    The importand commands are:
-	INIT, CHECK, LIST, REPAIR, DUMP, ADD, UPDATE, EXTRACT, RENAME, SETTITLE
+    'WWT' is an abbreviation of "Wiimms ISO Tools". It is a collection of
+    tools to manipulate and convert ISO and WBFS files.
 
 
 * What is "wit"?
@@ -37,6 +28,15 @@
     The general syntax is: wit <command> <option>... <parameter>...
     The importand commands are:
 	DUMP, LIST, DIFF, COPY, SCRUB, MOVE, RENAME, SETTTILE
+
+
+* What is "wwt"?
+
+    'wwt' is an abbreviation of "Wiimms WBFS Tool" (not 'tools'). 'wwt' was the
+    first tool of this tool set. It is developed for manipulationg WBFS files.
+    The general syntax is: wwt <command> <option>... <parameter>...
+    The importand commands are:
+	INIT, CHECK, LIST, REPAIR, DUMP, ADD, UPDATE, EXTRACT, RENAME, SETTITLE
 
 
 * What are 'iso2wdf', 'wdf2iso' and 'iso2wbfs'
@@ -57,7 +57,7 @@
 *******                      General Informations                     *********
 *******************************************************************************
 
-'wwt' and 'wit' support different commands. Some commands are "read only" and
+'wit' and 'wwt' support different commands. Some commands are "read only" and
 the other commands modify files and devices.
 
 The "read only" commands of 'wwt' scan automatically for partitions. The
@@ -66,18 +66,18 @@ be given with "--part partition" (short: -p) or by enabling the auto search
 with option --auto (short: -a). See section "Processing partitions" in file
 "wwt.txt" for more information.
 
-All "modify" commands of 'wwt' and 'wit' knows the option --test (short: -t).
+All "modify" commands of 'wit' and 'wwt' knows the option --test (short: -t).
 If set the programs tells you what they would do.
 
-'wwt' and 'wit' work silently. The option --quiet (short: -q) make them more
+'wit' and 'wwt' work silently. The option --quiet (short: -q) make them more
 quiet. The option --verbose (short: -v) enables more verbose output. You can
 use --verbose multiple times for more verbose outputs. Using --verbose at
 least 2 times will enable a progress counter.
 
-It is the policy of wwt and wit to overwrite nothing if the option --overwrite
+It is the policy of wit and wwt to overwrite nothing if the option --overwrite
 (-o) is not set.
 
-The environment variables 'WWT_OPT' and 'WIT_OPT' can be used to predifine
+The environment variables 'WIT_OPT' and 'WWT_OPT' can be used to predifine
 options like "-vv". Under Unix decalre them in you local script init file.
 Under Windows go to "Setting | Systems Settings | Extended | Environment".
 

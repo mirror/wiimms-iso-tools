@@ -41,4 +41,4 @@
     Instead of '%' an alternative escape character can be used. It is defined
     by the option --esc. This makes live easier if using the cygwin version
     together with the windows shell 'cmd'. Define the environment variables
-    'WWT_OPT' and/or 'WIT_OPT' for a new default definition.
+    'WIT_OPT' and/or 'WWT_OPT' for a new default definition.

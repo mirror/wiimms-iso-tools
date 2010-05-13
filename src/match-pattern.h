@@ -1,6 +1,6 @@
 
-#ifndef WWT_MATCH_PATTERN_H
-#define WWT_MATCH_PATTERN_H 1
+#ifndef WIT_MATCH_PATTERN_H
+#define WIT_MATCH_PATTERN_H 1
 
 #include "types.h"
 
@@ -46,5 +46,5 @@ bool MatchPattern ( ccp pattern, ccp text );
 
 ///////////////////////////////////////////////////////////////////////////////
 
-#endif // WWT_MATCH_PATTERN_H
+#endif // WIT_MATCH_PATTERN_H
 

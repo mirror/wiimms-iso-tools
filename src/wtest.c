@@ -522,6 +522,7 @@ static int test_encryption ( int argc, char ** argv )
 void show_disc_usage_map ( int argc, char ** argv )
 {
     partition_selector_t sel = ALL_PARTITIONS;
+
     int i;
     for ( i = 1; i < argc; i++ )
     {
@@ -538,7 +539,7 @@ void show_disc_usage_map ( int argc, char ** argv )
 	    wiidisc_t * disc = wd_open_disc(WrapperReadSF,&sf);
 	    if (disc)
 	    {
-		printf("\n*** %s***\n",argv[i]);
+		printf("\n*** %s ***\n",argv[i]);
 		wd_build_disc_usage(disc,sel,wdisc_usage_tab,sf.file_size);
 		wd_close_disc(disc);
 
@@ -593,6 +594,7 @@ void show_disc_usage_map ( int argc, char ** argv )
 void show_disc_usage_table ( int argc, char ** argv )
 {
     partition_selector_t sel = ALL_PARTITIONS;
+
     int i;
     for ( i = 1; i < argc; i++ )
     {
@@ -609,7 +611,7 @@ void show_disc_usage_table ( int argc, char ** argv )
 	    wiidisc_t * disc = wd_open_disc(WrapperReadSF,&sf);
 	    if (disc)
 	    {
-		printf("\n*** %s***\n",argv[i]);
+		printf("\n*** %s ***\n",argv[i]);
 		wd_build_disc_usage(disc,sel,wdisc_usage_tab,sf.file_size);
 		wd_close_disc(disc);
 
@@ -656,7 +658,7 @@ void test_sha1()
     const int N = 50000;
     const int M = 50000;
 
-    int wwt_failed = 0;
+    int wit_failed = 0;
     u8 h1[100], h2[100], source[1000-21];;
 
     printf("\n*** test SHA1 ***\n\n");
@@ -670,10 +672,10 @@ void test_sha1()
 
     u32 t2 = GetTimerMSec();
     for ( i=0; i<M; i++ )
-	WWT_SHA1(source,sizeof(source),h2);
+	WIT_SHA1(source,sizeof(source),h2);
     t2 = GetTimerMSec() - t2;
 
-    printf("WWT_SHA1: %8u msec / %u = %6llu nsec\n",t2,M,(u64)t2*1000000/M);
+    printf("WIT_SHA1: %8u msec / %u = %6llu nsec\n",t2,M,(u64)t2*1000000/M);
     printf("SHA1:     %8u msec / %u = %6llu nsec\n",t1,M,(u64)t1*1000000/M);
 
     for ( i = 0; i < N; i++ )
@@ -683,12 +685,12 @@ void test_sha1()
 	RandomFill(source,sizeof(source));
 
 	SHA1(source,sizeof(source),h1);
-	WWT_SHA1(source,sizeof(source),h2);
+	WIT_SHA1(source,sizeof(source),h2);
 
 	if (memcmp(h2,h1,sizeof(h2)))
-	    wwt_failed++;
+	    wit_failed++;
     }
-    printf("WWT failed:%7u/%u\n\n",wwt_failed,N);
+    printf("WWT failed:%7u/%u\n\n",wit_failed,N);
 
     HexDump(stdout,0,0,0,24,h2,24);
     HexDump(stdout,0,0,0,24,h1,24);

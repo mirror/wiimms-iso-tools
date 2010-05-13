@@ -4,7 +4,8 @@
 
 BASE_PATH="@@INSTALL-PATH@@"
 BIN_PATH="$BASE_PATH/bin"
-LIB_PATH="$BASE_PATH/share/wwt"
+LIB_PATH="$BASE_PATH/share/wit"
+OLD_LIB_PATH="$BASE_PATH/share/wwt"
 
 BIN_FILES="@@BIN-FILES@@"
 LIB_FILES="@@LIB-FILES@@"
@@ -23,6 +24,7 @@ fi
 
 #------------------------------------------------------------------------------
 
+[[ -d $OLD_LIB_PATH/ && ! -a $LIB_PATH ]] && mv "$OLD_LIB_PATH" "$LIB_PATH"
 mkdir -p "$BIN_PATH" "$LIB_PATH"
 
 echo "*** install binaries to $BIN_PATH"

@@ -1,29 +1,36 @@
-wwt v0.44a r973 - 2010-05-02
-
-  - wit bug fix: Option --enc was not accepted.
-  - ISO composing supports now UPDATE, DATA and CHANNEL (new!) partitions.
-  - wit DIFF: If option --files= (-F) is set then the ISO images (real or
-    virtual FST) will be compared on file level. The option --files= declares
-    a file filter.
-  - Progress counter for "wit EXTRACT" enabled.
-  - Option --files= (-F): The macros are redifined as positive list.
-    Now we have the following macros:
-    =base =nobase =disc =nodisc =sys =nosys =files =nofiles =wit =wwt =sneek
-  - wit COPY can decrypt or encrypt ISO images on the fly when copying in
-    scrubbed mode. This does not change the signature.
-  - Fix some troubles with new cyygwin release 1.7.5-1. The main problem
-    was file path creation with absolute path names.
-
-wwt v@.@@@ r@@REV-NEXT@@ - @@@@-@@-@@
+wwt v0.45a r1012 - 2010-05-05
 
   - To avoid troubles with platform dependent openssl support I have integrated
     the SHA1 sources from openssl into WWT.
   - The new command "wit VERIFY" checks the hash signatures of all needed
     sectors (keyword "scrubbed"). All five hash levels (H0..H4) are verified.
-    This means 64 decryptions and 1024 SHA1 calculations for each MiB.
+    This means 64 AES decryptions and 1029 SHA1 calculations for each MiB.
+
+wit v@.@@@ r@@REV-NEXT@@ - @@@@-@@-@@
+
+  - The main name have changed from "Wiimms WBFS Tool" to "Wiimms ISO Tools".
+    The following things are changed too:
+     - '/usr/local/share/wwt/' moved to '/usr/local/share/wit/'
+     - Environment variable WWT_LANG moved to WIT_LANG.
+  - wwt INIT --recover: recover also previous deleted files. Discs with
+    collisions (use blocks that other discs also use) are never recovered.
+  - New command: wwt RECOVER: Works like "wwt INIT --recover", but only with
+    already WBFS formatted files => not formatting, only recovering.
+    "wwt RECOVER" can be used with the option --test to see what happen.
+  - wit VERIFY: Output messages redesigned. Verbosity can be controlled in
+    five levels from -qq up to -vv.
+  - The new option --limit sets a limit for VERIFY error messages.
+  - New command: wwt VERIFY: works like "wit VERIFY" but with wwt interface.
+    It also supports options --remove and --no-free for removing or dropping
+    invalid discs.
+  - Docu of wit+wwt VERIFY and "wwt RECOVER" added.
+  - Minor bug fix for wwt CHECK: It have shown 'free blocks' errors for some
+    removed discs if this the discs removed with a non wwt tool.
+  - CGYWIN release: The new batch file 'run-cmd-as-admin.bat' starts a cmd
+    window in administrator mode. This should simplify the work with wwt.
 
 Missing docu:
-  - docu of wit commands ILIST + EXTRACT + VERIFY
+  - docu of wit commands ILIST + EXTRACT
   - docu of "wit COPY --fst" => "wit EXTRACT"
   - docu of options --pmode= --sneek --fst --ignore-fst --logging (-L) --enc=
 

@@ -1,6 +1,6 @@
 
-[size="5"][color="#0000FF"][b]wwt: Wiimms WBFS Tool v@.@@@ - @@@@-@@-@@[/b][/color][/size]
-[size="3"][color="#800000"][b]A command line WBFS tool set for various os.[/b][/color][/size]
+[size="5"][color="#0000FF"][b]@@TOOLSET-SHORT@@: @@@TOOLSET-LONG@@ v@.@@@ - @@@@-@@-@@[/b][/color][/size]
+[size="3"][color="#800000"][b]A command line ISO+WBFS tool set for various os.[/b][/color][/size]
 
 I like to work with the linux command line. And the only WBFS tool I found is poor in viewing information and perhaps buggy (I have destroyed the WBFS 2 times). And because of that I have written a new command line tool for linux.
 
@@ -176,3 +176,5 @@ I like to work with the linux command line. And the only WBFS tool I found is po
 [/code]
 
 Sources comes with GPL2. Checkout the sources directly from the [url=@@URI-REPOS@@][b]SVN repository[/b][/url] or [url=@@URI-VIEWVC@@][b]browse the source[/b][/url].
+
+Because the SVN repository path has switched you must execute the following command once before updating: [code]svn switch http://opensvn.wiimm.de/wii/trunk/wiimms-iso-tools[/code]

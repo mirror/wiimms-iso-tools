@@ -1,6 +1,6 @@
 
-#ifndef WWT_LIB_STD_H
-#define WWT_LIB_STD_H 1
+#ifndef WIT_LIB_STD_H
+#define WIT_LIB_STD_H 1
 
 #define _GNU_SOURCE 1
 
@@ -42,8 +42,8 @@
 typedef enum enumProgID
 {
 	PROG_UNKNOWN,
-	PROG_WWT,
 	PROG_WIT,
+	PROG_WWT,
 	PROG_ISO2WDF,
 	PROG_ISO2WBFS,
 	PROG_WDF2ISO,
@@ -942,4 +942,4 @@ uint Count1Bits64 ( u64 data );
 ///////////////				END			///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-#endif // WWT_LIB_STD_H 1
+#endif // WIT_LIB_STD_H 1

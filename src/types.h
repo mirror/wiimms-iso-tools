@@ -1,6 +1,6 @@
 
-#ifndef WWT_TYPES_H
-#define WWT_TYPES_H 1
+#ifndef WIT_TYPES_H
+#define WIT_TYPES_H 1
 
 #include <types.h>
 #include <limits.h>
@@ -29,5 +29,5 @@ typedef enum bool { false, true } __attribute__ ((packed)) bool;
 
 ///////////////////////////////////////////////////////////////////////////////
 
-#endif // WWT_TYPES_H
+#endif // WIT_TYPES_H
 

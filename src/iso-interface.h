@@ -1,6 +1,6 @@
 
-#ifndef WWT_ISO_INTERFACE_H
-#define WWT_ISO_INTERFACE_H 1
+#ifndef WIT_ISO_INTERFACE_H
+#define WIT_ISO_INTERFACE_H 1
 
 #include "types.h"
 #include "lib-sf.h"
@@ -349,7 +349,8 @@ typedef struct WiiFstPart_t
 	// partition info
 
 	u64  part_offset;		// disc offset of partition header
-	u32  part_type;			// paritiion type
+	u32  part_index;		// partition index
+	u32  part_type;			// partition type
 	u8   part_key[WII_KEY_SIZE];	// partition key
 	aes_key_t part_akey;		// partition aes key
 	char is_marked_not_enc;		// is partition marked 'not encrypted'? (<0: unknown)
@@ -517,6 +518,49 @@ void DecryptSectors
 
 //
 ///////////////////////////////////////////////////////////////////////////////
+///////////////			    Verify_t			///////////////
+///////////////////////////////////////////////////////////////////////////////
+
+typedef struct Verify_t
+{
+	// data structures
+
+	SuperFile_t		* sf;
+	wiidisc_t		* disc;
+	u8			* usage_tab;
+	WiiFst_t		* fst;
+	WiiFstPart_t		* part;
+
+	// options, default are global options
+
+	partition_selector_t	selector;	// partiton selector
+	int			verbose;	// general verbosity level
+	int			long_count;	// verbosity for each message
+	int			max_err_msg;	// max message per partition
+
+	// statistical values, used for messages
+
+	int			indent;		// indention of messages
+	int			disc_index;	// disc index
+	int			disc_total;	// number of total discs
+	ccp			fname;		// printed filename
+
+	// internal data
+
+	u32			group;		// index of current sector group
+	int			info_indent;	// indention of following messages
+
+} Verify_t;
+
+//-----------------------------------------------------------------------------
+
+void InitializeVerify ( Verify_t * ver, SuperFile_t * sf );
+void ResetVerify ( Verify_t * ver );
+enumError VerifyPartition ( Verify_t * ver );
+enumError VerifyDisc ( Verify_t * ver );
+
+//
+///////////////////////////////////////////////////////////////////////////////
 ///////////////			IsoFileIterator_t		///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -533,4 +577,4 @@ typedef struct IsoFileIterator_t
 ///////////////                        END                      ///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-#endif // WWT_ISO_INTERFACE_H
+#endif // WIT_ISO_INTERFACE_H

@@ -1,6 +1,6 @@
 
-#ifndef WWT_TITELS_H
-#define WWT_TITELS_H 1
+#ifndef WIT_TITELS_H
+#define WIT_TITELS_H 1
 
 #include "types.h"
 
@@ -123,5 +123,5 @@ void DumpIDDB ( ID_DB_t * db, FILE * f );
 ///////////////                     END                         ///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-#endif // WWT_TITELS_H
+#endif // WIT_TITELS_H
 

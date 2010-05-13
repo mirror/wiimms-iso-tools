@@ -56,8 +56,8 @@
  * [including the GNU Public Licence.]
  */
 
-#ifndef WWT_HEADER_SHA_H
-#define WWT_HEADER_SHA_H
+#ifndef WIT_HEADER_SHA_H
+#define WIT_HEADER_SHA_H
 
 #define OPENSSL_NO_SHA0
 #define OPENSSL_NO_SHA256
@@ -100,28 +100,28 @@ extern "C" {
 #define SHA_LAST_BLOCK  (SHA_CBLOCK-8)
 #define SHA_DIGEST_LENGTH 20
 
-typedef struct WWT_SHAstate_st
+typedef struct WIT_SHAstate_st
 	{
 	SHA_LONG h0,h1,h2,h3,h4;
 	SHA_LONG Nl,Nh;
 	SHA_LONG data[SHA_LBLOCK];
 	unsigned int num;
-	} WWT_SHA_CTX;
+	} WIT_SHA_CTX;
 
 #ifndef OPENSSL_NO_SHA0
-int SHA_Init(WWT_SHA_CTX *c);
-int SHA_Update(WWT_SHA_CTX *c, const void *data, size_t len);
-int SHA_Final(unsigned char *md, WWT_SHA_CTX *c);
+int SHA_Init(WIT_SHA_CTX *c);
+int SHA_Update(WIT_SHA_CTX *c, const void *data, size_t len);
+int SHA_Final(unsigned char *md, WIT_SHA_CTX *c);
 unsigned char *SHA(const unsigned char *d, size_t n, unsigned char *md);
-void SHA_Transform(WWT_SHA_CTX *c, const unsigned char *data);
+void SHA_Transform(WIT_SHA_CTX *c, const unsigned char *data);
 #endif
 
 #ifndef OPENSSL_NO_SHA1
-int WWT_SHA1_Init(WWT_SHA_CTX *c);
-int WWT_SHA1_Update(WWT_SHA_CTX *c, const void *data, size_t len);
-int WWT_SHA1_Final(unsigned char *md, WWT_SHA_CTX *c);
-unsigned char *WWT_SHA1(const unsigned char *d, size_t n, unsigned char *md);
-void WWT_SHA1_Transform(WWT_SHA_CTX *c, const unsigned char *data);
+int WIT_SHA1_Init(WIT_SHA_CTX *c);
+int WIT_SHA1_Update(WIT_SHA_CTX *c, const void *data, size_t len);
+int WIT_SHA1_Final(unsigned char *md, WIT_SHA_CTX *c);
+unsigned char *WIT_SHA1(const unsigned char *d, size_t n, unsigned char *md);
+void WIT_SHA1_Transform(WIT_SHA_CTX *c, const unsigned char *data);
 #endif
 
 #define SHA256_CBLOCK	(SHA_LBLOCK*4)	/* SHA-256 treats input data as a
@@ -130,24 +130,24 @@ void WWT_SHA1_Transform(WWT_SHA_CTX *c, const unsigned char *data);
 #define SHA224_DIGEST_LENGTH	28
 #define SHA256_DIGEST_LENGTH	32
 
-typedef struct WWT_SHA256state_st
+typedef struct WIT_SHA256state_st
 	{
 	SHA_LONG h[8];
 	SHA_LONG Nl,Nh;
 	SHA_LONG data[SHA_LBLOCK];
 	unsigned int num,md_len;
-	} WWT_SHA256_CTX;
+	} WIT_SHA256_CTX;
 
 #ifndef OPENSSL_NO_SHA256
-int SHA224_Init(WWT_SHA256_CTX *c);
-int SHA224_Update(WWT_SHA256_CTX *c, const void *data, size_t len);
-int SHA224_Final(unsigned char *md, WWT_SHA256_CTX *c);
+int SHA224_Init(WIT_SHA256_CTX *c);
+int SHA224_Update(WIT_SHA256_CTX *c, const void *data, size_t len);
+int SHA224_Final(unsigned char *md, WIT_SHA256_CTX *c);
 unsigned char *SHA224(const unsigned char *d, size_t n,unsigned char *md);
-int SHA256_Init(WWT_SHA256_CTX *c);
-int SHA256_Update(WWT_SHA256_CTX *c, const void *data, size_t len);
-int SHA256_Final(unsigned char *md, WWT_SHA256_CTX *c);
+int SHA256_Init(WIT_SHA256_CTX *c);
+int SHA256_Update(WIT_SHA256_CTX *c, const void *data, size_t len);
+int SHA256_Final(unsigned char *md, WIT_SHA256_CTX *c);
 unsigned char *SHA256(const unsigned char *d, size_t n,unsigned char *md);
-void SHA256_Transform(WWT_SHA256_CTX *c, const unsigned char *data);
+void SHA256_Transform(WIT_SHA256_CTX *c, const unsigned char *data);
 #endif
 
 #define SHA384_DIGEST_LENGTH	48

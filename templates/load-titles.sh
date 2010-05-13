@@ -1,9 +1,9 @@
 #!/bin/bash
 
-NEEDED="wwt wget comm"
+NEEDED="wit wget comm"
 
 BASE_PATH="@@INSTALL-PATH@@"
-LIB_PATH="$BASE_PATH/share/wwt"
+LIB_PATH="$BASE_PATH/share/wit"
 URI_TITLES=@@URI-TITLES@@
 LANGUAGES="@@LANGUAGES@@"
 
@@ -17,11 +17,11 @@ function load_and_store()
 
     echo "***    load $DEST from $URI"
 
-    if wget -q -O- "$URI" | wwt titles / - >"$DEST.tmp" && test -s "$DEST.tmp"
+    if wget -q -O- "$URI" | wit titles / - >"$DEST.tmp" && test -s "$DEST.tmp"
     then
 	if [[ $ADD != "" ]]
 	then
-	    wwt titles / "$ADD" "$DEST.tmp" >"$DEST.tmp.2"
+	    wit titles / "$ADD" "$DEST.tmp" >"$DEST.tmp.2"
 	    mv "$DEST.tmp.2" "$DEST.tmp"
 	fi
 	grep -v ^TITLES "$DEST"     >"$DEST.tmp.1"

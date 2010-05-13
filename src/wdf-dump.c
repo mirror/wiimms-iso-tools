@@ -129,8 +129,8 @@ enumError CheckOptions ( int argc, char ** argv )
 	  case '?': err++; break;
 	  case 'V': version_exit();
 	  case 'h': help_exit();
-	  case 'q': verbose = -1; break;
-	  case 'v': verbose++; break;
+	  case 'q': verbose = verbose > -1 ? -1 : verbose - 1; break;
+	  case 'v': verbose = verbose <  0 ?  0 : verbose + 1; break;
 	  case 'l':
 	  case 'c': print_chunk_tab = true; break;
 
@@ -479,7 +479,7 @@ int main ( int argc, char ** argv )
 
     if ( argc < 2 )
     {
-	printf("\n%s\n\n",TITLE);
+	printf("\n%s\nVisit %s%s for more info.\n\n",TITLE,URI_HOME,NAME);
 	hint_exit(ERR_OK);
     }
 

@@ -786,8 +786,12 @@ COMMAND: FORMAT|INIT   filename...
     other errors.
 
  WARNING:
-    Before using "wwt INIT --recover" you shold call "wwt ANALYZE" and
+    Before using "wwt INIT --recover" you should call "wwt ANALYZE" and
     control the output!
+
+
+ See also:
+    wwt RECOVER: Recover discs without reformatting.
 
 
  Usual ERROR/EXIT CODES:
@@ -1047,6 +1051,43 @@ COMMAND: PHANTOM   [sub_command]...
 
 -------------------------------------------------------------------------------
 
+COMMAND: RECOVER   filename...
+
+ Recover deleted discs of WBFS partitions.
+
+ Options:
+
+    -a --auto         Search for WBFS partitions using /proc/partitions.
+    -p --part  part   File of primary WBFS partition. Multiple usage allowed.
+    -t --test           Run in test mode, modify nothing.
+
+ The command RECOVER tries to recover presious removed discs. It recover only
+ discs without block collisions (2 ore mor discs shares the same memory).
+
+ Recovering work like this:
+  - All empty discs slots are marked as used.
+  - All WBFS blocks are marked as used.
+  - A silent check and repair is done:
+     - Drop discs with invalid magic or without ID.
+     - Drop rescued discs with invalid block numbers. (--repair=RM-INVALID)
+     - Drop rescued discs without any block. (--repair=RM-EMPTY)
+     - Free unused blocks in the free blocks table. (--repair=FBT)
+  - A verbose check is done (like "wwt check --verbose") to find and report
+    other errors.
+
+ See also:
+    wwt FORMAT --recover: Format WBFS and recoverdiscs.
+
+ Usual ERROR/EXIT CODES:
+
+    0 == OK             : all done without erros.
+    SYNTAX ERROR        : at least one syntax error in command line found.
+    MISSING PARAMETERS  : no parameters (iso images) given.
+    WRITE ERROR         : error while writing/formatting a WBFS.
+
+
+-------------------------------------------------------------------------------
+
 COMMAND: REMOVE|RM   id6...
 
  Remove images from a WBFS partition.
@@ -1099,8 +1140,8 @@ COMMAND: REMOVE|RM   id6...
  list is printed. For each ID6 one line is printed. If a destination
  filename is known 'ID=name' is printed, else 'ID6' alone.
 
- If the option --no-free is set then the disc is only makred as removed. The
- allocated blocks are not freed. Aufter using --no-free you should use the
+ If the option --no-free is set then the disc is only marked as removed. The
+ allocated blocks are not freed. After using --no-free you should use the
  command CHECK with --rapair=fbt to repair the free blocks table.
 
  Before modifying the WBFS a check (see CHECK) is done. If there are any
@@ -1521,6 +1562,79 @@ See command 'ADD' for options and details.
 
 -------------------------------------------------------------------------------
 
+COMMAND: VERIFY|V   [wbfs_partition]...
+
+ Verify the internal SHA1 check sums of each ISO image of each WBFS and find
+ bad dumps
+
+ Options:
+
+    -A --all           Use all WBFS partitions found.
+    -a --auto          Search for WBFS partitions using /proc/partitions.
+    -p --part  part    File of primary WBFS partition. Multiple usage allowed.
+
+    -n --include id    Include oly discs with given ID4 or ID6 from operation.
+    -n --include @file Read include list from file.
+    -N --include-path file_or_dir
+                       ISO file or base of directory tree -> scan their ID6.
+    -x --exclude id    Exclude discs with given ID4 or ID6 from operation.
+    -x --exclude @file Read exclude list from file.
+    -X --exclude-path file_or_dir
+                       ISO file or base of directory tree -> scan their ID6
+
+    -f --force         Force operation, ignore the check result.
+       --no-check      Disable automatic check of WBFS before modifications.
+
+    -R --remove        Remove bad discs from WBFS.
+       --no-free       Do not free blocks when removing a disc.
+
+  * -q --quiet         Be quiet and report only errors. If --quiet set at
+                       least twice then wit will print nothing and only the
+                       exit status is set.
+  * -v --verbose       Be verbose. This optioj can be set multiple times.
+       --limit num     Maximal printed errors of each partition. A zero means
+                       unlimitted. The default is 10.
+  * -l --long          On error print an additional line to localize the exact
+                       position where the error is found. If set at least
+                       twice a hexdump of the hash values is printed too.
+
+ Every 1024 bytes of user data in every partition has its own SHA1 check sum
+ (called 'H0'). There are also H1 (hash of 31*H0), H2 (hash of 8*H1), H3 (hash
+ of 8*H2) and for the whole partition one H4 (hash of all H3) check sums. To
+ validate a partition it is enought to calculate the check sums and compare
+ them with the stored sums. For a scrubbed image it is enough to compare the
+ check sums of the used sectors. "wwt+wit VERIFY" does exactly this.
+
+ To validate a disc the tool must do 64 AES-128-CBC decryptions and 1029 SHA1
+ calculations for each MiB of data. This slow down the opration rapidly and
+ verifying is much slower then copying. 
+
+ If the option --remove is set, invalid discs (bad dumps) are removed from
+ WBFS. If the option --no-free is set then the disc is only marked as removed.
+ The allocated blocks are not freed. After using --no-free you should use the
+ command CHECK with --rapair=fbt to repair the free blocks table.
+
+ Before verifying the WBFS a check (see CHECK) is done. If there are any
+ problematic errors detected the WBFS is ignored. If the option --force is set,
+ the test is done but the result is ignored. The option --no-check disables
+ this automatic check.
+
+ For more details about verifying see command "wit VERIFY" in file "wit.txt".
+
+ See also:
+    wit VERIFY
+    wit DIFF
+
+ Usual ERROR/EXIT CODES:
+
+    0 == OK             : all done without erros.
+    DIFFER              : At least one check sum error found.
+    SYNTAX ERROR        : at least one syntax error in command line found.
+    READ ERROR          : error while reading a file.
+    CANT OPEN           : Can't open file.
+
+-------------------------------------------------------------------------------
+
 COMMAND: VERSION   [any_options_or_parameters]
 
  Recognize option --long and ignore all other options and parameters, print out
@@ -1628,13 +1742,13 @@ There are some hidden options implemented for testing:
 The user can define environment variables as additional way to submit
 parameters to the tool:
 
-WWT_LANG
+WIT_LANG
 
- With 'WWT_LANG' the user can spezifiy a default language for wwt and wit
- titles. If 'WWT_LANG' is empty 'LC_CTYPE' will be scanned. The option --lang
- overides this default setting.
+ With 'WIT_LANG' (not 'WWT_LANG') the user can spezifiy a default language for
+ wit and wwt titles. If 'WIT_LANG' is empty 'LC_CTYPE' will be scanned. The
+ option --lang overides this default setting.
 
- Example: WWT_LANG="de"
+ Example: WIT_LANG="de"
 
 WWT_WBFS
 

@@ -1,11 +1,14 @@
 
-[size="5"][color="#0000FF"][b]wwt: Wiimms WBFS Tool v@.@@@ - @@@@-@@-@@[/b][/color][/size]
-[size="3"][color="#800000"][b]Ein Kommandozeilentoolkit für WBFS und ISO Datateien.[/b][/color][/size]
+[size=18][color=#0000FF][b]@@TOOLSET-SHORT@@: @@@TOOLSET-LONG@@ v@.@@@ - @@@@-@@-@@[/b][/color][/size]
+[size=15][color=#800000][b]Ein Kommandozeilentoolkit für WBFS und ISO Datateien.[/b][/color][/size]
 
-I like to work with the linux command line. And the only WBFS tool I found is poor in viewing information and perhaps buggy (I have destroyed the WBFS 2 times). And because of that I have written a new command line tool for linux.
+Dieses hier wird das Ankündigungsthema für WIT werden. Einzelheiten zum Programm werde ich nach und nach übersetzen und an dieser Stelle ergänzen. Unter [url=http://wiimm.de/wwt][b]http://wiimm.de/wwt[/b][/url] gibt es eine ausführlichere Übersicht über die Möglichkeiten, allerdings in englisch.
+
+[b]Noch ein paar wichtige Hinweise:[/b]
+Es handelt sich um Kommandozeilen-Tools. Das bedeutet, dass man zur Ausführung vorher ein Kommandofenster aufmachen muss und dann die Kommandos eingeben kann. Dieses hat aber den Vorteil, dass man sich Batch-Dateien für immer wiederkehrende Aufgaben schreiben kann. Zum Ansprechen der Laufwerke muss das Kommandofenster im Admin-Modus arbeiten. Die Syntax der Kommandos ist stark an Unix angelehnt, da die Programme auch unter Linux entwickelt werden.
 
 
-[size="2"][color="#0000c0"][b]Feature overview:[/b][/color][/size]
+[size=12][color=#0000c0][b]Feature overview:[/b][/color][/size]
 [list]
 [*] WWT comes as multiple command line tools.
 [*] ISO support for 5 files types: Plain ISO, CISO, WDF, WBFS and FST (extracted filesystem).
@@ -24,7 +27,7 @@ I like to work with the linux command line. And the only WBFS tool I found is po
 [*] Advanced shell support.
 [/list]
 
-[size="2"][color="#0000c0"][b]Features in detail:[/b][/color][/size]
+[size=12][color=#0000c0][b]Features in detail:[/b][/color][/size]
 [list]
 [*] [b]WWT comes as multiple command line tools.[/b]
     [list]
@@ -35,7 +38,7 @@ I like to work with the linux command line. And the only WBFS tool I found is po
       tools. All their jobs can be done with 'wit' too.
     [*] The tools 'wdf-cat' and 'wdf-dump' are for advanced WDF and CISO handling.
     [/list]
-[color="#ffffff"].[/color]
+[color=#ffffff].[/color]
 
 [*] [b]ISO support for 5 files types: Plain ISO, CISO, WDF WBFS and FST (extracted filesystem).[/b]
     When writing an ISO you have the choice between five formats:
@@ -55,42 +58,42 @@ I like to work with the linux command line. And the only WBFS tool I found is po
     [*] WBFS files with or without a selector. A selector is an ID6 or an index or a slot number to specify exact one ISO image within a WBFS.
     [*] FST: If a directory contains a valid FST then a virtual ISO image is generated. Many wwt+wit commands can handle this virtual ISO image like a real ISO image.
     [/list]
-[color="#ffffff"].[/color]
+[color=#ffffff].[/color]
 
 [*] [b]wit can extract ISO images to a file system (SNEEK compatible).[/b]
     wit can extract ISO images to the local file system. It extracts all files and additional system files (like tmd.bin). The written file system is SNEEK compatible and can be used as source for composing a new and modified ISO image. The option --files= (-F) controls which file sare extracted.
-[color="#ffffff"].[/color]
+[color=#ffffff].[/color]
 
 [*] [b]wit can compose ISO images from a file system including trucha signing.[/b]
     wit can compose a ISO image from a extracted and modified file system. This new image is trucha signed. Composing is done by creating a virtual ISO image in the file layer of the tools. The content is only generated if a read access is done. Because of this most of the commands (all ISO readonly commands) can handle such FST ISO images like other images. For example calling "wit DUMP filesystem" generates a fast overview about the virtual ISO.
-[color="#ffffff"].[/color]
+[color=#ffffff].[/color]
 
 [*] [b]wit can compare ISO images of all 5 formats (raw and scrubbed mode).[/b]
    wit can compare ISO images in all five formats (ISO, WDF, CISO, WBFS, FST) in raw mode (whole ISO image) and in scribbed mode (only needed sectors. It is planned to implement a compare function on file level.
-[color="#ffffff"].[/color]
+[color=#ffffff].[/color]
 
 [*] [b]Read ISO from pipes (indirect ZIP/RAR support)[/b]
     If adding, copying or scrubbing the input can be read from standard input (stdin). This allow to use any preprocessing like decompressing using unzip or unrar.
-[color="#ffffff"].[/color]
+[color=#ffffff].[/color]
 
 [*] [b]Support of splitted files (WBFS, WDF, ISO and CISO).[/b]
     [list]
     [*] While generating a file use --split and --split-size to force splitting.
     [*] While opening files for reading splitted files are detected automatically.
     [/list]
-[color="#ffffff"].[/color]
+[color=#ffffff].[/color]
 
 [*] [b]Scrubbing on the fly.[/b]
     All tools scrubbs the ISO image by default to reduce disk space. The user can select which ISO aprtitions should be copied. A complete (raw) copy is also possible.
-[color="#ffffff"].[/color]
+[color=#ffffff].[/color]
 
 [*] [b]wwt can manage WBFS on block devices and as plain files.[/b]
     WBFS files are managed on block devices (USB- and other hard drives) and as (splitted) plain files. Sparse files are supported automatically.
-[color="#ffffff"].[/color]
+[color=#ffffff].[/color]
 
 [*] [b]wwt finds WBFS block devices automatically if option --auto is set.[/b]
     wwt is able to find a WBFS drive automatically.
-[color="#ffffff"].[/color]
+[color=#ffffff].[/color]
 
 [*] [b]Multi WBFS support.[/b]
     [list]
@@ -99,7 +102,7 @@ I like to work with the linux command line. And the only WBFS tool I found is po
     [*] Remove ISO images from multiple WBFS with one command.
     [*] Searches multiple WBFS for extracting discs.
     [/list]
-[color="#ffffff"].[/color]
+[color=#ffffff].[/color]
 
 [*] [b]Extended indode info with time stamps[/b]
     All tools use 'EXTENDED INODE INFO', an extension of WBFS. It is full compatible to all other WBFS tools because it uses non used space in the WBFS inodes. At the moment this INODE INFO contains 5 time stamps:
@@ -110,14 +113,14 @@ I like to work with the linux command line. And the only WBFS tool I found is po
     [*] atime : the last access time
     [*] dtime : the deletion time
     [/list]
-[color="#ffffff"].[/color]
+[color=#ffffff].[/color]
 
 [*] [b]Dump the data structure of WBFS images and ISO discs for analysis.[/b]
     [list]
     [*] "wwt DUMP" will dump the data structure of WBFS images for analysis. These dumps includes the WBFS header, WBFS main parameters, a disc dump and memory layout dumps for each disc and for the whole WBFS.
     [*] "wit DUMP" dumps the data structure of ISO images for analysis. These dumps includes the ISO header, ISO main parameters and a memory layout dumps. The dump work also for ISO images within a WBFS, CISO or WDF.
     [/list]
-[color="#ffffff"].[/color]
+[color=#ffffff].[/color]
 
 [*] [b]Check and repair WBFS archives.[/b]
    The wwt command CHECK checks a WBFS for block assigning errors. Repairing is also possible. Details:
@@ -132,7 +135,7 @@ I like to work with the linux command line. And the only WBFS tool I found is po
     [*] Repair times stamps.
     [/list]
     The check is very fast. The wwt commands ADD, UPDATE, EXTRACT, REMOVE, TRUNCATE and TOUCH do an automatic check before modifying the WBFS file and print a warning if the check fails.
-[color="#ffffff"].[/color]
+[color=#ffffff].[/color]
  
 [*] [b]Advanced shell support.[/b]
     [list]
@@ -143,8 +146,8 @@ I like to work with the linux command line. And the only WBFS tool I found is po
     [/list]
 [/list]
 
-[size="2"][color="#000080"][b]Download of the current stable version:[/b][/color][/size]
-~[size="2"][color="#000080"][b]Download[/b][/color] [color="#800000"][b]this EXPERIMENTAL release:[/b][/color][/size]
+[size=12][color=#000080][b]Download of the current stable version:[/b][/color][/size]
+~[size=12][color=#000080][b]Download[/b][/color] [color=#800000][b]this EXPERIMENTAL release:[/b][/color][/size]
 [list]
 [*] [url=@@URI-DOWNLOAD-I386@@][b]@@DISTRIB-I386@@[/b][/url] : linux/i386 version
 [*] [url=@@URI-DOWNLOAD-X86_64@@][b]@@DISTRIB-X86_64@@[/b][/url] : linux/x86_64 version
@@ -152,20 +155,20 @@ I like to work with the linux command line. And the only WBFS tool I found is po
 [*] [url=@@URI-DOWNLOAD-CYGWIN@@][b]@@DISTRIB-CYGWIN@@[/b][/url] : cygwin (win32) version
 [/list]
 
-[size="2"][color="#000080"][b]Download of the previous stable version:[/b][/color][/size][list]
+[size=12][color=#000080][b]Download of the previous stable version:[/b][/color][/size][list]
 [*] [url=@@URI-DOWNLOAD-PREV-I386@@][b]@@PREV-DISTRIB-I386@@[/b][/url] : linux/i386 version
 [*] [url=@@URI-DOWNLOAD-PREV-X86_64@@][b]@@PREV-DISTRIB-X86_64@@[/b][/url] : linux/x86_64 version
 [*] [url=@@URI-DOWNLOAD-PREV-MAC@@][b]@@PREV-DISTRIB-MAC@@[/b][/url] : Mac OS universal binaries (ppc, i386 and x86-64)
 [*] [url=@@URI-DOWNLOAD-PREV-CYGWIN@@][b]@@PREV-DISTRIB-CYGWIN@@[/b][/url] : cygwin (win32) version
 [/list]
 
-[size="2"][color="#000080"][b]Download other releases:[/b][/color][/size][list]
+[size=12][color=#000080][b]Download other releases:[/b][/color][/size][list]
 [*] [url=@@URI-DOWNLOAD-PREV-MIPSEL@@][b]@@PREV-DISTRIB-MIPSEL@@[/b][/url] : mipsel release by Bauldrick
 [*] [url=@@URI-DOWNLOAD-PREV-POWERPC@@][b]@@PREV-DISTRIB-POWERPC@@[/b][/url] : powerpc release by Bauldrick
 [/list]
 
 
-[size="2"][color="#000080"][b]There is also a GUI available:[/b][/color][/size]
+[size=12][color=#000080][b]There is also a GUI available:[/b][/color][/size]
 [list]
 [*] [url=@@URI-WIIJMANAGER@@][b]WiiJManager Multiplatform[/b][/url]
 [/list]
@@ -176,3 +179,5 @@ I like to work with the linux command line. And the only WBFS tool I found is po
 [/code]
 
 Sources comes with GPL2. Checkout the sources directly from the [url=@@URI-REPOS@@][b]SVN repository[/b][/url] or [url=@@URI-VIEWVC@@][b]browse the source[/b][/url].
+
+Da sich der Pfad im SVN repository geäendert hat, muss vor einem Update einmalig das folgende Kommando ausgeführet werden: [code]svn switch http://opensvn.wiimm.de/wii/trunk/wiimms-iso-tools[/code]

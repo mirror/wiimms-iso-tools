@@ -3,7 +3,7 @@
 *******             WDF == Wiimms Disc File == Wii Disc File            *******
 *******************************************************************************
 
-This file is part of the documentation of '@@WWT-SHORT@@' (@@WWT-LONG@@).
+This file is part of the documentation of '@@TOOLSET-SHORT@@' (@@TOOLSET-LONG@@).
 The most current version of this document can be found under:
   @@URI-FILE@@/WDF.txt
 
@@ -45,7 +45,7 @@ are some main issues for me:
      handled more effectivly than one whole large files.
 
  3.) There must be a WBFS tool to handle this kind of files. I have already
-     implemented the WDF support im my '@@WWT-SHORT@@' (@@WWT-LONG@@).
+     implemented the WDF support in my '@@TOOLSET-SHORT@@' (@@TOOLSET-LONG@@).
      The WWT package contains some more tools to handle WDF directly.
 
  4.) Other WBFS manager should support the WDF too. And this means that the
@@ -58,8 +58,8 @@ are some main issues for me:
 *******                       Tests and statistics                      *******
 *******************************************************************************
 
-I have already implemented the WDF support in my tool 'WWT' and tested it with
-many games. In the tests I have converted games from ISO to WDF and back.
+I have already implemented the WDF support in my toolset 'WIT' and tested it
+with many games. In the tests I have converted games from ISO to WDF and back.
 I done this with the tools iso2wdf and wdf2iso/wdf-cat and with WBFS import
 and export. It work well and have not found any errors.
 
@@ -67,15 +67,12 @@ Additionally I have testet more than 2 million non ISO files without any
 failures. This works because WDF may detect holes in any files. For tests I
 use the script: @@URI-FILE@@/scripts/test-wdf-tools.sh
 
-The full statistic can be found here:
-  @@URI-FILE@@/STATISTICS.txt?view=co
-
 
 *******************************************************************************
 *******                     Tools that supports WDF                     *******
 *******************************************************************************
 
-At the moment only the tools from WWT (Wiimms WBFS Tool) will support WDFS:
+At the moment only the tools from WIT (Wiimms ISO Tools) will support WDFS:
  - Tool 'wwt' may import WDF files directly to a WBFS
    and may export discs from WBFS directly to WDF files.
  - Tool 'wdf-dump' dumps the data structure of a WDF file.
@@ -157,7 +154,7 @@ reaches the end of the virtual file. If there are holes at the beginning or
 end of the data than chunks with data_size==0 bytes have to be insertet.
 
 This is an example dump of the game "Animal Crossing". The dump was created
-with the tool 'wdf-dump' which is part of 'wwt' (Wiimms WBFS Tool).
+with the tool 'wdf-dump' which is part of 'wit' (Wiimms ISO Tool).
 
  | # wdf-dump --chunk pool/wdf/animal.wdf
  |
@@ -284,7 +281,7 @@ set a limit for each file. No file schould be larger than this limit.
 
 
 REMARK:
- The WWT tools supports splitted WDF files *not* following this rules. The
+ The WIT tools supports splitted WDF files *not* following this rules. The
  files are splitted hard by breaking the files into peaces. This is done by
  the file layer so that the WDF layer don't see the split.
 
@@ -293,7 +290,7 @@ REMARK:
 *******                      Example implementation                     *******
 *******************************************************************************
 
-The example implementation is part of '@@WWT-SHORT@@' (@@WWT-LONG@@):
+The example implementation is part of '@@TOOLSET-SHORT@@' (@@TOOLSET-LONG@@):
 
  see: @@URI-FILE@@/lib-wdf.c
  and: @@URI-FILE@@/lib-wdf.h

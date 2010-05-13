@@ -378,6 +378,26 @@ static void mark_usage_table ( wiidisc_t * d, u32 offset4, u32 size )
 
 ///////////////////////////////////////////////////////////////////////////////
 
+static void mark_usage_table_raw ( wiidisc_t * d, u32 offset4, u32 size4 )
+{
+    DASSERT(d->usage_table);
+
+    offset4 += d->partition_raw_offset4;
+    const u32 first_block = offset4 / WII_SECTOR_SIZE4;
+    u32 end_block = ( size4 + WII_SECTOR_SIZE4 - 1 + offset4 ) / WII_SECTOR_SIZE4;
+    if ( end_block > WII_MAX_SECTORS )
+	 end_block = WII_MAX_SECTORS;
+
+    noTRACE("mark %x+%x => %x..%x [%x]\n",
+		offset4, size, first_block, end_block, end_block-first_block );
+
+    if ( first_block < end_block )
+	memset( d->usage_table + first_block,
+		d->usage_marker, end_block - first_block );
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
 static u32 append_path ( wiidisc_t *d, const char * name, int append_slash )
 {
     const u32 prev_len = d->path_len;
@@ -678,20 +698,24 @@ static void do_partition ( wiidisc_t * d )
 	wbfs_fatal("malloc wd_tmd_t");
     partition_raw_read( d, ph->tmd_off4,tmd, ph->tmd_size );
 
-    // check encryption and truchs signing
+    // check encryption and trucha signing
     d->is_trucha_signed		= tmd_is_trucha_signed(tmd,ph->tmd_size);
     d->is_marked_not_enc	= tmd_is_marked_not_encrypted(tmd);
     d->is_encrypted = !d->is_marked_not_enc
 	&& wd_is_block_encrypted(d,&d->partition_akey,d->partition_block,1);
 
+    // mark whole partition ?
+    d->usage_marker = 2 + d->partition_index;
+    if ( d->part_sel == WHOLE_DISC && d->usage_table )
+	mark_usage_table_raw( d, ph->data_off4, ph->data_size4 );
+
     if ( d->open_partition >= 0 )
     {
 	wbfs_iofree(tmd);
 	wbfs_iofree(ph);
+	d->usage_marker = 1;
 	return;
     }
-
-    d->usage_marker = 2 + d->partition_index;
 
     // if file_iterator is set -> call it for each sys file
     if (d->file_iterator)
@@ -776,8 +800,6 @@ static void do_disc ( wiidisc_t * d )
     const int MAX_PARTITIONS = BUFSIZE / 2 / sizeof(u32);
 
     u8 *b = wbfs_ioalloc(BUFSIZE);
-    u32 magic;
-    u32 i;
 
     d->partition_index = -1;
     d->usage_marker = 1;
@@ -791,7 +813,8 @@ static void do_disc ( wiidisc_t * d )
 
     // read disc header and check magic
     wd_read_raw(d,0,b,BUFSIZE);
-    magic = be32(b+24);
+    memcpy(d->id6,b,6);
+    const u32 magic = be32(b+24);
     if ( magic != WII_MAGIC )
     {
 	wbfs_error("not a wii disc, magic=%08x",magic);
@@ -810,6 +833,7 @@ static void do_disc ( wiidisc_t * d )
 
     // get partition info
     wd_read_raw( d, be32(b + 4), b, BUFSIZE );
+    u32 i;
     for ( i = 0; i < n_partitions; i++ )
     {
 	partition_offset[i] = be32( b + 8 * i   );

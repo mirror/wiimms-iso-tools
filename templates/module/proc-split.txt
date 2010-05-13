@@ -42,7 +42,7 @@ All other files are named like:
     - name.ext.10
       ...
 
-The WWT tools supports splitted WDF files *not* following the rules for
+The WIT tools supports splitted WDF files *not* following the rules for
 splitted WDF files. All files are splitted hard by breaking the files into
 peaces. This is done by the file layer so that other layer including the WDF
 layer don't see the split.

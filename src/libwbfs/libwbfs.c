@@ -1660,8 +1660,9 @@ u32 wbfs_rm_disc ( wbfs_t * p, u8 * discid, int free_slot_only )
 	wbfs_inode_info_t * iinfo = wbfs_get_disc_inode_info(d,1);
 	ASSERT(iinfo);
 	wbfs_setup_inode_info(p,iinfo,0,1);
+ #ifdef TEST
 	*(u32*)(d->header->disc_header_copy+WII_MAGIC_OFF) = wbfs_htonl(WII_MAGIC_DELETED);
-
+ #endif
 	const u32 disc_info_sz_lba = p->disc_info_sz >> p->hd_sec_sz_s;
 	p->write_hdsector(
 			p->callback_data,

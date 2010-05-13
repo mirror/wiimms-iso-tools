@@ -433,6 +433,10 @@ void DefineExcludePath ( ccp path, int max_dir_depth )
 
 bool IsExcluded ( ccp id6 )
 {
+    noTRACE("IsExcluded(%s) dis=%d ena=%d, n=%d+%d\n",
+		id6, disable_exclude_db, include_db_enabled,
+		exclude_fname.used, include_fname.used );
+
     if ( disable_exclude_db > 0 )
 	return false;
 
@@ -552,7 +556,7 @@ int InsertID ( ID_DB_t * db, ccp id, ccp title )
     ASSERT(db);
     xTRACE("-----\n");
 
-    // remove all previos definitions first
+    // remove all previous definitions first
     int idx = RemoveID(db,id,true);
 
     if ( db->used == db->size )

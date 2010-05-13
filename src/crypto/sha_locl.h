@@ -58,12 +58,12 @@
 
 #include <stdlib.h>
 #include <string.h>
-#include "wwt-sha.h"
+#include "wit-sha.h"
 
 #define DATA_ORDER_IS_BIG_ENDIAN
 
 #define HASH_LONG               SHA_LONG
-#define HASH_CTX                WWT_SHA_CTX
+#define HASH_CTX                WIT_SHA_CTX
 #define HASH_CBLOCK             SHA_CBLOCK
 #define HASH_MAKE_STRING(c,s)   do {	\
 	unsigned long ll;		\
@@ -83,15 +83,15 @@
 # define HASH_BLOCK_DATA_ORDER   	sha_block_data_order
 # define Xupdate(a,ix,ia,ib,ic,id)	(ix=(a)=(ia^ib^ic^id))
 
-static void sha_block_data_order (WWT_SHA_CTX *c, const void *p,size_t num);
+static void sha_block_data_order (WIT_SHA_CTX *c, const void *p,size_t num);
 
 #elif defined(SHA_1)
 
-# define HASH_UPDATE             	WWT_SHA1_Update
-# define HASH_TRANSFORM          	WWT_SHA1_Transform
-# define HASH_FINAL              	WWT_SHA1_Final
-# define HASH_INIT			WWT_SHA1_Init
-# define HASH_BLOCK_DATA_ORDER   	wwt_sha1_block_data_order
+# define HASH_UPDATE             	WIT_SHA1_Update
+# define HASH_TRANSFORM          	WIT_SHA1_Transform
+# define HASH_FINAL              	WIT_SHA1_Final
+# define HASH_INIT			WIT_SHA1_Init
+# define HASH_BLOCK_DATA_ORDER   	wit_sha1_block_data_order
 # if defined(__MWERKS__) && defined(__MC68K__)
    /* Metrowerks for Motorola fails otherwise:-( <appro@fy.chalmers.se> */
 #  define Xupdate(a,ix,ia,ib,ic,id)	do { (a)=(ia^ib^ic^id);		\
@@ -106,7 +106,7 @@ static void sha_block_data_order (WWT_SHA_CTX *c, const void *p,size_t num);
 #ifndef SHA1_ASM
 static
 #endif
-void wwt_sha1_block_data_order (WWT_SHA_CTX *c, const void *p,size_t num);
+void wit_sha1_block_data_order (WIT_SHA_CTX *c, const void *p,size_t num);
 
 #else
 # error "Either SHA_0 or SHA_1 must be defined."
@@ -120,7 +120,7 @@ void wwt_sha1_block_data_order (WWT_SHA_CTX *c, const void *p,size_t num);
 #define INIT_DATA_h3 0x10325476UL
 #define INIT_DATA_h4 0xc3d2e1f0UL
 
-int HASH_INIT (WWT_SHA_CTX *c)
+int HASH_INIT (WIT_SHA_CTX *c)
 	{
 	memset (c,0,sizeof(*c));
 	c->h0=INIT_DATA_h0;
@@ -203,7 +203,7 @@ int HASH_INIT (WWT_SHA_CTX *c)
 #endif
 
 #if !defined(SHA_1) || !defined(SHA1_ASM)
-static void HASH_BLOCK_DATA_ORDER (WWT_SHA_CTX *c, const void *p, size_t num)
+static void HASH_BLOCK_DATA_ORDER (WIT_SHA_CTX *c, const void *p, size_t num)
 	{
 	const unsigned char *data=p;
 	register unsigned MD32_REG_T A,B,C,D,E,T,l;
@@ -388,7 +388,7 @@ static void HASH_BLOCK_DATA_ORDER (WWT_SHA_CTX *c, const void *p, size_t num)
 	A=ROTATE(A,5)+T+xa;	    } while(0)
 
 #if !defined(SHA_1) || !defined(SHA1_ASM)
-static void HASH_BLOCK_DATA_ORDER (WWT_SHA_CTX *c, const void *p, size_t num)
+static void HASH_BLOCK_DATA_ORDER (WIT_SHA_CTX *c, const void *p, size_t num)
 	{
 	const unsigned char *data=p;
 	register unsigned MD32_REG_T A,B,C,D,E,T,l;

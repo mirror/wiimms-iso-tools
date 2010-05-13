@@ -1,10 +1,10 @@
 .file	"sha1-586.s"
 .text
-.globl	_wwt_sha1_block_data_order
-.def	_wwt_sha1_block_data_order;	.scl	2;	.type	32;	.endef
+.globl	_wit_sha1_block_data_order
+.def	_wit_sha1_block_data_order;	.scl	2;	.type	32;	.endef
 .align	16
-_wwt_sha1_block_data_order:
-.L_wwt_sha1_block_data_order_begin:
+_wit_sha1_block_data_order:
+.L_wit_sha1_block_data_order_begin:
 	pushl	%ebp
 	pushl	%ebx
 	pushl	%esi

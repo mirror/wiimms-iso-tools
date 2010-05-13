@@ -1,6 +1,6 @@
 
-#ifndef WWT_LIB_SF_H
-#define WWT_LIB_SF_H 1
+#ifndef WIT_LIB_SF_H
+#define WIT_LIB_SF_H 1
 
 #include "lib-wdf.h"
 #include "lib-ciso.h"
@@ -178,5 +178,5 @@ enumError DiffFilesSF
 ///////////////                          END                    ///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-#endif // WWT_LIB_SF_H
+#endif // WIT_LIB_SF_H
 

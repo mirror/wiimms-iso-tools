@@ -5,14 +5,16 @@
 SHELL		= /bin/bash
 
 AUTHOR		= Dirk Clemens
-WWT_SHORT	= wwt
-WWT_LONG	= Wiimms WBFS Tool
+TOOLSET_SHORT	= WIT
+TOOLSET_LONG	= Wiimms ISO Tools
 WIT_SHORT	= wit
 WIT_LONG	= Wiimms ISO Tool
+WWT_SHORT	= wwt
+WWT_LONG	= Wiimms WBFS Tool
 
-VERSION		= 0.45a
-PREV_VERSION	= 0.44a
-PREV_REVISION	= 974
+VERSION		= 0.46a
+PREV_VERSION	= 0.45a
+PREV_REVISION	= 1012
 
 MIPSEL_RELEASE	= 0.44a-r974
 POWERPC_RELEASE	= 0.44a-r974
@@ -20,30 +22,32 @@ POWERPC_RELEASE	= 0.44a-r974
 ifeq ($(TERM),cygwin)
 SYSTEM		:= cygwin
 else
-SYSTEM		= $(shell test -x ./wwt && ./wwt version --long | awk -F= '$$1=="system" {print $$2}')
+SYSTEM		= $(shell test -x ./wit && ./wit version --long | awk -F= '$$1=="system" {print $$2}')
 endif
 
 DUMMY		:= $(shell $(SHELL) ./setup.sh)
 include Makefile.setup
 
-URI_FILE			= http://wiimm.de/r/wwt
-URI_REPOS			= http://opensvn.wiimm.de/wii/trunk/wiimms-wbfs-tool/
-URI_VIEWVC			= http://wiimm.de/r/viewvc
-URI_HOME			= http://wiimm.de/wwt
+URI_HOME			= http://wit.wiimm.de/
+URI_DOWNLOAD			= http://wit.wiimm.de/download
+URI_FILE			= http://wit.wiimm.de/file
+URI_REPOS			= http://opensvn.wiimm.de/wii/trunk/wiimms-iso-tools/
+URI_VIEWVC			= http://wit.wiimm.de/viewvc
+
 URI_WDF				= http://wiimm.de/r/wdf
 URI_CISO			= http://wiimm.de/r/ciso
 URI_WIIJMANAGER			= http://wiimm.de/r/wiijman
 URI_GBATEMP			= http://gbatemp.net/index.php?showtopic=182236\#entry2286365
-URI_DOWNLOAD_I386		= http://wiimm.de/x/$(DISTRIB_I386)
-URI_DOWNLOAD_X86_64		= http://wiimm.de/x/$(DISTRIB_X86_64)
-URI_DOWNLOAD_MAC		= http://wiimm.de/x/$(DISTRIB_MAC)
-URI_DOWNLOAD_CYGWIN		= http://wiimm.de/x/$(DISTRIB_CYGWIN)
-URI_DOWNLOAD_PREV_I386		= http://wiimm.de/x/$(PREVDIS_I386)
-URI_DOWNLOAD_PREV_X86_64	= http://wiimm.de/x/$(PREVDIS_X86_64)
-URI_DOWNLOAD_PREV_MAC		= http://wiimm.de/x/$(PREVDIS_MAC)
-URI_DOWNLOAD_PREV_CYGWIN	= http://wiimm.de/x/$(PREVDIS_CYGWIN)
-URI_DOWNLOAD_PREV_MIPSEL	= http://wiimm.de/x/$(PREVDIS_MIPSEL)
-URI_DOWNLOAD_PREV_POWERPC	= http://wiimm.de/x/$(PREVDIS_POWERPC)
+URI_DOWNLOAD_I386		= $(URI_DOWNLOAD)/$(DISTRIB_I386)
+URI_DOWNLOAD_X86_64		= $(URI_DOWNLOAD)/$(DISTRIB_X86_64)
+URI_DOWNLOAD_MAC		= $(URI_DOWNLOAD)/$(DISTRIB_MAC)
+URI_DOWNLOAD_CYGWIN		= $(URI_DOWNLOAD)/$(DISTRIB_CYGWIN)
+URI_DOWNLOAD_PREV_I386		= $(URI_DOWNLOAD)/$(PREVDIS_I386)
+URI_DOWNLOAD_PREV_X86_64	= $(URI_DOWNLOAD)/$(PREVDIS_X86_64)
+URI_DOWNLOAD_PREV_MAC		= $(URI_DOWNLOAD)/$(PREVDIS_MAC)
+URI_DOWNLOAD_PREV_CYGWIN	= $(URI_DOWNLOAD)/$(PREVDIS_CYGWIN)
+URI_DOWNLOAD_PREV_MIPSEL	= $(URI_DOWNLOAD)/$(PREVDIS_MIPSEL)
+URI_DOWNLOAD_PREV_POWERPC	= $(URI_DOWNLOAD)/$(PREVDIS_POWERPC)
 URI_TITLES			= http://wiitdb.com/titles.txt
 
 PRE		= 
@@ -67,7 +71,7 @@ WBFS_COUNT	:= 4
 #-------------------------------------------------------------------------------
 # tools
 
-TOOLS		:= wwt wit wdf2iso iso2wdf iso2wbfs wdf-cat wdf-dump
+TOOLS		:= wit wwt wdf2iso iso2wdf iso2wbfs wdf-cat wdf-dump
 TEST_TOOLS	:= wtest
 ALL_TOOLS	:= $(sort $(TOOLS) $(TEST_TOOLS))
 
@@ -81,20 +85,20 @@ TOOLS_OBJ	:= $(patsubst %,%.o,$(TOOLS))
 TEST_TOOLS_OBJ	:= $(patsubst %,%.o,$(TEST_TOOLS))
 
 # other objects
-WWT_O		:= debug.o lib-std.o lib-wdf.o lib-ciso.o lib-sf.o \
+WIT_O		:= debug.o lib-std.o lib-wdf.o lib-ciso.o lib-sf.o \
 		   iso-interface.o wbfs-interface.o \
 		   titles.o match-pattern.o dclib-utf8.o \
 		   sha1dgst.o sha1_one.o
 LIBWBFS_O	:= file-formats.o libwbfs.o wiidisc.o rijndael.o
 
 # all objects
-C_OBJECTS	:= $(sort $(TOOLS_OBJ) $(TEST_TOOLS_OBJ) $(WWT_O) $(LIBWBFS_O))
+C_OBJECTS	:= $(sort $(TOOLS_OBJ) $(TEST_TOOLS_OBJ) $(WIT_O) $(LIBWBFS_O))
 
 # handle asm
 ASM_OBJECTS	:= ssl-asm.o
 
 # all objects + sources
-ALL_OBJECTS	:= $(sort $(WWT_O) $(LIBWBFS_O) $(ASM_OBJECTS))
+ALL_OBJECTS	:= $(sort $(WIT_O) $(LIBWBFS_O) $(ASM_OBJECTS))
 ALL_SOURCES	:= $(patsubst %.o,%.c,$(C_OBJECTS) $(ASM_OBJECTS))
 
 #-------------------------------------------------------------------------------
@@ -102,7 +106,7 @@ ALL_SOURCES	:= $(patsubst %.o,%.c,$(C_OBJECTS) $(ASM_OBJECTS))
 VPATH		+= src src/libwbfs src/crypto work
 
 DEFINES1	=  -DLARGE_FILES -D_FILE_OFFSET_BITS=64
-DEFINES1	+= -DWWT		# enable WWT specific modifications in libwbfs
+DEFINES1	+= -DWIT		# enable WIT specific modifications in libwbfs
 DEFINES1	+= -DDEBUG_ASSERT	# enable ASSERTions in release version too
 DEFINES1	+= -DEXTENDED_ERRORS=1	# enable extended error messages (function,line,file)
 DEFINES		=  $(strip $(DEFINES1) $(MODE) $(XDEF))
@@ -130,8 +134,8 @@ TEMPLATES	= ./templates
 MODULES		= $(TEMPLATES)/module
 GEN_TEMPLATE	= ./gen-template.sh
 
-DISTRIB_RM	= ./wwt-v$(VERSION)-r
-DISTRIB_BASE	= wwt-v$(VERSION)-r$(REVISION_NEXT)
+DISTRIB_RM	= ./wit-v$(VERSION)-r
+DISTRIB_BASE	= wit-v$(VERSION)-r$(REVISION_NEXT)
 DISTRIB_PATH	= ./$(DISTRIB_BASE)-$(SYSTEM)
 DISTRIB_I386	= $(DISTRIB_BASE)-i386.tar.gz
 DISTRIB_X86_64	= $(DISTRIB_BASE)-x86_64.tar.gz
@@ -139,13 +143,13 @@ DISTRIB_MAC	= $(DISTRIB_BASE)-mac.tar.gz
 DISTRIB_CYGWIN	= $(DISTRIB_BASE)-cygwin.zip
 DISTRIB_FILES	= gpl-2.0.txt $(INSTALL_SCRIPTS)
 
-PREVDIS_BASE	= wwt-v$(PREV_VERSION)-r$(PREV_REVISION)
+PREVDIS_BASE	= wit-v$(PREV_VERSION)-r$(PREV_REVISION)
 PREVDIS_I386	= $(PREVDIS_BASE)-i386.tar.gz
 PREVDIS_X86_64	= $(PREVDIS_BASE)-x86_64.tar.gz
 PREVDIS_MAC	= $(PREVDIS_BASE)-mac.tar.gz
 PREVDIS_CYGWIN	= $(PREVDIS_BASE)-cygwin.zip
-PREVDIS_MIPSEL	= wwt-v$(MIPSEL_RELEASE)-mipsel.tar.gz
-PREVDIS_POWERPC	= wwt-v$(POWERPC_RELEASE)-powerpc.tar.gz
+PREVDIS_MIPSEL	= wit-v$(MIPSEL_RELEASE)-mipsel.tar.gz
+PREVDIS_POWERPC	= wit-v$(POWERPC_RELEASE)-powerpc.tar.gz
 
 DOC_FILES	= doc/*.txt
 TITLE_FILES	= titles.txt $(patsubst %,titles-%.txt,$(LANGUAGES))
@@ -155,7 +159,7 @@ BIN_FILES	= $(TOOLS)
 LIB_FILES	= $(TITLE_FILES)
 
 CYGWIN_DIR	= pool/cygwin
-CYGWIN_BIN	= cygwin1.dll
+CYGWIN_BIN	= cygwin1.dll run-cmd-as-admin.bat
 CYGWIN_BIN_SRC	= $(patsubst %,$(CYGWIN_DIR)/%,$(CYGWIN_BIN))
 
 DIR_LIST_BIN	= $(SCRIPTS) bin bin/debug
@@ -386,10 +390,12 @@ templates.sed: Makefile
 		's|@@@@-@@-@@|$(DATE)|g;\n' \
 		's|@@:@@:@@|$(TIME)|g;\n' \
 		's|@@AUTHOR@@|$(AUTHOR)|g;\n' \
-		's|@@WWT-SHORT@@|$(WWT_SHORT)|g;\n' \
-		's|@@WWT-LONG@@|$(WWT_LONG)|g;\n' \
+		's|@@TOOLSET-SHORT@@|$(TOOLSET_SHORT)|g;\n' \
+		's|@@TOOLSET-LONG@@|$(TOOLSET_LONG)|g;\n' \
 		's|@@WIT-SHORT@@|$(WIT_SHORT)|g;\n' \
 		's|@@WIT-LONG@@|$(WIT_LONG)|g;\n' \
+		's|@@WWT-SHORT@@|$(WWT_SHORT)|g;\n' \
+		's|@@WWT-LONG@@|$(WWT_LONG)|g;\n' \
 		's|@@VERSION@@|$(VERSION)|g;\n' \
 		's|@@REV@@|$(REVISION)|g;\n' \
 		's|@@REV-NUM@@|$(REVISION_NUM)|g;\n' \
@@ -415,6 +421,7 @@ templates.sed: Makefile
 		's|@@URI-REPOS@@|$(URI_REPOS)|g;\n' \
 		's|@@URI-VIEWVC@@|$(URI_VIEWVC)|g;\n' \
 		's|@@URI-HOME@@|$(URI_HOME)|g;\n' \
+		's|@@URI-DOWNLOAD@@|$(URI_DOWNLOAD)|g;\n' \
 		's|@@URI-WDF@@|$(URI_WDF)|g;\n' \
 		's|@@URI-CISO@@|$(URI_CISO)|g;\n' \
 		's|@@URI-WIIJMANAGER@@|$(URI_WIIJMANAGER)|g;\n' \
@@ -462,7 +469,7 @@ testtrace:
 #--------------------------
 
 .PHONY : titles
-titles: wwt load-titles.sh gen-titles
+titles: wit load-titles.sh gen-titles
 
 .PHONY : gen-titles
 gen-titles:

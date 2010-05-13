@@ -1,6 +1,6 @@
 
-#ifndef WWT_LIB_CISO_H
-#define WWT_LIB_CISO_H 1
+#ifndef WIT_LIB_CISO_H
+#define WIT_LIB_CISO_H 1
 
 #include "types.h"
 #include "libwbfs.h"
@@ -86,5 +86,5 @@ enumError WriteSparseCISO( SUPERFILE * sf, off_t off, const void * buf, size_t s
 ///////////////                          END                    ///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-#endif // WWT_LIB_CISO_H
+#endif // WIT_LIB_CISO_H
 

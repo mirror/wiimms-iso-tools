@@ -3,7 +3,7 @@
 *******                      A few truths about WBFS                    *******
 *******************************************************************************
 
-This file is part of the documentation of '@@WWT-SHORT@@' (@@WWT-LONG@@).
+This file is part of the documentation of '@@TOOLSET-SHORT@@' (@@TOOLSET-LONG@@).
 
 
  CONTENTS:
@@ -262,7 +262,7 @@ extension is abolut compatible with all other USB loaders and WBFS managers:
  2.) They copy the contents of the ISO image and the INDOE-INFO-area is always
      filled with garbage (zeros).
 
-The time stamps are informative. wwt and wit uses them in the following way:
+The time stamps are informative. wit and wwt uses them in the following way:
 
  All commands:
     If creating a indode info because the previous is invalid, then itime,

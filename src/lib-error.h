@@ -1,6 +1,6 @@
 
-#ifndef WWT_ERROR_H
-#define WWT_ERROR_H 1
+#ifndef WIT_ERROR_H
+#define WIT_ERROR_H 1
 
 //
 ///////////////////////////////////////////////////////////////////////////////
@@ -90,4 +90,4 @@ void HexDump16 ( FILE * f, int indent, u64 addr,
 ///////////////                     END                         ///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-#endif // WWT_ERROR_H 1
+#endif // WIT_ERROR_H 1

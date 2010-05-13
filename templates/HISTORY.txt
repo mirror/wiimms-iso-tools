@@ -530,6 +530,22 @@ wwt v0.43a r957 - 2010-04-30
   - "wit COPY source_dir output_file" is able to compose a trucha signed ISO
     image from a file system.
 
+wwt v0.44a r973 - 2010-05-02
+
+  - wit bug fix: Option --enc was not accepted.
+  - ISO composing supports now UPDATE, DATA and CHANNEL (new!) partitions.
+  - wit DIFF: If option --files= (-F) is set then the ISO images (real or
+    virtual FST) will be compared on file level. The option --files= declares
+    a file filter.
+  - Progress counter for "wit EXTRACT" enabled.
+  - Option --files= (-F): The macros are redifined as positive list.
+    Now we have the following macros:
+    =base =nobase =disc =nodisc =sys =nosys =files =nofiles =wit =wwt =sneek
+  - wit COPY can decrypt or encrypt ISO images on the fly when copying in
+    scrubbed mode. This does not change the signature.
+  - Fix some troubles with new cyygwin release 1.7.5-1. The main problem
+    was file path creation with absolute path names.
+
 @@MODULE(last-history.txt)@@
 
 

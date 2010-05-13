@@ -40,6 +40,7 @@
 #include "lib-std.h"
 #include "lib-sf.h"
 #include "titles.h"
+#include "iso-interface.h"
 #include "wbfs-interface.h"
 #include "match-pattern.h"
 #include "crypt.h"
@@ -87,6 +88,7 @@ typedef enum enumOptions
 	OPT_NO_HEADER,
 	OPT_SECTIONS,
 	OPT_SORT,
+	OPT_LIMIT,
 
 	OPT__N_SPECIFIC,
 
@@ -129,6 +131,7 @@ typedef enum enumOptionsBit
 	OB_NO_HEADER	= 1llu << OPT_NO_HEADER,
 	OB_SECTIONS	= 1llu << OPT_SECTIONS,
 	OB_SORT		= 1llu << OPT_SORT,
+	OB_LIMIT	= 1llu << OPT_LIMIT,
 
 	OB__MASK	= ( 1llu << OPT__N_SPECIFIC ) -1,
 	OB__MASK_PSEL	= OB_PSEL|OB_RAW,
@@ -164,7 +167,7 @@ typedef enum enumOptionsBit
 	OB_CMD_REMOVE	= OB_IGNORE|OB_UNIQUE,
 	OB_CMD_RENAME	= OB_IGNORE|OB_ISO|OB_WBFS,
 	OB_CMD_SETTITLE	= OB_CMD_RENAME,
-	OB_CMD_VERIFY	= OB__MASK_PSEL|OB_IGNORE|OB__MASK_PSEL|OB_ENC|OB_LONG,
+	OB_CMD_VERIFY	= OB__MASK_PSEL|OB_IGNORE|OB_LONG|OB_LIMIT,
 
 } enumOptionsBit;
 
@@ -235,6 +238,7 @@ enum // const for long options without a short brothers
 	GETOPT_ATIME,
 	GETOPT_TIME,
 	GETOPT_SECTIONS,
+	GETOPT_LIMIT,
 	GETOPT_IO,
 };
 
@@ -303,6 +307,7 @@ struct option long_opt[] =
 	 { "noheader",		0, 0, 'H' },
 	{ "sections",		0, 0, GETOPT_SECTIONS },
 	{ "sort",		1, 0, 'S' },
+	{ "limit",		1, 0, GETOPT_LIMIT },
 
 	{0,0,0,0}
 };
@@ -319,6 +324,7 @@ bool opt_mkdir		= false;
 int  opt_split		= 0;
 u64  opt_split_size	= 0;
 bool opt_ignore_fst	= 0;
+int  opt_limit		= -1;
 
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -403,14 +409,14 @@ static const char help_text[] =
     "   RENAME   | REN  : Rename the ID6 of discs. Disc title can also be set.\n"
     "   SETTITLE | ST   : Set the disc title of discs.\n"
     "\n"
-    "   VERIFY   | V    : ??? [2do]\n"
+    "   VERIFY   | V    : Verify ISO images (calculate and compare SHA1 check sums).\n"
     "\n"
     "General options (for all commands except 'ERROR'):\n"
     "\n"
     "   -h --help          Print this help and exit.\n"
     "   -V --version       Print program name and version and exit.\n"
     "   -q --quiet         Be quiet   -> print only error messages and needed output.\n"
-    " * -v --verbose       Be verbose -> print more infos. Multiple usage possible.\n"
+    " * -v --verbose       Be verbose -> print more info. Multiple usage possible.\n"
     "   -P --progress      Print progress counter independent of verbose level.\n"
     " * -t --test          Run in test mode, modify nothing.\n"
     "   -E --esc char      Define an alternative escape character, default is '%'.\n"
@@ -469,6 +475,7 @@ static const char help_text[] =
     "   -H --no-header     Suppress printing of header and footer.\n"
     "      --sections      Print output in sections and parameter lines.\n"
     "   -S --sort  list    Sort by: id|title|name|size|*time|file|region|...|asc|desc\n"
+    "      --limit  num    Limit the output to NUM messages.\n"
  #ifdef TEST // [test]
     "\n"
     "      --io flags      IO mode (0=open or 1=fopen) &1=WBFS &2=IMAGE.\n"
@@ -504,7 +511,7 @@ static const char help_text[] =
  #endif
     "   RENAME   | REN  -i -IB                           id6=[new][,title]...\n"
     "   SETTITLE | ST   -i -IB                           id6=title...\n"
-    "   VERIFY   | V    ??? [2do]\n"
+    "   VERIFY   | V    -tt -ll --limit=         --psel= [source]...\n"
     "\n";
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -571,28 +578,9 @@ void hint_exit ( enumError err )
 
 enumError cmd_test()
 {
- #if 0 || !defined(TEST) // test options
+ #if 1 || !defined(TEST) // test options
 
     return cmd_test_options();
-
- #elif 1
-
-    if (first_param)
-    {
-	SuperFile_t sf;
-	InitializeSF(&sf);
-	sf.allow_fst = true;
-	OpenSF(&sf,first_param->arg,true,false);
-	printf("oft=%x\n",sf.oft);
-	u64 addr  = 0xf820000ull;
-	ReadSF(&sf,addr,iobuf,0x10000);
-	u32 delta = WII_SECTOR_DATA_OFF;
-	HexDump16(stdout,3,addr+delta,iobuf+delta,0x40);
-	delta += 0x420;
-	HexDump16(stdout,3,addr+delta,iobuf+delta,0x40);
-	ResetSF(&sf,0);
-    }
-    return ERR_OK;
 
  #elif 1
 
@@ -2029,10 +2017,6 @@ enumError exec_verify ( SuperFile_t * fi, Iterator_t * it )
 	return ERR_OK;
     fflush(0);
 
-    wiidisc_t * disc = wd_open_disc(WrapperReadSF,fi);
-    if (!disc)
-	return ERROR0(ERR_CANT_OPEN,"Can't open file: %s\n",fi->f.fname);
-
     it->done_count++;
     if ( testmode || verbose >= 999 )
     {
@@ -2048,297 +2032,25 @@ enumError exec_verify ( SuperFile_t * fi, Iterator_t * it )
     fi->show_summary	= verbose > 0 || progress;
     fi->show_msec	= verbose > 2;
 
-    WiiFst_t fst;
-    InitializeFST(&fst);
-
-    IsoFileIterator_t ifi;
-    memset(&ifi,0,sizeof(ifi));
-    ifi.sf  = fi;
-    ifi.fst = &fst;
-
-    wd_iterate_files(disc,partition_selector,prefix_mode,
-			CollectPartitions,&ifi,wdisc_usage_tab,fi->file_size);
-
-    ASSERT( sizeof(iobuf) >= 2*WII_GROUP_SIZE );
-    if ( sizeof(iobuf) < WII_GROUP_SIZE )
-	return ERROR0(ERR_INTERNAL,0);
-
-    static char msg_format[] = "%-7s %-7s %s %s\n";
-    char partbuf[20];
-    u8 hash[WII_HASH_SIZE];
-
-    enumError err = ERR_OK;
-    const int max_diff_count = verbose < 0 ? 0 : 10;
-    int part_diff_count = 0, pi;
-    for ( pi = 0; pi < fst.part_used && !SIGINT_level; pi++ )
+    Verify_t ver;
+    InitializeVerify(&ver,fi);
+    ver.long_count = it->long_count;
+    if ( opt_limit >= 0 )
     {
-      int diff_count = 0;
-
-      //----- open partition
-
-      WiiFstPart_t * part = fst.part + pi;
-      const wd_part_control_t * pc = part->pc;
-      ASSERT(pc);
-      wd_print_partition_name(partbuf,sizeof(partbuf),part->part_type,1);
-      ccp enc_test = part->is_encrypted ? "ENCRYPT" : "DECRYPT";
-
-      if (part->is_marked_not_enc)
-      {
-	part_diff_count++;
-	if ( verbose < 0 )
-	    break;
-	printf(msg_format,"NO-HASH",enc_test,partbuf,fi->f.fname);
-	continue;
-      }
-
-      if (!pc->is_valid)
-      {
-	part_diff_count++;
-	if ( verbose < 0 )
-	    break;
-	printf(msg_format,"INVALID",enc_test,partbuf,fi->f.fname);
-	continue;
-      }
-
-      //----- calculate end of blocks
-
-      u32 block = ( part->part_offset + pc->data_off ) / WII_SECTOR_SIZE;
-      u32 block_end = block + pc->data_size / WII_SECTOR_SIZE;
-      if ( block_end > WII_MAX_SECTORS )
-	   block_end = WII_MAX_SECTORS;
-
-      TRACE(" - Partition %u [%s], valid=%d, blocks=%x..%x\n",
-		part->part_type,
-		wd_get_partition_name(part->part_type,"?"),
-		pc->is_valid,
-		block, block_end );
-
-      int grp; // index of block group
-      for ( grp = 0; block < block_end; grp++, block += WII_GROUP_SECTORS )
-      {
-	//----- preload data
-
-	u32 blk = block;
-	int index, found = -1, found_end = -1;
-	for ( index = 0; blk < block_end && index < WII_GROUP_SECTORS; blk++, index++ )
-	{
-	    if ( wdisc_usage_tab[blk] == pi+2 )
-	    {
-		found_end = index+1;
-		if ( found < 0 )
-		    found = index;
-	    }
-	}
-
-	if ( found < 0 )
-	{
-	    // nothing to do
-	    continue;
-	}
-
-	const u64 read_off = (block+found) * (u64)WII_SECTOR_SIZE;
-	wd_part_sector_t * read_sect = (wd_part_sector_t*)iobuf + found;
-	if ( part->is_encrypted )
-	    read_sect += WII_GROUP_SECTORS; // inplace decryption not possible
-	err = ReadSF( fi, read_off, read_sect, (found_end-found)*WII_SECTOR_SIZE );
-	if (err)
-	{
-	    part_diff_count++;
-	    goto part_abort;
-	}
-
-	//----- iterate through preloaded data
-
-	blk = block;
-	wd_part_sector_t * sect_h2 = 0;
-	int i2; // iterate through H2 elements
-	for ( i2 = 0; i2 < WII_N_ELEMENTS_H2 && blk < block_end; i2++ )
-	{
-	  wd_part_sector_t * sect_h1 = 0;
-	  int i1; // iterate through H1 elements
-	  for ( i1 = 0; i1 < WII_N_ELEMENTS_H1 && blk < block_end; i1++, blk++ )
-	  {
-
-	    if (SIGINT_level>1)
-		return ERR_INTERRUPT;
-
-	    if ( wdisc_usage_tab[blk] != pi+2 )
-		continue;
-
-	    //----- we have found a used blk -----
-
-	    const u64 off = blk * (u64)WII_SECTOR_SIZE;
-	    const int grp_sector = i2 * WII_N_ELEMENTS_H1 + i1; // sector within group
-	    wd_part_sector_t *sect = (wd_part_sector_t*)iobuf + grp_sector;
-
-	    if ( part->is_encrypted )
-		DecryptSectors(&part->part_akey,sect+WII_GROUP_SECTORS,sect,1);
-
-
-	    //----- check H0 -----
-
-	    int i0;
-	    for ( i0 = 0; i0 < WII_N_ELEMENTS_H0; i0++ )
-	    {
-		SHA1(sect->data[i0],WII_H0_DATA_SIZE,hash);
-		if (memcmp(hash,sect->h0[i0],WII_HASH_SIZE))
-		{
-		    if ( ++diff_count > max_diff_count )
-			goto abort;
-		    printf(msg_format,"H0-ERR",enc_test,partbuf,fi->f.fname);
-		    if (it->long_count)
-		    {
-			printf(" - group=%x.%x, blk=%x.%x, off=%llx\n",
-				grp, grp_sector, blk, i0, off );
-			if (it->long_count>1)
-			{
-			    HexDump(stdout,0,blk,0,WII_HASH_SIZE,hash,WII_HASH_SIZE);
-			    HexDump(stdout,0,blk,0,WII_HASH_SIZE,sect->h0[i0],WII_HASH_SIZE);
-			    HexDump16(stdout,0,sect->data[i0]-(u8*)sect,sect->data[i0],32);
-			}
-		    }
-		    break;
-		}
-	    }
-
-	    //----- check H1 -----
-
-	    SHA1(*sect->h0,sizeof(sect->h0),hash);
-	    if (memcmp(hash,sect->h1[i1],WII_HASH_SIZE))
-	    {
-		if ( ++diff_count > max_diff_count )
-		    goto abort;
-		printf(msg_format,"H1-ERR",enc_test,partbuf,fi->f.fname);
-		if (it->long_count)
-		{
-		    printf(" - group=%x.%x, blk=%x, off=%llx\n",
-				grp, grp_sector, blk, off );
-		    if (it->long_count>1)
-		    {
-			HexDump(stdout,0,blk,0,WII_HASH_SIZE,hash,WII_HASH_SIZE);
-			HexDump(stdout,0,blk,0,WII_HASH_SIZE,sect->h1[i1],WII_HASH_SIZE);
-		    }
-		}
-		continue;
-	    }
-
-	    //----- check first H1 -----
-
-	    if (!sect_h1)
-	    {
-		// first valid H1 sector
-		sect_h1 = sect;
-		
-		//----- check H1 -----
-
-		SHA1(*sect->h1,sizeof(sect->h1),hash);
-		if (memcmp(hash,sect->h2[i2],WII_HASH_SIZE))
-		{
-		    if ( ++diff_count > max_diff_count )
-			goto abort;
-		    printf(msg_format,"H2-ERR",enc_test,partbuf,fi->f.fname);
-		    if (it->long_count)
-		    {
-			printf(" - group=%x.%x, blk=%x, off=%llx\n",
-					grp, grp_sector, blk, off );
-			if (it->long_count>1)
-			{
-			    HexDump(stdout,0,blk,0,WII_HASH_SIZE,hash,WII_HASH_SIZE);
-			    HexDump(stdout,0,blk,0,WII_HASH_SIZE,sect->h2[i2],WII_HASH_SIZE);
-			}
-		    }
-		}
-	    }
-	    else
-	    {
-		if (memcmp(sect->h1,sect_h1->h1,sizeof(sect->h1)))
-		{
-		    if ( ++diff_count > max_diff_count )
-			goto abort;
-		    printf(msg_format,"H1-DIFF",enc_test,partbuf,fi->f.fname);
-		}
-	    }
-
-	    //----- check first H2 -----
-
-	    if (!sect_h2)
-	    {
-		// first valid H2 sector
-		sect_h2 = sect;
-		
-		//----- check H3 -----
-
-		SHA1(*sect->h2,sizeof(sect->h2),hash);
-		u8 * h3 = pc->h3 + grp * WII_HASH_SIZE;
-		if (memcmp(hash,h3,WII_HASH_SIZE))
-		{
-		    if ( ++diff_count > max_diff_count )
-			goto abort;
-		    printf(msg_format,"H3-ERR",enc_test,partbuf,fi->f.fname);
-		    if (it->long_count)
-		    {
-			printf(" - group=%x.%x, blk=%x, off=%llx\n",
-					grp, grp_sector, blk, off );
-			if (it->long_count>1)
-			{
-			    HexDump(stdout,0,blk,0,WII_HASH_SIZE,hash,WII_HASH_SIZE);
-			    HexDump(stdout,0,blk,0,WII_HASH_SIZE,h3,WII_HASH_SIZE);
-			}
-		    }
-		}
-	    }
-	    else
-	    {
-		if (memcmp(sect->h2,sect_h2->h2,sizeof(sect->h2)))
-		{
-		    if ( ++diff_count > max_diff_count )
-			goto abort;
-		    printf(msg_format,"H2-DIFF",enc_test,partbuf,fi->f.fname);
-		}
-	    }
-	  }
-	}
-      }
-
-      //----- check H4 -----
-
-      if (pc->tmd_content)
-      {
-	SHA1( pc->h3, pc->h3_size, hash );
-	if (memcmp(hash,pc->tmd_content->hash,WII_HASH_SIZE))
-	{
-	    if ( ++diff_count > max_diff_count )
-		goto abort;
-	    printf(msg_format,"H4-ERR",enc_test,partbuf,fi->f.fname);
-	}
-      }
-
-      //----- terminate partition ------
-
-abort:
-      if (diff_count)
-      {
-	part_diff_count++;
-	if ( verbose < 0 )
-	    break;
-	if ( diff_count > max_diff_count )
-	{
-	    printf(msg_format,"ABORT",enc_test,partbuf,fi->f.fname);
-	    break;
-	}
-      }
-      else if ( verbose > 0 )
-	printf(msg_format,"+OK+",enc_test,partbuf,fi->f.fname);
-      fflush(0);
+	ver.max_err_msg = opt_limit;
+	if (!ver.verbose)
+	    ver.verbose = 1;
+    }
+    if ( it->source_list.used > 1 )
+    {
+	ver.disc_index = it->source_index+1;
+	ver.disc_total = it->source_list.used;
     }
 
-part_abort:
-
-    if ( part_diff_count )
-	it->diff_count++;
-
-    wd_close_disc(disc);
-    ResetFST(&fst);
+    const enumError err = VerifyDisc(&ver);
+    if ( err == ERR_DIFFER )
+        it->diff_count++;
+    ResetVerify(&ver);
     return err;
 }
 
@@ -2421,8 +2133,8 @@ enumError CheckOptions ( int argc, char ** argv, int is_env )
 	  case '?': err++; break;
 	  case 'V': version_exit();
 	  case 'h': help_exit();
-	  case 'q': verbose = -1; break;
-	  case 'v': verbose++; break;
+	  case 'q': verbose = verbose > -1 ? -1 : verbose - 1; break;
+	  case 'v': verbose = verbose <  0 ?  0 : verbose + 1; break;
 	  case 'L': logging++; break;
 	  case 'P': progress++; break;
 	  case 't': testmode++; break;
@@ -2583,6 +2295,17 @@ enumError CheckOptions ( int argc, char ** argv, int is_env )
 	    }
 	    break;
 
+	  case GETOPT_LIMIT:
+	    {
+		SetOption(OPT_LIMIT,"limit");
+		u32 limit;
+		if (ScanSizeOptU32(&limit,optarg,1,0,"limit",0,INT_MAX,0,0,true))
+		    err++;
+		else
+		    opt_limit = limit;
+	    }
+	    break;
+
 	  case GETOPT_IO:
 	    {
 		const enumIOMode new_io = strtol(optarg,0,0); // [2do] error handling
@@ -2730,7 +2453,7 @@ int main ( int argc, char ** argv )
 
     if ( argc < 2 )
     {
-	printf("\n%s\nVisit %s for more infos.\n\n",TITLE,URI_HOME);
+	printf("\n%s\nVisit %s%s for more info.\n\n",TITLE,URI_HOME,WIT_SHORT);
 	hint_exit(ERR_OK);
     }
 

@@ -195,9 +195,6 @@ The advantages are:
 For a full WDF description see the file 'WDF.txt' or try the link:
   @@URI-FILE@@/WDF.txt
 
-Statistic about WDF can be found here:
-  @@URI-FILE@@/STATISTICS.txt
-
 I have written 4 small tools for handling WDF:
  - Tool 'wdf-dump' dumps the data structure of a WDF file.
  - Tool 'iso2wdf' converts ISO images into WDF files.

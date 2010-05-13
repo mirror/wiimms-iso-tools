@@ -90,13 +90,14 @@ typedef enum iterator_prefix_mode_t
 
 typedef struct wiidisc_s
 {
+    char id6[7];			// id of opened disc
+
     read_wiidisc_callback_t read;	// read-data-function
     void *fp;				// file handle (black box)
     u8 *usage_table;			// if not NULL: calculate usage
 					//	size = WII_MAX_SECTORS
     u8  usage_marker;			// use value to sector_usage_table
 
-    // everything points 32bit words.
     u32 disc_raw_offset;
     u32 partition_raw_offset4;		// offset/4 of beginning of current partition
     u32 partition_data_offset4;		// data offset/4 relative to begin of partition
