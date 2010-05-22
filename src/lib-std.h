@@ -131,9 +131,9 @@ typedef enum enumSystemID
 
 void SetupLib ( int argc, char ** argv, ccp p_progname, enumProgID prid );
 
-typedef enumError (*check_opt_func) ( int argc, char ** argv, int mode );
+typedef enumError (*check_opt_func) ( int argc, char ** argv, bool mode );
 
-enumError CheckEnvOptions ( ccp varname, check_opt_func, int mode );
+enumError CheckEnvOptions ( ccp varname, check_opt_func );
 
 //
 ///////////////////////////////////////////////////////////////////////////////
@@ -217,7 +217,15 @@ enumError CheckEnvOptions ( ccp varname, check_opt_func, int mode );
 
 //
 ///////////////////////////////////////////////////////////////////////////////
-///////////////                    timer                        ///////////////
+///////////////			terminal cap			///////////////
+///////////////////////////////////////////////////////////////////////////////
+
+int GetTermWidth ( int default_value, int min_value );
+int GetTermWidthFD ( int fd, int default_value, int min_value );
+
+//
+///////////////////////////////////////////////////////////////////////////////
+///////////////			    timer			///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
 u32 GetTimerMSec();
@@ -225,7 +233,7 @@ ccp PrintMSec ( char * buf, int bufsize, u32 msec, bool PrintMSec );
 
 //
 ///////////////////////////////////////////////////////////////////////////////
-///////////////                   file support                  ///////////////
+///////////////			file support			///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
 typedef enum enumIOMode
@@ -243,6 +251,7 @@ typedef enum enumIOMode
 } enumIOMode;
 
 extern enumIOMode opt_iomode;
+void ScanIOMode ( ccp arg );
 
 //-----------------------------------------------------------------------------
 
@@ -528,6 +537,9 @@ extern const char MinusString[]; // "-"
 // frees string if str is not NULL|EmptyString|MinusString
 void FreeString ( ccp str );
 
+// works like strdup();
+void * MemDup ( const void * src, size_t copylen );
+
 //-----
 
 // StringCopy(), StringCopyE(), StringCat*()
@@ -548,11 +560,19 @@ ccp PathCat2S ( char * buf, size_t bufsize, ccp path1, ccp path2 );
 
 int NormalizeIndent ( int indent );
 
-int  CheckID	    ( ccp id4_or_6 );		// check up to 7 chars
-int  CheckIDnocase  ( ccp id4_or_6 );		// check up to 7 chars, ignoring case
-bool CheckID6	    ( const void * id6  );	// exactly the first 6 bytes are checked
-int  CountIDChars   ( ccp id );			// count number of allowed ID characters
+//-----
+
+int CheckIDHelper
+	( const void * id, int max_len, bool allow_any_len, bool ignore_case );
+
+int  CheckID	( const void * id, bool ignore_case ); // check up to 7 chars for ID4|ID6
+bool CheckID4	( const void * id, bool ignore_case ); // check exact 4 chars
+bool CheckID6	( const void * id, bool ignore_case ); // check exact 6 chars
+int CountIDChars( const void * id, bool ignore_case ); // count number of valid ID chars
+
 char * ScanID	    ( char * destbuf7, int * destlen, ccp source );
+
+//-----
 
 char * ScanNumU32   ( ccp arg, u32 * p_stat, u32 * p_num,            u32 min, u32 max );
 char * ScanRangeU32 ( ccp arg, u32 * p_stat, u32 * p_n1, u32 * p_n2, u32 min, u32 max );
@@ -588,6 +608,11 @@ enumError ScanSizeOptU32
 	( u32 * num, ccp source, u64 default_factor1, int force_base,
 	  ccp opt_name, u64 min, u64 max, u32 multiple, u32 pow2, bool print_err );
 
+//-----------------------------------------------------------------------------
+
+extern int opt_split;
+extern u64 opt_split_size;
+int ScanSplitSize ( ccp source ); // returns '1' on error, '0' else
 
 //
 ///////////////////////////////////////////////////////////////////////////////
@@ -688,10 +713,11 @@ typedef struct PrintTime_t
 
 extern int opt_print_time;
 
-int ScanPrintTimeMode	( ccp argv, int prev_mode );
-int ScanAndSetPrintTimeMode ( ccp argv );
-int SetPrintTimeMode	( int prev_mode, int new_mode );
-int EnablePrintTime	( int opt_time );
+int  ScanPrintTimeMode	( ccp argv, int prev_mode );
+int  ScanAndSetPrintTimeMode ( ccp argv );
+int  SetPrintTimeMode	( int prev_mode, int new_mode );
+int  EnablePrintTime	( int opt_time );
+void SetTimeOpt		( int opt_time );
 
 void	SetupPrintTime	( PrintTime_t * pt, int opt_time );
 char *	PrintTime	( PrintTime_t * pt, const FileAttrib_t * fa );
@@ -869,6 +895,8 @@ RepairMode ScanRepairMode ( ccp arg );
 #define COMMAND_MAX 100
 
 typedef u64 option_t;
+extern option_t used_options;
+extern option_t env_options;
 
 typedef struct CommandTab_t
 {
@@ -904,7 +932,6 @@ extern bool use_utf8;
 extern char escape_char;
 
 extern char iobuf[0x400000];		// global io buffer
-extern char sectbuf[WII_SECTOR_SIZE];	// global sector buffer
 
 extern const char sep_79[80];		//  79 * '-' + NULL
 extern const char sep_200[201];		// 200 * '-' + NULL

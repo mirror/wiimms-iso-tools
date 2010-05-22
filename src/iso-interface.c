@@ -242,7 +242,7 @@ enumError Dump_ISO
 	    id4[1] = pi->ptype >> 16;
 	    id4[2] = pi->ptype >>  8;
 	    id4[3] = pi->ptype;
-	    if ( CheckID(id4) == 4 )
+	    if ( CheckID(id4,false) == 4 )
 		snprintf(buf1,sizeof(buf1),"   \"%.4s\"",id4);
 	    else
 		snprintf(buf1,sizeof(buf1),"%9x",pi->ptype);

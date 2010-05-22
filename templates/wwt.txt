@@ -55,39 +55,7 @@ are listed in alphabetic order:
 
 
 -------------------------------------------------------------------------------
-
-COMMAND: ADD|A  [iso_image_path]... [directory]...
-
- Add one or more iso images to a WBFS partition.
-
- Options:
-
-    -A --all           Use all WBFS partitions found.
-    -a --auto          Search for WBFS partitions using /proc/partitions.
-    -p --part  part    File of primary WBFS partition. Multiple usage allowed.
-    -r --recurse path  Base of a directory tree with ISO files.
-       --psel  p-type  Partition selector: (no-)data|update|channel all(=def) raw.
-       --raw           Short cut for --psel=raw.
-    -u --update        Copy only non existing discs.
-    -y --sync          Remove and copy until source and dest are identical.
-    -e --newer         If source and dest have valid mtimes: copy if source is newer.
-    -o --overwrite     Overwrite existing WBFS discs.
-    -i --ignore        Ignore non ISO files without warning.
-    -R --remove        Remove ISO file if operation is successful.
-    -n --include id    Include oly discs with given ID4 or ID6 from operation.
-    -n --include @file Read include list from file.
-    -N --include-path file_or_dir
-                       ISO file or base of directory tree -> scan their ID6.
-    -x --exclude id    Exclude discs with given ID4 or ID6 from operation.
-    -x --exclude @file Read exclude list from file.
-    -X --exclude-path file_or_dir
-                       ISO file or base of directory tree -> scan their ID6
-    -f --force         Force operation, ignore the check result.
-       --no-check      Disable automatic check of WBFS before modifications.
-
-    -q --quiet         Be quiet   -> print only error messages.
-    -v --verbose       Be verbose -> print continuation infos.
-    -t --test          Run in test mode, do not copy or remove anything.
+@@EXEC(./wwt help ADD)@@
 
  The ADD command adds all given ISO images to all given WBFS partitions. The
  filename '-' means 'read from stdin'. The three options --all, --auto and
@@ -141,18 +109,7 @@ COMMAND: ADD|A  [iso_image_path]... [directory]...
 
 
 -------------------------------------------------------------------------------
-
-COMMAND: ANALYZE|ANA   [wbfs_partition]...
-
- Analyze files and partitions for WBFS usage. Try to find old WBFS structures
- and make calculations for new WBFS.
-
- Options:
-
-    -A --all          Use all WBFS partitions found.
-    -a --auto         Search for WBFS partitions using /proc/partitions.
-    -p --part  part   File of primary WBFS partition. Multiple usage allowed.
-
+@@EXEC(./wwt help ANALYZE)@@
 
  The ANALYZE command analyze files and partitions and prints out the geometry.
  The files are niot modified and opened readonly.
@@ -182,13 +139,13 @@ COMMAND: ANALYZE|ANA   [wbfs_partition]...
     NAME
         Short name of the analyze mode.
         - HEADER:  Result of header analyzing (first 12 bytes).
-        - INODE-*: Results of INODE-INFO searching.
+        - INODE-*: Result of INODE-INFO searching.
             - INODE-TIM: The newest INODE found.
             - INODE-CNT: The inodes with the largest equal-inodes-count.
-            - INODE-1FT: The first inodes found if not already printed.
-        - DISCS:   Resuls of searching discs in the WBFS management area.
-        - CALC #:  Calculation of the INIT function.
-        - OLD #:   Calculation of the INIT function with the old buggy algorithm.
+            - INODE-1ST: The first inodes found if not already printed.
+        - DISCS:   Result of searching discs in the WBFS management area.
+        - CALC #:  Example calculation of the INIT function.
+        - OLD #:   Example calculation with the old buggy algorithm.
 
     WBFS magic:
         "ok" if a WBFS magic was found.
@@ -217,7 +174,7 @@ COMMAND: ANALYZE|ANA   [wbfs_partition]...
     ADDITIONAL INFORMATION:
         Additiional informaton.
         - INODE: most current date and number of equal inodes infos found.
-        - DISCS: number of discs found in the management area of WEBFS.
+        - DISCS: number of discs found in the management area of WBFS.
 
  The output can also be used to setup parameters for the INIT command.
 
@@ -229,47 +186,7 @@ COMMAND: ANALYZE|ANA   [wbfs_partition]...
 
 
 -------------------------------------------------------------------------------
-
-COMMAND: CHECK|FSCK   [wbfs_partition]...
-
- Check and perhaps repairs WBFS partitions.
-
- Options:
-
-    -A --all          Use all WBFS partitions found.
-    -a --auto         Search for WBFS partitions using /proc/partitions.
-    -p --part  part   File of primary WBFS partition. Multiple usage allowed.
-
-    -l --long         Print more details.
-    -ll               Print WBFS dump including corrupted discs if errors found.
-    -lll              Print WBFS dump including all discs if errors found.
-    -llll             Print WBFS dump including full memory map.
-
-       --repair mode  Repair the WBFS. 'mode' is a comma separated list of:
-
-                         -  | NONE       : reset = ignore previous settings
-
-                         F  | FBT        : repair free blocks table
-                         I  | INODES     : setup all missing inode infos
-                         STD| STANDARD   : default setting: FBT,INODES
-
-                         RI | RM-INVALID : remove discs with invalid blocks
-                         RO | RM-OVERLAP : remove discs with overlaped blocks
-                         RF | RM-FREE    : remove discs with free marked blocks
-                         RE | RM-EMPTY   : remove discs with no valid blocks
-                         RA | RM-ALL     : remove all discs with errors
-
-                         *  | ALL        : repair all
-
-                      All keyword can be prefixed by
-                         + : enable repair mode (default)
-                         - : disable repair mode
-                         = : enable repair mode and disable all others
-
-    -q --quiet        Be quiet.
-    -v --verbose      Be verbose. set also '--long' level if long is not set.
-    -t --test         Run in test mode, modify nothing.
-
+@@EXEC(./wwt help CHECK)@@
 
  Command CHECKS checks WBFS partions for block errors in 5 categories:
    - Find discs with invalid blocks.
@@ -278,8 +195,29 @@ COMMAND: CHECK|FSCK   [wbfs_partition]...
    - Find free blocks that marked as used.
    - Find used blocks that marked as free.
 
- If the option --repair then the detected error are fixed. Fixing the free
- blocks table is the last action. Be carfull because discs will be removed.
+ If the option --repair is set then the detected error are fixed. Fixing the
+ free blocks table is the last action. Be carfull because discs will be removed.
+
+ The repair modes in detail: 
+
+    -   | NONE       : reset = ignore previous settings
+
+    F   | FBT        : repair free blocks table
+    I   | INODES     : setup all missing inode infos
+    STD | STANDARD   : default setting: FBT,INODES
+
+    RI  | RM-INVALID : remove discs with invalid blocks
+    RO  | RM-OVERLAP : remove discs with overlaped blocks
+    RF  | RM-FREE    : remove discs with free marked blocks
+    RE  | RM-EMPTY   : remove discs with no valid blocks
+    RA  | RM-ALL     : remove all discs with errors
+
+    *   | ALL        : repair all
+
+    All keyword can be prefixed by
+      + : enable repair mode (default)
+      - : disable repair mode
+      = : enable repair mode and disable all others
 
 
  Usual ERROR/EXIT CODES:
@@ -292,29 +230,7 @@ COMMAND: CHECK|FSCK   [wbfs_partition]...
 
 
 -------------------------------------------------------------------------------
-
-COMMAND: DUMP|D   [wbfs_partition]...
-
- Find all WBFS partitions and print out path and sizes.
-
- Options:
-
-    -A --all          Use all WBFS partitions found.
-    -a --auto         Search for WBFS partitions using /proc/partitions.
-    -p --part  part   File of primary WBFS partition. Multiple usage allowed.
-    -T --titles file  Read file for disc titles. -T0 disables titles lookup.
-
-    -q --quiet        Be quiet.
-    -v --verbose      Be verbose.
-    -t --test         Allowed but ignored.
-
-       --inode        Print a status for all inodes (invalid discs too).
-
-    -l --long         Print a status for each valid disc.
-    -ll               Additonal print a memory map for each shown disc.
-    -lll              Print a complete memory map of the whole WBFS.
-    -llll             Set option --inode.
-
+@@EXEC(./wwt help DUMP)@@
 
  The DUMP command dumps out the data structure of all WBFS. data. The three
  options --all, --auto and --part decides where partitions will be searched
@@ -346,17 +262,7 @@ COMMAND: DUMP|D   [wbfs_partition]...
 
 
 -------------------------------------------------------------------------------
-
-COMMAND: EDIT   [sub_command]...
-
- Change the data of one WBFS file/partitions.
-
- Options:
-
-    -a --auto         Search for WBFS partitions using /proc/partitions.
-    -p --part  part   File of primary WBFS partition. Multiple usage allowed.
-    -f --force        Needed for leaving test mode and for changing data!
-    -t --test         Force test mode.
+@@EXEC(./wwt help EDIT)@@
 
  EDIT is a dangerous command. It let you (de-)activate the disc slots and
  edit the block assignments. Exactly 1 WBFS must be specified. All parameters
@@ -420,22 +326,13 @@ COMMAND: EDIT   [sub_command]...
 
 
 -------------------------------------------------------------------------------
+@@EXEC(./wwt help ERROR)@@
 
-COMMAND: ERROR|ERR   [error_code]
-
- Translate an exit code to a text message. Without parameters print all
- error names and error messages.
-
- Options:
-
-    -l --long         Print error messages instead of error names.
-    -H --no-header    Suppress printing of header and footer.
-
-
- With a given 'error_code' the error message that belongs the number is
- printed to stdout and the program exits with exit status is 0 (success).
- If the error_code is unknown or invalid the error message is '?' and the
- program exits with exit status is 1 (failure).
+ The command ERROR translate an exit code to a text message. Without parameters
+ print all error names and error messages. With a given 'error_code' the error
+ message that belongs the number is printed to stdout and the program exits
+ with exit status is 0 (success). If the error_code is unknown or invalid the
+ error message is '?' and the program exits with exit status is 1 (failure).
 
  Without 'error_code' a list of all error codes is printed. The output
  contains three columns separated with colons. The format is:
@@ -445,10 +342,10 @@ COMMAND: ERROR|ERR   [error_code]
  If the option --sections is set, then the layout is completly changed to a
  sections base output. This output is machine readable. The output looks like:
 
-        [error-CODE]
-        code=ERROR_NUMBER
-        name=ERROR_NAME
-        text=ERROR_TEXT
+	[error-CODE]
+	code=ERROR_NUMBER
+	name=ERROR_NAME
+	text=ERROR_TEXT
 
 
  Usual ERROR/EXIT CODES:
@@ -459,20 +356,10 @@ COMMAND: ERROR|ERR   [error_code]
 
 
 -------------------------------------------------------------------------------
-
-COMMAND: EXCLUDE  [additional_exclude_file]...
+@@EXEC(./wwt help EXCLUDE)@@
 
  The command 'EXCLUDE' builts the exclude data base and prints the result to
  stdout. The handling of the additional files works like the --exclude option.
-
- Options:
-
-   -x --exclude id     Exclude discs with given ID4 or ID6 from operation.
-   -x --exclude @file  Read exclude list from file.
-
-   -X --exclude-path file_or_dir
-                       ISO file or base of directory tree -> scan their ID6
-
  The section "Processing exclude options" explains the options in detail.
 
 
@@ -483,47 +370,7 @@ COMMAND: EXCLUDE  [additional_exclude_file]...
 
 
 -------------------------------------------------------------------------------
-
-COMMAND: EXTRACT|X   id6...
-
- Extract images from WBFS partitions.
-
- Options:
-
-    -A --all           Use all WBFS partitions found.
-    -a --auto          Search for WBFS partitions using /proc/partitions.
-    -p --part  part    File of primary WBFS partition. Multiple usage allowed.
-    -d --dest  path    Defines a destination directory/file.
-    -D --DEST  path    Like --dest, but create directory path automatically.
-    -z --split         Enable output file splitting, default split size = 4 gb.
-    -Z --split-size sz Enable output file splitting and set split size.
-    -U --unique        Eliminate repeated ID6 from parameter list.
-    -i --ignore        Ignore non existing discs without warning.
-    -o --overwrite     Overwrite existing ISO images.
-    -R --remove        Remove source if operation is successful.
-       --trunc         Trunc ISO images while writing.
-    -F --fast          Enables fast writing (disables searching for zero blocks).
-    -W --wdf           Set ISO output file type to WDF. (default)
-    -I --iso           Set ISO output file type to PLAIN ISO.
-    -C --ciso          Set ISO output file type to CISO (=WBI).
-    -B --wbfs          Set ISO output file type to WBFS container.
-    -T --titles file   Read file for disc titles. -T0 disables titles lookup.
-    -n --include id    Include oly discs with given ID4 or ID6 from operation.
-    -n --include @file Read include list from file.
-    -N --include-path file_or_dir
-                       ISO file or base of directory tree -> scan their ID6.
-    -x --exclude id    Exclude discs with given ID4 or ID6 from operation.
-    -x --exclude @file Read exclude list from file.
-    -X --exclude-path file_or_dir
-                       ISO file or base of directory tree -> scan their ID6
-    -f --force         Force operation, ignore the check result.
-       --no-check      Disable automatic check of WBFS before modifications.
-
-    -q --quiet         Be quiet   -> print only error messages.
-    -v --verbose       Be verbose -> print continuation infos.
-    -t --test          Run in test mode, modify nothing.
-    -tt                (--test twice) print a normalized ID6 list and exit.
-    -E --esc char      Define an alternative escape character, default is '%'.
+@@EXEC(./wwt help EXTRACT)@@
 
  The EXTRACT command extracts all discs identified by ID6 from all given WBFS
  partitions. The options --all, --auto and --part decides which partitions
@@ -603,22 +450,7 @@ COMMAND: EXTRACT|X   id6...
 
 
 -------------------------------------------------------------------------------
-
-COMMAND: FILETYPE|FT  filename...
-
- Print a status line for each given file.
-
- Options:
-
-       --psel p-type  Partition selector: (no-)data|update|channel all(=def) raw.
-       --raw          Short cut for --psel=raw.
-    -l --long         Print in long format: Print ID6+SPLIT for images.
-    -ll               (--long twice) Print REGION for images.
-    -H --no-header    Suppress printing of header.
-    -i --ignore       Ignore non existing files and don't print status line.
-    -q --quiet        Allowed but ignored.
-    -v --verbose      Allowed but ignored.
-    -t --test         Allowed but ignored.
+@@EXEC(./wwt help FILETYPE)@@
 
  The command 'FILETYPE' prints for each given file one status line like:
     FILETYPE ID6 SIZE_MIB REGION SPLIT FILENAME
@@ -653,22 +485,7 @@ COMMAND: FILETYPE|FT  filename...
 
 
 -------------------------------------------------------------------------------
-
-COMMAND: FIND|F   [wbfs_partition]...
-
- Find all WBFS partitions and print out path and sizes.
-
- Options:
-
-    -A --all          Use all WBFS partitions found.
-    -a --auto         Search for WBFS partitions using /proc/partitions.
-    -p --part  part   File of primary WBFS partition. Multiple usage allowed.
-    -l --long         Print in long format. Multiple usage possible.
-    -H --no-header    Suppress printing of header and footer.
-
-    -q --quiet        Be quiet.
-    -v --verbose      Be verbose.
-    -t --test         Allowed but ignored.
+@@EXEC(./wwt help FIND)@@
 
  The FIND command makes a quick search for WBFS partitions: it scans only the
  WBFS-Header. The three options --all, --auto and --part decides where partitions
@@ -716,38 +533,7 @@ COMMAND: FIND|F   [wbfs_partition]...
 
 
 -------------------------------------------------------------------------------
-
-COMMAND: FORMAT|INIT   filename...
-
- Initialize (format) a WBFS partition.
-
- Options:
-
-    -s --size  size     Floating point size of new file.
-                        Factors: bckKmMgGtT, default=G.
-
-
-       --hss  size      Defines the HD sector size of the new WBFS partition.
-                        A floating pont number is allowed. The factor must be a
-                        power of 2 and at least 512. Default value is 512 bytes.
-                        Possible factors: bckKmMgGtT.
-
-       --sector-size    Obsolete synonym for option --hss.
-
-       --wss  size      Defines the WBFS sector size of the new WBFS partition.
-                        This is only good for recovering.
-                        A floating pont number is allowed. The factor must be a
-                        power of 2 and at least 1024. If not set the INIT
-                        function calculates a good WBFS sector size.
-                        Possible factors: bckKmMgGtT.
-
-       --recover        Format a WBFS in recover mode (see text).
-
-    -f --force          Needed for leaving test mode and for formatting!
-
-    -q --quiet          Be quiet.
-    -v --verbose        Be verbose.
-    -t --test           Run in test mode, modify nothing.
+@@EXEC(./wwt help FORMAT)@@
 
  The command FORMAT format block devices and plain files with a WBFS. All data
  on the destination will be lost.
@@ -803,45 +589,17 @@ COMMAND: FORMAT|INIT   filename...
 
 
 -------------------------------------------------------------------------------
+@@EXEC(./wwt help HELP)@@
 
-COMMAND: HELP|?   [any_options_or_parameters]
+ Usual ERROR/EXIT CODES:
 
- Ignore all options and parameters, print help to standard out (stdout) and
- exit with status 0 (OK).
-
- ERROR/EXIT CODES:
-
-    HELP : Help printed.
+    0 == OK             : all done without erros.
 
 
 -------------------------------------------------------------------------------
+@@EXEC(./wwt help ID6)@@
 
-COMMAND: ID6|ID   [wbfs_partition]...
-
- List ID6 of all games of each partitions.
-
- Options:
-
-    -A --all           Use all WBFS partitions found.
-    -a --auto          Search for WBFS partitions using /proc/partitions.
-    -p --part  part    File of primary WBFS partition. Multiple usage allowed.
-    -l --long          Print in long format. Multiple usage possible.
-    -S --sort  list    Sort by: id|title|name|size|*time|file|region|...|asc|desc
-    -U --unique        Print only the first disc of all with same values.
-    -n --include id    Include oly discs with given ID4 or ID6 from operation.
-    -n --include @file Read include list from file.
-    -N --include-path file_or_dir
-                       ISO file or base of directory tree -> scan their ID6.
-    -x --exclude id    Exclude discs with given ID4 or ID6 from operation.
-    -x --exclude @file Read exclude list from file.
-    -X --exclude-path file_or_dir
-                       ISO file or base of directory tree -> scan their ID6
-
-    -q --quiet        Be quiet   -> list only ID6 but nothing else.
-    -v --verbose      Be verbose -> list as much as possible.
-    -t --test         Allowed but ignored.
-
- The command 'ID' lists the ID6 of all discs for each partition, one ID per row.
+ The command 'ID6' lists the ID6 of all discs for each partition, one ID per row.
  The three options --all, --auto and --part decides where partitions
  will be searched (see section "Options in detail: partitions" for details).
 
@@ -866,40 +624,7 @@ COMMAND: ID6|ID   [wbfs_partition]...
 
 
 -------------------------------------------------------------------------------
-
-COMMAND: LIST|LS   [wbfs_partition]...
-
- List the contents of a WBFS partition.
-
- Options:
-
-    -A --all           Use all WBFS partitions found.
-    -a --auto          Search for WBFS partitions using /proc/partitions.
-    -p --part  part    File of primary WBFS partition. Multiple usage allowed.
-    -l --long          Print in long format. Multiple usage possible.
-       --itime         Abbreviation of --time=i. Use 'itime' (insertion time).\n"
-       --mtime         Abbreviation of --time=m. Use 'mtime' (last modification time).\n"
-       --ctime         Abbreviation of --time=c. Use 'ctime' (last status change time).\n"
-       --atime         Abbreviation of --time=a. Use 'atime' (last access time).\n"
-       --time  list    Set time modes (off,i,m,c,a,date,time,min,sec,...).\n"
-    -M --mixed         Print disc infos of all WBFS in mixed mode.
-    -U --unique        Print only the first disc if all with with same ID6.
-    -H --no-header     Suppress printing of header and footer.
-       --sections      Print output in sections and parameter lines.
-    -S --sort  list    Sort by: id|title|name|size|*time|file|region|...|asc|desc
-    -T --titles file   Read file for disc titles. -T0 disables titles lookup.
-    -n --include id    Include oly discs with given ID4 or ID6 from operation.
-    -n --include @file Read include list from file.
-    -N --include-path file_or_dir
-                       ISO file or base of directory tree -> scan their ID6.
-    -x --exclude id    Exclude discs with given ID4 or ID6 from operation.
-    -x --exclude @file Read exclude list from file.
-    -X --exclude-path file_or_dir
-                       ISO file or base of directory tree -> scan their ID6
-
-    -q --quiet         Be quiet   -> list only ID6 but nothing else.
-    -v --verbose       Be verbose -> list as much as possible.
-    -t --test          Allowed but ignored.
+@@EXEC(./wwt help LIST)@@
 
  The command 'LIST' lists infos of all discs for each partition, one disc per
  row. The three options --all, --auto and --part decides where partitions will
@@ -993,18 +718,7 @@ COMMANDS:
 
 
 -------------------------------------------------------------------------------
-
-COMMAND: PHANTOM   [sub_command]...
-
- Add phantom discs to WBFS partitions.
-
- Options:
-
-    -a --auto         Search for WBFS partitions using /proc/partitions.
-    -p --part  part   File of primary WBFS partition. Multiple usage allowed.
-    -t --test         Force test mode.
-    -f --force        Force operation, ignore the check result.
-       --no-check     Disable automatic check of WBFS before modifications.
+@@EXEC(./wwt help PHANTOM)@@
 
  The PHANTOM commands adds multiple discs to WBFS partitions. The content of
  the discs is undefined, only the WBFS inode and the ISO header (first 256
@@ -1050,16 +764,7 @@ COMMAND: PHANTOM   [sub_command]...
 
 
 -------------------------------------------------------------------------------
-
-COMMAND: RECOVER   filename...
-
- Recover deleted discs of WBFS partitions.
-
- Options:
-
-    -a --auto         Search for WBFS partitions using /proc/partitions.
-    -p --part  part   File of primary WBFS partition. Multiple usage allowed.
-    -t --test           Run in test mode, modify nothing.
+@@EXEC(./wwt help RECOVER)@@
 
  The command RECOVER tries to recover presious removed discs. It recover only
  discs without block collisions (2 ore mor discs shares the same memory).
@@ -1087,34 +792,7 @@ COMMAND: RECOVER   filename...
 
 
 -------------------------------------------------------------------------------
-
-COMMAND: REMOVE|RM   id6...
-
- Remove images from a WBFS partition.
-
- Options:
-
-    -A --all           Use all WBFS partitions found.
-    -a --auto          Search for WBFS partitions using /proc/partitions.
-    -p --part  part    File of primary WBFS partition. Multiple usage allowed.
-    -U --unique        Eliminate repeated ID6 from parameter list.
-    -i --ignore        Ignore non existing discs without warning.
-       --no-free       Do not free blocks when removing a disc.
-    -n --include id    Include oly discs with given ID4 or ID6 from operation.
-    -n --include @file Read include list from file.
-    -N --include-path file_or_dir
-                       ISO file or base of directory tree -> scan their ID6.
-    -x --exclude id    Exclude discs with given ID4 or ID6 from operation.
-    -x --exclude @file Read exclude list from file.
-    -X --exclude-path file_or_dir
-                       ISO file or base of directory tree -> scan their ID6
-    -f --force         Force operation, ignore the check result.
-       --no-check      Disable automatic check of WBFS before modifications.
-
-    -q --quiet         Be quiet   -> print only error messages.
-    -v --verbose       Be verbose -> print continuation infos.
-    -t --test          Run in test mode, modify nothing.
-    -tt                (--test twice) print a normalized ID6 list and exit.
+@@EXEC(./wwt help REMOVE)@@
 
  The REMOVE command removes all discs identified by ID6 from all given WBFS
  partitions. The options --all, --auto and --part decides which partitions
@@ -1161,24 +839,58 @@ COMMAND: REMOVE|RM   id6...
     REMOVE ERROR        : error while removing a disc from a WBFS.
     READ ERROR          : error while reading an ISO image or a WBFS.
 
+
 -------------------------------------------------------------------------------
+@@EXEC(./wwt help RENAME)@@
 
-COMMAND: SPACE|DF   [wbfs_partition]...
+ This command 'RENAME' may change the ID6 and/or the title of discs. It can
+ change the information in the WBFS inode or the information in the ISO header
+ or both (the default).
 
- Print space information and disc usage about WBFS partitions.
- All value printed in MiB.
+ The alternative command 'SETTITLE' modifies only titles. The advantage of
+ 'SETTITLE' is, that it can modify all titles with 1 sub command.
 
- Options:
+ The syntax of a sub command is: id6=[new_id6][,new_title]
+    'id6' is the ID of the disc to change.
+    The optional 'new_id6' is the new ID of the disc.
+    The optional 'new_title' is the new title of the disc.
 
-    -A --all          Use all WBFS partitions found. ALWAYS SET!
-    -a --auto         Search for WBFS partitions using /proc/partitions.
-    -p --part  part   File of primary WBFS partition. Multiple usage allowed.
-    -l --long         Print in long format. Multiple usage possible.
-    -H --no-header    Suppress printing of header and footer.
+@@MODULE(set-title.txt)@@
 
-    -q --quiet        Be quiet.
-    -v --verbose      Be verbose.
-    -t --test         Allowed but ignored.
+
+-------------------------------------------------------------------------------
+@@EXEC(./wwt help REPAIR)@@
+
+ Command REPAIR checks and repairs WBFS partions for block errors. By default
+ errors in the 'free blocks table' will be fixed. See command CHECK for details.
+
+ Usual ERROR/EXIT CODES:
+
+    0 == OK             : all done without erros.
+    SYNTAX ERROR        : at least one syntax error in command line found.
+    NO WBFS FOUND       : no WBFS partition found.
+    TO MUCH WBFS FOUND  : 2 to more no WBFS partition found but --all missed.
+    WBFS INVALID        : An invalid WBFS found (WBFS with errors)
+
+
+-------------------------------------------------------------------------------
+@@EXEC(./wwt help SETTITLE)@@
+
+ This command 'SETTITLE' may change the title of discs. It can change the
+ information in the WBFS inode or the information in the ISO header or both
+ (the default).
+
+ The alternative command 'RENAME' can also change the ID of discs.
+
+ The syntax of a sub command is: id6=new_title
+    'id6' is the ID of the disc to change. If using '+' all discs are changed.
+    The 'new_title' is the new title of the disc.
+
+@@MODULE(set-title.txt)@@
+
+
+-------------------------------------------------------------------------------
+@@EXEC(./wwt help SPACE)@@
 
  The SPACE command makes a quick search for WBFS partitions: it scans only the
  WBFS-Header. The three options --all, --auto and --part decides where partitions
@@ -1209,162 +921,21 @@ COMMAND: SPACE|DF   [wbfs_partition]...
 
 
 -------------------------------------------------------------------------------
+@@EXEC(./wwt help SYNC)@@
 
-COMMAND: RENAME|REN  id6=[new_id6][,title] ...
+COMMAND: SYNC  iso_image_path...
 
- Change the ID6 or/and the title of WBFS inode and/or discs.
-
- Options:
-
-    -A --all           Use all WBFS partitions found.
-    -a --auto          Search for WBFS partitions using /proc/partitions.
-    -p --part  part    File of primary WBFS partition. Multiple usage allowed.
-    -n --include id    Include oly discs with given ID4 or ID6 from operation.
-    -n --include @file Read include list from file.
-    -N --include-path file_or_dir
-                       ISO file or base of directory tree -> scan their ID6.
-    -x --exclude id    Exclude discs with given ID4 or ID6 from operation.
-    -x --exclude @file Read exclude list from file.
-    -X --exclude-path file_or_dir
-                       ISO file or base of directory tree -> scan their ID6
-
-    -i --ignore        Ignore non existing discs without warning.
-    -I --iso           Change only the ISO header inside the WBFS.
-    -B --wbfs          Change only the WBFS inode infos.
-
-    -f --force         Force operation, ignore the check result.
-       --no-check      Disable automatic check of WBFS before modifications.
-
- This command 'RENAME' may change the ID6 and/or the title of discs. It can
- change the information in the WBFS inode or the information in the ISO header
- or both (the default).
-
- The alternative command 'SETTITLE' modifies only titles. The advantage of
- 'SETTITLE' is, that it can modify all titles with 1 sub command.
-
- The syntax of a sub comand is: id6=[new_id6][,new_title]
-    'id6' is the ID of the disc to change.
-    The optional 'new_id6' is the new ID of the disc.
-    The optional 'new_title' is the new title of the disc.
-
-@@MODULE(set-title.txt)@@
-
-
--------------------------------------------------------------------------------
-
-COMMAND: REPAIR   [wbfs_partition]...
-
- Check and repairs WBFS partitions.
- REPAIR is a shortcut for: CHECK --repair=standard
-
- Options:
-
-    -A --all          Use all WBFS partitions found.
-    -a --auto         Search for WBFS partitions using /proc/partitions.
-    -p --part  part   File of primary WBFS partition. Multiple usage allowed.
-
-       --repair mode  Repair the WBFS. 'mode' is a comma separated list of:
-
-                         -  | NONE       : reset = ignore previous settings
-
-                         F  | FBT        : repair free blocks table
-                         I  | INODES     : setup all missing inode infos
-                         STD| STANDARD   : default setting: FBT,INODES
-
-                         RI | RM-INVALID : remove discs with invalid blocks
-                         RO | RM-OVERLAP : remove discs with overlaped blocks
-                         RF | RM-FREE    : remove discs with free marked blocks
-                         RE | RM-EMPTY   : remove discs with no valid blocks
-                         RA | RM-ALL     : remove all discs with errors
-
-                         *  | ALL        : repair all
-
-                      All keyword can be prefixed by
-                         + : enable repair mode (default)
-                         - : disable repair mode
-                         = : enable repair mode and disable all others
-
-                      The default mode is =standard.
-
-    -q --quiet        Be quiet.
-    -v --verbose      Be verbose.
-    -t --test         Run in test mode, modify nothing.
-
- Command REPAIR checks and repairs WBFS partions for block errors. By default
- errors in the 'free blocks table' will be fixed. See command CHECK for details.
-
-
- Usual ERROR/EXIT CODES:
-
-    0 == OK             : all done without erros.
-    SYNTAX ERROR        : at least one syntax error in command line found.
-    NO WBFS FOUND       : no WBFS partition found.
-    TO MUCH WBFS FOUND  : 2 to more no WBFS partition found but --all missed.
-    WBFS INVALID        : An invalid WBFS found (WBFS with errors)
-
-
--------------------------------------------------------------------------------
-
-COMMAND: SETTITLE|ST   id6=new_title ...
-
- Change the title of discs.
-
- Options:
-
-    -A --all           Use all WBFS partitions found.
-    -a --auto          Search for WBFS partitions using /proc/partitions.
-    -p --part  part    File of primary WBFS partition. Multiple usage allowed.
-    -n --include id    Include oly discs with given ID4 or ID6 from operation.
-    -n --include @file Read include list from file.
-    -N --include-path file_or_dir
-                       ISO file or base of directory tree -> scan their ID6.
-    -x --exclude id    Exclude discs with given ID4 or ID6 from operation.
-    -x --exclude @file Read exclude list from file.
-    -X --exclude-path file_or_dir
-                       ISO file or base of directory tree -> scan their ID6
-    -i --ignore        Ignore non existing discs without warning.
-    -I --iso           Change only the ISO header inside the WBFS.
-    -B --wbfs          Change only the WBFS indode infos.
-
-    -f --force         Force operation, ignore the check result.
-       --no-check      Disable automatic check of WBFS before modifications.
-
- This command 'SETTITLE' may change the title of discs. It can change the
- information in the WBFS inode or the information in the ISO header or both
- (the default).
-
- The alternative command 'RENAME' can also change the ID of discs.
-
- The syntax of a sub comand is: id6=new_title
-    'id6' is the ID of the disc to change. If using '+' all discs are changed.
-    The 'new_title' is the new title of the disc.
-
-@@MODULE(set-title.txt)@@
-
-
--------------------------------------------------------------------------------
-
-COMMAND: SNYC  iso_image_path...
-
-'SNYC' is the same as 'ADD --snyc'. The command 'SNYC' does not accept the
+'SYNC' is the same as 'ADD --snyc'. The command 'SNYC' does not accept the
 options --update, --overwrite and --sync.
 
 See command 'ADD' for options and details.
 
 
 -------------------------------------------------------------------------------
-
-COMMAND: TITLES   [additional_title_file]...
+@@EXEC(./wwt help TITLES)@@
 
  The command 'TITLES' builts the title data base and prints the result to
  stdout. The handling of the additional files works like the --title option.
-
- Options:
-
-    -T --titles file  Read file for disc titles
-       --utf-8        Enables UTF-8 support (default for non CYGWIN).
-       --no-utf-8     Disables UTF-8 support (default for CYGWIN).
-
  The section "Processing title db" explains the options in detail.
 
 
@@ -1375,42 +946,8 @@ COMMAND: TITLES   [additional_title_file]...
 
 
 -------------------------------------------------------------------------------
+@@EXEC(./wwt help TOUCH)@@
 
-COMMAND: TOUCH  id6...
-
- Set time stamps of WBFS discs.
-
- Options:
-
-    -A --all           Use all WBFS partitions found.
-    -a --auto          Search for WBFS partitions using /proc/partitions.
-    -p --part  part    File of primary WBFS partition. Multiple usage allowed.
-    -U --unique        Eliminate repeated ID6 from parameter list.
-    -i --ignore        Ignore non existing discs without warning.
-       --no-free       Do not free blocks when removing a disc.
-    -n --include id    Include oly discs with given ID4 or ID6 from operation.
-    -n --include @file Read include list from file.
-    -N --include-path file_or_dir
-                       ISO file or base of directory tree -> scan their ID6.
-    -x --exclude id    Exclude discs with given ID4 or ID6 from operation.
-    -x --exclude @file Read exclude list from file.
-    -X --exclude-path file_or_dir
-                       ISO file or base of directory tree -> scan their ID6
-    -f --force         Force operation, ignore the check result.
-       --no-check      Disable automatic check of WBFS before modifications.
-
-    -q --quiet         Be quiet   -> print only error messages.
-    -v --verbose       Be verbose -> print continuation infos.
-    -t --test          Run in test mode, modify nothing.
-    -tt                (--test twice) print a normalized ID6 list and exit.
-
-       --itime         Set 'itime' time stamp (insertion time).\n"
-       --mtime         Set 'mtime' time stamp  (last modification time).\n"
-       --ctime         Set 'ctime' time stamp  (last status change time).\n"
-       --atime         Set 'ttime' time stamp  (last access time).\n"
-       --set-time time Use given time instead of current time.
-
- 
  The TOUCH command changes the time stamps in rhe WBFS inodes of all discs
  identified by ID6 from all given WBFS partitions. The options --all, --auto
  and --part decides which partitions will be modified (see section "Options
@@ -1478,23 +1015,7 @@ COMMAND: TOUCH  id6...
     READ ERROR          : error while reading an ISO image or a WBFS.
 
 -------------------------------------------------------------------------------
-
-COMMAND: SPACE|DF   [wbfs_partition]...
-
- Print space information and disc usage about WBFS partitions.
- All value printed in MiB.
-
- Options:
-
-    -A --all          Use all WBFS partitions found. ALWAYS SET!
-    -a --auto         Search for WBFS partitions using /proc/partitions.
-    -p --part  part   File of primary WBFS partition. Multiple usage allowed.
-    -l --long         Print in long format. Multiple usage possible.
-    -H --no-header    Suppress printing of header and footer.
-
-    -q --quiet        Be quiet.
-    -v --verbose      Be verbose.
-    -t --test         Allowed but ignored.
+@@EXEC(./wwt help SPACE)@@
 
  The SPACE command makes a quick search for WBFS partitions: it scans only the
  WBFS-Header. The three options --all, --auto and --part decides where partitions
@@ -1525,20 +1046,7 @@ COMMAND: SPACE|DF   [wbfs_partition]...
 
 
 -------------------------------------------------------------------------------
-
-COMMAND: TRUNCATE|TR  [wbfs_partition]...
-
- Truncate/trim WBFS partitions.
-
-    -A --all          Use all WBFS partitions found.
-    -a --auto         Search for WBFS partitions using /proc/partitions.
-    -p --part  part   File of primary WBFS partition. Multiple usage allowed.
-    -f --force        Force operation, ignore the check result.
-       --no-check     Disable automatic check of WBFS before modifications.
-
-    -q --quiet        Be quiet.
-    -v --verbose      Be verbose.
-    -t --test         Run in test mode, modify nothing.
+@@EXEC(./wwt help TRUNCATE)@@
 
  The command TRUNCATE truncates WBFS to a minmal size. This is done by
  calculating the last used block within th WBFS. The WBFS is still valid
@@ -1549,10 +1057,18 @@ COMMAND: TRUNCATE|TR  [wbfs_partition]...
  the test is done but the result is ignored. The option --no-check disables
  this automatic check.
 
+
+ Usual ERROR/EXIT CODES:
+
+    0 == OK             : all done without erros.
+    SYNTAX ERROR        : at least one syntax error in command line found.
+    READ ERROR          : error while read a file given by option --part.
+    NO WBFS FOUND       : no WBFS partition found.
+    TO MUCH WBFS FOUND  : 2 to more no WBFS partition found but --all missed.
+
 
 -------------------------------------------------------------------------------
-
-COMMAND: UPDATE|U  iso_image_path...
+@@EXEC(./wwt help UPDATE)@@
 
 'UPDATE' is the same as 'ADD --update'. The command 'UPDATE' does not accept
 the options --update and --overwrite.
@@ -1561,42 +1077,7 @@ See command 'ADD' for options and details.
 
 
 -------------------------------------------------------------------------------
-
-COMMAND: VERIFY|V   [wbfs_partition]...
-
- Verify the internal SHA1 check sums of each ISO image of each WBFS and find
- bad dumps
-
- Options:
-
-    -A --all           Use all WBFS partitions found.
-    -a --auto          Search for WBFS partitions using /proc/partitions.
-    -p --part  part    File of primary WBFS partition. Multiple usage allowed.
-
-    -n --include id    Include oly discs with given ID4 or ID6 from operation.
-    -n --include @file Read include list from file.
-    -N --include-path file_or_dir
-                       ISO file or base of directory tree -> scan their ID6.
-    -x --exclude id    Exclude discs with given ID4 or ID6 from operation.
-    -x --exclude @file Read exclude list from file.
-    -X --exclude-path file_or_dir
-                       ISO file or base of directory tree -> scan their ID6
-
-    -f --force         Force operation, ignore the check result.
-       --no-check      Disable automatic check of WBFS before modifications.
-
-    -R --remove        Remove bad discs from WBFS.
-       --no-free       Do not free blocks when removing a disc.
-
-  * -q --quiet         Be quiet and report only errors. If --quiet set at
-                       least twice then wit will print nothing and only the
-                       exit status is set.
-  * -v --verbose       Be verbose. This optioj can be set multiple times.
-       --limit num     Maximal printed errors of each partition. A zero means
-                       unlimitted. The default is 10.
-  * -l --long          On error print an additional line to localize the exact
-                       position where the error is found. If set at least
-                       twice a hexdump of the hash values is printed too.
+@@EXEC(./wwt help VERIFY)@@
 
  Every 1024 bytes of user data in every partition has its own SHA1 check sum
  (called 'H0'). There are also H1 (hash of 31*H0), H2 (hash of 8*H1), H3 (hash
@@ -1633,23 +1114,23 @@ COMMAND: VERIFY|V   [wbfs_partition]...
     READ ERROR          : error while reading a file.
     CANT OPEN           : Can't open file.
 
+
 -------------------------------------------------------------------------------
+@@EXEC(./wwt help VERSION)@@
 
-COMMAND: VERSION   [any_options_or_parameters]
-
- Recognize option --long and ignore all other options and parameters, print out
- the program version to standard out (stdout) and exit with status 0 (OK).
+ The command VERSION prints out the program version to standard out (stdout)
+ and exit with status 0 (OK).
 
  The ouput line looks like:
 @@EXEC(./wwt version | sed 's/^/    /')@@
 
- If option --long is set the output is printed in a machine readable format:
-@@EXEC(./wwt --long version | sed 's/^/    /')@@
+ With option --sections the output is printed in a machine readable format:
+@@EXEC(./wwt --sections version | sed 's/^/    /')@@
 
 
- ERROR/EXIT CODES:
+ Usual ERROR/EXIT CODES:
 
-    HELP : Help printed.
+    0 == OK : all done without erros.
 
 
 *******************************************************************************

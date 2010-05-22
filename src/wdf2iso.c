@@ -1,6 +1,6 @@
 /***************************************************************************
  *                                                                         *
- *   Copyright (c) 2009-2010 by Dirk Clemens <develop@cle-mens.de>         *
+ *   Copyright (c) 2009-2010 by Dirk Clemens <wiimm@wiimm.de>              *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -38,6 +38,9 @@
 #include "lib-std.h"
 #include "wbfs-interface.h"
 
+#include "ui-wdf2iso.c"
+
+//
 ///////////////////////////////////////////////////////////////////////////////
 
 #define NAME "wdf2iso"
@@ -47,78 +50,13 @@ int  testmode		= 0;
 ccp  dest		= 0;
 bool opt_mkdir		= false;
 int  opt_preserve	= 0;
-int  opt_split		= 0;
-u64  opt_split_size	= 0;
 bool overwrite		= false;
-
-//
-///////////////////////////////////////////////////////////////////////////////
-
-enum // const for long options without a short brothers
-{
-	GETOPT_BASE	= 0x1000,
-	GETOPT_PSEL,
-	GETOPT_RAW,
-	GETOPT_IO,
-};
-
-char short_opt[] = "hVqvPtd:D:pzZ:o";
-struct option long_opt[] =
-{
-	{ "help",	0, 0, 'h' },
-	{ "version",	0, 0, 'V' },
-	{ "quiet",	0, 0, 'q' },
-	{ "verbose",	0, 0, 'v' },
-	{ "progress",	0, 0, 'P' },
-	{ "test",	0, 0, 't' },
-	{ "psel",	1, 0, GETOPT_PSEL },
-	{ "raw",	0, 0, GETOPT_RAW },
-	{ "dest",	1, 0, 'd' },
-	{ "DEST",	1, 0, 'D' },
-	{ "preserve",	0, 0, 'p' },
-	{ "split",	0, 0, 'z' },
-	{ "split-size",	1, 0, 'Z' },
-	 { "splitsize",	1, 0, 'Z' },
-	{ "overwrite",	0, 0, 'o' },
-
-	{ "io",		1, 0, GETOPT_IO }, // [2do] hidden option for tests
-
-	{0,0,0,0}
-};
-
-///////////////////////////////////////////////////////////////////////////////
-
-static const char help_text[] =
-    "\n"
-    TITLE "\n"
-    "This tool converts WDF files into normal files.\n"
-    "\n"
-    "Syntax: " NAME " [option]... files...\n"
-    "\n"
-    "Options:\n"
-    "\n"
-    "   -h --help            Print this help and exit.\n"
-    "   -V --version         Print program name and version and exit.\n"
-    "   -q --quiet           Be quiet   -> print only error messages.\n"
-    "   -v --verbose         Be verbose -> program name and processed files.\n"
-    "   -P --progress        Print progress counter independent of verbose level.\n"
-    "   -t --test            Run in test mode, don't create an ISO file.\n"
-    "\n"
-    "      --psel  p-type    Partition selector: (no-)data|update|channel all(=def) raw.\n"
-    "      --raw             Short cut for --psel=raw.\n"
-    "   -d --dest  path      Define a destination directory/file.\n"
-    "   -D --DEST  path      Like --dest, but create directory path automatically.\n"
-    "   -p --preserve        Preserve file times (atime+mtime).\n"
-    "   -z --split           Enable output file splitting, default split size = 4 gb.\n"
-    "   -Z --split-size size Enable output file splitting and set split size.\n"
-    "   -o --overwrite       Overwrite already existing files.\n"
-    "\n";
 
 ///////////////////////////////////////////////////////////////////////////////
 
 void help_exit()
 {
-    fputs(help_text,stdout);
+    PrintHelpCmd(&InfoUI,stdout,0,0);
     exit(ERR_OK);
 }
 
@@ -132,10 +70,10 @@ void version_exit()
 
 ///////////////////////////////////////////////////////////////////////////////
 
-void hint_exit ( int stat )
+void hint_exit ( enumError stat )
 {
     fprintf(stderr,
-	    "-> Type '%s -h' or %s --help for more help.\n\n",
+	    "-> Type '%s -h' (or better '%s -h|less') for more help.\n\n",
 	    progname, progname );
     exit(stat);
 }
@@ -147,28 +85,34 @@ enumError CheckOptions ( int argc, char ** argv )
     int err = 0;
     for(;;)
     {
-	const int opt_stat = getopt_long(argc,argv,short_opt,long_opt,0);
-	if ( opt_stat == -1 )
-	    break;
+      const int opt_stat = getopt_long(argc,argv,OptionShort,OptionLong,0);
+      if ( opt_stat == -1 )
+	break;
 
-	noTRACE("CHECK OPTION %02x\n",opt_stat);
-	switch (opt_stat)
-	{
-	  case '?': err++; break;
-	  case 'V': version_exit();
-	  case 'h': help_exit();
-	  case 'q': verbose = verbose > -1 ? -1 : verbose - 1; break;
-	  case 'v': verbose = verbose <  0 ?  0 : verbose + 1; break;
-	  case 'P': progress++; break;
-	  case 't': testmode++; break;
-	  case 'd': dest = optarg; break;
-	  case 'D': dest = optarg; opt_mkdir = true; break;
-	  case 'p': opt_preserve++; break;
-   	  case 'z': opt_split++; break;
-	  case 'o': overwrite = true; break;
+      RegisterOption(&InfoUI,opt_stat,1,false);
 
+      switch ((enumGetOpt)opt_stat)
+      {
+	case GO__ERR:		err++; break;
 
-	  case GETOPT_PSEL:
+	case GO_VERSION:	version_exit();
+	case GO_HELP:
+	case GO_XHELP:		help_exit();
+	case GO_QUIET:		verbose = verbose > -1 ? -1 : verbose - 1; break;
+	case GO_VERBOSE:	verbose = verbose <  0 ?  0 : verbose + 1; break;
+	case GO_PROGRESS:	progress++; break;
+	case GO_IO:		ScanIOMode(optarg); break;
+
+	case GO_TEST:		testmode++; break;
+
+	case GO_DEST:		dest = optarg; break;
+	case GO_DEST2:		dest = optarg; opt_mkdir = true; break;
+	case GO_PRESERVE:	opt_preserve++; break;
+	case GO_SPLIT:		opt_split++; break;
+	case GO_SPLIT_SIZE:	err += ScanSplitSize(optarg); break;
+	case GO_OVERWRITE:	overwrite = true; break;
+
+	case GO_PSEL:
 	    {
 		const int new_psel = ScanPartitionSelector(optarg);
 		if ( new_psel == -1 )
@@ -178,33 +122,15 @@ enumError CheckOptions ( int argc, char ** argv )
 	    }
 	    break;
 
-	  case GETOPT_RAW:
+	case GO_RAW:
 	    partition_selector = WHOLE_DISC;
 	    break;
-
-	  case 'Z':
-	    if (ScanSizeOptU64(&opt_split_size,optarg,GiB,0,
-				"split-size",MIN_SPLIT_SIZE,0,DEF_SPLIT_FACTOR,0,true))
-		hint_exit(ERR_SYNTAX);
-	    opt_split++;
-	    break;
-
-	  case GETOPT_IO:
-	    {
-		const enumIOMode new_io = strtol(optarg,0,0); // [2do] error handling
-		opt_iomode = new_io & IOM__IS_MASK;
-		if ( verbose > 0 || opt_iomode != new_io )
-		    printf("IO mode set to %#0x.\n",opt_iomode);
-		opt_iomode |= IOM_FORCE_STREAM;
-	    }
-	    break;
-
-	  default:
-	    ERROR0(ERR_INTERNAL,"Internal error: unhandled option: '%c'\n",opt_stat);
-	    ASSERT(0); // line never reached
-	    break;
-	}
+      }
     }
+ #ifdef DEBUG
+    DumpUsedOptions(&InfoUI,TRACE_FILE,11);
+ #endif
+
     return err ? ERR_SYNTAX : ERR_OK;
 }
 

@@ -1,4 +1,5 @@
-a../src/wwt.c ;
+../src/wwt.c ;
+../templates/wwt.txt ;
 ../src/wit.c ;
 ../src/wwt+wit-cmd.c ;
 @+all-source.edit-list

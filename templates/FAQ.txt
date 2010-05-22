@@ -133,11 +133,11 @@ For experiments use the --test option for a dry run wirhout modifications.
   Can I disable this warnings?
 
     Yes, use option --update.
-    Or use the comamnd 'UPDATE' instead of 'ADD --update'.
+    Or use the command 'UPDATE' instead of 'ADD --update'.
 
 * I want to copy all games of a WBFS to an other. Is there a special command?
 
-    Use the ADD/UPDATE comamnds in the usual way and give the name of the
+    Use the ADD/UPDATE commands in the usual way and give the name of the
     source WBFS as parameter:
     > wwt UPDATE -p /dev/dest_wbfs /dev/source_wbfs
 

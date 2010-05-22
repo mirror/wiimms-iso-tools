@@ -63,43 +63,7 @@ are listed in alphabetic order:
 
 
 -------------------------------------------------------------------------------
-
-COMMAND: COPY|CP
-
- Syntax: COPY source_file destination_file
-         COPY [-s path] [-r path] [sources]... destination_dir
-         COPY [-s path] [-r path] [sources]... -d destination_dir
-
- Copy all sources to the destination directory. The files are converted to WDF
- or ISO or WBFS controlled by options --wdf, --iso, --ciso and --wbfs) and/or
- scrubbed (controlled by options --psel and --raw).
-
- Options:
-
-    -s --source  path  ISO file or directory with ISO files.
-    -r --recurse path  ISO file or base of a directory tree with ISO files.
-       --rdepth  depth Set the maximum recure depth for --recurse (default=10).
-       --psel  p-type  Partition selector: (no-)data|update|channel all(=def) raw.
-       --raw           Short cut for --psel=raw.
-    -d --dest path     Define a destination directory/file.
-    -D --DEST  path    Like --dest, but create directory path automatically.
-    -z --split         Enable output file splitting, default split size = 4 gb.
-    -Z --split-size sz Enable output file splitting and set split size.
-    -p --preserve      Preserve file times (atime+mtime).
-    -R --remove        Remove source if operation is successful.
-    -u --update        Copy only to non existing files, ignore other.
-    -o --overwrite     Overwrite existing ISO images.
-    -i --ignore        Ignore non existing files/discs without warning.
-
-    -W --wdf           Set ISO output file type to WDF. (default)
-    -I --iso           Set ISO output file type to PLAIN ISO.
-    -C --ciso          Set ISO output file type to CISO (=WBI).
-    -B --wbfs          Set ISO output file type to WBFS container.
-
-    -q --quiet         Be quiet   -> print only error messages.
-    -v --verbose       Be verbose -> print continuation infos.
-    -t --test          Run in test mode, modify nothing.
-    -E --esc char      Define an alternative escape character, default is '%'.
+@@EXEC(./wit help COPY)@@
 
  The command COPY copies all given sources into the destination (directory).
  If the option --dest is not set the last parameter is used as destination.
@@ -119,10 +83,11 @@ COMMAND: COPY|CP
  The options --split and --split-size control the splitting of the output
  files. See section "Processing split options" for details.
 
- When writing ISO files the option --wdf, --iso, --ciso and --wbfs control the
- output format. If writing a WBFS file this WBFS is truncated and contains
- exactly one ISO image. The default file name of this WBFS is '<ID6>.wbfs'. If
- none of --wdf, --iso, --ciso or --wbfs is set, the destination filename will
+ When writing ISO files the option --wdf, --iso, --ciso, --wbfs and --fst
+ control the output format. --fst switch to extract mode (like command
+ EXTRACT). If writing a WBFS file this WBFS is truncated and contains exactly
+ one ISO image. The default file name of this WBFS is '<ID6>.wbfs'. If none
+ of --wdf, --iso, --ciso, -wbfs or --fst is set, the destination filename will
  be analyzed. If the extension (ignoring case) is ".wdf", ".iso", ".ciso",
  ".wbi" (an alternative for ".ciso") or ".wbfs", the specific output format
  is used. The default is WDF if all other fails.
@@ -147,49 +112,7 @@ COMMAND: COPY|CP
 
 
 -------------------------------------------------------------------------------
-
-COMMAND: DIFF|CMP
-
- Syntax: DIFF source_file destination_file
-         DIFF [-s path] [-r path] [sources]... destination_dir
-         DIFF [-s path] [-r path] [sources]... -d destination_dir
-
- Compare all sources with a destination. Source and destinaton can be plain ISO
- files, WDF-ISO files or WBFS files with a selector. The comparing can be done
- in scrubbed or raw mode (controlled by options --psel and --raw) or in file
- mode (--files=). In file mode the ISO images are virtually extracted and
- compared on file level.
-
- Options:
-
-    -s --source  path  ISO file or directory with ISO files.
-    -r --recurse path  ISO file or base of a directory tree with ISO files.
-       --rdepth  depth Set the maximum recure depth for --recurse (default=10).
-       --psel  p-type  Partition selector: (no-)data|update|channel all(=def) raw.
-       --raw           Short cut for --psel=raw.
-    -d --dest  path    Define a destination directory/file.
-    -D --DEST  path    Like --dest, but create directory path automatically.
-    -i --ignore        Ignore non existing files/discs without warning.
-    -l --long          Print position of first mismatch.
-    -ll                (--long twice): Print all mismatch positions,
-                       but only 1 per ISO block (0x8000 = 32768 bytes).
-
-       --ignore-fst    Ignore FST directories as input.
-    -F --files rules   Add file select rules. This option can be used multiple
-                       times to extend the rule list. See section
-                       "Selecting files with --files=rules" for details.
-       --pmode p-mode  Prefix mode: auto|none|point|name|index (default=auto).
-       --enc  encoding Encoding: none|hash|decrypt|encrypt|sign|auto(=default).
- 
-    -W --wdf           Search for *.wdf files in the destination directory.
-    -I --iso           Search for *.iso files in the destination directory.
-    -C --ciso          Search for *.ciso files in the destination directory.
-    -B --wbfs          Search for *.wbfs files in the destination directory.
-
-    -q --quiet         Be quiet   -> print only error messages.
-    -v --verbose       Be verbose -> print continuation infos.
-    -t --test          Run in test mode, compare nothing.
-    -E --esc char      Define an alternative escape character, default is '%'.
+@@EXEC(./wit help DIFF)@@
 
  The command DIFF compares all given sources agains a destination (directory).
  If the option --dest is not set the last parameter is used as destination.
@@ -227,27 +150,7 @@ COMMAND: DIFF|CMP
 
 
 -------------------------------------------------------------------------------
-
-COMMAND: DUMP|D   [path]...
-
- Dumps the content of each file in the internal database. Additional path
- parameters are handled like the option --source.
-
- Options:
-
-    -s --source  path  ISO file or directory with ISO files.
-    -r --recurse path  ISO file or base of a directory tree with ISO files.
-       --rdepth  depth Set the maximum recure depth for --recurse (default=10).
-    -T --titles file   Read file for disc titles. -T0 disables titles lookup.
-
-    -F --files rules   Add file select rules. This option can be used multiple
-                       times to extend the rule list. See section
-                       "Selecting files with --files=rules" for details.
-       --psel  p-type  Partition selector: (no-)data|update|channel all(=def) raw.
-       --raw           Short cut for --psel=raw.
-
-    -l --long          Print memory map for each partition.
-    -ll                Print memory map for whole ISO image.
+@@EXEC(./wit help DUMP)@@
 
  DUMP will dumps the data structure of all ISO files. If the option --long is
  set an additional memory map for each partition is printed. If the option
@@ -271,21 +174,13 @@ COMMAND: DUMP|D   [path]...
 
 
 -------------------------------------------------------------------------------
+@@EXEC(./wit help ERROR)@@
 
-COMMAND: ERROR|ERR   [error_code]
-
- Translate an exit code to a text message. Without parameters print all
- error names and error messages.
-
- Options:
-
-    -l --long         Print error messages instead of error names.
-    -H --no-header    Suppress printing of header and footer.
-
- With a given 'error_code' the error message that belongs the number is
- printed to stdout and the program exits with exit status is 0 (success).
- If the error_code is unknown or invalid the error message is '?' and the
- program exits with exit status is 1 (failure).
+ The command ERROR translate an exit code to a text message. Without parameters
+ print all error names and error messages. With a given 'error_code' the error
+ message that belongs the number is printed to stdout and the program exits
+ with exit status is 0 (success). If the error_code is unknown or invalid the
+ error message is '?' and the program exits with exit status is 1 (failure).
 
  Without 'error_code' a list of all error codes is printed. The output
  contains three columns separated with colons. The format is:
@@ -309,20 +204,10 @@ COMMAND: ERROR|ERR   [error_code]
 
 
 -------------------------------------------------------------------------------
-
-COMMAND: EXCLUDE  [additional_exclude_file]...
+@@EXEC(./wit help EXCLUDE)@@
 
  The command 'EXCLUDE' builts the exclude data base and prints the result to
  stdout. The handling of the additional files works like the --exclude option.
-
- Options:
-
-   -x --exclude id     Exclude discs with given ID4 or ID6 from operation.
-   -x --exclude @file  Read exclude list from file.
-
-   -X --exclude-path file_or_dir
-                       ISO file or base of directory tree -> scan their ID6
-
  The section "Processing exclude options" explains the options in detail.
 
 
@@ -333,32 +218,7 @@ COMMAND: EXCLUDE  [additional_exclude_file]...
 
 
 -------------------------------------------------------------------------------
-
-COMMAND: EXTRACT|X   [path]...
-
- Extract file of the ISO images.
-
- Options:
-
-    -s --source  path  ISO file or directory with ISO files.
-    -r --recurse path  ISO file or base of a directory tree with ISO files.
-       --rdepth  depth Set the maximum recure depth for --recurse (default=10).
-    -T --titles file   Read file for disc titles. -T0 disables titles lookup.
-
-    -d --dest path     Define a destination directory/file.
-    -D --DEST  path    Like --dest, but create directory path automatically.
-    -p --preserve      Copy file times (atime+mtime) from ISO image.
-    -o --overwrite     Overwrite existing files.
-    -i --ignore        Ignore non existing files/discs without warning.
-
-    -F --files rules   Add file select rules. This option can be used multiple
-                       times to extend the rule list. See section
-                       "Selecting files with --files=rules" for details.
-       --psel  p-type  Partition selector: (no-)data|update|channel all(=def) raw.
-       --raw           Short cut for --psel=raw.
-
-    -S --sort  list    Sort by: offset|size|name|...|asc|desc
-
+@@EXEC(./wit help EXTRACT)@@
 
  ** no documentation yet **
 
@@ -373,23 +233,7 @@ COMMAND: EXTRACT|X   [path]...
 
 
 -------------------------------------------------------------------------------
-
-COMMAND: FILELIST|FL  [path]...
-
- Print then filename for each ISO file in the internal database. Additional
- path parameters are handled like the option --source.
-
- If neither --source nor --recurse is used and no other source is defined then
- the default directory is searched for ISO files.
-
- Options:
-
-    -s --source  path  ISO file or directory with ISO files.
-    -r --recurse path  ISO file or base of a directory tree with ISO files.
-       --rdepth  depth Set the maximum recure depth for --recurse (default=10).
-    -i --ignore        Ignore non existing files/discs without warning.
-    -ii                (--ignore twice) Ignore all non ISO files.
-    -l --long          Print the real path instead of given path.
+@@EXEC(./wit help FILELIST)@@
 
  The filename of each file in the internal file list is printed as one line.
  If no source is given, the current working directory is used as source.
@@ -403,30 +247,7 @@ COMMAND: FILELIST|FL  [path]...
 
 
 -------------------------------------------------------------------------------
-
-COMMAND: FILETYPE|FT  [path]...
-
- Print a status line for each file in the internal database. Additional
- path parameters are handled like the option --source.
-
- If neither --source nor --recurse is used and no other source is defined then
- the default directory is searched for ISO files.
-
- Options:
-
-    -s --source  path  ISO file or directory with ISO files.
-    -r --recurse path  ISO file or base of a directory tree with ISO files.
-       --rdepth  depth Set the maximum recure depth for --recurse (default=10).
-       --psel  p-type  Partition selector: (no-)data|update|channel all(=def) raw.
-       --raw           Short cut for --psel=raw.
-
-    -l --long          Print in long format: Print ID6 for images.
-    -ll                (--long twice) Print REGION for images.
-    -lll               (3x --long) Print real path instead of given path.
-    -i --ignore        Ignore non existing files and don't print status line.
-    -ii                (--ignore twice) Ignore all non ISO files.
-    -H --no-header     Suppress printing of header.
-
+@@EXEC(./wit help FILETYPE)@@
 
  The command 'FILETYPE' prints for each file in the internal file database
  (build by the options --source and --recurse) one status line like:
@@ -434,6 +255,9 @@ COMMAND: FILETYPE|FT  [path]...
  Column 'ID6' is only printed if option --long is set. For non ISO images
  the ID6 is '-'. Columns 'SIZE_MIB' and 'REGION' are only printed if option
  --long is set at least two times.
+
+ If neither --source nor --recurse is used and no other source is defined then
+ the default directory is searched for ISO files.
 
  'SIZE_MIB' is the calculatet size of a scrubbed ISO image. For this all used
  sectors of a ISO image are counted. The usage depends of the options --psel
@@ -459,51 +283,23 @@ COMMAND: FILETYPE|FT  [path]...
 
 
 -------------------------------------------------------------------------------
+@@EXEC(./wit help HELP)@@
 
-COMMAND: HELP|?   [any_options_or_parameters]
+ Usual ERROR/EXIT CODES:
 
- Ignore all options and parameters, print help to standard out (stdout) and
- exit with status 0 (OK).
-
- ERROR/EXIT CODES:
-
-    HELP : Help printed.
+    0 == OK             : all done without erros.
 
 
 -------------------------------------------------------------------------------
-
-COMMAND: ID6|ID   [path]...
-
- Print the ID6 for each file in the internal database. Additional path
- parameters are handled like the option --source.
-
- If neither --source nor --recurse is used and no other source is defined then
- the default directory is searched for ISO files.
-
- Options:
-
-    -s --source  path  ISO file or directory with ISO files.
-    -r --recurse path  ISO file or base of a directory tree with ISO files.
-       --rdepth  depth Set the maximum recure depth for --recurse (default=10).
-    -n --include id    Include oly discs with given ID4 or ID6 from operation.
-    -n --include @file Read include list from file.
-    -N --include-path file_or_dir
-                       ISO file or base of directory tree -> scan their ID6.
-    -x --exclude id    Exclude discs with given ID4 or ID6 from operation.
-    -x --exclude @file Read exclude list from file.
-    -X --exclude-path file_or_dir
-                       ISO file or base of directory tree -> scan their ID6
-
-    -S --sort  list    Sort by: id|title|name|size|*time|file|region|...|asc|desc
-    -U --unique        Print only the first disc of all with same values.
-
-    -q --quiet         Be quiet   -> list only ID6 but nothing else.
-    -v --verbose       Be verbose -> list as much as possible.
+@@EXEC(./wit help ID6)@@
 
  The command 'ID' lists the ID6 of all discs in the internal ISO database, one
  ID per row. The internal ISO database is build under control of the options
  --source, --recurse, --include, --include-path, --exclude and --exclude-path.
  See section "Processing --source and --recurse" for details.
+
+ If neither --source nor --recurse is used and no other source is defined then
+ the default directory is searched for ISO files.
 
  If --uniqe is set each game disc with same ID6, name, size and region is only
  printed once. To determine doube entries the list is sorted by ID.
@@ -521,30 +317,7 @@ COMMAND: ID6|ID   [path]...
 
 
 -------------------------------------------------------------------------------
-
-COMMAND: ILIST|IL   [path]...
-
- List files of ISO images.
-
- Options:
-
-    -s --source  path  ISO file or directory with ISO files.
-    -r --recurse path  ISO file or base of a directory tree with ISO files.
-       --rdepth  depth Set the maximum recure depth for --recurse (default=10).
-    -T --titles file   Read file for disc titles. -T0 disables titles lookup.
-
-    -i --ignore        Ignore non existing files/discs without warning.
-    -l --long          Print in long format. Multiple usage possible.
-    -H --no-header     Suppress printing of header and footer.
-
-    -F --files rules   Add file select rules. This option can be used multiple
-                       times to extend the rule list. See section
-                       "Selecting files with --files=rules" for details.
-       --psel  p-type  Partition selector: (no-)data|update|channel all(=def) raw.
-       --raw           Short cut for --psel=raw.
-
-    -S --sort  list    Sort by: offset|size|name|...|asc|desc
-
+@@EXEC(./wit help ILIST)@@
 
  ** no documentation yet **
 
@@ -568,31 +341,7 @@ COMMANDS:
 
 
 -------------------------------------------------------------------------------
-
-COMMAND: ISOSIZE|SIZE  [path]...
-
- Print a status line with size calculations for each file in the internal
- database. Additional path parameters are handled like the option --source.
-
- If neither --source nor --recurse is used and no other source is defined then
- the default directory is searched for ISO files.
-
- Options:
-
-    -s --source  path  ISO file or directory with ISO files.
-    -r --recurse path  ISO file or base of a directory tree with ISO files.
-       --rdepth  depth Set the maximum recure depth for --recurse (default=10).
-       --psel  p-type  Partition selector: (no-)data|update|channel all(=def) raw.
-       --raw           Short cut for --psel=raw.
-
-    -l --long          Print in long format: Print additional SIZE_IN_MIB.
-    -ll                (--long twice) Print additional WBFS calculations.
-    -lll               (3x --long) Print real path instead of given path.
-    -H --no-header     Suppress printing of header.
-
-    -i --ignore        Ignore non existing files and don't print status line.
-    -ii                (--ignore twice) Ignore all non ISO files.
-
+@@EXEC(./wit help ISOSIZE)@@
 
  The command 'ISOSIZE' prints for each file in the internal file database
  (build by the options --source and --recurse) one status line like:
@@ -620,6 +369,8 @@ COMMAND: ISOSIZE|SIZE  [path]...
     is 8 MiB. Column SIZE_IN_500G_WBFS is only shown if the option --long
     is set at least twice.
 
+ If neither --source nor --recurse is used and no other source is defined then
+ the default directory is searched for ISO files.
 
  Usual ERROR/EXIT CODES:
 
@@ -629,44 +380,7 @@ COMMAND: ISOSIZE|SIZE  [path]...
 
 
 -------------------------------------------------------------------------------
-
-COMMAND: LIST|LS   [path]...
-
- List all game discs of each file in the internal database. Additional path
- parameters are handled like the option --source.
-
- If neither --source nor --recurse is used and no other source is defined then
- the default directory is searched for ISO files.
-
- Options:
-
-    -s --source  path  ISO file or directory with ISO files.
-    -r --recurse path  ISO file or base of a directory tree with ISO files.
-       --rdepth  depth Set the maximum recure depth for --recurse (default=10).
-    -n --include id    Include oly discs with given ID4 or ID6 from operation.
-    -n --include @file Read include list from file.
-    -N --include-path file_or_dir
-                       ISO file or base of directory tree -> scan their ID6.
-    -x --exclude id    Exclude discs with given ID4 or ID6 from operation.
-    -x --exclude @file Read exclude list from file.
-    -X --exclude-path file_or_dir
-                       ISO file or base of directory tree -> scan their ID6
-
-    -l --long          Print in long format. Multiple usage possible.
-       --itime         Abbreviation of --time=i. Use 'itime' (insertion time).\n"
-       --mtime         Abbreviation of --time=m. Use 'mtime' (last modification time).\n"
-       --ctime         Abbreviation of --time=c. Use 'ctime' (last status change time).\n"
-       --atime         Abbreviation of --time=a. Use 'atime' (last access time).\n"
-       --time  list    Set time modes (off,i,m,c,a,date,time,min,sec,...).\n"
-    -U --unique        Print only the first disc if all with with same ID6.
-    -H --no-header     Suppress printing of header and footer.
-       --sections      Print output in sections and parameter lines.
-    -S --sort  list    Sort by: id|title|name|size|*time|file|region|...|asc|desc
-    -T --titles file   Read file for disc titles. -T0 disables titles lookup.
-
-    -q --quiet         Be quiet   -> list only ID6 but nothing else.
-    -v --verbose       Be verbose -> list as much as possible.
-    -t --test          Allowed but ignored.
+@@EXEC(./wit help LIST)@@
 
  The command 'LIST' lists infos of all discs in the internal ISO database.
  The internal ISO database is build under control of the options --source,
@@ -721,10 +435,12 @@ COMMAND: LIST|LS   [path]...
  If available the name of the title database is used. use the option -T0 to
  disable database titles.
 
- If --uniqe is set each game disc identified by ID6 is only printet once.
+ If --unique is set each game disc identified by ID6 is only printet once.
  The sort order can be set by the --sort option. Sort=none means, that the ID
  will be shown in order of scanning. The default sort order is 'TITLE'.
 
+ If neither --source nor --recurse is used and no other source is defined then
+ the default directory is searched for ISO files.
 
  Usual ERROR/EXIT CODES:
 
@@ -747,30 +463,7 @@ COMMANDS:
 
 
 -------------------------------------------------------------------------------
-
-COMMAND: MOVE|MV
-
- Syntax: MOVE source_file destination_file
-         MOVE [-s path] [-r path] [sources]... destination
-         MOVE [-s path] [-r path] [sources]... -d destination
-
- Move and/or renames all sources to the destination directory. The contents of
- the files are unchanged.
-
- Options:
-
-    -s --source  path  ISO file or directory with ISO files.
-    -r --recurse path  ISO file or base of a directory tree with ISO files.
-       --rdepth  depth Set the maximum recure depth for --recurse (default=10).
-    -d --dest  path    Define a destination directory/file.
-    -D --DEST  path    Like --dest, but create directory path automatically.
-    -o --overwrite     Overwrite existing ISO images.
-    -i --ignore        Ignore non existing files/discs without warning.
-
-    -q --quiet         Be quiet   -> print only error messages.
-    -v --verbose       Be verbose -> print continuation infos.
-    -t --test          Run in test mode, modify nothing.
-    -E --esc char      Define an alternative escape character, default is '%'.
+@@EXEC(./wit help MOVE)@@
 
  The command MOVE moves and/or renames all given sources. If the option --dest
  is not set the last parameter is used as destination. If exact one source file
@@ -798,97 +491,29 @@ COMMAND: MOVE|MV
     WRITE ERROR         : error while writing a file.
     CANT CREATE         : Can't create output file.
 
-~
-~-------------------------------------------------------------------------------
-~
-~COMMAND: REMOVE|RM   id6...
-~
-~ Remove ISO image files.
-~
-~ Options:
-~
-~    -s --source  path  ISO file or directory with ISO files.
-~    -r --recurse path  ISO file or base of a directory tree with ISO files.
-~       --rdepth  depth Set the maximum recure depth for --recurse (default=10).
-~    -n --include id    Include oly discs with given ID4 or ID6 from operation.
-~    -n --include @file Read include list from file.
-~    -N --include-path file_or_dir
-~                       ISO file or base of directory tree -> scan their ID6.
-~    -x --exclude id    Exclude discs with given ID4 or ID6 from operation.
-~    -x --exclude @file Read exclude list from file.
-~    -X --exclude-path file_or_dir
-~                       ISO file or base of directory tree -> scan their ID6
-~
-~    -U --unique       Eliminate repeated ID6 from parameter list.
-~    -i --ignore       Ignore non existing discs without warning.
-~
-~    -q --quiet        Be quiet   -> print only error messages.
-~    -v --verbose      Be verbose -> print continuation infos.
-~    -t --test         Run in test mode, modify nothing.
-~    -tt               (--test twice) print a normalized ID6 list and exit.
-~
-~ *** [2do] not implemented yet. ***
-~
 
 -------------------------------------------------------------------------------
-
-COMMAND: RENAME|REN  id6=[new_id6][,title] ...
-
- Change the ID6 or/and the title of discs.
-
- Options:
-
-    -s --source  path  ISO file or directory with ISO files.
-    -r --recurse path  ISO file or base of a directory tree with ISO files.
-       --rdepth  depth Set the maximum recure depth for --recurse (default=10).
-    -n --include id    Include oly discs with given ID4 or ID6 from operation.
-    -n --include @file Read include list from file.
-    -N --include-path file_or_dir
-                       ISO file or base of directory tree -> scan their ID6.
-    -x --exclude id    Exclude discs with given ID4 or ID6 from operation.
-    -x --exclude @file Read exclude list from file.
-    -X --exclude-path file_or_dir
-                       ISO file or base of directory tree -> scan their ID6
-    -i --ignore        Ignore non existing discs without warning.
+@@EXEC(./wit help RENAME)@@
 
  This command 'RENAME' may change the ID6 and/or the title of discs. The
  alternative command 'SETTITLE' modifies only titles. The advantage of
  'SETTITLE' is, that it can modify all titles with 1 sub command.
 
- The syntax of a sub comand is: id6=[new_id6][,new_title]
+ The syntax of a sub command is: id6=[new_id6][,new_title]
     'id6' is the ID of the disc to change.
     The optional 'new_id6' is the new ID of the disc.
     The optional 'new_title' is the new title of the disc.
 
 @@MODULE(set-title.txt)@@
 
+ Usual ERROR/EXIT CODES:
+
+    0 == OK        : all done.
+    SYNTAX ERROR   : at least one syntax error in command line found.
+
 
 -------------------------------------------------------------------------------
-
-COMMAND: SCRUB|SB  iso_image_path...
-
- Copy all found ISO images. SCRUB works like COPY but the output file replaces
- the input files. Scrubbing is coltrolled by the options --psel and --raw.
-
- Options:
-
-    -s --source  path  ISO file or directory with ISO files.
-    -r --recurse path  ISO file or base of a directory tree with ISO files.
-       --rdepth  depth Set the maximum recure depth for --recurse (default=10).
-       --psel  p-type  Partition selector: (no-)data|update|channel all(=def) raw.
-       --raw           Short cut for --psel=raw.
-    -z --split         Enable output file splitting, default split size = 4 gb.
-    -Z --split-size sz Enable output file splitting and set split size.
-    -p --preserve      Preserve file times (atime+mtime).
-
-    -W --wdf           Set ISO output file type to WDF. (default)
-    -I --iso           Set ISO output file type to PLAIN ISO.
-    -C --ciso          Set ISO output file type to CISO (=WBI).
-    -B --wbfs          Set ISO output file type to WBFS container.
-
-    -q --quiet         Be quiet   -> print only error messages.
-    -v --verbose       Be verbose -> print continuation infos.
-    -t --test          Run in test mode, modify nothing.
+@@EXEC(./wit help SCRUB)@@
 
  The command SCRUB reorganize all given source files.
 
@@ -914,49 +539,28 @@ COMMAND: SCRUB|SB  iso_image_path...
 
 
 -------------------------------------------------------------------------------
-
-COMMAND: SETTITLE|ST   id6=new_title ...
-
- Change the title of discs.
-
- Options:
-
-    -s --source  path  ISO file or directory with ISO files.
-    -r --recurse path  ISO file or base of a directory tree with ISO files.
-       --rdepth  depth Set the maximum recure depth for --recurse (default=10).
-    -n --include id    Include oly discs with given ID4 or ID6 from operation.
-    -n --include @file Read include list from file.
-    -N --include-path file_or_dir
-                       ISO file or base of directory tree -> scan their ID6.
-    -x --exclude id    Exclude discs with given ID4 or ID6 from operation.
-    -x --exclude @file Read exclude list from file.
-    -X --exclude-path file_or_dir
-                       ISO file or base of directory tree -> scan their ID6
-    -i --ignore        Ignore non existing discs without warning.
+@@EXEC(./wit help SETTITLE)@@
 
  This command 'SETTITLE' may change the title of discs. The alternative
  command 'RENAME' can also change the ID of discs.
 
- The syntax of a sub comand is: id6=new_title
+ The syntax of a sub command is: id6=new_title
     'id6' is the ID of the disc to change. If using '+' all discs are changed.
     The 'new_title' is the new title of the disc.
 
 @@MODULE(set-title.txt)@@
 
+
+ Usual ERROR/EXIT CODES:
+
+    0 == OK        : all done.
+    SYNTAX ERROR   : at least one syntax error in command line found.
 
 -------------------------------------------------------------------------------
-
-COMMAND: TITLES   [additional_title_file]...
+@@EXEC(./wit help TITLES)@@
 
  The command 'TITLES' builts the title data base and prints the result to
  stdout. The handling of the additional files works like the --title option.
-
- Options:
-
-    -T --titles file  Read file for disc titles
-       --utf-8        Enables UTF-8 support (default for non CYGWIN).
-       --no-utf-8     Disables UTF-8 support (default for CYGWIN).
-
  The section "Processing title db" explains the options in detail.
 
 
@@ -967,37 +571,7 @@ COMMAND: TITLES   [additional_title_file]...
 
 
 -------------------------------------------------------------------------------
-
-COMMAND: VERIFY|V  iso_image_path...
-
- Verify the internal SHA1 check sums of each ISO image (find bad dumps).
-
- Options:
-
-    -s --source  path  ISO file or directory with ISO files.
-    -r --recurse path  ISO file or base of a directory tree with ISO files.
-       --rdepth  depth Set the maximum recure depth for --recurse (default=10).
-    -n --include id    Include oly discs with given ID4 or ID6 from operation.
-    -n --include @file Read include list from file.
-    -N --include-path file_or_dir
-                       ISO file or base of directory tree -> scan their ID6.
-    -x --exclude id    Exclude discs with given ID4 or ID6 from operation.
-    -x --exclude @file Read exclude list from file.
-    -X --exclude-path file_or_dir
-                       ISO file or base of directory tree -> scan their ID6
-    -i --ignore        Ignore non existing discs without warning.
-
-  * -q --quiet         Be quiet and report only errors. If --quiet set at
-                       least twice then wit will print nothing and only the
-                       exit status is set.
-  * -v --verbose       Be verbose. This option can be set multiple times.
-       --limit num     Maximal printed errors of each partition. A zero means
-                       unlimitted. The default is 10.
-  * -l --long          On error print an additional line to localize the exact
-                       position where the error is found. If set at least
-                       twice a hexdump of the hash values is printed too.
-
-
+@@EXEC(./wit help VERIFY)@@
 
  Every 1024 bytes of user data in every partition has its own SHA1 check sum
  (called 'H0'). There are also H1 (hash of 31*H0), H2 (hash of 8*H1), H3 (hash
@@ -1086,22 +660,21 @@ COMMAND: VERIFY|V  iso_image_path...
 
 
 -------------------------------------------------------------------------------
+@@EXEC(./wit help VERSION)@@
 
-COMMAND: VERSION   [any_options_or_parameters]
-
- Recognize option --long and ignore all other options and parameters, print out
- the program version to standard out (stdout) and exit with status 0 (OK).
+ The command VERSION prints out the program version to standard out (stdout)
+ and exit with status 0 (OK).
 
  The ouput line looks like:
 @@EXEC(./wit version | sed 's/^/    /')@@
 
- If option --long is set the output is printed in a machine readable format:
-@@EXEC(./wit --long version | sed 's/^/    /')@@
+ With option --sections the output is printed in a machine readable format:
+@@EXEC(./wit --sections version | sed 's/^/    /')@@
 
 
- ERROR/EXIT CODES:
+ Usual ERROR/EXIT CODES:
 
-    HELP : Help printed.
+    0 == OK : all done without erros.
 
 
 *******************************************************************************

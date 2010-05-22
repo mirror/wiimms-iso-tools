@@ -1,5 +1,5 @@
 
-[size="5"][color="#0000FF"][b]@@TOOLSET-SHORT@@: @@@TOOLSET-LONG@@ v@.@@@ - @@@@-@@-@@[/b][/color][/size]
+[size="5"][color="#0000FF"][b]@@TOOLSET-SHORT@@: @@TOOLSET-LONG@@ v@.@@@ - @@@@-@@-@@[/b][/color][/size]
 [size="3"][color="#800000"][b]A command line WBFS tool set for various os.[/b][/color][/size]
 
 I have updated the tool. The [url=@@URI-GBATEMP@@][b]first post with more details[/b][/url] is updated too.
@@ -35,13 +35,23 @@ I have updated the tool. The [url=@@URI-GBATEMP@@][b]first post with more detail
 
 [size="2"][color="#000080"][b]Highlights of this release:[/b][/color][/size]
 [list]
-[*] The toolset was renamed from [b]"@@WWT-SHORT@@: @@@WWT-LONG@@"[/b] to [b]"@@TOOLSET-SHORT@@: @@@TOOLSET-LONG@@"[/b]. At the beginning of the development the focus was WBFS. But now the focus is Wii ISO images and WBFS is only one of several supported formats.
+[*] I have reimplemeted the user interface (UI). With UI I mean analyzing of the command line for comamnds and options and ouput of the implemented help.
+
+To make live easier I have written a code generator. It create C source tables for generic operations of commands, options and help messages. This code generator generates also a definition file for [url=http://wit.wiimm.de/]online help[/url].
 [color=#ffffff].[/color]
 
-[*] Both, [b]wwt[/b] and [b]wit[/b], know the command [b]VERIFY[/b] for verifying discs. With theses commands you can find out [i]bad dumps[/i].
+[*][color=#800000]This release is a little bit experimental because of the rededign of the user interfac.[/color]
+
+[*] Because of the new UI The tools [b]wit[/b] und [b]wwt[/b] are able to print command specific help. Just type "tool HELP command" (example: "wit help copy").
 [color=#ffffff].[/color]
 
-[*] The new command [b]"wwt RECOVER"[/b] may recover removed discs of a WBFS partition. It completes a serie of repairing commands: [b]"wwt FORMAT --recover"[/b], [b]"wwt ANALYZE"[/b], [b]"wwt CHECK"[/b], [b]"wwt REPAIR"[/b].
+[*] The help messages are created on the fly. Because of this all tools find out the current window width to format the output.
+[color=#ffffff].[/color]
+
+[*] While creating the text documentation (part of the package) it is automatically filled with the help messages of the tools.
+[color=#ffffff].[/color]
+
+[*] [color=#800000]I hope that I have not forgotten any previos working option.[/color]
 [color=#ffffff].[/color]
 [/list]
 

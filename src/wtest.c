@@ -1,6 +1,6 @@
 /***************************************************************************
  *                                                                         *
- *   Copyright (c) 2009-2010 by Dirk Clemens <develop@cle-mens.de>         *
+ *   Copyright (c) 2009-2010 by Dirk Clemens <wiimm@wiimm.de>              *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -49,8 +49,6 @@
 #define NAME "wtest"
 #undef TITLE
 #define TITLE NAME " v" VERSION " r" REVISION " " SYSTEM " - " AUTHOR " - " DATE
-
-u32 used_options;
 
 //
 ///////////////////////////////////////////////////////////////////////////////
@@ -786,6 +784,8 @@ int main ( int argc, char ** argv )
 {
     printf("*****  %s  *****\n",TITLE);
     SetupLib(argc,argv,NAME,PROG_UNKNOWN);
+
+    printf("term width = %d\n",GetTermWidth(80,0));
 
     if ( argc < 2 )
 	help_exit();

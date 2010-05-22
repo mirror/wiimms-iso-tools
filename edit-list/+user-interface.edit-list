@@ -1,0 +1,8 @@
+../src/ui/gen-ui.c ;
+../src/ui/tab-ui.c ;
+../src/ui/ui.[ch] ;
+../src/ui/*.[ch] ;
+../ui-*.tmp ;
+@+all-source.edit-list
+-y -480 ../src/ui/ui.c ;
+-y  -50 ../src/lib-std.c ;

@@ -1,6 +1,6 @@
 /***************************************************************************
  *                                                                         *
- *   Copyright (c) 2009-2010 by Dirk Clemens <develop@cle-mens.de>         *
+ *   Copyright (c) 2009-2010 by Dirk Clemens <wiimm@wiimm.de>              *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -40,577 +40,45 @@
 #include "titles.h"
 #include "wbfs-interface.h"
 
+#include "ui-wwt.c"
+
+//
 ///////////////////////////////////////////////////////////////////////////////
 
-#define TITLE WWT_SHORT ": " WWT_LONG " v" VERSION " r" REVISION " " SYSTEM " - " AUTHOR " - " DATE
+#define TITLE WWT_SHORT ": " WWT_LONG " v" VERSION " r" REVISION \
+		" " SYSTEM " - " AUTHOR " - " DATE
 
-///////////////////////////////////////////////////////////////////////////////
 
-typedef enum enumOptions
-{
-	// only the command specific options are named
-
-	OPT_AUTO,
-	OPT_ALL,
-	OPT_PART,
-	OPT_RECURSE,
-	OPT_PSEL,
-	OPT_ENC,
-	OPT_RAW,
-	OPT_DEST,
-	OPT_DEST2,
-	OPT_SIZE,
-	OPT_SPLIT,
-	OPT_SPLIT_SIZE,
-	OPT_HSS,
-	OPT_WSS,
-	OPT_RECOVER,
-	OPT_FORCE,
-	OPT_NO_CHECK,
-	OPT_REPAIR,
-	OPT_NO_FREE,
-	OPT_UPDATE,
-	OPT_SYNC,
-	OPT_NEWER,
-	OPT_OVERWRITE,
-	OPT_IGNORE,
-	OPT_REMOVE,
-	OPT_TRUNC,
-	OPT_FAST,
-	OPT_WDF,
-	OPT_ISO,
-	OPT_CISO,
-	OPT_WBFS,
-	OPT_LONG,
-	OPT_INODE,
-	OPT_ITIME,
-	OPT_MTIME,
-	OPT_CTIME,
-	OPT_ATIME,
-	OPT_TIME,
-	OPT_SET_TIME,
-	OPT_MIXED,
-	OPT_UNIQUE,
-	OPT_NO_HEADER,
-	OPT_SECTIONS,
-	OPT_SORT,
-	OPT_LIMIT,
-
-	OPT__N_SPECIFIC,
-
-} enumOptions;
-
-///////////////////////////////////////////////////////////////////////////////
-
-typedef enum enumOptionsBit
-{
-	// bitmask fo all command specific options
-
-	OB_AUTO		= 1llu << OPT_AUTO,
-	OB_ALL		= 1llu << OPT_ALL,
-	OB_PART		= 1llu << OPT_PART,
-	OB_RECURSE	= 1llu << OPT_RECURSE,
-	OB_PSEL		= 1llu << OPT_PSEL,
-	OB_RAW		= 1llu << OPT_RAW,
-	OB_ENC		= 1llu << OPT_ENC,
-	OB_DEST		= 1llu << OPT_DEST,
-	OB_DEST2	= 1llu << OPT_DEST2,
-	OB_SIZE		= 1llu << OPT_SIZE,
-	OB_SPLIT	= 1llu << OPT_SPLIT,
-	OB_SPLIT_SIZE	= 1llu << OPT_SPLIT_SIZE,
-	OB_HSS		= 1llu << OPT_HSS,
-	OB_WSS		= 1llu << OPT_WSS,
-	OB_RECOVER	= 1llu << OPT_RECOVER,
-	OB_FORCE	= 1llu << OPT_FORCE,
-	OB_NO_CHECK	= 1llu << OPT_NO_CHECK,
-	OB_REPAIR	= 1llu << OPT_REPAIR,
-	OB_NO_FREE	= 1llu << OPT_NO_FREE,
-	OB_UPDATE	= 1llu << OPT_UPDATE,
-	OB_SYNC		= 1llu << OPT_SYNC,
-	OB_NEWER	= 1llu << OPT_NEWER,
-	OB_OVERWRITE	= 1llu << OPT_OVERWRITE,
-	OB_IGNORE	= 1llu << OPT_IGNORE,
-	OB_REMOVE	= 1llu << OPT_REMOVE,
-	OB_TRUNC	= 1llu << OPT_TRUNC,
-	OB_FAST		= 1llu << OPT_FAST,
-	OB_WDF		= 1llu << OPT_WDF,
-	OB_ISO		= 1llu << OPT_ISO,
-	OB_CISO		= 1llu << OPT_CISO,
-	OB_WBFS		= 1llu << OPT_WBFS,
-	OB_LONG		= 1llu << OPT_LONG,
-	OB_INODE	= 1llu << OPT_INODE,
-	OB_ITIME	= 1llu << OPT_ITIME,
-	OB_MTIME	= 1llu << OPT_MTIME,
-	OB_CTIME	= 1llu << OPT_CTIME,
-	OB_ATIME	= 1llu << OPT_ATIME,
-	OB_TIME		= 1llu << OPT_TIME,
-	OB_SET_TIME	= 1llu << OPT_SET_TIME,
-	OB_MIXED	= 1llu << OPT_MIXED,
-	OB_UNIQUE	= 1llu << OPT_UNIQUE,
-	OB_NO_HEADER	= 1llu << OPT_NO_HEADER,
-	OB_SECTIONS	= 1llu << OPT_SECTIONS,
-	OB_SORT		= 1llu << OPT_SORT,
-	OB_LIMIT	= 1llu << OPT_LIMIT,
-
-	OB__MASK	= ( 1llu << OPT__N_SPECIFIC ) -1,
-	OB__MASK_PART	= OB_AUTO|OB_ALL|OB_PART,
-	OB__MASK_PSEL	= OB_PSEL|OB_RAW,
-	OB__MASK_SPLIT	= OB_SPLIT|OB_SPLIT_SIZE,
-	OB__MASK_OFT	= OB_WDF|OB_ISO|OB_CISO|OB_WBFS,
-	OB__MASK_NO_CHK	= OB_NO_CHECK|OB_FORCE,
-	OB__MASK_XTIME	= OB_ITIME|OB_MTIME|OB_CTIME|OB_ATIME,
-	OB__MASK_TIME	= OB__MASK_XTIME|OB_TIME,
-
-	// allowed options for each command
-
-	OB_CMD_HELP	= OB__MASK,
-	OB_CMD_VERSION	= OB__MASK,
-	OB_CMD_TEST	= OB__MASK,
-	OB_CMD_ERROR	= OB_LONG|OB_NO_HEADER|OB_SECTIONS,
-	OB_CMD_EXCLUDE	= 0,
-	OB_CMD_TITLES	= 0,
-	OB_CMD_FIND	= OB__MASK_PART|OB_LONG|OB_NO_HEADER,
-	OB_CMD_SPACE	= OB__MASK_PART|OB_LONG|OB_NO_HEADER,
-	OB_CMD_ANALYZE	= OB__MASK_PART,
-	OB_CMD_DUMP	= OB__MASK_PART|OB_LONG|OB_INODE,
-	OB_CMD_ID6	= OB__MASK_PART|OB_LONG|OB_SORT|OB_UNIQUE,
-	OB_CMD_LIST	= OB__MASK_PART|OB_SORT|OB_LONG|OB__MASK_TIME
-			  |OB_MIXED|OB_UNIQUE|OB_NO_HEADER|OB_SECTIONS,
-	OB_CMD_FORMAT	= OB__MASK_SPLIT|OB_SIZE|OB_HSS|OB_WSS
-			  |OB_INODE|OB_RECOVER|OB_FORCE,
-	OB_CMD_RECOVER	= OB__MASK_PART,
-	OB_CMD_CHECK	= OB__MASK_PART|OB_REPAIR|OB_LONG,
-	OB_CMD_REPAIR	= OB_CMD_CHECK,
-	OB_CMD_EDIT	= OB_AUTO|OB_PART|OB_FORCE,
-	OB_CMD_PHANTOM	= OB_AUTO|OB_PART|OB__MASK_NO_CHK,
-	OB_CMD_TRUNCATE	= OB__MASK_PART|OB__MASK_NO_CHK,
-	OB_CMD_SYNC	= OB__MASK_PART|OB__MASK_PSEL|OB_ENC|OB__MASK_NO_CHK
-			  |OB_RECURSE|OB_NEWER|OB_IGNORE|OB_REMOVE|OB_TRUNC,
-	OB_CMD_UPDATE	= OB_CMD_SYNC|OB_SYNC,
-	OB_CMD_ADD	= OB_CMD_UPDATE|OB_OVERWRITE|OB_UPDATE,
-	OB_CMD_EXTRACT	= OB__MASK_PART|OB__MASK_SPLIT|OB__MASK_OFT|OB__MASK_NO_CHK
-			  |OB_UNIQUE|OB_DEST|OB_DEST2|OB_FAST|OB_TRUNC
-			  |OB_IGNORE|OB_REMOVE|OB_OVERWRITE|OB_UPDATE,
-	OB_CMD_REMOVE	= OB__MASK_PART|OB__MASK_NO_CHK|OB_UNIQUE|OB_IGNORE|OB_NO_FREE,
-	OB_CMD_RENAME	= OB__MASK_PART|OB__MASK_NO_CHK|OB_IGNORE|OB_ISO|OB_WBFS,
-	OB_CMD_SETTITLE	= OB_CMD_RENAME,
-	OB_CMD_TOUCH	= OB__MASK_PART|OB__MASK_NO_CHK|OB__MASK_XTIME|OB_SET_TIME
-			  |OB_UNIQUE|OB_IGNORE|OB_NO_FREE,
-	OB_CMD_VERIFY	= OB__MASK_PART|OB__MASK_PSEL|OB__MASK_NO_CHK
-			  |OB_IGNORE|OB_LONG|OB_REMOVE|OB_NO_FREE|OB_LIMIT,
-	OB_CMD_FILETYPE	= OB_LONG|OB_IGNORE|OB_NO_HEADER,
-
-} enumOptionsBit;
-
-///////////////////////////////////////////////////////////////////////////////
-
-typedef enum enumCommands
-{
-	CMD_HELP,
-	CMD_VERSION,
-	CMD_TEST,
-	CMD_ERROR,
-	CMD_EXCLUDE,
-	CMD_TITLES,
-
-	CMD_FIND,
-	CMD_SPACE,
-	CMD_ANALYZE,
-	CMD_DUMP,
-
-	CMD_ID6,
-	CMD_LIST,
-	CMD_LIST_L,
-	CMD_LIST_LL,
-	CMD_LIST_A,
-	CMD_LIST_M,
-	CMD_LIST_U,
-
-	CMD_FORMAT,
-	CMD_RECOVER,
-	CMD_CHECK,
-	CMD_REPAIR,
-	CMD_EDIT,
-	CMD_PHANTOM,
-	CMD_TRUNCATE,
-
-	CMD_ADD,
-	CMD_UPDATE,
-	CMD_SYNC,
-	CMD_EXTRACT,
-	CMD_REMOVE,
-	CMD_RENAME,
-	CMD_SETTITLE,
-	CMD_TOUCH,
-	CMD_VERIFY,
-
-	CMD_FILETYPE,
-
-	CMD__N
-
-} enumCommands;
-
-///////////////////////////////////////////////////////////////////////////////
-
-enumIOMode io_mode = 0;
-
-///////////////////////////////////////////////////////////////////////////////
-
-enum // const for long options without a short brothers
-{
-	GETOPT_BASE	= 0x1000,
-	GETOPT_UTF8,
-	GETOPT_NO_UTF8,
-	GETOPT_LANG,
-	GETOPT_PSEL,
-	GETOPT_RAW,
-	GETOPT_ENC,
-	GETOPT_TRUNC,
-	GETOPT_INODE,
-	GETOPT_ITIME,
-	GETOPT_MTIME,
-	GETOPT_CTIME,
-	GETOPT_ATIME,
-	GETOPT_TIME,
-	GETOPT_SET_TIME,
-	GETOPT_SECTIONS,
-	GETOPT_HSS,
-	GETOPT_WSS,
-	GETOPT_RECOVER,
-	GETOPT_NO_CHECK,
-	GETOPT_REPAIR,
-	GETOPT_NO_FREE,
-	GETOPT_LIMIT,
-	GETOPT_IO,
-};
-
-char short_opt[] = "hVqvLPtE:n:N:x:X:T:aAr:p:d:D:s:zZ:fuyeoiRFWICBlMUHS:";
-struct option long_opt[] =
-{
-	{ "help",		0, 0, 'h' },
-	{ "version",		0, 0, 'V' },
-	{ "quiet",		0, 0, 'q' },
-	{ "verbose",		0, 0, 'v' },
-	{ "logging",		0, 0, 'L' },
-	{ "progress",		0, 0, 'P' },
-	{ "test",		0, 0, 't' },
-	{ "esc",		1, 0, 'E' },
-	{ "include",		1, 0, 'n' },
-	{ "include-path",	1, 0, 'N' },
-	 { "includepath",	1, 0, 'N' },
-	{ "exclude",		1, 0, 'x' },
-	{ "exclude-path",	1, 0, 'X' },
-	 { "excludepath",	1, 0, 'X' },
-	{ "titles",		1, 0, 'T' },
-	{ "utf-8",		0, 0, GETOPT_UTF8 },
-	 { "utf8",		0, 0, GETOPT_UTF8 },
-	{ "no-utf-8",		0, 0, GETOPT_NO_UTF8 },
-	 { "no-utf8",		0, 0, GETOPT_NO_UTF8 },
-	 { "noutf8",		0, 0, GETOPT_NO_UTF8 },
-	{ "lang",		1, 0, GETOPT_LANG },
-
-	{ "io",			1, 0, GETOPT_IO }, // [2do] hidden option for tests
-
-	{ "auto",		0, 0, 'a' },
-	{ "all",		0, 0, 'A' },
-	{ "part",		1, 0, 'p' },
-	{ "recurse",		1, 0, 'r' },
-	{ "psel",		1, 0, GETOPT_PSEL },
-	{ "raw",		0, 0, GETOPT_RAW },
-	{ "enc",		1, 0, GETOPT_ENC },
-	{ "inode",		0, 0, GETOPT_INODE },
-	{ "dest",		1, 0, 'd' },
-	{ "DEST",		1, 0, 'D' },
-	{ "size",		1, 0, 's' },
-	{ "split",		0, 0, 'z' },
-	{ "split-size",		1, 0, 'Z' },
-	 { "splitsize",		1, 0, 'Z' },
-	{ "hss",		1, 0, GETOPT_HSS },
-	{ "sector-size",	1, 0, GETOPT_HSS },
-	 { "sectorsize",	1, 0, GETOPT_HSS },
-	{ "wss",		1, 0, GETOPT_WSS },
-	{ "recover",		0, 0, GETOPT_RECOVER },
-	{ "force",		0, 0, 'f' },
-	{ "no-check",		0, 0, GETOPT_NO_CHECK },
-	 { "nocheck",		0, 0, GETOPT_NO_CHECK },
-	{ "repair",		1, 0, GETOPT_REPAIR },
-	{ "no-free",		0, 0, GETOPT_NO_FREE },
-	 { "nofree",		0, 0, GETOPT_NO_FREE },
-	{ "update",		0, 0, 'u' },
-	{ "sync",		0, 0, 'y' },
-	{ "newer",		0, 0, 'e' },
-	 { "new",		0, 0, 'e' },
-	{ "overwrite",		0, 0, 'o' },
-	{ "ignore",		0, 0, 'i' },
-	{ "remove",		0, 0, 'R' },
-	{ "trunc",		0, 0, GETOPT_TRUNC },
-	{ "fast",		0, 0, 'F' },
-	{ "wdf",		0, 0, 'W' },
-	{ "iso",		0, 0, 'I' },
-	{ "ciso",		0, 0, 'C' },
-	{ "wbfs",		0, 0, 'B' },
-	{ "long",		0, 0, 'l' },
-	{ "itime",		0, 0, GETOPT_ITIME },
-	{ "mtime",		0, 0, GETOPT_MTIME },
-	{ "ctime",		0, 0, GETOPT_CTIME },
-	{ "atime",		0, 0, GETOPT_ATIME },
-	{ "time",		1, 0, GETOPT_TIME },
-	{ "set-time",		1, 0, GETOPT_SET_TIME },
-	 { "settime",		1, 0, GETOPT_SET_TIME },
-	{ "mixed",		0, 0, 'M' },
-	{ "unique",		0, 0, 'U' },
-	{ "no-header",		0, 0, 'H' },
-	 { "noheader",		0, 0, 'H' },
-	{ "sections",		0, 0, GETOPT_SECTIONS },
-	{ "sort",		1, 0, 'S' },
-	{ "limit",		1, 0, GETOPT_LIMIT },
-
-	{0,0,0,0}
-};
-
-option_t  used_options	= 0;
-option_t  env_options	= 0;
-time_t    opt_set_time	= 0;
-
+time_t opt_set_time	= 0;
 int  print_sections	= 0;
 int  long_count		= 0;
 int  testmode		= 0;
 ccp  opt_dest		= 0;
 bool opt_mkdir		= false;
 u64  opt_size		= 0;
-int  opt_split		= 0;
-u64  opt_split_size	= 0;
 u32  opt_hss		= 0;
 u32  opt_wss		= 0;
 bool opt_ignore_fst	= 0;
 int  opt_limit		= -1;
 
-///////////////////////////////////////////////////////////////////////////////
-
-static const CommandTab_t CommandTab[] =
-{
-	{ CMD_HELP,	"HELP",		"?",		OB_CMD_HELP },
-	{ CMD_VERSION,	"VERSION",	0,		OB_CMD_VERSION },
-	{ CMD_TEST,	"TEST",		0,		OB_CMD_TEST },
-	{ CMD_ERROR,	"ERROR",	"ERR",		OB_CMD_ERROR },
-	{ CMD_EXCLUDE,	"EXCLUDE",	0,		OB_CMD_EXCLUDE },
-	{ CMD_TITLES,	"TITLES",	0,		OB_CMD_TITLES },
-
-	{ CMD_FIND,	"FIND",		"F",		OB_CMD_FIND },
-	{ CMD_SPACE,	"SPACE",	"DF",		OB_CMD_SPACE },
-	{ CMD_ANALYZE,	"ANALYZE",	"ANA",		OB_CMD_ANALYZE },
-	{ CMD_ANALYZE,	"ANALYSE",	0,		OB_CMD_ANALYZE },
-	{ CMD_DUMP,	"DUMP",		"D",		OB_CMD_DUMP },
-
-	{ CMD_ID6,	"ID6",		"ID",		OB_CMD_ID6 },
-	{ CMD_LIST,	"LIST",		"LS",		OB_CMD_LIST },
-	{ CMD_LIST_L,	"LIST-L",	"LL",		OB_CMD_LIST },
-	{ CMD_LIST_LL,	"LIST-LL",	"LLL",		OB_CMD_LIST },
-	{ CMD_LIST_A,	"LIST-A",	"LA",		OB_CMD_LIST },
-	{ CMD_LIST_M,	"LIST-M",	"LM",		OB_CMD_LIST },
-	{ CMD_LIST_U,	"LIST-U",	"LU",		OB_CMD_LIST },
-
-	{ CMD_FORMAT,	"FORMAT",	"INIT",		OB_CMD_FORMAT },
-	{ CMD_RECOVER,	"RECOVER",	0,		OB_CMD_RECOVER },
-	{ CMD_CHECK,	"CHECK",	"FSCK",		OB_CMD_CHECK },
-	{ CMD_REPAIR,	"REPAIR",	0,		OB_CMD_REPAIR },
-	{ CMD_EDIT,	"EDIT",		0,		OB_CMD_EDIT },
-	{ CMD_PHANTOM,	"PHANTOM",	0,		OB_CMD_PHANTOM },
-	{ CMD_TRUNCATE,	"TRUNCATE",	"TR",		OB_CMD_TRUNCATE },
-
-	{ CMD_ADD,	"ADD",		"A",		OB_CMD_ADD },
-	{ CMD_UPDATE,	"UPDATE",	"U",		OB_CMD_UPDATE },
-	{ CMD_SYNC,	"SYNC",		0,		OB_CMD_SYNC },
-	{ CMD_EXTRACT,	"EXTRACT",	"X",		OB_CMD_EXTRACT },
-	{ CMD_REMOVE,	"REMOVE",	"RM",		OB_CMD_REMOVE },
-	{ CMD_RENAME,	"RENAME",	"REN",		OB_CMD_RENAME },
-	{ CMD_SETTITLE,	"SETTITLE",	"ST",		OB_CMD_SETTITLE },
-	{ CMD_TOUCH,	"TOUCH",	0,		OB_CMD_TOUCH },
-	{ CMD_VERIFY,	"VERIFY",	"V",		OB_CMD_VERIFY },
-
-	{ CMD_FILETYPE,	"FILETYPE",	"FT",		OB_CMD_FILETYPE },
-
-	{ CMD__N,0,0,0 }
-};
+enumIOMode io_mode	= 0;
 
 //
 ///////////////////////////////////////////////////////////////////////////////
 
-static const char help_text[] =
-    "\n"
-    TITLE "\n"
-    "This is a command line tool to manage WBFS partitions and Wii ISO Images.\n"
-    "\n"
-    "Syntax: " WWT_SHORT " [option]... command [option|parameter|@file]...\n"
-    "\n"
-    "Commands:\n"
-    "\n"
-    "   HELP     | ?    : Print this help and exit.\n"
-    "   VERSION         : Print program name and version and exit.\n"
-    "   ERROR    | ERR  : Translate exit code to message.\n"
-    "   EXCLUDE         : Print the internal exclude database to stdout.\n"
-    "   TITLES          : Print the internal title database to stdout.\n"
-    "\n"
-    "   FIND     | F    : Find WBFS partitions.\n"
-    "   SPACE    | DF   : Print disk space of WBFS partitions.\n"
-    "   ANALYZE  | ANA  : Analyze files and partitions for WBFS usage.\n"
-    "   DUMP     | D    : Dump the content of WBFS partitions.\n"
-    "\n"
-    "   ID6      | ID   : Print ID6 of all discs of WBFS partitions.\n"
-    "   LIST     | LS   : List all discs of WBFS partitions.\n"
-    "   LIST-L   | LL   : Same as 'LIST --long'.\n"
-    "   LIST-LL  | LLL  : Same as 'LIST --long --long'.\n"
-    "   LIST-A   | LA   : Same as 'LIST --long --long --auto'.\n"
-    "   LIST-M   | LM   : Same as 'LIST --long --long --mixed'.\n"
-    "   LIST-U   | LU   : Same as 'LIST --long --long --unique'.\n"
-    "\n"
-    "   FORMAT   | INIT : Format (and recover) WBFS partitions.\n"
-    "   RECOVER         : Recover discs of WBFS partitions.\n"
-    "   CHECK    | FSCK : Check WBFS partitions.\n"
-    "   REPAIR          : Shortcut for: CHECK --repair=fbt.\n"
-    "   EDIT            : Edit block assignments (dangerous!).\n"
-    "   PHANTOM         : Add phantom discs (no content; for tests; fast).\n"
-    "   TRUNCATE | TR   : Truncate WBFS partitions.\n"
-    "\n"
-    "   ADD      | A    : Add ISO images to WBFS partitions.\n"
-    "   UPDATE   | U    : Add missing ISO images to WBFS partitions.\n"
-    "   SYNC            : Remove and copy until source and WBFS are identical.\n"
-    "   EXTRACT  | X    : Extract discs from WBFS partitions as ISO images.\n"
-    "   REMOVE   | RM   : Remove discs from WBFS partitions.\n"
-    "   RENAME   | REN  : Rename the ID6 of WBFS discs. Disc title can also be set.\n"
-    "   SETTITLE | ST   : Set the disc title of WBFS discs.\n"
-    "   TOUCH           : Set time stamps of WBFS discs.\n"
-    "   VERIFY   | V    : Verify all discs of WBFS (calc & compare SHA1 check sums.\n"
-    "\n"
-    "   FILETYPE | FT   : Print a status line for each given file.\n"
-    "\n"
-    "General options (for all commands except 'ERROR'):\n"
-    "\n"
-    "   -h --help          Print this help and exit.\n"
-    "   -V --version       Print program name and version and exit.\n"
-    "   -q --quiet         Be quiet   -> print only error messages and needed output.\n"
-    " * -v --verbose       Be verbose -> print more info. Multiple usage possible.\n"
-    "   -P --progress      Print progress counter independent of verbose level.\n"
-    " * -t --test          Run in test mode, modify nothing.\n"
-    "   -E --esc char      Define an alternative escape character, default is '%'.\n"
-    " * -n --include id    Include oly discs with given ID4 or ID6 from operation.\n"
-    " * -n --include @file Read include list from file.\n"
-    " * -N --include-path file_or_dir\n"
-    "                      ISO file or base of directory tree -> scan their ID6.\n"
-    " * -x --exclude id    Exclude discs with given ID4 or ID6 from operation.\n"
-    " * -x --exclude @file Read exclude list from file.\n"
-    " * -X --exclude-path file_or_dir\n"
-    "                      ISO file or base of directory tree -> scan their ID6.\n"
-    " * -T --titles file   Read file for disc titles. -T0 disables titles lookup.\n"
- #ifdef __CYGWIN__
-    "      --utf-8         Enables UTF-8 support.\n"
-    "      --no-utf-8      Disables UTF-8 support (cygwin default).\n"
- #else
-    "      --utf-8         Enables UTF-8 support (default).\n"
-    "      --no-utf-8      Disables UTF-8 support.\n"
- #endif
-    "      --lang lang     Define the language for titles.\n"
-    "\n"
-    "Command specific options:\n"
-    "\n"
-    "   -A --all           Use all WBFS partitions found.\n"
-    "   -a --auto          Search for WBFS partitions using /proc/partitions.\n"
-    " * -p --part  part    File of primary WBFS partition. Multiple usage allowed.\n"
-    " * -p --part  @file   Special case: read partition list from 'file' ('-'=stdin).\n"
-    " * -r --recurse path  Base of a directory tree with ISO files.\n"
-    "      --psel  p-type  Partition selector: (no-)data|update|channel all(=def) raw.\n"
-    "      --raw           Short cut for --psel=raw.\n"
-    "      --enc  encoding Encoding: none|hash|decrypt|encrypt|sign|auto(=default).\n"
-    "   -d --dest  path    Define a destination directory/file.\n"
-    "   -D --DEST  path    Like --dest, but create directory path automatically.\n"
-    "   -s --size  size    Floating point size. Factors: bckKmMgGtT, default=G.\n"
-    "   -z --split         Enable output file splitting, default split size = 4 gb.\n"
-    "   -Z --split-size sz Enable output file splitting and set split size.\n"
-    "      --hss  size     Define HD sector size, default=512. Factors: kKmMgGtT\n"
-    "      --wss  size     Define WBFS sector size, no default. Factors: kKmMgGtT\n"
-    "      --recover       Format a WBFS in recover mode.\n"
-    "   -f --force         Force operation.\n"
-    "      --no-check      Disable automatic check of WBFS before modificastions.\n"
-    "      --repair mode   Comma separated list of repair modes: NONE, FBT, INODES,\n"
-    "                      RM-INVALID, RM-OVERLAP, RM-FREE, RM-EMPTY, RM-ALL, ALL.\n"
-    "      --no-free       Do not free blocks when removing a disc.\n"
-    "   -u --update        Copy only non existing discs.\n"
-    "   -y --sync          Remove and copy until source and dest are identical.\n"
-    "   -e --newer         If source and dest have valid mtimes: copy if source is newer.\n"
-    "   -o --overwrite     Overwrite existing files.\n"
-    "   -i --ignore        Ignore non existing files/discs without warning.\n"
-    "   -R --remove        Remove source files/discs if operation is successful.\n"
-    "      --trunc         Trunc ISO images while writing.\n"
-    "   -F --fast          Enables fast writing (disables searching for zero blocks).\n"
-    "   -W --wdf           Set ISO output file type to WDF. (default)\n"
-    "   -I --iso           Set ISO output file type to PLAIN ISO.\n"
-    "   -C --ciso          Set ISO output file type to CISO (=WBI).\n"
-    "   -B --wbfs          Set ISO output file type to WBFS container.\n"
-    " * -l --long          Print in long format. Multiple usage possible.\n"
-    "      --inode         Print information for all inodes (invalid discs too).\n"
-    "      --itime         Abbreviation of --time=i. Use 'itime' (insertion time).\n"
-    "      --mtime         Abbreviation of --time=m. Use 'mtime' (last modification time).\n"
-    "      --ctime         Abbreviation of --time=c. Use 'ctime' (last status change time).\n"
-    "      --atime         Abbreviation of --time=a. Use 'atime' (last access time).\n"
-    " *    --time  list    Set time modes (off,i,m,c,a,date,time,min,sec,...).\n"
-    "      --set-time time Use given time instead of current time.\n"
-    "   -M --mixed         Print disc infos of all WBFS in mixed mode.\n"
-    "   -U --unique        Eliminate multiple entries with same ID6.\n"
-    "   -H --no-header     Suppress printing of header and footer.\n"
-    "      --sections      Print output in sections and parameter lines.\n"
-    "   -S --sort  list    Sort by: id|title|name|size|*time|file|region|...|asc|desc\n"
-    "      --limit  num    Limit the output to NUM messages.\n"
- #ifdef TEST // [test]
-    "\n"
-    "      --io flags      IO mode (0=open or 1=fopen) &1=WBFS &2=IMAGE.\n"
- #endif
-    "\n"
-    "   Options marked with '*' can be used repeatedly to change the behavior.\n"
-    "\n"
-    "Usage:\n"
-    "\n"
-    "   HELP     | ?        [ignored]...\n"
-    "   VERSION         -l  [ignored]...\n"
-    "   ERROR    | ERR  -l  [error_code] // NO OTHER OPTIONS\n"
-    "   EXCLUDE             [additional_excludes]...\n"
-    "   TITLES              [additional_title_file]...\n"
-    "\n"
-    "   FIND     | F    -p part -aA -ll   -H                   [wbfs_partition]...\n"
-    "   SPACE    | DF   -p part -aA -l    -H                   [wbfs_partition]...\n"
-    "   ANALYZE  | ANA  -p part -aA                            [wbfs_partition]...\n"
-    "   DUMP     | D    -p part -aA -llll --inode              [wbfs_partition]...\n"
-    "\n"
-    "   ID6      | ID   -p part -aA            -U -S?sort      [wbfs_partition]...\n"
-    "   LIST     | LS   -p part -aA -lll  -H -M -U -S= --*time [wbfs_partition]...\n"
-    "   LIST-*   | L*   -p part -aA -ll   -H -M -U -S= --*time [wbfs_partition]...\n"
-    "\n"
-    "   FORMAT   | INIT --size= --hss= --wss= --recover -f     file|blockdev...\n"
-    "   RECOVER         -p part -a                             [wbfs_partition]...\n"
-    "   CHECK    | FSCK -p part -aA -ll  --repair=             [wbfs_partition]...\n"
-    "   REPAIR          -p part -aA -ll  --repair=             [wbfs_partition]...\n"
-    "   EDIT            -p part -a       --force               [sub_command]...\n"
-    "   PHANTOM         -p part -a                             [sub_command]...\n"
-    "   TRUNCATE | TR   -p part -aA                            [wbfs_partition]...\n"
-    "\n"
-    "   ADD      | A    -p part -aA -iRCeyou -r --psel= --raw  iso|wbfs|dir...\n"
-    "   UPDATE   | U    -p part -aA -iRCey   -r --psel= --raw  iso|wbfs|dir...\n"
-    "   SYNC            -p part -aA -iRCe    -r --psel= --raw  iso|wbfs|dir...\n"
-    "   EXTRACT  | X    -p part -aA -iRCeou -zZ -UF -d* -WIB   id6...\n"
-    "   REMOVE   | RM   -p part -aA -i         -U              id6...\n"
-    "   RENAME   | REN  -p part -aA -i -IB                     id6=[new][,title]...\n"
-    "   SETTITLE | ST   -p part -aA -i -IB                     id6=title...\n"
-    "   TOUCH           -p part -aA -iU --*time --set-time=    id6...\n"
-    "   VERIFY   | V    -p part -aA -il--limit= --psel= --raw  id6...\n"
-    "\n"
-    "   FILETYPE | FT               -i -H -l                   filename...\n"
-    "\n";
-
-
-///////////////////////////////////////////////////////////////////////////////
-
-void help_exit()
+void help_exit( bool xmode )
 {
-    fputs(help_text,stdout);
+    fputs( TITLE "\n", stdout );
+
+    if (xmode)
+    {
+	int cmd;
+	for ( cmd = 0; cmd < CMD__N; cmd++ )
+	    PrintHelpCmd(&InfoUI,stdout,0,cmd);
+    }
+    else
+	PrintHelpCmd(&InfoUI,stdout,0,0);
+
     exit(ERR_OK);
 }
 
@@ -618,7 +86,10 @@ void help_exit()
 
 void version_exit()
 {
-    if (long_count)
+    if (print_sections)
+	fputs("[version]\n",stdout);
+
+    if ( print_sections || long_count )
 	fputs(	"prog=" WWT_SHORT "\n"
 		"name=\"" WWT_LONG "\"\n"
 		"version=" VERSION "\n"
@@ -649,12 +120,12 @@ void print_title ( FILE * f )
 
 ///////////////////////////////////////////////////////////////////////////////
 
-void hint_exit ( enumError err )
+void hint_exit ( enumError stat )
 {
     fprintf(stderr,
-	    "-> Type '%s -h' (or better '%s -h|less') for more help.\n\n",
-	    progname, progname );
-    exit(err);
+	    "-> Type '%s -h', '%s help' or '%s help command' for more help.\n\n",
+	    progname, progname, progname );
+    exit(stat);
 }
 
 //
@@ -814,6 +285,57 @@ enumError cmd_find()
 //
 ///////////////////////////////////////////////////////////////////////////////
 
+enumError cmd_space()
+{
+    opt_all++; // --auto is implied
+
+    AddEnvPartitions();
+    if ( !n_param && !opt_part && !opt_auto )
+	ScanPartitions(true);
+
+    if (n_param)
+    {
+	opt_part++;
+	opt_all++;
+	ParamList_t * param;
+	for ( param = first_param; param; param = param->next )
+	    CreatePartitionInfo(param->arg,PS_PARAM);
+    }
+
+    enumError err = AnalyzePartitions(stderr,false,true);
+    if (err)
+	return err;
+
+    const bool print_header = !(used_options&OB_NO_HEADER);
+    if (print_header)
+	printf("\n   size    used used%%   free   discs    file   (sizes in MiB)\n"
+		 "--------------------------------------------------------------\n");
+
+    WBFS_t wbfs;
+    InitializeWBFS(&wbfs);
+    PartitionInfo_t * info;
+    for ( err = GetFirstWBFS(&wbfs,&info);
+	  !err && !SIGINT_level;
+	  err = GetNextWBFS(&wbfs,&info) )
+    {
+	printf("%7d %7d %3d%% %7d %4d/%-4d  %s\n",
+		wbfs.total_mib,
+		wbfs.used_mib,
+		100*wbfs.used_mib/(wbfs.total_mib),
+		wbfs.free_mib,
+		wbfs.used_discs,
+		wbfs.total_discs,
+		long_count ? info->real_path : info->path );
+    }
+    if (print_header)
+	printf("\n");
+
+    return ResetWBFS(&wbfs);
+}
+
+//
+///////////////////////////////////////////////////////////////////////////////
+
 enumError cmd_analyze()
 {
     AddEnvPartitions();
@@ -888,57 +410,6 @@ enumError cmd_dump()
 	printf("\nDUMP of %s\n\n",info->path);
 	DumpWBFS(&wbfs,stdout,2,long_count,invalid,0);
     }
-    return ResetWBFS(&wbfs);
-}
-
-//
-///////////////////////////////////////////////////////////////////////////////
-
-enumError cmd_space()
-{
-    opt_all++; // --auto is implied
-
-    AddEnvPartitions();
-    if ( !n_param && !opt_part && !opt_auto )
-	ScanPartitions(true);
-
-    if (n_param)
-    {
-	opt_part++;
-	opt_all++;
-	ParamList_t * param;
-	for ( param = first_param; param; param = param->next )
-	    CreatePartitionInfo(param->arg,PS_PARAM);
-    }
-
-    enumError err = AnalyzePartitions(stderr,false,true);
-    if (err)
-	return err;
-
-    const bool print_header = !(used_options&OB_NO_HEADER);
-    if (print_header)
-	printf("\n   size    used used%%   free   discs    file   (sizes in MiB)\n"
-		 "--------------------------------------------------------------\n");
-
-    WBFS_t wbfs;
-    InitializeWBFS(&wbfs);
-    PartitionInfo_t * info;
-    for ( err = GetFirstWBFS(&wbfs,&info);
-	  !err && !SIGINT_level;
-	  err = GetNextWBFS(&wbfs,&info) )
-    {
-	printf("%7d %7d %3d%% %7d %4d/%-4d  %s\n",
-		wbfs.total_mib,
-		wbfs.used_mib,
-		100*wbfs.used_mib/(wbfs.total_mib),
-		wbfs.free_mib,
-		wbfs.used_discs,
-		wbfs.total_discs,
-		long_count ? info->real_path : info->path );
-    }
-    if (print_header)
-	printf("\n");
-
     return ResetWBFS(&wbfs);
 }
 
@@ -1120,8 +591,14 @@ int print_list_mixed()
 //
 ///////////////////////////////////////////////////////////////////////////////
 
-enumError cmd_list()
+enumError cmd_list ( int long_level )
 {
+    if ( long_level > 0 )
+    {
+	RegisterOption(&InfoUI,OPT_LONG,long_level,false);
+	long_count += long_level;
+    }
+
     AddEnvPartitions();
     if ( !n_param && !opt_part && !opt_auto )
 	ScanPartitions(true);
@@ -1280,54 +757,31 @@ enumError cmd_list()
     return ERR_OK;
 }
 
-//
-///////////////////////////////////////////////////////////////////////////////
-
-enumError cmd_list_l()
-{
-    used_options |= OB_LONG;
-    long_count++;
-    return cmd_list();
-}
-
-///////////////////////////////////////////////////////////////////////////////
-
-enumError cmd_list_ll()
-{
-    used_options |= OB_LONG;
-    long_count += 2;
-    return cmd_list();
-}
-
-///////////////////////////////////////////////////////////////////////////////
+//-----------------------------------------------------------------------------
 
 enumError cmd_list_a()
 {
     if (!opt_auto)
 	ScanPartitions(true);
-    used_options |= OB_LONG;
-    long_count += 2;
-    return cmd_list();
+    return cmd_list(2);
 }
 
-///////////////////////////////////////////////////////////////////////////////
+//-----------------------------------------------------------------------------
 
 enumError cmd_list_m()
 {
-    used_options |= OB_MIXED|OB_LONG;
+    RegisterOption(&InfoUI,OPT_MIXED,1,false);
     opt_all++;
-    long_count += 2;
-    return cmd_list();
+    return cmd_list(2);
 }
 
-///////////////////////////////////////////////////////////////////////////////
+//-----------------------------------------------------------------------------
 
 enumError cmd_list_u()
 {
-    used_options |= OB_UNIQUE|OB_LONG;
+    RegisterOption(&InfoUI,OPT_UNIQUE,1,false);
     opt_all++;
-    long_count += 2;
-    return cmd_list();
+    return cmd_list(2);
 }
 
 //
@@ -3031,10 +2485,10 @@ enumError cmd_touch()
     const u64 set_time = !opt_set_time || opt_set_time == (time_t)-1
 				? time(0)
 				: opt_set_time;
-	
-    u64 opt = used_options & OB__MASK_XTIME;
+
+    option_t opt = used_options & OB_GRP_XTIME;
     if (!opt)
-	opt = OB__MASK_XTIME;
+	opt = OB_GRP_XTIME;
 
     const u64 itime = opt & OB_ITIME ? set_time : 0;
     const u64 mtime = opt & OB_MTIME ? set_time : 0;
@@ -3446,136 +2900,103 @@ enumError cmd_filetype()
 ///////////////                   check options                 ///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-ccp opt_name_tab[OPT__N_SPECIFIC] = {0};
-
-void SetOption ( int opt_idx, ccp name )
-{
-    if ( opt_idx > 0 && opt_idx < OPT__N_SPECIFIC )
-    {
-	used_options |= 1ull << opt_idx;
-	opt_name_tab[opt_idx] = name;
-    }
-}
-
-///////////////////////////////////////////////////////////////////////////////
-
-enumError CheckOptions ( int argc, char ** argv, int is_env )
+enumError CheckOptions ( int argc, char ** argv, bool is_env )
 {
     TRACE("CheckOptions(%d,%p,%d) optind=%d\n",argc,argv,is_env,optind);
 
-    used_options = 0;
     optind = 0;
     int err = 0;
 
     for(;;)
     {
-	const int opt_stat = getopt_long(argc,argv,short_opt,long_opt,0);
-	if ( opt_stat == -1 )
-	    break;
+      const int opt_stat = getopt_long(argc,argv,OptionShort,OptionLong,0);
+      if ( opt_stat == -1 )
+	break;
 
-	noTRACE("CHECK OPTION %02x\n",opt_stat);
-	switch (opt_stat)
-	{
-	  case '?': err++; break;
-	  case 'V': version_exit();
-	  case 'h': help_exit();
-	  case 'q': verbose = verbose > -1 ? -1 : verbose - 1; break;
-	  case 'v': verbose = verbose <  0 ?  0 : verbose + 1; break;
-	  case 'L': logging++; break;
-	  case 'P': progress++; break;
-	  case 't': testmode++; break;
-	  case 'n': AtFileHelper(optarg,0,AddIncludeID); break;
-	  case 'N': AtFileHelper(optarg,0,AddIncludePath); break;
-	  case 'x': AtFileHelper(optarg,0,AddExcludeID); break;
-	  case 'X': AtFileHelper(optarg,0,AddExcludePath); break;
-	  case 'T': AtFileHelper(optarg,true,AddTitleFile); break;
+      RegisterOption(&InfoUI,opt_stat,1,is_env);
 
-	  case 'A': SetOption(OPT_ALL,"all"); opt_all++; break;
-	  case 'd': SetOption(OPT_DEST,"dest"); opt_dest = optarg; break;
-	  case 'D': SetOption(OPT_DEST2,"DEST"); opt_dest = optarg; opt_mkdir = true; break;
-   	  case 'z': SetOption(OPT_SPLIT,"split"); opt_split++; break;
-	  case 'f': SetOption(OPT_FORCE,"force"); break;
-	  case 'u': SetOption(OPT_UPDATE,"update"); break;
-	  case 'y': SetOption(OPT_SYNC,"sync"); break;
-	  case 'e': SetOption(OPT_NEWER,"newer"); break;
-   	  case 'o': SetOption(OPT_OVERWRITE,"overwrite"); break;
-	  case 'i': SetOption(OPT_IGNORE,"ignore"); break;
-	  case 'R': SetOption(OPT_REMOVE,"remove"); break;
-	  case 'F': SetOption(OPT_FAST,"fast"); break;
-	  case 'W': SetOption(OPT_WDF,"wdf");   output_file_type = OFT_WDF; break;
-	  case 'I': SetOption(OPT_ISO,"iso");   output_file_type = OFT_PLAIN; break;
-	  case 'C': SetOption(OPT_ISO,"ciso");  output_file_type = OFT_CISO; break;
-	  case 'B': SetOption(OPT_WBFS,"wbfs"); output_file_type = OFT_WBFS; break;
-	  case 'l': SetOption(OPT_LONG,"long"); long_count++; break;
-	  case 'M': SetOption(OPT_MIXED,"mixes");break;
-	  case 'U': SetOption(OPT_UNIQUE,"unique"); break;
-	  case 'H': SetOption(OPT_NO_HEADER,"no-header"); break;
+      switch ((enumGetOpt)opt_stat)
+      {
+	case GO__ERR:		err++; break;
 
-	  case GETOPT_UTF8:	use_utf8 = true; break;
-	  case GETOPT_NO_UTF8:	use_utf8 = false; break;
-	  case GETOPT_LANG:	lang_info = optarg; break;
-	  case GETOPT_TRUNC:	SetOption(OPT_TRUNC,"trunc"); break;
-	  case GETOPT_INODE:	SetOption(OPT_INODE,"inode"); break;
-	  case GETOPT_NO_CHECK:	SetOption(OPT_NO_CHECK,"no-check"); break;
-	  case GETOPT_NO_FREE:	SetOption(OPT_NO_FREE,"no-free"); break;
-	  case GETOPT_RECOVER:	SetOption(OPT_RECOVER,"recover"); break;
-	  case GETOPT_SECTIONS:	SetOption(OPT_SECTIONS,"sections"); print_sections++; break;
+	case GO_VERSION:	version_exit();
+	case GO_HELP:		help_exit(false);
+	case GO_XHELP:		help_exit(true);
 
-	  case 'a':
+	case GO_QUIET:		verbose = verbose > -1 ? -1 : verbose - 1; break;
+	case GO_VERBOSE:	verbose = verbose <  0 ?  0 : verbose + 1; break;
+	case GO_PROGRESS:	progress++; break;
+	case GO_LOGGING:	logging++; break;
+	case GO_ESC:		err += ScanEscapeChar(optarg) < 0; break;
+	case GO_IO:		ScanIOMode(optarg); break;
+
+	case GO_TITLES:		AtFileHelper(optarg,true,AddTitleFile); break;
+	case GO_UTF_8:		use_utf8 = true; break;
+	case GO_NO_UTF_8:	use_utf8 = false; break;
+	case GO_LANG:		lang_info = optarg; break;
+
+	case GO_TEST:		testmode++; break;
+
+	case GO_ALL:		opt_all++; break;
+	case GO_PART:		AtFileHelper(optarg,false,AddPartition); break;
+	case GO_RECURSE:	AppendStringField(&recurse_list,optarg,false); break;
+	case GO_RAW:		partition_selector = WHOLE_DISC; break;
+
+	case GO_INCLUDE:	AtFileHelper(optarg,0,AddIncludeID); break;
+	case GO_INCLUDE_PATH:	AtFileHelper(optarg,0,AddIncludePath); break;
+	case GO_EXCLUDE:	AtFileHelper(optarg,0,AddExcludeID); break;
+	case GO_EXCLUDE_PATH:	AtFileHelper(optarg,0,AddExcludePath); break;
+	case GO_IGNORE:		break;
+	case GO_IGNORE_FST:	opt_ignore_fst = true; break;
+
+	case GO_INODE:		break;
+	case GO_DEST:		opt_dest = optarg; break;
+	case GO_DEST2:		opt_dest = optarg; opt_mkdir = true; break;
+	case GO_SPLIT:		opt_split++; break;
+	case GO_SPLIT_SIZE:	err += ScanSplitSize(optarg); break;
+	case GO_RECOVER:	break;
+	case GO_FORCE:		break;
+	case GO_NO_CHECK:	break;
+	case GO_NO_FREE:	break;
+
+	case GO_UPDATE:		break;
+	case GO_SYNC:		break;
+	case GO_NEWER:		break;
+	case GO_OVERWRITE:	break;
+	case GO_REMOVE:		break;
+	case GO_TRUNC:		break;
+	case GO_FAST:		break;
+
+	case GO_WDF:		output_file_type = OFT_WDF; break;
+	case GO_ISO:		output_file_type = OFT_PLAIN; break;
+	case GO_CISO:		output_file_type = OFT_CISO; break;
+	case GO_WBFS:		output_file_type = OFT_WBFS; break;
+
+	case GO_ITIME:	    	SetTimeOpt(PT_USE_ITIME|PT_F_ITIME); break;
+	case GO_MTIME:	    	SetTimeOpt(PT_USE_MTIME|PT_F_MTIME); break;
+	case GO_CTIME:	    	SetTimeOpt(PT_USE_CTIME|PT_F_CTIME); break;
+	case GO_ATIME:	    	SetTimeOpt(PT_USE_ATIME|PT_F_ATIME); break;
+
+	case GO_LONG:		long_count++; break;
+	case GO_MIXED:	    	break;
+	case GO_UNIQUE:	    	break;
+	case GO_NO_HEADER:	break;
+	case GO_SECTIONS:	print_sections++; break;
+
+	case GO_AUTO:
 	    if (!opt_auto)
-	    {
-		SetOption(OPT_AUTO,"");
 		ScanPartitions(false);
-	    }
 	    break;
 
-	  case 'p':
-	    SetOption(OPT_PART,"part");
-	    AtFileHelper(optarg,false,AddPartition);
+	case GO_RDEPTH:
+	    if (ScanSizeOptU32(&opt_recurse_depth,optarg,1,0,
+				"rdepth",0,MAX_RECURSE_DEPTH,0,0,true))
+		hint_exit(ERR_SYNTAX);
 	    break;
 
-	  case 'E':
-	    if ( ScanEscapeChar(optarg) < 0 )
-		err++;
-	    break;
-
-	  case 's':
-	    SetOption(OPT_SIZE,"size");
-	    if (ScanSizeOptU64(&opt_size,optarg,GiB,0,
-				"size",MIN_WBFS_SIZE,0,0,0,true))
-		err++;
-	    break;
-
-	  case 'Z':
-	    SetOption(OPT_SPLIT_SIZE,"split-size");
-	    if (ScanSizeOptU64(&opt_split_size,optarg,GiB,0,
-				"split-size",MIN_SPLIT_SIZE,0,DEF_SPLIT_FACTOR,0,true))
-		err++;
-	    opt_split++;
-	    break;
-
-	  case GETOPT_HSS:
-	    SetOption(OPT_HSS,"hss");
-	    if (ScanSizeOptU32(&opt_hss,optarg,1,0,
-				"hss",512,WII_SECTOR_SIZE,0,1,true))
-		err++;
-	    break;
-
-	  case GETOPT_WSS:
-	    SetOption(OPT_WSS,"wss");
-	    if (ScanSizeOptU32(&opt_wss,optarg,1,0,
-				"wss",1024,0,0,1,true))
-		err++;
-	    break;
-
-	  case 'r':
-	    SetOption(OPT_RECURSE,"recurse");
-	    AppendStringField(&recurse_list,optarg,false);
-	    break;
-
-	  case GETOPT_PSEL:
+	case GO_PSEL:
 	    {
-		SetOption(OPT_PSEL,"psel");
+
 		const int new_psel = ScanPartitionSelector(optarg);
 		if ( new_psel == -1 )
 		    err++;
@@ -3584,49 +3005,50 @@ enumError CheckOptions ( int argc, char ** argv, int is_env )
 	    }
 	    break;
 
-	  case GETOPT_RAW:
-	    partition_selector = WHOLE_DISC;
-	    break;
-
-	  case GETOPT_ENC:
+	case GO_ENC:
 	    {
-		SetOption(OPT_ENC,"enc");
 		const int new_encoding = ScanEncoding(optarg);
 		if ( new_encoding == -1 )
 		    err++;
 		else
 		    encoding = new_encoding;
 	    }
+	break;
+
+	case GO_SIZE:
+	    if (ScanSizeOptU64(&opt_size,optarg,GiB,0,
+				"size",MIN_WBFS_SIZE,0,0,0,true))
+		err++;
 	    break;
 
-	  case GETOPT_ITIME:
-	    SetOption(OPT_ITIME,"itime");
-	    opt_print_time = SetPrintTimeMode(opt_print_time,PT_USE_ITIME|PT_F_ITIME|PT_ENABLED);
+	case GO_HSS:
+	    if (ScanSizeOptU32(&opt_hss,optarg,1,0,
+				"hss",512,WII_SECTOR_SIZE,0,1,true))
+		err++;
 	    break;
 
-	  case GETOPT_MTIME:
-	    SetOption(OPT_MTIME,"mtime");
-	    opt_print_time = SetPrintTimeMode(opt_print_time,PT_USE_MTIME|PT_F_MTIME|PT_ENABLED);
+	case GO_WSS:
+	    if (ScanSizeOptU32(&opt_wss,optarg,1,0,
+				"wss",1024,0,0,1,true))
+		err++;
 	    break;
 
-	  case GETOPT_CTIME:
-	    SetOption(OPT_CTIME,"ctime");
-	    opt_print_time = SetPrintTimeMode(opt_print_time,PT_USE_CTIME|PT_F_CTIME|PT_ENABLED);
+	case GO_REPAIR:
+	    {
+		const int new_repair = ScanRepairMode(optarg);
+		if ( new_repair == -1 )
+		    err++;
+		else
+		    repair_mode = new_repair;
+	    }
 	    break;
 
-	  case GETOPT_ATIME:
-	    SetOption(OPT_ATIME,"atime");
-	    opt_print_time = SetPrintTimeMode(opt_print_time,PT_USE_ATIME|PT_F_ATIME|PT_ENABLED);
-	    break;
-
-	  case GETOPT_TIME:
-	    SetOption(OPT_TIME,"time");
+	case GO_TIME:
 	    if ( ScanAndSetPrintTimeMode(optarg) == PT__ERROR )
 		err++;
 	    break;
 
-	  case GETOPT_SET_TIME:
-	    SetOption(OPT_SET_TIME,"set-time");
+	case GO_SET_TIME:
 	    {
 		const time_t tim = ScanTime(optarg);
 		if ( tim == (time_t)-1 )
@@ -3636,20 +3058,8 @@ enumError CheckOptions ( int argc, char ** argv, int is_env )
 	    }
 	    break;
 
-	  case GETOPT_REPAIR:
+	case GO_SORT:
 	    {
-		SetOption(OPT_REPAIR,"repair");
-		const int new_repair = ScanRepairMode(optarg);
-		if ( new_repair == -1 )
-		    err++;
-		else
-		    repair_mode = new_repair;
-	    }
-	    break;
-
-	  case 'S':
-	    {
-		SetOption(OPT_SORT,"sort");
 		const SortMode new_mode = ScanSortMode(optarg);
 		if ( new_mode == SORT__ERROR )
 		    err++;
@@ -3661,9 +3071,8 @@ enumError CheckOptions ( int argc, char ** argv, int is_env )
 	    }
 	    break;
 
-	  case GETOPT_LIMIT:
+	case GO_LIMIT:
 	    {
-		SetOption(OPT_LIMIT,"limit");
 		u32 limit;
 		if (ScanSizeOptU32(&limit,optarg,1,0,"limit",0,INT_MAX,0,0,true))
 		    err++;
@@ -3671,24 +3080,11 @@ enumError CheckOptions ( int argc, char ** argv, int is_env )
 		    opt_limit = limit;
 	    }
 	    break;
-
-	  case GETOPT_IO:
-	    {
-		const enumIOMode new_io = strtol(optarg,0,0); // [2do] error handling
-		opt_iomode = new_io & IOM__IS_MASK;
-		if ( verbose > 0 || opt_iomode != new_io )
-		    printf("IO mode set to %#0x.\n",opt_iomode);
-		opt_iomode |= IOM_FORCE_STREAM;
-	    }
-	    break;
-
-	  default:
-	    ERROR0(ERR_INTERNAL,"Internal error: unhandled option: '%c'\n",opt_stat);
-	    ASSERT(0); // line never reached
-	    break;
-	}
+      }
     }
-    TRACELINE;
+ #ifdef DEBUG
+    DumpUsedOptions(&InfoUI,TRACE_FILE,11);
+ #endif
 
     if (is_env)
     {
@@ -3737,22 +3133,9 @@ enumError CheckCommand ( int argc, char ** argv )
 
     TRACE("COMMAND FOUND: #%d = %s\n",cmd_ct->id,cmd_ct->name1);
 
-    option_t forbidden_mask = used_options & ~cmd_ct->opt;
-    TRACE("COMMAND: %s\n",cmd_ct->name1);
-    TRACE("  - environ options:   %12llx\n",env_options);
-    TRACE("  - used options:      %12llx\n",used_options);
-    TRACE("  - allowed options:   %12llx\n",cmd_ct->opt);
-    TRACE("  - forbidden options: %12llx\n",forbidden_mask);
-    if ( forbidden_mask )
-    {
-	int i;
-	for ( i=0; long_opt[i].name; i++, forbidden_mask >>= 1 )
-	    if ( forbidden_mask & 1 )
-		ERROR0(ERR_SYNTAX,"Command '%s' don't allow the option --%s\n",
-				cmd_ct->name1, opt_name_tab[i] );
-	hint_exit(ERR_SEMANTIC);
-    }
-    used_options |= env_options & cmd_ct->opt;
+    enumError err = VerifySpecificOptions(&InfoUI,cmd_ct);
+    if (err)
+	hint_exit(err);
 
     argc -= optind+1;
     argv += optind+1;
@@ -3760,10 +3143,10 @@ enumError CheckCommand ( int argc, char ** argv )
     while ( argc-- > 0 )
 	AtFileHelper(*argv++,false,AddParam);
 
-    enumError err = 0;
     switch(cmd_ct->id)
     {
 	case CMD_VERSION:	version_exit();
+	case CMD_HELP:		PrintHelp(&InfoUI,stdout,0); break;
 	case CMD_TEST:		err = cmd_test(); break;
 	case CMD_ERROR:		err = cmd_error(); break;
 	case CMD_EXCLUDE:	err = cmd_exclude(); break;
@@ -3775,9 +3158,9 @@ enumError CheckCommand ( int argc, char ** argv )
 	case CMD_DUMP:		err = cmd_dump(); break;
 
 	case CMD_ID6:		err = cmd_id6(); break;
-	case CMD_LIST:		err = cmd_list(); break;
-	case CMD_LIST_L:	err = cmd_list_l(); break;
-	case CMD_LIST_LL:	err = cmd_list_ll(); break;
+	case CMD_LIST:		err = cmd_list(0); break;
+	case CMD_LIST_L:	err = cmd_list(1); break;
+	case CMD_LIST_LL:	err = cmd_list(2); break;
 	case CMD_LIST_A:	err = cmd_list_a(); break;
 	case CMD_LIST_M:	err = cmd_list_m(); break;
 	case CMD_LIST_U:	err = cmd_list_u(); break;
@@ -3803,7 +3186,7 @@ enumError CheckCommand ( int argc, char ** argv )
 	case CMD_FILETYPE:	err = cmd_filetype(); break;
 
 	default:
-	    help_exit();
+	    help_exit(false);
     }
 
     return PrintErrorStat(err,cmd_ct->name1);
@@ -3818,9 +3201,7 @@ int main ( int argc, char ** argv )
 {
     SetupLib(argc,argv,WWT_SHORT,PROG_WWT);
 
-    TRACE_SIZEOF(TDBfind_t);
-    TRACE_SIZEOF(ID_DB_t);
-    TRACE_SIZEOF(ID_t);
+    ASSERT( OPT__N_SPECIFIC <= 64 );
 
     //----- process arguments
 
@@ -3830,11 +3211,11 @@ int main ( int argc, char ** argv )
 	hint_exit(ERR_OK);
     }
 
-    enumError err = CheckEnvOptions("WWT_OPT",CheckOptions,1);
+    enumError err = CheckEnvOptions("WWT_OPT",CheckOptions);
     if (err)
 	hint_exit(err);
 
-    err = CheckOptions(argc,argv,0);
+    err = CheckOptions(argc,argv,false);
     if (err)
 	hint_exit(err);
 

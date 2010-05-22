@@ -1,5 +1,5 @@
 
-[size=18][color=#0000FF][b]@@TOOLSET-SHORT@@: @@@TOOLSET-LONG@@ v@.@@@ - @@@@-@@-@@[/b][/color][/size]
+[size=18][color=#0000FF][b]@@TOOLSET-SHORT@@: @@TOOLSET-LONG@@ v@.@@@ - @@@@-@@-@@[/b][/color][/size]
 [size=15][color=#800000][b]Ein Kommandozeilentoolkit für WBFS und ISO Datateien.[/b][/color][/size]
 
 Dieses hier wird das Ankündigungsthema für WIT werden. Einzelheiten zum Programm werde ich nach und nach übersetzen und an dieser Stelle ergänzen. Unter [url=http://wiimm.de/wwt][b]http://wiimm.de/wwt[/b][/url] gibt es eine ausführlichere Übersicht über die Möglichkeiten, allerdings in englisch.
@@ -180,4 +180,4 @@ Es handelt sich um Kommandozeilen-Tools. Das bedeutet, dass man zur Ausführung v
 
 Sources comes with GPL2. Checkout the sources directly from the [url=@@URI-REPOS@@][b]SVN repository[/b][/url] or [url=@@URI-VIEWVC@@][b]browse the source[/b][/url].
 
-Da sich der Pfad im SVN repository geäendert hat, muss vor einem Update einmalig das folgende Kommando ausgeführet werden: [code]svn switch http://opensvn.wiimm.de/wii/trunk/wiimms-iso-tools[/code]
+Da sich der Pfad im SVN repository geäendert hat, muss vor einem Update einmalig das folgende Kommando ausgeführt werden: [code]svn switch http://opensvn.wiimm.de/wii/trunk/wiimms-iso-tools[/code]

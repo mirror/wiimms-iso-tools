@@ -1,6 +1,6 @@
 /***************************************************************************
  *                                                                         *
- *   Copyright (c) 2009-2010 by Dirk Clemens <develop@cle-mens.de>         *
+ *   Copyright (c) 2009-2010 by Dirk Clemens <wiimm@wiimm.de>              *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -36,6 +36,9 @@
 #include "lib-sf.h"
 #include "lib-std.h"
 
+#include "ui-wdf-dump.c"
+
+//
 ///////////////////////////////////////////////////////////////////////////////
 
 #define NAME "wdf-dump"
@@ -44,53 +47,11 @@
 bool print_chunk_tab = false;
 int end_delta = 0;
 
-//
-///////////////////////////////////////////////////////////////////////////////
-
-enum // const for long options without a short brothers
-{
-	GETOPT_BASE	= 0x1000,
-	GETOPT_IO,
-};
-
-char short_opt[] = "hVqvcl";
-struct option long_opt[] =
-{
-	{ "help",	0, 0, 'h' },
-	{ "version",	0, 0, 'V' },
-	{ "quiet",	0, 0, 'q' },
-	{ "verbose",	0, 0, 'v' },
-	{ "chunk",	0, 0, 'c' },
-	{ "long",	0, 0, 'l' },  // obsolete alternative for chunk
-
-	{ "io",		1, 0, GETOPT_IO }, // [2do] hidden option for tests
-
-	{0,0,0,0}
-};
-
-///////////////////////////////////////////////////////////////////////////////
-
-static const char help_text[] =
-    "\n"
-    TITLE "\n"
-    "This tool to dumps the data structure of WDF files.\n"
-    "\n"
-    "Syntax: " NAME " [option]... files...\n"
-    "\n"
-    "Options:\n"
-    "\n"
-    "    -h --help     Print this help and exit.\n"
-    "    -V --version  Print program name and version and exit.\n"
-    "    -q --quiet    Be quiet   -> suppress output of program name.\n"
-    "    -v --verbose  Be verbose -> print program name.\n"
-    "    -c --chunk    Print table with chunk header.\n"
-    "\n";
-
 ///////////////////////////////////////////////////////////////////////////////
 
 void help_exit()
 {
-    fputs(help_text,stdout);
+    PrintHelpCmd(&InfoUI,stdout,0,0);
     exit(ERR_OK);
 }
 
@@ -104,10 +65,10 @@ void version_exit()
 
 ///////////////////////////////////////////////////////////////////////////////
 
-void hint_exit ( int stat )
+void hint_exit ( enumError stat )
 {
     fprintf(stderr,
-	    "-> Type '%s -h' or %s --help for more help.\n\n",
+	    "-> Type '%s -h' (or better '%s -h|less') for more help.\n\n",
 	    progname, progname );
     exit(stat);
 }
@@ -119,38 +80,31 @@ enumError CheckOptions ( int argc, char ** argv )
     int err = 0;
     for(;;)
     {
-	const int opt_stat = getopt_long(argc,argv,short_opt,long_opt,0);
-	if ( opt_stat == -1 )
-	    break;
+      const int opt_stat = getopt_long(argc,argv,OptionShort,OptionLong,0);
+      if ( opt_stat == -1 )
+	break;
 
-	noTRACE("CHECK OPTION %02x\n",opt_stat);
-	switch (opt_stat)
-	{
-	  case '?': err++; break;
-	  case 'V': version_exit();
-	  case 'h': help_exit();
-	  case 'q': verbose = verbose > -1 ? -1 : verbose - 1; break;
-	  case 'v': verbose = verbose <  0 ?  0 : verbose + 1; break;
-	  case 'l':
-	  case 'c': print_chunk_tab = true; break;
+      RegisterOption(&InfoUI,opt_stat,1,false);
 
-	  case GETOPT_IO:
-	    {
-		const enumIOMode new_io = strtol(optarg,0,0); // [2do] error handling
-		opt_iomode = new_io & IOM__IS_MASK;
-		if ( verbose > 0 || opt_iomode != new_io )
-		    printf("IO mode set to %#0x.\n",opt_iomode);
-		opt_iomode |= IOM_FORCE_STREAM;
-	    }
-	    break;
+      switch ((enumGetOpt)opt_stat)
+      {
+	case GO__ERR:		err++; break;
 
-	  default:
-	    ERROR0(ERR_INTERNAL,"Internal error: unhandled option: '%x'\n",opt_stat);
-	    ASSERT(0); // line never reached
-	    err++;
-	    break;
-	}
+	case GO_VERSION:	version_exit();
+	case GO_HELP:
+	case GO_XHELP:		help_exit();
+	case GO_QUIET:		verbose = verbose > -1 ? -1 : verbose - 1; break;
+	case GO_VERBOSE:	verbose = verbose <  0 ?  0 : verbose + 1; break;
+	case GO_IO:		ScanIOMode(optarg); break;
+
+	case GO_CHUNK:
+	case GO_LONG:		print_chunk_tab = true; break;
+      }
     }
+ #ifdef DEBUG
+    DumpUsedOptions(&InfoUI,TRACE_FILE,11);
+ #endif
+
     return err ? ERR_SYNTAX : ERR_OK;
 }
 

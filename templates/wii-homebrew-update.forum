@@ -1,6 +1,6 @@
 
-[size=18][color=#0000FF][b]@@TOOLSET-SHORT@@: @@@TOOLSET-LONG@@ v@.@@@ - @@@@-@@-@@[/b][/color][/size]
-[size=15][color=#800000][b]Ein Kommandozeilen-Toolkit für WBFS und ISO Datateien.[/b][/color][/size]
+[size=18][color=#0000FF][b]@@TOOLSET-SHORT@@: @@TOOLSET-LONG@@ v@.@@@ - @@@@-@@-@@[/b][/color][/size]
+[size=15][color=#800000][b]Ein Kommandozeilen-Toolkit für ISO und WBFS Dateien.[/b][/color][/size]
 
 [b]wwt+wit[/b] sind Kommandozeilen-Tools. Das bedeutet, dass man zur Ausführung vorher ein Kommandofenster aufmachen muss und dann die Kommandos eingeben kann. Dieses hat aber den Vorteil, dass man sich Batch-Dateien für immer wiederkehrnde Aufgaben schreiben kann. Zum Ansprechen der Laufwerke muss das Kommandofenster im Admin-Modus arbeiten. Die Syntax der Kommandos ist stark an Unix angelehnt, da die Programme auch unter Linux entwickelt werden.
 
@@ -35,13 +35,26 @@
 
 [size=12][color=#000080][b]Höhepunkte dieser Version:[/b][/color][/size]
 [list]
-[*] Die Toolsammlung wurde von [b]"@@WWT-SHORT@@: @@@WWT-LONG@@"[/b] nach [b]"@@TOOLSET-SHORT@@: @@@TOOLSET-LONG@@"[/b] umbenannt. Anfangs war es ein reines WBFS Tool, aber mittlerweile steht die Wii ISO im Vordergrund und WBFS ist nur eines von mehreren unterstützten Formaten.
+[*] Die gesammte Benutzerschnittstelle (User-Interface, UI) wurde überarbeitet. Damit ist die Analyse der Kommandozeilen auf Kommandos und Optionen als auch die Ausgabe der eingebauten Hilfe gemeint. Um eine Vereinheitlichung und bessere Wartung zu ermöglchen, habe ich einen Code-Generator geschrieben, der Tabellen mit Kommandos, Optionen und Hilfetexte als C-Quelltext erstellt. Dieser Code-Generator erzeugt auch eine Definitionsdatei, aus der dann die [url=http://wit.wiimm.de/]Online-HTML-Hilfe[/url] generiert werden kann.
 [color=#ffffff].[/color]
 
-[*] Sowohl [b]wwt[/b] als auch [b]wit[/b] kennen das Kommando [b]VERIFY[/b], mit dem man ISO Images auf Korrektheit überprüfen und so sog. [i]bad dumps[/i] erkennen kann.
+[*][color=#800000]Diese Version ist ein wenig experimentell auf Grund der Neuimplementierung des Benutzerschnittstelle.[/color]
+
+[*] Dank des neuen UI gibt es nun auch für [b]wit[/b] und [b]wwt[/b] die Möglichkeit, kommandospzifische Hilfe auszugeben. Dazu muss hinter dem Kommando "HELP" einfach nur das Kommando angegeben werden, für das Hilfe benötigt wird.
+
+Beispiel: wit help copy
 [color=#ffffff].[/color]
 
-[*] Mit dem neuen Kommando [b]"wwt RECOVER"[/b] lassen sich gelöschte Spiele einer WBFS-Partition wieder herstellen. Dieses neue Kommando ergänzt die bereits vorhandenen Reparaturkommandos [b]"wwt FORMAT --recover"[/b], [b]"wwt ANALYZE"[/b], [b]"wwt CHECK"[/b] und [b]"wwt REPAIR"[/b].
+[*] Da die Hilfe nun dynamisch erzeugt wird, wird sie automatisch an die Ausgabe aktuelle Fensterbreite angepasst.
+[color=#ffffff].[/color]
+
+[*] Die beigeliegende Dokumentation wird beim Erstellen automatisch mit den aktuellen Hilfetexten ergänzt.
+[color=#ffffff].[/color]
+
+[*] Durch die zentrale Verwaltung vom Kommandos, Optionen und Hilfetexten sind Änderungen und Erweiterungen relativ einfach zu implementieren.
+[color=#ffffff].[/color]
+
+[*] [color=#800000]Ich hoffe, dass ich keine vorher erlaubten Optionen vergessen habe und ass alles wie geplant funktoniert.[/color]
 [color=#ffffff].[/color]
 [/list]
 
@@ -51,6 +64,6 @@
 @@MODULE(last-history.txt)@@
 [/code]
 
-Die Quellen stehen unter der GPL2 Lizenz. Die Quellen önnen direkt aus dem [url=@@URI-REPOS@@][b]SVN repository[/b][/url] ausgechecked werden oder mit einem [url=@@URI-VIEWVC@@][b]Browser besurft werden[/b][/url].
+Die Quellen stehen unter der GPL2 Lizenz. Die Quellen können direkt aus dem [url=@@URI-REPOS@@][b]SVN repository[/b][/url] ausgechecked werden oder mit einem [url=@@URI-VIEWVC@@][b]Browser besurft werden[/b][/url].
 
-Da sich der Pfad im SVN repository geäendert hat, muss vor einem Update einmalig das folgende Kommando ausgeführet werden: [code]svn switch http://opensvn.wiimm.de/wii/trunk/wiimms-iso-tools[/code]
+Da sich der Pfad im SVN repository geändert hat, muss vor einem Update einmalig das folgende Kommando ausgeführt werden: [code]svn switch http://opensvn.wiimm.de/wii/trunk/wiimms-iso-tools[/code]

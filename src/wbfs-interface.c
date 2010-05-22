@@ -664,7 +664,7 @@ enumError CheckParamRename ( bool rename_id, bool allow_plus, bool allow_index )
 	    param->selector[0] = '+';
 	    arg++;
 	}
-	else if ( CheckIDnocase(arg) == 6 )
+	else if ( CheckID(arg,true) == 6 )
 	{
 	    // ID6 found
 	    int i;
@@ -734,7 +734,7 @@ enumError CheckParamRename ( bool rename_id, bool allow_plus, bool allow_index )
 
 	    if ( *arg != ',' )
 	    {
-		if ( CheckIDnocase(arg) != 6 )
+		if ( CheckID(arg,true) != 6 )
 		{
 		    ERROR0(ERR_SYNTAX,"Missing ID6: %s -> %s\n", param->arg, arg );
 		    syntax_count++;
@@ -1341,7 +1341,7 @@ enumError DumpWBFS
 	    idx += n;
 	    count -= n;
 	}
-	fputs("\n",f);
+	fputc('\n',f);
     }
     else
 	fprintf(f,"%*s!! NO WBFS HEADER DEFINED !!\n\n", indent,"");
@@ -1858,7 +1858,7 @@ static void AW_discs ( AWData_t * awd, File_t * f, ccp data )
 	wd_header_t *wd = (wd_header_t *)( data + sec * SEC_SIZE );
 	u32 magic = ntohl(wd->magic);
 	if ( ( magic == WII_MAGIC || magic == WII_MAGIC_DELETED )
-		&& CheckID6((ccp)wd) )
+		&& CheckID6(wd,false) )
 	{
 	    noTRACE(" - DISC found @ sector #%u\n",sec);
 	    for ( level = SEC_LEVEL-1; level >= 0; level-- )

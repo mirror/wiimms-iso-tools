@@ -1,12 +1,4 @@
-wwt v0.45a r1012 - 2010-05-05
-
-  - To avoid troubles with platform dependent openssl support I have integrated
-    the SHA1 sources from openssl into WWT.
-  - The new command "wit VERIFY" checks the hash signatures of all needed
-    sectors (keyword "scrubbed"). All five hash levels (H0..H4) are verified.
-    This means 64 AES decryptions and 1029 SHA1 calculations for each MiB.
-
-wit v@.@@@ r@@REV-NEXT@@ - @@@@-@@-@@
+wit v0.46a r1043 - 2010-05-13
 
   - The main name have changed from "Wiimms WBFS Tool" to "Wiimms ISO Tools".
     The following things are changed too:
@@ -29,8 +21,18 @@ wit v@.@@@ r@@REV-NEXT@@ - @@@@-@@-@@
   - CGYWIN release: The new batch file 'run-cmd-as-admin.bat' starts a cmd
     window in administrator mode. This should simplify the work with wwt.
 
+wit v@.@@@ r@@REV-NEXT@@ - @@@@-@@-@@
+
+  - ID checking redesigned, underscore is now an allowed character.
+  - Command line parsing rewritten: Commands and command specific options are
+    defined in a special tool (C file 'gen-ui.c'). If running this tool it
+    generates C source for all tools to analyse commands and options and to
+    print help messages.
+  - Included help was improved: wit and wwt supports now 'HELP command'.
+    The output is now aligned to the current terminal width.
+  - The documentation of all new options is now complete.
+  - Bug fix: wit has shown wrong file size for splitted ISO images.
+
 Missing docu:
-  - docu of wit commands ILIST + EXTRACT
-  - docu of "wit COPY --fst" => "wit EXTRACT"
-  - docu of options --pmode= --sneek --fst --ignore-fst --logging (-L) --enc=
+  - wit commands ILIST + EXTRACT
 

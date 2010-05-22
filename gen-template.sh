@@ -19,7 +19,7 @@ awkprog='
  /@@EXEC\(.*\)@@/ {
 	gsub(/@@EXEC\(/,"");
 	gsub(/\)@@/,"");
-	system($0);
+	system($0 " 2>&1");
 	next
  }
 
@@ -28,7 +28,8 @@ awkprog='
 
 for fname in $list
 do
-    src="templates/$fname"
+    src="setup/$fname"
+    [[ -f $src ]] || src="templates/$fname"
     if [[ -f "$src" ]]
     then
 	dest="doc/$fname"
@@ -36,6 +37,7 @@ do
 	#[[ $ext == edit-list ]] && continue
 	[[ $ext = "sh" || $ext = "h" ]] && dest="$fname"
 	awk "$awkprog" $src | sed -f templates.sed  >$dest
+	[[ $ext = "sh" ]] && chmod a+x "$fname"
     fi
 done
 

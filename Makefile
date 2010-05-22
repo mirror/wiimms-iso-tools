@@ -12,9 +12,9 @@ WIT_LONG	= Wiimms ISO Tool
 WWT_SHORT	= wwt
 WWT_LONG	= Wiimms WBFS Tool
 
-VERSION		= 0.46a
-PREV_VERSION	= 0.45a
-PREV_REVISION	= 1012
+VERSION		= 0.47a
+PREV_VERSION	= 0.46a
+PREV_REVISION	= 1043
 
 MIPSEL_RELEASE	= 0.44a-r974
 POWERPC_RELEASE	= 0.44a-r974
@@ -55,8 +55,8 @@ CC		= $(PRE)gcc
 CPP		= $(PRE)g++
 STRIP		= $(PRE)strip
 
-RM_FILES	:= *.{o,d,tmp,bak,exe} */*.{tmp,bak} */*/*.{tmp,bak}
-RM_FILES2	:= *.{iso,ciso,wdf,wbfs} templates.sed version.h
+RM_FILES	= *.{o,d,tmp,bak,exe} */*.{tmp,bak} */*/*.{tmp,bak}
+RM_FILES2	= *.{iso,ciso,wdf,wbfs} templates.sed
 
 MODE_FILE	= ./_mode.flag
 MODE		= $(shell test -s $(MODE_FILE) && cat $(MODE_FILE))
@@ -71,28 +71,40 @@ WBFS_COUNT	:= 4
 #-------------------------------------------------------------------------------
 # tools
 
-TOOLS		:= wit wwt wdf2iso iso2wdf iso2wbfs wdf-cat wdf-dump
-TEST_TOOLS	:= wtest
-ALL_TOOLS	:= $(sort $(TOOLS) $(TEST_TOOLS))
+MAIN_TOOLS	:= wit wwt wdf2iso iso2wdf iso2wbfs wdf-cat wdf-dump
+TEST_TOOLS	:= wtest gen-ui
+ALL_TOOLS	:= $(sort $(MAIN_TOOLS) $(TEST_TOOLS))
 
 RM_FILES	+= $(ALL_TOOLS)
+
+#-------------------------------------------------------------------------------
+# source files
+
+UI_FILES	= ui.def
+UI_FILES	+= $(patsubst %,ui-%.c,$(MAIN_TOOLS))
+UI_FILES	+= $(patsubst %,ui-%.h,$(MAIN_TOOLS))
+
+SETUP_DIR	= ./setup
+SETUP_FILES	= version.h install.sh load-titles.sh wit.def
+RM_FILES2	+= $(SETUP_FILES)
 
 #-------------------------------------------------------------------------------
 # object files
 
 # objects of tools
-TOOLS_OBJ	:= $(patsubst %,%.o,$(TOOLS))
+MAIN_TOOLS_OBJ	:= $(patsubst %,%.o,$(MAIN_TOOLS))
 TEST_TOOLS_OBJ	:= $(patsubst %,%.o,$(TEST_TOOLS))
 
 # other objects
 WIT_O		:= debug.o lib-std.o lib-wdf.o lib-ciso.o lib-sf.o \
-		   iso-interface.o wbfs-interface.o \
+		   ui.o iso-interface.o wbfs-interface.o \
 		   titles.o match-pattern.o dclib-utf8.o \
 		   sha1dgst.o sha1_one.o
 LIBWBFS_O	:= file-formats.o libwbfs.o wiidisc.o rijndael.o
 
 # all objects
-C_OBJECTS	:= $(sort $(TOOLS_OBJ) $(TEST_TOOLS_OBJ) $(WIT_O) $(LIBWBFS_O))
+UI_OBJECTS	:= $(sort $(MAIN_TOOLS_OBJ))
+C_OBJECTS	:= $(sort $(TEST_TOOLS_OBJ) $(WIT_O) $(LIBWBFS_O))
 
 # handle asm
 ASM_OBJECTS	:= ssl-asm.o
@@ -103,7 +115,16 @@ ALL_SOURCES	:= $(patsubst %.o,%.c,$(C_OBJECTS) $(ASM_OBJECTS))
 
 #-------------------------------------------------------------------------------
 
-VPATH		+= src src/libwbfs src/crypto work
+INSTALL_PATH	= /usr/local
+INSTALL_SCRIPTS	= install.sh load-titles.sh
+RM_FILES	+= $(INSTALL_SCRIPTS)
+SCRIPTS		= ./scripts
+TEMPLATES	= ./templates
+MODULES		= $(TEMPLATES)/module
+GEN_TEMPLATE	= ./gen-template.sh
+UI		= ./src/ui
+
+VPATH		+= src src/libwbfs src/crypto $(UI) work
 
 DEFINES1	=  -DLARGE_FILES -D_FILE_OFFSET_BITS=64
 DEFINES1	+= -DWIT		# enable WIT specific modifications in libwbfs
@@ -113,7 +134,7 @@ DEFINES		=  $(strip $(DEFINES1) $(MODE) $(XDEF))
 
 CFLAGS		=  -fomit-frame-pointer -fno-strict-aliasing
 CFLAGS		+= -Wall -Wno-parentheses -Wno-unused-function
-CFLAGS		+= -O3 -Isrc/libwbfs -Isrc -I. -Iwork
+CFLAGS		+= -O3 -Isrc/libwbfs -Isrc -I$(UI) -I. -Iwork
 CFLAGS		+= $(XFLAGS)
 CFLAGS		:= $(strip $(CFLAGS))
 
@@ -121,18 +142,9 @@ DEPFLAGS	+= -MMD
 
 LDFLAGS		+= -static-libgcc
 #LDFLAGS	+= -static
-#LDFLAGS	+= -Xlinker --strip-all
 LDFLAGS		:= $(strip $(LDFLAGS))
 
 LIBS		+= $(XLIBS)
-
-INSTALL_PATH	= /usr/local
-INSTALL_SCRIPTS	= install.sh load-titles.sh
-RM_FILES	+= $(INSTALL_SCRIPTS)
-SCRIPTS		= ./scripts
-TEMPLATES	= ./templates
-MODULES		= $(TEMPLATES)/module
-GEN_TEMPLATE	= ./gen-template.sh
 
 DISTRIB_RM	= ./wit-v$(VERSION)-r
 DISTRIB_BASE	= wit-v$(VERSION)-r$(REVISION_NEXT)
@@ -155,11 +167,11 @@ DOC_FILES	= doc/*.txt
 TITLE_FILES	= titles.txt $(patsubst %,titles-%.txt,$(LANGUAGES))
 LANGUAGES	= de es fr it ja ko nl pt
 
-BIN_FILES	= $(TOOLS)
+BIN_FILES	= $(MAIN_TOOLS)
 LIB_FILES	= $(TITLE_FILES)
 
 CYGWIN_DIR	= pool/cygwin
-CYGWIN_BIN	= cygwin1.dll run-cmd-as-admin.bat
+CYGWIN_BIN	= cygwin1.dll
 CYGWIN_BIN_SRC	= $(patsubst %,$(CYGWIN_DIR)/%,$(CYGWIN_BIN))
 
 DIR_LIST_BIN	= $(SCRIPTS) bin bin/debug
@@ -192,19 +204,41 @@ $(ALL_TOOLS): %: %.o $(ALL_OBJECTS) Makefile
 	@cp -p $@ bin
 	@if test -s $(MODE_FILE) && grep -Fq -e -DDEBUG $(MODE_FILE); then cp -p $@ bin/debug; fi
 
-#
+#--------------------------
+
+$(UI_OBJECTS): %.o: %.c ui-%.c ui-%.h version.h Makefile
+	@echo "*** +object $@ $(MODE)"
+	@$(CC) $(CFLAGS) $(DEPFLAGS) $(DEFINES) -c $< -o $@
+
 #--------------------------
 
 $(C_OBJECTS): %.o: %.c version.h Makefile
 	@echo "***  object $@ $(MODE)"
 	@$(CC) $(CFLAGS) $(DEPFLAGS) $(DEFINES) -c $< -o $@
 
-#
 #--------------------------
 
 $(ASM_OBJECTS): %.o: %.S Makefile
 	@echo "***     asm $@ $(MODE)"
 	@$(CC) $(CFLAGS) $(DEPFLAGS) $(DEFINES) -c $< -o $@
+
+#--------------------------
+
+$(SETUP_FILES): templates.sed $(SETUP_DIR)/$@
+	@echo "***  create $@"
+	@chmod 775 $(GEN_TEMPLATE)
+	@$(GEN_TEMPLATE) $@
+
+#--------------------------
+
+$(UI_FILES): gen-ui
+	@echo "***     run gen-ui"
+	@./gen-ui
+
+.PHONY : ui
+ui : gen-ui
+	@echo "***     run gen-ui"
+	@./gen-ui
 
 #
 ###############################################################################
@@ -230,8 +264,8 @@ chmod:
 		-o -name '*.inc' -o -name 'Makefile*' \) -exec chmod 664 {} +
 	-@find -name '*.sh' -exec chmod 775 {} +
 	-@chmod -f 775 $(DIR_LIST) 2>/dev/null || true
-	-@chmod -f 775 *.sh $(TEMPLATES)/*.sh $(SCRIPTS)/*.sh bin/* bin/debug/*
-	-@chown -f --reference=. src/* src/libwbfs/*		2>/dev/null || true
+	-@chmod -f 775 *.sh $(SETUP_DIR)/*.sh $(SCRIPTS)/*.sh bin/* bin/debug/*
+	-@chown -f --reference=. src/* src/*/*			2>/dev/null || true
 	-@chown -f --reference=. * $(DIR_LIST)			2>/dev/null || true
 	-@chown -f --reference=. $(TEMPLATES)/* $(MODULES)/*	2>/dev/null || true
 	-@chown -f --reference=. bin/* work/*	$(SCRIPTS)/*	2>/dev/null || true
@@ -302,7 +336,7 @@ ifeq ($(SYSTEM),cygwin)
 	@rm -rf $(DISTRIB_PATH) 2>/dev/null || true
 	@mkdir -p $(DISTRIB_PATH)/bin $(DISTRIB_PATH)/doc
 	@cp -p gpl-2.0.txt $(DISTRIB_PATH)
-	@cp -p $(TOOLS) $(CYGWIN_BIN_SRC) $(DISTRIB_PATH)/bin
+	@cp -p $(MAIN_TOOLS) $(CYGWIN_BIN_SRC) $(DISTRIB_PATH)/bin
 	@( cd lib; cp $(TITLE_FILES) ../$(DISTRIB_PATH)/bin )
 	@cp -p $(DOC_FILES) $(DISTRIB_PATH)/doc
 	@zip -roq $(DISTRIB_PATH).zip $(DISTRIB_PATH)
@@ -312,7 +346,7 @@ else
 	@mkdir -p $(DISTRIB_PATH)/bin $(DISTRIB_PATH)/scripts $(DISTRIB_PATH)/lib $(DISTRIB_PATH)/doc
 
 	@cp -p $(DISTRIB_FILES) $(DISTRIB_PATH)
-	@cp -p $(TOOLS) $(DISTRIB_PATH)/bin
+	@cp -p $(MAIN_TOOLS) $(DISTRIB_PATH)/bin
 	@cp -p lib/*.txt $(DISTRIB_PATH)/lib
 	@cp -p $(DOC_FILES) $(DISTRIB_PATH)/doc
 	@cp -p $(SCRIPTS)/*.{sh,txt} $(DISTRIB_PATH)/scripts
@@ -329,7 +363,7 @@ endif
 #--------------------------
 
 .PHONY : doc
-doc: $(TOOLS) templates.sed gen-doc
+doc: $(MAIN_TOOLS) templates.sed gen-doc
 
 .PHONY : gen-doc
 gen-doc:
@@ -365,12 +399,6 @@ install: all install.sh
 install+: clean+ all $(INSTALL_SCRIPTS)
 	@chmod a+x install.sh
 	@./install.sh --make
-
-install.sh: templates.sed templates/install.sh
-	@echo "***  create install.sh"
-	@chmod ug+x $(GEN_TEMPLATE)
-	@$(GEN_TEMPLATE) install.sh
-	@chmod a+x install.sh
 
 #
 #--------------------------
@@ -475,20 +503,6 @@ titles: wit load-titles.sh gen-titles
 gen-titles:
 	@chmod a+x load-titles.sh
 	@./load-titles.sh --make
-
-load-titles.sh: templates.sed templates/load-titles.sh
-	@echo "***  create load-titles.sh"
-	@chmod ug+x $(GEN_TEMPLATE)
-	@$(GEN_TEMPLATE) load-titles.sh
-	@chmod a+x load-titles.sh
-
-#
-#--------------------------
-
-version.h: templates.sed $(TEMPLATES)/version.h
-	@echo "***  create version.h"
-	@chmod 775 $(GEN_TEMPLATE)
-	@$(GEN_TEMPLATE) version.h
 
 #
 #--------------------------

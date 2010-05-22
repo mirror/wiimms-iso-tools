@@ -204,7 +204,7 @@ function test_suite()
     #----- verify source
 
     test_function "VERIFY" "wit VERIFY source" \
-	$WIT VERIFY -q "$1" \
+	$WIT VERIFY -qq "$1" \
 	|| return $ERROR
 
 

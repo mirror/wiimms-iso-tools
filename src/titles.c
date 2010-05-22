@@ -122,7 +122,7 @@ static int LoadTitleFile ( ccp fname, bool warn )
 	return ERR_READ_FAILED;
     }
 
-    if ( verbose > 2 )
+    if ( verbose > 3 )
 	printf("SCAN TITLE FILE %s\n", *buf ? buf : fname );
 
     while (fgets(buf,sizeof(buf),f))
@@ -134,7 +134,7 @@ static int LoadTitleFile ( ccp fname, bool warn )
 	while ( *ptr > 0 && *ptr <= ' ' )
 	    ptr++;
 
-	const int idtype = CountIDChars(ptr);
+	const int idtype = CountIDChars(ptr,false);
 	if ( idtype != 4 && idtype != 6 )
 	    continue;
 

@@ -980,7 +980,7 @@ enumFileType AnalyzeFT ( File_t * f )
 	    for ( i = 0; i < 6; i++ )
 		id6[i] = toupper((int)name[i]); // cygwin needs the '(int)'
 	    id6[6] = 0;
-	    if (CheckID6(id6))
+	    if (CheckID6(id6,false))
 		mode = IS_ID6;
 	}
 
@@ -1273,7 +1273,7 @@ enumFileType AnalyzeMemFT ( const void * buf_hd_sect_size, off_t file_size )
 
     //----- test BOOT.BIN or ISO
 
-    if (CheckID6(data))
+    if (CheckID6(data,false))
     {
 	if ( be32(data+WII_MAGIC_OFF) == WII_MAGIC )
 	    return file_size == WII_BOOT_SIZE ? FT_ID_BOOT_BIN : FT_ID_ISO ;

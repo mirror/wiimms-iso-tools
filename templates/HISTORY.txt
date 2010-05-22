@@ -254,7 +254,7 @@ wwt v0.19a r491 - 2009-11-27
 
  - New ADD option: --sync: Synchronize: remove and add until WBFS contains
    the same discs as source list.
- - New comamnd: wwt SYNC: Abbreviation for: ADD --sync
+ - New command: wwt SYNC: Abbreviation for: ADD --sync
  - New commands: wit RENAME+SETTITLE: Set ID and title of discs [EXPERIMENTAL].
  - New command: wit MOVE: move/rename iso files.
  - MAC bug fix: segmentation fault if formatting a drive.
@@ -545,6 +545,14 @@ wwt v0.44a r973 - 2010-05-02
     scrubbed mode. This does not change the signature.
   - Fix some troubles with new cyygwin release 1.7.5-1. The main problem
     was file path creation with absolute path names.
+
+wwt v0.45a r1012 - 2010-05-05
+
+  - To avoid troubles with platform dependent openssl support I have integrated
+    the SHA1 sources from openssl into WWT.
+  - The new command "wit VERIFY" checks the hash signatures of all needed
+    sectors (keyword "scrubbed"). All five hash levels (H0..H4) are verified.
+    This means 64 AES decryptions and 1029 SHA1 calculations for each MiB.
 
 @@MODULE(last-history.txt)@@
 

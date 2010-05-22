@@ -5,6 +5,8 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/time.h>
+#include <sys/ioctl.h>
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <stdarg.h>
@@ -39,6 +41,7 @@
 #include "titles.h"
 #include "crypt.h"
 #include "dclib-utf8.h"
+#include "ui.h"
 
 //
 ///////////////////////////////////////////////////////////////////////////////
@@ -58,6 +61,10 @@ SortMode sort_mode		= SORT_DEFAULT;
 RepairMode repair_mode		= REPAIR_NONE;
 char escape_char		= '%';
 enumOFT output_file_type	= OFT_UNKNOWN;
+option_t used_options		= 0;
+option_t env_options		= 0;
+int opt_split			= 0;
+u64 opt_split_size		= 0;
 
 #ifdef __CYGWIN__
  bool use_utf8			= false;
@@ -66,7 +73,6 @@ enumOFT output_file_type	= OFT_UNKNOWN;
 #endif
 
 char iobuf[0x400000];		// global io buffer
-char sectbuf[WII_SECTOR_SIZE];	// global sector buffer
 
 const char sep_79[80] =		//  79 * '-' + NULL
 	"----------------------------------------"
@@ -183,7 +189,9 @@ void SetupLib ( int argc, char ** argv, ccp p_progname, enumProgID prid )
 
     // numeric types
 
-    TRACE("-");
+CheckID4(argv[0],false);
+
+    TRACE("-\n");
     TRACE_SIZEOF(bool);
     TRACE_SIZEOF(short);
     TRACE_SIZEOF(int);
@@ -204,7 +212,7 @@ void SetupLib ( int argc, char ** argv, ccp p_progname, enumProgID prid )
 
     // base types A-Z
 
-    TRACE("-");
+    TRACE("-\n");
     TRACE_SIZEOF(AWData_t);
     TRACE_SIZEOF(AWRecord_t);
     TRACE_SIZEOF(CISO_Head_t);
@@ -218,6 +226,9 @@ void SetupLib ( int argc, char ** argv, ccp p_progname, enumProgID prid )
     TRACE_SIZEOF(File_t);
     TRACE_SIZEOF(ID_DB_t);
     TRACE_SIZEOF(ID_t);
+    TRACE_SIZEOF(InfoCommand_t);
+    TRACE_SIZEOF(InfoOption_t);
+    TRACE_SIZEOF(InfoUI_t);
     TRACE_SIZEOF(IsoFileIterator_t);
     TRACE_SIZEOF(IsoMappingItem_t);
     TRACE_SIZEOF(IsoMapping_t);
@@ -231,6 +242,7 @@ void SetupLib ( int argc, char ** argv, ccp p_progname, enumProgID prid )
     TRACE_SIZEOF(StringList_t);
     TRACE_SIZEOF(SubstString_t);
     TRACE_SIZEOF(SuperFile_t);
+    TRACE_SIZEOF(TDBfind_t);
     TRACE_SIZEOF(Verify_t);
     TRACE_SIZEOF(WBFS_t);
     TRACE_SIZEOF(WDF_Chunk_t);
@@ -246,7 +258,7 @@ void SetupLib ( int argc, char ** argv, ccp p_progname, enumProgID prid )
 
     // base types a-z
 
-    TRACE("-");
+    TRACE("-\n");
     TRACE_SIZEOF(aes_key_t);
     TRACE_SIZEOF(dcUnicodeTripel);
     TRACE_SIZEOF(dol_header_t);
@@ -272,7 +284,7 @@ void SetupLib ( int argc, char ** argv, ccp p_progname, enumProgID prid )
 
     // assertions
 
-    TRACE("-");
+    TRACE("-\n");
     ASSERT( 1 == sizeof(u8)  );
     ASSERT( 2 == sizeof(u16) );
     ASSERT( 4 == sizeof(u32) );
@@ -472,9 +484,9 @@ void SetupLib ( int argc, char ** argv, ccp p_progname, enumProgID prid )
 
 ///////////////////////////////////////////////////////////////////////////////
 
-enumError CheckEnvOptions ( ccp varname, check_opt_func func, int mode )
+enumError CheckEnvOptions ( ccp varname, check_opt_func func )
 {
-    TRACE("CheckEnvOptions(%s,%p,%d)\n",varname,func,mode);
+    TRACE("CheckEnvOptions(%s,%p)\n",varname,func);
 
     ccp env = getenv(varname);
     if ( !env || !*env )
@@ -523,7 +535,7 @@ enumError CheckEnvOptions ( ccp varname, check_opt_func func, int mode )
 	ASSERT( dest <= buf+envlen+1 );
     }
 
-    enumError stat = func(argc,argv,mode);
+    enumError stat = func(argc,argv,true);
     if (stat)
 	fprintf(stderr,
 	    "Errors above while scanning the environment variable '%s'\n",varname);
@@ -783,6 +795,64 @@ void HexDump ( FILE * f, int indent, u64 addr, int addr_fw, int row_len,
 
 //
 ///////////////////////////////////////////////////////////////////////////////
+///////////////			terminal cap			///////////////
+///////////////////////////////////////////////////////////////////////////////
+
+int GetTermWidth ( int default_value, int min_value )
+{
+    int term_width = GetTermWidthFD(STDOUT_FILENO,-1,min_value);
+    if ( term_width <= 0 )
+	term_width = GetTermWidthFD(STDERR_FILENO,-1,min_value);
+
+    return term_width > 0 ? term_width : default_value;
+}
+
+//-----------------------------------------------------------------------------
+
+int GetTermWidthFD ( int fd, int default_value, int min_value )
+{
+    TRACE("GetTermWidthFD(%d,%d)\n",fd,default_value);
+
+ #ifdef TIOCGSIZE
+    TRACE(" - have TIOCGSIZE\n");
+ #endif
+
+ #ifdef TIOCGWINSZ
+    TRACE(" - have TIOCGWINSZ\n");
+ #endif
+
+    if (isatty(fd))
+    {
+     #ifdef TIOCGSIZE
+	{
+	    struct ttysize ts;
+	    if ( !ioctl(fd,TIOCGSIZE,&ts))
+	    {
+		TRACE(" - TIOCGSIZE = %d*%d\n",ts.ts_cols,ts.ts_lines);
+		if ( ts.ts_cols > 0 )
+		    return ts.ts_cols > min_value ? ts.ts_cols : min_value;
+	    }
+	}
+     #endif
+
+     #ifdef TIOCGWINSZ
+	{
+	    struct winsize ws;
+	    if ( !ioctl(fd,TIOCGWINSZ,&ws))
+	    {
+		TRACE(" - TIOCGWINSZ = %d*%d\n",ws.ws_col,ws.ws_row);
+		if ( ws.ws_col > 0 )
+		    return ws.ws_col > min_value ? ws.ws_col : min_value;
+	    }
+	}
+     #endif
+    }
+
+    return default_value;
+}
+
+//
+///////////////////////////////////////////////////////////////////////////////
 ///////////////                    timer                        ///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -821,6 +891,17 @@ ccp PrintMSec ( char * buf, int bufsize, u32 msec, bool PrintMSec )
 ///////////////////////////////////////////////////////////////////////////////
 
 enumIOMode opt_iomode = IOM__IS_DEFAULT | IOM_FORCE_STREAM;
+
+//-----------------------------------------------------------------------------
+
+void ScanIOMode ( ccp arg )
+{
+    const enumIOMode new_io = strtol(optarg,0,0); // [2do] error handling
+    opt_iomode = new_io & IOM__IS_MASK;
+    if ( verbose > 0 || opt_iomode != new_io )
+	printf("IO mode set to %#0x.\n",opt_iomode);
+    opt_iomode |= IOM_FORCE_STREAM;
+}
 
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -1945,6 +2026,7 @@ enumError XSetupSplitFile ( XPARM File_t *f, enumOFT oft, off_t split_size )
 		return err;
 	    }
 
+
 	    if (f->split_rename_format)
 	    {
 		ASSERT(!fi->rename);
@@ -1958,6 +2040,7 @@ enumError XSetupSplitFile ( XPARM File_t *f, enumOFT oft, off_t split_size )
 	    f->split_f[idx] = fi;
 	}
 	f->split_used = idx;
+	f->fatt.size = f->st.st_size;
     }
 
     File_t * fi = f->split_f[f->split_used-1];
@@ -3530,6 +3613,18 @@ void FreeString ( ccp str )
 
 ///////////////////////////////////////////////////////////////////////////////
 
+void * MemDup ( const void * src, size_t copylen )
+{
+    char * dest = malloc(copylen+1);
+    if (!dest)
+	OUT_OF_MEMORY;
+    memcpy(dest,src,copylen);
+    dest[copylen] = 0;
+    return dest;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
 char * StringCopyE ( char * buf, char * buf_end, ccp src )
 {
     // RESULT: end of copied string pointing to NULL
@@ -3647,55 +3742,52 @@ int NormalizeIndent ( int indent )
 
 ///////////////////////////////////////////////////////////////////////////////
 
-int CheckID ( ccp id4_or_6 )
+int CheckIDHelper
+	( const void * id, int max_len, bool allow_any_len, bool ignore_case )
 {
-    ccp ptr = id4_or_6;
-    ccp end = ptr + 7;
-    while ( ptr < end && ( *ptr >= 'A' && *ptr <= 'Z'
-			|| *ptr >= '0' && *ptr <= '9' ))
-	ptr++;
-
-    const int len = ptr - id4_or_6;
-    return len == 4 || len == 6 ? len : 0;
-}
-
-//-----------------------------------------------------------------------------
-
-int CheckIDnocase ( ccp id4_or_6 )
-{
-    ccp ptr = id4_or_6;
-    ccp end = ptr + 7;
-    while ( ptr < end && ( *ptr >= 'A' && *ptr <= 'Z'
-			|| *ptr >= 'a' && *ptr <= 'z'
-			|| *ptr >= '0' && *ptr <= '9' ))
-	ptr++;
-
-    const int len = ptr - id4_or_6;
-    return len == 4 || len == 6 ? len : 0;
-}
-
-//-----------------------------------------------------------------------------
-
-bool CheckID6 ( const void * id6 )
-{
-    ccp ptr = (ccp)id6;
-    ccp end = ptr + 6;
-    while ( ptr < end && ( *ptr >= 'A' && *ptr <= 'Z'
-			|| *ptr >= '0' && *ptr <= '9' ))
-	ptr++;
-
-    return ptr - (ccp)id6 == 6;
-}
-
-//-----------------------------------------------------------------------------
-
-int CountIDChars ( ccp id )
-{
+    ASSERT(id);
     ccp ptr = id;
-    while ( *ptr >= 'A' && *ptr <= 'Z' || *ptr >= '0' && *ptr <= '9' )
+    ccp end = ptr + max_len;
+    while ( ptr != end && ( *ptr >= 'A' && *ptr <= 'Z'
+			|| *ptr >= 'a' && *ptr <= 'z' && ignore_case
+			|| *ptr >= '0' && *ptr <= '9'
+			|| *ptr == '_' ))
 	ptr++;
 
-    return ptr - id;
+    const int len = ptr - (ccp)id;
+    return allow_any_len || len == 4 || len == 6 ? len : 0;
+}
+
+//-----------------------------------------------------------------------------
+
+int CheckID ( const void * id, bool ignore_case )
+{
+    // check up to 7 chars
+    return CheckIDHelper(id,7,false,ignore_case);
+}
+
+//-----------------------------------------------------------------------------
+
+bool CheckID4 ( const void * id, bool ignore_case )
+{
+    // check exact 4 chars
+    return CheckIDHelper(id,4,false,ignore_case) == 4;
+}
+
+//-----------------------------------------------------------------------------
+
+bool CheckID6 ( const void * id, bool ignore_case )
+{
+    // check exact 6 chars
+    return CheckIDHelper(id,6,false,ignore_case) == 6;
+}
+
+//-----------------------------------------------------------------------------
+
+int CountIDChars( const void * id, bool ignore_case )
+{
+    // count number of valid ID chars
+    return CheckIDHelper(id,1000,true,ignore_case);
 }
 
 //-----------------------------------------------------------------------------
@@ -3722,7 +3814,7 @@ char * ScanID ( char * destbuf7, int * destlen, ccp source )
 	}
 
 	// scan first word
-	const int id_len = CheckID(src);
+	const int id_len = CheckID(src,false);
 
 	if ( id_len == 4 )
 	{
@@ -3773,7 +3865,7 @@ char * ScanID ( char * destbuf7, int * destlen, ccp source )
 	    while ( *src && *src != '[' ) // ]
 		src++;
 
-	    if ( *src == '[' && src[7] == ']' && CheckID(++src) == 6 )
+	    if ( *src == '[' && src[7] == ']' && CheckID(++src,false) == 6 )
 	    {
 		id_start = src;
 		src += 8;
@@ -3908,6 +4000,13 @@ int SetPrintTimeMode ( int prev_mode, int new_mode )
 int EnablePrintTime ( int opt_time )
 {
     return SetPrintTimeMode(PT__DEFAULT|PT_PRINT_DATE,opt_time|PT_ENABLED);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+void SetTimeOpt ( int opt_time )
+{
+    opt_print_time = SetPrintTimeMode( opt_print_time, opt_time|PT_ENABLED );
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -4425,6 +4524,24 @@ enumError ScanSizeOptU32
     if ( num && !err )
 	*num = (u32)val;
     return err;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+int ScanSplitSize ( ccp source )
+{
+    opt_split++;
+    return ERR_OK != ScanSizeOptU64(
+				&opt_split_size,
+				source,
+				GiB,
+				0,
+				"split-size",
+				MIN_SPLIT_SIZE,
+				0,
+				DEF_SPLIT_FACTOR,
+				0,
+				true );
 }
 
 //
@@ -5386,8 +5503,8 @@ const u32 RANDOM32_COUNT_BASE = 4294967; // Primzahl == ~UINT_MAX32/1000;
 static int random32_a_index = -1;	// Index in die a-Tabelle
 static u32 random32_count = 1;		// Abwaerts-Zähler bis zum Wechsel von a,c
 static u32 random32_a,
-	      random32_c,
-	      random32_X;		// Die letzten Werte
+	   random32_c,
+	   random32_X;			// Die letzten Werte
 
 static u32 random32_a_tab[] =		// Init-Tabelle
 {
