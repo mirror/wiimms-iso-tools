@@ -6,4 +6,4 @@
 ../src/lib-error.[ch] ;
 @+all-source.edit-list
 -y  430 ../src/iso-interface.h ;
--y  750 ../src/iso-interface.c ;
+-y 1040 ../src/iso-interface.c ;

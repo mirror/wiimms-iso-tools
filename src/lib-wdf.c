@@ -293,7 +293,8 @@ enumError SetupReadWDF ( SuperFile_t * sf )
     sf->file_size	= sf->wh.file_size;
     sf->f.max_off	= sf->wh.chunk_off;
     sf->max_virt_off	= sf->wh.data_size;
-    sf->oft		= OFT_WDF;
+    SetupIOD(sf,OFT_WDF,OFT_WDF);
+    SetupISOModifier(sf);
 
     TRACE("#W# WDF FOUND!\n");
     return ERR_OK;
@@ -433,7 +434,7 @@ enumError SetupWriteWDF ( SuperFile_t * sf )
     TRACE("#W# SetupWriteWDF(%p)\n",sf);
 
     InitializeWH(&sf->wh);
-    sf->oft = OFT_WDF;
+    SetupIOD(sf,OFT_WDF,OFT_WDF);
     sf->max_virt_off = 0;
     sf->wh.magic[0] = '-'; // write a 'not complete' indicator
     enumError stat = WriteAtF(&sf->f,0,&sf->wh,sizeof(WDF_Head_t));
@@ -526,7 +527,7 @@ enumError WriteWDF ( SuperFile_t * sf, off_t off, const void * buf, size_t count
     {
 	// SPECIAL CASE:
 	//    the current virtual file will be extended
-	//    -> no nned to search chunks
+	//    -> no need to search chunks
 
 	if ( off == sf->max_virt_off )
 	{
@@ -643,86 +644,10 @@ enumError WriteWDF ( SuperFile_t * sf, off_t off, const void * buf, size_t count
 
 ///////////////////////////////////////////////////////////////////////////////
 
-enumError WriteSparseWDF ( SuperFile_t * sf, off_t off, const void * buf, size_t count )
+enumError WriteSparseWDF
+	( SuperFile_t * sf, off_t off, const void * buf, size_t count )
 {
-    ASSERT(sf);
-    if (!sf->wc)
-	return WriteSparseAtF(&sf->f,off,buf,count);
-
-    if ( off < sf->max_virt_off )
-    {
-	// disable sparse check for already existing file areas
-	const off_t max_overlap = sf->max_virt_off - off;
-	const size_t overlap = count < max_overlap ? count : (size_t) max_overlap;
-	const enumError err = WriteWDF(sf,off,buf,overlap);
-	count -= overlap;
-	if ( err || !count )
-	    return err;
-	off += overlap;
-	buf = (char*)buf + overlap;
-    }
-
-    if ( off & 3 || count & 3 )
-    {
-	// sparse checking is only done with u32 aligned data
-	return WriteWDF(sf,off,buf,count);
-    }
-
-    TRACE("#W# -----\n");
-    TRACE(TRACE_RDWR_FORMAT, "#W# WriteSparseWDF()",
-		GetFD(&sf->f), GetFP(&sf->f), (u64)off, (u64)off+count, count,
-		off < sf->max_virt_off ? " <" : "" );
-
-    if (!count)
-	return ERR_OK;
-
-    const off_t data_end = off + count;
-    if ( sf->file_size < data_end )
-	sf->file_size = data_end;
-
-    ccp start = (ccp)buf;
-    WDF_Hole_t *ptr = (WDF_Hole_t*)start;
-    WDF_Hole_t *end = (WDF_Hole_t*)(start+count);
-
-    // skip leading spaces
-    while ( ptr < end && !*ptr )
-	ptr++;
-
-    // main loop
-    while ( ptr < end )
-    {
-	// adjust data
-	u32 skip_count = (ccp)ptr - start;
-	off  += skip_count;
-	count -= skip_count;
-	ASSERT(count>0);
-	start = (ccp)ptr;
-
-	WDF_Hole_t * data_end = ptr;
-	while ( ptr < end )
-	{
-	    // address data block
-	    while ( ptr < end && *ptr )
-		ptr++;
-	    data_end = ptr;
-
-	    // address trailing zero block
-	    while ( ptr < end && !*ptr )
-		ptr++;
-
-	    // break if zero block is large enough
-	    if ( (ccp)ptr - (ccp)data_end >= WDF_MIN_HOLE_SIZE )
-		break;
-	}
-
-	// write data block
-	const u32 chunk_len = (ccp)data_end - start;
-	const int stat = WriteWDF(sf,off,start,chunk_len);
-	if (stat)
-	    return stat;
-    }
-
-    return ERR_OK;
+    return SparseHelper(sf,off,buf,count,WriteWDF,WDF_MIN_HOLE_SIZE);
 }
 
 //

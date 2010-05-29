@@ -12,9 +12,9 @@ WIT_LONG	= Wiimms ISO Tool
 WWT_SHORT	= wwt
 WWT_LONG	= Wiimms WBFS Tool
 
-VERSION		= 0.47a
-PREV_VERSION	= 0.46a
-PREV_REVISION	= 1043
+VERSION		= 0.48a
+PREV_VERSION	= 0.47a
+PREV_REVISION	= 1106
 
 MIPSEL_RELEASE	= 0.44a-r974
 POWERPC_RELEASE	= 0.44a-r974
@@ -231,7 +231,7 @@ $(SETUP_FILES): templates.sed $(SETUP_DIR)/$@
 
 #--------------------------
 
-$(UI_FILES): gen-ui
+$(UI_FILES): gen-ui.c tab-ui.c ui.h | gen-ui
 	@echo "***     run gen-ui"
 	@./gen-ui
 
@@ -308,7 +308,7 @@ debug:
 #--------------------------
 
 .PHONY : distrib
-distrib: all doc $(INSTALL_SCRIPTS) gen-distrib
+distrib: all doc $(INSTALL_SCRIPTS) gen-distrib wit.def
 
 .PHONY : distrib+
 distrib+:

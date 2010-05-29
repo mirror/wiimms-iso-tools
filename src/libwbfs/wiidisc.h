@@ -62,10 +62,10 @@ typedef enum iterator_call_mode_t
 
 
 // callback definition for file iteration. if return != 0 => abort
-struct wiidisc_s;
+struct wiidisc_t;
 typedef int (*file_callback_t)
 (
-    struct wiidisc_s *d,
+    struct wiidisc_t *d,
     iterator_call_mode_t icm,
     u32 offset4,
     u32 size,
@@ -88,9 +88,12 @@ typedef enum iterator_prefix_mode_t
 
 ///////////////////////////////////////////////////////////////////////////////
 
-typedef struct wiidisc_s
+typedef struct wiidisc_t
 {
     char id6[7];			// id of opened disc
+
+    wd_part_header_t * ph;		// NULL or alloced partition header, local endian
+    wd_tmd_t * tmd;			// NULL or alloced tmd
 
     read_wiidisc_callback_t read;	// read-data-function
     void *fp;				// file handle (black box)
@@ -106,9 +109,10 @@ typedef struct wiidisc_s
     u32 partition_offset4;		// := partition_block * (0x7c00>>2)
     u8  partition_key[WII_KEY_SIZE];	// partition key, informative
     aes_key_t partition_akey;		// partition aes key, needed for decryption
-    int is_marked_not_enc;	// not 0 if partition marked 'not encrypted'
+    int tik_is_trucha_signed;		// not 0 if ticket is trucha signed
+    int tmd_is_trucha_signed;		// not 0 if tmd is trucha signed
+    int is_marked_not_enc;		// not 0 if partition marked 'not encrypted'
     int is_encrypted;			// not 0 if partition is encrypted
-    int is_trucha_signed;		// not 0 if partition is trucha signed
 
     u8 *block_buffer;			// block read buffer
     u32 last_block;			// last readed block
@@ -141,7 +145,7 @@ char * wd_print_partition_name ( char * buf, u32 buf_size, u32 ptype, int print_
 
 const u8 * wd_get_common_key();
 const u8 * wd_set_common_key ( const u8 * new_key );
-void wd_decrypt_title_key ( wd_ticket_t * tik, u8 * title_key );
+void wd_decrypt_title_key ( const wd_ticket_t * tik, u8 * title_key );
 
 ///////////////////////////////////////////////////////////////////////////////
 

@@ -3,4 +3,4 @@
 ../src/lib-wdf.[ch] ;
 ../src/lib-ciso.[ch] ;
 @+all-source.edit-list
--y 2260 ../src/lib-sf.c ;
+-y 540 ../src/lib-sf.c ;

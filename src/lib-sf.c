@@ -109,6 +109,7 @@ enumError ResetSF ( SuperFile_t * sf, FileAttrib_t * set_time_ref )
     sf->indent = NormalizeIndent(sf->indent);
 
     // reset data
+    SetupIOD(sf,OFT_UNKNOWN,OFT_UNKNOWN);
     InitializeWH(&sf->wh);
     ResetCISO(&sf->ciso);
     sf->max_virt_off = 0;
@@ -124,6 +125,8 @@ enumError ResetSF ( SuperFile_t * sf, FileAttrib_t * set_time_ref )
  #else
     sf->show_msec = false;
  #endif
+    
+    sf->allow_fst = allow_fst;
 
     return err;
 }
@@ -161,6 +164,57 @@ bool IsOpenSF ( const SuperFile_t * sf )
 
 ///////////////////////////////////////////////////////////////////////////////
 
+enumOFT SetupIOD ( SuperFile_t * sf, enumOFT force, enumOFT def )
+{
+    ASSERT(sf);
+    sf->iod.oft = CalcOFT(force,sf->f.fname,0,def);
+    TRACE("SetupIOD(%p,%u,%u) OFT := %u\n",sf,force,def,sf->iod.oft);
+
+    switch (sf->iod.oft)
+    {
+	case OFT_PLAIN:
+	    sf->iod.read_func		= ReadISO;
+	    sf->iod.write_func		= WriteISO;
+	    sf->iod.write_sparse_func	= WriteSparseISO;
+	    break;
+
+	case OFT_WDF:
+	    sf->iod.read_func		= ReadWDF;
+	    sf->iod.write_func		= WriteWDF;
+	    sf->iod.write_sparse_func	= WriteSparseWDF;
+	    break;
+
+	case OFT_CISO:
+	    sf->iod.read_func		= ReadCISO;
+	    sf->iod.write_func		= WriteCISO;
+	    sf->iod.write_sparse_func	= WriteSparseCISO;
+	    break;
+
+	case OFT_WBFS:
+	    sf->iod.read_func		= ReadWBFS;
+	    sf->iod.write_func		= WriteWBFS;
+	    sf->iod.write_sparse_func	= WriteWBFS;		// no sparse support
+	    break;
+
+	case OFT_FST:
+	    sf->iod.read_func		= ReadFST;
+	    sf->iod.write_func		= WriteWrapperSF;	// not supported
+	    sf->iod.write_sparse_func	= WriteSparseWrapperSF;	// not supported
+	    break;
+
+	default:
+	    sf->iod.read_func		= ReadWrapperSF;
+	    sf->iod.write_func		= WriteWrapperSF;
+	    sf->iod.write_sparse_func	= WriteSparseWrapperSF;
+	    break;
+    }
+    sf->std_read_func = sf->iod.read_func;
+
+    return sf->iod.oft;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
 enumError RewriteModifiedSF ( SuperFile_t * fi, SuperFile_t * fo, WBFS_t * wbfs )
 {
     ASSERT(fi);
@@ -169,7 +223,7 @@ enumError RewriteModifiedSF ( SuperFile_t * fi, SuperFile_t * fo, WBFS_t * wbfs 
 	fo = wbfs->sf;
     ASSERT(fo);
     ASSERT(fo->f.is_writing);
-    TRACE("RewriteModifiedSF(%p,%p,%p), oft=%d,%d\n",fi,fo,wbfs,fi->oft,fo->oft);
+    TRACE("RewriteModifiedSF(%p,%p,%p), oft=%d,%d\n",fi,fo,wbfs,fi->iod.oft,fo->iod.oft);
 
     if (!fi->modified_list.used)
 	return ERR_OK;
@@ -187,14 +241,15 @@ enumError RewriteModifiedSF ( SuperFile_t * fi, SuperFile_t * fo, WBFS_t * wbfs 
     PrintMemMap(&fi->modified_list,TRACE_FILE,3);
  #endif
 
-    const enumOFT saved_oft = fo->oft;
+    IOData_t iod;
+    memcpy(&iod,&fo->iod,sizeof(iod));
     WBFS_t * saved_wbfs = fo->wbfs;
     bool close_disc = false;
 
     if (wbfs)
     {
 	TRACE(" - WBFS stat: w=%p, disc=#%d,%p, oft=%d\n",
-		wbfs, wbfs->disc_slot, wbfs->disc, fo->oft );
+		wbfs, wbfs->disc_slot, wbfs->disc, fo->iod.oft );
 	if (!wbfs->disc)
 	{
 	    OpenWDiscSlot(wbfs,wbfs->disc_slot,0);
@@ -202,7 +257,7 @@ enumError RewriteModifiedSF ( SuperFile_t * fi, SuperFile_t * fo, WBFS_t * wbfs 
 		return ERR_CANT_OPEN;
 	    close_disc = true;
 	}
-	fo->oft  = OFT_WBFS;
+	SetupIOD(fo,OFT_WBFS,OFT_WBFS);
 	fo->wbfs = wbfs;
     }
 
@@ -222,7 +277,7 @@ enumError RewriteModifiedSF ( SuperFile_t * fi, SuperFile_t * fo, WBFS_t * wbfs 
 	wbfs->disc = 0;
     }
 
-    fo->oft  = saved_oft;
+    memcpy(&fo->iod,&iod,sizeof(fo->iod));
     fo->wbfs = saved_wbfs;
     return err;
 }
@@ -241,7 +296,7 @@ enumError SetupReadSF ( SuperFile_t * sf )
     if ( !sf || !sf->f.is_reading )
 	return ERROR0(ERR_INTERNAL,0);
 
-    sf->oft = OFT_PLAIN;
+    SetupIOD(sf,OFT_PLAIN,OFT_PLAIN);
     if ( sf->f.ftype == FT_UNKNOWN )
 	AnalyzeFT(&sf->f);
 
@@ -338,8 +393,8 @@ enumError SetupReadWBFS ( SuperFile_t * sf )
 		GetTitle(sf->f.id6,(ccp)dh->game_title), sf->f.id6 );
     FreeString(sf->f.outname);
     sf->f.outname = strdup(iobuf);
-    sf->oft = OFT_WBFS;
-
+    SetupIOD(sf,OFT_WBFS,OFT_WBFS);
+    SetupISOModifier(sf);
     return ERR_OK;
 
  abort:
@@ -382,8 +437,8 @@ enumError SetupWriteSF ( SuperFile_t * sf, enumOFT oft )
     if ( !sf || sf->f.is_reading || !sf->f.is_writing )
 	return ERROR0(ERR_INTERNAL,0);
 
-    sf->oft = CalcOFT(oft,sf->f.fname,0,OFT__DEFAULT);
-    switch(sf->oft)
+    SetupIOD(sf,oft,OFT__DEFAULT);
+    switch(sf->iod.oft)
     {
 	case OFT_PLAIN:
 	    return ERR_OK;
@@ -398,7 +453,7 @@ enumError SetupWriteSF ( SuperFile_t * sf, enumOFT oft )
 	    return SetupWriteWBFS(sf);
 
 	default:
-	    return ERROR0(ERR_INTERNAL,"Unknown output file format: %s\n",sf->oft);
+	    return ERROR0(ERR_INTERNAL,"Unknown output file format: %s\n",sf->iod.oft);
     }
 }
 
@@ -418,7 +473,7 @@ enumError SetupWriteWBFS ( SuperFile_t * sf )
     InitializeWBFS(wbfs);
     enumError err = CreateGrowingWBFS(wbfs,sf,(off_t)10*GiB,sf->f.sector_size);
     sf->wbfs = wbfs;
-    sf->oft = OFT_WBFS;
+    SetupIOD(sf,OFT_WBFS,OFT_WBFS);
     return err;
 }
 
@@ -432,7 +487,7 @@ void SubstFileNameSF
 
     char fname[PATH_MAX*2];
     const int conv_count
-	= SubstFileNameBuf(fname,sizeof(fname),fi,f_name,fo->f.fname,fo->oft);
+	= SubstFileNameBuf(fname,sizeof(fname),fi,f_name,fo->f.fname,fo->iod.oft);
     if ( conv_count > 0 )
 	fo->f.create_directory = true;
     SetFileName(&fo->f,fname,true);
@@ -457,16 +512,17 @@ int SubstFileNameBuf ( char * fname, size_t fname_size,
 	fi->f.disable_errors = disable_errors;
     }
 
+    ccp fi_fname = fi->f.path ? fi->f.path : fi->f.fname;
     if (!f_name)
     {
-	f_name = fi->f.fname;
+	f_name = fi_fname;
 	ccp temp = strrchr(f_name,'/');
 	if (temp)
 	    f_name = temp+1;
     }
 
     char src_path[PATH_MAX];
-    StringCopyS(src_path,sizeof(src_path),fi->f.fname);
+    StringCopyS(src_path,sizeof(src_path),fi_fname);
     char * temp = strrchr(src_path,'/');
     if (temp)
 	*temp = 0;
@@ -519,16 +575,220 @@ int SubstFileNameBuf ( char * fname, size_t fname_size,
 
 //
 ///////////////////////////////////////////////////////////////////////////////
-///////////////            ReadSF(), WriteSF, SetSizeSF()       ///////////////
+///////////////			sparse helper			///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-enumError ReadSF ( SuperFile_t * sf, off_t off, void * buf, size_t count )
+static enumError SparseHelperByte
+	( SuperFile_t * sf, off_t off, const void * buf, size_t count,
+	  WriteFunc write_func, size_t min_chunk_size )
 {
     ASSERT(sf);
-    TRACE(TRACE_RDWR_FORMAT, "#*# ReadSF()",
-		GetFD(&sf->f), GetFP(&sf->f), (u64)off, (u64)off+count, count, "" );
+    ASSERT(write_func);
+    ASSERT( min_chunk_size >= sizeof(WDF_Hole_t) );
 
-    switch(sf->oft)
+    TRACE(TRACE_RDWR_FORMAT, "#SH# SparseHelperB()",
+	GetFD(&sf->f), GetFP(&sf->f), (u64)off, (u64)off+count, count, "" );
+
+    ccp ptr = buf;
+    ccp end = ptr + count;
+
+    // skip start hole
+    while ( ptr < end && !*ptr )
+	ptr++;
+
+    while ( ptr < end )
+    {
+	ccp data_beg = ptr;
+	ccp data_end = data_beg;
+
+	while ( ptr < end )
+	{
+	    // find end of data
+	    while ( ptr < end && *ptr )
+		ptr++;
+	    data_end = ptr;
+
+	    // skip holes
+	    while ( ptr < end && !*ptr )
+		ptr++;
+
+	    // accept only holes >= min_chunk_size
+	    if ( (ccp)ptr - (ccp)data_end >= min_chunk_size )
+		break;
+	}
+
+	const size_t wlen = (ccp)data_end - (ccp)data_beg;
+	if (wlen)
+	{
+	    const off_t  woff = off + ( (ccp)data_beg - (ccp)buf );
+	    const enumError err = write_func(sf,woff,data_beg,wlen);
+	    if (err)
+		return err;
+	}
+    }
+
+    return ERR_OK;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+enumError SparseHelper
+	( SuperFile_t * sf, off_t off, const void * buf, size_t count,
+	  WriteFunc write_func, size_t min_chunk_size )
+{
+    ASSERT(sf);
+    ASSERT(write_func);
+
+    TRACE(TRACE_RDWR_FORMAT, "#SH# SparseHelper()",
+	GetFD(&sf->f), GetFP(&sf->f), (u64)off, (u64)off+count, count, "" );
+    TRACE(" -> write_func = %p, min_chunk_size = %u\n",write_func, min_chunk_size );
+
+    //----- disable sparse check for already existing file areas
+
+    if ( off < sf->max_virt_off )
+    {
+	const off_t max_overlap = sf->max_virt_off - off;
+	const size_t overlap = count < max_overlap ? count : (size_t) max_overlap;
+	const enumError err = write_func(sf,off,buf,overlap);
+	count -= overlap;
+	if ( err || !count )
+	    return err;
+	off += overlap;
+	buf = (char*)buf + overlap;
+    }
+
+
+    //----- check minimal size
+
+    if ( min_chunk_size < sizeof(WDF_Hole_t) )
+	min_chunk_size = sizeof(WDF_Hole_t);
+    if ( count < 50 || count < min_chunk_size )
+	return SparseHelperByte( sf, off, buf, count, write_func, min_chunk_size );
+
+
+    //----- check if buf is well aligend
+    
+    DASSERT( Count1Bits32(sizeof(WDF_Hole_t)) == 1 );
+    const size_t align_mask = sizeof(WDF_Hole_t) - 1;
+
+    ccp start = buf;
+    const size_t start_align = (size_t)start & align_mask;
+    if ( start_align )
+    {
+	const size_t wr_size =  sizeof(WDF_Hole_t) - start_align;
+	const enumError err
+	    = SparseHelperByte( sf, off, start, count, write_func, min_chunk_size );
+	if (err)
+	    return err;
+	start += wr_size;
+	off   -= wr_size;
+	count -= wr_size;
+    }
+
+
+    //----- check aligned data
+
+    WDF_Hole_t * ptr = (WDF_Hole_t*) start;
+    WDF_Hole_t * end = (WDF_Hole_t*)( start + ( count & ~align_mask ) );
+
+    // skip start hole
+    while ( ptr < end && !*ptr )
+	ptr++;
+
+    while ( ptr < end )
+    {
+	WDF_Hole_t * data_beg = ptr;
+	WDF_Hole_t * data_end = data_beg;
+
+	while ( ptr < end )
+	{
+	    // find end of data
+	    while ( ptr < end && *ptr )
+		ptr++;
+	    data_end = ptr;
+
+	    // skip holes
+	    while ( ptr < end && !*ptr )
+		ptr++;
+
+	    // accept only holes >= min_chunk_size
+	    if ( (ccp)ptr - (ccp)data_end >= min_chunk_size )
+		break;
+	}
+
+	const size_t wlen = (ccp)data_end - (ccp)data_beg;
+	if (wlen)
+	{
+	    const off_t woff = off + ( (ccp)data_beg - start );
+	    const enumError err = write_func(sf,woff,data_beg,wlen);
+	    if (err)
+		return err;
+	}
+    }
+
+
+    //----- check remaining bytes and return
+
+    const size_t remaining_len = count & align_mask;
+    if ( remaining_len )
+    {
+	ASSERT( remaining_len < sizeof(WDF_Hole_t) );
+	const off_t woff = off + ( (ccp)end - start );
+	const enumError err
+	    = SparseHelperByte ( sf, woff, end, remaining_len,
+				write_func, min_chunk_size );
+	if (err)
+	    return err;
+    }
+
+
+    //----- all done
+
+    return ERR_OK;
+}
+
+//
+///////////////////////////////////////////////////////////////////////////////
+///////////////		 standard read and write wrappers	///////////////
+///////////////////////////////////////////////////////////////////////////////
+
+enumError ReadSF
+	( SuperFile_t * sf, off_t off, void * buf, size_t count )
+{
+    ASSERT(sf);
+    ASSERT(sf->iod.read_func);
+    return sf->iod.read_func(sf,off,buf,count);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+enumError WriteSF
+	( SuperFile_t * sf, off_t off, const void * buf, size_t count )
+{
+    ASSERT(sf);
+    ASSERT(sf->iod.write_func);
+    return sf->iod.write_func(sf,off,buf,count);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+enumError WriteSparseSF
+	( SuperFile_t * sf, off_t off, const void * buf, size_t count )
+{
+    ASSERT(sf);
+    ASSERT(sf->iod.write_sparse_func);
+    return sf->iod.write_sparse_func(sf,off,buf,count);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+
+enumError ReadWrapperSF
+	( SuperFile_t * sf, off_t off, void * buf, size_t count )
+{
+    ASSERT(sf);
+    DASSERT(0); // should never called
+    switch(sf->iod.oft)
     {
 	case OFT_WDF:	return ReadWDF (sf,off,buf,count);
 	case OFT_CISO:	return ReadCISO(sf,off,buf,count);
@@ -540,11 +800,12 @@ enumError ReadSF ( SuperFile_t * sf, off_t off, void * buf, size_t count )
 
 ///////////////////////////////////////////////////////////////////////////////
 
-enumError WriteSF ( SuperFile_t * sf, off_t off, const void * buf, size_t count )
+enumError WriteWrapperSF
+	( SuperFile_t * sf, off_t off, const void * buf, size_t count )
 {
     ASSERT(sf);
-
-    switch(sf->oft)
+    DASSERT(0); // should never called
+    switch(sf->iod.oft)
     {
 	case OFT_PLAIN:	return WriteAtF(&sf->f,off,buf,count);
 	case OFT_WDF:	return WriteWDF(sf,off,buf,count);
@@ -556,13 +817,14 @@ enumError WriteSF ( SuperFile_t * sf, off_t off, const void * buf, size_t count 
 
 ///////////////////////////////////////////////////////////////////////////////
 
-enumError WriteSparseSF ( SuperFile_t * sf, off_t off, const void * buf, size_t count )
+enumError WriteSparseWrapperSF
+	( SuperFile_t * sf, off_t off, const void * buf, size_t count )
 {
     ASSERT(sf);
-
-    switch(sf->oft)
+    DASSERT(0); // should never called
+    switch(sf->iod.oft)
     {
-	case OFT_PLAIN:	return WriteSparseAtF(&sf->f,off,buf,count);
+	case OFT_PLAIN:	return WriteSparseISO(sf,off,buf,count);
 	case OFT_WDF:	return WriteSparseWDF(sf,off,buf,count);
 	case OFT_CISO:	return WriteSparseCISO(sf,off,buf,count);
 	case OFT_WBFS:	return WriteWBFS(sf,off,buf,count); // no sparse support
@@ -570,6 +832,36 @@ enumError WriteSparseSF ( SuperFile_t * sf, off_t off, const void * buf, size_t 
     }
 }
 
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+
+enumError ReadISO
+	( SuperFile_t * sf, off_t off, void * buf, size_t count )
+{
+    ASSERT(sf);
+    return ReadAtF(&sf->f,off,buf,count);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+enumError WriteISO
+	( SuperFile_t * sf, off_t off, const void * buf, size_t count )
+{
+    ASSERT(sf);
+    return WriteAtF(&sf->f,off,buf,count);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+enumError WriteSparseISO
+	( SuperFile_t * sf, off_t off, const void * buf, size_t count )
+{
+    return SparseHelper(sf,off,buf,count,WriteISO,0);
+}
+
+//
+///////////////////////////////////////////////////////////////////////////////
+///////////////		 ReadSF(), WriteSF, SetSizeSF()		///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
 enumError SetSizeSF ( SuperFile_t * sf, off_t off )
@@ -1069,7 +1361,7 @@ enumFileType AnalyzeFT ( File_t * f )
 
 	    ResetFile(f,false);
 	    memcpy(f,&sf.f,sizeof(*f));
-	    memcpy(f->id6,id6,6);
+	    CopyPatchedDiscId(f->id6,id6);
 	    memset(&sf.f,0,sizeof(sf.f));
 	    TRACE(" - WBFS/fname = %s\n",f->fname);
 	    TRACE(" - WBFS/path  = %s\n",f->path);
@@ -1224,7 +1516,7 @@ enumFileType AnalyzeFT ( File_t * f )
 			    WDiscInfo_t dinfo;
 			    InitializeWDiscInfo(&dinfo);
 			    if (!GetWDiscInfo(&wbfs,&dinfo,0))
-				memcpy(f->id6,dinfo.id6,6);
+				CopyPatchedDiscId(f->id6,dinfo.id6);
 			    ResetWDiscInfo(&dinfo);
 			}
 		    }
@@ -1237,16 +1529,14 @@ enumFileType AnalyzeFT ( File_t * f )
 		if ( !(ft&FT_A_WDF) && !f->seek_allowed )
 		    DefineCachedAreaISO(f,false);
 
-		memcpy(f->id6,data_ptr,6);
-		f->id6[6] = 0;
+		CopyPatchedDiscId(f->id6,data_ptr);
 		if ( f->st.st_size < ISO_SPLIT_DETECT_SIZE )
 		    SetupSplitFile(f,OFT_PLAIN,0);
 		break;
 
 	    case FT_ID_BOOT_BIN:
 		ft |= FT_ID_BOOT_BIN;
-		memcpy(f->id6,data_ptr,6);
-		f->id6[6] = 0;
+		CopyPatchedDiscId(f->id6,data_ptr);
 		break;
 
 	    default:
@@ -1568,7 +1858,7 @@ enumError CopySF ( SuperFile_t * in, SuperFile_t * out, u32 psel )
 	    SetSizeSF(out,in->file_size);
 	    wd_build_disc_usage(disc,psel,wdisc_usage_tab,in->file_size);
 
-	    if ( out->oft == OFT_WDF )
+	    if ( out->iod.oft == OFT_WDF )
 	    {
 		// write an empty disc header -> makes renaming easier
 		static char disc_header[0x60] = {0};
@@ -1686,61 +1976,14 @@ enumError CopyRaw ( SuperFile_t * in, SuperFile_t * out )
 	if (err)
 	    return err;
 
-	WDF_Hole_t *ptr = (WDF_Hole_t*)iobuf;
-	WDF_Hole_t *end = (WDF_Hole_t*)( iobuf + (size & ~3)); // exclude not aligned bytes
-
-	while ( ptr < end )
-	{
-	    // skip holes
-	    while ( ptr < end && !*ptr )
-		ptr++;
-
-	    WDF_Hole_t *data_beg = ptr;
-	    WDF_Hole_t *data_end = data_beg;
-	    while ( ptr < end )
-	    {
-		while ( ptr < end && *ptr )
-		    ptr++;
-		data_end = ptr;
-
-		// skip holes
-		while ( ptr < end && !*ptr )
-		    ptr++;
-
-		// accept only large holes
-		if ( (ccp)ptr - (ccp)data_end >= WDF_MIN_HOLE_SIZE )
-		    break;
-	    }
-
-	    off_t  woff = off+((ccp)data_beg-iobuf);
-	    size_t wlen = (ccp)data_end - (ccp)data_beg;
-	    err = WriteSF(out,woff,data_beg,wlen);
-	    if (err)
-		return err;
-
-	    if ( out->show_progress )
-		PrintProgressSF(woff+wlen,in->file_size,out);
-	}
-
-	ASSERT( align_mask == 3 );
-	if ( size & align_mask )
-	{
-	    u32 size3 = size & align_mask;
-	    ccp ptr1 = (ccp)end;
-	    if ( ptr1[0] || size3 > 1 && ptr1[1] || size3 > 2 && ptr1[2] )
-	    {
-		off_t woff = off+((ccp)end-iobuf);
-		err = WriteSF(out,woff,ptr1,size3);
-		if (err)
-		    return err;
-
-		if ( out->show_progress )
-		    PrintProgressSF(woff+size3,in->file_size,out);
-	    }
-	}
+	err = WriteSparseSF(out,off,iobuf,size);
+	if (err)
+	    return err;
 
 	copy_size -= size;
 	off       += size;
+	if ( out->show_progress )
+	    PrintProgressSF(off,in->file_size,out);
     }
 
     if ( out->show_progress || out->show_summary )
@@ -2128,11 +2371,11 @@ enumError DiffRawSF
     ASSERT(f1->f.is_reading);
     ASSERT(f2->f.is_reading);
 
-    if ( f1->oft == OFT_WBFS || f2->oft == OFT_WBFS )
+    if ( f1->iod.oft == OFT_WBFS || f2->iod.oft == OFT_WBFS )
     {
-	if ( f1->oft == OFT_WBFS )
+	if ( f1->iod.oft == OFT_WBFS )
 	    f2->f.read_behind_eof = 2;
-	if ( f2->oft == OFT_WBFS )
+	if ( f2->iod.oft == OFT_WBFS )
 	    f1->f.read_behind_eof = 2;
     }
     else if ( f1->file_size != f2->file_size )
@@ -2699,6 +2942,24 @@ static enumError SourceIteratorHelper
 	    for ( slot = max_disc-1; slot >= 0
 			&& !wbfs.wbfs->head->disc_table[slot]; slot-- )
 		;
+
+	 #if 0 // [obsolee]
+	    if (!slot)
+	    {
+		// only slot #0 is used!
+		if ( collect_fnames )
+		{
+		    InsertStringField(&it->source_list,sf.f.fname,false);
+		    err = ERR_OK;
+		}
+		else
+		    err = it->func(&sf,it);
+		ResetWBFS(&wbfs);
+		ResetSF(&sf,0);
+		return err;
+	    }
+	 #endif
+
 	    char fbuf[PATH_MAX+10];
 	    snprintf(fbuf,sizeof(fbuf),"%u%n",slot,&fw);
 	    char * dest = StringCopyS(fbuf,sizeof(fbuf)-10,path);

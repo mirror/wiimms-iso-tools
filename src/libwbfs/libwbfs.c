@@ -113,6 +113,8 @@ static u8 size_to_shift(u32 size)
 
 ///////////////////////////////////////////////////////////////////////////////
 
+#ifndef WIT // not used in WiT
+
 #define read_le32_unaligned(x) ((x)[0]|((x)[1]<<8)|((x)[2]<<16)|((x)[3]<<24))
 
 void wbfs_sync(wbfs_t*p);
@@ -171,6 +173,8 @@ wbfs_t * wbfs_open_hd
     }
     return 0;
 }
+
+#endif // !WIT 
 
 //
 ///////////////////////////////////////////////////////////////////////////////
@@ -706,33 +710,19 @@ wbfs_disc_t * wbfs_open_disc_by_id6 ( wbfs_t* p, u8 * discid )
 
 ///////////////////////////////////////////////////////////////////////////////
 
-wbfs_disc_t * wbfs_open_disc_by_slot ( wbfs_t * p, u32 slot, int force_open )
+static wbfs_disc_t * wbfs_open_disc_by_info
+	( wbfs_t * p, u32 slot, wbfs_disc_info_t * info, int force_open )
 {
     ASSERT(p);
-    TRACE("LIBWBFS: wbfs_open_disc_by_slot(%p,slot=%u,force=%d) max=%u, disctab=%u\n",
-		p, slot, p->max_disc, p->head->disc_table[slot], force_open );
-    if ( slot >= p->max_disc || !p->head->disc_table[slot] && !force_open )
-	return 0;
+    ASSERT( slot >= 0 );
+    ASSERT(info);
 
     wbfs_disc_t * d = wbfs_malloc(sizeof(*d));
     if (!d)
 	OUT_OF_MEMORY;
     d->p = p;
     d->slot = slot;
-    d->header = wbfs_ioalloc(p->disc_info_sz);
-    if (!d->header)
-	OUT_OF_MEMORY;
-
-    const u32 disc_info_sz_lba = p->disc_info_sz >> p->hd_sec_sz_s;
-    if ( p->read_hdsector (
-			p->callback_data,
-			p->part_lba + 1 + slot * disc_info_sz_lba,
-			disc_info_sz_lba,
-			d->header ) )
-    {
-	wbfs_free(d);
-	return 0;
-    }
+    d->header = info;
 
     d->is_used = p->head->disc_table[slot] != 0;
     if ( *d->header->disc_header_copy )
@@ -747,6 +737,7 @@ wbfs_disc_t * wbfs_open_disc_by_slot ( wbfs_t * p, u32 slot, int force_open )
     if ( !force_open && !d->is_valid )
     {
 	p->head->disc_table[slot] = 0;
+	wbfs_free(info);
 	wbfs_free(d);
 	return 0;
     }
@@ -754,6 +745,35 @@ wbfs_disc_t * wbfs_open_disc_by_slot ( wbfs_t * p, u32 slot, int force_open )
     wbfs_get_disc_inode_info(d,1);
     p->n_disc_open++;
     return d;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+wbfs_disc_t * wbfs_open_disc_by_slot ( wbfs_t * p, u32 slot, int force_open )
+{
+    ASSERT(p);
+    TRACE("LIBWBFS: wbfs_open_disc_by_slot(%p,slot=%u,force=%d) max=%u, disctab=%u\n",
+		p, slot, p->max_disc, p->head->disc_table[slot], force_open );
+
+    if ( slot >= p->max_disc || !p->head->disc_table[slot] && !force_open )
+	return 0;
+
+    wbfs_disc_info_t * info = wbfs_ioalloc(p->disc_info_sz);
+    if (!info)
+	OUT_OF_MEMORY;
+
+    const u32 disc_info_sz_lba = p->disc_info_sz >> p->hd_sec_sz_s;
+    if ( p->read_hdsector (
+			p->callback_data,
+			p->part_lba + 1 + slot * disc_info_sz_lba,
+			disc_info_sz_lba,
+			info ) )
+    {
+	wbfs_free(info);
+	return 0;
+    }
+
+    return wbfs_open_disc_by_info(p,slot,info,force_open);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -1284,7 +1304,10 @@ u32 wbfs_add_disc
     par.sel			= sel;
     par.copy_1_1		= copy_1_1;
 
-    return wbfs_add_disc_param(p,&par);
+    const u32 stat = wbfs_add_disc_param(p,&par);
+    if (par.open_disc)
+	wbfs_close_disc(par.open_disc);
+    return stat;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -1295,6 +1318,7 @@ u32 wbfs_add_disc_param ( wbfs_t *p, wbfs_param_t * par )
     ASSERT(par);
 
     par->slot = -1; // no slot assigned
+    par->open_disc = 0;
 
     int i, slot;
     u32 tot, cur;
@@ -1332,7 +1356,7 @@ u32 wbfs_add_disc_param ( wbfs_t *p, wbfs_param_t * par )
 	WBFS_ERROR("no space left on device (table full)");
 
     p->head->disc_table[i] = 1;
-    par->slot = slot = i;
+    slot = i;
     wbfs_load_freeblocks(p);
 
     // build disc info
@@ -1443,6 +1467,10 @@ u32 wbfs_add_disc_param ( wbfs_t *p, wbfs_param_t * par )
     if (p->id_list)
 	memcpy(p->id_list[slot],info,sizeof(*p->id_list));
     wbfs_sync(p);
+
+    par->slot = slot;
+    par->open_disc = wbfs_open_disc_by_info(p,slot,info,0);
+    info = 0;
 
 error:
     if (d)

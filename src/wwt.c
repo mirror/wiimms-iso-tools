@@ -58,7 +58,6 @@ bool opt_mkdir		= false;
 u64  opt_size		= 0;
 u32  opt_hss		= 0;
 u32  opt_wss		= 0;
-bool opt_ignore_fst	= 0;
 int  opt_limit		= -1;
 
 enumIOMode io_mode	= 0;
@@ -1690,7 +1689,7 @@ enumError exec_add ( SuperFile_t * sf, Iterator_t * it )
 	TRACE("WOULD ADD [%s] %s\n",sf->f.id6,sf->f.fname);
 	printf(" - WOULD ADD %*u/%u [%s] %s:%s\n",
 		(int)strlen(iobuf), it->source_index+1, it->source_list.used,
-		sf->f.id6, oft_name[sf->oft], sf->f.fname );
+		sf->f.id6, oft_name[sf->iod.oft], sf->f.fname );
     }
     else
     {
@@ -1698,7 +1697,7 @@ enumError exec_add ( SuperFile_t * sf, Iterator_t * it )
 	if ( verbose >= 0 || progress > 0 )
 	    printf(" - ADD %*u/%u [%s] %s:%s\n",
 			(int)strlen(iobuf), it->source_index+1, it->source_list.used,
-			sf->f.id6, oft_name[sf->oft], sf->f.fname );
+			sf->f.id6, oft_name[sf->iod.oft], sf->f.fname );
 	fflush(stdout);
 
 	sf->indent		= 5;
@@ -1743,7 +1742,7 @@ enumError cmd_add()
     it.act_non_exist	= it.act_non_iso;
     it.act_open		= it.act_non_iso;
     it.act_wbfs		= ACT_EXPAND;
-    it.act_fst		= opt_ignore_fst ? ACT_IGNORE : ACT_EXPAND;
+    it.act_fst		= allow_fst ? ACT_EXPAND : ACT_IGNORE;
     it.update		= used_options & OB_UPDATE	? 1 : 0;
     it.newer		= used_options & OB_NEWER	? 1 : 0;
     it.overwrite	= used_options & OB_OVERWRITE	? 1 : 0;
@@ -2727,11 +2726,11 @@ enumError cmd_verify()
 			    ver.verbose = 1;
 		    }
 		    
-		    sf->oft = OFT_WBFS;
+		    SetupIOD(sf,OFT_WBFS,OFT_WBFS);
 		    sf->wbfs = &wbfs;
 		    const enumError stat = VerifyDisc(&ver);
 		    
-		    sf->oft = OFT_PLAIN;
+		    SetupIOD(sf,OFT_PLAIN,OFT_PLAIN);
 		    sf->wbfs = 0;
 		    ResetVerify(&ver);
 		    
@@ -2861,7 +2860,7 @@ enumError cmd_filetype()
 		char size[10] = "   -";
 		if (sf.f.id6[0])
 		{
-		    region = *GetRegionInfo(sf.f.id6[3]);
+		    region = GetRegionInfo(sf.f.id6[3])->name4;
 		    u32 count = CountUsedIsoBlocksSF(&sf,partition_selector);
 		    if (count)
 			snprintf(size,sizeof(size),"%4u",
@@ -2947,11 +2946,18 @@ enumError CheckOptions ( int argc, char ** argv, bool is_env )
 	case GO_EXCLUDE:	AtFileHelper(optarg,0,AddExcludeID); break;
 	case GO_EXCLUDE_PATH:	AtFileHelper(optarg,0,AddExcludePath); break;
 	case GO_IGNORE:		break;
-	case GO_IGNORE_FST:	opt_ignore_fst = true; break;
+	case GO_IGNORE_FST:	allow_fst = false; break;
 
 	case GO_INODE:		break;
 	case GO_DEST:		opt_dest = optarg; break;
 	case GO_DEST2:		opt_dest = optarg; opt_mkdir = true; break;
+	case GO_HOOK:		hook_enabled = true; break;
+	case GO_ENC:		err += ScanOptEncoding(optarg); break;
+	case GO_REGION:		err += ScanOptRegion(optarg); break;
+	case GO_IOS:		err += ScanOptIOS(optarg); break;
+	case GO_ID:		err += ScanOptId(optarg); break;
+	case GO_NAME:		err += ScanOptName(optarg); break;
+	case GO_MODIFY:		err += ScanOptModify(optarg); break;
 	case GO_SPLIT:		opt_split++; break;
 	case GO_SPLIT_SIZE:	err += ScanSplitSize(optarg); break;
 	case GO_RECOVER:	break;
@@ -3004,16 +3010,6 @@ enumError CheckOptions ( int argc, char ** argv, bool is_env )
 		    partition_selector = new_psel;
 	    }
 	    break;
-
-	case GO_ENC:
-	    {
-		const int new_encoding = ScanEncoding(optarg);
-		if ( new_encoding == -1 )
-		    err++;
-		else
-		    encoding = new_encoding;
-	    }
-	break;
 
 	case GO_SIZE:
 	    if (ScanSizeOptU64(&opt_size,optarg,GiB,0,
@@ -3080,6 +3076,9 @@ enumError CheckOptions ( int argc, char ** argv, bool is_env )
 		    opt_limit = limit;
 	    }
 	    break;
+
+	// no default case defined
+	//	=> compiler checks the existence of all enum values
       }
     }
  #ifdef DEBUG
@@ -3143,7 +3142,7 @@ enumError CheckCommand ( int argc, char ** argv )
     while ( argc-- > 0 )
 	AtFileHelper(*argv++,false,AddParam);
 
-    switch(cmd_ct->id)
+    switch ((enumCommands)cmd_ct->id)
     {
 	case CMD_VERSION:	version_exit();
 	case CMD_HELP:		PrintHelp(&InfoUI,stdout,0); break;
@@ -3185,7 +3184,11 @@ enumError CheckCommand ( int argc, char ** argv )
 
 	case CMD_FILETYPE:	err = cmd_filetype(); break;
 
-	default:
+	// no default case defined
+	//	=> compiler checks the existence of all enum values
+
+	case CMD__NONE:
+	case CMD__N:
 	    help_exit(false);
     }
 
@@ -3200,6 +3203,7 @@ enumError CheckCommand ( int argc, char ** argv )
 int main ( int argc, char ** argv )
 {
     SetupLib(argc,argv,WWT_SHORT,PROG_WWT);
+    allow_fst = true;
 
     ASSERT( OPT__N_SPECIFIC <= 64 );
 

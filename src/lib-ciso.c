@@ -129,11 +129,14 @@ enumError SetupReadCISO ( SuperFile_t * sf )
 
     if (SetupCISO(&sf->ciso,&ch))
 	return ERROR0(ERR_CISO_INVALID,"Invalid CISO file\n");
-	
-    sf->file_size	= ci->max_file_off;
+
+    const off_t min_size = (off_t)WII_SECTORS_SINGLE_LAYER * WII_SECTOR_SIZE;
+
+    sf->file_size	= ci->max_file_off > min_size ? ci->max_file_off : min_size;
     sf->f.max_off	= ci->max_file_off;
     sf->max_virt_off	= ci->max_virt_off;
-    sf->oft		= OFT_CISO;
+    SetupIOD(sf,OFT_CISO,OFT_CISO);
+    SetupISOModifier(sf);
 
     TRACE("#C# CISO FOUND!\n");
     return ERR_OK;
@@ -407,84 +410,10 @@ enumError WriteCISO ( SuperFile_t * sf, off_t off, const void * buf, size_t coun
 
 ///////////////////////////////////////////////////////////////////////////////
 
-enumError WriteSparseCISO ( SuperFile_t * sf, off_t off, const void * buf, size_t count )
+enumError WriteSparseCISO
+	( SuperFile_t * sf, off_t off, const void * buf, size_t count )
 {
-    ASSERT(sf);
-
-    CISO_Info_t *ci = &sf->ciso;
-    if (!ci->map)
-	return WriteSparseAtF(&sf->f,off,buf,count);
-
-    if ( off < sf->max_virt_off )
-    {
-	// disable sparse check for already existing file areas
-	const off_t max_overlap = sf->max_virt_off - off;
-	const size_t overlap = count < max_overlap ? count : (size_t) max_overlap;
-	const enumError err = WriteCISO(sf,off,buf,overlap);
-	count -= overlap;
-	if ( err || !count )
-	    return err;
-	off += overlap;
-	buf = (char*)buf + overlap;
-    }
-
-    if ( off & 3 || count & 3 )
-    {
-	// sparse checking is only done with u32 aligned data
-	return WriteCISO(sf,off,buf,count);
-    }
-
-    TRACE("#C# -----\n");
-    TRACE(TRACE_RDWR_FORMAT, "#C# WriteSparseCISO()",
-		GetFD(&sf->f), GetFP(&sf->f), (u64)off, (u64)off+count, count,
-		off < sf->max_virt_off ? " <" : "" );
-
-    if (!count)
-	return ERR_OK;
-
-    ccp start = (ccp)buf;
-    WDF_Hole_t *ptr = (WDF_Hole_t*)start;
-    WDF_Hole_t *end = (WDF_Hole_t*)(start+count);
-
-    // skip leading spaces
-    while ( ptr < end && !*ptr )
-	ptr++;
-
-    // main loop
-    while ( ptr < end )
-    {
-	// adjust data
-	u32 skip_count = (ccp)ptr - start;
-	off  += skip_count;
-	count -= skip_count;
-	ASSERT(count>0);
-	start = (ccp)ptr;
-
-	WDF_Hole_t * data_end = ptr;
-	while ( ptr < end )
-	{
-	    // address data block
-	    while ( ptr < end && *ptr )
-		ptr++;
-	    data_end = ptr;
-
-	    // address trailing zero block
-	    while ( ptr < end && !*ptr )
-		ptr++;
-
-	    // break if zero block is large enough
-	    if ( (ccp)ptr - (ccp)data_end >= CISO_WR_MIN_HOLE_SIZE )
-		break;
-	}
-
-	// write data block
-	const u32 chunk_len = (ccp)data_end - start;
-	const int stat = WriteCISO(sf,off,start,chunk_len);
-	if (stat)
-	    return stat;
-    }
-
-    return ERR_OK;
+    return SparseHelper(sf,off,buf,count,WriteCISO,CISO_WR_MIN_HOLE_SIZE);
 }
 
 //

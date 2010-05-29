@@ -961,7 +961,7 @@ static enumError OpenWBFSHelper
     if (err)
 	goto abort;
     sf->f.disable_errors = false;
-    sf->oft = OFT_PLAIN;
+    SetupIOD(sf,OFT_PLAIN,OFT_PLAIN);
 
     err = par ? OpenParWBFS(w,sf,print_err,par)
 	      : SetupWBFS(w,sf,print_err,sector_size,recover);
@@ -2883,9 +2883,9 @@ void CalcWDiscInfo ( WDiscInfo_t * dinfo, SuperFile_t * sf )
     dinfo->disc_index = 0;
     dinfo->size  = 0;
 
-    ccp * tptr = GetRegionInfo(dinfo->dhead.region_code);
-    dinfo->region4 = *tptr++;
-    dinfo->region  = *tptr;
+    const RegionInfo_t * reginfo = GetRegionInfo(dinfo->dhead.region_code);
+    dinfo->region4 = reginfo->name4;
+    dinfo->region  = reginfo->name;
 
     dinfo->used_blocks = sf ? CountUsedIsoBlocksSF(sf,partition_selector) : 0;
 }
@@ -3021,9 +3021,10 @@ enumError LoadPartitionInfo
 		pi->index  = j;
 		pi->ptype  = ntohl(wdpt->ptype);
 		pi->off    = (off_t)ntohl(wdpt->off4)<<2;
-		pi->is_marked_not_enc	= -1;
-		pi->is_encrypted	= -1;
-		pi->is_trucha_signed	= -1;
+		pi->is_marked_not_enc	 = -1;
+		pi->is_encrypted	 = -1;
+		pi->tik_is_trucha_signed = -1;
+		pi->tmd_is_trucha_signed = -1;
 
 		if (mm)
 		{
@@ -3089,9 +3090,12 @@ enumError LoadPartitionInfo
 		    wiidisc_t * disc = wd_open_partition(WrapperReadSF,sf,pi->index,-1);
 		    if (disc)
 		    {
-			pi->is_marked_not_enc	= disc->is_marked_not_enc;
-			pi->is_encrypted	= disc->is_encrypted;
-			pi->is_trucha_signed	= disc->is_trucha_signed;
+			pi->is_marked_not_enc	 = disc->is_marked_not_enc;
+			pi->is_encrypted	 = disc->is_encrypted;
+			pi->tik_is_trucha_signed = disc->tik_is_trucha_signed;
+			pi->tmd_is_trucha_signed = disc->tmd_is_trucha_signed;
+			if (disc->tmd)
+			    pi->sys_version	 = ntoh64(disc->tmd->sys_version);
 			wd_close_disc(disc);
 		    }
 		}
@@ -3256,52 +3260,6 @@ void FreeWDiscList ( WDiscList_t * wlist )
     ASSERT(wlist);
     ResetWDiscList(wlist);
     free(wlist);
-}
-
-///////////////////////////////////////////////////////////////////////////////
-
-ccp RegionTable[] =
-{
-	// -> http://www.wiibrew.org/wiki/Title_Database#Region_Codes
-
-	/*A*/ "ALL ", "All",
-	/*B*/ "-?- ", "-?-",
-	/*C*/ "-?- ", "-?-",
-	/*D*/ "GERM", "German",
-	/*E*/ "NTSC", "NTSC",
-	/*F*/ "FREN", "French",
-	/*G*/ "-?- ", "-?-",
-	/*H*/ "-?- ", "-?-",
-	/*I*/ "ITAL", "Italian",
-	/*J*/ "JAPA", "Japan",
-	/*K*/ "KORE", "Korea",
-	/*L*/ "J>PL", "Japan->PAL",
-	/*M*/ "A>PL", "America->PAL",
-	/*N*/ "J>US", "Japan->NTSC",
-	/*O*/ "-?- ", "-?-",
-	/*P*/ "PAL ", "PAL",
-	/*Q*/ "KO/J", "Korea (japanese)",
-	/*R*/ "-?- ", "-?-",
-	/*S*/ "SPAN", "Spanish",
-	/*T*/ "KO/E", "Korea (english)",
-	/*U*/ "-?- ", "-?-",
-	/*V*/ "-?- ", "-?-",
-	/*W*/ "-?- ", "-?-",
-	/*X*/ "RF  ", "Region free",
-	/*Y*/ "-?- ", "-?-",
-	/*Z*/ "-?- ", "-?-",
-
-	/*?*/ "-?- ", "-?-" // illegal region_code
-};
-
-//-----------------------------------------------------------------------------
-
-ccp * GetRegionInfo ( char region_code )
-{
-    region_code = toupper((int)region_code);
-    if ( region_code < 'A' || region_code > 'Z' )
-	region_code = 'Z' + 1;
-    return RegionTable + 2 * (region_code-'A');
 }
 
 //
@@ -3740,6 +3698,8 @@ enumError AddWDisc ( WBFS_t * w, SuperFile_t * sf, partition_selector_t psel )
     TRACE("AddWDisc(w=%p,sf=%p,psel=%d) progress=%d,%d\n",
 		w, sf, psel, sf->show_progress, sf->show_summary );
 
+    CloseWDisc(w);
+
     // this is needed for detailed error messages
     const enumError saved_max_error = max_error;
     max_error = 0;
@@ -3762,8 +3722,14 @@ enumError AddWDisc ( WBFS_t * w, SuperFile_t * sf, partition_selector_t psel )
 	    par.iinfo.mtime = iinfo->mtime;
     }
 
+    const int wbfs_stat = wbfs_add_disc_param(w->wbfs,&par);
+
+    // transfer results
+    w->disc = par.open_disc;
+    w->disc_slot = par.slot;
+
     enumError err = ERR_OK;
-    if (wbfs_add_disc_param(w->wbfs,&par))
+    if (wbfs_stat)
     {
 	err = ERR_WBFS;
 	if (!w->sf->f.disable_errors)
@@ -3773,9 +3739,8 @@ enumError AddWDisc ( WBFS_t * w, SuperFile_t * sf, partition_selector_t psel )
     else
     {
 	ASSERT(w->sf);
-	w->disc_slot = par.slot;
 	TRACE("AddWDisc/stat: w=%p, slot=%d, w->sf=%p, oft=%d\n",
-		w, w->disc_slot, w->sf, w->sf->oft );
+		w, w->disc_slot, w->sf, w->sf->iod.oft );
         err = RewriteModifiedSF(sf,0,w);
     }
 
@@ -3809,7 +3774,7 @@ enumError ExtractWDisc ( WBFS_t * w, SuperFile_t * sf )
 	// change roles
 	sf->wbfs->sf = sf;
 	w->sf->wbfs = w;
-	w->sf->oft = OFT_WBFS;
+	SetupIOD(w->sf,OFT_WBFS,OFT_WBFS);
 
 	// copy progress parameters
 	w->sf->indent		= sf->indent;
@@ -3830,9 +3795,9 @@ enumError ExtractWDisc ( WBFS_t * w, SuperFile_t * sf )
 
     int ex_stat = 0;
     enumError err = ERR_OK;
-    if ( sf->oft != OFT_PLAIN )
+    if ( sf->iod.oft != OFT_PLAIN )
     {
-	if ( sf->oft == OFT_WDF )
+	if ( sf->iod.oft == OFT_WDF )
 	{
 	    // write an empty disc header -> makes renaming easier
 	    static char disc_header[0x60] = {0};

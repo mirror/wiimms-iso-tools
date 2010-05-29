@@ -75,12 +75,15 @@ int validate_file_format_sizes ( int trace_sizes )
 
     CHECK( sizeof(dol_header_t)		== DOL_HEADER_SIZE );
     CHECK( sizeof(wd_header_t)		== 0x100 );
+    CHECK( sizeof(wd_region_set_t)	== WII_REGION_SIZE );
     CHECK( sizeof(wd_boot_t)		== WII_BOOT_SIZE );
     CHECK( sizeof(wd_part_sector_t)	== WII_SECTOR_SIZE );
     CHECK( sizeof(wd_fst_item_t)	== 12 ); // test because of union
 
-    CHECK( OFFSET(tik,title_key)	== WII_TICKET_KEY_OFFSET );
-    CHECK( OFFSET(tik,title_id)		== WII_TICKET_IV_OFFSET );
+    CHECK( OFFSET(tik,title_key)	== WII_TICKET_KEY_OFF );
+    CHECK( OFFSET(tik,title_id)		== WII_TICKET_IV_OFF );
+    CHECK( OFFSET(tik,issuer)		== WII_TICKET_SIG_OFF );
+    CHECK( OFFSET(tik,trucha_pad)	== WII_TICKET_BRUTE_FORCE_OFF );
     CHECK( sizeof(wd_ticket_t)		== WII_TICKET_SIZE );
 
     CHECK( OFFSET(tmd,issuer)		== WII_TMD_SIG_OFF );
@@ -109,12 +112,15 @@ int validate_file_format_sizes ( int trace_sizes )
 
     CHECK( sizeof(dol_header_t)		== DOL_HEADER_SIZE );
     CHECK( sizeof(wd_header_t)		== 0x100 );
+    CHECK( sizeof(wd_region_set_t)	== WII_REGION_SIZE );
     CHECK( sizeof(wd_boot_t)		== WII_BOOT_SIZE );
     CHECK( sizeof(wd_part_sector_t)	== WII_SECTOR_SIZE );
     CHECK( sizeof(wd_fst_item_t)	== 12 ); // test because of union
 
-    CHECK( OFFSET(tik,title_key)	== WII_TICKET_KEY_OFFSET );
-    CHECK( OFFSET(tik,title_id)		== WII_TICKET_IV_OFFSET );
+    CHECK( OFFSET(tik,title_key)	== WII_TICKET_KEY_OFF );
+    CHECK( OFFSET(tik,title_id)		== WII_TICKET_IV_OFF );
+    CHECK( OFFSET(tik,issuer)		== WII_TICKET_SIG_OFF );
+    CHECK( OFFSET(tik,trucha_pad)	== WII_TICKET_BRUTE_FORCE_OFF );
     CHECK( sizeof(wd_ticket_t)		== WII_TICKET_SIZE );
 
     CHECK( OFFSET(tmd,issuer)		== WII_TMD_SIG_OFF );
@@ -303,11 +309,100 @@ void hton_inode_info ( wbfs_inode_info_t * dest, const wbfs_inode_info_t * src )
 
 //
 ///////////////////////////////////////////////////////////////////////////////
-///////////////			struct wd_tmd_t			///////////////
+///////////////			struct wd_ticket_t		///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-const char tmd_not_encrypted[] = "*** partition is not encrypted ***";
+const char not_encrypted_marker[] = "*** partition is not encrypted ***";
 
+///////////////////////////////////////////////////////////////////////////////
+
+void ticket_clear_encryption ( wd_ticket_t * tik, int mark_not_encrypted )
+{
+    ASSERT(tik);
+
+    memset(tik->sig,0,sizeof(tik->sig));
+    memset(tik->sig_padding,0,sizeof(tik->sig_padding));
+    memset(tik->trucha_pad,0,sizeof(tik->trucha_pad));
+
+    if (mark_not_encrypted)
+    {
+	ASSERT( sizeof(not_encrypted_marker) < sizeof(tik->sig_padding));
+	ASSERT( sizeof(not_encrypted_marker) < sizeof(tik->trucha_pad));
+	strncpy( (char*)tik->sig_padding, not_encrypted_marker, sizeof(tik->sig_padding)-1 );
+	strncpy( (char*)tik->trucha_pad, not_encrypted_marker, sizeof(tik->trucha_pad)-1 );
+    }
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+int ticket_is_marked_not_encrypted ( const wd_ticket_t * tik )
+{
+    ASSERT(tik);
+    ASSERT( sizeof(not_encrypted_marker) < sizeof(tik->sig_padding));
+    ASSERT( sizeof(not_encrypted_marker) < sizeof(tik->trucha_pad));
+
+    return !strncmp( (char*)tik->sig_padding, not_encrypted_marker, sizeof(tik->sig_padding) )
+	&& !strncmp( (char*)tik->trucha_pad, not_encrypted_marker, sizeof(tik->trucha_pad) );
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+u32 ticket_sign_trucha ( wd_ticket_t * tik, u32 tik_size )
+{
+    ASSERT(tik);
+    ticket_clear_encryption(tik,0);
+
+    if (!tik_size)  // auto calculation
+	tik_size = sizeof(wd_ticket_t);
+
+    // trucha signing
+
+ #ifdef DEBUG
+    TRACE("TRUCHA: start brute force\n");
+    //TRACE_HEXDUMP16(0,0,tik,tik_size);
+ #endif
+
+    u32 val = 0, count = 0;
+    u8 hash[WII_HASH_SIZE];
+    do
+    {
+	count++;
+
+	memcpy(tik->trucha_pad,&val,sizeof(val));
+	SHA1( ((u8*)tik)+WII_TICKET_SIG_OFF, tik_size-WII_TICKET_SIG_OFF, hash );
+	if (!*hash)
+	    break;
+	//TRACE_HEXDUMP(0,0,1,WII_HASH_SIZE,hash,WII_HASH_SIZE);
+	val += 197731421; // any odd number
+
+    } while (val);
+
+    TRACE("TRUCHA: success, count=%u\n",count);
+    return *hash ? 0 : count;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+int ticket_is_trucha_signed ( const wd_ticket_t * tik, u32 tik_size )
+{
+    ASSERT(tik);
+   
+    if (!tik_size)  // auto calculation
+	tik_size = sizeof(wd_ticket_t);
+
+    int i;
+    for ( i = 0; i < sizeof(tik->sig); i++ )
+	if (tik->sig[i])
+	    return 0;
+	    
+    u8 hash[WII_HASH_SIZE];
+    SHA1( ((u8*)tik)+WII_TICKET_SIG_OFF, tik_size-WII_TICKET_SIG_OFF, hash );
+    return !*hash;
+}
+
+//
+///////////////////////////////////////////////////////////////////////////////
+///////////////			struct wd_tmd_t			///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
 void tmd_clear_encryption ( wd_tmd_t * tmd, int mark_not_encrypted )
@@ -320,10 +415,10 @@ void tmd_clear_encryption ( wd_tmd_t * tmd, int mark_not_encrypted )
 
     if (mark_not_encrypted)
     {
-	ASSERT( sizeof(tmd_not_encrypted) < sizeof(tmd->sig_padding));
-	ASSERT( sizeof(tmd_not_encrypted) < sizeof(tmd->reserved));
-	strncpy( (char*)tmd->sig_padding, tmd_not_encrypted, sizeof(tmd->sig_padding)-1 );
-	strncpy( (char*)tmd->reserved, tmd_not_encrypted, sizeof(tmd->reserved)-1 );
+	ASSERT( sizeof(not_encrypted_marker) < sizeof(tmd->sig_padding));
+	ASSERT( sizeof(not_encrypted_marker) < sizeof(tmd->reserved));
+	strncpy( (char*)tmd->sig_padding, not_encrypted_marker, sizeof(tmd->sig_padding)-1 );
+	strncpy( (char*)tmd->reserved, not_encrypted_marker, sizeof(tmd->reserved)-1 );
     }
 }
 
@@ -332,11 +427,11 @@ void tmd_clear_encryption ( wd_tmd_t * tmd, int mark_not_encrypted )
 int tmd_is_marked_not_encrypted ( const wd_tmd_t * tmd )
 {
     ASSERT(tmd);
-    ASSERT( sizeof(tmd_not_encrypted) < sizeof(tmd->sig_padding));
-    ASSERT( sizeof(tmd_not_encrypted) < sizeof(tmd->reserved));
+    ASSERT( sizeof(not_encrypted_marker) < sizeof(tmd->sig_padding));
+    ASSERT( sizeof(not_encrypted_marker) < sizeof(tmd->reserved));
 
-    return !strncmp( (char*)tmd->sig_padding, tmd_not_encrypted, sizeof(tmd->sig_padding) )
-	&& !strncmp( (char*)tmd->reserved, tmd_not_encrypted, sizeof(tmd->reserved) );
+    return !strncmp( (char*)tmd->sig_padding, not_encrypted_marker, sizeof(tmd->sig_padding) )
+	&& !strncmp( (char*)tmd->reserved, not_encrypted_marker, sizeof(tmd->reserved) );
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -569,9 +664,11 @@ u32 part_control_sign_trucha ( wd_part_control_t * pc, int calc_h4 )
 	// caluclate SHA1 hash 'h4'
 	if ( calc_h4 && pc->tmd_content )
 	    SHA1( pc->h3, pc->h3_size, pc->tmd_content->hash );
-     
+
 	// trucha signing
-	stat = tmd_sign_trucha(pc->tmd,pc->tmd_size);
+	const u32 stat1 = tmd_sign_trucha(pc->tmd,pc->tmd_size);
+	const u32 stat2 = ticket_sign_trucha(&pc->head->ticket,0);
+	stat = stat1 && stat2 ? stat + stat2 : 0;
     }
 
     return stat;

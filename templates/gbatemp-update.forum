@@ -12,18 +12,8 @@ I have updated the tool. The [url=@@URI-GBATEMP@@][b]first post with more detail
 [*] [url=@@URI-DOWNLOAD-X86_64@@][b]@@DISTRIB-X86_64@@[/b][/url] : linux/x86_64 version
 [*] [url=@@URI-DOWNLOAD-MAC@@][b]@@DISTRIB-MAC@@[/b][/url] : Mac OS universal binaries (ppc, i386 and x86-64)
 [*] [url=@@URI-DOWNLOAD-CYGWIN@@][b]@@DISTRIB-CYGWIN@@[/b][/url] : cygwin (win32) version
-[/list]
-
-[size="2"][color="#000080"][b]Download of the previous stable version:[/b][/color][/size][list]
-[*] [url=@@URI-DOWNLOAD-PREV-I386@@][b]@@PREV-DISTRIB-I386@@[/b][/url] : linux/i386 version
-[*] [url=@@URI-DOWNLOAD-PREV-X86_64@@][b]@@PREV-DISTRIB-X86_64@@[/b][/url] : linux/x86_64 version
-[*] [url=@@URI-DOWNLOAD-PREV-MAC@@][b]@@PREV-DISTRIB-MAC@@[/b][/url] : Mac OS universal binaries (ppc, i386 and x86-64)
-[*] [url=@@URI-DOWNLOAD-PREV-CYGWIN@@][b]@@PREV-DISTRIB-CYGWIN@@[/b][/url] : cygwin (win32) version
-[/list]
-
-[size="2"][color="#000080"][b]Download other releases:[/b][/color][/size][list]
-[*] [url=@@URI-DOWNLOAD-PREV-MIPSEL@@][b]@@PREV-DISTRIB-MIPSEL@@[/b][/url] : mipsel release by Bauldrick
-[*] [url=@@URI-DOWNLOAD-PREV-POWERPC@@][b]@@PREV-DISTRIB-POWERPC@@[/b][/url] : powerpc release by Bauldrick
+[color=#ffffff].[/color]
+[*] Previous releases are available from [url=http://wit.wiimm.de/download.html]http://wit.wiimm.de/download.html[/url].
 [/list]
 
 
@@ -35,23 +25,10 @@ I have updated the tool. The [url=@@URI-GBATEMP@@][b]first post with more detail
 
 [size="2"][color="#000080"][b]Highlights of this release:[/b][/color][/size]
 [list]
-[*] I have reimplemeted the user interface (UI). With UI I mean analyzing of the command line for comamnds and options and ouput of the implemented help.
-
-To make live easier I have written a code generator. It create C source tables for generic operations of commands, options and help messages. This code generator generates also a definition file for [url=http://wit.wiimm.de/]online help[/url].
+[*] With help from Giantpune I have improved the composing of Wii ISO images. The are several new options to change the content of the system files (--region= --ios= --id= --name=). Now not only TMD, but also TICKET will be trucha signed.
 [color=#ffffff].[/color]
 
-[*][color=#800000]This release is a little bit experimental because of the rededign of the user interfac.[/color]
-
-[*] Because of the new UI The tools [b]wit[/b] und [b]wwt[/b] are able to print command specific help. Just type "tool HELP command" (example: "wit help copy").
-[color=#ffffff].[/color]
-
-[*] The help messages are created on the fly. Because of this all tools find out the current window width to format the output.
-[color=#ffffff].[/color]
-
-[*] While creating the text documentation (part of the package) it is automatically filled with the help messages of the tools.
-[color=#ffffff].[/color]
-
-[*] [color=#800000]I hope that I have not forgotten any previos working option.[/color]
+[*] To compose a ISO image just use one of the commands which wil accept ISO images as source like [url=http://wit.wiimm.de/wit/cmd-copy.html]"wit COPY"[/url] or [url=http://wit.wiimm.de/wwt/cmd-add.html]"wwt ADD"[/url]. The (not finished) article [url=http://wit.wiimm.de/info/composing.html]"Composing Wii ISO Images"[/url] explains composing details.
 [color=#ffffff].[/color]
 [/list]
 

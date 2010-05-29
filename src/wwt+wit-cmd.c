@@ -116,8 +116,25 @@ enumError cmd_test_options()
     printf("  print-time:  %16x = %d\n",opt_print_time,opt_print_time);
     printf("  sort-mode:   %16x = %d\n",sort_mode,sort_mode);
     printf("  limit:       %16x = %d\n",opt_limit,opt_limit);
-    printf("  enc:         %16x = %d\n",encoding,encoding);
     printf("  rdepth:      %16x = %d\n",opt_recurse_depth,opt_recurse_depth);
+    printf("  enc:         %16x = %d\n",encoding,encoding);
+    printf("  region:      %16x = %d\n",opt_region,opt_region);
+
+    if (opt_ios_valid)
+    {
+	const u32 hi = opt_ios >> 32;
+	const u32 lo = (u32)opt_ios;
+	if ( hi == 1 && lo < 0x100 )
+	    printf("  ios:        %08x-%08x = IOS %u\n", hi, lo, lo );
+	else
+	    printf("  ios:        %08x-%08x\n", hi, lo );
+    }
+
+    printf("  modify:      %16x = %d\n",opt_modify,opt_modify);
+    if (modify_id)
+	printf("  modify id:   '%s'\n",modify_id);
+    if (modify_name)
+	printf("  modify name: '%s'\n",modify_name);
 
  #if IS_WWT
     char buf_set_time[20];

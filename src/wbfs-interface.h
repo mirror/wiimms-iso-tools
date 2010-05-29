@@ -316,9 +316,6 @@ void SortWDiscList	( WDiscList_t * wlist, enum SortMode sort_mode,
 
 void PrintSectWDiscListItem ( FILE * out, WDiscListItem_t * witem, ccp def_fname );
 
-extern ccp RegionTable[];
-ccp * GetRegionInfo ( char region_code );
-
 //-----------------------------------------------------------------------------
 
 enumError OpenWDiscID6	( WBFS_t * w, ccp id6 );

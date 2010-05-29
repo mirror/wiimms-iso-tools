@@ -554,6 +554,29 @@ wwt v0.45a r1012 - 2010-05-05
     sectors (keyword "scrubbed"). All five hash levels (H0..H4) are verified.
     This means 64 AES decryptions and 1029 SHA1 calculations for each MiB.
 
+wit v0.46a r1043 - 2010-05-13
+
+  - The main name have changed from "Wiimms WBFS Tool" to "Wiimms ISO Tools".
+    The following things are changed too:
+     - '/usr/local/share/wwt/' moved to '/usr/local/share/wit/'
+     - Environment variable WWT_LANG moved to WIT_LANG.
+  - wwt INIT --recover: recover also previous deleted files. Discs with
+    collisions (use blocks that other discs also use) are never recovered.
+  - New command: wwt RECOVER: Works like "wwt INIT --recover", but only with
+    already WBFS formatted files => not formatting, only recovering.
+    "wwt RECOVER" can be used with the option --test to see what happen.
+  - wit VERIFY: Output messages redesigned. Verbosity can be controlled in
+    five levels from -qq up to -vv.
+  - The new option --limit sets a limit for VERIFY error messages.
+  - New command: wwt VERIFY: works like "wit VERIFY" but with wwt interface.
+    It also supports options --remove and --no-free for removing or dropping
+    invalid discs.
+  - Docu of wit+wwt VERIFY and "wwt RECOVER" added.
+  - Minor bug fix for wwt CHECK: It have shown 'free blocks' errors for some
+    removed discs if this the discs removed with a non wwt tool.
+  - CGYWIN release: The new batch file 'run-cmd-as-admin.bat' starts a cmd
+    window in administrator mode. This should simplify the work with wwt.
+
 @@MODULE(last-history.txt)@@
 
 

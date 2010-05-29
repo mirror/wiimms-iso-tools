@@ -28,7 +28,7 @@ function load_and_store()
 	grep -v ^TITLES "$DEST.tmp" >"$DEST.tmp.2"
 	if ! diff -q "$DEST.tmp.1" "$DEST.tmp.2" >/dev/null
 	then
-	    echo "            => content changed!"
+	    #echo "            => content changed!"
 	    mv "$DEST.tmp" "$DEST"
 	fi
     fi

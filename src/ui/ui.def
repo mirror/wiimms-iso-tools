@@ -1,4 +1,9 @@
 
+##
+###############################################################################
+###############                   Tool 'wit'                    ###############
+###############################################################################
+
 #:def_tool( "wit", \
 	"wit [option]... command [option|parameter|@file]...", \
 	"Wiimms ISO Tool" )
@@ -43,7 +48,8 @@
 
 #:def_cmd( "DUMP", "DUMP|D", \
 	"wit DUMP [source]...", \
-	"Dump the data structure of ISO files." )
+	"Dump the data structure of Wii ISO files, boot.bin, fst.bin and of" \
+	" DOL-files." )
 
 #:def_cmd( "ID6", "ID6|ID", \
 	"wit ID6 [source]...", \
@@ -67,15 +73,15 @@
 
 #:def_cmd( "ILIST", "ILIST|IL", \
 	"wit ILIST [source]...", \
-	"List all files if all discs." )
+	"List all files of all discs." )
 
 #:def_cmd( "ILIST_L", "ILIST-L|ILL", \
 	"wit ILIST-L [source]...", \
-	"List all files if all discs. Same as 'ILIST --long'." )
+	"List all files of all discs. Same as 'ILIST --long'." )
 
 #:def_cmd( "ILIST_LL", "ILIST-LL|ILLL", \
 	"wit ILIST-LL [source]...", \
-	"List all files if all discs. Same as 'ILIST --long --long'." )
+	"List all files of all discs. Same as 'ILIST --long --long'." )
 
 #:def_cmd( "DIFF", "DIFF|CMP", \
 	"wit DIFF source dest\n" \
@@ -138,7 +144,7 @@
 	"Be verbose and print more progress information. Multiple usage is" \
 	" possible: Progress counter is enabled if set at least two times." \
 	" Extended logging is enabled if set at least four times. The impact" \
-	" of other verbose level is command dependend." )
+	" of the other verbose levels are command dependent." )
 
 #:def_opt( "PROGRESS", "P|progress", "G", \
 	"", \
@@ -200,7 +206,7 @@
 	"id", \
 	"Include only discs with given ID4 or ID6 from operation. If the" \
 	" parameter begins with a '@' the given file is read and each line is" \
-	" scanned for IDs," )
+	" scanned for IDs." )
 
 #:def_opt( "INCLUDE_PATH", "N|include-path|includepath", "CMP", \
 	"file_or_dir", \
@@ -223,7 +229,7 @@
 
 #:def_opt( "IGNORE_FST", "ignore-fst|ignorefst", "C", \
 	"", \
-	"Ignore FST directories as input." )
+	"Disable composing and ignore FST directories as input." )
 
 #:def_opt( "PSEL", "psel", "CP", \
 	"p-type", \
@@ -248,9 +254,42 @@
 
 #:def_opt( "ENC", "enc", "CP", \
 	"encoding", \
-	"Define the encoding mode.  The mode is one of NONE, HASHONLY," \
-	" DECRYPT, ENCRYPT, SIGN or AUTO. The case of the keywords is ignored." \
-	" The default mode is 'AUTO'." )
+	"Define the encoding mode. The mode is one of NONE, HASHONLY, DECRYPT," \
+	" ENCRYPT, SIGN or AUTO. The case of the keywords is ignored. The" \
+	" default mode is 'AUTO'." )
+
+#:def_opt( "REGION", "region", "CP", \
+	"region", \
+	"Define the region of the disc.  The region is one of JAPAN, USA," \
+	" EUROPE, KOREA, FILE or AUTO (default). The case of the keywords is" \
+	" ignored. Unsigned numbers are also accepted." )
+
+#:def_opt( "IOS", "ios", "CP", \
+	"ios", \
+	"Define the system version (IOS to load) within TMD.  The format is" \
+	" 'HIGH:LOW' or 'HIGH-LOW' or 'LOW'. If only LOW is set than HIGH is" \
+	" assumed as 1 (standard IOS)." )
+
+#:def_opt( "ID", "id", "CP", \
+	"id", \
+	"Change the ID of the disc to the given parameter. 1 to 6 characters" \
+	" are expected. Only defined characters not equal '.' are modified." \
+	" The disc header, boot.bin, ticket.bin and tmd.bin are  objects to" \
+	" modify. The option --modify= selects the objects." )
+
+#:def_opt( "NAME", "name", "CP", \
+	"name", \
+	"Change the name (disc title) of the disc to the given parameter. Up" \
+	" to 63 characters are expected. The disc header and boot.bin are" \
+	" objects to modify. The option --modify= selects the objects." )
+
+#:def_opt( "MODIFY", "modify", "CP", \
+	"list", \
+	" The parameter is a comma separated list of the following keywords," \
+	" case is ignored: NONE, DISC, BOOT, TICKET, TMD, WBFS, ALL and AUTO" \
+	" (default).\n" \
+	" All keyword can be prefixed by '+' to enable that opton, by a '-' to" \
+	" disable it or by a '=' to enable that option and disable all others." )
 
 #:def_opt( "DEST", "d|dest", "CP", \
 	"path", \
@@ -619,6 +658,26 @@
 	"" )
 
 #:def_cmd_opt( "DUMP", "ENC", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "DUMP", "REGION", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "DUMP", "IOS", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "DUMP", "ID", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "DUMP", "NAME", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "DUMP", "MODIFY", \
 	"", \
 	"" )
 
@@ -1491,10 +1550,6 @@
 	"", \
 	"" )
 
-#:def_cmd_opt( "EXTRACT", "ENC", \
-	"", \
-	"" )
-
 #:def_cmd_opt( "EXTRACT", "PROGRESS", \
 	"", \
 	"" )
@@ -1508,6 +1563,30 @@
 	"" )
 
 #:def_cmd_opt( "EXTRACT", "ESC", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "EXTRACT", "ENC", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "EXTRACT", "REGION", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "EXTRACT", "IOS", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "EXTRACT", "ID", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "EXTRACT", "NAME", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "EXTRACT", "MODIFY", \
 	"", \
 	"" )
 
@@ -1613,10 +1692,6 @@
 	"", \
 	"" )
 
-#:def_cmd_opt( "COPY", "ENC", \
-	"", \
-	"" )
-
 #:def_cmd_opt( "COPY", "PROGRESS", \
 	"", \
 	"" )
@@ -1630,6 +1705,30 @@
 	"" )
 
 #:def_cmd_opt( "COPY", "ESC", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "COPY", "ENC", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "COPY", "REGION", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "COPY", "IOS", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "COPY", "ID", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "COPY", "NAME", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "COPY", "MODIFY", \
 	"", \
 	"" )
 
@@ -1766,6 +1865,30 @@
 	"" )
 
 #:def_cmd_opt( "SCRUB", "PRESERVE", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "SCRUB", "ENC", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "SCRUB", "REGION", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "SCRUB", "IOS", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "SCRUB", "ID", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "SCRUB", "NAME", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "SCRUB", "MODIFY", \
 	"", \
 	"" )
 
@@ -2100,6 +2223,11 @@
 	" is printed too." )
 
 
+##
+###############################################################################
+###############                   Tool 'wwt'                    ###############
+###############################################################################
+
 #:def_tool( "wwt", \
 	"wwt [option]... command [option|parameter|@file]...", \
 	"Wiimms WBFS Tool" )
@@ -2277,7 +2405,7 @@
 	"Be verbose and print more progress information. Multiple usage is" \
 	" possible: Progress counter is enabled if set at least two times." \
 	" Extended logging is enabled if set at least four times. The impact" \
-	" of other verbose level is command dependend." )
+	" of the other verbose levels are command dependent." )
 
 #:def_opt( "PROGRESS", "P|progress", "G", \
 	"", \
@@ -2359,7 +2487,7 @@
 	"id", \
 	"Include only discs with given ID4 or ID6 from operation. If the" \
 	" parameter begins with a '@' the given file is read and each line is" \
-	" scanned for IDs," )
+	" scanned for IDs." )
 
 #:def_opt( "INCLUDE_PATH", "N|include-path|includepath", "CMP", \
 	"file_or_dir", \
@@ -2382,13 +2510,46 @@
 
 #:def_opt( "IGNORE_FST", "ignore-fst|ignorefst", "C", \
 	"", \
-	"Ignore FST directories as input." )
+	"Disable composing and ignore FST directories as input." )
 
 #:def_opt( "ENC", "enc", "CP", \
 	"encoding", \
-	"Define the encoding mode.  The mode is one of NONE, HASHONLY," \
-	" DECRYPT, ENCRYPT, SIGN or AUTO. The case of the keywords is ignored." \
-	" The default mode is 'AUTO'." )
+	"Define the encoding mode. The mode is one of NONE, HASHONLY, DECRYPT," \
+	" ENCRYPT, SIGN or AUTO. The case of the keywords is ignored. The" \
+	" default mode is 'AUTO'." )
+
+#:def_opt( "REGION", "region", "CP", \
+	"region", \
+	"Define the region of the disc.  The region is one of JAPAN, USA," \
+	" EUROPE, KOREA, FILE or AUTO (default). The case of the keywords is" \
+	" ignored. Unsigned numbers are also accepted." )
+
+#:def_opt( "IOS", "ios", "CP", \
+	"ios", \
+	"Define the system version (IOS to load) within TMD.  The format is" \
+	" 'HIGH:LOW' or 'HIGH-LOW' or 'LOW'. If only LOW is set than HIGH is" \
+	" assumed as 1 (standard IOS)." )
+
+#:def_opt( "ID", "id", "CP", \
+	"id", \
+	"Change the ID of the disc to the given parameter. 1 to 6 characters" \
+	" are expected. Only defined characters not equal '.' are modified." \
+	" The disc header, boot.bin, ticket.bin and tmd.bin are  objects to" \
+	" modify. The option --modify= selects the objects." )
+
+#:def_opt( "NAME", "name", "CP", \
+	"name", \
+	"Change the name (disc title) of the disc to the given parameter. Up" \
+	" to 63 characters are expected. The disc header and boot.bin are" \
+	" objects to modify. The option --modify= selects the objects." )
+
+#:def_opt( "MODIFY", "modify", "CP", \
+	"list", \
+	" The parameter is a comma separated list of the following keywords," \
+	" case is ignored: NONE, DISC, BOOT, TICKET, TMD, WBFS, ALL and AUTO" \
+	" (default).\n" \
+	" All keyword can be prefixed by '+' to enable that opton, by a '-' to" \
+	" disable it or by a '=' to enable that option and disable all others." )
 
 #:def_opt( "INODE", "inode", "C", \
 	"", \
@@ -3664,6 +3825,26 @@
 	"", \
 	"" )
 
+#:def_cmd_opt( "ADD", "REGION", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "ADD", "IOS", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "ADD", "ID", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "ADD", "NAME", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "ADD", "MODIFY", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "ADD", "REMOVE", \
 	"", \
 	"" )
@@ -3791,6 +3972,26 @@
 	"", \
 	"" )
 
+#:def_cmd_opt( "UPDATE", "REGION", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "UPDATE", "IOS", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "UPDATE", "ID", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "UPDATE", "NAME", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "UPDATE", "MODIFY", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "UPDATE", "REMOVE", \
 	"", \
 	"" )
@@ -3907,6 +4108,26 @@
 	"" )
 
 #:def_cmd_opt( "SYNC", "ENC", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "SYNC", "REGION", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "SYNC", "IOS", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "SYNC", "ID", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "SYNC", "NAME", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "SYNC", "MODIFY", \
 	"", \
 	"" )
 
@@ -4502,6 +4723,11 @@
 	" the region is printed too." )
 
 
+##
+###############################################################################
+###############                 Tool 'iso2wbfs'                 ###############
+###############################################################################
+
 #:def_tool( "iso2wbfs", \
 	"iso2wbfs [option]... files...", \
 	"Convert Wii ISO images into WBFS files and split at 4 GB." )
@@ -4582,6 +4808,11 @@
 	"", \
 	"Overwrite already existing files." )
 
+
+##
+###############################################################################
+###############                 Tool 'iso2wdf'                  ###############
+###############################################################################
 
 #:def_tool( "iso2wdf", \
 	"iso2wdf [option]... files...", \
@@ -4664,6 +4895,11 @@
 	"Overwrite already existing files." )
 
 
+##
+###############################################################################
+###############                 Tool 'wdf2iso'                  ###############
+###############################################################################
+
 #:def_tool( "wdf2iso", \
 	"wdf2iso [option]... files...", \
 	"Convert Wii ISO images into PLAIN ISO files." )
@@ -4745,6 +4981,11 @@
 	"Overwrite already existing files." )
 
 
+##
+###############################################################################
+###############                 Tool 'wdf-cat'                  ###############
+###############################################################################
+
 #:def_tool( "wdf-cat", \
 	"wdf-cat [option]... files...", \
 	"Dump the file contents to standard output (stdout) and extract WDF" \
@@ -4769,6 +5010,11 @@
 	" fopen() function. The value '2' defines the same for ISO files and" \
 	" the value '3' for both, WBFS and ISO." )
 
+
+##
+###############################################################################
+###############                 Tool 'wdf-dump'                 ###############
+###############################################################################
 
 #:def_tool( "wdf-dump", \
 	"wdf-dump [option]... files...", \
@@ -4808,4 +5054,43 @@
 #:def_opt( "LONG", "l|long", "G", \
 	"", \
 	"Obsolete alternative for --chunk" )
+
+
+##
+###############################################################################
+###############                   Region Info                   ###############
+###############################################################################
+
+#:def_tab("region",'A',2,0,"ALL ","All")
+#:def_tab("region",'B',2,0,"-?- ","-?-")
+#:def_tab("region",'C',2,0,"-?- ","-?-")
+#:def_tab("region",'D',2,1,"GERM","German")
+#:def_tab("region",'E',1,1,"NTSC","NTSC")
+#:def_tab("region",'F',2,1,"FREN","French")
+#:def_tab("region",'G',2,0,"-?- ","-?-")
+#:def_tab("region",'H',2,0,"-?- ","-?-")
+#:def_tab("region",'I',2,1,"ITAL","Italian")
+#:def_tab("region",'J',0,1,"JAPA","Japan")
+#:def_tab("region",'K',4,1,"KORE","Korea")
+#:def_tab("region",'L',0,1,"J>PL","Japan->PAL")
+#:def_tab("region",'M',1,1,"A>PL","America->PAL")
+#:def_tab("region",'N',0,1,"J>US","Japan->NTSC")
+#:def_tab("region",'O',2,0,"-?- ","-?-")
+#:def_tab("region",'P',2,1,"PAL ","PAL")
+#:def_tab("region",'Q',4,1,"KO/J","Korea (japanese)")
+#:def_tab("region",'R',2,0,"-?- ","-?-")
+#:def_tab("region",'S',2,1,"SPAN","Spanish")
+#:def_tab("region",'T',4,1,"KO/E","Korea (english)")
+#:def_tab("region",'U',2,0,"-?- ","-?-")
+#:def_tab("region",'V',2,0,"-?- ","-?-")
+#:def_tab("region",'W',2,0,"-?- ","-?-")
+#:def_tab("region",'X',2,1,"RF  ","Region free")
+#:def_tab("region",'Y',2,0,"-?- ","-?-")
+#:def_tab("region",'Z',2,0,"-?- ","-?-")
+#:def_tab("region",'', 2,0,"-?- ","-?-")
+
+##
+###############################################################################
+###############                       END                       ###############
+###############################################################################
 

@@ -1,27 +1,4 @@
-wit v0.46a r1043 - 2010-05-13
-
-  - The main name have changed from "Wiimms WBFS Tool" to "Wiimms ISO Tools".
-    The following things are changed too:
-     - '/usr/local/share/wwt/' moved to '/usr/local/share/wit/'
-     - Environment variable WWT_LANG moved to WIT_LANG.
-  - wwt INIT --recover: recover also previous deleted files. Discs with
-    collisions (use blocks that other discs also use) are never recovered.
-  - New command: wwt RECOVER: Works like "wwt INIT --recover", but only with
-    already WBFS formatted files => not formatting, only recovering.
-    "wwt RECOVER" can be used with the option --test to see what happen.
-  - wit VERIFY: Output messages redesigned. Verbosity can be controlled in
-    five levels from -qq up to -vv.
-  - The new option --limit sets a limit for VERIFY error messages.
-  - New command: wwt VERIFY: works like "wit VERIFY" but with wwt interface.
-    It also supports options --remove and --no-free for removing or dropping
-    invalid discs.
-  - Docu of wit+wwt VERIFY and "wwt RECOVER" added.
-  - Minor bug fix for wwt CHECK: It have shown 'free blocks' errors for some
-    removed discs if this the discs removed with a non wwt tool.
-  - CGYWIN release: The new batch file 'run-cmd-as-admin.bat' starts a cmd
-    window in administrator mode. This should simplify the work with wwt.
-
-wit v@.@@@ r@@REV-NEXT@@ - @@@@-@@-@@
+wit v0.47a r1106 - 2010-05-22
 
   - ID checking redesigned, underscore is now an allowed character.
   - Command line parsing rewritten: Commands and command specific options are
@@ -32,6 +9,26 @@ wit v@.@@@ r@@REV-NEXT@@ - @@@@-@@-@@
     The output is now aligned to the current terminal width.
   - The documentation of all new options is now complete.
   - Bug fix: wit has shown wrong file size for splitted ISO images.
+
+wit v@.@@@ r@@REV-NEXT@@ - @@@@-@@-@@
+
+ - wit SCRUB: Option --enc= available to encrypt and decrypt disc images.
+ - Bug fix for wit COPY: Creating a WBFS file with FST as source failed.
+ - Bug fix: If reading from a CISO a minimal file size is now set.
+ - Composing bug fix: Forgotten to set offset 0x4fffc to value 0xc3f81a8e.
+ - New option --id=id: Modify ID in disc header, boot.bin, ticket.bin
+   and tmd.bin when composing a Wii ISO image.
+ - New option --name=name: Modify dics title in disc header and boot.bin
+   when composing a Wii ISO image.
+ - New option --modify=NONE,DISC,BOOT,TICKET,TMD,ALL,AUTO: decides which
+   of disc header, boot.bin, ticket.bin and/or tmd.bin is modified when
+   using the options --id=id or  --name=name.
+ - New option --region=JAPAN,USA,EUROPE,KOREA,FILE,AUTO: Set region when
+   composing a Wii ISO image. Unsigned numbers are also allowed.
+ - New option --ios=number or --ios=high-low: Define system version (IOS)
+   within TMD when composing a Wii ISO image.
+ - TMD and TICKET (=new) will be trucha signed if composing a disc.
+ - All UTF-8 characters with code >= 0x80 are allowed in filenames.
 
 Missing docu:
   - wit commands ILIST + EXTRACT

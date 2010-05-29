@@ -139,7 +139,7 @@ enumError do_zero ( u64 size64 )
 	if ( SIGINT_level > 1 )
 	    return ERR_INTERRUPT;
 
-	u32 size = sizeof(iobuf);
+	u32 size = sizeof(zerobuf);
 	if ( size > size64 )
 	    size = (u32)size64;
 

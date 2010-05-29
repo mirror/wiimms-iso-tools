@@ -59,7 +59,6 @@ int  ignore_count	= 0;
 int  testmode		= 0;
 ccp  opt_dest		= 0;
 bool opt_mkdir		= false;
-bool opt_ignore_fst	= 0;
 int  opt_limit		= -1;
 
 enumIOMode io_mode	= 0;
@@ -197,7 +196,7 @@ enumError cmd_filelist()
     it.func		= exec_filelist;
     it.act_non_exist	= ignore_count > 0 ? ACT_IGNORE : ACT_ALLOW;
     it.act_non_iso	= ignore_count > 1 ? ACT_IGNORE : ACT_ALLOW;
-    it.act_fst		= opt_ignore_fst ? ACT_IGNORE : ACT_ALLOW;
+    it.act_fst		= allow_fst ? ACT_ALLOW : ACT_IGNORE;
     it.long_count	= long_count;
     const enumError err = SourceIterator(&it,true,false);
     ResetIterator(&it);
@@ -232,7 +231,7 @@ enumError exec_filetype ( SuperFile_t * sf, Iterator_t * it )
 	char size[10] = "   -";
 	if (sf->f.id6[0])
 	{
-	    region = *GetRegionInfo(sf->f.id6[3]);
+	    region = GetRegionInfo(sf->f.id6[3])->name4;
 	    u32 count = CountUsedIsoBlocksSF(sf,partition_selector);
 	    if (count)
 		snprintf(size,sizeof(size),"%4u",
@@ -287,7 +286,7 @@ enumError cmd_filetype()
     it.func		= exec_filetype;
     it.act_non_exist	= ignore_count > 0 ? ACT_IGNORE : ACT_ALLOW;
     it.act_non_iso	= ignore_count > 1 ? ACT_IGNORE : ACT_ALLOW;
-    it.act_fst		= opt_ignore_fst ? ACT_IGNORE
+    it.act_fst		= !allow_fst ? ACT_IGNORE
 					 : long_count > 1 ? ACT_EXPAND : ACT_ALLOW;
     it.long_count	= long_count;
     const enumError err = SourceIterator(&it,true,false);
@@ -392,7 +391,7 @@ enumError cmd_isosize()
     it.func		= exec_isosize;
     it.act_non_exist	= ignore_count > 0 ? ACT_IGNORE : ACT_ALLOW;
     it.act_non_iso	= ignore_count > 1 ? ACT_IGNORE : ACT_ALLOW;
-    it.act_fst		= opt_ignore_fst ? ACT_IGNORE : ACT_EXPAND;
+    it.act_fst		= allow_fst ? ACT_EXPAND : ACT_IGNORE;
     it.act_wbfs		= ACT_EXPAND;
     it.long_count	= long_count;
     const enumError err = SourceIterator(&it,true,false);
@@ -454,7 +453,7 @@ enumError cmd_dump()
     it.func		= exec_dump;
     it.act_known	= ACT_ALLOW;
     it.act_wbfs		= ACT_EXPAND;
-    it.act_fst		= opt_ignore_fst ? ACT_IGNORE : ACT_EXPAND;
+    it.act_fst		= allow_fst ? ACT_EXPAND : ACT_IGNORE;
     it.long_count	= long_count;
 
     enumError err = SourceIterator(&it,false,true);
@@ -530,7 +529,7 @@ enumError cmd_id6()
     InitializeIterator(&it);
     it.func		= exec_collect;
     it.act_wbfs		= ACT_EXPAND;
-    it.act_fst		= opt_ignore_fst ? ACT_IGNORE : ACT_EXPAND;
+    it.act_fst		= allow_fst ? ACT_EXPAND : ACT_IGNORE;
     it.long_count	= long_count;
     it.wlist		= &wlist;
 
@@ -574,7 +573,7 @@ enumError cmd_list ( int long_level )
     InitializeIterator(&it);
     it.func		= exec_collect;
     it.act_wbfs		= ACT_EXPAND;
-    it.act_fst		= opt_ignore_fst ? ACT_IGNORE : ACT_EXPAND;
+    it.act_fst		= allow_fst ? ACT_EXPAND : ACT_IGNORE;
     it.long_count	= long_count;
     it.real_filename	= print_sections > 0;
     it.wlist		= &wlist;
@@ -750,7 +749,7 @@ enumError exec_ilist ( SuperFile_t * fi, Iterator_t * it )
 	    const u32 total = fst.files_served + fst.dirs_served;
 	    if ( file_used < total )
 		printf("\n%u of %u dirs+files of %s:%s\n\n",
-			file_used, total, oft_name[ifi.sf->oft], ifi.sf->f.fname );
+			file_used, total, oft_name[ifi.sf->iod.oft], ifi.sf->f.fname );
 	    else
 		printf("\nall %u dirs+files of ISO %s\n\n",
 			file_used, ifi.sf->f.fname );
@@ -821,7 +820,7 @@ enumError cmd_ilist ( int long_level )
     InitializeIterator(&it);
     it.act_non_iso	= used_options & OB_IGNORE ? ACT_IGNORE : ACT_WARN;
     it.act_wbfs		= ACT_EXPAND;
-    it.act_fst		= opt_ignore_fst ? ACT_IGNORE : ACT_EXPAND;
+    it.act_fst		= allow_fst ? ACT_EXPAND : ACT_IGNORE;
     it.long_count	= long_count;
 
     enumError err = SourceIterator(&it,false,true);
@@ -848,7 +847,7 @@ enumError exec_diff ( SuperFile_t * f1, Iterator_t * it )
 
     SuperFile_t f2;
     InitializeSF(&f2);
-    f2.allow_fst = !opt_ignore_fst;
+    f2.allow_fst = allow_fst;
 
     enumOFT oft = CalcOFT(output_file_type,opt_dest,f1->f.fname,OFT__DEFAULT);
     ccp oname = oft == OFT_FST
@@ -880,7 +879,8 @@ enumError exec_diff ( SuperFile_t * f1, Iterator_t * it )
     {
 	printf( "%s: WOULD DIFF/%s %s:%s : %s:%s\n",
 		progname, raw_mode ? "RAW" : "SCRUB",
-		oft_name[f1->oft], f1->f.fname, oft_name[f2.oft], f2.f.fname );
+		oft_name[f1->iod.oft], f1->f.fname,
+		oft_name[f2.iod.oft], f2.f.fname );
 	ResetSF(&f2,0);
 	return ERR_OK;
     }
@@ -889,7 +889,8 @@ enumError exec_diff ( SuperFile_t * f1, Iterator_t * it )
     {
 	printf( "* DIFF/%s %s:%s -> %s:%s\n",
 		raw_mode ? "RAW" : "SCRUB",
-		oft_name[f1->oft], f1->f.fname, oft_name[f2.oft], f2.f.fname );
+		oft_name[f1->iod.oft], f1->f.fname,
+		oft_name[f2.iod.oft], f2.f.fname );
     }
 
     const partition_selector_t psel = raw_mode ? WHOLE_DISC : partition_selector;
@@ -904,7 +905,8 @@ enumError exec_diff ( SuperFile_t * f1, Iterator_t * it )
 	err = ERR_OK;
 	if ( verbose >= 0 )
 	    printf( "! ISOs differ: %s:%s : %s:%s\n",
-			oft_name[f1->oft], f1->f.fname, oft_name[f2.oft], f2.f.fname );
+			oft_name[f1->iod.oft], f1->f.fname,
+			oft_name[f2.iod.oft], f2.f.fname );
     }
     it->done_count++;
 
@@ -933,9 +935,9 @@ enumError cmd_diff()
 	param->arg = 0;
     }
 
-    if ( output_file_type == OFT_UNKNOWN && !opt_ignore_fst && IsFST(opt_dest,0) )
+    if ( output_file_type == OFT_UNKNOWN && allow_fst && IsFST(opt_dest,0) )
 	output_file_type = OFT_FST;
-    if ( output_file_type == OFT_FST && opt_ignore_fst )
+    if ( output_file_type == OFT_FST && !allow_fst )
 	output_file_type = OFT_UNKNOWN;
 
     FilePattern_t * pat = GetDefaultFilePattern();
@@ -951,7 +953,7 @@ enumError cmd_diff()
     it.act_non_iso	= used_options & OB_IGNORE ? ACT_IGNORE : ACT_WARN;
     it.act_non_exist	= it.act_non_iso;
     it.act_wbfs		= ACT_EXPAND;
-    it.act_fst		= opt_ignore_fst ? ACT_IGNORE : ACT_EXPAND;
+    it.act_fst		= allow_fst ? ACT_EXPAND : ACT_IGNORE;
     it.long_count	= long_count;
 
     if ( testmode > 1 )
@@ -1009,7 +1011,7 @@ enumError exec_extract ( SuperFile_t * fi, Iterator_t * it )
     {
 	printf( "%s: %sEXTRACT %s:%s -> %s\n",
 		progname, testmode ? "WOULD " : "",
-		oft_name[fi->oft], fi->f.fname, dest_path );
+		oft_name[fi->iod.oft], fi->f.fname, dest_path );
 	if (testmode)
 	    return ERR_OK;
     }
@@ -1079,7 +1081,7 @@ enumError cmd_extract()
     InitializeIterator(&it);
     it.act_non_iso	= used_options & OB_IGNORE ? ACT_IGNORE : ACT_WARN;
     it.act_wbfs		= ACT_EXPAND;
-    it.act_fst		= opt_ignore_fst ? ACT_IGNORE : ACT_EXPAND;
+    it.act_fst		= allow_fst ? ACT_EXPAND : ACT_IGNORE;
     it.overwrite	= used_options & OB_OVERWRITE ? 1 : 0;
 
     enumError err = SourceIterator(&it,false,true);
@@ -1106,16 +1108,17 @@ enumError exec_copy ( SuperFile_t * fi, Iterator_t * it )
     const bool scrub_it = it->scrub_it
 		&& ( output_file_type == OFT_UNKNOWN || output_file_type == GetOFT(fi) );
 
+    ccp fname = fi->f.path ? fi->f.path : fi->f.fname;
     const enumOFT oft = scrub_it
 			? GetOFT(fi)
-			: CalcOFT(output_file_type,opt_dest,fi->f.fname,OFT__DEFAULT);
+			: CalcOFT(output_file_type,opt_dest,fname,OFT__DEFAULT);
 
     SuperFile_t fo;
     InitializeSF(&fo);
-    fo.oft = oft;
+    SetupIOD(&fo,oft,oft);
 
     if (scrub_it)
-	fo.f.fname = strdup(fi->f.fname);
+	fo.f.fname = strdup(fname);
     else
     {
 	TRACE("COPY, mkdir=%d\n",opt_mkdir);
@@ -1124,7 +1127,7 @@ enumError exec_copy ( SuperFile_t * fi, Iterator_t * it )
 			? fi->f.id6
 			: fi->f.outname
 				? fi->f.outname
-				: fi->f.fname;
+				: fname;
 	GenImageFileName(&fo.f,opt_dest,oname,oft);
 	SubstFileNameSF(&fo,fi,0);
 
@@ -1151,8 +1154,9 @@ enumError exec_copy ( SuperFile_t * fi, Iterator_t * it )
 		count_buf, oft_name[oft], fi->f.fname );
 	else
 	    printf( "%s: WOULD %s %s %s:%s -> %s:%s\n",
-		progname, raw_mode ? "COPY " : "SCRUB",
-		count_buf, oft_name[fi->oft], fi->f.fname, oft_name[oft], fo.f.fname );
+			progname, raw_mode ? "COPY " : "SCRUB", count_buf,
+			oft_name[fi->iod.oft], fi->f.fname,
+			oft_name[oft], fo.f.fname );
 	ResetSF(&fo,0);
 	return ERR_OK;
     }
@@ -1165,8 +1169,9 @@ enumError exec_copy ( SuperFile_t * fi, Iterator_t * it )
 		count_buf, oft_name[oft], fi->f.fname );
 	else
 	    printf( "* %s %s %s %s:%s -> %s:%s\n",
-		progname, raw_mode ? "COPY " : "SCRUB",
-		count_buf, oft_name[fi->oft], fi->f.fname, oft_name[oft], fo.f.fname );
+			progname, raw_mode ? "COPY " : "SCRUB", count_buf,
+		    oft_name[fi->iod.oft], fi->f.fname,
+		    oft_name[oft], fo.f.fname );
     }
 
     enumError err = CreateFile( &fo.f, 0, IOM_IS_IMAGE, it->overwrite );
@@ -1199,11 +1204,7 @@ enumError exec_copy ( SuperFile_t * fi, Iterator_t * it )
     if (it->remove_source)
 	RemoveSF(fi);
 
-    err = ResetSF( &fo, used_options & OB_PRESERVE ? &fi->f.fatt : 0 );
-    if (err)
-	goto abort;
-
-    return ERR_OK;
+    return ResetSF( &fo, used_options & OB_PRESERVE ? &fi->f.fatt : 0 );
 
  abort:
     RemoveSF(&fo);
@@ -1245,7 +1246,7 @@ enumError cmd_copy()
     InitializeIterator(&it);
     it.act_non_iso	= used_options & OB_IGNORE ? ACT_IGNORE : ACT_WARN;
     it.act_wbfs		= ACT_EXPAND;
-    it.act_fst		= opt_ignore_fst ? ACT_IGNORE : ACT_EXPAND;
+    it.act_fst		= allow_fst ? ACT_EXPAND : ACT_IGNORE;
     it.overwrite	= used_options & OB_OVERWRITE ? 1 : 0;
     it.update		= used_options & OB_UPDATE ? 1 : 0;
     it.remove_source	= used_options & OB_REMOVE ? 1 : 0;
@@ -1319,15 +1320,15 @@ enumError exec_move ( SuperFile_t * fi, Iterator_t * it )
 {
     SuperFile_t fo;
     InitializeSF(&fo);
-    fo.oft = fi->oft;
+    SetupIOD(&fo,fi->iod.oft,fi->iod.oft);
     fo.f.create_directory = opt_mkdir;
 
-    ccp oname = fi->oft == OFT_WBFS && fi->f.id6[0]
+    ccp oname = fi->iod.oft == OFT_WBFS && fi->f.id6[0]
 			? fi->f.id6
 			: fi->f.outname
 				? fi->f.outname
 				: fi->f.fname;
-    GenImageFileName(&fo.f,opt_dest,oname,fi->oft);
+    GenImageFileName(&fo.f,opt_dest,oname,fi->iod.oft);
     SubstFileNameSF(&fo,fi,0);
 
     if ( strcmp(fi->f.fname,fo.f.fname) )
@@ -1344,7 +1345,7 @@ enumError exec_move ( SuperFile_t * fi, Iterator_t * it )
 		printf(" - %sMove %*u/%u %s:%s -> %s\n",
 		    testmode ? "WOULD " : "",
 		    (int)strlen(iobuf), it->source_index+1, it->source_list.used,
-		    oft_name[fo.oft], fi->f.fname, fo.f.fname );
+		    oft_name[fo.iod.oft], fi->f.fname, fo.f.fname );
 	    }
 
 	    if ( !testmode && rename(fi->f.fname,fo.f.fname) )
@@ -1435,7 +1436,7 @@ enumError exec_rename ( SuperFile_t * fi, Iterator_t * it )
     if ( !change_wbfs && !change_iso )
 	change_wbfs = change_iso = true;
 
-    if ( fi->oft == OFT_WBFS )
+    if ( fi->iod.oft == OFT_WBFS )
     {
 	ASSERT(fi->wbfs);
 	return RenameWDisc( fi->wbfs, param->id6, param->arg,
@@ -1455,9 +1456,9 @@ enumError exec_rename ( SuperFile_t * fi, Iterator_t * it )
 	err = WriteSF(fi,0,buf,sizeof(buf));
 	if (err)
 	    return err;
-	if ( fi->oft == OFT_WDF )
+	if ( fi->iod.oft == OFT_WDF )
 	    err = TermWriteWDF(fi);
-	else if ( fi->oft == OFT_CISO )
+	else if ( fi->iod.oft == OFT_CISO )
 	    err = TermWriteCISO(fi);
     }
     return err;
@@ -1519,7 +1520,7 @@ enumError exec_verify ( SuperFile_t * fi, Iterator_t * it )
     {
 	printf( "%s: %sVERIFY %s:%s\n",
 		progname, testmode ? "WOULD " : "",
-		oft_name[fi->oft], fi->f.fname );
+		oft_name[fi->iod.oft], fi->f.fname );
 	if (testmode)
 	    return ERR_OK;
     }
@@ -1566,7 +1567,7 @@ enumError cmd_verify()
     InitializeIterator(&it);
     it.act_non_iso	= used_options & OB_IGNORE ? ACT_IGNORE : ACT_WARN;
     it.act_wbfs		= ACT_EXPAND;
-    it.act_fst		= opt_ignore_fst ? ACT_IGNORE : ACT_EXPAND;
+    it.act_fst		= allow_fst ? ACT_EXPAND : ACT_IGNORE;
     it.long_count	= long_count;
 
     if ( testmode > 1 )
@@ -1639,10 +1640,17 @@ enumError CheckOptions ( int argc, char ** argv, bool is_env )
 	case GO_EXCLUDE:	AtFileHelper(optarg,0,AddExcludeID); break;
 	case GO_EXCLUDE_PATH:	AtFileHelper(optarg,0,AddExcludePath); break;
 	case GO_IGNORE:		ignore_count++; break;
-	case GO_IGNORE_FST:	opt_ignore_fst = true; break;
+	case GO_IGNORE_FST:	allow_fst = false; break;
 
 	case GO_RAW:		partition_selector = WHOLE_DISC; break;
 	case GO_SNEEK:		SetupSneekMode(); break;
+	case GO_HOOK:		hook_enabled = true; break;
+	case GO_ENC:		err += ScanOptEncoding(optarg); break;
+	case GO_REGION:		err += ScanOptRegion(optarg); break;
+	case GO_IOS:		err += ScanOptIOS(optarg); break;
+	case GO_ID:		err += ScanOptId(optarg); break;
+	case GO_NAME:		err += ScanOptName(optarg); break;
+	case GO_MODIFY:		err += ScanOptModify(optarg); break;
 	case GO_DEST:		opt_dest = optarg; break;
 	case GO_DEST2:		opt_dest = optarg; opt_mkdir = true; break;
 	case GO_SPLIT:		opt_split++; break;
@@ -1694,16 +1702,6 @@ enumError CheckOptions ( int argc, char ** argv, bool is_env )
 	    }
 	    break;
 
-	case GO_ENC:
-	    {
-		const int new_encoding = ScanEncoding(optarg);
-		if ( new_encoding == -1 )
-		    err++;
-		else
-		    encoding = new_encoding;
-	    }
-	break;
-
 	case GO_FILES:
 	    if (AtFileHelper(optarg,PAT_OPT_FILES,AddFilePattern))
 		err++;
@@ -1736,6 +1734,9 @@ enumError CheckOptions ( int argc, char ** argv, bool is_env )
 		    opt_limit = limit;
 	    }
 	    break;
+
+	// no default case defined
+	//	=> compiler checks the existence of all enum values
 
       }
     }
@@ -1796,7 +1797,7 @@ enumError CheckCommand ( int argc, char ** argv )
     while ( argc-- > 0 )
 	AtFileHelper(*argv++,false,AddParam);
 
-    switch(cmd_ct->id)
+    switch ((enumCommands)cmd_ct->id)
     {
 	case CMD_VERSION:	version_exit();
 	case CMD_HELP:		PrintHelp(&InfoUI,stdout,0); break;
@@ -1830,7 +1831,11 @@ enumError CheckCommand ( int argc, char ** argv )
 
 	case CMD_VERIFY:	err = cmd_verify(); break;
 
-	default:
+	// no default case defined
+	//	=> compiler checks the existence of all enum values
+
+	case CMD__NONE:
+	case CMD__N:
 	    help_exit(false);
     }
 
@@ -1845,6 +1850,7 @@ enumError CheckCommand ( int argc, char ** argv )
 int main ( int argc, char ** argv )
 {
     SetupLib(argc,argv,WIT_SHORT,PROG_WIT);
+    allow_fst = true;
 
     ASSERT( OPT__N_SPECIFIC <= 64 );
 

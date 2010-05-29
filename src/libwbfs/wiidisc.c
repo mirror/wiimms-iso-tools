@@ -72,12 +72,12 @@ const u8 * wd_get_common_key()
 
 ///////////////////////////////////////////////////////////////////////////////
 
-void wd_decrypt_title_key ( wd_ticket_t * tik, u8 * title_key )
+void wd_decrypt_title_key ( const wd_ticket_t * tik, u8 * title_key )
 {
     u8 iv[WII_KEY_SIZE];
 
     wbfs_memset( iv, 0, sizeof(iv) );
-    wbfs_memcpy( iv, &tik->title_id, 8 );
+    wbfs_memcpy( iv, tik->title_id, 8 );
     aes_key_t akey;
     wd_aes_set_key( &akey, common_key );
     wd_aes_decrypt( &akey, iv, &tik->title_key, title_key, WII_KEY_SIZE );
@@ -623,7 +623,7 @@ static void do_files ( wiidisc_t * d )
     }
 
     u8 * apl_header		= wbfs_ioalloc(0x20);
-    const u32 apl_offset4	= WII_APL_OFFSET >> 2;
+    const u32 apl_offset4	= WII_APL_OFF >> 2;
     partition_read( d, apl_offset4, apl_header, 0x20,0);
     const u32 apl_size		= 0x20 + be32(apl_header+0x14) + be32(apl_header+0x18);
     wbfs_iofree(apl_header);
@@ -634,8 +634,8 @@ static void do_files ( wiidisc_t * d )
 
     if (d->file_iterator)
     {
-	const u32 boot_offset4	= WII_BOOT_OFFSET >> 2;
-	const u32 bi2_offset4	= WII_BI2_OFFSET >> 2;
+	const u32 boot_offset4	= WII_BOOT_OFF >> 2;
+	const u32 bi2_offset4	= WII_BI2_OFF >> 2;
 
 	iterator_dir    (d, "sys/", 5);
 	iterator_extract(d, "boot.bin",		boot_offset4,	WII_BOOT_SIZE );
@@ -671,53 +671,70 @@ static void do_partition ( wiidisc_t * d )
 {
     TRACE("do_partition()\n");
 
-    // read partition header
-    wd_part_header_t * ph = wbfs_ioalloc(sizeof(*ph));
-    if (!ph)
-	wbfs_fatal("malloc wd_part_header_t");
+    //----- alloc partition header
+
+    if (!d->ph)
+    {
+	d->ph = wbfs_ioalloc(sizeof(*d->ph));
+	if (!d->ph)
+	    wbfs_fatal("malloc wd_part_header_t");
+    }
+
+    //----- read partition header
+
+    wd_part_header_t * ph = d->ph;
     partition_raw_read(d,0,ph,sizeof(*ph));
     ntoh_part_header(ph,ph);
 
     wd_decrypt_title_key( &ph->ticket, d->partition_key );
     wd_aes_set_key(&d->partition_akey,d->partition_key);
 
-    // get offset and size values
+    //----- get offset and size values
+
     d->partition_data_offset4	= ph->data_off4;
     d->partition_data_size4	= ph->data_size4;
     d->partition_block		= d->partition_raw_offset4 +  ph->data_off4 >> 13;
     d->partition_offset4	= d->partition_block * WII_SECTOR_DATA_SIZE4;
 
-    // fake load cert + h3
+    //----- fake load cert + h3
+
     partition_raw_read( d, ph->cert_off4, 0, ph->cert_size );
     partition_raw_read( d, ph->h3_off4,   0, WII_H3_SIZE );
 
-    // load tmd
+    //----- load tmd
+    
     ASSERT( ph->tmd_size >= sizeof(wd_tmd_t) );
+    wbfs_iofree(d->tmd);
     wd_tmd_t * tmd = wbfs_ioalloc(ph->tmd_size);
     if (!tmd)
 	wbfs_fatal("malloc wd_tmd_t");
+    d->tmd = tmd;
     partition_raw_read( d, ph->tmd_off4,tmd, ph->tmd_size );
 
-    // check encryption and trucha signing
-    d->is_trucha_signed		= tmd_is_trucha_signed(tmd,ph->tmd_size);
+    //----- check encryption and trucha signing
+
+    d->tik_is_trucha_signed	= ticket_is_trucha_signed(&ph->ticket,0);
+    d->tmd_is_trucha_signed	= tmd_is_trucha_signed(tmd,ph->tmd_size);
     d->is_marked_not_enc	= tmd_is_marked_not_encrypted(tmd);
     d->is_encrypted = !d->is_marked_not_enc
 	&& wd_is_block_encrypted(d,&d->partition_akey,d->partition_block,1);
 
-    // mark whole partition ?
+    //----- mark whole partition ?
+
     d->usage_marker = 2 + d->partition_index;
     if ( d->part_sel == WHOLE_DISC && d->usage_table )
 	mark_usage_table_raw( d, ph->data_off4, ph->data_size4 );
 
+    //----- open partition ?
+
     if ( d->open_partition >= 0 )
     {
-	wbfs_iofree(tmd);
-	wbfs_iofree(ph);
 	d->usage_marker = 1;
 	return;
     }
 
-    // if file_iterator is set -> call it for each sys file
+    //----- if file_iterator is set -> call it for each sys file
+
     if (d->file_iterator)
     {
 	char part_name[20];
@@ -748,7 +765,8 @@ static void do_partition ( wiidisc_t * d )
 		break;
 	}
 
-	// signal: new partition
+	//----- signal: new partition
+
 	const u32 pro = d->partition_raw_offset4;
 	d->file_iterator(d,ICM_OPEN_PARTITION,pro,0,ph);
 
@@ -763,12 +781,12 @@ static void do_partition ( wiidisc_t * d )
 	iterator_copy(d, "region.bin",	WII_REGION_OFF>>2, sizeof(wd_region_set_t), 0 );
     }
 
-    // free dynamic mem
-    wbfs_iofree(tmd);
-    wbfs_iofree(ph);
+    //----- iterate files
 
-    // iterate files
     do_files(d);
+
+    //----- term
+
     if (d->file_iterator)
 	d->file_iterator(d,ICM_CLOSE_PARTITION,0,0,0);
     d->usage_marker = 1;
@@ -809,6 +827,7 @@ static void do_disc ( wiidisc_t * d )
 	d->usage_table[ 0 ] = 1;
 	d->usage_table[ WII_PART_INFO_OFF / WII_SECTOR_SIZE ] = 1;
 	d->usage_table[ WII_REGION_OFF    / WII_SECTOR_SIZE ] = 1;
+	d->usage_table[ WII_MAGIC2_OFF    / WII_SECTOR_SIZE ] = 1;
     }
 
     // read disc header and check magic
@@ -945,6 +964,8 @@ void wd_close_disc ( wiidisc_t * d )
 {
     TRACE("wd_close_disc()\n");
 
+    wbfs_iofree(d->ph);
+    wbfs_iofree(d->tmd);
     wbfs_iofree(d->block_buffer);
     wbfs_iofree(d->tmp_buffer);
     wbfs_free(d->tmp_buffer2);

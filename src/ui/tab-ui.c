@@ -6,31 +6,35 @@
 
 typedef enum enumType
 {
-	// base types
+	//----- base types
 
-	T_END		=   0x0001,  // end of list
-	T_DEF_TOOL	=   0x0002,  // start of a new tool
-	T_DEF_CMD	=   0x0004,  // define a command
-	T_SEP_CMD	=   0x0008,  // define a command separator
-	T_DEF_OPT	=   0x0010,  // define an option
-	T_SEP_OPT	=   0x0020,  // define an option separator
-	T_GRP_BEG	=   0x0040,  // start option definitions for a group
-	T_CMD_BEG	=   0x0080,  // start option definitions for a command
-	T_CMD_OPT	=   0x0100,  // allowed option for command
-	T_COPY_CMD	=   0x0200,  // copy options of other command
-	T_COPY_GRP	=   0x0400,  // copy options of group
-	T_ALL_OPT	=   0x0800,  // allow all options
+	T_END		=    0x0001,  // end of list
+	T_DEF_TOOL	=    0x0002,  // start of a new tool
+	T_DEF_CMD	=    0x0004,  // define a command
+	T_SEP_CMD	=    0x0008,  // define a command separator
+	T_DEF_OPT	=    0x0010,  // define an option
+	T_SEP_OPT	=    0x0020,  // define an option separator
+	T_GRP_BEG	=    0x0040,  // start option definitions for a group
+	T_CMD_BEG	=    0x0080,  // start option definitions for a command
+	T_CMD_OPT	=    0x0100,  // allowed option for command
+	T_COPY_CMD	=    0x0200,  // copy options of other command
+	T_COPY_GRP	=    0x0400,  // copy options of group
+	T_ALL_OPT	=    0x0800,  // allow all options
 
-	// option flags
+	//----- option flags
 	
-	F_OPT_COMMAND	= 0x010000,  // option is command specific
-	F_OPT_GLOBAL	= 0x020000,  // option is global
-	F_OPT_MULTIUSE	= 0x040000,  // multiple usage of option possible
-	F_OPT_PARAM	= 0x080000,  // option needs a parameter
-	F_SEPARATOR	= 0x100000,  // separator element
-	F_SUPERSEDE	= 0x200000,  // supersedes all other comamnds and options
+	F_OPT_COMMAND	=  0x010000,  // option is command specific
+	F_OPT_GLOBAL	=  0x020000,  // option is global
+	F_OPT_MULTIUSE	=  0x040000,  // multiple usage of option possible
+	F_OPT_PARAM	=  0x080000,  // option needs a parameter
+	F_SEPARATOR	=  0x100000,  // separator element
+	F_SUPERSEDE	=  0x200000,  // supersedes all other comamnds and options
 
-	// option combinations
+	//----- global flags
+
+	F_HIDDEN	= 0x1000000,  // option is hidden from help
+
+	//----- option combinations
 	
 	T_OPT_C		= T_DEF_OPT | F_OPT_COMMAND,
 	T_OPT_CM	= T_DEF_OPT | F_OPT_COMMAND | F_OPT_MULTIUSE,
@@ -44,8 +48,26 @@ typedef enum enumType
 
 	T_OPT_S		= T_DEF_OPT | F_OPT_GLOBAL | F_SUPERSEDE,
 
+
 	T_COPT		= T_CMD_OPT,
 	T_COPT_M	= T_CMD_OPT | F_OPT_MULTIUSE,
+
+	//----- hidden options and commands (hide from help)
+
+	H_DEF_CMD	= F_HIDDEN | T_DEF_CMD,
+
+	H_OPT_C		= F_HIDDEN | T_OPT_C,
+	H_OPT_CM	= F_HIDDEN | T_OPT_CM,
+	H_OPT_CP	= F_HIDDEN | T_OPT_CP,
+	H_OPT_CMP	= F_HIDDEN | T_OPT_CMP,
+
+	H_OPT_G		= F_HIDDEN | T_OPT_G,
+	H_OPT_GM	= F_HIDDEN | T_OPT_GM,
+	H_OPT_GP	= F_HIDDEN | T_OPT_GP,
+	H_OPT_GMP	= F_HIDDEN | T_OPT_GMP,
+
+	H_COPT		= F_HIDDEN | T_COPT,
+	H_COPT_M	= F_HIDDEN | T_COPT_M,
 
 } enumType;
 
@@ -63,7 +85,7 @@ typedef struct info_t
 
 //
 ///////////////////////////////////////////////////////////////////////////////
-///////////////			some hlper macros		///////////////
+///////////////			some helper macros		///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
 #define TEXT_OPT_PSEL \
@@ -82,6 +104,7 @@ typedef struct info_t
 	" by a '-' to disable it or" \
 	" by a '=' to enable that option and disable all others."
 
+
 //
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////			the info table			///////////////
@@ -99,7 +122,7 @@ info_t info_tab[] =
 		"Wiimms ISO Tool" },
 
   //
-  //---------- list of all commands ----------
+  //---------- list of all wit commands ----------
 
   { T_DEF_CMD,	"VERSION",	"VERSION",
 		"wit VERSION [ignored]...",
@@ -145,7 +168,8 @@ info_t info_tab[] =
 
   { T_DEF_CMD,	"DUMP",		"DUMP|D",
 		"wit DUMP [source]...",
-		"Dump the data structure of ISO files." },
+		"Dump the data structure of Wii ISO files, boot.bin,"
+		" fst.bin and of DOL-files." },
 
   { T_DEF_CMD,	"ID6",		"ID6|ID",
 		"wit ID6 [source]...",
@@ -171,15 +195,15 @@ info_t info_tab[] =
 
   { T_DEF_CMD,	"ILIST",	"ILIST|IL",
 		"wit ILIST [source]...",
-		"List all files if all discs." },
+		"List all files of all discs." },
 
   { T_DEF_CMD,	"ILIST_L",	"ILIST-L|ILL",
 		"wit ILIST-L [source]...",
-		"List all files if all discs. Same as 'ILIST --long'." },
+		"List all files of all discs. Same as 'ILIST --long'." },
 
   { T_DEF_CMD,	"ILIST_LL",	"ILIST-LL|ILLL",
 		"wit ILIST-LL [source]...",
-		"List all files if all discs. Same as 'ILIST --long --long'." },
+		"List all files of all discs. Same as 'ILIST --long --long'." },
 
   { T_SEP_CMD,	0,0,0,0 }, //----- separator -----
 
@@ -226,7 +250,7 @@ info_t info_tab[] =
 
 
   //
-  //---------- list of all options ----------
+  //---------- list of all wit options ----------
 
   { T_OPT_S,	"VERSION",	"V|version",
 		0,
@@ -251,7 +275,7 @@ info_t info_tab[] =
 		" Multiple usage is possible:"
 		" Progress counter is enabled if set at least two times."
 		" Extended logging is enabled if set at least four times."
-		" The impact of other verbose level is command dependend." },
+		" The impact of the other verbose levels are command dependent." },
 
   { T_OPT_G,	"PROGRESS",	"P|progress",
 		0, "Print progress counter independent of verbose level." },
@@ -314,7 +338,7 @@ info_t info_tab[] =
 		"id",
 		"Include only discs with given ID4 or ID6 from operation."
 		" If the parameter begins with a '@' the given file is read"
-		" and each line is scanned for IDs," },
+		" and each line is scanned for IDs." },
 
   { T_OPT_CMP,	"INCLUDE_PATH",	"N|include-path|includepath",
 		"file_or_dir", "ISO file or base of directory tree -> scan their ID6." },
@@ -334,7 +358,7 @@ info_t info_tab[] =
 		" If set twice then all non Wii ISO images are ignored too." },
 
   { T_OPT_C,	"IGNORE_FST",	"ignore-fst|ignorefst",
-		0, "Ignore FST directories as input." },
+		0, "Disable composing and ignore FST directories as input." },
 
   { T_SEP_OPT,	0,0,0,0 }, //----- separator -----
 
@@ -357,12 +381,53 @@ info_t info_tab[] =
   { T_OPT_C,	"SNEEK",	"sneek",
 		0, "Abbreviation of --psel=data --pmode=none --files==sneek." },
 
+  { H_OPT_G,	"HOOK",		"hook",
+		0,
+		" [2do] for tests only." },
+
   { T_OPT_CP,	"ENC",		"enc",
 		"encoding",
-		"Define the encoding mode. "
+		"Define the encoding mode."
 		" The mode is one of NONE, HASHONLY, DECRYPT, ENCRYPT, SIGN or AUTO."
 		" The case of the keywords is ignored."
 		" The default mode is 'AUTO'." },
+
+  { T_OPT_CP,	"REGION",	"region",
+		"region",
+		"Define the region of the disc. "
+		" The region is one of JAPAN, USA, EUROPE, KOREA, FILE or AUTO (default)."
+		" The case of the keywords is ignored."
+		" Unsigned numbers are also accepted." },
+
+  { T_OPT_CP,	"IOS",		"ios",
+		"ios",
+		"Define the system version (IOS to load) within TMD. "
+		" The format is 'HIGH:LOW' or 'HIGH-LOW' or 'LOW'."
+		" If only LOW is set than HIGH is assumed as 1 (standard IOS)." },
+
+  { T_OPT_CP,	"ID",		"id",
+		"id",
+		"Change the ID of the disc to the given parameter."
+		" 1 to 6 characters are expected."
+		" Only defined characters not equal '.' are modified."
+		" The disc header, boot.bin, ticket.bin and tmd.bin are "
+		" objects to modify. The option --modify= selects the objects." },
+
+  { T_OPT_CP,	"NAME",		"name",
+		"name",
+		"Change the name (disc title) of the disc to the given parameter."
+		" Up to 63 characters are expected."
+		" The disc header and boot.bin are objects to modify."
+		" The option --modify= selects the objects." },
+
+  { T_OPT_CP,	"MODIFY",	"modify",
+		"list",
+		" The parameter is a comma separated list of the following keywords," \
+		" case is ignored:" \
+		" NONE, DISC, BOOT, TICKET, TMD, WBFS, ALL and AUTO (default).\n" \
+		" All keyword can be prefixed by '+' to enable that opton," \
+		" by a '-' to disable it or" \
+		" by a '=' to enable that option and disable all others." },
 
   { T_OPT_CP,	"DEST",		"d|dest",
 		"path",
@@ -562,6 +627,18 @@ info_t info_tab[] =
   { T_COPT_M,	"FILES",	0,0,0 },
   { T_COPT,	"SNEEK",	0,0,0 },
 
+  //---------- wit GROUP HOOK ----------
+
+  { T_GRP_BEG,	"COMPOSE",	0,0,0 },
+
+  { H_COPT,	"HOOK",		0,0,0 },
+  { T_COPT,	"ENC",		0,0,0 },
+  { T_COPT,	"REGION",	0,0,0 },
+  { T_COPT,	"IOS",		0,0,0 },
+  { T_COPT,	"ID",		0,0,0 },
+  { T_COPT,	"NAME",		0,0,0 },
+  { T_COPT,	"MODIFY",	0,0,0 },
+
   //
   //---------- COMMAND wit HELP ----------
 
@@ -649,7 +726,7 @@ info_t info_tab[] =
   { T_SEP_OPT,	0,0,0,0 },
 
   { T_COPT_M,	"LOGGING",	0,0,0 },
-  { T_COPT,	"ENC",		0,0,0 },
+  { T_COPY_GRP,	"COMPOSE",	0,0,0 },
   { T_COPT_M,	"LONG",		0,0,
 	"If set at least once a memory map for each partition is printed."
 	" If set twice or more a memory map for whole ISO image is printed." },
@@ -786,7 +863,6 @@ info_t info_tab[] =
   { T_COPT,	"QUIET",	0,0,0 },
   { T_COPT_M,	"VERBOSE",	0,0,0 },
   { T_COPT_M,	"LOGGING",	0,0,0 },
-  { T_COPT,	"ENC",		0,0,0 },
   { T_COPT,	"PROGRESS",	0,0,0 },
 
   { T_SEP_OPT,	0,0,0,0 },
@@ -794,6 +870,7 @@ info_t info_tab[] =
   { T_COPT,	"DEST",		0,0,0 },
   { T_COPT,	"DEST2",	0,0,0 },
   { T_COPT,	"ESC",		0,0,0 },
+  { T_COPY_GRP,	"COMPOSE",	0,0,0 },
   { T_COPT,	"PRESERVE",	0,0,0 },
   { T_COPT,	"OVERWRITE",	0,0,0 },
 
@@ -840,6 +917,7 @@ info_t info_tab[] =
   { T_COPT,	"SPLIT",	0,0,0 },
   { T_COPT,	"SPLIT_SIZE",	0,0,0 },
   { T_COPT,	"PRESERVE",	0,0,0 },
+  { T_COPY_GRP,	"COMPOSE",	0,0,0 },
 
   { T_COPT,	"WDF",		0,0,0 },
   { T_COPT,	"ISO",		0,0,0 },
@@ -938,7 +1016,8 @@ info_t info_tab[] =
 		"Wiimms WBFS Tool" },
 
 
-  //---------- list of all commands ----------
+  //
+  //---------- list of all wwt commands ----------
 
   { T_DEF_CMD,	"VERSION",	"VERSION",
 		"wwt VERSION [ignored]...",
@@ -1097,7 +1176,7 @@ info_t info_tab[] =
 		"Print a status line for each source file." },
 
   //
-  //---------- list of all options ----------
+  //---------- list of all wwt options ----------
 
   { T_OPT_S,	"VERSION",	"V|version",
 		0, 0 /* copy of wit */ },
@@ -1194,7 +1273,25 @@ info_t info_tab[] =
 
   { T_SEP_OPT,	0,0,0,0 }, //----- separator -----
 
+  { H_OPT_G,	"HOOK",		"hook",
+		0, 0 /* copy of wit */ },
+
   { T_OPT_CP,	"ENC",		"enc",
+		0, 0 /* copy of wit */ },
+
+  { T_OPT_CP,	"REGION",	"region",
+		0, 0 /* copy of wit */ },
+
+  { T_OPT_CP,	"IOS",		"ios",
+		0, 0 /* copy of wit */ },
+
+  { T_OPT_CP,	"ID",		"id",
+		0, 0 /* copy of wit */ },
+
+  { T_OPT_CP,	"NAME",		"name",
+		0, 0 /* copy of wit */ },
+
+  { T_OPT_CP,	"MODIFY",	"modify",
 		0, 0 /* copy of wit */ },
 
   { T_OPT_C,	"INODE",	"inode",
@@ -1411,6 +1508,18 @@ info_t info_tab[] =
 
   { T_COPY_GRP,	"XTIME",	0,0,0 },
   { T_COPT_M,	"TIME",		0,0,0 },
+
+  //---------- wwt GROUP HOOK ----------
+
+  { T_GRP_BEG,	"COMPOSE",	0,0,0 },
+
+  { H_COPT,	"HOOK",		0,0,0 },
+  { T_COPT,	"ENC",		0,0,0 },
+  { T_COPT,	"REGION",	0,0,0 },
+  { T_COPT,	"IOS",		0,0,0 },
+  { T_COPT,	"ID",		0,0,0 },
+  { T_COPT,	"NAME",		0,0,0 },
+  { T_COPT,	"MODIFY",	0,0,0 },
 
 
   //
@@ -1682,7 +1791,7 @@ info_t info_tab[] =
 
   { T_COPT,	"PSEL",		0,0,0 },
   { T_COPT,	"RAW",		0,0,0 },
-  { T_COPT,	"ENC",		0,0,0 },
+  { T_COPY_GRP,	"COMPOSE",	0,0,0 },
 
   { T_SEP_OPT,	0,0,0,0 },
 

@@ -62,7 +62,7 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 	"id",
 	"Include only discs with given ID4 or ID6 from operation. If the"
 	" parameter begins with a '@' the given file is read and each line is"
-	" scanned for IDs,"
+	" scanned for IDs."
     },
 
     {	OPT_INCLUDE_PATH, 'N', "include-path",
@@ -90,14 +90,52 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 
     {	OPT_IGNORE_FST, 0, "ignore-fst",
 	0,
-	"Ignore FST directories as input."
+	"Disable composing and ignore FST directories as input."
     },
 
     {	OPT_ENC, 0, "enc",
 	"encoding",
-	"Define the encoding mode.  The mode is one of NONE, HASHONLY,"
-	" DECRYPT, ENCRYPT, SIGN or AUTO. The case of the keywords is ignored."
-	" The default mode is 'AUTO'."
+	"Define the encoding mode. The mode is one of NONE, HASHONLY, DECRYPT,"
+	" ENCRYPT, SIGN or AUTO. The case of the keywords is ignored. The"
+	" default mode is 'AUTO'."
+    },
+
+    {	OPT_REGION, 0, "region",
+	"region",
+	"Define the region of the disc.  The region is one of JAPAN, USA,"
+	" EUROPE, KOREA, FILE or AUTO (default). The case of the keywords is"
+	" ignored. Unsigned numbers are also accepted."
+    },
+
+    {	OPT_IOS, 0, "ios",
+	"ios",
+	"Define the system version (IOS to load) within TMD.  The format is"
+	" 'HIGH:LOW' or 'HIGH-LOW' or 'LOW'. If only LOW is set than HIGH is"
+	" assumed as 1 (standard IOS)."
+    },
+
+    {	OPT_ID, 0, "id",
+	"id",
+	"Change the ID of the disc to the given parameter. 1 to 6 characters"
+	" are expected. Only defined characters not equal '.' are modified."
+	" The disc header, boot.bin, ticket.bin and tmd.bin are  objects to"
+	" modify. The option --modify= selects the objects."
+    },
+
+    {	OPT_NAME, 0, "name",
+	"name",
+	"Change the name (disc title) of the disc to the given parameter. Up"
+	" to 63 characters are expected. The disc header and boot.bin are"
+	" objects to modify. The option --modify= selects the objects."
+    },
+
+    {	OPT_MODIFY, 0, "modify",
+	"list",
+	" The parameter is a comma separated list of the following keywords,"
+	" case is ignored: NONE, DISC, BOOT, TICKET, TMD, WBFS, ALL and AUTO"
+	" (default).\n"
+	" All keyword can be prefixed by '+' to enable that opton, by a '-' to"
+	" disable it or by a '=' to enable that option and disable all others."
     },
 
     {	OPT_INODE, 0, "inode",
@@ -308,7 +346,7 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 	"Limit the output to NUM messages."
     },
 
-    {0,0,0,0,0}, // OPT__N_SPECIFIC == 52
+    {0,0,0,0,0}, // OPT__N_SPECIFIC == 57
 
     //----- global options -----
 
@@ -338,7 +376,7 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 	"Be verbose and print more progress information. Multiple usage is"
 	" possible: Progress counter is enabled if set at least two times."
 	" Extended logging is enabled if set at least four times. The impact"
-	" of other verbose level is command dependend."
+	" of the other verbose levels are command dependent."
     },
 
     {	OPT_PROGRESS, 'P', "progress",
@@ -394,7 +432,12 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 	">>> USE THIS OPTION IF UNSURE! <<<"
     },
 
-    {0,0,0,0,0} // OPT__N_TOTAL == 66
+    {	OPT_HOOK, 0, "hook",
+	0,
+	" [2do] for tests only."
+    },
+
+    {0,0,0,0,0} // OPT__N_TOTAL == 72
 
 };
 
@@ -788,7 +831,13 @@ const struct option OptionLong[] =
 	{ "ignore",		0, 0, 'i' },
 	{ "ignore-fst",		0, 0, GO_IGNORE_FST },
 	 { "ignorefst",		0, 0, GO_IGNORE_FST },
+	{ "hook",		0, 0, GO_HOOK },
 	{ "enc",		1, 0, GO_ENC },
+	{ "region",		1, 0, GO_REGION },
+	{ "ios",		1, 0, GO_IOS },
+	{ "id",			1, 0, GO_ID },
+	{ "name",		1, 0, GO_NAME },
+	{ "modify",		1, 0, GO_MODIFY },
 	{ "inode",		0, 0, GO_INODE },
 	{ "dest",		1, 0, 'd' },
 	{ "DEST",		1, 0, 'D' },
@@ -912,24 +961,29 @@ const u8 OptionIndex[OPT_INDEX_SIZE] =
 	/*86*/	OPT_PSEL,
 	/*87*/	OPT_RAW,
 	/*88*/	OPT_IGNORE_FST,
-	/*89*/	OPT_ENC,
-	/*8a*/	OPT_INODE,
-	/*8b*/	OPT_HSS,
-	/*8c*/	OPT_WSS,
-	/*8d*/	OPT_RECOVER,
-	/*8e*/	OPT_NO_CHECK,
-	/*8f*/	OPT_REPAIR,
-	/*90*/	OPT_NO_FREE,
-	/*91*/	OPT_TRUNC,
-	/*92*/	OPT_ITIME,
-	/*93*/	OPT_MTIME,
-	/*94*/	OPT_CTIME,
-	/*95*/	OPT_ATIME,
-	/*96*/	OPT_TIME,
-	/*97*/	OPT_SET_TIME,
-	/*98*/	OPT_SECTIONS,
-	/*99*/	OPT_LIMIT,
-	/*9a*/	 0,0,0,0, 0,0,
+	/*89*/	OPT_HOOK,
+	/*8a*/	OPT_ENC,
+	/*8b*/	OPT_REGION,
+	/*8c*/	OPT_IOS,
+	/*8d*/	OPT_ID,
+	/*8e*/	OPT_NAME,
+	/*8f*/	OPT_MODIFY,
+	/*90*/	OPT_INODE,
+	/*91*/	OPT_HSS,
+	/*92*/	OPT_WSS,
+	/*93*/	OPT_RECOVER,
+	/*94*/	OPT_NO_CHECK,
+	/*95*/	OPT_REPAIR,
+	/*96*/	OPT_NO_FREE,
+	/*97*/	OPT_TRUNC,
+	/*98*/	OPT_ITIME,
+	/*99*/	OPT_MTIME,
+	/*9a*/	OPT_CTIME,
+	/*9b*/	OPT_ATIME,
+	/*9c*/	OPT_TIME,
+	/*9d*/	OPT_SET_TIME,
+	/*9e*/	OPT_SECTIONS,
+	/*9f*/	OPT_LIMIT,
 };
 
 //
@@ -1501,6 +1555,11 @@ static const InfoOption_t * option_tab_cmd_ADD[] =
 	OptionInfo + OPT_PSEL,
 	OptionInfo + OPT_RAW,
 	OptionInfo + OPT_ENC,
+	OptionInfo + OPT_REGION,
+	OptionInfo + OPT_IOS,
+	OptionInfo + OPT_ID,
+	OptionInfo + OPT_NAME,
+	OptionInfo + OPT_MODIFY,
 
 	OptionInfo + OPT_NONE, // separator
 
@@ -1556,6 +1615,11 @@ static const InfoOption_t * option_tab_cmd_UPDATE[] =
 	OptionInfo + OPT_PSEL,
 	OptionInfo + OPT_RAW,
 	OptionInfo + OPT_ENC,
+	OptionInfo + OPT_REGION,
+	OptionInfo + OPT_IOS,
+	OptionInfo + OPT_ID,
+	OptionInfo + OPT_NAME,
+	OptionInfo + OPT_MODIFY,
 
 	OptionInfo + OPT_NONE, // separator
 
@@ -1609,6 +1673,11 @@ static const InfoOption_t * option_tab_cmd_SYNC[] =
 	OptionInfo + OPT_PSEL,
 	OptionInfo + OPT_RAW,
 	OptionInfo + OPT_ENC,
+	OptionInfo + OPT_REGION,
+	OptionInfo + OPT_IOS,
+	OptionInfo + OPT_ID,
+	OptionInfo + OPT_NAME,
+	OptionInfo + OPT_MODIFY,
 
 	OptionInfo + OPT_NONE, // separator
 
@@ -2165,7 +2234,7 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	"A",
 	"wwt ADD iso|wbfs|dir...",
 	"Add Wii ISO discs to WBFS partitions.",
-	31,
+	36,
 	option_tab_cmd_ADD
     },
 
@@ -2176,7 +2245,7 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	"wwt UPDATE iso|wbfs|dir...",
 	"Add missing Wii ISO discs to WBFS partitions.'UPDATE' is a shortcut"
 	" for 'ADD --update'.",
-	29,
+	34,
 	option_tab_cmd_UPDATE
     },
 
@@ -2188,7 +2257,7 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	"Modify primary WBFS (REMOVE and ADD) until it contains exactly the"
 	" same discs as all sources together.'SYNC' is a shortcut for 'ADD"
 	" --sync'.",
-	28,
+	33,
 	option_tab_cmd_SYNC
     },
 

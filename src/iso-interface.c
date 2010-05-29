@@ -5,6 +5,7 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <errno.h>
+#include <ctype.h>
 
 #include "debug.h"
 #include "iso-interface.h"
@@ -272,21 +273,23 @@ enumError Dump_ISO
 
 	    if ( pi->is_marked_not_enc > 0 )
 		fprintf(f,"%*s  Partition is marked as 'not encrypted'.\n", indent,"" );
-	    else if ( pi->is_encrypted >= 0 || pi->is_trucha_signed >= 0 )
+	    else if ( pi->tik_is_trucha_signed > 0
+		   || pi->tmd_is_trucha_signed > 0
+		   || pi->is_encrypted >= 0 )
 	    {
-		fprintf(f,"%*s  Partition is", indent,"" );
-		ccp bind = "";
+		fprintf(f,"%*s ", indent,"" );
+		if ( pi->tik_is_trucha_signed > 0 && pi->tmd_is_trucha_signed > 0 )
+		    fprintf(f," TICKET & TMD are trucha signed.");
+		else if ( pi->tik_is_trucha_signed > 0 )
+		    fprintf(f," TICKET is trucha signed.");
+		else if ( pi->tmd_is_trucha_signed > 0 )
+		    fprintf(f," TMD is trucha signed.");
+
 		if ( pi->is_encrypted >= 0 )
-		{
-		    fprintf(f,"%s encrypted", pi->is_encrypted ? "" : " not" );
-		    bind = " and";
-		}
-		    
-		if ( pi->is_trucha_signed >= 0 )
-		    fprintf(f,"%s%s trucha signed.\n",
-				bind, pi->is_trucha_signed ? "" : " not" );
+		    fprintf(f," Partition is %scrypted.\n",
+				pi->is_encrypted >= 0 ? "en" : "de" );
 		else
-		    fprintf(f,".\n");
+		    fputc('\n',f);
 	    }
 
 	    p8 = pi->part_key;
@@ -295,6 +298,18 @@ enumError Dump_ISO
 		indent,"",
 		p8[0], p8[1], p8[2], p8[3], p8[4], p8[5], p8[6], p8[7],
 		p8[8], p8[9], p8[10], p8[11], p8[12], p8[13], p8[14], p8[15] );
+
+	    if (pi->sys_version)
+	    {
+		const u32 hi = pi->sys_version >> 32;
+		const u32 lo = (u32)pi->sys_version;
+		if ( hi == 1 && lo < 0x100 )
+		    fprintf(f,"%*s  System version: %08x-%08x = IOS %u\n",
+				indent, "", hi, lo, lo );
+		else
+		    fprintf(f,"%*s  System version: %08x-%08x\n",
+				indent, "", hi, lo );
+	    }
 
 	    dump_data(f,indent, pi->off, pi->ph.tmd_off4,  pi->ph.tmd_size,	"TMD:" );
 	    dump_data(f,indent, pi->off, pi->ph.cert_off4, pi->ph.cert_size,	"Cert:" );
@@ -767,6 +782,11 @@ int RenameISOHeader ( void * data, ccp fname,
 ///////////////			global options			///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
+bool hook_enabled	= false; // [2do] for testing only, [obsolete]
+bool allow_fst		= false; // FST diabled by default
+
+///////////////////////////////////////////////////////////////////////////////
+
 partition_selector_t partition_selector = ALL_PARTITIONS;
 
 u8 wdisc_usage_tab [WII_MAX_SECTORS];
@@ -852,10 +872,7 @@ void SetupSneekMode()
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-
-enumEncoding encoding = ENCODE_DEFAULT;
-
-//-----------------------------------------------------------------------------
+///////////////////////////////////////////////////////////////////////////////
 
 enumEncoding ScanEncoding ( ccp arg )
 {
@@ -881,6 +898,19 @@ enumEncoding ScanEncoding ( ccp arg )
 
     ERROR0(ERR_SYNTAX,"Illegal encoding mode (option --enc): '%s'\n",arg);
     return -1;
+}
+
+//-----------------------------------------------------------------------------
+
+enumEncoding encoding = ENCODE_DEFAULT;
+
+int ScanOptEncoding ( ccp arg )
+{
+    const int new_encoding = ScanEncoding(arg);
+    if ( new_encoding == -1 )
+	return 1;
+    encoding = new_encoding;
+    return 0;
 }
 
 //-----------------------------------------------------------------------------
@@ -913,6 +943,305 @@ enumEncoding SetEncoding
     return val & ENCODE_MASK;
 }
 
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+
+enumRegion ScanRegion ( ccp arg )
+{
+    static const CommandTab_t tab[] =
+    {
+	{ REGION_JAP,		"JAPAN",	"JAP",		0 },
+	{ REGION_USA,		"USA",		0,		0 },
+	{ REGION_EUR,		"EUROPE",	"EUR",		0 },
+	{ REGION_KOR,		"KOREA",	"KOR",		0 },
+
+	{ REGION__AUTO,		"AUTO",		0,		0 },
+	{ REGION__FILE,		"FILE",		0,		0 },
+
+	{ 0,0,0,0 }
+    };
+
+    const int stat = ScanCommandListMask(arg,tab);
+    if ( stat >= 0 )
+	return stat;
+
+    // try if arg is a number
+    char * end;
+    ulong num = strtoul(arg,&end,10);
+    if ( end != arg && !*end )
+	return num;
+
+    ERROR0(ERR_SYNTAX,"Illegal region mode (option --region): '%s'\n",arg);
+    return REGION__ERROR;
+}
+
+//-----------------------------------------------------------------------------
+
+enumRegion opt_region = REGION__AUTO;
+
+int ScanOptRegion ( ccp arg )
+{
+    const int new_region = ScanRegion(arg);
+    if ( new_region == REGION__ERROR )
+	return 1;
+    opt_region = new_region;
+    return 0;
+}
+
+
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+
+static const RegionInfo_t RegionTable[] =
+{
+	// -> http://www.wiibrew.org/wiki/Title_Database#Region_Codes
+
+	/*A*/ { REGION_EUR,  0, "ALL ", "All" },
+	/*B*/ { REGION_EUR,  0, "-?- ", "-?-" },
+	/*C*/ { REGION_EUR,  0, "-?- ", "-?-" },
+	/*D*/ { REGION_EUR, 1,  "GERM", "German" },
+	/*E*/ { REGION_USA, 1,  "NTSC", "NTSC" },
+	/*F*/ { REGION_EUR, 1,  "FREN", "French" },
+	/*G*/ { REGION_EUR,  0, "-?- ", "-?-" },
+	/*H*/ { REGION_EUR,  0, "-?- ", "-?-" },
+	/*I*/ { REGION_EUR, 1,  "ITAL", "Italian" },
+	/*J*/ { REGION_JAP, 1,  "JAPA", "Japan" },
+	/*K*/ { REGION_KOR, 1,  "KORE", "Korea" },
+	/*L*/ { REGION_JAP, 1,  "J>PL", "Japan->PAL" },
+	/*M*/ { REGION_USA, 1,  "A>PL", "America->PAL" },
+	/*N*/ { REGION_JAP, 1,  "J>US", "Japan->NTSC" },
+	/*O*/ { REGION_EUR,  0, "-?- ", "-?-" },
+	/*P*/ { REGION_EUR, 1,  "PAL ", "PAL" },
+	/*Q*/ { REGION_KOR, 1,  "KO/J", "Korea (japanese)" },
+	/*R*/ { REGION_EUR,  0, "-?- ", "-?-" },
+	/*S*/ { REGION_EUR, 1,  "SPAN", "Spanish" },
+	/*T*/ { REGION_KOR, 1,  "KO/E", "Korea (english)" },
+	/*U*/ { REGION_EUR,  0, "-?- ", "-?-" },
+	/*V*/ { REGION_EUR,  0, "-?- ", "-?-" },
+	/*W*/ { REGION_EUR,  0, "-?- ", "-?-" },
+	/*X*/ { REGION_EUR, 1,  "RF  ", "Region free" },
+	/*Y*/ { REGION_EUR,  0, "-?- ", "-?-" },
+	/*Z*/ { REGION_EUR,  0, "-?- ", "-?-" },
+
+	/*?*/ { REGION_EUR,  0, "-?- ", "-?-" } // illegal region_code
+};
+
+//-----------------------------------------------------------------------------
+
+const RegionInfo_t * GetRegionInfo ( char region_code )
+{
+    region_code = toupper((int)region_code);
+    if ( region_code < 'A' || region_code > 'Z' )
+	region_code = 'Z' + 1;
+    return RegionTable + (region_code-'A');
+}
+
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+
+u64 opt_ios = 0;
+bool opt_ios_valid = false;
+
+//-----------------------------------------------------------------------------
+
+bool ScanSysVersion ( u64 * ios, ccp arg )
+{
+    u32 stat, lo, hi = 1;
+    
+    arg = ScanNumU32(arg,&stat,&lo,0,~(u32)0);
+    if (!stat)
+	return false;
+
+    if ( *arg == ':' || *arg == '-' )
+    {
+	arg++;
+	hi = lo;
+	arg = ScanNumU32(arg,&stat,&lo,0,~(u32)0);
+	if (!stat)
+	    return false;
+    }
+
+    if (ios)
+	*ios = (u64)hi << 32 | lo;
+
+    return !*arg;
+}
+
+//-----------------------------------------------------------------------------
+
+int ScanOptIOS ( ccp arg )
+{
+    opt_ios = 0;
+    opt_ios_valid = false;
+
+    if ( !arg || !*arg )
+	return 0;
+
+    opt_ios_valid = ScanSysVersion(&opt_ios,arg);
+    if (opt_ios_valid)
+	return 0;
+
+    ERROR0(ERR_SYNTAX,"Illegal system version (option --ios): %s\n",arg);
+    return 1;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+
+enumModify ScanModify ( ccp arg )
+{
+    static const CommandTab_t tab[] =
+    {
+	{ MODIFY__NONE,		"NONE",		"-",	1 },
+	{ MODIFY__ALL,		"ALL",		0,	1 },
+	{ MODIFY__AUTO,		"AUTO",		0,	1 },
+
+	{ MODIFY_DISC,		"DISC",		0,	0 },
+	{ MODIFY_BOOT,		"BOOT",		0,	0 },
+	{ MODIFY_TICKET,	"TICKET",	0,	0 },
+	{ MODIFY_TMD,		"TMD",		0,	0 },
+	{ MODIFY_WBFS,		"WBFS",		0,	0 },
+
+	{ 0,0,0,0 }
+    };
+
+    const int stat = ScanCommandList(arg,tab,0);
+    if ( stat >= 0 )
+	return stat & MODIFY__ALL ? stat & MODIFY__ALL : stat;
+
+    ERROR0(ERR_SYNTAX,"Illegal modify mode (option --modify): '%s'\n",arg);
+    return MODIFY__ERROR;
+}
+
+//-----------------------------------------------------------------------------
+
+enumModify opt_modify = MODIFY__AUTO;
+
+int ScanOptModify ( ccp arg )
+{
+    const int new_modify = ScanModify(arg);
+    if ( new_modify == MODIFY__ERROR )
+	return 1;
+    opt_modify = new_modify;
+    return 0;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+
+ccp modify_id		= 0;
+ccp modify_name		= 0;
+
+static char modify_id_buf[7];
+static char modify_name_buf[WII_TITLE_SIZE];
+
+//-----------------------------------------------------------------------------
+
+int ScanOptId ( ccp arg )
+{
+    if ( !arg || !*arg )
+    {
+	modify_id = 0;
+	return 0;
+    }
+
+    const size_t max_len = sizeof(modify_id_buf) - 1;
+    size_t len = strlen(arg);
+    if ( len > max_len )
+    {
+	ERROR0(ERR_SYNTAX,"option --id: id is %d characters to long: %s\n",
+		len - max_len, arg);
+	return 1;
+    }
+
+    memset(modify_id_buf,0,sizeof(modify_id_buf));
+    char *dest = modify_id_buf;
+    while ( *arg )
+	if ( *arg == '.' || *arg == '_' )
+	    *dest++ = *arg++;
+	else if ( isalnum((int)*arg) )
+	    *dest++ = toupper((int)*arg++);
+	else
+	{
+	    ERROR0(ERR_SYNTAX,"option --id: illaegal character at index #%u: %s\n",
+		    dest - modify_id_buf, arg);
+	    return 1;
+	}
+    modify_id = modify_id_buf;
+
+    return 0;
+}
+
+//-----------------------------------------------------------------------------
+
+int ScanOptName ( ccp arg )
+{
+    if ( !arg || !*arg )
+    {
+	modify_name = 0;
+	return 0;
+    }
+
+    const size_t max_len = sizeof(modify_name_buf) - 1;
+    size_t len = strlen(arg);
+    if ( len > max_len )
+    {
+	ERROR0(ERR_WARNING,"option --name: name is %d characters to long:\n!\t-> %s\n",
+		len - max_len, arg);
+	len = max_len;
+    }
+	
+    ASSERT( len < sizeof(modify_name_buf) );
+    memset(modify_name_buf,0,sizeof(modify_name_buf));
+    memcpy(modify_name_buf,arg,len);
+    modify_name = modify_name_buf;
+    
+    return 0;
+}
+
+//-----------------------------------------------------------------------------
+
+bool PatchId ( void * id, int maxlen, enumModify condition )
+{
+    ASSERT(id);
+    if ( !modify_id || maxlen < 1 || !(opt_modify & condition) )
+	return false;
+
+    TRACE("PATCH ID: %.*s -> %.*s\n",maxlen,(ccp)id,maxlen,modify_id);
+
+    ccp src;
+    char *dest;
+    for ( src = modify_id, dest = id;
+	  *src && maxlen > 0;
+	  src++, dest++, maxlen-- )
+    {
+	if ( *src != '.' )
+	    *dest = *src;
+    }
+    return true;
+}
+
+//-----------------------------------------------------------------------------
+
+bool CopyPatchedDiscId ( void * dest, const void * src )
+{
+    memcpy(dest,src,6);
+    ((char*)dest)[6] = 0;
+    return hook_enabled && PatchId(dest,6,MODIFY_DISC|MODIFY__AUTO);
+}
+
+//-----------------------------------------------------------------------------
+
+bool PatchName ( void * name, enumModify condition )
+{
+    ASSERT(name);
+    if ( !modify_name || !(opt_modify & condition) )
+	return false;
+
+    ASSERT( strlen(modify_name) < WII_TITLE_SIZE );
+    memcpy(name,modify_name,WII_TITLE_SIZE);
+    return true;
+}
 //
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////			  Iso Mapping			///////////////
@@ -1320,7 +1649,8 @@ int CollectFST ( wiidisc_t * disc, iterator_call_mode_t icm,
 	    part->part_type		= disc->partition_type;
 	    part->is_marked_not_enc	= disc->is_marked_not_enc;
 	    part->is_encrypted		= disc->is_encrypted;
-	    part->is_trucha_signed	= disc->is_trucha_signed;
+	    part->tik_is_trucha_signed	= disc->tik_is_trucha_signed;
+	    part->tmd_is_trucha_signed	= disc->tmd_is_trucha_signed;
 	    part->path			= strdup(disc->path_prefix);
 	    memcpy(part->part_key,disc->partition_key,sizeof(part->part_key));
 	    memcpy(&part->part_akey,&disc->partition_akey,sizeof(part->part_akey));
@@ -1382,7 +1712,8 @@ int CollectPartitions ( wiidisc_t * disc, iterator_call_mode_t icm,
 	    part->part_type		= disc->partition_type;
 	    part->is_marked_not_enc	= disc->is_marked_not_enc;
 	    part->is_encrypted		= disc->is_encrypted;
-	    part->is_trucha_signed	= disc->is_trucha_signed;
+	    part->tik_is_trucha_signed	= disc->tik_is_trucha_signed;
+	    part->tmd_is_trucha_signed	= disc->tmd_is_trucha_signed;
 	    part->path			= strdup(disc->path_prefix);
 	    memcpy(part->part_key,disc->partition_key,sizeof(part->part_key));
 	    memcpy(&part->part_akey,&disc->partition_akey,sizeof(part->part_akey));
@@ -1983,6 +2314,7 @@ enumFileType IsFSTPart ( ccp base_path, char * id6_result )
 	return FT_ID_DIR;
     }
     close(fd);
+    PatchId(id6_result,6,MODIFY_DISC|MODIFY__AUTO);
 
     //----- more required files
     
@@ -2269,7 +2601,6 @@ u32 ScanPartFST
 u64 GenPartFST ( SuperFile_t * sf, WiiFstPart_t * part, ccp path, u64 base_off )
 {
     ASSERT(sf);
-    ASSERT(sf->fst);
     ASSERT(part);
     ASSERT(!part->file_used);
 
@@ -2279,10 +2610,13 @@ u64 GenPartFST ( SuperFile_t * sf, WiiFstPart_t * part, ccp path, u64 base_off )
     const u32 good_align =  0x40;
     const u32 max_skip   = 0x100;
 
+    WiiFst_t * fst = sf->fst;
+    ASSERT(fst);
+
 
     //----- boot.bin + bi2.bin
 
-    ASSERT( WII_BOOT_SIZE == WII_BI2_OFFSET );
+    ASSERT( WII_BOOT_SIZE == WII_BI2_OFF );
     const u32 boot_size = WII_BOOT_SIZE + WII_BI2_SIZE;
     imi = InsertIM(&part->im,IMT_DATA,0,boot_size);
     imi->part = part;
@@ -2296,30 +2630,59 @@ u64 GenPartFST ( SuperFile_t * sf, WiiFstPart_t * part, ccp path, u64 base_off )
     LoadFile(path,"sys/boot.bin",0,imi->data,WII_BOOT_SIZE,false);
     LoadFile(path,"sys/bi2.bin",0,imi->data+WII_BOOT_SIZE,WII_BI2_SIZE,false);
 
+    PatchId(imi->data,6,MODIFY_BOOT|MODIFY__AUTO);
+    PatchName(imi->data+WII_TITLE_OFF,MODIFY_BOOT|MODIFY__AUTO);
+
     wd_boot_t * boot = imi->data;
-    if (!sf->fst->disc_header.wii_disc_id)
-	memcpy(&sf->fst->disc_header,boot,sizeof(sf->fst->disc_header));
+    if (!fst->disc_header.wii_disc_id)
+	memcpy(&fst->disc_header,boot,sizeof(fst->disc_header));
 
 
-    //----- disc/header.bin + disc/region.bin
+    //----- disc/header.bin
 
     LoadFile(path,"disc/header.bin",0,
-			&sf->fst->disc_header,sizeof(sf->fst->disc_header),true);
-    LoadFile(path,"disc/region.bin",0,
-			&sf->fst->region_set,sizeof(sf->fst->region_set),true);
+			&fst->disc_header,sizeof(fst->disc_header),true);
+    PatchId(&fst->disc_header.wii_disc_id,6,MODIFY_DISC|MODIFY__AUTO);
+    PatchName(fst->disc_header.game_title,MODIFY_DISC|MODIFY__AUTO);
+
+
+    //----- disc/region.bin
+    
+    {
+	enumRegion reg = opt_region;
+	const RegionInfo_t * rinfo
+	    = GetRegionInfo(fst->disc_header.region_code);
+
+	if ( reg == REGION__AUTO && rinfo->mandatory )
+	    reg = rinfo->reg;
+	else if ( reg == REGION__AUTO || reg == REGION__FILE )
+	{
+	    reg = LoadFile(path,"disc/region.bin",0,
+				&fst->region_set,
+				sizeof(fst->region_set),true)
+		? REGION__AUTO : REGION__FILE;
+	}
+
+	if ( reg != REGION__FILE )
+	{
+	    memset( &fst->region_set, 0, sizeof(fst->region_set) );
+	    fst->region_set.region
+		= htonl(  reg == REGION__AUTO ? rinfo->reg : reg );
+	}
+    }
 
 
     //----- apploader.img
 
     ccp fpath = PathCat2S(pathbuf,sizeof(pathbuf),path,"sys/apploader.img");
     const u32 app_fsize4 = GetFileSize(fpath,0) + 3 >> 2;
-    imi = InsertIM(&part->im,IMT_FILE,WII_APL_OFFSET,(u64)app_fsize4<<2);
+    imi = InsertIM(&part->im,IMT_FILE,WII_APL_OFF,(u64)app_fsize4<<2);
     imi->part = part;
     imi->comment = "apploader.img";
     imi->data = strdup(fpath);
     imi->data_alloced = true;
 
-    cur_offset4 = ( WII_APL_OFFSET >> 2 ) + app_fsize4;
+    cur_offset4 = ( WII_APL_OFF >> 2 ) + app_fsize4;
     
 
     //----- main.dol
@@ -2381,10 +2744,17 @@ u64 GenPartFST ( SuperFile_t * sf, WiiFstPart_t * part, ccp path, u64 base_off )
     LoadFile(path,"tmd.bin",	0, pc->tmd, pc->tmd_size, false );
     LoadFile(path,"cert.bin",	0, pc->cert, pc->cert_size, false );
 
-    // setup
+    PatchId(pc->head->ticket.title_id+4,4,MODIFY_TICKET|MODIFY__AUTO);
+    PatchId(pc->tmd->title_id+4,4,MODIFY_TMD|MODIFY__AUTO);
+
+    if (opt_ios_valid)
+	pc->tmd->sys_version = hton64(opt_ios);
+
+    //----- setup
+
     InsertMemMap(&sf->modified_list,base_off,sizeof(pc->part_bin));
     
-    if ( sf->fst->encoding & ENCODE_CALC_HASH )
+    if ( fst->encoding & ENCODE_CALC_HASH )
     {
 	tmd_clear_encryption(pc->tmd,0);
 
@@ -2400,18 +2770,18 @@ u64 GenPartFST ( SuperFile_t * sf, WiiFstPart_t * part, ccp path, u64 base_off )
     }
     else
     {
-	ASSERT( !( sf->fst->encoding & (ENCODE_ENCRYPT|ENCODE_SIGN) ));
+	ASSERT( !( fst->encoding & (ENCODE_ENCRYPT|ENCODE_SIGN) ));
 	tmd_clear_encryption(pc->tmd,1);
     }
 
 
     //----- insert this partition in mem map of fst
 
-    imi = InsertIM(&sf->fst->im,IMT_DATA,base_off,sizeof(pc->part_bin));
+    imi = InsertIM(&fst->im,IMT_DATA,base_off,sizeof(pc->part_bin));
     imi->comment = "partition header";
     imi->data = pc->part_bin;
 
-    imi = InsertIM(&sf->fst->im,IMT_PART, base_off+pc->data_off, pc->data_size );
+    imi = InsertIM(&fst->im,IMT_PART, base_off+pc->data_off, pc->data_size );
     imi->part = part;
     imi->comment = "partition data";
 
@@ -2442,7 +2812,7 @@ enumError SetupReadFST ( SuperFile_t * sf )
     ASSERT(!sf->fst);
     TRACE("SetupReadFST() -> %x %s\n",sf->f.ftype,sf->f.fname);
 
-    sf->oft = OFT_FST;
+    SetupIOD(sf,OFT_FST,OFT_FST);
     WiiFst_t * fst = malloc(sizeof(*fst));
     if (!fst)
 	OUT_OF_MEMORY;
@@ -2450,7 +2820,6 @@ enumError SetupReadFST ( SuperFile_t * sf )
     InitializeFST(fst);
 
     //----- setup fst->encoding mode
-
 
     enumEncoding enc = SetEncoding(encoding,0,0);
 
@@ -2480,6 +2849,12 @@ enumError SetupReadFST ( SuperFile_t * sf )
     imi->comment = "region settings";
     imi->data = &fst->region_set;
 
+    static u8 magic[] = { 0xc3, 0xf8, 0x1a, 0x8e };
+    ASSERT( be32(magic) == WII_MAGIC2 );
+    ASSERT( sizeof(magic) == WII_MAGIC2_LEN );
+    imi = InsertIM(&fst->im,IMT_DATA,WII_MAGIC2_OFF,sizeof(magic));
+    imi->comment = "magic c3-f8-1a-8e";
+    imi->data = &magic;
 
     //----- setup partitions
     
@@ -2604,6 +2979,7 @@ enumError SetupReadFST ( SuperFile_t * sf )
     if ( sf->file_size < single_size )
 	sf->file_size = single_size;
 
+    //SetupISOModifier(sf); // not needed because done on composing
     return ERR_OK;
 }
 
@@ -3147,6 +3523,42 @@ void DecryptSectors
 	src  += WII_SECTOR_SIZE;
 	dest += WII_SECTOR_SIZE;
     }
+}
+
+//
+///////////////////////////////////////////////////////////////////////////////
+///////////////			 ISO Modifier			///////////////
+///////////////////////////////////////////////////////////////////////////////
+
+static enumError ISOModifier
+	( SuperFile_t * sf, off_t off, void * buf, size_t count )
+{
+    ASSERT(sf);
+    ASSERT(sf->std_read_func);
+
+    TRACE(TRACE_RDWR_FORMAT, "#IM# ISOModifier()",
+	GetFD(&sf->f), GetFP(&sf->f), (u64)off, (u64)off+count, count, "" );
+
+    return sf->std_read_func(sf,off,buf,count);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+enumError SetupISOModifier ( SuperFile_t * sf )
+{
+ #ifndef TEST // [2do]
+    hook_enabled = false;
+ #endif
+ 
+    ASSERT(sf);
+    if ( !hook_enabled || !sf->f.id6 )
+	return ERR_OK; // only supported for Wii ISO images
+
+    // [2do] check en/decryption
+    // [2do] check cloning
+
+    sf->iod.read_func = ISOModifier;
+    return ERR_OK;
 }
 
 //

@@ -27,6 +27,7 @@
 
 #include "types.h"
 #include "lib-std.h"
+#include "iso-interface.h"
 #include "ui.h"
 
 #include "tab-ui.c"
@@ -65,9 +66,13 @@ typedef struct control_t
 
 static char tabs[] = "\t\t\t\t";
 
-static char sep[] =
+static char sep1[] =
 	"////////////////////////////////////////"
 	"///////////////////////////////////////";
+
+static char sep2[] =
+	"########################################"
+	"#######################################";
 
 //-----------------------------------------------------------------------------
 
@@ -146,13 +151,13 @@ static void DumpText
 
 //-----------------------------------------------------------------------------
 
-static void print_section ( FILE *f, ccp name )
+static void print_section ( FILE *f, ccp sep, ccp name )
 {
     const size_t namelen = strlen(name);
     const int fill = ( 49 - namelen ) /2;
     const int fw   = 49 - fill;
-    fprintf(f,"\n//\f\n%s\n%.15s%*s%*s%.15s\n%s\n\n",
-		sep, sep, fill, "", -fw, name, sep, sep );
+    fprintf(f,"\n%.2s\f\n%s\n%.15s%*s%*s%.15s\n%s\n\n",
+		sep, sep, sep, fill, "", -fw, name, sep, sep );
 }
 
 //-----------------------------------------------------------------------------
@@ -311,7 +316,11 @@ static const info_t * print_links_iterator
 
     for ( info++; info < ctrl->end && !(info->type & (T_CMD_BEG|T_GRP_BEG) ); info++ )
     {
-	if ( info->type & T_SEP_OPT )
+	if ( info->type & F_HIDDEN )
+	{
+	    // ignored -> do nothing
+	}
+	else if ( info->type & T_SEP_OPT )
 	    ctrl->need_sep = true;
 	else if ( info->type & (F_OPT_GLOBAL|T_CMD_OPT) )
 	    print_opt_link(ctrl,info);
@@ -333,7 +342,7 @@ static void print_links ( control_t * ctrl )
     FILE * cf = ctrl->cf;
     ASSERT(cf);
 
-    print_section(cf,"InfoOption tabs");
+    print_section(cf,sep1,"InfoOption tabs");
 
     char * temp_param	= iobuf;
     char * temp_help	= iobuf +  sizeof(iobuf)/8;
@@ -374,7 +383,7 @@ static void print_links ( control_t * ctrl )
     {
 	if ( info_cmd->type & T_SEP_CMD )
 	    separator = true;
-	if ( !( info_cmd->type & T_DEF_CMD ))
+	if ( !( info_cmd->type & T_DEF_CMD ) || info_cmd->type & F_HIDDEN )
 	    continue;
 
 	fprintf(cf,"static const InfoOption_t * option_tab_cmd_%s[] =\n{\n",
@@ -432,7 +441,7 @@ static void print_links ( control_t * ctrl )
 	separator = false;
     }
 
-    print_section(cf,"InfoCommand");
+    print_section(cf,sep1,"InfoCommand");
     fprintf(cf,"const InfoCommand_t CommandInfo[CMD__N+1] =\n{\n");
     fputs(sum_beg,cf);
     fprintf(cf,"    {0,0,0,0,0,0,0}\n};\n");
@@ -440,7 +449,7 @@ static void print_links ( control_t * ctrl )
 
 //
 ///////////////////////////////////////////////////////////////////////////////
-///////////////			    generate()			///////////////
+///////////////			    Generate()			///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
 static const char warn_msg[] =
@@ -456,7 +465,7 @@ static char var_buf[10000];
 
 //-----------------------------------------------------------------------------
 
-static enumError generate ( control_t * ctrl )
+static enumError Generate ( control_t * ctrl )
 {
     ASSERT(ctrl);
     ASSERT(ctrl->info);
@@ -497,8 +506,8 @@ static enumError generate ( control_t * ctrl )
 
     //----- print enum enumOptions & OptionInfo[]
 
-    print_section(cf,"OptionInfo[]");
-    print_section(hf,"enum enumOptions");
+    print_section(cf,sep1,"OptionInfo[]");
+    print_section(hf,sep1,"enum enumOptions");
 
     char * var_ptr = var_buf;
     char * var_end = var_buf + sizeof(var_buf);
@@ -575,7 +584,7 @@ static enumError generate ( control_t * ctrl )
 	{
 	    if (!done)
 	    {
-		print_section(cf,"alternate option infos");
+		print_section(cf,sep1,"alternate option infos");
 		done = true;
 	    }
 
@@ -592,7 +601,7 @@ static enumError generate ( control_t * ctrl )
 
     if ( ctrl->n_cmd )
     {
-	print_section(hf,"enum enumOptionsBit");
+	print_section(hf,sep1,"enum enumOptionsBit");
 
 	fprintf(hf,
 		"typedef enum enumOptionsBit\n"
@@ -667,7 +676,7 @@ static enumError generate ( control_t * ctrl )
 
     //----- print enum enumCommands & CommandTab[]
 
-    print_section(hf,"enum enumCommands");
+    print_section(hf,sep1,"enum enumCommands");
     fprintf(hf,
 	    "typedef enum enumCommands\n"
 	    "{\n"
@@ -676,7 +685,7 @@ static enumError generate ( control_t * ctrl )
 
     if ( ctrl->n_cmd )
     {
-	print_section(cf,"CommandTab[]");
+	print_section(cf,sep1,"CommandTab[]");
 	fputs("\n\n",hf);
 
 	var_ptr += snprintf(var_ptr,var_end-var_ptr,
@@ -688,7 +697,7 @@ static enumError generate ( control_t * ctrl )
 		);
 
 	for ( info = ctrl->info; info < ctrl->end; info++ )
-	    if ( info->type == T_DEF_CMD )
+	    if ( info->type & T_DEF_CMD )
 	    {
 		fprintf( hf, "\tCMD_%s,\n",info->c_name);
 		ccp ptr = info->namelist;
@@ -740,7 +749,7 @@ static enumError generate ( control_t * ctrl )
 
     //----- print enumGetOpt
 
-    print_section(hf,"enumGetOpt");
+    print_section(hf,sep1,"enumGetOpt");
     fprintf(hf,"typedef enum enumGetOpt\n{\n");
 
     int getopt_idx = getopt_base;
@@ -760,7 +769,7 @@ static enumError generate ( control_t * ctrl )
 
     //----- print options
 
-    print_section(cf,"OptionShort & OptionLong");
+    print_section(cf,sep1,"OptionShort & OptionLong");
 
     char * dest = iobuf;
     for ( info = ctrl->info; info < ctrl->end; info++ )
@@ -823,7 +832,7 @@ static enumError generate ( control_t * ctrl )
 
     //----- print option index
 
-    print_section(cf,"OptionUsed & OptionIndex");
+    print_section(cf,sep1,"OptionUsed & OptionIndex");
 
     fprintf(cf,"u8 OptionUsed[OPT__N_TOTAL+1] = {0};\n\n");
     var_ptr += snprintf(var_ptr,var_end-var_ptr,
@@ -868,7 +877,7 @@ static enumError generate ( control_t * ctrl )
 
     //----- InfoUI
 
-    print_section(cf,"InfoUI");
+    print_section(cf,sep1,"InfoUI");
 
     var_ptr += snprintf(var_ptr,var_end-var_ptr,
 		"extern const InfoUI_t InfoUI;\n");
@@ -896,18 +905,45 @@ static enumError generate ( control_t * ctrl )
 
     //----- external vars
 
-    print_section(hf,"external vars");
+    print_section(hf,sep1,"external vars");
     fputs(var_buf,hf);
 
 
     //----- terminate
 
-    print_section(cf,"END");
-    print_section(hf,"END");
+    print_section(cf,sep1,"END");
+    print_section(hf,sep1,"END");
     fprintf(hf,"#endif // %s\n\n",guard);
 
     return ERR_OK;
 };
+
+//
+///////////////////////////////////////////////////////////////////////////////
+///////////////			  AddTables()			///////////////
+///////////////////////////////////////////////////////////////////////////////
+
+void AddTables ( FILE * df )
+{
+    ASSERT(df);
+
+    //--------------------------------------------------
+
+    print_section(df,sep2,"Region Info");
+
+    char ch;
+    for ( ch = 'A'; ch <= 'Z'; ch++ )
+    {
+	const RegionInfo_t * reg = GetRegionInfo(ch);
+	fprintf(df,"#:def_tab(\"region\",'%c',%u,%u,\"%s\",\"%s\")\n",
+		ch, reg->reg, reg->mandatory, reg->name4, reg->name );
+    }
+    const RegionInfo_t * reg = GetRegionInfo(0);
+    fprintf(df,"#:def_tab(\"region\",'',%2u,%u,\"%s\",\"%s\")\n",
+	reg->reg, reg->mandatory, reg->name4, reg->name );
+
+    //--------------------------------------------------
+}
 
 //
 ///////////////////////////////////////////////////////////////////////////////
@@ -917,7 +953,6 @@ static enumError generate ( control_t * ctrl )
 int main ( int argc, char ** argv )
 {
     SetupLib(argc,argv,"gen-ui",PROG_UNKNOWN);
-
 
     static ccp def_fname = "src/ui/ui.def";
     FILE * df = fopen(def_fname,"wb");
@@ -940,7 +975,9 @@ int main ( int argc, char ** argv )
 	InitializeStringField(&ctrl.copt);
 	InitializeStringField(&ctrl.opt_done);
 
-	fprintf(df,"\n#:def_tool( \"%s\", \\\n",info->c_name);
+	snprintf(iobuf,sizeof(iobuf),"Tool '%s'",info->c_name);
+	print_section(df,sep2,iobuf);
+	fprintf(df,"#:def_tool( \"%s\", \\\n",info->c_name);
 	DumpText(df,0,0,info->param," \\",", \\\n");
 	DumpText(df,0,0,info->help," \\"," )\n\n");
 
@@ -992,14 +1029,17 @@ int main ( int argc, char ** argv )
 			}
 		}
 
-		fprintf(df,"#:def_opt( \"%s\", \"%s\", \"%s%s%s%s\", \\\n",
+		if ( !( info->type & F_HIDDEN ) )
+		{
+		    fprintf(df,"#:def_opt( \"%s\", \"%s\", \"%s%s%s%s\", \\\n",
 			info->c_name, info->namelist,
 			info->type & F_OPT_COMMAND  ? "C" : "",
 			info->type & F_OPT_GLOBAL   ? "G" : "",
 			info->type & F_OPT_MULTIUSE ? "M" : "",
 			info->type & F_OPT_PARAM    ? "P" : "" );
-		DumpText(df,0,0,info->param," \\",", \\\n");
-		DumpText(df,0,0,info->help," \\"," )\n\n");
+		    DumpText(df,0,0,info->param," \\",", \\\n");
+		    DumpText(df,0,0,info->help," \\"," )\n\n");
+		}
 	    }
 	    else if ( info->type & T_DEF_CMD )
 	    {
@@ -1021,17 +1061,20 @@ int main ( int argc, char ** argv )
 			}
 		}
 
-		fprintf(df,"#:def_cmd( \"%s\", \"%s\", \\\n",
+		if ( !( info->type & F_HIDDEN ) )
+		{
+		    fprintf(df,"#:def_cmd( \"%s\", \"%s\", \\\n",
 			info->c_name, info->namelist );
-		DumpText(df,0,0,info->param," \\",", \\\n");
-		DumpText(df,0,0,info->help," \\"," )\n\n");
+		    DumpText(df,0,0,info->param," \\",", \\\n");
+		    DumpText(df,0,0,info->help," \\"," )\n\n");
+		}
 	    }
 
 	    info++;
 	}
 	ctrl.end = info;
 
-	const enumError err = generate(&ctrl);
+	const enumError err = Generate(&ctrl);
 
 	fclose(ctrl.cf);
 	fclose(ctrl.hf);
@@ -1043,6 +1086,8 @@ int main ( int argc, char ** argv )
 	    return err;
     }
 
+    AddTables(df);
+    print_section(df,sep2,"END");
     fclose(df);
     return ERR_OK;
 }

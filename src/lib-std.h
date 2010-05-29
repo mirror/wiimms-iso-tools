@@ -255,7 +255,7 @@ void ScanIOMode ( ccp arg );
 
 //-----------------------------------------------------------------------------
 
-typedef enum enumOFT
+typedef enum enumOFT // open file mode
 {
 	OFT_UNKNOWN,		// not specified yet
 
@@ -342,7 +342,7 @@ typedef struct FileAttrib_t
 //---------------
 
 struct WDiscInfo_t;
-struct wbfs_inode_info_s;
+struct wbfs_inode_info_t;
 
 FileAttrib_t * NormalizeFileAttrib ( FileAttrib_t * fa );
 FileAttrib_t * CopyFileAttrib      ( FileAttrib_t * dest, const FileAttrib_t * src );
@@ -350,7 +350,7 @@ FileAttrib_t * CopyFileAttribStat  ( FileAttrib_t * dest, const struct stat * sr
 FileAttrib_t * CopyFileAttribDiscInfo
 		( FileAttrib_t * dest, const struct WDiscInfo_t * src );
 FileAttrib_t * CopyFileAttribInode
-		( FileAttrib_t * dest, const struct wbfs_inode_info_s * src, off_t size );
+		( FileAttrib_t * dest, const struct wbfs_inode_info_t * src, off_t size );
 
 //-----------------------------------------------------------------------------
 
@@ -930,6 +930,7 @@ extern volatile int logging;
 extern int progress;
 extern bool use_utf8;
 extern char escape_char;
+extern ccp opt_clone;
 
 extern char iobuf[0x400000];		// global io buffer
 

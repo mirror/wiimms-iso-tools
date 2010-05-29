@@ -22,11 +22,13 @@ typedef struct WDPartInfo_t
 	off_t size;			// partition size
 	wd_part_header_t ph;		// partition header
 	u8  part_key[16];		// partition key
+	u64 sys_version;		// system version (ios that the title need)
 
 	// status: -1:unknown, 0:false, 1:true
 	char is_marked_not_enc;		// is partition marked 'not encrypted'? (<0: unknown)
 	char is_encrypted;		// is partition encrypted? (<0: unknown)
-	char is_trucha_signed;		// is partition trucha signed? (<0: unknown)
+	char tik_is_trucha_signed;	// is ticket trucha signed? (<0: unknown)
+	char tmd_is_trucha_signed;	// is tmd trucha signed? (<0: unknown)
 
 } __attribute__ ((packed)) WDPartInfo_t;
 
@@ -215,6 +217,11 @@ enumError SourceIteratorCollected ( Iterator_t * it );
 ///////////////			global options			///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
+extern bool hook_enabled; // [2do] for testing only, [obsolete]
+extern bool allow_fst;
+
+//-----------------------------------------------------------------------------
+
 extern partition_selector_t partition_selector;
 extern u8 wdisc_usage_tab [WII_MAX_SECTORS];
 extern u8 wdisc_usage_tab2[WII_MAX_SECTORS];
@@ -259,8 +266,85 @@ typedef enum enumEncoding
 
 extern enumEncoding encoding;
 enumEncoding ScanEncoding ( ccp arg );
+int ScanOptEncoding ( ccp arg );
 enumEncoding SetEncoding
 	( enumEncoding val, enumEncoding set_mask, enumEncoding default_mask );
+
+//-----------------------------------------------------------------------------
+
+typedef enum enumRegion
+{
+	REGION_JAP	= 0,	// Japan
+	REGION_USA	= 1,	// USA
+	REGION_EUR	= 2,	// Europe
+	REGION_KOR	= 4,	// Korea
+
+	REGION__AUTO	= 0x7ffffffe,	// auto detect
+	REGION__FILE	= 0x7fffffff,	// try to load from file
+	REGION__ERROR	= -1,		// hint: error while scanning
+
+} enumRegion;
+
+extern enumRegion opt_region;
+enumRegion ScanRegion ( ccp arg );
+int ScanOptRegion ( ccp arg );
+
+//-----------------------------------------------------------------------------
+
+typedef struct RegionInfo_t
+{
+	enumRegion reg;	    // the region
+	bool mandatory;	    // is 'reg' mandatory?
+	char name4[4];	    // short name with maximal 4 characters
+	ccp name;	    // long region name
+
+} RegionInfo_t;
+
+const RegionInfo_t * GetRegionInfo ( char region_code );
+
+//-----------------------------------------------------------------------------
+
+extern u64 opt_ios;
+extern bool opt_ios_valid;
+
+bool ScanSysVersion ( u64 * ios, ccp arg );
+int ScanOptIOS ( ccp arg );
+
+//-----------------------------------------------------------------------------
+
+typedef enum enumModify
+{
+	MODIFY__NONE	= 0,	  // modify nothing
+
+	MODIFY_DISC	= 0x001,  // modify disc header
+	MODIFY_BOOT	= 0x002,  // modify boot.bin
+	MODIFY_TICKET	= 0x004,  // modify ticket.bin
+	MODIFY_TMD	= 0x008,  // modify tmd.bin
+	MODIFY_WBFS	= 0x010,  // modify WBFS inode
+
+	MODIFY__ALL	= 0x01f,  // modify all
+	MODIFY__AUTO	= 0x100,  // automatic mode
+	MODIFY__MASK	= MODIFY__ALL | MODIFY__AUTO,
+
+	MODIFY__ERROR	= -1, // hint: error while scanning
+	
+} enumModify;
+
+extern enumModify opt_modify;
+enumModify ScanModify ( ccp arg );
+int ScanOptModify ( ccp arg );
+
+//-----------------------------------------------------------------------------
+
+extern ccp modify_id;
+extern ccp modify_name;
+
+int ScanOptId ( ccp arg );
+int ScanOptName ( ccp arg );
+
+bool PatchId ( void * id, int maxlen, enumModify condition );
+bool CopyPatchedDiscId ( void * dest, const void * src );
+bool PatchName ( void * name, enumModify condition );
 
 //
 ///////////////////////////////////////////////////////////////////////////////
@@ -355,7 +439,8 @@ typedef struct WiiFstPart_t
 	aes_key_t part_akey;		// partition aes key
 	char is_marked_not_enc;		// is partition marked 'not encrypted'? (<0: unknown)
 	char is_encrypted;		// is partition encrypted? (<0: unknown)
-	char is_trucha_signed;		// is partition trucha signed? (<0: unknown)
+	char tik_is_trucha_signed;	// is ticket trucha signed? (<0: unknown)
+	char tmd_is_trucha_signed;	// is tmd trucha signed? (<0: unknown)
 	ccp  path;			// prefix path to partition
 	wd_part_control_t * pc;		// ticket + cert + tmd + h3;
 

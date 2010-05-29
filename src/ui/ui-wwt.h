@@ -36,6 +36,11 @@ typedef enum enumOptions
 	OPT_IGNORE,
 	OPT_IGNORE_FST,
 	OPT_ENC,
+	OPT_REGION,
+	OPT_IOS,
+	OPT_ID,
+	OPT_NAME,
+	OPT_MODIFY,
 	OPT_INODE,
 	OPT_DEST,
 	OPT_DEST2,
@@ -74,7 +79,7 @@ typedef enum enumOptions
 	OPT_SORT,
 	OPT_LIMIT,
 
-	OPT__N_SPECIFIC, // == 52 
+	OPT__N_SPECIFIC, // == 57 
 
 	//----- global options -----
 
@@ -92,8 +97,9 @@ typedef enum enumOptions
 	OPT_NO_UTF_8,
 	OPT_LANG,
 	OPT_TEST,
+	OPT_HOOK,
 
-	OPT__N_TOTAL // == 66
+	OPT__N_TOTAL // == 72
 
 } enumOptions;
 
@@ -120,6 +126,11 @@ typedef enum enumOptionsBit
 	OB_IGNORE		= 1llu << OPT_IGNORE,
 	OB_IGNORE_FST		= 1llu << OPT_IGNORE_FST,
 	OB_ENC			= 1llu << OPT_ENC,
+	OB_REGION		= 1llu << OPT_REGION,
+	OB_IOS			= 1llu << OPT_IOS,
+	OB_ID			= 1llu << OPT_ID,
+	OB_NAME			= 1llu << OPT_NAME,
+	OB_MODIFY		= 1llu << OPT_MODIFY,
 	OB_INODE		= 1llu << OPT_INODE,
 	OB_DEST			= 1llu << OPT_DEST,
 	OB_DEST2		= 1llu << OPT_DEST2,
@@ -193,6 +204,13 @@ typedef enum enumOptionsBit
 
 	OB_GRP_TIME		= OB_GRP_XTIME
 				| OB_TIME,
+
+	OB_GRP_COMPOSE		= OB_ENC
+				| OB_REGION
+				| OB_IOS
+				| OB_ID
+				| OB_NAME
+				| OB_MODIFY,
 
 	OB_CMD_VERSION		= OB_SECTIONS
 				| OB_LONG,
@@ -291,7 +309,7 @@ typedef enum enumOptionsBit
 				| OB_GRP_VERBOSE
 				| OB_PSEL
 				| OB_RAW
-				| OB_ENC
+				| OB_GRP_COMPOSE
 				| OB_REMOVE
 				| OB_TRUNC
 				| OB_NEWER,
@@ -458,44 +476,50 @@ typedef enum enumGetOpt
 	GO_EXCLUDE_PATH		= 'X',
 	GO_IGNORE		= 'i',
 	GO_IGNORE_FST		= 0x88,
-	GO_ENC			= 0x89,
-	GO_INODE		= 0x8a,
+	GO_HOOK			= 0x89,
+	GO_ENC			= 0x8a,
+	GO_REGION		= 0x8b,
+	GO_IOS			= 0x8c,
+	GO_ID			= 0x8d,
+	GO_NAME			= 0x8e,
+	GO_MODIFY		= 0x8f,
+	GO_INODE		= 0x90,
 	GO_DEST			= 'd',
 	GO_DEST2		= 'D',
 	GO_SPLIT		= 'z',
 	GO_SPLIT_SIZE		= 'Z',
 	GO_SIZE			= 's',
-	GO_HSS			= 0x8b,
-	GO_WSS			= 0x8c,
-	GO_RECOVER		= 0x8d,
+	GO_HSS			= 0x91,
+	GO_WSS			= 0x92,
+	GO_RECOVER		= 0x93,
 	GO_FORCE		= 'f',
-	GO_NO_CHECK		= 0x8e,
-	GO_REPAIR		= 0x8f,
-	GO_NO_FREE		= 0x90,
+	GO_NO_CHECK		= 0x94,
+	GO_REPAIR		= 0x95,
+	GO_NO_FREE		= 0x96,
 	GO_UPDATE		= 'u',
 	GO_SYNC			= 'y',
 	GO_NEWER		= 'e',
 	GO_OVERWRITE		= 'o',
 	GO_REMOVE		= 'R',
-	GO_TRUNC		= 0x91,
+	GO_TRUNC		= 0x97,
 	GO_FAST			= 'F',
 	GO_WDF			= 'W',
 	GO_ISO			= 'I',
 	GO_CISO			= 'C',
 	GO_WBFS			= 'B',
-	GO_ITIME		= 0x92,
-	GO_MTIME		= 0x93,
-	GO_CTIME		= 0x94,
-	GO_ATIME		= 0x95,
-	GO_TIME			= 0x96,
-	GO_SET_TIME		= 0x97,
+	GO_ITIME		= 0x98,
+	GO_MTIME		= 0x99,
+	GO_CTIME		= 0x9a,
+	GO_ATIME		= 0x9b,
+	GO_TIME			= 0x9c,
+	GO_SET_TIME		= 0x9d,
 	GO_LONG			= 'l',
 	GO_MIXED		= 'M',
 	GO_UNIQUE		= 'U',
 	GO_NO_HEADER		= 'H',
-	GO_SECTIONS		= 0x98,
+	GO_SECTIONS		= 0x9e,
 	GO_SORT			= 'S',
-	GO_LIMIT		= 0x99,
+	GO_LIMIT		= 0x9f,
 
 	GO__ERR			= '?'
 

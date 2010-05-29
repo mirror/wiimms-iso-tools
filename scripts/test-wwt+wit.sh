@@ -288,7 +288,7 @@ function test_suite()
 	rm -rf "$dest/0"
 
 	test_function "GEN-ISO" "wit COMPOSE" \
-	    $WIT -q COPY "$dest/1" -D "$dest/a.wdf" --wdf \
+	    $WIT -q COPY "$dest/1" -D "$dest/a.wdf" --wdf --region=file \
 	    || return $ERROR
 
 	hss=512
@@ -297,7 +297,7 @@ function test_suite()
 	    || return $ERROR
 
 	test_function "ADD-FST" "wwt ADD FST" \
-	    $WWT -qp "$WBFS" ADD "$dest/1" \
+	    $WWT -qp "$WBFS" ADD "$dest/1" --region=file \
 	    || return $ERROR
 
 	test_function "CMP" "wit CMP 2x composed" \
@@ -310,6 +310,7 @@ function test_suite()
 
 	#diff -rq "$dest/1" "$dest/2"
 	find "$dest" -name tmd.bin -type f -exec rm {} \;
+	find "$dest" -name ticket.bin -type f -exec rm {} \;
 
 	test_function "DIFF-FST" "DIFF fst/1 fst/2" \
 	    diff -rq "$dest/1" "$dest/2" \

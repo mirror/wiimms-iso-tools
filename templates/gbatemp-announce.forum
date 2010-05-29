@@ -150,18 +150,9 @@ I like to work with the linux command line. And the only WBFS tool I found is po
 [*] [url=@@URI-DOWNLOAD-X86_64@@][b]@@DISTRIB-X86_64@@[/b][/url] : linux/x86_64 version
 [*] [url=@@URI-DOWNLOAD-MAC@@][b]@@DISTRIB-MAC@@[/b][/url] : Mac OS universal binaries (ppc, i386 and x86-64)
 [*] [url=@@URI-DOWNLOAD-CYGWIN@@][b]@@DISTRIB-CYGWIN@@[/b][/url] : cygwin (win32) version
+[color=#ffffff].[/color]
+[*] Previous releases are available from [url=http://wit.wiimm.de/download.html]http://wit.wiimm.de/download.html[/url].
 [/list]
-
-[size="2"][color="#000080"][b]Download of the previous stable version:[/b][/color][/size][list]
-[*] [url=@@URI-DOWNLOAD-PREV-I386@@][b]@@PREV-DISTRIB-I386@@[/b][/url] : linux/i386 version
-[*] [url=@@URI-DOWNLOAD-PREV-X86_64@@][b]@@PREV-DISTRIB-X86_64@@[/b][/url] : linux/x86_64 version
-[*] [url=@@URI-DOWNLOAD-PREV-MAC@@][b]@@PREV-DISTRIB-MAC@@[/b][/url] : Mac OS universal binaries (ppc, i386 and x86-64)
-[*] [url=@@URI-DOWNLOAD-PREV-CYGWIN@@][b]@@PREV-DISTRIB-CYGWIN@@[/b][/url] : cygwin (win32) version
-[/list]
-
-[size="2"][color="#000080"][b]Download other releases:[/b][/color][/size][list]
-[*] [url=@@URI-DOWNLOAD-PREV-MIPSEL@@][b]@@PREV-DISTRIB-MIPSEL@@[/b][/url] : mipsel release by Bauldrick
-[*] [url=@@URI-DOWNLOAD-PREV-POWERPC@@][b]@@PREV-DISTRIB-POWERPC@@[/b][/url] : powerpc release by Bauldrick
 [/list]
 
 

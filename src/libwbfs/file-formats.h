@@ -69,6 +69,12 @@ enum // some constants
     WII_GROUP_DATA_SIZE		= WII_GROUP_SECTORS * WII_SECTOR_DATA_SIZE,
     WII_GROUP_DATA_SIZE4	= WII_GROUP_DATA_SIZE >> 2,
 
+    WII_TICKET_SIZE		= 0x2a4,
+    WII_TICKET_SIG_OFF		= 0x140, // do SHA1 up to end of ticket
+    WII_TICKET_KEY_OFF		= 0x1bf,
+    WII_TICKET_IV_OFF		= 0x1dc,
+    WII_TICKET_BRUTE_FORCE_OFF	= 0x24c, // this u32 will be iterated
+
     WII_TMD_SIG_OFF		= 0x140, // do SHA1 up to end of tmd
     WII_TMD_BRUTE_FORCE_OFF	= 0x19a, // this u32 will be iterated
     WII_PARTITION_BIN_SIZE	= 0x20000,
@@ -79,8 +85,12 @@ enum // some constants
 
     WII_MAGIC			= 0x5d1c9ea3,
     WII_MAGIC_DELETED		= 0x2a44454c,
-    WII_MAGIC_OFF		= 0x18,
-    WII_MAGIC_LEN		= 0x04,
+    WII_MAGIC_OFF		=       0x18,
+    WII_MAGIC_LEN		=       0x04,
+
+    WII_MAGIC2			= 0xc3f81a8e,
+    WII_MAGIC2_OFF		=    0x4fffc,
+    WII_MAGIC2_LEN		=       0x04,
 
     WII_TITLE_OFF		= 0x20,
     WII_TITLE_SIZE		= 0x40,
@@ -91,18 +101,14 @@ enum // some constants
     WII_MAX_PART_INFO		=       4,
     WII_PART_INFO_OFF		= 0x40000,
     WII_REGION_OFF		= 0x4e000,
+    WII_REGION_SIZE		=    0x20,
     WII_MAX_PART_TABLE		=    0x40,
 
-    WII_TICKET_SIZE		= 0x2a4,
-    WII_TICKET_SIG_OFF		= 0x104,
-    WII_TICKET_KEY_OFFSET	= 0x1bf,
-    WII_TICKET_IV_OFFSET	= 0x1dc,
-
-    WII_BOOT_OFFSET		=      0,
-    WII_BI2_OFFSET		=  0x440,
-    WII_APL_OFFSET		= 0x2440,
-    WII_BOOT_SIZE		= WII_BI2_OFFSET - WII_BOOT_OFFSET,
-    WII_BI2_SIZE		= WII_APL_OFFSET - WII_BI2_OFFSET,
+    WII_BOOT_OFF		=      0,
+    WII_BI2_OFF			=  0x440,
+    WII_APL_OFF			= 0x2440,
+    WII_BOOT_SIZE		= WII_BI2_OFF - WII_BOOT_OFF,
+    WII_BI2_SIZE		= WII_APL_OFF - WII_BI2_OFF,
 
     WII_GOOD_UPDATE_PART_OFF	=   0x50000,
     WII_GOOD_DATA_PART_OFF	= 0xf800000,
@@ -124,7 +130,7 @@ enum // some constants
 ///////////////			struct dol_header_t		///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-typedef struct dol_header_s
+typedef struct dol_header_t
 {
     /* 0x00 */	u32 sect_off [DOL_N_SECTIONS];
     /* 0x48 */	u32 sect_addr[DOL_N_SECTIONS];
@@ -145,7 +151,7 @@ void hton_dol_header ( dol_header_t * dest, const dol_header_t * src );
 ///////////////		    struct wbfs_inode_info_t		///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-typedef struct wbfs_inode_info_s
+typedef struct wbfs_inode_info_t
 {
 	// A complete copy of the first WBFS_INODE_INFO_HEAD_SIZE (12) bytes
 	// of the WBFS header. The first WBFS_INODE_INFO_CMP_SIZE (10)
@@ -210,7 +216,7 @@ void hton_inode_info ( wbfs_inode_info_t * dest, const wbfs_inode_info_t * src )
 ///////////////			struct wd_header_t		///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-typedef struct wd_header_s
+typedef struct wd_header_t
 {
 	// -> http://www.wiibrew.org/wiki/Wiidisc#Header
 
@@ -241,7 +247,7 @@ __attribute__ ((packed)) wd_header_t;
 ///////////////			struct wd_boot_t		///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-typedef struct wd_boot_s
+typedef struct wd_boot_t
 {
     /*   0 */	wd_header_t dhead;
     /* 100 */	u8  unknown1[0x420-sizeof(wd_header_t)];
@@ -260,7 +266,7 @@ void hton_boot ( wd_boot_t * dest, const wd_boot_t * src );
 ///////////////		    struct wd_region_set_t		///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-typedef struct wd_region_set_s
+typedef struct wd_region_set_t
 {
 	u32 region;
 	u8  padding1[12];
@@ -274,7 +280,7 @@ __attribute__ ((packed)) wd_region_set_t;
 ///////////////		    struct wd_part_count_t		///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-typedef struct wd_part_count_s
+typedef struct wd_part_count_t
 {
 	u32 n_part;	// number of partitions in this table
 	u32 off4;	// offset/4 of partition table relative to ISO start
@@ -286,7 +292,7 @@ __attribute__ ((packed)) wd_part_count_t;
 ///////////////		    struct wd_part_table_entry_t	///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-typedef struct wd_part_table_entry_s
+typedef struct wd_part_table_entry_t
 {
 	u32 off4;	// offset/4 of partition table relative to ISO start
 	u32 ptype;	// partitions type
@@ -298,23 +304,23 @@ __attribute__ ((packed)) wd_part_table_entry_t;
 ///////////////			struct wd_ticket_t		///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-typedef struct wd_ticket_s
+typedef struct wd_ticket_t
 {
   // --> http://wiibrew.org/wiki/Ticket
 
   /* 0x000 */	u32 sig_type;		// signature type (always 0x10001 for RSA-2048)
   /* 0x004 */	u8  sig[0x100];		// signature by a certificate's key
+  /* 0x104 */	u8  sig_padding[0x3c];	// always 0
 
   // the signature calculations starts here (WII_TICKET_SIG_OFF)
 
-  /* 0x104 */	u8  padding1[0x3c];	// always 0
-  /* 0x140 */	u8  sig_issuer[0x40]; 	// signature issuer
+  /* 0x140 */	u8  issuer[0x40]; 	// signature issuer
   /* 0x180 */	u8  unknown1[0x3f]; 	// always 0, unless it is a VC game
-  /* 0x1bf */	u8  title_key[0x10];	// encrypted title key, offset=WII_TICKET_KEY_OFFSET
+  /* 0x1bf */	u8  title_key[0x10];	// encrypted title key, offset=WII_TICKET_KEY_OFF
   /* 0x1cf */	u8  unknown2; 		// ?
-  /* 0x1d0 */	u64 ticket_id;		// ticket ID
-  /* 0x1d8 */	u32 console_id;		// console ID
-  /* 0x1dc */	u64 title_id;		// title id, offset=WII_TICKET_IV_OFFSET
+  /* 0x1d0 */	u8  ticket_id[8];	// ticket ID
+  /* 0x1d8 */	u8  console_id[4];	// console ID
+  /* 0x1dc */	u8  title_id[8];	// title ID, offset=WII_TICKET_IV_OFF
   /* 0x1e4 */	u16 unknown3;		// unknown, mostly 0xFFFF
   /* 0x1e6 */	u16 n_dlc; 		// amount of bought DLC contents
   /* 0x1e8 */	u8  unknown4;		// ERROR in http://wiibrew.org/wiki/Ticket
@@ -325,17 +331,26 @@ typedef struct wd_ticket_s
   /* 0x242 */	u8  padding2[2]; 	// always 0
   /* 0x244 */	u32 enable_time_limit;	// 1=enabled, 0=disabled
   /* 0x248 */	u32 time_limit;		// seconds (what is the epoch?)
-  /* 0x24c */	u8  padding3[0x58]; 	// always 0
+  /* 0x24c */	u8  trucha_pad[0x58];	// always 0
 
 }
 __attribute__ ((packed)) wd_ticket_t;
+
+//----- encryption helpers
+
+extern const char not_encrypted_marker[];
+
+void ticket_clear_encryption ( wd_ticket_t * ticket, int mark_not_encrypted );
+int  ticket_is_marked_not_encrypted ( const wd_ticket_t * ticket );
+u32  ticket_sign_trucha ( wd_ticket_t * ticket, u32 ticket_size );
+int  ticket_is_trucha_signed ( const wd_ticket_t * ticket, u32 ticket_size );
 
 //
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////			struct wd_part_header_t		///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-typedef struct wd_part_header_s
+typedef struct wd_part_header_t
 {
   /* 0x000 */	wd_ticket_t ticket;
   /* 0x2a4 */	u32 tmd_size;
@@ -356,7 +371,7 @@ void hton_part_header ( wd_part_header_t * dest, const wd_part_header_t * src );
 ///////////////		      struct wd_tmd_content_t		///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-typedef struct wd_tmd_content_s
+typedef struct wd_tmd_content_t
 {
   /* 0x00 */	u32 content_id;
   /* 0x04 */	u16 index;
@@ -371,7 +386,7 @@ __attribute__ ((packed)) wd_tmd_content_t;
 ///////////////			    struct wd_tmd_t		///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-typedef struct wd_tmd_s
+typedef struct wd_tmd_t
 {
   // --> http://wiibrew.org/wiki/Tmd_file_structure
 
@@ -386,8 +401,8 @@ typedef struct wd_tmd_s
   /* 0x181 */	u8  ca_crl_version;
   /* 0x182 */	u8  signer_crl_version;
   /* 0x183 */	u8  padding2;
-  /* 0x184 */	u64 sys_version;	// System Version (the ios that the title need)
-  /* 0x18c */	u64 title_id;
+  /* 0x184 */	u64 sys_version;	// system version (the ios that the title need)
+  /* 0x18c */	u8  title_id[8];
   /* 0x194 */	u32 title_type;
   /* 0x198 */	u16 group_id;
   /* 0x19a */	u8  reserved[0x3e]; 	// place of trucha brute force
@@ -402,7 +417,6 @@ __attribute__ ((packed)) wd_tmd_t;
 
 //----- encryption helpers
 
-extern const char tmd_not_encrypted[];
 void tmd_clear_encryption ( wd_tmd_t * tmd, int mark_not_encrypted );
 int  tmd_is_marked_not_encrypted ( const wd_tmd_t * tmd );
 u32  tmd_sign_trucha ( wd_tmd_t * tmd, u32 tmd_size );
@@ -458,7 +472,7 @@ int part_control_is_trucha_signed ( const wd_part_control_t * pc );
 ///////////////			struct wd_part_sector_t		///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-typedef struct wd_part_sector_s
+typedef struct wd_part_sector_t
 {
   /* 0x000 */	u8 h0 [WII_N_ELEMENTS_H0][WII_HASH_SIZE];
   /* 0x26c */	u8 padding0[20];
@@ -476,7 +490,7 @@ __attribute__ ((packed)) wd_part_sector_t;
 ///////////////			struct wd_fst_item_t		///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-typedef struct wd_fst_item_s
+typedef struct wd_fst_item_t
 {
     union
     {
@@ -494,7 +508,7 @@ __attribute__ ((packed)) wd_fst_item_t;
 ///////////////			struct wbfs_head_t		///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-typedef struct wbfs_head_s
+typedef struct wbfs_head_t
 {
     be32_t magic;	// the magic (char*)"WBFS"
 
@@ -517,7 +531,7 @@ __attribute__ ((packed)) wbfs_head_t;
 ///////////////			struct wbfs_disc_info_t		///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-typedef struct wbfs_disc_info_s
+typedef struct wbfs_disc_info_t
 {
     u8 disc_header_copy[0x100];
     be16_t wlba_table[0];   // wbfs_t::n_wbfs_sec_per_disc elements

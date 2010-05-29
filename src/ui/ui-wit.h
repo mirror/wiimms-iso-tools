@@ -36,6 +36,11 @@ typedef enum enumOptions
 	OPT_PMODE,
 	OPT_SNEEK,
 	OPT_ENC,
+	OPT_REGION,
+	OPT_IOS,
+	OPT_ID,
+	OPT_NAME,
+	OPT_MODIFY,
 	OPT_DEST,
 	OPT_DEST2,
 	OPT_SPLIT,
@@ -62,7 +67,7 @@ typedef enum enumOptions
 	OPT_SORT,
 	OPT_LIMIT,
 
-	OPT__N_SPECIFIC, // == 40 
+	OPT__N_SPECIFIC, // == 45 
 
 	//----- global options -----
 
@@ -80,8 +85,9 @@ typedef enum enumOptions
 	OPT_NO_UTF_8,
 	OPT_LANG,
 	OPT_TEST,
+	OPT_HOOK,
 
-	OPT__N_TOTAL // == 54
+	OPT__N_TOTAL // == 60
 
 } enumOptions;
 
@@ -108,6 +114,11 @@ typedef enum enumOptionsBit
 	OB_PMODE		= 1llu << OPT_PMODE,
 	OB_SNEEK		= 1llu << OPT_SNEEK,
 	OB_ENC			= 1llu << OPT_ENC,
+	OB_REGION		= 1llu << OPT_REGION,
+	OB_IOS			= 1llu << OPT_IOS,
+	OB_ID			= 1llu << OPT_ID,
+	OB_NAME			= 1llu << OPT_NAME,
+	OB_MODIFY		= 1llu << OPT_MODIFY,
 	OB_DEST			= 1llu << OPT_DEST,
 	OB_DEST2		= 1llu << OPT_DEST2,
 	OB_SPLIT		= 1llu << OPT_SPLIT,
@@ -170,6 +181,13 @@ typedef enum enumOptionsBit
 				| OB_FILES
 				| OB_SNEEK,
 
+	OB_GRP_COMPOSE		= OB_ENC
+				| OB_REGION
+				| OB_IOS
+				| OB_ID
+				| OB_NAME
+				| OB_MODIFY,
+
 	OB_CMD_HELP		= ~(option_t)0,
 
 	OB_CMD_VERSION		= OB_SECTIONS
@@ -202,7 +220,7 @@ typedef enum enumOptionsBit
 				| OB_IGNORE_FST
 				| OB_GRP_PARTITIONS
 				| OB_GRP_FILES
-				| OB_ENC
+				| OB_GRP_COMPOSE
 				| OB_LONG,
 
 	OB_CMD_ID6		= OB_GRP_XSOURCE
@@ -255,9 +273,9 @@ typedef enum enumOptionsBit
 				| OB_GRP_PARTITIONS
 				| OB_GRP_FILES
 				| OB_SORT
-				| OB_ENC
 				| OB_DEST
 				| OB_DEST2
+				| OB_GRP_COMPOSE
 				| OB_PRESERVE
 				| OB_OVERWRITE,
 
@@ -278,6 +296,7 @@ typedef enum enumOptionsBit
 				| OB_SPLIT
 				| OB_SPLIT_SIZE
 				| OB_PRESERVE
+				| OB_GRP_COMPOSE
 				| OB_WDF
 				| OB_ISO
 				| OB_CISO
@@ -385,7 +404,13 @@ typedef enum enumGetOpt
 	GO_RAW			= 0x88,
 	GO_PMODE		= 0x89,
 	GO_SNEEK		= 0x8a,
-	GO_ENC			= 0x8b,
+	GO_HOOK			= 0x8b,
+	GO_ENC			= 0x8c,
+	GO_REGION		= 0x8d,
+	GO_IOS			= 0x8e,
+	GO_ID			= 0x8f,
+	GO_NAME			= 0x90,
+	GO_MODIFY		= 0x91,
 	GO_DEST			= 'd',
 	GO_DEST2		= 'D',
 	GO_SPLIT		= 'z',
@@ -398,19 +423,19 @@ typedef enum enumGetOpt
 	GO_ISO			= 'I',
 	GO_CISO			= 'C',
 	GO_WBFS			= 'B',
-	GO_FST			= 0x8c,
+	GO_FST			= 0x92,
 	GO_FILES		= 'F',
-	GO_ITIME		= 0x8d,
-	GO_MTIME		= 0x8e,
-	GO_CTIME		= 0x8f,
-	GO_ATIME		= 0x90,
-	GO_TIME			= 0x91,
+	GO_ITIME		= 0x93,
+	GO_MTIME		= 0x94,
+	GO_CTIME		= 0x95,
+	GO_ATIME		= 0x96,
+	GO_TIME			= 0x97,
 	GO_LONG			= 'l',
 	GO_UNIQUE		= 'U',
 	GO_NO_HEADER		= 'H',
-	GO_SECTIONS		= 0x92,
+	GO_SECTIONS		= 0x98,
 	GO_SORT			= 'S',
-	GO_LIMIT		= 0x93,
+	GO_LIMIT		= 0x99,
 
 	GO__ERR			= '?'
 

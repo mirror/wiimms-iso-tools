@@ -38,7 +38,7 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 	"id",
 	"Include only discs with given ID4 or ID6 from operation. If the"
 	" parameter begins with a '@' the given file is read and each line is"
-	" scanned for IDs,"
+	" scanned for IDs."
     },
 
     {	OPT_INCLUDE_PATH, 'N', "include-path",
@@ -66,7 +66,7 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 
     {	OPT_IGNORE_FST, 0, "ignore-fst",
 	0,
-	"Ignore FST directories as input."
+	"Disable composing and ignore FST directories as input."
     },
 
     {	OPT_PSEL, 0, "psel",
@@ -96,9 +96,47 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 
     {	OPT_ENC, 0, "enc",
 	"encoding",
-	"Define the encoding mode.  The mode is one of NONE, HASHONLY,"
-	" DECRYPT, ENCRYPT, SIGN or AUTO. The case of the keywords is ignored."
-	" The default mode is 'AUTO'."
+	"Define the encoding mode. The mode is one of NONE, HASHONLY, DECRYPT,"
+	" ENCRYPT, SIGN or AUTO. The case of the keywords is ignored. The"
+	" default mode is 'AUTO'."
+    },
+
+    {	OPT_REGION, 0, "region",
+	"region",
+	"Define the region of the disc.  The region is one of JAPAN, USA,"
+	" EUROPE, KOREA, FILE or AUTO (default). The case of the keywords is"
+	" ignored. Unsigned numbers are also accepted."
+    },
+
+    {	OPT_IOS, 0, "ios",
+	"ios",
+	"Define the system version (IOS to load) within TMD.  The format is"
+	" 'HIGH:LOW' or 'HIGH-LOW' or 'LOW'. If only LOW is set than HIGH is"
+	" assumed as 1 (standard IOS)."
+    },
+
+    {	OPT_ID, 0, "id",
+	"id",
+	"Change the ID of the disc to the given parameter. 1 to 6 characters"
+	" are expected. Only defined characters not equal '.' are modified."
+	" The disc header, boot.bin, ticket.bin and tmd.bin are  objects to"
+	" modify. The option --modify= selects the objects."
+    },
+
+    {	OPT_NAME, 0, "name",
+	"name",
+	"Change the name (disc title) of the disc to the given parameter. Up"
+	" to 63 characters are expected. The disc header and boot.bin are"
+	" objects to modify. The option --modify= selects the objects."
+    },
+
+    {	OPT_MODIFY, 0, "modify",
+	"list",
+	" The parameter is a comma separated list of the following keywords,"
+	" case is ignored: NONE, DISC, BOOT, TICKET, TMD, WBFS, ALL and AUTO"
+	" (default).\n"
+	" All keyword can be prefixed by '+' to enable that opton, by a '-' to"
+	" disable it or by a '=' to enable that option and disable all others."
     },
 
     {	OPT_DEST, 'd', "dest",
@@ -244,7 +282,7 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 	"Limit the output to NUM messages."
     },
 
-    {0,0,0,0,0}, // OPT__N_SPECIFIC == 40
+    {0,0,0,0,0}, // OPT__N_SPECIFIC == 45
 
     //----- global options -----
 
@@ -274,7 +312,7 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 	"Be verbose and print more progress information. Multiple usage is"
 	" possible: Progress counter is enabled if set at least two times."
 	" Extended logging is enabled if set at least four times. The impact"
-	" of other verbose level is command dependend."
+	" of the other verbose levels are command dependent."
     },
 
     {	OPT_PROGRESS, 'P', "progress",
@@ -330,7 +368,12 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 	">>> USE THIS OPTION IF UNSURE! <<<"
     },
 
-    {0,0,0,0,0} // OPT__N_TOTAL == 54
+    {	OPT_HOOK, 0, "hook",
+	0,
+	" [2do] for tests only."
+    },
+
+    {0,0,0,0,0} // OPT__N_TOTAL == 60
 
 };
 
@@ -522,7 +565,13 @@ const struct option OptionLong[] =
 	{ "raw",		0, 0, GO_RAW },
 	{ "pmode",		1, 0, GO_PMODE },
 	{ "sneek",		0, 0, GO_SNEEK },
+	{ "hook",		0, 0, GO_HOOK },
 	{ "enc",		1, 0, GO_ENC },
+	{ "region",		1, 0, GO_REGION },
+	{ "ios",		1, 0, GO_IOS },
+	{ "id",			1, 0, GO_ID },
+	{ "name",		1, 0, GO_NAME },
+	{ "modify",		1, 0, GO_MODIFY },
 	{ "dest",		1, 0, 'd' },
 	{ "DEST",		1, 0, 'D' },
 	{ "split",		0, 0, 'z' },
@@ -625,16 +674,22 @@ const u8 OptionIndex[OPT_INDEX_SIZE] =
 	/*88*/	OPT_RAW,
 	/*89*/	OPT_PMODE,
 	/*8a*/	OPT_SNEEK,
-	/*8b*/	OPT_ENC,
-	/*8c*/	OPT_FST,
-	/*8d*/	OPT_ITIME,
-	/*8e*/	OPT_MTIME,
-	/*8f*/	OPT_CTIME,
-	/*90*/	OPT_ATIME,
-	/*91*/	OPT_TIME,
-	/*92*/	OPT_SECTIONS,
-	/*93*/	OPT_LIMIT,
-	/*94*/	 0,0,0,0, 0,0,0,0, 0,0,0,0, 
+	/*8b*/	OPT_HOOK,
+	/*8c*/	OPT_ENC,
+	/*8d*/	OPT_REGION,
+	/*8e*/	OPT_IOS,
+	/*8f*/	OPT_ID,
+	/*90*/	OPT_NAME,
+	/*91*/	OPT_MODIFY,
+	/*92*/	OPT_FST,
+	/*93*/	OPT_ITIME,
+	/*94*/	OPT_MTIME,
+	/*95*/	OPT_CTIME,
+	/*96*/	OPT_ATIME,
+	/*97*/	OPT_TIME,
+	/*98*/	OPT_SECTIONS,
+	/*99*/	OPT_LIMIT,
+	/*9a*/	 0,0,0,0, 0,0,
 };
 
 //
@@ -816,6 +871,11 @@ static const InfoOption_t * option_tab_cmd_DUMP[] =
 
 	OptionInfo + OPT_LOGGING,
 	OptionInfo + OPT_ENC,
+	OptionInfo + OPT_REGION,
+	OptionInfo + OPT_IOS,
+	OptionInfo + OPT_ID,
+	OptionInfo + OPT_NAME,
+	OptionInfo + OPT_MODIFY,
 	&option_cmd_DUMP_LONG,
 
 	0
@@ -1203,7 +1263,6 @@ static const InfoOption_t * option_tab_cmd_EXTRACT[] =
 	OptionInfo + OPT_QUIET,
 	OptionInfo + OPT_VERBOSE,
 	OptionInfo + OPT_LOGGING,
-	OptionInfo + OPT_ENC,
 	OptionInfo + OPT_PROGRESS,
 
 	OptionInfo + OPT_NONE, // separator
@@ -1211,6 +1270,12 @@ static const InfoOption_t * option_tab_cmd_EXTRACT[] =
 	OptionInfo + OPT_DEST,
 	OptionInfo + OPT_DEST2,
 	OptionInfo + OPT_ESC,
+	OptionInfo + OPT_ENC,
+	OptionInfo + OPT_REGION,
+	OptionInfo + OPT_IOS,
+	OptionInfo + OPT_ID,
+	OptionInfo + OPT_NAME,
+	OptionInfo + OPT_MODIFY,
 	OptionInfo + OPT_PRESERVE,
 	OptionInfo + OPT_OVERWRITE,
 
@@ -1257,7 +1322,6 @@ static const InfoOption_t * option_tab_cmd_COPY[] =
 	OptionInfo + OPT_QUIET,
 	OptionInfo + OPT_VERBOSE,
 	OptionInfo + OPT_LOGGING,
-	OptionInfo + OPT_ENC,
 	OptionInfo + OPT_PROGRESS,
 
 	OptionInfo + OPT_NONE, // separator
@@ -1265,6 +1329,12 @@ static const InfoOption_t * option_tab_cmd_COPY[] =
 	OptionInfo + OPT_DEST,
 	OptionInfo + OPT_DEST2,
 	OptionInfo + OPT_ESC,
+	OptionInfo + OPT_ENC,
+	OptionInfo + OPT_REGION,
+	OptionInfo + OPT_IOS,
+	OptionInfo + OPT_ID,
+	OptionInfo + OPT_NAME,
+	OptionInfo + OPT_MODIFY,
 	OptionInfo + OPT_PRESERVE,
 	OptionInfo + OPT_OVERWRITE,
 	OptionInfo + OPT_UPDATE,
@@ -1326,6 +1396,12 @@ static const InfoOption_t * option_tab_cmd_SCRUB[] =
 	OptionInfo + OPT_SPLIT,
 	OptionInfo + OPT_SPLIT_SIZE,
 	OptionInfo + OPT_PRESERVE,
+	OptionInfo + OPT_ENC,
+	OptionInfo + OPT_REGION,
+	OptionInfo + OPT_IOS,
+	OptionInfo + OPT_ID,
+	OptionInfo + OPT_NAME,
+	OptionInfo + OPT_MODIFY,
 	OptionInfo + OPT_WDF,
 	OptionInfo + OPT_ISO,
 	OptionInfo + OPT_CISO,
@@ -1615,8 +1691,9 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	"DUMP",
 	"D",
 	"wit DUMP [source]...",
-	"Dump the data structure of ISO files.",
-	20,
+	"Dump the data structure of Wii ISO files, boot.bin, fst.bin and of"
+	" DOL-files.",
+	25,
 	option_tab_cmd_DUMP
     },
 
@@ -1675,7 +1752,7 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	"ILIST",
 	"IL",
 	"wit ILIST [source]...",
-	"List all files if all discs.",
+	"List all files of all discs.",
 	18,
 	option_tab_cmd_ILIST
     },
@@ -1685,7 +1762,7 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	"ILIST-L",
 	"ILL",
 	"wit ILIST-L [source]...",
-	"List all files if all discs. Same as 'ILIST --long'.",
+	"List all files of all discs. Same as 'ILIST --long'.",
 	18,
 	option_tab_cmd_ILIST_L
     },
@@ -1695,7 +1772,7 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	"ILIST-LL",
 	"ILLL",
 	"wit ILIST-LL [source]...",
-	"List all files if all discs. Same as 'ILIST --long --long'.",
+	"List all files of all discs. Same as 'ILIST --long --long'.",
 	18,
 	option_tab_cmd_ILIST_LL
     },
@@ -1719,7 +1796,7 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	"wit EXTRACT source dest\n"
 	"wit EXTRACT [-s path]... [-r path]... [source]... [-d|-D] dest",
 	"Extract all files from the source discs.",
-	30,
+	35,
 	option_tab_cmd_EXTRACT
     },
 
@@ -1730,7 +1807,7 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	"wit COPY source dest\n"
 	"wit COPY [-s path]... [-r path]... [source]... [-d|-D] dest",
 	"Copy, scrub, convert, split, encrypt and decrypt Wii ISO images.",
-	39,
+	44,
 	option_tab_cmd_COPY
     },
 
@@ -1741,7 +1818,7 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	"wit SCRUB source\n"
 	"wit SCRUB [-s path]... [-r path]... [source]...",
 	"Scrub, convert, split, encrypt and decrypt Wii ISO images.",
-	27,
+	33,
 	option_tab_cmd_SCRUB
     },
 

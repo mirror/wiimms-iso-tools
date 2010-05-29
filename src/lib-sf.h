@@ -8,7 +8,35 @@
 
 //
 ///////////////////////////////////////////////////////////////////////////////
-///////////////                struct SuperFile_t               ///////////////
+///////////////			typedef functions		///////////////
+///////////////////////////////////////////////////////////////////////////////
+
+struct SuperFile_t;
+
+typedef enumError (*ReadFunc)
+	( struct SuperFile_t * sf, off_t off, void * buf, size_t count );
+
+typedef enumError (*WriteFunc)
+	( struct SuperFile_t * sf, off_t off, const void * buf, size_t count );
+
+
+//
+///////////////////////////////////////////////////////////////////////////////
+///////////////			struct IOData_t			///////////////
+///////////////////////////////////////////////////////////////////////////////
+
+typedef struct IOData_t
+{
+	enumOFT   oft;			// open file mode
+	ReadFunc  read_func;		// read function
+	WriteFunc write_func;		// write function
+	WriteFunc write_sparse_func;	// sparse write function
+
+} IOData_t;
+
+//
+///////////////////////////////////////////////////////////////////////////////
+///////////////			struct SuperFile_t		///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
 typedef struct SuperFile_t
@@ -16,7 +44,6 @@ typedef struct SuperFile_t
 	// parameters, set by user
 
 	File_t f;			// file handling struct
-	enumOFT oft;			// output file mode
 	bool enable_fast;		// enables fast prosessing
 	bool enable_trunc;		// truncate iso image
 	int  indent;			// indent of progress and summary
@@ -39,6 +66,11 @@ typedef struct SuperFile_t
 
 	off_t file_size;		// the size of the (virtual) ISO image
 	off_t max_virt_off;		// maximal used offset of virtual image
+
+	// read and write support
+
+	IOData_t iod;			// open file mode & read+write functions
+	ReadFunc std_read_func;		// standard read function
 
 	// WDF support
 
@@ -87,7 +119,11 @@ enumError RemoveSF ( SuperFile_t * sf );
 
 // status
 bool IsOpenSF ( const SuperFile_t * sf );
- 
+
+// setup oft and modifier
+enumOFT SetupIOD ( SuperFile_t * sf, enumOFT force, enumOFT def );
+enumError SetupISOModifier ( SuperFile_t * sf );
+
 // setup reading
 enumError SetupReadSF   ( SuperFile_t * sf );		// all files
 enumError SetupReadISO  ( SuperFile_t * sf );		// only iso images
@@ -109,19 +145,33 @@ int SubstFileNameBuf ( char * fname, size_t fname_size,
 
 // main read and write functions
 enumError ReadSF	( SuperFile_t * sf, off_t off, void * buf, size_t count );
+enumError ReadISO	( SuperFile_t * sf, off_t off, void * buf, size_t count );
 enumError ReadWBFS	( SuperFile_t * sf, off_t off, void * buf, size_t count );
 enumError WriteSF	( SuperFile_t * sf, off_t off, const void * buf, size_t count );
 enumError WriteSparseSF	( SuperFile_t * sf, off_t off, const void * buf, size_t count );
+enumError WriteISO	( SuperFile_t * sf, off_t off, const void * buf, size_t count );
+enumError WriteSparseISO( SuperFile_t * sf, off_t off, const void * buf, size_t count );
 enumError WriteWBFS	( SuperFile_t * sf, off_t off, const void * buf, size_t count );
 enumError SetSizeSF	( SuperFile_t * sf, off_t off );
 
-// read and write wrappers
+// standard read and write wrappers
+enumError ReadWrapperSF		( SuperFile_t * sf, off_t off, void * buf, size_t count );
+enumError WriteWrapperSF	( SuperFile_t * sf, off_t off, const void * buf, size_t count );
+enumError WriteSparseWrapperSF	( SuperFile_t * sf, off_t off, const void * buf, size_t count );
+
+// libwbfs read and write wrappers
 int WrapperReadISO	  ( void * p_sf, u32 offset, u32 count, void * iobuf );
 int WrapperReadSF	  ( void * p_sf, u32 offset, u32 count, void * iobuf );
 int WrapperWriteDirectISO ( void * p_sf, u32 lba,    u32 count, void * iobuf );
 int WrapperWriteSparseISO ( void * p_sf, u32 lba,    u32 count, void * iobuf );
 int WrapperWriteDirectSF  ( void * p_sf, u32 lba,    u32 count, void * iobuf );
 int WrapperWriteSparseSF  ( void * p_sf, u32 lba,    u32 count, void * iobuf );
+
+enumError SparseHelper
+	( SuperFile_t * sf, off_t off, const void * buf, size_t count,
+	  WriteFunc func, size_t min_chunk_size );
+
+///////////////////////////////////////////////////////////////////////////////
 
 // progress and statistics
 void CopyProgressSF ( SuperFile_t * dest, SuperFile_t * src );

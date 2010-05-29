@@ -272,8 +272,7 @@ void PrintHelpCmd ( const InfoUI_t * iu, FILE * f, int indent, int cmd )
 	cmd = 0;
     const InfoCommand_t * ic = iu->cmd_info + cmd;
 
-    const int fw = GetTermWidth(80,40);
-    //const int fw = GetTermWidthFD(fileno(f),80,40);
+    const int fw = GetTermWidth(81,40) - 1;
 
     if (!cmd)
 	snprintf(iobuf,sizeof(iobuf),"%s",iu->tool_name );

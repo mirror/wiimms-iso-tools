@@ -65,6 +65,7 @@ option_t used_options		= 0;
 option_t env_options		= 0;
 int opt_split			= 0;
 u64 opt_split_size		= 0;
+ccp opt_clone			= 0;
 
 #ifdef __CYGWIN__
  bool use_utf8			= false;
@@ -189,8 +190,6 @@ void SetupLib ( int argc, char ** argv, ccp p_progname, enumProgID prid )
 
     // numeric types
 
-CheckID4(argv[0],false);
-
     TRACE("-\n");
     TRACE_SIZEOF(bool);
     TRACE_SIZEOF(short);
@@ -229,6 +228,7 @@ CheckID4(argv[0],false);
     TRACE_SIZEOF(InfoCommand_t);
     TRACE_SIZEOF(InfoOption_t);
     TRACE_SIZEOF(InfoUI_t);
+    TRACE_SIZEOF(IOData_t);
     TRACE_SIZEOF(IsoFileIterator_t);
     TRACE_SIZEOF(IsoMappingItem_t);
     TRACE_SIZEOF(IsoMapping_t);
@@ -238,6 +238,7 @@ CheckID4(argv[0],false);
     TRACE_SIZEOF(ParamList_t);
     TRACE_SIZEOF(PartitionInfo_t);
     TRACE_SIZEOF(PrintTime_t);
+    TRACE_SIZEOF(RegionInfo_t);
     TRACE_SIZEOF(StringField_t);
     TRACE_SIZEOF(StringList_t);
     TRACE_SIZEOF(SubstString_t);
@@ -294,6 +295,7 @@ CheckID4(argv[0],false);
     ASSERT( 4 == sizeof(s32) );
     ASSERT( 8 == sizeof(s64) );
 
+    ASSERT( Count1Bits32(sizeof(WDF_Hole_t)) == 1 );
     ASSERT( sizeof(CISO_Head_t) == CISO_HEAD_SIZE );
 
     ASSERT(  79 == strlen(sep_79) );
@@ -1412,6 +1414,14 @@ enumError XCreateFile ( XPARM File_t * f, ccp fname, enumIOMode iomode, int over
 {
     ASSERT(f);
 
+#if defined(TEST) && 0 // [2do]
+    const int open_flags  = O_CREAT|O_RDWR|O_TRUNC|O_EXCL;
+    const int force_flags = O_CREAT;
+#else
+    const int open_flags  = O_CREAT|O_WRONLY|O_TRUNC|O_EXCL;
+    const int force_flags = O_CREAT;
+#endif
+
     if (!fname)
     {
 	fname = f->fname;
@@ -1426,9 +1436,7 @@ enumError XCreateFile ( XPARM File_t * f, ccp fname, enumIOMode iomode, int over
 	f->fd    = dup(fileno(stdout));
 	f->fname = strdup("- (stdout)");
 
-	return XOpenFileHelper(XCALL f, iomode,
-			O_CREAT|O_WRONLY|O_TRUNC|O_EXCL,
-			O_CREAT );
+	return XOpenFileHelper(XCALL f, iomode, open_flags, force_flags );
     }
 
     if (!stat(fname,&f->st))
@@ -1465,9 +1473,7 @@ enumError XCreateFile ( XPARM File_t * f, ccp fname, enumIOMode iomode, int over
 	// no temp name possible
 
 	f->fname = strdup(fname);
-	return XOpenFileHelper(XCALL f, iomode,
-			O_CREAT|O_WRONLY|O_TRUNC|O_EXCL,
-			O_CREAT );
+	return XOpenFileHelper(XCALL f, iomode, open_flags, force_flags );
     }
 
     const bool disable_errors = f->disable_errors;
@@ -1510,7 +1516,6 @@ enumError XCreateFile ( XPARM File_t * f, ccp fname, enumIOMode iomode, int over
 	TRACE("#F# TEMP:   '%s'\n",fbuf);
     }
 
-    const int open_flags = O_WRONLY|O_CREAT|O_TRUNC|O_EXCL;
 
     //---------------------------------------------------------
     // I have seen the glibc function __gen_tempname() ;)
@@ -1644,17 +1649,17 @@ char * NormalizeFileName ( char * buf, char * end, ccp source, bool allow_slash 
 	    else
 	    {
 		if ( isalnum(ch)
-			|| !use_utf8 &&
-			    (
-				   ch == 0xe4 // ä
-				|| ch == 0xf6 // ö
-				|| ch == 0xfc // ü
-				|| ch == 0xdf // ß
-				|| ch == 0xc4 // A
-				|| ch == 0xd6 // Ö
-				|| ch == 0xdc // Ü
+			|| ( use_utf8
+				? ch >= 0x80
+				:    ch == 0xe4 // ä
+				  || ch == 0xf6 // ö
+				  || ch == 0xfc // ü
+				  || ch == 0xdf // ß
+				  || ch == 0xc4 // A
+				  || ch == 0xd6 // Ö
+				  || ch == 0xdc // Ü
 			    )
-			|| strchr("_+-=%'\"$%&,.!()[]{}<>ÄÖÜäöüß",ch)
+			|| strchr("_+-=%'\"$%&,.!()[]{}<>",ch)
 			|| ch == '/' && allow_slash )
 		{
 		    *dest++ = ch;
@@ -1882,10 +1887,7 @@ enumOFT CalcOFT ( enumOFT force, ccp fname_dest, ccp fname_src, enumOFT def )
 	}
     }
 
-    if ( def > OFT_UNKNOWN && def < OFT__N )
-	return def;
-
-    return OFT__DEFAULT;
+    return def;
 }
 
 //
@@ -2400,7 +2402,8 @@ static FileCache_t * XCacheHelper ( XPARM File_t * f, off_t off, size_t count )
 		OUT_OF_MEMORY;
 	    cptr->data = data;
 	    TRACE(TRACE_RDWR_FORMAT, "#F# FILL CACHE",
-		GetFD(f), GetFP(f), (u64)cptr->off, (u64)cptr->off+cptr->count, cptr->count, "" );
+		GetFD(f), GetFP(f), (u64)cptr->off,
+		(u64)cptr->off+cptr->count, cptr->count, "" );
 	    const enumError stat = XReadAtF(XCALL f,cptr->off,data,cptr->count);
 	    if (stat)
 	    {
@@ -2644,7 +2647,6 @@ enumError XReadF ( XPARM File_t * f, void * iobuf, size_t count )
 	off_t my_off = f->cur_off;
 	while (count)
 	{
-	    TRACELINE;
 	    FileCache_t * cptr = XCacheHelper(XCALL f,my_off,count);
 	    if (f->last_error)
 		return f->last_error;
@@ -3419,7 +3421,7 @@ FileAttrib_t * CopyFileAttribStat ( FileAttrib_t * dest, const struct stat * src
 //-----------------------------------------------------------------------------
 
 FileAttrib_t * CopyFileAttribInode
-	( FileAttrib_t * dest, const struct wbfs_inode_info_s * src, off_t size )
+	( FileAttrib_t * dest, const struct wbfs_inode_info_t * src, off_t size )
 {
     ASSERT(src);
     ASSERT(dest);

@@ -12,20 +12,9 @@
 [*] [url=@@URI-DOWNLOAD-X86_64@@][b]@@DISTRIB-X86_64@@[/b][/url] : linux/x86_64 version
 [*] [url=@@URI-DOWNLOAD-MAC@@][b]@@DISTRIB-MAC@@[/b][/url] : Mac OS universal binaries (ppc, i386 and x86-64)
 [*] [url=@@URI-DOWNLOAD-CYGWIN@@][b]@@DISTRIB-CYGWIN@@[/b][/url] : cygwin (win32) version
-[/list]
 
-[size=12][color=#000080][b]Download der vorherigen stabilen Version:[/b][/color][/size]
-[*] [url=@@URI-DOWNLOAD-PREV-I386@@][b]@@PREV-DISTRIB-I386@@[/b][/url] : linux/i386 version
-[*] [url=@@URI-DOWNLOAD-PREV-X86_64@@][b]@@PREV-DISTRIB-X86_64@@[/b][/url] : linux/x86_64 version
-[*] [url=@@URI-DOWNLOAD-PREV-MAC@@][b]@@PREV-DISTRIB-MAC@@[/b][/url] : Mac OS universal binaries (ppc, i386 and x86-64)
-[*] [url=@@URI-DOWNLOAD-PREV-CYGWIN@@][b]@@PREV-DISTRIB-CYGWIN@@[/b][/url] : cygwin (win32) version
+[*] Ältere Versionen sind unter [url=http://wit.wiimm.de/download.html]http://wit.wiimm.de/download.html[/url] verfügbar.
 [/list]
-
-[size=12][color=#000080][b]Download anderer Versionen:[/b][/color][/size][list]
-[*] [url=@@URI-DOWNLOAD-PREV-MIPSEL@@][b]@@PREV-DISTRIB-MIPSEL@@[/b][/url] : mipsel release by Bauldrick
-[*] [url=@@URI-DOWNLOAD-PREV-POWERPC@@][b]@@PREV-DISTRIB-POWERPC@@[/b][/url] : powerpc release by Bauldrick
-[/list]
-
 
 [size=12][color=#000080][b]Es existiert eine graphische Oberfläche (GUI) zur Bedienung von WIT:[/b][/color][/size]
 [list]
@@ -35,27 +24,9 @@
 
 [size=12][color=#000080][b]Höhepunkte dieser Version:[/b][/color][/size]
 [list]
-[*] Die gesammte Benutzerschnittstelle (User-Interface, UI) wurde überarbeitet. Damit ist die Analyse der Kommandozeilen auf Kommandos und Optionen als auch die Ausgabe der eingebauten Hilfe gemeint. Um eine Vereinheitlichung und bessere Wartung zu ermöglchen, habe ich einen Code-Generator geschrieben, der Tabellen mit Kommandos, Optionen und Hilfetexte als C-Quelltext erstellt. Dieser Code-Generator erzeugt auch eine Definitionsdatei, aus der dann die [url=http://wit.wiimm.de/]Online-HTML-Hilfe[/url] generiert werden kann.
-[color=#ffffff].[/color]
+[*] Schwerpunkt ist diesmal das Erstellen von Wii ISO Dateien. Zusammen mit Giantpune von GBAtemp habe ich einige Erweiterungen entwickelt und getestet. Dazu gehören die Optionen --region= --ios= --id= und --name=, mit denen sich Region, IOS, ID und Disc Name in den einzelnen Dateien überschreiben lassen. Außerdem wird nicht nur TMD, sondern nun auch TICKET signiert (trucha sign).
 
-[*][color=#800000]Diese Version ist ein wenig experimentell auf Grund der Neuimplementierung des Benutzerschnittstelle.[/color]
-
-[*] Dank des neuen UI gibt es nun auch für [b]wit[/b] und [b]wwt[/b] die Möglichkeit, kommandospzifische Hilfe auszugeben. Dazu muss hinter dem Kommando "HELP" einfach nur das Kommando angegeben werden, für das Hilfe benötigt wird.
-
-Beispiel: wit help copy
-[color=#ffffff].[/color]
-
-[*] Da die Hilfe nun dynamisch erzeugt wird, wird sie automatisch an die Ausgabe aktuelle Fensterbreite angepasst.
-[color=#ffffff].[/color]
-
-[*] Die beigeliegende Dokumentation wird beim Erstellen automatisch mit den aktuellen Hilfetexten ergänzt.
-[color=#ffffff].[/color]
-
-[*] Durch die zentrale Verwaltung vom Kommandos, Optionen und Hilfetexten sind Änderungen und Erweiterungen relativ einfach zu implementieren.
-[color=#ffffff].[/color]
-
-[*] [color=#800000]Ich hoffe, dass ich keine vorher erlaubten Optionen vergessen habe und ass alles wie geplant funktoniert.[/color]
-[color=#ffffff].[/color]
+[*] Um eine ISO Datei zu erstellen, muss man nur ein Kommando ausführen, welches als Eingabedatei eine ISO-Datei erwartet. Dieses sind z.B. [url=http://wit.wiimm.de/wit/cmd-copy.html]"wit COPY"[/url] or [url=http://wit.wiimm.de/wwt/cmd-add.html]"wwt ADD"[/url]. Der (noch nicht fertige) englischsprachige Artikel [url=http://wit.wiimm.de/info/composing.html]"Composing Wii ISO Images"[/url] eklärt alle Details.
 [/list]
 
 

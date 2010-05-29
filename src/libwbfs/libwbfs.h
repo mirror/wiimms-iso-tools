@@ -56,7 +56,7 @@ typedef void (*progress_callback_t) (u64 done, u64 total, void * callback_data )
 
 //-----------------------------------------------------------------------------
 
-typedef struct wbfs_s
+typedef struct wbfs_t
 {
 	wbfs_head_t *head;
 
@@ -103,7 +103,7 @@ typedef struct wbfs_s
 
 //-----------------------------------------------------------------------------
 
-typedef struct wbfs_disc_s
+typedef struct wbfs_disc_t
 {
 	wbfs_t *p;
 	wbfs_disc_info_t * header;	// pointer to wii header
@@ -123,7 +123,7 @@ int	wbfs_is_inode_info_valid( wbfs_t * p, wbfs_inode_info_t * ii );
 
 //-----------------------------------------------------------------------------
 
-typedef struct wbfs_param_s // function parameters
+typedef struct wbfs_param_t // function parameters
 {
   //----- parameters for wbfs_open_partition_param()
 
@@ -171,6 +171,7 @@ typedef struct wbfs_param_s // function parameters
   //----- infos (output of wbfs framework)
 
 	int			slot;			// >=0: slot of last added disc
+	wbfs_disc_t		*open_disc;		// NULL or open disc
 
 } wbfs_param_t;
 
@@ -184,10 +185,15 @@ typedef struct wbfs_param_s // function parameters
    calls wbfs_error() to have textual meaning of errors
    @return NULL in case of error
 */
-wbfs_t * wbfs_open_hd(rw_sector_callback_t read_hdsector,
+
+#ifndef WIT // not used in WiT
+
+ wbfs_t * wbfs_open_hd(rw_sector_callback_t read_hdsector,
 		      rw_sector_callback_t write_hdsector,
 		      void *callback_data,
 		      int hd_sector_size, int num_hd_sector, int reset);
+
+#endif
 
 //-----------------------------------------------------------------------------
 
