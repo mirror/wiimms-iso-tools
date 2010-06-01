@@ -181,7 +181,7 @@ typedef enum enumOptionsBit
 				| OB_FILES
 				| OB_SNEEK,
 
-	OB_GRP_COMPOSE		= OB_ENC
+	OB_GRP_PATCH		= OB_ENC
 				| OB_REGION
 				| OB_IOS
 				| OB_ID
@@ -220,8 +220,10 @@ typedef enum enumOptionsBit
 				| OB_IGNORE_FST
 				| OB_GRP_PARTITIONS
 				| OB_GRP_FILES
-				| OB_GRP_COMPOSE
+				| OB_GRP_PATCH
 				| OB_LONG,
+
+	OB_CMD_DREGION		= OB_GRP_XSOURCE,
 
 	OB_CMD_ID6		= OB_GRP_XSOURCE
 				| OB_IGNORE_FST
@@ -275,7 +277,7 @@ typedef enum enumOptionsBit
 				| OB_SORT
 				| OB_DEST
 				| OB_DEST2
-				| OB_GRP_COMPOSE
+				| OB_GRP_PATCH
 				| OB_PRESERVE
 				| OB_OVERWRITE,
 
@@ -296,11 +298,17 @@ typedef enum enumOptionsBit
 				| OB_SPLIT
 				| OB_SPLIT_SIZE
 				| OB_PRESERVE
-				| OB_GRP_COMPOSE
+				| OB_GRP_PATCH
 				| OB_WDF
 				| OB_ISO
 				| OB_CISO
 				| OB_WBFS,
+
+	OB_CMD_EDIT		= OB_GRP_TITLES
+				| OB_GRP_XSOURCE
+				| OB_IGNORE
+				| OB_PRESERVE
+				| OB_GRP_PATCH,
 
 	OB_CMD_MOVE		= OB_GRP_TITLES
 				| OB_GRP_XSOURCE
@@ -346,6 +354,7 @@ typedef enum enumCommands
 	CMD_ISOSIZE,
 
 	CMD_DUMP,
+	CMD_DREGION,
 	CMD_ID6,
 	CMD_LIST,
 	CMD_LIST_L,
@@ -360,6 +369,7 @@ typedef enum enumCommands
 	CMD_EXTRACT,
 	CMD_COPY,
 	CMD_SCRUB,
+	CMD_EDIT,
 	CMD_MOVE,
 	CMD_RENAME,
 	CMD_SETTITLE,
@@ -377,67 +387,69 @@ typedef enum enumCommands
 
 typedef enum enumGetOpt
 {
-	GO_VERSION		= 'V',
-	GO_HELP			= 'h',
-	GO_XHELP		= 0x80,
-	GO_QUIET		= 'q',
-	GO_VERBOSE		= 'v',
-	GO_PROGRESS		= 'P',
-	GO_LOGGING		= 'L',
-	GO_ESC			= 'E',
-	GO_IO			= 0x81,
-	GO_TITLES		= 'T',
-	GO_UTF_8		= 0x82,
-	GO_NO_UTF_8		= 0x83,
-	GO_LANG			= 0x84,
-	GO_TEST			= 't',
-	GO_SOURCE		= 's',
-	GO_RECURSE		= 'r',
-	GO_RDEPTH		= 0x85,
-	GO_INCLUDE		= 'n',
-	GO_INCLUDE_PATH		= 'N',
-	GO_EXCLUDE		= 'x',
-	GO_EXCLUDE_PATH		= 'X',
-	GO_IGNORE		= 'i',
-	GO_IGNORE_FST		= 0x86,
-	GO_PSEL			= 0x87,
-	GO_RAW			= 0x88,
-	GO_PMODE		= 0x89,
-	GO_SNEEK		= 0x8a,
-	GO_HOOK			= 0x8b,
-	GO_ENC			= 0x8c,
-	GO_REGION		= 0x8d,
-	GO_IOS			= 0x8e,
-	GO_ID			= 0x8f,
-	GO_NAME			= 0x90,
-	GO_MODIFY		= 0x91,
-	GO_DEST			= 'd',
-	GO_DEST2		= 'D',
-	GO_SPLIT		= 'z',
-	GO_SPLIT_SIZE		= 'Z',
-	GO_PRESERVE		= 'p',
-	GO_UPDATE		= 'u',
-	GO_OVERWRITE		= 'o',
-	GO_REMOVE		= 'R',
-	GO_WDF			= 'W',
-	GO_ISO			= 'I',
-	GO_CISO			= 'C',
-	GO_WBFS			= 'B',
-	GO_FST			= 0x92,
-	GO_FILES		= 'F',
-	GO_ITIME		= 0x93,
-	GO_MTIME		= 0x94,
-	GO_CTIME		= 0x95,
-	GO_ATIME		= 0x96,
-	GO_TIME			= 0x97,
-	GO_LONG			= 'l',
-	GO_UNIQUE		= 'U',
-	GO_NO_HEADER		= 'H',
-	GO_SECTIONS		= 0x98,
-	GO_SORT			= 'S',
-	GO_LIMIT		= 0x99,
+	GO__ERR			= '?',
 
-	GO__ERR			= '?'
+	GO_WBFS			= 'B',
+	GO_CISO			= 'C',
+	GO_DEST2		= 'D',
+	GO_ESC			= 'E',
+	GO_FILES		= 'F',
+	GO_NO_HEADER		= 'H',
+	GO_ISO			= 'I',
+	GO_LOGGING		= 'L',
+	GO_INCLUDE_PATH		= 'N',
+	GO_PROGRESS		= 'P',
+	GO_REMOVE		= 'R',
+	GO_SORT			= 'S',
+	GO_TITLES		= 'T',
+	GO_UNIQUE		= 'U',
+	GO_VERSION		= 'V',
+	GO_WDF			= 'W',
+	GO_EXCLUDE_PATH		= 'X',
+	GO_SPLIT_SIZE		= 'Z',
+
+	GO_DEST			= 'd',
+	GO_HELP			= 'h',
+	GO_IGNORE		= 'i',
+	GO_LONG			= 'l',
+	GO_INCLUDE		= 'n',
+	GO_OVERWRITE		= 'o',
+	GO_PRESERVE		= 'p',
+	GO_QUIET		= 'q',
+	GO_RECURSE		= 'r',
+	GO_SOURCE		= 's',
+	GO_TEST			= 't',
+	GO_UPDATE		= 'u',
+	GO_VERBOSE		= 'v',
+	GO_EXCLUDE		= 'x',
+	GO_SPLIT		= 'z',
+
+	GO_XHELP		= 0x80,
+	GO_IO,
+	GO_UTF_8,
+	GO_NO_UTF_8,
+	GO_LANG,
+	GO_RDEPTH,
+	GO_IGNORE_FST,
+	GO_PSEL,
+	GO_RAW,
+	GO_PMODE,
+	GO_SNEEK,
+	GO_HOOK,
+	GO_ENC,
+	GO_REGION,
+	GO_IOS,
+	GO_ID,
+	GO_NAME,
+	GO_MODIFY,
+	GO_FST,
+	GO_ITIME,
+	GO_MTIME,
+	GO_CTIME,
+	GO_ATIME,
+	GO_TIME,
+	GO_SECTIONS,
+	GO_LIMIT,
 
 } enumGetOpt;
 

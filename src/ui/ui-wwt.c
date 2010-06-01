@@ -42,7 +42,7 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 
     {	OPT_RDEPTH, 0, "rdepth",
 	"depth",
-	"Set the maximum recurse depth for --recurse (default=10)."
+	"Set the maximum recurse depth for option --recurse (default=10)."
     },
 
     {	OPT_PSEL, 0, "psel",
@@ -274,25 +274,25 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
     {	OPT_ITIME, 0, "itime",
 	0,
 	"Select 'itime' (insertion time) for printing.--itime is an"
-	" abbreviation of '--time=i'."
+	" abbreviation of --time=i."
     },
 
     {	OPT_MTIME, 0, "mtime",
 	0,
 	"Select 'mtime' (last modification time) for printing.--mtime is an"
-	" abbreviation of '--time=m'."
+	" abbreviation of --time=m."
     },
 
     {	OPT_CTIME, 0, "ctime",
 	0,
 	"Select 'ctime' (last status change time) for printing.--ctime is an"
-	" abbreviation of '--time=c'."
+	" abbreviation of --time=c."
     },
 
     {	OPT_ATIME, 0, "atime",
 	0,
 	"Select 'atime' (last access time) for printing.--atime is an"
-	" abbreviation of '--time=a'."
+	" abbreviation of --time=a."
     },
 
     {	OPT_TIME, 0, "time",
@@ -395,7 +395,7 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 	"char",
 	"Define an alternative escape character for destination files. The"
 	" default is '%'. For Windows (CYGWIN) it is a good choice to set"
-	" '-E$'."
+	" '-E'."
     },
 
     {	OPT_IO, 0, "io",
@@ -645,15 +645,15 @@ const InfoOption_t option_cmd_RENAME_IGNORE =
 const InfoOption_t option_cmd_RENAME_ISO =
     {	OPT_ISO, 'I', "iso",
 	0,
-	"Modify ID and title of the ISO image. If neither of --iso and --wbfs"
-	" is set, then both are assumed as active."
+	"Modify ID and title of the ISO image. If neither --iso nor --wbfs is"
+	" set, then both are assumed as active."
     };
 
 const InfoOption_t option_cmd_RENAME_WBFS =
     {	OPT_WBFS, 'B', "wbfs",
 	0,
 	"Modify ID and title of the inode in the WBFS management area. If"
-	" neither of --iso and --wbfs is set, then both are assumed as active."
+	" neither --iso nor --wbfs is set, then both are assumed as active."
     };
 
 const InfoOption_t option_cmd_TOUCH_UNIQUE =
@@ -1969,15 +1969,19 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 {
     {	0,
 	false,
+	false,
 	"wwt",
 	0,
-	"wwt [option]... command [option|parameter|@file]...",
-	"Wiimms WBFS Tool",
+	"wwt [option]... command [option|parameter|file]...",
+	"Wiimms WBFS Tool (WBFS manager) : It can create, check, verify,"
+	" repair and clone WBFS files and partitions. It can list, add,"
+	" extract, remove and rename ISO images as part of a WBFS.",
 	14,
 	option_tab_tool
     },
 
     {	CMD_VERSION,
+	false,
 	false,
 	"VERSION",
 	0,
@@ -1988,6 +1992,7 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
     },
 
     {	CMD_HELP,
+	false,
 	false,
 	"HELP",
 	"H",
@@ -2000,6 +2005,7 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 
     {	CMD_TEST,
 	false,
+	false,
 	"TEST",
 	0,
 	"wwt TEST [ignored]...",
@@ -2009,6 +2015,7 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
     },
 
     {	CMD_ERROR,
+	false,
 	false,
 	"ERROR",
 	"ERR",
@@ -2021,6 +2028,7 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 
     {	CMD_EXCLUDE,
 	false,
+	false,
 	"EXCLUDE",
 	0,
 	"wwt EXCLUDE [additional_excludes]...",
@@ -2031,6 +2039,7 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 
     {	CMD_TITLES,
 	false,
+	false,
 	"TITLES",
 	0,
 	"wwt TITLES [additional_title_file]",
@@ -2040,6 +2049,7 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
     },
 
     {	CMD_FIND,
+	false,
 	true,
 	"FIND",
 	"F",
@@ -2051,6 +2061,7 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 
     {	CMD_SPACE,
 	false,
+	false,
 	"SPACE",
 	"DF",
 	"wwt SPACE [wbfs_partition]...",
@@ -2060,6 +2071,7 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
     },
 
     {	CMD_ANALYZE,
+	false,
 	false,
 	"ANALYZE",
 	"ANA",
@@ -2072,6 +2084,7 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 
     {	CMD_DUMP,
 	false,
+	false,
 	"DUMP",
 	"D",
 	"wwt DUMP [wbfs_partition]...",
@@ -2081,6 +2094,7 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
     },
 
     {	CMD_ID6,
+	false,
 	true,
 	"ID6",
 	"ID",
@@ -2092,6 +2106,7 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 
     {	CMD_LIST,
 	false,
+	false,
 	"LIST",
 	"LS",
 	"wwt LIST [wbfs_partition]...",
@@ -2102,58 +2117,64 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 
     {	CMD_LIST_L,
 	false,
+	false,
 	"LIST-L",
 	"LL",
 	"wwt LIST-L [wbfs_partition]...",
-	"List all discs of WBFS partitions. Same as 'LIST --long'.",
+	"List all discs of WBFS partitions. Same as 'wwt LIST --long'.",
 	22,
 	option_tab_cmd_LIST_L
     },
 
     {	CMD_LIST_LL,
 	false,
+	false,
 	"LIST-LL",
 	"LLL",
 	"wwt LIST-LL [wbfs_partition]...",
-	"List all discs of WBFS partitions. Same as 'LIST --long --long'.",
+	"List all discs of WBFS partitions. Same as 'wwt LIST --long --long'.",
 	22,
 	option_tab_cmd_LIST_LL
     },
 
     {	CMD_LIST_A,
 	false,
+	false,
 	"LIST-A",
 	"LA",
 	"wwt LIST-A [wbfs_partition]...",
-	"List all discs of all WBFS partitions. Same as 'LIST --long --long"
-	" --auto'.",
+	"List all discs of all WBFS partitions. Same as 'wwt LIST --long"
+	" --long --auto'.",
 	22,
 	option_tab_cmd_LIST_A
     },
 
     {	CMD_LIST_M,
 	false,
+	false,
 	"LIST-M",
 	"LM",
 	"wwt LIST-M [wbfs_partition]...",
-	"List all discs of WBFS partitions in mixed view. Same as 'LIST --long"
-	" --long --mixed'.",
+	"List all discs of WBFS partitions in mixed view. Same as 'wwt LIST"
+	" --long --long --mixed'.",
 	22,
 	option_tab_cmd_LIST_M
     },
 
     {	CMD_LIST_U,
 	false,
+	false,
 	"LIST-U",
 	"LU",
 	"wwt LIST-U [wbfs_partition]...",
-	"List all discs of WBFS partitions in mixed view. Same as 'LIST --long"
-	" --long --unique'.",
+	"List all discs of WBFS partitions in mixed view. Same as 'wwt LIST"
+	" --long --long --unique'.",
 	22,
 	option_tab_cmd_LIST_U
     },
 
     {	CMD_FORMAT,
+	false,
 	true,
 	"FORMAT",
 	"INIT",
@@ -2166,6 +2187,7 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 
     {	CMD_RECOVER,
 	false,
+	false,
 	"RECOVER",
 	0,
 	"wwt RECOVER [wbfs_partition]..",
@@ -2175,6 +2197,7 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
     },
 
     {	CMD_CHECK,
+	false,
 	false,
 	"CHECK",
 	"FSCK",
@@ -2187,26 +2210,29 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 
     {	CMD_REPAIR,
 	false,
+	false,
 	"REPAIR",
 	0,
 	"wwt REPAIR [wbfs_partition]..",
 	"Check WBFS partitions and repair errors. 'REPAIR' is a shortcut for"
-	" 'CHECK --repair=standard'.",
+	" 'wwt CHECK --repair=standard'.",
 	12,
 	option_tab_cmd_REPAIR
     },
 
     {	CMD_EDIT,
 	false,
+	false,
 	"EDIT",
 	0,
 	"wwt EDIT [sub_command]...",
-	"Edit slot and block assignments. Dangerous! Read docu!.",
+	"Edit slot and block assignments. Dangerous! Read docu!",
 	4,
 	option_tab_cmd_EDIT
     },
 
     {	CMD_PHANTOM,
+	false,
 	false,
 	"PHANTOM",
 	0,
@@ -2220,6 +2246,7 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 
     {	CMD_TRUNCATE,
 	false,
+	false,
 	"TRUNCATE",
 	"TR",
 	"wwt TRUNCATE [wbfs_partition]..",
@@ -2229,6 +2256,7 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
     },
 
     {	CMD_ADD,
+	false,
 	true,
 	"ADD",
 	"A",
@@ -2240,28 +2268,31 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 
     {	CMD_UPDATE,
 	false,
+	false,
 	"UPDATE",
 	"U",
 	"wwt UPDATE iso|wbfs|dir...",
-	"Add missing Wii ISO discs to WBFS partitions.'UPDATE' is a shortcut"
-	" for 'ADD --update'.",
+	"Add missing Wii ISO discs to WBFS partitions. 'UPDATE' is a shortcut"
+	" for 'wwt ADD --update'.",
 	34,
 	option_tab_cmd_UPDATE
     },
 
     {	CMD_SYNC,
 	false,
+	false,
 	"SYNC",
 	0,
 	"wwt SYNC iso|wbfs|dir...",
 	"Modify primary WBFS (REMOVE and ADD) until it contains exactly the"
-	" same discs as all sources together.'SYNC' is a shortcut for 'ADD"
-	" --sync'.",
+	" same discs as all sources together. 'SYNC' is a shortcut for 'wwt"
+	" ADD --sync'.",
 	33,
 	option_tab_cmd_SYNC
     },
 
     {	CMD_EXTRACT,
+	false,
 	false,
 	"EXTRACT",
 	"X",
@@ -2273,6 +2304,7 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 
     {	CMD_REMOVE,
 	false,
+	false,
 	"REMOVE",
 	"RM",
 	"wwt REMOVE id6...",
@@ -2282,6 +2314,7 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
     },
 
     {	CMD_RENAME,
+	false,
 	false,
 	"RENAME",
 	"REN",
@@ -2293,6 +2326,7 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 
     {	CMD_SETTITLE,
 	false,
+	false,
 	"SETTITLE",
 	"ST",
 	"wwt SETTITLE id6=title...",
@@ -2302,6 +2336,7 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
     },
 
     {	CMD_TOUCH,
+	false,
 	false,
 	"TOUCH",
 	0,
@@ -2313,6 +2348,7 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 
     {	CMD_VERIFY,
 	false,
+	false,
 	"VERIFY",
 	"V",
 	"wwt VERIFY id6...",
@@ -2323,6 +2359,7 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
     },
 
     {	CMD_FILETYPE,
+	false,
 	true,
 	"FILETYPE",
 	"FT",
@@ -2332,7 +2369,7 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	option_tab_cmd_FILETYPE
     },
 
-    {0,0,0,0,0,0,0}
+    {0,0,0,0,0,0,0,0}
 };
 
 //

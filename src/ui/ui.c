@@ -296,32 +296,35 @@ void PrintHelpCmd ( const InfoUI_t * iu, FILE * f, int indent, int cmd )
 	const InfoCommand_t * ic;
 
 	for ( ic = iu->cmd_info; ic->name1; ic++ )
-	{
-	    const int len = strlen(ic->name1);
-	    if ( fw1 < len )
-		 fw1 = len;
-	    if ( ic->name2 )
+	    if (!ic->hidden)
 	    {
-		const int len = strlen(ic->name2);
-		if ( fw2 < len )
-		     fw2 = len;
+
+		const int len = strlen(ic->name1);
+		if ( fw1 < len )
+		     fw1 = len;
+		if ( ic->name2 )
+		{
+		    const int len = strlen(ic->name2);
+		    if ( fw2 < len )
+			 fw2 = len;
+		}
 	    }
-	}
 	const int fw12 = fw1 + ( fw2 ? fw2 + 3 : 0 );
 
 	for ( ic = iu->cmd_info+1; ic->name1; ic++ )
-	{
-	    if (ic->separator)
-		fputc('\n',f);
-	    int len;
-	    if ( ic->name2 )
-		len = fprintf(f,"%*s  %-*s | %-*s : ",
-			indent, "", fw1, ic->name1, fw2, ic->name2 );
-	    else
-		len = fprintf(f,"%*s  %-*s : ",
-			indent, "", fw12, ic->name1 );
-	    PutLines(f,indent+len,fw,len,ic->help);
-	}
+	    if (!ic->hidden)
+	    {
+		if (ic->separator)
+		    fputc('\n',f);
+		int len;
+		if ( ic->name2 )
+		    len = fprintf(f,"%*s  %-*s | %-*s : ",
+			    indent, "", fw1, ic->name1, fw2, ic->name2 );
+		else
+		    len = fprintf(f,"%*s  %-*s : ",
+			    indent, "", fw12, ic->name1 );
+		PutLines(f,indent+len,fw,len,ic->help);
+	    }
 	
 	fprintf(f,
 		"\n%*sType '%s HELP command' to get command specific help.\n\n",
@@ -387,11 +390,13 @@ void PrintHelpCmd ( const InfoUI_t * iu, FILE * f, int indent, int cmd )
 	    else
 		PutLines(f,opt_fw,fw,len,io->help);
 	}
-
 	fputc('\n',f);
     }
 
-    if (cmd)
+    if (!cmd)
+	fprintf(f,"%*sMore help is available from %s%s\n\n",
+		indent, "", URI_HOME, iu->tool_name );
+    else if (!ic->hidden)
     {
 	char *dest = iobuf;
 	ccp src;
@@ -402,9 +407,6 @@ void PrintHelpCmd ( const InfoUI_t * iu, FILE * f, int indent, int cmd )
 	fprintf(f,"%*sMore help is available from %s%s/%s\n\n",
 		indent, "", URI_HOME, iu->tool_name, iobuf );
     }
-    else
-	fprintf(f,"%*sMore help is available from %s%s\n\n",
-		indent, "", URI_HOME, iu->tool_name );
 }
 
 //

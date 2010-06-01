@@ -6,7 +6,8 @@
 
 #:def_tool( "wit", \
 	"wit [option]... command [option|parameter|@file]...", \
-	"Wiimms ISO Tool" )
+	"Wiimms ISO Tool : It can list, analyze, verify, convert, split, join," \
+	" extract, compose, rename and compare Wii discs." )
 
 #:def_cmd( "VERSION", "VERSION", \
 	"wit VERSION [ignored]...", \
@@ -36,7 +37,8 @@
 
 #:def_cmd( "FILELIST", "FILELIST|FL", \
 	"wit FILELIST [source]...", \
-	"List all source files decared by --source and --recurse." )
+	"List all source files decared by the options @$--source$@ and" \
+	" @$--recurse$@." )
 
 #:def_cmd( "FILETYPE", "FILETYPE|FT", \
 	"wit FILETYPE [source]...", \
@@ -61,15 +63,16 @@
 
 #:def_cmd( "LIST_L", "LIST-L|LL", \
 	"wit LIST-L [source]...", \
-	"List all found ISO files. Same as 'LIST --long'." )
+	"List all found ISO files. Same as @'$wit LIST$ --long'@." )
 
 #:def_cmd( "LIST_LL", "LIST-LL|LLL", \
 	"wit LIST-LL [source]...", \
-	"List all found ISO files. Same as 'LIST --long --long'." )
+	"List all found ISO files. Same as @'$wit LIST$ --long --long'@." )
 
 #:def_cmd( "LIST_LLL", "LIST-LLL|LLLL", \
 	"wit LIST-LLL [source]...", \
-	"List all found ISO files. Same as 'LIST --long --long  --long'." )
+	"List all found ISO files. Same as @'$wit LIST$ --long --long " \
+	" --long'@." )
 
 #:def_cmd( "ILIST", "ILIST|IL", \
 	"wit ILIST [source]...", \
@@ -77,17 +80,17 @@
 
 #:def_cmd( "ILIST_L", "ILIST-L|ILL", \
 	"wit ILIST-L [source]...", \
-	"List all files of all discs. Same as 'ILIST --long'." )
+	"List all files of all discs. Same as @'$wit ILIST$ --long'@." )
 
 #:def_cmd( "ILIST_LL", "ILIST-LL|ILLL", \
 	"wit ILIST-LL [source]...", \
-	"List all files of all discs. Same as 'ILIST --long --long'." )
+	"List all files of all discs. Same as @'$wit ILIST$ --long --long'@." )
 
 #:def_cmd( "DIFF", "DIFF|CMP", \
 	"wit DIFF source dest\n" \
 	"wit DIFF [-s path]... [-r path]... [source]... [-d|-D] dest", \
 	"DIFF compares ISO images in  scrubbed or raw mode or on file level." \
-	" DIFF works like COPY but comparing source and destination." )
+	" DIFF works like $wit COPY$ but comparing source and destination." )
 
 #:def_cmd( "EXTRACT", "EXTRACT|X", \
 	"wit EXTRACT source dest\n" \
@@ -200,12 +203,12 @@
 
 #:def_opt( "RDEPTH", "rdepth", "CP", \
 	"depth", \
-	"Set the maximum recurse depth for --recurse (default=10)." )
+	"Set the maximum recurse depth for option @$--recurse$@ (default=10)." )
 
 #:def_opt( "INCLUDE", "n|include", "CMP", \
 	"id", \
 	"Include only discs with given ID4 or ID6 from operation. If the" \
-	" parameter begins with a '@' the given file is read and each line is" \
+	" parameter begins with a '@@' the given file is read and each line is" \
 	" scanned for IDs." )
 
 #:def_opt( "INCLUDE_PATH", "N|include-path|includepath", "CMP", \
@@ -215,7 +218,7 @@
 #:def_opt( "EXCLUDE", "x|exclude", "CMP", \
 	"id", \
 	"Exclude discs with given ID4 or ID6 from operation. If the parameter" \
-	" begins with a '@' the given file is read and each line is scanned" \
+	" begins with a '@@' the given file is read and each line is scanned" \
 	" for IDs." )
 
 #:def_opt( "EXCLUDE_PATH", "X|exclude-path|excludepath", "CMP", \
@@ -240,7 +243,7 @@
 
 #:def_opt( "RAW", "raw", "C", \
 	"", \
-	"Abbreviation of --psel=RAW." )
+	"Abbreviation of @$--psel$=RAW@." )
 
 #:def_opt( "PMODE", "pmode", "CP", \
 	"p-mode", \
@@ -250,7 +253,7 @@
 
 #:def_opt( "SNEEK", "sneek", "C", \
 	"", \
-	"Abbreviation of --psel=data --pmode=none --files==sneek." )
+	"Abbreviation of @$--psel$=data $--pmode$=none $--files$==sneek@." )
 
 #:def_opt( "ENC", "enc", "CP", \
 	"encoding", \
@@ -275,13 +278,13 @@
 	"Change the ID of the disc to the given parameter. 1 to 6 characters" \
 	" are expected. Only defined characters not equal '.' are modified." \
 	" The disc header, boot.bin, ticket.bin and tmd.bin are  objects to" \
-	" modify. The option --modify= selects the objects." )
+	" modify. The option @$--modify$=@ selects the objects." )
 
 #:def_opt( "NAME", "name", "CP", \
 	"name", \
 	"Change the name (disc title) of the disc to the given parameter. Up" \
 	" to 63 characters are expected. The disc header and boot.bin are" \
-	" objects to modify. The option --modify= selects the objects." )
+	" objects to modify. The option @$--modify$=@ selects the objects." )
 
 #:def_opt( "MODIFY", "modify", "CP", \
 	"list", \
@@ -294,12 +297,12 @@
 #:def_opt( "DEST", "d|dest", "CP", \
 	"path", \
 	"Define a destination path (directory/file). The destination path is" \
-	" scanned for escape sequences (see option --esc) to allow generic" \
+	" scanned for escape sequences (see option @$--esc$@) to allow generic" \
 	" pathes." )
 
 #:def_opt( "DEST2", "D|DEST", "CP", \
 	"path", \
-	"Like --dest, but create the directory path automatically." )
+	"Like @$--dest$@, but create the directory path automatically." )
 
 #:def_opt( "SPLIT", "z|split", "C", \
 	"", \
@@ -357,23 +360,23 @@
 
 #:def_opt( "ITIME", "itime", "C", \
 	"", \
-	"Select 'itime' (insertion time) for printing.--itime is an" \
-	" abbreviation of '--time=i'." )
+	"Select 'itime' (insertion time) for printing.@--itime@ is an" \
+	" abbreviation of @$--time$=i@." )
 
 #:def_opt( "MTIME", "mtime", "C", \
 	"", \
-	"Select 'mtime' (last modification time) for printing.--mtime is an" \
-	" abbreviation of '--time=m'." )
+	"Select 'mtime' (last modification time) for printing.@--mtime@ is an" \
+	" abbreviation of @$--time$=m@." )
 
 #:def_opt( "CTIME", "ctime", "C", \
 	"", \
-	"Select 'ctime' (last status change time) for printing.--ctime is an" \
-	" abbreviation of '--time=c'." )
+	"Select 'ctime' (last status change time) for printing.@--ctime@ is an" \
+	" abbreviation of @$--time$=c@." )
 
 #:def_opt( "ATIME", "atime", "C", \
 	"", \
-	"Select 'atime' (last access time) for printing.--atime is an" \
-	" abbreviation of '--time=a'." )
+	"Select 'atime' (last access time) for printing.@--atime@ is an" \
+	" abbreviation of @$--time$=a@." )
 
 #:def_opt( "TIME", "time", "CMP", \
 	"list", \
@@ -415,7 +418,7 @@
 
 #:def_cmd_opt( "VERSION", "LONG", \
 	"", \
-	"Print in long format. Ignored if --sections is set." )
+	"Print in long format. Ignored if option @$--sections$@ is set." )
 
 #:def_cmd_opt( "ERROR", "SECTIONS", \
 	"", \
@@ -685,6 +688,34 @@
 	"", \
 	"If set at least once a memory map for each partition is printed. If" \
 	" set twice or more a memory map for whole ISO image is printed." )
+
+#:def_cmd_opt( "DREGION", "SOURCE", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "DREGION", "RECURSE", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "DREGION", "RDEPTH", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "DREGION", "INCLUDE", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "DREGION", "INCLUDE_PATH", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "DREGION", "EXCLUDE", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "DREGION", "EXCLUDE_PATH", \
+	"", \
+	"" )
 
 #:def_cmd_opt( "ID6", "SOURCE", \
 	"", \
@@ -1908,6 +1939,94 @@
 	"", \
 	"" )
 
+#:def_cmd_opt( "EDIT", "TEST", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "EDIT", "TITLES", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "EDIT", "UTF_8", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "EDIT", "NO_UTF_8", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "EDIT", "LANG", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "EDIT", "SOURCE", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "EDIT", "RECURSE", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "EDIT", "RDEPTH", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "EDIT", "INCLUDE", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "EDIT", "INCLUDE_PATH", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "EDIT", "EXCLUDE", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "EDIT", "EXCLUDE_PATH", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "EDIT", "IGNORE", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "EDIT", "QUIET", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "EDIT", "VERBOSE", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "EDIT", "PRESERVE", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "EDIT", "ENC", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "EDIT", "REGION", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "EDIT", "IOS", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "EDIT", "ID", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "EDIT", "NAME", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "EDIT", "MODIFY", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "MOVE", "TEST", \
 	"", \
 	"" )
@@ -2046,14 +2165,14 @@
 
 #:def_cmd_opt( "RENAME", "ISO", \
 	"", \
-	"Modify ID and title of the ISO image. If neither of --iso and --wbfs" \
-	" is set, then both are assumed as active." )
+	"Modify ID and title of the ISO image. If neither @--iso@ nor" \
+	" @$--wbfs$@ is set, then both are assumed as active." )
 
 #:def_cmd_opt( "RENAME", "WBFS", \
 	"", \
 	"Modify ID and title of the inode in the WBFS management area. Option" \
-	" --wbfs make only sense for images within WBFS. If neither of --iso" \
-	" and --wbfs is set, then both are assumed as active." )
+	" --wbfs make only sense for images within WBFS. If neither @$--iso$@" \
+	" nor @--wbfs@ is set, then both are assumed as active." )
 
 #:def_cmd_opt( "SETTITLE", "TEST", \
 	"", \
@@ -2121,14 +2240,14 @@
 
 #:def_cmd_opt( "SETTITLE", "ISO", \
 	"", \
-	"Modify ID and title of the ISO image. If neither of --iso and --wbfs" \
-	" is set, then both are assumed as active." )
+	"Modify ID and title of the ISO image. If neither @--iso@ nor" \
+	" @$--wbfs$@ is set, then both are assumed as active." )
 
 #:def_cmd_opt( "SETTITLE", "WBFS", \
 	"", \
 	"Modify ID and title of the inode in the WBFS management area. Option" \
-	" --wbfs make only sense for images within WBFS. If neither of --iso" \
-	" and --wbfs is set, then both are assumed as active." )
+	" --wbfs make only sense for images within WBFS. If neither @$--iso$@" \
+	" nor @--wbfs@ is set, then both are assumed as active." )
 
 #:def_cmd_opt( "VERIFY", "TEST", \
 	"", \
@@ -2230,7 +2349,9 @@
 
 #:def_tool( "wwt", \
 	"wwt [option]... command [option|parameter|@file]...", \
-	"Wiimms WBFS Tool" )
+	"Wiimms WBFS Tool (WBFS manager) : It can create, check, verify," \
+	" repair and clone WBFS files and partitions. It can list, add," \
+	" extract, remove and rename ISO images as part of a WBFS." )
 
 #:def_cmd( "VERSION", "VERSION", \
 	"wwt VERSION [ignored]...", \
@@ -2285,31 +2406,32 @@
 
 #:def_cmd( "LIST_L", "LIST-L|LL", \
 	"wwt LIST-L [wbfs_partition]...", \
-	"List all discs of WBFS partitions. Same as 'LIST --long'." )
+	"List all discs of WBFS partitions. Same as @'$wwt LIST$ --long'@." )
 
 #:def_cmd( "LIST_LL", "LIST-LL|LLL", \
 	"wwt LIST-LL [wbfs_partition]...", \
-	"List all discs of WBFS partitions. Same as 'LIST --long --long'." )
+	"List all discs of WBFS partitions. Same as @'$wwt LIST$ --long" \
+	" --long@'." )
 
 #:def_cmd( "LIST_A", "LIST-A|LA", \
 	"wwt LIST-A [wbfs_partition]...", \
-	"List all discs of all WBFS partitions. Same as 'LIST --long --long" \
-	" --auto'." )
+	"List all discs of all WBFS partitions. Same as @'$wwt LIST$ --long" \
+	" --long --auto'@." )
 
 #:def_cmd( "LIST_M", "LIST-M|LM", \
 	"wwt LIST-M [wbfs_partition]...", \
-	"List all discs of WBFS partitions in mixed view. Same as 'LIST --long" \
-	" --long --mixed'." )
+	"List all discs of WBFS partitions in mixed view. Same as @'$wwt LIST$" \
+	" --long --long --mixed'@." )
 
 #:def_cmd( "LIST_U", "LIST-U|LU", \
 	"wwt LIST-U [wbfs_partition]...", \
-	"List all discs of WBFS partitions in mixed view. Same as 'LIST --long" \
-	" --long --unique'." )
+	"List all discs of WBFS partitions in mixed view. Same as @'$wwt LIST$" \
+	" --long --long --unique'@." )
 
 #:def_cmd( "FORMAT", "FORMAT|INIT", \
 	"wwt FORMAT file|blockdev...", \
 	"Initialize (=format) WBFS partitions and files. Combine with" \
-	" --recover to recover discs." )
+	" @$--recover$@ to recover discs." )
 
 #:def_cmd( "RECOVER", "RECOVER", \
 	"wwt RECOVER [wbfs_partition]..", \
@@ -2318,16 +2440,16 @@
 #:def_cmd( "CHECK", "CHECK|FSCK", \
 	"wwt CHECK [wbfs_partition]..", \
 	"Check WBFS partitions and print error listing. To repair WBFS" \
-	" partitions use the option '--repair modelist'." )
+	" partitions use the option @'$--repair$ modelist'@." )
 
 #:def_cmd( "REPAIR", "REPAIR", \
 	"wwt REPAIR [wbfs_partition]..", \
 	"Check WBFS partitions and repair errors. 'REPAIR' is a shortcut for" \
-	" 'CHECK --repair=standard'." )
+	" @'$wwt CHECK$ --repair=standard'@." )
 
 #:def_cmd( "EDIT", "EDIT", \
 	"wwt EDIT [sub_command]...", \
-	"Edit slot and block assignments. Dangerous! Read docu!." )
+	"Edit slot and block assignments. Dangerous! Read docu!" )
 
 #:def_cmd( "PHANTOM", "PHANTOM", \
 	"wwt PHANTOM [sub_command]...", \
@@ -2345,14 +2467,14 @@
 
 #:def_cmd( "UPDATE", "UPDATE|U", \
 	"wwt UPDATE iso|wbfs|dir...", \
-	"Add missing Wii ISO discs to WBFS partitions.'UPDATE' is a shortcut" \
-	" for 'ADD --update'." )
+	"Add missing Wii ISO discs to WBFS partitions. 'UPDATE' is a shortcut" \
+	" for @'$wwt ADD$ --update'@." )
 
 #:def_cmd( "SYNC", "SYNC", \
 	"wwt SYNC iso|wbfs|dir...", \
 	"Modify primary WBFS (REMOVE and ADD) until it contains exactly the" \
-	" same discs as all sources together.'SYNC' is a shortcut for 'ADD" \
-	" --sync'." )
+	" same discs as all sources together. 'SYNC' is a shortcut for @'$wwt" \
+	" ADD$ --sync'@." )
 
 #:def_cmd( "EXTRACT", "EXTRACT|X", \
 	"wwt EXTRACT id6[=dest]...", \
@@ -2470,7 +2592,7 @@
 
 #:def_opt( "RDEPTH", "rdepth", "CP", \
 	"depth", \
-	"Set the maximum recurse depth for --recurse (default=10)." )
+	"Set the maximum recurse depth for option @$--recurse$@ (default=10)." )
 
 #:def_opt( "PSEL", "psel", "CP", \
 	"p-type", \
@@ -2481,12 +2603,12 @@
 
 #:def_opt( "RAW", "raw", "C", \
 	"", \
-	"Abbreviation of --psel=RAW." )
+	"Abbreviation of @$--psel$=RAW@." )
 
 #:def_opt( "INCLUDE", "n|include", "CMP", \
 	"id", \
 	"Include only discs with given ID4 or ID6 from operation. If the" \
-	" parameter begins with a '@' the given file is read and each line is" \
+	" parameter begins with a '@@' the given file is read and each line is" \
 	" scanned for IDs." )
 
 #:def_opt( "INCLUDE_PATH", "N|include-path|includepath", "CMP", \
@@ -2496,7 +2618,7 @@
 #:def_opt( "EXCLUDE", "x|exclude", "CMP", \
 	"id", \
 	"Exclude discs with given ID4 or ID6 from operation. If the parameter" \
-	" begins with a '@' the given file is read and each line is scanned" \
+	" begins with a '@@' the given file is read and each line is scanned" \
 	" for IDs." )
 
 #:def_opt( "EXCLUDE_PATH", "X|exclude-path|excludepath", "CMP", \
@@ -2535,13 +2657,13 @@
 	"Change the ID of the disc to the given parameter. 1 to 6 characters" \
 	" are expected. Only defined characters not equal '.' are modified." \
 	" The disc header, boot.bin, ticket.bin and tmd.bin are  objects to" \
-	" modify. The option --modify= selects the objects." )
+	" modify. The option @$--modify$=@ selects the objects." )
 
 #:def_opt( "NAME", "name", "CP", \
 	"name", \
 	"Change the name (disc title) of the disc to the given parameter. Up" \
 	" to 63 characters are expected. The disc header and boot.bin are" \
-	" objects to modify. The option --modify= selects the objects." )
+	" objects to modify. The option @$--modify$=@ selects the objects." )
 
 #:def_opt( "MODIFY", "modify", "CP", \
 	"list", \
@@ -2558,12 +2680,12 @@
 #:def_opt( "DEST", "d|dest", "CP", \
 	"path", \
 	"Define a destination path (directory/file). The destination path is" \
-	" scanned for escape sequences (see option --esc) to allow generic" \
+	" scanned for escape sequences (see option @$--esc$@) to allow generic" \
 	" pathes." )
 
 #:def_opt( "DEST2", "D|DEST", "CP", \
 	"path", \
-	"Like --dest, but create the directory path automatically." )
+	"Like @$--dest$@, but create the directory path automatically." )
 
 #:def_opt( "SPLIT", "z|split", "C", \
 	"", \
@@ -2662,23 +2784,23 @@
 
 #:def_opt( "ITIME", "itime", "C", \
 	"", \
-	"Select 'itime' (insertion time) for printing.--itime is an" \
-	" abbreviation of '--time=i'." )
+	"Select 'itime' (insertion time) for printing.@--itime@ is an" \
+	" abbreviation of @$--time$=i@." )
 
 #:def_opt( "MTIME", "mtime", "C", \
 	"", \
-	"Select 'mtime' (last modification time) for printing.--mtime is an" \
-	" abbreviation of '--time=m'." )
+	"Select 'mtime' (last modification time) for printing.@--mtime@ is an" \
+	" abbreviation of @$--time$=m@." )
 
 #:def_opt( "CTIME", "ctime", "C", \
 	"", \
-	"Select 'ctime' (last status change time) for printing.--ctime is an" \
-	" abbreviation of '--time=c'." )
+	"Select 'ctime' (last status change time) for printing.@--ctime@ is an" \
+	" abbreviation of @$--time$=c@." )
 
 #:def_opt( "ATIME", "atime", "C", \
 	"", \
-	"Select 'atime' (last access time) for printing.--atime is an" \
-	" abbreviation of '--time=a'." )
+	"Select 'atime' (last access time) for printing.@--atime@ is an" \
+	" abbreviation of @$--time$=a@." )
 
 #:def_opt( "TIME", "time", "CMP", \
 	"list", \
@@ -2788,9 +2910,9 @@
 
 #:def_cmd_opt( "FIND", "LONG", \
 	"", \
-	"Without --long only partition names of WBGS partitons are printed. If" \
-	" option --long is set then additional infos are printed for each" \
-	" partition, WBFS or not. If option --long is set at least twice the" \
+	"Without @--long@ only partition names of WBGS partitons are printed." \
+	" If option @--long@ is set then additional infos are printed for each" \
+	" partition, WBFS or not. If option @--long@ is set at least twice the" \
 	" real path is printed." )
 
 #:def_cmd_opt( "SPACE", "AUTO", \
@@ -2811,7 +2933,7 @@
 
 #:def_cmd_opt( "SPACE", "LONG", \
 	"", \
-	" If option --long is set the real path is printed." )
+	" If option @--long@ is set the real path is printed." )
 
 #:def_cmd_opt( "ANALYZE", "AUTO", \
 	"", \
@@ -2862,7 +2984,7 @@
 	"If set then print a status for each valid disc within WBFS. If set" \
 	" twice print a memory map for each shsown disc too. If set three" \
 	" times print an additional memory map for the whole WBFS. If set four" \
-	" times activate --inode too." )
+	" times activate @$--inode$@ too." )
 
 #:def_cmd_opt( "ID6", "AUTO", \
 	"", \
@@ -3490,7 +3612,7 @@
 
 #:def_cmd_opt( "FORMAT", "TEST", \
 	"", \
-	"Force test mode and ignore --force." )
+	"Force test mode and ignore @$--force$@." )
 
 #:def_cmd_opt( "FORMAT", "FORCE", \
 	"", \
@@ -3569,8 +3691,8 @@
 
 #:def_cmd_opt( "CHECK", "LONG", \
 	"", \
-	"Option --long does the same as option --verbose. If set at last once" \
-	" it overwrites the --verbose level." )
+	"Option @--long@ does the same as option @$--verbose$@. If set at last" \
+	" once it overwrites the @$--verbose$@ level." )
 
 #:def_cmd_opt( "CHECK", "REPAIR", \
 	"", \
@@ -3627,8 +3749,8 @@
 
 #:def_cmd_opt( "REPAIR", "LONG", \
 	"", \
-	"Option --long does the same as option --verbose. If set at last once" \
-	" it overwrites the --verbose level." )
+	"Option @--long@ does the same as option @$--verbose$@. If set at last" \
+	" once it overwrites the @$--verbose$@ level." )
 
 #:def_cmd_opt( "REPAIR", "REPAIR", \
 	"", \
@@ -3654,7 +3776,7 @@
 
 #:def_cmd_opt( "EDIT", "TEST", \
 	"", \
-	"Force test mode and ignore --force." )
+	"Force test mode and ignore @$--force$@." )
 
 #:def_cmd_opt( "EDIT", "FORCE", \
 	"", \
@@ -4428,13 +4550,14 @@
 
 #:def_cmd_opt( "RENAME", "ISO", \
 	"", \
-	"Modify ID and title of the ISO image. If neither of --iso and --wbfs" \
-	" is set, then both are assumed as active." )
+	"Modify ID and title of the ISO image. If neither @--iso@ nor" \
+	" @$--wbfs$@ is set, then both are assumed as active." )
 
 #:def_cmd_opt( "RENAME", "WBFS", \
 	"", \
 	"Modify ID and title of the inode in the WBFS management area. If" \
-	" neither of --iso and --wbfs is set, then both are assumed as active." )
+	" neither @$--iso$@ nor @--wbfs@ is set, then both are assumed as" \
+	" active." )
 
 #:def_cmd_opt( "SETTITLE", "TITLES", \
 	"", \
@@ -4503,13 +4626,14 @@
 
 #:def_cmd_opt( "SETTITLE", "ISO", \
 	"", \
-	"Modify ID and title of the ISO image. If neither of --iso and --wbfs" \
-	" is set, then both are assumed as active." )
+	"Modify ID and title of the ISO image. If neither @--iso@ nor" \
+	" @$--wbfs$@ is set, then both are assumed as active." )
 
 #:def_cmd_opt( "SETTITLE", "WBFS", \
 	"", \
 	"Modify ID and title of the inode in the WBFS management area. If" \
-	" neither of --iso and --wbfs is set, then both are assumed as active." )
+	" neither @$--iso$@ nor @--wbfs@ is set, then both are assumed as" \
+	" active." )
 
 #:def_cmd_opt( "TOUCH", "TITLES", \
 	"", \
@@ -4730,7 +4854,8 @@
 
 #:def_tool( "iso2wbfs", \
 	"iso2wbfs [option]... files...", \
-	"Convert Wii ISO images into WBFS files and split at 4 GB." )
+	"Convert Wii ISO images of any format into WBFS files and split at 4" \
+	" GB. This tool is obsolete, use wit instead." )
 
 #:def_opt( "VERSION", "V|version", "G", \
 	"", \
@@ -4742,7 +4867,7 @@
 
 #:def_opt( "XHELP", "xhelp", "G", \
 	"", \
-	"Same as --help." )
+	"Same as @$--help$@." )
 
 #:def_opt( "QUIET", "q|quiet", "G", \
 	"", \
@@ -4777,17 +4902,17 @@
 
 #:def_opt( "RAW", "raw", "G", \
 	"", \
-	"Abbreviation of --psel=RAW." )
+	"Abbreviation of @$--psel$=RAW@." )
 
 #:def_opt( "DEST", "d|dest", "GP", \
 	"path", \
 	"Define a destination path (directory/file). The destination path is" \
-	" scanned for escape sequences (see option --esc) to allow generic" \
+	" scanned for escape sequences (see option @$--esc$@) to allow generic" \
 	" pathes." )
 
 #:def_opt( "DEST2", "D|DEST", "GP", \
 	"path", \
-	"Like --dest, but create the directory path automatically." )
+	"Like @$--dest$@, but create the directory path automatically." )
 
 #:def_opt( "PRESERVE", "p|preserve", "G", \
 	"", \
@@ -4816,7 +4941,8 @@
 
 #:def_tool( "iso2wdf", \
 	"iso2wdf [option]... files...", \
-	"Convert Wii ISO images into WDF files." )
+	"Convert Wii ISO images of any format into WDF files. This tool is" \
+	" obsolete, use wit instead." )
 
 #:def_opt( "VERSION", "V|version", "G", \
 	"", \
@@ -4828,7 +4954,7 @@
 
 #:def_opt( "XHELP", "xhelp", "G", \
 	"", \
-	"Same as --help." )
+	"Same as @$--help$@." )
 
 #:def_opt( "QUIET", "q|quiet", "G", \
 	"", \
@@ -4863,17 +4989,17 @@
 
 #:def_opt( "RAW", "raw", "G", \
 	"", \
-	"Abbreviation of --psel=RAW." )
+	"Abbreviation of @$--psel$=RAW@." )
 
 #:def_opt( "DEST", "d|dest", "GP", \
 	"path", \
 	"Define a destination path (directory/file). The destination path is" \
-	" scanned for escape sequences (see option --esc) to allow generic" \
+	" scanned for escape sequences (see option @$--esc$@) to allow generic" \
 	" pathes." )
 
 #:def_opt( "DEST2", "D|DEST", "GP", \
 	"path", \
-	"Like --dest, but create the directory path automatically." )
+	"Like @$--dest$@, but create the directory path automatically." )
 
 #:def_opt( "PRESERVE", "p|preserve", "G", \
 	"", \
@@ -4902,7 +5028,8 @@
 
 #:def_tool( "wdf2iso", \
 	"wdf2iso [option]... files...", \
-	"Convert Wii ISO images into PLAIN ISO files." )
+	"Convert Wii ISO images of may format into PLAIN ISO files. This tool" \
+	" is obsolete, use wit instead." )
 
 #:def_opt( "VERSION", "V|version", "G", \
 	"", \
@@ -4914,7 +5041,7 @@
 
 #:def_opt( "XHELP", "xhelp", "G", \
 	"", \
-	"Same as --help." )
+	"Same as @$--help$@." )
 
 #:def_opt( "QUIET", "q|quiet", "G", \
 	"", \
@@ -4949,17 +5076,17 @@
 
 #:def_opt( "RAW", "raw", "G", \
 	"", \
-	"Abbreviation of --psel=RAW." )
+	"Abbreviation of @$--psel$=RAW@." )
 
 #:def_opt( "DEST", "d|dest", "GP", \
 	"path", \
 	"Define a destination path (directory/file). The destination path is" \
-	" scanned for escape sequences (see option --esc) to allow generic" \
+	" scanned for escape sequences (see option @$--esc$@) to allow generic" \
 	" pathes." )
 
 #:def_opt( "DEST2", "D|DEST", "GP", \
 	"path", \
-	"Like --dest, but create the directory path automatically." )
+	"Like @$--dest$@, but create the directory path automatically." )
 
 #:def_opt( "PRESERVE", "p|preserve", "G", \
 	"", \
@@ -4988,8 +5115,9 @@
 
 #:def_tool( "wdf-cat", \
 	"wdf-cat [option]... files...", \
-	"Dump the file contents to standard output (stdout) and extract WDF" \
-	" and CISO files on the fly." )
+	"Works like the 'cat' command: Dump all file contents to standard" \
+	" output (stdout) and extract WDF and CISO files on the fly. All other" \
+	" files are copied byte by byte." )
 
 #:def_opt( "VERSION", "V|version", "G", \
 	"", \
@@ -5001,7 +5129,7 @@
 
 #:def_opt( "XHELP", "xhelp", "G", \
 	"", \
-	"Same as --help." )
+	"Same as @$--help$@." )
 
 #:def_opt( "IO", "io", "GP", \
 	"flags", \
@@ -5018,7 +5146,7 @@
 
 #:def_tool( "wdf-dump", \
 	"wdf-dump [option]... files...", \
-	"Dump the data structure of WDF and CISO files." )
+	"Dump the data structure of WDF and CISO files for analysis." )
 
 #:def_opt( "VERSION", "V|version", "G", \
 	"", \
@@ -5030,7 +5158,7 @@
 
 #:def_opt( "XHELP", "xhelp", "G", \
 	"", \
-	"Same as --help." )
+	"Same as @$--help$@." )
 
 #:def_opt( "QUIET", "q|quiet", "G", \
 	"", \
@@ -5053,41 +5181,8 @@
 
 #:def_opt( "LONG", "l|long", "G", \
 	"", \
-	"Obsolete alternative for --chunk" )
+	"Obsolete alternative for @$--chunk$@" )
 
-
-##
-###############################################################################
-###############                   Region Info                   ###############
-###############################################################################
-
-#:def_tab("region",'A',2,0,"ALL ","All")
-#:def_tab("region",'B',2,0,"-?- ","-?-")
-#:def_tab("region",'C',2,0,"-?- ","-?-")
-#:def_tab("region",'D',2,1,"GERM","German")
-#:def_tab("region",'E',1,1,"NTSC","NTSC")
-#:def_tab("region",'F',2,1,"FREN","French")
-#:def_tab("region",'G',2,0,"-?- ","-?-")
-#:def_tab("region",'H',2,0,"-?- ","-?-")
-#:def_tab("region",'I',2,1,"ITAL","Italian")
-#:def_tab("region",'J',0,1,"JAPA","Japan")
-#:def_tab("region",'K',4,1,"KORE","Korea")
-#:def_tab("region",'L',0,1,"J>PL","Japan->PAL")
-#:def_tab("region",'M',1,1,"A>PL","America->PAL")
-#:def_tab("region",'N',0,1,"J>US","Japan->NTSC")
-#:def_tab("region",'O',2,0,"-?- ","-?-")
-#:def_tab("region",'P',2,1,"PAL ","PAL")
-#:def_tab("region",'Q',4,1,"KO/J","Korea (japanese)")
-#:def_tab("region",'R',2,0,"-?- ","-?-")
-#:def_tab("region",'S',2,1,"SPAN","Spanish")
-#:def_tab("region",'T',4,1,"KO/E","Korea (english)")
-#:def_tab("region",'U',2,0,"-?- ","-?-")
-#:def_tab("region",'V',2,0,"-?- ","-?-")
-#:def_tab("region",'W',2,0,"-?- ","-?-")
-#:def_tab("region",'X',2,1,"RF  ","Region free")
-#:def_tab("region",'Y',2,0,"-?- ","-?-")
-#:def_tab("region",'Z',2,0,"-?- ","-?-")
-#:def_tab("region",'', 2,0,"-?- ","-?-")
 
 ##
 ###############################################################################

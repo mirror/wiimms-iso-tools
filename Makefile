@@ -12,7 +12,7 @@ WIT_LONG	= Wiimms ISO Tool
 WWT_SHORT	= wwt
 WWT_LONG	= Wiimms WBFS Tool
 
-VERSION		= 0.48a
+VERSION		= 0.48b
 PREV_VERSION	= 0.47a
 PREV_REVISION	= 1106
 
@@ -96,8 +96,8 @@ MAIN_TOOLS_OBJ	:= $(patsubst %,%.o,$(MAIN_TOOLS))
 TEST_TOOLS_OBJ	:= $(patsubst %,%.o,$(TEST_TOOLS))
 
 # other objects
-WIT_O		:= debug.o lib-std.o lib-wdf.o lib-ciso.o lib-sf.o \
-		   ui.o iso-interface.o wbfs-interface.o \
+WIT_O		:= debug.o lib-std.o lib-file.o lib-wdf.o lib-ciso.o lib-sf.o \
+		   ui.o iso-interface.o wbfs-interface.o patch.o \
 		   titles.o match-pattern.o dclib-utf8.o \
 		   sha1dgst.o sha1_one.o
 LIBWBFS_O	:= file-formats.o libwbfs.o wiidisc.o rijndael.o

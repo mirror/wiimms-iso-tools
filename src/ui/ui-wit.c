@@ -31,7 +31,7 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 
     {	OPT_RDEPTH, 0, "rdepth",
 	"depth",
-	"Set the maximum recurse depth for --recurse (default=10)."
+	"Set the maximum recurse depth for option --recurse (default=10)."
     },
 
     {	OPT_INCLUDE, 'n', "include",
@@ -220,25 +220,25 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
     {	OPT_ITIME, 0, "itime",
 	0,
 	"Select 'itime' (insertion time) for printing.--itime is an"
-	" abbreviation of '--time=i'."
+	" abbreviation of --time=i."
     },
 
     {	OPT_MTIME, 0, "mtime",
 	0,
 	"Select 'mtime' (last modification time) for printing.--mtime is an"
-	" abbreviation of '--time=m'."
+	" abbreviation of --time=m."
     },
 
     {	OPT_CTIME, 0, "ctime",
 	0,
 	"Select 'ctime' (last status change time) for printing.--ctime is an"
-	" abbreviation of '--time=c'."
+	" abbreviation of --time=c."
     },
 
     {	OPT_ATIME, 0, "atime",
 	0,
 	"Select 'atime' (last access time) for printing.--atime is an"
-	" abbreviation of '--time=a'."
+	" abbreviation of --time=a."
     },
 
     {	OPT_TIME, 0, "time",
@@ -331,7 +331,7 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 	"char",
 	"Define an alternative escape character for destination files. The"
 	" default is '%'. For Windows (CYGWIN) it is a good choice to set"
-	" '-E$'."
+	" '-E'."
     },
 
     {	OPT_IO, 0, "io",
@@ -385,7 +385,7 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 const InfoOption_t option_cmd_VERSION_LONG =
     {	OPT_LONG, 'l', "long",
 	0,
-	"Print in long format. Ignored if --sections is set."
+	"Print in long format. Ignored if option --sections is set."
     };
 
 const InfoOption_t option_cmd_ERROR_LONG =
@@ -450,16 +450,16 @@ const InfoOption_t option_cmd_EXTRACT_SORT =
 const InfoOption_t option_cmd_RENAME_ISO =
     {	OPT_ISO, 'I', "iso",
 	0,
-	"Modify ID and title of the ISO image. If neither of --iso and --wbfs"
-	" is set, then both are assumed as active."
+	"Modify ID and title of the ISO image. If neither --iso nor --wbfs is"
+	" set, then both are assumed as active."
     };
 
 const InfoOption_t option_cmd_RENAME_WBFS =
     {	OPT_WBFS, 'B', "wbfs",
 	0,
 	"Modify ID and title of the inode in the WBFS management area. Option"
-	" --wbfs make only sense for images within WBFS. If neither of --iso"
-	" and --wbfs is set, then both are assumed as active."
+	" --wbfs make only sense for images within WBFS. If neither --iso nor"
+	" --wbfs is set, then both are assumed as active."
     };
 
 const InfoOption_t option_cmd_VERIFY_QUIET =
@@ -503,6 +503,7 @@ const CommandTab_t CommandTab[] =
     { CMD_FILETYPE,	"FILETYPE",	"FT",		OB_CMD_FILETYPE },
     { CMD_ISOSIZE,	"ISOSIZE",	"SIZE",		OB_CMD_ISOSIZE },
     { CMD_DUMP,		"DUMP",		"D",		OB_CMD_DUMP },
+    { CMD_DREGION,	"DREGION",	"DR",		OB_CMD_DREGION },
     { CMD_ID6,		"ID6",		"ID",		OB_CMD_ID6 },
     { CMD_LIST,		"LIST",		"LS",		OB_CMD_LIST },
     { CMD_LIST_L,	"LIST-L",	"LL",		OB_CMD_LIST_L },
@@ -515,6 +516,7 @@ const CommandTab_t CommandTab[] =
     { CMD_EXTRACT,	"EXTRACT",	"X",		OB_CMD_EXTRACT },
     { CMD_COPY,		"COPY",		"CP",		OB_CMD_COPY },
     { CMD_SCRUB,	"SCRUB",	"SB",		OB_CMD_SCRUB },
+    { CMD_EDIT,		"EDIT",		0,		OB_CMD_EDIT },
     { CMD_MOVE,		"MOVE",		"MV",		OB_CMD_MOVE },
     { CMD_RENAME,	"RENAME",	"REN",		OB_CMD_RENAME },
     { CMD_SETTITLE,	"SETTITLE",	"ST",		OB_CMD_SETTITLE },
@@ -877,6 +879,22 @@ static const InfoOption_t * option_tab_cmd_DUMP[] =
 	OptionInfo + OPT_NAME,
 	OptionInfo + OPT_MODIFY,
 	&option_cmd_DUMP_LONG,
+
+	0
+};
+
+static const InfoOption_t * option_tab_cmd_DREGION[] =
+{
+	OptionInfo + OPT_SOURCE,
+	OptionInfo + OPT_RECURSE,
+	OptionInfo + OPT_RDEPTH,
+
+	OptionInfo + OPT_NONE, // separator
+
+	OptionInfo + OPT_INCLUDE,
+	OptionInfo + OPT_INCLUDE_PATH,
+	OptionInfo + OPT_EXCLUDE,
+	OptionInfo + OPT_EXCLUDE_PATH,
 
 	0
 };
@@ -1410,6 +1428,52 @@ static const InfoOption_t * option_tab_cmd_SCRUB[] =
 	0
 };
 
+static const InfoOption_t * option_tab_cmd_EDIT[] =
+{
+	OptionInfo + OPT_TEST,
+
+	OptionInfo + OPT_NONE, // separator
+
+	OptionInfo + OPT_TITLES,
+	OptionInfo + OPT_UTF_8,
+	OptionInfo + OPT_NO_UTF_8,
+	OptionInfo + OPT_LANG,
+
+	OptionInfo + OPT_NONE, // separator
+
+	OptionInfo + OPT_SOURCE,
+	OptionInfo + OPT_RECURSE,
+	OptionInfo + OPT_RDEPTH,
+
+	OptionInfo + OPT_NONE, // separator
+
+	OptionInfo + OPT_INCLUDE,
+	OptionInfo + OPT_INCLUDE_PATH,
+	OptionInfo + OPT_EXCLUDE,
+	OptionInfo + OPT_EXCLUDE_PATH,
+
+	OptionInfo + OPT_NONE, // separator
+
+	OptionInfo + OPT_IGNORE,
+
+	OptionInfo + OPT_NONE, // separator
+
+	OptionInfo + OPT_QUIET,
+	OptionInfo + OPT_VERBOSE,
+	OptionInfo + OPT_PRESERVE,
+
+	OptionInfo + OPT_NONE, // separator
+
+	OptionInfo + OPT_ENC,
+	OptionInfo + OPT_REGION,
+	OptionInfo + OPT_IOS,
+	OptionInfo + OPT_ID,
+	OptionInfo + OPT_NAME,
+	OptionInfo + OPT_MODIFY,
+
+	0
+};
+
 static const InfoOption_t * option_tab_cmd_MOVE[] =
 {
 	OptionInfo + OPT_TEST,
@@ -1586,15 +1650,18 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 {
     {	0,
 	false,
+	false,
 	"wit",
 	0,
-	"wit [option]... command [option|parameter|@file]...",
-	"Wiimms ISO Tool",
+	"wit [option]... command [option|parameter|file]...",
+	"Wiimms ISO Tool : It can list, analyze, verify, convert, split, join,"
+	" extract, compose, rename and compare Wii discs.",
 	14,
 	option_tab_tool
     },
 
     {	CMD_VERSION,
+	false,
 	false,
 	"VERSION",
 	0,
@@ -1605,6 +1672,7 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
     },
 
     {	CMD_HELP,
+	false,
 	false,
 	"HELP",
 	"H",
@@ -1617,6 +1685,7 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 
     {	CMD_TEST,
 	false,
+	false,
 	"TEST",
 	0,
 	"wit TEST [ignored]...",
@@ -1626,6 +1695,7 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
     },
 
     {	CMD_ERROR,
+	false,
 	false,
 	"ERROR",
 	"ERR",
@@ -1638,6 +1708,7 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 
     {	CMD_EXCLUDE,
 	false,
+	false,
 	"EXCLUDE",
 	0,
 	"wit EXCLUDE [additional_excludes]...",
@@ -1648,6 +1719,7 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 
     {	CMD_TITLES,
 	false,
+	false,
 	"TITLES",
 	0,
 	"wit TITLES [additional_title_file]",
@@ -1657,16 +1729,18 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
     },
 
     {	CMD_FILELIST,
+	false,
 	true,
 	"FILELIST",
 	"FL",
 	"wit FILELIST [source]...",
-	"List all source files decared by --source and --recurse.",
+	"List all source files decared by the options --source and --recurse.",
 	10,
 	option_tab_cmd_FILELIST
     },
 
     {	CMD_FILETYPE,
+	false,
 	false,
 	"FILETYPE",
 	"FT",
@@ -1678,6 +1752,7 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 
     {	CMD_ISOSIZE,
 	false,
+	false,
 	"ISOSIZE",
 	"SIZE",
 	"wit ISOSIZE [source]...",
@@ -1687,6 +1762,7 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
     },
 
     {	CMD_DUMP,
+	false,
 	true,
 	"DUMP",
 	"D",
@@ -1697,7 +1773,19 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	option_tab_cmd_DUMP
     },
 
+    {	CMD_DREGION,
+	true,
+	false,
+	"DREGION",
+	"DR",
+	"wit DREGION [source]...",
+	"Dump the region settings of Wii ISO files.",
+	7,
+	option_tab_cmd_DREGION
+    },
+
     {	CMD_ID6,
+	false,
 	false,
 	"ID6",
 	"ID",
@@ -1709,6 +1797,7 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 
     {	CMD_LIST,
 	false,
+	false,
 	"LIST",
 	"LS",
 	"wit LIST [source]...",
@@ -1719,35 +1808,39 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 
     {	CMD_LIST_L,
 	false,
+	false,
 	"LIST-L",
 	"LL",
 	"wit LIST-L [source]...",
-	"List all found ISO files. Same as 'LIST --long'.",
+	"List all found ISO files. Same as 'wit LIST --long'.",
 	23,
 	option_tab_cmd_LIST_L
     },
 
     {	CMD_LIST_LL,
 	false,
+	false,
 	"LIST-LL",
 	"LLL",
 	"wit LIST-LL [source]...",
-	"List all found ISO files. Same as 'LIST --long --long'.",
+	"List all found ISO files. Same as 'wit LIST --long --long'.",
 	23,
 	option_tab_cmd_LIST_LL
     },
 
     {	CMD_LIST_LLL,
 	false,
+	false,
 	"LIST-LLL",
 	"LLLL",
 	"wit LIST-LLL [source]...",
-	"List all found ISO files. Same as 'LIST --long --long  --long'.",
+	"List all found ISO files. Same as 'wit LIST --long --long  --long'.",
 	23,
 	option_tab_cmd_LIST_LLL
     },
 
     {	CMD_ILIST,
+	false,
 	true,
 	"ILIST",
 	"IL",
@@ -1759,37 +1852,41 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 
     {	CMD_ILIST_L,
 	false,
+	false,
 	"ILIST-L",
 	"ILL",
 	"wit ILIST-L [source]...",
-	"List all files of all discs. Same as 'ILIST --long'.",
+	"List all files of all discs. Same as 'wit ILIST --long'.",
 	18,
 	option_tab_cmd_ILIST_L
     },
 
     {	CMD_ILIST_LL,
 	false,
+	false,
 	"ILIST-LL",
 	"ILLL",
 	"wit ILIST-LL [source]...",
-	"List all files of all discs. Same as 'ILIST --long --long'.",
+	"List all files of all discs. Same as 'wit ILIST --long --long'.",
 	18,
 	option_tab_cmd_ILIST_LL
     },
 
     {	CMD_DIFF,
+	false,
 	true,
 	"DIFF",
 	"CMP",
 	"wit DIFF source dest\n"
 	"wit DIFF [-s path]... [-r path]... [source]... [-d|-D] dest",
 	"DIFF compares ISO images in  scrubbed or raw mode or on file level."
-	" DIFF works like COPY but comparing source and destination.",
+	" DIFF works like wit COPY but comparing source and destination.",
 	32,
 	option_tab_cmd_DIFF
     },
 
     {	CMD_EXTRACT,
+	false,
 	false,
 	"EXTRACT",
 	"X",
@@ -1802,6 +1899,7 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 
     {	CMD_COPY,
 	false,
+	false,
 	"COPY",
 	"CP",
 	"wit COPY source dest\n"
@@ -1813,6 +1911,7 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 
     {	CMD_SCRUB,
 	false,
+	false,
 	"SCRUB",
 	"SB",
 	"wit SCRUB source\n"
@@ -1822,7 +1921,20 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	option_tab_cmd_SCRUB
     },
 
+    {	CMD_EDIT,
+	true,
+	false,
+	"EDIT",
+	0,
+	"wit EDIT source\n"
+	"wit EDIT [-s path]... [-r path]... [source]...",
+	"Edit an existing Wii ISO images and patch some values.",
+	22,
+	option_tab_cmd_EDIT
+    },
+
     {	CMD_MOVE,
+	false,
 	false,
 	"MOVE",
 	"MV",
@@ -1835,6 +1947,7 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 
     {	CMD_RENAME,
 	false,
+	false,
 	"RENAME",
 	"REN",
 	"wit RENAME id6=[new][,title]...",
@@ -1845,6 +1958,7 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 
     {	CMD_SETTITLE,
 	false,
+	false,
 	"SETTITLE",
 	"ST",
 	"wit SETTITLE id6=title...",
@@ -1854,6 +1968,7 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
     },
 
     {	CMD_VERIFY,
+	false,
 	true,
 	"VERIFY",
 	"V",
@@ -1864,7 +1979,7 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	option_tab_cmd_VERIFY
     },
 
-    {0,0,0,0,0,0,0}
+    {0,0,0,0,0,0,0,0}
 };
 
 //

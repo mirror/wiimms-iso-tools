@@ -1,9 +1,11 @@
 ../src/iso-interface.[ch] ;
+../src/patch.[ch] ;
 ../src/libwbfs/file-formats.h ;
 ../src/wbfs-interface.[ch] ;
 ../src/lib-wdf.[ch] ;
 ../src/lib-std.[ch] ;
+../src/lib-file.[ch] ;
 ../src/lib-error.[ch] ;
 @+all-source.edit-list
--y  430 ../src/iso-interface.h ;
--y 1040 ../src/iso-interface.c ;
+-y 1 ../src/iso-interface.h ;
+-y 1 ../src/iso-interface.c ;

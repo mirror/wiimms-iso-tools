@@ -60,24 +60,26 @@ typedef enum enumCommands
 
 typedef enum enumGetOpt
 {
-	GO_VERSION		= 'V',
-	GO_HELP			= 'h',
-	GO_XHELP		= 0x80,
-	GO_QUIET		= 'q',
-	GO_VERBOSE		= 'v',
-	GO_PROGRESS		= 'P',
-	GO_IO			= 0x81,
-	GO_TEST			= 't',
-	GO_PSEL			= 0x82,
-	GO_RAW			= 0x83,
-	GO_DEST			= 'd',
-	GO_DEST2		= 'D',
-	GO_PRESERVE		= 'p',
-	GO_SPLIT		= 'z',
-	GO_SPLIT_SIZE		= 'Z',
-	GO_OVERWRITE		= 'o',
+	GO__ERR			= '?',
 
-	GO__ERR			= '?'
+	GO_DEST2		= 'D',
+	GO_PROGRESS		= 'P',
+	GO_VERSION		= 'V',
+	GO_SPLIT_SIZE		= 'Z',
+
+	GO_DEST			= 'd',
+	GO_HELP			= 'h',
+	GO_OVERWRITE		= 'o',
+	GO_PRESERVE		= 'p',
+	GO_QUIET		= 'q',
+	GO_TEST			= 't',
+	GO_VERBOSE		= 'v',
+	GO_SPLIT		= 'z',
+
+	GO_XHELP		= 0x80,
+	GO_IO,
+	GO_PSEL,
+	GO_RAW,
 
 } enumGetOpt;
 

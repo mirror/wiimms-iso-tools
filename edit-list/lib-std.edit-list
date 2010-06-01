@@ -1,4 +1,5 @@
 ../src/lib-std.[ch] ;
+../src/lib-file.[ch] ;
 ../src/lib-error.[ch] ;
 ../src/lib-wdf.[ch] ;
 ../src/lib-sf.[ch] ;

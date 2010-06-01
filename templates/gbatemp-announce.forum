@@ -143,18 +143,15 @@ I like to work with the linux command line. And the only WBFS tool I found is po
     [/list]
 [/list]
 
-[size="2"][color="#000080"][b]Download of the current stable version:[/b][/color][/size]
+[size="2"][color="#000080"][b]Download of the current version:[/b][/color][/size]
 ~[size="2"][color="#000080"][b]Download[/b][/color] [color="#800000"][b]this EXPERIMENTAL release:[/b][/color][/size]
 [list]
 [*] [url=@@URI-DOWNLOAD-I386@@][b]@@DISTRIB-I386@@[/b][/url] : linux/i386 version
 [*] [url=@@URI-DOWNLOAD-X86_64@@][b]@@DISTRIB-X86_64@@[/b][/url] : linux/x86_64 version
 [*] [url=@@URI-DOWNLOAD-MAC@@][b]@@DISTRIB-MAC@@[/b][/url] : Mac OS universal binaries (ppc, i386 and x86-64)
 [*] [url=@@URI-DOWNLOAD-CYGWIN@@][b]@@DISTRIB-CYGWIN@@[/b][/url] : cygwin (win32) version
-[color=#ffffff].[/color]
 [*] Previous releases are available from [url=http://wit.wiimm.de/download.html]http://wit.wiimm.de/download.html[/url].
 [/list]
-[/list]
-
 
 [size="2"][color="#000080"][b]There is also a GUI available:[/b][/color][/size]
 [list]
@@ -167,5 +164,3 @@ I like to work with the linux command line. And the only WBFS tool I found is po
 [/code]
 
 Sources comes with GPL2. Checkout the sources directly from the [url=@@URI-REPOS@@][b]SVN repository[/b][/url] or [url=@@URI-VIEWVC@@][b]browse the source[/b][/url].
-
-Because the SVN repository path has switched you must execute the following command once before updating: [code]svn switch http://opensvn.wiimm.de/wii/trunk/wiimms-iso-tools[/code]

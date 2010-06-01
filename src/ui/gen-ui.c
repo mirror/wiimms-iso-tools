@@ -77,10 +77,11 @@ static char sep2[] =
 //-----------------------------------------------------------------------------
 
 static void DumpText
-	( FILE * f, char * pbuf, char * pbuf_end, ccp text, ccp tie, ccp end )
+	( FILE * f, char * pbuf, char * pbuf_end, ccp text, bool is_uidef, ccp end )
 {
     ASSERT(f||pbuf);
 
+    ccp tie = is_uidef ? " \\" : "";
     char buf[100], *buf_end = buf + 70, *dest = buf;
 
     if (!text)
@@ -118,6 +119,18 @@ static void DumpText
 		    *dest++ = '\\';
 		    *dest++ = *text++;
 		    break;
+
+		case '@':
+		case '$':
+		case '§':
+		    if (!is_uidef)
+		    {
+			if ( text[1] == *text )
+			    *dest++ = *text++;
+			text++;
+			break;
+		    }
+		    // fall through
 
 		default:
 		    *dest++ = *text++;
@@ -210,7 +223,7 @@ static void print_info_opt
     else
 	fprintf(cf,"\t0,\n");
 
-    DumpText(cf,0,0,help,"","");
+    DumpText(cf,0,0,help,0,"");
     fprintf(cf,"\n    }%c\n\n",cmd_name ? ';' : ',' );
 }
 
@@ -254,8 +267,8 @@ static void print_opt_link ( control_t * ctrl, const info_t * info )
     {
 	fprintf(ctrl->df,"#:def_cmd_opt( \"%s\", \"%s\", \\\n",
 		ctrl->cmd_name, info->c_name );
-	DumpText(ctrl->df,0,0,info->param," \\",", \\\n");
-	DumpText(ctrl->df,0,0,info->help," \\"," )\n\n");
+	DumpText(ctrl->df,0,0,info->param,1,", \\\n");
+	DumpText(ctrl->df,0,0,info->help,1," )\n\n");
     }
 
     ctrl->n_cmd_opt++;
@@ -360,10 +373,11 @@ static void print_links ( control_t * ctrl )
     print_links_iterator(ctrl,info_cmd,"def");
     fprintf(cf,"\n\t0\n};\n\n");
 
-    DumpText(0,temp_param,iobuf+sizeof(iobuf),info_cmd->param,"","");
-    DumpText(0,temp_help,iobuf+sizeof(iobuf),info_cmd->help,"","");
+    DumpText(0,temp_param,iobuf+sizeof(iobuf),info_cmd->param,0,"");
+    DumpText(0,temp_help,iobuf+sizeof(iobuf),info_cmd->help,0,"");
     sum += snprintf(sum,sum_end-sum,
 			"    {\t0,\n"		// id
+			"\tfalse,\n"		// hidden
 			"\tfalse,\n"		// separator
 			"\t\"%s\",\n"		// name1
 			"\t0,\n"		// name2
@@ -383,7 +397,8 @@ static void print_links ( control_t * ctrl )
     {
 	if ( info_cmd->type & T_SEP_CMD )
 	    separator = true;
-	if ( !( info_cmd->type & T_DEF_CMD ) || info_cmd->type & F_HIDDEN )
+	//if ( !( info_cmd->type & T_DEF_CMD ) || info_cmd->type & F_HIDDEN )
+	if ( !( info_cmd->type & T_DEF_CMD ) )
 	    continue;
 
 	fprintf(cf,"static const InfoOption_t * option_tab_cmd_%s[] =\n{\n",
@@ -395,7 +410,7 @@ static void print_links ( control_t * ctrl )
 	ResetStringField(&ctrl->opt_done);
 
 	const info_t * info;
-	for (info = info_cmd;  info < ctrl->end; info++ )
+	for ( info = info_cmd;  info < ctrl->end; info++ )
 	    if ( info->type & T_CMD_BEG && !strcmp(info->c_name,info_cmd->c_name) )
 	    {
 		print_links_iterator(ctrl,info,"cmd");
@@ -417,10 +432,11 @@ static void print_links ( control_t * ctrl )
 		snprintf(name2,sizeof(name2),"\"%.*s\"",(int)(ptr-n2),n2);
 	}
 	
-	DumpText(0,temp_param,iobuf+sizeof(iobuf),info_cmd->param,"","");
-	DumpText(0,temp_help,iobuf+sizeof(iobuf),info_cmd->help,"","");
+	DumpText(0,temp_param,iobuf+sizeof(iobuf),info_cmd->param,0,"");
+	DumpText(0,temp_help,iobuf+sizeof(iobuf),info_cmd->help,0,"");
 	sum += snprintf(sum,sum_end-sum,
 			"    {\tCMD_%s,\n"	// id
+			"\t%s,\n"		// hidden
 			"\t%s,\n"		// separator
 			"\t\"%.*s\",\n"		// name1
 			"\t%s,\n"		// name2
@@ -430,6 +446,7 @@ static void print_links ( control_t * ctrl )
 			"\toption_tab_cmd_%s\n"	// opt
 			"    },\n\n"
 			,info_cmd->c_name
+			,info_cmd->type & F_HIDDEN ? "true" : "false"
 			,separator ? "true" : "false"
 			,len1 ,name1
 			,name2
@@ -444,7 +461,7 @@ static void print_links ( control_t * ctrl )
     print_section(cf,sep1,"InfoCommand");
     fprintf(cf,"const InfoCommand_t CommandInfo[CMD__N+1] =\n{\n");
     fputs(sum_beg,cf);
-    fprintf(cf,"    {0,0,0,0,0,0,0}\n};\n");
+    fprintf(cf,"    {0,0,0,0,0,0,0,0}\n};\n");
 }
 
 //
@@ -476,7 +493,6 @@ static enumError Generate ( control_t * ctrl )
     ASSERT(hf);
 
     const info_t *info;
-    const int getopt_base = 0x80;
 
 
     //----- setup guard
@@ -747,25 +763,6 @@ static enumError Generate ( control_t * ctrl )
 	    "} enumCommands;\n"
 	    );
 
-    //----- print enumGetOpt
-
-    print_section(hf,sep1,"enumGetOpt");
-    fprintf(hf,"typedef enum enumGetOpt\n{\n");
-
-    int getopt_idx = getopt_base;
-    for ( info = ctrl->info; info < ctrl->end; info++ )
-	if ( info->type & T_DEF_OPT )
-	{
-	    fprintf(hf,"\tGO_%s%.*s= ",
-			info->c_name, (28-(int)strlen(info->c_name))/8, tabs );
-
-	    if ( info->namelist[1] == '|' )
-		fprintf(hf,"'%c',\n",info->namelist[0]);
-	    else
-		fprintf(hf,"0x%02x,\n",getopt_idx++);
-	}
-    fprintf(hf,"\n\tGO__ERR\t\t\t= '?'\n\n} enumGetOpt;\n");
-
 
     //----- print options
 
@@ -786,7 +783,7 @@ static enumError Generate ( control_t * ctrl )
 
     ccp opt_buf[OPT_INDEX_SIZE];
     memset(opt_buf,0,sizeof(opt_buf));
-    getopt_idx = getopt_base;
+    int getopt_idx = OPT_LONG_BASE;
 
     fprintf(cf,"const struct option OptionLong[] =\n{\n");
     var_ptr += snprintf(var_ptr,var_end-var_ptr,
@@ -830,6 +827,43 @@ static enumError Generate ( control_t * ctrl )
     fprintf(cf,"\n\t{0,0,0,0}\n};\n");
     
 
+    //----- print enumGetOpt
+
+    print_section(hf,sep1,"enumGetOpt");
+    fprintf(hf,"typedef enum enumGetOpt\n{");
+
+    // add '?' temporary;
+    ASSERT(!opt_buf['?']);
+    opt_buf['?'] = "_ERR";
+    
+    static const int septab[] = { 0, '0', '9'+1, '?', '?'+1,
+				  'A', 'Z'+1, 'a', 'z'+1,
+				  OPT_LONG_BASE, OPT_INDEX_SIZE };
+    const int * sepptr = septab;
+    int i;
+    for ( i = 0; i < OPT_INDEX_SIZE; i++ )
+	if ( opt_buf[i] )
+	{
+	    if ( i >= *sepptr )
+	    {
+		fputc('\n',hf);
+		while ( i >= *sepptr )
+		    sepptr++;
+	    }
+	    if ( i < OPT_LONG_BASE )
+		fprintf(hf,"\tGO_%s%.*s= '%c',\n",
+			opt_buf[i], (28-(int)strlen(opt_buf[i]))/8, tabs, i );
+	    else if ( i == OPT_LONG_BASE )
+		fprintf(hf,"\tGO_%s%.*s= 0x%02x,\n",
+			opt_buf[i], (28-(int)strlen(opt_buf[i]))/8, tabs, i );
+	    else
+		fprintf(hf,"\tGO_%s,\n",opt_buf[i]);
+	}
+
+    fprintf(hf,"\n} enumGetOpt;\n");
+    opt_buf['?'] = 0;
+
+
     //----- print option index
 
     print_section(cf,sep1,"OptionUsed & OptionIndex");
@@ -842,8 +876,7 @@ static enumError Generate ( control_t * ctrl )
     var_ptr += snprintf(var_ptr,var_end-var_ptr,
 		"extern const u8 OptionIndex[OPT_INDEX_SIZE];\n");
 
-    int i = 0;
-    while ( i < OPT_INDEX_SIZE )
+    for ( i = 0; i < OPT_INDEX_SIZE; )
     {
 	int start = i;
 	while ( i < OPT_INDEX_SIZE && !opt_buf[i] )
@@ -929,6 +962,8 @@ void AddTables ( FILE * df )
 
     //--------------------------------------------------
 
+ #if 0 // [2do] not needed yet
+
     print_section(df,sep2,"Region Info");
 
     char ch;
@@ -941,6 +976,8 @@ void AddTables ( FILE * df )
     const RegionInfo_t * reg = GetRegionInfo(0);
     fprintf(df,"#:def_tab(\"region\",'',%2u,%u,\"%s\",\"%s\")\n",
 	reg->reg, reg->mandatory, reg->name4, reg->name );
+
+ #endif
 
     //--------------------------------------------------
 }
@@ -978,8 +1015,8 @@ int main ( int argc, char ** argv )
 	snprintf(iobuf,sizeof(iobuf),"Tool '%s'",info->c_name);
 	print_section(df,sep2,iobuf);
 	fprintf(df,"#:def_tool( \"%s\", \\\n",info->c_name);
-	DumpText(df,0,0,info->param," \\",", \\\n");
-	DumpText(df,0,0,info->help," \\"," )\n\n");
+	DumpText(df,0,0,info->param,1,", \\\n");
+	DumpText(df,0,0,info->help,1," )\n\n");
 
 	if ( info->type != T_DEF_TOOL )
 	{
@@ -1037,8 +1074,8 @@ int main ( int argc, char ** argv )
 			info->type & F_OPT_GLOBAL   ? "G" : "",
 			info->type & F_OPT_MULTIUSE ? "M" : "",
 			info->type & F_OPT_PARAM    ? "P" : "" );
-		    DumpText(df,0,0,info->param," \\",", \\\n");
-		    DumpText(df,0,0,info->help," \\"," )\n\n");
+		    DumpText(df,0,0,info->param,1,", \\\n");
+		    DumpText(df,0,0,info->help,1," )\n\n");
 		}
 	    }
 	    else if ( info->type & T_DEF_CMD )
@@ -1065,8 +1102,8 @@ int main ( int argc, char ** argv )
 		{
 		    fprintf(df,"#:def_cmd( \"%s\", \"%s\", \\\n",
 			info->c_name, info->namelist );
-		    DumpText(df,0,0,info->param," \\",", \\\n");
-		    DumpText(df,0,0,info->help," \\"," )\n\n");
+		    DumpText(df,0,0,info->param,1,", \\\n");
+		    DumpText(df,0,0,info->help,1," )\n\n");
 		}
 	    }
 

@@ -230,15 +230,17 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 {
     {	0,
 	false,
+	false,
 	"iso2wbfs",
 	0,
 	"iso2wbfs [option]... files...",
-	"Convert Wii ISO images into WBFS files and split at 4 GB.",
+	"Convert Wii ISO images of any format into WBFS files and split at 4"
+	" GB. This tool is obsolete, use wit instead.",
 	16,
 	option_tab_tool
     },
 
-    {0,0,0,0,0,0,0}
+    {0,0,0,0,0,0,0,0}
 };
 
 //

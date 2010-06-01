@@ -1,16 +1,4 @@
-wit v0.47a r1106 - 2010-05-22
-
-  - ID checking redesigned, underscore is now an allowed character.
-  - Command line parsing rewritten: Commands and command specific options are
-    defined in a special tool (C file 'gen-ui.c'). If running this tool it
-    generates C source for all tools to analyse commands and options and to
-    print help messages.
-  - Included help was improved: wit and wwt supports now 'HELP command'.
-    The output is now aligned to the current terminal width.
-  - The documentation of all new options is now complete.
-  - Bug fix: wit has shown wrong file size for splitted ISO images.
-
-wit v@.@@@ r@@REV-NEXT@@ - @@@@-@@-@@
+wit v0.48a r1145 - 2010-05-29
 
  - wit SCRUB: Option --enc= available to encrypt and decrypt disc images.
  - Bug fix for wit COPY: Creating a WBFS file with FST as source failed.
@@ -29,6 +17,16 @@ wit v@.@@@ r@@REV-NEXT@@ - @@@@-@@-@@
    within TMD when composing a Wii ISO image.
  - TMD and TICKET (=new) will be trucha signed if composing a disc.
  - All UTF-8 characters with code >= 0x80 are allowed in filenames.
+
+wit v@.@@@ r@@REV-NEXT@@ - @@@@-@@-@@ (repository only)
+
+ - Bug fix: If reading a very small WBFS file the old and buggy calculation
+   in libwbfs for the free tables size results in zero. Accessing the non
+   existent table forces a segmentation fault. For compatibility reasons
+   the calculation can't be changed.
+ - Bug fix: wit DUMP have always reported encrypted partitions.
+ - Composing bug fix: Copy only really needed data from boot.bin if file
+   header.bin is missed.
 
 Missing docu:
   - wit commands ILIST + EXTRACT

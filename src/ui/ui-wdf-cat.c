@@ -113,16 +113,18 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 {
     {	0,
 	false,
+	false,
 	"wdf-cat",
 	0,
 	"wdf-cat [option]... files...",
-	"Dump the file contents to standard output (stdout) and extract WDF"
-	" and CISO files on the fly.",
+	"Works like the 'cat' command: Dump all file contents to standard"
+	" output (stdout) and extract WDF and CISO files on the fly. All other"
+	" files are copied byte by byte.",
 	4,
 	option_tab_tool
     },
 
-    {0,0,0,0,0,0,0}
+    {0,0,0,0,0,0,0,0}
 };
 
 //

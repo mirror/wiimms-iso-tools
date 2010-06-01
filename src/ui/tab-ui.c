@@ -119,7 +119,9 @@ info_t info_tab[] =
 
   { T_DEF_TOOL,	"wit", 0,
 		"wit [option]... command [option|parameter|@file]...",
-		"Wiimms ISO Tool" },
+		"Wiimms ISO Tool :"
+		" It can list, analyze, verify, convert, split, join,"
+		" extract, compose, rename and compare Wii discs." },
 
   //
   //---------- list of all wit commands ----------
@@ -154,7 +156,8 @@ info_t info_tab[] =
 
   { T_DEF_CMD,	"FILELIST",	"FILELIST|FL",
 		"wit FILELIST [source]...",
-		"List all source files decared by --source and --recurse." },
+		"List all source files decared by the options"
+		" @$--source$@ and @$--recurse$@." },
 
   { T_DEF_CMD,	"FILETYPE",	"FILETYPE|FT",
 		"wit FILETYPE [source]...",
@@ -171,6 +174,10 @@ info_t info_tab[] =
 		"Dump the data structure of Wii ISO files, boot.bin,"
 		" fst.bin and of DOL-files." },
 
+  { H_DEF_CMD,	"DREGION",	"DREGION|DR",
+		"wit DREGION [source]...",
+		"Dump the region settings of Wii ISO files." },
+
   { T_DEF_CMD,	"ID6",		"ID6|ID",
 		"wit ID6 [source]...",
 		"Print ID6 of all found ISO files." },
@@ -181,15 +188,18 @@ info_t info_tab[] =
 
   { T_DEF_CMD,	"LIST_L",	"LIST-L|LL",
 		"wit LIST-L [source]...",
-		"List all found ISO files. Same as 'LIST --long'." },
+		"List all found ISO files."
+		" Same as @'$wit LIST$ --long'@." },
 
   { T_DEF_CMD,	"LIST_LL",	"LIST-LL|LLL",
 		"wit LIST-LL [source]...",
-		"List all found ISO files. Same as 'LIST --long --long'." },
+		"List all found ISO files."
+		" Same as @'$wit LIST$ --long --long'@." },
 
   { T_DEF_CMD,	"LIST_LLL",	"LIST-LLL|LLLL",
 		"wit LIST-LLL [source]...",
-		"List all found ISO files. Same as 'LIST --long --long  --long'." },
+		"List all found ISO files."
+		" Same as @'$wit LIST$ --long --long  --long'@." },
 
   { T_SEP_CMD,	0,0,0,0 }, //----- separator -----
 
@@ -199,11 +209,13 @@ info_t info_tab[] =
 
   { T_DEF_CMD,	"ILIST_L",	"ILIST-L|ILL",
 		"wit ILIST-L [source]...",
-		"List all files of all discs. Same as 'ILIST --long'." },
+		"List all files of all discs."
+		" Same as @'$wit ILIST$ --long'@." },
 
   { T_DEF_CMD,	"ILIST_LL",	"ILIST-LL|ILLL",
 		"wit ILIST-LL [source]...",
-		"List all files of all discs. Same as 'ILIST --long --long'." },
+		"List all files of all discs."
+		" Same as @'$wit ILIST$ --long --long'@." },
 
   { T_SEP_CMD,	0,0,0,0 }, //----- separator -----
 
@@ -211,7 +223,7 @@ info_t info_tab[] =
 		"wit DIFF source dest\n"
 		"wit DIFF [-s path]... [-r path]... [source]... [-d|-D] dest",
 		"DIFF compares ISO images in  scrubbed or raw mode or on file level."
-		" DIFF works like COPY but comparing source and destination." },
+		" DIFF works like $wit COPY$ but comparing source and destination." },
 
   { T_DEF_CMD,	"EXTRACT",	"EXTRACT|X",
 		"wit EXTRACT source dest\n"
@@ -227,6 +239,11 @@ info_t info_tab[] =
 		"wit SCRUB source\n"
 		"wit SCRUB [-s path]... [-r path]... [source]...",
 		"Scrub, convert, split, encrypt and decrypt Wii ISO images." },
+
+  { H_DEF_CMD,	"EDIT",		"EDIT",
+		"wit EDIT source\n"
+		"wit EDIT [-s path]... [-r path]... [source]...",
+		"Edit an existing Wii ISO images and patch some values." },
 
   { T_DEF_CMD,	"MOVE",		"MOVE|MV",
 		"wit MOVE source dest\n"
@@ -330,14 +347,15 @@ info_t info_tab[] =
 		"path", "ISO file or base of a directory tree with ISO files." },
 
   { T_OPT_CP,	"RDEPTH",	"rdepth",
-		"depth", "Set the maximum recurse depth for --recurse (default=10)." },
+		"depth", "Set the maximum recurse depth for option"
+		" @$--recurse$@ (default=10)." },
 
   { T_SEP_OPT,	0,0,0,0 }, //----- separator -----
 
   { T_OPT_CMP,	"INCLUDE",	"n|include",
 		"id",
 		"Include only discs with given ID4 or ID6 from operation."
-		" If the parameter begins with a '@' the given file is read"
+		" If the parameter begins with a '@@' the given file is read"
 		" and each line is scanned for IDs." },
 
   { T_OPT_CMP,	"INCLUDE_PATH",	"N|include-path|includepath",
@@ -346,7 +364,7 @@ info_t info_tab[] =
   { T_OPT_CMP,	"EXCLUDE",	"x|exclude",
 		"id",
 		"Exclude discs with given ID4 or ID6 from operation."
-		" If the parameter begins with a '@' the given file is read"
+		" If the parameter begins with a '@@' the given file is read"
 		" and each line is scanned for IDs." },
 
   { T_OPT_CMP,	"EXCLUDE_PATH",	"X|exclude-path|excludepath",
@@ -369,7 +387,7 @@ info_t info_tab[] =
 		TEXT_OPT_PSEL },
 
   { T_OPT_C,	"RAW",		"raw",
-		0, "Abbreviation of --psel=RAW." },
+		0, "Abbreviation of @$--psel$=RAW@." },
 
   { T_OPT_CP,	"PMODE",	"pmode",
 		"p-mode",
@@ -379,7 +397,7 @@ info_t info_tab[] =
 		" The default value is 'auto'." },
 
   { T_OPT_C,	"SNEEK",	"sneek",
-		0, "Abbreviation of --psel=data --pmode=none --files==sneek." },
+		0, "Abbreviation of @$--psel$=data $--pmode$=none $--files$==sneek@." },
 
   { H_OPT_G,	"HOOK",		"hook",
 		0,
@@ -411,14 +429,14 @@ info_t info_tab[] =
 		" 1 to 6 characters are expected."
 		" Only defined characters not equal '.' are modified."
 		" The disc header, boot.bin, ticket.bin and tmd.bin are "
-		" objects to modify. The option --modify= selects the objects." },
+		" objects to modify. The option @$--modify$=@ selects the objects." },
 
   { T_OPT_CP,	"NAME",		"name",
 		"name",
 		"Change the name (disc title) of the disc to the given parameter."
 		" Up to 63 characters are expected."
 		" The disc header and boot.bin are objects to modify."
-		" The option --modify= selects the objects." },
+		" The option @$--modify$=@ selects the objects." },
 
   { T_OPT_CP,	"MODIFY",	"modify",
 		"list",
@@ -433,11 +451,11 @@ info_t info_tab[] =
 		"path",
 		"Define a destination path (directory/file)."
 		" The destination path is scanned for escape sequences"
-		" (see option --esc) to allow generic pathes." },
+		" (see option @$--esc$@) to allow generic pathes." },
 
   { T_OPT_CP,	"DEST2",	"D|DEST",
 		"path",
-		"Like --dest, but create the directory path automatically." },
+		"Like @$--dest$@, but create the directory path automatically." },
 
   { T_OPT_C,	"SPLIT",	"z|split",
 		0,
@@ -492,22 +510,22 @@ info_t info_tab[] =
   { T_OPT_C,	"ITIME",	"itime",
 		0,
 		"Select 'itime' (insertion time) for printing."
-		"--itime is an abbreviation of '--time=i'." },
+		"@--itime@ is an abbreviation of @$--time$=i@." },
 
   { T_OPT_C,	"MTIME",	"mtime",
 		0,
 		"Select 'mtime' (last modification time) for printing."
-		"--mtime is an abbreviation of '--time=m'." },
+		"@--mtime@ is an abbreviation of @$--time$=m@." },
 
   { T_OPT_C,	"CTIME",	"ctime",
 		0,
 		"Select 'ctime' (last status change time) for printing."
-		"--ctime is an abbreviation of '--time=c'." },
+		"@--ctime@ is an abbreviation of @$--time$=c@." },
 
   { T_OPT_C,	"ATIME",	"atime",
 		0,
 		"Select 'atime' (last access time) for printing."
-		"--atime is an abbreviation of '--time=a'." },
+		"@--atime@ is an abbreviation of @$--time$=a@." },
 
   { T_OPT_CMP,	"TIME",		"time",
 		"list",
@@ -627,9 +645,9 @@ info_t info_tab[] =
   { T_COPT_M,	"FILES",	0,0,0 },
   { T_COPT,	"SNEEK",	0,0,0 },
 
-  //---------- wit GROUP HOOK ----------
+  //---------- wit GROUP PATCH ----------
 
-  { T_GRP_BEG,	"COMPOSE",	0,0,0 },
+  { T_GRP_BEG,	"PATCH",	0,0,0 },
 
   { H_COPT,	"HOOK",		0,0,0 },
   { T_COPT,	"ENC",		0,0,0 },
@@ -652,7 +670,7 @@ info_t info_tab[] =
 
   { T_COPT,	"SECTIONS",	0,0,0 },
   { T_COPT,	"LONG",		0,0,
-	"Print in long format. Ignored if --sections is set." },
+	"Print in long format. Ignored if option @$--sections$@ is set." },
 
   //---------- COMMAND wit TEST ----------
 
@@ -726,10 +744,16 @@ info_t info_tab[] =
   { T_SEP_OPT,	0,0,0,0 },
 
   { T_COPT_M,	"LOGGING",	0,0,0 },
-  { T_COPY_GRP,	"COMPOSE",	0,0,0 },
+  { T_COPY_GRP,	"PATCH",	0,0,0 },
   { T_COPT_M,	"LONG",		0,0,
 	"If set at least once a memory map for each partition is printed."
 	" If set twice or more a memory map for whole ISO image is printed." },
+
+  //---------- COMMAND wit DREGION ----------
+
+  { T_CMD_BEG,	"DREGION",	0,0,0 },
+
+  { T_COPY_GRP,	"XSOURCE",	0,0,0 },
 
   //---------- COMMAND wit ID6 ----------
 
@@ -870,7 +894,7 @@ info_t info_tab[] =
   { T_COPT,	"DEST",		0,0,0 },
   { T_COPT,	"DEST2",	0,0,0 },
   { T_COPT,	"ESC",		0,0,0 },
-  { T_COPY_GRP,	"COMPOSE",	0,0,0 },
+  { T_COPY_GRP,	"PATCH",	0,0,0 },
   { T_COPT,	"PRESERVE",	0,0,0 },
   { T_COPT,	"OVERWRITE",	0,0,0 },
 
@@ -917,12 +941,35 @@ info_t info_tab[] =
   { T_COPT,	"SPLIT",	0,0,0 },
   { T_COPT,	"SPLIT_SIZE",	0,0,0 },
   { T_COPT,	"PRESERVE",	0,0,0 },
-  { T_COPY_GRP,	"COMPOSE",	0,0,0 },
+  { T_COPY_GRP,	"PATCH",	0,0,0 },
 
   { T_COPT,	"WDF",		0,0,0 },
   { T_COPT,	"ISO",		0,0,0 },
   { T_COPT,	"CISO",		0,0,0 },
   { T_COPT,	"WBFS",		0,0,0 },
+
+
+  //---------- COMMAND wit EDIT ----------
+
+  { T_CMD_BEG,	"EDIT",	0,0,0 },
+
+  { T_COPT_M,	"TEST",		0,0,0 },
+
+  { T_SEP_OPT,	0,0,0,0 },
+
+  { T_COPY_GRP,	"TITLES",	0,0,0 },
+  { T_COPY_GRP,	"XSOURCE",	0,0,0 },
+  { T_COPT_M,	"IGNORE",	0,0,0 },
+
+  { T_SEP_OPT,	0,0,0,0 },
+
+  { T_COPT,	"QUIET",	0,0,0 },
+  { T_COPT_M,	"VERBOSE",	0,0,0 },
+  { T_COPT,	"PRESERVE",	0,0,0 },
+
+  { T_SEP_OPT,	0,0,0,0 },
+
+  { T_COPY_GRP,	"PATCH",	0,0,0 },
 
 
   //---------- COMMAND wit MOVE ----------
@@ -967,11 +1014,11 @@ info_t info_tab[] =
 
   { T_COPT,	"ISO",		0,0,
 	"Modify ID and title of the ISO image."
-	" If neither of --iso and --wbfs is set, then both are assumed as active." },
+	" If neither @--iso@ nor @$--wbfs$@ is set, then both are assumed as active." },
   { T_COPT,	"WBFS",		0,0,
 	"Modify ID and title of the inode in the WBFS management area."
 	" Option --wbfs make only sense for images within WBFS."
-	" If neither of --iso and --wbfs is set, then both are assumed as active." },
+	" If neither @$--iso$@ nor @--wbfs@ is set, then both are assumed as active." },
 
   //---------- COMMAND wit SETTITLE ----------
 
@@ -1013,8 +1060,10 @@ info_t info_tab[] =
 
   { T_DEF_TOOL,	"wwt", 0,
 		"wwt [option]... command [option|parameter|@file]...",
-		"Wiimms WBFS Tool" },
-
+		"Wiimms WBFS Tool (WBFS manager) :"
+		" It can create, check, verify, repair and clone WBFS files"
+		" and partitions. It can list, add, extract, remove and rename"
+		" ISO images as part of a WBFS." },
 
   //
   //---------- list of all wwt commands ----------
@@ -1074,30 +1123,35 @@ info_t info_tab[] =
 
   { T_DEF_CMD,	"LIST_L",	"LIST-L|LL",
 		"wwt LIST-L [wbfs_partition]...",
-		"List all discs of WBFS partitions. Same as 'LIST --long'." },
+		"List all discs of WBFS partitions."
+		" Same as @'$wwt LIST$ --long'@." },
 
   { T_DEF_CMD,	"LIST_LL",	"LIST-LL|LLL",
 		"wwt LIST-LL [wbfs_partition]...",
-		"List all discs of WBFS partitions. Same as 'LIST --long --long'." },
+		"List all discs of WBFS partitions."
+		" Same as @'$wwt LIST$ --long --long@'." },
 
   { T_DEF_CMD,	"LIST_A",	"LIST-A|LA",
 		"wwt LIST-A [wbfs_partition]...",
-		"List all discs of all WBFS partitions. Same as 'LIST --long --long --auto'." },
+		"List all discs of all WBFS partitions."
+		" Same as @'$wwt LIST$ --long --long --auto'@." },
 
   { T_DEF_CMD,	"LIST_M",	"LIST-M|LM",
 		"wwt LIST-M [wbfs_partition]...",
-		"List all discs of WBFS partitions in mixed view. Same as 'LIST --long --long --mixed'." },
+		"List all discs of WBFS partitions in mixed view."
+		" Same as @'$wwt LIST$ --long --long --mixed'@." },
 
   { T_DEF_CMD,	"LIST_U",	"LIST-U|LU",
 		"wwt LIST-U [wbfs_partition]...",
-		"List all discs of WBFS partitions in mixed view. Same as 'LIST --long --long --unique'." },
+		"List all discs of WBFS partitions in mixed view."
+		" Same as @'$wwt LIST$ --long --long --unique'@." },
 
   { T_SEP_CMD,	0,0,0,0 }, //----- separator -----
 
   { T_DEF_CMD,	"FORMAT",	"FORMAT|INIT",
 		"wwt FORMAT file|blockdev...",
 		"Initialize (=format) WBFS partitions and files."
-		" Combine with --recover to recover discs." },
+		" Combine with @$--recover$@ to recover discs." },
 
   { T_DEF_CMD,	"RECOVER",	"RECOVER",
 		"wwt RECOVER [wbfs_partition]..",
@@ -1106,16 +1160,16 @@ info_t info_tab[] =
   { T_DEF_CMD,	"CHECK",	"CHECK|FSCK",
 		"wwt CHECK [wbfs_partition]..",
 		"Check WBFS partitions and print error listing."
-		" To repair WBFS partitions use the option '--repair modelist'."  },
+		" To repair WBFS partitions use the option @'$--repair$ modelist'@."  },
 
   { T_DEF_CMD,	"REPAIR",	"REPAIR",
 		"wwt REPAIR [wbfs_partition]..",
 		"Check WBFS partitions and repair errors."
-		" 'REPAIR' is a shortcut for 'CHECK --repair=standard'." },
+		" 'REPAIR' is a shortcut for @'$wwt CHECK$ --repair=standard'@." },
 
   { T_DEF_CMD,	"EDIT",		"EDIT",
 		"wwt EDIT [sub_command]...",
-		"Edit slot and block assignments. Dangerous! Read docu!." },
+		"Edit slot and block assignments. Dangerous! Read docu!" },
 
   { T_DEF_CMD,	"PHANTOM",	"PHANTOM",
 		"wwt PHANTOM [sub_command]...",
@@ -1136,13 +1190,13 @@ info_t info_tab[] =
   { T_DEF_CMD,	"UPDATE",	"UPDATE|U",
 		"wwt UPDATE iso|wbfs|dir...",
 		"Add missing Wii ISO discs to WBFS partitions."
-		"'UPDATE' is a shortcut for 'ADD --update'."},
+		" 'UPDATE' is a shortcut for @'$wwt ADD$ --update'@."},
 
   { T_DEF_CMD,	"SYNC",		"SYNC",
 		"wwt SYNC iso|wbfs|dir...",
 		"Modify primary WBFS (REMOVE and ADD)"
 		" until it contains exactly the same discs as all sources together."
-		"'SYNC' is a shortcut for 'ADD --sync'."},
+		" 'SYNC' is a shortcut for @'$wwt ADD$ --sync'@."},
 
   { T_DEF_CMD,	"EXTRACT",	"EXTRACT|X",
 		"wwt EXTRACT id6[=dest]...",
@@ -1509,9 +1563,9 @@ info_t info_tab[] =
   { T_COPY_GRP,	"XTIME",	0,0,0 },
   { T_COPT_M,	"TIME",		0,0,0 },
 
-  //---------- wwt GROUP HOOK ----------
+  //---------- wwt GROUP PATCH ----------
 
-  { T_GRP_BEG,	"COMPOSE",	0,0,0 },
+  { T_GRP_BEG,	"PATCH",	0,0,0 },
 
   { H_COPT,	"HOOK",		0,0,0 },
   { T_COPT,	"ENC",		0,0,0 },
@@ -1573,10 +1627,10 @@ info_t info_tab[] =
 	"Be absoulte quiet and report the find status as exit code only." },
   { T_COPT,	"NO_HEADER",	0,0,0 },
   { T_COPT_M,	"LONG",		0,0,
-	"Without --long only partition names of WBGS partitons are printed."
-	" If option --long is set then additional infos are printed for"
+	"Without @--long@ only partition names of WBGS partitons are printed."
+	" If option @--long@ is set then additional infos are printed for"
 	" each partition, WBFS or not."
-	" If option --long is set at least twice the real path is printed." },
+	" If option @--long@ is set at least twice the real path is printed." },
 
   //---------- COMMAND wwt SPACE ----------
 
@@ -1585,7 +1639,7 @@ info_t info_tab[] =
   { T_COPY_GRP,	"READ_WBFS",	0,0,0 },
   { T_COPT,	"NO_HEADER",	0,0,0 },
   { T_COPT,	"LONG",		0,0,
-	" If option --long is set the real path is printed." },
+	" If option @--long@ is set the real path is printed." },
 
   //---------- COMMAND wwt ANALYZE ----------
 
@@ -1604,7 +1658,7 @@ info_t info_tab[] =
 	"If set then print a status for each valid disc within WBFS."
 	" If set twice print a memory map for each shsown disc too."
 	" If set three times print an additional memory map for the whole WBFS."
-	" If set four times activate --inode too." },
+	" If set four times activate @$--inode$@ too." },
 
   //---------- COMMAND wwt ID6 ----------
 
@@ -1683,7 +1737,7 @@ info_t info_tab[] =
   { T_SEP_OPT,	0,0,0,0 },
 
   { T_COPT,	"TEST",		0,0,
-	"Force test mode and ignore --force." },
+	"Force test mode and ignore @$--force$@." },
   { T_COPT,	"FORCE",	0,0,
 	"This option is needed for leaving test mode and for formatting!" },
 
@@ -1711,8 +1765,8 @@ info_t info_tab[] =
 	" If set four times a full memory mal is included." },
 
   { T_COPT_M,	"LONG",		0,0,
-	"Option --long does the same as option --verbose."
-	" If set at last once it overwrites the --verbose level." },
+	"Option @--long@ does the same as option @$--verbose$@."
+	" If set at last once it overwrites the @$--verbose$@ level." },
 
   //---------- COMMAND wwt CHECK ----------
 
@@ -1748,7 +1802,7 @@ info_t info_tab[] =
   { T_SEP_OPT,	0,0,0,0 },
 	
   { T_COPT,	"TEST",		0,0,
-	"Force test mode and ignore --force." },
+	"Force test mode and ignore @$--force$@." },
   { T_COPT,	"FORCE",	0,0,
 	"This option is needed for leaving test mode and for formatting!" },
 
@@ -1791,7 +1845,7 @@ info_t info_tab[] =
 
   { T_COPT,	"PSEL",		0,0,0 },
   { T_COPT,	"RAW",		0,0,0 },
-  { T_COPY_GRP,	"COMPOSE",	0,0,0 },
+  { T_COPY_GRP,	"PATCH",	0,0,0 },
 
   { T_SEP_OPT,	0,0,0,0 },
 
@@ -1896,10 +1950,10 @@ info_t info_tab[] =
 	"Ignore non existing discs without any warning." },
   { T_COPT,	"ISO",		0,0,
 	"Modify ID and title of the ISO image."
-	" If neither of --iso and --wbfs is set, then both are assumed as active." },
+	" If neither @--iso@ nor @$--wbfs$@ is set, then both are assumed as active." },
   { T_COPT,	"WBFS",		0,0,
 	"Modify ID and title of the inode in the WBFS management area."
-	" If neither of --iso and --wbfs is set, then both are assumed as active." },
+	" If neither @$--iso$@ nor @--wbfs@ is set, then both are assumed as active." },
 
   //---------- COMMAND wwt SETTITLE ----------
 
@@ -1982,7 +2036,8 @@ info_t info_tab[] =
 
   { T_DEF_TOOL,	"iso2wbfs", 0,
 		"iso2wbfs [option]... files...",
-		"Convert Wii ISO images into WBFS files and split at 4 GB." },
+		"Convert Wii ISO images of any format into WBFS files and split at 4 GB."
+		" This tool is obsolete, use wit instead." },
 
   //---------- list of all options ----------
 
@@ -1993,7 +2048,7 @@ info_t info_tab[] =
 		0, 0 /* copy of wit */ },
 
   { T_OPT_S,	"XHELP",	"xhelp",
-		0, "Same as --help." },
+		0, "Same as @$--help$@." },
 
   { T_OPT_G,	"QUIET",	"q|quiet",
 		0, 0 /* copy of wit */ },
@@ -2045,7 +2100,8 @@ info_t info_tab[] =
 
   { T_DEF_TOOL,	"iso2wdf", 0,
 		"iso2wdf [option]... files...",
-		"Convert Wii ISO images into WDF files." },
+		"Convert Wii ISO images of any format into WDF files."
+		" This tool is obsolete, use wit instead." },
 
   //---------- list of all options ----------
 
@@ -2108,7 +2164,8 @@ info_t info_tab[] =
 
   { T_DEF_TOOL,	"wdf2iso", 0,
 		"wdf2iso [option]... files...",
-		"Convert Wii ISO images into PLAIN ISO files." },
+		"Convert Wii ISO images of may format into PLAIN ISO files."
+		" This tool is obsolete, use wit instead." },
 
   //---------- list of all options ----------
 
@@ -2171,8 +2228,10 @@ info_t info_tab[] =
 
   { T_DEF_TOOL,	"wdf-cat", 0,
 		"wdf-cat [option]... files...",
-		"Dump the file contents to standard output (stdout)"
-		" and extract WDF and CISO files on the fly." },
+		"Works like the 'cat' command:"
+		" Dump all file contents to standard output (stdout)"
+		" and extract WDF and CISO files on the fly."
+		" All other files are copied byte by byte." },
 
   //---------- list of all options ----------
 
@@ -2195,7 +2254,7 @@ info_t info_tab[] =
 
   { T_DEF_TOOL,	"wdf-dump", 0,
 		"wdf-dump [option]... files...",
-		"Dump the data structure of WDF and CISO files." },
+		"Dump the data structure of WDF and CISO files for analysis." },
 
   //---------- list of all options ----------
 
@@ -2223,7 +2282,7 @@ info_t info_tab[] =
 		0, "Print table with chunk header." },
 
   { T_OPT_G,	"LONG",		"l|long",
-		0, "Obsolete alternative for --chunk" },
+		0, "Obsolete alternative for @$--chunk$@" },
 
   //
   ///////////////////////////////////////////////////////////////////////////

@@ -27,6 +27,7 @@ typedef struct InfoOption_t
 typedef struct InfoCommand_t
 {
 	int  id;
+	bool hidden;
 	bool separator;
 	ccp  name1;
 	ccp  name2;
@@ -73,6 +74,7 @@ enum // some const
 {
 	OPT_MAX		=   100,	// max number of options
 	OPT_USED_MASK	=  0x7f,	// mask to calculate usage count
+	OPT_LONG_BASE	=  0x80,	// first index for "only long options"
 	OPT_INDEX_SIZE	=  0xa0,	// size of OptionIndex[]
 };
 

@@ -466,6 +466,56 @@ enumError cmd_dump()
 //
 ///////////////////////////////////////////////////////////////////////////////
 
+enumError exec_dregion ( SuperFile_t * sf, Iterator_t * it )
+{
+    TRACE("exec_dump()");
+    ASSERT(sf);
+    ASSERT(it);
+    fflush(0);
+
+    char buf[WII_REGION_SIZE];
+    if (!ReadSF(sf,WII_REGION_OFF,buf,sizeof(buf)))
+    {
+	ASSERT( sizeof(buf) == 32 );
+	u32 * p = (u32*)buf;
+	printf("%.1s %-6s %08x %08x %08x %08x %08x %08x %08x %08x\n",
+		sf->f.id6+3, sf->f.id6,
+		ntohl(p[0]), ntohl(p[1]), ntohl(p[2]), ntohl(p[3]),
+		ntohl(p[4]), ntohl(p[5]), ntohl(p[6]), ntohl(p[7]) );
+    }
+
+    return ERR_OK;
+}
+
+//-----------------------------------------------------------------------------
+
+enumError cmd_dregion()
+{
+    ParamList_t * param;
+    for ( param = first_param; param; param = param->next )
+	AppendStringField(&source_list,param->arg,true);
+
+    encoding |= ENCODE_F_FAST; // hint: no encryption needed
+
+    printf("R   ID  off=%-8x    +4       +8       +c      +10      +14      +18      +1c\n"
+	   "%.80s\n", WII_REGION_OFF, sep_200 );
+    Iterator_t it;
+    InitializeIterator(&it);
+    it.func		= exec_dregion;
+    it.act_known	= ACT_ALLOW;
+    it.act_wbfs		= ACT_EXPAND;
+    it.act_fst		= ACT_IGNORE;
+
+    enumError err = SourceIterator(&it,false,true);
+    if ( err == ERR_OK )
+	err = SourceIteratorCollected(&it);
+    ResetIterator(&it);
+    return err;
+}
+
+//
+///////////////////////////////////////////////////////////////////////////////
+
 enumError exec_collect ( SuperFile_t * sf, Iterator_t * it )
 {
     ASSERT(sf);
@@ -1315,6 +1365,94 @@ enumError cmd_scrub()
 
 //
 ///////////////////////////////////////////////////////////////////////////////
+#ifdef TEST // [2do] [activate]
+
+enumError exec_edit ( SuperFile_t * fi, Iterator_t * it )
+{
+    if (!fi->f.id6[0])
+	return ERR_OK;
+    fflush(0);
+
+    if ( !fi->patch || !fi->patch->map_used )
+    {
+	printf( "%s: NOTHING TO EDIT: %s:%s\n", progname, oft_name[fi->iod.oft], fi->f.fname );
+	return ERR_OK;
+    }
+
+    if (testmode)
+    {
+	printf( "%s: WOULD EDIT %s:%s\n", progname, oft_name[fi->iod.oft], fi->f.fname );
+	return ERR_OK;
+    }
+
+    if ( verbose >= 0 )
+	printf( "%s: EDIT %s:%s\n", progname, oft_name[fi->iod.oft], fi->f.fname );
+
+    enumError err = ERR_OK;
+
+    int imap;
+    for ( imap = 0; imap < fi->patch->map_used; imap++ )
+    {
+	const PatchMap_t * map = fi->patch->map + imap;
+	err = CopyRawData(fi,fi,map->offset,map->size);
+	if (err)
+	    break;
+    }
+
+    if (!err)
+	err = RewriteModifiedSF(fi,fi,0);
+
+    ResetSF( fi, !err && used_options & OB_PRESERVE ? &fi->f.fatt : 0 );
+    return err;
+}
+
+#endif
+///////////////////////////////////////////////////////////////////////////////
+
+enumError cmd_edit()
+{
+    if ( verbose >= 0 )
+	print_title(stdout);
+
+    ParamList_t * param;
+    for ( param = first_param; param; param = param->next )
+	AppendStringField(&source_list,param->arg,true);
+
+ #ifdef TEST // [2do] [activate]
+
+    Iterator_t it;
+    InitializeIterator(&it);
+    it.act_non_iso	= used_options & OB_IGNORE ? ACT_IGNORE : ACT_WARN;
+    it.act_wbfs		= it.act_non_iso;
+
+    if ( testmode > 1 )
+    {
+	it.func = exec_filetype;
+	enumError err = SourceIterator(&it,false,false);
+	ResetIterator(&it);
+	printf("DESTINATION: %s\n",opt_dest);
+	return err;
+    }
+
+    enumError err = SourceIterator(&it,false,true);
+    if ( err == ERR_OK )
+    {
+	it.func = exec_edit;
+	it.open_modify = !testmode;
+	err = SourceIteratorCollected(&it);
+	if ( err == ERR_OK && it.exists_count )
+	    err = ERR_ALREADY_EXISTS;
+    }
+    ResetIterator(&it);
+    return err;
+
+ #else
+    return ERR_NOT_IMPLEMENTED;
+ #endif
+}
+
+//
+///////////////////////////////////////////////////////////////////////////////
 
 enumError exec_move ( SuperFile_t * fi, Iterator_t * it )
 {
@@ -1482,7 +1620,7 @@ enumError cmd_rename ( bool rename_id )
 
     Iterator_t it;
     InitializeIterator(&it);
-    it.open_modify	= true;
+    it.open_modify	= !testmode;
     it.act_non_iso	= used_options & OB_IGNORE ? ACT_IGNORE : ACT_WARN;
     it.act_wbfs		= ACT_EXPAND;
     it.long_count	= long_count;
@@ -1811,6 +1949,7 @@ enumError CheckCommand ( int argc, char ** argv )
 	case CMD_ISOSIZE:	err = cmd_isosize(); break;
 
 	case CMD_DUMP:		err = cmd_dump(); break;
+	case CMD_DREGION:	err = cmd_dregion(); break;
 	case CMD_ID6:		err = cmd_id6(); break;
 	case CMD_LIST:		err = cmd_list(0); break;
 	case CMD_LIST_L:	err = cmd_list(1); break;
@@ -1825,6 +1964,7 @@ enumError CheckCommand ( int argc, char ** argv )
 	case CMD_EXTRACT:	err = cmd_extract(); break;
 	case CMD_COPY:		err = cmd_copy(); break;
 	case CMD_SCRUB:		err = cmd_scrub(); break;
+	case CMD_EDIT:		err = cmd_edit(); break;
 	case CMD_MOVE:		err = cmd_move(); break;
 	case CMD_RENAME:	err = cmd_rename(true); break;
 	case CMD_SETTITLE:	err = cmd_rename(false); break;

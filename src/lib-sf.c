@@ -60,6 +60,14 @@ void FreeSF ( SuperFile_t * sf )
 	sf->fst = 0;
     }
 
+    if (sf->patch)
+    {
+	TRACE("#S# free patch\n");
+	ResetPatch(sf->patch);
+	free(sf->patch);
+	sf->patch = 0;
+    }
+
     ResetMemMap(&sf->modified_list);
 }
 
@@ -211,75 +219,6 @@ enumOFT SetupIOD ( SuperFile_t * sf, enumOFT force, enumOFT def )
     sf->std_read_func = sf->iod.read_func;
 
     return sf->iod.oft;
-}
-
-///////////////////////////////////////////////////////////////////////////////
-
-enumError RewriteModifiedSF ( SuperFile_t * fi, SuperFile_t * fo, WBFS_t * wbfs )
-{
-    ASSERT(fi);
-    ASSERT(fi->f.is_reading);
-    if (wbfs)
-	fo = wbfs->sf;
-    ASSERT(fo);
-    ASSERT(fo->f.is_writing);
-    TRACE("RewriteModifiedSF(%p,%p,%p), oft=%d,%d\n",fi,fo,wbfs,fi->iod.oft,fo->iod.oft);
-
-    if (!fi->modified_list.used)
-	return ERR_OK;
-
-    UpdateSignatureFST(fi->fst); // NULL allowed
-
-    if ( logging > 2 )
-    {
-	printf("\nRewrite:\n\n");
-	PrintMemMap(&fi->modified_list,stdout,3);
-	putchar('\n');
-    }
-
- #ifdef DEBUG
-    PrintMemMap(&fi->modified_list,TRACE_FILE,3);
- #endif
-
-    IOData_t iod;
-    memcpy(&iod,&fo->iod,sizeof(iod));
-    WBFS_t * saved_wbfs = fo->wbfs;
-    bool close_disc = false;
-
-    if (wbfs)
-    {
-	TRACE(" - WBFS stat: w=%p, disc=#%d,%p, oft=%d\n",
-		wbfs, wbfs->disc_slot, wbfs->disc, fo->iod.oft );
-	if (!wbfs->disc)
-	{
-	    OpenWDiscSlot(wbfs,wbfs->disc_slot,0);
-	    if (!wbfs->disc)
-		return ERR_CANT_OPEN;
-	    close_disc = true;
-	}
-	SetupIOD(fo,OFT_WBFS,OFT_WBFS);
-	fo->wbfs = wbfs;
-    }
-
-    int idx;
-    enumError err = ERR_OK;
-    for ( idx = 0; idx < fi->modified_list.used; idx++ )
-    {
-	const MemMapItem_t * mmi = fi->modified_list.field[idx];
-	const enumError err = CopyRawData(fi,fo,mmi->off,mmi->size);
-	if (err)
-	    break;
-    }
-
-    if (close_disc)
-    {
-	CloseWDisc(wbfs);
-	wbfs->disc = 0;
-    }
-
-    memcpy(&fo->iod,&iod,sizeof(fo->iod));
-    fo->wbfs = saved_wbfs;
-    return err;
 }
 
 //
@@ -1846,7 +1785,7 @@ enumError CopySF ( SuperFile_t * in, SuperFile_t * out, u32 psel )
 	{
 	    // encryption && decryption support
 	    u8 last_id = 0;
-	    bool check_encryption = ( encoding & ENCODE_M_CRYPT ) != 0;
+	    bool check_encryption = ( encoding & ENCODE_M_CRYPT ) != 0 && !hook_enabled;
 	    bool encrypt = 0, decrypt = 0;
 	    aes_key_t akey;
 	    u8 iv0[WII_KEY_SIZE];

@@ -150,15 +150,16 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 {
     {	0,
 	false,
+	false,
 	"wdf-dump",
 	0,
 	"wdf-dump [option]... files...",
-	"Dump the data structure of WDF and CISO files.",
+	"Dump the data structure of WDF and CISO files for analysis.",
 	8,
 	option_tab_tool
     },
 
-    {0,0,0,0,0,0,0}
+    {0,0,0,0,0,0,0,0}
 };
 
 //

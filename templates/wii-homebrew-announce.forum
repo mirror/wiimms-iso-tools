@@ -179,5 +179,3 @@ Es handelt sich um Kommandozeilen-Tools. Das bedeutet, dass man zur Ausführung v
 [/code]
 
 Sources comes with GPL2. Checkout the sources directly from the [url=@@URI-REPOS@@][b]SVN repository[/b][/url] or [url=@@URI-VIEWVC@@][b]browse the source[/b][/url].
-
-Da sich der Pfad im SVN repository geäendert hat, muss vor einem Update einmalig das folgende Kommando ausgeführt werden: [code]svn switch http://opensvn.wiimm.de/wii/trunk/wiimms-iso-tools[/code]

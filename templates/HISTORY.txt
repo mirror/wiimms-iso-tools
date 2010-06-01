@@ -577,6 +577,18 @@ wit v0.46a r1043 - 2010-05-13
   - CGYWIN release: The new batch file 'run-cmd-as-admin.bat' starts a cmd
     window in administrator mode. This should simplify the work with wwt.
 
+wit v0.47a r1106 - 2010-05-22
+
+  - ID checking redesigned, underscore is now an allowed character.
+  - Command line parsing rewritten: Commands and command specific options are
+    defined in a special tool (C file 'gen-ui.c'). If running this tool it
+    generates C source for all tools to analyse commands and options and to
+    print help messages.
+  - Included help was improved: wit and wwt supports now 'HELP command'.
+    The output is now aligned to the current terminal width.
+  - The documentation of all new options is now complete.
+  - Bug fix: wit has shown wrong file size for splitted ISO images.
+
 @@MODULE(last-history.txt)@@
 
 

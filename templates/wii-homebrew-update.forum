@@ -2,17 +2,15 @@
 [size=18][color=#0000FF][b]@@TOOLSET-SHORT@@: @@TOOLSET-LONG@@ v@.@@@ - @@@@-@@-@@[/b][/color][/size]
 [size=15][color=#800000][b]Ein Kommandozeilen-Toolkit für ISO und WBFS Dateien.[/b][/color][/size]
 
-[b]wwt+wit[/b] sind Kommandozeilen-Tools. Das bedeutet, dass man zur Ausführung vorher ein Kommandofenster aufmachen muss und dann die Kommandos eingeben kann. Dieses hat aber den Vorteil, dass man sich Batch-Dateien für immer wiederkehrnde Aufgaben schreiben kann. Zum Ansprechen der Laufwerke muss das Kommandofenster im Admin-Modus arbeiten. Die Syntax der Kommandos ist stark an Unix angelehnt, da die Programme auch unter Linux entwickelt werden.
+[b]wwt+wit[/b] sind Kommandozeilen-Tools. Das bedeutet, dass man zur Ausführung vorher ein Kommandofenster aufmachen muss und dann die Kommandos eingeben kann. Dieses hat aber den Vorteil, dass man sich Batch-Dateien für immer wiederkehrende Aufgaben schreiben kann. Zum Ansprechen der Laufwerke muss das Kommandofenster im Admin-Modus arbeiten. Die Syntax der Kommandos ist stark an Unix angelehnt, da die Programme auch unter Linux entwickelt werden.
 
-
-[size=12][color=#000080][b]Download der aktuellen stabilen Version:[/b][/color][/size]
+[size=12][color=#000080][b]Download der aktuellen Version:[/b][/color][/size]
 ~[size=12][color=#000080][b]Download[/b][/color] [color=#800000][b]der EXPERIMENTELLEN Version:[/b][/color][/size]
 [list]
 [*] [url=@@URI-DOWNLOAD-I386@@][b]@@DISTRIB-I386@@[/b][/url] : linux/i386 version
 [*] [url=@@URI-DOWNLOAD-X86_64@@][b]@@DISTRIB-X86_64@@[/b][/url] : linux/x86_64 version
 [*] [url=@@URI-DOWNLOAD-MAC@@][b]@@DISTRIB-MAC@@[/b][/url] : Mac OS universal binaries (ppc, i386 and x86-64)
 [*] [url=@@URI-DOWNLOAD-CYGWIN@@][b]@@DISTRIB-CYGWIN@@[/b][/url] : cygwin (win32) version
-
 [*] Ältere Versionen sind unter [url=http://wit.wiimm.de/download.html]http://wit.wiimm.de/download.html[/url] verfügbar.
 [/list]
 
@@ -21,14 +19,10 @@
 [*] [url=@@URI-WIIJMANAGER@@][b]WiiJManager Multiplatform[/b][/url]
 [/list]
 
-
 [size=12][color=#000080][b]Höhepunkte dieser Version:[/b][/color][/size]
 [list]
-[*] Schwerpunkt ist diesmal das Erstellen von Wii ISO Dateien. Zusammen mit Giantpune von GBAtemp habe ich einige Erweiterungen entwickelt und getestet. Dazu gehören die Optionen --region= --ios= --id= und --name=, mit denen sich Region, IOS, ID und Disc Name in den einzelnen Dateien überschreiben lassen. Außerdem wird nicht nur TMD, sondern nun auch TICKET signiert (trucha sign).
-
-[*] Um eine ISO Datei zu erstellen, muss man nur ein Kommando ausführen, welches als Eingabedatei eine ISO-Datei erwartet. Dieses sind z.B. [url=http://wit.wiimm.de/wit/cmd-copy.html]"wit COPY"[/url] or [url=http://wit.wiimm.de/wwt/cmd-add.html]"wwt ADD"[/url]. Der (noch nicht fertige) englischsprachige Artikel [url=http://wit.wiimm.de/info/composing.html]"Composing Wii ISO Images"[/url] eklärt alle Details.
+[*]
 [/list]
-
 
 [size=12][color=#000080][b]Letzte Änderungen:[/b][/color][/size]
 [code]
@@ -36,5 +30,3 @@
 [/code]
 
 Die Quellen stehen unter der GPL2 Lizenz. Die Quellen können direkt aus dem [url=@@URI-REPOS@@][b]SVN repository[/b][/url] ausgechecked werden oder mit einem [url=@@URI-VIEWVC@@][b]Browser besurft werden[/b][/url].
-
-Da sich der Pfad im SVN repository geändert hat, muss vor einem Update einmalig das folgende Kommando ausgeführt werden: [code]svn switch http://opensvn.wiimm.de/wii/trunk/wiimms-iso-tools[/code]

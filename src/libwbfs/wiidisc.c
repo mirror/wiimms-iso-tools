@@ -718,6 +718,9 @@ static void do_partition ( wiidisc_t * d )
     d->is_marked_not_enc	= tmd_is_marked_not_encrypted(tmd);
     d->is_encrypted = !d->is_marked_not_enc
 	&& wd_is_block_encrypted(d,&d->partition_akey,d->partition_block,1);
+    TRACE("TRUCHA=%d,%d, MARK-NOT-ENC=%d, ENC=%d\n",
+	d->tik_is_trucha_signed, d->tmd_is_trucha_signed,
+	d->is_marked_not_enc, d->is_encrypted );
 
     //----- mark whole partition ?
 

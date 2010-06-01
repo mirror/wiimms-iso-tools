@@ -230,15 +230,17 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 {
     {	0,
 	false,
+	false,
 	"iso2wdf",
 	0,
 	"iso2wdf [option]... files...",
-	"Convert Wii ISO images into WDF files.",
+	"Convert Wii ISO images of any format into WDF files. This tool is"
+	" obsolete, use wit instead.",
 	16,
 	option_tab_tool
     },
 
-    {0,0,0,0,0,0,0}
+    {0,0,0,0,0,0,0,0}
 };
 
 //

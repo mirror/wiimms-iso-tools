@@ -1151,7 +1151,7 @@ int wbfs_find_slot ( wbfs_t * p, u8 * disc_id )
 
 void wbfs_load_freeblocks ( wbfs_t * p )
 {
-    if (p->freeblks)
+    if ( p->freeblks || !p->freeblks_lba_count )
 	return;
 
     p->freeblks = wbfs_ioalloc( p->freeblks_lba_count * p->hd_sec_sz );

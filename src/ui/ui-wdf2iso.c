@@ -230,15 +230,17 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 {
     {	0,
 	false,
+	false,
 	"wdf2iso",
 	0,
 	"wdf2iso [option]... files...",
-	"Convert Wii ISO images into PLAIN ISO files.",
+	"Convert Wii ISO images of may format into PLAIN ISO files. This tool"
+	" is obsolete, use wit instead.",
 	16,
 	option_tab_tool
     },
 
-    {0,0,0,0,0,0,0}
+    {0,0,0,0,0,0,0,0}
 };
 
 //

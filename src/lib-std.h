@@ -856,7 +856,7 @@ MemMapItem_t * InsertMemMap ( MemMap_t * mm, off_t off, off_t size );
 uint FindMemMapHelper ( MemMap_t * mm, off_t off, off_t size );
 
 // Calculate overlaps. Return number of items with overlap.
-uint CalcoverlapMemMap ( MemMap_t * mm );
+uint CalCoverlapMemMap ( MemMap_t * mm );
 
 // Print out memory map
 void PrintMemMap ( MemMap_t * mm, FILE * f, int indent );

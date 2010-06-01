@@ -91,9 +91,13 @@ typedef struct SuperFile_t
 	
 	struct WiiFst_t * fst;		// a FST
 	MemMap_t modified_list;		// sections that is modified while
-					// reading datas. This data should
+					// reading data. This data should
 					// be rewritten to the destination
 					// bofore closing the files.
+
+	// patching support
+
+	struct Patch_t * patch;		// patching data
 
 } SuperFile_t;
 
@@ -122,7 +126,6 @@ bool IsOpenSF ( const SuperFile_t * sf );
 
 // setup oft and modifier
 enumOFT SetupIOD ( SuperFile_t * sf, enumOFT force, enumOFT def );
-enumError SetupISOModifier ( SuperFile_t * sf );
 
 // setup reading
 enumError SetupReadSF   ( SuperFile_t * sf );		// all files
@@ -131,7 +134,7 @@ enumError SetupReadWBFS ( SuperFile_t * sf );		// setup wbfs/disc reading
 enumError OpenSF
 	( SuperFile_t * sf, ccp fname, bool allow_non_iso, bool open_modify );
 
-struct WBFS_t;
+enumError SetupISOModifier ( SuperFile_t * sf );
 enumError RewriteModifiedSF ( SuperFile_t * fi, SuperFile_t * fo, struct WBFS_t * wbfs );
 
 // setup writing

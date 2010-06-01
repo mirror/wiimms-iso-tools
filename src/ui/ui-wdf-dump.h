@@ -52,16 +52,18 @@ typedef enum enumCommands
 
 typedef enum enumGetOpt
 {
+	GO__ERR			= '?',
+
 	GO_VERSION		= 'V',
+
+	GO_CHUNK		= 'c',
 	GO_HELP			= 'h',
-	GO_XHELP		= 0x80,
+	GO_LONG			= 'l',
 	GO_QUIET		= 'q',
 	GO_VERBOSE		= 'v',
-	GO_IO			= 0x81,
-	GO_CHUNK		= 'c',
-	GO_LONG			= 'l',
 
-	GO__ERR			= '?'
+	GO_XHELP		= 0x80,
+	GO_IO,
 
 } enumGetOpt;
 

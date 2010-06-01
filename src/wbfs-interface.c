@@ -200,7 +200,7 @@ void AddEnvPartitions()
 
     if ( !first_partition_info && !opt_part && !opt_auto )
     {
-	TRACE("lookup environment var 'WWT_WBFS'");
+	TRACE("lookup environment var 'WWT_WBFS'\n");
 	char * env = getenv("WWT_WBFS");
 	if ( env && *env )
 	{

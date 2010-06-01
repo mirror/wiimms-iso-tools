@@ -5,33 +5,25 @@
 I have updated the tool. The [url=@@URI-GBATEMP@@][b]first post with more details[/b][/url] is updated too.
 
 
-[size="2"][color="#000080"][b]Download of the current stable version:[/b][/color][/size]
+[size="2"][color="#000080"][b]Download of the current version:[/b][/color][/size]
 ~[size="2"][color="#000080"][b]Download[/b][/color] [color="#800000"][b]this EXPERIMENTAL release:[/b][/color][/size]
 [list]
 [*] [url=@@URI-DOWNLOAD-I386@@][b]@@DISTRIB-I386@@[/b][/url] : linux/i386 version
 [*] [url=@@URI-DOWNLOAD-X86_64@@][b]@@DISTRIB-X86_64@@[/b][/url] : linux/x86_64 version
 [*] [url=@@URI-DOWNLOAD-MAC@@][b]@@DISTRIB-MAC@@[/b][/url] : Mac OS universal binaries (ppc, i386 and x86-64)
 [*] [url=@@URI-DOWNLOAD-CYGWIN@@][b]@@DISTRIB-CYGWIN@@[/b][/url] : cygwin (win32) version
-[color=#ffffff].[/color]
 [*] Previous releases are available from [url=http://wit.wiimm.de/download.html]http://wit.wiimm.de/download.html[/url].
 [/list]
-
 
 [size="2"][color="#000080"][b]There is also a GUI available:[/b][/color][/size]
 [list]
 [*] [url=@@URI-WIIJMANAGER@@][b]WiiJManager Multiplatform[/b][/url]
 [/list]
 
-
 [size="2"][color="#000080"][b]Highlights of this release:[/b][/color][/size]
 [list]
-[*] With help from Giantpune I have improved the composing of Wii ISO images. The are several new options to change the content of the system files (--region= --ios= --id= --name=). Now not only TMD, but also TICKET will be trucha signed.
-[color=#ffffff].[/color]
-
-[*] To compose a ISO image just use one of the commands which wil accept ISO images as source like [url=http://wit.wiimm.de/wit/cmd-copy.html]"wit COPY"[/url] or [url=http://wit.wiimm.de/wwt/cmd-add.html]"wwt ADD"[/url]. The (not finished) article [url=http://wit.wiimm.de/info/composing.html]"Composing Wii ISO Images"[/url] explains composing details.
 [color=#ffffff].[/color]
 [/list]
-
 
 [size="2"][color="#000080"][b]Last changes:[/b][/color][/size]
 [code]
@@ -39,5 +31,3 @@ I have updated the tool. The [url=@@URI-GBATEMP@@][b]first post with more detail
 [/code]
 
 Sources comes with GPL2. Checkout the sources directly from the [url=@@URI-REPOS@@][b]SVN repository[/b][/url] or [url=@@URI-VIEWVC@@][b]browse the source[/b][/url].
-
-Because the SVN repository path has switched you must execute the following command once before updating: [code]svn switch http://opensvn.wiimm.de/wii/trunk/wiimms-iso-tools[/code]

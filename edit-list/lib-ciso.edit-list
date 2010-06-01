@@ -1,6 +1,7 @@
 ../src/lib-ciso.[ch] ;
 ../src/lib-sf.[ch] ;
 ../src/lib-std.[ch] ;
+../src/lib-file.[ch] ;
 ../src/lib-wdf.[ch] ;
 @+all-source.edit-list
 -y 400 ../src/lib-ciso.c ;
