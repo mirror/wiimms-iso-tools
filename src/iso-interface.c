@@ -724,7 +724,7 @@ int RenameISOHeader ( void * data, ccp fname,
     wd_header_t * whead = (wd_header_t*)data;
     char old_id6[7], new_id6[7];
     memset(old_id6,0,sizeof(old_id6));
-    StringCopyS(old_id6,sizeof(old_id6),(ccp)&whead->wii_disc_id);
+    StringCopyS(old_id6,sizeof(old_id6),(ccp)&whead->disc_id);
     memcpy(new_id6,old_id6,sizeof(new_id6));
 
     if ( testmode || verbose >= 0 )
@@ -956,7 +956,7 @@ IsoMappingItem_t * InsertIM
 
 ///////////////////////////////////////////////////////////////////////////////
 
-void DumpIM ( IsoMapping_t * im, FILE * f, int indent )
+void PrintIM ( IsoMapping_t * im, FILE * f, int indent )
 {
     ASSERT(im);
     if ( !f || !im->used )
@@ -982,6 +982,34 @@ void DumpIM ( IsoMapping_t * im, FILE * f, int indent )
 	prev_end = end;
     }
     putc('\n',f);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+void PrintFstIM
+	( WiiFst_t * fst, FILE * f, int indent, bool print_part, ccp title  )
+{
+    ASSERT(fst);
+    if (!f)
+	return;
+    indent = NormalizeIndent(indent);
+
+    if (title)
+	fprintf(f,"\n%*s%s disc:\n",indent,"",title);
+    PrintIM(&fst->im,f,indent+2);
+    
+    if (print_part)
+    {
+	WiiFstPart_t *part, *part_end = fst->part + fst->part_used;
+	for ( part = fst->part; part < part_end; part++ )
+	{
+	    if (title)
+		fprintf(f,"%*s%s %s partition:\n",
+			indent, "", title,
+			wd_get_partition_name(part->part_type,"?"));
+	    PrintIM(&part->im,f,indent+2);
+	}
+    }
 }
 
 //
@@ -1917,7 +1945,7 @@ enumFileType IsFSTPart ( ccp base_path, char * id6_result )
 	return FT_ID_DIR;
     }
     close(fd);
-    PatchId(id6_result,6,MODIFY_DISC|MODIFY__AUTO);
+    PatchId(id6_result,0,6,MODIFY_DISC|MODIFY__AUTO);
 
     //----- more required files
     
@@ -2233,12 +2261,12 @@ u64 GenPartFST ( SuperFile_t * sf, WiiFstPart_t * part, ccp path, u64 base_off )
     LoadFile(path,"sys/boot.bin",0,imi->data,WII_BOOT_SIZE,false);
     LoadFile(path,"sys/bi2.bin",0,imi->data+WII_BOOT_SIZE,WII_BI2_SIZE,false);
 
-    PatchId(imi->data,6,MODIFY_BOOT|MODIFY__AUTO);
+    PatchId(imi->data,0,6,MODIFY_BOOT|MODIFY__AUTO);
     PatchName(imi->data+WII_TITLE_OFF,MODIFY_BOOT|MODIFY__AUTO);
     snprintf(imi->info,sizeof(imi->info),"boot.bin [%.6s] + bi2.bin",(ccp)imi->data);
 
     wd_boot_t * boot = imi->data;
-    if ( !fst->disc_header.wii_disc_id && part->part_type == DATA_PARTITION_TYPE )
+    if ( !fst->disc_header.disc_id && part->part_type == DATA_PARTITION_TYPE )
     {
 	char * dest = (char*)&fst->disc_header;
 	memset(dest,0,sizeof(fst->disc_header));
@@ -2254,7 +2282,7 @@ u64 GenPartFST ( SuperFile_t * sf, WiiFstPart_t * part, ccp path, u64 base_off )
     {
 	LoadFile(path,"disc/header.bin",0,
 			    &fst->disc_header,sizeof(fst->disc_header),true);
-	PatchId(&fst->disc_header.wii_disc_id,6,MODIFY_DISC|MODIFY__AUTO);
+	PatchId(&fst->disc_header.disc_id,0,6,MODIFY_DISC|MODIFY__AUTO);
 	PatchName(fst->disc_header.game_title,MODIFY_DISC|MODIFY__AUTO);
     }
 
@@ -2357,8 +2385,8 @@ u64 GenPartFST ( SuperFile_t * sf, WiiFstPart_t * part, ccp path, u64 base_off )
     LoadFile(path,"tmd.bin",	0, pc->tmd, pc->tmd_size, false );
     LoadFile(path,"cert.bin",	0, pc->cert, pc->cert_size, false );
 
-    PatchId(pc->head->ticket.title_id+4,4,MODIFY_TICKET|MODIFY__AUTO);
-    PatchId(pc->tmd->title_id+4,4,MODIFY_TMD|MODIFY__AUTO);
+    PatchId(pc->head->ticket.title_id+4,0,4,MODIFY_TICKET|MODIFY__AUTO);
+    PatchId(pc->tmd->title_id+4,0,4,MODIFY_TMD|MODIFY__AUTO);
 
     if (opt_ios_valid)
 	pc->tmd->sys_version = hton64(opt_ios);
@@ -2403,16 +2431,6 @@ u64 GenPartFST ( SuperFile_t * sf, WiiFstPart_t * part, ccp path, u64 base_off )
 
     //----- terminate
 
-    if ( logging > 1 )
-    {
-	printf("Memory layout of %s partition:\n",
-		wd_get_partition_name(part->part_type,"?"));
-	DumpIM(&part->im,stdout,3);
-    }
- #ifdef DEBUG
-    DumpIM(&part->im,TRACE_FILE,3);
- #endif
-
     return pc->data_size;
 }
 
@@ -2433,6 +2451,7 @@ enumError SetupReadFST ( SuperFile_t * sf )
 	OUT_OF_MEMORY;
     sf->fst = fst;
     InitializeFST(fst);
+    sf->merge_mode = false; // disable merge mode explicit
 
     //----- setup fst->encoding mode
 
@@ -2583,14 +2602,11 @@ enumError SetupReadFST ( SuperFile_t * sf )
 
     //----- terminate
 
-    if ( logging > 0 )
-    {
-	printf("Memory layout of virtual disc:\n");
-	DumpIM(&fst->im,stdout,3);
-    }
  #ifdef DEBUG
-    DumpIM(&fst->im,TRACE_FILE,3);
+    PrintFstIM(fst,TRACE_FILE,0,true,"Memory layout of virtual");
  #endif
+    if ( logging > 0 )
+	PrintFstIM(fst,stdout,0,logging>1,"Memory layout of virtual");
 
     const off_t single_size = WII_SECTORS_SINGLE_LAYER * (off_t)WII_SECTOR_SIZE;
     sf->file_size = data_off + data_size;
@@ -2663,7 +2679,17 @@ enumError ReadFST ( SuperFile_t * sf, off_t off, void * buf, size_t count )
     const IsoMappingItem_t * imi_end = imi + sf->fst->im.used;
     char * dest = buf;
 
-    sf->f.bytes_read += count;
+    if (sf->merge_mode)
+    {
+	ASSERT( sf->std_read_func );
+	ASSERT( sf->std_read_func != sf->iod.read_func );
+	ASSERT( sf->std_read_func != ReadFST );
+	const enumError err = sf->std_read_func(sf,off,buf,count);
+	if (!err)
+	    return err;
+    }
+    else
+	sf->f.bytes_read += count;
 
     while ( count > 0 )
     {
@@ -2677,8 +2703,11 @@ enumError ReadFST ( SuperFile_t * sf, off_t off, void * buf, size_t count )
 
 	if ( imi == imi_end || off + count <= imi->offset )
 	{
-	    TRACE(">FILL %zx=%zu\n",count,count);
-	    memset(dest,0,count);
+	    if (!sf->merge_mode)
+	    {
+		TRACE(">FILL %zx=%zu\n",count,count);
+		memset(dest,0,count);
+	    }
 	    TRACE("READ done! [%u]\n",__LINE__);
 	    return ERR_OK;
 	}
@@ -2690,8 +2719,11 @@ enumError ReadFST ( SuperFile_t * sf, off_t off, void * buf, size_t count )
 	    size_t fill_count = count;
 	    if ( fill_count > imi->offset - off )
 		 fill_count = imi->offset - off;
-	    TRACE(">FILL %zx=%zu\n",fill_count,fill_count);
-	    memset(dest,0,fill_count);
+	    if (!sf->merge_mode)
+	    {
+		TRACE(">FILL %zx=%zu\n",fill_count,fill_count);
+		memset(dest,0,fill_count);
+	    }
 	    off   += fill_count;
 	    dest  += fill_count;
 	    count -= fill_count;
@@ -2700,30 +2732,28 @@ enumError ReadFST ( SuperFile_t * sf, off_t off, void * buf, size_t count )
 	ASSERT( count );
 
 	TRACELINE;
+	const off_t  delta = off - imi->offset;
+	const off_t  max_size = imi->size - delta;
+	const size_t copy_count = count < max_size ? count : max_size;
 	switch(imi->imt)
 	{
+	    case IMT_ID:
+		TRACE(">ID %zx=%zu\n",copy_count,copy_count);
+		PatchId(dest,delta,copy_count,MODIFY__ALWAYS);
+		break;
+
 	    case IMT_DATA:
+		TRACE(">COPY %zx=%zu\n",copy_count,copy_count);
+		memcpy(dest,(ccp)imi->data+delta,copy_count);
+		break;
+
 	    case IMT_PART:
+		ASSERT(imi->part);
 		{
-		    const off_t  delta = off - imi->offset;
-		    const off_t  max_size = imi->size - delta;
-		    const size_t copy_count = count < max_size ? count : max_size;
-		    if ( imi->imt == IMT_DATA )
-		    {
-			TRACE(">COPY %zx=%zu\n",copy_count,copy_count);
-			memcpy(dest,(ccp)imi->data+delta,copy_count);
-		    }
-		    else
-		    {
-			ASSERT(imi->part);
-			const enumError err
-			    = ReadPartFST(sf,imi->part,delta,dest,copy_count);
-			if (err)
-			    return err;
-		    }
-		    off   += copy_count;
-		    dest  += copy_count;
-		    count -= copy_count;
+		    const enumError err
+			= ReadPartFST(sf,imi->part,delta,dest,copy_count);
+		    if (err)
+			return err;
 		}
 		break;
 
@@ -2731,6 +2761,9 @@ enumError ReadFST ( SuperFile_t * sf, off_t off, void * buf, size_t count )
 		TRACELINE;
 		return ERROR0(ERR_INTERNAL,0);
 	}
+	off   += copy_count;
+	dest  += copy_count;
+	count -= copy_count;
     }
 
     TRACE("READ done! [%u]\n",__LINE__);
@@ -2832,6 +2865,20 @@ enumError ReadPartGroupFST ( SuperFile_t * sf, WiiFstPart_t * part,
     ASSERT(part);
     ASSERT(buf);
 
+    if ( sf->merge_mode && n_groups > 1 )
+    {
+	// split into single group action and exit
+	while ( n_groups-- > 0 )
+	{
+	    const enumError err = ReadPartGroupFST(sf,part,group_no,buf,1);
+	    if (err)
+		return err;
+	    group_no++;
+	    buf = (char*)buf + WII_GROUP_SIZE;
+	}
+	return ERR_OK;
+    }
+
     if (!n_groups)
 	return ERR_OK;
 
@@ -2847,7 +2894,21 @@ enumError ReadPartGroupFST ( SuperFile_t * sf, WiiFstPart_t * part,
     TRACE("delta=%x, dsize=%x, off=%llx..%llx\n",delta,dsize,off,max);
 
     char * dest = (char*)buf + delta, *src = dest;
-    memset(dest,0,dsize);
+    if (sf->merge_mode)
+    {
+	// [2do] [merge]
+	if ( n_groups > 1 )
+	{
+	    // split into single group action and exit
+	}
+	// load data
+	// alloc hash_mem if not already done
+	// split data: copy hash to hash_mem, move data
+	// alloc dirty_tab if not already done
+	// clear (1 if decyrpted and modified)
+    }
+    else
+	memset(dest,0,dsize);
     TRACE("CACHE=%p, buf=%p, dest=%p\n",sf->fst->cache,buf,dest);
     
     const IsoMappingItem_t * imi = part->im.field;
@@ -2892,10 +2953,20 @@ enumError ReadPartGroupFST ( SuperFile_t * sf, WiiFstPart_t * part,
 
 	switch(imi->imt)
 	{
+	    case IMT_ID:
+		noTRACE("IMT_ID: %x %x -> %zx (%s)\n",
+			skip_count, max_copy, dest-src, imi->info );
+// [merge]	if (sf->merge_mode)
+// [merge]	    MergeSetup(sf,part,dest,max_copy);
+		PatchId(dest,skip_count,max_copy,MODIFY__ALWAYS);
+		break;
+
 	    case IMT_DATA:
 		noTRACE("IMT_DATA: %x %x -> %zx (%s)\n",
 			skip_count, max_copy, dest-src, imi->info );
 		ASSERT(imi->data);
+// [merge]	if (sf->merge_mode)
+// [merge]	    MergeSetup(sf,part,dest,max_copy);
 		memcpy(dest,imi->data+skip_count,max_copy);
 		//HEXDUMP16(3,0,dest,max_copy<0x40?max_copy:0x40);
 		break;
@@ -2904,10 +2975,13 @@ enumError ReadPartGroupFST ( SuperFile_t * sf, WiiFstPart_t * part,
 		noTRACE("IMT_FILE: %x %x -> %zx (%s)\n",
 			skip_count, max_copy, dest-src, imi->info );
 		ASSERT(imi->data);
+// [merge]	if (sf->merge_mode)
+// [merge]	    MergeSetup(sf,part,dest,max_copy);
 		LoadFile(imi->data,0,skip_count,dest,max_copy,false);
 		break;
 
 	    case IMT_PART_FILES:
+		ASSERT(!sf->merge_mode);
 		noTRACE("IMT_PART_FILES: %x %x -> %zx (%s)\n",
 			skip_count, max_copy, dest-src, imi->info );
 		if (part->file_used)
@@ -2956,7 +3030,13 @@ enumError ReadPartGroupFST ( SuperFile_t * sf, WiiFstPart_t * part,
     dest = buf;
     for ( dest = buf; dest < src; )
     {
-	memset(dest,0,WII_SECTOR_DATA_OFF);
+	if (sf->merge_mode)
+	{
+	    // [2do] [merge]
+	    // copy data from hash_mem
+	}
+	else
+	    memset(dest,0,WII_SECTOR_DATA_OFF);
 	dest += WII_SECTOR_DATA_OFF;
 
 	TRACE("GROUP %u+%u (%zx<-%zx)\n",

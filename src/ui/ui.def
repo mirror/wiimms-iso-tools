@@ -63,16 +63,15 @@
 
 #:def_cmd( "LIST_L", "LIST-L|LL", \
 	"wit LIST-L [source]...", \
-	"List all found ISO files. Same as @'$wit LIST$ --long'@." )
+	"List all found ISO files. Same as @'$LIST$ --long'@." )
 
 #:def_cmd( "LIST_LL", "LIST-LL|LLL", \
 	"wit LIST-LL [source]...", \
-	"List all found ISO files. Same as @'$wit LIST$ --long --long'@." )
+	"List all found ISO files. Same as @'$LIST$ --long --long'@." )
 
 #:def_cmd( "LIST_LLL", "LIST-LLL|LLLL", \
 	"wit LIST-LLL [source]...", \
-	"List all found ISO files. Same as @'$wit LIST$ --long --long " \
-	" --long'@." )
+	"List all found ISO files. Same as @'$LIST$ --long --long --long'@." )
 
 #:def_cmd( "ILIST", "ILIST|IL", \
 	"wit ILIST [source]...", \
@@ -80,17 +79,17 @@
 
 #:def_cmd( "ILIST_L", "ILIST-L|ILL", \
 	"wit ILIST-L [source]...", \
-	"List all files of all discs. Same as @'$wit ILIST$ --long'@." )
+	"List all files of all discs. Same as @'$ILIST$ --long'@." )
 
 #:def_cmd( "ILIST_LL", "ILIST-LL|ILLL", \
 	"wit ILIST-LL [source]...", \
-	"List all files of all discs. Same as @'$wit ILIST$ --long --long'@." )
+	"List all files of all discs. Same as @'$ILIST$ --long --long'@." )
 
 #:def_cmd( "DIFF", "DIFF|CMP", \
 	"wit DIFF source dest\n" \
 	"wit DIFF [-s path]... [-r path]... [source]... [-d|-D] dest", \
 	"DIFF compares ISO images in  scrubbed or raw mode or on file level." \
-	" DIFF works like $wit COPY$ but comparing source and destination." )
+	" DIFF works like $COPY$ but comparing source and destination." )
 
 #:def_cmd( "EXTRACT", "EXTRACT|X", \
 	"wit EXTRACT source dest\n" \
@@ -155,9 +154,9 @@
 
 #:def_opt( "LOGGING", "L|logging", "GM", \
 	"", \
-	"Special logging for composing Wii discs. If set at least once the" \
-	" disc layout is printed. If set at least twice the partition layout" \
-	" is printed too." )
+	"Special logging for $patching$ and $composing$ Wii discs. If set at" \
+	" least once the disc layout is printed. If set at least twice the" \
+	" partition layout is printed too." )
 
 #:def_opt( "ESC", "E|esc", "GP", \
 	"char", \
@@ -255,44 +254,47 @@
 	"", \
 	"Abbreviation of @$--psel$=data $--pmode$=none $--files$==sneek@." )
 
+#:def_opt( "ID", "id", "CP", \
+	"id", \
+	"This $patching$ option changes the ID of the disc to the given" \
+	" parameter. 1 to 6 characters are expected. Only defined characters" \
+	" not equal '.' are modified. The disc header, boot.bin, ticket.bin" \
+	" and tmd.bin are  objects to modify. The option @$--modify$=@ selects" \
+	" the objects." )
+
+#:def_opt( "NAME", "name", "CP", \
+	"name", \
+	"This $patching$ option changes the name (disc title) of the disc to" \
+	" the given parameter. Up to 63 characters are expected. The disc" \
+	" header and boot.bin are objects to modify. The option @$--modify$=@" \
+	" selects the objects." )
+
+#:def_opt( "MODIFY", "modify", "CP", \
+	"list", \
+	" This $patching$ option expects a comma separated list of the" \
+	" following keywords (case ignored) as parameter: @NONE, DISC, BOOT," \
+	" TICKET, TMD, WBFS, ALL@ and @AUTO@ (default).\n" \
+	" All keyword can be prefixed by @'+'@ to enable that opton, by a" \
+	" @'-'@ to disable it or by a @'='@ to enable that option and disable" \
+	" all others." )
+
+#:def_opt( "REGION", "region", "CP", \
+	"region", \
+	"This $patching$ option defines the region of the disc.  The region is" \
+	" one of @JAPAN, USA, EUROPE, KOREA, FILE@ or @AUTO@ (default). The" \
+	" case of the keywords is ignored. Unsigned numbers are also accepted." )
+
+#:def_opt( "IOS", "ios", "CP", \
+	"ios", \
+	"This $patching$ option defines the system version (IOS to load)" \
+	" within TMD. The format is @'HIGH:LOW'@ or @'HIGH-LOW'@ or @'LOW'@." \
+	" If only @LOW@ is set than @HIGH@ is assumed as 1 (standard IOS)." )
+
 #:def_opt( "ENC", "enc", "CP", \
 	"encoding", \
 	"Define the encoding mode. The mode is one of NONE, HASHONLY, DECRYPT," \
 	" ENCRYPT, SIGN or AUTO. The case of the keywords is ignored. The" \
 	" default mode is 'AUTO'." )
-
-#:def_opt( "REGION", "region", "CP", \
-	"region", \
-	"Define the region of the disc.  The region is one of JAPAN, USA," \
-	" EUROPE, KOREA, FILE or AUTO (default). The case of the keywords is" \
-	" ignored. Unsigned numbers are also accepted." )
-
-#:def_opt( "IOS", "ios", "CP", \
-	"ios", \
-	"Define the system version (IOS to load) within TMD.  The format is" \
-	" 'HIGH:LOW' or 'HIGH-LOW' or 'LOW'. If only LOW is set than HIGH is" \
-	" assumed as 1 (standard IOS)." )
-
-#:def_opt( "ID", "id", "CP", \
-	"id", \
-	"Change the ID of the disc to the given parameter. 1 to 6 characters" \
-	" are expected. Only defined characters not equal '.' are modified." \
-	" The disc header, boot.bin, ticket.bin and tmd.bin are  objects to" \
-	" modify. The option @$--modify$=@ selects the objects." )
-
-#:def_opt( "NAME", "name", "CP", \
-	"name", \
-	"Change the name (disc title) of the disc to the given parameter. Up" \
-	" to 63 characters are expected. The disc header and boot.bin are" \
-	" objects to modify. The option @$--modify$=@ selects the objects." )
-
-#:def_opt( "MODIFY", "modify", "CP", \
-	"list", \
-	" The parameter is a comma separated list of the following keywords," \
-	" case is ignored: NONE, DISC, BOOT, TICKET, TMD, WBFS, ALL and AUTO" \
-	" (default).\n" \
-	" All keyword can be prefixed by '+' to enable that opton, by a '-' to" \
-	" disable it or by a '=' to enable that option and disable all others." )
 
 #:def_opt( "DEST", "d|dest", "CP", \
 	"path", \
@@ -404,9 +406,9 @@
 #:def_opt( "SORT", "S|sort", "CP", \
 	"list", \
 	"Define the sort mode for lists. The parameter is a comma separated" \
-	" list of the following keywords: NONE, NAME, TITLE, FILE, SIZE," \
-	" OFFSET, REGIAN, WBFS, NPART, ITIME, MTIME, CTIME, ATIME, TIME =" \
-	" DATE, DEFAULT, ASCENDING, DESCENDING = REVERSE." )
+	" list of the following keywords: @NONE, NAME, TITLE, FILE, SIZE," \
+	" OFFSET, REGION, WBFS, NPART, ITIME, MTIME, CTIME, ATIME, TIME =" \
+	" DATE, DEFAULT, ASCENDING, DESCENDING = REVERSE@." )
 
 #:def_opt( "LIMIT", "limit", "CP", \
 	"num", \
@@ -660,7 +662,15 @@
 	"", \
 	"" )
 
-#:def_cmd_opt( "DUMP", "ENC", \
+#:def_cmd_opt( "DUMP", "ID", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "DUMP", "NAME", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "DUMP", "MODIFY", \
 	"", \
 	"" )
 
@@ -672,15 +682,7 @@
 	"", \
 	"" )
 
-#:def_cmd_opt( "DUMP", "ID", \
-	"", \
-	"" )
-
-#:def_cmd_opt( "DUMP", "NAME", \
-	"", \
-	"" )
-
-#:def_cmd_opt( "DUMP", "MODIFY", \
+#:def_cmd_opt( "DUMP", "ENC", \
 	"", \
 	"" )
 
@@ -1597,7 +1599,15 @@
 	"", \
 	"" )
 
-#:def_cmd_opt( "EXTRACT", "ENC", \
+#:def_cmd_opt( "EXTRACT", "ID", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "EXTRACT", "NAME", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "EXTRACT", "MODIFY", \
 	"", \
 	"" )
 
@@ -1609,15 +1619,7 @@
 	"", \
 	"" )
 
-#:def_cmd_opt( "EXTRACT", "ID", \
-	"", \
-	"" )
-
-#:def_cmd_opt( "EXTRACT", "NAME", \
-	"", \
-	"" )
-
-#:def_cmd_opt( "EXTRACT", "MODIFY", \
+#:def_cmd_opt( "EXTRACT", "ENC", \
 	"", \
 	"" )
 
@@ -1739,7 +1741,15 @@
 	"", \
 	"" )
 
-#:def_cmd_opt( "COPY", "ENC", \
+#:def_cmd_opt( "COPY", "ID", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "COPY", "NAME", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "COPY", "MODIFY", \
 	"", \
 	"" )
 
@@ -1751,15 +1761,7 @@
 	"", \
 	"" )
 
-#:def_cmd_opt( "COPY", "ID", \
-	"", \
-	"" )
-
-#:def_cmd_opt( "COPY", "NAME", \
-	"", \
-	"" )
-
-#:def_cmd_opt( "COPY", "MODIFY", \
+#:def_cmd_opt( "COPY", "ENC", \
 	"", \
 	"" )
 
@@ -1899,7 +1901,15 @@
 	"", \
 	"" )
 
-#:def_cmd_opt( "SCRUB", "ENC", \
+#:def_cmd_opt( "SCRUB", "ID", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "SCRUB", "NAME", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "SCRUB", "MODIFY", \
 	"", \
 	"" )
 
@@ -1911,15 +1921,7 @@
 	"", \
 	"" )
 
-#:def_cmd_opt( "SCRUB", "ID", \
-	"", \
-	"" )
-
-#:def_cmd_opt( "SCRUB", "NAME", \
-	"", \
-	"" )
-
-#:def_cmd_opt( "SCRUB", "MODIFY", \
+#:def_cmd_opt( "SCRUB", "ENC", \
 	"", \
 	"" )
 
@@ -2003,7 +2005,15 @@
 	"", \
 	"" )
 
-#:def_cmd_opt( "EDIT", "ENC", \
+#:def_cmd_opt( "EDIT", "ID", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "EDIT", "NAME", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "EDIT", "MODIFY", \
 	"", \
 	"" )
 
@@ -2015,15 +2025,7 @@
 	"", \
 	"" )
 
-#:def_cmd_opt( "EDIT", "ID", \
-	"", \
-	"" )
-
-#:def_cmd_opt( "EDIT", "NAME", \
-	"", \
-	"" )
-
-#:def_cmd_opt( "EDIT", "MODIFY", \
+#:def_cmd_opt( "EDIT", "ENC", \
 	"", \
 	"" )
 
@@ -2406,26 +2408,25 @@
 
 #:def_cmd( "LIST_L", "LIST-L|LL", \
 	"wwt LIST-L [wbfs_partition]...", \
-	"List all discs of WBFS partitions. Same as @'$wwt LIST$ --long'@." )
+	"List all discs of WBFS partitions. Same as @'$LIST$ --long'@." )
 
 #:def_cmd( "LIST_LL", "LIST-LL|LLL", \
 	"wwt LIST-LL [wbfs_partition]...", \
-	"List all discs of WBFS partitions. Same as @'$wwt LIST$ --long" \
-	" --long@'." )
+	"List all discs of WBFS partitions. Same as @'$LIST$ --long --long@'." )
 
 #:def_cmd( "LIST_A", "LIST-A|LA", \
 	"wwt LIST-A [wbfs_partition]...", \
-	"List all discs of all WBFS partitions. Same as @'$wwt LIST$ --long" \
-	" --long --auto'@." )
+	"List all discs of all WBFS partitions. Same as @'$LIST$ --long --long" \
+	" --auto'@." )
 
 #:def_cmd( "LIST_M", "LIST-M|LM", \
 	"wwt LIST-M [wbfs_partition]...", \
-	"List all discs of WBFS partitions in mixed view. Same as @'$wwt LIST$" \
+	"List all discs of WBFS partitions in mixed view. Same as @'$LIST$" \
 	" --long --long --mixed'@." )
 
 #:def_cmd( "LIST_U", "LIST-U|LU", \
 	"wwt LIST-U [wbfs_partition]...", \
-	"List all discs of WBFS partitions in mixed view. Same as @'$wwt LIST$" \
+	"List all discs of WBFS partitions in mixed view. Same as @'$LIST$" \
 	" --long --long --unique'@." )
 
 #:def_cmd( "FORMAT", "FORMAT|INIT", \
@@ -2445,7 +2446,7 @@
 #:def_cmd( "REPAIR", "REPAIR", \
 	"wwt REPAIR [wbfs_partition]..", \
 	"Check WBFS partitions and repair errors. 'REPAIR' is a shortcut for" \
-	" @'$wwt CHECK$ --repair=standard'@." )
+	" @'$CHECK$ --repair=standard'@." )
 
 #:def_cmd( "EDIT", "EDIT", \
 	"wwt EDIT [sub_command]...", \
@@ -2468,13 +2469,13 @@
 #:def_cmd( "UPDATE", "UPDATE|U", \
 	"wwt UPDATE iso|wbfs|dir...", \
 	"Add missing Wii ISO discs to WBFS partitions. 'UPDATE' is a shortcut" \
-	" for @'$wwt ADD$ --update'@." )
+	" for @'$ADD$ --update'@." )
 
 #:def_cmd( "SYNC", "SYNC", \
 	"wwt SYNC iso|wbfs|dir...", \
 	"Modify primary WBFS (REMOVE and ADD) until it contains exactly the" \
-	" same discs as all sources together. 'SYNC' is a shortcut for @'$wwt" \
-	" ADD$ --sync'@." )
+	" same discs as all sources together. 'SYNC' is a shortcut for @'$ADD$" \
+	" --sync'@." )
 
 #:def_cmd( "EXTRACT", "EXTRACT|X", \
 	"wwt EXTRACT id6[=dest]...", \
@@ -2535,9 +2536,9 @@
 
 #:def_opt( "LOGGING", "L|logging", "G", \
 	"", \
-	"Special logging for composing Wii discs. If set at least once the" \
-	" disc layout is printed. If set at least twice the partition layout" \
-	" is printed too." )
+	"Special logging for $patching$ and $composing$ Wii discs. If set at" \
+	" least once the disc layout is printed. If set at least twice the" \
+	" partition layout is printed too." )
 
 #:def_opt( "ESC", "E|esc", "GP", \
 	"char", \
@@ -2642,36 +2643,39 @@
 
 #:def_opt( "REGION", "region", "CP", \
 	"region", \
-	"Define the region of the disc.  The region is one of JAPAN, USA," \
-	" EUROPE, KOREA, FILE or AUTO (default). The case of the keywords is" \
-	" ignored. Unsigned numbers are also accepted." )
+	"This $patching$ option defines the region of the disc.  The region is" \
+	" one of @JAPAN, USA, EUROPE, KOREA, FILE@ or @AUTO@ (default). The" \
+	" case of the keywords is ignored. Unsigned numbers are also accepted." )
 
 #:def_opt( "IOS", "ios", "CP", \
 	"ios", \
-	"Define the system version (IOS to load) within TMD.  The format is" \
-	" 'HIGH:LOW' or 'HIGH-LOW' or 'LOW'. If only LOW is set than HIGH is" \
-	" assumed as 1 (standard IOS)." )
+	"This $patching$ option defines the system version (IOS to load)" \
+	" within TMD. The format is @'HIGH:LOW'@ or @'HIGH-LOW'@ or @'LOW'@." \
+	" If only @LOW@ is set than @HIGH@ is assumed as 1 (standard IOS)." )
 
 #:def_opt( "ID", "id", "CP", \
 	"id", \
-	"Change the ID of the disc to the given parameter. 1 to 6 characters" \
-	" are expected. Only defined characters not equal '.' are modified." \
-	" The disc header, boot.bin, ticket.bin and tmd.bin are  objects to" \
-	" modify. The option @$--modify$=@ selects the objects." )
+	"This $patching$ option changes the ID of the disc to the given" \
+	" parameter. 1 to 6 characters are expected. Only defined characters" \
+	" not equal '.' are modified. The disc header, boot.bin, ticket.bin" \
+	" and tmd.bin are  objects to modify. The option @$--modify$=@ selects" \
+	" the objects." )
 
 #:def_opt( "NAME", "name", "CP", \
 	"name", \
-	"Change the name (disc title) of the disc to the given parameter. Up" \
-	" to 63 characters are expected. The disc header and boot.bin are" \
-	" objects to modify. The option @$--modify$=@ selects the objects." )
+	"This $patching$ option changes the name (disc title) of the disc to" \
+	" the given parameter. Up to 63 characters are expected. The disc" \
+	" header and boot.bin are objects to modify. The option @$--modify$=@" \
+	" selects the objects." )
 
 #:def_opt( "MODIFY", "modify", "CP", \
 	"list", \
-	" The parameter is a comma separated list of the following keywords," \
-	" case is ignored: NONE, DISC, BOOT, TICKET, TMD, WBFS, ALL and AUTO" \
-	" (default).\n" \
-	" All keyword can be prefixed by '+' to enable that opton, by a '-' to" \
-	" disable it or by a '=' to enable that option and disable all others." )
+	" This $patching$ option expects a comma separated list of the" \
+	" following keywords (case ignored) as parameter: @NONE, DISC, BOOT," \
+	" TICKET, TMD, WBFS, ALL@ and @AUTO@ (default).\n" \
+	" All keyword can be prefixed by @'+'@ to enable that opton, by a" \
+	" @'-'@ to disable it or by a @'='@ to enable that option and disable" \
+	" all others." )
 
 #:def_opt( "INODE", "inode", "C", \
 	"", \
@@ -2726,8 +2730,8 @@
 	"mode", \
 	"This option defines how to repair WBFS errors. The parameter is a" \
 	" comma separated list of the following keywords, case is ignored:" \
-	" NONE, FBT, INODES, STANDARD, RM-INVALID, RM-OVERLAP, RM-FREE," \
-	" RM-EMPTY, RM-ALL, ALL.\n" \
+	" @NONE, FBT, INODES, STANDARD, RM-INVALID, RM-OVERLAP, RM-FREE," \
+	" RM-EMPTY, RM-ALL, ALL@.\n" \
 	" All keyword can be prefixed by '+' to enable that opton, by a '-' to" \
 	" disable it or by a '=' to enable that option and disable all others." )
 
@@ -2836,9 +2840,9 @@
 #:def_opt( "SORT", "S|sort", "CP", \
 	"list", \
 	"Define the sort mode for lists. The parameter is a comma separated" \
-	" list of the following keywords: NONE, NAME, TITLE, FILE, SIZE," \
-	" OFFSET, REGIAN, WBFS, NPART, ITIME, MTIME, CTIME, ATIME, TIME =" \
-	" DATE, DEFAULT, ASCENDING, DESCENDING = REVERSE." )
+	" list of the following keywords: @NONE, NAME, TITLE, FILE, SIZE," \
+	" OFFSET, REGION, WBFS, NPART, ITIME, MTIME, CTIME, ATIME, TIME =" \
+	" DATE, DEFAULT, ASCENDING, DESCENDING = REVERSE@." )
 
 #:def_opt( "LIMIT", "limit", "CP", \
 	"num", \
@@ -3698,8 +3702,8 @@
 	"", \
 	"This option defines how to repair WBFS errors. The parameter is a" \
 	" comma separated list of the following keywords, case is ignored:" \
-	" NONE, FBT, INODES, STANDARD, RM-INVALID, RM-OVERLAP, RM-FREE," \
-	" RM-EMPTY, RM-ALL, ALL.\n" \
+	" @NONE, FBT, INODES, STANDARD, RM-INVALID, RM-OVERLAP, RM-FREE," \
+	" RM-EMPTY, RM-ALL, ALL@.\n" \
 	" All keyword can be prefixed by '+' to enable that opton, by a '-' to" \
 	" disable it or by a '=' to enable that option and disable all others." \
 	" The default is 'NONE'." )
@@ -3756,8 +3760,8 @@
 	"", \
 	"This option defines how to repair WBFS errors. The parameter is a" \
 	" comma separated list of the following keywords, case is ignored:" \
-	" NONE, FBT, INODES, STANDARD, RM-INVALID, RM-OVERLAP, RM-FREE," \
-	" RM-EMPTY, RM-ALL, ALL.\n" \
+	" @NONE, FBT, INODES, STANDARD, RM-INVALID, RM-OVERLAP, RM-FREE," \
+	" RM-EMPTY, RM-ALL, ALL@.\n" \
 	" All keyword can be prefixed by '+' to enable that opton, by a '-' to" \
 	" disable it or by a '=' to enable that option and disable all others." \
 	" The default is 'STANDARD' (FBT,INODES)." )
@@ -3943,7 +3947,15 @@
 	"", \
 	"" )
 
-#:def_cmd_opt( "ADD", "ENC", \
+#:def_cmd_opt( "ADD", "ID", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "ADD", "NAME", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "ADD", "MODIFY", \
 	"", \
 	"" )
 
@@ -3955,15 +3967,7 @@
 	"", \
 	"" )
 
-#:def_cmd_opt( "ADD", "ID", \
-	"", \
-	"" )
-
-#:def_cmd_opt( "ADD", "NAME", \
-	"", \
-	"" )
-
-#:def_cmd_opt( "ADD", "MODIFY", \
+#:def_cmd_opt( "ADD", "ENC", \
 	"", \
 	"" )
 
@@ -4090,7 +4094,15 @@
 	"", \
 	"" )
 
-#:def_cmd_opt( "UPDATE", "ENC", \
+#:def_cmd_opt( "UPDATE", "ID", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "UPDATE", "NAME", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "UPDATE", "MODIFY", \
 	"", \
 	"" )
 
@@ -4102,15 +4114,7 @@
 	"", \
 	"" )
 
-#:def_cmd_opt( "UPDATE", "ID", \
-	"", \
-	"" )
-
-#:def_cmd_opt( "UPDATE", "NAME", \
-	"", \
-	"" )
-
-#:def_cmd_opt( "UPDATE", "MODIFY", \
+#:def_cmd_opt( "UPDATE", "ENC", \
 	"", \
 	"" )
 
@@ -4229,7 +4233,15 @@
 	"", \
 	"" )
 
-#:def_cmd_opt( "SYNC", "ENC", \
+#:def_cmd_opt( "SYNC", "ID", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "SYNC", "NAME", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "SYNC", "MODIFY", \
 	"", \
 	"" )
 
@@ -4241,15 +4253,7 @@
 	"", \
 	"" )
 
-#:def_cmd_opt( "SYNC", "ID", \
-	"", \
-	"" )
-
-#:def_cmd_opt( "SYNC", "NAME", \
-	"", \
-	"" )
-
-#:def_cmd_opt( "SYNC", "MODIFY", \
+#:def_cmd_opt( "SYNC", "ENC", \
 	"", \
 	"" )
 
@@ -4849,267 +4853,6 @@
 
 ##
 ###############################################################################
-###############                 Tool 'iso2wbfs'                 ###############
-###############################################################################
-
-#:def_tool( "iso2wbfs", \
-	"iso2wbfs [option]... files...", \
-	"Convert Wii ISO images of any format into WBFS files and split at 4" \
-	" GB. This tool is obsolete, use wit instead." )
-
-#:def_opt( "VERSION", "V|version", "G", \
-	"", \
-	"Stop parsing the command line, print a version info and exit." )
-
-#:def_opt( "HELP", "h|help", "G", \
-	"", \
-	"Stop parsing the command line, print a help message and exit." )
-
-#:def_opt( "XHELP", "xhelp", "G", \
-	"", \
-	"Same as @$--help$@." )
-
-#:def_opt( "QUIET", "q|quiet", "G", \
-	"", \
-	"Be quiet and print only error messages." )
-
-#:def_opt( "VERBOSE", "v|verbose", "G", \
-	"", \
-	"Be verbose -> program name and processed files." )
-
-#:def_opt( "PROGRESS", "P|progress", "G", \
-	"", \
-	"Print progress counter independent of verbose level." )
-
-#:def_opt( "IO", "io", "GP", \
-	"flags", \
-	"Setup the IO mode for experiments. The standard file IO is based on" \
-	" open() function. The value '1' defines that WBFS IO is based on" \
-	" fopen() function. The value '2' defines the same for ISO files and" \
-	" the value '3' for both, WBFS and ISO." )
-
-#:def_opt( "TEST", "t|test", "G", \
-	"", \
-	"Run in test mode, modify nothing.\n" \
-	">>> USE THIS OPTION IF UNSURE! <<<" )
-
-#:def_opt( "PSEL", "psel", "GP", \
-	"p-type", \
-	"This option set the scrubbing mode and defines, which disc partitions" \
-	" are handled. One of the following values is allowed, case is" \
-	" ignored: DATA, NO-DATA, UPDATE, NO-UPDATE, CHANNEL, NO-CHANNEL ALL," \
-	" WHOLE, RAW. The default value is 'ALL'." )
-
-#:def_opt( "RAW", "raw", "G", \
-	"", \
-	"Abbreviation of @$--psel$=RAW@." )
-
-#:def_opt( "DEST", "d|dest", "GP", \
-	"path", \
-	"Define a destination path (directory/file). The destination path is" \
-	" scanned for escape sequences (see option @$--esc$@) to allow generic" \
-	" pathes." )
-
-#:def_opt( "DEST2", "D|DEST", "GP", \
-	"path", \
-	"Like @$--dest$@, but create the directory path automatically." )
-
-#:def_opt( "PRESERVE", "p|preserve", "G", \
-	"", \
-	"Preserve file times (atime+mtime)." )
-
-#:def_opt( "SPLIT", "z|split", "G", \
-	"", \
-	"Enable output file splitting, default split size = 4 GB." )
-
-#:def_opt( "SPLIT_SIZE", "Z|split-size|splitsize", "GP", \
-	"sz", \
-	"Enable output file splitting and define split size. The parameter" \
-	" 'sz' is a floating point number followed by an optional unit factor" \
-	" (one of 'cb' [=1] or  'kmgtpe' [base=1000] or 'KMGTPE' [base=1024])." \
-	" The default unit is 'G' (GiB)." )
-
-#:def_opt( "OVERWRITE", "o|overwrite", "G", \
-	"", \
-	"Overwrite already existing files." )
-
-
-##
-###############################################################################
-###############                 Tool 'iso2wdf'                  ###############
-###############################################################################
-
-#:def_tool( "iso2wdf", \
-	"iso2wdf [option]... files...", \
-	"Convert Wii ISO images of any format into WDF files. This tool is" \
-	" obsolete, use wit instead." )
-
-#:def_opt( "VERSION", "V|version", "G", \
-	"", \
-	"Stop parsing the command line, print a version info and exit." )
-
-#:def_opt( "HELP", "h|help", "G", \
-	"", \
-	"Stop parsing the command line, print a help message and exit." )
-
-#:def_opt( "XHELP", "xhelp", "G", \
-	"", \
-	"Same as @$--help$@." )
-
-#:def_opt( "QUIET", "q|quiet", "G", \
-	"", \
-	"Be quiet and print only error messages." )
-
-#:def_opt( "VERBOSE", "v|verbose", "G", \
-	"", \
-	"Be verbose -> program name and processed files." )
-
-#:def_opt( "PROGRESS", "P|progress", "G", \
-	"", \
-	"Print progress counter independent of verbose level." )
-
-#:def_opt( "IO", "io", "GP", \
-	"flags", \
-	"Setup the IO mode for experiments. The standard file IO is based on" \
-	" open() function. The value '1' defines that WBFS IO is based on" \
-	" fopen() function. The value '2' defines the same for ISO files and" \
-	" the value '3' for both, WBFS and ISO." )
-
-#:def_opt( "TEST", "t|test", "G", \
-	"", \
-	"Run in test mode, modify nothing.\n" \
-	">>> USE THIS OPTION IF UNSURE! <<<" )
-
-#:def_opt( "PSEL", "psel", "GP", \
-	"p-type", \
-	"This option set the scrubbing mode and defines, which disc partitions" \
-	" are handled. One of the following values is allowed, case is" \
-	" ignored: DATA, NO-DATA, UPDATE, NO-UPDATE, CHANNEL, NO-CHANNEL ALL," \
-	" WHOLE, RAW. The default value is 'ALL'." )
-
-#:def_opt( "RAW", "raw", "G", \
-	"", \
-	"Abbreviation of @$--psel$=RAW@." )
-
-#:def_opt( "DEST", "d|dest", "GP", \
-	"path", \
-	"Define a destination path (directory/file). The destination path is" \
-	" scanned for escape sequences (see option @$--esc$@) to allow generic" \
-	" pathes." )
-
-#:def_opt( "DEST2", "D|DEST", "GP", \
-	"path", \
-	"Like @$--dest$@, but create the directory path automatically." )
-
-#:def_opt( "PRESERVE", "p|preserve", "G", \
-	"", \
-	"Preserve file times (atime+mtime)." )
-
-#:def_opt( "SPLIT", "z|split", "G", \
-	"", \
-	"Enable output file splitting, default split size = 4 GB." )
-
-#:def_opt( "SPLIT_SIZE", "Z|split-size|splitsize", "GP", \
-	"sz", \
-	"Enable output file splitting and define split size. The parameter" \
-	" 'sz' is a floating point number followed by an optional unit factor" \
-	" (one of 'cb' [=1] or  'kmgtpe' [base=1000] or 'KMGTPE' [base=1024])." \
-	" The default unit is 'G' (GiB)." )
-
-#:def_opt( "OVERWRITE", "o|overwrite", "G", \
-	"", \
-	"Overwrite already existing files." )
-
-
-##
-###############################################################################
-###############                 Tool 'wdf2iso'                  ###############
-###############################################################################
-
-#:def_tool( "wdf2iso", \
-	"wdf2iso [option]... files...", \
-	"Convert Wii ISO images of may format into PLAIN ISO files. This tool" \
-	" is obsolete, use wit instead." )
-
-#:def_opt( "VERSION", "V|version", "G", \
-	"", \
-	"Stop parsing the command line, print a version info and exit." )
-
-#:def_opt( "HELP", "h|help", "G", \
-	"", \
-	"Stop parsing the command line, print a help message and exit." )
-
-#:def_opt( "XHELP", "xhelp", "G", \
-	"", \
-	"Same as @$--help$@." )
-
-#:def_opt( "QUIET", "q|quiet", "G", \
-	"", \
-	"Be quiet and print only error messages." )
-
-#:def_opt( "VERBOSE", "v|verbose", "G", \
-	"", \
-	"Be verbose -> program name and processed files." )
-
-#:def_opt( "PROGRESS", "P|progress", "G", \
-	"", \
-	"Print progress counter independent of verbose level." )
-
-#:def_opt( "IO", "io", "GP", \
-	"flags", \
-	"Setup the IO mode for experiments. The standard file IO is based on" \
-	" open() function. The value '1' defines that WBFS IO is based on" \
-	" fopen() function. The value '2' defines the same for ISO files and" \
-	" the value '3' for both, WBFS and ISO." )
-
-#:def_opt( "TEST", "t|test", "G", \
-	"", \
-	"Run in test mode, modify nothing.\n" \
-	">>> USE THIS OPTION IF UNSURE! <<<" )
-
-#:def_opt( "PSEL", "psel", "GP", \
-	"p-type", \
-	"This option set the scrubbing mode and defines, which disc partitions" \
-	" are handled. One of the following values is allowed, case is" \
-	" ignored: DATA, NO-DATA, UPDATE, NO-UPDATE, CHANNEL, NO-CHANNEL ALL," \
-	" WHOLE, RAW. The default value is 'ALL'." )
-
-#:def_opt( "RAW", "raw", "G", \
-	"", \
-	"Abbreviation of @$--psel$=RAW@." )
-
-#:def_opt( "DEST", "d|dest", "GP", \
-	"path", \
-	"Define a destination path (directory/file). The destination path is" \
-	" scanned for escape sequences (see option @$--esc$@) to allow generic" \
-	" pathes." )
-
-#:def_opt( "DEST2", "D|DEST", "GP", \
-	"path", \
-	"Like @$--dest$@, but create the directory path automatically." )
-
-#:def_opt( "PRESERVE", "p|preserve", "G", \
-	"", \
-	"Preserve file times (atime+mtime)." )
-
-#:def_opt( "SPLIT", "z|split", "G", \
-	"", \
-	"Enable output file splitting, default split size = 4 GB." )
-
-#:def_opt( "SPLIT_SIZE", "Z|split-size|splitsize", "GP", \
-	"sz", \
-	"Enable output file splitting and define split size. The parameter" \
-	" 'sz' is a floating point number followed by an optional unit factor" \
-	" (one of 'cb' [=1] or  'kmgtpe' [base=1000] or 'KMGTPE' [base=1024])." \
-	" The default unit is 'G' (GiB)." )
-
-#:def_opt( "OVERWRITE", "o|overwrite", "G", \
-	"", \
-	"Overwrite already existing files." )
-
-
-##
-###############################################################################
 ###############                 Tool 'wdf-cat'                  ###############
 ###############################################################################
 
@@ -5181,7 +4924,268 @@
 
 #:def_opt( "LONG", "l|long", "G", \
 	"", \
-	"Obsolete alternative for @$--chunk$@" )
+	"Alternative for @$--chunk$@: Print table with chunk header." )
+
+
+##
+###############################################################################
+###############                 Tool 'iso2wbfs'                 ###############
+###############################################################################
+
+#:def_tool( "iso2wbfs", \
+	"iso2wbfs [option]... files...", \
+	"Convert Wii ISO images of any format into WBFS files and split the" \
+	" output at 4 GB. This tool is obsolete, use $wit$ instead." )
+
+#:def_opt( "VERSION", "V|version", "G", \
+	"", \
+	"Stop parsing the command line, print a version info and exit." )
+
+#:def_opt( "HELP", "h|help", "G", \
+	"", \
+	"Stop parsing the command line, print a help message and exit." )
+
+#:def_opt( "XHELP", "xhelp", "G", \
+	"", \
+	"Same as @$--help$@." )
+
+#:def_opt( "QUIET", "q|quiet", "G", \
+	"", \
+	"Be quiet and print only error messages." )
+
+#:def_opt( "VERBOSE", "v|verbose", "G", \
+	"", \
+	"Be verbose: Print program name and log processed files." )
+
+#:def_opt( "PROGRESS", "P|progress", "G", \
+	"", \
+	"Print progress counter independent of verbose level." )
+
+#:def_opt( "IO", "io", "GP", \
+	"flags", \
+	"Setup the IO mode for experiments. The standard file IO is based on" \
+	" open() function. The value '1' defines that WBFS IO is based on" \
+	" fopen() function. The value '2' defines the same for ISO files and" \
+	" the value '3' for both, WBFS and ISO." )
+
+#:def_opt( "TEST", "t|test", "G", \
+	"", \
+	"Run in test mode, modify nothing.\n" \
+	">>> USE THIS OPTION IF UNSURE! <<<" )
+
+#:def_opt( "PSEL", "psel", "GP", \
+	"p-type", \
+	"This option set the scrubbing mode and defines, which disc partitions" \
+	" are handled. One of the following values is allowed, case is" \
+	" ignored: DATA, NO-DATA, UPDATE, NO-UPDATE, CHANNEL, NO-CHANNEL ALL," \
+	" WHOLE, RAW. The default value is 'ALL'." )
+
+#:def_opt( "RAW", "raw", "G", \
+	"", \
+	"Abbreviation of @$--psel$=RAW@." )
+
+#:def_opt( "DEST", "d|dest", "GP", \
+	"path", \
+	"Define a destination path (directory/file). The destination path is" \
+	" scanned for escape sequences (see option @$--esc$@) to allow generic" \
+	" pathes." )
+
+#:def_opt( "DEST2", "D|DEST", "GP", \
+	"path", \
+	"Like @$--dest$@, but create the directory path automatically." )
+
+#:def_opt( "PRESERVE", "p|preserve", "G", \
+	"", \
+	"Preserve file times (atime+mtime)." )
+
+#:def_opt( "SPLIT", "z|split", "G", \
+	"", \
+	"Enable output file splitting, default split size = 4 GB." )
+
+#:def_opt( "SPLIT_SIZE", "Z|split-size|splitsize", "GP", \
+	"sz", \
+	"Enable output file splitting and define split size. The parameter" \
+	" 'sz' is a floating point number followed by an optional unit factor" \
+	" (one of 'cb' [=1] or  'kmgtpe' [base=1000] or 'KMGTPE' [base=1024])." \
+	" The default unit is 'G' (GiB)." )
+
+#:def_opt( "OVERWRITE", "o|overwrite", "G", \
+	"", \
+	"Overwrite already existing files." )
+
+
+##
+###############################################################################
+###############                 Tool 'iso2wdf'                  ###############
+###############################################################################
+
+#:def_tool( "iso2wdf", \
+	"iso2wdf [option]... files...", \
+	"Convert Wii ISO images of any format into WDF files. This tool is" \
+	" obsolete, use $wit$ instead." )
+
+#:def_opt( "VERSION", "V|version", "G", \
+	"", \
+	"Stop parsing the command line, print a version info and exit." )
+
+#:def_opt( "HELP", "h|help", "G", \
+	"", \
+	"Stop parsing the command line, print a help message and exit." )
+
+#:def_opt( "XHELP", "xhelp", "G", \
+	"", \
+	"Same as @$--help$@." )
+
+#:def_opt( "QUIET", "q|quiet", "G", \
+	"", \
+	"Be quiet and print only error messages." )
+
+#:def_opt( "VERBOSE", "v|verbose", "G", \
+	"", \
+	"Be verbose: Print program name and log processed files." )
+
+#:def_opt( "PROGRESS", "P|progress", "G", \
+	"", \
+	"Print progress counter independent of verbose level." )
+
+#:def_opt( "IO", "io", "GP", \
+	"flags", \
+	"Setup the IO mode for experiments. The standard file IO is based on" \
+	" open() function. The value '1' defines that WBFS IO is based on" \
+	" fopen() function. The value '2' defines the same for ISO files and" \
+	" the value '3' for both, WBFS and ISO." )
+
+#:def_opt( "TEST", "t|test", "G", \
+	"", \
+	"Run in test mode, modify nothing.\n" \
+	">>> USE THIS OPTION IF UNSURE! <<<" )
+
+#:def_opt( "PSEL", "psel", "GP", \
+	"p-type", \
+	"This option set the scrubbing mode and defines, which disc partitions" \
+	" are handled. One of the following values is allowed, case is" \
+	" ignored: DATA, NO-DATA, UPDATE, NO-UPDATE, CHANNEL, NO-CHANNEL ALL," \
+	" WHOLE, RAW. The default value is 'ALL'." )
+
+#:def_opt( "RAW", "raw", "G", \
+	"", \
+	"Abbreviation of @$--psel$=RAW@." )
+
+#:def_opt( "DEST", "d|dest", "GP", \
+	"path", \
+	"Define a destination path (directory/file). The destination path is" \
+	" scanned for escape sequences (see option @$--esc$@) to allow generic" \
+	" pathes." )
+
+#:def_opt( "DEST2", "D|DEST", "GP", \
+	"path", \
+	"Like @$--dest$@, but create the directory path automatically." )
+
+#:def_opt( "PRESERVE", "p|preserve", "G", \
+	"", \
+	"Preserve file times (atime+mtime)." )
+
+#:def_opt( "SPLIT", "z|split", "G", \
+	"", \
+	"Enable output file splitting, default split size = 4 GB." )
+
+#:def_opt( "SPLIT_SIZE", "Z|split-size|splitsize", "GP", \
+	"sz", \
+	"Enable output file splitting and define split size. The parameter" \
+	" 'sz' is a floating point number followed by an optional unit factor" \
+	" (one of 'cb' [=1] or  'kmgtpe' [base=1000] or 'KMGTPE' [base=1024])." \
+	" The default unit is 'G' (GiB)." )
+
+#:def_opt( "OVERWRITE", "o|overwrite", "G", \
+	"", \
+	"Overwrite already existing files." )
+
+
+##
+###############################################################################
+###############                 Tool 'wdf2iso'                  ###############
+###############################################################################
+
+#:def_tool( "wdf2iso", \
+	"wdf2iso [option]... files...", \
+	"Convert Wii ISO images of any format into PLAIN ISO files. This tool" \
+	" is obsolete, use $wit$ instead." )
+
+#:def_opt( "VERSION", "V|version", "G", \
+	"", \
+	"Stop parsing the command line, print a version info and exit." )
+
+#:def_opt( "HELP", "h|help", "G", \
+	"", \
+	"Stop parsing the command line, print a help message and exit." )
+
+#:def_opt( "XHELP", "xhelp", "G", \
+	"", \
+	"Same as @$--help$@." )
+
+#:def_opt( "QUIET", "q|quiet", "G", \
+	"", \
+	"Be quiet and print only error messages." )
+
+#:def_opt( "VERBOSE", "v|verbose", "G", \
+	"", \
+	"Be verbose: Print program name and log processed files." )
+
+#:def_opt( "PROGRESS", "P|progress", "G", \
+	"", \
+	"Print progress counter independent of verbose level." )
+
+#:def_opt( "IO", "io", "GP", \
+	"flags", \
+	"Setup the IO mode for experiments. The standard file IO is based on" \
+	" open() function. The value '1' defines that WBFS IO is based on" \
+	" fopen() function. The value '2' defines the same for ISO files and" \
+	" the value '3' for both, WBFS and ISO." )
+
+#:def_opt( "TEST", "t|test", "G", \
+	"", \
+	"Run in test mode, modify nothing.\n" \
+	">>> USE THIS OPTION IF UNSURE! <<<" )
+
+#:def_opt( "PSEL", "psel", "GP", \
+	"p-type", \
+	"This option set the scrubbing mode and defines, which disc partitions" \
+	" are handled. One of the following values is allowed, case is" \
+	" ignored: DATA, NO-DATA, UPDATE, NO-UPDATE, CHANNEL, NO-CHANNEL ALL," \
+	" WHOLE, RAW. The default value is 'ALL'." )
+
+#:def_opt( "RAW", "raw", "G", \
+	"", \
+	"Abbreviation of @$--psel$=RAW@." )
+
+#:def_opt( "DEST", "d|dest", "GP", \
+	"path", \
+	"Define a destination path (directory/file). The destination path is" \
+	" scanned for escape sequences (see option @$--esc$@) to allow generic" \
+	" pathes." )
+
+#:def_opt( "DEST2", "D|DEST", "GP", \
+	"path", \
+	"Like @$--dest$@, but create the directory path automatically." )
+
+#:def_opt( "PRESERVE", "p|preserve", "G", \
+	"", \
+	"Preserve file times (atime+mtime)." )
+
+#:def_opt( "SPLIT", "z|split", "G", \
+	"", \
+	"Enable output file splitting, default split size = 4 GB." )
+
+#:def_opt( "SPLIT_SIZE", "Z|split-size|splitsize", "GP", \
+	"sz", \
+	"Enable output file splitting and define split size. The parameter" \
+	" 'sz' is a floating point number followed by an optional unit factor" \
+	" (one of 'cb' [=1] or  'kmgtpe' [base=1000] or 'KMGTPE' [base=1024])." \
+	" The default unit is 'G' (GiB)." )
+
+#:def_opt( "OVERWRITE", "o|overwrite", "G", \
+	"", \
+	"Overwrite already existing files." )
 
 
 ##

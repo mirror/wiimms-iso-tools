@@ -12,18 +12,12 @@ WIT_LONG	= Wiimms ISO Tool
 WWT_SHORT	= wwt
 WWT_LONG	= Wiimms WBFS Tool
 
-VERSION		= 0.48b
-PREV_VERSION	= 0.47a
-PREV_REVISION	= 1106
+VERSION		= 0.49a
+PREV_VERSION	= 0.48a
+PREV_REVISION	= 1145
 
 MIPSEL_RELEASE	= 0.44a-r974
 POWERPC_RELEASE	= 0.44a-r974
-
-ifeq ($(TERM),cygwin)
-SYSTEM		:= cygwin
-else
-SYSTEM		= $(shell test -x ./wit && ./wit version --long | awk -F= '$$1=="system" {print $$2}')
-endif
 
 DUMMY		:= $(shell $(SHELL) ./setup.sh)
 include Makefile.setup
@@ -245,7 +239,7 @@ ui : gen-ui
 # specific rules in alphabetic order
 
 .PHONY : all
-all: $(ALL_TOOLS)
+all: $(ALL_TOOLS) $(INSTALL_SCRIPTS)
 
 .PHONY : all+
 all+: clean+ all distrib
@@ -391,12 +385,12 @@ flags:
 #--------------------------
 
 .PHONY : install
-install: all install.sh
+install: all
 	@chmod a+x install.sh
 	@./install.sh --make
 
 .PHONY : install+
-install+: clean+ all $(INSTALL_SCRIPTS)
+install+: clean+ all
 	@chmod a+x install.sh
 	@./install.sh --make
 
@@ -507,6 +501,12 @@ gen-titles:
 #
 #--------------------------
 
+.PHONY : tools
+tools: $(ALL_TOOLS)
+
+#
+#--------------------------
+
 %.wbfs: wwt
 	@echo "***  create $@, $(WBFS_SIZE)G, add smallest $(WBFS_COUNT) ISOs"
 	@rm -f $@
@@ -586,24 +586,28 @@ help:
 	@echo  ""
 	@echo  "$(DATE) $(TIME) - $(VERSION) - svn r$(REVISION):$(REVISION_NEXT)"
 	@echo  ""
-	@echo  " make		compile all tools (nearly same as make all)"
-	@echo  " make all	make all tools"
-	@echo  " make all+	clean & make distrib"
-	@echo  " make all++	clean & make really all"
-	@echo  " make tool	compile only the named 'tool'"
+	@echo  " make		:= make all"
+	@echo  " make all	make all tools and install scripts"
+	@echo  " make all+	:= make clean+ all distrib"
+	@echo  " make all++	:= make clean+ all titles distrib"
+	@echo  " make _tool_	compile only the named '_tool_' (wit,wwt,...)"
+	@echo  " make tools	make all tools"
+	@echo  ""
 	@echo  " make clean	remove all output files"
-	@echo  " make clean+	make clean & rm test files & rm template output"
+	@echo  " make clean+	make clean & rm test_files & rm template_output"
 	@echo  ""
 	@echo  " make debug	enable '-DDEBUG'"
 	@echo  " make test	enable '-DTEST'"
 	@echo  " make testtrace	enable '-DTESTTRACE'"
 	@echo  " make flags	print DEFINES, CFLAGS and LDFLAGS"
 	@echo  ""
-	@echo  " make chmod	change mode of files"
-	@echo  " make distrib	make all & build $(DISTRIB_FILE)"
 	@echo  " make doc	generate doc files from their templates"
-	@echo  " make install	copy tools to $(INSTALL_PATH)"
+	@echo  " make distrib	make all & build $(DISTRIB_FILE)"
 	@echo  " make titles	get titles from $(URI_TITLES)"
+	@echo  " make install	make all & copy tools to $(INSTALL_PATH)"
+	@echo  " make install+	make clean+ all & copy tools to $(INSTALL_PATH)"
+	@echo  ""
+	@echo  " make chmod	change mode of files"
 	@echo  " make version	generate file 'version.h'"
 	@echo  " make %.wbfs	gen %.wbfs, $(WBFS_SIZE)G, add smallest $(WBFS_COUNT) ISOs"
 	@echo  " make wbfs	gen $(WBFS_FILE), $(WBFS_SIZE)G, add smallest $(WBFS_COUNT) ISOs"

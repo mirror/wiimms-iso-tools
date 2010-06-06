@@ -205,12 +205,12 @@ typedef enum enumOptionsBit
 	OB_GRP_TIME		= OB_GRP_XTIME
 				| OB_TIME,
 
-	OB_GRP_PATCH		= OB_ENC
+	OB_GRP_PATCH		= OB_ID
+				| OB_NAME
+				| OB_MODIFY
 				| OB_REGION
 				| OB_IOS
-				| OB_ID
-				| OB_NAME
-				| OB_MODIFY,
+				| OB_ENC,
 
 	OB_CMD_VERSION		= OB_SECTIONS
 				| OB_LONG,

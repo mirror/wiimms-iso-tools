@@ -85,16 +85,42 @@ static enumError gen_wdf ( ccp fname )
     WriteBlock(&sf,'d',0x80,0x10);
     WriteBlock(&sf,'d',0x30,0x20);
 
-    stat = TermWriteWDF(&sf);
-    if (stat)
-	goto abort;
-
     return CloseSF(&sf,0);
 
  abort:
     CloseSF(&sf,0);
     unlink(fname);
     return stat;
+}
+
+//
+///////////////////////////////////////////////////////////////////////////////
+
+static enumError test_zero_wdf()
+{
+    static char fname1[] = "compare.wdf.tmp";
+    static char fname2[] = "zero.wdf.tmp";
+
+    gen_wdf(fname1);
+    gen_wdf(fname2);
+
+    SuperFile_t sf;
+    InitializeSF(&sf);
+    enumError err = OpenSF(&sf,fname2,true,true);
+    if (err)
+	goto abort;
+
+    WriteZeroSF(&sf,0x38,0x40);
+    WriteZeroSF(&sf,0x0a,0x28);
+    TRACE("########## BEGIN ##########\n");
+    WriteZeroSF(&sf,0x8c,0x80);
+    TRACE("########## END ##########\n");
+
+    return CloseSF(&sf,0);
+
+ abort:
+    CloseSF(&sf,0);
+    return err;
 }
 
 //
@@ -720,6 +746,7 @@ enum
 static const CommandTab_t CommandTab[] =
 {
 	{ CMD_HELP,		"HELP",		"?",		0 },
+	{ CMD_TEST,		"TEST",		"T",		0 },
 
 	{ CMD_MATCH_PATTERN,	"MATCH",	0,		0 },
 	{ CMD_OPEN_PARTITION,	"OPENPART",	"OPART",	0 },
@@ -773,6 +800,8 @@ int test ( int argc, char ** argv )
     //test_create_sparse_file();
     //test_splitted_file();
 
+    return test_zero_wdf();
+
     return 0;
 }
 
@@ -804,7 +833,7 @@ int main ( int argc, char ** argv )
     switch(cmd_ct->id)
     {
 	case CMD_HELP:			help_exit(); break;
-	case CMD_TEST:			test(argc,argv); break;
+	case CMD_TEST:			return test(argc,argv); break;
 
 	case CMD_MATCH_PATTERN:		test_match_pattern(argc,argv); break;
 	case CMD_OPEN_PARTITION:	test_open_partition(argc,argv); break;

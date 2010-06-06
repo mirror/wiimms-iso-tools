@@ -19,6 +19,8 @@ typedef enumError (*ReadFunc)
 typedef enumError (*WriteFunc)
 	( struct SuperFile_t * sf, off_t off, const void * buf, size_t count );
 
+typedef enumError (*ZeroFunc)
+	( struct SuperFile_t * sf, off_t off, size_t count );
 
 //
 ///////////////////////////////////////////////////////////////////////////////
@@ -31,6 +33,7 @@ typedef struct IOData_t
 	ReadFunc  read_func;		// read function
 	WriteFunc write_func;		// write function
 	WriteFunc write_sparse_func;	// sparse write function
+	ZeroFunc  write_zero_func;	// zero data write function
 
 } IOData_t;
 
@@ -93,11 +96,8 @@ typedef struct SuperFile_t
 	MemMap_t modified_list;		// sections that is modified while
 					// reading data. This data should
 					// be rewritten to the destination
-					// bofore closing the files.
-
-	// patching support
-
-	struct Patch_t * patch;		// patching data
+					// before closing the files.
+	bool merge_mode;		// enable merge mode
 
 } SuperFile_t;
 
@@ -147,27 +147,35 @@ int SubstFileNameBuf ( char * fname, size_t fname_size,
 		SuperFile_t * fi, ccp f_name, ccp fo_fname, enumOFT fo_oft );
 
 // main read and write functions
+
+enumError ReadZero	( SuperFile_t * sf, off_t off, void * buf, size_t count );
 enumError ReadSF	( SuperFile_t * sf, off_t off, void * buf, size_t count );
 enumError ReadISO	( SuperFile_t * sf, off_t off, void * buf, size_t count );
 enumError ReadWBFS	( SuperFile_t * sf, off_t off, void * buf, size_t count );
+
 enumError WriteSF	( SuperFile_t * sf, off_t off, const void * buf, size_t count );
 enumError WriteSparseSF	( SuperFile_t * sf, off_t off, const void * buf, size_t count );
 enumError WriteISO	( SuperFile_t * sf, off_t off, const void * buf, size_t count );
 enumError WriteSparseISO( SuperFile_t * sf, off_t off, const void * buf, size_t count );
 enumError WriteWBFS	( SuperFile_t * sf, off_t off, const void * buf, size_t count );
+
+enumError WriteZeroSF	( SuperFile_t * sf, off_t off, size_t count );
+enumError WriteZeroISO	( SuperFile_t * sf, off_t off, size_t count );
+enumError WriteZeroWBFS	( SuperFile_t * sf, off_t off, size_t count );
+
 enumError SetSizeSF	( SuperFile_t * sf, off_t off );
 
 // standard read and write wrappers
-enumError ReadWrapperSF		( SuperFile_t * sf, off_t off, void * buf, size_t count );
-enumError WriteWrapperSF	( SuperFile_t * sf, off_t off, const void * buf, size_t count );
-enumError WriteSparseWrapperSF	( SuperFile_t * sf, off_t off, const void * buf, size_t count );
+
+enumError ReadSwitchSF		( SuperFile_t * sf, off_t off, void * buf, size_t count );
+enumError WriteSwitchSF		( SuperFile_t * sf, off_t off, const void * buf, size_t count );
+enumError WriteSparseSwitchSF	( SuperFile_t * sf, off_t off, const void * buf, size_t count );
+enumError WriteZeroSwitchSF	( SuperFile_t * sf, off_t off, size_t count );
 
 // libwbfs read and write wrappers
-int WrapperReadISO	  ( void * p_sf, u32 offset, u32 count, void * iobuf );
+
 int WrapperReadSF	  ( void * p_sf, u32 offset, u32 count, void * iobuf );
-int WrapperWriteDirectISO ( void * p_sf, u32 lba,    u32 count, void * iobuf );
-int WrapperWriteSparseISO ( void * p_sf, u32 lba,    u32 count, void * iobuf );
-int WrapperWriteDirectSF  ( void * p_sf, u32 lba,    u32 count, void * iobuf );
+int WrapperWriteSF	  ( void * p_sf, u32 lba,    u32 count, void * iobuf );
 int WrapperWriteSparseSF  ( void * p_sf, u32 lba,    u32 count, void * iobuf );
 
 enumError SparseHelper

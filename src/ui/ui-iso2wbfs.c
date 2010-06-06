@@ -39,7 +39,7 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 
     {	OPT_VERBOSE, 'v', "verbose",
 	0,
-	"Be verbose -> program name and processed files."
+	"Be verbose: Print program name and log processed files."
     },
 
     {	OPT_PROGRESS, 'P', "progress",
@@ -234,8 +234,8 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	"iso2wbfs",
 	0,
 	"iso2wbfs [option]... files...",
-	"Convert Wii ISO images of any format into WBFS files and split at 4"
-	" GB. This tool is obsolete, use wit instead.",
+	"Convert Wii ISO images of any format into WBFS files and split the"
+	" output at 4 GB. This tool is obsolete, use wit instead.",
 	16,
 	option_tab_tool
     },

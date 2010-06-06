@@ -94,49 +94,51 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 	"Abbreviation of --psel=data --pmode=none --files==sneek."
     },
 
+    {	OPT_ID, 0, "id",
+	"id",
+	"This patching option changes the ID of the disc to the given"
+	" parameter. 1 to 6 characters are expected. Only defined characters"
+	" not equal '.' are modified. The disc header, boot.bin, ticket.bin"
+	" and tmd.bin are  objects to modify. The option --modify= selects the"
+	" objects."
+    },
+
+    {	OPT_NAME, 0, "name",
+	"name",
+	"This patching option changes the name (disc title) of the disc to the"
+	" given parameter. Up to 63 characters are expected. The disc header"
+	" and boot.bin are objects to modify. The option --modify= selects the"
+	" objects."
+    },
+
+    {	OPT_MODIFY, 0, "modify",
+	"list",
+	" This patching option expects a comma separated list of the following"
+	" keywords (case ignored) as parameter: NONE, DISC, BOOT, TICKET, TMD,"
+	" WBFS, ALL and AUTO (default).\n"
+	" All keyword can be prefixed by '+' to enable that opton, by a '-' to"
+	" disable it or by a '=' to enable that option and disable all others."
+    },
+
+    {	OPT_REGION, 0, "region",
+	"region",
+	"This patching option defines the region of the disc.  The region is"
+	" one of JAPAN, USA, EUROPE, KOREA, FILE or AUTO (default). The case"
+	" of the keywords is ignored. Unsigned numbers are also accepted."
+    },
+
+    {	OPT_IOS, 0, "ios",
+	"ios",
+	"This patching option defines the system version (IOS to load) within"
+	" TMD. The format is 'HIGH:LOW' or 'HIGH-LOW' or 'LOW'. If only LOW is"
+	" set than HIGH is assumed as 1 (standard IOS)."
+    },
+
     {	OPT_ENC, 0, "enc",
 	"encoding",
 	"Define the encoding mode. The mode is one of NONE, HASHONLY, DECRYPT,"
 	" ENCRYPT, SIGN or AUTO. The case of the keywords is ignored. The"
 	" default mode is 'AUTO'."
-    },
-
-    {	OPT_REGION, 0, "region",
-	"region",
-	"Define the region of the disc.  The region is one of JAPAN, USA,"
-	" EUROPE, KOREA, FILE or AUTO (default). The case of the keywords is"
-	" ignored. Unsigned numbers are also accepted."
-    },
-
-    {	OPT_IOS, 0, "ios",
-	"ios",
-	"Define the system version (IOS to load) within TMD.  The format is"
-	" 'HIGH:LOW' or 'HIGH-LOW' or 'LOW'. If only LOW is set than HIGH is"
-	" assumed as 1 (standard IOS)."
-    },
-
-    {	OPT_ID, 0, "id",
-	"id",
-	"Change the ID of the disc to the given parameter. 1 to 6 characters"
-	" are expected. Only defined characters not equal '.' are modified."
-	" The disc header, boot.bin, ticket.bin and tmd.bin are  objects to"
-	" modify. The option --modify= selects the objects."
-    },
-
-    {	OPT_NAME, 0, "name",
-	"name",
-	"Change the name (disc title) of the disc to the given parameter. Up"
-	" to 63 characters are expected. The disc header and boot.bin are"
-	" objects to modify. The option --modify= selects the objects."
-    },
-
-    {	OPT_MODIFY, 0, "modify",
-	"list",
-	" The parameter is a comma separated list of the following keywords,"
-	" case is ignored: NONE, DISC, BOOT, TICKET, TMD, WBFS, ALL and AUTO"
-	" (default).\n"
-	" All keyword can be prefixed by '+' to enable that opton, by a '-' to"
-	" disable it or by a '=' to enable that option and disable all others."
     },
 
     {	OPT_DEST, 'd', "dest",
@@ -273,7 +275,7 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 	"list",
 	"Define the sort mode for lists. The parameter is a comma separated"
 	" list of the following keywords: NONE, NAME, TITLE, FILE, SIZE,"
-	" OFFSET, REGIAN, WBFS, NPART, ITIME, MTIME, CTIME, ATIME, TIME ="
+	" OFFSET, REGION, WBFS, NPART, ITIME, MTIME, CTIME, ATIME, TIME ="
 	" DATE, DEFAULT, ASCENDING, DESCENDING = REVERSE."
     },
 
@@ -322,9 +324,9 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 
     {	OPT_LOGGING, 'L', "logging",
 	0,
-	"Special logging for composing Wii discs. If set at least once the"
-	" disc layout is printed. If set at least twice the partition layout"
-	" is printed too."
+	"Special logging for patching and composing Wii discs. If set at least"
+	" once the disc layout is printed. If set at least twice the partition"
+	" layout is printed too."
     },
 
     {	OPT_ESC, 'E', "esc",
@@ -568,12 +570,12 @@ const struct option OptionLong[] =
 	{ "pmode",		1, 0, GO_PMODE },
 	{ "sneek",		0, 0, GO_SNEEK },
 	{ "hook",		0, 0, GO_HOOK },
-	{ "enc",		1, 0, GO_ENC },
-	{ "region",		1, 0, GO_REGION },
-	{ "ios",		1, 0, GO_IOS },
 	{ "id",			1, 0, GO_ID },
 	{ "name",		1, 0, GO_NAME },
 	{ "modify",		1, 0, GO_MODIFY },
+	{ "region",		1, 0, GO_REGION },
+	{ "ios",		1, 0, GO_IOS },
+	{ "enc",		1, 0, GO_ENC },
 	{ "dest",		1, 0, 'd' },
 	{ "DEST",		1, 0, 'D' },
 	{ "split",		0, 0, 'z' },
@@ -677,12 +679,12 @@ const u8 OptionIndex[OPT_INDEX_SIZE] =
 	/*89*/	OPT_PMODE,
 	/*8a*/	OPT_SNEEK,
 	/*8b*/	OPT_HOOK,
-	/*8c*/	OPT_ENC,
-	/*8d*/	OPT_REGION,
-	/*8e*/	OPT_IOS,
-	/*8f*/	OPT_ID,
-	/*90*/	OPT_NAME,
-	/*91*/	OPT_MODIFY,
+	/*8c*/	OPT_ID,
+	/*8d*/	OPT_NAME,
+	/*8e*/	OPT_MODIFY,
+	/*8f*/	OPT_REGION,
+	/*90*/	OPT_IOS,
+	/*91*/	OPT_ENC,
 	/*92*/	OPT_FST,
 	/*93*/	OPT_ITIME,
 	/*94*/	OPT_MTIME,
@@ -872,12 +874,12 @@ static const InfoOption_t * option_tab_cmd_DUMP[] =
 	OptionInfo + OPT_NONE, // separator
 
 	OptionInfo + OPT_LOGGING,
-	OptionInfo + OPT_ENC,
-	OptionInfo + OPT_REGION,
-	OptionInfo + OPT_IOS,
 	OptionInfo + OPT_ID,
 	OptionInfo + OPT_NAME,
 	OptionInfo + OPT_MODIFY,
+	OptionInfo + OPT_REGION,
+	OptionInfo + OPT_IOS,
+	OptionInfo + OPT_ENC,
 	&option_cmd_DUMP_LONG,
 
 	0
@@ -1288,12 +1290,12 @@ static const InfoOption_t * option_tab_cmd_EXTRACT[] =
 	OptionInfo + OPT_DEST,
 	OptionInfo + OPT_DEST2,
 	OptionInfo + OPT_ESC,
-	OptionInfo + OPT_ENC,
-	OptionInfo + OPT_REGION,
-	OptionInfo + OPT_IOS,
 	OptionInfo + OPT_ID,
 	OptionInfo + OPT_NAME,
 	OptionInfo + OPT_MODIFY,
+	OptionInfo + OPT_REGION,
+	OptionInfo + OPT_IOS,
+	OptionInfo + OPT_ENC,
 	OptionInfo + OPT_PRESERVE,
 	OptionInfo + OPT_OVERWRITE,
 
@@ -1347,12 +1349,12 @@ static const InfoOption_t * option_tab_cmd_COPY[] =
 	OptionInfo + OPT_DEST,
 	OptionInfo + OPT_DEST2,
 	OptionInfo + OPT_ESC,
-	OptionInfo + OPT_ENC,
-	OptionInfo + OPT_REGION,
-	OptionInfo + OPT_IOS,
 	OptionInfo + OPT_ID,
 	OptionInfo + OPT_NAME,
 	OptionInfo + OPT_MODIFY,
+	OptionInfo + OPT_REGION,
+	OptionInfo + OPT_IOS,
+	OptionInfo + OPT_ENC,
 	OptionInfo + OPT_PRESERVE,
 	OptionInfo + OPT_OVERWRITE,
 	OptionInfo + OPT_UPDATE,
@@ -1414,12 +1416,12 @@ static const InfoOption_t * option_tab_cmd_SCRUB[] =
 	OptionInfo + OPT_SPLIT,
 	OptionInfo + OPT_SPLIT_SIZE,
 	OptionInfo + OPT_PRESERVE,
-	OptionInfo + OPT_ENC,
-	OptionInfo + OPT_REGION,
-	OptionInfo + OPT_IOS,
 	OptionInfo + OPT_ID,
 	OptionInfo + OPT_NAME,
 	OptionInfo + OPT_MODIFY,
+	OptionInfo + OPT_REGION,
+	OptionInfo + OPT_IOS,
+	OptionInfo + OPT_ENC,
 	OptionInfo + OPT_WDF,
 	OptionInfo + OPT_ISO,
 	OptionInfo + OPT_CISO,
@@ -1464,12 +1466,12 @@ static const InfoOption_t * option_tab_cmd_EDIT[] =
 
 	OptionInfo + OPT_NONE, // separator
 
-	OptionInfo + OPT_ENC,
-	OptionInfo + OPT_REGION,
-	OptionInfo + OPT_IOS,
 	OptionInfo + OPT_ID,
 	OptionInfo + OPT_NAME,
 	OptionInfo + OPT_MODIFY,
+	OptionInfo + OPT_REGION,
+	OptionInfo + OPT_IOS,
+	OptionInfo + OPT_ENC,
 
 	0
 };
@@ -1812,7 +1814,7 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	"LIST-L",
 	"LL",
 	"wit LIST-L [source]...",
-	"List all found ISO files. Same as 'wit LIST --long'.",
+	"List all found ISO files. Same as 'LIST --long'.",
 	23,
 	option_tab_cmd_LIST_L
     },
@@ -1823,7 +1825,7 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	"LIST-LL",
 	"LLL",
 	"wit LIST-LL [source]...",
-	"List all found ISO files. Same as 'wit LIST --long --long'.",
+	"List all found ISO files. Same as 'LIST --long --long'.",
 	23,
 	option_tab_cmd_LIST_LL
     },
@@ -1834,7 +1836,7 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	"LIST-LLL",
 	"LLLL",
 	"wit LIST-LLL [source]...",
-	"List all found ISO files. Same as 'wit LIST --long --long  --long'.",
+	"List all found ISO files. Same as 'LIST --long --long --long'.",
 	23,
 	option_tab_cmd_LIST_LLL
     },
@@ -1856,7 +1858,7 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	"ILIST-L",
 	"ILL",
 	"wit ILIST-L [source]...",
-	"List all files of all discs. Same as 'wit ILIST --long'.",
+	"List all files of all discs. Same as 'ILIST --long'.",
 	18,
 	option_tab_cmd_ILIST_L
     },
@@ -1867,7 +1869,7 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	"ILIST-LL",
 	"ILLL",
 	"wit ILIST-LL [source]...",
-	"List all files of all discs. Same as 'wit ILIST --long --long'.",
+	"List all files of all discs. Same as 'ILIST --long --long'.",
 	18,
 	option_tab_cmd_ILIST_LL
     },
@@ -1880,7 +1882,7 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	"wit DIFF source dest\n"
 	"wit DIFF [-s path]... [-r path]... [source]... [-d|-D] dest",
 	"DIFF compares ISO images in  scrubbed or raw mode or on file level."
-	" DIFF works like wit COPY but comparing source and destination.",
+	" DIFF works like COPY but comparing source and destination.",
 	32,
 	option_tab_cmd_DIFF
     },

@@ -57,7 +57,7 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 
     {	OPT_LONG, 'l', "long",
 	0,
-	"Obsolete alternative for --chunk"
+	"Alternative for --chunk: Print table with chunk header."
     },
 
     {0,0,0,0,0} // OPT__N_TOTAL == 9

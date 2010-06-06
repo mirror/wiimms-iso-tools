@@ -60,14 +60,6 @@ void FreeSF ( SuperFile_t * sf )
 	sf->fst = 0;
     }
 
-    if (sf->patch)
-    {
-	TRACE("#S# free patch\n");
-	ResetPatch(sf->patch);
-	free(sf->patch);
-	sf->patch = 0;
-    }
-
     ResetMemMap(&sf->modified_list);
 }
 
@@ -184,36 +176,42 @@ enumOFT SetupIOD ( SuperFile_t * sf, enumOFT force, enumOFT def )
 	    sf->iod.read_func		= ReadISO;
 	    sf->iod.write_func		= WriteISO;
 	    sf->iod.write_sparse_func	= WriteSparseISO;
+	    sf->iod.write_zero_func	= WriteZeroISO;
 	    break;
 
 	case OFT_WDF:
 	    sf->iod.read_func		= ReadWDF;
 	    sf->iod.write_func		= WriteWDF;
 	    sf->iod.write_sparse_func	= WriteSparseWDF;
+	    sf->iod.write_zero_func	= WriteZeroWDF;
 	    break;
 
 	case OFT_CISO:
 	    sf->iod.read_func		= ReadCISO;
 	    sf->iod.write_func		= WriteCISO;
 	    sf->iod.write_sparse_func	= WriteSparseCISO;
+	    sf->iod.write_zero_func	= WriteZeroCISO;
 	    break;
 
 	case OFT_WBFS:
 	    sf->iod.read_func		= ReadWBFS;
 	    sf->iod.write_func		= WriteWBFS;
 	    sf->iod.write_sparse_func	= WriteWBFS;		// no sparse support
+	    sf->iod.write_zero_func	= WriteZeroWBFS;
 	    break;
 
 	case OFT_FST:
 	    sf->iod.read_func		= ReadFST;
-	    sf->iod.write_func		= WriteWrapperSF;	// not supported
-	    sf->iod.write_sparse_func	= WriteSparseWrapperSF;	// not supported
+	    sf->iod.write_func		= WriteSwitchSF;	// not supported
+	    sf->iod.write_sparse_func	= WriteSparseSwitchSF;	// not supported
+	    sf->iod.write_zero_func	= WriteZeroSwitchSF;	// not supported
 	    break;
 
 	default:
-	    sf->iod.read_func		= ReadWrapperSF;
-	    sf->iod.write_func		= WriteWrapperSF;
-	    sf->iod.write_sparse_func	= WriteSparseWrapperSF;
+	    sf->iod.read_func		= ReadSwitchSF;
+	    sf->iod.write_func		= WriteSwitchSF;
+	    sf->iod.write_sparse_func	= WriteSparseSwitchSF;
+	    sf->iod.write_zero_func	= WriteZeroSwitchSF;
 	    break;
     }
     sf->std_read_func = sf->iod.read_func;
@@ -691,6 +689,16 @@ enumError SparseHelper
 ///////////////		 standard read and write wrappers	///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
+enumError ReadZero
+	( SuperFile_t * sf, off_t off, void * buf, size_t count )
+{
+    // dummy read function: fill with zero
+    memset(buf,0,count);
+    return ERR_OK;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
 enumError ReadSF
 	( SuperFile_t * sf, off_t off, void * buf, size_t count )
 {
@@ -720,9 +728,18 @@ enumError WriteSparseSF
 }
 
 ///////////////////////////////////////////////////////////////////////////////
+
+enumError WriteZeroSF ( SuperFile_t * sf, off_t off, size_t count )
+{
+    ASSERT(sf);
+    ASSERT(sf->iod.write_zero_func);
+    return sf->iod.write_zero_func(sf,off,count);
+}
+
+///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-enumError ReadWrapperSF
+enumError ReadSwitchSF
 	( SuperFile_t * sf, off_t off, void * buf, size_t count )
 {
     ASSERT(sf);
@@ -739,7 +756,7 @@ enumError ReadWrapperSF
 
 ///////////////////////////////////////////////////////////////////////////////
 
-enumError WriteWrapperSF
+enumError WriteSwitchSF
 	( SuperFile_t * sf, off_t off, const void * buf, size_t count )
 {
     ASSERT(sf);
@@ -756,7 +773,7 @@ enumError WriteWrapperSF
 
 ///////////////////////////////////////////////////////////////////////////////
 
-enumError WriteSparseWrapperSF
+enumError WriteSparseSwitchSF
 	( SuperFile_t * sf, off_t off, const void * buf, size_t count )
 {
     ASSERT(sf);
@@ -767,6 +784,22 @@ enumError WriteSparseWrapperSF
 	case OFT_WDF:	return WriteSparseWDF(sf,off,buf,count);
 	case OFT_CISO:	return WriteSparseCISO(sf,off,buf,count);
 	case OFT_WBFS:	return WriteWBFS(sf,off,buf,count); // no sparse support
+	default:	return ERROR0(ERR_INTERNAL,0);
+    }
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+enumError WriteZeroSwitchSF ( SuperFile_t * sf, off_t off, size_t count )
+{
+    ASSERT(sf);
+    DASSERT(0); // should never called
+    switch(sf->iod.oft)
+    {
+	case OFT_PLAIN:	return WriteZeroISO(sf,off,count);
+	case OFT_WDF:	return WriteZeroWDF(sf,off,count);
+	case OFT_CISO:	return WriteZeroCISO(sf,off,count);
+	case OFT_WBFS:	return WriteZeroWBFS(sf,off,count);
 	default:	return ERROR0(ERR_INTERNAL,0);
     }
 }
@@ -796,6 +829,25 @@ enumError WriteSparseISO
 	( SuperFile_t * sf, off_t off, const void * buf, size_t count )
 {
     return SparseHelper(sf,off,buf,count,WriteISO,0);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+enumError WriteZeroISO ( SuperFile_t * sf, off_t off, size_t size )
+{
+    // [2do] [zero] optimization
+
+    while ( size > 0 )
+    {
+	const size_t size1 = size < sizeof(zerobuf) ? size : sizeof(zerobuf);
+	const enumError err = WriteISO(sf,off,zerobuf,size1);
+	if (err)
+	    return err;
+	off  += size1;
+	size -= size1;
+    }
+
+    return ERR_OK;
 }
 
 //
@@ -937,92 +989,55 @@ enumError WriteWBFS
     return ERR_OK;
 }
 
+///////////////////////////////////////////////////////////////////////////////
+
+enumError WriteZeroWBFS ( SuperFile_t * sf, off_t off, size_t size )
+{
+    // [2do] [zero] optimization
+
+    while ( size > 0 )
+    {
+	const size_t size1 = size < sizeof(zerobuf) ? size : sizeof(zerobuf);
+	const enumError err = WriteWBFS(sf,off,zerobuf,size1);
+	if (err)
+	    return err;
+	off  += size1;
+	size -= size1;
+    }
+
+    return ERR_OK;
+}
 
 //
 ///////////////////////////////////////////////////////////////////////////////
-///////////////         SuperFile_t: read + write wrapper       ///////////////
+///////////////		SuperFile: read + write wrapper		///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-int WrapperReadISO ( void * sf, u32 offset, u32 count, void * iobuf )
+int WrapperReadSF ( void * p_sf, u32 offset, u32 count, void * iobuf )
 {
     if (SIGINT_level>1)
 	return ERR_INTERRUPT;
 
- #if defined(DEBUG)
-    {
-	TRACE("\n");
-	SuperFile_t * W = (SuperFile_t *)sf;
-	const off_t off = (off_t)offset << 2;
-	TRACE(TRACE_RDWR_FORMAT, "WrapperReadISO()",
-		W->f.fd, W->f.fp, (u64)off, (u64)off+count, (size_t)count, "" );
-    }
- #endif
-    return ReadSF(
-		(SuperFile_t*)sf,
-		(off_t)offset << 2,
-		iobuf,
-		count );
+    SuperFile_t * sf = (SuperFile_t *)p_sf;
+    DASSERT(sf);
+    DASSERT(sf->iod.read_func);
+
+    return sf->iod.read_func( sf, (off_t)offset << 2, iobuf, count );
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 
-int WrapperReadSF ( void * sf, u32 offset, u32 count, void * iobuf )
+int WrapperWriteSF ( void * p_sf, u32 lba, u32 count, void * iobuf )
 {
     if (SIGINT_level>1)
 	return ERR_INTERRUPT;
 
-    return ReadSF(
-		(SuperFile_t *)sf,
-		(off_t)offset << 2,
-		iobuf,
-		count );
-}
+    SuperFile_t * sf = (SuperFile_t *)p_sf;
+    DASSERT(sf);
+    DASSERT(sf->iod.write_func);
 
-///////////////////////////////////////////////////////////////////////////////
-
-int WrapperWriteDirectISO ( void * p_sf, u32 lba, u32 count, void * iobuf )
-{
-    if (SIGINT_level>1)
-	return ERR_INTERRUPT;
-
-    SuperFile_t *sf = (SuperFile_t *)p_sf;
-
-    count *= WII_SECTOR_SIZE;
-    const off_t off = (off_t)lba * WII_SECTOR_SIZE;
-    const off_t end = off + count;
-    if ( sf->file_size < end )
-	sf->file_size = end;
-
-    return WriteAtF( &sf->f, off, iobuf, count );
-}
-
-///////////////////////////////////////////////////////////////////////////////
-
-int WrapperWriteSparseISO ( void * p_sf, u32 lba, u32 count, void * iobuf )
-{
-    if (SIGINT_level>1)
-	return ERR_INTERRUPT;
-
-    SuperFile_t *sf = (SuperFile_t *)p_sf;
-
-    count *= WII_SECTOR_SIZE;
-    const off_t off = (off_t)lba * WII_SECTOR_SIZE;
-    const off_t end = off + count;
-    if ( sf->file_size < end )
-	sf->file_size = end;
-
-    return WriteSparseAtF( &sf->f, off, iobuf, count );
-}
-
-///////////////////////////////////////////////////////////////////////////////
-
-int WrapperWriteDirectSF ( void * p_sf, u32 lba, u32 count, void * iobuf )
-{
-    if (SIGINT_level>1)
-	return ERR_INTERRUPT;
-
-    return WriteSF(
-		(SuperFile_t *)p_sf,
+    return sf->iod.write_func(
+		sf,
 		(off_t)lba * WII_SECTOR_SIZE,
 		iobuf,
 		count * WII_SECTOR_SIZE );
@@ -1035,8 +1050,12 @@ int WrapperWriteSparseSF ( void * p_sf, u32 lba, u32 count, void * iobuf )
     if (SIGINT_level>1)
 	return ERR_INTERRUPT;
 
-    return WriteSparseSF(
-		(SuperFile_t *)p_sf,
+    SuperFile_t * sf = (SuperFile_t *)p_sf;
+    DASSERT(sf);
+    DASSERT(sf->iod.write_sparse_func);
+
+    return sf->iod.write_sparse_func(
+		sf,
 		(off_t)lba * WII_SECTOR_SIZE,
 		iobuf,
 		count * WII_SECTOR_SIZE );

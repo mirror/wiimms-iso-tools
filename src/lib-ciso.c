@@ -416,6 +416,25 @@ enumError WriteSparseCISO
     return SparseHelper(sf,off,buf,count,WriteCISO,CISO_WR_MIN_HOLE_SIZE);
 }
 
+///////////////////////////////////////////////////////////////////////////////
+
+enumError WriteZeroCISO ( SuperFile_t * sf, off_t off, size_t size )
+{
+    // [2do] [zero] optimization
+
+    while ( size > 0 )
+    {
+	const size_t size1 = size < sizeof(zerobuf) ? size : sizeof(zerobuf);
+	const enumError err = WriteCISO(sf,off,zerobuf,size1);
+	if (err)
+	    return err;
+	off  += size1;
+	size -= size1;
+    }
+
+    return ERR_OK;
+}
+
 //
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////                          END                    ///////////////

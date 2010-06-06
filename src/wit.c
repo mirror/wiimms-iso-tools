@@ -1373,11 +1373,13 @@ enumError exec_edit ( SuperFile_t * fi, Iterator_t * it )
 	return ERR_OK;
     fflush(0);
 
+ #if 0 // [2do] [merge]
     if ( !fi->patch || !fi->patch->map_used )
     {
 	printf( "%s: NOTHING TO EDIT: %s:%s\n", progname, oft_name[fi->iod.oft], fi->f.fname );
 	return ERR_OK;
     }
+ #endif
 
     if (testmode)
     {
@@ -1390,6 +1392,7 @@ enumError exec_edit ( SuperFile_t * fi, Iterator_t * it )
 
     enumError err = ERR_OK;
 
+ #if 0 // [2do] [merge]
     int imap;
     for ( imap = 0; imap < fi->patch->map_used; imap++ )
     {
@@ -1398,6 +1401,7 @@ enumError exec_edit ( SuperFile_t * fi, Iterator_t * it )
 	if (err)
 	    break;
     }
+ #endif
 
     if (!err)
 	err = RewriteModifiedSF(fi,fi,0);

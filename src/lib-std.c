@@ -60,7 +60,8 @@ ccp opt_clone			= 0;
  bool use_utf8			= true;
 #endif
 
-char iobuf[0x400000];		// global io buffer
+char       iobuf [0x400000];		// global io buffer
+const char zerobuf[0x40000] = {0};	// global zero buffer
 
 const char sep_79[80] =		//  79 * '-' + NULL
 	"----------------------------------------"
@@ -224,9 +225,6 @@ void SetupLib ( int argc, char ** argv, ccp p_progname, enumProgID prid )
     TRACE_SIZEOF(MemMap_t);
     TRACE_SIZEOF(ParamList_t);
     TRACE_SIZEOF(PartitionInfo_t);
-    TRACE_SIZEOF(Patch_t);
-    TRACE_SIZEOF(PatchItem_t);
-    TRACE_SIZEOF(PatchMap_t);
     TRACE_SIZEOF(PrintTime_t);
     TRACE_SIZEOF(RegionInfo_t);
     TRACE_SIZEOF(StringField_t);

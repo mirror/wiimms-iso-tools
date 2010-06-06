@@ -26,3 +26,7 @@ cat <<- ---EOT--- >Makefile.setup
 	DATE		:= ${tim[1]}
 	TIME		:= ${tim[2]}
 	---EOT---
+
+gcc system.c -o system.tmp && ./system.tmp >>Makefile.setup
+rm -f system.tmp
+

@@ -292,7 +292,7 @@ enumError SetupReadWDF ( SuperFile_t * sf )
     memcpy(&sf->wh,&wh,sizeof(sf->wh));
     sf->file_size	= sf->wh.file_size;
     sf->f.max_off	= sf->wh.chunk_off;
-    sf->max_virt_off	= sf->wh.data_size;
+    sf->max_virt_off	= sf->wh.file_size;
     SetupIOD(sf,OFT_WDF,OFT_WDF);
     SetupISOModifier(sf);
 
@@ -308,11 +308,9 @@ enumError SetupReadWDF ( SuperFile_t * sf )
 enumError ReadWDF ( SuperFile_t * sf, off_t off, void * buf, size_t count )
 {
     ASSERT(sf);
-    if (!sf->wc)
-	return ReadAtF(&sf->f,off,buf,count);
-
     ASSERT(sf->wc);
     ASSERT(sf->wc_used);
+
     TRACE("#W# -----\n");
     TRACE(TRACE_RDWR_FORMAT, "#W# ReadWDF()",
 		GetFD(&sf->f), GetFP(&sf->f), (u64)off, (u64)off+count, count, "" );
@@ -503,8 +501,7 @@ enumError TermWriteWDF ( SuperFile_t * sf )
 enumError WriteWDF ( SuperFile_t * sf, off_t off, const void * buf, size_t count )
 {
     ASSERT(sf);
-    if (!sf->wc)
-	return WriteAtF(&sf->f,off,buf,count);
+    ASSERT(sf->wc);
 
     TRACE("#W# -----\n");
     TRACE(TRACE_RDWR_FORMAT, "#W# WriteWDF()",
@@ -648,6 +645,80 @@ enumError WriteSparseWDF
 	( SuperFile_t * sf, off_t off, const void * buf, size_t count )
 {
     return SparseHelper(sf,off,buf,count,WriteWDF,WDF_MIN_HOLE_SIZE);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+enumError WriteZeroWDF ( SuperFile_t * sf, off_t off, size_t count )
+{
+    ASSERT(sf);
+    ASSERT(sf->wc);
+
+    TRACE("#W# -----\n");
+    TRACE(TRACE_RDWR_FORMAT, "#W# WriteZeroWDF()",
+		GetFD(&sf->f), GetFP(&sf->f), (u64)off, (u64)off+count, count,
+		off < sf->max_virt_off ? " <" : "" );
+    TRACE(" - off = %llx,%llx,%llx\n",
+		(u64)sf->f.file_off, (u64)sf->f.max_off, (u64)sf->max_virt_off);
+
+    if (!count)
+	return ERR_OK;
+
+    // adjust the file size
+    const off_t data_end = off + count;
+    if ( sf->file_size < data_end )
+	sf->file_size = data_end;
+
+    ASSERT( sf->wc_used > 0 );
+    const int used_m1 = sf->wc_used - 1;
+
+    if ( off >= sf->max_virt_off )
+	return ERR_OK;
+
+    // search chunk header with a binary search
+    WDF_Chunk_t * wc = sf->wc;
+    int beg = 0, end = used_m1;
+    ASSERT( beg <= end );
+    while ( beg < end )
+    {
+	int idx = (beg+end)/2;
+	wc = sf->wc + idx;
+	if ( off < wc->file_pos )
+	    end = idx-1;
+	else if ( idx < used_m1 && off >= wc[1].file_pos )
+	    beg = idx + 1;
+	else
+	    beg = end = idx;
+    }
+    wc = sf->wc + beg;
+
+    TRACE("#W#  - FOUND #%03d: off=%09llx ds=%llx, off=%09llx\n",
+	    beg, wc->file_pos, wc->data_size, (u64)off );
+    ASSERT( off >= wc->file_pos );
+    ASSERT( beg == used_m1 || off < wc[1].file_pos );
+
+    WDF_Chunk_t * last_wc = sf->wc + sf->wc_used;
+    for ( ; wc < last_wc || wc->file_pos < data_end; wc++ )
+    {
+	off_t end = wc->file_pos + wc->data_size;
+	TRACE("loop: wc=%llx,%llx,%llx off=%llx, end=%llx\n",
+	    wc->file_pos, wc->data_off, wc->data_size, off, end );
+	if ( off >= end )
+	    continue;
+
+	if ( off < wc->file_pos )
+	    off = wc->file_pos;
+	if ( end > data_end )
+	    end = data_end;
+	if ( off < end )
+	{
+	    const enumError err
+		= WriteZeroAtF( &sf->f, wc->data_off+(off-wc->file_pos), end-off );
+	    if (err)
+		return err;
+	}
+    }
+    return ERR_OK;
 }
 
 //

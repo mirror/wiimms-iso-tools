@@ -102,7 +102,8 @@ typedef enum enumModify
 
 	MODIFY__ALL	= 0x01f,  // modify all
 	MODIFY__AUTO	= 0x100,  // automatic mode
-	MODIFY__MASK	= MODIFY__ALL | MODIFY__AUTO,
+	MODIFY__ALWAYS	= 0x200,  // always set
+	MODIFY__MASK	= MODIFY__ALL | MODIFY__AUTO | MODIFY__ALWAYS,
 
 	MODIFY__ERROR	= -1, // hint: error while scanning
 	
@@ -120,102 +121,9 @@ extern ccp modify_name;
 int ScanOptId ( ccp arg );
 int ScanOptName ( ccp arg );
 
-bool PatchId ( void * id, int maxlen, enumModify condition );
+bool PatchId ( void * id, int skip, int maxlen, enumModify condition );
 bool CopyPatchedDiscId ( void * dest, const void * src );
 bool PatchName ( void * name, enumModify condition );
-
-//
-///////////////////////////////////////////////////////////////////////////////
-///////////////			patch structs			///////////////
-///////////////////////////////////////////////////////////////////////////////
-
-typedef enum enumPatchMode
-{
-	PATCHMD_ID,		// ??? [unused] patch ID, '.' -> leave data unchanged
-	PATCHMD_DATA,		// ??? [unused] copy data
-	PATCHMD_DATA_ALLOCED,	// ??? [unused] copy data, free data pointer
-	PATCHMD_DATA_FILE,	// ??? [unused] 'data' is a filename
-
-} enumPatchMode;
-
-///////////////////////////////////////////////////////////////////////////////
-
-typedef struct PatchItem_t
-{
-	// patch control
-
-	enumPatchMode pmode;		// patch mode
-	u32 offset;			// sector offset
-	u32 size;			// patch size
-	ccp comment;			// pointer to comment
-
-	// patch data
-
-	char * data;			// data or filename
-	u32 skip;			// skip first bytes of loaded files
-
-} PatchItem_t;
-
-///////////////////////////////////////////////////////////////////////////////
-
-typedef struct PatchMap_t
-{
-	u64 offset;			// disc offset
-	u32 size;			// block size
-	struct WiiFstPart_t * part;	// NULL or pointer to partition
-
-	PatchItem_t * item;		// first item of item list
-	u32 item_used;			// number of used elements in 'item'
-	u32 item_size;			// number of allocated elements in 'item'
-
-} PatchMap_t;
-
-///////////////////////////////////////////////////////////////////////////////
-
-typedef struct Patch_t
-{
-	PatchMap_t * map;		// first item of map list
-	u32 map_used;			// number of used elements in 'map'
-	u32 map_size;			// number of allocated elements in 'map'
-
-} Patch_t;
-
-///////////////////////////////////////////////////////////////////////////////
-
-void InitializePatch ( Patch_t * pat );
-void ResetPatch ( Patch_t * pat );
-void PrintPatch ( Patch_t * pat, FILE * f, int indent, int verbose );
-
-struct SuperFile_t;
-
-PatchItem_t * InsertDiscDataPM
-(
-	struct SuperFile_t * sf,
-	void * data,
-	u64 offset,
-	u32 size,
-	bool alloced
-);
-
-PatchItem_t * InsertPartDataPM
-(
-	struct SuperFile_t * sf,
-	struct PatchItem_t * part,
-	void * data,
-	u64 offset,
-	u32 size,
-	bool alloced
-);
-
-PatchItem_t * InsertPartFilePM
-(
-	struct SuperFile_t * sf,
-	struct PatchItem_t * part,
-	ccp path,
-	u64 offset,
-	u32 size,
-	bool alloced
-);
 
 //
 ///////////////////////////////////////////////////////////////////////////////

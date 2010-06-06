@@ -11,6 +11,7 @@
 #include <time.h>
 
 #include "types.h"
+#include "system.h"
 #include "lib-error.h"
 #include "libwbfs/file-formats.h"
 
@@ -59,45 +60,6 @@ typedef enum enumRevID
 	REVID_WIIMM_TRUNK	= 0x20000000,
 
 } enumRevID;
-
-typedef enum enumSystemID
-{
-	SYSID_UNKNOWN		= 0x00000000,
-	SYSID_I386		= 0x01000000,
-	SYSID_X86_64		= 0x02000000,
-	SYSID_CYGWIN		= 0x03000000,
-	SYSID_APPLE		= 0x04000000,
-	SYSID_LINUX		= 0x05000000,
-	SYSID_UNIX		= 0x06000000,
-
-} enumSystemID;
-
-///////////////////////////////////////////////////////////////////////////////
-
-#ifdef __CYGWIN__
-	#define SYSTEM "cygwin"
-	#define SYSTEMID SYSID_CYGWIN
-#elif __APPLE__
-	#define SYSTEM "mac"
-	#define SYSTEMID SYSID_APPLE
-#elif __linux__
-  #ifdef __i386__
-	#define SYSTEM "i386"
-	#define SYSTEMID SYSID_I386
-  #elif __x86_64__
-	#define SYSTEM "x86_64"
-	#define SYSTEMID SYSID_X86_64
-  #else
-	#define SYSTEM "linux"
-	#define SYSTEMID SYSID_LINUX
-  #endif
-#elif __unix__
-	#define SYSTEM "unix"
-	#define SYSTEMID SYSID_UNIX
-#else
-	#define SYSTEM "unknown"
-	#define SYSTEMID SYSID_UNKNOWN
-#endif
 
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -171,10 +133,10 @@ enumError CheckEnvOptions ( ccp varname, check_opt_func );
  #define SetSizeF(f,o)		XSetSizeF	(__FUNCTION__,__FILE__,__LINE__,f,o)
  #define ReadF(f,b,c)		XReadF		(__FUNCTION__,__FILE__,__LINE__,f,b,c)
  #define WriteF(f,b,c)		XWriteF		(__FUNCTION__,__FILE__,__LINE__,f,b,c)
- #define WriteSparseF(f,b,c)	XWriteSparseF	(__FUNCTION__,__FILE__,__LINE__,f,b,c)
  #define ReadAtF(f,o,b,c)	XReadAtF	(__FUNCTION__,__FILE__,__LINE__,f,o,b,c)
  #define WriteAtF(f,o,b,c)	XWriteAtF	(__FUNCTION__,__FILE__,__LINE__,f,o,b,c)
- #define WriteSparseAtF(f,o,b,c)XWriteSparseAtF	(__FUNCTION__,__FILE__,__LINE__,f,o,b,c)
+ #define WriteZeroAtF(f,o,c)	XWriteZeroAtF	(__FUNCTION__,__FILE__,__LINE__,f,o,c)
+ #define ZeroAtF(f,o,c)		XZeroAtF	(__FUNCTION__,__FILE__,__LINE__,f,o,c)
  #define CreateOutFile(o,f,m,w)	XCreateOutFile	(__FUNCTION__,__FILE__,__LINE__,o,f,m,w)
  #define CloseOutFile(o,s)	XCloseOutFile	(__FUNCTION__,__FILE__,__LINE__,o,s)
  #define RemoveOutFile(o)	XRemoveOutFile	(__FUNCTION__,__FILE__,__LINE__,o)
@@ -205,10 +167,10 @@ enumError CheckEnvOptions ( ccp varname, check_opt_func );
  #define SetSizeF(f,o)		XSetSizeF	(f,o)
  #define ReadF(f,b,c)		XReadF		(f,b,c)
  #define WriteF(f,b,c)		XWriteF		(f,b,c)
- #define WriteSparseF(f,b,c)	XWriteSparseF	(f,b,c)
  #define ReadAtF(f,o,b,c)	XReadAtF	(f,o,b,c)
  #define WriteAtF(f,o,b,c)	XWriteAtF	(f,o,b,c)
- #define WriteSparseAtF(f,o,b,c)XWriteSparseAtF	(f,o,b,c)
+ #define WriteZeroAtF(f,o,c)	XWriteZeroAtF	(f,o,c)
+ #define ZeroAtF(f,o,c)		XZeroAtF	(f,o,c)
  #define CreateOutFile(o,f,m,w)	XCreateOutFile	(o,f,m,w)
  #define CloseOutFile(o,s)	XCloseOutFile	(o,s)
  #define RemoveOutFile(o)	XRemoveOutFile	(o)
@@ -468,12 +430,12 @@ enumError StatFile ( struct stat * st, ccp fname, int fd );
 enumError XTellF	 ( XPARM File_t * f );
 enumError XSeekF	 ( XPARM File_t * f, off_t off );
 enumError XSetSizeF	 ( XPARM File_t * f, off_t off );
-enumError XReadF	 ( XPARM File_t * f,                    void * iobuf, size_t count );
-enumError XWriteF	 ( XPARM File_t * f,              const void * iobuf, size_t count );
-enumError XWriteSparseF  ( XPARM File_t * f,              const void * iobuf, size_t count );
+enumError XReadF	 ( XPARM File_t * f,                  void * iobuf, size_t count );
+enumError XWriteF	 ( XPARM File_t * f,            const void * iobuf, size_t count );
 enumError XReadAtF	 ( XPARM File_t * f, off_t off,       void * iobuf, size_t count );
 enumError XWriteAtF	 ( XPARM File_t * f, off_t off, const void * iobuf, size_t count );
-enumError XWriteSparseAtF( XPARM File_t * f, off_t off, const void * iobuf, size_t count );
+enumError XWriteZeroAtF	 ( XPARM File_t * f, off_t off,                     size_t count );
+enumError XZeroAtF	 ( XPARM File_t * f, off_t off,                     size_t count );
 
 //-----------------------------------------------------------------------------
 // wrapper functions
@@ -932,7 +894,8 @@ extern bool use_utf8;
 extern char escape_char;
 extern ccp opt_clone;
 
-extern char iobuf[0x400000];		// global io buffer
+extern       char iobuf [0x400000];	// global io buffer
+extern const char zerobuf[0x40000];	// global zero buffer
 
 extern const char sep_79[80];		//  79 * '-' + NULL
 extern const char sep_200[201];		// 200 * '-' + NULL

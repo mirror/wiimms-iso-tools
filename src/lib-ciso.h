@@ -78,6 +78,7 @@ enumError SetupWriteCISO ( SUPERFILE * sf );
 enumError TermWriteCISO	 ( SUPERFILE * sf );
 enumError WriteCISO	 ( SUPERFILE * sf, off_t off, const void * buf, size_t size );
 enumError WriteSparseCISO( SUPERFILE * sf, off_t off, const void * buf, size_t size );
+enumError WriteZeroCISO	 ( SUPERFILE * sf, off_t off, size_t size );
 
 #undef SUPERFILE
 

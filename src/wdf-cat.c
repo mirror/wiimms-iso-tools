@@ -44,8 +44,6 @@
 #define NAME "wdf-cat"
 #define TITLE NAME " v" VERSION " r" REVISION " " SYSTEM " - " AUTHOR " - " DATE
 
-char zerobuf[0x100000];
-
 ///////////////////////////////////////////////////////////////////////////////
 
 void help_exit()
@@ -297,8 +295,6 @@ int main ( int argc, char ** argv )
 
     if (CheckOptions(argc,argv))
 	hint_exit(ERR_SYNTAX);
-
-    memset(zerobuf,0,sizeof(zerobuf));
 
     int i, max_err = ERR_OK;
     for ( i = optind; i < argc && !SIGINT_level; i++ )

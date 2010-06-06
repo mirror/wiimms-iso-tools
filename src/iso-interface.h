@@ -239,6 +239,7 @@ void SetupSneekMode();
 
 typedef enum enumIsoMapType
 {
+	IMT_ID,			// copy ID with respect to '.' as 'unchanged'
 	IMT_DATA,		// raw data
 	IMT_FILE,		// data := filename
 	IMT_PART_FILES,		// files of partition
@@ -280,7 +281,7 @@ void ResetIM ( IsoMapping_t * im );
 IsoMappingItem_t * InsertIM
 	( IsoMapping_t * im, enumIsoMapType imt, u64 offset, u64 size );
 
-void DumpIM ( IsoMapping_t * im, FILE * f, int indent );
+void PrintIM ( IsoMapping_t * im, FILE * f, int indent );
 
 //
 ///////////////////////////////////////////////////////////////////////////////
@@ -453,6 +454,8 @@ int SearchPartitionsFST
 	char * update_part,	// NULL or result pointer
 	char * channel_part	// NULL or result pointer
 );
+
+void PrintFstIM ( WiiFst_t * fst, FILE * f, int indent, bool print_part, ccp title );
 
 enumError SetupReadFST ( SuperFile_t * sf );
 enumError UpdateSignatureFST ( WiiFst_t * fst );

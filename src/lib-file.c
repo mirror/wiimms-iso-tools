@@ -483,8 +483,9 @@ static enumError XOpenFileHelper
 	    XOpenStreamFile(XCALL f);
     }
 
-    TRACE("#F# OpenFileHelper(%p) returns %d, fd=%d, fp=%p, seek-allowed=%d\n",
-		f, f->last_error, GetFD(f), GetFP(f), f->seek_allowed );
+    TRACE("#F# OpenFileHelper(%p) returns %d, fd=%d, fp=%p, seek-allowed=%d, rw=%d,%d\n",
+		f, f->last_error, GetFD(f), GetFP(f), f->seek_allowed,
+		f->is_reading, f->is_writing );
     return f->last_error;
 }
 
@@ -494,7 +495,8 @@ enumError XOpenFile ( XPARM File_t * f, ccp fname, enumIOMode iomode )
 {
     ASSERT(f);
 
-    if (!fname)
+    const bool no_fname = !fname;
+    if (no_fname)
     {
 	fname = f->fname;
 	f->fname = 0;
@@ -509,7 +511,7 @@ enumError XOpenFile ( XPARM File_t * f, ccp fname, enumIOMode iomode )
 	f->fname = strdup("- (stdin)");
     }
     else
-	f->fname = strdup(fname);
+	f->fname = no_fname ? fname : strdup(fname);
 
     return XOpenFileHelper(XCALL f,iomode,O_RDONLY,O_RDONLY);
 }
@@ -520,7 +522,8 @@ enumError XOpenFileModify ( XPARM File_t * f, ccp fname, enumIOMode iomode )
 {
     ASSERT(f);
 
-    if (!fname)
+    const bool no_fname = !fname;
+    if (no_fname)
     {
 	fname = f->fname;
 	f->fname = 0;
@@ -528,7 +531,7 @@ enumError XOpenFileModify ( XPARM File_t * f, ccp fname, enumIOMode iomode )
 
     XResetFile( XCALL f, false );
 
-    f->fname = strdup(fname);
+    f->fname = no_fname ? fname : strdup(fname);
     return XOpenFileHelper(XCALL f,iomode,O_RDWR,O_RDWR);
 }
 
@@ -1683,13 +1686,15 @@ enumError XSeekF ( XPARM File_t * f, off_t off )
     TRACE(TRACE_SEEK_FORMAT, "#F# SeekF()",
 		GetFD(f), GetFP(f), (u64)off, off < f->max_off ? " <" : "" );
 
-    const bool err = f->fp
+    const bool failed = f->fp
 			? fseeko(f->fp,off,SEEK_SET) == (off_t)-1
 			: f->fd == -1 || lseek(f->fd,off,SEEK_SET) == (off_t)-1;
 
-    if (err)
+    enumError err;
+    if (failed)
     {
-	f->last_error = f->is_writing ? ERR_WRITE_FAILED : ERR_READ_FAILED;
+	err = f->is_writing ? ERR_WRITE_FAILED : ERR_READ_FAILED;
+	f->last_error = err;
 	if ( f->max_error < f->last_error )
 	    f->max_error = f->last_error;
 	if (!f->disable_errors)
@@ -1700,13 +1705,14 @@ enumError XSeekF ( XPARM File_t * f, off_t off )
     }
     else
     {
+	err = ERR_OK;
 	f->seek_count++;
 	if ( f->max_off < f->file_off )
 	    f->max_off = f->file_off;
     }
 
     f->cur_off = f->file_off = off;
-    return f->last_error;
+    return err;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -2162,78 +2168,6 @@ enumError XWriteF ( XPARM File_t * f, const void * iobuf, size_t count )
 
 ///////////////////////////////////////////////////////////////////////////////
 
-enumError XWriteSparseF ( XPARM File_t * f, const void * iobuf, size_t count )
-{
-    ASSERT(f);
-    const int align_mask = sizeof(u32)-1;
-    ASSERT( (align_mask & align_mask+1) == 0 );
-
-    if ( (__PTRDIFF_TYPE__)iobuf & align_mask || count & align_mask
-	|| f->file_off == (off_t)-1 || f->file_off < f->max_off )
-    {
-	// cond 1+2) sparse checking is only with u32 aligned data allowed
-	// cond 3+4) disable sparse check if writing to unknown or existing file areas
-
-	return WriteF(f,iobuf,count);
-    }
-
-    TRACE(TRACE_RDWR_FORMAT, "#F# WriteSparseF()",
-		GetFD(f), GetFP(f), (u64)f->file_off, (u64)f->file_off+count, count,
-		f->file_off < f->max_off ? " <" : "" );
-
-    // the u32 optimation works because off and size are a multiple of sizeof(u32)
-    const u32 * ptr = iobuf;
-    const u32 * end = (const u32 *)( (ccp)ptr + count );
-    const int bsize = MIN_SPARSE_HOLE_SIZE/sizeof(*ptr);
-
-    // skip leading zeros
-    while ( ptr < end && !*ptr )
-	ptr++;
-
-    // save start of output
-    const u32 * beg = ptr;
-    off_t off = f->file_off + ( (ccp)ptr - (ccp)iobuf );
-
-    // [2do] only disk blocks (e.g. multiple of 4096) are of interest
-    //		-> lstat().st_blksize
-
-    while ( ptr < end )
-    {
-	while ( ptr + bsize < end && ptr[bsize-1] )
-	{
-	    // a little optimation
-	    ptr += bsize;
-	}
-
-	// scan non zero words
-	while ( ptr < end && *ptr )
-	    ptr++;
-	const u32 * zero_beg = ptr;
-
-	// scan zero words
-	while ( ptr < end && !*ptr )
-	    ptr++;
-
-	if ( ptr == end || ptr - zero_beg > bsize )
-	{
-	    // a block with at least 'bsize' zeros found *or* 'end' reached
-
-	    // write non zero block and skip zero block
-	    const enumError stat = XWriteAtF(XCALL f,off,beg,(ccp)zero_beg-(ccp)beg);
-	    if (stat)
-		return stat;
-
-	    // adjust data
-	    off += (ccp)ptr - (ccp)beg;
-	    beg = ptr;
-	}
-    }
-
-    return ERR_OK;
-}
-
-///////////////////////////////////////////////////////////////////////////////
-
 enumError XReadAtF ( XPARM File_t * f, off_t off, void * iobuf, size_t count )
 {
     ASSERT(f);
@@ -2256,12 +2190,125 @@ enumError XWriteAtF ( XPARM File_t * f, off_t off, const void * iobuf, size_t co
 
 ///////////////////////////////////////////////////////////////////////////////
 
-enumError XWriteSparseAtF ( XPARM File_t * f, off_t off, const void * iobuf, size_t count )
+enumError XWriteZeroAtF ( XPARM File_t * f, off_t off, size_t count )
+{
+    TRACE(TRACE_RDWR_FORMAT, "#F# WriteZeroAtF()",
+		GetFD(f), GetFP(f), (u64)off, (u64)off+count, count,
+		off < f->max_off ? " <" : "" );
+
+    enumError err = XSeekF(XCALL f,off);
+    while ( !err && count > 0 )
+    {
+	const size_t wsize = count < sizeof(zerobuf) ? count : sizeof(zerobuf);
+	err = XWriteF(XCALL f, zerobuf, wsize );
+	count -= wsize;
+    }
+    return err;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// [zero]
+
+enumError XZeroAtF ( XPARM File_t * f, off_t off, size_t count )
 {
     ASSERT(f);
-    noTRACE("#F# WriteSparseAtF(fd=%d,o=%llx,%p,n=%zx)\n",f->fd,(u64)off,iobuf,count);
-    const enumError stat = XSeekF(XCALL f,off);
-    return stat ? stat : XWriteSparseF(XCALL f,iobuf,count);
+    TRACE(TRACE_RDWR_FORMAT, "#F# ZeroAtF()",
+		GetFD(f), GetFP(f), (u64)off, (u64)off+count, count,
+		off < f->max_off ? " <" : "" );
+
+    if ( !f->is_reading || !S_ISREG(f->st.st_mode) )
+	return XWriteZeroAtF(XCALL f,off,count);
+
+    //----- check file growing
+
+    off_t last_off = off + count;
+    if ( last_off > f->max_off )
+    {
+	const off_t max_off = f->max_off;
+	const enumError err = XSetSizeF(XCALL f, last_off );
+	if ( err || off >= max_off )
+	    return err;
+	   
+	ASSERT( count > last_off - max_off );
+	count -= last_off - max_off;
+	last_off = max_off;
+    }
+
+    //----- try to align to blocks
+
+    char buf[0x20000];
+    const size_t blocksize = f->st.st_blksize < HD_SECTOR_SIZE
+				? HD_SECTOR_SIZE
+				: f->st.st_blksize > sizeof(buf)
+					? sizeof(buf)
+					: f->st.st_blksize;
+
+    if ( off/blocksize != (last_off-1)/blocksize )
+    {
+	// align to blocksize
+	const size_t count1 = blocksize - off % blocksize;
+	ASSERT( count1 < count );
+	const enumError err = XZeroAtF(XCALL f,off,count1);
+	if (err)
+	    return err;
+	off   += count1;
+	count -= count1;
+    }
+
+    //----- the main loop
+
+    while ( count > 0 )
+    {
+	//--- read data
+
+	const size_t rsize = count < sizeof(buf) ? count : sizeof(buf);
+	const enumError err = XReadAtF(XCALL f,off,buf,rsize);
+	if (err)
+	    return err;
+
+	//--- iterate read data
+	
+	char * ptr = buf;
+	char * end = buf + rsize;
+	
+	while ( ptr < end )
+	{
+	    //--- find begining of non zero data
+
+	    while ( ptr < end && !*ptr )
+		ptr++;
+
+	    //--- set start block aligned
+
+	    size_t start = ((ptr-buf)/blocksize)*blocksize;
+	    ptr = buf + start + blocksize;
+	    
+	    //--- find zero block
+
+	    while ( ptr < end )
+	    {
+		char * bl_end = ptr + blocksize;
+		if ( bl_end > end )
+		    bl_end = end;
+		while ( ptr < bl_end && !*ptr )
+		    ptr++;
+		if ( ptr == bl_end )
+		    break;
+		ptr = bl_end;
+	    }
+	    
+	    if ( ptr > end )
+		ptr = end;
+
+	    const enumError err = XWriteZeroAtF(XCALL f, off+start, ptr-buf-start );
+	    if (!err)
+		return err;
+	}
+
+	off   += rsize;
+	count -= rsize;
+    }
+    return ERR_OK;
 }
 
 //

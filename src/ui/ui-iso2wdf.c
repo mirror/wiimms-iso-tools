@@ -39,7 +39,7 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 
     {	OPT_VERBOSE, 'v', "verbose",
 	0,
-	"Be verbose -> program name and processed files."
+	"Be verbose: Print program name and log processed files."
     },
 
     {	OPT_PROGRESS, 'P', "progress",

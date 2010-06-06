@@ -102,38 +102,40 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 
     {	OPT_REGION, 0, "region",
 	"region",
-	"Define the region of the disc.  The region is one of JAPAN, USA,"
-	" EUROPE, KOREA, FILE or AUTO (default). The case of the keywords is"
-	" ignored. Unsigned numbers are also accepted."
+	"This patching option defines the region of the disc.  The region is"
+	" one of JAPAN, USA, EUROPE, KOREA, FILE or AUTO (default). The case"
+	" of the keywords is ignored. Unsigned numbers are also accepted."
     },
 
     {	OPT_IOS, 0, "ios",
 	"ios",
-	"Define the system version (IOS to load) within TMD.  The format is"
-	" 'HIGH:LOW' or 'HIGH-LOW' or 'LOW'. If only LOW is set than HIGH is"
-	" assumed as 1 (standard IOS)."
+	"This patching option defines the system version (IOS to load) within"
+	" TMD. The format is 'HIGH:LOW' or 'HIGH-LOW' or 'LOW'. If only LOW is"
+	" set than HIGH is assumed as 1 (standard IOS)."
     },
 
     {	OPT_ID, 0, "id",
 	"id",
-	"Change the ID of the disc to the given parameter. 1 to 6 characters"
-	" are expected. Only defined characters not equal '.' are modified."
-	" The disc header, boot.bin, ticket.bin and tmd.bin are  objects to"
-	" modify. The option --modify= selects the objects."
+	"This patching option changes the ID of the disc to the given"
+	" parameter. 1 to 6 characters are expected. Only defined characters"
+	" not equal '.' are modified. The disc header, boot.bin, ticket.bin"
+	" and tmd.bin are  objects to modify. The option --modify= selects the"
+	" objects."
     },
 
     {	OPT_NAME, 0, "name",
 	"name",
-	"Change the name (disc title) of the disc to the given parameter. Up"
-	" to 63 characters are expected. The disc header and boot.bin are"
-	" objects to modify. The option --modify= selects the objects."
+	"This patching option changes the name (disc title) of the disc to the"
+	" given parameter. Up to 63 characters are expected. The disc header"
+	" and boot.bin are objects to modify. The option --modify= selects the"
+	" objects."
     },
 
     {	OPT_MODIFY, 0, "modify",
 	"list",
-	" The parameter is a comma separated list of the following keywords,"
-	" case is ignored: NONE, DISC, BOOT, TICKET, TMD, WBFS, ALL and AUTO"
-	" (default).\n"
+	" This patching option expects a comma separated list of the following"
+	" keywords (case ignored) as parameter: NONE, DISC, BOOT, TICKET, TMD,"
+	" WBFS, ALL and AUTO (default).\n"
 	" All keyword can be prefixed by '+' to enable that opton, by a '-' to"
 	" disable it or by a '=' to enable that option and disable all others."
     },
@@ -337,7 +339,7 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 	"list",
 	"Define the sort mode for lists. The parameter is a comma separated"
 	" list of the following keywords: NONE, NAME, TITLE, FILE, SIZE,"
-	" OFFSET, REGIAN, WBFS, NPART, ITIME, MTIME, CTIME, ATIME, TIME ="
+	" OFFSET, REGION, WBFS, NPART, ITIME, MTIME, CTIME, ATIME, TIME ="
 	" DATE, DEFAULT, ASCENDING, DESCENDING = REVERSE."
     },
 
@@ -386,9 +388,9 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 
     {	OPT_LOGGING, 'L', "logging",
 	0,
-	"Special logging for composing Wii discs. If set at least once the"
-	" disc layout is printed. If set at least twice the partition layout"
-	" is printed too."
+	"Special logging for patching and composing Wii discs. If set at least"
+	" once the disc layout is printed. If set at least twice the partition"
+	" layout is printed too."
     },
 
     {	OPT_ESC, 'E', "esc",
@@ -1554,12 +1556,12 @@ static const InfoOption_t * option_tab_cmd_ADD[] =
 
 	OptionInfo + OPT_PSEL,
 	OptionInfo + OPT_RAW,
-	OptionInfo + OPT_ENC,
-	OptionInfo + OPT_REGION,
-	OptionInfo + OPT_IOS,
 	OptionInfo + OPT_ID,
 	OptionInfo + OPT_NAME,
 	OptionInfo + OPT_MODIFY,
+	OptionInfo + OPT_REGION,
+	OptionInfo + OPT_IOS,
+	OptionInfo + OPT_ENC,
 
 	OptionInfo + OPT_NONE, // separator
 
@@ -1614,12 +1616,12 @@ static const InfoOption_t * option_tab_cmd_UPDATE[] =
 
 	OptionInfo + OPT_PSEL,
 	OptionInfo + OPT_RAW,
-	OptionInfo + OPT_ENC,
-	OptionInfo + OPT_REGION,
-	OptionInfo + OPT_IOS,
 	OptionInfo + OPT_ID,
 	OptionInfo + OPT_NAME,
 	OptionInfo + OPT_MODIFY,
+	OptionInfo + OPT_REGION,
+	OptionInfo + OPT_IOS,
+	OptionInfo + OPT_ENC,
 
 	OptionInfo + OPT_NONE, // separator
 
@@ -1672,12 +1674,12 @@ static const InfoOption_t * option_tab_cmd_SYNC[] =
 
 	OptionInfo + OPT_PSEL,
 	OptionInfo + OPT_RAW,
-	OptionInfo + OPT_ENC,
-	OptionInfo + OPT_REGION,
-	OptionInfo + OPT_IOS,
 	OptionInfo + OPT_ID,
 	OptionInfo + OPT_NAME,
 	OptionInfo + OPT_MODIFY,
+	OptionInfo + OPT_REGION,
+	OptionInfo + OPT_IOS,
+	OptionInfo + OPT_ENC,
 
 	OptionInfo + OPT_NONE, // separator
 
@@ -2121,7 +2123,7 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	"LIST-L",
 	"LL",
 	"wwt LIST-L [wbfs_partition]...",
-	"List all discs of WBFS partitions. Same as 'wwt LIST --long'.",
+	"List all discs of WBFS partitions. Same as 'LIST --long'.",
 	22,
 	option_tab_cmd_LIST_L
     },
@@ -2132,7 +2134,7 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	"LIST-LL",
 	"LLL",
 	"wwt LIST-LL [wbfs_partition]...",
-	"List all discs of WBFS partitions. Same as 'wwt LIST --long --long'.",
+	"List all discs of WBFS partitions. Same as 'LIST --long --long'.",
 	22,
 	option_tab_cmd_LIST_LL
     },
@@ -2143,8 +2145,8 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	"LIST-A",
 	"LA",
 	"wwt LIST-A [wbfs_partition]...",
-	"List all discs of all WBFS partitions. Same as 'wwt LIST --long"
-	" --long --auto'.",
+	"List all discs of all WBFS partitions. Same as 'LIST --long --long"
+	" --auto'.",
 	22,
 	option_tab_cmd_LIST_A
     },
@@ -2155,8 +2157,8 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	"LIST-M",
 	"LM",
 	"wwt LIST-M [wbfs_partition]...",
-	"List all discs of WBFS partitions in mixed view. Same as 'wwt LIST"
-	" --long --long --mixed'.",
+	"List all discs of WBFS partitions in mixed view. Same as 'LIST --long"
+	" --long --mixed'.",
 	22,
 	option_tab_cmd_LIST_M
     },
@@ -2167,8 +2169,8 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	"LIST-U",
 	"LU",
 	"wwt LIST-U [wbfs_partition]...",
-	"List all discs of WBFS partitions in mixed view. Same as 'wwt LIST"
-	" --long --long --unique'.",
+	"List all discs of WBFS partitions in mixed view. Same as 'LIST --long"
+	" --long --unique'.",
 	22,
 	option_tab_cmd_LIST_U
     },
@@ -2215,7 +2217,7 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	0,
 	"wwt REPAIR [wbfs_partition]..",
 	"Check WBFS partitions and repair errors. 'REPAIR' is a shortcut for"
-	" 'wwt CHECK --repair=standard'.",
+	" 'CHECK --repair=standard'.",
 	12,
 	option_tab_cmd_REPAIR
     },
@@ -2273,7 +2275,7 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	"U",
 	"wwt UPDATE iso|wbfs|dir...",
 	"Add missing Wii ISO discs to WBFS partitions. 'UPDATE' is a shortcut"
-	" for 'wwt ADD --update'.",
+	" for 'ADD --update'.",
 	34,
 	option_tab_cmd_UPDATE
     },
@@ -2285,8 +2287,8 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	0,
 	"wwt SYNC iso|wbfs|dir...",
 	"Modify primary WBFS (REMOVE and ADD) until it contains exactly the"
-	" same discs as all sources together. 'SYNC' is a shortcut for 'wwt"
-	" ADD --sync'.",
+	" same discs as all sources together. 'SYNC' is a shortcut for 'ADD"
+	" --sync'.",
 	33,
 	option_tab_cmd_SYNC
     },

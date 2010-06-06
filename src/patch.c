@@ -254,7 +254,7 @@ enumModify ScanModify ( ccp arg )
 
     const int stat = ScanCommandList(arg,tab,0);
     if ( stat >= 0 )
-	return stat & MODIFY__ALL ? stat & MODIFY__ALL : stat;
+	return ( stat & MODIFY__ALL ? stat & MODIFY__ALL : stat ) | MODIFY__ALWAYS;
 
     ERROR0(ERR_SYNTAX,"Illegal modify mode (option --modify): '%s'\n",arg);
     return MODIFY__ERROR;
@@ -262,13 +262,14 @@ enumModify ScanModify ( ccp arg )
 
 //-----------------------------------------------------------------------------
 
-enumModify opt_modify = MODIFY__AUTO;
+enumModify opt_modify = MODIFY__AUTO | MODIFY__ALWAYS;
 
 int ScanOptModify ( ccp arg )
 {
     const int new_modify = ScanModify(arg);
     if ( new_modify == MODIFY__ERROR )
 	return 1;
+    ASSERT( new_modify & MODIFY__ALWAYS );
     opt_modify = new_modify;
     return 0;
 }
@@ -348,7 +349,7 @@ int ScanOptName ( ccp arg )
 
 //-----------------------------------------------------------------------------
 
-bool PatchId ( void * id, int maxlen, enumModify condition )
+bool PatchId ( void * id, int skip, int maxlen, enumModify condition )
 {
     ASSERT(id);
     if ( !modify_id || maxlen < 1 || !(opt_modify & condition) )
@@ -356,11 +357,12 @@ bool PatchId ( void * id, int maxlen, enumModify condition )
 
     TRACE("PATCH ID: %.*s -> %.*s\n",maxlen,(ccp)id,maxlen,modify_id);
 
-    ccp src;
+    ccp src = modify_id;
+    while ( skip-- > 0 && *src )
+	src++;
+
     char *dest;
-    for ( src = modify_id, dest = id;
-	  *src && maxlen > 0;
-	  src++, dest++, maxlen-- )
+    for ( dest = id; *src && maxlen > 0; src++, dest++, maxlen-- )
     {
 	if ( *src != '.' )
 	    *dest = *src;
@@ -374,7 +376,7 @@ bool CopyPatchedDiscId ( void * dest, const void * src )
 {
     memcpy(dest,src,6);
     ((char*)dest)[6] = 0;
-    return hook_enabled && PatchId(dest,6,MODIFY_DISC|MODIFY__AUTO);
+    return hook_enabled && PatchId(dest,0,6,MODIFY_DISC|MODIFY__AUTO);
 }
 
 //-----------------------------------------------------------------------------
@@ -388,82 +390,6 @@ bool PatchName ( void * name, enumModify condition )
     ASSERT( strlen(modify_name) < WII_TITLE_SIZE );
     memcpy(name,modify_name,WII_TITLE_SIZE);
     return true;
-}
-
-//
-///////////////////////////////////////////////////////////////////////////////
-///////////////			   PatchMap_t			///////////////
-///////////////////////////////////////////////////////////////////////////////
-
-void InitializePatch ( Patch_t * pat )
-{
-    ASSERT(pat);
-    memset(pat,0,sizeof(*pat));
-}
-
-///////////////////////////////////////////////////////////////////////////////
-
-void ResetPatch ( Patch_t * pat )
-{
-    ASSERT(pat);
-
-    if (pat->map)
-    {
-	ASSERT(pat->map_size);
-
-	int imap;
-	for ( imap = 0; imap < pat->map_used; imap++ )
-	{
-	    PatchMap_t * map = pat->map + imap;
-	    if (map->item)
-	    {
-		ASSERT(map->item_size);
-
-		int iitem;
-		for ( iitem = 0; iitem < map->item_used; iitem++ )
-		{
-		    PatchItem_t * item = map->item + iitem;
-		    if ( item->pmode == PATCHMD_DATA_ALLOCED )
-			free(item->data);
-		}
-		free(map->item);
-	    }
-	}
-	free(pat->map);
-    }
-    
-    InitializePatch(pat);
-}
-
-///////////////////////////////////////////////////////////////////////////////
-
-void PrintPatch ( Patch_t * pat, FILE * f, int indent, int verbose )
-{   
-    if ( !pat || !pat->map_used || !f || verbose < 0 )
-	return;
-
-    indent = NormalizeIndent(indent);
-
-    // [2do] header + alignment
-
-    ASSERT(pat->map);
-    int imap;
-    for ( imap = 0; imap < pat->map_used; imap++ )
-    {
-	PatchMap_t * map = pat->map + imap;
-	printf("%11llx ..%11llx :%8x : %s\n",
-		map->offset, map->offset + map->size, map->size,
-		map->part ? "Partition" : "Disc" );
-
-	ASSERT(map->item);
-	int iitem;
-	for ( iitem = 0; iitem < map->item_used; iitem++ )
-	{
-	    PatchItem_t * item = map->item + iitem;
-	    printf("%25x :%8x ; %s\n",
-		item->offset, item->size, item->comment );
-	}
-    }
 }
 
 //
@@ -543,20 +469,6 @@ enumError RewriteModifiedSF ( SuperFile_t * fi, SuperFile_t * fo, WBFS_t * wbfs 
 ///////////////			 ISO Modifier			///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-static enumError ISOModifier
-	( SuperFile_t * sf, off_t off, void * buf, size_t count )
-{
-    ASSERT(sf);
-    ASSERT(sf->std_read_func);
-
-    TRACE(TRACE_RDWR_FORMAT, "#IM# ISOModifier()",
-	GetFD(&sf->f), GetFP(&sf->f), (u64)off, (u64)off+count, count, "" );
-
-    return sf->std_read_func(sf,off,buf,count);
-}
-
-///////////////////////////////////////////////////////////////////////////////
-
 enumError SetupISOModifier ( SuperFile_t * sf )
 {
  #ifndef TEST // [2do]
@@ -566,8 +478,6 @@ enumError SetupISOModifier ( SuperFile_t * sf )
     ASSERT(sf);
     if ( !hook_enabled || !sf->f.id6 )
 	return ERR_OK; // only supported for Wii ISO images
-
-    PatchItem_t * item;
 
     //----- encryption / decryption
 
@@ -607,7 +517,7 @@ enumError SetupISOModifier ( SuperFile_t * sf )
     {
 	if ( opt_modify & (MODIFY_DISC|MODIFY__AUTO) )
 	{
-	    item = InsertDiscDataPM(sf,sf->f.id6,0,6,false);
+	    //item = InsertDiscDataPM(sf,sf->f.id6,0,6,false);
 	    //ASSERT(item);
 	}
 	// ??? [2do]
@@ -624,54 +534,22 @@ enumError SetupISOModifier ( SuperFile_t * sf )
 
     //----- terminate
 
-    if (sf->patch)
+    if (!sf->fst)
+	sf->merge_mode = false;
+
+    if (sf->merge_mode)
     {
-	sf->iod.read_func = ISOModifier;
      #ifdef DEBUG
-	PrintPatch(sf->patch,TRACE_FILE,3,1);
+	PrintFstIM(sf->fst,TRACE_FILE,0,true,"Patch list of");
      #endif
-	if (logging)
-	    PrintPatch(sf->patch,stdout,3,logging-1);
-    }
+	if ( logging > 0 )
+	    PrintFstIM(sf->fst,stdout,0,logging>1,"Patch list of");
 
+	// [2do] [merge]
+	//	 - set read func
+    }
+    
     return ERR_OK;
-}
-
-///////////////////////////////////////////////////////////////////////////////
-
-static PatchItem_t * InsertDiscPM ( Patch_t * pat, u64 offset, u32 size )
-{
-    // ??? [2do]
-    return 0;
-}
-
-///////////////////////////////////////////////////////////////////////////////
-
-PatchItem_t * InsertDiscDataPM
-(
-	struct SuperFile_t * sf,
-	void * data,
-	u64 offset,
-	u32 size,
-	bool alloced
-)
-{
-    ASSERT(sf);
-    if (!sf->patch)
-    {
-	sf->patch = malloc(sizeof(*sf->patch));
-	if (!sf->patch)
-	    OUT_OF_MEMORY;
-	InitializePatch(sf->patch);
-    }
-
-    // ??? [2do]
-#if 0
-    u64 doffset = 
-    PatchItem_t * item = InsertDiscPM(pat,offset/HD_SECTOR_SIZE);
-    Patch_t * pat = sf->patch;
-#endif
-    return 0;
 }
 
 //

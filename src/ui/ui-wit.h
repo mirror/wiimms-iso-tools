@@ -35,12 +35,12 @@ typedef enum enumOptions
 	OPT_RAW,
 	OPT_PMODE,
 	OPT_SNEEK,
-	OPT_ENC,
-	OPT_REGION,
-	OPT_IOS,
 	OPT_ID,
 	OPT_NAME,
 	OPT_MODIFY,
+	OPT_REGION,
+	OPT_IOS,
+	OPT_ENC,
 	OPT_DEST,
 	OPT_DEST2,
 	OPT_SPLIT,
@@ -113,12 +113,12 @@ typedef enum enumOptionsBit
 	OB_RAW			= 1llu << OPT_RAW,
 	OB_PMODE		= 1llu << OPT_PMODE,
 	OB_SNEEK		= 1llu << OPT_SNEEK,
-	OB_ENC			= 1llu << OPT_ENC,
-	OB_REGION		= 1llu << OPT_REGION,
-	OB_IOS			= 1llu << OPT_IOS,
 	OB_ID			= 1llu << OPT_ID,
 	OB_NAME			= 1llu << OPT_NAME,
 	OB_MODIFY		= 1llu << OPT_MODIFY,
+	OB_REGION		= 1llu << OPT_REGION,
+	OB_IOS			= 1llu << OPT_IOS,
+	OB_ENC			= 1llu << OPT_ENC,
 	OB_DEST			= 1llu << OPT_DEST,
 	OB_DEST2		= 1llu << OPT_DEST2,
 	OB_SPLIT		= 1llu << OPT_SPLIT,
@@ -181,12 +181,12 @@ typedef enum enumOptionsBit
 				| OB_FILES
 				| OB_SNEEK,
 
-	OB_GRP_PATCH		= OB_ENC
+	OB_GRP_PATCH		= OB_ID
+				| OB_NAME
+				| OB_MODIFY
 				| OB_REGION
 				| OB_IOS
-				| OB_ID
-				| OB_NAME
-				| OB_MODIFY,
+				| OB_ENC,
 
 	OB_CMD_HELP		= ~(option_t)0,
 
@@ -436,12 +436,12 @@ typedef enum enumGetOpt
 	GO_PMODE,
 	GO_SNEEK,
 	GO_HOOK,
-	GO_ENC,
-	GO_REGION,
-	GO_IOS,
 	GO_ID,
 	GO_NAME,
 	GO_MODIFY,
+	GO_REGION,
+	GO_IOS,
+	GO_ENC,
 	GO_FST,
 	GO_ITIME,
 	GO_MTIME,

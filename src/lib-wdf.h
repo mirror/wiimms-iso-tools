@@ -138,6 +138,7 @@ enumError SetupWriteWDF	( SUPERFILE * sf );
 enumError TermWriteWDF	( SUPERFILE * sf );
 enumError WriteWDF	( SUPERFILE * sf, off_t off, const void * buf, size_t size );
 enumError WriteSparseWDF( SUPERFILE * sf, off_t off, const void * buf, size_t size );
+enumError WriteZeroWDF	( SUPERFILE * sf, off_t off, size_t size );
 
 // chunk managment
 WDF_Chunk_t * NeedChunkWDF ( SUPERFILE * sf, int at_index );

@@ -220,27 +220,31 @@ typedef struct wd_header_t
 {
 	// -> http://www.wiibrew.org/wiki/Wiidisc#Header
 
-  /* 0x00 */	u8  wii_disc_id;
+  /* 0x00 */	u8  disc_id;
   /* 0x01 */	u8  game_code[2];
   /* 0x03 */	u8  region_code;
   /* 0x04 */	u8  marker_code[2];
 
-  /* 0x06 */	u8  disc_id;
+  /* 0x06 */	u8  disc_number;
   /* 0x07 */	u8  disc_version;
 
   /* 0x08 */	u8  audio_streaming;
   /* 0x09 */	u8  streaming_buffer_size;
 
-  /* 0x0a */	u8  unused1[0x0e];
+  /* 0x0a */	u8  unknown1[0x0e];
   /* 0x18 */	u32 magic;			// off=WII_MAGIC_OFF, val=WII_MAGIC
-  /* 0x1c */	u8  unused2[4];
+  /* 0x1c */	u8  unknown2[4];
 
   /* 0x20 */	u8  game_title[WII_TITLE_SIZE];	// off=WII_TITLE_OFF
-  /* 0x60 */	u8  padding[0x20];
 
-	wbfs_inode_info_t iinfo;    // start at offset 0x80
-}
-__attribute__ ((packed)) wd_header_t;
+  /* 0x60 */	u8  diable_hash;
+  /* 0x61 */	u8  diable_encryption;
+  
+  /* 0x62 */	u8  padding[0x1e];
+
+  /* 0x80 */	wbfs_inode_info_t iinfo;	// off=WBFS_INODE_INFO_OFF
+
+} __attribute__ ((packed)) wd_header_t;
 
 //
 ///////////////////////////////////////////////////////////////////////////////

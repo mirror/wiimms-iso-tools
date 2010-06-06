@@ -1091,7 +1091,7 @@ enumError RecoverWBFS ( WBFS_t * wbfs, ccp fname, bool testmode )
 			wd_header_t * inode
 			    = (wd_header_t*)( first_sector + w->hd_sec_sz
 						+ slot * w->disc_info_sz );
-			ccp id6 = (ccp)&inode->wii_disc_id;
+			ccp id6 = (ccp)&inode->disc_id;
 			printf("   - slot #%03u [%.6s] %s\n",
 				slot, id6, GetTitle(id6,(ccp)inode->game_title) );
 		    }
@@ -2835,7 +2835,7 @@ enumError FindWDiscInfo ( WBFS_t * w, WDiscInfo_t * dinfo, ccp id6 )
     for ( i = 0; i < w->used_discs; i++ )
     {
 	if ( GetWDiscInfo(w,dinfo,i) == ERR_OK
-	    && !memcmp(id6,&dinfo->dhead.wii_disc_id,6) )
+	    && !memcmp(id6,&dinfo->dhead.disc_id,6) )
 		return ERR_OK;
     }
     return ERR_WDISC_NOT_FOUND;
@@ -2877,7 +2877,7 @@ void CalcWDiscInfo ( WDiscInfo_t * dinfo, SuperFile_t * sf )
 {
     ASSERT(dinfo);
 
-    memcpy(dinfo->id6,&dinfo->dhead.wii_disc_id,6);
+    memcpy(dinfo->id6,&dinfo->dhead.disc_id,6);
     dinfo->id6[6] = 0;
     dinfo->title = GetTitle(dinfo->id6,0);
     dinfo->disc_index = 0;
@@ -2900,7 +2900,7 @@ void CopyWDiscInfo ( WDiscListItem_t * item, WDiscInfo_t * dinfo )
 
     memset(item,0,sizeof(*item));
 
-    memcpy(item->id6,&dinfo->dhead.wii_disc_id,6);
+    memcpy(item->id6,&dinfo->dhead.disc_id,6);
     item->size_mib = (u32)(( dinfo->size + MiB/2 ) / MiB );
     memcpy(item->name64,dinfo->dhead.game_title,64);
     memcpy(item->region4,dinfo->region4,4);
@@ -3139,15 +3139,15 @@ enumError DumpWDiscInfo
 			: magic == WII_MAGIC_DELETED ? " (=DELETED)" : "" );
 
     fprintf(f,"%*swbfs name:  %6s, %.64s\n",
-		indent, "", (ccp)&di->dhead.wii_disc_id, (ccp)di->dhead.game_title );
+		indent, "", (ccp)&di->dhead.disc_id, (ccp)di->dhead.game_title );
     if (ih)
 	fprintf(f,"%*siso name:   %6s, %.64s\n",
-		indent, "", (ccp)&ih->wii_disc_id, (ccp)ih->game_title );
-    if ( ih && strcmp((ccp)&di->dhead.wii_disc_id,(ccp)&ih->wii_disc_id) )
+		indent, "", (ccp)&ih->disc_id, (ccp)ih->game_title );
+    if ( ih && strcmp((ccp)&di->dhead.disc_id,(ccp)&ih->disc_id) )
     {
 	if (di->title)
 	    fprintf(f,"%*swbfs title: %s\n", indent, "", (ccp)di->title );
-	ccp title = GetTitle((ccp)&ih->wii_disc_id,0);
+	ccp title = GetTitle((ccp)&ih->disc_id,0);
 	if (title)
 	    fprintf(f,"%*siso title:  %s\n", indent, "", (ccp)di->title );
     }
@@ -3193,7 +3193,7 @@ WDiscList_t * GenerateWDiscList ( WBFS_t * w, int part_index )
     {
 	if ( GetWDiscInfoBySlot(w,&dinfo,slot) == ERR_OK )
 	{
-	    memcpy(item->id6,&dinfo.dhead.wii_disc_id,6);
+	    memcpy(item->id6,&dinfo.dhead.disc_id,6);
 	    if (!IsExcluded(item->id6))
 	    {
 		CopyWDiscInfo(item,&dinfo);
@@ -3793,39 +3793,26 @@ enumError ExtractWDisc ( WBFS_t * w, SuperFile_t * sf )
     const enumError saved_max_error = max_error;
     max_error = 0;
 
-    int ex_stat = 0;
     enumError err = ERR_OK;
-    if ( sf->iod.oft != OFT_PLAIN )
-    {
-	if ( sf->iod.oft == OFT_WDF )
-	{
-	    // write an empty disc header -> makes renaming easier
-	    static char disc_header[0x60] = {0};
-	    err = WriteWDF(sf,0,disc_header,sizeof(disc_header));
-	}
 
-	ex_stat = wbfs_extract_disc( w->disc,
-		sf->enable_fast ? WrapperWriteDirectSF : WrapperWriteSparseSF,
-		sf, sf->show_progress ? PrintProgressSF : 0 );
+    if ( sf->iod.oft == OFT_WDF )
+    {
+	// write an empty disc header -> makes renaming easier
+	static char disc_header[0x60] = {0};
+	err = WriteWDF(sf,0,disc_header,sizeof(disc_header));
     }
-    else
-    {
-	ex_stat = wbfs_extract_disc( w->disc,
-		    sf->enable_fast ? WrapperWriteDirectISO : WrapperWriteSparseISO,
-		    sf, sf->show_progress ? PrintProgressSF : 0 );
 
-	TRACE("EX DONE: err=%d trunc=%d", err, sf->enable_trunc );
+    int ex_stat = wbfs_extract_disc( w->disc,
+	    sf->enable_fast ? WrapperWriteSF : WrapperWriteSparseSF,
+	    sf, sf->show_progress ? PrintProgressSF : 0 );
+
+    if ( sf->iod.oft == OFT_PLAIN && !ex_stat && sf->f.max_off < sf->file_size )
+    {
+	err = SetSizeF(&sf->f,sf->file_size);
 	TRACE("  OFF: max_off=%llx - file_size=%llx = %llx\n",
-		(u64)sf->f.max_off, (u64)sf->file_size, (u64)sf->f.max_off - (u64)sf->file_size );
-
-	if ( !ex_stat && sf->f.max_off < sf->file_size )
-	{
-	    err = SetSizeF(&sf->f,sf->file_size);
-	    TRACE("  OFF: max_off=%llx - file_size=%llx = %llx\n",
-		(u64)sf->f.max_off, (u64)sf->file_size, (u64)sf->f.max_off - (u64)sf->file_size );
-	    ASSERT( err || sf->f.max_off == sf->file_size );
-	}
-    }
+	    (u64)sf->f.max_off, (u64)sf->file_size, (u64)sf->f.max_off - (u64)sf->file_size );
+	ASSERT( err || sf->f.max_off == sf->file_size );
+    }   
 
     if (!err)
     {
@@ -3939,7 +3926,7 @@ enumError RenameWDisc
     wd_header_t * whead = (wd_header_t*)wbfs->disc->header;
     char w_id6[7], n_id6[7];
     memset(w_id6,0,sizeof(w_id6));
-    StringCopyS(w_id6,sizeof(w_id6),(ccp)&whead->wii_disc_id);
+    StringCopyS(w_id6,sizeof(w_id6),(ccp)&whead->disc_id);
     memcpy(n_id6,w_id6,sizeof(n_id6));
 
     if ( testmode || verbose >= 0 )
@@ -3967,7 +3954,7 @@ enumError RenameWDisc
 	LoadIsoHeader(wbfs,&ihead,0);
 
 	char w_name[0x40], i_id6[7], i_name[0x40];
-	StringCopyS(i_id6,sizeof(i_id6),(ccp)&ihead.wii_disc_id);
+	StringCopyS(i_id6,sizeof(i_id6),(ccp)&ihead.disc_id);
 	StringCopyS(w_name,sizeof(w_name),(ccp)whead->game_title);
 	StringCopyS(i_name,sizeof(i_name),(ccp)ihead.game_title);
 
