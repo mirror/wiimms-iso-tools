@@ -1,54 +1,0 @@
-
-@@MODULE(head.txt)@@
-
-This files describes the tool 'iso2wdf'.
-
-
-@@MODULE(content.txt)@@
-
-
-*******************************************************************************
-*******                   Output of 'iso2wdf --help'                  *********
-*******************************************************************************
-@@EXEC(./iso2wdf --help)@@
-
-
-*******************************************************************************
-*******                             iso2wdf                             *******
-*******************************************************************************
-
-The tool 'iso2wdf' converts every file (not only ISO images) to an WDF file.
-The name of the destination file is the name of the source file with the new
-extension '.wdf'. If the previous extension is '.iso'  or '.wbfs' it will be
-removed.
-
-BTW: Any file, not only ISO iamges, can be converted to a WDF file. But it
-it only makes sense if the file contains laarge blocks filled with zeros.
-
-Usual ERROR/EXIT CODES:
-
-    OK
-    NO_WDF
-    WDF_VERSION
-    WDF_SPLIT
-    WDF_INVALID
-    CANT_OPEN
-    READ_FAILED
-    WRITE_FAILED
-
-
-@@MODULE(proc-iso.txt)@@
-
-
-@@MODULE(proc-split.txt)@@
-
-
-@@MODULE(proc-size.txt)@@
-
-
-@@MODULE(signals.txt)@@
-
-
-*******************************************************************************
-*******                              END                                *******
-*******************************************************************************

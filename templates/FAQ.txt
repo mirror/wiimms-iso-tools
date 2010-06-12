@@ -41,9 +41,10 @@
 
 * What are 'iso2wdf', 'wdf2iso' and 'iso2wbfs'
 
-    These 2 tools convert ISO and WBFS files to other formats. They have been
-    devolped before 'wit' and have an easyer interface. 'wit COPY' can do all
-    jobs of this three tools too.
+    These 3 discontinued tools convert ISO and WBFS files to other formats.
+    They have been devolped before 'wit' and have an easyer interface.
+    'wit COPY' can do all jobs of this three tools too. So there is no need
+    to support them longer.
 
 
 * What are 'wdf-cat' and 'wdf-dump'?

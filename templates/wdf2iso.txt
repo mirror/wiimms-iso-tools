@@ -1,52 +1,0 @@
-
-@@MODULE(head.txt)@@
-
-This files describes the tool 'iso2wdf'.
-
-
-@@MODULE(content.txt)@@
-
-
-*******************************************************************************
-*******                   Output of 'wdf2iso --help'                  *********
-*******************************************************************************
-@@EXEC(./wdf2iso --help)@@
-
-
-*******************************************************************************
-*******                            wdf2iso                              *******
-*******************************************************************************
-
-The tool 'wdf2iso' converts WDF files into normal files. The name of the
-destination file is the name of the source file with the new extension '.iso'.
-If the previous extension is '.wdf' or '.wbfs' it will be removed.
-
-Usual ERROR/EXIT CODES:
-
-    OK
-    NO_WDF
-    WDF_VERSION
-    WDF_SPLIT
-    WDF_INVALID
-    CANT_OPEN
-    CANT_CREATE
-    READ_FAILED
-    WRITE_FAILED
-    NOT_IMPLEMENTED
-
-
-@@MODULE(proc-iso.txt)@@
-
-
-@@MODULE(proc-split.txt)@@
-
-
-@@MODULE(proc-size.txt)@@
-
-
-@@MODULE(signals.txt)@@
-
-
-*******************************************************************************
-*******                              END                                *******
-*******************************************************************************

@@ -24,26 +24,7 @@
 
 [size="2"][color="#0000c0"][b]Highlights of this release:[/b][/color][/size]
 [list]
-[*] When I startet September 2009 my plan was to create a simple WBFS manager for Linux. A second plan was to find an archive file format which takes less disk space for iso images. The result was [url=@@URI-HOME@@wwt][b]wwt[/b][/url], the probably completest WBFS manager at all. When I say this I think about the special features like integrity check, repairing, include- and exclude lists, file formats (ISO, CISO, WBFS, FST and especially WDF) and a very good script support.
-
-[color=#800000]I have finished the development [url=@@URI-HOME@@wwt][b]wwt[/b][/url] months ago. [url=@@URI-HOME@@wwt][b]wwt[/b][/url] is very stable and so it's time to propagate [b]version 1.00[/b].[/color]
-
-The second tool [url=@@URI-HOME@@wit][b]wit[/b][/url] is still under devlopment. And some new features will go atomatically into [url=@@URI-HOME@@wwt][b]wwt[/b][/url].
 [color=#ffffff].[/color]
-
-[*] The three tools [b]iso2wbfs[/b], [b]iso2wdf[/b] and [b]wdf2iso[/b] are no longer supported. The more powerful [url=@@URI-HOME@@wit][b]wit[/b][/url] can do all conversions with the COPY command, like [b]"wit copy source.iso dest.wdf"[/b].
-[color=#ffffff].[/color]
-
-[*] [url=@@URI-HOME@@wit/cmd-dump][b]wit DUMP[/b][/url] prints the data structure and additional information of the following file types:
-[list]
-[*] Wii ISO disc (Plain, CISO, WDF, WBFS or FST)
-[*] DOL files
-[*] ticket.bin
-[*] tmd.bin
-[*] header.bin
-[*] boot.bin
-[*] fst.bin
-[/list]
 [/list]
 
 [size="2"][color="#0000c0"][b]Change log:[/b][/color][/size]

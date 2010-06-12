@@ -15,7 +15,7 @@ WIT_LONG		= Wiimms ISO Tool
 WWT_SHORT		= wwt
 WWT_LONG		= Wiimms WBFS Tool
 
-VERSION			= 1.00a
+VERSION			= 1.00b
 
 URI_HOME		= http://wit.wiimm.de/
 URI_DOWNLOAD		= http://wit.wiimm.de/download
@@ -63,7 +63,7 @@ WBFS_COUNT	?= 4
 #-------------------------------------------------------------------------------
 # tools
 
-MAIN_TOOLS	:= wit wwt wdf2iso iso2wdf iso2wbfs wdf-cat wdf-dump
+MAIN_TOOLS	:= wit wwt wdf-cat wdf-dump
 TEST_TOOLS	:= wtest gen-ui wdf
 ALL_TOOLS	:= $(sort $(MAIN_TOOLS) $(TEST_TOOLS))
 

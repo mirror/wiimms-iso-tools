@@ -1,8 +1,5 @@
 ../src/wit.c ;
 ../src/wwt.c ;
-../src/iso2wbfs.c ;
-../src/iso2wdf.c ;
-../src/wdf2iso.c ;
 ../src/wdf-dump.c ;
 ../src/wdf-cat.c ;
 ../src/lib-std.[ch] ;

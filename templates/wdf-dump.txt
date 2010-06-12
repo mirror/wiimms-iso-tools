@@ -1,7 +1,7 @@
 
 @@MODULE(head.txt)@@
 
-This files describes the tool 'iso2wdf'.
+This file describes the tool 'wdf-dump'.
 
 
 @@MODULE(content.txt)@@

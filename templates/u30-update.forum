@@ -21,25 +21,6 @@
 
 [size=120][color=#0000c0][b]Höhepunkte dieser Version:[/b][/color][/size]
 [list]
-[list]
-[*] Als ich im September 2009 anfing, wollte ich nur einen WBFS Manager für Linux erstellen. Außerdem war es mein Ziel, Backup auf anderen Medien platzsparend ohne Verwendung von Sparse-Files zu speichern. Mit [url=@@URI-HOME@@wwt][b]wwt[/b][/url] habe ich den wahrscheinlich umfangreichsten WBFS Manger geschaffen. Ich denke dabei an spezielle Eigenschaften wie Integritätcheck, Reparatur, Include- und Exclude-Listen, Dateiformate (ISO, CISO, WDF, WBFS, FST) und sehr gute Script-Unterstützung. Und mit dem WDF-Format habe ich von Beginn an ein schnelles und zugleich das speicherplatzsparendes Format implementiert.
-
-[color=#800000]Die Entwicklung [url=@@URI-HOME@@wwt][b]wwt[/b][/url] ist aus meiner Sicht schon seit längerem abgeschlossen und es läuft sehr stabil. Daher ist es Zeit für [b]Version 1.00[/b].[/color]
-
-Die Weiterentwicklung von [url=@@URI-HOME@@wit][b]wit[/b][/url] wird dagegen fortgesetzt werden, was automatisch Ergänzungen für [url=@@URI-HOME@@wwt][b]wwt[/b][/url] mit sich bringen wird.
-
-[*] Die drei Tools [b]iso2wbfs[/b], [b]iso2wdf[/b] and [b]wdf2iso[/b] werden nach dieser Version nicht weiter unterstützt werden. Alle Umwandlungen können mit dem wesentlich vielseitigerem Tool [url=@@URI-HOME@@wit][b]wit[/b][/url] vorgenommen werden. Dazu muss einfach das Kommando COPY verwendet werden, z.B. [b]"wit copy source.iso dest.wdf"[/b].
-
-[*] [url=@@URI-HOME@@wit/cmd-dump][b]wit DUMP[/b][/url] gibt die Datenstruktur und zusätzliche Informationen von Dateien der folgenden Dateitypen aus:
-[list]
-[*] Wii ISO disc (Plain, CISO, WDF, WBFS or FST)
-[*] ticket.bin
-[*] tmd.bin
-[*] header.bin
-[*] boot.bin
-[*] fst.bin
-[*] DOL-Dateien
-[/list]
 [/list]
 
 [size=120][color=#0000c0][b]Letzte Änderungen:[/b][/color][/size]

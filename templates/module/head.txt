@@ -10,12 +10,7 @@ The both main tools are:
   wit      : @@WIT-LONG@@ manage ISO files.
   wwt      : @@WWT-LONG@@ manage WBFS partitions.
 
-These are some conversion tools:
-  iso2wdf  : converts ISO images into WDF files.
-  iso2wbfs : converts ISO images into splitted WBFS files.
-  wdf2iso  : converts WDF files into ISO images.
-
-And these are special WDF tools:
+And these are special WDF and CISO tools:
   wdf-cat  : a 'cat' like programm with special handling of WDF files.
   wdf-dump : dump the data structure of a WDF file.
 

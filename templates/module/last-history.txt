@@ -1,4 +1,4 @@
-wit v@.@@@ r@@REV-NEXT@@ - @@@@-@@-@@
+wit v1.00a r1214 - 2010-06-12
 
  - Because I finished my work with wwt (the WBFS manager) it's time to
    declare Version 1.00. The tool wit is still under development.
@@ -16,6 +16,11 @@ wit v@.@@@ r@@REV-NEXT@@ - @@@@-@@-@@
    tmd.bin (new!), header.bin (new!), boot.bin, fst.bin and of DOL-files.
    The file type is detected automatically by analyzing the content.
 
+wit v@.@@@ r@@REV-NEXT@@ - @@@@-@@-@@
+
+ - The tools iso2wbfs, iso2wdf and wdf2iso have been removed. Use wit instead.
+
 Missing docu:
+
  - wit commands ILIST + EXTRACT
 

@@ -75,9 +75,8 @@ use the script: @@URI-FILE@@/scripts/test-wdf-tools.sh
 At the moment only the tools from WIT (Wiimms ISO Tools) will support WDFS:
  - Tool 'wwt' may import WDF files directly to a WBFS
    and may export discs from WBFS directly to WDF files.
+ - Tool 'wit' converts ISO images from and into WDF files.
  - Tool 'wdf-dump' dumps the data structure of a WDF file.
- - Tool 'iso2wdf' converts ISO images into WDF files.
- - Tool 'wdf2iso' converts WDF files into ISO images.
  - Tool 'wdf-cat' is a 'cat' like program with special handling of WDF.
 
 See @@URI-HOME@@ for announcements and discussions.

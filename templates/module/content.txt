@@ -10,9 +10,6 @@ The documentation is divided into several files:
 
   wit.txt           : Documentation about the tool 'wit'.
   wwt.txt           : Documentation about the tool 'wwt'.
-  iso2wdf.txt       : Documentation about the tool 'iso2wdf'.
-  iso2wbfs.txt      : Documentation about the tool 'iso2wbfs'.
-  wdf2iso.txt       : Documentation about the tool 'wdf2iso'.
   wdf-cat.txt       : Documentation about the tool 'wdf-cat'.
   wdf-dump.txt      : Documentation about the tool 'wdf-dump'.
 

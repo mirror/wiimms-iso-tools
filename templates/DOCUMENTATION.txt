@@ -51,8 +51,8 @@ Visit @@URI-HOME@@ for more information.
 
 I have already implemented the WDF support in my tool 'WWT' and tested it with
 many games. In the tests I have converted games from ISO to WDF and back.
-I done this with the tools iso2wdf and wdf2iso/wdf-cat and with WBFS import
-and export. It work well and have not found any errors.
+I done this with the tools iso2wdf, wdf2iso (both discontinued) and wdf-cat
+and with WBFS import and export. It work well and have not found any errors.
 
 The advantages are:
 
@@ -68,17 +68,17 @@ The advantages are:
 For a full WDF description see the file 'WDF.txt' or try the link:
   @@URI-FILE@@/WDF.txt
 
-I have written 4 small tools for handling WDF:
+The following tools support WDF:
  - Tool 'wdf-dump' dumps the data structure of a WDF file.
- - Tool 'iso2wdf' converts ISO images into WDF files.
- - Tool 'wdf2iso' converts WDF files into ISO images.
  - Tool 'wdf-cat' is a 'cat' like programm with special handling of WDF.
+ - Tool 'wit' can converts from/into WDF files.
+ - Tool 'wwt' can extract to or add from WDF files.
 
-I have tested the 3 tools 'iso2wdf', 'wdf2iso' and 'wdf-cat' with more than
-2 million files (mixed files including pictures and documents, but only 50 Wii
-ISO images) without any errors. This means that the 3 tools are stable and the
-usage is sure. For more details call the script './scripts/test-wdf-tools.sh'
-from the distribution without parameters.
+I have tested the 3 tools 'iso2wdf', 'wdf2iso' (both discontinued) and
+'wdf-cat' with more than 2 million files (mixed files including pictures and
+documents, but only 50 Wii ISO images) without any errors. This means that the
+3 tools are stable and the usage is sure. For more details call the script
+'./scripts/test-wdf-tools.sh' from the distribution without parameters.
 
 ~
 ~*******************************************************************************
