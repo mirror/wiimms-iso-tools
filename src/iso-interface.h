@@ -38,6 +38,7 @@ typedef struct WDPartInfo_t
 typedef struct WDiscInfo_t
 {
 	wd_header_t dhead;
+	u32 magic2;
 
 	uint disc_index;
 	char id6[7];
@@ -106,6 +107,50 @@ enumError Dump_ISO
 );
 
 enumError Dump_DOL
+(
+	FILE * f,		// output stream
+	int indent,		// indent
+	SuperFile_t * sf,	// file to dump
+	ccp real_path,		// NULL or pointer to real path
+	int dump_level		// dump level: 0..2
+);
+
+enumError Dump_TIK_BIN
+(
+	FILE * f,		// output stream
+	int indent,		// indent
+	SuperFile_t * sf,	// file to dump
+	ccp real_path,		// NULL or pointer to real path
+	int dump_level		// dump level: 0..2
+);
+
+enumError Dump_TIK_MEM
+(
+	FILE * f,		// output stream
+	int indent,		// indent
+	const wd_ticket_t *tik,	// valid pointer to ticket
+	int dump_level		// dump level: 0..2
+);
+
+enumError Dump_TMD_BIN
+(
+	FILE * f,		// output stream
+	int indent,		// indent
+	SuperFile_t * sf,	// file to dump
+	ccp real_path,		// NULL or pointer to real path
+	int dump_level		// dump level: 0..2
+);
+
+enumError Dump_TMD_MEM
+(
+	FILE * f,		// output stream
+	int indent,		// indent
+	const wd_tmd_t * tmd,	// valid pointer to ticket
+	int n_content,		// number of loaded wd_tmd_content_t elementzs
+	int dump_level		// dump level: 0..2
+);
+
+enumError Dump_HEAD_BIN
 (
 	FILE * f,		// output stream
 	int indent,		// indent
@@ -225,6 +270,8 @@ extern u8 wdisc_usage_tab [WII_MAX_SECTORS];
 extern u8 wdisc_usage_tab2[WII_MAX_SECTORS];
 
 partition_selector_t ScanPartitionSelector ( ccp arg );
+char * PrintPartitionType
+	( char * buf, size_t bufsize, u32 ptype, bool mode_column );
 
 //-----------------------------------------------------------------------------
 

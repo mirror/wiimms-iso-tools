@@ -2971,7 +2971,19 @@ enumError LoadPartitionInfo
     if (mm)
     {
 	mi = InsertMemMap(mm,WII_REGION_OFF,sizeof(dinfo->regionset));
-	StringCopyS(mi->info,sizeof(mi->info),"Region settings");
+	snprintf(mi->info,sizeof(mi->info),"Region settings, region=%x",dinfo->regionset.region);
+    }
+
+    u8 magic2[WII_MAGIC2_LEN];
+    err = ReadSF(sf,WII_MAGIC2_OFF,magic2,sizeof(magic2));
+    if (err)
+	return err;
+    dinfo->magic2 = be32(magic2);
+    if (mm)
+    {
+	mi = InsertMemMap(mm,WII_MAGIC2_OFF,sizeof(magic2));
+	snprintf(mi->info,sizeof(mi->info),"Magic: %02x-%02x-%02x-%02x",
+		magic2[0], magic2[1], magic2[2], magic2[3] );
     }
 
     err = ReadSF(sf,WII_PART_INFO_OFF,dinfo->pcount,sizeof(dinfo->pcount));
@@ -3026,12 +3038,8 @@ enumError LoadPartitionInfo
 		pi->tik_is_trucha_signed = -1;
 		pi->tmd_is_trucha_signed = -1;
 
-		if (mm)
-		{
-		    mi = InsertMemMap(mm,pi->off,sizeof(pi->ph));
-		    snprintf(mi->info,sizeof(mi->info),
-			"P.%d.%d: header",i,j);
-		}
+		char pname_buf[20];
+		char * pname = PrintPartitionType(pname_buf,sizeof(pname_buf),pi->ptype,true);
 
 		if ( pi->off + sizeof(pi->ph) <= dinfo->iso_size )
 		{
@@ -3059,30 +3067,47 @@ enumError LoadPartitionInfo
 
 		    if (mm)
 		    {
-			mi = InsertMemMap(mm,
+			mi = InsertMemMap(mm,pi->off,sizeof(pi->ph));
+			snprintf(mi->info,sizeof(mi->info),
+				"P.%d.%d, %s, header+ticket, id=%.4s",
+				i, j, pname, pi->ph.ticket.title_id+4 );
+
+			if (pi->ph.tmd_size)
+			{
+			    mi = InsertMemMap(mm,
 				pi->off + ((off_t)pi->ph.tmd_off4<<2),
 				pi->ph.tmd_size );
-			snprintf(mi->info,sizeof(mi->info),
-				"P.%d.%d: tmd",i,j);
+			    snprintf(mi->info,sizeof(mi->info),
+				"P.%d.%d, %s, tmd",i,j,pname);
+			}
 
-			mi = InsertMemMap(mm,
+			if (pi->ph.cert_size)
+			{
+			    mi = InsertMemMap(mm,
 				pi->off + ((off_t)pi->ph.cert_off4<<2),
 				pi->ph.cert_size );
-			snprintf(mi->info,sizeof(mi->info),
-				"P.%d.%d: cert",i,j);
+			    snprintf(mi->info,sizeof(mi->info),
+				"P.%d.%d, %s, cert",i,j,pname);
+			}
 
 			mi = InsertMemMap(mm,
 				pi->off + ((off_t)pi->ph.h3_off4<<2),
 				WII_H3_SIZE );
 			snprintf(mi->info,sizeof(mi->info),
-				"P.%d.%d: h3",i,j);
+				"P.%d.%d, %s, h3",i,j,pname);
 
 			mi = InsertMemMap(mm,
 				pi->off + ((off_t)pi->ph.data_off4<<2),
 				(off_t)pi->ph.data_size4<<2 );
 			snprintf(mi->info,sizeof(mi->info),
-				"P.%d.%d: data",i,j);
+				"P.%d.%d, %s, data",i,j,pname);
 		    }
+		}
+		else if (mm)
+		{
+		    mi = InsertMemMap(mm,pi->off,sizeof(pi->ph));
+		    snprintf(mi->info,sizeof(mi->info),
+			"P.%d.%d, %s, hd+ticket", i, j, pname );
 		}
 
 		if (!pi->ptable)

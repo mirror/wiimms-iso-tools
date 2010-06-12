@@ -7,7 +7,7 @@ an ID4 or an ID6. Discs with an ID in the exclusion list are ignored (not
 added, extracted, removed or listed). If --include or --include-path is used,
 only discs in the include list are processed.
 
-The include list is controlled by the to options --include and --include-path
+The include list is controled by the to options --include and --include-path
 and the exclude list by the options --exclude and --exclude-path. All four
 options can be used multiple times. The exclude list ha a higher priority
 as the include list.

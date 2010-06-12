@@ -136,6 +136,38 @@ static int dump_header
     return indent;
 }
 
+//-----------------------------------------------------------------------------
+
+static void dump_hex ( FILE * f, const void * p_data, size_t dsize, size_t asc_indent )
+{
+    ASSERT(f);
+    const u8 * data = p_data;
+    ASSERT(p_data);
+    char buf[100];
+    ASSERT(dsize < sizeof(buf) );
+
+    int count = 0, fw = 0;
+    while ( dsize-- > 0 )
+    {
+	if ( count && !(count&3) )
+	{
+	    fputc(' ',f);
+	    fw++;
+	}
+	buf[count++] = *data >= ' ' && *data < 0x7f ? *data : '.';
+	fprintf(f,"%02x",*data++);
+	fw += 2;
+    }
+
+    if ( asc_indent > 0 )
+    {
+	buf[count] = 0;
+	fprintf(f,"%*s= '%s'\n",(int)(asc_indent-fw), "", buf );
+    }
+    else
+	fputc('\n',f);
+}
+
 //
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////			 Dump_ISO()			///////////////
@@ -233,21 +265,7 @@ enumError Dump_ISO
     WDPartInfo_t *pi;
     for ( i = 0, pi = wdi.pinfo; i < np; i++, pi++ )
     {
-	ccp part_name = wd_get_partition_name(pi->ptype,0);
-	if (part_name)
-	    snprintf(buf1,sizeof(buf1),"%7s %d",part_name,pi->ptype);
-	else
-	{
-	    char id4[5];
-	    id4[0] = pi->ptype >> 24;
-	    id4[1] = pi->ptype >> 16;
-	    id4[2] = pi->ptype >>  8;
-	    id4[3] = pi->ptype;
-	    if ( CheckID(id4,false) == 4 )
-		snprintf(buf1,sizeof(buf1),"   \"%.4s\"",id4);
-	    else
-		snprintf(buf1,sizeof(buf1),"%9x",pi->ptype);
-	}
+	PrintPartitionType(buf1,sizeof(buf1),pi->ptype,true);
 
 	if ( pi->size )
 	{
@@ -267,9 +285,10 @@ enumError Dump_ISO
       for ( i = 0, pi = wdi.pinfo; i < np; i++, pi++ )
 	if ( pi->size )
 	{
-	    fprintf(f,"\n%*sPartition table #%d, partition #%d, type %x [%s]:\n",
-		    indent,"", pi->ptable, pi->index, pi->ptype,
-		    wd_get_partition_name(pi->ptype,"?") );
+	    PrintPartitionType(buf1,sizeof(buf1),pi->ptype,false);
+	    
+	    fprintf(f,"\n%*sPartition table #%d, partition #%d, type %s:\n",
+		    indent,"", pi->ptable, pi->index, buf1 );
 
 	    if ( pi->is_marked_not_enc > 0 )
 		fprintf(f,"%*s  Partition is marked as 'not encrypted'.\n", indent,"" );
@@ -363,7 +382,7 @@ enumError Dump_ISO
     if ( dump_level > 1 )
     {
 	mi = InsertMemMap(&mm,0,0x100);
-	StringCopyS(mi->info,sizeof(mi->info),"Disc header");
+	snprintf(mi->info,sizeof(mi->info),"Disc header, id=%.6s",(ccp)&wdi.dhead);
 
 	fprintf(f,"\n\n%*sISO Memory Map:\n\n",indent,"");
 	PrintMemMap(&mm,f,indent+3);
@@ -454,6 +473,234 @@ enumError Dump_DOL
 
 //
 ///////////////////////////////////////////////////////////////////////////////
+///////////////		Dump_TIK_BIN() + Dump_TIK() 		///////////////
+///////////////////////////////////////////////////////////////////////////////
+
+enumError Dump_TIK_BIN
+(
+	FILE * f,		// output stream
+	int indent,		// indent
+	SuperFile_t * sf,	// file to dump
+	ccp real_path,		// NULL or pointer to real path
+	int dump_level		// dump level: 0..2
+)
+{
+    ASSERT(sf);
+    if (!f)
+	return ERR_OK;
+
+    wd_ticket_t tik;
+    enumError err = ReadSF(sf,0,&tik,sizeof(tik));
+    if (!err)
+	memcpy(sf->f.id6,tik.title_id+4,4);
+    indent = dump_header(f,indent,sf,real_path);
+
+    if (!err)
+    {
+	putc('\n',f);
+	Dump_TIK_MEM(f,indent,&tik,dump_level);
+    }
+    putc('\n',f);
+    return err;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+enumError Dump_TIK_MEM
+(
+	FILE * f,		// output stream
+	int indent,		// indent
+	const wd_ticket_t *tik,	// valid pointer to ticket
+	int dump_level		// dump level: 0..2
+)
+{
+    ASSERT(f);
+    ASSERT(tik);
+    indent = NormalizeIndent(indent);
+
+    fprintf(f,"%*sIssuer:          %s\n", indent,"", tik->issuer );
+
+    u32 val = ntohl(tik->sig_type);
+    fprintf(f,"%*sSignature type:%11x/hex =%11u\n", indent,"", val,val );
+    if ( !tik->sig && !memcmp(tik->sig,tik->sig+1,sizeof(tik->sig)-1) )
+	fprintf(f,"\n%*sSignature is cleared (all zero)\n", indent,"" );
+
+    val = ntohs(tik->n_dlc);
+    fprintf(f,"%*sN(DLC):        %11x/hex =%11u\n", indent,"", val,val );
+    val = tik->common_key_index;
+    fprintf(f,"%*sCommon key index:%9u     = '%s'\n",
+		indent,"", val, !val ? "normal" : val == 1 ? "korean" : "?" );
+    val = ntohl(tik->time_limit);
+    fprintf(f,"%*sTime limit:    %11x/hex =%11u [%sabled]\n",
+		indent,"", val,val, ntohl(tik->enable_time_limit) ? "en" : "dis" );
+
+    fprintf(f,"%*sTitle key:       ",indent,"");
+    dump_hex(f,tik->title_key,sizeof(tik->title_key),0);
+    fprintf(f,"%*sTicket ID:       ",indent,"");
+    dump_hex(f,tik->ticket_id,sizeof(tik->ticket_id),18);
+    fprintf(f,"%*sConsole ID:      ",indent,"");
+    dump_hex(f,tik->console_id,sizeof(tik->console_id),18);
+    fprintf(f,"%*sTitle ID:        ",indent,"");
+    dump_hex(f,tik->title_id,sizeof(tik->title_id),18);
+
+    return ERR_OK;
+}
+
+//
+///////////////////////////////////////////////////////////////////////////////
+///////////////		Dump_TMD_BIN() + Dump_TMD() 		///////////////
+///////////////////////////////////////////////////////////////////////////////
+
+enumError Dump_TMD_BIN
+(
+	FILE * f,		// output stream
+	int indent,		// indent
+	SuperFile_t * sf,	// file to dump
+	ccp real_path,		// NULL or pointer to real path
+	int dump_level		// dump level: 0..2
+)
+{
+    ASSERT(sf);
+    if (!f)
+	return ERR_OK;
+
+    #define MAX_CONTENT 100
+    char buf[ sizeof(wd_tmd_t) + MAX_CONTENT * sizeof(wd_tmd_content_t) ];
+    wd_tmd_t * tmd = (wd_tmd_t*)buf;
+
+    int max_content = ( sf->file_size - sizeof(wd_tmd_t) ) / sizeof(wd_tmd_content_t);
+    if ( max_content > MAX_CONTENT )
+	max_content = MAX_CONTENT;
+
+    const size_t load_size = sizeof(wd_tmd_t) + max_content * sizeof(wd_tmd_content_t);
+    ASSERT( load_size <= sizeof(buf) );
+    
+    enumError err = ReadSF(sf,0,buf,load_size);
+    if (!err)
+	memcpy(sf->f.id6,tmd->title_id+4,4);
+    indent = dump_header(f,indent,sf,real_path);
+
+    if (!err)
+    {
+	putc('\n',f);
+	Dump_TMD_MEM(f,indent,tmd,max_content,dump_level);
+    }
+    putc('\n',f);
+    return err;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+enumError Dump_TMD_MEM
+(
+	FILE * f,		// output stream
+	int indent,		// indent
+	const wd_tmd_t * tmd,	// valid pointer to ticket
+	int n_content,		// number of loaded wd_tmd_content_t elementzs
+	int dump_level		// dump level: 0..2
+)
+{
+    ASSERT(f);
+    ASSERT(tmd);
+    ASSERT( n_content >= 0 );
+    indent = NormalizeIndent(indent);
+
+    fprintf(f,"%*sIssuer:          %s\n", indent,"", tmd->issuer );
+
+    u32 val = ntohl(tmd->sig_type);
+    fprintf(f,"%*sSignature type:%11x/hex =%11u\n", indent,"", val,val );
+    if ( !tmd->sig && !memcmp(tmd->sig,tmd->sig+1,sizeof(tmd->sig)-1) )
+	fprintf(f,"\n%*sSignature is cleared (all zero)\n", indent,"" );
+
+    fprintf(f,"%*sVersion:       %11u\n", indent, "", tmd->version);
+    fprintf(f,"%*sCA version:    %11u\n", indent, "", tmd->ca_crl_version);
+    fprintf(f,"%*sSigner version:%11u\n", indent, "", tmd->signer_crl_version);
+
+    u32 high = be32((ccp)&tmd->sys_version);
+    u32 low  = be32(((ccp)&tmd->sys_version)+4);
+    if ( high == 1 && low < 0x100 )
+	fprintf(f,"%*sSytem version:   %08x %08x = IOS %u = IOS 0x%02x\n",
+		indent, "", high, low, low, low );
+    else
+	fprintf(f,"%*sSytem version:   %08x:%08x\n", indent, "", high, low );
+    fprintf(f,"%*sTitle ID:        ",indent,"");
+    dump_hex(f,tmd->title_id,sizeof(tmd->title_id),18);
+
+    val = ntohl(tmd->title_type);
+    fprintf(f,"%*sTitle type:    %11x/hex =%11u\n", indent,"", val, val );
+    val = ntohs(tmd->group_id);
+    fprintf(f,"%*sGroup ID:      %11x/hex =%11u\n", indent,"", val, val );
+    val = ntohl(tmd->access_rights);
+    fprintf(f,"%*sAccess rights: %11x/hex =%11u\n", indent,"", val, val );
+    val = ntohs(tmd->title_version);
+    fprintf(f,"%*sTitle version: %11x/hex =%11u\n", indent,"", val, val );
+    val = ntohs(tmd->boot_index);
+    fprintf(f,"%*sBoot index:    %11x/hex =%11u\n", indent,"", val, val );
+
+    val = ntohs(tmd->n_content);
+    fprintf(f,"%*sN(content):    %11x/hex =%11u\n", indent,"", val, val );
+    if ( n_content > val )
+	n_content = val;
+
+    int i;
+    for ( i = 0; i < n_content; i++ )
+    {
+	const wd_tmd_content_t * c = tmd->content + i;
+	val = ntohl(c->content_id);
+	fprintf(f,"%*sContent #%u, ID:    %7x/hex =%11u\n", indent,"", i, val, val );
+	val = ntohs(c->index);
+	fprintf(f,"%*sContent #%u, index: %7x/hex =%11u\n", indent,"", i, val, val );
+	val = ntohs(c->type);
+	fprintf(f,"%*sContent #%u, type:  %7x/hex =%11u\n", indent,"", i, val, val );
+	u64 val64 = ntoh64(c->size);
+	fprintf(f,"%*sContent #%u, size:%9llx/hex =%11llu\n", indent,"", i, val64, val64 );
+	fprintf(f,"%*sContent #%u, hash: ",indent,"",i);
+	dump_hex(f,c->hash,sizeof(c->hash),0);
+    }
+
+    return ERR_OK;
+}
+
+//
+///////////////////////////////////////////////////////////////////////////////
+///////////////			 Dump_HEAD_BIN()		///////////////
+///////////////////////////////////////////////////////////////////////////////
+
+enumError Dump_HEAD_BIN
+(
+	FILE * f,		// output stream
+	int indent,		// indent
+	SuperFile_t * sf,	// file to dump
+	ccp real_path,		// NULL or pointer to real path
+	int dump_level		// dump level: 0..2
+)
+{
+    ASSERT(sf);
+    if (!f)
+	return ERR_OK;
+    indent = dump_header(f,indent,sf,real_path);
+
+    wd_header_t head;
+    enumError err = ReadSF(sf,0,&head,WBFS_INODE_INFO_OFF);
+    if (!err)
+    {
+	WDiscInfo_t wdi;
+	InitializeWDiscInfo(&wdi);
+	memcpy(&wdi.dhead,&head,sizeof(wdi.dhead));
+	CalcWDiscInfo(&wdi,0);
+
+	fprintf(f,"%*sDisc name:       %s\n",indent,"",wdi.dhead.game_title);
+	if (wdi.title)
+	    fprintf(f,"%*sDB title:        %s\n",indent,"",wdi.title);
+	fprintf(f,"%*sRegion:          %s [%s]\n",indent,"",wdi.region,wdi.region4);
+	ResetWDiscInfo(&wdi);
+    }
+    putc('\n',f);
+    return err;
+}
+
+//
+///////////////////////////////////////////////////////////////////////////////
 ///////////////			 Dump_BOOT_BIN()		///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -484,10 +731,6 @@ enumError Dump_BOOT_BIN
 	if (wdi.title)
 	    fprintf(f,"%*sDB title:        %s\n",indent,"",wdi.title);
 	fprintf(f,"%*sRegion:          %s [%s]\n",indent,"",wdi.region,wdi.region4);
-	u8 * p8 = wdi.regionset.region_info;
-	fprintf(f,"%*sRegion setting:  %d / %02x %02x %02x %02x  %02x %02x %02x %02x\n\n",
-		    indent,"", wdi.regionset.region,
-		    p8[0], p8[1], p8[2], p8[3], p8[4], p8[5], p8[6], p8[7] );
 	ResetWDiscInfo(&wdi);
 
 	ntoh_boot(&wb,&wb);
@@ -826,6 +1069,48 @@ partition_selector_t ScanPartitionSelector ( ccp arg )
 
     ERROR0(ERR_SYNTAX,"Illegal partition selector (option --psel): '%s'\n",arg);
     return -1;
+}
+
+//-----------------------------------------------------------------------------
+
+char * PrintPartitionType
+	( char * buf, size_t bufsize, u32 ptype, bool mode_column )
+{
+    ccp part_name = wd_get_partition_name(ptype,0);
+    if (part_name)
+    {
+	if (mode_column)
+	    snprintf(buf,bufsize,"%7s %x",part_name,ptype);
+	else
+	    snprintf(buf,bufsize,"%x [%s]",ptype,part_name);
+    }
+    else
+    {
+	char id4[5];
+	id4[0] = ptype >> 24;
+	id4[1] = ptype >> 16;
+	id4[2] = ptype >>  8;
+	id4[3] = ptype;
+	id4[4] = 0;
+	if ( CheckID(id4,false) == 4 )
+	{
+	    if (mode_column)
+		snprintf(buf,bufsize,"   \"%.4s\"",id4);
+	    else
+		snprintf(buf,bufsize,"%x [\"%s\"]",ptype,id4);
+	}
+	else
+	{
+	    if (mode_column)
+		snprintf(buf,bufsize,"%9x",ptype);
+	    else
+		snprintf(buf,bufsize,"%x [?]",ptype);
+	}
+    }
+    
+    while ( *buf == ' ' )
+	buf++;
+    return buf;
 }
 
 ///////////////////////////////////////////////////////////////////////////////

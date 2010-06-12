@@ -1,17 +1,21 @@
-wit v0.48b r1164 - 2010-06-01 (repository only)
-
- - Bug fix: If reading a very small WBFS file the old and buggy calculation
-   in libwbfs for the free tables size results in zero. Accessing the non
-   existent table forces a segmentation fault. For compatibility reasons
-   the calculation can't be changed.
- - Bug fix: wit DUMP have always reported encrypted partitions.
- - Composing bug fix: Copy only really needed data from boot.bin if file
-   header.bin is missed.
-
 wit v@.@@@ r@@REV-NEXT@@ - @@@@-@@-@@
 
- - Built in help improved.
- 
+ - Because I finished my work with wwt (the WBFS manager) it's time to
+   declare Version 1.00. The tool wit is still under development.
+ - This is the last version which supports the three tools iso2wbfs, iso2wdf
+   and wdf2iso. Use the more powerful command 'wit copy' instead.
+ - Makefile changes:
+    - File './include-local' is not included anymore. Instead the file
+      'makefiles-local/Makefile.local.$(SYSTEM)' is included.
+    - make chmod: change mode 775/644 for known dirs and files.
+    - make chown: change owner of all dirs+files to owner of '.'.
+    - make chgrp: change group of all dirs+files to group of '.'.
+    - make ch+  := make chmod chown chgrp
+ - wit DUMP: Output improved.
+ - wit DUMP can now dump data structure of Wii ISO files, ticket.bin (new!),
+   tmd.bin (new!), header.bin (new!), boot.bin, fst.bin and of DOL-files.
+   The file type is detected automatically by analyzing the content.
+
 Missing docu:
-  - wit commands ILIST + EXTRACT
+ - wit commands ILIST + EXTRACT
 

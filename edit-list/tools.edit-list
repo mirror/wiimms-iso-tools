@@ -1,8 +1,9 @@
+../src/wdf.c ;
+../src/wdf-cat.c ;
+../src/wdf-dump.c ;
 ../src/iso2wbfs.c ;
 ../src/iso2wdf.c ;
 ../src/wdf2iso.c ;
-../src/wdf-cat.c ;
-../src/wdf-dump.c ;
 ../src/wit.c ;
 ../src/wwt.c ;
 @+all-source.edit-list

@@ -76,7 +76,7 @@ are listed in alphabetic order:
  overwrtitten if option --overwrite is set. If option --update is set, the
  operation will be silently ignored if the destuination file already exists.
 
- The output is scrubbed. The scrubbing can be controlled with the options
+ The output is scrubbed. The scrubbing can be controled with the options
  --psel and --raw. If option --remove is set then the souce file is removed
  after successfull operation.
 
@@ -519,7 +519,7 @@ COMMANDS:
 
  Each source is candidate for scrubbing. Non ISO files are ignored with a
  warning. The option --ignore suppresses this warning. The output is scrubbed.
- The scrubbing can be controlled with the options --psel and --raw.
+ The scrubbing can be controled with the options --psel and --raw.
 
  The options --split and --split-size control the splitting of the output
  files. See section "Processing split options" for details.

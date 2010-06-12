@@ -17,7 +17,176 @@
 
 //
 ///////////////////////////////////////////////////////////////////////////////
-///////////////                    CISO support                 ///////////////
+///////////////			   CISO options			///////////////
+///////////////////////////////////////////////////////////////////////////////
+
+enumChunkMode opt_chunk_mode	= CHUNK_MODE_ISO;
+u32  opt_chunk_size		= 0;
+bool force_chunk_size		= false;
+u32  opt_max_chunks		= 0;
+
+///////////////////////////////////////////////////////////////////////////////
+
+int ScanChunkMode ( ccp source )
+{
+    static const CommandTab_t tab[] =
+    {
+	{ CHUNK_MODE_ISO,	"ISO",	 0,	0 },
+	{ CHUNK_MODE_POW2,	"POW2",	"2",	0 },
+	{ CHUNK_MODE_32KIB,	"32KIB", 0,	0 },
+	{ CHUNK_MODE_ANY,	"ANY",	 0,	0 },
+
+	{ 0,0,0,0 }
+    };
+
+    const CommandTab_t * cmd = ScanCommand(0,source,tab);
+    if (cmd)
+    {
+	opt_chunk_mode = cmd->id;
+	return 0;
+    }
+
+    ERROR0(ERR_SYNTAX,"Illegal chunk mode (option --chunk-mode): '%s'\n",source);
+    return 1;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+int ScanChunkSize ( ccp source )
+{
+    while ( *source > 0 && *source <= ' ' )
+	source++;
+    force_chunk_size = *source == '=';
+    if (force_chunk_size)
+	source++;
+
+    return ERR_OK != ScanSizeOptU32(
+			&opt_chunk_size,	// u32 * num
+			source,			// ccp source
+			1,			// default_factor1
+			0,			// int force_base
+			"chunk-size",		// ccp opt_name
+			0,			// u64 min
+			CISO_MAX_BLOCK_SIZE,	// u64 max
+			1,			// u32 multiple
+			0,			// u32 pow2
+			true			// bool print_err
+			);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+int ScanMaxChunks ( ccp source )
+{
+    return ERR_OK != ScanSizeOptU32(
+			&opt_max_chunks,	// u32 * num
+			source,			// ccp source
+			1,			// default_factor1
+			0,			// int force_base
+			"max-chunks",		// ccp opt_name
+			0,			// u64 min
+			CISO_MAP_SIZE,		// u64 max
+			1,			// u32 multiple
+			0,			// u32 pow2
+			true			// bool print_err
+			);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+u32 CalcBlockSizeCISO ( u32 * result_n_blocks, off_t file_size )
+{
+    TRACE("CalcBlockSizeCISO(,%llx) mode=%u, size=%x%s, min=%x\n",
+		(u64)file_size, opt_chunk_mode,
+		opt_chunk_size, force_chunk_size ? "!" : "",
+		opt_max_chunks );
+
+    //----- setup
+
+    if (!file_size)
+	file_size = 12ull * GiB;
+
+    if ( opt_chunk_mode >= CHUNK_MODE_ISO )
+    {
+	const u64 temp = WII_MAX_SECTORS * (u64)WII_SECTOR_SIZE;
+	if ( file_size < temp )
+	    file_size = temp;
+    }
+    TRACE(" - file_size  := %llx\n",file_size);
+
+    u64 block_size = opt_chunk_size;
+    if ( !block_size || !force_chunk_size )
+    {
+	//----- max_blocks
+
+	const u32 max_blocks = opt_max_chunks > 0
+			    ? opt_max_chunks
+			    : opt_chunk_mode >= CHUNK_MODE_ISO
+				    ? CISO_WR_MAX_BLOCK
+				    : CISO_MAP_SIZE;
+	TRACE(" - max_blocks := %x=%u\n",max_blocks,max_blocks);
+
+	//----- first calculation
+
+	u64 temp = ( file_size + max_blocks - 1 ) / max_blocks;
+	if ( block_size < temp )
+	{
+	    block_size = temp;
+	    TRACE(" - %8llx minimal block_size\n",block_size);
+	}
+
+	//----- 'max_blocks' calculation
+
+	temp = ( file_size + max_blocks ) / max_blocks;
+	if ( block_size < temp )
+	{
+	    block_size = temp;
+	    TRACE(" - %8llx new block_size [max_blocks]\n",block_size);
+	}
+
+	//----- multiple of x
+
+	const u32 factor = opt_chunk_mode >= CHUNK_MODE_ISO
+			    ? CISO_WR_MIN_BLOCK_SIZE
+			    : opt_chunk_size && opt_chunk_size < CISO_MIN_BLOCK_SIZE
+				    ? opt_chunk_size
+				    : CISO_MIN_BLOCK_SIZE;
+	TRACE(" - factor := %x\n",factor);
+
+	block_size = ( block_size + factor -1 ) / factor * factor;
+	TRACE(" - %8llx aligned block_size [*%x]\n",block_size,factor);
+
+	//----- power of 2
+
+	if ( opt_chunk_mode >= CHUNK_MODE_POW2 )
+	{
+	    u64 ref = block_size;
+	    block_size = CISO_MIN_BLOCK_SIZE;
+	    while ( block_size < ref )
+		block_size <<= 1;
+	    TRACE(" - %8llx power 2\n",block_size);
+	}
+    }
+
+    //----- terminate
+
+    if ( block_size > CISO_MAX_BLOCK_SIZE )
+    {
+	block_size = CISO_MAX_BLOCK_SIZE;
+	TRACE(" - %8llx cut di max\n",block_size);
+    }
+
+    if (result_n_blocks)
+    {
+	const u64 n_blocks = ( file_size + block_size - 1 ) / block_size;
+	*result_n_blocks = n_blocks < ~(u32)0 ? n_blocks : ~(u32)0;
+    }
+    return block_size;
+}
+
+//
+///////////////////////////////////////////////////////////////////////////////
+///////////////			   CISO support			///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
 enumError InitializeCISO ( CISO_Info_t * ci, CISO_Head_t * ch )
@@ -106,7 +275,7 @@ void ResetCISO ( CISO_Info_t * ci )
 
 //
 ///////////////////////////////////////////////////////////////////////////////
-///////////////                      read CISO                  ///////////////
+///////////////			    read CISO			///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
 enumError SetupReadCISO ( SuperFile_t * sf )
@@ -211,7 +380,7 @@ enumError ReadCISO ( SuperFile_t * sf, off_t off, void * buf, size_t count )
 
 //
 ///////////////////////////////////////////////////////////////////////////////
-///////////////                     write CISO                  ///////////////
+///////////////			    write CISO			///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
 enumError SetupWriteCISO ( SuperFile_t * sf )
@@ -240,6 +409,12 @@ enumError SetupWriteCISO ( SuperFile_t * sf )
 	ci->map[i] = CISO_UNUSED_BLOCK;
 
     //---- calc block size
+
+ #ifdef TEST
+
+    ci->block_size = CalcBlockSizeCISO(0,sf->file_size);
+
+ #else // [2do] [obsolete]
 
     const u64 max_file_size = WII_MAX_SECTORS * (u64)WII_SECTOR_SIZE;
     u32 block_size = max_file_size / CISO_MAP_SIZE;
@@ -277,6 +452,7 @@ enumError SetupWriteCISO ( SuperFile_t * sf )
     TRACE(" - %8x power2 block_size\n",ci->block_size);
 
  #endif
+ #endif // TEST
 
     return ERR_OK;
 }
@@ -437,6 +613,6 @@ enumError WriteZeroCISO ( SuperFile_t * sf, off_t off, size_t size )
 
 //
 ///////////////////////////////////////////////////////////////////////////////
-///////////////                          END                    ///////////////
+///////////////				END			///////////////
 ///////////////////////////////////////////////////////////////////////////////
 

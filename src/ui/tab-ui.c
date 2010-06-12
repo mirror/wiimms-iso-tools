@@ -54,6 +54,7 @@ typedef enum enumType
 
 	//----- hidden options and commands (hide from help)
 
+	H_DEF_TOOL	= F_HIDDEN | T_DEF_TOOL,
 	H_DEF_CMD	= F_HIDDEN | T_DEF_CMD,
 
 	H_OPT_C		= F_HIDDEN | T_OPT_C,
@@ -104,6 +105,14 @@ typedef struct info_t
 	" by a '-' to disable it or" \
 	" by a '=' to enable that option and disable all others."
 
+#define TEXT_OPT_CHUNK_MODE(def) \
+	"Defines an operation mode for {--max-chunks} and {--chunk-size}." \
+	" Allowed values are @'ISO'@ for ISO images," \
+	" @'POW2'@ to force chunk sizes >= 32 KiB and with power of 2" \
+	" @'32K'@ to force chunk sizes multiple 32 KiB" \
+	" or @'ANY'@ to allow any values." \
+	" The default value is @'" def "'@." \
+	" The case fo the keyword is ignored."
 
 //
 ///////////////////////////////////////////////////////////////////////////////
@@ -157,7 +166,7 @@ info_t info_tab[] =
   { T_DEF_CMD,	"FILELIST",	"FILELIST|FL",
 		"wit FILELIST [source]...",
 		"List all source files decared by the options"
-		" @$--source$@ and @$--recurse$@." },
+		" {--source} and {--recurse}." },
 
   { T_DEF_CMD,	"FILETYPE",	"FILETYPE|FT",
 		"wit FILETYPE [source]...",
@@ -171,8 +180,9 @@ info_t info_tab[] =
 
   { T_DEF_CMD,	"DUMP",		"DUMP|D",
 		"wit DUMP [source]...",
-		"Dump the data structure of Wii ISO files, boot.bin,"
-		" fst.bin and of DOL-files." },
+		"Dump the data structure of Wii ISO files, ticket.bin, tmd.bin,"
+		" header.bin, boot.bin, fst.bin and of DOL-files."
+		" The file type is detected automatically by analyzing the content." },
 
   { H_DEF_CMD,	"DREGION",	"DREGION|DR",
 		"wit DREGION [source]...",
@@ -189,17 +199,17 @@ info_t info_tab[] =
   { T_DEF_CMD,	"LIST_L",	"LIST-L|LL",
 		"wit LIST-L [source]...",
 		"List all found ISO files."
-		" Same as @'$LIST$ --long'@." },
+		" Same as {LIST --long}." },
 
   { T_DEF_CMD,	"LIST_LL",	"LIST-LL|LLL",
 		"wit LIST-LL [source]...",
 		"List all found ISO files."
-		" Same as @'$LIST$ --long --long'@." },
+		" Same as {LIST --long --long}." },
 
   { T_DEF_CMD,	"LIST_LLL",	"LIST-LLL|LLLL",
 		"wit LIST-LLL [source]...",
 		"List all found ISO files."
-		" Same as @'$LIST$ --long --long --long'@." },
+		" Same as {LIST --long --long --long}." },
 
   { T_SEP_CMD,	0,0,0,0 }, //----- separator -----
 
@@ -210,12 +220,12 @@ info_t info_tab[] =
   { T_DEF_CMD,	"ILIST_L",	"ILIST-L|ILL",
 		"wit ILIST-L [source]...",
 		"List all files of all discs."
-		" Same as @'$ILIST$ --long'@." },
+		" Same as {ILIST --long}." },
 
   { T_DEF_CMD,	"ILIST_LL",	"ILIST-LL|ILLL",
 		"wit ILIST-LL [source]...",
 		"List all files of all discs."
-		" Same as @'$ILIST$ --long --long'@." },
+		" Same as {ILIST --long --long}." },
 
   { T_SEP_CMD,	0,0,0,0 }, //----- separator -----
 
@@ -223,7 +233,7 @@ info_t info_tab[] =
 		"wit DIFF source dest\n"
 		"wit DIFF [-s path]... [-r path]... [source]... [-d|-D] dest",
 		"DIFF compares ISO images in  scrubbed or raw mode or on file level."
-		" DIFF works like $COPY$ but comparing source and destination." },
+		" DIFF works like {COPY} but comparing source and destination." },
 
   { T_DEF_CMD,	"EXTRACT",	"EXTRACT|X",
 		"wit EXTRACT source dest\n"
@@ -307,7 +317,7 @@ info_t info_tab[] =
 		"char",
 		"Define an alternative escape character for destination files."
 		" The default is '%'."
-		" For Windows (CYGWIN) it is a good choice to set '-E$'." },
+		" For Windows (CYGWIN) it is a good choice to set @'-E$$'@." },
 
   { T_OPT_GP,	"IO",		"io",
 		"flags",
@@ -348,7 +358,7 @@ info_t info_tab[] =
 
   { T_OPT_CP,	"RDEPTH",	"rdepth",
 		"depth", "Set the maximum recurse depth for option"
-		" @$--recurse$@ (default=10)." },
+		" {--recurse} (default=10)." },
 
   { T_SEP_OPT,	0,0,0,0 }, //----- separator -----
 
@@ -359,7 +369,8 @@ info_t info_tab[] =
 		" and each line is scanned for IDs." },
 
   { T_OPT_CMP,	"INCLUDE_PATH",	"N|include-path|includepath",
-		"file_or_dir", "ISO file or base of directory tree -> scan their ID6." },
+		"file_or_dir",
+		"ISO file or base of directory tree -> scan their ID6." },
 
   { T_OPT_CMP,	"EXCLUDE",	"x|exclude",
 		"id",
@@ -368,7 +379,8 @@ info_t info_tab[] =
 		" and each line is scanned for IDs." },
 
   { T_OPT_CMP,	"EXCLUDE_PATH",	"X|exclude-path|excludepath",
-		"file_or_dir", "ISO file or base of directory tree -> scan their ID6." },
+		"file_or_dir",
+		"ISO file or base of directory tree -> scan their ID6." },
 
   { T_OPT_CM,	"IGNORE",	"i|ignore",
 		0,
@@ -387,7 +399,7 @@ info_t info_tab[] =
 		TEXT_OPT_PSEL },
 
   { T_OPT_C,	"RAW",		"raw",
-		0, "Abbreviation of @$--psel$=RAW@." },
+		0, "Abbreviation of {--psel RAW}." },
 
   { T_OPT_CP,	"PMODE",	"pmode",
 		"p-mode",
@@ -397,7 +409,7 @@ info_t info_tab[] =
 		" The default value is 'auto'." },
 
   { T_OPT_C,	"SNEEK",	"sneek",
-		0, "Abbreviation of @$--psel$=data $--pmode$=none $--files$==sneek@." },
+		0, "Abbreviation of {--psel data --pmode none --files =sneek}." },
 
   { H_OPT_G,	"HOOK",		"hook",
 		0,
@@ -409,14 +421,14 @@ info_t info_tab[] =
 		" to the given parameter. 1 to 6 characters are expected."
 		" Only defined characters not equal '.' are modified."
 		" The disc header, boot.bin, ticket.bin and tmd.bin are "
-		" objects to modify. The option @$--modify$=@ selects the objects." },
+		" objects to modify. The option {--modify} selects the objects." },
 
   { T_OPT_CP,	"NAME",		"name",
 		"name",
 		"This $patching$ option changes the name (disc title) of the disc"
 		" to the given parameter. Up to 63 characters are expected."
 		" The disc header and boot.bin are objects to modify."
-		" The option @$--modify$=@ selects the objects." },
+		" The option {--modify} selects the objects." },
 
   { T_OPT_CP,	"MODIFY",	"modify",
 		"list",
@@ -451,11 +463,11 @@ info_t info_tab[] =
 		"path",
 		"Define a destination path (directory/file)."
 		" The destination path is scanned for escape sequences"
-		" (see option @$--esc$@) to allow generic pathes." },
+		" (see option {--esc}) to allow generic pathes." },
 
   { T_OPT_CP,	"DEST2",	"D|DEST",
 		"path",
-		"Like @$--dest$@, but create the directory path automatically." },
+		"Like {--dest}, but create the directory path automatically." },
 
   { T_OPT_C,	"SPLIT",	"z|split",
 		0,
@@ -468,6 +480,37 @@ info_t info_tab[] =
 		" by an optional unit factor (one of 'cb' [=1] or "
 		" 'kmgtpe' [base=1000] or 'KMGTPE' [base=1024])."
 		" The default unit is 'G' (GiB)." },
+
+  { H_OPT_CP,	"CHUNK_MODE",	"chunk-mode|chunkmode",
+		"mode", TEXT_OPT_CHUNK_MODE("ISO") },
+
+  { H_OPT_CP,	"CHUNK_SIZE",	"chunk-size|chunksize",
+		"sz",
+		"Define the minimal chunk size if creating a CISO file."
+		" The default is to calculate the chunk size from the input file size"
+		" and find a good value by using a minimal value of 1 MiB"
+		" for {--chunk-mode AUTO} and 32 KiB for other mdoes."
+		" If {--chunk-mode} is not @'ANY'@ then the value is rounded"
+		" up to the next power of 2."
+		" This calculation also depends from {--max-chunks}."
+		"\n"
+		"The parameter 'sz' is a floating point number followed"
+		" by an optional unit factor (one of 'cb' [=1] or "
+		" 'kmgtpe' [base=1000] or 'KMGTPE' [base=1024])."
+		" The default unit is 'M' (MiB)."
+		" If the number is prefixed with a @'='@ than option {--chunk-mode} is ignored"
+		" and the given value is used without any rounding or changing."
+		"\n"
+		"If the input file size is not known (e.g. reading from pipe),"
+		" the default is 1 MiB." },
+
+  { H_OPT_CP,	"MAX_CHUNKS",	"max-chunks|maxchunks",
+		"n",
+		"Define the maximal number of chunks if creating a CISO file."
+		" The default value is 8192 for {--chunk-mode AUTO}"
+		" and 32760 (maximal value) for toher modes."
+		" If this value is set than the automatic calculation "
+		" of {--chunk-size} will be modified too." },
 
   { T_OPT_C,	"PRESERVE",	"p|preserve",
 		0, "Preserve file times (atime+mtime)." },
@@ -510,22 +553,22 @@ info_t info_tab[] =
   { T_OPT_C,	"ITIME",	"itime",
 		0,
 		"Select 'itime' (insertion time) for printing."
-		"@--itime@ is an abbreviation of @$--time$=i@." },
+		"@--itime@ is an abbreviation of {--time i}." },
 
   { T_OPT_C,	"MTIME",	"mtime",
 		0,
 		"Select 'mtime' (last modification time) for printing."
-		"@--mtime@ is an abbreviation of @$--time$=m@." },
+		"@--mtime@ is an abbreviation of {--time m}." },
 
   { T_OPT_C,	"CTIME",	"ctime",
 		0,
 		"Select 'ctime' (last status change time) for printing."
-		"@--ctime@ is an abbreviation of @$--time$=c@." },
+		"@--ctime@ is an abbreviation of {--time c}." },
 
   { T_OPT_C,	"ATIME",	"atime",
 		0,
 		"Select 'atime' (last access time) for printing."
-		"@--atime@ is an abbreviation of @$--time$=a@." },
+		"@--atime@ is an abbreviation of {--time a}." },
 
   { T_OPT_CMP,	"TIME",		"time",
 		"list",
@@ -657,6 +700,16 @@ info_t info_tab[] =
   { T_COPT,	"IOS",		0,0,0 },
   { T_COPT,	"ENC",		0,0,0 },
 
+  //---------- wit GROUP SPLIT_CHUNK ----------
+
+  { T_GRP_BEG,	"SPLIT_CHUNK",	0,0,0 },
+
+  { T_COPT,	"SPLIT",	0,0,0 },
+  { T_COPT,	"SPLIT_SIZE",	0,0,0 },
+  { H_COPT,	"CHUNK_MODE",	0,0,0 },
+  { H_COPT,	"CHUNK_SIZE",	0,0,0 },
+  { H_COPT,	"MAX_CHUNKS",	0,0,0 },
+
   //
   //---------- COMMAND wit HELP ----------
 
@@ -670,7 +723,7 @@ info_t info_tab[] =
 
   { T_COPT,	"SECTIONS",	0,0,0 },
   { T_COPT,	"LONG",		0,0,
-	"Print in long format. Ignored if option @$--sections$@ is set." },
+	"Print in long format. Ignored if option {--sections} is set." },
 
   //---------- COMMAND wit TEST ----------
 
@@ -906,8 +959,7 @@ info_t info_tab[] =
 
   { T_COPT,	"UPDATE",	0,0,0 },
   { T_COPT,	"REMOVE",	0,0,0 },
-  { T_COPT,	"SPLIT",	0,0,0 },
-  { T_COPT,	"SPLIT_SIZE",	0,0,0 },
+  { T_COPY_GRP,	"SPLIT_CHUNK",	0,0,0 },
 
   { T_SEP_OPT,	0,0,0,0 },
 
@@ -938,8 +990,7 @@ info_t info_tab[] =
 
   { T_SEP_OPT,	0,0,0,0 },
 
-  { T_COPT,	"SPLIT",	0,0,0 },
-  { T_COPT,	"SPLIT_SIZE",	0,0,0 },
+  { T_COPY_GRP,	"SPLIT_CHUNK",	0,0,0 },
   { T_COPT,	"PRESERVE",	0,0,0 },
   { T_COPY_GRP,	"PATCH",	0,0,0 },
 
@@ -1014,11 +1065,11 @@ info_t info_tab[] =
 
   { T_COPT,	"ISO",		0,0,
 	"Modify ID and title of the ISO image."
-	" If neither @--iso@ nor @$--wbfs$@ is set, then both are assumed as active." },
+	" If neither @--iso@ nor {--wbfs} is set, then both are assumed as active." },
   { T_COPT,	"WBFS",		0,0,
 	"Modify ID and title of the inode in the WBFS management area."
 	" Option --wbfs make only sense for images within WBFS."
-	" If neither @$--iso$@ nor @--wbfs@ is set, then both are assumed as active." },
+	" If neither {--iso} nor @--wbfs@ is set, then both are assumed as active." },
 
   //---------- COMMAND wit SETTITLE ----------
 
@@ -1124,34 +1175,34 @@ info_t info_tab[] =
   { T_DEF_CMD,	"LIST_L",	"LIST-L|LL",
 		"wwt LIST-L [wbfs_partition]...",
 		"List all discs of WBFS partitions."
-		" Same as @'$LIST$ --long'@." },
+		" Same as {LIST --long}." },
 
   { T_DEF_CMD,	"LIST_LL",	"LIST-LL|LLL",
 		"wwt LIST-LL [wbfs_partition]...",
 		"List all discs of WBFS partitions."
-		" Same as @'$LIST$ --long --long@'." },
+		" Same as {LIST --long --long}." },
 
   { T_DEF_CMD,	"LIST_A",	"LIST-A|LA",
 		"wwt LIST-A [wbfs_partition]...",
 		"List all discs of all WBFS partitions."
-		" Same as @'$LIST$ --long --long --auto'@." },
+		" Same as {LIST --long --long --auto}." },
 
   { T_DEF_CMD,	"LIST_M",	"LIST-M|LM",
 		"wwt LIST-M [wbfs_partition]...",
 		"List all discs of WBFS partitions in mixed view."
-		" Same as @'$LIST$ --long --long --mixed'@." },
+		" Same as {LIST --long --long --mixed}." },
 
   { T_DEF_CMD,	"LIST_U",	"LIST-U|LU",
 		"wwt LIST-U [wbfs_partition]...",
 		"List all discs of WBFS partitions in mixed view."
-		" Same as @'$LIST$ --long --long --unique'@." },
+		" Same as {LIST --long --long --unique}." },
 
   { T_SEP_CMD,	0,0,0,0 }, //----- separator -----
 
   { T_DEF_CMD,	"FORMAT",	"FORMAT|INIT",
 		"wwt FORMAT file|blockdev...",
 		"Initialize (=format) WBFS partitions and files."
-		" Combine with @$--recover$@ to recover discs." },
+		" Combine with {--recover} to recover discs." },
 
   { T_DEF_CMD,	"RECOVER",	"RECOVER",
 		"wwt RECOVER [wbfs_partition]..",
@@ -1160,12 +1211,12 @@ info_t info_tab[] =
   { T_DEF_CMD,	"CHECK",	"CHECK|FSCK",
 		"wwt CHECK [wbfs_partition]..",
 		"Check WBFS partitions and print error listing."
-		" To repair WBFS partitions use the option @'$--repair$ modelist'@."  },
+		" To repair WBFS partitions use the option {--repair modelist}."  },
 
   { T_DEF_CMD,	"REPAIR",	"REPAIR",
 		"wwt REPAIR [wbfs_partition]..",
 		"Check WBFS partitions and repair errors."
-		" 'REPAIR' is a shortcut for @'$CHECK$ --repair=standard'@." },
+		" 'REPAIR' is a shortcut for {CHECK --repair standard}." },
 
   { T_DEF_CMD,	"EDIT",		"EDIT",
 		"wwt EDIT [sub_command]...",
@@ -1190,13 +1241,13 @@ info_t info_tab[] =
   { T_DEF_CMD,	"UPDATE",	"UPDATE|U",
 		"wwt UPDATE iso|wbfs|dir...",
 		"Add missing Wii ISO discs to WBFS partitions."
-		" 'UPDATE' is a shortcut for @'$ADD$ --update'@."},
+		" 'UPDATE' is a shortcut for {ADD --update}."},
 
   { T_DEF_CMD,	"SYNC",		"SYNC",
 		"wwt SYNC iso|wbfs|dir...",
 		"Modify primary WBFS (REMOVE and ADD)"
 		" until it contains exactly the same discs as all sources together."
-		" 'SYNC' is a shortcut for @'$ADD$ --sync'@."},
+		" 'SYNC' is a shortcut for {ADD --sync}."},
 
   { T_DEF_CMD,	"EXTRACT",	"EXTRACT|X",
 		"wwt EXTRACT id6[=dest]...",
@@ -1361,6 +1412,15 @@ info_t info_tab[] =
 		0, 0 /* copy of wit */ },
 
   { T_OPT_CP,	"SPLIT_SIZE",	"Z|split-size|splitsize",
+		0, 0 /* copy of wit */ },
+
+  { H_OPT_CP,	"CHUNK_MODE",	"chunk-mode|chunkmode",
+		0, 0 /* copy of wit */ },
+
+  { H_OPT_CP,	"CHUNK_SIZE",	"chunk-size|chunksize",
+		0, 0 /* copy of wit */ },
+
+  { H_OPT_CP,	"MAX_CHUNKS",	"max-chunks|maxchunks",
 		0, 0 /* copy of wit */ },
 
   { T_OPT_CP,	"SIZE",		"s|size",
@@ -1575,6 +1635,16 @@ info_t info_tab[] =
   { T_COPT,	"IOS",		0,0,0 },
   { T_COPT,	"ENC",		0,0,0 },
 
+  //---------- wit GROUP SPLIT_CHUNK ----------
+
+  { T_GRP_BEG,	"SPLIT_CHUNK",	0,0,0 },
+
+  { T_COPT,	"SPLIT",	0,0,0 },
+  { T_COPT,	"SPLIT_SIZE",	0,0,0 },
+  { H_COPT,	"CHUNK_MODE",	0,0,0 },
+  { H_COPT,	"CHUNK_SIZE",	0,0,0 },
+  { H_COPT,	"MAX_CHUNKS",	0,0,0 },
+
 
   //
   //---------- COMMAND wit VERSION ----------
@@ -1658,7 +1728,7 @@ info_t info_tab[] =
 	"If set then print a status for each valid disc within WBFS."
 	" If set twice print a memory map for each shsown disc too."
 	" If set three times print an additional memory map for the whole WBFS."
-	" If set four times activate @$--inode$@ too." },
+	" If set four times activate {--inode} too." },
 
   //---------- COMMAND wwt ID6 ----------
 
@@ -1737,7 +1807,7 @@ info_t info_tab[] =
   { T_SEP_OPT,	0,0,0,0 },
 
   { T_COPT,	"TEST",		0,0,
-	"Force test mode and ignore @$--force$@." },
+	"Force test mode and ignore {--force}." },
   { T_COPT,	"FORCE",	0,0,
 	"This option is needed for leaving test mode and for formatting!" },
 
@@ -1765,8 +1835,8 @@ info_t info_tab[] =
 	" If set four times a full memory mal is included." },
 
   { T_COPT_M,	"LONG",		0,0,
-	"Option @--long@ does the same as option @$--verbose$@."
-	" If set at last once it overwrites the @$--verbose$@ level." },
+	"Option @--long@ does the same as option {--verbose}."
+	" If set at last once it overwrites the {--verbose} level." },
 
   //---------- COMMAND wwt CHECK ----------
 
@@ -1802,7 +1872,7 @@ info_t info_tab[] =
   { T_SEP_OPT,	0,0,0,0 },
 	
   { T_COPT,	"TEST",		0,0,
-	"Force test mode and ignore @$--force$@." },
+	"Force test mode and ignore {--force}." },
   { T_COPT,	"FORCE",	0,0,
 	"This option is needed for leaving test mode and for formatting!" },
 
@@ -1888,8 +1958,7 @@ info_t info_tab[] =
   { T_COPT,	"DEST",		0,0,0 },
   { T_COPT,	"DEST2",	0,0,0 },
   { T_COPT,	"ESC",		0,0,0 },
-  { T_COPT,	"SPLIT",	0,0,0 },
-  { T_COPT,	"SPLIT_SIZE",	0,0,0 },
+  { T_COPY_GRP,	"SPLIT_CHUNK",	0,0,0 },
 
   { T_SEP_OPT,	0,0,0,0 },
 
@@ -1950,10 +2019,10 @@ info_t info_tab[] =
 	"Ignore non existing discs without any warning." },
   { T_COPT,	"ISO",		0,0,
 	"Modify ID and title of the ISO image."
-	" If neither @--iso@ nor @$--wbfs$@ is set, then both are assumed as active." },
+	" If neither @--iso@ nor {--wbfs} is set, then both are assumed as active." },
   { T_COPT,	"WBFS",		0,0,
 	"Modify ID and title of the inode in the WBFS management area."
-	" If neither @$--iso$@ nor @--wbfs@ is set, then both are assumed as active." },
+	" If neither {--iso} nor @--wbfs@ is set, then both are assumed as active." },
 
   //---------- COMMAND wwt SETTITLE ----------
 
@@ -2031,6 +2100,168 @@ info_t info_tab[] =
 
   //
   ///////////////////////////////////////////////////////////////////////////
+  /////////////			  TOOL wdf			/////////////
+  ///////////////////////////////////////////////////////////////////////////
+
+  { H_DEF_TOOL,	"wdf", 0,
+		"wdf [option]... files...",
+		"wdf is a support tool for WDF and CISO archives."
+		" It convert (pack and unpack) WDF and CISO archives."
+		" Dependent from file name and from options it works like"
+		" 'gzip', 'gunzip' or 'zcat' (see options for details)."
+		" It can also compare files"
+		" and dump the data structure of those archives for analysis." },
+
+  //---------- list of all options ----------
+
+  { T_OPT_S,	"VERSION",	"V|version",
+		0, 0 /* copy of wit */ },
+
+  { T_OPT_S,	"HELP",		"h|help",
+		0, 0 /* copy of wit */ },
+
+  { T_OPT_S,	"XHELP",	"xhelp",
+		0, "Same as {--help}." },
+
+  { T_SEP_OPT,	0,0,0,0 }, //----- separator -----
+
+  { T_OPT_G,	"PACK",		"P|pack",
+		0,
+		"Pack an archive."
+		" This is the general default." },
+
+  { T_OPT_G,	"UNPACK",	"U|unpack",
+		0,
+		"Unpack an archive."
+		"\n"
+		"This is the default, when the program name starts"
+		" with the two letters @'un'@ in any case." },
+
+  { T_OPT_G,	"CAT",		"A|cat",
+		0,
+		"Concatenate files and print on the standard output."
+		" WDF and CISO files are extracted before printing,"
+		" all other files are copied byte by byte."
+		"\n"
+		"This is the default, when the program name"
+		"contains the three letter @'cat'@ in any case." },
+
+  { T_OPT_G,	"CMP",		"M|cmp|diff",
+		0,
+		"Enter compare mode and ignore all (un-)packing options."
+		"\n"
+		"Two source files are compared."
+		" If {--dest} or {--DEST} is set, than all source files"
+		" are compared against files in the destination path."
+		" If the second source file is mising then stdin is used instead."
+		"\n"
+		"This is the default, when the program name"
+		"contains the letters @'cmp'@ or @'diff'@ in any case." },
+
+  { T_OPT_G,	"DUMP",		"X|dump",
+		0,
+		"Dump the data structure of all archives"
+		" and ignore non WDF and non CISO files."
+		" All packing, unpacking and compare options are ignored."
+		"\n"
+		"This is the default, when the program contains"
+		" the sub string @'dump'@ in any case." },
+
+  { T_SEP_OPT,	0,0,0,0 }, //----- separator -----
+
+  { T_OPT_G,	"WDF",		"W|wdf",
+		0,
+		"Force WDF output mode if compressing"
+		" and set the default suffix to @'.wdf'@."
+		" This is the general default." },
+
+  { T_OPT_G,	"CISO",		"C|ciso",
+		0,
+		"Force CISO output mode if compressing"
+		" and set the default suffix to @'.ciso'@."
+		"\n"
+		" This is the default, when the program name contains"
+		" the sub string @'ciso'@ in any case." },
+
+  { T_OPT_G,	"WBI",		"wbi",
+		0,
+		"Force CISO output mode if compressing"
+		" and set the default suffix to @'.wbi'@."
+		"\n"
+		" This is the default, when the program name contains"
+		" the sub string @'wbi'@ but not @'ciso'@ in any case." },
+
+  { T_OPT_GP,	"SUFFIX",	"s|suffix",
+		".suf",
+		"Use suffix @'.suf'@ instead of @'.wdf'@ or @'.ciso'@ for packed files." },
+
+  { T_SEP_OPT,	0,0,0,0 }, //----- separator -----
+
+  { T_OPT_GP,	"DEST",		"d|dest",
+		0, 0 /* copy of wit */ },
+
+  { T_OPT_GP,	"DEST2",	"D|DEST",
+		0, 0 /* copy of wit */ },
+
+  { T_OPT_G,	"PRESERVE",	"p|preserve",
+		0, 0 /* copy of wit */ },
+
+  { T_OPT_G,	"SPLIT",	"z|split",
+		0, 0 /* copy of wit */ },
+
+  { T_OPT_GP,	"SPLIT_SIZE",	"Z|split-size|splitsize",
+		0, 0 /* copy of wit */ },
+
+  { T_OPT_GP,	"CHUNK_MODE",	"chunk-mode|chunkmode",
+		"mode", TEXT_OPT_CHUNK_MODE("POW2") },
+
+  { T_OPT_GP,	"CHUNK_SIZE",	"chunk-size|chunksize",
+		0, 0 /* copy of wit */ },
+
+  { T_OPT_GP,	"MAX_CHUNKS",	"max-chunks|maxchunks",
+		0, 0 /* copy of wit */ },
+
+  { T_OPT_G,	"OVERWRITE",	"o|overwrite",
+		0, 0 /* copy of wit */ },
+
+  { T_OPT_G,	"STDOUT",	"c|stdout",
+		0,
+		"Write to standard output (stdout) and keep original files unchanged."
+		"\n"
+		"This is the default, when the program"
+		" is reading from standard input (stdin)." },
+
+  { T_OPT_G,	"KEEP",		"k|keep",
+		0,
+		"Keep (don't delete) input files during (un-)packing." },
+
+  { T_SEP_OPT,	0,0,0,0 }, //----- separator -----
+
+  { T_OPT_G,	"QUIET",	"q|quiet",
+		0, 0 /* copy of wit */ },
+
+  { T_OPT_G,	"VERBOSE",	"v|verbose",
+		0, "Be verbose -> print program name." },
+
+  { T_OPT_G,	"CHUNK",	"chunk",
+		0,
+		"In dump mode: Print table with chunk header too." },
+
+  { T_OPT_G,	"LONG",		"l|long",
+		0,
+		"Print (un)pack statistics, 1 line for each source."
+		" In dump mode: Print table with chunk header too (same as {--chunk})." },
+
+  { T_OPT_GP,	"IO",		"io",
+		0, 0 /* copy of wit */ },
+
+  { T_SEP_OPT,	0,0,0,0 }, //----- separator -----
+
+  { T_OPT_G,	"TEST",		"t|test",
+		0, 0 /* copy of wit */ },
+
+  //
+  ///////////////////////////////////////////////////////////////////////////
   /////////////			  TOOL wdf-cat			/////////////
   ///////////////////////////////////////////////////////////////////////////
 
@@ -2050,7 +2281,7 @@ info_t info_tab[] =
 		0, 0 /* copy of wit */ },
 
   { T_OPT_S,	"XHELP",	"xhelp",
-		0, "Same as @$--help$@." },
+		0, "Same as {--help}." },
 
   { T_OPT_GP,	"IO",		"io",
 		0, 0 /* copy of wit */ },
@@ -2090,7 +2321,7 @@ info_t info_tab[] =
 		0, "Print table with chunk header." },
 
   { T_OPT_G,	"LONG",		"l|long",
-		0, "Alternative for @$--chunk$@: Print table with chunk header." },
+		0, "Alternative for {--chunk}: Print table with chunk header." },
 
   //
   ///////////////////////////////////////////////////////////////////////////

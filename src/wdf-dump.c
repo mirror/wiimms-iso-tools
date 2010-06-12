@@ -51,7 +51,7 @@ int end_delta = 0;
 
 void help_exit()
 {
-    PrintHelpCmd(&InfoUI,stdout,0,0);
+    PrintHelpCmd(&InfoUI,stdout,0,0,0);
     exit(ERR_OK);
 }
 
@@ -179,15 +179,18 @@ enumError ciso_dump ( CISO_Head_t * ch, File_t *f, ccp fname )
 	    bmax = bptr;
 	    used_bl++;
 	}
-    const int max_bl = bmax - ch->map + 1;
-    const u64 iso_file_size = (u64)max_bl * block_size;
-    const u64 max_off  = (u64)used_bl * block_size + CISO_HEAD_SIZE;
+    const int max_bl		= bmax - ch->map + 1;
+    const u64 max_off		= (u64)used_bl * block_size + CISO_HEAD_SIZE;
+    const u64 min_file_size	= (u64)WII_SECTORS_SINGLE_LAYER * WII_SECTOR_SIZE;
+    const u64 iso_file_usage	= (u64)max_bl * block_size;
+    const u64 iso_file_size	= iso_file_usage > min_file_size
+				? iso_file_usage : min_file_size;
 
     //----- print header
     
     printf("\n  Header:\n\n");
     u8 * m = (u8*)ch->magic;
-    printf("    %-18s:         \"%c%c%c%c\" = %02x %02x %02x %02x\n",
+    printf("    %-18s:         \"%c%c%c%c\" = %02x-%02x-%02x-%02x\n",
 		"magic",
 		m[0]>=' ' && m[0]<0x7f ? m[0] : '.',
 		m[1]>=' ' && m[1]<0x7f ? m[1] : '.',
@@ -200,6 +203,7 @@ enumError ciso_dump ( CISO_Head_t * ch, File_t *f, ccp fname )
     printf("    %-18s: %10x/hex =%11d\n","block size",block_size,block_size);
     printf("    %-18s: %10llx/hex =%11lld\n","real file usage",max_off,max_off);
     printf("    %-18s: %10llx/hex =%11lld\n","real file size",(u64)f->st.st_size,(u64)f->st.st_size);
+    printf("    %-18s: %10llx/hex =%11lld\n","ISO file usage",iso_file_usage,iso_file_usage);
     printf("    %-18s: %10llx/hex =%11lld\n","ISO file size",iso_file_size,iso_file_size);
     putchar('\n');
 

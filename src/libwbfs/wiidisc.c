@@ -25,7 +25,7 @@ const char * wd_get_partition_name ( u32 ptype, const char * result_if_not_found
 //-----------------------------------------------------------------------------
 
 char * wd_print_partition_name
-	( char * buf, u32 buf_size, u32 ptype, int print_num )
+	( char * buf, size_t buf_size, u32 ptype, int print_num )
 {
     if (print_num)
     {

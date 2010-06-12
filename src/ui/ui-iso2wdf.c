@@ -71,7 +71,7 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 
     {	OPT_RAW, 0, "raw",
 	0,
-	"Abbreviation of --psel=RAW."
+	"Abbreviation of '--psel RAW'."
     },
 
     {	OPT_DEST, 'd', "dest",
@@ -185,6 +185,7 @@ const u8 OptionIndex[OPT_INDEX_SIZE] =
 	/*83*/	OPT_RAW,
 	/*84*/	 0,0,0,0, 0,0,0,0, 0,0,0,0, 
 	/*90*/	 0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0,
+	/*a0*/	 0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0,
 };
 
 //

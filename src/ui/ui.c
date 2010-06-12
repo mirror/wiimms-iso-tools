@@ -256,12 +256,12 @@ void PrintHelp ( const InfoUI_t * iu, FILE * f, int indent )
 	    }
     }
     
-    PrintHelpCmd(iu,f,indent,cmd);
+    PrintHelpCmd(iu,f,indent,cmd,0);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 
-void PrintHelpCmd ( const InfoUI_t * iu, FILE * f, int indent, int cmd )
+void PrintHelpCmd ( const InfoUI_t * iu, FILE * f, int indent, int cmd, ccp info )
 {
     ASSERT(iu);
     if (!f)
@@ -393,6 +393,9 @@ void PrintHelpCmd ( const InfoUI_t * iu, FILE * f, int indent, int cmd )
 	fputc('\n',f);
     }
 
+    if (info)
+	fputs(info,f);
+	
     if (!cmd)
 	fprintf(f,"%*sMore help is available from %s%s\n\n",
 		indent, "", URI_HOME, iu->tool_name );

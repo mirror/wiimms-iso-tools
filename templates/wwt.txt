@@ -977,7 +977,7 @@ See command 'ADD' for options and details.
  allocated blocks are not freed. Aufter using --no-free you should use the
  command CHECK with --rapair=fbt to repair the free blocks table.
 
- The options --itime, --mtime, --ctime, --atime deceides which time stamp is
+ The options --itime, --mtime, --ctime, --atime decides which time stamp is
  modified. All 4 options can be combined. If none of these options is set
  then all 4 time stamps are modified.
 

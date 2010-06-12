@@ -4,5 +4,5 @@
 ../src/lib-file.[ch] ;
 ../src/lib-wdf.[ch] ;
 @+all-source.edit-list
--y 400 ../src/lib-ciso.c ;
+-y  40 ../src/lib-ciso.c ;
 -y  20 ../src/lib-ciso.h ;

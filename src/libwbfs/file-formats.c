@@ -635,7 +635,7 @@ int setup_part_control ( wd_part_control_t * pc )
     ASSERT(pc);
     TRACE("setup_part_control(%p)\n",pc);
 
-    // clear controlling data
+    // clear controling data
     memset( pc->part_bin+sizeof(pc->part_bin), 0, +sizeof(*pc)-sizeof(pc->part_bin) );
  
     wd_part_header_t * head = (wd_part_header_t*)pc->part_bin;

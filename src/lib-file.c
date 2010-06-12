@@ -1393,7 +1393,7 @@ void DefineCachedAreaISO ( File_t * f, bool head_only )
     ASSERT(f);
     if (head_only)
     {
-	DefineCachedArea(f,0,CISO_HEAD_SIZE+0x100);
+	DefineCachedArea(f,0,CISO_HEAD_SIZE+FILE_PRELOAD_SIZE);
     }
     else
     {

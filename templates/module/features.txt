@@ -1,0 +1,15 @@
+Features:
+
+ - WIT (Wiimms ISO Toolset) is a set of command line tools.
+ - wit (Wiimms ISO tool) is the main Wii ISO manipulation tool.
+ - wwt (Wiimms WBFS tool) is a complete WBFS manager including FS checking and
+   repairing, time stamps and multi WBFS support.
+ - wdf-cat and wdf-dump are WDF and CISO support tools.
+ - WIT supports 5 Wii disc file types (ISO, CISO, WDF, WBFS and FST) and can
+   read from pipes (indirect RAR/ZIP support).
+ - wit can verify and compare (diff) Wii ISO images.
+ - wit can extract and compose Wii ISO images.
+ - wit and wwt support many diagnostic commands.
+ - Advanced shell support.
+
+Visit @@URI-HOME@@features.html for more details.

@@ -45,6 +45,7 @@ typedef enum enumProgID
 	PROG_UNKNOWN,
 	PROG_WIT,
 	PROG_WWT,
+	PROG_WDF,
 	PROG_ISO2WDF,
 	PROG_ISO2WBFS,
 	PROG_WDF2ISO,
@@ -73,6 +74,7 @@ typedef enum enumRevID
 #define TRACE_SEEK_FORMAT "%-20.20s f=%d,%p %9llx%s\n"
 #define TRACE_RDWR_FORMAT "%-20.20s f=%d,%p %9llx..%9llx %8zx%s\n"
 
+#define FILE_PRELOAD_SIZE	0x200
 #define MIN_SPARSE_HOLE_SIZE	4096 // bytes
 #define MAX_SPLIT_FILES		100
 #define MIN_SPLIT_SIZE		100000000
@@ -250,11 +252,17 @@ typedef enum enumFileType
 	FT_ID_FST	= 0x002,  // is a directory with a FST
 	FT_ID_WBFS	= 0x004,  // file is a WBFS
 	FT_ID_ISO	= 0x008,  // file is a ISO image
+
 	FT_ID_DOL	= 0x010,  // file is a DOL file
-	FT_ID_BOOT_BIN	= 0x020,  // 'boot.bin' like file
-	FT_ID_FST_BIN	= 0x040,  // 'fst.bin' like file
-	FT_ID_OTHER	= 0x080,  // file neither a WBFS nor a ISO image
-	FT__ID_MASK	= 0x0ff,  // mask of all 'FT_ID_' values
+	FT_ID_TIK_BIN	= 0x020,  // 'ticket.bin' like file
+	FT_ID_TMD_BIN	= 0x040,  // 'tmd.bin' like file
+	FT_ID_HEAD_BIN	= 0x080,  // 'header.bin' like file
+	FT_ID_BOOT_BIN	= 0x100,  // 'boot.bin' like file
+	FT_ID_FST_BIN	= 0x200,  // 'fst.bin' like file
+	 FT__SPC_MASK	= 0x3f0,  // mask of all special files
+
+	FT_ID_OTHER	= 0x400,  // unknown file
+	 FT__ID_MASK	= 0x7ff,  // mask of all 'FT_ID_' values
 
     // 2. attributes
 
@@ -333,7 +341,7 @@ typedef struct File_t
 
 	// virtual file atributes, initialized by a copy of 'struct stat st'
 
-	FileAttrib_t fatt;	// site, itime, mtime, ctime, atime
+	FileAttrib_t fatt;	// size, itime, mtime, ctime, atime
 
 	// file names, alloced
 
@@ -574,6 +582,7 @@ enumError ScanSizeOptU32
 
 extern int opt_split;
 extern u64 opt_split_size;
+
 int ScanSplitSize ( ccp source ); // returns '1' on error, '0' else
 
 //

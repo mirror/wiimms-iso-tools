@@ -24,23 +24,3 @@
 #gdef wit$['TIME']			= "@@TIME@@"
 #gdef wit$['DATETIME']			= "@@DATE@@ @@TIME@@"
 
-#gdef wit$['URI_REPOS']			= "@@URI-REPOS@@/"
-#gdef wit$['URI_VIEWVC']		= "@@URI-VIEWVC@@/"
-#gdef wit$['URI_HOME']			= "@@URI-HOME@@"
-#gdef wit$['URI_DOWNLOAD']		= "@@URI-DOWNLOAD@@"
-#gdef wit$['URI_GBATEMP']		= "@@URI-GBATEMP@@"
-#gdef wit$['URI_WIIJMANAGER']		= "@@URI-WIIJMANAGER@@"
-
-#gdef wit$['DISTRIB_I386']		= "@@DISTRIB-I386@@"
-#gdef wit$['DISTRIB_X86_64']		= "@@DISTRIB-X86_64@@"
-#gdef wit$['DISTRIB_MAC']		= "@@DISTRIB-MAC@@"
-#gdef wit$['DISTRIB_CYGWIN']		= "@@DISTRIB-CYGWIN@@"
-
-#gdef wit$['PREV_DISTRIB_I386']		= "@@PREV-DISTRIB-I386@@"
-#gdef wit$['PREV_DISTRIB_X86_64']	= "@@PREV-DISTRIB-X86_64@@"
-#gdef wit$['PREV_DISTRIB_MAC']		= "@@PREV-DISTRIB-MAC@@"
-#gdef wit$['PREV_DISTRIB_CYGWIN']	= "@@PREV-DISTRIB-CYGWIN@@"
-
-#gdef wit$['PREV_DISTRIB_MIPSEL']	= "@@PREV-DISTRIB-MIPSEL@@"
-#gdef wit$['PREV_DISTRIB_POWERPC']	= "@@PREV-DISTRIB-POWERPC@@"
-

@@ -52,7 +52,7 @@ option_t used_options		= 0;
 option_t env_options		= 0;
 int opt_split			= 0;
 u64 opt_split_size		= 0;
-ccp opt_clone			= 0;
+ccp  opt_clone			= 0;
 
 #ifdef __CYGWIN__
  bool use_utf8			= false;
@@ -1814,16 +1814,17 @@ int ScanSplitSize ( ccp source )
 {
     opt_split++;
     return ERR_OK != ScanSizeOptU64(
-				&opt_split_size,
-				source,
-				GiB,
-				0,
-				"split-size",
-				MIN_SPLIT_SIZE,
-				0,
-				DEF_SPLIT_FACTOR,
-				0,
-				true );
+			&opt_split_size,	// u64 * num
+			source,			// ccp source
+			GiB,			// default_factor1
+			0,			// int force_base
+			"split-size",		// ccp opt_name
+			MIN_SPLIT_SIZE,		// u64 min
+			0,			// u64 max
+			DEF_SPLIT_FACTOR,	// u32 multiple
+			0,			// u32 pow2
+			true			// bool print_err
+			);
 }
 
 //

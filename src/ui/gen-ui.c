@@ -84,6 +84,8 @@ static void DumpText
     ccp tie = is_uidef ? " \\" : "";
     char buf[100], *buf_end = buf + 70, *dest = buf;
 
+    bool apos = false;
+
     if (!text)
 	text = "";
     while (*text)
@@ -118,6 +120,35 @@ static void DumpText
 		case '"':
 		    *dest++ = '\\';
 		    *dest++ = *text++;
+		    break;
+
+		case '{':
+		    if (is_uidef)
+			*dest++ = *text++;
+		    else if ( *++text == '{' )
+			*dest++ = *text++;
+		    else
+		    {
+			ccp ptr = text;
+			while ( *ptr > ' ' && *ptr != '}' )
+			    ptr++;
+			apos = *ptr != '}';
+			if (apos)
+			    *dest++ = '\'';
+		    }
+		    break;
+			
+		    
+		case '}':
+		    if (is_uidef)
+			*dest++ = *text++;
+		    else if ( *++text == '}' )
+			*dest++ = *text++;
+		    else if (apos)
+		    {
+			apos = false;
+			*dest++ = '\'';
+		    }
 		    break;
 
 		case '@':
@@ -510,7 +541,7 @@ static enumError Generate ( control_t * ctrl )
     fprintf(cf,warn_msg);
     fprintf(hf,warn_msg);
 
-    ASSERT( ctrl->info->type == T_DEF_TOOL );
+    ASSERT( ctrl->info->type & T_DEF_TOOL );
     ccp tool_name = ctrl->info->c_name;
 
     fprintf(cf,"#include <getopt.h>\n");
@@ -991,6 +1022,14 @@ int main ( int argc, char ** argv )
 {
     SetupLib(argc,argv,"gen-ui",PROG_UNKNOWN);
 
+    static ccp def_null_name = "/dev/null";
+    FILE * nf = fopen(def_null_name,"wb");
+    if (!nf)
+    {
+	fprintf(stderr,"!!! Can't create file: %s\n",def_null_name);
+	return ERR_CANT_CREATE;
+    }
+
     static ccp def_fname = "src/ui/ui.def";
     FILE * df = fopen(def_fname,"wb");
     if (!df)
@@ -1004,24 +1043,28 @@ int main ( int argc, char ** argv )
 
     while ( info->type != T_END )
     {
+	if ( ! ( info->type & T_DEF_TOOL ) )
+	{
+	    fprintf(stderr,"!!! Missing T_DEF_TOOL entry.\n");
+	    return ERR_SYNTAX;
+	}
+
 	control_t ctrl;
 	memset(&ctrl,0,sizeof(ctrl));
-	ctrl.df = df;
+	ctrl.df = nf;
 	ctrl.opt_prefix = "";
 	InitializeStringField(&ctrl.gopt);
 	InitializeStringField(&ctrl.copt);
 	InitializeStringField(&ctrl.opt_done);
 
-	snprintf(iobuf,sizeof(iobuf),"Tool '%s'",info->c_name);
-	print_section(df,sep2,iobuf);
-	fprintf(df,"#:def_tool( \"%s\", \\\n",info->c_name);
-	DumpText(df,0,0,info->param,1,", \\\n");
-	DumpText(df,0,0,info->help,1," )\n\n");
-
-	if ( info->type != T_DEF_TOOL )
+	if ( !( info->type & F_HIDDEN ) )
 	{
-	    fprintf(stderr,"!!! Missing T_DEF_TOOL entry.\n");
-	    return ERR_SYNTAX;
+	    ctrl.df = df;
+	    snprintf(iobuf,sizeof(iobuf),"Tool '%s'",info->c_name);
+	    print_section(df,sep2,iobuf);
+	    fprintf(df,"#:def_tool( \"%s\", \\\n",info->c_name);
+	    DumpText(df,0,0,info->param,1,", \\\n");
+	    DumpText(df,0,0,info->help,1," )\n\n");
 	}
 
 	snprintf(fname,sizeof(fname),"src/ui/ui-%s.c",info->c_name);
@@ -1041,7 +1084,7 @@ int main ( int argc, char ** argv )
 	}
 
 	ctrl.info = info++;
-	while ( info->type != T_END && info->type != T_DEF_TOOL )
+	while ( ! ( info->type & (T_END|T_DEF_TOOL)) )
 	{
 	    if ( info->type & T_DEF_OPT )
 	    {
@@ -1068,14 +1111,14 @@ int main ( int argc, char ** argv )
 
 		if ( !( info->type & F_HIDDEN ) )
 		{
-		    fprintf(df,"#:def_opt( \"%s\", \"%s\", \"%s%s%s%s\", \\\n",
+		    fprintf(ctrl.df,"#:def_opt( \"%s\", \"%s\", \"%s%s%s%s\", \\\n",
 			info->c_name, info->namelist,
 			info->type & F_OPT_COMMAND  ? "C" : "",
 			info->type & F_OPT_GLOBAL   ? "G" : "",
 			info->type & F_OPT_MULTIUSE ? "M" : "",
 			info->type & F_OPT_PARAM    ? "P" : "" );
-		    DumpText(df,0,0,info->param,1,", \\\n");
-		    DumpText(df,0,0,info->help,1," )\n\n");
+		    DumpText(ctrl.df,0,0,info->param,1,", \\\n");
+		    DumpText(ctrl.df,0,0,info->help,1," )\n\n");
 		}
 	    }
 	    else if ( info->type & T_DEF_CMD )
@@ -1100,10 +1143,10 @@ int main ( int argc, char ** argv )
 
 		if ( !( info->type & F_HIDDEN ) )
 		{
-		    fprintf(df,"#:def_cmd( \"%s\", \"%s\", \\\n",
+		    fprintf(ctrl.df,"#:def_cmd( \"%s\", \"%s\", \\\n",
 			info->c_name, info->namelist );
-		    DumpText(df,0,0,info->param,1,", \\\n");
-		    DumpText(df,0,0,info->help,1," )\n\n");
+		    DumpText(ctrl.df,0,0,info->param,1,", \\\n");
+		    DumpText(ctrl.df,0,0,info->help,1," )\n\n");
 		}
 	    }
 
@@ -1126,6 +1169,7 @@ int main ( int argc, char ** argv )
     AddTables(df);
     print_section(df,sep2,"END");
     fclose(df);
+    fclose(nf);
     return ERR_OK;
 }
 

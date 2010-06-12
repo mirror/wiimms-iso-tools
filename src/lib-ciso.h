@@ -8,7 +8,33 @@
 
 //
 ///////////////////////////////////////////////////////////////////////////////
-///////////////                    CISO support                 ///////////////
+///////////////			   CISO options			///////////////
+///////////////////////////////////////////////////////////////////////////////
+
+typedef enum enumChunkMode
+{
+	CHUNK_MODE_ANY,		// allow any values
+	CHUNK_MODE_32KIB,	// force multiple of 32KiB
+	CHUNK_MODE_POW2,	// force multiple of 32KiB and power of 2
+	CHUNK_MODE_ISO,		// force values good for iso images and loaders
+
+} enumChunkMode;
+
+extern enumChunkMode opt_chunk_mode;
+extern u32  opt_chunk_size;
+extern bool force_chunk_size;
+extern u32  opt_max_chunks;
+
+ // returns '1' on error, '0' else
+int ScanChunkMode ( ccp source );
+int ScanMaxChunks ( ccp source );
+int ScanChunkSize ( ccp source );
+
+u32 CalcBlockSizeCISO ( u32 * result_n_blocks, off_t file_size );
+
+//
+///////////////////////////////////////////////////////////////////////////////
+///////////////			   CISO support			///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
 enum // some constants
@@ -16,6 +42,7 @@ enum // some constants
     CISO_HEAD_SIZE		= 0x8000,		// total header size
     CISO_MAP_SIZE		= CISO_HEAD_SIZE - 8,	// map size
     CISO_MIN_BLOCK_SIZE		= WII_SECTOR_SIZE,	// minimal allowed block size
+    CISO_MAX_BLOCK_SIZE		= 0x80000000,		// maximal allowed block size
 
     CISO_WR_MIN_BLOCK_SIZE	= 1*MiB,		// minimal block size if writing
     CISO_WR_MAX_BLOCK		= 0x2000,		// maximal blocks if writing

@@ -48,7 +48,7 @@
 
 void help_exit()
 {
-    PrintHelpCmd(&InfoUI,stdout,0,0);
+    PrintHelpCmd(&InfoUI,stdout,0,0,0);
     exit(ERR_OK);
 }
 

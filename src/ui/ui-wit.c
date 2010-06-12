@@ -79,7 +79,7 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 
     {	OPT_RAW, 0, "raw",
 	0,
-	"Abbreviation of --psel=RAW."
+	"Abbreviation of '--psel RAW'."
     },
 
     {	OPT_PMODE, 0, "pmode",
@@ -91,7 +91,7 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 
     {	OPT_SNEEK, 0, "sneek",
 	0,
-	"Abbreviation of --psel=data --pmode=none --files==sneek."
+	"Abbreviation of '--psel data --pmode none --files =sneek'."
     },
 
     {	OPT_ID, 0, "id",
@@ -99,7 +99,7 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 	"This patching option changes the ID of the disc to the given"
 	" parameter. 1 to 6 characters are expected. Only defined characters"
 	" not equal '.' are modified. The disc header, boot.bin, ticket.bin"
-	" and tmd.bin are  objects to modify. The option --modify= selects the"
+	" and tmd.bin are  objects to modify. The option --modify selects the"
 	" objects."
     },
 
@@ -107,7 +107,7 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 	"name",
 	"This patching option changes the name (disc title) of the disc to the"
 	" given parameter. Up to 63 characters are expected. The disc header"
-	" and boot.bin are objects to modify. The option --modify= selects the"
+	" and boot.bin are objects to modify. The option --modify selects the"
 	" objects."
     },
 
@@ -166,6 +166,40 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 	" The default unit is 'G' (GiB)."
     },
 
+    {	OPT_CHUNK_MODE, 0, "chunk-mode",
+	"mode",
+	"Defines an operation mode for --max-chunks and --chunk-size. Allowed"
+	" values are 'ISO' for ISO images, 'POW2' to force chunk sizes >= 32"
+	" KiB and with power of 2 '32K' to force chunk sizes multiple 32 KiB"
+	" or 'ANY' to allow any values. The default value is 'ISO'. The case"
+	" fo the keyword is ignored."
+    },
+
+    {	OPT_CHUNK_SIZE, 0, "chunk-size",
+	"sz",
+	"Define the minimal chunk size if creating a CISO file. The default is"
+	" to calculate the chunk size from the input file size and find a good"
+	" value by using a minimal value of 1 MiB for '--chunk-mode AUTO' and"
+	" 32 KiB for other mdoes. If --chunk-mode is not 'ANY' then the value"
+	" is rounded up to the next power of 2. This calculation also depends"
+	" from --max-chunks.\n"
+	"The parameter 'sz' is a floating point number followed by an optional"
+	" unit factor (one of 'cb' [=1] or  'kmgtpe' [base=1000] or 'KMGTPE'"
+	" [base=1024]). The default unit is 'M' (MiB). If the number is"
+	" prefixed with a '=' than option --chunk-mode is ignored and the"
+	" given value is used without any rounding or changing.\n"
+	"If the input file size is not known (e.g. reading from pipe), the"
+	" default is 1 MiB."
+    },
+
+    {	OPT_MAX_CHUNKS, 0, "max-chunks",
+	"n",
+	"Define the maximal number of chunks if creating a CISO file. The"
+	" default value is 8192 for '--chunk-mode AUTO' and 32760 (maximal"
+	" value) for toher modes. If this value is set than the automatic"
+	" calculation  of --chunk-size will be modified too."
+    },
+
     {	OPT_PRESERVE, 'p', "preserve",
 	0,
 	"Preserve file times (atime+mtime)."
@@ -222,25 +256,25 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
     {	OPT_ITIME, 0, "itime",
 	0,
 	"Select 'itime' (insertion time) for printing.--itime is an"
-	" abbreviation of --time=i."
+	" abbreviation of '--time i'."
     },
 
     {	OPT_MTIME, 0, "mtime",
 	0,
 	"Select 'mtime' (last modification time) for printing.--mtime is an"
-	" abbreviation of --time=m."
+	" abbreviation of '--time m'."
     },
 
     {	OPT_CTIME, 0, "ctime",
 	0,
 	"Select 'ctime' (last status change time) for printing.--ctime is an"
-	" abbreviation of --time=c."
+	" abbreviation of '--time c'."
     },
 
     {	OPT_ATIME, 0, "atime",
 	0,
 	"Select 'atime' (last access time) for printing.--atime is an"
-	" abbreviation of --time=a."
+	" abbreviation of '--time a'."
     },
 
     {	OPT_TIME, 0, "time",
@@ -284,7 +318,7 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 	"Limit the output to NUM messages."
     },
 
-    {0,0,0,0,0}, // OPT__N_SPECIFIC == 45
+    {0,0,0,0,0}, // OPT__N_SPECIFIC == 48
 
     //----- global options -----
 
@@ -333,7 +367,7 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 	"char",
 	"Define an alternative escape character for destination files. The"
 	" default is '%'. For Windows (CYGWIN) it is a good choice to set"
-	" '-E'."
+	" '-E$'."
     },
 
     {	OPT_IO, 0, "io",
@@ -375,7 +409,7 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 	" [2do] for tests only."
     },
 
-    {0,0,0,0,0} // OPT__N_TOTAL == 60
+    {0,0,0,0,0} // OPT__N_TOTAL == 63
 
 };
 
@@ -581,6 +615,12 @@ const struct option OptionLong[] =
 	{ "split",		0, 0, 'z' },
 	{ "split-size",		1, 0, 'Z' },
 	 { "splitsize",		1, 0, 'Z' },
+	{ "chunk-mode",		1, 0, GO_CHUNK_MODE },
+	 { "chunkmode",		1, 0, GO_CHUNK_MODE },
+	{ "chunk-size",		1, 0, GO_CHUNK_SIZE },
+	 { "chunksize",		1, 0, GO_CHUNK_SIZE },
+	{ "max-chunks",		1, 0, GO_MAX_CHUNKS },
+	 { "maxchunks",		1, 0, GO_MAX_CHUNKS },
 	{ "preserve",		0, 0, 'p' },
 	{ "update",		0, 0, 'u' },
 	{ "overwrite",		0, 0, 'o' },
@@ -685,15 +725,19 @@ const u8 OptionIndex[OPT_INDEX_SIZE] =
 	/*8f*/	OPT_REGION,
 	/*90*/	OPT_IOS,
 	/*91*/	OPT_ENC,
-	/*92*/	OPT_FST,
-	/*93*/	OPT_ITIME,
-	/*94*/	OPT_MTIME,
-	/*95*/	OPT_CTIME,
-	/*96*/	OPT_ATIME,
-	/*97*/	OPT_TIME,
-	/*98*/	OPT_SECTIONS,
-	/*99*/	OPT_LIMIT,
-	/*9a*/	 0,0,0,0, 0,0,
+	/*92*/	OPT_CHUNK_MODE,
+	/*93*/	OPT_CHUNK_SIZE,
+	/*94*/	OPT_MAX_CHUNKS,
+	/*95*/	OPT_FST,
+	/*96*/	OPT_ITIME,
+	/*97*/	OPT_MTIME,
+	/*98*/	OPT_CTIME,
+	/*99*/	OPT_ATIME,
+	/*9a*/	OPT_TIME,
+	/*9b*/	OPT_SECTIONS,
+	/*9c*/	OPT_LIMIT,
+	/*9d*/	 0,0,0,
+	/*a0*/	 0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0,
 };
 
 //
@@ -1769,8 +1813,9 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	"DUMP",
 	"D",
 	"wit DUMP [source]...",
-	"Dump the data structure of Wii ISO files, boot.bin, fst.bin and of"
-	" DOL-files.",
+	"Dump the data structure of Wii ISO files, ticket.bin, tmd.bin,"
+	" header.bin, boot.bin, fst.bin and of DOL-files. The file type is"
+	" detected automatically by analyzing the content.",
 	25,
 	option_tab_cmd_DUMP
     },

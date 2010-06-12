@@ -45,6 +45,9 @@ typedef enum enumOptions
 	OPT_DEST2,
 	OPT_SPLIT,
 	OPT_SPLIT_SIZE,
+	OPT_CHUNK_MODE,
+	OPT_CHUNK_SIZE,
+	OPT_MAX_CHUNKS,
 	OPT_PRESERVE,
 	OPT_UPDATE,
 	OPT_OVERWRITE,
@@ -67,7 +70,7 @@ typedef enum enumOptions
 	OPT_SORT,
 	OPT_LIMIT,
 
-	OPT__N_SPECIFIC, // == 45 
+	OPT__N_SPECIFIC, // == 48 
 
 	//----- global options -----
 
@@ -87,7 +90,7 @@ typedef enum enumOptions
 	OPT_TEST,
 	OPT_HOOK,
 
-	OPT__N_TOTAL // == 60
+	OPT__N_TOTAL // == 63
 
 } enumOptions;
 
@@ -123,6 +126,9 @@ typedef enum enumOptionsBit
 	OB_DEST2		= 1llu << OPT_DEST2,
 	OB_SPLIT		= 1llu << OPT_SPLIT,
 	OB_SPLIT_SIZE		= 1llu << OPT_SPLIT_SIZE,
+	OB_CHUNK_MODE		= 1llu << OPT_CHUNK_MODE,
+	OB_CHUNK_SIZE		= 1llu << OPT_CHUNK_SIZE,
+	OB_MAX_CHUNKS		= 1llu << OPT_MAX_CHUNKS,
 	OB_PRESERVE		= 1llu << OPT_PRESERVE,
 	OB_UPDATE		= 1llu << OPT_UPDATE,
 	OB_OVERWRITE		= 1llu << OPT_OVERWRITE,
@@ -187,6 +193,12 @@ typedef enum enumOptionsBit
 				| OB_REGION
 				| OB_IOS
 				| OB_ENC,
+
+	OB_GRP_SPLIT_CHUNK	= OB_SPLIT
+				| OB_SPLIT_SIZE
+				| OB_CHUNK_MODE
+				| OB_CHUNK_SIZE
+				| OB_MAX_CHUNKS,
 
 	OB_CMD_HELP		= ~(option_t)0,
 
@@ -284,8 +296,7 @@ typedef enum enumOptionsBit
 	OB_CMD_COPY		= OB_CMD_EXTRACT
 				| OB_UPDATE
 				| OB_REMOVE
-				| OB_SPLIT
-				| OB_SPLIT_SIZE
+				| OB_GRP_SPLIT_CHUNK
 				| OB_WDF
 				| OB_ISO
 				| OB_CISO
@@ -295,8 +306,7 @@ typedef enum enumOptionsBit
 	OB_CMD_SCRUB		= OB_GRP_TITLES
 				| OB_GRP_XXSOURCE
 				| OB_GRP_PARTITIONS
-				| OB_SPLIT
-				| OB_SPLIT_SIZE
+				| OB_GRP_SPLIT_CHUNK
 				| OB_PRESERVE
 				| OB_GRP_PATCH
 				| OB_WDF
@@ -442,6 +452,9 @@ typedef enum enumGetOpt
 	GO_REGION,
 	GO_IOS,
 	GO_ENC,
+	GO_CHUNK_MODE,
+	GO_CHUNK_SIZE,
+	GO_MAX_CHUNKS,
 	GO_FST,
 	GO_ITIME,
 	GO_MTIME,

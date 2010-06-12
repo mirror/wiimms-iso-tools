@@ -2,31 +2,54 @@
 [size=18][color=#0000FF][b]@@TOOLSET-SHORT@@: @@TOOLSET-LONG@@ v@.@@@ - @@@@-@@-@@[/b][/color][/size]
 [size=15][color=#800000][b]Ein Kommandozeilen-Toolkit für ISO und WBFS Dateien.[/b][/color][/size]
 
-[b]wwt+wit[/b] sind Kommandozeilen-Tools. Das bedeutet, dass man zur Ausführung vorher ein Kommandofenster aufmachen muss und dann die Kommandos eingeben kann. Dieses hat aber den Vorteil, dass man sich Batch-Dateien für immer wiederkehrende Aufgaben schreiben kann. Zum Ansprechen der Laufwerke muss das Kommandofenster im Admin-Modus arbeiten. Die Syntax der Kommandos ist stark an Unix angelehnt, da die Programme auch unter Linux entwickelt werden.
+[b]wit+wwt[/b] sind Kommandozeilen-Tools. Das bedeutet, dass man zur Ausführung vorher ein Kommandofenster aufmachen muss und dann die Kommandos einzugeben. Dieses hat aber den Vorteil, dass man sich Batch-Dateien für immer wiederkehrende Aufgaben schreiben kann. Zum Ansprechen der Laufwerke (WBFS Platten) muss das Kommandofenster im Admin-Modus arbeiten. Die Syntax der Kommandos ist stark an Unix angelehnt, da die Programme auch unter Linux entwickelt werden.
 
-[size=12][color=#000080][b]Download der aktuellen Version:[/b][/color][/size]
-~[size=12][color=#000080][b]Download[/b][/color] [color=#800000][b]der EXPERIMENTELLEN Version:[/b][/color][/size]
+[color=#0000c0][size=12][b]Eigenschaften:[/b][/size]
+(Die Links zeigen auf die englischsprachige Website)[/color]
+@@MODULE(features-de.forum)@@
+
+[size=12][color=#0000c0][b]Download der aktuellen Version:[/b][/color][/size]
+~[size=12][color=#0000c0][b]Download[/b][/color] [color=#800000][b]der EXPERIMENTELLEN Version:[/b][/color][/size]
 [list]
 [*] [url=@@URI-DOWNLOAD-I386@@][b]@@DISTRIB-I386@@[/b][/url] : linux/i386 version
 [*] [url=@@URI-DOWNLOAD-X86_64@@][b]@@DISTRIB-X86_64@@[/b][/url] : linux/x86_64 version
 [*] [url=@@URI-DOWNLOAD-MAC@@][b]@@DISTRIB-MAC@@[/b][/url] : Mac OS universal binaries (ppc, i386 and x86-64)
 [*] [url=@@URI-DOWNLOAD-CYGWIN@@][b]@@DISTRIB-CYGWIN@@[/b][/url] : cygwin (win32) version
-[*] Ältere Versionen sind unter [url=http://wit.wiimm.de/download.html]http://wit.wiimm.de/download.html[/url] verfügbar.
+[*] Weitere Versionen sind unter [url=@@URI-HOME@@download.html][b]@@URI-HOME@@download.html[/b][/url] verfügbar.
 [/list]
 
-[size=12][color=#000080][b]Es existiert eine graphische Oberfläche (GUI) zur Bedienung von WIT:[/b][/color][/size]
+[size=12][color=#0000c0][b]Es existiert eine graphische Oberfläche (GUI) zur Bedienung von WIT:[/b][/color][/size]
 [list]
 [*] [url=@@URI-WIIJMANAGER@@][b]WiiJManager Multiplatform[/b][/url]
 [/list]
 
-[size=12][color=#000080][b]Höhepunkte dieser Version:[/b][/color][/size]
+[size=12][color=#0000c0][b]Höhepunkte dieser Version:[/b][/color][/size]
 [list]
-[*]
+[*] Als ich im September 2009 anfing, wollte ich nur einen WBFS Manager für Linux erstellen. Außerdem war es mein Ziel, Backup auf anderen Medien platzsparend ohne Verwendung von Sparse-Files zu speichern. Mit [url=@@URI-HOME@@wwt][b]wwt[/b][/url] habe ich den wahrscheinlich umfangreichsten WBFS Manger geschaffen. Ich denke dabei an spezielle Eigenschaften wie Integritätcheck, Reparatur, Include- und Exclude-Listen, Dateiformate (ISO, CISO, WDF, WBFS, FST) und sehr gute Script-Unterstützung. Und mit dem WDF-Format habe ich von Beginn an ein schnelles und zugleich das speicherplatzsparendes Format implementiert.
+
+[color=#800000]Die Entwicklung [url=@@URI-HOME@@wwt][b]wwt[/b][/url] ist aus meiner Sicht schon seit längerem abgeschlossen und es läuft sehr stabil. Daher ist es Zeit für [b]Version 1.00[/b].[/color]
+
+Die Weiterentwicklung von [url=@@URI-HOME@@wit][b]wit[/b][/url] wird dagegen fortgesetzt werden, was automatisch Ergänzungen für [url=@@URI-HOME@@wwt][b]wwt[/b][/url] mit sich bringen wird.
+
+[*] Die drei Tools [b]iso2wbfs[/b], [b]iso2wdf[/b] and [b]wdf2iso[/b] werden nach dieser Version nicht weiter unterstützt werden. Alle Umwandlungen können mit dem wesentlich vielseitigerem Tool [url=@@URI-HOME@@wit][b]wit[/b][/url] vorgenommen werden. Dazu muss einfach das Kommando COPY verwendet werden, z.B. [b]"wit copy source.iso dest.wdf"[/b].
+
+[*] [url=@@URI-HOME@@wit/cmd-dump][b]wit DUMP[/b][/url] gibt die Datenstruktur und zusätzliche Informationen von Dateien der folgenden Dateitypen aus:
+[list]
+[*] Wii ISO disc (Plain, CISO, WDF, WBFS or FST)
+[*] ticket.bin
+[*] tmd.bin
+[*] header.bin
+[*] boot.bin
+[*] fst.bin
+[*] DOL-Dateien
+[/list]
 [/list]
 
-[size=12][color=#000080][b]Letzte Änderungen:[/b][/color][/size]
+[size=12][color=#0000c0][b]Letzte Änderungen:[/b][/color][/size]
+
 [code]
 @@MODULE(last-history.txt)@@
 [/code]
 
-Die Quellen stehen unter der GPL2 Lizenz. Die Quellen können direkt aus dem [url=@@URI-REPOS@@][b]SVN repository[/b][/url] ausgechecked werden oder mit einem [url=@@URI-VIEWVC@@][b]Browser besurft werden[/b][/url].
+Die Quellen stehen unter der GPL2 Lizenz und können entweder direkt aus dem [url=@@URI-REPOS@@][b]SVN repository[/b][/url] exportiert oder mit einem [url=@@URI-VIEWVC@@][b]Browser besurft werden[/b][/url].
+Besuche [url=@@URI-HOME@@][b]@@URI-HOME@@[/b][/url] für weitere Informationen.

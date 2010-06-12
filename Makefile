@@ -2,52 +2,50 @@
 # make manual: http://www.gnu.org/software/make/manual/make.html
 #----------------------------------------------------------------
 
-SHELL		= /bin/bash
+#-------------------------------------------------------------------------------
+# global settings
 
-AUTHOR		= Dirk Clemens
-TOOLSET_SHORT	= WIT
-TOOLSET_LONG	= Wiimms ISO Tools
-WIT_SHORT	= wit
-WIT_LONG	= Wiimms ISO Tool
-WWT_SHORT	= wwt
-WWT_LONG	= Wiimms WBFS Tool
+SHELL			= /bin/bash
 
-VERSION		= 0.49a
-PREV_VERSION	= 0.48a
-PREV_REVISION	= 1145
+AUTHOR			= Dirk Clemens
+TOOLSET_SHORT		= WIT
+TOOLSET_LONG		= Wiimms ISO Tools
+WIT_SHORT		= wit
+WIT_LONG		= Wiimms ISO Tool
+WWT_SHORT		= wwt
+WWT_LONG		= Wiimms WBFS Tool
 
-MIPSEL_RELEASE	= 0.44a-r974
-POWERPC_RELEASE	= 0.44a-r974
+VERSION			= 1.00a
 
-DUMMY		:= $(shell $(SHELL) ./setup.sh)
+URI_HOME		= http://wit.wiimm.de/
+URI_DOWNLOAD		= http://wit.wiimm.de/download
+URI_FILE		= http://wit.wiimm.de/file
+URI_REPOS		= http://opensvn.wiimm.de/wii/trunk/wiimms-iso-tools/
+URI_VIEWVC		= http://wit.wiimm.de/viewvc
+
+URI_WDF			= http://wiimm.de/r/wdf
+URI_CISO		= http://wiimm.de/r/ciso
+URI_WIIJMANAGER		= http://wiimm.de/r/wiijman
+URI_GBATEMP		= http://gbatemp.net/index.php?showtopic=182236\#entry2286365
+URI_DOWNLOAD_I386	= $(URI_DOWNLOAD)/$(DISTRIB_I386)
+URI_DOWNLOAD_X86_64	= $(URI_DOWNLOAD)/$(DISTRIB_X86_64)
+URI_DOWNLOAD_MAC	= $(URI_DOWNLOAD)/$(DISTRIB_MAC)
+URI_DOWNLOAD_CYGWIN	= $(URI_DOWNLOAD)/$(DISTRIB_CYGWIN)
+URI_TITLES		= http://wiitdb.com/titles.txt
+
+DUMMY			:= $(shell $(SHELL) ./setup.sh)
 include Makefile.setup
 
-URI_HOME			= http://wit.wiimm.de/
-URI_DOWNLOAD			= http://wit.wiimm.de/download
-URI_FILE			= http://wit.wiimm.de/file
-URI_REPOS			= http://opensvn.wiimm.de/wii/trunk/wiimms-iso-tools/
-URI_VIEWVC			= http://wit.wiimm.de/viewvc
+#-------------------------------------------------------------------------------
+# compiler settings
 
-URI_WDF				= http://wiimm.de/r/wdf
-URI_CISO			= http://wiimm.de/r/ciso
-URI_WIIJMANAGER			= http://wiimm.de/r/wiijman
-URI_GBATEMP			= http://gbatemp.net/index.php?showtopic=182236\#entry2286365
-URI_DOWNLOAD_I386		= $(URI_DOWNLOAD)/$(DISTRIB_I386)
-URI_DOWNLOAD_X86_64		= $(URI_DOWNLOAD)/$(DISTRIB_X86_64)
-URI_DOWNLOAD_MAC		= $(URI_DOWNLOAD)/$(DISTRIB_MAC)
-URI_DOWNLOAD_CYGWIN		= $(URI_DOWNLOAD)/$(DISTRIB_CYGWIN)
-URI_DOWNLOAD_PREV_I386		= $(URI_DOWNLOAD)/$(PREVDIS_I386)
-URI_DOWNLOAD_PREV_X86_64	= $(URI_DOWNLOAD)/$(PREVDIS_X86_64)
-URI_DOWNLOAD_PREV_MAC		= $(URI_DOWNLOAD)/$(PREVDIS_MAC)
-URI_DOWNLOAD_PREV_CYGWIN	= $(URI_DOWNLOAD)/$(PREVDIS_CYGWIN)
-URI_DOWNLOAD_PREV_MIPSEL	= $(URI_DOWNLOAD)/$(PREVDIS_MIPSEL)
-URI_DOWNLOAD_PREV_POWERPC	= $(URI_DOWNLOAD)/$(PREVDIS_POWERPC)
-URI_TITLES			= http://wiitdb.com/titles.txt
-
-PRE		= 
+PRE		?= 
 CC		= $(PRE)gcc
 CPP		= $(PRE)g++
 STRIP		= $(PRE)strip
+
+#-------------------------------------------------------------------------------
+# files
 
 RM_FILES	= *.{o,d,tmp,bak,exe} */*.{tmp,bak} */*/*.{tmp,bak}
 RM_FILES2	= *.{iso,ciso,wdf,wbfs} templates.sed
@@ -57,19 +55,23 @@ MODE		= $(shell test -s $(MODE_FILE) && cat $(MODE_FILE))
 RM_FILES	+= $(MODE_FILE)
 
 # wbfs: files / size in GiB of WBFS partiton / number of ISO files to copy
-WBFS_FILE	:= a.wbfs
-WBFS_FILES	:= $(WBFS_FILE) b.wbfs c.wbfs d.wbfs
-WBFS_SIZE	:= 20
-WBFS_COUNT	:= 4
+WBFS_FILE	?= a.wbfs
+WBFS_FILES	?= $(WBFS_FILE) b.wbfs c.wbfs d.wbfs
+WBFS_SIZE	?= 20
+WBFS_COUNT	?= 4
 
 #-------------------------------------------------------------------------------
 # tools
 
 MAIN_TOOLS	:= wit wwt wdf2iso iso2wdf iso2wbfs wdf-cat wdf-dump
-TEST_TOOLS	:= wtest gen-ui
+TEST_TOOLS	:= wtest gen-ui wdf
 ALL_TOOLS	:= $(sort $(MAIN_TOOLS) $(TEST_TOOLS))
 
-RM_FILES	+= $(ALL_TOOLS)
+WDF_LINKS	:= WdfCat UnWdf WdfCat WdfCmp WdfDump Ciso CisoCat UnCiso Wbi
+
+RM_FILES	+= $(ALL_TOOLS) $(WDF_LINKS)
+
+DIR_LIST	=
 
 #-------------------------------------------------------------------------------
 # source files
@@ -80,6 +82,7 @@ UI_FILES	+= $(patsubst %,ui-%.h,$(MAIN_TOOLS))
 
 SETUP_DIR	= ./setup
 SETUP_FILES	= version.h install.sh load-titles.sh wit.def
+DIR_LIST	+= $(SETUP_DIR)
 RM_FILES2	+= $(SETUP_FILES)
 
 #-------------------------------------------------------------------------------
@@ -96,16 +99,14 @@ WIT_O		:= debug.o lib-std.o lib-file.o lib-wdf.o lib-ciso.o lib-sf.o \
 		   sha1dgst.o sha1_one.o
 LIBWBFS_O	:= file-formats.o libwbfs.o wiidisc.o rijndael.o
 
-# all objects
+# object groups
 UI_OBJECTS	:= $(sort $(MAIN_TOOLS_OBJ))
 C_OBJECTS	:= $(sort $(TEST_TOOLS_OBJ) $(WIT_O) $(LIBWBFS_O))
-
-# handle asm
 ASM_OBJECTS	:= ssl-asm.o
 
 # all objects + sources
 ALL_OBJECTS	:= $(sort $(WIT_O) $(LIBWBFS_O) $(ASM_OBJECTS))
-ALL_SOURCES	:= $(patsubst %.o,%.c,$(C_OBJECTS) $(ASM_OBJECTS))
+ALL_SOURCES	:= $(patsubst %.o,%.c,$(UI_OBJECTS) $(C_OBJECTS) $(ASM_OBJECTS))
 
 #-------------------------------------------------------------------------------
 
@@ -117,8 +118,10 @@ TEMPLATES	= ./templates
 MODULES		= $(TEMPLATES)/module
 GEN_TEMPLATE	= ./gen-template.sh
 UI		= ./src/ui
+DIR_LIST	+= $(SCRIPTS) $(TEMPLATES) $(MODULES) $(UI)
 
 VPATH		+= src src/libwbfs src/crypto $(UI) work
+DIR_LIST	+= src src/libwbfs src/crypto $(UI) work
 
 DEFINES1	=  -DLARGE_FILES -D_FILE_OFFSET_BITS=64
 DEFINES1	+= -DWIT		# enable WIT specific modifications in libwbfs
@@ -149,14 +152,6 @@ DISTRIB_MAC	= $(DISTRIB_BASE)-mac.tar.gz
 DISTRIB_CYGWIN	= $(DISTRIB_BASE)-cygwin.zip
 DISTRIB_FILES	= gpl-2.0.txt $(INSTALL_SCRIPTS)
 
-PREVDIS_BASE	= wit-v$(PREV_VERSION)-r$(PREV_REVISION)
-PREVDIS_I386	= $(PREVDIS_BASE)-i386.tar.gz
-PREVDIS_X86_64	= $(PREVDIS_BASE)-x86_64.tar.gz
-PREVDIS_MAC	= $(PREVDIS_BASE)-mac.tar.gz
-PREVDIS_CYGWIN	= $(PREVDIS_BASE)-cygwin.zip
-PREVDIS_MIPSEL	= wit-v$(MIPSEL_RELEASE)-mipsel.tar.gz
-PREVDIS_POWERPC	= wit-v$(POWERPC_RELEASE)-powerpc.tar.gz
-
 DOC_FILES	= doc/*.txt
 TITLE_FILES	= titles.txt $(patsubst %,titles-%.txt,$(LANGUAGES))
 LANGUAGES	= de es fr it ja ko nl pt
@@ -168,12 +163,9 @@ CYGWIN_DIR	= pool/cygwin
 CYGWIN_BIN	= cygwin1.dll
 CYGWIN_BIN_SRC	= $(patsubst %,$(CYGWIN_DIR)/%,$(CYGWIN_BIN))
 
-DIR_LIST_BIN	= $(SCRIPTS) bin bin/debug
-DIR_LIST	= $(DIR_LIST_BIN) $(TEMPLATES) $(MODULES)
+DIR_LIST_BIN	= $(SCRIPTS) bin
+DIR_LIST	+= $(DIR_LIST_BIN)
 DIR_LIST	+= lib doc work pool makefiles-local edit-list
-
-# local definitions
--include Makefile.local
 
 #
 ###############################################################################
@@ -183,7 +175,6 @@ default_rule: all
 	@echo "HINT: try 'make help'"
 
 # include this behind the default rule
--include Makefile.user
 -include $(ALL_SOURCES:.c=.d)
 
 #
@@ -250,40 +241,54 @@ all++: clean+ all titles distrib
 #
 #--------------------------
 
+.PHONY : ch+
+ch+:	chmod chown chgrp
+
+#
+#--------------------------
+
 .PHONY : chmod
 chmod:
-	@echo "***   chmod"
-	@mkdir -p $(DIR_LIST)
-	-@find \( -name '*.[ch]' -o -name '*.txt' -o -name '*.edit-list' \
-		-o -name '*.inc' -o -name 'Makefile*' \) -exec chmod 664 {} +
-	-@find -name '*.sh' -exec chmod 775 {} +
-	-@chmod -f 775 $(DIR_LIST) 2>/dev/null || true
-	-@chmod -f 775 *.sh $(SETUP_DIR)/*.sh $(SCRIPTS)/*.sh bin/* bin/debug/*
-	-@chown -f --reference=. src/* src/*/*			2>/dev/null || true
-	-@chown -f --reference=. * $(DIR_LIST)			2>/dev/null || true
-	-@chown -f --reference=. $(TEMPLATES)/* $(MODULES)/*	2>/dev/null || true
-	-@chown -f --reference=. bin/* work/*	$(SCRIPTS)/*	2>/dev/null || true
-	-@chown -f --reference=. edit-list/* makefiles-local/*	2>/dev/null || true
-	$(shell for f in $(ALL_TOOLS); do test -f "$f" && chmod 775 "$f"; done)
+	@echo "***   chmod 775/664"
+	@for d in . $(DIR_LIST); do test -d "$$d" && chmod ug+rw "$$d"/*; done
+	@for d in $(DIR_LIST); do test -d "$$d" && chmod 775 "$$d"; done
+	@find . -name '*.sh' -exec chmod 775 {} +
+	@for t in $(ALL_TOOLS); do test -f "$$t" && chmod 775 "$$t"; done || true
+
+#
+#--------------------------
+
+.PHONY : chown
+chown:
+	@echo "***   chown -R $$( stat -c%u . 2>/dev/null || stat -f%u . ) ."
+	@chown -R "$$( stat -c%u . 2>/dev/null || stat -f%u . )" .
+
+#
+#--------------------------
+
+.PHONY : chgrp
+chgrp:
+	@echo "***   chgrp -R $$( stat -c%g . 2>/dev/null || stat -f%g . ) ."
+	@chgrp -R "$$( stat -c%g . 2>/dev/null || stat -f%g . )" .
 
 #
 #--------------------------
 
 .PHONY : clean
 clean:
-	@echo "***      rm $(RM_FILES)"
+	@echo "***      rm output files + distrib"
 	@rm -f $(RM_FILES)
 	@rm -fr $(DISTRIB_RM)*
 
 .PHONY : clean+
 clean+: clean
-	@echo "***      rm $(RM_FILES2) + template-output"
+	@echo "***      rm test files + template output"
 	@rm -f $(RM_FILES2)
 	-@rm -fr doc
 
 .PHONY : clean++
 clean++: clean+
-	@test -d .svn && svn st | sort +1 || true
+	@test -d .svn && svn st | sort -k2 || true
 
 #
 #--------------------------
@@ -302,26 +307,10 @@ debug:
 #--------------------------
 
 .PHONY : distrib
-distrib: all doc $(INSTALL_SCRIPTS) gen-distrib wit.def
-
-.PHONY : distrib+
-distrib+:
-	@make clean+ debug wwt
-	@make clean distrib
-
-	@mkdir -p $(DISTRIB_PATH)/bin-debug
-	@cp bin/debug/wwt $(DISTRIB_PATH)/bin-debug
-
-	@chmod -R 664 $(DISTRIB_PATH)
-	@chmod a+x $(DISTRIB_PATH)/*.sh $(DISTRIB_PATH)/scripts/*.sh $(DISTRIB_PATH)/bin*/*
-	@chmod -R a+X $(DISTRIB_PATH)
-#	-@chown -R --reference=. $(DISTRIB_PATH) >/dev/null
-
-	@tar -czf $(DISTRIB_PATH).tar.gz $(DISTRIB_PATH)
+distrib: all doc gen-distrib wit.def
 
 .PHONY : gen-distrib
 gen-distrib:
-
 	@echo "***  create $(DISTRIB_PATH)"
 
 ifeq ($(SYSTEM),cygwin)
@@ -433,12 +422,6 @@ templates.sed: Makefile
 		's|@@DISTRIB-X86_64@@|$(DISTRIB_X86_64)|g;\n' \
 		's|@@DISTRIB-MAC@@|$(DISTRIB_MAC)|g;\n' \
 		's|@@DISTRIB-CYGWIN@@|$(DISTRIB_CYGWIN)|g;\n' \
-		's|@@PREV-DISTRIB-I386@@|$(PREVDIS_I386)|g;\n' \
-		's|@@PREV-DISTRIB-X86_64@@|$(PREVDIS_X86_64)|g;\n' \
-		's|@@PREV-DISTRIB-MAC@@|$(PREVDIS_MAC)|g;\n' \
-		's|@@PREV-DISTRIB-CYGWIN@@|$(PREVDIS_CYGWIN)|g;\n' \
-		's|@@PREV-DISTRIB-MIPSEL@@|$(PREVDIS_MIPSEL)|g;\n' \
-		's|@@PREV-DISTRIB-POWERPC@@|$(PREVDIS_POWERPC)|g;\n' \
 		's|@@URI-FILE@@|$(URI_FILE)|g;\n' \
 		's|@@URI-REPOS@@|$(URI_REPOS)|g;\n' \
 		's|@@URI-VIEWVC@@|$(URI_VIEWVC)|g;\n' \
@@ -452,12 +435,6 @@ templates.sed: Makefile
 		's|@@URI-DOWNLOAD-X86_64@@|$(URI_DOWNLOAD_X86_64)|g;\n' \
 		's|@@URI-DOWNLOAD-MAC@@|$(URI_DOWNLOAD_MAC)|g;\n' \
 		's|@@URI-DOWNLOAD-CYGWIN@@|$(URI_DOWNLOAD_CYGWIN)|g;\n' \
-		's|@@URI-DOWNLOAD-PREV-I386@@|$(URI_DOWNLOAD_PREV_I386)|g;\n' \
-		's|@@URI-DOWNLOAD-PREV-X86_64@@|$(URI_DOWNLOAD_PREV_X86_64)|g;\n' \
-		's|@@URI-DOWNLOAD-PREV-MAC@@|$(URI_DOWNLOAD_PREV_MAC)|g;\n' \
-		's|@@URI-DOWNLOAD-PREV-CYGWIN@@|$(URI_DOWNLOAD_PREV_CYGWIN)|g;\n' \
-		's|@@URI-DOWNLOAD-PREV-MIPSEL@@|$(URI_DOWNLOAD_PREV_MIPSEL)|g;\n' \
-		's|@@URI-DOWNLOAD-PREV-POWERPC@@|$(URI_DOWNLOAD_PREV_POWERPC)|g;\n' \
 		's|@@URI-TITLES@@|$(URI_TITLES)|g;\n' \
 		>templates.sed
 
@@ -578,6 +555,14 @@ xwbfs: wwt
 	@./wwt init -qfs1t x.wbfs --inode --sector-size=512
 
 #
+#--------------------------
+
+.PHONY : wdf-links
+wdf-links:
+	@echo "***    link $(WDF_LINKS) -> wdf"
+	@for l in $(WDF_LINKS); do rm -f $$l; ln -s wdf $$l; done
+
+#
 ###############################################################################
 # help rule
 
@@ -607,11 +592,22 @@ help:
 	@echo  " make install	make all & copy tools to $(INSTALL_PATH)"
 	@echo  " make install+	make clean+ all & copy tools to $(INSTALL_PATH)"
 	@echo  ""
-	@echo  " make chmod	change mode of files"
-	@echo  " make version	generate file 'version.h'"
+	@echo  " make chmod	change mode 775/644 for known dirs and files"
+	@echo  " make chown	change owner of all dirs+files to owner of ."
+	@echo  " make chgrp	change group of all dirs+files to group of ."
+	@echo  " make ch+	:= make chmod chown chgrp"
+	@echo  ""
 	@echo  " make %.wbfs	gen %.wbfs, $(WBFS_SIZE)G, add smallest $(WBFS_COUNT) ISOs"
 	@echo  " make wbfs	gen $(WBFS_FILE), $(WBFS_SIZE)G, add smallest $(WBFS_COUNT) ISOs"
 	@echo  " make wbfs+	gen $(WBFS_FILES), $(WBFS_SIZE)G, add smallest $(WBFS_COUNT) ISOs"
 	@echo  ""
 	@echo  " make help	print this help"
 	@echo  ""
+
+#
+###############################################################################
+# local definitions
+
+-include makefiles-local/Makefile.local.$(SYSTEM)
+-include Makefile.user
+

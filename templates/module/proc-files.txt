@@ -54,7 +54,7 @@ This is a short description of the special characters:
 
    ?  : match exact 1 character but not '/'.
 
-  ' ' : (SPACE) Match space and any controll charaters (ASCII 1..32).
+  ' ' : (SPACE) Match space and any control charaters (ASCII 1..32).
 
  [..] : Match 1 character of the list within the brackets. The list is
         analyzed in the following way:

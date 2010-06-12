@@ -75,7 +75,7 @@ enum // some const
 	OPT_MAX		=   100,	// max number of options
 	OPT_USED_MASK	=  0x7f,	// mask to calculate usage count
 	OPT_LONG_BASE	=  0x80,	// first index for "only long options"
-	OPT_INDEX_SIZE	=  0xa0,	// size of OptionIndex[]
+	OPT_INDEX_SIZE	=  0xb0,	// size of OptionIndex[]
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -88,7 +88,7 @@ void DumpUsedOptions ( const InfoUI_t * iu, FILE * f, int indent );
 ///////////////////////////////////////////////////////////////////////////////
 
 void PrintHelp ( const InfoUI_t * iu, FILE * f, int indent );
-void PrintHelpCmd ( const InfoUI_t * iu, FILE * f, int indent, int cmd );
+void PrintHelpCmd ( const InfoUI_t * iu, FILE * f, int indent, int cmd, ccp info );
 
 //
 ///////////////////////////////////////////////////////////////////////////////

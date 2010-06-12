@@ -265,7 +265,7 @@ extension is abolut compatible with all other USB loaders and WBFS managers:
 The time stamps are informative. wit and wwt uses them in the following way:
 
  All commands:
-    If creating a indode info because the previous is invalid, then itime,
+    If creating a inode info because the previous is invalid, then itime,
     mtime, ctime and atime are set to the current time and dtime is cleared.
 
  wwt FORMAT:
@@ -298,7 +298,7 @@ The time stamps are informative. wit and wwt uses them in the following way:
 
  wwt LIST:
     In the extended view it shows the mtime (default) or any other time, but
-    only one, controlled by options. Sorting by time is also possible.
+    only one, controled by options. Sorting by time is also possible.
 
  wwt DUMP:
     In disc view it shows all non zero time stamps of each valid inode.

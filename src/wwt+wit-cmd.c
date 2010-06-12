@@ -109,7 +109,29 @@ enumError cmd_test_options()
     printf("  hd sec-size: %16x = %d\n",opt_hss,opt_hss);
     printf("  wb sec-size: %16x = %d\n",opt_wss,opt_wss);
     printf("  repair-mode: %16x = %d\n",repair_mode,repair_mode);
+ #else
+    u64 opt_size = 0;
  #endif
+
+    printf("  chunk-mode:  %16x = %d\n",opt_chunk_mode,opt_chunk_mode);
+    printf("  chunk-size:  %16x = %d%s\n",
+		opt_chunk_size, opt_chunk_size,
+		force_chunk_size ? " FORCE!" : "" );
+    printf("  max-chunks:  %16x = %d\n",opt_max_chunks,opt_max_chunks);
+    {
+	u64 filesize[] = { 100ull*MiB, 1ull*GiB, 10ull*GiB, opt_size, 0 };
+	u64 *fs_ptr = filesize;;
+	for (;;)
+	{
+	    u32 n_blocks;
+	    u32 block_size = CalcBlockSizeCISO(&n_blocks,*fs_ptr);
+	    printf("    size->CISO %16llx = %12lld -> %5u * %8x/hex == %12llx/hex\n",
+			*fs_ptr, *fs_ptr, n_blocks, block_size,
+			(u64)block_size * n_blocks );
+	    if (!*fs_ptr++)
+		break;
+	}
+    }
 
     printf("  split-size:  %16llx = %lld\n",opt_split_size,opt_split_size);
     printf("  escape-char: %16x = %d\n",escape_char,escape_char);

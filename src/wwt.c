@@ -73,10 +73,10 @@ void help_exit( bool xmode )
     {
 	int cmd;
 	for ( cmd = 0; cmd < CMD__N; cmd++ )
-	    PrintHelpCmd(&InfoUI,stdout,0,cmd);
+	    PrintHelpCmd(&InfoUI,stdout,0,cmd,0);
     }
     else
-	PrintHelpCmd(&InfoUI,stdout,0,0);
+	PrintHelpCmd(&InfoUI,stdout,0,0,0);
 
     exit(ERR_OK);
 }
@@ -2960,6 +2960,9 @@ enumError CheckOptions ( int argc, char ** argv, bool is_env )
 	case GO_MODIFY:		err += ScanOptModify(optarg); break;
 	case GO_SPLIT:		opt_split++; break;
 	case GO_SPLIT_SIZE:	err += ScanSplitSize(optarg); break;
+	case GO_CHUNK_MODE:	err += ScanChunkMode(optarg); break;
+	case GO_CHUNK_SIZE:	err += ScanChunkSize(optarg); break;
+	case GO_MAX_CHUNKS:	err += ScanMaxChunks(optarg); break;
 	case GO_RECOVER:	break;
 	case GO_FORCE:		break;
 	case GO_NO_CHECK:	break;

@@ -1361,8 +1361,8 @@ enumFileType AnalyzeFT ( File_t * f )
     f->disable_errors = true;
 
     // read file header
-    char buf1[HD_SECTOR_SIZE];
-    char buf2[HD_SECTOR_SIZE];
+    char buf1[FILE_PRELOAD_SIZE];
+    char buf2[FILE_PRELOAD_SIZE];
     TRACELINE;
     enumError err = ReadAtF(f,0,&buf1,sizeof(buf1));
     if (err)
@@ -1492,8 +1492,9 @@ enumFileType AnalyzeFT ( File_t * f )
 		    SetupSplitFile(f,OFT_PLAIN,0);
 		break;
 
+	    case FT_ID_HEAD_BIN:
 	    case FT_ID_BOOT_BIN:
-		ft |= FT_ID_BOOT_BIN;
+		ft |= mt;
 		CopyPatchedDiscId(f->id6,data_ptr);
 		break;
 
@@ -1511,21 +1512,26 @@ enumFileType AnalyzeFT ( File_t * f )
 
 ///////////////////////////////////////////////////////////////////////////////
 
-enumFileType AnalyzeMemFT ( const void * buf_hd_sect_size, off_t file_size )
+enumFileType AnalyzeMemFT ( const void * preload_buf, off_t file_size )
 {
     // make some quick tests for different file formats
 
-    ccp data = buf_hd_sect_size;
+    ccp data = preload_buf;
     TRACE("AnalyzeMemFT(,%llx) id=%08x magic=%08x\n",
 		(u64)file_size, be32(data), be32(data+WII_MAGIC_OFF) );
 
     //----- test BOOT.BIN or ISO
 
-    if (CheckID6(data,false))
+    if ( CheckID6(data,false) && be32(data+WII_MAGIC_OFF) == WII_MAGIC )
     {
-	if ( be32(data+WII_MAGIC_OFF) == WII_MAGIC )
-	    return file_size == WII_BOOT_SIZE ? FT_ID_BOOT_BIN : FT_ID_ISO ;
+	if ( file_size == WII_BOOT_SIZE )
+	    return FT_ID_BOOT_BIN;
+	if ( file_size == sizeof(wd_header_t) || file_size == WBFS_INODE_INFO_OFF )
+	    return FT_ID_HEAD_BIN;
+	if ( !file_size || file_size >= WII_GOOD_UPDATE_PART_OFF )
+	    return FT_ID_ISO;
     }
+
 
     //----- test WBFS
 
@@ -1539,7 +1545,7 @@ enumFileType AnalyzeMemFT ( const void * buf_hd_sect_size, off_t file_size )
 
     //----- test *.DOL
 
-    const dol_header_t * dol = buf_hd_sect_size;
+    const dol_header_t * dol = preload_buf;
     bool ok = true;
     u32 last_off = DOL_HEADER_SIZE;
     for ( i = 0; ok && i < DOL_N_SECTIONS; i++ )
@@ -1574,7 +1580,7 @@ enumFileType AnalyzeMemFT ( const void * buf_hd_sect_size, off_t file_size )
 	    if ( max > check_size/sizeof(wd_fst_item_t) )
 		 max = check_size/sizeof(wd_fst_item_t);
 
-	    const wd_fst_item_t * fst = buf_hd_sect_size;
+	    const wd_fst_item_t * fst = preload_buf;
 	    for ( i = 0; i < max; i++, fst++ )
 	    {
 		if ( (ntohl(fst->name_off)&0xffffff) >= max_name_off )
@@ -1586,6 +1592,36 @@ enumFileType AnalyzeMemFT ( const void * buf_hd_sect_size, off_t file_size )
 		return FT_ID_FST_BIN;
 	}
     }
+
+
+    //----- test TMD.BIN
+
+    if ( file_size >= sizeof(wd_tmd_t) )
+    {
+	const wd_tmd_t * tmd = preload_buf;
+	const int n = ntohs(tmd->n_content);
+	if ( file_size == sizeof(wd_tmd_t) + n * sizeof(wd_tmd_content_t)
+	    && CheckID4(tmd->title_id+4,true) )
+	{
+	    return FT_ID_TMD_BIN;
+	}
+    }
+
+
+    //----- test TICKET.BIN
+
+    if ( file_size == sizeof(wd_ticket_t) )
+    {
+	const wd_ticket_t * tik = preload_buf;
+	if ( CheckID4(tik->title_id+4,true) )
+	    return FT_ID_TIK_BIN;
+    }
+
+
+    //----- fall back to iso
+
+    if ( CheckID6(data,false) && be32(data+WII_MAGIC_OFF) == WII_MAGIC )
+	return FT_ID_ISO;
 
 
     return FT_ID_OTHER;
@@ -1686,6 +1722,30 @@ ccp GetNameFT ( enumFileType ftype, int ignore )
 			: ftype & FT_A_WDF
 				? "WDF+DOL"
 				: "DOL";
+	    break;
+
+	case FT_ID_TIK_BIN:
+	    return ignore > 1
+			? 0
+			: ftype & FT_A_WDF
+				? "WDF+TIK"
+				: "TIK.BIN";
+	    break;
+
+	case FT_ID_TMD_BIN:
+	    return ignore > 1
+			? 0
+			: ftype & FT_A_WDF
+				? "WDF+TMD"
+				: "TMD.BIN";
+	    break;
+
+	case FT_ID_HEAD_BIN:
+	    return ignore > 1
+			? 0
+			: ftype & FT_A_WDF
+				? "WDF+HEAD"
+				: "HEAD.BIN";
 	    break;
 
 	case FT_ID_BOOT_BIN:
@@ -2970,7 +3030,7 @@ static enumError SourceIteratorHelper
 	return err ? err : SIGINT_level ? ERR_INTERRUPT : ERR_OK;
     }
 
-    if ( sf.f.ftype & (FT_ID_BOOT_BIN|FT_ID_FST_BIN|FT_ID_DOL) )
+    if ( sf.f.ftype & FT__SPC_MASK )
     {
 	const enumAction action = it->act_non_iso > it->act_known
 				? it->act_non_iso : it->act_known;
