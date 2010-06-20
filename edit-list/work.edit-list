@@ -1,6 +1,0 @@
-../src/wit.c ;
-../templates/wit.txt ;
-../src/wwt.c ;
-../templates/wwt.txt ;
-../src/wwt+wit-cmd.c ;
-@+all.edit-list

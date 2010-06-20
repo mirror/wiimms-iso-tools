@@ -137,6 +137,7 @@ enumError cmd_test_options()
     printf("  escape-char: %16x = %d\n",escape_char,escape_char);
     printf("  print-time:  %16x = %d\n",opt_print_time,opt_print_time);
     printf("  sort-mode:   %16x = %d\n",sort_mode,sort_mode);
+    printf("  show-mode:   %16x = %d\n",show_mode,show_mode);
     printf("  limit:       %16x = %d\n",opt_limit,opt_limit);
     printf("  rdepth:      %16x = %d\n",opt_recurse_depth,opt_recurse_depth);
     printf("  enc:         %16x = %d\n",encoding,encoding);

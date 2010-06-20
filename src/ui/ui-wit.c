@@ -116,8 +116,9 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 	" This patching option expects a comma separated list of the following"
 	" keywords (case ignored) as parameter: NONE, DISC, BOOT, TICKET, TMD,"
 	" WBFS, ALL and AUTO (default).\n"
-	" All keyword can be prefixed by '+' to enable that opton, by a '-' to"
-	" disable it or by a '=' to enable that option and disable all others."
+	" All keywords can be prefixed by '+' to enable that option, by a '-'"
+	" to disable it or by a '=' to enable that option and disable all"
+	" others."
     },
 
     {	OPT_REGION, 0, "region",
@@ -168,36 +169,41 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 
     {	OPT_CHUNK_MODE, 0, "chunk-mode",
 	"mode",
-	"Defines an operation mode for --max-chunks and --chunk-size. Allowed"
-	" values are 'ISO' for ISO images, 'POW2' to force chunk sizes >= 32"
-	" KiB and with power of 2 '32K' to force chunk sizes multiple 32 KiB"
-	" or 'ANY' to allow any values. The default value is 'ISO'. The case"
-	" fo the keyword is ignored."
+	"Defines an operation mode for --chunk-size and --max-chunks. Allowed"
+	" keywords are 'ANY' to allow any values,, '32K' to force chunk sizes"
+	" with a multiple of 32 KiB, 'POW2' to force chunk sizes >=32K and"
+	" with a power of 2 or 'ISO' for ISO images (more restrictive as"
+	" 'POW2', best for USB loaders). The case of the keyword is ignored."
+	" The default key is 'ISO'.\n"
+	" --chm is a short cut for --chunk-mode."
     },
 
     {	OPT_CHUNK_SIZE, 0, "chunk-size",
 	"sz",
 	"Define the minimal chunk size if creating a CISO file. The default is"
 	" to calculate the chunk size from the input file size and find a good"
-	" value by using a minimal value of 1 MiB for '--chunk-mode AUTO' and"
-	" 32 KiB for other mdoes. If --chunk-mode is not 'ANY' then the value"
+	" value by using a minimal value of 1 MiB for '--chunk-mode ISO' and"
+	" 32 KiB for modes 32K and POW2. For the modes ISO and POW2 the value"
 	" is rounded up to the next power of 2. This calculation also depends"
-	" from --max-chunks.\n"
+	" from option --max-chunks.\n"
 	"The parameter 'sz' is a floating point number followed by an optional"
 	" unit factor (one of 'cb' [=1] or  'kmgtpe' [base=1000] or 'KMGTPE'"
 	" [base=1024]). The default unit is 'M' (MiB). If the number is"
-	" prefixed with a '=' than option --chunk-mode is ignored and the"
-	" given value is used without any rounding or changing.\n"
-	"If the input file size is not known (e.g. reading from pipe), the"
-	" default is 1 MiB."
+	" prefixed with a '=' then options --chunk-mode and --max-chunks are"
+	" ignored and the given value is used without any rounding or"
+	" changing.\n"
+	"If the input file size is not known (e.g. reading from pipe), its"
+	" size is assumed as 12 GiB.\n"
+	" --chz is a short cut for --chunk-size."
     },
 
     {	OPT_MAX_CHUNKS, 0, "max-chunks",
 	"n",
 	"Define the maximal number of chunks if creating a CISO file. The"
-	" default value is 8192 for '--chunk-mode AUTO' and 32760 (maximal"
-	" value) for toher modes. If this value is set than the automatic"
-	" calculation  of --chunk-size will be modified too."
+	" default value is 8192 for '--chunk-mode ISO' and 32760 (maximal"
+	" value) for all other modes. If this value is set than the automatic"
+	" calculation  of --chunk-size will be modified too.\n"
+	" --mch is a short cut for --max-chunks."
     },
 
     {	OPT_PRESERVE, 'p', "preserve",
@@ -255,25 +261,25 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 
     {	OPT_ITIME, 0, "itime",
 	0,
-	"Select 'itime' (insertion time) for printing.--itime is an"
+	"Select 'itime' (insertion time) for printing. --itime is an"
 	" abbreviation of '--time i'."
     },
 
     {	OPT_MTIME, 0, "mtime",
 	0,
-	"Select 'mtime' (last modification time) for printing.--mtime is an"
+	"Select 'mtime' (last modification time) for printing. --mtime is an"
 	" abbreviation of '--time m'."
     },
 
     {	OPT_CTIME, 0, "ctime",
 	0,
-	"Select 'ctime' (last status change time) for printing.--ctime is an"
+	"Select 'ctime' (last status change time) for printing. --ctime is an"
 	" abbreviation of '--time c'."
     },
 
     {	OPT_ATIME, 0, "atime",
 	0,
-	"Select 'atime' (last access time) for printing.--atime is an"
+	"Select 'atime' (last access time) for printing. --atime is an"
 	" abbreviation of '--time a'."
     },
 
@@ -288,6 +294,20 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
     {	OPT_LONG, 'l', "long",
 	0,
 	"Print in long format. Multiple usage possible."
+    },
+
+    {	OPT_SHOW, 0, "show",
+	"list",
+	"This option allows fine control over the things that are to be"
+	" printed. The parameter is a comma separated list of the following"
+	" keywords, case is ignored:  NONE, INTRO, P-TAB, P-INFO, P-MAP,"
+	" D-MAP, TICKET, TMD and ALL. There are some combined keys: PART :="
+	" P-INFO,P-MAP,TICKET,TMD, MAP := P-MAP,D-MAP.All keywords can be"
+	" prefixed by '+' to enable that option, by a '-' to disable it or by"
+	" a '=' to enable that option and disable all others.\n"
+	"The commands recognize only some of these keywords and ignore the"
+	" others. If --show is set, option --long is ignored for selecting"
+	" output elements."
     },
 
     {	OPT_UNIQUE, 'U', "unique",
@@ -307,7 +327,7 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 
     {	OPT_SORT, 'S', "sort",
 	"list",
-	"Define the sort mode for lists. The parameter is a comma separated"
+	"Define the sort mode for listings. The parameter is a comma separated"
 	" list of the following keywords: NONE, NAME, TITLE, FILE, SIZE,"
 	" OFFSET, REGION, WBFS, NPART, ITIME, MTIME, CTIME, ATIME, TIME ="
 	" DATE, DEFAULT, ASCENDING, DESCENDING = REVERSE."
@@ -318,7 +338,7 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 	"Limit the output to NUM messages."
     },
 
-    {0,0,0,0,0}, // OPT__N_SPECIFIC == 48
+    {0,0,0,0,0}, // OPT__N_SPECIFIC == 49
 
     //----- global options -----
 
@@ -409,7 +429,7 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 	" [2do] for tests only."
     },
 
-    {0,0,0,0,0} // OPT__N_TOTAL == 63
+    {0,0,0,0,0} // OPT__N_TOTAL == 64
 
 };
 
@@ -543,11 +563,16 @@ const CommandTab_t CommandTab[] =
     { CMD_ID6,		"ID6",		"ID",		OB_CMD_ID6 },
     { CMD_LIST,		"LIST",		"LS",		OB_CMD_LIST },
     { CMD_LIST_L,	"LIST-L",	"LL",		OB_CMD_LIST_L },
+    { CMD_LIST_L,	"LISTL",	0,		OB_CMD_LIST_L },
     { CMD_LIST_LL,	"LIST-LL",	"LLL",		OB_CMD_LIST_LL },
+    { CMD_LIST_LL,	"LISTLL",	0,		OB_CMD_LIST_LL },
     { CMD_LIST_LLL,	"LIST-LLL",	"LLLL",		OB_CMD_LIST_LLL },
+    { CMD_LIST_LLL,	"LISTLLL",	0,		OB_CMD_LIST_LLL },
     { CMD_ILIST,	"ILIST",	"IL",		OB_CMD_ILIST },
     { CMD_ILIST_L,	"ILIST-L",	"ILL",		OB_CMD_ILIST_L },
+    { CMD_ILIST_L,	"ILISTL",	0,		OB_CMD_ILIST_L },
     { CMD_ILIST_LL,	"ILIST-LL",	"ILLL",		OB_CMD_ILIST_LL },
+    { CMD_ILIST_LL,	"ILISTLL",	0,		OB_CMD_ILIST_LL },
     { CMD_DIFF,		"DIFF",		"CMP",		OB_CMD_DIFF },
     { CMD_EXTRACT,	"EXTRACT",	"X",		OB_CMD_EXTRACT },
     { CMD_COPY,		"COPY",		"CP",		OB_CMD_COPY },
@@ -617,10 +642,13 @@ const struct option OptionLong[] =
 	 { "splitsize",		1, 0, 'Z' },
 	{ "chunk-mode",		1, 0, GO_CHUNK_MODE },
 	 { "chunkmode",		1, 0, GO_CHUNK_MODE },
+	 { "chm",		1, 0, GO_CHUNK_MODE },
 	{ "chunk-size",		1, 0, GO_CHUNK_SIZE },
 	 { "chunksize",		1, 0, GO_CHUNK_SIZE },
+	 { "chz",		1, 0, GO_CHUNK_SIZE },
 	{ "max-chunks",		1, 0, GO_MAX_CHUNKS },
 	 { "maxchunks",		1, 0, GO_MAX_CHUNKS },
+	 { "mch",		1, 0, GO_MAX_CHUNKS },
 	{ "preserve",		0, 0, 'p' },
 	{ "update",		0, 0, 'u' },
 	{ "overwrite",		0, 0, 'o' },
@@ -637,6 +665,7 @@ const struct option OptionLong[] =
 	{ "atime",		0, 0, GO_ATIME },
 	{ "time",		1, 0, GO_TIME },
 	{ "long",		0, 0, 'l' },
+	{ "show",		1, 0, GO_SHOW },
 	{ "unique",		0, 0, 'U' },
 	{ "no-header",		0, 0, 'H' },
 	 { "noheader",		0, 0, 'H' },
@@ -734,9 +763,10 @@ const u8 OptionIndex[OPT_INDEX_SIZE] =
 	/*98*/	OPT_CTIME,
 	/*99*/	OPT_ATIME,
 	/*9a*/	OPT_TIME,
-	/*9b*/	OPT_SECTIONS,
-	/*9c*/	OPT_LIMIT,
-	/*9d*/	 0,0,0,
+	/*9b*/	OPT_SHOW,
+	/*9c*/	OPT_SECTIONS,
+	/*9d*/	OPT_LIMIT,
+	/*9e*/	 0,0,
 	/*a0*/	 0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0,
 };
 
@@ -925,6 +955,7 @@ static const InfoOption_t * option_tab_cmd_DUMP[] =
 	OptionInfo + OPT_IOS,
 	OptionInfo + OPT_ENC,
 	&option_cmd_DUMP_LONG,
+	OptionInfo + OPT_SHOW,
 
 	0
 };
@@ -1405,6 +1436,9 @@ static const InfoOption_t * option_tab_cmd_COPY[] =
 	OptionInfo + OPT_REMOVE,
 	OptionInfo + OPT_SPLIT,
 	OptionInfo + OPT_SPLIT_SIZE,
+	OptionInfo + OPT_CHUNK_MODE,
+	OptionInfo + OPT_CHUNK_SIZE,
+	OptionInfo + OPT_MAX_CHUNKS,
 
 	OptionInfo + OPT_NONE, // separator
 
@@ -1459,6 +1493,9 @@ static const InfoOption_t * option_tab_cmd_SCRUB[] =
 
 	OptionInfo + OPT_SPLIT,
 	OptionInfo + OPT_SPLIT_SIZE,
+	OptionInfo + OPT_CHUNK_MODE,
+	OptionInfo + OPT_CHUNK_SIZE,
+	OptionInfo + OPT_MAX_CHUNKS,
 	OptionInfo + OPT_PRESERVE,
 	OptionInfo + OPT_ID,
 	OptionInfo + OPT_NAME,
@@ -1722,7 +1759,7 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	false,
 	"HELP",
 	"H",
-	"wit HELP command [ignored]...",
+	"wit HELP [command] [ignored]...",
 	"Print help and exit. If the first non option is a valid command name,"
 	" then a help for the given command is printed.",
 	0,
@@ -1816,7 +1853,7 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	"Dump the data structure of Wii ISO files, ticket.bin, tmd.bin,"
 	" header.bin, boot.bin, fst.bin and of DOL-files. The file type is"
 	" detected automatically by analyzing the content.",
-	25,
+	26,
 	option_tab_cmd_DUMP
     },
 
@@ -1952,7 +1989,7 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	"wit COPY source dest\n"
 	"wit COPY [-s path]... [-r path]... [source]... [-d|-D] dest",
 	"Copy, scrub, convert, split, encrypt and decrypt Wii ISO images.",
-	44,
+	47,
 	option_tab_cmd_COPY
     },
 
@@ -1964,7 +2001,7 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	"wit SCRUB source\n"
 	"wit SCRUB [-s path]... [-r path]... [source]...",
 	"Scrub, convert, split, encrypt and decrypt Wii ISO images.",
-	33,
+	36,
 	option_tab_cmd_SCRUB
     },
 

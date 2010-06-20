@@ -136,8 +136,9 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 	" This patching option expects a comma separated list of the following"
 	" keywords (case ignored) as parameter: NONE, DISC, BOOT, TICKET, TMD,"
 	" WBFS, ALL and AUTO (default).\n"
-	" All keyword can be prefixed by '+' to enable that opton, by a '-' to"
-	" disable it or by a '=' to enable that option and disable all others."
+	" All keywords can be prefixed by '+' to enable that option, by a '-'"
+	" to disable it or by a '=' to enable that option and disable all"
+	" others."
     },
 
     {	OPT_INODE, 0, "inode",
@@ -172,36 +173,41 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 
     {	OPT_CHUNK_MODE, 0, "chunk-mode",
 	"mode",
-	"Defines an operation mode for --max-chunks and --chunk-size. Allowed"
-	" values are 'ISO' for ISO images, 'POW2' to force chunk sizes >= 32"
-	" KiB and with power of 2 '32K' to force chunk sizes multiple 32 KiB"
-	" or 'ANY' to allow any values. The default value is 'ISO'. The case"
-	" fo the keyword is ignored."
+	"Defines an operation mode for --chunk-size and --max-chunks. Allowed"
+	" keywords are 'ANY' to allow any values,, '32K' to force chunk sizes"
+	" with a multiple of 32 KiB, 'POW2' to force chunk sizes >=32K and"
+	" with a power of 2 or 'ISO' for ISO images (more restrictive as"
+	" 'POW2', best for USB loaders). The case of the keyword is ignored."
+	" The default key is 'ISO'.\n"
+	" --chm is a short cut for --chunk-mode."
     },
 
     {	OPT_CHUNK_SIZE, 0, "chunk-size",
 	"sz",
 	"Define the minimal chunk size if creating a CISO file. The default is"
 	" to calculate the chunk size from the input file size and find a good"
-	" value by using a minimal value of 1 MiB for '--chunk-mode AUTO' and"
-	" 32 KiB for other mdoes. If --chunk-mode is not 'ANY' then the value"
+	" value by using a minimal value of 1 MiB for '--chunk-mode ISO' and"
+	" 32 KiB for modes 32K and POW2. For the modes ISO and POW2 the value"
 	" is rounded up to the next power of 2. This calculation also depends"
-	" from --max-chunks.\n"
+	" from option --max-chunks.\n"
 	"The parameter 'sz' is a floating point number followed by an optional"
 	" unit factor (one of 'cb' [=1] or  'kmgtpe' [base=1000] or 'KMGTPE'"
 	" [base=1024]). The default unit is 'M' (MiB). If the number is"
-	" prefixed with a '=' than option --chunk-mode is ignored and the"
-	" given value is used without any rounding or changing.\n"
-	"If the input file size is not known (e.g. reading from pipe), the"
-	" default is 1 MiB."
+	" prefixed with a '=' then options --chunk-mode and --max-chunks are"
+	" ignored and the given value is used without any rounding or"
+	" changing.\n"
+	"If the input file size is not known (e.g. reading from pipe), its"
+	" size is assumed as 12 GiB.\n"
+	" --chz is a short cut for --chunk-size."
     },
 
     {	OPT_MAX_CHUNKS, 0, "max-chunks",
 	"n",
 	"Define the maximal number of chunks if creating a CISO file. The"
-	" default value is 8192 for '--chunk-mode AUTO' and 32760 (maximal"
-	" value) for toher modes. If this value is set than the automatic"
-	" calculation  of --chunk-size will be modified too."
+	" default value is 8192 for '--chunk-mode ISO' and 32760 (maximal"
+	" value) for all other modes. If this value is set than the automatic"
+	" calculation  of --chunk-size will be modified too.\n"
+	" --mch is a short cut for --max-chunks."
     },
 
     {	OPT_SIZE, 's', "size",
@@ -240,8 +246,9 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 	" comma separated list of the following keywords, case is ignored:"
 	" NONE, FBT, INODES, STANDARD, RM-INVALID, RM-OVERLAP, RM-FREE,"
 	" RM-EMPTY, RM-ALL, ALL.\n"
-	" All keyword can be prefixed by '+' to enable that opton, by a '-' to"
-	" disable it or by a '=' to enable that option and disable all others."
+	" All keywords can be prefixed by '+' to enable that option, by a '-'"
+	" to disable it or by a '=' to enable that option and disable all"
+	" others."
     },
 
     {	OPT_NO_FREE, 0, "no-free",
@@ -309,25 +316,25 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 
     {	OPT_ITIME, 0, "itime",
 	0,
-	"Select 'itime' (insertion time) for printing.--itime is an"
+	"Select 'itime' (insertion time) for printing. --itime is an"
 	" abbreviation of '--time i'."
     },
 
     {	OPT_MTIME, 0, "mtime",
 	0,
-	"Select 'mtime' (last modification time) for printing.--mtime is an"
+	"Select 'mtime' (last modification time) for printing. --mtime is an"
 	" abbreviation of '--time m'."
     },
 
     {	OPT_CTIME, 0, "ctime",
 	0,
-	"Select 'ctime' (last status change time) for printing.--ctime is an"
+	"Select 'ctime' (last status change time) for printing. --ctime is an"
 	" abbreviation of '--time c'."
     },
 
     {	OPT_ATIME, 0, "atime",
 	0,
-	"Select 'atime' (last access time) for printing.--atime is an"
+	"Select 'atime' (last access time) for printing. --atime is an"
 	" abbreviation of '--time a'."
     },
 
@@ -371,7 +378,7 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 
     {	OPT_SORT, 'S', "sort",
 	"list",
-	"Define the sort mode for lists. The parameter is a comma separated"
+	"Define the sort mode for listings. The parameter is a comma separated"
 	" list of the following keywords: NONE, NAME, TITLE, FILE, SIZE,"
 	" OFFSET, REGION, WBFS, NPART, ITIME, MTIME, CTIME, ATIME, TIME ="
 	" DATE, DEFAULT, ASCENDING, DESCENDING = REVERSE."
@@ -518,8 +525,8 @@ const InfoOption_t option_cmd_FIND_QUIET =
 const InfoOption_t option_cmd_FIND_LONG =
     {	OPT_LONG, 'l', "long",
 	0,
-	"Without --long only partition names of WBGS partitons are printed. If"
-	" option --long is set then additional infos are printed for each"
+	"Without --long only partition names of WBFS partitions are printed."
+	" If option --long is set then additional infos are printed for each"
 	" partition, WBFS or not. If option --long is set at least twice the"
 	" real path is printed."
     };
@@ -534,9 +541,9 @@ const InfoOption_t option_cmd_DUMP_LONG =
     {	OPT_LONG, 'l', "long",
 	0,
 	"If set then print a status for each valid disc within WBFS. If set"
-	" twice print a memory map for each shsown disc too. If set three"
-	" times print an additional memory map for the whole WBFS. If set four"
-	" times activate --inode too."
+	" twice print a memory map for each shown disc too. If set three times"
+	" print an additional memory map for the whole WBFS. If set four times"
+	" activate --inode too."
     };
 
 const InfoOption_t option_cmd_ID6_LONG =
@@ -601,9 +608,9 @@ const InfoOption_t option_cmd_CHECK_REPAIR =
 	" comma separated list of the following keywords, case is ignored:"
 	" NONE, FBT, INODES, STANDARD, RM-INVALID, RM-OVERLAP, RM-FREE,"
 	" RM-EMPTY, RM-ALL, ALL.\n"
-	" All keyword can be prefixed by '+' to enable that opton, by a '-' to"
-	" disable it or by a '=' to enable that option and disable all others."
-	" The default is 'NONE'."
+	" All keywords can be prefixed by '+' to enable that option, by a '-'"
+	" to disable it or by a '=' to enable that option and disable all"
+	" others. The default is 'NONE'."
     };
 
 const InfoOption_t option_cmd_REPAIR_REPAIR =
@@ -613,9 +620,9 @@ const InfoOption_t option_cmd_REPAIR_REPAIR =
 	" comma separated list of the following keywords, case is ignored:"
 	" NONE, FBT, INODES, STANDARD, RM-INVALID, RM-OVERLAP, RM-FREE,"
 	" RM-EMPTY, RM-ALL, ALL.\n"
-	" All keyword can be prefixed by '+' to enable that opton, by a '-' to"
-	" disable it or by a '=' to enable that option and disable all others."
-	" The default is 'STANDARD' (FBT,INODES)."
+	" All keywords can be prefixed by '+' to enable that option, by a '-'"
+	" to disable it or by a '=' to enable that option and disable all"
+	" others. The default is 'STANDARD' (FBT,INODES)."
     };
 
 const InfoOption_t option_cmd_EDIT_TEST =
@@ -738,10 +745,10 @@ const InfoOption_t option_cmd_VERIFY_LIMIT =
 const InfoOption_t option_cmd_VERIFY_PSEL =
     {	OPT_PSEL, 0, "psel",
 	"p-type",
-	"This option defines which types of partitons are verified. One of the"
-	" following values is allowed, case is ignored: DATA, NO-DATA, UPDATE,"
-	" NO-UPDATE, CHANNEL, NO-CHANNEL ALL, WHOLE, RAW. The default value is"
-	" 'ALL'."
+	"This option defines which types of partitions are verified. One of"
+	" the following values is allowed, case is ignored: DATA, NO-DATA,"
+	" UPDATE, NO-UPDATE, CHANNEL, NO-CHANNEL ALL, WHOLE, RAW. The default"
+	" value is 'ALL'."
     };
 
 const InfoOption_t option_cmd_VERIFY_UNIQUE =
@@ -800,10 +807,15 @@ const CommandTab_t CommandTab[] =
     { CMD_ID6,		"ID6",		"ID",		OB_CMD_ID6 },
     { CMD_LIST,		"LIST",		"LS",		OB_CMD_LIST },
     { CMD_LIST_L,	"LIST-L",	"LL",		OB_CMD_LIST_L },
+    { CMD_LIST_L,	"LISTL",	0,		OB_CMD_LIST_L },
     { CMD_LIST_LL,	"LIST-LL",	"LLL",		OB_CMD_LIST_LL },
+    { CMD_LIST_LL,	"LISTLL",	0,		OB_CMD_LIST_LL },
     { CMD_LIST_A,	"LIST-A",	"LA",		OB_CMD_LIST_A },
+    { CMD_LIST_A,	"LISTA",	0,		OB_CMD_LIST_A },
     { CMD_LIST_M,	"LIST-M",	"LM",		OB_CMD_LIST_M },
+    { CMD_LIST_M,	"LISTM",	0,		OB_CMD_LIST_M },
     { CMD_LIST_U,	"LIST-U",	"LU",		OB_CMD_LIST_U },
+    { CMD_LIST_U,	"LISTU",	0,		OB_CMD_LIST_U },
     { CMD_FORMAT,	"FORMAT",	"INIT",		OB_CMD_FORMAT },
     { CMD_RECOVER,	"RECOVER",	0,		OB_CMD_RECOVER },
     { CMD_CHECK,	"CHECK",	"FSCK",		OB_CMD_CHECK },
@@ -882,10 +894,13 @@ const struct option OptionLong[] =
 	 { "splitsize",		1, 0, 'Z' },
 	{ "chunk-mode",		1, 0, GO_CHUNK_MODE },
 	 { "chunkmode",		1, 0, GO_CHUNK_MODE },
+	 { "chm",		1, 0, GO_CHUNK_MODE },
 	{ "chunk-size",		1, 0, GO_CHUNK_SIZE },
 	 { "chunksize",		1, 0, GO_CHUNK_SIZE },
+	 { "chz",		1, 0, GO_CHUNK_SIZE },
 	{ "max-chunks",		1, 0, GO_MAX_CHUNKS },
 	 { "maxchunks",		1, 0, GO_MAX_CHUNKS },
+	 { "mch",		1, 0, GO_MAX_CHUNKS },
 	{ "size",		1, 0, 's' },
 	{ "hss",		1, 0, GO_HSS },
 	 { "sector-size",	1, 0, GO_HSS },
@@ -1773,6 +1788,9 @@ static const InfoOption_t * option_tab_cmd_EXTRACT[] =
 	OptionInfo + OPT_ESC,
 	OptionInfo + OPT_SPLIT,
 	OptionInfo + OPT_SPLIT_SIZE,
+	OptionInfo + OPT_CHUNK_MODE,
+	OptionInfo + OPT_CHUNK_SIZE,
+	OptionInfo + OPT_MAX_CHUNKS,
 
 	OptionInfo + OPT_NONE, // separator
 
@@ -2019,8 +2037,8 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	"wwt",
 	0,
 	"wwt [option]... command [option|parameter|file]...",
-	"Wiimms WBFS Tool (WBFS manager) : It can create, check, verify,"
-	" repair and clone WBFS files and partitions. It can list, add,"
+	"Wiimms WBFS Tool (WBFS manager) : It can create, check, repair,"
+	" verify and clone WBFS files and partitions. It can list, add,"
 	" extract, remove and rename ISO images as part of a WBFS.",
 	14,
 	option_tab_tool
@@ -2042,7 +2060,7 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	false,
 	"HELP",
 	"H",
-	"wwt HELP command [ignored]...",
+	"wwt HELP [command] [ignored]...",
 	"Print help and exit. If the first non option is a valid command name,"
 	" then a help for the given command is printed.",
 	0,
@@ -2344,7 +2362,7 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	"X",
 	"wwt EXTRACT id6[=dest]...",
 	"Extract discs from WBFS partitions and store them as Wii ISO images.",
-	33,
+	36,
 	option_tab_cmd_EXTRACT
     },
 

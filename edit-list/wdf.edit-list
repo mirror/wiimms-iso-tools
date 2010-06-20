@@ -4,4 +4,4 @@
 ../src/wit.c ;
 ../src/wwt.c ;
 @+all-source.edit-list
--y 600 ../src/lib-sf.c ;
+@+doc.edit-list

@@ -69,7 +69,14 @@ enumError CloseSF ( SuperFile_t * sf, FileAttrib_t * set_time_ref )
 {
     ASSERT(sf);
     enumError err = ERR_OK;
-    if ( sf->f.is_writing && !sf->f.is_reading )
+
+    if ( sf->f.is_writing && sf->min_file_size )
+    {
+	err = SetMinSizeSF(sf,sf->min_file_size);
+	sf->min_file_size = 0;
+    }
+
+    if ( !err && sf->f.is_writing && !sf->f.is_reading )
     {
 	if (sf->wc)
 	    err = TermWriteWDF(sf);
@@ -343,7 +350,12 @@ enumError SetupReadWBFS ( SuperFile_t * sf )
 ///////////////////////////////////////////////////////////////////////////////
 
 enumError OpenSF
-	( SuperFile_t * sf, ccp fname, bool allow_non_iso, bool open_modify )
+(
+	SuperFile_t * sf,
+	ccp fname,
+	bool allow_non_iso,
+	bool open_modify
+)
 {
     ASSERT(sf);
     CloseSF(sf,0);
@@ -362,6 +374,25 @@ enumError OpenSF
     return allow_non_iso
 		? SetupReadSF(sf)
 		: SetupReadISO(sf);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+enumError CreateSF
+(
+	SuperFile_t * sf,
+	ccp fname,
+	enumOFT oft,
+	enumIOMode iomode,
+	int overwrite
+)
+{
+    ASSERT(sf);
+    CloseSF(sf,0);
+    TRACE("#S# CreateSF(%p,%s,%x)\n",sf,fname,oft);
+
+    const enumError err = CreateFile(&sf->f,fname,iomode,overwrite);
+    return err ? err : SetupWriteSF(sf,oft);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -746,11 +777,11 @@ enumError ReadSwitchSF
     DASSERT(0); // should never called
     switch(sf->iod.oft)
     {
-	case OFT_WDF:	return ReadWDF (sf,off,buf,count);
+	case OFT_WDF:	return ReadWDF(sf,off,buf,count);
 	case OFT_CISO:	return ReadCISO(sf,off,buf,count);
 	case OFT_WBFS:	return ReadWBFS(sf,off,buf,count);
-	case OFT_FST:	return ReadFST (sf,off,buf,count);
-	default:	return ReadAtF(&sf->f,off,buf,count);
+	case OFT_FST:	return ReadFST(sf,off,buf,count);
+	default:	return ReadISO(sf,off,buf,count);
     }
 }
 
@@ -763,7 +794,7 @@ enumError WriteSwitchSF
     DASSERT(0); // should never called
     switch(sf->iod.oft)
     {
-	case OFT_PLAIN:	return WriteAtF(&sf->f,off,buf,count);
+	case OFT_PLAIN:	return WriteISO(sf,off,buf,count);
 	case OFT_WDF:	return WriteWDF(sf,off,buf,count);
 	case OFT_CISO:	return WriteCISO(sf,off,buf,count);
 	case OFT_WBFS:	return WriteWBFS(sf,off,buf,count);
@@ -811,7 +842,15 @@ enumError ReadISO
 	( SuperFile_t * sf, off_t off, void * buf, size_t count )
 {
     ASSERT(sf);
-    return ReadAtF(&sf->f,off,buf,count);
+    const enumError err = ReadAtF(&sf->f,off,buf,count);
+
+    off += count;
+    DASSERT_MSG( err || sf->f.cur_off == off, "%llx : %llx\n",sf->f.cur_off,off);
+    if ( sf->max_virt_off < off )
+	 sf->max_virt_off = off;
+    if ( sf->file_size < off )
+	 sf->file_size = off;
+    return err;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -820,7 +859,15 @@ enumError WriteISO
 	( SuperFile_t * sf, off_t off, const void * buf, size_t count )
 {
     ASSERT(sf);
-    return WriteAtF(&sf->f,off,buf,count);
+    const enumError err = WriteAtF(&sf->f,off,buf,count);
+
+    off += count;
+    DASSERT_MSG( err || sf->f.cur_off == off, "%llx : %llx\n",sf->f.cur_off,off);
+    if ( sf->max_virt_off < off )
+	 sf->max_virt_off = off;
+    if ( sf->file_size < off )
+	 sf->file_size = off;
+    return err;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -852,27 +899,48 @@ enumError WriteZeroISO ( SuperFile_t * sf, off_t off, size_t size )
 
 //
 ///////////////////////////////////////////////////////////////////////////////
-///////////////		 ReadSF(), WriteSF, SetSizeSF()		///////////////
+///////////////			    set file size		///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
 enumError SetSizeSF ( SuperFile_t * sf, off_t off )
 {
-    ASSERT(sf);
+    DASSERT(sf);
     TRACE("SetSizeSF(%p,%llx) wbfs=%p wc=%p\n",sf,(u64)off,sf->wbfs,sf->wc);
 
-    if ( sf->wc )
+    sf->file_size = off;
+    switch (sf->iod.oft)
     {
-	sf->file_size = off;
-	return ERR_OK;
-    }
+	case OFT_PLAIN:	return SetSizeF(&sf->f,off);
+	case OFT_WDF:	return ERR_OK;
+	case OFT_CISO:	return ERR_OK;
+	case OFT_WBFS:	return ERR_OK;
+	default:	return ERROR0(ERR_INTERNAL,0);
+    };
+}
 
-    if ( sf->ciso.map || sf->wbfs )
-    {
-	// nothing to do
-	return ERR_OK;
-    }
+///////////////////////////////////////////////////////////////////////////////
 
-    return SetSizeF(&sf->f,off);
+enumError SetMinSizeSF ( SuperFile_t * sf, off_t off )
+{
+    DASSERT(sf);
+    TRACE("SetMinSizeSF(%p,%llx) wbfs=%p wc=%p\n",sf,(u64)off,sf->wbfs,sf->wc);
+
+    return sf->file_size < off ? SetSizeSF(sf,off) : ERR_OK;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+enumError MarkMinSizeSF ( SuperFile_t * sf, off_t off )
+{
+    DASSERT(sf);
+    TRACE("MarkMinSizeSF(%p,%llx) wbfs=%p wc=%p\n",sf,(u64)off,sf->wbfs,sf->wc);
+
+    if ( sf->f.seek_allowed )
+	return SetMinSizeSF(sf,off);
+
+    if ( sf->min_file_size < off )
+	 sf->min_file_size = off;
+    return ERR_OK;
 }
 
 //
@@ -1873,7 +1941,7 @@ enumError CopySF ( SuperFile_t * in, SuperFile_t * out, u32 psel )
 	    char * rdbuf = iobuf; // read buffer == write buffer
 
 	    TRACELINE;
-	    SetSizeSF(out,in->file_size);
+	    MarkMinSizeSF(out,in->file_size);
 	    wd_build_disc_usage(disc,psel,wdisc_usage_tab,in->file_size);
 
 	    if ( out->iod.oft == OFT_WDF )
@@ -1979,7 +2047,7 @@ enumError CopyRaw ( SuperFile_t * in, SuperFile_t * out )
     off_t copy_size = in->file_size;
     off_t off       = 0;
 
-    SetSizeSF(out,copy_size);
+    MarkMinSizeSF(out,copy_size);
 
     if ( out->show_progress )
 	PrintProgressSF(0,in->file_size,out);
@@ -2049,7 +2117,7 @@ enumError CopyWDF ( SuperFile_t * in, SuperFile_t * out )
     if ( !in->wc )
 	return ERROR0(ERR_INTERNAL,0);
 
-    enumError err = SetSizeSF(out,in->file_size);
+    enumError err = MarkMinSizeSF(out,in->file_size);
     if (err)
 	return err;
 
@@ -2140,7 +2208,7 @@ enumError CopyWBFSDisc ( SuperFile_t * in, SuperFile_t * out )
 	    OUT_OF_MEMORY;
     }
 
-    SetSizeSF(out,in->file_size);
+    MarkMinSizeSF(out,in->file_size);
     enumError err = ERR_OK;
 
     u64 pr_done = 0, pr_total = 0;
@@ -2203,6 +2271,100 @@ enumError CopyToWBFS ( SuperFile_t * in, SuperFile_t * out, u32 psel )
 			out->f.id6, out->f.fname );
 
     return ERR_OK;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+enumError AppendF
+	( File_t * in, SuperFile_t * out, off_t in_off, size_t count )
+{
+    ASSERT(in);
+    ASSERT(out);
+    TRACE("AppendF(%d,%d,%llx,%x) +++\n",
+		GetFD(in), GetFD(&out->f), (u64)in_off, count );
+
+    while ( count > 0 )
+    {
+	const u32 size = sizeof(iobuf) < count ? sizeof(iobuf) : (u32)count;
+	enumError err = ReadAtF(in,in_off,iobuf,size);
+	TRACE_HEXDUMP16(3,in_off,iobuf,size<0x10?size:0x10);
+	if (err)
+	    return err;
+
+	err = WriteSF(out,out->max_virt_off,iobuf,size);
+	if (err)
+	    return err;
+
+	count  -= size;
+	in_off += size;
+    }
+    return ERR_OK;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+enumError AppendSparseF
+	( File_t * in, SuperFile_t * out, off_t in_off, size_t count )
+{
+    ASSERT(in);
+    ASSERT(out);
+    TRACE("AppendSparseF(%d,%d,%llx,%x) +++\n",
+		GetFD(in), GetFD(&out->f), (u64)in_off, count );
+
+    while ( count > 0 )
+    {
+	const u32 size = sizeof(iobuf) < count ? sizeof(iobuf) : (u32)count;
+	enumError err = ReadAtF(in,in_off,iobuf,size);
+	TRACE_HEXDUMP16(3,in_off,iobuf,size<0x10?size:0x10);
+	if (err)
+	    return err;
+
+	err = WriteSparseSF(out,out->max_virt_off,iobuf,size);
+	if (err)
+	    return err;
+
+	count  -= size;
+	in_off += size;
+    }
+    return ERR_OK;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+enumError AppendSF
+	( SuperFile_t * in, SuperFile_t * out, off_t in_off, size_t count )
+{
+    ASSERT(in);
+    ASSERT(out);
+    TRACE("AppendSF(%d,%d,%llx,%x) +++\n",
+		GetFD(&in->f), GetFD(&out->f), (u64)in_off, count );
+
+    while ( count > 0 )
+    {
+	const u32 size = sizeof(iobuf) < count ? sizeof(iobuf) : (u32)count;
+	enumError err = ReadSF(in,in_off,iobuf,size);
+	TRACE_HEXDUMP16(3,in_off,iobuf,size<0x10?size:0x10);
+	if (err)
+	    return err;
+
+	err = WriteSF(out,out->max_virt_off,iobuf,size);
+	if (err)
+	    return err;
+
+	count  -= size;
+	in_off += size;
+    }
+    return ERR_OK;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+enumError AppendZeroSF ( SuperFile_t * out, off_t count )
+{
+    ASSERT(out);
+    TRACE("AppendZeroSF(%d,%llx) +++\n",GetFD(&out->f),count);
+
+    return WriteSF(out,out->max_virt_off+count,0,0);
 }
 
 //
@@ -2855,6 +3017,7 @@ static enumError SourceIteratorHelper
 
 	if (InsertStringField(&dir_done_list,real_path,false))
 	{
+	    it->num_of_dirs++;
 	    DIR * dir = opendir(path);
 	    if (dir)
 	    {
@@ -2913,6 +3076,7 @@ static enumError SourceIteratorHelper
     {
 	if ( it->act_non_exist >= ACT_ALLOW )
 	{
+	    it->num_of_files++;
 	    if (collect_fnames)
 	    {
 		InsertStringField(&it->source_list,sf.f.fname,false);
@@ -2951,6 +3115,7 @@ static enumError SourceIteratorHelper
     if ( it->act_wbfs >= ACT_EXPAND
 	&& ( sf.f.ftype & (FT_ID_WBFS|FT_A_WDISC) ) == FT_ID_WBFS )
     {
+	it->num_of_files++;
 	WBFS_t wbfs;
 	InitializeWBFS(&wbfs);
 	if (!SetupWBFS(&wbfs,&sf,false,0,false))
@@ -2961,7 +3126,7 @@ static enumError SourceIteratorHelper
 			&& !wbfs.wbfs->head->disc_table[slot]; slot-- )
 		;
 
-	 #if 0 // [obsolee]
+	 #if 0 // [obsolete]
 	    if (!slot)
 	    {
 		// only slot #0 is used!
@@ -3053,6 +3218,7 @@ static enumError SourceIteratorHelper
 	}
     }
 
+    it->num_of_files++;
     if ( InsertStringField(&file_done_list,real_path,false)
 	&& ( !sf.f.id6[0] || !IsExcluded(sf.f.id6) ))
     {
@@ -3072,8 +3238,30 @@ static enumError SourceIteratorHelper
 
 //-----------------------------------------------------------------------------
 
+static enumError SourceIteratorStarter
+	( Iterator_t * it, ccp path, bool collect_fnames )
+{
+    ASSERT(it);
+    const u32 num_of_files = it->num_of_files;
+    const u32 num_of_dirs  = it->num_of_dirs;
+
+    const enumError err =SourceIteratorHelper(it,path,collect_fnames);
+    
+    if ( it->num_of_dirs > num_of_dirs && it->num_of_files == num_of_files )
+	it->num_empty_dirs++;
+
+    return err;
+}
+
+//-----------------------------------------------------------------------------
+
 enumError SourceIterator
-	( Iterator_t * it, bool current_dir_is_default, bool collect_fnames )
+(
+	Iterator_t * it,
+	int warning_mode,
+	bool current_dir_is_default,
+	bool collect_fnames
+)
 {
     ASSERT(it);
     ASSERT( it->func || collect_fnames );
@@ -3097,23 +3285,25 @@ enumError SourceIterator
     it->max_depth = opt_recurse_depth;
     for ( ptr = recurse_list.field, end = ptr + recurse_list.used;
 		err == ERR_OK && !SIGINT_level && ptr < end; ptr++ )
-	err = SourceIteratorHelper(it,*ptr,collect_fnames);
+	err = SourceIteratorStarter(it,*ptr,collect_fnames);
 
     it->depth = 0;
     it->max_depth = 1;
     for ( ptr = source_list.field, end = ptr + source_list.used;
 		err == ERR_OK && !SIGINT_level && ptr < end; ptr++ )
-	err = SourceIteratorHelper(it,*ptr,collect_fnames);
+	err = SourceIteratorStarter(it,*ptr,collect_fnames);
 
     ResetStringField(&dir_done_list);
     ResetStringField(&file_done_list);
 
-    return err;
+    return warning_mode > 0
+		? SourceIteratorWarning(it,err,warning_mode==1)
+		: err;
 }
 
 //-----------------------------------------------------------------------------
 
-enumError SourceIteratorCollected ( Iterator_t * it )
+enumError SourceIteratorCollected ( Iterator_t * it, int warning_mode )
 {
     ASSERT(it);
     ASSERT(it->func);
@@ -3126,9 +3316,40 @@ enumError SourceIteratorCollected ( Iterator_t * it )
     for ( idx = 0; idx < it->source_list.used && !SIGINT_level; idx++ )
     {
 	it->source_index = idx;
-	err = SourceIteratorHelper(it,it->source_list.field[idx],false);
+	err = SourceIteratorStarter(it,it->source_list.field[idx],false);
     }
-    return err;
+
+    return warning_mode > 0
+		? SourceIteratorWarning(it,err,warning_mode==1)
+		: err;
+}
+
+//-----------------------------------------------------------------------------
+
+enumError SourceIteratorWarning ( Iterator_t * it, enumError max_err, bool silent )
+{
+    if ( it->num_empty_dirs && max_err < ERR_NO_SOURCE_FOUND )
+    {
+	if (silent)
+	    max_err = ERR_NO_SOURCE_FOUND;
+	else if ( it->num_empty_dirs > 1 )
+	    max_err = ERROR0(ERR_NO_SOURCE_FOUND,
+			"%u directories without valid source files found.\n",
+			it->num_empty_dirs);
+	else
+	    max_err = ERROR0(ERR_NO_SOURCE_FOUND,
+			"A directory without valid source files found.\n");
+    }
+
+    if ( !it->num_of_files && max_err < ERR_NOTHING_TO_DO )
+    {
+	if (silent)
+	    max_err = ERR_NOTHING_TO_DO;
+	else
+	    max_err = ERROR0(ERR_NOTHING_TO_DO,"No valid source file found.\n");
+    }
+
+    return max_err;
 }
 
 //

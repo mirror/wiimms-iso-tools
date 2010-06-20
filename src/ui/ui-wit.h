@@ -64,13 +64,14 @@ typedef enum enumOptions
 	OPT_ATIME,
 	OPT_TIME,
 	OPT_LONG,
+	OPT_SHOW,
 	OPT_UNIQUE,
 	OPT_NO_HEADER,
 	OPT_SECTIONS,
 	OPT_SORT,
 	OPT_LIMIT,
 
-	OPT__N_SPECIFIC, // == 48 
+	OPT__N_SPECIFIC, // == 49 
 
 	//----- global options -----
 
@@ -90,7 +91,7 @@ typedef enum enumOptions
 	OPT_TEST,
 	OPT_HOOK,
 
-	OPT__N_TOTAL // == 63
+	OPT__N_TOTAL // == 64
 
 } enumOptions;
 
@@ -145,6 +146,7 @@ typedef enum enumOptionsBit
 	OB_ATIME		= 1llu << OPT_ATIME,
 	OB_TIME			= 1llu << OPT_TIME,
 	OB_LONG			= 1llu << OPT_LONG,
+	OB_SHOW			= 1llu << OPT_SHOW,
 	OB_UNIQUE		= 1llu << OPT_UNIQUE,
 	OB_NO_HEADER		= 1llu << OPT_NO_HEADER,
 	OB_SECTIONS		= 1llu << OPT_SECTIONS,
@@ -233,7 +235,8 @@ typedef enum enumOptionsBit
 				| OB_GRP_PARTITIONS
 				| OB_GRP_FILES
 				| OB_GRP_PATCH
-				| OB_LONG,
+				| OB_LONG
+				| OB_SHOW,
 
 	OB_CMD_DREGION		= OB_GRP_XSOURCE,
 
@@ -461,6 +464,7 @@ typedef enum enumGetOpt
 	GO_CTIME,
 	GO_ATIME,
 	GO_TIME,
+	GO_SHOW,
 	GO_SECTIONS,
 	GO_LIMIT,
 

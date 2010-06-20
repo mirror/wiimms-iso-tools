@@ -15,7 +15,7 @@ WIT_LONG		= Wiimms ISO Tool
 WWT_SHORT		= wwt
 WWT_LONG		= Wiimms WBFS Tool
 
-VERSION			= 1.00b
+VERSION			= 1.01a
 
 URI_HOME		= http://wit.wiimm.de/
 URI_DOWNLOAD		= http://wit.wiimm.de/download
@@ -26,6 +26,7 @@ URI_VIEWVC		= http://wit.wiimm.de/viewvc
 URI_WDF			= http://wiimm.de/r/wdf
 URI_CISO		= http://wiimm.de/r/ciso
 URI_WIIJMANAGER		= http://wiimm.de/r/wiijman
+URI_QTWITGUI		= http://wiimm.de/r/qtwitgui
 URI_GBATEMP		= http://gbatemp.net/index.php?showtopic=182236\#entry2286365
 URI_DOWNLOAD_I386	= $(URI_DOWNLOAD)/$(DISTRIB_I386)
 URI_DOWNLOAD_X86_64	= $(URI_DOWNLOAD)/$(DISTRIB_X86_64)
@@ -54,7 +55,7 @@ MODE_FILE	= ./_mode.flag
 MODE		= $(shell test -s $(MODE_FILE) && cat $(MODE_FILE))
 RM_FILES	+= $(MODE_FILE)
 
-# wbfs: files / size in GiB of WBFS partiton / number of ISO files to copy
+# wbfs: files / size in GiB of WBFS partition / number of ISO files to copy
 WBFS_FILE	?= a.wbfs
 WBFS_FILES	?= $(WBFS_FILE) b.wbfs c.wbfs d.wbfs
 WBFS_SIZE	?= 20
@@ -67,7 +68,7 @@ MAIN_TOOLS	:= wit wwt wdf-cat wdf-dump
 TEST_TOOLS	:= wtest gen-ui wdf
 ALL_TOOLS	:= $(sort $(MAIN_TOOLS) $(TEST_TOOLS))
 
-WDF_LINKS	:= WdfCat UnWdf WdfCat WdfCmp WdfDump Ciso CisoCat UnCiso Wbi
+WDF_LINKS	:= WdfCat UnWdf WdfCmp WdfDump Ciso CisoCat UnCiso Wbi
 
 RM_FILES	+= $(ALL_TOOLS) $(WDF_LINKS)
 
@@ -430,6 +431,7 @@ templates.sed: Makefile
 		's|@@URI-WDF@@|$(URI_WDF)|g;\n' \
 		's|@@URI-CISO@@|$(URI_CISO)|g;\n' \
 		's|@@URI-WIIJMANAGER@@|$(URI_WIIJMANAGER)|g;\n' \
+		's|@@URI-QTWITGUI@@|$(URI_QTWITGUI)|g;\n' \
 		's|@@URI-GBATEMP@@|$(URI_GBATEMP)|g;\n' \
 		's|@@URI-DOWNLOAD-I386@@|$(URI_DOWNLOAD_I386)|g;\n' \
 		's|@@URI-DOWNLOAD-X86_64@@|$(URI_DOWNLOAD_X86_64)|g;\n' \

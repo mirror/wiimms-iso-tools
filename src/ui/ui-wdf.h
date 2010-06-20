@@ -20,39 +20,112 @@ typedef enum enumOptions
 {
 	OPT_NONE,
 
-	OPT_VERSION,
-	OPT_HELP,
-	OPT_XHELP,
-	OPT_PACK,
-	OPT_UNPACK,
-	OPT_CAT,
-	OPT_CMP,
-	OPT_DUMP,
+	//----- command specific options -----
+
+	OPT_CHUNK,
+	OPT_LONG,
+	OPT_MINUS1,
 	OPT_WDF,
 	OPT_CISO,
 	OPT_WBI,
 	OPT_SUFFIX,
 	OPT_DEST,
-	OPT_DEST2,
+	OPT_KEEP,
+	OPT_OVERWRITE,
 	OPT_PRESERVE,
 	OPT_SPLIT,
 	OPT_SPLIT_SIZE,
 	OPT_CHUNK_MODE,
 	OPT_CHUNK_SIZE,
 	OPT_MAX_CHUNKS,
-	OPT_OVERWRITE,
-	OPT_STDOUT,
-	OPT_KEEP,
+
+	OPT__N_SPECIFIC, // == 17 
+
+	//----- global options -----
+
+	OPT_VERSION,
+	OPT_HELP,
+	OPT_XHELP,
 	OPT_QUIET,
 	OPT_VERBOSE,
-	OPT_CHUNK,
-	OPT_LONG,
-	OPT_IO,
+	OPT_DEST2,
+	OPT_STDOUT,
 	OPT_TEST,
 
-	OPT__N_TOTAL // == 30
+	OPT__N_TOTAL // == 25
 
 } enumOptions;
+
+//
+///////////////////////////////////////////////////////////////////////////////
+///////////////               enum enumOptionsBit               ///////////////
+///////////////////////////////////////////////////////////////////////////////
+
+typedef enum enumOptionsBit
+{
+	//----- command specific options -----
+
+	OB_CHUNK		= 1llu << OPT_CHUNK,
+	OB_LONG			= 1llu << OPT_LONG,
+	OB_MINUS1		= 1llu << OPT_MINUS1,
+	OB_WDF			= 1llu << OPT_WDF,
+	OB_CISO			= 1llu << OPT_CISO,
+	OB_WBI			= 1llu << OPT_WBI,
+	OB_SUFFIX		= 1llu << OPT_SUFFIX,
+	OB_DEST			= 1llu << OPT_DEST,
+	OB_KEEP			= 1llu << OPT_KEEP,
+	OB_OVERWRITE		= 1llu << OPT_OVERWRITE,
+	OB_PRESERVE		= 1llu << OPT_PRESERVE,
+	OB_SPLIT		= 1llu << OPT_SPLIT,
+	OB_SPLIT_SIZE		= 1llu << OPT_SPLIT_SIZE,
+	OB_CHUNK_MODE		= 1llu << OPT_CHUNK_MODE,
+	OB_CHUNK_SIZE		= 1llu << OPT_CHUNK_SIZE,
+	OB_MAX_CHUNKS		= 1llu << OPT_MAX_CHUNKS,
+
+	//----- group & command options -----
+
+	OB_GRP_BASE		= 0,
+
+	OB_GRP_DEST		= OB_DEST
+				| OB_OVERWRITE,
+
+	OB_GRP_SPLIT_DEST	= OB_GRP_DEST
+				| OB_SPLIT
+				| OB_SPLIT_SIZE,
+
+	OB_GRP_CHUNK		= OB_CHUNK_MODE
+				| OB_CHUNK_SIZE
+				| OB_MAX_CHUNKS,
+
+	OB_GRP_CHUNK_DEST	= OB_GRP_SPLIT_DEST
+				| OB_GRP_CHUNK,
+
+	OB_GRP_FILETYPE		= OB_WDF
+				| OB_CISO
+				| OB_WBI
+				| OB_SUFFIX,
+
+	OB_CMD_VERSION		= OB_LONG,
+
+	OB_CMD_HELP		= ~(option_t)0,
+
+	OB_CMD_UNPACK		= OB_GRP_SPLIT_DEST
+				| OB_KEEP
+				| OB_PRESERVE,
+
+	OB_CMD_PACK		= OB_CMD_UNPACK
+				| OB_GRP_FILETYPE,
+
+	OB_CMD_CAT		= OB_GRP_SPLIT_DEST,
+
+	OB_CMD_CMP		= 0,
+
+	OB_CMD_DUMP		= OB_GRP_DEST
+				| OB_CHUNK
+				| OB_LONG
+				| OB_MINUS1,
+
+} enumOptionsBit;
 
 //
 ///////////////////////////////////////////////////////////////////////////////
@@ -62,6 +135,16 @@ typedef enum enumOptions
 typedef enum enumCommands
 {
 	CMD__NONE,
+
+	CMD_VERSION,
+	CMD_HELP,
+
+	CMD_PACK,
+	CMD_UNPACK,
+	CMD_CAT,
+	CMD_CMP,
+	CMD_DUMP,
+
 	CMD__N
 
 } enumCommands;
@@ -73,17 +156,14 @@ typedef enum enumCommands
 
 typedef enum enumGetOpt
 {
+	GO_MINUS1		= '1',
+
 	GO__ERR			= '?',
 
-	GO_CAT			= 'A',
 	GO_CISO			= 'C',
 	GO_DEST2		= 'D',
-	GO_CMP			= 'M',
-	GO_PACK			= 'P',
-	GO_UNPACK		= 'U',
 	GO_VERSION		= 'V',
 	GO_WDF			= 'W',
-	GO_DUMP			= 'X',
 	GO_SPLIT_SIZE		= 'Z',
 
 	GO_STDOUT		= 'c',
@@ -100,12 +180,11 @@ typedef enum enumGetOpt
 	GO_SPLIT		= 'z',
 
 	GO_XHELP		= 0x80,
+	GO_CHUNK,
 	GO_WBI,
 	GO_CHUNK_MODE,
 	GO_CHUNK_SIZE,
 	GO_MAX_CHUNKS,
-	GO_CHUNK,
-	GO_IO,
 
 } enumGetOpt;
 
@@ -115,6 +194,7 @@ typedef enum enumGetOpt
 ///////////////////////////////////////////////////////////////////////////////
 
 extern const InfoOption_t OptionInfo[OPT__N_TOTAL+1];
+extern const CommandTab_t CommandTab[];
 extern const char OptionShort[];
 extern const struct option OptionLong[];
 extern u8 OptionUsed[OPT__N_TOTAL+1];

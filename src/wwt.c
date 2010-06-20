@@ -1748,8 +1748,8 @@ enumError cmd_add()
     it.overwrite	= used_options & OB_OVERWRITE	? 1 : 0;
     it.remove_source	= used_options & OB_REMOVE	? 1 : 0;
 
-    err = SourceIterator(&it,false,true);
-    if (err)
+    err = SourceIterator(&it,0,false,true);
+    if ( err > ERR_WARNING )
     {
 	ResetIterator(&it);
 	return err;
@@ -1758,7 +1758,7 @@ enumError cmd_add()
     if ( used_options & OB_SYNC )
     {
 	it.func = exec_scan_id;
-	err = SourceIteratorCollected(&it);
+	err = SourceIteratorCollected(&it,0);
 	if (err)
 	{
 	    ResetIterator(&it);
@@ -1833,7 +1833,7 @@ enumError cmd_add()
 	it.wbfs = &wbfs;
 	it.open_dev = wbfs.sf->f.st.st_dev;
 	it.open_ino = wbfs.sf->f.st.st_ino;
-	err = SourceIteratorCollected(&it);
+	err = SourceIteratorCollected(&it,0);
 	if (err)
 	    break;
 
@@ -1871,6 +1871,8 @@ enumError cmd_add()
 	    }
 	}
     }
+    max_error = SourceIteratorWarning(&it,max_error,false);
+
     ResetIterator(&it);
     ResetWBFS(&wbfs);
     return max_error;
@@ -2991,6 +2993,8 @@ enumError CheckOptions ( int argc, char ** argv, bool is_env )
 	case GO_UNIQUE:	    	break;
 	case GO_NO_HEADER:	break;
 	case GO_SECTIONS:	print_sections++; break;
+	//case GO_SHOW:		err += ScanOptShow(optarg); break;
+	case GO_SORT:		err += ScanOptSort(optarg); break;
 
 	case GO_AUTO:
 	    if (!opt_auto)
@@ -3054,19 +3058,6 @@ enumError CheckOptions ( int argc, char ** argv, bool is_env )
 		    err++;
 		else
 		    opt_set_time = tim;
-	    }
-	    break;
-
-	case GO_SORT:
-	    {
-		const SortMode new_mode = ScanSortMode(optarg);
-		if ( new_mode == SORT__ERROR )
-		    err++;
-		else
-		{
-		    TRACE("SORT-MODE set: %d -> %d\n",sort_mode,new_mode);
-		    sort_mode = new_mode;
-		}
 	    }
 	    break;
 
@@ -3148,7 +3139,7 @@ enumError CheckCommand ( int argc, char ** argv )
     switch ((enumCommands)cmd_ct->id)
     {
 	case CMD_VERSION:	version_exit();
-	case CMD_HELP:		PrintHelp(&InfoUI,stdout,0); break;
+	case CMD_HELP:		PrintHelp(&InfoUI,stdout,0,0); break;
 	case CMD_TEST:		err = cmd_test(); break;
 	case CMD_ERROR:		err = cmd_error(); break;
 	case CMD_EXCLUDE:	err = cmd_exclude(); break;

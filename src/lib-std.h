@@ -361,9 +361,9 @@ typedef struct File_t
 
 	// offset handling
 
-	off_t file_off;	// current real file offset
-	off_t cur_off;	// current virtual file offset
-	off_t max_off;	// max file offset
+	off_t file_off;		// current real file offset
+	off_t cur_off;		// current virtual file offset
+	off_t max_off;		// max file offset
 	int   read_behind_eof;	// 0:disallow, 1:allow+print warning, 2:allow silently
 
 	// read cache
@@ -521,7 +521,8 @@ char * StringCopyE ( char * buf, char * buf_end, ccp src );
 char * StringCat2E ( char * buf, char * buf_end, ccp src1, ccp src2 );
 char * StringCat3E ( char * buf, char * buf_end, ccp src1, ccp src2, ccp src3 );
 
-ccp PathCat2S ( char * buf, size_t bufsize, ccp path1, ccp path2 );
+ccp PathCatPP  ( char * buf, size_t bufsize, ccp path1, ccp path2 );
+ccp PathCatPPE ( char * buf, size_t bufsize, ccp path1, ccp path2, ccp ext );
 
 //-----
 
@@ -616,6 +617,46 @@ typedef enum SortMode
 
 extern SortMode sort_mode;
 SortMode ScanSortMode ( ccp arg );
+int ScanOptSort ( ccp arg );
+
+//
+///////////////////////////////////////////////////////////////////////////////
+///////////////                     show mode                   ///////////////
+///////////////////////////////////////////////////////////////////////////////
+
+typedef enum ShowMode
+{
+	SHOW__NONE	= 0,
+
+	SHOW_INTRO	= 0x0001, // introduction
+	SHOW_P_TAB	= 0x0002, // partition table
+	SHOW_P_INFO	= 0x0004, // partition info
+	SHOW_P_MAP	= 0x0008, // memory map of partitions
+	SHOW_D_MAP	= 0x0010, // memory map of discs
+	SHOW_TICKET	= 0x0020, // ticket info
+	SHOW_TMD	= 0x0040, // tmd info
+
+	
+	SHOW__ALL	= 0x007f,
+
+	// combinations
+
+	SHOW__PART	= SHOW_P_INFO
+			| SHOW_P_MAP
+			| SHOW_TICKET
+			| SHOW_TMD,
+
+	SHOW__MAP	= SHOW_P_MAP
+			| SHOW_D_MAP,
+
+	SHOW__DEFAULT	= (int)0x80000000,
+	SHOW__ERROR	= -1 // not a mode but an error message
+
+} ShowMode;
+
+extern ShowMode show_mode;
+ShowMode ScanShowMode ( ccp arg );
+int ScanOptShow ( ccp arg );
 
 //
 ///////////////////////////////////////////////////////////////////////////////

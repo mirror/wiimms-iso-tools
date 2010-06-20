@@ -198,7 +198,7 @@ enumError cmd_filelist()
     it.act_non_iso	= ignore_count > 1 ? ACT_IGNORE : ACT_ALLOW;
     it.act_fst		= allow_fst ? ACT_ALLOW : ACT_IGNORE;
     it.long_count	= long_count;
-    const enumError err = SourceIterator(&it,true,false);
+    const enumError err = SourceIterator(&it,1,true,false);
     ResetIterator(&it);
     return err;
 }
@@ -289,7 +289,7 @@ enumError cmd_filetype()
     it.act_fst		= !allow_fst ? ACT_IGNORE
 					 : long_count > 1 ? ACT_EXPAND : ACT_ALLOW;
     it.long_count	= long_count;
-    const enumError err = SourceIterator(&it,true,false);
+    const enumError err = SourceIterator(&it,1,true,false);
 
     if ( !(used_options&OB_NO_HEADER) && it.done_count )
 	putchar('\n');
@@ -394,7 +394,7 @@ enumError cmd_isosize()
     it.act_fst		= allow_fst ? ACT_EXPAND : ACT_IGNORE;
     it.act_wbfs		= ACT_EXPAND;
     it.long_count	= long_count;
-    const enumError err = SourceIterator(&it,true,false);
+    const enumError err = SourceIterator(&it,1,true,false);
 
     if ( !(used_options&OB_NO_HEADER) && it.done_count )
 	putchar('\n');
@@ -424,25 +424,25 @@ enumError exec_dump ( SuperFile_t * sf, Iterator_t * it )
     fflush(0);
 
     if ( sf->f.ftype & FT_A_ISO )
-	return Dump_ISO(stdout,0,sf,it->real_path,it->long_count);
+	return Dump_ISO(stdout,0,sf,it->real_path,show_mode,it->long_count);
 
     if ( sf->f.ftype & FT_ID_DOL )
-	return Dump_DOL(stdout,0,sf,it->real_path,it->long_count);
+	return Dump_DOL(stdout,0,sf,it->real_path);
 
     if ( sf->f.ftype & FT_ID_FST_BIN )
-	return Dump_FST_BIN(stdout,0,sf,it->real_path,it->long_count);
+	return Dump_FST_BIN(stdout,0,sf,it->real_path);
 
     if ( sf->f.ftype & FT_ID_TIK_BIN )
-	return Dump_TIK_BIN(stdout,0,sf,it->real_path,it->long_count);
+	return Dump_TIK_BIN(stdout,0,sf,it->real_path);
 
     if ( sf->f.ftype & FT_ID_TMD_BIN )
-	return Dump_TMD_BIN(stdout,0,sf,it->real_path,it->long_count);
+	return Dump_TMD_BIN(stdout,0,sf,it->real_path);
 
     if ( sf->f.ftype & FT_ID_HEAD_BIN )
-	return Dump_HEAD_BIN(stdout,0,sf,it->real_path,it->long_count);
+	return Dump_HEAD_BIN(stdout,0,sf,it->real_path);
 
     if ( sf->f.ftype & FT_ID_BOOT_BIN )
-	return Dump_BOOT_BIN(stdout,0,sf,it->real_path,it->long_count);
+	return Dump_BOOT_BIN(stdout,0,sf,it->real_path);
 
     return ERR_OK;
 }
@@ -465,9 +465,9 @@ enumError cmd_dump()
     it.act_fst		= allow_fst ? ACT_EXPAND : ACT_IGNORE;
     it.long_count	= long_count;
 
-    enumError err = SourceIterator(&it,false,true);
-    if ( err == ERR_OK )
-	err = SourceIteratorCollected(&it);
+    enumError err = SourceIterator(&it,0,false,true);
+    if ( err <= ERR_WARNING )
+	err = SourceIteratorCollected(&it,1);
     ResetIterator(&it);
     return err;
 }
@@ -515,9 +515,9 @@ enumError cmd_dregion()
     it.act_wbfs		= ACT_EXPAND;
     it.act_fst		= ACT_IGNORE;
 
-    enumError err = SourceIterator(&it,false,true);
-    if ( err == ERR_OK )
-	err = SourceIteratorCollected(&it);
+    enumError err = SourceIterator(&it,0,false,true);
+    if ( err <= ERR_WARNING )
+	err = SourceIteratorCollected(&it,1);
     ResetIterator(&it);
     return err;
 }
@@ -592,9 +592,9 @@ enumError cmd_id6()
     it.long_count	= long_count;
     it.wlist		= &wlist;
 
-    enumError err = SourceIterator(&it,true,false);
+    enumError err = SourceIterator(&it,0,true,false);
     ResetIterator(&it);
-    if (err)
+    if ( err > ERR_WARNING )
 	return err;
 
     SortWDiscList(&wlist,sort_mode,SORT_ID, used_options&OB_UNIQUE ? 2 : 0 );
@@ -637,9 +637,9 @@ enumError cmd_list ( int long_level )
     it.real_filename	= print_sections > 0;
     it.wlist		= &wlist;
 
-    enumError err = SourceIterator(&it,true,false);
+    enumError err = SourceIterator(&it,1,true,false);
     ResetIterator(&it);
-    if (err)
+    if ( err > ERR_WARNING )
 	return err;
 
     SortWDiscList(&wlist,sort_mode,SORT_TITLE, used_options&OB_UNIQUE ? 1 : 0 );
@@ -882,11 +882,11 @@ enumError cmd_ilist ( int long_level )
     it.act_fst		= allow_fst ? ACT_EXPAND : ACT_IGNORE;
     it.long_count	= long_count;
 
-    enumError err = SourceIterator(&it,false,true);
-    if ( err == ERR_OK )
+    enumError err = SourceIterator(&it,0,false,true);
+    if ( err <= ERR_WARNING )
     {
 	it.func = exec_ilist;
-	err = SourceIteratorCollected(&it);
+	err = SourceIteratorCollected(&it,1);
     }
     ResetIterator(&it);
 
@@ -1018,14 +1018,14 @@ enumError cmd_diff()
     if ( testmode > 1 )
     {
 	it.func = exec_filetype;
-	enumError err = SourceIterator(&it,false,false);
+	enumError err = SourceIterator(&it,1,false,false);
 	ResetIterator(&it);
 	printf("DESTINATION: %s\n",opt_dest);
 	return err;
     }
 
     it.func = exec_diff;
-    enumError err = SourceIterator(&it,false,false);
+    enumError err = SourceIterator(&it,2,false,false);
     if ( err == ERR_OK && it.diff_count )
 	err = ERR_DIFFER;
     ResetIterator(&it);
@@ -1143,11 +1143,11 @@ enumError cmd_extract()
     it.act_fst		= allow_fst ? ACT_EXPAND : ACT_IGNORE;
     it.overwrite	= used_options & OB_OVERWRITE ? 1 : 0;
 
-    enumError err = SourceIterator(&it,false,true);
-    if ( err == ERR_OK )
+    enumError err = SourceIterator(&it,0,false,true);
+    if ( err <= ERR_WARNING )
     {
 	it.func = exec_extract;
-	err = SourceIteratorCollected(&it);
+	err = SourceIteratorCollected(&it,2);
 	if ( err == ERR_OK && it.exists_count )
 	    err = ERR_ALREADY_EXISTS;
     }
@@ -1313,17 +1313,17 @@ enumError cmd_copy()
     if ( testmode > 1 )
     {
 	it.func = exec_filetype;
-	enumError err = SourceIterator(&it,false,false);
+	enumError err = SourceIterator(&it,1,false,false);
 	ResetIterator(&it);
 	printf("DESTINATION: %s\n",opt_dest);
 	return err;
     }
 
-    enumError err = SourceIterator(&it,false,true);
-    if ( err == ERR_OK )
+    enumError err = SourceIterator(&it,0,false,true);
+    if ( err <= ERR_WARNING )
     {
 	it.func = exec_copy;
-	err = SourceIteratorCollected(&it);
+	err = SourceIteratorCollected(&it,2);
 	if ( err == ERR_OK && it.exists_count )
 	    err = ERR_ALREADY_EXISTS;
     }
@@ -1354,17 +1354,17 @@ enumError cmd_scrub()
     if ( testmode > 1 )
     {
 	it.func = exec_filetype;
-	enumError err = SourceIterator(&it,false,false);
+	enumError err = SourceIterator(&it,1,false,false);
 	ResetIterator(&it);
 	printf("DESTINATION: %s\n",opt_dest);
 	return err;
     }
 
-    enumError err = SourceIterator(&it,false,true);
-    if ( err == ERR_OK )
+    enumError err = SourceIterator(&it,0,false,true);
+    if ( err <= ERR_WARNING )
     {
 	it.func = exec_copy;
-	err = SourceIteratorCollected(&it);
+	err = SourceIteratorCollected(&it,2);
 	if ( err == ERR_OK && it.exists_count )
 	    err = ERR_ALREADY_EXISTS;
     }
@@ -1441,18 +1441,18 @@ enumError cmd_edit()
     if ( testmode > 1 )
     {
 	it.func = exec_filetype;
-	enumError err = SourceIterator(&it,false,false);
+	enumError err = SourceIterator(&it,1,false,false);
 	ResetIterator(&it);
 	printf("DESTINATION: %s\n",opt_dest);
 	return err;
     }
 
-    enumError err = SourceIterator(&it,false,true);
-    if ( err == ERR_OK )
+    enumError err = SourceIterator(&it,0,false,true);
+    if ( err <= ERR_WARNING )
     {
 	it.func = exec_edit;
 	it.open_modify = !testmode;
-	err = SourceIteratorCollected(&it);
+	err = SourceIteratorCollected(&it,2);
 	if ( err == ERR_OK && it.exists_count )
 	    err = ERR_ALREADY_EXISTS;
     }
@@ -1544,17 +1544,17 @@ enumError cmd_move()
     if ( testmode > 1 )
     {
 	it.func = exec_filetype;
-	enumError err = SourceIterator(&it,false,false);
+	enumError err = SourceIterator(&it,1,false,false);
 	ResetIterator(&it);
 	printf("DESTINATION: %s\n",opt_dest);
 	return err;
     }
 
-    enumError err = SourceIterator(&it,false,true);
-    if ( err == ERR_OK )
+    enumError err = SourceIterator(&it,0,false,true);
+    if ( err <= ERR_WARNING )
     {
 	it.func = exec_move;
-	err = SourceIteratorCollected(&it);
+	err = SourceIteratorCollected(&it,2);
     }
     ResetIterator(&it);
     return err;
@@ -1641,14 +1641,14 @@ enumError cmd_rename ( bool rename_id )
     if ( testmode > 1 )
     {
 	it.func = exec_filetype;
-	enumError err = SourceIterator(&it,false,false);
+	enumError err = SourceIterator(&it,1,false,false);
 	ResetIterator(&it);
 	printf("DESTINATION: %s\n",opt_dest);
 	return err;
     }
 
     it.func = exec_rename;
-    err = SourceIterator(&it,false,false);
+    err = SourceIterator(&it,0,false,false);
     ResetIterator(&it);
     return err;
 
@@ -1724,17 +1724,17 @@ enumError cmd_verify()
     if ( testmode > 1 )
     {
 	it.func = exec_filetype;
-	enumError err = SourceIterator(&it,false,false);
+	enumError err = SourceIterator(&it,1,false,false);
 	ResetIterator(&it);
 	printf("DESTINATION: %s\n",opt_dest);
 	return err;
     }
 
-    enumError err = SourceIterator(&it,false,true);
-    if ( err == ERR_OK )
+    enumError err = SourceIterator(&it,0,false,true);
+    if ( err <= ERR_WARNING )
     {
 	it.func = exec_verify;
-	err = SourceIteratorCollected(&it);
+	err = SourceIteratorCollected(&it,2);
 	if ( err == ERR_OK && it.diff_count )
 	    err = ERR_DIFFER;
     }
@@ -1829,6 +1829,8 @@ enumError CheckOptions ( int argc, char ** argv, bool is_env )
 	case GO_UNIQUE:	    	break;
 	case GO_NO_HEADER:	break;
 	case GO_SECTIONS:	print_sections++; break;
+	case GO_SHOW:		err += ScanOptShow(optarg); break;
+	case GO_SORT:		err += ScanOptSort(optarg); break;
 
 	case GO_RDEPTH:
 	    if (ScanSizeOptU32(&opt_recurse_depth,optarg,1,0,
@@ -1865,19 +1867,6 @@ enumError CheckOptions ( int argc, char ** argv, bool is_env )
 	    if ( ScanAndSetPrintTimeMode(optarg) == PT__ERROR )
 		err++;
 	    break;
-
-	case GO_SORT:
-	{
-	    const SortMode new_mode = ScanSortMode(optarg);
-	    if ( new_mode == SORT__ERROR )
-		err++;
-	    else
-	    {
-		TRACE("SORT-MODE set: %d -> %d\n",sort_mode,new_mode);
-		sort_mode = new_mode;
-	    }
-	}
-	break;
 
 	case GO_LIMIT:
 	    {
@@ -1954,7 +1943,7 @@ enumError CheckCommand ( int argc, char ** argv )
     switch ((enumCommands)cmd_ct->id)
     {
 	case CMD_VERSION:	version_exit();
-	case CMD_HELP:		PrintHelp(&InfoUI,stdout,0); break;
+	case CMD_HELP:		PrintHelp(&InfoUI,stdout,0,0); break;
 	case CMD_TEST:		err = cmd_test(); break;
 	case CMD_ERROR:		err = cmd_error(); break;
 	case CMD_EXCLUDE:	err = cmd_exclude(); break;

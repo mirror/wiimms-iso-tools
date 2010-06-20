@@ -163,7 +163,7 @@ enumError ciso_dump ( CISO_Head_t * ch, File_t *f, ccp fname )
     ASSERT(f);
     ASSERT(fname);
 
-    printf("\nCISO dump of file %s\n",fname);
+    printf("\nCISO dump of file %s\n\n",fname);
 
     //----- collect data
 
@@ -188,23 +188,22 @@ enumError ciso_dump ( CISO_Head_t * ch, File_t *f, ccp fname )
 
     //----- print header
     
-    printf("\n  Header:\n\n");
     u8 * m = (u8*)ch->magic;
-    printf("    %-18s:         \"%c%c%c%c\" = %02x-%02x-%02x-%02x\n",
-		"magic",
+    printf("  %-18s:         \"%c%c%c%c\" = %02x-%02x-%02x-%02x\n",
+		"Magic",
 		m[0]>=' ' && m[0]<0x7f ? m[0] : '.',
 		m[1]>=' ' && m[1]<0x7f ? m[1] : '.',
 		m[2]>=' ' && m[2]<0x7f ? m[2] : '.',
 		m[3]>=' ' && m[3]<0x7f ? m[3] : '.',
 		m[0], m[1], m[2], m[3] );
 
-    printf("    %-18s: %10x/hex =%11d\n","used blocks",used_bl,used_bl);
-    printf("    %-18s: %10x/hex =%11d\n","max block",max_bl-1,max_bl-1);
-    printf("    %-18s: %10x/hex =%11d\n","block size",block_size,block_size);
-    printf("    %-18s: %10llx/hex =%11lld\n","real file usage",max_off,max_off);
-    printf("    %-18s: %10llx/hex =%11lld\n","real file size",(u64)f->st.st_size,(u64)f->st.st_size);
-    printf("    %-18s: %10llx/hex =%11lld\n","ISO file usage",iso_file_usage,iso_file_usage);
-    printf("    %-18s: %10llx/hex =%11lld\n","ISO file size",iso_file_size,iso_file_size);
+    printf("  %-18s: %10x/hex =%11d\n","Used blocks",used_bl,used_bl);
+    printf("  %-18s: %10x/hex =%11d\n","Max block",max_bl-1,max_bl-1);
+    printf("  %-18s: %10x/hex =%11d\n","Block size",block_size,block_size);
+    printf("  %-18s: %10llx/hex =%11lld\n","Real file usage",max_off,max_off);
+    printf("  %-18s: %10llx/hex =%11lld\n","Real file size",(u64)f->st.st_size,(u64)f->st.st_size);
+    printf("  %-18s: %10llx/hex =%11lld\n","ISO file usage",iso_file_usage,iso_file_usage);
+    printf("  %-18s: %10llx/hex =%11lld\n","ISO file size",iso_file_size,iso_file_size);
     putchar('\n');
 
     //----- print mapping table

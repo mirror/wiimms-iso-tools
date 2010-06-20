@@ -103,7 +103,8 @@ enumError Dump_ISO
 	int indent,		// indent
 	SuperFile_t * sf,	// file to dump
 	ccp real_path,		// NULL or pointer to real path
-	int dump_level		// dump level: 0..2
+	ShowMode show_mode,	// what should be printed
+	int dump_level		// dump level: 0..2, ignored if show_mode is set
 );
 
 enumError Dump_DOL
@@ -111,8 +112,7 @@ enumError Dump_DOL
 	FILE * f,		// output stream
 	int indent,		// indent
 	SuperFile_t * sf,	// file to dump
-	ccp real_path,		// NULL or pointer to real path
-	int dump_level		// dump level: 0..2
+	ccp real_path		// NULL or pointer to real path
 );
 
 enumError Dump_TIK_BIN
@@ -120,16 +120,14 @@ enumError Dump_TIK_BIN
 	FILE * f,		// output stream
 	int indent,		// indent
 	SuperFile_t * sf,	// file to dump
-	ccp real_path,		// NULL or pointer to real path
-	int dump_level		// dump level: 0..2
+	ccp real_path		// NULL or pointer to real path
 );
 
 enumError Dump_TIK_MEM
 (
 	FILE * f,		// output stream
 	int indent,		// indent
-	const wd_ticket_t *tik,	// valid pointer to ticket
-	int dump_level		// dump level: 0..2
+	const wd_ticket_t *tik	// valid pointer to ticket
 );
 
 enumError Dump_TMD_BIN
@@ -137,8 +135,7 @@ enumError Dump_TMD_BIN
 	FILE * f,		// output stream
 	int indent,		// indent
 	SuperFile_t * sf,	// file to dump
-	ccp real_path,		// NULL or pointer to real path
-	int dump_level		// dump level: 0..2
+	ccp real_path		// NULL or pointer to real path
 );
 
 enumError Dump_TMD_MEM
@@ -146,8 +143,7 @@ enumError Dump_TMD_MEM
 	FILE * f,		// output stream
 	int indent,		// indent
 	const wd_tmd_t * tmd,	// valid pointer to ticket
-	int n_content,		// number of loaded wd_tmd_content_t elementzs
-	int dump_level		// dump level: 0..2
+	int n_content		// number of loaded wd_tmd_content_t elementzs
 );
 
 enumError Dump_HEAD_BIN
@@ -155,8 +151,7 @@ enumError Dump_HEAD_BIN
 	FILE * f,		// output stream
 	int indent,		// indent
 	SuperFile_t * sf,	// file to dump
-	ccp real_path,		// NULL or pointer to real path
-	int dump_level		// dump level: 0..2
+	ccp real_path		// NULL or pointer to real path
 );
 
 enumError Dump_BOOT_BIN
@@ -164,8 +159,7 @@ enumError Dump_BOOT_BIN
 	FILE * f,		// output stream
 	int indent,		// indent
 	SuperFile_t * sf,	// file to dump
-	ccp real_path,		// NULL or pointer to real path
-	int dump_level		// dump level: 0..2
+	ccp real_path		// NULL or pointer to real path
 );
 
 enumError Dump_FST_BIN
@@ -173,8 +167,7 @@ enumError Dump_FST_BIN
 	FILE * f,		// output stream
 	int indent,		// indent
 	SuperFile_t * sf,	// file to dump
-	ccp real_path,		// NULL or pointer to real path
-	int dump_level		// dump level: 0..2
+	ccp real_path		// NULL or pointer to real path
 );
 
 enumError Dump_FST
@@ -229,6 +222,12 @@ typedef struct Iterator_t
 	StringField_t source_list;	// collect first than run
 	int source_index;		// informative: index of current file
 
+	// statistics
+
+	u32 num_of_files;	// number of found files
+	u32 num_of_dirs;	// number of found directories
+	u32 num_empty_dirs;	// number of empty base directories
+
 	// user defined parameters, ignores by SourceIterator()
 
 	bool scrub_it;		// SCRUB instead of COPY
@@ -254,9 +253,16 @@ void InitializeIterator ( Iterator_t * it );
 void ResetIterator ( Iterator_t * it );
 
 enumError SourceIterator
-	( Iterator_t * it, bool current_dir_is_default, bool collect_fnames );
+(
+	Iterator_t * it,
+	int warning_mode,
+	bool current_dir_is_default,
+	bool collect_fnames
+);
 
-enumError SourceIteratorCollected ( Iterator_t * it );
+enumError SourceIteratorCollected ( Iterator_t * it, int warning_mode );
+
+enumError SourceIteratorWarning ( Iterator_t * it, enumError max_err, bool silent );
 
 //
 ///////////////////////////////////////////////////////////////////////////////
@@ -554,7 +560,7 @@ typedef struct Verify_t
 
 	// options, default are global options
 
-	partition_selector_t	selector;	// partiton selector
+	partition_selector_t	selector;	// partition selector
 	int			verbose;	// general verbosity level
 	int			long_count;	// verbosity for each message
 	int			max_err_msg;	// max message per partition

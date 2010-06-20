@@ -587,12 +587,12 @@ COMMANDS:
  The options --quiet and --verbose control the verbosity level of the command:
 
   -qq : level -2 : Be abossulte quiet. The status is only reported as exit status.
-  -q  : level -1 : Be quiet and report only the first errors of each partiton.
+  -q  : level -1 : Be quiet and report only the first errors of each partition.
         level  0 : Print one status line for each partition (success or error).
   -v  : level  1 : Print up to --limit error messages for each partition.
   -vv : level  2 : Print progress information (not implemented yet).
 
- For levels <=0 the check of a partiton is aborted on the first found error.
+ For levels <=0 the check of a partition is aborted on the first found error.
 
 
  Output format:

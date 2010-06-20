@@ -140,7 +140,11 @@ enumError StatFile ( struct stat * st, ccp fname, int fd )
 
     TRACE(" - st_dev:     %llu\n",(u64)st->st_dev);
     TRACE(" - st_ino:     %llu\n",(u64)st->st_ino);
-    TRACE(" - st_mode:    %llu\n",(u64)st->st_mode);
+    TRACE(" - st_mode:    %llx [REG=%u,DIR=%d,CHR=%d,BLK=%d,FIFO=%d,LNK=%d,SOCK=%d]\n",
+			(u64)st->st_mode, S_ISREG(st->st_mode),
+			S_ISDIR(st->st_mode), S_ISCHR(st->st_mode),
+			S_ISBLK(st->st_mode), S_ISFIFO(st->st_mode),
+			S_ISLNK(st->st_mode), S_ISSOCK(st->st_mode) );
     TRACE(" - st_nlink:   %llu\n",(u64)st->st_nlink);
     TRACE(" - st_uid:     %llu\n",(u64)st->st_uid);
     TRACE(" - st_gid:     %llu\n",(u64)st->st_gid);
@@ -551,7 +555,8 @@ enumError XCheckCreated ( XPARM ccp fname, bool disable_errors )
 
 ///////////////////////////////////////////////////////////////////////////////
 
-enumError XCreateFile ( XPARM File_t * f, ccp fname, enumIOMode iomode, int overwrite )
+enumError XCreateFile
+	( XPARM File_t * f, ccp fname, enumIOMode iomode, int overwrite )
 {
     ASSERT(f);
 
@@ -1222,10 +1227,10 @@ enumError XCreateSplitFile ( XPARM File_t *f, uint split_idx )
 			"Max number of split files (%d,off=%llx) reached: %s\n",
 			MAX_SPLIT_FILES, f->file_off, f->fname );
 
-	    f->last_error = ERR_WRITE_FAILED;
-	    if ( f->max_error < f->last_error )
-		f->max_error = f->last_error;
-	    return ERR_WRITE_FAILED;
+	f->last_error = ERR_WRITE_FAILED;
+	if ( f->max_error < f->last_error )
+	    f->max_error = f->last_error;
+	return ERR_WRITE_FAILED;
     }
 
     while ( f->split_used <= split_idx )
@@ -1489,7 +1494,7 @@ enumError XAnalyzeWH ( XPARM File_t * f, WDF_Head_t * wh, bool print_err )
 		(u64)f->st.st_size );
      invalid:
 	return print_err
-		? PrintError( XERROR0, ERR_WDF_INVALID, "Invalid WDF file\n" )
+		? PrintError( XERROR0, ERR_WDF_INVALID, "Invalid WDF file: %s\n",f->fname )
 		: ERR_WDF_INVALID;
     }
 
@@ -1643,44 +1648,76 @@ enumError XSeekF ( XPARM File_t * f, off_t off )
 	return ERR_OK;
     }
 
-    if ( !f->seek_allowed && !f->is_writing && off >= f->file_off )
+    if (!f->seek_allowed)
     {
-	// simulate seek with read operations
-	off_t skip_size = off - f->file_off;
-	TRACE(TRACE_RDWR_FORMAT, "#F# SEEK SIMULATION",
-			GetFD(f), GetFP(f), (u64)f->file_off, (u64)f->file_off+skip_size, (size_t)skip_size, "" );
-
-	while (skip_size)
+	if ( !f->is_reading && off >= f->file_off )
 	{
-	    if (SIGINT_level>1)
-		return ERR_INTERRUPT;
+	    // simulate seek with 'write zero' operations
 
-	    const size_t max_read = skip_size < sizeof(iobuf)
-				  ? (size_t)skip_size : sizeof(iobuf);
-	    const enumError stat = XReadF(XCALL f,iobuf,max_read);
-	    if (stat)
-		return stat;
-	    skip_size -= max_read;
-	    noTRACE("R+W-Count: %llu + %llu\n",f->bytes_read,f->bytes_written);
+	    off_t skip_size = off - f->file_off;
+	    TRACE(TRACE_RDWR_FORMAT, "#F# SEEK SIMULATION",
+			    GetFD(f), GetFP(f), (u64)f->file_off,
+			    (u64)f->file_off+skip_size, (size_t)skip_size, "" );
+
+	    while (skip_size)
+	    {
+		if (SIGINT_level>1)
+		    return ERR_INTERRUPT;
+
+		const size_t max_write = skip_size < sizeof(zerobuf)
+				      ? (size_t)skip_size : sizeof(zerobuf);
+		const enumError stat = XWriteF(XCALL f,zerobuf,max_write);
+		if (stat)
+		    return stat;
+		skip_size -= max_write;
+		noTRACE("R+W-Count: %llu + %llu\n",f->bytes_read,f->bytes_written);
+	    }
+	    ASSERT( SIGINT_level || off == f->file_off );
+	    ASSERT( SIGINT_level || off == f->cur_off );
+	    return ERR_OK;
 	}
-	ASSERT( SIGINT_level || off == f->file_off );
-	ASSERT( SIGINT_level || off == f->cur_off );
-	return ERR_OK;
-    }
 
-    if ( !f->seek_allowed && f->is_caching )
-    {
-	char buf[100];
-	snprintf(buf,sizeof(buf),"ID=%s, OFF=%llx, SIZE=%x",
-		f->id6, (u64)f->cache_info_off, (u32)f->cache_info_size );
-	fprintf(stderr,
-		"\n"
-		"************************************************************************\n"
-		"*****  It seems, that the caching area for the game is too small!  *****\n"
-		"*****  Please report this to the author.                           *****\n"
-		"*****  Technical data: %-43s *****\n"
-		"************************************************************************\n"
-		"\n", buf );
+	if ( !f->is_writing && off >= f->file_off )
+	{
+	    // simulate seek with read operations
+
+	    off_t skip_size = off - f->file_off;
+	    TRACE(TRACE_RDWR_FORMAT, "#F# SEEK SIMULATION",
+			    GetFD(f), GetFP(f), (u64)f->file_off,
+			    (u64)f->file_off+skip_size, (size_t)skip_size, "" );
+
+	    while (skip_size)
+	    {
+		if (SIGINT_level>1)
+		    return ERR_INTERRUPT;
+
+		const size_t max_read = skip_size < sizeof(iobuf)
+				      ? (size_t)skip_size : sizeof(iobuf);
+		const enumError stat = XReadF(XCALL f,iobuf,max_read);
+		if (stat)
+		    return stat;
+		skip_size -= max_read;
+		noTRACE("R+W-Count: %llu + %llu\n",f->bytes_read,f->bytes_written);
+	    }
+	    ASSERT( SIGINT_level || off == f->file_off );
+	    ASSERT( SIGINT_level || off == f->cur_off );
+	    return ERR_OK;
+	}
+
+	if ( f->is_caching )
+	{
+	    char buf[100];
+	    snprintf(buf,sizeof(buf),"ID=%s, OFF=%llx, SIZE=%x",
+		    f->id6, (u64)f->cache_info_off, (u32)f->cache_info_size );
+	    fprintf(stderr,
+		    "\n"
+		    "************************************************************************\n"
+		    "*****  It seems, that the caching area for the game is too small!  *****\n"
+		    "*****  Please report this to the author.                           *****\n"
+		    "*****  Technical data: %-43s *****\n"
+		    "************************************************************************\n"
+		    "\n", buf );
+	}
     }
 
     TRACE(TRACE_SEEK_FORMAT, "#F# SeekF()",
@@ -1755,7 +1792,12 @@ enumError XSetSizeF ( XPARM File_t * f, off_t off )
     if (f->fp)
 	fflush(f->fp); // [2do] ? error handling
 
-    if (ftruncate(f->fd,off))
+    if ( !f->seek_allowed && f->cur_off < off )
+    {
+	if (!XSeekF(XCALL f,off))
+	    return f->last_error;
+    }
+    else if (ftruncate(f->fd,off))
     {
 	f->last_error = ERR_WRITE_FAILED;
 	if ( f->max_error < f->last_error )
@@ -1764,15 +1806,14 @@ enumError XSetSizeF ( XPARM File_t * f, off_t off )
 	    PrintError( XERROR1, f->last_error,
 			"Set file size failed [%c=%d,%llx]: %s\n",
 			GetFT(f), GetFD(f), off, f->fname );
+	return f->last_error;
     }
-    else
-    {
-	TRACE("fd=%d truncated to %llx\n",f->fd,(u64)off);
-	f->setsize_count++;
-	if ( f->max_off < off )
-	    f->max_off = off;
-    }
-    return f->last_error;
+
+    TRACE("fd=%d truncated to %llx\n",f->fd,(u64)off);
+    f->setsize_count++;
+    if ( f->max_off < off )
+	f->max_off = off;
+    return ERR_OK;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -2487,7 +2528,7 @@ enumError CreatePath ( ccp fname )
 off_t GetFileSize ( ccp path1, ccp path2 )
 {
     char pathbuf[PATH_MAX];
-    ccp path = PathCat2S(pathbuf,sizeof(pathbuf),path1,path2);
+    ccp path = PathCatPP(pathbuf,sizeof(pathbuf),path1,path2);
     TRACE("GetFileSize(%s)\n",path);
 
     struct stat st;
@@ -2507,7 +2548,7 @@ enumError LoadFile ( ccp path1, ccp path2, size_t skip,
 	return ERR_OK;
 
     char pathbuf[PATH_MAX];
-    ccp path = PathCat2S(pathbuf,sizeof(pathbuf),path1,path2);
+    ccp path = PathCatPP(pathbuf,sizeof(pathbuf),path1,path2);
     TRACE("LoadFile(%s,%zx,%zx,%d)\n",path,skip,size,silent);
 
     FILE * f = fopen(path,"rb");

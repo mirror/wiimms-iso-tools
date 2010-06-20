@@ -300,7 +300,7 @@ enumError SetupReadWDF ( SuperFile_t * sf )
     return ERR_OK;
 
  invalid:
-    return ERROR0(ERR_WDF_INVALID,"Invalid WDF file\n");
+    return ERROR0(ERR_WDF_INVALID,"Invalid WDF file: %s\n",sf->f.fname);
 }
 
 ///////////////////////////////////////////////////////////////////////////////

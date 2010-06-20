@@ -240,11 +240,13 @@ static void PrintLines
 ///////////////			   print help			///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-void PrintHelp ( const InfoUI_t * iu, FILE * f, int indent )
+void PrintHelp ( const InfoUI_t * iu, FILE * f, int indent, ccp info )
 {
     int cmd = 0;
     if (iu->n_cmd)
     {
+	char buf[100];
+
 	ParamList_t * param;
 	for ( param = first_param; param; param = param->next )
 	    if ( param->arg && *param->arg )
@@ -253,10 +255,18 @@ void PrintHelp ( const InfoUI_t * iu, FILE * f, int indent )
 		const CommandTab_t * ct = ScanCommand(&cmd_stat,param->arg,iu->cmd_tab);
 		if (ct)
 		    cmd = ct->id;
+		else
+		{
+		    StringCat2S(buf,sizeof(buf),"+",param->arg);
+		    ct = ScanCommand(&cmd_stat,buf,iu->cmd_tab);
+		    if (ct)
+			cmd = ct->id;
+		}
+		break;
 	    }
     }
     
-    PrintHelpCmd(iu,f,indent,cmd,0);
+    PrintHelpCmd(iu,f,indent,cmd,info);
 }
 
 ///////////////////////////////////////////////////////////////////////////////

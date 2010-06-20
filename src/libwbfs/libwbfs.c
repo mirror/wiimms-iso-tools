@@ -231,12 +231,6 @@ wbfs_t * wbfs_open_partition_param ( wbfs_param_t * par )
     p->callback_data	= par->callback_data;
     p->readonly		= par->readonly > 0;
 
-    //----- setup some wii constants
-
-    p->wii_sec_sz		= WII_SECTOR_SIZE;
-    p->wii_sec_sz_s		= WII_SECTOR_SIZE_SHIFT;
-    p->n_wii_sec_per_disc	= WII_MAX_SECTORS;
-
     //----- init/load partition header
 
     if ( par->reset > 0 )
@@ -264,28 +258,10 @@ wbfs_t * wbfs_open_partition_param ( wbfs_param_t * par )
 	if ( par->wbfs_sector_size > 0 )
 	    head->wbfs_sec_sz_s = size_to_shift(par->wbfs_sector_size);
 	else
-	{
-	    // choose minimum wblk_sz that fits this partition size
-	    // the max value chooses the maximal supported partition size
-	    //   - start value <6 ==> n_wbfs_sec_per_disc becomsto large
-	    int sz_s;
-	    for ( sz_s = 6; sz_s < 12; sz_s++ )
-	    {
-		// ensure that wbfs_sec_sz is big enough to address every blocks using 16 bits
-		if ( p->n_wii_sec < (1<<16) * (1<<sz_s) )
-		    break;
-	    }
-	    head->wbfs_sec_sz_s = sz_s + p->wii_sec_sz_s;
-
-	 #if 1 // def TEST // [2do]
-	    // A call to wbfs_calc_size_shift() should relace the caolculation above
-	    // But at the moment we only make assertions
-	    ASSERT( head->wbfs_sec_sz_s ==
-			wbfs_calc_size_shift( head->hd_sec_sz_s,
-					      par->num_hd_sector,
-					      par->old_wii_sector_calc ));
-	 #endif
-	}
+	    head->wbfs_sec_sz_s
+		= wbfs_calc_size_shift( head->hd_sec_sz_s,
+					par->num_hd_sector,
+					par->old_wii_sector_calc );
     }
     else
     {
@@ -302,135 +278,18 @@ wbfs_t * wbfs_open_partition_param ( wbfs_param_t * par )
     if ( par->force_mode <= 0 )
     {
 	if ( hd_sector_size && head->hd_sec_sz_s != size_to_shift(hd_sector_size) )
-	WBFS_ERROR("hd sector size doesn't match");
+	    WBFS_ERROR("hd sector size doesn't match");
 
 	if ( par->num_hd_sector && head->n_hd_sec != wbfs_htonl(par->num_hd_sector) )
 	    WBFS_ERROR("hd num sector doesn't match");
     }
 
-    //----- transfer head info to main data structure
+    //----- setup wbfs geometry
 
-    p->hd_sec_sz	= 1 << head->hd_sec_sz_s;
-    p->hd_sec_sz_s	= head->hd_sec_sz_s;
-    p->n_hd_sec		= wbfs_ntohl( head->n_hd_sec );
-
-    p->wbfs_sec_sz_s	= head->wbfs_sec_sz_s;
-    p->wbfs_sec_sz	= 1 << p->wbfs_sec_sz_s;
-
-    //----- base calculations
-
-    // ************************************************************************
-    // ***  This calculation has a rounding bug. But we must leave it here  ***
-    // ***  because 'n_wbfs_sec' & 'freeblks_lba' are based in this value.  ***
-    // ************************************************************************
-
-    p->n_wii_sec	= ( p->n_hd_sec / p->wii_sec_sz ) * p->hd_sec_sz;
-    p->n_wbfs_sec	= p->n_wii_sec >> ( p->wbfs_sec_sz_s - p->wii_sec_sz_s );
-    p->n_wbfs_sec_per_disc
-			= p->n_wii_sec_per_disc >> ( p->wbfs_sec_sz_s - p->wii_sec_sz_s );
-    p->disc_info_sz	= ALIGN_LBA( sizeof(wbfs_disc_info_t) + p->n_wbfs_sec_per_disc*2 );
-
-    //----- 'free blocks table' calculations
-
-    const u32 fb_memsize= ALIGN_LBA(p->n_wbfs_sec/8);	// memory size of 'freeblks'
-    p->freeblks_lba	= ( p->wbfs_sec_sz - p->n_wbfs_sec / 8 ) >> p->hd_sec_sz_s;
-    p->freeblks_lba_count
-			= fb_memsize >> p->hd_sec_sz_s;
-
-    //----- here we correct the previous wrong calulations
-
-    p->n_wii_sec	= p->n_hd_sec / ( p->wii_sec_sz / p->hd_sec_sz );
-    const u32 n_wbfs_sec= p->n_wii_sec >> ( p->wbfs_sec_sz_s - p->wii_sec_sz_s );
-    p->n_wbfs_sec	= n_wbfs_sec < 0x10000 ? n_wbfs_sec : 0x10000;
-
-    //----- calculate and fix the needed space for free blocks table
-
-    p->freeblks_size4	= ( p->n_wbfs_sec-1 + 31 ) / 32;
-    if ( p->freeblks_size4 > fb_memsize/4 )
-    {
-	// not enough memory to store complete free blocks table :(
-	p->freeblks_size4 = fb_memsize/4;
-
-	// fix the number of WBFS sectors too
-	const u32 max_sec = p->freeblks_size4 * 32 + 1; // remember: 1 based
-	if ( p->n_wbfs_sec > max_sec )
-	     p->n_wbfs_sec = max_sec;
-    }
-    p->freeblks_mask	= ( 1ull << ( (p->n_wbfs_sec-1) & 31 )) - 1;
-
-    //----- calculate max_disc
-
-    p->n_disc_open = 0;
-    p->max_disc = ( p->freeblks_lba - 1 ) / ( p->disc_info_sz >> p->hd_sec_sz_s );
-    if ( p->max_disc > p->hd_sec_sz - sizeof(wbfs_head_t) )
-	 p->max_disc = p->hd_sec_sz - sizeof(wbfs_head_t);
-
- #if 1 // def TEST // [2do]
-    // A call to wbfs_calc_size_shift() should relace the caolculation above
-    // But at the moment we only make assertions
-
-    if ( par->reset > 0 )
-    {
-	wbfs_head_t xh;
-	memset(&xh,0,sizeof(xh));
-
-	wbfs_t xw;
-	memset(&xw,0,sizeof(xw));
-	xw.head = &xh;
-
-	wbfs_calc_geometry(&xw,
+    wbfs_calc_geometry(p,
 		wbfs_ntohl(head->n_hd_sec),
 		1 << head->hd_sec_sz_s,
 		1 << head->wbfs_sec_sz_s );
-
-	ASSERT( head->magic		== xh.magic );
-	ASSERT( head->n_hd_sec		== xh.n_hd_sec );
-	ASSERT( head->hd_sec_sz_s	== xh.hd_sec_sz_s );
-	ASSERT( head->wbfs_sec_sz_s	== xh.wbfs_sec_sz_s );
-	ASSERT( head->wbfs_sec_sz_s	== xh.wbfs_sec_sz_s );
-
-	ASSERT( WBFS_INODE_INFO_CMP_SIZE <= sizeof(xh) );
-	ASSERT( !memcmp(head,&xh,WBFS_INODE_INFO_CMP_SIZE) );
-	ASSERT( !memcmp(head,&xh,sizeof(xh)) );
-
-	xw.head				=  p->head;
-	ASSERT( p->hd_sec_sz		== xw.hd_sec_sz );
-	ASSERT( p->hd_sec_sz_s		== xw.hd_sec_sz_s );
-	ASSERT( p->n_hd_sec		== xw.n_hd_sec );
-	ASSERT( p->wii_sec_sz		== xw.wii_sec_sz );
-	ASSERT( p->wii_sec_sz_s		== xw.wii_sec_sz_s );
-	ASSERT( p->n_wbfs_sec		== xw.n_wbfs_sec );
-	ASSERT( p->n_wii_sec		== xw.n_wii_sec );
-	ASSERT( p->n_wii_sec_per_disc	== xw.n_wii_sec_per_disc );
-	ASSERT( p->wbfs_sec_sz		== xw.wbfs_sec_sz );
-	ASSERT( p->wbfs_sec_sz_s	== xw.wbfs_sec_sz_s );
-	ASSERT( p->n_wbfs_sec		== xw.n_wbfs_sec );
-	ASSERT( p->n_wbfs_sec_per_disc	== xw.n_wbfs_sec_per_disc );
-	xw.part_lba			=  p->part_lba;
-	xw.read_hdsector		=  p->read_hdsector;
-	xw.write_hdsector		=  p->write_hdsector;
-	xw.callback_data		=  p->callback_data;
-	ASSERT( p->max_disc		== xw.max_disc );
-	ASSERT( p->freeblks_lba		== xw.freeblks_lba );
-	ASSERT( p->freeblks_lba_count	== xw.freeblks_lba_count );
-	ASSERT( p->freeblks_size4	== xw.freeblks_size4 );
-	ASSERT( p->freeblks_mask	== xw.freeblks_mask );
-	ASSERT( p->freeblks		== xw.freeblks );
-	ASSERT( p->disc_info_sz		== xw.disc_info_sz );
-	xw.tmp_buffer			=  p->tmp_buffer;
-	xw.id_list			=  p->id_list;
-	xw.readonly			=  p->readonly;
-	ASSERT( p->n_disc_open		== xw.n_disc_open );
-
-	int i;
-	ccp p1 = (ccp)p;
-	ccp p2 = (ccp)&xw;
-	for ( i=0; i < sizeof(xw); i++, p1++, p2++ )
-	    if ( *p1 != *p2 )
-		printf("DIFF: delta=%2x : %2x != %2x\n",i,*p1,*p2);
-	ASSERT(!memcmp(p,&xw,sizeof(xw)));
-    }
- #endif
 
     //----- load/setup free block table
 
@@ -441,6 +300,7 @@ wbfs_t * wbfs_open_partition_param ( wbfs_param_t * par )
     }
     else
     {
+	const size_t fb_memsize = p->freeblks_lba_count * p->hd_sec_sz;
 	// init with all free blocks
 	p->freeblks = wbfs_ioalloc(fb_memsize);
 

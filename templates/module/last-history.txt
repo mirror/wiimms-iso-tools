@@ -16,9 +16,31 @@ wit v1.00a r1214 - 2010-06-12
    tmd.bin (new!), header.bin (new!), boot.bin, fst.bin and of DOL-files.
    The file type is detected automatically by analyzing the content.
 
-wit v@.@@@ r@@REV-NEXT@@ - @@@@-@@-@@
+wit v1.00b r1218 - 2010-06-12  (repository only)
 
  - The tools iso2wbfs, iso2wdf and wdf2iso have been removed. Use wit instead.
+
+wit v@.@@@ r@@REV-NEXT@@ - @@@@-@@-@@
+
+ - CISO support: The new options --chunk-mode, --chunk-size and --max-chunks
+   gives the user the control over chunk size when creating a CISO file.
+ - With release v0.37 I have written a complete new function to calculate the
+   WBFS geometry (outsourcing of the calculation so that other commands can use
+   the results). Up to now the new and the old calculation have been compared
+   on every WBFS formatting. From now only this new calculation is used.
+ - wit DUMP --long: Print content of TICKET and TMD too.
+ - New option for wit DUMP: --show=keylist: This option allows fine control
+   over the things that should be printed. If set --long is ignored. Allowed
+   keywords: NONE, ALL, INTRO, P-TAB, P-INFO, P-MAP, D-MAP, TICKET, TMD,
+   PART (=P-INFO|P-MAP|TICKET|TMD), MAP (=P-MAP|D-MAP).
+   If --show is set option --long is ignored.
+ - wit+wwt VERIFY --long --long: Hex dump of 'DATA' was wrong.
+ - Bug fix for option --pmode: keyword INDEX is enabled now.
+ - New warnings (exit status): "Nothing to do" and "No source file found".
+
+To do:
+
+ - Error code for: No source found
 
 Missing docu:
 

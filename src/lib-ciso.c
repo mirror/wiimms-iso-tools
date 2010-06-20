@@ -410,49 +410,7 @@ enumError SetupWriteCISO ( SuperFile_t * sf )
 
     //---- calc block size
 
- #ifdef TEST
-
     ci->block_size = CalcBlockSizeCISO(0,sf->file_size);
-
- #else // [2do] [obsolete]
-
-    const u64 max_file_size = WII_MAX_SECTORS * (u64)WII_SECTOR_SIZE;
-    u32 block_size = max_file_size / CISO_MAP_SIZE;
-    TRACE(" - %8x minimal block_size\n",block_size);
-
-    const u64 file_size = sf->file_size ? sf->file_size : max_file_size;
-    TRACE(" -          file size = %llx\n",file_size);
-    u32 temp = file_size / CISO_WR_MAX_BLOCK;
-    if ( block_size < temp )
-    {
-	block_size = temp;
-	TRACE(" - %8x new block_size\n",block_size);
-    }
-
-    block_size = ( (block_size-1) / CISO_MIN_BLOCK_SIZE + 1 ) * CISO_MIN_BLOCK_SIZE;
-    TRACE(" - %8x aligned block_size\n",block_size);
-
- #if 0 // [2do] [obsolete?]
-
-    if ( block_size < CISO_WR_MIN_BLOCK_SIZE )
-    {   
-	block_size = CISO_WR_MIN_BLOCK_SIZE;
-	TRACE(" - %8x CISO_WR_MIN_BLOCK_SIZE\n",block_size);
-    }
-
-    ci->block_size = block_size;
-
- #else
-
-    // and now force power of 2
-
-    ci->block_size = CISO_WR_MIN_BLOCK_SIZE;
-    while ( ci->block_size < block_size )
-	ci->block_size <<= 1;
-    TRACE(" - %8x power2 block_size\n",ci->block_size);
-
- #endif
- #endif // TEST
 
     return ERR_OK;
 }

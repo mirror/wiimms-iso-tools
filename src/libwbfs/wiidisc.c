@@ -758,7 +758,7 @@ static void do_partition ( wiidisc_t * d )
 		strcpy(d->path_prefix,"./");
 		break;
 
-	    case IPM_PART_IDENT:
+	    case IPM_PART_INDEX:
 		snprintf(d->path_prefix,sizeof(d->path_prefix),"P%u/",d->partition_type);
 		break;
 

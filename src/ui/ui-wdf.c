@@ -17,69 +17,35 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 {
     {0,0,0,0,0}, // OPT_NONE,
 
-    {	OPT_VERSION, 'V', "version",
+    //----- command specific options -----
+
+    {	OPT_CHUNK, 0, "chunk",
 	0,
-	"Stop parsing the command line, print a version info and exit."
+	"Print table with chunk header too."
     },
 
-    {	OPT_HELP, 'h', "help",
+    {	OPT_LONG, 'l', "long",
 	0,
-	"Stop parsing the command line, print a help message and exit."
+	"Print (un)pack statistics, 1 line for each source. In dump mode:"
+	" Print table with chunk header too (same as --chunk)."
     },
 
-    {	OPT_XHELP, 0, "xhelp",
+    {	OPT_MINUS1, '1', "minus-1",
 	0,
-	"Same as --help."
-    },
-
-    {	OPT_PACK, 'P', "pack",
-	0,
-	"Pack an archive. This is the general default."
-    },
-
-    {	OPT_UNPACK, 'U', "unpack",
-	0,
-	"Unpack an archive.\n"
-	"This is the default, when the program name starts with the two"
-	" letters 'un' in any case."
-    },
-
-    {	OPT_CAT, 'A', "cat",
-	0,
-	"Concatenate files and print on the standard output. WDF and CISO"
-	" files are extracted before printing, all other files are copied byte"
-	" by byte.\n"
-	"This is the default, when the program namecontains the three letter"
-	" 'cat' in any case."
-    },
-
-    {	OPT_CMP, 'M', "cmp",
-	0,
-	"Enter compare mode and ignore all (un-)packing options.\n"
-	"Two source files are compared. If --dest or --DEST is set, than all"
-	" source files are compared against files in the destination path. If"
-	" the second source file is mising then stdin is used instead.\n"
-	"This is the default, when the program namecontains the letters 'cmp'"
-	" or 'diff' in any case."
-    },
-
-    {	OPT_DUMP, 'X', "dump",
-	0,
-	"Dump the data structure of all archives and ignore non WDF and non"
-	" CISO files. All packing, unpacking and compare options are ignored.\n"
-	"This is the default, when the program contains the sub string 'dump'"
-	" in any case."
+	"If set the end address is the last address of a range. The standard"
+	" is to print the first address that is not part of the address of a"
+	" range."
     },
 
     {	OPT_WDF, 'W', "wdf",
 	0,
-	"Force WDF output mode if compressing and set the default suffix to"
+	"Force WDF output mode if packing and set the default suffix to"
 	" '.wdf'. This is the general default."
     },
 
     {	OPT_CISO, 'C', "ciso",
 	0,
-	"Force CISO output mode if compressing and set the default suffix to"
+	"Force CISO output mode if packing and set the default suffix to"
 	" '.ciso'.\n"
 	" This is the default, when the program name contains the sub string"
 	" 'ciso' in any case."
@@ -87,7 +53,7 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 
     {	OPT_WBI, 0, "wbi",
 	0,
-	"Force CISO output mode if compressing and set the default suffix to"
+	"Force CISO output mode if packing and set the default suffix to"
 	" '.wbi'.\n"
 	" This is the default, when the program name contains the sub string"
 	" 'wbi' but not 'ciso' in any case."
@@ -100,14 +66,17 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 
     {	OPT_DEST, 'd', "dest",
 	"path",
-	"Define a destination path (directory/file). The destination path is"
-	" scanned for escape sequences (see option --esc) to allow generic"
-	" pathes."
+	"Define a destination path (directory/file)."
     },
 
-    {	OPT_DEST2, 'D', "DEST",
-	"path",
-	"Like --dest, but create the directory path automatically."
+    {	OPT_KEEP, 'k', "keep",
+	0,
+	"Keep (don't delete) input files during (un-)packing."
+    },
+
+    {	OPT_OVERWRITE, 'o', "overwrite",
+	0,
+	"Overwrite already existing files."
     },
 
     {	OPT_PRESERVE, 'p', "preserve",
@@ -130,53 +99,61 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 
     {	OPT_CHUNK_MODE, 0, "chunk-mode",
 	"mode",
-	"Defines an operation mode for --max-chunks and --chunk-size. Allowed"
-	" values are 'ISO' for ISO images, 'POW2' to force chunk sizes >= 32"
-	" KiB and with power of 2 '32K' to force chunk sizes multiple 32 KiB"
-	" or 'ANY' to allow any values. The default value is 'POW2'. The case"
-	" fo the keyword is ignored."
+	"Defines an operation mode for --chunk-size and --max-chunks. Allowed"
+	" keywords are 'ANY' to allow any values,, '32K' to force chunk sizes"
+	" with a multiple of 32 KiB, 'POW2' to force chunk sizes >=32K and"
+	" with a power of 2 or 'ISO' for ISO images (more restrictive as"
+	" 'POW2', best for USB loaders). The case of the keyword is ignored."
+	" The default key is '32K'.\n"
+	" --chm is a short cut for --chunk-mode."
     },
 
     {	OPT_CHUNK_SIZE, 0, "chunk-size",
 	"sz",
 	"Define the minimal chunk size if creating a CISO file. The default is"
 	" to calculate the chunk size from the input file size and find a good"
-	" value by using a minimal value of 1 MiB for '--chunk-mode AUTO' and"
-	" 32 KiB for other mdoes. If --chunk-mode is not 'ANY' then the value"
+	" value by using a minimal value of 1 MiB for '--chunk-mode ISO' and"
+	" 32 KiB for modes 32K and POW2. For the modes ISO and POW2 the value"
 	" is rounded up to the next power of 2. This calculation also depends"
-	" from --max-chunks.\n"
+	" from option --max-chunks.\n"
 	"The parameter 'sz' is a floating point number followed by an optional"
 	" unit factor (one of 'cb' [=1] or  'kmgtpe' [base=1000] or 'KMGTPE'"
 	" [base=1024]). The default unit is 'M' (MiB). If the number is"
-	" prefixed with a '=' than option --chunk-mode is ignored and the"
-	" given value is used without any rounding or changing.\n"
-	"If the input file size is not known (e.g. reading from pipe), the"
-	" default is 1 MiB."
+	" prefixed with a '=' then options --chunk-mode and --max-chunks are"
+	" ignored and the given value is used without any rounding or"
+	" changing.\n"
+	"If the input file size is not known (e.g. reading from pipe), its"
+	" size is assumed as 12 GiB.\n"
+	" --chz is a short cut for --chunk-size."
     },
 
     {	OPT_MAX_CHUNKS, 0, "max-chunks",
 	"n",
 	"Define the maximal number of chunks if creating a CISO file. The"
-	" default value is 8192 for '--chunk-mode AUTO' and 32760 (maximal"
-	" value) for toher modes. If this value is set than the automatic"
-	" calculation  of --chunk-size will be modified too."
+	" default value is 8192 for '--chunk-mode ISO' and 32760 (maximal"
+	" value) for all other modes. If this value is set than the automatic"
+	" calculation  of --chunk-size will be modified too.\n"
+	" --mch is a short cut for --max-chunks."
     },
 
-    {	OPT_OVERWRITE, 'o', "overwrite",
+    {0,0,0,0,0}, // OPT__N_SPECIFIC == 17
+
+    //----- global options -----
+
+    {	OPT_VERSION, 'V', "version",
 	0,
-	"Overwrite already existing files."
+	"Stop parsing the command line, print a version info and exit."
     },
 
-    {	OPT_STDOUT, 'c', "stdout",
+    {	OPT_HELP, 'h', "help",
 	0,
-	"Write to standard output (stdout) and keep original files unchanged.\n"
-	"This is the default, when the program is reading from standard input"
-	" (stdin)."
+	"Stop parsing the command line, print a help message and exit."
     },
 
-    {	OPT_KEEP, 'k', "keep",
+    {	OPT_XHELP, 0, "xhelp",
 	0,
-	"Keep (don't delete) input files during (un-)packing."
+	"Stop parsing the command line and print a help message with all"
+	" commands included. Exit after printing."
     },
 
     {	OPT_QUIET, 'q', "quiet",
@@ -189,23 +166,17 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 	"Be verbose -> print program name."
     },
 
-    {	OPT_CHUNK, 0, "chunk",
-	0,
-	"In dump mode: Print table with chunk header too."
+    {	OPT_DEST2, 'D', "DEST",
+	"path",
+	"Like --dest, but create the directory path automatically."
     },
 
-    {	OPT_LONG, 'l', "long",
+    {	OPT_STDOUT, 'c', "stdout",
 	0,
-	"Print (un)pack statistics, 1 line for each source. In dump mode:"
-	" Print table with chunk header too (same as --chunk)."
-    },
-
-    {	OPT_IO, 0, "io",
-	"flags",
-	"Setup the IO mode for experiments. The standard file IO is based on"
-	" open() function. The value '1' defines that WBFS IO is based on"
-	" fopen() function. The value '2' defines the same for ISO files and"
-	" the value '3' for both, WBFS and ISO."
+	"Write to standard output (stdout) and keep (don't delete) input"
+	" files.\n"
+	"This is the default, when the program is reading from standard input"
+	" (stdin)."
     },
 
     {	OPT_TEST, 't', "test",
@@ -214,8 +185,45 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 	">>> USE THIS OPTION IF UNSURE! <<<"
     },
 
-    {0,0,0,0,0} // OPT__N_TOTAL == 30
+    {0,0,0,0,0} // OPT__N_TOTAL == 25
 
+};
+
+//
+///////////////////////////////////////////////////////////////////////////////
+///////////////             alternate option infos              ///////////////
+///////////////////////////////////////////////////////////////////////////////
+
+const InfoOption_t option_cmd_VERSION_LONG =
+    {	OPT_LONG, 'l', "long",
+	0,
+	"Print in long format."
+    };
+
+const InfoOption_t option_cmd_DUMP_LONG =
+    {	OPT_LONG, 'l', "long",
+	0,
+	"Same as --chunk"
+    };
+
+
+//
+///////////////////////////////////////////////////////////////////////////////
+///////////////                  CommandTab[]                   ///////////////
+///////////////////////////////////////////////////////////////////////////////
+
+const CommandTab_t CommandTab[] =
+{
+    { CMD_VERSION,	"+VERSION",	"+V",		OB_CMD_VERSION },
+    { CMD_HELP,		"+HELP",	"+H",		OB_CMD_HELP },
+    { CMD_PACK,		"+PACK",	"+P",		OB_CMD_PACK },
+    { CMD_UNPACK,	"+UNPACK",	"+U",		OB_CMD_UNPACK },
+    { CMD_CAT,		"+CAT",		"+A",		OB_CMD_CAT },
+    { CMD_CMP,		"+CMP",		"+C",		OB_CMD_CMP },
+    { CMD_CMP,		"+DIFF",	0,		OB_CMD_CMP },
+    { CMD_DUMP,		"+DUMP",	"+D",		OB_CMD_DUMP },
+
+    { CMD__N,0,0,0 }
 };
 
 //
@@ -223,43 +231,41 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 ///////////////            OptionShort & OptionLong             ///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-const char OptionShort[] = "VhPUAMXWCs:d:D:pzZ:ockqvlt";
+const char OptionShort[] = "Vhqvl1WCs:d:D:ckopzZ:t";
 
 const struct option OptionLong[] =
 {
 	{ "version",		0, 0, 'V' },
 	{ "help",		0, 0, 'h' },
 	{ "xhelp",		0, 0, GO_XHELP },
-	{ "pack",		0, 0, 'P' },
-	{ "unpack",		0, 0, 'U' },
-	{ "cat",		0, 0, 'A' },
-	{ "cmp",		0, 0, 'M' },
-	 { "diff",		0, 0, 'M' },
-	{ "dump",		0, 0, 'X' },
+	{ "quiet",		0, 0, 'q' },
+	{ "verbose",		0, 0, 'v' },
+	{ "chunk",		0, 0, GO_CHUNK },
+	{ "long",		0, 0, 'l' },
+	{ "minus-1",		0, 0, '1' },
+	 { "minus1",		0, 0, '1' },
 	{ "wdf",		0, 0, 'W' },
 	{ "ciso",		0, 0, 'C' },
 	{ "wbi",		0, 0, GO_WBI },
 	{ "suffix",		1, 0, 's' },
 	{ "dest",		1, 0, 'd' },
 	{ "DEST",		1, 0, 'D' },
+	{ "stdout",		0, 0, 'c' },
+	{ "keep",		0, 0, 'k' },
+	{ "overwrite",		0, 0, 'o' },
 	{ "preserve",		0, 0, 'p' },
 	{ "split",		0, 0, 'z' },
 	{ "split-size",		1, 0, 'Z' },
 	 { "splitsize",		1, 0, 'Z' },
 	{ "chunk-mode",		1, 0, GO_CHUNK_MODE },
 	 { "chunkmode",		1, 0, GO_CHUNK_MODE },
+	 { "chm",		1, 0, GO_CHUNK_MODE },
 	{ "chunk-size",		1, 0, GO_CHUNK_SIZE },
 	 { "chunksize",		1, 0, GO_CHUNK_SIZE },
+	 { "chz",		1, 0, GO_CHUNK_SIZE },
 	{ "max-chunks",		1, 0, GO_MAX_CHUNKS },
 	 { "maxchunks",		1, 0, GO_MAX_CHUNKS },
-	{ "overwrite",		0, 0, 'o' },
-	{ "stdout",		0, 0, 'c' },
-	{ "keep",		0, 0, 'k' },
-	{ "quiet",		0, 0, 'q' },
-	{ "verbose",		0, 0, 'v' },
-	{ "chunk",		0, 0, GO_CHUNK },
-	{ "long",		0, 0, 'l' },
-	{ "io",			1, 0, GO_IO },
+	 { "mch",		1, 0, GO_MAX_CHUNKS },
 	{ "test",		0, 0, 't' },
 
 	{0,0,0,0}
@@ -277,22 +283,17 @@ const u8 OptionIndex[OPT_INDEX_SIZE] =
 	/*00*/	 0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0,
 	/*10*/	 0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0,
 	/*20*/	 0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0,
-	/*30*/	 0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0,
-	/*40*/	 0,
-	/*41*/	OPT_CAT,
-	/*42*/	 0,
+	/*30*/	 0,
+	/*31*/	OPT_MINUS1,
+	/*32*/	 0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,
+	/*40*/	 0,0,0,
 	/*43*/	OPT_CISO,
 	/*44*/	OPT_DEST2,
-	/*45*/	 0,0,0,0, 0,0,0,0, 
-	/*4d*/	OPT_CMP,
-	/*4e*/	 0,0,
-	/*50*/	OPT_PACK,
-	/*51*/	 0,0,0,0, 
-	/*55*/	OPT_UNPACK,
+	/*45*/	 0,0,0,0, 0,0,0,0, 0,0,0,
+	/*50*/	 0,0,0,0, 0,0,
 	/*56*/	OPT_VERSION,
 	/*57*/	OPT_WDF,
-	/*58*/	OPT_DUMP,
-	/*59*/	 0,
+	/*58*/	 0,0,
 	/*5a*/	OPT_SPLIT_SIZE,
 	/*5b*/	 0,0,0,0, 0,0,0,0, 
 	/*63*/	OPT_STDOUT,
@@ -315,13 +316,12 @@ const u8 OptionIndex[OPT_INDEX_SIZE] =
 	/*7a*/	OPT_SPLIT,
 	/*7b*/	 0,0,0,0, 0,
 	/*80*/	OPT_XHELP,
-	/*81*/	OPT_WBI,
-	/*82*/	OPT_CHUNK_MODE,
-	/*83*/	OPT_CHUNK_SIZE,
-	/*84*/	OPT_MAX_CHUNKS,
-	/*85*/	OPT_CHUNK,
-	/*86*/	OPT_IO,
-	/*87*/	 0,0,0,0, 0,0,0,0, 0,
+	/*81*/	OPT_CHUNK,
+	/*82*/	OPT_WBI,
+	/*83*/	OPT_CHUNK_MODE,
+	/*84*/	OPT_CHUNK_SIZE,
+	/*85*/	OPT_MAX_CHUNKS,
+	/*86*/	 0,0,0,0, 0,0,0,0, 0,0,
 	/*90*/	 0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0,
 	/*a0*/	 0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0,
 };
@@ -339,11 +339,44 @@ const InfoOption_t * option_tab_tool[] =
 
 	OptionInfo + OPT_NONE, // separator
 
-	OptionInfo + OPT_PACK,
-	OptionInfo + OPT_UNPACK,
-	OptionInfo + OPT_CAT,
-	OptionInfo + OPT_CMP,
-	OptionInfo + OPT_DUMP,
+	OptionInfo + OPT_QUIET,
+	OptionInfo + OPT_VERBOSE,
+
+	OptionInfo + OPT_NONE, // separator
+
+	OptionInfo + OPT_DEST2,
+	OptionInfo + OPT_STDOUT,
+
+	OptionInfo + OPT_NONE, // separator
+
+	OptionInfo + OPT_TEST,
+
+	0
+};
+
+static const InfoOption_t * option_tab_cmd_VERSION[] =
+{
+	&option_cmd_VERSION_LONG,
+
+	0
+};
+
+static const InfoOption_t * option_tab_cmd_HELP[] =
+{
+
+	0
+};
+
+static const InfoOption_t * option_tab_cmd_PACK[] =
+{
+	OptionInfo + OPT_DEST,
+	OptionInfo + OPT_DEST2,
+	OptionInfo + OPT_OVERWRITE,
+	OptionInfo + OPT_SPLIT,
+	OptionInfo + OPT_SPLIT_SIZE,
+	OptionInfo + OPT_STDOUT,
+	OptionInfo + OPT_KEEP,
+	OptionInfo + OPT_PRESERVE,
 
 	OptionInfo + OPT_NONE, // separator
 
@@ -352,31 +385,48 @@ const InfoOption_t * option_tab_tool[] =
 	OptionInfo + OPT_WBI,
 	OptionInfo + OPT_SUFFIX,
 
-	OptionInfo + OPT_NONE, // separator
+	0
+};
 
+static const InfoOption_t * option_tab_cmd_UNPACK[] =
+{
 	OptionInfo + OPT_DEST,
 	OptionInfo + OPT_DEST2,
-	OptionInfo + OPT_PRESERVE,
+	OptionInfo + OPT_OVERWRITE,
 	OptionInfo + OPT_SPLIT,
 	OptionInfo + OPT_SPLIT_SIZE,
-	OptionInfo + OPT_CHUNK_MODE,
-	OptionInfo + OPT_CHUNK_SIZE,
-	OptionInfo + OPT_MAX_CHUNKS,
-	OptionInfo + OPT_OVERWRITE,
 	OptionInfo + OPT_STDOUT,
 	OptionInfo + OPT_KEEP,
+	OptionInfo + OPT_PRESERVE,
 
-	OptionInfo + OPT_NONE, // separator
+	0
+};
 
-	OptionInfo + OPT_QUIET,
-	OptionInfo + OPT_VERBOSE,
+static const InfoOption_t * option_tab_cmd_CAT[] =
+{
+	OptionInfo + OPT_DEST,
+	OptionInfo + OPT_DEST2,
+	OptionInfo + OPT_OVERWRITE,
+	OptionInfo + OPT_SPLIT,
+	OptionInfo + OPT_SPLIT_SIZE,
+
+	0
+};
+
+static const InfoOption_t * option_tab_cmd_CMP[] =
+{
+
+	0
+};
+
+static const InfoOption_t * option_tab_cmd_DUMP[] =
+{
+	OptionInfo + OPT_DEST,
+	OptionInfo + OPT_DEST2,
+	OptionInfo + OPT_OVERWRITE,
 	OptionInfo + OPT_CHUNK,
-	OptionInfo + OPT_LONG,
-	OptionInfo + OPT_IO,
-
-	OptionInfo + OPT_NONE, // separator
-
-	OptionInfo + OPT_TEST,
+	&option_cmd_DUMP_LONG,
+	OptionInfo + OPT_MINUS1,
 
 	0
 };
@@ -394,14 +444,107 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	false,
 	"wdf",
 	0,
-	"wdf [option]... files...",
+	"wdf [options]... [+command] [options]... files...",
 	"wdf is a support tool for WDF and CISO archives. It convert (pack and"
-	" unpack) WDF and CISO archives. Dependent from file name and from"
-	" options it works like 'gzip', 'gunzip' or 'zcat' (see options for"
-	" details). It can also compare files and dump the data structure of"
-	" those archives for analysis.",
-	29,
+	" unpack), compare and dump WDF and CISO archives. The default command"
+	" depends on the program file name (see command descriptions). Usual"
+	" names are wdf, unwdf, wdf-cat, wdf-cmp and wdf-dump (with or without"
+	" minus signs).",
+	8,
 	option_tab_tool
+    },
+
+    {	CMD_VERSION,
+	false,
+	false,
+	"+VERSION",
+	"+V",
+	"wdf +VERSION [ignored]...",
+	"Print program name, version and the defaults and exit.",
+	1,
+	option_tab_cmd_VERSION
+    },
+
+    {	CMD_HELP,
+	false,
+	false,
+	"+HELP",
+	"+H",
+	"wdf +HELP [+command] [ignored]...",
+	"Print help and exit. If the first non option is a valid command name,"
+	" then a help for the given command is printed.",
+	0,
+	option_tab_cmd_HELP
+    },
+
+    {	CMD_PACK,
+	false,
+	true,
+	"+PACK",
+	"+P",
+	"wdf +PACK [option]... files...",
+	"Pack sources into WDF or CISO archives. This is the general default.",
+	12,
+	option_tab_cmd_PACK
+    },
+
+    {	CMD_UNPACK,
+	false,
+	false,
+	"+UNPACK",
+	"+U",
+	"wdf +UNPACK [option]... files...",
+	"Unpack WDF and CISO archives.\n"
+	"This is the default command, when the program name starts with the"
+	" two letters 'un' in any case.",
+	8,
+	option_tab_cmd_UNPACK
+    },
+
+    {	CMD_CAT,
+	false,
+	false,
+	"+CAT",
+	"+A",
+	"wdf +CAT [option]... files...",
+	"Concatenate files and print on the standard output. WDF and CISO"
+	" files are extracted before printing, all other files are copied byte"
+	" by byte.\n"
+	"This is the default command, when the program namecontains the three"
+	" letter 'cat' in any case.",
+	5,
+	option_tab_cmd_CAT
+    },
+
+    {	CMD_CMP,
+	false,
+	false,
+	"+CMP",
+	"+C",
+	"wdf +CAT [option]... files...",
+	"Compare files and unpack WDF and CISO while comparing.\n"
+	"The standard is to compare two source files. If --dest or --DEST is"
+	" set, than all source files are compared against files in the"
+	" destination path with equal names. If the second source file is"
+	" mising then standard input (stdin) is used instead.\n"
+	"This is the default command, when the program namecontains the"
+	" letters 'cmp' or 'diff' in any case.",
+	0,
+	option_tab_cmd_CMP
+    },
+
+    {	CMD_DUMP,
+	false,
+	false,
+	"+DUMP",
+	"+D",
+	"wdf +DUMP [option]... files...",
+	"Dump the data structure of all archives and ignore non WDF and non"
+	" CISO files.\n"
+	"This is the default command, when the program contains the sub string"
+	" 'dump' in any case.",
+	6,
+	option_tab_cmd_DUMP
     },
 
     {0,0,0,0,0,0,0,0}
@@ -415,10 +558,10 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 const InfoUI_t InfoUI =
 {
 	"wdf",
-	0, // n_cmd
-	0, // cmd_tab
+	CMD__N,
+	CommandTab,
 	CommandInfo,
-	0, // n_opt_specific
+	OPT__N_SPECIFIC,
 	OPT__N_TOTAL,
 	OptionInfo,
 	OptionUsed,

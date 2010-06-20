@@ -179,7 +179,8 @@ enumError Dump_ISO
 	int indent,		// indent
 	SuperFile_t * sf,	// file to dump
 	ccp real_path,		// NULL or pointer to real path
-	int dump_level		// dump level: 0..2
+	ShowMode show_mode,	// what should be printed
+	int dump_level		// dump level: 0..2, ignored if show_mode is set
 )
 {
     char buf1[100];
@@ -196,27 +197,40 @@ enumError Dump_ISO
     MemMapItem_t * mi;
     InitializeMemMap(&mm);
 
+    if ( show_mode == SHOW__DEFAULT )
+      switch(dump_level)
+      {
+	case 0:  show_mode = SHOW_P_TAB; break;
+	case 1:  show_mode = SHOW__ALL & ~SHOW_D_MAP; break;
+	default: show_mode = SHOW__ALL; break;
+      }
+
     wiidisc_t * disc = 0;
     u32 used_blocks = 0, used_mib = 0;
+    indent = NormalizeIndent(indent);
 
-    indent = dump_header(f,indent,sf,real_path);
+    if ( show_mode & SHOW_INTRO )
+	dump_header(f,indent,sf,real_path);
     enumError err = ReadSF(sf,0,&wdi.dhead,sizeof(wdi.dhead));
     if (err)
 	goto abort;
     CalcWDiscInfo(&wdi,0);
 
-    err = LoadPartitionInfo(sf, &wdi, dump_level>1 ? &mm : 0 );
+    err = LoadPartitionInfo(sf, &wdi, show_mode & SHOW_D_MAP ? &mm : 0 );
     if (err)
 	goto dump_mm;
 
-    fprintf(f,"%*sDisc name:       %s\n",indent,"",wdi.dhead.game_title);
-    if (wdi.title)
-	fprintf(f,"%*sDB title:        %s\n",indent,"",wdi.title);
-    fprintf(f,"%*sRegion:          %s [%s]\n",indent,"",wdi.region,wdi.region4);
-    u8 * p8 = wdi.regionset.region_info;
-    fprintf(f,"%*sRegion setting:  %d / %02x %02x %02x %02x  %02x %02x %02x %02x\n",
-		indent,"", wdi.regionset.region,
-		p8[0], p8[1], p8[2], p8[3], p8[4], p8[5], p8[6], p8[7] );
+    if ( show_mode & SHOW_INTRO )
+    {
+	fprintf(f,"%*sDisc name:       %s\n",indent,"",wdi.dhead.game_title);
+	if (wdi.title)
+	    fprintf(f,"%*sDB title:        %s\n",indent,"",wdi.title);
+	fprintf(f,"%*sRegion:          %s [%s]\n",indent,"",wdi.region,wdi.region4);
+	u8 * p8 = wdi.regionset.region_info;
+	fprintf(f,"%*sRegion setting:  %d / %02x %02x %02x %02x  %02x %02x %02x %02x\n",
+		    indent,"", wdi.regionset.region,
+		    p8[0], p8[1], p8[2], p8[3], p8[4], p8[5], p8[6], p8[7] );
+    }
 
     //--------------------------------------------------
 
@@ -224,72 +238,81 @@ enumError Dump_ISO
     if (disc)
     {
 	wd_build_disc_usage(disc,ALL_PARTITIONS,wdisc_usage_tab,sf->file_size);
-	fprintf(f,"%*sDiretories:     %7u\n",indent,"",disc->dir_count);
-	fprintf(f,"%*sFiles:          %7u\n",indent,"",disc->file_count);
 	used_blocks = CountUsedBlocks(wdisc_usage_tab,1);
 	used_mib    = ( used_blocks + WII_SECTORS_PER_MIB/2 ) / WII_SECTORS_PER_MIB;
-	fprintf(f,"%*sUsed ISO blocks:%7u => %u MiB\n",
+
+	if ( show_mode & SHOW_INTRO )
+	{
+	    fprintf(f,"%*sDiretories:     %7u\n",indent,"",disc->dir_count);
+	    fprintf(f,"%*sFiles:          %7u\n",indent,"",disc->file_count);
+	    fprintf(f,"%*sUsed ISO blocks:%7u => %u MiB\n",
 		indent,"", used_blocks, used_mib );
+	}
     }
 
     //--------------------------------------------------
 
+    int i;
+    WDPartInfo_t *pi;
+
     u32 nt = wdi.n_ptab;
     u32 np = wdi.n_part;
 
-    fprintf(f,"\n%*s%d partition table%s with %d partition%s:\n\n"
+    if ( show_mode & SHOW_P_TAB )
+    {
+	fprintf(f,"\n%*s%d partition table%s with %d partition%s:\n\n"
 	    "%*s   tab.idx   n(part)       offset(part.tab) .. end(p.tab)\n"
 	    "%*s  --------------------------------------------------------\n",
 		indent,"", nt, nt == 1 ? "" : "s",
 		np, np == 1 ? "" : "s",
 		indent,"", indent,"" );
 
-    int i;
-    wd_part_count_t *pc = wdi.pcount;
-    for ( i = 0; i < WII_MAX_PART_INFO; i++, pc++ )
-	if (pc->n_part)
+	wd_part_count_t *pc = wdi.pcount;
+	for ( i = 0; i < WII_MAX_PART_INFO; i++, pc++ )
+	    if (pc->n_part)
+	    {
+		const u64 off = (off_t)pc->off4<<2;
+		fprintf(f,"%*s%7d %8d %11x*4 = %10llx .. %10llx\n",
+		    indent,"", i, pc->n_part, pc->off4, off,
+		    off + pc->n_part * sizeof(wd_part_table_entry_t) );
+	    }
+
+	//--------------------------------------------------
+
+	fprintf(f,"\n%*s%d partition%s:\n\n"
+	    "%*s   index      type      offset .. end offset   size/hex =   size/dec =  MiB\n"
+	    "%*s  --------------------------------------------------------------------------\n",
+	    indent,"", np, np == 1 ? "" : "s", indent,"", indent,"" );
+
+	for ( i = 0, pi = wdi.pinfo; i < np; i++, pi++ )
 	{
-	    const u64 off = (off_t)pc->off4<<2;
-	    fprintf(f,"%*s%7d %8d %11x*4 = %10llx .. %10llx\n",
-		indent,"", i, pc->n_part, pc->off4, off,
-		off + pc->n_part * sizeof(wd_part_table_entry_t) );
+	    PrintPartitionType(buf1,sizeof(buf1),pi->ptype,true);
+
+	    if ( pi->size )
+	    {
+		const u64 size = pi->size;
+		fprintf(f,"%*s%5d.%-2d %s %11llx ..%11llx %10llx =%11llu =%5llu\n",
+		    indent,"", pi->ptable, pi->index, buf1, (u64)pi->off,
+		    (u64)pi->off + size, size, size, (size+MiB/2)/MiB );
+	    }
+	    else
+		fprintf(f,"%*s%5d.%-2d %s %11llx         ** INVALID PARTITION **\n",
+		    indent,"", pi->ptable, pi->index, buf1, (u64)pi->off );
 	}
-
-    //--------------------------------------------------
-
-    fprintf(f,"\n%*s%d partition%s:\n\n"
-	"%*s   index      type      offset .. end offset   size/hex =   size/dec =  MiB\n"
-	"%*s  --------------------------------------------------------------------------\n",
-	indent,"", np, np == 1 ? "" : "s", indent,"", indent,"" );
-
-    WDPartInfo_t *pi;
-    for ( i = 0, pi = wdi.pinfo; i < np; i++, pi++ )
-    {
-	PrintPartitionType(buf1,sizeof(buf1),pi->ptype,true);
-
-	if ( pi->size )
-	{
-	    const u64 size = pi->size;
-	    fprintf(f,"%*s%5d.%-2d %s %11llx ..%11llx %10llx =%11llu =%5llu\n",
-		indent,"", pi->ptable, pi->index, buf1, (u64)pi->off,
-		(u64)pi->off + size, size, size, (size+MiB/2)/MiB );
-	}
-	else
-	    fprintf(f,"%*s%5d.%-2d %s %11llx         ** INVALID PARTITION **\n",
-		indent,"", pi->ptable, pi->index, buf1, (u64)pi->off );
     }
 
     //--------------------------------------------------
 
-    if (dump_level)
+    if ( show_mode & SHOW__PART )
       for ( i = 0, pi = wdi.pinfo; i < np; i++, pi++ )
 	if ( pi->size )
 	{
-	    PrintPartitionType(buf1,sizeof(buf1),pi->ptype,false);
-	    
-	    fprintf(f,"\n%*sPartition table #%d, partition #%d, type %s:\n",
+	  PrintPartitionType(buf1,sizeof(buf1),pi->ptype,false);
+	  fprintf(f,"\n%*sPartition table #%d, partition #%d, type %s:\n",
 		    indent,"", pi->ptable, pi->index, buf1 );
 
+	  if ( show_mode & SHOW_P_INFO )
+	  {
 	    if ( pi->is_marked_not_enc > 0 )
 		fprintf(f,"%*s  Partition is marked as 'not encrypted'.\n", indent,"" );
 	    else if ( pi->tik_is_trucha_signed > 0
@@ -311,14 +334,14 @@ enumError Dump_ISO
 		    fputc('\n',f);
 	    }
 
-	    p8 = pi->part_key;
+	    u8 * p8 = pi->part_key;
 	    fprintf(f,"%*s  Partition key: %02x%02x%02x%02x %02x%02x%02x%02x"
 				     " %02x%02x%02x%02x %02x%02x%02x%02x\n",
 		indent,"",
 		p8[0], p8[1], p8[2], p8[3], p8[4], p8[5], p8[6], p8[7],
 		p8[8], p8[9], p8[10], p8[11], p8[12], p8[13], p8[14], p8[15] );
 
-	    if (pi->sys_version)
+	    if ( pi->sys_version && !(show_mode & SHOW_TMD) )
 	    {
 		const u32 hi = pi->sys_version >> 32;
 		const u32 lo = (u32)pi->sys_version;
@@ -329,11 +352,36 @@ enumError Dump_ISO
 		    fprintf(f,"%*s  System version: %08x-%08x\n",
 				indent, "", hi, lo );
 	    }
+	  }
 
+	  if ( show_mode & SHOW_P_MAP )
+	  {
 	    dump_data(f,indent, pi->off, pi->ph.tmd_off4,  pi->ph.tmd_size,	"TMD:" );
 	    dump_data(f,indent, pi->off, pi->ph.cert_off4, pi->ph.cert_size,	"Cert:" );
 	    dump_data(f,indent, pi->off, pi->ph.h3_off4,   WII_H3_SIZE,		"H3:" );
 	    dump_data(f,indent, pi->off, pi->ph.data_off4, (off_t)pi->ph.data_size4<<2, "Data:" );
+	  }
+
+	  wiidisc_t * disc = 0;
+
+	  if ( show_mode & SHOW_TICKET )
+	  {
+	    if (!disc)
+		disc = wd_open_partition(WrapperReadSF,sf,pi->index,-1);
+	    fprintf(f,"%*s  Ticket:\n",indent,"");
+	    Dump_TIK_MEM(f,indent+4,&disc->ph->ticket);
+	  }
+
+	  if ( show_mode & SHOW_TMD )
+	  {
+	    if (!disc)
+		disc = wd_open_partition(WrapperReadSF,sf,pi->index,-1);
+	    fprintf(f,"%*s  TMD:\n",indent,"");
+	    Dump_TMD_MEM(f,indent+4,disc->tmd,100);
+	  }
+	  
+	  if (disc)
+	    wd_close_disc(disc);
 	}
 
     //--------------------------------------------------
@@ -379,7 +427,7 @@ enumError Dump_ISO
 
  dump_mm:
 
-    if ( dump_level > 1 )
+    if ( show_mode & SHOW_D_MAP )
     {
 	mi = InsertMemMap(&mm,0,0x100);
 	snprintf(mi->info,sizeof(mi->info),"Disc header, id=%.6s",(ccp)&wdi.dhead);
@@ -408,8 +456,7 @@ enumError Dump_DOL
 	FILE * f,		// output stream
 	int indent,		// indent
 	SuperFile_t * sf,	// file to dump
-	ccp real_path,		// NULL or pointer to real path
-	int dump_level		// dump level: 0..2
+	ccp real_path		// NULL or pointer to real path
 )
 {
     ASSERT(sf);
@@ -481,8 +528,7 @@ enumError Dump_TIK_BIN
 	FILE * f,		// output stream
 	int indent,		// indent
 	SuperFile_t * sf,	// file to dump
-	ccp real_path,		// NULL or pointer to real path
-	int dump_level		// dump level: 0..2
+	ccp real_path		// NULL or pointer to real path
 )
 {
     ASSERT(sf);
@@ -498,7 +544,7 @@ enumError Dump_TIK_BIN
     if (!err)
     {
 	putc('\n',f);
-	Dump_TIK_MEM(f,indent,&tik,dump_level);
+	Dump_TIK_MEM(f,indent,&tik);
     }
     putc('\n',f);
     return err;
@@ -510,8 +556,7 @@ enumError Dump_TIK_MEM
 (
 	FILE * f,		// output stream
 	int indent,		// indent
-	const wd_ticket_t *tik,	// valid pointer to ticket
-	int dump_level		// dump level: 0..2
+	const wd_ticket_t *tik	// valid pointer to ticket
 )
 {
     ASSERT(f);
@@ -556,8 +601,7 @@ enumError Dump_TMD_BIN
 	FILE * f,		// output stream
 	int indent,		// indent
 	SuperFile_t * sf,	// file to dump
-	ccp real_path,		// NULL or pointer to real path
-	int dump_level		// dump level: 0..2
+	ccp real_path		// NULL or pointer to real path
 )
 {
     ASSERT(sf);
@@ -583,7 +627,7 @@ enumError Dump_TMD_BIN
     if (!err)
     {
 	putc('\n',f);
-	Dump_TMD_MEM(f,indent,tmd,max_content,dump_level);
+	Dump_TMD_MEM(f,indent,tmd,max_content);
     }
     putc('\n',f);
     return err;
@@ -596,8 +640,7 @@ enumError Dump_TMD_MEM
 	FILE * f,		// output stream
 	int indent,		// indent
 	const wd_tmd_t * tmd,	// valid pointer to ticket
-	int n_content,		// number of loaded wd_tmd_content_t elementzs
-	int dump_level		// dump level: 0..2
+	int n_content		// number of loaded wd_tmd_content_t elementzs
 )
 {
     ASSERT(f);
@@ -671,8 +714,7 @@ enumError Dump_HEAD_BIN
 	FILE * f,		// output stream
 	int indent,		// indent
 	SuperFile_t * sf,	// file to dump
-	ccp real_path,		// NULL or pointer to real path
-	int dump_level		// dump level: 0..2
+	ccp real_path		// NULL or pointer to real path
 )
 {
     ASSERT(sf);
@@ -709,8 +751,7 @@ enumError Dump_BOOT_BIN
 	FILE * f,		// output stream
 	int indent,		// indent
 	SuperFile_t * sf,	// file to dump
-	ccp real_path,		// NULL or pointer to real path
-	int dump_level		// dump level: 0..2
+	ccp real_path		// NULL or pointer to real path
 )
 {
     ASSERT(sf);
@@ -758,8 +799,7 @@ enumError Dump_FST_BIN
 	FILE * f,		// output stream
 	int indent,		// indent
 	SuperFile_t * sf,	// file to dump
-	ccp real_path,		// NULL or pointer to real path
-	int dump_level		// dump level: 0..2
+	ccp real_path		// NULL or pointer to real path
 )
 {
     ASSERT(sf);
@@ -1128,7 +1168,7 @@ iterator_prefix_mode_t ScanPrefixMode ( ccp arg )
 
 	{ IPM_NONE,		"NONE",		"-",		0 },
 	{ IPM_POINT,		"POINT",	".",		0 },
-	{ IPM_PART_IDENT,	"IDENT",	"I",		0 },
+	{ IPM_PART_INDEX,	"INDEX",	"I",		0 },
 	{ IPM_PART_NAME,	"NAME",		"N",		0 },
 
 	{ 0,0,0,0 }
@@ -2600,7 +2640,7 @@ u64 GenPartFST ( SuperFile_t * sf, WiiFstPart_t * part, ccp path, u64 base_off )
 
     //----- apploader.img
 
-    ccp fpath = PathCat2S(pathbuf,sizeof(pathbuf),path,"sys/apploader.img");
+    ccp fpath = PathCatPP(pathbuf,sizeof(pathbuf),path,"sys/apploader.img");
     const u32 app_fsize4 = GetFileSize(fpath,0) + 3 >> 2;
     imi = InsertIM(&part->im,IMT_FILE,WII_APL_OFF,(u64)app_fsize4<<2);
     imi->part = part;
@@ -2619,7 +2659,7 @@ u64 GenPartFST ( SuperFile_t * sf, WiiFstPart_t * part, ccp path, u64 base_off )
 	 cur_offset4 = good_off4;
     boot->dol_off4 = htonl(cur_offset4);
     
-    fpath = PathCat2S(pathbuf,sizeof(pathbuf),path,"sys/main.dol");
+    fpath = PathCatPP(pathbuf,sizeof(pathbuf),path,"sys/main.dol");
     const u32 dol_fsize4 = GetFileSize(fpath,0) + 3 >> 2;
     imi = InsertIM(&part->im,IMT_FILE,(u64)cur_offset4<<2,(u64)dol_fsize4<<2);
     imi->part = part;
@@ -2787,7 +2827,7 @@ enumError SetupReadFST ( SuperFile_t * sf )
 	char path_buf[PATH_MAX];
 	if ( stat & UPDATE_PART_FOUND )
 	{
-	    ccp path = PathCat2S(path_buf,sizeof(path_buf),sf->f.fname,update_path);
+	    ccp path = PathCatPP(path_buf,sizeof(path_buf),sf->f.fname,update_path);
 	    WiiFstPart_t * update_part = AppendPartFST(fst);
 	    update_part->part_type = UPDATE_PARTITION_TYPE;
 	    update_size = GenPartFST(sf,update_part,path,update_off);
@@ -2797,7 +2837,7 @@ enumError SetupReadFST ( SuperFile_t * sf )
 	    update_part->path = strdup(path);
 	}
 
-	ccp path = PathCat2S(path_buf,sizeof(path_buf),sf->f.fname,data_path);
+	ccp path = PathCatPP(path_buf,sizeof(path_buf),sf->f.fname,data_path);
 	data_part = AppendPartFST(fst);
 	data_part->part_type = DATA_PARTITION_TYPE;
 	data_size = GenPartFST(sf,data_part,path,data_off);
@@ -2809,7 +2849,7 @@ enumError SetupReadFST ( SuperFile_t * sf )
 	    if ( channel_off < data_end )
 		 channel_off = data_end;
 
-	    ccp path = PathCat2S(path_buf,sizeof(path_buf),sf->f.fname,channel_path);
+	    ccp path = PathCatPP(path_buf,sizeof(path_buf),sf->f.fname,channel_path);
 	    WiiFstPart_t * channel_part = AppendPartFST(fst);
 	    channel_part->part_type = CHANNEL_PARTITION_TYPE;
 	    channel_size = GenPartFST(sf,channel_part,path,channel_off);
@@ -3587,7 +3627,7 @@ static enumError PrintVerifyMessage ( Verify_t * ver, ccp msg )
 			part->is_encrypted ? ' ' : 'd' );
 	}
 
-	printf("%*s%-7s %s %n%-7s %6.6s %s\n",
+	printf("%*s%-7.7s %s %n%-7s %6.6s %s\n",
 		ver->indent, "",
 		msg, count_buf, &ver->info_indent,
 		pname_buf, ver->disc->id6,
@@ -3655,14 +3695,15 @@ static enumError VerifyHash
 
 	if ( ver->long_count > 1 )
 	{
+	    const size_t dsize = data_len < 16 ?  data_len : 16;
 	    printf("%*sDATA",ver->info_indent,"");
-	    HexDump(stdout,0,offset,10,WII_HASH_SIZE,hash,WII_HASH_SIZE);
+	    HexDump(stdout,0,offset,10,dsize,data,dsize);
 
 	    printf("%*sHASH",ver->info_indent,"");
-	    HexDump(stdout,0,offset+ref_delta,10,WII_HASH_SIZE,ref,WII_HASH_SIZE);
+	    HexDump(stdout,0,offset+ref_delta,10,-WII_HASH_SIZE,ref,WII_HASH_SIZE);
 
 	    printf("%*sVERIFY",ver->info_indent,"");
-	    HexDump(stdout,0,0,8,WII_HASH_SIZE,hash,WII_HASH_SIZE);
+	    HexDump(stdout,0,0,8,-WII_HASH_SIZE,hash,WII_HASH_SIZE);
 
 	    flush = true;
 	}

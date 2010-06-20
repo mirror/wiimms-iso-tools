@@ -513,13 +513,13 @@ wwt v0.42a r846 - 2010-04-19
   - The new wit option --sneek is an abbreviation of --psel=data --pmode=none.
     It also suppress creating files that SNEEK don't need.
 
-wwt v0.42b r871 - 2010-04-21 (repository only)
+wwt v0.42b r871 - 2010-04-21  (repository only)
 
   - The wiidisc interface now reads only well aligned (multiple of 512) data.
   - When creating a CISO the blocksize is now always a power of 2.
   - wwt+wit FILETYPE detect now extracted ISO file systems (FST).
 
-wwt v0.42c r873 - 2010-04-21 (repository only)
+wwt v0.42c r873 - 2010-04-21  (repository only)
 
   - Bug fix for wiidisc aligned reading (since v0.42b).
 
@@ -609,7 +609,7 @@ wit v0.48a r1145 - 2010-05-29
  - TMD and TICKET (=new) will be trucha signed if composing a disc.
  - All UTF-8 characters with code >= 0x80 are allowed in filenames.
 
-wit v0.48b r1164 - 2010-06-01 (repository only)
+wit v0.48b r1164 - 2010-06-01  (repository only)
 
  - Bug fix: If reading a very small WBFS file the old and buggy calculation
    in libwbfs for the free tables size results in zero. Accessing the non

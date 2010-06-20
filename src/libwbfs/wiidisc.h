@@ -81,7 +81,7 @@ typedef enum iterator_prefix_mode_t
 
     IPM_NONE,		// no prefix: ""
     IPM_POINT,		// prefix with "./"
-    IPM_PART_IDENT,	// prefix with 'P' and partition id: "P%u/"
+    IPM_PART_INDEX,	// prefix with 'P' and partition id: "P%u/"
     IPM_PART_NAME,	// prefix with partition name or "P<id>": "NAME/"
 
 } iterator_prefix_mode_t;

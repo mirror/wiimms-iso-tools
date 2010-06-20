@@ -68,6 +68,7 @@ typedef struct SuperFile_t
 	// internal values: file handling
 
 	off_t file_size;		// the size of the (virtual) ISO image
+	off_t min_file_size;		// if set: Call SetMinSizeSF() before closing
 	off_t max_virt_off;		// maximal used offset of virtual image
 
 	// read and write support
@@ -131,8 +132,23 @@ enumOFT SetupIOD ( SuperFile_t * sf, enumOFT force, enumOFT def );
 enumError SetupReadSF   ( SuperFile_t * sf );		// all files
 enumError SetupReadISO  ( SuperFile_t * sf );		// only iso images
 enumError SetupReadWBFS ( SuperFile_t * sf );		// setup wbfs/disc reading
+
 enumError OpenSF
-	( SuperFile_t * sf, ccp fname, bool allow_non_iso, bool open_modify );
+(
+	SuperFile_t * sf,
+	ccp fname,
+	bool allow_non_iso,
+	bool open_modify
+);
+
+enumError CreateSF
+(
+	SuperFile_t * sf,
+	ccp fname,
+	enumOFT oft,
+	enumIOMode iomode,
+	int overwrite
+);
 
 enumError SetupISOModifier ( SuperFile_t * sf );
 enumError RewriteModifiedSF ( SuperFile_t * fi, SuperFile_t * fo, struct WBFS_t * wbfs );
@@ -164,6 +180,8 @@ enumError WriteZeroISO	( SuperFile_t * sf, off_t off, size_t count );
 enumError WriteZeroWBFS	( SuperFile_t * sf, off_t off, size_t count );
 
 enumError SetSizeSF	( SuperFile_t * sf, off_t off );
+enumError SetMinSizeSF	( SuperFile_t * sf, off_t off );
+enumError MarkMinSizeSF ( SuperFile_t * sf, off_t off );
 
 // standard read and write wrappers
 
@@ -205,6 +223,11 @@ enumError CopyRawData	( SuperFile_t * in, SuperFile_t * out, off_t off, off_t si
 enumError CopyWDF	( SuperFile_t * in, SuperFile_t * out );
 enumError CopyWBFSDisc	( SuperFile_t * in, SuperFile_t * out );
 enumError CopyToWBFS	( SuperFile_t * in, SuperFile_t * out, u32 psel );
+
+enumError AppendF	(      File_t * in, SuperFile_t * out, off_t in_off, size_t count );
+enumError AppendSparseF	(      File_t * in, SuperFile_t * out, off_t in_off, size_t count );
+enumError AppendSF	( SuperFile_t * in, SuperFile_t * out, off_t in_off, size_t count );
+enumError AppendZeroSF	( SuperFile_t * out, off_t count );
 
 // diff functions
 

@@ -87,7 +87,7 @@ void DumpUsedOptions ( const InfoUI_t * iu, FILE * f, int indent );
 
 ///////////////////////////////////////////////////////////////////////////////
 
-void PrintHelp ( const InfoUI_t * iu, FILE * f, int indent );
+void PrintHelp ( const InfoUI_t * iu, FILE * f, int indent, ccp info );
 void PrintHelpCmd ( const InfoUI_t * iu, FILE * f, int indent, int cmd, ccp info );
 
 //

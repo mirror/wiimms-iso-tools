@@ -17,9 +17,14 @@
 [*] Other releases are available from [url=@@URI-HOME@@download.html][b]@@URI-HOME@@download.html[/b][/url].
 [/list]
 
-[size="2"][color="#0000c0"][b]There is also a GUI available:[/b][/color][/size]
+[size="2"][color="#0000c0"][b]There are also some GUI available:[/b][/color][/size]
 [list]
-[*] [url=@@URI-WIIJMANAGER@@][b]WiiJManager Multiplatform[/b][/url]
+[*] [url=@@URI-WIIJMANAGER@@][b]WiiJManager Multiplatform[/b], a WBFS manager GUI[/url]
+    A java GUI that acts like a WBFS manager. Converting of ISO images is also possible.
+[color=#ffffff].[/color]
+
+[*] [url=@@URI-QTWITGUI@@][b]qtwitgui[/b], manipulate and convert single ISO images.[/url]
+    This QT based GUI focus on manipulating single ISO images.
 [/list]
 
 [size="2"][color="#0000c0"][b]Change log:[/b][/color][/size]

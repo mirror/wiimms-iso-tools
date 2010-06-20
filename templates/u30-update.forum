@@ -14,9 +14,13 @@
 [*] Weitere Versionen sind unter [url=@@URI-HOME@@download.html][b]@@URI-HOME@@download.html[/b][/url] verfügbar.
 [/list]
 
-[size=120][color=#0000c0][b]Es existiert eine graphische Oberfläche (GUI) zur Bedienung von WIT:[/b][/color][/size]
+[size=120][color=#0000c0][b]Es existieren auch zwei graphische Oberflächen (GUI) zur Bedienung von WIT:[/b][/color][/size]
 [list]
-[*] [url=@@URI-WIIJMANAGER@@][b]WiiJManager Multiplatform[/b][/url]
+[*] [url=@@URI-WIIJMANAGER@@][b]WiiJManager Multiplatform[/b], ein WBFS-Manager[/url]
+    Dieses Java basierte GUI arbeitet wie andere WBFS-Manager. Umwandlung von einzelnen Wii ISO dics ist auch möglich.
+
+[*] [url=@@URI-QTWITGUI@@][b]qtwitgui[/b], Berarbetung einzelner Wii ISO discs.[/url]
+    Dieses QT basierte GUI bietet Dinge rund um die Bearbeitung (Kopieren, modifizieren) von einzelnen WIi ISO discs.
 [/list]
 
 [size=120][color=#0000c0][b]Höhepunkte dieser Version:[/b][/color][/size]

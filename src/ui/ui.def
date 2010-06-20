@@ -14,7 +14,7 @@
 	"Print program name and version and exit." )
 
 #:def_cmd( "HELP", "HELP|H|?", \
-	"wit HELP command [ignored]...", \
+	"wit HELP [command] [ignored]...", \
 	"Print help and exit. If the first non option is a valid command name," \
 	" then a help for the given command is printed." )
 
@@ -62,15 +62,15 @@
 	"wit LIST [source]...", \
 	"List all found ISO files." )
 
-#:def_cmd( "LIST_L", "LIST-L|LL", \
+#:def_cmd( "LIST_L", "LIST-L|LL|LISTL", \
 	"wit LIST-L [source]...", \
 	"List all found ISO files. Same as {LIST --long}." )
 
-#:def_cmd( "LIST_LL", "LIST-LL|LLL", \
+#:def_cmd( "LIST_LL", "LIST-LL|LLL|LISTLL", \
 	"wit LIST-LL [source]...", \
 	"List all found ISO files. Same as {LIST --long --long}." )
 
-#:def_cmd( "LIST_LLL", "LIST-LLL|LLLL", \
+#:def_cmd( "LIST_LLL", "LIST-LLL|LLLL|LISTLLL", \
 	"wit LIST-LLL [source]...", \
 	"List all found ISO files. Same as {LIST --long --long --long}." )
 
@@ -78,11 +78,11 @@
 	"wit ILIST [source]...", \
 	"List all files of all discs." )
 
-#:def_cmd( "ILIST_L", "ILIST-L|ILL", \
+#:def_cmd( "ILIST_L", "ILIST-L|ILL|ILISTL", \
 	"wit ILIST-L [source]...", \
 	"List all files of all discs. Same as {ILIST --long}." )
 
-#:def_cmd( "ILIST_LL", "ILIST-LL|ILLL", \
+#:def_cmd( "ILIST_LL", "ILIST-LL|ILLL|ILISTLL", \
 	"wit ILIST-LL [source]...", \
 	"List all files of all discs. Same as {ILIST --long --long}." )
 
@@ -275,7 +275,7 @@
 	" This $patching$ option expects a comma separated list of the" \
 	" following keywords (case ignored) as parameter: @NONE, DISC, BOOT," \
 	" TICKET, TMD, WBFS, ALL@ and @AUTO@ (default).\n" \
-	" All keyword can be prefixed by @'+'@ to enable that opton, by a" \
+	" All keywords can be prefixed by @'+'@ to enable that option, by a" \
 	" @'-'@ to disable it or by a @'='@ to enable that option and disable" \
 	" all others." )
 
@@ -317,6 +317,42 @@
 	" 'sz' is a floating point number followed by an optional unit factor" \
 	" (one of 'cb' [=1] or  'kmgtpe' [base=1000] or 'KMGTPE' [base=1024])." \
 	" The default unit is 'G' (GiB)." )
+
+#:def_opt( "CHUNK_MODE", "chunk-mode|chunkmode|chm", "CP", \
+	"mode", \
+	"Defines an operation mode for {--chunk-size} and {--max-chunks}." \
+	" Allowed keywords are @'ANY'@ to allow any values,, @'32K'@ to force" \
+	" chunk sizes with a multiple of 32 KiB, @'POW2'@ to force chunk sizes" \
+	" >=32K and with a power of 2 or @'ISO'@ for ISO images (more" \
+	" restrictive as @'POW2'@, best for USB loaders). The case of the" \
+	" keyword is ignored. The default key is @'ISO'@.\n" \
+	" @--chm@ is a short cut for @--chunk-mode@." )
+
+#:def_opt( "CHUNK_SIZE", "chunk-size|chunksize|chz", "CP", \
+	"sz", \
+	"Define the minimal chunk size if creating a CISO file. The default is" \
+	" to calculate the chunk size from the input file size and find a good" \
+	" value by using a minimal value of 1 MiB for {--chunk-mode @ISO@} and" \
+	" @32 KiB@ for modes @32K@ and @POW2@. For the modes @ISO@ and @POW2@" \
+	" the value is rounded up to the next power of 2. This calculation" \
+	" also depends from option {--max-chunks}.\n" \
+	"The parameter 'sz' is a floating point number followed by an optional" \
+	" unit factor (one of 'cb' [=1] or  'kmgtpe' [base=1000] or 'KMGTPE'" \
+	" [base=1024]). The default unit is 'M' (MiB). If the number is" \
+	" prefixed with a @'='@ then options {--chunk-mode} and {--max-chunks}" \
+	" are ignored and the given value is used without any rounding or" \
+	" changing.\n" \
+	"If the input file size is not known (e.g. reading from pipe), its" \
+	" size is assumed as @12 GiB@.\n" \
+	" @--chz@ is a short cut for @--chunk-size@." )
+
+#:def_opt( "MAX_CHUNKS", "max-chunks|maxchunks|mch", "CP", \
+	"n", \
+	"Define the maximal number of chunks if creating a CISO file. The" \
+	" default value is 8192 for {--chunk-mode ISO} and 32760 (maximal" \
+	" value) for all other modes. If this value is set than the automatic" \
+	" calculation  of {--chunk-size} will be modified too.\n" \
+	" @--mch@ is a short cut for @--max-chunks@." )
 
 #:def_opt( "PRESERVE", "p|preserve", "C", \
 	"", \
@@ -363,22 +399,22 @@
 
 #:def_opt( "ITIME", "itime", "C", \
 	"", \
-	"Select 'itime' (insertion time) for printing.@--itime@ is an" \
+	"Select 'itime' (insertion time) for printing. @--itime@ is an" \
 	" abbreviation of {--time i}." )
 
 #:def_opt( "MTIME", "mtime", "C", \
 	"", \
-	"Select 'mtime' (last modification time) for printing.@--mtime@ is an" \
+	"Select 'mtime' (last modification time) for printing. @--mtime@ is an" \
 	" abbreviation of {--time m}." )
 
 #:def_opt( "CTIME", "ctime", "C", \
 	"", \
-	"Select 'ctime' (last status change time) for printing.@--ctime@ is an" \
-	" abbreviation of {--time c}." )
+	"Select 'ctime' (last status change time) for printing. @--ctime@ is" \
+	" an abbreviation of {--time c}." )
 
 #:def_opt( "ATIME", "atime", "C", \
 	"", \
-	"Select 'atime' (last access time) for printing.@--atime@ is an" \
+	"Select 'atime' (last access time) for printing. @--atime@ is an" \
 	" abbreviation of {--time a}." )
 
 #:def_opt( "TIME", "time", "CMP", \
@@ -391,6 +427,19 @@
 #:def_opt( "LONG", "l|long", "CM", \
 	"", \
 	"Print in long format. Multiple usage possible." )
+
+#:def_opt( "SHOW", "show", "CP", \
+	"list", \
+	"This option allows fine control over the things that are to be" \
+	" printed. The parameter is a comma separated list of the following" \
+	" keywords, case is ignored:  @NONE, INTRO, P-TAB, P-INFO, P-MAP," \
+	" D-MAP, TICKET, TMD@ and @ALL@. There are some combined keys: @PART" \
+	" := P-INFO,P-MAP,TICKET,TMD@, @MAP := P-MAP,D-MAP@.All keywords can" \
+	" be prefixed by '+' to enable that option, by a '-' to disable it or" \
+	" by a '=' to enable that option and disable all others.\n" \
+	"The commands recognize only some of these keywords and ignore the" \
+	" others. If @--show@ is set, option {--long} is ignored for selecting" \
+	" output elements." )
 
 #:def_opt( "UNIQUE", "U|unique", "C", \
 	"", \
@@ -406,7 +455,7 @@
 
 #:def_opt( "SORT", "S|sort", "CP", \
 	"list", \
-	"Define the sort mode for lists. The parameter is a comma separated" \
+	"Define the sort mode for listings. The parameter is a comma separated" \
 	" list of the following keywords: @NONE, NAME, TITLE, FILE, SIZE," \
 	" OFFSET, REGION, WBFS, NPART, ITIME, MTIME, CTIME, ATIME, TIME =" \
 	" DATE, DEFAULT, ASCENDING, DESCENDING = REVERSE@." )
@@ -691,6 +740,10 @@
 	"", \
 	"If set at least once a memory map for each partition is printed. If" \
 	" set twice or more a memory map for whole ISO image is printed." )
+
+#:def_cmd_opt( "DUMP", "SHOW", \
+	"", \
+	"" )
 
 #:def_cmd_opt( "DREGION", "SOURCE", \
 	"", \
@@ -1790,6 +1843,18 @@
 	"", \
 	"" )
 
+#:def_cmd_opt( "COPY", "CHUNK_MODE", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "COPY", "CHUNK_SIZE", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "COPY", "MAX_CHUNKS", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "COPY", "WDF", \
 	"", \
 	"" )
@@ -1895,6 +1960,18 @@
 	"" )
 
 #:def_cmd_opt( "SCRUB", "SPLIT_SIZE", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "SCRUB", "CHUNK_MODE", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "SCRUB", "CHUNK_SIZE", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "SCRUB", "MAX_CHUNKS", \
 	"", \
 	"" )
 
@@ -2352,8 +2429,8 @@
 
 #:def_tool( "wwt", \
 	"wwt [option]... command [option|parameter|@file]...", \
-	"Wiimms WBFS Tool (WBFS manager) : It can create, check, verify," \
-	" repair and clone WBFS files and partitions. It can list, add," \
+	"Wiimms WBFS Tool (WBFS manager) : It can create, check, repair," \
+	" verify and clone WBFS files and partitions. It can list, add," \
 	" extract, remove and rename ISO images as part of a WBFS." )
 
 #:def_cmd( "VERSION", "VERSION", \
@@ -2361,7 +2438,7 @@
 	"Print program name and version and exit." )
 
 #:def_cmd( "HELP", "HELP|H|?", \
-	"wwt HELP command [ignored]...", \
+	"wwt HELP [command] [ignored]...", \
 	"Print help and exit. If the first non option is a valid command name," \
 	" then a help for the given command is printed." )
 
@@ -2407,25 +2484,25 @@
 	"wwt LIST [wbfs_partition]...", \
 	"List all discs of WBFS partitions." )
 
-#:def_cmd( "LIST_L", "LIST-L|LL", \
+#:def_cmd( "LIST_L", "LIST-L|LL|LISTL", \
 	"wwt LIST-L [wbfs_partition]...", \
 	"List all discs of WBFS partitions. Same as {LIST --long}." )
 
-#:def_cmd( "LIST_LL", "LIST-LL|LLL", \
+#:def_cmd( "LIST_LL", "LIST-LL|LLL|LISTLL", \
 	"wwt LIST-LL [wbfs_partition]...", \
 	"List all discs of WBFS partitions. Same as {LIST --long --long}." )
 
-#:def_cmd( "LIST_A", "LIST-A|LA", \
+#:def_cmd( "LIST_A", "LIST-A|LA|LISTA", \
 	"wwt LIST-A [wbfs_partition]...", \
 	"List all discs of all WBFS partitions. Same as {LIST --long --long" \
 	" --auto}." )
 
-#:def_cmd( "LIST_M", "LIST-M|LM", \
+#:def_cmd( "LIST_M", "LIST-M|LM|LISTM", \
 	"wwt LIST-M [wbfs_partition]...", \
 	"List all discs of WBFS partitions in mixed view. Same as {LIST --long" \
 	" --long --mixed}." )
 
-#:def_cmd( "LIST_U", "LIST-U|LU", \
+#:def_cmd( "LIST_U", "LIST-U|LU|LISTU", \
 	"wwt LIST-U [wbfs_partition]...", \
 	"List all discs of WBFS partitions in mixed view. Same as {LIST --long" \
 	" --long --unique}." )
@@ -2674,7 +2751,7 @@
 	" This $patching$ option expects a comma separated list of the" \
 	" following keywords (case ignored) as parameter: @NONE, DISC, BOOT," \
 	" TICKET, TMD, WBFS, ALL@ and @AUTO@ (default).\n" \
-	" All keyword can be prefixed by @'+'@ to enable that opton, by a" \
+	" All keywords can be prefixed by @'+'@ to enable that option, by a" \
 	" @'-'@ to disable it or by a @'='@ to enable that option and disable" \
 	" all others." )
 
@@ -2702,6 +2779,42 @@
 	" 'sz' is a floating point number followed by an optional unit factor" \
 	" (one of 'cb' [=1] or  'kmgtpe' [base=1000] or 'KMGTPE' [base=1024])." \
 	" The default unit is 'G' (GiB)." )
+
+#:def_opt( "CHUNK_MODE", "chunk-mode|chunkmode|chm", "CP", \
+	"mode", \
+	"Defines an operation mode for {--chunk-size} and {--max-chunks}." \
+	" Allowed keywords are @'ANY'@ to allow any values,, @'32K'@ to force" \
+	" chunk sizes with a multiple of 32 KiB, @'POW2'@ to force chunk sizes" \
+	" >=32K and with a power of 2 or @'ISO'@ for ISO images (more" \
+	" restrictive as @'POW2'@, best for USB loaders). The case of the" \
+	" keyword is ignored. The default key is @'ISO'@.\n" \
+	" @--chm@ is a short cut for @--chunk-mode@." )
+
+#:def_opt( "CHUNK_SIZE", "chunk-size|chunksize|chz", "CP", \
+	"sz", \
+	"Define the minimal chunk size if creating a CISO file. The default is" \
+	" to calculate the chunk size from the input file size and find a good" \
+	" value by using a minimal value of 1 MiB for {--chunk-mode @ISO@} and" \
+	" @32 KiB@ for modes @32K@ and @POW2@. For the modes @ISO@ and @POW2@" \
+	" the value is rounded up to the next power of 2. This calculation" \
+	" also depends from option {--max-chunks}.\n" \
+	"The parameter 'sz' is a floating point number followed by an optional" \
+	" unit factor (one of 'cb' [=1] or  'kmgtpe' [base=1000] or 'KMGTPE'" \
+	" [base=1024]). The default unit is 'M' (MiB). If the number is" \
+	" prefixed with a @'='@ then options {--chunk-mode} and {--max-chunks}" \
+	" are ignored and the given value is used without any rounding or" \
+	" changing.\n" \
+	"If the input file size is not known (e.g. reading from pipe), its" \
+	" size is assumed as @12 GiB@.\n" \
+	" @--chz@ is a short cut for @--chunk-size@." )
+
+#:def_opt( "MAX_CHUNKS", "max-chunks|maxchunks|mch", "CP", \
+	"n", \
+	"Define the maximal number of chunks if creating a CISO file. The" \
+	" default value is 8192 for {--chunk-mode ISO} and 32760 (maximal" \
+	" value) for all other modes. If this value is set than the automatic" \
+	" calculation  of {--chunk-size} will be modified too.\n" \
+	" @--mch@ is a short cut for @--max-chunks@." )
 
 #:def_opt( "SIZE", "s|size", "CP", \
 	"size", \
@@ -2733,8 +2846,9 @@
 	" comma separated list of the following keywords, case is ignored:" \
 	" @NONE, FBT, INODES, STANDARD, RM-INVALID, RM-OVERLAP, RM-FREE," \
 	" RM-EMPTY, RM-ALL, ALL@.\n" \
-	" All keyword can be prefixed by '+' to enable that opton, by a '-' to" \
-	" disable it or by a '=' to enable that option and disable all others." )
+	" All keywords can be prefixed by '+' to enable that option, by a '-'" \
+	" to disable it or by a '=' to enable that option and disable all" \
+	" others." )
 
 #:def_opt( "NO_FREE", "no-free|nofree", "C", \
 	"", \
@@ -2789,22 +2903,22 @@
 
 #:def_opt( "ITIME", "itime", "C", \
 	"", \
-	"Select 'itime' (insertion time) for printing.@--itime@ is an" \
+	"Select 'itime' (insertion time) for printing. @--itime@ is an" \
 	" abbreviation of {--time i}." )
 
 #:def_opt( "MTIME", "mtime", "C", \
 	"", \
-	"Select 'mtime' (last modification time) for printing.@--mtime@ is an" \
+	"Select 'mtime' (last modification time) for printing. @--mtime@ is an" \
 	" abbreviation of {--time m}." )
 
 #:def_opt( "CTIME", "ctime", "C", \
 	"", \
-	"Select 'ctime' (last status change time) for printing.@--ctime@ is an" \
-	" abbreviation of {--time c}." )
+	"Select 'ctime' (last status change time) for printing. @--ctime@ is" \
+	" an abbreviation of {--time c}." )
 
 #:def_opt( "ATIME", "atime", "C", \
 	"", \
-	"Select 'atime' (last access time) for printing.@--atime@ is an" \
+	"Select 'atime' (last access time) for printing. @--atime@ is an" \
 	" abbreviation of {--time a}." )
 
 #:def_opt( "TIME", "time", "CMP", \
@@ -2840,7 +2954,7 @@
 
 #:def_opt( "SORT", "S|sort", "CP", \
 	"list", \
-	"Define the sort mode for lists. The parameter is a comma separated" \
+	"Define the sort mode for listings. The parameter is a comma separated" \
 	" list of the following keywords: @NONE, NAME, TITLE, FILE, SIZE," \
 	" OFFSET, REGION, WBFS, NPART, ITIME, MTIME, CTIME, ATIME, TIME =" \
 	" DATE, DEFAULT, ASCENDING, DESCENDING = REVERSE@." )
@@ -2915,7 +3029,7 @@
 
 #:def_cmd_opt( "FIND", "LONG", \
 	"", \
-	"Without @--long@ only partition names of WBGS partitons are printed." \
+	"Without @--long@ only partition names of WBFS partitions are printed." \
 	" If option @--long@ is set then additional infos are printed for each" \
 	" partition, WBFS or not. If option @--long@ is set at least twice the" \
 	" real path is printed." )
@@ -2987,9 +3101,9 @@
 #:def_cmd_opt( "DUMP", "LONG", \
 	"", \
 	"If set then print a status for each valid disc within WBFS. If set" \
-	" twice print a memory map for each shsown disc too. If set three" \
-	" times print an additional memory map for the whole WBFS. If set four" \
-	" times activate {--inode} too." )
+	" twice print a memory map for each shown disc too. If set three times" \
+	" print an additional memory map for the whole WBFS. If set four times" \
+	" activate {--inode} too." )
 
 #:def_cmd_opt( "ID6", "AUTO", \
 	"", \
@@ -3705,9 +3819,9 @@
 	" comma separated list of the following keywords, case is ignored:" \
 	" @NONE, FBT, INODES, STANDARD, RM-INVALID, RM-OVERLAP, RM-FREE," \
 	" RM-EMPTY, RM-ALL, ALL@.\n" \
-	" All keyword can be prefixed by '+' to enable that opton, by a '-' to" \
-	" disable it or by a '=' to enable that option and disable all others." \
-	" The default is 'NONE'." )
+	" All keywords can be prefixed by '+' to enable that option, by a '-'" \
+	" to disable it or by a '=' to enable that option and disable all" \
+	" others. The default is 'NONE'." )
 
 #:def_cmd_opt( "CHECK", "TEST", \
 	"", \
@@ -3763,9 +3877,9 @@
 	" comma separated list of the following keywords, case is ignored:" \
 	" @NONE, FBT, INODES, STANDARD, RM-INVALID, RM-OVERLAP, RM-FREE," \
 	" RM-EMPTY, RM-ALL, ALL@.\n" \
-	" All keyword can be prefixed by '+' to enable that opton, by a '-' to" \
-	" disable it or by a '=' to enable that option and disable all others." \
-	" The default is 'STANDARD' (FBT,INODES)." )
+	" All keywords can be prefixed by '+' to enable that option, by a '-'" \
+	" to disable it or by a '=' to enable that option and disable all" \
+	" others. The default is 'STANDARD' (FBT,INODES)." )
 
 #:def_cmd_opt( "REPAIR", "TEST", \
 	"", \
@@ -4361,6 +4475,18 @@
 	"", \
 	"" )
 
+#:def_cmd_opt( "EXTRACT", "CHUNK_MODE", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "EXTRACT", "CHUNK_SIZE", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "EXTRACT", "MAX_CHUNKS", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "EXTRACT", "WDF", \
 	"", \
 	"" )
@@ -4803,10 +4929,10 @@
 
 #:def_cmd_opt( "VERIFY", "PSEL", \
 	"", \
-	"This option defines which types of partitons are verified. One of the" \
-	" following values is allowed, case is ignored: DATA, NO-DATA, UPDATE," \
-	" NO-UPDATE, CHANNEL, NO-CHANNEL ALL, WHOLE, RAW. The default value is" \
-	" 'ALL'." )
+	"This option defines which types of partitions are verified. One of" \
+	" the following values is allowed, case is ignored: DATA, NO-DATA," \
+	" UPDATE, NO-UPDATE, CHANNEL, NO-CHANNEL ALL, WHOLE, RAW. The default" \
+	" value is 'ALL'." )
 
 #:def_cmd_opt( "VERIFY", "RAW", \
 	"", \

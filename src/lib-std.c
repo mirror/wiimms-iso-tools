@@ -45,6 +45,7 @@ volatile int verbose		= 0;
 volatile int logging		= 0;
 int progress			= 0;
 SortMode sort_mode		= SORT_DEFAULT;
+ShowMode show_mode		= SHOW__DEFAULT;
 RepairMode repair_mode		= REPAIR_NONE;
 char escape_char		= '%';
 enumOFT output_file_type	= OFT_UNKNOWN;
@@ -548,6 +549,8 @@ ccp GetErrorName ( int stat )
     {
 	case ERR_OK:			return "OK";
 	case ERR_DIFFER:		return "FILES DIFFER";
+	case ERR_NOTHING_TO_DO:		return "NOTHING TO DO";
+	case ERR_NO_SOURCE_FOUND:	return "NO SOURCE FOUND";
 	case ERR_JOB_IGNORED:		return "JOB IGNORED";
 	case ERR_WARNING:		return "WARNING";
 
@@ -599,6 +602,8 @@ ccp GetErrorText ( int stat )
     {
 	case ERR_OK:			return "Ok";
 	case ERR_DIFFER:		return "Files differ";
+	case ERR_NOTHING_TO_DO:		return "Nothing to do";
+	case ERR_NO_SOURCE_FOUND:	return "No source file found";
 	case ERR_JOB_IGNORED:		return "Job Ignored";
 	case ERR_WARNING:		return "Warning";
 
@@ -750,7 +755,11 @@ void HexDump ( FILE * f, int indent, u64 addr, int addr_fw, int row_len,
 
     indent = NormalizeIndent(indent);
     addr_fw = NormalizeIndent(addr_fw);
-    if ( row_len < 1 )
+
+    const bool show_ascii = row_len >= 0;
+    if ( row_len < 0 )
+	row_len = -row_len;
+    else if ( row_len < 1 )
 	row_len = 16;
     else if ( row_len > MAX_LEN )
 	row_len = MAX_LEN;
@@ -779,7 +788,10 @@ void HexDump ( FILE * f, int indent, u64 addr, int addr_fw, int row_len,
 		fprintf(f,"%s   ", i&3 ? "" : " " );
 	}
 	*dest = 0;
-	fprintf(f,":%s:\n",buf);
+	if (show_ascii)
+	    fprintf(f,":%s:\n",buf);
+	else
+	    fputc('\n',f);
     }
 }
 
@@ -997,8 +1009,10 @@ char * StringCat3S ( char * buf, size_t buf_size, ccp src1, ccp src2, ccp src3 )
 
 ///////////////////////////////////////////////////////////////////////////////
 
-ccp PathCat2S ( char *buf, size_t bufsize, ccp path1, ccp path2 )
+ccp PathCatPP ( char * buf, size_t bufsize, ccp path1, ccp path2 )
 {
+    // concatenate path + path
+
     if ( !path1 || !*path1 )
 	return path2 ? path2 : "";
 
@@ -1006,12 +1020,35 @@ ccp PathCat2S ( char *buf, size_t bufsize, ccp path1, ccp path2 )
 	return path1;
 
     char * ptr = StringCopyS(buf,bufsize-1,path1);
-    ASSERT( ptr > buf );
+    DASSERT( ptr > buf );
     if ( ptr[-1] != '/' )
 	*ptr++ = '/';
     while ( *path2 == '/' )
 	path2++;
     StringCopyE(ptr,buf+bufsize,path2);
+    return buf;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+ccp PathCatPPE ( char * buf, size_t bufsize, ccp path1, ccp path2, ccp ext )
+{
+    // concatenate path + path + extension
+
+    char * ptr = path1 ? StringCopyS(buf,bufsize-1,path1) : buf;
+    if ( ptr > buf && ptr[-1] != '/' )
+	*ptr++ = '/';
+
+    if (path2)
+    {
+	while ( *path2 == '/' )
+	    path2++;
+	ptr = StringCopyE(ptr,buf+bufsize,path2);
+    }
+
+    if (ext)
+	StringCopyE(ptr,buf+bufsize,ext);
+
     return buf;
 }
 
@@ -1997,7 +2034,8 @@ const CommandTab_t * ScanCommand
 
 ///////////////////////////////////////////////////////////////////////////////
 
-int ScanCommandList ( ccp arg, const CommandTab_t * cmd_tab, CommandCallbackFunc func )
+int ScanCommandList
+	( ccp arg, const CommandTab_t * cmd_tab, CommandCallbackFunc func )
 {
     ASSERT(arg);
 
@@ -2104,6 +2142,66 @@ SortMode ScanSortMode ( ccp arg )
 
     ERROR0(ERR_SYNTAX,"Illegal sort mode (option --sort): '%s'\n",arg);
     return SORT__ERROR;
+}
+
+//-----------------------------------------------------------------------------
+
+int ScanOptSort ( ccp arg )
+{
+    const SortMode new_mode = ScanSortMode(arg);
+    if ( new_mode == SORT__ERROR )
+	return 1;
+
+    TRACE("SORT-MODE set: %d -> %d\n",sort_mode,new_mode);
+    sort_mode = new_mode;
+    return 0;
+}
+
+//
+///////////////////////////////////////////////////////////////////////////////
+///////////////                    show mode                    ///////////////
+///////////////////////////////////////////////////////////////////////////////
+
+ShowMode ScanShowMode ( ccp arg )
+{
+    static const CommandTab_t tab[] =
+    {
+	{ SHOW__NONE,	"NONE",		"-",		SHOW__ALL },
+	{ SHOW__ALL,	"ALL",		0,		0 },
+
+	{ SHOW_INTRO,	"INTRO",	0,		0 },
+	{ SHOW_P_TAB,	"P-TAB",	"PTAB",		0 },
+	{ SHOW_P_INFO,	"P-INFO",	"PINFO",	0 },
+	{ SHOW_P_MAP,	"P-MAP",	"PMAP",		0 },
+	{ SHOW_D_MAP,	"D-MAP",	"DMAP",		0 },
+	{ SHOW_TICKET,	"TICKET",	0,		0 },
+	{ SHOW_TMD,	"TMD",		0,		0 },
+
+	{ SHOW__PART,	"PART",		0,		0 },
+	{ SHOW__MAP,	"MAP",		0,		0 },
+
+	{ 0,0,0,0 }
+    };
+
+    int stat = ScanCommandList(arg,tab,0);
+    if ( stat != -1 )
+	return stat;
+
+    ERROR0(ERR_SYNTAX,"Illegal show mode (option --show): '%s'\n",arg);
+    return SHOW__ERROR;
+}
+
+//-----------------------------------------------------------------------------
+
+int ScanOptShow ( ccp arg )
+{
+    const ShowMode new_mode = ScanShowMode(arg);
+    if ( new_mode == SHOW__ERROR )
+	return 1;
+
+    TRACE("SHOW-MODE set: %d -> %d\n",show_mode,new_mode);
+    show_mode = new_mode;
+    return 0;
 }
 
 //
