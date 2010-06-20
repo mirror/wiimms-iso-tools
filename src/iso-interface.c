@@ -200,15 +200,13 @@ enumError Dump_ISO
     if ( show_mode == SHOW__DEFAULT )
       switch(dump_level)
       {
-	case 0:  show_mode = SHOW_P_TAB; break;
+	case 0:  show_mode = SHOW_INTRO | SHOW_P_TAB; break;
 	case 1:  show_mode = SHOW__ALL & ~SHOW_D_MAP; break;
 	default: show_mode = SHOW__ALL; break;
       }
 
     wiidisc_t * disc = 0;
     u32 used_blocks = 0, used_mib = 0;
-    indent = NormalizeIndent(indent);
-
     if ( show_mode & SHOW_INTRO )
 	dump_header(f,indent,sf,real_path);
     enumError err = ReadSF(sf,0,&wdi.dhead,sizeof(wdi.dhead));
@@ -219,6 +217,8 @@ enumError Dump_ISO
     err = LoadPartitionInfo(sf, &wdi, show_mode & SHOW_D_MAP ? &mm : 0 );
     if (err)
 	goto dump_mm;
+
+    indent = NormalizeIndent(indent) + 2;
 
     if ( show_mode & SHOW_INTRO )
     {

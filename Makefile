@@ -15,7 +15,7 @@ WIT_LONG		= Wiimms ISO Tool
 WWT_SHORT		= wwt
 WWT_LONG		= Wiimms WBFS Tool
 
-VERSION			= 1.01a
+VERSION			= 1.01b
 
 URI_HOME		= http://wit.wiimm.de/
 URI_DOWNLOAD		= http://wit.wiimm.de/download

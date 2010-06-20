@@ -1,26 +1,8 @@
-wit v1.00a r1214 - 2010-06-12
-
- - Because I finished my work with wwt (the WBFS manager) it's time to
-   declare Version 1.00. The tool wit is still under development.
- - This is the last version which supports the three tools iso2wbfs, iso2wdf
-   and wdf2iso. Use the more powerful command 'wit copy' instead.
- - Makefile changes:
-    - File './include-local' is not included anymore. Instead the file
-      'makefiles-local/Makefile.local.$(SYSTEM)' is included.
-    - make chmod: change mode 775/644 for known dirs and files.
-    - make chown: change owner of all dirs+files to owner of '.'.
-    - make chgrp: change group of all dirs+files to group of '.'.
-    - make ch+  := make chmod chown chgrp
- - wit DUMP: Output improved.
- - wit DUMP can now dump data structure of Wii ISO files, ticket.bin (new!),
-   tmd.bin (new!), header.bin (new!), boot.bin, fst.bin and of DOL-files.
-   The file type is detected automatically by analyzing the content.
-
 wit v1.00b r1218 - 2010-06-12  (repository only)
 
  - The tools iso2wbfs, iso2wdf and wdf2iso have been removed. Use wit instead.
 
-wit v@.@@@ r@@REV-NEXT@@ - @@@@-@@-@@
+wit v1.01a r1245 - 2010-06-20
 
  - CISO support: The new options --chunk-mode, --chunk-size and --max-chunks
    gives the user the control over chunk size when creating a CISO file.
@@ -38,11 +20,14 @@ wit v@.@@@ r@@REV-NEXT@@ - @@@@-@@-@@
  - Bug fix for option --pmode: keyword INDEX is enabled now.
  - New warnings (exit status): "Nothing to do" and "No source file found".
 
-To do:
+wit v@.@@@ r@@REV-NEXT@@ - @@@@-@@-@@
 
- - Error code for: No source found
+ - Bug fix for "wit DUMP":
+    - If neither --show nor --long is set, the head parameters are not printed.
+    - Indention was wrong.
 
 Missing docu:
 
  - wit commands ILIST + EXTRACT
+ - Option --show
 
