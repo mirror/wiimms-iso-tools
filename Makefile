@@ -23,10 +23,10 @@ URI_FILE		= http://wit.wiimm.de/file
 URI_REPOS		= http://opensvn.wiimm.de/wii/trunk/wiimms-iso-tools/
 URI_VIEWVC		= http://wit.wiimm.de/viewvc
 
-URI_WDF			= http://wiimm.de/r/wdf
-URI_CISO		= http://wiimm.de/r/ciso
-URI_WIIJMANAGER		= http://wiimm.de/r/wiijman
-URI_QTWITGUI		= http://wiimm.de/r/qtwitgui
+URI_WDF			= http://wit.wiimm.de/r/wdf
+URI_CISO		= http://wit.wiimm.de/r/ciso
+URI_WIIJMANAGER		= http://wit.wiimm.de/r/wiijman
+URI_QTWITGUI		= http://wit.wiimm.de/r/qtwitgui
 URI_GBATEMP		= http://gbatemp.net/index.php?showtopic=182236\#entry2286365
 URI_DOWNLOAD_I386	= $(URI_DOWNLOAD)/$(DISTRIB_I386)
 URI_DOWNLOAD_X86_64	= $(URI_DOWNLOAD)/$(DISTRIB_X86_64)
@@ -72,7 +72,7 @@ WDF_LINKS	:= WdfCat UnWdf WdfCmp WdfDump Ciso CisoCat UnCiso Wbi
 
 RM_FILES	+= $(ALL_TOOLS) $(WDF_LINKS)
 
-DIR_LIST	=
+DIR_LIST	= test-libwbfs
 
 #-------------------------------------------------------------------------------
 # source files
@@ -300,7 +300,7 @@ debug:
 	@rm -f *.o $(ALL_TOOLS)
 	@echo "-DDEBUG" >>$(MODE_FILE)
 	@sort $(MODE_FILE) | uniq > $(MODE_FILE).tmp
-# 2 steps because a cygwin mv failure
+# 2 steps to bypass a cygwin mv failure
 	@cp $(MODE_FILE).tmp $(MODE_FILE)
 	@rm -f $(MODE_FILE).tmp
 
@@ -449,20 +449,28 @@ test:
 	@rm -f *.o $(ALL_TOOLS)
 	@echo "-DTEST" >>$(MODE_FILE)
 	@sort $(MODE_FILE) | uniq > $(MODE_FILE).tmp
-# 2 steps because a cygwin mv failure
+# 2 steps to bypass a cygwin mv failure
 	@cp $(MODE_FILE).tmp $(MODE_FILE)
 	@rm -f $(MODE_FILE).tmp
 
 #
 #--------------------------
 
-.PHONY : testtrace
-testtrace:
+.PHONY : test-libwbfs
+test-libwbfs:
+	@echo "***    make test-libwbfs"
+	@cd test-libwbfs && make
+
+#
+#--------------------------
+
+.PHONY : test-trace
+test-trace:
 	@echo "***  enable testtrace (-DTESTTRACE)"
 	@rm -f *.o $(ALL_TOOLS)
 	@echo "-DTESTTRACE" >>$(MODE_FILE)
 	@sort $(MODE_FILE) | uniq > $(MODE_FILE).tmp
-# 2 steps because a cygwin mv failure
+# 2 steps to bypass a cygwin mv failure
 	@cp $(MODE_FILE).tmp $(MODE_FILE)
 	@rm -f $(MODE_FILE).tmp
 

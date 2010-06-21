@@ -1,7 +1,3 @@
-wit v1.00b r1218 - 2010-06-12  (repository only)
-
- - The tools iso2wbfs, iso2wdf and wdf2iso have been removed. Use wit instead.
-
 wit v1.01a r1245 - 2010-06-20
 
  - CISO support: The new options --chunk-mode, --chunk-size and --max-chunks
@@ -20,11 +16,13 @@ wit v1.01a r1245 - 2010-06-20
  - Bug fix for option --pmode: keyword INDEX is enabled now.
  - New warnings (exit status): "Nothing to do" and "No source file found".
 
-wit v@.@@@ r@@REV-NEXT@@ - @@@@-@@-@@
+wit v1.01b r1248 - 2010-06-20
 
  - Bug fix for "wit DUMP":
-    - If neither --show nor --long is set, the head parameters are not printed.
+    - If neither --show nor --long is set the head parameters was not printed.
     - Indention was wrong.
+
+wit v@.@@@ r@@REV-NEXT@@ - @@@@-@@-@@
 
 Missing docu:
 

@@ -684,8 +684,50 @@ int part_control_is_trucha_signed ( const wd_part_control_t * pc )
 
 //
 ///////////////////////////////////////////////////////////////////////////////
-///////////////		    struct wd_part_control_t		///////////////
+///////////////			default helpers			///////////////
 ///////////////////////////////////////////////////////////////////////////////
+
+unsigned char * wbfs_sha1_fake
+	( const unsigned char *d, size_t n, unsigned char *md )
+{
+    memset(md,0,sizeof(*md));
+    return 0;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+void wbfs_print_error
+	( ccp func, ccp file, uint line, int level, ccp format, ... )
+{
+    fflush(stdout);
+
+    ccp msg_prefix, msg_name;
+    switch(level)
+    {
+	case 0:  msg_prefix = "! ";   msg_name = "WARNING"; break;
+	case 1:  msg_prefix = "!! ";  msg_name = "ERROR"; break;
+	default: msg_prefix = "!!! "; msg_name = "FATAL ERROR"; break;
+    }
+    
+    fprintf(stderr,"%s%s in %s() @ %s#%d\n",
+	msg_prefix, msg_name, func, file, line );
+
+    if (format)
+    {
+	fputs(msg_prefix,stderr);
+	va_list arg;
+	va_start(arg,format);
+	vfprintf(stderr,format,arg);
+	va_end(arg);
+	if ( format[strlen(format)-1] != '\n' )
+	    fputc('\n',stderr);
+    }
+
+    fflush(stderr);
+    
+    if ( level >= 2 )
+	exit(ERR_FATAL);
+}
 
 //
 ///////////////////////////////////////////////////////////////////////////////

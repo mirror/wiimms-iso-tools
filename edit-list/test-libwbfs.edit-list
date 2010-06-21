@@ -1,0 +1,3 @@
+../test-libwbfs/*.[ch] ;
+@libwbfs-only.edit-list
+../test-libwbfs/Mafefile. ;
