@@ -106,7 +106,7 @@ all+: clean all
 
 .PHONY : clean
 clean:
-	@echo "***      rm output files + distrib"
+	@echo "***      rm output files"
 	@rm -f $(RM_FILES)
 
 #

@@ -33,8 +33,8 @@ int main ( int argc, char ** argv )
     wbfs_warning(0);
     wbfs_warning("%d Warning",1);
     wbfs_error("Error");
-    wbfs_fatal("Fatal");
-    wbfs_error("should not reached");
+    OUT_OF_MEMORY;
+    wbfs_fatal("should not reached");
  #endif
 
     return 0;

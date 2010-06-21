@@ -12,4 +12,3 @@
 ../src/wbfs-interface.[ch] ;
 ../src/*.{c,h} ;
 ../src/&/*.{c,h,s,S} ;
-../src/libwbfs/reference.txt ;
