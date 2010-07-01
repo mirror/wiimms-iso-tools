@@ -24,6 +24,10 @@ wit v1.01b r1248 - 2010-06-20
 
 wit v@.@@@ r@@REV-NEXT@@ - @@@@-@@-@@
 
+ - Bug fix for "wit COPY": If converting an ISO to a plain iso file (*.iso) in
+   scrubbing mode the destination file was truncated to the needed size. Now
+   it is extended to 4 699 979 776 bytes again.
+
 Missing docu:
 
  - wit commands ILIST + EXTRACT

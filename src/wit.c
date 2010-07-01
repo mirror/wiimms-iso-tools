@@ -1253,7 +1253,6 @@ enumError exec_copy ( SuperFile_t * fi, Iterator_t * it )
     if (opt_split)
 	SetupSplitFile(&fo.f,oft,opt_split_size);
 
-    fo.file_size = fi->file_size;
     err = SetupWriteSF(&fo,oft);
     if (err)
 	goto abort;
