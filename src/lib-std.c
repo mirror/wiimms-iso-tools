@@ -281,6 +281,7 @@ void SetupLib ( int argc, char ** argv, ccp p_progname, enumProgID prid )
     TRACE_SIZEOF(wd_part_header_t);
     TRACE_SIZEOF(wd_part_sector_t);
     TRACE_SIZEOF(wd_part_t);
+    TRACE_SIZEOF(wd_print_fst_t);
     TRACE_SIZEOF(wd_ptab_info_t);
     TRACE_SIZEOF(wd_ptab_entry_t);
     TRACE_SIZEOF(wd_region_t);

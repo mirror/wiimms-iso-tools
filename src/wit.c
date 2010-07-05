@@ -809,7 +809,10 @@ enumError exec_ilist ( SuperFile_t * fi, Iterator_t * it )
 	prefix_len = 0;
     }
 
-    wd_print_fst_header(stdout,0,pfst,fst.max_path_len+prefix_len);
+    wd_print_fst_t pf;
+    wd_initialize_print_fst(&pf,pfst,stdout,0,fst.fst_max_off4,fst.fst_max_size);
+    if ( show_mode & SHOW_F_HEAD )
+	wd_print_fst_header(&pf,fst.max_path_len+prefix_len);
     
     WiiFstPart_t *part, *part_end = fst.part + fst.part_used;
     for ( part = fst.part; part < part_end; part++ )
@@ -818,9 +821,9 @@ enumError exec_ilist ( SuperFile_t * fi, Iterator_t * it )
 	WiiFstFile_t * end = ptr + part->file_used;
 
 	for ( ; ptr < end; ptr++ )
-	    wd_print_fst_item( stdout, 0, part->part,
+	    wd_print_fst_item( &pf, part->part,
 			ptr->icm, ptr->offset4, ptr->size,
-			prefix, ptr->path, pfst );
+			prefix, ptr->path );
     }
  
     ResetFST(&fst);

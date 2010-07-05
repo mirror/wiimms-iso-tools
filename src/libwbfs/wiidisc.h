@@ -214,9 +214,11 @@ typedef struct wd_part_t
     u32		apl_size;		// size of apploader.img
 
     wd_fst_item_t * fst;		// pointer to fst data
-    u32		n_fst;			// number or elements in fst
-    u32		dir_count;		// informative: number or directories in fst
-    u32		file_count;		// informative: number or real files in fst
+    u32		fst_n;			// number or elements in fst
+    u32		fst_max_off4;		// maximal offset4 value of all files
+    u32		fst_max_size;		// maximal size value of all files
+    u32		fst_dir_count;		// informative: number or directories in fst
+    u32		fst_file_count;		// informative: number or real files in fst
 
 } wd_part_t;
 
@@ -249,8 +251,8 @@ typedef struct wd_disc_t
     int		n_ptab;			// number of valid partition tables
     int		n_part;			// number of partitions
     wd_part_t * part;			// partition data
-    u32		dir_count;		// informative: number or directories in fst
-    u32		file_count;		// informative: number or real files in fst
+    u32		fst_dir_count;		// informative: number or directories in fst
+    u32		fst_file_count;		// informative: number or real files in fst
     bool	patch_ptab_recommended;	// informative: pacth ptab is recommended
 
     //----- usage table
@@ -306,6 +308,32 @@ typedef struct wd_iterator_t
     char		*fst_name;	// pointer := path + prefix_len
 
 } wd_iterator_t;
+
+//
+///////////////////////////////////////////////////////////////////////////////
+///////////////			struct wd_print_fst_t		///////////////
+///////////////////////////////////////////////////////////////////////////////
+
+typedef struct wd_print_fst_t
+{
+	//----- base data
+
+	FILE		* f;		// output file
+	int		indent;		// indention of the output
+	wd_pfst_t	mode;		// print mode
+
+	//----- field widthes
+
+	int		fw_offset;	// field width or 0 if hidden
+	int		fw_size_dec;	// field width or 0 if hidden
+	int		fw_size_hex;	// field width or 0 if hidden
+
+	//----- filter function, used by wd_print_fst_item_wrapper()
+
+	wd_file_func_t	filter_func;	// NULL or filter function
+	void		* filter_param;	// user defined parameter
+
+} wd_print_fst_t;
 
 //
 ///////////////////////////////////////////////////////////////////////////////
@@ -632,31 +660,43 @@ int wd_iterate_files
 	wd_ipm_t	prefix_mode	// prefix mode
 );
 
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+// print files
+
+extern const char wd_sep_200[201]; // 200 * '-' + NULL
+
+//-----------------------------------------------------------------------------
+
+void wd_initialize_print_fst
+(
+	wd_print_fst_t	* pf,		// valid pointer
+	wd_pfst_t	mode,		// mode for setup
+	FILE		* f,		// NULL or output file
+	int		indent,		// indention of the output
+	u32		max_off4,	// NULL or maximal offset4 value of all files
+	u32		max_size	// NULL or maximal size value of all files
+);
+
+//-----------------------------------------------------------------------------
+
+void wd_print_fst_header
+(
+	wd_print_fst_t	* pf,		// valid pointer
+	int		max_name_len	// max name len, needed for separator line
+);
+
 //-----------------------------------------------------------------------------
 
 void wd_print_fst_item
 (
-	FILE		* f,		// output file
-	int		indent,		// indention of the output
+	wd_print_fst_t	* pf,		// valid pointer
 	wd_part_t	* part,		// valid pointer to a disc partition
 	wd_icm_t	icm,		// iterator call mode
 	u32		offset4,	// offset/4 to read
 	u32		size,		// size of object
 	ccp		fname1,		// NULL or file name, part 1
-	ccp		fname2,		// NULL or file name, part 2
-	wd_pfst_t	mode		// print mode
-);
-
-//-----------------------------------------------------------------------------
-
-extern const char wd_sep_200[201]; // 200 * '-' + NULL
-
-void wd_print_fst_header
-(
-	FILE		* f,		// output file
-	int		indent,		// indention of the output
-	wd_pfst_t	pfst_mode,	// print mode
-	int		max_name_len	// max name len, needed for separator line
+	ccp		fname2		// NULL or file name, part 2
 );
 
 //-----------------------------------------------------------------------------

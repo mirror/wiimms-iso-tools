@@ -1,28 +1,35 @@
-wit v@.@@@ r@@REV-NEXT@@ - @@@@-@@-@@
+wit v1.10a.beta r1333 - 2010-07-05
 
-  - New option: --width wd: Define the width (number of columns) for help and
-    other messages and disables the automatic detection of the terminal width.
-  - wwt EXTRACT: Support '%X' and '%Y' in output filenames.
-  - I have rewritten the wiidisc lib (part of libwmfs) from scratch. It has a
-    complete new interface and an improved functionality. It uses dynamic data
-    structures and collect data as needed. This has considerable advantages
-    for the whole WIT project:
-     - All information about a Wii disc is now in one hand. Things like usage
-       maps and partition data are loaded/built once and only if needed.
-     - wit DUMP --show=files: Print a list with images files (like -F+ before).
-       Option --show=offset,size,dec,hex,header controls the output columns.
-     - wit DUMP --show=usage: Print a wii sector usage map.
-     - wit ILIST: Redesigned. Option --show=offset,size,dec,hex,header,path
-       controls the output columns.
-     - Option --psel extended:
-         --psel=NO-ID : use all partitions but not partitions with an ID type.
-         --psel=PTAB0 : use all partitions of table #0 but no other partitions.
-         --psel=ALL   : use all partitions (the default).
-         --psel=WHOLE : use all partitions and don't scrub partitions
-         --psel=RAW   : more than 'WHOLE': copy whole dics
-     - wit DIFF: If using the option --psel the partition tables are normalized
-       before comparing. This enables DIFF to compare DATA partitions only
-       independent from the existence of other partitions.
+ - New option: --width wd: Define the width (number of columns) for help and
+   other messages and disables the automatic detection of the terminal width.
+ - wwt EXTRACT: Support '%X' and '%Y' in output filenames.
+ - I have rewritten the wiidisc lib (part of libwmfs) from scratch. It has a
+   complete new interface and an improved functionality. It uses dynamic data
+   structures and collect data as needed. This has considerable advantages
+   for the whole WIT project:
+    - All information about a Wii disc is now in one hand. Things like usage
+      maps and partition data are loaded/built once and only if needed.
+    - wit DUMP --show=files: Print a list with images files (like -F+ before).
+      Option --show=offset,size,dec,hex,header controls the output columns.
+    - wit DUMP --show=usage: Print a wii sector usage map.
+    - wit ILIST: Redesigned. Option --show=offset,size,dec,hex,header,path
+      controls the output columns.
+    - Option --psel extended:
+        --psel=NO-ID : use all partitions but not partitions with an ID type.
+        --psel=PTAB0 : use all partitions of table #0 but no other partitions.
+        --psel=ALL   : use all partitions (the default).
+        --psel=WHOLE : use all partitions and don't scrub partitions
+        --psel=RAW   : more than 'WHOLE': copy whole dics
+    - wit DIFF: If using the option --psel the partition tables are normalized
+      before comparing. This enables DIFF to compare DATA partitions only
+      independent from the existence of other partitions.
+
+wit v@@VERSION@@ r@@REV-NEXT@@ - @@@@-@@-@@
+
+ - Channels partitions enabled, but mot testet.
+ - The field width of offset and size columns of FST listings is now
+   calculated. A space between the columns is guaranteed.
+ - wit DUMP: A forgotten endian calculation results in a wring region info.
 
 ~Known bugs:
 ~

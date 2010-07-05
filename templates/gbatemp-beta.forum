@@ -27,6 +27,8 @@
 [/list]
 [color=#ffffff].[/color]
 [/list]
+[size="4"][color="#800000"][b]Please report positive and negative tests![/b][/color][/size]
+
 
 [size="2"][color="#0000c0"][b]Change log:[/b][/color][/size]
 
@@ -34,4 +36,4 @@
 @@MODULE(last-history.txt)@@
 [/code]
 
-The source is published under the licence of GPL2. Checkout the sources directly from the [url=@@URI-REPOS@@][b]SVN repository[/b][/url] or [url=@@URI-VIEWVC@@][b]browse the source[/b][/url]. Visit [url=@@URI-HOME@@][b]@@URI-HOME@@[/b][/url] for more information.
+The source is published under the licence of GPL2. Checkout the sources directly from the [url=@@URI-REPOS@@][b]SVN repository[/b][/url] or [url=@@URI-VIEWVC@@][b]browse the source[/b][/url]. his URLs are different from the product version. Visit [url=@@URI-HOME@@][b]@@URI-HOME@@[/b][/url] for more information.

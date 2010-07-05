@@ -197,11 +197,11 @@ enumError Dump_ISO
 	fprintf(f,"%*sRegion:          %s [%s]\n",indent,"",rinfo->name,rinfo->name4);
 	u8 * p8 = disc->region.region_info;
 	fprintf(f,"%*sRegion setting:  %d / %02x %02x %02x %02x  %02x %02x %02x %02x\n",
-			indent,"", disc->region.region,
+			indent,"", ntohl(disc->region.region),
 			p8[0], p8[1], p8[2], p8[3], p8[4], p8[5], p8[6], p8[7] );
 
-	fprintf(f,"%*sDirectories:    %7u\n",indent,"",disc->dir_count);
-	fprintf(f,"%*sFiles:          %7u\n",indent,"",disc->file_count);
+	fprintf(f,"%*sDirectories:    %7u\n",indent,"",disc->fst_dir_count);
+	fprintf(f,"%*sFiles:          %7u\n",indent,"",disc->fst_file_count);
 	fprintf(f,"%*sUsed ISO blocks:%7u * 32 KiB = %u MiB\n",
 			indent,"", used_blocks, used_mib );
     }
@@ -366,8 +366,8 @@ enumError Dump_ISO
 
 	fprintf(f,"\n\n%*s%u director%s with %u file%s, disk usage %u MiB:\n\n",
 		indent,"",
-		disc->dir_count, disc->dir_count==1 ? "y" : "ies",
-		disc->file_count, disc->file_count==1 ? "" : "s",
+		disc->fst_dir_count, disc->fst_dir_count==1 ? "y" : "ies",
+		disc->fst_file_count, disc->fst_file_count==1 ? "" : "s",
 		used_mib );
 
 	wd_print_fst( f, indent+2, disc,
@@ -1499,6 +1499,10 @@ static int CollectFST_helper
 	size_t slen = strlen(it->path);
 	if ( fst->max_path_len < slen )
 	     fst->max_path_len = slen;
+	if ( fst->fst_max_off4 < it->off4 )
+	     fst->fst_max_off4 = it->off4;
+	if ( fst->fst_max_size < it->size )
+	     fst->fst_max_size = it->size;
 
 	WiiFstFile_t * wff = AppendFileFST(part);
 	wff->icm	= it->icm;

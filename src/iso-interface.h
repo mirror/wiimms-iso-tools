@@ -422,6 +422,8 @@ typedef struct WiiFst_t
 	u32		files_served;		// total number of files served
 	u32		dirs_served;		// total number of files served
 	u32		max_path_len;		// max path len of file[].path
+	u32		fst_max_off4;		// maximal offset4 value of all files
+	u32		fst_max_size;		// maximal size value of all files
 
 	//----- generator data
 
