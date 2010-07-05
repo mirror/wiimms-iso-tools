@@ -1,0 +1,300 @@
+
+*******************************************************************************
+*******             WDF == Wiimms Disc File == Wii Disc File            *******
+*******************************************************************************
+
+This file is part of the documentation of '@@TOOLSET-SHORT@@' (@@TOOLSET-LONG@@).
+The most current version of this document can be found under:
+  @@URI-FILE@@/WDF.txt
+
+
+*******************************************************************************
+*******                           What is WDF?                          *******
+*******************************************************************************
+
+This file describes the WDF format. WDF is an abbreviation of either
+"Wiimms Disc File" or shorter "Wii Disc File".
+
+To avoid misunderstandings: WDF will not replace WBFS. It is only a way to
+shrink ISO images (reduces the disk usage) on other file systems like ext2,
+FAT or NTFS. And while adding/extracting a WDF image to/from WBFS the
+transformation can be done on the fly without time costs.
+
+Wii ISO images has a size of about 4.4 GiB, but much space is unused and have
+to be filled with zeros. Some games need less than 100 MiB and that means
+about 4.3 GiB waste. The linux ext2/3 file system can handle such files very
+good because it do not allocate disk space for such (zero-)holes. Such files
+called "sparse files".
+
+For me there is no need to store Wii ISO images in the old way filled with
+zeros. And the handling with large sparse files is not effective and needs
+always special options like 'ls -s' or 'cp --sparse=always'. Also it costs
+much time because the holes have to be scanned again.
+
+One way is to compress the data. But compressing works only for the holes but
+not for the crypt data. And random access (needed by the WBFS subsystem) is
+very difficult for compressed data. The direct support of holes seems to be
+much better.
+
+Because of this all I have defined a new file format, the WDF format. There
+are some main issues for me:
+
+ 1.) The WDF format should handles holes effectivly to save disk space.
+
+ 2.) It should support splitted files because small files can sometimes be
+     handled more effectivly than one whole large files.
+
+ 3.) There must be a WBFS tool to handle this kind of files. I have already
+     implemented the WDF support in my '@@TOOLSET-SHORT@@' (@@TOOLSET-LONG@@).
+     The WWT package contains some more tools to handle WDF directly.
+
+ 4.) Other WBFS manager should support the WDF too. And this means that the
+     implementation must be done by the well known wrapper functions
+     'rw_sector_callback_t' and 'read_wiidisc_callback_t'. That makes
+     transfering the code very easy.
+
+
+*******************************************************************************
+*******                       Tests and statistics                      *******
+*******************************************************************************
+
+I have already implemented the WDF support in my toolset 'WIT' and tested it
+with many games. In the tests I have converted games from ISO to WDF and back.
+I done this with the tools iso2wdf and wdf2iso/wdf-cat and with WBFS import
+and export. It work well and have not found any errors.
+
+Additionally I have testet more than 2 million non ISO files without any
+failures. This works because WDF may detect holes in any files. For tests I
+use the script: @@URI-FILE@@/scripts/test-wdf-tools.sh
+
+
+*******************************************************************************
+*******                     Tools that supports WDF                     *******
+*******************************************************************************
+
+At the moment only the tools from WIT (Wiimms ISO Tools) will support WDFS:
+ - Tool 'wwt' may import WDF files directly to a WBFS
+   and may export discs from WBFS directly to WDF files.
+ - Tool 'wit' converts ISO images from and into WDF files.
+ - Tool 'wdf-dump' dumps the data structure of a WDF file.
+ - Tool 'wdf-cat' is a 'cat' like program with special handling of WDF.
+
+See @@URI-HOME@@ for announcements and discussions.
+
+
+*******************************************************************************
+*******                         Data structures                         *******
+*******************************************************************************
+
+First a magic is defined to identify a WDF clearly. The magic should never be
+a possible Wii ISO image identification. Wii ISO images starts with the ID6.
+And so the WDF magic contains one control character (CTRL-A) within.
+
+    #define WDF_MAGIC       "WII\1DISC"
+    #define WDF_MAGIC_SIZE  8
+    #define WDF_VERSION     1
+
+A WDF file contains 3 parts (splittet files wil be discussed later):
+
+    WDF header      (struct WDF_Header_t, including WDF_MAGIC)
+    data chunks     (pure data, unstructured)
+    WDF_MAGIC       (the MAGIC again)
+    WDF chunk table (struct WDF_Chunk_t)
+
+The WDF header has an constant size and can be written as dummy and before
+closing rewritten with the needed data. The chunk data is written 1:1. The
+chunk control informations are collected an will be written at the end of the
+file. There are some redundant information. They can be used for plausibility
+checks. Remember: All data is stored in network byte order (big endian).
+
+    typedef struct WDF_Head_t
+    {
+        // the magic
+        char magic[WDF_MAGIC_SIZE]; // WDF_MAGIC, what else!
+        u32 wdf_version;            // WDF_VERSION
+
+        // split file support
+        u32 split_file_id;          // random number, for plausibility checks
+        u32 split_file_index;       // zero based index ot this file
+        u32 split_file_num_of;      // total number of split files
+
+        // virtual file infos
+        u64 file_size;              // the size of the virtual file
+
+        // data size of this file
+        u64 data_size;              // the ISO data size in this file
+                                    // (without header and chunk table)
+        // chunks
+        u32 chunk_split_file;       // which split file contains the chunk table
+        u32 chunk_n;                // total number of data chunks
+        u64 chunk_off;              // the  'MAGIC + chunk_table' file offset
+
+    } WDF_Head_t;
+
+The 'split_*' fields are described below.
+The 'file_size' contains the total size of the virtual ISO image.
+The 'data_size' defines the total data size in current split file.
+The 'chunk_off' data points to the file offset of the table.
+
+    typedef struct WDF_Chunk_t
+    {
+        u32 split_file_index;       // which split file conatins that chunk
+        u64 file_pos;                // the virtual ISO file position
+        u64 data_off;               // the data file offset
+        u64 data_size;              // the data size
+
+    } WDF_Chunk_t;
+
+The chunk table (WDF_Chunk_t) is always sorted by the iso_pos_* in ascending
+order so that a lookup can be done by a binary search.
+
+There is always a chunk at virtual ISO file position #0 an one chunk that
+reaches the end of the virtual file. If there are holes at the beginning or
+end of the data than chunks with data_size==0 bytes have to be insertet.
+
+This is an example dump of the game "Animal Crossing". The dump was created
+with the tool 'wdf-dump' which is part of 'wit' (Wiimms ISO Tool).
+
+ | # wdf-dump --chunk pool/wdf/animal.wdf
+ |
+ | wdf-dump v0.02b r191M - Dirk Clemens - 2009-10-07
+ |
+ |
+ | WDF dump of file pool/wdf/animal.wdf
+ |
+ |   Header:
+ |
+ |     Magic             : "WII.DISC"  57 49 49 01  44 49 53 43
+ |     wdf_version       :          1/hex =          1
+ |     split_file_id     :          0/hex =          0
+ |     split_file_index  :          0/hex =          0
+ |     split_file_num_of :          1/hex =          1
+ |     file_size         :  118240000/hex = 4699979776
+ |       - WDF file size :   1557cd40/hex =  358075712  7.62%
+ |     data_size         :   1557cbcc/hex =  358075340
+ |     chunk_split_file  :          0/hex =          0
+ |     chunk_n           :          b/hex =         11
+ |     chunk_off         :   1557cc04/hex =  358075396
+ |
+ |   File Parts:
+ |
+ |     Header            :          0 ..         38 [        38]
+ |     Data              :         38 ..   1557cc04 [  1557cbcc]
+ |     Chunk-Magic       :   1557cc04 ..   1557cc0c [         8]
+ |     Chunk-Table       :   1557cc0c ..   1557cd40 [       134]
+ |
+ |   Chunk Table:
+ |
+ |     idx       WDF file address  data len    virtual ISO address  hole size
+ |    ------------------------------------------------------------------------
+ |      0.         38..        6c        34          0..        34      3ffcc
+ |      1.         6c..        98        2c      40000..     4002c       dfd4
+ |      2.         98..        b8        20      4e000..     4e020       1de0
+ |      3.         b8..      1164      10ac      4fe00..     50eac       7154
+ |      4.       1164..      1880       71c      58000..     5871c      178e4
+ |      5.       1880..    191880    190000      70000..    200000    f600000
+ |      6.     191880..    19272c       eac    f800000..   f800eac       7154
+ |      7.     19272c..    19cc04      a4d8    f808000..   f8124d8       db28
+ |      8.     19cc04..    97cc04    7e0000    f820000..  10000000   f2800000
+ |      9.     97cc04..  1557cc04  14c00000  102800000.. 117400000     e40000
+ |     10.   1557cc04..  1557cc04         0  118240000.. 118240000          0
+ |
+
+
+*******************************************************************************
+*******                            Split files                          *******
+*******************************************************************************
+
+There is only a small need for splitted files, e.g. when transporting a large
+image via a FAT file system. The WDF splits the data anyway in chunks. So it
+is only a little step to devide the chunks into more than 1 file.
+
+---------------------
+ Parameter overview:
+---------------------
+
+ WDF_Head_t:
+    split_file_id     : any (random) value, but same in all files.
+    split_file_index  : unique index [0..]
+    split_file_num_of : Total number of split files [1..]
+    chunk_split_file  : Index of file which contais the chunk table.
+
+ WDF_Chunk_t
+    split_file_index  : Index of split fle where the chunk data resides.
+
+
+---------------------
+ Here are the rules:
+---------------------
+
+ * Each file of the (splitted) set contains the same header at the beginning
+   of the file. The only difference in the headers is the 'split_file_index',
+   a zero based index.
+
+ * 'split_file_num_of' gives the numer of files in the set. 'split_file_index'
+   is always smaller than 'split_file_num_of'.
+
+ * 'split_file_id' may have any (random) value but must be same in all files.
+
+ * The chunk table is stored in the split file with index 'chunk_split_file'.
+
+ * Each chunk has a parameter called 'split_file_index' which declares in which
+   file the chunk data resides.
+
+ * The filename of split file #0 is the base name. The filenames of all other
+   split files have the identical base name plus '.' plus an decimal index
+   taken from 'split_file_index' without any padding.
+
+    Example:
+	file #0:  my_game.wdf
+	file #1:  my_game.wdf.1
+	file #2:  my_game.wdf.2
+	  ...
+	file #9:  my_game.wdf.9
+	file #10: my_game.wdf.10
+
+
+---------------------
+    Style guide:
+---------------------
+
+Here are some rules how to write a good splitted WDF. Assume that the user has
+set a limit for each file. No file schould be larger than this limit.
+
+ * Open the first file (index #0) and write a dummy header to that file.
+
+ * While writing chunks check if the limit will be exceeded.
+   If so:
+    - Split the current chunk into 2 chunks: The first chunks contains enough
+      data to reach the limit. The second chunk takes the remaining data.
+    - Open the next split file with a filename described above and write a
+      dummy header to that file.
+
+ * If all data is written then:
+    - Calculate the chunk tables size including the magic. If the data will
+      execeed the limit open a new split file and write the dummy header.
+    - Write the chunk table to the current file (remember: network byte order).
+    - Calculate the header and write it to all data files. Don't forget the
+      individual 'split_file_index' and the network byte order.
+    - Close all files.
+
+
+REMARK:
+ The WIT tools supports splitted WDF files *not* following this rules. The
+ files are splitted hard by breaking the files into peaces. This is done by
+ the file layer so that the WDF layer don't see the split.
+
+
+*******************************************************************************
+*******                      Example implementation                     *******
+*******************************************************************************
+
+The example implementation is part of '@@TOOLSET-SHORT@@' (@@TOOLSET-LONG@@):
+
+ see: @@URI-FILE@@/lib-wdf.c
+ and: @@URI-FILE@@/lib-wdf.h
+
+
+*******************************************************************************
+*******                              END                                *******
+*******************************************************************************

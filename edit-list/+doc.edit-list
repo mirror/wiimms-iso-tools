@@ -1,0 +1,9 @@
+../templates/module/last-history.txt ;
+../templates/{wit,wwt}.txt ;
+../templates/DOCUMENTATION.txt ;
+../templates/HISTORY.txt ;
+../templates/*.txt ;
+../templates/*.forum ;
+../templates/&/*.{txt,def,inc} ;
+../setup/&/*.{txt,def,inc} ;
+../work/2do ;

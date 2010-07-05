@@ -1,0 +1,7 @@
+../src/wwt.c ;
+../templates/wwt.txt ;
+../src/wit.c ;
+../src/wwt+wit-cmd.c ;
+@+all-source.edit-list
+@+doc.edit-list
+-y 2000 ../src/wwt.c ;

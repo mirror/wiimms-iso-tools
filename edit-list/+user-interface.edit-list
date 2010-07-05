@@ -1,0 +1,7 @@
+../src/ui/tab-ui.c ;
+../src/ui/gen-ui.c ;
+../src/ui/ui.[ch] ;
+../src/ui/*.[ch] ;
+../ui-*.tmp ;
+@+all-source.edit-list
+-y 2125 ../src/ui/tab-ui.c ;

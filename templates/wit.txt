@@ -1,0 +1,790 @@
+
+@@MODULE(head.txt)@@
+
+This files describes the main tool 'wit'.
+
+
+@@MODULE(content.txt)@@
+
+
+*******************************************************************************
+*******                    Overview about this document               *********
+*******************************************************************************
+
+Contents:
+
+    Output of 'wit --help'
+    @file
+    Commands in detail
+    Processing --source and --recurse
+    Processing ISO files
+    Processing ID6 parameters
+    Processing exclude options
+    Processing title db
+    Processing split options
+    Processing size options
+    Selecting files with --files=rules
+    Some options in detail
+    Hidden options (for testing)
+    Some options in detail
+    Environment variables
+    Signals
+
+
+*******************************************************************************
+*******                      Output of 'wit --help'                   *********
+*******************************************************************************
+@@EXEC(./wit --width 80 --help)@@
+
+
+*******************************************************************************
+*******                             @file                               *******
+*******************************************************************************
+
+If a parameter beginns with '@' the text behind that '@' is a filename.
+Each line of the file is taken as a parameter (not option, not command).
+Each line may terminate with LF or CR+LF. Handling of '@' is *not* recurse.
+
+The special filename '-' means: read from standard input (stdin).
+
+
+*******************************************************************************
+*******                        Commands in detail                       *******
+*******************************************************************************
+
+The tool 'wit' processes the --source and the --recurse options to built an
+internal ISO database (pure ISO and WDF-ISO files included). Most of the
+follwing commands works with the files of this ISO database (like 'wwt' do it
+with a WBFS). The options --source and --recurse atre described in the section
+"Processing --source and --recurse" in detail.
+
+Command abbreviations are allowed as long as they are unique. The commands
+are listed in alphabetic order:
+
+
+-------------------------------------------------------------------------------
+@@EXEC(./wit help --width 80 COPY)@@
+
+ The command COPY copies all given sources into the destination (directory).
+ If the option --dest is not set the last parameter is used as destination.
+ If exact one source file is given the destination can be a file name. If two
+ or more source files given the destination must be a directory. Option --DEST
+ is like --dest, but the directory path is created automaticaly.
+
+ Each source is candidate for copying. Non ISO files are ignored with a warning.
+ The option --ignore suppresses this warning. Existing files will only be
+ overwrtitten if option --overwrite is set. If option --update is set, the
+ operation will be silently ignored if the destuination file already exists.
+
+ The output is scrubbed. The scrubbing can be controled with the options
+ --psel and --raw. If option --remove is set then the souce file is removed
+ after successfull operation.
+
+ The options --split and --split-size control the splitting of the output
+ files. See section "Processing split options" for details.
+
+ When writing ISO files the option --wdf, --iso, --ciso, --wbfs and --fst
+ control the output format. --fst switch to extract mode (like command
+ EXTRACT). If writing a WBFS file this WBFS is truncated and contains exactly
+ one ISO image. The default file name of this WBFS is '<ID6>.wbfs'. If none
+ of --wdf, --iso, --ciso, -wbfs or --fst is set, the destination filename will
+ be analyzed. If the extension (ignoring case) is ".wdf", ".iso", ".ciso",
+ ".wbi" (an alternative for ".ciso") or ".wbfs", the specific output format
+ is used. The default is WDF if all other fails.
+
+ The option --test enables test mode: No files are written or removed. If
+ --test is set at least two times a source list with a trailing destination
+ will be printed.
+
+
+ DESTINATION FILENAME
+
+@@MODULE(output-filename.txt)@@
+
+
+ Usual ERROR/EXIT CODES:
+
+    0 == OK             : all done without erros.
+    SYNTAX ERROR        : at least one syntax error in command line found.
+    READ ERROR          : error while reading a file.
+    WRITE ERROR         : error while writing a file.
+    CANT CREATE         : Can't create output file.
+
+
+-------------------------------------------------------------------------------
+@@EXEC(./wit help --width 80 DIFF)@@
+
+ The command DIFF compares all given sources agains a destination (directory).
+ If the option --dest is not set the last parameter is used as destination.
+ If exact one source file is given the destination can be a file name. If two
+ or more source files given the destination must be a directory. Option --DEST
+ is like --dest, but the directory path is created automaticaly.
+
+ Each source is candidate for comparing. Non ISO files are ignored with a warning.
+ The option --ignore suppresses this warning.
+
+ If option --long is set, the first failed position is printed. If option --long
+ is set two or more times all falied positions are printed, but only the first
+ position of each ISO block. The size of an ISO block is 0x8000 = 32768 bytes.
+
+ In file mode (--files=) the rules are changed. The ISO images are compared on
+ file level. System areas like disc and aprtiton headers are also served as
+ files. Only files that matches the defined filters will be compared. In --quiet
+ mode the comparing is done silently. Otherwise all non equal or missing files
+ are reported.
+
+
+ DESTINATION FILENAME
+
+@@MODULE(output-filename.txt)@@
+
+
+ Usual ERROR/EXIT CODES:
+
+    0 == OK             : all done without erros.
+    DIFFER              : At least one file pair differ.
+    SYNTAX ERROR        : at least one syntax error in command line found.
+    READ ERROR          : error while reading a file.
+    WRITE ERROR         : error while writing a file.
+    CANT OPEN           : Can't open file.
+
+
+-------------------------------------------------------------------------------
+@@EXEC(./wit help --width 80 DUMP)@@
+
+ DUMP will dumps the data structure of all ISO files. If the option --long is
+ set an additional memory map for each partition is printed. If the option
+ --long is set twice or more an additional memory map for the whole ISO file
+ is printed at the end. Failures (overlapped areas) are marked with '!'. If
+ the option --long is set three times or more a total memory is appended at
+ the end of the dump.
+
+ If the option --files= is set than a file list is included into the dump.
+ The rules define which files are listet. To lsit all files use "--files=+".
+ The section "Selecting files with --files=rules" dicuss more details.
+ The options --psel= and --raw are only used to make a pre selection of
+ the partitions for the file list.
+
+
+ Usual ERROR/EXIT CODES:
+
+    0 == OK             : all done without erros.
+    SYNTAX ERROR        : at least one syntax error in command line found.
+    READ ERROR          : error while read a file given by option --part.
+
+
+-------------------------------------------------------------------------------
+@@EXEC(./wit help --width 80 ERROR)@@
+
+ The command ERROR translate an exit code to a text message. Without parameters
+ print all error names and error messages. With a given 'error_code' the error
+ message that belongs the number is printed to stdout and the program exits
+ with exit status is 0 (success). If the error_code is unknown or invalid the
+ error message is '?' and the program exits with exit status is 1 (failure).
+
+ Without 'error_code' a list of all error codes is printed. The output
+ contains three columns separated with colons. The format is:
+
+    error code ':' error name ':' error messages
+
+ If the option --sections is set, then the layout is completly changed to a
+ sections base output. This output is machine readable. The output looks like:
+
+	[error-CODE]
+	code=ERROR_NUMBER
+	name=ERROR_NAME
+	text=ERROR_TEXT
+
+
+ Usual ERROR/EXIT CODES:
+
+    0 == OK        : all done.
+    SYNTAX ERROR   : at least one syntax error in command line found.
+    SEMANTIC ERROR : unkown error_code given.
+
+
+-------------------------------------------------------------------------------
+@@EXEC(./wit help --width 80 EXCLUDE)@@
+
+ The command 'EXCLUDE' builts the exclude data base and prints the result to
+ stdout. The handling of the additional files works like the --exclude option.
+ The section "Processing exclude options" explains the options in detail.
+
+
+ Usual ERROR/EXIT CODES:
+
+    0 == OK        : all done.
+    SYNTAX ERROR   : at least one syntax error in command line found.
+
+
+-------------------------------------------------------------------------------
+@@EXEC(./wit help --width 80 EXTRACT)@@
+
+ ** no documentation yet **
+
+
+ Usual ERROR/EXIT CODES:
+
+    0 == OK             : all done without erros.
+    SYNTAX ERROR        : at least one syntax error in command line found.
+    READ ERROR          : error while reading a file.
+    WRITE ERROR         : error while writing a file.
+    CANT CREATE         : Can't create output file.
+
+
+-------------------------------------------------------------------------------
+@@EXEC(./wit help --width 80 FILELIST)@@
+
+ The filename of each file in the internal file list is printed as one line.
+ If no source is given, the current working directory is used as source.
+
+
+ Usual ERROR/EXIT CODES:
+
+    0 == OK             : all done without erros.
+    SYNTAX ERROR        : at least one syntax error in command line found.
+    READ ERROR          : error while reading a file.
+
+
+-------------------------------------------------------------------------------
+@@EXEC(./wit help --width 80 FILETYPE)@@
+
+ The command 'FILETYPE' prints for each file in the internal file database
+ (build by the options --source and --recurse) one status line like:
+    FILETYPE ID6 SIZE_MIB REGION filename
+ Column 'ID6' is only printed if option --long is set. For non ISO images
+ the ID6 is '-'. Columns 'SIZE_MIB' and 'REGION' are only printed if option
+ --long is set at least two times.
+
+ If neither --source nor --recurse is used and no other source is defined then
+ the default directory is searched for ISO files.
+
+ 'SIZE_MIB' is the calculatet size of a scrubbed ISO image. For this all used
+ sectors of a ISO image are counted. The usage depends of the options --psel
+ and --raw.
+
+ Filetypes are:
+    NO-FILE  : No file found
+    DIR      : Not a file but a directory
+    WBFS     : A WBFS
+    WBFS/    : A WBFS used like directory with id6 or index or pos
+    WDF+WBFS : A WBFS shrinked with WDF (this make no sense expect transporting)
+    ISO      : A ISO image.
+    WDF+ISO  : A ISO image shrinked with WDF.
+    WDF      : Any other WDF file (not WBFS or ISO)
+    OTHER    : Any other file
+
+
+ Usual ERROR/EXIT CODES:
+
+    0 == OK             : all done without erros.
+    SYNTAX ERROR        : at least one syntax error in command line found.
+    READ ERROR          : error while reading a file.
+
+
+-------------------------------------------------------------------------------
+@@EXEC(./wit help --width 80 HELP)@@
+
+ Usual ERROR/EXIT CODES:
+
+    0 == OK             : all done without erros.
+
+
+-------------------------------------------------------------------------------
+@@EXEC(./wit help --width 80 ID6)@@
+
+ The command 'ID' lists the ID6 of all discs in the internal ISO database, one
+ ID per row. The internal ISO database is build under control of the options
+ --source, --recurse, --include, --include-path, --exclude and --exclude-path.
+ See section "Processing --source and --recurse" for details.
+
+ If neither --source nor --recurse is used and no other source is defined then
+ the default directory is searched for ISO files.
+
+ If --uniqe is set each game disc with same ID6, name, size and region is only
+ printed once. To determine doube entries the list is sorted by ID.
+
+ The output sort order can be set by the --sort option. Sort=none means, that
+ the ID will be shown in order of the WBFS partition. The default sort order
+ is 'ID'.
+
+
+ Usual ERROR/EXIT CODES:
+
+    0 == OK             : all done without erros.
+    SYNTAX ERROR        : at least one syntax error in command line found.
+    READ ERROR          : error while reading a file.
+
+
+-------------------------------------------------------------------------------
+@@EXEC(./wit help --width 80 ILIST)@@
+
+ ** no documentation yet **
+
+
+ Usual ERROR/EXIT CODES:
+
+    0 == OK             : all done without erros.
+    SYNTAX ERROR        : at least one syntax error in command line found.
+    READ ERROR          : error while reading a file.
+
+
+-------------------------------------------------------------------------------
+
+COMMANDS:
+    ILIST-L   | ILL    [source]...
+    ILIST-LL  | ILLL   [source]...
+
+ 'ILIST-L'   is a synonym for 'ILIST --long'.
+ 'ILIST-LL'  is a synonym for 'ILIST --long --long'.
+ See command 'ILIST' for options and details.
+
+
+-------------------------------------------------------------------------------
+@@EXEC(./wit help --width 80 ISOSIZE)@@
+
+ The command 'ISOSIZE' prints for each file in the internal file database
+ (build by the options --source and --recurse) one status line like:
+
+    ISO_BLOCKS  SIZE_IN_MIB  WBFS_FILESIZE  SIZE_IN_500G_WBFS  filename
+
+ The size is calculated for a scrubbed ISO image. For this all used sectors
+ of a ISO image are counted. The usage depends of the options --psel and --raw.
+
+ ISO_BLOCKS
+    The number of used ISO blocks. Each ISO block has a size of 32K.
+
+ SIZE_IN_MIB
+    The number of used ISO blocks in MiB. It's a rounded value ISO_BLOCKS.
+    Column SIZE_IN_MIB is only shown if the option --long is set.
+
+ WBFS_FILESIZE
+    The total size of a wbfs file that contains only 1 disc. The calculation
+    is made under the assumption that the WBFS blocks size is 2 MiB. Column
+    WBFS_FILESIZE is only shown if the option --long is set at least twice.
+
+ SIZE_IN_500G_WBFS
+    The size of a ISO image as part of a WBFS with about 500g total space.
+    The calculation is made under the assumption that the WBFS blocks size
+    is 8 MiB. Column SIZE_IN_500G_WBFS is only shown if the option --long
+    is set at least twice.
+
+ If neither --source nor --recurse is used and no other source is defined then
+ the default directory is searched for ISO files.
+
+ Usual ERROR/EXIT CODES:
+
+    0 == OK             : all done without erros.
+    SYNTAX ERROR        : at least one syntax error in command line found.
+    READ ERROR          : error while reading a file.
+
+
+-------------------------------------------------------------------------------
+@@EXEC(./wit help --width 80 LIST)@@
+
+ The command 'LIST' lists infos of all discs in the internal ISO database.
+ The internal ISO database is build under control of the options --source,
+ --recurse, --include, --include-path, --exclude and --exclude-path.
+ See section "Processing --source and --recurse" for details.
+
+ Without --long the ID and the name are printed. With option --long the ID,
+ size, region and the name are printed.  The option --no-header suppress the
+ output of header and footer.
+
+ Printing of timestamps is enabled by the options --time, --itime, --mtime
+ --ctime, --atime or when --long is set at least twice. --time=off disables
+ time printing. All time options (not --long) supersede the previous options.
+ The option --time take a comma separated list of the following keywords:
+
+    OFF    : Disable time printing. All other option enable time printing.
+    ON     : Enable time printing.
+
+    SINGLE : Print only a single column (last time specified.
+    MULTI  : Print columns for all specified times. (default)
+
+    I      : Use itime (insertion time) for processing.
+    M      : Use mtime (last modicifaction time) for processing. (default)
+    C      : Use ctime (last staus change time) for processing.
+    A      : Use atime (last access time) for processing.
+
+    NONE   : Disable all 4 times above
+    ALL    : Enable all 4 times above
+    
+    DATE   : Print time in format 'YYYY-MM-DD'. (default)
+    TIME   : Print time in format 'YYYY-MM-DD HH:MM'.
+    MIN    : Alternative keyword for 'TIME'.
+    SEC    : Print time in format 'YYYY-MM-DD HH:MM:SS'.
+
+    *DATE  : Short cut for '*,DATE'. '*' is one of 'I', 'M', 'C' or 'A'.
+    *TIME  : Short cut for '*,TIME'. '*' is one of 'I', 'M', 'C' or 'A'.
+    *MIN   : Alternative keywords for '*TIME'.
+    *SEC   : Short cut for '*,SEC'.  '*' is one of 'I', 'M', 'C' or 'A'.
+
+ If the option --long is given three or more times a second line with the
+ number of partitions, the file type ('ISO' or 'WDF') and the file path is
+ printed. If the option --long is given three times the real path is printed.
+
+ If the option --sections is set, then the layout is completly changed to a
+ sections base output. This output is machine readable. The output looks like:
+
+	[section_name-index]
+	parameter=value
+	parameter=value
+	...
+
+ If available the name of the title database is used. use the option -T0 to
+ disable database titles.
+
+ If --unique is set each game disc identified by ID6 is only printet once.
+ The sort order can be set by the --sort option. Sort=none means, that the ID
+ will be shown in order of scanning. The default sort order is 'TITLE'.
+
+ If neither --source nor --recurse is used and no other source is defined then
+ the default directory is searched for ISO files.
+
+ Usual ERROR/EXIT CODES:
+
+    0 == OK             : all done without erros.
+    SYNTAX ERROR        : at least one syntax error in command line found.
+    READ ERROR          : error while reading a file.
+
+
+-------------------------------------------------------------------------------
+
+COMMANDS:
+    LIST-L   | LL    [source]...
+    LIST-LL  | LLL   [source]...
+    LIST-LLL | LLLL  [source]...
+
+ 'LIST-L'   is a synonym for 'LIST --long'.
+ 'LIST-LL'  is a synonym for 'LIST --long --long'.
+ 'LIST-LLL' is a synonym for 'LIST --long --long --long'.
+ See command 'LIST' for options and details.
+
+
+-------------------------------------------------------------------------------
+@@EXEC(./wit help --width 80 MOVE)@@
+
+ The command MOVE moves and/or renames all given sources. If the option --dest
+ is not set the last parameter is used as destination. If exact one source file
+ is given the destination can be a file name. Option --DEST  is like --dest,
+ but the directory path is created automaticaly.
+
+ Each source is candidate for moving. Non ISO files are ignored with a warning.
+ The option --ignore suppresses this warning. Existing files will only be
+ overwrtitten if option --overwrite is set.
+
+ The option --test enables test mode: No files are renamed. If --test is set at
+ least two times a source list with a trailing destination will be printed.
+
+
+ DESTINATION FILENAME
+
+@@MODULE(output-filename.txt)@@
+
+
+ Usual ERROR/EXIT CODES:
+
+    0 == OK             : all done without erros.
+    SYNTAX ERROR        : at least one syntax error in command line found.
+    READ ERROR          : error while reading a file.
+    WRITE ERROR         : error while writing a file.
+    CANT CREATE         : Can't create output file.
+
+
+-------------------------------------------------------------------------------
+@@EXEC(./wit help --width 80 RENAME)@@
+
+ This command 'RENAME' may change the ID6 and/or the title of discs. The
+ alternative command 'SETTITLE' modifies only titles. The advantage of
+ 'SETTITLE' is, that it can modify all titles with 1 sub command.
+
+ The syntax of a sub command is: id6=[new_id6][,new_title]
+    'id6' is the ID of the disc to change.
+    The optional 'new_id6' is the new ID of the disc.
+    The optional 'new_title' is the new title of the disc.
+
+@@MODULE(set-title.txt)@@
+
+ Usual ERROR/EXIT CODES:
+
+    0 == OK        : all done.
+    SYNTAX ERROR   : at least one syntax error in command line found.
+
+
+-------------------------------------------------------------------------------
+@@EXEC(./wit help --width 80 SCRUB)@@
+
+ The command SCRUB reorganize all given source files.
+
+ Each source is candidate for scrubbing. Non ISO files are ignored with a
+ warning. The option --ignore suppresses this warning. The output is scrubbed.
+ The scrubbing can be controled with the options --psel and --raw.
+
+ The options --split and --split-size control the splitting of the output
+ files. See section "Processing split options" for details.
+
+ The option --test enables test mode: No files are written or removed. If
+ --test is set at least two times a source list with a trailing destination
+ will be printed.
+
+
+ Usual ERROR/EXIT CODES:
+
+    0 == OK             : all done without erros.
+    SYNTAX ERROR        : at least one syntax error in command line found.
+    READ ERROR          : error while reading a file.
+    WRITE ERROR         : error while writing a file.
+    CANT CREATE         : Can't create output file.
+
+
+-------------------------------------------------------------------------------
+@@EXEC(./wit help --width 80 SETTITLE)@@
+
+ This command 'SETTITLE' may change the title of discs. The alternative
+ command 'RENAME' can also change the ID of discs.
+
+ The syntax of a sub command is: id6=new_title
+    'id6' is the ID of the disc to change. If using '+' all discs are changed.
+    The 'new_title' is the new title of the disc.
+
+@@MODULE(set-title.txt)@@
+
+
+ Usual ERROR/EXIT CODES:
+
+    0 == OK        : all done.
+    SYNTAX ERROR   : at least one syntax error in command line found.
+
+-------------------------------------------------------------------------------
+@@EXEC(./wit help --width 80 TITLES)@@
+
+ The command 'TITLES' builts the title data base and prints the result to
+ stdout. The handling of the additional files works like the --title option.
+ The section "Processing title db" explains the options in detail.
+
+
+ Usual ERROR/EXIT CODES:
+
+    0 == OK        : all done.
+    SYNTAX ERROR   : at least one syntax error in command line found.
+
+
+-------------------------------------------------------------------------------
+@@EXEC(./wit help --width 80 VERIFY)@@
+
+ Every 1024 bytes of user data in every partition has its own SHA1 check sum
+ (called 'H0'). There are also H1 (hash of 31*H0), H2 (hash of 8*H1), H3 (hash
+ of 8*H2) and for the whole partition one H4 (hash of all H3) check sums. To
+ validate a partition it is enought to calculate the check sums and compare
+ them with the stored sums. For a scrubbed image it is enough to compare the
+ check sums of the used sectors. "wit+wwt VERIFY" do exactly this.
+
+ To validate a disc the tool must do 64 AES-128-CBC decryptions and 1029 SHA1
+ calculations for each MiB of data. This slow down the opration rapidly and
+ verifying is much slower then copying. 
+
+ The options --quiet and --verbose control the verbosity level of the command:
+
+  -qq : level -2 : Be abossulte quiet. The status is only reported as exit status.
+  -q  : level -1 : Be quiet and report only the first errors of each partition.
+        level  0 : Print one status line for each partition (success or error).
+  -v  : level  1 : Print up to --limit error messages for each partition.
+  -vv : level  2 : Print progress information (not implemented yet).
+
+ For levels <=0 the check of a partition is aborted on the first found error.
+
+
+ Output format:
+ --------------
+
+  The messages are printed in 5 columns (with examples). The first 4 columns
+  never contains spaces or other blanks ('awk' friendly).
+
+	STATUS  COUNTER PARTITION ID6    NAME
+	>scan   1.0/2   DATA      RUUP01 pool/corrupt/animal.wdf
+	!H0-ERR 1.0/2   DATA      RUUP01 pool/corrupt/animal.wdf
+	+OK     2.0/2   DATA      RUUP01 pool/wdf/animal.wdf
+      
+  STATUS:
+    This is tha staus column. The first character describes the message class:
+	> : informative message
+	+ : success
+	! : error message
+
+  COUNTER
+    A counter in the format:
+       DISC_INDEX . PARTITION_INDEX / TOTAL_DISCS 'd'
+    DISC_INDEX and TOTAL_DISCS are not printed if only 1 disc is verified.
+    The 'd' is only printed for decrypted (not encrypted) discs.
+
+  PARTITION
+    Type of the partition. For UPDATE, DATA and CHANNEL partitions the name is
+    printed, for all other the number.
+
+  ID6
+    ID6 of the disc.
+
+  NAME
+    Name (filename if available) of the disc.
+
+
+ Error Mesages:
+ --------------
+
+   +OK      : Success message.
+   !NO-HASH : No hash values found (all zero).
+   !INVALID : Invalid disc (can't find required files).
+   !H#-ERR  : Check sum error in table H0..H4.
+   !H1-DIFF : For each sequence of 8 sectors the H1 table must be identical.
+              'H1-DIFF' means, that at least on table differ.
+   !H2-DIFF : For each sequence of 64 sectors the H2 table must be identical.
+              'H2-DIFF' means, that at least on table differ.
+   !ABORT   : Check aborted because of 10 found errors.
+
+
+ See also:
+ ---------
+    wwt VERIFY
+    wit DIFF
+
+
+ Usual ERROR/EXIT CODES:
+ -----------------------
+
+    0 == OK             : all done without erros.
+    DIFFER              : At least one check sum error found.
+    SYNTAX ERROR        : at least one syntax error in command line found.
+    READ ERROR          : error while reading a file.
+    CANT OPEN           : Can't open file.
+
+
+-------------------------------------------------------------------------------
+@@EXEC(./wit help --width 80 VERSION)@@
+
+ The command VERSION prints out the program version to standard out (stdout)
+ and exit with status 0 (OK).
+
+ The ouput line looks like:
+@@EXEC(./wit version | sed 's/^/    /')@@
+
+ With option --sections the output is printed in a machine readable format:
+@@EXEC(./wit --sections version | sed 's/^/    /')@@
+
+
+ Usual ERROR/EXIT CODES:
+
+    0 == OK : all done without erros.
+
+
+*******************************************************************************
+*******               Processing --source and --recurse                 *******
+*******************************************************************************
+
+The tool 'wit' processes the --source and the --recurse options to built an
+internal ISO database (pure ISO and WDF-ISO files included). All operations are
+then done with the files of this ISO database (like 'wwt' do it with a WBFS).
+
+ Options:
+    -s --source  path
+    -r --recurse path
+       --rdepth  depth
+
+Both options work similar and both option can be used multiple times. If 'path'
+is a non existing file an error message is printed. If 'path' is an plain file,
+it is opened and analyzed. If that files is an ISO file or and WDF-ISO than it
+is added to the internal ISO database.
+
+The options --source and --recurse differ only if 'path' is an directory.
+Option --source searches that directory but not subdirectories for ISO files.
+Option --recurse searches that directory and all subdirectories (recurse, max
+depth is set by --rlevel, default=10) for ISO files. Subdirectories beginning
+with a dot ('.') are ignored.
+
+The implementation is optimized so that a directory is only searched once.
+The option --recurse is processed before option --source.
+
+
+@@MODULE(proc-iso.txt)@@
+
+
+@@MODULE(proc-id6.txt)@@
+
+
+@@MODULE(proc-exclude.txt)@@
+
+
+@@MODULE(proc-titles.txt)@@
+
+
+@@MODULE(proc-split.txt)@@
+
+
+@@MODULE(proc-size.txt)@@
+
+
+@@MODULE(proc-files.txt)@@
+
+
+*******************************************************************************
+*******                      Some options in detail                     *******
+*******************************************************************************
+
+@@MODULE(opt-sort.txt)@@
+
+-------------------------------------------------------------------------------
+
+@@MODULE(opt-psel.txt)@@
+
+
+*******************************************************************************
+*******                   Hidden options (for testing)                  *******
+*******************************************************************************
+
+There are some hidden options implemented for testing:
+
+ --io value
+
+    wit and the other tools can handle files via open() (file mode) and via
+    fopen() (stream mode). The option --io=value allows to control the method.
+    Bit #0 is for opening WBFS and Bit #1 is for openening ISO images.
+    ('ISO' includes 'WDF-ISO')
+
+    --io=0 : WBFS=open()  ISO=open()  **default**
+    --io=1 : WBFS=fopen() ISO=open()
+    --io=2 : WBFS=open()  ISO=fopen()
+    --io=3 : WBFS=fopen() ISO=fopen()
+
+
+*******************************************************************************
+*******                      Environment variables                      *******
+*******************************************************************************
+
+The user can define environment variables as additional way to submit
+parameters to the tool:
+
+WIT_LANG
+
+ With 'WIT_LANG' the user can spezifiy a default language for wit and wwt
+ titles. If 'WIT_LANG' is empty 'LC_CTYPE' will be scanned. The option
+ --lang overides this default setting.
+
+ Example: WIT_LANG="de"
+
+WIT_OPT
+
+ 'WIT_OPT' is scanned like a command line and before the real command line is
+ scanned. Therefor 'WIT_OPT' will be converted to a parameter list. Each SPACE
+ or other control is a separator. Quoting is not possible. Only options and
+ their parameters will recognized. If such option is not compatible with
+ the command it is silently ignored.
+
+ Example: WIT_OPT="--force --overwrite -vv -T0"
+
+
+@@MODULE(signals.txt)@@
+
+
+*******************************************************************************
+*******                              END                                *******
+*******************************************************************************

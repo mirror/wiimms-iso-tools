@@ -1,0 +1,197 @@
+*******************************************************************************
+*******               Selecting files with --files=rules                *******
+*******************************************************************************
+
+Some wit commands (DUMP, ILIST, EXTRACT) will operate with the files contained
+by ISO images. The option --files=rule_list defines which files are processed.
+
+Option syntax:
+	-F      rule_list
+	--files rule_list
+	--files=rule_list
+	    
+
+'rule_list' is a semicolon separated list of rules. Each rules begin with a
+plus sign fpr a allow rule or a minus sign for a deny rule. The options can
+be used multiple times to define more and more rules.
+
+Rule Syntax:
+	rule_list  := rule [ ';' rule_list ]
+	rule       := skip_rule | std_rule | macro_call
+	skip_rule  := number prefix pattern
+	std_rule   := prefix pattern
+	macro_call := '=' pattern
+	prefix     := '+' | '-'
+	pattern    := [char]...
+	number     := '1'..'9' ['0'..'9']...
+
+'pattern' is a file pattern including wildcards. The design is like 'rsync'.
+
+The rule patterns are compared with the source path inside the ISO. A source
+path looks like "DIRECTORY/FILE.EXT" without the partition prefix (example:
+sys/boot.bin). The '/' at the beginning of the pattern is like a '^' in regular
+expressions. If the pattern starts with a '/' then it is matched against the
+beginning of the source path. Otherwise it is matched against the end of the
+source path. To force matching against the end use a '$' as last character in
+the pattern.
+
+--------------------------------------------------------------------------------
+
+This is a short description of the special characters:
+
+   /  : At the beginning of pattern
+         => Match against the beginning of the source path
+
+   $  : At the end of pattern => 
+         => Match against the end of the source path. This is the default if
+            no '/' is at the beginning or the end of the pattern.
+
+   *  : Match any number (zero or more) of characters but not '/'.
+
+   ** : Match any number (zero or more) of characters including  '/'.
+   
+   #  : Match any number (one or more) of digit ('0'..'9').
+
+   ?  : match exact 1 character but not '/'.
+
+  ' ' : (SPACE) Match space and any control charaters (ASCII 1..32).
+
+ [..] : Match 1 character of the list within the brackets. The list is
+        analyzed in the following way:
+         - If the first character is a '^' then characters not in the
+           list are matched.
+         - If the next character (behind optional '^') is a '+' or a '*'
+           then it is matched against the maximum possible characters.
+           A '+' means that at least one character must match.
+         - The list contains single characters 'c' or ranges 'x-y'.
+           To use a ']' it must be the first character. To use a '-' it
+           must be the first or last character.
+
+ {..} : This is a comma separated list of alternatives. It matches if
+        at least one alternative match. {..} can be used recursivley.
+
+   \c : Any character preseded by '\' looses its special meaning and
+        is handled as normal character.
+
+
+Pattern examples:
+
+      .wad : all files ending with '.wad'
+
+      */   : all directories but no files
+
+    dir/   : all directories which name ends with 'dir'.
+
+    dir/*  : all files in directories which name ends with 'dir'.
+
+    dir/** : all files in (sub-)directories which name ends with 'dir'.
+
+ **/dir/** : all files in (sub-)directories which name is 'dir'.
+
+ /dir/
+ /dir/*
+ /dir/**   : All files in the first level directory 'dir'
+             including subdiretories.
+
+ /dir/*$   : All files in in the first level directory 'dir'
+             excluding subdiretories.
+
+ /dir/*.wad
+           : All '*.wad' files in the first level directory 'dir' excluding
+             subdiretories and all files in diretories named *.wad.
+             
+ /DATA/dir/**.wad
+           : All '*.wad' files in in the first level directory 'dir'
+             including subdiretories.
+
+
+--------------------------------------------------------------------------------
+
+Processing the Rule list:
+
+Each option --filter= define a list of rules. Each file is checked agains the
+every rule on the list until a pattern matches the file name. If the rule
+match the file name the rule prefix decide what to do. A '+' means include
+the file and a '-' means exclude the file. A '=' calls an internal macro to
+define a set of rules.
+
+If a '+' or '-' is preceded by a decimal numeber the rule has a special
+meaning. If '+' and the pattern does match then the following NUMBER rules are
+skipped. If '-' and the pattern does not match then the following NUMBER rules
+are skipped. 
+
+If no rule match the prefix, the last rule in the list decide what to do.
+If the last rule is a '+' rule than the file is excluded (opposite handling).
+If the last rule is a '-' rule than the file is included.
+
+A empty list means: include all files.
+
+
+--------------------------------------------------------------------------------
+
+Rule macros:
+
+Rule macros are predifined rules to make live easier. Some of them exists
+as positive (without prefix 'no') and as negative (with prefix 'no') rule.
+
+ =base		:= +/*$
+ =nobase	:= -/*$
+
+    Allow or deny files of the base directory
+    (ticket.bin, tmd.bin, cert.bin, h3.bin),
+
+
+ =disc		:= +/disc/
+ =nodisc	:= -/disc/
+
+    Allow or deny files from the 'disc' directory.
+    (disc/header.bin, disc/region.bin)
+
+
+ =sys		:= +/sys/
+ =nosys		:= -/sys/
+
+    Allow or deny files from the 'sys' directory.
+    (sys/boot.bin, sys/bi2.bin, sys/apploader.img, sys/main.dol, sys/fst.bin)
+
+
+ =files		:= +/files/
+ =nofiles	:= -/files/
+
+    Allow or deny files from the 'file' directory.
+    This are the real files of the ISO image.
+
+
+ =wit		:= 2+/h3.bin ; 1+/sys/fst.bin ; +
+ =wwt		:= =wit
+
+    Allow files that are used from wit and wwt to compose an ISO image.
+
+
+ =sneek		:= 2+/h3.bin ; 1+/disc/ ; +
+
+    Allow files that SNEEK needs.
+
+
+--------------------------------------------------------------------------------
+
+Examples:
+
+  --filter +
+	include all files
+
+  --filter -
+	exclude all files
+
+  --filter +.wad
+	include all '*.wad' files
+
+  --filter -.wad
+	exclude all '*.wad' files
+
+  --filter '+.wad;-d'
+	exclude all '*d' files but not '*.wad'
+
+  --filter '+.h3.bin;=sneek'
+	suppress for SNEEK unneded files, but add 'h3.bin'.
+

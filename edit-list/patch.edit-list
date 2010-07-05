@@ -1,0 +1,8 @@
+../src/patch.[ch] ;
+../src/iso-interface.[ch] ;
+../src/libwbfs/file-formats.h ;
+../src/lib-wdf.[ch] ;
+../src/lib-std.[ch] ;
+../src/lib-file.[ch] ;
+../src/lib-error.[ch] ;
+@+all-source.edit-list

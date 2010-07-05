@@ -1,0 +1,2 @@
+../src/crypt.h ;
+../src/crypto/*.[chsS] ;

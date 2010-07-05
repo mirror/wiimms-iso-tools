@@ -1,0 +1,3 @@
+../src/libwbfs/libwbfs.[ch] ;
+@libwbfs-only.edit-list
+@iso-interface.edit-list

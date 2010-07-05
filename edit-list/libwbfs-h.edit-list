@@ -1,0 +1,4 @@
+../src/libwbfs/*.h ;
+../src/libwbfs/*.c ;
+../src/libwbfs/*.txt ;
+@iso-interface.edit-list

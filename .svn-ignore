@@ -1,0 +1,12 @@
+*.bak
+*.d
+*.iso
+*.o
+*.tmp
+*.wbfs
+*.wdf
+Makefile.local
+Makefile.setup
+Makefile.user
+bin
+pool
