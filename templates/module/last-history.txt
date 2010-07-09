@@ -31,7 +31,7 @@ wit v1.10a.beta r1338 - 2010-07-05  (repos only)
    calculated. A space between the columns is guaranteed.
  - wit DUMP: A forgotten endian calculation results in a wrong region info.
 
-wit v@@VERSION@@ r@@REV-NEXT@@ - @@@@-@@-@@
+wit v1.10a.beta r1359 - 2010-07-09
 
  - ID renaming: A point ('.') means: leave id character unchanged.
  - Options --ios, --id and --name modify only disc data and the DATA partition,
@@ -44,6 +44,10 @@ wit v@@VERSION@@ r@@REV-NEXT@@ - @@@@-@@-@@
    prefix '=' is obsolete, but still allowed.
  - Command "wit ILIST" evaluates option --psel now.
  - I have run my test scripts against this release without any reported errors.
+
+wit v@@VERSION@@ r@@REV-NEXT@@ - @@@@-@@-@@
+
+ - Bug fix: File size calculation error for when composing large discs.
 
 ~Known bugs:
 ~

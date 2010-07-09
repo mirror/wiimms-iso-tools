@@ -17,16 +17,9 @@
 
 [size="2"][color="#0000c0"][b]Highlights of this release:[/b][/color][/size]
 [list]
-[*] I have rewritten the wiidisc lib (part of libwmfs) from scratch. It has a complete new interface and an improved functionality. It uses dynamic data structures and collect data as needed and allow direct access to any partition. It has considerable advantages for the whole WIT project.
-[color=#ffffff].[/color]
-[*] I have rewritten all commands to use the new wiidisc interface. Most commands work as usal, but some commands has been improved:
-[list]
-[*] "wit DUMP --show=all" shows more information about ISO images. Try "wit DUMP --show=files,usage,dmap".
-[*] "wit ILIST --show=all" shows the offset and/or the size in HEX and/or DEC.
-[*] "wit CMP" : If using the option --psel the partition tables are normalized before comparing. This enables DIFF to compare DATA partitions only independent from the existence of other partitions.
-[/list]
 [color=#ffffff].[/color]
 [/list]
+
 [size="4"][color="#800000"][b]Please report positive and negative tests![/b][/color][/size]
 
 

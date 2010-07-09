@@ -2416,7 +2416,7 @@ u32 ScanPartFST
     IsoMappingItem_t * imi;
     imi = InsertIM(&part->im,IMT_DATA,(u64)cur_offset4<<2,part->ftab_size);
     imi->part = part;
-    StringCopyS(imi->info,sizeof(imi->info),"fst.bin");
+    snprintf(imi->info,sizeof(imi->info),"fst.bin, N(fst)=%u",part->file_used);
     imi->data = part->ftab;
     cur_offset4 += part->ftab_size >> 2;
 
@@ -2440,7 +2440,7 @@ u32 ScanPartFST
     u32 offset4 = cur_offset4;
 
     // iterate files and remove directories
-    u32 idx = 1;
+    u32 idx = 1, file_count = 0;
     WiiFstFile_t *file_dest = part->file;
     WiiFstFile_t *file_end  = part->file + part->file_used;
     for ( file = part->file+1; file < file_end; file++ )
@@ -2476,6 +2476,7 @@ u32 ScanPartFST
 	    offset4 += file->size + 3 >> 2;
 	    memcpy(file_dest,file,sizeof(*file_dest));
 	    file_dest++;
+	    file_count++;
 	}
 
 	noTRACE("-> %4x: %u %8x %8x %s\n",
@@ -2512,7 +2513,7 @@ u32 ScanPartFST
     imi = InsertIM( &part->im, IMT_PART_FILES,
 			(u64)cur_offset4<<2, (u64)(offset4-cur_offset4)<<2 );
     imi->part = part;
-    snprintf(imi->info,sizeof(imi->info),"%u files + directories",part->file_used);
+    snprintf(imi->info,sizeof(imi->info),"%u fst files",file_count);
     return offset4;
 }
 
@@ -2822,6 +2823,9 @@ enumError SetupReadFST ( SuperFile_t * sf )
 	data_size = GenPartFST(sf,data_part,sf->f.fname,data_off,min_offset);
 	data_off  = data_part->part_off;
 	data_part->path = strdup(sf->f.fname);
+	min_offset	= data_off
+			+ WII_PARTITION_BIN_SIZE
+			+ data_size;
     }
     else
     {
@@ -2852,18 +2856,21 @@ enumError SetupReadFST ( SuperFile_t * sf )
 	data_part->part_type = WD_PART_DATA;
 	data_size = GenPartFST(sf,data_part,path,data_off,min_offset);
 	data_off  = data_part->part_off;
+	min_offset	= data_off
+			+ WII_PARTITION_BIN_SIZE
+			+ data_size;
 	data_part->path = strdup(path);
 
 	if ( stat & CHANNEL_PART_FOUND )
 	{
-	    min_offset	= data_off
-			+ WII_PARTITION_BIN_SIZE
-			+ data_size;
 	    ccp path = PathCatPP(path_buf,sizeof(path_buf),sf->f.fname,channel_path);
 	    WiiFstPart_t * channel_part = AppendPartFST(fst);
 	    channel_part->part_type = WD_PART_CHANNEL;
 	    channel_size = GenPartFST(sf,channel_part,path,channel_off,min_offset);
 	    channel_off  = channel_part->part_off;
+	    min_offset	= channel_off
+			+ WII_PARTITION_BIN_SIZE
+			+ channel_size;
 	    channel_part->path = strdup(path);
 	}
     }
@@ -2948,9 +2955,7 @@ enumError SetupReadFST ( SuperFile_t * sf )
 	PrintFstIM(fst,stdout,0,logging>1,"Memory layout of virtual");
 
     const off_t single_size = WII_SECTORS_SINGLE_LAYER * (off_t)WII_SECTOR_SIZE;
-    sf->file_size = data_off + data_size;
-    if ( sf->file_size < single_size )
-	sf->file_size = single_size;
+    sf->file_size = min_offset > single_size ? min_offset : single_size;
 
     //SetupISOModifier(sf); // not needed because done on composing
     return ERR_OK;
