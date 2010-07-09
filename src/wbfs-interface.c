@@ -687,7 +687,7 @@ enumError CheckParamRename ( bool rename_id, bool allow_plus, bool allow_index )
 	    param->selector[0] = '+';
 	    arg++;
 	}
-	else if ( CheckID(arg,true) == 6 )
+	else if ( CheckID(arg,true,false) == 6 )
 	{
 	    // ID6 found
 	    int i;
@@ -757,14 +757,16 @@ enumError CheckParamRename ( bool rename_id, bool allow_plus, bool allow_index )
 
 	    if ( *arg != ',' )
 	    {
-		if ( CheckID(arg,true) != 6 )
+		const int idlen = CountIDChars(arg,true,true);
+		if ( idlen < 1 || idlen > 6 )
 		{
-		    ERROR0(ERR_SYNTAX,"Missing ID6: %s -> %s\n", param->arg, arg );
+		    ERROR0(ERR_SYNTAX,"Missing ID: %s -> %s\n", param->arg, arg );
 		    syntax_count++;
 		    continue;
 		}
+		memset(param->id6,'.',6);
 		int i;
-		for ( i = 0; i < 6; i++ )
+		for ( i = 0; i < idlen; i++ )
 		    param->id6[i] = toupper((int)*arg++);
 		while ( *arg > 0 &&*arg <= ' ' )
 		    arg++;
@@ -1878,7 +1880,7 @@ static void AW_discs ( AWData_t * awd, File_t * f, ccp data )
 	wd_header_t *wd = (wd_header_t *)( data + sec * SEC_SIZE );
 	u32 magic = ntohl(wd->magic);
 	if ( ( magic == WII_MAGIC || magic == WII_MAGIC_DELETED )
-		&& CheckID6(wd,false) )
+		&& CheckID6(wd,false,false) )
 	{
 	    noTRACE(" - DISC found @ sector #%u\n",sec);
 	    for ( level = SEC_LEVEL-1; level >= 0; level-- )
@@ -2905,7 +2907,7 @@ void CalcWDiscInfo ( WDiscInfo_t * dinfo, SuperFile_t * sf )
 	    dinfo->n_part = disc->n_part;
 	    dinfo->magic2 = disc->magic2;
 	    memcpy(&dinfo->dhead,&disc->dhead,sizeof(dinfo->dhead));
-	    dinfo->used_blocks = CountUsedIsoBlocksSF(sf,partition_selector);
+	    dinfo->used_blocks = CountUsedIsoBlocksSF(sf,part_selector);
 	}
 	else
 	    ReadSF(sf,0,&dinfo->dhead,sizeof(dinfo->dhead));
@@ -3532,13 +3534,13 @@ wd_header_t * GetWDiscHeader ( WBFS_t * w )
 ///////////////                      AddWDisc()                 ///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-enumError AddWDisc ( WBFS_t * w, SuperFile_t * sf, wd_part_sel_t psel )
+enumError AddWDisc ( WBFS_t * w, SuperFile_t * sf, wd_select_t psel )
 {
     if ( !w || !w->wbfs || !w->sf || !sf )
 	return ERROR0(ERR_INTERNAL,0);
 
-    TRACE("AddWDisc(w=%p,sf=%p,psel=%d) progress=%d,%d\n",
-		w, sf, psel, sf->show_progress, sf->show_summary );
+    TRACE("AddWDisc(w=%p,sf=%p,psel=%llx) progress=%d,%d\n",
+		w, sf, (u64)psel, sf->show_progress, sf->show_summary );
 
     CloseWDisc(w);
 
@@ -3551,8 +3553,7 @@ enumError AddWDisc ( WBFS_t * w, SuperFile_t * sf, wd_part_sel_t psel )
     par.read_src_wii_disc	= WrapperReadSF;
     par.callback_data		= sf;
     par.spinner			= sf->show_progress ? PrintProgressSF : 0;
-    par.sel			= psel;
-    par.copy_1_1		= psel == WD_PART_WHOLE_DISC;
+    par.psel			= psel;
     par.iinfo.mtime		= hton64(sf->f.fatt.mtime);
     par.iso_size		= sf->file_size;
     par.wd_disc			= OpenDiscSF(sf,false,true);
@@ -3625,7 +3626,7 @@ enumError ExtractWDisc ( WBFS_t * w, SuperFile_t * sf )
 	w->sf->show_summary	= sf->show_summary;
 	w->sf->show_msec	= sf->show_msec;
 
-	return AddWDisc(sf->wbfs,w->sf,WD_PART_ALL);
+	return AddWDisc(sf->wbfs,w->sf,part_selector);
     }
 
     sf->file_size = sf->enable_trunc
@@ -3753,7 +3754,7 @@ enumError RenameWDisc
     if ( !wbfs || !wbfs->wbfs || !wbfs->sf )
 	return ERROR0(ERR_INTERNAL,0);
 
-    if ( !set_id6 || strlen(set_id6) < 6 )
+    if ( !set_id6 || !*set_id6 || strlen(set_id6) > 6 )
 	set_id6 = 0; // invalid id6
 
     if ( !set_title || !*set_title )

@@ -1173,7 +1173,7 @@ u32 wbfs_add_disc
     wd_read_func_t		read_src_wii_disc,
     void			*callback_data,
     progress_callback_t		spinner,
-    wd_part_sel_t		sel,
+    wd_select_t			psel,
     int				copy_1_1
 )
 {
@@ -1183,8 +1183,9 @@ u32 wbfs_add_disc
     par.read_src_wii_disc	= read_src_wii_disc;
     par.callback_data		= callback_data;
     par.spinner			= spinner;
-    par.sel			= sel;
-    par.copy_1_1		= copy_1_1;
+    par.psel			= psel;
+    if (copy_1_1)
+	par.psel |= WD_SEL_WHOLE_DISC;
 
     const u32 stat = wbfs_add_disc_param(p,&par);
     if (par.open_disc)
@@ -1213,10 +1214,8 @@ u32 wbfs_add_disc_param ( wbfs_t *p, wbfs_param_t * par )
     if (!used)
 	OUT_OF_MEMORY;
 
-    if ( par->sel == WD_PART_WHOLE_DISC )
-	par->copy_1_1 = 1;
-    if ( par->copy_1_1 )
-	par->sel = WD_PART_WHOLE_DISC;
+    const bool copy_1_1 = ( par->psel & WD_SEL_WHOLE_DISC ) != 0;
+
 
     //----- open source disc
 
@@ -1231,7 +1230,7 @@ u32 wbfs_add_disc_param ( wbfs_t *p, wbfs_param_t * par )
 	    WBFS_ERROR("unable to open wii disc");
     }
 
-    wd_filter_usage_table_sel(disc,used,par->sel);
+    wd_filter_usage_table_sel(disc,used,par->psel);
 
     // [2do] : calc usage and test, if source will fit
 
@@ -1266,7 +1265,7 @@ u32 wbfs_add_disc_param ( wbfs_t *p, wbfs_param_t * par )
     {
 	// count total number to write for spinner
 	for (i = 0; i < p->n_wbfs_sec_per_disc; i++)
-	    if (par->copy_1_1 || block_used(used, i, wii_sec_per_wbfs_sect))
+	    if (copy_1_1 || block_used(used, i, wii_sec_per_wbfs_sect))
 		tot++;
 	par->spinner(0,tot,par->callback_data);
     }
@@ -1276,7 +1275,7 @@ u32 wbfs_add_disc_param ( wbfs_t *p, wbfs_param_t * par )
     for ( i = 0; i < p->n_wbfs_sec_per_disc; i++ )
     {
 	u32 bl = 0;
-	if (par->copy_1_1 || block_used(used, i, wii_sec_per_wbfs_sect))
+	if (copy_1_1 || block_used(used, i, wii_sec_per_wbfs_sect))
 	{
 	    bl = alloc_block(p);
 	    if ( bl == WBFS_NO_BLOCK )
@@ -1500,9 +1499,10 @@ u32 wbfs_nid_disc ( wbfs_t * p, u8 * discid, u8 * newid )
 
 u32 wbfs_estimate_disc
 (
-    wbfs_t *p, wd_read_func_t read_src_wii_disc,
-    void *callback_data,
-    wd_part_sel_t sel
+    wbfs_t		*p,
+    wd_read_func_t	read_src_wii_disc,
+    void		*callback_data,
+    wd_select_t		psel
 )
 { // [codeview]
     u8 *b;
@@ -1522,7 +1522,7 @@ u32 wbfs_estimate_disc
     disc = wd_open_disc(read_src_wii_disc,callback_data,0,0);
     if (!disc)
 	WBFS_ERROR("unable to open wii disc");
-    wd_filter_usage_table_sel(disc,used,sel);
+    wd_filter_usage_table_sel(disc,used,psel);
 
     info = wbfs_ioalloc(p->disc_info_sz);
     b = (u8 *)info;

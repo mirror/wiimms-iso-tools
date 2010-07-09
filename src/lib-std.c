@@ -276,18 +276,29 @@ void SetupLib ( int argc, char ** argv, ccp p_progname, enumProgID prid )
     TRACE_SIZEOF(wd_disc_t);
     TRACE_SIZEOF(wd_fst_item_t);
     TRACE_SIZEOF(wd_header_t);
+    TRACE_SIZEOF(wd_icm_t);
+    TRACE_SIZEOF(wd_ipm_t);
     TRACE_SIZEOF(wd_iterator_t);
     TRACE_SIZEOF(wd_part_control_t);
     TRACE_SIZEOF(wd_part_header_t);
     TRACE_SIZEOF(wd_part_sector_t);
     TRACE_SIZEOF(wd_part_t);
+    TRACE_SIZEOF(wd_patch_item_t);
+    TRACE_SIZEOF(wd_patch_mode_t);
+    TRACE_SIZEOF(wd_patch_t);
+    TRACE_SIZEOF(wd_pfst_t);
+    TRACE_SIZEOF(wd_pname_mode_t);
     TRACE_SIZEOF(wd_print_fst_t);
     TRACE_SIZEOF(wd_ptab_info_t);
     TRACE_SIZEOF(wd_ptab_entry_t);
+    TRACE_SIZEOF(wd_ptab_t);
     TRACE_SIZEOF(wd_region_t);
+    TRACE_SIZEOF(wd_select_t);
+    TRACE_SIZEOF(wd_select_idx_t);
     TRACE_SIZEOF(wd_ticket_t);
     TRACE_SIZEOF(wd_tmd_content_t);
     TRACE_SIZEOF(wd_tmd_t);
+    TRACE_SIZEOF(wd_usage_t);
 
     // assertions
 
@@ -1102,15 +1113,22 @@ int NormalizeIndent ( int indent )
 
 ///////////////////////////////////////////////////////////////////////////////
 
-int CheckIDHelper
-	( const void * id, int max_len, bool allow_any_len, bool ignore_case )
+int CheckIDHelper // helper for all other id functions
+(
+	const void	* id,		// valid pointer to test ID
+	int		max_len,	// max length of ID, a NULL terminates ID too
+	bool		allow_any_len,	// if false, only length 4 and 6 are allowed
+	bool		ignore_case,	// lower case letters are allowed
+	bool		allow_point	// the wildcard '.' is allowed
+)
 {
     ASSERT(id);
     ccp ptr = id;
     ccp end = ptr + max_len;
     while ( ptr != end && ( *ptr >= 'A' && *ptr <= 'Z'
-			|| *ptr >= 'a' && *ptr <= 'z' && ignore_case
+			|| ignore_case && *ptr >= 'a' && *ptr <= 'z'
 			|| *ptr >= '0' && *ptr <= '9'
+			|| allow_point && *ptr == '.'
 			|| *ptr == '_' ))
 	ptr++;
 
@@ -1120,34 +1138,54 @@ int CheckIDHelper
 
 //-----------------------------------------------------------------------------
 
-int CheckID ( const void * id, bool ignore_case )
+int CheckID // check up to 7 chars for ID4|ID6
+(
+	const void	* id,		// valid pointer to test ID
+	bool		ignore_case,	// lower case letters are allowed
+	bool		allow_point	// the wildcard '.' is allowed
+)
 {
     // check up to 7 chars
-    return CheckIDHelper(id,7,false,ignore_case);
+    return CheckIDHelper(id,7,false,ignore_case,allow_point);
 }
 
 //-----------------------------------------------------------------------------
 
-bool CheckID4 ( const void * id, bool ignore_case )
+bool CheckID4 // check exact 4 chars
+(
+	const void	* id,		// valid pointer to test ID
+	bool		ignore_case,	// lower case letters are allowed
+	bool		allow_point	// the wildcard '.' is allowed
+)
 {
     // check exact 4 chars
-    return CheckIDHelper(id,4,false,ignore_case) == 4;
+    return CheckIDHelper(id,4,false,ignore_case,allow_point) == 4;
 }
 
 //-----------------------------------------------------------------------------
 
-bool CheckID6 ( const void * id, bool ignore_case )
+bool CheckID6 // check exact 6 chars
+(
+	const void	* id,		// valid pointer to test ID
+	bool		ignore_case,	// lower case letters are allowed
+	bool		allow_point	// the wildcard '.' is allowed
+)
 {
     // check exact 6 chars
-    return CheckIDHelper(id,6,false,ignore_case) == 6;
+    return CheckIDHelper(id,6,false,ignore_case,allow_point) == 6;
 }
 
 //-----------------------------------------------------------------------------
 
-int CountIDChars( const void * id, bool ignore_case )
+int CountIDChars // count number of valid ID chars, max = 1000
+(
+	const void	* id,		// valid pointer to test ID
+	bool		ignore_case,	// lower case letters are allowed
+	bool		allow_point	// the wildcard '.' is allowed
+)
 {
     // count number of valid ID chars
-    return CheckIDHelper(id,1000,true,ignore_case);
+    return CheckIDHelper(id,1000,true,ignore_case,allow_point);
 }
 
 //-----------------------------------------------------------------------------
@@ -1174,7 +1212,7 @@ char * ScanID ( char * destbuf7, int * destlen, ccp source )
 	}
 
 	// scan first word
-	const int id_len = CheckID(src,false);
+	const int id_len = CheckID(src,false,false);
 
 	if ( id_len == 4 )
 	{
@@ -1225,7 +1263,7 @@ char * ScanID ( char * destbuf7, int * destlen, ccp source )
 	    while ( *src && *src != '[' ) // ]
 		src++;
 
-	    if ( *src == '[' && src[7] == ']' && CheckID(++src,false) == 6 )
+	    if ( *src == '[' && src[7] == ']' && CheckID(++src,false,false) == 6 )
 	    {
 		id_start = src;
 		src += 8;
@@ -2028,10 +2066,14 @@ char * ScanRangeU32 ( ccp arg, u32 * p_stat, u32 * p_n1, u32 * p_n2, u32 min, u3
 ///////////////////////////////////////////////////////////////////////////////
 
 const CommandTab_t * ScanCommand
-	( int * p_stat, ccp arg, const CommandTab_t * cmd_tab )
+(
+    int			* res_abbrev,	// NULL or pointer to result 'abbrev_count'
+    ccp			arg,		// argument to scan
+    const CommandTab_t	* cmd_tab	// valid pointer to command table
+)
 {
     ASSERT(arg);
-    char cmd_buf[COMMAND_MAX];
+    char cmd_buf[COMMAND_NAME_MAX];
 
     char *dest = cmd_buf;
     char *end  = cmd_buf + sizeof(cmd_buf) - 1;
@@ -2067,25 +2109,27 @@ const CommandTab_t * ScanCommand
     else if (!abbrev_count)
 	abbrev_count = -1;
 
-    if (p_stat)
-	*p_stat = abbrev_count;
+    if (res_abbrev)
+	*res_abbrev = abbrev_count;
 
     return cmd_ct;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 
-int ScanCommandList
+s64 ScanCommandList
 (
-	ccp arg,
-	const CommandTab_t * cmd_tab,
-	CommandCallbackFunc func,
-	int result
+    ccp			arg,		// argument to scan
+    const CommandTab_t	* cmd_tab,	// valid pointer to command table
+    CommandCallbackFunc	func,		// NULL or calculation function
+    bool		allow_prefix,	// allow '-' | '+' | '=' as prefix
+    u32			max_number,	// allow numbers < 'max_number' (0=disabled)
+    s64			result		// start value for result
 )
 {
     ASSERT(arg);
 
-    char cmd_buf[COMMAND_MAX];
+    char cmd_buf[COMMAND_NAME_MAX];
     char *end  = cmd_buf + sizeof(cmd_buf) - 1;
 
     for (;;)
@@ -2101,30 +2145,44 @@ int ScanCommandList
 		( *arg != '+' || dest == cmd_buf ) && dest < end )
 	    *dest++ = *arg++;
 	*dest = 0;
-	char mode = 0;
-	const CommandTab_t * cptr = ScanCommand(0,cmd_buf,cmd_tab);
-	if ( !cptr && !func && cmd_buf[1]
+	char prefix = 0;
+	int abbrev_count;
+	const CommandTab_t * cptr = ScanCommand(&abbrev_count,cmd_buf,cmd_tab);
+	if ( !cptr && allow_prefix && cmd_buf[1]
 	    && ( *cmd_buf == '+' || *cmd_buf == '-' || *cmd_buf == '=' ))
 	{
-	    mode = *cmd_buf;
-	    cptr = ScanCommand(0,cmd_buf+1,cmd_tab);
-	    if ( !cptr || cptr->opt && mode != '+' )
-		return -1;
+	    prefix = *cmd_buf;
+	    cptr = ScanCommand(&abbrev_count,cmd_buf+1,cmd_tab);
 	}
-	if (!cptr)
+
+	CommandTab_t ct_num = { 0, cmd_buf, 0, 0 };
+	if ( max_number && abbrev_count )
+	{
+	    char * start = cmd_buf + (prefix!=0);
+	    ulong num = strtol(start,&dest,10);
+	    if ( num < max_number && dest > start && !*dest )
+	    {
+		ct_num.id = num;
+		cptr = &ct_num;
+	    }
+	}
+	
+	if ( !cptr || cptr->opt && prefix && prefix != '+' )
 	    return -1;
+
 
 	if (func)
 	{
-	    result = func(cmd_buf,cmd_tab,cptr,result);
-	    if ( result < 0 )
+	    result = func(cmd_buf,cmd_tab,cptr,prefix,result);
+	    if ( result == -(s64)1 )
 		return result;
 	}
 	else
 	{
-	    switch ( mode ? mode : '+' )
+	    switch (prefix)
 	    {
-		case '+': result =  result & ~cptr->opt | cptr->id; break;
+		case 0:
+		case '+': result  =  result & ~cptr->opt | cptr->id; break;
 		case '-': result &= ~cptr->id; break;
 		case '=': result  =  cptr->id; break;
 	    }
@@ -2134,20 +2192,29 @@ int ScanCommandList
 
 ///////////////////////////////////////////////////////////////////////////////
 
-static int ScanCommandListMaskHelper
-	( ccp cmd_name, const CommandTab_t * cmd_tab,
-		const CommandTab_t * cptr, int result )
+static s64 ScanCommandListMaskHelper
+(
+    ccp			name,		// normalized name of option
+    const CommandTab_t	* cmd_tab,	// valid pointer to command table
+    const CommandTab_t	* cmd,		// valid pointer to found command
+    char		prefix,		// 0 | '-' | '+' | '='
+    s64			result		// current value of result
+)
 {
-    return cptr->opt
-		? result & ~cptr->opt | cptr->id
-		: cptr->id;
+    return cmd->opt
+		? result & ~cmd->opt | cmd->id
+		: cmd->id;
 }
 
 //-----------------------------------------------------------------------------
 
-int ScanCommandListMask ( ccp arg, const CommandTab_t * cmd_tab )
+s64 ScanCommandListMask
+(
+    ccp			arg,		// argument to scan
+    const CommandTab_t	* cmd_tab	// valid pointer to command table
+)
 {
-    return ScanCommandList(arg,cmd_tab,ScanCommandListMaskHelper,0);
+    return ScanCommandList(arg,cmd_tab,ScanCommandListMaskHelper,false,0,0);
 }
 
 //
@@ -2234,6 +2301,7 @@ ShowMode ScanShowMode ( ccp arg )
 	{ SHOW_TMD,	"TMD",		0,		0 },
 	{ SHOW_USAGE,	"USAGE",	0,		0 },
 	{ SHOW_FILES,	"FILES",	0,		0 },
+	{ SHOW_PATCH,	"PATCH",	0,		0 },
 	{ SHOW_PATH,	"PATH",		0,		0 },
 
 	{ SHOW_OFFSET,	"OFFSET",	0,		0 },
@@ -2254,7 +2322,7 @@ ShowMode ScanShowMode ( ccp arg )
 	{ 0,0,0,0 }
     };
 
-    int stat = ScanCommandList(arg,tab,0,SHOW_F_HEAD);
+    int stat = ScanCommandList(arg,tab,0,true,0,SHOW_F_HEAD);
     if ( stat != -1 )
 	return stat;
 
@@ -2341,7 +2409,7 @@ RepairMode ScanRepairMode ( ccp arg )
 	{ 0,0,0,0 }
     };
 
-    int stat = ScanCommandList(arg,tab,0,0);
+    int stat = ScanCommandList(arg,tab,0,true,0,0);
     if ( stat != -1 )
 	return stat;
 

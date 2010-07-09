@@ -1,5 +1,5 @@
 #!/bin/bash
-# (c) Wiimm, 2010-05-05
+# (c) Wiimm, 2010-07-06
 
 myname="${0##*/}"
 base=wwt+wit
@@ -28,11 +28,14 @@ then
 	Usage:  $myname [option]... iso_file...
 
 	Options:
-	  --fast    : Enter fast mode => do only WDF tests and skip fst+pipe tests
-	  --fst     : enable  "EXTRACT FST" tests
-	  --no-fst  : disable "EXTRACT FST" tests
-	  --pipe    : enable  pipe tests
-	  --no-pipe : disable pipe tests (default for cygwin)
+	  --fast      : Enter fast mode
+	                => do only WDF tests and skip verify+fst+pipe tests
+	  --verify    : enable  verify tests
+	  --no-verify : disable verify tests
+	  --fst       : enable  "EXTRACT FST" tests
+	  --no-fst    : disable "EXTRACT FST" tests
+	  --pipe      : enable  pipe tests
+	  --no-pipe   : disable pipe tests (default for cygwin)
 
 	---EOT---
     exit 1
@@ -145,6 +148,7 @@ BASEMODE="wdf"
 FAST_MODELIST="wdf"
 FAST_BASEMODE="wdf"
 
+NOVERIFY=0
 NOFST=0
 NOPIPE=0
 [[ $TERM = cygwin ]] && NOPIPE=1
@@ -203,10 +207,12 @@ function test_suite()
 
     #----- verify source
 
-    test_function "VERIFY" "wit VERIFY source" \
-	$WIT VERIFY -qq "$1" \
-	|| return $ERROR
-
+    if ((!NOVERIFY))
+    then
+	test_function "VERIFY" "wit VERIFY source" \
+	    $WIT VERIFY -qq "$1" \
+	    || return $ERROR
+    fi
 
     #----- test WWT
 
@@ -274,11 +280,11 @@ function test_suite()
 	dest="$tempdir/fst"
 
 	test_function "EXTR-FST" "wit EXTRACT source" \
-	    $WIT -q COPY "$1" "$dest/0" --fst -F=wit \
+	    $WIT -q COPY "$1" "$dest/0" --fst -F :wit \
 	    || return $ERROR
 
 	test_function "EXTR-FST" "wit EXTRACT copy" \
-	    $WIT -q COPY "$src" "$dest/1" --fst -F=wit \
+	    $WIT -q COPY "$src" "$dest/1" --fst -F :wit \
 	    || return $ERROR
 
 	test_function "DIFF-FST" "DIFF fst/0 fst/1" \
@@ -305,7 +311,7 @@ function test_suite()
 	    || return $STAT_DIFF
 
 	test_function "EXTR-FST" "wit EXTRACT" \
-	    $WIT -q COPY "$dest/a.wdf" "$dest/2" --fst -F=wit \
+	    $WIT -q COPY "$dest/a.wdf" "$dest/2" --fst -F :wit \
 	    || return $ERROR
 
 	#diff -rq "$dest/1" "$dest/2"
@@ -321,26 +327,28 @@ function test_suite()
 
     #----- test WWT pipe
 
-    ref=-
-    ((NOPIPE)) && return $STAT_OK
-
-    hss=1024
-    test_function "INIT-$hss" "wwt INIT wbfs hss=$hss" \
-	$WWT INIT -q --force --size=20g --hss=$hss "$WBFS" \
-	|| return $ERROR
-
-    ref="ADD pipe"
-    if ! $WDFCAT "$tempdir/image.$BASEMODE" |
-	test_function "ADD-pipe" "wwt ADD $BASEMODE from pipe" \
-	    $WWT -qp "$WBFS" ADD -
+    if ((!NOPIPE))
     then
-	ref="NO-PIPE"
-	return $STAT_OK
-    fi
 
-    test_function "CMP" "wit CMP wbfs source" \
-	$WIT -q CMP "$WBFS" "$1" \
-	|| return $STAT_DIFF
+	hss=1024
+	test_function "INIT-$hss" "wwt INIT wbfs hss=$hss" \
+	    $WWT INIT -q --force --size=20g --hss=$hss "$WBFS" \
+	    || return $ERROR
+
+	ref="ADD pipe"
+	if ! $WDFCAT "$tempdir/image.$BASEMODE" |
+	    test_function "ADD-pipe" "wwt ADD $BASEMODE from pipe" \
+		$WWT -qp "$WBFS" ADD - --psel=DATA
+	then
+	    ref="NO-PIPE"
+	    return $STAT_OK
+	fi
+
+	test_function "CMP" "wit CMP wbfs source" \
+	    $WIT -q CMP "$WBFS" "$1" --psel=DATA \
+	    || return $STAT_DIFF
+
+    fi
 
     #----- all tests done
 
@@ -374,11 +382,26 @@ do
 
     if [[ $src == --fast ]]
     then
+	NOVERIFY=1
 	NOFST=1
 	NOPIPE=1
 	MODELIST="$FAST_MODELIST"
 	BASEMODE="$FAST_BASEMODE"
 	printf "\n## --fast : check only %s, --no-fst --no-pipe\n" "$MODELIST"
+	continue
+    fi
+
+    if [[ $src == --verify ]]
+    then
+	NOVERIFY=1
+	printf "\n## --verify : verify tests enabled\n"
+	continue
+    fi
+
+    if [[ $src == --no-verify || $src == --noverify ]]
+    then
+	NOVERIFY=1
+	printf "\n## --no-verify : verify tests disabled\n"
 	continue
     fi
 
@@ -398,7 +421,7 @@ do
 
     if [[ $src == --pipe ]]
     then
-	NOPIPE=1
+	NOPIPE=0
 	printf "\n## --pipe : pipe tests enabled\n"
 	continue
     fi
@@ -409,7 +432,7 @@ do
 	printf "\n## --no-pipe : pipe tests disabled\n"
 	continue
     fi
-    
+
     total_start=$(get_msec)
     test_suite "$src"
     stat=$?

@@ -24,12 +24,26 @@ wit v1.10a.beta r1333 - 2010-07-05
       before comparing. This enables DIFF to compare DATA partitions only
       independent from the existence of other partitions.
 
-wit v@@VERSION@@ r@@REV-NEXT@@ - @@@@-@@-@@
+wit v1.10a.beta r1338 - 2010-07-05  (repos only)
 
- - Channels partitions enabled, but mot testet.
+ - Channels partitions enabled, but not tested.
  - The field width of offset and size columns of FST listings is now
    calculated. A space between the columns is guaranteed.
- - wit DUMP: A forgotten endian calculation results in a wring region info.
+ - wit DUMP: A forgotten endian calculation results in a wrong region info.
+
+wit v@@VERSION@@ r@@REV-NEXT@@ - @@@@-@@-@@
+
+ - ID renaming: A point ('.') means: leave id character unchanged.
+ - Options --ios, --id and --name modify only disc data and the DATA partition,
+   but no longer other any other partitions.
+ - There is an complete new implementation of option --psel: Combinations like
+   '--psel DATA,UPDATE' or '--psel -CHANNEL' are supported now.
+ - New: wit DUMP --show=patch: Shows a address map with patching infos.
+ - wwt EXTRACT: Complete new and improved calculation of output filename.
+ - Option --files: Macro calls are now prefixed by a colon (':'). The previous
+   prefix '=' is obsolete, but still allowed.
+ - Command "wit ILIST" evaluates option --psel now.
+ - I have run my test scripts against this release without any reported errors.
 
 ~Known bugs:
 ~
@@ -37,4 +51,5 @@ Missing docu:
 
  - wit commands ILIST + EXTRACT
  - Option --show => see built in help
+ - Option --psel => see built in help
  - file ./setup.txt when composing

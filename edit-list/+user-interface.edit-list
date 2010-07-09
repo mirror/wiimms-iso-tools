@@ -4,4 +4,4 @@
 ../src/ui/*.[ch] ;
 ../ui-*.tmp ;
 @+all-source.edit-list
--y 2125 ../src/ui/tab-ui.c ;
+-y 1 ../src/ui/tab-ui.c ;

@@ -240,7 +240,7 @@ enumError exec_filetype ( SuperFile_t * sf, Iterator_t * it )
 	if (sf->f.id6[0])
 	{
 	    region = GetRegionInfo(sf->f.id6[3])->name4;
-	    u32 count = CountUsedIsoBlocksSF(sf,partition_selector);
+	    u32 count = CountUsedIsoBlocksSF(sf,part_selector);
 	    if (count)
 		snprintf(size,sizeof(size),"%4u",
 			(count+WII_SECTORS_PER_MIB/2)/WII_SECTORS_PER_MIB);
@@ -319,7 +319,7 @@ enumError exec_isosize ( SuperFile_t * sf, Iterator_t * it )
     {
 	disc = OpenDiscSF(sf,true,true);
 	if (disc)
-	    wd_filter_usage_table_sel(disc,wdisc_usage_tab,partition_selector);
+	    wd_filter_usage_table_sel(disc,wdisc_usage_tab,part_selector);
     }
 
     const bool print_header = !(used_options&OB_NO_HEADER);
@@ -786,6 +786,7 @@ enumError exec_ilist ( SuperFile_t * fi, Iterator_t * it )
     wd_disc_t * disc = OpenDiscSF(fi,true,true);
     if (!disc)
 	return ERR_WDISC_NOT_FOUND;
+    wd_select(disc,part_selector);
 
     WiiFst_t fst;
     InitializeFST(&fst);
@@ -917,7 +918,7 @@ enumError exec_diff ( SuperFile_t * f1, Iterator_t * it )
     f2.show_summary	= verbose > 0 || progress;
     f2.show_msec	= verbose > 2;
 
-    const bool raw_mode = partition_selector == WD_PART_WHOLE_DISC || !f1->f.id6[0];
+    const bool raw_mode = part_selector & WD_SEL_WHOLE_DISC || !f1->f.id6[0];
     if (testmode)
     {
 	printf( "%s: WOULD DIFF/%s %s:%s : %s:%s\n",
@@ -936,7 +937,7 @@ enumError exec_diff ( SuperFile_t * f1, Iterator_t * it )
 		oft_name[f2.iod.oft], f2.f.fname );
     }
 
-    const wd_part_sel_t psel = raw_mode ? WD_PART_WHOLE_DISC : partition_selector;
+    const wd_select_t psel = raw_mode ? WD_SEL_WHOLE_DISC : part_selector;
     FilePattern_t * pat = GetDefaultFilePattern();
     err = SetupFilePattern(pat)
 		? DiffFilesSF( f1, &f2, it->long_count, pat, psel, prefix_mode )
@@ -1181,7 +1182,7 @@ enumError exec_copy ( SuperFile_t * fi, Iterator_t * it )
     snprintf(count_buf,sizeof(count_buf), "%*u/%u",
 		(int)strlen(count_buf), it->source_index+1, it->source_list.used );
 
-    const bool raw_mode = partition_selector == WD_PART_WHOLE_DISC || !fi->f.id6[0];
+    const bool raw_mode = part_selector & WD_SEL_WHOLE_DISC || !fi->f.id6[0];
     if (testmode)
     {
 	if (scrub_it)
@@ -1229,7 +1230,7 @@ enumError exec_copy ( SuperFile_t * fi, Iterator_t * it )
 	goto abort;
 
     //MarkMinSizeSF(&fo,fi->file_size); // [2do] [obsolete]
-    err = CopySF( fi, &fo, raw_mode ? WD_PART_WHOLE_DISC : partition_selector );
+    err = CopySF( fi, &fo, raw_mode ? WD_SEL_WHOLE_DISC : part_selector );
     if (err)
 	goto abort;
 
@@ -1771,7 +1772,8 @@ enumError CheckOptions ( int argc, char ** argv, bool is_env )
 	case GO_IGNORE:		ignore_count++; break;
 	case GO_IGNORE_FST:	allow_fst = false; break;
 
-	case GO_RAW:		partition_selector = WD_PART_WHOLE_DISC; break;
+	case GO_PSEL:		err += ScanOptPartSelector(optarg); break;
+	case GO_RAW:		part_selector = WD_SEL_WHOLE_DISC; break;
 	case GO_SNEEK:		SetupSneekMode(); break;
 	case GO_HOOK:		hook_enabled = true; break;
 	case GO_ENC:		err += ScanOptEncoding(optarg); break;
@@ -1814,16 +1816,6 @@ enumError CheckOptions ( int argc, char ** argv, bool is_env )
 	    if (ScanSizeOptU32(&opt_recurse_depth,optarg,1,0,
 			    "rdepth",0,MAX_RECURSE_DEPTH,0,0,true))
 		err++;
-	    break;
-
-	case GO_PSEL:
-	    {
-		const int new_psel = ScanPartitionSelector(optarg);
-		if ( new_psel == -1 )
-		    err++;
-		else
-		    partition_selector = new_psel;
-	    }
 	    break;
 
 	case GO_PMODE:
@@ -1906,7 +1898,7 @@ enumError CheckCommand ( int argc, char ** argv )
 	hint_exit(ERR_SYNTAX);
     }
 
-    TRACE("COMMAND FOUND: #%d = %s\n",cmd_ct->id,cmd_ct->name1);
+    TRACE("COMMAND FOUND: #%lld = %s\n",(u64)cmd_ct->id,cmd_ct->name1);
 
     enumError err = VerifySpecificOptions(&InfoUI,cmd_ct);
     if (err)

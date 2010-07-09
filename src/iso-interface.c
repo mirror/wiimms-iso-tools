@@ -156,7 +156,7 @@ enumError Dump_ISO
     if (!disc)
 	return ERR_WDISC_NOT_FOUND;
 
-    const u32 used_blocks = wd_count_used_disc_blocks_sel(disc,1,partition_selector);
+    const u32 used_blocks = wd_count_used_disc_blocks_sel(disc,1,part_selector);
     const u32 used_mib    = ( used_blocks + WII_SECTORS_PER_MIB/2 ) / WII_SECTORS_PER_MIB;
 
 
@@ -172,7 +172,7 @@ enumError Dump_ISO
 	switch(dump_level)
 	{
 	    case 0:  show_mode = SHOW_INTRO | SHOW_P_TAB; break;
-	    case 1:  show_mode = SHOW__ALL & ~(SHOW_D_MAP|SHOW_USAGE|SHOW_FILES); break;
+	    case 1:  show_mode = SHOW__ALL & ~(SHOW_D_MAP|SHOW_USAGE|SHOW_FILES|SHOW_PATCH); break;
 	    case 2:  show_mode = SHOW__ALL & ~SHOW_FILES; break;
 	    default: show_mode = SHOW__ALL; break;
 	}
@@ -382,8 +382,8 @@ enumError Dump_ISO
     if ( show_mode & SHOW_USAGE )
     {
 	fprintf(f,"\n\n%*sISO Usage Map:\n\n",indent,"");
-	wd_filter_usage_table_sel(disc,wdisc_usage_tab,partition_selector);
-	wd_dump_usage_tab(f,indent+3,wdisc_usage_tab,false);
+	wd_filter_usage_table_sel(disc,wdisc_usage_tab,part_selector);
+	wd_dump_usage_tab(f,indent+2,wdisc_usage_tab,false);
     }
 
 
@@ -395,8 +395,17 @@ enumError Dump_ISO
 	InitializeMemMap(&mm);
 	InsertDiscMemMap(&mm,disc);
 	fprintf(f,"\n\n%*sISO Memory Map:\n\n",indent,"");
-	PrintMemMap(&mm,f,indent+3);
+	PrintMemMap(&mm,f,indent+2);
 	ResetMemMap(&mm);
+    }
+
+
+    //----- pathicng tables
+
+    if ( show_mode & SHOW_PATCH )
+    {
+	putc('\n',f);
+	wd_dump_disc_patch(f,indent,disc,true,true);
     }
 
 
@@ -1033,49 +1042,87 @@ bool allow_fst		= false; // FST diabled by default
 
 ///////////////////////////////////////////////////////////////////////////////
 
-wd_part_sel_t partition_selector = WD_PART_ALL;
+wd_select_t part_selector = 0;
 
 u8 wdisc_usage_tab [WII_MAX_SECTORS];
 u8 wdisc_usage_tab2[WII_MAX_SECTORS];
 
 //-----------------------------------------------------------------------------
 
-wd_part_sel_t ScanPartitionSelector ( ccp arg )
+static s64 PartSelectorFunc
+(
+    ccp			name,		// normalized name of option
+    const CommandTab_t	* cmd_tab,	// valid pointer to command table
+    const CommandTab_t	* cmd,		// valid pointer to found command
+    char		prefix,		// 0 | '-' | '+' | '='
+    s64			result		// current value of result
+)
+{
+    if (cmd->opt)
+	return prefix ? -(s64)1 : cmd->id;
+
+    switch(prefix)
+    {
+	case 0:
+	case '+':
+	    result = wd_set_select(result,cmd->id);
+	    break;
+
+	case '-':
+	    result = wd_clear_select(result,cmd->id);
+	    break;
+
+	case '=':
+	    result = wd_set_select(0,cmd->id);
+	    break;
+    };
+    
+    return result;
+}
+
+//-----------------------------------------------------------------------------
+
+wd_select_t ScanPartSelector ( ccp arg )
 {
     static const CommandTab_t tab[] =
     {
-	{ WD_PART_DATA,			"DATA",		"D",		0 },
-	 { WD_PART_DATA,		"GAME",		"G",		0 },
-	{ WD_PART_UPDATE,		"UPDATE",	"U",		0 },
-	{ WD_PART_CHANNEL,		"CHANNEL",	"C",		0 },
+	{ 0,				"ALL",		"*",		1 },
+	{ WD_SEL_PART_ACTIVE,		"NONE",		"-",		1 },
 
-	{ WD_PART_ALL,			"ALL",		"*",		0 },
-	{ WD_PART_WHOLE,		"WHOLE",	0,		0 },
-	{ WD_PART_WHOLE_DISC,		"1:1",		"RAW",		0 },
+	{ WD_SEL_PART_DATA,		"DATA",		"D",		0 },
+	 { WD_SEL_PART_DATA,		"GAME",		"G",		0 },
+	{ WD_SEL_PART_UPDATE,		"UPDATE",	"U",		0 },
+	{ WD_SEL_PART_CHANNEL,		"CHANNEL",	"C",		0 },
+	{ WD_SEL_PART_ID,		"ID",		"I",		0 },
 
-	{ WD_PART_REMOVE_DATA,		"NO-DATA",	"NODATA",	0 },
-	 { WD_PART_REMOVE_DATA,		"NO-GAME",	"NOGAME",	0 },
-	{ WD_PART_REMOVE_UPDATE,	"NO-UPDATE",	"NOUPDATE",	0 },
-	{ WD_PART_REMOVE_CHANNEL,	"NO-CHANNEL",	"NOCHANNEL",	0 },
-	{ WD_PART_REMOVE_ID,		"NO-ID",	"NOID",		0 },
+	{ WD_SEL_PTAB_0,		"PTAB0",	"T0",		0 },
+	{ WD_SEL_PTAB_1,		"PTAB1",	"T1",		0 },
+	{ WD_SEL_PTAB_2,		"PTAB2",	"T2",		0 },
+	{ WD_SEL_PTAB_3,		"PTAB3",	"T3",		0 },
 
-	{ WD_PART_ONLY_PTAB0,		"PTAB0",	0,		0 },
+
+	{ WD_SEL_WHOLE_PART,		"WHOLE",	0,		0 },
+	{ WD_SEL_WHOLE_DISC,		"1:1",		"RAW",		0 },
 
 	{ 0,0,0,0 }
     };
 
-    const CommandTab_t * cmd = ScanCommand(0,arg,tab);
-    if (cmd)
-	return cmd->id;
+    wd_select_t psel
+	= ScanCommandList(arg,tab,PartSelectorFunc,true,WD_SELI_PART_MAX+1,0);
+    if ( psel == -(wd_select_t)1 )
+	ERROR0(ERR_SYNTAX,"Illegal partition selector (option --psel): '%s'\n",arg);
+    return psel;
+}
 
-    // try if arg is a number
-    char * end;
-    ulong num = strtoul(arg,&end,10);
-    if ( end != arg && !*end )
-	return num;
+//-----------------------------------------------------------------------------
 
-    ERROR0(ERR_SYNTAX,"Illegal partition selector (option --psel): '%s'\n",arg);
-    return -1;
+int ScanOptPartSelector ( ccp arg )
+{
+    const wd_select_t new_psel = ScanPartSelector(optarg);
+    if ( new_psel == -(wd_select_t)1 )
+	return 1;
+    part_selector = new_psel;
+    return 0;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -1088,7 +1135,7 @@ wd_ipm_t ScanPrefixMode ( ccp arg )
 {
     static const CommandTab_t tab[] =
     {
-	{ WD_IPM_DEFAULT,		"DEFAULT",	"D",		0 },
+	{ WD_IPM_DEFAULT,	"DEFAULT",	"D",		0 },
 	{ WD_IPM_AUTO,		"AUTO",		"A",		0 },
 
 	{ WD_IPM_NONE,		"NONE",		"-",		0 },
@@ -1111,7 +1158,7 @@ wd_ipm_t ScanPrefixMode ( ccp arg )
 
 void SetupSneekMode()
 {
-    partition_selector = WD_PART_DATA;
+    part_selector = WD_SEL_PART_DATA;
     prefix_mode = WD_IPM_NONE;
 
     FilePattern_t * pat = file_pattern + PAT_DEFAULT;
@@ -1158,7 +1205,7 @@ static uint InsertHelperIM ( IsoMapping_t * im, u32 offset, u32 size )
     int end = im->used - 1;
     while ( beg <= end )
     {
-	uint idx = (beg+end)/2;
+	const uint idx = (beg+end)/2;
 	IsoMappingItem_t * imi = im->field + idx;
 	if ( offset < imi->offset )
 	    end = idx - 1 ;
@@ -2540,8 +2587,11 @@ u64 GenPartFST
     LoadFile(path,"sys/boot.bin",0,imi->data,WII_BOOT_SIZE,false);
     LoadFile(path,"sys/bi2.bin",0,imi->data+WII_BOOT_SIZE,WII_BI2_SIZE,false);
 
-    PatchId(imi->data,0,6,MODIFY_BOOT|MODIFY__AUTO);
-    PatchName(imi->data+WII_TITLE_OFF,MODIFY_BOOT|MODIFY__AUTO);
+    if ( part->part_type == WD_PART_DATA )
+    {
+	PatchId(imi->data,0,6,MODIFY_BOOT|MODIFY__AUTO);
+	PatchName(imi->data+WII_TITLE_OFF,MODIFY_BOOT|MODIFY__AUTO);
+    }
     snprintf(imi->info,sizeof(imi->info),"boot.bin [%.6s] + bi2.bin",(ccp)imi->data);
 
     wd_boot_t * boot = imi->data;
@@ -2664,11 +2714,14 @@ u64 GenPartFST
     LoadFile(path,"tmd.bin",	0, pc->tmd, pc->tmd_size, false );
     LoadFile(path,"cert.bin",	0, pc->cert, pc->cert_size, false );
 
-    PatchId(pc->head->ticket.title_id+4,0,4,MODIFY_TICKET|MODIFY__AUTO);
-    PatchId(pc->tmd->title_id+4,0,4,MODIFY_TMD|MODIFY__AUTO);
+    if ( part->part_type == WD_PART_DATA )
+    {
+	PatchId(pc->head->ticket.title_id+4,0,4,MODIFY_TICKET|MODIFY__AUTO);
+	PatchId(pc->tmd->title_id+4,0,4,MODIFY_TMD|MODIFY__AUTO);
 
-    if (opt_ios_valid)
-	pc->tmd->sys_version = hton64(opt_ios);
+	if (opt_ios_valid)
+	    pc->tmd->sys_version = hton64(opt_ios);
+    }
 
     //----- setup
 
@@ -3529,7 +3582,7 @@ void InitializeVerify ( Verify_t * ver, SuperFile_t * sf )
     memset(ver,0,sizeof(*ver));
 
     ver->sf		= sf;
-    ver->psel		= partition_selector;
+    ver->psel		= part_selector;
     ver->verbose	= verbose;
     ver->max_err_msg	= 10;
 }

@@ -275,7 +275,7 @@ enumModify ScanModify ( ccp arg )
 	{ 0,0,0,0 }
     };
 
-    const int stat = ScanCommandList(arg,tab,0,0);
+    const int stat = ScanCommandList(arg,tab,0,true,0,0);
     if ( stat >= 0 )
 	return ( stat & MODIFY__ALL ? stat & MODIFY__ALL : stat ) | MODIFY__ALWAYS;
 

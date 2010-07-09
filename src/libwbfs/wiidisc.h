@@ -33,32 +33,59 @@
 ///////////////			    consts			///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-typedef enum wd_part_sel_t
+typedef enum wd_select_idx_t // modern partition selector, index values
 {
-    //----- well known partitons
+    WD_PART_DATA	=  0,	// DATA partition
+    WD_PART_UPDATE	=  1,	// UPDATE partition
+    WD_PART_CHANNEL	=  2,	// CHANNEL partition
 
-    WD_PART_DATA		= 0,
-    WD_PART_UPDATE		= 1,
-    WD_PART_CHANNEL		= 2,
+    WD_SELI_PART_MAX	= 50,	// maximal 'wd_select_t' supported partition
+    WD_SELI_PART_ID,		// special ID partitons selected
+    WD_SELI_PART_ACTIVE,	// partition type selection is active
 
-		// value in between selects partition types of that value
+    WD_SELI_PTAB_0,		// partition table 0 selected
+    WD_SELI_PTAB_1,		// partition table 0 selected
+    WD_SELI_PTAB_2,		// partition table 0 selected
+    WD_SELI_PTAB_3,		// partition table 0 selected
+    WD_SELI_PTAB_ACTIVE,	// partition tables selection is active
+
+    WD_SELI_WHOLE_PART,		// don't scrub partition data
+    WD_SELI_WHOLE_DISC,		// copy whole disc, includes WD_SELI_WHOLE_PART
     
-    //----- special values
+    WD_SELI__N			// number of values
 
-    WD_PART_ALL			= -9,   // copy all partitions
-    WD_PART_WHOLE		= -8,   // copy all partitions, non scrubbed
-    WD_PART_WHOLE_DISC		= -7,   // copy whole disc
+} wd_select_idx_t;
 
-    WD_PART_REMOVE_DATA		= -6,	// all but WD_PART_DATA
-    WD_PART_REMOVE_UPDATE	= -5,	// all but WD_PART_UPDATE
-    WD_PART_REMOVE_CHANNEL	= -4,	// all but WD_PART_CHANNEL
-    WD_PART_REMOVE_ID		= -3,	// remove all ID partitions
+///////////////////////////////////////////////////////////////////////////////
 
-    WD_PART_ONLY_PTAB0		= -2,	// remove all not in partition table 0
+typedef enum wd_select_t // modern partition selector, bit values
+{
+    WD_SEL_PART_DATA		= 1ull << WD_PART_DATA,
+    WD_SEL_PART_UPDATE		= 1ull << WD_PART_UPDATE,
+    WD_SEL_PART_CHANNEL		= 1ull << WD_PART_CHANNEL,
+    WD_SEL_PART_MAX		= 1ull << WD_SELI_PART_MAX,
+    WD_SEL_PART_ID		= 1ull << WD_SELI_PART_ID,
+    WD_SEL_PART_ACTIVE		= 1ull << WD_SELI_PART_ACTIVE,
 
-    //		ERROR		= -1	// reserved as error indicator
+    WD_SEL_PTAB_0		= 1ull << WD_SELI_PTAB_0,
+    WD_SEL_PTAB_1		= 1ull << WD_SELI_PTAB_1,
+    WD_SEL_PTAB_2		= 1ull << WD_SELI_PTAB_2,
+    WD_SEL_PTAB_3		= 1ull << WD_SELI_PTAB_3,
+    WD_SEL_PTAB_ACTIVE		= 1ull << WD_SELI_PTAB_ACTIVE,
 
-} wd_part_sel_t;
+    WD_SEL_WHOLE_PART		= 1ull << WD_SELI_WHOLE_PART,
+    WD_SEL_WHOLE_DISC		= 1ull << WD_SELI_WHOLE_DISC,
+
+    WD_SEL_PART__MASK		= WD_SEL_PART_ACTIVE - 1,
+
+    WD_SEL_PTAB__MASK		= WD_SEL_PTAB_0
+				| WD_SEL_PTAB_1
+				| WD_SEL_PTAB_2
+				| WD_SEL_PTAB_3,
+
+    WD_SEL__MASK		= ( 1ull << WD_SELI__N ) - 1,
+
+} wd_select_t;
 
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -91,7 +118,7 @@ typedef enum wd_ipm_t // iterator prefix mode
 
 ///////////////////////////////////////////////////////////////////////////////
 
-typedef enum wd_pfst_t
+typedef enum wd_pfst_t // print-fst mode
 {
     WD_PFST_HEADER	= 0x01,  // print table header
     WD_PFST_PART	= 0x02,  // print partition intro
@@ -105,7 +132,7 @@ typedef enum wd_pfst_t
 
 ///////////////////////////////////////////////////////////////////////////////
 
-typedef enum wd_usage_t
+typedef enum wd_usage_t // usage table values
 {
     WD_USAGE_UNUSED,		// block is not used, always = 0
     WD_USAGE_DISC,		// block is used for disc managment
@@ -118,7 +145,7 @@ typedef enum wd_usage_t
 
 ///////////////////////////////////////////////////////////////////////////////
 
-typedef enum wd_pname_mode_t
+typedef enum wd_pname_mode_t // partition name modes
 {
     WD_PNAME_NAME_NUM_9,	// NAME+NUM if possible, ID or NUM else, fw=9
     WD_PNAME_COLUMN_9,		// NAME+NUM|NUM|ID, fw=9
@@ -130,6 +157,14 @@ typedef enum wd_pname_mode_t
     WD_PNAME__N			// numper of supported formats
 
 } wd_pname_mode_t;
+
+///////////////////////////////////////////////////////////////////////////////
+
+typedef enum wd_patch_mode_t // patching modes
+{
+    WD_PAT_DISC_DATA		// raw disc data
+
+} wd_patch_mode_t;
 
 //
 ///////////////////////////////////////////////////////////////////////////////
@@ -172,6 +207,36 @@ typedef int (*wd_file_func_t)
 
 //
 ///////////////////////////////////////////////////////////////////////////////
+///////////////			struct wd_patch_item_t		///////////////
+///////////////////////////////////////////////////////////////////////////////
+
+typedef struct wd_patch_item_t // patching data item
+{
+    wd_patch_mode_t	mode;		// patching mode
+    u64			offset;		// offset
+    u64			size;		// size
+    struct wd_part_t	* part;		// NULL or relevant partition
+    void		* data;		// NULL or pointer to data/filename
+    bool		data_alloced;	// true if data must be freed.
+    char		info[30];	// comment for dumps
+
+} wd_patch_item_t;
+
+//
+///////////////////////////////////////////////////////////////////////////////
+///////////////			struct wd_patch_t		///////////////
+///////////////////////////////////////////////////////////////////////////////
+
+typedef struct wd_patch_t // patching data structure
+{
+    wd_patch_item_t	* item;		// pointer to first item
+    u32			used;		// number of used items
+    u32			size;		// number of allocated items
+
+} wd_patch_t;
+
+//
+///////////////////////////////////////////////////////////////////////////////
 ///////////////			struct wd_part_t		///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -189,7 +254,7 @@ typedef struct wd_part_t
     u64		part_size;		// total size of partition
 
     struct wd_disc_t * disc;		// pointer to disc
-
+    wd_patch_t	patch;			// patching data
 
     //----- status
 
@@ -215,8 +280,8 @@ typedef struct wd_part_t
 
     wd_fst_item_t * fst;		// pointer to fst data
     u32		fst_n;			// number or elements in fst
-    u32		fst_max_off4;		// maximal offset4 value of all files
-    u32		fst_max_size;		// maximal size value of all files
+    u32		fst_max_off4;		// informative: maximal offset4 value of all files
+    u32		fst_max_size;		// informative: maximal size value of all files
     u32		fst_dir_count;		// informative: number or directories in fst
     u32		fst_file_count;		// informative: number or real files in fst
 
@@ -246,14 +311,22 @@ typedef struct wd_disc_t
     wd_ptab_entry_t	*ptab_entry;	// collected copy of all partion entries
     u32			magic2;		// second magic @ WII_MAGIC2_OFF
 
+    //----- patching data
+
+    wd_patch_t		patch;		// patching data
+    wd_ptab_t		ptab;		// partition tables
+
     //----- partitions
 
     int		n_ptab;			// number of valid partition tables
     int		n_part;			// number of partitions
     wd_part_t * part;			// partition data
+    u32		fst_n;			// informative: number or elements in fst
+    u32		fst_max_off4;		// informative: maximal offset4 value of all files
+    u32		fst_max_size;		// informative: maximal size value of all files
     u32		fst_dir_count;		// informative: number or directories in fst
     u32		fst_file_count;		// informative: number or real files in fst
-    bool	patch_ptab_recommended;	// informative: pacth ptab is recommended
+    bool	patch_ptab_recommended;	// informative: patch ptab is recommended
 
     //----- usage table
 
@@ -318,7 +391,7 @@ typedef struct wd_print_fst_t
 {
 	//----- base data
 
-	FILE		* f;		// output file
+	FILE		* f;		// valid output file
 	int		indent;		// indention of the output
 	wd_pfst_t	mode;		// print mode
 
@@ -559,23 +632,47 @@ enumError wd_load_all_part
 	bool		load_h3		// true: load h3 data too
 );
 
+//-----------------------------------------------------------------------------
+
+void wd_calc_fst_statistics
+(
+	wd_disc_t	* disc,		// valid disc pointer
+	bool		sum_all		// false: summarize only enabled partitions
+);
+
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 // select partitions
 
 bool wd_is_part_selected
 (
-	wd_part_sel_t	part_sel,	// partition selector
+	wd_select_t	select,		// partition selector bit field
 	u32		part_type,	// partiton type
 	u32		ptab_index	// index of partiton table
 );
 
 //-----------------------------------------------------------------------------
 
-int wd_select_part
+int wd_select
 (
 	wd_disc_t	* disc,		// valid disc pointer
-	wd_part_sel_t	part_sel	// partition selector
+	wd_select_t	select		// partition selector bit field
+);
+
+//-----------------------------------------------------------------------------
+
+wd_select_t wd_set_select
+(
+	wd_select_t	select,		// current selector value
+	wd_select_t	set_mask	// bits to set
+);
+
+//-----------------------------------------------------------------------------
+
+wd_select_t wd_clear_select
+(
+	wd_select_t	select,		// current selector value
+	wd_select_t	clear_mask	// bits to clear
 );
 
 //-----------------------------------------------------------------------------
@@ -617,7 +714,7 @@ u8 * wd_filter_usage_table_sel
 (
 	wd_disc_t	* disc,		// valid disc pointer
 	u8		* usage_table,	// NULL or result. If NULL -> malloc()
-	wd_part_sel_t	part_sel	// partition selector
+	wd_select_t	select		// partition selector bit field
 );
 
 //-----------------------------------------------------------------------------
@@ -636,7 +733,7 @@ u32 wd_count_used_disc_blocks_sel
 	wd_disc_t	* disc,		// valid pointer to a disc partition
 	u32		block_size,	// if >1: count every 'block_size'
 					//        continuous blocks as one block
-	wd_part_sel_t	part_sel	// partition selector
+	wd_select_t	select		// partition selector bit field
 );
 
 //-----------------------------------------------------------------------------
@@ -703,7 +800,7 @@ void wd_print_fst_item
 
 void wd_print_fst
 (
-	FILE		* f,		// output file
+	FILE		* f,		// valid output file
 	int		indent,		// indention of the output
 	wd_disc_t	* disc,		// valid pointer to a disc partition
 	wd_ipm_t	prefix_mode,	// prefix mode
@@ -714,11 +811,58 @@ void wd_print_fst
 
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
+// patching
+
+void wd_reset_patch 
+(
+	wd_patch_t	* patch		// NULL or patching data
+);
+
+//-----------------------------------------------------------------------------
+
+wd_patch_item_t * wd_insert_patch
+(
+	wd_patch_t	* patch,	// NULL or patching data
+	wd_patch_mode_t	mode,		// patch mode
+	u64		offset,		// offset of object
+	u64		size		// size of object
+);
+
+
+//-----------------------------------------------------------------------------
+
+void wd_dump_patch
+(
+	FILE		* f,		// valid output file
+	int		indent,		// indention of the output
+	wd_patch_t	* patch		// NULL or patching data
+);
+
+//-----------------------------------------------------------------------------
+
+void wd_dump_disc_patch
+(
+	FILE		* f,		// valid output file
+	int		indent,		// indention of the output
+	wd_disc_t	* disc,		// valid pointer to a disc partition
+	bool		print_title,	// true: print table titles
+	bool		print_part	// true: print partitions too
+);
+
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
 // dump data structure
+
+int wd_normalize_indent
+(
+	int		indent		// base vlaue to normalize
+);
+
+//-----------------------------------------------------------------------------
 
 void wd_dump_disc
 (
-	FILE		* f,		// output file
+	FILE		* f,		// valid output file
 	int		indent,		// indention of the output
 	wd_disc_t	* disc,		// valid disc pointer
 	int		dump_level	// dump level
@@ -730,7 +874,7 @@ void wd_dump_disc
 
 void wd_dump_disc_usage_tab
 (
-	FILE		* f,		// output file
+	FILE		* f,		// valid output file
 	int		indent,		// indention of the output
 	wd_disc_t	* disc,		// valid disc pointer
 	bool		print_all	// false: ignore const lines
@@ -740,7 +884,7 @@ void wd_dump_disc_usage_tab
 
 void wd_dump_usage_tab
 (
-	FILE		* f,		// output file
+	FILE		* f,		// valid output file
 	int		indent,		// indention of the output
 	const u8	* usage_tab,	// valid pointer, size = WII_MAX_SECTORS
 	bool		print_all	// false: ignore const lines

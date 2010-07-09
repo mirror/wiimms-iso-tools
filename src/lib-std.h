@@ -556,13 +556,42 @@ int NormalizeIndent ( int indent );
 
 //-----
 
-int CheckIDHelper
-	( const void * id, int max_len, bool allow_any_len, bool ignore_case );
+int CheckIDHelper // helper for all other id functions
+(
+	const void	* id,		// valid pointer to test ID
+	int		max_len,	// max length of ID, a NULL terminates ID too
+	bool		allow_any_len,	// if false, only length 4 and 6 are allowed
+	bool		ignore_case,	// lower case letters are allowed
+	bool		allow_point	// the wildcard '.' is allowed
+);
 
-int  CheckID	( const void * id, bool ignore_case ); // check up to 7 chars for ID4|ID6
-bool CheckID4	( const void * id, bool ignore_case ); // check exact 4 chars
-bool CheckID6	( const void * id, bool ignore_case ); // check exact 6 chars
-int CountIDChars( const void * id, bool ignore_case ); // count number of valid ID chars
+int CheckID // check up to 7 chars for ID4|ID6
+(
+	const void	* id,		// valid pointer to test ID
+	bool		ignore_case,	// lower case letters are allowed
+	bool		allow_point	// the wildcard '.' is allowed
+);
+
+bool CheckID4 // check exact 4 chars
+(
+	const void	* id,		// valid pointer to test ID
+	bool		ignore_case,	// lower case letters are allowed
+	bool		allow_point	// the wildcard '.' is allowed
+);
+
+bool CheckID6 // check exact 6 chars
+(
+	const void	* id,		// valid pointer to test ID
+	bool		ignore_case,	// lower case letters are allowed
+	bool		allow_point	// the wildcard '.' is allowed
+);
+
+int CountIDChars // count number of valid ID chars, max = 1000
+(
+	const void	* id,		// valid pointer to test ID
+	bool		ignore_case,	// lower case letters are allowed
+	bool		allow_point	// the wildcard '.' is allowed
+);
 
 char * ScanID	    ( char * destbuf7, int * destlen, ccp source );
 
@@ -665,12 +694,13 @@ typedef enum ShowMode
 	SHOW_TMD	= 0x00000040, // tmd info
 	SHOW_USAGE	= 0x00000080, // usage table
 	SHOW_FILES	= 0x00000100, // file list
-	SHOW_PATH	= 0x00000200, // full path
+	SHOW_PATCH	= 0x00000200, // patching table
+	SHOW_PATH	= 0x00000400, // full path
 
-	SHOW_OFFSET	= 0x00000400, // show offsets
-	SHOW_SIZE	= 0x00000800, // show size
+	SHOW_OFFSET	= 0x00000800, // show offsets
+	SHOW_SIZE	= 0x00001000, // show size
 	
-	SHOW__ALL	= 0x00000fff,
+	SHOW__ALL	= 0x00001fff,
 
 	//----- combinations
 
@@ -994,7 +1024,7 @@ RepairMode ScanRepairMode ( ccp arg );
 
 ///////////////////////////////////////////////////////////////////////////////
 
-#define COMMAND_MAX 100
+#define COMMAND_NAME_MAX 100
 
 typedef u64 option_t;
 extern option_t used_options;
@@ -1002,36 +1032,43 @@ extern option_t env_options;
 
 typedef struct CommandTab_t
 {
-	int  id;
-	ccp  name1;
-	ccp  name2;
-	option_t opt;	// -> allowed_options;
+    s64			id;		// id
+    ccp			name1;		// first name
+    ccp			name2;		// NULL or second name
+    s64			opt;		// option
 
 } CommandTab_t;
 
-typedef int (*CommandCallbackFunc)
-	( ccp name, const CommandTab_t * tab,
-		    const CommandTab_t * cmd, int result );
+typedef s64 (*CommandCallbackFunc)
+(
+    ccp			name,		// normalized name of option
+    const CommandTab_t	* cmd_tab,	// valid pointer to command table
+    const CommandTab_t	* cmd,		// valid pointer to found command
+    char		prefix,		// 0 | '-' | '+' | '='
+    s64			result		// current value of result
+);
 
 const CommandTab_t * ScanCommand
 (
-	int * stat,
-	ccp arg,
-	const CommandTab_t * tab
+    int			* res_abbrev,	// NULL or pointer to result 'abbrev_count'
+    ccp			arg,		// argument to scan
+    const CommandTab_t	* cmd_tab	// valid pointer to command table
 );
 
-int ScanCommandList
+s64 ScanCommandList
 (
-	ccp arg,
-	const CommandTab_t * cmd_tab,
-	CommandCallbackFunc func,
-	int result
+    ccp			arg,		// argument to scan
+    const CommandTab_t	* cmd_tab,	// valid pointer to command table
+    CommandCallbackFunc	func,		// NULL or calculation function
+    bool		allow_prefix,	// allow '-' | '+' | '=' as prefix
+    u32			max_number,	// allow numbers < 'max_number' (0=disabled)
+    s64			result		// start value for result
 );
 
-int ScanCommandListMask
+s64 ScanCommandListMask
 (
-	ccp arg,
-	const CommandTab_t * cmd_tab
+    ccp			arg,		// argument to scan
+    const CommandTab_t	* cmd_tab	// valid pointer to command table
 );
 
 ///////////////////////////////////////////////////////////////////////////////

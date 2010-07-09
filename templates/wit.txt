@@ -160,7 +160,7 @@ are listed in alphabetic order:
  the end of the dump.
 
  If the option --files= is set than a file list is included into the dump.
- The rules define which files are listet. To lsit all files use "--files=+".
+ The rules define which files are listet. To list all files use "--files=+".
  The section "Selecting files with --files=rules" dicuss more details.
  The options --psel= and --raw are only used to make a pre selection of
  the partitions for the file list.

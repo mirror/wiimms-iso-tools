@@ -112,19 +112,14 @@ typedef struct info_t
 ///////////////			some helper macros		///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-#define TEXT_OPT_PSEL \
-	" One of the following values is allowed, case is ignored:" \
-	" @DATA, NO-DATA, UPDATE, NO-UPDATE, CHANNEL, NO-CHANNEL" \
-	" NO-ID, PTAB0, ALL, WHOLE, RAW@." \
-	" The default value is 'ALL'."
-
 #define TEXT_WWT_OPT_REPAIR \
 	"This option defines how to repair WBFS errors." \
 	" The parameter is a comma separated list of the following keywords," \
 	" case is ignored:" \
 	" @NONE, FBT, INODES, STANDARD," \
-	" RM-INVALID, RM-OVERLAP, RM-FREE, RM-EMPTY, RM-ALL, ALL@.\n" \
-	" All keywords can be prefixed by '+' to enable that option," \
+	" RM-INVALID, RM-OVERLAP, RM-FREE, RM-EMPTY, RM-ALL, ALL@." \
+	"\n" \
+	"All keywords can be prefixed by '+' to enable that option," \
 	" by a '-' to disable it or" \
 	" by a '=' to enable that option and disable all others."
 
@@ -138,7 +133,7 @@ typedef struct info_t
 	" The case of the keyword is ignored." \
 	" The default key is @'" def "'@." \
 	"\n" \
-	" @--chm@ is a short cut for @--chunk-mode@."
+	"@--chm@ is a short cut for @--chunk-mode@."
 
 //
 ///////////////////////////////////////////////////////////////////////////////
@@ -256,33 +251,39 @@ info_t info_tab[] =
   { T_SEP_CMD,	0,0,0,0 }, //----- separator -----
 
   { T_DEF_CMD,	"DIFF",		"DIFF|CMP",
-		"wit DIFF source dest\n"
+		"wit DIFF source dest"
+		"\n"
 		"wit DIFF [-s path]... [-r path]... [source]... [-d|-D] dest",
 		"DIFF compares ISO images in  scrubbed or raw mode or on file level."
 		" DIFF works like {COPY} but comparing source and destination." },
 
   { T_DEF_CMD,	"EXTRACT",	"EXTRACT|X",
-		"wit EXTRACT source dest\n"
+		"wit EXTRACT source dest"
+		"\n"
 		"wit EXTRACT [-s path]... [-r path]... [source]... [-d|-D] dest",
 		"Extract all files from the source discs." },
 
   { T_DEF_CMD,	"COPY",		"COPY|CP",
-		"wit COPY source dest\n"
+		"wit COPY source dest"
+		"\n"
 		"wit COPY [-s path]... [-r path]... [source]... [-d|-D] dest",
 		"Copy, scrub, convert, split, encrypt and decrypt Wii ISO images." },
 
   { T_DEF_CMD,	"SCRUB",	"SCRUB|SB",
-		"wit SCRUB source\n"
+		"wit SCRUB source"
+		"\n"
 		"wit SCRUB [-s path]... [-r path]... [source]...",
 		"Scrub, convert, split, encrypt and decrypt Wii ISO images." },
 
   { H_DEF_CMD,	"EDIT",		"EDIT",
-		"wit EDIT source\n"
+		"wit EDIT source"
+		"\n"
 		"wit EDIT [-s path]... [-r path]... [source]...",
 		"Edit an existing Wii ISO images and patch some values." },
 
   { T_DEF_CMD,	"MOVE",		"MOVE|MV",
-		"wit MOVE source dest\n"
+		"wit MOVE source dest"
+		"\n"
 		"wit MOVE [-s path]... [-r path]... [source]... [-d|-D] dest",
 		"Move and rename Wii ISO images." },
 
@@ -375,7 +376,8 @@ info_t info_tab[] =
 
   { T_OPT_GM,	"TEST",		"t|test",
 		0,
-		"Run in test mode, modify nothing.\n"
+		"Run in test mode, modify nothing."
+		"\n"
 		">>> USE THIS OPTION IF UNSURE! <<<" },
 
   { T_SEP_OPT,	0,0,0,0 }, //----- separator -----
@@ -426,7 +428,25 @@ info_t info_tab[] =
 		"p-type",
 		"This option set the scrubbing mode and defines,"
 		" which disc partitions are handled."
-		TEXT_OPT_PSEL },
+		" The parameter is a comma separated list of keywords." \
+		" The keywords are divided in three functional groups:" \
+		"\n"
+		"The first group selects partition types."
+		" The names @DATA@, @UDDATE@, @CHANNEL@, @ID@"
+		" and the numbers between @0@ and @50@ for partition type are allowed."
+		" @'ID'@ is a placeholder for all ID types like the VC channels of SSBB."
+		" The prefix @'-'@ means: disable this partition type."
+		" The special keyword @'NONE'@ diables all partition types."
+		"\n"
+		"The second group selects partition tables."
+		" The names @PTAB0..PTAB3@ (and @T0..T3@) are allowed."
+		" The prefix @'-'@ means: Disable all partitions of that partition table."
+		"\n"
+		"The third group are additinal flags:"
+		" @'WHOLE'@ means that the whole partition data is used."
+		" @'RAW'@ means that the whole disc is selected."
+		"\n"
+		"The special keyword @'ALL'@ resets all settings to the default." },
 
   { T_OPT_C,	"RAW",		"raw",
 		0, "Abbreviation of {--psel RAW}." },
@@ -435,8 +455,8 @@ info_t info_tab[] =
 		"p-mode",
 		"This options set the prefix mode for listed or extracted files."
 		" One of the following values is allowed:"
-		" auto, none, point, name, index."
-		" The default value is 'auto'." },
+		" @AUTO, NONE, POINT, NAME, INDEX@."
+		" The default value is @'auto'@." },
 
   { T_OPT_C,	"SNEEK",	"sneek",
 		0, "Abbreviation of {--psel data --pmode none --files =sneek}." },
@@ -468,8 +488,9 @@ info_t info_tab[] =
 		"list",
 		" This $patching$ option expects a comma separated list"
 		" of the following keywords (case ignored) as parameter:"
-		" @NONE, DISC, BOOT, TICKET, TMD, WBFS, ALL@ and @AUTO@ (default).\n"
-		" All keywords can be prefixed by @'+'@ to enable that option,"
+		" @NONE, DISC, BOOT, TICKET, TMD, WBFS, ALL@ and @AUTO@ (default)."
+		"\n"
+		"All keywords can be prefixed by @'+'@ to enable that option,"
 		" by a @'-'@ to disable it or"
 		" by a @'='@ to enable that option and disable all others."
 		"\n"
@@ -634,13 +655,14 @@ info_t info_tab[] =
 		"This option allows fine control over the things that are to be printed."
 		" The parameter is a comma separated list of the"
 		" following keywords, case is ignored: "
-		" @NONE, INTRO, P-TAB, P-INFO, P-MAP, D-MAP, TICKET, TMD, USAGE,"
+		" @NONE, INTRO, P-TAB, P-INFO, P-MAP, D-MAP, TICKET, TMD, USAGE, PATCH,"
 		" FILES, OFFSET, SIZE, PATH@ and @ALL@."
 		" There are some combined keys:"
 		" @PART := P-INFO,P-MAP,TICKET,TMD@,"
 		" @MAP := P-MAP,D-MAP@."
-		"All keywords can be prefixed by '+' to enable that option," \
-		" by a '-' to disable it or" \
+		"\n"
+		"All keywords can be prefixed by '+' to enable that option,"
+		" by a '-' to disable it or"
 		" by a '=' to enable that option and disable all others."
 		"\n"
 		"The additional keywords @DEC@ and @HEX@ can be used to set"
@@ -2148,9 +2170,7 @@ info_t info_tab[] =
 
   { T_SEP_OPT,	0,0,0,0 },
 
-  { T_COPT,	"PSEL",		0,0,
-	"This option defines which types of partitions are verified."
-	TEXT_OPT_PSEL },
+  { T_COPT,	"PSEL",		0,0,0 },
   { T_COPT,	"RAW",		0,0,0 },
   { T_COPT,	"UNIQUE",	0,0, "Eliminate multiple ID6 from the source list." },
   { T_COPT,	"IGNORE",	0,0, "Ignore non existing discs without any warning." },

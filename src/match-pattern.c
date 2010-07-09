@@ -80,6 +80,7 @@ static const struct macro_tab_t macro_tab[] =
     { 7, "nofiles",	"-/files/" },
     { 3, "wit",		"2+/h3.bin;1+/sys/fst.bin;+" },
     { 3, "wwt",		"2+/h3.bin;1+/sys/fst.bin;+" },
+    { 7, "compose",	"3+/disc/;2+/h3.bin;1+/sys/fst.bin;+" },
     { 5, "sneek",	"2+/h3.bin;1+/disc/;+" },
 
     {0,0,0}
@@ -114,14 +115,16 @@ int AddFilePattern ( ccp arg, int pattern_index )
 		arg = start;
 	}
 
-	if ( !ok && *arg != '+' && *arg != '-' && *arg != '=' )
+	// hint: '=' is obsolete and compatible to ':'
+
+	if ( !ok && *arg != '+' && *arg != '-' && *arg != ':' && *arg != '=' )
 	    return ERROR0(ERR_SYNTAX,
-		"File pattern rule must begin with '+', '-' or '=' => %.20s\n",arg);
+		"File pattern rule must begin with '+', '-' or ':' => %.20s\n",arg);
 
 	while ( *arg && *arg != ';' )
 	    arg++;
 
-	if ( *start == '=' )
+	if ( *start == ':' || *start == '=' )
 	{
 	    const size_t len = arg - ++start;
 	    const struct macro_tab_t *tab;
@@ -133,7 +136,7 @@ int AddFilePattern ( ccp arg, int pattern_index )
 		}
 	    if (!tab->len)
 		return ERROR0(ERR_SYNTAX,
-			"Macro '%.*s' not found: =%.20s\n",len,start,start);
+			"Macro '%.*s' not found: :%.20s\n",len,start,start);
 	}
 	else
 	{

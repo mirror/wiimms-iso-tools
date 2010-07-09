@@ -164,6 +164,7 @@ enumError cmd_test_options()
     printf("  show-mode:   %16x = %d\n",show_mode,show_mode);
     printf("  limit:       %16x = %d\n",opt_limit,opt_limit);
     printf("  rdepth:      %16x = %d\n",opt_recurse_depth,opt_recurse_depth);
+    printf("  part-select  %16llx = %lld\n",(u64)part_selector,(u64)part_selector);
     printf("  enc:         %16x = %d\n",encoding,encoding);
     printf("  region:      %16x = %d\n",opt_region,opt_region);
 

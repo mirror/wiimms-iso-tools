@@ -68,9 +68,19 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
     {	OPT_PSEL, 0, "psel",
 	"p-type",
 	"This option set the scrubbing mode and defines, which disc partitions"
-	" are handled. One of the following values is allowed, case is"
-	" ignored: DATA, NO-DATA, UPDATE, NO-UPDATE, CHANNEL, NO-CHANNEL"
-	" NO-ID, PTAB0, ALL, WHOLE, RAW. The default value is 'ALL'."
+	" are handled. The parameter is a comma separated list of keywords."
+	" The keywords are divided in three functional groups:\n"
+	"The first group selects partition types. The names DATA, UDDATE,"
+	" CHANNEL, ID and the numbers between 0 and 50 for partition type are"
+	" allowed. 'ID' is a placeholder for all ID types like the VC channels"
+	" of SSBB. The prefix '-' means: disable this partition type. The"
+	" special keyword 'NONE' diables all partition types.\n"
+	"The second group selects partition tables. The names PTAB0..PTAB3"
+	" (and T0..T3) are allowed. The prefix '-' means: Disable all"
+	" partitions of that partition table.\n"
+	"The third group are additinal flags: 'WHOLE' means that the whole"
+	" partition data is used. 'RAW' means that the whole disc is selected.\n"
+	"The special keyword 'ALL' resets all settings to the default."
     },
 
     {	OPT_RAW, 0, "raw",
@@ -160,7 +170,7 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 	" This patching option expects a comma separated list of the following"
 	" keywords (case ignored) as parameter: NONE, DISC, BOOT, TICKET, TMD,"
 	" WBFS, ALL and AUTO (default).\n"
-	" All keywords can be prefixed by '+' to enable that option, by a '-'"
+	"All keywords can be prefixed by '+' to enable that option, by a '-'"
 	" to disable it or by a '=' to enable that option and disable all"
 	" others.\n"
 	"This patching option is only recognized while composing a disc."
@@ -204,7 +214,7 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 	" with a power of 2 or 'ISO' for ISO images (more restrictive as"
 	" 'POW2', best for USB loaders). The case of the keyword is ignored."
 	" The default key is 'ISO'.\n"
-	" --chm is a short cut for --chunk-mode."
+	"--chm is a short cut for --chunk-mode."
     },
 
     {	OPT_CHUNK_SIZE, 0, "chunk-size",
@@ -271,7 +281,7 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 	" comma separated list of the following keywords, case is ignored:"
 	" NONE, FBT, INODES, STANDARD, RM-INVALID, RM-OVERLAP, RM-FREE,"
 	" RM-EMPTY, RM-ALL, ALL.\n"
-	" All keywords can be prefixed by '+' to enable that option, by a '-'"
+	"All keywords can be prefixed by '+' to enable that option, by a '-'"
 	" to disable it or by a '=' to enable that option and disable all"
 	" others."
     },
@@ -640,7 +650,7 @@ const InfoOption_t option_cmd_CHECK_REPAIR =
 	" comma separated list of the following keywords, case is ignored:"
 	" NONE, FBT, INODES, STANDARD, RM-INVALID, RM-OVERLAP, RM-FREE,"
 	" RM-EMPTY, RM-ALL, ALL.\n"
-	" All keywords can be prefixed by '+' to enable that option, by a '-'"
+	"All keywords can be prefixed by '+' to enable that option, by a '-'"
 	" to disable it or by a '=' to enable that option and disable all"
 	" others. The default is 'NONE'."
     };
@@ -652,7 +662,7 @@ const InfoOption_t option_cmd_REPAIR_REPAIR =
 	" comma separated list of the following keywords, case is ignored:"
 	" NONE, FBT, INODES, STANDARD, RM-INVALID, RM-OVERLAP, RM-FREE,"
 	" RM-EMPTY, RM-ALL, ALL.\n"
-	" All keywords can be prefixed by '+' to enable that option, by a '-'"
+	"All keywords can be prefixed by '+' to enable that option, by a '-'"
 	" to disable it or by a '=' to enable that option and disable all"
 	" others. The default is 'STANDARD' (FBT,INODES)."
     };
@@ -772,15 +782,6 @@ const InfoOption_t option_cmd_VERIFY_LIMIT =
 	"num",
 	"Maximal printed errors of each partition. A zero means unlimitted."
 	" The default is 10."
-    };
-
-const InfoOption_t option_cmd_VERIFY_PSEL =
-    {	OPT_PSEL, 0, "psel",
-	"p-type",
-	"This option defines which types of partitions are verified. One of"
-	" the following values is allowed, case is ignored: DATA, NO-DATA,"
-	" UPDATE, NO-UPDATE, CHANNEL, NO-CHANNEL NO-ID, PTAB0, ALL, WHOLE,"
-	" RAW. The default value is 'ALL'."
     };
 
 const InfoOption_t option_cmd_VERIFY_UNIQUE =
@@ -2037,7 +2038,7 @@ static const InfoOption_t * option_tab_cmd_VERIFY[] =
 
 	OptionInfo + OPT_NONE, // separator
 
-	&option_cmd_VERIFY_PSEL,
+	OptionInfo + OPT_PSEL,
 	OptionInfo + OPT_RAW,
 	&option_cmd_VERIFY_UNIQUE,
 	&option_cmd_VERIFY_IGNORE,

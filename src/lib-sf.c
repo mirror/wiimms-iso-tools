@@ -502,9 +502,9 @@ wd_disc_t * OpenDiscSF
 
 void SubstFileNameSF
 (
-	SuperFile_t * fo,	// output file
-	SuperFile_t * fi,	// input file
-	ccp dest_arg		// arg to parse for escapes
+    SuperFile_t	* fo,		// output file
+    SuperFile_t	* fi,		// input file
+    ccp		dest_arg	// arg to parse for escapes
 )
 {
     ASSERT(fo);
@@ -522,65 +522,91 @@ void SubstFileNameSF
 
 int SubstFileNameBuf
 (
-	char * fname_buf,	// output buf
-	size_t fname_size,	// size of output buf
-	SuperFile_t * fi,	// input file -> id6, fname
-	ccp fname,		// pure filename. if NULL: extract from 'fi'
-	ccp dest_arg,		// arg to parse for escapes
-	enumOFT oft		// output file type
+    char	* fname_buf,	// output buf
+    size_t	fname_size,	// size of output buf
+    SuperFile_t	* fi,		// input file -> id6, fname
+    ccp		fname,		// pure filename. if NULL: extract from 'fi'
+    ccp		dest_arg,	// arg to parse for escapes
+    enumOFT	oft		// output file type
 )
 {
     ASSERT(fi);
-    ASSERT(fname_buf);
-    ASSERT(fname_size>1);
 
+    ccp disc_name = 0;
     char buf[HD_SECTOR_SIZE];
-    memset(&buf,0,sizeof(buf));
     if (fi->f.id6[0])
     {
-	const bool disable_errors = fi->f.disable_errors;
-	fi->f.disable_errors = true;
-	ReadSF(fi,0,&buf,sizeof(buf));
-	fi->f.disable_errors = disable_errors;
+	if (fi->disc)
+	    disc_name = (ccp)fi->disc->dhead.game_title;
+	else
+	{
+	    const bool disable_errors = fi->f.disable_errors;
+	    fi->f.disable_errors = true;
+	    if (!ReadSF(fi,0,&buf,sizeof(buf)))
+		disc_name = (ccp)((wd_header_t*)buf)->game_title;
+	    fi->f.disable_errors = disable_errors;
+	}
     }
 
-    ccp fi_fname = fi->f.path ? fi->f.path : fi->f.fname;
+    return SubstFileName ( fname_buf, fname_size,
+			fi->f.id6, disc_name, fi->f.path ? fi->f.path : fi->f.fname,
+			fname, dest_arg, oft );
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+int SubstFileName
+(
+    char	* fname_buf,	// output buf
+    size_t	fname_size,	// size of output buf
+    ccp		id6,		// id6
+    ccp		disc_name,	// name of disc
+    ccp		src_file,	// full path to source file
+    ccp		fname,		// pure filename, no path. If NULL: extract from 'src_file'
+    ccp		dest_arg,	// arg to parse for escapes
+    enumOFT	oft		// output file type
+)
+{
+    DASSERT(fname_buf);
+    DASSERT(fname_size>1);
+
+    if ( !src_file || !*src_file )
+	src_file = "./";
+	
     if (!fname)
     {
-	fname = fi_fname;
-	ccp temp = strrchr(fname,'/');
+	fname = src_file;
+	ccp temp = strrchr(src_file,'/');
 	if (temp)
 	    fname = temp+1;
     }
 
     char src_path[PATH_MAX];
-    StringCopyS(src_path,sizeof(src_path),fi_fname);
+    StringCopyS(src_path,sizeof(src_path),src_file);
     char * temp = strrchr(src_path,'/');
     if (temp)
 	*temp = 0;
     else
 	*src_path = 0;
 
-    ccp name = (ccp)((wd_header_t*)buf)->game_title;
-    if (!name)
-	name = fi->f.id6;
-
-    ccp title = GetTitle(fi->f.id6,name);
+    if (!disc_name)
+	disc_name = id6;
+    ccp title = GetTitle(id6,disc_name);
 
     char x_buf[1000];
     snprintf(x_buf,sizeof(x_buf),"%s [%s]%s",
-		title, fi->f.id6, oft_ext[oft] );
+		title, id6, oft_ext[oft] );
 
     char y_buf[1000];
     snprintf(y_buf,sizeof(y_buf),"%s [%s]",
-		title, fi->f.id6 );
+		title, id6 );
 
     char plus_buf[20];
     ccp plus_name;
     if ( oft == OFT_WBFS )
     {
 	snprintf(plus_buf,sizeof(plus_buf),"%s%s",
-	    fi->f.id6, oft_ext[oft] );
+	    id6, oft_ext[oft] );
 	plus_name = plus_buf;
     }
     else
@@ -588,8 +614,8 @@ int SubstFileNameBuf
 
     SubstString_t subst_tab[] =
     {
-	{ 'i', 'I', 0, fi->f.id6 },
-	{ 'n', 'N', 0, name },
+	{ 'i', 'I', 0, id6 },
+	{ 'n', 'N', 0, disc_name },
 	{ 't', 'T', 0, title },
 	{ 'e', 'E', 0, oft_ext[oft]+1 },
 	{ 'p', 'P', 1, src_path },
@@ -1364,7 +1390,7 @@ enumFileType AnalyzeFT ( File_t * f )
 	    for ( i = 0; i < 6; i++ )
 		id6[i] = toupper((int)name[i]); // cygwin needs the '(int)'
 	    id6[6] = 0;
-	    if (CheckID6(id6,false))
+	    if (CheckID6(id6,false,false))
 		mode = IS_ID6;
 	}
 
@@ -1656,7 +1682,7 @@ enumFileType AnalyzeMemFT ( const void * preload_buf, off_t file_size )
 
     //----- test BOOT.BIN or ISO
 
-    if ( CheckID6(data,false) && be32(data+WII_MAGIC_OFF) == WII_MAGIC )
+    if ( CheckID6(data,false,false) && be32(data+WII_MAGIC_OFF) == WII_MAGIC )
     {
 	if ( file_size == WII_BOOT_SIZE )
 	    return FT_ID_BOOT_BIN;
@@ -1735,7 +1761,7 @@ enumFileType AnalyzeMemFT ( const void * preload_buf, off_t file_size )
 	const wd_tmd_t * tmd = preload_buf;
 	const int n = ntohs(tmd->n_content);
 	if ( file_size == sizeof(wd_tmd_t) + n * sizeof(wd_tmd_content_t)
-	    && CheckID4(tmd->title_id+4,true) )
+	    && CheckID4(tmd->title_id+4,true,false) )
 	{
 	    return FT_ID_TMD_BIN;
 	}
@@ -1747,14 +1773,14 @@ enumFileType AnalyzeMemFT ( const void * preload_buf, off_t file_size )
     if ( file_size == sizeof(wd_ticket_t) )
     {
 	const wd_ticket_t * tik = preload_buf;
-	if ( CheckID4(tik->title_id+4,true) )
+	if ( CheckID4(tik->title_id+4,true,false) )
 	    return FT_ID_TIK_BIN;
     }
 
 
     //----- fall back to iso
 
-    if ( CheckID6(data,false) && be32(data+WII_MAGIC_OFF) == WII_MAGIC )
+    if ( CheckID6(data,false,false) && be32(data+WII_MAGIC_OFF) == WII_MAGIC )
 	return FT_ID_ISO;
 
 
@@ -1925,12 +1951,12 @@ enumOFT GetOFT ( SuperFile_t * sf )
 
 ///////////////////////////////////////////////////////////////////////////////
 
-u32 CountUsedIsoBlocksSF ( SuperFile_t * sf, u32 psel )
+u32 CountUsedIsoBlocksSF ( SuperFile_t * sf, wd_select_t psel )
 {
     ASSERT(sf);
 
     u32 count = 0;
-    if ( psel == WD_PART_WHOLE_DISC )
+    if ( psel & WD_SEL_WHOLE_DISC )
 	count = sf->file_size * WII_SECTORS_PER_MIB / MiB;
     else
     {
@@ -1946,17 +1972,17 @@ u32 CountUsedIsoBlocksSF ( SuperFile_t * sf, u32 psel )
 ///////////////                    copy functions               ///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-enumError CopySF ( SuperFile_t * in, SuperFile_t * out, u32 psel )
+enumError CopySF ( SuperFile_t * in, SuperFile_t * out, wd_select_t psel )
 {
     ASSERT(in);
     ASSERT(out);
     TRACE("---\n");
-    TRACE("+++ CopySF(%d->%d,%d) +++\n",GetFD(&in->f),GetFD(&out->f),psel);
+    TRACE("+++ CopySF(%d->%d,%llx) +++\n",GetFD(&in->f),GetFD(&out->f),(u64)psel);
 
     if ( out->iod.oft == OFT_WBFS )
 	return CopyToWBFS(in,out,psel);
 
-    if ( psel != WD_PART_WHOLE_DISC )
+    if ( ! (psel & WD_SEL_WHOLE_DISC ) )
     {
 	wd_disc_t * disc = OpenDiscSF(in,true,false);
 	if (disc)
@@ -2280,10 +2306,10 @@ enumError CopyWBFSDisc ( SuperFile_t * in, SuperFile_t * out )
 
 ///////////////////////////////////////////////////////////////////////////////
 
-enumError CopyToWBFS ( SuperFile_t * in, SuperFile_t * out, u32 psel )
+enumError CopyToWBFS ( SuperFile_t * in, SuperFile_t * out, wd_select_t psel )
 {
     TRACE("---\n");
-    TRACE("+++ CopyToWBFS(%d,%d,%u) +++\n",in->f.fd,out->f.fd,psel);
+    TRACE("+++ CopyToWBFS(%d,%d,%llx) +++\n",in->f.fd,out->f.fd,(u64)psel);
 
     if ( !out->wbfs )
 	return ERROR0(ERR_INTERNAL,0);
@@ -2430,10 +2456,10 @@ static void PrintDiff ( off_t off, ccp iobuf1, ccp iobuf2, size_t iosize )
 
 enumError DiffSF
 (
-	SuperFile_t * f1,
-	SuperFile_t * f2,
-	int long_count,
-	wd_part_sel_t psel
+	SuperFile_t	* f1,
+	SuperFile_t	* f2,
+	int		long_count,
+	wd_select_t	psel
 )
 {
     ASSERT(f1);
@@ -2445,7 +2471,7 @@ enumError DiffSF
 
     f1->progress_verb = f2->progress_verb = "compared";
 
-    if ( psel == WD_PART_WHOLE_DISC )
+    if ( psel & WD_SEL_WHOLE_DISC )
 	return DiffRawSF(f1,f2,long_count);
 
     wd_disc_t * disc1 = OpenDiscSF(f1,true,true);
@@ -2636,12 +2662,12 @@ enumError DiffRawSF
 
 enumError DiffFilesSF
 (
-	SuperFile_t * f1,
-	SuperFile_t * f2,
-	int long_count,
-	FilePattern_t *pat,
-	wd_part_sel_t psel,
-	wd_ipm_t pmode
+	SuperFile_t	* f1,
+	SuperFile_t	* f2,
+	int		long_count,
+	FilePattern_t	*pat,
+	wd_select_t	psel,
+	wd_ipm_t	pmode
 )
 {
     ASSERT(f1);
@@ -2660,8 +2686,8 @@ enumError DiffFilesSF
     if ( !disc1 || !disc2 )
 	return ERR_WDISC_NOT_FOUND;
 
-    wd_select_part(disc1,psel);
-    wd_select_part(disc2,psel);
+    wd_select(disc1,psel);
+    wd_select(disc2,psel);
     
     WiiFst_t fst1, fst2;
     InitializeFST(&fst1);

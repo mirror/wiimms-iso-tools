@@ -92,9 +92,19 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
     {	OPT_PSEL, 0, "psel",
 	"p-type",
 	"This option set the scrubbing mode and defines, which disc partitions"
-	" are handled. One of the following values is allowed, case is"
-	" ignored: DATA, NO-DATA, UPDATE, NO-UPDATE, CHANNEL, NO-CHANNEL"
-	" NO-ID, PTAB0, ALL, WHOLE, RAW. The default value is 'ALL'."
+	" are handled. The parameter is a comma separated list of keywords."
+	" The keywords are divided in three functional groups:\n"
+	"The first group selects partition types. The names DATA, UDDATE,"
+	" CHANNEL, ID and the numbers between 0 and 50 for partition type are"
+	" allowed. 'ID' is a placeholder for all ID types like the VC channels"
+	" of SSBB. The prefix '-' means: disable this partition type. The"
+	" special keyword 'NONE' diables all partition types.\n"
+	"The second group selects partition tables. The names PTAB0..PTAB3"
+	" (and T0..T3) are allowed. The prefix '-' means: Disable all"
+	" partitions of that partition table.\n"
+	"The third group are additinal flags: 'WHOLE' means that the whole"
+	" partition data is used. 'RAW' means that the whole disc is selected.\n"
+	"The special keyword 'ALL' resets all settings to the default."
     },
 
     {	OPT_RAW, 0, "raw",
@@ -105,7 +115,7 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
     {	OPT_PMODE, 0, "pmode",
 	"p-mode",
 	"This options set the prefix mode for listed or extracted files. One"
-	" of the following values is allowed: auto, none, point, name, index."
+	" of the following values is allowed: AUTO, NONE, POINT, NAME, INDEX."
 	" The default value is 'auto'."
     },
 
@@ -138,7 +148,7 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 	" This patching option expects a comma separated list of the following"
 	" keywords (case ignored) as parameter: NONE, DISC, BOOT, TICKET, TMD,"
 	" WBFS, ALL and AUTO (default).\n"
-	" All keywords can be prefixed by '+' to enable that option, by a '-'"
+	"All keywords can be prefixed by '+' to enable that option, by a '-'"
 	" to disable it or by a '=' to enable that option and disable all"
 	" others.\n"
 	"This patching option is only recognized while composing a disc."
@@ -200,7 +210,7 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 	" with a power of 2 or 'ISO' for ISO images (more restrictive as"
 	" 'POW2', best for USB loaders). The case of the keyword is ignored."
 	" The default key is 'ISO'.\n"
-	" --chm is a short cut for --chunk-mode."
+	"--chm is a short cut for --chunk-mode."
     },
 
     {	OPT_CHUNK_SIZE, 0, "chunk-size",
@@ -326,11 +336,12 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 	"This option allows fine control over the things that are to be"
 	" printed. The parameter is a comma separated list of the following"
 	" keywords, case is ignored:  NONE, INTRO, P-TAB, P-INFO, P-MAP,"
-	" D-MAP, TICKET, TMD, USAGE, FILES, OFFSET, SIZE, PATH and ALL. There"
-	" are some combined keys: PART := P-INFO,P-MAP,TICKET,TMD, MAP :="
-	" P-MAP,D-MAP.All keywords can be prefixed by '+' to enable that"
-	" option, by a '-' to disable it or by a '=' to enable that option and"
-	" disable all others.\n"
+	" D-MAP, TICKET, TMD, USAGE, PATCH, FILES, OFFSET, SIZE, PATH and ALL."
+	" There are some combined keys: PART := P-INFO,P-MAP,TICKET,TMD, MAP"
+	" := P-MAP,D-MAP.\n"
+	"All keywords can be prefixed by '+' to enable that option, by a '-'"
+	" to disable it or by a '=' to enable that option and disable all"
+	" others.\n"
 	"The additional keywords DEC and HEX can be used to set a prefered"
 	" number format. -HEADER suppresses the output of header lines.\n"
 	"The commands recognize only some of these keywords and ignore the"

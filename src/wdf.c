@@ -932,7 +932,7 @@ enumError CheckCommand ( int argc, char ** argv )
 	    hint_exit(ERR_SYNTAX);
 	}
 
-	TRACE("COMMAND FOUND: #%d = %s\n",cmd_ct->id,cmd_ct->name1);
+	TRACE("COMMAND FOUND: #%lld = %s\n",cmd_ct->id,cmd_ct->name1);
 
 	enumError err = VerifySpecificOptions(&InfoUI,cmd_ct);
 	if (err)

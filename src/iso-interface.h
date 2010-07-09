@@ -262,11 +262,13 @@ enumError SourceIteratorWarning ( Iterator_t * it, enumError max_err, bool silen
 
 extern bool allow_fst;
 
-extern wd_part_sel_t partition_selector;
+extern wd_select_t part_selector;
+
 extern u8 wdisc_usage_tab [WII_MAX_SECTORS];
 extern u8 wdisc_usage_tab2[WII_MAX_SECTORS];
 
-wd_part_sel_t ScanPartitionSelector ( ccp arg );
+wd_select_t ScanPartSelector ( ccp arg );
+int ScanOptPartSelector ( ccp arg );
 
 //-----------------------------------------------------------------------------
 
@@ -297,8 +299,8 @@ struct WiiFstPart_t;
 typedef struct IsoMappingItem_t
 {
 	enumIsoMapType	imt;		// map type
-	u64		offset;		// offset/4
-	u64		size;		// size/4
+	u64		offset;		// offset
+	u64		size;		// size
 	struct WiiFstPart_t *part;	// NULL or relevant partition
 	void		*data;		// NULL or pointer to data
 	bool		data_alloced;	// true if data must be freed.
@@ -574,7 +576,7 @@ typedef struct Verify_t
 
 	// options, default are global options
 
-	wd_part_sel_t		psel;		// partition selector
+	wd_select_t		psel;		// partition selector bit field
 	int			verbose;	// general verbosity level
 	int			long_count;	// verbosity for each message
 	int			max_err_msg;	// max message per partition

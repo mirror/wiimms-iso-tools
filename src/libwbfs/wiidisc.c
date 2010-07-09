@@ -130,7 +130,10 @@ char * wd_print_part_name
 	if (name)
 	    snprintf(buf,buf_size,"%7s=%x",name,ptype);
 	else if (is_id)
+	{
+	    ptype = wbfs_htonl(ptype); // we need big endian here
 	    snprintf(buf,buf_size,"   \"%.4s\"",id4);
+	}
 	else
 	    snprintf(buf,buf_size,"%9x",ptype);
 	break;
@@ -139,7 +142,10 @@ char * wd_print_part_name
 	if (name)
 	    snprintf(buf,buf_size,"%7s %x",name,ptype);
 	else if (is_id)
+	{
+	    ptype = wbfs_htonl(ptype); // we need big endian here
 	    snprintf(buf,buf_size,"   \"%.4s\"",id4);
+	}
 	else
 	    snprintf(buf,buf_size,"%9x",ptype);
 	break;
@@ -154,7 +160,10 @@ char * wd_print_part_name
 
        case WD_PNAME_NUM:
 	if (is_id)
+	{
+	    ptype = wbfs_htonl(ptype); // we need big endian here
 	    snprintf(buf,buf_size,"%.4s",id4);
+	}
 	else
 	    snprintf(buf,buf_size,"%x",ptype);
 	break;
@@ -163,7 +172,10 @@ char * wd_print_part_name
 	if (name)
 	    snprintf(buf,buf_size,"%s",name);
 	else if (is_id)
+	{
+	    ptype = wbfs_htonl(ptype); // we need big endian here
 	    snprintf(buf,buf_size,"P-%.4s",id4);
+	}
 	else
 	    snprintf(buf,buf_size,"P%x",ptype);
 	break;
@@ -173,7 +185,10 @@ char * wd_print_part_name
 	if (name)
 	    snprintf(buf,buf_size,"%x [%s]",ptype,name);
 	else if (is_id)
-	    snprintf(buf,buf_size,"%x [\"%s\"]",ptype,id4);
+	{
+	    ptype = wbfs_htonl(ptype); // we need big endian here
+	    snprintf(buf,buf_size,"%x [\"%.4s\"]",ptype,id4);
+	}
 	else
 	    snprintf(buf,buf_size,"%x [?]",ptype);
 	break;
@@ -233,15 +248,20 @@ int wd_rename
 	ccp		new_title	// if !NULL: take the first 0x39 chars as title
 )
 {
-    ASSERT(p_data);
-    u8 *data = p_data;
+    DASSERT(p_data);
 
     int done = 0;
 
-    if ( new_id && strlen(new_id) >= 6 && memcmp(data,new_id,6) )
+    if ( new_id )
     {
-	memcpy(data,new_id,6);
-	done |= 1;
+	ccp end_id;
+	char * dest = p_data;
+	for ( end_id = new_id + 6; new_id < end_id && *new_id; new_id++, dest++ )
+	    if ( *new_id != '.' && *new_id != *dest )
+	    {
+		*dest = *new_id;
+		done |= 1;
+	    }
     }
 
     if ( new_title && *new_title )
@@ -251,10 +271,11 @@ int wd_rename
 	const size_t slen = strlen(new_title);
 	memcpy(buf, new_title, slen < WII_TITLE_SIZE ? slen : WII_TITLE_SIZE-1 );
 
-	data += WII_TITLE_OFF;
-	if ( memcmp(data,buf,WII_TITLE_SIZE) )
+	u8 *dest = p_data;
+	dest += WII_TITLE_OFF;
+	if ( memcmp(dest,buf,WII_TITLE_SIZE) )
 	{
-	    memcpy(data,buf,WII_TITLE_SIZE);
+	    memcpy(dest,buf,WII_TITLE_SIZE);
 	    done |= 2;
 	}
     }
@@ -711,6 +732,22 @@ wd_disc_t * wd_open_disc
 	err = wd_read_raw( disc, WII_MAGIC2_OFF>>2, &disc->magic2,
 				sizeof(disc->magic2), WD_USAGE_DISC );
 
+    //----- setup patching
+    
+    if (!err)
+    {
+	wd_patch_item_t * item
+	    = wd_insert_patch(	&disc->patch,
+				WD_PAT_DISC_DATA,
+				WII_PTAB_REF_OFF,
+				WII_MAX_PTAB_SIZE );
+	DASSERT(item);
+	snprintf(item->info,sizeof(item->info),"partiton tables");
+	item->data = &disc->ptab;
+	wd_patch_ptab(disc,item->data,true);
+    }
+
+
     //----- terminate
 
  #ifdef DEBUG
@@ -752,12 +789,14 @@ void wd_close_disc
 
     if ( disc && --disc->open_count <= 0 )
     {
+	wd_reset_patch(&disc->patch);
 	if (disc->part)
 	{
 	    int pi;
 	    wd_part_t * part = disc->part;
 	    for ( pi = 0; pi < disc->n_part; pi++, part++ )
 	    {
+		wd_reset_patch(&part->patch);
 		wbfs_free(part->tmd);
 		wbfs_free(part->cert);
 		wbfs_free(part->h3);
@@ -923,14 +962,13 @@ enumError wd_load_part
 
 	//----- file size tests
 
-#if 0 || !defined(TEST)
 	if ( disc->file_size )
 	{
 	    u64 off = (u64)( part->part_off4 + ph->data_off4 + ph->data_size4 ) << 2;
 	    if ( off > disc->file_size )
 		return ERR_READ_FAILED;
 	}
-#endif
+
 
 	//----- load tmd
 
@@ -1041,9 +1079,6 @@ enumError wd_load_part
 		}
 	}
 
-	disc->fst_dir_count	+= fst_dir_count  - part->fst_dir_count;
-	disc->fst_file_count	+= fst_file_count - part->fst_file_count;
-
 	part->fst_n		= fst_n;
 	part->fst_max_off4	= fst_max_off4;
 	part->fst_max_size	= fst_max_size;
@@ -1053,6 +1088,7 @@ enumError wd_load_part
 	//----- all done => mark as valid
 
 	part->is_valid = true;
+	wd_calc_fst_statistics(disc,false);
     }
 
 
@@ -1113,6 +1149,45 @@ enumError wd_load_all_part
     return max_err;
 }
 
+///////////////////////////////////////////////////////////////////////////////
+
+void wd_calc_fst_statistics
+(
+	wd_disc_t	* disc,		// valid disc pointer
+	bool		sum_all		// false: summarize only enabled partitions
+)
+{
+    DASSERT(disc);
+
+    u32 n		= 0;
+    u32 max_off4	= 0;
+    u32 max_size	= 0;
+    u32 dir_count	= 0;
+    u32 file_count	= 0;
+
+    wd_part_t *part, *part_end = disc->part + disc->n_part;
+    for ( part = disc->part; part < part_end; part++ )
+    {
+	if ( sum_all || part->is_valid && part->is_enabled )
+	{
+	    n		+= part->fst_n;
+	    dir_count	+= part->fst_dir_count;
+	    file_count	+= part->fst_file_count;
+
+	    if ( max_off4 < part->fst_max_off4 )
+		 max_off4 = part->fst_max_off4;
+	    if ( max_size < part->fst_max_size )
+		 max_size = part->fst_max_size;
+	}
+    }
+
+    disc->fst_n		 = n;
+    disc->fst_max_off4	 = max_off4;
+    disc->fst_max_size	 = max_size;
+    disc->fst_dir_count	 = dir_count;
+    disc->fst_file_count = file_count;
+}
+
 //
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////			select partitions		///////////////
@@ -1120,41 +1195,43 @@ enumError wd_load_all_part
 
 bool wd_is_part_selected
 (
-	wd_part_sel_t	part_sel,	// partition selector
+	wd_select_t	select,		// partition selector bit field
 	u32		part_type,	// partiton type
 	u32		ptab_index	// index of partiton table
 )
 {
-    switch (part_sel)
+    if ( select & WD_SEL_WHOLE_DISC )
+	return true;
+
+    if ( select & WD_SEL_PART_ACTIVE )
     {
-	case WD_PART_ALL:
-	case WD_PART_WHOLE:
-	case WD_PART_WHOLE_DISC:	return true;
-
-	case WD_PART_REMOVE_DATA:	return part_type != WD_PART_DATA;
-	case WD_PART_REMOVE_UPDATE:	return part_type != WD_PART_UPDATE;
-	case WD_PART_REMOVE_CHANNEL:	return part_type != WD_PART_CHANNEL;
-
-	case WD_PART_REMOVE_ID:
-	    {
-		ccp d = (ccp)&part_type;
-		return !ISALNUM(d[0])
-		    || !ISALNUM(d[1])
-		    || !ISALNUM(d[2])
-		    || !ISALNUM(d[3]);
-	    }
-
-	case WD_PART_ONLY_PTAB0:	return ptab_index == 0;
-	default:			return part_type == part_sel;
+	ccp d = (ccp)&part_type;
+	if ( ISALNUM(d[0]) && ISALNUM(d[1]) && ISALNUM(d[2]) && ISALNUM(d[3]) )
+	{
+	    if ( !(select & WD_SEL_PART_ID) )
+		return false;
+	}
+	else if ( part_type > WD_SELI_PART_MAX || !( 1ull << part_type & select ) )
+	    return false;
     }
+
+    if ( select & WD_SEL_PTAB_ACTIVE )
+    {
+	if ( ptab_index >= WII_MAX_PTAB || !( WD_SEL_PTAB_0 << ptab_index & select ) )
+	    return false;
+    }
+    
+    // WD_SELI_WHOLE_PART does not matter
+
+    return true;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 
-int wd_select_part
+int wd_select
 (
 	wd_disc_t	* disc,		// valid disc pointer
-	wd_part_sel_t	part_sel	// partition selector
+	wd_select_t	select		// partition selector bit field
 )
 {
     ASSERT(disc);
@@ -1165,14 +1242,66 @@ int wd_select_part
 	wd_part_t * part = disc->part + ip;
 	wd_load_part(part,false,false);
 	part->is_enabled = part->is_valid
-			&& wd_is_part_selected(part_sel,part->part_type,part->ptab_index);
+			&& wd_is_part_selected(select,part->part_type,part->ptab_index);
 	count += part->is_enabled;
     }
+    wd_calc_fst_statistics(disc,false);
     disc->patch_ptab_recommended = count != disc->n_part
-				&& part_sel != WD_PART_WHOLE_DISC;
+				&& !(select & WD_SEL_WHOLE_DISC);
     return count;
 }
 
+///////////////////////////////////////////////////////////////////////////////
+
+wd_select_t wd_set_select
+(
+	wd_select_t	select,		// current selector value
+	wd_select_t	set_mask	// bits to set
+)
+{
+    select |= set_mask & (WD_SELI_WHOLE_PART|WD_SELI_WHOLE_DISC);
+
+    wd_select_t temp = set_mask & WD_SEL_PART__MASK;
+    if (temp)
+	select |= temp | WD_SEL_PART_ACTIVE;
+
+    temp = set_mask & WD_SEL_PTAB__MASK;
+    if (temp)
+	select |= temp | WD_SEL_PTAB_ACTIVE;
+
+    return select & WD_SEL__MASK;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+wd_select_t wd_clear_select
+(
+	wd_select_t	select,		// current selector value
+	wd_select_t	clear_mask	// bits to clear
+)
+{
+    select &= ~( clear_mask & (WD_SELI_WHOLE_PART|WD_SELI_WHOLE_DISC) );
+
+    wd_select_t temp = clear_mask & WD_SEL_PART__MASK;
+    if (temp)
+    {
+	if ( !(select & WD_SEL_PART_ACTIVE) )
+	    select |= WD_SEL_PART__MASK | WD_SEL_PART_ACTIVE;
+	select &= ~temp;
+    }
+
+    temp = clear_mask & WD_SEL_PTAB__MASK;
+    if (temp)
+    {
+	if ( !(select & WD_SEL_PTAB_ACTIVE) )
+	    select |= WD_SEL_PTAB__MASK | WD_SEL_PTAB_ACTIVE;
+	select &= ~temp;
+    }
+
+    return select & WD_SEL__MASK;
+}
+
+///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
 bool wd_patch_ptab
@@ -1205,12 +1334,13 @@ bool wd_patch_ptab
     }
  
     memset(data,0,WII_MAX_PTAB_SIZE);
-    wd_ptab_info_t  * ptab = data;
-    wd_ptab_entry_t * entry = (wd_ptab_entry_t*)( ptab + WII_MAX_PTAB );
-    u32 off4 = sizeof(*ptab) * WII_MAX_PTAB + WII_PTAB_REF_OFF >> 2;
+    wd_ptab_t * ptab = data;
+    wd_ptab_info_t  * info  = ptab->info;
+    wd_ptab_entry_t * entry = ptab->entry;
+    u32 off4 = (ccp)entry - (ccp)info + WII_PTAB_REF_OFF >> 2;
 
     int it;
-    for ( it = 0; it < WII_MAX_PTAB; it++, ptab++ )
+    for ( it = 0; it < WII_MAX_PTAB; it++, info++ )
     {
 	int n_part = 0, ip;
 	for ( ip = 0; ip < disc->n_part; ip++ )
@@ -1227,8 +1357,8 @@ bool wd_patch_ptab
 
 	if (n_part)
 	{
-	    ptab->n_part = wbfs_htonl(n_part);
-	    ptab->off4   = wbfs_htonl(off4);
+	    info->n_part = wbfs_htonl(n_part);
+	    info->off4   = wbfs_htonl(off4);
 	    off4 += n_part * sizeof(*entry) >> 2;
 	}
     }
@@ -1358,13 +1488,13 @@ u8 * wd_filter_usage_table_sel
 (
 	wd_disc_t	* disc,		// valid disc pointer
 	u8		* usage_table,	// NULL or result. If NULL -> malloc()
-	wd_part_sel_t	part_sel	// partition selector
+	wd_select_t	select		// partition selector bit field
 )
 {
-    wd_select_part(disc,part_sel);
+    wd_select(disc,select);
 
-    const bool whole_disc = part_sel == WD_PART_WHOLE_DISC;
-    const bool whole_part = whole_disc || part_sel == WD_PART_WHOLE;
+    const bool whole_disc = ( select & WD_SEL_WHOLE_DISC ) != 0;
+    const bool whole_part = whole_disc || ( select & WD_SEL_WHOLE_PART );
     return wd_filter_usage_table( disc, usage_table, whole_part, whole_disc );
 }
 
@@ -1389,11 +1519,11 @@ u32 wd_count_used_disc_blocks_sel
 	wd_disc_t	* disc,		// valid pointer to a disc partition
 	u32		block_size,	// if >1: count every 'block_size'
 					//        continuous blocks as one block
-	wd_part_sel_t	part_sel	// partition selector
+	wd_select_t	select		// partition selector bit field
 )
 {
     u8 usage_tab[WII_MAX_SECTORS];
-    wd_filter_usage_table_sel(disc,usage_tab,part_sel);
+    wd_filter_usage_table_sel(disc,usage_tab,select);
     return wd_count_used_blocks(usage_tab,block_size);
 }
 
@@ -1804,7 +1934,7 @@ void wd_initialize_print_fst
     memset(pf,0,sizeof(*pf));
 
     pf->f		= f ? f : stdout;
-    pf->indent		= indent < 0 ? 0 : indent < 50 ? indent : 50;
+    pf->indent		= wd_normalize_indent(indent);
     pf->mode		= mode;
 
     char buf[50];
@@ -1836,11 +1966,7 @@ void wd_print_fst_header
     ASSERT(pf);
     ASSERT(pf->f);
 
-    if ( pf->indent < 0 )
-	pf->indent = 0;
-    else if ( pf->indent > 50 )
-	pf->indent = 50;
-
+    pf->indent = wd_normalize_indent(pf->indent);
     if ( max_name_len < 11 )
 	max_name_len = 11;
 
@@ -1990,7 +2116,7 @@ static int wd_print_fst_item_wrapper
 
 void wd_print_fst
 (
-	FILE		* f,		// output file
+	FILE		* f,		// valid output file
 	int		indent,		// indention of the output
 	wd_disc_t	* disc,		// valid pointer to a disc partition
 	wd_ipm_t	prefix_mode,	// prefix mode
@@ -2000,32 +2126,18 @@ void wd_print_fst
 )
 {
     ASSERT(f);
-    if ( indent < 0 )
-	indent = 0;
-    else if ( indent > 50 )
-	indent = 50;
+    indent = wd_normalize_indent(indent);
 
     //----- setup pf and calc fw
 
-    u32 max_off4 = 0, max_size = 0;
     if ( pfst_mode & (WD_PFST_OFFSET|WD_PFST_SIZE_HEX|WD_PFST_SIZE_DEC) )
     {
 	wd_load_all_part(disc,false,false);
-	wd_part_t *part, *part_end = disc->part + disc->n_part;
-	for ( part = disc->part; part < part_end; part++ )
-	{
-	    if ( part->is_valid && part->is_enabled )
-	    {
-		if ( max_off4 < part->fst_max_off4 )
-		     max_off4 = part->fst_max_off4;
-		if ( max_size < part->fst_max_size )
-		     max_size = part->fst_max_size;
-	    }
-	}
+	wd_calc_fst_statistics(disc,false);
     }
 
     wd_print_fst_t pf;
-    wd_initialize_print_fst(&pf,pfst_mode,f,indent,max_off4,max_size);
+    wd_initialize_print_fst(&pf,pfst_mode,f,indent,disc->fst_max_off4,disc->fst_max_size);
     pf.filter_func	= filter_func;
     pf.filter_param	= filter_param;
 
@@ -2039,12 +2151,205 @@ void wd_print_fst
 
 //
 ///////////////////////////////////////////////////////////////////////////////
+///////////////			    patching			///////////////
+///////////////////////////////////////////////////////////////////////////////
+
+void wd_reset_patch 
+(
+	wd_patch_t  * patch		// NULL or patching data
+)
+{
+    if (patch)
+    {
+	if (patch->item)
+	{
+	    int idx;
+	    for ( idx = 0; idx < patch->used; idx++ )
+	    {
+		wd_patch_item_t * item = patch->item + idx;
+		if (item->data_alloced)
+		    free(item->data);
+	    }
+	    free(patch->item);
+	}
+	memset(patch,0,sizeof(*patch));
+    }
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+static u32 wd_insert_patch_helper
+(
+	wd_patch_t	* patch,	// NULL or patching data
+	u64		offset,		// offset of object
+	u64		size,		// size of object
+	bool		* result_found	// true, if item found
+)
+{
+    DASSERT(patch);
+    DASSERT(result_found);
+
+    int beg = 0;
+    int end = patch->used - 1;
+    while ( beg <= end )
+    {
+	const u32 idx = (beg+end)/2;
+	wd_patch_item_t * item = patch->item + idx;
+	if ( offset < item->offset )
+	    end = idx - 1 ;
+	else if ( offset > item->offset )
+	    beg = idx + 1;
+	else if ( size < item->size )
+	    end = idx - 1 ;
+	else if ( size > item->size ) 
+	    beg = idx + 1;
+	else
+	{
+	    *result_found = true;
+	    return idx;
+	}
+    }
+
+    *result_found = false;
+    return beg;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+wd_patch_item_t * wd_insert_patch
+(
+	wd_patch_t	* patch,	// NULL or patching data
+	wd_patch_mode_t	mode,		// patch mode
+	u64		offset,		// offset of object
+	u64		size		// size of object
+)
+{
+    DASSERT(patch);
+
+    if ( patch->used == patch->size )
+    {
+	patch->size += 10;
+	patch->item = realloc(patch->item,patch->size*sizeof(*patch->item));
+	if (!patch->item)
+	    OUT_OF_MEMORY;
+    }
+
+    bool found;
+    u32 idx = wd_insert_patch_helper(patch,offset,size,&found);
+
+    DASSERT( idx <= patch->used );
+    wd_patch_item_t * item = patch->item + idx;
+    if (!found)
+    {
+	memmove(item+1,item,(patch->used-idx)*sizeof(*item));
+	patch->used++;
+    }
+    else if (item->data_alloced)
+	free(item->data);
+
+    memset(item,0,sizeof(*item));
+    item->mode	 = mode;
+    item->offset = offset;
+    item->size   = size;
+    return item;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+void wd_dump_patch
+(
+	FILE		* f,		// valid output file
+	int		indent,		// indention of the output
+	wd_patch_t	* patch		// NULL or patching data
+)
+{
+    ASSERT(patch);
+    if ( !f || !patch->used )
+	return;
+
+    indent = wd_normalize_indent(indent);
+    int fw = 80 - indent;
+    if ( fw < 52 )
+	 fw = 52;
+
+    fprintf(f,"\n%*s     offset .. offset end     size  comment\n"
+		"%*s%.*s\n",
+		indent,"", indent,"", fw, wd_sep_200 );
+
+    u64 prev_end = 0;
+    wd_patch_item_t *item, *last = patch->item + patch->used - 1;
+    for ( item = patch->item; item <= last; item++ )
+    {
+	const u64 end = item->offset + item->size;
+	fprintf(f,"%*s%c %9llx .. %9llx %9llx  %s\n", indent,"",
+		item->offset < prev_end ? '!' : ' ',
+		item->offset, end, item->size, item->info );
+	prev_end = end;
+    }
+    putc('\n',f);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+void wd_dump_disc_patch
+(
+	FILE		* f,		// valid output file
+	int		indent,		// indention of the output
+	wd_disc_t	* disc,		// valid pointer to a disc partition
+	bool		print_title,	// true: print table titles
+	bool		print_part	// true: print partitions too
+)
+{
+    ASSERT(disc);
+    if (!f)
+	return;
+    indent = wd_normalize_indent(indent);
+
+    if (disc->patch.used)
+    {
+	if (print_title)
+	    fprintf(f,"\n%*sPatching table for the disc:\n",indent,"");
+	wd_dump_patch(f,indent+2,&disc->patch);
+    }
+
+    if (print_part)
+    {
+	wd_part_t *part, *part_end = disc->part + disc->n_part;
+	for ( part = disc->part; part < part_end; part++ )
+	{
+	    if (part->patch.used)
+	    {
+		if (print_title)
+		{
+		    char buf[50];
+		    fprintf(f,"%*sPatching table for partition %s:\n",
+			indent, "",
+			wd_print_part_name(buf,sizeof(buf),part->part_type,WD_PNAME_NUM_INFO));
+		}
+		wd_dump_patch(f,indent+2,&part->patch);
+	    }
+	}
+    }
+}
+
+//
+///////////////////////////////////////////////////////////////////////////////
 ///////////////			dump data structure		///////////////
+///////////////////////////////////////////////////////////////////////////////
+
+int wd_normalize_indent
+(
+	int		indent		// base vlaue to normalize
+)
+{
+    return indent < 0 ? 0 : indent < 50 ? indent : 50;
+}
+
 ///////////////////////////////////////////////////////////////////////////////
 
 void wd_dump_disc
 (
-	FILE		*f,		// output file
+	FILE		*f,		// valid output file
 	int		indent,		// indention of the output
 	wd_disc_t	*disc,		// valid disc pointer
 	int		dump_level	// dump level
@@ -2179,7 +2484,7 @@ void wd_dump_disc
 
 void wd_dump_disc_usage_tab
 (
-	FILE		* f,		// output file
+	FILE		* f,		// valid output file
 	int		indent,		// indention of the output
 	wd_disc_t	* disc,		// valid disc pointer
 	bool		print_all	// false: suppress repeated lines
@@ -2192,7 +2497,7 @@ void wd_dump_disc_usage_tab
 
 void wd_dump_usage_tab
 (
-	FILE		* f,		// output file
+	FILE		* f,		// valid output file
 	int		indent,		// indention of the output
 	const u8	* usage_tab,	// valid pointer, size = WII_MAX_SECTORS
 	bool		print_all	// false: ignore const lines
@@ -2344,7 +2649,7 @@ void wd_dump_mem
 	    snprintf( dest, msgsize, "** INVALID **" );
 	    func(param,(u64)part->part_off4<<2,0,msg);
 	}
-	else
+	else if (part->is_enabled)
 	{
 	    const wd_part_header_t *ph = &part->ph;
 

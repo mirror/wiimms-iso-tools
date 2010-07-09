@@ -52,6 +52,7 @@ int validate_file_format_sizes ( int trace_sizes )
 	TRACE_SIZEOF(wd_region_t);
 	TRACE_SIZEOF(wd_ptab_info_t);
 	TRACE_SIZEOF(wd_ptab_entry_t);
+	TRACE_SIZEOF(wd_ptab_t);
 	TRACE_SIZEOF(wd_ticket_t);
 	TRACE_SIZEOF(wd_part_header_t);
 	TRACE_SIZEOF(wd_tmd_content_t);
@@ -99,6 +100,7 @@ int validate_file_format_sizes ( int trace_sizes )
     CHECK( sizeof(dol_header_t)		== DOL_HEADER_SIZE );
     CHECK( sizeof(wd_header_t)		== 0x100 );
     CHECK( sizeof(wd_region_t)		== WII_REGION_SIZE );
+    CHECK( sizeof(wd_ptab_t)		== WII_MAX_PTAB_SIZE );
     CHECK( sizeof(wd_boot_t)		== WII_BOOT_SIZE );
     CHECK( sizeof(wd_part_sector_t)	== WII_SECTOR_SIZE );
     CHECK( sizeof(wd_fst_item_t)	== 12 ); // test because of union
@@ -136,6 +138,7 @@ int validate_file_format_sizes ( int trace_sizes )
     CHECK( sizeof(dol_header_t)		== DOL_HEADER_SIZE );
     CHECK( sizeof(wd_header_t)		== 0x100 );
     CHECK( sizeof(wd_region_t)		== WII_REGION_SIZE );
+    CHECK( sizeof(wd_ptab_t)		== WII_MAX_PTAB_SIZE );
     CHECK( sizeof(wd_boot_t)		== WII_BOOT_SIZE );
     CHECK( sizeof(wd_part_sector_t)	== WII_SECTOR_SIZE );
     CHECK( sizeof(wd_fst_item_t)	== 12 ); // test because of union
