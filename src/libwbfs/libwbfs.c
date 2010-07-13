@@ -1225,6 +1225,7 @@ u32 wbfs_add_disc_param ( wbfs_t *p, wbfs_param_t * par )
 	disc = wd_open_disc(	par->read_src_wii_disc,
 				par->callback_data,
 				par->iso_size,
+				0,
 				0 );
 	if (!disc)
 	    WBFS_ERROR("unable to open wii disc");
@@ -1519,7 +1520,7 @@ u32 wbfs_estimate_disc
     if (!used)
 	WBFS_ERROR("unable to alloc memory");
 
-    disc = wd_open_disc(read_src_wii_disc,callback_data,0,0);
+    disc = wd_open_disc(read_src_wii_disc,callback_data,0,0,0);
     if (!disc)
 	WBFS_ERROR("unable to open wii disc");
     wd_filter_usage_table_sel(disc,used,psel);

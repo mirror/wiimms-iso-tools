@@ -440,13 +440,13 @@ enumError exec_dump ( SuperFile_t * sf, Iterator_t * it )
     fflush(0);
 
     if ( sf->f.ftype & FT_A_ISO )
-	return Dump_ISO(stdout,0,sf,it->real_path,show_mode,it->long_count);
+	return Dump_ISO(stdout,0,sf,it->real_path,opt_show_mode,it->long_count);
 
     if ( sf->f.ftype & FT_ID_DOL )
 	return Dump_DOL(stdout,0,sf,it->real_path);
 
     if ( sf->f.ftype & FT_ID_FST_BIN )
-	return Dump_FST_BIN(stdout,0,sf,it->real_path);
+	return Dump_FST_BIN(stdout,0,sf,it->real_path,opt_show_mode);
 
     if ( sf->f.ftype & FT_ID_TIK_BIN )
 	return Dump_TIK_BIN(stdout,0,sf,it->real_path);
@@ -779,6 +779,15 @@ enumError cmd_list ( int long_level )
 enumError exec_ilist ( SuperFile_t * fi, Iterator_t * it )
 {
     ASSERT(fi);
+    if ( fi->f.ftype & FT_ID_FST_BIN )
+	return Dump_FST_BIN(stdout,0,fi,it->real_path,it->show_mode&~SHOW_INTRO);
+
+    if ( fi->f.ftype & FT__SPC_MASK )
+    {
+	if ( !(used_options & OB_IGNORE) )
+	    PrintErrorFT(&fi->f,FT_A_ISO);
+	return ERR_OK;
+    }
 
     if (!fi->f.id6[0])
 	return ERR_OK;
@@ -788,47 +797,20 @@ enumError exec_ilist ( SuperFile_t * fi, Iterator_t * it )
 	return ERR_WDISC_NOT_FOUND;
     wd_select(disc,part_selector);
 
+    char prefix[PATH_MAX];
+    if ( it->show_mode & SHOW_PATH )
+	PathCatPP(prefix,sizeof(prefix),fi->f.fname,"/");
+    else
+	*prefix = 0;
+
     WiiFst_t fst;
     InitializeFST(&fst);
     CollectFST(&fst,disc,GetDefaultFilePattern(),false,prefix_mode,true);
     SortFST(&fst,sort_mode,SORT_NAME);
-
-    const wd_pfst_t pfst = ConvertShow2PFST(show_mode,0);
-    if ( pfst & WD_PFST_HEADER )
-	putchar('\n');
-
-    size_t prefix_len;
-    char prefix[PATH_MAX];
-    if ( show_mode & SHOW_PATH )
-    {
-	PathCatPP(prefix,sizeof(prefix),fi->f.fname,"/");
-	prefix_len = strlen(prefix);
-    }
-    else
-    {
-	*prefix = 0;
-	prefix_len = 0;
-    }
-
-    wd_print_fst_t pf;
-    wd_initialize_print_fst(&pf,pfst,stdout,0,fst.fst_max_off4,fst.fst_max_size);
-    if ( show_mode & SHOW_F_HEAD )
-	wd_print_fst_header(&pf,fst.max_path_len+prefix_len);
-    
-    WiiFstPart_t *part, *part_end = fst.part + fst.part_used;
-    for ( part = fst.part; part < part_end; part++ )
-    {
-	WiiFstFile_t * ptr = part->file;
-	WiiFstFile_t * end = ptr + part->file_used;
-
-	for ( ; ptr < end; ptr++ )
-	    wd_print_fst_item( &pf, part->part,
-			ptr->icm, ptr->offset4, ptr->size,
-			prefix, ptr->path );
-    }
- 
+    DumpFilesFST(stdout,0,&fst,ConvertShow2PFST(it->show_mode,0),prefix);
     ResetFST(&fst);
-    return ERR_OK;
+
+    return disc->invalid_part ? ERR_WDISC_INVALID : ERR_OK;
 }
 
 //-----------------------------------------------------------------------------
@@ -841,19 +823,6 @@ enumError cmd_ilist ( int long_level )
 	long_count += long_level;
     }
 
-    if ( show_mode == SHOW__DEFAULT )
-    {
-	switch(long_count)
-	{
-	    case 0:  show_mode = SHOW_F_HEAD; break;
-	    case 1:  show_mode = SHOW_SIZE | SHOW_F_DEC; break;
-	    case 2:  show_mode = SHOW__ALL & ~SHOW_PATH; break;
-	    default: show_mode = SHOW__ALL; break;
-	}
-    }
-    if ( show_mode & (SHOW_F_DEC|SHOW_F_HEX) )
-	show_mode |= SHOW_SIZE;
-
     ParamList_t * param;
     for ( param = first_param; param; param = param->next )
 	AppendStringField(&source_list,param->arg,true);
@@ -862,10 +831,26 @@ enumError cmd_ilist ( int long_level )
 
     Iterator_t it;
     InitializeIterator(&it);
-    it.act_non_iso	= used_options & OB_IGNORE ? ACT_IGNORE : ACT_WARN;
+    //it.act_non_iso	= used_options & OB_IGNORE ? ACT_IGNORE : ACT_WARN;
+    it.act_non_iso	= ACT_ALLOW;
     it.act_wbfs		= ACT_EXPAND;
     it.act_fst		= allow_fst ? ACT_EXPAND : ACT_IGNORE;
     it.long_count	= long_count;
+
+    if ( it.show_mode & SHOW__DEFAULT )
+    {
+	switch (long_count)
+	{
+	    case 0:  it.show_mode = SHOW_F_HEAD; break;
+	    case 1:  it.show_mode = SHOW_F_HEAD | SHOW_SIZE | SHOW_F_DEC; break;
+	    case 2:  it.show_mode = SHOW_F_HEAD | SHOW__ALL & ~SHOW_PATH; break;
+	    default: it.show_mode = SHOW_F_HEAD | SHOW__ALL; break;
+	}
+    }
+    if ( used_options & OB_NO_HEADER )
+	it.show_mode &= ~SHOW_F_HEAD;
+    if ( it.show_mode & (SHOW_F_DEC|SHOW_F_HEX) )
+	it.show_mode |= SHOW_SIZE;
 
     enumError err = SourceIterator(&it,0,false,true);
     if ( err <= ERR_WARNING )
@@ -875,7 +860,7 @@ enumError cmd_ilist ( int long_level )
     }
     ResetIterator(&it);
 
-    if ( !(used_options & OB_NO_HEADER) )
+    if ( it.show_mode & SHOW_F_HEAD )
 	putchar('\n');
     return err;
 }
@@ -1853,6 +1838,9 @@ enumError CheckOptions ( int argc, char ** argv, bool is_env )
 
       }
     }
+    if ( used_options & OB_NO_HEADER )
+	opt_show_mode &= ~SHOW_F_HEAD;
+
  #ifdef DEBUG
     DumpUsedOptions(&InfoUI,TRACE_FILE,11);
  #endif

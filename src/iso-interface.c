@@ -137,12 +137,12 @@ static void dump_hex ( FILE * f, const void * p_data, size_t dsize, size_t asc_i
 
 enumError Dump_ISO
 (
-	FILE * f,		// output stream
-	int indent,		// indent
-	SuperFile_t * sf,	// file to dump
-	ccp real_path,		// NULL or pointer to real path
-	ShowMode show_mode,	// what should be printed
-	int dump_level		// dump level: 0..2, ignored if show_mode is set
+    FILE		* f,		// valid output stream
+    int			indent,		// indent of output
+    SuperFile_t		* sf,		// file to dump
+    ccp			real_path,	// NULL or pointer to real path
+    ShowMode		show_mode,	// what should be printed
+    int			dump_level	// dump level: 0..3, ignored if show_mode is set
 )
 {
     //----- setup
@@ -167,15 +167,16 @@ enumError Dump_ISO
 
     //----- options --show and --long
 
-    if ( show_mode == SHOW__DEFAULT )
+    if ( show_mode & SHOW__DEFAULT )
     {
-	switch(dump_level)
+	switch (dump_level)
 	{
 	    case 0:  show_mode = SHOW_INTRO | SHOW_P_TAB; break;
 	    case 1:  show_mode = SHOW__ALL & ~(SHOW_D_MAP|SHOW_USAGE|SHOW_FILES|SHOW_PATCH); break;
 	    case 2:  show_mode = SHOW__ALL & ~SHOW_FILES; break;
 	    default: show_mode = SHOW__ALL; break;
 	}
+	show_mode |= SHOW_F_HEAD;
 	if (pat->is_active)
 	    show_mode |= SHOW_FILES;
     }
@@ -400,7 +401,7 @@ enumError Dump_ISO
     }
 
 
-    //----- pathicng tables
+    //----- patching tables
 
     if ( show_mode & SHOW_PATCH )
     {
@@ -410,6 +411,13 @@ enumError Dump_ISO
 
 
     //----- terminate
+
+    if (disc->invalid_part)
+    {
+	fprintf(f,"\n\nWARNING: Disc contains %u invalid partition%s!\n\n",
+		disc->invalid_part, disc->invalid_part == 1 ? "" : "s" );
+	return ERR_WDISC_INVALID;
+    }
 
     putc('\n',f);
     return ERR_OK;
@@ -422,10 +430,10 @@ enumError Dump_ISO
 
 enumError Dump_DOL
 (
-	FILE * f,		// output stream
-	int indent,		// indent
-	SuperFile_t * sf,	// file to dump
-	ccp real_path		// NULL or pointer to real path
+    FILE		* f,		// valid output stream
+    int			indent,		// indent of output
+    SuperFile_t		* sf,		// file to dump
+    ccp			real_path	// NULL or pointer to real path
 )
 {
     ASSERT(sf);
@@ -494,10 +502,10 @@ enumError Dump_DOL
 
 enumError Dump_TIK_BIN
 (
-	FILE * f,		// output stream
-	int indent,		// indent
-	SuperFile_t * sf,	// file to dump
-	ccp real_path		// NULL or pointer to real path
+    FILE		* f,		// valid output stream
+    int			indent,		// indent of output
+    SuperFile_t		* sf,		// file to dump
+    ccp			real_path	// NULL or pointer to real path
 )
 {
     ASSERT(sf);
@@ -523,9 +531,9 @@ enumError Dump_TIK_BIN
 
 enumError Dump_TIK_MEM
 (
-	FILE * f,		// output stream
-	int indent,		// indent
-	const wd_ticket_t *tik	// valid pointer to ticket
+    FILE		* f,		// valid output stream
+    int			indent,		// indent of output
+    const wd_ticket_t	* tik		// valid pointer to ticket
 )
 {
     ASSERT(f);
@@ -567,10 +575,10 @@ enumError Dump_TIK_MEM
 
 enumError Dump_TMD_BIN
 (
-	FILE * f,		// output stream
-	int indent,		// indent
-	SuperFile_t * sf,	// file to dump
-	ccp real_path		// NULL or pointer to real path
+    FILE		* f,		// valid output stream
+    int			indent,		// indent of output
+    SuperFile_t		* sf,		// file to dump
+    ccp			real_path	// NULL or pointer to real path
 )
 {
     ASSERT(sf);
@@ -606,10 +614,10 @@ enumError Dump_TMD_BIN
 
 enumError Dump_TMD_MEM
 (
-	FILE * f,		// output stream
-	int indent,		// indent
-	const wd_tmd_t * tmd,	// valid pointer to ticket
-	int n_content		// number of loaded wd_tmd_content_t elementzs
+    FILE		* f,		// valid output stream
+    int			indent,		// indent of output
+    const wd_tmd_t	* tmd,		// valid pointer to ticket
+    int n_content			// number of loaded wd_tmd_content_t elementzs
 )
 {
     ASSERT(f);
@@ -680,10 +688,10 @@ enumError Dump_TMD_MEM
 
 enumError Dump_HEAD_BIN
 (
-	FILE * f,		// output stream
-	int indent,		// indent
-	SuperFile_t * sf,	// file to dump
-	ccp real_path		// NULL or pointer to real path
+    FILE		* f,		// valid output stream
+    int			indent,		// indent of output
+    SuperFile_t		* sf,		// file to dump
+    ccp			real_path	// NULL or pointer to real path
 )
 {
     ASSERT(sf);
@@ -719,10 +727,10 @@ enumError Dump_HEAD_BIN
 
 enumError Dump_BOOT_BIN
 (
-	FILE * f,		// output stream
-	int indent,		// indent
-	SuperFile_t * sf,	// file to dump
-	ccp real_path		// NULL or pointer to real path
+    FILE		* f,		// valid output stream
+    int			indent,		// indent of output
+    SuperFile_t		* sf,		// file to dump
+    ccp			real_path	// NULL or pointer to real path
 )
 {
     ASSERT(sf);
@@ -769,16 +777,28 @@ enumError Dump_BOOT_BIN
 
 enumError Dump_FST_BIN
 (
-	FILE * f,		// output stream
-	int indent,		// indent
-	SuperFile_t * sf,	// file to dump
-	ccp real_path		// NULL or pointer to real path
+    FILE		* f,		// valid output stream
+    int			indent,		// indent of output
+    SuperFile_t		* sf,		// file to dump
+    ccp			real_path,	// NULL or pointer to real path
+    ShowMode		show_mode	// what should be printed
 )
 {
     ASSERT(sf);
-    if ( !f || sf->file_size > 10*MiB )
+    if ( !f || sf->file_size > 20*MiB )
 	return ERR_OK;
-    indent = dump_header(f,indent,sf,real_path);
+    indent = NormalizeIndent(indent);
+
+    //----- options --show and --long
+
+    if ( show_mode & SHOW__DEFAULT )
+	show_mode = SHOW__ALL | SHOW_F_HEAD;
+
+    if ( show_mode & SHOW_INTRO )
+    {
+	dump_header(f,indent,sf,real_path);
+	indent += 2;
+    }
 
     //----- setup fst
 
@@ -789,7 +809,8 @@ enumError Dump_FST_BIN
     enumError err = ReadSF(sf,0,ftab_data,sf->file_size);
     if (!err)
     {
-	err = Dump_FST(f,indent,ftab_data,sf->file_size,sf->f.fname);
+	err = Dump_FST_MEM(f,indent,ftab_data,sf->file_size,sf->f.fname,
+				ConvertShow2PFST(show_mode,SHOW__ALL) );
 	if (err)
 	    ERROR0(err,"fst.bin is invalid: %s\n",sf->f.fname);
     }
@@ -800,158 +821,40 @@ enumError Dump_FST_BIN
 
 ///////////////////////////////////////////////////////////////////////////////
 
-enumError Dump_FST
+enumError Dump_FST_MEM
 (
-	FILE * f,				// output stream or NULL if silent
-	int indent,				// indent
-	const wd_fst_item_t * ftab_data,	// the FST data
-	size_t ftab_size,			// size of FST data
-	ccp fname				// filename or hint
+    FILE		* f,		// valid output stream
+    int			indent,		// indent of output
+    const wd_fst_item_t	* ftab_data,	// the FST data
+    size_t		ftab_size,	// size of FST data
+    ccp			fname,		// NULL or source hint for error message
+    wd_pfst_t		pfst		// print fst mode
 )
 {
     ASSERT(ftab_data);
-    TRACE("Dump_FST(%p,%d,%p,%x,%s)\n",f,indent,ftab_data,(u32)ftab_size,fname);
+    TRACE("Dump_FST_MEM(%p,%d,%p,%x,%s,%x)\n",
+		f, indent, ftab_data, (u32)ftab_size, fname, pfst );
 
     indent = NormalizeIndent(indent);
     if (!fname)
 	fname = "memory";
 
-    //----- setup fst
-
     const u32 n_files = ntohl(ftab_data->size);
-    const wd_fst_item_t * ftab_end = ftab_data + n_files;
-    const wd_fst_item_t * dir_end = ftab_end;
-
-    ccp ftab_data_end = (ccp)ftab_data + ftab_size;
-    if ( ftab_data_end < (ccp)ftab_end )
+    if ( (ccp)(ftab_data + n_files) > (ccp)ftab_data + ftab_size )
     {
 	if (f)
 	    ERROR0(ERR_INVALID_FILE,"fst.bin is invalid: %s\n",fname);
 	return ERR_INVALID_FILE;
     }
-    const u32 max_name_delta = ftab_data_end - (ccp)ftab_end;
-    
-    //----- setup path
-    
-    const int MAX_DEPTH = 25; // maximal supported directory depth
+ 
+    WiiFst_t fst;
+    InitializeFST(&fst);
+    CollectFST_BIN(&fst,ftab_data,GetDefaultFilePattern(),false);
+    SortFST(&fst,sort_mode,SORT_NAME);
+    DumpFilesFST(f,indent,&fst,pfst,0);
+    ResetFST(&fst);
 
-    char path_buf[1000];
-    char *path_end = path_buf + sizeof(path_buf) - MAX_DEPTH;
-    char *path = path_buf;
-
-
-    //----- setup stack
-
-    typedef struct stack_t
-    {
-	const wd_fst_item_t * ftab;
-	const wd_fst_item_t * dir_end;
-	char * path;
-    } stack_t;
-    stack_t stack_buf[MAX_DEPTH];
-    stack_t *stack = stack_buf;
-    stack_t *stack_max = stack_buf + MAX_DEPTH;
-
-    stack->ftab	   = ftab_data;
-    stack->dir_end = ftab_end;
-    stack->path	   = path;
-    stack++;
-    
-    //----- print header
-
-    if (f)
-    {
-	int fw = 80-indent;
-	if ( fw < 45 )
-	     fw = 45;
-
-	fprintf(f,"\n%*s       is offset/4     size  file_path\n"
-		"%*sindex dir base dir  end dir  directory_path/\n"
-		"%*s%.*s\n",
-		indent,"", indent,"", indent,"", fw, wd_sep_200 );
-    }
-
-    //----- main loop
-
-    int err_count = 0;
-
-    const wd_fst_item_t *ftab;
-    for ( ftab = ftab_data+1; ftab < ftab_end; ftab++ )
-    {
-	while ( ftab >= dir_end && stack > stack_buf )
-	{
-	    stack--;
-	    dir_end = stack->dir_end;
-	    path = stack->path;
-	}
-
-	ccp name_ptr;
-	u32 name_delta = ntohl(ftab->name_off) & 0xffffff;
-	if ( name_delta < max_name_delta )
-	    name_ptr = (ccp)ftab_end + name_delta;
-	else
-	{
-	    err_count++;
-	    if (f)
-	    {
-		*path = 0;
-		fprintf(f,"%*s!! WARNING: name index out of range (%x, max=%x): %s/?\n",
-			indent, "", name_delta, max_name_delta, path_buf );
-	    }
-	    name_ptr = "?";
-	}
-	char * path_dest = StringCopyE(path,path_end,name_ptr);
-
-	if (ftab->is_dir)
-	{
-	    *path_dest++ = '/';
-	    *path_dest = 0;
-
-	    ASSERT(stack<stack_max);
-	    if ( stack < stack_max )
-	    {
-		stack->ftab    = ftab;
-		stack->dir_end = dir_end;
-		stack->path    = path;
-		stack++;
-		path = path_dest;
-		
-		const wd_fst_item_t * new_dir_end  = ftab_data + ntohl(ftab->size);
-		if ( new_dir_end > dir_end )
-		{
-		    err_count++;
-		    if (f)
-			fprintf(f,"%*s!! WARNING: end of directory behind end of parent directory.\n"
-				  "%*s!!          -> %s\n",
-				  indent, "", indent, "", path_buf );
-		}
-		dir_end = new_dir_end;
-
-		// check back tracking
-		u32 idx = (u32)ntohl(ftab->offset4);
-		if ( stack >= stack_buf+2 && ftab_data + idx != stack[-2].ftab )
-		{
-		    err_count++;
-		    if (f)
-			fprintf(f,"%*s!! WARNING: wrong back trace index (%x but not %x): %s\n",
-				indent, "", idx, (u32)(stack[-2].ftab - ftab_data), path_buf );
-		}
-	    }
-	    else
-	    {
-		err_count++;
-		if (f)
-		    fprintf(f,"%*s!! WARNING: directory level to deep (>%u): %s\n",
-				indent, "", MAX_DEPTH, path_buf );
-	    }
-	}
-	if (f)
-	    fprintf(f,"%*s%5x. %2x %8x %8x  %s\n",
-		indent,"", (int)(ftab-ftab_data), ftab->is_dir,
-		(u32)ntohl(ftab->offset4), (u32)ntohl(ftab->size), path_buf );
-    }
-
-    return err_count ? ERR_INVALID_FILE : ERR_OK;
+    return ERR_OK;
 }
 
 //
@@ -1512,7 +1415,7 @@ typedef struct CollectFST_t
 
 static int CollectFST_helper
 (
-	struct wd_iterator_t *it	// iterator struct with all infos
+    struct wd_iterator_t *it	// iterator struct with all infos
 )
 {
     DASSERT(it);
@@ -1596,12 +1499,12 @@ static int CollectFST_helper
 
 int CollectFST
 (
-	WiiFst_t	* fst,		// valid fst pointer
-	wd_disc_t	* disc,		// valid disc pointer
-	FilePattern_t	* pat,		// NULL or a valid filter
-	bool		ignore_dir,	// true: ignore directories
-	wd_ipm_t	prefix_mode,	// prefix mode
-	bool		store_prefix	// true: store full path incl. prefix
+    WiiFst_t		* fst,		// valid fst pointer
+    wd_disc_t		* disc,		// valid disc pointer
+    FilePattern_t	* pat,		// NULL or a valid filter
+    bool		ignore_dir,	// true: ignore directories
+    wd_ipm_t		prefix_mode,	// prefix mode
+    bool		store_prefix	// true: store full path incl. prefix
 )
 {
     ASSERT(fst);
@@ -1616,6 +1519,7 @@ int CollectFST
 	SetupFilePattern(pat);
 
     CollectFST_t cf;
+    memset(&cf,0,sizeof(cf));
     cf.fst		= fst;
     cf.disc		= disc;
     cf.pat		= pat && pat->match_all ? 0 : pat;
@@ -1623,6 +1527,64 @@ int CollectFST
     cf.store_prefix	= store_prefix;
     
     return wd_iterate_files(disc,CollectFST_helper,&cf,prefix_mode);
+}
+
+//-----------------------------------------------------------------------------
+
+int CollectFST_BIN
+(
+    WiiFst_t		* fst,		// valid fst pointer
+    const wd_fst_item_t * ftab_data,	// the FST data
+    FilePattern_t	* pat,		// NULL or a valid filter
+    bool		ignore_dir	// true: ignore directories
+)
+{
+    CollectFST_t cf;
+    memset(&cf,0,sizeof(cf));
+    cf.fst		= fst;
+    cf.pat		= pat && pat->match_all ? 0 : pat;
+    cf.ignore_dir	= ignore_dir;
+
+    fst->part_active = AppendPartFST(fst);
+    return wd_iterate_fst_files(ftab_data,CollectFST_helper,&cf);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+
+void DumpFilesFST
+(
+    FILE		* f,		// NULL or output file
+    int			indent,		// indention of the output
+    WiiFst_t		* fst,		// valid FST pointer
+    wd_pfst_t		pfst,		// print fst mode
+    ccp			prefix		// NULL or path prefix
+)
+{
+    DASSERT(fst);
+    if ( pfst & WD_PFST_HEADER )
+	putchar('\n');
+
+    if (!prefix)
+	prefix = "";
+    size_t prefix_len = strlen(prefix);
+
+    wd_print_fst_t pf;
+    wd_initialize_print_fst(&pf,pfst,f,indent,fst->fst_max_off4,fst->fst_max_size);
+    if ( pfst & WD_PFST_HEADER )
+	wd_print_fst_header(&pf,fst->max_path_len+prefix_len);
+    
+    WiiFstPart_t *part, *part_end = fst->part + fst->part_used;
+    for ( part = fst->part; part < part_end; part++ )
+    {
+	WiiFstFile_t * ptr = part->file;
+	WiiFstFile_t * end = ptr + part->file_used;
+
+	for ( ; ptr < end; ptr++ )
+	    wd_print_fst_item( &pf, part->part,
+			ptr->icm, ptr->offset4, ptr->size,
+			prefix, ptr->path );
+    }
 }
 
 //
@@ -2503,9 +2465,11 @@ u32 ScanPartFST
  #endif
 
  #ifdef DEBUG
-    if (Dump_FST(0,0,(wd_fst_item_t*)part->ftab,part->ftab_size,"scanned"))
+    if (Dump_FST_MEM(0,0,(wd_fst_item_t*)part->ftab,
+				part->ftab_size,"scanned",WD_PFST__ALL))
     {
-	Dump_FST(TRACE_FILE,0,(wd_fst_item_t*)part->ftab,part->ftab_size,"scanned");
+	Dump_FST_MEM(TRACE_FILE,0,(wd_fst_item_t*)part->ftab,
+				part->ftab_size,"scanned",WD_PFST__ALL);
 	return ERROR0(ERR_FATAL,"internal fst.bin is invalid -> see trace file\n");
     }
  #endif

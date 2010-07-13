@@ -29,6 +29,9 @@
 
 [size="2"][color="#0000c0"][b]Highlights of this release:[/b][/color][/size]
 [list]
+I have rewritten the wiidisc library (part of libwbfs) from scratch. It has a complete new interface and an improved functionality. It uses dynamic data structures and collect data as needed. This has considerable advantages for the whole WIT project: All information about a Wii disc is now in one hand. Things like usage maps and partition data are loaded/built once and only if needed. 
+
+This new library facilitate the planed patching functionality.
 [color=#ffffff].[/color]
 [/list]
 

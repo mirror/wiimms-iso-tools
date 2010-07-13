@@ -68,7 +68,7 @@ volatile int verbose		= 0;
 volatile int logging		= 0;
 int progress			= 0;
 SortMode sort_mode		= SORT_DEFAULT;
-ShowMode show_mode		= SHOW__DEFAULT;
+ShowMode opt_show_mode		= SHOW__DEFAULT;
 RepairMode repair_mode		= REPAIR_NONE;
 char escape_char		= '%';
 enumOFT output_file_type	= OFT_UNKNOWN;
@@ -592,7 +592,9 @@ ccp GetErrorName ( int stat )
 	case ERR_NO_CISO:		return "NO WDF";
 	case ERR_CISO_INVALID:		return "INVALID WDF";
 
-	case ERR_WDISC_NOT_FOUND:	return "WDISC NOT FOUND";
+	case ERR_WDISC_INVALID:		return "INVALID WII DISC";
+	case ERR_WDISC_NOT_FOUND:	return "WII DISC NOT FOUND";
+
 	case ERR_NO_WBFS_FOUND:		return "NO WBFS FOUND";
 	case ERR_TO_MUCH_WBFS_FOUND:	return "TO MUCH WBFS FOUND";
 	case ERR_WBFS_INVALID:		return "INVALID WBFS";
@@ -613,6 +615,8 @@ ccp GetErrorName ( int stat )
 	case ERR_SYNTAX:		return "SYNTAX ERROR";
 
 	case ERR_INTERRUPT:		return "INTERRUPT";
+
+	case ERR_ERROR:			return "ERROR";
 
 	case ERR_NOT_IMPLEMENTED:	return "NOT IMPLEMENTED YET";
 	case ERR_INTERNAL:		return "INTERNAL ERROR";
@@ -645,7 +649,9 @@ ccp GetErrorText ( int stat )
 	case ERR_NO_CISO:		return "File is not a CISO";
 	case ERR_CISO_INVALID:		return "Invalid CISO";
 
+	case ERR_WDISC_INVALID:		return "Invalid Wii disc";
 	case ERR_WDISC_NOT_FOUND:	return "Wii disc not found";
+
 	case ERR_NO_WBFS_FOUND:		return "No WBFS found";
 	case ERR_TO_MUCH_WBFS_FOUND:	return "To much WBFS found";
 	case ERR_WBFS_INVALID:		return "Invalid WBFS";
@@ -666,6 +672,8 @@ ccp GetErrorText ( int stat )
 	case ERR_SYNTAX:		return "Syntax error";
 
 	case ERR_INTERRUPT:		return "Program interrupted";
+
+	case ERR_ERROR:			return "Error";
 
 	case ERR_NOT_IMPLEMENTED:	return "Not implemented yet";
 	case ERR_INTERNAL:		return "Internal error";
@@ -2338,8 +2346,8 @@ int ScanOptShow ( ccp arg )
     if ( new_mode == SHOW__ERROR )
 	return 1;
 
-    TRACE("SHOW-MODE set: %d -> %d\n",show_mode,new_mode);
-    show_mode = new_mode;
+    TRACE("SHOW-MODE set: %d -> %d\n",opt_show_mode,new_mode);
+    opt_show_mode = new_mode;
     return 0;
 }
 

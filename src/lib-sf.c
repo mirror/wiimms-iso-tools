@@ -485,7 +485,7 @@ wd_disc_t * OpenDiscSF
 {
     ASSERT(sf);
     if ( !sf->disc && IsOpenSF(sf) && sf->f.is_reading )
-	sf->disc = wd_open_disc(WrapperReadSF,sf,sf->file_size,0);
+	sf->disc = wd_open_disc(WrapperReadSF,sf,sf->file_size,sf->f.fname,0);
 	
     if (!sf->disc)
     {
@@ -1819,23 +1819,23 @@ enumError XPrintErrorFT ( XPARM File_t * f, enumFileType err_mask )
 
     else if ( nand_mask & FT_ID_WBFS )
 	stat = PrintError( XERROR0, ERR_WRONG_FILE_TYPE,
-		"Not a WBFS: %s\n", f->fname );
+		"WBFS expected: %s\n", f->fname );
 
     else if ( nand_mask & FT_ID_ISO || nand_mask & FT_A_ISO )
 	stat = PrintError( XERROR0, ERR_WRONG_FILE_TYPE,
-		"Not a ISO image: %s\n", f->fname );
+		"ISO image expected: %s\n", f->fname );
 
     else if ( nand_mask & FT_A_WDF )
 	stat = PrintError( XERROR0, ERR_WRONG_FILE_TYPE,
-		"Not a WDF: %s\n", f->fname );
+		"WDF expected: %s\n", f->fname );
 
     else if ( nand_mask & FT_A_CISO )
 	stat = PrintError( XERROR0, ERR_WRONG_FILE_TYPE,
-		"Not a CISO: %s\n", f->fname );
+		"CISO expected: %s\n", f->fname );
 
     f->last_error = stat;
     if ( f->max_error < stat )
-	f->max_error = stat;
+	 f->max_error = stat;
 
     return stat;
 }
@@ -2938,6 +2938,7 @@ void InitializeIterator ( Iterator_t * it )
     ASSERT(it);
     memset(it,0,sizeof(*it));
     InitializeStringField(&it->source_list);
+    it->show_mode = opt_show_mode;
 }
 
 //-----------------------------------------------------------------------------

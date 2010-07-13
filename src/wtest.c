@@ -324,7 +324,7 @@ static void test_open_disc ( int argc, char ** argv )
 	{
 	    printf("*** %s\n",sf.f.fname);
 	    enumError err;
-	    wd_disc_t * disc = wd_open_disc(WrapperReadSF,&sf,sf.file_size,&err);
+	    wd_disc_t * disc = wd_open_disc(WrapperReadSF,&sf,sf.file_size,sf.f.fname,&err);
 	    if (disc)
 	    {
 		putchar('\n');

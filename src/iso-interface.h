@@ -90,84 +90,86 @@ typedef struct WDiscList_t
 
 enumError Dump_ISO
 (
-	FILE * f,		// output stream
-	int indent,		// indent
-	SuperFile_t * sf,	// file to dump
-	ccp real_path,		// NULL or pointer to real path
-	ShowMode show_mode,	// what should be printed
-	int dump_level		// dump level: 0..2, ignored if show_mode is set
+    FILE		* f,		// valid output stream
+    int			indent,		// indent of output
+    SuperFile_t		* sf,		// file to dump
+    ccp			real_path,	// NULL or pointer to real path
+    ShowMode		show_mode,	// what should be printed
+    int			dump_level	// dump level: 0..3, ignored if show_mode is set
 );
 
 enumError Dump_DOL
 (
-	FILE * f,		// output stream
-	int indent,		// indent
-	SuperFile_t * sf,	// file to dump
-	ccp real_path		// NULL or pointer to real path
+    FILE		* f,		// valid output stream
+    int			indent,		// indent of output
+    SuperFile_t		* sf,		// file to dump
+    ccp			real_path	// NULL or pointer to real path
 );
 
 enumError Dump_TIK_BIN
 (
-	FILE * f,		// output stream
-	int indent,		// indent
-	SuperFile_t * sf,	// file to dump
-	ccp real_path		// NULL or pointer to real path
+    FILE		* f,		// valid output stream
+    int			indent,		// indent of output
+    SuperFile_t		* sf,		// file to dump
+    ccp			real_path	// NULL or pointer to real path
 );
 
 enumError Dump_TIK_MEM
 (
-	FILE * f,		// output stream
-	int indent,		// indent
-	const wd_ticket_t *tik	// valid pointer to ticket
+    FILE		* f,		// valid output stream
+    int			indent,		// indent of output
+    const wd_ticket_t	* tik		// valid pointer to ticket
 );
 
 enumError Dump_TMD_BIN
 (
-	FILE * f,		// output stream
-	int indent,		// indent
-	SuperFile_t * sf,	// file to dump
-	ccp real_path		// NULL or pointer to real path
+    FILE		* f,		// valid output stream
+    int			indent,		// indent of output
+    SuperFile_t		* sf,		// file to dump
+    ccp			real_path	// NULL or pointer to real path
 );
 
 enumError Dump_TMD_MEM
 (
-	FILE * f,		// output stream
-	int indent,		// indent
-	const wd_tmd_t * tmd,	// valid pointer to ticket
-	int n_content		// number of loaded wd_tmd_content_t elementzs
+    FILE		* f,		// valid output stream
+    int			indent,		// indent of output
+    const wd_tmd_t	* tmd,		// valid pointer to ticket
+    int n_content			// number of loaded wd_tmd_content_t elementzs
 );
 
 enumError Dump_HEAD_BIN
 (
-	FILE * f,		// output stream
-	int indent,		// indent
-	SuperFile_t * sf,	// file to dump
-	ccp real_path		// NULL or pointer to real path
+    FILE		* f,		// valid output stream
+    int			indent,		// indent of output
+    SuperFile_t		* sf,		// file to dump
+    ccp			real_path	// NULL or pointer to real path
 );
 
 enumError Dump_BOOT_BIN
 (
-	FILE * f,		// output stream
-	int indent,		// indent
-	SuperFile_t * sf,	// file to dump
-	ccp real_path		// NULL or pointer to real path
+    FILE		* f,		// valid output stream
+    int			indent,		// indent of output
+    SuperFile_t		* sf,		// file to dump
+    ccp			real_path	// NULL or pointer to real path
 );
 
 enumError Dump_FST_BIN
 (
-	FILE * f,		// output stream
-	int indent,		// indent
-	SuperFile_t * sf,	// file to dump
-	ccp real_path		// NULL or pointer to real path
+    FILE		* f,		// valid output stream
+    int			indent,		// indent of output
+    SuperFile_t		* sf,		// file to dump
+    ccp			real_path,	// NULL or pointer to real path
+    ShowMode		show_mode	// what should be printed
 );
 
-enumError Dump_FST
+enumError Dump_FST_MEM
 (
-	FILE * f,				// output stream or NULL if silent
-	int indent,				// indent
-	const wd_fst_item_t * ftab_data,	// the FST data
-	size_t ftab_size,			// size of FST data
-	ccp fname				// filename or hint
+    FILE		* f,		// valid output stream
+    int			indent,		// indent of output
+    const wd_fst_item_t	* ftab_data,	// the FST data
+    size_t		ftab_size,	// size of FST data
+    ccp			fname,		// NULL or source hint for error message
+    wd_pfst_t		pfst		// print fst mode
 );
 
 //
@@ -193,48 +195,49 @@ typedef enum enumAction
 
 typedef struct Iterator_t
 {
-	int depth;			// current directory depth
-	int max_depth;			// maximal directory depth
-	IteratorFunc func;		// call back function
-	ccp real_path;			// pointer to real_path;
+	int		depth;		// current directory depth
+	int		max_depth;	// maximal directory depth
+	IteratorFunc	func;		// call back function
+	ccp		real_path;	// pointer to real_path;
 
 	// options
 
-	bool open_modify;		// open in modify mode
-	enumAction act_non_exist;	// action for non existing files
-	enumAction act_non_iso;		// action for non iso files
-	enumAction act_known;		// action for non iso files but well known files
-	enumAction act_wbfs;		// action for wbfs files with n(disc) != 1
-	enumAction act_fst;		// action for fst
-	enumAction act_open;		// action for open output files
+	bool		open_modify;	// open in modify mode
+	enumAction	act_non_exist;	// action for non existing files
+	enumAction	act_non_iso;	// action for non iso files
+	enumAction	act_known;	// action for non iso files but well known files
+	enumAction	act_wbfs;	// action for wbfs files with n(disc) != 1
+	enumAction	act_fst;	// action for fst
+	enumAction	act_open;	// action for open output files
 
 	// source file list
 
-	StringField_t source_list;	// collect first than run
-	int source_index;		// informative: index of current file
+	StringField_t	source_list;	// collect first than run
+	int		source_index;	// informative: index of current file
 
 	// statistics
 
-	u32 num_of_files;	// number of found files
-	u32 num_of_dirs;	// number of found directories
-	u32 num_empty_dirs;	// number of empty base directories
+	u32		num_of_files;	// number of found files
+	u32		num_of_dirs;	// number of found directories
+	u32		num_empty_dirs;	// number of empty base directories
 
 	// user defined parameters, ignores by SourceIterator()
 
-	bool scrub_it;		// SCRUB instead of COPY
-	bool update;		// update option set
-	bool newer;		// newer option set
-	bool overwrite;		// overwrite option set
-	bool remove_source;	// remove option set
-	int  real_filename;	// set real filename without any selector
-	int  long_count;	// long counter for output
-	uint done_count;	// done counter
-	uint diff_count;	// diff counter
-	uint exists_count;	// 'file alread exists' counter
-	WDiscList_t * wlist;	// pointer to WDiscList_t to collect data
-	struct WBFS_t * wbfs;	// open WBFS
-	dev_t open_dev;		// dev_t of open output file
-	ino_t open_ino;		// ino_t of open output file
+	ShowMode	show_mode;	// active show mode, initialized by opt_show_mode
+	bool		scrub_it;	// SCRUB instead of COPY
+	bool		update;		// update option set
+	bool		newer;		// newer option set
+	bool		overwrite;	// overwrite option set
+	bool		remove_source;	// remove option set
+	int		real_filename;	// set real filename without any selector
+	int		long_count;	// long counter for output
+	uint		done_count;	// done counter
+	uint		diff_count;	// diff counter
+	uint		exists_count;	// 'file alread exists' counter
+	WDiscList_t	* wlist;	// pointer to WDiscList_t to collect data
+	struct WBFS_t	* wbfs;		// open WBFS
+	dev_t		open_dev;	// dev_t of open output file
+	ino_t		open_ino;	// ino_t of open output file
 
 } Iterator_t;
 
@@ -472,23 +475,40 @@ WiiFstFile_t * FindFileFST ( WiiFstPart_t * part, u32 offset4 );
 
 int CollectFST
 (
-	WiiFst_t	* fst,		// valid fst pointer
-	wd_disc_t	* disc,		// valid disc pointer
-	FilePattern_t	* pat,		// NULL or a valid filter
-	bool		ignore_dir,	// true: ignore directories
-	wd_ipm_t	prefix_mode,	// prefix mode
-	bool		store_prefix	// true: store full path incl. prefix
+    WiiFst_t		* fst,		// valid fst pointer
+    wd_disc_t		* disc,		// valid disc pointer
+    FilePattern_t	* pat,		// NULL or a valid filter
+    bool		ignore_dir,	// true: ignore directories
+    wd_ipm_t		prefix_mode,	// prefix mode
+    bool		store_prefix	// true: store full path incl. prefix
+);
+
+int CollectFST_BIN
+(
+    WiiFst_t		* fst,		// valid fst pointer
+    const wd_fst_item_t * ftab_data,	// the FST data
+    FilePattern_t	* pat,		// NULL or a valid filter
+    bool		ignore_dir	// true: ignore directories
+);
+
+void DumpFilesFST
+(
+    FILE		* f,		// NULL or output file
+    int			indent,		// indention of the output
+    WiiFst_t		* fst,		// valid FST pointer
+    wd_pfst_t		pfst,		// print fst mode
+    ccp			prefix		// NULL or path prefix
 );
 
 u32 ScanPartFST ( WiiFstPart_t * part, ccp path, u32 cur_offset4, wd_boot_t * boot );
 
 u64 GenPartFST
 (
-	SuperFile_t	* sf,		// valid file pointer
-	WiiFstPart_t	* part,		// valid partition pointer
-	ccp		path,		// path of partiton directory
-	u64		good_off,	// standard partition offset
-	u64		min_off		// minimal possible partition offset
+    SuperFile_t		* sf,		// valid file pointer
+    WiiFstPart_t	* part,		// valid partition pointer
+    ccp			path,		// path of partiton directory
+    u64			good_off,	// standard partition offset
+    u64			min_off		// minimal possible partition offset
 );
 
 //-----------------------------------------------------------------------------

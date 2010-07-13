@@ -23,11 +23,16 @@
  *                                                                         *
  ***************************************************************************/
        
-////////////////////////////////////////////////////////////////////////
-/////   This is a template file for 'libwbfs_os.h'                 /////
-/////   Move it to your project directory and rename it.           /////
-/////   Edit this file and customise it for your project and os.   /////
-////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+/////                                                                ///// 
+/////   This is a template file for 'libwbfs_os.h'                   /////
+/////   Move it to your project directory and rename it.             /////
+/////   Edit this file and customise it for your project and os.     /////
+/////                                                                ///// 
+/////   File 'libwbfs_defaults.h' defines more default macros.       ///// 
+/////   Copy the macros into this file if other definitions needed.  ///// 
+/////                                                                ///// 
+//////////////////////////////////////////////////////////////////////////
 
 #ifndef LIBWBFS_OS_H
 #define LIBWBFS_OS_H
@@ -81,9 +86,12 @@ typedef enum bool { false, true } __attribute__ ((packed)) bool;
 typedef enum enumError
 {
 	ERR_OK,
-	ERR_WARNING,
+	ERR_WARNING,		// separator: below = real errors and not warnings
 	ERR_WDISC_NOT_FOUND,
+	ERR_WDISC_INVALID,
 	ERR_READ_FAILED,
+	ERR_ERROR,		// separator: below = hard/fatal errors => exit
+	ERR_OUT_OF_MEMORY,
 	ERR_FATAL
 
 } enumError;
@@ -96,10 +104,12 @@ typedef enum enumError
 ///////////////////////////////////////////////////////////////////////////////
 // error messages
 
-#define wbfs_warning(...) wbfs_print_error(__FUNCTION__,__FILE__,__LINE__,0,__VA_ARGS__)
-#define wbfs_error(...)   wbfs_print_error(__FUNCTION__,__FILE__,__LINE__,1,__VA_ARGS__)
-#define wbfs_fatal(...)   wbfs_print_error(__FUNCTION__,__FILE__,__LINE__,2,__VA_ARGS__)
-#define OUT_OF_MEMORY wbfs_fatal("Out of memory!")
+#define wbfs_warning(...) wd_print_error(__FUNCTION__,__FILE__,__LINE__,ERR_WARNING,__VA_ARGS__)
+#define wbfs_error(...)   wd_print_error(__FUNCTION__,__FILE__,__LINE__,ERR_ERROR,__VA_ARGS__)
+#define wbfs_fatal(...)   wd_print_error(__FUNCTION__,__FILE__,__LINE__,ERR_FATAL,__VA_ARGS__)
+#define OUT_OF_MEMORY	  wd_print_error(__FUNCTION__,__FILE__,__LINE__,ERR_OUT_OF_MEMORY,"Out of memory")
+
+// -> file 'libwbfs_defaults.h' contains macro WD_PRINT
 
 ///////////////////////////////////////////////////////////////////////////////
 // alloc and free memory space

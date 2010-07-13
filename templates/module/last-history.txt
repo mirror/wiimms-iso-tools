@@ -3,7 +3,7 @@ wit v1.10a.beta r1333 - 2010-07-05
  - New option: --width wd: Define the width (number of columns) for help and
    other messages and disables the automatic detection of the terminal width.
  - wwt EXTRACT: Support '%X' and '%Y' in output filenames.
- - I have rewritten the wiidisc lib (part of libwmfs) from scratch. It has a
+ - I have rewritten the wiidisc lib (part of libwbfs) from scratch. It has a
    complete new interface and an improved functionality. It uses dynamic data
    structures and collect data as needed. This has considerable advantages
    for the whole WIT project:
@@ -45,9 +45,14 @@ wit v1.10a.beta r1359 - 2010-07-09
  - Command "wit ILIST" evaluates option --psel now.
  - I have run my test scripts against this release without any reported errors.
 
-wit v@@VERSION@@ r@@REV-NEXT@@ - @@@@-@@-@@
+wit v1.10a.beta r1363 - 2010-07-09  (repos only)
 
  - Bug fix: File size calculation error for when composing large discs.
+
+wit v@@VERSION@@ r@@REV-NEXT@@ - @@@@-@@-@@
+
+ - New wiidisc lib: Advanced error handling.
+ - wit ILIST: List files like 'fst.bin' too.
 
 ~Known bugs:
 ~

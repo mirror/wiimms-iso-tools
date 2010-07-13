@@ -3094,6 +3094,9 @@ enumError CheckOptions ( int argc, char ** argv, bool is_env )
 	//	=> compiler checks the existence of all enum values
       }
     }
+    if ( used_options & OB_NO_HEADER )
+	opt_show_mode &= ~SHOW_F_HEAD;
+
  #ifdef DEBUG
     DumpUsedOptions(&InfoUI,TRACE_FILE,11);
  #endif

@@ -33,6 +33,68 @@
 
 //
 ///////////////////////////////////////////////////////////////////////////////
+///////////////			    error messages		///////////////
+///////////////////////////////////////////////////////////////////////////////
+
+enumError wd_print_error
+(
+    ccp		func,		// calling function, use macro __FUNCTION__
+    ccp		file,		// source file, use macro __FILE__
+    uint	line,		// line number of source file, use macro __LINE__
+    enumError	err,		// error code
+    ccp		format,		// NULL or format string for fprintf() function.
+    ...				// parameters for 'format'
+)
+{
+    fflush(stdout);
+
+    ccp msg_prefix, msg_name;
+    if ( err > ERR_ERROR )
+    {
+	msg_prefix = "!!! ";
+	msg_name   = "FATAL ERROR";
+    }
+    else if ( err > ERR_WARNING )
+    {
+	msg_prefix = "!! ";
+	msg_name   = "ERROR";
+    }
+    else if ( err > ERR_OK )
+    {
+	msg_prefix = "! ";
+	msg_name   = "WARNING";
+    }
+    else
+    {
+	msg_prefix = "";
+	msg_name   = "SUCCESS";
+    }
+
+    if ( err > ERR_OK )
+	fprintf(stderr,"%s%s in %s() @ %s#%d\n",
+	    msg_prefix, msg_name, func, file, line );
+
+    if (format)
+    {
+	fputs(msg_prefix,stderr);
+	va_list arg;
+	va_start(arg,format);
+	vfprintf(stderr,format,arg);
+	va_end(arg);
+	if ( format[strlen(format)-1] != '\n' )
+	    fputc('\n',stderr);
+    }
+
+    fflush(stderr);
+    
+    if ( err > ERR_ERROR )
+	exit(ERR_FATAL);
+
+    return err;
+}
+
+//
+///////////////////////////////////////////////////////////////////////////////
 ///////////////			    common key			///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -113,11 +175,29 @@ const char * wd_get_part_name
 char * wd_print_part_name
 (
 	char		* buf,		// result buffer
-	size_t		buf_size,	// size of 'buf'
+					// If NULL, a local circulary static buffer is used
+	size_t		buf_size,	// size of 'buf', ignored if buf==NULL
 	u32		ptype,		// partition type
 	wd_pname_mode_t	mode		// print mode
 )
 {
+    enum
+    {
+	SBUF_COUNT = 5,
+	SBUF_SIZE  = 20
+    };
+
+    static int  sbuf_index = 0;
+    static char sbuf[SBUF_COUNT][SBUF_SIZE+1];
+
+    if (!buf)
+    {
+	// use static buffer
+	buf = sbuf[sbuf_index];
+	buf_size = SBUF_SIZE;
+	sbuf_index = ( sbuf_index + 1 ) % SBUF_COUNT;
+    }
+
     ccp id4 = (ccp)&ptype;
     const bool is_id = ISALNUM(id4[0]) && ISALNUM(id4[1])
 		    && ISALNUM(id4[2]) && ISALNUM(id4[3]);
@@ -325,7 +405,7 @@ enumError wd_read_raw
 	    const int ret = disc->read_func(disc->read_data,off1,HD_SECTOR_SIZE,hd_buf);
 	    if (ret)
 	    {
-		wbfs_error("error reading disc (wd_read_raw)");
+		WD_ERROR(ERR_READ_FAILED,"Error while reading disc%s",disc->error_term);
 		return ERR_READ_FAILED;
 	    }
 
@@ -352,7 +432,7 @@ enumError wd_read_raw
 	    const int ret = disc->read_func(disc->read_data,offset4,copy_len,dest);
 	    if (ret)
 	    {
-		wbfs_error("error reading disc (wd_read_raw)");
+		WD_ERROR(ERR_READ_FAILED,"Error while reading disc%s",disc->error_term);
 		return ERR_READ_FAILED;
 	    }
 
@@ -370,7 +450,7 @@ enumError wd_read_raw
 	    const int ret = disc->read_func(disc->read_data,offset4,HD_SECTOR_SIZE,hd_buf);
 	    if (ret)
 	    {
-		wbfs_error("error reading disc (wd_read_raw)");
+		WD_ERROR(ERR_READ_FAILED,"Error while reading disc%s",disc->error_term);
 		return ERR_READ_FAILED;
 	    }
 
@@ -637,12 +717,13 @@ wd_disc_t * wd_open_disc
 	wd_read_func_t	read_func,	// read function, always valid
 	void		* read_data,	// data pointer for read function
 	u64		file_size,	// size of file, unknown if 0
+	ccp		file_name,	// used for error messages if not NULL
 	enumError	* error_code	// store error code if not NULL
 )
 {
     DASSERT(read_func);
-    TRACE("wd_open_disc(%p,%p,%llx=%llu,%p)\n",
-		read_func, read_data, file_size, file_size, error_code );
+    TRACE("wd_open_disc(%p,%p,%llx=%llu,%s,%p)\n",
+		read_func, read_data, file_size, file_size, file_name, error_code );
 
     //----- setup
 
@@ -655,13 +736,32 @@ wd_disc_t * wd_open_disc
     disc->read_data = read_data;
     disc->file_size = file_size;
     disc->open_count = 1;
+
+
+    //----- calculate termination string for error messages
+
+    if ( file_name && *file_name )
+    {
+	const size_t max_len = sizeof(disc->error_term) - 5;
+	const size_t flen = strlen(file_name);
+	if ( flen > max_len )
+	    snprintf(disc->error_term,sizeof(disc->error_term),": ...%s\n",
+			file_name + flen - max_len + 5 );
+	else
+	    snprintf(disc->error_term,sizeof(disc->error_term),": %s\n",file_name);
+    }
+    else
+	snprintf(disc->error_term,sizeof(disc->error_term),".\n");
     
 
     //----- read disc header
 
     enumError err = wd_read_raw(disc,0,&disc->dhead,sizeof(disc->dhead),WD_USAGE_DISC);
     if ( !err && wbfs_ntohl(disc->dhead.magic) != WII_MAGIC )
+    {
+	WD_ERROR(ERR_WDISC_NOT_FOUND,"MAGIC not found%s",disc->error_term);
 	err = ERR_WDISC_NOT_FOUND;
+    }
     memcpy(disc->id6,&disc->dhead,6);
 
 
@@ -756,6 +856,7 @@ wd_disc_t * wd_open_disc
 
     if (err)
     {
+	WD_ERROR(ERR_WDISC_NOT_FOUND,"Can't open wii disc%s",disc->error_term);
 	wd_close_disc(disc);
 	disc = 0;
     }
@@ -931,8 +1032,10 @@ enumError wd_load_part
     {
 	TRACE(" - load now\n");
 
+	// assume loaded, but invalid
 	part->is_loaded = true;
 	part->is_valid  = false;
+	part->disc->invalid_part++;
 
 	wbfs_iofree(part->tmd);  part->tmd  = 0;
 	wbfs_iofree(part->cert); part->cert = 0;
@@ -944,7 +1047,12 @@ enumError wd_load_part
 
 	enumError err = wd_read_part_raw(part,0,&part->ph,sizeof(part->ph),true);
 	if (err)
-	    return ERR_READ_FAILED;
+	{
+	    WD_ERROR(ERR_WDISC_INVALID,"Can't read TICKET of partition '%s'%s",
+				wd_print_part_name(0,0,part->part_type,WD_PNAME_NUM_INFO),
+				disc->error_term );
+	    return ERR_WDISC_INVALID;
+	}
 
 	ntoh_part_header(&part->ph,&part->ph);
 	wd_decrypt_title_key(&ph->ticket,part->key);
@@ -966,21 +1074,37 @@ enumError wd_load_part
 	{
 	    u64 off = (u64)( part->part_off4 + ph->data_off4 + ph->data_size4 ) << 2;
 	    if ( off > disc->file_size )
-		return ERR_READ_FAILED;
+	    {
+		WD_ERROR(ERR_WDISC_INVALID,"Position of partition '%s' exceeds file size%s",
+				wd_print_part_name(0,0,part->part_type,WD_PNAME_NUM_INFO),
+				disc->error_term );
+		return ERR_WDISC_INVALID;
+	    }
 	}
 
 
 	//----- load tmd
 
 	if ( ph->tmd_size < sizeof(wd_tmd_t) )
-	    return ERR_READ_FAILED;
+	{
+	    WD_ERROR(ERR_WDISC_INVALID,"Invalid header in partition '%s'%s",
+				wd_print_part_name(0,0,part->part_type,WD_PNAME_NUM_INFO),
+				disc->error_term );
+	    return ERR_WDISC_INVALID;
+	}
+
 	wd_tmd_t * tmd = wbfs_ioalloc(ph->tmd_size);
 	if (!tmd)
 	    OUT_OF_MEMORY;
 	part->tmd = tmd;
 	err = wd_read_part_raw( part, ph->tmd_off4, tmd, ph->tmd_size, true );
 	if (err)
-	    return ERR_READ_FAILED;
+	{
+	    WD_ERROR(ERR_WDISC_INVALID,"Can't read TMP of partition '%s'%s",
+				wd_print_part_name(0,0,part->part_type,WD_PNAME_NUM_INFO),
+				disc->error_term );
+	    return ERR_WDISC_INVALID;
+	}
 
 
 	//----- check encryption
@@ -994,7 +1118,12 @@ enumError wd_load_part
 	wd_boot_t * boot = &part->boot;
 	err = wd_read_part(part,WII_BOOT_OFF,boot,sizeof(*boot),true);
 	if (err)
-	    return ERR_READ_FAILED;
+	{
+	    WD_ERROR(ERR_WDISC_INVALID,"Can't read BOOT.BIN of partition '%s'%s",
+				wd_print_part_name(0,0,part->part_type,WD_PNAME_NUM_INFO),
+				disc->error_term );
+	    return ERR_WDISC_INVALID;
+	}
 	ntoh_boot(boot,boot);
 
 
@@ -1005,7 +1134,12 @@ enumError wd_load_part
 	    
 	    err = wd_read_part(part,boot->dol_off4,dol,DOL_HEADER_SIZE,true);
 	    if (err)
-		return ERR_READ_FAILED;
+	    {
+		WD_ERROR(ERR_WDISC_INVALID,"Can't read MAIN.DOL of partition '%s'%s",
+				    wd_print_part_name(0,0,part->part_type,WD_PNAME_NUM_INFO),
+				    disc->error_term );
+		return ERR_WDISC_INVALID;
+	    }
 	    ntoh_dol_header(dol,dol);
 
 	    // iterate through all segments
@@ -1031,7 +1165,12 @@ enumError wd_load_part
 	    u8 * apl_header = (u8*) disc->temp_buf;
 	    err = wd_read_part(part,WII_APL_OFF>>2,apl_header,0x20,false);
 	    if (err)
-		return ERR_READ_FAILED;
+	    {
+		WD_ERROR(ERR_WDISC_INVALID,"Can't read APPLOADER of partition '%s'%s",
+				    wd_print_part_name(0,0,part->part_type,WD_PNAME_NUM_INFO),
+				    disc->error_term );
+		return ERR_WDISC_INVALID;
+	    }
 	    part->apl_size = 0x20 + be32(apl_header+0x14) + be32(apl_header+0x18);
 
 	    wd_mark_part(part,WII_APL_OFF>>2,part->apl_size);
@@ -1055,7 +1194,12 @@ enumError wd_load_part
 	    part->fst = fst;
 	    err = wd_read_part(part,boot->fst_off4,fst,fst_size,true);
 	    if (err)
-		return ERR_READ_FAILED;
+	    {
+		WD_ERROR(ERR_WDISC_INVALID,"Can't read FST of partition '%s'%s",
+				    wd_print_part_name(0,0,part->part_type,WD_PNAME_NUM_INFO),
+				    disc->error_term );
+		return ERR_WDISC_INVALID;
+	    }
 
 	    // mark used blocks
 
@@ -1091,7 +1235,6 @@ enumError wd_load_part
 	wd_calc_fst_statistics(disc,false);
     }
 
-
     if (part->is_valid)
     {
 	if ( ph->cert_off4 )
@@ -1122,7 +1265,7 @@ enumError wd_load_part
 	}
     }
 
-    return part->is_valid ? ERR_WARNING : ERR_OK;
+    return part->is_valid ? ERR_OK : ERR_WDISC_INVALID;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -1151,7 +1294,7 @@ enumError wd_load_all_part
 
 ///////////////////////////////////////////////////////////////////////////////
 
-void wd_calc_fst_statistics
+enumError wd_calc_fst_statistics
 (
 	wd_disc_t	* disc,		// valid disc pointer
 	bool		sum_all		// false: summarize only enabled partitions
@@ -1159,6 +1302,7 @@ void wd_calc_fst_statistics
 {
     DASSERT(disc);
 
+    u32 invalid		= 0;
     u32 n		= 0;
     u32 max_off4	= 0;
     u32 max_size	= 0;
@@ -1168,6 +1312,7 @@ void wd_calc_fst_statistics
     wd_part_t *part, *part_end = disc->part + disc->n_part;
     for ( part = disc->part; part < part_end; part++ )
     {
+	invalid += !part->is_valid;
 	if ( sum_all || part->is_valid && part->is_enabled )
 	{
 	    n		+= part->fst_n;
@@ -1181,11 +1326,14 @@ void wd_calc_fst_statistics
 	}
     }
 
+    disc->invalid_part	 = invalid;
     disc->fst_n		 = n;
     disc->fst_max_off4	 = max_off4;
     disc->fst_max_size	 = max_size;
     disc->fst_dir_count	 = dir_count;
     disc->fst_file_count = file_count;
+
+    return invalid ? ERR_WDISC_INVALID : ERR_OK;
 }
 
 //
@@ -1259,7 +1407,7 @@ wd_select_t wd_set_select
 	wd_select_t	set_mask	// bits to set
 )
 {
-    select |= set_mask & (WD_SELI_WHOLE_PART|WD_SELI_WHOLE_DISC);
+    select |= set_mask & (WD_SEL_WHOLE_PART|WD_SEL_WHOLE_DISC);
 
     wd_select_t temp = set_mask & WD_SEL_PART__MASK;
     if (temp)
@@ -1280,7 +1428,7 @@ wd_select_t wd_clear_select
 	wd_select_t	clear_mask	// bits to clear
 )
 {
-    select &= ~( clear_mask & (WD_SELI_WHOLE_PART|WD_SELI_WHOLE_DISC) );
+    select &= ~( clear_mask & (WD_SEL_WHOLE_PART|WD_SEL_WHOLE_DISC) );
 
     wd_select_t temp = clear_mask & WD_SEL_PART__MASK;
     if (temp)
@@ -1334,7 +1482,7 @@ bool wd_patch_ptab
     }
  
     memset(data,0,WII_MAX_PTAB_SIZE);
-    wd_ptab_t * ptab = data;
+    wd_ptab_t       * ptab  = data;
     wd_ptab_info_t  * info  = ptab->info;
     wd_ptab_entry_t * entry = ptab->entry;
     u32 off4 = (ccp)entry - (ccp)info + WII_PTAB_REF_OFF >> 2;
@@ -1419,6 +1567,8 @@ u8 * wd_filter_usage_table
 	bool		whole_disc	// true: mark all sectors
 )
 {
+    TRACE("wd_filter_usage_table(,,%d,%d)\n",whole_part,whole_disc);
+
     wd_calc_usage_table(disc);
 
     if (!usage_table)
@@ -1491,6 +1641,8 @@ u8 * wd_filter_usage_table_sel
 	wd_select_t	select		// partition selector bit field
 )
 {
+    TRACE("wd_filter_usage_table_sel(,,%llx)\n",(u64)select);
+
     wd_select(disc,select);
 
     const bool whole_disc = ( select & WD_SEL_WHOLE_DISC ) != 0;
@@ -1588,6 +1740,105 @@ u32 wd_count_used_blocks
 ///////////////			  file iteration		///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
+static int wd_iterate_fst_helper
+(
+    wd_iterator_t	* it,		// valid pointer to iterator data
+    const wd_fst_item_t	*fst_base,	// NULL or pointer to FST data
+    wd_file_func_t	func		// call back function
+)
+{
+    DASSERT(it);
+    DASSERT(func);
+
+    if (!fst_base)
+	return 0;
+
+
+    //----- setup stack
+
+    const int MAX_DEPTH = 25; // maximal supported directory depth
+    typedef struct stack_t
+    {
+	const wd_fst_item_t * dir_end;
+	char * path;
+    } stack_t;
+    stack_t stack_buf[MAX_DEPTH];
+    stack_t *stack = stack_buf;
+    stack_t *stack_max = stack_buf + MAX_DEPTH;
+
+
+    //----- setup path
+
+    const wd_fst_item_t *fst = fst_base;
+    const int n_fst = ntohl(fst->size);
+    char *path_end = it->path + sizeof(it->path) - MAX_DEPTH;
+    it->icm  = WD_ICM_DIRECTORY;
+    it->off4 = 0;
+    it->size = n_fst-1;
+    DASSERT(!it->data);
+    strcpy(it->fst_name,"files/");
+    int stat = func(it);
+    if (stat)
+	return stat;
+
+
+    //----- main loop
+
+    const wd_fst_item_t *fst_end = fst + n_fst;
+    const wd_fst_item_t *dir_end = fst_end;
+    char * path_ptr = it->fst_name + 6;
+
+    for ( fst++; fst < fst_end && !stat; fst++ )
+    {
+	while ( fst >= dir_end && stack > stack_buf )
+	{
+	    // leave a directory
+	    stack--;
+	    dir_end = stack->dir_end;
+	    path_ptr = stack->path;
+	}
+
+	const char * fname = (char*)fst_end
+			   + (wbfs_ntohl(fst->name_off)&0xffffff);
+	char * path_dest = path_ptr;
+	while ( path_dest < path_end && *fname )
+	    *path_dest++ = *fname++;
+
+	if (fst->is_dir)
+	{
+	    *path_dest++ = '/';
+	    *path_dest = 0;
+
+	    ASSERT(stack<stack_max);
+	    if ( stack < stack_max )
+	    {
+		stack->dir_end = dir_end;
+		stack->path = path_ptr;
+		stack++;
+		dir_end = fst_base + ntohl(fst->size);
+		path_ptr = path_dest;
+	    }
+
+	    it->icm  = WD_ICM_DIRECTORY;
+	    it->off4 = 0;
+	    it->size = dir_end-fst-1;
+	    stat = func(it);
+	}
+	else
+	{
+	    *path_dest = 0;
+	    it->icm  = WD_ICM_FILE;
+	    it->off4 = wbfs_ntohl(fst->offset4);
+	    it->size = wbfs_ntohl(fst->size);
+	    stat = func(it);
+	}
+    }
+
+    return stat;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
 int wd_iterate_files
 (
 	wd_disc_t	* disc,		// valid pointer to a disc partition
@@ -1638,7 +1889,6 @@ int wd_iterate_files
 	    continue;
 
 	it.part = part;
-
 
 	switch(prefix_mode)
 	{
@@ -1808,88 +2058,7 @@ int wd_iterate_files
 
 	//----- FST files
 
-	const wd_fst_item_t *fst = part->fst;
-
-	if (fst)
-	{
-	    //----- setup stack
-
-	    const int MAX_DEPTH = 25; // maximal supported directory depth
-	    typedef struct stack_t
-	    {
-		const wd_fst_item_t * dir_end;
-		char * path;
-	    } stack_t;
-	    stack_t stack_buf[MAX_DEPTH];
-	    stack_t *stack = stack_buf;
-	    stack_t *stack_max = stack_buf + MAX_DEPTH;
-
-
-	    //----- setup path
-
-	    char *path_end = it.path + sizeof(it.path) - MAX_DEPTH;
-	    it.icm  = WD_ICM_DIRECTORY;
-	    it.off4 = 0;
-	    it.size = part->fst_n-1;
-	    DASSERT(!it.data);
-	    strcpy(it.fst_name,"files/");
-	    stat = func(&it);
-	    if (stat)
-		break;
-
-	
-	    //----- main loop
-
-	    const wd_fst_item_t *fst_end = fst + part->fst_n;
-	    const wd_fst_item_t *dir_end = fst_end;
-	    char * path_ptr = it.fst_name + 6;
-
-	    for ( fst++; fst < fst_end && !stat; fst++ )
-	    {
-		while ( fst >= dir_end && stack > stack_buf )
-		{
-		    // leave a directory
-		    stack--;
-		    dir_end = stack->dir_end;
-		    path_ptr = stack->path;
-		}
-
-		const char * fname = (char*)fst_end
-				   + (wbfs_ntohl(fst->name_off)&0xffffff);
-		char * path_dest = path_ptr;
-		while ( path_dest < path_end && *fname )
-		    *path_dest++ = *fname++;
-
-		if (fst->is_dir)
-		{
-		    *path_dest++ = '/';
-		    *path_dest = 0;
-
-		    ASSERT(stack<stack_max);
-		    if ( stack < stack_max )
-		    {
-			stack->dir_end = dir_end;
-			stack->path = path_ptr;
-			stack++;
-			dir_end = part->fst + ntohl(fst->size);
-			path_ptr = path_dest;
-		    }
-
-		    it.icm  = WD_ICM_DIRECTORY;
-		    it.off4 = 0;
-		    it.size = dir_end-fst-1;
-		    stat = func(&it);
-		}
-		else
-		{
-		    *path_dest = 0;
-		    it.icm  = WD_ICM_FILE;
-		    it.off4 = wbfs_ntohl(fst->offset4);
-		    it.size = wbfs_ntohl(fst->size);
-		    stat = func(&it);
-		}
-	    }
-	}
+	stat = wd_iterate_fst_helper(&it,part->fst,func);
 	if (stat)
 	    break;
 
@@ -1905,6 +2074,26 @@ int wd_iterate_files
     }
 
     return stat;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+int wd_iterate_fst_files
+(
+    const wd_fst_item_t	*fst_base,	// NULL or pointer to FST data
+    wd_file_func_t	func,		// call back function
+    void		* param		// user defined parameter
+)
+{
+    ASSERT(fst_base);
+    ASSERT(func);
+
+    wd_iterator_t it;
+    memset(&it,0,sizeof(it));
+    it.param = param;
+    it.fst_name = it.path;
+
+    return wd_iterate_fst_helper(&it,fst_base,func);
 }
 
 //
@@ -2039,7 +2228,6 @@ void wd_print_fst_item
 {
     DASSERT(pf);
     DASSERT(pf->f);
-    DASSERT(part);
 
     char buf[200];
     ccp sep = pf->fw_offset || pf->fw_size_hex || pf->fw_size_dec ? " " : "";
@@ -2047,7 +2235,7 @@ void wd_print_fst_item
     switch (icm)
     {
 	case WD_ICM_OPEN_PART:
-	    if ( pf->mode & WD_PFST_PART )
+	    if ( pf->mode & WD_PFST_PART && part )
 	    {
 		int indent = pf->indent;
 		if (pf->fw_offset)

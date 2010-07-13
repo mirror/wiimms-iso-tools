@@ -729,7 +729,7 @@ typedef enum ShowMode
 
 } ShowMode;
 
-extern ShowMode show_mode;
+extern ShowMode opt_show_mode;
 ShowMode ScanShowMode ( ccp arg );
 int ScanOptShow ( ccp arg );
 

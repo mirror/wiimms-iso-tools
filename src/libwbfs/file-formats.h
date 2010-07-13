@@ -594,16 +594,6 @@ __attribute__ ((packed)) wbfs_disc_info_t;
 
 unsigned char * wbfs_sha1_fake ( const unsigned char *d, size_t n, unsigned char *md );
 
-void wbfs_print_error
-(
-	ccp func,
-	ccp file,
-	uint line,
-	int level, // 0=warn, 1:error, 2:fatal
-	ccp format,
-	...
-);
-
 //
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////			    E N D			///////////////

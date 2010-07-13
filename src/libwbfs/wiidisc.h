@@ -244,46 +244,47 @@ typedef struct wd_part_t
 {
     //----- base infos
 
-    int		index;			// zero based index within wd_disc_t
-    wd_usage_t	usage_id;		// marker for usage_table
-    int		ptab_index;		// zero based index of owning partition table
-    int		ptab_part_index;	// zero based index within owning partition table
-    u32		part_type;		// partition type
+    int			index;		// zero based index within wd_disc_t
+    wd_usage_t		usage_id;	// marker for usage_table
+    int			ptab_index;	// zero based index of owning partition table
+    int			ptab_part_index;// zero based index within owning partition table
+    u32			part_type;	// partition type
 
-    u32		part_off4;		// offset/4 of partition relative to disc start
-    u64		part_size;		// total size of partition
+    u32			part_off4;	// offset/4 of partition relative to disc start
+    u64			part_size;	// total size of partition
 
-    struct wd_disc_t * disc;		// pointer to disc
-    wd_patch_t	patch;			// patching data
+    struct wd_disc_t	* disc;		// pointer to disc
+    wd_patch_t		patch;		// patching data
 
     //----- status
 
-    bool	is_loaded;		// true if this partition info was loaded
-    bool	is_valid;		// true if this partition is valid
-    bool	is_enabled;		// true if this partition is enabled
-    bool	is_encrypted;		// true if this partition is encrypted
+    bool		is_loaded;	// true if this partition info was loaded
+    bool		is_valid;	// true if this partition is valid
+    bool		is_enabled;	// true if this partition is enabled
+    bool		is_encrypted;	// true if this partition is encrypted
 
 
     //----- partition data, only valid if 'is_valid' is true
     
-    wd_part_header_t ph;		// partition header (incl. ticket), host endian
-    wd_tmd_t	* tmd;			// NULL or pointer to tmd, size = ph.tmd_size
-    u8		* cert;			// NULL or pointer to cert, size = ph.cert_size
-    u8		* h3;			// NULL or pointer to h3, size = WII_H3_SIZE
+    wd_part_header_t	ph;		// partition header (incl. ticket), host endian
+    wd_tmd_t		* tmd;		// NULL or pointer to tmd, size = ph.tmd_size
+    u8			* cert;		// NULL or pointer to cert, size = ph.cert_size
+    u8			* h3;		// NULL or pointer to h3, size = WII_H3_SIZE
 
-    u8		key[WII_KEY_SIZE];	// partition key, needed to build aes key
-    u32		data_off4;		// offset/4 of partition data relative to disc start
+    u8			key[WII_KEY_SIZE];
+					// partition key, needed to build aes key
+    u32			data_off4;	// offset/4 of partition data relative to disc start
 
-    wd_boot_t	boot;			// copy of boot.bin, host endian
-    u32		dol_size;		// size of main.dol
-    u32		apl_size;		// size of apploader.img
+    wd_boot_t		boot;		// copy of boot.bin, host endian
+    u32			dol_size;	// size of main.dol
+    u32			apl_size;	// size of apploader.img
 
-    wd_fst_item_t * fst;		// pointer to fst data
-    u32		fst_n;			// number or elements in fst
-    u32		fst_max_off4;		// informative: maximal offset4 value of all files
-    u32		fst_max_size;		// informative: maximal size value of all files
-    u32		fst_dir_count;		// informative: number or directories in fst
-    u32		fst_file_count;		// informative: number or real files in fst
+    wd_fst_item_t	* fst;		// pointer to fst data
+    u32			fst_n;		// number or elements in fst
+    u32			fst_max_off4;	// informative: maximal offset4 value of all files
+    u32			fst_max_size;	// informative: maximal size value of all files
+    u32			fst_dir_count;	// informative: number or directories in fst
+    u32			fst_file_count;	// informative: number or real files in fst
 
 } wd_part_t;
 
@@ -296,10 +297,14 @@ typedef struct wd_disc_t
 {
     //----- open parameters
 
-    wd_read_func_t read_func;		// read function, always valid
-    void	*read_data;		// data pointer for read function
-    u64		file_size;		// size of file, 0=unknown
-    int		open_count;		// open counter
+    wd_read_func_t	read_func;	// read function, always valid
+    void		* read_data;	// data pointer for read function
+    u64			file_size;	// size of file, 0=unknown
+    int			open_count;	// open counter
+
+    //----- errror support
+
+    char		error_term[200]; // termination string for error messages
 
     //----- raw data
 
@@ -318,37 +323,40 @@ typedef struct wd_disc_t
 
     //----- partitions
 
-    int		n_ptab;			// number of valid partition tables
-    int		n_part;			// number of partitions
-    wd_part_t * part;			// partition data
-    u32		fst_n;			// informative: number or elements in fst
-    u32		fst_max_off4;		// informative: maximal offset4 value of all files
-    u32		fst_max_size;		// informative: maximal size value of all files
-    u32		fst_dir_count;		// informative: number or directories in fst
-    u32		fst_file_count;		// informative: number or real files in fst
-    bool	patch_ptab_recommended;	// informative: patch ptab is recommended
+    int			n_ptab;		// number of valid partition tables
+    int			n_part;		// number of partitions
+    wd_part_t		* part;		// partition data
+    u32			invalid_part;	// number of invalid partitions
+    u32			fst_n;		// informative: number or elements in fst
+    u32			fst_max_off4;	// informative: maximal offset4 value of all files
+    u32			fst_max_size;	// informative: maximal size value of all files
+    u32			fst_dir_count;	// informative: number or directories in fst
+    u32			fst_file_count;	// informative: number or real files in fst
+    bool		patch_ptab_recommended;
+					// informative: patch ptab is recommended
 
     //----- usage table
 
-    u8		usage_table[WII_MAX_SECTORS];
+    u8			usage_table[WII_MAX_SECTORS];
 					// usage table of disc
-    int		usage_max;		// ( max used index of 'usage_table' ) + 1
+    int			usage_max;	// ( max used index of 'usage_table' ) + 1
 
     //----- block cache
 
-    u8		block_buf[WII_SECTOR_DATA_SIZE];
+    u8			block_buf[WII_SECTOR_DATA_SIZE];
 					// cache for partition blocks
-    u32		block_num;		// block number of last loaded 'block_buf'
-    wd_part_t * block_part;		// partition of last loaded 'block_buf'
+    u32			block_num;	// block number of last loaded 'block_buf'
+    wd_part_t		* block_part;	// partition of last loaded 'block_buf'
 
     //----- akey cache
 
-    aes_key_t	akey;			// aes key for 'akey_part'
-    wd_part_t * akey_part;		// partition of 'akey'
+    aes_key_t		akey;		// aes key for 'akey_part'
+    wd_part_t		* akey_part;	// partition of 'akey'
 
     //----- temp buffer
 
-    u8	    temp_buf[WII_SECTOR_SIZE];	// temp buffer
+    u8			temp_buf[WII_SECTOR_SIZE];
+					// temp buffer for reading operations
 
 } wd_disc_t;
 
@@ -412,6 +420,18 @@ typedef struct wd_print_fst_t
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////			  interface			///////////////
 ///////////////////////////////////////////////////////////////////////////////
+
+enumError wd_print_error
+(
+    ccp		func,		// calling function, use macro __FUNCTION__
+    ccp		file,		// source file, use macro __FILE__
+    uint	line,		// line number of source file, use macro __LINE__
+    enumError	err,		// error code
+    ccp		format,		// NULL or format string for fprintf() function.
+    ...				// parameters for 'format'
+);
+
+///////////////////////////////////////////////////////////////////////////////
 // common key
 
 const u8 * wd_get_common_key();
@@ -450,7 +470,8 @@ const char * wd_get_part_name
 char * wd_print_part_name
 (
 	char		* buf,		// result buffer
-	size_t		buf_size,	// size of 'buf'
+					// If NULL, a local circulary static buffer is used
+	size_t		buf_size,	// size of 'buf', ignored if buf==NULL
 	u32		ptype,		// partition type
 	wd_pname_mode_t	mode		// print mode
 );
@@ -548,6 +569,7 @@ wd_disc_t * wd_open_disc
 	wd_read_func_t	read_func,	// read function, always valid
 	void		* read_data,	// data pointer for read function
 	u64		file_size,	// size of file, unknown if 0
+	ccp		file_name,	// used for error messages if not NULL
 	enumError	* error_code	// store error code if not NULL
 );
 
@@ -634,7 +656,7 @@ enumError wd_load_all_part
 
 //-----------------------------------------------------------------------------
 
-void wd_calc_fst_statistics
+enumError wd_calc_fst_statistics
 (
 	wd_disc_t	* disc,		// valid disc pointer
 	bool		sum_all		// false: summarize only enabled partitions
@@ -751,10 +773,19 @@ u32 wd_count_used_blocks
 
 int wd_iterate_files
 (
-	wd_disc_t	* disc,		// valid pointer to a disc partition
-	wd_file_func_t	func,		// call back function
-	void		* param,	// user defined parameter
-	wd_ipm_t	prefix_mode	// prefix mode
+    wd_disc_t		* disc,		// valid pointer to a disc partition
+    wd_file_func_t	func,		// call back function
+    void		* param,	// user defined parameter
+    wd_ipm_t		prefix_mode	// prefix mode
+);
+
+//-----------------------------------------------------------------------------
+
+int wd_iterate_fst_files
+(
+    const wd_fst_item_t	*fst_base,	// NULL or pointer to FST data
+    wd_file_func_t	func,		// call back function
+    void		* param		// user defined parameter
 );
 
 ///////////////////////////////////////////////////////////////////////////////
