@@ -144,8 +144,8 @@ are listed in alphabetic order:
             - INODE-CNT: The inodes with the largest equal-inodes-count.
             - INODE-1ST: The first inodes found if not already printed.
         - DISCS:   Result of searching discs in the WBFS management area.
-        - CALC #:  Example calculation of the INIT function.
-        - OLD #:   Example calculation with the old buggy algorithm.
+        - CALC #:  Example calculation of the INIT function. (see option --long)
+        - OLD #:   Example calculation with the old buggy algorithm. (see option --long)
 
     WBFS magic:
         "ok" if a WBFS magic was found.
@@ -1191,10 +1191,6 @@ option --auto is set automatically.
 *******************************************************************************
 
 @@MODULE(opt-sort.txt)@@
-
--------------------------------------------------------------------------------
-
-@@MODULE(opt-psel.txt)@@
 
 
 *******************************************************************************

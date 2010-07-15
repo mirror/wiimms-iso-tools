@@ -72,6 +72,7 @@ ShowMode opt_show_mode		= SHOW__DEFAULT;
 RepairMode repair_mode		= REPAIR_NONE;
 char escape_char		= '%';
 enumOFT output_file_type	= OFT_UNKNOWN;
+int opt_truncate		= 0;
 option_t used_options		= 0;
 option_t env_options		= 0;
 int opt_split			= 0;

@@ -2106,7 +2106,7 @@ int AnalyzeWBFS ( AWData_t * awd, File_t * f )
     //----- finish operation
 
  #ifdef DEBUG
-    PrintAnalyzeWBFS(awd,TRACE_FILE,0);
+    PrintAnalyzeWBFS(TRACE_FILE,0,awd,2);
  #endif
 
     f->disable_errors = disable_errors;
@@ -2116,12 +2116,24 @@ int AnalyzeWBFS ( AWData_t * awd, File_t * f )
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-int PrintAnalyzeWBFS ( AWData_t * awd, FILE * out, int indent )
+int PrintAnalyzeWBFS
+(
+    FILE		* out,		// valid output stream
+    int			indent,		// indent of output
+    AWData_t		* awd,		// valid pointer
+    int			print_calc	// 0: suppress calculated values
+					// 1: print calculated values if other values available
+					// 2: print calculated values
+)
 {
-    ASSERT(awd);
+    DASSERT(out);
+    DASSERT(awd);
     
     if ( !out || !awd->n_record )
 	return 0;
+    if ( print_calc < 2 && ( awd->rec->status == AW_CALC || awd->rec->status == AW_OLD_CALC ))
+	return 0;
+
     indent = NormalizeIndent(indent);
 
     char buf[30];
@@ -2140,11 +2152,12 @@ int PrintAnalyzeWBFS ( AWData_t * awd, FILE * out, int indent )
     for ( i = 0; i < awd->n_record; i++ )
     {
 	AWRecord_t * ar = awd->rec + i;
-
+	const bool is_calc =  ar->status == AW_CALC || ar->status == AW_OLD_CALC;
+	if ( !print_calc && is_calc )
+	    continue;
+	
 	ccp info = ar->info;
-	if ( i > 0
-	    && ar->status == ar[-1].status
-	    && ( ar->status == AW_CALC || ar->status == AW_OLD_CALC ) )
+	if ( i > 0 && ar->status == ar[-1].status && is_calc )
 	{
 	    snprintf(buf,sizeof(buf),
 			" \" but sector-size=%u",ar->hd_sector_size);
@@ -3629,9 +3642,7 @@ enumError ExtractWDisc ( WBFS_t * w, SuperFile_t * sf )
 	return AddWDisc(sf->wbfs,w->sf,part_selector);
     }
 
-    sf->file_size = sf->enable_trunc
-			? 0llu
-			: (off_t)WII_SECTORS_SINGLE_LAYER *WII_SECTOR_SIZE;
+    SetMinSizeSF(sf,(off_t)WII_SECTORS_SINGLE_LAYER *WII_SECTOR_SIZE);
 
     // this is needed for detailed error messages
     const enumError saved_max_error = max_error;
@@ -3648,14 +3659,6 @@ enumError ExtractWDisc ( WBFS_t * w, SuperFile_t * sf )
     int ex_stat = wbfs_extract_disc( w->disc,
 	    sf->enable_fast ? WrapperWriteSF : WrapperWriteSparseSF,
 	    sf, sf->show_progress ? PrintProgressSF : 0 );
-
-    if ( sf->iod.oft == OFT_PLAIN && !ex_stat && sf->f.max_off < sf->file_size )
-    {
-	err = SetSizeF(&sf->f,sf->file_size);
-	TRACE("  OFF: max_off=%llx - file_size=%llx = %llx\n",
-	    (u64)sf->f.max_off, (u64)sf->file_size, (u64)sf->f.max_off - (u64)sf->file_size );
-	ASSERT( err || sf->f.max_off == sf->file_size );
-    }   
 
     if (!err)
     {

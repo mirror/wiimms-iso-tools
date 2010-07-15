@@ -366,7 +366,7 @@ typedef struct WiiFstPart_t
 {
 	//----- wd interface
 
-	wd_part_t	* part;			// NULL or partiton pointer
+	wd_part_t	* part;			// NULL or partition pointer
 
 	//----- partition info
 
@@ -506,7 +506,7 @@ u64 GenPartFST
 (
     SuperFile_t		* sf,		// valid file pointer
     WiiFstPart_t	* part,		// valid partition pointer
-    ccp			path,		// path of partiton directory
+    ccp			path,		// path of partition directory
     u64			good_off,	// standard partition offset
     u64			min_off		// minimal possible partition offset
 );

@@ -90,7 +90,7 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
     },
 
     {	OPT_PSEL, 0, "psel",
-	"p-type",
+	"list",
 	"This option set the scrubbing mode and defines, which disc partitions"
 	" are handled. The parameter is a comma separated list of keywords."
 	" The keywords are divided in three functional groups:\n"
@@ -102,7 +102,7 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 	"The second group selects partition tables. The names PTAB0..PTAB3"
 	" (and T0..T3) are allowed. The prefix '-' means: Disable all"
 	" partitions of that partition table.\n"
-	"The third group are additinal flags: 'WHOLE' means that the whole"
+	"The third group are additional flags: 'WHOLE' means that the whole"
 	" partition data is used. 'RAW' means that the whole disc is selected.\n"
 	"The special keyword 'ALL' resets all settings to the default."
     },
@@ -202,6 +202,11 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 	" The default unit is 'G' (GiB)."
     },
 
+    {	OPT_TRUNC, 0, "trunc",
+	0,
+	"Truncate PLAIN ISO images to the needed size while creating."
+    },
+
     {	OPT_CHUNK_MODE, 0, "chunk-mode",
 	"mode",
 	"Defines an operation mode for --chunk-size and --max-chunks. Allowed"
@@ -210,7 +215,7 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 	" with a power of 2 or 'ISO' for ISO images (more restrictive as"
 	" 'POW2', best for USB loaders). The case of the keyword is ignored."
 	" The default key is 'ISO'.\n"
-	"--chm is a short cut for --chunk-mode."
+	"--chm is a shortcut for --chunk-mode."
     },
 
     {	OPT_CHUNK_SIZE, 0, "chunk-size",
@@ -229,7 +234,7 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 	" changing.\n"
 	"If the input file size is not known (e.g. reading from pipe), its"
 	" size is assumed as 12 GiB.\n"
-	" --chz is a short cut for --chunk-size."
+	" --chz is a shortcut for --chunk-size."
     },
 
     {	OPT_MAX_CHUNKS, 0, "max-chunks",
@@ -238,7 +243,7 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 	" default value is 8192 for '--chunk-mode ISO' and 32760 (maximal"
 	" value) for all other modes. If this value is set than the automatic"
 	" calculation  of --chunk-size will be modified too.\n"
-	" --mch is a short cut for --max-chunks."
+	" --mch is a shortcut for --max-chunks."
     },
 
     {	OPT_PRESERVE, 'p', "preserve",
@@ -377,7 +382,7 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 	"Limit the output to NUM messages."
     },
 
-    {0,0,0,0,0}, // OPT__N_SPECIFIC == 49
+    {0,0,0,0,0}, // OPT__N_SPECIFIC == 50
 
     //----- global options -----
 
@@ -475,7 +480,7 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 	" [2do] for tests only."
     },
 
-    {0,0,0,0,0} // OPT__N_TOTAL == 65
+    {0,0,0,0,0} // OPT__N_TOTAL == 66
 
 };
 
@@ -687,6 +692,7 @@ const struct option OptionLong[] =
 	{ "split",		0, 0, 'z' },
 	{ "split-size",		1, 0, 'Z' },
 	 { "splitsize",		1, 0, 'Z' },
+	{ "trunc",		0, 0, GO_TRUNC },
 	{ "chunk-mode",		1, 0, GO_CHUNK_MODE },
 	 { "chunkmode",		1, 0, GO_CHUNK_MODE },
 	 { "chm",		1, 0, GO_CHUNK_MODE },
@@ -802,19 +808,19 @@ const u8 OptionIndex[OPT_INDEX_SIZE] =
 	/*90*/	OPT_REGION,
 	/*91*/	OPT_IOS,
 	/*92*/	OPT_ENC,
-	/*93*/	OPT_CHUNK_MODE,
-	/*94*/	OPT_CHUNK_SIZE,
-	/*95*/	OPT_MAX_CHUNKS,
-	/*96*/	OPT_FST,
-	/*97*/	OPT_ITIME,
-	/*98*/	OPT_MTIME,
-	/*99*/	OPT_CTIME,
-	/*9a*/	OPT_ATIME,
-	/*9b*/	OPT_TIME,
-	/*9c*/	OPT_SHOW,
-	/*9d*/	OPT_SECTIONS,
-	/*9e*/	OPT_LIMIT,
-	/*9f*/	 0,
+	/*93*/	OPT_TRUNC,
+	/*94*/	OPT_CHUNK_MODE,
+	/*95*/	OPT_CHUNK_SIZE,
+	/*96*/	OPT_MAX_CHUNKS,
+	/*97*/	OPT_FST,
+	/*98*/	OPT_ITIME,
+	/*99*/	OPT_MTIME,
+	/*9a*/	OPT_CTIME,
+	/*9b*/	OPT_ATIME,
+	/*9c*/	OPT_TIME,
+	/*9d*/	OPT_SHOW,
+	/*9e*/	OPT_SECTIONS,
+	/*9f*/	OPT_LIMIT,
 	/*a0*/	 0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0,
 };
 
@@ -1488,6 +1494,7 @@ static const InfoOption_t * option_tab_cmd_COPY[] =
 	OptionInfo + OPT_REMOVE,
 	OptionInfo + OPT_SPLIT,
 	OptionInfo + OPT_SPLIT_SIZE,
+	OptionInfo + OPT_TRUNC,
 	OptionInfo + OPT_CHUNK_MODE,
 	OptionInfo + OPT_CHUNK_SIZE,
 	OptionInfo + OPT_MAX_CHUNKS,
@@ -1545,6 +1552,7 @@ static const InfoOption_t * option_tab_cmd_SCRUB[] =
 
 	OptionInfo + OPT_SPLIT,
 	OptionInfo + OPT_SPLIT_SIZE,
+	OptionInfo + OPT_TRUNC,
 	OptionInfo + OPT_CHUNK_MODE,
 	OptionInfo + OPT_CHUNK_SIZE,
 	OptionInfo + OPT_MAX_CHUNKS,
@@ -2041,7 +2049,7 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	"wit COPY source dest\n"
 	"wit COPY [-s path]... [-r path]... [source]... [-d|-D] dest",
 	"Copy, scrub, convert, split, encrypt and decrypt Wii ISO images.",
-	47,
+	48,
 	option_tab_cmd_COPY
     },
 
@@ -2053,7 +2061,7 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	"wit SCRUB source\n"
 	"wit SCRUB [-s path]... [-r path]... [source]...",
 	"Scrub, convert, split, encrypt and decrypt Wii ISO images.",
-	36,
+	37,
 	option_tab_cmd_SCRUB
     },
 

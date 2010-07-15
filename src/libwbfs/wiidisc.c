@@ -842,7 +842,7 @@ wd_disc_t * wd_open_disc
 				WII_PTAB_REF_OFF,
 				WII_MAX_PTAB_SIZE );
 	DASSERT(item);
-	snprintf(item->info,sizeof(item->info),"partiton tables");
+	snprintf(item->info,sizeof(item->info),"partition tables");
 	item->data = &disc->ptab;
 	wd_patch_ptab(disc,item->data,true);
     }
@@ -1344,8 +1344,8 @@ enumError wd_calc_fst_statistics
 bool wd_is_part_selected
 (
 	wd_select_t	select,		// partition selector bit field
-	u32		part_type,	// partiton type
-	u32		ptab_index	// index of partiton table
+	u32		part_type,	// partition type
+	u32		ptab_index	// index of partition table
 )
 {
     if ( select & WD_SEL_WHOLE_DISC )
@@ -1466,7 +1466,7 @@ bool wd_patch_ptab
     
     if (!force_patch)
     {
-	// test if any partitons is invalid or disabled
+	// test if any partitions is invalid or disabled
 	int ip;
 	for ( ip = 0; ip < disc->n_part; ip++ )
 	{

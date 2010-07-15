@@ -66,7 +66,7 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
     },
 
     {	OPT_PSEL, 0, "psel",
-	"p-type",
+	"list",
 	"This option set the scrubbing mode and defines, which disc partitions"
 	" are handled. The parameter is a comma separated list of keywords."
 	" The keywords are divided in three functional groups:\n"
@@ -78,7 +78,7 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 	"The second group selects partition tables. The names PTAB0..PTAB3"
 	" (and T0..T3) are allowed. The prefix '-' means: Disable all"
 	" partitions of that partition table.\n"
-	"The third group are additinal flags: 'WHOLE' means that the whole"
+	"The third group are additional flags: 'WHOLE' means that the whole"
 	" partition data is used. 'RAW' means that the whole disc is selected.\n"
 	"The special keyword 'ALL' resets all settings to the default."
     },
@@ -206,6 +206,17 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 	" The default unit is 'G' (GiB)."
     },
 
+    {	OPT_TRUNC, 0, "trunc",
+	0,
+	"Truncate PLAIN ISO images to the needed size while creating."
+    },
+
+    {	OPT_FAST, 'F', "fast",
+	0,
+	"Enables fast writing (disables searching for blocks with zeroed"
+	" data)."
+    },
+
     {	OPT_CHUNK_MODE, 0, "chunk-mode",
 	"mode",
 	"Defines an operation mode for --chunk-size and --max-chunks. Allowed"
@@ -214,7 +225,7 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 	" with a power of 2 or 'ISO' for ISO images (more restrictive as"
 	" 'POW2', best for USB loaders). The case of the keyword is ignored."
 	" The default key is 'ISO'.\n"
-	"--chm is a short cut for --chunk-mode."
+	"--chm is a shortcut for --chunk-mode."
     },
 
     {	OPT_CHUNK_SIZE, 0, "chunk-size",
@@ -233,7 +244,7 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 	" changing.\n"
 	"If the input file size is not known (e.g. reading from pipe), its"
 	" size is assumed as 12 GiB.\n"
-	" --chz is a short cut for --chunk-size."
+	" --chz is a shortcut for --chunk-size."
     },
 
     {	OPT_MAX_CHUNKS, 0, "max-chunks",
@@ -242,7 +253,7 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 	" default value is 8192 for '--chunk-mode ISO' and 32760 (maximal"
 	" value) for all other modes. If this value is set than the automatic"
 	" calculation  of --chunk-size will be modified too.\n"
-	" --mch is a short cut for --max-chunks."
+	" --mch is a shortcut for --max-chunks."
     },
 
     {	OPT_SIZE, 's', "size",
@@ -317,16 +328,6 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
     {	OPT_REMOVE, 'R', "remove",
 	0,
 	"Remove source files/discs if operation is successful."
-    },
-
-    {	OPT_TRUNC, 0, "trunc",
-	0,
-	"Trunc ISO images while writing."
-    },
-
-    {	OPT_FAST, 'F', "fast",
-	0,
-	"Enables fast writing (disables searching for zero blocks)."
     },
 
     {	OPT_WDF, 'W', "wdf",
@@ -577,6 +578,14 @@ const InfoOption_t option_cmd_SPACE_LONG =
     {	OPT_LONG, 'l', "long",
 	0,
 	" If option --long is set the real path is printed."
+    };
+
+const InfoOption_t option_cmd_ANALYZE_LONG =
+    {	OPT_LONG, 'l', "long",
+	0,
+	"If option --long is set then calculated values are printed too if"
+	" other values are available. If option --long is set twice calculated"
+	" values are always printed."
     };
 
 const InfoOption_t option_cmd_DUMP_LONG =
@@ -875,7 +884,7 @@ const CommandTab_t CommandTab[] =
 ///////////////            OptionShort & OptionLong             ///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-const char OptionShort[] = "VhqvPLE:T:taAp:r:n:N:x:X:id:D:zZ:s:fuyeoRFWICBlMUHS:";
+const char OptionShort[] = "VhqvPLE:T:taAp:r:n:N:x:X:id:D:zZ:Fs:fuyeoRWICBlMUHS:";
 
 const struct option OptionLong[] =
 {
@@ -926,6 +935,8 @@ const struct option OptionLong[] =
 	{ "split",		0, 0, 'z' },
 	{ "split-size",		1, 0, 'Z' },
 	 { "splitsize",		1, 0, 'Z' },
+	{ "trunc",		0, 0, GO_TRUNC },
+	{ "fast",		0, 0, 'F' },
 	{ "chunk-mode",		1, 0, GO_CHUNK_MODE },
 	 { "chunkmode",		1, 0, GO_CHUNK_MODE },
 	 { "chm",		1, 0, GO_CHUNK_MODE },
@@ -953,8 +964,6 @@ const struct option OptionLong[] =
 	 { "new",		0, 0, 'e' },
 	{ "overwrite",		0, 0, 'o' },
 	{ "remove",		0, 0, 'R' },
-	{ "trunc",		0, 0, GO_TRUNC },
-	{ "fast",		0, 0, 'F' },
 	{ "wdf",		0, 0, 'W' },
 	{ "iso",		0, 0, 'I' },
 	{ "ciso",		0, 0, 'C' },
@@ -1061,16 +1070,16 @@ const u8 OptionIndex[OPT_INDEX_SIZE] =
 	/*8f*/	OPT_NAME,
 	/*90*/	OPT_MODIFY,
 	/*91*/	OPT_INODE,
-	/*92*/	OPT_CHUNK_MODE,
-	/*93*/	OPT_CHUNK_SIZE,
-	/*94*/	OPT_MAX_CHUNKS,
-	/*95*/	OPT_HSS,
-	/*96*/	OPT_WSS,
-	/*97*/	OPT_RECOVER,
-	/*98*/	OPT_NO_CHECK,
-	/*99*/	OPT_REPAIR,
-	/*9a*/	OPT_NO_FREE,
-	/*9b*/	OPT_TRUNC,
+	/*92*/	OPT_TRUNC,
+	/*93*/	OPT_CHUNK_MODE,
+	/*94*/	OPT_CHUNK_SIZE,
+	/*95*/	OPT_MAX_CHUNKS,
+	/*96*/	OPT_HSS,
+	/*97*/	OPT_WSS,
+	/*98*/	OPT_RECOVER,
+	/*99*/	OPT_NO_CHECK,
+	/*9a*/	OPT_REPAIR,
+	/*9b*/	OPT_NO_FREE,
 	/*9c*/	OPT_ITIME,
 	/*9d*/	OPT_MTIME,
 	/*9e*/	OPT_CTIME,
@@ -1195,6 +1204,10 @@ static const InfoOption_t * option_tab_cmd_ANALYZE[] =
 	OptionInfo + OPT_AUTO,
 	OptionInfo + OPT_ALL,
 	OptionInfo + OPT_PART,
+
+	OptionInfo + OPT_NONE, // separator
+
+	&option_cmd_ANALYZE_LONG,
 
 	0
 };
@@ -1824,6 +1837,7 @@ static const InfoOption_t * option_tab_cmd_EXTRACT[] =
 	OptionInfo + OPT_ESC,
 	OptionInfo + OPT_SPLIT,
 	OptionInfo + OPT_SPLIT_SIZE,
+	OptionInfo + OPT_TRUNC,
 	OptionInfo + OPT_CHUNK_MODE,
 	OptionInfo + OPT_CHUNK_SIZE,
 	OptionInfo + OPT_MAX_CHUNKS,
@@ -1842,7 +1856,6 @@ static const InfoOption_t * option_tab_cmd_EXTRACT[] =
 	OptionInfo + OPT_REMOVE,
 	OptionInfo + OPT_UPDATE,
 	OptionInfo + OPT_OVERWRITE,
-	OptionInfo + OPT_TRUNC,
 	OptionInfo + OPT_FAST,
 
 	0
@@ -2178,7 +2191,7 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	"wwt ANALYZE [wbfs_partition]...",
 	"Analyze files and partitions for WBFS usage. Try to find old WBFS"
 	" structures and make calculations for new WBFS.",
-	3,
+	4,
 	option_tab_cmd_ANALYZE
     },
 

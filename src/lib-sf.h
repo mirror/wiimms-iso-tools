@@ -71,7 +71,6 @@ typedef struct SuperFile_t
 
 	File_t f;			// file handling struct
 	bool enable_fast;		// enables fast prosessing
-	bool enable_trunc;		// truncate iso image
 	int  indent;			// indent of progress and summary
 	bool show_progress;		// show progress info
 	bool show_summary;		// show summary statistics

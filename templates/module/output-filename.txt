@@ -17,8 +17,8 @@
         'E' : The default extension ('wdf', 'iso', 'ciso' or 'wbfs')
         'P' : The path (all upto the last '/') of the source file
         'F' : The filename (start behind the last '/') of the source file
-        'X' : Extended filename: A short cut for '%T [%I].%E'
-        'Y' : Extended filename: A short cut for '%T [%I]' (no file extension)
+        'X' : Extended filename: A shortcut for '%T [%I].%E'
+        'Y' : Extended filename: A shortcut for '%T [%I]' (no file extension)
         '+' : The default filename: WBFS='%I.%E', all other='%X'
 
     To use the '%' sign itself just type '%%'.

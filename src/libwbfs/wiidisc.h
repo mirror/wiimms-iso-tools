@@ -40,7 +40,7 @@ typedef enum wd_select_idx_t // modern partition selector, index values
     WD_PART_CHANNEL	=  2,	// CHANNEL partition
 
     WD_SELI_PART_MAX	= 50,	// maximal 'wd_select_t' supported partition
-    WD_SELI_PART_ID,		// special ID partitons selected
+    WD_SELI_PART_ID,		// special ID partitions selected
     WD_SELI_PART_ACTIVE,	// partition type selection is active
 
     WD_SELI_PTAB_0,		// partition table 0 selected
@@ -165,6 +165,22 @@ typedef enum wd_patch_mode_t // patching modes
     WD_PAT_DISC_DATA		// raw disc data
 
 } wd_patch_mode_t;
+
+///////////////////////////////////////////////////////////////////////////////
+
+typedef enum wd_job_t // sector job modes
+{
+    WD_JOB_M_INDEX	=    0x7ffff,	// mask for source sector index
+
+    WD_JOB_M_PART	=  0x3f00000,	// mask for sector within group index
+    WD_JOB_S_PART	=         20,	// shift for sector within group index
+
+    WD_JOB_F_PART	= 0x04000000,	// set if partition data
+    WD_JOB_F_COPY	= 0x10000000,	// set if source must be copied
+    WD_JOB_F_PATCH	= 0x20000000,	// set if patching is needed
+    WD_JOB_F_CLOSE	= 0x40000000,	// set if copying on close is needed
+
+} wd_job_t;
 
 //
 ///////////////////////////////////////////////////////////////////////////////
@@ -669,8 +685,8 @@ enumError wd_calc_fst_statistics
 bool wd_is_part_selected
 (
 	wd_select_t	select,		// partition selector bit field
-	u32		part_type,	// partiton type
-	u32		ptab_index	// index of partiton table
+	u32		part_type,	// partition type
+	u32		ptab_index	// index of partition table
 );
 
 //-----------------------------------------------------------------------------

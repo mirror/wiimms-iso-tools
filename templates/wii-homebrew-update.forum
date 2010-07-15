@@ -29,7 +29,7 @@
 
 [size=12][color=#0000c0][b]Höhepunkte dieser Version:[/b][/color][/size]
 [list]
-Ich habe die komplette wiidisc-Bibliothek (Teil von libwbfs) von neu auf implementiert. Die Bibliothek hat ein komplett neues Interface mit erweiterten Möglichkeiten. Es werden dynamische Datenstrukturen eingesetzt, um alle benötigten Daten bei Bedarf zu laden. Dieses neue Interface hat klar spürbare Vorteile für das gesamte WIT-Projekt, da nun alle benötigten Daten durch diese Bibliothek verwaltet werden. Dieses wird das Patchen von Daten (ID, Titel, ...) beom kopieren von Daten erheblich erleichtern.
+Ich habe die komplette wiidisc-Bibliothek (Teil von libwbfs) von neu auf implementiert. Die Bibliothek hat ein komplett neues Interface mit erweiterten Möglichkeiten. Es werden dynamische Datenstrukturen eingesetzt um alle benötigten Daten bei Bedarf zu laden. Dieses neue Interface hat klar spürbare Vorteile für das gesamte WIT-Projekt, da nun alle benötigten Daten durch diese Bibliothek verwaltet werden. Dieses wird das Patchen von Daten (ID, Titel, ...) beim Kopieren von Discs erheblich erleichtern.
 [/list]
 
 [size=12][color=#0000c0][b]Letzte Änderungen:[/b][/color][/size]

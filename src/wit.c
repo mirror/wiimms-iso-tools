@@ -1771,6 +1771,7 @@ enumError CheckOptions ( int argc, char ** argv, bool is_env )
 	case GO_DEST2:		opt_dest = optarg; opt_mkdir = true; break;
 	case GO_SPLIT:		opt_split++; break;
 	case GO_SPLIT_SIZE:	err += ScanOptSplitSize(optarg); break;
+	case GO_TRUNC:		opt_truncate++; break;
 	case GO_CHUNK_MODE:	err += ScanChunkMode(optarg); break;
 	case GO_CHUNK_SIZE:	err += ScanChunkSize(optarg); break;
 	case GO_MAX_CHUNKS:	err += ScanMaxChunks(optarg); break;

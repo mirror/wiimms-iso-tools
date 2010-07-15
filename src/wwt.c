@@ -373,7 +373,7 @@ enumError cmd_analyze()
 	printf("\nANALYZE %s\n",info->path);
 	AWData_t awd;
 	AnalyzeWBFS(&awd,&F);
-	PrintAnalyzeWBFS(&awd,stdout,0);
+	PrintAnalyzeWBFS(stdout,0,&awd,long_count);
     }
     putchar('\n');
     ResetFile(&F,0);
@@ -1864,7 +1864,7 @@ enumError cmd_add()
 	    }
 	}
 
-	if ( used_options & OB_TRUNC )
+	if (opt_truncate)
 	{
 	    if (testmode)
 	    {
@@ -2038,11 +2038,11 @@ enumError cmd_extract()
 		else
 		    dpath = PathCatPP(dbuf,sizeof(dbuf),dest_path,default_fname);
 
-		enumOFT oft = CalcOFT(output_file_type,dbuf,0,OFT__DEFAULT);
+		enumOFT oft = CalcOFT(output_file_type,dpath,0,OFT__DEFAULT);
 		int conv_count = SubstFileName( fbuf, sizeof(fbuf),
 						id6, (ccp)dhead->game_title,
 						info->path, 0, dpath, oft );
-		noTRACE("|%s|%s|\n",dpath,fbuf);
+		printf("|%s|%s|\n",dpath,fbuf);
 		SetFileName(&fo.f,fbuf,true);
 		fo.f.create_directory = conv_count || opt_mkdir;
 
@@ -2078,7 +2078,6 @@ enumError cmd_extract()
 		    }
 
 		    fo.enable_fast	= (used_options&OB_FAST)  != 0;
-		    fo.enable_trunc	= (used_options&OB_TRUNC) != 0;
 		    fo.indent		= 5;
 		    fo.show_progress	= verbose > 1 || progress > 0;
 		    fo.show_summary	= verbose > 0 || progress > 0;
@@ -2992,6 +2991,8 @@ enumError CheckOptions ( int argc, char ** argv, bool is_env )
 	case GO_MODIFY:		err += ScanOptModify(optarg); break;
 	case GO_SPLIT:		opt_split++; break;
 	case GO_SPLIT_SIZE:	err += ScanOptSplitSize(optarg); break;
+	case GO_TRUNC:		opt_truncate++; break;
+	case GO_FAST:		break;
 	case GO_CHUNK_MODE:	err += ScanChunkMode(optarg); break;
 	case GO_CHUNK_SIZE:	err += ScanChunkSize(optarg); break;
 	case GO_MAX_CHUNKS:	err += ScanMaxChunks(optarg); break;
@@ -3005,8 +3006,6 @@ enumError CheckOptions ( int argc, char ** argv, bool is_env )
 	case GO_NEWER:		break;
 	case GO_OVERWRITE:	break;
 	case GO_REMOVE:		break;
-	case GO_TRUNC:		break;
-	case GO_FAST:		break;
 
 	case GO_WDF:		output_file_type = OFT_WDF; break;
 	case GO_ISO:		output_file_type = OFT_PLAIN; break;

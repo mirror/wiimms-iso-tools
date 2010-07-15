@@ -241,7 +241,7 @@
 	"Disable composing and ignore FST directories as input." )
 
 #:def_opt( "PSEL", "psel", "CP", \
-	"p-type", \
+	"list", \
 	"This option set the scrubbing mode and defines, which disc partitions" \
 	" are handled. The parameter is a comma separated list of keywords." \
 	" The keywords are divided in three functional groups:\n" \
@@ -253,7 +253,7 @@
 	"The second group selects partition tables. The names @PTAB0..PTAB3@" \
 	" (and @T0..T3@) are allowed. The prefix @'-'@ means: Disable all" \
 	" partitions of that partition table.\n" \
-	"The third group are additinal flags: @'WHOLE'@ means that the whole" \
+	"The third group are additional flags: @'WHOLE'@ means that the whole" \
 	" partition data is used. @'RAW'@ means that the whole disc is" \
 	" selected.\n" \
 	"The special keyword @'ALL'@ resets all settings to the default." )
@@ -340,6 +340,10 @@
 	" (one of 'cb' [=1] or  'kmgtpe' [base=1000] or 'KMGTPE' [base=1024])." \
 	" The default unit is 'G' (GiB)." )
 
+#:def_opt( "TRUNC", "trunc", "C", \
+	"", \
+	"Truncate PLAIN ISO images to the needed size while creating." )
+
 #:def_opt( "CHUNK_MODE", "chunk-mode|chunkmode|chm", "CP", \
 	"mode", \
 	"Defines an operation mode for {--chunk-size} and {--max-chunks}." \
@@ -348,7 +352,7 @@
 	" >=32K and with a power of 2 or @'ISO'@ for ISO images (more" \
 	" restrictive as @'POW2'@, best for USB loaders). The case of the" \
 	" keyword is ignored. The default key is @'ISO'@.\n" \
-	"@--chm@ is a short cut for @--chunk-mode@." )
+	"@--chm@ is a shortcut for @--chunk-mode@." )
 
 #:def_opt( "CHUNK_SIZE", "chunk-size|chunksize|chz", "CP", \
 	"sz", \
@@ -366,7 +370,7 @@
 	" changing.\n" \
 	"If the input file size is not known (e.g. reading from pipe), its" \
 	" size is assumed as @12 GiB@.\n" \
-	" @--chz@ is a short cut for @--chunk-size@." )
+	" @--chz@ is a shortcut for @--chunk-size@." )
 
 #:def_opt( "MAX_CHUNKS", "max-chunks|maxchunks|mch", "CP", \
 	"n", \
@@ -374,7 +378,7 @@
 	" default value is 8192 for {--chunk-mode ISO} and 32760 (maximal" \
 	" value) for all other modes. If this value is set than the automatic" \
 	" calculation  of {--chunk-size} will be modified too.\n" \
-	" @--mch@ is a short cut for @--max-chunks@." )
+	" @--mch@ is a shortcut for @--max-chunks@." )
 
 #:def_opt( "PRESERVE", "p|preserve", "C", \
 	"", \
@@ -1881,6 +1885,10 @@
 	"", \
 	"" )
 
+#:def_cmd_opt( "COPY", "TRUNC", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "COPY", "CHUNK_MODE", \
 	"", \
 	"" )
@@ -1998,6 +2006,10 @@
 	"" )
 
 #:def_cmd_opt( "SCRUB", "SPLIT_SIZE", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "SCRUB", "TRUNC", \
 	"", \
 	"" )
 
@@ -2718,7 +2730,7 @@
 	"Set the maximum recurse depth for option {--recurse} (default=10)." )
 
 #:def_opt( "PSEL", "psel", "CP", \
-	"p-type", \
+	"list", \
 	"This option set the scrubbing mode and defines, which disc partitions" \
 	" are handled. The parameter is a comma separated list of keywords." \
 	" The keywords are divided in three functional groups:\n" \
@@ -2730,7 +2742,7 @@
 	"The second group selects partition tables. The names @PTAB0..PTAB3@" \
 	" (and @T0..T3@) are allowed. The prefix @'-'@ means: Disable all" \
 	" partitions of that partition table.\n" \
-	"The third group are additinal flags: @'WHOLE'@ means that the whole" \
+	"The third group are additional flags: @'WHOLE'@ means that the whole" \
 	" partition data is used. @'RAW'@ means that the whole disc is" \
 	" selected.\n" \
 	"The special keyword @'ALL'@ resets all settings to the default." )
@@ -2840,6 +2852,15 @@
 	" (one of 'cb' [=1] or  'kmgtpe' [base=1000] or 'KMGTPE' [base=1024])." \
 	" The default unit is 'G' (GiB)." )
 
+#:def_opt( "TRUNC", "trunc", "C", \
+	"", \
+	"Truncate PLAIN ISO images to the needed size while creating." )
+
+#:def_opt( "FAST", "F|fast", "C", \
+	"", \
+	"Enables fast writing (disables searching for blocks with zeroed" \
+	" data)." )
+
 #:def_opt( "CHUNK_MODE", "chunk-mode|chunkmode|chm", "CP", \
 	"mode", \
 	"Defines an operation mode for {--chunk-size} and {--max-chunks}." \
@@ -2848,7 +2869,7 @@
 	" >=32K and with a power of 2 or @'ISO'@ for ISO images (more" \
 	" restrictive as @'POW2'@, best for USB loaders). The case of the" \
 	" keyword is ignored. The default key is @'ISO'@.\n" \
-	"@--chm@ is a short cut for @--chunk-mode@." )
+	"@--chm@ is a shortcut for @--chunk-mode@." )
 
 #:def_opt( "CHUNK_SIZE", "chunk-size|chunksize|chz", "CP", \
 	"sz", \
@@ -2866,7 +2887,7 @@
 	" changing.\n" \
 	"If the input file size is not known (e.g. reading from pipe), its" \
 	" size is assumed as @12 GiB@.\n" \
-	" @--chz@ is a short cut for @--chunk-size@." )
+	" @--chz@ is a shortcut for @--chunk-size@." )
 
 #:def_opt( "MAX_CHUNKS", "max-chunks|maxchunks|mch", "CP", \
 	"n", \
@@ -2874,7 +2895,7 @@
 	" default value is 8192 for {--chunk-mode ISO} and 32760 (maximal" \
 	" value) for all other modes. If this value is set than the automatic" \
 	" calculation  of {--chunk-size} will be modified too.\n" \
-	" @--mch@ is a short cut for @--max-chunks@." )
+	" @--mch@ is a shortcut for @--max-chunks@." )
 
 #:def_opt( "SIZE", "s|size", "CP", \
 	"size", \
@@ -2936,14 +2957,6 @@
 #:def_opt( "REMOVE", "R|remove", "C", \
 	"", \
 	"Remove source files/discs if operation is successful." )
-
-#:def_opt( "TRUNC", "trunc", "C", \
-	"", \
-	"Trunc ISO images while writing." )
-
-#:def_opt( "FAST", "F|fast", "C", \
-	"", \
-	"Enables fast writing (disables searching for zero blocks)." )
 
 #:def_opt( "WDF", "W|wdf", "C", \
 	"", \
@@ -3125,6 +3138,12 @@
 #:def_cmd_opt( "ANALYZE", "PART", \
 	"", \
 	"" )
+
+#:def_cmd_opt( "ANALYZE", "LONG", \
+	"", \
+	"If option @--long@ is set then calculated values are printed too if" \
+	" other values are available. If option @--long@ is set twice" \
+	" calculated values are always printed." )
 
 #:def_cmd_opt( "DUMP", "TITLES", \
 	"", \
@@ -4535,6 +4554,10 @@
 	"", \
 	"" )
 
+#:def_cmd_opt( "EXTRACT", "TRUNC", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "EXTRACT", "CHUNK_MODE", \
 	"", \
 	"" )
@@ -4580,10 +4603,6 @@
 	"" )
 
 #:def_cmd_opt( "EXTRACT", "OVERWRITE", \
-	"", \
-	"" )
-
-#:def_cmd_opt( "EXTRACT", "TRUNC", \
 	"", \
 	"" )
 

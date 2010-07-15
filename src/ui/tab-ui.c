@@ -133,7 +133,7 @@ typedef struct info_t
 	" The case of the keyword is ignored." \
 	" The default key is @'" def "'@." \
 	"\n" \
-	"@--chm@ is a short cut for @--chunk-mode@."
+	"@--chm@ is a shortcut for @--chunk-mode@."
 
 //
 ///////////////////////////////////////////////////////////////////////////////
@@ -425,7 +425,7 @@ info_t info_tab[] =
   { T_SEP_OPT,	0,0,0,0 }, //----- separator -----
 
   { T_OPT_CP,	"PSEL",		"psel",
-		"p-type",
+		"list",
 		"This option set the scrubbing mode and defines,"
 		" which disc partitions are handled."
 		" The parameter is a comma separated list of keywords." \
@@ -442,7 +442,7 @@ info_t info_tab[] =
 		" The names @PTAB0..PTAB3@ (and @T0..T3@) are allowed."
 		" The prefix @'-'@ means: Disable all partitions of that partition table."
 		"\n"
-		"The third group are additinal flags:"
+		"The third group are additional flags:"
 		" @'WHOLE'@ means that the whole partition data is used."
 		" @'RAW'@ means that the whole disc is selected."
 		"\n"
@@ -542,6 +542,9 @@ info_t info_tab[] =
 		" 'kmgtpe' [base=1000] or 'KMGTPE' [base=1024])."
 		" The default unit is 'G' (GiB)." },
 
+  { T_OPT_C,	"TRUNC",	"trunc",
+		0, "Truncate PLAIN ISO images to the needed size while creating." },
+
   { T_OPT_CP,	"CHUNK_MODE",	"chunk-mode|chunkmode|chm",
 		"mode", TEXT_OPT_CHUNK_MODE("ISO") },
 
@@ -566,7 +569,7 @@ info_t info_tab[] =
 		"If the input file size is not known (e.g. reading from pipe),"
 		" its size is assumed as @12 GiB@."
 		"\n"
-		" @--chz@ is a short cut for @--chunk-size@." },
+		" @--chz@ is a shortcut for @--chunk-size@." },
 
   { T_OPT_CP,	"MAX_CHUNKS",	"max-chunks|maxchunks|mch",
 		"n",
@@ -576,7 +579,7 @@ info_t info_tab[] =
 		" If this value is set than the automatic calculation "
 		" of {--chunk-size} will be modified too."
 		"\n"
-		" @--mch@ is a short cut for @--max-chunks@." },
+		" @--mch@ is a shortcut for @--max-chunks@." },
 
   { T_OPT_C,	"PRESERVE",	"p|preserve",
 		0, "Preserve file times (atime+mtime)." },
@@ -796,6 +799,7 @@ info_t info_tab[] =
 
   { T_COPT,	"SPLIT",	0,0,0 },
   { T_COPT,	"SPLIT_SIZE",	0,0,0 },
+  { T_COPT,	"TRUNC",	0,0,0 },
   { T_COPT,	"CHUNK_MODE",	0,0,0 },
   { T_COPT,	"CHUNK_SIZE",	0,0,0 },
   { T_COPT,	"MAX_CHUNKS",	0,0,0 },
@@ -1510,6 +1514,12 @@ info_t info_tab[] =
   { T_OPT_CP,	"SPLIT_SIZE",	"Z|split-size|splitsize",
 		0, 0 /* copy of wit */ },
 
+  { T_OPT_C,	"TRUNC",	"trunc",
+		0, 0 /* copy of wit */ },
+
+  { T_OPT_C,	"FAST",		"F|fast",
+		0, "Enables fast writing (disables searching for blocks with zeroed data)." },
+
   { T_OPT_CP,	"CHUNK_MODE",	"chunk-mode|chunkmode|chm",
 		0, 0 /* copy of wit */ },
 
@@ -1566,12 +1576,6 @@ info_t info_tab[] =
 
   { T_OPT_C,	"REMOVE",	"R|remove",
 		0, 0 /* copy of wit */ },
-
-  { T_OPT_C,	"TRUNC",	"trunc",
-		0, "Trunc ISO images while writing." },
-
-  { T_OPT_C,	"FAST",		"F|fast",
-		0, "Enables fast writing (disables searching for zero blocks)." },
 
   { T_SEP_OPT,	0,0,0,0 }, //----- separator -----
 
@@ -1731,38 +1735,39 @@ info_t info_tab[] =
   { T_COPT,	"IOS",		0,0,0 },
   { T_COPT,	"ENC",		0,0,0 },
 
-  //---------- wit GROUP SPLIT_CHUNK ----------
+  //---------- wwt GROUP SPLIT_CHUNK ----------
 
   { T_GRP_BEG,	"SPLIT_CHUNK",	0,0,0 },
 
   { T_COPT,	"SPLIT",	0,0,0 },
   { T_COPT,	"SPLIT_SIZE",	0,0,0 },
+  { T_COPT,	"TRUNC",	0,0,0 },
   { T_COPT,	"CHUNK_MODE",	0,0,0 },
   { T_COPT,	"CHUNK_SIZE",	0,0,0 },
   { T_COPT,	"MAX_CHUNKS",	0,0,0 },
 
 
   //
-  //---------- COMMAND wit VERSION ----------
+  //---------- COMMAND wwt VERSION ----------
 
   { T_CMD_BEG,	"VERSION",	0,0,0 },
 
   { T_COPT,	"SECTIONS",	0,0,0 },
   { T_COPT,	"LONG",		0,0,0 },
 
-  //---------- COMMAND wit HELP ----------
+  //---------- COMMAND wwt HELP ----------
 
   { T_CMD_BEG,	"HELP",		0,0,0 },
 
   { T_ALL_OPT,	0,		0,0,0 },
 
-  //---------- COMMAND wit TEST ----------
+  //---------- COMMAND wwt TEST ----------
 
   { T_CMD_BEG,	"TEST",		0,0,0 },
 
   { T_ALL_OPT,	0,		0,0,0 },
 
-  //---------- COMMAND wit ERROR ----------
+  //---------- COMMAND wwt ERROR ----------
 
   { T_CMD_BEG,	"ERROR",	0,0,0 },
 
@@ -1771,14 +1776,14 @@ info_t info_tab[] =
   { T_COPT,	"LONG",		0,0,
 	"Print extended message instead of error name." },
 
-  //---------- COMMAND wit EXCLUDE ----------
+  //---------- COMMAND wwt EXCLUDE ----------
 
   { T_CMD_BEG,	"EXCLUDE",	0,0,0 },
 
   { T_COPT_M,	"EXCLUDE",	0,0,0 },
   { T_COPT_M,	"EXCLUDE_PATH",	0,0,0 },
 
-  //---------- COMMAND wit TITLES ----------
+  //---------- COMMAND wwt TITLES ----------
 
   { T_CMD_BEG,	"TITLES",	0,0,0 },
 
@@ -1812,6 +1817,10 @@ info_t info_tab[] =
   { T_CMD_BEG,	"ANALYZE",	0,0,0 },
 
   { T_COPY_GRP,	"READ_WBFS",	0,0,0 },
+  { T_COPT,	"LONG",		0,0,
+	"If option @--long@ is set then calculated values"
+	" are printed too if other values are available."
+	" If option @--long@ is set twice calculated values are always printed." },
 
   //---------- COMMAND wwt DUMP ----------
 

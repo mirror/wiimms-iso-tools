@@ -255,7 +255,15 @@ typedef struct AWData_t
 //-----------------------------------------------------------------------------
 
 int AnalyzeWBFS      ( AWData_t * ad, File_t * f );
-int PrintAnalyzeWBFS ( AWData_t * ad, FILE * out, int indent );
+int PrintAnalyzeWBFS
+(
+    FILE		* out,		// valid output stream
+    int			indent,		// indent of output
+    AWData_t		* awd,		// valid pointer
+    int			print_calc	// 0: suppress calculated values
+					// 1: print calculated values if other values available
+					// 2: print calculated values
+);
 
 //
 ///////////////////////////////////////////////////////////////////////////////

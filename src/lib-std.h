@@ -260,6 +260,7 @@ typedef enum enumOFT // open file mode
 extern enumOFT output_file_type;
 extern ccp oft_ext [OFT__N+1]; // NULL terminated list
 extern ccp oft_name[OFT__N+1]; // NULL terminated list
+extern int opt_truncate;
 
 enumOFT CalcOFT ( enumOFT force, ccp fname_dest, ccp fname_src, enumOFT def );
 

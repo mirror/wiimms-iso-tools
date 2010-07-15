@@ -16,7 +16,7 @@ WWT_SHORT		= wwt
 WWT_LONG		= Wiimms WBFS Tool
 
 VERSION_NUM		= 1.10a
-BETA_VERSION		= 1
+BETA_VERSION		= 0
 
 URI_HOME		= http://wit.wiimm.de/
 URI_DOWNLOAD		= http://wit.wiimm.de/download
@@ -175,7 +175,7 @@ DISTRIB_FILES	= gpl-2.0.txt $(INSTALL_SCRIPTS)
 
 DOC_FILES	= doc/*.txt
 TITLE_FILES	= titles.txt $(patsubst %,titles-%.txt,$(LANGUAGES))
-LANGUAGES	= de es fr it ja ko nl pt
+LANGUAGES	= de es fr it ja ko nl pt ru zhcn zhtw
 
 BIN_FILES	= $(MAIN_TOOLS)
 LIB_FILES	= $(TITLE_FILES)

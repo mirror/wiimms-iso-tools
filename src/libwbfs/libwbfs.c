@@ -1045,7 +1045,6 @@ void wbfs_load_freeblocks ( wbfs_t * p )
 		      p->freeblks_lba_count,
 		      p->freeblks );
 
-    // [fbt-bug]
     // fix the last entry
     p->freeblks[p->freeblks_size4-1] &= wbfs_htonl(p->freeblks_mask);
 }
@@ -1058,7 +1057,6 @@ u32 wbfs_count_unusedblocks ( wbfs_t * p )
 
     wbfs_load_freeblocks(p);
 
-// [fbt-bug]
     for ( i = 0; i < p->freeblks_size4; i++ )
     {
 	u32 v = wbfs_ntohl(p->freeblks[i]);
@@ -1073,7 +1071,6 @@ u32 wbfs_count_unusedblocks ( wbfs_t * p )
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// [fbt-bug]
 
 static int block_used ( u8 *used, u32 i, u32 wblk_sz )
 {
@@ -1090,7 +1087,6 @@ static int block_used ( u8 *used, u32 i, u32 wblk_sz )
 static u32 alloc_block ( wbfs_t * p )
 {
     u32 i;
-// [fbt-bug]
     for ( i = 0; i < p->freeblks_size4; i++ )
     {
 	u32 v = wbfs_ntohl(p->freeblks[i]);
@@ -1109,12 +1105,10 @@ static u32 alloc_block ( wbfs_t * p )
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// [fbt-bug]
 
 static u32 find_last_used_block ( wbfs_t * p )
 {
     int i;
-    // [fbt-bug]
     for ( i = p->freeblks_size4 - 1; i >= 0; i-- )
     {
 	u32 v = wbfs_ntohl(p->freeblks[i]);
@@ -1133,12 +1127,10 @@ static u32 find_last_used_block ( wbfs_t * p )
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// [fbt-bug]
 
 void wbfs_free_block ( wbfs_t *p, u32 bl )
 {
-    //TRACE("wbfs_free_block(%u)\n",bl);
-    // [fbt-bug]
+    noTRACE("wbfs_free_block(%u)\n",bl);
     if ( bl > 0 && bl < p->n_wbfs_sec )
     {
 	const u32 i = (bl-1) / 32;
@@ -1150,11 +1142,9 @@ void wbfs_free_block ( wbfs_t *p, u32 bl )
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// [fbt-bug]
 
 void wbfs_use_block ( wbfs_t *p, u32 bl )
 {
-    // [fbt-bug]
     if ( bl > 0 && bl < p->n_wbfs_sec )
     {
 	const u32 i = (bl-1) / 32;
@@ -1612,8 +1602,7 @@ u32 wbfs_trim ( wbfs_t * p )
 
     TRACE("max_block=%u, n_hd_sec=%u\n",max_block,p->n_hd_sec);
 
-    // mrk all blocks 'used'
-    // [fbt-bug]
+    // mark all blocks 'used'
     memset(p->freeblks,0,p->freeblks_size4*4);
     wbfs_sync(p);
 

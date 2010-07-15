@@ -1,58 +1,29 @@
-wit v1.10a.beta r1333 - 2010-07-05
+Aggregation of the previous beta versions:
 
  - New option: --width wd: Define the width (number of columns) for help and
    other messages and disables the automatic detection of the terminal width.
- - wwt EXTRACT: Support '%X' and '%Y' in output filenames.
  - I have rewritten the wiidisc lib (part of libwbfs) from scratch. It has a
    complete new interface and an improved functionality. It uses dynamic data
    structures and collect data as needed. This has considerable advantages
-   for the whole WIT project:
-    - All information about a Wii disc is now in one hand. Things like usage
-      maps and partition data are loaded/built once and only if needed.
-    - wit DUMP --show=files: Print a list with images files (like -F+ before).
-      Option --show=offset,size,dec,hex,header controls the output columns.
-    - wit DUMP --show=usage: Print a wii sector usage map.
-    - wit ILIST: Redesigned. Option --show=offset,size,dec,hex,header,path
-      controls the output columns.
-    - Option --psel extended:
-        --psel=NO-ID : use all partitions but not partitions with an ID type.
-        --psel=PTAB0 : use all partitions of table #0 but no other partitions.
-        --psel=ALL   : use all partitions (the default).
-        --psel=WHOLE : use all partitions and don't scrub partitions
-        --psel=RAW   : more than 'WHOLE': copy whole dics
-    - wit DIFF: If using the option --psel the partition tables are normalized
-      before comparing. This enables DIFF to compare DATA partitions only
-      independent from the existence of other partitions.
-
-wit v1.10a.beta r1338 - 2010-07-05  (repos only)
-
- - Channels partitions enabled, but not tested.
- - The field width of offset and size columns of FST listings is now
-   calculated. A space between the columns is guaranteed.
- - wit DUMP: A forgotten endian calculation results in a wrong region info.
-
-wit v1.10a.beta r1359 - 2010-07-09
-
+   for the whole WIT project.
  - ID renaming: A point ('.') means: leave id character unchanged.
  - Options --ios, --id and --name modify only disc data and the DATA partition,
    but no longer other any other partitions.
  - There is an complete new implementation of option --psel: Combinations like
    '--psel DATA,UPDATE' or '--psel -CHANNEL' are supported now.
- - New: wit DUMP --show=patch: Shows a address map with patching infos.
  - wwt EXTRACT: Complete new and improved calculation of output filename.
+ - wwt EXTRACT: Support '%X' and '%Y' in output filenames.
  - Option --files: Macro calls are now prefixed by a colon (':'). The previous
    prefix '=' is obsolete, but still allowed.
- - Command "wit ILIST" evaluates option --psel now.
- - I have run my test scripts against this release without any reported errors.
-
-wit v1.10a.beta r1363 - 2010-07-09  (repos only)
-
  - Bug fix: File size calculation error for when composing large discs.
 
 wit v@@VERSION@@ r@@REV-NEXT@@ - @@@@-@@-@@
 
- - New wiidisc lib: Advanced error handling.
- - wit ILIST: List files like 'fst.bin' too.
+ - wittdb.com: Support of new languages: ru, zhcn, zhtw
+ - wwt ANALYZE: If option --long is set then calculated values are printed too
+   if other values are available. If option --long is set twice calculated
+   values are always printed.
+ - wit+wwt: Option --trunc: Truncate created PLAIN ISO image to needed size.
 
 ~Known bugs:
 ~
@@ -60,5 +31,4 @@ Missing docu:
 
  - wit commands ILIST + EXTRACT
  - Option --show => see built in help
- - Option --psel => see built in help
  - file ./setup.txt when composing

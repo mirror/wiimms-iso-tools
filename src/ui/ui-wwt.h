@@ -66,6 +66,8 @@ typedef enum enumOptions
 	OPT_DEST2,
 	OPT_SPLIT,
 	OPT_SPLIT_SIZE,
+	OPT_TRUNC,
+	OPT_FAST,
 	OPT_CHUNK_MODE,
 	OPT_CHUNK_SIZE,
 	OPT_MAX_CHUNKS,
@@ -82,8 +84,6 @@ typedef enum enumOptions
 	OPT_NEWER,
 	OPT_OVERWRITE,
 	OPT_REMOVE,
-	OPT_TRUNC,
-	OPT_FAST,
 	OPT_WDF,
 	OPT_ISO,
 	OPT_CISO,
@@ -160,6 +160,8 @@ typedef enum enumOptionsBit
 	OB_DEST2		= 1llu << OPT_DEST2,
 	OB_SPLIT		= 1llu << OPT_SPLIT,
 	OB_SPLIT_SIZE		= 1llu << OPT_SPLIT_SIZE,
+	OB_TRUNC		= 1llu << OPT_TRUNC,
+	OB_FAST			= 1llu << OPT_FAST,
 	OB_CHUNK_MODE		= 1llu << OPT_CHUNK_MODE,
 	OB_CHUNK_SIZE		= 1llu << OPT_CHUNK_SIZE,
 	OB_MAX_CHUNKS		= 1llu << OPT_MAX_CHUNKS,
@@ -176,8 +178,6 @@ typedef enum enumOptionsBit
 	OB_NEWER		= 1llu << OPT_NEWER,
 	OB_OVERWRITE		= 1llu << OPT_OVERWRITE,
 	OB_REMOVE		= 1llu << OPT_REMOVE,
-	OB_TRUNC		= 1llu << OPT_TRUNC,
-	OB_FAST			= 1llu << OPT_FAST,
 	OB_WDF			= 1llu << OPT_WDF,
 	OB_ISO			= 1llu << OPT_ISO,
 	OB_CISO			= 1llu << OPT_CISO,
@@ -241,6 +241,7 @@ typedef enum enumOptionsBit
 
 	OB_GRP_SPLIT_CHUNK	= OB_SPLIT
 				| OB_SPLIT_SIZE
+				| OB_TRUNC
 				| OB_CHUNK_MODE
 				| OB_CHUNK_SIZE
 				| OB_MAX_CHUNKS,
@@ -269,7 +270,8 @@ typedef enum enumOptionsBit
 				| OB_NO_HEADER
 				| OB_LONG,
 
-	OB_CMD_ANALYZE		= OB_GRP_READ_WBFS,
+	OB_CMD_ANALYZE		= OB_GRP_READ_WBFS
+				| OB_LONG,
 
 	OB_CMD_DUMP		= OB_GRP_TITLES
 				| OB_GRP_READ_WBFS
@@ -542,6 +544,7 @@ typedef enum enumGetOpt
 	GO_NAME,
 	GO_MODIFY,
 	GO_INODE,
+	GO_TRUNC,
 	GO_CHUNK_MODE,
 	GO_CHUNK_SIZE,
 	GO_MAX_CHUNKS,
@@ -551,7 +554,6 @@ typedef enum enumGetOpt
 	GO_NO_CHECK,
 	GO_REPAIR,
 	GO_NO_FREE,
-	GO_TRUNC,
 	GO_ITIME,
 	GO_MTIME,
 	GO_CTIME,

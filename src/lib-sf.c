@@ -1000,7 +1000,7 @@ enumError SetSizeSF ( SuperFile_t * sf, off_t off )
     sf->file_size = off;
     switch (sf->iod.oft)
     {
-	case OFT_PLAIN:	return SetSizeF(&sf->f,off);
+	case OFT_PLAIN:	return opt_truncate ? ERR_OK : SetSizeF(&sf->f,off);
 	case OFT_WDF:	return ERR_OK;
 	case OFT_CISO:	return ERR_OK;
 	case OFT_WBFS:	return ERR_OK;

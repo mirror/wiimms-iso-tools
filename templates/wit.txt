@@ -732,10 +732,6 @@ The option --recurse is processed before option --source.
 
 @@MODULE(opt-sort.txt)@@
 
--------------------------------------------------------------------------------
-
-@@MODULE(opt-psel.txt)@@
-
 
 *******************************************************************************
 *******                   Hidden options (for testing)                  *******
