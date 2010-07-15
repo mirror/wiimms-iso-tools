@@ -68,10 +68,11 @@ volatile int verbose		= 0;
 volatile int logging		= 0;
 int progress			= 0;
 SortMode sort_mode		= SORT_DEFAULT;
-ShowMode show_mode		= SHOW__DEFAULT;
+ShowMode opt_show_mode		= SHOW__DEFAULT;
 RepairMode repair_mode		= REPAIR_NONE;
 char escape_char		= '%';
 enumOFT output_file_type	= OFT_UNKNOWN;
+int opt_truncate		= 0;
 option_t used_options		= 0;
 option_t env_options		= 0;
 int opt_split			= 0;
@@ -90,13 +91,6 @@ const char zerobuf[0x40000] = {0};	// global zero buffer
 const char sep_79[80] =		//  79 * '-' + NULL
 	"----------------------------------------"
 	"---------------------------------------";
-
-const char sep_200[201] =	// 200 * '-' + NULL
-	"----------------------------------------"
-	"----------------------------------------"
-	"----------------------------------------"
-	"----------------------------------------"
-	"----------------------------------------";
 
 StringField_t source_list;
 StringField_t recurse_list;
@@ -241,7 +235,6 @@ void SetupLib ( int argc, char ** argv, ccp p_progname, enumProgID prid )
     TRACE_SIZEOF(InfoOption_t);
     TRACE_SIZEOF(InfoUI_t);
     TRACE_SIZEOF(IOData_t);
-    TRACE_SIZEOF(IsoFileIterator_t);
     TRACE_SIZEOF(IsoMappingItem_t);
     TRACE_SIZEOF(IsoMapping_t);
     TRACE_SIZEOF(Iterator_t);
@@ -260,7 +253,6 @@ void SetupLib ( int argc, char ** argv, ccp p_progname, enumProgID prid )
     TRACE_SIZEOF(WBFS_t);
     TRACE_SIZEOF(WDF_Chunk_t);
     TRACE_SIZEOF(WDF_Head_t);
-    TRACE_SIZEOF(WDPartInfo_t);
     TRACE_SIZEOF(WDiscInfo_t);
     TRACE_SIZEOF(WDiscListItem_t);
     TRACE_SIZEOF(WDiscList_t);
@@ -282,18 +274,32 @@ void SetupLib ( int argc, char ** argv, ccp p_progname, enumProgID prid )
     TRACE_SIZEOF(wbfs_param_t);
     TRACE_SIZEOF(wbfs_t);
     TRACE_SIZEOF(wd_boot_t);
+    TRACE_SIZEOF(wd_disc_t);
     TRACE_SIZEOF(wd_fst_item_t);
     TRACE_SIZEOF(wd_header_t);
+    TRACE_SIZEOF(wd_icm_t);
+    TRACE_SIZEOF(wd_ipm_t);
+    TRACE_SIZEOF(wd_iterator_t);
     TRACE_SIZEOF(wd_part_control_t);
-    TRACE_SIZEOF(wd_part_count_t);
     TRACE_SIZEOF(wd_part_header_t);
     TRACE_SIZEOF(wd_part_sector_t);
-    TRACE_SIZEOF(wd_part_table_entry_t);
-    TRACE_SIZEOF(wd_region_set_t);
+    TRACE_SIZEOF(wd_part_t);
+    TRACE_SIZEOF(wd_patch_item_t);
+    TRACE_SIZEOF(wd_patch_mode_t);
+    TRACE_SIZEOF(wd_patch_t);
+    TRACE_SIZEOF(wd_pfst_t);
+    TRACE_SIZEOF(wd_pname_mode_t);
+    TRACE_SIZEOF(wd_print_fst_t);
+    TRACE_SIZEOF(wd_ptab_info_t);
+    TRACE_SIZEOF(wd_ptab_entry_t);
+    TRACE_SIZEOF(wd_ptab_t);
+    TRACE_SIZEOF(wd_region_t);
+    TRACE_SIZEOF(wd_select_t);
+    TRACE_SIZEOF(wd_select_idx_t);
     TRACE_SIZEOF(wd_ticket_t);
     TRACE_SIZEOF(wd_tmd_content_t);
     TRACE_SIZEOF(wd_tmd_t);
-    TRACE_SIZEOF(wiidisc_t);
+    TRACE_SIZEOF(wd_usage_t);
 
     // assertions
 
@@ -311,7 +317,7 @@ void SetupLib ( int argc, char ** argv, ccp p_progname, enumProgID prid )
     ASSERT( sizeof(CISO_Head_t) == CISO_HEAD_SIZE );
 
     ASSERT(  79 == strlen(sep_79) );
-    ASSERT( 200 == strlen(sep_200) );
+    ASSERT( 200 == strlen(wd_sep_200) );
 
     validate_file_format_sizes(1);
 
@@ -587,7 +593,9 @@ ccp GetErrorName ( int stat )
 	case ERR_NO_CISO:		return "NO WDF";
 	case ERR_CISO_INVALID:		return "INVALID WDF";
 
-	case ERR_WDISC_NOT_FOUND:	return "WDISC NOT FOUND";
+	case ERR_WDISC_INVALID:		return "INVALID WII DISC";
+	case ERR_WDISC_NOT_FOUND:	return "WII DISC NOT FOUND";
+
 	case ERR_NO_WBFS_FOUND:		return "NO WBFS FOUND";
 	case ERR_TO_MUCH_WBFS_FOUND:	return "TO MUCH WBFS FOUND";
 	case ERR_WBFS_INVALID:		return "INVALID WBFS";
@@ -608,6 +616,8 @@ ccp GetErrorName ( int stat )
 	case ERR_SYNTAX:		return "SYNTAX ERROR";
 
 	case ERR_INTERRUPT:		return "INTERRUPT";
+
+	case ERR_ERROR:			return "ERROR";
 
 	case ERR_NOT_IMPLEMENTED:	return "NOT IMPLEMENTED YET";
 	case ERR_INTERNAL:		return "INTERNAL ERROR";
@@ -640,7 +650,9 @@ ccp GetErrorText ( int stat )
 	case ERR_NO_CISO:		return "File is not a CISO";
 	case ERR_CISO_INVALID:		return "Invalid CISO";
 
+	case ERR_WDISC_INVALID:		return "Invalid Wii disc";
 	case ERR_WDISC_NOT_FOUND:	return "Wii disc not found";
+
 	case ERR_NO_WBFS_FOUND:		return "No WBFS found";
 	case ERR_TO_MUCH_WBFS_FOUND:	return "To much WBFS found";
 	case ERR_WBFS_INVALID:		return "Invalid WBFS";
@@ -661,6 +673,8 @@ ccp GetErrorText ( int stat )
 	case ERR_SYNTAX:		return "Syntax error";
 
 	case ERR_INTERRUPT:		return "Program interrupted";
+
+	case ERR_ERROR:			return "Error";
 
 	case ERR_NOT_IMPLEMENTED:	return "Not implemented yet";
 	case ERR_INTERNAL:		return "Internal error";
@@ -823,16 +837,40 @@ void HexDump ( FILE * f, int indent, u64 addr, int addr_fw, int row_len,
 ///////////////			terminal cap			///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
+u32 opt_width = 0;
+
+///////////////////////////////////////////////////////////////////////////////
+
+int ScanOptWidth ( ccp source )
+{
+    return ERR_OK != ScanSizeOptU32(
+			&opt_width,		// u32 * num
+			source,			// ccp source
+			1,			// default_factor1
+			0,			// int force_base
+			"width",		// ccp opt_name
+			40,			// u64 min
+			10000,			// u64 max
+			1,			// u32 multiple
+			0,			// u32 pow2
+			true			// bool print_err
+			);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
 int GetTermWidth ( int default_value, int min_value )
 {
-    int term_width = GetTermWidthFD(STDOUT_FILENO,-1,min_value);
+    int term_width = opt_width > 0
+			? opt_width
+			: GetTermWidthFD(STDOUT_FILENO,-1,min_value);
     if ( term_width <= 0 )
 	term_width = GetTermWidthFD(STDERR_FILENO,-1,min_value);
 
     return term_width > 0 ? term_width : default_value;
 }
 
-//-----------------------------------------------------------------------------
+///////////////////////////////////////////////////////////////////////////////
 
 int GetTermWidthFD ( int fd, int default_value, int min_value )
 {
@@ -873,7 +911,7 @@ int GetTermWidthFD ( int fd, int default_value, int min_value )
      #endif
     }
 
-    return default_value;
+    return default_value ? default_value : opt_width;
 }
 
 //
@@ -1084,15 +1122,22 @@ int NormalizeIndent ( int indent )
 
 ///////////////////////////////////////////////////////////////////////////////
 
-int CheckIDHelper
-	( const void * id, int max_len, bool allow_any_len, bool ignore_case )
+int CheckIDHelper // helper for all other id functions
+(
+	const void	* id,		// valid pointer to test ID
+	int		max_len,	// max length of ID, a NULL terminates ID too
+	bool		allow_any_len,	// if false, only length 4 and 6 are allowed
+	bool		ignore_case,	// lower case letters are allowed
+	bool		allow_point	// the wildcard '.' is allowed
+)
 {
     ASSERT(id);
     ccp ptr = id;
     ccp end = ptr + max_len;
     while ( ptr != end && ( *ptr >= 'A' && *ptr <= 'Z'
-			|| *ptr >= 'a' && *ptr <= 'z' && ignore_case
+			|| ignore_case && *ptr >= 'a' && *ptr <= 'z'
 			|| *ptr >= '0' && *ptr <= '9'
+			|| allow_point && *ptr == '.'
 			|| *ptr == '_' ))
 	ptr++;
 
@@ -1102,34 +1147,54 @@ int CheckIDHelper
 
 //-----------------------------------------------------------------------------
 
-int CheckID ( const void * id, bool ignore_case )
+int CheckID // check up to 7 chars for ID4|ID6
+(
+	const void	* id,		// valid pointer to test ID
+	bool		ignore_case,	// lower case letters are allowed
+	bool		allow_point	// the wildcard '.' is allowed
+)
 {
     // check up to 7 chars
-    return CheckIDHelper(id,7,false,ignore_case);
+    return CheckIDHelper(id,7,false,ignore_case,allow_point);
 }
 
 //-----------------------------------------------------------------------------
 
-bool CheckID4 ( const void * id, bool ignore_case )
+bool CheckID4 // check exact 4 chars
+(
+	const void	* id,		// valid pointer to test ID
+	bool		ignore_case,	// lower case letters are allowed
+	bool		allow_point	// the wildcard '.' is allowed
+)
 {
     // check exact 4 chars
-    return CheckIDHelper(id,4,false,ignore_case) == 4;
+    return CheckIDHelper(id,4,false,ignore_case,allow_point) == 4;
 }
 
 //-----------------------------------------------------------------------------
 
-bool CheckID6 ( const void * id, bool ignore_case )
+bool CheckID6 // check exact 6 chars
+(
+	const void	* id,		// valid pointer to test ID
+	bool		ignore_case,	// lower case letters are allowed
+	bool		allow_point	// the wildcard '.' is allowed
+)
 {
     // check exact 6 chars
-    return CheckIDHelper(id,6,false,ignore_case) == 6;
+    return CheckIDHelper(id,6,false,ignore_case,allow_point) == 6;
 }
 
 //-----------------------------------------------------------------------------
 
-int CountIDChars( const void * id, bool ignore_case )
+int CountIDChars // count number of valid ID chars, max = 1000
+(
+	const void	* id,		// valid pointer to test ID
+	bool		ignore_case,	// lower case letters are allowed
+	bool		allow_point	// the wildcard '.' is allowed
+)
 {
     // count number of valid ID chars
-    return CheckIDHelper(id,1000,true,ignore_case);
+    return CheckIDHelper(id,1000,true,ignore_case,allow_point);
 }
 
 //-----------------------------------------------------------------------------
@@ -1156,7 +1221,7 @@ char * ScanID ( char * destbuf7, int * destlen, ccp source )
 	}
 
 	// scan first word
-	const int id_len = CheckID(src,false);
+	const int id_len = CheckID(src,false,false);
 
 	if ( id_len == 4 )
 	{
@@ -1207,7 +1272,7 @@ char * ScanID ( char * destbuf7, int * destlen, ccp source )
 	    while ( *src && *src != '[' ) // ]
 		src++;
 
-	    if ( *src == '[' && src[7] == ']' && CheckID(++src,false) == 6 )
+	    if ( *src == '[' && src[7] == ']' && CheckID(++src,false,false) == 6 )
 	    {
 		id_start = src;
 		src += 8;
@@ -1870,7 +1935,7 @@ enumError ScanSizeOptU32
 
 ///////////////////////////////////////////////////////////////////////////////
 
-int ScanSplitSize ( ccp source )
+int ScanOptSplitSize ( ccp source )
 {
     opt_split++;
     return ERR_OK != ScanSizeOptU64(
@@ -2010,10 +2075,14 @@ char * ScanRangeU32 ( ccp arg, u32 * p_stat, u32 * p_n1, u32 * p_n2, u32 min, u3
 ///////////////////////////////////////////////////////////////////////////////
 
 const CommandTab_t * ScanCommand
-	( int * p_stat, ccp arg, const CommandTab_t * cmd_tab )
+(
+    int			* res_abbrev,	// NULL or pointer to result 'abbrev_count'
+    ccp			arg,		// argument to scan
+    const CommandTab_t	* cmd_tab	// valid pointer to command table
+)
 {
     ASSERT(arg);
-    char cmd_buf[COMMAND_MAX];
+    char cmd_buf[COMMAND_NAME_MAX];
 
     char *dest = cmd_buf;
     char *end  = cmd_buf + sizeof(cmd_buf) - 1;
@@ -2049,23 +2118,29 @@ const CommandTab_t * ScanCommand
     else if (!abbrev_count)
 	abbrev_count = -1;
 
-    if (p_stat)
-	*p_stat = abbrev_count;
+    if (res_abbrev)
+	*res_abbrev = abbrev_count;
 
     return cmd_ct;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 
-int ScanCommandList
-	( ccp arg, const CommandTab_t * cmd_tab, CommandCallbackFunc func )
+s64 ScanCommandList
+(
+    ccp			arg,		// argument to scan
+    const CommandTab_t	* cmd_tab,	// valid pointer to command table
+    CommandCallbackFunc	func,		// NULL or calculation function
+    bool		allow_prefix,	// allow '-' | '+' | '=' as prefix
+    u32			max_number,	// allow numbers < 'max_number' (0=disabled)
+    s64			result		// start value for result
+)
 {
     ASSERT(arg);
 
-    char cmd_buf[COMMAND_MAX];
+    char cmd_buf[COMMAND_NAME_MAX];
     char *end  = cmd_buf + sizeof(cmd_buf) - 1;
 
-    int result = 0;
     for (;;)
     {
 	while ( *arg > 0 && *arg <= ' ' || *arg == ',' )
@@ -2074,30 +2149,49 @@ int ScanCommandList
 	if (!*arg)
 	    return result;
 
-	char mode = 0;
-	if ( !func && ( *arg == '+' || *arg == '-' || *arg == '=' ) && arg[1] )
-	    mode = *arg++;
-	
 	char *dest = cmd_buf;
-	while ( *arg > ' ' && *arg != ',' && dest < end )
+	while ( *arg > ' ' && *arg != ',' &&
+		( *arg != '+' || dest == cmd_buf ) && dest < end )
 	    *dest++ = *arg++;
 	*dest = 0;
+	char prefix = 0;
+	int abbrev_count;
+	const CommandTab_t * cptr = ScanCommand(&abbrev_count,cmd_buf,cmd_tab);
+	if ( !cptr && allow_prefix && cmd_buf[1]
+	    && ( *cmd_buf == '+' || *cmd_buf == '-' || *cmd_buf == '=' ))
+	{
+	    prefix = *cmd_buf;
+	    cptr = ScanCommand(&abbrev_count,cmd_buf+1,cmd_tab);
+	}
 
-	const CommandTab_t * cptr = ScanCommand(0,cmd_buf,cmd_tab);
-	if (!cptr)
+	CommandTab_t ct_num = { 0, cmd_buf, 0, 0 };
+	if ( max_number && abbrev_count )
+	{
+	    char * start = cmd_buf + (prefix!=0);
+	    ulong num = strtol(start,&dest,10);
+	    if ( num < max_number && dest > start && !*dest )
+	    {
+		ct_num.id = num;
+		cptr = &ct_num;
+	    }
+	}
+	
+	if ( !cptr || cptr->opt && prefix && prefix != '+' )
 	    return -1;
+
 
 	if (func)
 	{
-	    result = func(cmd_buf,cmd_tab,cptr,result);
-	    if ( result < 0 )
+	    result = func(cmd_buf,cmd_tab,cptr,prefix,result);
+	    if ( result == -(s64)1 )
 		return result;
 	}
 	else
 	{
-	    switch ( mode ? mode : cptr->opt ? '=' : '+' )
+	    switch (prefix)
 	    {
-		case '+': result |=  cptr->id; break;
+		case 0:
+		case '+': result  =  result & ~cptr->opt | cptr->id; break;
 		case '-': result &= ~cptr->id; break;
 		case '=': result  =  cptr->id; break;
 	    }
@@ -2107,20 +2201,29 @@ int ScanCommandList
 
 ///////////////////////////////////////////////////////////////////////////////
 
-static int ScanCommandListMaskHelper
-	( ccp cmd_name, const CommandTab_t * cmd_tab,
-		const CommandTab_t * cptr, int result )
+static s64 ScanCommandListMaskHelper
+(
+    ccp			name,		// normalized name of option
+    const CommandTab_t	* cmd_tab,	// valid pointer to command table
+    const CommandTab_t	* cmd,		// valid pointer to found command
+    char		prefix,		// 0 | '-' | '+' | '='
+    s64			result		// current value of result
+)
 {
-    return cptr->opt
-		? result & ~cptr->opt | cptr->id
-		: cptr->id;
+    return cmd->opt
+		? result & ~cmd->opt | cmd->id
+		: cmd->id;
 }
 
 //-----------------------------------------------------------------------------
 
-int ScanCommandListMask ( ccp arg, const CommandTab_t * cmd_tab )
+s64 ScanCommandListMask
+(
+    ccp			arg,		// argument to scan
+    const CommandTab_t	* cmd_tab	// valid pointer to command table
+)
 {
-    return ScanCommandList(arg,cmd_tab,ScanCommandListMaskHelper);
+    return ScanCommandList(arg,cmd_tab,ScanCommandListMaskHelper,false,0,0);
 }
 
 //
@@ -2187,6 +2290,12 @@ int ScanOptSort ( ccp arg )
 
 ShowMode ScanShowMode ( ccp arg )
 {
+    enum
+    {
+	DEC_ALL = SHOW_F_DEC1 | SHOW_F_DEC,
+	HEX_ALL = SHOW_F_HEX1 | SHOW_F_HEX,
+    };
+
     static const CommandTab_t tab[] =
     {
 	{ SHOW__NONE,	"NONE",		"-",		SHOW__ALL },
@@ -2199,14 +2308,30 @@ ShowMode ScanShowMode ( ccp arg )
 	{ SHOW_D_MAP,	"D-MAP",	"DMAP",		0 },
 	{ SHOW_TICKET,	"TICKET",	0,		0 },
 	{ SHOW_TMD,	"TMD",		0,		0 },
+	{ SHOW_USAGE,	"USAGE",	0,		0 },
+	{ SHOW_FILES,	"FILES",	0,		0 },
+	{ SHOW_PATCH,	"PATCH",	0,		0 },
+	{ SHOW_PATH,	"PATH",		0,		0 },
+
+	{ SHOW_OFFSET,	"OFFSET",	0,		0 },
+	{ SHOW_SIZE,	"SIZE",		0,		0 },
 
 	{ SHOW__PART,	"PART",		0,		0 },
 	{ SHOW__MAP,	"MAP",		0,		0 },
 
+	{ DEC_ALL,	"DEC",		0,		SHOW_F_HEX1 },
+	{ 0,		"-DEC",		0,		SHOW_F_DEC },
+	{ DEC_ALL,	"=DEC",		0,		HEX_ALL },
+	{ HEX_ALL,	"HEX",		0,		SHOW_F_DEC1 },
+	{ 0,		"-HEX",		0,		SHOW_F_HEX },
+	{ HEX_ALL,	"=HEX",		0,		DEC_ALL },
+
+	{ SHOW_F_HEAD,	"HEADER",	"HEADER",	0 },
+
 	{ 0,0,0,0 }
     };
 
-    int stat = ScanCommandList(arg,tab,0);
+    int stat = ScanCommandList(arg,tab,0,true,0,SHOW_F_HEAD);
     if ( stat != -1 )
 	return stat;
 
@@ -2222,9 +2347,50 @@ int ScanOptShow ( ccp arg )
     if ( new_mode == SHOW__ERROR )
 	return 1;
 
-    TRACE("SHOW-MODE set: %d -> %d\n",show_mode,new_mode);
-    show_mode = new_mode;
+    TRACE("SHOW-MODE set: %d -> %d\n",opt_show_mode,new_mode);
+    opt_show_mode = new_mode;
     return 0;
+}
+
+//-----------------------------------------------------------------------------
+
+int ConvertShow2PFST
+(
+	ShowMode show_mode,	// show mode
+	ShowMode def_mode	// default mode
+)
+{
+    const ShowMode OFF_SIZE = SHOW_OFFSET | SHOW_SIZE;
+    if ( !(show_mode & OFF_SIZE) )
+	show_mode |= def_mode & OFF_SIZE;
+
+    const ShowMode DEC_HEX = SHOW_F_DEC | SHOW_F_HEX;
+    if ( !(show_mode & DEC_HEX) )
+	show_mode |= def_mode & DEC_HEX;
+
+    wd_pfst_t pfst = 0;
+    if ( show_mode & SHOW_F_HEAD )
+	pfst |= WD_PFST_HEADER;
+    if ( show_mode & SHOW_OFFSET )
+	pfst |= WD_PFST_OFFSET;
+    if ( show_mode & SHOW_SIZE )
+    {
+	switch ( show_mode & DEC_HEX )
+	{
+	    case SHOW_F_DEC:
+		pfst |= WD_PFST_SIZE_DEC;
+		break;
+
+	    case SHOW_F_HEX:
+		pfst |= WD_PFST_SIZE_HEX;
+		break;
+
+	    default:
+		pfst |= WD_PFST_SIZE_DEC|WD_PFST_SIZE_HEX; break;
+	}
+    }
+
+    return pfst;
 }
 
 //
@@ -2236,7 +2402,7 @@ RepairMode ScanRepairMode ( ccp arg )
 {
     static const CommandTab_t tab[] =
     {
-	{ REPAIR_NONE,		"NONE",		"-",	1 },
+	{ REPAIR_NONE,		"NONE",		"-",	REPAIR_ALL },
 
 	{ REPAIR_FBT,		"FBT",		"F",	0 },
 	{ REPAIR_INODES,	"INODES",	"I",	0 },
@@ -2252,7 +2418,7 @@ RepairMode ScanRepairMode ( ccp arg )
 	{ 0,0,0,0 }
     };
 
-    int stat = ScanCommandList(arg,tab,0);
+    int stat = ScanCommandList(arg,tab,0,true,0,0);
     if ( stat != -1 )
 	return stat;
 
@@ -2795,6 +2961,36 @@ MemMapItem_t * InsertMemMap ( MemMap_t * mm, off_t off, off_t size )
 
 ///////////////////////////////////////////////////////////////////////////////
 
+void InsertMemMapWrapper
+(
+	void		* param,	// user defined parameter
+	u64		offset,		// offset of object
+	u64		size,		// size of object
+	ccp		info		// info about object
+)
+{
+    noTRACE("InsertMemMapWrapper(%p,%llx,%llx,%s)\n",param,offset,size,info);
+    ASSERT(param);
+    MemMapItem_t * mi = InsertMemMap(param,offset,size);
+    StringCopyS(mi->info,sizeof(mi->info),info);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+void InsertDiscMemMap
+(
+	MemMap_t	* mm,		// valid memore map pointer
+	wd_disc_t	* disc		// valid disc pointer
+)
+{
+    noTRACE("InsertDiscMemMap(%p,%p)\n",mm,disc);
+    DASSERT(mm);
+    DASSERT(disc);
+    wd_dump_mem(disc,InsertMemMapWrapper,mm);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
 uint FindMemMapHelper ( MemMap_t * mm, off_t off, off_t size )
 {
     ASSERT(mm);
@@ -2873,7 +3069,7 @@ void PrintMemMap ( MemMap_t * mm, FILE * f, int indent )
     }
 
     fprintf(f,"%*s      unused :   off(beg) ..   off(end) :      size : info\n%*s%.*s\n",
-	    indent, "", indent, "", max_ilen+54, sep_200 );
+	    indent, "", indent, "", max_ilen+54, wd_sep_200 );
 
     off_t max_end = mm->begin;
     for ( i = 0; i < mm->used; i++ )
@@ -2893,6 +3089,118 @@ void PrintMemMap ( MemMap_t * mm, FILE * f, int indent )
 	if ( max_end < end )
 	    max_end = end;
     }
+}
+
+//
+///////////////////////////////////////////////////////////////////////////////
+///////////////			setup files			///////////////
+///////////////////////////////////////////////////////////////////////////////
+
+size_t ResetSetup
+(
+	SetupDef_t * list	// object list terminated with an element 'name=NULL'
+)
+{
+    DASSERT(list);
+    size_t count;
+    for ( count = 0; list->name; list++, count++ )
+    {
+	FreeString(list->param);
+	list->param = 0;
+	list->value = 0;
+    }
+    return count;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+enumError ScanSetupFile
+(
+	SetupDef_t * list,	// object list terminated with an element 'name=NULL'
+	ccp path1,		// filename of text file, part 1
+	ccp path2,		// filename of text file, part 2
+	bool silent		// true: suppress error message if file not found
+)
+{
+    DASSERT(list);
+    DASSERT(path1||path2);
+
+    ResetSetup(list);
+
+    char pathbuf[PATH_MAX];
+    ccp path = PathCatPP(pathbuf,sizeof(pathbuf),path1,path2);
+    TRACE("ScanSetupFile(%s,%d)\n",path,silent);
+
+    FILE * f = fopen(path,"rb");
+    if (!f)
+    {
+	if (!silent)
+	    ERROR1(ERR_CANT_OPEN,"Can't open file: %s\n",path);
+	return ERR_CANT_OPEN;
+    }
+ 
+    while (fgets(iobuf,sizeof(iobuf)-1,f))
+    {
+	//----- skip spaces
+
+	char * ptr = iobuf;
+	while ( *ptr > 0 && *ptr <= ' ' )
+	    ptr++;
+
+	//----- find end of name
+
+	char * name = ptr;
+	while ( isalnum((int)*ptr) || *ptr == '-' )
+	    ptr++;
+	if (!*ptr)
+	    continue;
+
+	*ptr++ = 0;
+
+	//----- skip spaces and check for '='
+
+	while ( *ptr > 0 && *ptr <= ' ' )
+	    ptr++;
+
+	if ( *ptr != '=' )
+	    continue;
+
+	//----- check if name is a known parameter
+
+	SetupDef_t * item;
+	for ( item = list; item->name; item++ )
+	    if (!strcmp(item->name,name))
+		break;
+	if (!item->name)
+	    continue;
+
+	//----- trim parameter
+
+	ptr++; // skip '='
+	while ( *ptr > 0 && *ptr <= ' ' )
+	    ptr++;
+
+	char * param = ptr;
+
+	while (*ptr)
+	    ptr++;
+
+	ptr--;
+	while ( *ptr > 0 && *ptr <= ' ' )
+	    ptr--;
+	ptr[1] = 0;
+
+	item->param = strdup(param);
+	if (item->factor)
+	{
+	    ScanSizeU64(&item->value,param,1,1,0);
+	    if ( item->factor > 1 )
+		item->value = item->value / item->factor * item->factor;
+	}
+    }
+    
+    fclose(f);
+    return ERR_OK;
 }
 
 //

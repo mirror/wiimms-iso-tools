@@ -12,3 +12,5 @@
 ../src/wbfs-interface.[ch] ;
 ../src/*.{c,h} ;
 ../src/&/*.{c,h,s,S} ;
+../setup/*.{c,h} ;
+../work/*.{c,h,s,S} ;

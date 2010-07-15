@@ -66,13 +66,14 @@ typedef enum enumOptions
 	OPT_VERSION,
 	OPT_HELP,
 	OPT_XHELP,
+	OPT_WIDTH,
 	OPT_QUIET,
 	OPT_VERBOSE,
 	OPT_DEST2,
 	OPT_STDOUT,
 	OPT_TEST,
 
-	OPT__N_TOTAL // == 25
+	OPT__N_TOTAL // == 26
 
 } enumOptions;
 
@@ -200,6 +201,7 @@ typedef enum enumGetOpt
 	GO_SPLIT		= 'z',
 
 	GO_XHELP		= 0x80,
+	GO_WIDTH,
 	GO_CHUNK,
 	GO_WBI,
 	GO_CHUNK_MODE,

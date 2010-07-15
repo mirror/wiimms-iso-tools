@@ -687,7 +687,7 @@ enumError CheckParamRename ( bool rename_id, bool allow_plus, bool allow_index )
 	    param->selector[0] = '+';
 	    arg++;
 	}
-	else if ( CheckID(arg,true) == 6 )
+	else if ( CheckID(arg,true,false) == 6 )
 	{
 	    // ID6 found
 	    int i;
@@ -757,14 +757,16 @@ enumError CheckParamRename ( bool rename_id, bool allow_plus, bool allow_index )
 
 	    if ( *arg != ',' )
 	    {
-		if ( CheckID(arg,true) != 6 )
+		const int idlen = CountIDChars(arg,true,true);
+		if ( idlen < 1 || idlen > 6 )
 		{
-		    ERROR0(ERR_SYNTAX,"Missing ID6: %s -> %s\n", param->arg, arg );
+		    ERROR0(ERR_SYNTAX,"Missing ID: %s -> %s\n", param->arg, arg );
 		    syntax_count++;
 		    continue;
 		}
+		memset(param->id6,'.',6);
 		int i;
-		for ( i = 0; i < 6; i++ )
+		for ( i = 0; i < idlen; i++ )
 		    param->id6[i] = toupper((int)*arg++);
 		while ( *arg > 0 &&*arg <= ' ' )
 		    arg++;
@@ -1324,13 +1326,10 @@ enumError DumpWBFS
     {
 	fprintf(f,"%*sWBFS-Header:\n", indent,"");
 	ccp magic = (ccp)&head->magic;
-	fprintf(f,"%*s  WBFS MAGIC: %10x %02x %02x %02x =         '%c%c%c%c'\n",
+	fprintf(f,"%*s  WBFS MAGIC: %10x %02x %02x %02x =         '%s'\n",
 			indent,"",
 			magic[0], magic[1], magic[2], magic[3],
-			magic[0] >= ' ' && magic[0] < 0x7f ? magic[0] : '.',
-			magic[1] >= ' ' && magic[1] < 0x7f ? magic[1] : '.',
-			magic[2] >= ' ' && magic[2] < 0x7f ? magic[2] : '.',
-			magic[3] >= ' ' && magic[3] < 0x7f ? magic[3] : '.' );
+			wd_print_id(magic,4,0) );
 
 	fprintf(f,"%*s  WBFS VERSION:     %#13x =%15u\n", indent,"",
 			head->wbfs_version, head->wbfs_version );
@@ -1881,7 +1880,7 @@ static void AW_discs ( AWData_t * awd, File_t * f, ccp data )
 	wd_header_t *wd = (wd_header_t *)( data + sec * SEC_SIZE );
 	u32 magic = ntohl(wd->magic);
 	if ( ( magic == WII_MAGIC || magic == WII_MAGIC_DELETED )
-		&& CheckID6(wd,false) )
+		&& CheckID6(wd,false,false) )
 	{
 	    noTRACE(" - DISC found @ sector #%u\n",sec);
 	    for ( level = SEC_LEVEL-1; level >= 0; level-- )
@@ -2107,7 +2106,7 @@ int AnalyzeWBFS ( AWData_t * awd, File_t * f )
     //----- finish operation
 
  #ifdef DEBUG
-    PrintAnalyzeWBFS(awd,TRACE_FILE,0);
+    PrintAnalyzeWBFS(TRACE_FILE,0,awd,2);
  #endif
 
     f->disable_errors = disable_errors;
@@ -2117,12 +2116,24 @@ int AnalyzeWBFS ( AWData_t * awd, File_t * f )
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-int PrintAnalyzeWBFS ( AWData_t * awd, FILE * out, int indent )
+int PrintAnalyzeWBFS
+(
+    FILE		* out,		// valid output stream
+    int			indent,		// indent of output
+    AWData_t		* awd,		// valid pointer
+    int			print_calc	// 0: suppress calculated values
+					// 1: print calculated values if other values available
+					// 2: print calculated values
+)
 {
-    ASSERT(awd);
+    DASSERT(out);
+    DASSERT(awd);
     
     if ( !out || !awd->n_record )
 	return 0;
+    if ( print_calc < 2 && ( awd->rec->status == AW_CALC || awd->rec->status == AW_OLD_CALC ))
+	return 0;
+
     indent = NormalizeIndent(indent);
 
     char buf[30];
@@ -2141,11 +2152,12 @@ int PrintAnalyzeWBFS ( AWData_t * awd, FILE * out, int indent )
     for ( i = 0; i < awd->n_record; i++ )
     {
 	AWRecord_t * ar = awd->rec + i;
-
+	const bool is_calc =  ar->status == AW_CALC || ar->status == AW_OLD_CALC;
+	if ( !print_calc && is_calc )
+	    continue;
+	
 	ccp info = ar->info;
-	if ( i > 0
-	    && ar->status == ar[-1].status
-	    && ( ar->status == AW_CALC || ar->status == AW_OLD_CALC ) )
+	if ( i > 0 && ar->status == ar[-1].status && is_calc )
 	{
 	    snprintf(buf,sizeof(buf),
 			" \" but sector-size=%u",ar->hd_sector_size);
@@ -2765,6 +2777,7 @@ bool CalcFBT ( CheckWBFS_t * ck )
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////                     WiiDiscInfo                 ///////////////
 ///////////////////////////////////////////////////////////////////////////////
+// is WiiDiscInfo obsolete? [wiidisc] [obsolete]
 
 void InitializeWDiscInfo ( WDiscInfo_t * dinfo )
 {
@@ -2776,8 +2789,7 @@ void InitializeWDiscInfo ( WDiscInfo_t * dinfo )
 enumError ResetWDiscInfo ( WDiscInfo_t * dinfo )
 {
     // nothing to do
-    if (dinfo->pinfo)
-	free(dinfo->pinfo);
+
     InitializeWDiscInfo(dinfo);
     return ERR_OK;
 }
@@ -2900,17 +2912,26 @@ void CalcWDiscInfo ( WDiscInfo_t * dinfo, SuperFile_t * sf )
 {
     ASSERT(dinfo);
 
+    if (sf)
+    {
+	wd_disc_t * disc = OpenDiscSF(sf,false,false);
+	if (disc)
+	{
+	    dinfo->n_part = disc->n_part;
+	    dinfo->magic2 = disc->magic2;
+	    memcpy(&dinfo->dhead,&disc->dhead,sizeof(dinfo->dhead));
+	    dinfo->used_blocks = CountUsedIsoBlocksSF(sf,part_selector);
+	}
+	else
+	    ReadSF(sf,0,&dinfo->dhead,sizeof(dinfo->dhead));
+    }
+
     memcpy(dinfo->id6,&dinfo->dhead.disc_id,6);
-    dinfo->id6[6] = 0;
-    dinfo->title = GetTitle(dinfo->id6,0);
-    dinfo->disc_index = 0;
-    dinfo->size  = 0;
-
-    const RegionInfo_t * reginfo = GetRegionInfo(dinfo->dhead.region_code);
-    dinfo->region4 = reginfo->name4;
-    dinfo->region  = reginfo->name;
-
-    dinfo->used_blocks = sf ? CountUsedIsoBlocksSF(sf,partition_selector) : 0;
+    dinfo->id6[6]	= 0;
+    dinfo->used_blocks	= 0;
+    dinfo->disc_index	= 0;
+    dinfo->size		= 0;
+    dinfo->title	= GetTitle(dinfo->id6,0);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -2926,7 +2947,6 @@ void CopyWDiscInfo ( WDiscListItem_t * item, WDiscInfo_t * dinfo )
     memcpy(item->id6,&dinfo->dhead.disc_id,6);
     item->size_mib = (u32)(( dinfo->size + MiB/2 ) / MiB );
     memcpy(item->name64,dinfo->dhead.game_title,64);
-    memcpy(item->region4,dinfo->region4,4);
     item->title		= dinfo->title;
     item->n_part	= dinfo->n_part;
     item->wbfs_slot	= dinfo->disc_index;
@@ -2934,227 +2954,6 @@ void CopyWDiscInfo ( WDiscListItem_t * item, WDiscInfo_t * dinfo )
     item->used_blocks	= dinfo->used_blocks;
 
     CopyFileAttribDiscInfo(&item->fatt,dinfo);
-}
-
-///////////////////////////////////////////////////////////////////////////////
-
-enumError CountPartitions ( SuperFile_t * sf, WDiscInfo_t * dinfo )
-{
-    ASSERT(sf);
-    ASSERT(dinfo);
-
-    if ( dinfo->pinfo )
-	return ERR_OK;
-
-    enumError err = ReadSF(sf,WII_PART_INFO_OFF,dinfo->pcount,sizeof(dinfo->pcount));
-    if (err)
-	return err;
-
-    int i, np = 0, nt = 0;
-    wd_part_count_t *pc;
-    for ( i = 0, pc = dinfo->pcount; i < WII_MAX_PART_INFO; i++, pc++ )
-    {
-	pc->off4   = ntohl(pc->off4);
-	pc->n_part = ntohl(pc->n_part);
-	if ( pc->n_part > WII_MAX_PART_TABLE )
-	    pc->n_part = WII_MAX_PART_TABLE;
-	np += pc->n_part;
-	if ( pc->n_part > 0 )
-	    nt++;
-    }
-
-    dinfo->n_ptab = nt;
-    dinfo->n_part = np;
-    return ERR_OK;
-}
-
-///////////////////////////////////////////////////////////////////////////////
-
-enumError LoadPartitionInfo
-	( SuperFile_t * sf, WDiscInfo_t * dinfo, MemMap_t * mm )
-{
-    ASSERT(sf);
-    ASSERT(dinfo);
-
-    if ( dinfo->pinfo )
-	return ERR_OK;
-
-    dinfo->iso_size = sf->file_size;
-    MemMapItem_t * mi;
-    if (mm)
-    {
-	mi = InsertMemMap(mm,sf->file_size,0);
-	StringCopyS(mi->info,sizeof(mi->info),"-- end of ISO file --");
-    }
-
-    enumError err = ReadSF(sf,WII_REGION_OFF,&dinfo->regionset,sizeof(dinfo->regionset));
-    if (err)
-	return err;
-    dinfo->regionset.region = ntohl(dinfo->regionset.region);
-    if (mm)
-    {
-	mi = InsertMemMap(mm,WII_REGION_OFF,sizeof(dinfo->regionset));
-	snprintf(mi->info,sizeof(mi->info),"Region settings, region=%x",dinfo->regionset.region);
-    }
-
-    u8 magic2[WII_MAGIC2_LEN];
-    err = ReadSF(sf,WII_MAGIC2_OFF,magic2,sizeof(magic2));
-    if (err)
-	return err;
-    dinfo->magic2 = be32(magic2);
-    if (mm)
-    {
-	mi = InsertMemMap(mm,WII_MAGIC2_OFF,sizeof(magic2));
-	snprintf(mi->info,sizeof(mi->info),"Magic: %02x-%02x-%02x-%02x",
-		magic2[0], magic2[1], magic2[2], magic2[3] );
-    }
-
-    err = ReadSF(sf,WII_PART_INFO_OFF,dinfo->pcount,sizeof(dinfo->pcount));
-    if (err)
-	return err;
-    if (mm)
-    {
-	mi = InsertMemMap(mm,WII_PART_INFO_OFF,sizeof(dinfo->pcount));
-	StringCopyS(mi->info,sizeof(mi->info),"Partition table header");
-    }
-
-    err = CountPartitions(sf,dinfo);
-    if (err)
-	return err;
-
-    dinfo->pinfo = calloc(dinfo->n_part,sizeof(*dinfo->pinfo));
-    if (!dinfo->pinfo)
-	OUT_OF_MEMORY;
-    WDPartInfo_t *pi = dinfo->pinfo;
-
-    wd_part_table_entry_t wdpte[WII_MAX_PART_TABLE];
-
-    int i;
-    wd_part_count_t *pc;
-    for ( i = 0, pc = dinfo->pcount; i < WII_MAX_PART_INFO; i++, pc++ )
-    {
-	u32 npt = pc->n_part;
-	ASSERT( npt <= WII_MAX_PART_TABLE );
-	if ( npt > 0 )
-	{
-	    err = ReadSF(sf, (off_t)pc->off4<<2, wdpte, sizeof(*wdpte)*npt);
-	    if (err)
-		return err;
-	    if (mm)
-	    {
-		mi = InsertMemMap(mm,(off_t)pc->off4<<2,sizeof(*wdpte)*npt);
-		snprintf(mi->info,sizeof(mi->info),
-			"Partition table #%d with %d partition%s",
-				i, npt, npt==1 ? "" : "s" );
-	    }
-
-	    int j;
-	    wd_part_table_entry_t * wdpt = wdpte;
-	    for ( j = 0; j < npt; j++, wdpt++ )
-	    {
-		pi->ptable = i;
-		pi->index  = j;
-		pi->ptype  = ntohl(wdpt->ptype);
-		pi->off    = (off_t)ntohl(wdpt->off4)<<2;
-		pi->is_marked_not_enc	 = -1;
-		pi->is_encrypted	 = -1;
-		pi->tik_is_trucha_signed = -1;
-		pi->tmd_is_trucha_signed = -1;
-
-		char pname_buf[20];
-		char * pname = PrintPartitionType(pname_buf,sizeof(pname_buf),pi->ptype,true);
-
-		if ( pi->off + sizeof(pi->ph) <= dinfo->iso_size )
-		{
-		    err = ReadSF(sf, pi->off, &pi->ph, sizeof(pi->ph));
-		    if (err)
-			return err;
-		    ntoh_part_header(&pi->ph,&pi->ph);
-
-		    pi->size = (off_t)pi->ph.data_off4 + pi->ph.data_size4 << 2;
-		    off_t temp;
-		    temp = ((off_t)pi->ph.tmd_off4 << 2) + pi->ph.tmd_size;
-		    if ( pi->size < temp )
-			pi->size = temp;
-		    temp = ((off_t)pi->ph.cert_off4 << 2) + pi->ph.cert_size;
-		    if ( pi->size < temp )
-			pi->size = temp;
-		    temp = ((off_t)pi->ph.h3_off4 << 2) + WII_H3_SIZE;
-		    if ( pi->size < temp )
-			pi->size = temp;
-
-	//	    if ( pi->off + pi->size > dinfo->iso_size )
-	//		pi->size = 0;
-
-		    wd_decrypt_title_key(&pi->ph.ticket,pi->part_key);
-
-		    if (mm)
-		    {
-			mi = InsertMemMap(mm,pi->off,sizeof(pi->ph));
-			snprintf(mi->info,sizeof(mi->info),
-				"P.%d.%d, %s, header+ticket, id=%.4s",
-				i, j, pname, pi->ph.ticket.title_id+4 );
-
-			if (pi->ph.tmd_size)
-			{
-			    mi = InsertMemMap(mm,
-				pi->off + ((off_t)pi->ph.tmd_off4<<2),
-				pi->ph.tmd_size );
-			    snprintf(mi->info,sizeof(mi->info),
-				"P.%d.%d, %s, tmd",i,j,pname);
-			}
-
-			if (pi->ph.cert_size)
-			{
-			    mi = InsertMemMap(mm,
-				pi->off + ((off_t)pi->ph.cert_off4<<2),
-				pi->ph.cert_size );
-			    snprintf(mi->info,sizeof(mi->info),
-				"P.%d.%d, %s, cert",i,j,pname);
-			}
-
-			mi = InsertMemMap(mm,
-				pi->off + ((off_t)pi->ph.h3_off4<<2),
-				WII_H3_SIZE );
-			snprintf(mi->info,sizeof(mi->info),
-				"P.%d.%d, %s, h3",i,j,pname);
-
-			mi = InsertMemMap(mm,
-				pi->off + ((off_t)pi->ph.data_off4<<2),
-				(off_t)pi->ph.data_size4<<2 );
-			snprintf(mi->info,sizeof(mi->info),
-				"P.%d.%d, %s, data",i,j,pname);
-		    }
-		}
-		else if (mm)
-		{
-		    mi = InsertMemMap(mm,pi->off,sizeof(pi->ph));
-		    snprintf(mi->info,sizeof(mi->info),
-			"P.%d.%d, %s, hd+ticket", i, j, pname );
-		}
-
-		if (!pi->ptable)
-		{
-		    wiidisc_t * disc = wd_open_partition(WrapperReadSF,sf,pi->index,-1);
-		    if (disc)
-		    {
-			pi->is_marked_not_enc	 = disc->is_marked_not_enc;
-			pi->is_encrypted	 = disc->is_encrypted;
-			pi->tik_is_trucha_signed = disc->tik_is_trucha_signed;
-			pi->tmd_is_trucha_signed = disc->tmd_is_trucha_signed;
-			if (disc->tmd)
-			    pi->sys_version	 = ntoh64(disc->tmd->sys_version);
-			wd_close_disc(disc);
-		    }
-		}
-
-		pi++;
-	    }
-	}
-    }
-    ASSERT( pi - dinfo->pinfo == dinfo->n_part );
-
-    return ERR_OK;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -3201,7 +3000,10 @@ enumError DumpWDiscInfo
     }
     else if (di->title)
 	fprintf(f,"%*stitle:      %s\n", indent, "", (ccp)di->title );
-    fprintf(f,"%*sregion:     %s [%s]\n", indent, "", di->region, di->region4 );
+
+    const RegionInfo_t * rinfo = GetRegionInfo(di->dhead.region_code);
+    fprintf(f,"%*sregion:     %s [%s]\n", indent, "", rinfo->name, rinfo->name4 );
+
     if (di->size)
 	fprintf(f,"%*ssize:       %lld MiB\n", indent, "", ( di->size + MiB/2 ) / MiB );
 
@@ -3465,7 +3267,7 @@ static int sort_by_region ( const void * va, const void * vb )
     const WDiscListItem_t * a = (const WDiscListItem_t *)va;
     const WDiscListItem_t * b = (const WDiscListItem_t *)vb;
 
-    const int stat = strcmp(a->region4,b->region4);
+    const int stat = a->id6[3] - b->id6[3];
     return stat ? stat : sort_by_id(va,vb);
 }
 
@@ -3487,7 +3289,7 @@ static int sort_by_npart ( const void * va, const void * vb )
     const WDiscListItem_t * a = (const WDiscListItem_t *)va;
     const WDiscListItem_t * b = (const WDiscListItem_t *)vb;
 
-    const int stat = a->n_part - b->n_part;
+    const int stat = (int)a->n_part - (int)b->n_part;
     return stat ? stat : sort_by_title(va,vb);
 }
 
@@ -3571,7 +3373,6 @@ void SortWDiscList ( WDiscList_t * wlist,
 		|| memcmp(src->id6,prev->id6,6)
 		|| unique < 2 &&
 		    (  memcmp(src->name64,prev->name64,64)
-		    || memcmp(src->region4,prev->region4,4)
 		    || src->size_mib != prev->size_mib ))
 	    {
 		if ( dest != src )
@@ -3620,7 +3421,7 @@ void PrintSectWDiscListItem ( FILE * f, WDiscListItem_t * witem, ccp def_fname )
     fprintf(f,"id=%s\n",witem->id6);
     fprintf(f,"name=%s\n",witem->name64);
     fprintf(f,"title=%s\n",witem->title);
-    fprintf(f,"region=%s\n",witem->region4);
+    fprintf(f,"region=%s\n",GetRegionInfo(witem->id6[3])->name4);
     fprintf(f,"size=%llu\n",(u64)witem->fatt.size
 				? (u64)witem->fatt.size : (u64)witem->size_mib*MiB );
     //fprintf(f,"size_mib=%u\n",witem->size_mib);
@@ -3702,11 +3503,19 @@ enumError OpenWDiscSlot ( WBFS_t * w, u32 slot, bool force_open )
 enumError CloseWDisc ( WBFS_t * w )
 {
     ASSERT(w);
+
     if (w->disc)
     {
 	wbfs_close_disc(w->disc);
 	w->disc = 0;
     }
+
+    if ( w->sf && w->sf->disc )
+    {
+	wd_close_disc(w->sf->disc);
+	w->sf->disc = 0;
+    }
+
     return ERR_OK;
 }
 
@@ -3738,13 +3547,13 @@ wd_header_t * GetWDiscHeader ( WBFS_t * w )
 ///////////////                      AddWDisc()                 ///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-enumError AddWDisc ( WBFS_t * w, SuperFile_t * sf, partition_selector_t psel )
+enumError AddWDisc ( WBFS_t * w, SuperFile_t * sf, wd_select_t psel )
 {
     if ( !w || !w->wbfs || !w->sf || !sf )
 	return ERROR0(ERR_INTERNAL,0);
 
-    TRACE("AddWDisc(w=%p,sf=%p,psel=%d) progress=%d,%d\n",
-		w, sf, psel, sf->show_progress, sf->show_summary );
+    TRACE("AddWDisc(w=%p,sf=%p,psel=%llx) progress=%d,%d\n",
+		w, sf, (u64)psel, sf->show_progress, sf->show_summary );
 
     CloseWDisc(w);
 
@@ -3757,10 +3566,10 @@ enumError AddWDisc ( WBFS_t * w, SuperFile_t * sf, partition_selector_t psel )
     par.read_src_wii_disc	= WrapperReadSF;
     par.callback_data		= sf;
     par.spinner			= sf->show_progress ? PrintProgressSF : 0;
-    par.sel			= psel;
-    par.copy_1_1		= psel == WHOLE_DISC;
+    par.psel			= psel;
     par.iinfo.mtime		= hton64(sf->f.fatt.mtime);
     par.iso_size		= sf->file_size;
+    par.wd_disc			= OpenDiscSF(sf,false,true);
 
     // try to copy mtime from WBFS source disc
     if ( sf->wbfs && sf->wbfs->disc )
@@ -3830,12 +3639,10 @@ enumError ExtractWDisc ( WBFS_t * w, SuperFile_t * sf )
 	w->sf->show_summary	= sf->show_summary;
 	w->sf->show_msec	= sf->show_msec;
 
-	return AddWDisc(sf->wbfs,w->sf,ALL_PARTITIONS);
+	return AddWDisc(sf->wbfs,w->sf,part_selector);
     }
 
-    sf->file_size = sf->enable_trunc
-			? 0llu
-			: (off_t)WII_SECTORS_SINGLE_LAYER *WII_SECTOR_SIZE;
+    SetMinSizeSF(sf,(off_t)WII_SECTORS_SINGLE_LAYER *WII_SECTOR_SIZE);
 
     // this is needed for detailed error messages
     const enumError saved_max_error = max_error;
@@ -3846,21 +3653,12 @@ enumError ExtractWDisc ( WBFS_t * w, SuperFile_t * sf )
     if ( sf->iod.oft == OFT_WDF )
     {
 	// write an empty disc header -> makes renaming easier
-	static char disc_header[0x60] = {0};
-	err = WriteWDF(sf,0,disc_header,sizeof(disc_header));
+	err = WriteWDF(sf,0,zerobuf,WII_TITLE_OFF+WII_TITLE_SIZE);
     }
 
     int ex_stat = wbfs_extract_disc( w->disc,
 	    sf->enable_fast ? WrapperWriteSF : WrapperWriteSparseSF,
 	    sf, sf->show_progress ? PrintProgressSF : 0 );
-
-    if ( sf->iod.oft == OFT_PLAIN && !ex_stat && sf->f.max_off < sf->file_size )
-    {
-	err = SetSizeF(&sf->f,sf->file_size);
-	TRACE("  OFF: max_off=%llx - file_size=%llx = %llx\n",
-	    (u64)sf->f.max_off, (u64)sf->file_size, (u64)sf->f.max_off - (u64)sf->file_size );
-	ASSERT( err || sf->f.max_off == sf->file_size );
-    }   
 
     if (!err)
     {
@@ -3959,7 +3757,7 @@ enumError RenameWDisc
     if ( !wbfs || !wbfs->wbfs || !wbfs->sf )
 	return ERROR0(ERR_INTERNAL,0);
 
-    if ( !set_id6 || strlen(set_id6) < 6 )
+    if ( !set_id6 || !*set_id6 || strlen(set_id6) > 6 )
 	set_id6 = 0; // invalid id6
 
     if ( !set_title || !*set_title )

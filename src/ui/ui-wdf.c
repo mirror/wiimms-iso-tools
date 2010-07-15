@@ -125,7 +125,7 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 	" with a power of 2 or 'ISO' for ISO images (more restrictive as"
 	" 'POW2', best for USB loaders). The case of the keyword is ignored."
 	" The default key is '32K'.\n"
-	" --chm is a short cut for --chunk-mode."
+	"--chm is a shortcut for --chunk-mode."
     },
 
     {	OPT_CHUNK_SIZE, 0, "chunk-size",
@@ -144,7 +144,7 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 	" changing.\n"
 	"If the input file size is not known (e.g. reading from pipe), its"
 	" size is assumed as 12 GiB.\n"
-	" --chz is a short cut for --chunk-size."
+	" --chz is a shortcut for --chunk-size."
     },
 
     {	OPT_MAX_CHUNKS, 0, "max-chunks",
@@ -153,7 +153,7 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 	" default value is 8192 for '--chunk-mode ISO' and 32760 (maximal"
 	" value) for all other modes. If this value is set than the automatic"
 	" calculation  of --chunk-size will be modified too.\n"
-	" --mch is a short cut for --max-chunks."
+	" --mch is a shortcut for --max-chunks."
     },
 
     {0,0,0,0,0}, // OPT__N_SPECIFIC == 17
@@ -174,6 +174,13 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 	0,
 	"Stop parsing the command line and print a help message with all"
 	" commands included. Exit after printing."
+    },
+
+    {	OPT_WIDTH, 0, "width",
+	"width",
+	"Define the width (number of columns) for help and some other"
+	" messages. This option disables the automatic detection of the"
+	" terminal width."
     },
 
     {	OPT_QUIET, 'q', "quiet",
@@ -205,7 +212,7 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 	">>> USE THIS OPTION IF UNSURE! <<<"
     },
 
-    {0,0,0,0,0} // OPT__N_TOTAL == 25
+    {0,0,0,0,0} // OPT__N_TOTAL == 26
 
 };
 
@@ -258,6 +265,7 @@ const struct option OptionLong[] =
 	{ "version",		0, 0, 'V' },
 	{ "help",		0, 0, 'h' },
 	{ "xhelp",		0, 0, GO_XHELP },
+	{ "width",		1, 0, GO_WIDTH },
 	{ "quiet",		0, 0, 'q' },
 	{ "verbose",		0, 0, 'v' },
 	{ "chunk",		0, 0, GO_CHUNK },
@@ -336,12 +344,13 @@ const u8 OptionIndex[OPT_INDEX_SIZE] =
 	/*7a*/	OPT_SPLIT,
 	/*7b*/	 0,0,0,0, 0,
 	/*80*/	OPT_XHELP,
-	/*81*/	OPT_CHUNK,
-	/*82*/	OPT_WBI,
-	/*83*/	OPT_CHUNK_MODE,
-	/*84*/	OPT_CHUNK_SIZE,
-	/*85*/	OPT_MAX_CHUNKS,
-	/*86*/	 0,0,0,0, 0,0,0,0, 0,0,
+	/*81*/	OPT_WIDTH,
+	/*82*/	OPT_CHUNK,
+	/*83*/	OPT_WBI,
+	/*84*/	OPT_CHUNK_MODE,
+	/*85*/	OPT_CHUNK_SIZE,
+	/*86*/	OPT_MAX_CHUNKS,
+	/*87*/	 0,0,0,0, 0,0,0,0, 0,
 	/*90*/	 0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0,
 	/*a0*/	 0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0,
 };
@@ -356,6 +365,7 @@ const InfoOption_t * option_tab_tool[] =
 	OptionInfo + OPT_VERSION,
 	OptionInfo + OPT_HELP,
 	OptionInfo + OPT_XHELP,
+	OptionInfo + OPT_WIDTH,
 
 	OptionInfo + OPT_NONE, // separator
 
@@ -470,7 +480,7 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	" depends on the program file name (see command descriptions). Usual"
 	" names are wdf, unwdf, wdf-cat, wdf-cmp and wdf-dump (with or without"
 	" minus signs).",
-	8,
+	9,
 	option_tab_tool
     },
 

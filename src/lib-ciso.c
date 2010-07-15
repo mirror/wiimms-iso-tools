@@ -135,7 +135,7 @@ u32 CalcBlockSizeCISO ( u32 * result_n_blocks, off_t file_size )
 	if ( file_size < temp )
 	    file_size = temp;
     }
-    TRACE(" - file_size  := %llx\n",file_size);
+    TRACE(" - file_size  := %llx\n",(u64)file_size);
 
     u64 block_size = opt_chunk_size;
     if ( !block_size || !force_chunk_size )

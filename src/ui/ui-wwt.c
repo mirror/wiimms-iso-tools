@@ -66,11 +66,21 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
     },
 
     {	OPT_PSEL, 0, "psel",
-	"p-type",
+	"list",
 	"This option set the scrubbing mode and defines, which disc partitions"
-	" are handled. One of the following values is allowed, case is"
-	" ignored: DATA, NO-DATA, UPDATE, NO-UPDATE, CHANNEL, NO-CHANNEL ALL,"
-	" WHOLE, RAW. The default value is 'ALL'."
+	" are handled. The parameter is a comma separated list of keywords."
+	" The keywords are divided in three functional groups:\n"
+	"The first group selects partition types. The names DATA, UDDATE,"
+	" CHANNEL, ID and the numbers between 0 and 50 for partition type are"
+	" allowed. 'ID' is a placeholder for all ID types like the VC channels"
+	" of SSBB. The prefix '-' means: disable this partition type. The"
+	" special keyword 'NONE' diables all partition types.\n"
+	"The second group selects partition tables. The names PTAB0..PTAB3"
+	" (and T0..T3) are allowed. The prefix '-' means: Disable all"
+	" partitions of that partition table.\n"
+	"The third group are additional flags: 'WHOLE' means that the whole"
+	" partition data is used. 'RAW' means that the whole disc is selected.\n"
+	"The special keyword 'ALL' resets all settings to the default."
     },
 
     {	OPT_RAW, 0, "raw",
@@ -124,14 +134,16 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 	"region",
 	"This patching option defines the region of the disc.  The region is"
 	" one of JAPAN, USA, EUROPE, KOREA, FILE or AUTO (default). The case"
-	" of the keywords is ignored. Unsigned numbers are also accepted."
+	" of the keywords is ignored. Unsigned numbers are also accepted.\n"
+	"This patching option is only recognized while composing a disc."
     },
 
     {	OPT_IOS, 0, "ios",
 	"ios",
 	"This patching option defines the system version (IOS to load) within"
 	" TMD. The format is 'HIGH:LOW' or 'HIGH-LOW' or 'LOW'. If only LOW is"
-	" set than HIGH is assumed as 1 (standard IOS)."
+	" set than HIGH is assumed as 1 (standard IOS).\n"
+	"This patching option is only recognized while composing a disc."
     },
 
     {	OPT_ID, 0, "id",
@@ -140,7 +152,8 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 	" parameter. 1 to 6 characters are expected. Only defined characters"
 	" not equal '.' are modified. The disc header, boot.bin, ticket.bin"
 	" and tmd.bin are  objects to modify. The option --modify selects the"
-	" objects."
+	" objects.\n"
+	"This patching option is only recognized while composing a disc."
     },
 
     {	OPT_NAME, 0, "name",
@@ -148,7 +161,8 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 	"This patching option changes the name (disc title) of the disc to the"
 	" given parameter. Up to 63 characters are expected. The disc header"
 	" and boot.bin are objects to modify. The option --modify selects the"
-	" objects."
+	" objects.\n"
+	"This patching option is only recognized while composing a disc."
     },
 
     {	OPT_MODIFY, 0, "modify",
@@ -156,9 +170,10 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 	" This patching option expects a comma separated list of the following"
 	" keywords (case ignored) as parameter: NONE, DISC, BOOT, TICKET, TMD,"
 	" WBFS, ALL and AUTO (default).\n"
-	" All keywords can be prefixed by '+' to enable that option, by a '-'"
+	"All keywords can be prefixed by '+' to enable that option, by a '-'"
 	" to disable it or by a '=' to enable that option and disable all"
-	" others."
+	" others.\n"
+	"This patching option is only recognized while composing a disc."
     },
 
     {	OPT_INODE, 0, "inode",
@@ -191,6 +206,17 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 	" The default unit is 'G' (GiB)."
     },
 
+    {	OPT_TRUNC, 0, "trunc",
+	0,
+	"Truncate PLAIN ISO images to the needed size while creating."
+    },
+
+    {	OPT_FAST, 'F', "fast",
+	0,
+	"Enables fast writing (disables searching for blocks with zeroed"
+	" data)."
+    },
+
     {	OPT_CHUNK_MODE, 0, "chunk-mode",
 	"mode",
 	"Defines an operation mode for --chunk-size and --max-chunks. Allowed"
@@ -199,7 +225,7 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 	" with a power of 2 or 'ISO' for ISO images (more restrictive as"
 	" 'POW2', best for USB loaders). The case of the keyword is ignored."
 	" The default key is 'ISO'.\n"
-	" --chm is a short cut for --chunk-mode."
+	"--chm is a shortcut for --chunk-mode."
     },
 
     {	OPT_CHUNK_SIZE, 0, "chunk-size",
@@ -218,7 +244,7 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 	" changing.\n"
 	"If the input file size is not known (e.g. reading from pipe), its"
 	" size is assumed as 12 GiB.\n"
-	" --chz is a short cut for --chunk-size."
+	" --chz is a shortcut for --chunk-size."
     },
 
     {	OPT_MAX_CHUNKS, 0, "max-chunks",
@@ -227,7 +253,7 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 	" default value is 8192 for '--chunk-mode ISO' and 32760 (maximal"
 	" value) for all other modes. If this value is set than the automatic"
 	" calculation  of --chunk-size will be modified too.\n"
-	" --mch is a short cut for --max-chunks."
+	" --mch is a shortcut for --max-chunks."
     },
 
     {	OPT_SIZE, 's', "size",
@@ -266,7 +292,7 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 	" comma separated list of the following keywords, case is ignored:"
 	" NONE, FBT, INODES, STANDARD, RM-INVALID, RM-OVERLAP, RM-FREE,"
 	" RM-EMPTY, RM-ALL, ALL.\n"
-	" All keywords can be prefixed by '+' to enable that option, by a '-'"
+	"All keywords can be prefixed by '+' to enable that option, by a '-'"
 	" to disable it or by a '=' to enable that option and disable all"
 	" others."
     },
@@ -302,16 +328,6 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
     {	OPT_REMOVE, 'R', "remove",
 	0,
 	"Remove source files/discs if operation is successful."
-    },
-
-    {	OPT_TRUNC, 0, "trunc",
-	0,
-	"Trunc ISO images while writing."
-    },
-
-    {	OPT_FAST, 'F', "fast",
-	0,
-	"Enables fast writing (disables searching for zero blocks)."
     },
 
     {	OPT_WDF, 'W', "wdf",
@@ -429,6 +445,13 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 	" commands included. Exit after printing."
     },
 
+    {	OPT_WIDTH, 0, "width",
+	"width",
+	"Define the width (number of columns) for help and some other"
+	" messages. This option disables the automatic detection of the"
+	" terminal width."
+    },
+
     {	OPT_QUIET, 'q', "quiet",
 	0,
 	"Be quiet and print only error messages."
@@ -500,7 +523,7 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 	" [2do] for tests only."
     },
 
-    {0,0,0,0,0} // OPT__N_TOTAL == 75
+    {0,0,0,0,0} // OPT__N_TOTAL == 76
 
 };
 
@@ -555,6 +578,14 @@ const InfoOption_t option_cmd_SPACE_LONG =
     {	OPT_LONG, 'l', "long",
 	0,
 	" If option --long is set the real path is printed."
+    };
+
+const InfoOption_t option_cmd_ANALYZE_LONG =
+    {	OPT_LONG, 'l', "long",
+	0,
+	"If option --long is set then calculated values are printed too if"
+	" other values are available. If option --long is set twice calculated"
+	" values are always printed."
     };
 
 const InfoOption_t option_cmd_DUMP_LONG =
@@ -628,7 +659,7 @@ const InfoOption_t option_cmd_CHECK_REPAIR =
 	" comma separated list of the following keywords, case is ignored:"
 	" NONE, FBT, INODES, STANDARD, RM-INVALID, RM-OVERLAP, RM-FREE,"
 	" RM-EMPTY, RM-ALL, ALL.\n"
-	" All keywords can be prefixed by '+' to enable that option, by a '-'"
+	"All keywords can be prefixed by '+' to enable that option, by a '-'"
 	" to disable it or by a '=' to enable that option and disable all"
 	" others. The default is 'NONE'."
     };
@@ -640,7 +671,7 @@ const InfoOption_t option_cmd_REPAIR_REPAIR =
 	" comma separated list of the following keywords, case is ignored:"
 	" NONE, FBT, INODES, STANDARD, RM-INVALID, RM-OVERLAP, RM-FREE,"
 	" RM-EMPTY, RM-ALL, ALL.\n"
-	" All keywords can be prefixed by '+' to enable that option, by a '-'"
+	"All keywords can be prefixed by '+' to enable that option, by a '-'"
 	" to disable it or by a '=' to enable that option and disable all"
 	" others. The default is 'STANDARD' (FBT,INODES)."
     };
@@ -762,15 +793,6 @@ const InfoOption_t option_cmd_VERIFY_LIMIT =
 	" The default is 10."
     };
 
-const InfoOption_t option_cmd_VERIFY_PSEL =
-    {	OPT_PSEL, 0, "psel",
-	"p-type",
-	"This option defines which types of partitions are verified. One of"
-	" the following values is allowed, case is ignored: DATA, NO-DATA,"
-	" UPDATE, NO-UPDATE, CHANNEL, NO-CHANNEL ALL, WHOLE, RAW. The default"
-	" value is 'ALL'."
-    };
-
 const InfoOption_t option_cmd_VERIFY_UNIQUE =
     {	OPT_UNIQUE, 'U', "unique",
 	0,
@@ -862,13 +884,14 @@ const CommandTab_t CommandTab[] =
 ///////////////            OptionShort & OptionLong             ///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-const char OptionShort[] = "VhqvPLE:T:taAp:r:n:N:x:X:id:D:zZ:s:fuyeoRFWICBlMUHS:";
+const char OptionShort[] = "VhqvPLE:T:taAp:r:n:N:x:X:id:D:zZ:Fs:fuyeoRWICBlMUHS:";
 
 const struct option OptionLong[] =
 {
 	{ "version",		0, 0, 'V' },
 	{ "help",		0, 0, 'h' },
 	{ "xhelp",		0, 0, GO_XHELP },
+	{ "width",		1, 0, GO_WIDTH },
 	{ "quiet",		0, 0, 'q' },
 	{ "verbose",		0, 0, 'v' },
 	{ "progress",		0, 0, 'P' },
@@ -912,6 +935,8 @@ const struct option OptionLong[] =
 	{ "split",		0, 0, 'z' },
 	{ "split-size",		1, 0, 'Z' },
 	 { "splitsize",		1, 0, 'Z' },
+	{ "trunc",		0, 0, GO_TRUNC },
+	{ "fast",		0, 0, 'F' },
 	{ "chunk-mode",		1, 0, GO_CHUNK_MODE },
 	 { "chunkmode",		1, 0, GO_CHUNK_MODE },
 	 { "chm",		1, 0, GO_CHUNK_MODE },
@@ -939,8 +964,6 @@ const struct option OptionLong[] =
 	 { "new",		0, 0, 'e' },
 	{ "overwrite",		0, 0, 'o' },
 	{ "remove",		0, 0, 'R' },
-	{ "trunc",		0, 0, GO_TRUNC },
-	{ "fast",		0, 0, 'F' },
 	{ "wdf",		0, 0, 'W' },
 	{ "iso",		0, 0, 'I' },
 	{ "ciso",		0, 0, 'C' },
@@ -1030,41 +1053,42 @@ const u8 OptionIndex[OPT_INDEX_SIZE] =
 	/*7a*/	OPT_SPLIT,
 	/*7b*/	 0,0,0,0, 0,
 	/*80*/	OPT_XHELP,
-	/*81*/	OPT_IO,
-	/*82*/	OPT_UTF_8,
-	/*83*/	OPT_NO_UTF_8,
-	/*84*/	OPT_LANG,
-	/*85*/	OPT_RDEPTH,
-	/*86*/	OPT_PSEL,
-	/*87*/	OPT_RAW,
-	/*88*/	OPT_IGNORE_FST,
-	/*89*/	OPT_HOOK,
-	/*8a*/	OPT_ENC,
-	/*8b*/	OPT_REGION,
-	/*8c*/	OPT_IOS,
-	/*8d*/	OPT_ID,
-	/*8e*/	OPT_NAME,
-	/*8f*/	OPT_MODIFY,
-	/*90*/	OPT_INODE,
-	/*91*/	OPT_CHUNK_MODE,
-	/*92*/	OPT_CHUNK_SIZE,
-	/*93*/	OPT_MAX_CHUNKS,
-	/*94*/	OPT_HSS,
-	/*95*/	OPT_WSS,
-	/*96*/	OPT_RECOVER,
-	/*97*/	OPT_NO_CHECK,
-	/*98*/	OPT_REPAIR,
-	/*99*/	OPT_NO_FREE,
-	/*9a*/	OPT_TRUNC,
-	/*9b*/	OPT_ITIME,
-	/*9c*/	OPT_MTIME,
-	/*9d*/	OPT_CTIME,
-	/*9e*/	OPT_ATIME,
-	/*9f*/	OPT_TIME,
-	/*a0*/	OPT_SET_TIME,
-	/*a1*/	OPT_SECTIONS,
-	/*a2*/	OPT_LIMIT,
-	/*a3*/	 0,0,0,0, 0,0,0,0, 0,0,0,0, 0,
+	/*81*/	OPT_WIDTH,
+	/*82*/	OPT_IO,
+	/*83*/	OPT_UTF_8,
+	/*84*/	OPT_NO_UTF_8,
+	/*85*/	OPT_LANG,
+	/*86*/	OPT_RDEPTH,
+	/*87*/	OPT_PSEL,
+	/*88*/	OPT_RAW,
+	/*89*/	OPT_IGNORE_FST,
+	/*8a*/	OPT_HOOK,
+	/*8b*/	OPT_ENC,
+	/*8c*/	OPT_REGION,
+	/*8d*/	OPT_IOS,
+	/*8e*/	OPT_ID,
+	/*8f*/	OPT_NAME,
+	/*90*/	OPT_MODIFY,
+	/*91*/	OPT_INODE,
+	/*92*/	OPT_TRUNC,
+	/*93*/	OPT_CHUNK_MODE,
+	/*94*/	OPT_CHUNK_SIZE,
+	/*95*/	OPT_MAX_CHUNKS,
+	/*96*/	OPT_HSS,
+	/*97*/	OPT_WSS,
+	/*98*/	OPT_RECOVER,
+	/*99*/	OPT_NO_CHECK,
+	/*9a*/	OPT_REPAIR,
+	/*9b*/	OPT_NO_FREE,
+	/*9c*/	OPT_ITIME,
+	/*9d*/	OPT_MTIME,
+	/*9e*/	OPT_CTIME,
+	/*9f*/	OPT_ATIME,
+	/*a0*/	OPT_TIME,
+	/*a1*/	OPT_SET_TIME,
+	/*a2*/	OPT_SECTIONS,
+	/*a3*/	OPT_LIMIT,
+	/*a4*/	 0,0,0,0, 0,0,0,0, 0,0,0,0, 
 };
 
 //
@@ -1077,6 +1101,7 @@ const InfoOption_t * option_tab_tool[] =
 	OptionInfo + OPT_VERSION,
 	OptionInfo + OPT_HELP,
 	OptionInfo + OPT_XHELP,
+	OptionInfo + OPT_WIDTH,
 	OptionInfo + OPT_QUIET,
 	OptionInfo + OPT_VERBOSE,
 	OptionInfo + OPT_PROGRESS,
@@ -1179,6 +1204,10 @@ static const InfoOption_t * option_tab_cmd_ANALYZE[] =
 	OptionInfo + OPT_AUTO,
 	OptionInfo + OPT_ALL,
 	OptionInfo + OPT_PART,
+
+	OptionInfo + OPT_NONE, // separator
+
+	&option_cmd_ANALYZE_LONG,
 
 	0
 };
@@ -1808,6 +1837,7 @@ static const InfoOption_t * option_tab_cmd_EXTRACT[] =
 	OptionInfo + OPT_ESC,
 	OptionInfo + OPT_SPLIT,
 	OptionInfo + OPT_SPLIT_SIZE,
+	OptionInfo + OPT_TRUNC,
 	OptionInfo + OPT_CHUNK_MODE,
 	OptionInfo + OPT_CHUNK_SIZE,
 	OptionInfo + OPT_MAX_CHUNKS,
@@ -1826,7 +1856,6 @@ static const InfoOption_t * option_tab_cmd_EXTRACT[] =
 	OptionInfo + OPT_REMOVE,
 	OptionInfo + OPT_UPDATE,
 	OptionInfo + OPT_OVERWRITE,
-	OptionInfo + OPT_TRUNC,
 	OptionInfo + OPT_FAST,
 
 	0
@@ -2022,7 +2051,7 @@ static const InfoOption_t * option_tab_cmd_VERIFY[] =
 
 	OptionInfo + OPT_NONE, // separator
 
-	&option_cmd_VERIFY_PSEL,
+	OptionInfo + OPT_PSEL,
 	OptionInfo + OPT_RAW,
 	&option_cmd_VERIFY_UNIQUE,
 	&option_cmd_VERIFY_IGNORE,
@@ -2060,7 +2089,7 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	"Wiimms WBFS Tool (WBFS manager) : It can create, check, repair,"
 	" verify and clone WBFS files and partitions. It can list, add,"
 	" extract, remove and rename ISO images as part of a WBFS.",
-	14,
+	15,
 	option_tab_tool
     },
 
@@ -2162,7 +2191,7 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	"wwt ANALYZE [wbfs_partition]...",
 	"Analyze files and partitions for WBFS usage. Try to find old WBFS"
 	" structures and make calculations for new WBFS.",
-	3,
+	4,
 	option_tab_cmd_ANALYZE
     },
 

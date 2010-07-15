@@ -25,7 +25,7 @@
 #ifndef WIT_TYPES_H
 #define WIT_TYPES_H 1
 
-#include <types.h>
+#include <sys/types.h>
 #include <limits.h>
 
 ///////////////////////////////////////////////////////////////////////////////

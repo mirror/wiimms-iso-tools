@@ -126,6 +126,7 @@ enumError cmd_test_options()
 
     printf("  test:        %16d\n",testmode);
     printf("  verbose:     %16d\n",verbose);
+    printf("  width:       %16d\n",opt_width);
 
  #if IS_WWT
     printf("  size:        %16llx = %lld\n",opt_size,opt_size);
@@ -160,9 +161,10 @@ enumError cmd_test_options()
     printf("  escape-char: %16x = %d\n",escape_char,escape_char);
     printf("  print-time:  %16x = %d\n",opt_print_time,opt_print_time);
     printf("  sort-mode:   %16x = %d\n",sort_mode,sort_mode);
-    printf("  show-mode:   %16x = %d\n",show_mode,show_mode);
+    printf("  show-mode:   %16x = %d\n",opt_show_mode,opt_show_mode);
     printf("  limit:       %16x = %d\n",opt_limit,opt_limit);
     printf("  rdepth:      %16x = %d\n",opt_recurse_depth,opt_recurse_depth);
+    printf("  part-select  %16llx = %lld\n",(u64)part_selector,(u64)part_selector);
     printf("  enc:         %16x = %d\n",encoding,encoding);
     printf("  region:      %16x = %d\n",opt_region,opt_region);
 

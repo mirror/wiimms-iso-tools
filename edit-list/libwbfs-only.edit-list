@@ -1,6 +1,6 @@
 ../src/libwbfs/wiidisc.[ch] ;
-../src/libwbfs/libwbfs.[ch] ;
 ../src/libwbfs/file-formats.[ch] ;
+../src/libwbfs/libwbfs.[ch] ;
 ../src/libwbfs/rijndael.[ch] ;
 ../src/libwbfs/*.[ch] ;
 ../src/libwbfs/*.txt ;

@@ -49,9 +49,10 @@ int validate_file_format_sizes ( int trace_sizes )
 	TRACE_SIZEOF(wbfs_inode_info_t);
 	TRACE_SIZEOF(wd_header_t);
 	TRACE_SIZEOF(wd_boot_t);
-	TRACE_SIZEOF(wd_region_set_t);
-	TRACE_SIZEOF(wd_part_count_t);
-	TRACE_SIZEOF(wd_part_table_entry_t);
+	TRACE_SIZEOF(wd_region_t);
+	TRACE_SIZEOF(wd_ptab_info_t);
+	TRACE_SIZEOF(wd_ptab_entry_t);
+	TRACE_SIZEOF(wd_ptab_t);
 	TRACE_SIZEOF(wd_ticket_t);
 	TRACE_SIZEOF(wd_part_header_t);
 	TRACE_SIZEOF(wd_tmd_content_t);
@@ -98,7 +99,8 @@ int validate_file_format_sizes ( int trace_sizes )
 
     CHECK( sizeof(dol_header_t)		== DOL_HEADER_SIZE );
     CHECK( sizeof(wd_header_t)		== 0x100 );
-    CHECK( sizeof(wd_region_set_t)	== WII_REGION_SIZE );
+    CHECK( sizeof(wd_region_t)		== WII_REGION_SIZE );
+    CHECK( sizeof(wd_ptab_t)		== WII_MAX_PTAB_SIZE );
     CHECK( sizeof(wd_boot_t)		== WII_BOOT_SIZE );
     CHECK( sizeof(wd_part_sector_t)	== WII_SECTOR_SIZE );
     CHECK( sizeof(wd_fst_item_t)	== 12 ); // test because of union
@@ -135,7 +137,8 @@ int validate_file_format_sizes ( int trace_sizes )
 
     CHECK( sizeof(dol_header_t)		== DOL_HEADER_SIZE );
     CHECK( sizeof(wd_header_t)		== 0x100 );
-    CHECK( sizeof(wd_region_set_t)	== WII_REGION_SIZE );
+    CHECK( sizeof(wd_region_t)		== WII_REGION_SIZE );
+    CHECK( sizeof(wd_ptab_t)		== WII_MAX_PTAB_SIZE );
     CHECK( sizeof(wd_boot_t)		== WII_BOOT_SIZE );
     CHECK( sizeof(wd_part_sector_t)	== WII_SECTOR_SIZE );
     CHECK( sizeof(wd_fst_item_t)	== 12 ); // test because of union
@@ -358,7 +361,7 @@ void ticket_clear_encryption ( wd_ticket_t * tik, int mark_not_encrypted )
 
 ///////////////////////////////////////////////////////////////////////////////
 
-int ticket_is_marked_not_encrypted ( const wd_ticket_t * tik )
+bool ticket_is_marked_not_encrypted ( const wd_ticket_t * tik )
 {
     ASSERT(tik);
     ASSERT( sizeof(not_encrypted_marker) < sizeof(tik->sig_padding));
@@ -406,7 +409,7 @@ u32 ticket_sign_trucha ( wd_ticket_t * tik, u32 tik_size )
 
 ///////////////////////////////////////////////////////////////////////////////
 
-int ticket_is_trucha_signed ( const wd_ticket_t * tik, u32 tik_size )
+bool ticket_is_trucha_signed ( const wd_ticket_t * tik, u32 tik_size )
 {
     ASSERT(tik);
    
@@ -447,7 +450,7 @@ void tmd_clear_encryption ( wd_tmd_t * tmd, int mark_not_encrypted )
 
 ///////////////////////////////////////////////////////////////////////////////
 
-int tmd_is_marked_not_encrypted ( const wd_tmd_t * tmd )
+bool tmd_is_marked_not_encrypted ( const wd_tmd_t * tmd )
 {
     ASSERT(tmd);
     ASSERT( sizeof(not_encrypted_marker) < sizeof(tmd->sig_padding));
@@ -495,7 +498,7 @@ u32 tmd_sign_trucha ( wd_tmd_t * tmd, u32 tmd_size )
 
 ///////////////////////////////////////////////////////////////////////////////
 
-int tmd_is_trucha_signed ( const wd_tmd_t * tmd, u32 tmd_size )
+bool tmd_is_trucha_signed ( const wd_tmd_t * tmd, u32 tmd_size )
 {
     ASSERT(tmd);
    
@@ -715,41 +718,6 @@ unsigned char * wbfs_sha1_fake
 {
     memset(md,0,sizeof(*md));
     return 0;
-}
-
-///////////////////////////////////////////////////////////////////////////////
-
-void wbfs_print_error
-	( ccp func, ccp file, uint line, int level, ccp format, ... )
-{
-    fflush(stdout);
-
-    ccp msg_prefix, msg_name;
-    switch(level)
-    {
-	case 0:  msg_prefix = "! ";   msg_name = "WARNING"; break;
-	case 1:  msg_prefix = "!! ";  msg_name = "ERROR"; break;
-	default: msg_prefix = "!!! "; msg_name = "FATAL ERROR"; break;
-    }
-    
-    fprintf(stderr,"%s%s in %s() @ %s#%d\n",
-	msg_prefix, msg_name, func, file, line );
-
-    if (format)
-    {
-	fputs(msg_prefix,stderr);
-	va_list arg;
-	va_start(arg,format);
-	vfprintf(stderr,format,arg);
-	va_end(arg);
-	if ( format[strlen(format)-1] != '\n' )
-	    fputc('\n',stderr);
-    }
-
-    fflush(stderr);
-    
-    if ( level >= 2 )
-	exit(ERR_FATAL);
 }
 
 //

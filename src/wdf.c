@@ -602,13 +602,8 @@ enumError ciso_dump ( FILE *f, CISO_Head_t * ch, File_t *df, ccp fname )
     //----- print header
     
     u8 * m = (u8*)ch->magic;
-    fprintf(f,"  %-18s:         \"%c%c%c%c\" = %02x-%02x-%02x-%02x\n",
-		"Magic",
-		m[0]>=' ' && m[0]<0x7f ? m[0] : '.',
-		m[1]>=' ' && m[1]<0x7f ? m[1] : '.',
-		m[2]>=' ' && m[2]<0x7f ? m[2] : '.',
-		m[3]>=' ' && m[3]<0x7f ? m[3] : '.',
-		m[0], m[1], m[2], m[3] );
+    fprintf(f,"  %-18s:         \"%s\" = %02x-%02x-%02x-%02x\n",
+		"Magic", wd_print_id(m,4,0), m[0], m[1], m[2], m[3] );
 
     fprintf(f,"  %-18s: %10x/hex =%11d\n","Used blocks",used_bl,used_bl);
     fprintf(f,"  %-18s: %10x/hex =%11d\n","Max block",max_bl-1,max_bl-1);
@@ -721,16 +716,9 @@ enumError wdf_dump ( FILE *f, ccp fname )
 
     fprintf(f,"\n  Header:\n\n");
     u8 * m = (u8*)wh.magic;
-    fprintf(f,"    %-18s: \"%c%c%c%c%c%c%c%c\"  %02x %02x %02x %02x  %02x %02x %02x %02x\n",
+    fprintf(f,"    %-18s: \"%s\"  %02x %02x %02x %02x  %02x %02x %02x %02x\n",
 		"Magic",
-		m[0]>=' ' && m[0]<0x7f ? m[0] : '.',
-		m[1]>=' ' && m[1]<0x7f ? m[1] : '.',
-		m[2]>=' ' && m[2]<0x7f ? m[2] : '.',
-		m[3]>=' ' && m[3]<0x7f ? m[3] : '.',
-		m[4]>=' ' && m[4]<0x7f ? m[4] : '.',
-		m[5]>=' ' && m[5]<0x7f ? m[5] : '.',
-		m[6]>=' ' && m[6]<0x7f ? m[6] : '.',
-		m[7]>=' ' && m[7]<0x7f ? m[7] : '.',
+		wd_print_id(m,8,0),
 		m[0], m[1], m[2], m[3], m[4], m[5], m[6], m[7] );
 
     if (memcmp(wh.magic,WDF_MAGIC,WDF_MAGIC_SIZE))
@@ -884,6 +872,7 @@ enumError CheckOptions ( int argc, char ** argv )
 	case GO_VERSION:	version_exit();
 	case GO_HELP:		help_exit(false);
 	case GO_XHELP:		help_exit(true);
+	case GO_WIDTH:		err += ScanOptWidth(optarg); break;
 	case GO_QUIET:		verbose = verbose > -1 ? -1 : verbose - 1; break;
 	case GO_VERBOSE:	verbose = verbose <  0 ?  0 : verbose + 1; break;
 	case GO_CHUNK:		opt_chunk = true; break;
@@ -903,7 +892,7 @@ enumError CheckOptions ( int argc, char ** argv )
 	case GO_PRESERVE:	opt_preserve = true; break;
 
 	case GO_SPLIT:		opt_split++; break;
-	case GO_SPLIT_SIZE:	err += ScanSplitSize(optarg); break;
+	case GO_SPLIT_SIZE:	err += ScanOptSplitSize(optarg); break;
 	case GO_CHUNK_MODE:	err += ScanChunkMode(optarg); break;
 	case GO_CHUNK_SIZE:	err += ScanChunkSize(optarg); break;
 	case GO_MAX_CHUNKS:	err += ScanMaxChunks(optarg); break;
@@ -943,7 +932,7 @@ enumError CheckCommand ( int argc, char ** argv )
 	    hint_exit(ERR_SYNTAX);
 	}
 
-	TRACE("COMMAND FOUND: #%d = %s\n",cmd_ct->id,cmd_ct->name1);
+	TRACE("COMMAND FOUND: #%lld = %s\n",cmd_ct->id,cmd_ct->name1);
 
 	enumError err = VerifySpecificOptions(&InfoUI,cmd_ct);
 	if (err)

@@ -262,9 +262,9 @@ enumModify ScanModify ( ccp arg )
 {
     static const CommandTab_t tab[] =
     {
-	{ MODIFY__NONE,		"NONE",		"-",	1 },
-	{ MODIFY__ALL,		"ALL",		0,	1 },
-	{ MODIFY__AUTO,		"AUTO",		0,	1 },
+	{ MODIFY__NONE,		"NONE",		"-",	MODIFY__ALL },
+	{ MODIFY__ALL,		"ALL",		0,	MODIFY__ALL },
+	{ MODIFY__AUTO,		"AUTO",		0,	MODIFY__ALL },
 
 	{ MODIFY_DISC,		"DISC",		0,	0 },
 	{ MODIFY_BOOT,		"BOOT",		0,	0 },
@@ -275,7 +275,7 @@ enumModify ScanModify ( ccp arg )
 	{ 0,0,0,0 }
     };
 
-    const int stat = ScanCommandList(arg,tab,0);
+    const int stat = ScanCommandList(arg,tab,0,true,0,0);
     if ( stat >= 0 )
 	return ( stat & MODIFY__ALL ? stat & MODIFY__ALL : stat ) | MODIFY__ALWAYS;
 

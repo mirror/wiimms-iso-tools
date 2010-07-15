@@ -725,7 +725,7 @@ enumError WriteZeroWDF ( SuperFile_t * sf, off_t off, size_t count )
     {
 	off_t end = wc->file_pos + wc->data_size;
 	TRACE("loop: wc=%llx,%llx,%llx off=%llx, end=%llx\n",
-	    wc->file_pos, wc->data_off, wc->data_size, off, end );
+	    wc->file_pos, wc->data_off, wc->data_size, (u64)off, (u64)end );
 	if ( off >= end )
 	    continue;
 

@@ -35,7 +35,10 @@
 ///////////////			    setup			///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-#include "libwbfs_os.h" // os dependent definitions
+#include "libwbfs_os.h"		// os dependent definitions
+#include "libwbfs_defaults.h"	// default settings
+
+///////////////////////////////////////////////////////////////////////////////
 
 typedef u16 be16_t;
 typedef u32 be32_t;
@@ -122,11 +125,16 @@ enum // some constants
     WII_KEY_SIZE		=   16,
     WII_FILE_PATH_SIZE		= 1000,
 
-    WII_MAX_PART_INFO		=       4,
-    WII_PART_INFO_OFF		= 0x40000,
+    WII_MAX_PTAB		=       4,	// maximal partition tables
+    WII_PTAB_REF_OFF		= 0x40000,	// disc offset of partition table ref
+    WII_PTAB_SECTOR		= WII_PTAB_REF_OFF / WII_SECTOR_SIZE,
+						// sector index of partition table
+    WII_MAX_PTAB_SIZE		=   0x400,	// maximal size of all ptabs + entries
+    WII_MAX_PARTITIONS		= WII_MAX_PTAB_SIZE / 8 - WII_MAX_PTAB,
+						// maximal supported partitions
+
     WII_REGION_OFF		= 0x4e000,
     WII_REGION_SIZE		=    0x20,
-    WII_MAX_PART_TABLE		=    0x40,
 
     WII_BOOT_OFF		=      0,
     WII_BI2_OFF			=  0x440,
@@ -277,12 +285,12 @@ typedef struct wd_header_t
 
 typedef struct wd_boot_t
 {
-    /*   0 */	wd_header_t dhead;
-    /* 100 */	u8  unknown1[0x420-sizeof(wd_header_t)];
-    /* 420 */	u32 dol_off4;
-    /* 424 */	u32 fst_off4;
-    /* 428 */	u32 fst_size4;
-    /* 42c */	u8  unknown2[WII_BOOT_SIZE-0x42c];
+    /*   0 */	wd_header_t	dhead;
+    /* 100 */	u8		unknown1[0x420-sizeof(wd_header_t)];
+    /* 420 */	u32		dol_off4;
+    /* 424 */	u32		fst_off4;
+    /* 428 */	u32		fst_size4;
+    /* 42c */	u8		unknown2[WII_BOOT_SIZE-0x42c];
 }
 __attribute__ ((packed)) wd_boot_t;
 
@@ -291,41 +299,53 @@ void hton_boot ( wd_boot_t * dest, const wd_boot_t * src );
 
 //
 ///////////////////////////////////////////////////////////////////////////////
-///////////////		    struct wd_region_set_t		///////////////
+///////////////			struct wd_region_t		///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-typedef struct wd_region_set_t
+typedef struct wd_region_t
 {
 	u32 region;
 	u8  padding1[12];
 	u8  region_info[8];
 	u8  padding2[8];
 }
-__attribute__ ((packed)) wd_region_set_t;
+__attribute__ ((packed)) wd_region_t;
 
 //
 ///////////////////////////////////////////////////////////////////////////////
-///////////////		    struct wd_part_count_t		///////////////
+///////////////		    struct wd_ptab_info_t		///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-typedef struct wd_part_count_t
+typedef struct wd_ptab_info_t
 {
 	u32 n_part;	// number of partitions in this table
 	u32 off4;	// offset/4 of partition table relative to ISO start
 }
-__attribute__ ((packed)) wd_part_count_t;
+__attribute__ ((packed)) wd_ptab_info_t;
 
 //
 ///////////////////////////////////////////////////////////////////////////////
-///////////////		    struct wd_part_table_entry_t	///////////////
+///////////////		    struct wd_ptab_entry_t		///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-typedef struct wd_part_table_entry_t
+typedef struct wd_ptab_entry_t
 {
-	u32 off4;	// offset/4 of partition table relative to ISO start
+	u32 off4;	// offset/4 of partition table relative to disc start
 	u32 ptype;	// partitions type
 }
-__attribute__ ((packed)) wd_part_table_entry_t;
+__attribute__ ((packed)) wd_ptab_entry_t;
+
+//
+///////////////////////////////////////////////////////////////////////////////
+///////////////			struct wd_ptab_t		///////////////
+///////////////////////////////////////////////////////////////////////////////
+
+typedef struct wd_ptab_t // example for a good partition table
+{
+	wd_ptab_info_t  info[WII_MAX_PTAB];
+	wd_ptab_entry_t	entry[WII_MAX_PARTITIONS];
+}
+__attribute__ ((packed)) wd_ptab_t;
 
 //
 ///////////////////////////////////////////////////////////////////////////////
@@ -369,9 +389,9 @@ __attribute__ ((packed)) wd_ticket_t;
 extern const char not_encrypted_marker[];
 
 void ticket_clear_encryption ( wd_ticket_t * ticket, int mark_not_encrypted );
-int  ticket_is_marked_not_encrypted ( const wd_ticket_t * ticket );
+bool ticket_is_marked_not_encrypted ( const wd_ticket_t * ticket );
 u32  ticket_sign_trucha ( wd_ticket_t * ticket, u32 ticket_size );
-int  ticket_is_trucha_signed ( const wd_ticket_t * ticket, u32 ticket_size );
+bool ticket_is_trucha_signed ( const wd_ticket_t * ticket, u32 ticket_size );
 
 //
 ///////////////////////////////////////////////////////////////////////////////
@@ -446,9 +466,9 @@ __attribute__ ((packed)) wd_tmd_t;
 //----- encryption helpers
 
 void tmd_clear_encryption ( wd_tmd_t * tmd, int mark_not_encrypted );
-int  tmd_is_marked_not_encrypted ( const wd_tmd_t * tmd );
+bool tmd_is_marked_not_encrypted ( const wd_tmd_t * tmd );
 u32  tmd_sign_trucha ( wd_tmd_t * tmd, u32 tmd_size );
-int  tmd_is_trucha_signed ( const wd_tmd_t * tmd, u32 tmd_size );
+bool tmd_is_trucha_signed ( const wd_tmd_t * tmd, u32 tmd_size );
 
 //
 ///////////////////////////////////////////////////////////////////////////////
@@ -573,16 +593,6 @@ __attribute__ ((packed)) wbfs_disc_info_t;
 ///////////////////////////////////////////////////////////////////////////////
 
 unsigned char * wbfs_sha1_fake ( const unsigned char *d, size_t n, unsigned char *md );
-
-void wbfs_print_error
-(
-	ccp func,
-	ccp file,
-	uint line,
-	int level, // 0=warn, 1:error, 2:fatal
-	ccp format,
-	...
-);
 
 //
 ///////////////////////////////////////////////////////////////////////////////

@@ -43,13 +43,14 @@ typedef enum enumOptions
 	OPT_VERSION,
 	OPT_HELP,
 	OPT_XHELP,
+	OPT_WIDTH,
 	OPT_QUIET,
 	OPT_VERBOSE,
 	OPT_IO,
 	OPT_CHUNK,
 	OPT_LONG,
 
-	OPT__N_TOTAL // == 9
+	OPT__N_TOTAL // == 10
 
 } enumOptions;
 
@@ -83,6 +84,7 @@ typedef enum enumGetOpt
 	GO_VERBOSE		= 'v',
 
 	GO_XHELP		= 0x80,
+	GO_WIDTH,
 	GO_IO,
 
 } enumGetOpt;

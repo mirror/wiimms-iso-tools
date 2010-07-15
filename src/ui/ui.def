@@ -138,6 +138,12 @@
 	"Stop parsing the command line and print a help message with all" \
 	" commands included. Exit after printing." )
 
+#:def_opt( "WIDTH", "width", "GP", \
+	"width", \
+	"Define the width (number of columns) for help and some other" \
+	" messages. This option disables the automatic detection of the" \
+	" terminal width." )
+
 #:def_opt( "QUIET", "q|quiet", "GM", \
 	"", \
 	"Be quiet and print only error messages." )
@@ -235,11 +241,22 @@
 	"Disable composing and ignore FST directories as input." )
 
 #:def_opt( "PSEL", "psel", "CP", \
-	"p-type", \
+	"list", \
 	"This option set the scrubbing mode and defines, which disc partitions" \
-	" are handled. One of the following values is allowed, case is" \
-	" ignored: DATA, NO-DATA, UPDATE, NO-UPDATE, CHANNEL, NO-CHANNEL ALL," \
-	" WHOLE, RAW. The default value is 'ALL'." )
+	" are handled. The parameter is a comma separated list of keywords." \
+	" The keywords are divided in three functional groups:\n" \
+	"The first group selects partition types. The names @DATA@, @UDDATE@," \
+	" @CHANNEL@, @ID@ and the numbers between @0@ and @50@ for partition" \
+	" type are allowed. @'ID'@ is a placeholder for all ID types like the" \
+	" VC channels of SSBB. The prefix @'-'@ means: disable this partition" \
+	" type. The special keyword @'NONE'@ diables all partition types.\n" \
+	"The second group selects partition tables. The names @PTAB0..PTAB3@" \
+	" (and @T0..T3@) are allowed. The prefix @'-'@ means: Disable all" \
+	" partitions of that partition table.\n" \
+	"The third group are additional flags: @'WHOLE'@ means that the whole" \
+	" partition data is used. @'RAW'@ means that the whole disc is" \
+	" selected.\n" \
+	"The special keyword @'ALL'@ resets all settings to the default." )
 
 #:def_opt( "RAW", "raw", "C", \
 	"", \
@@ -248,8 +265,8 @@
 #:def_opt( "PMODE", "pmode", "CP", \
 	"p-mode", \
 	"This options set the prefix mode for listed or extracted files. One" \
-	" of the following values is allowed: auto, none, point, name, index." \
-	" The default value is 'auto'." )
+	" of the following values is allowed: @AUTO, NONE, POINT, NAME," \
+	" INDEX@. The default value is @'auto'@." )
 
 #:def_opt( "SNEEK", "sneek", "C", \
 	"", \
@@ -261,35 +278,40 @@
 	" parameter. 1 to 6 characters are expected. Only defined characters" \
 	" not equal '.' are modified. The disc header, boot.bin, ticket.bin" \
 	" and tmd.bin are  objects to modify. The option {--modify} selects" \
-	" the objects." )
+	" the objects.\n" \
+	"This patching option is only recognized while $composing$ a disc." )
 
 #:def_opt( "NAME", "name", "CP", \
 	"name", \
 	"This $patching$ option changes the name (disc title) of the disc to" \
 	" the given parameter. Up to 63 characters are expected. The disc" \
 	" header and boot.bin are objects to modify. The option {--modify}" \
-	" selects the objects." )
+	" selects the objects.\n" \
+	"This patching option is only recognized while $composing$ a disc." )
 
 #:def_opt( "MODIFY", "modify", "CP", \
 	"list", \
 	" This $patching$ option expects a comma separated list of the" \
 	" following keywords (case ignored) as parameter: @NONE, DISC, BOOT," \
 	" TICKET, TMD, WBFS, ALL@ and @AUTO@ (default).\n" \
-	" All keywords can be prefixed by @'+'@ to enable that option, by a" \
+	"All keywords can be prefixed by @'+'@ to enable that option, by a" \
 	" @'-'@ to disable it or by a @'='@ to enable that option and disable" \
-	" all others." )
+	" all others.\n" \
+	"This patching option is only recognized while $composing$ a disc." )
 
 #:def_opt( "REGION", "region", "CP", \
 	"region", \
 	"This $patching$ option defines the region of the disc.  The region is" \
 	" one of @JAPAN, USA, EUROPE, KOREA, FILE@ or @AUTO@ (default). The" \
-	" case of the keywords is ignored. Unsigned numbers are also accepted." )
+	" case of the keywords is ignored. Unsigned numbers are also accepted.\n" \
+	"This patching option is only recognized while $composing$ a disc." )
 
 #:def_opt( "IOS", "ios", "CP", \
 	"ios", \
 	"This $patching$ option defines the system version (IOS to load)" \
 	" within TMD. The format is @'HIGH:LOW'@ or @'HIGH-LOW'@ or @'LOW'@." \
-	" If only @LOW@ is set than @HIGH@ is assumed as 1 (standard IOS)." )
+	" If only @LOW@ is set than @HIGH@ is assumed as 1 (standard IOS).\n" \
+	"This patching option is only recognized while $composing$ a disc." )
 
 #:def_opt( "ENC", "enc", "CP", \
 	"encoding", \
@@ -318,6 +340,10 @@
 	" (one of 'cb' [=1] or  'kmgtpe' [base=1000] or 'KMGTPE' [base=1024])." \
 	" The default unit is 'G' (GiB)." )
 
+#:def_opt( "TRUNC", "trunc", "C", \
+	"", \
+	"Truncate PLAIN ISO images to the needed size while creating." )
+
 #:def_opt( "CHUNK_MODE", "chunk-mode|chunkmode|chm", "CP", \
 	"mode", \
 	"Defines an operation mode for {--chunk-size} and {--max-chunks}." \
@@ -326,7 +352,7 @@
 	" >=32K and with a power of 2 or @'ISO'@ for ISO images (more" \
 	" restrictive as @'POW2'@, best for USB loaders). The case of the" \
 	" keyword is ignored. The default key is @'ISO'@.\n" \
-	" @--chm@ is a short cut for @--chunk-mode@." )
+	"@--chm@ is a shortcut for @--chunk-mode@." )
 
 #:def_opt( "CHUNK_SIZE", "chunk-size|chunksize|chz", "CP", \
 	"sz", \
@@ -344,7 +370,7 @@
 	" changing.\n" \
 	"If the input file size is not known (e.g. reading from pipe), its" \
 	" size is assumed as @12 GiB@.\n" \
-	" @--chz@ is a short cut for @--chunk-size@." )
+	" @--chz@ is a shortcut for @--chunk-size@." )
 
 #:def_opt( "MAX_CHUNKS", "max-chunks|maxchunks|mch", "CP", \
 	"n", \
@@ -352,7 +378,7 @@
 	" default value is 8192 for {--chunk-mode ISO} and 32760 (maximal" \
 	" value) for all other modes. If this value is set than the automatic" \
 	" calculation  of {--chunk-size} will be modified too.\n" \
-	" @--mch@ is a short cut for @--max-chunks@." )
+	" @--mch@ is a shortcut for @--max-chunks@." )
 
 #:def_opt( "PRESERVE", "p|preserve", "C", \
 	"", \
@@ -433,10 +459,14 @@
 	"This option allows fine control over the things that are to be" \
 	" printed. The parameter is a comma separated list of the following" \
 	" keywords, case is ignored:  @NONE, INTRO, P-TAB, P-INFO, P-MAP," \
-	" D-MAP, TICKET, TMD@ and @ALL@. There are some combined keys: @PART" \
-	" := P-INFO,P-MAP,TICKET,TMD@, @MAP := P-MAP,D-MAP@.All keywords can" \
-	" be prefixed by '+' to enable that option, by a '-' to disable it or" \
-	" by a '=' to enable that option and disable all others.\n" \
+	" D-MAP, TICKET, TMD, USAGE, PATCH, FILES, OFFSET, SIZE, PATH@ and" \
+	" @ALL@. There are some combined keys: @PART :=" \
+	" P-INFO,P-MAP,TICKET,TMD@, @MAP := P-MAP,D-MAP@.\n" \
+	"All keywords can be prefixed by '+' to enable that option, by a '-'" \
+	" to disable it or by a '=' to enable that option and disable all" \
+	" others.\n" \
+	"The additional keywords @DEC@ and @HEX@ can be used to set a prefered" \
+	" number format. @-HEADER@ suppresses the output of header lines.\n" \
 	"The commands recognize only some of these keywords and ignore the" \
 	" others. If @--show@ is set, option {--long} is ignored for selecting" \
 	" output elements." )
@@ -1261,6 +1291,10 @@
 	"", \
 	"" )
 
+#:def_cmd_opt( "ILIST", "SHOW", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "ILIST", "SORT", \
 	"", \
 	"Define the sort mode for the file listing. The parameter is a comma" \
@@ -1335,6 +1369,10 @@
 	"", \
 	"" )
 
+#:def_cmd_opt( "ILIST_L", "SHOW", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "ILIST_L", "SORT", \
 	"", \
 	"Define the sort mode for the file listing. The parameter is a comma" \
@@ -1406,6 +1444,10 @@
 	"" )
 
 #:def_cmd_opt( "ILIST_LL", "NO_HEADER", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "ILIST_LL", "SHOW", \
 	"", \
 	"" )
 
@@ -1843,6 +1885,10 @@
 	"", \
 	"" )
 
+#:def_cmd_opt( "COPY", "TRUNC", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "COPY", "CHUNK_MODE", \
 	"", \
 	"" )
@@ -1960,6 +2006,10 @@
 	"" )
 
 #:def_cmd_opt( "SCRUB", "SPLIT_SIZE", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "SCRUB", "TRUNC", \
 	"", \
 	"" )
 
@@ -2597,6 +2647,12 @@
 	"Stop parsing the command line and print a help message with all" \
 	" commands included. Exit after printing." )
 
+#:def_opt( "WIDTH", "width", "GP", \
+	"width", \
+	"Define the width (number of columns) for help and some other" \
+	" messages. This option disables the automatic detection of the" \
+	" terminal width." )
+
 #:def_opt( "QUIET", "q|quiet", "GM", \
 	"", \
 	"Be quiet and print only error messages." )
@@ -2674,11 +2730,22 @@
 	"Set the maximum recurse depth for option {--recurse} (default=10)." )
 
 #:def_opt( "PSEL", "psel", "CP", \
-	"p-type", \
+	"list", \
 	"This option set the scrubbing mode and defines, which disc partitions" \
-	" are handled. One of the following values is allowed, case is" \
-	" ignored: DATA, NO-DATA, UPDATE, NO-UPDATE, CHANNEL, NO-CHANNEL ALL," \
-	" WHOLE, RAW. The default value is 'ALL'." )
+	" are handled. The parameter is a comma separated list of keywords." \
+	" The keywords are divided in three functional groups:\n" \
+	"The first group selects partition types. The names @DATA@, @UDDATE@," \
+	" @CHANNEL@, @ID@ and the numbers between @0@ and @50@ for partition" \
+	" type are allowed. @'ID'@ is a placeholder for all ID types like the" \
+	" VC channels of SSBB. The prefix @'-'@ means: disable this partition" \
+	" type. The special keyword @'NONE'@ diables all partition types.\n" \
+	"The second group selects partition tables. The names @PTAB0..PTAB3@" \
+	" (and @T0..T3@) are allowed. The prefix @'-'@ means: Disable all" \
+	" partitions of that partition table.\n" \
+	"The third group are additional flags: @'WHOLE'@ means that the whole" \
+	" partition data is used. @'RAW'@ means that the whole disc is" \
+	" selected.\n" \
+	"The special keyword @'ALL'@ resets all settings to the default." )
 
 #:def_opt( "RAW", "raw", "C", \
 	"", \
@@ -2723,13 +2790,15 @@
 	"region", \
 	"This $patching$ option defines the region of the disc.  The region is" \
 	" one of @JAPAN, USA, EUROPE, KOREA, FILE@ or @AUTO@ (default). The" \
-	" case of the keywords is ignored. Unsigned numbers are also accepted." )
+	" case of the keywords is ignored. Unsigned numbers are also accepted.\n" \
+	"This patching option is only recognized while $composing$ a disc." )
 
 #:def_opt( "IOS", "ios", "CP", \
 	"ios", \
 	"This $patching$ option defines the system version (IOS to load)" \
 	" within TMD. The format is @'HIGH:LOW'@ or @'HIGH-LOW'@ or @'LOW'@." \
-	" If only @LOW@ is set than @HIGH@ is assumed as 1 (standard IOS)." )
+	" If only @LOW@ is set than @HIGH@ is assumed as 1 (standard IOS).\n" \
+	"This patching option is only recognized while $composing$ a disc." )
 
 #:def_opt( "ID", "id", "CP", \
 	"id", \
@@ -2737,23 +2806,26 @@
 	" parameter. 1 to 6 characters are expected. Only defined characters" \
 	" not equal '.' are modified. The disc header, boot.bin, ticket.bin" \
 	" and tmd.bin are  objects to modify. The option {--modify} selects" \
-	" the objects." )
+	" the objects.\n" \
+	"This patching option is only recognized while $composing$ a disc." )
 
 #:def_opt( "NAME", "name", "CP", \
 	"name", \
 	"This $patching$ option changes the name (disc title) of the disc to" \
 	" the given parameter. Up to 63 characters are expected. The disc" \
 	" header and boot.bin are objects to modify. The option {--modify}" \
-	" selects the objects." )
+	" selects the objects.\n" \
+	"This patching option is only recognized while $composing$ a disc." )
 
 #:def_opt( "MODIFY", "modify", "CP", \
 	"list", \
 	" This $patching$ option expects a comma separated list of the" \
 	" following keywords (case ignored) as parameter: @NONE, DISC, BOOT," \
 	" TICKET, TMD, WBFS, ALL@ and @AUTO@ (default).\n" \
-	" All keywords can be prefixed by @'+'@ to enable that option, by a" \
+	"All keywords can be prefixed by @'+'@ to enable that option, by a" \
 	" @'-'@ to disable it or by a @'='@ to enable that option and disable" \
-	" all others." )
+	" all others.\n" \
+	"This patching option is only recognized while $composing$ a disc." )
 
 #:def_opt( "INODE", "inode", "C", \
 	"", \
@@ -2780,6 +2852,15 @@
 	" (one of 'cb' [=1] or  'kmgtpe' [base=1000] or 'KMGTPE' [base=1024])." \
 	" The default unit is 'G' (GiB)." )
 
+#:def_opt( "TRUNC", "trunc", "C", \
+	"", \
+	"Truncate PLAIN ISO images to the needed size while creating." )
+
+#:def_opt( "FAST", "F|fast", "C", \
+	"", \
+	"Enables fast writing (disables searching for blocks with zeroed" \
+	" data)." )
+
 #:def_opt( "CHUNK_MODE", "chunk-mode|chunkmode|chm", "CP", \
 	"mode", \
 	"Defines an operation mode for {--chunk-size} and {--max-chunks}." \
@@ -2788,7 +2869,7 @@
 	" >=32K and with a power of 2 or @'ISO'@ for ISO images (more" \
 	" restrictive as @'POW2'@, best for USB loaders). The case of the" \
 	" keyword is ignored. The default key is @'ISO'@.\n" \
-	" @--chm@ is a short cut for @--chunk-mode@." )
+	"@--chm@ is a shortcut for @--chunk-mode@." )
 
 #:def_opt( "CHUNK_SIZE", "chunk-size|chunksize|chz", "CP", \
 	"sz", \
@@ -2806,7 +2887,7 @@
 	" changing.\n" \
 	"If the input file size is not known (e.g. reading from pipe), its" \
 	" size is assumed as @12 GiB@.\n" \
-	" @--chz@ is a short cut for @--chunk-size@." )
+	" @--chz@ is a shortcut for @--chunk-size@." )
 
 #:def_opt( "MAX_CHUNKS", "max-chunks|maxchunks|mch", "CP", \
 	"n", \
@@ -2814,7 +2895,7 @@
 	" default value is 8192 for {--chunk-mode ISO} and 32760 (maximal" \
 	" value) for all other modes. If this value is set than the automatic" \
 	" calculation  of {--chunk-size} will be modified too.\n" \
-	" @--mch@ is a short cut for @--max-chunks@." )
+	" @--mch@ is a shortcut for @--max-chunks@." )
 
 #:def_opt( "SIZE", "s|size", "CP", \
 	"size", \
@@ -2846,7 +2927,7 @@
 	" comma separated list of the following keywords, case is ignored:" \
 	" @NONE, FBT, INODES, STANDARD, RM-INVALID, RM-OVERLAP, RM-FREE," \
 	" RM-EMPTY, RM-ALL, ALL@.\n" \
-	" All keywords can be prefixed by '+' to enable that option, by a '-'" \
+	"All keywords can be prefixed by '+' to enable that option, by a '-'" \
 	" to disable it or by a '=' to enable that option and disable all" \
 	" others." )
 
@@ -2876,14 +2957,6 @@
 #:def_opt( "REMOVE", "R|remove", "C", \
 	"", \
 	"Remove source files/discs if operation is successful." )
-
-#:def_opt( "TRUNC", "trunc", "C", \
-	"", \
-	"Trunc ISO images while writing." )
-
-#:def_opt( "FAST", "F|fast", "C", \
-	"", \
-	"Enables fast writing (disables searching for zero blocks)." )
 
 #:def_opt( "WDF", "W|wdf", "C", \
 	"", \
@@ -3065,6 +3138,12 @@
 #:def_cmd_opt( "ANALYZE", "PART", \
 	"", \
 	"" )
+
+#:def_cmd_opt( "ANALYZE", "LONG", \
+	"", \
+	"If option @--long@ is set then calculated values are printed too if" \
+	" other values are available. If option @--long@ is set twice" \
+	" calculated values are always printed." )
 
 #:def_cmd_opt( "DUMP", "TITLES", \
 	"", \
@@ -3819,7 +3898,7 @@
 	" comma separated list of the following keywords, case is ignored:" \
 	" @NONE, FBT, INODES, STANDARD, RM-INVALID, RM-OVERLAP, RM-FREE," \
 	" RM-EMPTY, RM-ALL, ALL@.\n" \
-	" All keywords can be prefixed by '+' to enable that option, by a '-'" \
+	"All keywords can be prefixed by '+' to enable that option, by a '-'" \
 	" to disable it or by a '=' to enable that option and disable all" \
 	" others. The default is 'NONE'." )
 
@@ -3877,7 +3956,7 @@
 	" comma separated list of the following keywords, case is ignored:" \
 	" @NONE, FBT, INODES, STANDARD, RM-INVALID, RM-OVERLAP, RM-FREE," \
 	" RM-EMPTY, RM-ALL, ALL@.\n" \
-	" All keywords can be prefixed by '+' to enable that option, by a '-'" \
+	"All keywords can be prefixed by '+' to enable that option, by a '-'" \
 	" to disable it or by a '=' to enable that option and disable all" \
 	" others. The default is 'STANDARD' (FBT,INODES)." )
 
@@ -4475,6 +4554,10 @@
 	"", \
 	"" )
 
+#:def_cmd_opt( "EXTRACT", "TRUNC", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "EXTRACT", "CHUNK_MODE", \
 	"", \
 	"" )
@@ -4520,10 +4603,6 @@
 	"" )
 
 #:def_cmd_opt( "EXTRACT", "OVERWRITE", \
-	"", \
-	"" )
-
-#:def_cmd_opt( "EXTRACT", "TRUNC", \
 	"", \
 	"" )
 
@@ -4929,10 +5008,7 @@
 
 #:def_cmd_opt( "VERIFY", "PSEL", \
 	"", \
-	"This option defines which types of partitions are verified. One of" \
-	" the following values is allowed, case is ignored: DATA, NO-DATA," \
-	" UPDATE, NO-UPDATE, CHANNEL, NO-CHANNEL ALL, WHOLE, RAW. The default" \
-	" value is 'ALL'." )
+	"" )
 
 #:def_cmd_opt( "VERIFY", "RAW", \
 	"", \
@@ -5001,6 +5077,12 @@
 	"", \
 	"Same as {--help}." )
 
+#:def_opt( "WIDTH", "width", "GP", \
+	"width", \
+	"Define the width (number of columns) for help and some other" \
+	" messages. This option disables the automatic detection of the" \
+	" terminal width." )
+
 #:def_opt( "IO", "io", "GP", \
 	"flags", \
 	"Setup the IO mode for experiments. The standard file IO is based on" \
@@ -5029,6 +5111,12 @@
 #:def_opt( "XHELP", "xhelp", "G", \
 	"", \
 	"Same as {--help}." )
+
+#:def_opt( "WIDTH", "width", "GP", \
+	"width", \
+	"Define the width (number of columns) for help and some other" \
+	" messages. This option disables the automatic detection of the" \
+	" terminal width." )
 
 #:def_opt( "QUIET", "q|quiet", "G", \
 	"", \

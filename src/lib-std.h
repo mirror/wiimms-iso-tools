@@ -204,6 +204,9 @@ enumError CheckEnvOptions ( ccp varname, check_opt_func );
 ///////////////			terminal cap			///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
+extern u32 opt_width;
+int ScanOptWidth ( ccp source ); // returns '1' on error, '0' else
+
 int GetTermWidth ( int default_value, int min_value );
 int GetTermWidthFD ( int fd, int default_value, int min_value );
 
@@ -257,6 +260,7 @@ typedef enum enumOFT // open file mode
 extern enumOFT output_file_type;
 extern ccp oft_ext [OFT__N+1]; // NULL terminated list
 extern ccp oft_name[OFT__N+1]; // NULL terminated list
+extern int opt_truncate;
 
 enumOFT CalcOFT ( enumOFT force, ccp fname_dest, ccp fname_src, enumOFT def );
 
@@ -553,13 +557,42 @@ int NormalizeIndent ( int indent );
 
 //-----
 
-int CheckIDHelper
-	( const void * id, int max_len, bool allow_any_len, bool ignore_case );
+int CheckIDHelper // helper for all other id functions
+(
+	const void	* id,		// valid pointer to test ID
+	int		max_len,	// max length of ID, a NULL terminates ID too
+	bool		allow_any_len,	// if false, only length 4 and 6 are allowed
+	bool		ignore_case,	// lower case letters are allowed
+	bool		allow_point	// the wildcard '.' is allowed
+);
 
-int  CheckID	( const void * id, bool ignore_case ); // check up to 7 chars for ID4|ID6
-bool CheckID4	( const void * id, bool ignore_case ); // check exact 4 chars
-bool CheckID6	( const void * id, bool ignore_case ); // check exact 6 chars
-int CountIDChars( const void * id, bool ignore_case ); // count number of valid ID chars
+int CheckID // check up to 7 chars for ID4|ID6
+(
+	const void	* id,		// valid pointer to test ID
+	bool		ignore_case,	// lower case letters are allowed
+	bool		allow_point	// the wildcard '.' is allowed
+);
+
+bool CheckID4 // check exact 4 chars
+(
+	const void	* id,		// valid pointer to test ID
+	bool		ignore_case,	// lower case letters are allowed
+	bool		allow_point	// the wildcard '.' is allowed
+);
+
+bool CheckID6 // check exact 6 chars
+(
+	const void	* id,		// valid pointer to test ID
+	bool		ignore_case,	// lower case letters are allowed
+	bool		allow_point	// the wildcard '.' is allowed
+);
+
+int CountIDChars // count number of valid ID chars, max = 1000
+(
+	const void	* id,		// valid pointer to test ID
+	bool		ignore_case,	// lower case letters are allowed
+	bool		allow_point	// the wildcard '.' is allowed
+);
 
 char * ScanID	    ( char * destbuf7, int * destlen, ccp source );
 
@@ -604,7 +637,7 @@ enumError ScanSizeOptU32
 extern int opt_split;
 extern u64 opt_split_size;
 
-int ScanSplitSize ( ccp source ); // returns '1' on error, '0' else
+int ScanOptSplitSize ( ccp source ); // returns '1' on error, '0' else
 
 //
 ///////////////////////////////////////////////////////////////////////////////
@@ -649,20 +682,28 @@ int ScanOptSort ( ccp arg );
 
 typedef enum ShowMode
 {
+	//----- base values
+
 	SHOW__NONE	= 0,
 
-	SHOW_INTRO	= 0x0001, // introduction
-	SHOW_P_TAB	= 0x0002, // partition table
-	SHOW_P_INFO	= 0x0004, // partition info
-	SHOW_P_MAP	= 0x0008, // memory map of partitions
-	SHOW_D_MAP	= 0x0010, // memory map of discs
-	SHOW_TICKET	= 0x0020, // ticket info
-	SHOW_TMD	= 0x0040, // tmd info
+	SHOW_INTRO	= 0x00000001, // introduction
+	SHOW_P_TAB	= 0x00000002, // partition table
+	SHOW_P_INFO	= 0x00000004, // partition info
+	SHOW_P_MAP	= 0x00000008, // memory map of partitions
+	SHOW_D_MAP	= 0x00000010, // memory map of discs
+	SHOW_TICKET	= 0x00000020, // ticket info
+	SHOW_TMD	= 0x00000040, // tmd info
+	SHOW_USAGE	= 0x00000080, // usage table
+	SHOW_FILES	= 0x00000100, // file list
+	SHOW_PATCH	= 0x00000200, // patching table
+	SHOW_PATH	= 0x00000400, // full path
 
+	SHOW_OFFSET	= 0x00000800, // show offsets
+	SHOW_SIZE	= 0x00001000, // show size
 	
-	SHOW__ALL	= 0x007f,
+	SHOW__ALL	= 0x00001fff,
 
-	// combinations
+	//----- combinations
 
 	SHOW__PART	= SHOW_P_INFO
 			| SHOW_P_MAP
@@ -672,14 +713,32 @@ typedef enum ShowMode
 	SHOW__MAP	= SHOW_P_MAP
 			| SHOW_D_MAP,
 
+	//----- flags
+
+	SHOW_F_DEC1	= 0x00010000, // prefer DEC, only one of DEC1,HEX1 is set
+	SHOW_F_HEX1	= 0x00020000, // prefer HEX, only one of DEC1,HEX1 is set
+	SHOW_F_DEC	= 0x00040000, // prefer DEC
+	SHOW_F_HEX	= 0x00080000, // prefer HEX,
+	SHOW_F__NUM	= 0x000f0000,
+
+	SHOW_F_HEAD	= 0x00100000, // print header lines
+
+	//----- etc
+
 	SHOW__DEFAULT	= (int)0x80000000,
 	SHOW__ERROR	= -1 // not a mode but an error message
 
 } ShowMode;
 
-extern ShowMode show_mode;
+extern ShowMode opt_show_mode;
 ShowMode ScanShowMode ( ccp arg );
 int ScanOptShow ( ccp arg );
+
+int ConvertShow2PFST
+(
+	ShowMode show_mode,	// show mode
+	ShowMode def_mode	// default mode
+);
 
 //
 ///////////////////////////////////////////////////////////////////////////////
@@ -881,6 +940,21 @@ MemMapItem_t * FindMemMap ( MemMap_t * mm, off_t off, off_t size );
 // Return pointer to new item (never NULL)
 MemMapItem_t * InsertMemMap ( MemMap_t * mm, off_t off, off_t size );
 
+void InsertMemMapWrapper
+(
+	void		* param,	// user defined parameter
+	u64		offset,		// offset of object
+	u64		size,		// size of object
+	ccp		info		// info about object
+);
+
+struct wd_disc_t;
+void InsertDiscMemMap
+(
+	MemMap_t	* mm,		// valid memore map pointer
+	struct wd_disc_t * disc		// valid disc pointer
+);
+
 // Remove all entires with key. Return number of delete entries
 //uint RemoveMemMap ( MemMap_t * mm, off_t off, off_t size );
 
@@ -892,6 +966,33 @@ uint CalCoverlapMemMap ( MemMap_t * mm );
 
 // Print out memory map
 void PrintMemMap ( MemMap_t * mm, FILE * f, int indent );
+
+//
+///////////////////////////////////////////////////////////////////////////////
+///////////////			setup files			///////////////
+///////////////////////////////////////////////////////////////////////////////
+
+typedef struct SetupDef_t
+{
+	ccp	name;		// name of parameter, NULL=list terminator
+	u32	factor;		// factor, 0: text param
+	ccp	param;		// malloced text param
+	u64	value;		// numeric value of param
+
+} SetupDef_t;
+
+size_t ResetSetup
+(
+	SetupDef_t * list	// object list terminated with an element 'name=NULL'
+);
+
+enumError ScanSetupFile
+(
+	SetupDef_t * list,	// object list terminated with an element 'name=NULL'
+	ccp path1,		// filename of text file, part 1
+	ccp path2,		// filename of text file, part 2
+	bool silent		// true: suppress error message if file not found
+);
 
 //
 ///////////////////////////////////////////////////////////////////////////////
@@ -924,7 +1025,7 @@ RepairMode ScanRepairMode ( ccp arg );
 
 ///////////////////////////////////////////////////////////////////////////////
 
-#define COMMAND_MAX 100
+#define COMMAND_NAME_MAX 100
 
 typedef u64 option_t;
 extern option_t used_options;
@@ -932,20 +1033,44 @@ extern option_t env_options;
 
 typedef struct CommandTab_t
 {
-	int  id;
-	ccp  name1;
-	ccp  name2;
-	option_t opt;	// -> allowed_options;
+    s64			id;		// id
+    ccp			name1;		// first name
+    ccp			name2;		// NULL or second name
+    s64			opt;		// option
 
 } CommandTab_t;
 
-typedef int (*CommandCallbackFunc)
-	( ccp name, const CommandTab_t * tab,
-		    const CommandTab_t * cmd, int result );
+typedef s64 (*CommandCallbackFunc)
+(
+    ccp			name,		// normalized name of option
+    const CommandTab_t	* cmd_tab,	// valid pointer to command table
+    const CommandTab_t	* cmd,		// valid pointer to found command
+    char		prefix,		// 0 | '-' | '+' | '='
+    s64			result		// current value of result
+);
 
-const CommandTab_t * ScanCommand ( int * stat, ccp arg, const CommandTab_t * tab );
-int ScanCommandList ( ccp arg, const CommandTab_t * cmd_tab, CommandCallbackFunc func );
-int ScanCommandListMask ( ccp arg, const CommandTab_t * cmd_tab );
+const CommandTab_t * ScanCommand
+(
+    int			* res_abbrev,	// NULL or pointer to result 'abbrev_count'
+    ccp			arg,		// argument to scan
+    const CommandTab_t	* cmd_tab	// valid pointer to command table
+);
+
+s64 ScanCommandList
+(
+    ccp			arg,		// argument to scan
+    const CommandTab_t	* cmd_tab,	// valid pointer to command table
+    CommandCallbackFunc	func,		// NULL or calculation function
+    bool		allow_prefix,	// allow '-' | '+' | '=' as prefix
+    u32			max_number,	// allow numbers < 'max_number' (0=disabled)
+    s64			result		// start value for result
+);
+
+s64 ScanCommandListMask
+(
+    ccp			arg,		// argument to scan
+    const CommandTab_t	* cmd_tab	// valid pointer to command table
+);
 
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////                     vars                        ///////////////
@@ -968,7 +1093,6 @@ extern       char iobuf [0x400000];	// global io buffer
 extern const char zerobuf[0x40000];	// global zero buffer
 
 extern const char sep_79[80];		//  79 * '-' + NULL
-extern const char sep_200[201];		// 200 * '-' + NULL
 
 extern StringField_t source_list;
 extern StringField_t recurse_list;

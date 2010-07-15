@@ -95,14 +95,15 @@ void version_exit()
 	fputs("[version]\n",stdout);
 
     if ( print_sections || long_count )
-	fputs(	"prog=" WWT_SHORT "\n"
+	printf(	"prog=" WWT_SHORT "\n"
 		"name=\"" WWT_LONG "\"\n"
 		"version=" VERSION "\n"
+		"beta=%d\n"
 		"revision=" REVISION  "\n"
 		"system=" SYSTEM "\n"
 		"author=\"" AUTHOR "\"\n"
 		"date=" DATE "\n"
-		, stdout );
+		, BETA_VERSION );
     else
 	fputs( TITLE "\n", stdout );
     exit(ERR_OK);
@@ -372,7 +373,7 @@ enumError cmd_analyze()
 	printf("\nANALYZE %s\n",info->path);
 	AWData_t awd;
 	AnalyzeWBFS(&awd,&F);
-	PrintAnalyzeWBFS(&awd,stdout,0);
+	PrintAnalyzeWBFS(stdout,0,&awd,long_count);
     }
     putchar('\n');
     ResetFile(&F,0);
@@ -506,10 +507,10 @@ int print_list_mixed()
 		    max_name_wd = plen;
 	    }
 
-	    printf("\n WI  WBFS file\n%.*s\n",max_name_wd+6,sep_200);
+	    printf("\n WI  WBFS file\n%.*s\n",max_name_wd+6,wd_sep_200);
 	    for ( i = 1; i <= pi_count; i++ )
 		printf("%3d  %s\n",i,pi_list[i]->path);
-	    printf("%.*s\n",max_name_wd+6,sep_200);
+	    printf("%.*s\n",max_name_wd+6,wd_sep_200);
 	}
 
 	// find max name width
@@ -541,12 +542,13 @@ int print_list_mixed()
 		max_name_wd = n2;
 	    if ( max_name_wd < footer_len )
 		max_name_wd = footer_len;
-	    printf("%.*s\n", max_name_wd, sep_200);
+	    printf("%.*s\n", max_name_wd, wd_sep_200);
 	}
 
-	for ( i = pi_wlist.used, witem = pi_wlist.first_disc; i-- > 0; witem++ )
+ 	for ( i = pi_wlist.used, witem = pi_wlist.first_disc; i-- > 0; witem++ )
 	    printf("%s %4d %s %3d  %s\n",
-		    witem->id6, witem->size_mib, witem->region4,
+		    witem->id6, witem->size_mib,
+		    GetRegionInfo(witem->id6[3])->name4,
 		    witem->part_index,
 		    witem->title ? witem->title : witem->name64 );
     }
@@ -562,12 +564,13 @@ int print_list_mixed()
 		max_name_wd = n2;
 	    if ( max_name_wd < footer_len )
 		max_name_wd = footer_len;
-	    printf("%.*s\n", max_name_wd, sep_200);
+	    printf("%.*s\n", max_name_wd, wd_sep_200);
 	}
 
 	for ( i = pi_wlist.used, witem = pi_wlist.first_disc; i-- > 0; witem++ )
 	    printf("%s %4d %s  %s\n",
-		    witem->id6, witem->size_mib, witem->region4,
+		    witem->id6, witem->size_mib,
+		    GetRegionInfo(witem->id6[3])->name4,
 		    witem->title ? witem->title : witem->name64 );
     }
     else
@@ -580,7 +583,7 @@ int print_list_mixed()
 	    max_name_wd += n1;
 	    if ( max_name_wd < n2 )
 		max_name_wd = n2;
-	    printf("%.*s\n", max_name_wd, sep_200 );
+	    printf("%.*s\n", max_name_wd, wd_sep_200 );
 	}
 
 	for ( i = pi_wlist.used, witem = pi_wlist.first_disc; i-- > 0; witem++ )
@@ -588,7 +591,7 @@ int print_list_mixed()
     }
 
     if (print_header)
-	printf("%.*s\n%s\n\n", max_name_wd, sep_200, footer );
+	printf("%.*s\n%s\n\n", max_name_wd, wd_sep_200, footer );
 
     return ERR_OK;
 }
@@ -709,12 +712,13 @@ enumError cmd_list ( int long_level )
 		    if ( max_name_wd < footer_len )
 			max_name_wd = footer_len;
 		    noTRACE(",%d\n",max_name_wd);
-		    printf("%.*s\n", max_name_wd, sep_200);
+		    printf("%.*s\n", max_name_wd, wd_sep_200);
 		}
 		for ( i = wlist->used, witem = wlist->first_disc; i-- > 0; witem++ )
 		    printf("%s%s %4d %s %s\n",
 				witem->id6, PrintTime(&pt,&witem->fatt),
-				witem->size_mib, witem->region4,
+				witem->size_mib,
+				GetRegionInfo(witem->id6[3])->name4,
 				witem->title ? witem->title : witem->name64 );
 	    }
 	    else
@@ -733,7 +737,7 @@ enumError cmd_list ( int long_level )
 		    if ( max_name_wd < footer_len )
 			max_name_wd = footer_len;
 		    noTRACE(" -> %d\n",max_name_wd);
-		    printf("%.*s\n", max_name_wd, sep_200 );
+		    printf("%.*s\n", max_name_wd, wd_sep_200 );
 		}
 
 		for ( i = wlist->used, witem = wlist->first_disc; i-- > 0; witem++ )
@@ -742,7 +746,7 @@ enumError cmd_list ( int long_level )
 	    }
 
 	    if (print_header)
-		printf("%.*s\n%s\n\n", max_name_wd, sep_200, footer );
+		printf("%.*s\n%s\n\n", max_name_wd, wd_sep_200, footer );
 
 	    gt_wbfs++;
 	    gt_disc	+= wlist->used;
@@ -1214,7 +1218,7 @@ enumError cmd_edit()
     for ( param = first_param; param; param = param->next )
     {
 	char * arg = param->arg;
-	char cmd_buf[COMMAND_MAX];
+	char cmd_buf[COMMAND_NAME_MAX];
 	char *dest = cmd_buf;
 	char *end  = cmd_buf + sizeof(cmd_buf) - 1;
 	while ( *arg && *arg != '=' && dest < end )
@@ -1712,7 +1716,7 @@ enumError exec_add ( SuperFile_t * sf, Iterator_t * it )
 	sf->show_msec		= verbose > 2;
 	sf->f.read_behind_eof	= verbose > 1 ? 1 : 2;
 
-	if ( AddWDisc(it->wbfs,sf,partition_selector) > ERR_WARNING )
+	if ( AddWDisc(it->wbfs,sf,part_selector) > ERR_WARNING )
 	    return ERROR0(ERR_WBFS,"Error while creating disc [%s] @%s\n",
 			sf->f.id6, it->wbfs->sf->f.fname );
     }
@@ -1860,7 +1864,7 @@ enumError cmd_add()
 	    }
 	}
 
-	if ( used_options & OB_TRUNC )
+	if (opt_truncate)
 	{
 	    if (testmode)
 	    {
@@ -1923,9 +1927,43 @@ enumError cmd_extract()
 		? ERR_OK 
 		: ERROR0(ERR_MISSING_PARAM,"missing parameters\n");
 
+
+    //----- dest path
+
+    ccp dest_path, default_fname = "%+";
+    char dest_buf[PATH_MAX];
+    if ( !opt_dest || !*opt_dest )
+	dest_path = "";
+    else if (IsDirectory(opt_dest,false))
+	dest_path = PathCatPP(dest_buf,sizeof(dest_buf),opt_dest,"/");
+    else
+    {
+	ccp temp = strrchr(opt_dest,'/');
+	if (temp)
+	{
+	    temp++;
+	    size_t len = temp - opt_dest;
+	    if ( len > sizeof(dest_buf)-1 )
+		 len = sizeof(dest_buf)-1;
+	    memcpy(dest_buf,opt_dest,len);
+	    dest_buf[len] = 0;
+	    dest_path = dest_buf;
+	    if (*temp)
+		default_fname = temp;
+	}
+	else
+	{
+	    dest_path = "";
+	    default_fname = opt_dest;
+	}
+    }
+
+    noTRACE("DEST: |%s|%s|\n", dest_path, default_fname );
+
     const int update = used_options & OB_UPDATE;
     if (update)
-	DefineExcludePath( opt_dest && *opt_dest ? opt_dest : ".", 1 );
+	DefineExcludePath(dest_path,1);
+
 
     //----- extract discs
 
@@ -1988,41 +2026,25 @@ enumError cmd_extract()
 		}
 
 		RemoveSF(&fo);
-		enumOFT oft = CalcOFT(output_file_type,param->arg,0,OFT__DEFAULT);
-		ccp title = GetTitle(id6,(ccp)dhead->game_title);
-		ccp oname = param->arg || oft != OFT_WBFS ? 0 : id6;
 
-		// calculate the default filename first ...
-		GenFileName( &fo.f, 0, oname, title, id6, oft_ext[oft] );
-
-		// and now the destination filename
-		SubstString_t subst_tab[] =
-		{
-		    { 'i', 'I', 0, id6 },
-		    { 'n', 'N', 0, (ccp)dhead->game_title },
-		    { 't', 'T', 0, title },
-		    { 'e', 'E', 0, oft_ext[oft]+1 },
-		    { '+', '+', 1, fo.f.fname },
-		    {0,0,0,0}
-		};
 		char dbuf[PATH_MAX], fbuf[PATH_MAX];
-		int conv_count1, conv_count2;
-		SubstString(dbuf,sizeof(dbuf),subst_tab,opt_dest,&conv_count1);
-
-		char oname_buf[20];
-		if ( param->arg )
-		    oname = param->arg;
-		else if ( oft == OFT_WBFS )
+		ccp dpath;
+		if ( param->arg && *param->arg )
 		{
-		    snprintf(oname_buf,sizeof(oname_buf),"%s.wbfs",id6);
-		    oname = oname_buf;
+		    dpath = PathCatPP(dbuf,sizeof(dbuf),dest_path,param->arg);
+		    if (IsDirectory(dpath,true))
+			dpath = PathCatPP(dbuf,sizeof(dbuf),dpath,default_fname);
 		}
 		else
-		    oname = fo.f.fname;
+		    dpath = PathCatPP(dbuf,sizeof(dbuf),dest_path,default_fname);
 
-		SubstString(fbuf,sizeof(fbuf),subst_tab,oname,&conv_count2);
-		fo.f.create_directory = conv_count1 || conv_count2 || opt_mkdir;
-		GenFileName( &fo.f, dbuf, fbuf, 0, 0, 0 );
+		enumOFT oft = CalcOFT(output_file_type,dpath,0,OFT__DEFAULT);
+		int conv_count = SubstFileName( fbuf, sizeof(fbuf),
+						id6, (ccp)dhead->game_title,
+						info->path, 0, dpath, oft );
+		printf("|%s|%s|\n",dpath,fbuf);
+		SetFileName(&fo.f,fbuf,true);
+		fo.f.create_directory = conv_count || opt_mkdir;
 
 		if (testmode)
 		{
@@ -2056,7 +2078,6 @@ enumError cmd_extract()
 		    }
 
 		    fo.enable_fast	= (used_options&OB_FAST)  != 0;
-		    fo.enable_trunc	= (used_options&OB_TRUNC) != 0;
 		    fo.indent		= 5;
 		    fo.show_progress	= verbose > 1 || progress > 0;
 		    fo.show_summary	= verbose > 0 || progress > 0;
@@ -2869,7 +2890,7 @@ enumError cmd_filetype()
 		if (sf.f.id6[0])
 		{
 		    region = GetRegionInfo(sf.f.id6[3])->name4;
-		    u32 count = CountUsedIsoBlocksSF(&sf,partition_selector);
+		    u32 count = CountUsedIsoBlocksSF(&sf,part_selector);
 		    if (count)
 			snprintf(size,sizeof(size),"%4u",
 				(count+WII_SECTORS_PER_MIB/2)/WII_SECTORS_PER_MIB);
@@ -2929,6 +2950,7 @@ enumError CheckOptions ( int argc, char ** argv, bool is_env )
 	case GO_VERSION:	version_exit();
 	case GO_HELP:		help_exit(false);
 	case GO_XHELP:		help_exit(true);
+	case GO_WIDTH:		err += ScanOptWidth(optarg); break;
 
 	case GO_QUIET:		verbose = verbose > -1 ? -1 : verbose - 1; break;
 	case GO_VERBOSE:	verbose = verbose <  0 ?  0 : verbose + 1; break;
@@ -2947,7 +2969,8 @@ enumError CheckOptions ( int argc, char ** argv, bool is_env )
 	case GO_ALL:		opt_all++; break;
 	case GO_PART:		AtFileHelper(optarg,false,AddPartition); break;
 	case GO_RECURSE:	AppendStringField(&recurse_list,optarg,false); break;
-	case GO_RAW:		partition_selector = WHOLE_DISC; break;
+	case GO_PSEL:		err += ScanOptPartSelector(optarg); break;
+	case GO_RAW:		part_selector = WD_SEL_WHOLE_DISC; break;
 
 	case GO_INCLUDE:	AtFileHelper(optarg,0,AddIncludeID); break;
 	case GO_INCLUDE_PATH:	AtFileHelper(optarg,0,AddIncludePath); break;
@@ -2967,7 +2990,9 @@ enumError CheckOptions ( int argc, char ** argv, bool is_env )
 	case GO_NAME:		err += ScanOptName(optarg); break;
 	case GO_MODIFY:		err += ScanOptModify(optarg); break;
 	case GO_SPLIT:		opt_split++; break;
-	case GO_SPLIT_SIZE:	err += ScanSplitSize(optarg); break;
+	case GO_SPLIT_SIZE:	err += ScanOptSplitSize(optarg); break;
+	case GO_TRUNC:		opt_truncate++; break;
+	case GO_FAST:		break;
 	case GO_CHUNK_MODE:	err += ScanChunkMode(optarg); break;
 	case GO_CHUNK_SIZE:	err += ScanChunkSize(optarg); break;
 	case GO_MAX_CHUNKS:	err += ScanMaxChunks(optarg); break;
@@ -2981,8 +3006,6 @@ enumError CheckOptions ( int argc, char ** argv, bool is_env )
 	case GO_NEWER:		break;
 	case GO_OVERWRITE:	break;
 	case GO_REMOVE:		break;
-	case GO_TRUNC:		break;
-	case GO_FAST:		break;
 
 	case GO_WDF:		output_file_type = OFT_WDF; break;
 	case GO_ISO:		output_file_type = OFT_PLAIN; break;
@@ -3011,17 +3034,6 @@ enumError CheckOptions ( int argc, char ** argv, bool is_env )
 	    if (ScanSizeOptU32(&opt_recurse_depth,optarg,1,0,
 				"rdepth",0,MAX_RECURSE_DEPTH,0,0,true))
 		hint_exit(ERR_SYNTAX);
-	    break;
-
-	case GO_PSEL:
-	    {
-
-		const int new_psel = ScanPartitionSelector(optarg);
-		if ( new_psel == -1 )
-		    err++;
-		else
-		    partition_selector = new_psel;
-	    }
 	    break;
 
 	case GO_SIZE:
@@ -3081,6 +3093,9 @@ enumError CheckOptions ( int argc, char ** argv, bool is_env )
 	//	=> compiler checks the existence of all enum values
       }
     }
+    if ( used_options & OB_NO_HEADER )
+	opt_show_mode &= ~SHOW_F_HEAD;
+
  #ifdef DEBUG
     DumpUsedOptions(&InfoUI,TRACE_FILE,11);
  #endif
@@ -3130,7 +3145,7 @@ enumError CheckCommand ( int argc, char ** argv )
 	hint_exit(ERR_SYNTAX);
     }
 
-    TRACE("COMMAND FOUND: #%d = %s\n",cmd_ct->id,cmd_ct->name1);
+    TRACE("COMMAND FOUND: #%lld = %s\n",(u64)cmd_ct->id,cmd_ct->name1);
 
     enumError err = VerifySpecificOptions(&InfoUI,cmd_ct);
     if (err)

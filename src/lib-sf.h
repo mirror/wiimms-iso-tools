@@ -71,7 +71,6 @@ typedef struct SuperFile_t
 
 	File_t f;			// file handling struct
 	bool enable_fast;		// enables fast prosessing
-	bool enable_trunc;		// truncate iso image
 	int  indent;			// indent of progress and summary
 	bool show_progress;		// show progress info
 	bool show_summary;		// show summary statistics
@@ -98,6 +97,10 @@ typedef struct SuperFile_t
 
 	IOData_t iod;			// open file mode & read+write functions
 	ReadFunc std_read_func;		// standard read function
+
+	// Wii disc support
+	
+	wd_disc_t * disc;		// pointer to wii disc
 
 	// WDF support
 
@@ -173,6 +176,13 @@ enumError CreateSF
 	int overwrite
 );
 
+wd_disc_t * OpenDiscSF
+(
+	SuperFile_t * sf,	// valid pointer
+	bool load_part_data,	// true: load partition data
+	bool print_err		// true: print error message if open fails
+);
+
 enumError SetupISOModifier ( SuperFile_t * sf );
 enumError RewriteModifiedSF ( SuperFile_t * fi, SuperFile_t * fo, struct WBFS_t * wbfs );
 
@@ -180,10 +190,36 @@ enumError RewriteModifiedSF ( SuperFile_t * fi, SuperFile_t * fo, struct WBFS_t 
 enumError SetupWriteSF	( SuperFile_t * sf, enumOFT );	// setup writing
 enumError SetupWriteWBFS( SuperFile_t * sf );		// setup wbfs/disc writing
 
-// filename helper
-void SubstFileNameSF ( SuperFile_t * fo, SuperFile_t * fi, ccp f_name );
-int SubstFileNameBuf ( char * fname, size_t fname_size,
-		SuperFile_t * fi, ccp f_name, ccp fo_fname, enumOFT fo_oft );
+// filename helpers
+
+void SubstFileNameSF
+(
+    SuperFile_t	* fo,		// output file
+    SuperFile_t	* fi,		// input file
+    ccp		dest_arg	// arg to parse for escapes
+);
+
+int SubstFileNameBuf
+(
+    char	* fname_buf,	// output buf
+    size_t	fname_size,	// size of output buf
+    SuperFile_t	* fi,		// input file -> id6, fname
+    ccp		fname,		// pure filename. if NULL: extract from 'fi'
+    ccp		dest_arg,	// arg to parse for escapes
+    enumOFT	oft		// output file type
+);
+
+int SubstFileName
+(
+    char	* fname_buf,	// output buf
+    size_t	fname_size,	// size of output buf
+    ccp		id6,		// id6
+    ccp		disc_name,	// name of disc
+    ccp		src_file,	// full path to source file
+    ccp		fname,		// pure filename, no path. If NULL: extract from 'src_file'
+    ccp		dest_arg,	// arg to parse for escapes
+    enumOFT	oft		// output file type
+);
 
 // main read and write functions
 
@@ -236,16 +272,15 @@ enumFileType AnalyzeMemFT ( const void * buf_hd_sect_size, off_t file_size );
 enumError XPrintErrorFT ( XPARM File_t * f, enumFileType err_mask );
 ccp GetNameFT ( enumFileType ftype, int ignore );
 enumOFT GetOFT ( SuperFile_t * sf );
-u32 CountUsedIsoBlocksSF ( SuperFile_t * sf, u32 psel );
-u32 CountUsedBlocks ( u8 * usage_tab, u32 block_size );
+u32 CountUsedIsoBlocksSF ( SuperFile_t * sf, wd_select_t psel );
 
 // copy functions
-enumError CopySF	( SuperFile_t * in, SuperFile_t * out, u32 psel );
+enumError CopySF	( SuperFile_t * in, SuperFile_t * out, wd_select_t psel );
 enumError CopyRaw	( SuperFile_t * in, SuperFile_t * out );
 enumError CopyRawData	( SuperFile_t * in, SuperFile_t * out, off_t off, off_t size );
 enumError CopyWDF	( SuperFile_t * in, SuperFile_t * out );
 enumError CopyWBFSDisc	( SuperFile_t * in, SuperFile_t * out );
-enumError CopyToWBFS	( SuperFile_t * in, SuperFile_t * out, u32 psel );
+enumError CopyToWBFS	( SuperFile_t * in, SuperFile_t * out, wd_select_t psel );
 
 enumError AppendF	(      File_t * in, SuperFile_t * out, off_t in_off, size_t count );
 enumError AppendSparseF	(      File_t * in, SuperFile_t * out, off_t in_off, size_t count );
@@ -256,28 +291,28 @@ enumError AppendZeroSF	( SuperFile_t * out, off_t count );
 
 enumError DiffSF
 (
-	SuperFile_t * f1,
-	SuperFile_t * f2,
-	int long_count,
-	partition_selector_t psel
+	SuperFile_t	* f1,
+	SuperFile_t	* f2,
+	int		long_count,
+	wd_select_t	psel
 );
 
 enumError DiffRawSF
 (
-	SuperFile_t * f1,
-	SuperFile_t * f2,
-	int long_count
+	SuperFile_t	* f1,
+	SuperFile_t	* f2,
+	int		long_count
 );
 
 struct FilePattern_t;
 enumError DiffFilesSF
 (
-	SuperFile_t * f1,
-	SuperFile_t * f2,
-	int long_count,
+	SuperFile_t	* f1,
+	SuperFile_t	* f2,
+	int		long_count,
 	struct FilePattern_t *pat,
-	partition_selector_t psel,
-	iterator_prefix_mode_t pmode
+	wd_select_t	psel,
+	wd_ipm_t	pmode
 );
 
 //

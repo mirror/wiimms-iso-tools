@@ -137,7 +137,7 @@ int GetOptionCount ( const InfoUI_t * iu, int option )
 	return iu->opt_used[option] & OPT_USED_MASK;
     }
 
-    TRACE("GetOptionCount(,%02x) => INVALID [-1]\n");
+    TRACE("GetOptionCount(,%02x) => INVALID [-1]\n",option);
     return -1;
 }
 
@@ -305,7 +305,7 @@ void PrintHelpCmd ( const InfoUI_t * iu, FILE * f, int indent, int cmd, ccp info
 	cmd = 0;
     const InfoCommand_t * ic = iu->cmd_info + cmd;
 
-    const int fw = GetTermWidth(81,40) - 1;
+    const int fw = GetTermWidth(80,40) - 1;
 
     if (!cmd)
 	snprintf(iobuf,sizeof(iobuf),"%s",iu->tool_name );
@@ -369,9 +369,10 @@ void PrintHelpCmd ( const InfoUI_t * iu, FILE * f, int indent, int cmd, ccp info
 	fprintf(f,"%*s%sptions:\n\n",
 		indent,"", !cmd && iu->n_cmd ? "Global o" : "O" );
 
-	int opt_fw = 0;
 	const InfoOption_t ** iop;
 
+	// calculate the base option field width
+	int base_opt_fw = 0;
 	for ( iop = ic->opt; *iop; iop++ )
 	{
 	    const InfoOption_t * io = *iop;
@@ -379,13 +380,30 @@ void PrintHelpCmd ( const InfoUI_t * iu, FILE * f, int indent, int cmd, ccp info
 	    {
 		int len = strlen(io->long_name);
 		if (io->param)
-		    len += 1 +  strlen(io->param);
-		if ( opt_fw < len )
-		     opt_fw = len;
+		    len += 1 + strlen(io->param);
+		if ( base_opt_fw < len )
+		     base_opt_fw = len;
 	    }
 	}
-	if ( opt_fw > 12 )
-	    opt_fw = 12;
+	
+	const int max_fw = 2 + (fw+5)/8;
+	if ( base_opt_fw > max_fw )
+	     base_opt_fw = max_fw;
+
+	// calculate the option field width
+	int opt_fw = 0;
+	for ( iop = ic->opt; *iop; iop++ )
+	{
+	    const InfoOption_t * io = *iop;
+	    if (io->long_name)
+	    {
+		int len = strlen(io->long_name);
+		if (io->param)
+		    len += 1 + strlen(io->param);
+		if ( len <= base_opt_fw && opt_fw < len )
+		    opt_fw = len;
+	    }
+	}
 	opt_fw += indent + 9;
 
 	for ( iop = ic->opt; *iop; iop++ )
@@ -399,20 +417,23 @@ void PrintHelpCmd ( const InfoUI_t * iu, FILE * f, int indent, int cmd, ccp info
 
 	    int len;
 	    if (!io->short_name)
-		len = fprintf(f,"%*s     --%s %s ",
+		len = fprintf(f,"%*s     --%s%s%s ",
 			indent, "",
 			io->long_name,
+			io->param ? " " : "",
 			io->param ? io->param : "" );
 	    else if (!io->long_name)
-		len = fprintf(f,"%*s  -%c %s ",
+		len = fprintf(f,"%*s  -%c%s%s ",
 			indent, "",
 			io->short_name,
+			io->param ? " " : "",
 			io->param ? io->param : "" );
 	    else
-		len = fprintf(f,"%*s  -%c --%s %s ",
+		len = fprintf(f,"%*s  -%c --%s%s%s ",
 			indent, "",
 			io->short_name,
 			io->long_name,
+			io->param ? " " : "",
 			io->param ? io->param : "" );
 
 	    if ( len > opt_fw )

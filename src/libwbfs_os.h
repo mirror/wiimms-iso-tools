@@ -35,6 +35,7 @@
 #include "types.h"
 #include "debug.h"
 #include "lib-error.h"
+#include "crypt.h"
 
 // error messages
 #define wbfs_fatal(...) PrintError(__FUNCTION__,__FILE__,__LINE__,0,ERR_FATAL,__VA_ARGS__)
@@ -42,7 +43,8 @@
 #define wbfs_warning(...) PrintError(__FUNCTION__,__FILE__,__LINE__,0,ERR_WARNING,__VA_ARGS__)
 
 // alloc and free memory space
-#define wbfs_malloc(x) malloc(x)
+#define wbfs_malloc(s) malloc(s)
+#define wbfs_calloc(n,s) calloc(n,s)
 #define wbfs_free(x) free(x)
 
 // alloc and free memory space suitable for disk io
@@ -50,10 +52,12 @@
 #define wbfs_iofree(x) free(x)
 
 // endianess functions
-#define wbfs_ntohl(x) ntohl(x)
-#define wbfs_ntohs(x) ntohs(x)
-#define wbfs_htonl(x) htonl(x)
-#define wbfs_htons(x) htons(x)
+#define wbfs_ntohs(x)  ntohs(x)
+#define wbfs_ntohl(x)  ntohl(x)
+#define wbfs_ntoh64(x) ntoh64(x)
+#define wbfs_htons(x)  htons(x)
+#define wbfs_htonl(x)  htonl(x)
+#define wbfs_hton64(x) hton64(x)
 
 // memory functions
 #define wbfs_memcmp(x,y,z) memcmp(x,y,z)

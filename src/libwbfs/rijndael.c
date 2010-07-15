@@ -13,6 +13,10 @@
 #include <string.h>
 #include "rijndael.h"
 
+#ifndef ASSERT
+    #define ASSERT(cond)
+#endif
+
 /* rotates x one bit to the left */
 
 #define ROTL(x) (((x)>>7)|((x)<<1))

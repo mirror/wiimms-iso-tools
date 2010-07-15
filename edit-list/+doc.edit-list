@@ -4,5 +4,6 @@
 ../templates/HISTORY.txt ;
 ../templates/*.txt ;
 ../templates/*.forum ;
-../templates/&/*.txt ;
+../templates/&/*.{txt,def,inc} ;
+../setup/&/*.{txt,def,inc} ;
 ../work/2do ;

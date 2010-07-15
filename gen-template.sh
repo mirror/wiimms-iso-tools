@@ -19,7 +19,7 @@ awkprog='
  /@@EXEC\(.*\)@@/ {
 	gsub(/@@EXEC\(/,"");
 	gsub(/\)@@/,"");
-	system($0 " 2>&1");
+	system($0);
 	next
  }
 

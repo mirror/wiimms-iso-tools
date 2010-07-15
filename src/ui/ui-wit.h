@@ -65,6 +65,7 @@ typedef enum enumOptions
 	OPT_DEST2,
 	OPT_SPLIT,
 	OPT_SPLIT_SIZE,
+	OPT_TRUNC,
 	OPT_CHUNK_MODE,
 	OPT_CHUNK_SIZE,
 	OPT_MAX_CHUNKS,
@@ -91,13 +92,14 @@ typedef enum enumOptions
 	OPT_SORT,
 	OPT_LIMIT,
 
-	OPT__N_SPECIFIC, // == 49 
+	OPT__N_SPECIFIC, // == 50 
 
 	//----- global options -----
 
 	OPT_VERSION,
 	OPT_HELP,
 	OPT_XHELP,
+	OPT_WIDTH,
 	OPT_QUIET,
 	OPT_VERBOSE,
 	OPT_PROGRESS,
@@ -111,7 +113,7 @@ typedef enum enumOptions
 	OPT_TEST,
 	OPT_HOOK,
 
-	OPT__N_TOTAL // == 64
+	OPT__N_TOTAL // == 66
 
 } enumOptions;
 
@@ -147,6 +149,7 @@ typedef enum enumOptionsBit
 	OB_DEST2		= 1llu << OPT_DEST2,
 	OB_SPLIT		= 1llu << OPT_SPLIT,
 	OB_SPLIT_SIZE		= 1llu << OPT_SPLIT_SIZE,
+	OB_TRUNC		= 1llu << OPT_TRUNC,
 	OB_CHUNK_MODE		= 1llu << OPT_CHUNK_MODE,
 	OB_CHUNK_SIZE		= 1llu << OPT_CHUNK_SIZE,
 	OB_MAX_CHUNKS		= 1llu << OPT_MAX_CHUNKS,
@@ -218,6 +221,7 @@ typedef enum enumOptionsBit
 
 	OB_GRP_SPLIT_CHUNK	= OB_SPLIT
 				| OB_SPLIT_SIZE
+				| OB_TRUNC
 				| OB_CHUNK_MODE
 				| OB_CHUNK_SIZE
 				| OB_MAX_CHUNKS,
@@ -286,6 +290,7 @@ typedef enum enumOptionsBit
 				| OB_GRP_FILES
 				| OB_LONG
 				| OB_NO_HEADER
+				| OB_SHOW
 				| OB_SORT,
 
 	OB_CMD_ILIST_L		= OB_CMD_ILIST,
@@ -458,6 +463,7 @@ typedef enum enumGetOpt
 	GO_SPLIT		= 'z',
 
 	GO_XHELP		= 0x80,
+	GO_WIDTH,
 	GO_IO,
 	GO_UTF_8,
 	GO_NO_UTF_8,
@@ -475,6 +481,7 @@ typedef enum enumGetOpt
 	GO_REGION,
 	GO_IOS,
 	GO_ENC,
+	GO_TRUNC,
 	GO_CHUNK_MODE,
 	GO_CHUNK_SIZE,
 	GO_MAX_CHUNKS,

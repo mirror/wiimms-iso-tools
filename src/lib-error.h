@@ -49,7 +49,9 @@ typedef enum enumError
 	ERR_NO_CISO,
 	ERR_CISO_INVALID,
 
+	ERR_WDISC_INVALID,
 	ERR_WDISC_NOT_FOUND,
+
 	ERR_NO_WBFS_FOUND,
 	ERR_TO_MUCH_WBFS_FOUND,
 	ERR_WBFS_INVALID,
@@ -71,8 +73,9 @@ typedef enum enumError
 
 	ERR_INTERRUPT,
 
-	ERR_NOT_IMPLEMENTED, // separator: this+below = hard errors => exit
+	ERR_ERROR,	// separator: below = hard/fatal errors => exit
 
+	ERR_NOT_IMPLEMENTED,
 	ERR_INTERNAL,
 	ERR_OUT_OF_MEMORY,
 	ERR_FATAL,
@@ -102,6 +105,8 @@ int PrintError ( const char * func, const char * file, unsigned int line,
 #define ERROR(se,code,...) PrintError(__FUNCTION__,__FILE__,__LINE__,se,code,__VA_ARGS__)
 #define ERROR0(code,...) PrintError(__FUNCTION__,__FILE__,__LINE__,0,code,__VA_ARGS__)
 #define ERROR1(code,...) PrintError(__FUNCTION__,__FILE__,__LINE__,errno,code,__VA_ARGS__)
+
+#define WD_ERROR ERROR0
 
 ///////////////////////////////////////////////////////////////////////////////
 

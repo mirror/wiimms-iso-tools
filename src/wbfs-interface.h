@@ -255,7 +255,15 @@ typedef struct AWData_t
 //-----------------------------------------------------------------------------
 
 int AnalyzeWBFS      ( AWData_t * ad, File_t * f );
-int PrintAnalyzeWBFS ( AWData_t * ad, FILE * out, int indent );
+int PrintAnalyzeWBFS
+(
+    FILE		* out,		// valid output stream
+    int			indent,		// indent of output
+    AWData_t		* awd,		// valid pointer
+    int			print_calc	// 0: suppress calculated values
+					// 1: print calculated values if other values available
+					// 2: print calculated values
+);
 
 //
 ///////////////////////////////////////////////////////////////////////////////
@@ -317,9 +325,6 @@ enumError LoadIsoHeader	( WBFS_t * w, wd_header_t * iso_header, wbfs_disc_t * di
 
 void CalcWDiscInfo ( WDiscInfo_t * winfo, SuperFile_t * sf /* NULL possible */ );
 
-enumError CountPartitions ( SuperFile_t * sf, WDiscInfo_t * dinfo );
-enumError LoadPartitionInfo ( SuperFile_t * sf, WDiscInfo_t * dinfo, MemMap_t * mm );
-
 enumError DumpWDiscInfo
 	( WDiscInfo_t * dinfo, wd_header_t * iso_header, FILE * f, int indent );
 
@@ -349,7 +354,7 @@ enumError ExistsWDisc	( WBFS_t * w, ccp id6 );
 
 wd_header_t * GetWDiscHeader ( WBFS_t * w );
 
-enumError AddWDisc	( WBFS_t * w, SuperFile_t * sf, int partition_selector );
+enumError AddWDisc	( WBFS_t * w, SuperFile_t * sf, wd_select_t psel );
 enumError ExtractWDisc	( WBFS_t * w, SuperFile_t * sf );
 enumError RemoveWDisc	( WBFS_t * w, ccp id6, bool free_slot_only );
 enumError RenameWDisc	( WBFS_t * w, ccp new_id6, ccp new_title,

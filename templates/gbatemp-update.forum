@@ -23,12 +23,15 @@
     A java GUI that acts like a WBFS manager. Converting of ISO images is also possible.
 [color=#ffffff].[/color]
 
-[*] [url=@@URI-QTWITGUI@@][b]qtwitgui[/b], manipulate and convert single ISO images.[/url]
-    This QT based GUI focus on manipulating single ISO images.
+[*] [url=@@URI-QTWITGUI@@][b]QtWitGui[/b], manipulate and convert single ISO images.[/url]
+    This QT based GUI focuses on manipulating single ISO images.
 [/list]
 
 [size="2"][color="#0000c0"][b]Highlights of this release:[/b][/color][/size]
 [list]
+I have rewritten the wiidisc library (part of libwbfs) from scratch. It has a complete new interface and an improved functionality. It uses dynamic data structures and collect data as needed. This has considerable advantages for the whole WIT project: All information about a Wii disc is now in one hand. Things like usage maps and partition data are loaded/built once and only if needed. 
+
+This new library facilitate the planed patching functionality.
 [color=#ffffff].[/color]
 [/list]
 
@@ -38,5 +41,4 @@
 @@MODULE(last-history.txt)@@
 [/code]
 
-The source is published under the licence of GPL2. Checkout the sources directly from the [url=@@URI-REPOS@@][b]SVN repository[/b][/url] or [url=@@URI-VIEWVC@@][b]browse the source[/b][/url].
-Visit [url=@@URI-HOME@@][b]@@URI-HOME@@[/b][/url] for more information.
+The source is published under the license of GPL2. Checkout the sources directly from the [url=@@URI-REPOS@@][b]SVN repository[/b][/url] or [url=@@URI-VIEWVC@@][b]browse the source[/b][/url]. Visit [url=@@URI-HOME@@][b]@@URI-HOME@@[/b][/url] for more information.

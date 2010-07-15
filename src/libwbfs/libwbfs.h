@@ -174,16 +174,16 @@ typedef struct wbfs_param_t // function parameters
   //----- parameters for wbfs_open_partition_param()
   
 	// call back data
-	read_wiidisc_callback_t	read_src_wii_disc;	// read wi sector
+	wd_read_func_t	read_src_wii_disc;	// read wi sector
 	progress_callback_t	spinner;		// progress callback
 
 	// partition selectors
-	partition_selector_t	sel;			// partition selector
-	int			copy_1_1;		// force 1:1 copy
+	wd_select_t		psel;			// partition selector bit field
 
   //----- parameters for wbfs_add_disc_param()
 
 	u64			iso_size;		// size of iso image in bytes
+	wd_disc_t		*wd_disc;		// NULL or the source disc
 
   //----- multi use parameters
 
@@ -324,19 +324,27 @@ void wbfs_use_block	  ( wbfs_t * p, u32 bl );
   @sel: selects which partitions to copy.
   @copy_1_1: makes a 1:1 copy, whenever a game would not use the wii disc format, and some data is hidden outside the filesystem.
  */
-u32 wbfs_add_disc(wbfs_t*p,read_wiidisc_callback_t read_src_wii_disc,
-		  void *callback_data,
-		  progress_callback_t spinner,
-		  partition_selector_t sel,
-		  int copy_1_1
-		 );
+u32 wbfs_add_disc
+(
+    wbfs_t		* p,
+    wd_read_func_t	read_src_wii_disc,
+    void		* callback_data,
+    progress_callback_t	spinner,
+    wd_select_t		psel,
+    int			copy_1_1
+);
 
 u32 wbfs_add_disc_param ( wbfs_t * p, wbfs_param_t * par );
 
 u32 wbfs_add_phantom ( wbfs_t * p, const char * phantom_id, u32 wii_sector_count );
 
-u32 wbfs_estimate_disc(wbfs_t*p,read_wiidisc_callback_t read_src_wii_disc, void *callback_data,
-		       partition_selector_t sel);
+u32 wbfs_estimate_disc
+(
+    wbfs_t		*p,
+    wd_read_func_t	read_src_wii_disc,
+    void		*callback_data,
+    wd_select_t		psel
+);
 
 // remove a disc from partition
 u32 wbfs_rm_disc ( wbfs_t * p, u8 * discid, int free_slot_only );

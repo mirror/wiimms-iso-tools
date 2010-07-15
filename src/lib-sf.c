@@ -93,6 +93,12 @@ enumError CloseSF ( SuperFile_t * sf, FileAttrib_t * set_time_ref )
     ASSERT(sf);
     enumError err = ERR_OK;
 
+    if (sf->disc)
+    {
+	wd_close_disc(sf->disc);
+	sf->disc = 0;
+    }
+
     if ( sf->f.is_writing && sf->min_file_size )
     {
 	err = SetMinSizeSF(sf,sf->min_file_size);
@@ -470,15 +476,43 @@ enumError SetupWriteWBFS ( SuperFile_t * sf )
 
 ///////////////////////////////////////////////////////////////////////////////
 
+wd_disc_t * OpenDiscSF
+(
+	SuperFile_t * sf,	// valid pointer
+	bool load_part_data,	// true: load partition data
+	bool print_err		// true: print error message if open fails
+)
+{
+    ASSERT(sf);
+    if ( !sf->disc && IsOpenSF(sf) && sf->f.is_reading )
+	sf->disc = wd_open_disc(WrapperReadSF,sf,sf->file_size,sf->f.fname,0);
+	
+    if (!sf->disc)
+    {
+	if (print_err)
+	    ERROR0(ERR_WDISC_NOT_FOUND,"Can't open Wii disc: %s\n",sf->f.fname);
+    }
+    else if (load_part_data)
+	wd_load_all_part(sf->disc,false,false);
+
+    return sf->disc;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
 void SubstFileNameSF
-	( SuperFile_t * fo, SuperFile_t * fi, ccp f_name )
+(
+    SuperFile_t	* fo,		// output file
+    SuperFile_t	* fi,		// input file
+    ccp		dest_arg	// arg to parse for escapes
+)
 {
     ASSERT(fo);
     ASSERT(fi);
 
     char fname[PATH_MAX*2];
     const int conv_count
-	= SubstFileNameBuf(fname,sizeof(fname),fi,f_name,fo->f.fname,fo->iod.oft);
+	= SubstFileNameBuf(fname,sizeof(fname),fi,dest_arg,fo->f.fname,fo->iod.oft);
     if ( conv_count > 0 )
 	fo->f.create_directory = true;
     SetFileName(&fo->f,fname,true);
@@ -486,60 +520,93 @@ void SubstFileNameSF
 
 ///////////////////////////////////////////////////////////////////////////////
 
-int SubstFileNameBuf ( char * fname, size_t fname_size,
-	SuperFile_t * fi, ccp f_name, ccp fo_fname, enumOFT fo_oft )
+int SubstFileNameBuf
+(
+    char	* fname_buf,	// output buf
+    size_t	fname_size,	// size of output buf
+    SuperFile_t	* fi,		// input file -> id6, fname
+    ccp		fname,		// pure filename. if NULL: extract from 'fi'
+    ccp		dest_arg,	// arg to parse for escapes
+    enumOFT	oft		// output file type
+)
 {
     ASSERT(fi);
-    ASSERT(fname);
-    ASSERT(fname_size>1);
 
+    ccp disc_name = 0;
     char buf[HD_SECTOR_SIZE];
-    memset(&buf,0,sizeof(buf));
     if (fi->f.id6[0])
     {
-	const bool disable_errors = fi->f.disable_errors;
-	fi->f.disable_errors = true;
-	ReadSF(fi,0,&buf,sizeof(buf));
-	fi->f.disable_errors = disable_errors;
+	if (fi->disc)
+	    disc_name = (ccp)fi->disc->dhead.game_title;
+	else
+	{
+	    const bool disable_errors = fi->f.disable_errors;
+	    fi->f.disable_errors = true;
+	    if (!ReadSF(fi,0,&buf,sizeof(buf)))
+		disc_name = (ccp)((wd_header_t*)buf)->game_title;
+	    fi->f.disable_errors = disable_errors;
+	}
     }
 
-    ccp fi_fname = fi->f.path ? fi->f.path : fi->f.fname;
-    if (!f_name)
+    return SubstFileName ( fname_buf, fname_size,
+			fi->f.id6, disc_name, fi->f.path ? fi->f.path : fi->f.fname,
+			fname, dest_arg, oft );
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+int SubstFileName
+(
+    char	* fname_buf,	// output buf
+    size_t	fname_size,	// size of output buf
+    ccp		id6,		// id6
+    ccp		disc_name,	// name of disc
+    ccp		src_file,	// full path to source file
+    ccp		fname,		// pure filename, no path. If NULL: extract from 'src_file'
+    ccp		dest_arg,	// arg to parse for escapes
+    enumOFT	oft		// output file type
+)
+{
+    DASSERT(fname_buf);
+    DASSERT(fname_size>1);
+
+    if ( !src_file || !*src_file )
+	src_file = "./";
+	
+    if (!fname)
     {
-	f_name = fi_fname;
-	ccp temp = strrchr(f_name,'/');
+	fname = src_file;
+	ccp temp = strrchr(src_file,'/');
 	if (temp)
-	    f_name = temp+1;
+	    fname = temp+1;
     }
 
     char src_path[PATH_MAX];
-    StringCopyS(src_path,sizeof(src_path),fi_fname);
+    StringCopyS(src_path,sizeof(src_path),src_file);
     char * temp = strrchr(src_path,'/');
     if (temp)
 	*temp = 0;
     else
 	*src_path = 0;
 
-    ccp name = (ccp)((wd_header_t*)buf)->game_title;
-    if (!name)
-	name = fi->f.id6;
-
-    ccp title = GetTitle(fi->f.id6,name);
+    if (!disc_name)
+	disc_name = id6;
+    ccp title = GetTitle(id6,disc_name);
 
     char x_buf[1000];
     snprintf(x_buf,sizeof(x_buf),"%s [%s]%s",
-		title, fi->f.id6, oft_ext[fo_oft] );
+		title, id6, oft_ext[oft] );
 
     char y_buf[1000];
     snprintf(y_buf,sizeof(y_buf),"%s [%s]",
-		title, fi->f.id6 );
+		title, id6 );
 
     char plus_buf[20];
     ccp plus_name;
-    if ( fo_oft == OFT_WBFS )
+    if ( oft == OFT_WBFS )
     {
 	snprintf(plus_buf,sizeof(plus_buf),"%s%s",
-	    fi->f.id6, oft_ext[fo_oft] );
+	    id6, oft_ext[oft] );
 	plus_name = plus_buf;
     }
     else
@@ -547,12 +614,12 @@ int SubstFileNameBuf ( char * fname, size_t fname_size,
 
     SubstString_t subst_tab[] =
     {
-	{ 'i', 'I', 0, fi->f.id6 },
-	{ 'n', 'N', 0, name },
+	{ 'i', 'I', 0, id6 },
+	{ 'n', 'N', 0, disc_name },
 	{ 't', 'T', 0, title },
-	{ 'e', 'E', 0, oft_ext[fo_oft]+1 },
+	{ 'e', 'E', 0, oft_ext[oft]+1 },
 	{ 'p', 'P', 1, src_path },
-	{ 'f', 'F', 1, f_name },
+	{ 'f', 'F', 1, fname },
 	{ 'x', 'X', 0, x_buf },
 	{ 'y', 'Y', 0, y_buf },
 	{ '+', '+', 0, plus_name },
@@ -560,7 +627,7 @@ int SubstFileNameBuf ( char * fname, size_t fname_size,
     };
 
     int conv_count;
-    SubstString(fname,fname_size,subst_tab,fo_fname,&conv_count);
+    SubstString(fname_buf,fname_size,subst_tab,dest_arg,&conv_count);
     return conv_count;
 }
 
@@ -632,7 +699,7 @@ enumError SparseHelper
 
     TRACE(TRACE_RDWR_FORMAT, "#SH# SparseHelper()",
 	GetFD(&sf->f), GetFP(&sf->f), (u64)off, (u64)off+count, count, "" );
-    TRACE(" -> write_func = %p, min_chunk_size = %u\n",write_func, min_chunk_size );
+    TRACE(" -> write_func = %p, min_chunk_size = %zu\n",write_func, min_chunk_size );
 
     //----- disable sparse check for already existing file areas
 
@@ -933,7 +1000,7 @@ enumError SetSizeSF ( SuperFile_t * sf, off_t off )
     sf->file_size = off;
     switch (sf->iod.oft)
     {
-	case OFT_PLAIN:	return SetSizeF(&sf->f,off);
+	case OFT_PLAIN:	return opt_truncate ? ERR_OK : SetSizeF(&sf->f,off);
 	case OFT_WDF:	return ERR_OK;
 	case OFT_CISO:	return ERR_OK;
 	case OFT_WBFS:	return ERR_OK;
@@ -946,7 +1013,8 @@ enumError SetSizeSF ( SuperFile_t * sf, off_t off )
 enumError SetMinSizeSF ( SuperFile_t * sf, off_t off )
 {
     DASSERT(sf);
-    TRACE("SetMinSizeSF(%p,%llx) wbfs=%p wc=%p\n",sf,(u64)off,sf->wbfs,sf->wc);
+    TRACE("SetMinSizeSF(%p,%llx) wbfs=%p wc=%p fsize=%llx\n",
+		sf, (u64)off, sf->wbfs, sf->wc, (u64)sf->file_size );
 
     return sf->file_size < off ? SetSizeSF(sf,off) : ERR_OK;
 }
@@ -956,7 +1024,8 @@ enumError SetMinSizeSF ( SuperFile_t * sf, off_t off )
 enumError MarkMinSizeSF ( SuperFile_t * sf, off_t off )
 {
     DASSERT(sf);
-    TRACE("MarkMinSizeSF(%p,%llx) wbfs=%p wc=%p\n",sf,(u64)off,sf->wbfs,sf->wc);
+    TRACE("MarkMinSizeSF(%p,%llx) wbfs=%p wc=%p min_fsize=%llx\n",
+		sf, (u64)off, sf->wbfs, sf->wc, (u64)sf->min_file_size );
 
     if ( sf->f.seek_allowed )
 	return SetMinSizeSF(sf,off);
@@ -1321,7 +1390,7 @@ enumFileType AnalyzeFT ( File_t * f )
 	    for ( i = 0; i < 6; i++ )
 		id6[i] = toupper((int)name[i]); // cygwin needs the '(int)'
 	    id6[6] = 0;
-	    if (CheckID6(id6,false))
+	    if (CheckID6(id6,false,false))
 		mode = IS_ID6;
 	}
 
@@ -1613,7 +1682,7 @@ enumFileType AnalyzeMemFT ( const void * preload_buf, off_t file_size )
 
     //----- test BOOT.BIN or ISO
 
-    if ( CheckID6(data,false) && be32(data+WII_MAGIC_OFF) == WII_MAGIC )
+    if ( CheckID6(data,false,false) && be32(data+WII_MAGIC_OFF) == WII_MAGIC )
     {
 	if ( file_size == WII_BOOT_SIZE )
 	    return FT_ID_BOOT_BIN;
@@ -1692,7 +1761,7 @@ enumFileType AnalyzeMemFT ( const void * preload_buf, off_t file_size )
 	const wd_tmd_t * tmd = preload_buf;
 	const int n = ntohs(tmd->n_content);
 	if ( file_size == sizeof(wd_tmd_t) + n * sizeof(wd_tmd_content_t)
-	    && CheckID4(tmd->title_id+4,true) )
+	    && CheckID4(tmd->title_id+4,true,false) )
 	{
 	    return FT_ID_TMD_BIN;
 	}
@@ -1704,14 +1773,14 @@ enumFileType AnalyzeMemFT ( const void * preload_buf, off_t file_size )
     if ( file_size == sizeof(wd_ticket_t) )
     {
 	const wd_ticket_t * tik = preload_buf;
-	if ( CheckID4(tik->title_id+4,true) )
+	if ( CheckID4(tik->title_id+4,true,false) )
 	    return FT_ID_TIK_BIN;
     }
 
 
     //----- fall back to iso
 
-    if ( CheckID6(data,false) && be32(data+WII_MAGIC_OFF) == WII_MAGIC )
+    if ( CheckID6(data,false,false) && be32(data+WII_MAGIC_OFF) == WII_MAGIC )
 	return FT_ID_ISO;
 
 
@@ -1750,23 +1819,23 @@ enumError XPrintErrorFT ( XPARM File_t * f, enumFileType err_mask )
 
     else if ( nand_mask & FT_ID_WBFS )
 	stat = PrintError( XERROR0, ERR_WRONG_FILE_TYPE,
-		"Not a WBFS: %s\n", f->fname );
+		"WBFS expected: %s\n", f->fname );
 
     else if ( nand_mask & FT_ID_ISO || nand_mask & FT_A_ISO )
 	stat = PrintError( XERROR0, ERR_WRONG_FILE_TYPE,
-		"Not a ISO image: %s\n", f->fname );
+		"ISO image expected: %s\n", f->fname );
 
     else if ( nand_mask & FT_A_WDF )
 	stat = PrintError( XERROR0, ERR_WRONG_FILE_TYPE,
-		"Not a WDF: %s\n", f->fname );
+		"WDF expected: %s\n", f->fname );
 
     else if ( nand_mask & FT_A_CISO )
 	stat = PrintError( XERROR0, ERR_WRONG_FILE_TYPE,
-		"Not a CISO: %s\n", f->fname );
+		"CISO expected: %s\n", f->fname );
 
     f->last_error = stat;
     if ( f->max_error < stat )
-	f->max_error = stat;
+	 f->max_error = stat;
 
     return stat;
 }
@@ -1882,52 +1951,18 @@ enumOFT GetOFT ( SuperFile_t * sf )
 
 ///////////////////////////////////////////////////////////////////////////////
 
-u32 CountUsedIsoBlocksSF ( SuperFile_t * sf, u32 psel )
+u32 CountUsedIsoBlocksSF ( SuperFile_t * sf, wd_select_t psel )
 {
     ASSERT(sf);
 
-    size_t count = 0;
-    if ( psel == WHOLE_DISC )
+    u32 count = 0;
+    if ( psel & WD_SEL_WHOLE_DISC )
 	count = sf->file_size * WII_SECTORS_PER_MIB / MiB;
     else
     {
-	wiidisc_t * disc = wd_open_disc(WrapperReadSF,sf);
+	wd_disc_t *disc = OpenDiscSF(sf,true,true);
 	if (disc)
-	{
-	    wd_build_disc_usage(disc,psel,wdisc_usage_tab,sf->file_size);
-	    wd_close_disc(disc);
-	    int idx;
-	    for ( idx = 0; idx < sizeof(wdisc_usage_tab); idx++ )
-		if (wdisc_usage_tab[idx])
-		    count++;
-	}
-    }
-    return count;
-}
-
-///////////////////////////////////////////////////////////////////////////////
-
-u32 CountUsedBlocks ( u8 * usage_tab, u32 block_size )
-{
-    TRACE("CountUsedBlocks(%p,%u)\n",usage_tab,block_size);
-
-    ASSERT(usage_tab);
-    ASSERT(block_size>0);
-
-    u32 count = 0;
-    int i;
-    for ( i = 0; i < WII_MAX_SECTORS; i += block_size )
-    {
-	int end = i + block_size;
-	if ( end > WII_MAX_SECTORS )
-	    end = WII_MAX_SECTORS;
-	int j;
-	for ( j = i; j < end; j++ )
-	    if (usage_tab[j])
-	    {
-		count++;
-		break;
-	    }
+	    count = wd_count_used_disc_blocks_sel(disc,1,psel);
     }
     return count;
 }
@@ -1937,44 +1972,39 @@ u32 CountUsedBlocks ( u8 * usage_tab, u32 block_size )
 ///////////////                    copy functions               ///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-enumError CopySF ( SuperFile_t * in, SuperFile_t * out, u32 psel )
+enumError CopySF ( SuperFile_t * in, SuperFile_t * out, wd_select_t psel )
 {
     ASSERT(in);
     ASSERT(out);
     TRACE("---\n");
-    TRACE("+++ CopySF(%d->%d,%d) +++\n",GetFD(&in->f),GetFD(&out->f),psel);
+    TRACE("+++ CopySF(%d->%d,%llx) +++\n",GetFD(&in->f),GetFD(&out->f),(u64)psel);
 
-    if (out->wbfs)
+    if ( out->iod.oft == OFT_WBFS )
 	return CopyToWBFS(in,out,psel);
 
-    if ( psel != WHOLE_DISC )
+    if ( ! (psel & WD_SEL_WHOLE_DISC ) )
     {
-	wiidisc_t * disc = wd_open_disc(WrapperReadSF,in);
-
+	wd_disc_t * disc = OpenDiscSF(in,true,false);
 	if (disc)
 	{
-	    // encryption && decryption support
-	    u8 last_id = 0;
-	    bool check_encryption = ( encoding & ENCODE_M_CRYPT ) != 0 && !hook_enabled;
-	    bool encrypt = 0, decrypt = 0;
-	    aes_key_t akey;
-	    u8 iv0[WII_KEY_SIZE];
-	    memset(iv0,0,sizeof(iv0));
-	    ASSERT( sizeof(iobuf) >= 2 * WII_SECTOR_SIZE );
-	    char * rdbuf = iobuf; // read buffer == write buffer
-
-	    TRACELINE;
 	    MarkMinSizeSF(out,in->file_size);
-	    wd_build_disc_usage(disc,psel,wdisc_usage_tab,in->file_size);
+	    wd_filter_usage_table_sel(disc,wdisc_usage_tab,psel);
 
 	    if ( out->iod.oft == OFT_WDF )
 	    {
 		// write an empty disc header -> makes renaming easier
-		static char disc_header[0x60] = {0};
-		enumError err = WriteSF(out,0,disc_header,sizeof(disc_header));
+		enumError err = WriteSF(out,0,zerobuf,WII_TITLE_OFF+WII_TITLE_SIZE);
 		if (err)
 		    return err;
 	    }
+
+	    // encryption && decryption support
+	    u8 last_id = 0;
+	    aes_key_t akey;
+	    bool check_encryption = ( encoding & ENCODE_M_CRYPT ) != 0 && !hook_enabled;
+	    bool encrypt = 0, decrypt = 0;
+	    ASSERT( sizeof(iobuf) >= 2 * WII_SECTOR_SIZE );
+	    char * rdbuf = iobuf; // setup: read_buffer == write_buffer
 
 	    int idx;
 	    u64 pr_done = 0, pr_total = 0;
@@ -1997,21 +2027,24 @@ enumError CopySF ( SuperFile_t * in, SuperFile_t * out, u32 psel )
 		    if ( check_encryption && last_id != cur_id )
 		    {
 			last_id = cur_id;
-			encrypt = decrypt = 0;
+			encrypt = decrypt = false;
 			rdbuf = iobuf;
-			if ( cur_id >= 2 )
+
+			if ( cur_id & WD_USAGE_F_CRYPT )
 			{
-			    wiidisc_t * part = wd_open_partition(WrapperReadSF,in,cur_id-2,-1);
-			    if (part)
+			    wd_part_t * part = wd_get_part_by_usage(disc,cur_id,0);
+			    if ( part && part->is_valid )
 			    {
+				DASSERT(part->is_loaded);
 				encrypt = encoding & ENCODE_ENCRYPT && !part->is_encrypted;
 				decrypt = encoding & ENCODE_DECRYPT &&  part->is_encrypted;
 				TRACE("PART #%u: ENCRYPT=%d, DECRPYT=%d\n",
 					cur_id-2, encrypt, decrypt );
-				memcpy(&akey,&part->partition_akey,sizeof(akey));
-				wd_close_disc(part);
 				if ( encrypt || decrypt )
+				{
 				    rdbuf = iobuf + WII_SECTOR_SIZE;
+				    wd_aes_set_key(&akey,part->key);
+				}
 			    }
 			}
 		    }
@@ -2021,11 +2054,8 @@ enumError CopySF ( SuperFile_t * in, SuperFile_t * out, u32 psel )
 		    if (err)
 			return err;
 
-		    if ( psel != ALL_PARTITIONS && off == WII_PART_INFO_OFF )
-		    {
-			// [2do] ? rewrite code
-			wd_fix_partition_table(disc,psel,(u8*)rdbuf);
-		    }
+		    if ( idx == WII_PTAB_SECTOR && disc->patch_ptab_recommended )
+			wd_patch_ptab(disc,iobuf+WII_PTAB_REF_OFF-off,false);
 
 		    if (encrypt)
 			EncryptSectors(&akey,rdbuf,iobuf,1);
@@ -2041,18 +2071,18 @@ enumError CopySF ( SuperFile_t * in, SuperFile_t * out, u32 psel )
 
 		}
 	    }
-	    wd_close_disc(disc);
 	    if ( out->show_progress || out->show_summary )
 		PrintSummarySF(out);
 	    return ERR_OK;
 	}
     }
 
-    return in->wbfs
-		? CopyWBFSDisc(in,out)
-		: in->wc
-		    ? CopyWDF(in,out)
-		    : CopyRaw(in,out);
+    switch (in->iod.oft)
+    {
+	case OFT_WDF:	return CopyWDF(in,out);
+	case OFT_WBFS:	return CopyWBFSDisc(in,out);
+	default:	return CopyRaw(in,out);
+    }
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -2276,10 +2306,10 @@ enumError CopyWBFSDisc ( SuperFile_t * in, SuperFile_t * out )
 
 ///////////////////////////////////////////////////////////////////////////////
 
-enumError CopyToWBFS ( SuperFile_t * in, SuperFile_t * out, u32 psel )
+enumError CopyToWBFS ( SuperFile_t * in, SuperFile_t * out, wd_select_t psel )
 {
     TRACE("---\n");
-    TRACE("+++ CopyToWBFS(%d,%d,%u) +++\n",in->f.fd,out->f.fd,psel);
+    TRACE("+++ CopyToWBFS(%d,%d,%llx) +++\n",in->f.fd,out->f.fd,(u64)psel);
 
     if ( !out->wbfs )
 	return ERROR0(ERR_INTERNAL,0);
@@ -2303,7 +2333,7 @@ enumError AppendF
 {
     ASSERT(in);
     ASSERT(out);
-    TRACE("AppendF(%d,%d,%llx,%x) +++\n",
+    TRACE("AppendF(%d,%d,%llx,%zx) +++\n",
 		GetFD(in), GetFD(&out->f), (u64)in_off, count );
 
     while ( count > 0 )
@@ -2331,7 +2361,7 @@ enumError AppendSparseF
 {
     ASSERT(in);
     ASSERT(out);
-    TRACE("AppendSparseF(%d,%d,%llx,%x) +++\n",
+    TRACE("AppendSparseF(%d,%d,%llx,%zx) +++\n",
 		GetFD(in), GetFD(&out->f), (u64)in_off, count );
 
     while ( count > 0 )
@@ -2359,7 +2389,7 @@ enumError AppendSF
 {
     ASSERT(in);
     ASSERT(out);
-    TRACE("AppendSF(%d,%d,%llx,%x) +++\n",
+    TRACE("AppendSF(%d,%d,%llx,%zx) +++\n",
 		GetFD(&in->f), GetFD(&out->f), (u64)in_off, count );
 
     while ( count > 0 )
@@ -2385,7 +2415,7 @@ enumError AppendSF
 enumError AppendZeroSF ( SuperFile_t * out, off_t count )
 {
     ASSERT(out);
-    TRACE("AppendZeroSF(%d,%llx) +++\n",GetFD(&out->f),count);
+    TRACE("AppendZeroSF(%d,%llx) +++\n",GetFD(&out->f),(u64)count);
 
     return WriteSF(out,out->max_virt_off+count,0,0);
 }
@@ -2395,7 +2425,7 @@ enumError AppendZeroSF ( SuperFile_t * out, off_t count )
 ///////////////                    diff functions               ///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-static void PrintDiff ( off_t off, char *iobuf1, char *iobuf2, size_t iosize )
+static void PrintDiff ( off_t off, ccp iobuf1, ccp iobuf2, size_t iosize )
 {
     while ( iosize > 0 )
     {
@@ -2426,45 +2456,32 @@ static void PrintDiff ( off_t off, char *iobuf1, char *iobuf2, size_t iosize )
 
 enumError DiffSF
 (
-	SuperFile_t * f1,
-	SuperFile_t * f2,
-	int long_count,
-	partition_selector_t psel
+	SuperFile_t	* f1,
+	SuperFile_t	* f2,
+	int		long_count,
+	wd_select_t	psel
 )
 {
     ASSERT(f1);
     ASSERT(f2);
-    ASSERT(IsOpenSF(f1));
-    ASSERT(IsOpenSF(f2));
-    ASSERT(f1->f.is_reading);
-    ASSERT(f2->f.is_reading);
+    DASSERT(IsOpenSF(f1));
+    DASSERT(IsOpenSF(f2));
+    DASSERT(f1->f.is_reading);
+    DASSERT(f2->f.is_reading);
 
     f1->progress_verb = f2->progress_verb = "compared";
 
-    if ( psel == WHOLE_DISC )
+    if ( psel & WD_SEL_WHOLE_DISC )
 	return DiffRawSF(f1,f2,long_count);
 
-    wiidisc_t * d1 = wd_open_disc(WrapperReadSF,f1);
-    if (!d1)
-    {
-	if (!f1->f.disable_errors)
-	    ERROR0(ERR_CANT_OPEN,"Can't open disc image: %s\n",f1->f.fname);
-	return ERR_CANT_OPEN;
-    }
+    wd_disc_t * disc1 = OpenDiscSF(f1,true,true);
+    wd_disc_t * disc2 = OpenDiscSF(f2,true,true);
+    if ( !disc1 || !disc2 )
+	return ERR_WDISC_NOT_FOUND;
 
-    wiidisc_t * d2 = wd_open_disc(WrapperReadSF,f2);
-    if (!d2)
-    {
-	wd_close_disc(d1);
-	if (!f2->f.disable_errors)
-	    ERROR0(ERR_CANT_OPEN,"Can't open disc image: %s\n",f2->f.fname);
-	return ERR_CANT_OPEN;
-    }
-
-    TRACELINE;
-    wd_build_disc_usage(d1,psel,wdisc_usage_tab, f1->file_size);
-    wd_build_disc_usage(d2,psel,wdisc_usage_tab2,f2->file_size);
-
+    wd_filter_usage_table_sel(disc1,wdisc_usage_tab, psel);
+    wd_filter_usage_table_sel(disc2,wdisc_usage_tab2,psel);
+    
     int idx;
     u64 pr_done = 0, pr_total = 0;
     bool differ = false;
@@ -2473,13 +2490,15 @@ enumError DiffSF
 
     for ( idx = 0; idx < sizeof(wdisc_usage_tab); idx++ )
     {
-	if ( wdisc_usage_tab[idx] != wdisc_usage_tab2[idx] )
+	if (   wd_usage_class_tab[wdisc_usage_tab [idx]]
+	    != wd_usage_class_tab[wdisc_usage_tab2[idx]] )
 	{
 	    differ = true;
 	    if (!long_count)
 		goto abort;
-	    wdisc_usage_tab[idx] |= wdisc_usage_tab2[idx];
+	    wdisc_usage_tab[idx] = 1; // mark for future
 	}
+
 	if ( wdisc_usage_tab[idx] )
 	{
 	    pr_total++;
@@ -2527,6 +2546,12 @@ enumError DiffSF
 		if (err)
 		    return err;
 
+		if ( idx == WII_PTAB_SECTOR )
+		{
+		    wd_patch_ptab(disc1,iobuf1+WII_PTAB_REF_OFF-off,true);
+		    wd_patch_ptab(disc2,iobuf2+WII_PTAB_REF_OFF-off,true);
+		}
+
 		if (memcmp(iobuf1,iobuf2,WII_SECTOR_SIZE))
 		{
 		    differ = true;
@@ -2552,8 +2577,6 @@ enumError DiffSF
 	PrintSummarySF(f2);
 
  abort:
-    wd_close_disc(d1);
-    wd_close_disc(d2);
 
     return differ ? ERR_DIFFER : ERR_OK;
 }
@@ -2639,17 +2662,42 @@ enumError DiffRawSF
 
 enumError DiffFilesSF
 (
-	SuperFile_t * f1,
-	SuperFile_t * f2,
-	int long_count,
-	FilePattern_t *pat,
-	partition_selector_t psel,
-	iterator_prefix_mode_t pmode
+	SuperFile_t	* f1,
+	SuperFile_t	* f2,
+	int		long_count,
+	FilePattern_t	*pat,
+	wd_select_t	psel,
+	wd_ipm_t	pmode
 )
 {
     ASSERT(f1);
     ASSERT(f2);
+    DASSERT(IsOpenSF(f1));
+    DASSERT(IsOpenSF(f2));
+    DASSERT(f1->f.is_reading);
+    DASSERT(f2->f.is_reading);
     ASSERT(pat);
+
+
+    //----- setup fst
+
+    wd_disc_t * disc1 = OpenDiscSF(f1,true,true);
+    wd_disc_t * disc2 = OpenDiscSF(f2,true,true);
+    if ( !disc1 || !disc2 )
+	return ERR_WDISC_NOT_FOUND;
+
+    wd_select(disc1,psel);
+    wd_select(disc2,psel);
+    
+    WiiFst_t fst1, fst2;
+    InitializeFST(&fst1);
+    InitializeFST(&fst2);
+
+    CollectFST(&fst1,disc1,GetDefaultFilePattern(),false,pmode,false);
+    CollectFST(&fst2,disc2,GetDefaultFilePattern(),false,pmode,false);
+
+    SortFST(&fst1,SORT_NAME,SORT_NAME);
+    SortFST(&fst2,SORT_NAME,SORT_NAME);
 
 
     //----- define variables
@@ -2657,58 +2705,12 @@ enumError DiffFilesSF
     int differ = 0;
     enumError err = ERR_OK;
 
-    WiiFst_t fst1, fst2;
-    InitializeFST(&fst1);
-    InitializeFST(&fst2);
-
-    wiidisc_t *disc1 = 0, *disc2 = 0;
-
     const int BUF_SIZE = sizeof(iobuf) / 2;
     u8 * buf1 = (u8*)iobuf;
     u8 * buf2 = buf1 + BUF_SIZE;
 
     u64 done_count = 0, total_count = 0;
     f1->progress_verb = f2->progress_verb = "compared";
-
-    //----- initialize data of file #1
-
-    IsoFileIterator_t i1;
-    memset(&i1,0,sizeof(i1));
-    i1.sf  = f1;
-    i1.pat = pat;
-    i1.fst = &fst1;
-
-    disc1 = wd_open_disc(WrapperReadSF,f1);
-    if (!disc1)
-    {
-	err = ERROR0(ERR_CANT_OPEN,"Can't open file: %s\n",f1->f.fname);
-	goto abort;
-    }
-
-
-    //----- initialize data of file #2
-
-    IsoFileIterator_t i2;
-    memset(&i2,0,sizeof(i2));
-    i2.sf  = f2;
-    i2.pat = pat;
-    i2.fst = &fst2;
-
-    disc2 = wd_open_disc(WrapperReadSF,f2);
-    if (!disc2)
-    {
-	err = ERROR0(ERR_CANT_OPEN,"Can't open file: %s\n",f2->f.fname);
-	goto abort;
-    }
-
-
-    //----- scan and sort files
-
-    wd_iterate_files(disc1,psel,pmode,CollectFST,&i1,0,0);
-    wd_iterate_files(disc2,psel,pmode,CollectFST,&i2,0,0);
-
-    SortFST(&fst1,SORT_NAME,SORT_NAME);
-    SortFST(&fst2,SORT_NAME,SORT_NAME);
 
 
     //----- first find solo partions
@@ -2739,7 +2741,7 @@ enumError DiffFilesSF
 	    if (verbose<0)
 		goto abort;
 	    printf("Only in ISO #1:   Partition #%u, type=%x %s\n",
-		ip1, p1->part_type, wd_get_partition_name(p1->part_type,"") );
+		ip1, p1->part_type, wd_get_part_name(p1->part_type,"") );
 	    continue;
 	}
 
@@ -2757,7 +2759,7 @@ enumError DiffFilesSF
 	    if (verbose<0)
 		goto abort;
 	    printf("Only in ISO #2:   Partition #%u, type=%x %s\n",
-		ip2, p2->part_type, wd_get_partition_name(p2->part_type,"") );
+		ip2, p2->part_type, wd_get_part_name(p2->part_type,"") );
 	}
 	// reset done flag
 	p2->done = 0;
@@ -2801,9 +2803,6 @@ enumError DiffFilesSF
 	const WiiFstFile_t *file2 = p2->file;
 	const WiiFstFile_t *end2  = file2 + p2->file_used;
 
-	aes_key_t * akey1 = p1->is_encrypted ? &p1->part_akey : 0;
-	aes_key_t * akey2 = p2->is_encrypted ? &p2->part_akey : 0;
-
 	static char only_in[] = "Only in ISO #%u:   %s%s\n";
 
 	while ( file1 < end1 && file2 < end2 )
@@ -2845,77 +2844,47 @@ enumError DiffFilesSF
 		    goto abort;
 		printf("File types differ: %s%s\n", p1->path, file1->path );
 	    }
-	    else if ( ( file1->icm == ICM_FILE || file1->icm == ICM_COPY )
-		    && file1->size != file2->size )
+	    else if ( file1->icm > WD_ICM_DIRECTORY )
 	    {
-		differ++;
-		if (verbose<0)
-		    goto abort;
-		if ( file1->size < file2->size )
-		    printf("File size differ: %s%s -> %u+%u=%u\n", p1->path, file1->path,
-				file1->size, file2->size - file1->size, file2->size );
-		else
-		    printf("File size differ: %s%s -> %u-%u=%u\n", p1->path, file1->path,
-				file1->size, file1->size - file2->size, file2->size );
-	    }
-	    else if ( file1->icm == ICM_FILE )
-	    {
-		u32 size = file1->size;
-		u32 off1 = file1->offset4;
-		u32 off2 = file2->offset4;
-
-		while ( size > 0 )
+		if ( file1->size != file2->size )
 		{
-		    const u32 read_size = size < BUF_SIZE ? size : BUF_SIZE;
-		    if (   wd_read( disc1, akey1, off1, buf1, read_size, 0)
-			|| wd_read( disc2, akey2, off2, buf2, read_size, 0) )
-		    {
-			err = ERR_READ_FAILED;
+		    differ++;
+		    if (verbose<0)
 			goto abort;
-		    }
-
-		    if (memcmp(buf1,buf2,read_size))
-		    {
-			differ++;
-			if (verbose<0)
-			    goto abort;
-			printf("Files differ:     %s%s\n", p1->path, file1->path );
-			break;
-		    }
-
-		    size -= read_size;
-		    off1 += read_size>>2;
-		    off2 += read_size>>2;
+		    if ( file1->size < file2->size )
+			printf("File size differ: %s%s -> %u+%u=%u\n", p1->path, file1->path,
+				    file1->size, file2->size - file1->size, file2->size );
+		    else
+			printf("File size differ: %s%s -> %u-%u=%u\n", p1->path, file1->path,
+				    file1->size, file1->size - file2->size, file2->size );
 		}
-	    }
-	    else if ( file1->icm == ICM_COPY )
-	    {
-		u32 size = file1->size;
-		u32 off1 = file1->offset4;
-		u32 off2 = file2->offset4;
-
-		while ( size > 0 )
+		else
 		{
-		    const u32 read_size = size < BUF_SIZE ? size : BUF_SIZE;
-		    if (   wd_read_raw( disc1, off1, buf1, read_size )
-			|| wd_read_raw( disc2, off2, buf2, read_size ) )
-		    {
-			err = ERR_READ_FAILED;
-			goto abort;
-		    }
+		    u32 off4 = 0;
+		    u32 size = file1->size;
 
-		    if (memcmp(buf1,buf2,read_size))
+		    while ( size > 0 )
 		    {
-			differ++;
-			if (verbose<0)
+			const u32 read_size = size < BUF_SIZE ? size : BUF_SIZE;
+			if (   ReadFileFST(p1,file1,off4,buf1,read_size)
+			    || ReadFileFST(p2,file2,off4,buf2,read_size) )
+			{
+			    err = ERR_READ_FAILED;
 			    goto abort;
-			printf("Files differ:     %s%s\n", p1->path, file1->path );
-			break;
-		    }
+			}
 
-		    size -= read_size;
-		    off1 += read_size>>2;
-		    off2 += read_size>>2;
+			if (memcmp(buf1,buf2,read_size))
+			{
+			    differ++;
+			    if (verbose<0)
+				goto abort;
+			    printf("Files differ:     %s%s\n", p1->path, file1->path );
+			    break;
+			}
+
+			size -= read_size;
+			off4 += read_size>>2;
+		    }
 		}
 	    }
 
@@ -2948,10 +2917,6 @@ abort:
     if ( done_count && ( f2->show_progress || f2->show_summary ) )
 	PrintSummarySF(f2);
 
-    if (disc1)
-	wd_close_disc(disc1);
-    if (disc2)
-	wd_close_disc(disc2);
     ResetFST(&fst1);
     ResetFST(&fst2);
 
@@ -2973,6 +2938,7 @@ void InitializeIterator ( Iterator_t * it )
     ASSERT(it);
     memset(it,0,sizeof(*it));
     InitializeStringField(&it->source_list);
+    it->show_mode = opt_show_mode;
 }
 
 //-----------------------------------------------------------------------------

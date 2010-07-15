@@ -52,6 +52,13 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 	"Same as --help."
     },
 
+    {	OPT_WIDTH, 0, "width",
+	"width",
+	"Define the width (number of columns) for help and some other"
+	" messages. This option disables the automatic detection of the"
+	" terminal width."
+    },
+
     {	OPT_QUIET, 'q', "quiet",
 	0,
 	"Be quiet and print only error messages."
@@ -80,7 +87,7 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 	"Alternative for --chunk: Print table with chunk header."
     },
 
-    {0,0,0,0,0} // OPT__N_TOTAL == 9
+    {0,0,0,0,0} // OPT__N_TOTAL == 10
 
 };
 
@@ -96,6 +103,7 @@ const struct option OptionLong[] =
 	{ "version",		0, 0, 'V' },
 	{ "help",		0, 0, 'h' },
 	{ "xhelp",		0, 0, GO_XHELP },
+	{ "width",		1, 0, GO_WIDTH },
 	{ "quiet",		0, 0, 'q' },
 	{ "verbose",		0, 0, 'v' },
 	{ "io",			1, 0, GO_IO },
@@ -133,8 +141,9 @@ const u8 OptionIndex[OPT_INDEX_SIZE] =
 	/*76*/	OPT_VERBOSE,
 	/*77*/	 0,0,0,0, 0,0,0,0, 0,
 	/*80*/	OPT_XHELP,
-	/*81*/	OPT_IO,
-	/*82*/	 0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,
+	/*81*/	OPT_WIDTH,
+	/*82*/	OPT_IO,
+	/*83*/	 0,0,0,0, 0,0,0,0, 0,0,0,0, 0,
 	/*90*/	 0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0,
 	/*a0*/	 0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0,
 };
@@ -149,6 +158,7 @@ const InfoOption_t * option_tab_tool[] =
 	OptionInfo + OPT_VERSION,
 	OptionInfo + OPT_HELP,
 	OptionInfo + OPT_XHELP,
+	OptionInfo + OPT_WIDTH,
 	OptionInfo + OPT_QUIET,
 	OptionInfo + OPT_VERBOSE,
 	OptionInfo + OPT_IO,
@@ -176,7 +186,7 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	0,
 	"wdf-dump [option]... files...",
 	"Dump the data structure of WDF and CISO files for analysis.",
-	8,
+	9,
 	option_tab_tool
     },
 

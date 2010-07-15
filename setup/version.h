@@ -13,6 +13,9 @@
 #define AUTHOR		"@@AUTHOR@@"
 
 #define VERSION		"@@VERSION@@"
+#define VERSION_NUM	"@@VERSION-NUM@@"
+#define BETA_VERSION	@@BETA-VERSION@@
+
 #define REVISION	"@@REV@@"
 #define REVISION_NUM	@@REV-NUM@@
 #define REVISION_NEXT	@@REV-NEXT@@

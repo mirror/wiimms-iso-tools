@@ -1,0 +1,5 @@
+../src/lib-error.h ;
+../src/lib-std.c ;
+@+all-source.edit-list
+-y  35 ../src/lib-error.h ;
+-y 580 ../src/lib-std.c ;

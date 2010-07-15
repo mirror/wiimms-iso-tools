@@ -1,35 +1,34 @@
-wit v1.01a r1245 - 2010-06-20
+Aggregation of the previous beta versions:
 
- - CISO support: The new options --chunk-mode, --chunk-size and --max-chunks
-   gives the user the control over chunk size when creating a CISO file.
- - With release v0.37 I have written a complete new function to calculate the
-   WBFS geometry (outsourcing of the calculation so that other commands can use
-   the results). Up to now the new and the old calculation have been compared
-   on every WBFS formatting. From now only this new calculation is used.
- - wit DUMP --long: Print content of TICKET and TMD too.
- - New option for wit DUMP: --show=keylist: This option allows fine control
-   over the things that should be printed. If set --long is ignored. Allowed
-   keywords: NONE, ALL, INTRO, P-TAB, P-INFO, P-MAP, D-MAP, TICKET, TMD,
-   PART (=P-INFO|P-MAP|TICKET|TMD), MAP (=P-MAP|D-MAP).
-   If --show is set option --long is ignored.
- - wit+wwt VERIFY --long --long: Hex dump of 'DATA' was wrong.
- - Bug fix for option --pmode: keyword INDEX is enabled now.
- - New warnings (exit status): "Nothing to do" and "No source file found".
+ - New option: --width wd: Define the width (number of columns) for help and
+   other messages and disables the automatic detection of the terminal width.
+ - I have rewritten the wiidisc lib (part of libwbfs) from scratch. It has a
+   complete new interface and an improved functionality. It uses dynamic data
+   structures and collect data as needed. This has considerable advantages
+   for the whole WIT project.
+ - ID renaming: A point ('.') means: leave id character unchanged.
+ - Options --ios, --id and --name modify only disc data and the DATA partition,
+   but no longer other any other partitions.
+ - There is an complete new implementation of option --psel: Combinations like
+   '--psel DATA,UPDATE' or '--psel -CHANNEL' are supported now.
+ - wwt EXTRACT: Complete new and improved calculation of output filename.
+ - wwt EXTRACT: Support '%X' and '%Y' in output filenames.
+ - Option --files: Macro calls are now prefixed by a colon (':'). The previous
+   prefix '=' is obsolete, but still allowed.
+ - Bug fix: File size calculation error for when composing large discs.
 
-wit v1.01b r1248 - 2010-06-20
+wit v@@VERSION@@ r@@REV-NEXT@@ - @@@@-@@-@@
 
- - Bug fix for "wit DUMP":
-    - If neither --show nor --long is set the head parameters was not printed.
-    - Indention was wrong.
+ - wittdb.com: Support of new languages: ru, zhcn, zhtw
+ - wwt ANALYZE: If option --long is set then calculated values are printed too
+   if other values are available. If option --long is set twice calculated
+   values are always printed.
+ - wit+wwt: Option --trunc: Truncate created PLAIN ISO image to needed size.
 
-wit v@.@@@ r@@REV-NEXT@@ - @@@@-@@-@@
-
- - Bug fix for "wit COPY": If converting an ISO to a plain iso file (*.iso) in
-   scrubbing mode the destination file was truncated to the needed size. Now
-   it is extended to 4 699 979 776 bytes again.
-
+~Known bugs:
+~
 Missing docu:
 
  - wit commands ILIST + EXTRACT
- - Option --show
-
+ - Option --show => see built in help
+ - file ./setup.txt when composing

@@ -96,6 +96,7 @@ enumError CheckOptions ( int argc, char ** argv )
 	case GO_VERSION:	version_exit();
 	case GO_HELP:
 	case GO_XHELP:		help_exit();
+	case GO_WIDTH:		err += ScanOptWidth(optarg); break;
 	case GO_IO:		ScanIOMode(optarg); break;
       }
     }

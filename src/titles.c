@@ -157,7 +157,7 @@ static int LoadTitleFile ( ccp fname, bool warn )
 	while ( *ptr > 0 && *ptr <= ' ' )
 	    ptr++;
 
-	const int idtype = CountIDChars(ptr,false);
+	const int idtype = CountIDChars(ptr,false,false);
 	if ( idtype != 4 && idtype != 6 )
 	    continue;
 

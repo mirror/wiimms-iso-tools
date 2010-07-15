@@ -20,7 +20,7 @@ Rule Syntax:
 	rule       := skip_rule | std_rule | macro_call
 	skip_rule  := number prefix pattern
 	std_rule   := prefix pattern
-	macro_call := '=' pattern
+	macro_call := ':' pattern
 	prefix     := '+' | '-'
 	pattern    := [char]...
 	number     := '1'..'9' ['0'..'9']...
@@ -42,7 +42,7 @@ This is a short description of the special characters:
    /  : At the beginning of pattern
          => Match against the beginning of the source path
 
-   $  : At the end of pattern => 
+   $  : At the end of pattern
          => Match against the end of the source path. This is the default if
             no '/' is at the beginning or the end of the pattern.
 
@@ -112,8 +112,8 @@ Processing the Rule list:
 Each option --filter= define a list of rules. Each file is checked agains the
 every rule on the list until a pattern matches the file name. If the rule
 match the file name the rule prefix decide what to do. A '+' means include
-the file and a '-' means exclude the file. A '=' calls an internal macro to
-define a set of rules.
+the file and a '-' means exclude the file. A ':' (and the obsolete '=') calls
+an internal macro to define a set of rules.
 
 If a '+' or '-' is preceded by a decimal numeber the rule has a special
 meaning. If '+' and the pattern does match then the following NUMBER rules are
@@ -134,41 +134,47 @@ Rule macros:
 Rule macros are predifined rules to make live easier. Some of them exists
 as positive (without prefix 'no') and as negative (with prefix 'no') rule.
 
- =base		:= +/*$
- =nobase	:= -/*$
+ :base		:= +/*$
+ :nobase	:= -/*$
 
     Allow or deny files of the base directory
     (ticket.bin, tmd.bin, cert.bin, h3.bin),
 
 
- =disc		:= +/disc/
- =nodisc	:= -/disc/
+ :disc		:= +/disc/
+ :nodisc	:= -/disc/
 
     Allow or deny files from the 'disc' directory.
     (disc/header.bin, disc/region.bin)
 
 
- =sys		:= +/sys/
- =nosys		:= -/sys/
+ :sys		:= +/sys/
+ :nosys		:= -/sys/
 
     Allow or deny files from the 'sys' directory.
     (sys/boot.bin, sys/bi2.bin, sys/apploader.img, sys/main.dol, sys/fst.bin)
 
 
- =files		:= +/files/
- =nofiles	:= -/files/
+ :files		:= +/files/
+ :nofiles	:= -/files/
 
     Allow or deny files from the 'file' directory.
     This are the real files of the ISO image.
 
 
- =wit		:= 2+/h3.bin ; 1+/sys/fst.bin ; +
- =wwt		:= =wit
+ :wit		:= 2+/h3.bin ; 1+/sys/fst.bin ; +
+ :wwt		:= :wit
 
     Allow files that are used from wit and wwt to compose an ISO image.
 
 
- =sneek		:= 2+/h3.bin ; 1+/disc/ ; +
+ :compose	:= 3+/disc/;2+/h3.bin;1+/sys/fst.bin;+
+
+    Allow files that are needed from wit and wwt to compose an ISO image. This
+    is like ':wit' expect that the optional files '/disc/*' are not included.
+
+
+ :sneek		:= 2+/h3.bin ; 1+/disc/ ; +
 
     Allow files that SNEEK needs.
 
@@ -192,6 +198,6 @@ Examples:
   --filter '+.wad;-d'
 	exclude all '*d' files but not '*.wad'
 
-  --filter '+.h3.bin;=sneek'
+  --filter '+.h3.bin;:sneek'
 	suppress for SNEEK unneded files, but add 'h3.bin'.
 

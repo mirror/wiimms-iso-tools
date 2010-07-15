@@ -112,19 +112,14 @@ typedef struct info_t
 ///////////////			some helper macros		///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-#define TEXT_OPT_PSEL \
-	" One of the following values is allowed, case is ignored:" \
-	" DATA, NO-DATA, UPDATE, NO-UPDATE, CHANNEL, NO-CHANNEL" \
-	" ALL, WHOLE, RAW." \
-	" The default value is 'ALL'."
-
 #define TEXT_WWT_OPT_REPAIR \
 	"This option defines how to repair WBFS errors." \
 	" The parameter is a comma separated list of the following keywords," \
 	" case is ignored:" \
 	" @NONE, FBT, INODES, STANDARD," \
-	" RM-INVALID, RM-OVERLAP, RM-FREE, RM-EMPTY, RM-ALL, ALL@.\n" \
-	" All keywords can be prefixed by '+' to enable that option," \
+	" RM-INVALID, RM-OVERLAP, RM-FREE, RM-EMPTY, RM-ALL, ALL@." \
+	"\n" \
+	"All keywords can be prefixed by '+' to enable that option," \
 	" by a '-' to disable it or" \
 	" by a '=' to enable that option and disable all others."
 
@@ -138,7 +133,7 @@ typedef struct info_t
 	" The case of the keyword is ignored." \
 	" The default key is @'" def "'@." \
 	"\n" \
-	" @--chm@ is a short cut for @--chunk-mode@."
+	"@--chm@ is a shortcut for @--chunk-mode@."
 
 //
 ///////////////////////////////////////////////////////////////////////////////
@@ -256,33 +251,39 @@ info_t info_tab[] =
   { T_SEP_CMD,	0,0,0,0 }, //----- separator -----
 
   { T_DEF_CMD,	"DIFF",		"DIFF|CMP",
-		"wit DIFF source dest\n"
+		"wit DIFF source dest"
+		"\n"
 		"wit DIFF [-s path]... [-r path]... [source]... [-d|-D] dest",
 		"DIFF compares ISO images in  scrubbed or raw mode or on file level."
 		" DIFF works like {COPY} but comparing source and destination." },
 
   { T_DEF_CMD,	"EXTRACT",	"EXTRACT|X",
-		"wit EXTRACT source dest\n"
+		"wit EXTRACT source dest"
+		"\n"
 		"wit EXTRACT [-s path]... [-r path]... [source]... [-d|-D] dest",
 		"Extract all files from the source discs." },
 
   { T_DEF_CMD,	"COPY",		"COPY|CP",
-		"wit COPY source dest\n"
+		"wit COPY source dest"
+		"\n"
 		"wit COPY [-s path]... [-r path]... [source]... [-d|-D] dest",
 		"Copy, scrub, convert, split, encrypt and decrypt Wii ISO images." },
 
   { T_DEF_CMD,	"SCRUB",	"SCRUB|SB",
-		"wit SCRUB source\n"
+		"wit SCRUB source"
+		"\n"
 		"wit SCRUB [-s path]... [-r path]... [source]...",
 		"Scrub, convert, split, encrypt and decrypt Wii ISO images." },
 
   { H_DEF_CMD,	"EDIT",		"EDIT",
-		"wit EDIT source\n"
+		"wit EDIT source"
+		"\n"
 		"wit EDIT [-s path]... [-r path]... [source]...",
 		"Edit an existing Wii ISO images and patch some values." },
 
   { T_DEF_CMD,	"MOVE",		"MOVE|MV",
-		"wit MOVE source dest\n"
+		"wit MOVE source dest"
+		"\n"
 		"wit MOVE [-s path]... [-r path]... [source]... [-d|-D] dest",
 		"Move and rename Wii ISO images." },
 
@@ -316,6 +317,11 @@ info_t info_tab[] =
 		0,
 		"Stop parsing the command line and print a help message"
 		" with all commands included. Exit after printing." },
+
+  { T_OPT_GP,	"WIDTH",	"width",
+		"width",
+		"Define the width (number of columns) for help and some other messages."
+		" This option disables the automatic detection of the terminal width." },
 
   { T_OPT_GM,	"QUIET",	"q|quiet",
 		0,
@@ -370,7 +376,8 @@ info_t info_tab[] =
 
   { T_OPT_GM,	"TEST",		"t|test",
 		0,
-		"Run in test mode, modify nothing.\n"
+		"Run in test mode, modify nothing."
+		"\n"
 		">>> USE THIS OPTION IF UNSURE! <<<" },
 
   { T_SEP_OPT,	0,0,0,0 }, //----- separator -----
@@ -418,10 +425,28 @@ info_t info_tab[] =
   { T_SEP_OPT,	0,0,0,0 }, //----- separator -----
 
   { T_OPT_CP,	"PSEL",		"psel",
-		"p-type",
+		"list",
 		"This option set the scrubbing mode and defines,"
 		" which disc partitions are handled."
-		TEXT_OPT_PSEL },
+		" The parameter is a comma separated list of keywords." \
+		" The keywords are divided in three functional groups:" \
+		"\n"
+		"The first group selects partition types."
+		" The names @DATA@, @UDDATE@, @CHANNEL@, @ID@"
+		" and the numbers between @0@ and @50@ for partition type are allowed."
+		" @'ID'@ is a placeholder for all ID types like the VC channels of SSBB."
+		" The prefix @'-'@ means: disable this partition type."
+		" The special keyword @'NONE'@ diables all partition types."
+		"\n"
+		"The second group selects partition tables."
+		" The names @PTAB0..PTAB3@ (and @T0..T3@) are allowed."
+		" The prefix @'-'@ means: Disable all partitions of that partition table."
+		"\n"
+		"The third group are additional flags:"
+		" @'WHOLE'@ means that the whole partition data is used."
+		" @'RAW'@ means that the whole disc is selected."
+		"\n"
+		"The special keyword @'ALL'@ resets all settings to the default." },
 
   { T_OPT_C,	"RAW",		"raw",
 		0, "Abbreviation of {--psel RAW}." },
@@ -430,8 +455,8 @@ info_t info_tab[] =
 		"p-mode",
 		"This options set the prefix mode for listed or extracted files."
 		" One of the following values is allowed:"
-		" auto, none, point, name, index."
-		" The default value is 'auto'." },
+		" @AUTO, NONE, POINT, NAME, INDEX@."
+		" The default value is @'auto'@." },
 
   { T_OPT_C,	"SNEEK",	"sneek",
 		0, "Abbreviation of {--psel data --pmode none --files =sneek}." },
@@ -446,36 +471,47 @@ info_t info_tab[] =
 		" to the given parameter. 1 to 6 characters are expected."
 		" Only defined characters not equal '.' are modified."
 		" The disc header, boot.bin, ticket.bin and tmd.bin are "
-		" objects to modify. The option {--modify} selects the objects." },
+		" objects to modify. The option {--modify} selects the objects."
+		"\n"
+		"This patching option is only recognized while $composing$ a disc." },
 
   { T_OPT_CP,	"NAME",		"name",
 		"name",
 		"This $patching$ option changes the name (disc title) of the disc"
 		" to the given parameter. Up to 63 characters are expected."
 		" The disc header and boot.bin are objects to modify."
-		" The option {--modify} selects the objects." },
+		" The option {--modify} selects the objects."
+		"\n"
+		"This patching option is only recognized while $composing$ a disc." },
 
   { T_OPT_CP,	"MODIFY",	"modify",
 		"list",
 		" This $patching$ option expects a comma separated list"
 		" of the following keywords (case ignored) as parameter:"
-		" @NONE, DISC, BOOT, TICKET, TMD, WBFS, ALL@ and @AUTO@ (default).\n"
-		" All keywords can be prefixed by @'+'@ to enable that option,"
+		" @NONE, DISC, BOOT, TICKET, TMD, WBFS, ALL@ and @AUTO@ (default)."
+		"\n"
+		"All keywords can be prefixed by @'+'@ to enable that option,"
 		" by a @'-'@ to disable it or"
-		" by a @'='@ to enable that option and disable all others." },
+		" by a @'='@ to enable that option and disable all others."
+		"\n"
+		"This patching option is only recognized while $composing$ a disc." },
 
   { T_OPT_CP,	"REGION",	"region",
 		"region",
 		"This $patching$ option defines the region of the disc. "
 		" The region is one of @JAPAN, USA, EUROPE, KOREA, FILE@"
 		" or @AUTO@ (default). The case of the keywords is ignored."
-		" Unsigned numbers are also accepted." },
+		" Unsigned numbers are also accepted."
+		"\n"
+		"This patching option is only recognized while $composing$ a disc." },
 
   { T_OPT_CP,	"IOS",		"ios",
 		"ios",
 		"This $patching$ option defines the system version (IOS to load)"
 		" within TMD. The format is @'HIGH:LOW'@ or @'HIGH-LOW'@ or @'LOW'@."
-		" If only @LOW@ is set than @HIGH@ is assumed as 1 (standard IOS)." },
+		" If only @LOW@ is set than @HIGH@ is assumed as 1 (standard IOS)."
+		"\n"
+		"This patching option is only recognized while $composing$ a disc." },
 
   { T_OPT_CP,	"ENC",		"enc",
 		"encoding",
@@ -506,6 +542,9 @@ info_t info_tab[] =
 		" 'kmgtpe' [base=1000] or 'KMGTPE' [base=1024])."
 		" The default unit is 'G' (GiB)." },
 
+  { T_OPT_C,	"TRUNC",	"trunc",
+		0, "Truncate PLAIN ISO images to the needed size while creating." },
+
   { T_OPT_CP,	"CHUNK_MODE",	"chunk-mode|chunkmode|chm",
 		"mode", TEXT_OPT_CHUNK_MODE("ISO") },
 
@@ -530,7 +569,7 @@ info_t info_tab[] =
 		"If the input file size is not known (e.g. reading from pipe),"
 		" its size is assumed as @12 GiB@."
 		"\n"
-		" @--chz@ is a short cut for @--chunk-size@." },
+		" @--chz@ is a shortcut for @--chunk-size@." },
 
   { T_OPT_CP,	"MAX_CHUNKS",	"max-chunks|maxchunks|mch",
 		"n",
@@ -540,7 +579,7 @@ info_t info_tab[] =
 		" If this value is set than the automatic calculation "
 		" of {--chunk-size} will be modified too."
 		"\n"
-		" @--mch@ is a short cut for @--max-chunks@." },
+		" @--mch@ is a shortcut for @--max-chunks@." },
 
   { T_OPT_C,	"PRESERVE",	"p|preserve",
 		0, "Preserve file times (atime+mtime)." },
@@ -619,13 +658,19 @@ info_t info_tab[] =
 		"This option allows fine control over the things that are to be printed."
 		" The parameter is a comma separated list of the"
 		" following keywords, case is ignored: "
-		" @NONE, INTRO, P-TAB, P-INFO, P-MAP, D-MAP, TICKET, TMD@ and @ALL@."
+		" @NONE, INTRO, P-TAB, P-INFO, P-MAP, D-MAP, TICKET, TMD, USAGE, PATCH,"
+		" FILES, OFFSET, SIZE, PATH@ and @ALL@."
 		" There are some combined keys:"
 		" @PART := P-INFO,P-MAP,TICKET,TMD@,"
 		" @MAP := P-MAP,D-MAP@."
-		"All keywords can be prefixed by '+' to enable that option," \
-		" by a '-' to disable it or" \
+		"\n"
+		"All keywords can be prefixed by '+' to enable that option,"
+		" by a '-' to disable it or"
 		" by a '=' to enable that option and disable all others."
+		"\n"
+		"The additional keywords @DEC@ and @HEX@ can be used to set"
+		" a prefered number format."
+		" @-HEADER@ suppresses the output of header lines."
 		"\n"
 		"The commands recognize only some of these keywords"
 		" and ignore the others."
@@ -754,6 +799,7 @@ info_t info_tab[] =
 
   { T_COPT,	"SPLIT",	0,0,0 },
   { T_COPT,	"SPLIT_SIZE",	0,0,0 },
+  { T_COPT,	"TRUNC",	0,0,0 },
   { T_COPT,	"CHUNK_MODE",	0,0,0 },
   { T_COPT,	"CHUNK_SIZE",	0,0,0 },
   { T_COPT,	"MAX_CHUNKS",	0,0,0 },
@@ -920,6 +966,7 @@ info_t info_tab[] =
   { T_COPT_M,	"LOGGING",	0,0,0 },
   { T_COPT_M,	"LONG",		0,0,0 },
   { T_COPT,	"NO_HEADER",	0,0,0 },
+  { T_COPT,	"SHOW",		0,0,0 },
   { T_COPT,	"SORT",		0,0,
 	"Define the sort mode for the file listing."
 	" The parameter is a comma separated list of the following keywords:"
@@ -1341,6 +1388,9 @@ info_t info_tab[] =
   { T_OPT_S,	"XHELP",	"xhelp",
 		0, 0 /* copy of wit */ },
 
+  { T_OPT_GP,	"WIDTH",	"width",
+		0, 0 /* copy of wit */ },
+
   { T_OPT_GM,	"QUIET",	"q|quiet",
 		0, 0 /* copy of wit */ },
 
@@ -1464,6 +1514,12 @@ info_t info_tab[] =
   { T_OPT_CP,	"SPLIT_SIZE",	"Z|split-size|splitsize",
 		0, 0 /* copy of wit */ },
 
+  { T_OPT_C,	"TRUNC",	"trunc",
+		0, 0 /* copy of wit */ },
+
+  { T_OPT_C,	"FAST",		"F|fast",
+		0, "Enables fast writing (disables searching for blocks with zeroed data)." },
+
   { T_OPT_CP,	"CHUNK_MODE",	"chunk-mode|chunkmode|chm",
 		0, 0 /* copy of wit */ },
 
@@ -1520,12 +1576,6 @@ info_t info_tab[] =
 
   { T_OPT_C,	"REMOVE",	"R|remove",
 		0, 0 /* copy of wit */ },
-
-  { T_OPT_C,	"TRUNC",	"trunc",
-		0, "Trunc ISO images while writing." },
-
-  { T_OPT_C,	"FAST",		"F|fast",
-		0, "Enables fast writing (disables searching for zero blocks)." },
 
   { T_SEP_OPT,	0,0,0,0 }, //----- separator -----
 
@@ -1685,38 +1735,39 @@ info_t info_tab[] =
   { T_COPT,	"IOS",		0,0,0 },
   { T_COPT,	"ENC",		0,0,0 },
 
-  //---------- wit GROUP SPLIT_CHUNK ----------
+  //---------- wwt GROUP SPLIT_CHUNK ----------
 
   { T_GRP_BEG,	"SPLIT_CHUNK",	0,0,0 },
 
   { T_COPT,	"SPLIT",	0,0,0 },
   { T_COPT,	"SPLIT_SIZE",	0,0,0 },
+  { T_COPT,	"TRUNC",	0,0,0 },
   { T_COPT,	"CHUNK_MODE",	0,0,0 },
   { T_COPT,	"CHUNK_SIZE",	0,0,0 },
   { T_COPT,	"MAX_CHUNKS",	0,0,0 },
 
 
   //
-  //---------- COMMAND wit VERSION ----------
+  //---------- COMMAND wwt VERSION ----------
 
   { T_CMD_BEG,	"VERSION",	0,0,0 },
 
   { T_COPT,	"SECTIONS",	0,0,0 },
   { T_COPT,	"LONG",		0,0,0 },
 
-  //---------- COMMAND wit HELP ----------
+  //---------- COMMAND wwt HELP ----------
 
   { T_CMD_BEG,	"HELP",		0,0,0 },
 
   { T_ALL_OPT,	0,		0,0,0 },
 
-  //---------- COMMAND wit TEST ----------
+  //---------- COMMAND wwt TEST ----------
 
   { T_CMD_BEG,	"TEST",		0,0,0 },
 
   { T_ALL_OPT,	0,		0,0,0 },
 
-  //---------- COMMAND wit ERROR ----------
+  //---------- COMMAND wwt ERROR ----------
 
   { T_CMD_BEG,	"ERROR",	0,0,0 },
 
@@ -1725,14 +1776,14 @@ info_t info_tab[] =
   { T_COPT,	"LONG",		0,0,
 	"Print extended message instead of error name." },
 
-  //---------- COMMAND wit EXCLUDE ----------
+  //---------- COMMAND wwt EXCLUDE ----------
 
   { T_CMD_BEG,	"EXCLUDE",	0,0,0 },
 
   { T_COPT_M,	"EXCLUDE",	0,0,0 },
   { T_COPT_M,	"EXCLUDE_PATH",	0,0,0 },
 
-  //---------- COMMAND wit TITLES ----------
+  //---------- COMMAND wwt TITLES ----------
 
   { T_CMD_BEG,	"TITLES",	0,0,0 },
 
@@ -1766,6 +1817,10 @@ info_t info_tab[] =
   { T_CMD_BEG,	"ANALYZE",	0,0,0 },
 
   { T_COPY_GRP,	"READ_WBFS",	0,0,0 },
+  { T_COPT,	"LONG",		0,0,
+	"If option @--long@ is set then calculated values"
+	" are printed too if other values are available."
+	" If option @--long@ is set twice calculated values are always printed." },
 
   //---------- COMMAND wwt DUMP ----------
 
@@ -2124,9 +2179,7 @@ info_t info_tab[] =
 
   { T_SEP_OPT,	0,0,0,0 },
 
-  { T_COPT,	"PSEL",		0,0,
-	"This option defines which types of partitions are verified."
-	TEXT_OPT_PSEL },
+  { T_COPT,	"PSEL",		0,0,0 },
   { T_COPT,	"RAW",		0,0,0 },
   { T_COPT,	"UNIQUE",	0,0, "Eliminate multiple ID6 from the source list." },
   { T_COPT,	"IGNORE",	0,0, "Ignore non existing discs without any warning." },
@@ -2230,6 +2283,9 @@ info_t info_tab[] =
 		0, 0 /* copy of wit */ },
 
   { T_OPT_S,	"XHELP",	"xhelp",
+		0, 0 /* copy of wit */ },
+
+  { T_OPT_GP,	"WIDTH",	"width",
 		0, 0 /* copy of wit */ },
 
   { T_SEP_OPT,	0,0,0,0 }, //----- separator -----
@@ -2453,6 +2509,9 @@ info_t info_tab[] =
   { T_OPT_S,	"XHELP",	"xhelp",
 		0, "Same as {--help}." },
 
+  { T_OPT_GP,	"WIDTH",	"width",
+		0, 0 /* copy of wit */ },
+
   { T_OPT_GP,	"IO",		"io",
 		0, 0 /* copy of wit */ },
 
@@ -2475,6 +2534,9 @@ info_t info_tab[] =
 
   { T_OPT_S,	"XHELP",	"xhelp",
 		0, 0 /* copy of wdf-cat */ },
+
+  { T_OPT_GP,	"WIDTH",	"width",
+		0, 0 /* copy of wit */ },
 
   { T_OPT_G,	"QUIET",	"q|quiet",
 		0, 0 /* copy of wit */ },

@@ -52,6 +52,13 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 	"Same as --help."
     },
 
+    {	OPT_WIDTH, 0, "width",
+	"width",
+	"Define the width (number of columns) for help and some other"
+	" messages. This option disables the automatic detection of the"
+	" terminal width."
+    },
+
     {	OPT_IO, 0, "io",
 	"flags",
 	"Setup the IO mode for experiments. The standard file IO is based on"
@@ -60,7 +67,7 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 	" the value '3' for both, WBFS and ISO."
     },
 
-    {0,0,0,0,0} // OPT__N_TOTAL == 5
+    {0,0,0,0,0} // OPT__N_TOTAL == 6
 
 };
 
@@ -76,6 +83,7 @@ const struct option OptionLong[] =
 	{ "version",		0, 0, 'V' },
 	{ "help",		0, 0, 'h' },
 	{ "xhelp",		0, 0, GO_XHELP },
+	{ "width",		1, 0, GO_WIDTH },
 	{ "io",			1, 0, GO_IO },
 
 	{0,0,0,0}
@@ -103,8 +111,9 @@ const u8 OptionIndex[OPT_INDEX_SIZE] =
 	/*69*/	 0,0,0,0, 0,0,0,
 	/*70*/	 0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0,
 	/*80*/	OPT_XHELP,
-	/*81*/	OPT_IO,
-	/*82*/	 0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,
+	/*81*/	OPT_WIDTH,
+	/*82*/	OPT_IO,
+	/*83*/	 0,0,0,0, 0,0,0,0, 0,0,0,0, 0,
 	/*90*/	 0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0,
 	/*a0*/	 0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0,
 };
@@ -119,6 +128,7 @@ const InfoOption_t * option_tab_tool[] =
 	OptionInfo + OPT_VERSION,
 	OptionInfo + OPT_HELP,
 	OptionInfo + OPT_XHELP,
+	OptionInfo + OPT_WIDTH,
 	OptionInfo + OPT_IO,
 
 	0
@@ -141,7 +151,7 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	"Works like the 'cat' command: Dump all file contents to standard"
 	" output (stdout) and extract WDF and CISO files on the fly. All other"
 	" files are copied byte by byte.",
-	4,
+	5,
 	option_tab_tool
     },
 

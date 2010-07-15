@@ -45,67 +45,6 @@
 ///////////////			 dump files			///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-typedef struct dump_info_t
-{
-	FILE * f;
-	int indent;
-
-} dump_info_t;
-
-//-----------------------------------------------------------------------------
-
-static int dump_file ( wiidisc_t * d, iterator_call_mode_t icm,
-			u32 offset4, u32 size, const void * data )
-{
- #ifdef DEBUG
-    if (icm == ICM_OPEN_PARTITION)
-    {
-	const wd_part_header_t * ph = data;
-	ASSERT(ph);
-	TRACE("ICM_OPEN_PARTITION: off=%llx, data=%llx+%llx\n",
-			(u64)offset4<<2,
-			(u64)(offset4+ph->data_off4)<<2,
-			(u64)ph->data_size4<<2 );
-    }
- #endif
-
-    if ( icm >= ICM_DIRECTORY
-	&& MatchFilePattern(file_pattern+PAT_OPT_FILES,d->path) )
-    {
-	dump_info_t * di = (dump_info_t*)d->user_param;
-	ASSERT(di);
-	ASSERT(di->f);
-
-	if ( icm == ICM_DIRECTORY )
-	{
-	    char sizebuf[20] = "-";
-	    if (size)
-		snprintf(sizebuf,sizeof(sizebuf),"N=%u",size);
-	    fprintf(di->f,"%*s          -%9s  %s%s\n",
-			di->indent,"", sizebuf, d->path_prefix, d->path );
-	}
-	else if ( icm == ICM_FILE )
-	{
-	    const u64 poff = (u64)(offset4-d->partition_offset4) << 2;
-	    fprintf(di->f,"%*s%11llx %8x  %s%s\n",
-			di->indent,"", poff, size, d->path_prefix, d->path );
-	}
-	else if ( icm == ICM_COPY )
-	{
-	    fprintf(di->f,"%*s%11llx#%8x  %s%s\n",
-			di->indent,"", (u64)offset4<<2, size, d->path_prefix, d->path );
-	}
-	else if ( icm == ICM_DATA )
-	{
-	    fprintf(di->f,"%*s          - %8x  %s%s\n",
-			di->indent,"", size, d->path_prefix, d->path );
-	}
-    }
-    return 0;
-}
-
-//-----------------------------------------------------------------------------
-
 static void dump_data
 	( FILE * f, int indent, off_t base, u32 off4, off_t size, ccp text )
 {
@@ -198,176 +137,194 @@ static void dump_hex ( FILE * f, const void * p_data, size_t dsize, size_t asc_i
 
 enumError Dump_ISO
 (
-	FILE * f,		// output stream
-	int indent,		// indent
-	SuperFile_t * sf,	// file to dump
-	ccp real_path,		// NULL or pointer to real path
-	ShowMode show_mode,	// what should be printed
-	int dump_level		// dump level: 0..2, ignored if show_mode is set
+    FILE		* f,		// valid output stream
+    int			indent,		// indent of output
+    SuperFile_t		* sf,		// file to dump
+    ccp			real_path,	// NULL or pointer to real path
+    ShowMode		show_mode,	// what should be printed
+    int			dump_level	// dump level: 0..3, ignored if show_mode is set
 )
 {
-    char buf1[100];
+    //----- setup
 
     ASSERT(sf);
     if ( !f || !sf->f.id6[0] )
 	return ERR_OK;
     sf->f.read_behind_eof = 2;
 
-    WDiscInfo_t wdi;
-    InitializeWDiscInfo(&wdi);
+    wd_disc_t * disc = OpenDiscSF(sf,true,true);
+    if (!disc)
+	return ERR_WDISC_NOT_FOUND;
 
-    MemMap_t mm;
-    MemMapItem_t * mi;
-    InitializeMemMap(&mm);
+    const u32 used_blocks = wd_count_used_disc_blocks_sel(disc,1,part_selector);
+    const u32 used_mib    = ( used_blocks + WII_SECTORS_PER_MIB/2 ) / WII_SECTORS_PER_MIB;
 
-    if ( show_mode == SHOW__DEFAULT )
-      switch(dump_level)
-      {
-	case 0:  show_mode = SHOW_INTRO | SHOW_P_TAB; break;
-	case 1:  show_mode = SHOW__ALL & ~SHOW_D_MAP; break;
-	default: show_mode = SHOW__ALL; break;
-      }
 
-    wiidisc_t * disc = 0;
-    u32 used_blocks = 0, used_mib = 0;
-    if ( show_mode & SHOW_INTRO )
-	dump_header(f,indent,sf,real_path);
-    enumError err = ReadSF(sf,0,&wdi.dhead,sizeof(wdi.dhead));
-    if (err)
-	goto abort;
-    CalcWDiscInfo(&wdi,0);
-
-    err = LoadPartitionInfo(sf, &wdi, show_mode & SHOW_D_MAP ? &mm : 0 );
-    if (err)
-	goto dump_mm;
-
+    char pname[100];
+    FilePattern_t * pat = GetDefaultFilePattern();
     indent = NormalizeIndent(indent) + 2;
 
+
+    //----- options --show and --long
+
+    if ( show_mode & SHOW__DEFAULT )
+    {
+	switch (dump_level)
+	{
+	    case 0:  show_mode = SHOW_INTRO | SHOW_P_TAB; break;
+	    case 1:  show_mode = SHOW__ALL & ~(SHOW_D_MAP|SHOW_USAGE|SHOW_FILES|SHOW_PATCH); break;
+	    case 2:  show_mode = SHOW__ALL & ~SHOW_FILES; break;
+	    default: show_mode = SHOW__ALL; break;
+	}
+	show_mode |= SHOW_F_HEAD;
+	if (pat->is_active)
+	    show_mode |= SHOW_FILES;
+    }
+
+
+    //----- print header
+
     if ( show_mode & SHOW_INTRO )
     {
-	fprintf(f,"%*sDisc name:       %s\n",indent,"",wdi.dhead.game_title);
-	if (wdi.title)
-	    fprintf(f,"%*sDB title:        %s\n",indent,"",wdi.title);
-	fprintf(f,"%*sRegion:          %s [%s]\n",indent,"",wdi.region,wdi.region4);
-	u8 * p8 = wdi.regionset.region_info;
+	dump_header(f,indent-2,sf,real_path);
+
+	fprintf(f,"%*sDisc name:       %.64s\n",indent,"",disc->dhead.game_title);
+
+	ccp title = GetTitle(disc->id6,0);
+	if (title)
+	    fprintf(f,"%*sDB title:        %s\n",indent,"",title);
+
+	const RegionInfo_t * rinfo = GetRegionInfo(disc->dhead.region_code);
+	fprintf(f,"%*sRegion:          %s [%s]\n",indent,"",rinfo->name,rinfo->name4);
+	u8 * p8 = disc->region.region_info;
 	fprintf(f,"%*sRegion setting:  %d / %02x %02x %02x %02x  %02x %02x %02x %02x\n",
-		    indent,"", wdi.regionset.region,
-		    p8[0], p8[1], p8[2], p8[3], p8[4], p8[5], p8[6], p8[7] );
+			indent,"", ntohl(disc->region.region),
+			p8[0], p8[1], p8[2], p8[3], p8[4], p8[5], p8[6], p8[7] );
+
+	fprintf(f,"%*sDirectories:    %7u\n",indent,"",disc->fst_dir_count);
+	fprintf(f,"%*sFiles:          %7u\n",indent,"",disc->fst_file_count);
+	fprintf(f,"%*sUsed ISO blocks:%7u * 32 KiB = %u MiB\n",
+			indent,"", used_blocks, used_mib );
     }
+    else
+	fprintf(f,"\n%*sDump of file %s\n",indent-2,"",sf->f.fname);
 
-    //--------------------------------------------------
 
-    disc = wd_open_disc(WrapperReadSF,sf);
-    if (disc)
-    {
-	wd_build_disc_usage(disc,ALL_PARTITIONS,wdisc_usage_tab,sf->file_size);
-	used_blocks = CountUsedBlocks(wdisc_usage_tab,1);
-	used_mib    = ( used_blocks + WII_SECTORS_PER_MIB/2 ) / WII_SECTORS_PER_MIB;
-
-	if ( show_mode & SHOW_INTRO )
-	{
-	    fprintf(f,"%*sDiretories:     %7u\n",indent,"",disc->dir_count);
-	    fprintf(f,"%*sFiles:          %7u\n",indent,"",disc->file_count);
-	    fprintf(f,"%*sUsed ISO blocks:%7u => %u MiB\n",
-		indent,"", used_blocks, used_mib );
-	}
-    }
-
-    //--------------------------------------------------
+    //----- partition tables
 
     int i;
-    WDPartInfo_t *pi;
-
-    u32 nt = wdi.n_ptab;
-    u32 np = wdi.n_part;
+    u32 nt = disc->n_ptab;
+    u32 np = disc->n_part;
 
     if ( show_mode & SHOW_P_TAB )
     {
-	fprintf(f,"\n%*s%d partition table%s with %d partition%s:\n\n"
+	fprintf(f,"\n%*s%d partition table%s with %d partition%s%s:\n\n"
 	    "%*s   tab.idx   n(part)       offset(part.tab) .. end(p.tab)\n"
 	    "%*s  --------------------------------------------------------\n",
 		indent,"", nt, nt == 1 ? "" : "s",
 		np, np == 1 ? "" : "s",
+		disc->patch_ptab_recommended ? " (patching recommended)" : "",
 		indent,"", indent,"" );
 
-	wd_part_count_t *pc = wdi.pcount;
-	for ( i = 0; i < WII_MAX_PART_INFO; i++, pc++ )
-	    if (pc->n_part)
+	wd_ptab_info_t * pc = disc->ptab_info;
+	for ( i = 0; i < WII_MAX_PTAB; i++, pc++ )
+	{
+	    const u32 np = ntohl(pc->n_part);
+	    if (np)
 	    {
-		const u64 off = (off_t)pc->off4<<2;
+		const u32 off4 = ntohl(pc->off4);
+		const u64 off = (u64)off4 << 2;
 		fprintf(f,"%*s%7d %8d %11x*4 = %10llx .. %10llx\n",
-		    indent,"", i, pc->n_part, pc->off4, off,
-		    off + pc->n_part * sizeof(wd_part_table_entry_t) );
+		    indent,"", i, np, off4, off,
+		    off + np * sizeof(wd_ptab_entry_t) );
 	    }
+	}
 
-	//--------------------------------------------------
+	//---------------
 
 	fprintf(f,"\n%*s%d partition%s:\n\n"
-	    "%*s   index      type      offset .. end offset   size/hex =   size/dec =  MiB\n"
-	    "%*s  --------------------------------------------------------------------------\n",
+	    "%*s   index      type      offset .. end offset   size/hex =   size/dec =  MiB  status\n"
+	    "%*s  ------------------------------------------------------------------------------------\n",
 	    indent,"", np, np == 1 ? "" : "s", indent,"", indent,"" );
 
-	for ( i = 0, pi = wdi.pinfo; i < np; i++, pi++ )
+	wd_part_t * part = disc->part;
+	DASSERT(part);
+	for ( i = 0; i < np; i++, part++ )
 	{
-	    PrintPartitionType(buf1,sizeof(buf1),pi->ptype,true);
+	    wd_print_part_name(pname,sizeof(pname),part->part_type,WD_PNAME_COLUMN_9);
 
-	    if ( pi->size )
+	    const u64 off  = (u64)part->part_off4 << 2;
+	    ccp status = !part->is_enabled
+				? "disabled"
+				: part->is_encrypted
+					? "-"
+					: "decrypted";
+	    
+	    if (part->is_valid)
 	    {
-		const u64 size = pi->size;
-		fprintf(f,"%*s%5d.%-2d %s %11llx ..%11llx %10llx =%11llu =%5llu\n",
-		    indent,"", pi->ptable, pi->index, buf1, (u64)pi->off,
-		    (u64)pi->off + size, size, size, (size+MiB/2)/MiB );
+		const u64 size = part->part_size;
+		fprintf(f,"%*s%5d.%-2d %s %11llx ..%11llx %10llx =%11llu =%5llu  %s\n",
+		    indent,"", part->ptab_index, part->ptab_part_index,
+		    pname, off, off + size, size, size, (size+MiB/2)/MiB, status );
 	    }
 	    else
-		fprintf(f,"%*s%5d.%-2d %s %11llx         ** INVALID PARTITION **\n",
-		    indent,"", pi->ptable, pi->index, buf1, (u64)pi->off );
+		fprintf(f,"%*s%5d.%-2d %s %11llx         "
+			  "** INVALID PARTITION **               %s\n",
+		    indent,"", part->ptab_index, part->ptab_part_index,
+		    pname, off, status );
 	}
     }
 
-    //--------------------------------------------------
+
+    //----- partitions
 
     if ( show_mode & SHOW__PART )
-      for ( i = 0, pi = wdi.pinfo; i < np; i++, pi++ )
-	if ( pi->size )
-	{
-	  PrintPartitionType(buf1,sizeof(buf1),pi->ptype,false);
-	  fprintf(f,"\n%*sPartition table #%d, partition #%d, type %s:\n",
-		    indent,"", pi->ptable, pi->index, buf1 );
+    {
+      wd_part_t * part = disc->part;
+      DASSERT(part);
+      for ( i = 0; i < np; i++, part++ )
+      {
+	if ( !part->is_valid || !part->is_enabled )
+	    continue;
 
-	  if ( show_mode & SHOW_P_INFO )
-	  {
-	    if ( pi->is_marked_not_enc > 0 )
+	const wd_part_header_t * ph = &part->ph;
+
+	wd_print_part_name(pname,sizeof(pname),part->part_type,WD_PNAME_NUM_INFO);
+	fprintf(f,"\n%*sPartition table #%d, partition #%d, type %s:\n",
+		indent,"", part->ptab_index, part->ptab_part_index, pname );
+
+	if ( show_mode & SHOW_P_INFO )
+	{
+	    if ( tmd_is_marked_not_encrypted(part->tmd) )
 		fprintf(f,"%*s  Partition is marked as 'not encrypted'.\n", indent,"" );
-	    else if ( pi->tik_is_trucha_signed > 0
-		   || pi->tmd_is_trucha_signed > 0
-		   || pi->is_encrypted >= 0 )
+	    else
 	    {
+		const bool tik_is_trucha = ticket_is_trucha_signed(&ph->ticket,0);
+		const bool tmd_is_trucha = tmd_is_trucha_signed(part->tmd,ph->tmd_size);
+
 		fprintf(f,"%*s ", indent,"" );
-		if ( pi->tik_is_trucha_signed > 0 && pi->tmd_is_trucha_signed > 0 )
+		if ( tik_is_trucha && tmd_is_trucha )
 		    fprintf(f," TICKET & TMD are trucha signed.");
-		else if ( pi->tik_is_trucha_signed > 0 )
+		else if ( tik_is_trucha )
 		    fprintf(f," TICKET is trucha signed.");
-		else if ( pi->tmd_is_trucha_signed > 0 )
+		else if ( tmd_is_trucha )
 		    fprintf(f," TMD is trucha signed.");
 
-		if ( pi->is_encrypted >= 0 )
-		    fprintf(f," Partition is %scrypted.\n",
-				pi->is_encrypted > 0 ? "en" : "de" );
-		else
-		    fputc('\n',f);
+		fprintf(f," Partition is %scrypted.\n",
+				part->is_encrypted ? "en" : "de" );
 	    }
 
-	    u8 * p8 = pi->part_key;
+	    u8 * p8 = part->key;
 	    fprintf(f,"%*s  Partition key: %02x%02x%02x%02x %02x%02x%02x%02x"
-				     " %02x%02x%02x%02x %02x%02x%02x%02x\n",
+					 " %02x%02x%02x%02x %02x%02x%02x%02x\n",
 		indent,"",
 		p8[0], p8[1], p8[2], p8[3], p8[4], p8[5], p8[6], p8[7],
 		p8[8], p8[9], p8[10], p8[11], p8[12], p8[13], p8[14], p8[15] );
 
-	    if ( pi->sys_version && !(show_mode & SHOW_TMD) )
+	    if ( !(show_mode & SHOW_TMD) && part->tmd )
 	    {
-		const u32 hi = pi->sys_version >> 32;
-		const u32 lo = (u32)pi->sys_version;
+		const u32 hi = part->tmd->sys_version >> 32;
+		const u32 lo = (u32)part->tmd->sys_version;
 		if ( hi == 1 && lo < 0x100 )
 		    fprintf(f,"%*s  System version: %08x-%08x = IOS %u\n",
 				indent, "", hi, lo, lo );
@@ -375,98 +332,95 @@ enumError Dump_ISO
 		    fprintf(f,"%*s  System version: %08x-%08x\n",
 				indent, "", hi, lo );
 	    }
-	  }
-
-	  if ( show_mode & SHOW_P_MAP )
-	  {
-	    dump_data(f,indent, pi->off, pi->ph.tmd_off4,  pi->ph.tmd_size,	"TMD:" );
-	    dump_data(f,indent, pi->off, pi->ph.cert_off4, pi->ph.cert_size,	"Cert:" );
-	    dump_data(f,indent, pi->off, pi->ph.h3_off4,   WII_H3_SIZE,		"H3:" );
-	    dump_data(f,indent, pi->off, pi->ph.data_off4, (off_t)pi->ph.data_size4<<2, "Data:" );
-	  }
-
-	  wiidisc_t * disc = 0;
-
-	  if ( show_mode & SHOW_TICKET )
-	  {
-	    if (!disc)
-		disc = wd_open_partition(WrapperReadSF,sf,pi->index,-1);
-	    fprintf(f,"%*s  Ticket:\n",indent,"");
-	    Dump_TIK_MEM(f,indent+4,&disc->ph->ticket);
-	  }
-
-	  if ( show_mode & SHOW_TMD )
-	  {
-	    if (!disc)
-		disc = wd_open_partition(WrapperReadSF,sf,pi->index,-1);
-	    fprintf(f,"%*s  TMD:\n",indent,"");
-	    Dump_TMD_MEM(f,indent+4,disc->tmd,100);
-	  }
-	  
-	  if (disc)
-	    wd_close_disc(disc);
 	}
 
-    //--------------------------------------------------
-
-    FilePattern_t * pat = GetDefaultFilePattern();
-    if ( SetupFilePattern(pat) && disc )
-    {
-	ccp filter_info = "";
-	if ( partition_selector != ALL_PARTITIONS
-	    && partition_selector != WHOLE_DISC )
+	if ( show_mode & SHOW_P_MAP )
 	{
-	    const u32 dir_count  = disc->dir_count;
-	    const u32 file_count = disc->file_count;
-	    wd_build_disc_usage(disc,partition_selector,wdisc_usage_tab,sf->file_size);
-	    if ( dir_count != disc->dir_count || file_count != disc->file_count )
-		filter_info = pat->match_all
-				? " (partitions filtered)"
-				: " (partitions & files filtered)";
+	    const u64 off = (u64) part->part_off4 << 2;
+	    dump_data(f,indent, off, 0,		    sizeof(*ph),	"TIK:" );
+	    dump_data(f,indent, off, ph->tmd_off4,  ph->tmd_size,	"TMD:" );
+	    dump_data(f,indent, off, ph->cert_off4, ph->cert_size,	"CERT:" );
+	    dump_data(f,indent, off, ph->h3_off4,   WII_H3_SIZE,	"H3:" );
+	    dump_data(f,indent, off, ph->data_off4, (u64)ph->data_size4<<2, "Data:" );
 	}
 
-	if ( !pat->match_all && !*filter_info )
-	    filter_info = " (files filtered)";
+	if ( show_mode & SHOW_TICKET )
+	{
+	    fprintf(f,"%*s  Ticket:\n",indent,"");
+	    Dump_TIK_MEM(f,indent+4,&ph->ticket);
+	}
 
-	fprintf(f,"\n%*s%u director%s with %u file%s, disk usage = %u MiB%s:\n\n"
-		"%*s   p-offset     size  name\n"
-		"%*s  %.*s\n",
-		indent,"", disc->dir_count, disc->dir_count==1 ? "y" : "ies",
-		disc->file_count, disc->file_count==1 ? "" : "s",
-		used_mib, filter_info,
-		indent,"", indent,"", disc->max_path_len + 44, sep_200 );
-
-	iterator_prefix_mode_t pmode = prefix_mode;
-	if ( pmode == IPM_DEFAULT )
-	    pmode = IPM_PART_NAME;
-
-	dump_info_t di;
-	di.f = f;
-	di.indent = indent;
-	wd_iterate_files(disc,partition_selector,pmode,dump_file,&di,0,0);
+	if ( show_mode & SHOW_TMD && part->tmd )
+	{
+	    fprintf(f,"%*s  TMD:\n",indent,"");
+	    Dump_TMD_MEM(f,indent+4,part->tmd,100);
+	}
+      }
     }
 
-    //--------------------------------------------------
 
- dump_mm:
+    //----- FST (files)
+
+    if ( show_mode & SHOW_FILES )
+    {
+	SetupFilePattern(pat);
+
+	fprintf(f,"\n\n%*s%u director%s with %u file%s, disk usage %u MiB:\n\n",
+		indent,"",
+		disc->fst_dir_count, disc->fst_dir_count==1 ? "y" : "ies",
+		disc->fst_file_count, disc->fst_file_count==1 ? "" : "s",
+		used_mib );
+
+	wd_print_fst( f, indent+2, disc,
+		prefix_mode == WD_IPM_DEFAULT ? WD_IPM_PART_NAME : prefix_mode,
+		ConvertShow2PFST(show_mode,SHOW__ALL) | WD_PFST_PART,
+		pat->match_all ? 0 : MatchFilePatternFST, pat );
+    }
+
+
+    //----- disc usage
+
+    if ( show_mode & SHOW_USAGE )
+    {
+	fprintf(f,"\n\n%*sISO Usage Map:\n\n",indent,"");
+	wd_filter_usage_table_sel(disc,wdisc_usage_tab,part_selector);
+	wd_dump_usage_tab(f,indent+2,wdisc_usage_tab,false);
+    }
+
+
+    //----- memory map
 
     if ( show_mode & SHOW_D_MAP )
     {
-	mi = InsertMemMap(&mm,0,0x100);
-	snprintf(mi->info,sizeof(mi->info),"Disc header, id=%.6s",(ccp)&wdi.dhead);
-
+	MemMap_t mm;
+	InitializeMemMap(&mm);
+	InsertDiscMemMap(&mm,disc);
 	fprintf(f,"\n\n%*sISO Memory Map:\n\n",indent,"");
-	PrintMemMap(&mm,f,indent+3);
+	PrintMemMap(&mm,f,indent+2);
+	ResetMemMap(&mm);
     }
 
- abort:
+
+    //----- patching tables
+
+    if ( show_mode & SHOW_PATCH )
+    {
+	putc('\n',f);
+	wd_dump_disc_patch(f,indent,disc,true,true);
+    }
+
+
+    //----- terminate
+
+    if (disc->invalid_part)
+    {
+	fprintf(f,"\n\nWARNING: Disc contains %u invalid partition%s!\n\n",
+		disc->invalid_part, disc->invalid_part == 1 ? "" : "s" );
+	return ERR_WDISC_INVALID;
+    }
 
     putc('\n',f);
-    if (disc)
-	wd_close_disc(disc);
-    ResetWDiscInfo(&wdi);
-    ResetMemMap(&mm);
-    return err;
+    return ERR_OK;
 }
 
 //
@@ -476,10 +430,10 @@ enumError Dump_ISO
 
 enumError Dump_DOL
 (
-	FILE * f,		// output stream
-	int indent,		// indent
-	SuperFile_t * sf,	// file to dump
-	ccp real_path		// NULL or pointer to real path
+    FILE		* f,		// valid output stream
+    int			indent,		// indent of output
+    SuperFile_t		* sf,		// file to dump
+    ccp			real_path	// NULL or pointer to real path
 )
 {
     ASSERT(sf);
@@ -548,10 +502,10 @@ enumError Dump_DOL
 
 enumError Dump_TIK_BIN
 (
-	FILE * f,		// output stream
-	int indent,		// indent
-	SuperFile_t * sf,	// file to dump
-	ccp real_path		// NULL or pointer to real path
+    FILE		* f,		// valid output stream
+    int			indent,		// indent of output
+    SuperFile_t		* sf,		// file to dump
+    ccp			real_path	// NULL or pointer to real path
 )
 {
     ASSERT(sf);
@@ -577,9 +531,9 @@ enumError Dump_TIK_BIN
 
 enumError Dump_TIK_MEM
 (
-	FILE * f,		// output stream
-	int indent,		// indent
-	const wd_ticket_t *tik	// valid pointer to ticket
+    FILE		* f,		// valid output stream
+    int			indent,		// indent of output
+    const wd_ticket_t	* tik		// valid pointer to ticket
 )
 {
     ASSERT(f);
@@ -621,10 +575,10 @@ enumError Dump_TIK_MEM
 
 enumError Dump_TMD_BIN
 (
-	FILE * f,		// output stream
-	int indent,		// indent
-	SuperFile_t * sf,	// file to dump
-	ccp real_path		// NULL or pointer to real path
+    FILE		* f,		// valid output stream
+    int			indent,		// indent of output
+    SuperFile_t		* sf,		// file to dump
+    ccp			real_path	// NULL or pointer to real path
 )
 {
     ASSERT(sf);
@@ -660,10 +614,10 @@ enumError Dump_TMD_BIN
 
 enumError Dump_TMD_MEM
 (
-	FILE * f,		// output stream
-	int indent,		// indent
-	const wd_tmd_t * tmd,	// valid pointer to ticket
-	int n_content		// number of loaded wd_tmd_content_t elementzs
+    FILE		* f,		// valid output stream
+    int			indent,		// indent of output
+    const wd_tmd_t	* tmd,		// valid pointer to ticket
+    int n_content			// number of loaded wd_tmd_content_t elementzs
 )
 {
     ASSERT(f);
@@ -734,10 +688,10 @@ enumError Dump_TMD_MEM
 
 enumError Dump_HEAD_BIN
 (
-	FILE * f,		// output stream
-	int indent,		// indent
-	SuperFile_t * sf,	// file to dump
-	ccp real_path		// NULL or pointer to real path
+    FILE		* f,		// valid output stream
+    int			indent,		// indent of output
+    SuperFile_t		* sf,		// file to dump
+    ccp			real_path	// NULL or pointer to real path
 )
 {
     ASSERT(sf);
@@ -757,7 +711,9 @@ enumError Dump_HEAD_BIN
 	fprintf(f,"%*sDisc name:       %s\n",indent,"",wdi.dhead.game_title);
 	if (wdi.title)
 	    fprintf(f,"%*sDB title:        %s\n",indent,"",wdi.title);
-	fprintf(f,"%*sRegion:          %s [%s]\n",indent,"",wdi.region,wdi.region4);
+
+	const RegionInfo_t * rinfo = GetRegionInfo(wdi.id6[3]);
+	fprintf(f,"%*sRegion:          %s [%s]\n",indent,"", rinfo->name, rinfo->name4);
 	ResetWDiscInfo(&wdi);
     }
     putc('\n',f);
@@ -771,10 +727,10 @@ enumError Dump_HEAD_BIN
 
 enumError Dump_BOOT_BIN
 (
-	FILE * f,		// output stream
-	int indent,		// indent
-	SuperFile_t * sf,	// file to dump
-	ccp real_path		// NULL or pointer to real path
+    FILE		* f,		// valid output stream
+    int			indent,		// indent of output
+    SuperFile_t		* sf,		// file to dump
+    ccp			real_path	// NULL or pointer to real path
 )
 {
     ASSERT(sf);
@@ -794,7 +750,9 @@ enumError Dump_BOOT_BIN
 	fprintf(f,"%*sDisc name:       %s\n",indent,"",wdi.dhead.game_title);
 	if (wdi.title)
 	    fprintf(f,"%*sDB title:        %s\n",indent,"",wdi.title);
-	fprintf(f,"%*sRegion:          %s [%s]\n",indent,"",wdi.region,wdi.region4);
+
+	const RegionInfo_t * rinfo = GetRegionInfo(wdi.id6[3]);
+	fprintf(f,"%*sRegion:          %s [%s]\n",indent,"",rinfo->name,rinfo->name4);
 	ResetWDiscInfo(&wdi);
 
 	ntoh_boot(&wb,&wb);
@@ -819,16 +777,28 @@ enumError Dump_BOOT_BIN
 
 enumError Dump_FST_BIN
 (
-	FILE * f,		// output stream
-	int indent,		// indent
-	SuperFile_t * sf,	// file to dump
-	ccp real_path		// NULL or pointer to real path
+    FILE		* f,		// valid output stream
+    int			indent,		// indent of output
+    SuperFile_t		* sf,		// file to dump
+    ccp			real_path,	// NULL or pointer to real path
+    ShowMode		show_mode	// what should be printed
 )
 {
     ASSERT(sf);
-    if ( !f || sf->file_size > 10*MiB )
+    if ( !f || sf->file_size > 20*MiB )
 	return ERR_OK;
-    indent = dump_header(f,indent,sf,real_path);
+    indent = NormalizeIndent(indent);
+
+    //----- options --show and --long
+
+    if ( show_mode & SHOW__DEFAULT )
+	show_mode = SHOW__ALL | SHOW_F_HEAD;
+
+    if ( show_mode & SHOW_INTRO )
+    {
+	dump_header(f,indent,sf,real_path);
+	indent += 2;
+    }
 
     //----- setup fst
 
@@ -839,7 +809,8 @@ enumError Dump_FST_BIN
     enumError err = ReadSF(sf,0,ftab_data,sf->file_size);
     if (!err)
     {
-	err = Dump_FST(f,indent,ftab_data,sf->file_size,sf->f.fname);
+	err = Dump_FST_MEM(f,indent,ftab_data,sf->file_size,sf->f.fname,
+				ConvertShow2PFST(show_mode,SHOW__ALL) );
 	if (err)
 	    ERROR0(err,"fst.bin is invalid: %s\n",sf->f.fname);
     }
@@ -850,158 +821,40 @@ enumError Dump_FST_BIN
 
 ///////////////////////////////////////////////////////////////////////////////
 
-enumError Dump_FST
+enumError Dump_FST_MEM
 (
-	FILE * f,				// output stream or NULL if silent
-	int indent,				// indent
-	const wd_fst_item_t * ftab_data,	// the FST data
-	size_t ftab_size,			// size of FST data
-	ccp fname				// filename or hint
+    FILE		* f,		// valid output stream
+    int			indent,		// indent of output
+    const wd_fst_item_t	* ftab_data,	// the FST data
+    size_t		ftab_size,	// size of FST data
+    ccp			fname,		// NULL or source hint for error message
+    wd_pfst_t		pfst		// print fst mode
 )
 {
     ASSERT(ftab_data);
-    TRACE("Dump_FST(%p,%d,%p,%x,%s)\n",f,indent,ftab_data,(u32)ftab_size,fname);
+    TRACE("Dump_FST_MEM(%p,%d,%p,%x,%s,%x)\n",
+		f, indent, ftab_data, (u32)ftab_size, fname, pfst );
 
     indent = NormalizeIndent(indent);
     if (!fname)
 	fname = "memory";
 
-    //----- setup fst
-
     const u32 n_files = ntohl(ftab_data->size);
-    const wd_fst_item_t * ftab_end = ftab_data + n_files;
-    const wd_fst_item_t * dir_end = ftab_end;
-
-    ccp ftab_data_end = (ccp)ftab_data + ftab_size;
-    if ( ftab_data_end < (ccp)ftab_end )
+    if ( (ccp)(ftab_data + n_files) > (ccp)ftab_data + ftab_size )
     {
 	if (f)
 	    ERROR0(ERR_INVALID_FILE,"fst.bin is invalid: %s\n",fname);
 	return ERR_INVALID_FILE;
     }
-    const u32 max_name_delta = ftab_data_end - (ccp)ftab_end;
-    
-    //----- setup path
-    
-    const int MAX_DEPTH = 25; // maximal supported directory depth
+ 
+    WiiFst_t fst;
+    InitializeFST(&fst);
+    CollectFST_BIN(&fst,ftab_data,GetDefaultFilePattern(),false);
+    SortFST(&fst,sort_mode,SORT_NAME);
+    DumpFilesFST(f,indent,&fst,pfst,0);
+    ResetFST(&fst);
 
-    char path_buf[1000];
-    char *path_end = path_buf + sizeof(path_buf) - MAX_DEPTH;
-    char *path = path_buf;
-
-
-    //----- setup stack
-
-    typedef struct stack_t
-    {
-	const wd_fst_item_t * ftab;
-	const wd_fst_item_t * dir_end;
-	char * path;
-    } stack_t;
-    stack_t stack_buf[MAX_DEPTH];
-    stack_t *stack = stack_buf;
-    stack_t *stack_max = stack_buf + MAX_DEPTH;
-
-    stack->ftab	   = ftab_data;
-    stack->dir_end = ftab_end;
-    stack->path	   = path;
-    stack++;
-    
-    //----- print header
-
-    if (f)
-    {
-	int fw = 80-indent;
-	if ( fw < 45 )
-	     fw = 45;
-
-	fprintf(f,"\n%*s       is offset/4     size  file_path\n"
-		"%*sindex dir base dir  end dir  directory_path/\n"
-		"%*s%.*s\n",
-		indent,"", indent,"", indent,"", fw, sep_200 );
-    }
-
-    //----- main loop
-
-    int err_count = 0;
-
-    const wd_fst_item_t *ftab;
-    for ( ftab = ftab_data+1; ftab < ftab_end; ftab++ )
-    {
-	while ( ftab >= dir_end && stack > stack_buf )
-	{
-	    stack--;
-	    dir_end = stack->dir_end;
-	    path = stack->path;
-	}
-
-	ccp name_ptr;
-	u32 name_delta = ntohl(ftab->name_off) & 0xffffff;
-	if ( name_delta < max_name_delta )
-	    name_ptr = (ccp)ftab_end + name_delta;
-	else
-	{
-	    err_count++;
-	    if (f)
-	    {
-		*path = 0;
-		fprintf(f,"%*s!! WARNING: name index out of range (%x, max=%x): %s/?\n",
-			indent, "", name_delta, max_name_delta, path_buf );
-	    }
-	    name_ptr = "?";
-	}
-	char * path_dest = StringCopyE(path,path_end,name_ptr);
-
-	if (ftab->is_dir)
-	{
-	    *path_dest++ = '/';
-	    *path_dest = 0;
-
-	    ASSERT(stack<stack_max);
-	    if ( stack < stack_max )
-	    {
-		stack->ftab    = ftab;
-		stack->dir_end = dir_end;
-		stack->path    = path;
-		stack++;
-		path = path_dest;
-		
-		const wd_fst_item_t * new_dir_end  = ftab_data + ntohl(ftab->size);
-		if ( new_dir_end > dir_end )
-		{
-		    err_count++;
-		    if (f)
-			fprintf(f,"%*s!! WARNING: end of directory behind end of parent directory.\n"
-				  "%*s!!          -> %s\n",
-				  indent, "", indent, "", path_buf );
-		}
-		dir_end = new_dir_end;
-
-		// check back tracking
-		u32 idx = (u32)ntohl(ftab->offset4);
-		if ( stack >= stack_buf+2 && ftab_data + idx != stack[-2].ftab )
-		{
-		    err_count++;
-		    if (f)
-			fprintf(f,"%*s!! WARNING: wrong back trace index (%x but not %x): %s\n",
-				indent, "", idx, (u32)(stack[-2].ftab - ftab_data), path_buf );
-		}
-	    }
-	    else
-	    {
-		err_count++;
-		if (f)
-		    fprintf(f,"%*s!! WARNING: directory level to deep (>%u): %s\n",
-				indent, "", MAX_DEPTH, path_buf );
-	    }
-	}
-	if (f)
-	    fprintf(f,"%*s%5x. %2x %8x %8x  %s\n",
-		indent,"", (int)(ftab-ftab_data), ftab->is_dir,
-		(u32)ntohl(ftab->offset4), (u32)ntohl(ftab->size), path_buf );
-    }
-
-    return err_count ? ERR_INVALID_FILE : ERR_OK;
+    return ERR_OK;
 }
 
 //
@@ -1092,107 +945,106 @@ bool allow_fst		= false; // FST diabled by default
 
 ///////////////////////////////////////////////////////////////////////////////
 
-partition_selector_t partition_selector = ALL_PARTITIONS;
+wd_select_t part_selector = 0;
 
 u8 wdisc_usage_tab [WII_MAX_SECTORS];
 u8 wdisc_usage_tab2[WII_MAX_SECTORS];
 
 //-----------------------------------------------------------------------------
 
-partition_selector_t ScanPartitionSelector ( ccp arg )
+static s64 PartSelectorFunc
+(
+    ccp			name,		// normalized name of option
+    const CommandTab_t	* cmd_tab,	// valid pointer to command table
+    const CommandTab_t	* cmd,		// valid pointer to found command
+    char		prefix,		// 0 | '-' | '+' | '='
+    s64			result		// current value of result
+)
+{
+    if (cmd->opt)
+	return prefix ? -(s64)1 : cmd->id;
+
+    switch(prefix)
+    {
+	case 0:
+	case '+':
+	    result = wd_set_select(result,cmd->id);
+	    break;
+
+	case '-':
+	    result = wd_clear_select(result,cmd->id);
+	    break;
+
+	case '=':
+	    result = wd_set_select(0,cmd->id);
+	    break;
+    };
+    
+    return result;
+}
+
+//-----------------------------------------------------------------------------
+
+wd_select_t ScanPartSelector ( ccp arg )
 {
     static const CommandTab_t tab[] =
     {
-	{ DATA_PARTITION_TYPE,		"DATA",		"D",		0 },
-	 { DATA_PARTITION_TYPE,		"GAME",		"G",		0 },
-	{ UPDATE_PARTITION_TYPE,	"UPDATE",	"U",		0 },
-	{ CHANNEL_PARTITION_TYPE,	"CHANNEL",	"C",		0 },
+	{ 0,				"ALL",		"*",		1 },
+	{ WD_SEL_PART_ACTIVE,		"NONE",		"-",		1 },
 
-	{ WHOLE_DISC,			"WHOLE",	"RAW",		0 },
-	{ WHOLE_DISC,			"1:1",		0,		0 },
-	{ ALL_PARTITIONS,		"ALL",		"*",		0 },
+	{ WD_SEL_PART_DATA,		"DATA",		"D",		0 },
+	 { WD_SEL_PART_DATA,		"GAME",		"G",		0 },
+	{ WD_SEL_PART_UPDATE,		"UPDATE",	"U",		0 },
+	{ WD_SEL_PART_CHANNEL,		"CHANNEL",	"C",		0 },
+	{ WD_SEL_PART_ID,		"ID",		"I",		0 },
 
-	{ REMOVE_DATA_PARTITION,	"NO-DATA",	"NODATA",	0 },
-	 { REMOVE_DATA_PARTITION,	"NO-GAME",	"NOGAME",	0 },
-	{ REMOVE_UPDATE_PARTITION,	"NO-UPDATE",	"NOUPDATE",	0 },
-	{ REMOVE_CHANNEL_PARTITION,	"NO-CHANNEL",	"NOCHANNEL",	0 },
+	{ WD_SEL_PTAB_0,		"PTAB0",	"T0",		0 },
+	{ WD_SEL_PTAB_1,		"PTAB1",	"T1",		0 },
+	{ WD_SEL_PTAB_2,		"PTAB2",	"T2",		0 },
+	{ WD_SEL_PTAB_3,		"PTAB3",	"T3",		0 },
+
+
+	{ WD_SEL_WHOLE_PART,		"WHOLE",	0,		0 },
+	{ WD_SEL_WHOLE_DISC,		"1:1",		"RAW",		0 },
 
 	{ 0,0,0,0 }
     };
 
-    const CommandTab_t * cmd = ScanCommand(0,arg,tab);
-    if (cmd)
-	return cmd->id;
-
-    // try if arg is a number
-    char * end;
-    ulong num = strtoul(arg,&end,10);
-    if ( end != arg && !*end )
-	return num;
-
-    ERROR0(ERR_SYNTAX,"Illegal partition selector (option --psel): '%s'\n",arg);
-    return -1;
+    wd_select_t psel
+	= ScanCommandList(arg,tab,PartSelectorFunc,true,WD_SELI_PART_MAX+1,0);
+    if ( psel == -(wd_select_t)1 )
+	ERROR0(ERR_SYNTAX,"Illegal partition selector (option --psel): '%s'\n",arg);
+    return psel;
 }
 
 //-----------------------------------------------------------------------------
 
-char * PrintPartitionType
-	( char * buf, size_t bufsize, u32 ptype, bool mode_column )
+int ScanOptPartSelector ( ccp arg )
 {
-    ccp part_name = wd_get_partition_name(ptype,0);
-    if (part_name)
-    {
-	if (mode_column)
-	    snprintf(buf,bufsize,"%7s %x",part_name,ptype);
-	else
-	    snprintf(buf,bufsize,"%x [%s]",ptype,part_name);
-    }
-    else
-    {
-	char id4[5];
-	id4[0] = ptype >> 24;
-	id4[1] = ptype >> 16;
-	id4[2] = ptype >>  8;
-	id4[3] = ptype;
-	id4[4] = 0;
-	if ( CheckID(id4,false) == 4 )
-	{
-	    if (mode_column)
-		snprintf(buf,bufsize,"   \"%.4s\"",id4);
-	    else
-		snprintf(buf,bufsize,"%x [\"%s\"]",ptype,id4);
-	}
-	else
-	{
-	    if (mode_column)
-		snprintf(buf,bufsize,"%9x",ptype);
-	    else
-		snprintf(buf,bufsize,"%x [?]",ptype);
-	}
-    }
-    
-    while ( *buf == ' ' )
-	buf++;
-    return buf;
+    const wd_select_t new_psel = ScanPartSelector(optarg);
+    if ( new_psel == -(wd_select_t)1 )
+	return 1;
+    part_selector = new_psel;
+    return 0;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 
-iterator_prefix_mode_t prefix_mode = IPM_DEFAULT;
+wd_ipm_t prefix_mode = WD_IPM_DEFAULT;
 
 //-----------------------------------------------------------------------------
 
-iterator_prefix_mode_t ScanPrefixMode ( ccp arg )
+wd_ipm_t ScanPrefixMode ( ccp arg )
 {
     static const CommandTab_t tab[] =
     {
-	{ IPM_DEFAULT,		"DEFAULT",	"D",		0 },
-	{ IPM_AUTO,		"AUTO",		"A",		0 },
+	{ WD_IPM_DEFAULT,	"DEFAULT",	"D",		0 },
+	{ WD_IPM_AUTO,		"AUTO",		"A",		0 },
 
-	{ IPM_NONE,		"NONE",		"-",		0 },
-	{ IPM_POINT,		"POINT",	".",		0 },
-	{ IPM_PART_INDEX,	"INDEX",	"I",		0 },
-	{ IPM_PART_NAME,	"NAME",		"N",		0 },
+	{ WD_IPM_NONE,		"NONE",		"-",		0 },
+	{ WD_IPM_POINT,		"POINT",	".",		0 },
+	{ WD_IPM_PART_INDEX,	"INDEX",	"I",		0 },
+	{ WD_IPM_PART_NAME,	"NAME",		"N",		0 },
 
 	{ 0,0,0,0 }
     };
@@ -1209,8 +1061,8 @@ iterator_prefix_mode_t ScanPrefixMode ( ccp arg )
 
 void SetupSneekMode()
 {
-    partition_selector = DATA_PARTITION_TYPE;
-    prefix_mode = IPM_NONE;
+    part_selector = WD_SEL_PART_DATA;
+    prefix_mode = WD_IPM_NONE;
 
     FilePattern_t * pat = file_pattern + PAT_DEFAULT;
     pat->rules.used = 0;
@@ -1256,7 +1108,7 @@ static uint InsertHelperIM ( IsoMapping_t * im, u32 offset, u32 size )
     int end = im->used - 1;
     while ( beg <= end )
     {
-	uint idx = (beg+end)/2;
+	const uint idx = (beg+end)/2;
 	IsoMappingItem_t * imi = im->field + idx;
 	if ( offset < imi->offset )
 	    end = idx - 1 ;
@@ -1317,7 +1169,7 @@ void PrintIM ( IsoMapping_t * im, FILE * f, int indent )
 
     fprintf(f,"\n%*s     offset .. offset end     size  comment\n"
 		"%*s%.*s\n",
-		indent,"", indent,"", fw, sep_200 );
+		indent,"", indent,"", fw, wd_sep_200 );
 
     u64 prev_end = 0;
     IsoMappingItem_t *imi, *last = im->field + im->used - 1;
@@ -1354,7 +1206,7 @@ void PrintFstIM
 	    if (title)
 		fprintf(f,"%*s%s %s partition:\n",
 			indent, "", title,
-			wd_get_partition_name(part->part_type,"?"));
+			wd_get_part_name(part->part_type,"?"));
 	    PrintIM(&part->im,f,indent+2);
 	}
     }
@@ -1404,6 +1256,8 @@ void ResetFST ( WiiFst_t * fst )
     ResetIM(&fst->im);
     free(fst->cache);
     
+    wd_close_disc(fst->disc);
+
     memset(fst,0,sizeof(*fst));
     InitializeIM(&fst->im);
 }
@@ -1542,100 +1396,86 @@ WiiFstFile_t * FindFileFST ( WiiFstPart_t * part, u32 offset4 )
     return part->file + beg;
 }
 
+//
 ///////////////////////////////////////////////////////////////////////////////
+///////////////			CollectFST()			/////////////// 
 ///////////////////////////////////////////////////////////////////////////////
 
-int CollectFST ( wiidisc_t * disc, iterator_call_mode_t icm,
-			u32 offset4, u32 size, const void * data )
+typedef struct CollectFST_t
 {
-    ASSERT(disc);
-    IsoFileIterator_t * ifi = disc->user_param;
-    ASSERT(ifi);
-    WiiFst_t * fst = ifi->fst;
+	WiiFst_t	* fst;		// valid fst pointer
+	wd_disc_t	* disc;		// valid disc pointer
+	FilePattern_t	* pat;		// NULL or a valid filter
+	bool		ignore_dir;	// true: ignore directories
+	bool		store_prefix;	// true: store full path incl. prefix
+
+} CollectFST_t;
+
+//-----------------------------------------------------------------------------
+
+static int CollectFST_helper
+(
+    struct wd_iterator_t *it	// iterator struct with all infos
+)
+{
+    DASSERT(it);
+
+    CollectFST_t * cf = it->param;
+    WiiFst_t * fst = cf->fst;
     ASSERT(fst);
     WiiFstPart_t * part = fst->part_active;
 
- #if defined(DEBUG) || defined(TEST)
-    if ( icm == ICM_FILE && disc->usage_table )
-    {
-	// validate usage_table
-	u64 off = (u64)offset4<<2;
-	u32 block1 = off/WII_SECTOR_DATA_SIZE;
-	u32 block2 = (off+size+WII_SECTOR_DATA_SIZE-1)/WII_SECTOR_DATA_SIZE;
-	ASSERT( block2 <= WII_MAX_SECTORS );
-	if ( block2 > WII_MAX_SECTORS )
-	     block2 = WII_MAX_SECTORS;
-	for ( ; block1 < block2; block1++ )
-	    ASSERT( disc->usage_table[block1] == disc->usage_marker );
-    }
- #endif
-
-    if ( icm >= ICM_DIRECTORY )
+    if ( it->icm >= WD_ICM_DIRECTORY )
     {
 	ASSERT(part);
 	if (!part)
 	    return ERR_OK;
 
-	if ( icm == ICM_DIRECTORY )
+	if ( it->icm == WD_ICM_DIRECTORY )
 	{
 	    fst->dirs_served++;
-	    if (fst->ignore_dir)
+	    if (cf->ignore_dir)
 		return 0;
 	}
 	else
 	{
 	    fst->files_served++;
-	    part->total_file_size += size;
+	    part->total_file_size += it->size;
 	}
 
-	if ( ifi->pat && !MatchFilePattern(ifi->pat,disc->path) )
+	if ( cf->pat && !MatchFilePattern(cf->pat,it->fst_name) )
 	    return 0;
 
-	if ( fst->max_path_len < disc->path_len )
-	     fst->max_path_len = disc->path_len;
+	size_t slen = strlen(it->path);
+	if ( fst->max_path_len < slen )
+	     fst->max_path_len = slen;
+	if ( fst->fst_max_off4 < it->off4 )
+	     fst->fst_max_off4 = it->off4;
+	if ( fst->fst_max_size < it->size )
+	     fst->fst_max_size = it->size;
 
 	WiiFstFile_t * wff = AppendFileFST(part);
-	wff->icm	= icm;
-	wff->offset4	= offset4;
-	wff->size	= size;
-	wff->path	= strdup(disc->path);
-
-	if ( icm == ICM_DATA )
-	{
-	    wff->data = malloc(size);
-	    if (!wff->data)
-		OUT_OF_MEMORY;
-	    memcpy(wff->data,data,size);
-	}
+	wff->icm	= it->icm;
+	wff->offset4	= it->off4;
+	wff->size	= it->size;
+	wff->path	= strdup( cf->store_prefix ? it->path : it->fst_name );
+	wff->data	= (u8*)it->data;
     }
-    else switch(icm)
+    else switch(it->icm)
     {
-	case ICM_OPEN_PARTITION:
-	 #ifdef DEBUG
-	    {
-		const wd_part_header_t * ph = data;
-		ASSERT(ph);
-		TRACE("ICM_OPEN_PARTITION: off=%llx, data=%llx+%llx\n",
-				(u64)offset4<<2,
-				(u64)(offset4+ph->data_off4)<<2,
-				(u64)ph->data_size4<<2 );
-	    }
-	 #endif
+	case WD_ICM_OPEN_PART:
 	    part			= AppendPartFST(fst);
 	    fst->part_active		= part;
-	    part->part_offset		= (u64)offset4 << 2;
-	    part->part_index		= disc->partition_index;
-	    part->part_type		= disc->partition_type;
-	    part->is_marked_not_enc	= disc->is_marked_not_enc;
-	    part->is_encrypted		= disc->is_encrypted;
-	    part->tik_is_trucha_signed	= disc->tik_is_trucha_signed;
-	    part->tmd_is_trucha_signed	= disc->tmd_is_trucha_signed;
-	    part->path			= strdup(disc->path_prefix);
-	    memcpy(part->part_key,disc->partition_key,sizeof(part->part_key));
-	    memcpy(&part->part_akey,&disc->partition_akey,sizeof(part->part_akey));
+	    part->part			= it->part;
+	    part->path			= strdup(it->path);
+	    part->part_type		= it->part->part_type;
+	    part->part_off		= (u64) it->part->part_off4 << 2;
+
+	    memcpy(part->key,it->part->key,sizeof(part->key));
+	    wd_aes_set_key(&part->akey,part->key);
 	    break;
 
-	case ICM_CLOSE_PARTITION:
+	case WD_ICM_CLOSE_PART:
 	    if (part)
 	    {
 		fst->total_file_count += part->file_used;
@@ -1655,105 +1495,96 @@ int CollectFST ( wiidisc_t * disc, iterator_call_mode_t icm,
     return 0;
 }
 
+//-----------------------------------------------------------------------------
 
-///////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////
-
-int CollectPartitions ( wiidisc_t * disc, iterator_call_mode_t icm,
-			u32 offset4, u32 size, const void * data )
+int CollectFST
+(
+    WiiFst_t		* fst,		// valid fst pointer
+    wd_disc_t		* disc,		// valid disc pointer
+    FilePattern_t	* pat,		// NULL or a valid filter
+    bool		ignore_dir,	// true: ignore directories
+    wd_ipm_t		prefix_mode,	// prefix mode
+    bool		store_prefix	// true: store full path incl. prefix
+)
 {
-    noTRACE("CollectPartitions(icm=%d)\n",icm);
-
-    ASSERT(disc);
-    IsoFileIterator_t * ifi = disc->user_param;
-    ASSERT(ifi);
-    WiiFst_t * fst = ifi->fst;
     ASSERT(fst);
-    WiiFstPart_t * part = fst->part_active;
+    ASSERT(disc);
 
-    switch(icm)
+    // dup and store disc
+    wd_dup_disc(disc);
+    wd_close_disc(fst->disc);
+    fst->disc = disc;
+
+    if (pat)
+	SetupFilePattern(pat);
+
+    CollectFST_t cf;
+    memset(&cf,0,sizeof(cf));
+    cf.fst		= fst;
+    cf.disc		= disc;
+    cf.pat		= pat && pat->match_all ? 0 : pat;
+    cf.ignore_dir	= ignore_dir;
+    cf.store_prefix	= store_prefix;
+    
+    return wd_iterate_files(disc,CollectFST_helper,&cf,prefix_mode);
+}
+
+//-----------------------------------------------------------------------------
+
+int CollectFST_BIN
+(
+    WiiFst_t		* fst,		// valid fst pointer
+    const wd_fst_item_t * ftab_data,	// the FST data
+    FilePattern_t	* pat,		// NULL or a valid filter
+    bool		ignore_dir	// true: ignore directories
+)
+{
+    CollectFST_t cf;
+    memset(&cf,0,sizeof(cf));
+    cf.fst		= fst;
+    cf.pat		= pat && pat->match_all ? 0 : pat;
+    cf.ignore_dir	= ignore_dir;
+
+    fst->part_active = AppendPartFST(fst);
+    return wd_iterate_fst_files(ftab_data,CollectFST_helper,&cf);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+
+void DumpFilesFST
+(
+    FILE		* f,		// NULL or output file
+    int			indent,		// indention of the output
+    WiiFst_t		* fst,		// valid FST pointer
+    wd_pfst_t		pfst,		// print fst mode
+    ccp			prefix		// NULL or path prefix
+)
+{
+    DASSERT(fst);
+    if ( pfst & WD_PFST_HEADER )
+	putchar('\n');
+
+    if (!prefix)
+	prefix = "";
+    size_t prefix_len = strlen(prefix);
+
+    wd_print_fst_t pf;
+    wd_initialize_print_fst(&pf,pfst,f,indent,fst->fst_max_off4,fst->fst_max_size);
+    if ( pfst & WD_PFST_HEADER )
+	wd_print_fst_header(&pf,fst->max_path_len+prefix_len);
+    
+    WiiFstPart_t *part, *part_end = fst->part + fst->part_used;
+    for ( part = fst->part; part < part_end; part++ )
     {
-	case ICM_OPEN_PARTITION:
-	 #ifdef DEBUG
-	    {
-		const wd_part_header_t * ph = data;
-		ASSERT(ph);
-		TRACE("ICM_OPEN_PARTITION: off=%llx, data=%llx+%llx\n",
-				(u64)offset4<<2,
-				(u64)(offset4+ph->data_off4)<<2,
-				(u64)ph->data_size4<<2 );
-	    }
-	 #endif
-	    part			= AppendPartFST(fst);
-	    fst->part_active		= part;
-	    part->part_offset		= (u64)offset4 << 2;
-	    part->part_index		= disc->partition_index;
-	    part->part_type		= disc->partition_type;
-	    part->is_marked_not_enc	= disc->is_marked_not_enc;
-	    part->is_encrypted		= disc->is_encrypted;
-	    part->tik_is_trucha_signed	= disc->tik_is_trucha_signed;
-	    part->tmd_is_trucha_signed	= disc->tmd_is_trucha_signed;
-	    part->path			= strdup(disc->path_prefix);
-	    memcpy(part->part_key,disc->partition_key,sizeof(part->part_key));
-	    memcpy(&part->part_akey,&disc->partition_akey,sizeof(part->part_akey));
+	WiiFstFile_t * ptr = part->file;
+	WiiFstFile_t * end = ptr + part->file_used;
 
-	    part->pc = malloc(sizeof(wd_part_control_t));
-	    if (!part->pc)
-		OUT_OF_MEMORY;
-	    wd_read_raw( disc, offset4, part->pc->part_bin, sizeof(part->pc->part_bin) );
-	    setup_part_control(part->pc);
-	    break;
-
-	case ICM_CLOSE_PARTITION:
-	    if (part)
-	    {
-		fst->total_file_count += part->file_used;
-		fst->total_file_size  += part->total_file_size;
-		fst->part_active = 0;
-		TRACE("PART CLOSED: %u/%u files, %llu/%llu MiB\n",
-			part->file_used, fst->total_file_count,
-			part->total_file_size/MiB, fst->total_file_size/MiB );
-	    }
-	    break;
-
-	default:
-	    // nothing to do
-	    break;
+	for ( ; ptr < end; ptr++ )
+	    wd_print_fst_item( &pf, part->part,
+			ptr->icm, ptr->offset4, ptr->size,
+			prefix, ptr->path );
     }
-
- #if defined(DEBUG) || defined(DEBUG_ASSERT) || defined(TEST)
-
-    if ( disc->usage_table )
-    {
-	if ( icm == ICM_FILE )
-	{
-	    // validate usage_table
-	    u64 off = (u64)offset4<<2;
-	    u32 block1 = off/WII_SECTOR_DATA_SIZE;
-	    u32 block2 = (off+size+WII_SECTOR_DATA_SIZE-1)/WII_SECTOR_DATA_SIZE;
-	    ASSERT( block2 <= WII_MAX_SECTORS );
-	    if ( block2 > WII_MAX_SECTORS )
-		 block2 = WII_MAX_SECTORS;
-	    for ( ; block1 < block2; block1++ )
-		ASSERT_MSG( disc->usage_table[block1] == disc->usage_marker,
-			"INVALID USAGE TABLE (INTERNAL ERROR) => PLEASE REPORT\n"
-			"data=%x+%x, block=%x..%x, off=%llx, marker is %x [%x] %x but not %x\n",
-			offset4,
-			size,
-			block1,
-			block2,
-			block1 * (u64)WII_SECTOR_SIZE,
-			disc->usage_table[block1-1],
-			disc->usage_table[block1],
-			disc->usage_table[block1+1],
-			disc->usage_marker );
-	}
-	return 0;
-    }
- #endif
-
-    // don't iterate files
-    return 1;
 }
 
 //
@@ -1824,14 +1655,14 @@ enumError CreatePartFST ( WiiFstInfo_t *wfi, ccp dest_path )
     ReadStringField(&part->include_list,false,path,true);
 
 
-    //----- create all files but ICM_COPY
+    //----- create all files but WD_ICM_COPY
 
     *path_dest = 0;
 
     enumError err = ERR_OK;
     WiiFstFile_t *file, *file_end = part->file + part->file_used;
     for ( file = part->file; err == ERR_OK && file < file_end; file++ )
-	if ( file->icm != ICM_COPY )
+	if ( file->icm != WD_ICM_COPY )
 	    err = CreateFileFST(wfi,path,file);
 
     //----- Update the signatures of the source FST
@@ -1840,11 +1671,11 @@ enumError CreatePartFST ( WiiFstInfo_t *wfi, ccp dest_path )
 	UpdateSignatureFST(wfi->fst);
 
 
-    //----- and now write ICM_COPY files
+    //----- and now write WD_ICM_COPY files
     //      this is needed because changing hash data while processing other files
 
     for ( file = part->file; err == ERR_OK && file < file_end; file++ )
-	if ( file->icm == ICM_COPY )
+	if ( file->icm == WD_ICM_COPY )
 	    err = CreateFileFST(wfi,path,file);
 
 
@@ -1860,15 +1691,13 @@ enumError CreatePartFST ( WiiFstInfo_t *wfi, ccp dest_path )
 
 enumError CreateFileFST ( WiiFstInfo_t *wfi, ccp dest_path, WiiFstFile_t * file )
 {
-    ASSERT(wfi);
-    ASSERT(dest_path);
-    ASSERT(file);
-
-    wiidisc_t * disc = wfi->disc;
-    ASSERT(disc);
+    DASSERT(wfi);
+    DASSERT(wfi->fst);
+    DASSERT(dest_path);
+    DASSERT(file);
 
     WiiFstPart_t * part = wfi->part;
-    ASSERT(part);
+    DASSERT(part);
 
     wfi->done_count++;
 
@@ -1900,7 +1729,7 @@ enumError CreateFileFST ( WiiFstInfo_t *wfi, ccp dest_path, WiiFstFile_t * file 
 
     //----- directory handling
 
-    if ( file->icm == ICM_DIRECTORY )
+    if ( file->icm == WD_ICM_DIRECTORY )
     {
 	if ( wfi->verbose > 1 )
 	    printf(" - %*u/%u create directory %s\n",
@@ -1909,7 +1738,7 @@ enumError CreateFileFST ( WiiFstInfo_t *wfi, ccp dest_path, WiiFstFile_t * file 
 	return CreatePath(dest);
     }
 
-    if ( file->icm != ICM_FILE && file->icm != ICM_COPY && file->icm != ICM_DATA )
+    if ( file->icm != WD_ICM_FILE && file->icm != WD_ICM_COPY && file->icm != WD_ICM_DATA )
 	return 0;
 
 
@@ -1918,7 +1747,7 @@ enumError CreateFileFST ( WiiFstInfo_t *wfi, ccp dest_path, WiiFstFile_t * file 
     if ( wfi->verbose > 1 )
 	printf(" - %*u/%u %s %8u bytes to %s\n",
 		wfi->fw_done_count, wfi->done_count, wfi->total_count,
-		file->icm == ICM_DATA ? "write  " : "extract", file->size, dest );
+		file->icm == WD_ICM_DATA ? "write  " : "extract", file->size, dest );
 
     File_t fo;
     InitializeFile(&fo);
@@ -1929,57 +1758,56 @@ enumError CreateFileFST ( WiiFstInfo_t *wfi, ccp dest_path, WiiFstFile_t * file 
 	ResetFile(&fo,true);
 	return err;
     }
-    
-    if ( file->icm == ICM_FILE )
-    {
-	u32 size = file->size;
-	u32 off4 = file->offset4;
 
-	while ( size > 0 )
-	{
-	    const u32 read_size = size < sizeof(iobuf) ? size : sizeof(iobuf);
-	    if ( wd_read( disc, part->is_encrypted ? &part->part_akey : 0,
-				off4, (u8*)iobuf, read_size, 0) )
-	    {
-		err = ERR_READ_FAILED;
-		break;
-	    }
-
-	    err = WriteF(&fo,iobuf,read_size);
-	    if (err)
-		break;
-
-	    size -= read_size;
-	    off4 += read_size>>2;
-	}
-    }
-    else if ( file->icm == ICM_COPY )
-    {
-	u32 size = file->size;
-	u32 off4 = file->offset4;
-
-	while ( size > 0 )
-	{
-	    const u32 read_size = size < sizeof(iobuf) ? size : sizeof(iobuf);
-	    if ( wd_read_raw( disc, off4, (u8*)iobuf, read_size ) )
-	    {
-		err = ERR_READ_FAILED;
-		break;
-	    }
-
-	    err = WriteF(&fo,iobuf,read_size);
-	    if (err)
-		break;
-
-	    size -= read_size;
-	    off4 += read_size>>2;
-	}
-    }
+ #if 0 && defined(TEST) // test ReadFileFST()
+    if ( file->icm == WD_ICM_DATA ) 
+	err = WriteF(&fo,file->data,file->size);
     else
     {
-	ASSERT( file->icm == ICM_DATA );
-	err = WriteF(&fo,file->data,file->size);
+	u32 off4 = 0;
+	u32 size = file->size;
+
+	while ( size > 0 )
+	{
+	    const u32 read_size = size < sizeof(iobuf) ? size : sizeof(iobuf);
+	    err = ReadFileFST(part,file,off4,iobuf,read_size);
+	    if (err)
+		break;
+
+	    err = WriteF(&fo,iobuf,read_size);
+	    if (err)
+		break;
+
+	    size -= read_size;
+	    off4 += read_size>>2;
+	}
     }
+ #else
+    if ( file->icm == WD_ICM_DATA ) 
+	err = WriteF(&fo,file->data,file->size);
+    else
+    {
+	u32 size = file->size;
+	u32 off4 = file->offset4;
+
+	while ( size > 0 )
+	{
+	    const u32 read_size = size < sizeof(iobuf) ? size : sizeof(iobuf);
+	    err = file->icm == WD_ICM_FILE
+			? wd_read_part(part->part,off4,iobuf,read_size,false)
+			: wd_read_raw(part->part->disc,off4,iobuf,read_size,0);
+	    if (err)
+		break;
+
+	    err = WriteF(&fo,iobuf,read_size);
+	    if (err)
+		break;
+
+	    size -= read_size;
+	    off4 += read_size>>2;
+	}
+    }
+ #endif
 
     if (wfi->set_time)
     {
@@ -1995,6 +1823,68 @@ enumError CreateFileFST ( WiiFstInfo_t *wfi, ccp dest_path, WiiFstFile_t * file 
 	PrintProgressSF(wfi->done_count,wfi->total_count,wfi->sf);
 
     return err;    
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+enumError ReadFileFST
+(
+	WiiFstPart_t *	part,		// valid fst partition pointer
+	const WiiFstFile_t * file,	// valid fst file pointer
+	u32		off4,		// file offset
+	void		* buf,		// destination buffer with at least 'size' bytes
+	u32		size		// number of bytes to read
+)
+{
+    DASSERT(part);
+    DASSERT(part->part);
+    DASSERT(part->part->disc);
+    DASSERT(file);
+    DASSERT(buf);
+
+    noTRACE("ReadFileFST(off=%x,sz=%x) icm=%x, off=%x, sz=%x\n",
+		off4<<2, size, file->icm, file->offset4<<2, file->size );
+
+    char mode = 0;
+    switch(file->icm)
+    {
+	case WD_ICM_FILE:
+	    if ( (off4<<2) + size > file->size )
+	    {
+		mode = 'F';
+		break;
+	    }
+	    return wd_read_part( part->part, file->offset4 + off4, buf, size, false );
+
+	case WD_ICM_COPY:
+	    if ( (off4<<2) + size > file->size )
+	    {
+		mode = 'C';
+		break;
+	    }
+	    return wd_read_raw( part->part->disc, file->offset4 + off4, buf, size, 0 );
+
+	case WD_ICM_DATA:
+	    if ( (off4<<2) + size > file->size )
+	    {
+		mode = 'D';
+		break;
+	    }
+	    memcpy( buf, file->data + (off4<<2), size );
+	    return ERR_OK;
+
+	default:
+	    if ( off4 || size )
+	    {
+		mode = '?';
+		break;
+	    }
+	    return ERR_OK;
+    }
+
+    return ERROR0(ERR_READ_FAILED,
+		"Reading from FST file failed [%c:%llx+%x>%x]: %s\n",
+		mode, (u64)off4<<2, size, file->size, file->path );
 }
 
 //
@@ -2023,34 +1913,49 @@ static int sort_fst_by_path ( const void * va, const void * vb )
 
 //-----------------------------------------------------------------------------
 
-static int sort_fst_by_size ( const void * va, const void * vb )
+static int sort_fst_by_offset ( const void * va, const void * vb )
 {
     const WiiFstFile_t * a = (const WiiFstFile_t *)va;
     const WiiFstFile_t * b = (const WiiFstFile_t *)vb;
 
-    if ( a->size != b->size )
-	return a->size < b->size ? -1 : 1;
+    if ( a->icm == WD_ICM_DIRECTORY && b->icm != WD_ICM_DIRECTORY )
+	return -1;
+
+    if ( a->icm != WD_ICM_DIRECTORY && b->icm == WD_ICM_DIRECTORY )
+	return 1;
+
+    if ( a->icm == WD_ICM_FILE && b->icm != WD_ICM_FILE )
+	return 1;
+
+    if ( a->icm != WD_ICM_FILE && b->icm == WD_ICM_FILE )
+	return -1;
 
     if ( a->offset4 != b->offset4 )
 	return a->offset4 < b->offset4 ? -1 : 1;
+
+    if ( a->size != b->size )
+	return a->size < b->size ? -1 : 1;
 
     return strcmp(a->path,b->path);
 }
 
 //-----------------------------------------------------------------------------
 
-static int sort_fst_by_offset ( const void * va, const void * vb )
+static int sort_fst_by_size ( const void * va, const void * vb )
 {
     const WiiFstFile_t * a = (const WiiFstFile_t *)va;
     const WiiFstFile_t * b = (const WiiFstFile_t *)vb;
 
-    if ( a->offset4 != b->offset4 )
-	return a->offset4 < b->offset4 ? -1 : 1;
+    if ( a->icm == WD_ICM_DIRECTORY && b->icm != WD_ICM_DIRECTORY )
+	return -1;
+
+    if ( a->icm != WD_ICM_DIRECTORY && b->icm == WD_ICM_DIRECTORY )
+	return 1;
 
     if ( a->size != b->size )
 	return a->size < b->size ? -1 : 1;
 
-    return strcmp(a->path,b->path);
+    return sort_fst_by_offset(va,vb);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -2377,7 +2282,7 @@ static u32 scan_part ( scan_data_t * sd )
 	    if (S_ISDIR(st.st_mode))
 	    {
 		sd->name_pool_size += strlen(name) + 1;
-		file->icm = ICM_DIRECTORY;
+		file->icm = WD_ICM_DIRECTORY;
 		*sd->path_dir++ = '/';
 		*sd->path_dir = 0;
 		file->path = strdup(sd->path_part);
@@ -2396,7 +2301,7 @@ static u32 scan_part ( scan_data_t * sd )
 		sd->name_pool_size += strlen(name) + 1;
 		file->path = strdup(sd->path_part);
 		noTRACE("FILE: %s\n",path_dir);
-		file->icm  = ICM_FILE;
+		file->icm  = WD_ICM_FILE;
 		file->size = st.st_size;
 		sd->total_size += ALIGN32(file->size,4);
 	    }
@@ -2432,7 +2337,7 @@ u32 ScanPartFST
     WiiFstFile_t * file = AppendFileFST(sd.part);
     ASSERT(file);
     ASSERT( file == part->file );
-    file->icm  = ICM_DIRECTORY;
+    file->icm  = WD_ICM_DIRECTORY;
     file->path = strdup(sd.path_part);
     noTRACE("DIR:  %s\n",sd.path_dir);
 
@@ -2473,7 +2378,7 @@ u32 ScanPartFST
     IsoMappingItem_t * imi;
     imi = InsertIM(&part->im,IMT_DATA,(u64)cur_offset4<<2,part->ftab_size);
     imi->part = part;
-    StringCopyS(imi->info,sizeof(imi->info),"fst.bin");
+    snprintf(imi->info,sizeof(imi->info),"fst.bin, N(fst)=%u",part->file_used);
     imi->data = part->ftab;
     cur_offset4 += part->ftab_size >> 2;
 
@@ -2497,7 +2402,7 @@ u32 ScanPartFST
     u32 offset4 = cur_offset4;
 
     // iterate files and remove directories
-    u32 idx = 1;
+    u32 idx = 1, file_count = 0;
     WiiFstFile_t *file_dest = part->file;
     WiiFstFile_t *file_end  = part->file + part->file_used;
     for ( file = part->file+1; file < file_end; file++ )
@@ -2510,7 +2415,7 @@ u32 ScanPartFST
 	while (*name)
 	    *nameptr++ = *name++;
 
-	if ( file->icm == ICM_DIRECTORY )
+	if ( file->icm == WD_ICM_DIRECTORY )
 	{
 	    nameptr[-1] = 0; // remove trailing '/'
 	    ftab->is_dir = 1;
@@ -2525,7 +2430,7 @@ u32 ScanPartFST
 	}
 	else
 	{
-	    ASSERT(file->icm == ICM_FILE);
+	    ASSERT(file->icm == WD_ICM_FILE);
 	    nameptr++;
 	    ftab->size = htonl(file->size);
 	    ftab->offset4 = htonl(offset4);
@@ -2533,6 +2438,7 @@ u32 ScanPartFST
 	    offset4 += file->size + 3 >> 2;
 	    memcpy(file_dest,file,sizeof(*file_dest));
 	    file_dest++;
+	    file_count++;
 	}
 
 	noTRACE("-> %4x: %u %8x %8x %s\n",
@@ -2559,9 +2465,11 @@ u32 ScanPartFST
  #endif
 
  #ifdef DEBUG
-    if (Dump_FST(0,0,(wd_fst_item_t*)part->ftab,part->ftab_size,"scanned"))
+    if (Dump_FST_MEM(0,0,(wd_fst_item_t*)part->ftab,
+				part->ftab_size,"scanned",WD_PFST__ALL))
     {
-	Dump_FST(TRACE_FILE,0,(wd_fst_item_t*)part->ftab,part->ftab_size,"scanned");
+	Dump_FST_MEM(TRACE_FILE,0,(wd_fst_item_t*)part->ftab,
+				part->ftab_size,"scanned",WD_PFST__ALL);
 	return ERROR0(ERR_FATAL,"internal fst.bin is invalid -> see trace file\n");
     }
  #endif
@@ -2569,7 +2477,7 @@ u32 ScanPartFST
     imi = InsertIM( &part->im, IMT_PART_FILES,
 			(u64)cur_offset4<<2, (u64)(offset4-cur_offset4)<<2 );
     imi->part = part;
-    snprintf(imi->info,sizeof(imi->info),"%u files + directories",part->file_used);
+    snprintf(imi->info,sizeof(imi->info),"%u fst files",file_count);
     return offset4;
 }
 
@@ -2578,11 +2486,46 @@ u32 ScanPartFST
 ///////////////			generate partition		///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-u64 GenPartFST ( SuperFile_t * sf, WiiFstPart_t * part, ccp path, u64 base_off )
+enum { PSUP_P_OFFSET };
+
+static SetupDef_t part_setup_def[] =
+{
+	{ "part-offset",	0x10000 },
+	{0,0}
+};
+
+///////////////////////////////////////////////////////////////////////////////
+
+u64 GenPartFST
+(
+	SuperFile_t	* sf,		// valid file pointer
+	WiiFstPart_t	* part,		// valid partition pointer
+	ccp		path,		// path of partition directory
+	u64		good_off,	// standard partition offset
+	u64		min_off		// minimal possible partition offset
+)
 {
     ASSERT(sf);
     ASSERT(part);
     ASSERT(!part->file_used);
+
+    //----- scan setup.txt
+
+    {
+	ScanSetupFile(part_setup_def,path,"setup.txt",true);
+
+	SetupDef_t * sdef = part_setup_def + PSUP_P_OFFSET;
+	if (sdef->param)
+	    good_off = sdef->value;
+	
+	ResetSetup(part_setup_def);
+    }
+
+    //----- setup
+
+    if ( good_off < min_off )
+	good_off = min_off;
+    part->part_off = good_off;
 
     IsoMappingItem_t * imi;
     char pathbuf[PATH_MAX];
@@ -2609,53 +2552,56 @@ u64 GenPartFST ( SuperFile_t * sf, WiiFstPart_t * part, ccp path, u64 base_off )
     LoadFile(path,"sys/boot.bin",0,imi->data,WII_BOOT_SIZE,false);
     LoadFile(path,"sys/bi2.bin",0,imi->data+WII_BOOT_SIZE,WII_BI2_SIZE,false);
 
-    PatchId(imi->data,0,6,MODIFY_BOOT|MODIFY__AUTO);
-    PatchName(imi->data+WII_TITLE_OFF,MODIFY_BOOT|MODIFY__AUTO);
+    if ( part->part_type == WD_PART_DATA )
+    {
+	PatchId(imi->data,0,6,MODIFY_BOOT|MODIFY__AUTO);
+	PatchName(imi->data+WII_TITLE_OFF,MODIFY_BOOT|MODIFY__AUTO);
+    }
     snprintf(imi->info,sizeof(imi->info),"boot.bin [%.6s] + bi2.bin",(ccp)imi->data);
 
     wd_boot_t * boot = imi->data;
-    if ( !fst->disc_header.disc_id && part->part_type == DATA_PARTITION_TYPE )
+    if ( !fst->dhead.disc_id && part->part_type == WD_PART_DATA )
     {
-	char * dest = (char*)&fst->disc_header;
-	memset(dest,0,sizeof(fst->disc_header));
+	char * dest = (char*)&fst->dhead;
+	memset(dest,0,sizeof(fst->dhead));
 	memcpy(dest,boot,6);
 	memcpy(dest+WII_TITLE_OFF,(ccp)boot+WII_TITLE_OFF,WII_TITLE_SIZE);
-	fst->disc_header.magic = htonl(WII_MAGIC);
+	fst->dhead.magic = htonl(WII_MAGIC);
     }
 
 
     //----- disc/header.bin
 
-    if ( part->part_type == DATA_PARTITION_TYPE )
+    if ( part->part_type == WD_PART_DATA )
     {
 	LoadFile(path,"disc/header.bin",0,
-			    &fst->disc_header,sizeof(fst->disc_header),true);
-	PatchId(&fst->disc_header.disc_id,0,6,MODIFY_DISC|MODIFY__AUTO);
-	PatchName(fst->disc_header.game_title,MODIFY_DISC|MODIFY__AUTO);
+			    &fst->dhead,sizeof(fst->dhead),true);
+	PatchId(&fst->dhead.disc_id,0,6,MODIFY_DISC|MODIFY__AUTO);
+	PatchName(fst->dhead.game_title,MODIFY_DISC|MODIFY__AUTO);
     }
 
     //----- disc/region.bin
     
-    if ( part->part_type == DATA_PARTITION_TYPE )
+    if ( part->part_type == WD_PART_DATA )
     {
 	enumRegion reg = opt_region;
 	const RegionInfo_t * rinfo
-	    = GetRegionInfo(fst->disc_header.region_code);
+	    = GetRegionInfo(fst->dhead.region_code);
 
 	if ( reg == REGION__AUTO && rinfo->mandatory )
 	    reg = rinfo->reg;
 	else if ( reg == REGION__AUTO || reg == REGION__FILE )
 	{
 	    reg = LoadFile(path,"disc/region.bin",0,
-				&fst->region_set,
-				sizeof(fst->region_set),true)
+				&fst->region,
+				sizeof(fst->region),true)
 		? REGION__AUTO : REGION__FILE;
 	}
 
 	if ( reg != REGION__FILE )
 	{
-	    memset( &fst->region_set, 0, sizeof(fst->region_set) );
-	    fst->region_set.region
+	    memset( &fst->region, 0, sizeof(fst->region) );
+	    fst->region.region
 		= htonl(  reg == REGION__AUTO ? rinfo->reg : reg );
 	}
     }
@@ -2733,23 +2679,26 @@ u64 GenPartFST ( SuperFile_t * sf, WiiFstPart_t * part, ccp path, u64 base_off )
     LoadFile(path,"tmd.bin",	0, pc->tmd, pc->tmd_size, false );
     LoadFile(path,"cert.bin",	0, pc->cert, pc->cert_size, false );
 
-    PatchId(pc->head->ticket.title_id+4,0,4,MODIFY_TICKET|MODIFY__AUTO);
-    PatchId(pc->tmd->title_id+4,0,4,MODIFY_TMD|MODIFY__AUTO);
+    if ( part->part_type == WD_PART_DATA )
+    {
+	PatchId(pc->head->ticket.title_id+4,0,4,MODIFY_TICKET|MODIFY__AUTO);
+	PatchId(pc->tmd->title_id+4,0,4,MODIFY_TMD|MODIFY__AUTO);
 
-    if (opt_ios_valid)
-	pc->tmd->sys_version = hton64(opt_ios);
+	if (opt_ios_valid)
+	    pc->tmd->sys_version = hton64(opt_ios);
+    }
 
     //----- setup
 
-    InsertMemMap(&sf->modified_list,base_off,sizeof(pc->part_bin));
+    InsertMemMap(&sf->modified_list,good_off,sizeof(pc->part_bin));
     
     if ( fst->encoding & ENCODE_CALC_HASH )
     {
 	tmd_clear_encryption(pc->tmd,0);
 
 	// calc partition keys
-	wd_decrypt_title_key(&pc->head->ticket,part->part_key);
-	wd_aes_set_key(&part->part_akey,part->part_key);
+	wd_decrypt_title_key(&pc->head->ticket,part->key);
+	wd_aes_set_key(&part->akey,part->key);
 
 	// fill h3 with data to avoid sparse writing
 	int groups = (blocks-1)/WII_GROUP_SECTORS+1;
@@ -2766,15 +2715,15 @@ u64 GenPartFST ( SuperFile_t * sf, WiiFstPart_t * part, ccp path, u64 base_off )
 
     //----- insert this partition in mem map of fst
 
-    imi = InsertIM(&fst->im,IMT_DATA,base_off,sizeof(pc->part_bin));
+    imi = InsertIM(&fst->im,IMT_DATA,good_off,sizeof(pc->part_bin));
     imi->data = pc->part_bin;
     snprintf(imi->info,sizeof(imi->info),"%s partition, header",
-			wd_get_partition_name(part->part_type,"?"));
+			wd_get_part_name(part->part_type,"?"));
 
-    imi = InsertIM(&fst->im,IMT_PART, base_off+pc->data_off, pc->data_size );
+    imi = InsertIM(&fst->im,IMT_PART, good_off+pc->data_off, pc->data_size );
     imi->part = part;
     snprintf(imi->info,sizeof(imi->info),"%s partition, data",
-			wd_get_partition_name(part->part_type,"?"));
+			wd_get_part_name(part->part_type,"?"));
 
 
     //----- terminate
@@ -2821,7 +2770,8 @@ enumError SetupReadFST ( SuperFile_t * sf )
 
 
     //----- setup partitions
-    
+
+    u64 min_offset	= WII_GOOD_UPDATE_PART_OFF;
     u64 update_off	= WII_GOOD_UPDATE_PART_OFF;
     u64 update_size	= 0;
     u64 data_off	= WII_GOOD_DATA_PART_OFF;
@@ -2833,9 +2783,13 @@ enumError SetupReadFST ( SuperFile_t * sf )
     if ( sf->f.ftype & FT_A_PART_DIR )
     {
 	data_part = AppendPartFST(fst);
-	data_part->part_type = DATA_PARTITION_TYPE;
-	data_size = GenPartFST(sf,data_part,sf->f.fname,data_off);
+	data_part->part_type = WD_PART_DATA;
+	data_size = GenPartFST(sf,data_part,sf->f.fname,data_off,min_offset);
+	data_off  = data_part->part_off;
 	data_part->path = strdup(sf->f.fname);
+	min_offset	= data_off
+			+ WII_PARTITION_BIN_SIZE
+			+ data_size;
     }
     else
     {
@@ -2852,69 +2806,77 @@ enumError SetupReadFST ( SuperFile_t * sf )
 	{
 	    ccp path = PathCatPP(path_buf,sizeof(path_buf),sf->f.fname,update_path);
 	    WiiFstPart_t * update_part = AppendPartFST(fst);
-	    update_part->part_type = UPDATE_PARTITION_TYPE;
-	    update_size = GenPartFST(sf,update_part,path,update_off);
-	    const u32 update_end = update_off + WII_PARTITION_BIN_SIZE + update_size;
-	    if ( data_off < update_end )
-		 data_off = update_end;
+	    update_part->part_type = WD_PART_UPDATE;
+	    update_size = GenPartFST(sf,update_part,path,update_off,min_offset);
+	    update_off	= update_part->part_off;
+	    min_offset	= update_off
+			+ WII_PARTITION_BIN_SIZE
+			+ update_size;
 	    update_part->path = strdup(path);
 	}
 
 	ccp path = PathCatPP(path_buf,sizeof(path_buf),sf->f.fname,data_path);
 	data_part = AppendPartFST(fst);
-	data_part->part_type = DATA_PARTITION_TYPE;
-	data_size = GenPartFST(sf,data_part,path,data_off);
+	data_part->part_type = WD_PART_DATA;
+	data_size = GenPartFST(sf,data_part,path,data_off,min_offset);
+	data_off  = data_part->part_off;
+	min_offset	= data_off
+			+ WII_PARTITION_BIN_SIZE
+			+ data_size;
 	data_part->path = strdup(path);
 
 	if ( stat & CHANNEL_PART_FOUND )
 	{
-	    const u32 data_end = data_off + WII_PARTITION_BIN_SIZE + data_size;
-	    if ( channel_off < data_end )
-		 channel_off = data_end;
-
 	    ccp path = PathCatPP(path_buf,sizeof(path_buf),sf->f.fname,channel_path);
 	    WiiFstPart_t * channel_part = AppendPartFST(fst);
-	    channel_part->part_type = CHANNEL_PARTITION_TYPE;
-	    channel_size = GenPartFST(sf,channel_part,path,channel_off);
+	    channel_part->part_type = WD_PART_CHANNEL;
+	    channel_size = GenPartFST(sf,channel_part,path,channel_off,min_offset);
+	    channel_off  = channel_part->part_off;
+	    min_offset	= channel_off
+			+ WII_PARTITION_BIN_SIZE
+			+ channel_size;
 	    channel_part->path = strdup(path);
 	}
     }
     ASSERT(data_part);
 
+    TRACE("UPD: %9llx .. %9llx : %9llx\n",update_off, update_off+update_size, update_size);
+    TRACE("DAT: %9llx .. %9llx : %9llx\n",data_off, data_off+data_size, data_size);
+    TRACE("CHN: %9llx .. %9llx : %9llx\n",channel_off, channel_off+channel_size, channel_size);
 
     //----- setup partition header
 
     const u32 n_part	    = 1 + (update_size>0) + (channel_size>0);
-    const u64 cnt_tab_size  = WII_MAX_PART_INFO * sizeof(wd_part_count_t);
+    const u64 cnt_tab_size  = WII_MAX_PTAB * sizeof(wd_ptab_info_t);
     const u64 part_tab_size = cnt_tab_size
-			    + n_part * sizeof(wd_part_table_entry_t);
+			    + n_part * sizeof(wd_ptab_entry_t);
 
     IsoMappingItem_t * imi;
-    imi = InsertIM(&fst->im,IMT_DATA,WII_PART_INFO_OFF,part_tab_size);
+    imi = InsertIM(&fst->im,IMT_DATA,WII_PTAB_REF_OFF,part_tab_size);
     StringCopyS(imi->info,sizeof(imi->info),"partition tables");
     imi->data = calloc(1,part_tab_size);
     if (!imi->data)
 	OUT_OF_MEMORY;
     imi->data_alloced = true;
 
-    wd_part_count_t * pcount = imi->data;
+    wd_ptab_info_t * pcount = imi->data;
     pcount->n_part = htonl(n_part);
-    pcount->off4   = htonl( WII_PART_INFO_OFF + cnt_tab_size >> 2 );
+    pcount->off4   = htonl( WII_PTAB_REF_OFF + cnt_tab_size >> 2 );
 
-    wd_part_table_entry_t * pentry = (void*)((ccp)imi->data+cnt_tab_size);
+    wd_ptab_entry_t * pentry = (void*)((ccp)imi->data+cnt_tab_size);
     if (update_size)
     {
 	pentry->off4  = htonl( update_off >> 2 );
-	pentry->ptype = htonl( UPDATE_PARTITION_TYPE );
+	pentry->ptype = htonl( WD_PART_UPDATE );
 	pentry++;
     }
     pentry->off4  = htonl( data_off >> 2 );
-    pentry->ptype = htonl( DATA_PARTITION_TYPE );
+    pentry->ptype = htonl( WD_PART_DATA );
     if (channel_size)
     {
 	pentry++;
 	pentry->off4  = htonl( channel_off >> 2 );
-	pentry->ptype = htonl( CHANNEL_PARTITION_TYPE );
+	pentry->ptype = htonl( WD_PART_CHANNEL );
     }
 
 
@@ -2931,14 +2893,14 @@ enumError SetupReadFST ( SuperFile_t * sf )
 
     //----- setup mapping
 
-    imi = InsertIM(&fst->im,IMT_DATA,0,sizeof(fst->disc_header));
-    imi->data = &fst->disc_header;
+    imi = InsertIM(&fst->im,IMT_DATA,0,sizeof(fst->dhead));
+    imi->data = &fst->dhead;
     snprintf(imi->info,sizeof(imi->info),"disc header [%.6s]",(ccp)imi->data);
 
-    imi = InsertIM(&fst->im,IMT_DATA,WII_REGION_OFF,sizeof(fst->region_set));
+    imi = InsertIM(&fst->im,IMT_DATA,WII_REGION_OFF,sizeof(fst->region));
     snprintf(imi->info,sizeof(imi->info),"region settings, region=%u",
-		ntohl(fst->region_set.region));
-    imi->data = &fst->region_set;
+		ntohl(fst->region.region));
+    imi->data = &fst->region;
 
     static u8 magic[] = { 0xc3, 0xf8, 0x1a, 0x8e };
     ASSERT( be32(magic) == WII_MAGIC2 );
@@ -2957,9 +2919,7 @@ enumError SetupReadFST ( SuperFile_t * sf )
 	PrintFstIM(fst,stdout,0,logging>1,"Memory layout of virtual");
 
     const off_t single_size = WII_SECTORS_SINGLE_LAYER * (off_t)WII_SECTOR_SIZE;
-    sf->file_size = data_off + data_size;
-    if ( sf->file_size < single_size )
-	sf->file_size = single_size;
+    sf->file_size = min_offset > single_size ? min_offset : single_size;
 
     //SetupISOModifier(sf); // not needed because done on composing
     return ERR_OK;
@@ -3407,7 +3367,7 @@ enumError ReadPartGroupFST ( SuperFile_t * sf, WiiFstPart_t * part,
 	{
 	    EncryptSectorGroup
 	    (
-		sf->fst->encoding & ENCODE_ENCRYPT ? &part->part_akey : 0,
+		sf->fst->encoding & ENCODE_ENCRYPT ? &part->akey : 0,
 		(wd_part_sector_t*)dest,
 		WII_GROUP_SECTORS,
 		group_no < WII_N_ELEMENTS_H3 ? part->pc->h3 + group_no * WII_HASH_SIZE : 0
@@ -3591,7 +3551,7 @@ void InitializeVerify ( Verify_t * ver, SuperFile_t * sf )
     memset(ver,0,sizeof(*ver));
 
     ver->sf		= sf;
-    ver->selector	= partition_selector;
+    ver->psel		= part_selector;
     ver->verbose	= verbose;
     ver->max_err_msg	= 10;
 }
@@ -3613,21 +3573,21 @@ static enumError PrintVerifyMessage ( Verify_t * ver, ccp msg )
     if ( ver->verbose >= -1 )
     {
 	DASSERT(ver->sf);
-	DASSERT(ver->disc);
 	DASSERT(ver->part);
 	DASSERT(msg);
 
-	WiiFstPart_t * part = ver->part;
+	wd_part_t * part = ver->part;
+	DASSERT(part);
 
 	char pname_buf[20];
-	wd_print_partition_name(pname_buf,sizeof(pname_buf),part->part_type,0);
+	wd_print_part_name(pname_buf,sizeof(pname_buf),part->part_type,WD_PNAME_NAME);
 
 	char count_buf[100];
 	if (!ver->disc_index)
 	{
 	    // no index supported
 	    snprintf( count_buf, sizeof(count_buf),".%u%c",
-			part->part_index,
+			part->index,
 			part->is_encrypted ? ' ' : 'd' );
 	}
 	else if ( ver->disc_total < 2 )
@@ -3635,7 +3595,7 @@ static enumError PrintVerifyMessage ( Verify_t * ver, ccp msg )
 	    // a single check
 	    snprintf( count_buf, sizeof(count_buf),"%u.%u%c",
 			ver->disc_index,
-			part->part_index,
+			part->index,
 			part->is_encrypted ? ' ' : 'd' );
 	}
 	else
@@ -3645,7 +3605,7 @@ static enumError PrintVerifyMessage ( Verify_t * ver, ccp msg )
 	    snprintf( count_buf, sizeof(count_buf),"%*u.%u/%u%c",
 			fw,
 			ver->disc_index,
-			part->part_index,
+			part->index,
 			ver->disc_total,
 			part->is_encrypted ? ' ' : 'd' );
 	}
@@ -3653,7 +3613,7 @@ static enumError PrintVerifyMessage ( Verify_t * ver, ccp msg )
 	printf("%*s%-7.7s %s %n%-7s %6.6s %s\n",
 		ver->indent, "",
 		msg, count_buf, &ver->info_indent,
-		pname_buf, ver->disc->id6,
+		pname_buf, ver->sf->disc->id6,
 		ver->fname ? ver->fname : ver->sf->f.fname );
 	fflush(stdout);
     }
@@ -3667,7 +3627,6 @@ static enumError VerifyHash
 {
     DASSERT(ver);
     DASSERT(ver->part);
-    DASSERT(ver->part->pc);
 
  #if WATCH_BLOCK && 0
     {
@@ -3697,8 +3656,7 @@ static enumError VerifyHash
 
 	const u32 delta_off	= (ccp)data - iobuf;
 	const u32 delta_blk	= delta_off / WII_SECTOR_SIZE;
-	const u64 offset	= ver->part->part_offset
-				+ ver->part->pc->data_off
+	const u64 offset	= ( (u64)ver->part->data_off4 << 2 )
 				+ ver->group * (u64)WII_GROUP_SIZE
 				+ delta_off;
 	const int ref_delta	= ref - data; 
@@ -3743,11 +3701,10 @@ enumError VerifyPartition ( Verify_t * ver )
 {
     DASSERT(ver);
     DASSERT(ver->sf);
-    DASSERT(ver->disc);
     DASSERT(ver->part);
 
-    TRACE("#VERIFY# VerifyPartition(%p) sf=%p disc=%p utab=%p fst=%p part=%p\n",
-		ver, ver->sf, ver->disc, ver->usage_tab, ver->fst, ver->part );
+    TRACE("#VERIFY# VerifyPartition(%p) sf=%p utab=%p part=%p\n",
+		ver, ver->sf, ver->usage_tab, ver->part );
     TRACE(" - psel=%x, v=%d, lc=%d, maxerr=%d\n",
 		ver->verbose, ver->verbose, ver->long_count, ver->max_err_msg );
 
@@ -3766,16 +3723,16 @@ enumError VerifyPartition ( Verify_t * ver )
 
     //----- check partition header
 
-    WiiFstPart_t * part = ver->part;
+    wd_part_t * part = ver->part;
+    wd_load_part(part,false,true);
 
-    if (part->is_marked_not_enc)
+    if (tmd_is_marked_not_encrypted(part->tmd))
     {
 	PrintVerifyMessage(ver,"!NO-HASH");
 	return ERR_DIFFER;
     }
 
-    const wd_part_control_t * pc = part->pc;
-    if ( !pc || !pc->is_valid )
+    if ( !part->is_valid )
     {
 	PrintVerifyMessage(ver,"!INVALID");
 	return ERR_DIFFER;
@@ -3784,25 +3741,33 @@ enumError VerifyPartition ( Verify_t * ver )
 
     //----- calculate end of blocks
 
-    u32 block = ( part->part_offset + pc->data_off ) / WII_SECTOR_SIZE;
-    u32 block_end = block + pc->data_size / WII_SECTOR_SIZE;
+    u32 block = part->data_off4 / WII_SECTOR_SIZE4;
+    u32 block_end = block + part->ph.data_size4 / WII_SECTOR_SIZE4;
     if ( block_end > WII_MAX_SECTORS )
 	 block_end = WII_MAX_SECTORS;
 
-    TRACE(" - Partition %u [%s], valid=%d, blocks=%x..%x\n",
+    TRACE(" - Partition %u [%s], valid=%d, blocks=%x..%x [%llx..%llx]\n",
 		part->part_type,
-		wd_get_partition_name(part->part_type,"?"),
-		pc->is_valid,
-		block, block_end );
+		wd_get_part_name(part->part_type,"?"),
+		part->is_valid,
+		block, block_end,
+		block * (u64)WII_SECTOR_SIZE, block_end * (u64)WII_SECTOR_SIZE );
     TRACE_HEXDUMP16(0,block,ver->usage_tab,block_end-block);
 
-    const int usage_tab_marker = 2 + part->part_index;
+
+    //----- more setup
+    
+    DASSERT(part->h3);
+    const u8  usage_tab_marker = part->usage_id | WD_USAGE_F_CRYPT;
     const int max_differ_count = ver->verbose <= 0
 				? 1
 				: ver->max_err_msg > 0
 					? ver->max_err_msg
 					: INT_MAX;
     int differ_count = 0;
+
+    aes_key_t akey;
+    wd_aes_set_key(&akey,part->key);
 
     for ( ver->group = 0; block < block_end; ver->group++, block += WII_GROUP_SECTORS )
     {
@@ -3875,7 +3840,7 @@ enumError VerifyPartition ( Verify_t * ver )
 					+ i2 * WII_N_ELEMENTS_H1 + i1;
 
 		if ( part->is_encrypted )
-		    DecryptSectors(&part->part_akey,sect+WII_GROUP_SECTORS,sect,1);
+		    DecryptSectors(&akey,sect+WII_GROUP_SECTORS,sect,1);
 
 
 		//----- check H0 -----
@@ -3933,7 +3898,7 @@ enumError VerifyPartition ( Verify_t * ver )
 
 		    //----- check H3 -----
 
-		    u8 * h3 = pc->h3 + ver->group * WII_HASH_SIZE;
+		    u8 * h3 = part->h3 + ver->group * WII_HASH_SIZE;
 		    if (VerifyHash(ver,"!H3-ERR",*sect->h2,sizeof(sect->h2),h3))
 		    {
 			if ( ++differ_count >= max_differ_count )
@@ -3955,11 +3920,11 @@ enumError VerifyPartition ( Verify_t * ver )
 
     //----- check H4 -----
 
-    if (pc->tmd_content)
+    if ( part->tmd && part->tmd->n_content > 0 )
     {
 	u8 hash[WII_HASH_SIZE];
-	SHA1( pc->h3, pc->h3_size, hash );
-	if (memcmp(hash,pc->tmd_content->hash,WII_HASH_SIZE))
+	SHA1( part->h3, WII_H3_SIZE, hash );
+	if (memcmp(hash,part->tmd->content[0].hash,WII_HASH_SIZE))
 	{
 	    PrintVerifyMessage(ver,"!H4-ERR");
 	    ++differ_count;
@@ -3987,102 +3952,51 @@ enumError VerifyDisc ( Verify_t * ver )
 {
     DASSERT(ver);
     DASSERT(ver->sf);
-    TRACE("#VERIFY# VerifyDisc(%p) sf=%p disc=%p utab=%p fst=%p part=%p\n",
-		ver, ver->sf, ver->disc, ver->usage_tab, ver->fst, ver->part );
+    TRACE("#VERIFY# VerifyDisc(%p) sf=%p utab=%p part=%p\n",
+		ver, ver->sf, ver->usage_tab, ver->part );
     TRACE(" - psel=%x, v=%d, lc=%d, maxerr=%d\n",
 		ver->verbose, ver->verbose, ver->long_count, ver->max_err_msg );
 
     //----- setup Verify_t data
 
-    wiidisc_t * disc = 0;
-    if (!ver->disc)
-    {
-	TRACE(" - open disc\n");
-	disc = wd_open_disc(WrapperReadSF,ver->sf);
-	if (!disc)
-	    return ERROR0(ERR_CANT_OPEN,"Can't open dics: %s\n",ver->sf->f.fname);
-	ver->disc = disc;
-    }
+    wd_disc_t * disc = OpenDiscSF(ver->sf,true,true);
+    if (!disc)
+	return ERR_WDISC_NOT_FOUND;
 
     u8 local_usage_tab[WII_MAX_SECTORS];
     if (!ver->usage_tab)
     {
 	TRACE(" - use local_usage_tab\n");
 	ver->usage_tab = local_usage_tab;
+	wd_filter_usage_table_sel(disc,local_usage_tab,ver->psel);
     }
     
-    WiiFst_t fst;
-    if (!ver->fst)
-    {
-	TRACE(" - use fst\n");
-	InitializeFST(&fst);
-
-	IsoFileIterator_t ifi;
-	memset(&ifi,0,sizeof(ifi));
-	ifi.sf  = ver->sf;
-	ifi.fst = &fst;
-
-	wd_iterate_files
-	(
-		ver->disc,
-		ver->selector,
-		IPM_DEFAULT,
-		CollectPartitions,
-		&ifi,
-		ver->usage_tab,
-		ver->sf->file_size
-	);
-	
-	ver->fst = &fst;
-    }
-    else if ( ver->usage_tab == local_usage_tab )
-    {
-	TRACE(" - fill usage table\n");
-	wd_build_disc_usage
-	(
-		ver->disc,
-		ver->selector,
-		ver->usage_tab,
-		ver->sf->file_size
-	);
-    }
-
-
     //----- iterate partitions
 
     enumError err = ERR_OK;
     int pi, differ_count = 0;
-    for ( pi = 0; pi < ver->fst->part_used && !SIGINT_level; pi++ )
+    for ( pi = 0; pi < disc->n_part && !SIGINT_level; pi++ )
     {
-	ver->part = ver->fst->part + pi;
-	err = VerifyPartition(ver);
-	if ( err == ERR_DIFFER )
+	ver->part = wd_get_part_by_index(disc,pi,0);
+	if ( ver->part->is_enabled )
 	{
-	    differ_count++;
-	    if ( ver->verbose < 0 )
+	    err = VerifyPartition(ver);
+	    if ( err == ERR_DIFFER )
+	    {
+		differ_count++;
+		if ( ver->verbose < 0 )
+		    break;
+	    }
+	    else if (err)
 		break;
 	}
-	else if (err)
-	    break;
     }
 
 
-    //----- reset Verify_t data
-
-    if ( ver->fst == &fst )
-    {
-	ver->fst = 0;
-	ResetFST(&fst);
-    }
+    //----- terminate
 
     if ( ver->usage_tab == local_usage_tab )
 	ver->usage_tab = 0;
-
-    if (disc)
-    {
-	ver->disc = 0;
-	wd_close_disc(disc);
-    }
 
     return err ? err : differ_count ? ERR_DIFFER : ERR_OK;
 };

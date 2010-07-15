@@ -23,12 +23,13 @@
 [*] [url=@@URI-WIIJMANAGER@@][b]WiiJManager Multiplatform, ein WBFS-Manager[/b][/url]
     Dieses Java basierte GUI arbeitet wie andere WBFS-Manager. Umwandlung von einzelnen Wii ISO dics ist auch möglich.
 
-[*] [url=@@URI-QTWITGUI@@][b]qtwitgui, Berarbetung einzelner Wii ISO discs.[/b][/url]
+[*] [url=@@URI-QTWITGUI@@][b]QtWitGui, Berarbetung einzelner Wii ISO discs.[/b][/url]
     Dieses QT basierte GUI bietet Dinge rund um die Bearbeitung (Kopieren, modifizieren) von einzelnen WIi ISO discs.
 [/list]
 
 [size=12][color=#0000c0][b]Höhepunkte dieser Version:[/b][/color][/size]
 [list]
+Ich habe die komplette wiidisc-Bibliothek (Teil von libwbfs) von neu auf implementiert. Die Bibliothek hat ein komplett neues Interface mit erweiterten Möglichkeiten. Es werden dynamische Datenstrukturen eingesetzt um alle benötigten Daten bei Bedarf zu laden. Dieses neue Interface hat klar spürbare Vorteile für das gesamte WIT-Projekt, da nun alle benötigten Daten durch diese Bibliothek verwaltet werden. Dieses wird das Patchen von Daten (ID, Titel, ...) beim Kopieren von Discs erheblich erleichtern.
 [/list]
 
 [size=12][color=#0000c0][b]Letzte Änderungen:[/b][/color][/size]
@@ -37,5 +38,4 @@
 @@MODULE(last-history.txt)@@
 [/code]
 
-Die Quellen stehen unter der GPL2 Lizenz und können entweder direkt aus dem [url=@@URI-REPOS@@][b]SVN repository[/b][/url] exportiert oder mit einem [url=@@URI-VIEWVC@@][b]Browser besurft werden[/b][/url].
-Besuche [url=@@URI-HOME@@][b]@@URI-HOME@@[/b][/url] für weitere Informationen.
+Die Quellen stehen unter der GPL2 Lizenz und können entweder direkt aus dem [url=@@URI-REPOS@@][b]SVN repository[/b][/url] exportiert oder mit einem [url=@@URI-VIEWVC@@][b]Browser besurft werden[/b][/url]. Besuche [url=@@URI-HOME@@][b]@@URI-HOME@@[/b][/url] für weitere Informationen.

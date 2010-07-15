@@ -40,7 +40,7 @@ then
 	For each file one status line is *appended* at the end of the
 	file '$log' in the following format:
 	    STATUS JOB ID6 filename
-	JOB is an short cut which job failed and ID6 is the ID of the ISO image.
+	JOB is an shortcut which job failed and ID6 is the ID of the ISO image.
 	STATUS is one of:
 	    'NO-ISO'  : source is not an ISO.
 	    'ERR'     : a command exited with an error.

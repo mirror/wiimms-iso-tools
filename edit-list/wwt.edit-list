@@ -4,4 +4,4 @@
 ../src/wwt+wit-cmd.c ;
 @+all-source.edit-list
 @+doc.edit-list
--y 3180 ../src/wwt.c ;
+-y 2000 ../src/wwt.c ;

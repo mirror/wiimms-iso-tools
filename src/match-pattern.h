@@ -26,6 +26,7 @@
 #define WIT_MATCH_PATTERN_H 1
 
 #include "types.h"
+#include "wiidisc.h"
 
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -61,6 +62,11 @@ int  AddFilePattern ( ccp arg, int pattern_index );
 FilePattern_t * GetDefaultFilePattern();
 bool SetupFilePattern ( FilePattern_t * pat );
 bool MatchFilePattern ( FilePattern_t * pat, ccp text );
+
+int MatchFilePatternFST
+(
+	struct wd_iterator_t *it	// iterator struct with all infos
+);
 
 ///////////////////////////////////////////////////////////////////////////////
 // low level match pattern function

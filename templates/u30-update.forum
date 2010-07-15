@@ -19,7 +19,7 @@
 [*] [url=@@URI-WIIJMANAGER@@][b]WiiJManager Multiplatform[/b], ein WBFS-Manager[/url]
     Dieses Java basierte GUI arbeitet wie andere WBFS-Manager. Umwandlung von einzelnen Wii ISO dics ist auch möglich.
 
-[*] [url=@@URI-QTWITGUI@@][b]qtwitgui[/b], Berarbetung einzelner Wii ISO discs.[/url]
+[*] [url=@@URI-QTWITGUI@@][b]QtWitGui[/b], Berarbetung einzelner Wii ISO discs.[/url]
     Dieses QT basierte GUI bietet Dinge rund um die Bearbeitung (Kopieren, modifizieren) von einzelnen WIi ISO discs.
 [/list]
 
@@ -33,5 +33,4 @@
 @@MODULE(last-history.txt)@@
 [/pre]
 
-Die Quellen stehen unter der GPL2 Lizenz. Die Quellen können direkt aus dem [url=@@URI-REPOS@@][b]SVN repository[/b][/url] ausgechecked werden oder mit einem [url=@@URI-VIEWVC@@][b]Browser besurft werden[/b][/url].
-Besuche [url=@@URI-HOME@@][b]@@URI-HOME@@[/b][/url] für weitere Informationen.
+Die Quellen stehen unter der GPL2 Lizenz. Die Quellen können direkt aus dem [url=@@URI-REPOS@@][b]SVN repository[/b][/url] ausgechecked werden oder mit einem [url=@@URI-VIEWVC@@][b]Browser besurft werden[/b][/url]. Besuche [url=@@URI-HOME@@][b]@@URI-HOME@@[/b][/url] für weitere Informationen.

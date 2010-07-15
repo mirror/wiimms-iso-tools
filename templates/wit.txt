@@ -34,7 +34,7 @@ Contents:
 *******************************************************************************
 *******                      Output of 'wit --help'                   *********
 *******************************************************************************
-@@EXEC(./wit --help)@@
+@@EXEC(./wit --width 80 --help)@@
 
 
 *******************************************************************************
@@ -63,7 +63,7 @@ are listed in alphabetic order:
 
 
 -------------------------------------------------------------------------------
-@@EXEC(./wit help COPY)@@
+@@EXEC(./wit help --width 80 COPY)@@
 
  The command COPY copies all given sources into the destination (directory).
  If the option --dest is not set the last parameter is used as destination.
@@ -112,7 +112,7 @@ are listed in alphabetic order:
 
 
 -------------------------------------------------------------------------------
-@@EXEC(./wit help DIFF)@@
+@@EXEC(./wit help --width 80 DIFF)@@
 
  The command DIFF compares all given sources agains a destination (directory).
  If the option --dest is not set the last parameter is used as destination.
@@ -150,7 +150,7 @@ are listed in alphabetic order:
 
 
 -------------------------------------------------------------------------------
-@@EXEC(./wit help DUMP)@@
+@@EXEC(./wit help --width 80 DUMP)@@
 
  DUMP will dumps the data structure of all ISO files. If the option --long is
  set an additional memory map for each partition is printed. If the option
@@ -160,7 +160,7 @@ are listed in alphabetic order:
  the end of the dump.
 
  If the option --files= is set than a file list is included into the dump.
- The rules define which files are listet. To lsit all files use "--files=+".
+ The rules define which files are listet. To list all files use "--files=+".
  The section "Selecting files with --files=rules" dicuss more details.
  The options --psel= and --raw are only used to make a pre selection of
  the partitions for the file list.
@@ -174,7 +174,7 @@ are listed in alphabetic order:
 
 
 -------------------------------------------------------------------------------
-@@EXEC(./wit help ERROR)@@
+@@EXEC(./wit help --width 80 ERROR)@@
 
  The command ERROR translate an exit code to a text message. Without parameters
  print all error names and error messages. With a given 'error_code' the error
@@ -204,7 +204,7 @@ are listed in alphabetic order:
 
 
 -------------------------------------------------------------------------------
-@@EXEC(./wit help EXCLUDE)@@
+@@EXEC(./wit help --width 80 EXCLUDE)@@
 
  The command 'EXCLUDE' builts the exclude data base and prints the result to
  stdout. The handling of the additional files works like the --exclude option.
@@ -218,7 +218,7 @@ are listed in alphabetic order:
 
 
 -------------------------------------------------------------------------------
-@@EXEC(./wit help EXTRACT)@@
+@@EXEC(./wit help --width 80 EXTRACT)@@
 
  ** no documentation yet **
 
@@ -233,7 +233,7 @@ are listed in alphabetic order:
 
 
 -------------------------------------------------------------------------------
-@@EXEC(./wit help FILELIST)@@
+@@EXEC(./wit help --width 80 FILELIST)@@
 
  The filename of each file in the internal file list is printed as one line.
  If no source is given, the current working directory is used as source.
@@ -247,7 +247,7 @@ are listed in alphabetic order:
 
 
 -------------------------------------------------------------------------------
-@@EXEC(./wit help FILETYPE)@@
+@@EXEC(./wit help --width 80 FILETYPE)@@
 
  The command 'FILETYPE' prints for each file in the internal file database
  (build by the options --source and --recurse) one status line like:
@@ -283,7 +283,7 @@ are listed in alphabetic order:
 
 
 -------------------------------------------------------------------------------
-@@EXEC(./wit help HELP)@@
+@@EXEC(./wit help --width 80 HELP)@@
 
  Usual ERROR/EXIT CODES:
 
@@ -291,7 +291,7 @@ are listed in alphabetic order:
 
 
 -------------------------------------------------------------------------------
-@@EXEC(./wit help ID6)@@
+@@EXEC(./wit help --width 80 ID6)@@
 
  The command 'ID' lists the ID6 of all discs in the internal ISO database, one
  ID per row. The internal ISO database is build under control of the options
@@ -317,7 +317,7 @@ are listed in alphabetic order:
 
 
 -------------------------------------------------------------------------------
-@@EXEC(./wit help ILIST)@@
+@@EXEC(./wit help --width 80 ILIST)@@
 
  ** no documentation yet **
 
@@ -341,7 +341,7 @@ COMMANDS:
 
 
 -------------------------------------------------------------------------------
-@@EXEC(./wit help ISOSIZE)@@
+@@EXEC(./wit help --width 80 ISOSIZE)@@
 
  The command 'ISOSIZE' prints for each file in the internal file database
  (build by the options --source and --recurse) one status line like:
@@ -380,7 +380,7 @@ COMMANDS:
 
 
 -------------------------------------------------------------------------------
-@@EXEC(./wit help LIST)@@
+@@EXEC(./wit help --width 80 LIST)@@
 
  The command 'LIST' lists infos of all discs in the internal ISO database.
  The internal ISO database is build under control of the options --source,
@@ -463,7 +463,7 @@ COMMANDS:
 
 
 -------------------------------------------------------------------------------
-@@EXEC(./wit help MOVE)@@
+@@EXEC(./wit help --width 80 MOVE)@@
 
  The command MOVE moves and/or renames all given sources. If the option --dest
  is not set the last parameter is used as destination. If exact one source file
@@ -493,7 +493,7 @@ COMMANDS:
 
 
 -------------------------------------------------------------------------------
-@@EXEC(./wit help RENAME)@@
+@@EXEC(./wit help --width 80 RENAME)@@
 
  This command 'RENAME' may change the ID6 and/or the title of discs. The
  alternative command 'SETTITLE' modifies only titles. The advantage of
@@ -513,7 +513,7 @@ COMMANDS:
 
 
 -------------------------------------------------------------------------------
-@@EXEC(./wit help SCRUB)@@
+@@EXEC(./wit help --width 80 SCRUB)@@
 
  The command SCRUB reorganize all given source files.
 
@@ -539,7 +539,7 @@ COMMANDS:
 
 
 -------------------------------------------------------------------------------
-@@EXEC(./wit help SETTITLE)@@
+@@EXEC(./wit help --width 80 SETTITLE)@@
 
  This command 'SETTITLE' may change the title of discs. The alternative
  command 'RENAME' can also change the ID of discs.
@@ -557,7 +557,7 @@ COMMANDS:
     SYNTAX ERROR   : at least one syntax error in command line found.
 
 -------------------------------------------------------------------------------
-@@EXEC(./wit help TITLES)@@
+@@EXEC(./wit help --width 80 TITLES)@@
 
  The command 'TITLES' builts the title data base and prints the result to
  stdout. The handling of the additional files works like the --title option.
@@ -571,7 +571,7 @@ COMMANDS:
 
 
 -------------------------------------------------------------------------------
-@@EXEC(./wit help VERIFY)@@
+@@EXEC(./wit help --width 80 VERIFY)@@
 
  Every 1024 bytes of user data in every partition has its own SHA1 check sum
  (called 'H0'). There are also H1 (hash of 31*H0), H2 (hash of 8*H1), H3 (hash
@@ -660,7 +660,7 @@ COMMANDS:
 
 
 -------------------------------------------------------------------------------
-@@EXEC(./wit help VERSION)@@
+@@EXEC(./wit help --width 80 VERSION)@@
 
  The command VERSION prints out the program version to standard out (stdout)
  and exit with status 0 (OK).
@@ -731,10 +731,6 @@ The option --recurse is processed before option --source.
 *******************************************************************************
 
 @@MODULE(opt-sort.txt)@@
-
--------------------------------------------------------------------------------
-
-@@MODULE(opt-psel.txt)@@
 
 
 *******************************************************************************

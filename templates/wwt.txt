@@ -32,7 +32,7 @@ Contents:
 *******************************************************************************
 *******                      Output of 'wwt --help'                   *********
 *******************************************************************************
-@@EXEC(./wwt --help)@@
+@@EXEC(./wwt --width 80 --help)@@
 
 
 *******************************************************************************
@@ -55,7 +55,7 @@ are listed in alphabetic order:
 
 
 -------------------------------------------------------------------------------
-@@EXEC(./wwt help ADD)@@
+@@EXEC(./wwt help --width 80 ADD)@@
 
  The ADD command adds all given ISO images to all given WBFS partitions. The
  filename '-' means 'read from stdin'. The three options --all, --auto and
@@ -109,7 +109,7 @@ are listed in alphabetic order:
 
 
 -------------------------------------------------------------------------------
-@@EXEC(./wwt help ANALYZE)@@
+@@EXEC(./wwt help --width 80 ANALYZE)@@
 
  The ANALYZE command analyze files and partitions and prints out the geometry.
  The files are niot modified and opened readonly.
@@ -144,8 +144,8 @@ are listed in alphabetic order:
             - INODE-CNT: The inodes with the largest equal-inodes-count.
             - INODE-1ST: The first inodes found if not already printed.
         - DISCS:   Result of searching discs in the WBFS management area.
-        - CALC #:  Example calculation of the INIT function.
-        - OLD #:   Example calculation with the old buggy algorithm.
+        - CALC #:  Example calculation of the INIT function. (see option --long)
+        - OLD #:   Example calculation with the old buggy algorithm. (see option --long)
 
     WBFS magic:
         "ok" if a WBFS magic was found.
@@ -186,7 +186,7 @@ are listed in alphabetic order:
 
 
 -------------------------------------------------------------------------------
-@@EXEC(./wwt help CHECK)@@
+@@EXEC(./wwt help --width 80 CHECK)@@
 
  Command CHECKS checks WBFS partions for block errors in 5 categories:
    - Find discs with invalid blocks.
@@ -230,7 +230,7 @@ are listed in alphabetic order:
 
 
 -------------------------------------------------------------------------------
-@@EXEC(./wwt help DUMP)@@
+@@EXEC(./wwt help --width 80 DUMP)@@
 
  The DUMP command dumps out the data structure of all WBFS. data. The three
  options --all, --auto and --part decides where partitions will be searched
@@ -262,7 +262,7 @@ are listed in alphabetic order:
 
 
 -------------------------------------------------------------------------------
-@@EXEC(./wwt help EDIT)@@
+@@EXEC(./wwt help --width 80 EDIT)@@
 
  EDIT is a dangerous command. It let you (de-)activate the disc slots and
  edit the block assignments. Exactly 1 WBFS must be specified. All parameters
@@ -326,7 +326,7 @@ are listed in alphabetic order:
 
 
 -------------------------------------------------------------------------------
-@@EXEC(./wwt help ERROR)@@
+@@EXEC(./wwt help --width 80 ERROR)@@
 
  The command ERROR translate an exit code to a text message. Without parameters
  print all error names and error messages. With a given 'error_code' the error
@@ -356,7 +356,7 @@ are listed in alphabetic order:
 
 
 -------------------------------------------------------------------------------
-@@EXEC(./wwt help EXCLUDE)@@
+@@EXEC(./wwt help --width 80 EXCLUDE)@@
 
  The command 'EXCLUDE' builts the exclude data base and prints the result to
  stdout. The handling of the additional files works like the --exclude option.
@@ -370,7 +370,7 @@ are listed in alphabetic order:
 
 
 -------------------------------------------------------------------------------
-@@EXEC(./wwt help EXTRACT)@@
+@@EXEC(./wwt help --width 80 EXTRACT)@@
 
  The EXTRACT command extracts all discs identified by ID6 from all given WBFS
  partitions. The options --all, --auto and --part decides which partitions
@@ -450,7 +450,7 @@ are listed in alphabetic order:
 
 
 -------------------------------------------------------------------------------
-@@EXEC(./wwt help FILETYPE)@@
+@@EXEC(./wwt help --width 80 FILETYPE)@@
 
  The command 'FILETYPE' prints for each given file one status line like:
     FILETYPE ID6 SIZE_MIB REGION SPLIT FILENAME
@@ -485,7 +485,7 @@ are listed in alphabetic order:
 
 
 -------------------------------------------------------------------------------
-@@EXEC(./wwt help FIND)@@
+@@EXEC(./wwt help --width 80 FIND)@@
 
  The FIND command makes a quick search for WBFS partitions: it scans only the
  WBFS-Header. The three options --all, --auto and --part decides where partitions
@@ -533,7 +533,7 @@ are listed in alphabetic order:
 
 
 -------------------------------------------------------------------------------
-@@EXEC(./wwt help FORMAT)@@
+@@EXEC(./wwt help --width 80 FORMAT)@@
 
  The command FORMAT format block devices and plain files with a WBFS. All data
  on the destination will be lost.
@@ -589,7 +589,7 @@ are listed in alphabetic order:
 
 
 -------------------------------------------------------------------------------
-@@EXEC(./wwt help HELP)@@
+@@EXEC(./wwt help --width 80 HELP)@@
 
  Usual ERROR/EXIT CODES:
 
@@ -597,7 +597,7 @@ are listed in alphabetic order:
 
 
 -------------------------------------------------------------------------------
-@@EXEC(./wwt help ID6)@@
+@@EXEC(./wwt help --width 80 ID6)@@
 
  The command 'ID6' lists the ID6 of all discs for each partition, one ID per row.
  The three options --all, --auto and --part decides where partitions
@@ -624,7 +624,7 @@ are listed in alphabetic order:
 
 
 -------------------------------------------------------------------------------
-@@EXEC(./wwt help LIST)@@
+@@EXEC(./wwt help --width 80 LIST)@@
 
  The command 'LIST' lists infos of all discs for each partition, one disc per
  row. The three options --all, --auto and --part decides where partitions will
@@ -718,7 +718,7 @@ COMMANDS:
 
 
 -------------------------------------------------------------------------------
-@@EXEC(./wwt help PHANTOM)@@
+@@EXEC(./wwt help --width 80 PHANTOM)@@
 
  The PHANTOM commands adds multiple discs to WBFS partitions. The content of
  the discs is undefined, only the WBFS inode and the ISO header (first 256
@@ -764,7 +764,7 @@ COMMANDS:
 
 
 -------------------------------------------------------------------------------
-@@EXEC(./wwt help RECOVER)@@
+@@EXEC(./wwt help --width 80 RECOVER)@@
 
  The command RECOVER tries to recover presious removed discs. It recover only
  discs without block collisions (2 ore mor discs shares the same memory).
@@ -792,7 +792,7 @@ COMMANDS:
 
 
 -------------------------------------------------------------------------------
-@@EXEC(./wwt help REMOVE)@@
+@@EXEC(./wwt help --width 80 REMOVE)@@
 
  The REMOVE command removes all discs identified by ID6 from all given WBFS
  partitions. The options --all, --auto and --part decides which partitions
@@ -841,7 +841,7 @@ COMMANDS:
 
 
 -------------------------------------------------------------------------------
-@@EXEC(./wwt help RENAME)@@
+@@EXEC(./wwt help --width 80 RENAME)@@
 
  This command 'RENAME' may change the ID6 and/or the title of discs. It can
  change the information in the WBFS inode or the information in the ISO header
@@ -859,7 +859,7 @@ COMMANDS:
 
 
 -------------------------------------------------------------------------------
-@@EXEC(./wwt help REPAIR)@@
+@@EXEC(./wwt help --width 80 REPAIR)@@
 
  Command REPAIR checks and repairs WBFS partions for block errors. By default
  errors in the 'free blocks table' will be fixed. See command CHECK for details.
@@ -874,7 +874,7 @@ COMMANDS:
 
 
 -------------------------------------------------------------------------------
-@@EXEC(./wwt help SETTITLE)@@
+@@EXEC(./wwt help --width 80 SETTITLE)@@
 
  This command 'SETTITLE' may change the title of discs. It can change the
  information in the WBFS inode or the information in the ISO header or both
@@ -890,7 +890,7 @@ COMMANDS:
 
 
 -------------------------------------------------------------------------------
-@@EXEC(./wwt help SPACE)@@
+@@EXEC(./wwt help --width 80 SPACE)@@
 
  The SPACE command makes a quick search for WBFS partitions: it scans only the
  WBFS-Header. The three options --all, --auto and --part decides where partitions
@@ -921,7 +921,7 @@ COMMANDS:
 
 
 -------------------------------------------------------------------------------
-@@EXEC(./wwt help SYNC)@@
+@@EXEC(./wwt help --width 80 SYNC)@@
 
 COMMAND: SYNC  iso_image_path...
 
@@ -932,7 +932,7 @@ See command 'ADD' for options and details.
 
 
 -------------------------------------------------------------------------------
-@@EXEC(./wwt help TITLES)@@
+@@EXEC(./wwt help --width 80 TITLES)@@
 
  The command 'TITLES' builts the title data base and prints the result to
  stdout. The handling of the additional files works like the --title option.
@@ -946,7 +946,7 @@ See command 'ADD' for options and details.
 
 
 -------------------------------------------------------------------------------
-@@EXEC(./wwt help TOUCH)@@
+@@EXEC(./wwt help --width 80 TOUCH)@@
 
  The TOUCH command changes the time stamps in rhe WBFS inodes of all discs
  identified by ID6 from all given WBFS partitions. The options --all, --auto
@@ -1015,7 +1015,7 @@ See command 'ADD' for options and details.
     READ ERROR          : error while reading an ISO image or a WBFS.
 
 -------------------------------------------------------------------------------
-@@EXEC(./wwt help SPACE)@@
+@@EXEC(./wwt help --width 80 SPACE)@@
 
  The SPACE command makes a quick search for WBFS partitions: it scans only the
  WBFS-Header. The three options --all, --auto and --part decides where partitions
@@ -1046,7 +1046,7 @@ See command 'ADD' for options and details.
 
 
 -------------------------------------------------------------------------------
-@@EXEC(./wwt help TRUNCATE)@@
+@@EXEC(./wwt help --width 80 TRUNCATE)@@
 
  The command TRUNCATE truncates WBFS to a minmal size. This is done by
  calculating the last used block within th WBFS. The WBFS is still valid
@@ -1068,7 +1068,7 @@ See command 'ADD' for options and details.
 
 
 -------------------------------------------------------------------------------
-@@EXEC(./wwt help UPDATE)@@
+@@EXEC(./wwt help --width 80 UPDATE)@@
 
 'UPDATE' is the same as 'ADD --update'. The command 'UPDATE' does not accept
 the options --update and --overwrite.
@@ -1077,7 +1077,7 @@ See command 'ADD' for options and details.
 
 
 -------------------------------------------------------------------------------
-@@EXEC(./wwt help VERIFY)@@
+@@EXEC(./wwt help --width 80 VERIFY)@@
 
  Every 1024 bytes of user data in every partition has its own SHA1 check sum
  (called 'H0'). There are also H1 (hash of 31*H0), H2 (hash of 8*H1), H3 (hash
@@ -1116,7 +1116,7 @@ See command 'ADD' for options and details.
 
 
 -------------------------------------------------------------------------------
-@@EXEC(./wwt help VERSION)@@
+@@EXEC(./wwt help --width 80 VERSION)@@
 
  The command VERSION prints out the program version to standard out (stdout)
  and exit with status 0 (OK).
@@ -1191,10 +1191,6 @@ option --auto is set automatically.
 *******************************************************************************
 
 @@MODULE(opt-sort.txt)@@
-
--------------------------------------------------------------------------------
-
-@@MODULE(opt-psel.txt)@@
 
 
 *******************************************************************************

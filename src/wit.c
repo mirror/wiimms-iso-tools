@@ -57,7 +57,8 @@
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-#define TITLE WIT_SHORT ": " WIT_LONG " v" VERSION " r" REVISION " " SYSTEM " - " AUTHOR " - " DATE
+#define TITLE WIT_SHORT ": " WIT_LONG " v" VERSION " r" REVISION \
+	" " SYSTEM " - " AUTHOR " - " DATE
 
 int  print_sections	= 0;
 int  long_count		= 0;
@@ -96,14 +97,15 @@ void version_exit()
 	fputs("[version]\n",stdout);
 
     if ( print_sections || long_count )
-	fputs(	"prog=" WIT_SHORT "\n"
+	printf(	"prog=" WIT_SHORT "\n"
 		"name=\"" WIT_LONG "\"\n"
 		"version=" VERSION "\n"
+		"beta=%d\n"
 		"revision=" REVISION  "\n"
 		"system=" SYSTEM "\n"
 		"author=\"" AUTHOR "\"\n"
 		"date=" DATE "\n"
-		, stdout );
+		, BETA_VERSION );
     else
 	fputs( TITLE "\n", stdout );
     exit(ERR_OK);
@@ -238,7 +240,7 @@ enumError exec_filetype ( SuperFile_t * sf, Iterator_t * it )
 	if (sf->f.id6[0])
 	{
 	    region = GetRegionInfo(sf->f.id6[3])->name4;
-	    u32 count = CountUsedIsoBlocksSF(sf,partition_selector);
+	    u32 count = CountUsedIsoBlocksSF(sf,part_selector);
 	    if (count)
 		snprintf(size,sizeof(size),"%4u",
 			(count+WII_SECTORS_PER_MIB/2)/WII_SECTORS_PER_MIB);
@@ -312,6 +314,14 @@ enumError exec_isosize ( SuperFile_t * sf, Iterator_t * it )
     ASSERT(sf);
     ASSERT(it);
 
+    wd_disc_t * disc = 0;
+    if (sf->f.id6[0])
+    {
+	disc = OpenDiscSF(sf,true,true);
+	if (disc)
+	    wd_filter_usage_table_sel(disc,wdisc_usage_tab,part_selector);
+    }
+
     const bool print_header = !(used_options&OB_NO_HEADER);
 
     if ( it->long_count > 1 )
@@ -324,16 +334,16 @@ enumError exec_isosize ( SuperFile_t * sf, Iterator_t * it )
 		it->long_count > 2 ? "real path" : "filename", sep_79 );
 
 	char size[30] = "     -    -     -    -";
-	if (sf->f.id6[0])
+	if (disc)
 	{
-	    u32 count = CountUsedIsoBlocksSF(sf,partition_selector);
+	    const u32 count = wd_count_used_blocks(wdisc_usage_tab,1);
 	    if (count)
 	    {
 		// wbfs: size=10g => block size = 2 MiB
-		u32 wfile = 1 + CountUsedBlocks( wdisc_usage_tab,
+		const u32 wfile = 1 + wd_count_used_blocks( wdisc_usage_tab,
 						2 * WII_SECTORS_PER_MIB );
 		// wbfs: size=500g => block size = 8 MiB
-		u32 w500 =  CountUsedBlocks( wdisc_usage_tab,
+		const u32 w500 =  wd_count_used_blocks( wdisc_usage_tab,
 						8 * WII_SECTORS_PER_MIB );
 
 		snprintf(size,sizeof(size),"%6u %4u %5u %4u",
@@ -354,7 +364,7 @@ enumError exec_isosize ( SuperFile_t * sf, Iterator_t * it )
 	char size[20] = "     -    -";
 	if (sf->f.id6[0])
 	{
-	    u32 count = CountUsedIsoBlocksSF(sf,partition_selector);
+	    const u32 count = wd_count_used_blocks(wdisc_usage_tab,1);
 	    if (count)
 		snprintf(size,sizeof(size),"%6u %4u",
 			count, (count+WII_SECTORS_PER_MIB/2)/WII_SECTORS_PER_MIB);
@@ -372,7 +382,7 @@ enumError exec_isosize ( SuperFile_t * sf, Iterator_t * it )
 	char size[20] = "     -";
 	if (sf->f.id6[0])
 	{
-	    u32 count = CountUsedIsoBlocksSF(sf,partition_selector);
+	    const u32 count = wd_count_used_blocks(wdisc_usage_tab,1);
 	    if (count)
 		snprintf(size,sizeof(size),"%6u",count);
 	}
@@ -430,13 +440,13 @@ enumError exec_dump ( SuperFile_t * sf, Iterator_t * it )
     fflush(0);
 
     if ( sf->f.ftype & FT_A_ISO )
-	return Dump_ISO(stdout,0,sf,it->real_path,show_mode,it->long_count);
+	return Dump_ISO(stdout,0,sf,it->real_path,opt_show_mode,it->long_count);
 
     if ( sf->f.ftype & FT_ID_DOL )
 	return Dump_DOL(stdout,0,sf,it->real_path);
 
     if ( sf->f.ftype & FT_ID_FST_BIN )
-	return Dump_FST_BIN(stdout,0,sf,it->real_path);
+	return Dump_FST_BIN(stdout,0,sf,it->real_path,opt_show_mode);
 
     if ( sf->f.ftype & FT_ID_TIK_BIN )
 	return Dump_TIK_BIN(stdout,0,sf,it->real_path);
@@ -513,7 +523,7 @@ enumError cmd_dregion()
     encoding |= ENCODE_F_FAST; // hint: no encryption needed
 
     printf("R   ID  off=%-8x    +4       +8       +c      +10      +14      +18      +1c\n"
-	   "%.80s\n", WII_REGION_OFF, sep_200 );
+	   "%.80s\n", WII_REGION_OFF, wd_sep_200 );
     Iterator_t it;
     InitializeIterator(&it);
     it.func		= exec_dregion;
@@ -539,14 +549,7 @@ enumError exec_collect ( SuperFile_t * sf, Iterator_t * it )
 
     WDiscInfo_t wdi;
     InitializeWDiscInfo(&wdi);
-    enumError err = ReadSF(sf,0,&wdi.dhead,sizeof(wdi.dhead));
-    if (err)
-	return err;
     CalcWDiscInfo(&wdi,sf);
-
-    err = CountPartitions(sf,&wdi);
-    if (err)
-	return err;
 
     WDiscList_t * wl = it->wlist;
     WDiscListItem_t * item = AppendWDiscList(wl,&wdi);
@@ -729,14 +732,14 @@ enumError cmd_list ( int long_level )
 
 	    if ( max_name_wd < footer_len )
 		max_name_wd = footer_len;
-	    printf("%.*s\n", max_name_wd, sep_200);
+	    printf("%.*s\n", max_name_wd, wd_sep_200);
 	}
 
 	for ( witem = wlist.first_disc; witem < wend; witem++ )
 	{
-	    printf("%s%s %4d %s  %s\n",
+ 	    printf("%s%s %4d %s  %s\n",
 		    witem->id6, PrintTime(&pt,&witem->fatt),
-		    witem->size_mib, witem->region4,
+		    witem->size_mib, GetRegionInfo(witem->id6[3])->name4,
 		    witem->title ? witem->title : witem->name64 );
 	    if (line2)
 		printf("%s%9d %7s %s\n",
@@ -755,7 +758,7 @@ enumError cmd_list ( int long_level )
 	    max_name_wd += n1;
 	    if ( max_name_wd < n2 )
 		max_name_wd = n2;
-	    printf("%.*s\n", max_name_wd, sep_200 );
+	    printf("%.*s\n", max_name_wd, wd_sep_200 );
 	}
 
 	for ( witem = wlist.first_disc; witem < wend; witem++ )
@@ -764,7 +767,7 @@ enumError cmd_list ( int long_level )
     }
 
     if (print_header)
-	printf("%.*s\n%s\n\n", max_name_wd, sep_200, footer );
+	printf("%.*s\n%s\n\n", max_name_wd, wd_sep_200, footer );
 
     ResetWDiscList(&wlist);
     return ERR_OK;
@@ -776,93 +779,38 @@ enumError cmd_list ( int long_level )
 enumError exec_ilist ( SuperFile_t * fi, Iterator_t * it )
 {
     ASSERT(fi);
+    if ( fi->f.ftype & FT_ID_FST_BIN )
+	return Dump_FST_BIN(stdout,0,fi,it->real_path,it->show_mode&~SHOW_INTRO);
+
+    if ( fi->f.ftype & FT__SPC_MASK )
+    {
+	if ( !(used_options & OB_IGNORE) )
+	    PrintErrorFT(&fi->f,FT_A_ISO);
+	return ERR_OK;
+    }
 
     if (!fi->f.id6[0])
 	return ERR_OK;
 
-    wiidisc_t * disc = wd_open_disc(WrapperReadSF,fi);
+    wd_disc_t * disc = OpenDiscSF(fi,true,true);
     if (!disc)
-	return ERROR0(ERR_CANT_OPEN,"Can't open file: %s\n",fi->f.fname);
+	return ERR_WDISC_NOT_FOUND;
+    wd_select(disc,part_selector);
+
+    char prefix[PATH_MAX];
+    if ( it->show_mode & SHOW_PATH )
+	PathCatPP(prefix,sizeof(prefix),fi->f.fname,"/");
+    else
+	*prefix = 0;
 
     WiiFst_t fst;
     InitializeFST(&fst);
-
-    IsoFileIterator_t ifi;
-    memset(&ifi,0,sizeof(ifi));
-    ifi.sf  = fi;
-    ifi.pat = GetDefaultFilePattern();
-    ifi.fst = &fst;
-
-    wd_iterate_files(disc,partition_selector,prefix_mode,CollectFST,&ifi,0,0);
-    wd_close_disc(disc);
-
-    WiiFstPart_t *part, *part_end = fst.part + fst.part_used;
-
-    if ( !(used_options & OB_NO_HEADER) )
-    {
-	ccp head = it->long_count > 1 ? "iso & partition & file" : "partition & file";
-	const int hlen = strlen(head);
-	if ( fst.max_path_len < hlen )
-	     fst.max_path_len = hlen;
-
-	u32 file_used = 0;
-	for ( part = fst.part; part < part_end; part++ )
-	    file_used += part->file_used;
-	
-	if (file_used)
-	{
-	    const u32 total = fst.files_served + fst.dirs_served;
-	    if ( file_used < total )
-		printf("\n%u of %u dirs+files of %s:%s\n\n",
-			file_used, total, oft_name[ifi.sf->iod.oft], ifi.sf->f.fname );
-	    else
-		printf("\nall %u dirs+files of ISO %s\n\n",
-			file_used, ifi.sf->f.fname );
-
-	    if ( it->long_count > 1 )
-		printf("    size %s\n%.*s\n",
-			head, (int)strlen(ifi.sf->f.fname)+fst.max_path_len+10, sep_200 );
-	    else if (it->long_count)
-		printf("    size %s\n%.*s\n",head,fst.max_path_len+9,sep_200);
-	    else
-		printf("%s\n%.*s\n",head,fst.max_path_len,sep_200);
-	}
-    }
-
+    CollectFST(&fst,disc,GetDefaultFilePattern(),false,prefix_mode,true);
     SortFST(&fst,sort_mode,SORT_NAME);
-
-    for ( part = fst.part; part < part_end; part++ )
-    {
-	WiiFstFile_t * ptr = part->file;
-	WiiFstFile_t * end = ptr + part->file_used;
-
-	if ( it->long_count )
-	{
-	    for ( ; ptr < end; ptr++ )
-	    {
-		if ( ptr->icm == ICM_DIRECTORY )
-		    fputs("       -",stdout);
-		else if ( ptr->size < 100000000 )
-		    printf("%8u",ptr->size);
-		else
-		    printf("%7uK",ptr->size/KiB);
-
-		if ( it->long_count > 1 )
-		    printf(" %s/%s%s\n",fi->f.fname,part->path,ptr->path);
-		else
-		    printf(" %s%s\n",part->path,ptr->path);
-	    }
-	}
-	else if ( used_options & OB_NO_HEADER && it->source_list.used > 1 )
-	    for ( ; ptr < end; ptr++ )
-		printf("%s/%s%s\n",fi->f.fname,part->path,ptr->path);
-	else
-	    for ( ; ptr < end; ptr++ )
-		printf("%s%s\n",part->path,ptr->path);
-    }
-
+    DumpFilesFST(stdout,0,&fst,ConvertShow2PFST(it->show_mode,0),prefix);
     ResetFST(&fst);
-    return ERR_OK;
+
+    return disc->invalid_part ? ERR_WDISC_INVALID : ERR_OK;
 }
 
 //-----------------------------------------------------------------------------
@@ -883,10 +831,26 @@ enumError cmd_ilist ( int long_level )
 
     Iterator_t it;
     InitializeIterator(&it);
-    it.act_non_iso	= used_options & OB_IGNORE ? ACT_IGNORE : ACT_WARN;
+    //it.act_non_iso	= used_options & OB_IGNORE ? ACT_IGNORE : ACT_WARN;
+    it.act_non_iso	= ACT_ALLOW;
     it.act_wbfs		= ACT_EXPAND;
     it.act_fst		= allow_fst ? ACT_EXPAND : ACT_IGNORE;
     it.long_count	= long_count;
+
+    if ( it.show_mode & SHOW__DEFAULT )
+    {
+	switch (long_count)
+	{
+	    case 0:  it.show_mode = SHOW_F_HEAD; break;
+	    case 1:  it.show_mode = SHOW_F_HEAD | SHOW_SIZE | SHOW_F_DEC; break;
+	    case 2:  it.show_mode = SHOW_F_HEAD | SHOW__ALL & ~SHOW_PATH; break;
+	    default: it.show_mode = SHOW_F_HEAD | SHOW__ALL; break;
+	}
+    }
+    if ( used_options & OB_NO_HEADER )
+	it.show_mode &= ~SHOW_F_HEAD;
+    if ( it.show_mode & (SHOW_F_DEC|SHOW_F_HEX) )
+	it.show_mode |= SHOW_SIZE;
 
     enumError err = SourceIterator(&it,0,false,true);
     if ( err <= ERR_WARNING )
@@ -896,7 +860,7 @@ enumError cmd_ilist ( int long_level )
     }
     ResetIterator(&it);
 
-    if ( !(used_options & OB_NO_HEADER) )
+    if ( it.show_mode & SHOW_F_HEAD )
 	putchar('\n');
     return err;
 }
@@ -939,7 +903,7 @@ enumError exec_diff ( SuperFile_t * f1, Iterator_t * it )
     f2.show_summary	= verbose > 0 || progress;
     f2.show_msec	= verbose > 2;
 
-    const bool raw_mode = partition_selector == WHOLE_DISC || !f1->f.id6[0];
+    const bool raw_mode = part_selector & WD_SEL_WHOLE_DISC || !f1->f.id6[0];
     if (testmode)
     {
 	printf( "%s: WOULD DIFF/%s %s:%s : %s:%s\n",
@@ -958,7 +922,7 @@ enumError exec_diff ( SuperFile_t * f1, Iterator_t * it )
 		oft_name[f2.iod.oft], f2.f.fname );
     }
 
-    const partition_selector_t psel = raw_mode ? WHOLE_DISC : partition_selector;
+    const wd_select_t psel = raw_mode ? WD_SEL_WHOLE_DISC : part_selector;
     FilePattern_t * pat = GetDefaultFilePattern();
     err = SetupFilePattern(pat)
 		? DiffFilesSF( f1, &f2, it->long_count, pat, psel, prefix_mode )
@@ -1005,6 +969,9 @@ enumError cmd_diff()
     if ( output_file_type == OFT_FST && !allow_fst )
 	output_file_type = OFT_UNKNOWN;
 
+    if ( prefix_mode <= WD_IPM_AUTO )
+	prefix_mode = WD_IPM_PART_NAME;
+
     FilePattern_t * pat = GetDefaultFilePattern();
     if (SetupFilePattern(pat))
 	encoding |= ENCODE_F_FAST; // hint: no encryption needed
@@ -1049,9 +1016,9 @@ enumError exec_extract ( SuperFile_t * fi, Iterator_t * it )
 	return ERR_OK;
     fflush(0);
 
-    wiidisc_t * disc = wd_open_disc(WrapperReadSF,fi);
+    wd_disc_t * disc = OpenDiscSF(fi,true,true);
     if (!disc)
-	return ERROR0(ERR_CANT_OPEN,"Can't open file: %s\n",fi->f.fname);
+	return ERR_WDISC_NOT_FOUND;
 
     char dest_path[PATH_MAX];
     SubstFileNameBuf(dest_path,sizeof(dest_path)-1,fi,0,opt_dest,OFT_UNKNOWN);
@@ -1088,29 +1055,19 @@ enumError exec_extract ( SuperFile_t * fi, Iterator_t * it )
 
     WiiFst_t fst;
     InitializeFST(&fst);
-
-    IsoFileIterator_t ifi;
-    memset(&ifi,0,sizeof(ifi));
-    ifi.sf  = fi;
-    ifi.pat = GetDefaultFilePattern();
-    ifi.fst = &fst;
-
-    wd_iterate_files(disc,partition_selector,prefix_mode,CollectFST,&ifi,0,0);
+    CollectFST(&fst,disc,GetDefaultFilePattern(),false,prefix_mode,false);
     SortFST(&fst,sort_mode,SORT_OFFSET);
 
     WiiFstInfo_t wfi;
     memset(&wfi,0,sizeof(wfi));
     wfi.sf		= fi;
-    wfi.disc		= disc;
     wfi.fst		= &fst;
     wfi.set_time	= used_options & OB_PRESERVE ? &fi->f.fatt : 0;;
     wfi.overwrite	= it->overwrite;
     wfi.verbose		= long_count > 0 ? long_count : verbose > 0 ? 1 : 0;
 
-    TRACE("sf=%p, disc=%p, set_time=%p\n",fi,disc,wfi.set_time);
     const enumError err	= CreateFST(&wfi,dest_path);
 
-    wd_close_disc(disc);
     ResetFST(&fst);
     return err;
 }
@@ -1210,7 +1167,7 @@ enumError exec_copy ( SuperFile_t * fi, Iterator_t * it )
     snprintf(count_buf,sizeof(count_buf), "%*u/%u",
 		(int)strlen(count_buf), it->source_index+1, it->source_list.used );
 
-    const bool raw_mode = partition_selector == WHOLE_DISC || !fi->f.id6[0];
+    const bool raw_mode = part_selector & WD_SEL_WHOLE_DISC || !fi->f.id6[0];
     if (testmode)
     {
 	if (scrub_it)
@@ -1257,7 +1214,8 @@ enumError exec_copy ( SuperFile_t * fi, Iterator_t * it )
     if (err)
 	goto abort;
 
-    err = CopySF( fi, &fo, raw_mode ? WHOLE_DISC : partition_selector );
+    //MarkMinSizeSF(&fo,fi->file_size); // [2do] [obsolete]
+    err = CopySF( fi, &fo, raw_mode ? WD_SEL_WHOLE_DISC : part_selector );
     if (err)
 	goto abort;
 
@@ -1774,6 +1732,7 @@ enumError CheckOptions ( int argc, char ** argv, bool is_env )
 	case GO_VERSION:	version_exit();
 	case GO_HELP:		help_exit(false);
 	case GO_XHELP:		help_exit(true);
+	case GO_WIDTH:		err += ScanOptWidth(optarg); break;
 	case GO_QUIET:		verbose = verbose > -1 ? -1 : verbose - 1; break;
 	case GO_VERBOSE:	verbose = verbose <  0 ?  0 : verbose + 1; break;
 	case GO_PROGRESS:	progress++; break;
@@ -1798,7 +1757,8 @@ enumError CheckOptions ( int argc, char ** argv, bool is_env )
 	case GO_IGNORE:		ignore_count++; break;
 	case GO_IGNORE_FST:	allow_fst = false; break;
 
-	case GO_RAW:		partition_selector = WHOLE_DISC; break;
+	case GO_PSEL:		err += ScanOptPartSelector(optarg); break;
+	case GO_RAW:		part_selector = WD_SEL_WHOLE_DISC; break;
 	case GO_SNEEK:		SetupSneekMode(); break;
 	case GO_HOOK:		hook_enabled = true; break;
 	case GO_ENC:		err += ScanOptEncoding(optarg); break;
@@ -1810,7 +1770,8 @@ enumError CheckOptions ( int argc, char ** argv, bool is_env )
 	case GO_DEST:		opt_dest = optarg; break;
 	case GO_DEST2:		opt_dest = optarg; opt_mkdir = true; break;
 	case GO_SPLIT:		opt_split++; break;
-	case GO_SPLIT_SIZE:	err += ScanSplitSize(optarg); break;
+	case GO_SPLIT_SIZE:	err += ScanOptSplitSize(optarg); break;
+	case GO_TRUNC:		opt_truncate++; break;
 	case GO_CHUNK_MODE:	err += ScanChunkMode(optarg); break;
 	case GO_CHUNK_SIZE:	err += ScanChunkSize(optarg); break;
 	case GO_MAX_CHUNKS:	err += ScanMaxChunks(optarg); break;
@@ -1841,16 +1802,6 @@ enumError CheckOptions ( int argc, char ** argv, bool is_env )
 	    if (ScanSizeOptU32(&opt_recurse_depth,optarg,1,0,
 			    "rdepth",0,MAX_RECURSE_DEPTH,0,0,true))
 		err++;
-	    break;
-
-	case GO_PSEL:
-	    {
-		const int new_psel = ScanPartitionSelector(optarg);
-		if ( new_psel == -1 )
-		    err++;
-		else
-		    partition_selector = new_psel;
-	    }
 	    break;
 
 	case GO_PMODE:
@@ -1888,6 +1839,9 @@ enumError CheckOptions ( int argc, char ** argv, bool is_env )
 
       }
     }
+    if ( used_options & OB_NO_HEADER )
+	opt_show_mode &= ~SHOW_F_HEAD;
+
  #ifdef DEBUG
     DumpUsedOptions(&InfoUI,TRACE_FILE,11);
  #endif
@@ -1933,7 +1887,7 @@ enumError CheckCommand ( int argc, char ** argv )
 	hint_exit(ERR_SYNTAX);
     }
 
-    TRACE("COMMAND FOUND: #%d = %s\n",cmd_ct->id,cmd_ct->name1);
+    TRACE("COMMAND FOUND: #%lld = %s\n",(u64)cmd_ct->id,cmd_ct->name1);
 
     enumError err = VerifySpecificOptions(&InfoUI,cmd_ct);
     if (err)

@@ -43,9 +43,10 @@ typedef enum enumOptions
 	OPT_VERSION,
 	OPT_HELP,
 	OPT_XHELP,
+	OPT_WIDTH,
 	OPT_IO,
 
-	OPT__N_TOTAL // == 5
+	OPT__N_TOTAL // == 6
 
 } enumOptions;
 
@@ -75,6 +76,7 @@ typedef enum enumGetOpt
 	GO_HELP			= 'h',
 
 	GO_XHELP		= 0x80,
+	GO_WIDTH,
 	GO_IO,
 
 } enumGetOpt;

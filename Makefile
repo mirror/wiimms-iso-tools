@@ -15,13 +15,20 @@ WIT_LONG		= Wiimms ISO Tool
 WWT_SHORT		= wwt
 WWT_LONG		= Wiimms WBFS Tool
 
-VERSION			= 1.01c
+VERSION_NUM		= 1.10a
+BETA_VERSION		= 0
 
 URI_HOME		= http://wit.wiimm.de/
 URI_DOWNLOAD		= http://wit.wiimm.de/download
 URI_FILE		= http://wit.wiimm.de/file
+
+ifeq ($(BETA_VERSION),0)
 URI_REPOS		= http://opensvn.wiimm.de/wii/trunk/wiimms-iso-tools/
-URI_VIEWVC		= http://wit.wiimm.de/viewvc
+URI_VIEWVC		= http://wit.wiimm.de/r/viewvc
+else
+URI_REPOS		= http://opensvn.wiimm.de/wii/branches/public/wiimms-iso-tools/
+URI_VIEWVC		= http://wit.wiimm.de/r/viewvc-beta
+endif
 
 URI_WDF			= http://wit.wiimm.de/r/wdf
 URI_CISO		= http://wit.wiimm.de/r/ciso
@@ -38,6 +45,19 @@ DUMMY			:= $(shell $(SHELL) ./setup.sh)
 include Makefile.setup
 
 #-------------------------------------------------------------------------------
+# version+beta settings
+
+ifeq ($(BETA_VERSION),0)
+BETA_SUFFIX	:=
+else ifeq ($(BETA_VERSION),1)
+BETA_SUFFIX	:= .beta
+else
+BETA_SUFFIX	:= .beta$(BETA_VERSION)
+endif
+
+VERSION		:= $(VERSION_NUM)$(BETA_SUFFIX)
+
+#-------------------------------------------------------------------------------
 # compiler settings
 
 PRE		?= 
@@ -47,6 +67,8 @@ STRIP		= $(PRE)strip
 
 #-------------------------------------------------------------------------------
 # files
+
+DIR_LIST	=
 
 RM_FILES	= *.{o,d,tmp,bak,exe} */*.{tmp,bak} */*/*.{tmp,bak}
 RM_FILES2	= *.{iso,ciso,wdf,wbfs} templates.sed
@@ -71,8 +93,6 @@ ALL_TOOLS	:= $(sort $(MAIN_TOOLS) $(TEST_TOOLS))
 WDF_LINKS	:= WdfCat UnWdf WdfCmp WdfDump Ciso CisoCat UnCiso Wbi
 
 RM_FILES	+= $(ALL_TOOLS) $(WDF_LINKS)
-
-DIR_LIST	= test-libwbfs
 
 #-------------------------------------------------------------------------------
 # source files
@@ -155,7 +175,7 @@ DISTRIB_FILES	= gpl-2.0.txt $(INSTALL_SCRIPTS)
 
 DOC_FILES	= doc/*.txt
 TITLE_FILES	= titles.txt $(patsubst %,titles-%.txt,$(LANGUAGES))
-LANGUAGES	= de es fr it ja ko nl pt
+LANGUAGES	= de es fr it ja ko nl pt ru zhcn zhtw
 
 BIN_FILES	= $(MAIN_TOOLS)
 LIB_FILES	= $(TITLE_FILES)
@@ -167,6 +187,12 @@ CYGWIN_BIN_SRC	= $(patsubst %,$(CYGWIN_DIR)/%,$(CYGWIN_BIN))
 DIR_LIST_BIN	= $(SCRIPTS) bin
 DIR_LIST	+= $(DIR_LIST_BIN)
 DIR_LIST	+= lib doc work pool makefiles-local edit-list
+
+#-------------------------------------------------------------------------------
+# sub projects
+
+SUB_PROJECTS	+= test-libwbfs
+RM_FILES	+= $(foreach p,$(SUB_PROJECTS),$(p)/*.d $(p)/*.o $(p)/$(p))
 
 #
 ###############################################################################
@@ -394,11 +420,19 @@ predef:
 #
 #--------------------------
 
+.PHONY : $(SUB_PROJECTS)
+$(SUB_PROJECTS):
+	@echo "***    make $@"
+	@cd $@ && make
+
+#
+#--------------------------
+
 templates.sed: Makefile
 	@echo "***  create templates.sed"
 	@echo -e '' \
 		'/^~/ d;\n' \
-		's|@.@@@|$(VERSION)|g;\n' \
+		's|@.@@@|$(VERSION_NUM)|g;\n' \
 		's|@@@@-@@-@@|$(DATE)|g;\n' \
 		's|@@:@@:@@|$(TIME)|g;\n' \
 		's|@@AUTHOR@@|$(AUTHOR)|g;\n' \
@@ -409,6 +443,9 @@ templates.sed: Makefile
 		's|@@WWT-SHORT@@|$(WWT_SHORT)|g;\n' \
 		's|@@WWT-LONG@@|$(WWT_LONG)|g;\n' \
 		's|@@VERSION@@|$(VERSION)|g;\n' \
+		's|@@VERSION-NUM@@|$(VERSION_NUM)|g;\n' \
+		's|@@BETA-VERSION@@|$(BETA_VERSION)|g;\n' \
+		's|@@BETA-SUFFIX@@|$(BETA_SUFFIX)|g;\n' \
 		's|@@REV@@|$(REVISION)|g;\n' \
 		's|@@REV-NUM@@|$(REVISION_NUM)|g;\n' \
 		's|@@REV-NEXT@@|$(REVISION_NEXT)|g;\n' \
@@ -452,14 +489,6 @@ test:
 # 2 steps to bypass a cygwin mv failure
 	@cp $(MODE_FILE).tmp $(MODE_FILE)
 	@rm -f $(MODE_FILE).tmp
-
-#
-#--------------------------
-
-.PHONY : test-libwbfs
-test-libwbfs:
-	@echo "***    make test-libwbfs"
-	@cd test-libwbfs && make
 
 #
 #--------------------------
