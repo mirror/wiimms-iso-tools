@@ -364,8 +364,8 @@ void ticket_clear_encryption ( wd_ticket_t * tik, int mark_not_encrypted )
 bool ticket_is_marked_not_encrypted ( const wd_ticket_t * tik )
 {
     ASSERT(tik);
-    ASSERT( sizeof(not_encrypted_marker) < sizeof(tik->sig_padding));
-    ASSERT( sizeof(not_encrypted_marker) < sizeof(tik->trucha_pad));
+    DASSERT( sizeof(not_encrypted_marker) < sizeof(tik->sig_padding));
+    DASSERT( sizeof(not_encrypted_marker) < sizeof(tik->trucha_pad));
 
     return !strncmp( (char*)tik->sig_padding, not_encrypted_marker, sizeof(tik->sig_padding) )
 	&& !strncmp( (char*)tik->trucha_pad, not_encrypted_marker, sizeof(tik->trucha_pad) );
@@ -453,8 +453,8 @@ void tmd_clear_encryption ( wd_tmd_t * tmd, int mark_not_encrypted )
 bool tmd_is_marked_not_encrypted ( const wd_tmd_t * tmd )
 {
     ASSERT(tmd);
-    ASSERT( sizeof(not_encrypted_marker) < sizeof(tmd->sig_padding));
-    ASSERT( sizeof(not_encrypted_marker) < sizeof(tmd->reserved));
+    DASSERT( sizeof(not_encrypted_marker) < sizeof(tmd->sig_padding));
+    DASSERT( sizeof(not_encrypted_marker) < sizeof(tmd->reserved));
 
     return !strncmp( (char*)tmd->sig_padding, not_encrypted_marker, sizeof(tmd->sig_padding) )
 	&& !strncmp( (char*)tmd->reserved, not_encrypted_marker, sizeof(tmd->reserved) );

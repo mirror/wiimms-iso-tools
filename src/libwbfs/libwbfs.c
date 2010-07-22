@@ -1243,6 +1243,7 @@ u32 wbfs_add_disc_param ( wbfs_t *p, wbfs_param_t * par )
     if (!info)
 	OUT_OF_MEMORY;
     memset(info,0,p->disc_info_sz);
+    // [2do] use wd_read_and_patch()
     par->read_src_wii_disc(par->callback_data, 0, 0x100, info->disc_header_copy);
 
     copy_buffer = wbfs_ioalloc(p->wbfs_sec_sz);
@@ -1298,6 +1299,7 @@ u32 wbfs_add_disc_param ( wbfs_t *p, wbfs_param_t * par )
 		    while ( wiiend < wiimax && used[wiiend] )
 			wiiend++;
 		    const u32 size = ( wiiend - wiisec ) * p->wii_sec_sz;
+		    // [2do] use wd_read_and_patch()
 		    if (par->read_src_wii_disc(par->callback_data,
 				wiisec * (p->wii_sec_sz>>2), size, dest ))
 			WBFS_ERROR("error reading disc");

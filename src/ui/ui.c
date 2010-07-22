@@ -179,14 +179,27 @@ void DumpUsedOptions ( const InfoUI_t * iu, FILE * f, int indent )
 ///////////////			 text helpers			///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-static void PutLines
-	( FILE * f, int indent, int fw, int first_line, ccp text )
+void PutLines
+(
+    FILE	* f,		// valid output stream
+    int		indent,		// indent of output
+    int		fw,		// field width of output
+    int		first_line,	// length without prefix of already printed first line 
+    ccp		prefix,		// NULL or prefix for each line
+    ccp		text		// text to print
+)
 {
-    TRACE("PutLines(,%d,%d,%d,%.20s)\n",indent,fw,first_line,text);
-
     DASSERT(f);
-    ASSERT( indent >= 0 );
+    DASSERT( indent >= 0 );
 
+    if (!prefix)
+	prefix = "";
+    TRACE("PutLines(,%d,%d,%d,%.10s,%.20s)\n",indent,fw,first_line,prefix,text);
+    fw -= strlen(prefix);
+    if ( fw < 10 )
+	fw = 10;
+
+    ccp prefix1 = "";
     int indent1, fw1;
     if (  indent > first_line )
     {
@@ -208,6 +221,7 @@ static void PutLines
 	fputc('\n',f);
 	indent1 = indent;
 	fw1 = fw;
+	prefix1 = prefix;
     }
     
     while ( *text )
@@ -232,18 +246,28 @@ static void PutLines
 	    text = last_blank;
 
 	// print out
-	fprintf(f,"%*s%.*s\n", indent1, "", (int)(text-start), start );
+	if ( *text || text > start )
+	    fprintf(f,"%s%*s%.*s\n", prefix1, indent1, "", (int)(text-start), start );
 
 	// use standard values for next lines
 	indent1 = indent;
 	fw1 = fw;
+	prefix1 = prefix;
     }
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 
-static void PrintLines
-	( FILE * f, int indent, int fw, int first_line, ccp format, ... )
+void PrintLines
+(
+    FILE	* f,		// valid output stream
+    int		indent,		// indent of output
+    int		fw,		// field width of output
+    int		first_line,	// length without prefix of already printed first line 
+    ccp		prefix,		// NULL or prefix for each line
+    ccp		format,		// format string for vsnprintf()
+    ...				// arguments for 'vsnprintf(format,...)'
+)
 {
     DASSERT(f);
     DASSERT(format);
@@ -255,7 +279,7 @@ static void PrintLines
     vsnprintf(msg,sizeof(msg),format,arg);
     va_end(arg);
 
-    PutLines(f,indent,fw,first_line,msg);
+    PutLines(f,indent,fw,first_line,prefix,msg);
 }
 
 //
@@ -263,7 +287,13 @@ static void PrintLines
 ///////////////			   print help			///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-void PrintHelp ( const InfoUI_t * iu, FILE * f, int indent, ccp info )
+void PrintHelp
+(
+    const InfoUI_t * iu,	// valid pointer
+    FILE	* f,		// valid output stream
+    int		indent,		// indent of output
+    ccp		info		// NULL or poiner to additional text
+)
 {
     int cmd = 0;
     if (iu->n_cmd)
@@ -294,7 +324,14 @@ void PrintHelp ( const InfoUI_t * iu, FILE * f, int indent, ccp info )
 
 ///////////////////////////////////////////////////////////////////////////////
 
-void PrintHelpCmd ( const InfoUI_t * iu, FILE * f, int indent, int cmd, ccp info )
+void PrintHelpCmd
+(
+    const InfoUI_t * iu,	// valid pointer
+    FILE	* f,		// valid output stream
+    int		indent,		// indent of output
+    int		cmd,		// index of command
+    ccp		info		// NULL or poiner to additional text
+)
 {
     ASSERT(iu);
     if (!f)
@@ -315,10 +352,10 @@ void PrintHelpCmd ( const InfoUI_t * iu, FILE * f, int indent, int cmd, ccp info
 	snprintf(iobuf,sizeof(iobuf),"%s %s",iu->tool_name,ic->name1);
 
     int len = fprintf(f,"\n%*s%s : ",indent,"",iobuf) - 1;
-    PutLines(f,indent+len,fw,len,ic->help);
+    PutLines(f,indent+len,fw,len,0,ic->help);
 
     len = fprintf(f,"\n%*sSyntax: ", indent, "" ) - 1;
-    PutLines(f,indent+len,fw,len,ic->param);
+    PutLines(f,indent+len,fw,len,0,ic->param);
     fputc('\n',f);
 
     if ( !cmd && iu->n_cmd )
@@ -356,7 +393,7 @@ void PrintHelpCmd ( const InfoUI_t * iu, FILE * f, int indent, int cmd, ccp info
 		else
 		    len = fprintf(f,"%*s  %-*s : ",
 			    indent, "", fw12, ic->name1 );
-		PutLines(f,indent+len,fw,len,ic->help);
+		PutLines(f,indent+len,fw,len,0,ic->help);
 	    }
 	
 	fprintf(f,
@@ -439,10 +476,10 @@ void PrintHelpCmd ( const InfoUI_t * iu, FILE * f, int indent, int cmd, ccp info
 	    if ( len > opt_fw )
 	    {
 		fputc('\n',f);
-		PutLines(f,opt_fw,fw,0,io->help);
+		PutLines(f,opt_fw,fw,0,0,io->help);
 	    }
 	    else
-		PutLines(f,opt_fw,fw,len,io->help);
+		PutLines(f,opt_fw,fw,len,0,io->help);
 	}
 	fputc('\n',f);
     }

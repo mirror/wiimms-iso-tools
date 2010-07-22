@@ -328,7 +328,6 @@ enumError SetupReadCISO ( SuperFile_t * sf )
     sf->f.max_off	= ci->max_file_off;
     sf->max_virt_off	= ci->max_virt_off;
     SetupIOD(sf,OFT_CISO,OFT_CISO);
-    SetupISOModifier(sf);
 
     TRACE("#C# CISO FOUND!\n");
     return ERR_OK;

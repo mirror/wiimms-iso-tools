@@ -15,7 +15,7 @@
 #gdef wit$['AUTHOR']			= "@@AUTHOR@@"
 
 #gdef wit$['VERSION']			= "@@VERSION@@"
-#gdef wit$['VERSION'_NUM]		= "@@VERSION-NUM@@"
+#gdef wit$['VERSION_NUM']		= "@@VERSION-NUM@@"
 #gdef wit$['BETA_VERSION']		= "@@BETA-VERSION@@"
 #gdef wit$['BETA_SUFFIX']		= "@@BETA-SUFFIX@@"
 

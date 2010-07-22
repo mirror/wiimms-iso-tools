@@ -93,10 +93,16 @@ enumError CloseSF ( SuperFile_t * sf, FileAttrib_t * set_time_ref )
     ASSERT(sf);
     enumError err = ERR_OK;
 
-    if (sf->disc)
+    if (sf->disc2)
     {
-	wd_close_disc(sf->disc);
-	sf->disc = 0;
+	wd_close_disc(sf->disc2);
+	sf->disc2 = 0;
+    }
+
+    if (sf->disc1)
+    {
+	wd_close_disc(sf->disc1);
+	sf->disc1 = 0;
     }
 
     if ( sf->f.is_writing && sf->min_file_size )
@@ -367,7 +373,6 @@ enumError SetupReadWBFS ( SuperFile_t * sf )
     FreeString(sf->f.outname);
     sf->f.outname = strdup(iobuf);
     SetupIOD(sf,OFT_WBFS,OFT_WBFS);
-    SetupISOModifier(sf);
     return ERR_OK;
 
  abort:
@@ -476,6 +481,21 @@ enumError SetupWriteWBFS ( SuperFile_t * sf )
 
 ///////////////////////////////////////////////////////////////////////////////
 
+static enumError ReadDiscWrapper
+(
+    SuperFile_t	* sf,
+    off_t	off,
+    void	* buf,
+    size_t	count
+)
+{
+    ASSERT(sf);
+    ASSERT(sf->disc1);
+    return wd_read_and_patch(sf->disc1,off,buf,count);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
 wd_disc_t * OpenDiscSF
 (
 	SuperFile_t * sf,	// valid pointer
@@ -484,18 +504,141 @@ wd_disc_t * OpenDiscSF
 )
 {
     ASSERT(sf);
-    if ( !sf->disc && IsOpenSF(sf) && sf->f.is_reading )
-	sf->disc = wd_open_disc(WrapperReadSF,sf,sf->file_size,sf->f.fname,0);
+    if (sf->discs_loaded)
+	return sf->disc2;
+
+    DASSERT(!sf->disc1);
+    DASSERT(!sf->disc2);
+    sf->discs_loaded = true;
+
+    //****************************************************
+    // The idea
+    //	1.) Open disc1 and enable patching if necessary
+    //  2.) Open disc2 and route reading through patched
+    //      disc1 if pathing is enabled; dup disc1 else
+    //****************************************************
+
+    //----- open unpatched disc
+
+    wd_disc_t * disc = 0;
+
+    if ( IsOpenSF(sf) && sf->f.is_reading )
+	disc = wd_open_disc(WrapperReadDirectSF,sf,sf->file_size,sf->f.fname,0);
 	
-    if (!sf->disc)
+    if (!disc)
     {
 	if (print_err)
 	    ERROR0(ERR_WDISC_NOT_FOUND,"Can't open Wii disc: %s\n",sf->f.fname);
+	return 0;
     }
-    else if (load_part_data)
-	wd_load_all_part(sf->disc,false,false);
+    sf->disc1 = disc;
 
-    return sf->disc;
+    if (load_part_data)
+	wd_load_all_part(disc,false,false);
+
+
+    //----- select partitions
+
+    wd_select(disc,part_selector);
+
+
+    //----- find data partition
+    
+    int ip;
+    wd_part_t * part = 0;
+    for ( ip = 0; ip <= WD_SELI_PART_MAX && !part; ip++ )
+    {
+	part = wd_get_part_by_type(disc,ip,0);
+	if (!part->is_enabled)
+	    part = 0;
+    }
+
+    for ( ip = 0; ip < disc->n_part && !part; ip++ )
+    {
+	part = wd_get_part_by_index(disc,ip,0);
+	if (!part->is_enabled)
+	    part = 0;
+    }
+
+
+    //----- check for patching
+
+    int reloc = sf->disc1->patch_ptab_recommended; // activate reloc?
+    const wd_modify_t modify = opt_modify & WD_MODIFY__AUTO
+				? WD_MODIFY__ALL : opt_modify;
+    enumEncoding enc = SetEncoding(encoding,0,0);
+
+    if ( sf->iod.oft == OFT_FST )
+    {	
+	DASSERT(sf->fst);
+	enc = sf->fst->encoding;
+    }
+    else
+    {
+	if (part)
+	{
+	    if (modify_id)
+		reloc |= wd_patch_part_id(part,modify_id,modify);
+	    if (modify_name)
+		reloc |= wd_patch_part_name(part,modify_name,modify);
+	    if (opt_ios_valid)
+		reloc |= wd_patch_part_system(part,opt_ios);
+	}
+	else if (modify & (WD_MODIFY_DISC|WD_MODIFY__AUTO) )
+	    reloc |= wd_patch_disc_header(disc,modify_id,modify_name);
+
+
+	if ( opt_region < REGION__AUTO )
+	    reloc |= wd_patch_region(disc,opt_region);
+	else if ( modify_id
+		    && strlen(modify_id) > 3
+		    && modify_id[3] != '.'
+		    && modify_id[3] != disc->dhead.region_code )
+	{
+	    const enumRegion region = GetRegionInfo(modify_id[3])->reg;
+	    reloc |= wd_patch_region(disc,region);
+	}
+
+	if ( enc & ENCODE_M_CRYPT )
+	    reloc = true;
+
+	if ( enc & ENCODE_SIGN )
+	{
+	    reloc = true;
+	    for ( ip = 0; ip < disc->n_part; ip++ )
+	    {
+		wd_part_t * part = wd_get_part_by_index(disc,ip,0);
+		if ( part && part->is_valid && part->is_enabled )
+		{
+		    if ( modify & WD_MODIFY_TICKET )
+			wd_insert_patch_ticket(part);
+		    if ( modify & WD_MODIFY_TMD )
+			wd_insert_patch_tmd(part);
+		}
+	    }
+	}
+    }
+
+    if (reloc)
+    {
+     #ifdef TEST // [2do]
+	printf("SETUP RELOC, enc=%d\n",!(enc&ENCODE_DECRYPT));
+     #endif
+
+	if ( logging > 0 )
+	    wd_dump_disc_patch(stdout,1,sf->disc1,true,logging>1);
+
+	wd_calc_relocation(disc,!(enc&ENCODE_DECRYPT),true);
+	sf->iod.read_func = ReadDiscWrapper;
+	sf->disc2 = wd_open_disc(WrapperReadSF,sf,sf->file_size,sf->f.fname,0);
+    }
+
+    if (sf->disc2)
+	memcpy(sf->f.id6,&sf->disc2->dhead,6);
+    else
+	sf->disc2 = wd_dup_disc(sf->disc1);
+
+    return sf->disc2;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -536,8 +679,8 @@ int SubstFileNameBuf
     char buf[HD_SECTOR_SIZE];
     if (fi->f.id6[0])
     {
-	if (fi->disc)
-	    disc_name = (ccp)fi->disc->dhead.game_title;
+	if (fi->disc2)
+	    disc_name = (ccp)fi->disc2->dhead.game_title;
 	else
 	{
 	    const bool disable_errors = fi->f.disable_errors;
@@ -1183,6 +1326,20 @@ int WrapperReadSF ( void * p_sf, u32 offset, u32 count, void * iobuf )
     DASSERT(sf->iod.read_func);
 
     return sf->iod.read_func( sf, (off_t)offset << 2, iobuf, count );
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+int WrapperReadDirectSF ( void * p_sf, u32 offset, u32 count, void * iobuf )
+{
+    if (SIGINT_level>1)
+	return ERR_INTERRUPT;
+
+    SuperFile_t * sf = (SuperFile_t *)p_sf;
+    DASSERT(sf);
+    DASSERT(sf->iod.read_func);
+
+    return sf->std_read_func( sf, (off_t)offset << 2, iobuf, count );
 }
 
 ///////////////////////////////////////////////////////////////////////////////

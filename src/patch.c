@@ -258,41 +258,41 @@ int ScanOptIOS ( ccp arg )
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-enumModify ScanModify ( ccp arg )
+wd_modify_t ScanModify ( ccp arg )
 {
     static const CommandTab_t tab[] =
     {
-	{ MODIFY__NONE,		"NONE",		"-",	MODIFY__ALL },
-	{ MODIFY__ALL,		"ALL",		0,	MODIFY__ALL },
-	{ MODIFY__AUTO,		"AUTO",		0,	MODIFY__ALL },
+	{ WD_MODIFY__NONE,	"NONE",		"-",	WD_MODIFY__ALL },
+	{ WD_MODIFY__ALL,	"ALL",		0,	WD_MODIFY__ALL },
+	{ WD_MODIFY__AUTO,	"AUTO",		0,	WD_MODIFY__ALL },
 
-	{ MODIFY_DISC,		"DISC",		0,	0 },
-	{ MODIFY_BOOT,		"BOOT",		0,	0 },
-	{ MODIFY_TICKET,	"TICKET",	0,	0 },
-	{ MODIFY_TMD,		"TMD",		0,	0 },
-	{ MODIFY_WBFS,		"WBFS",		0,	0 },
+	{ WD_MODIFY_DISC,	"DISC",		0,	0 },
+	{ WD_MODIFY_BOOT,	"BOOT",		0,	0 },
+	{ WD_MODIFY_TICKET,	"TICKET",	0,	0 },
+	{ WD_MODIFY_TMD,	"TMD",		0,	0 },
+	{ WD_MODIFY_WBFS,	"WBFS",		0,	0 },
 
 	{ 0,0,0,0 }
     };
 
     const int stat = ScanCommandList(arg,tab,0,true,0,0);
     if ( stat >= 0 )
-	return ( stat & MODIFY__ALL ? stat & MODIFY__ALL : stat ) | MODIFY__ALWAYS;
+	return ( stat & WD_MODIFY__ALL ? stat & WD_MODIFY__ALL : stat ) | WD_MODIFY__ALWAYS;
 
     ERROR0(ERR_SYNTAX,"Illegal modify mode (option --modify): '%s'\n",arg);
-    return MODIFY__ERROR;
+    return -1;
 }
 
 //-----------------------------------------------------------------------------
 
-enumModify opt_modify = MODIFY__AUTO | MODIFY__ALWAYS;
+wd_modify_t opt_modify = WD_MODIFY__AUTO | WD_MODIFY__ALWAYS;
 
 int ScanOptModify ( ccp arg )
 {
     const int new_modify = ScanModify(arg);
-    if ( new_modify == MODIFY__ERROR )
+    if ( new_modify == -1 )
 	return 1;
-    ASSERT( new_modify & MODIFY__ALWAYS );
+    ASSERT( new_modify & WD_MODIFY__ALWAYS );
     opt_modify = new_modify;
     return 0;
 }
@@ -372,7 +372,7 @@ int ScanOptName ( ccp arg )
 
 //-----------------------------------------------------------------------------
 
-bool PatchId ( void * id, int skip, int maxlen, enumModify condition )
+bool PatchId ( void * id, int skip, int maxlen, wd_modify_t condition )
 {
     ASSERT(id);
     if ( !modify_id || maxlen < 1 || !(opt_modify & condition) )
@@ -399,12 +399,12 @@ bool CopyPatchedDiscId ( void * dest, const void * src )
 {
     memcpy(dest,src,6);
     ((char*)dest)[6] = 0;
-    return hook_enabled && PatchId(dest,0,6,MODIFY_DISC|MODIFY__AUTO);
+    return hook_enabled && PatchId(dest,0,6,WD_MODIFY_DISC|WD_MODIFY__AUTO);
 }
 
 //-----------------------------------------------------------------------------
 
-bool PatchName ( void * name, enumModify condition )
+bool PatchName ( void * name, wd_modify_t condition )
 {
     ASSERT(name);
     if ( !modify_name || !(opt_modify & condition) )
@@ -430,7 +430,8 @@ enumError RewriteModifiedSF ( SuperFile_t * fi, SuperFile_t * fo, WBFS_t * wbfs 
     ASSERT(fo->f.is_writing);
     TRACE("RewriteModifiedSF(%p,%p,%p), oft=%d,%d\n",fi,fo,wbfs,fi->iod.oft,fo->iod.oft);
 
-    if (!fi->modified_list.used)
+    wd_disc_t * disc = fi->disc1;
+    if ( !fi->modified_list.used && ( !disc || !disc->reloc ))
 	return ERR_OK;
 
     UpdateSignatureFST(fi->fst); // NULL allowed
@@ -468,12 +469,18 @@ enumError RewriteModifiedSF ( SuperFile_t * fi, SuperFile_t * fo, WBFS_t * wbfs 
 
     int idx;
     enumError err = ERR_OK;
-    for ( idx = 0; idx < fi->modified_list.used; idx++ )
+    for ( idx = 0; idx < fi->modified_list.used && !err; idx++ )
     {
 	const MemMapItem_t * mmi = fi->modified_list.field[idx];
 	err = CopyRawData(fi,fo,mmi->off,mmi->size);
-	if (err)
-	    break;
+    }
+
+    if ( disc && disc->reloc )
+    {
+	const wd_reloc_t * reloc = disc->reloc;
+	for ( idx = 0; idx < WII_MAX_SECTORS && !err; idx++, reloc++ )
+	    if ( *reloc & WD_RELOC_F_CLOSE )
+		err = CopyRawData(fi,fo,idx*WII_SECTOR_SIZE,WII_SECTOR_SIZE);
     }
 
     if (close_disc)
@@ -485,94 +492,6 @@ enumError RewriteModifiedSF ( SuperFile_t * fi, SuperFile_t * fo, WBFS_t * wbfs 
     memcpy(&fo->iod,&iod,sizeof(fo->iod));
     fo->wbfs = saved_wbfs;
     return err;
-}
-
-//
-///////////////////////////////////////////////////////////////////////////////
-///////////////			 ISO Modifier			///////////////
-///////////////////////////////////////////////////////////////////////////////
-
-enumError SetupISOModifier ( SuperFile_t * sf )
-{
- #ifndef TEST // [2do]
-    hook_enabled = false;
- #endif
- 
-    ASSERT(sf);
-    if ( !hook_enabled || !sf->f.id6 )
-	return ERR_OK; // only supported for Wii ISO images
-
-    //----- encryption / decryption
-
-    if ( ( encoding & ENCODE_M_CRYPT ) != 0 )
-    {
-	// ??? [2do]
-    }
-
-
-    //----- region settings
-
-    if ( opt_region != REGION__AUTO )
-    {
-	// ??? [2do]
-    }
-
-
-    //----- system version
-
-    if ( opt_ios_valid )
-    {
-	// ??? [2do]
-    }
-
-
-    //----- system version
-
-    if ( opt_ios_valid )
-    {
-	// ??? [2do]
-    }
-
-
-    //----- patch ID
-
-    if ( modify_id )
-    {
-	if ( opt_modify & (MODIFY_DISC|MODIFY__AUTO) )
-	{
-	    //item = InsertDiscDataPM(sf,sf->f.id6,0,6,false);
-	    //ASSERT(item);
-	}
-	// ??? [2do]
-    }
-
-
-    //----- patch NAME
-
-    if ( modify_name )
-    {
-	// ??? [2do]
-    }
-
-
-    //----- terminate
-
-    if (!sf->fst)
-	sf->merge_mode = false;
-
-    if (sf->merge_mode)
-    {
-     #ifdef DEBUG
-	PrintFstIM(sf->fst,TRACE_FILE,0,true,"Patch list of");
-     #endif
-	if ( logging > 0 )
-	    PrintFstIM(sf->fst,stdout,0,logging>1,"Patch list of");
-
-	// [2do] [merge]
-	//	 - set read func
-    }
-    
-    return ERR_OK;
 }
 
 //

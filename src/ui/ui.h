@@ -110,8 +110,45 @@ void DumpUsedOptions ( const InfoUI_t * iu, FILE * f, int indent );
 
 ///////////////////////////////////////////////////////////////////////////////
 
-void PrintHelp ( const InfoUI_t * iu, FILE * f, int indent, ccp info );
-void PrintHelpCmd ( const InfoUI_t * iu, FILE * f, int indent, int cmd, ccp info );
+void PutLines
+(
+    FILE	* f,		// valid output stream
+    int		indent,		// indent of output
+    int		fw,		// field width of output
+    int		first_line,	// length without prefix of already printed first line 
+    ccp		prefix,		// NULL or prefix for each line
+    ccp		text		// text to print
+);
+
+void PrintLines
+(
+    FILE	* f,		// valid output stream
+    int		indent,		// indent of output
+    int		fw,		// field width of output
+    int		first_line,	// length without prefix of already printed first line 
+    ccp		prefix,		// NULL or prefix for each line
+    ccp		format,		// format string for vsnprintf()
+    ...				// arguments for 'vsnprintf(format,...)'
+);
+
+///////////////////////////////////////////////////////////////////////////////
+
+void PrintHelp
+(
+    const InfoUI_t * iu,	// valid pointer
+    FILE	* f,		// valid output stream
+    int		indent,		// indent of output
+    ccp		info		// NULL or poiner to additional text
+);
+
+void PrintHelpCmd
+(
+    const InfoUI_t * iu,	// valid pointer
+    FILE	* f,		// valid output stream
+    int		indent,		// indent of output
+    int		cmd,		// index of command
+    ccp		info		// NULL or poiner to additional text
+);
 
 //
 ///////////////////////////////////////////////////////////////////////////////

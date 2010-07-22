@@ -27,6 +27,7 @@
 
 #include "types.h"
 #include "stdio.h"
+#include "wiidisc.h"
 
 //
 ///////////////////////////////////////////////////////////////////////////////
@@ -113,27 +114,8 @@ int ScanOptIOS ( ccp arg );
 
 //-----------------------------------------------------------------------------
 
-typedef enum enumModify
-{
-	MODIFY__NONE	= 0,	  // modify nothing
-
-	MODIFY_DISC	= 0x001,  // modify disc header
-	MODIFY_BOOT	= 0x002,  // modify boot.bin
-	MODIFY_TICKET	= 0x004,  // modify ticket.bin
-	MODIFY_TMD	= 0x008,  // modify tmd.bin
-	MODIFY_WBFS	= 0x010,  // modify WBFS inode
-
-	MODIFY__ALL	= 0x01f,  // modify all
-	MODIFY__AUTO	= 0x100,  // automatic mode
-	MODIFY__ALWAYS	= 0x200,  // always set
-	MODIFY__MASK	= MODIFY__ALL | MODIFY__AUTO | MODIFY__ALWAYS,
-
-	MODIFY__ERROR	= -1, // hint: error while scanning
-	
-} enumModify;
-
-extern enumModify opt_modify;
-enumModify ScanModify ( ccp arg );
+extern wd_modify_t opt_modify;
+wd_modify_t ScanModify ( ccp arg );
 int ScanOptModify ( ccp arg );
 
 //-----------------------------------------------------------------------------
@@ -144,9 +126,9 @@ extern ccp modify_name;
 int ScanOptId ( ccp arg );
 int ScanOptName ( ccp arg );
 
-bool PatchId ( void * id, int skip, int maxlen, enumModify condition );
+bool PatchId ( void * id, int skip, int maxlen, wd_modify_t condition );
 bool CopyPatchedDiscId ( void * dest, const void * src );
-bool PatchName ( void * name, enumModify condition );
+bool PatchName ( void * name, wd_modify_t condition );
 
 //
 ///////////////////////////////////////////////////////////////////////////////

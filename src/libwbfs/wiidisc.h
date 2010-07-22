@@ -30,7 +30,7 @@
 
 //
 ///////////////////////////////////////////////////////////////////////////////
-///////////////			    consts			///////////////
+///////////////			enum wd_select_idx_t		///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
 typedef enum wd_select_idx_t // modern partition selector, index values
@@ -56,6 +56,9 @@ typedef enum wd_select_idx_t // modern partition selector, index values
 
 } wd_select_idx_t;
 
+//
+///////////////////////////////////////////////////////////////////////////////
+///////////////			enum wd_select_t		///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
 typedef enum wd_select_t // modern partition selector, bit values
@@ -87,6 +90,9 @@ typedef enum wd_select_t // modern partition selector, bit values
 
 } wd_select_t;
 
+//
+///////////////////////////////////////////////////////////////////////////////
+///////////////			enum wd_icm_t			///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
 typedef enum wd_icm_t // iterator call mode
@@ -102,6 +108,9 @@ typedef enum wd_icm_t // iterator call mode
 
 } wd_icm_t;
 
+//
+///////////////////////////////////////////////////////////////////////////////
+///////////////			enum wd_ipm_t			///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
 typedef enum wd_ipm_t // iterator prefix mode
@@ -116,6 +125,9 @@ typedef enum wd_ipm_t // iterator prefix mode
 
 } wd_ipm_t;
 
+//
+///////////////////////////////////////////////////////////////////////////////
+///////////////			enum wd_pfst_t			///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
 typedef enum wd_pfst_t // print-fst mode
@@ -130,6 +142,9 @@ typedef enum wd_pfst_t // print-fst mode
 
 } wd_pfst_t;
 
+//
+///////////////////////////////////////////////////////////////////////////////
+///////////////			enum wd_usage_t			///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
 typedef enum wd_usage_t // usage table values
@@ -143,6 +158,9 @@ typedef enum wd_usage_t // usage table values
 
 } wd_usage_t;
 
+//
+///////////////////////////////////////////////////////////////////////////////
+///////////////			enum wd_pname_mode_t		///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
 typedef enum wd_pname_mode_t // partition name modes
@@ -158,29 +176,83 @@ typedef enum wd_pname_mode_t // partition name modes
 
 } wd_pname_mode_t;
 
+//
+///////////////////////////////////////////////////////////////////////////////
+///////////////			enum wd_patch_mode_t		///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
 typedef enum wd_patch_mode_t // patching modes
 {
-    WD_PAT_DISC_DATA		// raw disc data
+    WD_PAT_DATA,		// raw data
+    WD_PAT_PART_TICKET,		// parititon TICKET (trucha sign)
+    WD_PAT_PART_TMD,		// parititon TMP (trucha sign)
 
 } wd_patch_mode_t;
 
+//
+///////////////////////////////////////////////////////////////////////////////
+///////////////			enum wd_reloc_t			///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-typedef enum wd_job_t // sector job modes
+typedef enum wd_reloc_t // relocation modes
 {
-    WD_JOB_M_INDEX	=    0x7ffff,	// mask for source sector index
+    WD_RELOC_M_DELTA	=    0x7ffff,	// mask for source sector delta
 
-    WD_JOB_M_PART	=  0x3f00000,	// mask for sector within group index
-    WD_JOB_S_PART	=         20,	// shift for sector within group index
+    WD_RELOC_M_PART	=  0x3f80000,	// mask for partition index
+    WD_RELOC_S_PART	=         19,	// shift for partition index
 
-    WD_JOB_F_PART	= 0x04000000,	// set if partition data
-    WD_JOB_F_COPY	= 0x10000000,	// set if source must be copied
-    WD_JOB_F_PATCH	= 0x20000000,	// set if patching is needed
-    WD_JOB_F_CLOSE	= 0x40000000,	// set if copying on close is needed
+    WD_RELOC_F_ENCRYPT	= 0x04000000,	// set if partition data, encrypted
+    WD_RELOC_F_DECRYPT	= 0x08000000,	// set if partition data, decrypted
+    WD_RELOC_F_COPY	= 0x10000000,	// set if source must be copied
+    WD_RELOC_F_PATCH	= 0x20000000,	// set if patching is needed
+    WD_RELOC_F_CLOSE	= 0x40000000,	// set if copying on close is needed
+    WD_RELOC_M_FLAGS	= 0x7c000000,	// sum of all flags
 
-} wd_job_t;
+    WD_RELOC_M_CRYPT	= WD_RELOC_F_ENCRYPT | WD_RELOC_F_DECRYPT,
+
+    WD_RELOC_M_DISCLOAD	= WD_RELOC_M_DELTA
+			| WD_RELOC_M_PART
+			| WD_RELOC_F_ENCRYPT
+			| WD_RELOC_F_DECRYPT
+			| WD_RELOC_F_COPY,
+
+    WD_RELOC_M_PARTLOAD	= WD_RELOC_M_DELTA
+			| WD_RELOC_M_PART
+			| WD_RELOC_F_ENCRYPT
+			| WD_RELOC_F_DECRYPT,
+
+} wd_reloc_t;
+
+//
+///////////////////////////////////////////////////////////////////////////////
+///////////////			enum wd_modify_t		///////////////
+///////////////////////////////////////////////////////////////////////////////
+
+typedef enum wd_modify_t // objects to modify
+{
+    //--- standard values
+
+    WD_MODIFY_DISC	= 0x001,  // modify disc header
+    WD_MODIFY_BOOT	= 0x002,  // modify boot.bin
+    WD_MODIFY_TICKET	= 0x004,  // modify ticket.bin
+    WD_MODIFY_TMD	= 0x008,  // modify tmd.bin
+    
+    //--- for external extensions
+
+    WD_MODIFY_WBFS	= 0x010,  // modify WBFS inode [obsolete?]
+
+    //--- special flags
+
+    WD_MODIFY__NONE	=     0,  // modify nothing
+    WD_MODIFY__AUTO	= 0x100,  // automatic mode
+    WD_MODIFY__ALWAYS	= 0x200,  // this bit is always set
+
+    //--- summary
+
+    WD_MODIFY__ALL	= 0x01f,  // modify all
+    WD_MODIFY__MASK	= WD_MODIFY__ALL | WD_MODIFY__AUTO | WD_MODIFY__ALWAYS,
+
+} wd_modify_t;
 
 //
 ///////////////////////////////////////////////////////////////////////////////
@@ -234,7 +306,7 @@ typedef struct wd_patch_item_t // patching data item
     struct wd_part_t	* part;		// NULL or relevant partition
     void		* data;		// NULL or pointer to data/filename
     bool		data_alloced;	// true if data must be freed.
-    char		info[30];	// comment for dumps
+    char		info[40];	// comment for dumps
 
 } wd_patch_item_t;
 
@@ -277,8 +349,13 @@ typedef struct wd_part_t
     bool		is_loaded;	// true if this partition info was loaded
     bool		is_valid;	// true if this partition is valid
     bool		is_enabled;	// true if this partition is enabled
+    bool		is_ok;		// true if is_loaded && is_valid && is_enabled
     bool		is_encrypted;	// true if this partition is encrypted
 
+    bool		sign_ticket;	// true if ticket must be signed
+    bool		sign_tmd;	// true if tmd must be signed
+    bool		h3_dirty;	// true if h3 is dirty -> calc h4 and sign tmd
+    
 
     //----- partition data, only valid if 'is_valid' is true
     
@@ -290,6 +367,8 @@ typedef struct wd_part_t
     u8			key[WII_KEY_SIZE];
 					// partition key, needed to build aes key
     u32			data_off4;	// offset/4 of partition data relative to disc start
+    u32			data_sector;	// index of first data sector
+    u32			end_sector;	// index of last data sector + 1
 
     wd_boot_t		boot;		// copy of boot.bin, host endian
     u32			dol_size;	// size of main.dol
@@ -324,7 +403,6 @@ typedef struct wd_disc_t
 
     //----- raw data
 
-    char		id6[7];		// id6, copy of 'dhead', 0 term 
     wd_header_t		dhead;		// copy of disc header
     wd_region_t		region;		// copy of disc region settings
     wd_ptab_info_t	ptab_info[WII_MAX_PTAB];
@@ -334,8 +412,10 @@ typedef struct wd_disc_t
 
     //----- patching data
 
+    wd_select_t		active_select;	// active selector
     wd_patch_t		patch;		// patching data
     wd_ptab_t		ptab;		// partition tables
+    wd_reloc_t		* reloc;	// relocation data
 
     //----- partitions
 
@@ -371,8 +451,14 @@ typedef struct wd_disc_t
 
     //----- temp buffer
 
-    u8			temp_buf[WII_SECTOR_SIZE];
-					// temp buffer for reading operations
+    u8	temp_buf[2*WII_SECTOR_SIZE];	// temp buffer for reading operations
+
+    u32	cache_sector;			// sector number of 'cache'
+    u8	cache[WII_SECTOR_SIZE];		// cache for wd_read_and_path()
+
+    u32	group_cache_sector;		// sector number of 'group_cache'
+    u8	* group_cache;			// cache for sector groups
+    
 
 } wd_disc_t;
 
@@ -434,7 +520,7 @@ typedef struct wd_print_fst_t
 
 //
 ///////////////////////////////////////////////////////////////////////////////
-///////////////			  interface			///////////////
+///////////////		    interface: print errors		///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
 enumError wd_print_error
@@ -447,8 +533,10 @@ enumError wd_print_error
     ...				// parameters for 'format'
 );
 
+//
 ///////////////////////////////////////////////////////////////////////////////
-// common key
+///////////////		interface: common key & encryption	///////////////
+///////////////////////////////////////////////////////////////////////////////
 
 const u8 * wd_get_common_key();
 
@@ -456,20 +544,73 @@ const u8 * wd_get_common_key();
 
 const u8 * wd_set_common_key
 (
-	const u8 * new_key		// the new key
+    const u8		* new_key	// the new key
 );
 
 //-----------------------------------------------------------------------------
 
 void wd_decrypt_title_key
 (
-	const wd_ticket_t * tik,	// pointer to ticket
-	u8 * title_key			// the result
+    const wd_ticket_t	* tik,		// pointer to ticket
+    u8			* title_key	// the result
 );
 
+//-----------------------------------------------------------------------------
+
+void wd_encrypt_title_key
+(
+    wd_ticket_t		* tik,		// pointer to ticket (modified)
+    const u8		* title_key	// valid pointer to wanted title key
+);
+
+//-----------------------------------------------------------------------------
+
+void wd_decrypt_sectors
+(
+    wd_part_t		* part,		// NULL or poniter to partition
+    const aes_key_t	* akey,		// aes key, if NULL use 'part'
+    const void		* sect_src,	// pointer to first source sector
+    void		* sect_dest,	// pointer to first destination sector
+    void		* hash_dest,	// if not NULL: store hash tables here
+    u32			n_sectors	// number of wii sectors to decrypt
+);
+
+//-----------------------------------------------------------------------------
+
+void wd_encrypt_sectors
+(
+    wd_part_t		* part,		// NULL or poniter to partition
+    const aes_key_t	* akey,		// aes key, if NULL use 'part'
+    const void		* sect_src,	// pointer to first source sector
+    const void		* hash_src,	// if not NULL: source of hash tables
+    void		* sect_dest,	// pointer to first destination sector
+    u32			n_sectors	// number of wii sectors to encrypt
+);
+
+//-----------------------------------------------------------------------------
+
+void wd_split_sectors
+(
+    const void		* sect_src,	// pointer to first source sector
+    void		* data_dest,	// pointer to data destination
+    void		* hash_dest,	// pointer to hash destination
+    u32			n_sectors	// number of wii sectors to decrypt
+);
+
+//-----------------------------------------------------------------------------
+
+void wd_compose_sectors
+(
+    const void		* data_src,	// pointer to data source
+    const void		* hash_src,	// pointer to hash source
+    void		* sect_dest,	// pointer to first destination sector
+    u32			n_sectors	// number of wii sectors to encrypt
+);
+
+//
 ///////////////////////////////////////////////////////////////////////////////
+///////////////		interface: names, ids and titles	///////////////
 ///////////////////////////////////////////////////////////////////////////////
-// names, ids and titles
 
 extern const char * wd_part_name[];
 
@@ -513,9 +654,10 @@ int wd_rename
 	ccp		new_title	// if !NULL: take the first 0x39 chars as title
 );
 
+//
 ///////////////////////////////////////////////////////////////////////////////
+///////////////		    interface: read functions		///////////////
 ///////////////////////////////////////////////////////////////////////////////
-// read functions
 
 enumError wd_read_raw
 (
@@ -576,9 +718,10 @@ int wd_is_block_encrypted
 	int		unknown_result	// result if status is unknown
 );
 
+//
 ///////////////////////////////////////////////////////////////////////////////
+///////////////		    interface: open and close		///////////////
 ///////////////////////////////////////////////////////////////////////////////
-// open and close
 
 wd_disc_t * wd_open_disc
 (
@@ -603,9 +746,10 @@ void wd_close_disc
 	wd_disc_t * disc		// NULL or a valid disc pointer
 );
 
+//
 ///////////////////////////////////////////////////////////////////////////////
+///////////////		    interface: get partition		///////////////
 ///////////////////////////////////////////////////////////////////////////////
-// get partition
 
 wd_part_t * wd_get_part_by_index
 (
@@ -650,9 +794,10 @@ wd_part_t * wd_get_part_by_type
 					// >2: load h3 too
 );
 
+//
 ///////////////////////////////////////////////////////////////////////////////
+///////////////		interface: load partition data		///////////////
 ///////////////////////////////////////////////////////////////////////////////
-// load partition data
 
 enumError wd_load_part
 (
@@ -678,9 +823,10 @@ enumError wd_calc_fst_statistics
 	bool		sum_all		// false: summarize only enabled partitions
 );
 
+//
 ///////////////////////////////////////////////////////////////////////////////
+///////////////		interface: select partitions		///////////////
 ///////////////////////////////////////////////////////////////////////////////
-// select partitions
 
 bool wd_is_part_selected
 (
@@ -691,7 +837,7 @@ bool wd_is_part_selected
 
 //-----------------------------------------------------------------------------
 
-int wd_select
+bool wd_select // return true if selection changed
 (
 	wd_disc_t	* disc,		// valid disc pointer
 	wd_select_t	select		// partition selector bit field
@@ -713,18 +859,10 @@ wd_select_t wd_clear_select
 	wd_select_t	clear_mask	// bits to clear
 );
 
-//-----------------------------------------------------------------------------
-
-bool wd_patch_ptab
-(
-	wd_disc_t	* disc,		// valid disc pointer
-	void		* data,		// pointer to data area, WII_MAX_PTAB_SIZE
-	bool		force_patch	// false: patch only if needed
-);
-
+//
 ///////////////////////////////////////////////////////////////////////////////
+///////////////		    interface: usage table		///////////////
 ///////////////////////////////////////////////////////////////////////////////
-// usage table
 
 extern const char wd_usage_name_tab[256];
 extern const u8   wd_usage_class_tab[256];
@@ -759,7 +897,7 @@ u8 * wd_filter_usage_table_sel
 
 u32 wd_count_used_disc_blocks
 (
-	wd_disc_t	* disc,		// valid pointer to a disc partition
+	wd_disc_t	* disc,		// valid pointer to a disc
 	u32		block_size	// if >1: count every 'block_size'
 					//        continuous blocks as one block
 );
@@ -768,7 +906,7 @@ u32 wd_count_used_disc_blocks
 
 u32 wd_count_used_disc_blocks_sel
 (
-	wd_disc_t	* disc,		// valid pointer to a disc partition
+	wd_disc_t	* disc,		// valid pointer to a disc
 	u32		block_size,	// if >1: count every 'block_size'
 					//        continuous blocks as one block
 	wd_select_t	select		// partition selector bit field
@@ -783,13 +921,14 @@ u32 wd_count_used_blocks
 					//        continuous blocks as one block
 );
 
+//
 ///////////////////////////////////////////////////////////////////////////////
+///////////////		    interface: file iteration		///////////////
 ///////////////////////////////////////////////////////////////////////////////
-// file iteration
 
 int wd_iterate_files
 (
-    wd_disc_t		* disc,		// valid pointer to a disc partition
+    wd_disc_t		* disc,		// valid pointer to a disc
     wd_file_func_t	func,		// call back function
     void		* param,	// user defined parameter
     wd_ipm_t		prefix_mode	// prefix mode
@@ -804,9 +943,10 @@ int wd_iterate_fst_files
     void		* param		// user defined parameter
 );
 
+//
 ///////////////////////////////////////////////////////////////////////////////
+///////////////		    interface: print files		///////////////
 ///////////////////////////////////////////////////////////////////////////////
-// print files
 
 extern const char wd_sep_200[201]; // 200 * '-' + NULL
 
@@ -849,56 +989,208 @@ void wd_print_fst
 (
 	FILE		* f,		// valid output file
 	int		indent,		// indention of the output
-	wd_disc_t	* disc,		// valid pointer to a disc partition
+	wd_disc_t	* disc,		// valid pointer to a disc
 	wd_ipm_t	prefix_mode,	// prefix mode
 	wd_pfst_t	pfst_mode,	// print mode
 	wd_file_func_t	filter_func,	// NULL or filter function
 	void		* filter_param	// user defined parameter
 );
 
+//
 ///////////////////////////////////////////////////////////////////////////////
+///////////////		     interface: patch helpers		///////////////
 ///////////////////////////////////////////////////////////////////////////////
-// patching
 
 void wd_reset_patch 
 (
-	wd_patch_t	* patch		// NULL or patching data
+    wd_patch_t		* patch		// NULL or patching data
+);
+
+//-----------------------------------------------------------------------------
+
+wd_patch_item_t * wd_find_patch
+(
+    wd_patch_t		* patch,	// patching data
+    wd_patch_mode_t	mode,		// patch mode
+    u64			offset,		// offset of object
+    u64			size		// size of object
 );
 
 //-----------------------------------------------------------------------------
 
 wd_patch_item_t * wd_insert_patch
 (
-	wd_patch_t	* patch,	// NULL or patching data
-	wd_patch_mode_t	mode,		// patch mode
-	u64		offset,		// offset of object
-	u64		size		// size of object
+    wd_patch_t		* patch,	// patching data
+    wd_patch_mode_t	mode,		// patch mode
+    u64			offset,		// offset of object
+    u64			size		// size of object
 );
 
+//-----------------------------------------------------------------------------
+
+wd_patch_item_t * wd_insert_patch_alloc
+(
+    wd_patch_t		* patch,	// patching data
+    wd_patch_mode_t	mode,		// patch mode
+    u64			offset,		// offset of object
+    u64			size		// size of object
+);
+
+//-----------------------------------------------------------------------------
+
+wd_patch_item_t * wd_insert_patch_ticket
+(
+    wd_part_t		* part		// valid pointer to a disc partition
+)  ;
+
+//-----------------------------------------------------------------------------
+
+wd_patch_item_t * wd_insert_patch_tmd
+(
+    wd_part_t		* part		// valid pointer to a disc partition
+);
 
 //-----------------------------------------------------------------------------
 
 void wd_dump_patch
 (
-	FILE		* f,		// valid output file
-	int		indent,		// indention of the output
-	wd_patch_t	* patch		// NULL or patching data
+    FILE		* f,		// valid output file
+    int			indent,		// indention of the output
+    wd_patch_t		* patch		// patching data
 );
 
 //-----------------------------------------------------------------------------
 
 void wd_dump_disc_patch
 (
-	FILE		* f,		// valid output file
-	int		indent,		// indention of the output
-	wd_disc_t	* disc,		// valid pointer to a disc partition
-	bool		print_title,	// true: print table titles
-	bool		print_part	// true: print partitions too
+    FILE		* f,		// valid output file
+    int			indent,		// indention of the output
+    wd_disc_t		* disc,		// valid pointer to a disc
+    bool		print_title,	// true: print table titles
+    bool		print_part	// true: print partitions too
 );
 
+//-----------------------------------------------------------------------------
+
+enumError wd_read_and_patch
+(
+    wd_disc_t		* disc,		// valid disc pointer
+    u64			offset,		// offset to read
+    void		* dest_buf,	// destination buffer
+    u32			count		// number of bytes to read
+);
+
+//
 ///////////////////////////////////////////////////////////////////////////////
+///////////////		     interface: patching		///////////////
 ///////////////////////////////////////////////////////////////////////////////
-// dump data structure
+
+bool wd_patch_ptab // result = true if something changed
+(
+    wd_disc_t		* disc,		// valid disc pointer
+    void		* data,		// pointer to data area, WII_MAX_PTAB_SIZE
+    bool		force_patch	// false: patch only if needed
+);
+
+//-----------------------------------------------------------------------------
+
+bool wd_patch_id
+(
+    void		* dest_id,	// destination, size=id_len, not 0 term
+    const void		* source_id,	// source id, length=id_len
+    const void		* new_id,	// NULL or new ID / 0 term / '.': don't change
+    u32			id_len		// max length of id
+);
+
+//-----------------------------------------------------------------------------
+
+bool wd_patch_disc_header // result = true if something changed
+(
+    wd_disc_t		* disc,		// valid pointer to a disc
+    ccp			new_id,		// NULL or new ID / '.': don't change
+    ccp			new_name	// NULL or new disc name
+);
+
+//-----------------------------------------------------------------------------
+
+bool wd_patch_region // result = true if something changed
+(
+    wd_disc_t		* disc,		// valid pointer to a disc
+    u32			new_region	// new region id
+);
+
+//-----------------------------------------------------------------------------
+
+bool wd_patch_part_id // result = true if something changed
+(
+    wd_part_t		* part,		// valid pointer to a disc partition
+    ccp			new_id,		// NULL or new ID / '.': don't change
+    wd_modify_t		modify		// objects to modify
+);
+
+//-----------------------------------------------------------------------------
+
+bool wd_patch_part_name // result = true if something changed
+(
+    wd_part_t		* part,		// valid pointer to a disc partition
+    ccp			new_name,	// NULL or new disc name
+    wd_modify_t		modify		// objects to modify
+);
+
+//-----------------------------------------------------------------------------
+
+bool wd_patch_part_system // result = true if something changed
+(
+    wd_part_t		* part,		// valid pointer to a disc partition
+    u64			system		// new system id (IOS)
+);
+
+//
+///////////////////////////////////////////////////////////////////////////////
+///////////////		     interface: relocation		///////////////
+///////////////////////////////////////////////////////////////////////////////
+
+wd_reloc_t * wd_calc_relocation
+(
+    wd_disc_t		* disc,		// valid disc pointer
+    bool		encrypt,	// true: encrypt partition data
+    bool		force		// true: force new calculation
+);
+
+//-----------------------------------------------------------------------------
+
+wd_reloc_t * wd_calc_relocation_sel
+(
+    wd_disc_t		* disc,		// valid disc pointer
+    wd_select_t		select,		// partition selector bit field
+    bool		encrypt,	// true: encrypt partition data
+    bool		force		// true: force new calculation
+);
+
+//-----------------------------------------------------------------------------
+
+void wd_dump_relocation
+(
+    FILE		* f,		// valid output file
+    int			indent,		// indention of the output
+    const wd_reloc_t	* reloc,	// valid pointer to relocation table
+    bool		print_title	// true: print table titles
+);
+
+//-----------------------------------------------------------------------------
+
+void wd_dump_disc_relocation
+(
+    FILE		* f,		// valid output file
+    int			indent,		// indention of the output
+    wd_disc_t		* disc,		// valid pointer to a disc
+    bool		print_title	// true: print table titles
+);
+
+//
+///////////////////////////////////////////////////////////////////////////////
+///////////////		interface: dump data structures		///////////////
+///////////////////////////////////////////////////////////////////////////////
 
 int wd_normalize_indent
 (

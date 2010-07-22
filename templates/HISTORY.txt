@@ -712,7 +712,7 @@ wit v1.10a.beta r1359 - 2010-07-09
 
  - ID renaming: A point ('.') means: leave id character unchanged.
  - Options --ios, --id and --name modify only disc data and the DATA partition,
-   but no longer other any other partitions.
+   but no longer any other partitions.
  - There is an complete new implementation of option --psel: Combinations like
    '--psel DATA,UPDATE' or '--psel -CHANNEL' are supported now.
  - New: wit DUMP --show=patch: Shows a address map with patching infos.
@@ -730,6 +730,25 @@ wit v1.10a.beta r1374 - 2010-07-13
 
  - New wiidisc lib: Advanced error handling.
  - wit ILIST: List files like 'fst.bin' too.
+
+Aggregation of the previous beta versions:
+
+ - New option: --width wd: Define the width (number of columns) for help and
+   other messages and disables the automatic detection of the terminal width.
+ - I have rewritten the wiidisc lib (part of libwbfs) from scratch. It has a
+   complete new interface and an improved functionality. It uses dynamic data
+   structures and collect data as needed. This has considerable advantages
+   for the whole WIT project.
+ - ID renaming: A point ('.') means: leave id character unchanged.
+ - Options --ios, --id and --name modify only disc data and the DATA partition,
+   but no longer any other partitions.
+ - There is an complete new implementation of option --psel: Combinations like
+   '--psel DATA,UPDATE' or '--psel -CHANNEL' are supported now.
+ - wwt EXTRACT: Complete new and improved calculation of output filename.
+ - wwt EXTRACT: Support '%X' and '%Y' in output filenames.
+ - Option --files: Macro calls are now prefixed by a colon (':'). The previous
+   prefix '=' is obsolete, but still allowed.
+ - Bug fix: File size calculation error for when composing large discs.
 
 @@MODULE(last-history.txt)@@
 

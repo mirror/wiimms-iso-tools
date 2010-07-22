@@ -324,7 +324,7 @@ static void test_open_disc ( int argc, char ** argv )
 	{
 	    printf("*** %s\n",sf.f.fname);
 	    enumError err;
-	    wd_disc_t * disc = wd_open_disc(WrapperReadSF,&sf,sf.file_size,sf.f.fname,&err);
+	    wd_disc_t * disc = wd_open_disc(WrapperReadDirectSF,&sf,sf.file_size,sf.f.fname,&err);
 	    if (disc)
 	    {
 		putchar('\n');
@@ -434,6 +434,20 @@ void test_sha1()
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
+int test_crypt_and_split ( int argc, char ** argv )
+{
+    int i;
+    for ( i = 1; i < argc; i++ )
+    {
+	// [2do]
+    }
+    return 0;    
+}
+
+//
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+
 enum
 {
     CMD_HELP,			// help_exit();
@@ -502,8 +516,8 @@ int test ( int argc, char ** argv )
     //test_create_file();
     //test_create_sparse_file();
     //test_splitted_file();
-
-    return test_zero_wdf();
+    //test_zero_wdf();
+    test_crypt_and_split(argc,argv);
 
     return 0;
 }

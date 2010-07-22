@@ -2042,7 +2042,7 @@ enumError cmd_extract()
 		int conv_count = SubstFileName( fbuf, sizeof(fbuf),
 						id6, (ccp)dhead->game_title,
 						info->path, 0, dpath, oft );
-		printf("|%s|%s|\n",dpath,fbuf);
+		noTRACE("|%s|%s|\n",dpath,fbuf);
 		SetFileName(&fo.f,fbuf,true);
 		fo.f.create_directory = conv_count || opt_mkdir;
 

@@ -100,7 +100,9 @@ typedef struct SuperFile_t
 
 	// Wii disc support
 	
-	wd_disc_t * disc;		// pointer to wii disc
+	bool discs_loaded;		// true: discs already loaded -> don't try again
+	wd_disc_t * disc1;		// NULL or pointer to unpatched wii disc
+	wd_disc_t * disc2;		// NULL or pointer to patched wii disc
 
 	// WDF support
 
@@ -120,11 +122,11 @@ typedef struct SuperFile_t
 	// FST support
 	
 	struct WiiFst_t * fst;		// a FST
-	MemMap_t modified_list;		// sections that is modified while
+	MemMap_t modified_list;		// sections that are modified while
 					// reading data. This data should
 					// be rewritten to the destination
 					// before closing the files.
-	bool merge_mode;		// enable merge mode
+	bool merge_mode;		// enable merge mode [2do] [obsolete?]
 
 } SuperFile_t;
 
@@ -183,7 +185,6 @@ wd_disc_t * OpenDiscSF
 	bool print_err		// true: print error message if open fails
 );
 
-enumError SetupISOModifier ( SuperFile_t * sf );
 enumError RewriteModifiedSF ( SuperFile_t * fi, SuperFile_t * fo, struct WBFS_t * wbfs );
 
 // setup writing
@@ -252,6 +253,7 @@ enumError WriteZeroSwitchSF	( SuperFile_t * sf, off_t off, size_t count );
 // libwbfs read and write wrappers
 
 int WrapperReadSF	  ( void * p_sf, u32 offset, u32 count, void * iobuf );
+int WrapperReadDirectSF	  ( void * p_sf, u32 offset, u32 count, void * iobuf );
 int WrapperWriteSF	  ( void * p_sf, u32 lba,    u32 count, void * iobuf );
 int WrapperWriteSparseSF  ( void * p_sf, u32 lba,    u32 count, void * iobuf );
 

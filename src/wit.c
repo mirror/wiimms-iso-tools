@@ -149,9 +149,45 @@ void hint_exit ( enumError stat )
 
 enumError cmd_test()
 {
- #if 1 || !defined(TEST) // test options
+ #if 0 || !defined(TEST) // test options
 
     return cmd_test_options();
+
+ #elif 1
+
+    off_t off = 0x3fff0;
+    char buf[0x100];
+
+    SuperFile_t sf;
+    InitializeSF(&sf);
+
+    ParamList_t * param;
+    for ( param = first_param; param; param = param->next )
+    {	
+	printf("\n*** %s\n",param->arg);
+	ResetSF(&sf,0);
+	enumError err = OpenSF(&sf,param->arg,true,true);
+	if (err)
+	    continue;
+
+	hook_enabled = true;
+
+	if (!ReadSF(&sf,off,buf,sizeof(buf)))
+	    HEXDUMP16(0,off,buf,sizeof(buf));
+    }
+    return ERR_OK;
+
+ #elif 1
+
+    {
+	ccp msg = "Dieses ist ein langer Satz, "
+		  "der noch ein wenig länger ist "
+		  "und noch ein wenig länger ist "
+		  "und hier endet.\n";
+	ERROR1(ERR_WARNING,"%s%s",msg,msg);
+	ERROR1(ERR_ERROR,"%s%s",msg,msg);
+    }
+    return ERR_OK;
 
  #elif 1
 

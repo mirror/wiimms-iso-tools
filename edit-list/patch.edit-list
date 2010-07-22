@@ -6,3 +6,4 @@
 ../src/lib-file.[ch] ;
 ../src/lib-error.[ch] ;
 @+all-source.edit-list
+-y 530 ../src/patch.c ;

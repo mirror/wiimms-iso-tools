@@ -60,10 +60,11 @@ static void dump_data
 
 static int dump_header
 (
-	FILE * f,		// output stream
-	int indent,		// indent
-	SuperFile_t * sf,	// file to dump
-	ccp real_path		// NULL or pointer to real path
+    FILE		* f,		// output stream
+    int			indent,		// indent
+    SuperFile_t		* sf,		// file to dump
+    ccp			id6,		// NULL or id6
+    ccp			real_path	// NULL or pointer to real path
 )
 {
     ASSERT(f);
@@ -74,9 +75,11 @@ static int dump_header
     indent += 2;
     if ( real_path && *real_path && strcmp(sf->f.fname,real_path) )
 	fprintf(f,"%*sReal path:       %s\n",indent,"",real_path);
-    if (*sf->f.id6)
+    if (!id6)
+	id6 = sf->f.id6;
+    if (*id6)
 	fprintf(f,"%*sID & type:       %s, %s\n",
-		indent,"", sf->f.id6, GetNameFT(sf->f.ftype,0) );
+		indent,"", id6, GetNameFT(sf->f.ftype,0) );
     else
 	fprintf(f,"%*stype:            %s\n",
 		indent,"", GetNameFT(sf->f.ftype,0) );
@@ -153,6 +156,8 @@ enumError Dump_ISO
     sf->f.read_behind_eof = 2;
 
     wd_disc_t * disc = OpenDiscSF(sf,true,true);
+    if ( show_mode & SHOW_F_PRIMARY )
+	disc = sf->disc1;
     if (!disc)
 	return ERR_WDISC_NOT_FOUND;
 
@@ -169,28 +174,44 @@ enumError Dump_ISO
 
     if ( show_mode & SHOW__DEFAULT )
     {
+	show_mode = SHOW__ALL;
 	switch (dump_level)
 	{
-	    case 0:  show_mode = SHOW_INTRO | SHOW_P_TAB; break;
-	    case 1:  show_mode = SHOW__ALL & ~(SHOW_D_MAP|SHOW_USAGE|SHOW_FILES|SHOW_PATCH); break;
-	    case 2:  show_mode = SHOW__ALL & ~SHOW_FILES; break;
-	    default: show_mode = SHOW__ALL; break;
+	    case 0:  
+		show_mode = SHOW_INTRO | SHOW_P_TAB;
+		break;
+
+	    case 1:
+		show_mode &= ~(SHOW_D_MAP|SHOW_USAGE);
+		// fall through
+
+	    case 2:  
+		show_mode &= ~SHOW_FILES;
+		// fall through
+
+	    case 3:
+		show_mode &= ~(SHOW_PATCH|SHOW_RELOCATE);
+		break;
 	}
+
 	show_mode |= SHOW_F_HEAD;
 	if (pat->is_active)
 	    show_mode |= SHOW_FILES;
     }
+
+    if ( show_mode & SHOW_F_PRIMARY )
+	show_mode &= ~(SHOW_TICKET|SHOW_TMD); // TICKET nad TMD data is patched
 
 
     //----- print header
 
     if ( show_mode & SHOW_INTRO )
     {
-	dump_header(f,indent-2,sf,real_path);
+	dump_header(f,indent-2,sf,&disc->dhead.disc_id,real_path);
 
 	fprintf(f,"%*sDisc name:       %.64s\n",indent,"",disc->dhead.game_title);
 
-	ccp title = GetTitle(disc->id6,0);
+	ccp title = GetTitle((ccp)&disc->dhead,0);
 	if (title)
 	    fprintf(f,"%*sDB title:        %s\n",indent,"",title);
 
@@ -269,9 +290,9 @@ enumError Dump_ISO
 	    }
 	    else
 		fprintf(f,"%*s%5d.%-2d %s %11llx         "
-			  "** INVALID PARTITION **               %s\n",
+			  "** INVALID PARTITION **               invalid\n",
 		    indent,"", part->ptab_index, part->ptab_part_index,
-		    pname, off, status );
+		    pname, off );
 	}
     }
 
@@ -321,16 +342,24 @@ enumError Dump_ISO
 		p8[0], p8[1], p8[2], p8[3], p8[4], p8[5], p8[6], p8[7],
 		p8[8], p8[9], p8[10], p8[11], p8[12], p8[13], p8[14], p8[15] );
 
-	    if ( !(show_mode & SHOW_TMD) && part->tmd )
+	    if ( !(show_mode & SHOW_F_PRIMARY) )
 	    {
-		const u32 hi = part->tmd->sys_version >> 32;
-		const u32 lo = (u32)part->tmd->sys_version;
-		if ( hi == 1 && lo < 0x100 )
-		    fprintf(f,"%*s  System version: %08x-%08x = IOS %u\n",
-				indent, "", hi, lo, lo );
-		else
-		    fprintf(f,"%*s  System version: %08x-%08x\n",
-				indent, "", hi, lo );
+		fprintf(f,"%*s  boot.bin, id: %s\n",
+			indent, "", wd_print_id(&part->boot,6,0));
+		fprintf(f,"%*s  boot.bin, title: %.64s\n",
+			indent, "", part->boot.dhead.game_title);
+		
+		if ( !(show_mode & SHOW_TMD) && part->tmd )
+		{
+		    const u32 hi = part->tmd->sys_version >> 32;
+		    const u32 lo = (u32)part->tmd->sys_version;
+		    if ( hi == 1 && lo < 0x100 )
+			fprintf(f,"%*s  System version: %08x-%08x = IOS %u\n",
+				    indent, "", hi, lo, lo );
+		    else
+			fprintf(f,"%*s  System version: %08x-%08x\n",
+				    indent, "", hi, lo );
+		}
 	    }
 	}
 
@@ -401,12 +430,24 @@ enumError Dump_ISO
     }
 
 
-    //----- patching tables
-
-    if ( show_mode & SHOW_PATCH )
+    if ( sf->disc1 && sf->disc1 != sf->disc2 )
     {
-	putc('\n',f);
-	wd_dump_disc_patch(f,indent,disc,true,true);
+	//----- patching tables
+
+	if ( show_mode & SHOW_PATCH )
+	{
+	    putc('\n',f);
+	    wd_dump_disc_patch(f,indent,sf->disc1,true,true);
+	}
+
+
+	//----- relocating table
+
+	if ( show_mode & SHOW_RELOCATE )
+	{
+	    putc('\n',f);
+	    wd_dump_disc_relocation(f,indent,sf->disc1,true);
+	}
     }
 
 
@@ -439,7 +480,7 @@ enumError Dump_DOL
     ASSERT(sf);
     if (!f)
 	return ERR_OK;
-    indent = dump_header(f,indent,sf,real_path);
+    indent = dump_header(f,indent,sf,0,real_path);
 
     dol_header_t dol;
     enumError err = ReadSF(sf,0,&dol,sizeof(dol));
@@ -516,7 +557,7 @@ enumError Dump_TIK_BIN
     enumError err = ReadSF(sf,0,&tik,sizeof(tik));
     if (!err)
 	memcpy(sf->f.id6,tik.title_id+4,4);
-    indent = dump_header(f,indent,sf,real_path);
+    indent = dump_header(f,indent,sf,0,real_path);
 
     if (!err)
     {
@@ -599,7 +640,7 @@ enumError Dump_TMD_BIN
     enumError err = ReadSF(sf,0,buf,load_size);
     if (!err)
 	memcpy(sf->f.id6,tmd->title_id+4,4);
-    indent = dump_header(f,indent,sf,real_path);
+    indent = dump_header(f,indent,sf,0,real_path);
 
     if (!err)
     {
@@ -697,7 +738,7 @@ enumError Dump_HEAD_BIN
     ASSERT(sf);
     if (!f)
 	return ERR_OK;
-    indent = dump_header(f,indent,sf,real_path);
+    indent = dump_header(f,indent,sf,0,real_path);
 
     wd_header_t head;
     enumError err = ReadSF(sf,0,&head,WBFS_INODE_INFO_OFF);
@@ -736,7 +777,7 @@ enumError Dump_BOOT_BIN
     ASSERT(sf);
     if (!f)
 	return ERR_OK;
-    indent = dump_header(f,indent,sf,real_path);
+    indent = dump_header(f,indent,sf,0,real_path);
 
     wd_boot_t wb;
     enumError err = ReadSF(sf,0,&wb,sizeof(wb));
@@ -796,7 +837,7 @@ enumError Dump_FST_BIN
 
     if ( show_mode & SHOW_INTRO )
     {
-	dump_header(f,indent,sf,real_path);
+	dump_header(f,indent,sf,0,real_path);
 	indent += 2;
     }
 
@@ -883,7 +924,7 @@ int RenameISOHeader ( void * data, ccp fname,
     wd_header_t * whead = (wd_header_t*)data;
     char old_id6[7], new_id6[7];
     memset(old_id6,0,sizeof(old_id6));
-    StringCopyS(old_id6,sizeof(old_id6),(ccp)&whead->disc_id);
+    StringCopyS(old_id6,sizeof(old_id6),&whead->disc_id);
     memcpy(new_id6,old_id6,sizeof(new_id6));
 
     if ( testmode || verbose >= 0 )
@@ -2198,7 +2239,7 @@ enumFileType IsFSTPart ( ccp base_path, char * id6_result )
 	return FT_ID_DIR;
     }
     close(fd);
-    PatchId(id6_result,0,6,MODIFY_DISC|MODIFY__AUTO);
+    PatchId(id6_result,0,6,WD_MODIFY_DISC|WD_MODIFY__AUTO);
 
     //----- more required files
     
@@ -2554,8 +2595,8 @@ u64 GenPartFST
 
     if ( part->part_type == WD_PART_DATA )
     {
-	PatchId(imi->data,0,6,MODIFY_BOOT|MODIFY__AUTO);
-	PatchName(imi->data+WII_TITLE_OFF,MODIFY_BOOT|MODIFY__AUTO);
+	PatchId(imi->data,0,6,WD_MODIFY_BOOT|WD_MODIFY__AUTO);
+	PatchName(imi->data+WII_TITLE_OFF,WD_MODIFY_BOOT|WD_MODIFY__AUTO);
     }
     snprintf(imi->info,sizeof(imi->info),"boot.bin [%.6s] + bi2.bin",(ccp)imi->data);
 
@@ -2576,8 +2617,8 @@ u64 GenPartFST
     {
 	LoadFile(path,"disc/header.bin",0,
 			    &fst->dhead,sizeof(fst->dhead),true);
-	PatchId(&fst->dhead.disc_id,0,6,MODIFY_DISC|MODIFY__AUTO);
-	PatchName(fst->dhead.game_title,MODIFY_DISC|MODIFY__AUTO);
+	PatchId(&fst->dhead.disc_id,0,6,WD_MODIFY_DISC|WD_MODIFY__AUTO);
+	PatchName(fst->dhead.game_title,WD_MODIFY_DISC|WD_MODIFY__AUTO);
     }
 
     //----- disc/region.bin
@@ -2681,8 +2722,8 @@ u64 GenPartFST
 
     if ( part->part_type == WD_PART_DATA )
     {
-	PatchId(pc->head->ticket.title_id+4,0,4,MODIFY_TICKET|MODIFY__AUTO);
-	PatchId(pc->tmd->title_id+4,0,4,MODIFY_TMD|MODIFY__AUTO);
+	PatchId(pc->head->ticket.title_id+4,0,4,WD_MODIFY_TICKET|WD_MODIFY__AUTO);
+	PatchId(pc->tmd->title_id+4,0,4,WD_MODIFY_TMD|WD_MODIFY__AUTO);
 
 	if (opt_ios_valid)
 	    pc->tmd->sys_version = hton64(opt_ios);
@@ -2769,7 +2810,7 @@ enumError SetupReadFST ( SuperFile_t * sf )
     TRACE("ENCODING: %04x -> %04x\n",encoding,fst->encoding);
 
 
-    //----- setup partitions
+    //----- setup partitions --> [2do] use part_selector
 
     u64 min_offset	= WII_GOOD_UPDATE_PART_OFF;
     u64 update_off	= WII_GOOD_UPDATE_PART_OFF;
@@ -2921,7 +2962,6 @@ enumError SetupReadFST ( SuperFile_t * sf )
     const off_t single_size = WII_SECTORS_SINGLE_LAYER * (off_t)WII_SECTOR_SIZE;
     sf->file_size = min_offset > single_size ? min_offset : single_size;
 
-    //SetupISOModifier(sf); // not needed because done on composing
     return ERR_OK;
 }
 
@@ -3047,7 +3087,7 @@ enumError ReadFST ( SuperFile_t * sf, off_t off, void * buf, size_t count )
 	{
 	    case IMT_ID:
 		TRACE(">ID %zx=%zu\n",copy_count,copy_count);
-		PatchId(dest,delta,copy_count,MODIFY__ALWAYS);
+		PatchId(dest,delta,copy_count,WD_MODIFY__ALWAYS);
 		break;
 
 	    case IMT_DATA:
@@ -3266,7 +3306,7 @@ enumError ReadPartGroupFST ( SuperFile_t * sf, WiiFstPart_t * part,
 			skip_count, max_copy, dest-src, imi->info );
 // [merge]	if (sf->merge_mode)
 // [merge]	    MergeSetup(sf,part,dest,max_copy);
-		PatchId(dest,skip_count,max_copy,MODIFY__ALWAYS);
+		PatchId(dest,skip_count,max_copy,WD_MODIFY__ALWAYS);
 		break;
 
 	    case IMT_DATA:
@@ -3454,7 +3494,7 @@ static const u8 iv0[WII_KEY_SIZE] = {0}; // always NULL
 
 ///////////////////////////////////////////////////////////////////////////////
 
-void EncryptSectors
+void EncryptSectors // [2do] [obsolete] replace by wd_encrypt_sectors()
 (
     const aes_key_t	* akey,
     const void		* sect_src,
@@ -3489,7 +3529,7 @@ void EncryptSectors
 
 ///////////////////////////////////////////////////////////////////////////////
 
-void DecryptSectors
+void DecryptSectors // [2do] [obsolete] replace by wd_decrypt_sectors()
 (
     const aes_key_t	* akey,
     const void		* sect_src,
@@ -3613,7 +3653,7 @@ static enumError PrintVerifyMessage ( Verify_t * ver, ccp msg )
 	printf("%*s%-7.7s %s %n%-7s %6.6s %s\n",
 		ver->indent, "",
 		msg, count_buf, &ver->info_indent,
-		pname_buf, ver->sf->disc->id6,
+		pname_buf, (ccp)&ver->sf->disc2->dhead,
 		ver->fname ? ver->fname : ver->sf->f.fname );
 	fflush(stdout);
     }
@@ -3726,15 +3766,15 @@ enumError VerifyPartition ( Verify_t * ver )
     wd_part_t * part = ver->part;
     wd_load_part(part,false,true);
 
-    if (tmd_is_marked_not_encrypted(part->tmd))
+    if (!part->is_valid)
     {
-	PrintVerifyMessage(ver,"!NO-HASH");
+	PrintVerifyMessage(ver,"!INVALID");
 	return ERR_DIFFER;
     }
 
-    if ( !part->is_valid )
+    if (tmd_is_marked_not_encrypted(part->tmd))
     {
-	PrintVerifyMessage(ver,"!INVALID");
+	PrintVerifyMessage(ver,"!NO-HASH");
 	return ERR_DIFFER;
     }
 
@@ -3975,23 +4015,41 @@ enumError VerifyDisc ( Verify_t * ver )
 
     enumError err = ERR_OK;
     int pi, differ_count = 0;
-    for ( pi = 0; pi < disc->n_part && !SIGINT_level; pi++ )
+
+    if ( ver->verbose < 0 )
     {
-	ver->part = wd_get_part_by_index(disc,pi,0);
-	if ( ver->part->is_enabled )
+	// find invalid partitions first for faster results
+	for ( pi = 0; pi < disc->n_part && !SIGINT_level; pi++ )
 	{
-	    err = VerifyPartition(ver);
-	    if ( err == ERR_DIFFER )
+	    ver->part = wd_get_part_by_index(disc,pi,0);
+	    if ( ver->part->is_enabled && !ver->part->is_valid )
 	    {
-		differ_count++;
-		if ( ver->verbose < 0 )
+		err = VerifyPartition(ver);
+		if (err)
 		    break;
 	    }
-	    else if (err)
-		break;
 	}
     }
 
+    if (!err)
+    {
+	for ( pi = 0; pi < disc->n_part && !SIGINT_level; pi++ )
+	{
+	    ver->part = wd_get_part_by_index(disc,pi,0);
+	    if ( ver->part->is_enabled )
+	    {
+		err = VerifyPartition(ver);
+		if ( err == ERR_DIFFER )
+		{
+		    differ_count++;
+		    if ( ver->verbose < 0 )
+			break;
+		}
+		else if (err)
+		    break;
+	    }
+	}
+    }
 
     //----- terminate
 

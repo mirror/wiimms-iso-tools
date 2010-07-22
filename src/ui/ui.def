@@ -459,8 +459,8 @@
 	"This option allows fine control over the things that are to be" \
 	" printed. The parameter is a comma separated list of the following" \
 	" keywords, case is ignored:  @NONE, INTRO, P-TAB, P-INFO, P-MAP," \
-	" D-MAP, TICKET, TMD, USAGE, PATCH, FILES, OFFSET, SIZE, PATH@ and" \
-	" @ALL@. There are some combined keys: @PART :=" \
+	" D-MAP, TICKET, TMD, USAGE, PATCH, RELOCATE, FILES, OFFSET, SIZE," \
+	" PATH@ and @ALL@. There are some combined keys: @PART :=" \
 	" P-INFO,P-MAP,TICKET,TMD@, @MAP := P-MAP,D-MAP@.\n" \
 	"All keywords can be prefixed by '+' to enable that option, by a '-'" \
 	" to disable it or by a '=' to enable that option and disable all" \
