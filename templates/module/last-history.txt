@@ -11,7 +11,7 @@ wit v@@VERSION@@ r@@REV-NEXT@@ - @@@@-@@-@@  (repository only)
  - Computed line breaks for error messages.
  - wit copy accepts the options --id --name --ios --region to patch the image
    while copying.
- - New comamnd: wit EDIT: patch iso image directly.
+ - New command: wit EDIT: Patch iso image directly.
 
 ~Known bugs:
 ~

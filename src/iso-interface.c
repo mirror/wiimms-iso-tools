@@ -826,6 +826,8 @@ enumError Dump_FST_BIN
 )
 {
     ASSERT(sf);
+    TRACE("Dump_FST_BIN(%p,%d,%p,,%x)\n", f, indent, sf, show_mode );
+
     if ( !f || sf->file_size > 20*MiB )
 	return ERR_OK;
     indent = NormalizeIndent(indent);
@@ -888,12 +890,15 @@ enumError Dump_FST_MEM
 	return ERR_INVALID_FILE;
     }
  
-    WiiFst_t fst;
-    InitializeFST(&fst);
-    CollectFST_BIN(&fst,ftab_data,GetDefaultFilePattern(),false);
-    SortFST(&fst,sort_mode,SORT_NAME);
-    DumpFilesFST(f,indent,&fst,pfst,0);
-    ResetFST(&fst);
+    if (f)
+    {
+	WiiFst_t fst;
+	InitializeFST(&fst);
+	CollectFST_BIN(&fst,ftab_data,GetDefaultFilePattern(),false);
+	SortFST(&fst,sort_mode,SORT_NAME);
+	DumpFilesFST(f,indent,&fst,pfst,0);
+	ResetFST(&fst);
+    }
 
     return ERR_OK;
 }
@@ -2782,6 +2787,7 @@ enumError SetupReadFST ( SuperFile_t * sf )
     ASSERT(sf);
     ASSERT(!sf->fst);
     TRACE("SetupReadFST() -> %x %s\n",sf->f.ftype,sf->f.fname);
+    PRINT("SetupReadFST() -> %x %s\n",sf->f.ftype,sf->f.fname);
 
     SetupIOD(sf,OFT_FST,OFT_FST);
     WiiFst_t * fst = malloc(sizeof(*fst));
@@ -4018,15 +4024,16 @@ enumError VerifyDisc ( Verify_t * ver )
 
     if ( ver->verbose < 0 )
     {
-	// find invalid partitions first for faster results
-	for ( pi = 0; pi < disc->n_part && !SIGINT_level; pi++ )
+	// find invalid partitions first for faster results, use disc1
+	wd_disc_t * disc1 = ver->sf->disc1;
+	for ( pi = 0; pi < disc1->n_part && !SIGINT_level; pi++ )
 	{
-	    ver->part = wd_get_part_by_index(disc,pi,0);
+	    ver->part = wd_get_part_by_index(disc1,pi,0);
 	    if ( ver->part->is_enabled && !ver->part->is_valid )
 	    {
-		err = VerifyPartition(ver);
-		if (err)
-		    break;
+		PrintVerifyMessage(ver,"!INVALID");
+		err = ERR_DIFFER;
+		break;
 	    }
 	}
     }

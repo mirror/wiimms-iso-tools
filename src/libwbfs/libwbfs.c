@@ -1604,7 +1604,7 @@ u32 wbfs_trim ( wbfs_t * p )
 
     u32 max_block = find_last_used_block(p) + 1;
     p->n_hd_sec = max_block << p->wbfs_sec_sz_s - p->hd_sec_sz_s;
-    //p->head->n_hd_sec = wbfs_htonl(p->n_hd_sec);
+    p->head->n_hd_sec = wbfs_htonl(p->n_hd_sec);
 
     TRACE("max_block=%u, n_hd_sec=%u\n",max_block,p->n_hd_sec);
 

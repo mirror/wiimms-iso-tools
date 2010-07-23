@@ -583,13 +583,8 @@ enumError XCreateFile
 {
     ASSERT(f);
 
-#if defined(TEST) && 0 // [2do]
-    const int open_flags  = O_CREAT|O_RDWR|O_TRUNC|O_EXCL;
-    const int force_flags = O_CREAT;
-#else
     const int open_flags  = O_CREAT|O_WRONLY|O_TRUNC|O_EXCL;
     const int force_flags = O_CREAT;
-#endif
 
     if (!fname)
     {

@@ -1250,7 +1250,6 @@ enumError exec_copy ( SuperFile_t * fi, Iterator_t * it )
     if (err)
 	goto abort;
 
-    //MarkMinSizeSF(&fo,fi->file_size); // [2do] [obsolete]
     err = CopySF( fi, &fo, raw_mode ? WD_SEL_WHOLE_DISC : part_selector );
     if (err)
 	goto abort;

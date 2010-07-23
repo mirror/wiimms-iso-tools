@@ -217,6 +217,7 @@ function test_suite()
     #----- test WWT
 
     hss=512
+    rm -f "$WBFS"
     test_function "INIT-$hss" "wwt INIT wbfs hss=$hss" \
 	$WWT INIT -q --force --size=20g --hss=$hss "$WBFS" \
 	|| return $ERROR
@@ -232,6 +233,7 @@ function test_suite()
 	    $WWT -qp "$WBFS" EXTRACT "$id6=$dest" --$mode \
 	    || return $ERROR
 
+	rm -f "$WBFS"
 	test_function "INIT-$hss" "wwt INIT wbfs hss=$hss" \
 	    $WWT INIT -q --force --size=20g --hss=$hss "$WBFS" \
 	    || return $ERROR
@@ -298,6 +300,7 @@ function test_suite()
 	    || return $ERROR
 
 	hss=512
+	rm -f "$WBFS"
 	test_function "INIT-$hss" "wwt INIT wbfs hss=$hss" \
 	    $WWT INIT -q --force --size=20g --hss=$hss "$WBFS" \
 	    || return $ERROR
@@ -331,6 +334,7 @@ function test_suite()
     then
 
 	hss=1024
+	rm -f "$WBFS"
 	test_function "INIT-$hss" "wwt INIT wbfs hss=$hss" \
 	    $WWT INIT -q --force --size=20g --hss=$hss "$WBFS" \
 	    || return $ERROR

@@ -1274,18 +1274,20 @@ static enumError wd_check_part_offset
 	noTRACE("TEST '%s': %llx + %llx <= %llx\n",name,off,size,file_size);
 	if ( off > file_size )
 	{
-	    WD_ERROR(ERR_WDISC_INVALID,"Partition %s: Offset of %s (%llx) behind end of file%s",
+	    WD_ERROR(ERR_WDISC_INVALID,
+		    "Partition %s: Offset of %s (%llx) behind end of file (%llx)%s",
 		    wd_print_part_name(0,0,part->part_type,WD_PNAME_NUM_INFO),
-		    name, off, part->disc->error_term );
+		    name, off, file_size, part->disc->error_term );
 	    return ERR_WDISC_INVALID;
 	}
 
 	off += size;
 	if ( off > file_size )
 	{
-	    WD_ERROR(ERR_WDISC_INVALID,"Partition %s: End of %s (%llx) behind end of file%s",
+	    WD_ERROR(ERR_WDISC_INVALID,
+		    "Partition %s: End of %s (%llx) behind end of file (%llx)%s",
 		    wd_print_part_name(0,0,part->part_type,WD_PNAME_NUM_INFO),
-		    name, off, part->disc->error_term );
+		    name, off, file_size, part->disc->error_term );
 	    return ERR_WDISC_INVALID;
 	}
     }
@@ -2393,6 +2395,7 @@ void wd_print_fst_header
 {
     ASSERT(pf);
     ASSERT(pf->f);
+    TRACE("wd_print_fst_header()\n");
 
     pf->indent = wd_normalize_indent(pf->indent);
     if ( max_name_len < 11 )
@@ -2553,6 +2556,7 @@ void wd_print_fst
 )
 {
     ASSERT(f);
+    TRACE("wd_print_fst()\n");
     indent = wd_normalize_indent(indent);
 
     //----- setup pf and calc fw

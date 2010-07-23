@@ -510,6 +510,9 @@ wd_disc_t * OpenDiscSF
 
     DASSERT(!sf->disc1);
     DASSERT(!sf->disc2);
+
+    if ( !print_err && sf->iod.oft != OFT_FST && S_ISDIR(sf->f.st.st_mode) )
+	return 0;
     sf->discs_loaded = true;
 
     //****************************************************
@@ -3164,9 +3167,8 @@ static enumError SourceIteratorHelper
 	return ERR_OK;
     }
     sf.f.disable_errors = false;
-    if (*sf.f.id6)
+    if ( *sf.f.id6 )
 	OpenDiscSF(&sf,false,false);
-    //PRINT("%p %p %s\n",sf.disc1,sf.disc2,sf.f.id6);
 
     ccp real_path = realpath( sf.f.path ? sf.f.path : sf.f.fname, buf );
     if (!real_path)
