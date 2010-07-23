@@ -107,6 +107,11 @@
 	"wit SCRUB [-s path]... [-r path]... [source]...", \
 	"Scrub, convert, split, encrypt and decrypt Wii ISO images." )
 
+#:def_cmd( "EDIT", "EDIT|ED", \
+	"wit EDIT source\n" \
+	"wit EDIT [-s path]... [-r path]... [source]...", \
+	"Edit an existing Wii ISO images and patch some values." )
+
 #:def_cmd( "MOVE", "MOVE|MV", \
 	"wit MOVE source dest\n" \
 	"wit MOVE [-s path]... [-r path]... [source]... [-d|-D] dest", \

@@ -275,7 +275,7 @@ info_t info_tab[] =
 		"wit SCRUB [-s path]... [-r path]... [source]...",
 		"Scrub, convert, split, encrypt and decrypt Wii ISO images." },
 
-  { H_DEF_CMD,	"EDIT",		"EDIT",
+  { T_DEF_CMD,	"EDIT",		"EDIT|ED",
 		"wit EDIT source"
 		"\n"
 		"wit EDIT [-s path]... [-r path]... [source]...",
@@ -463,7 +463,7 @@ info_t info_tab[] =
 
   { H_OPT_G,	"HOOK",		"hook",
 		0,
-		" [2do] for tests only." },
+		"Force relocation hook while reading iso images." },
 
   { T_OPT_CP,	"ID",		"id",
 		"id",

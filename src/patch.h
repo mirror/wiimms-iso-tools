@@ -35,6 +35,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 
 extern bool hook_enabled; // [2do] for testing only, [obsolete]
+extern bool opt_hook; // true: force relocation hook
 
 //-----------------------------------------------------------------------------
 

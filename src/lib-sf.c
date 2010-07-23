@@ -111,7 +111,8 @@ enumError CloseSF ( SuperFile_t * sf, FileAttrib_t * set_time_ref )
 	sf->min_file_size = 0;
     }
 
-    if ( !err && sf->f.is_writing && !sf->f.is_reading )
+    //if ( !err && sf->f.is_writing && !sf->f.is_reading )
+    if ( !err && sf->f.is_writing )
     {
 	if (sf->wc)
 	    err = TermWriteWDF(sf);
@@ -563,7 +564,7 @@ wd_disc_t * OpenDiscSF
 
     //----- check for patching
 
-    int reloc = sf->disc1->patch_ptab_recommended; // activate reloc?
+    int reloc = opt_hook || sf->disc1->patch_ptab_recommended; // activate reloc?
     const wd_modify_t modify = opt_modify & WD_MODIFY__AUTO
 				? WD_MODIFY__ALL : opt_modify;
     enumEncoding enc = SetEncoding(encoding,0,0);
@@ -610,10 +611,8 @@ wd_disc_t * OpenDiscSF
 		wd_part_t * part = wd_get_part_by_index(disc,ip,0);
 		if ( part && part->is_valid && part->is_enabled )
 		{
-		    if ( modify & WD_MODIFY_TICKET )
-			wd_insert_patch_ticket(part);
-		    if ( modify & WD_MODIFY_TMD )
-			wd_insert_patch_tmd(part);
+		    wd_insert_patch_ticket(part);
+		    wd_insert_patch_tmd(part);
 		}
 	    }
 	}
@@ -622,7 +621,7 @@ wd_disc_t * OpenDiscSF
     if (reloc)
     {
      #ifdef TEST // [2do]
-	printf("SETUP RELOC, enc=%d\n",!(enc&ENCODE_DECRYPT));
+	printf("SETUP RELOC\n");
      #endif
 
 	if ( logging > 0 )
@@ -2155,14 +2154,6 @@ enumError CopySF ( SuperFile_t * in, SuperFile_t * out, wd_select_t psel )
 		    return err;
 	    }
 
-	    // encryption && decryption support
-	    u8 last_id = 0;
-	    aes_key_t akey;
-	    bool check_encryption = ( encoding & ENCODE_M_CRYPT ) != 0 && !hook_enabled;
-	    bool encrypt = 0, decrypt = 0;
-	    ASSERT( sizeof(iobuf) >= 2 * WII_SECTOR_SIZE );
-	    char * rdbuf = iobuf; // setup: read_buffer == write_buffer
-
 	    int idx;
 	    u64 pr_done = 0, pr_total = 0;
 	    if ( out->show_progress )
@@ -2181,43 +2172,10 @@ enumError CopySF ( SuperFile_t * in, SuperFile_t * out, wd_select_t psel )
 		    if ( SIGINT_level > 1 )
 			return ERR_INTERRUPT;
     
-		    if ( check_encryption && last_id != cur_id )
-		    {
-			last_id = cur_id;
-			encrypt = decrypt = false;
-			rdbuf = iobuf;
-
-			if ( cur_id & WD_USAGE_F_CRYPT )
-			{
-			    wd_part_t * part = wd_get_part_by_usage(disc,cur_id,0);
-			    if ( part && part->is_valid )
-			    {
-				DASSERT(part->is_loaded);
-				encrypt = encoding & ENCODE_ENCRYPT && !part->is_encrypted;
-				decrypt = encoding & ENCODE_DECRYPT &&  part->is_encrypted;
-				TRACE("PART #%u: ENCRYPT=%d, DECRPYT=%d\n",
-					cur_id-2, encrypt, decrypt );
-				if ( encrypt || decrypt )
-				{
-				    rdbuf = iobuf + WII_SECTOR_SIZE;
-				    wd_aes_set_key(&akey,part->key);
-				}
-			    }
-			}
-		    }
-
 		    off_t off = (off_t)WII_SECTOR_SIZE * idx;
-		    enumError err = ReadSF(in,off,rdbuf,WII_SECTOR_SIZE);
+		    enumError err = ReadSF(in,off,iobuf,WII_SECTOR_SIZE);
 		    if (err)
 			return err;
-
-		    if ( idx == WII_PTAB_SECTOR && disc->patch_ptab_recommended )
-			wd_patch_ptab(disc,iobuf+WII_PTAB_REF_OFF-off,false);
-
-		    if (encrypt)
-			EncryptSectors(&akey,rdbuf,iobuf,1);
-		    else if (decrypt)
-			DecryptSectors(&akey,rdbuf,iobuf,1);
 
 		    err = WriteSparseSF(out,off,iobuf,WII_SECTOR_SIZE);
 		    if (err)
@@ -2702,12 +2660,6 @@ enumError DiffSF
 		err = ReadSF(f2,off,iobuf2,WII_SECTOR_SIZE);
 		if (err)
 		    return err;
-
-		if ( idx == WII_PTAB_SECTOR )
-		{
-		    wd_patch_ptab(disc1,iobuf1+WII_PTAB_REF_OFF-off,true);
-		    wd_patch_ptab(disc2,iobuf2+WII_PTAB_REF_OFF-off,true);
-		}
 
 		if (memcmp(iobuf1,iobuf2,WII_SECTOR_SIZE))
 		{
@@ -3212,6 +3164,9 @@ static enumError SourceIteratorHelper
 	return ERR_OK;
     }
     sf.f.disable_errors = false;
+    if (*sf.f.id6)
+	OpenDiscSF(&sf,false,false);
+    //PRINT("%p %p %s\n",sf.disc1,sf.disc2,sf.f.id6);
 
     ccp real_path = realpath( sf.f.path ? sf.f.path : sf.f.fname, buf );
     if (!real_path)
@@ -3241,10 +3196,13 @@ static enumError SourceIteratorHelper
 		&& sf.f.st.st_dev == it->open_dev
 		&& sf.f.st.st_ino == it->open_ino )
     {
-	if ( it->act_open == ACT_WARN )
-	    printf(" - Ignore input=output: %s\n",path);
-	ResetSF(&sf,0);
-	return ERR_OK;
+	if ( !it->wbfs || !*sf.f.id6 || !ExistsWDisc(it->wbfs,sf.f.id6) )
+	{
+	    if ( it->act_open == ACT_WARN )
+		printf(" - Ignore input=output: %s\n",path);
+	    ResetSF(&sf,0);
+	    return ERR_OK;
+	}
     }
     err = ERR_OK;
 

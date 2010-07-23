@@ -1373,21 +1373,12 @@ enumError cmd_scrub()
 
 //
 ///////////////////////////////////////////////////////////////////////////////
-#ifdef TEST // [2do] [activate]
 
 enumError exec_edit ( SuperFile_t * fi, Iterator_t * it )
 {
     if (!fi->f.id6[0])
 	return ERR_OK;
     fflush(0);
-
- #if 0 // [2do] [merge]
-    if ( !fi->patch || !fi->patch->map_used )
-    {
-	printf( "%s: NOTHING TO EDIT: %s:%s\n", progname, oft_name[fi->iod.oft], fi->f.fname );
-	return ERR_OK;
-    }
- #endif
 
     if (testmode)
     {
@@ -1398,27 +1389,28 @@ enumError exec_edit ( SuperFile_t * fi, Iterator_t * it )
     if ( verbose >= 0 )
 	printf( "%s: EDIT %s:%s\n", progname, oft_name[fi->iod.oft], fi->f.fname );
 
+    OpenDiscSF(fi,true,true);
+    wd_disc_t * disc = fi->disc1;
+    
     enumError err = ERR_OK;
-
- #if 0 // [2do] [merge]
-    int imap;
-    for ( imap = 0; imap < fi->patch->map_used; imap++ )
+    if ( disc && disc->reloc )
     {
-	const PatchMap_t * map = fi->patch->map + imap;
-	err = CopyRawData(fi,fi,map->offset,map->size);
-	if (err)
-	    break;
-    }
- #endif
+	const wd_reloc_t * reloc = disc->reloc;
+	int idx;
+	for ( idx = 0; idx < WII_MAX_SECTORS && !err; idx++, reloc++ )
+	    if ( ( *reloc & (WD_RELOC_F_PATCH|WD_RELOC_F_CLOSE)) == WD_RELOC_F_PATCH )
+		err = CopyRawData(fi,fi,idx*WII_SECTOR_SIZE,WII_SECTOR_SIZE);
 
-    if (!err)
-	err = RewriteModifiedSF(fi,fi,0);
+	reloc = disc->reloc;
+	for ( idx = 0; idx < WII_MAX_SECTORS && !err; idx++, reloc++ )
+	    if ( *reloc & WD_RELOC_F_CLOSE )
+		err = CopyRawData(fi,fi,idx*WII_SECTOR_SIZE,WII_SECTOR_SIZE);
+    }
 
     ResetSF( fi, !err && used_options & OB_PRESERVE ? &fi->f.fatt : 0 );
     return err;
 }
 
-#endif
 ///////////////////////////////////////////////////////////////////////////////
 
 enumError cmd_edit()
@@ -1429,8 +1421,6 @@ enumError cmd_edit()
     ParamList_t * param;
     for ( param = first_param; param; param = param->next )
 	AppendStringField(&source_list,param->arg,true);
-
- #ifdef TEST // [2do] [activate]
 
     Iterator_t it;
     InitializeIterator(&it);
@@ -1457,10 +1447,6 @@ enumError cmd_edit()
     }
     ResetIterator(&it);
     return err;
-
- #else
-    return ERR_NOT_IMPLEMENTED;
- #endif
 }
 
 //
@@ -1606,10 +1592,6 @@ enumError exec_rename ( SuperFile_t * fi, Iterator_t * it )
 	err = WriteSF(fi,0,buf,sizeof(buf));
 	if (err)
 	    return err;
-	if ( fi->iod.oft == OFT_WDF )
-	    err = TermWriteWDF(fi);
-	else if ( fi->iod.oft == OFT_CISO )
-	    err = TermWriteCISO(fi);
     }
     return err;
 }
@@ -1796,7 +1778,7 @@ enumError CheckOptions ( int argc, char ** argv, bool is_env )
 	case GO_PSEL:		err += ScanOptPartSelector(optarg); break;
 	case GO_RAW:		part_selector = WD_SEL_WHOLE_DISC; break;
 	case GO_SNEEK:		SetupSneekMode(); break;
-	case GO_HOOK:		hook_enabled = true; break;
+	case GO_HOOK:		opt_hook = true; break;
 	case GO_ENC:		err += ScanOptEncoding(optarg); break;
 	case GO_REGION:		err += ScanOptRegion(optarg); break;
 	case GO_IOS:		err += ScanOptIOS(optarg); break;

@@ -520,7 +520,7 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 
     {	OPT_HOOK, 0, "hook",
 	0,
-	" [2do] for tests only."
+	"Force relocation hook while reading iso images."
     },
 
     {0,0,0,0,0} // OPT__N_TOTAL == 76

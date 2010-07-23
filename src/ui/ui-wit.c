@@ -477,7 +477,7 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 
     {	OPT_HOOK, 0, "hook",
 	0,
-	" [2do] for tests only."
+	"Force relocation hook while reading iso images."
     },
 
     {0,0,0,0,0} // OPT__N_TOTAL == 66
@@ -628,7 +628,7 @@ const CommandTab_t CommandTab[] =
     { CMD_EXTRACT,	"EXTRACT",	"X",		OB_CMD_EXTRACT },
     { CMD_COPY,		"COPY",		"CP",		OB_CMD_COPY },
     { CMD_SCRUB,	"SCRUB",	"SB",		OB_CMD_SCRUB },
-    { CMD_EDIT,		"EDIT",		0,		OB_CMD_EDIT },
+    { CMD_EDIT,		"EDIT",		"ED",		OB_CMD_EDIT },
     { CMD_MOVE,		"MOVE",		"MV",		OB_CMD_MOVE },
     { CMD_RENAME,	"RENAME",	"REN",		OB_CMD_RENAME },
     { CMD_SETTITLE,	"SETTITLE",	"ST",		OB_CMD_SETTITLE },
@@ -2066,10 +2066,10 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
     },
 
     {	CMD_EDIT,
-	true,
+	false,
 	false,
 	"EDIT",
-	0,
+	"ED",
 	"wit EDIT source\n"
 	"wit EDIT [-s path]... [-r path]... [source]...",
 	"Edit an existing Wii ISO images and patch some values.",

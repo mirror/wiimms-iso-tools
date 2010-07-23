@@ -1262,7 +1262,9 @@ u32 wbfs_add_disc_param ( wbfs_t *p, wbfs_param_t * par )
 	par->spinner(0,tot,par->callback_data);
     }
 
+ #ifndef WIT // WIT does it in an other way
     const int ptab_index = WII_PTAB_REF_OFF >> p->wbfs_sec_sz_s;
+ #endif
 
     for ( i = 0; i < p->n_wbfs_sec_per_disc; i++ )
     {
@@ -1316,11 +1318,13 @@ u32 wbfs_add_disc_param ( wbfs_t *p, wbfs_param_t * par )
 		}
 	    }
 
+ #ifndef WIT // WIT does it in an other way
 	    // fix the partition table.
 	    if ( i == ptab_index )
 		wd_patch_ptab(	disc,
 				copy_buffer + WII_PTAB_REF_OFF - i * p->wbfs_sec_sz,
 				false );
+ #endif
 
 	    p->write_hdsector(	p->callback_data,
 				p->part_lba + bl * (p->wbfs_sec_sz / p->hd_sec_sz),
@@ -1600,7 +1604,7 @@ u32 wbfs_trim ( wbfs_t * p )
 
     u32 max_block = find_last_used_block(p) + 1;
     p->n_hd_sec = max_block << p->wbfs_sec_sz_s - p->hd_sec_sz_s;
-    p->head->n_hd_sec = wbfs_htonl(p->n_hd_sec);
+    //p->head->n_hd_sec = wbfs_htonl(p->n_hd_sec);
 
     TRACE("max_block=%u, n_hd_sec=%u\n",max_block,p->n_hd_sec);
 

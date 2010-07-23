@@ -3000,7 +3000,7 @@ static enumError wd_rap_part_sectors
 	    const u64 overlap2 = end < off2 ? end : off2;
 	    u32 dirty1 = (overlap1-off1) / WII_SECTOR_DATA_SIZE;
 	    u32 dirty2 = (overlap2-off1 + WII_SECTOR_DATA_SIZE - 1) / WII_SECTOR_DATA_SIZE;
-	    PRINT(" -> %llx .. %llx, dirty=%u..%u\n",overlap1,overlap2,dirty1,dirty2);
+	    noTRACE(" -> %llx .. %llx, dirty=%u..%u\n",overlap1,overlap2,dirty1,dirty2);
 	    memset(dirty+dirty1,1,dirty2-dirty1);
 
 	    switch (item->mode)
@@ -3041,7 +3041,6 @@ static enumError wd_rap_part_sectors
 		    + (d/WII_N_ELEMENTS_H1) * WII_N_ELEMENTS_H1 * WII_SECTOR_DATA_OFF
 		    + (d%WII_N_ELEMENTS_H1) * WII_HASH_SIZE
 		    + 0x280;
-	    PRINT("h0=%x, h1=%x\n", (u32)(h0-disc->temp_buf), (u32)(h1-disc->temp_buf) );
 	    SHA1(h0,WII_N_ELEMENTS_H0*WII_HASH_SIZE,h1);
 	}
 
@@ -3574,7 +3573,7 @@ bool wd_patch_part_id // result = true if something changed
 	    snprintf(item->info,sizeof(item->info),
 			"boot id: %s -> %s",
 			wd_print_id(src,6,0), wd_print_id(id6,6,0) );
-	    memcpy(item->data,id6,4);
+	    memcpy(item->data,id6,6);
 	    stat = true;
 	}
     }
