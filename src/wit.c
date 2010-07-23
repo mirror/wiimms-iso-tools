@@ -1102,8 +1102,18 @@ enumError exec_extract ( SuperFile_t * fi, Iterator_t * it )
     wfi.overwrite	= it->overwrite;
     wfi.verbose		= long_count > 0 ? long_count : verbose > 0 ? 1 : 0;
 
-    const enumError err	= CreateFST(&wfi,dest_path);
+    enumError err	= CreateFST(&wfi,dest_path);
 
+    if ( !err && wfi.not_created_count )
+    {	
+	if ( wfi.not_created_count == 1 )
+	    err = ERROR0(ERR_CANT_CREATE,
+			"1 file or directory not created\n" );
+	else
+	    err = ERROR0(ERR_CANT_CREATE,
+			"%d files and/or directories not created.\n",
+			wfi.not_created_count );
+    }
     ResetFST(&fst);
     return err;
 }

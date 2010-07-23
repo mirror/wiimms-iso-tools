@@ -1899,7 +1899,7 @@ enumError ScanSizeOptU64
 	    err = ERR_SEMANTIC;
 	    if (print_err)
 		ERROR0(ERR_SYNTAX,
-			"--%s: must be a power of %d but not %llu\n",
+			"--%s: value must be a power of %d but not %llu\n",
 			opt_name, 1<<pow2, val );
 	}
     }
@@ -1914,7 +1914,7 @@ enumError ScanSizeOptU64
 
 	    if (print_err)
 		ERROR0(ERR_WARNING,
-			"--%s: must be a multiple of %u -> use %llu instead of %llu.\n",
+			"--%s: value must be a multiple of %u -> use %llu instead of %llu.\n",
 			opt_name, multiple, xval, val );
 	    val = xval;
 	}

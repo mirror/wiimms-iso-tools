@@ -526,8 +526,10 @@ wd_disc_t * OpenDiscSF
 
     wd_disc_t * disc = 0;
 
+    const u64 file_size = sf->f.seek_allowed ? sf->file_size : 0;
+
     if ( IsOpenSF(sf) && sf->f.is_reading )
-	disc = wd_open_disc(WrapperReadDirectSF,sf,sf->file_size,sf->f.fname,0);
+	disc = wd_open_disc(WrapperReadDirectSF,sf,file_size,sf->f.fname,0);
 	
     if (!disc)
     {
@@ -632,7 +634,7 @@ wd_disc_t * OpenDiscSF
 
 	wd_calc_relocation(disc,!(enc&ENCODE_DECRYPT),true);
 	sf->iod.read_func = ReadDiscWrapper;
-	sf->disc2 = wd_open_disc(WrapperReadSF,sf,sf->file_size,sf->f.fname,0);
+	sf->disc2 = wd_open_disc(WrapperReadSF,sf,file_size,sf->f.fname,0);
     }
 
     if (sf->disc2)

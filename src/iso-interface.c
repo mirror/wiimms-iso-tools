@@ -1781,7 +1781,9 @@ enumError CreateFileFST ( WiiFstInfo_t *wfi, ccp dest_path, WiiFstFile_t * file 
 	    printf(" - %*u/%u create directory %s\n",
 			wfi->fw_done_count, wfi->done_count, wfi->total_count,
 			dest);
-	return CreatePath(dest);
+	if (CreatePath(dest))
+	    wfi->not_created_count++;
+	return ERR_OK;
     }
 
     if ( file->icm != WD_ICM_FILE && file->icm != WD_ICM_COPY && file->icm != WD_ICM_DATA )
@@ -1802,7 +1804,8 @@ enumError CreateFileFST ( WiiFstInfo_t *wfi, ccp dest_path, WiiFstFile_t * file 
     if (err)
     {
 	ResetFile(&fo,true);
-	return err;
+	wfi->not_created_count++;
+	return ERR_OK;
     }
 
  #if 0 && defined(TEST) // test ReadFileFST()
