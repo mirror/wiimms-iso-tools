@@ -29,7 +29,16 @@
 
 [size="2"][color="#0000c0"][b]Highlights of this release:[/b][/color][/size]
 [list]
-[*]
+[*] The commands "wit COPY", "wwt ADD" and some others accepts the patching options --id, --name, --ios, --region and --psel to modify the ISO image on the fly. If needed, the partitons will be truscha signed.
+[color=#ffffff].[/color]
+
+[*] The new command "wit EDIT" modifies existing ISO images directly without copying.
+[color=#ffffff].[/color]
+
+[*] The command "wit DUMP" is able to print much more info. There are new keywords for the option --show: USAGE, PATCH, RELOCATE. Try "--show all,-files" to see the nearly full output.
+[color=#ffffff].[/color]
+
+[*] The GUI [url=@@URI-QTWITGUI@@][b]QtWitGui[/b] is able to handle most of this.
 [color=#ffffff].[/color]
 [/list]
 

@@ -344,11 +344,6 @@ enumError Dump_ISO
 
 	    if ( !(show_mode & SHOW_F_PRIMARY) )
 	    {
-		fprintf(f,"%*s  boot.bin, id: %s\n",
-			indent, "", wd_print_id(&part->boot,6,0));
-		fprintf(f,"%*s  boot.bin, title: %.64s\n",
-			indent, "", part->boot.dhead.game_title);
-		
 		if ( !(show_mode & SHOW_TMD) && part->tmd )
 		{
 		    const u32 hi = part->tmd->sys_version >> 32;
@@ -361,6 +356,11 @@ enumError Dump_ISO
 				    indent, "", hi, lo );
 		}
 	    }
+
+	    fprintf(f,"%*s  boot.bin, id: %s\n",
+			indent, "", wd_print_id(&part->boot,6,0));
+	    fprintf(f,"%*s  boot.bin, title: %.64s\n",
+			indent, "", part->boot.dhead.game_title);
 	}
 
 	if ( show_mode & SHOW_P_MAP )

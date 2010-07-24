@@ -1102,7 +1102,7 @@ enumError exec_extract ( SuperFile_t * fi, Iterator_t * it )
     wfi.overwrite	= it->overwrite;
     wfi.verbose		= long_count > 0 ? long_count : verbose > 0 ? 1 : 0;
 
-    enumError err	= CreateFST(&wfi,dest_path);
+    enumError err = CreateFST(&wfi,dest_path);
 
     if ( !err && wfi.not_created_count )
     {	
