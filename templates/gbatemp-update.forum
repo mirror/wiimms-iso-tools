@@ -38,7 +38,10 @@
 [*] The command "wit DUMP" is able to print much more info. There are new keywords for the option --show: USAGE, PATCH, RELOCATE. Try "--show all,-files" to see the nearly full output.
 [color=#ffffff].[/color]
 
-[*] The GUI [url=@@URI-QTWITGUI@@][b]QtWitGui[/b] is able to handle most of this.
+[*] The GUI [url=@@URI-QTWITGUI@@][b]QtWitGui[/b][/url] is able to handle most of this.
+[color=#ffffff].[/color]
+
+[*] Cloning a Wii disc witn an alternate ID to have more save slots can be done with one command. See [url=http://wit.wiimm.de/info/cloning.html]Cloning a disc @ wit.wiimm.de[/url] for more info.
 [color=#ffffff].[/color]
 [/list]
 

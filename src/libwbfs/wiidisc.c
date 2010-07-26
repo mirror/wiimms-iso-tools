@@ -139,8 +139,8 @@ void wd_decrypt_title_key
 {
     u8 iv[WII_KEY_SIZE];
 
-    wbfs_memset( iv, 0, sizeof(iv) );
-    wbfs_memcpy( iv, tik->title_id, 8 );
+    memset( iv, 0, sizeof(iv) );
+    memcpy( iv, tik->title_id, 8 );
     aes_key_t akey;
     wd_aes_set_key( &akey, common_key );
     wd_aes_decrypt( &akey, iv, &tik->title_key, title_key, WII_KEY_SIZE );
@@ -160,8 +160,8 @@ void wd_encrypt_title_key
 {
     u8 iv[WII_KEY_SIZE];
 
-    wbfs_memset( iv, 0, sizeof(iv) );
-    wbfs_memcpy( iv, tik->title_id, 8 );
+    memset( iv, 0, sizeof(iv) );
+    memcpy( iv, tik->title_id, 8 );
     aes_key_t akey;
     wd_aes_set_key( &akey, common_key );
     wd_aes_encrypt( &akey, iv, title_key, &tik->title_key, WII_KEY_SIZE );
@@ -473,7 +473,7 @@ char * wd_print_part_name
 	    snprintf(buf,buf_size,"%7s=%x",name,ptype);
 	else if (is_id)
 	{
-	    ptype = wbfs_htonl(ptype); // we need big endian here
+	    ptype = htonl(ptype); // we need big endian here
 	    snprintf(buf,buf_size,"   \"%.4s\"",id4);
 	}
 	else
@@ -485,7 +485,7 @@ char * wd_print_part_name
 	    snprintf(buf,buf_size,"%7s %x",name,ptype);
 	else if (is_id)
 	{
-	    ptype = wbfs_htonl(ptype); // we need big endian here
+	    ptype = htonl(ptype); // we need big endian here
 	    snprintf(buf,buf_size,"   \"%.4s\"",id4);
 	}
 	else
@@ -503,7 +503,7 @@ char * wd_print_part_name
        case WD_PNAME_NUM:
 	if (is_id)
 	{
-	    ptype = wbfs_htonl(ptype); // we need big endian here
+	    ptype = htonl(ptype); // we need big endian here
 	    snprintf(buf,buf_size,"%.4s",id4);
 	}
 	else
@@ -515,7 +515,7 @@ char * wd_print_part_name
 	    snprintf(buf,buf_size,"%s",name);
 	else if (is_id)
 	{
-	    ptype = wbfs_htonl(ptype); // we need big endian here
+	    ptype = htonl(ptype); // we need big endian here
 	    snprintf(buf,buf_size,"P-%.4s",id4);
 	}
 	else
@@ -528,7 +528,7 @@ char * wd_print_part_name
 	    snprintf(buf,buf_size,"%x [%s]",ptype,name);
 	else if (is_id)
 	{
-	    ptype = wbfs_htonl(ptype); // we need big endian here
+	    ptype = htonl(ptype); // we need big endian here
 	    snprintf(buf,buf_size,"%x [\"%.4s\"]",ptype,id4);
 	}
 	else
@@ -1020,7 +1020,7 @@ wd_disc_t * wd_open_disc
     //----- read disc header
 
     enumError err = wd_read_raw(disc,0,&disc->dhead,sizeof(disc->dhead),WD_USAGE_DISC);
-    if ( !err && wbfs_ntohl(disc->dhead.magic) != WII_MAGIC )
+    if ( !err && ntohl(disc->dhead.magic) != WII_MAGIC )
     {
 	WD_ERROR(ERR_WDISC_NOT_FOUND,"MAGIC not found%s",disc->error_term);
 	err = ERR_WDISC_NOT_FOUND;
@@ -1037,7 +1037,7 @@ wd_disc_t * wd_open_disc
     {
 	int n_part = 0, ipt;
 	for ( ipt = 0; ipt < WII_MAX_PTAB; ipt++ )
-	    n_part += wbfs_ntohl(disc->ptab_info[ipt].n_part);
+	    n_part += ntohl(disc->ptab_info[ipt].n_part);
 	if ( n_part > WII_MAX_PARTITIONS )
 	     n_part = WII_MAX_PARTITIONS;
 	disc->n_part = n_part;
@@ -1051,7 +1051,7 @@ wd_disc_t * wd_open_disc
 	for ( n_part = ipt = 0; ipt < WII_MAX_PTAB && !err; ipt++ )
 	{
 	    wd_ptab_info_t * pt = disc->ptab_info + ipt;
-	    int n = wbfs_ntohl(pt->n_part);
+	    int n = ntohl(pt->n_part);
 	    if ( n > disc->n_part - n_part ) // limit n
 		 n = disc->n_part - n_part;
 
@@ -1059,7 +1059,7 @@ wd_disc_t * wd_open_disc
 	    {
 		disc->n_ptab++;
 		wd_ptab_entry_t * pe = disc->ptab_entry + n_part;
-		err = wd_read_raw( disc, wbfs_ntohl(pt->off4),
+		err = wd_read_raw( disc, ntohl(pt->off4),
 					pe, n*sizeof(*pe), WD_USAGE_DISC );
 		if (!err)
 		{
@@ -1071,8 +1071,8 @@ wd_disc_t * wd_open_disc
 			part->usage_id		= part->index + WD_USAGE_PART_0;
 			part->ptab_index	= ipt;
 			part->ptab_part_index	= pi;
-			part->part_type		= wbfs_ntohl(pe->ptype);
-			part->part_off4		= wbfs_ntohl(pe->off4);
+			part->part_type		= ntohl(pe->ptype);
+			part->part_off4		= ntohl(pe->off4);
 			part->is_enabled	= true;
 			part->disc		= disc;
 		    }
@@ -1145,17 +1145,17 @@ void wd_close_disc
 	    for ( pi = 0; pi < disc->n_part; pi++, part++ )
 	    {
 		wd_reset_patch(&part->patch);
-		wbfs_free(part->tmd);
-		wbfs_free(part->cert);
-		wbfs_free(part->h3);
-		wbfs_free(part->fst);
+		free(part->tmd);
+		free(part->cert);
+		free(part->h3);
+		free(part->fst);
 	    } 
-	    wbfs_free(disc->part);
+	    free(disc->part);
 	} 
-	wbfs_free(disc->ptab_entry);
-	wbfs_free(disc->reloc);
-	wbfs_free(disc->group_cache);
-	wbfs_free(disc);
+	free(disc->ptab_entry);
+	free(disc->reloc);
+	free(disc->group_cache);
+	free(disc);
     }
 }
 
@@ -1325,10 +1325,10 @@ enumError wd_load_part
 	part->is_valid  = false;
 	part->disc->invalid_part++;
 
-	wbfs_iofree(part->tmd);  part->tmd  = 0;
-	wbfs_iofree(part->cert); part->cert = 0;
-	wbfs_iofree(part->h3);   part->h3   = 0;
-	wbfs_iofree(part->fst);  part->fst  = 0;
+	free(part->tmd);  part->tmd  = 0;
+	free(part->cert); part->cert = 0;
+	free(part->h3);   part->h3   = 0;
+	free(part->fst);  part->fst  = 0;
 
 
 	//----- load partition header
@@ -1379,7 +1379,7 @@ enumError wd_load_part
 	    return ERR_WDISC_INVALID;
 	}
 
-	wd_tmd_t * tmd = wbfs_ioalloc(ph->tmd_size);
+	wd_tmd_t * tmd = malloc(ph->tmd_size);
 	if (!tmd)
 	    OUT_OF_MEMORY;
 	part->tmd = tmd;
@@ -1506,10 +1506,10 @@ enumError wd_load_part
 		else
 		{
 		    fst_file_count++;
-		    const u32 off4 = wbfs_ntohl(fst->offset4);
+		    const u32 off4 = ntohl(fst->offset4);
 		    if ( fst_max_off4 < off4 )
 			 fst_max_off4 = off4;
-		    const u32 size = wbfs_ntohl(fst->size);
+		    const u32 size = ntohl(fst->size);
 		    if ( fst_max_size < size )
 			 fst_max_size = size;
 		    wd_mark_part(part,off4,size);
@@ -2040,7 +2040,7 @@ static int wd_iterate_fst_helper
 	}
 
 	const char * fname = (char*)fst_end
-			   + (wbfs_ntohl(fst->name_off)&0xffffff);
+			   + (ntohl(fst->name_off)&0xffffff);
 	char * path_dest = path_ptr;
 	while ( path_dest < path_end && *fname )
 	    *path_dest++ = *fname++;
@@ -2069,8 +2069,8 @@ static int wd_iterate_fst_helper
 	{
 	    *path_dest = 0;
 	    it->icm  = WD_ICM_FILE;
-	    it->off4 = wbfs_ntohl(fst->offset4);
-	    it->size = wbfs_ntohl(fst->size);
+	    it->off4 = ntohl(fst->offset4);
+	    it->size = ntohl(fst->size);
 	    stat = func(it);
 	}
     }
@@ -2731,7 +2731,7 @@ wd_patch_item_t * wd_insert_patch_alloc
     item->data = malloc(size);
     if (!item->data)
 	OUT_OF_MEMORY;
-
+    memset(item->data,0,size);
     return item;
 }
 
@@ -3409,15 +3409,15 @@ bool wd_patch_ptab // result = true if something changed
 		continue;
 
 	    n_part++;
-	    entry->off4  = wbfs_htonl(part->part_off4);
-	    entry->ptype = wbfs_htonl(part->part_type);
+	    entry->off4  = htonl(part->part_off4);
+	    entry->ptype = htonl(part->part_type);
 	    entry++;
 	}
 
 	if (n_part)
 	{
-	    info->n_part = wbfs_htonl(n_part);
-	    info->off4   = wbfs_htonl(off4);
+	    info->n_part = htonl(n_part);
+	    info->off4   = htonl(off4);
 	    off4 += n_part * sizeof(*entry) >> 2;
 	}
     }
@@ -3510,18 +3510,12 @@ bool wd_patch_region // result = true if something changed
     u32			new_region	// new region id
 )
 {
-    wd_region_t * reg = malloc(WII_REGION_SIZE);
-    if (!reg)
-	OUT_OF_MEMORY;
-    memset(reg,0,WII_REGION_SIZE);
-    reg->region = new_region;
-
     wd_patch_item_t * item
-	= wd_insert_patch( &disc->patch, WD_PAT_DATA,
+	= wd_insert_patch_alloc( &disc->patch, WD_PAT_DATA,
 					WII_REGION_OFF, WII_REGION_SIZE );
-    item->data = reg;
-    item->data_alloced = true;
     snprintf(item->info,sizeof(item->info),"region: %x",new_region);
+    wd_region_t * reg = item->data;
+    reg->region = htonl(new_region);
     return true;
 }
 
@@ -3993,17 +3987,17 @@ void wd_dump_disc
 
     u8 * p8 = disc->region.region_info;
     fprintf(f,"%*sRegion setting:     %d / %02x %02x %02x %02x  %02x %02x %02x %02x\n",
-		indent,"", wbfs_ntohl(disc->region.region),
+		indent,"", ntohl(disc->region.region),
 		p8[0], p8[1], p8[2], p8[3], p8[4], p8[5], p8[6], p8[7] );
 
     int ipt;
     for ( ipt = 0; ipt < WII_MAX_PTAB; ipt++ )
     {
 	wd_ptab_info_t * pt = disc->ptab_info + ipt;
-	const int n = wbfs_ntohl(pt->n_part);
+	const int n = ntohl(pt->n_part);
 	if (n)
 	    fprintf(f,"%*sPartition table #%u: off=%llx, N(part)=%u\n", indent,"",
-		ipt, (u64)wbfs_ntohl(pt->off4)<<2, n );
+		ipt, (u64)ntohl(pt->off4)<<2, n );
     }
 
     const bool load_part = dump_level > 0;
@@ -4211,10 +4205,10 @@ void wd_dump_mem
     int ip;
     for ( ip = 0; ip < WII_MAX_PTAB; ip++ )
     {
-	const u32 np = wbfs_ntohl(disc->ptab_info[ip].n_part);
+	const u32 np = ntohl(disc->ptab_info[ip].n_part);
 	if (np)
 	{
-	    const u64 off = (u64)wbfs_ntohl(disc->ptab_info[ip].off4) << 2;
+	    const u64 off = (u64)ntohl(disc->ptab_info[ip].off4) << 2;
 	    snprintf( msg, sizeof(msg),
 			"Partition table #%u with %u partition%s",
 			ip, np, np == 1 ? "" : "s" );
@@ -4227,7 +4221,7 @@ void wd_dump_mem
 
     snprintf( msg, sizeof(msg),
 		"Region settings, region=%x",
-		wbfs_ntohl(disc->region.region) );
+		ntohl(disc->region.region) );
     func(param,WII_REGION_OFF,sizeof(disc->region),msg);
 
     m = (u8*)&disc->magic2;
@@ -4271,7 +4265,7 @@ void wd_dump_mem
 
 	    if (ph->tmd_off4)
 	    {
-		const u64 sys_version = wbfs_ntoh64(part->tmd->sys_version);
+		const u64 sys_version = ntoh64(part->tmd->sys_version);
 		const u32 hi = sys_version >> 32;
 		const u32 lo = (u32)sys_version;
 		if ( hi == 1 && lo < 0x100 )

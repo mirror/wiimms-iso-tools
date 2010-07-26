@@ -1877,7 +1877,7 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	"FILELIST",
 	"FL",
 	"wit FILELIST [source]...",
-	"List all source files decared by the options --source and --recurse.",
+	"List all source files in a table.",
 	10,
 	option_tab_cmd_FILELIST
     },

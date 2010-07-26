@@ -186,8 +186,7 @@ info_t info_tab[] =
 
   { T_DEF_CMD,	"FILELIST",	"FILELIST|FL",
 		"wit FILELIST [source]...",
-		"List all source files decared by the options"
-		" {--source} and {--recurse}." },
+		"List all source files in a table." },
 
   { T_DEF_CMD,	"FILETYPE",	"FILETYPE|FT",
 		"wit FILETYPE [source]...",

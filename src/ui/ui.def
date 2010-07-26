@@ -37,8 +37,7 @@
 
 #:def_cmd( "FILELIST", "FILELIST|FL", \
 	"wit FILELIST [source]...", \
-	"List all source files decared by the options {--source} and" \
-	" {--recurse}." )
+	"List all source files in a table." )
 
 #:def_cmd( "FILETYPE", "FILETYPE|FT", \
 	"wit FILETYPE [source]...", \

@@ -29,13 +29,16 @@
 
 [size=12][color=#0000c0][b]Höhepunkte dieser Version:[/b][/color][/size]
 [list]
-[*] Die Kommandos "wit COPY", "wwt ADD" und einige andere accpetieren nun die Patching-Optionen --id, --name, --ios, --region sowie --psel. Damit können Wii ISO images während des Kopierens modifiziert werden. Ggf. werden die Partitionen automatisch neu signiert (truch sign).
+[*] Die Kommandos "wit COPY", "wwt ADD" und einige andere akzeptieren nun die Patching-Optionen --id, --name, --ios, --region sowie --psel. Damit können Wii ISO images während des Kopierens modifiziert werden. Ggf. werden die Partitionen automatisch neu signiert (trucha sign).
 
-[*] Das neu Kommando "wit EDIT" modifiziert eine existieden ISO Datei direct, ohne dass ein Kopiervorgang nötig wäre.
+[*] Das neu Kommando "wit EDIT" modifiziert existierende ISO Dateien direkt, ohne dass ein Kopiervorgang nötig wäre.
 
 [*] Das Kommando "wit DUMP" kann nun noch mehr Infos anzeigen. Die Option --show akzeptiert daher neue Schlüsselworte: USAGE, PATCH, RELOCATE. Einfach mal "--show all,-files --id A" versuchen um ein fast vollständige Ausgabe zu erhalten.
 
-[*] Das GUI [url=@@URI-QTWITGUI@@][b]QtWitGui[/b] kann bereits die meisten dieser Optionen handhaben.
+[*] Das GUI [url=@@URI-QTWITGUI@@][b]QtWitGui[/b][/url] kann bereits die meisten dieser Optionen handhaben.
+
+[*] Mit nur einem einzigen Befehl ist es nun möglich, einen Klone mit anderer ID zu erstellen. Damit besitz man automatisch meghr SPielsicherungs-Slots. Der engl. Artikle [url=http://wit.wiimm.de/info/cloning.html]Cloning a disc[/url] beschreibt mehr Details.
+
 [/list]
 
 [size=12][color=#0000c0][b]Letzte Änderungen:[/b][/color][/size]
