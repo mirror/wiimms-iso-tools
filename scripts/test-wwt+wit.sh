@@ -153,6 +153,8 @@ NOFST=0
 NOPIPE=0
 [[ $TERM = cygwin ]] && NOPIPE=1
 
+FST_OPT="--psel data,update,channel,ptab0"
+
 export WIT_OPT=
 export WWT_OPT=
 export WWT_WBFS=
@@ -217,6 +219,7 @@ function test_suite()
     #----- test WWT
 
     hss=512
+    rm -f "$WBFS"
     test_function "INIT-$hss" "wwt INIT wbfs hss=$hss" \
 	$WWT INIT -q --force --size=20g --hss=$hss "$WBFS" \
 	|| return $ERROR
@@ -232,6 +235,7 @@ function test_suite()
 	    $WWT -qp "$WBFS" EXTRACT "$id6=$dest" --$mode \
 	    || return $ERROR
 
+	rm -f "$WBFS"
 	test_function "INIT-$hss" "wwt INIT wbfs hss=$hss" \
 	    $WWT INIT -q --force --size=20g --hss=$hss "$WBFS" \
 	    || return $ERROR
@@ -279,15 +283,15 @@ function test_suite()
 	src="$tempdir/image.$BASEMODE"
 	dest="$tempdir/fst"
 
-	test_function "EXTR-FST" "wit EXTRACT source" \
-	    $WIT -q COPY "$1" "$dest/0" --fst -F :wit \
+	test_function "EXTR-FST0" "wit EXTRACT source" \
+	    $WIT -q COPY "$1" "$dest/0" --fst -F :wit $FST_OPT \
 	    || return $ERROR
 
-	test_function "EXTR-FST" "wit EXTRACT copy" \
-	    $WIT -q COPY "$src" "$dest/1" --fst -F :wit \
+	test_function "EXTR-FST1" "wit EXTRACT copy" \
+	    $WIT -q COPY "$src" "$dest/1" --fst -F :wit $FST_OPT \
 	    || return $ERROR
 
-	test_function "DIFF-FST" "DIFF fst/0 fst/1" \
+	test_function "DIF-FST01" "DIFF fst/0 fst/1" \
 	    diff -rq "$dest/0" "$dest/1" \
 	    || return $STAT_DIFF
 
@@ -298,6 +302,7 @@ function test_suite()
 	    || return $ERROR
 
 	hss=512
+	rm -f "$WBFS"
 	test_function "INIT-$hss" "wwt INIT wbfs hss=$hss" \
 	    $WWT INIT -q --force --size=20g --hss=$hss "$WBFS" \
 	    || return $ERROR
@@ -310,15 +315,15 @@ function test_suite()
 	    $WIT -q CMP "$WBFS" "$dest/a.wdf" \
 	    || return $STAT_DIFF
 
-	test_function "EXTR-FST" "wit EXTRACT" \
-	    $WIT -q COPY "$dest/a.wdf" "$dest/2" --fst -F :wit \
+	test_function "EXTR-FST2" "wit EXTRACT" \
+	    $WIT -q COPY "$dest/a.wdf" "$dest/2" --fst -F :wit $FST_OPT \
 	    || return $ERROR
 
 	#diff -rq "$dest/1" "$dest/2"
 	find "$dest" -name tmd.bin -type f -exec rm {} \;
 	find "$dest" -name ticket.bin -type f -exec rm {} \;
 
-	test_function "DIFF-FST" "DIFF fst/1 fst/2" \
+	test_function "DIF-FST12" "DIFF fst/1 fst/2" \
 	    diff -rq "$dest/1" "$dest/2" \
 	    || return $STAT_DIFF
 
@@ -331,6 +336,7 @@ function test_suite()
     then
 
 	hss=1024
+	rm -f "$WBFS"
 	test_function "INIT-$hss" "wwt INIT wbfs hss=$hss" \
 	    $WWT INIT -q --force --size=20g --hss=$hss "$WBFS" \
 	    || return $ERROR

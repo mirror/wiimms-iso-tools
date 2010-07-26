@@ -114,6 +114,10 @@ void TRACE_ARG_FUNC ( const char * format, va_list arg );
     #undef DEBUG_ASSERT
     #define DEBUG_ASSERT 1
 
+    #define PRINT(...) printf(__VA_ARGS__)
+    #define PRINT_IF(cond,...) if (cond) printf(__VA_ARGS__)
+    #define BINGO printf("BINGO! %s() #%d @ %s\n",__FUNCTION__,__LINE__,__FILE__)
+
     #define TRACE(...) TRACE_FUNC(__VA_ARGS__)
     #define TRACE_IF(cond,...) if (cond) TRACE_FUNC(__VA_ARGS__)
     #define TRACELINE TRACE_FUNC("line #%d @ %s\n",__LINE__,__FILE__)
@@ -124,12 +128,13 @@ void TRACE_ARG_FUNC ( const char * format, va_list arg );
     #define TRACE_HEXDUMP(i,a,af,rl,d,c) HexDump(TRACE_FILE,i,a,af,rl,d,c);
     #define TRACE_HEXDUMP16(i,a,d,c) HexDump16(TRACE_FILE,i,a,d,c);
 
-    #define BINGO printf("BINGO! %s() #%d @ %s\n",__FUNCTION__,__LINE__,__FILE__)
-
 #else
 
     #undef DEBUG
 
+    #define PRINT(...)
+    #define PRINT_IF(cond,...)
+    #define BINGO
     #define TRACE(...)
     #define TRACE_IF(cond,...)
     #define TRACELINE
@@ -138,7 +143,6 @@ void TRACE_ARG_FUNC ( const char * format, va_list arg );
     #define HEXDUMP16(a,i,d,c)
     #define TRACE_HEXDUMP(i,a,af,rl,d,c)
     #define TRACE_HEXDUMP16(i,a,d,c)
-    #define BINGO
 
 #endif
 

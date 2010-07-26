@@ -46,6 +46,18 @@
 // This are macros used by WIT for debugging and tracing the code
 // If not already defined => define them as empty macros
 
+#ifndef PRINT
+    #define PRINT(...)
+#endif
+
+#ifndef PRINT_IF
+    #define PRINT_IF(cond,...)
+#endif
+
+#ifndef BINGO
+    #define BINGO
+#endif
+
 #ifndef TRACE
     #define TRACE(...)
 #endif
@@ -76,10 +88,6 @@
 
 #ifndef TRACE_HEXDUMP16
     #define TRACE_HEXDUMP16(i,a,d,c)
-#endif
-
-#ifndef BINGO
-    #define BINGO
 #endif
 
 #ifndef ASSERT

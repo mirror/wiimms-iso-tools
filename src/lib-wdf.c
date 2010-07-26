@@ -317,7 +317,6 @@ enumError SetupReadWDF ( SuperFile_t * sf )
     sf->f.max_off	= sf->wh.chunk_off;
     sf->max_virt_off	= sf->wh.file_size;
     SetupIOD(sf,OFT_WDF,OFT_WDF);
-    SetupISOModifier(sf);
 
     TRACE("#W# WDF FOUND!\n");
     return ERR_OK;

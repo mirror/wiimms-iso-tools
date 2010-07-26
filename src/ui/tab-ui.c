@@ -186,8 +186,7 @@ info_t info_tab[] =
 
   { T_DEF_CMD,	"FILELIST",	"FILELIST|FL",
 		"wit FILELIST [source]...",
-		"List all source files decared by the options"
-		" {--source} and {--recurse}." },
+		"List all source files in a table." },
 
   { T_DEF_CMD,	"FILETYPE",	"FILETYPE|FT",
 		"wit FILETYPE [source]...",
@@ -275,7 +274,7 @@ info_t info_tab[] =
 		"wit SCRUB [-s path]... [-r path]... [source]...",
 		"Scrub, convert, split, encrypt and decrypt Wii ISO images." },
 
-  { H_DEF_CMD,	"EDIT",		"EDIT",
+  { T_DEF_CMD,	"EDIT",		"EDIT|ED",
 		"wit EDIT source"
 		"\n"
 		"wit EDIT [-s path]... [-r path]... [source]...",
@@ -463,7 +462,7 @@ info_t info_tab[] =
 
   { H_OPT_G,	"HOOK",		"hook",
 		0,
-		" [2do] for tests only." },
+		"Force relocation hook while reading iso images." },
 
   { T_OPT_CP,	"ID",		"id",
 		"id",
@@ -658,8 +657,8 @@ info_t info_tab[] =
 		"This option allows fine control over the things that are to be printed."
 		" The parameter is a comma separated list of the"
 		" following keywords, case is ignored: "
-		" @NONE, INTRO, P-TAB, P-INFO, P-MAP, D-MAP, TICKET, TMD, USAGE, PATCH,"
-		" FILES, OFFSET, SIZE, PATH@ and @ALL@."
+		" @NONE, INTRO, P-TAB, P-INFO, P-MAP, D-MAP, TICKET, TMD, USAGE,"
+		" PATCH, RELOCATE, FILES, OFFSET, SIZE, PATH@ and @ALL@."
 		" There are some combined keys:"
 		" @PART := P-INFO,P-MAP,TICKET,TMD@,"
 		" @MAP := P-MAP,D-MAP@."

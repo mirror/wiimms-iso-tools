@@ -37,8 +37,7 @@
 
 #:def_cmd( "FILELIST", "FILELIST|FL", \
 	"wit FILELIST [source]...", \
-	"List all source files decared by the options {--source} and" \
-	" {--recurse}." )
+	"List all source files in a table." )
 
 #:def_cmd( "FILETYPE", "FILETYPE|FT", \
 	"wit FILETYPE [source]...", \
@@ -106,6 +105,11 @@
 	"wit SCRUB source\n" \
 	"wit SCRUB [-s path]... [-r path]... [source]...", \
 	"Scrub, convert, split, encrypt and decrypt Wii ISO images." )
+
+#:def_cmd( "EDIT", "EDIT|ED", \
+	"wit EDIT source\n" \
+	"wit EDIT [-s path]... [-r path]... [source]...", \
+	"Edit an existing Wii ISO images and patch some values." )
 
 #:def_cmd( "MOVE", "MOVE|MV", \
 	"wit MOVE source dest\n" \
@@ -459,8 +463,8 @@
 	"This option allows fine control over the things that are to be" \
 	" printed. The parameter is a comma separated list of the following" \
 	" keywords, case is ignored:  @NONE, INTRO, P-TAB, P-INFO, P-MAP," \
-	" D-MAP, TICKET, TMD, USAGE, PATCH, FILES, OFFSET, SIZE, PATH@ and" \
-	" @ALL@. There are some combined keys: @PART :=" \
+	" D-MAP, TICKET, TMD, USAGE, PATCH, RELOCATE, FILES, OFFSET, SIZE," \
+	" PATH@ and @ALL@. There are some combined keys: @PART :=" \
 	" P-INFO,P-MAP,TICKET,TMD@, @MAP := P-MAP,D-MAP@.\n" \
 	"All keywords can be prefixed by '+' to enable that option, by a '-'" \
 	" to disable it or by a '=' to enable that option and disable all" \

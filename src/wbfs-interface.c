@@ -1116,7 +1116,7 @@ enumError RecoverWBFS ( WBFS_t * wbfs, ccp fname, bool testmode )
 			wd_header_t * inode
 			    = (wd_header_t*)( first_sector + w->hd_sec_sz
 						+ slot * w->disc_info_sz );
-			ccp id6 = (ccp)&inode->disc_id;
+			ccp id6 = &inode->disc_id;
 			printf("   - slot #%03u [%.6s] %s\n",
 				slot, id6, GetTitle(id6,(ccp)inode->game_title) );
 		    }
@@ -2986,15 +2986,15 @@ enumError DumpWDiscInfo
 			: magic == WII_MAGIC_DELETED ? " (=DELETED)" : "" );
 
     fprintf(f,"%*swbfs name:  %6s, %.64s\n",
-		indent, "", (ccp)&di->dhead.disc_id, (ccp)di->dhead.game_title );
+		indent, "", &di->dhead.disc_id, di->dhead.game_title );
     if (ih)
 	fprintf(f,"%*siso name:   %6s, %.64s\n",
-		indent, "", (ccp)&ih->disc_id, (ccp)ih->game_title );
-    if ( ih && strcmp((ccp)&di->dhead.disc_id,(ccp)&ih->disc_id) )
+		indent, "", &ih->disc_id, ih->game_title );
+    if ( ih && strcmp(&di->dhead.disc_id,&ih->disc_id) )
     {
 	if (di->title)
 	    fprintf(f,"%*swbfs title: %s\n", indent, "", (ccp)di->title );
-	ccp title = GetTitle((ccp)&ih->disc_id,0);
+	ccp title = GetTitle(&ih->disc_id,0);
 	if (title)
 	    fprintf(f,"%*siso title:  %s\n", indent, "", (ccp)di->title );
     }
@@ -3510,10 +3510,11 @@ enumError CloseWDisc ( WBFS_t * w )
 	w->disc = 0;
     }
 
-    if ( w->sf && w->sf->disc )
+    if (w->sf)
     {
-	wd_close_disc(w->sf->disc);
-	w->sf->disc = 0;
+	wd_close_disc(w->sf->disc2);
+	wd_close_disc(w->sf->disc1);
+	w->sf->disc1 = w->sf->disc2 = 0;
     }
 
     return ERR_OK;
@@ -3563,7 +3564,7 @@ enumError AddWDisc ( WBFS_t * w, SuperFile_t * sf, wd_select_t psel )
 
     wbfs_param_t par;
     memset(&par,0,sizeof(par));
-    par.read_src_wii_disc	= WrapperReadSF;
+    par.read_src_wii_disc	= WrapperReadSF; // [2do] [obsolete]? (both: param anf func)
     par.callback_data		= sf;
     par.spinner			= sf->show_progress ? PrintProgressSF : 0;
     par.psel			= psel;
@@ -3772,7 +3773,7 @@ enumError RenameWDisc
     wd_header_t * whead = (wd_header_t*)wbfs->disc->header;
     char w_id6[7], n_id6[7];
     memset(w_id6,0,sizeof(w_id6));
-    StringCopyS(w_id6,sizeof(w_id6),(ccp)&whead->disc_id);
+    StringCopyS(w_id6,sizeof(w_id6),&whead->disc_id);
     memcpy(n_id6,w_id6,sizeof(n_id6));
 
     if ( testmode || verbose >= 0 )
@@ -3800,9 +3801,9 @@ enumError RenameWDisc
 	LoadIsoHeader(wbfs,&ihead,0);
 
 	char w_name[0x40], i_id6[7], i_name[0x40];
-	StringCopyS(i_id6,sizeof(i_id6),(ccp)&ihead.disc_id);
-	StringCopyS(w_name,sizeof(w_name),(ccp)whead->game_title);
-	StringCopyS(i_name,sizeof(i_name),(ccp)ihead.game_title);
+	StringCopyS(i_id6,sizeof(i_id6),&ihead.disc_id);
+	StringCopyS(w_name,sizeof(w_name),whead->game_title);
+	StringCopyS(i_name,sizeof(i_name),ihead.game_title);
 
 	ccp w_title = GetTitle(w_id6,w_name);
 	ccp i_title = GetTitle(i_id6,i_name);

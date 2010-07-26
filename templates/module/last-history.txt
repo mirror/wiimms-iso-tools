@@ -1,29 +1,21 @@
-Aggregation of the previous beta versions:
+wit v1.10a r1386 - 2010-07-15
 
- - New option: --width wd: Define the width (number of columns) for help and
-   other messages and disables the automatic detection of the terminal width.
- - I have rewritten the wiidisc lib (part of libwbfs) from scratch. It has a
-   complete new interface and an improved functionality. It uses dynamic data
-   structures and collect data as needed. This has considerable advantages
-   for the whole WIT project.
- - ID renaming: A point ('.') means: leave id character unchanged.
- - Options --ios, --id and --name modify only disc data and the DATA partition,
-   but no longer other any other partitions.
- - There is an complete new implementation of option --psel: Combinations like
-   '--psel DATA,UPDATE' or '--psel -CHANNEL' are supported now.
- - wwt EXTRACT: Complete new and improved calculation of output filename.
- - wwt EXTRACT: Support '%X' and '%Y' in output filenames.
- - Option --files: Macro calls are now prefixed by a colon (':'). The previous
-   prefix '=' is obsolete, but still allowed.
- - Bug fix: File size calculation error for when composing large discs.
-
-wit v@@VERSION@@ r@@REV-NEXT@@ - @@@@-@@-@@
-
- - wittdb.com: Support of new languages: ru, zhcn, zhtw
+ - wiitdb.com: Support of new languages: ru, zhcn, zhtw
  - wwt ANALYZE: If option --long is set then calculated values are printed too
    if other values are available. If option --long is set twice calculated
    values are always printed.
  - wit+wwt: Option --trunc: Truncate created PLAIN ISO image to needed size.
+
+wit v1.10a.beta r1428 - 2010-07-24  (correct version should be "v1.11a.beta")
+
+ - Computed line breaks for error messages.
+ - "wit COPY" accepts the options --id --name --ios --region to patch the
+   image while copying.
+ - New command: wit EDIT: Patch ISO images directly without copying.
+
+wit v@@VERSION@@ r@@REV-NEXT@@ - @@@@-@@-@@
+
+ - Option --region: endian bug fix
 
 ~Known bugs:
 ~
@@ -31,4 +23,3 @@ Missing docu:
 
  - wit commands ILIST + EXTRACT
  - Option --show => see built in help
- - file ./setup.txt when composing

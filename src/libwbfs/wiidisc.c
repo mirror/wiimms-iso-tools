@@ -95,13 +95,14 @@ enumError wd_print_error
 
 //
 ///////////////////////////////////////////////////////////////////////////////
-///////////////			    common key			///////////////
+///////////////			common key & encryption		///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
 // The real common key must be set by the application.
 // Only the first WII_KEY_SIZE bytes of 'common_key' are used.
 
 static u8 common_key[] = "common key missed";
+static const u8 iv0[WII_KEY_SIZE] = {0}; // always NULL
 
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -115,7 +116,7 @@ const u8 * wd_get_common_key()
 
 const u8 * wd_set_common_key
 (
-	const u8 * new_key		// the new key
+    const u8		* new_key	// the new key
 )
 {
     ASSERT( sizeof(common_key) >= WII_KEY_SIZE );
@@ -132,14 +133,14 @@ const u8 * wd_set_common_key
 
 void wd_decrypt_title_key
 (
-	const wd_ticket_t * tik,	// pointer to ticket
-	u8 * title_key			// the result
+    const wd_ticket_t	* tik,		// pointer to ticket
+    u8			* title_key	// the result
 )
 {
     u8 iv[WII_KEY_SIZE];
 
-    wbfs_memset( iv, 0, sizeof(iv) );
-    wbfs_memcpy( iv, tik->title_id, 8 );
+    memset( iv, 0, sizeof(iv) );
+    memcpy( iv, tik->title_id, 8 );
     aes_key_t akey;
     wd_aes_set_key( &akey, common_key );
     wd_aes_decrypt( &akey, iv, &tik->title_key, title_key, WII_KEY_SIZE );
@@ -147,6 +148,267 @@ void wd_decrypt_title_key
     TRACE("| IV:  "); TRACE_HEXDUMP(0,0,1,WII_KEY_SIZE,iv,WII_KEY_SIZE);
     TRACE("| IN:  "); TRACE_HEXDUMP(0,0,1,WII_KEY_SIZE,&tik->title_key,WII_KEY_SIZE);
     TRACE("| OUT: "); TRACE_HEXDUMP(0,0,1,WII_KEY_SIZE,title_key,WII_KEY_SIZE);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+void wd_encrypt_title_key
+(
+    wd_ticket_t		* tik,		// pointer to ticket (modified)
+    const u8		* title_key	// valid pointer to wanted title key
+)
+{
+    u8 iv[WII_KEY_SIZE];
+
+    memset( iv, 0, sizeof(iv) );
+    memcpy( iv, tik->title_id, 8 );
+    aes_key_t akey;
+    wd_aes_set_key( &akey, common_key );
+    wd_aes_encrypt( &akey, iv, title_key, &tik->title_key, WII_KEY_SIZE );
+
+    TRACE("| IV:  "); TRACE_HEXDUMP(0,0,1,WII_KEY_SIZE,iv,WII_KEY_SIZE);
+    TRACE("| IN:  "); TRACE_HEXDUMP(0,0,1,WII_KEY_SIZE,&tik->title_key,WII_KEY_SIZE);
+    TRACE("| OUT: "); TRACE_HEXDUMP(0,0,1,WII_KEY_SIZE,title_key,WII_KEY_SIZE);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+void wd_decrypt_sectors
+(
+    wd_part_t		* part,		// NULL or poniter to partition
+    const aes_key_t	* akey,		// aes key, if NULL use 'part'
+    const void		* sect_src,	// pointer to first source sector
+    void		* sect_dest,	// pointer to destination
+    void		* hash_dest,	// if not NULL: store hash tables here
+    u32			n_sectors	// number of wii sectors to decrypt
+)
+{
+    if (!akey)
+    {
+	DASSERT(part);
+	wd_disc_t * disc = part->disc;
+	DASSERT(disc);
+	if ( disc->akey_part != part )
+	{
+	    disc->akey_part = part;
+	    wd_aes_set_key(&disc->akey,part->key);
+	}
+	akey = &disc->akey;
+    }
+
+    const u8 * src = sect_src;
+    u8 * dest = sect_dest;
+    u8 tempbuf[WII_SECTOR_SIZE];
+
+    if (hash_dest)
+    {
+	u8 * hdest = hash_dest;
+	while ( n_sectors-- > 0 )
+	{
+	    const u8 * src1 = src;
+	    if ( src == dest )
+	    {
+		// inplace decryption not possible => use tempbuf
+		memcpy(tempbuf,src,WII_SECTOR_SIZE);
+		src1 = tempbuf;
+	    }
+
+	    // decrypt header
+	    wd_aes_decrypt( akey,
+			    iv0,
+			    src1,
+			    hdest,
+			    WII_SECTOR_DATA_OFF);
+
+	    // decrypt data
+	    wd_aes_decrypt( akey,
+			    src1 + WII_SECTOR_IV_OFF,
+			    src1 + WII_SECTOR_DATA_OFF,
+			    dest,
+			    WII_SECTOR_DATA_SIZE );
+
+
+	    src   += WII_SECTOR_SIZE;
+	    dest  += WII_SECTOR_DATA_SIZE;
+	    hdest += WII_SECTOR_DATA_OFF;
+	}
+    }
+    else
+    {
+	while ( n_sectors-- > 0 )
+	{
+	    const u8 * src1 = src;
+	    if ( src == dest )
+	    {
+		// inplace decryption not possible => use tempbuf
+		memcpy(tempbuf,src,WII_SECTOR_SIZE);
+		src1 = tempbuf;
+	    }
+
+	    // decrypt data
+	    wd_aes_decrypt( akey,
+			    src1 + WII_SECTOR_IV_OFF,
+			    src1 + WII_SECTOR_DATA_OFF,
+			    dest + WII_SECTOR_DATA_OFF,
+			    WII_SECTOR_DATA_SIZE );
+
+	    // decrypt header
+	    wd_aes_decrypt( akey,
+			    iv0,
+			    src1,
+			    dest,
+			    WII_SECTOR_DATA_OFF);
+
+	    src  += WII_SECTOR_SIZE;
+	    dest += WII_SECTOR_SIZE;
+	}
+    }
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+void wd_encrypt_sectors
+(
+    wd_part_t		* part,		// NULL or poniter to partition
+    const aes_key_t	* akey,		// aes key, if NULL use 'part'
+    const void		* sect_src,	// pointer to first source sector
+    const void		* hash_src,	// if not NULL: source of hash tables
+    void		* sect_dest,	// pointer to first destination sector
+    u32			n_sectors	// number of wii sectors to encrypt
+)
+{
+    if (!akey)
+    {
+	DASSERT(part);
+	wd_disc_t * disc = part->disc;
+	DASSERT(disc);
+	if ( disc->akey_part != part )
+	{
+	    disc->akey_part = part;
+	    wd_aes_set_key(&disc->akey,part->key);
+	}
+	akey = &disc->akey;
+    }
+
+    const u8 * src = sect_src;
+    u8 * dest = sect_dest;
+    u8 tempbuf[WII_SECTOR_SIZE];
+
+    if (hash_src)
+    {
+	// copy reverse to allow overlap of 'data_src' and 'sect_dest'
+	const u8 * hsrc = (const u8*)hash_src + n_sectors * WII_SECTOR_DATA_OFF;
+	src  += n_sectors * WII_SECTOR_DATA_SIZE;
+	dest += n_sectors * WII_SECTOR_SIZE;
+
+	while ( n_sectors-- > 0 )
+	{
+	    src  -= WII_SECTOR_DATA_SIZE;
+	    hsrc -= WII_SECTOR_DATA_OFF;
+	    dest -= WII_SECTOR_SIZE;
+
+	    // encrypt header
+	    wd_aes_encrypt( akey,
+			    iv0,
+			    hsrc,
+			    tempbuf,
+			    WII_SECTOR_DATA_OFF );
+
+	    // encrypt data
+	    wd_aes_encrypt( akey,
+			    tempbuf + WII_SECTOR_IV_OFF,
+			    src,
+			    tempbuf + WII_SECTOR_DATA_OFF,
+			    WII_SECTOR_DATA_SIZE );
+
+	    memcpy(dest,tempbuf,WII_SECTOR_SIZE);
+	}
+    }
+    else
+    {
+	while ( n_sectors-- > 0 )
+	{
+	    // encrypt header
+	    wd_aes_encrypt( akey,
+			    iv0,
+			    src,
+			    dest,
+			    WII_SECTOR_DATA_OFF );
+
+	    // encrypt data
+	    wd_aes_encrypt( akey,
+			    dest + WII_SECTOR_IV_OFF,
+			    src  + WII_SECTOR_DATA_OFF,
+			    dest + WII_SECTOR_DATA_OFF,
+			    WII_SECTOR_DATA_SIZE );
+
+	    src  += WII_SECTOR_SIZE;
+	    dest += WII_SECTOR_SIZE;
+	}
+    }
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+void wd_split_sectors
+(
+    const void		* sect_src,	// pointer to first source sector
+    void		* data_dest,	// pointer to data destination
+    void		* hash_dest,	// pointer to hash destination
+    u32			n_sectors	// number of wii sectors to decrypt
+)
+{
+    DASSERT(sect_src);
+    DASSERT(data_dest);
+    DASSERT(hash_dest);
+    DASSERT( sect_src != hash_dest );
+
+    const u8 * src = sect_src;
+    u8 * data = data_dest;
+    u8 * hash = hash_dest;
+
+    while ( n_sectors-- > 0 )
+    {
+	memcpy( hash, src, WII_SECTOR_DATA_OFF );
+	hash += WII_SECTOR_DATA_OFF;
+	src  += WII_SECTOR_DATA_OFF;
+	
+	memmove( data, src, WII_SECTOR_DATA_SIZE );
+	data += WII_SECTOR_DATA_SIZE;
+	src  += WII_SECTOR_DATA_SIZE;
+    }
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+void wd_compose_sectors
+(
+    const void		* data_src,	// pointer to data source
+    const void		* hash_src,	// pointer to hash source
+    void		* sect_dest,	// pointer to first destination sector
+    u32			n_sectors	// number of wii sectors to encrypt
+)
+{
+    DASSERT(data_src);
+    DASSERT(hash_src);
+    DASSERT(sect_dest);
+    DASSERT( hash_src != sect_dest );
+
+    // copy reverse to allow overlap of 'data_src' and 'sect_dest'
+    const u8 * data = (const u8*)data_src + n_sectors * WII_SECTOR_DATA_SIZE;
+    const u8 * hash = (const u8*)hash_src + n_sectors * WII_SECTOR_DATA_OFF;
+    u8       * dest = (u8*) sect_dest     + n_sectors * WII_SECTOR_SIZE;
+
+    while ( n_sectors-- > 0 )
+    {
+	dest -= WII_SECTOR_DATA_SIZE;
+	data -= WII_SECTOR_DATA_SIZE;
+	memmove( dest, data, WII_SECTOR_DATA_SIZE );
+
+	dest -= WII_SECTOR_DATA_OFF;
+	hash -= WII_SECTOR_DATA_OFF;
+	memcpy( dest, hash, WII_SECTOR_DATA_OFF );
+    }
 }
 
 //
@@ -211,7 +473,7 @@ char * wd_print_part_name
 	    snprintf(buf,buf_size,"%7s=%x",name,ptype);
 	else if (is_id)
 	{
-	    ptype = wbfs_htonl(ptype); // we need big endian here
+	    ptype = htonl(ptype); // we need big endian here
 	    snprintf(buf,buf_size,"   \"%.4s\"",id4);
 	}
 	else
@@ -223,7 +485,7 @@ char * wd_print_part_name
 	    snprintf(buf,buf_size,"%7s %x",name,ptype);
 	else if (is_id)
 	{
-	    ptype = wbfs_htonl(ptype); // we need big endian here
+	    ptype = htonl(ptype); // we need big endian here
 	    snprintf(buf,buf_size,"   \"%.4s\"",id4);
 	}
 	else
@@ -241,7 +503,7 @@ char * wd_print_part_name
        case WD_PNAME_NUM:
 	if (is_id)
 	{
-	    ptype = wbfs_htonl(ptype); // we need big endian here
+	    ptype = htonl(ptype); // we need big endian here
 	    snprintf(buf,buf_size,"%.4s",id4);
 	}
 	else
@@ -253,7 +515,7 @@ char * wd_print_part_name
 	    snprintf(buf,buf_size,"%s",name);
 	else if (is_id)
 	{
-	    ptype = wbfs_htonl(ptype); // we need big endian here
+	    ptype = htonl(ptype); // we need big endian here
 	    snprintf(buf,buf_size,"P-%.4s",id4);
 	}
 	else
@@ -266,7 +528,7 @@ char * wd_print_part_name
 	    snprintf(buf,buf_size,"%x [%s]",ptype,name);
 	else if (is_id)
 	{
-	    ptype = wbfs_htonl(ptype); // we need big endian here
+	    ptype = htonl(ptype); // we need big endian here
 	    snprintf(buf,buf_size,"%x [\"%.4s\"]",ptype,id4);
 	}
 	else
@@ -727,10 +989,11 @@ wd_disc_t * wd_open_disc
 
     //----- setup
 
-    wd_disc_t * disc = wbfs_malloc(sizeof(*disc));
+    wd_disc_t * disc = malloc(sizeof(*disc));
     if (!disc)
 	OUT_OF_MEMORY;
     memset(disc,0,sizeof(*disc));
+    disc->cache_sector = ~(u32)0;
 
     disc->read_func = read_func;
     disc->read_data = read_data;
@@ -757,12 +1020,11 @@ wd_disc_t * wd_open_disc
     //----- read disc header
 
     enumError err = wd_read_raw(disc,0,&disc->dhead,sizeof(disc->dhead),WD_USAGE_DISC);
-    if ( !err && wbfs_ntohl(disc->dhead.magic) != WII_MAGIC )
+    if ( !err && ntohl(disc->dhead.magic) != WII_MAGIC )
     {
 	WD_ERROR(ERR_WDISC_NOT_FOUND,"MAGIC not found%s",disc->error_term);
 	err = ERR_WDISC_NOT_FOUND;
     }
-    memcpy(disc->id6,&disc->dhead,6);
 
 
     //----- read partition data
@@ -775,13 +1037,13 @@ wd_disc_t * wd_open_disc
     {
 	int n_part = 0, ipt;
 	for ( ipt = 0; ipt < WII_MAX_PTAB; ipt++ )
-	    n_part += wbfs_ntohl(disc->ptab_info[ipt].n_part);
+	    n_part += ntohl(disc->ptab_info[ipt].n_part);
 	if ( n_part > WII_MAX_PARTITIONS )
 	     n_part = WII_MAX_PARTITIONS;
 	disc->n_part = n_part;
 
-	disc->ptab_entry = wbfs_calloc(n_part,sizeof(*disc->ptab_entry));
-	disc->part = wbfs_calloc(n_part,sizeof(*disc->part));
+	disc->ptab_entry = calloc(n_part,sizeof(*disc->ptab_entry));
+	disc->part = calloc(n_part,sizeof(*disc->part));
 	if ( !disc->ptab_entry || !disc->part )
 	    OUT_OF_MEMORY;
 
@@ -789,7 +1051,7 @@ wd_disc_t * wd_open_disc
 	for ( n_part = ipt = 0; ipt < WII_MAX_PTAB && !err; ipt++ )
 	{
 	    wd_ptab_info_t * pt = disc->ptab_info + ipt;
-	    int n = wbfs_ntohl(pt->n_part);
+	    int n = ntohl(pt->n_part);
 	    if ( n > disc->n_part - n_part ) // limit n
 		 n = disc->n_part - n_part;
 
@@ -797,7 +1059,7 @@ wd_disc_t * wd_open_disc
 	    {
 		disc->n_ptab++;
 		wd_ptab_entry_t * pe = disc->ptab_entry + n_part;
-		err = wd_read_raw( disc, wbfs_ntohl(pt->off4),
+		err = wd_read_raw( disc, ntohl(pt->off4),
 					pe, n*sizeof(*pe), WD_USAGE_DISC );
 		if (!err)
 		{
@@ -809,8 +1071,8 @@ wd_disc_t * wd_open_disc
 			part->usage_id		= part->index + WD_USAGE_PART_0;
 			part->ptab_index	= ipt;
 			part->ptab_part_index	= pi;
-			part->part_type		= wbfs_ntohl(pe->ptype);
-			part->part_off4		= wbfs_ntohl(pe->off4);
+			part->part_type		= ntohl(pe->ptype);
+			part->part_off4		= ntohl(pe->off4);
 			part->is_enabled	= true;
 			part->disc		= disc;
 		    }
@@ -831,21 +1093,6 @@ wd_disc_t * wd_open_disc
     if (!err)
 	err = wd_read_raw( disc, WII_MAGIC2_OFF>>2, &disc->magic2,
 				sizeof(disc->magic2), WD_USAGE_DISC );
-
-    //----- setup patching
-    
-    if (!err)
-    {
-	wd_patch_item_t * item
-	    = wd_insert_patch(	&disc->patch,
-				WD_PAT_DISC_DATA,
-				WII_PTAB_REF_OFF,
-				WII_MAX_PTAB_SIZE );
-	DASSERT(item);
-	snprintf(item->info,sizeof(item->info),"partition tables");
-	item->data = &disc->ptab;
-	wd_patch_ptab(disc,item->data,true);
-    }
 
 
     //----- terminate
@@ -898,15 +1145,17 @@ void wd_close_disc
 	    for ( pi = 0; pi < disc->n_part; pi++, part++ )
 	    {
 		wd_reset_patch(&part->patch);
-		wbfs_free(part->tmd);
-		wbfs_free(part->cert);
-		wbfs_free(part->h3);
-		wbfs_free(part->fst);
+		free(part->tmd);
+		free(part->cert);
+		free(part->h3);
+		free(part->fst);
 	    } 
-	    wbfs_free(disc->part);
+	    free(disc->part);
 	} 
-	wbfs_free(disc->ptab_entry);
-	wbfs_free(disc);
+	free(disc->ptab_entry);
+	free(disc->reloc);
+	free(disc->group_cache);
+	free(disc);
     }
 }
 
@@ -1009,6 +1258,45 @@ wd_part_t * wd_get_part_by_type
 ///////////////			load partition data		///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
+static enumError wd_check_part_offset
+(
+    wd_part_t	*part,		// valid disc partition pointer
+    u64		off,		// offset to test
+    u64		size,		// size to test
+    ccp		name		// name of object
+)
+{
+    DASSERT(part);
+    DASSERT(part->disc);
+    const u64 file_size = part->disc->file_size;
+    if (file_size)
+    {
+	noTRACE("TEST '%s': %llx + %llx <= %llx\n",name,off,size,file_size);
+	if ( off > file_size )
+	{
+	    WD_ERROR(ERR_WDISC_INVALID,
+		    "Partition %s: Offset of %s (%llx) behind end of file (%llx)%s",
+		    wd_print_part_name(0,0,part->part_type,WD_PNAME_NUM_INFO),
+		    name, off, file_size, part->disc->error_term );
+	    return ERR_WDISC_INVALID;
+	}
+
+	off += size;
+	if ( off > file_size )
+	{
+	    WD_ERROR(ERR_WDISC_INVALID,
+		    "Partition %s: End of %s (%llx) behind end of file (%llx)%s",
+		    wd_print_part_name(0,0,part->part_type,WD_PNAME_NUM_INFO),
+		    name, off, file_size, part->disc->error_term );
+	    return ERR_WDISC_INVALID;
+	}
+    }
+
+    return ERR_OK;
+}
+
+//-----------------------------------------------------------------------------
+
 const int SYS_DIR_COUNT  = 3;
 const int SYS_FILE_COUNT = 11;
 
@@ -1037,13 +1325,17 @@ enumError wd_load_part
 	part->is_valid  = false;
 	part->disc->invalid_part++;
 
-	wbfs_iofree(part->tmd);  part->tmd  = 0;
-	wbfs_iofree(part->cert); part->cert = 0;
-	wbfs_iofree(part->h3);   part->h3   = 0;
-	wbfs_iofree(part->fst);  part->fst  = 0;
+	free(part->tmd);  part->tmd  = 0;
+	free(part->cert); part->cert = 0;
+	free(part->h3);   part->h3   = 0;
+	free(part->fst);  part->fst  = 0;
 
 
 	//----- load partition header
+
+	const u64 part_off = (u64)part->part_off4 << 2;
+	if (wd_check_part_offset(part,part_off,sizeof(part->ph),"TICKET"))
+	    return ERR_WDISC_INVALID;
 
 	enumError err = wd_read_part_raw(part,0,&part->ph,sizeof(part->ph),true);
 	if (err)
@@ -1057,8 +1349,10 @@ enumError wd_load_part
 	ntoh_part_header(&part->ph,&part->ph);
 	wd_decrypt_title_key(&ph->ticket,part->key);
 
-	part->data_off4 = part->part_off4 + ph->data_off4;
-	part->part_size = (u64)( part->data_off4 + ph->data_size4 - part->part_off4 ) << 2;
+	part->data_off4	  = part->part_off4 + ph->data_off4;
+	part->data_sector = part->data_off4 / WII_SECTOR_SIZE4;
+	part->end_sector  = part->data_sector + ph->data_size4 / WII_SECTOR_SIZE4;
+	part->part_size   = (u64)( part->data_off4 + ph->data_size4 - part->part_off4 ) << 2;
 
 	TRACE("part=%llx,%llx, tmd=%llx,%x, cert=%llx,%x, h3=%llx, data=%llx,%llx\n",
 		(u64)part->part_off4	<< 2,	part->part_size,
@@ -1070,17 +1364,9 @@ enumError wd_load_part
 
 	//----- file size tests
 
-	if ( disc->file_size )
-	{
-	    u64 off = (u64)( part->part_off4 + ph->data_off4 + ph->data_size4 ) << 2;
-	    if ( off > disc->file_size )
-	    {
-		WD_ERROR(ERR_WDISC_INVALID,"Position of partition '%s' exceeds file size%s",
-				wd_print_part_name(0,0,part->part_type,WD_PNAME_NUM_INFO),
-				disc->error_term );
-		return ERR_WDISC_INVALID;
-	    }
-	}
+	if (wd_check_part_offset(part, part_off+((u64)ph->data_off4<<2),
+		    (u64)ph->data_size4<<2, "data"))
+	    return ERR_WDISC_INVALID;
 
 
 	//----- load tmd
@@ -1093,7 +1379,7 @@ enumError wd_load_part
 	    return ERR_WDISC_INVALID;
 	}
 
-	wd_tmd_t * tmd = wbfs_ioalloc(ph->tmd_size);
+	wd_tmd_t * tmd = malloc(ph->tmd_size);
 	if (!tmd)
 	    OUT_OF_MEMORY;
 	part->tmd = tmd;
@@ -1152,7 +1438,13 @@ enumError wd_load_part
 		     dol_size = size;
 	    }
 	    TRACE("DOL-SIZE: %x <= %x\n",dol_size,boot->fst_off4-boot->dol_off4<<2);
-	    ASSERT( dol_size <= boot->fst_off4-boot->dol_off4<<2 );
+	    if ( dol_size > boot->fst_off4 - boot->dol_off4 << 2 )
+	    {
+		WD_ERROR(ERR_WDISC_INVALID,"Invalid MAIN.DOL of partition '%s'%s",
+				    wd_print_part_name(0,0,part->part_type,WD_PNAME_NUM_INFO),
+				    disc->error_term );
+		return ERR_WDISC_INVALID;
+	    }
 	    part->dol_size = dol_size;
 	    
 	    wd_mark_part(part,boot->dol_off4,dol_size);
@@ -1188,6 +1480,7 @@ enumError wd_load_part
 	const u32 fst_size = boot->fst_size4 << 2;
 	if (fst_size)
 	{
+	    TRACE("fst_size=%x\n",fst_size);
 	    wd_fst_item_t * fst = malloc(fst_size);
 	    if (!fst)
 		OUT_OF_MEMORY;
@@ -1213,10 +1506,10 @@ enumError wd_load_part
 		else
 		{
 		    fst_file_count++;
-		    const u32 off4 = wbfs_ntohl(fst->offset4);
+		    const u32 off4 = ntohl(fst->offset4);
 		    if ( fst_max_off4 < off4 )
 			 fst_max_off4 = off4;
-		    const u32 size = wbfs_ntohl(fst->size);
+		    const u32 size = ntohl(fst->size);
 		    if ( fst_max_size < size )
 			 fst_max_size = size;
 		    wd_mark_part(part,off4,size);
@@ -1313,7 +1606,8 @@ enumError wd_calc_fst_statistics
     for ( part = disc->part; part < part_end; part++ )
     {
 	invalid += !part->is_valid;
-	if ( sum_all || part->is_valid && part->is_enabled )
+	part->is_ok = part->is_loaded && part->is_valid && part->is_enabled;
+	if ( sum_all || part->is_ok )
 	{
 	    n		+= part->fst_n;
 	    dir_count	+= part->fst_dir_count;
@@ -1369,14 +1663,14 @@ bool wd_is_part_selected
 	    return false;
     }
     
-    // WD_SELI_WHOLE_PART does not matter
+    // WD_SEL_WHOLE_PART does not matter
 
     return true;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 
-int wd_select
+bool wd_select // return true if selection changed
 (
 	wd_disc_t	* disc,		// valid disc pointer
 	wd_select_t	select		// partition selector bit field
@@ -1384,19 +1678,31 @@ int wd_select
 {
     ASSERT(disc);
 
-    int ip, count = 0;
+    disc->active_select = select & WD_SEL__MASK;
+
+    bool selection_changed = false;
+    bool any_part_disabled = false;
+
+    int ip;
     for ( ip = 0; ip < disc->n_part; ip++ )
     {
 	wd_part_t * part = disc->part + ip;
+	if (!part->is_loaded)
+	    selection_changed = true;
+	const bool is_enabled = part->is_enabled;
 	wd_load_part(part,false,false);
-	part->is_enabled = part->is_valid
-			&& wd_is_part_selected(select,part->part_type,part->ptab_index);
-	count += part->is_enabled;
+	part->is_enabled = wd_is_part_selected(select,part->part_type,part->ptab_index);
+	if ( part->is_enabled != is_enabled )
+	    selection_changed = true;
+	part->is_ok = part->is_loaded && part->is_valid && part->is_enabled;
+	if ( !part->is_ok )
+	    any_part_disabled = true;
     }
+
     wd_calc_fst_statistics(disc,false);
-    disc->patch_ptab_recommended = count != disc->n_part
+    disc->patch_ptab_recommended = any_part_disabled
 				&& !(select & WD_SEL_WHOLE_DISC);
-    return count;
+    return selection_changed;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -1447,71 +1753,6 @@ wd_select_t wd_clear_select
     }
 
     return select & WD_SEL__MASK;
-}
-
-///////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////
-
-bool wd_patch_ptab
-(
-	wd_disc_t	* disc,		// valid disc pointer
-	void		* data,		// pointer to data area, WII_MAX_PTAB_SIZE
-	bool		force_patch	// false: patch only if needed
-)
-{
-    DASSERT(disc);
-    DASSERT(data);
-
-    wd_load_all_part(disc,false,false);
-    
-    if (!force_patch)
-    {
-	// test if any partitions is invalid or disabled
-	int ip;
-	for ( ip = 0; ip < disc->n_part; ip++ )
-	{
-	    wd_part_t * part = disc->part + ip;
-	    if ( !part->is_valid || !part->is_enabled )
-	    {
-		force_patch = true;
-		break;
-	    }
-	}
-	if (!force_patch)
-	    return false;
-    }
- 
-    memset(data,0,WII_MAX_PTAB_SIZE);
-    wd_ptab_t       * ptab  = data;
-    wd_ptab_info_t  * info  = ptab->info;
-    wd_ptab_entry_t * entry = ptab->entry;
-    u32 off4 = (ccp)entry - (ccp)info + WII_PTAB_REF_OFF >> 2;
-
-    int it;
-    for ( it = 0; it < WII_MAX_PTAB; it++, info++ )
-    {
-	int n_part = 0, ip;
-	for ( ip = 0; ip < disc->n_part; ip++ )
-	{
-	    wd_part_t * part = disc->part + ip;
-	    if ( !part->is_valid || !part->is_enabled || part->ptab_index != it )
-		continue;
-
-	    n_part++;
-	    entry->off4  = wbfs_htonl(part->part_off4);
-	    entry->ptype = wbfs_htonl(part->part_type);
-	    entry++;
-	}
-
-	if (n_part)
-	{
-	    info->n_part = wbfs_htonl(n_part);
-	    info->off4   = wbfs_htonl(off4);
-	    off4 += n_part * sizeof(*entry) >> 2;
-	}
-    }
-
-    return true;   
 }
 
 //
@@ -1655,7 +1896,7 @@ u8 * wd_filter_usage_table_sel
 
 u32 wd_count_used_disc_blocks
 (
-	wd_disc_t	* disc,		// valid pointer to a disc partition
+	wd_disc_t	* disc,		// valid pointer to a disc
 	u32		block_size	// if >1: count every 'block_size'
 					//        continuous blocks as one block
 )
@@ -1668,7 +1909,7 @@ u32 wd_count_used_disc_blocks
 
 u32 wd_count_used_disc_blocks_sel
 (
-	wd_disc_t	* disc,		// valid pointer to a disc partition
+	wd_disc_t	* disc,		// valid pointer to a disc
 	u32		block_size,	// if >1: count every 'block_size'
 					//        continuous blocks as one block
 	wd_select_t	select		// partition selector bit field
@@ -1799,7 +2040,7 @@ static int wd_iterate_fst_helper
 	}
 
 	const char * fname = (char*)fst_end
-			   + (wbfs_ntohl(fst->name_off)&0xffffff);
+			   + (ntohl(fst->name_off)&0xffffff);
 	char * path_dest = path_ptr;
 	while ( path_dest < path_end && *fname )
 	    *path_dest++ = *fname++;
@@ -1828,8 +2069,8 @@ static int wd_iterate_fst_helper
 	{
 	    *path_dest = 0;
 	    it->icm  = WD_ICM_FILE;
-	    it->off4 = wbfs_ntohl(fst->offset4);
-	    it->size = wbfs_ntohl(fst->size);
+	    it->off4 = ntohl(fst->offset4);
+	    it->size = ntohl(fst->size);
 	    stat = func(it);
 	}
     }
@@ -1841,7 +2082,7 @@ static int wd_iterate_fst_helper
 
 int wd_iterate_files
 (
-	wd_disc_t	* disc,		// valid pointer to a disc partition
+	wd_disc_t	* disc,		// valid pointer to a disc
 	wd_file_func_t	func,		// call back function
 	void		* param,	// user defined parameter
 	wd_ipm_t	prefix_mode	// prefix mode
@@ -2154,6 +2395,7 @@ void wd_print_fst_header
 {
     ASSERT(pf);
     ASSERT(pf->f);
+    TRACE("wd_print_fst_header()\n");
 
     pf->indent = wd_normalize_indent(pf->indent);
     if ( max_name_len < 11 )
@@ -2306,7 +2548,7 @@ void wd_print_fst
 (
 	FILE		* f,		// valid output file
 	int		indent,		// indention of the output
-	wd_disc_t	* disc,		// valid pointer to a disc partition
+	wd_disc_t	* disc,		// valid pointer to a disc
 	wd_ipm_t	prefix_mode,	// prefix mode
 	wd_pfst_t	pfst_mode,	// print mode
 	wd_file_func_t	filter_func,	// NULL or filter function
@@ -2314,6 +2556,7 @@ void wd_print_fst
 )
 {
     ASSERT(f);
+    TRACE("wd_print_fst()\n");
     indent = wd_normalize_indent(indent);
 
     //----- setup pf and calc fw
@@ -2339,7 +2582,7 @@ void wd_print_fst
 
 //
 ///////////////////////////////////////////////////////////////////////////////
-///////////////			    patching			///////////////
+///////////////			  patch helpers			///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
 void wd_reset_patch 
@@ -2368,10 +2611,10 @@ void wd_reset_patch
 
 static u32 wd_insert_patch_helper
 (
-	wd_patch_t	* patch,	// NULL or patching data
-	u64		offset,		// offset of object
-	u64		size,		// size of object
-	bool		* result_found	// true, if item found
+    wd_patch_t		* patch,	// NULL or patching data
+    u64			offset,		// offset of object
+    u64			size,		// size of object
+    bool		* result_found	// true, if item found
 )
 {
     DASSERT(patch);
@@ -2404,12 +2647,38 @@ static u32 wd_insert_patch_helper
 
 ///////////////////////////////////////////////////////////////////////////////
 
+wd_patch_item_t * wd_find_patch
+(
+    wd_patch_t		* patch,	// patching data
+    wd_patch_mode_t	mode,		// patch mode
+    u64			offset,		// offset of object
+    u64			size		// size of object
+)
+{
+    DASSERT(patch);
+
+    if ( patch->used == patch->size )
+    {
+	patch->size += 10;
+	patch->item = realloc(patch->item,patch->size*sizeof(*patch->item));
+	if (!patch->item)
+	    OUT_OF_MEMORY;
+    }
+
+    bool found;
+    u32 idx = wd_insert_patch_helper(patch,offset,size,&found);
+
+    return found ? patch->item + idx : 0;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
 wd_patch_item_t * wd_insert_patch
 (
-	wd_patch_t	* patch,	// NULL or patching data
-	wd_patch_mode_t	mode,		// patch mode
-	u64		offset,		// offset of object
-	u64		size		// size of object
+    wd_patch_t		* patch,	// patching data
+    wd_patch_mode_t	mode,		// patch mode
+    u64			offset,		// offset of object
+    u64			size		// size of object
 )
 {
     DASSERT(patch);
@@ -2430,12 +2699,16 @@ wd_patch_item_t * wd_insert_patch
     if (!found)
     {
 	memmove(item+1,item,(patch->used-idx)*sizeof(*item));
+	memset(item,0,sizeof(*item));
 	patch->used++;
     }
     else if (item->data_alloced)
+    {
 	free(item->data);
+	item->data = 0;
+	item->data_alloced = 0;
+    }
 
-    memset(item,0,sizeof(*item));
     item->mode	 = mode;
     item->offset = offset;
     item->size   = size;
@@ -2444,11 +2717,83 @@ wd_patch_item_t * wd_insert_patch
 
 ///////////////////////////////////////////////////////////////////////////////
 
+wd_patch_item_t * wd_insert_patch_alloc
+(
+    wd_patch_t		* patch,	// patching data
+    wd_patch_mode_t	mode,		// patch mode
+    u64			offset,		// offset of object
+    u64			size		// size of object
+)
+{
+    wd_patch_item_t * item = wd_insert_patch(patch,mode,offset,size);
+    DASSERT(!item->data_alloced);
+    item->data_alloced = true;
+    item->data = malloc(size);
+    if (!item->data)
+	OUT_OF_MEMORY;
+    memset(item->data,0,size);
+    return item;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+wd_patch_item_t * wd_insert_patch_ticket
+(
+    wd_part_t		* part		// valid pointer to a disc partition
+)  
+{
+    wd_patch_item_t * item
+	= wd_insert_patch( &part->disc->patch, WD_PAT_PART_TICKET,
+					(u64)part->part_off4<<2, WII_TICKET_SIZE );
+    DASSERT(item);
+    item->part = part;
+    item->data = &part->ph.ticket;
+
+    snprintf(item->info,sizeof(item->info),
+			"ticket, id=%s",
+			wd_print_id(part->ph.ticket.title_id+4,4,0) );
+
+    part->sign_ticket = true;
+    return item;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+wd_patch_item_t * wd_insert_patch_tmd
+(
+    wd_part_t		* part		// valid pointer to a disc partition
+)  
+{
+    wd_patch_item_t * item
+	= wd_insert_patch( &part->disc->patch, WD_PAT_PART_TMD,
+				(u64)( part->part_off4 + part->ph.tmd_off4 ) << 2,
+				part->ph.tmd_size );
+    DASSERT(item);
+    item->part = part;
+    item->data = part->tmd;
+
+    u32 high = be32((ccp)&part->tmd->sys_version);
+    u32 low  = be32(((ccp)&part->tmd->sys_version)+4);
+    if ( high == 1 && low < 0x100 )
+	snprintf(item->info,sizeof(item->info),
+		"tmd, id=%s, ios=%u",
+			wd_print_id(part->tmd->title_id+4,4,0), low );
+    else
+	snprintf(item->info,sizeof(item->info),
+		"tmd, id=%s, sys=%x-%x",
+			wd_print_id(part->tmd->title_id+4,4,0), high, low );
+
+    part->sign_tmd = true;
+    return item;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
 void wd_dump_patch
 (
-	FILE		* f,		// valid output file
-	int		indent,		// indention of the output
-	wd_patch_t	* patch		// NULL or patching data
+    FILE		* f,		// valid output file
+    int			indent,		// indention of the output
+    wd_patch_t		* patch		// NULL or patching data
 )
 {
     ASSERT(patch);
@@ -2456,17 +2801,21 @@ void wd_dump_patch
 	return;
 
     indent = wd_normalize_indent(indent);
-    int fw = 80 - indent;
-    if ( fw < 52 )
-	 fw = 52;
 
+    int fw = 0;
+    wd_patch_item_t *item, *last = patch->item + patch->used;
+    for ( item = patch->item; item < last; item++ )
+    {
+	const int len = strlen(item->info);
+	if ( fw < len )
+	     fw = len;
+    }
     fprintf(f,"\n%*s     offset .. offset end     size  comment\n"
 		"%*s%.*s\n",
-		indent,"", indent,"", fw, wd_sep_200 );
+		indent,"", indent,"", fw + 37, wd_sep_200 );
 
     u64 prev_end = 0;
-    wd_patch_item_t *item, *last = patch->item + patch->used - 1;
-    for ( item = patch->item; item <= last; item++ )
+    for ( item = patch->item; item < last; item++ )
     {
 	const u64 end = item->offset + item->size;
 	fprintf(f,"%*s%c %9llx .. %9llx %9llx  %s\n", indent,"",
@@ -2474,18 +2823,17 @@ void wd_dump_patch
 		item->offset, end, item->size, item->info );
 	prev_end = end;
     }
-    putc('\n',f);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 
 void wd_dump_disc_patch
 (
-	FILE		* f,		// valid output file
-	int		indent,		// indention of the output
-	wd_disc_t	* disc,		// valid pointer to a disc partition
-	bool		print_title,	// true: print table titles
-	bool		print_part	// true: print partitions too
+    FILE		* f,		// valid output file
+    int			indent,		// indention of the output
+    wd_disc_t		* disc,		// valid pointer to a disc
+    bool		print_title,	// true: print table titles
+    bool		print_part	// true: print partitions too
 )
 {
     ASSERT(disc);
@@ -2496,8 +2844,11 @@ void wd_dump_disc_patch
     if (disc->patch.used)
     {
 	if (print_title)
-	    fprintf(f,"\n%*sPatching table for the disc:\n",indent,"");
-	wd_dump_patch(f,indent+2,&disc->patch);
+	{
+	    fprintf(f,"\n%*sPatching table of the disc:\n",indent,"");
+	    indent += 2;
+	}
+	wd_dump_patch(f,indent,&disc->patch);
     }
 
     if (print_part)
@@ -2510,14 +2861,1077 @@ void wd_dump_disc_patch
 		if (print_title)
 		{
 		    char buf[50];
-		    fprintf(f,"%*sPatching table for partition %s:\n",
-			indent, "",
+		    fprintf(f,"\n%*sPatching table of partition %s:\n",
+			indent-2, "",
 			wd_print_part_name(buf,sizeof(buf),part->part_type,WD_PNAME_NUM_INFO));
 		}
-		wd_dump_patch(f,indent+2,&part->patch);
+		wd_dump_patch(f,indent,&part->patch);
 	    }
 	}
     }
+}
+
+//
+///////////////////////////////////////////////////////////////////////////////
+///////////////			wd_read_and_patch()		///////////////
+///////////////////////////////////////////////////////////////////////////////
+
+static enumError wd_rap_part_sectors
+(
+    wd_part_t		* part,		// valid partition pointer
+    u32			sector,		// index of first sector to read
+    u32			end_sector	// index of last sector +1 to read
+)
+{
+    DASSERT(part);
+    DASSERT(part->disc);
+    DASSERT( sector >= part->data_sector);
+    DASSERT( end_sector <= part->end_sector );
+    DASSERT( end_sector <= sector + WII_GROUP_SECTORS );
+
+    //----- cache setup
+
+    wd_disc_t * disc = part->disc;
+    if (!disc->group_cache)
+    {
+	// space for cache and an extra sector (no inplace decryption possible)
+	disc->group_cache = malloc(WII_GROUP_SIZE+WII_SECTOR_SIZE);
+	if (!disc->group_cache)
+	    OUT_OF_MEMORY;
+    }
+    else if ( disc->group_cache_sector == sector )
+	return ERR_OK;
+    disc->group_cache_sector = sector;
+    u8 * buf = disc->group_cache;
+
+    //----- reloc check
+
+    wd_reloc_t * reloc = disc->reloc;
+    DASSERT(reloc);
+
+    u32 or_rel = 0, sect = sector;
+    while ( sect < end_sector )
+	or_rel |= reloc[sect++];
+
+    // delta must be same for all
+    DASSERT( ( reloc[sector] & WD_RELOC_M_DELTA ) == ( or_rel & WD_RELOC_M_DELTA ) );
+    DASSERT( ( reloc[sect-1] & WD_RELOC_M_DELTA ) == ( or_rel & WD_RELOC_M_DELTA ) );
+
+    const wd_reloc_t decrypt = or_rel & (WD_RELOC_F_PATCH|WD_RELOC_F_DECRYPT);
+    const wd_reloc_t patch   = or_rel & WD_RELOC_F_PATCH;
+    const wd_reloc_t encrypt = or_rel & WD_RELOC_F_ENCRYPT;
+
+
+    //----- load data
+
+    const u64 size = ( end_sector - sector ) * (u64)WII_SECTOR_SIZE;
+    u32 src = sector + ( reloc[sector] & WD_RELOC_M_DELTA );
+    if ( src > WII_MAX_SECTORS )
+	src -= WII_MAX_SECTORS;
+
+    bool is_encrypted;
+    if ( or_rel & WD_RELOC_F_COPY )
+    {
+	TRACE("READ(%x->%x..%x)\n",src,sector,end_sector);
+	is_encrypted = part->is_encrypted;
+	if ( is_encrypted && decrypt )
+	    buf += WII_SECTOR_SIZE;
+	const enumError err
+	    = wd_read_raw( disc,
+			   src * WII_SECTOR_SIZE4,
+			   buf,
+			   size,
+			   0 );
+	if (err)
+	    return err;
+    }
+    else
+    {
+	TRACE("ZERO(%x->%x..%x)\n",src,sector,end_sector);
+	is_encrypted = false;
+	memset( buf, 0, size );
+    }
+
+
+    //----- decrypt
+    
+    bool is_splitted = false;
+    DASSERT( sizeof(disc->temp_buf) >= WII_GROUP_SECTORS * WII_SECTOR_DATA_OFF );
+    u8 * hash_buf = patch ? disc->temp_buf : 0;
+
+    if ( is_encrypted && decrypt )
+    {
+	PRINT("DECRYPT(%x->%x..%x) split=%d\n",src,sector,end_sector,hash_buf!=0);
+	is_encrypted = false;
+
+	wd_decrypt_sectors(part,0,buf,disc->group_cache,hash_buf,end_sector-sector);
+	buf = disc->group_cache;
+	is_splitted = hash_buf != 0;
+    }
+    
+
+    //----- patching
+
+    if (patch)
+    {
+	PRINT("PATCH-P(%x->%x..%x) split=%d\n",src,sector,end_sector,!is_splitted);
+	DASSERT(!is_encrypted);
+	DASSERT(hash_buf);
+
+	if (!is_splitted)
+	{
+	    is_splitted = true;
+	    wd_split_sectors(buf,buf,hash_buf,end_sector-sector);
+	}
+
+	//--- patch data
+
+	u64 off1 = ( sector - part->data_sector ) * (u64)WII_SECTOR_DATA_SIZE;
+	u64 off2 = ( end_sector - part->data_sector ) * (u64)WII_SECTOR_DATA_SIZE;
+	const wd_patch_item_t *item = part->patch.item;
+	const wd_patch_item_t *end_item = item + part->patch.used;
+
+	u8 dirty[WII_GROUP_SECTORS];
+	memset(dirty,0,sizeof(dirty));
+
+	for ( ; item < end_item && item->offset < off2; item++ )
+	{
+	  const u64 end = item->offset + item->size;
+	  //PRINT("off=%llx..%llx, item=%llx..%llx\n", off1, off2, item->offset, end );
+	  if ( item->offset < off2 && end > off1 )
+	  {
+	    const u64 overlap1 = item->offset > off1 ? item->offset : off1;
+	    const u64 overlap2 = end < off2 ? end : off2;
+	    u32 dirty1 = (overlap1-off1) / WII_SECTOR_DATA_SIZE;
+	    u32 dirty2 = (overlap2-off1 + WII_SECTOR_DATA_SIZE - 1) / WII_SECTOR_DATA_SIZE;
+	    noTRACE(" -> %llx .. %llx, dirty=%u..%u\n",overlap1,overlap2,dirty1,dirty2);
+	    memset(dirty+dirty1,1,dirty2-dirty1);
+
+	    switch (item->mode)
+	    {
+	      case WD_PAT_DATA:
+		memcpy(	buf + (overlap1-off1),
+			(u8*)item->data + (overlap1-item->offset),
+			overlap2-overlap1 );
+		break;
+
+	      default:
+		ASSERT(0);
+	    }
+	  }
+	}
+
+
+	//--- calc hashes
+
+	int d;
+	for ( d = 0; d < WII_GROUP_SECTORS; d++ )
+	{
+	    if (!dirty[d])
+		continue;
+		
+	    u8 * data = buf + d * WII_SECTOR_DATA_SIZE;
+	    u8 * h0   = disc->temp_buf + d * WII_SECTOR_DATA_OFF;
+	    int i;
+	    for ( i = 0; i < WII_N_ELEMENTS_H0; i++ )
+	    {
+		SHA1(data,WII_H0_DATA_SIZE,h0);
+		data += WII_H0_DATA_SIZE;
+		h0   += WII_HASH_SIZE;
+	    }
+
+	    h0 = disc->temp_buf + d * WII_SECTOR_DATA_OFF;
+	    u8 * h1 = disc->temp_buf
+		    + (d/WII_N_ELEMENTS_H1) * WII_N_ELEMENTS_H1 * WII_SECTOR_DATA_OFF
+		    + (d%WII_N_ELEMENTS_H1) * WII_HASH_SIZE
+		    + 0x280;
+	    SHA1(h0,WII_N_ELEMENTS_H0*WII_HASH_SIZE,h1);
+	}
+
+	u8 * h1 = disc->temp_buf + 0x280;
+	u8 * h2 = disc->temp_buf + 0x340;
+	int d1, d2;
+	for ( d2 = 0; d2 < WII_N_ELEMENTS_H2; d2++ )
+	{
+	    for ( d1 = 1; d1 < WII_N_ELEMENTS_H1; d1++ )
+		memcpy( h1 + d1 * WII_SECTOR_DATA_OFF, h1, WII_N_ELEMENTS_H1*WII_HASH_SIZE );
+
+	    SHA1(h1,WII_N_ELEMENTS_H1*WII_HASH_SIZE,h2);
+	    h1 += WII_N_ELEMENTS_H1 * WII_SECTOR_DATA_OFF;
+	    h2 += WII_HASH_SIZE;
+	}
+
+	h2 = disc->temp_buf + 0x340;
+	for ( d1 = 1; d1 < WII_GROUP_SECTORS; d1++ )
+		memcpy( h2 + d1 * WII_SECTOR_DATA_OFF, h2, WII_N_ELEMENTS_H2*WII_HASH_SIZE );
+
+	if (part->h3)
+	{
+	    u8 * h3 = part->h3
+		    + ( sector - part->data_sector ) / WII_GROUP_SECTORS * WII_HASH_SIZE;
+	    SHA1(h2,WII_N_ELEMENTS_H2*WII_HASH_SIZE,h3);
+	    part->h3_dirty = true;
+	}
+    }
+
+
+    //----- encrypt
+
+    if ( !is_encrypted && encrypt )
+    {
+	PRINT("ENCRYPT(%x->%x..%x) compose=%d\n",src,sector,end_sector,hash_buf!=0);
+	wd_encrypt_sectors(part,0,buf,hash_buf,buf,end_sector-sector);
+    }
+    else if (is_splitted)
+    {
+	PRINT("COMPOSE(%x->%x..%x)\n",src,sector,end_sector);
+	wd_compose_sectors(buf,hash_buf,buf,end_sector-sector);
+    }
+
+    DASSERT( buf == disc->group_cache );
+    return ERR_OK;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+static enumError wd_rap_sectors
+(
+    wd_disc_t		* disc,		// valid disc pointer
+    u8			* buf,		// destination buffer
+    u32			sector,		// index of first sector to read
+    u32			n_sectors	// number of sectors to read
+)
+{
+    TRACE("wd_rap_sectors(%p,%p,%x,%x)\n",disc,buf,sector,n_sectors);
+    DASSERT(disc);
+    DASSERT(buf);
+
+    u32 end_sector = sector + n_sectors;
+    if ( end_sector > WII_MAX_SECTORS )
+    {
+	// outside of manged area -> just fill with zeros
+	u32 first_sector = sector;
+	if ( first_sector < WII_MAX_SECTORS )
+	     first_sector = WII_MAX_SECTORS;
+
+	TRACE("ZERO(%x,+%x,%x)\n",first_sector,first_sector-sector,end_sector-first_sector);
+	memset( buf + ( first_sector - sector ) * WII_SECTOR_SIZE, 0,
+		( end_sector - first_sector ) * WII_SECTOR_SIZE );
+	if ( sector >= WII_MAX_SECTORS )
+	    return ERR_OK;
+
+	end_sector = WII_MAX_SECTORS;
+	n_sectors = end_sector - sector;
+    }
+
+    ASSERT( sector < end_sector );
+    ASSERT( sector + n_sectors == end_sector );
+    ASSERT( end_sector <= WII_MAX_SECTORS );
+
+    wd_reloc_t * reloc = disc->reloc;
+    DASSERT(reloc);
+
+    while ( sector < end_sector )
+    {
+	wd_reloc_t rel = reloc[sector];
+	if ( rel & WD_RELOC_M_CRYPT )
+	{
+	    u32 pidx = ( rel & WD_RELOC_M_PART ) >> WD_RELOC_S_PART;
+	    if ( pidx < disc->n_part )
+	    {
+		// partition data is read in blocks of 64 sectors
+
+		wd_part_t * part = disc->part + pidx;
+		DASSERT(part->is_enabled);
+		DASSERT(part->is_valid);
+		u32 sect1 = ( sector - part->data_sector )
+			  / WII_GROUP_SECTORS * WII_GROUP_SECTORS
+			  + part->data_sector;
+		u32 sect2 = sect1 + WII_GROUP_SECTORS;
+		if ( sect2 > part->end_sector )
+		     sect2 = part->end_sector;
+		const enumError err = wd_rap_part_sectors(part,sect1,sect2);
+		if (err)
+		    return err;
+
+		if ( sect2 > end_sector )
+		     sect2 = end_sector;
+		const u32 size = ( sect2 - sector ) * WII_SECTOR_SIZE;
+		TRACE("COPY(sect=%x, delta=%x, cnt=%x, size=%x\n",
+			sector, sector - sect1, sect2 - sector, size );
+		memcpy( buf, disc->group_cache + (sector-sect1) * WII_SECTOR_SIZE, size );
+		buf += size;
+		sector = sect2;
+		continue;
+	    }
+	}
+
+ 	const u32 start = sector;
+	rel &= WD_RELOC_M_DISCLOAD;
+	u32 or_rel = 0;
+	while ( sector < end_sector && (reloc[sector] & WD_RELOC_M_DISCLOAD) == rel )
+	    or_rel |= reloc[sector++];
+
+	const u32 count = sector - start;
+	const u64 size  = count * (u64)WII_SECTOR_SIZE;
+	DASSERT(count);
+ 
+	u32 src = start + ( rel & WD_RELOC_M_DELTA );
+	if ( src > WII_MAX_SECTORS )
+	    src -= WII_MAX_SECTORS;
+
+	if ( or_rel & WD_RELOC_F_COPY )
+	{
+	    TRACE("READ(%x->%x,%x)\n",src,start,count);
+	    const enumError err
+		= wd_read_raw(	disc,
+				src * WII_SECTOR_SIZE4,
+				buf,
+				size,
+				0 );
+	    if (err)
+		return err;
+	}
+	else
+	{
+	    TRACE("ZERO(%x->%x,%x)\n",src,start,sector-start);
+	    memset( buf, 0, size );
+	}
+
+	if ( or_rel & WD_RELOC_F_PATCH )
+	{
+	    DASSERT( !( or_rel & WD_RELOC_M_CRYPT ) );
+	    TRACE("PATCH-D(%x->%x,%x)\n",src,start,sector-start);
+	    u64 off1 = start  * (u64)WII_SECTOR_SIZE;
+	    u64 off2 = sector * (u64)WII_SECTOR_SIZE;
+	    const wd_patch_item_t *item = disc->patch.item;
+	    const wd_patch_item_t *end_item = item + disc->patch.used;
+
+	    // skip unneeded items
+	    while ( item < end_item && item->offset + item->size <= off1 )
+		item++;
+
+	    for ( ; item < end_item && item->offset < off2; item++ )
+	    {
+	      const u64 end = item->offset + item->size;
+	      if ( item->offset < off2 && end > off1 )
+	      {
+		const u64 overlap1 = item->offset > off1 ? item->offset : off1;
+		const u64 overlap2 = end < off2 ? end : off2;
+		TRACE(" -> %llx .. %llx\n",overlap1,overlap2);
+		wd_part_t * part = item->part;
+		switch (item->mode)
+		{
+		  case WD_PAT_DATA:
+		    memcpy(	buf + (overlap1-off1),
+			    (u8*)item->data + (overlap1-item->offset),
+			    overlap2-overlap1 );
+		    break;
+
+		  case WD_PAT_PART_TICKET:
+		    DASSERT(part);
+		    if (part->sign_ticket)
+		    {
+			PRINT("SIGN TICKET\n");
+			wd_encrypt_title_key(&part->ph.ticket,part->key);
+			ticket_sign_trucha(&part->ph.ticket,sizeof(part->ph.ticket));
+			part->sign_ticket = false;
+		    }
+		    memcpy(	buf + (overlap1-off1),
+			    (u8*)item->data + (overlap1-item->offset),
+			    overlap2-overlap1 );
+		    break;
+
+		  case WD_PAT_PART_TMD:
+		    DASSERT(part);
+		    DASSERT(part->tmd);
+		    if ( part->h3_dirty && part->h3 )
+		    {
+			PRINT("CALC H4\n");
+			SHA1( part->h3, WII_H3_SIZE, part->tmd->content[0].hash );
+			part->h3_dirty = false;
+			part->sign_tmd = true;
+		    }
+
+		    if (part->sign_tmd)
+		    {
+			PRINT("SIGN TMD\n");
+			tmd_sign_trucha(part->tmd,part->ph.tmd_size);
+			part->sign_tmd = false;
+		    }
+		    memcpy(	buf + (overlap1-off1),
+			    (u8*)item->data + (overlap1-item->offset),
+			    overlap2-overlap1 );
+		    break;
+
+		  default:
+		    ASSERT(0);
+		}
+	      }
+	    }
+	}
+	buf += size;
+    }
+
+    return ERR_OK;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+enumError wd_read_and_patch
+(
+    wd_disc_t		* disc,		// valid disc pointer
+    u64			offset,		// offset to read
+    void		* dest_buf,	// destination buffer
+    u32			count		// number of bytes to read
+)
+{
+    DASSERT(disc);
+    DASSERT(dest_buf);
+
+    //----- read first sector if unaligned
+
+    u8  *dest	= dest_buf;
+    u32 sector	= offset / WII_SECTOR_SIZE;
+    u32 skip	= offset % WII_SECTOR_SIZE;
+    noTRACE("sector=%x, skip=%x\n",sector,skip);
+
+    if ( count > 0 && skip )
+    {
+	// read and cache whole sector
+	noTRACE("READ %x, cache=%x\n",sector,disc->cache_sector);
+	if ( disc->cache_sector != sector )
+	{
+	    const enumError err = wd_rap_sectors(disc,disc->cache,sector,1);
+	    if (err)
+	    {
+		disc->cache_sector = ~(u32)0;
+		return err;
+	    }
+	    disc->cache_sector = sector;
+	}
+
+	u32 copy_len = WII_SECTOR_SIZE - skip;
+	if ( copy_len > count )
+	     copy_len = count;
+
+	memcpy(dest,disc->cache+skip,copy_len);
+	dest   += copy_len;
+	count  -= copy_len;
+	sector += 1;
+    }
+
+    //----- read continous and well aligned sectors
+
+    if ( count > WII_SECTOR_SIZE )
+    {
+	const u32 n_sectors = count / WII_SECTOR_SIZE;
+	const enumError err = wd_rap_sectors(disc,dest,sector,n_sectors);
+	if (err)
+	    return err;
+
+	const u32 read_size = n_sectors * WII_SECTOR_SIZE;
+	dest   += read_size;
+	count  -= read_size;
+	sector += n_sectors;
+    }
+
+    //----- read last sector with cache
+
+    if (count)
+    {
+	// read and cache whole sector
+	noTRACE("READ %x, cache=%x\n",sector,disc->cache_sector);
+	if ( disc->cache_sector != sector )
+	{
+	    const enumError err = wd_rap_sectors(disc,disc->cache,sector,1);
+	    if (err)
+	    {
+		disc->cache_sector = ~(u32)0;
+		return err;
+	    }
+	    disc->cache_sector = sector;
+	}
+	memcpy(dest,disc->cache,count);
+    }
+    
+    return ERR_OK;
+}
+
+//
+///////////////////////////////////////////////////////////////////////////////
+///////////////			    patching			///////////////
+///////////////////////////////////////////////////////////////////////////////
+
+bool wd_patch_ptab // result = true if something changed
+(
+    wd_disc_t		* disc,		// valid disc pointer
+    void		* data,		// pointer to data area, WII_MAX_PTAB_SIZE
+    bool		force_patch	// false: patch only if needed
+)
+{
+    DASSERT(disc);
+    DASSERT(data);
+
+    wd_load_all_part(disc,false,false);
+    
+    if (!force_patch)
+    {
+	// test if any partitions is invalid or disabled
+	int ip;
+	for ( ip = 0; ip < disc->n_part; ip++ )
+	{
+	    wd_part_t * part = disc->part + ip;
+	    if ( !part->is_valid || !part->is_enabled )
+	    {
+		force_patch = true;
+		break;
+	    }
+	}
+	if (!force_patch)
+	    return false;
+    }
+ 
+    memset(data,0,WII_MAX_PTAB_SIZE);
+    wd_ptab_t       * ptab  = data;
+    wd_ptab_info_t  * info  = ptab->info;
+    wd_ptab_entry_t * entry = ptab->entry;
+    u32 off4 = (ccp)entry - (ccp)info + WII_PTAB_REF_OFF >> 2;
+
+    int it;
+    for ( it = 0; it < WII_MAX_PTAB; it++, info++ )
+    {
+	int n_part = 0, ip;
+	for ( ip = 0; ip < disc->n_part; ip++ )
+	{
+	    wd_part_t * part = disc->part + ip;
+	    if ( !part->is_valid || !part->is_enabled || part->ptab_index != it )
+		continue;
+
+	    n_part++;
+	    entry->off4  = htonl(part->part_off4);
+	    entry->ptype = htonl(part->part_type);
+	    entry++;
+	}
+
+	if (n_part)
+	{
+	    info->n_part = htonl(n_part);
+	    info->off4   = htonl(off4);
+	    off4 += n_part * sizeof(*entry) >> 2;
+	}
+    }
+
+    return true;   
+}
+
+//-----------------------------------------------------------------------------
+
+bool wd_patch_id
+(
+    void		* dest_id,	// destination, size=id_len, not 0 term
+    const void		* source_id,	// source id, length=id_len
+    const void		* new_id,	// NULL or new ID / 0 term / '.': don't change
+    u32			id_len		// max length of id
+)
+{
+    DASSERT(dest_id);
+    DASSERT(source_id);
+
+    memcpy(dest_id,source_id,id_len);
+    if (!new_id)
+	return false;
+
+    char * dest = dest_id;
+    ccp src = new_id;
+
+    int i;
+    for ( i = 0; i < id_len && src[i]; i++ )
+	if ( src[i] != '.' )
+	    dest[i] = src[i];
+    return memcmp(dest,source_id,id_len) != 0;
+}
+
+//-----------------------------------------------------------------------------
+
+bool wd_patch_disc_header // result = true if something changed
+(
+    wd_disc_t		* disc,		// valid pointer to a disc
+    ccp			new_id,		// NULL or new ID / 0 term / '.': don't change
+    ccp			new_name	// NULL or new disc name
+)
+{
+    DASSERT(disc);
+    bool stat = false;
+
+    if (new_id)
+    {
+	char id6[6];
+	ccp src = &disc->dhead.disc_id;
+	if (wd_patch_id(id6,src,new_id,6))
+	{
+	    stat = true;
+	    wd_patch_item_t * item
+		= wd_insert_patch_alloc( &disc->patch, WD_PAT_DATA, 0, 6 );
+	    DASSERT(item);
+	    snprintf(item->info,sizeof(item->info),
+			"disc id: %s -> %s",
+			wd_print_id(src,6,0), wd_print_id(id6,6,0) );
+	    memcpy(item->data,id6,6);
+	}
+    }
+
+    if (new_name)
+    {
+	char name[WII_TITLE_SIZE];
+	strncpy(name,new_name,sizeof(name));
+	name[sizeof(name)-1] = 0;
+
+	if (memcmp(name,disc->dhead.game_title,sizeof(name)))
+	{
+	    stat = true;
+	    wd_patch_item_t * item
+		= wd_insert_patch_alloc( &disc->patch, WD_PAT_DATA,
+					WII_TITLE_OFF, WII_TITLE_SIZE );
+	    DASSERT(item);
+	    snprintf(item->info,sizeof(item->info),"disc name: %s",name);
+	    memcpy(item->data,name,WII_TITLE_SIZE);
+	}
+    }
+
+    return stat;
+}
+
+//-----------------------------------------------------------------------------
+
+bool wd_patch_region // result = true if something changed
+(
+    wd_disc_t		* disc,		// valid pointer to a disc
+    u32			new_region	// new region id
+)
+{
+    wd_patch_item_t * item
+	= wd_insert_patch_alloc( &disc->patch, WD_PAT_DATA,
+					WII_REGION_OFF, WII_REGION_SIZE );
+    snprintf(item->info,sizeof(item->info),"region: %x",new_region);
+    wd_region_t * reg = item->data;
+    reg->region = htonl(new_region);
+    return true;
+}
+
+//-----------------------------------------------------------------------------
+
+bool wd_patch_part_id // result = true if something changed
+(
+    wd_part_t		* part,		// valid pointer to a disc partition
+    ccp			new_id,		// NULL or new ID / '.': don't change
+    wd_modify_t		modify		// objects to modify
+)
+{
+    DASSERT(part);
+    DASSERT(part->disc);
+
+    bool stat = false;
+
+    if ( modify & WD_MODIFY_DISC )
+	stat = wd_patch_disc_header(part->disc,new_id,0);
+
+    char id6[6];
+    if ( modify & WD_MODIFY_TICKET )
+    {
+	u8 * src = part->ph.ticket.title_id+4;
+	if (wd_patch_id(id6,src,new_id,4))
+	{
+	    memcpy(src,id6,4);
+	    wd_insert_patch_ticket(part);
+	    stat = true;
+	}
+    }
+
+    if ( modify & WD_MODIFY_TMD && part->tmd )
+    {
+	u8 * src = part->tmd->title_id+4;
+	if (wd_patch_id(id6,src,new_id,4))
+	{
+	    memcpy(src,id6,4);
+	    wd_insert_patch_tmd(part);
+	    stat = true;
+	}
+    }
+
+    if ( modify & WD_MODIFY_BOOT )
+    {
+	ccp src = &part->boot.dhead.disc_id;
+	if (wd_patch_id(id6,src,new_id,6))
+	{
+	    wd_patch_item_t * item
+		= wd_insert_patch_alloc( &part->patch, WD_PAT_DATA, WII_BOOT_OFF, 6 );
+	    DASSERT(item);
+	    item->part = part;
+	    snprintf(item->info,sizeof(item->info),
+			"boot id: %s -> %s",
+			wd_print_id(src,6,0), wd_print_id(id6,6,0) );
+	    memcpy(item->data,id6,6);
+	    stat = true;
+	}
+    }
+
+    return stat;
+}
+
+//-----------------------------------------------------------------------------
+
+bool wd_patch_part_name // result = true if something changed
+(
+    wd_part_t		* part,		// valid pointer to a disc partition
+    ccp			new_name,	// NULL or new disc name
+    wd_modify_t		modify		// objects to modify
+)
+{
+    DASSERT(part);
+
+    bool stat = false;
+
+    if ( modify & WD_MODIFY_DISC )
+	stat = wd_patch_disc_header(part->disc,0,new_name);
+
+    if ( modify & WD_MODIFY_BOOT )
+    {
+	char name[WII_TITLE_SIZE];
+	strncpy(name,new_name,sizeof(name));
+	name[sizeof(name)-1] = 0;
+
+	if (memcmp(name,part->boot.dhead.game_title,sizeof(name)))
+	{
+	    wd_patch_item_t * item
+		= wd_insert_patch_alloc( &part->patch, WD_PAT_DATA,
+				WII_BOOT_OFF + WII_TITLE_OFF, WII_TITLE_SIZE );
+	    DASSERT(item);
+	    snprintf(item->info,sizeof(item->info),"boot name: %s",name);
+	    memcpy(item->data,name,WII_TITLE_SIZE);
+	    stat = true;
+	}
+    }
+
+    return stat;
+}
+
+//-----------------------------------------------------------------------------
+
+bool wd_patch_part_system // result = true if something changed
+(
+    wd_part_t		* part,		// valid pointer to a disc partition
+    u64			system		// new system id (IOS)
+)
+{
+    DASSERT(part);
+
+    bool stat = false;
+    system = hton64(system);
+    if ( part->tmd && part->tmd->sys_version != system )
+    {
+	part->tmd->sys_version = system;
+	wd_insert_patch_tmd(part);
+    }
+
+    return stat;
+}
+
+//
+///////////////////////////////////////////////////////////////////////////////
+///////////////			    relocation			///////////////
+///////////////////////////////////////////////////////////////////////////////
+
+static void wd_mark_disc_reloc
+(
+    wd_reloc_t		* reloc,	// valid pointer to relocation table
+    u64			off,		// offset of data
+    u64			size,		// size of data
+    wd_reloc_t		flags		// flags to set
+)
+{
+    u64 end = off + size;
+    u32 idx = off / WII_SECTOR_SIZE;
+    if ( off > idx * (u64)WII_SECTOR_SIZE )
+    {
+	DASSERT( idx < WII_MAX_SECTORS );
+	reloc[idx] |= flags;
+	off = ++idx * (u64)WII_SECTOR_SIZE;
+    }
+
+    while ( off < end )
+    {
+	DASSERT( idx < WII_MAX_SECTORS );
+	off += WII_SECTOR_SIZE;
+	if ( off <= end && flags & WD_RELOC_F_PATCH )
+	    reloc[idx] &= ~WD_RELOC_F_COPY;
+	reloc[idx++] |= flags;
+    }
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+static void wd_mark_part_reloc
+(
+    wd_part_t		* part,		// NULL (=disc) or pointer to partition
+    wd_reloc_t		* reloc,	// valid pointer to relocation table
+    u64			off,		// offset of data
+    u64			size,		// size of data
+    wd_reloc_t		flags		// flags to set
+)
+{
+    u64 end = off + size;
+    u32 idx = off / WII_SECTOR_DATA_SIZE + part->data_off4 / WII_SECTOR_SIZE4;
+
+    if ( off % WII_SECTOR_DATA_SIZE )
+    {
+	DASSERT( idx < WII_MAX_SECTORS );
+	reloc[idx] |= flags;
+	off = ++idx * (u64)WII_SECTOR_DATA_SIZE;
+    }
+
+    while ( off < end )
+    {
+	DASSERT( idx < WII_MAX_SECTORS );
+	off += WII_SECTOR_DATA_SIZE;
+	if ( off <= end && flags & WD_RELOC_F_PATCH )
+	    reloc[idx] &= ~WD_RELOC_F_COPY;
+	reloc[idx++] |= flags;
+    }
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+wd_reloc_t * wd_calc_relocation
+(
+    wd_disc_t		* disc,		// valid disc pointer
+    bool		encrypt,	// true: encrypt partition data
+    bool		force		// true: force new calculation
+)
+{
+    DASSERT(disc);
+    TRACE("wd_calc_relocation(%p,%d,%d)\n",disc,encrypt,force);
+
+    const size_t reloc_size = WII_MAX_SECTORS * sizeof(*disc->reloc);
+    if (!disc->reloc)
+    {
+	disc->reloc = malloc(reloc_size);
+	if (!disc->reloc)
+	    OUT_OF_MEMORY;
+    }
+    else if (!force)
+	return disc->reloc;
+
+
+    //----- check partition tables
+
+    wd_part_t *part, *part_end = disc->part + disc->n_part;
+    int enable_count = 0;
+    for ( part = disc->part; part < part_end; part++ )
+	if ( part->is_enabled && part->is_valid )
+	    enable_count++;
+
+    if ( enable_count < disc->n_part )
+    {
+	wd_patch_item_t * item
+	    = wd_insert_patch(	&disc->patch,
+				WD_PAT_DATA,
+				WII_PTAB_REF_OFF,
+				WII_MAX_PTAB_SIZE );
+	DASSERT(item);
+	snprintf(item->info,sizeof(item->info),
+		"use %u of %u partitions", enable_count, disc->n_part );
+	item->data = &disc->ptab;
+	wd_patch_ptab(disc,&disc->ptab,true);
+    }
+
+
+    //---- setup tables
+    
+    u8 usage_table[WII_MAX_SECTORS];
+    const bool whole_disc = ( disc->active_select & WD_SEL_WHOLE_DISC ) != 0;
+    const bool whole_part = whole_disc || ( disc->active_select & WD_SEL_WHOLE_PART );
+    wd_filter_usage_table(disc,usage_table,whole_part,whole_disc);
+
+    wd_reloc_t * reloc = disc->reloc;
+    memset(reloc,0,reloc_size);
+
+
+    //----- base setup
+
+    int idx;
+    const wd_reloc_t f_part = encrypt ? WD_RELOC_F_ENCRYPT : WD_RELOC_F_DECRYPT;
+    for ( idx = 0; idx < WII_MAX_SECTORS; idx++ )
+    {
+	const u32 uval = usage_table[idx];
+	if ( uval >= WD_USAGE_PART_0 && !whole_disc )
+	{
+	    reloc[idx]	= ( (uval&WD_USAGE__MASK) - WD_USAGE_PART_0 ) << WD_RELOC_S_PART
+			| WD_RELOC_F_COPY;
+	    if ( uval & WD_USAGE_F_CRYPT )
+		reloc[idx] |= f_part;
+	}
+	else if ( uval )
+	    reloc[idx] = WD_RELOC_F_COPY | WD_RELOC_M_PART;
+    }
+
+    if (whole_disc)
+	return reloc;
+
+
+    //----- partition patching
+
+    for ( part = disc->part; part < part_end; part++ )
+    {
+	if (part->patch.used)
+	{
+	    //--- tmd
+
+	    wd_load_part(part,false,true);
+	    wd_patch_item_t * item = wd_insert_patch_tmd(part);
+		wd_mark_disc_reloc(reloc,item->offset,item->size,WD_RELOC_F_CLOSE);
+
+	    //--- h3
+
+	    if (part->h3)
+	    {
+		item = wd_insert_patch( &part->disc->patch, WD_PAT_DATA,
+				(u64)( part->part_off4 + part->ph.h3_off4 ) << 2,
+				WII_H3_SIZE );
+		DASSERT(item);
+		item->part = part;
+		item->data = part->h3;
+		snprintf(item->info,sizeof(item->info),"h3");
+		wd_mark_disc_reloc(reloc,item->offset,item->size,
+					WD_RELOC_F_PATCH|WD_RELOC_F_CLOSE);
+	    }
+
+	    //--- items
+
+	    const wd_patch_t *patch = &part->patch;
+	    const wd_patch_item_t *last = patch->item + patch->used;
+	    for ( item = patch->item; item < last; item++ )
+		wd_mark_part_reloc(part,reloc,item->offset,item->size,WD_RELOC_F_PATCH);
+	}
+    }
+
+    //----- disc patching
+
+    const wd_patch_t * patch = &disc->patch;
+    const wd_patch_item_t *item, *last = patch->item + patch->used;
+    for ( item = patch->item; item < last; item++ )
+	wd_mark_disc_reloc(reloc,item->offset,item->size,WD_RELOC_F_PATCH);
+
+
+    //----- terminate
+
+    wd_patch_ptab(disc,&disc->ptab,true);
+    return reloc;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+wd_reloc_t * wd_calc_relocation_sel
+(
+    wd_disc_t		* disc,		// valid disc pointer
+    wd_select_t		select,		// partition selector bit field
+    bool		encrypt,	// true: encrypt partition data
+    bool		force		// true: force new calculation
+)
+{
+    if (wd_select(disc,select))
+	force = true;
+    return wd_calc_relocation(disc,encrypt,force);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+void wd_dump_relocation
+(
+    FILE		* f,		// valid output file
+    int			indent,		// indention of the output
+    const wd_reloc_t	* reloc,	// valid pointer to relocation table
+    bool		print_title	// true: print table titles
+)
+{
+    DASSERT(f);
+    DASSERT(reloc);
+
+    indent = wd_normalize_indent(indent);
+    if (print_title)
+    {
+	fprintf(f,"\n%*sRelocation table:\n",indent,"");
+	indent += 2;
+    }
+
+    fprintf(f,
+	"\n"
+	"%*s   offset     dest blocks : n(b) :  source blocks : partition and flags\n"
+	"%*s%.75s\n",
+	indent, "", indent, "", wd_sep_200 );
+	
+    const wd_reloc_t *rel = reloc, *end = reloc + WII_MAX_SECTORS;
+    while ( rel < end )
+    {
+	//--- skip unused blocks
+
+	while ( rel < end && !*rel )
+	    rel++;
+
+	if ( rel == end )
+	    break;
+
+	//--- store values
+
+	const wd_reloc_t * start = rel;
+	const u32 val = *rel;
+	while ( rel < end && val == *rel )
+	    rel++;
+	
+	const int dest = start - reloc;
+	int src = dest + ( val & WD_RELOC_M_DELTA );
+	if ( src > WII_MAX_SECTORS )
+	    src -= WII_MAX_SECTORS;
+	const int count = rel - start;
+
+	if ( count > 1 )
+	    fprintf(f,"%*s%9llx  %5x .. %5x :%5x : %5x .. %5x :",
+			indent, "",
+			(u64)WII_SECTOR_SIZE * dest,
+			dest, dest + count-1, count, src, src + count-1 );
+	else
+	    fprintf(f,"%*s%9llx  %14x :    1 : %14x :",
+			indent, "",
+			(u64)WII_SECTOR_SIZE * dest, dest, src );
+
+	const wd_reloc_t pidx = val & WD_RELOC_M_PART;
+	if ( pidx == WD_RELOC_M_PART )
+	    fprintf(f,"  -");
+	else
+	    fprintf(f,"%3u", pidx >> WD_RELOC_S_PART );
+
+	fprintf(f," %s %s %s %s\n",
+		val & WD_RELOC_F_ENCRYPT ? "enc"
+					   : val & WD_RELOC_F_DECRYPT ? "dec" : " - ",
+		val & WD_RELOC_F_COPY  ? "copy"  : " -  ",
+		val & WD_RELOC_F_PATCH ? "patch" : "  -  ",
+		val & WD_RELOC_F_CLOSE ? "close" : "  -" );
+    }
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+void wd_dump_disc_relocation
+(
+    FILE		* f,		// valid output file
+    int			indent,		// indention of the output
+    wd_disc_t		* disc,		// valid pointer to a disc
+    bool		print_title	// true: print table titles
+)
+{
+    wd_dump_relocation(f,indent,
+		wd_calc_relocation(disc,true,false),
+		print_title );
 }
 
 //
@@ -2527,7 +3941,7 @@ void wd_dump_disc_patch
 
 int wd_normalize_indent
 (
-	int		indent		// base vlaue to normalize
+    int			indent		// base vlaue to normalize
 )
 {
     return indent < 0 ? 0 : indent < 50 ? indent : 50;
@@ -2537,10 +3951,10 @@ int wd_normalize_indent
 
 void wd_dump_disc
 (
-	FILE		*f,		// valid output file
-	int		indent,		// indention of the output
-	wd_disc_t	*disc,		// valid disc pointer
-	int		dump_level	// dump level
+    FILE		*f,		// valid output file
+    int			indent,		// indention of the output
+    wd_disc_t		*disc,		// valid disc pointer
+    int			dump_level	// dump level
 					//	>0: print extended part info 
 					//	>1: print usage table
 )
@@ -2573,17 +3987,17 @@ void wd_dump_disc
 
     u8 * p8 = disc->region.region_info;
     fprintf(f,"%*sRegion setting:     %d / %02x %02x %02x %02x  %02x %02x %02x %02x\n",
-		indent,"", wbfs_ntohl(disc->region.region),
+		indent,"", ntohl(disc->region.region),
 		p8[0], p8[1], p8[2], p8[3], p8[4], p8[5], p8[6], p8[7] );
 
     int ipt;
     for ( ipt = 0; ipt < WII_MAX_PTAB; ipt++ )
     {
 	wd_ptab_info_t * pt = disc->ptab_info + ipt;
-	const int n = wbfs_ntohl(pt->n_part);
+	const int n = ntohl(pt->n_part);
 	if (n)
 	    fprintf(f,"%*sPartition table #%u: off=%llx, N(part)=%u\n", indent,"",
-		ipt, (u64)wbfs_ntohl(pt->off4)<<2, n );
+		ipt, (u64)ntohl(pt->off4)<<2, n );
     }
 
     const bool load_part = dump_level > 0;
@@ -2636,7 +4050,7 @@ void wd_dump_disc
 
 	    if ( part->ph.data_off4 )
 	    {
-		off = ( part->part_off4 + part->ph.data_off4 ) << 2;
+		off = part->data_off4 << 2;
 		u64 data_size = part->ph.data_size4 << 2;
 		fprintf(f,"%*s  DATA:        %9llx .. %9llx, %9llx\n", indent,"",
 		    off, off + data_size, data_size );
@@ -2791,10 +4205,10 @@ void wd_dump_mem
     int ip;
     for ( ip = 0; ip < WII_MAX_PTAB; ip++ )
     {
-	const u32 np = wbfs_ntohl(disc->ptab_info[ip].n_part);
+	const u32 np = ntohl(disc->ptab_info[ip].n_part);
 	if (np)
 	{
-	    const u64 off = (u64)wbfs_ntohl(disc->ptab_info[ip].off4) << 2;
+	    const u64 off = (u64)ntohl(disc->ptab_info[ip].off4) << 2;
 	    snprintf( msg, sizeof(msg),
 			"Partition table #%u with %u partition%s",
 			ip, np, np == 1 ? "" : "s" );
@@ -2807,7 +4221,7 @@ void wd_dump_mem
 
     snprintf( msg, sizeof(msg),
 		"Region settings, region=%x",
-		wbfs_ntohl(disc->region.region) );
+		ntohl(disc->region.region) );
     func(param,WII_REGION_OFF,sizeof(disc->region),msg);
 
     m = (u8*)&disc->magic2;
@@ -2851,7 +4265,7 @@ void wd_dump_mem
 
 	    if (ph->tmd_off4)
 	    {
-		const u64 sys_version = wbfs_ntoh64(part->tmd->sys_version);
+		const u64 sys_version = ntoh64(part->tmd->sys_version);
 		const u32 hi = sys_version >> 32;
 		const u32 lo = (u32)sys_version;
 		if ( hi == 1 && lo < 0x100 )

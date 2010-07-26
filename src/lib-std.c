@@ -280,6 +280,7 @@ void SetupLib ( int argc, char ** argv, ccp p_progname, enumProgID prid )
     TRACE_SIZEOF(wd_icm_t);
     TRACE_SIZEOF(wd_ipm_t);
     TRACE_SIZEOF(wd_iterator_t);
+    TRACE_SIZEOF(wd_modify_t);
     TRACE_SIZEOF(wd_part_control_t);
     TRACE_SIZEOF(wd_part_header_t);
     TRACE_SIZEOF(wd_part_sector_t);
@@ -294,6 +295,7 @@ void SetupLib ( int argc, char ** argv, ccp p_progname, enumProgID prid )
     TRACE_SIZEOF(wd_ptab_entry_t);
     TRACE_SIZEOF(wd_ptab_t);
     TRACE_SIZEOF(wd_region_t);
+    TRACE_SIZEOF(wd_reloc_t);
     TRACE_SIZEOF(wd_select_t);
     TRACE_SIZEOF(wd_select_idx_t);
     TRACE_SIZEOF(wd_ticket_t);
@@ -718,6 +720,7 @@ int PrintError ( ccp func, ccp file, uint line,
 	StringCat2S(msg,sizeof(msg),GetErrorText(err_code),"\n");
 
     ccp prefix = err_code == ERR_OK ? "" : err_code <= ERR_WARNING ? "! " : "!! ";
+    const int fw = GetTermWidth(80,40) - 1;
 
  #ifdef DEBUG
     TRACE("%s%s #%d [%s] in %s() @ %s#%d\n",
@@ -747,13 +750,20 @@ int PrintError ( ccp func, ccp file, uint line,
 		prefix, URI_VIEWVC, file, REVISION_NEXT, line );
      #endif
 
-	fprintf(stderr, "%s%*s%s", prefix, plen,"", msg );
+	fputs(prefix,stderr);
+	PutLines(stderr,plen,fw,0,prefix,msg);
     }
     else
-	fprintf(stderr,"%s%s: %s",prefix,progname,msg);
+    {
+	fprintf(stderr,"%s%s:",prefix,progname);
+	PutLines(stderr,plen,fw,strlen(progname)+1,prefix,msg);
+    }
 
     if (syserr)
-	fprintf(stderr,"%s%*s-> %s\n",prefix,plen,"",strerror(syserr));
+    {
+	fprintf(stderr,"%s%*s-> ",prefix,plen,"");
+	PutLines(stderr,plen+3,fw,plen+3,prefix,strerror(syserr));
+    }
     fflush(stderr);
 
     if ( err_code > ERR_OK )
@@ -1889,7 +1899,7 @@ enumError ScanSizeOptU64
 	    err = ERR_SEMANTIC;
 	    if (print_err)
 		ERROR0(ERR_SYNTAX,
-			"--%s: must be a power of %d but not %llu\n",
+			"--%s: value must be a power of %d but not %llu\n",
 			opt_name, 1<<pow2, val );
 	}
     }
@@ -1904,7 +1914,7 @@ enumError ScanSizeOptU64
 
 	    if (print_err)
 		ERROR0(ERR_WARNING,
-			"--%s: must be a multiple of %u -> use %llu instead of %llu.\n",
+			"--%s: value must be a multiple of %u -> use %llu instead of %llu.\n",
 			opt_name, multiple, xval, val );
 	    val = xval;
 	}
@@ -2298,35 +2308,37 @@ ShowMode ScanShowMode ( ccp arg )
 
     static const CommandTab_t tab[] =
     {
-	{ SHOW__NONE,	"NONE",		"-",		SHOW__ALL },
-	{ SHOW__ALL,	"ALL",		0,		0 },
+	{ SHOW__NONE,		"NONE",		"-",		SHOW__ALL },
+	{ SHOW__ALL,		"ALL",		0,		0 },
 
-	{ SHOW_INTRO,	"INTRO",	0,		0 },
-	{ SHOW_P_TAB,	"P-TAB",	"PTAB",		0 },
-	{ SHOW_P_INFO,	"P-INFO",	"PINFO",	0 },
-	{ SHOW_P_MAP,	"P-MAP",	"PMAP",		0 },
-	{ SHOW_D_MAP,	"D-MAP",	"DMAP",		0 },
-	{ SHOW_TICKET,	"TICKET",	0,		0 },
-	{ SHOW_TMD,	"TMD",		0,		0 },
-	{ SHOW_USAGE,	"USAGE",	0,		0 },
-	{ SHOW_FILES,	"FILES",	0,		0 },
-	{ SHOW_PATCH,	"PATCH",	0,		0 },
-	{ SHOW_PATH,	"PATH",		0,		0 },
+	{ SHOW_INTRO,		"INTRO",	0,		0 },
+	{ SHOW_P_TAB,		"P-TAB",	"PTAB",		0 },
+	{ SHOW_P_INFO,		"P-INFO",	"PINFO",	0 },
+	{ SHOW_P_MAP,		"P-MAP",	"PMAP",		0 },
+	{ SHOW_D_MAP,		"D-MAP",	"DMAP",		0 },
+	{ SHOW_TICKET,		"TICKET",	0,		0 },
+	{ SHOW_TMD,		"TMD",		0,		0 },
+	{ SHOW_USAGE,		"USAGE",	0,		0 },
+	{ SHOW_FILES,		"FILES",	0,		0 },
+	{ SHOW_PATCH,		"PATCH",	0,		0 },
+	{ SHOW_RELOCATE,	"RELOCATE",	0,		0 },
+	{ SHOW_PATH,		"PATH",		0,		0 },
 
-	{ SHOW_OFFSET,	"OFFSET",	0,		0 },
-	{ SHOW_SIZE,	"SIZE",		0,		0 },
+	{ SHOW_OFFSET,		"OFFSET",	0,		0 },
+	{ SHOW_SIZE,		"SIZE",		0,		0 },
 
-	{ SHOW__PART,	"PART",		0,		0 },
-	{ SHOW__MAP,	"MAP",		0,		0 },
+	{ SHOW__PART,		"PART",		0,		0 },
+	{ SHOW__MAP,		"MAP",		0,		0 },
 
-	{ DEC_ALL,	"DEC",		0,		SHOW_F_HEX1 },
-	{ 0,		"-DEC",		0,		SHOW_F_DEC },
-	{ DEC_ALL,	"=DEC",		0,		HEX_ALL },
-	{ HEX_ALL,	"HEX",		0,		SHOW_F_DEC1 },
-	{ 0,		"-HEX",		0,		SHOW_F_HEX },
-	{ HEX_ALL,	"=HEX",		0,		DEC_ALL },
+	{ DEC_ALL,		"DEC",		0,		SHOW_F_HEX1 },
+	{ 0,			"-DEC",		0,		SHOW_F_DEC },
+	{ DEC_ALL,		"=DEC",		0,		HEX_ALL },
+	{ HEX_ALL,		"HEX",		0,		SHOW_F_DEC1 },
+	{ 0,			"-HEX",		0,		SHOW_F_HEX },
+	{ HEX_ALL,		"=HEX",		0,		DEC_ALL },
 
-	{ SHOW_F_HEAD,	"HEADER",	"HEADER",	0 },
+	{ SHOW_F_HEAD,		"HEADER",	0,		0 },
+	{ SHOW_F_PRIMARY,	"PRIMARY",	"1",		0 },
 
 	{ 0,0,0,0 }
     };

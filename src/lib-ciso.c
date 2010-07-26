@@ -324,11 +324,10 @@ enumError SetupReadCISO ( SuperFile_t * sf )
 
     const off_t min_size = (off_t)WII_SECTORS_SINGLE_LAYER * WII_SECTOR_SIZE;
 
-    sf->file_size	= ci->max_file_off > min_size ? ci->max_file_off : min_size;
+    sf->file_size	= ci->max_virt_off > min_size ? ci->max_virt_off : min_size;
     sf->f.max_off	= ci->max_file_off;
     sf->max_virt_off	= ci->max_virt_off;
     SetupIOD(sf,OFT_CISO,OFT_CISO);
-    SetupISOModifier(sf);
 
     TRACE("#C# CISO FOUND!\n");
     return ERR_OK;

@@ -696,12 +696,13 @@ typedef enum ShowMode
 	SHOW_USAGE	= 0x00000080, // usage table
 	SHOW_FILES	= 0x00000100, // file list
 	SHOW_PATCH	= 0x00000200, // patching table
-	SHOW_PATH	= 0x00000400, // full path
+	SHOW_RELOCATE	= 0x00000400, // relocation table
+	SHOW_PATH	= 0x00000800, // full path
 
-	SHOW_OFFSET	= 0x00000800, // show offsets
-	SHOW_SIZE	= 0x00001000, // show size
+	SHOW_OFFSET	= 0x00001000, // show offsets
+	SHOW_SIZE	= 0x00002000, // show size
 	
-	SHOW__ALL	= 0x00001fff,
+	SHOW__ALL	= 0x00003fff,
 
 	//----- combinations
 
@@ -722,6 +723,7 @@ typedef enum ShowMode
 	SHOW_F__NUM	= 0x000f0000,
 
 	SHOW_F_HEAD	= 0x00100000, // print header lines
+	SHOW_F_PRIMARY	= 0x00200000, // print primary (unpatched) disc
 
 	//----- etc
 

@@ -19,19 +19,29 @@
 
 [size="2"][color="#0000c0"][b]There are also some GUI available:[/b][/color][/size]
 [list]
-[*] [url=@@URI-WIIJMANAGER@@][b]WiiJManager Multiplatform[/b], a WBFS manager GUI[/url]
-    A java GUI that acts like a WBFS manager. Converting of ISO images is also possible.
-[color=#ffffff].[/color]
-
 [*] [url=@@URI-QTWITGUI@@][b]QtWitGui[/b], manipulate and convert single ISO images.[/url]
     This QT based GUI focuses on manipulating single ISO images.
+[color=#ffffff].[/color]
+
+[*] [url=@@URI-WIIJMANAGER@@][b]WiiJManager Multiplatform[/b], a WBFS manager GUI[/url]
+    A java GUI that acts like a WBFS manager. Converting of ISO images is also possible.
 [/list]
 
 [size="2"][color="#0000c0"][b]Highlights of this release:[/b][/color][/size]
 [list]
-I have rewritten the wiidisc library (part of libwbfs) from scratch. It has a complete new interface and an improved functionality. It uses dynamic data structures and collect data as needed. This has considerable advantages for the whole WIT project: All information about a Wii disc is now in one hand. Things like usage maps and partition data are loaded/built once and only if needed. 
+[*] The commands "wit COPY", "wwt ADD" and some others accepts the patching options --id, --name, --ios, --region and --psel to modify the ISO image on the fly. If needed, the partitons will be truscha signed.
+[color=#ffffff].[/color]
 
-This new library facilitate the planed patching functionality.
+[*] The new command "wit EDIT" modifies existing ISO images directly without copying.
+[color=#ffffff].[/color]
+
+[*] The command "wit DUMP" is able to print much more info. There are new keywords for the option --show: USAGE, PATCH, RELOCATE. Try "--show all,-files" to see the nearly full output.
+[color=#ffffff].[/color]
+
+[*] The GUI [url=@@URI-QTWITGUI@@][b]QtWitGui[/b][/url] is able to handle most of this.
+[color=#ffffff].[/color]
+
+[*] Cloning a Wii disc witn an alternate ID to have more save slots can be done with one command. See [url=http://wit.wiimm.de/info/cloning.html]Cloning a disc @ wit.wiimm.de[/url] for more info.
 [color=#ffffff].[/color]
 [/list]
 

@@ -174,7 +174,7 @@ typedef struct wbfs_param_t // function parameters
   //----- parameters for wbfs_open_partition_param()
   
 	// call back data
-	wd_read_func_t	read_src_wii_disc;	// read wi sector
+	wd_read_func_t		read_src_wii_disc;	// read wit sector [obsolete?]
 	progress_callback_t	spinner;		// progress callback
 
 	// partition selectors

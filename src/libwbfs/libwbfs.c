@@ -1243,6 +1243,7 @@ u32 wbfs_add_disc_param ( wbfs_t *p, wbfs_param_t * par )
     if (!info)
 	OUT_OF_MEMORY;
     memset(info,0,p->disc_info_sz);
+    // [2do] use wd_read_and_patch()
     par->read_src_wii_disc(par->callback_data, 0, 0x100, info->disc_header_copy);
 
     copy_buffer = wbfs_ioalloc(p->wbfs_sec_sz);
@@ -1261,7 +1262,9 @@ u32 wbfs_add_disc_param ( wbfs_t *p, wbfs_param_t * par )
 	par->spinner(0,tot,par->callback_data);
     }
 
+ #ifndef WIT // WIT does it in an other way
     const int ptab_index = WII_PTAB_REF_OFF >> p->wbfs_sec_sz_s;
+ #endif
 
     for ( i = 0; i < p->n_wbfs_sec_per_disc; i++ )
     {
@@ -1298,6 +1301,7 @@ u32 wbfs_add_disc_param ( wbfs_t *p, wbfs_param_t * par )
 		    while ( wiiend < wiimax && used[wiiend] )
 			wiiend++;
 		    const u32 size = ( wiiend - wiisec ) * p->wii_sec_sz;
+		    // [2do] use wd_read_and_patch()
 		    if (par->read_src_wii_disc(par->callback_data,
 				wiisec * (p->wii_sec_sz>>2), size, dest ))
 			WBFS_ERROR("error reading disc");
@@ -1314,11 +1318,13 @@ u32 wbfs_add_disc_param ( wbfs_t *p, wbfs_param_t * par )
 		}
 	    }
 
+ #ifndef WIT // WIT does it in an other way
 	    // fix the partition table.
 	    if ( i == ptab_index )
 		wd_patch_ptab(	disc,
 				copy_buffer + WII_PTAB_REF_OFF - i * p->wbfs_sec_sz,
 				false );
+ #endif
 
 	    p->write_hdsector(	p->callback_data,
 				p->part_lba + bl * (p->wbfs_sec_sz / p->hd_sec_sz),

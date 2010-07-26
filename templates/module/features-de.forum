@@ -3,9 +3,9 @@
 [*][url=@@URI-HOME@@features.html#3][b]wit (Wiimms ISO tool) ist das Hauptprogramm zu Manipulation von Wii ISO-Dateien.[/b][/url]
 [*][url=@@URI-HOME@@features.html#4][b]wwt (Wiimms WBFS tool) ist ein kompletter WBFS-Manager mit zusätzlichen Funktionen wie Dateisystem-Check und -Reparatur, Zeitstempelverwaltung und Mehrfach-WBFS-Unterstützung.[/b][/url]
 [*][url=@@URI-HOME@@features.html#5][b]wdf-cat und wdf-dump sind Werkzeuge zur Unterstützung von WDF- und CISO-Dateien.[/b][/url]
-[*][url=@@URI-HOME@@features.html#6][b]WIT unterstützt 5 Wii disc Dateitypen (ISO, CISO, WDF, WBFS und FST) und kann von Pipes (indirekte RAR/ZIP-Unterstützung).[/b][/url]
-[*][url=@@URI-HOME@@features.html#7][b]wit kann Wii ISO-Dateien Verifizieren und miteinander vergleichen.[/b][/url]
+[*][url=@@URI-HOME@@features.html#6][b]WIT unterstützt 5 Wii disc Dateitypen (ISO, CISO, WDF, WBFS und FST) und kann von Pipes lesen (indirekte RAR/ZIP-Unterstützung).[/b][/url]
+[*][url=@@URI-HOME@@features.html#7][b]wit kann Wii ISO-Dateien verifizieren und miteinander vergleichen.[/b][/url]
 [*][url=@@URI-HOME@@features.html#8][b]wit kann Wii ISO-Dateien entpacken und wieder zusammensetzen.[/b][/url]
-[*][url=@@URI-HOME@@features.html#9][b]wit und wwt besitzen viele Diagnose Kommandos.[/b][/url]
+[*][url=@@URI-HOME@@features.html#9][b]wit und wwt besitzen viele Diagnosekommandos.[/b][/url]
 [*][url=@@URI-HOME@@features.html#10][b]Besondere Unterstützung von Script-Sprachen.[/b][/url]
 [/list]Besuche [url=@@URI-HOME@@features.html][b]@@URI-HOME@@features.html[/b][/url] für mehr Details.
