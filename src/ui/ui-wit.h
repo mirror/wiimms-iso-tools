@@ -253,6 +253,11 @@ typedef enum enumOptionsBit
 				| OB_NO_HEADER
 				| OB_LONG,
 
+	OB_CMD_CREATE		= OB_ID
+				| OB_IOS
+				| OB_DEST
+				| OB_DEST2,
+
 	OB_CMD_DUMP		= OB_GRP_TITLES
 				| OB_GRP_XSOURCE
 				| OB_IGNORE_FST
@@ -386,6 +391,7 @@ typedef enum enumCommands
 	CMD_ERROR,
 	CMD_EXCLUDE,
 	CMD_TITLES,
+	CMD_CREATE,
 
 	CMD_FILELIST,
 	CMD_FILETYPE,

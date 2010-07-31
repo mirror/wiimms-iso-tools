@@ -599,6 +599,12 @@ enumError Dump_TIK_MEM
 
     fprintf(f,"%*sTitle key:       ",indent,"");
     dump_hex(f,tik->title_key,sizeof(tik->title_key),0);
+
+    u8 key[WII_KEY_SIZE];
+    wd_decrypt_title_key(tik,key);
+    fprintf(f,"%*s Decrypted key:  ",indent,"");
+    dump_hex(f,key,sizeof(key),0);
+
     fprintf(f,"%*sTicket ID:       ",indent,"");
     dump_hex(f,tik->ticket_id,sizeof(tik->ticket_id),18);
     fprintf(f,"%*sConsole ID:      ",indent,"");
@@ -1107,7 +1113,7 @@ wd_ipm_t ScanPrefixMode ( ccp arg )
 
 void SetupSneekMode()
 {
-    part_selector = WD_SEL_PART_DATA;
+    part_selector = WD_SEL_PART_DATA|WD_SEL_PART_ACTIVE;
     prefix_mode = WD_IPM_NONE;
 
     FilePattern_t * pat = file_pattern + PAT_DEFAULT;

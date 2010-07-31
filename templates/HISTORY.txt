@@ -750,6 +750,14 @@ Aggregation of the previous beta versions:
    prefix '=' is obsolete, but still allowed.
  - Bug fix: File size calculation error for when composing large discs.
 
+wit v1.10a r1386 - 2010-07-15
+
+ - wiitdb.com: Support of new languages: ru, zhcn, zhtw
+ - wwt ANALYZE: If option --long is set then calculated values are printed too
+   if other values are available. If option --long is set twice calculated
+   values are always printed.
+ - wit+wwt: Option --trunc: Truncate created PLAIN ISO image to needed size.
+
 @@MODULE(last-history.txt)@@
 
 

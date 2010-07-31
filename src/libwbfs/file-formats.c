@@ -342,6 +342,44 @@ const char not_encrypted_marker[] = "*** partition is not encrypted ***";
 
 ///////////////////////////////////////////////////////////////////////////////
 
+static void id_setup ( void * dest_id, const void * source_id, int id_size )
+{
+    DASSERT(dest_id);
+    DASSERT(id_size>0);
+
+    u8 * dest = dest_id;
+    memset(dest,'0',id_size);
+    
+    int i;
+    const u8 * src = source_id ? source_id : "WIT";
+    for ( i = 0; i < id_size && *src; i++ )
+	*dest++ = *src++;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+void ticket_setup ( wd_ticket_t * tik, const void * id4 )
+{
+    DASSERT(tik);
+    memset(tik,0,sizeof(*tik));
+    tik->sig_type = htonl(0x10001);
+    strncpy((char*)tik->issuer,"Root-CA00000001-XS00000003",sizeof(tik->issuer));
+
+    static u8 base_id[] = { 0,1,0,0, 0,0,0,0 };
+    memcpy(tik->title_id,base_id,8);
+    id_setup(tik->title_id+4,id4,4);
+
+    memset(tik->unknown7,0xff,sizeof(tik->unknown7));
+    tik->unknown3 = 0xffff;
+
+    random_fill(tik->title_key,sizeof(tik->title_key));
+    random_fill(tik->ticket_id,sizeof(tik->ticket_id));
+    tik->ticket_id[0] = 0;
+    tik->ticket_id[1] = 1;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
 void ticket_clear_encryption ( wd_ticket_t * tik, int mark_not_encrypted )
 {
     ASSERT(tik);
@@ -429,6 +467,33 @@ bool ticket_is_trucha_signed ( const wd_ticket_t * tik, u32 tik_size )
 //
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////			struct wd_tmd_t			///////////////
+///////////////////////////////////////////////////////////////////////////////
+
+void tmd_setup ( wd_tmd_t * tmd, u32 tmd_size, const void * id4 )
+{
+    DASSERT(tmd);
+    DASSERT(tmd_size>=sizeof(wd_tmd_t));
+    
+    memset(tmd,0,tmd_size);
+    if ( tmd_size >= sizeof(wd_tmd_t) + sizeof(wd_tmd_content_t) )
+    {
+	tmd->n_content       = htons(1);
+	tmd->content[0].type = htons(3);
+	tmd->content[0].size = hton64(0xff7c0000);
+    }
+
+    tmd->sig_type = htonl(0x10001);
+    strncpy((char*)tmd->issuer,"Root-CA00000001-CP00000004",sizeof(tmd->issuer));
+
+    tmd->sys_version	= hton64(0x100000023ull);
+    tmd->title_type	= htonl(1);
+    tmd->group_id	= htons(0x3031);
+
+    static u8 base_id[] = { 0,1,0,0, 0,0,0,0 };
+    memcpy(tmd->title_id,base_id,8);
+    id_setup(tmd->title_id+4,id4,4);
+}
+
 ///////////////////////////////////////////////////////////////////////////////
 
 void tmd_clear_encryption ( wd_tmd_t * tmd, int mark_not_encrypted )

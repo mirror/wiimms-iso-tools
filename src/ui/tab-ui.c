@@ -172,7 +172,8 @@ info_t info_tab[] =
 
   { T_DEF_CMD,	"ERROR",	"ERROR|ERR",
 		"wit ERROR [error_code]",
-		"Translate exit code to message or print a table with all error messages." },
+		"Translate exit code to message or print a table"
+		" with all error messages." },
 
   { T_DEF_CMD,	"EXCLUDE",	"EXCLUDE",
 		"wit EXCLUDE [additional_excludes]...",
@@ -181,6 +182,11 @@ info_t info_tab[] =
   { T_DEF_CMD,	"TITLES",	"TITLES",
 		"wit TITLES [additional_title_file]",
 		"Dump the internal title database to standard output (stdout)." },
+
+  { T_DEF_CMD,	"CREATE",	"CREATE",
+		"wit CREATE TICKET outfile [--id] [title_id] [decrypted_key]\n"
+		"wit CREATE TMD outfile [--id] [--ios] [hash_val]",
+		"Create a system file." },
 
   { T_SEP_CMD,	0,0,0,0 }, //----- separator -----
 
@@ -876,6 +882,22 @@ info_t info_tab[] =
 	"If set the size is printed in MiB too."
 	" If set twice two columns with WBFS calculations are added."
 	" If set three times the real path of the source is printed." },
+
+  //---------- COMMAND wit CREATE ----------
+
+  { T_CMD_BEG,	"CREATE",	0,0,0 },
+
+  { T_COPT,	"ID",		0,0,
+	"Define an ID for the TICKET or TMD." },
+  { T_COPT,	"IOS",		0,0,
+	"Define an IOS/SYS-VERSION for the TMD." },
+
+  { T_SEP_OPT,	0,0,0,0 },
+
+  { T_COPT,	"DEST",		0,0,
+	"Define a destination path (directory/file)."
+	" This path is concatenated with the @outfile@." },
+  { T_COPT,	"DEST2",	0,0,0 },
 
   //---------- COMMAND wit DUMP ----------
 

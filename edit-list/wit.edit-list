@@ -4,5 +4,5 @@
 ../src/wwt+wit-cmd.c ;
 @+all-source.edit-list
 @+doc.edit-list
--y  175 ../src/wit.c ;
+-y  315 ../src/wit.c ;
 -y    1 ../src/wwt.c ;

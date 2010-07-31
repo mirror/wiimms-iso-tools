@@ -290,7 +290,8 @@ typedef struct wd_boot_t
     /* 420 */	u32		dol_off4;
     /* 424 */	u32		fst_off4;
     /* 428 */	u32		fst_size4;
-    /* 42c */	u8		unknown2[WII_BOOT_SIZE-0x42c];
+    /* 42c */	u32		copy_of__fst_size4;
+    /* 42c */	u8		unknown2[WII_BOOT_SIZE-0x430];
 }
 __attribute__ ((packed)) wd_boot_t;
 
@@ -388,6 +389,8 @@ __attribute__ ((packed)) wd_ticket_t;
 
 extern const char not_encrypted_marker[];
 
+void ticket_setup ( wd_ticket_t * ticket, const void * id4 );
+
 void ticket_clear_encryption ( wd_ticket_t * ticket, int mark_not_encrypted );
 bool ticket_is_marked_not_encrypted ( const wd_ticket_t * ticket );
 u32  ticket_sign_trucha ( wd_ticket_t * ticket, u32 ticket_size );
@@ -464,6 +467,8 @@ typedef struct wd_tmd_t
 __attribute__ ((packed)) wd_tmd_t;
 
 //----- encryption helpers
+
+void tmd_setup ( wd_tmd_t * tmd, u32 tmd_size, const void * id4 );
 
 void tmd_clear_encryption ( wd_tmd_t * tmd, int mark_not_encrypted );
 bool tmd_is_marked_not_encrypted ( const wd_tmd_t * tmd );

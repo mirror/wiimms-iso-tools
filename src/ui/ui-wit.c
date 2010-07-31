@@ -523,6 +523,25 @@ const InfoOption_t option_cmd_ISOSIZE_LONG =
 	" source is printed."
     };
 
+const InfoOption_t option_cmd_CREATE_ID =
+    {	OPT_ID, 0, "id",
+	"id",
+	"Define an ID for the TICKET or TMD."
+    };
+
+const InfoOption_t option_cmd_CREATE_IOS =
+    {	OPT_IOS, 0, "ios",
+	"ios",
+	"Define an IOS/SYS-VERSION for the TMD."
+    };
+
+const InfoOption_t option_cmd_CREATE_DEST =
+    {	OPT_DEST, 'd', "dest",
+	"path",
+	"Define a destination path (directory/file). This path is concatenated"
+	" with the outfile."
+    };
+
 const InfoOption_t option_cmd_DUMP_LONG =
     {	OPT_LONG, 'l', "long",
 	0,
@@ -606,6 +625,7 @@ const CommandTab_t CommandTab[] =
     { CMD_ERROR,	"ERROR",	"ERR",		OB_CMD_ERROR },
     { CMD_EXCLUDE,	"EXCLUDE",	0,		OB_CMD_EXCLUDE },
     { CMD_TITLES,	"TITLES",	0,		OB_CMD_TITLES },
+    { CMD_CREATE,	"CREATE",	0,		OB_CMD_CREATE },
     { CMD_FILELIST,	"FILELIST",	"FL",		OB_CMD_FILELIST },
     { CMD_FILETYPE,	"FILETYPE",	"FT",		OB_CMD_FILETYPE },
     { CMD_ISOSIZE,	"ISOSIZE",	"SIZE",		OB_CMD_ISOSIZE },
@@ -899,6 +919,19 @@ static const InfoOption_t * option_tab_cmd_TITLES[] =
 	OptionInfo + OPT_UTF_8,
 	OptionInfo + OPT_NO_UTF_8,
 	OptionInfo + OPT_LANG,
+
+	0
+};
+
+static const InfoOption_t * option_tab_cmd_CREATE[] =
+{
+	&option_cmd_CREATE_ID,
+	&option_cmd_CREATE_IOS,
+
+	OptionInfo + OPT_NONE, // separator
+
+	&option_cmd_CREATE_DEST,
+	OptionInfo + OPT_DEST2,
 
 	0
 };
@@ -1869,6 +1902,18 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	"Dump the internal title database to standard output (stdout).",
 	4,
 	option_tab_cmd_TITLES
+    },
+
+    {	CMD_CREATE,
+	false,
+	false,
+	"CREATE",
+	0,
+	"wit CREATE TICKET outfile [--id] [title_id] [decrypted_key]\n"
+	"wit CREATE TMD outfile [--id] [--ios] [hash_val]",
+	"Create a system file.",
+	4,
+	option_tab_cmd_CREATE
     },
 
     {	CMD_FILELIST,

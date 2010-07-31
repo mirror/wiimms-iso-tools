@@ -517,6 +517,8 @@ ccp GetFileModeText ( enumFileMode mode, bool longtext, ccp fail_text );
 off_t GetFileSize ( ccp path1, ccp path2 );
 enumError LoadFile ( ccp path1, ccp path2, size_t skip,
 		     void * data, size_t size, bool silent );
+enumError SaveFile ( ccp path1, ccp path2, bool create_dir,
+		     void * data, size_t size, bool silent );
 
 //
 ///////////////////////////////////////////////////////////////////////////////
@@ -600,6 +602,28 @@ char * ScanID	    ( char * destbuf7, int * destlen, ccp source );
 
 char * ScanNumU32   ( ccp arg, u32 * p_stat, u32 * p_num,            u32 min, u32 max );
 char * ScanRangeU32 ( ccp arg, u32 * p_stat, u32 * p_n1, u32 * p_n2, u32 min, u32 max );
+
+//-----
+
+char * ScanHexHelper
+(
+    void	* buf,		// valid pointer to result buf
+    int		buf_size,	// number of byte to read
+    int		* bytes_read,	// NULL or result: number of read bytes
+    ccp		arg,		// source string
+    int		err_level	// error level (print message):
+				//	 = 0: don't print errors
+				//	>= 1: print syntax errors
+				//	>= 2: msg if bytes_read<buf_size
+				//	>= 3: msg if arg contains more characters
+);
+
+enumError ScanHex
+(
+    void	* buf,		// valid pointer to result buf
+    int		buf_size,	// number of byte to read
+    ccp		arg		// source string
+);
 
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////                     scan size                   ///////////////

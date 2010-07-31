@@ -128,9 +128,14 @@ void print_title ( FILE * f )
 
 ///////////////////////////////////////////////////////////////////////////////
 
-void hint_exit ( enumError stat )
+void hint_exit ( enumError stat, ccp command )
 {
-    fprintf(stderr,
+    if (command)
+	fprintf(stderr,
+	    "-> Type '%s help %s' for more help.\n\n",
+	    progname, command );
+    else
+	fprintf(stderr,
 	    "-> Type '%s -h', '%s help' or '%s help command' for more help.\n\n",
 	    progname, progname, progname );
     exit(stat);
@@ -153,6 +158,19 @@ enumError cmd_test()
 
     return cmd_test_options();
 
+ #elif 1
+
+    ParamList_t * param;
+    for ( param = first_param; param; param = param->next )
+    {
+	u8 buf[10];
+	int count;
+	ccp res = ScanHexHelper(buf,sizeof(buf),&count,param->arg,99);
+	printf("\ncount=%d |%s|\n",count,res);
+	HEXDUMP16(0,0,buf,sizeof(buf));
+    }
+    return ERR_OK;
+    
  #elif 1
 
     off_t off = 0x3fff0;
@@ -211,6 +229,181 @@ enumError cmd_test()
     return ERR_OK;
 
  #endif
+}
+
+//
+///////////////////////////////////////////////////////////////////////////////
+
+enumError cmd_create()
+{
+    if ( n_param < 1 )
+    {
+	ERROR0(ERR_SYNTAX,"Missing sub command for CREATE.\n");
+	hint_exit(ERR_SYNTAX,"create");
+    }
+
+    //----- find sub command
+
+    enum // sub commands
+    {
+	SC_TICKET,
+	SC_TMD,
+    };
+
+
+    static const CommandTab_t tab[] =
+    {						    // min + max param
+	{ SC_TICKET,	"TICKET",	"TIK",		0 | 0x100 * 2 },
+	{ SC_TMD,	"TMD",		0,		0 | 0x100 * 1 },
+
+	{ 0,0,0,0 }
+    };
+
+    ParamList_t * param = first_param;
+    ccp cmd_name = param->arg;
+    int cmd_stat;
+    const CommandTab_t * cmd = ScanCommand(&cmd_stat,cmd_name,tab);
+    if (!cmd)
+    {
+	if ( cmd_stat > 0 )
+	    ERROR0(ERR_SYNTAX,"Sub command abbreviation is ambiguous: %s\n",cmd_name);
+	else
+	    ERROR0(ERR_SYNTAX,"Unknown sub command: %s\n",cmd_name);
+	hint_exit(ERR_SYNTAX,"create");
+    }
+
+    param = param->next;
+
+
+    //----- find destination file
+
+    if ( !param )
+    {
+	ERROR0(ERR_SYNTAX,"Missing filename for CREATE.\n");
+	hint_exit(ERR_SYNTAX,"create");
+    }
+
+    char pbuf1[PATH_MAX], pbuf2[PATH_MAX], namebuf[50];
+    ccp path = PathCatPP(pbuf1,sizeof(pbuf1),opt_dest,param->arg);
+    if (IsDirectory(path,0))
+    {
+	ccp src = cmd->name1;
+	char * dest = namebuf;
+	while (*src)
+	    *dest++ = tolower((int)*src++);
+	DASSERT( dest < namebuf + sizeof(namebuf) );
+
+	src = ".bin";
+	while (*src)
+	    *dest++ = tolower((int)*src++);
+	DASSERT( dest < namebuf + sizeof(namebuf) );
+	*dest = 0;
+	
+	path = PathCatPP(pbuf2,sizeof(pbuf2),path,namebuf);
+    }
+
+    param = param->next;
+
+
+    //----- check number of params
+
+    const int max_param = ( cmd->opt & 0xff00 ) >> 8;
+    const int min_param = cmd->opt & 0xff;
+    n_param -= 2;
+    if ( n_param < min_param || n_param > max_param )
+    {
+	ERROR0(ERR_SYNTAX,"Wrong number of arguments.\n");
+	hint_exit(ERR_SYNTAX,"create");
+    }
+
+    if ( testmode || verbose > 0 )
+	printf("Create %s: %s\n",cmd->name1,path);
+
+
+    //----- execute
+
+    switch(cmd->id)
+    {
+      case SC_TICKET:
+	{
+	    wd_ticket_t tik;
+	    ticket_setup(&tik,modify_id);
+
+	    if (param)
+	    {
+		if ( *param->arg && strcmp(param->arg,"-") )
+		{
+		    const enumError err
+			= ScanHex(tik.ticket_id,sizeof(tik.ticket_id),param->arg);
+		    if (err)
+			return err;
+		}
+		param = param->next;
+	    }
+
+	    if (param)
+	    {
+		if ( *param->arg && strcmp(param->arg,"-") )
+		{
+		    u8 key[WII_KEY_SIZE];
+		    const enumError err = ScanHex(key,sizeof(key),param->arg);
+		    if (err)
+			return err;
+		    wd_encrypt_title_key(&tik,key);
+		}
+		param = param->next;
+	    }
+
+	    ticket_sign_trucha(&tik,sizeof(tik));
+	    if ( verbose > 1 )
+		Dump_TIK_MEM(stdout,2,&tik);
+	    if (!testmode)
+	    {
+		const enumError err = SaveFile(path,0,opt_mkdir,
+						&tik,sizeof(tik),false);
+		if (!err)
+		    return err;
+	    }
+	}
+	break;
+
+      case SC_TMD:
+	{
+	    char tmd_buf[sizeof(wd_tmd_t)+sizeof(wd_tmd_content_t)];
+	    wd_tmd_t * tmd = (wd_tmd_t*)tmd_buf;
+	    tmd_setup(tmd,sizeof(tmd_buf),modify_id);
+
+	    if (opt_ios_valid)
+		tmd->sys_version = hton64(opt_ios);
+
+	    if (param)
+	    {
+		if ( *param->arg && strcmp(param->arg,"-") )
+		{
+		    const enumError err
+			= ScanHex(tmd->content[0].hash,
+				sizeof(tmd->content[0].hash),param->arg);
+		    if (err)
+			return err;
+		}
+		param = param->next;
+	    }
+
+	    tmd_sign_trucha(tmd,sizeof(tmd_buf));
+	    if ( verbose > 1 )
+		Dump_TMD_MEM(stdout,2,tmd,1);
+	    if (!testmode)
+	    {
+		const enumError err = SaveFile(path,0,opt_mkdir,
+						tmd,sizeof(tmd_buf),false);
+		if (!err)
+		    return err;
+	    }
+	}
+	break;
+    }
+
+    return ERR_OK;
 }
 
 //
@@ -1900,7 +2093,7 @@ enumError CheckCommand ( int argc, char ** argv )
     if ( optind >= argc )
     {
 	ERROR0(ERR_SYNTAX,"Missing command.\n");
-	hint_exit(ERR_SYNTAX);
+	hint_exit(ERR_SYNTAX,0);
     }
 
     int cmd_stat;
@@ -1911,14 +2104,14 @@ enumError CheckCommand ( int argc, char ** argv )
 	    ERROR0(ERR_SYNTAX,"Command abbreviation is ambiguous: %s\n",argv[optind]);
 	else
 	    ERROR0(ERR_SYNTAX,"Unknown command: %s\n",argv[optind]);
-	hint_exit(ERR_SYNTAX);
+	hint_exit(ERR_SYNTAX,0);
     }
 
     TRACE("COMMAND FOUND: #%lld = %s\n",(u64)cmd_ct->id,cmd_ct->name1);
 
     enumError err = VerifySpecificOptions(&InfoUI,cmd_ct);
     if (err)
-	hint_exit(err);
+	hint_exit(err,cmd_ct->name1);
 
     argc -= optind+1;
     argv += optind+1;
@@ -1934,6 +2127,7 @@ enumError CheckCommand ( int argc, char ** argv )
 	case CMD_ERROR:		err = cmd_error(); break;
 	case CMD_EXCLUDE:	err = cmd_exclude(); break;
 	case CMD_TITLES:	err = cmd_titles(); break;
+	case CMD_CREATE:	err = cmd_create(); break;
 
 	case CMD_FILELIST:	err = cmd_filelist(); break;
 	case CMD_FILETYPE:	err = cmd_filetype(); break;
@@ -1993,16 +2187,16 @@ int main ( int argc, char ** argv )
     if ( argc < 2 )
     {
 	printf("\n%s\nVisit %s%s for more info.\n\n",TITLE,URI_HOME,WIT_SHORT);
-	hint_exit(ERR_OK);
+	hint_exit(ERR_OK,0);
     }
 
     enumError err = CheckEnvOptions("WIT_OPT",CheckOptions);
     if (err)
-	hint_exit(err);
+	hint_exit(err,0);
 
     err = CheckOptions(argc,argv,false);
     if (err)
-	hint_exit(err);
+	hint_exit(err,0);
 
     SetupFilePattern(file_pattern+PAT_OPT_FILES);
     err = CheckCommand(argc,argv);

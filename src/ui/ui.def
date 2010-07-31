@@ -35,6 +35,11 @@
 	"wit TITLES [additional_title_file]", \
 	"Dump the internal title database to standard output (stdout)." )
 
+#:def_cmd( "CREATE", "CREATE", \
+	"wit CREATE TICKET outfile [--id] [title_id] [decrypted_key]\n" \
+	"wit CREATE TMD outfile [--id] [--ios] [hash_val]", \
+	"Create a system file." )
+
 #:def_cmd( "FILELIST", "FILELIST|FL", \
 	"wit FILELIST [source]...", \
 	"List all source files in a table." )
@@ -539,6 +544,23 @@
 	"" )
 
 #:def_cmd_opt( "TITLES", "LANG", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "CREATE", "ID", \
+	"", \
+	"Define an ID for the TICKET or TMD." )
+
+#:def_cmd_opt( "CREATE", "IOS", \
+	"", \
+	"Define an IOS/SYS-VERSION for the TMD." )
+
+#:def_cmd_opt( "CREATE", "DEST", \
+	"", \
+	"Define a destination path (directory/file). This path is concatenated" \
+	" with the @outfile@." )
+
+#:def_cmd_opt( "CREATE", "DEST2", \
 	"", \
 	"" )
 
