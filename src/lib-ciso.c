@@ -311,7 +311,7 @@ enumError SetupReadCISO ( SuperFile_t * sf )
     if ( ci->map )
 	return ERR_OK;
 
-    FreeSF(sf);
+    CleanSF(sf);
 
     CISO_Head_t ch;
     enumError err = ReadAtF(&sf->f,0,&ch,sizeof(ch));

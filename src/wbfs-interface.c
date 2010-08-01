@@ -1118,7 +1118,7 @@ enumError RecoverWBFS ( WBFS_t * wbfs, ccp fname, bool testmode )
 						+ slot * w->disc_info_sz );
 			ccp id6 = &inode->disc_id;
 			printf("   - slot #%03u [%.6s] %s\n",
-				slot, id6, GetTitle(id6,(ccp)inode->game_title) );
+				slot, id6, GetTitle(id6,(ccp)inode->disc_title) );
 		    }
 	    }
 
@@ -2946,7 +2946,7 @@ void CopyWDiscInfo ( WDiscListItem_t * item, WDiscInfo_t * dinfo )
 
     memcpy(item->id6,&dinfo->dhead.disc_id,6);
     item->size_mib = (u32)(( dinfo->size + MiB/2 ) / MiB );
-    memcpy(item->name64,dinfo->dhead.game_title,64);
+    memcpy(item->name64,dinfo->dhead.disc_title,64);
     item->title		= dinfo->title;
     item->n_part	= dinfo->n_part;
     item->wbfs_slot	= dinfo->disc_index;
@@ -2986,10 +2986,10 @@ enumError DumpWDiscInfo
 			: magic == WII_MAGIC_DELETED ? " (=DELETED)" : "" );
 
     fprintf(f,"%*swbfs name:  %6s, %.64s\n",
-		indent, "", &di->dhead.disc_id, di->dhead.game_title );
+		indent, "", &di->dhead.disc_id, di->dhead.disc_title );
     if (ih)
 	fprintf(f,"%*siso name:   %6s, %.64s\n",
-		indent, "", &ih->disc_id, ih->game_title );
+		indent, "", &ih->disc_id, ih->disc_title );
     if ( ih && strcmp(&di->dhead.disc_id,&ih->disc_id) )
     {
 	if (di->title)
@@ -3802,8 +3802,8 @@ enumError RenameWDisc
 
 	char w_name[0x40], i_id6[7], i_name[0x40];
 	StringCopyS(i_id6,sizeof(i_id6),&ihead.disc_id);
-	StringCopyS(w_name,sizeof(w_name),whead->game_title);
-	StringCopyS(i_name,sizeof(i_name),ihead.game_title);
+	StringCopyS(w_name,sizeof(w_name),whead->disc_title);
+	StringCopyS(i_name,sizeof(i_name),ihead.disc_title);
 
 	ccp w_title = GetTitle(w_id6,w_name);
 	ccp i_title = GetTitle(i_id6,i_name);

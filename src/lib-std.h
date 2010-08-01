@@ -514,7 +514,13 @@ ccp GetFileModeText ( enumFileMode mode, bool longtext, ccp fail_text );
     char * AllocNormalizedFilenameCygwin ( ccp source );
 #endif
 
-off_t GetFileSize ( ccp path1, ccp path2 );
+s64 GetFileSize
+(
+    ccp		path1,		// NULL or part 1 of path
+    ccp		path2,		// NULL or part 2 of path
+    s64		not_found_value	// return value if no regular file found
+);
+
 enumError LoadFile ( ccp path1, ccp path2, size_t skip,
 		     void * data, size_t size, bool silent );
 enumError SaveFile ( ccp path1, ccp path2, bool create_dir,

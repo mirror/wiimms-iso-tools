@@ -173,30 +173,6 @@ enumError cmd_test()
     
  #elif 1
 
-    off_t off = 0x3fff0;
-    char buf[0x100];
-
-    SuperFile_t sf;
-    InitializeSF(&sf);
-
-    ParamList_t * param;
-    for ( param = first_param; param; param = param->next )
-    {	
-	printf("\n*** %s\n",param->arg);
-	ResetSF(&sf,0);
-	enumError err = OpenSF(&sf,param->arg,true,true);
-	if (err)
-	    continue;
-
-	hook_enabled = true;
-
-	if (!ReadSF(&sf,off,buf,sizeof(buf)))
-	    HEXDUMP16(0,off,buf,sizeof(buf));
-    }
-    return ERR_OK;
-
- #elif 1
-
     {
 	ccp msg = "Dieses ist ein langer Satz, "
 		  "der noch ein wenig länger ist "
@@ -369,7 +345,7 @@ enumError cmd_create()
 
       case SC_TMD:
 	{
-	    char tmd_buf[sizeof(wd_tmd_t)+sizeof(wd_tmd_content_t)];
+	    char tmd_buf[WII_TMD_GOOD_SIZE];
 	    wd_tmd_t * tmd = (wd_tmd_t*)tmd_buf;
 	    tmd_setup(tmd,sizeof(tmd_buf),modify_id);
 
@@ -1442,7 +1418,6 @@ enumError exec_copy ( SuperFile_t * fi, Iterator_t * it )
 	err = ERR_OK;
 	goto abort;
     }
-
     if (err)
 	goto abort;
 
@@ -1927,6 +1902,379 @@ enumError cmd_verify()
 
 //
 ///////////////////////////////////////////////////////////////////////////////
+
+typedef struct Mix_t
+{
+    //--- chain
+
+    struct Mix_t * next;	// pointer to next source
+
+    //--- input data
+
+    ccp		source;		// pointer to source file ( := param->arg )
+    u32		ptab;		// destination partition tables
+    u32		ptype;		// destination partition type
+
+    //--- secondary data
+    
+    SuperFile_t	* sf;		// superfile of iso image
+    bool	close_sf;	// true: close supefile if done
+    wd_disc_t	* disc;		// valid disc pointer
+    wd_part_t	* part;		// valid partition pointer
+
+    u32		src_sector;	// index of first source sector
+    u32		first_sector;	// index of first destination sector
+    u32		end_sector;	// index of last destination sector + 1
+
+} Mix_t;
+
+///////////////////////////////////////////////////////////////////////////////
+
+enumError cmd_mix()
+{
+    opt_hook = -1; // disable hooked discs (no patching/relocation)
+ 
+    if ( verbose >= 0 )
+	print_title(stdout);
+
+
+    //----- check dest option
+
+    if ( !opt_dest || !*opt_dest )
+    {
+	if (!testmode)
+	    return ERROR0(ERR_SEMANTIC,"Non empty option --dest/--DEST required.\n");
+	opt_dest = "./";
+    }
+
+
+    //----- scan paramaters
+
+    int n_part = 0;
+    Mix_t *first_mix = 0, **last_mix = &first_mix;
+    u32 sector = WII_GOOD_UPDATE_PART_OFF / WII_SECTOR_SIZE;
+    u32 ptab_count[WII_MAX_PTAB];
+
+    bool src_warn = true;
+    ParamList_t * param = first_param;
+    while (param)
+    {
+	//--- scan source file
+
+	ccp srcfile = param->arg;
+	if ( src_warn && !strchr(srcfile,'/') && !strchr(srcfile,'.') )
+	{
+	    src_warn = false;
+	    ERROR0(ERR_WARNING,
+		"Warning: use at least one '.' or '/' in a filename"
+		" to distinguish file names from keywords: %s", srcfile );
+	}
+	param = param->next;
+
+
+	//--- scan 'SELECT'
+
+	wd_select_t psel = WD_SEL_PART_DATA|WD_SEL_PART_ACTIVE;
+	if ( param && param->next && !strcasecmp(param->arg,"select") )
+	{
+	    param = param->next;
+	    psel = ScanPartSelector(param->arg," ('select')");
+	    if ( psel == -(wd_select_t)1 )
+		return ERR_SYNTAX;
+	    param = param->next;
+	}
+
+
+	//--- scan 'AS'
+
+	bool ptype_valid = false;
+	u32 ptab = 0, ptype = 0;
+	if ( param && param->next && !strcasecmp(param->arg,"as") )
+	{
+	    param = param->next;
+	    const enumError err
+		= ScanPartTabAndType(&ptab,&ptype,&ptype_valid,
+					param->arg," ('as')");
+	    if (err)
+		return err;
+	    param = param->next;
+	}
+	PRINT("psel=%llx, as=%d,%u,%x, src=%s\n",psel,ptype_valid,ptab,ptype,srcfile);
+
+
+	//--- open disc and aprtitons
+
+	SuperFile_t * sf = AllocSF();
+	ASSERT(sf);
+	enumError err = OpenSF(sf,srcfile,false,false);
+	if (err)
+	    return err;
+
+	wd_disc_t * disc = OpenDiscSF(sf,false,true);
+	if (!disc)
+	    return ERR_WDISC_NOT_FOUND;
+
+	wd_select(disc,psel);
+	wd_part_t *part, *end_part = disc->part + disc->n_part;
+	Mix_t * mix = 0;
+	for ( part = disc->part; part < end_part; part++ )
+	{
+	    if (!part->is_enabled)
+		continue;
+	    err = wd_load_part(part,false,false);
+	    if (err)
+		return err;
+
+	    n_part++;
+	    mix = malloc(sizeof(*mix));
+	    if (!mix)
+		OUT_OF_MEMORY;
+	    memset(mix,0,sizeof(*mix));
+	    *last_mix = mix;
+	    last_mix = &mix->next;
+
+	    mix->source		= srcfile;
+	    mix->ptab		= ptab;
+	    mix->ptype		= ptype_valid ? ptype : part->part_type;
+	    mix->sf		= sf;
+	    mix->disc		= disc;
+	    mix->part		= part;
+	    mix->first_sector	= sector;
+	    mix->src_sector	= part->part_off4 / WII_SECTOR_SIZE4;
+	    sector		+= part->end_sector - mix->src_sector;
+	    mix->end_sector	= sector;
+	    if ( sector & 1 )
+		sector++; // align to 64KiB
+
+	    ptab_count[ptab]++;
+	}
+
+	if (!mix)
+	    return ERROR0(ERR_SEMANTIC,"No partition selected: %s\n",srcfile);
+	mix->close_sf = true;
+    }
+
+    if (!first_mix)
+	return ERROR0(ERR_SEMANTIC,"No source partition selected.\n");
+
+    if ( n_part > WII_MAX_PARTITIONS )
+	return ERROR0(ERR_SEMANTIC,
+		"maximum supported partition count (%u) exceeded.\n",
+		WII_MAX_PARTITIONS );
+
+    if ( sector > WII_MAX_SECTORS )
+	return ERROR0(ERR_SEMANTIC,
+		"Total size (%llx) exceeds maximum size (%llx).\n",
+		sector * (u64) WII_SECTOR_SIZE,
+		WII_MAX_SECTORS * (u64) WII_SECTOR_SIZE );
+
+
+    //----- print log table
+
+    Mix_t * mix;
+
+    if ( testmode || verbose > 1 )
+    {
+	int src_fw = 7;
+	for ( mix = first_mix; mix; mix = mix->next )
+	{
+	    const int len = strlen(mix->source);
+	    if ( src_fw < len )
+		 src_fw = len;
+	}
+
+	printf("\nMix table (%d partitons, total size=%llu MiB):\n\n"
+		"      blocks     :       disc offset      : ptab  ptype : source\n"
+		"  %.*s\n",
+		n_part, sector* (u64)WII_SECTOR_SIZE / MiB,
+		56 + src_fw, wd_sep_200 );
+
+	for ( mix = first_mix; mix; mix = mix->next )
+	{
+	    printf("%7x .. %5x : %9llx .. %9llx : %u %s : %s\n",
+		mix->first_sector, mix->end_sector,
+		mix->first_sector * (u64)WII_SECTOR_SIZE,
+		mix->end_sector * (u64)WII_SECTOR_SIZE,
+		mix->ptab,
+		wd_print_part_name(0,0,mix->ptype,WD_PNAME_COLUMN_9),
+		mix->source );
+	}
+	putchar('\n');
+    }
+
+
+    //----- setup dhead
+
+    char * dest = iobuf + sprintf(iobuf,"WIT mix of");
+    ccp sep = " ";
+
+    for ( mix = first_mix; mix; mix = mix->next )
+    {
+	dest += sprintf(dest,"%s%.6s",sep,&mix->part->boot.dhead.disc_id);
+	sep = " + ";
+    }
+    
+    wd_header_t dhead;
+    header_setup(&dhead,modify_id,iobuf);
+
+
+    //----- setup output file
+    
+    ccp destfile = IsDirectory(opt_dest,true) ? "a.wdf" : "";
+    const enumOFT oft = CalcOFT(output_file_type,opt_dest,destfile,OFT__DEFAULT);
+    SuperFile_t fo;
+    InitializeSF(&fo);
+    fo.f.create_directory = opt_mkdir;
+    GenImageFileName(&fo.f,opt_dest,destfile,oft);
+    SetupIOD(&fo,oft,oft);
+    
+    if ( testmode || verbose >= 0 )
+	printf("\n%sreate [%.6s] %s:%s\n  (%s)\n\n",
+		testmode ? "WOULD c" : "C",
+		&dhead.disc_id, oft_name[oft],
+		fo.f.fname, dhead.disc_title );
+
+
+    //----- execute
+
+    enumError err = ERR_OK;
+
+    if (!testmode)
+    {
+	//--- open file
+	
+	err = CreateFile( &fo.f, 0, IOM_IS_IMAGE,
+				used_options & OB_OVERWRITE ? 1 : 0 );
+	if (err)
+	    goto abort;
+
+	if (opt_split)
+	    SetupSplitFile(&fo.f,oft,opt_split_size);
+
+	err = SetupWriteSF(&fo,oft);
+	if (err)
+	    goto abort;
+
+	err = SetMinSizeSF(&fo, WII_SECTORS_SINGLE_LAYER * (u64)WII_SECTOR_SIZE );
+	if (err)
+	    goto abort;
+
+	//--- write disc header
+	
+	err = WriteSF(&fo,0,&dhead,sizeof(dhead));
+	if (err)
+	    goto abort;
+
+
+	//--- write partition tables
+
+	wd_ptab_t ptab;
+	memset(&ptab,0,sizeof(ptab));
+	{
+	    wd_ptab_info_t  * info  = ptab.info;
+	    wd_ptab_entry_t * entry = ptab.entry;
+	    u32 off4 = (ccp)entry - (ccp)info + WII_PTAB_REF_OFF >> 2;
+
+	    int it;
+	    for ( it = 0; it < WII_MAX_PTAB; it++, info++ )
+	    {
+		int n_part = 0;
+		for ( mix = first_mix; mix; mix = mix->next )
+		{
+		    if ( mix->ptab != it )
+			continue;
+
+		    n_part++;
+		    entry->off4  = htonl(mix->first_sector*WII_SECTOR_SIZE4);
+		    entry->ptype = htonl(mix->ptype);
+		    entry++;
+		}
+
+		if (n_part)
+		{
+		    info->n_part = htonl(n_part);
+		    info->off4   = htonl(off4);
+		    off4 += n_part * sizeof(*entry) >> 2;
+		}
+	    }
+	}
+
+	err = WriteSF(&fo,WII_PTAB_REF_OFF,&ptab,sizeof(ptab));
+	if (err)
+	    goto abort;
+	
+
+	//--- write region settings
+
+	wd_region_t reg;
+	memset(&reg,0,sizeof(reg));
+	reg.region = htonl( opt_region < REGION__AUTO
+				? opt_region
+				: GetRegionInfo(dhead.region_code)->reg );
+
+	err = WriteSF(&fo,WII_REGION_OFF,&reg,sizeof(reg));
+	if (err)
+	    goto abort;
+
+
+	//--- write magic2
+
+	u32 magic2 = htonl(WII_MAGIC2);
+	err = WriteSF(&fo,WII_MAGIC2_OFF,&magic2,sizeof(magic2));
+	if (err)
+	    goto abort;
+	
+
+	//--- copy partitions
+
+	for ( mix = first_mix; mix; mix = mix->next )
+	{
+	    wd_part_t * part = mix->part;
+	    ASSERT(part);
+	    int src_sector = mix->src_sector;
+	    int dest_sector = mix->first_sector;
+	    wd_usage_t usage_id = part->usage_id;
+	    u8 * utab = wd_calc_usage_table(mix->disc);
+
+	    for ( ; dest_sector < mix->end_sector; src_sector++, dest_sector++ )
+	    {
+		if ( ( utab[src_sector] & WD_USAGE__MASK ) == usage_id )
+		{
+		    err = ReadSF(mix->sf, src_sector*(u64)WII_SECTOR_SIZE,
+					iobuf, WII_SECTOR_SIZE );
+		    if (err)
+			goto abort;
+
+		    err = WriteSF(&fo, dest_sector*(u64)WII_SECTOR_SIZE,
+					iobuf, WII_SECTOR_SIZE );
+		    if (err)
+			goto abort;
+		}
+	    }
+	}
+    }
+
+ abort:
+    if (err)
+	RemoveSF(&fo);
+
+    //--- clean up
+
+    while ( first_mix )
+    {
+	mix = first_mix;
+	first_mix = mix->next;
+
+	if (mix->close_sf)
+	    FreeSF(mix->sf);
+	free(mix);
+    }
+
+    return ResetSF(&fo,0);
+}
+
+//
+///////////////////////////////////////////////////////////////////////////////
 ///////////////                   check options                 ///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -1980,7 +2328,7 @@ enumError CheckOptions ( int argc, char ** argv, bool is_env )
 	case GO_PSEL:		err += ScanOptPartSelector(optarg); break;
 	case GO_RAW:		part_selector = WD_SEL_WHOLE_DISC; break;
 	case GO_SNEEK:		SetupSneekMode(); break;
-	case GO_HOOK:		opt_hook = true; break;
+	case GO_HOOK:		opt_hook = 1; break;
 	case GO_ENC:		err += ScanOptEncoding(optarg); break;
 	case GO_REGION:		err += ScanOptRegion(optarg); break;
 	case GO_IOS:		err += ScanOptIOS(optarg); break;
@@ -2155,6 +2503,7 @@ enumError CheckCommand ( int argc, char ** argv )
 	case CMD_SETTITLE:	err = cmd_rename(false); break;
 
 	case CMD_VERIFY:	err = cmd_verify(); break;
+	case CMD_MIX:		err = cmd_mix(); break;
 
 	// no default case defined
 	//	=> compiler checks the existence of all enum values

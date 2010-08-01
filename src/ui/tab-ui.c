@@ -307,6 +307,11 @@ info_t info_tab[] =
 		"Verify ISO images (calculate and compare SHA1 check sums)"
 		" to find bad dumps." },
 
+  { T_DEF_CMD,	"MIX",		"MIX",
+		"wit MIX SOURCE... --dest|--DEST outfile\n"
+		"  where SOURCE := infile ['select' ptype] ['as' [ptab '.'] [ptype]]",
+		"Mix the partitions from different sources into one new Wii disc." },
+
   //
   //---------- list of all wit options ----------
 
@@ -887,17 +892,18 @@ info_t info_tab[] =
 
   { T_CMD_BEG,	"CREATE",	0,0,0 },
 
-  { T_COPT,	"ID",		0,0,
-	"Define an ID for the TICKET or TMD." },
-  { T_COPT,	"IOS",		0,0,
-	"Define an IOS/SYS-VERSION for the TMD." },
-
-  { T_SEP_OPT,	0,0,0,0 },
-
+  { T_COPT_M,	"TEST",		0,0,0 },
   { T_COPT,	"DEST",		0,0,
 	"Define a destination path (directory/file)."
 	" This path is concatenated with the @outfile@." },
   { T_COPT,	"DEST2",	0,0,0 },
+
+  { T_SEP_OPT,	0,0,0,0 },
+
+  { T_COPT,	"ID",		0,0,
+	"Define an ID for the TICKET or TMD." },
+  { T_COPT,	"IOS",		0,0,
+	"Define an IOS/SYS-VERSION for the TMD." },
 
   //---------- COMMAND wit DUMP ----------
 
@@ -1220,6 +1226,30 @@ info_t info_tab[] =
 	"On error print an additional line to localize the exact"
 	" position where the error is found."
 	" If set twice a hexdump of the hash values is printed too." },
+
+  //---------- COMMAND wit MIX ----------
+
+  { T_CMD_BEG,	"MIX",	0,0,0 },
+
+  { T_COPT_M,	"TEST",		0,0,0 },
+
+  { T_SEP_OPT,	0,0,0,0 },
+
+  { T_COPT,	"DEST",		0,0,0 },
+  { T_COPT,	"DEST2",	0,0,0 },
+  { T_COPT,	"ESC",		0,0,0 },
+  { T_COPT,	"OVERWRITE",	0,0,0 },
+  { T_COPY_GRP,	"SPLIT_CHUNK",	0,0,0 },
+
+  { T_SEP_OPT,	0,0,0,0 },
+
+  { T_COPT,	"ID",		0,0,
+	"Define an ID for the disc header."
+	" The default is 'WIT000'." },
+  { T_COPT,	"NAME",		0,0,
+	"Define a disc title for the disc header."
+	" The default is a generic title based on all sources." },
+  { T_COPT,	"REGION",	0,0,0 },
 
   //
   ///////////////////////////////////////////////////////////////////////////

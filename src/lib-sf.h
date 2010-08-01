@@ -126,7 +126,6 @@ typedef struct SuperFile_t
 					// reading data. This data should
 					// be rewritten to the destination
 					// before closing the files.
-	bool merge_mode;		// enable merge mode [2do] [obsolete?]
 
 } SuperFile_t;
 
@@ -139,7 +138,7 @@ typedef struct SuperFile_t
 void InitializeSF ( SuperFile_t * sf );
 
 // remove all dynamic data
-void FreeSF ( SuperFile_t * sf );
+void CleanSF ( SuperFile_t * sf );
 
 // close file + remove all dynamic data
 enumError CloseSF ( SuperFile_t * sf, FileAttrib_t * set_time_ref );
@@ -152,6 +151,10 @@ enumError RemoveSF ( SuperFile_t * sf );
 
 // status
 bool IsOpenSF ( const SuperFile_t * sf );
+
+// dynamic SF
+SuperFile_t * AllocSF();
+SuperFile_t * FreeSF ( SuperFile_t * sf ); // returns always NULL
 
 // setup oft and modifier
 enumOFT SetupIOD ( SuperFile_t * sf, enumOFT force, enumOFT def );

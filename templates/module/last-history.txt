@@ -11,11 +11,20 @@ wit v1.11a r1434 - 2010-07-26
 
 wit v@@VERSION@@ r@@REV-NEXT@@ - @@@@-@@-@@
 
+ - Bug fix for option --sneek: Option --psel was not set in a correct way.
  - New command: wit CREATE TICKET/TMD: Create a ticket or tmd file from
    scratch. Options and parameters control the creation.
+ - Composing: If files ticket.bin or tmd.bin missed or have a wrong size
+   TICKET and/or TMD will be created automatically.
 
-~Known bugs:
-~
+Known bugs:
+ - There a new problems while reading from non ssekable sources (e.g. pipes).
+   The reason is the complete new and more intelligent wiidisc lib. I have
+   to insert some code especially for pipes. My plans that copying multiple
+   partition discs works too.
+
+The best is to use a version <1.10 for pipes.
+
 Missing docu:
 
  - wit commands ILIST + EXTRACT + EDIT

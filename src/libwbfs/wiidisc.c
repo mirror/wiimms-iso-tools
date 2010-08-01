@@ -3487,7 +3487,7 @@ bool wd_patch_disc_header // result = true if something changed
 	strncpy(name,new_name,sizeof(name));
 	name[sizeof(name)-1] = 0;
 
-	if (memcmp(name,disc->dhead.game_title,sizeof(name)))
+	if (memcmp(name,disc->dhead.disc_title,sizeof(name)))
 	{
 	    stat = true;
 	    wd_patch_item_t * item
@@ -3601,7 +3601,7 @@ bool wd_patch_part_name // result = true if something changed
 	strncpy(name,new_name,sizeof(name));
 	name[sizeof(name)-1] = 0;
 
-	if (memcmp(name,part->boot.dhead.game_title,sizeof(name)))
+	if (memcmp(name,part->boot.dhead.disc_title,sizeof(name)))
 	{
 	    wd_patch_item_t * item
 		= wd_insert_patch_alloc( &part->patch, WD_PAT_DATA,
@@ -3983,7 +3983,7 @@ void wd_dump_disc
 		m2[0], m2[1], m2[2], m2[3] );
 
     fprintf(f,"%*sID and title:       %.6s, %.64s\n", indent,"",
-		&disc->dhead.disc_id,  disc->dhead.game_title );
+		&disc->dhead.disc_id,  disc->dhead.disc_title );
 
     u8 * p8 = disc->region.region_info;
     fprintf(f,"%*sRegion setting:     %d / %02x %02x %02x %02x  %02x %02x %02x %02x\n",

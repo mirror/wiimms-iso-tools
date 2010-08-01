@@ -2543,14 +2543,19 @@ enumError CreatePath ( ccp fname )
 
 ///////////////////////////////////////////////////////////////////////////////
 
-off_t GetFileSize ( ccp path1, ccp path2 )
+s64 GetFileSize
+(
+    ccp		path1,		// NULL or part 1 of path
+    ccp		path2,		// NULL or part 2 of path
+    s64		not_found_value	// return value if no regular file found
+)
 {
     char pathbuf[PATH_MAX];
     ccp path = PathCatPP(pathbuf,sizeof(pathbuf),path1,path2);
-    TRACE("GetFileSize(%s)\n",path);
+    TRACE("GetFileSize(%s,%lld)\n",path,not_found_value);
 
     struct stat st;
-    return !stat(path,&st) && S_ISREG(st.st_mode) ? st.st_size : 0;
+    return !stat(path,&st) && S_ISREG(st.st_mode) ? st.st_size : not_found_value;
 }
 
 ///////////////////////////////////////////////////////////////////////////////

@@ -55,7 +55,7 @@ void InitializeSF ( SuperFile_t * sf )
 ///////////////////////////////////////////////////////////////////////////////
 // close file & remove all dynamic data
 
-void FreeSF ( SuperFile_t * sf )
+void CleanSF ( SuperFile_t * sf )
 {
     ASSERT(sf);
 
@@ -136,7 +136,7 @@ enumError CloseSF ( SuperFile_t * sf, FileAttrib_t * set_time_ref )
 	    SetFileTime(&sf->f,set_time_ref);
     }
 
-    FreeSF(sf);
+    CleanSF(sf);
     return err;
 }
 
@@ -203,6 +203,29 @@ enumError RemoveSF ( SuperFile_t * sf )
 bool IsOpenSF ( const SuperFile_t * sf )
 {
     return sf && ( sf->fst || IsOpenF(&sf->f) );
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+SuperFile_t * AllocSF()
+{
+    SuperFile_t * sf = malloc(sizeof(*sf));
+    if (!sf)
+	OUT_OF_MEMORY;
+    InitializeSF(sf);
+    return sf;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+SuperFile_t * FreeSF ( SuperFile_t * sf )
+{
+    if (sf)
+    {
+	CloseSF(sf,0);
+	free(sf);
+    }
+    return 0;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -370,7 +393,7 @@ enumError SetupReadWBFS ( SuperFile_t * sf )
 
     wd_header_t * dh = (wd_header_t*)wbfs->disc->header;
     snprintf(iobuf,sizeof(iobuf),"%s [%s]",
-		GetTitle(sf->f.id6,(ccp)dh->game_title), sf->f.id6 );
+		GetTitle(sf->f.id6,(ccp)dh->disc_title), sf->f.id6 );
     FreeString(sf->f.outname);
     sf->f.outname = strdup(iobuf);
     SetupIOD(sf,OFT_WBFS,OFT_WBFS);
@@ -542,6 +565,9 @@ wd_disc_t * OpenDiscSF
     if (load_part_data)
 	wd_load_all_part(disc,false,false);
 
+    if ( opt_hook < 0 )
+	return sf->disc2 = wd_dup_disc(disc);
+
 
     //----- select partitions
 
@@ -569,7 +595,9 @@ wd_disc_t * OpenDiscSF
 
     //----- check for patching
 
-    int reloc = opt_hook || sf->disc1->patch_ptab_recommended; // activate reloc?
+    // activate reloc?
+    int reloc = opt_hook > 0 || sf->disc1->patch_ptab_recommended; 
+
     const wd_modify_t modify = opt_modify & WD_MODIFY__AUTO
 				? WD_MODIFY__ALL : opt_modify;
     enumEncoding enc = SetEncoding(encoding,0,0);
@@ -684,13 +712,13 @@ int SubstFileNameBuf
     if (fi->f.id6[0])
     {
 	if (fi->disc2)
-	    disc_name = (ccp)fi->disc2->dhead.game_title;
+	    disc_name = (ccp)fi->disc2->dhead.disc_title;
 	else
 	{
 	    const bool disable_errors = fi->f.disable_errors;
 	    fi->f.disable_errors = true;
 	    if (!ReadSF(fi,0,&buf,sizeof(buf)))
-		disc_name = (ccp)((wd_header_t*)buf)->game_title;
+		disc_name = (ccp)((wd_header_t*)buf)->disc_title;
 	    fi->f.disable_errors = disable_errors;
 	}
     }

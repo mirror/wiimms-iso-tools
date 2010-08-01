@@ -209,7 +209,7 @@ enumError Dump_ISO
     {
 	dump_header(f,indent-2,sf,&disc->dhead.disc_id,real_path);
 
-	fprintf(f,"%*sDisc name:       %.64s\n",indent,"",disc->dhead.game_title);
+	fprintf(f,"%*sDisc name:       %.64s\n",indent,"",disc->dhead.disc_title);
 
 	ccp title = GetTitle((ccp)&disc->dhead,0);
 	if (title)
@@ -360,7 +360,7 @@ enumError Dump_ISO
 	    fprintf(f,"%*s  boot.bin, id: %s\n",
 			indent, "", wd_print_id(&part->boot,6,0));
 	    fprintf(f,"%*s  boot.bin, title: %.64s\n",
-			indent, "", part->boot.dhead.game_title);
+			indent, "", part->boot.dhead.disc_title);
 	}
 
 	if ( show_mode & SHOW_P_MAP )
@@ -755,7 +755,7 @@ enumError Dump_HEAD_BIN
 	memcpy(&wdi.dhead,&head,sizeof(wdi.dhead));
 	CalcWDiscInfo(&wdi,0);
 
-	fprintf(f,"%*sDisc name:       %s\n",indent,"",wdi.dhead.game_title);
+	fprintf(f,"%*sDisc name:       %s\n",indent,"",wdi.dhead.disc_title);
 	if (wdi.title)
 	    fprintf(f,"%*sDB title:        %s\n",indent,"",wdi.title);
 
@@ -794,7 +794,7 @@ enumError Dump_BOOT_BIN
 	memcpy(&wdi.dhead,&wb.dhead,sizeof(wdi.dhead));
 	CalcWDiscInfo(&wdi,0);
 
-	fprintf(f,"%*sDisc name:       %s\n",indent,"",wdi.dhead.game_title);
+	fprintf(f,"%*sDisc name:       %s\n",indent,"",wdi.dhead.disc_title);
 	if (wdi.title)
 	    fprintf(f,"%*sDB title:        %s\n",indent,"",wdi.title);
 
@@ -957,7 +957,7 @@ int RenameISOHeader ( void * data, ccp fname,
     if (set_title)
     {
 	char old_name[0x40];
-	StringCopyS(old_name,sizeof(old_name),(ccp)whead->game_title);
+	StringCopyS(old_name,sizeof(old_name),(ccp)whead->disc_title);
 
 	ccp old_title = GetTitle(old_id6,old_name);
 	ccp new_title = GetTitle(new_id6,old_name);
@@ -1037,7 +1037,7 @@ static s64 PartSelectorFunc
 
 //-----------------------------------------------------------------------------
 
-wd_select_t ScanPartSelector ( ccp arg )
+wd_select_t ScanPartSelector ( ccp arg, ccp err_text_extend )
 {
     static const CommandTab_t tab[] =
     {
@@ -1065,7 +1065,8 @@ wd_select_t ScanPartSelector ( ccp arg )
     wd_select_t psel
 	= ScanCommandList(arg,tab,PartSelectorFunc,true,WD_SELI_PART_MAX+1,0);
     if ( psel == -(wd_select_t)1 )
-	ERROR0(ERR_SYNTAX,"Illegal partition selector (option --psel): '%s'\n",arg);
+	ERROR0(ERR_SYNTAX,"Illegal partition selector%s: %.20s\n",
+			err_text_extend, arg );
     return psel;
 }
 
@@ -1073,11 +1074,92 @@ wd_select_t ScanPartSelector ( ccp arg )
 
 int ScanOptPartSelector ( ccp arg )
 {
-    const wd_select_t new_psel = ScanPartSelector(optarg);
+    const wd_select_t new_psel = ScanPartSelector(optarg," (option --psel)");
     if ( new_psel == -(wd_select_t)1 )
 	return 1;
     part_selector = new_psel;
     return 0;
+}
+
+//-----------------------------------------------------------------------------
+
+u32 ScanPartType ( ccp arg, ccp err_text_extend )
+{
+    static const CommandTab_t tab[] =
+    {
+	{ WD_PART_DATA,		"DATA",		"D",		0 },
+	 { WD_PART_DATA,	"GAME",		"G",		0 },
+	{ WD_PART_UPDATE,	"UPDATE",	"U",		0 },
+	{ WD_PART_CHANNEL,	"CHANNEL",	"C",		0 },
+
+	{ 0,0,0,0 }
+    };
+
+    const CommandTab_t * cmd = ScanCommand(0,arg,tab);
+    if (cmd)
+	return cmd->id;
+
+    char * end;
+    u32 val = strtoul(arg,&end,10);
+    if ( end > arg && !*end )
+	return val;
+
+    if ( strlen(arg) == 4
+	&& isalnum((int)arg[0])
+	&& isalnum((int)arg[1])
+	&& isalnum((int)arg[2])
+	&& isalnum((int)arg[3]) )
+    {
+	return be32(arg);
+    }
+
+    ERROR0(ERR_SYNTAX,"Illegal partition type%s: %.20s\n",
+			err_text_extend, arg );
+    return -(u32)1;
+}
+
+//-----------------------------------------------------------------------------
+
+enumError ScanPartTabAndType
+(
+    u32		* res_ptab,	// NULL or result: partition table
+    u32		* res_ptype,	// NULL or result: partition type
+    bool	* res_pt_valid,	// NULL or result: partition type is valid
+    ccp		arg,		// argument to analyze
+    ccp		err_text_extend	// text to extent error messages
+)
+{
+    DASSERT(arg);
+
+    u32 ptab = 0;
+    ccp sep = strchr(arg,'.');
+    if (sep)
+    {
+	char * end;
+	ptab = strtoul(arg,&end,10);
+	if ( end != sep || ptab >= WII_MAX_PTAB )
+	    return ERROR0(ERR_SYNTAX,
+			"Not a valid partition table%s: %.20s\n",
+			err_text_extend, arg );
+	arg = sep + 1;
+    }
+
+    u32 ptype = 0;
+    bool ptype_valid = !sep || *arg;
+    if (ptype_valid)
+    {
+	ptype = ScanPartType(arg,err_text_extend);
+	if ( ptype == -(u32)1 )
+	    return ERR_SYNTAX;
+    }
+
+    if (res_ptab)
+	*res_ptab = ptab;
+    if (res_ptype)
+	*res_ptype = ptype;
+    if (res_pt_valid)
+	*res_pt_valid = ptype_valid;
+    return ERR_OK;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -1275,8 +1357,6 @@ ccp SpecialFilesFST[] =
 	"/sys/bi2.bin",
 	"/sys/apploader.img",
 	"/sys/main.dol",
-	"/ticket.bin",
-	"/tmd.bin",
 	"/cert.bin",
 	0
 };
@@ -2632,7 +2712,7 @@ u64 GenPartFST
 	LoadFile(path,"disc/header.bin",0,
 			    &fst->dhead,sizeof(fst->dhead),true);
 	PatchId(&fst->dhead.disc_id,0,6,WD_MODIFY_DISC|WD_MODIFY__AUTO);
-	PatchName(fst->dhead.game_title,WD_MODIFY_DISC|WD_MODIFY__AUTO);
+	PatchName(fst->dhead.disc_title,WD_MODIFY_DISC|WD_MODIFY__AUTO);
     }
 
     //----- disc/region.bin
@@ -2665,7 +2745,7 @@ u64 GenPartFST
     //----- apploader.img
 
     ccp fpath = PathCatPP(pathbuf,sizeof(pathbuf),path,"sys/apploader.img");
-    const u32 app_fsize4 = GetFileSize(fpath,0) + 3 >> 2;
+    const u32 app_fsize4 = GetFileSize(fpath,0,0) + 3 >> 2;
     imi = InsertIM(&part->im,IMT_FILE,WII_APL_OFF,(u64)app_fsize4<<2);
     imi->part = part;
     StringCopyS(imi->info,sizeof(imi->info),"apploader.img");
@@ -2684,7 +2764,7 @@ u64 GenPartFST
     boot->dol_off4 = htonl(cur_offset4);
     
     fpath = PathCatPP(pathbuf,sizeof(pathbuf),path,"sys/main.dol");
-    const u32 dol_fsize4 = GetFileSize(fpath,0) + 3 >> 2;
+    const u32 dol_fsize4 = GetFileSize(fpath,0,0) + 3 >> 2;
     imi = InsertIM(&part->im,IMT_FILE,(u64)cur_offset4<<2,(u64)dol_fsize4<<2);
     imi->part = part;
     StringCopyS(imi->info,sizeof(imi->info),"main.dol");
@@ -2712,26 +2792,45 @@ u64 GenPartFST
 
     const u32 blocks = ( cur_offset4 - 1 ) / WII_SECTOR_DATA_SIZE4 + 1;
 
-    const u32 ticket_size = GetFileSize(path,"ticket.bin");
-    if ( ticket_size < WII_TICKET_SIZE )
-	return ERROR0(ERR_INVALID_FILE,"Content of file 'ticket.bin' wrong!\n");
+    const s64 ticket_size = GetFileSize(path,"ticket.bin",-1);
+    bool load_ticket = ticket_size == WII_TICKET_SIZE;
+    if ( !load_ticket && ticket_size >= 0 )
+	ERROR0(ERR_WARNING,"Content of file 'ticket.bin' ignored!\n");
+
+    const s64 tmd_size = GetFileSize(path,"tmd.bin",-1);
+    bool load_tmd = tmd_size == WII_TMD_GOOD_SIZE;
+    if ( !load_tmd && tmd_size >= 0 )
+	ERROR0(ERR_WARNING,"Content of file 'tmd.bin' ignored!\n");
+
+    const s64 cert_size = GetFileSize(path,"cert.bin",0);
 
     wd_part_control_t *pc = malloc(sizeof(wd_part_control_t));
     if (!pc)
 	OUT_OF_MEMORY;
     part->pc = pc;
  
-    const u32 tmd_size    = GetFileSize(path,"tmd.bin");
-    const u32 cert_size   = GetFileSize(path,"cert.bin");
-    if (clear_part_control(pc,tmd_size,cert_size,(u64)blocks*WII_SECTOR_SIZE))
-	return ERROR0(ERR_INVALID_FILE,"Content of file 'tmd.bin' or 'cert.bin' wrong!\n");
+    if (clear_part_control(pc, WII_TMD_GOOD_SIZE, cert_size,
+					(u64)blocks*WII_SECTOR_SIZE) )
+	return ERROR0(ERR_INVALID_FILE,"Content of file 'cert.bin' wrong!\n");
 
 
     //----- setup partition control content
 
-    // load files
-    LoadFile(path,"ticket.bin",	0, &pc->head->ticket, sizeof(pc->head->ticket), false );
-    LoadFile(path,"tmd.bin",	0, pc->tmd, pc->tmd_size, false );
+    ccp use_id = modify_id ? modify_id : &fst->dhead.disc_id;
+    
+    if (load_ticket)
+	load_ticket = LoadFile(path,"ticket.bin", 0,
+			    &pc->head->ticket, WII_TICKET_SIZE, false )
+		    == ERR_OK;
+    if (!load_ticket)
+	ticket_setup(&pc->head->ticket,use_id);
+
+    if (load_tmd)
+	load_tmd = LoadFile( path, "tmd.bin", 0, pc->tmd, pc->tmd_size, false )
+		 == ERR_OK;
+    if (!load_tmd)
+	tmd_setup(pc->tmd,pc->tmd_size,use_id);
+
     LoadFile(path,"cert.bin",	0, pc->cert, pc->cert_size, false );
 
     if ( part->part_type == WD_PART_DATA )
@@ -2804,7 +2903,7 @@ enumError SetupReadFST ( SuperFile_t * sf )
 	OUT_OF_MEMORY;
     sf->fst = fst;
     InitializeFST(fst);
-    sf->merge_mode = false; // disable merge mode explicit
+
 
     //----- setup fst->encoding mode
 
@@ -3041,18 +3140,7 @@ enumError ReadFST ( SuperFile_t * sf, off_t off, void * buf, size_t count )
     const IsoMappingItem_t * imi = sf->fst->im.field;
     const IsoMappingItem_t * imi_end = imi + sf->fst->im.used;
     char * dest = buf;
-
-    if (sf->merge_mode)
-    {
-	ASSERT( sf->std_read_func );
-	ASSERT( sf->std_read_func != sf->iod.read_func );
-	ASSERT( sf->std_read_func != ReadFST );
-	const enumError err = sf->std_read_func(sf,off,buf,count);
-	if (!err)
-	    return err;
-    }
-    else
-	sf->f.bytes_read += count;
+    sf->f.bytes_read += count;
 
     while ( count > 0 )
     {
@@ -3066,12 +3154,8 @@ enumError ReadFST ( SuperFile_t * sf, off_t off, void * buf, size_t count )
 
 	if ( imi == imi_end || off + count <= imi->offset )
 	{
-	    if (!sf->merge_mode)
-	    {
-		TRACE(">FILL %zx=%zu\n",count,count);
-		memset(dest,0,count);
-	    }
-	    TRACE("READ done! [%u]\n",__LINE__);
+	    TRACE(">FILL %zx=%zu\n",count,count);
+	    memset(dest,0,count);
 	    return ERR_OK;
 	}
 
@@ -3082,11 +3166,9 @@ enumError ReadFST ( SuperFile_t * sf, off_t off, void * buf, size_t count )
 	    size_t fill_count = count;
 	    if ( fill_count > imi->offset - off )
 		 fill_count = imi->offset - off;
-	    if (!sf->merge_mode)
-	    {
-		TRACE(">FILL %zx=%zu\n",fill_count,fill_count);
-		memset(dest,0,fill_count);
-	    }
+	    TRACE(">FILL %zx=%zu\n",fill_count,fill_count);
+	    memset(dest,0,fill_count);
+
 	    off   += fill_count;
 	    dest  += fill_count;
 	    count -= fill_count;
@@ -3228,20 +3310,6 @@ enumError ReadPartGroupFST ( SuperFile_t * sf, WiiFstPart_t * part,
     ASSERT(part);
     ASSERT(buf);
 
-    if ( sf->merge_mode && n_groups > 1 )
-    {
-	// split into single group action and exit
-	while ( n_groups-- > 0 )
-	{
-	    const enumError err = ReadPartGroupFST(sf,part,group_no,buf,1);
-	    if (err)
-		return err;
-	    group_no++;
-	    buf = (char*)buf + WII_GROUP_SIZE;
-	}
-	return ERR_OK;
-    }
-
     if (!n_groups)
 	return ERR_OK;
 
@@ -3257,21 +3325,7 @@ enumError ReadPartGroupFST ( SuperFile_t * sf, WiiFstPart_t * part,
     TRACE("delta=%x, dsize=%x, off=%llx..%llx\n",delta,dsize,off,max);
 
     char * dest = (char*)buf + delta, *src = dest;
-    if (sf->merge_mode)
-    {
-	// [2do] [merge]
-	if ( n_groups > 1 )
-	{
-	    // split into single group action and exit
-	}
-	// load data
-	// alloc hash_mem if not already done
-	// split data: copy hash to hash_mem, move data
-	// alloc dirty_tab if not already done
-	// clear (1 if decyrpted and modified)
-    }
-    else
-	memset(dest,0,dsize);
+    memset(dest,0,dsize);
     TRACE("CACHE=%p, buf=%p, dest=%p\n",sf->fst->cache,buf,dest);
     
     const IsoMappingItem_t * imi = part->im.field;
@@ -3319,8 +3373,6 @@ enumError ReadPartGroupFST ( SuperFile_t * sf, WiiFstPart_t * part,
 	    case IMT_ID:
 		noTRACE("IMT_ID: %x %x -> %zx (%s)\n",
 			skip_count, max_copy, dest-src, imi->info );
-// [merge]	if (sf->merge_mode)
-// [merge]	    MergeSetup(sf,part,dest,max_copy);
 		PatchId(dest,skip_count,max_copy,WD_MODIFY__ALWAYS);
 		break;
 
@@ -3328,8 +3380,6 @@ enumError ReadPartGroupFST ( SuperFile_t * sf, WiiFstPart_t * part,
 		noTRACE("IMT_DATA: %x %x -> %zx (%s)\n",
 			skip_count, max_copy, dest-src, imi->info );
 		ASSERT(imi->data);
-// [merge]	if (sf->merge_mode)
-// [merge]	    MergeSetup(sf,part,dest,max_copy);
 		memcpy(dest,imi->data+skip_count,max_copy);
 		//HEXDUMP16(3,0,dest,max_copy<0x40?max_copy:0x40);
 		break;
@@ -3338,13 +3388,10 @@ enumError ReadPartGroupFST ( SuperFile_t * sf, WiiFstPart_t * part,
 		noTRACE("IMT_FILE: %x %x -> %zx (%s)\n",
 			skip_count, max_copy, dest-src, imi->info );
 		ASSERT(imi->data);
-// [merge]	if (sf->merge_mode)
-// [merge]	    MergeSetup(sf,part,dest,max_copy);
 		LoadFile(imi->data,0,skip_count,dest,max_copy,false);
 		break;
 
 	    case IMT_PART_FILES:
-		ASSERT(!sf->merge_mode);
 		noTRACE("IMT_PART_FILES: %x %x -> %zx (%s)\n",
 			skip_count, max_copy, dest-src, imi->info );
 		if (part->file_used)
@@ -3393,13 +3440,7 @@ enumError ReadPartGroupFST ( SuperFile_t * sf, WiiFstPart_t * part,
     dest = buf;
     for ( dest = buf; dest < src; )
     {
-	if (sf->merge_mode)
-	{
-	    // [2do] [merge]
-	    // copy data from hash_mem
-	}
-	else
-	    memset(dest,0,WII_SECTOR_DATA_OFF);
+	memset(dest,0,WII_SECTOR_DATA_OFF);
 	dest += WII_SECTOR_DATA_OFF;
 
 	TRACE("GROUP %u+%u (%zx<-%zx)\n",

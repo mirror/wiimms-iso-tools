@@ -40,8 +40,7 @@
 ///////////////			global options			///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-bool hook_enabled	= false; // [2do] for testing only, [obsolete]
-bool opt_hook		= false; // true: force relocation hook
+int opt_hook = 0; // <0: disabled, =0: auto, >0: enabled
 
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -400,7 +399,7 @@ bool CopyPatchedDiscId ( void * dest, const void * src )
 {
     memcpy(dest,src,6);
     ((char*)dest)[6] = 0;
-    return hook_enabled && PatchId(dest,0,6,WD_MODIFY_DISC|WD_MODIFY__AUTO);
+    return opt_hook >= 0 && PatchId(dest,0,6,WD_MODIFY_DISC|WD_MODIFY__AUTO);
 }
 
 //-----------------------------------------------------------------------------

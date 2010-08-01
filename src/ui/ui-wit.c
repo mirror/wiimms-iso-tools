@@ -523,6 +523,13 @@ const InfoOption_t option_cmd_ISOSIZE_LONG =
 	" source is printed."
     };
 
+const InfoOption_t option_cmd_CREATE_DEST =
+    {	OPT_DEST, 'd', "dest",
+	"path",
+	"Define a destination path (directory/file). This path is concatenated"
+	" with the outfile."
+    };
+
 const InfoOption_t option_cmd_CREATE_ID =
     {	OPT_ID, 0, "id",
 	"id",
@@ -533,13 +540,6 @@ const InfoOption_t option_cmd_CREATE_IOS =
     {	OPT_IOS, 0, "ios",
 	"ios",
 	"Define an IOS/SYS-VERSION for the TMD."
-    };
-
-const InfoOption_t option_cmd_CREATE_DEST =
-    {	OPT_DEST, 'd', "dest",
-	"path",
-	"Define a destination path (directory/file). This path is concatenated"
-	" with the outfile."
     };
 
 const InfoOption_t option_cmd_DUMP_LONG =
@@ -610,6 +610,19 @@ const InfoOption_t option_cmd_VERIFY_LONG =
 	" is printed too."
     };
 
+const InfoOption_t option_cmd_MIX_ID =
+    {	OPT_ID, 0, "id",
+	"id",
+	"Define an ID for the disc header. The default is 'WIT000'."
+    };
+
+const InfoOption_t option_cmd_MIX_NAME =
+    {	OPT_NAME, 0, "name",
+	"name",
+	"Define a disc title for the disc header. The default is a generic"
+	" title based on all sources."
+    };
+
 
 //
 ///////////////////////////////////////////////////////////////////////////////
@@ -653,6 +666,7 @@ const CommandTab_t CommandTab[] =
     { CMD_RENAME,	"RENAME",	"REN",		OB_CMD_RENAME },
     { CMD_SETTITLE,	"SETTITLE",	"ST",		OB_CMD_SETTITLE },
     { CMD_VERIFY,	"VERIFY",	"V",		OB_CMD_VERIFY },
+    { CMD_MIX,		"MIX",		0,		OB_CMD_MIX },
 
     { CMD__N,0,0,0 }
 };
@@ -925,13 +939,14 @@ static const InfoOption_t * option_tab_cmd_TITLES[] =
 
 static const InfoOption_t * option_tab_cmd_CREATE[] =
 {
-	&option_cmd_CREATE_ID,
-	&option_cmd_CREATE_IOS,
+	OptionInfo + OPT_TEST,
+	&option_cmd_CREATE_DEST,
+	OptionInfo + OPT_DEST2,
 
 	OptionInfo + OPT_NONE, // separator
 
-	&option_cmd_CREATE_DEST,
-	OptionInfo + OPT_DEST2,
+	&option_cmd_CREATE_ID,
+	&option_cmd_CREATE_IOS,
 
 	0
 };
@@ -1816,6 +1831,32 @@ static const InfoOption_t * option_tab_cmd_VERIFY[] =
 	0
 };
 
+static const InfoOption_t * option_tab_cmd_MIX[] =
+{
+	OptionInfo + OPT_TEST,
+
+	OptionInfo + OPT_NONE, // separator
+
+	OptionInfo + OPT_DEST,
+	OptionInfo + OPT_DEST2,
+	OptionInfo + OPT_ESC,
+	OptionInfo + OPT_OVERWRITE,
+	OptionInfo + OPT_SPLIT,
+	OptionInfo + OPT_SPLIT_SIZE,
+	OptionInfo + OPT_TRUNC,
+	OptionInfo + OPT_CHUNK_MODE,
+	OptionInfo + OPT_CHUNK_SIZE,
+	OptionInfo + OPT_MAX_CHUNKS,
+
+	OptionInfo + OPT_NONE, // separator
+
+	&option_cmd_MIX_ID,
+	&option_cmd_MIX_NAME,
+	OptionInfo + OPT_REGION,
+
+	0
+};
+
 
 //
 ///////////////////////////////////////////////////////////////////////////////
@@ -1912,7 +1953,7 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	"wit CREATE TICKET outfile [--id] [title_id] [decrypted_key]\n"
 	"wit CREATE TMD outfile [--id] [--ios] [hash_val]",
 	"Create a system file.",
-	4,
+	5,
 	option_tab_cmd_CREATE
     },
 
@@ -2166,6 +2207,18 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	" dumps.",
 	22,
 	option_tab_cmd_VERIFY
+    },
+
+    {	CMD_MIX,
+	false,
+	false,
+	"MIX",
+	0,
+	"wit MIX SOURCE... --dest|--DEST outfile\n"
+	"  where SOURCE := infile ['select' ptype] ['as' [ptab '.'] ptype]",
+	"Mix the partitions from different sources into one new Wii disc.",
+	14,
+	option_tab_cmd_MIX
     },
 
     {0,0,0,0,0,0,0,0}

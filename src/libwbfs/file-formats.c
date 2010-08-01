@@ -66,7 +66,7 @@ int validate_file_format_sizes ( int trace_sizes )
      #ifdef DEBUG
 	wd_part_control_t pc, pc_saved;
 	ASSERT(!clear_part_control(&pc,
-			sizeof(wd_tmd_t)+sizeof(wd_tmd_content_t),
+			WII_TMD_GOOD_SIZE,
 			0xa00, 0x1000000 ));
 	memcpy(&pc_saved,&pc,sizeof(pc_saved));
 	ASSERT(!setup_part_control(&pc));
@@ -116,7 +116,7 @@ int validate_file_format_sizes ( int trace_sizes )
     CHECK( OFFSET(tmd,content[0].hash)	== 0x1f4 );
     CHECK( sizeof(wd_tmd_t)		== 0x1e4 );
     CHECK( sizeof(wd_tmd_content_t)	== 0x24 );
-
+    CHECK( sizeof(wd_tmd_t) + sizeof(wd_tmd_content_t) == WII_TMD_GOOD_SIZE );
 
     //----- 3. calculate return value
 
@@ -154,6 +154,7 @@ int validate_file_format_sizes ( int trace_sizes )
     CHECK( OFFSET(tmd,content[0].hash)	== 0x1f4 );
     CHECK( sizeof(wd_tmd_t)		== 0x1e4 );
     CHECK( sizeof(wd_tmd_content_t)	== 0x24 );
+    CHECK( sizeof(wd_tmd_t) + sizeof(wd_tmd_content_t) == WII_TMD_GOOD_SIZE );
 
     return 0;
 }
@@ -335,11 +336,7 @@ void hton_inode_info ( wbfs_inode_info_t * dest, const wbfs_inode_info_t * src )
 
 //
 ///////////////////////////////////////////////////////////////////////////////
-///////////////			struct wd_ticket_t		///////////////
-///////////////////////////////////////////////////////////////////////////////
-
-const char not_encrypted_marker[] = "*** partition is not encrypted ***";
-
+///////////////			struct wd_header_t		///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
 static void id_setup ( void * dest_id, const void * source_id, int id_size )
@@ -355,6 +352,32 @@ static void id_setup ( void * dest_id, const void * source_id, int id_size )
     for ( i = 0; i < id_size && *src; i++ )
 	*dest++ = *src++;
 }
+
+///////////////////////////////////////////////////////////////////////////////
+
+void header_setup
+(
+    wd_header_t	* dhead,	// valid pointer
+    const void	* id6,		// NULL or pointer to ID
+    ccp		disc_title	// NULL or pointer to disc title (truncated)
+)
+{
+    memset(dhead,0,sizeof(*dhead));
+    id_setup(&dhead->disc_id,id6,6);
+
+    if (!disc_title)
+	disc_title = "WIT: Wiimms ISO Tools,http://wit.wiimm.de/";
+    strncpy(dhead->disc_title,disc_title,sizeof(dhead->disc_title)-1);
+
+    dhead->magic = htonl(WII_MAGIC);
+}
+
+//
+///////////////////////////////////////////////////////////////////////////////
+///////////////			struct wd_ticket_t		///////////////
+///////////////////////////////////////////////////////////////////////////////
+
+const char not_encrypted_marker[] = "*** partition is not encrypted ***";
 
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -666,7 +689,7 @@ static int setup_part_control_helper ( wd_part_control_t * pc )
 
     pc->is_valid = 0;
 
-    if ( pc->tmd_size < sizeof(wd_tmd_t) + sizeof(wd_tmd_content_t)
+    if ( pc->tmd_size < WII_TMD_GOOD_SIZE
 	|| pc->cert_size < 0x10
 	|| pc->data_off < sizeof(pc->part_bin)
 	|| pc->data_size > WII_MAX_PART_SECTORS * (u64)WII_SECTOR_SIZE
