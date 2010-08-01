@@ -270,8 +270,18 @@ extern wd_select_t part_selector;
 extern u8 wdisc_usage_tab [WII_MAX_SECTORS];
 extern u8 wdisc_usage_tab2[WII_MAX_SECTORS];
 
-wd_select_t ScanPartSelector ( ccp arg );
+wd_select_t ScanPartSelector ( ccp arg, ccp err_text_extend );
 int ScanOptPartSelector ( ccp arg );
+u32 ScanPartType ( ccp arg, ccp err_text_extend );
+
+enumError ScanPartTabAndType
+(
+    u32		* res_ptab,	// NULL or result: partition table
+    u32		* res_ptype,	// NULL or result: partition type
+    bool	* res_pt_valid,	// NULL or result: partition type is valid
+    ccp		arg,		// argument to analyze
+    ccp		err_text_extend	// text to extent error messages
+);
 
 //-----------------------------------------------------------------------------
 

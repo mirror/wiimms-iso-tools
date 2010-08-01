@@ -102,6 +102,7 @@ enum // some constants
     WII_TICKET_IV_OFF		= 0x1dc,
     WII_TICKET_BRUTE_FORCE_OFF	= 0x24c, // this u32 will be iterated
 
+    WII_TMD_GOOD_SIZE		= 0x208, // tmd with 1 content (usual)
     WII_TMD_SIG_OFF		= 0x140, // do SHA1 up to end of tmd
     WII_TMD_BRUTE_FORCE_OFF	= 0x19a, // this u32 will be iterated
     WII_PARTITION_BIN_SIZE	= 0x20000,
@@ -267,7 +268,7 @@ typedef struct wd_header_t
   /* 0x18 */	u32	magic;				// off=WII_MAGIC_OFF, val=WII_MAGIC
   /* 0x1c */	u8	unknown2[4];
 
-  /* 0x20 */	char	game_title[WII_TITLE_SIZE];	// off=WII_TITLE_OFF
+  /* 0x20 */	char	disc_title[WII_TITLE_SIZE];	// off=WII_TITLE_OFF
 
   /* 0x60 */	u8	diable_hash;
   /* 0x61 */	u8	diable_encryption;
@@ -277,6 +278,14 @@ typedef struct wd_header_t
   /* 0x80 */	wbfs_inode_info_t iinfo;		// off=WBFS_INODE_INFO_OFF
 
 } __attribute__ ((packed)) wd_header_t;
+
+
+void header_setup
+(
+    wd_header_t	* dhead,	// valid pointer
+    const void	* id6,		// NULL or pointer to ID
+    ccp		disc_title	// NULL or pointer to disc title (truncated)
+);
 
 //
 ///////////////////////////////////////////////////////////////////////////////
@@ -290,7 +299,8 @@ typedef struct wd_boot_t
     /* 420 */	u32		dol_off4;
     /* 424 */	u32		fst_off4;
     /* 428 */	u32		fst_size4;
-    /* 42c */	u8		unknown2[WII_BOOT_SIZE-0x42c];
+    /* 42c */	u32		copy_of__fst_size4;
+    /* 42c */	u8		unknown2[WII_BOOT_SIZE-0x430];
 }
 __attribute__ ((packed)) wd_boot_t;
 
@@ -319,7 +329,7 @@ __attribute__ ((packed)) wd_region_t;
 typedef struct wd_ptab_info_t
 {
 	u32 n_part;	// number of partitions in this table
-	u32 off4;	// offset/4 of partition table relative to ISO start
+	u32 off4;	// offset/4 of partition table relative to disc start
 }
 __attribute__ ((packed)) wd_ptab_info_t;
 
@@ -330,7 +340,7 @@ __attribute__ ((packed)) wd_ptab_info_t;
 
 typedef struct wd_ptab_entry_t
 {
-	u32 off4;	// offset/4 of partition table relative to disc start
+	u32 off4;	// offset/4 of partition relative to disc start
 	u32 ptype;	// partitions type
 }
 __attribute__ ((packed)) wd_ptab_entry_t;
@@ -387,6 +397,8 @@ __attribute__ ((packed)) wd_ticket_t;
 //----- encryption helpers
 
 extern const char not_encrypted_marker[];
+
+void ticket_setup ( wd_ticket_t * ticket, const void * id4 );
 
 void ticket_clear_encryption ( wd_ticket_t * ticket, int mark_not_encrypted );
 bool ticket_is_marked_not_encrypted ( const wd_ticket_t * ticket );
@@ -464,6 +476,8 @@ typedef struct wd_tmd_t
 __attribute__ ((packed)) wd_tmd_t;
 
 //----- encryption helpers
+
+void tmd_setup ( wd_tmd_t * tmd, u32 tmd_size, const void * id4 );
 
 void tmd_clear_encryption ( wd_tmd_t * tmd, int mark_not_encrypted );
 bool tmd_is_marked_not_encrypted ( const wd_tmd_t * tmd );

@@ -15,7 +15,7 @@ WIT_LONG		= Wiimms ISO Tool
 WWT_SHORT		= wwt
 WWT_LONG		= Wiimms WBFS Tool
 
-VERSION_NUM		= 1.11a
+VERSION_NUM		= 1.12a
 BETA_VERSION		= 0
 
 URI_HOME		= http://wit.wiimm.de/
@@ -48,11 +48,11 @@ include Makefile.setup
 # version+beta settings
 
 ifeq ($(BETA_VERSION),0)
-BETA_SUFFIX	:=
+  BETA_SUFFIX	:=
 else ifeq ($(BETA_VERSION),1)
-BETA_SUFFIX	:= .beta
+  BETA_SUFFIX	:= .beta
 else
-BETA_SUFFIX	:= .beta$(BETA_VERSION)
+  BETA_SUFFIX	:= .beta$(BETA_VERSION)
 endif
 
 VERSION		:= $(VERSION_NUM)$(BETA_SUFFIX)

@@ -6,9 +6,18 @@
 
 #-----------------------------------------------------------------------------
 
+ifneq ($(wildcard /Developer/SDKs/MacOSX10.4u.sdk),)
+  SDKVERSION	= 10.4
+  SDKROOT	= /Developer/SDKs/MacOSX10.4u.sdk
+else
+  SDKVERSION	= 10.5
+  SDKROOT	= /Developer/SDKs/MacOSX10.5.sdk
+endif
+
 CC	 = "gcc-4.0"
-CFLAGS	+= -mmacosx-version-min=10.4 -isysroot /Developer/SDKs/MacOSX10.4u.sdk
-LDFLAGS	+= -mmacosx-version-min=10.4 -isysroot /Developer/SDKs/MacOSX10.4u.sdk
+CFLAGS	+= -mmacosx-version-min=${SDKVERSION} -isysroot ${SDKROOT}
+LDFLAGS	+= -mmacosx-version-min=${SDKVERSION} -isysroot ${SDKROOT}
+
 
 #-----------------------------------------------------------------------------
 

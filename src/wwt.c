@@ -2040,7 +2040,7 @@ enumError cmd_extract()
 
 		enumOFT oft = CalcOFT(output_file_type,dpath,0,OFT__DEFAULT);
 		int conv_count = SubstFileName( fbuf, sizeof(fbuf),
-						id6, (ccp)dhead->game_title,
+						id6, (ccp)dhead->disc_title,
 						info->path, 0, dpath, oft );
 		noTRACE("|%s|%s|\n",dpath,fbuf);
 		SetFileName(&fo.f,fbuf,true);
@@ -2256,7 +2256,7 @@ enumError cmd_remove()
 		char disc_title[WII_TITLE_SIZE+1];
 		wd_header_t *dh = GetWDiscHeader(&wbfs);
 		if (dh)
-		    StringCopyS(disc_title,sizeof(disc_title),(ccp)dh->game_title);
+		    StringCopyS(disc_title,sizeof(disc_title),(ccp)dh->disc_title);
 		else
 		    *disc_title = 0;
 		CloseWDisc(&wbfs);
@@ -2569,7 +2569,7 @@ enumError cmd_touch()
 		char disc_title[WII_TITLE_SIZE+1];
 		wd_header_t *dh = GetWDiscHeader(&wbfs);
 		if (dh)
-		    StringCopyS(disc_title,sizeof(disc_title),(ccp)dh->game_title);
+		    StringCopyS(disc_title,sizeof(disc_title),(ccp)dh->disc_title);
 		else
 		    *disc_title = 0;
 		ccp title = GetTitle(id6,disc_title);
@@ -2730,7 +2730,7 @@ enumError cmd_verify()
 		char disc_title[WII_TITLE_SIZE+1];
 		wd_header_t *dh = GetWDiscHeader(&wbfs);
 		if (dh)
-		    StringCopyS(disc_title,sizeof(disc_title),(ccp)dh->game_title);
+		    StringCopyS(disc_title,sizeof(disc_title),(ccp)dh->disc_title);
 		else
 		    *disc_title = 0;
 		ccp title = GetTitle(id6,disc_title);
@@ -2982,7 +2982,7 @@ enumError CheckOptions ( int argc, char ** argv, bool is_env )
 	case GO_INODE:		break;
 	case GO_DEST:		opt_dest = optarg; break;
 	case GO_DEST2:		opt_dest = optarg; opt_mkdir = true; break;
-	case GO_HOOK:		opt_hook = true; break;
+	case GO_HOOK:		opt_hook = 1; break;
 	case GO_ENC:		err += ScanOptEncoding(optarg); break;
 	case GO_REGION:		err += ScanOptRegion(optarg); break;
 	case GO_IOS:		err += ScanOptIOS(optarg); break;

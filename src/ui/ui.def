@@ -35,6 +35,11 @@
 	"wit TITLES [additional_title_file]", \
 	"Dump the internal title database to standard output (stdout)." )
 
+#:def_cmd( "CREATE", "CREATE", \
+	"wit CREATE TICKET outfile [--id] [title_id] [decrypted_key]\n" \
+	"wit CREATE TMD outfile [--id] [--ios] [hash_val]", \
+	"Create a system file." )
+
 #:def_cmd( "FILELIST", "FILELIST|FL", \
 	"wit FILELIST [source]...", \
 	"List all source files in a table." )
@@ -128,6 +133,11 @@
 	"wit VERIFY [source]...", \
 	"Verify ISO images (calculate and compare SHA1 check sums) to find bad" \
 	" dumps." )
+
+#:def_cmd( "MIX", "MIX", \
+	"wit MIX SOURCE... --dest|--DEST outfile\n" \
+	"  where SOURCE := infile ['select' ptype] ['as' [ptab '.'] [ptype]]", \
+	"Mix the partitions from different sources into one new Wii disc." )
 
 #:def_opt( "VERSION", "V|version", "G", \
 	"", \
@@ -541,6 +551,27 @@
 #:def_cmd_opt( "TITLES", "LANG", \
 	"", \
 	"" )
+
+#:def_cmd_opt( "CREATE", "TEST", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "CREATE", "DEST", \
+	"", \
+	"Define a destination path (directory/file). This path is concatenated" \
+	" with the @outfile@." )
+
+#:def_cmd_opt( "CREATE", "DEST2", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "CREATE", "ID", \
+	"", \
+	"Define an ID for the TICKET or TMD." )
+
+#:def_cmd_opt( "CREATE", "IOS", \
+	"", \
+	"Define an IOS/SYS-VERSION for the TMD." )
 
 #:def_cmd_opt( "FILELIST", "SOURCE", \
 	"", \
@@ -2474,6 +2505,63 @@
 	"On error print an additional line to localize the exact position" \
 	" where the error is found. If set twice a hexdump of the hash values" \
 	" is printed too." )
+
+#:def_cmd_opt( "MIX", "TEST", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "MIX", "DEST", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "MIX", "DEST2", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "MIX", "ESC", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "MIX", "OVERWRITE", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "MIX", "SPLIT", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "MIX", "SPLIT_SIZE", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "MIX", "TRUNC", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "MIX", "CHUNK_MODE", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "MIX", "CHUNK_SIZE", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "MIX", "MAX_CHUNKS", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "MIX", "ID", \
+	"", \
+	"Define an ID for the disc header. The default is 'WIT000'." )
+
+#:def_cmd_opt( "MIX", "NAME", \
+	"", \
+	"Define a disc title for the disc header. The default is a generic" \
+	" title based on all sources." )
+
+#:def_cmd_opt( "MIX", "REGION", \
+	"", \
+	"" )
 
 
 ##

@@ -254,7 +254,7 @@ enumError SetupReadWDF ( SuperFile_t * sf )
 	return ERR_OK;
 
     ASSERT(sf);
-    FreeSF(sf);
+    CleanSF(sf);
     InitializeWH(&sf->wh); // reset data
 
     if ( sf->f.seek_allowed && sf->f.st.st_size < sizeof(WDF_Head_t) )

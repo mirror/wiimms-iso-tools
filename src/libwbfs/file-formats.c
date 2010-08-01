@@ -66,7 +66,7 @@ int validate_file_format_sizes ( int trace_sizes )
      #ifdef DEBUG
 	wd_part_control_t pc, pc_saved;
 	ASSERT(!clear_part_control(&pc,
-			sizeof(wd_tmd_t)+sizeof(wd_tmd_content_t),
+			WII_TMD_GOOD_SIZE,
 			0xa00, 0x1000000 ));
 	memcpy(&pc_saved,&pc,sizeof(pc_saved));
 	ASSERT(!setup_part_control(&pc));
@@ -116,7 +116,7 @@ int validate_file_format_sizes ( int trace_sizes )
     CHECK( OFFSET(tmd,content[0].hash)	== 0x1f4 );
     CHECK( sizeof(wd_tmd_t)		== 0x1e4 );
     CHECK( sizeof(wd_tmd_content_t)	== 0x24 );
-
+    CHECK( sizeof(wd_tmd_t) + sizeof(wd_tmd_content_t) == WII_TMD_GOOD_SIZE );
 
     //----- 3. calculate return value
 
@@ -154,6 +154,7 @@ int validate_file_format_sizes ( int trace_sizes )
     CHECK( OFFSET(tmd,content[0].hash)	== 0x1f4 );
     CHECK( sizeof(wd_tmd_t)		== 0x1e4 );
     CHECK( sizeof(wd_tmd_content_t)	== 0x24 );
+    CHECK( sizeof(wd_tmd_t) + sizeof(wd_tmd_content_t) == WII_TMD_GOOD_SIZE );
 
     return 0;
 }
@@ -335,10 +336,70 @@ void hton_inode_info ( wbfs_inode_info_t * dest, const wbfs_inode_info_t * src )
 
 //
 ///////////////////////////////////////////////////////////////////////////////
+///////////////			struct wd_header_t		///////////////
+///////////////////////////////////////////////////////////////////////////////
+
+static void id_setup ( void * dest_id, const void * source_id, int id_size )
+{
+    DASSERT(dest_id);
+    DASSERT(id_size>0);
+
+    u8 * dest = dest_id;
+    memset(dest,'0',id_size);
+    
+    int i;
+    const u8 * src = source_id ? source_id : "WIT";
+    for ( i = 0; i < id_size && *src; i++ )
+	*dest++ = *src++;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+void header_setup
+(
+    wd_header_t	* dhead,	// valid pointer
+    const void	* id6,		// NULL or pointer to ID
+    ccp		disc_title	// NULL or pointer to disc title (truncated)
+)
+{
+    memset(dhead,0,sizeof(*dhead));
+    id_setup(&dhead->disc_id,id6,6);
+
+    if (!disc_title)
+	disc_title = "WIT: Wiimms ISO Tools,http://wit.wiimm.de/";
+    strncpy(dhead->disc_title,disc_title,sizeof(dhead->disc_title)-1);
+
+    dhead->magic = htonl(WII_MAGIC);
+}
+
+//
+///////////////////////////////////////////////////////////////////////////////
 ///////////////			struct wd_ticket_t		///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
 const char not_encrypted_marker[] = "*** partition is not encrypted ***";
+
+///////////////////////////////////////////////////////////////////////////////
+
+void ticket_setup ( wd_ticket_t * tik, const void * id4 )
+{
+    DASSERT(tik);
+    memset(tik,0,sizeof(*tik));
+    tik->sig_type = htonl(0x10001);
+    strncpy((char*)tik->issuer,"Root-CA00000001-XS00000003",sizeof(tik->issuer));
+
+    static u8 base_id[] = { 0,1,0,0, 0,0,0,0 };
+    memcpy(tik->title_id,base_id,8);
+    id_setup(tik->title_id+4,id4,4);
+
+    memset(tik->unknown7,0xff,sizeof(tik->unknown7));
+    tik->unknown3 = 0xffff;
+
+    random_fill(tik->title_key,sizeof(tik->title_key));
+    random_fill(tik->ticket_id,sizeof(tik->ticket_id));
+    tik->ticket_id[0] = 0;
+    tik->ticket_id[1] = 1;
+}
 
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -429,6 +490,33 @@ bool ticket_is_trucha_signed ( const wd_ticket_t * tik, u32 tik_size )
 //
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////			struct wd_tmd_t			///////////////
+///////////////////////////////////////////////////////////////////////////////
+
+void tmd_setup ( wd_tmd_t * tmd, u32 tmd_size, const void * id4 )
+{
+    DASSERT(tmd);
+    DASSERT(tmd_size>=sizeof(wd_tmd_t));
+    
+    memset(tmd,0,tmd_size);
+    if ( tmd_size >= sizeof(wd_tmd_t) + sizeof(wd_tmd_content_t) )
+    {
+	tmd->n_content       = htons(1);
+	tmd->content[0].type = htons(3);
+	tmd->content[0].size = hton64(0xff7c0000);
+    }
+
+    tmd->sig_type = htonl(0x10001);
+    strncpy((char*)tmd->issuer,"Root-CA00000001-CP00000004",sizeof(tmd->issuer));
+
+    tmd->sys_version	= hton64(0x100000023ull);
+    tmd->title_type	= htonl(1);
+    tmd->group_id	= htons(0x3031);
+
+    static u8 base_id[] = { 0,1,0,0, 0,0,0,0 };
+    memcpy(tmd->title_id,base_id,8);
+    id_setup(tmd->title_id+4,id4,4);
+}
+
 ///////////////////////////////////////////////////////////////////////////////
 
 void tmd_clear_encryption ( wd_tmd_t * tmd, int mark_not_encrypted )
@@ -601,7 +689,7 @@ static int setup_part_control_helper ( wd_part_control_t * pc )
 
     pc->is_valid = 0;
 
-    if ( pc->tmd_size < sizeof(wd_tmd_t) + sizeof(wd_tmd_content_t)
+    if ( pc->tmd_size < WII_TMD_GOOD_SIZE
 	|| pc->cert_size < 0x10
 	|| pc->data_off < sizeof(pc->part_bin)
 	|| pc->data_size > WII_MAX_PART_SECTORS * (u64)WII_SECTOR_SIZE

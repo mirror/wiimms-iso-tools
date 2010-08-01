@@ -2543,14 +2543,19 @@ enumError CreatePath ( ccp fname )
 
 ///////////////////////////////////////////////////////////////////////////////
 
-off_t GetFileSize ( ccp path1, ccp path2 )
+s64 GetFileSize
+(
+    ccp		path1,		// NULL or part 1 of path
+    ccp		path2,		// NULL or part 2 of path
+    s64		not_found_value	// return value if no regular file found
+)
 {
     char pathbuf[PATH_MAX];
     ccp path = PathCatPP(pathbuf,sizeof(pathbuf),path1,path2);
-    TRACE("GetFileSize(%s)\n",path);
+    TRACE("GetFileSize(%s,%lld)\n",path,not_found_value);
 
     struct stat st;
-    return !stat(path,&st) && S_ISREG(st.st_mode) ? st.st_size : 0;
+    return !stat(path,&st) && S_ISREG(st.st_mode) ? st.st_size : not_found_value;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -2590,6 +2595,47 @@ enumError LoadFile ( ccp path1, ccp path2, size_t skip,
 	memset((char*)data+stat,0,size-stat);
     
     return ERR_WARNING;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+enumError SaveFile ( ccp path1, ccp path2, bool create_dir,
+		     void * data, size_t size, bool silent )
+{
+    ASSERT(data);
+
+    char pathbuf[PATH_MAX];
+    ccp path = PathCatPP(pathbuf,sizeof(pathbuf),path1,path2);
+    TRACE("LoadFile(%s,%zx,%d)\n",path,size,silent);
+
+    FILE * f = fopen(path,"wb");
+    if (!f)
+    {
+	if (create_dir)
+	{
+	    CreatePath(path);
+	    f = fopen(path,"wb");
+	}
+	
+	if (!f)
+	{
+	    if (!silent)
+		ERROR1(ERR_CANT_CREATE,"Can't create file: %s\n",path);
+	    return ERR_CANT_CREATE;
+	}
+    }
+
+    enumError err = ERR_OK;
+    size_t stat = fwrite(data,1,size,f);
+    if ( stat != size )
+    {
+	err = ERR_WRITE_FAILED;
+	if (!silent)
+	    ERROR1(err,"Writo to file failed: %s\n",path);
+    }
+    fclose(f);
+
+    return err;
 }
 
 //

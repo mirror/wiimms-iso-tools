@@ -253,6 +253,11 @@ typedef enum enumOptionsBit
 				| OB_NO_HEADER
 				| OB_LONG,
 
+	OB_CMD_CREATE		= OB_DEST
+				| OB_DEST2
+				| OB_ID
+				| OB_IOS,
+
 	OB_CMD_DUMP		= OB_GRP_TITLES
 				| OB_GRP_XSOURCE
 				| OB_IGNORE_FST
@@ -369,6 +374,14 @@ typedef enum enumOptionsBit
 				| OB_LIMIT
 				| OB_LONG,
 
+	OB_CMD_MIX		= OB_DEST
+				| OB_DEST2
+				| OB_OVERWRITE
+				| OB_GRP_SPLIT_CHUNK
+				| OB_ID
+				| OB_NAME
+				| OB_REGION,
+
 } enumOptionsBit;
 
 //
@@ -386,6 +399,7 @@ typedef enum enumCommands
 	CMD_ERROR,
 	CMD_EXCLUDE,
 	CMD_TITLES,
+	CMD_CREATE,
 
 	CMD_FILELIST,
 	CMD_FILETYPE,
@@ -413,6 +427,7 @@ typedef enum enumCommands
 	CMD_SETTITLE,
 
 	CMD_VERIFY,
+	CMD_MIX,
 
 	CMD__N
 

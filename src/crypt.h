@@ -28,5 +28,9 @@
 #include "crypto/wit-sha.h"
 #define SHA1 WIT_SHA1
 
+// random functions
+void RandomFill ( void * buf, size_t size );
+#define random_fill RandomFill
+
 #endif // WIT_CRYPT_H
 

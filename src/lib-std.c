@@ -2081,7 +2081,125 @@ char * ScanRangeU32 ( ccp arg, u32 * p_stat, u32 * p_n1, u32 * p_n2, u32 min, u3
 
 //
 ///////////////////////////////////////////////////////////////////////////////
-///////////////                  CommandTab_t                   ///////////////
+///////////////                   ScanHex()			///////////////
+///////////////////////////////////////////////////////////////////////////////
+
+// 0..15 : hex digit
+//    50 : spaces and cotnrol charactzers
+//    51 : allowed separators
+//    99 : invalid char
+
+static u8 hextab[256] =
+{
+   99,50,50,50, 50,50,50,50, 50,50,50,50, 50,50,50,50, // 0x00 .. 0x0f
+   50,50,50,50, 50,50,50,50, 50,50,50,50, 50,50,50,50, // 0x10 .. 0x1f
+
+   50,99,99,99, 99,99,99,99, 99,99,99,99, 51,51,51,99, //  !"# $%&' ()*+ ,-./
+    0, 1, 2, 3,  4, 5, 6, 7,  8, 9,51,99, 99,99,99,99, // 0123 4567 89:; <=>?
+   99,10,11,12, 13,14,15,99, 99,99,99,99, 99,99,99,99, // @ABC DEFG HIJK LMNO
+   99,99,99,99, 99,99,99,99, 99,99,99,99, 99,99,99,99, // PQRS TUVW XYZ[ \]^_
+   99,10,11,12, 13,14,15,99, 99,99,99,99, 99,99,99,99, // `abc defg hijk lmno
+   99,99,99,99, 99,99,99,99, 99,99,99,99, 99,99,99,99, // PQRS TUVW xyz {|}~
+
+   99,99,99,99, 99,99,99,99, 99,99,99,99, 99,99,99,99, // 0x80 .. 0x8f
+   99,99,99,99, 99,99,99,99, 99,99,99,99, 99,99,99,99, // 0x90 .. 0x9f
+   99,99,99,99, 99,99,99,99, 99,99,99,99, 99,99,99,99, // 0xa0 .. 0xaf
+   99,99,99,99, 99,99,99,99, 99,99,99,99, 99,99,99,99, // 0xb0 .. 0xbf
+   99,99,99,99, 99,99,99,99, 99,99,99,99, 99,99,99,99, // 0xc0 .. 0xcf
+   99,99,99,99, 99,99,99,99, 99,99,99,99, 99,99,99,99, // 0xd0 .. 0xdf
+   99,99,99,99, 99,99,99,99, 99,99,99,99, 99,99,99,99, // 0xe0 .. 0xef
+   99,99,99,99, 99,99,99,99, 99,99,99,99, 99,99,99,99, // 0xf0 .. 0xff
+};
+
+///////////////////////////////////////////////////////////////////////////////
+
+char * ScanHexHelper
+(
+    void	* buf,		// valid pointer to result buf
+    int		buf_size,	// number of byte to read
+    int		* bytes_read,	// NULL or result: number of read bytes
+    ccp		arg,		// source string
+    int		err_level	// error level (print message):
+				//	 = 0: don't print errors
+				//	>= 1: print syntax errors
+				//	>= 2: msg if bytes_read<buf_size
+				//	>= 3: msg if arg contains more characters
+)
+{
+    DASSERT( buf );
+    DASSERT( buf_size > 0 );
+    DASSERT( arg );
+    
+    u8 * dest = buf;
+    memset(dest,0,buf_size);
+
+    const u8 * src = (const u8*)arg;
+    int read_count = 0;
+    while ( hextab[*src] < 99 && read_count < buf_size )
+    {
+	while ( hextab[*src] >= 50 && hextab[*src] <= 99 )
+	    src++;
+
+	if ( *src == '0' && ( src[1] == 'x' || src[1] == 'X' ))
+	    src += 2;
+
+	const u8 * end = src;
+	while ( hextab[*end] < 16 )
+	    end++;
+
+	if ( (end-src) & 1 )
+	{
+	    *dest++ = hextab[*src++];
+	    read_count++;
+	}
+	
+	while ( src < end && read_count < buf_size )
+	{
+	    *dest    = hextab[*src++] << 4;
+	    *dest++ |= hextab[*src++];
+	    read_count++;
+	}
+    }
+    
+    // [2do]
+
+    while ( hextab[*src] == 50 )
+	src++;
+
+    if ( err_level > 0 )
+    {
+	if ( read_count < buf_size && *src )
+	    ERROR0(ERR_SYNTAX,"Illegal character for hex input: %.20s\n",src);
+	else if ( err_level > 1 && read_count < buf_size )
+	    ERROR0(ERR_SYNTAX,"Missing %d hex characters: %.20s\n",
+			buf_size - read_count, arg);
+	else if ( err_level > 2 && *src )
+	    ERROR0(ERR_SYNTAX,"Unexpected characters: %.20s\n",src);
+    }
+
+    if (bytes_read)
+	*bytes_read = read_count;
+    return (char*)src;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+enumError ScanHex
+(
+    void	* buf,		// valid pointer to result buf
+    int		buf_size,	// number of byte to read
+    ccp		arg		// source string
+)
+{
+    int count;
+    arg = ScanHexHelper(buf,buf_size,&count,arg,99);
+
+    return count == buf_size && !*arg ? ERR_OK : ERR_SYNTAX;
+}
+
+//
+///////////////////////////////////////////////////////////////////////////////
+///////////////			 CommandTab_t			///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
 const CommandTab_t * ScanCommand

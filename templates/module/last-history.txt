@@ -1,11 +1,3 @@
-wit v1.10a r1386 - 2010-07-15
-
- - wiitdb.com: Support of new languages: ru, zhcn, zhtw
- - wwt ANALYZE: If option --long is set then calculated values are printed too
-   if other values are available. If option --long is set twice calculated
-   values are always printed.
- - wit+wwt: Option --trunc: Truncate created PLAIN ISO image to needed size.
-
 wit v1.10a.beta r1428 - 2010-07-24  (correct version should be "v1.11a.beta")
 
  - Computed line breaks for error messages.
@@ -13,13 +5,28 @@ wit v1.10a.beta r1428 - 2010-07-24  (correct version should be "v1.11a.beta")
    image while copying.
  - New command: wit EDIT: Patch ISO images directly without copying.
 
-wit v@@VERSION@@ r@@REV-NEXT@@ - @@@@-@@-@@
+wit v1.11a r1434 - 2010-07-26
 
  - Option --region: endian bug fix
 
-~Known bugs:
-~
+wit v@@VERSION@@ r@@REV-NEXT@@ - @@@@-@@-@@
+
+ - Bug fix for option --sneek: Option --psel was not set in a correct way.
+ - New command: wit CREATE TICKET/TMD: Create a ticket or tmd file from
+   scratch. Options and parameters control the creation.
+ - Composing: If files ticket.bin or tmd.bin missed or have a wrong size
+   TICKET and/or TMD will be created automatically.
+ - New command: wit MIX: Mix partitions from different sources into one
+   new Wii disc image. "wit MIX" is EXPERIMENTAL!
+
+Known bugs:
+ - There a new problems while reading from non seekable sources (e.g. pipes).
+   The reason is the complete new and more intelligent wiidisc lib which makes
+   more lookups. I have to insert some code especially for pipes. My plans
+   that copying multiple partition discs works too.
+   ==> The best is to use a version <1.10 for pipes.
+
 Missing docu:
 
- - wit commands ILIST + EXTRACT
+ - wit commands ILIST + EXTRACT + EDIT
  - Option --show => see built in help
