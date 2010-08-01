@@ -136,7 +136,7 @@
 
 #:def_cmd( "MIX", "MIX", \
 	"wit MIX SOURCE... --dest|--DEST outfile\n" \
-	"  where SOURCE := infile ['select' ptype] ['as' [ptab '.'] ptype]", \
+	"  where SOURCE := infile ['select' ptype] ['as' [ptab '.'] [ptype]]", \
 	"Mix the partitions from different sources into one new Wii disc." )
 
 #:def_opt( "VERSION", "V|version", "G", \

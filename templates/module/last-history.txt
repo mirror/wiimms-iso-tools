@@ -16,14 +16,15 @@ wit v@@VERSION@@ r@@REV-NEXT@@ - @@@@-@@-@@
    scratch. Options and parameters control the creation.
  - Composing: If files ticket.bin or tmd.bin missed or have a wrong size
    TICKET and/or TMD will be created automatically.
+ - New command: wit MIX: Mix partitions from different sources into one
+   new Wii disc image. "wit MIX" is EXPERIMENTAL!
 
 Known bugs:
- - There a new problems while reading from non ssekable sources (e.g. pipes).
-   The reason is the complete new and more intelligent wiidisc lib. I have
-   to insert some code especially for pipes. My plans that copying multiple
-   partition discs works too.
-
-The best is to use a version <1.10 for pipes.
+ - There a new problems while reading from non seekable sources (e.g. pipes).
+   The reason is the complete new and more intelligent wiidisc lib which makes
+   more lookups. I have to insert some code especially for pipes. My plans
+   that copying multiple partition discs works too.
+   ==> The best is to use a version <1.10 for pipes.
 
 Missing docu:
 

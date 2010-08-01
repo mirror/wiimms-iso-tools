@@ -2215,7 +2215,7 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	"MIX",
 	0,
 	"wit MIX SOURCE... --dest|--DEST outfile\n"
-	"  where SOURCE := infile ['select' ptype] ['as' [ptab '.'] ptype]",
+	"  where SOURCE := infile ['select' ptype] ['as' [ptab '.'] [ptype]]",
 	"Mix the partitions from different sources into one new Wii disc.",
 	14,
 	option_tab_cmd_MIX
