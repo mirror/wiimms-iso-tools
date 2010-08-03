@@ -2282,7 +2282,12 @@ enumError CopyRaw ( SuperFile_t * in, SuperFile_t * out )
 ///////////////////////////////////////////////////////////////////////////////
 
 enumError CopyRawData
-	( SuperFile_t * in, SuperFile_t * out, off_t off, off_t copy_size )
+(
+    SuperFile_t	* in,
+    SuperFile_t	* out,
+    off_t	off,
+    off_t	copy_size
+)
 {
     ASSERT(in);
     ASSERT(out);
@@ -2302,6 +2307,41 @@ enumError CopyRawData
 
 	copy_size -= size;
 	off       += size;
+    }
+    return ERR_OK;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+enumError CopyRawData2
+(
+    SuperFile_t	* in,
+    off_t	in_off,
+    SuperFile_t	* out,
+    off_t	out_off,
+    off_t	copy_size
+)
+{
+    ASSERT(in);
+    ASSERT(out);
+    TRACE("+++ CopyRawData(%d,%llx,%d,%llx,%llx) +++\n",
+		GetFD(&in->f), (u64)in_off,
+		GetFD(&out->f), (u64)out_off, (u64)copy_size );
+
+    while ( copy_size > 0 )
+    {
+	const u32 size = sizeof(iobuf) < copy_size ? sizeof(iobuf) : (u32)copy_size;
+	enumError err = ReadSF(in,in_off,iobuf,size);
+	if (err)
+	    return err;
+
+	err = WriteSF(out,out_off,iobuf,size);
+	if (err)
+	    return err;
+
+	copy_size -= size;
+	in_off    += size;
+	out_off   += size;
     }
     return ERR_OK;
 }

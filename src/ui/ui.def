@@ -327,6 +327,15 @@
 	" If only @LOW@ is set than @HIGH@ is assumed as 1 (standard IOS).\n" \
 	"This patching option is only recognized while $composing$ a disc." )
 
+#:def_opt( "OVERLAY", "overlay", "C", \
+	"", \
+	"Most partitions has holes (unused areas) in the data section. If" \
+	" combining multiple partitons into one disc it is possible to overlay" \
+	" the partitions sothat the data of one partition resides in the hole" \
+	" of other partitions. This option enables this feature  and limits" \
+	" the number of input partitions to 12, because the calculation is" \
+	" rated as O(n^2)." )
+
 #:def_opt( "ENC", "enc", "CP", \
 	"encoding", \
 	"Define the encoding mode. The mode is one of NONE, HASHONLY, DECRYPT," \
@@ -2560,6 +2569,10 @@
 	" title based on all sources." )
 
 #:def_cmd_opt( "MIX", "REGION", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "MIX", "OVERLAY", \
 	"", \
 	"" )
 

@@ -1,15 +1,4 @@
-wit v1.10a.beta r1428 - 2010-07-24  (correct version should be "v1.11a.beta")
-
- - Computed line breaks for error messages.
- - "wit COPY" accepts the options --id --name --ios --region to patch the
-   image while copying.
- - New command: wit EDIT: Patch ISO images directly without copying.
-
-wit v1.11a r1434 - 2010-07-26
-
- - Option --region: endian bug fix
-
-wit v@@VERSION@@ r@@REV-NEXT@@ - @@@@-@@-@@
+wit v1.12a r1451 - 2010-08-01
 
  - Bug fix for option --sneek: Option --psel was not set in a correct way.
  - New command: wit CREATE TICKET/TMD: Create a ticket or tmd file from
@@ -17,10 +6,24 @@ wit v@@VERSION@@ r@@REV-NEXT@@ - @@@@-@@-@@
  - Composing: If files ticket.bin or tmd.bin missed or have a wrong size
    TICKET and/or TMD will be created automatically.
  - New command: wit MIX: Mix partitions from different sources into one
-   new Wii disc image. "wit MIX" is EXPERIMENTAL!
+   new Wii disc image.  *** "wit MIX" is EXPERIMENTAL! ***
+
+wit v@@VERSION@@ r@@REV-NEXT@@ - @@@@-@@-@@
+
+ - Command "wit MIX" accepts now the option --overlay: Partitions will
+   be overlayed so that data from one partition is stored in unused areas
+   of a other partition. To find the optimum order a permutation is done.
+   Option --overlay limits the number of input partitions to 12, because
+   the calculation is rated as O(n^2).  *** "wit MIX" is EXPERIMENTAL! ***
+ - "wit MIX" wil accept the keyword 'psel' as alternative to 'select'.
+   The reason is that 'select' accepts the same keyword list as --psel.
+ - The disc subsystems recognize overlayes partitons. For overlayed
+   partitions the --psel keyword "WHOLE" is ignored.
+ - Command "wit DUMP" will print an info line for overlayed partitions.
 
 Known bugs:
- - There a new problems while reading from non seekable sources (e.g. pipes).
+
+ - There are new problems while reading from non seekable sources (e.g. pipes).
    The reason is the complete new and more intelligent wiidisc lib which makes
    more lookups. I have to insert some code especially for pipes. My plans
    that copying multiple partition discs works too.
@@ -28,5 +31,5 @@ Known bugs:
 
 Missing docu:
 
- - wit commands ILIST + EXTRACT + EDIT
+ - wit commands ILIST + EXTRACT + EDIT + CREATE + MIX => see built in help
  - Option --show => see built in help

@@ -170,6 +170,16 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 	"This patching option is only recognized while composing a disc."
     },
 
+    {	OPT_OVERLAY, 0, "overlay",
+	0,
+	"Most partitions has holes (unused areas) in the data section. If"
+	" combining multiple partitons into one disc it is possible to overlay"
+	" the partitions sothat the data of one partition resides in the hole"
+	" of other partitions. This option enables this feature  and limits"
+	" the number of input partitions to 12, because the calculation is"
+	" rated as O(n^2)."
+    },
+
     {	OPT_ENC, 0, "enc",
 	"encoding",
 	"Define the encoding mode. The mode is one of NONE, HASHONLY, DECRYPT,"
@@ -382,7 +392,7 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 	"Limit the output to NUM messages."
     },
 
-    {0,0,0,0,0}, // OPT__N_SPECIFIC == 50
+    {0,0,0,0,0}, // OPT__N_SPECIFIC == 51
 
     //----- global options -----
 
@@ -480,7 +490,7 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 	"Force relocation hook while reading iso images."
     },
 
-    {0,0,0,0,0} // OPT__N_TOTAL == 66
+    {0,0,0,0,0} // OPT__N_TOTAL == 67
 
 };
 
@@ -720,6 +730,7 @@ const struct option OptionLong[] =
 	{ "modify",		1, 0, GO_MODIFY },
 	{ "region",		1, 0, GO_REGION },
 	{ "ios",		1, 0, GO_IOS },
+	{ "overlay",		0, 0, GO_OVERLAY },
 	{ "enc",		1, 0, GO_ENC },
 	{ "dest",		1, 0, 'd' },
 	{ "DEST",		1, 0, 'D' },
@@ -841,21 +852,22 @@ const u8 OptionIndex[OPT_INDEX_SIZE] =
 	/*8f*/	OPT_MODIFY,
 	/*90*/	OPT_REGION,
 	/*91*/	OPT_IOS,
-	/*92*/	OPT_ENC,
-	/*93*/	OPT_TRUNC,
-	/*94*/	OPT_CHUNK_MODE,
-	/*95*/	OPT_CHUNK_SIZE,
-	/*96*/	OPT_MAX_CHUNKS,
-	/*97*/	OPT_FST,
-	/*98*/	OPT_ITIME,
-	/*99*/	OPT_MTIME,
-	/*9a*/	OPT_CTIME,
-	/*9b*/	OPT_ATIME,
-	/*9c*/	OPT_TIME,
-	/*9d*/	OPT_SHOW,
-	/*9e*/	OPT_SECTIONS,
-	/*9f*/	OPT_LIMIT,
-	/*a0*/	 0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0,
+	/*92*/	OPT_OVERLAY,
+	/*93*/	OPT_ENC,
+	/*94*/	OPT_TRUNC,
+	/*95*/	OPT_CHUNK_MODE,
+	/*96*/	OPT_CHUNK_SIZE,
+	/*97*/	OPT_MAX_CHUNKS,
+	/*98*/	OPT_FST,
+	/*99*/	OPT_ITIME,
+	/*9a*/	OPT_MTIME,
+	/*9b*/	OPT_CTIME,
+	/*9c*/	OPT_ATIME,
+	/*9d*/	OPT_TIME,
+	/*9e*/	OPT_SHOW,
+	/*9f*/	OPT_SECTIONS,
+	/*a0*/	OPT_LIMIT,
+	/*a1*/	 0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,
 };
 
 //
@@ -1853,6 +1865,7 @@ static const InfoOption_t * option_tab_cmd_MIX[] =
 	&option_cmd_MIX_ID,
 	&option_cmd_MIX_NAME,
 	OptionInfo + OPT_REGION,
+	OptionInfo + OPT_OVERLAY,
 
 	0
 };
@@ -2217,7 +2230,7 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	"wit MIX SOURCE... --dest|--DEST outfile\n"
 	"  where SOURCE := infile ['select' ptype] ['as' [ptab '.'] [ptype]]",
 	"Mix the partitions from different sources into one new Wii disc.",
-	14,
+	15,
 	option_tab_cmd_MIX
     },
 

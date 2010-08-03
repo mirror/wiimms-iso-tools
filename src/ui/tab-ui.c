@@ -523,6 +523,16 @@ info_t info_tab[] =
 		"\n"
 		"This patching option is only recognized while $composing$ a disc." },
 
+  { T_OPT_C,	"OVERLAY",	"overlay",
+		0,
+		"Most partitions has holes (unused areas) in the data section."
+		" If combining multiple partitons into one disc it is possible"
+		" to overlay the partitions sothat the data of one partition"
+		" resides in the hole of other partitions."
+		" This option enables this feature "
+		" and limits the number of input partitions to 12,"
+		" because the calculation is rated as O(n^2)." },
+
   { T_OPT_CP,	"ENC",		"enc",
 		"encoding",
 		"Define the encoding mode."
@@ -1250,6 +1260,7 @@ info_t info_tab[] =
 	"Define a disc title for the disc header."
 	" The default is a generic title based on all sources." },
   { T_COPT,	"REGION",	0,0,0 },
+  { T_COPT,	"OVERLAY",	0,0,0 },
 
   //
   ///////////////////////////////////////////////////////////////////////////

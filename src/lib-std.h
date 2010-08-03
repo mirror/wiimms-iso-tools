@@ -939,10 +939,11 @@ int ScanEscapeChar ( ccp arg );
 
 typedef struct MemMapItem_t
 {
-	off_t off;
-	off_t size;
-	u8    overlap;
-	char  info[63];
+	off_t off;		// offset
+	off_t size;		// size
+	u8    overlap;		// system info: item overlaps other items
+	u8    index;		// user defined index
+	char  info[62];		// usee defined info text
 
 } MemMapItem_t;
 

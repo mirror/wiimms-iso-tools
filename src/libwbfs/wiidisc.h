@@ -351,6 +351,7 @@ typedef struct wd_part_t
     bool		is_enabled;	// true if this partition is enabled
     bool		is_ok;		// true if is_loaded && is_valid && is_enabled
     bool		is_encrypted;	// true if this partition is encrypted
+    bool		is_overlay;	// true if this partition overlays other partitions
 
     bool		sign_ticket;	// true if ticket must be signed
     bool		sign_tmd;	// true if tmd must be signed

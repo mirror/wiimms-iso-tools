@@ -276,11 +276,12 @@ u32 ScanPartType ( ccp arg, ccp err_text_extend );
 
 enumError ScanPartTabAndType
 (
-    u32		* res_ptab,	// NULL or result: partition table
-    u32		* res_ptype,	// NULL or result: partition type
-    bool	* res_pt_valid,	// NULL or result: partition type is valid
-    ccp		arg,		// argument to analyze
-    ccp		err_text_extend	// text to extent error messages
+    u32		* res_ptab,		// NULL or result: partition table
+    bool	* res_ptab_valid,	// NULL or result: partition table is valid
+    u32		* res_ptype,		// NULL or result: partition type
+    bool	* res_ptype_valid,	// NULL or result: partition type is valid
+    ccp		arg,			// argument to analyze
+    ccp		err_text_extend		// text to extent error messages
 );
 
 //-----------------------------------------------------------------------------
