@@ -395,8 +395,8 @@ void ticket_setup ( wd_ticket_t * tik, const void * id4 )
     memset(tik->unknown7,0xff,sizeof(tik->unknown7));
     tik->unknown3 = 0xffff;
 
-    random_fill(tik->title_key,sizeof(tik->title_key));
-    random_fill(tik->ticket_id,sizeof(tik->ticket_id));
+    RANDOM_FILL(tik->title_key,sizeof(tik->title_key));
+    RANDOM_FILL(tik->ticket_id,sizeof(tik->ticket_id));
     tik->ticket_id[0] = 0;
     tik->ticket_id[1] = 1;
 }

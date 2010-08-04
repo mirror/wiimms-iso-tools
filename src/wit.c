@@ -1978,7 +1978,7 @@ static u32 mark_used_mix
 	PRINT("\t\t\t\t\t> %x..%x -> %x..%x [%u/%u]\n",
 		ptr->off, ptr->off + ptr->size,
 		ptr->off + size, ptr->off + ptr->size,
-		ptr - base, used );
+		(int)(ptr-base), used );
 	ptr->off  += size;
 	ptr->size -= size;
 	if (!ptr->size)
@@ -1996,7 +1996,7 @@ static u32 mark_used_mix
 	PRINT("\t\t\t\t\t> %x..%x -> %x..%x [%u/%u]\n",
 		ptr->off, ptr->off + ptr->size,
 		ptr->off, ptr->off + ptr->size - size,
-		ptr - base, used );
+		(int)(ptr-base), used );
 	ptr->size -= size;
 	return used;
     }
@@ -2016,7 +2016,7 @@ static u32 mark_used_mix
 		old_off, old_off + old_size,
 		ptr[0].off, ptr[0].off + ptr[0].size,
 		ptr[1].off, ptr[1].off + ptr[1].size,
-		ptr - base, used, used+1 );
+		(int)(ptr-base), used, used+1 );
     return used+1;
 }
 
@@ -2266,7 +2266,7 @@ enumError cmd_mix()
 	    param = param->next;
 	}
 	PRINT("psel=%llx, as=%u.%u,%d.%x, src=%s\n",
-		psel, ptab_valid,ptype_valid,ptab,ptype,srcfile);
+		(u64)psel, ptab_valid, ptype_valid, ptab, ptype, srcfile );
 
 
 	//--- open disc and partitions
@@ -2470,7 +2470,11 @@ enumError cmd_mix()
     fo.f.create_directory = opt_mkdir;
     GenImageFileName(&fo.f,opt_dest,destfile,oft);
     SetupIOD(&fo,oft,oft);
-    
+
+    if ( oft == OFT_WBFS )
+	return ERROR0(ERR_CANT_CREATE,
+		"Output to WBFS files not supported yet.");
+
     if ( testmode || verbose >= 0 )
 	printf("\n%sreate [%.6s] %s:%s\n  (%s)\n\n",
 		testmode ? "WOULD c" : "C",
@@ -2491,7 +2495,7 @@ enumError cmd_mix()
 	DASSERT(item);
 	item->index = mix - mixtab;
 	snprintf(item->info,sizeof(item->info),
-		    "partition #%-2u %s", mix - mixtab,
+		    "partition #%-2u %s", (int)(mix-mixtab),
 		    wd_print_part_name(0,0,mix->ptype,WD_PNAME_COLUMN_9) );
 
 	if ( mix->a2off )
@@ -2502,7 +2506,7 @@ enumError cmd_mix()
 	    DASSERT(item);
 	    item->index = mix - mixtab | 0x80;
 	    snprintf(item->info,sizeof(item->info),
-			"partition #%-2u %s+", mix - mixtab,
+			"partition #%-2u %s+", (int)(mix-mixtab),
 			wd_print_part_name(0,0,mix->ptype,WD_PNAME_COLUMN_9) );
 	}
     }

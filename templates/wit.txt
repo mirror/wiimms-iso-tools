@@ -64,52 +64,6 @@ are listed in alphabetic order:
 
 -------------------------------------------------------------------------------
 @@EXEC(./wit help --width 80 COPY)@@
-~ [2do] copy to homepage
-
- The command COPY copies all given sources into the destination (directory).
- If the option --dest is not set the last parameter is used as destination.
- If exact one source file is given the destination can be a file name. If two
- or more source files given the destination must be a directory. Option --DEST
- is like --dest, but the directory path is created automaticaly.
-
- Each source is candidate for copying. Non ISO files are ignored with a warning.
- The option --ignore suppresses this warning. Existing files will only be
- overwrtitten if option --overwrite is set. If option --update is set, the
- operation will be silently ignored if the destuination file already exists.
-
- The output is scrubbed. The scrubbing can be controled with the options
- --psel and --raw. If option --remove is set then the souce file is removed
- after successfull operation.
-
- The options --split and --split-size control the splitting of the output
- files. See section "Processing split options" for details.
-
- When writing ISO files the option --wdf, --iso, --ciso, --wbfs and --fst
- control the output format. --fst switch to extract mode (like command
- EXTRACT). If writing a WBFS file this WBFS is truncated and contains exactly
- one ISO image. The default file name of this WBFS is '<ID6>.wbfs'. If none
- of --wdf, --iso, --ciso, -wbfs or --fst is set, the destination filename will
- be analyzed. If the extension (ignoring case) is ".wdf", ".iso", ".ciso",
- ".wbi" (an alternative for ".ciso") or ".wbfs", the specific output format
- is used. The default is WDF if all other fails.
-
- The option --test enables test mode: No files are written or removed. If
- --test is set at least two times a source list with a trailing destination
- will be printed.
-
-
- DESTINATION FILENAME
-
-@@MODULE(output-filename.txt)@@
-
-
- Usual ERROR/EXIT CODES:
-
-    0 == OK             : all done without erros.
-    SYNTAX ERROR        : at least one syntax error in command line found.
-    READ ERROR          : error while reading a file.
-    WRITE ERROR         : error while writing a file.
-    CANT CREATE         : Can't create output file.
 
 
 -------------------------------------------------------------------------------
@@ -491,9 +445,6 @@ COMMANDS:
 
 -------------------------------------------------------------------------------
 @@EXEC(./wit help --width 80 MIX)@@
-~ [2do] copy to homepage
-
- ** no documentation yet **
 
 
 -------------------------------------------------------------------------------

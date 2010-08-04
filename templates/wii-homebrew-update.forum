@@ -24,12 +24,15 @@
     Dieses QT basierte GUI bietet Dinge rund um die Bearbeitung (Kopieren, modifizieren) von einzelnen WIi ISO discs.
 
 [*] [url=@@URI-WIIJMANAGER@@][b]WiiJManager Multiplatform, ein WBFS-Manager[/b][/url]
-    Dieses Java basierte GUI arbeitet wie andere WBFS-Manager. Umwandlung von einzelnen Wii ISO dics ist auch möglich.
+    Dieses Java basierte GUI arbeitet wie andere WBFS-Manager. Umwandlung von einzelnen Wii ISO dics ist auch möglich. (Es sieht so aus, als sei das Projekt eingestellt worden)
 [/list]
 
 [size=12][color=#0000c0][b]Höhepunkte dieser Version:[/b][/color][/size]
 [list]
-[*]
+[*] Das neue Kommando [url=http://wit.wiimm.de/wit/cmd-mix.html]wit MIX[/url] kann Partitionen verschiedener Quellen zu einer neuen Wii disc zusammenstellen.Dabei kann der Benutzer die Quellpartitionen auswählen und ihnen neue Partitonskennungen zuweisen.  Da die Partitionen 1:1 kopiert werden bleibt die urpsrüngliche Signierung erhalten. (siehe [url]http://wit.wiimm.de/wit/cmd-mix.html[/url] für Details.
+
+[*] [url=http://wit.wiimm.de/wit/cmd-mix.html]wit MIX[/url] hat eine specielle option: --overlay.
+Wenn diese Option gesetzt ist, dann wird versucht die partitionen zu überlagern. Dazu werden die Daten einer Partition in die unbenutzten Bewreiche einer anderen Partition gelegt. Hirdurch kann die Gesamtgröße der neuen Disc wesentlich reduziert werden. Siehe [url]http://wit.lemmi/wit/cmd-mix.html#overlay[/url] für Details.
 [/list]
 
 [size=12][color=#0000c0][b]Letzte Änderungen:[/b][/color][/size]

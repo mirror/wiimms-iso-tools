@@ -24,12 +24,16 @@
 [color=#ffffff].[/color]
 
 [*] [url=@@URI-WIIJMANAGER@@][b]WiiJManager Multiplatform[/b], a WBFS manager GUI[/url]
-    A java GUI that acts like a WBFS manager. Converting of ISO images is also possible.
+    A java GUI that acts like a WBFS manager. Converting of ISO images is also possible.  (The project seems to be dead)
 [/list]
 
 [size="2"][color="#0000c0"][b]Highlights of this release:[/b][/color][/size]
 [list]
-[*]
+[*] The new command [url=http://wit.wiimm.de/wit/cmd-mix.html]wit MIX[/url] is able to mix the partitions from different sources into one new Wii disc. The user can select the source partitions and can change the partition type. Because of copying the partitions 1:1 there is no need to fake sign. (see [url]http://wit.wiimm.de/wit/cmd-mix.html[/url] for details.
+[color=#ffffff].[/color]
+
+[*] [url=http://wit.wiimm.de/wit/cmd-mix.html]wit MIX[/url] has a special option: --overlay.
+If set the command will try to overly the partitons so that data of one partition resides in the unused areas of other partitons. This can reduce the totla image size dramatically. See [url]http://wit.lemmi/wit/cmd-mix.html#overlay[/url] for details.
 [color=#ffffff].[/color]
 [/list]
 
