@@ -316,6 +316,9 @@ enumError Dump_ISO
 
 	if ( show_mode & SHOW_P_INFO )
 	{
+	    if (part->is_overlay)
+		fprintf(f,"%*s  Partitions overlays other partitions.\n", indent,"" );
+		
 	    if ( tmd_is_marked_not_encrypted(part->tmd) )
 		fprintf(f,"%*s  Partition is marked as 'not encrypted'.\n", indent,"" );
 	    else
@@ -1122,18 +1125,20 @@ u32 ScanPartType ( ccp arg, ccp err_text_extend )
 
 enumError ScanPartTabAndType
 (
-    u32		* res_ptab,	// NULL or result: partition table
-    u32		* res_ptype,	// NULL or result: partition type
-    bool	* res_pt_valid,	// NULL or result: partition type is valid
-    ccp		arg,		// argument to analyze
-    ccp		err_text_extend	// text to extent error messages
+    u32		* res_ptab,		// NULL or result: partition table
+    bool	* res_ptab_valid,	// NULL or result: partition table is valid
+    u32		* res_ptype,		// NULL or result: partition type
+    bool	* res_ptype_valid,	// NULL or result: partition type is valid
+    ccp		arg,			// argument to analyze
+    ccp		err_text_extend		// text to extent error messages
 )
 {
     DASSERT(arg);
 
     u32 ptab = 0;
     ccp sep = strchr(arg,'.');
-    if (sep)
+    bool ptab_valid = sep != 0;
+    if (ptab_valid)
     {
 	char * end;
 	ptab = strtoul(arg,&end,10);
@@ -1142,6 +1147,7 @@ enumError ScanPartTabAndType
 			"Not a valid partition table%s: %.20s\n",
 			err_text_extend, arg );
 	arg = sep + 1;
+	
     }
 
     u32 ptype = 0;
@@ -1155,10 +1161,12 @@ enumError ScanPartTabAndType
 
     if (res_ptab)
 	*res_ptab = ptab;
+    if (res_ptab_valid)
+	*res_ptab_valid = ptab_valid;
     if (res_ptype)
 	*res_ptype = ptype;
-    if (res_pt_valid)
-	*res_pt_valid = ptype_valid;
+    if (res_ptype_valid)
+	*res_ptype_valid = ptype_valid;
     return ERR_OK;
 }
 

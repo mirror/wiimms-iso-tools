@@ -1526,6 +1526,37 @@ enumError wd_load_part
 
 	part->is_valid = true;
 	wd_calc_fst_statistics(disc,false);
+
+	//----- check overlays
+
+	int p2;
+	u32 end4a = part->part_off4 + (u32)(part->part_size>>2);
+	for ( p2 = 0; p2 < disc->n_part; p2++ )
+	{
+	    wd_part_t * part2 = disc->part + p2;
+	    if ( part == part2 )
+		continue;
+
+	    if (   part2->part_off4 >= part->part_off4
+		&& part2->part_off4 < end4a )
+	    {
+		part->is_overlay = true;
+		part2->is_overlay = true;
+		continue;
+	    }
+
+	    if ( part2->is_loaded && part2->is_valid )
+	    {
+		u32 end4b = part2->part_off4 + (u32)(part2->part_size>>2);
+		if (   part->part_off4 >= part2->part_off4
+		    && part->part_off4 < end4b )
+		{
+		    part->is_overlay = true;
+		    part2->is_overlay = true;
+		    continue;
+		}
+	    }
+	}
     }
 
     if (part->is_valid)
@@ -1840,7 +1871,7 @@ u8 * wd_filter_usage_table
 	    val |= WD_USAGE_F_CRYPT;
 	    transform[val] = val;
 
-	    if ( whole_part )
+	    if ( whole_part && !part->is_overlay )
 	    {
 		const u32 first_block = part->data_off4 /  WII_SECTOR_SIZE4;
 		u32 end_block = ( part->ph.data_size4 + WII_SECTOR_SIZE4 - 1 )
@@ -4302,11 +4333,14 @@ void wd_dump_mem
 		const u32 fst_sect = part->fst_n
 			? off/WII_SECTOR_SIZE + part->boot.fst_off4/WII_SECTOR_DATA_SIZE4
 			: 0;
+		const u8 * utab = disc->usage_table;
+		const u8 usage_id = part->usage_id;
 		while ( off < end )
 		{
 		    u32 sect = off / WII_SECTOR_SIZE;
 		    u32 start = sect;
-		    while ( sect < WII_MAX_SECTORS && !disc->usage_table[sect] )
+		    while ( sect < WII_MAX_SECTORS
+			    && ( utab[sect] & WD_USAGE__MASK ) != usage_id )
 			sect++;
 		    if ( start < sect )
 		    {
@@ -4314,15 +4348,12 @@ void wd_dump_mem
 			if ( off2 > end )
 			    off2 = end;
 			if ( off < off2 )
-			{
-			    //snprintf( dest, msgsize, "unused" );
-			    //func(param,off,off2-off,msg);
 			    off = off2;
-			}
 			start = sect;
 		    }
 
-		    while ( sect < WII_MAX_SECTORS && disc->usage_table[sect] )
+		    while ( sect < WII_MAX_SECTORS
+			    && ( utab[sect] & WD_USAGE__MASK ) == usage_id )
 			sect++;
 		    if ( start < sect )
 		    {

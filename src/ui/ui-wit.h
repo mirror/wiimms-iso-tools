@@ -60,6 +60,7 @@ typedef enum enumOptions
 	OPT_MODIFY,
 	OPT_REGION,
 	OPT_IOS,
+	OPT_OVERLAY,
 	OPT_ENC,
 	OPT_DEST,
 	OPT_DEST2,
@@ -92,7 +93,7 @@ typedef enum enumOptions
 	OPT_SORT,
 	OPT_LIMIT,
 
-	OPT__N_SPECIFIC, // == 50 
+	OPT__N_SPECIFIC, // == 51 
 
 	//----- global options -----
 
@@ -113,7 +114,7 @@ typedef enum enumOptions
 	OPT_TEST,
 	OPT_HOOK,
 
-	OPT__N_TOTAL // == 66
+	OPT__N_TOTAL // == 67
 
 } enumOptions;
 
@@ -144,6 +145,7 @@ typedef enum enumOptionsBit
 	OB_MODIFY		= 1llu << OPT_MODIFY,
 	OB_REGION		= 1llu << OPT_REGION,
 	OB_IOS			= 1llu << OPT_IOS,
+	OB_OVERLAY		= 1llu << OPT_OVERLAY,
 	OB_ENC			= 1llu << OPT_ENC,
 	OB_DEST			= 1llu << OPT_DEST,
 	OB_DEST2		= 1llu << OPT_DEST2,
@@ -380,7 +382,8 @@ typedef enum enumOptionsBit
 				| OB_GRP_SPLIT_CHUNK
 				| OB_ID
 				| OB_NAME
-				| OB_REGION,
+				| OB_REGION
+				| OB_OVERLAY,
 
 } enumOptionsBit;
 
@@ -495,6 +498,7 @@ typedef enum enumGetOpt
 	GO_MODIFY,
 	GO_REGION,
 	GO_IOS,
+	GO_OVERLAY,
 	GO_ENC,
 	GO_TRUNC,
 	GO_CHUNK_MODE,

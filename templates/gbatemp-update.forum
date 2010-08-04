@@ -24,24 +24,16 @@
 [color=#ffffff].[/color]
 
 [*] [url=@@URI-WIIJMANAGER@@][b]WiiJManager Multiplatform[/b], a WBFS manager GUI[/url]
-    A java GUI that acts like a WBFS manager. Converting of ISO images is also possible.
+    A java GUI that acts like a WBFS manager. Converting of ISO images is also possible.  (The project seems to be dead)
 [/list]
 
 [size="2"][color="#0000c0"][b]Highlights of this release:[/b][/color][/size]
 [list]
-[*] The commands "wit COPY", "wwt ADD" and some others accepts the patching options --id, --name, --ios, --region and --psel to modify the ISO image on the fly. If needed, the partitons will be truscha signed.
+[*] The new command [url=http://wit.wiimm.de/wit/cmd-mix.html]wit MIX[/url] is able to mix the partitions from different sources into one new Wii disc. The user can select the source partitions and can change the partition type. Because of copying the partitions 1:1 there is no need to fake sign. (see [url]http://wit.wiimm.de/wit/cmd-mix.html[/url] for details.
 [color=#ffffff].[/color]
 
-[*] The new command "wit EDIT" modifies existing ISO images directly without copying.
-[color=#ffffff].[/color]
-
-[*] The command "wit DUMP" is able to print much more info. There are new keywords for the option --show: USAGE, PATCH, RELOCATE. Try "--show all,-files" to see the nearly full output.
-[color=#ffffff].[/color]
-
-[*] The GUI [url=@@URI-QTWITGUI@@][b]QtWitGui[/b][/url] is able to handle most of this.
-[color=#ffffff].[/color]
-
-[*] Cloning a Wii disc witn an alternate ID to have more save slots can be done with one command. See [url=http://wit.wiimm.de/info/cloning.html]Cloning a disc @ wit.wiimm.de[/url] for more info.
+[*] [url=http://wit.wiimm.de/wit/cmd-mix.html]wit MIX[/url] has a special option: --overlay.
+If set the command will try to overly the partitons so that data of one partition resides in the unused areas of other partitons. This can reduce the totla image size dramatically. See [url]http://wit.lemmi/wit/cmd-mix.html#overlay[/url] for details.
 [color=#ffffff].[/color]
 [/list]
 

@@ -282,7 +282,24 @@ u32 CountUsedIsoBlocksSF ( SuperFile_t * sf, wd_select_t psel );
 // copy functions
 enumError CopySF	( SuperFile_t * in, SuperFile_t * out, wd_select_t psel );
 enumError CopyRaw	( SuperFile_t * in, SuperFile_t * out );
-enumError CopyRawData	( SuperFile_t * in, SuperFile_t * out, off_t off, off_t size );
+
+enumError CopyRawData
+(
+    SuperFile_t	* in,
+    SuperFile_t	* out,
+    off_t	off,
+    off_t	size
+);
+
+enumError CopyRawData2
+(
+    SuperFile_t	* in,
+    off_t	in_off,
+    SuperFile_t	* out,
+    off_t	out_off,
+    off_t	copy_size
+);
+
 enumError CopyWDF	( SuperFile_t * in, SuperFile_t * out );
 enumError CopyWBFSDisc	( SuperFile_t * in, SuperFile_t * out );
 enumError CopyToWBFS	( SuperFile_t * in, SuperFile_t * out, wd_select_t psel );

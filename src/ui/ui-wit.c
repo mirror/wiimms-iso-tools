@@ -130,8 +130,7 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 	" parameter. 1 to 6 characters are expected. Only defined characters"
 	" not equal '.' are modified. The disc header, boot.bin, ticket.bin"
 	" and tmd.bin are  objects to modify. The option --modify selects the"
-	" objects.\n"
-	"This patching option is only recognized while composing a disc."
+	" objects."
     },
 
     {	OPT_NAME, 0, "name",
@@ -139,8 +138,7 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 	"This patching option changes the name (disc title) of the disc to the"
 	" given parameter. Up to 63 characters are expected. The disc header"
 	" and boot.bin are objects to modify. The option --modify selects the"
-	" objects.\n"
-	"This patching option is only recognized while composing a disc."
+	" objects."
     },
 
     {	OPT_MODIFY, 0, "modify",
@@ -150,24 +148,31 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 	" WBFS, ALL and AUTO (default).\n"
 	"All keywords can be prefixed by '+' to enable that option, by a '-'"
 	" to disable it or by a '=' to enable that option and disable all"
-	" others.\n"
-	"This patching option is only recognized while composing a disc."
+	" others."
     },
 
     {	OPT_REGION, 0, "region",
 	"region",
 	"This patching option defines the region of the disc.  The region is"
 	" one of JAPAN, USA, EUROPE, KOREA, FILE or AUTO (default). The case"
-	" of the keywords is ignored. Unsigned numbers are also accepted.\n"
-	"This patching option is only recognized while composing a disc."
+	" of the keywords is ignored. Unsigned numbers are also accepted."
     },
 
     {	OPT_IOS, 0, "ios",
 	"ios",
 	"This patching option defines the system version (IOS to load) within"
 	" TMD. The format is 'HIGH:LOW' or 'HIGH-LOW' or 'LOW'. If only LOW is"
-	" set than HIGH is assumed as 1 (standard IOS).\n"
-	"This patching option is only recognized while composing a disc."
+	" set than HIGH is assumed as 1 (standard IOS)."
+    },
+
+    {	OPT_OVERLAY, 0, "overlay",
+	0,
+	"Most partitions have holes (unused areas) in the data section. If"
+	" combining multiple partitons into one disc it is possible to overlay"
+	" the partitions so that the data of one partition resides in the hole"
+	" of other partitions. This option enables this feature. It also"
+	" limits the number of input partitions to 12, because the calculation"
+	" is rated as O(2^n)."
     },
 
     {	OPT_ENC, 0, "enc",
@@ -382,7 +387,7 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 	"Limit the output to NUM messages."
     },
 
-    {0,0,0,0,0}, // OPT__N_SPECIFIC == 50
+    {0,0,0,0,0}, // OPT__N_SPECIFIC == 51
 
     //----- global options -----
 
@@ -480,7 +485,7 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 	"Force relocation hook while reading iso images."
     },
 
-    {0,0,0,0,0} // OPT__N_TOTAL == 66
+    {0,0,0,0,0} // OPT__N_TOTAL == 67
 
 };
 
@@ -720,6 +725,7 @@ const struct option OptionLong[] =
 	{ "modify",		1, 0, GO_MODIFY },
 	{ "region",		1, 0, GO_REGION },
 	{ "ios",		1, 0, GO_IOS },
+	{ "overlay",		0, 0, GO_OVERLAY },
 	{ "enc",		1, 0, GO_ENC },
 	{ "dest",		1, 0, 'd' },
 	{ "DEST",		1, 0, 'D' },
@@ -841,21 +847,22 @@ const u8 OptionIndex[OPT_INDEX_SIZE] =
 	/*8f*/	OPT_MODIFY,
 	/*90*/	OPT_REGION,
 	/*91*/	OPT_IOS,
-	/*92*/	OPT_ENC,
-	/*93*/	OPT_TRUNC,
-	/*94*/	OPT_CHUNK_MODE,
-	/*95*/	OPT_CHUNK_SIZE,
-	/*96*/	OPT_MAX_CHUNKS,
-	/*97*/	OPT_FST,
-	/*98*/	OPT_ITIME,
-	/*99*/	OPT_MTIME,
-	/*9a*/	OPT_CTIME,
-	/*9b*/	OPT_ATIME,
-	/*9c*/	OPT_TIME,
-	/*9d*/	OPT_SHOW,
-	/*9e*/	OPT_SECTIONS,
-	/*9f*/	OPT_LIMIT,
-	/*a0*/	 0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0,
+	/*92*/	OPT_OVERLAY,
+	/*93*/	OPT_ENC,
+	/*94*/	OPT_TRUNC,
+	/*95*/	OPT_CHUNK_MODE,
+	/*96*/	OPT_CHUNK_SIZE,
+	/*97*/	OPT_MAX_CHUNKS,
+	/*98*/	OPT_FST,
+	/*99*/	OPT_ITIME,
+	/*9a*/	OPT_MTIME,
+	/*9b*/	OPT_CTIME,
+	/*9c*/	OPT_ATIME,
+	/*9d*/	OPT_TIME,
+	/*9e*/	OPT_SHOW,
+	/*9f*/	OPT_SECTIONS,
+	/*a0*/	OPT_LIMIT,
+	/*a1*/	 0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,
 };
 
 //
@@ -1853,6 +1860,7 @@ static const InfoOption_t * option_tab_cmd_MIX[] =
 	&option_cmd_MIX_ID,
 	&option_cmd_MIX_NAME,
 	OptionInfo + OPT_REGION,
+	OptionInfo + OPT_OVERLAY,
 
 	0
 };
@@ -2134,7 +2142,8 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	"CP",
 	"wit COPY source dest\n"
 	"wit COPY [-s path]... [-r path]... [source]... [-d|-D] dest",
-	"Copy, scrub, convert, split, encrypt and decrypt Wii ISO images.",
+	"Copy, scrub, convert, join, split, compose, extract, patch, encrypt"
+	" and decrypt Wii disc images.",
 	48,
 	option_tab_cmd_COPY
     },
@@ -2146,7 +2155,8 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	"SB",
 	"wit SCRUB source\n"
 	"wit SCRUB [-s path]... [-r path]... [source]...",
-	"Scrub, convert, split, encrypt and decrypt Wii ISO images.",
+	"Scrub, convert, join, split, compose, extract, patch, encrypt and"
+	" decrypt Wii disc images.",
 	37,
 	option_tab_cmd_SCRUB
     },
@@ -2217,7 +2227,7 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	"wit MIX SOURCE... --dest|--DEST outfile\n"
 	"  where SOURCE := infile ['select' ptype] ['as' [ptab '.'] [ptype]]",
 	"Mix the partitions from different sources into one new Wii disc.",
-	14,
+	15,
 	option_tab_cmd_MIX
     },
 

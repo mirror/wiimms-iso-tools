@@ -30,7 +30,7 @@
 
 // random functions
 void RandomFill ( void * buf, size_t size );
-#define random_fill RandomFill
+#define RANDOM_FILL RandomFill
 
 #endif // WIT_CRYPT_H
 

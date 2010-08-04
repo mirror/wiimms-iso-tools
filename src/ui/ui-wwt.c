@@ -134,16 +134,14 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 	"region",
 	"This patching option defines the region of the disc.  The region is"
 	" one of JAPAN, USA, EUROPE, KOREA, FILE or AUTO (default). The case"
-	" of the keywords is ignored. Unsigned numbers are also accepted.\n"
-	"This patching option is only recognized while composing a disc."
+	" of the keywords is ignored. Unsigned numbers are also accepted."
     },
 
     {	OPT_IOS, 0, "ios",
 	"ios",
 	"This patching option defines the system version (IOS to load) within"
 	" TMD. The format is 'HIGH:LOW' or 'HIGH-LOW' or 'LOW'. If only LOW is"
-	" set than HIGH is assumed as 1 (standard IOS).\n"
-	"This patching option is only recognized while composing a disc."
+	" set than HIGH is assumed as 1 (standard IOS)."
     },
 
     {	OPT_ID, 0, "id",
@@ -152,8 +150,7 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 	" parameter. 1 to 6 characters are expected. Only defined characters"
 	" not equal '.' are modified. The disc header, boot.bin, ticket.bin"
 	" and tmd.bin are  objects to modify. The option --modify selects the"
-	" objects.\n"
-	"This patching option is only recognized while composing a disc."
+	" objects."
     },
 
     {	OPT_NAME, 0, "name",
@@ -161,8 +158,7 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 	"This patching option changes the name (disc title) of the disc to the"
 	" given parameter. Up to 63 characters are expected. The disc header"
 	" and boot.bin are objects to modify. The option --modify selects the"
-	" objects.\n"
-	"This patching option is only recognized while composing a disc."
+	" objects."
     },
 
     {	OPT_MODIFY, 0, "modify",
@@ -172,8 +168,7 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 	" WBFS, ALL and AUTO (default).\n"
 	"All keywords can be prefixed by '+' to enable that option, by a '-'"
 	" to disable it or by a '=' to enable that option and disable all"
-	" others.\n"
-	"This patching option is only recognized while composing a disc."
+	" others."
     },
 
     {	OPT_INODE, 0, "inode",

@@ -272,13 +272,15 @@ info_t info_tab[] =
 		"wit COPY source dest"
 		"\n"
 		"wit COPY [-s path]... [-r path]... [source]... [-d|-D] dest",
-		"Copy, scrub, convert, split, encrypt and decrypt Wii ISO images." },
+		"Copy, scrub, convert, join, split, compose, extract,"
+		" patch, encrypt and decrypt Wii disc images." },
 
   { T_DEF_CMD,	"SCRUB",	"SCRUB|SB",
 		"wit SCRUB source"
 		"\n"
 		"wit SCRUB [-s path]... [-r path]... [source]...",
-		"Scrub, convert, split, encrypt and decrypt Wii ISO images." },
+		"Scrub, convert, join, split, compose, extract,"
+		" patch, encrypt and decrypt Wii disc images." },
 
   { T_DEF_CMD,	"EDIT",		"EDIT|ED",
 		"wit EDIT source"
@@ -481,18 +483,14 @@ info_t info_tab[] =
 		" to the given parameter. 1 to 6 characters are expected."
 		" Only defined characters not equal '.' are modified."
 		" The disc header, boot.bin, ticket.bin and tmd.bin are "
-		" objects to modify. The option {--modify} selects the objects."
-		"\n"
-		"This patching option is only recognized while $composing$ a disc." },
+		" objects to modify. The option {--modify} selects the objects." },
 
   { T_OPT_CP,	"NAME",		"name",
 		"name",
 		"This $patching$ option changes the name (disc title) of the disc"
 		" to the given parameter. Up to 63 characters are expected."
 		" The disc header and boot.bin are objects to modify."
-		" The option {--modify} selects the objects."
-		"\n"
-		"This patching option is only recognized while $composing$ a disc." },
+		" The option {--modify} selects the objects." },
 
   { T_OPT_CP,	"MODIFY",	"modify",
 		"list",
@@ -502,26 +500,30 @@ info_t info_tab[] =
 		"\n"
 		"All keywords can be prefixed by @'+'@ to enable that option,"
 		" by a @'-'@ to disable it or"
-		" by a @'='@ to enable that option and disable all others."
-		"\n"
-		"This patching option is only recognized while $composing$ a disc." },
+		" by a @'='@ to enable that option and disable all others." },
 
   { T_OPT_CP,	"REGION",	"region",
 		"region",
 		"This $patching$ option defines the region of the disc. "
 		" The region is one of @JAPAN, USA, EUROPE, KOREA, FILE@"
 		" or @AUTO@ (default). The case of the keywords is ignored."
-		" Unsigned numbers are also accepted."
-		"\n"
-		"This patching option is only recognized while $composing$ a disc." },
+		" Unsigned numbers are also accepted." },
 
   { T_OPT_CP,	"IOS",		"ios",
 		"ios",
 		"This $patching$ option defines the system version (IOS to load)"
 		" within TMD. The format is @'HIGH:LOW'@ or @'HIGH-LOW'@ or @'LOW'@."
-		" If only @LOW@ is set than @HIGH@ is assumed as 1 (standard IOS)."
-		"\n"
-		"This patching option is only recognized while $composing$ a disc." },
+		" If only @LOW@ is set than @HIGH@ is assumed as 1 (standard IOS)." },
+
+  { T_OPT_C,	"OVERLAY",	"overlay",
+		0,
+		"Most partitions have holes (unused areas) in the data section."
+		" If combining multiple partitons into one disc it is possible"
+		" to overlay the partitions so that the data of one partition"
+		" resides in the hole of other partitions."
+		" This option enables this feature."
+		" It also limits the number of input partitions to 12,"
+		" because the calculation is rated as O(2^n)." },
 
   { T_OPT_CP,	"ENC",		"enc",
 		"encoding",
@@ -1250,6 +1252,7 @@ info_t info_tab[] =
 	"Define a disc title for the disc header."
 	" The default is a generic title based on all sources." },
   { T_COPT,	"REGION",	0,0,0 },
+  { T_COPT,	"OVERLAY",	0,0,0 },
 
   //
   ///////////////////////////////////////////////////////////////////////////
