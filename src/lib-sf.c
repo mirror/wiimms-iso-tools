@@ -520,6 +520,18 @@ static enumError ReadDiscWrapper
 
 ///////////////////////////////////////////////////////////////////////////////
 
+int IsFileSelected ( wd_iterator_t *it )
+{
+    DASSERT(it);
+
+    FilePattern_t * pat = it->param;
+    DASSERT(pat);
+
+    return MatchFilePattern(pat,it->fst_name);
+};
+
+///////////////////////////////////////////////////////////////////////////////
+
 wd_disc_t * OpenDiscSF
 (
 	SuperFile_t * sf,	// valid pointer
@@ -651,6 +663,35 @@ wd_disc_t * OpenDiscSF
 	}
     }
 
+
+    //----- check file pattern
+
+    bool files_dirty = false;
+
+    FilePattern_t * pat = file_pattern + PAT_RM_FILES;
+    if (SetupFilePattern(pat)
+	&& pat->rules.used
+	&& wd_remove_disc_files(disc,IsFileSelected,pat,false) )
+    {
+	files_dirty = true;
+	reloc  = 1;
+    }
+
+    pat = file_pattern + PAT_ZERO_FILES;
+    if (SetupFilePattern(pat)
+	&& pat->rules.used
+	&& wd_zero_disc_files(disc,IsFileSelected,pat,false) )
+    {
+	files_dirty = true;
+	reloc  = 1;
+    }
+
+    if (files_dirty)
+	wd_select_disc_files(disc,0,0);
+
+    
+    //----- reloc?
+
     if (reloc)
     {
      #ifdef TEST // [2do]
@@ -669,6 +710,14 @@ wd_disc_t * OpenDiscSF
 	memcpy(sf->f.id6,&sf->disc2->dhead,6);
     else
 	sf->disc2 = wd_dup_disc(sf->disc1);
+
+    pat = file_pattern + PAT_IGNORE_FILES;
+    SetupFilePattern(pat);
+    if (pat->rules.used)
+    {
+	DefineNegatePattern(pat,true);
+	wd_select_disc_files(sf->disc2,IsFileSelected,pat);
+    }
 
     return sf->disc2;
 }

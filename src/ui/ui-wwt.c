@@ -123,27 +123,6 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 	"Disable composing and ignore FST directories as input."
     },
 
-    {	OPT_ENC, 0, "enc",
-	"encoding",
-	"Define the encoding mode. The mode is one of NONE, HASHONLY, DECRYPT,"
-	" ENCRYPT, SIGN or AUTO. The case of the keywords is ignored. The"
-	" default mode is 'AUTO'."
-    },
-
-    {	OPT_REGION, 0, "region",
-	"region",
-	"This patching option defines the region of the disc.  The region is"
-	" one of JAPAN, USA, EUROPE, KOREA, FILE or AUTO (default). The case"
-	" of the keywords is ignored. Unsigned numbers are also accepted."
-    },
-
-    {	OPT_IOS, 0, "ios",
-	"ios",
-	"This patching option defines the system version (IOS to load) within"
-	" TMD. The format is 'HIGH:LOW' or 'HIGH-LOW' or 'LOW'. If only LOW is"
-	" set than HIGH is assumed as 1 (standard IOS)."
-    },
-
     {	OPT_ID, 0, "id",
 	"id",
 	"This patching option changes the ID of the disc to the given"
@@ -171,9 +150,41 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 	" others."
     },
 
-    {	OPT_INODE, 0, "inode",
-	0,
-	"Print information for all inodes (invalid discs too)."
+    {	OPT_REGION, 0, "region",
+	"region",
+	"This patching option defines the region of the disc.  The region is"
+	" one of JAPAN, USA, EUROPE, KOREA, FILE or AUTO (default). The case"
+	" of the keywords is ignored. Unsigned numbers are also accepted."
+    },
+
+    {	OPT_IOS, 0, "ios",
+	"ios",
+	"This patching option defines the system version (IOS to load) within"
+	" TMD. The format is 'HIGH:LOW' or 'HIGH-LOW' or 'LOW'. If only LOW is"
+	" set than HIGH is assumed as 1 (standard IOS)."
+    },
+
+    {	OPT_RM_FILES, 0, "rm-files",
+	"rules",
+	"Define a filter rules to removes real files and directories from the"
+	" FST."
+    },
+
+    {	OPT_ZERO_FILES, 0, "zero-files",
+	"rules",
+	"Define a filter rules to zero real files from the FST."
+    },
+
+    {	OPT_IGNORE_FILES, 0, "ignore-files",
+	"rules",
+	"Define a filter rules to ignore system and real files from the FST."
+    },
+
+    {	OPT_ENC, 0, "enc",
+	"encoding",
+	"Define the encoding mode. The mode is one of NONE, HASHONLY, DECRYPT,"
+	" ENCRYPT, SIGN or AUTO. The case of the keywords is ignored. The"
+	" default mode is 'AUTO'."
     },
 
     {	OPT_DEST, 'd', "dest",
@@ -387,6 +398,11 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 	"Print in long format. Multiple usage possible."
     },
 
+    {	OPT_INODE, 0, "inode",
+	0,
+	"Print information for all inodes (invalid discs too)."
+    },
+
     {	OPT_MIXED, 'M', "mixed",
 	0,
 	"Print disc infos of all WBFS in one combined table."
@@ -420,7 +436,7 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 	"Limit the output to NUM messages."
     },
 
-    {0,0,0,0,0}, // OPT__N_SPECIFIC == 60
+    {0,0,0,0,0}, // OPT__N_SPECIFIC == 63
 
     //----- global options -----
 
@@ -518,7 +534,7 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 	"Force relocation hook while reading iso images."
     },
 
-    {0,0,0,0,0} // OPT__N_TOTAL == 76
+    {0,0,0,0,0} // OPT__N_TOTAL == 79
 
 };
 
@@ -918,13 +934,15 @@ const struct option OptionLong[] =
 	{ "ignore-fst",		0, 0, GO_IGNORE_FST },
 	 { "ignorefst",		0, 0, GO_IGNORE_FST },
 	{ "hook",		0, 0, GO_HOOK },
-	{ "enc",		1, 0, GO_ENC },
-	{ "region",		1, 0, GO_REGION },
-	{ "ios",		1, 0, GO_IOS },
 	{ "id",			1, 0, GO_ID },
 	{ "name",		1, 0, GO_NAME },
 	{ "modify",		1, 0, GO_MODIFY },
-	{ "inode",		0, 0, GO_INODE },
+	{ "region",		1, 0, GO_REGION },
+	{ "ios",		1, 0, GO_IOS },
+	{ "rm-files",		1, 0, GO_RM_FILES },
+	{ "zero-files",		1, 0, GO_ZERO_FILES },
+	{ "ignore-files",	1, 0, GO_IGNORE_FILES },
+	{ "enc",		1, 0, GO_ENC },
 	{ "dest",		1, 0, 'd' },
 	{ "DEST",		1, 0, 'D' },
 	{ "split",		0, 0, 'z' },
@@ -971,6 +989,7 @@ const struct option OptionLong[] =
 	{ "set-time",		1, 0, GO_SET_TIME },
 	 { "settime",		1, 0, GO_SET_TIME },
 	{ "long",		0, 0, 'l' },
+	{ "inode",		0, 0, GO_INODE },
 	{ "mixed",		0, 0, 'M' },
 	{ "unique",		0, 0, 'U' },
 	{ "no-header",		0, 0, 'H' },
@@ -1058,32 +1077,35 @@ const u8 OptionIndex[OPT_INDEX_SIZE] =
 	/*88*/	OPT_RAW,
 	/*89*/	OPT_IGNORE_FST,
 	/*8a*/	OPT_HOOK,
-	/*8b*/	OPT_ENC,
-	/*8c*/	OPT_REGION,
-	/*8d*/	OPT_IOS,
-	/*8e*/	OPT_ID,
-	/*8f*/	OPT_NAME,
-	/*90*/	OPT_MODIFY,
-	/*91*/	OPT_INODE,
-	/*92*/	OPT_TRUNC,
-	/*93*/	OPT_CHUNK_MODE,
-	/*94*/	OPT_CHUNK_SIZE,
-	/*95*/	OPT_MAX_CHUNKS,
-	/*96*/	OPT_HSS,
-	/*97*/	OPT_WSS,
-	/*98*/	OPT_RECOVER,
-	/*99*/	OPT_NO_CHECK,
-	/*9a*/	OPT_REPAIR,
-	/*9b*/	OPT_NO_FREE,
-	/*9c*/	OPT_ITIME,
-	/*9d*/	OPT_MTIME,
-	/*9e*/	OPT_CTIME,
-	/*9f*/	OPT_ATIME,
-	/*a0*/	OPT_TIME,
-	/*a1*/	OPT_SET_TIME,
-	/*a2*/	OPT_SECTIONS,
-	/*a3*/	OPT_LIMIT,
-	/*a4*/	 0,0,0,0, 0,0,0,0, 0,0,0,0, 
+	/*8b*/	OPT_ID,
+	/*8c*/	OPT_NAME,
+	/*8d*/	OPT_MODIFY,
+	/*8e*/	OPT_REGION,
+	/*8f*/	OPT_IOS,
+	/*90*/	OPT_RM_FILES,
+	/*91*/	OPT_ZERO_FILES,
+	/*92*/	OPT_IGNORE_FILES,
+	/*93*/	OPT_ENC,
+	/*94*/	OPT_TRUNC,
+	/*95*/	OPT_CHUNK_MODE,
+	/*96*/	OPT_CHUNK_SIZE,
+	/*97*/	OPT_MAX_CHUNKS,
+	/*98*/	OPT_HSS,
+	/*99*/	OPT_WSS,
+	/*9a*/	OPT_RECOVER,
+	/*9b*/	OPT_NO_CHECK,
+	/*9c*/	OPT_REPAIR,
+	/*9d*/	OPT_NO_FREE,
+	/*9e*/	OPT_ITIME,
+	/*9f*/	OPT_MTIME,
+	/*a0*/	OPT_CTIME,
+	/*a1*/	OPT_ATIME,
+	/*a2*/	OPT_TIME,
+	/*a3*/	OPT_SET_TIME,
+	/*a4*/	OPT_INODE,
+	/*a5*/	OPT_SECTIONS,
+	/*a6*/	OPT_LIMIT,
+	/*a7*/	 0,0,0,0, 0,0,0,0, 0,
 };
 
 //

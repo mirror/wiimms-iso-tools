@@ -43,6 +43,25 @@ FilePattern_t file_pattern[PAT__N];
 ///////////////                    pattern db                   ///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
+void InitializeFilePattern ( FilePattern_t * pat )
+{
+    DASSERT(pat);
+    memset(pat,0,sizeof(*pat));
+    InitializeStringField(&pat->rules);
+    pat->match_all	= true;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+void ResetFilePattern ( FilePattern_t * pat )
+{
+    DASSERT(pat);
+    ResetStringField(&pat->rules);
+    InitializeFilePattern(pat);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
 void InitializeAllFilePattern()
 {
     memset(file_pattern,0,sizeof(file_pattern));
@@ -50,13 +69,7 @@ void InitializeAllFilePattern()
     FilePattern_t * pat = file_pattern;
     FilePattern_t * end = pat + PAT__N;
     for ( ; pat < end; pat++ )
-    {
-	InitializeStringField(&pat->rules);
-	pat->is_dirty	= false;
-	pat->is_active	= false;
-	pat->match_none	= false;
-	pat->match_all	= true;
-    }
+	InitializeFilePattern(pat);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -91,8 +104,8 @@ static const struct macro_tab_t macro_tab[] =
 int AddFilePattern ( ccp arg, int pattern_index )
 {
     TRACE("AddFilePattern(%s,%d)\n",arg,pattern_index);
-    ASSERT( pattern_index >= 0 );
-    ASSERT( pattern_index < PAT__N );
+    DASSERT( pattern_index >= 0 );
+    DASSERT( pattern_index < PAT__N );
     
     if ( !arg || (u32)pattern_index >= PAT__N )
 	return 0;
@@ -135,8 +148,16 @@ int AddFilePattern ( ccp arg, int pattern_index )
 		    break;
 		}
 	    if (!tab->len)
-		return ERROR0(ERR_SYNTAX,
+	    {
+		if (!strcmp(start,"negate"))
+		{
+		    pat->macro_negate = true;
+		    pat->active_negate = pat->macro_negate != pat->user_negate;
+		}
+		else
+		    return ERROR0(ERR_SYNTAX,
 			"Macro '%.*s' not found: :%.20s\n",len,start,start);
+	    }
 	}
 	else
 	{
@@ -158,12 +179,39 @@ int AddFilePattern ( ccp arg, int pattern_index )
 
 ///////////////////////////////////////////////////////////////////////////////
 
+int ScanFiles ( ccp arg, enumPattern pattern_index )
+{
+    return AtFileHelper(arg,pattern_index,AddFilePattern) != 0;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
 FilePattern_t * GetDefaultFilePattern()
 {
-    FilePattern_t * pat = file_pattern + PAT_OPT_FILES;
+    FilePattern_t * pat = file_pattern + PAT_FILES;
     if (!pat->rules.used)
 	pat = file_pattern + PAT_DEFAULT;
     return pat;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+void DefineNegatePattern ( FilePattern_t * pat, bool negate )
+{
+    DASSERT(pat);
+    pat->user_negate = negate;
+    pat->active_negate = pat->macro_negate != pat->user_negate;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+void MoveParamPattern ( FilePattern_t * dest_pat )
+{
+    DASSERT(dest_pat);
+    FilePattern_t * src = file_pattern + PAT_PARAM;
+    SetupFilePattern(src);
+    memcpy( dest_pat, src, sizeof(*dest_pat) );
+    InitializeFilePattern(src);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -208,6 +256,7 @@ bool SetupFilePattern ( FilePattern_t * pat )
      #endif
     }
 
+    pat->active_negate = pat->macro_negate != pat->user_negate;
     return pat->is_active && !pat->match_none;
 }
 
@@ -217,34 +266,36 @@ bool MatchFilePattern ( FilePattern_t * pat, ccp text )
 {
     if (!pat)
 	pat = GetDefaultFilePattern(); // use default pattern if not set
+    DASSERT(pat);
 
     if (pat->is_dirty)
 	SetupFilePattern(pat);
     if (pat->match_all)
-	return true;
+	return !pat->active_negate;
     if (pat->match_none)
-	return false;
+	return pat->active_negate;
 
-    bool default_result = true;
+    bool default_result = !pat->active_negate;
     int skip = 0;
 
     ccp * ptr = pat->rules.field;
-    ccp * end = ptr +  pat->rules.used;
+    ccp * end = ptr + pat->rules.used;
     while ( ptr < end )
     {
-	char * pattern = (char*)*ptr++;
+	char * pattern = (char*)(*ptr++); // non const because of strtoul()
+	DASSERT(pattern);
 	switch (*pattern++)
 	{
 	    case '-':
 		if ( skip-- <= 0 && MatchPattern(pattern,text) )
-		    return false;
-		default_result = true;
+		    return pat->active_negate;
+		default_result = !pat->active_negate;
 		break;
 
 	    case '+':
 		if ( skip-- <= 0 && MatchPattern(pattern,text) )
-		    return true;
-		default_result = false;
+		    return !pat->active_negate;
+		default_result = pat->active_negate;
 		break;
 
 	    default:

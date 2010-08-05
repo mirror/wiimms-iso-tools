@@ -78,6 +78,10 @@ option_t env_options		= 0;
 int opt_split			= 0;
 u64 opt_split_size		= 0;
 ccp  opt_clone			= 0;
+int  testmode			= 0;
+ccp  opt_dest			= 0;
+bool opt_mkdir			= false;
+int  opt_limit			= -1;
 
 #ifdef __CYGWIN__
  bool use_utf8			= false;
@@ -2821,7 +2825,7 @@ int AtFileHelper ( ccp arg, int mode, int (*func) ( ccp arg, int mode ) )
 	if ( ptr > buf && ptr[-1] == '\r' )
 	    ptr--;
 	*ptr = 0;
-	const u32 stat = func(buf,true);
+	const u32 stat = func(buf,mode);
 	if ( max_stat < stat )
 	     max_stat = stat;
     }

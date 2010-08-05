@@ -515,6 +515,20 @@ info_t info_tab[] =
 		" within TMD. The format is @'HIGH:LOW'@ or @'HIGH-LOW'@ or @'LOW'@."
 		" If only @LOW@ is set than @HIGH@ is assumed as 1 (standard IOS)." },
 
+  { H_OPT_CP,	"RM_FILES",	"rm-files",
+		"rules",
+		"Define a filter rules to removes real files"
+		" and directories from the FST." },
+
+  { H_OPT_CP,	"ZERO_FILES",	"zero-files",
+		"rules",
+		"Define a filter rules to zero real files from the FST." },
+
+  { H_OPT_CP,	"IGNORE_FILES",	"ignore-files",
+		"rules",
+		"Define a filter rules to ignore system"
+		" and real files from the FST." },
+
   { T_OPT_C,	"OVERLAY",	"overlay",
 		0,
 		"Most partitions have holes (unused areas) in the data section."
@@ -803,6 +817,9 @@ info_t info_tab[] =
   { T_COPT,	"MODIFY",	0,0,0 },
   { T_COPT,	"REGION",	0,0,0 },
   { T_COPT,	"IOS",		0,0,0 },
+  { H_COPT,	"RM_FILES",	0,0,0 },
+  { H_COPT,	"ZERO_FILES",	0,0,0 },
+  { H_COPT,	"IGNORE_FILES",	0,0,0 },
   { T_COPT,	"ENC",		0,0,0 },
 
   //---------- wit GROUP SPLIT_CHUNK ----------
@@ -1534,15 +1551,6 @@ info_t info_tab[] =
   { H_OPT_G,	"HOOK",		"hook",
 		0, 0 /* copy of wit */ },
 
-  { T_OPT_CP,	"ENC",		"enc",
-		0, 0 /* copy of wit */ },
-
-  { T_OPT_CP,	"REGION",	"region",
-		0, 0 /* copy of wit */ },
-
-  { T_OPT_CP,	"IOS",		"ios",
-		0, 0 /* copy of wit */ },
-
   { T_OPT_CP,	"ID",		"id",
 		0, 0 /* copy of wit */ },
 
@@ -1552,9 +1560,23 @@ info_t info_tab[] =
   { T_OPT_CP,	"MODIFY",	"modify",
 		0, 0 /* copy of wit */ },
 
-  { T_OPT_C,	"INODE",	"inode",
-		0,
-		"Print information for all inodes (invalid discs too)." },
+  { T_OPT_CP,	"REGION",	"region",
+		0, 0 /* copy of wit */ },
+
+  { T_OPT_CP,	"IOS",		"ios",
+		0, 0 /* copy of wit */ },
+
+  { H_OPT_CP,	"RM_FILES",	"rm-files",
+		0, 0 /* copy of wit */ },
+
+  { H_OPT_CP,	"ZERO_FILES",	"zero-files",
+		0, 0 /* copy of wit */ },
+
+  { H_OPT_CP,	"IGNORE_FILES",	"ignore-files",
+		0, 0 /* copy of wit */ },
+
+  { T_OPT_CP,	"ENC",		"enc",
+		0, 0 /* copy of wit */ },
 
   { T_OPT_CP,	"DEST",		"d|dest",
 		0, 0 /* copy of wit */ },
@@ -1669,6 +1691,10 @@ info_t info_tab[] =
 
   { T_OPT_CM,	"LONG",		"l|long",
 		0, 0 /* copy of wit */ },
+
+  { T_OPT_C,	"INODE",	"inode",
+		0,
+		"Print information for all inodes (invalid discs too)." },
 
   { T_OPT_C,	"MIXED",	"M|mixed",
 		0, "Print disc infos of all WBFS in one combined table." },
@@ -1787,6 +1813,9 @@ info_t info_tab[] =
   { T_COPT,	"MODIFY",	0,0,0 },
   { T_COPT,	"REGION",	0,0,0 },
   { T_COPT,	"IOS",		0,0,0 },
+  { H_COPT,	"RM_FILES",	0,0,0 },
+  { H_COPT,	"ZERO_FILES",	0,0,0 },
+  { H_COPT,	"IGNORE_FILES",	0,0,0 },
   { T_COPT,	"ENC",		0,0,0 },
 
   //---------- wwt GROUP SPLIT_CHUNK ----------

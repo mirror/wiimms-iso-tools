@@ -1,14 +1,4 @@
-wit v1.12a r1451 - 2010-08-01
-
- - Bug fix for option --sneek: Option --psel was not set in a correct way.
- - New command: wit CREATE TICKET/TMD: Create a ticket or tmd file from
-   scratch. Options and parameters control the creation.
- - Composing: If files ticket.bin or tmd.bin missed or have a wrong size
-   TICKET and/or TMD will be created automatically.
- - New command: wit MIX: Mix partitions from different sources into one
-   new Wii disc image.  *** "wit MIX" is EXPERIMENTAL! ***
-
-wit v@@VERSION@@ r@@REV-NEXT@@ - @@@@-@@-@@
+wit v1.13a r1468 - 2010-08-04
 
  - Command "wit MIX" accepts now the option --overlay: Partitions will
    be overlayed so that data from one partition is stored in unused areas
@@ -20,6 +10,11 @@ wit v@@VERSION@@ r@@REV-NEXT@@ - @@@@-@@-@@
  - The disc subsystems recognize overlayes partitons. For overlayed
    partitions the --psel keyword "WHOLE" is ignored.
  - Command "wit DUMP" will print an info line for overlayed partitions.
+
+wit v@@VERSION@@ r@@REV-NEXT@@ - @@@@-@@-@@
+
+ - New qualifier for "wit MIX": "IGNORE ruleset": Ignore files when copying a
+   disc image. See http://wit.wiimm.de/wit/cmd-mix.html#ignore for details.
 
 Known bugs:
 

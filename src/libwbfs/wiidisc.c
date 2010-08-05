@@ -1352,6 +1352,8 @@ enumError wd_load_part
 	part->data_off4	  = part->part_off4 + ph->data_off4;
 	part->data_sector = part->data_off4 / WII_SECTOR_SIZE4;
 	part->end_sector  = part->data_sector + ph->data_size4 / WII_SECTOR_SIZE4;
+	if ( part->end_sector > WII_MAX_SECTORS )
+	     part->end_sector = WII_MAX_SECTORS;
 	part->part_size   = (u64)( part->data_off4 + ph->data_size4 - part->part_off4 ) << 2;
 
 	TRACE("part=%llx,%llx, tmd=%llx,%x, cert=%llx,%x, h3=%llx, data=%llx,%llx\n",
@@ -2016,7 +2018,10 @@ static int wd_iterate_fst_helper
 (
     wd_iterator_t	* it,		// valid pointer to iterator data
     const wd_fst_item_t	*fst_base,	// NULL or pointer to FST data
-    wd_file_func_t	func		// call back function
+    wd_file_func_t	func,		// call back function
+    wd_part_t		* sys_files,	// not NULL: process sys files too
+    wd_file_func_t	exec_func	// NULL or call back function
+					// that is called if func() returns 1
 )
 {
     DASSERT(it);
@@ -2025,6 +2030,95 @@ static int wd_iterate_fst_helper
     if (!fst_base)
 	return 0;
 
+    int stat = 0, mod = 0;
+    it->fst_item  = 0;
+
+    if (sys_files)
+    {
+	it->icm  = WD_ICM_DIRECTORY;
+	it->off4 = 0;
+	it->size = 5;
+	it->data = 0;
+	strcpy(it->fst_name,"sys/");
+	stat = func(it);
+	if ( stat == 1 && exec_func )
+	{
+	    mod = 1;
+	    exec_func(it);
+	}
+	else if (stat)
+	    return stat;
+
+	it->icm  = WD_ICM_FILE;
+	it->off4 = WII_BOOT_OFF >> 2;
+	it->size = WII_BOOT_SIZE;
+	DASSERT(!it->data);
+	strcpy(it->fst_name,"sys/boot.bin");
+	stat = func(it);
+	if ( stat == 1 && exec_func )
+	{
+	    mod = 1;
+	    exec_func(it);
+	}
+	else if (stat)
+	    return stat;
+
+	DASSERT( it->icm == WD_ICM_FILE );
+	it->off4 = WII_BI2_OFF >> 2;
+	it->size = WII_BI2_SIZE;
+	DASSERT(!it->data);
+	strcpy(it->fst_name,"sys/bi2.bin");
+	stat = func(it);
+	if ( stat == 1 && exec_func )
+	{
+	    mod = 1;
+	    exec_func(it);
+	}
+	else if (stat)
+	    return stat;
+
+	DASSERT( it->icm == WD_ICM_FILE );
+	it->off4 = WII_APL_OFF >> 2;
+	it->size = sys_files->apl_size;
+	DASSERT(!it->data);
+	strcpy(it->fst_name,"sys/apploader.img");
+	stat = func(it);
+	if ( stat == 1 && exec_func )
+	{
+	    mod = 1;
+	    exec_func(it);
+	}
+	else if (stat)
+	    return stat;
+
+	DASSERT( it->icm == WD_ICM_FILE );
+	it->off4 = sys_files->boot.dol_off4;
+	it->size = sys_files->dol_size;
+	DASSERT(!it->data);
+	strcpy(it->fst_name,"sys/main.dol");
+	stat = func(it);
+	if ( stat == 1 && exec_func )
+	{
+	    mod = 1;
+	    exec_func(it);
+	}
+	else if (stat)
+	    return stat;
+
+	DASSERT( it->icm == WD_ICM_FILE );
+	it->off4 = sys_files->boot.fst_off4;
+	it->size = sys_files->boot.fst_size4 << 2;
+	DASSERT(!it->data);
+	strcpy(it->fst_name,"sys/fst.bin");
+	stat = func(it);
+	if ( stat == 1 && exec_func )
+	{
+	    mod = 1;
+	    exec_func(it);
+	}
+	else if (stat)
+	    return stat;
+    }
 
     //----- setup stack
 
@@ -2049,8 +2143,14 @@ static int wd_iterate_fst_helper
     it->size = n_fst-1;
     DASSERT(!it->data);
     strcpy(it->fst_name,"files/");
-    int stat = func(it);
-    if (stat)
+
+    stat = func(it);
+    if ( stat == 1 && exec_func )
+    {
+	mod = 1;
+	exec_func(it);
+    }
+    else if (stat)
 	return stat;
 
 
@@ -2060,6 +2160,7 @@ static int wd_iterate_fst_helper
     const wd_fst_item_t *dir_end = fst_end;
     char * path_ptr = it->fst_name + 6;
 
+    stat = 0;
     for ( fst++; fst < fst_end && !stat; fst++ )
     {
 	while ( fst >= dir_end && stack > stack_buf )
@@ -2076,6 +2177,7 @@ static int wd_iterate_fst_helper
 	while ( path_dest < path_end && *fname )
 	    *path_dest++ = *fname++;
 
+	it->fst_item = (wd_fst_item_t*)fst;
 	if (fst->is_dir)
 	{
 	    *path_dest++ = '/';
@@ -2104,9 +2206,24 @@ static int wd_iterate_fst_helper
 	    it->size = ntohl(fst->size);
 	    stat = func(it);
 	}
+
+	if ( stat == 1 && exec_func )
+	{
+	    mod = 1;
+	    stat = 0;
+	    exec_func(it);
+	}
     }
 
-    return stat;
+    it->fst_item  = 0;
+    return stat ? stat : mod;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+static int true_file_func ( wd_iterator_t *it )
+{
+    return true;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -2119,8 +2236,8 @@ int wd_iterate_files
 	wd_ipm_t	prefix_mode	// prefix mode
 )
 {
-    ASSERT(disc);
-    ASSERT(func);
+    DASSERT(disc);
+    DASSERT(func);
 
     if ( !disc->part || !disc->n_part )
 	return 0;
@@ -2271,66 +2388,9 @@ int wd_iterate_files
 	if (stat)
 	    break;
 
-	//----- 'sys/' files
+	//----- SYS + FST files
 
-	it.icm  = WD_ICM_DIRECTORY;
-	it.off4 = 0;
-	it.size = 5;
-	it.data = 0;
-	strcpy(it.fst_name,"sys/");
-	stat = func(&it);
-	if (stat)
-	    break;
-
-	it.icm  = WD_ICM_FILE;
-	it.off4 = WII_BOOT_OFF >> 2;
-	it.size = WII_BOOT_SIZE;
-	DASSERT(!it.data);
-	strcpy(it.fst_name,"sys/boot.bin");
-	stat = func(&it);
-	if (stat)
-	    break;
-
-	DASSERT( it.icm == WD_ICM_FILE );
-	it.off4 = WII_BI2_OFF >> 2;
-	it.size = WII_BI2_SIZE;
-	DASSERT(!it.data);
-	strcpy(it.fst_name,"sys/bi2.bin");
-	stat = func(&it);
-	if (stat)
-	    break;
-
-	DASSERT( it.icm == WD_ICM_FILE );
-	it.off4 = WII_APL_OFF >> 2;
-	it.size = part->apl_size;
-	DASSERT(!it.data);
-	strcpy(it.fst_name,"sys/apploader.img");
-	stat = func(&it);
-	if (stat)
-	    break;
-
-	DASSERT( it.icm == WD_ICM_FILE );
-	it.off4 = part->boot.dol_off4;
-	it.size = part->dol_size;
-	DASSERT(!it.data);
-	strcpy(it.fst_name,"sys/main.dol");
-	stat = func(&it);
-	if (stat)
-	    break;
-
-	DASSERT( it.icm == WD_ICM_FILE );
-	it.off4 = part->boot.fst_off4;
-	it.size = part->boot.fst_size4 << 2;
-	DASSERT(!it.data);
-	strcpy(it.fst_name,"sys/fst.bin");
-	stat = func(&it);
-	if (stat)
-	    break;
-
-
-	//----- FST files
-
-	stat = wd_iterate_fst_helper(&it,part->fst,func);
+	stat = wd_iterate_fst_helper(&it,part->fst,func,part,0);
 	if (stat)
 	    break;
 
@@ -2352,20 +2412,297 @@ int wd_iterate_files
 
 int wd_iterate_fst_files
 (
-    const wd_fst_item_t	*fst_base,	// NULL or pointer to FST data
+    const wd_fst_item_t	*fst_base,	// valid pointer to FST data
     wd_file_func_t	func,		// call back function
     void		* param		// user defined parameter
 )
 {
-    ASSERT(fst_base);
-    ASSERT(func);
+    DASSERT(fst_base);
+    DASSERT(func);
 
     wd_iterator_t it;
     memset(&it,0,sizeof(it));
     it.param = param;
     it.fst_name = it.path;
 
-    return wd_iterate_fst_helper(&it,fst_base,func);
+    return wd_iterate_fst_helper(&it,fst_base,func,0,0);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+
+int wd_remove_disc_files
+(
+    // Call wd_remove_part_files() for each enabled partition.
+    // Returns 0 if nothing is removed, 1 if at least one file is removed
+    // Other values are abort codes from func()
+    
+    wd_disc_t		* disc,		// valid pointer to a disc
+    wd_file_func_t	func,		// call back function
+					//   return 0 for don't touch file
+					//   return 1 for zero file
+					//   return other for abort
+    void		* param,	// user defined parameter
+    bool		calc_usage_tab	// true: calc usage table again by using 
+					// wd_select_part_files(func:=NULL)
+					// if at least one file was removed
+)
+{
+    DASSERT(disc);
+
+    int stat = 0, mod = 0;
+    wd_part_t *part, *part_end = disc->part + disc->n_part;
+    for ( part = disc->part; part < part_end && !stat; part++ )
+    {
+	if (part->is_enabled)
+	{
+	    wd_load_part(part,false,false);
+	    if (part->is_ok)
+	    {
+		stat = wd_remove_part_files(part,func,param,calc_usage_tab);
+		if ( stat == 1 )
+		{
+		    stat = 0;
+		    mod = 1;
+		}
+	    }
+	}
+    }
+    return stat ? stat : mod;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+int wd_remove_part_files
+(
+    // Remove files and directories from internal FST copy.
+    // Only empty directories are removed. If at least 1 files/dir
+    // is removed the new FST.BIN is added to the patching map.
+    // Returns 0 if nothing is removed, 1 if at least one file is removed
+    // Other values are abort codes from func()
+    
+    wd_part_t		* part,		// valid pointer to a partition
+    wd_file_func_t	func,		// call back function
+					//   return 0 for don't touch file
+					//   return 1 for zero file
+					//   return other for abort
+    void		* param,	// user defined parameter
+    bool		calc_usage_tab	// true: calc usage table again by using 
+					// wd_select_part_files(func:=NULL)
+					// if at least one file was removed
+)
+{
+    // [2do] remove ot implemented -> wd_zero_part_files() instead
+
+    return  wd_zero_part_files(part,func,param,calc_usage_tab);
+    
+}
+
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+
+int wd_zero_disc_files
+(
+    // Call wd_remove_part_files() for each enabled partition.
+    // Returns 0 if nothing is zeroed, 1 if at least one file is zeroed
+    // Other values are abort codes from func()
+
+    wd_disc_t		* disc,		// valid pointer to a disc
+    wd_file_func_t	func,		// call back function
+					//   return 0 for don't touch file
+					//   return 1 for zero file
+					//   return other for abort
+    void		* param,	// user defined parameter
+    bool		calc_usage_tab	// true: calc usage table again by using 
+					// wd_select_part_files(func:=NULL)
+					// if at least one file was zeroed
+)
+{
+    DASSERT(disc);
+    DASSERT(func);
+
+    int stat = 0, mod = 0;
+    wd_part_t *part, *part_end = disc->part + disc->n_part;
+    for ( part = disc->part; part < part_end && !stat; part++ )
+    {
+	if (part->is_enabled)
+	{
+	    wd_load_part(part,false,false);
+	    if (part->is_ok)
+	    {
+		stat = wd_zero_part_files(part,func,param,calc_usage_tab);
+		if ( stat == 1 )
+		{
+		    stat = 0;
+		    mod = 1;
+		}
+	    }
+	}
+    }
+    return stat ? stat : mod;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+static int exec_zero_file ( wd_iterator_t *it )
+{
+    DASSERT(it);
+
+    if ( it->icm == WD_ICM_FILE )
+    {
+	DASSERT_MSG(it->fst_item,"%s",it->path);
+	const u32 zero = htonl(0);
+	it->fst_item->offset4 = zero;
+	it->fst_item->size    = zero;
+    }
+
+    return 0;
+};
+ 
+///////////////////////////////////////////////////////////////////////////////
+
+int wd_zero_part_files
+(
+    // Zero files from internal FST copy (set offset and size to NULL).
+    // If at least 1 file is zeroed the new FST.BIN is added to the patching map.
+    // Returns 0 if nothing is removed, 1 if at least one file is removed
+    // Other values are abort codes from func()
+ 
+    wd_part_t		* part,		// valid pointer to a partition
+    wd_file_func_t	func,		// call back function
+					//   return 0 for don't touch file
+					//   return 1 for zero file
+					//   return other for abort
+    void		* param,	// user defined parameter
+    bool		calc_usage_tab	// true: calc usage table again by using 
+					// wd_select_part_files(func:=NULL)
+					// if at least one file was zeroed
+)
+{
+    DASSERT(part);
+
+    if (!part->fst)
+	return 0;
+
+    wd_iterator_t it;
+    memset(&it,0,sizeof(it));
+    it.disc	= part->disc;
+    it.part	= part;
+    it.param	= param;
+    it.fst_name	= it.path;
+
+    const int stat
+	= wd_iterate_fst_helper(&it,part->fst,func,0,exec_zero_file);
+    if ( stat == 1 )
+    {
+	wd_insert_patch_fst(part);
+	if (calc_usage_tab)
+	     wd_select_part_files(part,0,0);
+    }
+
+    return stat;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+
+int wd_select_disc_files
+(
+    // Call wd_remove_part_files() for each enabled partition.
+    // Returns 0 if nothing is ignored, 1 if at least one file is ignored
+    // Other values are abort codes from func()
+
+    wd_disc_t		* disc,		// valid pointer to a disc
+    wd_file_func_t	func,		// call back function
+					//   return 0 for don't touch file
+					//   return 1 for zero file
+					//   return other for abort
+    void		* param		// user defined parameter
+)
+{
+    DASSERT(disc);
+
+    int stat = 0, mod = 0;
+    wd_part_t *part, *part_end = disc->part + disc->n_part;
+    for ( part = disc->part; part < part_end && !stat; part++ )
+    {
+	if (part->is_enabled)
+	{
+	    wd_load_part(part,false,false);
+	    if (part->is_ok)
+	    {
+		stat = wd_select_part_files(part,func,param);
+		if ( stat == 1 )
+		{
+		    stat = 0;
+		    mod = 1;
+		}
+	    }
+	}
+    }
+    
+    return stat ? stat : mod;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+static int exec_select_file ( wd_iterator_t *it )
+{
+    DASSERT(it);
+    if ( it->icm == WD_ICM_FILE )
+	wd_mark_part(it->part,it->off4,it->size);
+    return 0;
+};
+
+///////////////////////////////////////////////////////////////////////////////
+
+int wd_select_part_files
+(
+    // Calculate the usage map for the partition by using the internal
+    // and perhaps modified FST.BIN. If func() is not NULL ignore system
+    // and real files (/sys/... and /files/...) for return value 1.
+    // If at least 1 file is zeroed the new FST.BIN is added to the patching map.
+    // Returns 0 if nothing is removed, 1 if at least one file is removed
+    // Other values are abort codes from func()
+
+    wd_part_t		* part,		// valid pointer to a partition
+    wd_file_func_t	func,		// call back function
+					// If NULL nor file is ignored and only
+					// the usage map is re calculated.
+					//   return 0 for don't touch file
+					//   return 1 for zero file
+					//   return other for abort
+    void		* param		// user defined parameter
+)
+{
+    DASSERT(part);
+    DASSERT(part->disc);
+
+    if (!part->fst)
+	return 0;
+
+    if (!func)
+	func = true_file_func;
+
+    //----- reset usage table
+
+    const u8 usage_id = part->usage_id | WD_USAGE_F_CRYPT;
+    u8 * utab = part->disc->usage_table;
+    u32 sector;
+    for ( sector = part->data_sector; sector < part->end_sector; sector++ )
+	if ( utab[sector] == usage_id )
+	    utab[sector] = WD_USAGE_UNUSED; 
+
+    //----- call iterator
+    
+    wd_iterator_t it;
+    memset(&it,0,sizeof(it));
+    it.disc	= part->disc;
+    it.part	= part;
+    it.param	= param;
+    it.fst_name	= it.path;
+
+    return wd_iterate_fst_helper(&it,part->fst,func,part,exec_select_file);
 }
 
 //
@@ -2568,7 +2905,14 @@ static int wd_print_fst_item_wrapper
     DASSERT(it);
     wd_print_fst_t *d = it->param;
     DASSERT(d);
-    if ( !d->filter_func || !d->filter_func(it) )
+    bool print = !d->filter_func;
+    if (!print)
+    {
+	it->param = d->filter_param;
+	print = !d->filter_func(it);
+	it->param = d;
+    }
+    if (print)
 	wd_print_fst_item( d, it->part, it->icm, it->off4, it->size, it->path, 0 );
     return 0;
 }
@@ -2587,7 +2931,7 @@ void wd_print_fst
 )
 {
     ASSERT(f);
-    TRACE("wd_print_fst()\n");
+    TRACE("wd_print_fst() filter_func = %p\n",filter_func);
     indent = wd_normalize_indent(indent);
 
     //----- setup pf and calc fw
@@ -2820,6 +3164,29 @@ wd_patch_item_t * wd_insert_patch_tmd
 
 ///////////////////////////////////////////////////////////////////////////////
 
+wd_patch_item_t * wd_insert_patch_fst
+(
+    wd_part_t		* part		// valid pointer to a disc partition
+)  
+{
+    wd_insert_patch_tmd(part);
+    wd_patch_item_t * item
+	= wd_insert_patch( &part->patch, WD_PAT_DATA,
+				(u64)part->boot.fst_off4 << 2,
+				(u64)part->boot.fst_size4 << 2 );
+    DASSERT(item);
+    item->part = part;
+    item->data = part->fst;
+    part->sign_tmd = true;
+
+    snprintf(item->info,sizeof(item->info),
+			"fst.bin, N=%u", ntohl(part->fst->size) );
+
+    return item;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
 void wd_dump_patch
 (
     FILE		* f,		// valid output file
@@ -2833,7 +3200,7 @@ void wd_dump_patch
 
     indent = wd_normalize_indent(indent);
 
-    int fw = 0;
+    int fw = 7;
     wd_patch_item_t *item, *last = patch->item + patch->used;
     for ( item = patch->item; item < last; item++ )
     {
@@ -3021,6 +3388,7 @@ static enumError wd_rap_part_sectors
 	u64 off2 = ( end_sector - part->data_sector ) * (u64)WII_SECTOR_DATA_SIZE;
 	const wd_patch_item_t *item = part->patch.item;
 	const wd_patch_item_t *end_item = item + part->patch.used;
+	PRINT("> off=%llx..%llx, n-item=%u\n", off1, off2, part->patch.used );
 
 	u8 dirty[WII_GROUP_SECTORS];
 	memset(dirty,0,sizeof(dirty));
@@ -3028,7 +3396,8 @@ static enumError wd_rap_part_sectors
 	for ( ; item < end_item && item->offset < off2; item++ )
 	{
 	  const u64 end = item->offset + item->size;
-	  //PRINT("off=%llx..%llx, item=%llx..%llx\n", off1, off2, item->offset, end );
+	  PRINT("> off=%llx..%llx, item=%llx..%llx\n", off1, off2, item->offset, end );
+	  PRINT("> data=%p, fst=%p\n",item->data,part->fst);
 	  if ( item->offset < off2 && end > off1 )
 	  {
 	    const u64 overlap1 = item->offset > off1 ? item->offset : off1;

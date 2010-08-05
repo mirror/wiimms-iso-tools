@@ -56,12 +56,9 @@ ccp  opt_suffix		= 0;
 bool opt_chunk		= false;
 int  long_count		= 0;
 int  opt_minus1		= 0;
-ccp  opt_dest		= 0;
-bool opt_mkdir		= false;
 bool opt_preserve	= false;
 bool opt_overwrite	= false;
 bool opt_keep		= false;
-int  testmode		= 0;
 
 ccp progname0		= 0;
 FILE * logout		= 0;

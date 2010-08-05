@@ -58,13 +58,9 @@
 time_t opt_set_time	= 0;
 int  print_sections	= 0;
 int  long_count		= 0;
-int  testmode		= 0;
-ccp  opt_dest		= 0;
-bool opt_mkdir		= false;
 u64  opt_size		= 0;
 u32  opt_hss		= 0;
 u32  opt_wss		= 0;
-int  opt_limit		= -1;
 
 enumIOMode io_mode	= 0;
 
@@ -2989,6 +2985,9 @@ enumError CheckOptions ( int argc, char ** argv, bool is_env )
 	case GO_ID:		err += ScanOptId(optarg); break;
 	case GO_NAME:		err += ScanOptName(optarg); break;
 	case GO_MODIFY:		err += ScanOptModify(optarg); break;
+	case GO_RM_FILES:	err += ScanFiles(optarg,PAT_RM_FILES); break;
+	case GO_ZERO_FILES:	err += ScanFiles(optarg,PAT_ZERO_FILES); break;
+	case GO_IGNORE_FILES:	err += ScanFiles(optarg,PAT_IGNORE_FILES); break;
 	case GO_SPLIT:		opt_split++; break;
 	case GO_SPLIT_SIZE:	err += ScanOptSplitSize(optarg); break;
 	case GO_TRUNC:		opt_truncate++; break;

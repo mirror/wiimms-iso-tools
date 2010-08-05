@@ -2882,24 +2882,6 @@
 	"", \
 	"Disable composing and ignore FST directories as input." )
 
-#:def_opt( "ENC", "enc", "CP", \
-	"encoding", \
-	"Define the encoding mode. The mode is one of NONE, HASHONLY, DECRYPT," \
-	" ENCRYPT, SIGN or AUTO. The case of the keywords is ignored. The" \
-	" default mode is 'AUTO'." )
-
-#:def_opt( "REGION", "region", "CP", \
-	"region", \
-	"This $patching$ option defines the region of the disc.  The region is" \
-	" one of @JAPAN, USA, EUROPE, KOREA, FILE@ or @AUTO@ (default). The" \
-	" case of the keywords is ignored. Unsigned numbers are also accepted." )
-
-#:def_opt( "IOS", "ios", "CP", \
-	"ios", \
-	"This $patching$ option defines the system version (IOS to load)" \
-	" within TMD. The format is @'HIGH:LOW'@ or @'HIGH-LOW'@ or @'LOW'@." \
-	" If only @LOW@ is set than @HIGH@ is assumed as 1 (standard IOS)." )
-
 #:def_opt( "ID", "id", "CP", \
 	"id", \
 	"This $patching$ option changes the ID of the disc to the given" \
@@ -2924,9 +2906,23 @@
 	" @'-'@ to disable it or by a @'='@ to enable that option and disable" \
 	" all others." )
 
-#:def_opt( "INODE", "inode", "C", \
-	"", \
-	"Print information for all inodes (invalid discs too)." )
+#:def_opt( "REGION", "region", "CP", \
+	"region", \
+	"This $patching$ option defines the region of the disc.  The region is" \
+	" one of @JAPAN, USA, EUROPE, KOREA, FILE@ or @AUTO@ (default). The" \
+	" case of the keywords is ignored. Unsigned numbers are also accepted." )
+
+#:def_opt( "IOS", "ios", "CP", \
+	"ios", \
+	"This $patching$ option defines the system version (IOS to load)" \
+	" within TMD. The format is @'HIGH:LOW'@ or @'HIGH-LOW'@ or @'LOW'@." \
+	" If only @LOW@ is set than @HIGH@ is assumed as 1 (standard IOS)." )
+
+#:def_opt( "ENC", "enc", "CP", \
+	"encoding", \
+	"Define the encoding mode. The mode is one of NONE, HASHONLY, DECRYPT," \
+	" ENCRYPT, SIGN or AUTO. The case of the keywords is ignored. The" \
+	" default mode is 'AUTO'." )
 
 #:def_opt( "DEST", "d|dest", "CP", \
 	"path", \
@@ -3105,6 +3101,10 @@
 #:def_opt( "LONG", "l|long", "CM", \
 	"", \
 	"Print in long format. Multiple usage possible." )
+
+#:def_opt( "INODE", "inode", "C", \
+	"", \
+	"Print information for all inodes (invalid discs too)." )
 
 #:def_opt( "MIXED", "M|mixed", "C", \
 	"", \

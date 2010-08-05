@@ -165,6 +165,22 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 	" set than HIGH is assumed as 1 (standard IOS)."
     },
 
+    {	OPT_RM_FILES, 0, "rm-files",
+	"rules",
+	"Define a filter rules to removes real files and directories from the"
+	" FST."
+    },
+
+    {	OPT_ZERO_FILES, 0, "zero-files",
+	"rules",
+	"Define a filter rules to zero real files from the FST."
+    },
+
+    {	OPT_IGNORE_FILES, 0, "ignore-files",
+	"rules",
+	"Define a filter rules to ignore system and real files from the FST."
+    },
+
     {	OPT_OVERLAY, 0, "overlay",
 	0,
 	"Most partitions have holes (unused areas) in the data section. If"
@@ -387,7 +403,7 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 	"Limit the output to NUM messages."
     },
 
-    {0,0,0,0,0}, // OPT__N_SPECIFIC == 51
+    {0,0,0,0,0}, // OPT__N_SPECIFIC == 54
 
     //----- global options -----
 
@@ -485,7 +501,7 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 	"Force relocation hook while reading iso images."
     },
 
-    {0,0,0,0,0} // OPT__N_TOTAL == 67
+    {0,0,0,0,0} // OPT__N_TOTAL == 70
 
 };
 
@@ -725,6 +741,9 @@ const struct option OptionLong[] =
 	{ "modify",		1, 0, GO_MODIFY },
 	{ "region",		1, 0, GO_REGION },
 	{ "ios",		1, 0, GO_IOS },
+	{ "rm-files",		1, 0, GO_RM_FILES },
+	{ "zero-files",		1, 0, GO_ZERO_FILES },
+	{ "ignore-files",	1, 0, GO_IGNORE_FILES },
 	{ "overlay",		0, 0, GO_OVERLAY },
 	{ "enc",		1, 0, GO_ENC },
 	{ "dest",		1, 0, 'd' },
@@ -847,22 +866,25 @@ const u8 OptionIndex[OPT_INDEX_SIZE] =
 	/*8f*/	OPT_MODIFY,
 	/*90*/	OPT_REGION,
 	/*91*/	OPT_IOS,
-	/*92*/	OPT_OVERLAY,
-	/*93*/	OPT_ENC,
-	/*94*/	OPT_TRUNC,
-	/*95*/	OPT_CHUNK_MODE,
-	/*96*/	OPT_CHUNK_SIZE,
-	/*97*/	OPT_MAX_CHUNKS,
-	/*98*/	OPT_FST,
-	/*99*/	OPT_ITIME,
-	/*9a*/	OPT_MTIME,
-	/*9b*/	OPT_CTIME,
-	/*9c*/	OPT_ATIME,
-	/*9d*/	OPT_TIME,
-	/*9e*/	OPT_SHOW,
-	/*9f*/	OPT_SECTIONS,
-	/*a0*/	OPT_LIMIT,
-	/*a1*/	 0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,
+	/*92*/	OPT_RM_FILES,
+	/*93*/	OPT_ZERO_FILES,
+	/*94*/	OPT_IGNORE_FILES,
+	/*95*/	OPT_OVERLAY,
+	/*96*/	OPT_ENC,
+	/*97*/	OPT_TRUNC,
+	/*98*/	OPT_CHUNK_MODE,
+	/*99*/	OPT_CHUNK_SIZE,
+	/*9a*/	OPT_MAX_CHUNKS,
+	/*9b*/	OPT_FST,
+	/*9c*/	OPT_ITIME,
+	/*9d*/	OPT_MTIME,
+	/*9e*/	OPT_CTIME,
+	/*9f*/	OPT_ATIME,
+	/*a0*/	OPT_TIME,
+	/*a1*/	OPT_SHOW,
+	/*a2*/	OPT_SECTIONS,
+	/*a3*/	OPT_LIMIT,
+	/*a4*/	 0,0,0,0, 0,0,0,0, 0,0,0,0, 
 };
 
 //

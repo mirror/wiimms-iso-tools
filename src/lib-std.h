@@ -1110,17 +1110,21 @@ s64 ScanCommandListMask
 ///////////////////////////////////////////////////////////////////////////////
 
 extern enumProgID prog_id;
-extern u32 revision_id;
-extern ccp progname;
-extern ccp search_path[];
-extern ccp lang_info;
+extern u32  revision_id;
+extern ccp  progname;
+extern ccp  search_path[];
+extern ccp  lang_info;
 extern volatile int SIGINT_level;
 extern volatile int verbose;
 extern volatile int logging;
-extern int progress;
+extern int  progress;
 extern bool use_utf8;
 extern char escape_char;
-extern ccp opt_clone;
+extern ccp  opt_clone;
+extern int  testmode;
+extern ccp  opt_dest;
+extern bool opt_mkdir;
+extern int  opt_limit;
 
 extern       char iobuf [0x400000];	// global io buffer
 extern const char zerobuf[0x40000];	// global zero buffer

@@ -104,7 +104,7 @@ typedef enum wd_icm_t // iterator call mode
 
     WD_ICM_FILE,		// item is a partition file -> extract with key
     WD_ICM_COPY,		// item is a disc area -> disc raw copy
-    WD_ICM_DATA,		// item contains pure data [not used yet]
+    WD_ICM_DATA,		// item contains pure data
 
 } wd_icm_t;
 
@@ -476,12 +476,20 @@ typedef struct wd_iterator_t
     wd_disc_t		* disc;		// valid disc pointer
     wd_part_t		* part;		// valid disc partition pointer
 
+    //----- settings
+    
+    bool		select_mode;	// true: run in select mode
+					//   func() return 0: don't select
+					//   func() return 1: select and mark
+					//   func() return other: abort
+
     //----- file specific parameters
     
     wd_icm_t		icm;		// iterator call mode
     u32			off4;		// offset/4 to read
     u32			size;		// size of object
     const void		* data;		// NULL or pointer to data
+    wd_fst_item_t	* fst_item;	// NULL or pointer to FST item
 
     //----- filename
 
@@ -939,8 +947,124 @@ int wd_iterate_files
 
 int wd_iterate_fst_files
 (
-    const wd_fst_item_t	*fst_base,	// NULL or pointer to FST data
+    const wd_fst_item_t	*fst_base,	// valid pointer to FST data
     wd_file_func_t	func,		// call back function
+    void		* param		// user defined parameter
+);
+
+//-----------------------------------------------------------------------------
+
+int wd_remove_disc_files
+(
+    // Call wd_remove_part_files() for each enabled partition.
+    // Returns 0 if nothing is removed, 1 if at least one file is removed
+    // Other values are abort codes from func()
+    
+    wd_disc_t		* disc,		// valid pointer to a disc
+    wd_file_func_t	func,		// call back function
+					//   return 0 for don't touch file
+					//   return 1 for zero file
+					//   return other for abort
+    void		* param,	// user defined parameter
+    bool		calc_usage_tab	// true: calc usage table again by using 
+					// wd_select_part_files(func:=NULL)
+					// if at least one file was removed
+);
+
+//-----------------------------------------------------------------------------
+
+int wd_remove_part_files
+(
+    // Remove files and directories from internal FST copy.
+    // Only empty directories are removed. If at least 1 files/dir
+    // is removed the new FST.BIN is added to the patching map.
+    // Returns 0 if nothing is removed, 1 if at least one file is removed
+    // Other values are abort codes from func()
+    
+    wd_part_t		* part,		// valid pointer to a partition
+    wd_file_func_t	func,		// call back function
+					//   return 0 for don't touch file
+					//   return 1 for zero file
+					//   return other for abort
+    void		* param,	// user defined parameter
+    bool		calc_usage_tab	// true: calc usage table again by using 
+					// wd_select_part_files(func:=NULL)
+					// if at least one file was removed
+);
+
+//-----------------------------------------------------------------------------
+
+int wd_zero_disc_files
+(
+    // Call wd_remove_part_files() for each enabled partition.
+    // Returns 0 if nothing is zeroed, 1 if at least one file is zeroed
+    // Other values are abort codes from func()
+
+    wd_disc_t		* disc,		// valid pointer to a disc
+    wd_file_func_t	func,		// call back function
+					//   return 0 for don't touch file
+					//   return 1 for zero file
+					//   return other for abort
+    void		* param,	// user defined parameter
+    bool		calc_usage_tab	// true: calc usage table again by using 
+					// wd_select_part_files(func:=NULL)
+					// if at least one file was zeroed
+);
+
+//-----------------------------------------------------------------------------
+
+int wd_zero_part_files
+(
+    // Zero files from internal FST copy (set offset and size to NULL).
+    // If at least 1 file is zeroed the new FST.BIN is added to the patching map.
+    // Returns 0 if nothing is removed, 1 if at least one file is removed
+    // Other values are abort codes from func()
+ 
+    wd_part_t		* part,		// valid pointer to a partition
+    wd_file_func_t	func,		// call back function
+					//   return 0 for don't touch file
+					//   return 1 for zero file
+					//   return other for abort
+    void		* param,	// user defined parameter
+    bool		calc_usage_tab	// true: calc usage table again by using 
+					// wd_select_part_files(func:=NULL)
+					// if at least one file was zeroed
+);
+
+//-----------------------------------------------------------------------------
+
+int wd_select_disc_files
+(
+    // Call wd_remove_part_files() for each enabled partition.
+    // Returns 0 if nothing is ignored, 1 if at least one file is ignored
+    // Other values are abort codes from func()
+
+    wd_disc_t		* disc,		// valid pointer to a disc
+    wd_file_func_t	func,		// call back function
+					//   return 0 for don't touch file
+					//   return 1 for zero file
+					//   return other for abort
+    void		* param		// user defined parameter
+);
+
+//-----------------------------------------------------------------------------
+
+int wd_select_part_files
+(
+    // Calculate the usage map for the partition by using the internal
+    // and perhaps modified FST.BIN. If func() is not NULL ignore system
+    // and real files (/sys/... and /files/...) for return value 1.
+    // If at least 1 file is zeroed the new FST.BIN is added to the patching map.
+    // Returns 0 if nothing is removed, 1 if at least one file is removed
+    // Other values are abort codes from func()
+
+    wd_part_t		* part,		// valid pointer to a partition
+    wd_file_func_t	func,		// call back function
+					// If NULL nor file is ignored and only
+					// the usage map is re calculated.
+					//   return 0 for don't touch file
+					//   return 1 for zero file
+					//   return other for abort
     void		* param		// user defined parameter
 );
 
@@ -1047,6 +1171,13 @@ wd_patch_item_t * wd_insert_patch_ticket
 //-----------------------------------------------------------------------------
 
 wd_patch_item_t * wd_insert_patch_tmd
+(
+    wd_part_t		* part		// valid pointer to a disc partition
+);
+
+//-----------------------------------------------------------------------------
+
+wd_patch_item_t * wd_insert_patch_fst
 (
     wd_part_t		* part		// valid pointer to a disc partition
 );

@@ -15,8 +15,8 @@ WIT_LONG		= Wiimms ISO Tool
 WWT_SHORT		= wwt
 WWT_LONG		= Wiimms WBFS Tool
 
-VERSION_NUM		= 1.13a
-BETA_VERSION		= 0
+VERSION_NUM		= 1.14a
+BETA_VERSION		= 1
 
 URI_HOME		= http://wit.wiimm.de/
 URI_DOWNLOAD		= http://wit.wiimm.de/download
@@ -95,6 +95,18 @@ WDF_LINKS	:= WdfCat UnWdf WdfCmp WdfDump Ciso CisoCat UnCiso Wbi
 RM_FILES	+= $(ALL_TOOLS) $(WDF_LINKS)
 
 #-------------------------------------------------------------------------------
+# tool dependent objects
+
+TOBJ_wit	:= wit-mix.o
+TOBJ_wwt	:=
+TOBJ_wdf	:=
+TOBJ_wdf-cat	:=
+TOBJ_wdf-dump	:=
+
+TOBJ_ALL	:= $(TOBJ_wit) $(TOBJ_wwt) $(TOBJ_wdf) \
+		   $(TOBJ_wdf-cat) $(TOBJ_wdf-dump)
+
+#-------------------------------------------------------------------------------
 # source files
 
 UI_FILES	= ui.def
@@ -122,7 +134,7 @@ LIBWBFS_O	:= file-formats.o libwbfs.o wiidisc.o rijndael.o
 
 # object groups
 UI_OBJECTS	:= $(sort $(MAIN_TOOLS_OBJ))
-C_OBJECTS	:= $(sort $(TEST_TOOLS_OBJ) $(WIT_O) $(LIBWBFS_O))
+C_OBJECTS	:= $(sort $(TEST_TOOLS_OBJ) $(WIT_O) $(LIBWBFS_O) $(TOBJ_ALL))
 ASM_OBJECTS	:= ssl-asm.o
 
 # all objects + sources
@@ -208,9 +220,9 @@ default_rule: all
 ###############################################################################
 # general rules
 
-$(ALL_TOOLS): %: %.o $(ALL_OBJECTS) Makefile
-	@echo "***    tool $@ $(MODE)"
-	@$(CC) $(CFLAGS) $(DEFINES) $(LDFLAGS) $@.o $(ALL_OBJECTS) $(LIBS) -o $@
+$(ALL_TOOLS): %: %.o $(ALL_OBJECTS) $(TOBJ_ALL) Makefile
+	@echo "***    tool $@ $(TOBJ_$@) $(MODE)"
+	@$(CC) $(CFLAGS) $(DEFINES) $(LDFLAGS) $@.o $(ALL_OBJECTS) $(TOBJ_$@) $(LIBS) -o $@
 	@if test -f $@.exe; then $(STRIP) $@.exe; else $(STRIP) $@; fi
 	@mkdir -p bin/debug
 	@cp -p $@ bin

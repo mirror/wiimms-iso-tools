@@ -769,6 +769,16 @@ wit v1.11a r1434 - 2010-07-26
 
  - Option --region: endian bug fix
 
+wit v1.12a r1451 - 2010-08-01
+
+ - Bug fix for option --sneek: Option --psel was not set in a correct way.
+ - New command: wit CREATE TICKET/TMD: Create a ticket or tmd file from
+   scratch. Options and parameters control the creation.
+ - Composing: If files ticket.bin or tmd.bin missed or have a wrong size
+   TICKET and/or TMD will be created automatically.
+ - New command: wit MIX: Mix partitions from different sources into one
+   new Wii disc image.  *** "wit MIX" is EXPERIMENTAL! ***
+
 @@MODULE(last-history.txt)@@
 
 

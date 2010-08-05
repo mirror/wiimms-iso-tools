@@ -181,6 +181,8 @@ enumError CreateSF
 	int overwrite
 );
 
+int IsFileSelected ( wd_iterator_t *it );
+
 wd_disc_t * OpenDiscSF
 (
 	SuperFile_t * sf,	// valid pointer

@@ -1,3 +1,4 @@
+../src/wit-mix.c ;
 ../src/wit.c ;
 ../src/iso-interface.[ch] ;
 ../src/wwt.c ;

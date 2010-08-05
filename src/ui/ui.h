@@ -25,6 +25,7 @@
 #ifndef WIT_UI_H
 #define WIT_UI_H
 
+#include <getopt.h>
 #include "lib-std.h"
 
 //

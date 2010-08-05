@@ -715,9 +715,6 @@ The option --recurse is processed before option --source.
 @@MODULE(proc-size.txt)@@
 
 
-@@MODULE(proc-files.txt)@@
-
-
 *******************************************************************************
 *******                      Some options in detail                     *******
 *******************************************************************************
