@@ -515,19 +515,29 @@ info_t info_tab[] =
 		" within TMD. The format is @'HIGH:LOW'@ or @'HIGH-LOW'@ or @'LOW'@."
 		" If only @LOW@ is set than @HIGH@ is assumed as 1 (standard IOS)." },
 
-  { H_OPT_CP,	"RM_FILES",	"rm-files",
-		"rules",
-		"Define a filter rules to removes real files"
-		" and directories from the FST." },
+  { T_OPT_CP,	"RM_FILES",	"rm-files",
+		"ruleset",
+		"This patching option defines filter rules to remove real files"
+		" and directories from the FST of the DATA partition."
+		" $Fake signing$ of the TMD is necessary."
+		" @--rm-files@ is processed before {--zero-files} and {--ignore-files}."},
 
-  { H_OPT_CP,	"ZERO_FILES",	"zero-files",
-		"rules",
-		"Define a filter rules to zero real files from the FST." },
+  { T_OPT_CP,	"ZERO_FILES",	"zero-files",
+		"ruleset",
+		"This patching option defines filter rules to zero (set size to zero)"
+		" real files of the FST of the DATA partition."
+		" $Fake signing$ of the TMD is necessary."
+		" @--zero-files@ is processed after {--rm-files} and before {--ignore-files}."},
 
-  { H_OPT_CP,	"IGNORE_FILES",	"ignore-files",
-		"rules",
-		"Define a filter rules to ignore system"
-		" and real files from the FST." },
+  { T_OPT_CP,	"IGNORE_FILES",	"ignore-files",
+		"ruleset",
+		"This option defines filter rules to ignore system"
+		" and real directories and files of the FST of the DATA partition."
+		" $Fake signing$ is not necessary, but the partition becomes invalid,"
+		" because the content of some files is not copied."
+		" If such file is accessed the Wii will halt immediately,"
+		" because the verification of the check sum calculation fails."
+		" @--ignore-files@ is processed after {--rm-files} and {--zero-files}." },
 
   { T_OPT_C,	"OVERLAY",	"overlay",
 		0,
@@ -817,9 +827,9 @@ info_t info_tab[] =
   { T_COPT,	"MODIFY",	0,0,0 },
   { T_COPT,	"REGION",	0,0,0 },
   { T_COPT,	"IOS",		0,0,0 },
-  { H_COPT,	"RM_FILES",	0,0,0 },
-  { H_COPT,	"ZERO_FILES",	0,0,0 },
-  { H_COPT,	"IGNORE_FILES",	0,0,0 },
+  { T_COPT,	"RM_FILES",	0,0,0 },
+  { T_COPT,	"ZERO_FILES",	0,0,0 },
+  { T_COPT,	"IGNORE_FILES",	0,0,0 },
   { T_COPT,	"ENC",		0,0,0 },
 
   //---------- wit GROUP SPLIT_CHUNK ----------
@@ -1566,13 +1576,13 @@ info_t info_tab[] =
   { T_OPT_CP,	"IOS",		"ios",
 		0, 0 /* copy of wit */ },
 
-  { H_OPT_CP,	"RM_FILES",	"rm-files",
+  { T_OPT_CP,	"RM_FILES",	"rm-files",
 		0, 0 /* copy of wit */ },
 
-  { H_OPT_CP,	"ZERO_FILES",	"zero-files",
+  { T_OPT_CP,	"ZERO_FILES",	"zero-files",
 		0, 0 /* copy of wit */ },
 
-  { H_OPT_CP,	"IGNORE_FILES",	"ignore-files",
+  { T_OPT_CP,	"IGNORE_FILES",	"ignore-files",
 		0, 0 /* copy of wit */ },
 
   { T_OPT_CP,	"ENC",		"enc",
@@ -1813,9 +1823,9 @@ info_t info_tab[] =
   { T_COPT,	"MODIFY",	0,0,0 },
   { T_COPT,	"REGION",	0,0,0 },
   { T_COPT,	"IOS",		0,0,0 },
-  { H_COPT,	"RM_FILES",	0,0,0 },
-  { H_COPT,	"ZERO_FILES",	0,0,0 },
-  { H_COPT,	"IGNORE_FILES",	0,0,0 },
+  { T_COPT,	"RM_FILES",	0,0,0 },
+  { T_COPT,	"ZERO_FILES",	0,0,0 },
+  { T_COPT,	"IGNORE_FILES",	0,0,0 },
   { T_COPT,	"ENC",		0,0,0 },
 
   //---------- wwt GROUP SPLIT_CHUNK ----------

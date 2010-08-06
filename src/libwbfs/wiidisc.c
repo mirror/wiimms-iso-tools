@@ -1402,7 +1402,7 @@ enumError wd_load_part
 
 
 	//----- load boot.bin 
-	
+
 	wd_boot_t * boot = &part->boot;
 	err = wd_read_part(part,WII_BOOT_OFF,boot,sizeof(*boot),true);
 	if (err)
@@ -1416,6 +1416,9 @@ enumError wd_load_part
 
 
 	//----- calculate size of main.dol
+
+	u32 fst_max_off4 = part->data_off4;
+	u32 fst_max_size = WII_H3_SIZE;
 
 	{
 	    dol_header_t * dol = (dol_header_t*) disc->temp_buf;
@@ -1448,6 +1451,8 @@ enumError wd_load_part
 		return ERR_WDISC_INVALID;
 	    }
 	    part->dol_size = dol_size;
+	    if ( fst_max_size < dol_size )
+		 fst_max_size = dol_size;
 	    
 	    wd_mark_part(part,boot->dol_off4,dol_size);
 	}
@@ -1466,6 +1471,8 @@ enumError wd_load_part
 		return ERR_WDISC_INVALID;
 	    }
 	    part->apl_size = 0x20 + be32(apl_header+0x14) + be32(apl_header+0x18);
+	    if ( fst_max_size < part->apl_size )
+		 fst_max_size = part->apl_size;
 
 	    wd_mark_part(part,WII_APL_OFF>>2,part->apl_size);
 	}
@@ -1474,8 +1481,6 @@ enumError wd_load_part
 	//----- load and iterate fst
 
 	u32 fst_n		= 0;
-	u32 fst_max_off4	= 0;
-	u32 fst_max_size	= 0;
 	u32 fst_dir_count	= SYS_DIR_COUNT;
 	u32 fst_file_count	= SYS_FILE_COUNT;
 
@@ -2473,6 +2478,17 @@ int wd_remove_disc_files
 
 ///////////////////////////////////////////////////////////////////////////////
 
+static int exec_mark_file ( wd_iterator_t *it )
+{
+    DASSERT(it);
+
+    if ( it->fst_item )
+	it->fst_item->is_dir |= 0x40;
+    return 0;
+};
+ 
+///////////////////////////////////////////////////////////////////////////////
+
 int wd_remove_part_files
 (
     // Remove files and directories from internal FST copy.
@@ -2492,10 +2508,95 @@ int wd_remove_part_files
 					// if at least one file was removed
 )
 {
-    // [2do] remove ot implemented -> wd_zero_part_files() instead
+    DASSERT(part);
 
-    return  wd_zero_part_files(part,func,param,calc_usage_tab);
-    
+    if (!part->fst)
+	return 0;
+
+    wd_iterator_t it;
+    memset(&it,0,sizeof(it));
+    it.disc	= part->disc;
+    it.part	= part;
+    it.param	= param;
+    it.fst_name	= it.path;
+
+    const int stat
+	= wd_iterate_fst_helper(&it,part->fst,func,0,exec_mark_file);
+
+    if ( stat == 1 )
+    {
+	//----- setup
+
+	wd_fst_item_t * fst = part->fst;
+	fst->is_dir &= 1; // never remove first entry
+	int n_fst = ntohl(fst->size);
+	wd_fst_item_t *fst_end = fst + n_fst;
+
+	HEXDUMP16(0,0,fst_end,16);
+
+	//----- 1. loop: normalize directories
+
+	for ( fst = fst_end-1; fst >= part->fst; fst-- )
+	    if ( fst->is_dir & 1 )
+	    {
+		//--- transform size into number of dir elemes in host order
+		int count = 0, i, n = ntohl(fst->size) - (fst - part->fst) - 1;
+		for ( i = 1; i <= n; i++ )
+		    if ( !(fst[i].is_dir & 0x40 ))
+			count++;
+		if (count)
+		    fst->is_dir &= 1;
+		PRINT("#%zu: N=%u/%u [%02x]\n",fst-part->fst,count,n,fst->is_dir);
+		fst->size = count;
+	    }
+	
+	//----- 2. loop: move data
+
+	u32 name_delta = ( n_fst - part->fst->size - 1 ) * sizeof(*fst);
+	printf("NAME-DELTA=%x=%u\n",name_delta,name_delta);
+
+	wd_fst_item_t * dest;
+	for ( fst = dest = part->fst; fst < fst_end; fst++ )
+	{
+	    const u8 is_dir = fst->is_dir;
+	    if ( is_dir & 0x40 )
+		continue;
+
+	    PRINT("COPY %zu -> %zu size=%zu\n",fst-part->fst,dest-part->fst,sizeof(*dest));
+	    memcpy(dest,fst,sizeof(*dest));
+	    
+	    PRINT("NAME-OFF: %x -> %x\n",
+		ntohl(dest->name_off) & 0xffffff,
+		( ntohl(dest->name_off) & 0xffffff ) + name_delta );
+	    
+	    dest->name_off = htonl( ( ntohl(dest->name_off) & 0xffffff ) + name_delta );
+	    if ( is_dir )
+	    {
+		dest->is_dir = 1;
+		dest->size = htonl( dest->size + (dest-part->fst) + 1 );
+	    }
+	    dest++;
+	}
+
+	PRINT("N: %u -> %zu\n", part->fst_n, dest - part->fst);
+	part->fst_n = dest - part->fst;
+	DASSERT( part->fst->size = htonl(part->fst_n) );
+	part->fst->name_off = htonl(0);
+	part->fst->is_dir = 1;
+
+	PRINT("fst_end=%p new_end=%p, n=%u->%u\n",
+		fst_end, part->fst + part->fst_n, n_fst, part->fst_n );
+	HEXDUMP16(0,0,fst_end,16);
+	HEXDUMP16(0,0, (ccp)( part->fst + part->fst_n ) + name_delta,16);
+
+	//----- insert patch    
+
+	wd_insert_patch_fst(part);
+	if (calc_usage_tab)
+	     wd_select_part_files(part,0,0);
+    }
+
+    return stat;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -3388,7 +3489,7 @@ static enumError wd_rap_part_sectors
 	u64 off2 = ( end_sector - part->data_sector ) * (u64)WII_SECTOR_DATA_SIZE;
 	const wd_patch_item_t *item = part->patch.item;
 	const wd_patch_item_t *end_item = item + part->patch.used;
-	PRINT("> off=%llx..%llx, n-item=%u\n", off1, off2, part->patch.used );
+	noTRACE("> off=%llx..%llx, n-item=%u\n", off1, off2, part->patch.used );
 
 	u8 dirty[WII_GROUP_SECTORS];
 	memset(dirty,0,sizeof(dirty));
@@ -3396,8 +3497,8 @@ static enumError wd_rap_part_sectors
 	for ( ; item < end_item && item->offset < off2; item++ )
 	{
 	  const u64 end = item->offset + item->size;
-	  PRINT("> off=%llx..%llx, item=%llx..%llx\n", off1, off2, item->offset, end );
-	  PRINT("> data=%p, fst=%p\n",item->data,part->fst);
+	  noTRACE("> off=%llx..%llx, item=%llx..%llx\n", off1, off2, item->offset, end );
+	  noTRACE("> data=%p, fst=%p\n",item->data,part->fst);
 	  if ( item->offset < off2 && end > off1 )
 	  {
 	    const u64 overlap1 = item->offset > off1 ? item->offset : off1;

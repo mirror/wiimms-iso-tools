@@ -165,19 +165,30 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
     },
 
     {	OPT_RM_FILES, 0, "rm-files",
-	"rules",
-	"Define a filter rules to removes real files and directories from the"
-	" FST."
+	"ruleset",
+	"This patching option defines filter rules to remove real files and"
+	" directories from the FST of the DATA partition. Fake signing of the"
+	" TMD is necessary. --rm-files is processed before --zero-files and"
+	" --ignore-files."
     },
 
     {	OPT_ZERO_FILES, 0, "zero-files",
-	"rules",
-	"Define a filter rules to zero real files from the FST."
+	"ruleset",
+	"This patching option defines filter rules to zero (set size to zero)"
+	" real files of the FST of the DATA partition. Fake signing of the TMD"
+	" is necessary. --zero-files is processed after --rm-files and before"
+	" --ignore-files."
     },
 
     {	OPT_IGNORE_FILES, 0, "ignore-files",
-	"rules",
-	"Define a filter rules to ignore system and real files from the FST."
+	"ruleset",
+	"This option defines filter rules to ignore system and real"
+	" directories and files of the FST of the DATA partition. Fake signing"
+	" is not necessary, but the partition becomes invalid, because the"
+	" content of some files is not copied. If such file is accessed the"
+	" Wii will halt immediately, because the verification of the check sum"
+	" calculation fails. --ignore-files is processed after --rm-files and"
+	" --zero-files."
     },
 
     {	OPT_ENC, 0, "enc",
@@ -1686,6 +1697,9 @@ static const InfoOption_t * option_tab_cmd_ADD[] =
 	OptionInfo + OPT_MODIFY,
 	OptionInfo + OPT_REGION,
 	OptionInfo + OPT_IOS,
+	OptionInfo + OPT_RM_FILES,
+	OptionInfo + OPT_ZERO_FILES,
+	OptionInfo + OPT_IGNORE_FILES,
 	OptionInfo + OPT_ENC,
 
 	OptionInfo + OPT_NONE, // separator
@@ -1746,6 +1760,9 @@ static const InfoOption_t * option_tab_cmd_UPDATE[] =
 	OptionInfo + OPT_MODIFY,
 	OptionInfo + OPT_REGION,
 	OptionInfo + OPT_IOS,
+	OptionInfo + OPT_RM_FILES,
+	OptionInfo + OPT_ZERO_FILES,
+	OptionInfo + OPT_IGNORE_FILES,
 	OptionInfo + OPT_ENC,
 
 	OptionInfo + OPT_NONE, // separator
@@ -1804,6 +1821,9 @@ static const InfoOption_t * option_tab_cmd_SYNC[] =
 	OptionInfo + OPT_MODIFY,
 	OptionInfo + OPT_REGION,
 	OptionInfo + OPT_IOS,
+	OptionInfo + OPT_RM_FILES,
+	OptionInfo + OPT_ZERO_FILES,
+	OptionInfo + OPT_IGNORE_FILES,
 	OptionInfo + OPT_ENC,
 
 	OptionInfo + OPT_NONE, // separator
@@ -2392,7 +2412,7 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	"A",
 	"wwt ADD iso|wbfs|dir...",
 	"Add Wii ISO discs to WBFS partitions.",
-	36,
+	39,
 	option_tab_cmd_ADD
     },
 
@@ -2404,7 +2424,7 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	"wwt UPDATE iso|wbfs|dir...",
 	"Add missing Wii ISO discs to WBFS partitions. 'UPDATE' is a shortcut"
 	" for 'ADD --update'.",
-	34,
+	37,
 	option_tab_cmd_UPDATE
     },
 
@@ -2417,7 +2437,7 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	"Modify primary WBFS (REMOVE and ADD) until it contains exactly the"
 	" same discs as all sources together. 'SYNC' is a shortcut for 'ADD"
 	" --sync'.",
-	33,
+	36,
 	option_tab_cmd_SYNC
     },
 

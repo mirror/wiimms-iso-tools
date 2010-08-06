@@ -324,6 +324,30 @@
 	" within TMD. The format is @'HIGH:LOW'@ or @'HIGH-LOW'@ or @'LOW'@." \
 	" If only @LOW@ is set than @HIGH@ is assumed as 1 (standard IOS)." )
 
+#:def_opt( "RM_FILES", "rm-files", "CP", \
+	"ruleset", \
+	"This patching option defines filter rules to remove real files and" \
+	" directories from the FST of the DATA partition. $Fake signing$ of" \
+	" the TMD is necessary. @--rm-files@ is processed before" \
+	" {--zero-files} and {--ignore-files}." )
+
+#:def_opt( "ZERO_FILES", "zero-files", "CP", \
+	"ruleset", \
+	"This patching option defines filter rules to zero (set size to zero)" \
+	" real files of the FST of the DATA partition. $Fake signing$ of the" \
+	" TMD is necessary. @--zero-files@ is processed after {--rm-files} and" \
+	" before {--ignore-files}." )
+
+#:def_opt( "IGNORE_FILES", "ignore-files", "CP", \
+	"ruleset", \
+	"This option defines filter rules to ignore system and real" \
+	" directories and files of the FST of the DATA partition. $Fake" \
+	" signing$ is not necessary, but the partition becomes invalid," \
+	" because the content of some files is not copied. If such file is" \
+	" accessed the Wii will halt immediately, because the verification of" \
+	" the check sum calculation fails. @--ignore-files@ is processed after" \
+	" {--rm-files} and {--zero-files}." )
+
 #:def_opt( "OVERLAY", "overlay", "C", \
 	"", \
 	"Most partitions have holes (unused areas) in the data section. If" \
@@ -800,6 +824,18 @@
 	"" )
 
 #:def_cmd_opt( "DUMP", "IOS", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "DUMP", "RM_FILES", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "DUMP", "ZERO_FILES", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "DUMP", "IGNORE_FILES", \
 	"", \
 	"" )
 
@@ -1756,6 +1792,18 @@
 	"", \
 	"" )
 
+#:def_cmd_opt( "EXTRACT", "RM_FILES", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "EXTRACT", "ZERO_FILES", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "EXTRACT", "IGNORE_FILES", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "EXTRACT", "ENC", \
 	"", \
 	"" )
@@ -1895,6 +1943,18 @@
 	"" )
 
 #:def_cmd_opt( "COPY", "IOS", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "COPY", "RM_FILES", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "COPY", "ZERO_FILES", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "COPY", "IGNORE_FILES", \
 	"", \
 	"" )
 
@@ -2090,6 +2150,18 @@
 	"", \
 	"" )
 
+#:def_cmd_opt( "SCRUB", "RM_FILES", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "SCRUB", "ZERO_FILES", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "SCRUB", "IGNORE_FILES", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "SCRUB", "ENC", \
 	"", \
 	"" )
@@ -2191,6 +2263,18 @@
 	"" )
 
 #:def_cmd_opt( "EDIT", "IOS", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "EDIT", "RM_FILES", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "EDIT", "ZERO_FILES", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "EDIT", "IGNORE_FILES", \
 	"", \
 	"" )
 
@@ -2917,6 +3001,30 @@
 	"This $patching$ option defines the system version (IOS to load)" \
 	" within TMD. The format is @'HIGH:LOW'@ or @'HIGH-LOW'@ or @'LOW'@." \
 	" If only @LOW@ is set than @HIGH@ is assumed as 1 (standard IOS)." )
+
+#:def_opt( "RM_FILES", "rm-files", "CP", \
+	"ruleset", \
+	"This patching option defines filter rules to remove real files and" \
+	" directories from the FST of the DATA partition. $Fake signing$ of" \
+	" the TMD is necessary. @--rm-files@ is processed before" \
+	" {--zero-files} and {--ignore-files}." )
+
+#:def_opt( "ZERO_FILES", "zero-files", "CP", \
+	"ruleset", \
+	"This patching option defines filter rules to zero (set size to zero)" \
+	" real files of the FST of the DATA partition. $Fake signing$ of the" \
+	" TMD is necessary. @--zero-files@ is processed after {--rm-files} and" \
+	" before {--ignore-files}." )
+
+#:def_opt( "IGNORE_FILES", "ignore-files", "CP", \
+	"ruleset", \
+	"This option defines filter rules to ignore system and real" \
+	" directories and files of the FST of the DATA partition. $Fake" \
+	" signing$ is not necessary, but the partition becomes invalid," \
+	" because the content of some files is not copied. If such file is" \
+	" accessed the Wii will halt immediately, because the verification of" \
+	" the check sum calculation fails. @--ignore-files@ is processed after" \
+	" {--rm-files} and {--zero-files}." )
 
 #:def_opt( "ENC", "enc", "CP", \
 	"encoding", \
@@ -4258,6 +4366,18 @@
 	"", \
 	"" )
 
+#:def_cmd_opt( "ADD", "RM_FILES", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "ADD", "ZERO_FILES", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "ADD", "IGNORE_FILES", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "ADD", "ENC", \
 	"", \
 	"" )
@@ -4405,6 +4525,18 @@
 	"", \
 	"" )
 
+#:def_cmd_opt( "UPDATE", "RM_FILES", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "UPDATE", "ZERO_FILES", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "UPDATE", "IGNORE_FILES", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "UPDATE", "ENC", \
 	"", \
 	"" )
@@ -4541,6 +4673,18 @@
 	"" )
 
 #:def_cmd_opt( "SYNC", "IOS", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "SYNC", "RM_FILES", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "SYNC", "ZERO_FILES", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "SYNC", "IGNORE_FILES", \
 	"", \
 	"" )
 

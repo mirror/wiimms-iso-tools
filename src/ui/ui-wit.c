@@ -166,19 +166,30 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
     },
 
     {	OPT_RM_FILES, 0, "rm-files",
-	"rules",
-	"Define a filter rules to removes real files and directories from the"
-	" FST."
+	"ruleset",
+	"This patching option defines filter rules to remove real files and"
+	" directories from the FST of the DATA partition. Fake signing of the"
+	" TMD is necessary. --rm-files is processed before --zero-files and"
+	" --ignore-files."
     },
 
     {	OPT_ZERO_FILES, 0, "zero-files",
-	"rules",
-	"Define a filter rules to zero real files from the FST."
+	"ruleset",
+	"This patching option defines filter rules to zero (set size to zero)"
+	" real files of the FST of the DATA partition. Fake signing of the TMD"
+	" is necessary. --zero-files is processed after --rm-files and before"
+	" --ignore-files."
     },
 
     {	OPT_IGNORE_FILES, 0, "ignore-files",
-	"rules",
-	"Define a filter rules to ignore system and real files from the FST."
+	"ruleset",
+	"This option defines filter rules to ignore system and real"
+	" directories and files of the FST of the DATA partition. Fake signing"
+	" is not necessary, but the partition becomes invalid, because the"
+	" content of some files is not copied. If such file is accessed the"
+	" Wii will halt immediately, because the verification of the check sum"
+	" calculation fails. --ignore-files is processed after --rm-files and"
+	" --zero-files."
     },
 
     {	OPT_OVERLAY, 0, "overlay",
@@ -1085,6 +1096,9 @@ static const InfoOption_t * option_tab_cmd_DUMP[] =
 	OptionInfo + OPT_MODIFY,
 	OptionInfo + OPT_REGION,
 	OptionInfo + OPT_IOS,
+	OptionInfo + OPT_RM_FILES,
+	OptionInfo + OPT_ZERO_FILES,
+	OptionInfo + OPT_IGNORE_FILES,
 	OptionInfo + OPT_ENC,
 	&option_cmd_DUMP_LONG,
 	OptionInfo + OPT_SHOW,
@@ -1505,6 +1519,9 @@ static const InfoOption_t * option_tab_cmd_EXTRACT[] =
 	OptionInfo + OPT_MODIFY,
 	OptionInfo + OPT_REGION,
 	OptionInfo + OPT_IOS,
+	OptionInfo + OPT_RM_FILES,
+	OptionInfo + OPT_ZERO_FILES,
+	OptionInfo + OPT_IGNORE_FILES,
 	OptionInfo + OPT_ENC,
 	OptionInfo + OPT_PRESERVE,
 	OptionInfo + OPT_OVERWRITE,
@@ -1564,6 +1581,9 @@ static const InfoOption_t * option_tab_cmd_COPY[] =
 	OptionInfo + OPT_MODIFY,
 	OptionInfo + OPT_REGION,
 	OptionInfo + OPT_IOS,
+	OptionInfo + OPT_RM_FILES,
+	OptionInfo + OPT_ZERO_FILES,
+	OptionInfo + OPT_IGNORE_FILES,
 	OptionInfo + OPT_ENC,
 	OptionInfo + OPT_PRESERVE,
 	OptionInfo + OPT_OVERWRITE,
@@ -1639,6 +1659,9 @@ static const InfoOption_t * option_tab_cmd_SCRUB[] =
 	OptionInfo + OPT_MODIFY,
 	OptionInfo + OPT_REGION,
 	OptionInfo + OPT_IOS,
+	OptionInfo + OPT_RM_FILES,
+	OptionInfo + OPT_ZERO_FILES,
+	OptionInfo + OPT_IGNORE_FILES,
 	OptionInfo + OPT_ENC,
 	OptionInfo + OPT_WDF,
 	OptionInfo + OPT_ISO,
@@ -1689,6 +1712,9 @@ static const InfoOption_t * option_tab_cmd_EDIT[] =
 	OptionInfo + OPT_MODIFY,
 	OptionInfo + OPT_REGION,
 	OptionInfo + OPT_IOS,
+	OptionInfo + OPT_RM_FILES,
+	OptionInfo + OPT_ZERO_FILES,
+	OptionInfo + OPT_IGNORE_FILES,
 	OptionInfo + OPT_ENC,
 
 	0
@@ -2029,7 +2055,7 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	"Dump the data structure of Wii ISO files, ticket.bin, tmd.bin,"
 	" header.bin, boot.bin, fst.bin and of DOL-files. The file type is"
 	" detected automatically by analyzing the content.",
-	26,
+	29,
 	option_tab_cmd_DUMP
     },
 
@@ -2153,7 +2179,7 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	"wit EXTRACT source dest\n"
 	"wit EXTRACT [-s path]... [-r path]... [source]... [-d|-D] dest",
 	"Extract all files from the source discs.",
-	35,
+	38,
 	option_tab_cmd_EXTRACT
     },
 
@@ -2166,7 +2192,7 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	"wit COPY [-s path]... [-r path]... [source]... [-d|-D] dest",
 	"Copy, scrub, convert, join, split, compose, extract, patch, encrypt"
 	" and decrypt Wii disc images.",
-	48,
+	51,
 	option_tab_cmd_COPY
     },
 
@@ -2179,7 +2205,7 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	"wit SCRUB [-s path]... [-r path]... [source]...",
 	"Scrub, convert, join, split, compose, extract, patch, encrypt and"
 	" decrypt Wii disc images.",
-	37,
+	40,
 	option_tab_cmd_SCRUB
     },
 
@@ -2191,7 +2217,7 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	"wit EDIT source\n"
 	"wit EDIT [-s path]... [-r path]... [source]...",
 	"Edit an existing Wii ISO images and patch some values.",
-	22,
+	25,
 	option_tab_cmd_EDIT
     },
 

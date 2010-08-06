@@ -17,8 +17,15 @@
 
 [size="2"][color="#0000c0"][b]Highlights of this release:[/b][/color][/size]
 [list]
-[*]
+[*] [b]wit MIX --overlay image.iso ignore ruleset ....[/b]:
+This command will mix partitions and overlay the data to save disc space. The rulset defines files which are not needed. This enlarge the holes and makes overlay more efficient. See http://wit.wiimm.de/wit/cmd-mix.html for more details.
 [color=#ffffff].[/color]
+
+[*] The overlay algorithm works only with 2 blocks and one hole. The next step is to implement a sector based overlay algorithm. This algorithm is already in my head.
+[color=#ffffff].[/color]
+
+[*] There are 3 new (patching) option: --rm-files, --zero-files and --ignore-files.
+Option --ignore-files works like the "wit mix" modifier ignore. Read [url=http://wit.wiimm.de/options/patching.html#ignore-files]this[/url] and try the command "wit dump image1 --show usage --ignore-files ruleset" to view the effect of ignored files.
 [/list]
 
 [size="4"][color="#800000"][b]Please report positive and negative tests![/b][/color][/size]

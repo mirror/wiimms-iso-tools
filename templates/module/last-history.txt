@@ -13,6 +13,16 @@ wit v1.13a r1468 - 2010-08-04
 
 wit v@@VERSION@@ r@@REV-NEXT@@ - @@@@-@@-@@
 
+ - New option --rm-files: This patching option defines filter rules to remove
+   real files and directories from the FST of the DATA partition. Fake signing
+   of the TMD is necessary.
+ - New option --zero-files: This patching option defines filter rules to zero
+   (set size to zero) real files of the FST of the DATA partition. Fake
+   signing$ of the TMD is necessary.
+ - New option --ignore-files: This option defines filter rules to ignore
+   system and real directories and files of the FST of the DATA partition.
+   Fake signing is not necessary, but the partition becomes invalid, because
+   the content of some files is not copied.
  - New qualifier for "wit MIX": "IGNORE ruleset": Ignore files when copying a
    disc image. See http://wit.wiimm.de/wit/cmd-mix.html#ignore for details.
 
