@@ -96,7 +96,7 @@ enumError cmd_exclude()
 {
     ParamList_t * param;
     for ( param = first_param; param; param = param->next )
-	AtFileHelper(param->arg,true,AddExcludeID);
+	AtFileHelper(param->arg,true,true,AddExcludeID);
 
     SetupExcludeDB();
     DumpIDDB(&exclude_db,stdout);
@@ -110,7 +110,7 @@ enumError cmd_titles()
 {
     ParamList_t * param;
     for ( param = first_param; param; param = param->next )
-	AtFileHelper(param->arg,true,AddTitleFile);
+	AtFileHelper(param->arg,0,0,AddTitleFile);
 
     InitializeTDB();
     DumpIDDB(&title_db,stdout);
@@ -164,7 +164,6 @@ enumError cmd_test_options()
     printf("  show-mode:   %16x = %d\n",opt_show_mode,opt_show_mode);
     printf("  limit:       %16x = %d\n",opt_limit,opt_limit);
     printf("  rdepth:      %16x = %d\n",opt_recurse_depth,opt_recurse_depth);
-    printf("  part-select  %16llx = %lld\n",(u64)part_selector,(u64)part_selector);
     printf("  enc:         %16x = %d\n",encoding,encoding);
     printf("  region:      %16x = %d\n",opt_region,opt_region);
 
@@ -193,8 +192,12 @@ enumError cmd_test_options()
     }
     else
 	strcpy(buf_set_time,"NULL");
-    printf("  set-time:    %16llx = %lld = %s\n",(u64)opt_set_time,(u64)opt_set_time,buf_set_time);
+    printf("  set-time:    %16llx = %lld = %s\n",
+		(u64)opt_set_time, (u64)opt_set_time,buf_set_time );
  #endif
+
+    printf("  partition selector:\n");
+    wd_print_select(stdout,6,&part_selector);
 
     return ERR_OK;
 }

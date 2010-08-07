@@ -181,7 +181,7 @@ int AddFilePattern ( ccp arg, int pattern_index )
 
 int ScanFiles ( ccp arg, enumPattern pattern_index )
 {
-    return AtFileHelper(arg,pattern_index,AddFilePattern) != 0;
+    return AtFileHelper(arg,pattern_index,pattern_index,AddFilePattern) != 0;
 }
 
 ///////////////////////////////////////////////////////////////////////////////

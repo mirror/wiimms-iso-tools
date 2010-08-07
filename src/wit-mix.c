@@ -359,6 +359,7 @@ enumError cmd_mix()
     {
 	//--- scan source file
 
+	AtExpandParam(&param);
 	ccp srcfile = param->arg;
 	if ( src_warn && !strchr(srcfile,'/') && !strchr(srcfile,'.') )
 	{
@@ -373,7 +374,8 @@ enumError cmd_mix()
 	//--- scan qualifiers
 	
 	bool scan_qualifier = true;
-	wd_select_t psel = WD_SEL_PART_DATA|WD_SEL_PART_ACTIVE;
+	wd_select_t psel;
+	wd_initialize_select(&psel);
 	u32 ptab = 0, ptype = 0;
 	bool ptab_valid = false, ptype_valid = false;
 	bool pattern_active = false;
@@ -382,6 +384,7 @@ enumError cmd_mix()
 	while ( scan_qualifier )
 	{
 	    scan_qualifier = false;
+	    AtExpandParam(&param);
 
 	    //--- scan 'SELECT'
 
@@ -390,9 +393,10 @@ enumError cmd_mix()
 		    || !strcasecmp(param->arg,"psel") ))
 	    {
 		param = param->next;
-		psel = ScanPartSelector(param->arg," ('select')");
-		if ( psel == -(wd_select_t)1 )
-		    return ERR_SYNTAX;
+		AtExpandParam(&param);
+		const enumError err = ScanPartSelector(&psel,param->arg," ('select')");
+		if (err)
+		    return err;
 		param = param->next;
 		scan_qualifier = true;
 	    }
@@ -403,6 +407,7 @@ enumError cmd_mix()
 	    if ( param && param->next && !strcasecmp(param->arg,"as") )
 	    {
 		param = param->next;
+		AtExpandParam(&param);
 		const enumError err
 		    = ScanPartTabAndType(&ptab,&ptab_valid,&ptype,&ptype_valid,
 					    param->arg," ('as')");
@@ -417,16 +422,13 @@ enumError cmd_mix()
 	    if ( param && param->next && !strcasecmp(param->arg,"ignore") )
 	    {
 		param = param->next;
-		if (AtFileHelper(param->arg,PAT_PARAM,AddFilePattern))
+		if (AtFileHelper(param->arg,PAT_PARAM,PAT_PARAM,AddFilePattern))
 		    return ERR_SYNTAX;
 		param = param->next;
 		pattern_active = true;
 		scan_qualifier = true;
 	    }
 	}
-
-	noTRACE("psel=%llx, as=%u.%u,%d.%x, src=%s\n",
-		(u64)psel, ptab_valid, ptype_valid, ptab, ptype, srcfile );
 
 
 	//--- analyze pattern
@@ -454,7 +456,8 @@ enumError cmd_mix()
 	if (!disc)
 	    return ERR_WDISC_NOT_FOUND;
 
-	wd_select(disc,psel);
+	wd_select(disc,&psel);
+	wd_reset_select(&psel);
 	wd_part_t *part, *end_part = disc->part + disc->n_part;
 	Mix_t * mix = 0;
 	for ( part = disc->part; part < end_part; part++ )
@@ -585,7 +588,8 @@ enumError cmd_mix()
 	}
 
 	printf("\nMix table (%d partitons, total size=%llu MiB):\n\n"
-		"    blocks #1      blocks #2  :      disc offset     : ptab  ptype : ignore + source\n"
+		"    blocks #1      blocks #2  :      disc offset     "
+		": ptab  ptype : ignore + source\n"
 		"  %.*s\n",
 		n_mix, sector* (u64)WII_SECTOR_SIZE / MiB,
 		69 + src_fw, wd_sep_200 );

@@ -289,6 +289,7 @@ void SetupLib ( int argc, char ** argv, ccp p_progname, enumProgID prid )
     TRACE_SIZEOF(wd_part_header_t);
     TRACE_SIZEOF(wd_part_sector_t);
     TRACE_SIZEOF(wd_part_t);
+    TRACE_SIZEOF(wd_part_type_t);
     TRACE_SIZEOF(wd_patch_item_t);
     TRACE_SIZEOF(wd_patch_mode_t);
     TRACE_SIZEOF(wd_patch_t);
@@ -300,8 +301,9 @@ void SetupLib ( int argc, char ** argv, ccp p_progname, enumProgID prid )
     TRACE_SIZEOF(wd_ptab_t);
     TRACE_SIZEOF(wd_region_t);
     TRACE_SIZEOF(wd_reloc_t);
+    TRACE_SIZEOF(wd_select_item_t);
+    TRACE_SIZEOF(wd_select_mode_t);
     TRACE_SIZEOF(wd_select_t);
-    TRACE_SIZEOF(wd_select_idx_t);
     TRACE_SIZEOF(wd_ticket_t);
     TRACE_SIZEOF(wd_tmd_content_t);
     TRACE_SIZEOF(wd_tmd_t);
@@ -506,6 +508,7 @@ void SetupLib ( int argc, char ** argv, ccp p_progname, enumProgID prid )
     //----- setup data structures
 
     InitializeAllFilePattern();
+    wd_initialize_select(&part_selector);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -1981,7 +1984,7 @@ char * ScanNumU32 ( ccp arg, u32 * p_stat, u32 * p_num, u32 min, u32 max )
 	arg++;
 
     char * end;
-    u32 num = strtoul(arg,&end,0);
+    u32 num = strtoul(arg,&end, arg[1] >= '0' && arg[1] <= '9' ? 10 : 0 );
     u32 stat = end > arg;
     if (stat)
     {
@@ -2314,7 +2317,7 @@ s64 ScanCommandList
 
 	if (func)
 	{
-	    result = func(cmd_buf,cmd_tab,cptr,prefix,result);
+	    result = func(0,cmd_buf,cmd_tab,cptr,prefix,result);
 	    if ( result == -(s64)1 )
 		return result;
 	}
@@ -2333,8 +2336,55 @@ s64 ScanCommandList
 
 ///////////////////////////////////////////////////////////////////////////////
 
+enumError ScanCommandListFunc
+(
+    ccp			arg,		// argument to scan
+    const CommandTab_t	* cmd_tab,	// valid pointer to command table
+    CommandCallbackFunc	func,		// calculation function
+    void		* param,	// used define parameter for 'func'
+    bool		allow_prefix	// allow '-' | '+' | '=' as prefix
+)
+{
+    ASSERT(arg);
+    ASSERT(func);
+
+    char cmd_buf[COMMAND_NAME_MAX];
+    char *end  = cmd_buf + sizeof(cmd_buf) - 1;
+
+    for (;;)
+    {
+	while ( *arg > 0 && *arg <= ' ' || *arg == ',' )
+	    arg++;
+
+	if (!*arg)
+	    return ERR_OK;
+
+	char *dest = cmd_buf;
+	while ( *arg > ' ' && *arg != ',' &&
+		( *arg != '+' || dest == cmd_buf ) && dest < end )
+	    *dest++ = *arg++;
+	*dest = 0;
+	char prefix = 0;
+	int abbrev_count;
+	const CommandTab_t * cptr = ScanCommand(&abbrev_count,cmd_buf,cmd_tab);
+	if ( !cptr && allow_prefix && cmd_buf[1]
+	    && ( *cmd_buf == '+' || *cmd_buf == '-' || *cmd_buf == '=' ))
+	{
+	    prefix = *cmd_buf;
+	    cptr = ScanCommand(&abbrev_count,cmd_buf+1,cmd_tab);
+	}
+
+	const enumError err = func(param,cmd_buf,cmd_tab,cptr,prefix,0);
+	if (err)
+	    return err;
+    }
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
 static s64 ScanCommandListMaskHelper
 (
+    void		* param,	// NULL or user defined parameter
     ccp			name,		// normalized name of option
     const CommandTab_t	* cmd_tab,	// valid pointer to command table
     const CommandTab_t	* cmd,		// valid pointer to found command
@@ -2783,17 +2833,25 @@ enumError WriteStringField
 ///////////////                  string lists                   ///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-int AtFileHelper ( ccp arg, int mode, int (*func) ( ccp arg, int mode ) )
+int AtFileHelper
+(
+    ccp arg,
+    int mode,
+    int mode_expand,
+    int (*func) ( ccp arg, int mode )
+)
 {
     if ( !arg || !*arg || !func )
 	return 0;
 
-    TRACE("AtFileHelper(%s)\n",arg);
+    TRACE("AtFileHelper(%s,%x,%x)\n",arg,mode,mode_expand);
     if ( *arg != '@' )
 	return func(arg,mode);
 
     FILE * f;
+    char buf[PATH_MAX];
     const bool use_stdin = arg[1] == '-' && !arg[2];
+
     if (use_stdin)
 	f = stdin;
     else
@@ -2811,11 +2869,8 @@ int AtFileHelper ( ccp arg, int mode, int (*func) ( ccp arg, int mode ) )
 
     ASSERT(f);
 
-    const int bufsize = 1000;
-    char buf[bufsize+1];
-
     u32 max_stat = 0;
-    while (fgets(buf,bufsize,f))
+    while (fgets(buf,sizeof(buf)-1,f))
     {
 	char * ptr = buf;
 	while (*ptr)
@@ -2825,7 +2880,7 @@ int AtFileHelper ( ccp arg, int mode, int (*func) ( ccp arg, int mode ) )
 	if ( ptr > buf && ptr[-1] == '\r' )
 	    ptr--;
 	*ptr = 0;
-	const u32 stat = func(buf,mode);
+	const u32 stat = func(buf,mode_expand);
 	if ( max_stat < stat )
 	     max_stat = stat;
     }
@@ -2841,13 +2896,8 @@ ParamList_t ** append_param = &first_param;
 
 ///////////////////////////////////////////////////////////////////////////////
 
-ParamList_t * AppendParam ( ccp arg, int is_temp )
+static ParamList_t* GetPoolParam()
 {
-    if ( !arg || !*arg )
-	return 0;
-
-    TRACE("ARG#%02d: %s\n",n_param,arg);
-
     static ParamList_t * pool = 0;
     static int n_pool = 0;
 
@@ -2857,11 +2907,23 @@ ParamList_t * AppendParam ( ccp arg, int is_temp )
 	pool = (ParamList_t*) calloc(alloc_count,sizeof(ParamList_t));
 	if (!pool)
 	    OUT_OF_MEMORY;
-	n_pool = 100;
+	n_pool = alloc_count;
     }
 
     n_pool--;
-    ParamList_t * param = pool++;
+    return pool++;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+ParamList_t * AppendParam ( ccp arg, int is_temp )
+{
+    if ( !arg || !*arg )
+	return 0;
+
+    TRACE("ARG#%02d: %s\n",n_param,arg);
+
+    ParamList_t * param = GetPoolParam();
     if (is_temp)
     {
 	param->arg = strdup(arg);
@@ -2870,8 +2932,10 @@ ParamList_t * AppendParam ( ccp arg, int is_temp )
     }
     else
 	param->arg = (char*)arg;
-    param->count = 0;
-    param->next  = 0;
+
+    while (*append_param)
+	append_param = &(*append_param)->next;
+
     noTRACE("INS: A=%p->%p P=%p &N=%p->%p\n",
 	    append_param, *append_param,
 	    param, &param->next, param->next );
@@ -2888,6 +2952,80 @@ ParamList_t * AppendParam ( ccp arg, int is_temp )
 int AddParam ( ccp arg, int is_temp )
 {
     return AppendParam(arg,is_temp) ? 0 : 1;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+void AtExpandParam ( ParamList_t ** p_param )
+{
+    if ( !p_param || !*p_param )
+	return;
+
+    ParamList_t * param = *p_param;
+    if ( param->is_expanded || !param->arg || *param->arg != '@' )
+	return;
+
+    FILE * f;
+    char buf[PATH_MAX];
+    const bool use_stdin = param->arg[1] == '-' && !param->arg[2];
+    if (use_stdin)
+	f = stdin;
+    else
+    {
+     #ifdef __CYGWIN__
+	NormalizeFilenameCygwin(buf,sizeof(buf),param->arg+1);
+	f = fopen(buf,"r");
+     #else
+	f = fopen(param->arg+1,"r");
+     #endif
+	if (!f)
+	    return;
+    }
+
+    ASSERT(f);
+
+    u32 count = 0;
+    while (fgets(buf,sizeof(buf)-1,f))
+    {
+	char * ptr = buf;
+	while (*ptr)
+	    ptr++;
+	if ( ptr > buf && ptr[-1] == '\n' )
+	    ptr--;
+	if ( ptr > buf && ptr[-1] == '\r' )
+	    ptr--;
+	*ptr = 0;
+
+	if (count++)
+	{
+	    // insert a new item
+	    ParamList_t * new_param = GetPoolParam();
+	    new_param->next = param->next;
+	    param->next = new_param;
+	    param = new_param;
+	    n_param++;
+	}
+	param->arg = strdup(buf);
+	param->is_expanded = true;
+    }
+    fclose(f);
+
+    if (!count)
+    {
+	*p_param = param->next;
+	n_param--;
+    }
+
+    append_param = &first_param;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+void AtExpandAllParam ( ParamList_t ** p_param )
+{
+    if (p_param)
+	for ( ; *p_param; p_param = &(*p_param)->next )
+	    AtExpandParam(p_param);
 }
 
 //

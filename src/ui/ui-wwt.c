@@ -182,13 +182,12 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 
     {	OPT_IGNORE_FILES, 0, "ignore-files",
 	"ruleset",
-	"This option defines filter rules to ignore system and real"
-	" directories and files of the FST of the DATA partition. Fake signing"
-	" is not necessary, but the partition becomes invalid, because the"
-	" content of some files is not copied. If such file is accessed the"
-	" Wii will halt immediately, because the verification of the check sum"
-	" calculation fails. --ignore-files is processed after --rm-files and"
-	" --zero-files."
+	"This option defines filter rules to ignore real files of the FST of"
+	" the DATA partition. Fake signing is not necessary, but the partition"
+	" becomes invalid, because the content of some files is not copied. If"
+	" such file is accessed the Wii will halt immediately, because the"
+	" verification of the check sum calculation fails. --ignore-files is"
+	" processed after --rm-files and --zero-files."
     },
 
     {	OPT_ENC, 0, "enc",
@@ -261,7 +260,7 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 	" changing.\n"
 	"If the input file size is not known (e.g. reading from pipe), its"
 	" size is assumed as 12 GiB.\n"
-	" --chz is a shortcut for --chunk-size."
+	"--chz is a shortcut for --chunk-size."
     },
 
     {	OPT_MAX_CHUNKS, 0, "max-chunks",
@@ -270,7 +269,7 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 	" default value is 8192 for '--chunk-mode ISO' and 32760 (maximal"
 	" value) for all other modes. If this value is set than the automatic"
 	" calculation  of --chunk-size will be modified too.\n"
-	" --mch is a shortcut for --max-chunks."
+	"--mch is a shortcut for --max-chunks."
     },
 
     {	OPT_SIZE, 's', "size",

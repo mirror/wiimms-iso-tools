@@ -177,13 +177,11 @@ typedef struct wbfs_param_t // function parameters
 	wd_read_func_t		read_src_wii_disc;	// read wit sector [obsolete?]
 	progress_callback_t	spinner;		// progress callback
 
-	// partition selectors
-	wd_select_t		psel;			// partition selector bit field
-
   //----- parameters for wbfs_add_disc_param()
 
 	u64			iso_size;		// size of iso image in bytes
 	wd_disc_t		*wd_disc;		// NULL or the source disc
+	const wd_select_t	* psel;			// partition selector
 
   //----- multi use parameters
 
@@ -330,7 +328,7 @@ u32 wbfs_add_disc
     wd_read_func_t	read_src_wii_disc,
     void		* callback_data,
     progress_callback_t	spinner,
-    wd_select_t		psel,
+    const wd_select_t	* psel,
     int			copy_1_1
 );
 
@@ -340,10 +338,10 @@ u32 wbfs_add_phantom ( wbfs_t * p, const char * phantom_id, u32 wii_sector_count
 
 u32 wbfs_estimate_disc
 (
-    wbfs_t		*p,
+    wbfs_t		* p,
     wd_read_func_t	read_src_wii_disc,
-    void		*callback_data,
-    wd_select_t		psel
+    void		* callback_data,
+    const wd_select_t	* psel
 );
 
 // remove a disc from partition

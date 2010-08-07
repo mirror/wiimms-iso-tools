@@ -529,10 +529,10 @@ char * wd_print_part_name
 	else if (is_id)
 	{
 	    ptype = htonl(ptype); // we need big endian here
-	    snprintf(buf,buf_size,"%x [\"%.4s\"]",ptype,id4);
+	    snprintf(buf,buf_size,"0x%x [\"%.4s\"]",ptype,id4);
 	}
 	else
-	    snprintf(buf,buf_size,"%x [?]",ptype);
+	    snprintf(buf,buf_size,"0x%x [%u]",ptype,ptype);
 	break;
     }
 
@@ -1673,50 +1673,266 @@ enumError wd_calc_fst_statistics
 ///////////////			select partitions		///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-bool wd_is_part_selected
+void wd_initialize_select
 (
-	wd_select_t	select,		// partition selector bit field
-	u32		part_type,	// partition type
-	u32		ptab_index	// index of partition table
+    wd_select_t		* select	// valid pointer to a partition selector
 )
 {
-    if ( select & WD_SEL_WHOLE_DISC )
-	return true;
+    DASSERT(select);
+    memset(select,0,sizeof(*select));
+}
 
-    if ( select & WD_SEL_PART_ACTIVE )
-    {
-	ccp d = (ccp)&part_type;
-	if ( ISALNUM(d[0]) && ISALNUM(d[1]) && ISALNUM(d[2]) && ISALNUM(d[3]) )
-	{
-	    if ( !(select & WD_SEL_PART_ID) )
-		return false;
-	}
-	else if ( part_type > WD_SELI_PART_MAX || !( 1ull << part_type & select ) )
-	    return false;
-    }
+///////////////////////////////////////////////////////////////////////////////
 
-    if ( select & WD_SEL_PTAB_ACTIVE )
+void wd_reset_select
+(
+    wd_select_t		* select	// valid pointer to a partition selector
+)
+{
+    DASSERT(select);
+    free(select->list);
+    memset(select,0,sizeof(*select));
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+wd_select_item_t * wd_append_select_item
+(
+    wd_select_t		* select,	// valid pointer to a partition selector
+    wd_select_mode_t	mode,		// select mode of new item
+    u32			table,		// partiton table of new item
+    u32			part		// partiton type or index of new item
+)
+{
+    DASSERT(select);
+    if ( select->used == select->size )
     {
-	if ( ptab_index >= WII_MAX_PTAB || !( WD_SEL_PTAB_0 << ptab_index & select ) )
-	    return false;
+	select->size += 10;
+	select->list = realloc(select->list, select->size*sizeof(*select->list));
+	if (!select->list)
+	    OUT_OF_MEMORY;
     }
     
-    // WD_SEL_WHOLE_PART does not matter
+    DASSERT( select->used < select->size );
+    wd_select_item_t * item = select->list + select->used++;
+    item->mode	= mode;
+    item->table	= table;
+    item->part	= part;
 
-    return true;
+    return item;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+void wd_copy_select
+(
+    wd_select_t		* dest,		// valid pointer to a partition selector
+    const wd_select_t	* source	// NULL or pointer to a partition selector
+)
+{
+    DASSERT(dest);
+    wd_reset_select(dest);
+    if (source)
+    {
+	memcpy(dest,source,sizeof(*dest));
+	dest->size = source->used;
+	if (dest->size)
+	{
+	    const int list_size = dest->size * sizeof(*dest->list);
+	    dest->list = malloc(list_size);
+	    if (!dest->list)
+		OUT_OF_MEMORY;
+	    memcpy(dest->list,source->list,list_size);
+	}
+    }
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+void wd_move_select
+(
+    wd_select_t		* dest,		// valid pointer to a partition selector
+    wd_select_t		* source	// NULL or pointer to a partition selector
+)
+{
+    DASSERT(dest);
+    if ( source != dest )
+    {
+	wd_reset_select(dest);
+	if (source)
+	{
+	    memmove(dest,source,sizeof(*dest));
+	    wd_initialize_select(source);
+	}
+    }
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+void wd_print_select
+(
+    FILE		* f,		// valid output file
+    int			indent,		// indention of the output
+    wd_select_t		* select	// valid pointer to a partition selector
+)
+{
+    DASSERT(f);
+    DASSERT(select);
+
+    indent = wd_normalize_indent(indent);
+
+    if ( select->whole_disc )
+	printf("%*sFLAG: Copy whole disc (=raw mode), ignore all others.\n", indent, "" );
+
+    if ( select->whole_part )
+	printf("%*sFLAG: Copy whole partitions.\n", indent, "" );
+
+    bool default_deny = false;
+    const wd_select_item_t * item = select->list;
+    const wd_select_item_t * end  = item + select->used;
+    for ( ; item < end; item++ )
+    {
+	bool allow = !( item->mode & WD_SM_F_DENY );
+	ccp verb = allow ? "ALLOW" : "DENY ";
+	switch ( item->mode & WD_SM_M_MODE )
+	{
+	    case WD_SM_ALLOW_PTYPE:
+		printf("%*s%s partition type %s\n",
+			indent, "", verb,
+			wd_print_part_name(0,0,item->part,WD_PNAME_NUM_INFO) );
+		default_deny = allow;
+		break;
+
+	    case WD_SM_ALLOW_PTAB:
+		printf("%*s%s partition table %u\n",
+			indent, "", verb, item->table );
+		default_deny = allow;
+		break;
+
+	    case WD_SM_ALLOW_INDEX:
+		printf("%*s%s partition index #%u\n",
+			indent, "", verb, item->part );
+		default_deny = allow;
+		break;
+
+	    case WD_SM_ALLOW_LT_INDEX:
+		printf("%*s%s partition index < #%u\n",
+			indent, "", verb, item->part );
+		default_deny = allow;
+		break;
+
+	    case WD_SM_ALLOW_GT_INDEX:
+		printf("%*s%s partition index > #%u\n",
+			indent, "", verb, item->part );
+		default_deny = allow;
+		break;
+
+	    case WD_SM_ALLOW_PTAB_INDEX:
+		printf("%*s%s partition index #%u.%u\n",
+			indent, "", verb, item->table, item->part );
+		default_deny = allow;
+		break;
+
+	    case WD_SM_ALLOW_ID:
+		printf("%*s%s ID partitions.\n", indent, "", verb );
+		default_deny = allow;
+		break;
+
+	    case WD_SM_ALLOW_ALL:
+		printf("%*s%s all partitions.\n", indent, "", verb );
+		default_deny = allow;
+		break;
+	}
+    }
+    printf("%*s%s all partitions (default rule)\n",
+		indent, "", default_deny ? "DENY " : "ALLOW" );
+}
+
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+
+bool wd_is_part_selected
+(
+    wd_part_t		* part,		// valid pointer to a disc partition
+    const wd_select_t	* select	// NULL or pointer to a partition selector
+)
+{
+    DASSERT(part);
+
+    if (!select)
+	return true;
+
+    bool allow = false;
+    const wd_select_item_t * item = select->list;
+    const wd_select_item_t * end  = item + select->used;
+    for ( ; item < end; item++ )
+    {
+	int match;
+	switch ( item->mode & WD_SM_M_MODE )
+	{
+	    case WD_SM_ALLOW_PTYPE:
+		match =  item->part == part->part_type;
+		break;
+
+	    case WD_SM_ALLOW_PTAB:
+		match = item->table == part->ptab_index;
+		break;
+
+	    case WD_SM_ALLOW_INDEX:
+		match = part->index == item->part;
+		break;
+
+	    case WD_SM_ALLOW_LT_INDEX:
+		match = part->index < item->part;
+		break;
+
+	    case WD_SM_ALLOW_GT_INDEX:
+		match = part->index > item->part;
+		break;
+
+	    case WD_SM_ALLOW_PTAB_INDEX:
+		match =  item->table == part->ptab_index
+		      && item->part == part->ptab_part_index;
+		break;
+
+	    case WD_SM_ALLOW_ID:
+		{
+		    ccp d = (ccp)&part->part_type;
+		    match = ISALNUM(d[0]) && ISALNUM(d[1]) && ISALNUM(d[2]) && ISALNUM(d[3]);
+		}
+		break;
+
+	    case WD_SM_ALLOW_ALL:
+		match = 1;
+		break;
+
+	    default:
+		match = -1;
+	}
+
+	if ( match >= 0 )
+	{
+	    allow = !( item->mode & WD_SM_F_DENY );
+	    if ( match > 0 )
+		return allow;
+	}
+    }
+    
+    return !allow;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 
 bool wd_select // return true if selection changed
 (
-	wd_disc_t	* disc,		// valid disc pointer
-	wd_select_t	select		// partition selector bit field
+    wd_disc_t		* disc,		// valid disc pointer
+    const wd_select_t	* select	// NULL or pointer to a partition selector
 )
 {
-    ASSERT(disc);
+    DASSERT(disc);
 
-    disc->active_select = select & WD_SEL__MASK;
+    disc->whole_disc = select && select->whole_disc;
+    disc->whole_part = select && select->whole_part;
 
     bool selection_changed = false;
     bool any_part_disabled = false;
@@ -1729,7 +1945,7 @@ bool wd_select // return true if selection changed
 	    selection_changed = true;
 	const bool is_enabled = part->is_enabled;
 	wd_load_part(part,false,false);
-	part->is_enabled = wd_is_part_selected(select,part->part_type,part->ptab_index);
+	part->is_enabled = wd_is_part_selected(part,select);
 	if ( part->is_enabled != is_enabled )
 	    selection_changed = true;
 	part->is_ok = part->is_loaded && part->is_valid && part->is_enabled;
@@ -1738,59 +1954,8 @@ bool wd_select // return true if selection changed
     }
 
     wd_calc_fst_statistics(disc,false);
-    disc->patch_ptab_recommended = any_part_disabled
-				&& !(select & WD_SEL_WHOLE_DISC);
+    disc->patch_ptab_recommended = any_part_disabled && !disc->whole_disc;
     return selection_changed;
-}
-
-///////////////////////////////////////////////////////////////////////////////
-
-wd_select_t wd_set_select
-(
-	wd_select_t	select,		// current selector value
-	wd_select_t	set_mask	// bits to set
-)
-{
-    select |= set_mask & (WD_SEL_WHOLE_PART|WD_SEL_WHOLE_DISC);
-
-    wd_select_t temp = set_mask & WD_SEL_PART__MASK;
-    if (temp)
-	select |= temp | WD_SEL_PART_ACTIVE;
-
-    temp = set_mask & WD_SEL_PTAB__MASK;
-    if (temp)
-	select |= temp | WD_SEL_PTAB_ACTIVE;
-
-    return select & WD_SEL__MASK;
-}
-
-///////////////////////////////////////////////////////////////////////////////
-
-wd_select_t wd_clear_select
-(
-	wd_select_t	select,		// current selector value
-	wd_select_t	clear_mask	// bits to clear
-)
-{
-    select &= ~( clear_mask & (WD_SEL_WHOLE_PART|WD_SEL_WHOLE_DISC) );
-
-    wd_select_t temp = clear_mask & WD_SEL_PART__MASK;
-    if (temp)
-    {
-	if ( !(select & WD_SEL_PART_ACTIVE) )
-	    select |= WD_SEL_PART__MASK | WD_SEL_PART_ACTIVE;
-	select &= ~temp;
-    }
-
-    temp = clear_mask & WD_SEL_PTAB__MASK;
-    if (temp)
-    {
-	if ( !(select & WD_SEL_PTAB_ACTIVE) )
-	    select |= WD_SEL_PTAB__MASK | WD_SEL_PTAB_ACTIVE;
-	select &= ~temp;
-    }
-
-    return select & WD_SEL__MASK;
 }
 
 //
@@ -1828,7 +1993,7 @@ const u8 wd_usage_class_tab[256] =
 
 u8 * wd_calc_usage_table
 (
-	wd_disc_t	* disc		// valid disc partition pointer
+    wd_disc_t		* disc		// valid disc partition pointer
 )
 {
     DASSERT(disc);
@@ -1840,13 +2005,15 @@ u8 * wd_calc_usage_table
 
 u8 * wd_filter_usage_table
 (
-	wd_disc_t	* disc,		// valid disc pointer
-	u8		* usage_table,	// NULL or result. If NULL -> malloc()
-	bool		whole_part,	// true: mark complete partitions
-	bool		whole_disc	// true: mark all sectors
+    wd_disc_t		* disc,		// valid disc pointer
+    u8			* usage_table,	// NULL or result. If NULL -> malloc()
+    const wd_select_t	* select	// NULL or a new selector
 )
 {
-    TRACE("wd_filter_usage_table(,,%d,%d)\n",whole_part,whole_disc);
+    TRACE("wd_filter_usage_table()\n");
+
+    if (select)
+	wd_select(disc,select);
 
     wd_calc_usage_table(disc);
 
@@ -1861,7 +2028,7 @@ u8 * wd_filter_usage_table
     memcpy(usage_table,disc->usage_table,WII_MAX_SECTORS);
 
     u8 transform[0x100];
-    memset( transform, whole_disc ? WD_USAGE_DISC : WD_USAGE_UNUSED, sizeof(transform) );
+    memset( transform, disc->whole_disc ? WD_USAGE_DISC : WD_USAGE_UNUSED, sizeof(transform) );
     transform[WD_USAGE_DISC] = WD_USAGE_DISC;
 
     disc->patch_ptab_recommended = false;
@@ -1878,7 +2045,7 @@ u8 * wd_filter_usage_table
 	    val |= WD_USAGE_F_CRYPT;
 	    transform[val] = val;
 
-	    if ( whole_part && !part->is_overlay )
+	    if ( disc->whole_part && !part->is_overlay )
 	    {
 		const u32 first_block = part->data_off4 /  WII_SECTOR_SIZE4;
 		u32 end_block = ( part->ph.data_size4 + WII_SECTOR_SIZE4 - 1 )
@@ -1898,7 +2065,7 @@ u8 * wd_filter_usage_table
 	    }
 	}
 	else
-	    disc->patch_ptab_recommended = !whole_disc;
+	    disc->patch_ptab_recommended = !disc->whole_disc;
     }
 
     u32 n_sect = disc->file_size
@@ -1912,58 +2079,28 @@ u8 * wd_filter_usage_table
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-
-u8 * wd_filter_usage_table_sel
-(
-	wd_disc_t	* disc,		// valid disc pointer
-	u8		* usage_table,	// NULL or result. If NULL -> malloc()
-	wd_select_t	select		// partition selector bit field
-)
-{
-    TRACE("wd_filter_usage_table_sel(,,%llx)\n",(u64)select);
-
-    wd_select(disc,select);
-
-    const bool whole_disc = ( select & WD_SEL_WHOLE_DISC ) != 0;
-    const bool whole_part = whole_disc || ( select & WD_SEL_WHOLE_PART );
-    return wd_filter_usage_table( disc, usage_table, whole_part, whole_disc );
-}
-
-///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
 u32 wd_count_used_disc_blocks
 (
-	wd_disc_t	* disc,		// valid pointer to a disc
-	u32		block_size	// if >1: count every 'block_size'
+    wd_disc_t		* disc,		// valid pointer to a disc
+    u32			block_size,	// if >1: count every 'block_size'
 					//        continuous blocks as one block
+    const wd_select_t	* select	// NULL or a new selector
 )
 {
+    if (select)
+	wd_select(disc,select);
     wd_calc_usage_table(disc);
     return wd_count_used_blocks(disc->usage_table,block_size);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 
-u32 wd_count_used_disc_blocks_sel
-(
-	wd_disc_t	* disc,		// valid pointer to a disc
-	u32		block_size,	// if >1: count every 'block_size'
-					//        continuous blocks as one block
-	wd_select_t	select		// partition selector bit field
-)
-{
-    u8 usage_tab[WII_MAX_SECTORS];
-    wd_filter_usage_table_sel(disc,usage_tab,select);
-    return wd_count_used_blocks(usage_tab,block_size);
-}
-
-///////////////////////////////////////////////////////////////////////////////
-
 u32 wd_count_used_blocks
 (
-	const u8 *	usage_table,	// valid pointer to usage table
-	u32		block_size	// if >1: count every 'block_size'
+    const u8		* usage_table,	// valid pointer to usage table
+    u32			block_size	// if >1: count every 'block_size'
 					//        continuous blocks as one block
 )
 {
@@ -2794,7 +2931,17 @@ int wd_select_part_files
 	if ( utab[sector] == usage_id )
 	    utab[sector] = WD_USAGE_UNUSED; 
 
-    //----- call iterator
+    //----- mark needed system files
+
+    wd_mark_part( part, WII_BOOT_OFF>>2, WII_BOOT_SIZE );	// boot.bin
+    wd_mark_part( part, WII_BI2_OFF>>2, WII_BI2_SIZE );		// bi2.bin
+    wd_mark_part( part, WII_APL_OFF>>2, part->apl_size );	// apploader.img
+    wd_mark_part( part, part->boot.dol_off4, part->dol_size );	// main.dol
+    wd_mark_part( part, part->boot.fst_off4,
+			part->boot.fst_size4 << 2 );		// fst.bin
+
+
+    //----- call iterator for files/...
     
     wd_iterator_t it;
     memset(&it,0,sizeof(it));
@@ -2803,7 +2950,7 @@ int wd_select_part_files
     it.param	= param;
     it.fst_name	= it.path;
 
-    return wd_iterate_fst_helper(&it,part->fst,func,part,exec_select_file);
+    return wd_iterate_fst_helper(&it,part->fst,func,0,exec_select_file);
 }
 
 //
@@ -4207,11 +4354,18 @@ wd_reloc_t * wd_calc_relocation
 (
     wd_disc_t		* disc,		// valid disc pointer
     bool		encrypt,	// true: encrypt partition data
-    bool		force		// true: force new calculation
+    bool		force,		// true: force new calculation
+    const wd_select_t	* select	// NULL or a new selector
 )
 {
     DASSERT(disc);
-    TRACE("wd_calc_relocation(%p,%d,%d)\n",disc,encrypt,force);
+    TRACE("wd_calc_relocation(%p,%d,%d,%p)\n",disc,encrypt,force,select);
+
+    if (select)
+    {
+	wd_select(disc,select);
+	force = true;
+    }
 
     const size_t reloc_size = WII_MAX_SECTORS * sizeof(*disc->reloc);
     if (!disc->reloc)
@@ -4250,9 +4404,7 @@ wd_reloc_t * wd_calc_relocation
     //---- setup tables
     
     u8 usage_table[WII_MAX_SECTORS];
-    const bool whole_disc = ( disc->active_select & WD_SEL_WHOLE_DISC ) != 0;
-    const bool whole_part = whole_disc || ( disc->active_select & WD_SEL_WHOLE_PART );
-    wd_filter_usage_table(disc,usage_table,whole_part,whole_disc);
+    wd_filter_usage_table(disc,usage_table,0);
 
     wd_reloc_t * reloc = disc->reloc;
     memset(reloc,0,reloc_size);
@@ -4265,7 +4417,7 @@ wd_reloc_t * wd_calc_relocation
     for ( idx = 0; idx < WII_MAX_SECTORS; idx++ )
     {
 	const u32 uval = usage_table[idx];
-	if ( uval >= WD_USAGE_PART_0 && !whole_disc )
+	if ( uval >= WD_USAGE_PART_0 && !disc->whole_disc )
 	{
 	    reloc[idx]	= ( (uval&WD_USAGE__MASK) - WD_USAGE_PART_0 ) << WD_RELOC_S_PART
 			| WD_RELOC_F_COPY;
@@ -4276,7 +4428,7 @@ wd_reloc_t * wd_calc_relocation
 	    reloc[idx] = WD_RELOC_F_COPY | WD_RELOC_M_PART;
     }
 
-    if (whole_disc)
+    if (disc->whole_disc)
 	return reloc;
 
 
@@ -4328,21 +4480,6 @@ wd_reloc_t * wd_calc_relocation
 
     wd_patch_ptab(disc,&disc->ptab,true);
     return reloc;
-}
-
-///////////////////////////////////////////////////////////////////////////////
-
-wd_reloc_t * wd_calc_relocation_sel
-(
-    wd_disc_t		* disc,		// valid disc pointer
-    wd_select_t		select,		// partition selector bit field
-    bool		encrypt,	// true: encrypt partition data
-    bool		force		// true: force new calculation
-)
-{
-    if (wd_select(disc,select))
-	force = true;
-    return wd_calc_relocation(disc,encrypt,force);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -4431,7 +4568,7 @@ void wd_dump_disc_relocation
 )
 {
     wd_dump_relocation(f,indent,
-		wd_calc_relocation(disc,true,false),
+		wd_calc_relocation(disc,true,false,0),
 		print_title );
 }
 

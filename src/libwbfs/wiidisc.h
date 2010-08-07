@@ -30,65 +30,54 @@
 
 //
 ///////////////////////////////////////////////////////////////////////////////
-///////////////			enum wd_select_idx_t		///////////////
+///////////////			enum wd_part_type_t		///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-typedef enum wd_select_idx_t // modern partition selector, index values
+typedef enum wd_part_type_t // known partition types
 {
     WD_PART_DATA	=  0,	// DATA partition
     WD_PART_UPDATE	=  1,	// UPDATE partition
     WD_PART_CHANNEL	=  2,	// CHANNEL partition
 
-    WD_SELI_PART_MAX	= 50,	// maximal 'wd_select_t' supported partition
-    WD_SELI_PART_ID,		// special ID partitions selected
-    WD_SELI_PART_ACTIVE,	// partition type selection is active
-
-    WD_SELI_PTAB_0,		// partition table 0 selected
-    WD_SELI_PTAB_1,		// partition table 0 selected
-    WD_SELI_PTAB_2,		// partition table 0 selected
-    WD_SELI_PTAB_3,		// partition table 0 selected
-    WD_SELI_PTAB_ACTIVE,	// partition tables selection is active
-
-    WD_SELI_WHOLE_PART,		// don't scrub partition data
-    WD_SELI_WHOLE_DISC,		// copy whole disc, includes WD_SELI_WHOLE_PART
-    
-    WD_SELI__N			// number of values
-
-} wd_select_idx_t;
+} wd_part_type_t;
 
 //
 ///////////////////////////////////////////////////////////////////////////////
-///////////////			enum wd_select_t		///////////////
+///////////////			enum wd_select_mode_t		///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-typedef enum wd_select_t // modern partition selector, bit values
+typedef enum wd_select_mode_t // modes of selection
 {
-    WD_SEL_PART_DATA		= 1ull << WD_PART_DATA,
-    WD_SEL_PART_UPDATE		= 1ull << WD_PART_UPDATE,
-    WD_SEL_PART_CHANNEL		= 1ull << WD_PART_CHANNEL,
-    WD_SEL_PART_MAX		= 1ull << WD_SELI_PART_MAX,
-    WD_SEL_PART_ID		= 1ull << WD_SELI_PART_ID,
-    WD_SEL_PART_ACTIVE		= 1ull << WD_SELI_PART_ACTIVE,
+    WD_SM_IGNORE,		// ignore this selection
 
-    WD_SEL_PTAB_0		= 1ull << WD_SELI_PTAB_0,
-    WD_SEL_PTAB_1		= 1ull << WD_SELI_PTAB_1,
-    WD_SEL_PTAB_2		= 1ull << WD_SELI_PTAB_2,
-    WD_SEL_PTAB_3		= 1ull << WD_SELI_PTAB_3,
-    WD_SEL_PTAB_ACTIVE		= 1ull << WD_SELI_PTAB_ACTIVE,
+    //--- allow modes
 
-    WD_SEL_WHOLE_PART		= 1ull << WD_SELI_WHOLE_PART,
-    WD_SEL_WHOLE_DISC		= 1ull << WD_SELI_WHOLE_DISC,
+    WD_SM_ALLOW_PTYPE,		// allow partition type
+    WD_SM_ALLOW_PTAB,		// allow partition table
+    WD_SM_ALLOW_INDEX,		// allow partition #index in absolut partiton count
+    WD_SM_ALLOW_LT_INDEX,	// allow partitions < #index in absolut partiton count
+    WD_SM_ALLOW_GT_INDEX,	// allow partitions > #index in absolut partiton count
+    WD_SM_ALLOW_PTAB_INDEX,	// allow partition #index in given table
+    WD_SM_ALLOW_ID,		// allow ID
+    WD_SM_ALLOW_ALL,		// allow all partitons
 
-    WD_SEL_PART__MASK		= WD_SEL_PART_ACTIVE - 1,
+    //--- the deny flag and masks
 
-    WD_SEL_PTAB__MASK		= WD_SEL_PTAB_0
-				| WD_SEL_PTAB_1
-				| WD_SEL_PTAB_2
-				| WD_SEL_PTAB_3,
-
-    WD_SEL__MASK		= ( 1ull << WD_SELI__N ) - 1,
-
-} wd_select_t;
+    WD_SM_F_DENY = 0x100,	// this bit is set for DENY modes
+    WD_SM_M_MODE = 0x0ff,	// mask for base modes
+    
+    //--- deny modes
+    
+    WD_SM_DENY_PTYPE		= WD_SM_F_DENY | WD_SM_ALLOW_PTYPE,
+    WD_SM_DENY_PTAB		= WD_SM_F_DENY | WD_SM_ALLOW_PTAB,
+    WD_SM_DENY_INDEX		= WD_SM_F_DENY | WD_SM_ALLOW_INDEX,
+    WD_SM_DENY_LT_INDEX		= WD_SM_F_DENY | WD_SM_ALLOW_LT_INDEX,
+    WD_SM_DENY_GT_INDEX		= WD_SM_F_DENY | WD_SM_ALLOW_GT_INDEX,
+    WD_SM_DENY_PTAB_INDEX	= WD_SM_F_DENY | WD_SM_ALLOW_PTAB_INDEX,
+    WD_SM_DENY_ID		= WD_SM_F_DENY | WD_SM_ALLOW_ID,
+    WD_SM_DENY_ALL		= WD_SM_F_DENY | WD_SM_ALLOW_ALL,
+    
+} wd_select_mode_t;
 
 //
 ///////////////////////////////////////////////////////////////////////////////
@@ -295,6 +284,35 @@ typedef int (*wd_file_func_t)
 
 //
 ///////////////////////////////////////////////////////////////////////////////
+///////////////		    struct wd_select_item_t		///////////////
+///////////////////////////////////////////////////////////////////////////////
+
+typedef struct wd_select_item_t // a select sub item
+{
+    wd_select_mode_t	mode;		// select mode
+    u32			table;		// partiton table
+    u32			part;		// partiton type or index
+    
+} wd_select_item_t;
+
+//
+///////////////////////////////////////////////////////////////////////////////
+///////////////		    struct wd_select_item_t		///////////////
+///////////////////////////////////////////////////////////////////////////////
+
+typedef struct wd_select_t // a selector
+{
+    bool		whole_disc;	// flag: copy whole disc, ignore others
+    bool		whole_part;	// flag: copy whole partitions
+
+    u32			used;		// number of used elements in list
+    u32			size;		// number of alloced elements in list
+    wd_select_item_t	* list;		// list of select items
+    
+} wd_select_t;
+
+//
+///////////////////////////////////////////////////////////////////////////////
 ///////////////			struct wd_patch_item_t		///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -413,7 +431,8 @@ typedef struct wd_disc_t
 
     //----- patching data
 
-    wd_select_t		active_select;	// active selector
+    bool		whole_disc;	// selection flag: copy whole disc (raw mode)
+    bool		whole_part;	// selection flag: copy whole partitions
     wd_patch_t		patch;		// patching data
     wd_ptab_t		ptab;		// partition tables
     wd_reloc_t		* reloc;	// relocation data
@@ -837,35 +856,67 @@ enumError wd_calc_fst_statistics
 ///////////////		interface: select partitions		///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
+void wd_initialize_select
+(
+    wd_select_t		* select	// valid pointer to a partition selector
+);
+
+//-----------------------------------------------------------------------------
+
+void wd_reset_select
+(
+    wd_select_t		* select	// valid pointer to a partition selector
+);
+
+//-----------------------------------------------------------------------------
+
+wd_select_item_t * wd_append_select_item
+(
+    wd_select_t		* select,	// valid pointer to a partition selector
+    wd_select_mode_t	mode,		// select mode of new item
+    u32			table,		// partiton table of new item
+    u32			part		// partiton type or index of new item
+);
+
+//-----------------------------------------------------------------------------
+
+void wd_copy_select
+(
+    wd_select_t		* dest,		// valid pointer to a partition selector
+    const wd_select_t	* source	// NULL or pointer to a partition selector
+);
+
+//-----------------------------------------------------------------------------
+
+void wd_move_select
+(
+    wd_select_t		* dest,		// valid pointer to a partition selector
+    wd_select_t		* source	// NULL or pointer to a partition selector
+);
+
+//-----------------------------------------------------------------------------
+
+void wd_print_select
+(
+    FILE		* f,		// valid output file
+    int			indent,		// indention of the output
+    wd_select_t		* select	// valid pointer to a partition selector
+);
+
+//-----------------------------------------------------------------------------
+
 bool wd_is_part_selected
 (
-	wd_select_t	select,		// partition selector bit field
-	u32		part_type,	// partition type
-	u32		ptab_index	// index of partition table
+    wd_part_t		* part,		// valid pointer to a disc partition
+    const wd_select_t	* select	// NULL or pointer to a partition selector
 );
 
 //-----------------------------------------------------------------------------
 
 bool wd_select // return true if selection changed
 (
-	wd_disc_t	* disc,		// valid disc pointer
-	wd_select_t	select		// partition selector bit field
-);
-
-//-----------------------------------------------------------------------------
-
-wd_select_t wd_set_select
-(
-	wd_select_t	select,		// current selector value
-	wd_select_t	set_mask	// bits to set
-);
-
-//-----------------------------------------------------------------------------
-
-wd_select_t wd_clear_select
-(
-	wd_select_t	select,		// current selector value
-	wd_select_t	clear_mask	// bits to clear
+    wd_disc_t		* disc,		// valid disc pointer
+    const wd_select_t	* select	// NULL or pointer to a partition selector
 );
 
 //
@@ -880,53 +931,34 @@ extern const u8   wd_usage_class_tab[256];
 
 u8 * wd_calc_usage_table
 (
-	wd_disc_t	* disc		// valid disc partition pointer
+    wd_disc_t		* disc		// valid disc partition pointer
 );
 
 //-----------------------------------------------------------------------------
 
 u8 * wd_filter_usage_table
 (
-	wd_disc_t	* disc,		// valid disc pointer
-	u8		* usage_table,	// NULL or result. If NULL -> malloc()
-	bool		whole_part,	// true: mark complete partitions
-	bool		whole_disc	// true: mark all sectors, incl. whole_part
-);
-
-//-----------------------------------------------------------------------------
-
-u8 * wd_filter_usage_table_sel
-(
-	wd_disc_t	* disc,		// valid disc pointer
-	u8		* usage_table,	// NULL or result. If NULL -> malloc()
-	wd_select_t	select		// partition selector bit field
+    wd_disc_t		* disc,		// valid disc pointer
+    u8			* usage_table,	// NULL or result. If NULL -> malloc()
+    const wd_select_t	* select	// NULL or a new selector
 );
 
 //-----------------------------------------------------------------------------
 
 u32 wd_count_used_disc_blocks
 (
-	wd_disc_t	* disc,		// valid pointer to a disc
-	u32		block_size	// if >1: count every 'block_size'
+    wd_disc_t		* disc,		// valid pointer to a disc
+    u32			block_size,	// if >1: count every 'block_size'
 					//        continuous blocks as one block
-);
-
-//-----------------------------------------------------------------------------
-
-u32 wd_count_used_disc_blocks_sel
-(
-	wd_disc_t	* disc,		// valid pointer to a disc
-	u32		block_size,	// if >1: count every 'block_size'
-					//        continuous blocks as one block
-	wd_select_t	select		// partition selector bit field
+    const wd_select_t	* select	// NULL or a new selector
 );
 
 //-----------------------------------------------------------------------------
 
 u32 wd_count_used_blocks
 (
-	const u8 *	usage_table,	// valid pointer to usage table
-	u32		block_size	// if >1: count every 'block_size'
+    const u8		* usage_table,	// valid pointer to usage table
+    u32			block_size	// if >1: count every 'block_size'
 					//        continuous blocks as one block
 );
 
@@ -1286,17 +1318,8 @@ wd_reloc_t * wd_calc_relocation
 (
     wd_disc_t		* disc,		// valid disc pointer
     bool		encrypt,	// true: encrypt partition data
-    bool		force		// true: force new calculation
-);
-
-//-----------------------------------------------------------------------------
-
-wd_reloc_t * wd_calc_relocation_sel
-(
-    wd_disc_t		* disc,		// valid disc pointer
-    wd_select_t		select,		// partition selector bit field
-    bool		encrypt,	// true: encrypt partition data
-    bool		force		// true: force new calculation
+    bool		force,		// true: force new calculation
+    const wd_select_t	* select	// NULL or a new selector
 );
 
 //-----------------------------------------------------------------------------

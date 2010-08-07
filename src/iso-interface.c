@@ -161,7 +161,7 @@ enumError Dump_ISO
     if (!disc)
 	return ERR_WDISC_NOT_FOUND;
 
-    const u32 used_blocks = wd_count_used_disc_blocks_sel(disc,1,part_selector);
+    const u32 used_blocks = wd_count_used_disc_blocks(disc,1,0);
     const u32 used_mib    = ( used_blocks + WII_SECTORS_PER_MIB/2 ) / WII_SECTORS_PER_MIB;
 
 
@@ -415,7 +415,7 @@ enumError Dump_ISO
     if ( show_mode & SHOW_USAGE )
     {
 	fprintf(f,"\n\n%*sISO Usage Map:\n\n",indent,"");
-	wd_filter_usage_table_sel(disc,wdisc_usage_tab,part_selector);
+	wd_filter_usage_table(disc,wdisc_usage_tab,0);
 	wd_dump_usage_tab(f,indent+2,wdisc_usage_tab,false);
     }
 
@@ -998,17 +998,25 @@ int RenameISOHeader ( void * data, ccp fname,
 
 bool allow_fst		= false; // FST diabled by default
 
-///////////////////////////////////////////////////////////////////////////////
-
-wd_select_t part_selector = 0;
+wd_select_t part_selector = {0};
 
 u8 wdisc_usage_tab [WII_MAX_SECTORS];
 u8 wdisc_usage_tab2[WII_MAX_SECTORS];
+
+///////////////////////////////////////////////////////////////////////////////
+
+struct scan_select_t
+{
+    wd_select_t		* select;
+    ccp			err_text_extend;
+    bool		err_printed;
+};
 
 //-----------------------------------------------------------------------------
 
 static s64 PartSelectorFunc
 (
+    void		* param,	// NULL or user defined parameter
     ccp			name,		// normalized name of option
     const CommandTab_t	* cmd_tab,	// valid pointer to command table
     const CommandTab_t	* cmd,		// valid pointer to found command
@@ -1016,75 +1024,196 @@ static s64 PartSelectorFunc
     s64			result		// current value of result
 )
 {
-    if (cmd->opt)
-	return prefix ? -(s64)1 : cmd->id;
+    struct scan_select_t * scan_select = param;
+    DASSERT(scan_select);
+    wd_select_t * select = scan_select->select;
+    DASSERT(select);
 
-    switch(prefix)
+    if (prefix)
+	name++;
+
+    wd_select_mode_t mode = prefix == '-' ? WD_SM_F_DENY : 0;
+
+    //----- scan partitons numbers
+
+    if ( *name >= '0' && *name <= '9' )
     {
-	case 0:
-	case '+':
-	    result = wd_set_select(result,cmd->id);
-	    break;
+	char *end;
+	u32 num = strtoul( name, &end, name[1] >= '0' && name[1] <= '9' ? 10 : 0 );
+	if ( end > name && !*end )
+	{
+	    wd_append_select_item(select,WD_SM_ALLOW_PTYPE|mode,0,num);
+	    return ERR_OK;
+	}
+    }
 
-	case '-':
-	    result = wd_clear_select(result,cmd->id);
-	    break;
 
-	case '=':
-	    result = wd_set_select(0,cmd->id);
-	    break;
-    };
-    
-    return result;
+    //----- analyze keywords
+
+    PRINT("name=%s, cmd=%p, prefix=%c\n", name, cmd, prefix );
+    if (cmd)
+    {
+	mode |= cmd->id;
+	switch (cmd->id)
+	{
+	    case WD_SM_ALLOW_PTYPE:
+	    case WD_SM_ALLOW_PTAB:
+	    case WD_SM_ALLOW_ID:
+	    case WD_SM_ALLOW_ALL:
+		wd_append_select_item(select,mode,cmd->opt,cmd->opt);
+		break;
+
+	    case 100:
+		select->whole_disc = prefix != '-';
+		break;
+
+	    case 101:
+		select->whole_part = prefix != '-';
+		break;
+	}
+
+	return ERR_OK;
+    }
+
+
+    //----- analyze ID partition names
+
+    if ( strlen(name) == 4
+	&& isalnum((int)name[0])
+	&& isalnum((int)name[1])
+	&& isalnum((int)name[2])
+	&& isalnum((int)name[3]) )
+    {
+	u32 ptype = toupper((int)name[0]) << 24
+		  | toupper((int)name[1]) << 16
+		  | toupper((int)name[2]) << 8
+		  | toupper((int)name[3]);
+	wd_append_select_item(select,WD_SM_ALLOW_PTYPE|mode,0,ptype);
+	return ERR_OK;
+    }
+
+
+    //----- analyze #index | #<index | #>index | #index.index
+
+    if ( *name == '#' )
+    {
+	ccp ptr = name + 1;
+	int mode2 = 0;
+	switch(*ptr)
+	{
+	    case '<': ptr++; mode2 = -1; break;
+	    case '>': ptr++; mode2 = +1; break;
+	    case '=': ptr++; break;
+	}
+
+	int add_num = 0;
+	if ( mode2 && *ptr == '=' )
+	{
+	    ptr++;
+	    add_num = -mode2;
+	}
+
+	char *end;
+	u32 num1 = strtoul( ptr, &end, ptr[1] >= '0' && ptr[1] <= '9' ? 10 : 0 );
+	if ( end > ptr )
+	{
+	    if (!*end)
+	    {
+		if ( !num1 && add_num < 0 )
+		    wd_append_select_item(select,WD_SM_ALLOW_ALL|mode,0,num1+add_num);
+		else
+		{
+		    mode |= mode2 < 0
+			    ? WD_SM_ALLOW_LT_INDEX
+			    :  mode2 > 0
+				? WD_SM_ALLOW_GT_INDEX
+				: WD_SM_ALLOW_INDEX;
+		    wd_append_select_item(select,mode,0,num1+add_num);
+		}
+		return ERR_OK;
+	    }
+	    
+	    if ( *end == '.' && num1 < WII_MAX_PTAB && !mode2 )
+	    {
+		ptr = end + 1;
+		if ( !*ptr)
+		{
+		    wd_append_select_item(select,WD_SM_ALLOW_PTAB|mode,num1,0);
+		    return ERR_OK;
+		}
+		else
+		{
+		    u32 num2 = strtoul( ptr, &end, ptr[1] >= '0' && ptr[1] <= '9' ? 10 : 0 );
+		    if ( end > ptr && !*end )
+		    {
+			wd_append_select_item(select,WD_SM_ALLOW_PTAB_INDEX|mode,num1,num2);
+			return ERR_OK;
+		    }
+		}
+	    }
+	}
+    }
+
+
+    //----- terminate with error
+
+    scan_select->err_printed = true;
+    ERROR0(ERR_SYNTAX,"Illegal partition selector%s: %.20s\n",
+		scan_select->err_text_extend, name );
+    return ERR_SYNTAX;
 }
 
 //-----------------------------------------------------------------------------
 
-wd_select_t ScanPartSelector ( ccp arg, ccp err_text_extend )
+enumError ScanPartSelector
+(
+    wd_select_t * select,	// valid partiton selector
+    ccp arg,			// argument to scan
+    ccp err_text_extend		// error message extention
+)
 {
     static const CommandTab_t tab[] =
     {
-	{ 0,				"ALL",		"*",		1 },
-	{ WD_SEL_PART_ACTIVE,		"NONE",		"-",		1 },
+	{ WD_SM_ALLOW_PTYPE,	"DATA",		"D",	WD_PART_DATA },
+	{ WD_SM_ALLOW_PTYPE,	"GAME",		"G",	WD_PART_DATA },
+	{ WD_SM_ALLOW_PTYPE,	"UPDATE",	"U",	WD_PART_UPDATE },
+	{ WD_SM_ALLOW_PTYPE,	"CHANNEL",	"C",	WD_PART_CHANNEL },
 
-	{ WD_SEL_PART_DATA,		"DATA",		"D",		0 },
-	 { WD_SEL_PART_DATA,		"GAME",		"G",		0 },
-	{ WD_SEL_PART_UPDATE,		"UPDATE",	"U",		0 },
-	{ WD_SEL_PART_CHANNEL,		"CHANNEL",	"C",		0 },
-	{ WD_SEL_PART_ID,		"ID",		"I",		0 },
+	{ WD_SM_ALLOW_PTAB,	"PTAB0",	"T0",	0 },
+	{ WD_SM_ALLOW_PTAB,	"PTAB1",	"T1",	1 },
+	{ WD_SM_ALLOW_PTAB,	"PTAB2",	"T2",	2 },
+	{ WD_SM_ALLOW_PTAB,	"PTAB3",	"T3",	3 },
 
-	{ WD_SEL_PTAB_0,		"PTAB0",	"T0",		0 },
-	{ WD_SEL_PTAB_1,		"PTAB1",	"T1",		0 },
-	{ WD_SEL_PTAB_2,		"PTAB2",	"T2",		0 },
-	{ WD_SEL_PTAB_3,		"PTAB3",	"T3",		0 },
+	{ WD_SM_ALLOW_ID,	"ID",		"I",	0 },
+	{ WD_SM_ALLOW_ALL,	"ALL",		0,	0 },
 
-
-	{ WD_SEL_WHOLE_PART,		"WHOLE",	0,		0 },
-	{ WD_SEL_WHOLE_DISC,		"1:1",		"RAW",		0 },
+	{ 100,			"1:1",		"RAW",	0 },
+	{ 101,			"WHOLE",	0,	0 },
 
 	{ 0,0,0,0 }
     };
 
-    wd_select_t psel
-	= ScanCommandList(arg,tab,PartSelectorFunc,true,WD_SELI_PART_MAX+1,0);
-    if ( psel == -(wd_select_t)1 )
-	ERROR0(ERR_SYNTAX,"Illegal partition selector%s: %.20s\n",
+    struct scan_select_t scan_select;
+    memset(&scan_select,0,sizeof(scan_select));
+    scan_select.err_text_extend	= err_text_extend;
+    scan_select.select		= &part_selector;
+    
+    const enumError err
+	= ScanCommandListFunc(arg,tab,PartSelectorFunc,&scan_select,true);
+    if ( err && !scan_select.err_printed )
+	ERROR0(err,"Illegal partition selector%s: %.20s\n",
 			err_text_extend, arg );
-    return psel;
+    return err;
 }
 
 //-----------------------------------------------------------------------------
 
 int ScanOptPartSelector ( ccp arg )
 {
-    const wd_select_t new_psel = ScanPartSelector(optarg," (option --psel)");
-    if ( new_psel == -(wd_select_t)1 )
-	return 1;
-    part_selector = new_psel;
-    return 0;
+    return ScanPartSelector(&part_selector,optarg," (option --psel)") != ERR_OK;
 }
 
-//-----------------------------------------------------------------------------
+///////////////////////////////////////////////////////////////////////////////
 
 u32 ScanPartType ( ccp arg, ccp err_text_extend )
 {
@@ -1203,7 +1332,9 @@ wd_ipm_t ScanPrefixMode ( ccp arg )
 
 void SetupSneekMode()
 {
-    part_selector = WD_SEL_PART_DATA|WD_SEL_PART_ACTIVE;
+    wd_reset_select(&part_selector);
+    wd_append_select_item(&part_selector,WD_SM_ALLOW_PTYPE,0,WD_PART_DATA);
+
     prefix_mode = WD_IPM_NONE;
 
     FilePattern_t * pat = file_pattern + PAT_DEFAULT;
@@ -3655,7 +3786,6 @@ void InitializeVerify ( Verify_t * ver, SuperFile_t * sf )
     memset(ver,0,sizeof(*ver));
 
     ver->sf		= sf;
-    ver->psel		= part_selector;
     ver->verbose	= verbose;
     ver->max_err_msg	= 10;
 }
@@ -3809,8 +3939,8 @@ enumError VerifyPartition ( Verify_t * ver )
 
     TRACE("#VERIFY# VerifyPartition(%p) sf=%p utab=%p part=%p\n",
 		ver, ver->sf, ver->usage_tab, ver->part );
-    TRACE(" - psel=%x, v=%d, lc=%d, maxerr=%d\n",
-		ver->verbose, ver->verbose, ver->long_count, ver->max_err_msg );
+    TRACE(" - psel=%p, v=%d, lc=%d, maxerr=%d\n",
+		ver->psel, ver->verbose, ver->long_count, ver->max_err_msg );
 
  #if WATCH_BLOCK
     printf("WB: WATCH BLOCK %x = %u\n",WATCH_BLOCK,WATCH_BLOCK);
@@ -4058,8 +4188,8 @@ enumError VerifyDisc ( Verify_t * ver )
     DASSERT(ver->sf);
     TRACE("#VERIFY# VerifyDisc(%p) sf=%p utab=%p part=%p\n",
 		ver, ver->sf, ver->usage_tab, ver->part );
-    TRACE(" - psel=%x, v=%d, lc=%d, maxerr=%d\n",
-		ver->verbose, ver->verbose, ver->long_count, ver->max_err_msg );
+    TRACE(" - psel=%p, v=%d, lc=%d, maxerr=%d\n",
+		ver->psel, ver->verbose, ver->long_count, ver->max_err_msg );
 
     //----- setup Verify_t data
 
@@ -4072,7 +4202,7 @@ enumError VerifyDisc ( Verify_t * ver )
     {
 	TRACE(" - use local_usage_tab\n");
 	ver->usage_tab = local_usage_tab;
-	wd_filter_usage_table_sel(disc,local_usage_tab,ver->psel);
+	wd_filter_usage_table(disc,local_usage_tab,ver->psel);
     }
     
     //----- iterate partitions

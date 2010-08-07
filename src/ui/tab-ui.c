@@ -311,7 +311,10 @@ info_t info_tab[] =
 
   { T_DEF_CMD,	"MIX",		"MIX",
 		"wit MIX SOURCE... --dest|--DEST outfile\n"
-		"  where SOURCE := infile ['select' ptype] ['as' [ptab '.'] [ptype]]",
+		"  where SOURCE    = infile [QUALIFIER]...\n"
+		"  where QUALIFIER = 'select' part_type\n"
+		"                  | 'as' [part_table '.'] [part_type]]\n"
+		"                  | 'ignore' ruleset\n",
 		"Mix the partitions from different sources into one new Wii disc." },
 
   //
@@ -531,8 +534,8 @@ info_t info_tab[] =
 
   { T_OPT_CP,	"IGNORE_FILES",	"ignore-files",
 		"ruleset",
-		"This option defines filter rules to ignore system"
-		" and real directories and files of the FST of the DATA partition."
+		"This option defines filter rules to ignore"
+		" real files of the FST of the DATA partition."
 		" $Fake signing$ is not necessary, but the partition becomes invalid,"
 		" because the content of some files is not copied."
 		" If such file is accessed the Wii will halt immediately,"
@@ -605,7 +608,7 @@ info_t info_tab[] =
 		"If the input file size is not known (e.g. reading from pipe),"
 		" its size is assumed as @12 GiB@."
 		"\n"
-		" @--chz@ is a shortcut for @--chunk-size@." },
+		"@--chz@ is a shortcut for @--chunk-size@." },
 
   { T_OPT_CP,	"MAX_CHUNKS",	"max-chunks|maxchunks|mch",
 		"n",
@@ -615,7 +618,7 @@ info_t info_tab[] =
 		" If this value is set than the automatic calculation "
 		" of {--chunk-size} will be modified too."
 		"\n"
-		" @--mch@ is a shortcut for @--max-chunks@." },
+		"@--mch@ is a shortcut for @--max-chunks@." },
 
   { T_OPT_C,	"PRESERVE",	"p|preserve",
 		0, "Preserve file times (atime+mtime)." },

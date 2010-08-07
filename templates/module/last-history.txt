@@ -1,17 +1,4 @@
-wit v1.13a r1468 - 2010-08-04
-
- - Command "wit MIX" accepts now the option --overlay: Partitions will
-   be overlayed so that data from one partition is stored in unused areas
-   of a other partition. To find the optimum order a permutation is done.
-   Option --overlay limits the number of input partitions to 12, because
-   the calculation is rated as O(2^n).  *** "wit MIX" is EXPERIMENTAL! ***
- - "wit MIX" wil accept the keyword 'psel' as alternative to 'select'.
-   The reason is that 'select' accepts the same keyword list as --psel.
- - The disc subsystems recognize overlayes partitons. For overlayed
-   partitions the --psel keyword "WHOLE" is ignored.
- - Command "wit DUMP" will print an info line for overlayed partitions.
-
-wit v@@VERSION@@ r@@REV-NEXT@@ - @@@@-@@-@@
+wit v1.14a.beta2 r1485 - 2010-08-06
 
  - New option --rm-files: This patching option defines filter rules to remove
    real files and directories from the FST of the DATA partition. Fake signing
@@ -25,6 +12,15 @@ wit v@@VERSION@@ r@@REV-NEXT@@ - @@@@-@@-@@
    the content of some files is not copied.
  - New qualifier for "wit MIX": "IGNORE ruleset": Ignore files when copying a
    disc image. See http://wit.wiimm.de/wit/cmd-mix.html#ignore for details.
+
+wit v@@VERSION@@ r@@REV-NEXT@@ - @@@@-@@-@@
+
+ - Some modification for expanding '@file' parameters: wit MIX needs control.
+ - Bug fix: "wit MIX ... ignore @file" works now.
+ - Option --psel redesigned: it is now possible to allow or deny any partiton
+   by partiton type, partiton table and/or by partiton index. Only with the
+   unambiguous partiton index it is possible to select the one wanted DATA
+   partition if multiple exists.
 
 Known bugs:
 

@@ -2920,7 +2920,7 @@ void CalcWDiscInfo ( WDiscInfo_t * dinfo, SuperFile_t * sf )
 	    dinfo->n_part = disc->n_part;
 	    dinfo->magic2 = disc->magic2;
 	    memcpy(&dinfo->dhead,&disc->dhead,sizeof(dinfo->dhead));
-	    dinfo->used_blocks = CountUsedIsoBlocksSF(sf,part_selector);
+	    dinfo->used_blocks = CountUsedIsoBlocksSF(sf,&part_selector);
 	}
 	else
 	    ReadSF(sf,0,&dinfo->dhead,sizeof(dinfo->dhead));
@@ -3548,13 +3548,13 @@ wd_header_t * GetWDiscHeader ( WBFS_t * w )
 ///////////////                      AddWDisc()                 ///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-enumError AddWDisc ( WBFS_t * w, SuperFile_t * sf, wd_select_t psel )
+enumError AddWDisc ( WBFS_t * w, SuperFile_t * sf, const wd_select_t * psel )
 {
     if ( !w || !w->wbfs || !w->sf || !sf )
 	return ERROR0(ERR_INTERNAL,0);
 
-    TRACE("AddWDisc(w=%p,sf=%p,psel=%llx) progress=%d,%d\n",
-		w, sf, (u64)psel, sf->show_progress, sf->show_summary );
+    TRACE("AddWDisc(w=%p,sf=%p) progress=%d,%d\n",
+		w, sf, sf->show_progress, sf->show_summary );
 
     CloseWDisc(w);
 
@@ -3564,7 +3564,7 @@ enumError AddWDisc ( WBFS_t * w, SuperFile_t * sf, wd_select_t psel )
 
     wbfs_param_t par;
     memset(&par,0,sizeof(par));
-    par.read_src_wii_disc	= WrapperReadSF; // [2do] [obsolete]? (both: param anf func)
+    par.read_src_wii_disc	= WrapperReadSF; // [2do] [obsolete]? (both: param and func)
     par.callback_data		= sf;
     par.spinner			= sf->show_progress ? PrintProgressSF : 0;
     par.psel			= psel;
@@ -3640,7 +3640,7 @@ enumError ExtractWDisc ( WBFS_t * w, SuperFile_t * sf )
 	w->sf->show_summary	= sf->show_summary;
 	w->sf->show_msec	= sf->show_msec;
 
-	return AddWDisc(sf->wbfs,w->sf,part_selector);
+	return AddWDisc(sf->wbfs,w->sf,&part_selector);
     }
 
     SetMinSizeSF(sf,(off_t)WII_SECTORS_SINGLE_LAYER *WII_SECTOR_SIZE);

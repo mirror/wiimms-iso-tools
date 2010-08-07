@@ -279,11 +279,11 @@ enumFileType AnalyzeMemFT ( const void * buf_hd_sect_size, off_t file_size );
 enumError XPrintErrorFT ( XPARM File_t * f, enumFileType err_mask );
 ccp GetNameFT ( enumFileType ftype, int ignore );
 enumOFT GetOFT ( SuperFile_t * sf );
-u32 CountUsedIsoBlocksSF ( SuperFile_t * sf, wd_select_t psel );
+u32 CountUsedIsoBlocksSF ( SuperFile_t * sf, const wd_select_t * psel );
 
 // copy functions
-enumError CopySF	( SuperFile_t * in, SuperFile_t * out, wd_select_t psel );
-enumError CopyRaw	( SuperFile_t * in, SuperFile_t * out );
+enumError CopySF  ( SuperFile_t * in, SuperFile_t * out, bool force_raw_mode );
+enumError CopyRaw ( SuperFile_t * in, SuperFile_t * out );
 
 enumError CopyRawData
 (
@@ -304,7 +304,7 @@ enumError CopyRawData2
 
 enumError CopyWDF	( SuperFile_t * in, SuperFile_t * out );
 enumError CopyWBFSDisc	( SuperFile_t * in, SuperFile_t * out );
-enumError CopyToWBFS	( SuperFile_t * in, SuperFile_t * out, wd_select_t psel );
+enumError CopyToWBFS	( SuperFile_t * in, SuperFile_t * out, const wd_select_t * psel );
 
 enumError AppendF	(      File_t * in, SuperFile_t * out, off_t in_off, size_t count );
 enumError AppendSparseF	(      File_t * in, SuperFile_t * out, off_t in_off, size_t count );
@@ -318,7 +318,7 @@ enumError DiffSF
 	SuperFile_t	* f1,
 	SuperFile_t	* f2,
 	int		long_count,
-	wd_select_t	psel
+	bool		force_raw_mode
 );
 
 enumError DiffRawSF
@@ -335,7 +335,6 @@ enumError DiffFilesSF
 	SuperFile_t	* f2,
 	int		long_count,
 	struct FilePattern_t *pat,
-	wd_select_t	psel,
 	wd_ipm_t	pmode
 );
 

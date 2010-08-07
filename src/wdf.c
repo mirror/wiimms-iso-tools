@@ -941,7 +941,7 @@ enumError CheckCommand ( int argc, char ** argv )
     }
 
     while ( argc-- > 0 )
-	AtFileHelper(*argv++,false,AddParam);
+	AtFileHelper(*argv++,false,true,AddParam);
 
     enumError err = ERR_OK;
     switch (the_cmd)

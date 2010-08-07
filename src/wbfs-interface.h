@@ -354,7 +354,7 @@ enumError ExistsWDisc	( WBFS_t * w, ccp id6 );
 
 wd_header_t * GetWDiscHeader ( WBFS_t * w );
 
-enumError AddWDisc	( WBFS_t * w, SuperFile_t * sf, wd_select_t psel );
+enumError AddWDisc	( WBFS_t * w, SuperFile_t * sf, const wd_select_t * psel );
 enumError ExtractWDisc	( WBFS_t * w, SuperFile_t * sf );
 enumError RemoveWDisc	( WBFS_t * w, ccp id6, bool free_slot_only );
 enumError RenameWDisc	( WBFS_t * w, ccp new_id6, ccp new_title,

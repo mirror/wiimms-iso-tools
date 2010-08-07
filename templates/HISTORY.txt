@@ -779,6 +779,19 @@ wit v1.12a r1451 - 2010-08-01
  - New command: wit MIX: Mix partitions from different sources into one
    new Wii disc image.  *** "wit MIX" is EXPERIMENTAL! ***
 
+wit v1.13a r1468 - 2010-08-04
+
+ - Command "wit MIX" accepts now the option --overlay: Partitions will
+   be overlayed so that data from one partition is stored in unused areas
+   of a other partition. To find the optimum order a permutation is done.
+   Option --overlay limits the number of input partitions to 12, because
+   the calculation is rated as O(2^n).  *** "wit MIX" is EXPERIMENTAL! ***
+ - "wit MIX" wil accept the keyword 'psel' as alternative to 'select'.
+   The reason is that 'select' accepts the same keyword list as --psel.
+ - The disc subsystems recognize overlayes partitons. For overlayed
+   partitions the --psel keyword "WHOLE" is ignored.
+ - Command "wit DUMP" will print an info line for overlayed partitions.
+
 @@MODULE(last-history.txt)@@
 
 
