@@ -44,6 +44,10 @@ typedef struct Mix_t
     u32		a1size;		// size of area 1 (p1off allways = 0)
     u32		a2off;		// offset of area 2
     u32		a2size;		// size of area 2
+
+    //--- sector mix data
+
+    u32		* used_free;	// 2*n_blocks+1 used and free blocks counts
     
 } Mix_t;
 
@@ -148,14 +152,14 @@ static u32 mark_used_mix
     DASSERT(used);
     DASSERT(ptr);
     DASSERT(size);
-    PRINT("MARK=%x+%x, ptr=%x+%x\n",off,size,ptr->off,ptr->size);
+    noTRACE("MARK=%x+%x, ptr=%x+%x\n",off,size,ptr->off,ptr->size);
     ASSERT_MSG( off + size <= ptr->size,
 		"off+size=%x+%x=%x <= ptr->size=%x\n",
 		off, size, off+size, ptr->size );
 
     if (!off)
     {
-	PRINT("\t\t\t\t\t> %x..%x -> %x..%x [%u/%u]\n",
+	noTRACE("\t\t\t\t\t> %x..%x -> %x..%x [%u/%u]\n",
 		ptr->off, ptr->off + ptr->size,
 		ptr->off + size, ptr->off + ptr->size,
 		(int)(ptr-base), used );
@@ -173,7 +177,7 @@ static u32 mark_used_mix
     const u32 end = off + size;
     if ( end == ptr->size )
     {
-	PRINT("\t\t\t\t\t> %x..%x -> %x..%x [%u/%u]\n",
+	noTRACE("\t\t\t\t\t> %x..%x -> %x..%x [%u/%u]\n",
 		ptr->off, ptr->off + ptr->size,
 		ptr->off, ptr->off + ptr->size - size,
 		(int)(ptr-base), used );
@@ -192,7 +196,7 @@ static u32 mark_used_mix
     ptr[0].size = off;
     ptr[1].off  = old_off + end;
     ptr[1].size = old_size - end;
-    PRINT("\t\t\t\t\t> %x..%x -> %x..%x,%x..%x [%u/%u>%u]\n",
+    noTRACE("\t\t\t\t\t> %x..%x -> %x..%x,%x..%x [%u/%u>%u]\n",
 		old_off, old_off + old_size,
 		ptr[0].off, ptr[0].off + ptr[0].size,
 		ptr[1].off, ptr[1].off + ptr[1].size,
@@ -214,7 +218,7 @@ static void insert_mix ( MixParam_t * p, int pdepth, int mix_index )
     MixFree_t * f = p->field[pdepth];
     Mix_t * mix = p->mix + mix_index;
 
-    PRINT("MIX#%u, a1=0+%x, a2=%x+%x\n",mix_index,mix->a1size,mix->a2off,mix->a2size);
+    noTRACE("MIX#%u, a1=0+%x, a2=%x+%x\n",mix_index,mix->a1size,mix->a2off,mix->a2size);
     if (!pdepth)
     {
 	// setup free table
@@ -251,12 +255,10 @@ static void insert_mix ( MixParam_t * p, int pdepth, int mix_index )
 	    if (!mix->a2off)
 	    {
 		p->delta[mix_index] = f1ptr->off;
-//BINGO;
 		used = mark_used_mix(f,used,f1ptr,0,mix->a1size);
 		break;
 	    }
 
-//PRINT("f1ptr->size=%x, mix->a1size=%x\n",f1ptr->size,mix->a1size);
 	    const u32 base  = f1ptr->off;
 	    const u32 space = f1ptr->size - mix->a1size;
 	    MixFree_t * f2ptr;
@@ -273,14 +275,7 @@ static void insert_mix ( MixParam_t * p, int pdepth, int mix_index )
 		if ( off >= f2ptr->off && off + mix->a2size <= f2ptr->off + f2ptr->size )
 		{
 		    p->delta[mix_index] = f1ptr->off + delta;
-//PRINT("f1ptr->size=%x, mix->a1size=%x\n",f1ptr->size,mix->a1size);
-//PRINT("base=%x, space=%x, delta=%x\n",base,space,delta);
-PRINT("f1ptr=%zu,f2ptr=%zu\n",f1ptr-f,f2ptr-f);
-BINGO;
 		    used = mark_used_mix(f,used,f2ptr,off-f2ptr->off,mix->a2size);
-BINGO;
-//PRINT("f1ptr->size=%x, mix->a1size=%x\n",f1ptr->size,mix->a1size);
-//PRINT("f1ptr=%zu,f2ptr=%zu\n",f1ptr-f,f2ptr-f);
 		    used = mark_used_mix(f,used,f1ptr,delta,mix->a1size);
 		    f1ptr = fend;
 		    break;
@@ -377,6 +372,179 @@ static void permutate_mix ( MixParam_t * p )
     for ( i = 0; i < n_perm; i++ )
 	p->mix[i].dest_sector = delta[i];
 }
+
+//
+///////////////////////////////////////////////////////////////////////////////
+///////////////			setup_sector_mix()		///////////////
+///////////////////////////////////////////////////////////////////////////////
+
+static void setup_sector_mix ( Mix_t * mix )
+{
+    DASSERT(mix);
+    DASSERT(mix->disc);
+    DASSERT(mix->part);
+    DASSERT(!mix->used_free);
+
+    const int uf_count = 2 * mix->n_blocks + 1;
+    u32 * uf = calloc(uf_count,sizeof(u32));
+    if (!uf)
+	OUT_OF_MEMORY;
+    mix->used_free = uf;
+
+    wd_usage_t usage_id = mix->part->usage_id;
+    u8 * utab = wd_calc_usage_table(mix->disc);
+    u32 src_sector = mix->src_sector;
+    u32 last_value = src_sector;
+
+    while ( src_sector < mix->src_end_sector )
+    {
+	while ( src_sector < mix->src_end_sector
+		&& ( utab[src_sector] & WD_USAGE__MASK ) == usage_id )
+	    src_sector++;
+	*uf++ = src_sector - last_value;
+	last_value = src_sector;
+
+	while ( src_sector < mix->src_end_sector
+		&& ( utab[src_sector] & WD_USAGE__MASK ) != usage_id )
+	    src_sector++;
+	*uf++ = src_sector - last_value;
+	last_value = src_sector;
+
+	noTRACE("SETUP: %5x %5x\n",uf[-2],uf[-1]);
+	ASSERT( uf < mix->used_free + uf_count );
+    }
+    
+    ASSERT( uf+1 == mix->used_free + uf_count );
+    uf[-1] = ~(u32)0 >> 1;
+}
+
+//
+///////////////////////////////////////////////////////////////////////////////
+///////////////			sector_mix()			///////////////
+///////////////////////////////////////////////////////////////////////////////
+
+static void sector_mix ( MixParam_t * p, Mix_t * m1, Mix_t * m2 )
+{
+    DASSERT(p);
+    DASSERT(m1);
+    DASSERT(m2);
+    DASSERT(m1->used_free);
+    DASSERT(m2->used_free);
+
+    const u32 n_sect2 = m2->src_end_sector - m2->src_sector;
+    const u32 max_delta = p->max_end - n_sect2 + 1;
+
+    u32 delta = *m1->used_free;
+
+    for(;;)
+    {
+     restart:
+	PRINT("TRY DELTA %x/%x\n",delta,max_delta);
+
+	if ( delta >= max_delta )
+	    return; // abort
+
+	u32 * uf1 = m1->used_free;
+	u32 * uf2 = m2->used_free;
+	u32 hole_size = delta;
+
+	for(;;)
+	{
+	    //---- uf1
+
+	    for(;;)
+	    {
+		noTRACE("\tuf1a=%8x,%8x, hole_size=%5x\n",uf1[0],uf1[1],hole_size);
+		const u32 used_val = *uf1++;
+		if (!used_val)
+		    goto ok;
+		if ( hole_size < used_val )
+		{
+		    delta += used_val - hole_size;
+		    goto restart;
+		}
+		hole_size -= used_val;
+
+		noTRACE("\tuf1b=%8x,%8x, hole_size=%5x\n",uf1[0],uf1[1],hole_size);
+		const u32 free_val = *uf1++;
+		DASSERT(free_val);
+		if ( hole_size <= free_val )
+		{
+		    hole_size = free_val - hole_size;
+		    break;
+		}
+		hole_size -= free_val;
+	    }
+
+	    //---- uf2
+
+	    for(;;)
+	    {
+		noTRACE("\tuf2a=%8x,%8x, hole_size=%5x\n",uf2[0],uf2[1],hole_size);
+		const u32 used_val = *uf2++;
+		if (!used_val)
+		    goto ok;
+		if ( hole_size < used_val )
+		{
+		    BINGO;
+		    delta += used_val - hole_size;
+		    goto restart;
+		}
+		hole_size -= used_val;
+
+		noTRACE("\tuf2b=%8x,%8x, hole_size=%5x\n",uf2[0],uf2[1],hole_size);
+		const u32 free_val = *uf2++;
+		DASSERT(free_val);
+		if ( hole_size <= free_val )
+		{
+		    hole_size = free_val - hole_size;
+		    break;
+		}
+		hole_size -= free_val;
+	    }
+	}
+
+	break;
+    }
+    
+ ok:;
+    const u32 max_end = delta + n_sect2;
+    PRINT(">>> FOUND: delta=%x, max_end=%x %c %x\n",
+		delta, max_end,
+		max_end < p->max_end ? '<' : max_end > p->max_end ? '>' : '=',
+		p->max_end);
+
+    if ( max_end < p->max_end )
+    {
+	const u32 start = WII_GOOD_UPDATE_PART_OFF / WII_SECTOR_SIZE;
+	m1->dest_sector = start;
+	m2->dest_sector = start + delta;
+	p->max_end = max_end;
+     #ifdef TEST
+	verify_mix(p->mix,p->n_mix,false);
+     #endif
+    }
+}
+
+//
+///////////////////////////////////////////////////////////////////////////////
+///////////////			sector_mix_2()			///////////////
+///////////////////////////////////////////////////////////////////////////////
+
+static void sector_mix_2 ( MixParam_t * p )
+{
+    DASSERT(p);
+    DASSERT( p->n_mix == 2 );
+    
+    setup_sector_mix(p->mix);
+    setup_sector_mix(p->mix+1);
+
+    PRINT("SECTOR MIX 0,1\n");
+    sector_mix(p,p->mix,p->mix+1);
+
+    PRINT("SECTOR MIX 1,0\n");
+    sector_mix(p,p->mix+1,p->mix);
+};
 
 //
 ///////////////////////////////////////////////////////////////////////////////
@@ -556,9 +724,6 @@ enumError cmd_mix()
 	    mix->part		= part;
 	    mix->dest_sector	= sector;
 	    mix->src_sector	= part->part_off4 / WII_SECTOR_SIZE4;
-	    sector		+= part->end_sector - mix->src_sector;
-	    if ( sector & 1 )
-		sector++; // align to 64KiB
 	    ptab_count[ptab]++;
 
 
@@ -570,7 +735,7 @@ enumError cmd_mix()
 	    u8 * utab = wd_calc_usage_table(mix->disc);
 
 	    u32 src_sector = mix->src_sector;
-	    u32 max_hole_off =0, max_hole_size = 0;
+	    u32 max_hole_off = 0, max_hole_size = 0;
 
 	    for(;;)
 	    {
@@ -608,6 +773,10 @@ enumError cmd_mix()
 		mix->a2size = 0;
 	    }
 
+	    sector += mix->src_end_sector - mix->src_sector;
+	    if ( sector & 1 )
+		sector++; // align to 64KiB
+
 	    PRINT("N-BLOCKS=%d, A1=0+%x, A2=%x+%x\n",
 			mix->n_blocks, mix->a1size, mix->a2off, mix->a2size );
 	}
@@ -620,17 +789,36 @@ enumError cmd_mix()
     if (!n_mix)
 	return ERROR0(ERR_SEMANTIC,"No source partition selected.\n");
 
+    PRINT("*** CHAIN => END SECTOR = %x\n",sector);
 
     //----- permutate
 
-    if ( OptionUsed[OPT_OVERLAY] )
+    enum { MD_STD, MD_PERM, MD_SMIX } mode = MD_STD;
+
+    if ( n_mix > 1 && OptionUsed[OPT_OVERLAY] )
     {
 	MixParam_t p;
 	memset(&p,0,sizeof(p));
 	p.mix = mixtab;
 	p.n_mix = n_mix;
 	permutate_mix(&p);
-	sector = p.max_end;
+	if ( sector > p.max_end )
+	{
+	    mode = MD_PERM;
+	    PRINT("*** PERMUTATE => END SECTOR = %x < %x\n",p.max_end,sector);
+	    sector = p.max_end;
+	}
+
+	if ( n_mix == 2 )
+	{   
+	    sector_mix_2(&p);
+	    if ( sector > p.max_end )
+	    {
+		mode = MD_SMIX;
+		PRINT("*** SECTOR MIX 2 -> END SECTOR = %x < %x\n",p.max_end,sector);
+		sector = p.max_end;
+	    }
+	}
     }
 
 
@@ -645,7 +833,7 @@ enumError cmd_mix()
 
     //----- print log table
 
-    enumError err = verify_mix( mixtab, n_mix, testmode || verbose > 2 );
+    enumError err = verify_mix( mixtab, n_mix, testmode > 1 || verbose > 2 );
 
     Mix_t *mix, *end_mix = mixtab + n_mix;
 
@@ -659,34 +847,56 @@ enumError cmd_mix()
 		 src_fw = len;
 	}
 
-	printf("\nMix table (%d partitons, total size=%llu MiB):\n\n"
-		"    blocks #1      blocks #2  :      disc offset     "
-		": ptab  ptype : ignore + source\n"
-		"  %.*s\n",
-		n_mix, sector* (u64)WII_SECTOR_SIZE / MiB,
-		69 + src_fw, wd_sep_200 );
+	printf("\nMix table (%d partitons, total size=%llu MiB):\n\n",
+		    n_mix, sector* (u64)WII_SECTOR_SIZE / MiB );
 
-	for ( mix = mixtab; mix < end_mix; mix++ )
+	if ( mode < MD_SMIX )
 	{
-	    if (mix->a2off)
+	    printf("    blocks #1      blocks #2  :      disc offset     "
+		    ": ptab  ptype : ignore + source\n"
+		    "  %.*s\n",
+		    69 + src_fw, wd_sep_200 );
+
+	    for ( mix = mixtab; mix < end_mix; mix++ )
+	    {
+		if (mix->a2off)
+		{
+		    const u32 end_sector = mix->dest_sector + mix->a2off + mix->a2size;
+		    printf("%7x..%5x + %5x..%5x : %9llx..%9llx : %u %s : %c %s\n",
+			mix->dest_sector,
+			mix->dest_sector + mix->a1size,
+			mix->dest_sector + mix->a2off,
+			end_sector,
+			mix->dest_sector * (u64)WII_SECTOR_SIZE,
+			end_sector * (u64)WII_SECTOR_SIZE,
+			mix->ptab,
+			wd_print_part_name(0,0,mix->ptype,WD_PNAME_COLUMN_9),
+			mix->have_pat ? '+' : '-', mix->source );
+		}
+		else
+		{
+		    const u32 end_sector = mix->dest_sector + mix->a1size;
+		    printf("%7x..%5x                : %9llx..%9llx : %u %s : %c %s\n",
+			mix->dest_sector, end_sector,
+			mix->dest_sector * (u64)WII_SECTOR_SIZE,
+			end_sector * (u64)WII_SECTOR_SIZE,
+			mix->ptab,
+			wd_print_part_name(0,0,mix->ptype,WD_PNAME_COLUMN_9),
+			mix->have_pat ? '+' : '-', mix->source );
+		}
+	    }
+	}
+	else
+	{
+	    printf("  n(blks) :      disc offset     : ptab  ptype : ignore + source\n"
+		    "  %.*s\n",
+		    49 + src_fw, wd_sep_200 );
+
+	    for ( mix = mixtab; mix < end_mix; mix++ )
 	    {
 		const u32 end_sector = mix->dest_sector + mix->a2off + mix->a2size;
-		printf("%7x..%5x + %5x..%5x : %9llx..%9llx : %u %s : %c %s\n",
-		    mix->dest_sector,
-		    mix->dest_sector + mix->a1size,
-		    mix->dest_sector + mix->a2off,
-		    end_sector,
-		    mix->dest_sector * (u64)WII_SECTOR_SIZE,
-		    end_sector * (u64)WII_SECTOR_SIZE,
-		    mix->ptab,
-		    wd_print_part_name(0,0,mix->ptype,WD_PNAME_COLUMN_9),
-		    mix->have_pat ? '+' : '-', mix->source );
-	    }
-	    else
-	    {
-		const u32 end_sector = mix->dest_sector + mix->a1size;
-		printf("%7x..%5x                : %9llx..%9llx : %u %s : %c %s\n",
-		    mix->dest_sector, end_sector,
+		printf("%9u : %9llx..%9llx : %u %s : %c %s\n",
+		    mix->n_blocks,
 		    mix->dest_sector * (u64)WII_SECTOR_SIZE,
 		    end_sector * (u64)WII_SECTOR_SIZE,
 		    mix->ptab,
@@ -893,8 +1103,11 @@ enumError cmd_mix()
     ResetMemMap(&mm);
 
     for ( mix = mixtab; mix < end_mix; mix++ )
+    {
+	free(mix->used_free);
 	if (mix->free_data)
 	    FreeSF(mix->sf);
+    }
 
     return ResetSF(&fo,0);
 }

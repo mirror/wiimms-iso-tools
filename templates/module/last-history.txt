@@ -27,9 +27,11 @@ wit v@@VERSION@@ r@@REV-NEXT@@ - @@@@-@@-@@  (repository only)
  - Bug fix for "wit mix .. select": Default was to select all partitons.
    Now the default is to select only DATA partition of partition table #0.
  - Bug fix for "wit MIX": The calculation of the largest hole was wrong.
+ - wit MIX: A new algorithm for 2 partitions: It tries every possible shift to
+   find the best overlay. All holes in both partitions are relevant.
  - wit MIX: Before creating the image a additional verify function is called.
    This function controls that no sector is used by more than one partition.
-   In test mode or with verbose level >= 3 a usage map is printed too.
+   With verbose level >= 3 a usage map is printed too.
 
 Known bugs:
 
