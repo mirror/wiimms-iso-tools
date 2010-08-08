@@ -35,7 +35,9 @@ typedef struct Mix_t
     wd_part_t	* part;		// valid partition pointer
 
     u32		src_sector;	// index of first source sector
-    u32		first_sector;	// index of first destination sector
+    u32		src_end_sector;	// index of last source sector + 1
+    u32		dest_sector;	// index of first destination sector
+    u32		n_blocks;	// number of continuous sector blocks
 
     //--- Permutation helpers
 
@@ -80,6 +82,56 @@ typedef struct MixParam_t
 
 //
 ///////////////////////////////////////////////////////////////////////////////
+///////////////			verify_mix()			///////////////
+///////////////////////////////////////////////////////////////////////////////
+
+static enumError verify_mix ( Mix_t * mixtab, int n_mix, bool dump )
+{
+    ASSERT(mixtab);
+    
+    u8 utab[WII_MAX_SECTORS];
+    memset(utab,WD_USAGE_UNUSED,sizeof(utab));
+    utab[ 0 ]					= WD_USAGE_DISC;
+    utab[ WII_PTAB_REF_OFF / WII_SECTOR_SIZE ]	= WD_USAGE_DISC;
+    utab[ WII_REGION_OFF   / WII_SECTOR_SIZE ]	= WD_USAGE_DISC;
+    utab[ WII_MAGIC2_OFF   / WII_SECTOR_SIZE ]	= WD_USAGE_DISC;
+
+    u32 error_count = 0;
+    u8 dest_id = WD_USAGE_PART_0;
+    Mix_t *mix, *endmix = mixtab + n_mix;
+    for ( mix = mixtab; mix < endmix; mix++, dest_id++ )
+    {
+	wd_part_t * part = mix->part;
+	DASSERT(part);
+	const u8 src_id = part->usage_id;
+
+	int max_sectors = WII_MAX_SECTORS - ( mix->src_sector > mix->dest_sector
+					    ? mix->src_sector : mix->dest_sector );
+	u8 *dest = utab + mix->dest_sector, *enddest = dest + max_sectors;
+	const u8 *src = mix->disc->usage_table + mix->src_sector;
+	for ( ; dest < enddest; dest++, src++ )
+	    if ( ( *src & WD_USAGE__MASK ) == src_id )
+	    {
+		if (*dest)
+		    error_count++;
+		*dest = dest_id | *src & WD_USAGE_F_CRYPT;
+	    }
+    }
+
+    if (dump)
+    {
+	printf("Usage table:\n\n");
+	wd_dump_usage_tab(stdout,2,utab,false);
+	putchar('\n');
+    }
+
+    if (error_count)
+	return ERROR0(ERR_INTERNAL,"Verification of overlay failed!\n");
+    return ERR_OK;
+}
+
+//
+///////////////////////////////////////////////////////////////////////////////
 ///////////////			mark_used_mix()			///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -96,11 +148,14 @@ static u32 mark_used_mix
     DASSERT(used);
     DASSERT(ptr);
     DASSERT(size);
-    DASSERT( off + size <= ptr->size );
+    PRINT("MARK=%x+%x, ptr=%x+%x\n",off,size,ptr->off,ptr->size);
+    ASSERT_MSG( off + size <= ptr->size,
+		"off+size=%x+%x=%x <= ptr->size=%x\n",
+		off, size, off+size, ptr->size );
 
     if (!off)
     {
-	noTRACE("\t\t\t\t\t> %x..%x -> %x..%x [%u/%u]\n",
+	PRINT("\t\t\t\t\t> %x..%x -> %x..%x [%u/%u]\n",
 		ptr->off, ptr->off + ptr->size,
 		ptr->off + size, ptr->off + ptr->size,
 		(int)(ptr-base), used );
@@ -118,7 +173,7 @@ static u32 mark_used_mix
     const u32 end = off + size;
     if ( end == ptr->size )
     {
-	noTRACE("\t\t\t\t\t> %x..%x -> %x..%x [%u/%u]\n",
+	PRINT("\t\t\t\t\t> %x..%x -> %x..%x [%u/%u]\n",
 		ptr->off, ptr->off + ptr->size,
 		ptr->off, ptr->off + ptr->size - size,
 		(int)(ptr-base), used );
@@ -137,7 +192,7 @@ static u32 mark_used_mix
     ptr[0].size = off;
     ptr[1].off  = old_off + end;
     ptr[1].size = old_size - end;
-    noTRACE("\t\t\t\t\t> %x..%x -> %x..%x,%x..%x [%u/%u>%u]\n",
+    PRINT("\t\t\t\t\t> %x..%x -> %x..%x,%x..%x [%u/%u>%u]\n",
 		old_off, old_off + old_size,
 		ptr[0].off, ptr[0].off + ptr[0].size,
 		ptr[1].off, ptr[1].off + ptr[1].size,
@@ -159,6 +214,7 @@ static void insert_mix ( MixParam_t * p, int pdepth, int mix_index )
     MixFree_t * f = p->field[pdepth];
     Mix_t * mix = p->mix + mix_index;
 
+    PRINT("MIX#%u, a1=0+%x, a2=%x+%x\n",mix_index,mix->a1size,mix->a2off,mix->a2size);
     if (!pdepth)
     {
 	// setup free table
@@ -195,10 +251,12 @@ static void insert_mix ( MixParam_t * p, int pdepth, int mix_index )
 	    if (!mix->a2off)
 	    {
 		p->delta[mix_index] = f1ptr->off;
+//BINGO;
 		used = mark_used_mix(f,used,f1ptr,0,mix->a1size);
 		break;
 	    }
 
+//PRINT("f1ptr->size=%x, mix->a1size=%x\n",f1ptr->size,mix->a1size);
 	    const u32 base  = f1ptr->off;
 	    const u32 space = f1ptr->size - mix->a1size;
 	    MixFree_t * f2ptr;
@@ -215,7 +273,14 @@ static void insert_mix ( MixParam_t * p, int pdepth, int mix_index )
 		if ( off >= f2ptr->off && off + mix->a2size <= f2ptr->off + f2ptr->size )
 		{
 		    p->delta[mix_index] = f1ptr->off + delta;
+//PRINT("f1ptr->size=%x, mix->a1size=%x\n",f1ptr->size,mix->a1size);
+//PRINT("base=%x, space=%x, delta=%x\n",base,space,delta);
+PRINT("f1ptr=%zu,f2ptr=%zu\n",f1ptr-f,f2ptr-f);
+BINGO;
 		    used = mark_used_mix(f,used,f2ptr,off-f2ptr->off,mix->a2size);
+BINGO;
+//PRINT("f1ptr->size=%x, mix->a1size=%x\n",f1ptr->size,mix->a1size);
+//PRINT("f1ptr=%zu,f2ptr=%zu\n",f1ptr-f,f2ptr-f);
 		    used = mark_used_mix(f,used,f1ptr,delta,mix->a1size);
 		    f1ptr = fend;
 		    break;
@@ -310,7 +375,7 @@ static void permutate_mix ( MixParam_t * p )
     
     int i;
     for ( i = 0; i < n_perm; i++ )
-	p->mix[i].first_sector = delta[i];
+	p->mix[i].dest_sector = delta[i];
 }
 
 //
@@ -376,6 +441,11 @@ enumError cmd_mix()
 	bool scan_qualifier = true;
 	wd_select_t psel;
 	wd_initialize_select(&psel);
+	wd_append_select_item(&psel,WD_SM_DENY_PTAB,1,0);
+	wd_append_select_item(&psel,WD_SM_DENY_PTAB,2,0);
+	wd_append_select_item(&psel,WD_SM_DENY_PTAB,3,0);
+	wd_append_select_item(&psel,WD_SM_ALLOW_PTYPE,0,WD_PART_DATA);
+
 	u32 ptab = 0, ptype = 0;
 	bool ptab_valid = false, ptype_valid = false;
 	bool pattern_active = false;
@@ -417,6 +487,7 @@ enumError cmd_mix()
 		scan_qualifier = true;
 	    }
 
+
 	    //--- scan 'IGNORE'
 
 	    if ( param && param->next && !strcasecmp(param->arg,"ignore") )
@@ -456,8 +527,10 @@ enumError cmd_mix()
 	if (!disc)
 	    return ERR_WDISC_NOT_FOUND;
 
+	//wd_print_select(stdout,3,&psel);
 	wd_select(disc,&psel);
 	wd_reset_select(&psel);
+
 	wd_part_t *part, *end_part = disc->part + disc->n_part;
 	Mix_t * mix = 0;
 	for ( part = disc->part; part < end_part; part++ )
@@ -481,7 +554,7 @@ enumError cmd_mix()
 	    mix->have_pat	= pat != 0;
 	    mix->disc		= disc;
 	    mix->part		= part;
-	    mix->first_sector	= sector;
+	    mix->dest_sector	= sector;
 	    mix->src_sector	= part->part_off4 / WII_SECTOR_SIZE4;
 	    sector		+= part->end_sector - mix->src_sector;
 	    if ( sector & 1 )
@@ -489,58 +562,54 @@ enumError cmd_mix()
 	    ptab_count[ptab]++;
 
 
-	    //--- find hole
+	    //--- find largest hole
 
-	    u8 * utab = wd_calc_usage_table(mix->disc);
 	    if (pat)
 		wd_select_part_files(part,IsFileSelected,pat);
 	    wd_usage_t usage_id = part->usage_id;
+	    u8 * utab = wd_calc_usage_table(mix->disc);
+
 	    u32 src_sector = mix->src_sector;
+	    u32 max_hole_off =0, max_hole_size = 0;
 
-	    while ( src_sector < part->end_sector
-		    && ( utab[src_sector] & WD_USAGE__MASK ) == usage_id )
-		src_sector++;
-	    mix->a1size = mix->a2size = src_sector;
-	    u32 max_hole = 0;
-
-	    while ( src_sector < part->end_sector
-		    && ( utab[src_sector] & WD_USAGE__MASK ) != usage_id )
-		src_sector++;
-	    u32 start_sector = src_sector;
-
-	    while ( src_sector < part->end_sector )
+	    for(;;)
 	    {
+		mix->n_blocks++;
 		while ( src_sector < part->end_sector
 			&& ( utab[src_sector] & WD_USAGE__MASK ) == usage_id )
 		    src_sector++;
-		u32 end_sector = src_sector;
+		mix->src_end_sector = src_sector;
 
 		while ( src_sector < part->end_sector
 			&& ( utab[src_sector] & WD_USAGE__MASK ) != usage_id )
 		    src_sector++;
 
-		if ( end_sector > start_sector )
+		if ( src_sector == part->end_sector )
+		    break;
+
+		const u32 hole_size = src_sector - mix->src_end_sector;
+		if ( hole_size > max_hole_size )
 		{
-		    u32 this_hole = start_sector - mix->a2size;
-		    if ( this_hole > max_hole )
-		    {
-			max_hole     = this_hole;
-			mix->a1size   = mix->a2size;
-			mix->a2off = start_sector;
-			start_sector = src_sector;
-		    }
-		    mix->a2size = end_sector;
+		    max_hole_size = hole_size;
+		    max_hole_off  = mix->src_end_sector;
 		}
 	    }
 
-	    mix->a1size -= mix->src_sector;
-	    if (mix->a2off)
+	    if (max_hole_size)
 	    {
-		mix->a2size -= mix->a2off;
-		mix->a2off  -= mix->src_sector;
+		mix->a1size = max_hole_off - mix->src_sector;
+		mix->a2off  = mix->a1size + max_hole_size;
+		mix->a2size = mix->src_end_sector - (max_hole_off+max_hole_size);
 	    }
 	    else
+	    {
+		mix->a1size = mix->src_end_sector - mix->src_sector;
+		mix->a2off  = 0;
 		mix->a2size = 0;
+	    }
+
+	    PRINT("N-BLOCKS=%d, A1=0+%x, A2=%x+%x\n",
+			mix->n_blocks, mix->a1size, mix->a2off, mix->a2size );
 	}
 
 	if (!mix)
@@ -550,6 +619,7 @@ enumError cmd_mix()
 
     if (!n_mix)
 	return ERROR0(ERR_SEMANTIC,"No source partition selected.\n");
+
 
     //----- permutate
 
@@ -575,6 +645,8 @@ enumError cmd_mix()
 
     //----- print log table
 
+    enumError err = verify_mix( mixtab, n_mix, testmode || verbose > 2 );
+
     Mix_t *mix, *end_mix = mixtab + n_mix;
 
     if ( testmode || verbose > 1 )
@@ -598,13 +670,13 @@ enumError cmd_mix()
 	{
 	    if (mix->a2off)
 	    {
-		const u32 end_sector = mix->first_sector + mix->a2off + mix->a2size;
+		const u32 end_sector = mix->dest_sector + mix->a2off + mix->a2size;
 		printf("%7x..%5x + %5x..%5x : %9llx..%9llx : %u %s : %c %s\n",
-		    mix->first_sector,
-		    mix->first_sector + mix->a1size,
-		    mix->first_sector + mix->a2off,
+		    mix->dest_sector,
+		    mix->dest_sector + mix->a1size,
+		    mix->dest_sector + mix->a2off,
 		    end_sector,
-		    mix->first_sector * (u64)WII_SECTOR_SIZE,
+		    mix->dest_sector * (u64)WII_SECTOR_SIZE,
 		    end_sector * (u64)WII_SECTOR_SIZE,
 		    mix->ptab,
 		    wd_print_part_name(0,0,mix->ptype,WD_PNAME_COLUMN_9),
@@ -612,10 +684,10 @@ enumError cmd_mix()
 	    }
 	    else
 	    {
-		const u32 end_sector = mix->first_sector + mix->a1size;
+		const u32 end_sector = mix->dest_sector + mix->a1size;
 		printf("%7x..%5x                : %9llx..%9llx : %u %s : %c %s\n",
-		    mix->first_sector, end_sector,
-		    mix->first_sector * (u64)WII_SECTOR_SIZE,
+		    mix->dest_sector, end_sector,
+		    mix->dest_sector * (u64)WII_SECTOR_SIZE,
 		    end_sector * (u64)WII_SECTOR_SIZE,
 		    mix->ptab,
 		    wd_print_part_name(0,0,mix->ptype,WD_PNAME_COLUMN_9),
@@ -625,6 +697,8 @@ enumError cmd_mix()
 	putchar('\n');
     }
 
+    if (err) // verify status
+	return err;
 
     //----- setup dhead
 
@@ -669,7 +743,7 @@ enumError cmd_mix()
 
     for ( mix = mixtab; mix < end_mix; mix++ )
     {
-	u64 off  = mix->first_sector * (u64)WII_SECTOR_SIZE;
+	u64 off  = mix->dest_sector * (u64)WII_SECTOR_SIZE;
 	u64 size = mix->a1size  * (u64)WII_SECTOR_SIZE;
 	MemMapItem_t * item = InsertMemMap(&mm,off,size);
 	DASSERT(item);
@@ -699,8 +773,6 @@ enumError cmd_mix()
     }
 
     //----- execute
-
-    enumError err = ERR_OK;
 
     if (!testmode)
     {
@@ -749,7 +821,7 @@ enumError cmd_mix()
 			continue;
 
 		    n_part++;
-		    entry->off4  = htonl(mix->first_sector*WII_SECTOR_SIZE4);
+		    entry->off4  = htonl(mix->dest_sector*WII_SECTOR_SIZE4);
 		    entry->ptype = htonl(mix->ptype);
 		    entry++;
 		}

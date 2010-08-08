@@ -13,7 +13,7 @@ wit v1.14a.beta2 r1485 - 2010-08-06
  - New qualifier for "wit MIX": "IGNORE ruleset": Ignore files when copying a
    disc image. See http://wit.wiimm.de/wit/cmd-mix.html#ignore for details.
 
-wit v@@VERSION@@ r@@REV-NEXT@@ - @@@@-@@-@@
+wit v1.14a.beta3 r1493 - 2010-08-07
 
  - Some modification for expanding '@file' parameters: wit MIX needs control.
  - Bug fix: "wit MIX ... ignore @file" works now.
@@ -21,6 +21,15 @@ wit v@@VERSION@@ r@@REV-NEXT@@ - @@@@-@@-@@
    by partiton type, partiton table and/or by partiton index. Only with the
    unambiguous partiton index it is possible to select the one wanted DATA
    partition if multiple exists.
+
+wit v@@VERSION@@ r@@REV-NEXT@@ - @@@@-@@-@@  (repository only)
+
+ - Bug fix for "wit mix .. select": Default was to select all partitons.
+   Now the default is to select only DATA partition of partition table #0.
+ - Bug fix for "wit MIX": The calculation of the largest hole was wrong.
+ - wit MIX: Before creating the image a additional verify function is called.
+   This function controls that no sector is used by more than one partition.
+   In test mode or with verbose level >= 3 a usage map is printed too.
 
 Known bugs:
 

@@ -61,6 +61,8 @@ typedef enum wd_select_mode_t // modes of selection
     WD_SM_ALLOW_ID,		// allow ID
     WD_SM_ALLOW_ALL,		// allow all partitons
 
+    WD_SM_N_MODE,		// number of modes
+
     //--- the deny flag and masks
 
     WD_SM_F_DENY = 0x100,	// this bit is set for DENY modes

@@ -16,7 +16,7 @@ WWT_SHORT		= wwt
 WWT_LONG		= Wiimms WBFS Tool
 
 VERSION_NUM		= 1.14a
-BETA_VERSION		= 3
+BETA_VERSION		= 4
 
 URI_HOME		= http://wit.wiimm.de/
 URI_DOWNLOAD		= http://wit.wiimm.de/download

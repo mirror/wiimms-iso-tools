@@ -1063,11 +1063,11 @@ static s64 PartSelectorFunc
 		wd_append_select_item(select,mode,cmd->opt,cmd->opt);
 		break;
 
-	    case 100:
+	    case WD_SM_N_MODE+1:
 		select->whole_disc = prefix != '-';
 		break;
 
-	    case 101:
+	    case WD_SM_N_MODE+2:
 		select->whole_part = prefix != '-';
 		break;
 	}
@@ -1187,16 +1187,19 @@ enumError ScanPartSelector
 	{ WD_SM_ALLOW_ID,	"ID",		"I",	0 },
 	{ WD_SM_ALLOW_ALL,	"ALL",		0,	0 },
 
-	{ 100,			"1:1",		"RAW",	0 },
-	{ 101,			"WHOLE",	0,	0 },
+	{ WD_SM_N_MODE+1,	"1:1",		"RAW",	0 },
+	{ WD_SM_N_MODE+2,	"WHOLE",	0,	0 },
 
 	{ 0,0,0,0 }
     };
 
+    DASSERT(select);
+    wd_reset_select(select);
+
     struct scan_select_t scan_select;
     memset(&scan_select,0,sizeof(scan_select));
     scan_select.err_text_extend	= err_text_extend;
-    scan_select.select		= &part_selector;
+    scan_select.select		= select;
     
     const enumError err
 	= ScanCommandListFunc(arg,tab,PartSelectorFunc,&scan_select,true);

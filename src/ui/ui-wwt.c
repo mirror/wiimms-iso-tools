@@ -68,19 +68,20 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
     {	OPT_PSEL, 0, "psel",
 	"list",
 	"This option set the scrubbing mode and defines, which disc partitions"
-	" are handled. The parameter is a comma separated list of keywords."
-	" The keywords are divided in three functional groups:\n"
-	"The first group selects partition types. The names DATA, UDDATE,"
-	" CHANNEL, ID and the numbers between 0 and 50 for partition type are"
-	" allowed. 'ID' is a placeholder for all ID types like the VC channels"
-	" of SSBB. The prefix '-' means: disable this partition type. The"
-	" special keyword 'NONE' diables all partition types.\n"
-	"The second group selects partition tables. The names PTAB0..PTAB3"
-	" (and T0..T3) are allowed. The prefix '-' means: Disable all"
-	" partitions of that partition table.\n"
-	"The third group are additional flags: 'WHOLE' means that the whole"
-	" partition data is used. 'RAW' means that the whole disc is selected.\n"
-	"The special keyword 'ALL' resets all settings to the default."
+	" are handled. It expects a comma separated list of keywords, numbers"
+	" and names; all together called parameter. All parameter are case"
+	" insensitive and non ambiguous abbreviations of keyword are allowed.\n"
+	"Each parameter becomes a rule and each rule is appended to a rule"
+	" list. Rules prefixed by a minus sign are DENY rules. Rules prefixed"
+	" by a plus sign or without a prefix are ALLOW rules. Each partition"
+	" is compared with each rule until a rule matches the partition. If a"
+	" match it found, the partition is enabled for a ALLOW rule or"
+	" disabled for a DENY rule.\n"
+	"The allowed keywords are: DATA, UPDATE, CHANNEL, PTAB0 .. PTAB3, ID,"
+	" ALL, WHOLE and RAW. Additional the following input formats are"
+	" accepted: ptype, #index, #<index, #<=index, #>index, #>=index and"
+	" #tab_index.part_index.\n"
+	"See the online docu for more details."
     },
 
     {	OPT_RAW, 0, "raw",

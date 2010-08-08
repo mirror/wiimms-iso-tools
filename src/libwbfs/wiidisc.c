@@ -894,6 +894,8 @@ void wd_mark_part
 	memset( disc->usage_table + first_block,
 		part->usage_id | WD_USAGE_F_CRYPT,
 		end_block - first_block );
+	if ( part->end_sector < end_block )
+	     part->end_sector = end_block;
 	if ( disc->usage_max < end_block )
 	     disc->usage_max = end_block;
     }
