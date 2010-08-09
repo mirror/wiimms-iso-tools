@@ -53,6 +53,10 @@
 
 #include "ui-wit.c"
 
+//-----------------------------------------------------------------------------
+
+enumError cmd_mix();
+
 //
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
@@ -63,10 +67,6 @@
 int  print_sections	= 0;
 int  long_count		= 0;
 int  ignore_count	= 0;
-int  testmode		= 0;
-ccp  opt_dest		= 0;
-bool opt_mkdir		= false;
-int  opt_limit		= -1;
 
 enumIOMode io_mode	= 0;
 
@@ -157,6 +157,28 @@ enumError cmd_test()
  #if 0 || !defined(TEST) // test options
 
     return cmd_test_options();
+
+ #elif 1
+
+    int i;
+    ParamList_t * param;
+    for ( i = 1, param = first_param; param; param = param->next, i++ )
+	printf("%3d.: |%s|\n",i,param->arg);
+
+    printf("----\n");
+    for ( i = 1, param = first_param; param; param = param->next, i++ )
+    {
+	AtExpandParam(&param);
+	printf("%3d.: |%s|\n",i,param->arg);
+    }
+    return ERR_OK;
+
+ #elif 1
+
+    printf("\n  partition selector:\n");
+    wd_print_select(stdout,6,&part_selector);
+    putchar('\n');
+    return ERR_OK;
 
  #elif 1
 
@@ -445,7 +467,7 @@ enumError exec_filetype ( SuperFile_t * sf, Iterator_t * it )
 	if (sf->f.id6[0])
 	{
 	    region = GetRegionInfo(sf->f.id6[3])->name4;
-	    u32 count = CountUsedIsoBlocksSF(sf,part_selector);
+	    u32 count = CountUsedIsoBlocksSF(sf,&part_selector);
 	    if (count)
 		snprintf(size,sizeof(size),"%4u",
 			(count+WII_SECTORS_PER_MIB/2)/WII_SECTORS_PER_MIB);
@@ -524,7 +546,7 @@ enumError exec_isosize ( SuperFile_t * sf, Iterator_t * it )
     {
 	disc = OpenDiscSF(sf,true,true);
 	if (disc)
-	    wd_filter_usage_table_sel(disc,wdisc_usage_tab,part_selector);
+	    wd_filter_usage_table(disc,wdisc_usage_tab,0);
     }
 
     const bool print_header = !(used_options&OB_NO_HEADER);
@@ -1000,7 +1022,7 @@ enumError exec_ilist ( SuperFile_t * fi, Iterator_t * it )
     wd_disc_t * disc = OpenDiscSF(fi,true,true);
     if (!disc)
 	return ERR_WDISC_NOT_FOUND;
-    wd_select(disc,part_selector);
+    wd_select(disc,&part_selector);
 
     char prefix[PATH_MAX];
     if ( it->show_mode & SHOW_PATH )
@@ -1108,7 +1130,7 @@ enumError exec_diff ( SuperFile_t * f1, Iterator_t * it )
     f2.show_summary	= verbose > 0 || progress;
     f2.show_msec	= verbose > 2;
 
-    const bool raw_mode = part_selector & WD_SEL_WHOLE_DISC || !f1->f.id6[0];
+    const bool raw_mode = part_selector.whole_disc || !f1->f.id6[0];
     if (testmode)
     {
 	printf( "%s: WOULD DIFF/%s %s:%s : %s:%s\n",
@@ -1127,11 +1149,10 @@ enumError exec_diff ( SuperFile_t * f1, Iterator_t * it )
 		oft_name[f2.iod.oft], f2.f.fname );
     }
 
-    const wd_select_t psel = raw_mode ? WD_SEL_WHOLE_DISC : part_selector;
     FilePattern_t * pat = GetDefaultFilePattern();
-    err = SetupFilePattern(pat)
-		? DiffFilesSF( f1, &f2, it->long_count, pat, psel, prefix_mode )
-		: DiffSF( f1, &f2, it->long_count, psel );
+    err = !raw_mode && SetupFilePattern(pat)
+		? DiffFilesSF( f1, &f2, it->long_count, pat, prefix_mode )
+		: DiffSF( f1, &f2, it->long_count, raw_mode );
 
     if ( err == ERR_DIFFER )
     {
@@ -1382,7 +1403,7 @@ enumError exec_copy ( SuperFile_t * fi, Iterator_t * it )
     snprintf(count_buf,sizeof(count_buf), "%*u/%u",
 		(int)strlen(count_buf), it->source_index+1, it->source_list.used );
 
-    const bool raw_mode = part_selector & WD_SEL_WHOLE_DISC || !fi->f.id6[0];
+    const bool raw_mode = part_selector.whole_disc || !fi->f.id6[0];
     if (testmode)
     {
 	if (scrub_it)
@@ -1428,7 +1449,7 @@ enumError exec_copy ( SuperFile_t * fi, Iterator_t * it )
     if (err)
 	goto abort;
 
-    err = CopySF( fi, &fo, raw_mode ? WD_SEL_WHOLE_DISC : part_selector );
+    err = CopySF( fi, &fo, raw_mode );
     if (err)
 	goto abort;
 
@@ -1902,753 +1923,6 @@ enumError cmd_verify()
 
 //
 ///////////////////////////////////////////////////////////////////////////////
-
-typedef struct Mix_t
-{
-    //--- input data
-
-    ccp		source;		// pointer to source file ( := param->arg )
-    u32		ptab;		// destination partition tables
-    u32		ptype;		// destination partition type
-
-    //--- secondary data
-    
-    SuperFile_t	* sf;		// superfile of iso image
-    bool	close_sf;	// true: close supefile if done
-    wd_disc_t	* disc;		// valid disc pointer
-    wd_part_t	* part;		// valid partition pointer
-
-    u32		src_sector;	// index of first source sector
-    u32		first_sector;	// index of first destination sector
-
-    //--- Permutation helpers
-
-    u32		a1size;		// size of area 1 (p1off allways = 0)
-    u32		a2off;		// offset of area 2
-    u32		a2size;		// size of area 2
-    
-} Mix_t;
-
-//-----------------------------------------------------------------------------
-
-typedef struct MixFree_t
-{
-	u32 off;		// offset of first free sector
-	u32 size;		// number of free sectors
-
-} MixFree_t;
-
-
-//-----------------------------------------------------------------------------
-
-#define MAX_MIX_PERM 12
-
-typedef struct MixParam_t
-{
-    Mix_t	* mix;		// valid pointer to table
-    int		n_mix;		// number of valid elements of 'mix'
-
-    int		used[MAX_MIX_PERM];
-    MixFree_t	field[MAX_MIX_PERM][2*MAX_MIX_PERM+2];
-
-    u32		delta[MAX_MIX_PERM];
-    u32		max_end;
-
-} MixParam_t;
-
-//-----------------------------------------------------------------------------
-
-static u32 mark_used_mix
-(
-    MixFree_t	* base,		// pointer to free field
-    u32		used,		// number of used elements in 'base'
-    MixFree_t	* ptr,		// current pointer into 'base'
-    u32		off,		// offset relative to ptr->off
-    u32		size		// size to remove
-) 
-{
-    DASSERT(base);
-    DASSERT(used);
-    DASSERT(ptr);
-    DASSERT(size);
-    DASSERT( off + size <= ptr->size );
-
-    if (!off)
-    {
-	PRINT("\t\t\t\t\t> %x..%x -> %x..%x [%u/%u]\n",
-		ptr->off, ptr->off + ptr->size,
-		ptr->off + size, ptr->off + ptr->size,
-		(int)(ptr-base), used );
-	ptr->off  += size;
-	ptr->size -= size;
-	if (!ptr->size)
-	{
-	    used--;
-	    const u32 index = ptr - base;
-	    memmove(ptr,ptr+1,(used-index)*sizeof(*ptr));
-	}
-	return used;
-    }
-
-    const u32 end = off + size;
-    if ( end == ptr->size )
-    {
-	PRINT("\t\t\t\t\t> %x..%x -> %x..%x [%u/%u]\n",
-		ptr->off, ptr->off + ptr->size,
-		ptr->off, ptr->off + ptr->size - size,
-		(int)(ptr-base), used );
-	ptr->size -= size;
-	return used;
-    }
-
-    // split entry
-    const u32 old_off  = ptr->off;
-    const u32 old_size = ptr->size;
-
-    const u32 index = ptr - base;
-    memmove(ptr+1,ptr,(used-index)*sizeof(*ptr));
-
-    ptr[0].off  = old_off;
-    ptr[0].size = off;
-    ptr[1].off  = old_off + end;
-    ptr[1].size = old_size - end;
-    PRINT("\t\t\t\t\t> %x..%x -> %x..%x,%x..%x [%u/%u>%u]\n",
-		old_off, old_off + old_size,
-		ptr[0].off, ptr[0].off + ptr[0].size,
-		ptr[1].off, ptr[1].off + ptr[1].size,
-		(int)(ptr-base), used, used+1 );
-    return used+1;
-}
-
-//-----------------------------------------------------------------------------
-
-static void insert_mix ( MixParam_t * p, int pdepth, int mix_index )
-{
-    DASSERT( p );
-    DASSERT( pdepth >= 0 && pdepth < p->n_mix );
-    DASSERT( mix_index >= 0 && mix_index < p->n_mix );
-    
-    MixFree_t * f = p->field[pdepth];
-    Mix_t * mix = p->mix + mix_index;
-
-    if (!pdepth)
-    {
-	// setup free table
-	PRINT("\t\t\t\t\t> SETUP\n");
-	const u32 start = WII_GOOD_UPDATE_PART_OFF / WII_SECTOR_SIZE;
-	p->delta[mix_index] = start;
-	if (mix->a2off)
-	{
-	    p->used[0]	= 2;
-	    f[0].off	= start + mix->a1size;
-	    f[0].size	= mix->a2off - mix->a1size;
-	    f[1].off	= start + mix->a2off + mix->a2size;
-	    f[1].size	= ~(u32)0 - f[1].off;
-	}
-	else
-	{
-	    p->used[0]	= 1;
-	    f[0].off	= start + mix->a1size;
-	    f[0].size	= ~(u32)0 - f[0].off;
-	}
-    }
-    else
-    {
-	u32 used = p->used[pdepth-1];
-	memcpy(f,p->field[pdepth-1],sizeof(*f)*used);
-
-	MixFree_t * f1ptr = f;
-	MixFree_t * fend = f1ptr + used;
-	for ( ; f1ptr < fend; f1ptr++ )
-	{
-	    if ( f1ptr->size < mix->a1size )
-		continue;
-
-	    if (!mix->a2off)
-	    {
-		p->delta[mix_index] = f1ptr->off;
-		used = mark_used_mix(f,used,f1ptr,0,mix->a1size);
-		break;
-	    }
-
-	    const u32 base  = f1ptr->off;
-	    const u32 space = f1ptr->size - mix->a1size;
-	    MixFree_t * f2ptr;
-	    for ( f2ptr = f1ptr; f2ptr < fend; f2ptr++ )
-	    {
-		u32 delta = 0;
-		u32 off = base + mix->a2off;
-		if ( f2ptr->off > off && f2ptr->off <= off + space )
-		{
-		    delta = f2ptr->off - off;
-		    off += delta;
-		}
-
-		if ( off >= f2ptr->off && off + mix->a2size <= f2ptr->off + f2ptr->size )
-		{
-		    p->delta[mix_index] = f1ptr->off + delta;
-		    used = mark_used_mix(f,used,f2ptr,off-f2ptr->off,mix->a2size);
-		    used = mark_used_mix(f,used,f1ptr,delta,mix->a1size);
-		    f1ptr = fend;
-		    break;
-		}
-	    }
-	}
-
-	p->used[pdepth] = used;
-    }
-
- #if defined(TEST) && defined(DEBUG)
-    {
-	int i;
-	for ( i = 0; i < p->used[pdepth]; i++ )
-	    printf(" %5x .. %8x / %8x\n",
-		f[i].off, f[i].off + f[i].size, f[i].size ); 
-    }
- #endif
-}
- 
-//-----------------------------------------------------------------------------
-
-static void permutate_mix ( MixParam_t * p )
-{
-    PRINT("PERMUTATE MIX\n");
-
-    const int n_perm = p->n_mix;
-    DASSERT( n_perm <= MAX_MIX_PERM );
-
-    u8 used[MAX_MIX_PERM+1];	// mark source index as used
-    memset(used,0,sizeof(used));
-    u8 source[MAX_MIX_PERM];	// field with source index into 'mix'
-    source[0] = 0;
-    int pdepth = 0;
-    p->max_end = ~(u32)0;
-
-    u32	delta[MAX_MIX_PERM];
-    memset(delta,0,sizeof(delta));
-
-    for(;;)
-    {
-	u8 src = source[pdepth];
-	if ( src > 0 )
-	    used[src] = 0;
-	src++;
-	while ( src <= n_perm && used[src] )
-	    src++;
-	if ( src > n_perm )
-	{
-	    if ( --pdepth >= 0 )
-		continue;
-	    break;
-	}
-
-	//PRINT(" src=%d/%d, depth=%d\n",src,n_perm,pdepth);
-	DASSERT( src <= n_perm );
-	used[src] = 1;
-	source[pdepth] = src;
-	insert_mix(p,pdepth++,src-1);
-
-	// [2do] : insert part
-
-	if ( pdepth < n_perm )
-	{
-	    source[pdepth] = 0;
-	    continue;
-	}
-
-	const u32 used = p->used[pdepth-1];
-	const u32 new_end = p->field[pdepth-1][used-1].off;
-
-     #ifdef TEST
-	{
-	    PRINT("PERM:");
-	    int i;
-	    for ( i = 0; i < n_perm; i++ )
-		PRINT(" %u",source[i]);
-	    PRINT(" -> %5x [%5x]%s\n",
-		new_end, p->max_end, new_end < p->max_end ? " *" : "" );
-	}
-     #endif
-     
-	if ( new_end < p->max_end )
-	{
-	    p->max_end = new_end;
-	    memcpy(delta,p->delta,sizeof(delta));
-	}
-    }
-    
-    int i;
-    for ( i = 0; i < n_perm; i++ )
-	p->mix[i].first_sector = delta[i];
-}
-
-//-----------------------------------------------------------------------------
-
-enumError cmd_mix()
-{
-    opt_hook = -1; // disable hooked discs (no patching/relocation)
- 
-    if ( verbose >= 0 )
-	print_title(stdout);
-
-
-    //----- check dest option
-
-    if ( !opt_dest || !*opt_dest )
-    {
-	if (!testmode)
-	    return ERROR0(ERR_SEMANTIC,
-			"Non empty option --dest/--DEST required.\n");
-	opt_dest = "./";
-    }
-
-
-    //----- scan parameters
-
-    int n_mix = 0;
-    Mix_t mixtab[WII_MAX_PARTITIONS];
-    memset(mixtab,0,sizeof(mixtab));
-    TRACE_SIZEOF(Mix_t);
-    TRACE_SIZEOF(mixtab);
-    TRACE_SIZEOF(MixParam_t);
-
-    const u32 MAX_PART	= OptionUsed[OPT_OVERLAY]
-			? MAX_MIX_PERM
-			: WII_MAX_PARTITIONS;
-
-    u32 sector = WII_GOOD_UPDATE_PART_OFF / WII_SECTOR_SIZE;
-    u32 ptab_count[WII_MAX_PTAB];
-
-    bool src_warn = true;
-    ParamList_t * param = first_param;
-    while (param)
-    {
-	//--- scan source file
-
-	ccp srcfile = param->arg;
-	if ( src_warn && !strchr(srcfile,'/') && !strchr(srcfile,'.') )
-	{
-	    src_warn = false;
-	    ERROR0(ERR_WARNING,
-		"Warning: use at least one '.' or '/' in a filename"
-		" to distinguish file names from keywords: %s", srcfile );
-	}
-	param = param->next;
-
-
-	//--- scan 'SELECT'
-
-	wd_select_t psel = WD_SEL_PART_DATA|WD_SEL_PART_ACTIVE;
-	if ( param && param->next
-	     && (  !strcasecmp(param->arg,"select")
-		|| !strcasecmp(param->arg,"psel") ))
-	{
-	    param = param->next;
-	    psel = ScanPartSelector(param->arg," ('select')");
-	    if ( psel == -(wd_select_t)1 )
-		return ERR_SYNTAX;
-	    param = param->next;
-	}
-
-
-	//--- scan 'AS'
-
-	u32 ptab = 0, ptype = 0;
-	bool ptab_valid = false, ptype_valid = false;
-	if ( param && param->next && !strcasecmp(param->arg,"as") )
-	{
-	    param = param->next;
-	    const enumError err
-		= ScanPartTabAndType(&ptab,&ptab_valid,&ptype,&ptype_valid,
-					param->arg," ('as')");
-	    if (err)
-		return err;
-	    param = param->next;
-	}
-	PRINT("psel=%llx, as=%u.%u,%d.%x, src=%s\n",
-		(u64)psel, ptab_valid, ptype_valid, ptab, ptype, srcfile );
-
-
-	//--- open disc and partitions
-
-	SuperFile_t * sf = AllocSF();
-	ASSERT(sf);
-	enumError err = OpenSF(sf,srcfile,false,false);
-	if (err)
-	    return err;
-
-	wd_disc_t * disc = OpenDiscSF(sf,false,true);
-	if (!disc)
-	    return ERR_WDISC_NOT_FOUND;
-
-	wd_select(disc,psel);
-	wd_part_t *part, *end_part = disc->part + disc->n_part;
-	Mix_t * mix = 0;
-	for ( part = disc->part; part < end_part; part++ )
-	{
-	    if (!part->is_enabled)
-		continue;
-	    err = wd_load_part(part,false,false);
-	    if (err)
-		return err;
-
-	    mix = mixtab + n_mix++;
-	    if ( n_mix > MAX_PART )
-		return ERROR0(ERR_SEMANTIC,
-		    "Maximum supported partition count (%u) exceeded.\n",
-		    MAX_PART );
-
-	    mix->source		= srcfile;
-	    mix->ptab		= ptab_valid ? ptab : part->ptab_index;
-	    mix->ptype		= ptype_valid ? ptype : part->part_type;
-	    mix->sf		= sf;
-	    mix->disc		= disc;
-	    mix->part		= part;
-	    mix->first_sector	= sector;
-	    mix->src_sector	= part->part_off4 / WII_SECTOR_SIZE4;
-	    sector		+= part->end_sector - mix->src_sector;
-	    if ( sector & 1 )
-		sector++; // align to 64KiB
-	    ptab_count[ptab]++;
-
-
-	    //--- find hole
-
-	    u8 * utab = wd_calc_usage_table(mix->disc);
-	    wd_usage_t usage_id = part->usage_id;
-	    u32 src_sector = mix->src_sector;
-
-	    while ( src_sector < part->end_sector
-		    && ( utab[src_sector] & WD_USAGE__MASK ) == usage_id )
-		src_sector++;
-	    mix->a1size = mix->a2size = src_sector;
-	    u32 max_hole = 0;
-
-	    while ( src_sector < part->end_sector
-		    && ( utab[src_sector] & WD_USAGE__MASK ) != usage_id )
-		src_sector++;
-	    u32 start_sector = src_sector;
-
-	    while ( src_sector < part->end_sector )
-	    {
-		while ( src_sector < part->end_sector
-			&& ( utab[src_sector] & WD_USAGE__MASK ) == usage_id )
-		    src_sector++;
-		u32 end_sector = src_sector;
-
-		while ( src_sector < part->end_sector
-			&& ( utab[src_sector] & WD_USAGE__MASK ) != usage_id )
-		    src_sector++;
-
-		if ( end_sector > start_sector )
-		{
-		    u32 this_hole = start_sector - mix->a2size;
-		    if ( this_hole > max_hole )
-		    {
-			max_hole     = this_hole;
-			mix->a1size   = mix->a2size;
-			mix->a2off = start_sector;
-			start_sector = src_sector;
-		    }
-		    mix->a2size = end_sector;
-		}
-	    }
-
-	    mix->a1size -= mix->src_sector;
-	    if (mix->a2off)
-	    {
-		mix->a2size -= mix->a2off;
-		mix->a2off  -= mix->src_sector;
-	    }
-	    else
-		mix->a2size = 0;
-	}
-
-	if (!mix)
-	    return ERROR0(ERR_SEMANTIC,"No partition selected: %s\n",srcfile);
-	mix->close_sf = true;
-    }
-
-    if (!n_mix)
-	return ERROR0(ERR_SEMANTIC,"No source partition selected.\n");
-
-    //----- permutate
-
-    if ( OptionUsed[OPT_OVERLAY] )
-    {
-	MixParam_t p;
-	memset(&p,0,sizeof(p));
-	p.mix = mixtab;
-	p.n_mix = n_mix;
-	permutate_mix(&p);
-	sector = p.max_end;
-    }
-
-
-    //----- check max sectors
-
-    if ( sector > WII_MAX_SECTORS )
-	return ERROR0(ERR_SEMANTIC,
-		"Total size (%u MiB) exceeds maximum size (%u MiB).\n",
-		sector / WII_SECTORS_PER_MIB,
-		WII_MAX_SECTORS / WII_SECTORS_PER_MIB );
-
-
-    //----- print log table
-
-    Mix_t *mix, *end_mix = mixtab + n_mix;
-
-    if ( testmode || verbose > 1 )
-    {
-	int src_fw = 7;
-	for ( mix = mixtab; mix < end_mix; mix++ )
-	{
-	    const int len = strlen(mix->source);
-	    if ( src_fw < len )
-		 src_fw = len;
-	}
-
-	printf("\nMix table (%d partitons, total size=%llu MiB):\n\n"
-		"    blocks #1      blocks #2  :      disc offset     : ptab  ptype : source\n"
-		"  %.*s\n",
-		n_mix, sector* (u64)WII_SECTOR_SIZE / MiB,
-		67 + src_fw, wd_sep_200 );
-
-	for ( mix = mixtab; mix < end_mix; mix++ )
-	{
-	    if (mix->a2off)
-	    {
-		const u32 end_sector = mix->first_sector + mix->a2off + mix->a2size;
-		printf("%7x..%5x + %5x..%5x : %9llx..%9llx : %u %s : %s\n",
-		    mix->first_sector,
-		    mix->first_sector + mix->a1size,
-		    mix->first_sector + mix->a2off,
-		    end_sector,
-		    mix->first_sector * (u64)WII_SECTOR_SIZE,
-		    end_sector * (u64)WII_SECTOR_SIZE,
-		    mix->ptab,
-		    wd_print_part_name(0,0,mix->ptype,WD_PNAME_COLUMN_9),
-		    mix->source );
-	    }
-	    else
-	    {
-		const u32 end_sector = mix->first_sector + mix->a1size;
-		printf("%7x..%5x                : %9llx..%9llx : %u %s : %s\n",
-		    mix->first_sector, end_sector,
-		    mix->first_sector * (u64)WII_SECTOR_SIZE,
-		    end_sector * (u64)WII_SECTOR_SIZE,
-		    mix->ptab,
-		    wd_print_part_name(0,0,mix->ptype,WD_PNAME_COLUMN_9),
-		    mix->source );
-	    }
-	}
-	putchar('\n');
-    }
-
-
-    //----- setup dhead
-
-    char * dest = iobuf + sprintf(iobuf,"WIT mix of");
-    ccp sep = " ";
-
-    for ( mix = mixtab; mix < end_mix; mix++ )
-    {
-	dest += sprintf(dest,"%s%.6s",sep,&mix->part->boot.dhead.disc_id);
-	sep = " + ";
-    }
-    
-    wd_header_t dhead;
-    header_setup(&dhead,modify_id,iobuf);
-
-
-    //----- setup output file
-    
-    ccp destfile = IsDirectory(opt_dest,true) ? "a.wdf" : "";
-    const enumOFT oft = CalcOFT(output_file_type,opt_dest,destfile,OFT__DEFAULT);
-    SuperFile_t fo;
-    InitializeSF(&fo);
-    fo.f.create_directory = opt_mkdir;
-    GenImageFileName(&fo.f,opt_dest,destfile,oft);
-    SetupIOD(&fo,oft,oft);
-
-    if ( oft == OFT_WBFS )
-	return ERROR0(ERR_CANT_CREATE,
-		"Output to WBFS files not supported yet.");
-
-    if ( testmode || verbose >= 0 )
-	printf("\n%sreate [%.6s] %s:%s\n  (%s)\n\n",
-		testmode ? "WOULD c" : "C",
-		&dhead.disc_id, oft_name[oft],
-		fo.f.fname, dhead.disc_title );
-
-
-    //--- built memory map
-
-    MemMap_t mm;
-    InitializeMemMap(&mm);
-
-    for ( mix = mixtab; mix < end_mix; mix++ )
-    {
-	u64 off  = mix->first_sector * (u64)WII_SECTOR_SIZE;
-	u64 size = mix->a1size  * (u64)WII_SECTOR_SIZE;
-	MemMapItem_t * item = InsertMemMap(&mm,off,size);
-	DASSERT(item);
-	item->index = mix - mixtab;
-	snprintf(item->info,sizeof(item->info),
-		    "partition #%-2u %s", (int)(mix-mixtab),
-		    wd_print_part_name(0,0,mix->ptype,WD_PNAME_COLUMN_9) );
-
-	if ( mix->a2off )
-	{
-	    off += mix->a2off * (u64)WII_SECTOR_SIZE;
-	    size = mix->a2size  * (u64)WII_SECTOR_SIZE;
-	    item = InsertMemMap(&mm,off,size);
-	    DASSERT(item);
-	    item->index = mix - mixtab | 0x80;
-	    snprintf(item->info,sizeof(item->info),
-			"partition #%-2u %s+", (int)(mix-mixtab),
-			wd_print_part_name(0,0,mix->ptype,WD_PNAME_COLUMN_9) );
-	}
-    }
-
-    if (logging)
-    {
-	printf("Parition layout of new mixed disc:\n\n");
-	PrintMemMap(&mm,stdout,3);
-	putchar('\n');
-    }
-
-    //----- execute
-
-    enumError err = ERR_OK;
-
-    if (!testmode)
-    {
-	//--- open file
-	
-	err = CreateFile( &fo.f, 0, IOM_IS_IMAGE,
-				used_options & OB_OVERWRITE ? 1 : 0 );
-	if (err)
-	    goto abort;
-
-	if (opt_split)
-	    SetupSplitFile(&fo.f,oft,opt_split_size);
-
-	err = SetupWriteSF(&fo,oft);
-	if (err)
-	    goto abort;
-
-	err = SetMinSizeSF(&fo, WII_SECTORS_SINGLE_LAYER * (u64)WII_SECTOR_SIZE );
-	if (err)
-	    goto abort;
-
-
-	//--- write disc header
-	
-	err = WriteSF(&fo,0,&dhead,sizeof(dhead));
-	if (err)
-	    goto abort;
-
-
-	//--- write partition tables
-
-	wd_ptab_t ptab;
-	memset(&ptab,0,sizeof(ptab));
-	{
-	    wd_ptab_info_t  * info  = ptab.info;
-	    wd_ptab_entry_t * entry = ptab.entry;
-	    u32 off4 = (ccp)entry - (ccp)info + WII_PTAB_REF_OFF >> 2;
-
-	    int it;
-	    for ( it = 0; it < WII_MAX_PTAB; it++, info++ )
-	    {
-		int n_part = 0;
-		for ( mix = mixtab; mix < end_mix; mix++ )
-		{
-		    if ( mix->ptab != it )
-			continue;
-
-		    n_part++;
-		    entry->off4  = htonl(mix->first_sector*WII_SECTOR_SIZE4);
-		    entry->ptype = htonl(mix->ptype);
-		    entry++;
-		}
-
-		if (n_part)
-		{
-		    info->n_part = htonl(n_part);
-		    info->off4   = htonl(off4);
-		    off4 += n_part * sizeof(*entry) >> 2;
-		}
-	    }
-	}
-
-	err = WriteSF(&fo,WII_PTAB_REF_OFF,&ptab,sizeof(ptab));
-	if (err)
-	    goto abort;
-	
-
-	//--- write region settings
-
-	wd_region_t reg;
-	memset(&reg,0,sizeof(reg));
-	reg.region = htonl( opt_region < REGION__AUTO
-				? opt_region
-				: GetRegionInfo(dhead.region_code)->reg );
-
-	err = WriteSF(&fo,WII_REGION_OFF,&reg,sizeof(reg));
-	if (err)
-	    goto abort;
-
-
-	//--- write magic2
-
-	u32 magic2 = htonl(WII_MAGIC2);
-	err = WriteSF(&fo,WII_MAGIC2_OFF,&magic2,sizeof(magic2));
-	if (err)
-	    goto abort;
-
-
-	//--- copy partitions
-
-	int mi;
-	for ( mi = 0; mi < mm.used; mi++ )
-	{
-	    MemMapItem_t * item = mm.field[mi];
-	    DASSERT(item);
-	    u32 index = item->index & 0x7f;
-	    DASSERT( index < n_mix );
-	    mix = mixtab + index;
-	    u64 src_off = ( mix->src_sector
-				+ (item->index & 0x80 ? mix->a2off : 0 ))
-			* (u64)WII_SECTOR_SIZE;
-	    if ( verbose > 0 )
-		printf(" - copy P.%-2u %9llx -> %9llx, size=%9llx\n",
-		    index, src_off, (u64)item->off, (u64)item->size );
-
-	    err = CopyRawData2(mix->sf,src_off,&fo,item->off,item->size);
-	    if (err)
-		goto abort;
-	}
-    }
-
- abort:
-    if (err)
-	RemoveSF(&fo);
-
-    //--- clean up
-
-    ResetMemMap(&mm);
-
-    for ( mix = mixtab; mix < end_mix; mix++ )
-	if (mix->close_sf)
-	    FreeSF(mix->sf);
-
-    return ResetSF(&fo,0);
-}
-
-//
-///////////////////////////////////////////////////////////////////////////////
 ///////////////                   check options                 ///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -2682,7 +1956,7 @@ enumError CheckOptions ( int argc, char ** argv, bool is_env )
 	case GO_ESC:		err += ScanEscapeChar(optarg) < 0; break;
 	case GO_IO:		ScanIOMode(optarg); break;
 
-	case GO_TITLES:		AtFileHelper(optarg,true,AddTitleFile); break;
+	case GO_TITLES:		AtFileHelper(optarg,0,0,AddTitleFile); break;
 	case GO_UTF_8:		use_utf8 = true; break;
 	case GO_NO_UTF_8:	use_utf8 = false; break;
 	case GO_LANG:		lang_info = optarg; break;
@@ -2692,15 +1966,15 @@ enumError CheckOptions ( int argc, char ** argv, bool is_env )
 	case GO_SOURCE:		AppendStringField(&source_list,optarg,false); break;
 	case GO_RECURSE:	AppendStringField(&recurse_list,optarg,false); break;
 
-	case GO_INCLUDE:	AtFileHelper(optarg,0,AddIncludeID); break;
-	case GO_INCLUDE_PATH:	AtFileHelper(optarg,0,AddIncludePath); break;
-	case GO_EXCLUDE:	AtFileHelper(optarg,0,AddExcludeID); break;
-	case GO_EXCLUDE_PATH:	AtFileHelper(optarg,0,AddExcludePath); break;
+	case GO_INCLUDE:	AtFileHelper(optarg,0,0,AddIncludeID); break;
+	case GO_INCLUDE_PATH:	AtFileHelper(optarg,0,0,AddIncludePath); break;
+	case GO_EXCLUDE:	AtFileHelper(optarg,0,0,AddExcludeID); break;
+	case GO_EXCLUDE_PATH:	AtFileHelper(optarg,0,0,AddExcludePath); break;
 	case GO_IGNORE:		ignore_count++; break;
 	case GO_IGNORE_FST:	allow_fst = false; break;
 
 	case GO_PSEL:		err += ScanOptPartSelector(optarg); break;
-	case GO_RAW:		part_selector = WD_SEL_WHOLE_DISC; break;
+	case GO_RAW:		part_selector.whole_disc = true; break;
 	case GO_SNEEK:		SetupSneekMode(); break;
 	case GO_HOOK:		opt_hook = 1; break;
 	case GO_ENC:		err += ScanOptEncoding(optarg); break;
@@ -2709,6 +1983,10 @@ enumError CheckOptions ( int argc, char ** argv, bool is_env )
 	case GO_ID:		err += ScanOptId(optarg); break;
 	case GO_NAME:		err += ScanOptName(optarg); break;
 	case GO_MODIFY:		err += ScanOptModify(optarg); break;
+	case GO_FILES:		err += ScanFiles(optarg,PAT_FILES); break;
+	case GO_RM_FILES:	err += ScanFiles(optarg,PAT_RM_FILES); break;
+	case GO_ZERO_FILES:	err += ScanFiles(optarg,PAT_ZERO_FILES); break;
+	case GO_IGNORE_FILES:	err += ScanFiles(optarg,PAT_IGNORE_FILES); break;
 	case GO_OVERLAY:	break;
 	case GO_DEST:		opt_dest = optarg; break;
 	case GO_DEST2:		opt_dest = optarg; opt_mkdir = true; break;
@@ -2756,11 +2034,6 @@ enumError CheckOptions ( int argc, char ** argv, bool is_env )
 		    prefix_mode = new_pmode;
 	    }
 	    break;
-
-	case GO_FILES:
-	    if (AtFileHelper(optarg,PAT_OPT_FILES,AddFilePattern))
-		err++;
-	break;
 
 	case GO_TIME:
 	    if ( ScanAndSetPrintTimeMode(optarg) == PT__ERROR )
@@ -2839,8 +2112,12 @@ enumError CheckCommand ( int argc, char ** argv )
     argc -= optind+1;
     argv += optind+1;
 
-    while ( argc-- > 0 )
-	AtFileHelper(*argv++,false,AddParam);
+    if ( cmd_ct->id == CMD_MIX || cmd_ct->id == CMD_TEST )
+	while ( argc-- > 0 )
+	    AddParam(*argv++,false);
+    else
+	while ( argc-- > 0 )
+	    AtFileHelper(*argv++,false,true,AddParam);
 
     switch ((enumCommands)cmd_ct->id)
     {
@@ -2922,7 +2199,7 @@ int main ( int argc, char ** argv )
     if (err)
 	hint_exit(err,0);
 
-    SetupFilePattern(file_pattern+PAT_OPT_FILES);
+    SetupFilePattern(file_pattern+PAT_FILES);
     err = CheckCommand(argc,argv);
 
     if (SIGINT_level)

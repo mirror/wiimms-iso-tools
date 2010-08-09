@@ -58,13 +58,9 @@
 time_t opt_set_time	= 0;
 int  print_sections	= 0;
 int  long_count		= 0;
-int  testmode		= 0;
-ccp  opt_dest		= 0;
-bool opt_mkdir		= false;
 u64  opt_size		= 0;
 u32  opt_hss		= 0;
 u32  opt_wss		= 0;
-int  opt_limit		= -1;
 
 enumIOMode io_mode	= 0;
 
@@ -1716,7 +1712,7 @@ enumError exec_add ( SuperFile_t * sf, Iterator_t * it )
 	sf->show_msec		= verbose > 2;
 	sf->f.read_behind_eof	= verbose > 1 ? 1 : 2;
 
-	if ( AddWDisc(it->wbfs,sf,part_selector) > ERR_WARNING )
+	if ( AddWDisc(it->wbfs,sf,&part_selector) > ERR_WARNING )
 	    return ERROR0(ERR_WBFS,"Error while creating disc [%s] @%s\n",
 			sf->f.id6, it->wbfs->sf->f.fname );
     }
@@ -2645,7 +2641,7 @@ enumError cmd_verify()
 	return err;
 
     if (!n_param)
-	AddParam("+",0);
+	AddParam("+",false);
 
     CheckParamID6( ( used_options & OB_UNIQUE ) != 0, true );
     if ( testmode > 1 )
@@ -2890,7 +2886,7 @@ enumError cmd_filetype()
 		if (sf.f.id6[0])
 		{
 		    region = GetRegionInfo(sf.f.id6[3])->name4;
-		    u32 count = CountUsedIsoBlocksSF(&sf,part_selector);
+		    u32 count = CountUsedIsoBlocksSF(&sf,&part_selector);
 		    if (count)
 			snprintf(size,sizeof(size),"%4u",
 				(count+WII_SECTORS_PER_MIB/2)/WII_SECTORS_PER_MIB);
@@ -2959,7 +2955,7 @@ enumError CheckOptions ( int argc, char ** argv, bool is_env )
 	case GO_ESC:		err += ScanEscapeChar(optarg) < 0; break;
 	case GO_IO:		ScanIOMode(optarg); break;
 
-	case GO_TITLES:		AtFileHelper(optarg,true,AddTitleFile); break;
+	case GO_TITLES:		AtFileHelper(optarg,0,0,AddTitleFile); break;
 	case GO_UTF_8:		use_utf8 = true; break;
 	case GO_NO_UTF_8:	use_utf8 = false; break;
 	case GO_LANG:		lang_info = optarg; break;
@@ -2967,15 +2963,15 @@ enumError CheckOptions ( int argc, char ** argv, bool is_env )
 	case GO_TEST:		testmode++; break;
 
 	case GO_ALL:		opt_all++; break;
-	case GO_PART:		AtFileHelper(optarg,false,AddPartition); break;
+	case GO_PART:		AtFileHelper(optarg,0,0,AddPartition); break;
 	case GO_RECURSE:	AppendStringField(&recurse_list,optarg,false); break;
 	case GO_PSEL:		err += ScanOptPartSelector(optarg); break;
-	case GO_RAW:		part_selector = WD_SEL_WHOLE_DISC; break;
+	case GO_RAW:		part_selector.whole_disc = true; break;
 
-	case GO_INCLUDE:	AtFileHelper(optarg,0,AddIncludeID); break;
-	case GO_INCLUDE_PATH:	AtFileHelper(optarg,0,AddIncludePath); break;
-	case GO_EXCLUDE:	AtFileHelper(optarg,0,AddExcludeID); break;
-	case GO_EXCLUDE_PATH:	AtFileHelper(optarg,0,AddExcludePath); break;
+	case GO_INCLUDE:	AtFileHelper(optarg,0,0,AddIncludeID); break;
+	case GO_INCLUDE_PATH:	AtFileHelper(optarg,0,0,AddIncludePath); break;
+	case GO_EXCLUDE:	AtFileHelper(optarg,0,0,AddExcludeID); break;
+	case GO_EXCLUDE_PATH:	AtFileHelper(optarg,0,0,AddExcludePath); break;
 	case GO_IGNORE:		break;
 	case GO_IGNORE_FST:	allow_fst = false; break;
 
@@ -2989,6 +2985,9 @@ enumError CheckOptions ( int argc, char ** argv, bool is_env )
 	case GO_ID:		err += ScanOptId(optarg); break;
 	case GO_NAME:		err += ScanOptName(optarg); break;
 	case GO_MODIFY:		err += ScanOptModify(optarg); break;
+	case GO_RM_FILES:	err += ScanFiles(optarg,PAT_RM_FILES); break;
+	case GO_ZERO_FILES:	err += ScanFiles(optarg,PAT_ZERO_FILES); break;
+	case GO_IGNORE_FILES:	err += ScanFiles(optarg,PAT_IGNORE_FILES); break;
 	case GO_SPLIT:		opt_split++; break;
 	case GO_SPLIT_SIZE:	err += ScanOptSplitSize(optarg); break;
 	case GO_TRUNC:		opt_truncate++; break;
@@ -3155,7 +3154,7 @@ enumError CheckCommand ( int argc, char ** argv )
     argv += optind+1;
 
     while ( argc-- > 0 )
-	AtFileHelper(*argv++,false,AddParam);
+	AtFileHelper(*argv++,false,true,AddParam);
 
     switch ((enumCommands)cmd_ct->id)
     {

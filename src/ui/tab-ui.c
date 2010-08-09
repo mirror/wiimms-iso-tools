@@ -311,7 +311,10 @@ info_t info_tab[] =
 
   { T_DEF_CMD,	"MIX",		"MIX",
 		"wit MIX SOURCE... --dest|--DEST outfile\n"
-		"  where SOURCE := infile ['select' ptype] ['as' [ptab '.'] [ptype]]",
+		"  where SOURCE    = infile [QUALIFIER]...\n"
+		"  where QUALIFIER = 'select' part_type\n"
+		"                  | 'as' [part_table '.'] [part_type]]\n"
+		"                  | 'ignore' ruleset\n",
 		"Mix the partitions from different sources into one new Wii disc." },
 
   //
@@ -440,25 +443,24 @@ info_t info_tab[] =
 		"list",
 		"This option set the scrubbing mode and defines,"
 		" which disc partitions are handled."
-		" The parameter is a comma separated list of keywords." \
-		" The keywords are divided in three functional groups:" \
+		" It expects a comma separated list of keywords, numbers and names;"
+		" all together called parameter. All parameter are case insensitive"
+		" and non ambiguous abbreviations of keyword are allowed."
 		"\n"
-		"The first group selects partition types."
-		" The names @DATA@, @UDDATE@, @CHANNEL@, @ID@"
-		" and the numbers between @0@ and @50@ for partition type are allowed."
-		" @'ID'@ is a placeholder for all ID types like the VC channels of SSBB."
-		" The prefix @'-'@ means: disable this partition type."
-		" The special keyword @'NONE'@ diables all partition types."
+		"Each parameter becomes a rule and each rule is appended to a rule list."
+		" Rules prefixed by a minus sign are DENY rules."
+		" Rules prefixed by a plus sign or without a prefix are ALLOW rules."
+		" Each partition is compared with each rule until a rule matches the partition."
+		" If a match it found, the partition is enabled for a ALLOW rule"
+		" or disabled for a DENY rule."
 		"\n"
-		"The second group selects partition tables."
-		" The names @PTAB0..PTAB3@ (and @T0..T3@) are allowed."
-		" The prefix @'-'@ means: Disable all partitions of that partition table."
+		"The allowed keywords are: @DATA@, @UPDATE@, @CHANNEL@,"
+		" @PTAB0@ .. @PTAB3@, @ID@, @ALL@, @WHOLE@ and @RAW@."
+		" Additional the following input formats are accepted:"
+		" @ptype@, @#index@, @#<index@, @#<=index@, @#>index@, @#>=index@"
+		" and @#tab_index.part_index@."
 		"\n"
-		"The third group are additional flags:"
-		" @'WHOLE'@ means that the whole partition data is used."
-		" @'RAW'@ means that the whole disc is selected."
-		"\n"
-		"The special keyword @'ALL'@ resets all settings to the default." },
+		"See the online docu for more details." },
 
   { T_OPT_C,	"RAW",		"raw",
 		0, "Abbreviation of {--psel RAW}." },
@@ -514,6 +516,30 @@ info_t info_tab[] =
 		"This $patching$ option defines the system version (IOS to load)"
 		" within TMD. The format is @'HIGH:LOW'@ or @'HIGH-LOW'@ or @'LOW'@."
 		" If only @LOW@ is set than @HIGH@ is assumed as 1 (standard IOS)." },
+
+  { T_OPT_CP,	"RM_FILES",	"rm-files",
+		"ruleset",
+		"This patching option defines filter rules to remove real files"
+		" and directories from the FST of the DATA partition."
+		" $Fake signing$ of the TMD is necessary."
+		" @--rm-files@ is processed before {--zero-files} and {--ignore-files}."},
+
+  { T_OPT_CP,	"ZERO_FILES",	"zero-files",
+		"ruleset",
+		"This patching option defines filter rules to zero (set size to zero)"
+		" real files of the FST of the DATA partition."
+		" $Fake signing$ of the TMD is necessary."
+		" @--zero-files@ is processed after {--rm-files} and before {--ignore-files}."},
+
+  { T_OPT_CP,	"IGNORE_FILES",	"ignore-files",
+		"ruleset",
+		"This option defines filter rules to ignore"
+		" real files of the FST of the DATA partition."
+		" $Fake signing$ is not necessary, but the partition becomes invalid,"
+		" because the content of some files is not copied."
+		" If such file is accessed the Wii will halt immediately,"
+		" because the verification of the check sum calculation fails."
+		" @--ignore-files@ is processed after {--rm-files} and {--zero-files}." },
 
   { T_OPT_C,	"OVERLAY",	"overlay",
 		0,
@@ -581,7 +607,7 @@ info_t info_tab[] =
 		"If the input file size is not known (e.g. reading from pipe),"
 		" its size is assumed as @12 GiB@."
 		"\n"
-		" @--chz@ is a shortcut for @--chunk-size@." },
+		"@--chz@ is a shortcut for @--chunk-size@." },
 
   { T_OPT_CP,	"MAX_CHUNKS",	"max-chunks|maxchunks|mch",
 		"n",
@@ -591,7 +617,7 @@ info_t info_tab[] =
 		" If this value is set than the automatic calculation "
 		" of {--chunk-size} will be modified too."
 		"\n"
-		" @--mch@ is a shortcut for @--max-chunks@." },
+		"@--mch@ is a shortcut for @--max-chunks@." },
 
   { T_OPT_C,	"PRESERVE",	"p|preserve",
 		0, "Preserve file times (atime+mtime)." },
@@ -803,6 +829,9 @@ info_t info_tab[] =
   { T_COPT,	"MODIFY",	0,0,0 },
   { T_COPT,	"REGION",	0,0,0 },
   { T_COPT,	"IOS",		0,0,0 },
+  { T_COPT,	"RM_FILES",	0,0,0 },
+  { T_COPT,	"ZERO_FILES",	0,0,0 },
+  { T_COPT,	"IGNORE_FILES",	0,0,0 },
   { T_COPT,	"ENC",		0,0,0 },
 
   //---------- wit GROUP SPLIT_CHUNK ----------
@@ -1534,15 +1563,6 @@ info_t info_tab[] =
   { H_OPT_G,	"HOOK",		"hook",
 		0, 0 /* copy of wit */ },
 
-  { T_OPT_CP,	"ENC",		"enc",
-		0, 0 /* copy of wit */ },
-
-  { T_OPT_CP,	"REGION",	"region",
-		0, 0 /* copy of wit */ },
-
-  { T_OPT_CP,	"IOS",		"ios",
-		0, 0 /* copy of wit */ },
-
   { T_OPT_CP,	"ID",		"id",
 		0, 0 /* copy of wit */ },
 
@@ -1552,9 +1572,23 @@ info_t info_tab[] =
   { T_OPT_CP,	"MODIFY",	"modify",
 		0, 0 /* copy of wit */ },
 
-  { T_OPT_C,	"INODE",	"inode",
-		0,
-		"Print information for all inodes (invalid discs too)." },
+  { T_OPT_CP,	"REGION",	"region",
+		0, 0 /* copy of wit */ },
+
+  { T_OPT_CP,	"IOS",		"ios",
+		0, 0 /* copy of wit */ },
+
+  { T_OPT_CP,	"RM_FILES",	"rm-files",
+		0, 0 /* copy of wit */ },
+
+  { T_OPT_CP,	"ZERO_FILES",	"zero-files",
+		0, 0 /* copy of wit */ },
+
+  { T_OPT_CP,	"IGNORE_FILES",	"ignore-files",
+		0, 0 /* copy of wit */ },
+
+  { T_OPT_CP,	"ENC",		"enc",
+		0, 0 /* copy of wit */ },
 
   { T_OPT_CP,	"DEST",		"d|dest",
 		0, 0 /* copy of wit */ },
@@ -1669,6 +1703,10 @@ info_t info_tab[] =
 
   { T_OPT_CM,	"LONG",		"l|long",
 		0, 0 /* copy of wit */ },
+
+  { T_OPT_C,	"INODE",	"inode",
+		0,
+		"Print information for all inodes (invalid discs too)." },
 
   { T_OPT_C,	"MIXED",	"M|mixed",
 		0, "Print disc infos of all WBFS in one combined table." },
@@ -1787,6 +1825,9 @@ info_t info_tab[] =
   { T_COPT,	"MODIFY",	0,0,0 },
   { T_COPT,	"REGION",	0,0,0 },
   { T_COPT,	"IOS",		0,0,0 },
+  { T_COPT,	"RM_FILES",	0,0,0 },
+  { T_COPT,	"ZERO_FILES",	0,0,0 },
+  { T_COPT,	"IGNORE_FILES",	0,0,0 },
   { T_COPT,	"ENC",		0,0,0 },
 
   //---------- wwt GROUP SPLIT_CHUNK ----------

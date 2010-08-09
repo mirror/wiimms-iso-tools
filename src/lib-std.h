@@ -899,6 +899,7 @@ typedef struct ParamList_t
 	char * arg;
 	char id6[7];
 	char selector[7];
+	bool is_expanded;
 	int count;
 	struct ParamList_t * next;
 
@@ -910,10 +911,18 @@ extern ParamList_t ** append_param;
 
 ///////////////////////////////////////////////////////////////////////////////
 
-int AtFileHelper ( ccp arg, int mode, int (*func)(ccp arg,int mode) );
+int AtFileHelper
+(
+    ccp arg,
+    int mode,
+    int mode_expand,
+    int (*func)(ccp arg,int mode)
+);
 
 ParamList_t * AppendParam ( ccp arg, int is_temp );
 int AddParam ( ccp arg, int is_temp );
+void AtExpandParam ( ParamList_t ** param );
+void AtExpandAllParam ( ParamList_t ** first_param );
 
 //
 ///////////////////////////////////////////////////////////////////////////////
@@ -1075,6 +1084,7 @@ typedef struct CommandTab_t
 
 typedef s64 (*CommandCallbackFunc)
 (
+    void		* param,	// NULL or user defined parameter
     ccp			name,		// normalized name of option
     const CommandTab_t	* cmd_tab,	// valid pointer to command table
     const CommandTab_t	* cmd,		// valid pointer to found command
@@ -1099,28 +1109,42 @@ s64 ScanCommandList
     s64			result		// start value for result
 );
 
+enumError ScanCommandListFunc
+(
+    ccp			arg,		// argument to scan
+    const CommandTab_t	* cmd_tab,	// valid pointer to command table
+    CommandCallbackFunc	func,		// calculation function
+    void		* param,	// used define parameter for 'func'
+    bool		allow_prefix	// allow '-' | '+' | '=' as prefix
+);
+
 s64 ScanCommandListMask
 (
     ccp			arg,		// argument to scan
     const CommandTab_t	* cmd_tab	// valid pointer to command table
 );
 
+//
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////                     vars                        ///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
 extern enumProgID prog_id;
-extern u32 revision_id;
-extern ccp progname;
-extern ccp search_path[];
-extern ccp lang_info;
+extern u32  revision_id;
+extern ccp  progname;
+extern ccp  search_path[];
+extern ccp  lang_info;
 extern volatile int SIGINT_level;
 extern volatile int verbose;
 extern volatile int logging;
-extern int progress;
+extern int  progress;
 extern bool use_utf8;
 extern char escape_char;
-extern ccp opt_clone;
+extern ccp  opt_clone;
+extern int  testmode;
+extern ccp  opt_dest;
+extern bool opt_mkdir;
+extern int  opt_limit;
 
 extern       char iobuf [0x400000];	// global io buffer
 extern const char zerobuf[0x40000];	// global zero buffer

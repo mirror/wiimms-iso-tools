@@ -1,3 +1,4 @@
+../src/wit-mix.c ;
 ../src/wit.c ;
 ../src/iso-interface.[ch] ;
 ../src/wwt.c ;
@@ -6,3 +7,4 @@
 @+doc.edit-list
 -y 2000 ../src/wit.c ;
 -y    1 ../src/wwt.c ;
+-y  470 ../src/wit-mix.c ;

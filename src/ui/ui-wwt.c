@@ -68,19 +68,20 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
     {	OPT_PSEL, 0, "psel",
 	"list",
 	"This option set the scrubbing mode and defines, which disc partitions"
-	" are handled. The parameter is a comma separated list of keywords."
-	" The keywords are divided in three functional groups:\n"
-	"The first group selects partition types. The names DATA, UDDATE,"
-	" CHANNEL, ID and the numbers between 0 and 50 for partition type are"
-	" allowed. 'ID' is a placeholder for all ID types like the VC channels"
-	" of SSBB. The prefix '-' means: disable this partition type. The"
-	" special keyword 'NONE' diables all partition types.\n"
-	"The second group selects partition tables. The names PTAB0..PTAB3"
-	" (and T0..T3) are allowed. The prefix '-' means: Disable all"
-	" partitions of that partition table.\n"
-	"The third group are additional flags: 'WHOLE' means that the whole"
-	" partition data is used. 'RAW' means that the whole disc is selected.\n"
-	"The special keyword 'ALL' resets all settings to the default."
+	" are handled. It expects a comma separated list of keywords, numbers"
+	" and names; all together called parameter. All parameter are case"
+	" insensitive and non ambiguous abbreviations of keyword are allowed.\n"
+	"Each parameter becomes a rule and each rule is appended to a rule"
+	" list. Rules prefixed by a minus sign are DENY rules. Rules prefixed"
+	" by a plus sign or without a prefix are ALLOW rules. Each partition"
+	" is compared with each rule until a rule matches the partition. If a"
+	" match it found, the partition is enabled for a ALLOW rule or"
+	" disabled for a DENY rule.\n"
+	"The allowed keywords are: DATA, UPDATE, CHANNEL, PTAB0 .. PTAB3, ID,"
+	" ALL, WHOLE and RAW. Additional the following input formats are"
+	" accepted: ptype, #index, #<index, #<=index, #>index, #>=index and"
+	" #tab_index.part_index.\n"
+	"See the online docu for more details."
     },
 
     {	OPT_RAW, 0, "raw",
@@ -123,27 +124,6 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 	"Disable composing and ignore FST directories as input."
     },
 
-    {	OPT_ENC, 0, "enc",
-	"encoding",
-	"Define the encoding mode. The mode is one of NONE, HASHONLY, DECRYPT,"
-	" ENCRYPT, SIGN or AUTO. The case of the keywords is ignored. The"
-	" default mode is 'AUTO'."
-    },
-
-    {	OPT_REGION, 0, "region",
-	"region",
-	"This patching option defines the region of the disc.  The region is"
-	" one of JAPAN, USA, EUROPE, KOREA, FILE or AUTO (default). The case"
-	" of the keywords is ignored. Unsigned numbers are also accepted."
-    },
-
-    {	OPT_IOS, 0, "ios",
-	"ios",
-	"This patching option defines the system version (IOS to load) within"
-	" TMD. The format is 'HIGH:LOW' or 'HIGH-LOW' or 'LOW'. If only LOW is"
-	" set than HIGH is assumed as 1 (standard IOS)."
-    },
-
     {	OPT_ID, 0, "id",
 	"id",
 	"This patching option changes the ID of the disc to the given"
@@ -171,9 +151,51 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 	" others."
     },
 
-    {	OPT_INODE, 0, "inode",
-	0,
-	"Print information for all inodes (invalid discs too)."
+    {	OPT_REGION, 0, "region",
+	"region",
+	"This patching option defines the region of the disc.  The region is"
+	" one of JAPAN, USA, EUROPE, KOREA, FILE or AUTO (default). The case"
+	" of the keywords is ignored. Unsigned numbers are also accepted."
+    },
+
+    {	OPT_IOS, 0, "ios",
+	"ios",
+	"This patching option defines the system version (IOS to load) within"
+	" TMD. The format is 'HIGH:LOW' or 'HIGH-LOW' or 'LOW'. If only LOW is"
+	" set than HIGH is assumed as 1 (standard IOS)."
+    },
+
+    {	OPT_RM_FILES, 0, "rm-files",
+	"ruleset",
+	"This patching option defines filter rules to remove real files and"
+	" directories from the FST of the DATA partition. Fake signing of the"
+	" TMD is necessary. --rm-files is processed before --zero-files and"
+	" --ignore-files."
+    },
+
+    {	OPT_ZERO_FILES, 0, "zero-files",
+	"ruleset",
+	"This patching option defines filter rules to zero (set size to zero)"
+	" real files of the FST of the DATA partition. Fake signing of the TMD"
+	" is necessary. --zero-files is processed after --rm-files and before"
+	" --ignore-files."
+    },
+
+    {	OPT_IGNORE_FILES, 0, "ignore-files",
+	"ruleset",
+	"This option defines filter rules to ignore real files of the FST of"
+	" the DATA partition. Fake signing is not necessary, but the partition"
+	" becomes invalid, because the content of some files is not copied. If"
+	" such file is accessed the Wii will halt immediately, because the"
+	" verification of the check sum calculation fails. --ignore-files is"
+	" processed after --rm-files and --zero-files."
+    },
+
+    {	OPT_ENC, 0, "enc",
+	"encoding",
+	"Define the encoding mode. The mode is one of NONE, HASHONLY, DECRYPT,"
+	" ENCRYPT, SIGN or AUTO. The case of the keywords is ignored. The"
+	" default mode is 'AUTO'."
     },
 
     {	OPT_DEST, 'd', "dest",
@@ -239,7 +261,7 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 	" changing.\n"
 	"If the input file size is not known (e.g. reading from pipe), its"
 	" size is assumed as 12 GiB.\n"
-	" --chz is a shortcut for --chunk-size."
+	"--chz is a shortcut for --chunk-size."
     },
 
     {	OPT_MAX_CHUNKS, 0, "max-chunks",
@@ -248,7 +270,7 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 	" default value is 8192 for '--chunk-mode ISO' and 32760 (maximal"
 	" value) for all other modes. If this value is set than the automatic"
 	" calculation  of --chunk-size will be modified too.\n"
-	" --mch is a shortcut for --max-chunks."
+	"--mch is a shortcut for --max-chunks."
     },
 
     {	OPT_SIZE, 's', "size",
@@ -387,6 +409,11 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 	"Print in long format. Multiple usage possible."
     },
 
+    {	OPT_INODE, 0, "inode",
+	0,
+	"Print information for all inodes (invalid discs too)."
+    },
+
     {	OPT_MIXED, 'M', "mixed",
 	0,
 	"Print disc infos of all WBFS in one combined table."
@@ -420,7 +447,7 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 	"Limit the output to NUM messages."
     },
 
-    {0,0,0,0,0}, // OPT__N_SPECIFIC == 60
+    {0,0,0,0,0}, // OPT__N_SPECIFIC == 63
 
     //----- global options -----
 
@@ -518,7 +545,7 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 	"Force relocation hook while reading iso images."
     },
 
-    {0,0,0,0,0} // OPT__N_TOTAL == 76
+    {0,0,0,0,0} // OPT__N_TOTAL == 79
 
 };
 
@@ -918,13 +945,15 @@ const struct option OptionLong[] =
 	{ "ignore-fst",		0, 0, GO_IGNORE_FST },
 	 { "ignorefst",		0, 0, GO_IGNORE_FST },
 	{ "hook",		0, 0, GO_HOOK },
-	{ "enc",		1, 0, GO_ENC },
-	{ "region",		1, 0, GO_REGION },
-	{ "ios",		1, 0, GO_IOS },
 	{ "id",			1, 0, GO_ID },
 	{ "name",		1, 0, GO_NAME },
 	{ "modify",		1, 0, GO_MODIFY },
-	{ "inode",		0, 0, GO_INODE },
+	{ "region",		1, 0, GO_REGION },
+	{ "ios",		1, 0, GO_IOS },
+	{ "rm-files",		1, 0, GO_RM_FILES },
+	{ "zero-files",		1, 0, GO_ZERO_FILES },
+	{ "ignore-files",	1, 0, GO_IGNORE_FILES },
+	{ "enc",		1, 0, GO_ENC },
 	{ "dest",		1, 0, 'd' },
 	{ "DEST",		1, 0, 'D' },
 	{ "split",		0, 0, 'z' },
@@ -971,6 +1000,7 @@ const struct option OptionLong[] =
 	{ "set-time",		1, 0, GO_SET_TIME },
 	 { "settime",		1, 0, GO_SET_TIME },
 	{ "long",		0, 0, 'l' },
+	{ "inode",		0, 0, GO_INODE },
 	{ "mixed",		0, 0, 'M' },
 	{ "unique",		0, 0, 'U' },
 	{ "no-header",		0, 0, 'H' },
@@ -1058,32 +1088,35 @@ const u8 OptionIndex[OPT_INDEX_SIZE] =
 	/*88*/	OPT_RAW,
 	/*89*/	OPT_IGNORE_FST,
 	/*8a*/	OPT_HOOK,
-	/*8b*/	OPT_ENC,
-	/*8c*/	OPT_REGION,
-	/*8d*/	OPT_IOS,
-	/*8e*/	OPT_ID,
-	/*8f*/	OPT_NAME,
-	/*90*/	OPT_MODIFY,
-	/*91*/	OPT_INODE,
-	/*92*/	OPT_TRUNC,
-	/*93*/	OPT_CHUNK_MODE,
-	/*94*/	OPT_CHUNK_SIZE,
-	/*95*/	OPT_MAX_CHUNKS,
-	/*96*/	OPT_HSS,
-	/*97*/	OPT_WSS,
-	/*98*/	OPT_RECOVER,
-	/*99*/	OPT_NO_CHECK,
-	/*9a*/	OPT_REPAIR,
-	/*9b*/	OPT_NO_FREE,
-	/*9c*/	OPT_ITIME,
-	/*9d*/	OPT_MTIME,
-	/*9e*/	OPT_CTIME,
-	/*9f*/	OPT_ATIME,
-	/*a0*/	OPT_TIME,
-	/*a1*/	OPT_SET_TIME,
-	/*a2*/	OPT_SECTIONS,
-	/*a3*/	OPT_LIMIT,
-	/*a4*/	 0,0,0,0, 0,0,0,0, 0,0,0,0, 
+	/*8b*/	OPT_ID,
+	/*8c*/	OPT_NAME,
+	/*8d*/	OPT_MODIFY,
+	/*8e*/	OPT_REGION,
+	/*8f*/	OPT_IOS,
+	/*90*/	OPT_RM_FILES,
+	/*91*/	OPT_ZERO_FILES,
+	/*92*/	OPT_IGNORE_FILES,
+	/*93*/	OPT_ENC,
+	/*94*/	OPT_TRUNC,
+	/*95*/	OPT_CHUNK_MODE,
+	/*96*/	OPT_CHUNK_SIZE,
+	/*97*/	OPT_MAX_CHUNKS,
+	/*98*/	OPT_HSS,
+	/*99*/	OPT_WSS,
+	/*9a*/	OPT_RECOVER,
+	/*9b*/	OPT_NO_CHECK,
+	/*9c*/	OPT_REPAIR,
+	/*9d*/	OPT_NO_FREE,
+	/*9e*/	OPT_ITIME,
+	/*9f*/	OPT_MTIME,
+	/*a0*/	OPT_CTIME,
+	/*a1*/	OPT_ATIME,
+	/*a2*/	OPT_TIME,
+	/*a3*/	OPT_SET_TIME,
+	/*a4*/	OPT_INODE,
+	/*a5*/	OPT_SECTIONS,
+	/*a6*/	OPT_LIMIT,
+	/*a7*/	 0,0,0,0, 0,0,0,0, 0,
 };
 
 //
@@ -1664,6 +1697,9 @@ static const InfoOption_t * option_tab_cmd_ADD[] =
 	OptionInfo + OPT_MODIFY,
 	OptionInfo + OPT_REGION,
 	OptionInfo + OPT_IOS,
+	OptionInfo + OPT_RM_FILES,
+	OptionInfo + OPT_ZERO_FILES,
+	OptionInfo + OPT_IGNORE_FILES,
 	OptionInfo + OPT_ENC,
 
 	OptionInfo + OPT_NONE, // separator
@@ -1724,6 +1760,9 @@ static const InfoOption_t * option_tab_cmd_UPDATE[] =
 	OptionInfo + OPT_MODIFY,
 	OptionInfo + OPT_REGION,
 	OptionInfo + OPT_IOS,
+	OptionInfo + OPT_RM_FILES,
+	OptionInfo + OPT_ZERO_FILES,
+	OptionInfo + OPT_IGNORE_FILES,
 	OptionInfo + OPT_ENC,
 
 	OptionInfo + OPT_NONE, // separator
@@ -1782,6 +1821,9 @@ static const InfoOption_t * option_tab_cmd_SYNC[] =
 	OptionInfo + OPT_MODIFY,
 	OptionInfo + OPT_REGION,
 	OptionInfo + OPT_IOS,
+	OptionInfo + OPT_RM_FILES,
+	OptionInfo + OPT_ZERO_FILES,
+	OptionInfo + OPT_IGNORE_FILES,
 	OptionInfo + OPT_ENC,
 
 	OptionInfo + OPT_NONE, // separator
@@ -2370,7 +2412,7 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	"A",
 	"wwt ADD iso|wbfs|dir...",
 	"Add Wii ISO discs to WBFS partitions.",
-	36,
+	39,
 	option_tab_cmd_ADD
     },
 
@@ -2382,7 +2424,7 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	"wwt UPDATE iso|wbfs|dir...",
 	"Add missing Wii ISO discs to WBFS partitions. 'UPDATE' is a shortcut"
 	" for 'ADD --update'.",
-	34,
+	37,
 	option_tab_cmd_UPDATE
     },
 
@@ -2395,7 +2437,7 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	"Modify primary WBFS (REMOVE and ADD) until it contains exactly the"
 	" same discs as all sources together. 'SYNC' is a shortcut for 'ADD"
 	" --sync'.",
-	33,
+	36,
 	option_tab_cmd_SYNC
     },
 

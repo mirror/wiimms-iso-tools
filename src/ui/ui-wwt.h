@@ -55,13 +55,15 @@ typedef enum enumOptions
 	OPT_EXCLUDE_PATH,
 	OPT_IGNORE,
 	OPT_IGNORE_FST,
-	OPT_ENC,
-	OPT_REGION,
-	OPT_IOS,
 	OPT_ID,
 	OPT_NAME,
 	OPT_MODIFY,
-	OPT_INODE,
+	OPT_REGION,
+	OPT_IOS,
+	OPT_RM_FILES,
+	OPT_ZERO_FILES,
+	OPT_IGNORE_FILES,
+	OPT_ENC,
 	OPT_DEST,
 	OPT_DEST2,
 	OPT_SPLIT,
@@ -95,6 +97,7 @@ typedef enum enumOptions
 	OPT_TIME,
 	OPT_SET_TIME,
 	OPT_LONG,
+	OPT_INODE,
 	OPT_MIXED,
 	OPT_UNIQUE,
 	OPT_NO_HEADER,
@@ -102,7 +105,7 @@ typedef enum enumOptions
 	OPT_SORT,
 	OPT_LIMIT,
 
-	OPT__N_SPECIFIC, // == 60 
+	OPT__N_SPECIFIC, // == 63 
 
 	//----- global options -----
 
@@ -123,7 +126,7 @@ typedef enum enumOptions
 	OPT_TEST,
 	OPT_HOOK,
 
-	OPT__N_TOTAL // == 76
+	OPT__N_TOTAL // == 79
 
 } enumOptions;
 
@@ -149,13 +152,15 @@ typedef enum enumOptionsBit
 	OB_EXCLUDE_PATH		= 1llu << OPT_EXCLUDE_PATH,
 	OB_IGNORE		= 1llu << OPT_IGNORE,
 	OB_IGNORE_FST		= 1llu << OPT_IGNORE_FST,
-	OB_ENC			= 1llu << OPT_ENC,
-	OB_REGION		= 1llu << OPT_REGION,
-	OB_IOS			= 1llu << OPT_IOS,
 	OB_ID			= 1llu << OPT_ID,
 	OB_NAME			= 1llu << OPT_NAME,
 	OB_MODIFY		= 1llu << OPT_MODIFY,
-	OB_INODE		= 1llu << OPT_INODE,
+	OB_REGION		= 1llu << OPT_REGION,
+	OB_IOS			= 1llu << OPT_IOS,
+	OB_RM_FILES		= 1llu << OPT_RM_FILES,
+	OB_ZERO_FILES		= 1llu << OPT_ZERO_FILES,
+	OB_IGNORE_FILES		= 1llu << OPT_IGNORE_FILES,
+	OB_ENC			= 1llu << OPT_ENC,
 	OB_DEST			= 1llu << OPT_DEST,
 	OB_DEST2		= 1llu << OPT_DEST2,
 	OB_SPLIT		= 1llu << OPT_SPLIT,
@@ -189,6 +194,7 @@ typedef enum enumOptionsBit
 	OB_TIME			= 1llu << OPT_TIME,
 	OB_SET_TIME		= 1llu << OPT_SET_TIME,
 	OB_LONG			= 1llu << OPT_LONG,
+	OB_INODE		= 1llu << OPT_INODE,
 	OB_MIXED		= 1llu << OPT_MIXED,
 	OB_UNIQUE		= 1llu << OPT_UNIQUE,
 	OB_NO_HEADER		= 1llu << OPT_NO_HEADER,
@@ -237,6 +243,9 @@ typedef enum enumOptionsBit
 				| OB_MODIFY
 				| OB_REGION
 				| OB_IOS
+				| OB_RM_FILES
+				| OB_ZERO_FILES
+				| OB_IGNORE_FILES
 				| OB_ENC,
 
 	OB_GRP_SPLIT_CHUNK	= OB_SPLIT
@@ -537,13 +546,15 @@ typedef enum enumGetOpt
 	GO_RAW,
 	GO_IGNORE_FST,
 	GO_HOOK,
-	GO_ENC,
-	GO_REGION,
-	GO_IOS,
 	GO_ID,
 	GO_NAME,
 	GO_MODIFY,
-	GO_INODE,
+	GO_REGION,
+	GO_IOS,
+	GO_RM_FILES,
+	GO_ZERO_FILES,
+	GO_IGNORE_FILES,
+	GO_ENC,
 	GO_TRUNC,
 	GO_CHUNK_MODE,
 	GO_CHUNK_SIZE,
@@ -560,6 +571,7 @@ typedef enum enumGetOpt
 	GO_ATIME,
 	GO_TIME,
 	GO_SET_TIME,
+	GO_INODE,
 	GO_SECTIONS,
 	GO_LIMIT,
 

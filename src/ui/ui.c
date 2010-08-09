@@ -227,8 +227,18 @@ void PutLines
     while ( *text )
     {
 	// skip blank and control
-	while ( *text > 0 && *text <= ' ' )
-	    text++;
+	if ( *text == '\n' )
+	{
+	    // don't skip spaces behind a LF ==> needed for tables
+	    while ( *text > 0 && *text < ' ' )
+		text++;
+	}
+	else
+	{
+	    // but ignore spaces on an automatic line break
+	    while ( *text > 0 && *text <= ' ' )
+		text++;
+	}
 
 	// setup
 	ccp start = text, last_blank = text;

@@ -520,6 +520,18 @@ static enumError ReadDiscWrapper
 
 ///////////////////////////////////////////////////////////////////////////////
 
+int IsFileSelected ( wd_iterator_t *it )
+{
+    DASSERT(it);
+
+    FilePattern_t * pat = it->param;
+    DASSERT(pat);
+
+    return MatchFilePattern(pat,it->fst_name);
+};
+
+///////////////////////////////////////////////////////////////////////////////
+
 wd_disc_t * OpenDiscSF
 (
 	SuperFile_t * sf,	// valid pointer
@@ -571,20 +583,16 @@ wd_disc_t * OpenDiscSF
 
     //----- select partitions
 
-    wd_select(disc,part_selector);
+    wd_select(disc,&part_selector);
 
 
     //----- find data partition
     
-    int ip;
-    wd_part_t * part = 0;
-    for ( ip = 0; ip <= WD_SELI_PART_MAX && !part; ip++ )
-    {
-	part = wd_get_part_by_type(disc,ip,0);
-	if (!part->is_enabled)
-	    part = 0;
-    }
+    wd_part_t * part = wd_get_part_by_type(disc,WD_PART_DATA,0);
+    if ( part && !part->is_enabled )
+	part = 0;
 
+    int ip;
     for ( ip = 0; ip < disc->n_part && !part; ip++ )
     {
 	part = wd_get_part_by_index(disc,ip,0);
@@ -651,6 +659,35 @@ wd_disc_t * OpenDiscSF
 	}
     }
 
+
+    //----- check file pattern
+
+    bool files_dirty = false;
+
+    FilePattern_t * pat = file_pattern + PAT_RM_FILES;
+    if (SetupFilePattern(pat)
+	&& pat->rules.used
+	&& wd_remove_disc_files(disc,IsFileSelected,pat,false) )
+    {
+	files_dirty = true;
+	reloc  = 1;
+    }
+
+    pat = file_pattern + PAT_ZERO_FILES;
+    if (SetupFilePattern(pat)
+	&& pat->rules.used
+	&& wd_zero_disc_files(disc,IsFileSelected,pat,false) )
+    {
+	files_dirty = true;
+	reloc  = 1;
+    }
+
+    if (files_dirty)
+	wd_select_disc_files(disc,0,0);
+
+    
+    //----- reloc?
+
     if (reloc)
     {
      #ifdef TEST // [2do]
@@ -660,7 +697,7 @@ wd_disc_t * OpenDiscSF
 	if ( logging > 0 )
 	    wd_dump_disc_patch(stdout,1,sf->disc1,true,logging>1);
 
-	wd_calc_relocation(disc,!(enc&ENCODE_DECRYPT),true);
+	wd_calc_relocation(disc,!(enc&ENCODE_DECRYPT),true,0);
 	sf->iod.read_func = ReadDiscWrapper;
 	sf->disc2 = wd_open_disc(WrapperReadSF,sf,file_size,sf->f.fname,0);
     }
@@ -669,6 +706,14 @@ wd_disc_t * OpenDiscSF
 	memcpy(sf->f.id6,&sf->disc2->dhead,6);
     else
 	sf->disc2 = wd_dup_disc(sf->disc1);
+
+    pat = file_pattern + PAT_IGNORE_FILES;
+    SetupFilePattern(pat);
+    if (pat->rules.used)
+    {
+	DefineNegatePattern(pat,true);
+	wd_select_disc_files(sf->disc2,IsFileSelected,pat);
+    }
 
     return sf->disc2;
 }
@@ -2140,18 +2185,22 @@ enumOFT GetOFT ( SuperFile_t * sf )
 
 ///////////////////////////////////////////////////////////////////////////////
 
-u32 CountUsedIsoBlocksSF ( SuperFile_t * sf, wd_select_t psel )
+u32 CountUsedIsoBlocksSF ( SuperFile_t * sf, const wd_select_t * psel )
 {
     ASSERT(sf);
 
     u32 count = 0;
-    if ( psel & WD_SEL_WHOLE_DISC )
+    if ( psel && psel->whole_disc )
 	count = sf->file_size * WII_SECTORS_PER_MIB / MiB;
     else
     {
 	wd_disc_t *disc = OpenDiscSF(sf,true,true);
 	if (disc)
-	    count = wd_count_used_disc_blocks_sel(disc,1,psel);
+	{
+	    if ( psel != &part_selector )
+		wd_select(disc,psel);
+	    count = wd_count_used_disc_blocks(disc,1,0);
+	}
     }
     return count;
 }
@@ -2161,23 +2210,32 @@ u32 CountUsedIsoBlocksSF ( SuperFile_t * sf, wd_select_t psel )
 ///////////////                    copy functions               ///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-enumError CopySF ( SuperFile_t * in, SuperFile_t * out, wd_select_t psel )
+enumError CopySF ( SuperFile_t * in, SuperFile_t * out, bool force_raw_mode )
 {
     ASSERT(in);
     ASSERT(out);
     TRACE("---\n");
-    TRACE("+++ CopySF(%d->%d,%llx) +++\n",GetFD(&in->f),GetFD(&out->f),(u64)psel);
+    TRACE("+++ CopySF(%d->%d,raw=%d) +++\n",GetFD(&in->f),GetFD(&out->f),force_raw_mode);
 
     if ( out->iod.oft == OFT_WBFS )
-	return CopyToWBFS(in,out,psel);
+    {
+	wd_select_t select_whole, *select = &part_selector;
+	if (force_raw_mode)
+	{
+	    wd_initialize_select(&select_whole);
+	    select_whole.whole_disc = true;
+	    select = &select_whole;
+	}
+	return CopyToWBFS(in,out,select);
+    }
 
-    if ( ! (psel & WD_SEL_WHOLE_DISC ) )
+    if (!force_raw_mode && !part_selector.whole_disc )
     {
 	wd_disc_t * disc = OpenDiscSF(in,true,false);
 	if (disc)
 	{
 	    MarkMinSizeSF(out,in->file_size);
-	    wd_filter_usage_table_sel(disc,wdisc_usage_tab,psel);
+	    wd_filter_usage_table(disc,wdisc_usage_tab,0);
 
 	    if ( out->iod.oft == OFT_WDF )
 	    {
@@ -2494,10 +2552,10 @@ enumError CopyWBFSDisc ( SuperFile_t * in, SuperFile_t * out )
 
 ///////////////////////////////////////////////////////////////////////////////
 
-enumError CopyToWBFS ( SuperFile_t * in, SuperFile_t * out, wd_select_t psel )
+enumError CopyToWBFS ( SuperFile_t * in, SuperFile_t * out, const wd_select_t * psel )
 {
     TRACE("---\n");
-    TRACE("+++ CopyToWBFS(%d,%d,%llx) +++\n",in->f.fd,out->f.fd,(u64)psel);
+    TRACE("+++ CopyToWBFS(%d,%d) +++\n",in->f.fd,out->f.fd);
 
     if ( !out->wbfs )
 	return ERROR0(ERR_INTERNAL,0);
@@ -2647,7 +2705,7 @@ enumError DiffSF
 	SuperFile_t	* f1,
 	SuperFile_t	* f2,
 	int		long_count,
-	wd_select_t	psel
+	bool		force_raw_mode
 )
 {
     ASSERT(f1);
@@ -2659,7 +2717,7 @@ enumError DiffSF
 
     f1->progress_verb = f2->progress_verb = "compared";
 
-    if ( psel & WD_SEL_WHOLE_DISC )
+    if ( force_raw_mode || part_selector.whole_disc )
 	return DiffRawSF(f1,f2,long_count);
 
     wd_disc_t * disc1 = OpenDiscSF(f1,true,true);
@@ -2667,9 +2725,9 @@ enumError DiffSF
     if ( !disc1 || !disc2 )
 	return ERR_WDISC_NOT_FOUND;
 
-    wd_filter_usage_table_sel(disc1,wdisc_usage_tab, psel);
-    wd_filter_usage_table_sel(disc2,wdisc_usage_tab2,psel);
-    
+    wd_filter_usage_table(disc1,wdisc_usage_tab,0);
+    wd_filter_usage_table(disc2,wdisc_usage_tab2,0);
+
     int idx;
     u64 pr_done = 0, pr_total = 0;
     bool differ = false;
@@ -2848,7 +2906,6 @@ enumError DiffFilesSF
 	SuperFile_t	* f2,
 	int		long_count,
 	FilePattern_t	*pat,
-	wd_select_t	psel,
 	wd_ipm_t	pmode
 )
 {
@@ -2868,9 +2925,6 @@ enumError DiffFilesSF
     if ( !disc1 || !disc2 )
 	return ERR_WDISC_NOT_FOUND;
 
-    wd_select(disc1,psel);
-    wd_select(disc2,psel);
-    
     WiiFst_t fst1, fst2;
     InitializeFST(&fst1);
     InitializeFST(&fst2);

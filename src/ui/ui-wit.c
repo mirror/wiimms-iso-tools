@@ -92,19 +92,20 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
     {	OPT_PSEL, 0, "psel",
 	"list",
 	"This option set the scrubbing mode and defines, which disc partitions"
-	" are handled. The parameter is a comma separated list of keywords."
-	" The keywords are divided in three functional groups:\n"
-	"The first group selects partition types. The names DATA, UDDATE,"
-	" CHANNEL, ID and the numbers between 0 and 50 for partition type are"
-	" allowed. 'ID' is a placeholder for all ID types like the VC channels"
-	" of SSBB. The prefix '-' means: disable this partition type. The"
-	" special keyword 'NONE' diables all partition types.\n"
-	"The second group selects partition tables. The names PTAB0..PTAB3"
-	" (and T0..T3) are allowed. The prefix '-' means: Disable all"
-	" partitions of that partition table.\n"
-	"The third group are additional flags: 'WHOLE' means that the whole"
-	" partition data is used. 'RAW' means that the whole disc is selected.\n"
-	"The special keyword 'ALL' resets all settings to the default."
+	" are handled. It expects a comma separated list of keywords, numbers"
+	" and names; all together called parameter. All parameter are case"
+	" insensitive and non ambiguous abbreviations of keyword are allowed.\n"
+	"Each parameter becomes a rule and each rule is appended to a rule"
+	" list. Rules prefixed by a minus sign are DENY rules. Rules prefixed"
+	" by a plus sign or without a prefix are ALLOW rules. Each partition"
+	" is compared with each rule until a rule matches the partition. If a"
+	" match it found, the partition is enabled for a ALLOW rule or"
+	" disabled for a DENY rule.\n"
+	"The allowed keywords are: DATA, UPDATE, CHANNEL, PTAB0 .. PTAB3, ID,"
+	" ALL, WHOLE and RAW. Additional the following input formats are"
+	" accepted: ptype, #index, #<index, #<=index, #>index, #>=index and"
+	" #tab_index.part_index.\n"
+	"See the online docu for more details."
     },
 
     {	OPT_RAW, 0, "raw",
@@ -163,6 +164,32 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 	"This patching option defines the system version (IOS to load) within"
 	" TMD. The format is 'HIGH:LOW' or 'HIGH-LOW' or 'LOW'. If only LOW is"
 	" set than HIGH is assumed as 1 (standard IOS)."
+    },
+
+    {	OPT_RM_FILES, 0, "rm-files",
+	"ruleset",
+	"This patching option defines filter rules to remove real files and"
+	" directories from the FST of the DATA partition. Fake signing of the"
+	" TMD is necessary. --rm-files is processed before --zero-files and"
+	" --ignore-files."
+    },
+
+    {	OPT_ZERO_FILES, 0, "zero-files",
+	"ruleset",
+	"This patching option defines filter rules to zero (set size to zero)"
+	" real files of the FST of the DATA partition. Fake signing of the TMD"
+	" is necessary. --zero-files is processed after --rm-files and before"
+	" --ignore-files."
+    },
+
+    {	OPT_IGNORE_FILES, 0, "ignore-files",
+	"ruleset",
+	"This option defines filter rules to ignore real files of the FST of"
+	" the DATA partition. Fake signing is not necessary, but the partition"
+	" becomes invalid, because the content of some files is not copied. If"
+	" such file is accessed the Wii will halt immediately, because the"
+	" verification of the check sum calculation fails. --ignore-files is"
+	" processed after --rm-files and --zero-files."
     },
 
     {	OPT_OVERLAY, 0, "overlay",
@@ -239,7 +266,7 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 	" changing.\n"
 	"If the input file size is not known (e.g. reading from pipe), its"
 	" size is assumed as 12 GiB.\n"
-	" --chz is a shortcut for --chunk-size."
+	"--chz is a shortcut for --chunk-size."
     },
 
     {	OPT_MAX_CHUNKS, 0, "max-chunks",
@@ -248,7 +275,7 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 	" default value is 8192 for '--chunk-mode ISO' and 32760 (maximal"
 	" value) for all other modes. If this value is set than the automatic"
 	" calculation  of --chunk-size will be modified too.\n"
-	" --mch is a shortcut for --max-chunks."
+	"--mch is a shortcut for --max-chunks."
     },
 
     {	OPT_PRESERVE, 'p', "preserve",
@@ -387,7 +414,7 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 	"Limit the output to NUM messages."
     },
 
-    {0,0,0,0,0}, // OPT__N_SPECIFIC == 51
+    {0,0,0,0,0}, // OPT__N_SPECIFIC == 54
 
     //----- global options -----
 
@@ -485,7 +512,7 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 	"Force relocation hook while reading iso images."
     },
 
-    {0,0,0,0,0} // OPT__N_TOTAL == 67
+    {0,0,0,0,0} // OPT__N_TOTAL == 70
 
 };
 
@@ -725,6 +752,9 @@ const struct option OptionLong[] =
 	{ "modify",		1, 0, GO_MODIFY },
 	{ "region",		1, 0, GO_REGION },
 	{ "ios",		1, 0, GO_IOS },
+	{ "rm-files",		1, 0, GO_RM_FILES },
+	{ "zero-files",		1, 0, GO_ZERO_FILES },
+	{ "ignore-files",	1, 0, GO_IGNORE_FILES },
 	{ "overlay",		0, 0, GO_OVERLAY },
 	{ "enc",		1, 0, GO_ENC },
 	{ "dest",		1, 0, 'd' },
@@ -847,22 +877,25 @@ const u8 OptionIndex[OPT_INDEX_SIZE] =
 	/*8f*/	OPT_MODIFY,
 	/*90*/	OPT_REGION,
 	/*91*/	OPT_IOS,
-	/*92*/	OPT_OVERLAY,
-	/*93*/	OPT_ENC,
-	/*94*/	OPT_TRUNC,
-	/*95*/	OPT_CHUNK_MODE,
-	/*96*/	OPT_CHUNK_SIZE,
-	/*97*/	OPT_MAX_CHUNKS,
-	/*98*/	OPT_FST,
-	/*99*/	OPT_ITIME,
-	/*9a*/	OPT_MTIME,
-	/*9b*/	OPT_CTIME,
-	/*9c*/	OPT_ATIME,
-	/*9d*/	OPT_TIME,
-	/*9e*/	OPT_SHOW,
-	/*9f*/	OPT_SECTIONS,
-	/*a0*/	OPT_LIMIT,
-	/*a1*/	 0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,
+	/*92*/	OPT_RM_FILES,
+	/*93*/	OPT_ZERO_FILES,
+	/*94*/	OPT_IGNORE_FILES,
+	/*95*/	OPT_OVERLAY,
+	/*96*/	OPT_ENC,
+	/*97*/	OPT_TRUNC,
+	/*98*/	OPT_CHUNK_MODE,
+	/*99*/	OPT_CHUNK_SIZE,
+	/*9a*/	OPT_MAX_CHUNKS,
+	/*9b*/	OPT_FST,
+	/*9c*/	OPT_ITIME,
+	/*9d*/	OPT_MTIME,
+	/*9e*/	OPT_CTIME,
+	/*9f*/	OPT_ATIME,
+	/*a0*/	OPT_TIME,
+	/*a1*/	OPT_SHOW,
+	/*a2*/	OPT_SECTIONS,
+	/*a3*/	OPT_LIMIT,
+	/*a4*/	 0,0,0,0, 0,0,0,0, 0,0,0,0, 
 };
 
 //
@@ -1063,6 +1096,9 @@ static const InfoOption_t * option_tab_cmd_DUMP[] =
 	OptionInfo + OPT_MODIFY,
 	OptionInfo + OPT_REGION,
 	OptionInfo + OPT_IOS,
+	OptionInfo + OPT_RM_FILES,
+	OptionInfo + OPT_ZERO_FILES,
+	OptionInfo + OPT_IGNORE_FILES,
 	OptionInfo + OPT_ENC,
 	&option_cmd_DUMP_LONG,
 	OptionInfo + OPT_SHOW,
@@ -1483,6 +1519,9 @@ static const InfoOption_t * option_tab_cmd_EXTRACT[] =
 	OptionInfo + OPT_MODIFY,
 	OptionInfo + OPT_REGION,
 	OptionInfo + OPT_IOS,
+	OptionInfo + OPT_RM_FILES,
+	OptionInfo + OPT_ZERO_FILES,
+	OptionInfo + OPT_IGNORE_FILES,
 	OptionInfo + OPT_ENC,
 	OptionInfo + OPT_PRESERVE,
 	OptionInfo + OPT_OVERWRITE,
@@ -1542,6 +1581,9 @@ static const InfoOption_t * option_tab_cmd_COPY[] =
 	OptionInfo + OPT_MODIFY,
 	OptionInfo + OPT_REGION,
 	OptionInfo + OPT_IOS,
+	OptionInfo + OPT_RM_FILES,
+	OptionInfo + OPT_ZERO_FILES,
+	OptionInfo + OPT_IGNORE_FILES,
 	OptionInfo + OPT_ENC,
 	OptionInfo + OPT_PRESERVE,
 	OptionInfo + OPT_OVERWRITE,
@@ -1617,6 +1659,9 @@ static const InfoOption_t * option_tab_cmd_SCRUB[] =
 	OptionInfo + OPT_MODIFY,
 	OptionInfo + OPT_REGION,
 	OptionInfo + OPT_IOS,
+	OptionInfo + OPT_RM_FILES,
+	OptionInfo + OPT_ZERO_FILES,
+	OptionInfo + OPT_IGNORE_FILES,
 	OptionInfo + OPT_ENC,
 	OptionInfo + OPT_WDF,
 	OptionInfo + OPT_ISO,
@@ -1667,6 +1712,9 @@ static const InfoOption_t * option_tab_cmd_EDIT[] =
 	OptionInfo + OPT_MODIFY,
 	OptionInfo + OPT_REGION,
 	OptionInfo + OPT_IOS,
+	OptionInfo + OPT_RM_FILES,
+	OptionInfo + OPT_ZERO_FILES,
+	OptionInfo + OPT_IGNORE_FILES,
 	OptionInfo + OPT_ENC,
 
 	0
@@ -2007,7 +2055,7 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	"Dump the data structure of Wii ISO files, ticket.bin, tmd.bin,"
 	" header.bin, boot.bin, fst.bin and of DOL-files. The file type is"
 	" detected automatically by analyzing the content.",
-	26,
+	29,
 	option_tab_cmd_DUMP
     },
 
@@ -2131,7 +2179,7 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	"wit EXTRACT source dest\n"
 	"wit EXTRACT [-s path]... [-r path]... [source]... [-d|-D] dest",
 	"Extract all files from the source discs.",
-	35,
+	38,
 	option_tab_cmd_EXTRACT
     },
 
@@ -2144,7 +2192,7 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	"wit COPY [-s path]... [-r path]... [source]... [-d|-D] dest",
 	"Copy, scrub, convert, join, split, compose, extract, patch, encrypt"
 	" and decrypt Wii disc images.",
-	48,
+	51,
 	option_tab_cmd_COPY
     },
 
@@ -2157,7 +2205,7 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	"wit SCRUB [-s path]... [-r path]... [source]...",
 	"Scrub, convert, join, split, compose, extract, patch, encrypt and"
 	" decrypt Wii disc images.",
-	37,
+	40,
 	option_tab_cmd_SCRUB
     },
 
@@ -2169,7 +2217,7 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	"wit EDIT source\n"
 	"wit EDIT [-s path]... [-r path]... [source]...",
 	"Edit an existing Wii ISO images and patch some values.",
-	22,
+	25,
 	option_tab_cmd_EDIT
     },
 
@@ -2225,7 +2273,10 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	"MIX",
 	0,
 	"wit MIX SOURCE... --dest|--DEST outfile\n"
-	"  where SOURCE := infile ['select' ptype] ['as' [ptab '.'] [ptype]]",
+	"  where SOURCE    = infile [QUALIFIER]...\n"
+	"  where QUALIFIER = 'select' part_type\n"
+	"                  | 'as' [part_table '.'] [part_type]]\n"
+	"                  | 'ignore' ruleset\n",
 	"Mix the partitions from different sources into one new Wii disc.",
 	15,
 	option_tab_cmd_MIX

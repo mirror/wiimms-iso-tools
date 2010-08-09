@@ -270,7 +270,13 @@ extern wd_select_t part_selector;
 extern u8 wdisc_usage_tab [WII_MAX_SECTORS];
 extern u8 wdisc_usage_tab2[WII_MAX_SECTORS];
 
-wd_select_t ScanPartSelector ( ccp arg, ccp err_text_extend );
+enumError ScanPartSelector
+(
+    wd_select_t * select,	// valid partiton selector
+    ccp arg,			// argument to scan
+    ccp err_text_extend		// error message extention
+);
+
 int ScanOptPartSelector ( ccp arg );
 u32 ScanPartType ( ccp arg, ccp err_text_extend );
 
@@ -608,7 +614,7 @@ typedef struct Verify_t
 
 	// options, default are global options
 
-	wd_select_t		psel;		// partition selector bit field
+	wd_select_t		* psel;		// NULL or partition selector
 	int			verbose;	// general verbosity level
 	int			long_count;	// verbosity for each message
 	int			max_err_msg;	// max message per partition

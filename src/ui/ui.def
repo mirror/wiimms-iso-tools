@@ -138,7 +138,10 @@
 
 #:def_cmd( "MIX", "MIX", \
 	"wit MIX SOURCE... --dest|--DEST outfile\n" \
-	"  where SOURCE := infile ['select' ptype] ['as' [ptab '.'] [ptype]]", \
+	"  where SOURCE    = infile [QUALIFIER]...\n" \
+	"  where QUALIFIER = 'select' part_type\n" \
+	"                  | 'as' [part_table '.'] [part_type]]\n" \
+	"                  | 'ignore' ruleset\n", \
 	"Mix the partitions from different sources into one new Wii disc." )
 
 #:def_opt( "VERSION", "V|version", "G", \
@@ -259,20 +262,20 @@
 #:def_opt( "PSEL", "psel", "CP", \
 	"list", \
 	"This option set the scrubbing mode and defines, which disc partitions" \
-	" are handled. The parameter is a comma separated list of keywords." \
-	" The keywords are divided in three functional groups:\n" \
-	"The first group selects partition types. The names @DATA@, @UDDATE@," \
-	" @CHANNEL@, @ID@ and the numbers between @0@ and @50@ for partition" \
-	" type are allowed. @'ID'@ is a placeholder for all ID types like the" \
-	" VC channels of SSBB. The prefix @'-'@ means: disable this partition" \
-	" type. The special keyword @'NONE'@ diables all partition types.\n" \
-	"The second group selects partition tables. The names @PTAB0..PTAB3@" \
-	" (and @T0..T3@) are allowed. The prefix @'-'@ means: Disable all" \
-	" partitions of that partition table.\n" \
-	"The third group are additional flags: @'WHOLE'@ means that the whole" \
-	" partition data is used. @'RAW'@ means that the whole disc is" \
-	" selected.\n" \
-	"The special keyword @'ALL'@ resets all settings to the default." )
+	" are handled. It expects a comma separated list of keywords, numbers" \
+	" and names; all together called parameter. All parameter are case" \
+	" insensitive and non ambiguous abbreviations of keyword are allowed.\n" \
+	"Each parameter becomes a rule and each rule is appended to a rule" \
+	" list. Rules prefixed by a minus sign are DENY rules. Rules prefixed" \
+	" by a plus sign or without a prefix are ALLOW rules. Each partition" \
+	" is compared with each rule until a rule matches the partition. If a" \
+	" match it found, the partition is enabled for a ALLOW rule or" \
+	" disabled for a DENY rule.\n" \
+	"The allowed keywords are: @DATA@, @UPDATE@, @CHANNEL@, @PTAB0@ .." \
+	" @PTAB3@, @ID@, @ALL@, @WHOLE@ and @RAW@. Additional the following" \
+	" input formats are accepted: @ptype@, @#index@, @#<index@," \
+	" @#<=index@, @#>index@, @#>=index@ and @#tab_index.part_index@.\n" \
+	"See the online docu for more details." )
 
 #:def_opt( "RAW", "raw", "C", \
 	"", \
@@ -323,6 +326,29 @@
 	"This $patching$ option defines the system version (IOS to load)" \
 	" within TMD. The format is @'HIGH:LOW'@ or @'HIGH-LOW'@ or @'LOW'@." \
 	" If only @LOW@ is set than @HIGH@ is assumed as 1 (standard IOS)." )
+
+#:def_opt( "RM_FILES", "rm-files", "CP", \
+	"ruleset", \
+	"This patching option defines filter rules to remove real files and" \
+	" directories from the FST of the DATA partition. $Fake signing$ of" \
+	" the TMD is necessary. @--rm-files@ is processed before" \
+	" {--zero-files} and {--ignore-files}." )
+
+#:def_opt( "ZERO_FILES", "zero-files", "CP", \
+	"ruleset", \
+	"This patching option defines filter rules to zero (set size to zero)" \
+	" real files of the FST of the DATA partition. $Fake signing$ of the" \
+	" TMD is necessary. @--zero-files@ is processed after {--rm-files} and" \
+	" before {--ignore-files}." )
+
+#:def_opt( "IGNORE_FILES", "ignore-files", "CP", \
+	"ruleset", \
+	"This option defines filter rules to ignore real files of the FST of" \
+	" the DATA partition. $Fake signing$ is not necessary, but the" \
+	" partition becomes invalid, because the content of some files is not" \
+	" copied. If such file is accessed the Wii will halt immediately," \
+	" because the verification of the check sum calculation fails." \
+	" @--ignore-files@ is processed after {--rm-files} and {--zero-files}." )
 
 #:def_opt( "OVERLAY", "overlay", "C", \
 	"", \
@@ -390,7 +416,7 @@
 	" changing.\n" \
 	"If the input file size is not known (e.g. reading from pipe), its" \
 	" size is assumed as @12 GiB@.\n" \
-	" @--chz@ is a shortcut for @--chunk-size@." )
+	"@--chz@ is a shortcut for @--chunk-size@." )
 
 #:def_opt( "MAX_CHUNKS", "max-chunks|maxchunks|mch", "CP", \
 	"n", \
@@ -398,7 +424,7 @@
 	" default value is 8192 for {--chunk-mode ISO} and 32760 (maximal" \
 	" value) for all other modes. If this value is set than the automatic" \
 	" calculation  of {--chunk-size} will be modified too.\n" \
-	" @--mch@ is a shortcut for @--max-chunks@." )
+	"@--mch@ is a shortcut for @--max-chunks@." )
 
 #:def_opt( "PRESERVE", "p|preserve", "C", \
 	"", \
@@ -800,6 +826,18 @@
 	"" )
 
 #:def_cmd_opt( "DUMP", "IOS", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "DUMP", "RM_FILES", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "DUMP", "ZERO_FILES", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "DUMP", "IGNORE_FILES", \
 	"", \
 	"" )
 
@@ -1756,6 +1794,18 @@
 	"", \
 	"" )
 
+#:def_cmd_opt( "EXTRACT", "RM_FILES", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "EXTRACT", "ZERO_FILES", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "EXTRACT", "IGNORE_FILES", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "EXTRACT", "ENC", \
 	"", \
 	"" )
@@ -1895,6 +1945,18 @@
 	"" )
 
 #:def_cmd_opt( "COPY", "IOS", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "COPY", "RM_FILES", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "COPY", "ZERO_FILES", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "COPY", "IGNORE_FILES", \
 	"", \
 	"" )
 
@@ -2090,6 +2152,18 @@
 	"", \
 	"" )
 
+#:def_cmd_opt( "SCRUB", "RM_FILES", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "SCRUB", "ZERO_FILES", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "SCRUB", "IGNORE_FILES", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "SCRUB", "ENC", \
 	"", \
 	"" )
@@ -2191,6 +2265,18 @@
 	"" )
 
 #:def_cmd_opt( "EDIT", "IOS", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "EDIT", "RM_FILES", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "EDIT", "ZERO_FILES", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "EDIT", "IGNORE_FILES", \
 	"", \
 	"" )
 
@@ -2834,20 +2920,20 @@
 #:def_opt( "PSEL", "psel", "CP", \
 	"list", \
 	"This option set the scrubbing mode and defines, which disc partitions" \
-	" are handled. The parameter is a comma separated list of keywords." \
-	" The keywords are divided in three functional groups:\n" \
-	"The first group selects partition types. The names @DATA@, @UDDATE@," \
-	" @CHANNEL@, @ID@ and the numbers between @0@ and @50@ for partition" \
-	" type are allowed. @'ID'@ is a placeholder for all ID types like the" \
-	" VC channels of SSBB. The prefix @'-'@ means: disable this partition" \
-	" type. The special keyword @'NONE'@ diables all partition types.\n" \
-	"The second group selects partition tables. The names @PTAB0..PTAB3@" \
-	" (and @T0..T3@) are allowed. The prefix @'-'@ means: Disable all" \
-	" partitions of that partition table.\n" \
-	"The third group are additional flags: @'WHOLE'@ means that the whole" \
-	" partition data is used. @'RAW'@ means that the whole disc is" \
-	" selected.\n" \
-	"The special keyword @'ALL'@ resets all settings to the default." )
+	" are handled. It expects a comma separated list of keywords, numbers" \
+	" and names; all together called parameter. All parameter are case" \
+	" insensitive and non ambiguous abbreviations of keyword are allowed.\n" \
+	"Each parameter becomes a rule and each rule is appended to a rule" \
+	" list. Rules prefixed by a minus sign are DENY rules. Rules prefixed" \
+	" by a plus sign or without a prefix are ALLOW rules. Each partition" \
+	" is compared with each rule until a rule matches the partition. If a" \
+	" match it found, the partition is enabled for a ALLOW rule or" \
+	" disabled for a DENY rule.\n" \
+	"The allowed keywords are: @DATA@, @UPDATE@, @CHANNEL@, @PTAB0@ .." \
+	" @PTAB3@, @ID@, @ALL@, @WHOLE@ and @RAW@. Additional the following" \
+	" input formats are accepted: @ptype@, @#index@, @#<index@," \
+	" @#<=index@, @#>index@, @#>=index@ and @#tab_index.part_index@.\n" \
+	"See the online docu for more details." )
 
 #:def_opt( "RAW", "raw", "C", \
 	"", \
@@ -2882,24 +2968,6 @@
 	"", \
 	"Disable composing and ignore FST directories as input." )
 
-#:def_opt( "ENC", "enc", "CP", \
-	"encoding", \
-	"Define the encoding mode. The mode is one of NONE, HASHONLY, DECRYPT," \
-	" ENCRYPT, SIGN or AUTO. The case of the keywords is ignored. The" \
-	" default mode is 'AUTO'." )
-
-#:def_opt( "REGION", "region", "CP", \
-	"region", \
-	"This $patching$ option defines the region of the disc.  The region is" \
-	" one of @JAPAN, USA, EUROPE, KOREA, FILE@ or @AUTO@ (default). The" \
-	" case of the keywords is ignored. Unsigned numbers are also accepted." )
-
-#:def_opt( "IOS", "ios", "CP", \
-	"ios", \
-	"This $patching$ option defines the system version (IOS to load)" \
-	" within TMD. The format is @'HIGH:LOW'@ or @'HIGH-LOW'@ or @'LOW'@." \
-	" If only @LOW@ is set than @HIGH@ is assumed as 1 (standard IOS)." )
-
 #:def_opt( "ID", "id", "CP", \
 	"id", \
 	"This $patching$ option changes the ID of the disc to the given" \
@@ -2924,9 +2992,46 @@
 	" @'-'@ to disable it or by a @'='@ to enable that option and disable" \
 	" all others." )
 
-#:def_opt( "INODE", "inode", "C", \
-	"", \
-	"Print information for all inodes (invalid discs too)." )
+#:def_opt( "REGION", "region", "CP", \
+	"region", \
+	"This $patching$ option defines the region of the disc.  The region is" \
+	" one of @JAPAN, USA, EUROPE, KOREA, FILE@ or @AUTO@ (default). The" \
+	" case of the keywords is ignored. Unsigned numbers are also accepted." )
+
+#:def_opt( "IOS", "ios", "CP", \
+	"ios", \
+	"This $patching$ option defines the system version (IOS to load)" \
+	" within TMD. The format is @'HIGH:LOW'@ or @'HIGH-LOW'@ or @'LOW'@." \
+	" If only @LOW@ is set than @HIGH@ is assumed as 1 (standard IOS)." )
+
+#:def_opt( "RM_FILES", "rm-files", "CP", \
+	"ruleset", \
+	"This patching option defines filter rules to remove real files and" \
+	" directories from the FST of the DATA partition. $Fake signing$ of" \
+	" the TMD is necessary. @--rm-files@ is processed before" \
+	" {--zero-files} and {--ignore-files}." )
+
+#:def_opt( "ZERO_FILES", "zero-files", "CP", \
+	"ruleset", \
+	"This patching option defines filter rules to zero (set size to zero)" \
+	" real files of the FST of the DATA partition. $Fake signing$ of the" \
+	" TMD is necessary. @--zero-files@ is processed after {--rm-files} and" \
+	" before {--ignore-files}." )
+
+#:def_opt( "IGNORE_FILES", "ignore-files", "CP", \
+	"ruleset", \
+	"This option defines filter rules to ignore real files of the FST of" \
+	" the DATA partition. $Fake signing$ is not necessary, but the" \
+	" partition becomes invalid, because the content of some files is not" \
+	" copied. If such file is accessed the Wii will halt immediately," \
+	" because the verification of the check sum calculation fails." \
+	" @--ignore-files@ is processed after {--rm-files} and {--zero-files}." )
+
+#:def_opt( "ENC", "enc", "CP", \
+	"encoding", \
+	"Define the encoding mode. The mode is one of NONE, HASHONLY, DECRYPT," \
+	" ENCRYPT, SIGN or AUTO. The case of the keywords is ignored. The" \
+	" default mode is 'AUTO'." )
 
 #:def_opt( "DEST", "d|dest", "CP", \
 	"path", \
@@ -2984,7 +3089,7 @@
 	" changing.\n" \
 	"If the input file size is not known (e.g. reading from pipe), its" \
 	" size is assumed as @12 GiB@.\n" \
-	" @--chz@ is a shortcut for @--chunk-size@." )
+	"@--chz@ is a shortcut for @--chunk-size@." )
 
 #:def_opt( "MAX_CHUNKS", "max-chunks|maxchunks|mch", "CP", \
 	"n", \
@@ -2992,7 +3097,7 @@
 	" default value is 8192 for {--chunk-mode ISO} and 32760 (maximal" \
 	" value) for all other modes. If this value is set than the automatic" \
 	" calculation  of {--chunk-size} will be modified too.\n" \
-	" @--mch@ is a shortcut for @--max-chunks@." )
+	"@--mch@ is a shortcut for @--max-chunks@." )
 
 #:def_opt( "SIZE", "s|size", "CP", \
 	"size", \
@@ -3105,6 +3210,10 @@
 #:def_opt( "LONG", "l|long", "CM", \
 	"", \
 	"Print in long format. Multiple usage possible." )
+
+#:def_opt( "INODE", "inode", "C", \
+	"", \
+	"Print information for all inodes (invalid discs too)." )
 
 #:def_opt( "MIXED", "M|mixed", "C", \
 	"", \
@@ -4258,6 +4367,18 @@
 	"", \
 	"" )
 
+#:def_cmd_opt( "ADD", "RM_FILES", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "ADD", "ZERO_FILES", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "ADD", "IGNORE_FILES", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "ADD", "ENC", \
 	"", \
 	"" )
@@ -4405,6 +4526,18 @@
 	"", \
 	"" )
 
+#:def_cmd_opt( "UPDATE", "RM_FILES", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "UPDATE", "ZERO_FILES", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "UPDATE", "IGNORE_FILES", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "UPDATE", "ENC", \
 	"", \
 	"" )
@@ -4541,6 +4674,18 @@
 	"" )
 
 #:def_cmd_opt( "SYNC", "IOS", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "SYNC", "RM_FILES", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "SYNC", "ZERO_FILES", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "SYNC", "IGNORE_FILES", \
 	"", \
 	"" )
 

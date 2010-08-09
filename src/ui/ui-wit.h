@@ -60,6 +60,9 @@ typedef enum enumOptions
 	OPT_MODIFY,
 	OPT_REGION,
 	OPT_IOS,
+	OPT_RM_FILES,
+	OPT_ZERO_FILES,
+	OPT_IGNORE_FILES,
 	OPT_OVERLAY,
 	OPT_ENC,
 	OPT_DEST,
@@ -93,7 +96,7 @@ typedef enum enumOptions
 	OPT_SORT,
 	OPT_LIMIT,
 
-	OPT__N_SPECIFIC, // == 51 
+	OPT__N_SPECIFIC, // == 54 
 
 	//----- global options -----
 
@@ -114,7 +117,7 @@ typedef enum enumOptions
 	OPT_TEST,
 	OPT_HOOK,
 
-	OPT__N_TOTAL // == 67
+	OPT__N_TOTAL // == 70
 
 } enumOptions;
 
@@ -145,6 +148,9 @@ typedef enum enumOptionsBit
 	OB_MODIFY		= 1llu << OPT_MODIFY,
 	OB_REGION		= 1llu << OPT_REGION,
 	OB_IOS			= 1llu << OPT_IOS,
+	OB_RM_FILES		= 1llu << OPT_RM_FILES,
+	OB_ZERO_FILES		= 1llu << OPT_ZERO_FILES,
+	OB_IGNORE_FILES		= 1llu << OPT_IGNORE_FILES,
 	OB_OVERLAY		= 1llu << OPT_OVERLAY,
 	OB_ENC			= 1llu << OPT_ENC,
 	OB_DEST			= 1llu << OPT_DEST,
@@ -219,6 +225,9 @@ typedef enum enumOptionsBit
 				| OB_MODIFY
 				| OB_REGION
 				| OB_IOS
+				| OB_RM_FILES
+				| OB_ZERO_FILES
+				| OB_IGNORE_FILES
 				| OB_ENC,
 
 	OB_GRP_SPLIT_CHUNK	= OB_SPLIT
@@ -498,6 +507,9 @@ typedef enum enumGetOpt
 	GO_MODIFY,
 	GO_REGION,
 	GO_IOS,
+	GO_RM_FILES,
+	GO_ZERO_FILES,
+	GO_IGNORE_FILES,
 	GO_OVERLAY,
 	GO_ENC,
 	GO_TRUNC,

@@ -1,31 +1,52 @@
 
-[size=180][color=#0000FF][b]@@TOOLSET-SHORT@@: @@TOOLSET-LONG@@ v@.@@@ - @@@@-@@-@@[/b][/color][/size]
+[size=180][color=#0000FF][b]@@TOOLSET-SHORT@@: @@TOOLSET-LONG@@ v@@VERSION@@ - @@@@-@@-@@[/b][/color][/size]
 [size=150][color=#800000][b]Ein Kommandozeilen-Toolkit für ISO und WBFS Dateien.[/b][/color][/size]
 
 [b]wwt+wit[/b] sind Kommandozeilen-Tools. Das bedeutet, dass man zur Ausführung vorher ein Kommandofenster aufmachen muss und dann die Kommandos eingeben kann. Dieses hat aber den Vorteil, dass man sich Batch-Dateien für immer wiederkehrende Aufgaben schreiben kann. Zum Ansprechen der Laufwerke muss das Kommandofenster im Admin-Modus arbeiten. Die Syntax der Kommandos ist stark an Unix angelehnt, da die Programme auch unter Linux entwickelt werden.
 
 [size=120][color=#0000c0][b]Download der aktuellen Version:[/b][/color][/size]
 ~[size=120][color=#0000c0][b]Download[/b][/color] [color=#800000][b]der EXPERIMENTELLEN Version:[/b][/color][/size]
+
 [list]
 [*] [url=@@URI-DOWNLOAD-I386@@][b]@@DISTRIB-I386@@[/b][/url] : linux/i386 version
 [*] [url=@@URI-DOWNLOAD-X86_64@@][b]@@DISTRIB-X86_64@@[/b][/url] : linux/x86_64 version
 [*] [url=@@URI-DOWNLOAD-MAC@@][b]@@DISTRIB-MAC@@[/b][/url] : Mac OS universal binaries (ppc, i386 and x86-64)
-[*] [url=@@URI-DOWNLOAD-CYGWIN@@][b]@@DISTRIB-CYGWIN@@[/b][/url] : cygwin (win32) version
+[*] [url=@@URI-DOWNLOAD-CYGWIN@@][b]@@DISTRIB-CYGWIN@@[/b][/url] : cygwin (windows) version
 [*] Weitere Versionen sind unter [url=@@URI-HOME@@download.html][b]@@URI-HOME@@download.html[/b][/url] verfügbar.
 [/list]
 
 [size=120][color=#0000c0][b]Es existieren auch zwei graphische Oberflächen (GUI) zur Bedienung von WIT:[/b][/color][/size]
+
 [list]
 [*] [url=@@URI-QTWITGUI@@][b]QtWitGui[/b], Berarbetung einzelner Wii ISO discs.[/url]
     Dieses QT basierte GUI bietet Dinge rund um die Bearbeitung (Kopieren, modifizieren) von einzelnen WIi ISO discs.
+[ch]nbsp[/ch]
 
 [*] [url=@@URI-WIIJMANAGER@@][b]WiiJManager Multiplatform[/b], ein WBFS-Manager[/url]
     Dieses Java basierte GUI arbeitet wie andere WBFS-Manager. Umwandlung von einzelnen Wii ISO dics ist auch möglich. (Es sieht so aus, als sei das Projekt eingestellt worden)
 [/list]
 
 [size=120][color=#0000c0][b]Höhepunkte dieser Version:[/b][/color][/size]
+
 [list]
-[*]
+[*] Das Kommando [url=http://wit.wiimm.de/wit/cmd-mix.html][b]wit MIX[/b][/url] wurde erweitert. Zu jeder Quelldateien können nun Qualifier angegeben werden, um Optionen festzulegen:
+[list]
+[*] Der Qualifier [url=http://wit.wiimm.de/wit/cmd-mix.html#select][b]select[/b][/url] ermöglicht die Feinkontrolle üb er die zu kopierenden Partitionen.
+[*] Der Qualifier [url=http://wit.wiimm.de/wit/cmd-mix.html#select][b]as[/b][/url] legt die Partitionstabelle und den Partitionstyp auf der Zieldatei fest.
+[*] Mit dem Qualifier [url=http://wit.wiimm.de/wit/cmd-mix.html#select][b]ignore[/b][/url] kann man Dateien des Dateisystems (FST) festlegen, die beim Kopieren ignoriert werden sollen. Dieses kann größere Löcher in den Partitionen erzeugen, ohne dass eine neue Siignierung nötig ist. Damit wird das Overlay effizienter. Allerdings ist dieses ein [i]Dirty Trick[/i] um Platz auf dem Zielimage zu sparen.
+[/list]
+Vor der eigentlichen Erzeugung des Zielimages wird eine Überprüfungsfunktion aufgerufen, die sicherstellt, dass kein Sektor an mehr als 1 partition vergeben wurde. Diese Funktion gibt auch eine [i]Usage Map[/i] aus, wenn der verbose level >=3 gesetzt wurde.
+Siehe http://wit.wiimm.de/wit/cmd-mix.html für mehr Details.
+[ch]nbsp[/ch]
+
+[*] Falls ihr über den Sinn des ganzen obigen nachdenkt, dann könnte die englischsprachige Diskussion [url=http://gbatemp.net/t243210-mariokart-pwns]MarioKart Pwns[/url] weiterhelfen.
+[ch]nbsp[/ch]
+
+[*] Es gin 3 neue (Patching-) Optionen: --rm-files, --zero-files and --ignore-files.
+Die Option --ignore-files arbeitet genauso wie der "wit mix" Qualifier [i]ignore[/i]. Einfach mal [url=http://wit.wiimm.de/options/patching.html#ignore-files]das hier[/url] lesen und anschließend das Kommando "wit dump image1 --show usage --ignore-files ruleset" probieren, um die Auswirkungen sichtbar zu machen.
+[ch]nbsp[/ch]
+
+[*] Die Option [url=http://wit.wiimm.de/options/scrubbing.html#psel][b]--psel[/b][/url] (Selektion von Partitionen) wurde nochmals übrarbeitet. Nun ist es möglich, jede einzelne Partition einzeln auszuwählen. Einfach mal http://wit.wiimm.de/options/scrubbing.html#psel für Details lesen.
 [ch]nbsp[/ch]
 [/list]
 

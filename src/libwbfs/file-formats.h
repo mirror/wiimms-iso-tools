@@ -294,13 +294,13 @@ void header_setup
 
 typedef struct wd_boot_t
 {
-    /*   0 */	wd_header_t	dhead;
-    /* 100 */	u8		unknown1[0x420-sizeof(wd_header_t)];
-    /* 420 */	u32		dol_off4;
-    /* 424 */	u32		fst_off4;
-    /* 428 */	u32		fst_size4;
-    /* 42c */	u32		copy_of__fst_size4;
-    /* 42c */	u8		unknown2[WII_BOOT_SIZE-0x430];
+  /*     0 */	wd_header_t	dhead;
+  /* 0x100 */	u8		unknown1[0x420-sizeof(wd_header_t)];
+  /* 0x420 */	u32		dol_off4;
+  /* 0x424 */	u32		fst_off4;
+  /* 0x428 */	u32		fst_size4;
+  /* 0x42c */	u32		copy_of__fst_size4;
+  /* 0x42c */	u8		unknown2[WII_BOOT_SIZE-0x430];
 }
 __attribute__ ((packed)) wd_boot_t;
 
@@ -314,10 +314,10 @@ void hton_boot ( wd_boot_t * dest, const wd_boot_t * src );
 
 typedef struct wd_region_t
 {
-	u32 region;
-	u8  padding1[12];
-	u8  region_info[8];
-	u8  padding2[8];
+  /*    0 */	u32	region;
+  /* 0x04 */	u8	padding1[12];
+  /* 0x10 */	u8	region_info[8];
+  /* 0x18 */	u8	padding2[8];
 }
 __attribute__ ((packed)) wd_region_t;
 
@@ -352,8 +352,8 @@ __attribute__ ((packed)) wd_ptab_entry_t;
 
 typedef struct wd_ptab_t // example for a good partition table
 {
-	wd_ptab_info_t  info[WII_MAX_PTAB];
-	wd_ptab_entry_t	entry[WII_MAX_PARTITIONS];
+  /*    0 */	wd_ptab_info_t  info[WII_MAX_PTAB];
+  /* 0x20 */	wd_ptab_entry_t	entry[WII_MAX_PARTITIONS];
 }
 __attribute__ ((packed)) wd_ptab_t;
 
@@ -572,19 +572,19 @@ __attribute__ ((packed)) wd_fst_item_t;
 
 typedef struct wbfs_head_t
 {
-    be32_t magic;	// the magic (char*)"WBFS"
+ /*    0 */	be32_t	magic;		// the magic (char*)"WBFS"
 
     // the 3 main parameters -> they are used to calculate the geometry
 
-    be32_t n_hd_sec;	// total number of hd_sec in this partition
-    u8  hd_sec_sz_s;	// sector size in this partition
-    u8  wbfs_sec_sz_s;	// size of a wbfs sec
+ /* 0x04 */	be32_t	n_hd_sec;	// total number of hd_sec in this partition
+ /* 0x08 */	u8	hd_sec_sz_s;	// sector size in this partition
+ /* 0x09 */	u8	wbfs_sec_sz_s;	// size of a wbfs sec
 
     // more parameters
 
-    u8  wbfs_version;	// informative version number
-    u8  padding;
-    u8  disc_table[0];	// size depends on hd sector size
+ /* 0x0a */	u8	wbfs_version;	// informative version number
+ /* 0x0b */	u8	padding;
+ /* 0x0c */	u8	disc_table[0];	// size depends on hd sector size
 }
 __attribute__ ((packed)) wbfs_head_t;
 
@@ -595,8 +595,8 @@ __attribute__ ((packed)) wbfs_head_t;
 
 typedef struct wbfs_disc_info_t
 {
-    u8 disc_header_copy[0x100];
-    be16_t wlba_table[0];   // wbfs_t::n_wbfs_sec_per_disc elements
+ /*    0 */	u8	disc_header_copy[0x100];
+ /* 0x100 */	be16_t	wlba_table[0];	// wbfs_t::n_wbfs_sec_per_disc elements
 
 }
 __attribute__ ((packed)) wbfs_disc_info_t;
@@ -606,7 +606,8 @@ __attribute__ ((packed)) wbfs_disc_info_t;
 ///////////////			default helpers			///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-unsigned char * wbfs_sha1_fake ( const unsigned char *d, size_t n, unsigned char *md );
+unsigned char * wbfs_sha1_fake
+	( const unsigned char *d, size_t n, unsigned char *md );
 
 //
 ///////////////////////////////////////////////////////////////////////////////
