@@ -1,5 +1,5 @@
 
-[size="5"][color="#0000FF"][b]@@TOOLSET-SHORT@@: @@TOOLSET-LONG@@ v@.@@@ - @@@@-@@-@@[/b][/color][/size]
+[size="5"][color="#0000FF"][b]@@TOOLSET-SHORT@@: @@TOOLSET-LONG@@ v@@VERSION@@ - @@@@-@@-@@[/b][/color][/size]
 [size="4"][color="#800000"][b]Beta test version, for EXPERIMENTAL use only.[/b][/color][/size]
 
 [url=@@URI-HOME@@][b]@@TOOLSET-SHORT@@[/b][/url] (@@TOOLSET-LONG@@) is a set of [url=@@URI-HOME@@info/command-line.html]command line[/url] tools to manipulate Wii ISO images and WBFS containers. The two main tools are called [url=@@URI-HOME@@wit][b]@@WIT-SHORT@@[/b][/url] (@@WIT-LONG@@) and [url=@@URI-HOME@@wwt][b]@@WWT-SHORT@@[/b][/url] (@@WWT-LONG@@, the WBFS manager).
@@ -23,14 +23,14 @@ This command will mix partitions and overlay the data to save disc space. The ru
 
 [*] The are two different overlay algorithm:
 [list]
-[*] The first works only if 2 partitons should be mixed. It tries every possible shift to find the best overlay. All holes in both partitions are relevant.
-[*] The second algorithm can handle any number of partitions. It works only with 2 blocks and one hole (the largest found).
+[*] The first works only for exact 2 partitons. It tries every possible shift to find the best overlay. All holes in both partitions are relevant.
+[*] The second algorithm can handle any number of partitions, but is limited to 12. It works only with 2 blocks and one hole (the largest found).
 [/list] 
 
-[*] wit MIX: Before creating the image a additional verify function is called. This function controls that no sector is used by more than one partition. With verbose level >= 3 a usage map is printed too.
+[*] wit MIX: Before creating the image an additional verify function is called. This function controls that no sector is used by more than one partition. With verbose level >=3 a usage map is printed too.
 [color=#ffffff].[/color]
 
-[*] There are 3 new (patching) option: --rm-files, --zero-files and --ignore-files.
+[*] There are 3 new (patching) options: --rm-files, --zero-files and --ignore-files.
 Option --ignore-files works like the "wit mix" modifier ignore. Read [url=http://wit.wiimm.de/options/patching.html#ignore-files]this[/url] and try the command "wit dump image1 --show usage --ignore-files ruleset" to view the effect of ignored files.
 [color=#ffffff].[/color]
 

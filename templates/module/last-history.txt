@@ -1,5 +1,9 @@
-wit v1.14a.beta2 r1485 - 2010-08-06
+wit v@@VERSION@@ r@@REV-NEXT@@ - @@@@-@@-@@
 
+ - Option --psel redesigned: it is now possible to allow or deny any partiton
+   by partiton type, partiton table and/or by partiton index. Only with the
+   unambiguous partiton index it is possible to select the one wanted DATA
+   partition if multiple exists.
  - New option --rm-files: This patching option defines filter rules to remove
    real files and directories from the FST of the DATA partition. Fake signing
    of the TMD is necessary.
@@ -12,26 +16,12 @@ wit v1.14a.beta2 r1485 - 2010-08-06
    the content of some files is not copied.
  - New qualifier for "wit MIX": "IGNORE ruleset": Ignore files when copying a
    disc image. See http://wit.wiimm.de/wit/cmd-mix.html#ignore for details.
-
-wit v1.14a.beta3 r1493 - 2010-08-07
-
  - Some modification for expanding '@file' parameters: wit MIX needs control.
- - Bug fix: "wit MIX ... ignore @file" works now.
- - Option --psel redesigned: it is now possible to allow or deny any partiton
-   by partiton type, partiton table and/or by partiton index. Only with the
-   unambiguous partiton index it is possible to select the one wanted DATA
-   partition if multiple exists.
-
-wit v@@VERSION@@ r@@REV-NEXT@@ - @@@@-@@-@@  (repository only)
-
- - Bug fix for "wit mix .. select": Default was to select all partitons.
-   Now the default is to select only DATA partition of partition table #0.
- - Bug fix for "wit MIX": The calculation of the largest hole was wrong.
  - wit MIX: A new algorithm for 2 partitions: It tries every possible shift to
    find the best overlay. All holes in both partitions are relevant.
  - wit MIX: Before creating the image a additional verify function is called.
    This function controls that no sector is used by more than one partition.
-   With verbose level >= 3 a usage map is printed too.
+   With verbose level >=3 an usage map is printed too.
 
 Known bugs:
 

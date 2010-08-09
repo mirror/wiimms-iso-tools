@@ -15,6 +15,23 @@ void print_title ( FILE * f );
 
 //
 ///////////////////////////////////////////////////////////////////////////////
+///////////////			debugging			///////////////
+///////////////////////////////////////////////////////////////////////////////
+
+#ifdef TEST
+    #define DEBUG_SM	0 // debug sector mix
+#else
+    #define DEBUG_SM	0 // debug sector mix
+#endif
+
+#if DEBUG_SM
+    #define PRINT_SM PRINT
+#else
+    #define PRINT_SM noTRACE
+#endif
+
+//
+///////////////////////////////////////////////////////////////////////////////
 ///////////////			struct Mix_t			///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -432,17 +449,24 @@ static void sector_mix ( MixParam_t * p, Mix_t * m1, Mix_t * m2 )
     DASSERT(m2->used_free);
 
     const u32 n_sect2 = m2->src_end_sector - m2->src_sector;
+ #if DEBUG_SM
+    const u32 max_delta = p->max_end - n_sect2 + 1 + 0x1000;
+ #else
     const u32 max_delta = p->max_end - n_sect2 + 1;
+ #endif
 
     u32 delta = *m1->used_free;
 
     for(;;)
     {
      restart:
-	PRINT("TRY DELTA %x/%x\n",delta,max_delta);
-
 	if ( delta >= max_delta )
+	{
+	    PRINT("ABORTED AT DELTA %x/%x\n",delta,max_delta);
 	    return; // abort
+	}
+
+	PRINT("TRY DELTA %x/%x\n",delta,max_delta);
 
 	u32 * uf1 = m1->used_free;
 	u32 * uf2 = m2->used_free;
@@ -454,7 +478,7 @@ static void sector_mix ( MixParam_t * p, Mix_t * m1, Mix_t * m2 )
 
 	    for(;;)
 	    {
-		noTRACE("\tuf1a=%8x,%8x, hole_size=%5x\n",uf1[0],uf1[1],hole_size);
+		PRINT_SM("\tuf1a=%8x,%8x, hole_size=%5x\n",uf1[0],uf1[1],hole_size);
 		const u32 used_val = *uf1++;
 		if (!used_val)
 		    goto ok;
@@ -465,7 +489,7 @@ static void sector_mix ( MixParam_t * p, Mix_t * m1, Mix_t * m2 )
 		}
 		hole_size -= used_val;
 
-		noTRACE("\tuf1b=%8x,%8x, hole_size=%5x\n",uf1[0],uf1[1],hole_size);
+		PRINT_SM("\tuf1b=%8x,%8x, hole_size=%5x\n",uf1[0],uf1[1],hole_size);
 		const u32 free_val = *uf1++;
 		DASSERT(free_val);
 		if ( hole_size <= free_val )
@@ -480,19 +504,18 @@ static void sector_mix ( MixParam_t * p, Mix_t * m1, Mix_t * m2 )
 
 	    for(;;)
 	    {
-		noTRACE("\tuf2a=%8x,%8x, hole_size=%5x\n",uf2[0],uf2[1],hole_size);
+		PRINT_SM("\tuf2a=%8x,%8x, hole_size=%5x\n",uf2[0],uf2[1],hole_size);
 		const u32 used_val = *uf2++;
 		if (!used_val)
 		    goto ok;
 		if ( hole_size < used_val )
 		{
-		    BINGO;
-		    delta += used_val - hole_size;
+		    delta += hole_size + *uf1;
 		    goto restart;
 		}
 		hole_size -= used_val;
 
-		noTRACE("\tuf2b=%8x,%8x, hole_size=%5x\n",uf2[0],uf2[1],hole_size);
+		PRINT_SM("\tuf2b=%8x,%8x, hole_size=%5x\n",uf2[0],uf2[1],hole_size);
 		const u32 free_val = *uf2++;
 		DASSERT(free_val);
 		if ( hole_size <= free_val )
@@ -514,7 +537,9 @@ static void sector_mix ( MixParam_t * p, Mix_t * m1, Mix_t * m2 )
 		max_end < p->max_end ? '<' : max_end > p->max_end ? '>' : '=',
 		p->max_end);
 
+ #if !DEBUG_SM
     if ( max_end < p->max_end )
+ #endif
     {
 	const u32 start = WII_GOOD_UPDATE_PART_OFF / WII_SECTOR_SIZE;
 	m1->dest_sector = start;
@@ -793,7 +818,14 @@ enumError cmd_mix()
 
     //----- permutate
 
-    enum { MD_STD, MD_PERM, MD_SMIX } mode = MD_STD;
+    enum { NO_OVERLAY, SIMPLE_OVERLAY, MULTI_HOLE_OVERLAY } overlay = NO_OVERLAY;
+    static ccp overlay_info[] =
+    {
+	"no overlay",
+	"simple overlay",
+	"multiple hole overlay",
+	0
+    };
 
     if ( n_mix > 1 && OptionUsed[OPT_OVERLAY] )
     {
@@ -804,7 +836,7 @@ enumError cmd_mix()
 	permutate_mix(&p);
 	if ( sector > p.max_end )
 	{
-	    mode = MD_PERM;
+	    overlay = SIMPLE_OVERLAY;
 	    PRINT("*** PERMUTATE => END SECTOR = %x < %x\n",p.max_end,sector);
 	    sector = p.max_end;
 	}
@@ -814,7 +846,7 @@ enumError cmd_mix()
 	    sector_mix_2(&p);
 	    if ( sector > p.max_end )
 	    {
-		mode = MD_SMIX;
+		overlay = MULTI_HOLE_OVERLAY;
 		PRINT("*** SECTOR MIX 2 -> END SECTOR = %x < %x\n",p.max_end,sector);
 		sector = p.max_end;
 	    }
@@ -847,10 +879,11 @@ enumError cmd_mix()
 		 src_fw = len;
 	}
 
-	printf("\nMix table (%d partitons, total size=%llu MiB):\n\n",
-		    n_mix, sector* (u64)WII_SECTOR_SIZE / MiB );
+	printf("\nMix table (%d partitons, %s, total size=%llu MiB):\n\n",
+		    n_mix, overlay_info[overlay],
+		    sector* (u64)WII_SECTOR_SIZE / MiB );
 
-	if ( mode < MD_SMIX )
+	if ( overlay < MULTI_HOLE_OVERLAY )
 	{
 	    printf("    blocks #1      blocks #2  :      disc offset     "
 		    ": ptab  ptype : ignore + source\n"
