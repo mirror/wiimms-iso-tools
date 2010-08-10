@@ -26,27 +26,11 @@
     Dieses Java basierte GUI arbeitet wie andere WBFS-Manager. Umwandlung von einzelnen Wii ISO dics ist auch möglich. (Es sieht so aus, als sei das Projekt eingestellt worden)
 [/list]
 
+~ Highlights
 [size=120][color=#0000c0][b]Höhepunkte dieser Version:[/b][/color][/size]
 
 [list]
-[*] Das Kommando [url=http://wit.wiimm.de/wit/cmd-mix.html][b]wit MIX[/b][/url] wurde erweitert. Zu jeder Quelldateien können nun Qualifier angegeben werden, um Optionen festzulegen:
-[list]
-[*] Der Qualifier [url=http://wit.wiimm.de/wit/cmd-mix.html#select][b]select[/b][/url] ermöglicht die Feinkontrolle üb er die zu kopierenden Partitionen.
-[*] Der Qualifier [url=http://wit.wiimm.de/wit/cmd-mix.html#select][b]as[/b][/url] legt die Partitionstabelle und den Partitionstyp auf der Zieldatei fest.
-[*] Mit dem Qualifier [url=http://wit.wiimm.de/wit/cmd-mix.html#select][b]ignore[/b][/url] kann man Dateien des Dateisystems (FST) festlegen, die beim Kopieren ignoriert werden sollen. Dieses kann größere Löcher in den Partitionen erzeugen, ohne dass eine neue Siignierung nötig ist. Damit wird das Overlay effizienter. Allerdings ist dieses ein [i]Dirty Trick[/i] um Platz auf dem Zielimage zu sparen.
-[/list]
-Vor der eigentlichen Erzeugung des Zielimages wird eine Überprüfungsfunktion aufgerufen, die sicherstellt, dass kein Sektor an mehr als 1 partition vergeben wurde. Diese Funktion gibt auch eine [i]Usage Map[/i] aus, wenn der verbose level >=3 gesetzt wurde.
-Siehe http://wit.wiimm.de/wit/cmd-mix.html für mehr Details.
-[ch]nbsp[/ch]
-
-[*] Falls ihr über den Sinn des ganzen obigen nachdenkt, dann könnte die englischsprachige Diskussion [url=http://gbatemp.net/t243210-mariokart-pwns]MarioKart Pwns[/url] weiterhelfen.
-[ch]nbsp[/ch]
-
-[*] Es gin 3 neue (Patching-) Optionen: --rm-files, --zero-files and --ignore-files.
-Die Option --ignore-files arbeitet genauso wie der "wit mix" Qualifier [i]ignore[/i]. Einfach mal [url=http://wit.wiimm.de/options/patching.html#ignore-files]das hier[/url] lesen und anschließend das Kommando "wit dump image1 --show usage --ignore-files ruleset" probieren, um die Auswirkungen sichtbar zu machen.
-[ch]nbsp[/ch]
-
-[*] Die Option [url=http://wit.wiimm.de/options/scrubbing.html#psel][b]--psel[/b][/url] (Selektion von Partitionen) wurde nochmals übrarbeitet. Nun ist es möglich, jede einzelne Partition einzeln auszuwählen. Einfach mal http://wit.wiimm.de/options/scrubbing.html#psel für Details lesen.
+[*]
 [ch]nbsp[/ch]
 [/list]
 

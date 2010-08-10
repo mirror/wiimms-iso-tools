@@ -2276,7 +2276,9 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	"  where SOURCE    = infile [QUALIFIER]...\n"
 	"  where QUALIFIER = 'select' part_type\n"
 	"                  | 'as' [part_table '.'] [part_type]]\n"
-	"                  | 'ignore' ruleset\n",
+	"                  | 'ignore' ruleset\n"
+	"                  | 'header'\n"
+	"                  | 'region'\n",
 	"Mix the partitions from different sources into one new Wii disc.",
 	15,
 	option_tab_cmd_MIX

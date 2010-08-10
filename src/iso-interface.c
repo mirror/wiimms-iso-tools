@@ -218,7 +218,7 @@ enumError Dump_ISO
 	const RegionInfo_t * rinfo = GetRegionInfo(disc->dhead.region_code);
 	fprintf(f,"%*sRegion:          %s [%s]\n",indent,"",rinfo->name,rinfo->name4);
 	u8 * p8 = disc->region.region_info;
-	fprintf(f,"%*sRegion setting:  %d / %02x %02x %02x %02x  %02x %02x %02x %02x\n",
+	fprintf(f,"%*sRegion setting:  %x / %02x %02x %02x %02x  %02x %02x %02x %02x\n",
 			indent,"", ntohl(disc->region.region),
 			p8[0], p8[1], p8[2], p8[3], p8[4], p8[5], p8[6], p8[7] );
 

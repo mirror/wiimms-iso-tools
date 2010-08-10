@@ -1,4 +1,4 @@
-wit v@@VERSION@@ r@@REV-NEXT@@ - @@@@-@@-@@
+wit v1.14a r1506 - 2010-08-09
 
  - Option --psel redesigned: it is now possible to allow or deny any partiton
    by partiton type, partiton table and/or by partiton index. Only with the
@@ -22,6 +22,17 @@ wit v@@VERSION@@ r@@REV-NEXT@@ - @@@@-@@-@@
  - wit MIX: Before creating the image a additional verify function is called.
    This function controls that no sector is used by more than one partition.
    With verbose level >=3 an usage map is printed too.
+
+wit v@@VERSION@@ r@@REV-NEXT@@ - @@@@-@@-@@
+
+ - New "wit MIX" qualifer: HEADER: Copy the disc header (first 256 bytes of
+   disc) of the related source image to the destination image. Patching with
+   the options --id and --name is possible.
+ - New "wit MIX" qualifer: REGION: Copy the region infor (32 Bytes at offset
+   0xc4e000) of the related source image to the destination image. Patching
+   with the option --region is possible.
+ - Bug fix: "wit mix --name discname" didn't work.
+
 
 Known bugs:
 

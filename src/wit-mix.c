@@ -611,6 +611,9 @@ enumError cmd_mix()
     u32 sector = WII_GOOD_UPDATE_PART_OFF / WII_SECTOR_SIZE;
     u32 ptab_count[WII_MAX_PTAB];
 
+    wd_header_t * source_dhead = 0;
+    wd_region_t * source_region = 0;
+
     bool src_warn = true;
     ParamList_t * param = first_param;
     while (param)
@@ -643,6 +646,8 @@ enumError cmd_mix()
 	bool ptab_valid = false, ptype_valid = false;
 	bool pattern_active = false;
 	ResetFilePattern( file_pattern + PAT_PARAM );
+
+	bool qual_header = false, qual_region = false;
 
 	while ( scan_qualifier )
 	{
@@ -692,6 +697,30 @@ enumError cmd_mix()
 		pattern_active = true;
 		scan_qualifier = true;
 	    }
+
+
+	    //--- scan 'header'
+
+	    if ( param && !strcasecmp(param->arg,"header") )
+	    {
+		param = param->next;
+		qual_header = true;
+		if (source_dhead)
+		    return ERROR0(ERR_SEMANTIC,
+			"Multiple usage of qualifier 'header' is not allowed.");
+	    }
+
+
+	    //--- scan 'region'
+
+	    if ( param && !strcasecmp(param->arg,"region") )
+	    {
+		param = param->next;
+		qual_region = true;
+		if (source_region)
+		    return ERROR0(ERR_SEMANTIC,
+			"Multiple usage of qualifier 'region' is not allowed.");
+	    }
 	}
 
 
@@ -723,6 +752,11 @@ enumError cmd_mix()
 	//wd_print_select(stdout,3,&psel);
 	wd_select(disc,&psel);
 	wd_reset_select(&psel);
+
+	if (qual_header)
+	    source_dhead = &disc->dhead;
+	if (qual_region)
+	    source_region = &disc->region;
 
 	wd_part_t *part, *end_part = disc->part + disc->n_part;
 	Mix_t * mix = 0;
@@ -943,6 +977,7 @@ enumError cmd_mix()
     if (err) // verify status
 	return err;
 
+
     //----- setup dhead
 
     char * dest = iobuf + sprintf(iobuf,"WIT mix of");
@@ -955,7 +990,28 @@ enumError cmd_mix()
     }
     
     wd_header_t dhead;
-    header_setup(&dhead,modify_id,iobuf);
+    if (source_dhead)
+    {
+	memcpy(&dhead,source_dhead,sizeof(dhead));
+	PatchId(&dhead,0,6,WD_MODIFY__ALWAYS);
+    }
+    else
+	header_setup(&dhead,modify_id,iobuf);
+    PatchName(dhead.disc_title,WD_MODIFY__ALWAYS);
+
+
+    //----- setup region
+
+    wd_region_t reg;
+    if ( source_region && opt_region >= REGION__AUTO )
+	memcpy(&reg,source_region,sizeof(reg));
+    else
+    {
+	memset(&reg,0,sizeof(reg));
+	reg.region = htonl( opt_region < REGION__AUTO
+				? opt_region
+				: GetRegionInfo(dhead.region_code)->reg );
+    }
 
 
     //----- setup output file
@@ -973,11 +1029,17 @@ enumError cmd_mix()
 		"Output to WBFS files not supported yet.");
 
     if ( testmode || verbose >= 0 )
-	printf("\n%sreate [%.6s] %s:%s\n  (%s)\n\n",
+    {
+	u8 * p8 = reg.region_info;
+	printf("\n%sreate [%.6s] %s:%s\n"
+		"  title:  %s\n"
+		"  region: %x / %02x %02x %02x %02x  %02x %02x %02x %02x\n\n",
 		testmode ? "WOULD c" : "C",
 		&dhead.disc_id, oft_name[oft],
-		fo.f.fname, dhead.disc_title );
-
+		fo.f.fname, dhead.disc_title,
+		ntohl(reg.region),
+		p8[0], p8[1], p8[2], p8[3], p8[4], p8[5], p8[6], p8[7] );
+    }
 
     //--- built memory map
 
@@ -1084,12 +1146,6 @@ enumError cmd_mix()
 	
 
 	//--- write region settings
-
-	wd_region_t reg;
-	memset(&reg,0,sizeof(reg));
-	reg.region = htonl( opt_region < REGION__AUTO
-				? opt_region
-				: GetRegionInfo(dhead.region_code)->reg );
 
 	err = WriteSF(&fo,WII_REGION_OFF,&reg,sizeof(reg));
 	if (err)
