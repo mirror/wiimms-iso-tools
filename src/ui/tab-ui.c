@@ -1252,6 +1252,7 @@ info_t info_tab[] =
   { T_COPY_GRP,	"TITLES",	0,0,0 },
   { T_COPY_GRP,	"XXSOURCE",	0,0,0 },
   { T_COPY_GRP,	"PARTITIONS",	0,0,0 },
+  { T_COPT,	"IGNORE_FILES",	0,0,0 },
 
   { T_SEP_OPT,	0,0,0,0 },
 
@@ -2291,6 +2292,7 @@ info_t info_tab[] =
 
   { T_COPT,	"PSEL",		0,0,0 },
   { T_COPT,	"RAW",		0,0,0 },
+  { T_COPT,	"IGNORE_FILES",	0,0,0 },
   { T_COPT,	"UNIQUE",	0,0, "Eliminate multiple ID6 from the source list." },
   { T_COPT,	"IGNORE",	0,0, "Ignore non existing discs without any warning." },
   { T_COPT,	"REMOVE",	0,0, "Remove bad discs from WBFS." },

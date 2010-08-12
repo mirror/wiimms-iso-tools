@@ -1815,10 +1815,10 @@ void wd_print_select
     indent = wd_normalize_indent(indent);
 
     if ( select->whole_disc )
-	printf("%*sFLAG: Copy whole disc (=raw mode), ignore all others.\n", indent, "" );
+	fprintf(f,"%*sFLAG: Copy whole disc (=raw mode), ignore all others.\n", indent, "" );
 
     if ( select->whole_part )
-	printf("%*sFLAG: Copy whole partitions.\n", indent, "" );
+	fprintf(f,"%*sFLAG: Copy whole partitions.\n", indent, "" );
 
     bool default_deny = false;
     const wd_select_item_t * item = select->list;
@@ -1830,54 +1830,54 @@ void wd_print_select
 	switch ( item->mode & WD_SM_M_MODE )
 	{
 	    case WD_SM_ALLOW_PTYPE:
-		printf("%*s%s partition type %s\n",
+		fprintf(f,"%*s%s partition type %s\n",
 			indent, "", verb,
 			wd_print_part_name(0,0,item->part,WD_PNAME_NUM_INFO) );
 		default_deny = allow;
 		break;
 
 	    case WD_SM_ALLOW_PTAB:
-		printf("%*s%s partition table %u\n",
+		fprintf(f,"%*s%s partition table %u\n",
 			indent, "", verb, item->table );
 		default_deny = allow;
 		break;
 
 	    case WD_SM_ALLOW_INDEX:
-		printf("%*s%s partition index #%u\n",
+		fprintf(f,"%*s%s partition index #%u\n",
 			indent, "", verb, item->part );
 		default_deny = allow;
 		break;
 
 	    case WD_SM_ALLOW_LT_INDEX:
-		printf("%*s%s partition index < #%u\n",
+		fprintf(f,"%*s%s partition index < #%u\n",
 			indent, "", verb, item->part );
 		default_deny = allow;
 		break;
 
 	    case WD_SM_ALLOW_GT_INDEX:
-		printf("%*s%s partition index > #%u\n",
+		fprintf(f,"%*s%s partition index > #%u\n",
 			indent, "", verb, item->part );
 		default_deny = allow;
 		break;
 
 	    case WD_SM_ALLOW_PTAB_INDEX:
-		printf("%*s%s partition index #%u.%u\n",
+		fprintf(f,"%*s%s partition index #%u.%u\n",
 			indent, "", verb, item->table, item->part );
 		default_deny = allow;
 		break;
 
 	    case WD_SM_ALLOW_ID:
-		printf("%*s%s ID partitions.\n", indent, "", verb );
+		fprintf(f,"%*s%s ID partitions.\n", indent, "", verb );
 		default_deny = allow;
 		break;
 
 	    case WD_SM_ALLOW_ALL:
-		printf("%*s%s all partitions.\n", indent, "", verb );
+		fprintf(f,"%*s%s all partitions.\n", indent, "", verb );
 		default_deny = allow;
 		break;
 	}
     }
-    printf("%*s%s all partitions (default rule)\n",
+    fprintf(f,"%*s%s all partitions (default rule)\n",
 		indent, "", default_deny ? "DENY " : "ALLOW" );
 }
 
@@ -2723,7 +2723,7 @@ int wd_remove_part_files
 	//----- 2. loop: move data
 
 	u32 name_delta = ( n_fst - part->fst->size - 1 ) * sizeof(*fst);
-	printf("NAME-DELTA=%x=%u\n",name_delta,name_delta);
+	noTRACE("NAME-DELTA=%x=%u\n",name_delta,name_delta);
 
 	wd_fst_item_t * dest;
 	for ( fst = dest = part->fst; fst < fst_end; fst++ )

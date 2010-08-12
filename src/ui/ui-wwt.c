@@ -1358,7 +1358,7 @@ static u8 option_allowed_cmd_TOUCH[64] = // cmd #32
 
 static u8 option_allowed_cmd_VERIFY[64] = // cmd #33
 {
-    0,1,1,1,0, 0,1,1,1,1,  1,1,1,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,
+    0,1,1,1,0, 0,1,1,1,1,  1,1,1,0,0, 0,0,0,0,0,  0,0,1,0,0, 0,0,0,0,0,
     0,0,0,0,0, 0,0,1,1,0,  1,0,0,0,0, 1,0,0,0,0,  0,0,0,0,0, 0,1,0,0,1,
     0,0,0,1
 };
@@ -2345,6 +2345,7 @@ static const InfoOption_t * option_tab_cmd_VERIFY[] =
 
 	OptionInfo + OPT_PSEL,
 	OptionInfo + OPT_RAW,
+	OptionInfo + OPT_IGNORE_FILES,
 	&option_cmd_VERIFY_UNIQUE,
 	&option_cmd_VERIFY_IGNORE,
 	&option_cmd_VERIFY_REMOVE,
@@ -2792,7 +2793,7 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	"wwt VERIFY id6...",
 	"Verify all discs of WBFS (calculate and compare SHA1 check sums) to"
 	" find bad dumps.",
-	25,
+	26,
 	option_tab_cmd_VERIFY,
 	option_allowed_cmd_VERIFY
     },

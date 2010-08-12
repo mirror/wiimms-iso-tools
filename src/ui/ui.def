@@ -2597,6 +2597,10 @@
 	"", \
 	"" )
 
+#:def_cmd_opt( "VERIFY", "IGNORE_FILES", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "VERIFY", "QUIET", \
 	"", \
 	"Be quiet and report only errors. If set twice then wit will print" \
@@ -5297,6 +5301,10 @@
 	"" )
 
 #:def_cmd_opt( "VERIFY", "RAW", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "VERIFY", "IGNORE_FILES", \
 	"", \
 	"" )
 

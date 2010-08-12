@@ -424,6 +424,7 @@ typedef enum enumOptions
 //				| OB_LIMIT
 //				| OB_PSEL
 //				| OB_RAW
+//				| OB_IGNORE_FILES
 //				| OB_UNIQUE
 //				| OB_IGNORE
 //				| OB_REMOVE

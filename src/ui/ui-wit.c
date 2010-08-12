@@ -1081,7 +1081,7 @@ static u8 option_allowed_cmd_SETTITLE[55] = // cmd #28
 
 static u8 option_allowed_cmd_VERIFY[55] = // cmd #29
 {
-    0,1,1,1,1, 1,1,1,1,1,  1,1,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,
+    0,1,1,1,1, 1,1,1,1,1,  1,1,0,0,0, 0,0,0,0,0,  0,0,1,0,0, 0,0,0,0,0,
     0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,1,0,  0,0,0,0,1
 };
 
@@ -2072,6 +2072,7 @@ static const InfoOption_t * option_tab_cmd_VERIFY[] =
 
 	OptionInfo + OPT_PSEL,
 	OptionInfo + OPT_RAW,
+	OptionInfo + OPT_IGNORE_FILES,
 
 	OptionInfo + OPT_NONE, // separator
 
@@ -2491,7 +2492,7 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	"wit VERIFY [source]...",
 	"Verify ISO images (calculate and compare SHA1 check sums) to find bad"
 	" dumps.",
-	22,
+	23,
 	option_tab_cmd_VERIFY,
 	option_allowed_cmd_VERIFY
     },

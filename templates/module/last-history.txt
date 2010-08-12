@@ -8,7 +8,7 @@ wit v1.15a.beta r1511 - 2010-08-10
    with the option --region is possible.
  - Bug fix: "wit mix --name discname" didn't work.
 
-wit v@@VERSION@@ r@@REV-NEXT@@ - @@@@-@@-@@
+wit v1.15a.beta2 r1534 - 2010-08-12
 
  - Writing a WBFS file is now part of the file layer and libwbfs is only used
    as helper. Now every command, and also "wit MIX", is able to write to a
@@ -18,6 +18,10 @@ wit v@@VERSION@@ r@@REV-NEXT@@ - @@@@-@@-@@
  - To manage allowed and permitted options, 64 bit integer numbers had been
    used. Now arrays will be used, because wwt have already reached the limit
    of 64 command specific options. Hope that all works like before.
+
+wit v@@VERSION@@ r@@REV-NEXT@@ - @@@@-@@-@@
+
+ - Bug fix for "wit mix --overlay".
 
 Known bugs:
 

@@ -2427,13 +2427,13 @@ enumError CopyRawData2
 {
     ASSERT(in);
     ASSERT(out);
-    TRACE("+++ CopyRawData(%d,%llx,%d,%llx,%llx) +++\n",
+    TRACE("+++ CopyRawData2(%d,%llx,%d,%llx,%llx) +++\n",
 		GetFD(&in->f), (u64)in_off,
 		GetFD(&out->f), (u64)out_off, (u64)copy_size );
 
     while ( copy_size > 0 )
     {
-	const u32 size = sizeof(iobuf) < copy_size ? sizeof(iobuf) : (u32)copy_size;
+	const u32 size = sizeof(iobuf) < copy_size ? (u32)sizeof(iobuf) : (u32)copy_size;
 	enumError err = ReadSF(in,in_off,iobuf,size);
 	if (err)
 	    return err;

@@ -3769,6 +3769,12 @@ static enumError PrintVerifyMessage ( Verify_t * ver, ccp msg )
 		pname_buf, (ccp)&ver->sf->disc2->dhead,
 		ver->fname ? ver->fname : ver->sf->f.fname );
 	fflush(stdout);
+
+	TRACE("%*s%-7.7s %s %n%-7s %6.6s %s\n",
+		ver->indent, "",
+		msg, count_buf, &ver->info_indent,
+		pname_buf, (ccp)&ver->sf->disc2->dhead,
+		ver->fname ? ver->fname : ver->sf->f.fname );
     }
     return ERR_DIFFER;
 }
@@ -3905,7 +3911,7 @@ enumError VerifyPartition ( Verify_t * ver )
 		part->is_valid,
 		block, block_end,
 		block * (u64)WII_SECTOR_SIZE, block_end * (u64)WII_SECTOR_SIZE );
-    TRACE_HEXDUMP16(0,block,ver->usage_tab,block_end-block);
+    //TRACE_HEXDUMP16(0,block,ver->usage_tab,block_end-block);
 
 
     //----- more setup

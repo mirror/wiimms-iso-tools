@@ -314,6 +314,10 @@ wbfs_t * wbfs_open_partition_param ( wbfs_param_t * par )
 
     //----- load/setup free block table
 
+    PRINT("FB: size4=%x=%u, mask=%x=%u\n",
+		p->freeblks_size4, p->freeblks_size4,
+		p->freeblks_mask, p->freeblks_mask );
+
     if ( par->reset <= 0 )
     {
 	// table will alloc and read only if needed
@@ -532,6 +536,8 @@ void wbfs_calc_geometry
 	     p->n_wbfs_sec = max_sec;
     }
     p->freeblks_mask	= ( 1ull << ( (p->n_wbfs_sec-1) & 31 )) - 1;
+    if (!p->freeblks_mask)
+	p->freeblks_mask = ~(u32)0;
 
     //----- calculate max_disc
 

@@ -387,6 +387,7 @@ typedef enum enumOptions
 //	OB_CMD_VERIFY		= OB_GRP_TITLES
 //				| OB_GRP_XXSOURCE
 //				| OB_GRP_PARTITIONS
+//				| OB_IGNORE_FILES
 //				| OB_LIMIT
 //				| OB_LONG,
 //

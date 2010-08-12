@@ -106,7 +106,13 @@ typedef struct MixParam_t
 ///////////////			verify_mix()			///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-static enumError verify_mix ( Mix_t * mixtab, int n_mix, bool dump )
+static enumError verify_mix
+(
+    Mix_t	* mixtab,	// valid pointer to mic table
+    int		n_mix,		// number of elements in 'mixtab'
+    bool	dump,		// true: dump usage table
+    MemMap_t	* mm		// not NULL: create a memory map
+)
 {
     ASSERT(mixtab);
     
@@ -116,6 +122,8 @@ static enumError verify_mix ( Mix_t * mixtab, int n_mix, bool dump )
     utab[ WII_PTAB_REF_OFF / WII_SECTOR_SIZE ]	= WD_USAGE_DISC;
     utab[ WII_REGION_OFF   / WII_SECTOR_SIZE ]	= WD_USAGE_DISC;
     utab[ WII_MAGIC2_OFF   / WII_SECTOR_SIZE ]	= WD_USAGE_DISC;
+
+    const int part_fw = sprintf(iobuf,"%d",n_mix-1);
 
     u32 error_count = 0;
     u8 dest_id = WD_USAGE_PART_0;
@@ -131,12 +139,34 @@ static enumError verify_mix ( Mix_t * mixtab, int n_mix, bool dump )
 	u8 *dest = utab + mix->dest_sector, *enddest = dest + max_sectors;
 	const u8 *src = mix->disc->usage_table + mix->src_sector;
 	for ( ; dest < enddest; dest++, src++ )
+	{
 	    if ( ( *src & WD_USAGE__MASK ) == src_id )
 	    {
-		if (*dest)
-		    error_count++;
-		*dest = dest_id | *src & WD_USAGE_F_CRYPT;
+		u8 * start = dest;
+		while ( dest < enddest && ( *src & WD_USAGE__MASK ) == src_id )
+		{
+		    if (*dest)
+			error_count++;
+		    *dest++ = dest_id | *src++ & WD_USAGE_F_CRYPT;
+		}
+
+		if (mm)
+		{
+		    MemMapItem_t * item
+			= InsertMemMap( mm,
+					(start-utab) * (u64)WII_SECTOR_SIZE,
+					(dest-start) * (u64)WII_SECTOR_SIZE );
+		    DASSERT(item);
+		    item->index = mix - mixtab;
+		    snprintf(item->info,sizeof(item->info),
+			    "P.%0*u, %s, %s -> %s",
+			    part_fw, (int)(mix-mixtab),
+			    wd_print_id(&mix->disc->dhead.disc_id,6,0),
+			    wd_print_part_name(0,0,part->part_type,WD_PNAME_NUM_INFO),
+			    wd_print_part_name(0,0,mix->ptype,WD_PNAME_NUM_INFO) );
+		}
 	    }
+	}
     }
 
     if (dump)
@@ -148,6 +178,7 @@ static enumError verify_mix ( Mix_t * mixtab, int n_mix, bool dump )
 
     if (error_count)
 	return ERROR0(ERR_INTERNAL,"Verification of overlay failed!\n");
+
     return ERR_OK;
 }
 
@@ -546,7 +577,7 @@ static void sector_mix ( MixParam_t * p, Mix_t * m1, Mix_t * m2 )
 	m2->dest_sector = start + delta;
 	p->max_end = max_end;
      #ifdef TEST
-	verify_mix(p->mix,p->n_mix,false);
+	verify_mix(p->mix,p->n_mix,false,0);
      #endif
     }
 }
@@ -903,7 +934,9 @@ enumError cmd_mix()
 
     //----- print log table
 
-    enumError err = verify_mix( mixtab, n_mix, testmode > 1 || verbose > 2 );
+    MemMap_t mm;
+    InitializeMemMap(&mm);
+    enumError err = verify_mix( mixtab, n_mix, testmode > 1 || verbose > 2, &mm );
 
     Mix_t *mix, *end_mix = mixtab + n_mix;
 
@@ -981,16 +1014,28 @@ enumError cmd_mix()
     if (err) // verify status
 	return err;
 
+    if (logging)
+    {
+	printf("Partition layout of new mixed disc:\n\n");
+	PrintMemMap(&mm,stdout,3);
+	putchar('\n');
+    }
+
 
     //----- setup dhead
 
     char * dest = iobuf + sprintf(iobuf,"WIT mix of");
     ccp sep = " ";
 
+    u64 dest_file_size = WII_SECTORS_SINGLE_LAYER * (u64)WII_SECTOR_SIZE;
     for ( mix = mixtab; mix < end_mix; mix++ )
     {
 	dest += sprintf(dest,"%s%.6s",sep,&mix->part->boot.dhead.disc_id);
 	sep = " + ";
+	const u64 end_off = mix->part->part_size + mix->dest_sector * (u64)WII_SECTOR_SIZE;
+	if ( dest_file_size < end_off )
+	     dest_file_size = end_off;
+	PRINT("FILE-SIZE: %9llx %9llx\n",end_off,dest_file_size);
     }
     
     wd_header_t dhead;
@@ -1041,41 +1086,6 @@ enumError cmd_mix()
 		p8[0], p8[1], p8[2], p8[3], p8[4], p8[5], p8[6], p8[7] );
     }
 
-    //--- built memory map
-
-    MemMap_t mm;
-    InitializeMemMap(&mm);
-
-    for ( mix = mixtab; mix < end_mix; mix++ )
-    {
-	u64 off  = mix->dest_sector * (u64)WII_SECTOR_SIZE;
-	u64 size = mix->a1size  * (u64)WII_SECTOR_SIZE;
-	MemMapItem_t * item = InsertMemMap(&mm,off,size);
-	DASSERT(item);
-	item->index = mix - mixtab;
-	snprintf(item->info,sizeof(item->info),
-		    "partition #%-2u %s", (int)(mix-mixtab),
-		    wd_print_part_name(0,0,mix->ptype,WD_PNAME_COLUMN_9) );
-
-	if ( mix->a2off )
-	{
-	    off += mix->a2off * (u64)WII_SECTOR_SIZE;
-	    size = mix->a2size  * (u64)WII_SECTOR_SIZE;
-	    item = InsertMemMap(&mm,off,size);
-	    DASSERT(item);
-	    item->index = mix - mixtab | 0x80;
-	    snprintf(item->info,sizeof(item->info),
-			"partition #%-2u %s+", (int)(mix-mixtab),
-			wd_print_part_name(0,0,mix->ptype,WD_PNAME_COLUMN_9) );
-	}
-    }
-
-    if (logging)
-    {
-	printf("Parition layout of new mixed disc:\n\n");
-	PrintMemMap(&mm,stdout,3);
-	putchar('\n');
-    }
 
     //----- execute
 
@@ -1095,7 +1105,7 @@ enumError cmd_mix()
 	if (err)
 	    goto abort;
 
-	err = SetMinSizeSF(&fo, WII_SECTORS_SINGLE_LAYER * (u64)WII_SECTOR_SIZE );
+	err = SetMinSizeSF(&fo,dest_file_size);
 	if (err)
 	    goto abort;
 
@@ -1170,12 +1180,13 @@ enumError cmd_mix()
 	    u32 index = item->index & 0x7f;
 	    DASSERT( index < n_mix );
 	    mix = mixtab + index;
-	    u64 src_off = ( mix->src_sector
-				+ (item->index & 0x80 ? mix->a2off : 0 ))
-			* (u64)WII_SECTOR_SIZE;
+	    u64 src_off = item->off
+			+ ( (int)mix->src_sector - (int)mix->dest_sector )
+			* (s64)WII_SECTOR_SIZE;
 	    if ( verbose > 0 )
-		printf(" - copy P.%-2u %9llx -> %9llx, size=%9llx\n",
-		    index, src_off, (u64)item->off, (u64)item->size );
+		printf(" - copy P.%-2u %9llx -> %9llx .. %9llx, size=%9llx\n",
+		    index, src_off, (u64)item->off,
+		    (u64)item->off + (u64)item->size, (u64)item->size );
 
 	    err = CopyRawData2(mix->sf,src_off,&fo,item->off,item->size);
 	    if (err)
