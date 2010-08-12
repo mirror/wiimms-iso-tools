@@ -352,7 +352,7 @@ enumError cmd_create()
 		param = param->next;
 	    }
 
-	    ticket_sign_trucha(&tik,sizeof(tik));
+	    ticket_fake_sign(&tik,sizeof(tik));
 	    if ( verbose > 1 )
 		Dump_TIK_MEM(stdout,2,&tik);
 	    if (!testmode)
@@ -387,7 +387,7 @@ enumError cmd_create()
 		param = param->next;
 	    }
 
-	    tmd_sign_trucha(tmd,sizeof(tmd_buf));
+	    tmd_fake_sign(tmd,sizeof(tmd_buf));
 	    if ( verbose > 1 )
 		Dump_TMD_MEM(stdout,2,tmd,1);
 	    if (!testmode)
@@ -446,7 +446,7 @@ enumError exec_filetype ( SuperFile_t * sf, Iterator_t * it )
     ASSERT(sf);
     ASSERT(it);
 
-    const bool print_header = !(used_options&OB_NO_HEADER);
+    const bool print_header = !OptionUsed[OPT_NO_HEADER];
     ccp ftype = GetNameFT(sf->f.ftype,0);
 
     if ( it->long_count > 1 )
@@ -526,7 +526,7 @@ enumError cmd_filetype()
     it.long_count	= long_count;
     const enumError err = SourceIterator(&it,1,true,false);
 
-    if ( !(used_options&OB_NO_HEADER) && it.done_count )
+    if ( !OptionUsed[OPT_NO_HEADER] && it.done_count )
 	putchar('\n');
 
     ResetIterator(&it);
@@ -549,7 +549,7 @@ enumError exec_isosize ( SuperFile_t * sf, Iterator_t * it )
 	    wd_filter_usage_table(disc,wdisc_usage_tab,0);
     }
 
-    const bool print_header = !(used_options&OB_NO_HEADER);
+    const bool print_header = !OptionUsed[OPT_NO_HEADER];
 
     if ( it->long_count > 1 )
     {
@@ -639,7 +639,7 @@ enumError cmd_isosize()
     it.long_count	= long_count;
     const enumError err = SourceIterator(&it,1,true,false);
 
-    if ( !(used_options&OB_NO_HEADER) && it.done_count )
+    if ( !OptionUsed[OPT_NO_HEADER] && it.done_count )
 	putchar('\n');
 
     ResetIterator(&it);
@@ -833,7 +833,7 @@ enumError cmd_id6()
     if ( err > ERR_WARNING )
 	return err;
 
-    SortWDiscList(&wlist,sort_mode,SORT_ID, used_options&OB_UNIQUE ? 2 : 0 );
+    SortWDiscList(&wlist,sort_mode,SORT_ID, OptionUsed[OPT_UNIQUE] ? 2 : 0 );
 
     WDiscListItem_t * ptr = wlist.first_disc;
     WDiscListItem_t * end = ptr + wlist.used;
@@ -878,7 +878,7 @@ enumError cmd_list ( int long_level )
     if ( err > ERR_WARNING )
 	return err;
 
-    SortWDiscList(&wlist,sort_mode,SORT_TITLE, used_options&OB_UNIQUE ? 1 : 0 );
+    SortWDiscList(&wlist,sort_mode,SORT_TITLE, OptionUsed[OPT_UNIQUE] ? 1 : 0 );
 
     //------------------------------
 
@@ -905,7 +905,7 @@ enumError cmd_list ( int long_level )
 
     WDiscListItem_t *witem, *wend = wlist.first_disc + wlist.used;
 
-    const bool print_header = !(used_options&OB_NO_HEADER);
+    const bool print_header = !OptionUsed[OPT_NO_HEADER];
     const bool line2 = long_count > 2;
 
     PrintTime_t pt;
@@ -1011,7 +1011,7 @@ enumError exec_ilist ( SuperFile_t * fi, Iterator_t * it )
 
     if ( fi->f.ftype & FT__SPC_MASK )
     {
-	if ( !(used_options & OB_IGNORE) )
+	if ( !OptionUsed[OPT_IGNORE] )
 	    PrintErrorFT(&fi->f,FT_A_ISO);
 	return ERR_OK;
     }
@@ -1058,7 +1058,7 @@ enumError cmd_ilist ( int long_level )
 
     Iterator_t it;
     InitializeIterator(&it);
-    //it.act_non_iso	= used_options & OB_IGNORE ? ACT_IGNORE : ACT_WARN;
+    //it.act_non_iso	= OptionUsed[OPT_IGNORE] ? ACT_IGNORE : ACT_WARN;
     it.act_non_iso	= ACT_ALLOW;
     it.act_wbfs		= ACT_EXPAND;
     it.act_fst		= allow_fst ? ACT_EXPAND : ACT_IGNORE;
@@ -1074,7 +1074,7 @@ enumError cmd_ilist ( int long_level )
 	    default: it.show_mode = SHOW_F_HEAD | SHOW__ALL; break;
 	}
     }
-    if ( used_options & OB_NO_HEADER )
+    if ( OptionUsed[OPT_NO_HEADER] )
 	it.show_mode &= ~SHOW_F_HEAD;
     if ( it.show_mode & (SHOW_F_DEC|SHOW_F_HEX) )
 	it.show_mode |= SHOW_SIZE;
@@ -1208,7 +1208,7 @@ enumError cmd_diff()
 
     Iterator_t it;
     InitializeIterator(&it);
-    it.act_non_iso	= used_options & OB_IGNORE ? ACT_IGNORE : ACT_WARN;
+    it.act_non_iso	= OptionUsed[OPT_IGNORE] ? ACT_IGNORE : ACT_WARN;
     it.act_non_exist	= it.act_non_iso;
     it.act_wbfs		= ACT_EXPAND;
     it.act_fst		= allow_fst ? ACT_EXPAND : ACT_IGNORE;
@@ -1288,7 +1288,7 @@ enumError exec_extract ( SuperFile_t * fi, Iterator_t * it )
     memset(&wfi,0,sizeof(wfi));
     wfi.sf		= fi;
     wfi.fst		= &fst;
-    wfi.set_time	= used_options & OB_PRESERVE ? &fi->f.fatt : 0;;
+    wfi.set_time	= OptionUsed[OPT_PRESERVE] ? &fi->f.fatt : 0;;
     wfi.overwrite	= it->overwrite;
     wfi.verbose		= long_count > 0 ? long_count : verbose > 0 ? 1 : 0;
 
@@ -1337,10 +1337,10 @@ enumError cmd_extract()
 
     Iterator_t it;
     InitializeIterator(&it);
-    it.act_non_iso	= used_options & OB_IGNORE ? ACT_IGNORE : ACT_WARN;
+    it.act_non_iso	= OptionUsed[OPT_IGNORE] ? ACT_IGNORE : ACT_WARN;
     it.act_wbfs		= ACT_EXPAND;
     it.act_fst		= allow_fst ? ACT_EXPAND : ACT_IGNORE;
-    it.overwrite	= used_options & OB_OVERWRITE ? 1 : 0;
+    it.overwrite	= OptionUsed[OPT_OVERWRITE] ? 1 : 0;
 
     enumError err = SourceIterator(&it,0,false,true);
     if ( err <= ERR_WARNING )
@@ -1460,7 +1460,7 @@ enumError exec_copy ( SuperFile_t * fi, Iterator_t * it )
     if (it->remove_source)
 	RemoveSF(fi);
 
-    return ResetSF( &fo, used_options & OB_PRESERVE ? &fi->f.fatt : 0 );
+    return ResetSF( &fo, OptionUsed[OPT_PRESERVE] ? &fi->f.fatt : 0 );
 
  abort:
     RemoveSF(&fo);
@@ -1471,7 +1471,7 @@ enumError exec_copy ( SuperFile_t * fi, Iterator_t * it )
 
 enumError cmd_copy()
 {
-    if ( used_options & OB_FST )
+    if ( OptionUsed[OPT_FST] )
     {
 	enumError cmd_extract();
 	return cmd_extract();
@@ -1500,12 +1500,12 @@ enumError cmd_copy()
 
     Iterator_t it;
     InitializeIterator(&it);
-    it.act_non_iso	= used_options & OB_IGNORE ? ACT_IGNORE : ACT_WARN;
+    it.act_non_iso	= OptionUsed[OPT_IGNORE] ? ACT_IGNORE : ACT_WARN;
     it.act_wbfs		= ACT_EXPAND;
     it.act_fst		= allow_fst ? ACT_EXPAND : ACT_IGNORE;
-    it.overwrite	= used_options & OB_OVERWRITE ? 1 : 0;
-    it.update		= used_options & OB_UPDATE ? 1 : 0;
-    it.remove_source	= used_options & OB_REMOVE ? 1 : 0;
+    it.overwrite	= OptionUsed[OPT_OVERWRITE] ? 1 : 0;
+    it.update		= OptionUsed[OPT_UPDATE] ? 1 : 0;
+    it.remove_source	= OptionUsed[OPT_REMOVE] ? 1 : 0;
 
     if ( testmode > 1 )
     {
@@ -1542,7 +1542,7 @@ enumError cmd_scrub()
 
     Iterator_t it;
     InitializeIterator(&it);
-    it.act_non_iso	= used_options & OB_IGNORE ? ACT_IGNORE : ACT_WARN;
+    it.act_non_iso	= OptionUsed[OPT_IGNORE] ? ACT_IGNORE : ACT_WARN;
     it.act_wbfs		= it.act_non_iso;
     it.scrub_it		= true;
     it.overwrite	= true;
@@ -1605,7 +1605,7 @@ enumError exec_edit ( SuperFile_t * fi, Iterator_t * it )
 		err = CopyRawData(fi,fi,idx*WII_SECTOR_SIZE,WII_SECTOR_SIZE);
     }
 
-    ResetSF( fi, !err && used_options & OB_PRESERVE ? &fi->f.fatt : 0 );
+    ResetSF( fi, !err && OptionUsed[OPT_PRESERVE] ? &fi->f.fatt : 0 );
     return err;
 }
 
@@ -1622,7 +1622,7 @@ enumError cmd_edit()
 
     Iterator_t it;
     InitializeIterator(&it);
-    it.act_non_iso	= used_options & OB_IGNORE ? ACT_IGNORE : ACT_WARN;
+    it.act_non_iso	= OptionUsed[OPT_IGNORE] ? ACT_IGNORE : ACT_WARN;
     it.act_wbfs		= it.act_non_iso;
 
     if ( testmode > 1 )
@@ -1720,9 +1720,9 @@ enumError cmd_move()
 
     Iterator_t it;
     InitializeIterator(&it);
-    it.act_non_iso	= used_options & OB_IGNORE ? ACT_IGNORE : ACT_WARN;
+    it.act_non_iso	= OptionUsed[OPT_IGNORE] ? ACT_IGNORE : ACT_WARN;
     it.act_wbfs		= ACT_ALLOW;
-    it.overwrite	= used_options & OB_OVERWRITE ? 1 : 0;
+    it.overwrite	= OptionUsed[OPT_OVERWRITE] ? 1 : 0;
 
     if ( testmode > 1 )
     {
@@ -1765,8 +1765,8 @@ enumError exec_rename ( SuperFile_t * fi, Iterator_t * it )
     }
     param->count++;
 
-    bool change_wbfs	= 0 != ( used_options & OB_WBFS );
-    bool change_iso	= 0 != ( used_options & OB_ISO );
+    bool change_wbfs	= 0 != OptionUsed[OPT_WBFS];
+    bool change_iso	= 0 != OptionUsed[OPT_ISO];
     if ( !change_wbfs && !change_iso )
 	change_wbfs = change_iso = true;
 
@@ -1813,7 +1813,7 @@ enumError cmd_rename ( bool rename_id )
     Iterator_t it;
     InitializeIterator(&it);
     it.open_modify	= !testmode;
-    it.act_non_iso	= used_options & OB_IGNORE ? ACT_IGNORE : ACT_WARN;
+    it.act_non_iso	= OptionUsed[OPT_IGNORE] ? ACT_IGNORE : ACT_WARN;
     it.act_wbfs		= ACT_EXPAND;
     it.long_count	= long_count;
 
@@ -1895,7 +1895,7 @@ enumError cmd_verify()
 
     Iterator_t it;
     InitializeIterator(&it);
-    it.act_non_iso	= used_options & OB_IGNORE ? ACT_IGNORE : ACT_WARN;
+    it.act_non_iso	= OptionUsed[OPT_IGNORE] ? ACT_IGNORE : ACT_WARN;
     it.act_wbfs		= ACT_EXPAND;
     it.act_fst		= allow_fst ? ACT_EXPAND : ACT_IGNORE;
     it.long_count	= long_count;
@@ -1979,6 +1979,7 @@ enumError CheckOptions ( int argc, char ** argv, bool is_env )
 	case GO_HOOK:		opt_hook = 1; break;
 	case GO_ENC:		err += ScanOptEncoding(optarg); break;
 	case GO_REGION:		err += ScanOptRegion(optarg); break;
+	case GO_COMMON_KEY:	err += ScanOptCommonKey(optarg); break;
 	case GO_IOS:		err += ScanOptIOS(optarg); break;
 	case GO_ID:		err += ScanOptId(optarg); break;
 	case GO_NAME:		err += ScanOptName(optarg); break;
@@ -2055,7 +2056,7 @@ enumError CheckOptions ( int argc, char ** argv, bool is_env )
 
       }
     }
-    if ( used_options & OB_NO_HEADER )
+    if ( OptionUsed[OPT_NO_HEADER] )
 	opt_show_mode &= ~SHOW_F_HEAD;
 
  #ifdef DEBUG

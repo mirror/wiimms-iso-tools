@@ -41,7 +41,6 @@ enumError RegisterOption
     ASSERT(iu->opt_info);
     ASSERT(iu->opt_used);
     ASSERT(iu->opt_index);
-    ASSERT( iu->n_opt_specific < sizeof(option_t) * CHAR_BIT );
 
     if ( level > 0 && option >= 0 && option < OPT_INDEX_SIZE )
     {
@@ -69,13 +68,6 @@ enumError RegisterOption
 		*obj = count < 0xff ? count : 0xff;
 	    }
 
-	    if ( opt_index < iu->n_opt_specific )
-	    {
-		if (is_env)
-		    env_options |= (option_t)1 << opt_index;
-		else
-		    used_options |= (option_t)1 << opt_index;
-	    }
 	    return ERR_OK;
 	}
     }
@@ -89,35 +81,41 @@ enumError VerifySpecificOptions ( const InfoUI_t * iu, const CommandTab_t * cmd 
 {
     ASSERT(iu);
     ASSERT(cmd);
-    ASSERT( iu->n_opt_specific < sizeof(option_t) * CHAR_BIT );
 
-    option_t forbidden = used_options & ~cmd->opt;
+    ASSERT( cmd->id > 0 && cmd->id < iu->n_cmd );
+    const InfoCommand_t * ic = iu->cmd_info + cmd->id;
+    ASSERT(ic->opt_allowed);
+    u8 * allow  = ic->opt_allowed;
+    u8 * active = iu->opt_used;
 
-    TRACE("COMMAND: %s\n",cmd->name1);
-    TRACE("  - environ options:   %16llx\n",env_options);
-    TRACE("  - used options:      %16llx\n",used_options);
-    TRACE("  - allowed options:   %16llx\n",cmd->opt);
-    TRACE("  - forbidden options: %16llx\n",forbidden);
+    TRACE("ALLOWED SPECIFIC OPTIONS:\n");
+    TRACE_HEXDUMP(10,0,0,-20,allow,iu->n_opt_specific);
+    TRACE("ACTIVE SPECIFIC OPTIONS:\n");
+    TRACE_HEXDUMP(10,0,0,-20,active,iu->n_opt_specific);
 
-    if ( forbidden )
+    enumError err = ERR_OK;
+    int idx;
+    for ( idx = 0; idx < iu->n_opt_specific; idx++, allow++, active++ )
     {
-	int i;
-	for ( i=0; forbidden; i++, forbidden >>= 1 )
-	    if ( forbidden & 1 )
+	if (!*allow)
+	{
+	    if ( *active & 0x80 )
 	    {
-		const InfoOption_t * io = iu->opt_info + i;
+		const InfoOption_t * io = iu->opt_info + idx;
 		if (io->short_name)
 		    ERROR0(ERR_SEMANTIC,"Command '%s' don't allow the option --%s (-%c).\n",
 				cmd->name1, io->long_name, io->short_name );
 		else
 		    ERROR0(ERR_SEMANTIC,"Command '%s' don't allow the option --%s.\n",
 				cmd->name1, io->long_name );
+		err = ERR_SEMANTIC;
+		
 	    }
-	return ERR_SEMANTIC;
+	    else 
+		*active = 0; // clear environ settings
+	}
     }
-
-    used_options |= env_options & cmd->opt;
-    return ERR_OK;
+    return err;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -127,7 +125,6 @@ int GetOptionCount ( const InfoUI_t * iu, int option )
     ASSERT(iu);
     ASSERT(iu->opt_info);
     ASSERT(iu->opt_used);
-    ASSERT( iu->n_opt_specific < sizeof(option_t) * CHAR_BIT );
 
     if ( option > 0 && option <  iu->n_opt_total )
     {
@@ -148,12 +145,9 @@ void DumpUsedOptions ( const InfoUI_t * iu, FILE * f, int indent )
     ASSERT(iu);
     ASSERT(iu->opt_info);
     ASSERT(iu->opt_used);
-    ASSERT( iu->n_opt_specific < sizeof(option_t) * CHAR_BIT );
 
     TRACE("OptionUsed[]:\n");
     TRACE_HEXDUMP16(9,0,iu->opt_used,iu->n_opt_total+1);
-    TRACE("env_options  = %16llx\n",env_options);
-    TRACE("used_options = %16llx\n",used_options);
 
     if (!f)
 	return;

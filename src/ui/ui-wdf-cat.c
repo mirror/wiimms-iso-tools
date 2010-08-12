@@ -152,10 +152,11 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	" output (stdout) and extract WDF and CISO files on the fly. All other"
 	" files are copied byte by byte.",
 	5,
-	option_tab_tool
+	option_tab_tool,
+	0
     },
 
-    {0,0,0,0,0,0,0,0}
+    {0,0,0,0,0,0,0,0,0}
 };
 
 //

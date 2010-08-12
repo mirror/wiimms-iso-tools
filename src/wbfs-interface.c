@@ -891,8 +891,6 @@ enumError OpenParWBFS
     par->write_hdsector	= WrapperWriteSector;
     par->callback_data	= sf;
     par->part_lba	= 0;
-    if (!sf->f.is_writing)
-	par->readonly = 1;
 
     w->wbfs = wbfs_open_partition_param(par);
 
@@ -1072,7 +1070,7 @@ enumError RecoverWBFS ( WBFS_t * wbfs, ccp fname, bool testmode )
 		    w->max_disc * w->disc_info_sz );
 
 	memset(w->freeblks,0,w->freeblks_size4*4);
-	SyncWBFS(wbfs);
+	SyncWBFS(wbfs,true);
 
 	CheckWBFS_t ck;
 	InitializeCheckWBFS(&ck);
@@ -1127,7 +1125,7 @@ enumError RecoverWBFS ( WBFS_t * wbfs, ccp fname, bool testmode )
 		if (dirty)
 		{
 		    ResetCheckWBFS(&ck);
-		    SyncWBFS(wbfs);
+		    SyncWBFS(wbfs,true);
 		    CheckWBFS(&ck,wbfs,-1,0,0);
 		}
 
@@ -1135,7 +1133,7 @@ enumError RecoverWBFS ( WBFS_t * wbfs, ccp fname, bool testmode )
 		RepairWBFS(&ck,0,REPAIR_FBT|REPAIR_RM_INVALID|REPAIR_RM_EMPTY,-1,0,0);
 		TRACELINE;
 		ResetCheckWBFS(&ck);
-		SyncWBFS(wbfs);
+		SyncWBFS(wbfs,true);
 		if (CheckWBFS(&ck,wbfs,1,stdout,1))
 		    printf(" *** Run REPAIR %s ***\n\n", fname ? fname : wbfs->sf->f.fname );
 		else
@@ -1160,7 +1158,7 @@ enumError RecoverWBFS ( WBFS_t * wbfs, ccp fname, bool testmode )
 enumError TruncateWBFS ( WBFS_t * w )
 {
     ASSERT(w);
-    TRACE("TruncateWBFS() fd=%d\n", w->sf ? GetFD(&w->sf->f) : -2 );
+    PRINT("TruncateWBFS() fd=%d\n", w->sf ? GetFD(&w->sf->f) : -2 );
 
     enumError err = CloseWDisc(w);
     if ( w->wbfs && w->sf )
@@ -1205,13 +1203,20 @@ enumError CalcWBFSUsage ( WBFS_t * w )
 
 ///////////////////////////////////////////////////////////////////////////////
 
-enumError SyncWBFS ( WBFS_t * w )
+enumError SyncWBFS ( WBFS_t * w, bool force_sync )
 {
     ASSERT(w);
-    if (!w->wbfs)
+    wbfs_t * wbfs = w->wbfs;
+    if (!wbfs)
 	return ERR_OK;
 
-    wbfs_sync(w->wbfs);
+    wbfs_disc_t * disc = w->disc;
+    if ( disc && ( force_sync || disc->is_dirty ) )
+	wbfs_sync_disc_header(disc);
+
+    if ( force_sync || wbfs->is_dirty )
+	wbfs_sync(wbfs);
+
     return CalcWBFSUsage(w);
 }
 
@@ -1471,7 +1476,7 @@ enumError DumpWBFS
 		}
 
 		memset(&dinfo,0,sizeof(dinfo));
-		memcpy(&dinfo.dhead,d->header->disc_header_copy,sizeof(dinfo.dhead));
+		memcpy(&dinfo.dhead,d->header->dhead,sizeof(dinfo.dhead));
 		CalcWDiscInfo(&dinfo,0);
 	    }
 
@@ -1541,7 +1546,7 @@ enumError DumpWBFS
 		if ( dump_level > 2 )
 		{
 		    mi = InsertMemMap(&mm, w->hd_sec_sz+slot*w->disc_info_sz,
-				sizeof(d->header->disc_header_copy)
+				sizeof(d->header->dhead)
 				+ sizeof(*d->header->wlba_table) * w->n_wbfs_sec_per_disc );
 		    snprintf(mi->info,sizeof(mi->info),
 				"Inode of slot #%03u [%s]",slot,dinfo.id6);
@@ -2331,7 +2336,7 @@ enumError CheckWBFS
 	    continue;
 
 	CheckDisc_t * g = disc + slot;
-	memcpy(g->id6,d->header->disc_header_copy,6);
+	memcpy(g->id6,d->header->dhead,6);
 
 	wbfs_inode_info_t * iinfo = wbfs_get_disc_inode_info(d,0);
 	if (!wbfs_is_inode_info_valid(wbfs->wbfs,iinfo))
@@ -3626,22 +3631,6 @@ enumError ExtractWDisc ( WBFS_t * w, SuperFile_t * sf )
     TRACE("ExtractWDisc(%p,%p)\n",w,sf);
     if ( !w || !w->wbfs | !w->sf || !w->disc || !sf )
 	return ERROR0(ERR_INTERNAL,0);
-
-    if (sf->wbfs)
-    {
-	// change roles
-	sf->wbfs->sf = sf;
-	w->sf->wbfs = w;
-	SetupIOD(w->sf,OFT_WBFS,OFT_WBFS);
-
-	// copy progress parameters
-	w->sf->indent		= sf->indent;
-	w->sf->show_progress	= sf->show_progress;
-	w->sf->show_summary	= sf->show_summary;
-	w->sf->show_msec	= sf->show_msec;
-
-	return AddWDisc(sf->wbfs,w->sf,&part_selector);
-    }
 
     SetMinSizeSF(sf,(off_t)WII_SECTORS_SINGLE_LAYER *WII_SECTOR_SIZE);
 

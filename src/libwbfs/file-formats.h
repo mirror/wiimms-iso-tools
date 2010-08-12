@@ -146,6 +146,11 @@ enum // some constants
     WII_GOOD_UPDATE_PART_OFF	=   0x50000,
     WII_GOOD_DATA_PART_OFF	= 0xf800000,
 
+    WBFS_MIN_SECTOR_SHIFT	=  6,	// needed for wbfs_calc_size_shift()
+    WBFS_MAX_SECTOR_SHIFT	= 11,	// needed for wbfs_calc_size_shift()
+    WBFS_MIN_SECTOR_SIZE	= 1 << WBFS_MIN_SECTOR_SHIFT + WII_SECTOR_SIZE_SHIFT,
+    WBFS_MAX_SECTOR_SIZE	= 1 << WBFS_MAX_SECTOR_SHIFT + WII_SECTOR_SIZE_SHIFT,
+
     WBFS_INODE_INFO_VERSION	=    1,
     WBFS_INODE_INFO_HEAD_SIZE	=   12,
     WBFS_INODE_INFO_CMP_SIZE	=   10,
@@ -389,7 +394,7 @@ typedef struct wd_ticket_t
   /* 0x242 */	u8  padding2[2]; 	// always 0
   /* 0x244 */	u32 enable_time_limit;	// 1=enabled, 0=disabled
   /* 0x248 */	u32 time_limit;		// seconds (what is the epoch?)
-  /* 0x24c */	u8  trucha_pad[0x58];	// always 0
+  /* 0x24c */	u8  fake_sign[0x58];	// padding, always 0 => used for fake signing
 
 }
 __attribute__ ((packed)) wd_ticket_t;
@@ -402,8 +407,8 @@ void ticket_setup ( wd_ticket_t * ticket, const void * id4 );
 
 void ticket_clear_encryption ( wd_ticket_t * ticket, int mark_not_encrypted );
 bool ticket_is_marked_not_encrypted ( const wd_ticket_t * ticket );
-u32  ticket_sign_trucha ( wd_ticket_t * ticket, u32 ticket_size );
-bool ticket_is_trucha_signed ( const wd_ticket_t * ticket, u32 ticket_size );
+u32  ticket_fake_sign ( wd_ticket_t * ticket, u32 ticket_size );
+bool ticket_is_fake_signed ( const wd_ticket_t * ticket, u32 ticket_size );
 
 //
 ///////////////////////////////////////////////////////////////////////////////
@@ -465,7 +470,7 @@ typedef struct wd_tmd_t
   /* 0x18c */	u8  title_id[8];
   /* 0x194 */	u32 title_type;
   /* 0x198 */	u16 group_id;
-  /* 0x19a */	u8  reserved[0x3e]; 	// place of trucha brute force
+  /* 0x19a */	u8  fake_sign[0x3e]; 	// padding => place of dake signing
   /* 0x1d8 */	u32 access_rights;
   /* 0x1dc */	u16 title_version;
   /* 0x1de */	u16 n_content;
@@ -481,8 +486,8 @@ void tmd_setup ( wd_tmd_t * tmd, u32 tmd_size, const void * id4 );
 
 void tmd_clear_encryption ( wd_tmd_t * tmd, int mark_not_encrypted );
 bool tmd_is_marked_not_encrypted ( const wd_tmd_t * tmd );
-u32  tmd_sign_trucha ( wd_tmd_t * tmd, u32 tmd_size );
-bool tmd_is_trucha_signed ( const wd_tmd_t * tmd, u32 tmd_size );
+u32  tmd_fake_sign ( wd_tmd_t * tmd, u32 tmd_size );
+bool tmd_is_fake_signed ( const wd_tmd_t * tmd, u32 tmd_size );
 
 //
 ///////////////////////////////////////////////////////////////////////////////
@@ -526,8 +531,8 @@ int setup_part_control ( wd_part_control_t * pc );
 
 //----- encryption helpers
 
-u32 part_control_sign_trucha ( wd_part_control_t * pc, int calc_h4 );
-int part_control_is_trucha_signed ( const wd_part_control_t * pc );
+u32 part_control_fake_sign ( wd_part_control_t * pc, int calc_h4 );
+int part_control_is_fake_signed ( const wd_part_control_t * pc );
 
 //
 ///////////////////////////////////////////////////////////////////////////////
@@ -595,7 +600,7 @@ __attribute__ ((packed)) wbfs_head_t;
 
 typedef struct wbfs_disc_info_t
 {
- /*    0 */	u8	disc_header_copy[0x100];
+ /*    0 */	u8	dhead[0x100];
  /* 0x100 */	be16_t	wlba_table[0];	// wbfs_t::n_wbfs_sec_per_disc elements
 
 }

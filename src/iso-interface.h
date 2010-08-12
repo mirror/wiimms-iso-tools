@@ -583,22 +583,6 @@ void EncryptSectorGroup
     void		* h3
 );
 
-void EncryptSectors
-(
-    const aes_key_t	* akey,
-    const void		* sect_src,
-    void		* sect_dest,
-    size_t		n_sectors
-);
-
-void DecryptSectors
-(
-    const aes_key_t	* akey,
-    const void		* sect_src,
-    void		* sect_dest,
-    size_t		n_sectors
-);
-
 //
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////			    Verify_t			///////////////

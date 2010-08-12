@@ -44,23 +44,28 @@
 
 typedef struct control_t
 {
-	FILE * cf;		// output c file
-	FILE * hf;		// output h file
-	FILE * df;		// output def file
+    FILE		* cf;		// output c file
+    FILE		* hf;		// output h file
+    FILE		* df;		// output def file
 
-	const info_t * info;	// pointer to first info_t
-	const info_t * end;	// pointer to end of info_t
+    const info_t	* info;		// pointer to first info_t
+    const info_t	* end;		// pointer to end of info_t
 
-	int n_cmd;		// number of commands
-	int n_opt;		// number of options (==OPT__N_TOTAL)
-	int n_cmd_opt;		// number of options of current command
-	bool need_sep;		// separator needed
-	ccp cmd_name;		// name of current command
-	ccp opt_prefix;		// prefix for option variables, never NULL
+    int			n_cmd;		// number of commands
+    int			n_grp;		// number of helper groups
+    int			n_opt_specific;	// number of cmd specific options (=OPT__N_SPECIFIC)
+    int			n_opt;		// number of options (=OPT__N_TOTAL)
+    int			n_cmd_opt;	// number of options of current command
+    bool		need_sep;	// separator needed
+    ccp			cmd_name;	// name of current command
+    ccp			opt_prefix;	// prefix for option variables, never NULL
 
-	StringField_t gopt;	// global options
-	StringField_t copt;	// command specfic options
-	StringField_t opt_done;	// option handled
+    u8			*opt_allow_grp;	// grp allowed options: field[n_grp][n_opt_specific]
+    u8			*opt_allow_cmd;	// cmd allowed options: field[n_cmd][n_opt_specific]
+
+    StringField_t	gopt;		// global options
+    StringField_t	copt;		// command specfic options
+    StringField_t	opt_done;	// option handled
 
 } control_t;
 
@@ -420,7 +425,8 @@ static void print_links ( control_t * ctrl )
 			"%s,\n"			// param
 			"%s,\n"			// help
 			"\t%u,\n"		// n_opt
-			"\toption_tab_tool\n"	// opt
+			"\toption_tab_tool,\n"	// opt
+			"\t0\n"			// opt_allowed
 			"    },\n\n"
 			,info_cmd->c_name
 			,temp_param
@@ -471,15 +477,16 @@ static void print_links ( control_t * ctrl )
 	DumpText(0,temp_param,iobuf+sizeof(iobuf),info_cmd->param,0,"");
 	DumpText(0,temp_help,iobuf+sizeof(iobuf),info_cmd->help,0,"");
 	sum += snprintf(sum,sum_end-sum,
-			"    {\tCMD_%s,\n"	// id
-			"\t%s,\n"		// hidden
-			"\t%s,\n"		// separator
-			"\t\"%.*s\",\n"		// name1
-			"\t%s,\n"		// name2
-			"%s,\n"			// param
-			"%s,\n"			// help
-			"\t%u,\n"		// n_opt
-			"\toption_tab_cmd_%s\n"	// opt
+			"    {\tCMD_%s,\n"		// id
+			"\t%s,\n"			// hidden
+			"\t%s,\n"			// separator
+			"\t\"%.*s\",\n"			// name1
+			"\t%s,\n"			// name2
+			"%s,\n"				// param
+			"%s,\n"				// help
+			"\t%u,\n"			// n_opt
+			"\toption_tab_cmd_%s,\n"	// opt
+			"\toption_allowed_cmd_%s\n"	// opt_allowed
 			"    },\n\n"
 			,info_cmd->c_name
 			,info_cmd->type & F_HIDDEN ? "true" : "false"
@@ -490,6 +497,7 @@ static void print_links ( control_t * ctrl )
 			,temp_help
 			,ctrl->n_cmd_opt
 			,info_cmd->c_name
+			,info_cmd->c_name
 			);
 	separator = false;
     }
@@ -497,7 +505,7 @@ static void print_links ( control_t * ctrl )
     print_section(cf,sep1,"InfoCommand");
     fprintf(cf,"const InfoCommand_t CommandInfo[CMD__N+1] =\n{\n");
     fputs(sum_beg,cf);
-    fprintf(cf,"    {0,0,0,0,0,0,0,0}\n};\n");
+    fprintf(cf,"    {0,0,0,0,0,0,0,0,0}\n};\n");
 }
 
 //
@@ -547,6 +555,10 @@ static enumError Generate ( control_t * ctrl )
     FILE * hf = ctrl->hf;
     ASSERT(cf);
     ASSERT(hf);
+
+    free(ctrl->opt_allow_grp);
+    free(ctrl->opt_allow_cmd);
+    ctrl->opt_allow_grp = ctrl->opt_allow_cmd = 0;
 
     const info_t *info;
 
@@ -603,6 +615,7 @@ static enumError Generate ( control_t * ctrl )
 	    );
 
     ctrl->n_opt = 1;
+    ctrl->n_opt_specific = 0;
     if ( ctrl->n_cmd )
     {
 	fprintf(cf,"    //----- command specific options -----\n\n");
@@ -612,15 +625,17 @@ static enumError Generate ( control_t * ctrl )
 	    if ( info->type & F_OPT_COMMAND )
 		print_opt(ctrl,info);
 
+	ctrl->n_opt_specific = ctrl->n_opt;
+
 	fprintf(cf,
 		"    {0,0,0,0,0}, // OPT__N_SPECIFIC == %d\n\n"
 		"    //----- global options -----\n\n",
-		ctrl->n_opt );
+		ctrl->n_opt_specific );
 
 	fprintf(hf,
 		"\n\tOPT__N_SPECIFIC, // == %d \n\n"
 		"\t//----- global options -----\n\n",
-		ctrl->n_opt );
+		ctrl->n_opt_specific );
     }
 
     for ( info = ctrl->info; info < ctrl->end; info++ )
@@ -637,6 +652,21 @@ static enumError Generate ( control_t * ctrl )
 	    "} enumOptions;\n"
 	    ,ctrl->n_opt );
 
+    if (ctrl->n_opt_specific)
+    {
+	PRINT("opt_allowed = ( %2u + %2u ) * %2u\n",
+		ctrl->n_grp, ctrl->n_cmd, ctrl->n_opt_specific );
+	if (ctrl->n_grp)
+	{
+	    ctrl->opt_allow_grp = calloc(ctrl->n_grp,ctrl->n_opt_specific);
+	    if (!ctrl->opt_allow_grp)
+		OUT_OF_MEMORY;
+	}
+	ctrl->opt_allow_cmd = calloc(ctrl->n_cmd,ctrl->n_opt_specific);
+	if (!ctrl->opt_allow_cmd)
+	    OUT_OF_MEMORY;
+    }
+
 
     //----- print alternate option infos
 
@@ -644,6 +674,7 @@ static enumError Generate ( control_t * ctrl )
     const info_t * last_cmd = ctrl->info;
     ctrl->opt_prefix = "def";
     for ( info = ctrl->info; info < ctrl->end; info++ )
+    {
 	if ( info->type & T_CMD_BEG )
 	{
 	    ctrl->opt_prefix = "cmd";
@@ -670,6 +701,7 @@ static enumError Generate ( control_t * ctrl )
 		    break;
 		}
 	}
+    }
 
     //----- print enum enumOptionsBit
 
@@ -678,36 +710,50 @@ static enumError Generate ( control_t * ctrl )
 	print_section(hf,sep1,"enum enumOptionsBit");
 
 	fprintf(hf,
-		"typedef enum enumOptionsBit\n"
-		"{\n"
-		"\t//----- command specific options -----\n\n"
+		"//\t*****  only for verification  *****\n"
+		"\n"
+		"//typedef enum enumOptionsBit\n"
+		"//{\n"
+		"//\t//----- command specific options -----\n"
+		"//\n"
 		);
 
 	for ( info = ctrl->info; info < ctrl->end; info++ )
 	    if ( info->type & F_OPT_COMMAND )
-		fprintf(hf,"\tOB_%s%.*s= 1llu << OPT_%s,\n",
+		fprintf(hf,"//\tOB_%s%.*s= 1llu << OPT_%s,\n",
 			info->c_name,
 			( 28 - (int)strlen(info->c_name) ) / 8, tabs,
 			info->c_name );
 
-	fprintf(hf,"\n\t//----- group & command options -----\n");
+	fprintf(hf,"//\n//\t//----- group & command options -----\n");
 
 	for ( info = ctrl->info; info < ctrl->end; )
 	{
 	    ccp cmd_name;
+	    u8 * opt_allow = 0;
 	    if ( info->type & T_CMD_BEG )
 	    {
 		cmd_name = info->c_name;
-		fprintf(hf,"\n\tOB_CMD_%s%.*s=",
+		fprintf(hf,"//\n//\tOB_CMD_%s%.*s=",
 			info->c_name,
 			( 24 - (int)strlen(info->c_name) ) / 8, tabs );
+		if (ctrl->opt_allow_cmd)
+		{
+		    //PRINT("SELECT ALLOW CMD %u/%s\n",info->index,info->c_name);
+		    opt_allow = ctrl->opt_allow_cmd + info->index * ctrl->n_opt_specific;
+		}
 	    }
 	    else if ( info->type & T_GRP_BEG )
 	    {
 		cmd_name = info->c_name;
-		fprintf(hf,"\n\tOB_GRP_%s%.*s=",
+		fprintf(hf,"//\n//\tOB_GRP_%s%.*s=",
 			info->c_name,
 			( 24 - (int)strlen(info->c_name) ) / 8, tabs );
+		if (ctrl->opt_allow_grp)
+		{
+		    //PRINT("SELECT ALLOW GRP %u/%s\n",info->index,info->c_name);
+		    opt_allow = ctrl->opt_allow_grp + info->index * ctrl->n_opt_specific;
+		}
 	    }
 	    else
 	    {
@@ -720,15 +766,52 @@ static enumError Generate ( control_t * ctrl )
 	    while ( info < ctrl->end )
 	    {
 		if ( info->type & T_ALL_OPT )
-		    dest += sprintf(dest,"\n\t\t\t\t| ~(option_t)0");
+		{
+		    dest += sprintf(dest,"\n//\t\t\t\t| ~(u64)0");
+		    if (opt_allow)
+		    {
+			//PRINT("ALLOW ALL\n");
+			memset(opt_allow,1,ctrl->n_opt_specific);
+		    }
+		}
 		else if ( info->type & T_COPY_CMD )
-		    dest += sprintf(dest,"\n\t\t\t\t| OB_CMD_%s",info->c_name);
+		{
+		    dest += sprintf(dest,"\n//\t\t\t\t| OB_CMD_%s",info->c_name);
+		    if (opt_allow)
+		    {
+			//PRINT("OR CMD %u/%s\n",info->index,info->c_name);
+			DASSERT(ctrl->opt_allow_cmd);
+			u8 * src = ctrl->opt_allow_cmd + info->index * ctrl->n_opt_specific;
+			u8 * dest = opt_allow;
+			int count = ctrl->n_opt_specific;
+			while ( count-- > 0 )
+			    *dest++ |= *src++;
+		    }
+		}
 		else if ( info->type & T_COPY_GRP )
-		    dest += sprintf(dest,"\n\t\t\t\t| OB_GRP_%s",info->c_name);
+		{
+		    dest += sprintf(dest,"\n//\t\t\t\t| OB_GRP_%s",info->c_name);
+		    if ( opt_allow && ctrl->opt_allow_grp )
+		    {
+			//PRINT("OR GRP %u/%s\n",info->index,info->c_name);
+			u8 * src = ctrl->opt_allow_grp + info->index * ctrl->n_opt_specific;
+			u8 * dest = opt_allow;
+			int count = ctrl->n_opt_specific;
+			while ( count-- > 0 )
+			    *dest++ |= *src++;
+		    }
+		}
 		else if ( info->type & T_CMD_OPT )
 		{
 		    if (FindStringField(&ctrl->copt,info->c_name))
-			dest += sprintf(dest,"\n\t\t\t\t| OB_%s",info->c_name);
+		    {
+			dest += sprintf(dest,"\n//\t\t\t\t| OB_%s",info->c_name);
+			if ( opt_allow && info->index )
+			{
+			    //PRINT("ALLOW OPT %u/%s\n",info->index,info->c_name);
+			    opt_allow[info->index] = 1;
+			}
+		    }
 		    else if (!FindStringField(&ctrl->gopt,info->c_name))
 			ERROR0(ERR_SEMANTIC,"Option not defined: %s %s --%s",
 				tool_name, cmd_name, info->c_name );
@@ -741,10 +824,10 @@ static enumError Generate ( control_t * ctrl )
 	    if ( dest == iobuf )
 		fprintf(hf," 0,\n");
 	    else
-		fprintf(hf,"%s,\n",iobuf+6);
+		fprintf(hf,"%s,\n",iobuf+8);
 	}
 
-	fprintf(hf,"\n} enumOptionsBit;\n");
+	fprintf(hf,"//\n//} enumOptionsBit;\n");
     }
 
 
@@ -791,20 +874,18 @@ static enumError Generate ( control_t * ctrl )
 			const int l2 = ptr - n2;
 
 			fprintf(cf,
-				"    { CMD_%s,%.*s\"%.*s\",%.*s\"%.*s\",%.*sOB_CMD_%s },\n",
+				"    { CMD_%s,%.*s\"%.*s\",%.*s\"%.*s\",%.*s0 },\n",
 				info->c_name, (20-(int)strlen(info->c_name))/8, tabs,
 				l1, n1, (20-l1)/8, tabs,
-				l2, n2, (20-l2)/8, tabs,
-				info->c_name);
+				l2, n2, (20-l2)/8, tabs );
 
 			while ( *ptr == '|' )
 			    ptr++;
 		    }
 		    else
-			fprintf(cf, "    { CMD_%s,%.*s\"%.*s\",%.*s0,\t\tOB_CMD_%s },\n",
+			fprintf(cf, "    { CMD_%s,%.*s\"%.*s\",%.*s0,\t\t0 },\n",
 				info->c_name, (20-(int)strlen(info->c_name))/8, tabs,
-				l1, n1, (20-l1)/8, tabs,
-				info->c_name);
+				l1, n1, (20-l1)/8, tabs );
 		}
 	    }
 	    else if ( info->type == T_SEP_CMD )
@@ -817,9 +898,9 @@ static enumError Generate ( control_t * ctrl )
     }
 
     fprintf(hf,
-	    "\n\tCMD__N\n\n"
+	    "\n\tCMD__N // == %u\n\n"
 	    "} enumCommands;\n"
-	    );
+	    , ctrl->n_cmd );
 
 
     //----- print options
@@ -959,6 +1040,31 @@ static enumError Generate ( control_t * ctrl )
     }
     fprintf(cf,"};\n");
 
+
+    //----- option allowed
+
+    if (ctrl->opt_allow_cmd)
+    {
+	print_section(cf,sep1,"opt_allowed_cmd_*");
+	for ( info = ctrl->info; info < ctrl->end; info++ )
+	{
+	    if ( !( info->type & T_DEF_CMD ) )
+		continue;
+
+	    fprintf(cf,"static u8 option_allowed_cmd_%s[%u] = // cmd #%u\n{",
+		info->c_name, ctrl->n_opt_specific, info->index );
+
+	    int i;
+	    u8 * ptr = ctrl->opt_allow_cmd + info->index * ctrl->n_opt_specific;
+	    for ( i = 0; i < ctrl->n_opt_specific; i++ )
+		fprintf(cf, "%s%u%s",
+			    !(i%30) ? "\n    " : !(i%10) ? "  " : !(i%5) ? " " : "",
+			    ptr[i],
+			    i < ctrl->n_opt_specific-1 ? "," : "" );
+
+	    fprintf(cf,"\n};\n\n");
+	}
+    }
 
     //----- InfoCommand
 
@@ -1116,14 +1222,21 @@ int main ( int argc, char ** argv )
 	    if ( info->type & T_DEF_OPT )
 	    {
 		if ( info->type & F_OPT_GLOBAL )
+		{
 		    InsertStringField(&ctrl.gopt,info->c_name,false);
+		    ++ctrl.n_opt;
+		    //opt_index = 0 for global options
+		}
 		else
+		{
 		    InsertStringField(&ctrl.copt,info->c_name,false);
+		    info->index = ++ctrl.n_opt_specific;
+		}
 
 		if ( !info->help )
 		{
 		    // copy 'param' and 'help' info from previous tool
-		    const info_t * search = info-1;
+		    const info_t * search;
 		    for ( search = info; search >= info_tab; search-- )
 			if ( search->type & T_DEF_OPT
 			    && search->help
@@ -1150,7 +1263,7 @@ int main ( int argc, char ** argv )
 	    }
 	    else if ( info->type & T_DEF_CMD )
 	    {
-		ctrl.n_cmd++;
+		info->index = ++ctrl.n_cmd;
 
 		if ( !info->help )
 		{
@@ -1176,11 +1289,37 @@ int main ( int argc, char ** argv )
 		    DumpText(ctrl.df,0,0,info->help,1," )\n\n");
 		}
 	    }
+	    else if ( info->type & T_GRP_BEG )
+		info->index = ctrl.n_grp++; // NULL based
+	    else if ( info->type & (T_CMD_OPT|T_CMD_BEG|T_COPY_GRP|T_COPY_CMD) )
+	    {
+		const int type	= info->type & T_CMD_OPT  ? T_DEF_OPT
+				: info->type & T_COPY_GRP ? T_GRP_BEG
+				: T_DEF_CMD;
+			    
+		const info_t * search;
+		for ( search = ctrl.info; search < info; search++ )
+		    if ( search->type & type
+			&& !strcmp(search->c_name,info->c_name) )
+		    {
+			//PRINT("COPY INDEX #%x: %s\n",info->type,info->c_name);
+			info->index = search->index;
+			break;
+		    }
+	    }
 
 	    info++;
 	}
 	ctrl.end = info;
 
+	if (ctrl.n_cmd)
+	    ctrl.n_cmd++; // one more for CMD_NONE;
+
+	if (ctrl.n_opt_specific)
+	    ctrl.n_opt += ++ctrl.n_opt_specific;
+
+	TRACE("N: cmd=%u, grp=%u, opt=%d/%d\n",
+		ctrl.n_cmd, ctrl.n_grp, ctrl.n_opt_specific, ctrl.n_opt );
 	const enumError err = Generate(&ctrl);
 
 	fclose(ctrl.cf);

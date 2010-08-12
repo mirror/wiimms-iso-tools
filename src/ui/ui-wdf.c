@@ -241,14 +241,14 @@ const InfoOption_t option_cmd_DUMP_LONG =
 
 const CommandTab_t CommandTab[] =
 {
-    { CMD_VERSION,	"+VERSION",	"+V",		OB_CMD_VERSION },
-    { CMD_HELP,		"+HELP",	"+H",		OB_CMD_HELP },
-    { CMD_PACK,		"+PACK",	"+P",		OB_CMD_PACK },
-    { CMD_UNPACK,	"+UNPACK",	"+U",		OB_CMD_UNPACK },
-    { CMD_CAT,		"+CAT",		"+A",		OB_CMD_CAT },
-    { CMD_CMP,		"+CMP",		"+C",		OB_CMD_CMP },
-    { CMD_CMP,		"+DIFF",	0,		OB_CMD_CMP },
-    { CMD_DUMP,		"+DUMP",	"+D",		OB_CMD_DUMP },
+    { CMD_VERSION,	"+VERSION",	"+V",		0 },
+    { CMD_HELP,		"+HELP",	"+H",		0 },
+    { CMD_PACK,		"+PACK",	"+P",		0 },
+    { CMD_UNPACK,	"+UNPACK",	"+U",		0 },
+    { CMD_CAT,		"+CAT",		"+A",		0 },
+    { CMD_CMP,		"+CMP",		"+C",		0 },
+    { CMD_CMP,		"+DIFF",	0,		0 },
+    { CMD_DUMP,		"+DUMP",	"+D",		0 },
 
     { CMD__N,0,0,0 }
 };
@@ -354,6 +354,47 @@ const u8 OptionIndex[OPT_INDEX_SIZE] =
 	/*90*/	 0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0,
 	/*a0*/	 0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0,
 };
+
+//
+///////////////////////////////////////////////////////////////////////////////
+///////////////                opt_allowed_cmd_*                ///////////////
+///////////////////////////////////////////////////////////////////////////////
+
+static u8 option_allowed_cmd_VERSION[17] = // cmd #1
+{
+    0,0,1,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0
+};
+
+static u8 option_allowed_cmd_HELP[17] = // cmd #2
+{
+    1,1,1,1,1, 1,1,1,1,1,  1,1,1,1,1, 1,1
+};
+
+static u8 option_allowed_cmd_PACK[17] = // cmd #3
+{
+    0,0,0,0,1, 1,1,1,1,1,  1,1,1,1,0, 0,0
+};
+
+static u8 option_allowed_cmd_UNPACK[17] = // cmd #4
+{
+    0,0,0,0,0, 0,0,0,1,1,  1,1,1,1,0, 0,0
+};
+
+static u8 option_allowed_cmd_CAT[17] = // cmd #5
+{
+    0,0,0,0,0, 0,0,0,1,0,  1,0,1,1,0, 0,0
+};
+
+static u8 option_allowed_cmd_CMP[17] = // cmd #6
+{
+    0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0
+};
+
+static u8 option_allowed_cmd_DUMP[17] = // cmd #7
+{
+    0,1,1,1,0, 0,0,0,1,0,  1,0,0,0,0, 0,0
+};
+
 
 //
 ///////////////////////////////////////////////////////////////////////////////
@@ -481,7 +522,8 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	" names are wdf, unwdf, wdf-cat, wdf-cmp and wdf-dump (with or without"
 	" minus signs).",
 	9,
-	option_tab_tool
+	option_tab_tool,
+	0
     },
 
     {	CMD_VERSION,
@@ -492,7 +534,8 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	"wdf +VERSION [ignored]...",
 	"Print program name, version and the defaults and exit.",
 	1,
-	option_tab_cmd_VERSION
+	option_tab_cmd_VERSION,
+	option_allowed_cmd_VERSION
     },
 
     {	CMD_HELP,
@@ -504,7 +547,8 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	"Print help and exit. If the first non option is a valid command name,"
 	" then a help for the given command is printed.",
 	0,
-	option_tab_cmd_HELP
+	option_tab_cmd_HELP,
+	option_allowed_cmd_HELP
     },
 
     {	CMD_PACK,
@@ -515,7 +559,8 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	"wdf +PACK [option]... files...",
 	"Pack sources into WDF or CISO archives. This is the general default.",
 	12,
-	option_tab_cmd_PACK
+	option_tab_cmd_PACK,
+	option_allowed_cmd_PACK
     },
 
     {	CMD_UNPACK,
@@ -528,7 +573,8 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	"This is the default command, when the program name starts with the"
 	" two letters 'un' in any case.",
 	8,
-	option_tab_cmd_UNPACK
+	option_tab_cmd_UNPACK,
+	option_allowed_cmd_UNPACK
     },
 
     {	CMD_CAT,
@@ -543,7 +589,8 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	"This is the default command, when the program namecontains the three"
 	" letter 'cat' in any case.",
 	5,
-	option_tab_cmd_CAT
+	option_tab_cmd_CAT,
+	option_allowed_cmd_CAT
     },
 
     {	CMD_CMP,
@@ -560,7 +607,8 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	"This is the default command, when the program namecontains the"
 	" letters 'cmp' or 'diff' in any case.",
 	0,
-	option_tab_cmd_CMP
+	option_tab_cmd_CMP,
+	option_allowed_cmd_CMP
     },
 
     {	CMD_DUMP,
@@ -574,10 +622,11 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	"This is the default command, when the program contains the sub string"
 	" 'dump' in any case.",
 	6,
-	option_tab_cmd_DUMP
+	option_tab_cmd_DUMP,
+	option_allowed_cmd_DUMP
     },
 
-    {0,0,0,0,0,0,0,0}
+    {0,0,0,0,0,0,0,0,0}
 };
 
 //

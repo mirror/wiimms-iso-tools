@@ -239,7 +239,7 @@ enumError cmd_find()
     }
 
     PartitionInfo_t * info;
-    const bool print_header = !(used_options&OB_NO_HEADER);
+    const bool print_header = !OptionUsed[OPT_NO_HEADER];
     switch(long_count)
     {
 	case 0:
@@ -308,7 +308,7 @@ enumError cmd_space()
     if (err)
 	return err;
 
-    const bool print_header = !(used_options&OB_NO_HEADER);
+    const bool print_header = !OptionUsed[OPT_NO_HEADER];
     if (print_header)
 	printf("\n   size    used used%%   free   discs    file   (sizes in MiB)\n"
 		 "--------------------------------------------------------------\n");
@@ -400,7 +400,7 @@ enumError cmd_dump()
 
     const int invalid = long_count > 4
 				? 2
-				: used_options & OB_INODE || long_count > 3;
+				: OptionUsed[OPT_INODE] || long_count > 3;
 
     WBFS_t wbfs;
     InitializeWBFS(&wbfs);
@@ -424,7 +424,7 @@ enumError cmd_id6()
     if ( !n_param && !opt_part && !opt_auto )
 	ScanPartitions(true);
 
-    if ( used_options & OB_UNIQUE )
+    if ( OptionUsed[OPT_UNIQUE] )
 	opt_all++;
 
     if (n_param)
@@ -441,7 +441,7 @@ enumError cmd_id6()
 	return err;
 
     ScanPartitionGames();
-    SortWDiscList(&pi_wlist,sort_mode,SORT_TITLE, used_options&OB_UNIQUE ? 2 : 0 );
+    SortWDiscList(&pi_wlist,sort_mode,SORT_TITLE, OptionUsed[OPT_UNIQUE] ? 2 : 0 );
 
     int i;
     WDiscListItem_t * witem = pi_wlist.first_disc;
@@ -461,7 +461,7 @@ enumError cmd_id6()
 int print_list_mixed()
 {
     ScanPartitionGames();
-    SortWDiscList(&pi_wlist,sort_mode,SORT_TITLE, (used_options&OB_UNIQUE) != 0 );
+    SortWDiscList(&pi_wlist,sort_mode,SORT_TITLE, OptionUsed[OPT_UNIQUE] != 0 );
 
     WDiscListItem_t * witem;
     char footer[200];
@@ -490,7 +490,7 @@ int print_list_mixed()
 	return ERR_OK;
     }
 
-    const bool print_header = !(used_options&OB_NO_HEADER);
+    const bool print_header = !OptionUsed[OPT_NO_HEADER];
     if (print_header)
     {
 	if ( long_count > 1 )
@@ -607,7 +607,7 @@ enumError cmd_list ( int long_level )
     if ( !n_param && !opt_part && !opt_auto )
 	ScanPartitions(true);
 
-    if ( used_options & OB_UNIQUE )
+    if ( OptionUsed[OPT_UNIQUE] )
 	opt_all++;
 
     if (n_param)
@@ -623,10 +623,10 @@ enumError cmd_list ( int long_level )
     if (err)
 	return err;
 
-    if ( used_options & (OB_MIXED|OB_UNIQUE) )
+    if ( OptionUsed[OPT_MIXED] || OptionUsed[OPT_UNIQUE] )
 	return print_list_mixed();
 
-    const bool print_header = !print_sections && !(used_options&OB_NO_HEADER);
+    const bool print_header = !print_sections && !OptionUsed[OPT_NO_HEADER];
 
     int gt_wbfs = 0, gt_disc = 0, gt_max_disc = 0, gt_used_mib = 0, gt_free_mib = 0;
 
@@ -794,7 +794,7 @@ enumError cmd_list_u()
 
 enumError cmd_format()
 {
-    if (!(used_options&OB_FORCE))
+    if (!OptionUsed[OPT_FORCE])
     {
 	testmode++;
 	print_title(stderr);
@@ -812,7 +812,7 @@ enumError cmd_format()
 
     int error_count = 0, create_count = 0, format_count = 0;
     const u32 create_size_gib = (opt_size+GiB/2)/GiB;
-    const bool opt_recover = 0 != ( used_options & OB_RECOVER );
+    const bool opt_recover = 0 != OptionUsed[OPT_RECOVER];
 
     ParamList_t * param;
     for ( param = first_param; param; param = param->next )
@@ -949,7 +949,7 @@ enumError cmd_format()
 	    par.reset		= 1;
 	    par.clear_inodes	= !recover;
 	    par.setup_iinfo	= !recover
-				&& ( filemode > FM_PLAIN || used_options & OB_INODE );
+				&& ( filemode > FM_PLAIN || OptionUsed[OPT_INODE] );
 
 	    if ( FormatWBFS(&wbfs,param->arg,true,&par,0,0) == ERR_OK )
 	    {
@@ -1098,9 +1098,9 @@ enumError cmd_check()
 
 enumError cmd_repair()
 {
-    if (!(used_options&OB_REPAIR))
+    if (!OptionUsed[OPT_REPAIR])
     {
-	used_options |= OB_REPAIR;
+    	RegisterOption(&InfoUI,OPT_REPAIR,1,false);
 	repair_mode = REPAIR_DEFAULT;
     }
     return cmd_check();
@@ -1111,7 +1111,7 @@ enumError cmd_repair()
 
 enumError cmd_edit()
 {
-    if (!(used_options&OB_FORCE))
+    if (!OptionUsed[OPT_FORCE])
     {
 	testmode++;
 	print_title(stderr);
@@ -1132,7 +1132,7 @@ enumError cmd_edit()
 	 "     *****  See documentation file 'wwt.txt' for details. *****\n"
 	 "     **********************************************************\n"
 	 "\n",
-	used_options & OB_FORCE ? ""
+	OptionUsed[OPT_FORCE] ? ""
 		: "     *****     INFO: Use --force to leave the test mode.  *****\n" );
 
 	return ERR_OK;
@@ -1355,7 +1355,7 @@ enumError cmd_edit()
     ResetCheckWBFS(&ck);
     ResetWBFS(&wbfs);
 
-    if (!(used_options&OB_FORCE))
+    if (!OptionUsed[OPT_FORCE])
 	printf("* Use option --force to leave the test mode.\n\n" );
 
     return ERR_OK;
@@ -1375,8 +1375,8 @@ enumError cmd_phantom()
 
     int total_add_count = 0, wbfs_count = 0, wbfs_mod_count = 0;
 
-    const bool check_it	    = ( used_options & OB_NO_CHECK ) == 0;
-    const bool ignore_check = ( used_options & OB_FORCE ) != 0;
+    const bool check_it	    = OptionUsed[OPT_NO_CHECK] == 0;
+    const bool ignore_check = OptionUsed[OPT_FORCE]    != 0;
     const u32 max_mib = (u64)WII_MAX_SECTORS * WII_SECTOR_SIZE / MiB;
 
     WBFS_t wbfs;
@@ -1416,7 +1416,7 @@ enumError cmd_phantom()
 	    wbfs_disc_t * d = wbfs_open_disc_by_slot(w,slot,0);
 	    if (d)
 	    {
-		u8 * id6 = d->header->disc_header_copy;
+		u8 * id6 = d->header->dhead;
 		if ( !memcmp(id6,"PHT",3) )
 		{
 		    const u32 idx = (id6[3]-'0') * 100 + (id6[4]-'0') * 10 + (id6[5]-'0');
@@ -1558,8 +1558,8 @@ enumError cmd_truncate()
 	return ERROR0(ERR_MISSING_PARAM,"missing parameters\n");
 
     int wbfs_count = 0, wbfs_mod_count = 0;
-    const bool check_it	    = ( used_options & OB_NO_CHECK ) == 0;
-    const bool ignore_check = ( used_options & OB_FORCE ) != 0;
+    const bool check_it	    = OptionUsed[OPT_NO_CHECK] == 0;
+    const bool ignore_check = OptionUsed[OPT_FORCE]    != 0;
 
     SuperFile_t sf;
     InitializeSF(&sf);
@@ -1739,20 +1739,20 @@ enumError cmd_add()
     if ( !source_list.used && !recurse_list.used )
 	return ERROR0(ERR_MISSING_PARAM,"missing parameters\n");
 
-    if ( used_options & OB_SYNC )
-	used_options |= OB_UPDATE;
+    if ( OptionUsed[OPT_SYNC] )
+    	RegisterOption(&InfoUI,OPT_UPDATE,1,false);
 
     Iterator_t it;
     InitializeIterator(&it);
-    it.act_non_iso	= used_options & OB_IGNORE ? ACT_IGNORE : ACT_WARN;
+    it.act_non_iso	= OptionUsed[OPT_IGNORE] ? ACT_IGNORE : ACT_WARN;
     it.act_non_exist	= it.act_non_iso;
     it.act_open		= it.act_non_iso;
     it.act_wbfs		= ACT_EXPAND;
     it.act_fst		= allow_fst ? ACT_EXPAND : ACT_IGNORE;
-    it.update		= used_options & OB_UPDATE	? 1 : 0;
-    it.newer		= used_options & OB_NEWER	? 1 : 0;
-    it.overwrite	= used_options & OB_OVERWRITE	? 1 : 0;
-    it.remove_source	= used_options & OB_REMOVE	? 1 : 0;
+    it.update		= OptionUsed[OPT_UPDATE]	? 1 : 0;
+    it.newer		= OptionUsed[OPT_NEWER]		? 1 : 0;
+    it.overwrite	= OptionUsed[OPT_OVERWRITE]	? 1 : 0;
+    it.remove_source	= OptionUsed[OPT_REMOVE]	? 1 : 0;
 
     err = SourceIterator(&it,0,false,true);
     if ( err > ERR_WARNING )
@@ -1761,7 +1761,7 @@ enumError cmd_add()
 	return err;
     }
 
-    if ( used_options & OB_SYNC )
+    if ( OptionUsed[OPT_SYNC] )
     {
 	it.func = exec_scan_id;
 	err = SourceIteratorCollected(&it,0);
@@ -1775,8 +1775,8 @@ enumError cmd_add()
 
     uint copy_count = 0, rm_count = 0, wbfs_count = 0, wbfs_mod_count = 0;
 
-    const bool check_it	    = ( used_options & OB_NO_CHECK ) == 0;
-    const bool ignore_check = ( used_options & OB_FORCE ) != 0;
+    const bool check_it	    = OptionUsed[OPT_NO_CHECK] == 0;
+    const bool ignore_check = OptionUsed[OPT_FORCE]    != 0;
 
     WBFS_t wbfs;
     InitializeWBFS(&wbfs);
@@ -1803,7 +1803,7 @@ enumError cmd_add()
 	}
 
 	int wbfs_rm_count = 0;
-	if ( used_options & OB_SYNC )
+	if ( OptionUsed[OPT_SYNC] )
 	{
 	    disable_exclude_db++;
 	    WDiscList_t * wlist = GenerateWDiscList(&wbfs,0);
@@ -1889,7 +1889,7 @@ enumError cmd_add()
 
 enumError cmd_update()
 {
-    used_options |= OB_UPDATE;
+    RegisterOption(&InfoUI,OPT_UPDATE,1,false);
     return cmd_add();
 }
 
@@ -1898,7 +1898,7 @@ enumError cmd_update()
 
 enumError cmd_sync()
 {
-    used_options |= OB_SYNC;
+    RegisterOption(&InfoUI,OPT_SYNC,1,false);
     return cmd_add();
 }
 
@@ -1914,12 +1914,12 @@ enumError cmd_extract()
     if (err)
 	return err;
 
-    CheckParamID6( ( used_options & OB_UNIQUE ) != 0, testmode > 1 );
+    CheckParamID6( OptionUsed[OPT_UNIQUE] != 0, testmode > 1 );
     if ( testmode > 1 )
 	return PrintParamID6();
 
     if (!id6_param_found)
-	return used_options & OB_IGNORE
+	return OptionUsed[OPT_IGNORE]
 		? ERR_OK 
 		: ERROR0(ERR_MISSING_PARAM,"missing parameters\n");
 
@@ -1956,7 +1956,7 @@ enumError cmd_extract()
 
     noTRACE("DEST: |%s|%s|\n", dest_path, default_fname );
 
-    const int update = used_options & OB_UPDATE;
+    const int update = OptionUsed[OPT_UPDATE];
     if (update)
 	DefineExcludePath(dest_path,1);
 
@@ -1965,9 +1965,9 @@ enumError cmd_extract()
 
     int extract_count = 0, rm_count = 0;
     int wbfs_count = 0, wbfs_used_count = 0, wbfs_mod_count = 0;
-    const int overwrite = update ? -1 : used_options & OB_OVERWRITE ? 1 : 0;
-    const bool check_it	    = ( used_options & OB_NO_CHECK ) == 0;
-    const bool ignore_check = ( used_options & OB_FORCE ) != 0;
+    const int overwrite = update ? -1 : OptionUsed[OPT_OVERWRITE] ? 1 : 0;
+    const bool check_it	    = OptionUsed[OPT_NO_CHECK] == 0;
+    const bool ignore_check = OptionUsed[OPT_FORCE]    != 0;
 
     SuperFile_t fo;
     InitializeSF(&fo);
@@ -2073,7 +2073,7 @@ enumError cmd_extract()
 			goto abort;
 		    }
 
-		    fo.enable_fast	= (used_options&OB_FAST)  != 0;
+		    fo.enable_fast	= OptionUsed[OPT_FAST] != 0;
 		    fo.indent		= 5;
 		    fo.show_progress	= verbose > 1 || progress > 0;
 		    fo.show_summary	= verbose > 0 || progress > 0;
@@ -2104,7 +2104,7 @@ enumError cmd_extract()
 	    CloseWDisc(&wbfs);
 	}
 
-	if (used_options&OB_REMOVE)
+	if (OptionUsed[OPT_REMOVE])
 	{
 	    for ( param = first_param; param; param = param->next )
 		if ( param->id6[0] && param->count )
@@ -2150,7 +2150,7 @@ enumError cmd_extract()
     if ( verbose >= 1 )
 	printf("\n");
 
-    if ( !(used_options&OB_IGNORE) && !SIGINT_level )
+    if ( !OptionUsed[OPT_IGNORE] && !SIGINT_level )
     {
 	ParamList_t * param;
 	int warn_count = 0;
@@ -2195,20 +2195,20 @@ enumError cmd_remove()
     if (err)
 	return err;
 
-    CheckParamID6( ( used_options & OB_UNIQUE ) != 0, true );
+    CheckParamID6( OptionUsed[OPT_UNIQUE] != 0, true );
     if ( testmode > 1 )
 	return PrintParamID6();
 
     if (!id6_param_found)
-	return used_options & OB_IGNORE
+	return OptionUsed[OPT_IGNORE]
 		? ERR_OK 
 		: ERROR0(ERR_MISSING_PARAM,"missing parameters\n");
 
     //----- remove discs
 
-    const bool check_it		= ( used_options & OB_NO_CHECK ) == 0;
-    const bool ignore_check	= ( used_options & OB_FORCE ) != 0;
-    const bool free_slot_only	= ( used_options & OB_NO_FREE ) != 0;
+    const bool check_it	      = OptionUsed[OPT_NO_CHECK] == 0;
+    const bool ignore_check   = OptionUsed[OPT_FORCE]    != 0;
+    const bool free_slot_only = OptionUsed[OPT_NO_FREE]  != 0;
     int rm_count = 0, wbfs_count = 0, wbfs_mod_count = 0;
 
     WBFS_t wbfs;
@@ -2292,7 +2292,7 @@ enumError cmd_remove()
     if ( verbose >= 1 )
 	printf("\n");
 
-    if ( !(used_options&OB_IGNORE) && !SIGINT_level )
+    if ( !OptionUsed[OPT_IGNORE] && !SIGINT_level )
     {
 	ParamList_t * param;
 	int warn_count = 0;
@@ -2347,10 +2347,10 @@ enumError cmd_rename ( bool rename_id )
 
     //----- rename
 
-    const bool check_it		= 0 == ( used_options & OB_NO_CHECK );
-    const bool ignore_check	= 0 != ( used_options & OB_FORCE );
-    const bool change_wbfs	= 0 != ( used_options & OB_WBFS );
-    const bool change_iso	= 0 != ( used_options & OB_ISO );
+    const bool check_it		= 0 == OptionUsed[OPT_NO_CHECK];
+    const bool ignore_check	= 0 != OptionUsed[OPT_FORCE];
+    const bool change_wbfs	= 0 != OptionUsed[OPT_WBFS];
+    const bool change_iso	= 0 != OptionUsed[OPT_ISO];
 
     int mv_count = 0, wbfs_count = 0, wbfs_mod_count = 0;
 
@@ -2454,7 +2454,7 @@ enumError cmd_rename ( bool rename_id )
     if ( verbose >= 1 )
 	printf("\n");
 
-    if ( !(used_options&OB_IGNORE) && !SIGINT_level )
+    if ( !OptionUsed[OPT_IGNORE] && !SIGINT_level )
     {
 	ParamList_t * param;
 	int warn_count = 0;
@@ -2494,12 +2494,12 @@ enumError cmd_touch()
     if (err)
 	return err;
 
-    CheckParamID6( ( used_options & OB_UNIQUE ) != 0, true );
+    CheckParamID6( OptionUsed[OPT_UNIQUE] != 0, true );
     if ( testmode > 1 )
 	return PrintParamID6();
 
     if (!id6_param_found)
-	return used_options & OB_IGNORE
+	return OptionUsed[OPT_IGNORE]
 		? ERR_OK 
 		: ERROR0(ERR_MISSING_PARAM,"missing parameters\n");
 
@@ -2510,19 +2510,18 @@ enumError cmd_touch()
 				? time(0)
 				: opt_set_time;
 
-    option_t opt = used_options & OB_GRP_XTIME;
-    if (!opt)
-	opt = OB_GRP_XTIME;
+    u64 itime = OptionUsed[OPT_ITIME] ? set_time : 0;
+    u64 mtime = OptionUsed[OPT_MTIME] ? set_time : 0;
+    u64 ctime = OptionUsed[OPT_CTIME] ? set_time : 0;
+    u64 atime = OptionUsed[OPT_ATIME] ? set_time : 0;
 
-    const u64 itime = opt & OB_ITIME ? set_time : 0;
-    const u64 mtime = opt & OB_MTIME ? set_time : 0;
-    const u64 ctime = opt & OB_CTIME ? set_time : 0;
-    const u64 atime = opt & OB_ATIME ? set_time : 0;
-   
+    if ( !itime && !mtime && !ctime && !atime )
+	itime = mtime = ctime = atime = set_time;
+    
     //----- touch discs
 
-    const bool check_it		= 0 == ( used_options & OB_NO_CHECK );
-    const bool ignore_check	= 0 != ( used_options & OB_FORCE );
+    const bool check_it		= 0 == OptionUsed[OPT_NO_CHECK];
+    const bool ignore_check	= 0 != OptionUsed[OPT_FORCE];
 
     WBFS_t wbfs;
     InitializeWBFS(&wbfs);
@@ -2600,7 +2599,7 @@ enumError cmd_touch()
     if ( verbose >= 1 )
 	printf("\n");
 
-    if ( !(used_options&OB_IGNORE) && !SIGINT_level )
+    if ( !OptionUsed[OPT_IGNORE] && !SIGINT_level )
     {
 	ParamList_t * param;
 	int warn_count = 0;
@@ -2643,15 +2642,15 @@ enumError cmd_verify()
     if (!n_param)
 	AddParam("+",false);
 
-    CheckParamID6( ( used_options & OB_UNIQUE ) != 0, true );
+    CheckParamID6( OptionUsed[OPT_UNIQUE] != 0, true );
     if ( testmode > 1 )
 	return PrintParamID6();
 
 
     //----- count discs
 
-    const bool check_it		= 0 == ( used_options & OB_NO_CHECK );
-    const bool ignore_check	= 0 != ( used_options & OB_FORCE );
+    const bool check_it		= 0 == OptionUsed[OPT_NO_CHECK];
+    const bool ignore_check	= 0 != OptionUsed[OPT_FORCE];
 
     int disc_count = 0;
 
@@ -2694,8 +2693,8 @@ enumError cmd_verify()
 
     int disc_index = 0, verify_count = 0, fail_count = 0, wbfs_count = 0;
 
-    const bool remove		= ( used_options & OB_REMOVE )  != 0;
-    const bool free_slot_only	= ( used_options & OB_NO_FREE ) != 0;
+    const bool remove		= OptionUsed[OPT_REMOVE]  != 0;
+    const bool free_slot_only	= OptionUsed[OPT_NO_FREE] != 0;
     ccp fail_verb = !remove ? "found" : free_slot_only ? "dropped" : "removed";
     char fail_buf[100];
 
@@ -2801,7 +2800,7 @@ enumError cmd_verify()
     if ( verbose >= 1 )
 	printf("\n");
 
-    if ( !(used_options&OB_IGNORE) && !SIGINT_level )
+    if ( !OptionUsed[OPT_IGNORE] && !SIGINT_level )
     {
 	ParamList_t * param;
 	int warn_count = 0;
@@ -2843,7 +2842,7 @@ enumError cmd_filetype()
     SuperFile_t sf;
     InitializeSF(&sf);
 
-    if (!(used_options&OB_NO_HEADER))
+    if (!OptionUsed[OPT_NO_HEADER])
     {
 	if ( long_count > 1 )
 	    printf("\n"
@@ -2872,7 +2871,7 @@ enumError cmd_filetype()
 	AnalyzeFT(&sf.f);
 	TRACELINE;
 
-	ccp ftype = GetNameFT( sf.f.ftype, used_options & OB_IGNORE ? 1 : 0 );
+	ccp ftype = GetNameFT( sf.f.ftype, OptionUsed[OPT_IGNORE] ? 1 : 0 );
 	if (ftype)
 	{
 	    if ( long_count > 1 )
@@ -2913,7 +2912,7 @@ enumError cmd_filetype()
 
     ResetSF(&sf,0);
 
-    if (!(used_options&OB_NO_HEADER))
+    if (!OptionUsed[OPT_NO_HEADER])
 	putchar('\n');
 
     return ERR_OK;
@@ -2981,6 +2980,7 @@ enumError CheckOptions ( int argc, char ** argv, bool is_env )
 	case GO_HOOK:		opt_hook = 1; break;
 	case GO_ENC:		err += ScanOptEncoding(optarg); break;
 	case GO_REGION:		err += ScanOptRegion(optarg); break;
+	case GO_COMMON_KEY:	err += ScanOptCommonKey(optarg); break;
 	case GO_IOS:		err += ScanOptIOS(optarg); break;
 	case GO_ID:		err += ScanOptId(optarg); break;
 	case GO_NAME:		err += ScanOptName(optarg); break;
@@ -3092,18 +3092,14 @@ enumError CheckOptions ( int argc, char ** argv, bool is_env )
 	//	=> compiler checks the existence of all enum values
       }
     }
-    if ( used_options & OB_NO_HEADER )
+    if ( OptionUsed[OPT_NO_HEADER] )
 	opt_show_mode &= ~SHOW_F_HEAD;
 
  #ifdef DEBUG
     DumpUsedOptions(&InfoUI,TRACE_FILE,11);
  #endif
 
-    if (is_env)
-    {
-	env_options = used_options;
-    }
-    else if ( verbose > 3 )
+    if ( verbose > 3 && !is_env )
     {
 	print_title(stdout);
 	printf("PROGRAM_NAME   = %s\n",progname);

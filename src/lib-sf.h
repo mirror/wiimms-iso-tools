@@ -304,8 +304,6 @@ enumError CopyRawData2
 
 enumError CopyWDF	( SuperFile_t * in, SuperFile_t * out );
 enumError CopyWBFSDisc	( SuperFile_t * in, SuperFile_t * out );
-enumError CopyToWBFS	( SuperFile_t * in, SuperFile_t * out, const wd_select_t * psel );
-
 enumError AppendF	(      File_t * in, SuperFile_t * out, off_t in_off, size_t count );
 enumError AppendSparseF	(      File_t * in, SuperFile_t * out, off_t in_off, size_t count );
 enumError AppendSF	( SuperFile_t * in, SuperFile_t * out, off_t in_off, size_t count );

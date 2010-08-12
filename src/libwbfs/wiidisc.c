@@ -101,32 +101,59 @@ enumError wd_print_error
 // The real common key must be set by the application.
 // Only the first WII_KEY_SIZE bytes of 'common_key' are used.
 
-static u8 common_key[] = "common key missed";
+static u8 common_key_templ[WII_KEY_SIZE] = "common key unset";
+static u8 common_key[WD_CKEY__N][WII_KEY_SIZE] = {"",""};
+
 static const u8 iv0[WII_KEY_SIZE] = {0}; // always NULL
 
 ///////////////////////////////////////////////////////////////////////////////
 
-const u8 * wd_get_common_key()
+static void wd_setup_common_key()
 {
-    ASSERT( sizeof(common_key) >= WII_KEY_SIZE );
-    return common_key;
+    static bool done = false;
+    if (!done)
+    {
+	done = true;
+	memset(common_key,0,sizeof(common_key));
+
+	int i;
+	for ( i = 0; i < WD_CKEY__N; i++ )
+	    memcpy(common_key[i],common_key_templ,sizeof(common_key[0]));
+    }
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+const u8 * wd_get_common_key
+(
+    wd_ckey_index_t	ckey_index	// index of common key
+)
+{
+    wd_setup_common_key();
+    return (unsigned)ckey_index < WD_CKEY__N ? common_key[ckey_index] : 0;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 
 const u8 * wd_set_common_key
 (
-    const u8		* new_key	// the new key
+    wd_ckey_index_t	ckey_index,	// index of common key
+    const void		* new_key	// the new key
 )
 {
-    ASSERT( sizeof(common_key) >= WII_KEY_SIZE );
+    wd_setup_common_key();
+    if ( (unsigned)ckey_index >= WD_CKEY__N )
+	return 0;
+
+    u8 * ckey = common_key[ckey_index];
+
     if (new_key)
     {
-	memcpy(common_key,new_key,sizeof(common_key));
-	TRACE("new common key:\n");
-	TRACE_HEXDUMP16(8,0,common_key,WII_KEY_SIZE);
+	memcpy(ckey,new_key,WII_KEY_SIZE);
+	TRACE("new common key[%d]:\n",ckey_index);
+	TRACE_HEXDUMP16(8,0,ckey,WII_KEY_SIZE);
     }
-    return common_key;
+    return ckey;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -138,11 +165,13 @@ void wd_decrypt_title_key
 )
 {
     u8 iv[WII_KEY_SIZE];
-
     memset( iv, 0, sizeof(iv) );
     memcpy( iv, tik->title_id, 8 );
+
+    const wd_ckey_index_t ckey_index = tik->common_key_index < WD_CKEY__N
+				     ? tik->common_key_index : 0;
     aes_key_t akey;
-    wd_aes_set_key( &akey, common_key );
+    wd_aes_set_key( &akey, common_key[ckey_index] );
     wd_aes_decrypt( &akey, iv, &tik->title_key, title_key, WII_KEY_SIZE );
 
     TRACE("| IV:  "); TRACE_HEXDUMP(0,0,1,WII_KEY_SIZE,iv,WII_KEY_SIZE);
@@ -159,11 +188,13 @@ void wd_encrypt_title_key
 )
 {
     u8 iv[WII_KEY_SIZE];
-
     memset( iv, 0, sizeof(iv) );
     memcpy( iv, tik->title_id, 8 );
+
+    const wd_ckey_index_t ckey_index = tik->common_key_index < WD_CKEY__N
+				     ? tik->common_key_index : 0;
     aes_key_t akey;
-    wd_aes_set_key( &akey, common_key );
+    wd_aes_set_key( &akey, common_key[ckey_index] );
     wd_aes_encrypt( &akey, iv, title_key, &tik->title_key, WII_KEY_SIZE );
 
     TRACE("| IV:  "); TRACE_HEXDUMP(0,0,1,WII_KEY_SIZE,iv,WII_KEY_SIZE);
@@ -175,7 +206,7 @@ void wd_encrypt_title_key
 
 void wd_decrypt_sectors
 (
-    wd_part_t		* part,		// NULL or poniter to partition
+    wd_part_t		* part,		// NULL or pointer to partition
     const aes_key_t	* akey,		// aes key, if NULL use 'part'
     const void		* sect_src,	// pointer to first source sector
     void		* sect_dest,	// pointer to destination
@@ -269,7 +300,7 @@ void wd_decrypt_sectors
 
 void wd_encrypt_sectors
 (
-    wd_part_t		* part,		// NULL or poniter to partition
+    wd_part_t		* part,		// NULL or pointer to partition
     const aes_key_t	* akey,		// aes key, if NULL use 'part'
     const void		* sect_src,	// pointer to first source sector
     const void		* hash_src,	// if not NULL: source of hash tables
@@ -381,7 +412,7 @@ void wd_split_sectors
 
 ///////////////////////////////////////////////////////////////////////////////
 
-void wd_compose_sectors
+void wd_join_sectors
 (
     const void		* data_src,	// pointer to data source
     const void		* hash_src,	// pointer to hash source
@@ -3375,8 +3406,9 @@ wd_patch_item_t * wd_insert_patch_ticket
     item->data = &part->ph.ticket;
 
     snprintf(item->info,sizeof(item->info),
-			"ticket, id=%s",
-			wd_print_id(part->ph.ticket.title_id+4,4,0) );
+			"ticket, id=%s, ckey=%u",
+			wd_print_id(part->ph.ticket.title_id+4,4,0),
+			part->ph.ticket.common_key_index );
 
     part->sign_ticket = true;
     return item;
@@ -3735,7 +3767,7 @@ static enumError wd_rap_part_sectors
     else if (is_splitted)
     {
 	PRINT("COMPOSE(%x->%x..%x)\n",src,sector,end_sector);
-	wd_compose_sectors(buf,hash_buf,buf,end_sector-sector);
+	wd_join_sectors(buf,hash_buf,buf,end_sector-sector);
     }
 
     DASSERT( buf == disc->group_cache );
@@ -3873,7 +3905,7 @@ static enumError wd_rap_sectors
 		switch (item->mode)
 		{
 		  case WD_PAT_DATA:
-		    memcpy(	buf + (overlap1-off1),
+		    memcpy( buf + (overlap1-off1),
 			    (u8*)item->data + (overlap1-item->offset),
 			    overlap2-overlap1 );
 		    break;
@@ -3884,10 +3916,10 @@ static enumError wd_rap_sectors
 		    {
 			PRINT("SIGN TICKET\n");
 			wd_encrypt_title_key(&part->ph.ticket,part->key);
-			ticket_sign_trucha(&part->ph.ticket,sizeof(part->ph.ticket));
+			ticket_fake_sign(&part->ph.ticket,sizeof(part->ph.ticket));
 			part->sign_ticket = false;
 		    }
-		    memcpy(	buf + (overlap1-off1),
+		    memcpy( buf + (overlap1-off1),
 			    (u8*)item->data + (overlap1-item->offset),
 			    overlap2-overlap1 );
 		    break;
@@ -3906,10 +3938,10 @@ static enumError wd_rap_sectors
 		    if (part->sign_tmd)
 		    {
 			PRINT("SIGN TMD\n");
-			tmd_sign_trucha(part->tmd,part->ph.tmd_size);
+			tmd_fake_sign(part->tmd,part->ph.tmd_size);
 			part->sign_tmd = false;
 		    }
-		    memcpy(	buf + (overlap1-off1),
+		    memcpy( buf + (overlap1-off1),
 			    (u8*)item->data + (overlap1-item->offset),
 			    overlap2-overlap1 );
 		    break;
@@ -4088,7 +4120,8 @@ bool wd_patch_id
     DASSERT(dest_id);
     DASSERT(source_id);
 
-    memcpy(dest_id,source_id,id_len);
+    if ( dest_id != source_id )
+	memcpy(dest_id,source_id,id_len);
     if (!new_id)
 	return false;
 
@@ -4167,6 +4200,29 @@ bool wd_patch_region // result = true if something changed
     wd_region_t * reg = item->data;
     reg->region = htonl(new_region);
     return true;
+}
+
+//-----------------------------------------------------------------------------
+
+bool wd_patch_common_key // result = true if something changed
+(
+    wd_part_t		* part,		// valid pointer to a disc partition
+    wd_ckey_index_t	ckey_index	// new common key index
+)
+{
+    DASSERT(part);
+
+    bool stat = false;
+
+    if ( (unsigned)ckey_index < WD_CKEY__N
+	&& ckey_index != part->ph.ticket.common_key_index )
+    {
+	part->ph.ticket.common_key_index = ckey_index;
+	wd_insert_patch_ticket(part);
+	stat = true;
+    }
+
+    return stat;
 }
 
 //-----------------------------------------------------------------------------

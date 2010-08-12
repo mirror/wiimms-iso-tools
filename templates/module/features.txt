@@ -9,6 +9,8 @@ Features:
    read from pipes (indirect RAR/ZIP support).
  - wit can verify and compare (diff) Wii ISO images.
  - wit can extract and compose Wii ISO images.
+ - wit can patch Wii ISO images while copying.
+ - wit can mix partitions from different sources into a new Wii ISO images.
  - wit and wwt support many diagnostic commands.
  - Advanced shell support.
 

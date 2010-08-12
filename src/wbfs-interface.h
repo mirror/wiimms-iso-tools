@@ -284,7 +284,7 @@ enumError RecoverWBFS	( WBFS_t * w, ccp fname, bool testmode );
 enumError TruncateWBFS	( WBFS_t * w );
 
 enumError CalcWBFSUsage	( WBFS_t * w );
-enumError SyncWBFS	( WBFS_t * w );
+enumError SyncWBFS	( WBFS_t * w, bool force_sync );
 enumError ReloadWBFS	( WBFS_t * w );
 
 enumError OpenPartWBFS	( WBFS_t * w, struct PartitionInfo_t *  info );

@@ -7,7 +7,7 @@
 #:def_tool( "wit", \
 	"wit [option]... command [option|parameter|@file]...", \
 	"Wiimms ISO Tool : It can list, analyze, verify, convert, split, join," \
-	" extract, compose, rename and compare Wii discs." )
+	" patch, mix, extract, compose, rename and compare Wii discs." )
 
 #:def_cmd( "VERSION", "VERSION", \
 	"wit VERSION [ignored]...", \
@@ -322,6 +322,11 @@
 	"This $patching$ option defines the region of the disc.  The region is" \
 	" one of @JAPAN, USA, EUROPE, KOREA, FILE@ or @AUTO@ (default). The" \
 	" case of the keywords is ignored. Unsigned numbers are also accepted." )
+
+#:def_opt( "COMMON_KEY", "common-key", "CP", \
+	"index", \
+	"This $patching$ option defines the common key index as part of the" \
+	" TICKET. Keywords @0@, @STANDARD@, @1@ and @KOREAN@ are accepted." )
 
 #:def_opt( "IOS", "ios", "CP", \
 	"ios", \
@@ -824,6 +829,10 @@
 	"" )
 
 #:def_cmd_opt( "DUMP", "REGION", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "DUMP", "COMMON_KEY", \
 	"", \
 	"" )
 
@@ -1792,6 +1801,10 @@
 	"", \
 	"" )
 
+#:def_cmd_opt( "EXTRACT", "COMMON_KEY", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "EXTRACT", "IOS", \
 	"", \
 	"" )
@@ -1943,6 +1956,10 @@
 	"" )
 
 #:def_cmd_opt( "COPY", "REGION", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "COPY", "COMMON_KEY", \
 	"", \
 	"" )
 
@@ -2150,6 +2167,10 @@
 	"", \
 	"" )
 
+#:def_cmd_opt( "SCRUB", "COMMON_KEY", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "SCRUB", "IOS", \
 	"", \
 	"" )
@@ -2263,6 +2284,10 @@
 	"" )
 
 #:def_cmd_opt( "EDIT", "REGION", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "EDIT", "COMMON_KEY", \
 	"", \
 	"" )
 
@@ -2999,6 +3024,11 @@
 	"This $patching$ option defines the region of the disc.  The region is" \
 	" one of @JAPAN, USA, EUROPE, KOREA, FILE@ or @AUTO@ (default). The" \
 	" case of the keywords is ignored. Unsigned numbers are also accepted." )
+
+#:def_opt( "COMMON_KEY", "common-key", "CP", \
+	"index", \
+	"This $patching$ option defines the common key index as part of the" \
+	" TICKET. Keywords @0@, @STANDARD@, @1@ and @KOREAN@ are accepted." )
 
 #:def_opt( "IOS", "ios", "CP", \
 	"ios", \
@@ -4365,6 +4395,10 @@
 	"", \
 	"" )
 
+#:def_cmd_opt( "ADD", "COMMON_KEY", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "ADD", "IOS", \
 	"", \
 	"" )
@@ -4524,6 +4558,10 @@
 	"", \
 	"" )
 
+#:def_cmd_opt( "UPDATE", "COMMON_KEY", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "UPDATE", "IOS", \
 	"", \
 	"" )
@@ -4672,6 +4710,10 @@
 	"" )
 
 #:def_cmd_opt( "SYNC", "REGION", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "SYNC", "COMMON_KEY", \
 	"", \
 	"" )
 

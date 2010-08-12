@@ -705,6 +705,8 @@ enumError cmd_mix()
 	    {
 		param = param->next;
 		qual_header = true;
+		scan_qualifier = true;
+
 		if (source_dhead)
 		    return ERROR0(ERR_SEMANTIC,
 			"Multiple usage of qualifier 'header' is not allowed.");
@@ -717,6 +719,8 @@ enumError cmd_mix()
 	    {
 		param = param->next;
 		qual_region = true;
+		scan_qualifier = true;
+
 		if (source_region)
 		    return ERROR0(ERR_SEMANTIC,
 			"Multiple usage of qualifier 'region' is not allowed.");
@@ -1024,10 +1028,6 @@ enumError cmd_mix()
     GenImageFileName(&fo.f,opt_dest,destfile,oft);
     SetupIOD(&fo,oft,oft);
 
-    if ( oft == OFT_WBFS )
-	return ERROR0(ERR_CANT_CREATE,
-		"Output to WBFS files not supported yet.");
-
     if ( testmode || verbose >= 0 )
     {
 	u8 * p8 = reg.region_info;
@@ -1084,7 +1084,7 @@ enumError cmd_mix()
 	//--- open file
 	
 	err = CreateFile( &fo.f, 0, IOM_IS_IMAGE,
-				used_options & OB_OVERWRITE ? 1 : 0 );
+				OptionUsed[OPT_OVERWRITE] ? 1 : 0 );
 	if (err)
 	    goto abort;
 

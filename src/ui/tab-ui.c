@@ -104,6 +104,8 @@ typedef struct info_t
 	ccp namelist;		// list of names
 	ccp param;		// name of parameter
 	ccp help;		// help text
+
+	int index;		// calculated index
 	
 } info_t;
 
@@ -151,7 +153,7 @@ info_t info_tab[] =
 		"wit [option]... command [option|parameter|@file]...",
 		"Wiimms ISO Tool :"
 		" It can list, analyze, verify, convert, split, join,"
-		" extract, compose, rename and compare Wii discs." },
+		" patch, mix, extract, compose, rename and compare Wii discs." },
 
   //
   //---------- list of all wit commands ----------
@@ -513,6 +515,12 @@ info_t info_tab[] =
 		" or @AUTO@ (default). The case of the keywords is ignored."
 		" Unsigned numbers are also accepted." },
 
+  { T_OPT_CP,	"COMMON_KEY",	"common-key",
+		"index",
+		"This $patching$ option defines the common key index as part"
+		" of the TICKET. Keywords @0@, @STANDARD@, @1@ and @KOREAN@"
+		" are accepted." },
+
   { T_OPT_CP,	"IOS",		"ios",
 		"ios",
 		"This $patching$ option defines the system version (IOS to load)"
@@ -830,6 +838,7 @@ info_t info_tab[] =
   { T_COPT,	"NAME",		0,0,0 },
   { T_COPT,	"MODIFY",	0,0,0 },
   { T_COPT,	"REGION",	0,0,0 },
+  { T_COPT,	"COMMON_KEY",	0,0,0 },
   { T_COPT,	"IOS",		0,0,0 },
   { T_COPT,	"RM_FILES",	0,0,0 },
   { T_COPT,	"ZERO_FILES",	0,0,0 },
@@ -1577,6 +1586,9 @@ info_t info_tab[] =
   { T_OPT_CP,	"REGION",	"region",
 		0, 0 /* copy of wit */ },
 
+  { T_OPT_CP,	"COMMON_KEY",	"common-key",
+		0, 0 /* copy of wit */ },
+
   { T_OPT_CP,	"IOS",		"ios",
 		0, 0 /* copy of wit */ },
 
@@ -1826,6 +1838,7 @@ info_t info_tab[] =
   { T_COPT,	"NAME",		0,0,0 },
   { T_COPT,	"MODIFY",	0,0,0 },
   { T_COPT,	"REGION",	0,0,0 },
+  { T_COPT,	"COMMON_KEY",	0,0,0 },
   { T_COPT,	"IOS",		0,0,0 },
   { T_COPT,	"RM_FILES",	0,0,0 },
   { T_COPT,	"ZERO_FILES",	0,0,0 },

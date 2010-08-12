@@ -83,46 +83,46 @@ typedef void (*progress_callback_t) (u64 done, u64 total, void * callback_data )
 
 typedef struct wbfs_t
 {
-	wbfs_head_t *head;
+    wbfs_head_t	* head;
 
-	/* hdsectors, the size of the sector provided by the hosting hard drive */
-	u32 hd_sec_sz;
-	u8  hd_sec_sz_s;	// the power of two of the last number
-	u32 n_hd_sec;		// the number of hd sector in the wbfs partition
+    /* hdsectors, the size of the sector provided by the hosting hard drive */
+    u32		hd_sec_sz;
+    u8		hd_sec_sz_s;		// the power of two of the last number
+    u32		n_hd_sec;		// the number of hd sector in the wbfs partition
 
-	/* standard wii sector (0x8000 bytes) */
-	u32 wii_sec_sz;		// always WII_SECTOR_SIZE
-	u8  wii_sec_sz_s;	// always 15
-	u32 n_wii_sec;
-	u32 n_wii_sec_per_disc;	// always WII_MAX_SECTORS
+    /* standard wii sector (0x8000 bytes) */
+    u32		wii_sec_sz;		// always WII_SECTOR_SIZE
+    u8		wii_sec_sz_s;	// always 15
+    u32		n_wii_sec;
+    u32		n_wii_sec_per_disc;	// always WII_MAX_SECTORS
 
-	/* The size of a wbfs sector */
-	u32 wbfs_sec_sz;
-	u32 wbfs_sec_sz_s;
-	u16 n_wbfs_sec;		// this must fit in 16 bit!
-	u16 n_wbfs_sec_per_disc;// size of the lookup table
+    /* The size of a wbfs sector */
+    u32		wbfs_sec_sz;
+    u32		wbfs_sec_sz_s;
+    u16		n_wbfs_sec;		// this must fit in 16 bit!
+    u16		n_wbfs_sec_per_disc;	// size of the lookup table
 
-	u32 part_lba;		// the lba of the wbfs header
+    u32		part_lba;		// the lba of the wbfs header
 
-	/* virtual methods to read write the partition */
-	rw_sector_callback_t read_hdsector;
-	rw_sector_callback_t write_hdsector;
-	void *callback_data;
+    /* virtual methods to read write the partition */
+    rw_sector_callback_t read_hdsector;
+    rw_sector_callback_t write_hdsector;
+    void	* callback_data;
 
-	u16 max_disc;		// maximal number of possible discs
-	u32 freeblks_lba;	// the hd sector of the free blocks table
-	u32 freeblks_lba_count;	// number of hd sector used by free blocks table
-	u32 freeblks_size4;	// size in u32 of free blocks table
-	u32 freeblks_mask;	// mask for last used u32 of freeblks
-	u32 * freeblks;		// if not NULL: copy of free blocks table
+    u16		max_disc;		// maximal number of possible discs
+    u32		freeblks_lba;		// the hd sector of the free blocks table
+    u32		freeblks_lba_count;	// number of hd sector used by free blocks table
+    u32		freeblks_size4;		// size in u32 of free blocks table
+    u32		freeblks_mask;		// mask for last used u32 of freeblks
+    u32		* freeblks;		// if not NULL: copy of free blocks table
 
-	u16 disc_info_sz;
+    u16		disc_info_sz;
 
-	u8  *tmp_buffer;	// pre-allocated buffer for unaligned read
-	u8  (*id_list)[7];	// list with all disc ids
+    u8		* tmp_buffer;		// pre-allocated buffer for unaligned read
+    u8		(*id_list)[7];		// list with all disc ids
 
-	u8  readonly;		// if >0: do not write to WBFS
-	u32 n_disc_open;	// number of open discs
+    bool	is_dirty;		// if >0: call wbfs_sync() on close
+    u32		n_disc_open;		// number of open discs
 
 } wbfs_t;
 
@@ -130,20 +130,22 @@ typedef struct wbfs_t
 
 typedef struct wbfs_disc_t
 {
-	wbfs_t *p;
-	wbfs_disc_info_t * header;	// pointer to wii header
-	int slot;			// disc slot, range= 0 .. wbfs_t::max_disc-1
-	int is_used;			// disc is marked as 'used'?
-	int is_valid;			// disc has valid id and magic
-	int is_deleted;			// disc has valid id and deleted_magic
-	int is_iinfo_valid;		// disc has a valid wbfs_inode_info_t
+    wbfs_t	* p;
+    wbfs_disc_info_t * header;		// pointer to wii header
+    int		slot;			// disc slot, range= 0 .. wbfs_t::max_disc-1
+    bool	is_used;		// disc is marked as 'used'?
+    bool	is_valid;		// disc has valid id and magic
+    bool	is_deleted;		// disc has valid id and deleted_magic
+    bool	is_iinfo_valid;		// disc has a valid wbfs_inode_info_t
+    bool	is_creating;		// disc is in creation process
+    bool	is_dirty;		// if >0: call wbfs_sync_disc_header() on close
 
 } wbfs_disc_t;
 
 //-----------------------------------------------------------------------------
 
 be64_t	wbfs_setup_inode_info
-	( wbfs_t * p, wbfs_inode_info_t * ii, int is_valid, int is_changed );
+	( wbfs_t * p, wbfs_inode_info_t * ii, bool is_valid, int is_changed );
 int	wbfs_is_inode_info_valid( wbfs_t * p, wbfs_inode_info_t * ii );
 
 //-----------------------------------------------------------------------------
@@ -157,7 +159,6 @@ typedef struct wbfs_param_t // function parameters
 	rw_sector_callback_t	write_hdsector;		// write sector function
 
 	// needed parameters
-	int			readonly;		// hint: file is opened readonly
 	u32			hd_sector_size;		// HD sector size (0=>512)
 	u32			part_lba;		// partition LBA delta
 	int			old_wii_sector_calc;	// >0 => use old & buggy calculation
@@ -255,6 +256,14 @@ void wbfs_sync  ( wbfs_t * p );
 wbfs_disc_t * wbfs_open_disc_by_id6  ( wbfs_t * p, u8 * id6 );
 wbfs_disc_t * wbfs_open_disc_by_slot ( wbfs_t * p, u32 slot, int force_open );
 
+wbfs_disc_t * wbfs_create_disc
+(
+    wbfs_t	* p,		// valid WBFS descriptor
+    const void	* disc_header,	// NULL or disc header to copy
+    const void	* disc_id	// NULL or ID6: check non existence
+				// disc_id overwrites the id of disc_header
+);
+
 int wbfs_sync_disc_header ( wbfs_disc_t * d );
 void wbfs_close_disc ( wbfs_disc_t * d );
 
@@ -296,6 +305,8 @@ int wbfs_disc_read(wbfs_disc_t*d,u32 offset, u8 *data, u32 len);
 /*! @return the number of discs inside the paritition */
 u32 wbfs_count_discs(wbfs_t*p);
 
+u32 wbfs_alloc_block ( wbfs_t * p );
+
 enumError wbfs_get_disc_info
 		( wbfs_t*p, u32 idx,  u8 *header, int header_size, u32 *size );
 enumError wbfs_get_disc_info_by_slot
@@ -309,7 +320,7 @@ u32 wbfs_count_unusedblocks ( wbfs_t * p );
 /******************* write access  ******************/
 
 void wbfs_load_id_list	( wbfs_t * p, int force_reload );
-int  wbfs_find_slot	( wbfs_t * p, u8 * disc_id );
+int  wbfs_find_slot	( wbfs_t * p, const u8 * disc_id );
 
 void wbfs_load_freeblocks ( wbfs_t * p );
 void wbfs_free_block	  ( wbfs_t * p, u32 bl );

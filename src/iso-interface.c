@@ -317,22 +317,22 @@ enumError Dump_ISO
 	if ( show_mode & SHOW_P_INFO )
 	{
 	    if (part->is_overlay)
-		fprintf(f,"%*s  Partitions overlays other partitions.\n", indent,"" );
+		fprintf(f,"%*s  Partition overlays other partitions.\n", indent,"" );
 		
 	    if ( tmd_is_marked_not_encrypted(part->tmd) )
 		fprintf(f,"%*s  Partition is marked as 'not encrypted'.\n", indent,"" );
 	    else
 	    {
-		const bool tik_is_trucha = ticket_is_trucha_signed(&ph->ticket,0);
-		const bool tmd_is_trucha = tmd_is_trucha_signed(part->tmd,ph->tmd_size);
+		const bool tik_is_fakesig = ticket_is_fake_signed(&ph->ticket,0);
+		const bool tmd_is_fakesig = tmd_is_fake_signed(part->tmd,ph->tmd_size);
 
 		fprintf(f,"%*s ", indent,"" );
-		if ( tik_is_trucha && tmd_is_trucha )
-		    fprintf(f," TICKET & TMD are trucha signed.");
-		else if ( tik_is_trucha )
-		    fprintf(f," TICKET is trucha signed.");
-		else if ( tmd_is_trucha )
-		    fprintf(f," TMD is trucha signed.");
+		if ( tik_is_fakesig && tmd_is_fakesig )
+		    fprintf(f," TICKET & TMD are fake signed.");
+		else if ( tik_is_fakesig )
+		    fprintf(f," TICKET is fake signed.");
+		else if ( tmd_is_fakesig )
+		    fprintf(f," TMD is fake signed.");
 
 		fprintf(f," Partition is %scrypted.\n",
 				part->is_encrypted ? "en" : "de" );
@@ -595,7 +595,7 @@ enumError Dump_TIK_MEM
     fprintf(f,"%*sN(DLC):        %11x/hex =%11u\n", indent,"", val,val );
     val = tik->common_key_index;
     fprintf(f,"%*sCommon key index:%9u     = '%s'\n",
-		indent,"", val, !val ? "normal" : val == 1 ? "korean" : "?" );
+		indent,"", val, !val ? "standard" : val == 1 ? "korean" : "?" );
     val = ntohl(tik->time_limit);
     fprintf(f,"%*sTime limit:    %11x/hex =%11u [%sabled]\n",
 		indent,"", val,val, ntohl(tik->enable_time_limit) ? "en" : "dis" );
@@ -1177,6 +1177,7 @@ enumError ScanPartSelector
 	{ WD_SM_ALLOW_PTYPE,	"DATA",		"D",	WD_PART_DATA },
 	{ WD_SM_ALLOW_PTYPE,	"GAME",		"G",	WD_PART_DATA },
 	{ WD_SM_ALLOW_PTYPE,	"UPDATE",	"U",	WD_PART_UPDATE },
+	{ WD_SM_ALLOW_PTYPE,	"INSTALLER",	"I",	WD_PART_UPDATE },
 	{ WD_SM_ALLOW_PTYPE,	"CHANNEL",	"C",	WD_PART_CHANNEL },
 
 	{ WD_SM_ALLOW_PTAB,	"PTAB0",	"T0",	0 },
@@ -1223,8 +1224,9 @@ u32 ScanPartType ( ccp arg, ccp err_text_extend )
     static const CommandTab_t tab[] =
     {
 	{ WD_PART_DATA,		"DATA",		"D",		0 },
-	 { WD_PART_DATA,	"GAME",		"G",		0 },
+	{ WD_PART_DATA,		"GAME",		"G",		0 },
 	{ WD_PART_UPDATE,	"UPDATE",	"U",		0 },
+	{ WD_PART_UPDATE,	"INSTALLER",	"I",		0 },
 	{ WD_PART_CHANNEL,	"CHANNEL",	"C",		0 },
 
 	{ 0,0,0,0 }
@@ -3246,13 +3248,13 @@ enumError UpdateSignatureFST ( WiiFst_t * fst )
 	    if (pc->tmd_content)
 		SHA1( pc->h3, pc->h3_size, pc->tmd_content->hash );
 	    if ( fst->encoding & ENCODE_SIGN )
-		part_control_sign_trucha(pc,0);
+		part_control_fake_sign(pc,0);
 
 	 #ifdef DEBUG
 	    {
 		u8 hash[WII_HASH_SIZE];
 		SHA1( ((u8*)pc->tmd)+WII_TMD_SIG_OFF, pc->tmd_size-WII_TMD_SIG_OFF, hash );
-		TRACE("TRUCHA: ");
+		TRACE("FAKESIGN: ");
 		TRACE_HEXDUMP(0,0,1,WII_HASH_SIZE,hash,WII_HASH_SIZE);
 	    }
 	 #endif
@@ -3680,93 +3682,7 @@ void EncryptSectorGroup
     //----- encrypt header + data
 
     if (akey)
-	EncryptSectors(akey,sect0,sect0,n_sectors);
-}
-
-//
-///////////////////////////////////////////////////////////////////////////////
-///////////////			En/DecryptSectors()		///////////////
-///////////////////////////////////////////////////////////////////////////////
-
-static const u8 iv0[WII_KEY_SIZE] = {0}; // always NULL
-
-///////////////////////////////////////////////////////////////////////////////
-
-void EncryptSectors // [2do] [obsolete] replace by wd_encrypt_sectors()
-(
-    const aes_key_t	* akey,
-    const void		* sect_src,
-    void		* sect_dest,
-    size_t		n_sectors
-)
-{
-    ASSERT(akey);
-    const u8 * src = sect_src;
-    u8 * dest = sect_dest;
-
-    while ( n_sectors-- > 0 )
-    {
-	// encrypt header
-	wd_aes_encrypt(	akey,
-			iv0,
-			src,
-			dest,
-			WII_SECTOR_DATA_OFF );
-
-	// encrypt data
-	wd_aes_encrypt(	akey,
-			dest + WII_SECTOR_IV_OFF,
-			src  + WII_SECTOR_DATA_OFF,
-			dest + WII_SECTOR_DATA_OFF,
-			WII_SECTOR_DATA_SIZE );
-
-	src  += WII_SECTOR_SIZE;
-	dest += WII_SECTOR_SIZE;
-    }
-}
-
-///////////////////////////////////////////////////////////////////////////////
-
-void DecryptSectors // [2do] [obsolete] replace by wd_decrypt_sectors()
-(
-    const aes_key_t	* akey,
-    const void		* sect_src,
-    void		* sect_dest,
-    size_t		n_sectors
-)
-{
-    ASSERT(akey);
-    const u8 * src = sect_src;
-    u8 * dest = sect_dest;
-    u8 tempbuf[WII_SECTOR_SIZE];
-
-    while ( n_sectors-- > 0 )
-    {
-	const u8 * src1 = src;
-	if ( src == dest )
-	{
-	    // inplace decryption not possible => use tempbuf
-	    memcpy(tempbuf,src,WII_SECTOR_SIZE);
-	    src1 = tempbuf;
-	}
-
-	// decrypt data
-	wd_aes_decrypt(	akey,
-			src1 + WII_SECTOR_IV_OFF,
-			src1 + WII_SECTOR_DATA_OFF,
-			dest + WII_SECTOR_DATA_OFF,
-			WII_SECTOR_DATA_SIZE );
-
-	// decrypt header
-	wd_aes_decrypt(	akey,
-			iv0,
-			src1,
-			dest,
-			WII_SECTOR_DATA_OFF);
-
-	src  += WII_SECTOR_SIZE;
-	dest += WII_SECTOR_SIZE;
-    }
+	wd_encrypt_sectors(0,akey,sect0,0,sect0,n_sectors);
 }
 
 //
@@ -4077,7 +3993,7 @@ enumError VerifyPartition ( Verify_t * ver )
 					+ i2 * WII_N_ELEMENTS_H1 + i1;
 
 		if ( part->is_encrypted )
-		    DecryptSectors(&akey,sect+WII_GROUP_SECTORS,sect,1);
+		    wd_decrypt_sectors(0,&akey,sect+WII_GROUP_SECTORS,sect,0,1);
 
 
 		//----- check H0 -----
