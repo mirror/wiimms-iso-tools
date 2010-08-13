@@ -58,6 +58,44 @@ static void dump_data
 
 //-----------------------------------------------------------------------------
 
+static void dump_size
+(
+    FILE		* f,		// output stream
+    int			indent,		// indent
+    ccp			title,		// header
+    u64			size,		// size to print
+    u64			percent_base	// >0: print percent value based on 'percent_base'
+)
+{
+    fprintf(f,"%*s%-14s%12llx/hex =%11llu",
+	indent,"", title, size, size );
+
+    u64 xsize = (size+KiB/2)/KiB;
+    if ( xsize >= 10000 )
+    {
+	xsize = (size+MiB/2)/MiB;
+	if ( xsize >= 10000 )
+	    fprintf(f," =%5llu GiB", (size+GiB/2)/GiB );
+	else    
+	    fprintf(f," =%5llu MiB", xsize);
+    }
+    else if ( xsize >= 10 )
+	fprintf(f," =%5llu KiB",xsize);
+
+    if ( percent_base > 0 )
+    {
+	u32 percent = size * 100 / percent_base;
+	if ( percent >= 10 )
+	    fprintf(f,", %d%%",percent);
+	else
+	    fprintf(f,", %4.2f%%",size * 100.0 / percent_base);
+    }
+    
+    fputc('\n',f);
+}
+
+//-----------------------------------------------------------------------------
+
 static int dump_header
 (
     FILE		* f,		// output stream
@@ -87,16 +125,11 @@ static int dump_header
     const u64 file_size = sf->file_size;
     if (sf->wc)
     {
-	fprintf(f,"%*sVirtual size: %12llx/hex =%11llu =%5llu MiB\n",
-		indent,"", file_size, file_size, (file_size+MiB/2)/MiB );
-
-	const u64 size = sf->f.st.st_size;
-	fprintf(f,"%*sWDF file size:%12llx/hex =%11llu =%5llu MiB, %lld%%\n",
-		indent,"", size, size, (size+MiB/2)/MiB, size * 100 / file_size );
+	dump_size(f,indent,"Virtual size:",file_size,0);
+	dump_size(f,indent,"WDF file size:",sf->f.st.st_size,file_size);
     }
     else
-	fprintf(f,"%*sFile size:    %12llx/hex =%11llu =%5llu MiB\n",
-		indent,"", file_size, file_size, (file_size+MiB/2)/MiB );
+	dump_size(f,indent,"File size:",file_size,0);
 
     return indent;
 }
@@ -352,8 +385,8 @@ enumError Dump_ISO
 		    const u32 hi = part->tmd->sys_version >> 32;
 		    const u32 lo = (u32)part->tmd->sys_version;
 		    if ( hi == 1 && lo < 0x100 )
-			fprintf(f,"%*s  System version: %08x-%08x = IOS %u\n",
-				    indent, "", hi, lo, lo );
+			fprintf(f,"%*s  System version: %08x-%08x = IOS 0x%02x = IOS %u\n",
+				    indent, "", hi, lo, lo, lo );
 		    else
 			fprintf(f,"%*s  System version: %08x-%08x\n",
 				    indent, "", hi, lo );
@@ -689,10 +722,10 @@ enumError Dump_TMD_MEM
     u32 high = be32((ccp)&tmd->sys_version);
     u32 low  = be32(((ccp)&tmd->sys_version)+4);
     if ( high == 1 && low < 0x100 )
-	fprintf(f,"%*sSytem version:   %08x %08x = IOS %u = IOS 0x%02x\n",
+	fprintf(f,"%*sSystem version:  %08x %08x = IOS 0x%02x = IOS %u\n",
 		indent, "", high, low, low, low );
     else
-	fprintf(f,"%*sSytem version:   %08x:%08x\n", indent, "", high, low );
+	fprintf(f,"%*sSystem version:  %08x:%08x\n", indent, "", high, low );
     fprintf(f,"%*sTitle ID:        ",indent,"");
     dump_hex(f,tmd->title_id,sizeof(tmd->title_id),18);
 

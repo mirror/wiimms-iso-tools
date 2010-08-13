@@ -488,11 +488,12 @@ typedef struct wd_disc_t
 
     u8	temp_buf[2*WII_SECTOR_SIZE];	// temp buffer for reading operations
 
-    u32	cache_sector;			// sector number of 'cache'
-    u8	cache[WII_SECTOR_SIZE];		// cache for wd_read_and_path()
+    u32		cache_sector;		// sector number of 'cache'
+    u8		cache[WII_SECTOR_SIZE];	// cache for wd_read_and_path()
 
-    u32	group_cache_sector;		// sector number of 'group_cache'
-    u8	* group_cache;			// cache for sector groups
+    wd_part_t	* group_cache_part;	// parttion of 'group_cache'
+    u32		  group_cache_sector;	// sector number of 'group_cache'
+    u8		* group_cache;		// cache for sector groups
     
 
 } wd_disc_t;

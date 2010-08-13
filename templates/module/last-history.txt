@@ -12,16 +12,20 @@ wit v1.15a.beta2 r1534 - 2010-08-12
 
  - Writing a WBFS file is now part of the file layer and libwbfs is only used
    as helper. Now every command, and also "wit MIX", is able to write to a
-   WBFS file like to any other formats.
+   WBFS file like to any other formats without special code.
  - "INSTALLER" is now an alternative name for the "UPDATE" partition, like
    "GAME" for "DATA" since the epoch.
  - To manage allowed and permitted options, 64 bit integer numbers had been
    used. Now arrays will be used, because wwt have already reached the limit
-   of 64 command specific options. Hope that all works like before.
+   of 64 command specific options. Hope that all run as before.
 
 wit v@@VERSION@@ r@@REV-NEXT@@ - @@@@-@@-@@
 
  - Bug fix for "wit mix --overlay".
+
+Need help:
+
+ - Korean disc support (Korean common key) is implemented but never confirmed.
 
 Known bugs:
 

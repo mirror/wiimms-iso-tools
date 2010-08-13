@@ -812,7 +812,7 @@ enumError wd_read_part_block
     if ( disc->block_part != part || disc->block_num != block_num )
     {
 	
-	 err = wd_read_raw(	part->disc,
+	err = wd_read_raw(	part->disc,
 				part->data_off4 + block_num * WII_SECTOR_SIZE4,
 				disc->temp_buf,
 				WII_SECTOR_SIZE,
