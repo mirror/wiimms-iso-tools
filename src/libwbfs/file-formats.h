@@ -44,6 +44,8 @@ typedef u16 be16_t;
 typedef u32 be32_t;
 typedef u64 be64_t;
 
+typedef char id6_t[7];
+
 int validate_file_format_sizes ( int trace_sizes );
 
 //

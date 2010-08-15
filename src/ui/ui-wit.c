@@ -105,7 +105,7 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 	" ALL, WHOLE and RAW. Additional the following input formats are"
 	" accepted: ptype, #index, #<index, #<=index, #>index, #>=index and"
 	" #tab_index.part_index.\n"
-	"See the online docu for more details."
+	"See http://wit.wiimm.de/opt/psel for more details."
     },
 
     {	OPT_RAW, 0, "raw",
@@ -131,7 +131,8 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 	" parameter. 1 to 6 characters are expected. Only defined characters"
 	" not equal '.' are modified. The disc header, boot.bin, ticket.bin"
 	" and tmd.bin are  objects to modify. The option --modify selects the"
-	" objects."
+	" objects.\n"
+	"See http://wit.wiimm.de/opt/id for more details."
     },
 
     {	OPT_NAME, 0, "name",
@@ -248,7 +249,7 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
     {	OPT_CHUNK_MODE, 0, "chunk-mode",
 	"mode",
 	"Defines an operation mode for --chunk-size and --max-chunks. Allowed"
-	" keywords are 'ANY' to allow any values,, '32K' to force chunk sizes"
+	" keywords are 'ANY' to allow any values, '32K' to force chunk sizes"
 	" with a multiple of 32 KiB, 'POW2' to force chunk sizes >=32K and"
 	" with a power of 2 or 'ISO' for ISO images (more restrictive as"
 	" 'POW2', best for USB loaders). The case of the keyword is ignored."
@@ -595,7 +596,7 @@ const InfoOption_t option_cmd_LIST_LONG =
 	" with number or partitions, file type and real path is added."
     };
 
-const InfoOption_t option_cmd_ILIST_SORT =
+const InfoOption_t option_cmd_FILES_SORT =
     {	OPT_SORT, 'S', "sort",
 	"list",
 	"Define the sort mode for the file listing. The parameter is a comma"
@@ -677,8 +678,8 @@ const CommandTab_t CommandTab[] =
     { CMD_EXCLUDE,	"EXCLUDE",	0,		0 },
     { CMD_TITLES,	"TITLES",	0,		0 },
     { CMD_CREATE,	"CREATE",	0,		0 },
-    { CMD_FILELIST,	"FILELIST",	"FL",		0 },
-    { CMD_FILETYPE,	"FILETYPE",	"FT",		0 },
+    { CMD_FILELIST,	"FILELIST",	"FLIST",	0 },
+    { CMD_FILETYPE,	"FILETYPE",	"FTYPE",	0 },
     { CMD_ISOSIZE,	"ISOSIZE",	"SIZE",		0 },
     { CMD_DUMP,		"DUMP",		"D",		0 },
     { CMD_DREGION,	"DREGION",	"DR",		0 },
@@ -690,12 +691,16 @@ const CommandTab_t CommandTab[] =
     { CMD_LIST_LL,	"LISTLL",	0,		0 },
     { CMD_LIST_LLL,	"LIST-LLL",	"LLLL",		0 },
     { CMD_LIST_LLL,	"LISTLLL",	0,		0 },
-    { CMD_ILIST,	"ILIST",	"IL",		0 },
-    { CMD_ILIST_L,	"ILIST-L",	"ILL",		0 },
-    { CMD_ILIST_L,	"ILISTL",	0,		0 },
-    { CMD_ILIST_LL,	"ILIST-LL",	"ILLL",		0 },
-    { CMD_ILIST_LL,	"ILISTLL",	0,		0 },
+    { CMD_FILES,	"FILES",	"F",		0 },
+    { CMD_FILES,	"ILIST",	"IL",		0 },
+    { CMD_FILES_L,	"FILES-L",	"FL",		0 },
+    { CMD_FILES_L,	"FILESL",	"ILIST-L",	0 },
+    { CMD_FILES_L,	"ILL",		"ILISTL",	0 },
+    { CMD_FILES_LL,	"FILES-LL",	"FLL",		0 },
+    { CMD_FILES_LL,	"FILESLL",	"ILIST-LL",	0 },
+    { CMD_FILES_LL,	"ILLL",		"ILISTLL",	0 },
     { CMD_DIFF,		"DIFF",		"CMP",		0 },
+    { CMD_FDIFF,	"FDIFF",	"FCMP",		0 },
     { CMD_EXTRACT,	"EXTRACT",	"X",		0 },
     { CMD_COPY,		"COPY",		"CP",		0 },
     { CMD_SCRUB,	"SCRUB",	"SB",		0 },
@@ -904,6 +909,7 @@ const u8 OptionIndex[OPT_INDEX_SIZE] =
 	/*a3*/	OPT_SECTIONS,
 	/*a4*/	OPT_LIMIT,
 	/*a5*/	 0,0,0,0, 0,0,0,0, 0,0,0,
+	/*b0*/	 0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0,
 };
 
 //
@@ -986,7 +992,7 @@ static u8 option_allowed_cmd_DREGION[55] = // cmd #12
 static u8 option_allowed_cmd_ID6[55] = // cmd #13
 {
     0,1,1,1,1, 1,1,1,0,1,  0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,
-    0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,  1,0,0,1,0
+    0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0
 };
 
 static u8 option_allowed_cmd_LIST[55] = // cmd #14
@@ -1013,19 +1019,19 @@ static u8 option_allowed_cmd_LIST_LLL[55] = // cmd #17
     0,0,0,0,0, 0,0,0,0,0,  0,0,0,1,1, 1,1,1,1,0,  1,1,1,1,0
 };
 
-static u8 option_allowed_cmd_ILIST[55] = // cmd #18
+static u8 option_allowed_cmd_FILES[55] = // cmd #18
 {
     0,1,1,1,1, 1,1,1,1,1,  1,1,1,1,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,
     0,0,0,0,0, 0,0,0,0,0,  0,0,1,0,0, 0,0,0,1,1,  0,1,0,1,0
 };
 
-static u8 option_allowed_cmd_ILIST_L[55] = // cmd #19
+static u8 option_allowed_cmd_FILES_L[55] = // cmd #19
 {
     0,1,1,1,1, 1,1,1,1,1,  1,1,1,1,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,
     0,0,0,0,0, 0,0,0,0,0,  0,0,1,0,0, 0,0,0,1,1,  0,1,0,1,0
 };
 
-static u8 option_allowed_cmd_ILIST_LL[55] = // cmd #20
+static u8 option_allowed_cmd_FILES_LL[55] = // cmd #20
 {
     0,1,1,1,1, 1,1,1,1,1,  1,1,1,1,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,
     0,0,0,0,0, 0,0,0,0,0,  0,0,1,0,0, 0,0,0,1,1,  0,1,0,1,0
@@ -1037,55 +1043,61 @@ static u8 option_allowed_cmd_DIFF[55] = // cmd #21
     0,0,0,0,0, 0,0,1,1,1,  1,1,1,0,0, 0,0,0,1,0,  0,0,0,0,0
 };
 
-static u8 option_allowed_cmd_EXTRACT[55] = // cmd #22
+static u8 option_allowed_cmd_FDIFF[55] = // cmd #22
+{
+    0,1,1,1,1, 1,1,1,1,1,  1,1,1,1,0, 0,0,0,0,0,  0,0,0,0,0, 1,1,0,0,0,
+    0,0,0,0,0, 0,0,1,1,1,  1,1,1,0,0, 0,0,0,1,0,  0,0,0,0,0
+};
+
+static u8 option_allowed_cmd_EXTRACT[55] = // cmd #23
 {
     0,1,1,1,1, 1,1,1,1,1,  1,1,1,1,1, 1,1,1,1,1,  1,1,1,0,1, 1,1,0,0,0,
     0,0,0,1,0, 1,0,0,0,0,  0,0,1,0,0, 0,0,0,0,0,  0,0,0,1,0
 };
 
-static u8 option_allowed_cmd_COPY[55] = // cmd #23
+static u8 option_allowed_cmd_COPY[55] = // cmd #24
 {
     0,1,1,1,1, 1,1,1,1,1,  1,1,1,1,1, 1,1,1,1,1,  1,1,1,0,1, 1,1,1,1,1,
     1,1,1,1,1, 1,1,1,1,1,  1,1,1,0,0, 0,0,0,0,0,  0,0,0,1,0
 };
 
-static u8 option_allowed_cmd_SCRUB[55] = // cmd #24
+static u8 option_allowed_cmd_SCRUB[55] = // cmd #25
 {
     0,1,1,1,1, 1,1,1,1,1,  1,1,0,0,1, 1,1,1,1,1,  1,1,1,0,1, 0,0,1,1,1,
     1,1,1,1,0, 0,0,1,1,1,  1,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0
 };
 
-static u8 option_allowed_cmd_EDIT[55] = // cmd #25
+static u8 option_allowed_cmd_EDIT[55] = // cmd #26
 {
     0,1,1,1,1, 1,1,1,1,0,  0,0,0,0,1, 1,1,1,1,1,  1,1,1,0,1, 0,0,0,0,0,
     0,0,0,1,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0
 };
 
-static u8 option_allowed_cmd_MOVE[55] = // cmd #26
+static u8 option_allowed_cmd_MOVE[55] = // cmd #27
 {
     0,1,1,1,1, 1,1,1,1,0,  0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 1,1,0,0,0,
     0,0,0,0,0, 1,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0
 };
 
-static u8 option_allowed_cmd_RENAME[55] = // cmd #27
+static u8 option_allowed_cmd_RENAME[55] = // cmd #28
 {
     0,1,1,1,1, 1,1,1,1,0,  0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,
     0,0,0,0,0, 0,0,0,1,0,  1,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0
 };
 
-static u8 option_allowed_cmd_SETTITLE[55] = // cmd #28
+static u8 option_allowed_cmd_SETTITLE[55] = // cmd #29
 {
     0,1,1,1,1, 1,1,1,1,0,  0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,
     0,0,0,0,0, 0,0,0,1,0,  1,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0
 };
 
-static u8 option_allowed_cmd_VERIFY[55] = // cmd #29
+static u8 option_allowed_cmd_VERIFY[55] = // cmd #30
 {
     0,1,1,1,1, 1,1,1,1,1,  1,1,0,0,0, 0,0,0,0,0,  0,0,1,0,0, 0,0,0,0,0,
     0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,1,0,  0,0,0,0,1
 };
 
-static u8 option_allowed_cmd_MIX[55] = // cmd #30
+static u8 option_allowed_cmd_MIX[55] = // cmd #31
 {
     0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,1, 1,0,1,0,0,  0,0,0,1,0, 1,1,1,1,1,
     1,1,1,0,0, 1,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0
@@ -1334,8 +1346,6 @@ static const InfoOption_t * option_tab_cmd_ID6[] =
 
 	OptionInfo + OPT_IGNORE_FST,
 	OptionInfo + OPT_LOGGING,
-	OptionInfo + OPT_UNIQUE,
-	OptionInfo + OPT_SORT,
 
 	0
 };
@@ -1504,7 +1514,7 @@ static const InfoOption_t * option_tab_cmd_LIST_LLL[] =
 	0
 };
 
-static const InfoOption_t * option_tab_cmd_ILIST[] =
+static const InfoOption_t * option_tab_cmd_FILES[] =
 {
 	OptionInfo + OPT_SOURCE,
 	OptionInfo + OPT_RECURSE,
@@ -1533,12 +1543,12 @@ static const InfoOption_t * option_tab_cmd_ILIST[] =
 	OptionInfo + OPT_LONG,
 	OptionInfo + OPT_NO_HEADER,
 	OptionInfo + OPT_SHOW,
-	&option_cmd_ILIST_SORT,
+	&option_cmd_FILES_SORT,
 
 	0
 };
 
-static const InfoOption_t * option_tab_cmd_ILIST_L[] =
+static const InfoOption_t * option_tab_cmd_FILES_L[] =
 {
 	OptionInfo + OPT_SOURCE,
 	OptionInfo + OPT_RECURSE,
@@ -1567,12 +1577,12 @@ static const InfoOption_t * option_tab_cmd_ILIST_L[] =
 	OptionInfo + OPT_LONG,
 	OptionInfo + OPT_NO_HEADER,
 	OptionInfo + OPT_SHOW,
-	&option_cmd_ILIST_SORT,
+	&option_cmd_FILES_SORT,
 
 	0
 };
 
-static const InfoOption_t * option_tab_cmd_ILIST_LL[] =
+static const InfoOption_t * option_tab_cmd_FILES_LL[] =
 {
 	OptionInfo + OPT_SOURCE,
 	OptionInfo + OPT_RECURSE,
@@ -1601,12 +1611,68 @@ static const InfoOption_t * option_tab_cmd_ILIST_LL[] =
 	OptionInfo + OPT_LONG,
 	OptionInfo + OPT_NO_HEADER,
 	OptionInfo + OPT_SHOW,
-	&option_cmd_ILIST_SORT,
+	&option_cmd_FILES_SORT,
 
 	0
 };
 
 static const InfoOption_t * option_tab_cmd_DIFF[] =
+{
+	OptionInfo + OPT_TEST,
+
+	OptionInfo + OPT_NONE, // separator
+
+	OptionInfo + OPT_TITLES,
+	OptionInfo + OPT_UTF_8,
+	OptionInfo + OPT_NO_UTF_8,
+	OptionInfo + OPT_LANG,
+
+	OptionInfo + OPT_NONE, // separator
+
+	OptionInfo + OPT_SOURCE,
+	OptionInfo + OPT_RECURSE,
+	OptionInfo + OPT_RDEPTH,
+
+	OptionInfo + OPT_NONE, // separator
+
+	OptionInfo + OPT_INCLUDE,
+	OptionInfo + OPT_INCLUDE_PATH,
+	OptionInfo + OPT_EXCLUDE,
+	OptionInfo + OPT_EXCLUDE_PATH,
+	OptionInfo + OPT_IGNORE,
+	OptionInfo + OPT_IGNORE_FST,
+
+	OptionInfo + OPT_NONE, // separator
+
+	OptionInfo + OPT_PSEL,
+	OptionInfo + OPT_RAW,
+	OptionInfo + OPT_PMODE,
+	OptionInfo + OPT_FILES,
+	OptionInfo + OPT_SNEEK,
+
+	OptionInfo + OPT_NONE, // separator
+
+	OptionInfo + OPT_QUIET,
+	OptionInfo + OPT_VERBOSE,
+	OptionInfo + OPT_LOGGING,
+	OptionInfo + OPT_PROGRESS,
+	OptionInfo + OPT_LONG,
+
+	OptionInfo + OPT_NONE, // separator
+
+	OptionInfo + OPT_DEST,
+	OptionInfo + OPT_DEST2,
+	OptionInfo + OPT_ESC,
+	OptionInfo + OPT_WDF,
+	OptionInfo + OPT_ISO,
+	OptionInfo + OPT_CISO,
+	OptionInfo + OPT_WBFS,
+	OptionInfo + OPT_FST,
+
+	0
+};
+
+static const InfoOption_t * option_tab_cmd_FDIFF[] =
 {
 	OptionInfo + OPT_TEST,
 
@@ -2128,7 +2194,8 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	0,
 	"wit [option]... command [option|parameter|file]...",
 	"Wiimms ISO Tool : It can list, analyze, verify, convert, split, join,"
-	" patch, mix, extract, compose, rename and compare Wii discs.",
+	" patch, mix, extract, compose, rename and compare Wii discs. It can"
+	" create and dump different other file formats.",
 	15,
 	option_tab_tool,
 	0
@@ -2213,8 +2280,8 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	false,
 	"CREATE",
 	0,
-	"wit CREATE TICKET outfile [--id] [title_id] [decrypted_key]\n"
-	"wit CREATE TMD outfile [--id] [--ios] [hash_val]",
+	"wit CREATE TICKET outfile [--id id] [title_id] [decrypted_key]\n"
+	"wit CREATE TMD outfile [--id id] [--ios ios] [hash_val]",
 	"Create a system file.",
 	5,
 	option_tab_cmd_CREATE,
@@ -2225,7 +2292,7 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	false,
 	true,
 	"FILELIST",
-	"FL",
+	"FLIST",
 	"wit FILELIST [source]...",
 	"List all source files in a table.",
 	10,
@@ -2237,7 +2304,7 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	false,
 	false,
 	"FILETYPE",
-	"FT",
+	"FTYPE",
 	"wit FILETYPE [source]...",
 	"Print a status line for each source file.",
 	11,
@@ -2288,9 +2355,10 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	false,
 	"ID6",
 	"ID",
-	"wit ID6 [source]...",
-	"Print ID6 of all found ISO files.",
-	11,
+	"wit ID6 [id]...",
+	"Print ID6 of all found ISO files. If the ID list is set use it as"
+	" selector.",
+	9,
 	option_tab_cmd_ID6,
 	option_allowed_cmd_ID6
     },
@@ -2313,7 +2381,7 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	"LIST-L",
 	"LL",
 	"wit LIST-L [source]...",
-	"List all found ISO files. Same as 'LIST --long'.",
+	"List all found ISO files. 'LIST-L' is a shortcut for 'LIST --long'.",
 	23,
 	option_tab_cmd_LIST_L,
 	option_allowed_cmd_LIST_L
@@ -2325,7 +2393,8 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	"LIST-LL",
 	"LLL",
 	"wit LIST-LL [source]...",
-	"List all found ISO files. Same as 'LIST --long --long'.",
+	"List all found ISO files. 'LIST-LL' is a shortcut for 'LIST --long"
+	" --long'.",
 	23,
 	option_tab_cmd_LIST_LL,
 	option_allowed_cmd_LIST_LL
@@ -2337,46 +2406,49 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	"LIST-LLL",
 	"LLLL",
 	"wit LIST-LLL [source]...",
-	"List all found ISO files. Same as 'LIST --long --long --long'.",
+	"List all found ISO files. 'LIST-LLL' is a shortcut for 'LIST --long"
+	" --long --long'.",
 	23,
 	option_tab_cmd_LIST_LLL,
 	option_allowed_cmd_LIST_LLL
     },
 
-    {	CMD_ILIST,
+    {	CMD_FILES,
 	false,
 	true,
-	"ILIST",
-	"IL",
-	"wit ILIST [source]...",
+	"FILES",
+	"F",
+	"wit FILES [source]...",
 	"List all files of all discs.",
 	19,
-	option_tab_cmd_ILIST,
-	option_allowed_cmd_ILIST
+	option_tab_cmd_FILES,
+	option_allowed_cmd_FILES
     },
 
-    {	CMD_ILIST_L,
+    {	CMD_FILES_L,
 	false,
 	false,
-	"ILIST-L",
-	"ILL",
-	"wit ILIST-L [source]...",
-	"List all files of all discs. Same as 'ILIST --long'.",
+	"FILES-L",
+	"FL",
+	"wit FILES-L [source]...",
+	"List all files of all discs. 'FILES-L' is a shortcut for 'FILES"
+	" --long'.",
 	19,
-	option_tab_cmd_ILIST_L,
-	option_allowed_cmd_ILIST_L
+	option_tab_cmd_FILES_L,
+	option_allowed_cmd_FILES_L
     },
 
-    {	CMD_ILIST_LL,
+    {	CMD_FILES_LL,
 	false,
 	false,
-	"ILIST-LL",
-	"ILLL",
-	"wit ILIST-LL [source]...",
-	"List all files of all discs. Same as 'ILIST --long --long'.",
+	"FILES-LL",
+	"FLL",
+	"wit FILES-LL [source]...",
+	"List all files of all discs. 'FILES-LL' is a shortcut for 'FILES"
+	" --long --long'.",
 	19,
-	option_tab_cmd_ILIST_LL,
-	option_allowed_cmd_ILIST_LL
+	option_tab_cmd_FILES_LL,
+	option_allowed_cmd_FILES_LL
     },
 
     {	CMD_DIFF,
@@ -2386,11 +2458,25 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	"CMP",
 	"wit DIFF source dest\n"
 	"wit DIFF [-s path]... [-r path]... [source]... [-d|-D] dest",
-	"DIFF compares ISO images in  scrubbed or raw mode or on file level."
+	"DIFF compares ISO images in scrubbed or raw mode or on file level."
 	" DIFF works like COPY but comparing source and destination.",
 	32,
 	option_tab_cmd_DIFF,
 	option_allowed_cmd_DIFF
+    },
+
+    {	CMD_FDIFF,
+	false,
+	false,
+	"FDIFF",
+	"FCMP",
+	"wit FDIFF source dest\n"
+	"wit FDIFF [-s path]... [-r path]... [source]... [-d|-D] dest",
+	"FDIFF compares ISO images on file level. 'FDIFF' is a shortcut for"
+	" 'DIFF --files +'.",
+	32,
+	option_tab_cmd_FDIFF,
+	option_allowed_cmd_FDIFF
     },
 
     {	CMD_EXTRACT,
@@ -2508,7 +2594,7 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	"                  | 'as' [part_table '.'] [part_type]]\n"
 	"                  | 'ignore' ruleset\n"
 	"                  | 'header'\n"
-	"                  | 'region'\n",
+	"                  | 'region'",
 	"Mix the partitions from different sources into one new Wii disc.",
 	15,
 	option_tab_cmd_MIX,

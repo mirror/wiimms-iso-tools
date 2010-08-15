@@ -665,6 +665,171 @@ int PrintParamID6()
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
+enumError ScanParamID6
+(
+    StringField_t	* select_list,	// append all results to this list
+    const ParamList_t	* param		// first param of a list to check
+)
+{
+    DASSERT(select_list);
+
+    char rule[8]; //, *rule_end = rule + 7;
+
+    for ( ; param; param = param->next )
+    {
+	if (!param->arg)
+	    continue;
+	ccp arg = param->arg;
+	for(;;)
+	{
+	    while ( *arg > 0 && *arg <= ' ' || *arg == ',' )
+		arg++;
+	    if (!*arg)
+		break;
+
+	    switch(*arg)
+	    {
+		case '+': *rule = '+'; arg++; break;
+		case '/':
+		case '-': *rule = '-'; arg++; break;
+		default:  *rule = '+';
+	    }
+
+	    ccp start = arg;
+	    int err = 0, wildcards = 0;
+	    while ( *arg > ' ' && *arg != ',' )
+	    {
+		int ch = *arg++;
+		if ( ch == '+' || ch == '*' )
+		    wildcards++;
+		else if (!isalnum(ch) && !strchr("_.",ch))
+		    err++;
+	    }
+	    const int arglen = arg - start;
+	    if ( err || wildcards > 1 || arglen > 6 )
+		return ERROR0(ERR_SEMANTIC,"Illegal ID selector: %.*s\n", arg-start, start );
+
+	    char * dest = rule+1;
+	    for ( ; start < arg; start++ )
+	    {
+		if ( *start == '+' || *start == '*' )
+		{
+		    int count = 7 - arglen;
+		    while ( count-- > 0 )
+			*dest++ = '.';
+		}
+		else
+		    *dest++ = toupper((int)*start);
+		DASSERT( dest < rule + 8 );
+	    }
+	    while ( dest[-1] == '.' )
+		dest--;
+	    *dest = 0;
+	    AppendStringField(select_list,rule,false);
+	}
+    }
+    return ERR_OK;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+int AppendListID6 // returns number of inserted ids
+(
+    StringField_t	* id6_list,	// append all selected IDs in this list
+    const StringField_t	* select_list,	// selector list
+    WBFS_t		* wbfs		// open WBFS file
+)
+{
+    DASSERT(id6_list);
+    DASSERT(select_list);
+    DASSERT(wbfs);
+
+    const int count = id6_list->used;
+    wbfs_t * w = wbfs->wbfs;
+    if (w)
+    {
+	id6_t * id_list = wbfs_load_id_list(w,false);
+	DASSERT(id_list);
+	for ( ; **id_list; id_list++ )
+	    if (MatchRulesetID(select_list,*id_list))
+		InsertStringField(id6_list,*id_list,false);
+    }
+
+    return id6_list->used - count;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+int AppendWListID6 // returns number of inserted ids
+(
+    StringField_t	* id6_list,	// append all selected IDs in this list
+    const StringField_t	* select_list,	// selector list
+    WDiscList_t		* wlist		// valid list
+)
+{
+    DASSERT(id6_list);
+    DASSERT(select_list);
+    DASSERT(wlist);
+
+    const int count = id6_list->used;
+
+    WDiscListItem_t * ptr = wlist->first_disc;
+    WDiscListItem_t * end = ptr + wlist->used;
+    for ( ; ptr < end; ptr++ )
+	if (MatchRulesetID(select_list,ptr->id6))
+	    InsertStringField(id6_list,ptr->id6,false);
+
+    return id6_list->used - count;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+bool MatchRulesetID
+(
+    const StringField_t	* select_list,	// selector list
+    ccp			id		// id to compare
+)
+{
+    DASSERT(select_list);
+    DASSERT(id);
+
+    ccp * pattern = select_list->field;
+    ccp * end_pattern = pattern + select_list->used;
+    for ( ; pattern < end_pattern; pattern++ )
+	if (MatchPatternID(*pattern+1,id))
+	    return **pattern == '+';
+
+    return !select_list->used || end_pattern[-1][0] == '-';
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+bool MatchPatternID
+(
+    ccp			pattern,	// pattern, '.' is a wildcard
+    ccp			id		// id to compare
+)
+{
+    DASSERT(pattern);
+    DASSERT(id);
+
+    noTRACE("MATCH |%s|%s|\n",pattern,id);
+    for(;;)
+    {
+	char pat = *pattern++;
+	if (!pat)
+	    return true;
+
+	char ch = *id++;
+	if ( !ch || pat != '.' && pat != ch )
+	    return false;
+    }
+}
+
+//
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+
 enumError CheckParamRename ( bool rename_id, bool allow_plus, bool allow_index )
 {
     int syntax_count = 0, semantic_count = 0;

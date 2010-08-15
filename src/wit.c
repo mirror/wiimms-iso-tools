@@ -687,7 +687,9 @@ enumError exec_dump ( SuperFile_t * sf, Iterator_t * it )
     if ( sf->f.ftype & FT_ID_BOOT_BIN )
 	return Dump_BOOT_BIN(stdout,0,sf,it->real_path);
 
-    return ERR_OK;
+    return OptionUsed[OPT_IGNORE]
+		? ERR_OK
+		: ERROR0(ERR_INVALID_FILE,"Can't dump this file type: %s\n",sf->f.fname);
 }
 
 //-----------------------------------------------------------------------------
@@ -811,6 +813,48 @@ enumError exec_collect ( SuperFile_t * sf, Iterator_t * it )
 
 enumError cmd_id6()
 {
+ #if 1
+
+    StringField_t select_list, id6_list, *print_list = &select_list;
+    InitializeStringField(&select_list);
+    InitializeStringField(&id6_list);
+    enumError err = ScanParamID6(&select_list,first_param);
+    if (err)
+	return err;
+
+    if ( testmode < 2 )
+    {
+	WDiscList_t wlist;
+	InitializeWDiscList(&wlist);
+
+	Iterator_t it;
+	InitializeIterator(&it);
+	it.func		= exec_collect;
+	it.act_wbfs	= ACT_EXPAND;
+	it.act_fst	= allow_fst ? ACT_EXPAND : ACT_IGNORE;
+	it.long_count	= long_count;
+	it.wlist	= &wlist;
+
+	enumError err = SourceIterator(&it,0,true,false);
+	ResetIterator(&it);
+	if ( err > ERR_WARNING )
+	    return err;
+
+	AppendWListID6(&id6_list,&select_list,&wlist);
+	ResetWDiscList(&wlist);
+
+	print_list = &id6_list;
+    }
+
+    int i;
+    for ( i = 0; i < print_list->used; i++ )
+	printf("%s\n",print_list->field[i]);
+
+    ResetStringField(&select_list);
+    ResetStringField(&id6_list);
+    return ERR_OK;
+
+ #else
     ParamList_t * param;
     for ( param = first_param; param; param = param->next )
 	AppendStringField(&source_list,param->arg,true);
@@ -842,6 +886,7 @@ enumError cmd_id6()
 
     ResetWDiscList(&wlist);
     return ERR_OK;
+ #endif
 }
 
 //
@@ -851,7 +896,7 @@ enumError cmd_list ( int long_level )
 {
     if ( long_level > 0 )
     {
-	RegisterOption(&InfoUI,OPT_LONG,long_level,false);
+	RegisterOptionByIndex(&InfoUI,OPT_LONG,long_level,false);
 	long_count += long_level;
     }
 
@@ -1003,21 +1048,16 @@ enumError cmd_list ( int long_level )
 //
 ///////////////////////////////////////////////////////////////////////////////
 
-enumError exec_ilist ( SuperFile_t * fi, Iterator_t * it )
+enumError exec_files ( SuperFile_t * fi, Iterator_t * it )
 {
     ASSERT(fi);
     if ( fi->f.ftype & FT_ID_FST_BIN )
 	return Dump_FST_BIN(stdout,0,fi,it->real_path,it->show_mode&~SHOW_INTRO);
 
-    if ( fi->f.ftype & FT__SPC_MASK )
-    {
-	if ( !OptionUsed[OPT_IGNORE] )
-	    PrintErrorFT(&fi->f,FT_A_ISO);
-	return ERR_OK;
-    }
-
-    if (!fi->f.id6[0])
-	return ERR_OK;
+    if ( fi->f.ftype & FT__SPC_MASK || !fi->f.id6[0] )
+	return OptionUsed[OPT_IGNORE]
+		? ERR_OK
+		: PrintErrorFT(&fi->f,FT_A_ISO);
 
     wd_disc_t * disc = OpenDiscSF(fi,true,true);
     if (!disc)
@@ -1042,11 +1082,11 @@ enumError exec_ilist ( SuperFile_t * fi, Iterator_t * it )
 
 //-----------------------------------------------------------------------------
 
-enumError cmd_ilist ( int long_level )
+enumError cmd_files ( int long_level )
 {
     if ( long_level > 0 )
     {
-	RegisterOption(&InfoUI,OPT_LONG,long_level,false);
+	RegisterOptionByIndex(&InfoUI,OPT_LONG,long_level,false);
 	long_count += long_level;
     }
 
@@ -1082,7 +1122,7 @@ enumError cmd_ilist ( int long_level )
     enumError err = SourceIterator(&it,0,false,true);
     if ( err <= ERR_WARNING )
     {
-	it.func = exec_ilist;
+	it.func = exec_files;
 	err = SourceIteratorCollected(&it,1);
     }
     ResetIterator(&it);
@@ -1149,9 +1189,10 @@ enumError exec_diff ( SuperFile_t * f1, Iterator_t * it )
 		oft_name[f2.iod.oft], f2.f.fname );
     }
 
-    FilePattern_t * pat = GetDefaultFilePattern();
-    err = !raw_mode && SetupFilePattern(pat)
-		? DiffFilesSF( f1, &f2, it->long_count, pat, prefix_mode )
+    PRINT("DIFF: raw=%x, files=%x => diff files = %d\n",
+		raw_mode, OptionUsed[OPT_FILES], !raw_mode && OptionUsed[OPT_FILES] );
+    err = !raw_mode && OptionUsed[OPT_FILES]
+		? DiffFilesSF( f1, &f2, it->long_count, GetDefaultFilePattern(), prefix_mode )
 		: DiffSF( f1, &f2, it->long_count, raw_mode );
 
     if ( err == ERR_DIFFER )
@@ -1171,10 +1212,24 @@ enumError exec_diff ( SuperFile_t * f1, Iterator_t * it )
 
 //-----------------------------------------------------------------------------
 
-enumError cmd_diff()
+enumError cmd_diff ( bool file_level )
 {
     if ( verbose > 0 )
 	print_title(stdout);
+
+    if (file_level)
+    {
+	FilePattern_t * pat = file_pattern + PAT_DEFAULT;
+	pat->rules.used = 0;
+	AddFilePattern("+",PAT_DEFAULT);
+	PRINT("FIRCE FILE LEVEL\n");
+	RegisterOptionByIndex(&InfoUI,OPT_FILES,1,false);
+    }
+    else if (OptionUsed[OPT_FILES])
+    {
+	FilePattern_t * pat = GetDefaultFilePattern();
+	SetupFilePattern(pat);
+    }
 
     if (!opt_dest)
     {
@@ -1939,7 +1994,7 @@ enumError CheckOptions ( int argc, char ** argv, bool is_env )
       if ( opt_stat == -1 )
 	break;
 
-      RegisterOption(&InfoUI,opt_stat,1,is_env);
+      RegisterOptionByName(&InfoUI,opt_stat,1,is_env);
 
       switch ((enumGetOpt)opt_stat)
       {
@@ -2142,11 +2197,12 @@ enumError CheckCommand ( int argc, char ** argv )
 	case CMD_LIST_LL:	err = cmd_list(2); break;
 	case CMD_LIST_LLL:	err = cmd_list(3); break;
 
-	case CMD_ILIST:		err = cmd_ilist(0); break;
-	case CMD_ILIST_L:	err = cmd_ilist(1); break;
-	case CMD_ILIST_LL:	err = cmd_ilist(2); break;
+	case CMD_FILES:		err = cmd_files(0); break;
+	case CMD_FILES_L:	err = cmd_files(1); break;
+	case CMD_FILES_LL:	err = cmd_files(2); break;
 
-	case CMD_DIFF:		err = cmd_diff(); break;
+	case CMD_DIFF:		err = cmd_diff(false); break;
+	case CMD_FDIFF:		err = cmd_diff(true); break;
 	case CMD_EXTRACT:	err = cmd_extract(); break;
 	case CMD_COPY:		err = cmd_copy(); break;
 	case CMD_SCRUB:		err = cmd_scrub(); break;

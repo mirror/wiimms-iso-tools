@@ -424,35 +424,45 @@ enumError cmd_id6()
     if ( !n_param && !opt_part && !opt_auto )
 	ScanPartitions(true);
 
-    if ( OptionUsed[OPT_UNIQUE] )
-	opt_all++;
-
-    if (n_param)
+    if ( testmode < 2 )
     {
-	opt_part++;
-	opt_all++;
-	ParamList_t * param;
-	for ( param = first_param; param; param = param->next )
-	    CreatePartitionInfo(param->arg,PS_PARAM);
+	const enumError err = AnalyzePartitions(stderr,false,true);
+	if (err)
+	    return err;
     }
 
-    const int err = AnalyzePartitions(stderr,false,true);
+    StringField_t select_list, id6_list, *print_list = &select_list;
+    InitializeStringField(&select_list);
+    InitializeStringField(&id6_list);
+    enumError err = ScanParamID6(&select_list,first_param);
     if (err)
 	return err;
 
-    ScanPartitionGames();
-    SortWDiscList(&pi_wlist,sort_mode,SORT_TITLE, OptionUsed[OPT_UNIQUE] ? 2 : 0 );
+    if ( testmode < 2 )
+    {
+	WBFS_t wbfs;
+	InitializeWBFS(&wbfs);
+	PartitionInfo_t * info;
+	for ( err = GetFirstWBFS(&wbfs,&info);
+	      !err && !SIGINT_level;
+	      err = GetNextWBFS(&wbfs,&info) )
+	{
+	    AppendListID6(&id6_list,&select_list,&wbfs);
+	}
+	ResetWBFS(&wbfs);
+	if ( err && err != ERR_NO_WBFS_FOUND )
+	    return err;
+	print_list = &id6_list;
+    }
 
+    //PRINT("N=%d,%d -> %d\n", select_list.used, id6_list.used, print_list->used );
     int i;
-    WDiscListItem_t * witem = pi_wlist.first_disc;
-    if (long_count)
-	for ( i = pi_wlist.used; i-- > 0; witem++ )
-	    printf("%s/%s\n",pi_list[witem->part_index]->path,witem->id6);
-    else
-	for ( i = pi_wlist.used; i-- > 0; witem++ )
-	    printf("%s\n",witem->id6);
+    for ( i = 0; i < print_list->used; i++ )
+	printf("%s\n",print_list->field[i]);
 
-    return 0;
+    ResetStringField(&select_list);
+    ResetStringField(&id6_list);
+    return ERR_OK;
 }
 
 //
@@ -599,7 +609,7 @@ enumError cmd_list ( int long_level )
 {
     if ( long_level > 0 )
     {
-	RegisterOption(&InfoUI,OPT_LONG,long_level,false);
+	RegisterOptionByIndex(&InfoUI,OPT_LONG,long_level,false);
 	long_count += long_level;
     }
 
@@ -775,7 +785,7 @@ enumError cmd_list_a()
 
 enumError cmd_list_m()
 {
-    RegisterOption(&InfoUI,OPT_MIXED,1,false);
+    RegisterOptionByIndex(&InfoUI,OPT_MIXED,1,false);
     opt_all++;
     return cmd_list(2);
 }
@@ -784,7 +794,7 @@ enumError cmd_list_m()
 
 enumError cmd_list_u()
 {
-    RegisterOption(&InfoUI,OPT_UNIQUE,1,false);
+    RegisterOptionByIndex(&InfoUI,OPT_UNIQUE,1,false);
     opt_all++;
     return cmd_list(2);
 }
@@ -1100,7 +1110,7 @@ enumError cmd_repair()
 {
     if (!OptionUsed[OPT_REPAIR])
     {
-    	RegisterOption(&InfoUI,OPT_REPAIR,1,false);
+    	RegisterOptionByIndex(&InfoUI,OPT_REPAIR,1,false);
 	repair_mode = REPAIR_DEFAULT;
     }
     return cmd_check();
@@ -1740,7 +1750,7 @@ enumError cmd_add()
 	return ERROR0(ERR_MISSING_PARAM,"missing parameters\n");
 
     if ( OptionUsed[OPT_SYNC] )
-    	RegisterOption(&InfoUI,OPT_UPDATE,1,false);
+    	RegisterOptionByIndex(&InfoUI,OPT_UPDATE,1,false);
 
     Iterator_t it;
     InitializeIterator(&it);
@@ -1889,7 +1899,7 @@ enumError cmd_add()
 
 enumError cmd_update()
 {
-    RegisterOption(&InfoUI,OPT_UPDATE,1,false);
+    RegisterOptionByIndex(&InfoUI,OPT_UPDATE,1,false);
     return cmd_add();
 }
 
@@ -1898,7 +1908,7 @@ enumError cmd_update()
 
 enumError cmd_sync()
 {
-    RegisterOption(&InfoUI,OPT_SYNC,1,false);
+    RegisterOptionByIndex(&InfoUI,OPT_SYNC,1,false);
     return cmd_add();
 }
 
@@ -2936,7 +2946,7 @@ enumError CheckOptions ( int argc, char ** argv, bool is_env )
       if ( opt_stat == -1 )
 	break;
 
-      RegisterOption(&InfoUI,opt_stat,1,is_env);
+      RegisterOptionByName(&InfoUI,opt_stat,1,is_env);
 
       switch ((enumGetOpt)opt_stat)
       {

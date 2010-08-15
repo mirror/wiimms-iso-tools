@@ -51,7 +51,7 @@ typedef enum enumType
 	F_OPT_MULTIUSE	=  0x040000,  // multiple usage of option possible
 	F_OPT_PARAM	=  0x080000,  // option needs a parameter
 	F_SEPARATOR	=  0x100000,  // separator element
-	F_SUPERSEDE	=  0x200000,  // supersedes all other comamnds and options
+	F_SUPERSEDE	=  0x200000,  // supersedes all other commands and options
 
 	//----- global flags
 
@@ -127,7 +127,7 @@ typedef struct info_t
 
 #define TEXT_OPT_CHUNK_MODE(def) \
 	"Defines an operation mode for {--chunk-size} and {--max-chunks}." \
-	" Allowed keywords are @'ANY'@ to allow any values,," \
+	" Allowed keywords are @'ANY'@ to allow any values," \
 	" @'32K'@ to force chunk sizes with a multiple of 32 KiB," \
 	" @'POW2'@ to force chunk sizes >=32K and with a power of 2" \
 	" or @'ISO'@ for ISO images (more restrictive as @'POW2'@," \
@@ -153,51 +153,52 @@ info_t info_tab[] =
 		"wit [option]... command [option|parameter|@file]...",
 		"Wiimms ISO Tool :"
 		" It can list, analyze, verify, convert, split, join,"
-		" patch, mix, extract, compose, rename and compare Wii discs." },
+		" patch, mix, extract, compose, rename and compare Wii discs."
+		" It can create and dump different other file formats." },
 
   //
   //---------- list of all wit commands ----------
 
   { T_DEF_CMD,	"VERSION",	"VERSION",
-		"wit VERSION [ignored]...",
+		    "wit VERSION [ignored]...",
 		"Print program name and version and exit." },
 
   { T_DEF_CMD,	"HELP",		"HELP|H|?",
-		"wit HELP [command] [ignored]...",
+		    "wit HELP [command] [ignored]...",
 		"Print help and exit."
 		" If the first non option is a valid command name,"
 		" then a help for the given command is printed." },
 
   { T_DEF_CMD,	"TEST",		"TEST",
-		"wit TEST [ignored]...",
+		    "wit TEST [ignored]...",
 		"Test options: All options are allowed, some are printed." },
 
   { T_DEF_CMD,	"ERROR",	"ERROR|ERR",
-		"wit ERROR [error_code]",
+		    "wit ERROR [error_code]",
 		"Translate exit code to message or print a table"
 		" with all error messages." },
 
   { T_DEF_CMD,	"EXCLUDE",	"EXCLUDE",
-		"wit EXCLUDE [additional_excludes]...",
+		    "wit EXCLUDE [additional_excludes]...",
 		"Dump the internal exclude database to standard output (stdout)." },
 
   { T_DEF_CMD,	"TITLES",	"TITLES",
-		"wit TITLES [additional_title_file]",
+		    "wit TITLES [additional_title_file]",
 		"Dump the internal title database to standard output (stdout)." },
 
   { T_DEF_CMD,	"CREATE",	"CREATE",
-		"wit CREATE TICKET outfile [--id] [title_id] [decrypted_key]\n"
-		"wit CREATE TMD outfile [--id] [--ios] [hash_val]",
+		    "wit CREATE TICKET outfile [--id id] [title_id] [decrypted_key]\n"
+		    "wit CREATE TMD outfile [--id id] [--ios ios] [hash_val]",
 		"Create a system file." },
 
   { T_SEP_CMD,	0,0,0,0 }, //----- separator -----
 
-  { T_DEF_CMD,	"FILELIST",	"FILELIST|FL",
-		"wit FILELIST [source]...",
+  { T_DEF_CMD,	"FILELIST",	"FILELIST|FLIST",
+		    "wit FILELIST [source]...",
 		"List all source files in a table." },
 
-  { T_DEF_CMD,	"FILETYPE",	"FILETYPE|FT",
-		"wit FILETYPE [source]...",
+  { T_DEF_CMD,	"FILETYPE",	"FILETYPE|FTYPE",
+		    "wit FILETYPE [source]...",
 		"Print a status line for each source file." },
 
   { T_DEF_CMD,	"ISOSIZE",	"ISOSIZE|SIZE",
@@ -207,118 +208,122 @@ info_t info_tab[] =
   { T_SEP_CMD,	0,0,0,0 }, //----- separator -----
 
   { T_DEF_CMD,	"DUMP",		"DUMP|D",
-		"wit DUMP [source]...",
+		    "wit DUMP [source]...",
 		"Dump the data structure of Wii ISO files, ticket.bin, tmd.bin,"
 		" header.bin, boot.bin, fst.bin and of DOL-files."
 		" The file type is detected automatically by analyzing the content." },
 
   { H_DEF_CMD,	"DREGION",	"DREGION|DR",
-		"wit DREGION [source]...",
+		    "wit DREGION [source]...",
 		"Dump the region settings of Wii ISO files." },
 
   { T_DEF_CMD,	"ID6",		"ID6|ID",
-		"wit ID6 [source]...",
-		"Print ID6 of all found ISO files." },
+		    "wit ID6 [id]...",
+		"Print ID6 of all found ISO files."
+		" If the ID list is set use it as selector." },
 
   { T_DEF_CMD,	"LIST",		"LIST|LS",
 		"wit LIST [source]...",
 		"List all found ISO files." },
 
   { T_DEF_CMD,	"LIST_L",	"LIST-L|LL|LISTL",
-		"wit LIST-L [source]...",
+		    "wit LIST-L [source]...",
 		"List all found ISO files."
-		" Same as {LIST --long}." },
+		" 'LIST-L' is a shortcut for {LIST --long}." },
 
   { T_DEF_CMD,	"LIST_LL",	"LIST-LL|LLL|LISTLL",
-		"wit LIST-LL [source]...",
+		    "wit LIST-LL [source]...",
 		"List all found ISO files."
-		" Same as {LIST --long --long}." },
+		" 'LIST-LL' is a shortcut for {LIST --long --long}." },
 
   { T_DEF_CMD,	"LIST_LLL",	"LIST-LLL|LLLL|LISTLLL",
-		"wit LIST-LLL [source]...",
+		    "wit LIST-LLL [source]...",
 		"List all found ISO files."
-		" Same as {LIST --long --long --long}." },
+		" 'LIST-LLL' is a shortcut for {LIST --long --long --long}." },
 
   { T_SEP_CMD,	0,0,0,0 }, //----- separator -----
 
-  { T_DEF_CMD,	"ILIST",	"ILIST|IL",
-		"wit ILIST [source]...",
+	// [2do] ILIST is obsolete since 2010-08-15
+
+  { T_DEF_CMD,	"FILES",	"FILES|F|ILIST|IL",  
+		    "wit FILES [source]...",
 		"List all files of all discs." },
 
-  { T_DEF_CMD,	"ILIST_L",	"ILIST-L|ILL|ILISTL",
-		"wit ILIST-L [source]...",
+  { T_DEF_CMD,	"FILES_L",	"FILES-L|FL|FILESL|ILIST-L|ILL|ILISTL",
+		    "wit FILES-L [source]...",
 		"List all files of all discs."
-		" Same as {ILIST --long}." },
+		" 'FILES-L' is a shortcut for {FILES --long}." },
 
-  { T_DEF_CMD,	"ILIST_LL",	"ILIST-LL|ILLL|ILISTLL",
-		"wit ILIST-LL [source]...",
+  { T_DEF_CMD,	"FILES_LL",	"FILES-LL|FLL|FILESLL|ILIST-LL|ILLL|ILISTLL",
+		    "wit FILES-LL [source]...",
 		"List all files of all discs."
-		" Same as {ILIST --long --long}." },
+		" 'FILES-LL' is a shortcut for {FILES --long --long}." },
 
   { T_SEP_CMD,	0,0,0,0 }, //----- separator -----
 
   { T_DEF_CMD,	"DIFF",		"DIFF|CMP",
-		"wit DIFF source dest"
-		"\n"
-		"wit DIFF [-s path]... [-r path]... [source]... [-d|-D] dest",
-		"DIFF compares ISO images in  scrubbed or raw mode or on file level."
+		    "wit DIFF source dest\n"
+		    "wit DIFF [-s path]... [-r path]... [source]... [-d|-D] dest",
+		"DIFF compares ISO images in scrubbed or raw mode or on file level."
 		" DIFF works like {COPY} but comparing source and destination." },
 
+  { T_DEF_CMD,	"FDIFF",	"FDIFF|FCMP",
+		    "wit FDIFF source dest\n"
+		    "wit FDIFF [-s path]... [-r path]... [source]... [-d|-D] dest",
+		"FDIFF compares ISO images on file level."
+		" 'FDIFF' is a shortcut for {DIFF --files +}." },
+
   { T_DEF_CMD,	"EXTRACT",	"EXTRACT|X",
-		"wit EXTRACT source dest"
-		"\n"
-		"wit EXTRACT [-s path]... [-r path]... [source]... [-d|-D] dest",
+		    "wit EXTRACT source dest\n"
+		    "wit EXTRACT [-s path]... [-r path]... [source]... [-d|-D] dest",
 		"Extract all files from the source discs." },
 
   { T_DEF_CMD,	"COPY",		"COPY|CP",
-		"wit COPY source dest"
+		    "wit COPY source dest"
 		"\n"
 		"wit COPY [-s path]... [-r path]... [source]... [-d|-D] dest",
 		"Copy, scrub, convert, join, split, compose, extract,"
 		" patch, encrypt and decrypt Wii disc images." },
 
   { T_DEF_CMD,	"SCRUB",	"SCRUB|SB",
-		"wit SCRUB source"
-		"\n"
-		"wit SCRUB [-s path]... [-r path]... [source]...",
+		    "wit SCRUB source\n"
+		    "wit SCRUB [-s path]... [-r path]... [source]...",
 		"Scrub, convert, join, split, compose, extract,"
 		" patch, encrypt and decrypt Wii disc images." },
 
   { T_DEF_CMD,	"EDIT",		"EDIT|ED",
-		"wit EDIT source"
-		"\n"
-		"wit EDIT [-s path]... [-r path]... [source]...",
+		    "wit EDIT source\n"
+		    "wit EDIT [-s path]... [-r path]... [source]...",
 		"Edit an existing Wii ISO images and patch some values." },
 
   { T_DEF_CMD,	"MOVE",		"MOVE|MV",
-		"wit MOVE source dest"
-		"\n"
-		"wit MOVE [-s path]... [-r path]... [source]... [-d|-D] dest",
+		    "wit MOVE source dest\n"
+		    "wit MOVE [-s path]... [-r path]... [source]... [-d|-D] dest",
 		"Move and rename Wii ISO images." },
 
   { T_DEF_CMD,	"RENAME",	"RENAME|REN",
-		"wit RENAME id6=[new][,title]...",
+		    "wit RENAME id6=[new][,title]...",
 		"Rename the ID6 of discs. Disc title can also be set." },
 
   { T_DEF_CMD,	"SETTITLE",	"SETTITLE|ST",
-		"wit SETTITLE id6=title...",
+		    "wit SETTITLE id6=title...",
 		"Set the disc title of discs." },
 
   { T_SEP_CMD,	0,0,0,0 }, //----- separator -----
 
   { T_DEF_CMD,	"VERIFY",	"VERIFY|V",
-		"wit VERIFY [source]...",
+		    "wit VERIFY [source]...",
 		"Verify ISO images (calculate and compare SHA1 check sums)"
 		" to find bad dumps." },
 
   { T_DEF_CMD,	"MIX",		"MIX",
-		"wit MIX SOURCE... --dest|--DEST outfile\n"
-		"  where SOURCE    = infile [QUALIFIER]...\n"
-		"  where QUALIFIER = 'select' part_type\n"
-		"                  | 'as' [part_table '.'] [part_type]]\n"
-		"                  | 'ignore' ruleset\n"
-		"                  | 'header'\n"
-		"                  | 'region'\n",
+		    "wit MIX SOURCE... --dest|--DEST outfile\n"
+		    "  where SOURCE    = infile [QUALIFIER]...\n"
+		    "  where QUALIFIER = 'select' part_type\n"
+		    "                  | 'as' [part_table '.'] [part_type]]\n"
+		    "                  | 'ignore' ruleset\n"
+		    "                  | 'header'\n"
+		    "                  | 'region'",
 		"Mix the partitions from different sources into one new Wii disc." },
 
   //
@@ -463,8 +468,8 @@ info_t info_tab[] =
 		" Additional the following input formats are accepted:"
 		" @ptype@, @#index@, @#<index@, @#<=index@, @#>index@, @#>=index@"
 		" and @#tab_index.part_index@."
-		"\n"
-		"See the online docu for more details." },
+		"\1\n"
+		"See http://wit.wiimm.de/opt/psel for more details." },
 
   { T_OPT_C,	"RAW",		"raw",
 		0, "Abbreviation of {--psel RAW}." },
@@ -489,7 +494,9 @@ info_t info_tab[] =
 		" to the given parameter. 1 to 6 characters are expected."
 		" Only defined characters not equal '.' are modified."
 		" The disc header, boot.bin, ticket.bin and tmd.bin are "
-		" objects to modify. The option {--modify} selects the objects." },
+		" objects to modify. The option {--modify} selects the objects."
+		"\1\n"
+		"See http://wit.wiimm.de/opt/id for more details." },
 
   { T_OPT_CP,	"NAME",		"name",
 		"name",
@@ -980,8 +987,6 @@ info_t info_tab[] =
   { T_COPT,	"IGNORE_FST",	0,0,0 },
 
   { T_COPT_M,	"LOGGING",	0,0,0 },
-  { T_COPT,	"UNIQUE",	0,0,0 },
-  { T_COPT,	"SORT",		0,0,0 },
 
   //---------- COMMAND wit LIST ----------
 
@@ -1022,9 +1027,9 @@ info_t info_tab[] =
   { T_CMD_BEG,	"LIST_LLL",	0,0,0 },
   { T_COPY_CMD,	"LIST_LL",	0,0,0 },
 
-  //---------- COMMAND wit ILIST ----------
+  //---------- COMMAND wit FILES ----------
 
-  { T_CMD_BEG,	"ILIST",	0,0,0 },
+  { T_CMD_BEG,	"FILES",	0,0,0 },
 
   { T_COPY_GRP,	"XXSOURCE",	0,0,0 },
   { T_COPY_GRP,	"PARTITIONS",	0,0,0 },
@@ -1041,15 +1046,15 @@ info_t info_tab[] =
 	" The parameter is a comma separated list of the following keywords:"
 	" NONE, NAME, SIZE, OFFSET, ASCENDING, DESCENDING = REVERSE." },
 
-  //---------- COMMAND wit ILIST-L ----------
+  //---------- COMMAND wit FILES-L ----------
 
-  { T_CMD_BEG,	"ILIST_L",	0,0,0 },
-  { T_COPY_CMD,	"ILIST",	0,0,0 },
+  { T_CMD_BEG,	"FILES_L",	0,0,0 },
+  { T_COPY_CMD,	"FILES",	0,0,0 },
 
-  //---------- COMMAND wit ILIST-LL ----------
+  //---------- COMMAND wit FILES-LL ----------
 
-  { T_CMD_BEG,	"ILIST_LL",	0,0,0 },
-  { T_COPY_CMD,	"ILIST_L",	0,0,0 },
+  { T_CMD_BEG,	"FILES_LL",	0,0,0 },
+  { T_COPY_CMD,	"FILES",	0,0,0 },
 
   //---------- COMMAND wit DIFF ----------
 
@@ -1082,6 +1087,11 @@ info_t info_tab[] =
   { T_COPT,	"CISO",		0,0,0 },
   { T_COPT,	"WBFS",		0,0,0 },
   { T_COPT,	"FST",		0,0,0 },
+
+  //---------- COMMAND wit FDIFF ----------
+
+  { T_CMD_BEG,	"FDIFF",	0,0,0 },
+  { T_COPY_CMD,	"DIFF",		0,0,0 },
 
   //---------- COMMAND wit EXTRACT ----------
 
@@ -1304,171 +1314,172 @@ info_t info_tab[] =
 		"wwt [option]... command [option|parameter|@file]...",
 		"Wiimms WBFS Tool (WBFS manager) :"
 		" It can create, check, repair, verify and clone WBFS files"
-		" and partitions. It can list, add, extract, remove and rename"
-		" ISO images as part of a WBFS." },
+		" and partitions. It can list, add, extract, remove, rename"
+		" and recover ISO images as part of a WBFS." },
 
   //
   //---------- list of all wwt commands ----------
 
   { T_DEF_CMD,	"VERSION",	"VERSION",
-		"wwt VERSION [ignored]...",
+		    "wwt VERSION [ignored]...",
 		0 /* copy of wit */ },
 
   { T_DEF_CMD,	"HELP",		"HELP|H|?",
-		"wwt HELP [command] [ignored]...",
+		    "wwt HELP [command] [ignored]...",
 		0 /* copy of wit */ },
 
   { T_DEF_CMD,	"TEST",		"TEST",
-		"wwt TEST [ignored]...",
+		    "wwt TEST [ignored]...",
 		0 /* copy of wit */ },
 
   { T_DEF_CMD,	"ERROR",	"ERROR|ERR",
-		"wwt ERROR [error_code]",
+		    "wwt ERROR [error_code]",
 		0 /* copy of wit */ },
 
   { T_DEF_CMD,	"EXCLUDE",	"EXCLUDE",
-		"wwt EXCLUDE [additional_excludes]...",
+		    "wwt EXCLUDE [additional_excludes]...",
 		0 /* copy of wit */ },
 
   { T_DEF_CMD,	"TITLES",	"TITLES",
-		"wwt TITLES [additional_title_file]",
+		    "wwt TITLES [additional_title_file]",
 		0 /* copy of wit */ },
 
   { T_SEP_CMD,	0,0,0,0 }, //----- separator -----
 
   { T_DEF_CMD,	"FIND",		"FIND|F",
-		"wwt FIND [wbfs_partition]...",
+		    "wwt FIND [wbfs_partition]...",
 		"Find WBFS partitions and optionally print some geometric values." },
 
   { T_DEF_CMD,	"SPACE",	"SPACE|DF",
-		"wwt SPACE [wbfs_partition]...",
+		    "wwt SPACE [wbfs_partition]...",
 		"Print disk space of WBFS partitions." },
 
   { T_DEF_CMD,	"ANALYZE",	"ANALYZE|ANA|ANALYSE",
-		"wwt ANALYZE [wbfs_partition]...",
+		    "wwt ANALYZE [wbfs_partition]...",
 		"Analyze files and partitions for WBFS usage."
 		" Try to find old WBFS structures and make calculations for new WBFS." },
 
   { T_DEF_CMD,	"DUMP",		"DUMP|D",
-		"wwt DUMP [wbfs_partition]...",
+		    "wwt DUMP [wbfs_partition]...",
 		"Dump the data structure of WBFS partitions." },
 
   { T_SEP_CMD,	0,0,0,0 }, //----- separator -----
 
   { T_DEF_CMD,	"ID6",		"ID6|ID",
-		"wwt ID6 [wbfs_partition]...",
-		"List all ID6 of all discs of WBFS partitions." },
+		    "wwt ID6 [id]...",
+		"List all ID6 of all discs of WBFS partitions."
+		" If the ID list is set use it as selector."},
 
   { T_DEF_CMD,	"LIST",		"LIST|LS",
-		"wwt LIST [wbfs_partition]...",
+		    "wwt LIST [wbfs_partition]...",
 		"List all discs of WBFS partitions." },
 
   { T_DEF_CMD,	"LIST_L",	"LIST-L|LL|LISTL",
-		"wwt LIST-L [wbfs_partition]...",
+		    "wwt LIST-L [wbfs_partition]...",
 		"List all discs of WBFS partitions."
-		" Same as {LIST --long}." },
+		" 'LIST-L' is a shortcut for {LIST --long}." },
 
   { T_DEF_CMD,	"LIST_LL",	"LIST-LL|LLL|LISTLL",
-		"wwt LIST-LL [wbfs_partition]...",
+		    "wwt LIST-LL [wbfs_partition]...",
 		"List all discs of WBFS partitions."
-		" Same as {LIST --long --long}." },
+		" 'LIST-LL' is a shortcut for {LIST --long --long}." },
 
   { T_DEF_CMD,	"LIST_A",	"LIST-A|LA|LISTA",
-		"wwt LIST-A [wbfs_partition]...",
+		    "wwt LIST-A [wbfs_partition]...",
 		"List all discs of all WBFS partitions."
-		" Same as {LIST --long --long --auto}." },
+		" 'LIST-A' is a shortcut for {LIST --long --long --auto}." },
 
   { T_DEF_CMD,	"LIST_M",	"LIST-M|LM|LISTM",
-		"wwt LIST-M [wbfs_partition]...",
+		    "wwt LIST-M [wbfs_partition]...",
 		"List all discs of WBFS partitions in mixed view."
-		" Same as {LIST --long --long --mixed}." },
+		" 'LIST-M' is a shortcut for {LIST --long --long --mixed}." },
 
   { T_DEF_CMD,	"LIST_U",	"LIST-U|LU|LISTU",
-		"wwt LIST-U [wbfs_partition]...",
+		    "wwt LIST-U [wbfs_partition]...",
 		"List all discs of WBFS partitions in mixed view."
-		" Same as {LIST --long --long --unique}." },
+		" 'LIST-U' is a shortcut for {LIST --long --long --unique}." },
 
   { T_SEP_CMD,	0,0,0,0 }, //----- separator -----
 
   { T_DEF_CMD,	"FORMAT",	"FORMAT|INIT",
-		"wwt FORMAT file|blockdev...",
+		    "wwt FORMAT file|blockdev...",
 		"Initialize (=format) WBFS partitions and files."
 		" Combine with {--recover} to recover discs." },
 
   { T_DEF_CMD,	"RECOVER",	"RECOVER",
-		"wwt RECOVER [wbfs_partition]..",
+		    "wwt RECOVER [wbfs_partition]..",
 		"Recover deleted discs of WBFS partitions." },
 
   { T_DEF_CMD,	"CHECK",	"CHECK|FSCK",
-		"wwt CHECK [wbfs_partition]..",
+		    "wwt CHECK [wbfs_partition]..",
 		"Check WBFS partitions and print error listing."
 		" To repair WBFS partitions use the option {--repair modelist}."  },
 
   { T_DEF_CMD,	"REPAIR",	"REPAIR",
-		"wwt REPAIR [wbfs_partition]..",
+		    "wwt REPAIR [wbfs_partition]..",
 		"Check WBFS partitions and repair errors."
 		" 'REPAIR' is a shortcut for {CHECK --repair standard}." },
 
   { T_DEF_CMD,	"EDIT",		"EDIT",
-		"wwt EDIT [sub_command]...",
+		    "wwt EDIT [sub_command]...",
 		"Edit slot and block assignments. Dangerous! Read docu!" },
 
   { T_DEF_CMD,	"PHANTOM",	"PHANTOM",
-		"wwt PHANTOM [sub_command]...",
+		    "wwt PHANTOM [sub_command]...",
 		"Add phantom discs."
 		" Phantom discs have no content and only a header is written."
 		" This makes adding discs very fast and this is good for testing." },
 
   { T_DEF_CMD,	"TRUNCATE",	"TRUNCATE|TR",
-		"wwt TRUNCATE [wbfs_partition]..",
+		    "wwt TRUNCATE [wbfs_partition]..",
 		"Truncate WBFS partitions to the really used size." },
 
   { T_SEP_CMD,	0,0,0,0 }, //----- separator -----
 
   { T_DEF_CMD,	"ADD",		"ADD|A",
-		"wwt ADD iso|wbfs|dir...",
+		    "wwt ADD iso|wbfs|dir...",
 		"Add Wii ISO discs to WBFS partitions." },
 
   { T_DEF_CMD,	"UPDATE",	"UPDATE|U",
-		"wwt UPDATE iso|wbfs|dir...",
+		    "wwt UPDATE iso|wbfs|dir...",
 		"Add missing Wii ISO discs to WBFS partitions."
 		" 'UPDATE' is a shortcut for {ADD --update}."},
 
   { T_DEF_CMD,	"SYNC",		"SYNC",
-		"wwt SYNC iso|wbfs|dir...",
+		    "wwt SYNC iso|wbfs|dir...",
 		"Modify primary WBFS (REMOVE and ADD)"
 		" until it contains exactly the same discs as all sources together."
 		" 'SYNC' is a shortcut for {ADD --sync}."},
 
   { T_DEF_CMD,	"EXTRACT",	"EXTRACT|X",
-		"wwt EXTRACT id6[=dest]...",
+		    "wwt EXTRACT id6[=dest]...",
 		"Extract discs from WBFS partitions and store them as Wii ISO images." },
 
   { T_DEF_CMD,	"REMOVE",	"REMOVE|RM",
-		"wwt REMOVE id6...",
+		    "wwt REMOVE id6...",
 		"Remove discs from WBFS partitions." },
 
   { T_DEF_CMD,	"RENAME",	"RENAME|REN",
-		"wwt RENAME id6=[new][,title]...",
+		    "wwt RENAME id6=[new][,title]...",
 		"Rename the ID6 of WBFS discs. Disc title can also be set." },
 
   { T_DEF_CMD,	"SETTITLE",	"SETTITLE|ST",
-		"wwt SETTITLE id6=title...",
+		    "wwt SETTITLE id6=title...",
 		"Set the disc title of WBFS discs." },
 
   { T_DEF_CMD,	"TOUCH",	"TOUCH",
-		"wwt TOUCH id6...",
+		    "wwt TOUCH id6...",
 		"Set time stamps of WBFS discs." },
 
   { T_DEF_CMD,	"VERIFY",	"VERIFY|V",
-		"wwt VERIFY id6...",
+		    "wwt VERIFY id6...",
 		"Verify all discs of WBFS (calculate and compare SHA1 check sums)"
 		" to find bad dumps." },
 
   { T_SEP_CMD,	0,0,0,0 }, //----- separator -----
 
-  { T_DEF_CMD,	"FILETYPE",	"FILETYPE|FT",
-		"wwt FILETYPE filename...",
+  { T_DEF_CMD,	"FILETYPE",	"FILETYPE|FTYPE",
+		    "wwt FILETYPE filename...",
 		"Print a status line for each source file." },
 
   //
@@ -1953,11 +1964,6 @@ info_t info_tab[] =
   { T_COPY_GRP,	"READ_WBFS",	0,0,0 },
   { T_COPY_GRP,	"EXCLUDE",	0,0,0 },
 
-  { T_COPT,	"UNIQUE",	0,0,0 },
-  { T_COPT,	"SORT",		0,0,0 },
-  { T_COPT,	"LONG",		0,0,
-	"Prefix each printed ID6 with the WBFS filename." },
-
   //---------- COMMAND wwt LIST ----------
 
   { T_CMD_BEG,	"LIST",		0,0,0 },
@@ -2332,11 +2338,11 @@ info_t info_tab[] =
   //---------- list of all wdf commands ----------
 
   { T_DEF_CMD,	"VERSION",	"+VERSION|+V",
-		"wdf +VERSION [ignored]...",
+		    "wdf +VERSION [ignored]...",
 		"Print program name, version and the defaults and exit." },
 
   { T_DEF_CMD,	"HELP",		"+HELP|+H",
-		"wdf +HELP [+command] [ignored]...",
+		    "wdf +HELP [+command] [ignored]...",
 		"Print help and exit."
 		" If the first non option is a valid command name,"
 		" then a help for the given command is printed." },
@@ -2344,19 +2350,19 @@ info_t info_tab[] =
   { T_SEP_CMD,	0,0,0,0 }, //----- separator -----
 
   { T_DEF_CMD,	"PACK",		"+PACK|+P",
-		"wdf +PACK [option]... files...",
+		    "wdf +PACK [option]... files...",
 		"Pack sources into WDF or CISO archives."
 		" This is the general default." },
 
   { T_DEF_CMD,	"UNPACK",	"+UNPACK|+U",
-		"wdf +UNPACK [option]... files...",
+		    "wdf +UNPACK [option]... files...",
 		"Unpack WDF and CISO archives."
 		"\n"
 		"This is the default command, when the program name starts"
 		" with the two letters @'un'@ in any case." },
 
   { T_DEF_CMD,	"CAT",		"+CAT|+A",
-		"wdf +CAT [option]... files...",
+		    "wdf +CAT [option]... files...",
 		"Concatenate files and print on the standard output."
 		" WDF and CISO files are extracted before printing,"
 		" all other files are copied byte by byte."
@@ -2365,7 +2371,7 @@ info_t info_tab[] =
 		"contains the three letter @'cat'@ in any case." },
 
   { T_DEF_CMD,	"CMP",		"+CMP|+C|+DIFF",
-		"wdf +CAT [option]... files...",
+		    "wdf +CAT [option]... files...",
 		"Compare files and unpack WDF and CISO while comparing."
 		"\n"
 		"The standard is to compare two source files."
@@ -2378,7 +2384,7 @@ info_t info_tab[] =
 		"contains the letters @'cmp'@ or @'diff'@ in any case." },
 
   { T_DEF_CMD,	"DUMP",		"+DUMP|+D",
-		"wdf +DUMP [option]... files...",
+		    "wdf +DUMP [option]... files...",
 		"Dump the data structure of all archives"
 		" and ignore non WDF and non CISO files."
 		"\n"

@@ -34,44 +34,77 @@
 ///////////////			register options		///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-enumError RegisterOption
-	( const InfoUI_t * iu, int option, int level, bool is_env )
+enumError RegisterOptionByIndex
+(
+    const InfoUI_t	* iu,		// valid pointer
+    int			opt_index,	// index of option (OPT_*)
+    int			level,		// the level of registration
+    bool		is_env		// true: register environment pre setting
+)
 {
     ASSERT(iu);
-    ASSERT(iu->opt_info);
-    ASSERT(iu->opt_used);
-    ASSERT(iu->opt_index);
+    DASSERT(iu->opt_info);
+    DASSERT(iu->opt_used);
+    DASSERT(iu->opt_index);
 
-    if ( level > 0 && option >= 0 && option < OPT_INDEX_SIZE )
+    if ( level <= 0 )
+	return ERR_OK;
+
+    if ( opt_index >= 0
+	 && opt_index < iu->n_opt_total
+	 && opt_index < OPT_INDEX_SIZE )
     {
-	int opt_index = iu->opt_index[option];
-	if ( opt_index > 0 && opt_index < iu->n_opt_total )
+	TRACE("OPT: RegisterOptionByIndex(,%02x,%d,%d) opt_index=%02x,%s\n",
+		    opt_index, level, is_env, opt_index,
+		    iu->opt_info[opt_index].long_name );
+	u8 * obj = iu->opt_used + opt_index;
+	u32 count = *obj;
+	if (is_env)
 	{
-	    TRACE("OPT: RegisterOption(,%02x,%d,%d) option=%02x,%s\n",
-			option, level, is_env, opt_index,
-			iu->opt_info[opt_index].long_name );
-	    u8 * obj = iu->opt_used + opt_index;
-	    u32 count = *obj;
-	    if (is_env)
+	    if ( count < 0x7f )
 	    {
-		if ( count < 0x7f )
-		{
-		    count += level;
-		    *obj = count < 0x7f ? count : 0x7f;
-		}
-	    }
-	    else
-	    {
-		if ( count < 0x80 )
-		    count = 0x80;
 		count += level;
-		*obj = count < 0xff ? count : 0xff;
+		*obj = count < 0x7f ? count : 0x7f;
 	    }
-
-	    return ERR_OK;
 	}
+	else
+	{
+	    if ( count < 0x80 )
+		count = 0x80;
+	    count += level;
+	    *obj = count < 0xff ? count : 0xff;
+	}
+
+	return ERR_OK;
     }
-    TRACE("OPT: RegisterOption(,%02x,%d,%d) => WARNING\n",option,level,is_env);
+
+    PRINT("OPT: RegisterOptionbyIndex(,%02x/%02x/%02x,%d,%d) => WARNING\n",
+		opt_index, iu->n_opt_total, OPT_INDEX_SIZE, level, is_env );
+    TRACE("OPT: RegisterOptionbyIndex(,%02x/%02x/%02x,%d,%d) => WARNING\n",
+		opt_index, iu->n_opt_total, OPT_INDEX_SIZE, level, is_env );
+    return ERR_WARNING;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+enumError RegisterOptionByName
+(
+    const InfoUI_t	* iu,		// valid pointer
+    int			opt_name,	// short name of GO_* valus of option
+    int			level,		// the level of registration
+    bool		is_env		// true: register environment pre setting
+)
+{
+    ASSERT(iu);
+    DASSERT(iu->opt_index);
+
+    if ( opt_name >= 0 && opt_name < OPT_INDEX_SIZE )
+	return RegisterOptionByIndex(iu,iu->opt_index[opt_name],level,is_env);
+
+    PRINT("OPT: RegisterOptionbyName(,%02x,%d,%d) => WARNING\n",
+		opt_name, level, is_env );
+    TRACE("OPT: RegisterOptionbyName(,%02x,%d,%d) => WARNING\n",
+		opt_name, level, is_env );
     return ERR_WARNING;
 }
 

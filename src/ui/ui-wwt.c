@@ -81,7 +81,7 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 	" ALL, WHOLE and RAW. Additional the following input formats are"
 	" accepted: ptype, #index, #<index, #<=index, #>index, #>=index and"
 	" #tab_index.part_index.\n"
-	"See the online docu for more details."
+	"See http://wit.wiimm.de/opt/psel for more details."
     },
 
     {	OPT_RAW, 0, "raw",
@@ -130,7 +130,8 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 	" parameter. 1 to 6 characters are expected. Only defined characters"
 	" not equal '.' are modified. The disc header, boot.bin, ticket.bin"
 	" and tmd.bin are  objects to modify. The option --modify selects the"
-	" objects."
+	" objects.\n"
+	"See http://wit.wiimm.de/opt/id for more details."
     },
 
     {	OPT_NAME, 0, "name",
@@ -243,7 +244,7 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
     {	OPT_CHUNK_MODE, 0, "chunk-mode",
 	"mode",
 	"Defines an operation mode for --chunk-size and --max-chunks. Allowed"
-	" keywords are 'ANY' to allow any values,, '32K' to force chunk sizes"
+	" keywords are 'ANY' to allow any values, '32K' to force chunk sizes"
 	" with a multiple of 32 KiB, 'POW2' to force chunk sizes >=32K and"
 	" with a power of 2 or 'ISO' for ISO images (more restrictive as"
 	" 'POW2', best for USB loaders). The case of the keyword is ignored."
@@ -625,12 +626,6 @@ const InfoOption_t option_cmd_DUMP_LONG =
 	" activate --inode too."
     };
 
-const InfoOption_t option_cmd_ID6_LONG =
-    {	OPT_LONG, 'l', "long",
-	0,
-	"Prefix each printed ID6 with the WBFS filename."
-    };
-
 const InfoOption_t option_cmd_LIST_LONG =
     {	OPT_LONG, 'l', "long",
 	0,
@@ -902,7 +897,7 @@ const CommandTab_t CommandTab[] =
     { CMD_SETTITLE,	"SETTITLE",	"ST",		0 },
     { CMD_TOUCH,	"TOUCH",	0,		0 },
     { CMD_VERIFY,	"VERIFY",	"V",		0 },
-    { CMD_FILETYPE,	"FILETYPE",	"FT",		0 },
+    { CMD_FILETYPE,	"FILETYPE",	"FTYPE",	0 },
 
     { CMD__N,0,0,0 }
 };
@@ -1125,6 +1120,7 @@ const u8 OptionIndex[OPT_INDEX_SIZE] =
 	/*a6*/	OPT_SECTIONS,
 	/*a7*/	OPT_LIMIT,
 	/*a8*/	 0,0,0,0, 0,0,0,0, 
+	/*b0*/	 0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0,
 };
 
 //
@@ -1205,8 +1201,8 @@ static u8 option_allowed_cmd_DUMP[64] = // cmd #10
 static u8 option_allowed_cmd_ID6[64] = // cmd #11
 {
     0,1,1,1,0, 0,0,0,1,1,  1,1,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,
-    0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,1,0,0,1,
-    0,0,1,0
+    0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,
+    0,0,0,0
 };
 
 static u8 option_allowed_cmd_LIST[64] = // cmd #12
@@ -1525,12 +1521,6 @@ static const InfoOption_t * option_tab_cmd_ID6[] =
 	OptionInfo + OPT_INCLUDE_PATH,
 	OptionInfo + OPT_EXCLUDE,
 	OptionInfo + OPT_EXCLUDE_PATH,
-
-	OptionInfo + OPT_NONE, // separator
-
-	OptionInfo + OPT_UNIQUE,
-	OptionInfo + OPT_SORT,
-	&option_cmd_ID6_LONG,
 
 	0
 };
@@ -2381,7 +2371,7 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	"wwt [option]... command [option|parameter|file]...",
 	"Wiimms WBFS Tool (WBFS manager) : It can create, check, repair,"
 	" verify and clone WBFS files and partitions. It can list, add,"
-	" extract, remove and rename ISO images as part of a WBFS.",
+	" extract, remove, rename and recover ISO images as part of a WBFS.",
 	15,
 	option_tab_tool,
 	0
@@ -2515,9 +2505,10 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	true,
 	"ID6",
 	"ID",
-	"wwt ID6 [wbfs_partition]...",
-	"List all ID6 of all discs of WBFS partitions.",
-	10,
+	"wwt ID6 [id]...",
+	"List all ID6 of all discs of WBFS partitions. If the ID list is set"
+	" use it as selector.",
+	7,
 	option_tab_cmd_ID6,
 	option_allowed_cmd_ID6
     },
@@ -2540,7 +2531,8 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	"LIST-L",
 	"LL",
 	"wwt LIST-L [wbfs_partition]...",
-	"List all discs of WBFS partitions. Same as 'LIST --long'.",
+	"List all discs of WBFS partitions. 'LIST-L' is a shortcut for 'LIST"
+	" --long'.",
 	22,
 	option_tab_cmd_LIST_L,
 	option_allowed_cmd_LIST_L
@@ -2552,7 +2544,8 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	"LIST-LL",
 	"LLL",
 	"wwt LIST-LL [wbfs_partition]...",
-	"List all discs of WBFS partitions. Same as 'LIST --long --long'.",
+	"List all discs of WBFS partitions. 'LIST-LL' is a shortcut for 'LIST"
+	" --long --long'.",
 	22,
 	option_tab_cmd_LIST_LL,
 	option_allowed_cmd_LIST_LL
@@ -2564,8 +2557,8 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	"LIST-A",
 	"LA",
 	"wwt LIST-A [wbfs_partition]...",
-	"List all discs of all WBFS partitions. Same as 'LIST --long --long"
-	" --auto'.",
+	"List all discs of all WBFS partitions. 'LIST-A' is a shortcut for"
+	" 'LIST --long --long --auto'.",
 	22,
 	option_tab_cmd_LIST_A,
 	option_allowed_cmd_LIST_A
@@ -2577,8 +2570,8 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	"LIST-M",
 	"LM",
 	"wwt LIST-M [wbfs_partition]...",
-	"List all discs of WBFS partitions in mixed view. Same as 'LIST --long"
-	" --long --mixed'.",
+	"List all discs of WBFS partitions in mixed view. 'LIST-M' is a"
+	" shortcut for 'LIST --long --long --mixed'.",
 	22,
 	option_tab_cmd_LIST_M,
 	option_allowed_cmd_LIST_M
@@ -2590,8 +2583,8 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	"LIST-U",
 	"LU",
 	"wwt LIST-U [wbfs_partition]...",
-	"List all discs of WBFS partitions in mixed view. Same as 'LIST --long"
-	" --long --unique'.",
+	"List all discs of WBFS partitions in mixed view. 'LIST-U' is a"
+	" shortcut for 'LIST --long --long --unique'.",
 	22,
 	option_tab_cmd_LIST_U,
 	option_allowed_cmd_LIST_U
@@ -2802,7 +2795,7 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	false,
 	true,
 	"FILETYPE",
-	"FT",
+	"FTYPE",
 	"wwt FILETYPE filename...",
 	"Print a status line for each source file.",
 	4,

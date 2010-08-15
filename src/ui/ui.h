@@ -101,12 +101,27 @@ enum // some const
 	OPT_MAX		=   100,	// max number of options
 	OPT_USED_MASK	=  0x7f,	// mask to calculate usage count
 	OPT_LONG_BASE	=  0x80,	// first index for "only long options"
-	OPT_INDEX_SIZE	=  0xb0,	// size of OptionIndex[]
+	OPT_INDEX_SIZE	=  0xc0,	// size of OptionIndex[]
 };
 
 ///////////////////////////////////////////////////////////////////////////////
 
-enumError RegisterOption ( const InfoUI_t * iu, int option, int level, bool is_env );
+enumError RegisterOptionByIndex
+(
+    const InfoUI_t	* iu,		// valid pointer
+    int			opt_index,	// index of option (OPT_*)
+    int			level,		// the level of registration
+    bool		is_env		// true: register environment pre setting
+);
+
+enumError RegisterOptionByName
+(
+    const InfoUI_t	* iu,		// valid pointer
+    int			opt_name,	// short name of GO_* valus of option
+    int			level,		// the level of registration
+    bool		is_env		// true: register environment pre setting
+);
+
 enumError VerifySpecificOptions ( const InfoUI_t * iu, const CommandTab_t * cmd );
 int GetOptionCount ( const InfoUI_t * iu, int option );
 void DumpUsedOptions ( const InfoUI_t * iu, FILE * f, int indent );

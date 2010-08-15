@@ -68,9 +68,6 @@ are listed in alphabetic order:
 
 -------------------------------------------------------------------------------
 @@EXEC(./wit help --width 80 CREATE)@@
-~ [2do] copy to homepage
-
- ** no documentation yet **
 
 
 -------------------------------------------------------------------------------
@@ -104,7 +101,7 @@ are listed in alphabetic order:
 
  Usual ERROR/EXIT CODES:
 
-    0 == OK             : all done without erros.
+    0 == OK             : all done without errors.
     DIFFER              : At least one file pair differ.
     SYNTAX ERROR        : at least one syntax error in command line found.
     READ ERROR          : error while reading a file.
@@ -132,7 +129,7 @@ are listed in alphabetic order:
 
  Usual ERROR/EXIT CODES:
 
-    0 == OK             : all done without erros.
+    0 == OK             : all done without errors.
     SYNTAX ERROR        : at least one syntax error in command line found.
     READ ERROR          : error while read a file given by option --part.
 
@@ -199,11 +196,20 @@ are listed in alphabetic order:
 
  Usual ERROR/EXIT CODES:
 
-    0 == OK             : all done without erros.
+    0 == OK             : all done without errors.
     SYNTAX ERROR        : at least one syntax error in command line found.
     READ ERROR          : error while reading a file.
     WRITE ERROR         : error while writing a file.
     CANT CREATE         : Can't create output file.
+
+
+-------------------------------------------------------------------------------
+
+COMMAND:
+    FDIFF | FCMP ...
+
+ 'FDIFF' is a synonym for 'DIFF --files +'.
+ See command 'DIFF' for options and details.
 
 
 -------------------------------------------------------------------------------
@@ -216,9 +222,34 @@ are listed in alphabetic order:
 
  Usual ERROR/EXIT CODES:
 
-    0 == OK             : all done without erros.
+    0 == OK             : all done without errors.
     SYNTAX ERROR        : at least one syntax error in command line found.
     READ ERROR          : error while reading a file.
+
+
+-------------------------------------------------------------------------------
+@@EXEC(./wit help --width 80 FILES)@@
+~ [2do] copy to homepage
+
+ ** no documentation yet **
+
+
+ Usual ERROR/EXIT CODES:
+
+    0 == OK             : all done without errors.
+    SYNTAX ERROR        : at least one syntax error in command line found.
+    READ ERROR          : error while reading a file.
+
+
+-------------------------------------------------------------------------------
+
+COMMANDS:
+    FILES-L   | FL    [source]...
+    FILES-LL  | FLL   [source]...
+
+ 'FILES-L'   is a synonym for 'FILES --long'.
+ 'FILES-LL'  is a synonym for 'FILES --long --long'.
+ See command 'FILES' for options and details.
 
 
 -------------------------------------------------------------------------------
@@ -253,7 +284,7 @@ are listed in alphabetic order:
 
  Usual ERROR/EXIT CODES:
 
-    0 == OK             : all done without erros.
+    0 == OK             : all done without errors.
     SYNTAX ERROR        : at least one syntax error in command line found.
     READ ERROR          : error while reading a file.
 
@@ -264,7 +295,7 @@ are listed in alphabetic order:
 
  Usual ERROR/EXIT CODES:
 
-    0 == OK             : all done without erros.
+    0 == OK             : all done without errors.
 
 
 -------------------------------------------------------------------------------
@@ -289,34 +320,9 @@ are listed in alphabetic order:
 
  Usual ERROR/EXIT CODES:
 
-    0 == OK             : all done without erros.
+    0 == OK             : all done without errors.
     SYNTAX ERROR        : at least one syntax error in command line found.
     READ ERROR          : error while reading a file.
-
-
--------------------------------------------------------------------------------
-@@EXEC(./wit help --width 80 ILIST)@@
-~ [2do] copy to homepage
-
- ** no documentation yet **
-
-
- Usual ERROR/EXIT CODES:
-
-    0 == OK             : all done without erros.
-    SYNTAX ERROR        : at least one syntax error in command line found.
-    READ ERROR          : error while reading a file.
-
-
--------------------------------------------------------------------------------
-
-COMMANDS:
-    ILIST-L   | ILL    [source]...
-    ILIST-LL  | ILLL   [source]...
-
- 'ILIST-L'   is a synonym for 'ILIST --long'.
- 'ILIST-LL'  is a synonym for 'ILIST --long --long'.
- See command 'ILIST' for options and details.
 
 
 -------------------------------------------------------------------------------
@@ -354,7 +360,7 @@ COMMANDS:
 
  Usual ERROR/EXIT CODES:
 
-    0 == OK             : all done without erros.
+    0 == OK             : all done without errors.
     SYNTAX ERROR        : at least one syntax error in command line found.
     READ ERROR          : error while reading a file.
 
@@ -425,7 +431,7 @@ COMMANDS:
 
  Usual ERROR/EXIT CODES:
 
-    0 == OK             : all done without erros.
+    0 == OK             : all done without errors.
     SYNTAX ERROR        : at least one syntax error in command line found.
     READ ERROR          : error while reading a file.
 
@@ -449,33 +455,6 @@ COMMANDS:
 
 -------------------------------------------------------------------------------
 @@EXEC(./wit help --width 80 MOVE)@@
-~ [2do] copy to homepage
-
- The command MOVE moves and/or renames all given sources. If the option --dest
- is not set the last parameter is used as destination. If exact one source file
- is given the destination can be a file name. Option --DEST  is like --dest,
- but the directory path is created automaticaly.
-
- Each source is candidate for moving. Non ISO files are ignored with a warning.
- The option --ignore suppresses this warning. Existing files will only be
- overwrtitten if option --overwrite is set.
-
- The option --test enables test mode: No files are renamed. If --test is set at
- least two times a source list with a trailing destination will be printed.
-
-
- DESTINATION FILENAME
-
-@@MODULE(output-filename.txt)@@
-
-
- Usual ERROR/EXIT CODES:
-
-    0 == OK             : all done without erros.
-    SYNTAX ERROR        : at least one syntax error in command line found.
-    READ ERROR          : error while reading a file.
-    WRITE ERROR         : error while writing a file.
-    CANT CREATE         : Can't create output file.
 
 
 -------------------------------------------------------------------------------
@@ -519,7 +498,7 @@ COMMANDS:
 
  Usual ERROR/EXIT CODES:
 
-    0 == OK             : all done without erros.
+    0 == OK             : all done without errors.
     SYNTAX ERROR        : at least one syntax error in command line found.
     READ ERROR          : error while reading a file.
     WRITE ERROR         : error while writing a file.
@@ -643,7 +622,7 @@ COMMANDS:
  Usual ERROR/EXIT CODES:
  -----------------------
 
-    0 == OK             : all done without erros.
+    0 == OK             : all done without errors.
     DIFFER              : At least one check sum error found.
     SYNTAX ERROR        : at least one syntax error in command line found.
     READ ERROR          : error while reading a file.
@@ -666,7 +645,7 @@ COMMANDS:
 
  Usual ERROR/EXIT CODES:
 
-    0 == OK : all done without erros.
+    0 == OK : all done without errors.
 
 
 *******************************************************************************

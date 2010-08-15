@@ -314,7 +314,7 @@ wbfs_t * wbfs_open_partition_param ( wbfs_param_t * par )
 
     //----- load/setup free block table
 
-    PRINT("FB: size4=%x=%u, mask=%x=%u\n",
+    noTRACE("FB: size4=%x=%u, mask=%x=%u\n",
 		p->freeblks_size4, p->freeblks_size4,
 		p->freeblks_mask, p->freeblks_mask );
 
@@ -1053,16 +1053,16 @@ enumError wbfs_get_disc_info_by_slot
 
 ///////////////////////////////////////////////////////////////////////////////
 
-void wbfs_load_id_list ( wbfs_t * p, int force_reload )
+id6_t * wbfs_load_id_list ( wbfs_t * p, int force_reload )
 {
     ASSERT(p);
     ASSERT(p->head);
     ASSERT(p->tmp_buffer);
     if ( p->id_list && !force_reload )
-	return;
+	return p->id_list;
 
     const int id_item_size = sizeof(*p->id_list);
-    const int id_list_size = p->max_disc * id_item_size;
+    const int id_list_size = (p->max_disc+1) * id_item_size;
     const u32 disc_info_sz_lba = p->disc_info_sz >> p->hd_sec_sz_s;
 
     TRACE("LIBWBFS: +wbfs_load_id_list(%p,%d) id_list_size=%u*%u=%d\n",
@@ -1070,6 +1070,8 @@ void wbfs_load_id_list ( wbfs_t * p, int force_reload )
 
     if (!p->id_list)
     {
+	TRACE("MALLOC id_list = %d * (%d+1) = %d\n",
+		id_item_size, p->max_disc, id_list_size );
 	p->id_list = wbfs_malloc(id_list_size);
 	if (!p->id_list)
 	    OUT_OF_MEMORY;
@@ -1086,6 +1088,8 @@ void wbfs_load_id_list ( wbfs_t * p, int force_reload )
 	    TRACE(" - slot #%03u: %.6s\n",slot,p->tmp_buffer);
 	    memcpy(p->id_list[slot],p->tmp_buffer,id_item_size);
 	}
+
+    return p->id_list;
 }
 
 ///////////////////////////////////////////////////////////////////////////////

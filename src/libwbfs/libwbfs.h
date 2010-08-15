@@ -119,7 +119,7 @@ typedef struct wbfs_t
     u16		disc_info_sz;
 
     u8		* tmp_buffer;		// pre-allocated buffer for unaligned read
-    u8		(*id_list)[7];		// list with all disc ids
+    id6_t	*id_list;		// list with all disc ids
 
     bool	is_dirty;		// if >0: call wbfs_sync() on close
     u32		n_disc_open;		// number of open discs
@@ -319,8 +319,8 @@ u32 wbfs_count_unusedblocks ( wbfs_t * p );
 
 /******************* write access  ******************/
 
-void wbfs_load_id_list	( wbfs_t * p, int force_reload );
-int  wbfs_find_slot	( wbfs_t * p, const u8 * disc_id );
+id6_t * wbfs_load_id_list	( wbfs_t * p, int force_reload );
+int  wbfs_find_slot		( wbfs_t * p, const u8 * disc_id );
 
 void wbfs_load_freeblocks ( wbfs_t * p );
 void wbfs_free_block	  ( wbfs_t * p, u32 bl );

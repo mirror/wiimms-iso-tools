@@ -577,6 +577,17 @@ int main ( int argc, char ** argv )
 
     printf("term width = %d\n",GetTermWidth(80,0));
 
+ #ifdef TEST
+    if (0)
+    {
+	id6_t * id6 = (id6_t*)iobuf;
+	PRINT("sizeof(id6_t)=%zd, %p,%p,%p -> %zu,%zu,%zu\n",
+		sizeof(id6_t),
+		id6, id6+1, id6+2,
+		(ccp)id6-iobuf, (ccp)(id6+1)-iobuf, (ccp)(id6+2)-iobuf );
+    }
+ #endif
+
     if ( argc < 2 )
 	help_exit();
 

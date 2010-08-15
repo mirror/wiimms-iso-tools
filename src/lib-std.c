@@ -268,6 +268,7 @@ void SetupLib ( int argc, char ** argv, ccp p_progname, enumProgID prid )
     TRACE_SIZEOF(aes_key_t);
     TRACE_SIZEOF(dcUnicodeTripel);
     TRACE_SIZEOF(dol_header_t);
+    TRACE_SIZEOF(id6_t);
     TRACE_SIZEOF(wbfs_disc_info_t);
     TRACE_SIZEOF(wbfs_disc_t);
     TRACE_SIZEOF(wbfs_head_t);
@@ -2300,9 +2301,9 @@ s64 ScanCommandList
 	int abbrev_count;
 	const CommandTab_t * cptr = ScanCommand(&abbrev_count,cmd_buf,cmd_tab);
 	if ( !cptr && allow_prefix && cmd_buf[1]
-	    && ( *cmd_buf == '+' || *cmd_buf == '-' || *cmd_buf == '=' ))
+	    && ( *cmd_buf == '+' || *cmd_buf == '-' || *cmd_buf == '/' || *cmd_buf == '=' ))
 	{
-	    prefix = *cmd_buf;
+	    prefix = *cmd_buf == '/' ? '-' : *cmd_buf;
 	    cptr = ScanCommand(&abbrev_count,cmd_buf+1,cmd_tab);
 	}
 
@@ -2375,9 +2376,9 @@ enumError ScanCommandListFunc
 	int abbrev_count;
 	const CommandTab_t * cptr = ScanCommand(&abbrev_count,cmd_buf,cmd_tab);
 	if ( !cptr && allow_prefix && cmd_buf[1]
-	    && ( *cmd_buf == '+' || *cmd_buf == '-' || *cmd_buf == '=' ))
+	    && ( *cmd_buf == '+' || *cmd_buf == '-' || *cmd_buf == '/' || *cmd_buf == '=' ))
 	{
-	    prefix = *cmd_buf;
+	    prefix = *cmd_buf == '/' ? '-' : *cmd_buf;
 	    cptr = ScanCommand(&abbrev_count,cmd_buf+1,cmd_tab);
 	}
 

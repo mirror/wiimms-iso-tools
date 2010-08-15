@@ -788,15 +788,15 @@ wit v1.13a r1468 - 2010-08-04
    the calculation is rated as O(2^n).  *** "wit MIX" is EXPERIMENTAL! ***
  - "wit MIX" wil accept the keyword 'psel' as alternative to 'select'.
    The reason is that 'select' accepts the same keyword list as --psel.
- - The disc subsystems recognize overlayes partitons. For overlayed
+ - The disc subsystems recognize overlayes partitions. For overlayed
    partitions the --psel keyword "WHOLE" is ignored.
  - Command "wit DUMP" will print an info line for overlayed partitions.
 
 wit v1.14a r1506 - 2010-08-09
 
- - Option --psel redesigned: it is now possible to allow or deny any partiton
-   by partiton type, partiton table and/or by partiton index. Only with the
-   unambiguous partiton index it is possible to select the one wanted DATA
+ - Option --psel redesigned: it is now possible to allow or deny any partition
+   by partition type, partition table and/or by partition index. Only with the
+   unambiguous partition index it is possible to select the one wanted DATA
    partition if multiple exists.
  - New option --rm-files: This patching option defines filter rules to remove
    real files and directories from the FST of the DATA partition. Fake signing

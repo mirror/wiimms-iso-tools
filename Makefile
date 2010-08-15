@@ -16,7 +16,7 @@ WWT_SHORT		= wwt
 WWT_LONG		= Wiimms WBFS Tool
 
 VERSION_NUM		= 1.15a
-BETA_VERSION		= 4
+BETA_VERSION		= 0
 			# 0:off  -1:"beta"  >0:"beta#"
 
 URI_HOME		= http://wit.wiimm.de/
@@ -24,11 +24,11 @@ URI_DOWNLOAD		= http://wit.wiimm.de/download
 URI_FILE		= http://wit.wiimm.de/file
 
 ifeq ($(BETA_VERSION),0)
-URI_REPOS		= http://opensvn.wiimm.de/wii/trunk/wiimms-iso-tools/
-URI_VIEWVC		= http://wit.wiimm.de/r/viewvc
+  URI_REPOS		= http://opensvn.wiimm.de/wii/trunk/wiimms-iso-tools/
+  URI_VIEWVC		= http://wit.wiimm.de/r/viewvc
 else
-URI_REPOS		= http://opensvn.wiimm.de/wii/branches/public/wiimms-iso-tools/
-URI_VIEWVC		= http://wit.wiimm.de/r/viewvc-beta
+  URI_REPOS		= http://opensvn.wiimm.de/wii/branches/public/wiimms-iso-tools/
+  URI_VIEWVC		= http://wit.wiimm.de/r/viewvc-beta
 endif
 
 URI_WDF			= http://wit.wiimm.de/r/wdf

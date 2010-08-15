@@ -286,9 +286,7 @@ typedef enum enumOptions
 //	OB_CMD_DREGION		= OB_GRP_XSOURCE,
 //
 //	OB_CMD_ID6		= OB_GRP_XSOURCE
-//				| OB_IGNORE_FST
-//				| OB_UNIQUE
-//				| OB_SORT,
+//				| OB_IGNORE_FST,
 //
 //	OB_CMD_LIST		= OB_GRP_TITLES
 //				| OB_GRP_XSOURCE
@@ -306,7 +304,7 @@ typedef enum enumOptions
 //
 //	OB_CMD_LIST_LLL		= OB_CMD_LIST_LL,
 //
-//	OB_CMD_ILIST		= OB_GRP_XXSOURCE
+//	OB_CMD_FILES		= OB_GRP_XXSOURCE
 //				| OB_GRP_PARTITIONS
 //				| OB_GRP_FILES
 //				| OB_LONG
@@ -314,9 +312,9 @@ typedef enum enumOptions
 //				| OB_SHOW
 //				| OB_SORT,
 //
-//	OB_CMD_ILIST_L		= OB_CMD_ILIST,
+//	OB_CMD_FILES_L		= OB_CMD_FILES,
 //
-//	OB_CMD_ILIST_LL		= OB_CMD_ILIST_L,
+//	OB_CMD_FILES_LL		= OB_CMD_FILES,
 //
 //	OB_CMD_DIFF		= OB_GRP_TITLES
 //				| OB_GRP_XXSOURCE
@@ -330,6 +328,8 @@ typedef enum enumOptions
 //				| OB_CISO
 //				| OB_WBFS
 //				| OB_FST,
+//
+//	OB_CMD_FDIFF		= OB_CMD_DIFF,
 //
 //	OB_CMD_EXTRACT		= OB_GRP_TITLES
 //				| OB_GRP_XXSOURCE
@@ -431,11 +431,12 @@ typedef enum enumCommands
 	CMD_LIST_LL,
 	CMD_LIST_LLL,
 
-	CMD_ILIST,
-	CMD_ILIST_L,
-	CMD_ILIST_LL,
+	CMD_FILES,
+	CMD_FILES_L,
+	CMD_FILES_LL,
 
 	CMD_DIFF,
+	CMD_FDIFF,
 	CMD_EXTRACT,
 	CMD_COPY,
 	CMD_SCRUB,
@@ -447,7 +448,7 @@ typedef enum enumCommands
 	CMD_VERIFY,
 	CMD_MIX,
 
-	CMD__N // == 31
+	CMD__N // == 32
 
 } enumCommands;
 

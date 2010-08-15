@@ -120,7 +120,7 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
     {	OPT_CHUNK_MODE, 0, "chunk-mode",
 	"mode",
 	"Defines an operation mode for --chunk-size and --max-chunks. Allowed"
-	" keywords are 'ANY' to allow any values,, '32K' to force chunk sizes"
+	" keywords are 'ANY' to allow any values, '32K' to force chunk sizes"
 	" with a multiple of 32 KiB, 'POW2' to force chunk sizes >=32K and"
 	" with a power of 2 or 'ISO' for ISO images (more restrictive as"
 	" 'POW2', best for USB loaders). The case of the keyword is ignored."
@@ -353,6 +353,7 @@ const u8 OptionIndex[OPT_INDEX_SIZE] =
 	/*87*/	 0,0,0,0, 0,0,0,0, 0,
 	/*90*/	 0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0,
 	/*a0*/	 0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0,
+	/*b0*/	 0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0,
 };
 
 //

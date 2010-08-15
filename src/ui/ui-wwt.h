@@ -293,10 +293,7 @@ typedef enum enumOptions
 //				| OB_LONG,
 //
 //	OB_CMD_ID6		= OB_GRP_READ_WBFS
-//				| OB_GRP_EXCLUDE
-//				| OB_UNIQUE
-//				| OB_SORT
-//				| OB_LONG,
+//				| OB_GRP_EXCLUDE,
 //
 //	OB_CMD_LIST		= OB_GRP_TITLES
 //				| OB_GRP_READ_WBFS

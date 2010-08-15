@@ -1,4 +1,4 @@
-wit v1.15a.beta r1511 - 2010-08-10
+wit v@@VERSION@@ r@@REV-NEXT@@ - @@@@-@@-@@
 
  - New "wit MIX" qualifer: HEADER: Copy the disc header (first 256 bytes of
    disc) of the related source image to the destination image. Patching with
@@ -7,9 +7,7 @@ wit v1.15a.beta r1511 - 2010-08-10
    0x4e000) of the related source image to the destination image. Patching
    with the option --region is possible.
  - Bug fix: "wit mix --name discname" didn't work.
-
-wit v1.15a.beta2 r1534 - 2010-08-12
-
+ - Bug fix for "wit mix --overlay".
  - Writing a WBFS file is now part of the file layer and libwbfs is only used
    as helper. Now every command, and also "wit MIX", is able to write to a
    WBFS file like to any other formats without special code.
@@ -18,14 +16,20 @@ wit v1.15a.beta2 r1534 - 2010-08-12
  - To manage allowed and permitted options, 64 bit integer numbers had been
    used. Now arrays will be used, because wwt have already reached the limit
    of 64 command specific options. Hope that all run as before.
-
-wit v@@VERSION@@ r@@REV-NEXT@@ - @@@@-@@-@@
-
- - Bug fix for "wit mix --overlay".
-
-Need help:
-
- - Korean disc support (Korean common key) is implemented but never confirmed.
+ - Korean disc support implemented. (I can't test this by myself)
+ - New option: --common-key index: Change the common key index of all partitions
+   and fake sign the tickets.
+ - I have implemented a new "ID selection interface". It works with positive
+   ('+') and negative ('-' or '/') rules. A rule consist up to 6 characters,
+   case is ignored. Points ('.') are wildcards for a single character and mult
+   ('*') and plus ('+') for many characters. Each source ID6 is compared to
+   each rule of the list until a rules matches the ID. If it is a positive rule,
+   the ID is inserted into the workig list.
+ - The syntax of the commands "wit ID6" and "wwt ID6" have changed to use the
+   new "ID selection interface" (see above). More commands will follow.
+ - The commands 'wit ILIST/ILIST-L/ILIST-LL' are renamed to 'wit FILES/FILES-L
+   /FILES-LL'. The old command names are still allowed.
+ - The new command "wit FDIFF" is a shortcut for "wit DIFF --files +".
 
 Known bugs:
 
@@ -37,5 +41,5 @@ Known bugs:
 
 Missing docu:
 
- - wit commands ILIST + EXTRACT + EDIT + CREATE => see built in help
+ - wit commands ILIST + EXTRACT + EDIT => see built in help
  - Option --show => see built in help

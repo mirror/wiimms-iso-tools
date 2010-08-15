@@ -106,6 +106,21 @@ static void DumpText
 	bool eol = false;
 	while ( !eol && *text && dest < buf_end )
 	{
+	    if ( *text >= 1 && *text <= 3 )
+	    {
+		// \1 : Text only for built in help
+		// \2 : Text only for ui.def
+		// \3 : Text for all (default)
+
+		const bool skip = *text == ( is_uidef ? 1 : 2 );
+		//PRINT("CH=%d, SKIP=%d\n",*text,skip);
+		text++;
+		if (skip)
+		    while ( (u8)*text > 3 )
+			text++;
+		continue;
+	    }
+
 	    switch (*text)
 	    {
 		case ' ':
@@ -654,7 +669,7 @@ static enumError Generate ( control_t * ctrl )
 
     if (ctrl->n_opt_specific)
     {
-	PRINT("opt_allowed = ( %2u + %2u ) * %2u\n",
+	noTRACE("opt_allowed = ( %2u + %2u ) * %2u\n",
 		ctrl->n_grp, ctrl->n_cmd, ctrl->n_opt_specific );
 	if (ctrl->n_grp)
 	{
