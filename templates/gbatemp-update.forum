@@ -1,6 +1,6 @@
 
 [size="5"][color="#0000FF"][b]@@TOOLSET-SHORT@@: @@TOOLSET-LONG@@ v@@VERSION@@ - @@@@-@@-@@[/b][/color][/size]
-[size="3"][color="#800000"][b]A command line WBFS tool set for various os.[/b][/color][/size]
+[size="3"][color="#800000"][b]A command line ISO+WBFS tool set for various os.[/b][/color][/size]
 
 [url=@@URI-HOME@@][b]@@TOOLSET-SHORT@@[/b][/url] (@@TOOLSET-LONG@@) is a set of [url=@@URI-HOME@@info/command-line.html]command line[/url] tools to manipulate Wii ISO images and WBFS containers. The two main tools are called [url=@@URI-HOME@@wit][b]@@WIT-SHORT@@[/b][/url] (@@WIT-LONG@@) and [url=@@URI-HOME@@wwt][b]@@WWT-SHORT@@[/b][/url] (@@WWT-LONG@@, the WBFS manager).
 
@@ -10,10 +10,10 @@
 [size="2"][color="#0000c0"][b]Download of the current version:[/b][/color][/size]
 ~[size="2"][color="#0000c0"][b]Download[/b][/color] [color="#800000"][b]this EXPERIMENTAL release:[/b][/color][/size]
 [list]
-[*] [url=@@URI-DOWNLOAD-I386@@][b]@@DISTRIB-I386@@[/b][/url] : linux/i386 version
-[*] [url=@@URI-DOWNLOAD-X86_64@@][b]@@DISTRIB-X86_64@@[/b][/url] : linux/x86_64 version
+[*] [url=@@URI-DOWNLOAD-I386@@][b]@@DISTRIB-I386@@[/b][/url] : Linux/i386 version
+[*] [url=@@URI-DOWNLOAD-X86_64@@][b]@@DISTRIB-X86_64@@[/b][/url] : Linux/x86_64 version
 [*] [url=@@URI-DOWNLOAD-MAC@@][b]@@DISTRIB-MAC@@[/b][/url] : Mac OS universal binaries (ppc, i386 and x86-64)
-[*] [url=@@URI-DOWNLOAD-CYGWIN@@][b]@@DISTRIB-CYGWIN@@[/b][/url] : cygwin (windows) version
+[*] [url=@@URI-DOWNLOAD-CYGWIN@@][b]@@DISTRIB-CYGWIN@@[/b][/url] : Cygwin (Windows) version
 [*] Other releases are available from [url=@@URI-HOME@@download.html][b]@@URI-HOME@@download.html[/b][/url].
 [/list]
 
@@ -29,24 +29,7 @@
 
 [size="2"][color="#0000c0"][b]Highlights of this release:[/b][/color][/size]
 [list]
-[*] The command [url=http://wit.wiimm.de/wit/cmd-mix.html][b]wit MIX[/b][/url] has been improved. Each source image accept qualifiers to define options:
-[list]
-[*] The qualifier [url=http://wit.wiimm.de/wit/cmd-mix.html#select][b]select[/b][/url] gives you fine control about the partitions of the image that should be copied.
-[*] The qualifier [url=http://wit.wiimm.de/wit/cmd-mix.html#select][b]as[/b][/url] defines the destination partition table and partition type.
-[*] The qualifier [url=http://wit.wiimm.de/wit/cmd-mix.html#select][b]ignore[/b][/url] defines files of the file system that should be ignored while copying. This creates large holes and makes mixing with --overlay more efficient. But it creates [b]bad dumps[/b] and is a dirty trick to save space.
-[/list]
-Before creating the image an additional verify function is called. This function controls that no sector is used by more than one partition. With verbose level >=3 a usage map is printed too.
-See http://wit.wiimm.de/wit/cmd-mix.html for more details.
-[color=#ffffff].[/color]
-
-[*] If you think about the sense of all above, read [url=http://gbatemp.net/t243210-mariokart-pwns]MarioKart Pwns[/url].
-[color=#ffffff].[/color]
-
-[*] There are 3 new (patching) options: --rm-files, --zero-files and --ignore-files.
-Option --ignore-files works like the "wit mix" qualifier ignore. Read [url=http://wit.wiimm.de/options/patching.html#ignore-files]this[/url] and try the command "wit dump image1 --show usage --ignore-files ruleset" to view the effect of ignored files.
-[color=#ffffff].[/color]
-
-[*] The option [url=http://wit.wiimm.de/options/scrubbing.html#psel][b]--psel[/b][/url] to select partitions has changed again. It allow the selection of any specific source partitions. Read http://wit.wiimm.de/options/scrubbing.html#psel for details.
+[*]
 [color=#ffffff].[/color]
 [/list]
 

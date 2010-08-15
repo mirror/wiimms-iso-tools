@@ -39,7 +39,7 @@ enumError cmd_error()
 	}
 	else
 	{
-	    const bool print_header = !(used_options&OB_NO_HEADER);
+	    const bool print_header = !OptionUsed[OPT_NO_HEADER];
 
 	    if (print_header)
 	    {

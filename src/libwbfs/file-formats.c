@@ -108,11 +108,11 @@ int validate_file_format_sizes ( int trace_sizes )
     CHECK( OFFSET(tik,title_key)	== WII_TICKET_KEY_OFF );
     CHECK( OFFSET(tik,title_id)		== WII_TICKET_IV_OFF );
     CHECK( OFFSET(tik,issuer)		== WII_TICKET_SIG_OFF );
-    CHECK( OFFSET(tik,trucha_pad)	== WII_TICKET_BRUTE_FORCE_OFF );
+    CHECK( OFFSET(tik,fake_sign)	== WII_TICKET_BRUTE_FORCE_OFF );
     CHECK( sizeof(wd_ticket_t)		== WII_TICKET_SIZE );
 
     CHECK( OFFSET(tmd,issuer)		== WII_TMD_SIG_OFF );
-    CHECK( OFFSET(tmd,reserved)		== WII_TMD_BRUTE_FORCE_OFF );
+    CHECK( OFFSET(tmd,fake_sign)	== WII_TMD_BRUTE_FORCE_OFF );
     CHECK( OFFSET(tmd,content[0].hash)	== 0x1f4 );
     CHECK( sizeof(wd_tmd_t)		== 0x1e4 );
     CHECK( sizeof(wd_tmd_content_t)	== 0x24 );
@@ -146,11 +146,11 @@ int validate_file_format_sizes ( int trace_sizes )
     CHECK( OFFSET(tik,title_key)	== WII_TICKET_KEY_OFF );
     CHECK( OFFSET(tik,title_id)		== WII_TICKET_IV_OFF );
     CHECK( OFFSET(tik,issuer)		== WII_TICKET_SIG_OFF );
-    CHECK( OFFSET(tik,trucha_pad)	== WII_TICKET_BRUTE_FORCE_OFF );
+    CHECK( OFFSET(tik,fake_sign)	== WII_TICKET_BRUTE_FORCE_OFF );
     CHECK( sizeof(wd_ticket_t)		== WII_TICKET_SIZE );
 
     CHECK( OFFSET(tmd,issuer)		== WII_TMD_SIG_OFF );
-    CHECK( OFFSET(tmd,reserved)		== WII_TMD_BRUTE_FORCE_OFF );
+    CHECK( OFFSET(tmd,fake_sign)	== WII_TMD_BRUTE_FORCE_OFF );
     CHECK( OFFSET(tmd,content[0].hash)	== 0x1f4 );
     CHECK( sizeof(wd_tmd_t)		== 0x1e4 );
     CHECK( sizeof(wd_tmd_content_t)	== 0x24 );
@@ -409,14 +409,14 @@ void ticket_clear_encryption ( wd_ticket_t * tik, int mark_not_encrypted )
 
     memset(tik->sig,0,sizeof(tik->sig));
     memset(tik->sig_padding,0,sizeof(tik->sig_padding));
-    memset(tik->trucha_pad,0,sizeof(tik->trucha_pad));
+    memset(tik->fake_sign,0,sizeof(tik->fake_sign));
 
     if (mark_not_encrypted)
     {
 	ASSERT( sizeof(not_encrypted_marker) < sizeof(tik->sig_padding));
-	ASSERT( sizeof(not_encrypted_marker) < sizeof(tik->trucha_pad));
+	ASSERT( sizeof(not_encrypted_marker) < sizeof(tik->fake_sign));
 	strncpy( (char*)tik->sig_padding, not_encrypted_marker, sizeof(tik->sig_padding)-1 );
-	strncpy( (char*)tik->trucha_pad, not_encrypted_marker, sizeof(tik->trucha_pad)-1 );
+	strncpy( (char*)tik->fake_sign, not_encrypted_marker, sizeof(tik->fake_sign)-1 );
     }
 }
 
@@ -426,15 +426,15 @@ bool ticket_is_marked_not_encrypted ( const wd_ticket_t * tik )
 {
     ASSERT(tik);
     DASSERT( sizeof(not_encrypted_marker) < sizeof(tik->sig_padding));
-    DASSERT( sizeof(not_encrypted_marker) < sizeof(tik->trucha_pad));
+    DASSERT( sizeof(not_encrypted_marker) < sizeof(tik->fake_sign));
 
     return !strncmp( (char*)tik->sig_padding, not_encrypted_marker, sizeof(tik->sig_padding) )
-	&& !strncmp( (char*)tik->trucha_pad, not_encrypted_marker, sizeof(tik->trucha_pad) );
+	&& !strncmp( (char*)tik->fake_sign, not_encrypted_marker, sizeof(tik->fake_sign) );
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 
-u32 ticket_sign_trucha ( wd_ticket_t * tik, u32 tik_size )
+u32 ticket_fake_sign ( wd_ticket_t * tik, u32 tik_size )
 {
     ASSERT(tik);
     ticket_clear_encryption(tik,0);
@@ -442,35 +442,33 @@ u32 ticket_sign_trucha ( wd_ticket_t * tik, u32 tik_size )
     if (!tik_size)  // auto calculation
 	tik_size = sizeof(wd_ticket_t);
 
-    // trucha signing
+    // fake signing
 
  #ifdef DEBUG
-    TRACE("TRUCHA: start brute force\n");
+    TRACE("FAKESIGN: start brute force\n");
     //TRACE_HEXDUMP16(0,0,tik,tik_size);
  #endif
 
-    u32 val = 0, count = 0;
+    u32 val = 0;
     u8 hash[WII_HASH_SIZE];
     do
     {
-	count++;
-
-	memcpy(tik->trucha_pad,&val,sizeof(val));
+	memcpy(tik->fake_sign,&val,sizeof(val));
 	SHA1( ((u8*)tik)+WII_TICKET_SIG_OFF, tik_size-WII_TICKET_SIG_OFF, hash );
 	if (!*hash)
 	    break;
 	//TRACE_HEXDUMP(0,0,1,WII_HASH_SIZE,hash,WII_HASH_SIZE);
-	val += 197731421; // any odd number
+	val++;
 
     } while (val);
 
-    TRACE("TRUCHA: success, count=%u\n",count);
-    return *hash ? 0 : count;
+    TRACE("FAKESIGN: success, count=%u\n", val+1);
+    return *hash ? 0 : val+1;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 
-bool ticket_is_trucha_signed ( const wd_ticket_t * tik, u32 tik_size )
+bool ticket_is_fake_signed ( const wd_ticket_t * tik, u32 tik_size )
 {
     ASSERT(tik);
    
@@ -525,14 +523,14 @@ void tmd_clear_encryption ( wd_tmd_t * tmd, int mark_not_encrypted )
 
     memset(tmd->sig,0,sizeof(tmd->sig));
     memset(tmd->sig_padding,0,sizeof(tmd->sig_padding));
-    memset(tmd->reserved,0,sizeof(tmd->reserved));
+    memset(tmd->fake_sign,0,sizeof(tmd->fake_sign));
 
     if (mark_not_encrypted)
     {
 	ASSERT( sizeof(not_encrypted_marker) < sizeof(tmd->sig_padding));
-	ASSERT( sizeof(not_encrypted_marker) < sizeof(tmd->reserved));
+	ASSERT( sizeof(not_encrypted_marker) < sizeof(tmd->fake_sign));
 	strncpy( (char*)tmd->sig_padding, not_encrypted_marker, sizeof(tmd->sig_padding)-1 );
-	strncpy( (char*)tmd->reserved, not_encrypted_marker, sizeof(tmd->reserved)-1 );
+	strncpy( (char*)tmd->fake_sign, not_encrypted_marker, sizeof(tmd->fake_sign)-1 );
     }
 }
 
@@ -542,15 +540,15 @@ bool tmd_is_marked_not_encrypted ( const wd_tmd_t * tmd )
 {
     ASSERT(tmd);
     DASSERT( sizeof(not_encrypted_marker) < sizeof(tmd->sig_padding));
-    DASSERT( sizeof(not_encrypted_marker) < sizeof(tmd->reserved));
+    DASSERT( sizeof(not_encrypted_marker) < sizeof(tmd->fake_sign));
 
     return !strncmp( (char*)tmd->sig_padding, not_encrypted_marker, sizeof(tmd->sig_padding) )
-	&& !strncmp( (char*)tmd->reserved, not_encrypted_marker, sizeof(tmd->reserved) );
+	&& !strncmp( (char*)tmd->fake_sign, not_encrypted_marker, sizeof(tmd->fake_sign) );
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 
-u32 tmd_sign_trucha ( wd_tmd_t * tmd, u32 tmd_size )
+u32 tmd_fake_sign ( wd_tmd_t * tmd, u32 tmd_size )
 {
     ASSERT(tmd);
     tmd_clear_encryption(tmd,0);
@@ -558,35 +556,33 @@ u32 tmd_sign_trucha ( wd_tmd_t * tmd, u32 tmd_size )
     if (!tmd_size)  // auto calculation
 	tmd_size = sizeof(wd_tmd_t) + tmd->n_content * sizeof(wd_tmd_content_t);
 
-    // trucha signing
+    // fake signing
 
  #ifdef DEBUG
-    TRACE("TRUCHA: start brute force\n");
+    TRACE("FAKESIGN: start brute force\n");
     //TRACE_HEXDUMP16(0,0,tmd,tmd_size);
  #endif
 
-    u32 val = 0, count = 0;
+    u32 val = 0;
     u8 hash[WII_HASH_SIZE];
     do
     {
-	count++;
-
-	memcpy(tmd->reserved,&val,sizeof(val));
+	memcpy(tmd->fake_sign,&val,sizeof(val));
 	SHA1( ((u8*)tmd)+WII_TMD_SIG_OFF, tmd_size-WII_TMD_SIG_OFF, hash );
 	if (!*hash)
 	    break;
 	//TRACE_HEXDUMP(0,0,1,WII_HASH_SIZE,hash,WII_HASH_SIZE);
-	val += 197731421; // any odd number
+	val++;
 
     } while (val);
 
-    TRACE("TRUCHA: success, count=%u\n",count);
-    return *hash ? 0 : count;
+    TRACE("FAKESIGN: success, count=%u\n", val+1);
+    return *hash ? 0 : val+1;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 
-bool tmd_is_trucha_signed ( const wd_tmd_t * tmd, u32 tmd_size )
+bool tmd_is_fake_signed ( const wd_tmd_t * tmd, u32 tmd_size )
 {
     ASSERT(tmd);
    
@@ -768,7 +764,7 @@ int setup_part_control ( wd_part_control_t * pc )
 
 ///////////////////////////////////////////////////////////////////////////////
 
-u32 part_control_sign_trucha ( wd_part_control_t * pc, int calc_h4 )
+u32 part_control_fake_sign ( wd_part_control_t * pc, int calc_h4 )
 {
     ASSERT(pc);
 
@@ -779,9 +775,9 @@ u32 part_control_sign_trucha ( wd_part_control_t * pc, int calc_h4 )
 	if ( calc_h4 && pc->tmd_content )
 	    SHA1( pc->h3, pc->h3_size, pc->tmd_content->hash );
 
-	// trucha signing
-	const u32 stat1 = tmd_sign_trucha(pc->tmd,pc->tmd_size);
-	const u32 stat2 = ticket_sign_trucha(&pc->head->ticket,0);
+	// fake signing
+	const u32 stat1 = tmd_fake_sign(pc->tmd,pc->tmd_size);
+	const u32 stat2 = ticket_fake_sign(&pc->head->ticket,0);
 	stat = stat1 && stat2 ? stat + stat2 : 0;
     }
 
@@ -790,10 +786,10 @@ u32 part_control_sign_trucha ( wd_part_control_t * pc, int calc_h4 )
 
 ///////////////////////////////////////////////////////////////////////////////
 
-int part_control_is_trucha_signed ( const wd_part_control_t * pc )
+int part_control_is_fake_signed ( const wd_part_control_t * pc )
 {
     ASSERT(pc);
-    return pc->is_valid && pc->tmd && tmd_is_trucha_signed(pc->tmd,pc->tmd_size);
+    return pc->is_valid && pc->tmd && tmd_is_fake_signed(pc->tmd,pc->tmd_size);
 }
 
 //

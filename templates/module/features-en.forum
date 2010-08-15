@@ -6,6 +6,8 @@
 [*][url=@@URI-HOME@@features.html#6][b]WIT supports 5 Wii disc file types (ISO, CISO, WDF, WBFS and FST) and can read from pipes (indirect RAR/ZIP support).[/b][/url]
 [*][url=@@URI-HOME@@features.html#7][b]wit can verify and compare (diff) Wii ISO images.[/b][/url]
 [*][url=@@URI-HOME@@features.html#8][b]wit can extract and compose Wii ISO images.[/b][/url]
-[*][url=@@URI-HOME@@features.html#9][b]wit and wwt support many diagnostic commands.[/b][/url]
-[*][url=@@URI-HOME@@features.html#10][b]Advanced shell support.[/b][/url]
+[*][url=@@URI-HOME@@features.html#9][b]wit can patch Wii ISO images while copying.[/b][/url]
+[*][url=@@URI-HOME@@features.html#10][b]wit can mix partitions from different sources into a new Wii ISO images.[/b][/url]
+[*][url=@@URI-HOME@@features.html#11][b]wit and wwt support many diagnostic commands.[/b][/url]
+[*][url=@@URI-HOME@@features.html#12][b]Advanced shell support.[/b][/url]
 [/list]Visit [url=@@URI-HOME@@features.html][b]@@URI-HOME@@features.html[/b][/url] for more details.

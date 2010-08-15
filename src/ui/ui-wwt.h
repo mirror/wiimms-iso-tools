@@ -59,6 +59,7 @@ typedef enum enumOptions
 	OPT_NAME,
 	OPT_MODIFY,
 	OPT_REGION,
+	OPT_COMMON_KEY,
 	OPT_IOS,
 	OPT_RM_FILES,
 	OPT_ZERO_FILES,
@@ -105,7 +106,7 @@ typedef enum enumOptions
 	OPT_SORT,
 	OPT_LIMIT,
 
-	OPT__N_SPECIFIC, // == 63 
+	OPT__N_SPECIFIC, // == 64 
 
 	//----- global options -----
 
@@ -126,7 +127,7 @@ typedef enum enumOptions
 	OPT_TEST,
 	OPT_HOOK,
 
-	OPT__N_TOTAL // == 79
+	OPT__N_TOTAL // == 80
 
 } enumOptions;
 
@@ -135,302 +136,304 @@ typedef enum enumOptions
 ///////////////               enum enumOptionsBit               ///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-typedef enum enumOptionsBit
-{
-	//----- command specific options -----
+//	*****  only for verification  *****
 
-	OB_AUTO			= 1llu << OPT_AUTO,
-	OB_ALL			= 1llu << OPT_ALL,
-	OB_PART			= 1llu << OPT_PART,
-	OB_RECURSE		= 1llu << OPT_RECURSE,
-	OB_RDEPTH		= 1llu << OPT_RDEPTH,
-	OB_PSEL			= 1llu << OPT_PSEL,
-	OB_RAW			= 1llu << OPT_RAW,
-	OB_INCLUDE		= 1llu << OPT_INCLUDE,
-	OB_INCLUDE_PATH		= 1llu << OPT_INCLUDE_PATH,
-	OB_EXCLUDE		= 1llu << OPT_EXCLUDE,
-	OB_EXCLUDE_PATH		= 1llu << OPT_EXCLUDE_PATH,
-	OB_IGNORE		= 1llu << OPT_IGNORE,
-	OB_IGNORE_FST		= 1llu << OPT_IGNORE_FST,
-	OB_ID			= 1llu << OPT_ID,
-	OB_NAME			= 1llu << OPT_NAME,
-	OB_MODIFY		= 1llu << OPT_MODIFY,
-	OB_REGION		= 1llu << OPT_REGION,
-	OB_IOS			= 1llu << OPT_IOS,
-	OB_RM_FILES		= 1llu << OPT_RM_FILES,
-	OB_ZERO_FILES		= 1llu << OPT_ZERO_FILES,
-	OB_IGNORE_FILES		= 1llu << OPT_IGNORE_FILES,
-	OB_ENC			= 1llu << OPT_ENC,
-	OB_DEST			= 1llu << OPT_DEST,
-	OB_DEST2		= 1llu << OPT_DEST2,
-	OB_SPLIT		= 1llu << OPT_SPLIT,
-	OB_SPLIT_SIZE		= 1llu << OPT_SPLIT_SIZE,
-	OB_TRUNC		= 1llu << OPT_TRUNC,
-	OB_FAST			= 1llu << OPT_FAST,
-	OB_CHUNK_MODE		= 1llu << OPT_CHUNK_MODE,
-	OB_CHUNK_SIZE		= 1llu << OPT_CHUNK_SIZE,
-	OB_MAX_CHUNKS		= 1llu << OPT_MAX_CHUNKS,
-	OB_SIZE			= 1llu << OPT_SIZE,
-	OB_HSS			= 1llu << OPT_HSS,
-	OB_WSS			= 1llu << OPT_WSS,
-	OB_RECOVER		= 1llu << OPT_RECOVER,
-	OB_FORCE		= 1llu << OPT_FORCE,
-	OB_NO_CHECK		= 1llu << OPT_NO_CHECK,
-	OB_REPAIR		= 1llu << OPT_REPAIR,
-	OB_NO_FREE		= 1llu << OPT_NO_FREE,
-	OB_UPDATE		= 1llu << OPT_UPDATE,
-	OB_SYNC			= 1llu << OPT_SYNC,
-	OB_NEWER		= 1llu << OPT_NEWER,
-	OB_OVERWRITE		= 1llu << OPT_OVERWRITE,
-	OB_REMOVE		= 1llu << OPT_REMOVE,
-	OB_WDF			= 1llu << OPT_WDF,
-	OB_ISO			= 1llu << OPT_ISO,
-	OB_CISO			= 1llu << OPT_CISO,
-	OB_WBFS			= 1llu << OPT_WBFS,
-	OB_ITIME		= 1llu << OPT_ITIME,
-	OB_MTIME		= 1llu << OPT_MTIME,
-	OB_CTIME		= 1llu << OPT_CTIME,
-	OB_ATIME		= 1llu << OPT_ATIME,
-	OB_TIME			= 1llu << OPT_TIME,
-	OB_SET_TIME		= 1llu << OPT_SET_TIME,
-	OB_LONG			= 1llu << OPT_LONG,
-	OB_INODE		= 1llu << OPT_INODE,
-	OB_MIXED		= 1llu << OPT_MIXED,
-	OB_UNIQUE		= 1llu << OPT_UNIQUE,
-	OB_NO_HEADER		= 1llu << OPT_NO_HEADER,
-	OB_SECTIONS		= 1llu << OPT_SECTIONS,
-	OB_SORT			= 1llu << OPT_SORT,
-	OB_LIMIT		= 1llu << OPT_LIMIT,
-
-	//----- group & command options -----
-
-	OB_GRP_TITLES		= 0,
-
-	OB_GRP_READ_WBFS	= OB_AUTO
-				| OB_ALL
-				| OB_PART,
-
-	OB_GRP_MOD_WBFS		= OB_AUTO
-				| OB_ALL
-				| OB_PART
-				| OB_FORCE
-				| OB_NO_CHECK,
-
-	OB_GRP_EXCLUDE		= OB_INCLUDE
-				| OB_INCLUDE_PATH
-				| OB_EXCLUDE
-				| OB_EXCLUDE_PATH,
-
-	OB_GRP_IGN_EXCLUDE	= OB_INCLUDE
-				| OB_INCLUDE_PATH
-				| OB_EXCLUDE
-				| OB_EXCLUDE_PATH
-				| OB_IGNORE
-				| OB_IGNORE_FST,
-
-	OB_GRP_VERBOSE		= 0,
-
-	OB_GRP_XTIME		= OB_ITIME
-				| OB_MTIME
-				| OB_CTIME
-				| OB_ATIME,
-
-	OB_GRP_TIME		= OB_GRP_XTIME
-				| OB_TIME,
-
-	OB_GRP_PATCH		= OB_ID
-				| OB_NAME
-				| OB_MODIFY
-				| OB_REGION
-				| OB_IOS
-				| OB_RM_FILES
-				| OB_ZERO_FILES
-				| OB_IGNORE_FILES
-				| OB_ENC,
-
-	OB_GRP_SPLIT_CHUNK	= OB_SPLIT
-				| OB_SPLIT_SIZE
-				| OB_TRUNC
-				| OB_CHUNK_MODE
-				| OB_CHUNK_SIZE
-				| OB_MAX_CHUNKS,
-
-	OB_CMD_VERSION		= OB_SECTIONS
-				| OB_LONG,
-
-	OB_CMD_HELP		= ~(option_t)0,
-
-	OB_CMD_TEST		= ~(option_t)0,
-
-	OB_CMD_ERROR		= OB_SECTIONS
-				| OB_NO_HEADER
-				| OB_LONG,
-
-	OB_CMD_EXCLUDE		= OB_EXCLUDE
-				| OB_EXCLUDE_PATH,
-
-	OB_CMD_TITLES		= OB_GRP_TITLES,
-
-	OB_CMD_FIND		= OB_GRP_READ_WBFS
-				| OB_NO_HEADER
-				| OB_LONG,
-
-	OB_CMD_SPACE		= OB_GRP_READ_WBFS
-				| OB_NO_HEADER
-				| OB_LONG,
-
-	OB_CMD_ANALYZE		= OB_GRP_READ_WBFS
-				| OB_LONG,
-
-	OB_CMD_DUMP		= OB_GRP_TITLES
-				| OB_GRP_READ_WBFS
-				| OB_INODE
-				| OB_LONG,
-
-	OB_CMD_ID6		= OB_GRP_READ_WBFS
-				| OB_GRP_EXCLUDE
-				| OB_UNIQUE
-				| OB_SORT
-				| OB_LONG,
-
-	OB_CMD_LIST		= OB_GRP_TITLES
-				| OB_GRP_READ_WBFS
-				| OB_GRP_EXCLUDE
-				| OB_MIXED
-				| OB_UNIQUE
-				| OB_SORT
-				| OB_GRP_TIME
-				| OB_LONG
-				| OB_NO_HEADER
-				| OB_SECTIONS,
-
-	OB_CMD_LIST_L		= OB_CMD_LIST,
-
-	OB_CMD_LIST_LL		= OB_CMD_LIST,
-
-	OB_CMD_LIST_A		= OB_CMD_LIST,
-
-	OB_CMD_LIST_M		= OB_CMD_LIST,
-
-	OB_CMD_LIST_U		= OB_CMD_LIST,
-
-	OB_CMD_FORMAT		= OB_GRP_TITLES
-				| OB_SIZE
-				| OB_SPLIT
-				| OB_SPLIT_SIZE
-				| OB_HSS
-				| OB_WSS
-				| OB_RECOVER
-				| OB_INODE
-				| OB_FORCE,
-
-	OB_CMD_RECOVER		= OB_GRP_TITLES
-				| OB_GRP_READ_WBFS,
-
-	OB_GRP_CHECK		= OB_GRP_TITLES
-				| OB_GRP_READ_WBFS
-				| OB_LONG,
-
-	OB_CMD_CHECK		= OB_GRP_CHECK
-				| OB_REPAIR,
-
-	OB_CMD_REPAIR		= OB_GRP_CHECK
-				| OB_REPAIR,
-
-	OB_CMD_EDIT		= OB_AUTO
-				| OB_PART
-				| OB_FORCE,
-
-	OB_CMD_PHANTOM		= OB_GRP_MOD_WBFS,
-
-	OB_CMD_TRUNCATE		= OB_GRP_MOD_WBFS,
-
-	OB_CMD_SYNC		= OB_GRP_TITLES
-				| OB_GRP_MOD_WBFS
-				| OB_RECURSE
-				| OB_RDEPTH
-				| OB_GRP_IGN_EXCLUDE
-				| OB_GRP_VERBOSE
-				| OB_PSEL
-				| OB_RAW
-				| OB_GRP_PATCH
-				| OB_REMOVE
-				| OB_TRUNC
-				| OB_NEWER,
-
-	OB_CMD_UPDATE		= OB_CMD_SYNC
-				| OB_SYNC,
-
-	OB_CMD_ADD		= OB_CMD_UPDATE
-				| OB_UPDATE
-				| OB_OVERWRITE,
-
-	OB_CMD_EXTRACT		= OB_GRP_TITLES
-				| OB_GRP_MOD_WBFS
-				| OB_GRP_EXCLUDE
-				| OB_GRP_VERBOSE
-				| OB_DEST
-				| OB_DEST2
-				| OB_GRP_SPLIT_CHUNK
-				| OB_WDF
-				| OB_ISO
-				| OB_CISO
-				| OB_WBFS
-				| OB_UNIQUE
-				| OB_IGNORE
-				| OB_REMOVE
-				| OB_UPDATE
-				| OB_OVERWRITE
-				| OB_TRUNC
-				| OB_FAST,
-
-	OB_CMD_REMOVE		= OB_GRP_TITLES
-				| OB_GRP_MOD_WBFS
-				| OB_GRP_EXCLUDE
-				| OB_GRP_VERBOSE
-				| OB_UNIQUE
-				| OB_IGNORE
-				| OB_NO_FREE,
-
-	OB_CMD_RENAME		= OB_GRP_TITLES
-				| OB_GRP_MOD_WBFS
-				| OB_GRP_EXCLUDE
-				| OB_IGNORE
-				| OB_ISO
-				| OB_WBFS,
-
-	OB_CMD_SETTITLE		= OB_CMD_RENAME,
-
-	OB_CMD_TOUCH		= OB_GRP_TITLES
-				| OB_GRP_MOD_WBFS
-				| OB_GRP_EXCLUDE
-				| OB_UNIQUE
-				| OB_IGNORE
-				| OB_ITIME
-				| OB_MTIME
-				| OB_CTIME
-				| OB_ATIME
-				| OB_SET_TIME,
-
-	OB_CMD_VERIFY		= OB_GRP_TITLES
-				| OB_GRP_MOD_WBFS
-				| OB_GRP_EXCLUDE
-				| OB_GRP_VERBOSE
-				| OB_LIMIT
-				| OB_PSEL
-				| OB_RAW
-				| OB_UNIQUE
-				| OB_IGNORE
-				| OB_REMOVE
-				| OB_NO_FREE
-				| OB_LONG,
-
-	OB_CMD_FILETYPE		= OB_IGNORE
-				| OB_IGNORE_FST
-				| OB_NO_HEADER
-				| OB_LONG,
-
-} enumOptionsBit;
+//typedef enum enumOptionsBit
+//{
+//	//----- command specific options -----
+//
+//	OB_AUTO			= 1llu << OPT_AUTO,
+//	OB_ALL			= 1llu << OPT_ALL,
+//	OB_PART			= 1llu << OPT_PART,
+//	OB_RECURSE		= 1llu << OPT_RECURSE,
+//	OB_RDEPTH		= 1llu << OPT_RDEPTH,
+//	OB_PSEL			= 1llu << OPT_PSEL,
+//	OB_RAW			= 1llu << OPT_RAW,
+//	OB_INCLUDE		= 1llu << OPT_INCLUDE,
+//	OB_INCLUDE_PATH		= 1llu << OPT_INCLUDE_PATH,
+//	OB_EXCLUDE		= 1llu << OPT_EXCLUDE,
+//	OB_EXCLUDE_PATH		= 1llu << OPT_EXCLUDE_PATH,
+//	OB_IGNORE		= 1llu << OPT_IGNORE,
+//	OB_IGNORE_FST		= 1llu << OPT_IGNORE_FST,
+//	OB_ID			= 1llu << OPT_ID,
+//	OB_NAME			= 1llu << OPT_NAME,
+//	OB_MODIFY		= 1llu << OPT_MODIFY,
+//	OB_REGION		= 1llu << OPT_REGION,
+//	OB_COMMON_KEY		= 1llu << OPT_COMMON_KEY,
+//	OB_IOS			= 1llu << OPT_IOS,
+//	OB_RM_FILES		= 1llu << OPT_RM_FILES,
+//	OB_ZERO_FILES		= 1llu << OPT_ZERO_FILES,
+//	OB_IGNORE_FILES		= 1llu << OPT_IGNORE_FILES,
+//	OB_ENC			= 1llu << OPT_ENC,
+//	OB_DEST			= 1llu << OPT_DEST,
+//	OB_DEST2		= 1llu << OPT_DEST2,
+//	OB_SPLIT		= 1llu << OPT_SPLIT,
+//	OB_SPLIT_SIZE		= 1llu << OPT_SPLIT_SIZE,
+//	OB_TRUNC		= 1llu << OPT_TRUNC,
+//	OB_FAST			= 1llu << OPT_FAST,
+//	OB_CHUNK_MODE		= 1llu << OPT_CHUNK_MODE,
+//	OB_CHUNK_SIZE		= 1llu << OPT_CHUNK_SIZE,
+//	OB_MAX_CHUNKS		= 1llu << OPT_MAX_CHUNKS,
+//	OB_SIZE			= 1llu << OPT_SIZE,
+//	OB_HSS			= 1llu << OPT_HSS,
+//	OB_WSS			= 1llu << OPT_WSS,
+//	OB_RECOVER		= 1llu << OPT_RECOVER,
+//	OB_FORCE		= 1llu << OPT_FORCE,
+//	OB_NO_CHECK		= 1llu << OPT_NO_CHECK,
+//	OB_REPAIR		= 1llu << OPT_REPAIR,
+//	OB_NO_FREE		= 1llu << OPT_NO_FREE,
+//	OB_UPDATE		= 1llu << OPT_UPDATE,
+//	OB_SYNC			= 1llu << OPT_SYNC,
+//	OB_NEWER		= 1llu << OPT_NEWER,
+//	OB_OVERWRITE		= 1llu << OPT_OVERWRITE,
+//	OB_REMOVE		= 1llu << OPT_REMOVE,
+//	OB_WDF			= 1llu << OPT_WDF,
+//	OB_ISO			= 1llu << OPT_ISO,
+//	OB_CISO			= 1llu << OPT_CISO,
+//	OB_WBFS			= 1llu << OPT_WBFS,
+//	OB_ITIME		= 1llu << OPT_ITIME,
+//	OB_MTIME		= 1llu << OPT_MTIME,
+//	OB_CTIME		= 1llu << OPT_CTIME,
+//	OB_ATIME		= 1llu << OPT_ATIME,
+//	OB_TIME			= 1llu << OPT_TIME,
+//	OB_SET_TIME		= 1llu << OPT_SET_TIME,
+//	OB_LONG			= 1llu << OPT_LONG,
+//	OB_INODE		= 1llu << OPT_INODE,
+//	OB_MIXED		= 1llu << OPT_MIXED,
+//	OB_UNIQUE		= 1llu << OPT_UNIQUE,
+//	OB_NO_HEADER		= 1llu << OPT_NO_HEADER,
+//	OB_SECTIONS		= 1llu << OPT_SECTIONS,
+//	OB_SORT			= 1llu << OPT_SORT,
+//	OB_LIMIT		= 1llu << OPT_LIMIT,
+//
+//	//----- group & command options -----
+//
+//	OB_GRP_TITLES		= 0,
+//
+//	OB_GRP_READ_WBFS	= OB_AUTO
+//				| OB_ALL
+//				| OB_PART,
+//
+//	OB_GRP_MOD_WBFS		= OB_AUTO
+//				| OB_ALL
+//				| OB_PART
+//				| OB_FORCE
+//				| OB_NO_CHECK,
+//
+//	OB_GRP_EXCLUDE		= OB_INCLUDE
+//				| OB_INCLUDE_PATH
+//				| OB_EXCLUDE
+//				| OB_EXCLUDE_PATH,
+//
+//	OB_GRP_IGN_EXCLUDE	= OB_INCLUDE
+//				| OB_INCLUDE_PATH
+//				| OB_EXCLUDE
+//				| OB_EXCLUDE_PATH
+//				| OB_IGNORE
+//				| OB_IGNORE_FST,
+//
+//	OB_GRP_VERBOSE		= 0,
+//
+//	OB_GRP_XTIME		= OB_ITIME
+//				| OB_MTIME
+//				| OB_CTIME
+//				| OB_ATIME,
+//
+//	OB_GRP_TIME		= OB_GRP_XTIME
+//				| OB_TIME,
+//
+//	OB_GRP_PATCH		= OB_ID
+//				| OB_NAME
+//				| OB_MODIFY
+//				| OB_REGION
+//				| OB_COMMON_KEY
+//				| OB_IOS
+//				| OB_RM_FILES
+//				| OB_ZERO_FILES
+//				| OB_IGNORE_FILES
+//				| OB_ENC,
+//
+//	OB_GRP_SPLIT_CHUNK	= OB_SPLIT
+//				| OB_SPLIT_SIZE
+//				| OB_TRUNC
+//				| OB_CHUNK_MODE
+//				| OB_CHUNK_SIZE
+//				| OB_MAX_CHUNKS,
+//
+//	OB_CMD_VERSION		= OB_SECTIONS
+//				| OB_LONG,
+//
+//	OB_CMD_HELP		= ~(u64)0,
+//
+//	OB_CMD_TEST		= ~(u64)0,
+//
+//	OB_CMD_ERROR		= OB_SECTIONS
+//				| OB_NO_HEADER
+//				| OB_LONG,
+//
+//	OB_CMD_EXCLUDE		= OB_EXCLUDE
+//				| OB_EXCLUDE_PATH,
+//
+//	OB_CMD_TITLES		= OB_GRP_TITLES,
+//
+//	OB_CMD_FIND		= OB_GRP_READ_WBFS
+//				| OB_NO_HEADER
+//				| OB_LONG,
+//
+//	OB_CMD_SPACE		= OB_GRP_READ_WBFS
+//				| OB_NO_HEADER
+//				| OB_LONG,
+//
+//	OB_CMD_ANALYZE		= OB_GRP_READ_WBFS
+//				| OB_LONG,
+//
+//	OB_CMD_DUMP		= OB_GRP_TITLES
+//				| OB_GRP_READ_WBFS
+//				| OB_INODE
+//				| OB_LONG,
+//
+//	OB_CMD_ID6		= OB_GRP_READ_WBFS
+//				| OB_GRP_EXCLUDE,
+//
+//	OB_CMD_LIST		= OB_GRP_TITLES
+//				| OB_GRP_READ_WBFS
+//				| OB_GRP_EXCLUDE
+//				| OB_MIXED
+//				| OB_UNIQUE
+//				| OB_SORT
+//				| OB_GRP_TIME
+//				| OB_LONG
+//				| OB_NO_HEADER
+//				| OB_SECTIONS,
+//
+//	OB_CMD_LIST_L		= OB_CMD_LIST,
+//
+//	OB_CMD_LIST_LL		= OB_CMD_LIST,
+//
+//	OB_CMD_LIST_A		= OB_CMD_LIST,
+//
+//	OB_CMD_LIST_M		= OB_CMD_LIST,
+//
+//	OB_CMD_LIST_U		= OB_CMD_LIST,
+//
+//	OB_CMD_FORMAT		= OB_GRP_TITLES
+//				| OB_SIZE
+//				| OB_SPLIT
+//				| OB_SPLIT_SIZE
+//				| OB_HSS
+//				| OB_WSS
+//				| OB_RECOVER
+//				| OB_INODE
+//				| OB_FORCE,
+//
+//	OB_CMD_RECOVER		= OB_GRP_TITLES
+//				| OB_GRP_READ_WBFS,
+//
+//	OB_GRP_CHECK		= OB_GRP_TITLES
+//				| OB_GRP_READ_WBFS
+//				| OB_LONG,
+//
+//	OB_CMD_CHECK		= OB_GRP_CHECK
+//				| OB_REPAIR,
+//
+//	OB_CMD_REPAIR		= OB_GRP_CHECK
+//				| OB_REPAIR,
+//
+//	OB_CMD_EDIT		= OB_AUTO
+//				| OB_PART
+//				| OB_FORCE,
+//
+//	OB_CMD_PHANTOM		= OB_GRP_MOD_WBFS,
+//
+//	OB_CMD_TRUNCATE		= OB_GRP_MOD_WBFS,
+//
+//	OB_CMD_SYNC		= OB_GRP_TITLES
+//				| OB_GRP_MOD_WBFS
+//				| OB_RECURSE
+//				| OB_RDEPTH
+//				| OB_GRP_IGN_EXCLUDE
+//				| OB_GRP_VERBOSE
+//				| OB_PSEL
+//				| OB_RAW
+//				| OB_GRP_PATCH
+//				| OB_REMOVE
+//				| OB_TRUNC
+//				| OB_NEWER,
+//
+//	OB_CMD_UPDATE		= OB_CMD_SYNC
+//				| OB_SYNC,
+//
+//	OB_CMD_ADD		= OB_CMD_UPDATE
+//				| OB_UPDATE
+//				| OB_OVERWRITE,
+//
+//	OB_CMD_EXTRACT		= OB_GRP_TITLES
+//				| OB_GRP_MOD_WBFS
+//				| OB_GRP_EXCLUDE
+//				| OB_GRP_VERBOSE
+//				| OB_DEST
+//				| OB_DEST2
+//				| OB_GRP_SPLIT_CHUNK
+//				| OB_WDF
+//				| OB_ISO
+//				| OB_CISO
+//				| OB_WBFS
+//				| OB_UNIQUE
+//				| OB_IGNORE
+//				| OB_REMOVE
+//				| OB_UPDATE
+//				| OB_OVERWRITE
+//				| OB_TRUNC
+//				| OB_FAST,
+//
+//	OB_CMD_REMOVE		= OB_GRP_TITLES
+//				| OB_GRP_MOD_WBFS
+//				| OB_GRP_EXCLUDE
+//				| OB_GRP_VERBOSE
+//				| OB_UNIQUE
+//				| OB_IGNORE
+//				| OB_NO_FREE,
+//
+//	OB_CMD_RENAME		= OB_GRP_TITLES
+//				| OB_GRP_MOD_WBFS
+//				| OB_GRP_EXCLUDE
+//				| OB_IGNORE
+//				| OB_ISO
+//				| OB_WBFS,
+//
+//	OB_CMD_SETTITLE		= OB_CMD_RENAME,
+//
+//	OB_CMD_TOUCH		= OB_GRP_TITLES
+//				| OB_GRP_MOD_WBFS
+//				| OB_GRP_EXCLUDE
+//				| OB_UNIQUE
+//				| OB_IGNORE
+//				| OB_ITIME
+//				| OB_MTIME
+//				| OB_CTIME
+//				| OB_ATIME
+//				| OB_SET_TIME,
+//
+//	OB_CMD_VERIFY		= OB_GRP_TITLES
+//				| OB_GRP_MOD_WBFS
+//				| OB_GRP_EXCLUDE
+//				| OB_GRP_VERBOSE
+//				| OB_LIMIT
+//				| OB_PSEL
+//				| OB_RAW
+//				| OB_IGNORE_FILES
+//				| OB_UNIQUE
+//				| OB_IGNORE
+//				| OB_REMOVE
+//				| OB_NO_FREE
+//				| OB_LONG,
+//
+//	OB_CMD_FILETYPE		= OB_IGNORE
+//				| OB_IGNORE_FST
+//				| OB_NO_HEADER
+//				| OB_LONG,
+//
+//} enumOptionsBit;
 
 //
 ///////////////////////////////////////////////////////////////////////////////
@@ -481,7 +484,7 @@ typedef enum enumCommands
 
 	CMD_FILETYPE,
 
-	CMD__N
+	CMD__N // == 35
 
 } enumCommands;
 
@@ -550,6 +553,7 @@ typedef enum enumGetOpt
 	GO_NAME,
 	GO_MODIFY,
 	GO_REGION,
+	GO_COMMON_KEY,
 	GO_IOS,
 	GO_RM_FILES,
 	GO_ZERO_FILES,

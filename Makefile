@@ -15,19 +15,20 @@ WIT_LONG		= Wiimms ISO Tool
 WWT_SHORT		= wwt
 WWT_LONG		= Wiimms WBFS Tool
 
-VERSION_NUM		= 1.14a
+VERSION_NUM		= 1.15a
 BETA_VERSION		= 0
+			# 0:off  -1:"beta"  >0:"beta#"
 
 URI_HOME		= http://wit.wiimm.de/
 URI_DOWNLOAD		= http://wit.wiimm.de/download
 URI_FILE		= http://wit.wiimm.de/file
 
 ifeq ($(BETA_VERSION),0)
-URI_REPOS		= http://opensvn.wiimm.de/wii/trunk/wiimms-iso-tools/
-URI_VIEWVC		= http://wit.wiimm.de/r/viewvc
+  URI_REPOS		= http://opensvn.wiimm.de/wii/trunk/wiimms-iso-tools/
+  URI_VIEWVC		= http://wit.wiimm.de/r/viewvc
 else
-URI_REPOS		= http://opensvn.wiimm.de/wii/branches/public/wiimms-iso-tools/
-URI_VIEWVC		= http://wit.wiimm.de/r/viewvc-beta
+  URI_REPOS		= http://opensvn.wiimm.de/wii/branches/public/wiimms-iso-tools/
+  URI_VIEWVC		= http://wit.wiimm.de/r/viewvc-beta
 endif
 
 URI_WDF			= http://wit.wiimm.de/r/wdf
@@ -49,7 +50,7 @@ include Makefile.setup
 
 ifeq ($(BETA_VERSION),0)
   BETA_SUFFIX	:=
-else ifeq ($(BETA_VERSION),1)
+else ifeq ($(BETA_VERSION),-1)
   BETA_SUFFIX	:= .beta
 else
   BETA_SUFFIX	:= .beta$(BETA_VERSION)
@@ -87,12 +88,14 @@ WBFS_COUNT	?= 4
 # tools
 
 MAIN_TOOLS	:= wit wwt wdf-cat wdf-dump
-TEST_TOOLS	:= wtest gen-ui wdf
+TEST_TOOLS	:= wtest wdf
 ALL_TOOLS	:= $(sort $(MAIN_TOOLS) $(TEST_TOOLS))
+
+HELPER_TOOLS	:= gen-ui
 
 WDF_LINKS	:= WdfCat UnWdf WdfCmp WdfDump Ciso CisoCat UnCiso Wbi
 
-RM_FILES	+= $(ALL_TOOLS) $(WDF_LINKS)
+RM_FILES	+= $(ALL_TOOLS) $(HELPER_TOOLS) $(WDF_LINKS)
 
 #-------------------------------------------------------------------------------
 # tool dependent objects
@@ -123,7 +126,7 @@ RM_FILES2	+= $(SETUP_FILES)
 
 # objects of tools
 MAIN_TOOLS_OBJ	:= $(patsubst %,%.o,$(MAIN_TOOLS))
-TEST_TOOLS_OBJ	:= $(patsubst %,%.o,$(TEST_TOOLS))
+OTHER_TOOLS_OBJ	:= $(patsubst %,%.o,$(TEST_TOOLS) $(HELPER_TOOLS))
 
 # other objects
 WIT_O		:= debug.o lib-std.o lib-file.o lib-wdf.o lib-ciso.o lib-sf.o \
@@ -134,7 +137,7 @@ LIBWBFS_O	:= file-formats.o libwbfs.o wiidisc.o rijndael.o
 
 # object groups
 UI_OBJECTS	:= $(sort $(MAIN_TOOLS_OBJ))
-C_OBJECTS	:= $(sort $(TEST_TOOLS_OBJ) $(WIT_O) $(LIBWBFS_O) $(TOBJ_ALL))
+C_OBJECTS	:= $(sort $(OTHER_TOOLS_OBJ) $(WIT_O) $(LIBWBFS_O) $(TOBJ_ALL))
 ASM_OBJECTS	:= ssl-asm.o
 
 # all objects + sources
@@ -220,13 +223,19 @@ default_rule: all
 ###############################################################################
 # general rules
 
-$(ALL_TOOLS): %: %.o $(ALL_OBJECTS) $(TOBJ_ALL) Makefile
+$(ALL_TOOLS): %: %.o $(ALL_OBJECTS) $(TOBJ_ALL) Makefile | $(HELPER_TOOLS)
 	@echo "***    tool $@ $(TOBJ_$@) $(MODE)"
 	@$(CC) $(CFLAGS) $(DEFINES) $(LDFLAGS) $@.o $(ALL_OBJECTS) $(TOBJ_$@) $(LIBS) -o $@
 	@if test -f $@.exe; then $(STRIP) $@.exe; else $(STRIP) $@; fi
 	@mkdir -p bin/debug
 	@cp -p $@ bin
 	@if test -s $(MODE_FILE) && grep -Fq -e -DDEBUG $(MODE_FILE); then cp -p $@ bin/debug; fi
+
+#--------------------------
+
+$(HELPER_TOOLS): %: %.o $(ALL_OBJECTS) Makefile
+	@echo "***  helper $@ $(TOBJ_$@) $(MODE)"
+	@$(CC) $(CFLAGS) $(DEFINES) $(LDFLAGS) $@.o $(ALL_OBJECTS) $(TOBJ_$@) $(LIBS) -o $@
 
 #--------------------------
 
@@ -269,7 +278,7 @@ ui : gen-ui
 # specific rules in alphabetic order
 
 .PHONY : all
-all: $(ALL_TOOLS) $(INSTALL_SCRIPTS)
+all: $(HELPER_TOOLS) $(ALL_TOOLS) $(INSTALL_SCRIPTS)
 
 .PHONY : all+
 all+: clean+ all distrib

@@ -51,7 +51,7 @@ typedef enum enumEncoding
 	ENCODE_DECRYPT		= 0x0100, // decrypt sectors
 	ENCODE_ENCRYPT		= 0x0200, // encrypt sectors
 	ENCODE_NO_SIGN		= 0x1000, // clear signing area
-	ENCODE_SIGN		= 0x2000, // trucha sign
+	ENCODE_SIGN		= 0x2000, // fake sign
 	
 	// the masks
 
@@ -103,6 +103,12 @@ typedef struct RegionInfo_t
 } RegionInfo_t;
 
 const RegionInfo_t * GetRegionInfo ( char region_code );
+
+//-----------------------------------------------------------------------------
+
+extern enumRegion opt_common_key;
+wd_ckey_index_t ScanCommonKey ( ccp arg );
+int ScanOptCommonKey ( ccp arg );
 
 //-----------------------------------------------------------------------------
 

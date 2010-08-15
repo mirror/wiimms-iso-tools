@@ -90,7 +90,7 @@ enumError CheckOptions ( int argc, char ** argv )
       if ( opt_stat == -1 )
 	break;
 
-      RegisterOption(&InfoUI,opt_stat,1,false);
+      RegisterOptionByName(&InfoUI,opt_stat,1,false);
 
       switch ((enumGetOpt)opt_stat)
       {

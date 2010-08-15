@@ -58,6 +58,44 @@ static void dump_data
 
 //-----------------------------------------------------------------------------
 
+static void dump_size
+(
+    FILE		* f,		// output stream
+    int			indent,		// indent
+    ccp			title,		// header
+    u64			size,		// size to print
+    u64			percent_base	// >0: print percent value based on 'percent_base'
+)
+{
+    fprintf(f,"%*s%-14s%12llx/hex =%11llu",
+	indent,"", title, size, size );
+
+    u64 xsize = (size+KiB/2)/KiB;
+    if ( xsize >= 10000 )
+    {
+	xsize = (size+MiB/2)/MiB;
+	if ( xsize >= 10000 )
+	    fprintf(f," =%5llu GiB", (size+GiB/2)/GiB );
+	else    
+	    fprintf(f," =%5llu MiB", xsize);
+    }
+    else if ( xsize >= 10 )
+	fprintf(f," =%5llu KiB",xsize);
+
+    if ( percent_base > 0 )
+    {
+	u32 percent = size * 100 / percent_base;
+	if ( percent >= 10 )
+	    fprintf(f,", %d%%",percent);
+	else
+	    fprintf(f,", %4.2f%%",size * 100.0 / percent_base);
+    }
+    
+    fputc('\n',f);
+}
+
+//-----------------------------------------------------------------------------
+
 static int dump_header
 (
     FILE		* f,		// output stream
@@ -87,16 +125,11 @@ static int dump_header
     const u64 file_size = sf->file_size;
     if (sf->wc)
     {
-	fprintf(f,"%*sVirtual size: %12llx/hex =%11llu =%5llu MiB\n",
-		indent,"", file_size, file_size, (file_size+MiB/2)/MiB );
-
-	const u64 size = sf->f.st.st_size;
-	fprintf(f,"%*sWDF file size:%12llx/hex =%11llu =%5llu MiB, %lld%%\n",
-		indent,"", size, size, (size+MiB/2)/MiB, size * 100 / file_size );
+	dump_size(f,indent,"Virtual size:",file_size,0);
+	dump_size(f,indent,"WDF file size:",sf->f.st.st_size,file_size);
     }
     else
-	fprintf(f,"%*sFile size:    %12llx/hex =%11llu =%5llu MiB\n",
-		indent,"", file_size, file_size, (file_size+MiB/2)/MiB );
+	dump_size(f,indent,"File size:",file_size,0);
 
     return indent;
 }
@@ -218,7 +251,7 @@ enumError Dump_ISO
 	const RegionInfo_t * rinfo = GetRegionInfo(disc->dhead.region_code);
 	fprintf(f,"%*sRegion:          %s [%s]\n",indent,"",rinfo->name,rinfo->name4);
 	u8 * p8 = disc->region.region_info;
-	fprintf(f,"%*sRegion setting:  %d / %02x %02x %02x %02x  %02x %02x %02x %02x\n",
+	fprintf(f,"%*sRegion setting:  %x / %02x %02x %02x %02x  %02x %02x %02x %02x\n",
 			indent,"", ntohl(disc->region.region),
 			p8[0], p8[1], p8[2], p8[3], p8[4], p8[5], p8[6], p8[7] );
 
@@ -317,22 +350,22 @@ enumError Dump_ISO
 	if ( show_mode & SHOW_P_INFO )
 	{
 	    if (part->is_overlay)
-		fprintf(f,"%*s  Partitions overlays other partitions.\n", indent,"" );
+		fprintf(f,"%*s  Partition overlays other partitions.\n", indent,"" );
 		
 	    if ( tmd_is_marked_not_encrypted(part->tmd) )
 		fprintf(f,"%*s  Partition is marked as 'not encrypted'.\n", indent,"" );
 	    else
 	    {
-		const bool tik_is_trucha = ticket_is_trucha_signed(&ph->ticket,0);
-		const bool tmd_is_trucha = tmd_is_trucha_signed(part->tmd,ph->tmd_size);
+		const bool tik_is_fakesig = ticket_is_fake_signed(&ph->ticket,0);
+		const bool tmd_is_fakesig = tmd_is_fake_signed(part->tmd,ph->tmd_size);
 
 		fprintf(f,"%*s ", indent,"" );
-		if ( tik_is_trucha && tmd_is_trucha )
-		    fprintf(f," TICKET & TMD are trucha signed.");
-		else if ( tik_is_trucha )
-		    fprintf(f," TICKET is trucha signed.");
-		else if ( tmd_is_trucha )
-		    fprintf(f," TMD is trucha signed.");
+		if ( tik_is_fakesig && tmd_is_fakesig )
+		    fprintf(f," TICKET & TMD are fake signed.");
+		else if ( tik_is_fakesig )
+		    fprintf(f," TICKET is fake signed.");
+		else if ( tmd_is_fakesig )
+		    fprintf(f," TMD is fake signed.");
 
 		fprintf(f," Partition is %scrypted.\n",
 				part->is_encrypted ? "en" : "de" );
@@ -352,8 +385,8 @@ enumError Dump_ISO
 		    const u32 hi = part->tmd->sys_version >> 32;
 		    const u32 lo = (u32)part->tmd->sys_version;
 		    if ( hi == 1 && lo < 0x100 )
-			fprintf(f,"%*s  System version: %08x-%08x = IOS %u\n",
-				    indent, "", hi, lo, lo );
+			fprintf(f,"%*s  System version: %08x-%08x = IOS 0x%02x = IOS %u\n",
+				    indent, "", hi, lo, lo, lo );
 		    else
 			fprintf(f,"%*s  System version: %08x-%08x\n",
 				    indent, "", hi, lo );
@@ -595,7 +628,7 @@ enumError Dump_TIK_MEM
     fprintf(f,"%*sN(DLC):        %11x/hex =%11u\n", indent,"", val,val );
     val = tik->common_key_index;
     fprintf(f,"%*sCommon key index:%9u     = '%s'\n",
-		indent,"", val, !val ? "normal" : val == 1 ? "korean" : "?" );
+		indent,"", val, !val ? "standard" : val == 1 ? "korean" : "?" );
     val = ntohl(tik->time_limit);
     fprintf(f,"%*sTime limit:    %11x/hex =%11u [%sabled]\n",
 		indent,"", val,val, ntohl(tik->enable_time_limit) ? "en" : "dis" );
@@ -689,10 +722,10 @@ enumError Dump_TMD_MEM
     u32 high = be32((ccp)&tmd->sys_version);
     u32 low  = be32(((ccp)&tmd->sys_version)+4);
     if ( high == 1 && low < 0x100 )
-	fprintf(f,"%*sSytem version:   %08x %08x = IOS %u = IOS 0x%02x\n",
+	fprintf(f,"%*sSystem version:  %08x %08x = IOS 0x%02x = IOS %u\n",
 		indent, "", high, low, low, low );
     else
-	fprintf(f,"%*sSytem version:   %08x:%08x\n", indent, "", high, low );
+	fprintf(f,"%*sSystem version:  %08x:%08x\n", indent, "", high, low );
     fprintf(f,"%*sTitle ID:        ",indent,"");
     dump_hex(f,tmd->title_id,sizeof(tmd->title_id),18);
 
@@ -1177,6 +1210,7 @@ enumError ScanPartSelector
 	{ WD_SM_ALLOW_PTYPE,	"DATA",		"D",	WD_PART_DATA },
 	{ WD_SM_ALLOW_PTYPE,	"GAME",		"G",	WD_PART_DATA },
 	{ WD_SM_ALLOW_PTYPE,	"UPDATE",	"U",	WD_PART_UPDATE },
+	{ WD_SM_ALLOW_PTYPE,	"INSTALLER",	"I",	WD_PART_UPDATE },
 	{ WD_SM_ALLOW_PTYPE,	"CHANNEL",	"C",	WD_PART_CHANNEL },
 
 	{ WD_SM_ALLOW_PTAB,	"PTAB0",	"T0",	0 },
@@ -1223,8 +1257,9 @@ u32 ScanPartType ( ccp arg, ccp err_text_extend )
     static const CommandTab_t tab[] =
     {
 	{ WD_PART_DATA,		"DATA",		"D",		0 },
-	 { WD_PART_DATA,	"GAME",		"G",		0 },
+	{ WD_PART_DATA,		"GAME",		"G",		0 },
 	{ WD_PART_UPDATE,	"UPDATE",	"U",		0 },
+	{ WD_PART_UPDATE,	"INSTALLER",	"I",		0 },
 	{ WD_PART_CHANNEL,	"CHANNEL",	"C",		0 },
 
 	{ 0,0,0,0 }
@@ -3246,13 +3281,13 @@ enumError UpdateSignatureFST ( WiiFst_t * fst )
 	    if (pc->tmd_content)
 		SHA1( pc->h3, pc->h3_size, pc->tmd_content->hash );
 	    if ( fst->encoding & ENCODE_SIGN )
-		part_control_sign_trucha(pc,0);
+		part_control_fake_sign(pc,0);
 
 	 #ifdef DEBUG
 	    {
 		u8 hash[WII_HASH_SIZE];
 		SHA1( ((u8*)pc->tmd)+WII_TMD_SIG_OFF, pc->tmd_size-WII_TMD_SIG_OFF, hash );
-		TRACE("TRUCHA: ");
+		TRACE("FAKESIGN: ");
 		TRACE_HEXDUMP(0,0,1,WII_HASH_SIZE,hash,WII_HASH_SIZE);
 	    }
 	 #endif
@@ -3680,93 +3715,7 @@ void EncryptSectorGroup
     //----- encrypt header + data
 
     if (akey)
-	EncryptSectors(akey,sect0,sect0,n_sectors);
-}
-
-//
-///////////////////////////////////////////////////////////////////////////////
-///////////////			En/DecryptSectors()		///////////////
-///////////////////////////////////////////////////////////////////////////////
-
-static const u8 iv0[WII_KEY_SIZE] = {0}; // always NULL
-
-///////////////////////////////////////////////////////////////////////////////
-
-void EncryptSectors // [2do] [obsolete] replace by wd_encrypt_sectors()
-(
-    const aes_key_t	* akey,
-    const void		* sect_src,
-    void		* sect_dest,
-    size_t		n_sectors
-)
-{
-    ASSERT(akey);
-    const u8 * src = sect_src;
-    u8 * dest = sect_dest;
-
-    while ( n_sectors-- > 0 )
-    {
-	// encrypt header
-	wd_aes_encrypt(	akey,
-			iv0,
-			src,
-			dest,
-			WII_SECTOR_DATA_OFF );
-
-	// encrypt data
-	wd_aes_encrypt(	akey,
-			dest + WII_SECTOR_IV_OFF,
-			src  + WII_SECTOR_DATA_OFF,
-			dest + WII_SECTOR_DATA_OFF,
-			WII_SECTOR_DATA_SIZE );
-
-	src  += WII_SECTOR_SIZE;
-	dest += WII_SECTOR_SIZE;
-    }
-}
-
-///////////////////////////////////////////////////////////////////////////////
-
-void DecryptSectors // [2do] [obsolete] replace by wd_decrypt_sectors()
-(
-    const aes_key_t	* akey,
-    const void		* sect_src,
-    void		* sect_dest,
-    size_t		n_sectors
-)
-{
-    ASSERT(akey);
-    const u8 * src = sect_src;
-    u8 * dest = sect_dest;
-    u8 tempbuf[WII_SECTOR_SIZE];
-
-    while ( n_sectors-- > 0 )
-    {
-	const u8 * src1 = src;
-	if ( src == dest )
-	{
-	    // inplace decryption not possible => use tempbuf
-	    memcpy(tempbuf,src,WII_SECTOR_SIZE);
-	    src1 = tempbuf;
-	}
-
-	// decrypt data
-	wd_aes_decrypt(	akey,
-			src1 + WII_SECTOR_IV_OFF,
-			src1 + WII_SECTOR_DATA_OFF,
-			dest + WII_SECTOR_DATA_OFF,
-			WII_SECTOR_DATA_SIZE );
-
-	// decrypt header
-	wd_aes_decrypt(	akey,
-			iv0,
-			src1,
-			dest,
-			WII_SECTOR_DATA_OFF);
-
-	src  += WII_SECTOR_SIZE;
-	dest += WII_SECTOR_SIZE;
-    }
+	wd_encrypt_sectors(0,akey,sect0,0,sect0,n_sectors);
 }
 
 //
@@ -3853,6 +3802,12 @@ static enumError PrintVerifyMessage ( Verify_t * ver, ccp msg )
 		pname_buf, (ccp)&ver->sf->disc2->dhead,
 		ver->fname ? ver->fname : ver->sf->f.fname );
 	fflush(stdout);
+
+	TRACE("%*s%-7.7s %s %n%-7s %6.6s %s\n",
+		ver->indent, "",
+		msg, count_buf, &ver->info_indent,
+		pname_buf, (ccp)&ver->sf->disc2->dhead,
+		ver->fname ? ver->fname : ver->sf->f.fname );
     }
     return ERR_DIFFER;
 }
@@ -3989,7 +3944,7 @@ enumError VerifyPartition ( Verify_t * ver )
 		part->is_valid,
 		block, block_end,
 		block * (u64)WII_SECTOR_SIZE, block_end * (u64)WII_SECTOR_SIZE );
-    TRACE_HEXDUMP16(0,block,ver->usage_tab,block_end-block);
+    //TRACE_HEXDUMP16(0,block,ver->usage_tab,block_end-block);
 
 
     //----- more setup
@@ -4077,7 +4032,7 @@ enumError VerifyPartition ( Verify_t * ver )
 					+ i2 * WII_N_ELEMENTS_H1 + i1;
 
 		if ( part->is_encrypted )
-		    DecryptSectors(&akey,sect+WII_GROUP_SECTORS,sect,1);
+		    wd_decrypt_sectors(0,&akey,sect+WII_GROUP_SECTORS,sect,0,1);
 
 
 		//----- check H0 -----

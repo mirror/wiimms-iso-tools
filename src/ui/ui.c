@@ -34,52 +34,77 @@
 ///////////////			register options		///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-enumError RegisterOption
-	( const InfoUI_t * iu, int option, int level, bool is_env )
+enumError RegisterOptionByIndex
+(
+    const InfoUI_t	* iu,		// valid pointer
+    int			opt_index,	// index of option (OPT_*)
+    int			level,		// the level of registration
+    bool		is_env		// true: register environment pre setting
+)
 {
     ASSERT(iu);
-    ASSERT(iu->opt_info);
-    ASSERT(iu->opt_used);
-    ASSERT(iu->opt_index);
-    ASSERT( iu->n_opt_specific < sizeof(option_t) * CHAR_BIT );
+    DASSERT(iu->opt_info);
+    DASSERT(iu->opt_used);
+    DASSERT(iu->opt_index);
 
-    if ( level > 0 && option >= 0 && option < OPT_INDEX_SIZE )
+    if ( level <= 0 )
+	return ERR_OK;
+
+    if ( opt_index >= 0
+	 && opt_index < iu->n_opt_total
+	 && opt_index < OPT_INDEX_SIZE )
     {
-	int opt_index = iu->opt_index[option];
-	if ( opt_index > 0 && opt_index < iu->n_opt_total )
+	TRACE("OPT: RegisterOptionByIndex(,%02x,%d,%d) opt_index=%02x,%s\n",
+		    opt_index, level, is_env, opt_index,
+		    iu->opt_info[opt_index].long_name );
+	u8 * obj = iu->opt_used + opt_index;
+	u32 count = *obj;
+	if (is_env)
 	{
-	    TRACE("OPT: RegisterOption(,%02x,%d,%d) option=%02x,%s\n",
-			option, level, is_env, opt_index,
-			iu->opt_info[opt_index].long_name );
-	    u8 * obj = iu->opt_used + opt_index;
-	    u32 count = *obj;
-	    if (is_env)
+	    if ( count < 0x7f )
 	    {
-		if ( count < 0x7f )
-		{
-		    count += level;
-		    *obj = count < 0x7f ? count : 0x7f;
-		}
-	    }
-	    else
-	    {
-		if ( count < 0x80 )
-		    count = 0x80;
 		count += level;
-		*obj = count < 0xff ? count : 0xff;
+		*obj = count < 0x7f ? count : 0x7f;
 	    }
-
-	    if ( opt_index < iu->n_opt_specific )
-	    {
-		if (is_env)
-		    env_options |= (option_t)1 << opt_index;
-		else
-		    used_options |= (option_t)1 << opt_index;
-	    }
-	    return ERR_OK;
 	}
+	else
+	{
+	    if ( count < 0x80 )
+		count = 0x80;
+	    count += level;
+	    *obj = count < 0xff ? count : 0xff;
+	}
+
+	return ERR_OK;
     }
-    TRACE("OPT: RegisterOption(,%02x,%d,%d) => WARNING\n",option,level,is_env);
+
+    PRINT("OPT: RegisterOptionbyIndex(,%02x/%02x/%02x,%d,%d) => WARNING\n",
+		opt_index, iu->n_opt_total, OPT_INDEX_SIZE, level, is_env );
+    TRACE("OPT: RegisterOptionbyIndex(,%02x/%02x/%02x,%d,%d) => WARNING\n",
+		opt_index, iu->n_opt_total, OPT_INDEX_SIZE, level, is_env );
+    return ERR_WARNING;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+enumError RegisterOptionByName
+(
+    const InfoUI_t	* iu,		// valid pointer
+    int			opt_name,	// short name of GO_* valus of option
+    int			level,		// the level of registration
+    bool		is_env		// true: register environment pre setting
+)
+{
+    ASSERT(iu);
+    DASSERT(iu->opt_index);
+
+    if ( opt_name >= 0 && opt_name < OPT_INDEX_SIZE )
+	return RegisterOptionByIndex(iu,iu->opt_index[opt_name],level,is_env);
+
+    PRINT("OPT: RegisterOptionbyName(,%02x,%d,%d) => WARNING\n",
+		opt_name, level, is_env );
+    TRACE("OPT: RegisterOptionbyName(,%02x,%d,%d) => WARNING\n",
+		opt_name, level, is_env );
     return ERR_WARNING;
 }
 
@@ -89,35 +114,41 @@ enumError VerifySpecificOptions ( const InfoUI_t * iu, const CommandTab_t * cmd 
 {
     ASSERT(iu);
     ASSERT(cmd);
-    ASSERT( iu->n_opt_specific < sizeof(option_t) * CHAR_BIT );
 
-    option_t forbidden = used_options & ~cmd->opt;
+    ASSERT( cmd->id > 0 && cmd->id < iu->n_cmd );
+    const InfoCommand_t * ic = iu->cmd_info + cmd->id;
+    ASSERT(ic->opt_allowed);
+    u8 * allow  = ic->opt_allowed;
+    u8 * active = iu->opt_used;
 
-    TRACE("COMMAND: %s\n",cmd->name1);
-    TRACE("  - environ options:   %16llx\n",env_options);
-    TRACE("  - used options:      %16llx\n",used_options);
-    TRACE("  - allowed options:   %16llx\n",cmd->opt);
-    TRACE("  - forbidden options: %16llx\n",forbidden);
+    TRACE("ALLOWED SPECIFIC OPTIONS:\n");
+    TRACE_HEXDUMP(10,0,0,-20,allow,iu->n_opt_specific);
+    TRACE("ACTIVE SPECIFIC OPTIONS:\n");
+    TRACE_HEXDUMP(10,0,0,-20,active,iu->n_opt_specific);
 
-    if ( forbidden )
+    enumError err = ERR_OK;
+    int idx;
+    for ( idx = 0; idx < iu->n_opt_specific; idx++, allow++, active++ )
     {
-	int i;
-	for ( i=0; forbidden; i++, forbidden >>= 1 )
-	    if ( forbidden & 1 )
+	if (!*allow)
+	{
+	    if ( *active & 0x80 )
 	    {
-		const InfoOption_t * io = iu->opt_info + i;
+		const InfoOption_t * io = iu->opt_info + idx;
 		if (io->short_name)
 		    ERROR0(ERR_SEMANTIC,"Command '%s' don't allow the option --%s (-%c).\n",
 				cmd->name1, io->long_name, io->short_name );
 		else
 		    ERROR0(ERR_SEMANTIC,"Command '%s' don't allow the option --%s.\n",
 				cmd->name1, io->long_name );
+		err = ERR_SEMANTIC;
+		
 	    }
-	return ERR_SEMANTIC;
+	    else 
+		*active = 0; // clear environ settings
+	}
     }
-
-    used_options |= env_options & cmd->opt;
-    return ERR_OK;
+    return err;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -127,7 +158,6 @@ int GetOptionCount ( const InfoUI_t * iu, int option )
     ASSERT(iu);
     ASSERT(iu->opt_info);
     ASSERT(iu->opt_used);
-    ASSERT( iu->n_opt_specific < sizeof(option_t) * CHAR_BIT );
 
     if ( option > 0 && option <  iu->n_opt_total )
     {
@@ -148,12 +178,9 @@ void DumpUsedOptions ( const InfoUI_t * iu, FILE * f, int indent )
     ASSERT(iu);
     ASSERT(iu->opt_info);
     ASSERT(iu->opt_used);
-    ASSERT( iu->n_opt_specific < sizeof(option_t) * CHAR_BIT );
 
     TRACE("OptionUsed[]:\n");
     TRACE_HEXDUMP16(9,0,iu->opt_used,iu->n_opt_total+1);
-    TRACE("env_options  = %16llx\n",env_options);
-    TRACE("used_options = %16llx\n",used_options);
 
     if (!f)
 	return;

@@ -7,7 +7,8 @@
 #:def_tool( "wit", \
 	"wit [option]... command [option|parameter|@file]...", \
 	"Wiimms ISO Tool : It can list, analyze, verify, convert, split, join," \
-	" extract, compose, rename and compare Wii discs." )
+	" patch, mix, extract, compose, rename and compare Wii discs. It can" \
+	" create and dump different other file formats." )
 
 #:def_cmd( "VERSION", "VERSION", \
 	"wit VERSION [ignored]...", \
@@ -36,15 +37,15 @@
 	"Dump the internal title database to standard output (stdout)." )
 
 #:def_cmd( "CREATE", "CREATE", \
-	"wit CREATE TICKET outfile [--id] [title_id] [decrypted_key]\n" \
-	"wit CREATE TMD outfile [--id] [--ios] [hash_val]", \
+	"wit CREATE TICKET outfile [--id id] [title_id] [decrypted_key]\n" \
+	"wit CREATE TMD outfile [--id id] [--ios ios] [hash_val]", \
 	"Create a system file." )
 
-#:def_cmd( "FILELIST", "FILELIST|FL", \
+#:def_cmd( "FILELIST", "FILELIST|FLIST", \
 	"wit FILELIST [source]...", \
 	"List all source files in a table." )
 
-#:def_cmd( "FILETYPE", "FILETYPE|FT", \
+#:def_cmd( "FILETYPE", "FILETYPE|FTYPE", \
 	"wit FILETYPE [source]...", \
 	"Print a status line for each source file." )
 
@@ -59,8 +60,9 @@
 	" detected automatically by analyzing the content." )
 
 #:def_cmd( "ID6", "ID6|ID", \
-	"wit ID6 [source]...", \
-	"Print ID6 of all found ISO files." )
+	"wit ID6 [id]...", \
+	"Print ID6 of all found ISO files. If the ID list is set use it as" \
+	" selector." )
 
 #:def_cmd( "LIST", "LIST|LS", \
 	"wit LIST [source]...", \
@@ -68,33 +70,43 @@
 
 #:def_cmd( "LIST_L", "LIST-L|LL|LISTL", \
 	"wit LIST-L [source]...", \
-	"List all found ISO files. Same as {LIST --long}." )
+	"List all found ISO files. 'LIST-L' is a shortcut for {LIST --long}." )
 
 #:def_cmd( "LIST_LL", "LIST-LL|LLL|LISTLL", \
 	"wit LIST-LL [source]...", \
-	"List all found ISO files. Same as {LIST --long --long}." )
+	"List all found ISO files. 'LIST-LL' is a shortcut for {LIST --long" \
+	" --long}." )
 
 #:def_cmd( "LIST_LLL", "LIST-LLL|LLLL|LISTLLL", \
 	"wit LIST-LLL [source]...", \
-	"List all found ISO files. Same as {LIST --long --long --long}." )
+	"List all found ISO files. 'LIST-LLL' is a shortcut for {LIST --long" \
+	" --long --long}." )
 
-#:def_cmd( "ILIST", "ILIST|IL", \
-	"wit ILIST [source]...", \
+#:def_cmd( "FILES", "FILES|F|ILIST|IL", \
+	"wit FILES [source]...", \
 	"List all files of all discs." )
 
-#:def_cmd( "ILIST_L", "ILIST-L|ILL|ILISTL", \
-	"wit ILIST-L [source]...", \
-	"List all files of all discs. Same as {ILIST --long}." )
+#:def_cmd( "FILES_L", "FILES-L|FL|FILESL|ILIST-L|ILL|ILISTL", \
+	"wit FILES-L [source]...", \
+	"List all files of all discs. 'FILES-L' is a shortcut for {FILES" \
+	" --long}." )
 
-#:def_cmd( "ILIST_LL", "ILIST-LL|ILLL|ILISTLL", \
-	"wit ILIST-LL [source]...", \
-	"List all files of all discs. Same as {ILIST --long --long}." )
+#:def_cmd( "FILES_LL", "FILES-LL|FLL|FILESLL|ILIST-LL|ILLL|ILISTLL", \
+	"wit FILES-LL [source]...", \
+	"List all files of all discs. 'FILES-LL' is a shortcut for {FILES" \
+	" --long --long}." )
 
 #:def_cmd( "DIFF", "DIFF|CMP", \
 	"wit DIFF source dest\n" \
 	"wit DIFF [-s path]... [-r path]... [source]... [-d|-D] dest", \
-	"DIFF compares ISO images in  scrubbed or raw mode or on file level." \
+	"DIFF compares ISO images in scrubbed or raw mode or on file level." \
 	" DIFF works like {COPY} but comparing source and destination." )
+
+#:def_cmd( "FDIFF", "FDIFF|FCMP", \
+	"wit FDIFF source dest\n" \
+	"wit FDIFF [-s path]... [-r path]... [source]... [-d|-D] dest", \
+	"FDIFF compares ISO images on file level. 'FDIFF' is a shortcut for" \
+	" {DIFF --files +}." )
 
 #:def_cmd( "EXTRACT", "EXTRACT|X", \
 	"wit EXTRACT source dest\n" \
@@ -141,7 +153,9 @@
 	"  where SOURCE    = infile [QUALIFIER]...\n" \
 	"  where QUALIFIER = 'select' part_type\n" \
 	"                  | 'as' [part_table '.'] [part_type]]\n" \
-	"                  | 'ignore' ruleset\n", \
+	"                  | 'ignore' ruleset\n" \
+	"                  | 'header'\n" \
+	"                  | 'region'", \
 	"Mix the partitions from different sources into one new Wii disc." )
 
 #:def_opt( "VERSION", "V|version", "G", \
@@ -274,8 +288,7 @@
 	"The allowed keywords are: @DATA@, @UPDATE@, @CHANNEL@, @PTAB0@ .." \
 	" @PTAB3@, @ID@, @ALL@, @WHOLE@ and @RAW@. Additional the following" \
 	" input formats are accepted: @ptype@, @#index@, @#<index@," \
-	" @#<=index@, @#>index@, @#>=index@ and @#tab_index.part_index@.\n" \
-	"See the online docu for more details." )
+	" @#<=index@, @#>index@, @#>=index@ and @#tab_index.part_index@." )
 
 #:def_opt( "RAW", "raw", "C", \
 	"", \
@@ -320,6 +333,11 @@
 	"This $patching$ option defines the region of the disc.  The region is" \
 	" one of @JAPAN, USA, EUROPE, KOREA, FILE@ or @AUTO@ (default). The" \
 	" case of the keywords is ignored. Unsigned numbers are also accepted." )
+
+#:def_opt( "COMMON_KEY", "common-key", "CP", \
+	"index", \
+	"This $patching$ option defines the common key index as part of the" \
+	" TICKET. Keywords @0@, @STANDARD@, @1@ and @KOREAN@ are accepted." )
 
 #:def_opt( "IOS", "ios", "CP", \
 	"ios", \
@@ -393,7 +411,7 @@
 #:def_opt( "CHUNK_MODE", "chunk-mode|chunkmode|chm", "CP", \
 	"mode", \
 	"Defines an operation mode for {--chunk-size} and {--max-chunks}." \
-	" Allowed keywords are @'ANY'@ to allow any values,, @'32K'@ to force" \
+	" Allowed keywords are @'ANY'@ to allow any values, @'32K'@ to force" \
 	" chunk sizes with a multiple of 32 KiB, @'POW2'@ to force chunk sizes" \
 	" >=32K and with a power of 2 or @'ISO'@ for ISO images (more" \
 	" restrictive as @'POW2'@, best for USB loaders). The case of the" \
@@ -825,6 +843,10 @@
 	"", \
 	"" )
 
+#:def_cmd_opt( "DUMP", "COMMON_KEY", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "DUMP", "IOS", \
 	"", \
 	"" )
@@ -915,14 +937,6 @@
 	"" )
 
 #:def_cmd_opt( "ID6", "LOGGING", \
-	"", \
-	"" )
-
-#:def_cmd_opt( "ID6", "UNIQUE", \
-	"", \
-	"" )
-
-#:def_cmd_opt( "ID6", "SORT", \
 	"", \
 	"" )
 
@@ -1302,235 +1316,235 @@
 	"", \
 	"" )
 
-#:def_cmd_opt( "ILIST", "SOURCE", \
+#:def_cmd_opt( "FILES", "SOURCE", \
 	"", \
 	"" )
 
-#:def_cmd_opt( "ILIST", "RECURSE", \
+#:def_cmd_opt( "FILES", "RECURSE", \
 	"", \
 	"" )
 
-#:def_cmd_opt( "ILIST", "RDEPTH", \
+#:def_cmd_opt( "FILES", "RDEPTH", \
 	"", \
 	"" )
 
-#:def_cmd_opt( "ILIST", "INCLUDE", \
+#:def_cmd_opt( "FILES", "INCLUDE", \
 	"", \
 	"" )
 
-#:def_cmd_opt( "ILIST", "INCLUDE_PATH", \
+#:def_cmd_opt( "FILES", "INCLUDE_PATH", \
 	"", \
 	"" )
 
-#:def_cmd_opt( "ILIST", "EXCLUDE", \
+#:def_cmd_opt( "FILES", "EXCLUDE", \
 	"", \
 	"" )
 
-#:def_cmd_opt( "ILIST", "EXCLUDE_PATH", \
+#:def_cmd_opt( "FILES", "EXCLUDE_PATH", \
 	"", \
 	"" )
 
-#:def_cmd_opt( "ILIST", "IGNORE", \
+#:def_cmd_opt( "FILES", "IGNORE", \
 	"", \
 	"" )
 
-#:def_cmd_opt( "ILIST", "IGNORE_FST", \
+#:def_cmd_opt( "FILES", "IGNORE_FST", \
 	"", \
 	"" )
 
-#:def_cmd_opt( "ILIST", "PSEL", \
+#:def_cmd_opt( "FILES", "PSEL", \
 	"", \
 	"" )
 
-#:def_cmd_opt( "ILIST", "RAW", \
+#:def_cmd_opt( "FILES", "RAW", \
 	"", \
 	"" )
 
-#:def_cmd_opt( "ILIST", "PMODE", \
+#:def_cmd_opt( "FILES", "PMODE", \
 	"", \
 	"" )
 
-#:def_cmd_opt( "ILIST", "FILES", \
+#:def_cmd_opt( "FILES", "FILES", \
 	"", \
 	"" )
 
-#:def_cmd_opt( "ILIST", "SNEEK", \
+#:def_cmd_opt( "FILES", "SNEEK", \
 	"", \
 	"" )
 
-#:def_cmd_opt( "ILIST", "LOGGING", \
+#:def_cmd_opt( "FILES", "LOGGING", \
 	"", \
 	"" )
 
-#:def_cmd_opt( "ILIST", "LONG", \
+#:def_cmd_opt( "FILES", "LONG", \
 	"", \
 	"" )
 
-#:def_cmd_opt( "ILIST", "NO_HEADER", \
+#:def_cmd_opt( "FILES", "NO_HEADER", \
 	"", \
 	"" )
 
-#:def_cmd_opt( "ILIST", "SHOW", \
+#:def_cmd_opt( "FILES", "SHOW", \
 	"", \
 	"" )
 
-#:def_cmd_opt( "ILIST", "SORT", \
+#:def_cmd_opt( "FILES", "SORT", \
 	"", \
 	"Define the sort mode for the file listing. The parameter is a comma" \
 	" separated list of the following keywords: NONE, NAME, SIZE, OFFSET," \
 	" ASCENDING, DESCENDING = REVERSE." )
 
-#:def_cmd_opt( "ILIST_L", "SOURCE", \
+#:def_cmd_opt( "FILES_L", "SOURCE", \
 	"", \
 	"" )
 
-#:def_cmd_opt( "ILIST_L", "RECURSE", \
+#:def_cmd_opt( "FILES_L", "RECURSE", \
 	"", \
 	"" )
 
-#:def_cmd_opt( "ILIST_L", "RDEPTH", \
+#:def_cmd_opt( "FILES_L", "RDEPTH", \
 	"", \
 	"" )
 
-#:def_cmd_opt( "ILIST_L", "INCLUDE", \
+#:def_cmd_opt( "FILES_L", "INCLUDE", \
 	"", \
 	"" )
 
-#:def_cmd_opt( "ILIST_L", "INCLUDE_PATH", \
+#:def_cmd_opt( "FILES_L", "INCLUDE_PATH", \
 	"", \
 	"" )
 
-#:def_cmd_opt( "ILIST_L", "EXCLUDE", \
+#:def_cmd_opt( "FILES_L", "EXCLUDE", \
 	"", \
 	"" )
 
-#:def_cmd_opt( "ILIST_L", "EXCLUDE_PATH", \
+#:def_cmd_opt( "FILES_L", "EXCLUDE_PATH", \
 	"", \
 	"" )
 
-#:def_cmd_opt( "ILIST_L", "IGNORE", \
+#:def_cmd_opt( "FILES_L", "IGNORE", \
 	"", \
 	"" )
 
-#:def_cmd_opt( "ILIST_L", "IGNORE_FST", \
+#:def_cmd_opt( "FILES_L", "IGNORE_FST", \
 	"", \
 	"" )
 
-#:def_cmd_opt( "ILIST_L", "PSEL", \
+#:def_cmd_opt( "FILES_L", "PSEL", \
 	"", \
 	"" )
 
-#:def_cmd_opt( "ILIST_L", "RAW", \
+#:def_cmd_opt( "FILES_L", "RAW", \
 	"", \
 	"" )
 
-#:def_cmd_opt( "ILIST_L", "PMODE", \
+#:def_cmd_opt( "FILES_L", "PMODE", \
 	"", \
 	"" )
 
-#:def_cmd_opt( "ILIST_L", "FILES", \
+#:def_cmd_opt( "FILES_L", "FILES", \
 	"", \
 	"" )
 
-#:def_cmd_opt( "ILIST_L", "SNEEK", \
+#:def_cmd_opt( "FILES_L", "SNEEK", \
 	"", \
 	"" )
 
-#:def_cmd_opt( "ILIST_L", "LOGGING", \
+#:def_cmd_opt( "FILES_L", "LOGGING", \
 	"", \
 	"" )
 
-#:def_cmd_opt( "ILIST_L", "LONG", \
+#:def_cmd_opt( "FILES_L", "LONG", \
 	"", \
 	"" )
 
-#:def_cmd_opt( "ILIST_L", "NO_HEADER", \
+#:def_cmd_opt( "FILES_L", "NO_HEADER", \
 	"", \
 	"" )
 
-#:def_cmd_opt( "ILIST_L", "SHOW", \
+#:def_cmd_opt( "FILES_L", "SHOW", \
 	"", \
 	"" )
 
-#:def_cmd_opt( "ILIST_L", "SORT", \
+#:def_cmd_opt( "FILES_L", "SORT", \
 	"", \
 	"Define the sort mode for the file listing. The parameter is a comma" \
 	" separated list of the following keywords: NONE, NAME, SIZE, OFFSET," \
 	" ASCENDING, DESCENDING = REVERSE." )
 
-#:def_cmd_opt( "ILIST_LL", "SOURCE", \
+#:def_cmd_opt( "FILES_LL", "SOURCE", \
 	"", \
 	"" )
 
-#:def_cmd_opt( "ILIST_LL", "RECURSE", \
+#:def_cmd_opt( "FILES_LL", "RECURSE", \
 	"", \
 	"" )
 
-#:def_cmd_opt( "ILIST_LL", "RDEPTH", \
+#:def_cmd_opt( "FILES_LL", "RDEPTH", \
 	"", \
 	"" )
 
-#:def_cmd_opt( "ILIST_LL", "INCLUDE", \
+#:def_cmd_opt( "FILES_LL", "INCLUDE", \
 	"", \
 	"" )
 
-#:def_cmd_opt( "ILIST_LL", "INCLUDE_PATH", \
+#:def_cmd_opt( "FILES_LL", "INCLUDE_PATH", \
 	"", \
 	"" )
 
-#:def_cmd_opt( "ILIST_LL", "EXCLUDE", \
+#:def_cmd_opt( "FILES_LL", "EXCLUDE", \
 	"", \
 	"" )
 
-#:def_cmd_opt( "ILIST_LL", "EXCLUDE_PATH", \
+#:def_cmd_opt( "FILES_LL", "EXCLUDE_PATH", \
 	"", \
 	"" )
 
-#:def_cmd_opt( "ILIST_LL", "IGNORE", \
+#:def_cmd_opt( "FILES_LL", "IGNORE", \
 	"", \
 	"" )
 
-#:def_cmd_opt( "ILIST_LL", "IGNORE_FST", \
+#:def_cmd_opt( "FILES_LL", "IGNORE_FST", \
 	"", \
 	"" )
 
-#:def_cmd_opt( "ILIST_LL", "PSEL", \
+#:def_cmd_opt( "FILES_LL", "PSEL", \
 	"", \
 	"" )
 
-#:def_cmd_opt( "ILIST_LL", "RAW", \
+#:def_cmd_opt( "FILES_LL", "RAW", \
 	"", \
 	"" )
 
-#:def_cmd_opt( "ILIST_LL", "PMODE", \
+#:def_cmd_opt( "FILES_LL", "PMODE", \
 	"", \
 	"" )
 
-#:def_cmd_opt( "ILIST_LL", "FILES", \
+#:def_cmd_opt( "FILES_LL", "FILES", \
 	"", \
 	"" )
 
-#:def_cmd_opt( "ILIST_LL", "SNEEK", \
+#:def_cmd_opt( "FILES_LL", "SNEEK", \
 	"", \
 	"" )
 
-#:def_cmd_opt( "ILIST_LL", "LOGGING", \
+#:def_cmd_opt( "FILES_LL", "LOGGING", \
 	"", \
 	"" )
 
-#:def_cmd_opt( "ILIST_LL", "LONG", \
+#:def_cmd_opt( "FILES_LL", "LONG", \
 	"", \
 	"" )
 
-#:def_cmd_opt( "ILIST_LL", "NO_HEADER", \
+#:def_cmd_opt( "FILES_LL", "NO_HEADER", \
 	"", \
 	"" )
 
-#:def_cmd_opt( "ILIST_LL", "SHOW", \
+#:def_cmd_opt( "FILES_LL", "SHOW", \
 	"", \
 	"" )
 
-#:def_cmd_opt( "ILIST_LL", "SORT", \
+#:def_cmd_opt( "FILES_LL", "SORT", \
 	"", \
 	"Define the sort mode for the file listing. The parameter is a comma" \
 	" separated list of the following keywords: NONE, NAME, SIZE, OFFSET," \
@@ -1664,6 +1678,134 @@
 	"", \
 	"" )
 
+#:def_cmd_opt( "FDIFF", "TEST", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "FDIFF", "TITLES", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "FDIFF", "UTF_8", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "FDIFF", "NO_UTF_8", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "FDIFF", "LANG", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "FDIFF", "SOURCE", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "FDIFF", "RECURSE", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "FDIFF", "RDEPTH", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "FDIFF", "INCLUDE", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "FDIFF", "INCLUDE_PATH", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "FDIFF", "EXCLUDE", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "FDIFF", "EXCLUDE_PATH", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "FDIFF", "IGNORE", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "FDIFF", "IGNORE_FST", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "FDIFF", "PSEL", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "FDIFF", "RAW", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "FDIFF", "PMODE", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "FDIFF", "FILES", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "FDIFF", "SNEEK", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "FDIFF", "QUIET", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "FDIFF", "VERBOSE", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "FDIFF", "LOGGING", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "FDIFF", "PROGRESS", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "FDIFF", "LONG", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "FDIFF", "DEST", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "FDIFF", "DEST2", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "FDIFF", "ESC", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "FDIFF", "WDF", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "FDIFF", "ISO", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "FDIFF", "CISO", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "FDIFF", "WBFS", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "FDIFF", "FST", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "EXTRACT", "TEST", \
 	"", \
 	"" )
@@ -1787,6 +1929,10 @@
 	"" )
 
 #:def_cmd_opt( "EXTRACT", "REGION", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "EXTRACT", "COMMON_KEY", \
 	"", \
 	"" )
 
@@ -1941,6 +2087,10 @@
 	"" )
 
 #:def_cmd_opt( "COPY", "REGION", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "COPY", "COMMON_KEY", \
 	"", \
 	"" )
 
@@ -2148,6 +2298,10 @@
 	"", \
 	"" )
 
+#:def_cmd_opt( "SCRUB", "COMMON_KEY", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "SCRUB", "IOS", \
 	"", \
 	"" )
@@ -2261,6 +2415,10 @@
 	"" )
 
 #:def_cmd_opt( "EDIT", "REGION", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "EDIT", "COMMON_KEY", \
 	"", \
 	"" )
 
@@ -2570,6 +2728,10 @@
 	"", \
 	"" )
 
+#:def_cmd_opt( "VERIFY", "IGNORE_FILES", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "VERIFY", "QUIET", \
 	"", \
 	"Be quiet and report only errors. If set twice then wit will print" \
@@ -2669,7 +2831,7 @@
 	"wwt [option]... command [option|parameter|@file]...", \
 	"Wiimms WBFS Tool (WBFS manager) : It can create, check, repair," \
 	" verify and clone WBFS files and partitions. It can list, add," \
-	" extract, remove and rename ISO images as part of a WBFS." )
+	" extract, remove, rename and recover ISO images as part of a WBFS." )
 
 #:def_cmd( "VERSION", "VERSION", \
 	"wwt VERSION [ignored]...", \
@@ -2715,8 +2877,9 @@
 	"Dump the data structure of WBFS partitions." )
 
 #:def_cmd( "ID6", "ID6|ID", \
-	"wwt ID6 [wbfs_partition]...", \
-	"List all ID6 of all discs of WBFS partitions." )
+	"wwt ID6 [id]...", \
+	"List all ID6 of all discs of WBFS partitions. If the ID list is set" \
+	" use it as selector." )
 
 #:def_cmd( "LIST", "LIST|LS", \
 	"wwt LIST [wbfs_partition]...", \
@@ -2724,26 +2887,28 @@
 
 #:def_cmd( "LIST_L", "LIST-L|LL|LISTL", \
 	"wwt LIST-L [wbfs_partition]...", \
-	"List all discs of WBFS partitions. Same as {LIST --long}." )
+	"List all discs of WBFS partitions. 'LIST-L' is a shortcut for {LIST" \
+	" --long}." )
 
 #:def_cmd( "LIST_LL", "LIST-LL|LLL|LISTLL", \
 	"wwt LIST-LL [wbfs_partition]...", \
-	"List all discs of WBFS partitions. Same as {LIST --long --long}." )
+	"List all discs of WBFS partitions. 'LIST-LL' is a shortcut for {LIST" \
+	" --long --long}." )
 
 #:def_cmd( "LIST_A", "LIST-A|LA|LISTA", \
 	"wwt LIST-A [wbfs_partition]...", \
-	"List all discs of all WBFS partitions. Same as {LIST --long --long" \
-	" --auto}." )
+	"List all discs of all WBFS partitions. 'LIST-A' is a shortcut for" \
+	" {LIST --long --long --auto}." )
 
 #:def_cmd( "LIST_M", "LIST-M|LM|LISTM", \
 	"wwt LIST-M [wbfs_partition]...", \
-	"List all discs of WBFS partitions in mixed view. Same as {LIST --long" \
-	" --long --mixed}." )
+	"List all discs of WBFS partitions in mixed view. 'LIST-M' is a" \
+	" shortcut for {LIST --long --long --mixed}." )
 
 #:def_cmd( "LIST_U", "LIST-U|LU|LISTU", \
 	"wwt LIST-U [wbfs_partition]...", \
-	"List all discs of WBFS partitions in mixed view. Same as {LIST --long" \
-	" --long --unique}." )
+	"List all discs of WBFS partitions in mixed view. 'LIST-U' is a" \
+	" shortcut for {LIST --long --long --unique}." )
 
 #:def_cmd( "FORMAT", "FORMAT|INIT", \
 	"wwt FORMAT file|blockdev...", \
@@ -2818,7 +2983,7 @@
 	"Verify all discs of WBFS (calculate and compare SHA1 check sums) to" \
 	" find bad dumps." )
 
-#:def_cmd( "FILETYPE", "FILETYPE|FT", \
+#:def_cmd( "FILETYPE", "FILETYPE|FTYPE", \
 	"wwt FILETYPE filename...", \
 	"Print a status line for each source file." )
 
@@ -2932,8 +3097,7 @@
 	"The allowed keywords are: @DATA@, @UPDATE@, @CHANNEL@, @PTAB0@ .." \
 	" @PTAB3@, @ID@, @ALL@, @WHOLE@ and @RAW@. Additional the following" \
 	" input formats are accepted: @ptype@, @#index@, @#<index@," \
-	" @#<=index@, @#>index@, @#>=index@ and @#tab_index.part_index@.\n" \
-	"See the online docu for more details." )
+	" @#<=index@, @#>index@, @#>=index@ and @#tab_index.part_index@." )
 
 #:def_opt( "RAW", "raw", "C", \
 	"", \
@@ -2997,6 +3161,11 @@
 	"This $patching$ option defines the region of the disc.  The region is" \
 	" one of @JAPAN, USA, EUROPE, KOREA, FILE@ or @AUTO@ (default). The" \
 	" case of the keywords is ignored. Unsigned numbers are also accepted." )
+
+#:def_opt( "COMMON_KEY", "common-key", "CP", \
+	"index", \
+	"This $patching$ option defines the common key index as part of the" \
+	" TICKET. Keywords @0@, @STANDARD@, @1@ and @KOREAN@ are accepted." )
 
 #:def_opt( "IOS", "ios", "CP", \
 	"ios", \
@@ -3066,7 +3235,7 @@
 #:def_opt( "CHUNK_MODE", "chunk-mode|chunkmode|chm", "CP", \
 	"mode", \
 	"Defines an operation mode for {--chunk-size} and {--max-chunks}." \
-	" Allowed keywords are @'ANY'@ to allow any values,, @'32K'@ to force" \
+	" Allowed keywords are @'ANY'@ to allow any values, @'32K'@ to force" \
 	" chunk sizes with a multiple of 32 KiB, @'POW2'@ to force chunk sizes" \
 	" >=32K and with a power of 2 or @'ISO'@ for ISO images (more" \
 	" restrictive as @'POW2'@, best for USB loaders). The case of the" \
@@ -3417,18 +3586,6 @@
 #:def_cmd_opt( "ID6", "EXCLUDE_PATH", \
 	"", \
 	"" )
-
-#:def_cmd_opt( "ID6", "UNIQUE", \
-	"", \
-	"" )
-
-#:def_cmd_opt( "ID6", "SORT", \
-	"", \
-	"" )
-
-#:def_cmd_opt( "ID6", "LONG", \
-	"", \
-	"Prefix each printed ID6 with the WBFS filename." )
 
 #:def_cmd_opt( "LIST", "TITLES", \
 	"", \
@@ -4363,6 +4520,10 @@
 	"", \
 	"" )
 
+#:def_cmd_opt( "ADD", "COMMON_KEY", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "ADD", "IOS", \
 	"", \
 	"" )
@@ -4522,6 +4683,10 @@
 	"", \
 	"" )
 
+#:def_cmd_opt( "UPDATE", "COMMON_KEY", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "UPDATE", "IOS", \
 	"", \
 	"" )
@@ -4670,6 +4835,10 @@
 	"" )
 
 #:def_cmd_opt( "SYNC", "REGION", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "SYNC", "COMMON_KEY", \
 	"", \
 	"" )
 
@@ -5253,6 +5422,10 @@
 	"" )
 
 #:def_cmd_opt( "VERIFY", "RAW", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "VERIFY", "IGNORE_FILES", \
 	"", \
 	"" )
 

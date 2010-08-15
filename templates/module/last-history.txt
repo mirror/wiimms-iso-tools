@@ -1,27 +1,35 @@
 wit v@@VERSION@@ r@@REV-NEXT@@ - @@@@-@@-@@
 
- - Option --psel redesigned: it is now possible to allow or deny any partiton
-   by partiton type, partiton table and/or by partiton index. Only with the
-   unambiguous partiton index it is possible to select the one wanted DATA
-   partition if multiple exists.
- - New option --rm-files: This patching option defines filter rules to remove
-   real files and directories from the FST of the DATA partition. Fake signing
-   of the TMD is necessary.
- - New option --zero-files: This patching option defines filter rules to zero
-   (set size to zero) real files of the FST of the DATA partition. Fake
-   signing$ of the TMD is necessary.
- - New option --ignore-files: This option defines filter rules to ignore
-   system and real directories and files of the FST of the DATA partition.
-   Fake signing is not necessary, but the partition becomes invalid, because
-   the content of some files is not copied.
- - New qualifier for "wit MIX": "IGNORE ruleset": Ignore files when copying a
-   disc image. See http://wit.wiimm.de/wit/cmd-mix.html#ignore for details.
- - Some modification for expanding '@file' parameters: wit MIX needs control.
- - wit MIX: A new algorithm for 2 partitions: It tries every possible shift to
-   find the best overlay. All holes in both partitions are relevant.
- - wit MIX: Before creating the image a additional verify function is called.
-   This function controls that no sector is used by more than one partition.
-   With verbose level >=3 an usage map is printed too.
+ - New "wit MIX" qualifer: HEADER: Copy the disc header (first 256 bytes of
+   disc) of the related source image to the destination image. Patching with
+   the options --id and --name is possible.
+ - New "wit MIX" qualifer: REGION: Copy the region infor (32 Bytes at offset
+   0x4e000) of the related source image to the destination image. Patching
+   with the option --region is possible.
+ - Bug fix: "wit mix --name discname" didn't work.
+ - Bug fix for "wit mix --overlay".
+ - Writing a WBFS file is now part of the file layer and libwbfs is only used
+   as helper. Now every command, and also "wit MIX", is able to write to a
+   WBFS file like to any other formats without special code.
+ - "INSTALLER" is now an alternative name for the "UPDATE" partition, like
+   "GAME" for "DATA" since the epoch.
+ - To manage allowed and permitted options, 64 bit integer numbers had been
+   used. Now arrays will be used, because wwt have already reached the limit
+   of 64 command specific options. Hope that all run as before.
+ - Korean disc support implemented. (I can't test this by myself)
+ - New option: --common-key index: Change the common key index of all partitions
+   and fake sign the tickets.
+ - I have implemented a new "ID selection interface". It works with positive
+   ('+') and negative ('-' or '/') rules. A rule consist up to 6 characters,
+   case is ignored. Points ('.') are wildcards for a single character and mult
+   ('*') and plus ('+') for many characters. Each source ID6 is compared to
+   each rule of the list until a rules matches the ID. If it is a positive rule,
+   the ID is inserted into the workig list.
+ - The syntax of the commands "wit ID6" and "wwt ID6" have changed to use the
+   new "ID selection interface" (see above). More commands will follow.
+ - The commands 'wit ILIST/ILIST-L/ILIST-LL' are renamed to 'wit FILES/FILES-L
+   /FILES-LL'. The old command names are still allowed.
+ - The new command "wit FDIFF" is a shortcut for "wit DIFF --files +".
 
 Known bugs:
 
@@ -33,5 +41,5 @@ Known bugs:
 
 Missing docu:
 
- - wit commands ILIST + EXTRACT + EDIT + CREATE => see built in help
+ - wit commands ILIST + EXTRACT + EDIT => see built in help
  - Option --show => see built in help

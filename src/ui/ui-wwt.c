@@ -81,7 +81,7 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 	" ALL, WHOLE and RAW. Additional the following input formats are"
 	" accepted: ptype, #index, #<index, #<=index, #>index, #>=index and"
 	" #tab_index.part_index.\n"
-	"See the online docu for more details."
+	"See http://wit.wiimm.de/opt/psel for more details."
     },
 
     {	OPT_RAW, 0, "raw",
@@ -130,7 +130,8 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 	" parameter. 1 to 6 characters are expected. Only defined characters"
 	" not equal '.' are modified. The disc header, boot.bin, ticket.bin"
 	" and tmd.bin are  objects to modify. The option --modify selects the"
-	" objects."
+	" objects.\n"
+	"See http://wit.wiimm.de/opt/id for more details."
     },
 
     {	OPT_NAME, 0, "name",
@@ -156,6 +157,12 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 	"This patching option defines the region of the disc.  The region is"
 	" one of JAPAN, USA, EUROPE, KOREA, FILE or AUTO (default). The case"
 	" of the keywords is ignored. Unsigned numbers are also accepted."
+    },
+
+    {	OPT_COMMON_KEY, 0, "common-key",
+	"index",
+	"This patching option defines the common key index as part of the"
+	" TICKET. Keywords 0, STANDARD, 1 and KOREAN are accepted."
     },
 
     {	OPT_IOS, 0, "ios",
@@ -237,7 +244,7 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
     {	OPT_CHUNK_MODE, 0, "chunk-mode",
 	"mode",
 	"Defines an operation mode for --chunk-size and --max-chunks. Allowed"
-	" keywords are 'ANY' to allow any values,, '32K' to force chunk sizes"
+	" keywords are 'ANY' to allow any values, '32K' to force chunk sizes"
 	" with a multiple of 32 KiB, 'POW2' to force chunk sizes >=32K and"
 	" with a power of 2 or 'ISO' for ISO images (more restrictive as"
 	" 'POW2', best for USB loaders). The case of the keyword is ignored."
@@ -447,7 +454,7 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 	"Limit the output to NUM messages."
     },
 
-    {0,0,0,0,0}, // OPT__N_SPECIFIC == 63
+    {0,0,0,0,0}, // OPT__N_SPECIFIC == 64
 
     //----- global options -----
 
@@ -545,7 +552,7 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 	"Force relocation hook while reading iso images."
     },
 
-    {0,0,0,0,0} // OPT__N_TOTAL == 79
+    {0,0,0,0,0} // OPT__N_TOTAL == 80
 
 };
 
@@ -617,12 +624,6 @@ const InfoOption_t option_cmd_DUMP_LONG =
 	" twice print a memory map for each shown disc too. If set three times"
 	" print an additional memory map for the whole WBFS. If set four times"
 	" activate --inode too."
-    };
-
-const InfoOption_t option_cmd_ID6_LONG =
-    {	OPT_LONG, 'l', "long",
-	0,
-	"Prefix each printed ID6 with the WBFS filename."
     };
 
 const InfoOption_t option_cmd_LIST_LONG =
@@ -856,47 +857,47 @@ const InfoOption_t option_cmd_FILETYPE_LONG =
 
 const CommandTab_t CommandTab[] =
 {
-    { CMD_VERSION,	"VERSION",	0,		OB_CMD_VERSION },
-    { CMD_HELP,		"HELP",		"H",		OB_CMD_HELP },
-    { CMD_HELP,		"?",		0,		OB_CMD_HELP },
-    { CMD_TEST,		"TEST",		0,		OB_CMD_TEST },
-    { CMD_ERROR,	"ERROR",	"ERR",		OB_CMD_ERROR },
-    { CMD_EXCLUDE,	"EXCLUDE",	0,		OB_CMD_EXCLUDE },
-    { CMD_TITLES,	"TITLES",	0,		OB_CMD_TITLES },
-    { CMD_FIND,		"FIND",		"F",		OB_CMD_FIND },
-    { CMD_SPACE,	"SPACE",	"DF",		OB_CMD_SPACE },
-    { CMD_ANALYZE,	"ANALYZE",	"ANA",		OB_CMD_ANALYZE },
-    { CMD_ANALYZE,	"ANALYSE",	0,		OB_CMD_ANALYZE },
-    { CMD_DUMP,		"DUMP",		"D",		OB_CMD_DUMP },
-    { CMD_ID6,		"ID6",		"ID",		OB_CMD_ID6 },
-    { CMD_LIST,		"LIST",		"LS",		OB_CMD_LIST },
-    { CMD_LIST_L,	"LIST-L",	"LL",		OB_CMD_LIST_L },
-    { CMD_LIST_L,	"LISTL",	0,		OB_CMD_LIST_L },
-    { CMD_LIST_LL,	"LIST-LL",	"LLL",		OB_CMD_LIST_LL },
-    { CMD_LIST_LL,	"LISTLL",	0,		OB_CMD_LIST_LL },
-    { CMD_LIST_A,	"LIST-A",	"LA",		OB_CMD_LIST_A },
-    { CMD_LIST_A,	"LISTA",	0,		OB_CMD_LIST_A },
-    { CMD_LIST_M,	"LIST-M",	"LM",		OB_CMD_LIST_M },
-    { CMD_LIST_M,	"LISTM",	0,		OB_CMD_LIST_M },
-    { CMD_LIST_U,	"LIST-U",	"LU",		OB_CMD_LIST_U },
-    { CMD_LIST_U,	"LISTU",	0,		OB_CMD_LIST_U },
-    { CMD_FORMAT,	"FORMAT",	"INIT",		OB_CMD_FORMAT },
-    { CMD_RECOVER,	"RECOVER",	0,		OB_CMD_RECOVER },
-    { CMD_CHECK,	"CHECK",	"FSCK",		OB_CMD_CHECK },
-    { CMD_REPAIR,	"REPAIR",	0,		OB_CMD_REPAIR },
-    { CMD_EDIT,		"EDIT",		0,		OB_CMD_EDIT },
-    { CMD_PHANTOM,	"PHANTOM",	0,		OB_CMD_PHANTOM },
-    { CMD_TRUNCATE,	"TRUNCATE",	"TR",		OB_CMD_TRUNCATE },
-    { CMD_ADD,		"ADD",		"A",		OB_CMD_ADD },
-    { CMD_UPDATE,	"UPDATE",	"U",		OB_CMD_UPDATE },
-    { CMD_SYNC,		"SYNC",		0,		OB_CMD_SYNC },
-    { CMD_EXTRACT,	"EXTRACT",	"X",		OB_CMD_EXTRACT },
-    { CMD_REMOVE,	"REMOVE",	"RM",		OB_CMD_REMOVE },
-    { CMD_RENAME,	"RENAME",	"REN",		OB_CMD_RENAME },
-    { CMD_SETTITLE,	"SETTITLE",	"ST",		OB_CMD_SETTITLE },
-    { CMD_TOUCH,	"TOUCH",	0,		OB_CMD_TOUCH },
-    { CMD_VERIFY,	"VERIFY",	"V",		OB_CMD_VERIFY },
-    { CMD_FILETYPE,	"FILETYPE",	"FT",		OB_CMD_FILETYPE },
+    { CMD_VERSION,	"VERSION",	0,		0 },
+    { CMD_HELP,		"HELP",		"H",		0 },
+    { CMD_HELP,		"?",		0,		0 },
+    { CMD_TEST,		"TEST",		0,		0 },
+    { CMD_ERROR,	"ERROR",	"ERR",		0 },
+    { CMD_EXCLUDE,	"EXCLUDE",	0,		0 },
+    { CMD_TITLES,	"TITLES",	0,		0 },
+    { CMD_FIND,		"FIND",		"F",		0 },
+    { CMD_SPACE,	"SPACE",	"DF",		0 },
+    { CMD_ANALYZE,	"ANALYZE",	"ANA",		0 },
+    { CMD_ANALYZE,	"ANALYSE",	0,		0 },
+    { CMD_DUMP,		"DUMP",		"D",		0 },
+    { CMD_ID6,		"ID6",		"ID",		0 },
+    { CMD_LIST,		"LIST",		"LS",		0 },
+    { CMD_LIST_L,	"LIST-L",	"LL",		0 },
+    { CMD_LIST_L,	"LISTL",	0,		0 },
+    { CMD_LIST_LL,	"LIST-LL",	"LLL",		0 },
+    { CMD_LIST_LL,	"LISTLL",	0,		0 },
+    { CMD_LIST_A,	"LIST-A",	"LA",		0 },
+    { CMD_LIST_A,	"LISTA",	0,		0 },
+    { CMD_LIST_M,	"LIST-M",	"LM",		0 },
+    { CMD_LIST_M,	"LISTM",	0,		0 },
+    { CMD_LIST_U,	"LIST-U",	"LU",		0 },
+    { CMD_LIST_U,	"LISTU",	0,		0 },
+    { CMD_FORMAT,	"FORMAT",	"INIT",		0 },
+    { CMD_RECOVER,	"RECOVER",	0,		0 },
+    { CMD_CHECK,	"CHECK",	"FSCK",		0 },
+    { CMD_REPAIR,	"REPAIR",	0,		0 },
+    { CMD_EDIT,		"EDIT",		0,		0 },
+    { CMD_PHANTOM,	"PHANTOM",	0,		0 },
+    { CMD_TRUNCATE,	"TRUNCATE",	"TR",		0 },
+    { CMD_ADD,		"ADD",		"A",		0 },
+    { CMD_UPDATE,	"UPDATE",	"U",		0 },
+    { CMD_SYNC,		"SYNC",		0,		0 },
+    { CMD_EXTRACT,	"EXTRACT",	"X",		0 },
+    { CMD_REMOVE,	"REMOVE",	"RM",		0 },
+    { CMD_RENAME,	"RENAME",	"REN",		0 },
+    { CMD_SETTITLE,	"SETTITLE",	"ST",		0 },
+    { CMD_TOUCH,	"TOUCH",	0,		0 },
+    { CMD_VERIFY,	"VERIFY",	"V",		0 },
+    { CMD_FILETYPE,	"FILETYPE",	"FTYPE",	0 },
 
     { CMD__N,0,0,0 }
 };
@@ -949,6 +950,7 @@ const struct option OptionLong[] =
 	{ "name",		1, 0, GO_NAME },
 	{ "modify",		1, 0, GO_MODIFY },
 	{ "region",		1, 0, GO_REGION },
+	{ "common-key",		1, 0, GO_COMMON_KEY },
 	{ "ios",		1, 0, GO_IOS },
 	{ "rm-files",		1, 0, GO_RM_FILES },
 	{ "zero-files",		1, 0, GO_ZERO_FILES },
@@ -1092,32 +1094,278 @@ const u8 OptionIndex[OPT_INDEX_SIZE] =
 	/*8c*/	OPT_NAME,
 	/*8d*/	OPT_MODIFY,
 	/*8e*/	OPT_REGION,
-	/*8f*/	OPT_IOS,
-	/*90*/	OPT_RM_FILES,
-	/*91*/	OPT_ZERO_FILES,
-	/*92*/	OPT_IGNORE_FILES,
-	/*93*/	OPT_ENC,
-	/*94*/	OPT_TRUNC,
-	/*95*/	OPT_CHUNK_MODE,
-	/*96*/	OPT_CHUNK_SIZE,
-	/*97*/	OPT_MAX_CHUNKS,
-	/*98*/	OPT_HSS,
-	/*99*/	OPT_WSS,
-	/*9a*/	OPT_RECOVER,
-	/*9b*/	OPT_NO_CHECK,
-	/*9c*/	OPT_REPAIR,
-	/*9d*/	OPT_NO_FREE,
-	/*9e*/	OPT_ITIME,
-	/*9f*/	OPT_MTIME,
-	/*a0*/	OPT_CTIME,
-	/*a1*/	OPT_ATIME,
-	/*a2*/	OPT_TIME,
-	/*a3*/	OPT_SET_TIME,
-	/*a4*/	OPT_INODE,
-	/*a5*/	OPT_SECTIONS,
-	/*a6*/	OPT_LIMIT,
-	/*a7*/	 0,0,0,0, 0,0,0,0, 0,
+	/*8f*/	OPT_COMMON_KEY,
+	/*90*/	OPT_IOS,
+	/*91*/	OPT_RM_FILES,
+	/*92*/	OPT_ZERO_FILES,
+	/*93*/	OPT_IGNORE_FILES,
+	/*94*/	OPT_ENC,
+	/*95*/	OPT_TRUNC,
+	/*96*/	OPT_CHUNK_MODE,
+	/*97*/	OPT_CHUNK_SIZE,
+	/*98*/	OPT_MAX_CHUNKS,
+	/*99*/	OPT_HSS,
+	/*9a*/	OPT_WSS,
+	/*9b*/	OPT_RECOVER,
+	/*9c*/	OPT_NO_CHECK,
+	/*9d*/	OPT_REPAIR,
+	/*9e*/	OPT_NO_FREE,
+	/*9f*/	OPT_ITIME,
+	/*a0*/	OPT_MTIME,
+	/*a1*/	OPT_CTIME,
+	/*a2*/	OPT_ATIME,
+	/*a3*/	OPT_TIME,
+	/*a4*/	OPT_SET_TIME,
+	/*a5*/	OPT_INODE,
+	/*a6*/	OPT_SECTIONS,
+	/*a7*/	OPT_LIMIT,
+	/*a8*/	 0,0,0,0, 0,0,0,0, 
+	/*b0*/	 0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0,
 };
+
+//
+///////////////////////////////////////////////////////////////////////////////
+///////////////                opt_allowed_cmd_*                ///////////////
+///////////////////////////////////////////////////////////////////////////////
+
+static u8 option_allowed_cmd_VERSION[64] = // cmd #1
+{
+    0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,
+    0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,1,0,0,0,
+    0,1,0,0
+};
+
+static u8 option_allowed_cmd_HELP[64] = // cmd #2
+{
+    1,1,1,1,1, 1,1,1,1,1,  1,1,1,1,1, 1,1,1,1,1,  1,1,1,1,1, 1,1,1,1,1,
+    1,1,1,1,1, 1,1,1,1,1,  1,1,1,1,1, 1,1,1,1,1,  1,1,1,1,1, 1,1,1,1,1,
+    1,1,1,1
+};
+
+static u8 option_allowed_cmd_TEST[64] = // cmd #3
+{
+    1,1,1,1,1, 1,1,1,1,1,  1,1,1,1,1, 1,1,1,1,1,  1,1,1,1,1, 1,1,1,1,1,
+    1,1,1,1,1, 1,1,1,1,1,  1,1,1,1,1, 1,1,1,1,1,  1,1,1,1,1, 1,1,1,1,1,
+    1,1,1,1
+};
+
+static u8 option_allowed_cmd_ERROR[64] = // cmd #4
+{
+    0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,
+    0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,1,0,0,0,
+    1,1,0,0
+};
+
+static u8 option_allowed_cmd_EXCLUDE[64] = // cmd #5
+{
+    0,0,0,0,0, 0,0,0,0,0,  1,1,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,
+    0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,
+    0,0,0,0
+};
+
+static u8 option_allowed_cmd_TITLES[64] = // cmd #6
+{
+    0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,
+    0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,
+    0,0,0,0
+};
+
+static u8 option_allowed_cmd_FIND[64] = // cmd #7
+{
+    0,1,1,1,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,
+    0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,1,0,0,0,
+    1,0,0,0
+};
+
+static u8 option_allowed_cmd_SPACE[64] = // cmd #8
+{
+    0,1,1,1,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,
+    0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,1,0,0,0,
+    1,0,0,0
+};
+
+static u8 option_allowed_cmd_ANALYZE[64] = // cmd #9
+{
+    0,1,1,1,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,
+    0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,1,0,0,0,
+    0,0,0,0
+};
+
+static u8 option_allowed_cmd_DUMP[64] = // cmd #10
+{
+    0,1,1,1,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,
+    0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,1,1,0,0,
+    0,0,0,0
+};
+
+static u8 option_allowed_cmd_ID6[64] = // cmd #11
+{
+    0,1,1,1,0, 0,0,0,1,1,  1,1,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,
+    0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,
+    0,0,0,0
+};
+
+static u8 option_allowed_cmd_LIST[64] = // cmd #12
+{
+    0,1,1,1,0, 0,0,0,1,1,  1,1,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,
+    0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,  1,1,1,1,1, 0,1,0,1,1,
+    1,1,1,0
+};
+
+static u8 option_allowed_cmd_LIST_L[64] = // cmd #13
+{
+    0,1,1,1,0, 0,0,0,1,1,  1,1,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,
+    0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,  1,1,1,1,1, 0,1,0,1,1,
+    1,1,1,0
+};
+
+static u8 option_allowed_cmd_LIST_LL[64] = // cmd #14
+{
+    0,1,1,1,0, 0,0,0,1,1,  1,1,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,
+    0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,  1,1,1,1,1, 0,1,0,1,1,
+    1,1,1,0
+};
+
+static u8 option_allowed_cmd_LIST_A[64] = // cmd #15
+{
+    0,1,1,1,0, 0,0,0,1,1,  1,1,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,
+    0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,  1,1,1,1,1, 0,1,0,1,1,
+    1,1,1,0
+};
+
+static u8 option_allowed_cmd_LIST_M[64] = // cmd #16
+{
+    0,1,1,1,0, 0,0,0,1,1,  1,1,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,
+    0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,  1,1,1,1,1, 0,1,0,1,1,
+    1,1,1,0
+};
+
+static u8 option_allowed_cmd_LIST_U[64] = // cmd #17
+{
+    0,1,1,1,0, 0,0,0,1,1,  1,1,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,
+    0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,  1,1,1,1,1, 0,1,0,1,1,
+    1,1,1,0
+};
+
+static u8 option_allowed_cmd_FORMAT[64] = // cmd #18
+{
+    0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,1,1,0,0,
+    0,0,0,1,1, 1,1,1,0,0,  0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,1,0,0,
+    0,0,0,0
+};
+
+static u8 option_allowed_cmd_RECOVER[64] = // cmd #19
+{
+    0,1,1,1,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,
+    0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,
+    0,0,0,0
+};
+
+static u8 option_allowed_cmd_CHECK[64] = // cmd #20
+{
+    0,1,1,1,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,
+    0,0,0,0,0, 0,0,0,0,1,  0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,1,0,0,0,
+    0,0,0,0
+};
+
+static u8 option_allowed_cmd_REPAIR[64] = // cmd #21
+{
+    0,1,1,1,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,
+    0,0,0,0,0, 0,0,0,0,1,  0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,1,0,0,0,
+    0,0,0,0
+};
+
+static u8 option_allowed_cmd_EDIT[64] = // cmd #22
+{
+    0,1,0,1,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,
+    0,0,0,0,0, 0,0,1,0,0,  0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,
+    0,0,0,0
+};
+
+static u8 option_allowed_cmd_PHANTOM[64] = // cmd #23
+{
+    0,1,1,1,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,
+    0,0,0,0,0, 0,0,1,1,0,  0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,
+    0,0,0,0
+};
+
+static u8 option_allowed_cmd_TRUNCATE[64] = // cmd #24
+{
+    0,1,1,1,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,
+    0,0,0,0,0, 0,0,1,1,0,  0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,
+    0,0,0,0
+};
+
+static u8 option_allowed_cmd_ADD[64] = // cmd #25
+{
+    0,1,1,1,1, 1,1,1,1,1,  1,1,1,1,1, 1,1,1,1,1,  1,1,1,1,0, 0,0,0,1,0,
+    0,0,0,0,0, 0,0,1,1,0,  0,1,1,1,1, 1,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,
+    0,0,0,0
+};
+
+static u8 option_allowed_cmd_UPDATE[64] = // cmd #26
+{
+    0,1,1,1,1, 1,1,1,1,1,  1,1,1,1,1, 1,1,1,1,1,  1,1,1,1,0, 0,0,0,1,0,
+    0,0,0,0,0, 0,0,1,1,0,  0,0,1,1,0, 1,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,
+    0,0,0,0
+};
+
+static u8 option_allowed_cmd_SYNC[64] = // cmd #27
+{
+    0,1,1,1,1, 1,1,1,1,1,  1,1,1,1,1, 1,1,1,1,1,  1,1,1,1,0, 0,0,0,1,0,
+    0,0,0,0,0, 0,0,1,1,0,  0,0,0,1,0, 1,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,
+    0,0,0,0
+};
+
+static u8 option_allowed_cmd_EXTRACT[64] = // cmd #28
+{
+    0,1,1,1,0, 0,0,0,1,1,  1,1,1,0,0, 0,0,0,0,0,  0,0,0,0,1, 1,1,1,1,1,
+    1,1,1,0,0, 0,0,1,1,0,  0,1,0,0,1, 1,1,1,1,1,  0,0,0,0,0, 0,0,0,0,1,
+    0,0,0,0
+};
+
+static u8 option_allowed_cmd_REMOVE[64] = // cmd #29
+{
+    0,1,1,1,0, 0,0,0,1,1,  1,1,1,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,
+    0,0,0,0,0, 0,0,1,1,0,  1,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,1,
+    0,0,0,0
+};
+
+static u8 option_allowed_cmd_RENAME[64] = // cmd #30
+{
+    0,1,1,1,0, 0,0,0,1,1,  1,1,1,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,
+    0,0,0,0,0, 0,0,1,1,0,  0,0,0,0,0, 0,0,1,0,1,  0,0,0,0,0, 0,0,0,0,0,
+    0,0,0,0
+};
+
+static u8 option_allowed_cmd_SETTITLE[64] = // cmd #31
+{
+    0,1,1,1,0, 0,0,0,1,1,  1,1,1,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,
+    0,0,0,0,0, 0,0,1,1,0,  0,0,0,0,0, 0,0,1,0,1,  0,0,0,0,0, 0,0,0,0,0,
+    0,0,0,0
+};
+
+static u8 option_allowed_cmd_TOUCH[64] = // cmd #32
+{
+    0,1,1,1,0, 0,0,0,1,1,  1,1,1,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,
+    0,0,0,0,0, 0,0,1,1,0,  0,0,0,0,0, 0,0,0,0,0,  1,1,1,1,0, 1,0,0,0,1,
+    0,0,0,0
+};
+
+static u8 option_allowed_cmd_VERIFY[64] = // cmd #33
+{
+    0,1,1,1,0, 0,1,1,1,1,  1,1,1,0,0, 0,0,0,0,0,  0,0,1,0,0, 0,0,0,0,0,
+    0,0,0,0,0, 0,0,1,1,0,  1,0,0,0,0, 1,0,0,0,0,  0,0,0,0,0, 0,1,0,0,1,
+    0,0,0,1
+};
+
+static u8 option_allowed_cmd_FILETYPE[64] = // cmd #34
+{
+    0,0,0,0,0, 0,0,0,0,0,  0,0,1,1,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,
+    0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,1,0,0,0,
+    1,0,0,0
+};
+
 
 //
 ///////////////////////////////////////////////////////////////////////////////
@@ -1273,12 +1521,6 @@ static const InfoOption_t * option_tab_cmd_ID6[] =
 	OptionInfo + OPT_INCLUDE_PATH,
 	OptionInfo + OPT_EXCLUDE,
 	OptionInfo + OPT_EXCLUDE_PATH,
-
-	OptionInfo + OPT_NONE, // separator
-
-	OptionInfo + OPT_UNIQUE,
-	OptionInfo + OPT_SORT,
-	&option_cmd_ID6_LONG,
 
 	0
 };
@@ -1696,6 +1938,7 @@ static const InfoOption_t * option_tab_cmd_ADD[] =
 	OptionInfo + OPT_NAME,
 	OptionInfo + OPT_MODIFY,
 	OptionInfo + OPT_REGION,
+	OptionInfo + OPT_COMMON_KEY,
 	OptionInfo + OPT_IOS,
 	OptionInfo + OPT_RM_FILES,
 	OptionInfo + OPT_ZERO_FILES,
@@ -1759,6 +2002,7 @@ static const InfoOption_t * option_tab_cmd_UPDATE[] =
 	OptionInfo + OPT_NAME,
 	OptionInfo + OPT_MODIFY,
 	OptionInfo + OPT_REGION,
+	OptionInfo + OPT_COMMON_KEY,
 	OptionInfo + OPT_IOS,
 	OptionInfo + OPT_RM_FILES,
 	OptionInfo + OPT_ZERO_FILES,
@@ -1820,6 +2064,7 @@ static const InfoOption_t * option_tab_cmd_SYNC[] =
 	OptionInfo + OPT_NAME,
 	OptionInfo + OPT_MODIFY,
 	OptionInfo + OPT_REGION,
+	OptionInfo + OPT_COMMON_KEY,
 	OptionInfo + OPT_IOS,
 	OptionInfo + OPT_RM_FILES,
 	OptionInfo + OPT_ZERO_FILES,
@@ -2090,6 +2335,7 @@ static const InfoOption_t * option_tab_cmd_VERIFY[] =
 
 	OptionInfo + OPT_PSEL,
 	OptionInfo + OPT_RAW,
+	OptionInfo + OPT_IGNORE_FILES,
 	&option_cmd_VERIFY_UNIQUE,
 	&option_cmd_VERIFY_IGNORE,
 	&option_cmd_VERIFY_REMOVE,
@@ -2125,9 +2371,10 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	"wwt [option]... command [option|parameter|file]...",
 	"Wiimms WBFS Tool (WBFS manager) : It can create, check, repair,"
 	" verify and clone WBFS files and partitions. It can list, add,"
-	" extract, remove and rename ISO images as part of a WBFS.",
+	" extract, remove, rename and recover ISO images as part of a WBFS.",
 	15,
-	option_tab_tool
+	option_tab_tool,
+	0
     },
 
     {	CMD_VERSION,
@@ -2138,7 +2385,8 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	"wwt VERSION [ignored]...",
 	"Print program name and version and exit.",
 	2,
-	option_tab_cmd_VERSION
+	option_tab_cmd_VERSION,
+	option_allowed_cmd_VERSION
     },
 
     {	CMD_HELP,
@@ -2150,7 +2398,8 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	"Print help and exit. If the first non option is a valid command name,"
 	" then a help for the given command is printed.",
 	0,
-	option_tab_cmd_HELP
+	option_tab_cmd_HELP,
+	option_allowed_cmd_HELP
     },
 
     {	CMD_TEST,
@@ -2161,7 +2410,8 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	"wwt TEST [ignored]...",
 	"Test options: All options are allowed, some are printed.",
 	0,
-	option_tab_cmd_TEST
+	option_tab_cmd_TEST,
+	option_allowed_cmd_TEST
     },
 
     {	CMD_ERROR,
@@ -2173,7 +2423,8 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	"Translate exit code to message or print a table with all error"
 	" messages.",
 	3,
-	option_tab_cmd_ERROR
+	option_tab_cmd_ERROR,
+	option_allowed_cmd_ERROR
     },
 
     {	CMD_EXCLUDE,
@@ -2184,7 +2435,8 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	"wwt EXCLUDE [additional_excludes]...",
 	"Dump the internal exclude database to standard output (stdout).",
 	2,
-	option_tab_cmd_EXCLUDE
+	option_tab_cmd_EXCLUDE,
+	option_allowed_cmd_EXCLUDE
     },
 
     {	CMD_TITLES,
@@ -2195,7 +2447,8 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	"wwt TITLES [additional_title_file]",
 	"Dump the internal title database to standard output (stdout).",
 	4,
-	option_tab_cmd_TITLES
+	option_tab_cmd_TITLES,
+	option_allowed_cmd_TITLES
     },
 
     {	CMD_FIND,
@@ -2206,7 +2459,8 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	"wwt FIND [wbfs_partition]...",
 	"Find WBFS partitions and optionally print some geometric values.",
 	6,
-	option_tab_cmd_FIND
+	option_tab_cmd_FIND,
+	option_allowed_cmd_FIND
     },
 
     {	CMD_SPACE,
@@ -2217,7 +2471,8 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	"wwt SPACE [wbfs_partition]...",
 	"Print disk space of WBFS partitions.",
 	5,
-	option_tab_cmd_SPACE
+	option_tab_cmd_SPACE,
+	option_allowed_cmd_SPACE
     },
 
     {	CMD_ANALYZE,
@@ -2229,7 +2484,8 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	"Analyze files and partitions for WBFS usage. Try to find old WBFS"
 	" structures and make calculations for new WBFS.",
 	4,
-	option_tab_cmd_ANALYZE
+	option_tab_cmd_ANALYZE,
+	option_allowed_cmd_ANALYZE
     },
 
     {	CMD_DUMP,
@@ -2240,7 +2496,8 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	"wwt DUMP [wbfs_partition]...",
 	"Dump the data structure of WBFS partitions.",
 	9,
-	option_tab_cmd_DUMP
+	option_tab_cmd_DUMP,
+	option_allowed_cmd_DUMP
     },
 
     {	CMD_ID6,
@@ -2248,10 +2505,12 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	true,
 	"ID6",
 	"ID",
-	"wwt ID6 [wbfs_partition]...",
-	"List all ID6 of all discs of WBFS partitions.",
-	10,
-	option_tab_cmd_ID6
+	"wwt ID6 [id]...",
+	"List all ID6 of all discs of WBFS partitions. If the ID list is set"
+	" use it as selector.",
+	7,
+	option_tab_cmd_ID6,
+	option_allowed_cmd_ID6
     },
 
     {	CMD_LIST,
@@ -2262,7 +2521,8 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	"wwt LIST [wbfs_partition]...",
 	"List all discs of WBFS partitions.",
 	22,
-	option_tab_cmd_LIST
+	option_tab_cmd_LIST,
+	option_allowed_cmd_LIST
     },
 
     {	CMD_LIST_L,
@@ -2271,9 +2531,11 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	"LIST-L",
 	"LL",
 	"wwt LIST-L [wbfs_partition]...",
-	"List all discs of WBFS partitions. Same as 'LIST --long'.",
+	"List all discs of WBFS partitions. 'LIST-L' is a shortcut for 'LIST"
+	" --long'.",
 	22,
-	option_tab_cmd_LIST_L
+	option_tab_cmd_LIST_L,
+	option_allowed_cmd_LIST_L
     },
 
     {	CMD_LIST_LL,
@@ -2282,9 +2544,11 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	"LIST-LL",
 	"LLL",
 	"wwt LIST-LL [wbfs_partition]...",
-	"List all discs of WBFS partitions. Same as 'LIST --long --long'.",
+	"List all discs of WBFS partitions. 'LIST-LL' is a shortcut for 'LIST"
+	" --long --long'.",
 	22,
-	option_tab_cmd_LIST_LL
+	option_tab_cmd_LIST_LL,
+	option_allowed_cmd_LIST_LL
     },
 
     {	CMD_LIST_A,
@@ -2293,10 +2557,11 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	"LIST-A",
 	"LA",
 	"wwt LIST-A [wbfs_partition]...",
-	"List all discs of all WBFS partitions. Same as 'LIST --long --long"
-	" --auto'.",
+	"List all discs of all WBFS partitions. 'LIST-A' is a shortcut for"
+	" 'LIST --long --long --auto'.",
 	22,
-	option_tab_cmd_LIST_A
+	option_tab_cmd_LIST_A,
+	option_allowed_cmd_LIST_A
     },
 
     {	CMD_LIST_M,
@@ -2305,10 +2570,11 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	"LIST-M",
 	"LM",
 	"wwt LIST-M [wbfs_partition]...",
-	"List all discs of WBFS partitions in mixed view. Same as 'LIST --long"
-	" --long --mixed'.",
+	"List all discs of WBFS partitions in mixed view. 'LIST-M' is a"
+	" shortcut for 'LIST --long --long --mixed'.",
 	22,
-	option_tab_cmd_LIST_M
+	option_tab_cmd_LIST_M,
+	option_allowed_cmd_LIST_M
     },
 
     {	CMD_LIST_U,
@@ -2317,10 +2583,11 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	"LIST-U",
 	"LU",
 	"wwt LIST-U [wbfs_partition]...",
-	"List all discs of WBFS partitions in mixed view. Same as 'LIST --long"
-	" --long --unique'.",
+	"List all discs of WBFS partitions in mixed view. 'LIST-U' is a"
+	" shortcut for 'LIST --long --long --unique'.",
 	22,
-	option_tab_cmd_LIST_U
+	option_tab_cmd_LIST_U,
+	option_allowed_cmd_LIST_U
     },
 
     {	CMD_FORMAT,
@@ -2332,7 +2599,8 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	"Initialize (=format) WBFS partitions and files. Combine with"
 	" --recover to recover discs.",
 	14,
-	option_tab_cmd_FORMAT
+	option_tab_cmd_FORMAT,
+	option_allowed_cmd_FORMAT
     },
 
     {	CMD_RECOVER,
@@ -2343,7 +2611,8 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	"wwt RECOVER [wbfs_partition]..",
 	"Recover deleted discs of WBFS partitions.",
 	8,
-	option_tab_cmd_RECOVER
+	option_tab_cmd_RECOVER,
+	option_allowed_cmd_RECOVER
     },
 
     {	CMD_CHECK,
@@ -2355,7 +2624,8 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	"Check WBFS partitions and print error listing. To repair WBFS"
 	" partitions use the option '--repair modelist'.",
 	12,
-	option_tab_cmd_CHECK
+	option_tab_cmd_CHECK,
+	option_allowed_cmd_CHECK
     },
 
     {	CMD_REPAIR,
@@ -2367,7 +2637,8 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	"Check WBFS partitions and repair errors. 'REPAIR' is a shortcut for"
 	" 'CHECK --repair standard'.",
 	12,
-	option_tab_cmd_REPAIR
+	option_tab_cmd_REPAIR,
+	option_allowed_cmd_REPAIR
     },
 
     {	CMD_EDIT,
@@ -2378,7 +2649,8 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	"wwt EDIT [sub_command]...",
 	"Edit slot and block assignments. Dangerous! Read docu!",
 	4,
-	option_tab_cmd_EDIT
+	option_tab_cmd_EDIT,
+	option_allowed_cmd_EDIT
     },
 
     {	CMD_PHANTOM,
@@ -2391,7 +2663,8 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	" written. This makes adding discs very fast and this is good for"
 	" testing.",
 	8,
-	option_tab_cmd_PHANTOM
+	option_tab_cmd_PHANTOM,
+	option_allowed_cmd_PHANTOM
     },
 
     {	CMD_TRUNCATE,
@@ -2402,7 +2675,8 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	"wwt TRUNCATE [wbfs_partition]..",
 	"Truncate WBFS partitions to the really used size.",
 	7,
-	option_tab_cmd_TRUNCATE
+	option_tab_cmd_TRUNCATE,
+	option_allowed_cmd_TRUNCATE
     },
 
     {	CMD_ADD,
@@ -2412,8 +2686,9 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	"A",
 	"wwt ADD iso|wbfs|dir...",
 	"Add Wii ISO discs to WBFS partitions.",
-	39,
-	option_tab_cmd_ADD
+	40,
+	option_tab_cmd_ADD,
+	option_allowed_cmd_ADD
     },
 
     {	CMD_UPDATE,
@@ -2424,8 +2699,9 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	"wwt UPDATE iso|wbfs|dir...",
 	"Add missing Wii ISO discs to WBFS partitions. 'UPDATE' is a shortcut"
 	" for 'ADD --update'.",
-	37,
-	option_tab_cmd_UPDATE
+	38,
+	option_tab_cmd_UPDATE,
+	option_allowed_cmd_UPDATE
     },
 
     {	CMD_SYNC,
@@ -2437,8 +2713,9 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	"Modify primary WBFS (REMOVE and ADD) until it contains exactly the"
 	" same discs as all sources together. 'SYNC' is a shortcut for 'ADD"
 	" --sync'.",
-	36,
-	option_tab_cmd_SYNC
+	37,
+	option_tab_cmd_SYNC,
+	option_allowed_cmd_SYNC
     },
 
     {	CMD_EXTRACT,
@@ -2449,7 +2726,8 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	"wwt EXTRACT id6[=dest]...",
 	"Extract discs from WBFS partitions and store them as Wii ISO images.",
 	36,
-	option_tab_cmd_EXTRACT
+	option_tab_cmd_EXTRACT,
+	option_allowed_cmd_EXTRACT
     },
 
     {	CMD_REMOVE,
@@ -2460,7 +2738,8 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	"wwt REMOVE id6...",
 	"Remove discs from WBFS partitions.",
 	20,
-	option_tab_cmd_REMOVE
+	option_tab_cmd_REMOVE,
+	option_allowed_cmd_REMOVE
     },
 
     {	CMD_RENAME,
@@ -2471,7 +2750,8 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	"wwt RENAME id6=[new][,title]...",
 	"Rename the ID6 of WBFS discs. Disc title can also be set.",
 	18,
-	option_tab_cmd_RENAME
+	option_tab_cmd_RENAME,
+	option_allowed_cmd_RENAME
     },
 
     {	CMD_SETTITLE,
@@ -2482,7 +2762,8 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	"wwt SETTITLE id6=title...",
 	"Set the disc title of WBFS discs.",
 	18,
-	option_tab_cmd_SETTITLE
+	option_tab_cmd_SETTITLE,
+	option_allowed_cmd_SETTITLE
     },
 
     {	CMD_TOUCH,
@@ -2493,7 +2774,8 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	"wwt TOUCH id6...",
 	"Set time stamps of WBFS discs.",
 	21,
-	option_tab_cmd_TOUCH
+	option_tab_cmd_TOUCH,
+	option_allowed_cmd_TOUCH
     },
 
     {	CMD_VERIFY,
@@ -2504,22 +2786,24 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	"wwt VERIFY id6...",
 	"Verify all discs of WBFS (calculate and compare SHA1 check sums) to"
 	" find bad dumps.",
-	25,
-	option_tab_cmd_VERIFY
+	26,
+	option_tab_cmd_VERIFY,
+	option_allowed_cmd_VERIFY
     },
 
     {	CMD_FILETYPE,
 	false,
 	true,
 	"FILETYPE",
-	"FT",
+	"FTYPE",
 	"wwt FILETYPE filename...",
 	"Print a status line for each source file.",
 	4,
-	option_tab_cmd_FILETYPE
+	option_tab_cmd_FILETYPE,
+	option_allowed_cmd_FILETYPE
     },
 
-    {0,0,0,0,0,0,0,0}
+    {0,0,0,0,0,0,0,0,0}
 };
 
 //

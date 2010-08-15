@@ -1069,10 +1069,6 @@ RepairMode ScanRepairMode ( ccp arg );
 
 #define COMMAND_NAME_MAX 100
 
-typedef u64 option_t;
-extern option_t used_options;
-extern option_t env_options;
-
 typedef struct CommandTab_t
 {
     s64			id;		// id

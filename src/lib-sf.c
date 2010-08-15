@@ -122,8 +122,9 @@ enumError CloseSF ( SuperFile_t * sf, FileAttrib_t * set_time_ref )
 
 	if (sf->wbfs)
 	{
-	    CloseWDisc(sf->wbfs);
-	    err = TruncateWBFS(sf->wbfs);
+	    err = CloseWDisc(sf->wbfs);
+	    if (!err)
+		err = SyncWBFS(sf->wbfs,false);
 	}
     }
 
@@ -497,9 +498,23 @@ enumError SetupWriteWBFS ( SuperFile_t * sf )
     if (!wbfs)
 	OUT_OF_MEMORY;
     InitializeWBFS(wbfs);
-    enumError err = CreateGrowingWBFS(wbfs,sf,(off_t)10*GiB,sf->f.sector_size);
+
+    const u64 size = ( WII_MAX_SECTORS *(u64)WII_SECTOR_SIZE / WBFS_MIN_SECTOR_SIZE + 2 )
+			* WBFS_MIN_SECTOR_SIZE;
+    PRINT("WBFS size = %llx = %llu\n",size,size);
+    enumError err = CreateGrowingWBFS(wbfs,sf,size,sf->f.sector_size);
     sf->wbfs = wbfs;
     SetupIOD(sf,OFT_WBFS,OFT_WBFS);
+
+    if (!err)
+    {
+	wbfs_disc_t * disc = wbfs_create_disc(sf->wbfs->wbfs,0,0);
+	if (disc)
+	    wbfs->disc = disc;
+	else
+	    err = ERR_CANT_CREATE;
+    }
+
     return err;
 }
 
@@ -554,7 +569,7 @@ wd_disc_t * OpenDiscSF
     // The idea
     //	1.) Open disc1 and enable patching if necessary
     //  2.) Open disc2 and route reading through patched
-    //      disc1 if pathing is enabled; dup disc1 else
+    //      disc1 if patching is enabled; dup disc1 else
     //****************************************************
 
     //----- open unpatched disc
@@ -658,6 +673,17 @@ wd_disc_t * OpenDiscSF
 	    }
 	}
     }
+
+
+    //----- common key
+
+    if ( (unsigned)opt_common_key < WD_CKEY__N )
+	for ( ip = 0; ip < disc->n_part; ip++ )
+	{
+	    wd_part_t * part = wd_get_part_by_index(disc,ip,0);
+	    if ( part && part->is_valid && part->is_enabled )
+		reloc |= wd_patch_common_key(part,opt_common_key);
+	}
 
 
     //----- check file pattern
@@ -1318,8 +1344,9 @@ enumError WriteWBFS
 		GetFD(&sf->f), GetFP(&sf->f), (u64)off, (u64)off+count, count, "" );
 
     ASSERT(sf->wbfs);
-    ASSERT(sf->wbfs->disc);
-    ASSERT(sf->wbfs->disc->header);
+    wbfs_disc_t * disc = sf->wbfs->disc;
+    ASSERT(disc);
+    ASSERT(disc->header);
     u16 * wlba_tab = sf->wbfs->disc->header->wlba_table;
     ASSERT(wlba_tab);
 
@@ -1336,24 +1363,54 @@ enumError WriteWBFS
 	if  ( max_count > count )
 	    max_count = count;
 
-	const u32 wlba = bl < w->n_wbfs_sec_per_disc ? ntohs(wlba_tab[bl]) : 0;
-	const off_t off = (off_t)w->wbfs_sec_sz * wlba + bl_off;
+	if ( bl >= w->n_wbfs_sec_per_disc )
+	{
+	    sf->f.last_error = ERR_WRITE_FAILED;
+	    if ( sf->f.max_error < ERR_WRITE_FAILED )
+		 sf->f.max_error = ERR_WRITE_FAILED;
+	    if (!sf->f.disable_errors)
+		ERROR0( ERR_WRITE_FAILED, 
+			"Can't write behind WBFS limit [%c=%d]: %s\n",
+			GetFT(&sf->f), GetFD(&sf->f), sf->f.fname );
+	    return ERR_WRITE_FAILED;
+	}
+
+	u32 wlba = ntohs(wlba_tab[bl]);
+	if (!wlba)
+	{
+	    wlba = wbfs_alloc_block(w);
+	    if ( wlba == WBFS_NO_BLOCK )
+	    {
+		sf->f.last_error = ERR_WRITE_FAILED;
+		if ( sf->f.max_error < ERR_WRITE_FAILED )
+		     sf->f.max_error = ERR_WRITE_FAILED;
+		if (!sf->f.disable_errors)
+		    ERROR0( ERR_WRITE_FAILED, 
+			    "Can't allocate a free WBFS block [%c=%d]: %s\n",
+			    GetFT(&sf->f), GetFD(&sf->f), sf->f.fname );
+		return ERR_WRITE_FAILED;
+	    }
+  #ifdef TEST
+	    if ( bl <= 10 )
+		PRINT("WBFS WRITE: wlba_tab[%x] = %x\n",bl,wlba);
+  #endif
+	    wlba_tab[bl] = htons(wlba);
+	    disc->is_dirty = 1;
+	}
+
+	if ( disc->is_creating && off < sizeof(disc->header->dhead) )
+	{
+	    size_t copy_count = 256 - (size_t)off;
+	    if ( copy_count > count )
+		 copy_count = count;
+	    PRINT("WBFS WRITE HEADER: %llx + %zx\n",(u64)off,copy_count);
+	    memcpy( disc->header->dhead + off, buf, copy_count );
+	    disc->is_dirty = 1;
+	}
 
 	TRACE(">> BL=%d[%d], BL-OFF=%x, count=%x/%zx\n",
 		bl, wlba, bl_off, max_count, count );
 
-	if (!wlba)
-	{
-	    sf->f.last_error = ERR_WRITE_FAILED;
-	    if (  sf->f.max_error < ERR_WRITE_FAILED )
-		 sf->f.max_error = ERR_WRITE_FAILED;
-	    if (!sf->f.disable_errors)
-		ERROR0( ERR_WRITE_FAILED, 
-			"Can't write to non existing WBFS block [%c=%d,%llx]: %s\n",
-			GetFT(&sf->f), GetFD(&sf->f), off, sf->f.fname );
-	    return ERR_WRITE_FAILED;
-	}
-    
 	enumError err = WriteAtF( &sf->f,
 				 (off_t)w->wbfs_sec_sz * wlba + bl_off,
 				 buf, max_count);
@@ -2217,18 +2274,6 @@ enumError CopySF ( SuperFile_t * in, SuperFile_t * out, bool force_raw_mode )
     TRACE("---\n");
     TRACE("+++ CopySF(%d->%d,raw=%d) +++\n",GetFD(&in->f),GetFD(&out->f),force_raw_mode);
 
-    if ( out->iod.oft == OFT_WBFS )
-    {
-	wd_select_t select_whole, *select = &part_selector;
-	if (force_raw_mode)
-	{
-	    wd_initialize_select(&select_whole);
-	    select_whole.whole_disc = true;
-	    select = &select_whole;
-	}
-	return CopyToWBFS(in,out,select);
-    }
-
     if (!force_raw_mode && !part_selector.whole_disc )
     {
 	wd_disc_t * disc = OpenDiscSF(in,true,false);
@@ -2382,13 +2427,13 @@ enumError CopyRawData2
 {
     ASSERT(in);
     ASSERT(out);
-    TRACE("+++ CopyRawData(%d,%llx,%d,%llx,%llx) +++\n",
+    TRACE("+++ CopyRawData2(%d,%llx,%d,%llx,%llx) +++\n",
 		GetFD(&in->f), (u64)in_off,
 		GetFD(&out->f), (u64)out_off, (u64)copy_size );
 
     while ( copy_size > 0 )
     {
-	const u32 size = sizeof(iobuf) < copy_size ? sizeof(iobuf) : (u32)copy_size;
+	const u32 size = sizeof(iobuf) < copy_size ? (u32)sizeof(iobuf) : (u32)copy_size;
 	enumError err = ReadSF(in,in_off,iobuf,size);
 	if (err)
 	    return err;
@@ -2548,28 +2593,6 @@ enumError CopyWBFSDisc ( SuperFile_t * in, SuperFile_t * out )
     if ( copybuf != iobuf )
 	free(copybuf);
     return err;
-}
-
-///////////////////////////////////////////////////////////////////////////////
-
-enumError CopyToWBFS ( SuperFile_t * in, SuperFile_t * out, const wd_select_t * psel )
-{
-    TRACE("---\n");
-    TRACE("+++ CopyToWBFS(%d,%d) +++\n",in->f.fd,out->f.fd);
-
-    if ( !out->wbfs )
-	return ERROR0(ERR_INTERNAL,0);
-
-    in->indent		= out->indent;
-    in->show_progress	= out->show_progress;
-    in->show_summary	= out->show_summary;
-    in->show_msec	= out->show_msec;
-
-    if ( AddWDisc(out->wbfs,in,psel) > ERR_WARNING )
-	return ERROR0(ERR_WBFS,"Error while creating disc [%s] @%s\n",
-			out->f.id6, out->f.fname );
-
-    return ERR_OK;
 }
 
 ///////////////////////////////////////////////////////////////////////////////

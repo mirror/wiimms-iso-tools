@@ -33,7 +33,7 @@
 
 //
 ///////////////////////////////////////////////////////////////////////////////
-///////////////                    some constants               ///////////////
+///////////////			  some constants		///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
 enum
@@ -45,7 +45,7 @@ enum
 
 //
 ///////////////////////////////////////////////////////////////////////////////
-///////////////                     partitions                  ///////////////
+///////////////			   partitions			///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
 typedef enum enumPartMode
@@ -115,17 +115,9 @@ void AddEnvPartitions();
 enumError AnalyzePartitions ( FILE * outfile, bool non_found_is_ok, bool scan_wbfs );
 void ScanPartitionGames();
 
-//-----------------------------------------------------------------------------
-
-ParamList_t * CheckParamID6 ( bool unique, bool lookup_title_db );
-ParamList_t * SearchParamID6 ( ccp id6 );
-int PrintParamID6();
-
-enumError CheckParamRename ( bool rename_id, bool allow_plus, bool allow_index );
-
 //
 ///////////////////////////////////////////////////////////////////////////////
-///////////////                    wbfs structs                 ///////////////
+///////////////			    wbfs structs		///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
 typedef struct WBFS_t
@@ -204,7 +196,7 @@ typedef struct CheckWBFS_t
 
 //
 ///////////////////////////////////////////////////////////////////////////////
-///////////////                   Analyze WBFS                  ///////////////
+///////////////			   Analyze WBFS			///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
 typedef enum enumAnalyzeWBFS
@@ -267,7 +259,50 @@ int PrintAnalyzeWBFS
 
 //
 ///////////////////////////////////////////////////////////////////////////////
-///////////////             discs & wbfs interface              ///////////////
+///////////////			  ID handling			///////////////
+///////////////////////////////////////////////////////////////////////////////
+
+ParamList_t * CheckParamID6 ( bool unique, bool lookup_title_db );
+ParamList_t * SearchParamID6 ( ccp id6 );
+int PrintParamID6();
+
+enumError ScanParamID6
+(
+    StringField_t	* select_list,	// append all results to this list
+    const ParamList_t	* param		// first param of a list to check
+);
+
+int AppendListID6 // returns number of inserted ids
+(
+    StringField_t	* id6_list,	// append all selected IDs in this list
+    const StringField_t	* select_list,	// selector list
+    WBFS_t		* wbfs		// open WBFS file
+);
+
+int AppendWListID6 // returns number of inserted ids
+(
+    StringField_t	* id6_list,	// append all selected IDs in this list
+    const StringField_t	* select_list,	// selector list
+    WDiscList_t		* wlist		// valid list
+);
+
+bool MatchRulesetID
+(
+    const StringField_t	* select_list,	// selector list
+    ccp			id		// id to compare
+);
+
+bool MatchPatternID // returns TRUE if pattern and id match
+(
+    ccp			pattern,	// pattern, '.' is a wildcard
+    ccp			id		// id to compare
+);
+
+enumError CheckParamRename ( bool rename_id, bool allow_plus, bool allow_index );
+
+//
+///////////////////////////////////////////////////////////////////////////////
+///////////////		    discs & wbfs interface		///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
 void InitializeWBFS	( WBFS_t * w );
@@ -284,7 +319,7 @@ enumError RecoverWBFS	( WBFS_t * w, ccp fname, bool testmode );
 enumError TruncateWBFS	( WBFS_t * w );
 
 enumError CalcWBFSUsage	( WBFS_t * w );
-enumError SyncWBFS	( WBFS_t * w );
+enumError SyncWBFS	( WBFS_t * w, bool force_sync );
 enumError ReloadWBFS	( WBFS_t * w );
 
 enumError OpenPartWBFS	( WBFS_t * w, struct PartitionInfo_t *  info );
@@ -366,7 +401,7 @@ int RenameISOHeader ( void * data, ccp fname,
 
 //
 ///////////////////////////////////////////////////////////////////////////////
-///////////////                          END                    ///////////////
+///////////////			    E N D			///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
 #endif // WIT_WBFS_INTERFACE_H

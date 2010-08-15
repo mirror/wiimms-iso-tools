@@ -434,12 +434,56 @@ void test_sha1()
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-int test_crypt_and_split ( int argc, char ** argv )
+#include "wbfs-interface.h"
+
+enumError CreateWBFSFile
+(
+    SuperFile_t * sf,		// valid pointer
+    ccp		fname,
+    int		overwrite,
+    const void	* disc_header,	// NULL or disc header to copy
+    const void	* disc_id	// NULL or ID6: check non existence
+				// disc_id overwrites the id of disc_header
+)
+{
+    DASSERT(sf);
+    enumError err = CreateSF(sf,fname,OFT_WBFS,IOM_IS_WBFS,overwrite);
+    if ( !err && sf->wbfs )
+    {
+	CloseWDisc(sf->wbfs);
+	wbfs_disc_t * disc = wbfs_create_disc(sf->wbfs->wbfs,disc_header,disc_id);
+	if (disc)
+	    sf->wbfs->disc = disc;
+	else
+	    err = ERR_CANT_CREATE;
+    }
+
+    return err;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+int test_copy_to_wbfs ( int argc, char ** argv )
 {
     int i;
     for ( i = 1; i < argc; i++ )
     {
-	// [2do]
+	SuperFile_t fi;
+	InitializeSF(&fi);
+	if (!OpenSF(&fi,argv[i],false,false))
+	{
+	    wd_disc_t * disc = OpenDiscSF(&fi,false,true);
+	    if (disc)
+	    {
+		SuperFile_t fo;
+		InitializeSF(&fo);
+		enumError err = CreateWBFSFile(&fo,"pool/a.wbfs",true,&disc->dhead,0);
+		if (!err)
+		    err = CopySF(&fi,&fo,false);
+		ResetSF(&fo,0);
+	    }
+	}
+	ResetSF(&fi,0);
     }
     return 0;    
 }
@@ -517,7 +561,7 @@ int test ( int argc, char ** argv )
     //test_create_sparse_file();
     //test_splitted_file();
     //test_zero_wdf();
-    test_crypt_and_split(argc,argv);
+    test_copy_to_wbfs(argc,argv);
 
     return 0;
 }
@@ -532,6 +576,17 @@ int main ( int argc, char ** argv )
     SetupLib(argc,argv,NAME,PROG_UNKNOWN);
 
     printf("term width = %d\n",GetTermWidth(80,0));
+
+ #ifdef TEST
+    if (0)
+    {
+	id6_t * id6 = (id6_t*)iobuf;
+	PRINT("sizeof(id6_t)=%zd, %p,%p,%p -> %zu,%zu,%zu\n",
+		sizeof(id6_t),
+		id6, id6+1, id6+2,
+		(ccp)id6-iobuf, (ccp)(id6+1)-iobuf, (ccp)(id6+2)-iobuf );
+    }
+ #endif
 
     if ( argc < 2 )
 	help_exit();

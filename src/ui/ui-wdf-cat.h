@@ -58,7 +58,7 @@ typedef enum enumOptions
 typedef enum enumCommands
 {
 	CMD__NONE,
-	CMD__N
+	CMD__N // == 0
 
 } enumCommands;
 

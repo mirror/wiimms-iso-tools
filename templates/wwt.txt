@@ -98,7 +98,7 @@ are listed in alphabetic order:
 
  Usual ERROR/EXIT CODES:
 
-    0 == OK             : all done without erros.
+    0 == OK             : all done without errors.
     JOB_IGNORED         : a source file is ignored.
     SYNTAX ERROR        : at least one syntax error in command line found.
     MISSING PARAMETERS  : no parameters (iso images) given.
@@ -183,7 +183,7 @@ are listed in alphabetic order:
 
  Usual ERROR/EXIT CODES:
 
-    0 == OK             : all done without erros.
+    0 == OK             : all done without errors.
     SYNTAX ERROR        : at least one syntax error in command line found.
 
 
@@ -225,7 +225,7 @@ are listed in alphabetic order:
 
  Usual ERROR/EXIT CODES:
 
-    0 == OK             : all done without erros.
+    0 == OK             : all done without errors.
     SYNTAX ERROR        : at least one syntax error in command line found.
     NO WBFS FOUND       : no WBFS partition found.
     TO MUCH WBFS FOUND  : 2 to more no WBFS partition found but --all missed.
@@ -258,7 +258,7 @@ are listed in alphabetic order:
 
  Usual ERROR/EXIT CODES:
 
-    0 == OK             : all done without erros.
+    0 == OK             : all done without errors.
     SYNTAX ERROR        : at least one syntax error in command line found.
     READ ERROR          : error while read a file given by option --part.
     NO WBFS FOUND       : no WBFS partition found.
@@ -323,7 +323,7 @@ are listed in alphabetic order:
 
  Usual ERROR/EXIT CODES:
 
-    0 == OK             : all done without erros.
+    0 == OK             : all done without errors.
     SYNTAX ERROR        : at least one syntax error in command line found.
     READ ERROR          : error while read a file given by option --part.
     NO WBFS FOUND       : no WBFS partition found.
@@ -447,7 +447,7 @@ are listed in alphabetic order:
 
  Usual ERROR/EXIT CODES:
 
-    0 == OK             : all done without erros.
+    0 == OK             : all done without errors.
     SYNTAX ERROR        : at least one syntax error in command line found.
     MISSING PARAMETERS  : no parameters (ID6) given.
     NO WBFS FOUND       : no WBFS partition found.
@@ -488,7 +488,7 @@ are listed in alphabetic order:
 
  Usual ERROR/EXIT CODES:
 
-    0 == OK             : all done without erros.
+    0 == OK             : all done without errors.
     SYNTAX ERROR        : at least one syntax error in command line found.
     READ ERROR          : error while reading a file.
 
@@ -535,7 +535,7 @@ are listed in alphabetic order:
  
  Usual ERROR/EXIT CODES:
 
-    0 == OK             : all done without erros.
+    0 == OK             : all done without errors.
     SYNTAX ERROR        : at least one syntax error in command line found.
     READ ERROR          : error while read a file given by option --part.
     NO WBFS FOUND       : no WBFS partition found.
@@ -593,7 +593,7 @@ are listed in alphabetic order:
 
  Usual ERROR/EXIT CODES:
 
-    0 == OK             : all done without erros.
+    0 == OK             : all done without errors.
     SYNTAX ERROR        : at least one syntax error in command line found.
     MISSING PARAMETERS  : no parameters (iso images) given.
     WRITE ERROR         : error while writing/formatting a WBFS.
@@ -605,7 +605,7 @@ are listed in alphabetic order:
 
  Usual ERROR/EXIT CODES:
 
-    0 == OK             : all done without erros.
+    0 == OK             : all done without errors.
 
 
 -------------------------------------------------------------------------------
@@ -630,7 +630,7 @@ are listed in alphabetic order:
 
  Usual ERROR/EXIT CODES:
 
-    0 == OK             : all done without erros.
+    0 == OK             : all done without errors.
     SYNTAX ERROR        : at least one syntax error in command line found.
     READ ERROR          : error while read a file given by option --part.
     NO WBFS FOUND       : no WBFS partition found.
@@ -707,7 +707,7 @@ are listed in alphabetic order:
 
  Usual ERROR/EXIT CODES:
 
-    0 == OK             : all done without erros.
+    0 == OK             : all done without errors.
     SYNTAX ERROR        : at least one syntax error in command line found.
     READ ERROR          : error while read a file given by option --part.
     NO WBFS FOUND       : no WBFS partition found.
@@ -771,7 +771,7 @@ COMMANDS:
 
  Usual ERROR/EXIT CODES:
 
-    0 == OK             : all done without erros.
+    0 == OK             : all done without errors.
     SYNTAX ERROR        : at least one syntax error in command line found.
     READ ERROR          : error while read a file given by option --part.
     NO WBFS FOUND       : no WBFS partition found.
@@ -801,7 +801,7 @@ COMMANDS:
 
  Usual ERROR/EXIT CODES:
 
-    0 == OK             : all done without erros.
+    0 == OK             : all done without errors.
     SYNTAX ERROR        : at least one syntax error in command line found.
     MISSING PARAMETERS  : no parameters (iso images) given.
     WRITE ERROR         : error while writing/formatting a WBFS.
@@ -847,7 +847,7 @@ COMMANDS:
 
  Usual ERROR/EXIT CODES:
 
-    0 == OK             : all done without erros.
+    0 == OK             : all done without errors.
     SYNTAX ERROR        : at least one syntax error in command line found.
     MISSING PARAMETERS  : no parameters (ID6) given.
     NO WBFS FOUND       : no WBFS partition found.
@@ -885,7 +885,7 @@ COMMANDS:
 
  Usual ERROR/EXIT CODES:
 
-    0 == OK             : all done without erros.
+    0 == OK             : all done without errors.
     SYNTAX ERROR        : at least one syntax error in command line found.
     NO WBFS FOUND       : no WBFS partition found.
     TO MUCH WBFS FOUND  : 2 to more no WBFS partition found but --all missed.
@@ -934,7 +934,7 @@ COMMANDS:
 
  Usual ERROR/EXIT CODES:
 
-    0 == OK             : all done without erros.
+    0 == OK             : all done without errors.
     SYNTAX ERROR        : at least one syntax error in command line found.
     READ ERROR          : error while read a file given by option --part.
     NO WBFS FOUND       : no WBFS partition found.
@@ -1029,7 +1029,7 @@ See command 'ADD' for options and details.
 
  Usual ERROR/EXIT CODES:
 
-    0 == OK             : all done without erros.
+    0 == OK             : all done without errors.
     SYNTAX ERROR        : at least one syntax error in command line found.
     MISSING PARAMETERS  : no parameters (ID6) given.
     NO WBFS FOUND       : no WBFS partition found.
@@ -1063,7 +1063,7 @@ See command 'ADD' for options and details.
 
  Usual ERROR/EXIT CODES:
 
-    0 == OK             : all done without erros.
+    0 == OK             : all done without errors.
     SYNTAX ERROR        : at least one syntax error in command line found.
     READ ERROR          : error while read a file given by option --part.
     NO WBFS FOUND       : no WBFS partition found.
@@ -1086,7 +1086,7 @@ See command 'ADD' for options and details.
 
  Usual ERROR/EXIT CODES:
 
-    0 == OK             : all done without erros.
+    0 == OK             : all done without errors.
     SYNTAX ERROR        : at least one syntax error in command line found.
     READ ERROR          : error while read a file given by option --part.
     NO WBFS FOUND       : no WBFS partition found.
@@ -1136,7 +1136,7 @@ See command 'ADD' for options and details.
 
  Usual ERROR/EXIT CODES:
 
-    0 == OK             : all done without erros.
+    0 == OK             : all done without errors.
     DIFFER              : At least one check sum error found.
     SYNTAX ERROR        : at least one syntax error in command line found.
     READ ERROR          : error while reading a file.
@@ -1159,7 +1159,7 @@ See command 'ADD' for options and details.
 
  Usual ERROR/EXIT CODES:
 
-    0 == OK : all done without erros.
+    0 == OK : all done without errors.
 
 
 *******************************************************************************

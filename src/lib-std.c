@@ -73,8 +73,6 @@ RepairMode repair_mode		= REPAIR_NONE;
 char escape_char		= '%';
 enumOFT output_file_type	= OFT_UNKNOWN;
 int opt_truncate		= 0;
-option_t used_options		= 0;
-option_t env_options		= 0;
 int opt_split			= 0;
 u64 opt_split_size		= 0;
 ccp  opt_clone			= 0;
@@ -208,7 +206,6 @@ void SetupLib ( int argc, char ** argv, ccp p_progname, enumProgID prid )
     TRACE_SIZEOF(long long);
     TRACE_SIZEOF(size_t);
     TRACE_SIZEOF(off_t);
-    TRACE_SIZEOF(option_t);
 
     TRACE_SIZEOF(u8);
     TRACE_SIZEOF(u16);
@@ -271,6 +268,7 @@ void SetupLib ( int argc, char ** argv, ccp p_progname, enumProgID prid )
     TRACE_SIZEOF(aes_key_t);
     TRACE_SIZEOF(dcUnicodeTripel);
     TRACE_SIZEOF(dol_header_t);
+    TRACE_SIZEOF(id6_t);
     TRACE_SIZEOF(wbfs_disc_info_t);
     TRACE_SIZEOF(wbfs_disc_t);
     TRACE_SIZEOF(wbfs_head_t);
@@ -487,22 +485,32 @@ void SetupLib ( int argc, char ** argv, ccp p_progname, enumProgID prid )
     
     {
 	static u8 key_base[] = "Wiimms WBFS Tool";
-	static u8 key_mask[] =
+	static u8 key_mask[WD_CKEY__N][WII_KEY_SIZE] =
 	{
-		0x87, 0xf1, 0xaf, 0x7e,  0x24, 0x7c, 0x50, 0x87,
-		0x39, 0xca, 0x9e, 0xff,  0xd8, 0x35, 0x3c, 0x51
+	    {
+		0x25, 0x00, 0x94, 0x12,  0x2a, 0x3e, 0x4e, 0x1f,
+		0x03, 0x2d, 0xc5, 0xc9,  0x30, 0x2a, 0x58, 0xab
+	    },
+	    {
+		0xad, 0x5c, 0x95, 0x84,  0x80, 0xda, 0x93, 0xd5,
+		0x58, 0x06, 0xfe, 0x77,  0xf9, 0xe7, 0x69, 0x22
+	    },
 	};
 
 	u8 h1[WII_HASH_SIZE], h2[WII_HASH_SIZE], key[WII_KEY_SIZE];
-	
-	SHA1(key_base,WII_KEY_SIZE,h1);
-	SHA1(wd_get_common_key(),WII_KEY_SIZE,h2);
-	
-	int i;
-	for ( i = 0; i < WII_KEY_SIZE; i++ )
-	    key[i] = key_mask[i] ^ h1[i] ^ h2[i];
 
-	wd_set_common_key(key);
+	SHA1(key_base,WII_KEY_SIZE,h1);
+	int ci;
+	for ( ci = 0; ci < WD_CKEY__N; ci++ )
+	{
+	    SHA1(wd_get_common_key(ci),WII_KEY_SIZE,h2);
+
+	    int i;
+	    for ( i = 0; i < WII_KEY_SIZE; i++ )
+		key[i] = key_mask[ci][i] ^ h1[i] ^ h2[i];
+
+	    wd_set_common_key(ci,key);
+	}
     }
 
     //----- setup data structures
@@ -2293,9 +2301,9 @@ s64 ScanCommandList
 	int abbrev_count;
 	const CommandTab_t * cptr = ScanCommand(&abbrev_count,cmd_buf,cmd_tab);
 	if ( !cptr && allow_prefix && cmd_buf[1]
-	    && ( *cmd_buf == '+' || *cmd_buf == '-' || *cmd_buf == '=' ))
+	    && ( *cmd_buf == '+' || *cmd_buf == '-' || *cmd_buf == '/' || *cmd_buf == '=' ))
 	{
-	    prefix = *cmd_buf;
+	    prefix = *cmd_buf == '/' ? '-' : *cmd_buf;
 	    cptr = ScanCommand(&abbrev_count,cmd_buf+1,cmd_tab);
 	}
 
@@ -2368,9 +2376,9 @@ enumError ScanCommandListFunc
 	int abbrev_count;
 	const CommandTab_t * cptr = ScanCommand(&abbrev_count,cmd_buf,cmd_tab);
 	if ( !cptr && allow_prefix && cmd_buf[1]
-	    && ( *cmd_buf == '+' || *cmd_buf == '-' || *cmd_buf == '=' ))
+	    && ( *cmd_buf == '+' || *cmd_buf == '-' || *cmd_buf == '/' || *cmd_buf == '=' ))
 	{
-	    prefix = *cmd_buf;
+	    prefix = *cmd_buf == '/' ? '-' : *cmd_buf;
 	    cptr = ScanCommand(&abbrev_count,cmd_buf+1,cmd_tab);
 	}
 

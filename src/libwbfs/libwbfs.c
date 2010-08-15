@@ -56,7 +56,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 
 be64_t wbfs_setup_inode_info
-	( wbfs_t * p, wbfs_inode_info_t * ii, int is_valid, int is_changed )
+	( wbfs_t * p, wbfs_inode_info_t * ii, bool is_valid, int is_changed )
 {
     ASSERT(p);
     ASSERT(p->head);
@@ -91,7 +91,7 @@ be64_t wbfs_setup_inode_info
 
 ///////////////////////////////////////////////////////////////////////////////
 
-int wbfs_is_inode_info_valid( wbfs_t * p, wbfs_inode_info_t * ii )
+int wbfs_is_inode_info_valid ( wbfs_t * p, wbfs_inode_info_t * ii )
 {
     ASSERT(p);
     ASSERT(p->head);
@@ -251,7 +251,6 @@ wbfs_t * wbfs_open_partition_param ( wbfs_param_t * par )
     p->read_hdsector	= par->read_hdsector;
     p->write_hdsector	= par->write_hdsector;
     p->callback_data	= par->callback_data;
-    p->readonly		= par->readonly > 0;
 
     //----- init/load partition header
 
@@ -314,6 +313,10 @@ wbfs_t * wbfs_open_partition_param ( wbfs_param_t * par )
 		1 << head->wbfs_sec_sz_s );
 
     //----- load/setup free block table
+
+    noTRACE("FB: size4=%x=%u, mask=%x=%u\n",
+		p->freeblks_size4, p->freeblks_size4,
+		p->freeblks_mask, p->freeblks_mask );
 
     if ( par->reset <= 0 )
     {
@@ -429,8 +432,14 @@ int wbfs_calc_size_shift
     // the max value chooses the maximal supported partition size
     //   - start_value < 6 ==> n_wbfs_sec_per_disc becomes to large
 
+    DASSERT( ( 1 << WII_SECTOR_SIZE_SHIFT + WBFS_MIN_SECTOR_SHIFT ) == WBFS_MIN_SECTOR_SIZE );
+    DASSERT( ( 1 << WII_SECTOR_SIZE_SHIFT + WBFS_MAX_SECTOR_SHIFT ) == WBFS_MAX_SECTOR_SIZE );
+
     int shift_count;
-    for ( shift_count = 6; shift_count < 12; shift_count++ )
+    for ( shift_count = WBFS_MIN_SECTOR_SHIFT;
+	  shift_count <= WBFS_MAX_SECTOR_SHIFT;
+	  shift_count++
+	)
     {
 	// ensure that wbfs_sec_sz is big enough to address every blocks using 16 bits
 	if ( n_wii_sec < (u32)WBFS_MAX_SECT << shift_count )
@@ -527,6 +536,8 @@ void wbfs_calc_geometry
 	     p->n_wbfs_sec = max_sec;
     }
     p->freeblks_mask	= ( 1ull << ( (p->n_wbfs_sec-1) & 31 )) - 1;
+    if (!p->freeblks_mask)
+	p->freeblks_mask = ~(u32)0;
 
     //----- calculate max_disc
 
@@ -554,6 +565,8 @@ void wbfs_sync ( wbfs_t * p )
 				p->part_lba + p->freeblks_lba,
 				p->freeblks_lba_count,
 				p->freeblks );
+
+	p->is_dirty = false;
     }
 }
 
@@ -566,6 +579,9 @@ void wbfs_close ( wbfs_t * p )
 
     if (p->n_disc_open)
 	WBFS_ERROR("trying to close wbfs while discs still open");
+
+    if (p->is_dirty)
+	wbfs_sync(p);
 
     wbfs_iofree(p->head);
     wbfs_iofree(p->tmp_buffer);
@@ -607,14 +623,14 @@ static wbfs_disc_t * wbfs_open_disc_by_info
     d->header = info;
 
     d->is_used = p->head->disc_table[slot] != 0;
-    if ( *d->header->disc_header_copy )
+    if ( *d->header->dhead )
     {
-	const u32 magic = wbfs_ntohl(*(u32*)(d->header->disc_header_copy+WII_MAGIC_OFF));
+	const u32 magic = wbfs_ntohl(*(u32*)(d->header->dhead+WII_MAGIC_OFF));
 	d->is_valid   = magic == WII_MAGIC;
 	d->is_deleted = magic == WII_MAGIC_DELETED;
     }
     else
-	d->is_valid = d->is_deleted = 0;
+	d->is_valid = d->is_deleted = false;
 
     if ( !force_open && !d->is_valid )
     {
@@ -660,12 +676,77 @@ wbfs_disc_t * wbfs_open_disc_by_slot ( wbfs_t * p, u32 slot, int force_open )
 
 ///////////////////////////////////////////////////////////////////////////////
 
+wbfs_disc_t * wbfs_create_disc
+(
+    wbfs_t	* p,		// valid WBFS descriptor
+    const void	* disc_header,	// NULL or disc header to copy
+    const void	* disc_id	// NULL or ID6: check non existence
+				// disc_id overwrites the id of disc_header
+)
+{
+    ASSERT(p);
+
+    if ( !disc_id && disc_header )
+	disc_id = disc_header;
+
+    if (disc_id)
+    {
+	int slot = wbfs_find_slot(p,disc_id);
+	if ( slot >= 0 )
+	{
+	    wbfs_error("Disc with id '%s' already exists.",
+		wd_print_id(disc_id,6,0));
+	    return 0;
+	}
+    }
+
+    //----- find a free slot
+
+    int slot;
+    for ( slot = 0; slot < p->max_disc; slot++ )
+	if (!p->head->disc_table[slot])
+	    break;
+
+    if ( slot == p->max_disc )
+    {
+	wbfs_error("Limit of %u discs alreday reached.",p->max_disc);
+	return 0;
+    }
+
+
+    //----- open slot
+
+    p->head->disc_table[slot] = 1;
+    p->is_dirty = true;
+
+    wbfs_disc_info_t * info = wbfs_ioalloc(p->disc_info_sz);
+    if (!info)
+	OUT_OF_MEMORY;
+    memset(info,0,p->disc_info_sz);
+    wd_header_t * dhead = (wd_header_t*)info->dhead;
+    dhead->magic = htonl(WII_MAGIC);
+
+    if (disc_header)
+	memcpy(info->dhead,disc_header,sizeof(info->dhead));
+
+    if (disc_id)
+	wd_patch_id(info->dhead,info->dhead,disc_id,6);
+
+    wbfs_disc_t * disc = wbfs_open_disc_by_info(p,slot,info,true);
+    if (disc)
+	disc->is_creating = disc->is_dirty = true;
+    return disc;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
 int wbfs_sync_disc_header ( wbfs_disc_t * d )
 {
     ASSERT(d);
     if ( !d || !d->p || !d->header )
 	 return 1;
 
+    d->is_dirty = false;
     wbfs_t * p = d->p;
     const u32 disc_info_sz_lba = p->disc_info_sz >> p->hd_sec_sz_s;
     return p->write_hdsector (
@@ -684,6 +765,9 @@ void wbfs_close_disc ( wbfs_disc_t * d )
     ASSERT( d->p );
     ASSERT( d->p->n_disc_open > 0 );
 
+    if (d->is_dirty)
+	wbfs_sync_disc_header(d);
+
     d->p->n_disc_open--;
     wbfs_iofree(d->header);
     wbfs_free(d);
@@ -697,7 +781,7 @@ wbfs_inode_info_t * wbfs_get_inode_info
     ASSERT(p);
     ASSERT(info);
     wbfs_inode_info_t * iinfo 
-	= (wbfs_inode_info_t*)(info->disc_header_copy + WBFS_INODE_INFO_OFF);
+	= (wbfs_inode_info_t*)(info->dhead + WBFS_INODE_INFO_OFF);
 
     if ( clear_mode>1 || clear_mode && !wbfs_is_inode_info_valid(p,iinfo) )
 	memset(iinfo,0,sizeof(wbfs_inode_info_t));
@@ -710,7 +794,7 @@ wbfs_inode_info_t * wbfs_get_disc_inode_info ( wbfs_disc_t * d, int clear_mode )
 {
     ASSERT(d);
     wbfs_inode_info_t * iinfo =  wbfs_get_inode_info(d->p,d->header,clear_mode);
-    d->is_iinfo_valid = wbfs_is_inode_info_valid(d->p,iinfo);
+    d->is_iinfo_valid = wbfs_is_inode_info_valid(d->p,iinfo) != 0;
     return iinfo;
 }
 
@@ -737,7 +821,7 @@ int wbfs_rename_disc
 
     int do_sync = 0;
     if ( change_wbfs_head
-	&& wd_rename(d->header->disc_header_copy,new_id,new_title) )
+	&& wd_rename(d->header->dhead,new_id,new_title) )
     {
 	iinfo->ctime = iinfo->atime = now;
 	do_sync++;
@@ -969,16 +1053,16 @@ enumError wbfs_get_disc_info_by_slot
 
 ///////////////////////////////////////////////////////////////////////////////
 
-void wbfs_load_id_list ( wbfs_t * p, int force_reload )
+id6_t * wbfs_load_id_list ( wbfs_t * p, int force_reload )
 {
     ASSERT(p);
     ASSERT(p->head);
     ASSERT(p->tmp_buffer);
     if ( p->id_list && !force_reload )
-	return;
+	return p->id_list;
 
     const int id_item_size = sizeof(*p->id_list);
-    const int id_list_size = p->max_disc * id_item_size;
+    const int id_list_size = (p->max_disc+1) * id_item_size;
     const u32 disc_info_sz_lba = p->disc_info_sz >> p->hd_sec_sz_s;
 
     TRACE("LIBWBFS: +wbfs_load_id_list(%p,%d) id_list_size=%u*%u=%d\n",
@@ -986,6 +1070,8 @@ void wbfs_load_id_list ( wbfs_t * p, int force_reload )
 
     if (!p->id_list)
     {
+	TRACE("MALLOC id_list = %d * (%d+1) = %d\n",
+		id_item_size, p->max_disc, id_list_size );
 	p->id_list = wbfs_malloc(id_list_size);
 	if (!p->id_list)
 	    OUT_OF_MEMORY;
@@ -1002,11 +1088,13 @@ void wbfs_load_id_list ( wbfs_t * p, int force_reload )
 	    TRACE(" - slot #%03u: %.6s\n",slot,p->tmp_buffer);
 	    memcpy(p->id_list[slot],p->tmp_buffer,id_item_size);
 	}
+
+    return p->id_list;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 
-int wbfs_find_slot ( wbfs_t * p, u8 * disc_id )
+int wbfs_find_slot ( wbfs_t * p, const u8 * disc_id )
 {
     ASSERT(p);
     TRACE("LIBWBFS: +wbfs_find_slot(%p,%.6s)\n",p,disc_id);
@@ -1084,7 +1172,7 @@ static int block_used ( u8 *used, u32 i, u32 wblk_sz )
 
 ///////////////////////////////////////////////////////////////////////////////
 
-static u32 alloc_block ( wbfs_t * p )
+u32 wbfs_alloc_block ( wbfs_t * p )
 {
     u32 i;
     for ( i = 0; i < p->freeblks_size4; i++ )
@@ -1096,6 +1184,7 @@ static u32 alloc_block ( wbfs_t * p )
 	    for ( j = 0; j < 32; j++ )
 		if ( v & 1<<j )
 		{
+		    p->is_dirty = true;
 		    p->freeblks[i] = wbfs_htonl( v & ~(1<<j) );
 		    return i*32 + j + 1;
 		}
@@ -1136,8 +1225,13 @@ void wbfs_free_block ( wbfs_t *p, u32 bl )
 	const u32 i = (bl-1) / 32;
 	const u32 j = (bl-1) & 31;
 	const u32 v = wbfs_ntohl(p->freeblks[i]);
-	p->freeblks[i] = wbfs_htonl( v | (1<<j) );
-	//TRACE(" i=%u j=%u v=%x -> %x\n",i,j,v,p->freeblks[i]);
+	const u32 w = v | 1 << j;
+	if ( w != v )
+	{
+	    p->freeblks[i] = wbfs_htonl(w);
+	    p->is_dirty = true;
+	    noTRACE(" i=%u j=%u v=%x -> %x\n",i,j,v,p->freeblks[i]);
+	}
     }
 }
 
@@ -1248,7 +1342,7 @@ u32 wbfs_add_disc_param ( wbfs_t *p, wbfs_param_t * par )
 	OUT_OF_MEMORY;
     memset(info,0,p->disc_info_sz);
     // [2do] use wd_read_and_patch()
-    par->read_src_wii_disc(par->callback_data, 0, 0x100, info->disc_header_copy);
+    par->read_src_wii_disc(par->callback_data, 0, 0x100, info->dhead);
 
     copy_buffer = wbfs_ioalloc(p->wbfs_sec_sz);
     if (!copy_buffer)
@@ -1275,7 +1369,7 @@ u32 wbfs_add_disc_param ( wbfs_t *p, wbfs_param_t * par )
 	u32 bl = 0;
 	if (copy_1_1 || block_used(used, i, wii_sec_per_wbfs_sect))
 	{
-	    bl = alloc_block(p);
+	    bl = wbfs_alloc_block(p);
 	    if ( bl == WBFS_NO_BLOCK )
 	    {
 		// free disc slot
@@ -1345,7 +1439,7 @@ u32 wbfs_add_disc_param ( wbfs_t *p, wbfs_param_t * par )
     // inode info
     par->iinfo.itime = 0ull;
     wbfs_setup_inode_info(p,&par->iinfo,1,1);
-    memcpy( info->disc_header_copy + WBFS_INODE_INFO_OFF,
+    memcpy( info->dhead + WBFS_INODE_INFO_OFF,
 	    &par->iinfo,
 	    sizeof(par->iinfo) );
 
@@ -1413,8 +1507,8 @@ u32 wbfs_add_phantom ( wbfs_t *p, const char * phantom_id, u32 wii_sectors )
     if (!info)
 	OUT_OF_MEMORY;
     memset(info,0,p->disc_info_sz);
-    memcpy(info->disc_header_copy,phantom_id,6);
-    snprintf( (char*)info->disc_header_copy + WII_TITLE_OFF,
+    memcpy(info->dhead,phantom_id,6);
+    snprintf( (char*)info->dhead + WII_TITLE_OFF,
 	WII_TITLE_SIZE, "Phantom %.6s @ slot %u -> not a real disc, for tests only!",
 		phantom_id, slot );
 
@@ -1424,7 +1518,7 @@ u32 wbfs_add_phantom ( wbfs_t *p, const char * phantom_id, u32 wii_sectors )
     int i;
     for ( i = 0; i < max_wbfs_sect; i++)
     {
-	u32 bl = alloc_block(p);
+	u32 bl = wbfs_alloc_block(p);
 	if ( bl == WBFS_NO_BLOCK )
 	{
 	    if (!i)
@@ -1447,7 +1541,7 @@ u32 wbfs_add_phantom ( wbfs_t *p, const char * phantom_id, u32 wii_sectors )
     wbfs_setup_inode_info(p,iinfo,1,1);
 
     // write disc info
-    *(u32*)(info->disc_header_copy+24) = wbfs_ntohl(0x5D1C9EA3);
+    *(u32*)(info->dhead+24) = wbfs_ntohl(0x5D1C9EA3);
     u32 disc_info_sz_lba = p->disc_info_sz >> p->hd_sec_sz_s;
     p->write_hdsector(	p->callback_data,
 			p->part_lba + 1 + slot * disc_info_sz_lba,
@@ -1527,7 +1621,7 @@ u32 wbfs_estimate_disc
 
     info = wbfs_ioalloc(p->disc_info_sz);
     b = (u8 *)info;
-    read_src_wii_disc(callback_data, 0, 0x100, info->disc_header_copy);
+    read_src_wii_disc(callback_data, 0, 0x100, info->dhead);
 
     for (i = 0; i < p->n_wbfs_sec_per_disc; i++)
 	if (block_used(used, i, wii_sec_per_wbfs_sect))
@@ -1578,7 +1672,7 @@ u32 wbfs_rm_disc ( wbfs_t * p, u8 * discid, int free_slot_only )
 	ASSERT(iinfo);
 	wbfs_setup_inode_info(p,iinfo,0,1);
  #ifdef TEST
-	*(u32*)(d->header->disc_header_copy+WII_MAGIC_OFF) = wbfs_htonl(WII_MAGIC_DELETED);
+	*(u32*)(d->header->dhead+WII_MAGIC_OFF) = wbfs_htonl(WII_MAGIC_DELETED);
  #endif
 	const u32 disc_info_sz_lba = p->disc_info_sz >> p->hd_sec_sz_s;
 	p->write_hdsector(

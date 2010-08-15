@@ -8,33 +8,16 @@
 
 [size="2"][color="#0000c0"][b]Download[/b][/color] [color="#800000"][b]this EXPERIMENTAL release:[/b][/color][/size]
 [list]
-[*] [url=@@URI-DOWNLOAD-I386@@][b]@@DISTRIB-I386@@[/b][/url] : linux/i386 version
-[*] [url=@@URI-DOWNLOAD-X86_64@@][b]@@DISTRIB-X86_64@@[/b][/url] : linux/x86_64 version
+[*] [url=@@URI-DOWNLOAD-I386@@][b]@@DISTRIB-I386@@[/b][/url] : Linux/i386 version
+[*] [url=@@URI-DOWNLOAD-X86_64@@][b]@@DISTRIB-X86_64@@[/b][/url] : Linux/x86_64 version
 [*] [url=@@URI-DOWNLOAD-MAC@@][b]@@DISTRIB-MAC@@[/b][/url] : Mac OS universal binaries (ppc, i386 and x86-64)
-[*] [url=@@URI-DOWNLOAD-CYGWIN@@][b]@@DISTRIB-CYGWIN@@[/b][/url] : cygwin (windows) version
+[*] [url=@@URI-DOWNLOAD-CYGWIN@@][b]@@DISTRIB-CYGWIN@@[/b][/url] : Cygwin (Windows) version
 [*] Other releases are available from [url=@@URI-HOME@@download.html][b]@@URI-HOME@@download.html[/b][/url].
 [/list]
 
 [size="2"][color="#0000c0"][b]Highlights of this release:[/b][/color][/size]
 [list]
-[*] [b]wit MIX --overlay image.iso ignore ruleset ....[/b]:
-This command will mix partitions and overlay the data to save disc space. The rulset defines files which are not needed. This enlarge the holes and makes overlay more efficient. See http://wit.wiimm.de/wit/cmd-mix.html for more details.
-[color=#ffffff].[/color]
-
-[*] The are two different overlay algorithm:
-[list]
-[*] The first works only for exact 2 partitons. It tries every possible shift to find the best overlay. All holes in both partitions are relevant.
-[*] The second algorithm can handle any number of partitions, but is limited to 12. It works only with 2 blocks and one hole (the largest found).
-[/list] 
-
-[*] wit MIX: Before creating the image an additional verify function is called. This function controls that no sector is used by more than one partition. With verbose level >=3 a usage map is printed too.
-[color=#ffffff].[/color]
-
-[*] There are 3 new (patching) options: --rm-files, --zero-files and --ignore-files.
-Option --ignore-files works like the "wit mix" modifier ignore. Read [url=http://wit.wiimm.de/options/patching.html#ignore-files]this[/url] and try the command "wit dump image1 --show usage --ignore-files ruleset" to view the effect of ignored files.
-[color=#ffffff].[/color]
-
-[*] Since beta3 I have fixed 2 bugs (see changelog).
+[*]
 [color=#ffffff].[/color]
 [/list]
 

@@ -527,7 +527,7 @@ wwt v0.43a r957 - 2010-04-30
 
   - wwt+wit FILETYPE will detect 'boot.bin', 'fst.bin' and DOL files too.
   - wit DUMP prints internal info of 'boot.bin', 'fst.bin' and DOL files too.
-  - "wit COPY source_dir output_file" is able to compose a trucha signed ISO
+  - "wit COPY source_dir output_file" is able to compose a fake signed ISO
     image from a file system.
 
 wwt v0.44a r973 - 2010-05-02
@@ -606,7 +606,7 @@ wit v0.48a r1145 - 2010-05-29
    composing a Wii ISO image. Unsigned numbers are also allowed.
  - New option --ios=number or --ios=high-low: Define system version (IOS)
    within TMD when composing a Wii ISO image.
- - TMD and TICKET (=new) will be trucha signed if composing a disc.
+ - TMD and TICKET (=new) will be fake signed if composing a disc.
  - All UTF-8 characters with code >= 0x80 are allowed in filenames.
 
 wit v0.48b r1164 - 2010-06-01  (repository only)
@@ -788,9 +788,34 @@ wit v1.13a r1468 - 2010-08-04
    the calculation is rated as O(2^n).  *** "wit MIX" is EXPERIMENTAL! ***
  - "wit MIX" wil accept the keyword 'psel' as alternative to 'select'.
    The reason is that 'select' accepts the same keyword list as --psel.
- - The disc subsystems recognize overlayes partitons. For overlayed
+ - The disc subsystems recognize overlayes partitions. For overlayed
    partitions the --psel keyword "WHOLE" is ignored.
  - Command "wit DUMP" will print an info line for overlayed partitions.
+
+wit v1.14a r1506 - 2010-08-09
+
+ - Option --psel redesigned: it is now possible to allow or deny any partition
+   by partition type, partition table and/or by partition index. Only with the
+   unambiguous partition index it is possible to select the one wanted DATA
+   partition if multiple exists.
+ - New option --rm-files: This patching option defines filter rules to remove
+   real files and directories from the FST of the DATA partition. Fake signing
+   of the TMD is necessary.
+ - New option --zero-files: This patching option defines filter rules to zero
+   (set size to zero) real files of the FST of the DATA partition. Fake
+   signing$ of the TMD is necessary.
+ - New option --ignore-files: This option defines filter rules to ignore
+   system and real directories and files of the FST of the DATA partition.
+   Fake signing is not necessary, but the partition becomes invalid, because
+   the content of some files is not copied.
+ - New qualifier for "wit MIX": "IGNORE ruleset": Ignore files when copying a
+   disc image. See http://wit.wiimm.de/wit/cmd-mix.html#ignore for details.
+ - Some modification for expanding '@file' parameters: wit MIX needs control.
+ - wit MIX: A new algorithm for 2 partitions: It tries every possible shift to
+   find the best overlay. All holes in both partitions are relevant.
+ - wit MIX: Before creating the image a additional verify function is called.
+   This function controls that no sector is used by more than one partition.
+   With verbose level >=3 an usage map is printed too.
 
 @@MODULE(last-history.txt)@@
 

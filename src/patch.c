@@ -209,6 +209,47 @@ const RegionInfo_t * GetRegionInfo ( char region_code )
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
+wd_ckey_index_t ScanCommonKey ( ccp arg )
+{
+    static const CommandTab_t tab[] =
+    {
+	{ WD_CKEY_STANDARD,	"STANDARD",	0,		0 },
+	{ WD_CKEY_KOREA,	"KOREAN",	0,		0 },
+	{ WD_CKEY__N,		"AUTO",		0,		0 },
+
+	{ 0,0,0,0 }
+    };
+
+    const int stat = ScanCommandListMask(arg,tab);
+    if ( stat >= 0 )
+	return stat;
+
+    // try if arg is a number
+    char * end;
+    ulong num = strtoul(arg,&end,10);
+    if ( end != arg && !*end && num < WD_CKEY__N )
+	return num;
+
+    ERROR0(ERR_SYNTAX,"Illegal common key index (option --common-key): '%s'\n",arg);
+    return -1;
+}
+
+//-----------------------------------------------------------------------------
+
+enumRegion opt_common_key = WD_CKEY__N;
+
+int ScanOptCommonKey ( ccp arg )
+{
+    const wd_ckey_index_t new_common_key = ScanCommonKey(arg);
+    if ( new_common_key == -1 )
+	return 1;
+    opt_common_key = new_common_key;
+    return 0;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+
 u64 opt_ios = 0;
 bool opt_ios_valid = false;
 

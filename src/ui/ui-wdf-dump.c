@@ -146,6 +146,7 @@ const u8 OptionIndex[OPT_INDEX_SIZE] =
 	/*83*/	 0,0,0,0, 0,0,0,0, 0,0,0,0, 0,
 	/*90*/	 0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0,
 	/*a0*/	 0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0,
+	/*b0*/	 0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0,
 };
 
 //
@@ -187,10 +188,11 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	"wdf-dump [option]... files...",
 	"Dump the data structure of WDF and CISO files for analysis.",
 	9,
-	option_tab_tool
+	option_tab_tool,
+	0
     },
 
-    {0,0,0,0,0,0,0,0}
+    {0,0,0,0,0,0,0,0,0}
 };
 
 //

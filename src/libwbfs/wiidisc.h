@@ -30,6 +30,19 @@
 
 //
 ///////////////////////////////////////////////////////////////////////////////
+///////////////			enum wd_ckey_index_t		///////////////
+///////////////////////////////////////////////////////////////////////////////
+
+typedef enum wd_ckey_index_t // known partition types
+{
+    WD_CKEY_STANDARD,		// standard common key
+    WD_CKEY_KOREA,		// common key for korea
+    WD_CKEY__N			// number of common keys
+
+} wd_ckey_index_t;
+
+//
+///////////////////////////////////////////////////////////////////////////////
 ///////////////			enum wd_part_type_t		///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -175,8 +188,8 @@ typedef enum wd_pname_mode_t // partition name modes
 typedef enum wd_patch_mode_t // patching modes
 {
     WD_PAT_DATA,		// raw data
-    WD_PAT_PART_TICKET,		// parititon TICKET (trucha sign)
-    WD_PAT_PART_TMD,		// parititon TMP (trucha sign)
+    WD_PAT_PART_TICKET,		// parititon TICKET (fake sign)
+    WD_PAT_PART_TMD,		// parititon TMP (fake sign)
 
 } wd_patch_mode_t;
 
@@ -475,11 +488,12 @@ typedef struct wd_disc_t
 
     u8	temp_buf[2*WII_SECTOR_SIZE];	// temp buffer for reading operations
 
-    u32	cache_sector;			// sector number of 'cache'
-    u8	cache[WII_SECTOR_SIZE];		// cache for wd_read_and_path()
+    u32		cache_sector;		// sector number of 'cache'
+    u8		cache[WII_SECTOR_SIZE];	// cache for wd_read_and_path()
 
-    u32	group_cache_sector;		// sector number of 'group_cache'
-    u8	* group_cache;			// cache for sector groups
+    wd_part_t	* group_cache_part;	// parttion of 'group_cache'
+    u32		  group_cache_sector;	// sector number of 'group_cache'
+    u8		* group_cache;		// cache for sector groups
     
 
 } wd_disc_t;
@@ -568,13 +582,17 @@ enumError wd_print_error
 ///////////////		interface: common key & encryption	///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-const u8 * wd_get_common_key();
+const u8 * wd_get_common_key
+(
+    wd_ckey_index_t	ckey_index	// index of common key
+);
 
 //-----------------------------------------------------------------------------
 
 const u8 * wd_set_common_key
 (
-    const u8		* new_key	// the new key
+    wd_ckey_index_t	ckey_index,	// index of common key
+    const void		* new_key	// the new key
 );
 
 //-----------------------------------------------------------------------------
@@ -597,7 +615,7 @@ void wd_encrypt_title_key
 
 void wd_decrypt_sectors
 (
-    wd_part_t		* part,		// NULL or poniter to partition
+    wd_part_t		* part,		// NULL or pointer to partition
     const aes_key_t	* akey,		// aes key, if NULL use 'part'
     const void		* sect_src,	// pointer to first source sector
     void		* sect_dest,	// pointer to first destination sector
@@ -609,7 +627,7 @@ void wd_decrypt_sectors
 
 void wd_encrypt_sectors
 (
-    wd_part_t		* part,		// NULL or poniter to partition
+    wd_part_t		* part,		// NULL or pointer to partition
     const aes_key_t	* akey,		// aes key, if NULL use 'part'
     const void		* sect_src,	// pointer to first source sector
     const void		* hash_src,	// if not NULL: source of hash tables
@@ -629,7 +647,7 @@ void wd_split_sectors
 
 //-----------------------------------------------------------------------------
 
-void wd_compose_sectors
+void wd_join_sectors
 (
     const void		* data_src,	// pointer to data source
     const void		* hash_src,	// pointer to hash source
@@ -1283,6 +1301,14 @@ bool wd_patch_region // result = true if something changed
 (
     wd_disc_t		* disc,		// valid pointer to a disc
     u32			new_region	// new region id
+);
+
+//-----------------------------------------------------------------------------
+
+bool wd_patch_common_key // result = true if something changed
+(
+    wd_part_t		* part,		// valid pointer to a disc partition
+    wd_ckey_index_t	ckey_index	// new common key index
 );
 
 //-----------------------------------------------------------------------------

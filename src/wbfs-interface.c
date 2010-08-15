@@ -665,6 +665,171 @@ int PrintParamID6()
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
+enumError ScanParamID6
+(
+    StringField_t	* select_list,	// append all results to this list
+    const ParamList_t	* param		// first param of a list to check
+)
+{
+    DASSERT(select_list);
+
+    char rule[8]; //, *rule_end = rule + 7;
+
+    for ( ; param; param = param->next )
+    {
+	if (!param->arg)
+	    continue;
+	ccp arg = param->arg;
+	for(;;)
+	{
+	    while ( *arg > 0 && *arg <= ' ' || *arg == ',' )
+		arg++;
+	    if (!*arg)
+		break;
+
+	    switch(*arg)
+	    {
+		case '+': *rule = '+'; arg++; break;
+		case '/':
+		case '-': *rule = '-'; arg++; break;
+		default:  *rule = '+';
+	    }
+
+	    ccp start = arg;
+	    int err = 0, wildcards = 0;
+	    while ( *arg > ' ' && *arg != ',' )
+	    {
+		int ch = *arg++;
+		if ( ch == '+' || ch == '*' )
+		    wildcards++;
+		else if (!isalnum(ch) && !strchr("_.",ch))
+		    err++;
+	    }
+	    const int arglen = arg - start;
+	    if ( err || wildcards > 1 || arglen > 6 )
+		return ERROR0(ERR_SEMANTIC,"Illegal ID selector: %.*s\n", arg-start, start );
+
+	    char * dest = rule+1;
+	    for ( ; start < arg; start++ )
+	    {
+		if ( *start == '+' || *start == '*' )
+		{
+		    int count = 7 - arglen;
+		    while ( count-- > 0 )
+			*dest++ = '.';
+		}
+		else
+		    *dest++ = toupper((int)*start);
+		DASSERT( dest < rule + 8 );
+	    }
+	    while ( dest[-1] == '.' )
+		dest--;
+	    *dest = 0;
+	    AppendStringField(select_list,rule,false);
+	}
+    }
+    return ERR_OK;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+int AppendListID6 // returns number of inserted ids
+(
+    StringField_t	* id6_list,	// append all selected IDs in this list
+    const StringField_t	* select_list,	// selector list
+    WBFS_t		* wbfs		// open WBFS file
+)
+{
+    DASSERT(id6_list);
+    DASSERT(select_list);
+    DASSERT(wbfs);
+
+    const int count = id6_list->used;
+    wbfs_t * w = wbfs->wbfs;
+    if (w)
+    {
+	id6_t * id_list = wbfs_load_id_list(w,false);
+	DASSERT(id_list);
+	for ( ; **id_list; id_list++ )
+	    if (MatchRulesetID(select_list,*id_list))
+		InsertStringField(id6_list,*id_list,false);
+    }
+
+    return id6_list->used - count;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+int AppendWListID6 // returns number of inserted ids
+(
+    StringField_t	* id6_list,	// append all selected IDs in this list
+    const StringField_t	* select_list,	// selector list
+    WDiscList_t		* wlist		// valid list
+)
+{
+    DASSERT(id6_list);
+    DASSERT(select_list);
+    DASSERT(wlist);
+
+    const int count = id6_list->used;
+
+    WDiscListItem_t * ptr = wlist->first_disc;
+    WDiscListItem_t * end = ptr + wlist->used;
+    for ( ; ptr < end; ptr++ )
+	if (MatchRulesetID(select_list,ptr->id6))
+	    InsertStringField(id6_list,ptr->id6,false);
+
+    return id6_list->used - count;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+bool MatchRulesetID
+(
+    const StringField_t	* select_list,	// selector list
+    ccp			id		// id to compare
+)
+{
+    DASSERT(select_list);
+    DASSERT(id);
+
+    ccp * pattern = select_list->field;
+    ccp * end_pattern = pattern + select_list->used;
+    for ( ; pattern < end_pattern; pattern++ )
+	if (MatchPatternID(*pattern+1,id))
+	    return **pattern == '+';
+
+    return !select_list->used || end_pattern[-1][0] == '-';
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+bool MatchPatternID
+(
+    ccp			pattern,	// pattern, '.' is a wildcard
+    ccp			id		// id to compare
+)
+{
+    DASSERT(pattern);
+    DASSERT(id);
+
+    noTRACE("MATCH |%s|%s|\n",pattern,id);
+    for(;;)
+    {
+	char pat = *pattern++;
+	if (!pat)
+	    return true;
+
+	char ch = *id++;
+	if ( !ch || pat != '.' && pat != ch )
+	    return false;
+    }
+}
+
+//
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+
 enumError CheckParamRename ( bool rename_id, bool allow_plus, bool allow_index )
 {
     int syntax_count = 0, semantic_count = 0;
@@ -891,8 +1056,6 @@ enumError OpenParWBFS
     par->write_hdsector	= WrapperWriteSector;
     par->callback_data	= sf;
     par->part_lba	= 0;
-    if (!sf->f.is_writing)
-	par->readonly = 1;
 
     w->wbfs = wbfs_open_partition_param(par);
 
@@ -1072,7 +1235,7 @@ enumError RecoverWBFS ( WBFS_t * wbfs, ccp fname, bool testmode )
 		    w->max_disc * w->disc_info_sz );
 
 	memset(w->freeblks,0,w->freeblks_size4*4);
-	SyncWBFS(wbfs);
+	SyncWBFS(wbfs,true);
 
 	CheckWBFS_t ck;
 	InitializeCheckWBFS(&ck);
@@ -1127,7 +1290,7 @@ enumError RecoverWBFS ( WBFS_t * wbfs, ccp fname, bool testmode )
 		if (dirty)
 		{
 		    ResetCheckWBFS(&ck);
-		    SyncWBFS(wbfs);
+		    SyncWBFS(wbfs,true);
 		    CheckWBFS(&ck,wbfs,-1,0,0);
 		}
 
@@ -1135,7 +1298,7 @@ enumError RecoverWBFS ( WBFS_t * wbfs, ccp fname, bool testmode )
 		RepairWBFS(&ck,0,REPAIR_FBT|REPAIR_RM_INVALID|REPAIR_RM_EMPTY,-1,0,0);
 		TRACELINE;
 		ResetCheckWBFS(&ck);
-		SyncWBFS(wbfs);
+		SyncWBFS(wbfs,true);
 		if (CheckWBFS(&ck,wbfs,1,stdout,1))
 		    printf(" *** Run REPAIR %s ***\n\n", fname ? fname : wbfs->sf->f.fname );
 		else
@@ -1160,7 +1323,7 @@ enumError RecoverWBFS ( WBFS_t * wbfs, ccp fname, bool testmode )
 enumError TruncateWBFS ( WBFS_t * w )
 {
     ASSERT(w);
-    TRACE("TruncateWBFS() fd=%d\n", w->sf ? GetFD(&w->sf->f) : -2 );
+    PRINT("TruncateWBFS() fd=%d\n", w->sf ? GetFD(&w->sf->f) : -2 );
 
     enumError err = CloseWDisc(w);
     if ( w->wbfs && w->sf )
@@ -1205,13 +1368,20 @@ enumError CalcWBFSUsage ( WBFS_t * w )
 
 ///////////////////////////////////////////////////////////////////////////////
 
-enumError SyncWBFS ( WBFS_t * w )
+enumError SyncWBFS ( WBFS_t * w, bool force_sync )
 {
     ASSERT(w);
-    if (!w->wbfs)
+    wbfs_t * wbfs = w->wbfs;
+    if (!wbfs)
 	return ERR_OK;
 
-    wbfs_sync(w->wbfs);
+    wbfs_disc_t * disc = w->disc;
+    if ( disc && ( force_sync || disc->is_dirty ) )
+	wbfs_sync_disc_header(disc);
+
+    if ( force_sync || wbfs->is_dirty )
+	wbfs_sync(wbfs);
+
     return CalcWBFSUsage(w);
 }
 
@@ -1471,7 +1641,7 @@ enumError DumpWBFS
 		}
 
 		memset(&dinfo,0,sizeof(dinfo));
-		memcpy(&dinfo.dhead,d->header->disc_header_copy,sizeof(dinfo.dhead));
+		memcpy(&dinfo.dhead,d->header->dhead,sizeof(dinfo.dhead));
 		CalcWDiscInfo(&dinfo,0);
 	    }
 
@@ -1541,7 +1711,7 @@ enumError DumpWBFS
 		if ( dump_level > 2 )
 		{
 		    mi = InsertMemMap(&mm, w->hd_sec_sz+slot*w->disc_info_sz,
-				sizeof(d->header->disc_header_copy)
+				sizeof(d->header->dhead)
 				+ sizeof(*d->header->wlba_table) * w->n_wbfs_sec_per_disc );
 		    snprintf(mi->info,sizeof(mi->info),
 				"Inode of slot #%03u [%s]",slot,dinfo.id6);
@@ -2331,7 +2501,7 @@ enumError CheckWBFS
 	    continue;
 
 	CheckDisc_t * g = disc + slot;
-	memcpy(g->id6,d->header->disc_header_copy,6);
+	memcpy(g->id6,d->header->dhead,6);
 
 	wbfs_inode_info_t * iinfo = wbfs_get_disc_inode_info(d,0);
 	if (!wbfs_is_inode_info_valid(wbfs->wbfs,iinfo))
@@ -3626,22 +3796,6 @@ enumError ExtractWDisc ( WBFS_t * w, SuperFile_t * sf )
     TRACE("ExtractWDisc(%p,%p)\n",w,sf);
     if ( !w || !w->wbfs | !w->sf || !w->disc || !sf )
 	return ERROR0(ERR_INTERNAL,0);
-
-    if (sf->wbfs)
-    {
-	// change roles
-	sf->wbfs->sf = sf;
-	w->sf->wbfs = w;
-	SetupIOD(w->sf,OFT_WBFS,OFT_WBFS);
-
-	// copy progress parameters
-	w->sf->indent		= sf->indent;
-	w->sf->show_progress	= sf->show_progress;
-	w->sf->show_summary	= sf->show_summary;
-	w->sf->show_msec	= sf->show_msec;
-
-	return AddWDisc(sf->wbfs,w->sf,&part_selector);
-    }
 
     SetMinSizeSF(sf,(off_t)WII_SECTORS_SINGLE_LAYER *WII_SECTOR_SIZE);
 

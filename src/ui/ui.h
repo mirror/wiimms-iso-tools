@@ -50,15 +50,17 @@ typedef struct InfoOption_t
 
 typedef struct InfoCommand_t
 {
-	int  id;
-	bool hidden;
-	bool separator;
-	ccp  name1;
-	ccp  name2;
-	ccp  param;
-	ccp  help;
-	int  n_opt;
-	const InfoOption_t ** opt;
+    int			id;		// id of the command
+    bool		hidden;		// true: command is hidden
+    bool		separator;	// true: print a separator above
+    ccp			name1;		// main name
+    ccp			name2;		// NULL or alternative name
+    ccp			param;		// NULL or parameter name
+    ccp			help;		// help text
+    int			n_opt;		// number of options == elements of 'opt'
+    const InfoOption_t	** opt;		// files with option info
+    u8			* opt_allowed;	// field with OPT__N_SPECIFIC elements
+					// 0: option permitted, 1: option allowed
 
 } InfoCommand_t;
 
@@ -69,23 +71,23 @@ typedef struct InfoCommand_t
 
 typedef struct InfoUI_t
 {
-	ccp tool_name;			// name of the tool
+    ccp			tool_name;	// name of the tool
 
-	//----- commands -----
+    //----- commands -----
 
-	int n_cmd;			// == CMD__N
-	const CommandTab_t * cmd_tab;	// NULL or pointer to command table
-	const InfoCommand_t * cmd_info;	// pointer to 'CommandInfo[]'
+    int			n_cmd;		// == CMD__N
+    const CommandTab_t	* cmd_tab;	// NULL or pointer to command table
+    const InfoCommand_t	* cmd_info;	// pointer to 'CommandInfo[]'
 
-	//----- options -----
+    //----- options -----
 
-	int n_opt_specific;		// == OPT__N_SPECIFIC
-	int n_opt_total;		// == OPT__N_TOTAL
-	const InfoOption_t * opt_info;	// pointer to 'OptionInfo[]'
-	u8 * opt_used;			// pointer to 'OptionUsed[]'
-	const u8 * opt_index;		// pointer to 'OptionIndex[]'
-	ccp opt_short;			// pointer to 'OptionShort[]'
-	const struct option * opt_long;	// pointer to 'OptionLong[]'
+    int			n_opt_specific;	// == OPT__N_SPECIFIC
+    int			n_opt_total;	// == OPT__N_TOTAL
+    const InfoOption_t	* opt_info;	// pointer to 'OptionInfo[]'
+    u8			* opt_used;	// pointer to 'OptionUsed[]'
+    const u8		* opt_index;	// pointer to 'OptionIndex[]'
+    ccp			opt_short;	// pointer to 'OptionShort[]'
+    const struct option	* opt_long;	// pointer to 'OptionLong[]'
 
 } InfoUI_t;
 
@@ -99,12 +101,27 @@ enum // some const
 	OPT_MAX		=   100,	// max number of options
 	OPT_USED_MASK	=  0x7f,	// mask to calculate usage count
 	OPT_LONG_BASE	=  0x80,	// first index for "only long options"
-	OPT_INDEX_SIZE	=  0xb0,	// size of OptionIndex[]
+	OPT_INDEX_SIZE	=  0xc0,	// size of OptionIndex[]
 };
 
 ///////////////////////////////////////////////////////////////////////////////
 
-enumError RegisterOption ( const InfoUI_t * iu, int option, int level, bool is_env );
+enumError RegisterOptionByIndex
+(
+    const InfoUI_t	* iu,		// valid pointer
+    int			opt_index,	// index of option (OPT_*)
+    int			level,		// the level of registration
+    bool		is_env		// true: register environment pre setting
+);
+
+enumError RegisterOptionByName
+(
+    const InfoUI_t	* iu,		// valid pointer
+    int			opt_name,	// short name of GO_* valus of option
+    int			level,		// the level of registration
+    bool		is_env		// true: register environment pre setting
+);
+
 enumError VerifySpecificOptions ( const InfoUI_t * iu, const CommandTab_t * cmd );
 int GetOptionCount ( const InfoUI_t * iu, int option );
 void DumpUsedOptions ( const InfoUI_t * iu, FILE * f, int indent );
