@@ -15,8 +15,8 @@ WIT_LONG		= Wiimms ISO Tool
 WWT_SHORT		= wwt
 WWT_LONG		= Wiimms WBFS Tool
 
-VERSION_NUM		= 1.15a
-BETA_VERSION		= 0
+VERSION_NUM		= 1.16a
+BETA_VERSION		= 1
 			# 0:off  -1:"beta"  >0:"beta#"
 
 URI_HOME		= http://wit.wiimm.de/
@@ -129,7 +129,8 @@ MAIN_TOOLS_OBJ	:= $(patsubst %,%.o,$(MAIN_TOOLS))
 OTHER_TOOLS_OBJ	:= $(patsubst %,%.o,$(TEST_TOOLS) $(HELPER_TOOLS))
 
 # other objects
-WIT_O		:= debug.o lib-std.o lib-file.o lib-wdf.o lib-ciso.o lib-sf.o \
+WIT_O		:= debug.o lib-std.o lib-file.o lib-sf.o \
+		   lib-wdf.o lib-wia.o lib-ciso.o \
 		   ui.o iso-interface.o wbfs-interface.o patch.o \
 		   titles.o match-pattern.o dclib-utf8.o \
 		   sha1dgst.o sha1_one.o
@@ -177,7 +178,7 @@ LDFLAGS		+= -static-libgcc
 #LDFLAGS	+= -static
 LDFLAGS		:= $(strip $(LDFLAGS))
 
-LIBS		+= $(XLIBS)
+LIBS		+= -lbz2 $(XLIBS)
 
 DISTRIB_RM	= ./wit-v$(VERSION)-r
 DISTRIB_BASE	= wit-v$(VERSION)-r$(REVISION_NEXT)

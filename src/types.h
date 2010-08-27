@@ -25,6 +25,8 @@
 #ifndef WIT_TYPES_H
 #define WIT_TYPES_H 1
 
+#define _GNU_SOURCE 1
+
 #include <sys/types.h>
 #include <limits.h>
 

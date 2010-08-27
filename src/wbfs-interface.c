@@ -764,7 +764,8 @@ int AppendWListID6 // returns number of inserted ids
 (
     StringField_t	* id6_list,	// append all selected IDs in this list
     const StringField_t	* select_list,	// selector list
-    WDiscList_t		* wlist		// valid list
+    WDiscList_t		* wlist,	// valid list
+    bool		add_to_title_db	// true: add to title DB if unkown
 )
 {
     DASSERT(id6_list);
@@ -777,7 +778,11 @@ int AppendWListID6 // returns number of inserted ids
     WDiscListItem_t * end = ptr + wlist->used;
     for ( ; ptr < end; ptr++ )
 	if (MatchRulesetID(select_list,ptr->id6))
+	{
 	    InsertStringField(id6_list,ptr->id6,false);
+	    if ( add_to_title_db && !GetTitle(ptr->id6,0) )
+		InsertID(&title_db,ptr->id6,ptr->name64);
+	}
 
     return id6_list->used - count;
 }

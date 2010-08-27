@@ -43,6 +43,7 @@ typedef enum enumEncoding
 	// some flags
 
 	ENCODE_F_FAST		= 0x0001, // fast encoding wanted
+	ENCODE_F_ENCRYPT	= 0x0002, // encryption and any signing wanted
 
 	// the basic jobs
 
@@ -60,7 +61,7 @@ typedef enum enumEncoding
 	ENCODE_M_SIGN		= ENCODE_NO_SIGN | ENCODE_SIGN,
 	
 	ENCODE_MASK		= ENCODE_M_HASH | ENCODE_M_CRYPT | ENCODE_M_SIGN
-				| ENCODE_F_FAST,
+				| ENCODE_F_FAST | ENCODE_F_ENCRYPT,
 
 	ENCODE_DEFAULT		= 0,	// initial value
 

@@ -314,6 +314,7 @@ static void test_open_disc ( int argc, char ** argv )
 	if (!strcmp(argv[i],"-o"))	pfst |= WD_PFST_OFFSET|WD_PFST_HEADER;
 	if (!strcmp(argv[i],"-h"))	pfst |= WD_PFST_SIZE_HEX|WD_PFST_HEADER;
 	if (!strcmp(argv[i],"-d"))	pfst |= WD_PFST_SIZE_DEC|WD_PFST_HEADER;
+	if (!strcmp(argv[i],"-L"))	logging++;
 
 	if ( *argv[i] == '-' )
 	    continue;
@@ -371,6 +372,66 @@ static void test_open_disc ( int argc, char ** argv )
 	    }
 	    else
 		printf("\t==> FAILED, err=%x=%d!\n\n",err,err);
+	    CloseSF(&sf,0);
+	}
+    }
+}
+
+//
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+//  test_hexdump
+
+static enumError test_hexdump_sf ( SuperFile_t *sf, u64 begin, u64 end )
+{
+    DASSERT(sf);
+    printf("  Dump %llx .. %llx\n",begin,end);
+    while ( begin < end )
+    {
+	const u32 read_count = sizeof(iobuf) < end-begin ? sizeof(iobuf) : end-begin;
+	const enumError err = ReadSF(sf,begin,iobuf,read_count);
+	if (err)
+	    return err;
+	ccp ptr = iobuf;
+	ccp end_ptr = iobuf + read_count;
+	while ( ptr < end_ptr )
+	{
+	    const u32 count = 16 < end_ptr - ptr ? 16 : end_ptr - ptr;
+	    if (memcmp(ptr,zerobuf,count))
+		HexDump(stdout,3,begin,9,16,ptr,count);
+	    ptr += count;
+	    begin += count;
+	}
+    }
+    return ERR_OK;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+static void test_hexdump ( int argc, char ** argv )
+{
+    putchar('\n');
+    int i;
+    bool dump_part = false;
+
+    for ( i = 1; i < argc; i++ )
+    {
+	if (!strcmp(argv[i],"-p"))	dump_part = true;
+	if (!strcmp(argv[i],"-L"))	logging++;
+	if ( *argv[i] == '-' )
+	    continue;
+
+	SuperFile_t sf;
+	InitializeSF(&sf);
+	if (!OpenSF(&sf,argv[i],false,false))
+	{
+	    printf("*** %s\n",sf.f.fname);
+	    test_hexdump_sf(&sf,0x00000,0x50000);
+	    if (dump_part)
+	    {
+		test_hexdump_sf(&sf,0x0050000,0x00502c0);
+		test_hexdump_sf(&sf,0xf800000,0xf8002c0);
+	    }
 	    CloseSF(&sf,0);
 	}
     }
@@ -488,6 +549,24 @@ int test_copy_to_wbfs ( int argc, char ** argv )
     return 0;    
 }
 
+///////////////////////////////////////////////////////////////////////////////
+
+// http://www.bzip.org/1.0.5/bzip2-manual-1.0.5.html
+
+#include <bzlib.h>
+
+void test_libbz2()
+{
+    FILE * f = fopen("work/test.bz2","rb");
+    if (f)
+    {
+	int bzerror;
+	BZFILE * bz2 = BZ2_bzReadOpen(&bzerror,f,0,0,0,0);
+	BZ2_bzReadClose(&bzerror,bz2);
+	fclose (f);
+    }
+}
+
 //
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
@@ -499,6 +578,7 @@ enum
 
     CMD_MATCH_PATTERN,		// test_match_pattern(argc,argv);
     CMD_OPEN_DISC,		// test_open_disc(argc,argv);
+    CMD_HEXDUMP,		// test_hexdump(argc,argv);
 
     CMD_SHA1,			// test_sha1();
     CMD_WIIMM,			// test_wiimm(argc,argv);
@@ -514,6 +594,7 @@ static const CommandTab_t CommandTab[] =
 
 	{ CMD_MATCH_PATTERN,	"MATCH",	0,		0 },
 	{ CMD_OPEN_DISC,	"OPENDISC",	"ODISC",	0 },
+	{ CMD_HEXDUMP,		"HEXDUMP",	0,		0 },
 
  #ifdef HAVE_OPENSSL
 	{ CMD_SHA1,		"SHA1",		0,		0 },
@@ -561,7 +642,7 @@ int test ( int argc, char ** argv )
     //test_create_sparse_file();
     //test_splitted_file();
     //test_zero_wdf();
-    test_copy_to_wbfs(argc,argv);
+    //test_copy_to_wbfs(argc,argv);
 
     return 0;
 }
@@ -613,6 +694,7 @@ int main ( int argc, char ** argv )
 
 	case CMD_MATCH_PATTERN:		test_match_pattern(argc,argv); break;
 	case CMD_OPEN_DISC:		test_open_disc(argc,argv); break;
+	case CMD_HEXDUMP:		test_hexdump(argc,argv); break;
 
  #ifdef HAVE_OPENSSL
 	case CMD_SHA1:			test_sha1(); break;

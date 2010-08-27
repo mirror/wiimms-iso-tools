@@ -250,6 +250,7 @@ typedef enum enumOFT // open file mode
 	OFT_WDF,		// WDF file
 	OFT_CISO,		// CISO file
 	OFT_WBFS,		// WBFS disc
+	OFT_WIA,		// WIA file
 	OFT_FST,		// file system
 
 	OFT__N,			// number of variants
@@ -293,14 +294,15 @@ typedef enum enumFileType
 	FT_A_ISO	= 0x001000,  // file is some kind of a ISO image
 	FT_A_WDISC	= 0x002000,  // flag: specific disc of an WBFS file
 	FT_A_WDF	= 0x004000,  // flag: file is a packed WDF
-	FT_A_CISO	= 0x008000,  // flag: file is a packed CISO
-	FT_A_REGFILE	= 0x010000,  // flag: file is a regular file
-	FT_A_BLOCKDEV	= 0x020000,  // flag: file is a block device
-	FT_A_CHARDEV	= 0x040000,  // flag: file is a block device
-	FT_A_SEEKABLE	= 0x080000,  // flag: using of seek() is possible
-	FT_A_WRITING	= 0x100000,  // is opened for writing
-	FT_A_PART_DIR	= 0x200000,  // FST is a partition
-	FT__A_MASK	= 0x3ff000,  // mask of all 'FT_F_' values
+	FT_A_WIA	= 0x008000,  // flag: file is a packed WIA
+	FT_A_CISO	= 0x010000,  // flag: file is a packed CISO
+	FT_A_REGFILE	= 0x020000,  // flag: file is a regular file
+	FT_A_BLOCKDEV	= 0x040000,  // flag: file is a block device
+	FT_A_CHARDEV	= 0x080000,  // flag: file is a block device
+	FT_A_SEEKABLE	= 0x100000,  // flag: using of seek() is possible
+	FT_A_WRITING	= 0x200000,  // is opened for writing
+	FT_A_PART_DIR	= 0x400000,  // FST is a partition
+	FT__A_MASK	= 0x7ff000,  // mask of all 'FT_F_' values
 
     // 3. mask of all 'FT_ values
 
@@ -948,11 +950,11 @@ int ScanEscapeChar ( ccp arg );
 
 typedef struct MemMapItem_t
 {
-	off_t off;		// offset
-	off_t size;		// size
-	u8    overlap;		// system info: item overlaps other items
-	u8    index;		// user defined index
-	char  info[62];		// usee defined info text
+    u64		off;		// offset
+    u64		size;		// size
+    u8		overlap;	// system info: item overlaps other items
+    u8		index;		// user defined index
+    char	info[62];	// user defined info text
 
 } MemMapItem_t;
 
@@ -960,10 +962,10 @@ typedef struct MemMapItem_t
 
 typedef struct MemMap_t
 {
-	MemMapItem_t ** field;	// pointer to the item field
-	uint  used;		// number of used titles in the item field
-	uint  size;		// number of allocated pointer in 'field'
-	off_t begin;		// first address
+    MemMapItem_t ** field;	// pointer to the item field
+    uint	used;		// number of used titles in the item field
+    uint	size;		// number of allocated pointer in 'field'
+    u64		begin;		// first address
 
 } MemMap_t;
 
@@ -1125,33 +1127,35 @@ s64 ScanCommandListMask
 ///////////////                     vars                        ///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-extern enumProgID prog_id;
-extern u32  revision_id;
-extern ccp  progname;
-extern ccp  search_path[];
-extern ccp  lang_info;
-extern volatile int SIGINT_level;
-extern volatile int verbose;
-extern volatile int logging;
-extern int  progress;
-extern bool use_utf8;
-extern char escape_char;
-extern ccp  opt_clone;
-extern int  testmode;
-extern ccp  opt_dest;
-extern bool opt_mkdir;
-extern int  opt_limit;
+extern enumProgID	prog_id;
+extern u32		revision_id;
+extern ccp		progname;
+extern ccp		search_path[];
+extern ccp		lang_info;
+extern volatile int	SIGINT_level;
+extern volatile int	verbose;
+extern volatile int	logging;
+extern int		progress;
+extern bool		use_utf8;
+extern char		escape_char;
+extern ccp		opt_clone;
+extern int		testmode;
+extern ccp		opt_dest;
+extern bool		opt_mkdir;
+extern int		opt_limit;
+extern bool		opt_no_compress;
+extern int		print_sections;
+extern int		long_count;
+extern enumIOMode	io_mode;
+extern u32		opt_recurse_depth;
 
-extern       char iobuf [0x400000];	// global io buffer
-extern const char zerobuf[0x40000];	// global zero buffer
+extern StringField_t	source_list;
+extern StringField_t	recurse_list;
+extern StringField_t	created_files;
+extern       char	iobuf [0x400000];	// global io buffer
+extern const char	zerobuf[0x40000];	// global zero buffer
 
-extern const char sep_79[80];		//  79 * '-' + NULL
-
-extern StringField_t source_list;
-extern StringField_t recurse_list;
-extern StringField_t created_files;
-
-extern u32 opt_recurse_depth;
+extern const char	sep_79[80];		//  79 * '-' + NULL
 
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////			random mumbers			///////////////

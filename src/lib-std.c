@@ -58,47 +58,50 @@
 ///////////////                       Setup                     ///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-enumProgID prog_id		= PROG_UNKNOWN;
-u32 revision_id			= SYSTEMID + REVISION_NUM;
-ccp progname			= "?";
-ccp search_path[5]		= {0};
-ccp lang_info			= 0;
-volatile int SIGINT_level	= 0;
-volatile int verbose		= 0;
-volatile int logging		= 0;
-int progress			= 0;
-SortMode sort_mode		= SORT_DEFAULT;
-ShowMode opt_show_mode		= SHOW__DEFAULT;
-RepairMode repair_mode		= REPAIR_NONE;
-char escape_char		= '%';
-enumOFT output_file_type	= OFT_UNKNOWN;
-int opt_truncate		= 0;
-int opt_split			= 0;
-u64 opt_split_size		= 0;
-ccp  opt_clone			= 0;
-int  testmode			= 0;
-ccp  opt_dest			= 0;
-bool opt_mkdir			= false;
-int  opt_limit			= -1;
+enumProgID	prog_id			= PROG_UNKNOWN;
+u32		revision_id		= SYSTEMID + REVISION_NUM;
+ccp		progname		= "?";
+ccp		search_path[5]		= {0};
+ccp		lang_info		= 0;
+volatile int	SIGINT_level		= 0;
+volatile int	verbose			= 0;
+volatile int	logging			= 0;
+int		progress		= 0;
+SortMode	sort_mode		= SORT_DEFAULT;
+ShowMode	opt_show_mode		= SHOW__DEFAULT;
+RepairMode	repair_mode		= REPAIR_NONE;
+char		escape_char		= '%';
+enumOFT		output_file_type	= OFT_UNKNOWN;
+int		opt_truncate		= 0;
+int		opt_split		= 0;
+u64		opt_split_size		= 0;
+ccp		opt_clone		= 0;
+int		testmode		= 0;
+ccp		opt_dest		= 0;
+bool		opt_mkdir		= false;
+int		opt_limit		= -1;
+bool		opt_no_compress		= false;
+int		print_sections		= 0;
+int		long_count		= 0;
+enumIOMode	io_mode			= 0;
+u32		opt_recurse_depth	= DEF_RECURSE_DEPTH;
+
+StringField_t	source_list;
+StringField_t	recurse_list;
+StringField_t	created_files;
+char		iobuf [0x400000];		// global io buffer
+const char	zerobuf[0x40000]	= {0};	// global zero buffer
 
 #ifdef __CYGWIN__
- bool use_utf8			= false;
+ bool		use_utf8		= false;
 #else
- bool use_utf8			= true;
+ bool		use_utf8		= true;
 #endif
 
-char       iobuf [0x400000];		// global io buffer
-const char zerobuf[0x40000] = {0};	// global zero buffer
 
 const char sep_79[80] =		//  79 * '-' + NULL
 	"----------------------------------------"
 	"---------------------------------------";
-
-StringField_t source_list;
-StringField_t recurse_list;
-StringField_t created_files;
-
-u32 opt_recurse_depth = DEF_RECURSE_DEPTH;
 
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -278,6 +281,7 @@ void SetupLib ( int argc, char ** argv, ccp p_progname, enumProgID prid )
     TRACE_SIZEOF(wd_boot_t);
     TRACE_SIZEOF(wd_disc_t);
     TRACE_SIZEOF(wd_fst_item_t);
+    TRACE_SIZEOF(wd_header_128_t);
     TRACE_SIZEOF(wd_header_t);
     TRACE_SIZEOF(wd_icm_t);
     TRACE_SIZEOF(wd_ipm_t);
@@ -306,6 +310,16 @@ void SetupLib ( int argc, char ** argv, ccp p_progname, enumProgID prid )
     TRACE_SIZEOF(wd_tmd_content_t);
     TRACE_SIZEOF(wd_tmd_t);
     TRACE_SIZEOF(wd_usage_t);
+    TRACE_SIZEOF(wia_compression_t);
+    TRACE_SIZEOF(wia_controller_t);
+    TRACE_SIZEOF(wia_data_t);
+    TRACE_SIZEOF(wia_data_segment_t);
+    TRACE_SIZEOF(wia_disc_t);
+    TRACE_SIZEOF(wia_exception_t);
+    TRACE_SIZEOF(wia_file_head_t);
+    TRACE_SIZEOF(wia_group_t);
+    TRACE_SIZEOF(wia_part_t);
+    TRACE_SIZEOF(wia_raw_data_t);
 
     // assertions
 
@@ -617,6 +631,11 @@ ccp GetErrorName ( int stat )
 	case ERR_TO_MUCH_WBFS_FOUND:	return "TO MUCH WBFS FOUND";
 	case ERR_WBFS_INVALID:		return "INVALID WBFS";
 
+	case ERR_NO_WIA_SUPPORT:	return "NO WIA SUPPORT";
+	case ERR_NO_WIA:		return "NO WIA FOUND";
+	case ERR_WIA_INVALID:		return "INVALID WIA";
+	case ERR_BZIP2:			return "BZIP2 ERROR";
+
 	case ERR_ALREADY_EXISTS:	return "FILE ALREADY EXISTS";
 	case ERR_CANT_OPEN:		return "CAN'T OPEN FILE";
 	case ERR_CANT_CREATE:		return "CAN'T CREATE FILE";
@@ -673,6 +692,11 @@ ccp GetErrorText ( int stat )
 	case ERR_NO_WBFS_FOUND:		return "No WBFS found";
 	case ERR_TO_MUCH_WBFS_FOUND:	return "To much WBFS found";
 	case ERR_WBFS_INVALID:		return "Invalid WBFS";
+
+	case ERR_NO_WIA_SUPPORT:	return "No WIA support";
+	case ERR_NO_WIA:		return "No WIA found";
+	case ERR_WIA_INVALID:		return "Invalid WIA";
+	case ERR_BZIP2:			return "bzip2 error";
 
 	case ERR_ALREADY_EXISTS:	return "File already exists";
 	case ERR_CANT_OPEN:		return "Can't open file";

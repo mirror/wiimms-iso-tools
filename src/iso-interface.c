@@ -1067,7 +1067,7 @@ static s64 PartSelectorFunc
 
     wd_select_mode_t mode = prefix == '-' ? WD_SM_F_DENY : 0;
 
-    //----- scan partitons numbers
+    //----- scan partitions numbers
 
     if ( *name >= '0' && *name <= '9' )
     {
@@ -1200,7 +1200,7 @@ static s64 PartSelectorFunc
 
 enumError ScanPartSelector
 (
-    wd_select_t * select,	// valid partiton selector
+    wd_select_t * select,	// valid partition selector
     ccp arg,			// argument to scan
     ccp err_text_extend		// error message extention
 )
@@ -3086,6 +3086,10 @@ enumError SetupReadFST ( SuperFile_t * sf )
 
     enumEncoding enc = SetEncoding(encoding,0,0);
 
+    // check ENCODE_F_ENCRYPT
+    if ( enc & ENCODE_F_ENCRYPT )
+	enc = SetEncoding(enc,0,ENCODE_SIGN|ENCODE_ENCRYPT|ENCODE_CALC_HASH);
+
     // make some dependency checks
     if ( enc & ENCODE_SIGN )
 	enc = SetEncoding(enc,ENCODE_ENCRYPT|ENCODE_CALC_HASH,0);
@@ -3094,17 +3098,21 @@ enumError SetupReadFST ( SuperFile_t * sf )
     if ( enc & ENCODE_M_HASH )
 	enc = SetEncoding(enc,0,ENCODE_NO_SIGN|ENCODE_DECRYPT);
 
+    // force enrypting and signing if at least one is set
+    if ( enc & (ENCODE_SIGN|ENCODE_ENCRYPT) )
+	enc = SetEncoding(enc,ENCODE_SIGN|ENCODE_ENCRYPT|ENCODE_CALC_HASH,0);
+
     fst->encoding = SetEncoding(enc,0,
 		enc & ENCODE_F_FAST
 			? ENCODE_NO_SIGN|ENCODE_DECRYPT|ENCODE_CLEAR_HASH
 			: ENCODE_SIGN|ENCODE_ENCRYPT|ENCODE_CALC_HASH );
-    TRACE("ENCODING: %04x -> %04x\n",encoding,fst->encoding);
+    PRINT("ENCODING: %04x -> %04x\n",encoding,fst->encoding);
 
 
     //----- setup partitions --> [2do] use part_selector
 
-    u64 min_offset	= WII_GOOD_UPDATE_PART_OFF;
-    u64 update_off	= WII_GOOD_UPDATE_PART_OFF;
+    u64 min_offset	= WII_PART_OFF;
+    u64 update_off	= WII_PART_OFF;
     u64 update_size	= 0;
     u64 data_off	= WII_GOOD_DATA_PART_OFF;
     u64 data_size	= 0;
@@ -3495,7 +3503,7 @@ enumError ReadPartGroupFST ( SuperFile_t * sf, WiiFstPart_t * part,
 
     //----- setup vars
 
-    const u32 delta = n_groups * WII_SECTOR_DATA_OFF  * WII_GROUP_SECTORS;
+    const u32 delta = n_groups * WII_SECTOR_HASH_SIZE  * WII_GROUP_SECTORS;
     const u32 dsize = n_groups * WII_GROUP_DATA_SIZE;
           u64 off   = group_no * (u64)WII_GROUP_DATA_SIZE;
     const u64 max   = n_groups * (u64)WII_GROUP_DATA_SIZE + off;
@@ -3617,8 +3625,8 @@ enumError ReadPartGroupFST ( SuperFile_t * sf, WiiFstPart_t * part,
     dest = buf;
     for ( dest = buf; dest < src; )
     {
-	memset(dest,0,WII_SECTOR_DATA_OFF);
-	dest += WII_SECTOR_DATA_OFF;
+	memset(dest,0,WII_SECTOR_HASH_SIZE);
+	dest += WII_SECTOR_HASH_SIZE;
 
 	TRACE("GROUP %u+%u (%zx<-%zx)\n",
 		group_no, (u32)(dest-(ccp)buf)/WII_SECTOR_SIZE,
@@ -3857,7 +3865,7 @@ static enumError VerifyHash
 	{
 	    const u32 block	= offset / WII_SECTOR_SIZE;
 	    const u32 block_off	= offset - block * (u64)WII_SECTOR_SIZE;
-	    const u32 sub_block	= block_off / WII_SECTOR_DATA_OFF;
+	    const u32 sub_block	= block_off / WII_SECTOR_HASH_SIZE;
 
 	    printf("%*sgroup=%x.%x, block=%x.%x, data-off=%llx=B+%x, hash-off=%llx=B+%x\n",
 			ver->info_indent, "",

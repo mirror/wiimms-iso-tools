@@ -63,6 +63,12 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 	" '.wdf'. This is the general default."
     },
 
+    {	OPT_WIA, 0, "wia",
+	0,
+	"Force WIA output mode if packing and set the default suffix to"
+	" '.wia'."
+    },
+
     {	OPT_CISO, 'C', "ciso",
 	0,
 	"Force CISO output mode if packing and set the default suffix to"
@@ -81,7 +87,8 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 
     {	OPT_SUFFIX, 's', "suffix",
 	".suf",
-	"Use suffix '.suf' instead of '.wdf' or '.ciso' for packed files."
+	"Use suffix '.suf' instead of '.wdf', '.wia' or '.ciso' for packed"
+	" files."
     },
 
     {	OPT_DEST, 'd', "dest",
@@ -156,7 +163,13 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 	"--mch is a shortcut for --max-chunks."
     },
 
-    {0,0,0,0,0}, // OPT__N_SPECIFIC == 17
+    {	OPT_NO_COMPRESS, 0, "no-compress",
+	0,
+	"Disable compression for new WIA files. --noc is a shortcut for"
+	" --no-compress."
+    },
+
+    {0,0,0,0,0}, // OPT__N_SPECIFIC == 19
 
     //----- global options -----
 
@@ -212,7 +225,7 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 	">>> USE THIS OPTION IF UNSURE! <<<"
     },
 
-    {0,0,0,0,0} // OPT__N_TOTAL == 26
+    {0,0,0,0,0} // OPT__N_TOTAL == 28
 
 };
 
@@ -273,6 +286,7 @@ const struct option OptionLong[] =
 	{ "minus-1",		0, 0, '1' },
 	 { "minus1",		0, 0, '1' },
 	{ "wdf",		0, 0, 'W' },
+	{ "wia",		0, 0, GO_WIA },
 	{ "ciso",		0, 0, 'C' },
 	{ "wbi",		0, 0, GO_WBI },
 	{ "suffix",		1, 0, 's' },
@@ -294,6 +308,9 @@ const struct option OptionLong[] =
 	{ "max-chunks",		1, 0, GO_MAX_CHUNKS },
 	 { "maxchunks",		1, 0, GO_MAX_CHUNKS },
 	 { "mch",		1, 0, GO_MAX_CHUNKS },
+	{ "no-compress",	0, 0, GO_NO_COMPRESS },
+	 { "nocompress",	0, 0, GO_NO_COMPRESS },
+	 { "noc",		0, 0, GO_NO_COMPRESS },
 	{ "test",		0, 0, 't' },
 
 	{0,0,0,0}
@@ -346,11 +363,13 @@ const u8 OptionIndex[OPT_INDEX_SIZE] =
 	/*80*/	OPT_XHELP,
 	/*81*/	OPT_WIDTH,
 	/*82*/	OPT_CHUNK,
-	/*83*/	OPT_WBI,
-	/*84*/	OPT_CHUNK_MODE,
-	/*85*/	OPT_CHUNK_SIZE,
-	/*86*/	OPT_MAX_CHUNKS,
-	/*87*/	 0,0,0,0, 0,0,0,0, 0,
+	/*83*/	OPT_WIA,
+	/*84*/	OPT_WBI,
+	/*85*/	OPT_CHUNK_MODE,
+	/*86*/	OPT_CHUNK_SIZE,
+	/*87*/	OPT_MAX_CHUNKS,
+	/*88*/	OPT_NO_COMPRESS,
+	/*89*/	 0,0,0,0, 0,0,0,
 	/*90*/	 0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0,
 	/*a0*/	 0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0,
 	/*b0*/	 0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0,
@@ -361,39 +380,39 @@ const u8 OptionIndex[OPT_INDEX_SIZE] =
 ///////////////                opt_allowed_cmd_*                ///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-static u8 option_allowed_cmd_VERSION[17] = // cmd #1
+static u8 option_allowed_cmd_VERSION[19] = // cmd #1
 {
-    0,0,1,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0
+    0,0,1,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0
 };
 
-static u8 option_allowed_cmd_HELP[17] = // cmd #2
+static u8 option_allowed_cmd_HELP[19] = // cmd #2
 {
-    1,1,1,1,1, 1,1,1,1,1,  1,1,1,1,1, 1,1
+    1,1,1,1,1, 1,1,1,1,1,  1,1,1,1,1, 1,1,1,1
 };
 
-static u8 option_allowed_cmd_PACK[17] = // cmd #3
+static u8 option_allowed_cmd_PACK[19] = // cmd #3
 {
-    0,0,0,0,1, 1,1,1,1,1,  1,1,1,1,0, 0,0
+    0,0,0,0,1, 1,1,1,1,1,  1,1,1,1,1, 1,1,1,1
 };
 
-static u8 option_allowed_cmd_UNPACK[17] = // cmd #4
+static u8 option_allowed_cmd_UNPACK[19] = // cmd #4
 {
-    0,0,0,0,0, 0,0,0,1,1,  1,1,1,1,0, 0,0
+    0,0,0,0,0, 0,0,0,0,1,  1,1,1,1,1, 1,1,1,1
 };
 
-static u8 option_allowed_cmd_CAT[17] = // cmd #5
+static u8 option_allowed_cmd_CAT[19] = // cmd #5
 {
-    0,0,0,0,0, 0,0,0,1,0,  1,0,1,1,0, 0,0
+    0,0,0,0,0, 0,0,0,0,1,  0,1,0,1,1, 1,1,1,1
 };
 
-static u8 option_allowed_cmd_CMP[17] = // cmd #6
+static u8 option_allowed_cmd_CMP[19] = // cmd #6
 {
-    0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0
+    0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0
 };
 
-static u8 option_allowed_cmd_DUMP[17] = // cmd #7
+static u8 option_allowed_cmd_DUMP[19] = // cmd #7
 {
-    0,1,1,1,0, 0,0,0,1,0,  1,0,0,0,0, 0,0
+    0,1,1,1,0, 0,0,0,0,1,  0,1,0,0,0, 0,0,0,0
 };
 
 
@@ -446,6 +465,10 @@ static const InfoOption_t * option_tab_cmd_PACK[] =
 	OptionInfo + OPT_OVERWRITE,
 	OptionInfo + OPT_SPLIT,
 	OptionInfo + OPT_SPLIT_SIZE,
+	OptionInfo + OPT_CHUNK_MODE,
+	OptionInfo + OPT_CHUNK_SIZE,
+	OptionInfo + OPT_MAX_CHUNKS,
+	OptionInfo + OPT_NO_COMPRESS,
 	OptionInfo + OPT_STDOUT,
 	OptionInfo + OPT_KEEP,
 	OptionInfo + OPT_PRESERVE,
@@ -453,6 +476,7 @@ static const InfoOption_t * option_tab_cmd_PACK[] =
 	OptionInfo + OPT_NONE, // separator
 
 	OptionInfo + OPT_WDF,
+	OptionInfo + OPT_WIA,
 	OptionInfo + OPT_CISO,
 	OptionInfo + OPT_WBI,
 	OptionInfo + OPT_SUFFIX,
@@ -467,6 +491,10 @@ static const InfoOption_t * option_tab_cmd_UNPACK[] =
 	OptionInfo + OPT_OVERWRITE,
 	OptionInfo + OPT_SPLIT,
 	OptionInfo + OPT_SPLIT_SIZE,
+	OptionInfo + OPT_CHUNK_MODE,
+	OptionInfo + OPT_CHUNK_SIZE,
+	OptionInfo + OPT_MAX_CHUNKS,
+	OptionInfo + OPT_NO_COMPRESS,
 	OptionInfo + OPT_STDOUT,
 	OptionInfo + OPT_KEEP,
 	OptionInfo + OPT_PRESERVE,
@@ -481,6 +509,10 @@ static const InfoOption_t * option_tab_cmd_CAT[] =
 	OptionInfo + OPT_OVERWRITE,
 	OptionInfo + OPT_SPLIT,
 	OptionInfo + OPT_SPLIT_SIZE,
+	OptionInfo + OPT_CHUNK_MODE,
+	OptionInfo + OPT_CHUNK_SIZE,
+	OptionInfo + OPT_MAX_CHUNKS,
+	OptionInfo + OPT_NO_COMPRESS,
 
 	0
 };
@@ -559,7 +591,7 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	"+P",
 	"wdf +PACK [option]... files...",
 	"Pack sources into WDF or CISO archives. This is the general default.",
-	12,
+	17,
 	option_tab_cmd_PACK,
 	option_allowed_cmd_PACK
     },
@@ -573,7 +605,7 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	"Unpack WDF and CISO archives.\n"
 	"This is the default command, when the program name starts with the"
 	" two letters 'un' in any case.",
-	8,
+	12,
 	option_tab_cmd_UNPACK,
 	option_allowed_cmd_UNPACK
     },
@@ -589,7 +621,7 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	" by byte.\n"
 	"This is the default command, when the program namecontains the three"
 	" letter 'cat' in any case.",
-	5,
+	9,
 	option_tab_cmd_CAT,
 	option_allowed_cmd_CAT
     },
@@ -599,7 +631,7 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	false,
 	"+CMP",
 	"+C",
-	"wdf +CAT [option]... files...",
+	"wdf +CMP [option]... files...",
 	"Compare files and unpack WDF and CISO while comparing.\n"
 	"The standard is to compare two source files. If --dest or --DEST is"
 	" set, than all source files are compared against files in the"

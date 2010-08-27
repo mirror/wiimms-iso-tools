@@ -26,6 +26,7 @@
 #define WIT_LIB_SF_H 1
 
 #include "lib-wdf.h"
+#include "lib-wia.h"
 #include "lib-ciso.h"
 #include "libwbfs.h"
 
@@ -111,6 +112,10 @@ typedef struct SuperFile_t
 	int wc_size;			// number of elements in 'wc'
 	int wc_used;			// number of used elements in 'wc'
 
+	// WIA support
+
+	wia_controller_t * wia;		// WIA controller
+
 	// CISO support
 
 	CISO_Info_t ciso;		// CISO info data
@@ -192,8 +197,13 @@ wd_disc_t * OpenDiscSF
 
 enumError RewriteModifiedSF ( SuperFile_t * fi, SuperFile_t * fo, struct WBFS_t * wbfs );
 
-// setup writing
-enumError SetupWriteSF	( SuperFile_t * sf, enumOFT );	// setup writing
+enumError SetupWriteSF
+(
+    SuperFile_t		* sf,		// file to setup
+    enumOFT		oft,		// force OFT mode of 'sf' 
+    SuperFile_t		* src		// NULL or source file
+);
+
 enumError SetupWriteWBFS( SuperFile_t * sf );		// setup wbfs/disc writing
 
 // filename helpers
@@ -278,7 +288,6 @@ enumFileType AnalyzeFT ( File_t * f );
 enumFileType AnalyzeMemFT ( const void * buf_hd_sect_size, off_t file_size );
 enumError XPrintErrorFT ( XPARM File_t * f, enumFileType err_mask );
 ccp GetNameFT ( enumFileType ftype, int ignore );
-enumOFT GetOFT ( SuperFile_t * sf );
 u32 CountUsedIsoBlocksSF ( SuperFile_t * sf, const wd_select_t * psel );
 
 // copy functions
@@ -303,6 +312,7 @@ enumError CopyRawData2
 );
 
 enumError CopyWDF	( SuperFile_t * in, SuperFile_t * out );
+enumError CopyWIA	( SuperFile_t * in, SuperFile_t * out );
 enumError CopyWBFSDisc	( SuperFile_t * in, SuperFile_t * out );
 enumError AppendF	(      File_t * in, SuperFile_t * out, off_t in_off, size_t count );
 enumError AppendSparseF	(      File_t * in, SuperFile_t * out, off_t in_off, size_t count );

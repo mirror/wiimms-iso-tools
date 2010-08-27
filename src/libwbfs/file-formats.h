@@ -38,31 +38,6 @@
 #include "libwbfs_os.h"		// os dependent definitions
 #include "libwbfs_defaults.h"	// default settings
 
-///////////////////////////////////////////////////////////////////////////////
-
-typedef u16 be16_t;
-typedef u32 be32_t;
-typedef u64 be64_t;
-
-typedef char id6_t[7];
-
-int validate_file_format_sizes ( int trace_sizes );
-
-//
-///////////////////////////////////////////////////////////////////////////////
-///////////////		low level endian conversions		///////////////
-///////////////////////////////////////////////////////////////////////////////
-
-// convert big endian date to number in host format
-u16 be16 ( const void * be_data_ptr );
-u32 be24 ( const void * be_data_ptr );
-u32 be32 ( const void * be_data_ptr );
-u64 be64 ( const void * be_data_ptr );
-
-// convert u64 from/to network byte order
-be64_t hton64 ( u64    data );
-u64    ntoh64 ( be64_t data );
-
 //
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////			  constants			///////////////
@@ -78,8 +53,9 @@ enum // some constants
     WII_SECTORS_PER_MIB		= 1024*1024/WII_SECTOR_SIZE,
 
     WII_SECTOR_IV_OFF		= 0x3d0,
-    WII_SECTOR_DATA_OFF		= 0x400,
-    WII_SECTOR_DATA_SIZE	= WII_SECTOR_SIZE - WII_SECTOR_DATA_OFF,
+    WII_SECTOR_HASH_SIZE	= 0x400,
+    WII_SECTOR_HASH_SIZE4	= WII_SECTOR_HASH_SIZE >> 2,
+    WII_SECTOR_DATA_SIZE	= WII_SECTOR_SIZE - WII_SECTOR_HASH_SIZE,
     WII_SECTOR_DATA_SIZE4	= WII_SECTOR_DATA_SIZE >> 2,
 
     WII_HASH_SIZE		= 20,
@@ -95,8 +71,16 @@ enum // some constants
 
     WII_GROUP_SECTORS		= WII_N_ELEMENTS_H1 * WII_N_ELEMENTS_H2,
     WII_GROUP_SIZE		= WII_GROUP_SECTORS * WII_SECTOR_SIZE,
+    WII_GROUP_SIZE4		= WII_GROUP_SIZE >> 2,
+    WII_GROUP_HASH_SIZE		= WII_GROUP_SECTORS * WII_SECTOR_HASH_SIZE,
+    WII_GROUP_HASH_SIZE4	= WII_GROUP_HASH_SIZE >> 2,
     WII_GROUP_DATA_SIZE		= WII_GROUP_SECTORS * WII_SECTOR_DATA_SIZE,
     WII_GROUP_DATA_SIZE4	= WII_GROUP_DATA_SIZE >> 2,
+
+    WII_N_HASH_SECTOR		= WII_N_ELEMENTS_H0
+				+ WII_N_ELEMENTS_H1
+				+ WII_N_ELEMENTS_H2,
+    WII_N_HASH_GROUP		= WII_N_HASH_SECTOR * WII_GROUP_SECTORS,
 
     WII_TICKET_SIZE		= 0x2a4,
     WII_TICKET_SIG_OFF		= 0x140, // do SHA1 up to end of ticket
@@ -145,7 +129,7 @@ enum // some constants
     WII_BOOT_SIZE		= WII_BI2_OFF - WII_BOOT_OFF,
     WII_BI2_SIZE		= WII_APL_OFF - WII_BI2_OFF,
 
-    WII_GOOD_UPDATE_PART_OFF	=   0x50000,
+    WII_PART_OFF		=   0x50000,
     WII_GOOD_DATA_PART_OFF	= 0xf800000,
 
     WBFS_MIN_SECTOR_SHIFT	=  6,	// needed for wbfs_calc_size_shift()
@@ -164,6 +148,35 @@ enum // some constants
     DOL_N_SECTIONS		= DOL_N_TEXT_SECTIONS + DOL_N_DATA_SECTIONS,
     DOL_HEADER_SIZE		= 0x100,
 };
+
+//
+///////////////////////////////////////////////////////////////////////////////
+///////////////			typedefs			///////////////
+///////////////////////////////////////////////////////////////////////////////
+
+typedef u16 be16_t;
+typedef u32 be32_t;
+typedef u64 be64_t;
+
+typedef char id6_t[7];
+typedef u8 sha1_hash[WII_HASH_SIZE];
+
+int validate_file_format_sizes ( int trace_sizes );
+
+//
+///////////////////////////////////////////////////////////////////////////////
+///////////////		low level endian conversions		///////////////
+///////////////////////////////////////////////////////////////////////////////
+
+// convert big endian date to number in host format
+u16 be16 ( const void * be_data_ptr );
+u32 be24 ( const void * be_data_ptr );
+u32 be32 ( const void * be_data_ptr );
+u64 be64 ( const void * be_data_ptr );
+
+// convert u64 from/to network byte order
+be64_t hton64 ( u64    data );
+u64    ntoh64 ( be64_t data );
 
 //
 ///////////////////////////////////////////////////////////////////////////////
@@ -253,6 +266,47 @@ void hton_inode_info ( wbfs_inode_info_t * dest, const wbfs_inode_info_t * src )
 
 //
 ///////////////////////////////////////////////////////////////////////////////
+///////////////			struct wd_header_128_t		///////////////
+///////////////////////////////////////////////////////////////////////////////
+
+typedef struct wd_header_128_t
+{
+	// -> http://www.wiibrew.org/wiki/Wiidisc#Header
+
+  /* 0x00 */	char	disc_id;
+  /* 0x01 */	char	game_code[2];
+  /* 0x03 */	char	region_code;
+  /* 0x04 */	char	marker_code[2];
+
+  /* 0x06 */	u8	disc_number;
+  /* 0x07 */	u8	disc_version;
+
+  /* 0x08 */	u8	audio_streaming;
+  /* 0x09 */	u8	streaming_buffer_size;
+
+  /* 0x0a */	u8	unknown1[0x0e];
+  /* 0x18 */	u32	magic;				// off=WII_MAGIC_OFF, val=WII_MAGIC
+  /* 0x1c */	u8	unknown2[4];
+
+  /* 0x20 */	char	disc_title[WII_TITLE_SIZE];	// off=WII_TITLE_OFF
+
+  /* 0x60 */	u8	diable_hash;
+  /* 0x61 */	u8	diable_encryption;
+  
+  /* 0x62 */	u8	padding[0x1e];
+
+} __attribute__ ((packed)) wd_header_128_t;
+
+
+void header_128_setup
+(
+    wd_header_128_t	* dhead,	// valid pointer
+    const void		* id6,		// NULL or pointer to ID
+    ccp			disc_title	// NULL or pointer to disc title (truncated)
+);
+
+//
+///////////////////////////////////////////////////////////////////////////////
 ///////////////			struct wd_header_t		///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -289,9 +343,9 @@ typedef struct wd_header_t
 
 void header_setup
 (
-    wd_header_t	* dhead,	// valid pointer
-    const void	* id6,		// NULL or pointer to ID
-    ccp		disc_title	// NULL or pointer to disc title (truncated)
+    wd_header_t		* dhead,	// valid pointer
+    const void		* id6,		// NULL or pointer to ID
+    ccp			disc_title	// NULL or pointer to disc title (truncated)
 );
 
 //

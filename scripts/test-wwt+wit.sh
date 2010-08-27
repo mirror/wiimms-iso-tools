@@ -1,5 +1,5 @@
 #!/bin/bash
-# (c) Wiimm, 2010-07-06
+# (c) Wiimm, 2010-08-26
 
 myname="${0##*/}"
 base=wwt+wit
@@ -13,29 +13,31 @@ then
     cat <<- ---EOT---
 
 	This script expect as parameters names of ISO files. ISO files are PLAIN,
-	CISO or WDF. Each source file is subject of this test suite.
+	CISO, WBFS, WDF or WIA. Each source file is subject of this test suite.
 
 	Tests:
 
 	  * wwt ADD and EXTRACT
 	    - WBFS-files with different sector sizes: 512, 1024, 2048, 4096
-	    - ADD to and EXTRACT from PLAIN ISO, CISO, WDF, WBFS
+	    - ADD to and EXTRACT from PLAIN ISO, CISO, WDF, WIA, WBFS
 	    - ADD from PIPE
 	
 	  * wit COPY
-	    - convert to PLAIN ISO, CISO, WDF, WBFS
+	    - convert to PLAIN ISO, CISO, WDF, WIA, WBFS
 
 	Usage:  $myname [option]... iso_file...
 
 	Options:
-	  --fast      : Enter fast mode
+	  --fast        : Enter fast mode
 	                => do only WDF tests and skip verify+fst+pipe tests
-	  --verify    : enable  verify tests
-	  --no-verify : disable verify tests
-	  --fst       : enable  "EXTRACT FST" tests
-	  --no-fst    : disable "EXTRACT FST" tests
-	  --pipe      : enable  pipe tests
-	  --no-pipe   : disable pipe tests (default for cygwin)
+	  --verify      : enable  verify tests
+	  --no-verify   : disable verify tests
+	  --fst         : enable  "EXTRACT FST" tests
+	  --no-fst      : disable "EXTRACT FST" tests
+	  --pipe        : enable  pipe tests
+	  --no-pipe     : disable pipe tests (default for cygwin)
+	  --compress    : enable WIA compression tests
+	  --no-compress : enable WIA compression tests
 
 	---EOT---
     exit 1
@@ -142,7 +144,7 @@ tempdir="$(mktemp -d ./.$base.tmp.XXXXXX)" || exit 1
 WBFS_FILE=a.wbfs
 WBFS="$tempdir/$WBFS_FILE"
 
-MODELIST="iso wdf ciso wbfs"
+MODELIST="iso wdf wia ciso wbfs"
 BASEMODE="wdf"
 
 FAST_MODELIST="wdf"
@@ -151,6 +153,7 @@ FAST_BASEMODE="wdf"
 NOVERIFY=0
 NOFST=0
 NOPIPE=0
+NOCOMPRESS=1
 [[ $TERM = cygwin ]] && NOPIPE=1
 
 FST_OPT="--psel data,update,channel,ptab0"
@@ -230,9 +233,11 @@ function test_suite()
 
     for mode in $MODELIST
     do
+	[[ $mode = wia ]] && continue
+
 	dest="$tempdir/image.$mode"
 	test_function "EXT-$mode" "wwt EXTRACT to $mode" \
-	    $WWT -qp "$WBFS" EXTRACT "$id6=$dest" --$mode \
+	    $WWT -qp "$WBFS" EXTRACT "$id6=$dest" --$mode --no-compress \
 	    || return $ERROR
 
 	rm -f "$WBFS"
@@ -249,7 +254,7 @@ function test_suite()
     done
 
     test_function "CMP" "wit CMP wbfs source" \
-	$WIT -q CMP "$WBFS" "$1" \
+	$WIT -ql CMP "$WBFS" "$1" \
 	|| return $STAT_DIFF
 
 
@@ -262,15 +267,26 @@ function test_suite()
 	dest="$tempdir/copy.$mode"
 
 	test_function "COPY-$mode" "wit COPY to $mode" \
-	    $WIT -q COPY "$src" "$dest" --$mode \
+	    $WIT -q COPY "$src" "$dest" --$mode --no-compress \
 	    || return $ERROR
 
 	((count++)) && rm -f "$src"
 	src="$dest"
+
+	if ((!NOCOMPRESS)) && [[ $mode == wia ]]
+	then
+	    test_function "COPY-${mode}C" "wit COPY to $mode" \
+		$WIT -q COPY "$src" "$dest" --$mode \
+		|| return $ERROR
+
+	    ((count++)) && rm -f "$src"
+	    src="$dest"
+	fi
+
     done
 
     test_function "CMP" "wit CMP copied source" \
-	$WIT -q CMP "$dest" "$1" \
+	$WIT -ql CMP "$dest" "$1" \
 	|| return $STAT_DIFF
 
     rm -f "$dest"
@@ -312,7 +328,7 @@ function test_suite()
 	    || return $ERROR
 
 	test_function "CMP" "wit CMP 2x composed" \
-	    $WIT -q CMP "$WBFS" "$dest/a.wdf" \
+	    $WIT -ql CMP "$WBFS" "$dest/a.wdf" \
 	    || return $STAT_DIFF
 
 	test_function "EXTR-FST2" "wit EXTRACT" \
@@ -351,7 +367,7 @@ function test_suite()
 	fi
 
 	test_function "CMP" "wit CMP wbfs source" \
-	    $WIT -q CMP "$WBFS" "$1" --psel=DATA \
+	    $WIT -ql CMP "$WBFS" "$1" --psel=DATA \
 	    || return $STAT_DIFF
 
     fi
@@ -436,6 +452,20 @@ do
     then
 	NOPIPE=1
 	printf "\n## --no-pipe : pipe tests disabled\n"
+	continue
+    fi
+
+    if [[ $src == --compress ]]
+    then
+	NOCOMPRESS=0
+	printf "\n## --compress : compress WIA tests enabled\n"
+	continue
+    fi
+
+    if [[ $src == --no-compress || $src == --nocompress ]]
+    then
+	NOCOMPRESS=1
+	printf "\n## --no-compress : WIA compress tests diabled\n"
 	continue
     fi
 

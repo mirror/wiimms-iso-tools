@@ -46,6 +46,7 @@ typedef enum enumOptions
 	OPT_LONG,
 	OPT_MINUS1,
 	OPT_WDF,
+	OPT_WIA,
 	OPT_CISO,
 	OPT_WBI,
 	OPT_SUFFIX,
@@ -58,8 +59,9 @@ typedef enum enumOptions
 	OPT_CHUNK_MODE,
 	OPT_CHUNK_SIZE,
 	OPT_MAX_CHUNKS,
+	OPT_NO_COMPRESS,
 
-	OPT__N_SPECIFIC, // == 17 
+	OPT__N_SPECIFIC, // == 19 
 
 	//----- global options -----
 
@@ -73,7 +75,7 @@ typedef enum enumOptions
 	OPT_STDOUT,
 	OPT_TEST,
 
-	OPT__N_TOTAL // == 26
+	OPT__N_TOTAL // == 28
 
 } enumOptions;
 
@@ -92,6 +94,7 @@ typedef enum enumOptions
 //	OB_LONG			= 1llu << OPT_LONG,
 //	OB_MINUS1		= 1llu << OPT_MINUS1,
 //	OB_WDF			= 1llu << OPT_WDF,
+//	OB_WIA			= 1llu << OPT_WIA,
 //	OB_CISO			= 1llu << OPT_CISO,
 //	OB_WBI			= 1llu << OPT_WBI,
 //	OB_SUFFIX		= 1llu << OPT_SUFFIX,
@@ -104,6 +107,7 @@ typedef enum enumOptions
 //	OB_CHUNK_MODE		= 1llu << OPT_CHUNK_MODE,
 //	OB_CHUNK_SIZE		= 1llu << OPT_CHUNK_SIZE,
 //	OB_MAX_CHUNKS		= 1llu << OPT_MAX_CHUNKS,
+//	OB_NO_COMPRESS		= 1llu << OPT_NO_COMPRESS,
 //
 //	//----- group & command options -----
 //
@@ -112,18 +116,16 @@ typedef enum enumOptions
 //	OB_GRP_DEST		= OB_DEST
 //				| OB_OVERWRITE,
 //
-//	OB_GRP_SPLIT_DEST	= OB_GRP_DEST
+//	OB_GRP_DEST_PLUS	= OB_GRP_DEST
 //				| OB_SPLIT
-//				| OB_SPLIT_SIZE,
-//
-//	OB_GRP_CHUNK		= OB_CHUNK_MODE
+//				| OB_SPLIT_SIZE
+//				| OB_CHUNK_MODE
 //				| OB_CHUNK_SIZE
-//				| OB_MAX_CHUNKS,
-//
-//	OB_GRP_CHUNK_DEST	= OB_GRP_SPLIT_DEST
-//				| OB_GRP_CHUNK,
+//				| OB_MAX_CHUNKS
+//				| OB_NO_COMPRESS,
 //
 //	OB_GRP_FILETYPE		= OB_WDF
+//				| OB_WIA
 //				| OB_CISO
 //				| OB_WBI
 //				| OB_SUFFIX,
@@ -132,14 +134,14 @@ typedef enum enumOptions
 //
 //	OB_CMD_HELP		= ~(u64)0,
 //
-//	OB_CMD_UNPACK		= OB_GRP_SPLIT_DEST
+//	OB_CMD_UNPACK		= OB_GRP_DEST_PLUS
 //				| OB_KEEP
 //				| OB_PRESERVE,
 //
 //	OB_CMD_PACK		= OB_CMD_UNPACK
 //				| OB_GRP_FILETYPE,
 //
-//	OB_CMD_CAT		= OB_GRP_SPLIT_DEST,
+//	OB_CMD_CAT		= OB_GRP_DEST_PLUS,
 //
 //	OB_CMD_CMP		= 0,
 //
@@ -205,10 +207,12 @@ typedef enum enumGetOpt
 	GO_XHELP		= 0x80,
 	GO_WIDTH,
 	GO_CHUNK,
+	GO_WIA,
 	GO_WBI,
 	GO_CHUNK_MODE,
 	GO_CHUNK_SIZE,
 	GO_MAX_CHUNKS,
+	GO_NO_COMPRESS,
 
 } enumGetOpt;
 

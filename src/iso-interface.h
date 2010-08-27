@@ -272,7 +272,7 @@ extern u8 wdisc_usage_tab2[WII_MAX_SECTORS];
 
 enumError ScanPartSelector
 (
-    wd_select_t * select,	// valid partiton selector
+    wd_select_t * select,	// valid partition selector
     ccp arg,			// argument to scan
     ccp err_text_extend		// error message extention
 );

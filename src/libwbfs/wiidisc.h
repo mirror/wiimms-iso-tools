@@ -67,12 +67,12 @@ typedef enum wd_select_mode_t // modes of selection
 
     WD_SM_ALLOW_PTYPE,		// allow partition type
     WD_SM_ALLOW_PTAB,		// allow partition table
-    WD_SM_ALLOW_INDEX,		// allow partition #index in absolut partiton count
-    WD_SM_ALLOW_LT_INDEX,	// allow partitions < #index in absolut partiton count
-    WD_SM_ALLOW_GT_INDEX,	// allow partitions > #index in absolut partiton count
+    WD_SM_ALLOW_INDEX,		// allow partition #index in absolut partition count
+    WD_SM_ALLOW_LT_INDEX,	// allow partitions < #index in absolut partition count
+    WD_SM_ALLOW_GT_INDEX,	// allow partitions > #index in absolut partition count
     WD_SM_ALLOW_PTAB_INDEX,	// allow partition #index in given table
     WD_SM_ALLOW_ID,		// allow ID
-    WD_SM_ALLOW_ALL,		// allow all partitons
+    WD_SM_ALLOW_ALL,		// allow all partitions
 
     WD_SM_N_MODE,		// number of modes
 
@@ -176,7 +176,7 @@ typedef enum wd_pname_mode_t // partition name modes
     WD_PNAME_P_NAME,		// NAME if possible, 'P-'ID or 'P'NUM else
     WD_PNAME_NUM_INFO,		// NUM + '[INFO]'
 
-    WD_PNAME__N			// numper of supported formats
+    WD_PNAME__N			// number of supported formats
 
 } wd_pname_mode_t;
 
@@ -188,8 +188,11 @@ typedef enum wd_pname_mode_t // partition name modes
 typedef enum wd_patch_mode_t // patching modes
 {
     WD_PAT_DATA,		// raw data
-    WD_PAT_PART_TICKET,		// parititon TICKET (fake sign)
-    WD_PAT_PART_TMD,		// parititon TMP (fake sign)
+    WD_PAT_PART_DATA,		// raw partition data (not used in wiidisc)
+    WD_PAT_PART_TICKET,		// partition TICKET (-> fake sign)
+    WD_PAT_PART_TMD,		// partition TMD (-> fake sign)
+
+    WD_PAT__N			// number of valid codes
 
 } wd_patch_mode_t;
 
@@ -305,14 +308,14 @@ typedef int (*wd_file_func_t)
 typedef struct wd_select_item_t // a select sub item
 {
     wd_select_mode_t	mode;		// select mode
-    u32			table;		// partiton table
-    u32			part;		// partiton type or index
+    u32			table;		// partition table
+    u32			part;		// partition type or index
     
 } wd_select_item_t;
 
 //
 ///////////////////////////////////////////////////////////////////////////////
-///////////////		    struct wd_select_item_t		///////////////
+///////////////			struct wd_select_t		///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
 typedef struct wd_select_t // a selector
@@ -336,10 +339,10 @@ typedef struct wd_patch_item_t // patching data item
     wd_patch_mode_t	mode;		// patching mode
     u64			offset;		// offset
     u64			size;		// size
-    struct wd_part_t	* part;		// NULL or relevant partition
+    u32			part_index;	// NULL or index of relevant partition
     void		* data;		// NULL or pointer to data/filename
-    bool		data_alloced;	// true if data must be freed.
-    char		info[40];	// comment for dumps
+    bool		data_alloced;	// true if data must be freed
+    char		info[43];	// comment for dumps
 
 } wd_patch_item_t;
 
@@ -463,6 +466,7 @@ typedef struct wd_disc_t
     u32			fst_max_size;	// informative: maximal size value of all files
     u32			fst_dir_count;	// informative: number or directories in fst
     u32			fst_file_count;	// informative: number or real files in fst
+    bool		have_overlays;	// informative: overlayed partitions
     bool		patch_ptab_recommended;
 					// informative: patch ptab is recommended
 
@@ -894,8 +898,8 @@ wd_select_item_t * wd_append_select_item
 (
     wd_select_t		* select,	// valid pointer to a partition selector
     wd_select_mode_t	mode,		// select mode of new item
-    u32			table,		// partiton table of new item
-    u32			part		// partiton type or index of new item
+    u32			table,		// partition table of new item
+    u32			part		// partition type or index of new item
 );
 
 //-----------------------------------------------------------------------------
@@ -1218,7 +1222,7 @@ wd_patch_item_t * wd_insert_patch_alloc
 wd_patch_item_t * wd_insert_patch_ticket
 (
     wd_part_t		* part		// valid pointer to a disc partition
-)  ;
+);
 
 //-----------------------------------------------------------------------------
 
@@ -1262,6 +1266,17 @@ enumError wd_read_and_patch
     u64			offset,		// offset to read
     void		* dest_buf,	// destination buffer
     u32			count		// number of bytes to read
+);
+
+//-----------------------------------------------------------------------------
+
+void wd_calc_group_hashes
+(
+    const u8		* group_data,	// group data space
+    u8			* group_hash,	// group hash space
+    u8			* h3,		// NULL or H3 element to change
+    const u8		dirty[WII_GROUP_SECTORS]
+					// NULL or 'dirty sector' flags
 );
 
 //

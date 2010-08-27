@@ -481,6 +481,7 @@ are listed in alphabetic order:
     ISO      : A ISO image.
     WDF+ISO  : A ISO image shrinked with WDF.
     WDF      : Any other WDF file (not WBFS or ISO)
+    WIA      : A ISO image packed into the WIA (Wii ISO Archive). 
     OTHER    : Any other file
 
  Remark: The test for WBFS is poor and must be improved.
@@ -1233,7 +1234,6 @@ There are some hidden options implemented for testing:
     wwt and the other tools can handle files via open() (file mode) and via
     fopen() (stream mode). The option --io=value allows to control the method.
     Bit #0 is for opening WBFS and Bit #1 is for openening ISO images.
-    ('ISO' includes 'WDF-ISO')
 
     --io=0 : WBFS=open()  ISO=open()  **default**
     --io=1 : WBFS=fopen() ISO=open()

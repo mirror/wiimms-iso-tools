@@ -46,7 +46,7 @@ typedef struct Mix_t
     //--- secondary data
     
     SuperFile_t	* sf;		// superfile of iso image
-    bool	have_pat;	// true if partitons have ignore pattern
+    bool	have_pat;	// true if partitions have ignore pattern
     bool	free_data;	// true: free 'sf'
     wd_disc_t	* disc;		// valid disc pointer
     wd_part_t	* part;		// valid partition pointer
@@ -271,7 +271,7 @@ static void insert_mix ( MixParam_t * p, int pdepth, int mix_index )
     {
 	// setup free table
 	noTRACE("\t\t\t\t\t> SETUP\n");
-	const u32 start = WII_GOOD_UPDATE_PART_OFF / WII_SECTOR_SIZE;
+	const u32 start = WII_PART_OFF / WII_SECTOR_SIZE;
 	p->delta[mix_index] = start;
 	if (mix->a2off)
 	{
@@ -572,7 +572,7 @@ static void sector_mix ( MixParam_t * p, Mix_t * m1, Mix_t * m2 )
     if ( max_end < p->max_end )
  #endif
     {
-	const u32 start = WII_GOOD_UPDATE_PART_OFF / WII_SECTOR_SIZE;
+	const u32 start = WII_PART_OFF / WII_SECTOR_SIZE;
 	m1->dest_sector = start;
 	m2->dest_sector = start + delta;
 	p->max_end = max_end;
@@ -639,7 +639,7 @@ enumError cmd_mix()
 			? MAX_MIX_PERM
 			: WII_MAX_PARTITIONS;
 
-    u32 sector = WII_GOOD_UPDATE_PART_OFF / WII_SECTOR_SIZE;
+    u32 sector = WII_PART_OFF / WII_SECTOR_SIZE;
     u32 ptab_count[WII_MAX_PTAB];
 
     wd_header_t * source_dhead = 0;
@@ -950,7 +950,7 @@ enumError cmd_mix()
 		 src_fw = len;
 	}
 
-	printf("\nMix table (%d partitons, %s, total size=%llu MiB):\n\n",
+	printf("\nMix table (%d partitions, %s, total size=%llu MiB):\n\n",
 		    n_mix, overlay_info[overlay],
 		    sector* (u64)WII_SECTOR_SIZE / MiB );
 
@@ -1101,7 +1101,7 @@ enumError cmd_mix()
 	if (opt_split)
 	    SetupSplitFile(&fo.f,oft,opt_split_size);
 
-	err = SetupWriteSF(&fo,oft);
+	err = SetupWriteSF(&fo,oft,0);
 	if (err)
 	    goto abort;
 

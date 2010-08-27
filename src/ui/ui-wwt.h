@@ -74,6 +74,7 @@ typedef enum enumOptions
 	OPT_CHUNK_MODE,
 	OPT_CHUNK_SIZE,
 	OPT_MAX_CHUNKS,
+	OPT_NO_COMPRESS,
 	OPT_SIZE,
 	OPT_HSS,
 	OPT_WSS,
@@ -88,6 +89,7 @@ typedef enum enumOptions
 	OPT_OVERWRITE,
 	OPT_REMOVE,
 	OPT_WDF,
+	OPT_WIA,
 	OPT_ISO,
 	OPT_CISO,
 	OPT_WBFS,
@@ -106,7 +108,7 @@ typedef enum enumOptions
 	OPT_SORT,
 	OPT_LIMIT,
 
-	OPT__N_SPECIFIC, // == 64 
+	OPT__N_SPECIFIC, // == 66 
 
 	//----- global options -----
 
@@ -127,7 +129,7 @@ typedef enum enumOptions
 	OPT_TEST,
 	OPT_HOOK,
 
-	OPT__N_TOTAL // == 80
+	OPT__N_TOTAL // == 82
 
 } enumOptions;
 
@@ -174,6 +176,7 @@ typedef enum enumOptions
 //	OB_CHUNK_MODE		= 1llu << OPT_CHUNK_MODE,
 //	OB_CHUNK_SIZE		= 1llu << OPT_CHUNK_SIZE,
 //	OB_MAX_CHUNKS		= 1llu << OPT_MAX_CHUNKS,
+//	OB_NO_COMPRESS		= 1llu << OPT_NO_COMPRESS,
 //	OB_SIZE			= 1llu << OPT_SIZE,
 //	OB_HSS			= 1llu << OPT_HSS,
 //	OB_WSS			= 1llu << OPT_WSS,
@@ -188,6 +191,7 @@ typedef enum enumOptions
 //	OB_OVERWRITE		= 1llu << OPT_OVERWRITE,
 //	OB_REMOVE		= 1llu << OPT_REMOVE,
 //	OB_WDF			= 1llu << OPT_WDF,
+//	OB_WIA			= 1llu << OPT_WIA,
 //	OB_ISO			= 1llu << OPT_ISO,
 //	OB_CISO			= 1llu << OPT_CISO,
 //	OB_WBFS			= 1llu << OPT_WBFS,
@@ -242,6 +246,12 @@ typedef enum enumOptions
 //	OB_GRP_TIME		= OB_GRP_XTIME
 //				| OB_TIME,
 //
+//	OB_GRP_OUTMODE		= OB_WDF
+//				| OB_ISO
+//				| OB_CISO
+//				| OB_WBFS
+//				| OB_WIA,
+//
 //	OB_GRP_PATCH		= OB_ID
 //				| OB_NAME
 //				| OB_MODIFY
@@ -258,7 +268,8 @@ typedef enum enumOptions
 //				| OB_TRUNC
 //				| OB_CHUNK_MODE
 //				| OB_CHUNK_SIZE
-//				| OB_MAX_CHUNKS,
+//				| OB_MAX_CHUNKS
+//				| OB_NO_COMPRESS,
 //
 //	OB_CMD_VERSION		= OB_SECTIONS
 //				| OB_LONG,
@@ -374,10 +385,7 @@ typedef enum enumOptions
 //				| OB_DEST
 //				| OB_DEST2
 //				| OB_GRP_SPLIT_CHUNK
-//				| OB_WDF
-//				| OB_ISO
-//				| OB_CISO
-//				| OB_WBFS
+//				| OB_GRP_OUTMODE
 //				| OB_UNIQUE
 //				| OB_IGNORE
 //				| OB_REMOVE
@@ -563,12 +571,14 @@ typedef enum enumGetOpt
 	GO_CHUNK_MODE,
 	GO_CHUNK_SIZE,
 	GO_MAX_CHUNKS,
+	GO_NO_COMPRESS,
 	GO_HSS,
 	GO_WSS,
 	GO_RECOVER,
 	GO_NO_CHECK,
 	GO_REPAIR,
 	GO_NO_FREE,
+	GO_WIA,
 	GO_ITIME,
 	GO_MTIME,
 	GO_CTIME,
