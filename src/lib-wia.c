@@ -620,7 +620,10 @@ enumError SetupReadWIA
     struct SuperFile_t	* sf	// file to setup
 )
 {
-    PRINT("#W# SetupReadWIA(%p) wc=%p wbfs=%p\n",sf,sf->wc,sf->wbfs);
+    PRINT("#W# SetupReadWIA(%p) wc=%p wbfs=%p v=%s/%s\n",
+		sf, sf->wc, sf->wbfs,
+		PrintVersionWIA(0,0,WIA_VERSION_COMPATIBLE),
+		PrintVersionWIA(0,0,WIA_VERSION) );
     ASSERT(sf);
 
     if (sf->wia)
@@ -1233,10 +1236,10 @@ enumError SetupWriteWIA
 )
 {
     ASSERT(sf);
-    PRINT("#W# SetupWriteWIA(%p,%p) oft=%x, wia=%p, v=%s [%s]\n",
-	sf, src, sf->iod.oft, sf->wia,
-	PrintVersionWIA(0,0,WIA_VERSION),
-	PrintVersionWIA(0,0,WIA_VERSION_COMPATIBLE) );
+    PRINT("#W# SetupWriteWIA(%p,%p) oft=%x, wia=%p, v=%s/%s\n",
+		sf, src, sf->iod.oft, sf->wia,
+		PrintVersionWIA(0,0,WIA_VERSION_COMPATIBLE),
+		PrintVersionWIA(0,0,WIA_VERSION) );
 
     if (sf->wia)
 	return ERROR0(ERR_INTERNAL,0);

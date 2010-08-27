@@ -88,8 +88,8 @@
 #define WIA_MAGIC		"WIA\1"
 #define WIA_MAGIC_SIZE		4
 
-#define WIA_VERSION		0x0001000c  // AABBCCDD = A.BB | A.BB.CC
-#define WIA_VERSION_COMPATIBLE	0x0001000c  // if D != 0xff => append 'beta' D
+#define WIA_VERSION		0x000100ff  // AABBCCDD = A.BB | A.BB.CC
+#define WIA_VERSION_COMPATIBLE	0x000100ff  // if D != 0xff => append 'beta' D
 
 // the minimal size of holes in bytes that will be detected.
 
@@ -152,7 +152,7 @@ typedef struct wia_disc_t
 						// for a fast data access
 
     u64			disc_data_off;		// data of offset 0x80 .. 0x50000
-    u32			disc_data_size;		// compressed size if disc_data
+    u32			disc_data_size;		// compressed size of disc_data
 						// -> a list of wia_data_segment_t
 
 
