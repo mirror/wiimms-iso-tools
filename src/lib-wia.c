@@ -540,6 +540,9 @@ enumError ReadWIA
 
     memset(buf,0,count);
 
+    if (SIGINT_level>1)
+	return ERR_INTERRUPT;
+
     wia_controller_t * wia = sf->wia;
     if (!wia->is_valid)
 	return ERR_WIA_INVALID;
@@ -851,6 +854,7 @@ static wia_data_segment_t * calc_segments
 	seg = (wia_data_segment_t*)( seg->data + size );
     }
 
+
     //----- last terminating segment
 
     seg->offset = 0;
@@ -1111,6 +1115,9 @@ enumError WriteWIA
 		off < sf->max_virt_off ? " <" : "" );
     TRACE(" - off = %llx,%llx\n",(u64)sf->f.file_off,(u64)sf->f.max_off);
 
+    if (SIGINT_level>1)
+	return ERR_INTERRUPT;
+
     wia_controller_t * wia = sf->wia;
     const u64 off2 = off + count;
     const wd_patch_item_t * item = wia->memmap.item;
@@ -1293,10 +1300,14 @@ enumError SetupWriteWIA
     
     int pi;
     for ( pi = 0; pi < disc->n_part; pi++ )
-	if (!wdisc->part[pi].is_valid)
+    {
+	wd_part_t * wpart = wdisc->part + pi;
+	wd_load_part(wpart,true,true);
+	if (!wpart->is_valid)
 	    return ERROR0(ERR_NO_WIA_SUPPORT,
 			"No WIA support for discs with invalid partitions: %s\n",
 			src->f.fname );
+    }
 
     wia_part_t	    * part = calloc(disc->n_part,sizeof(wia_part_t));
     if (!part)
@@ -1307,7 +1318,6 @@ enumError SetupWriteWIA
     for ( pi = 0; pi < disc->n_part; pi++, part++ )
     {
 	wd_part_t * wpart	= wdisc->part + pi;
-	wd_load_part(wpart,true,true);
 
 	part->ptab_index	= wpart->ptab_index;
 	part->ptab_part_index	= wpart->ptab_part_index;

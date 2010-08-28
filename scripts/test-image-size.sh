@@ -1,5 +1,5 @@
 #!/bin/bash
-# (c) Wiimm, 2010-08-27
+# (c) Wiimm, 2010-08-28
 
 myname="${0##*/}"
 base=image-size
@@ -17,17 +17,21 @@ then
 
 	Each source is converted to several formats to find out the size of the
 	output. Output formats are: WDF, PLAIN ISO, CISO, WBFS, WIA.
-	Some output images are additonally compressed with bzip2 and rar.
+	Some output images are additonally compressed with bzip2, rar and 7z.
 
 	Usage:  $myname [option]... iso_file...
 
 	Options:
-	  --fast      : Enter fast mode
-	                => do only WDF and WIA tests and skip rar tests
+	  --fast      : Enter fast mode => do only WDF and WIA
+	  
 	  --bzip2     : enable bzip2 tests (default if tool 'bzip2' found)
 	  --no-bzip2  : disable bzip2 tests
 	  --rar       : enable rar tests (default if tool 'rar' found)
 	  --no-rar    : disable rar tests
+	  --7z        : enable 7z tests (default if tool '7z' found)
+	  --no-7z     : disable 7z tests
+	  --all       : shortcut for --bzip2 --rar --7z
+
 	  --diff      : enable "wir DIFF" to verify WIA archives
 
 	---EOT---
@@ -55,10 +59,12 @@ fi
 
 let HAVE_BZIP2=!$(which bzip2 >/dev/null 2>&1; echo $?)
 let HAVE_RAR=!$(which rar >/dev/null 2>&1; echo $?)
+let HAVE_7Z=!$(which 7z >/dev/null 2>&1; echo $?)
 
 OPT_FAST=0
-OPT_BZIP2=HAVE_BZIP2
-OPT_RAR=$HAVE_RAR
+OPT_BZIP2=0
+OPT_RAR=0
+OPT_7Z=0
 OPT_DIFF=0
 
 #
@@ -234,6 +240,12 @@ function test_suite()
 	    rar a -inul "$tempdir/a.wdf.rar" "$tempdir/a.wdf" || return 1
     fi
 
+    if ((OPT_7Z))
+    then
+	test_function $wdf_time a.wdf.7z "WDF + 7Z" \
+	    7z a -bd "$tempdir/a.wdf.7z" "$tempdir/a.wdf" || return 1
+    fi
+
     rm -f "$tempdir/a.wdf"*
 
 
@@ -255,6 +267,12 @@ function test_suite()
 	    rar a -inul "$tempdir/a.wdf.rar" "$tempdir/a.wdf" || return 1
     fi
 
+    if ((OPT_7Z))
+    then
+	test_function $wdf_time a.wdf.7z "WDF/DECRYPT + 7Z" \
+	    7z a -bd "$tempdir/a.wdf.7z" "$tempdir/a.wdf" || return 1
+    fi
+
     rm -f "$tempdir/a.wdf"*
 
 
@@ -274,6 +292,12 @@ function test_suite()
     then
 	test_function $wdf_time a.wia.rar "WIA + RAR" \
 	    rar a -inul "$tempdir/a.wia.rar" "$tempdir/a.wia" || return 1
+    fi
+
+    if ((OPT_7Z))
+    then
+	test_function $wdf_time a.wia.7z "WIA + 7Z" \
+	    7z a -bd "$tempdir/a.wia.7z" "$tempdir/a.wia" || return 1
     fi
 
     if ((OPT_DIFF))
@@ -302,6 +326,12 @@ function test_suite()
     then
 	test_function $wdf_time a.wia.rar "WIA/NOCOMPRESS + RAR" \
 	    rar a -inul "$tempdir/a.wia.rar" "$tempdir/a.wia" || return 1
+    fi
+
+    if ((OPT_7Z))
+    then
+	test_function $wdf_time a.wia.7z "WIA/NOCOMPRESS + 7Z" \
+	    7z a -bd "$tempdir/a.wia.7z" "$tempdir/a.wia" || return 1
     fi
 
     if ((OPT_DIFF))
@@ -334,6 +364,12 @@ function test_suite()
 		rar a -inul "$tempdir/a.iso.rar" "$tempdir/a.iso" || return 1
 	fi
 
+	if ((OPT_7Z))
+	then
+	    test_function iso_time a.iso.7z "PLAIN ISO + 7Z" \
+		7z a -bd "$tempdir/a.iso.7z" "$tempdir/a.iso" || return 1
+	fi
+
 	rm -f "$tempdir/a.iso"*
     fi
 
@@ -347,7 +383,6 @@ function test_suite()
 
 	rm -f "$tempdir/a.ciso"*
     fi
-
 
 
     #----- wbfs
@@ -390,6 +425,8 @@ function test_suite()
 #------------------------------------------------------------------------------
 # main loop
 
+opts=0
+
 while (($#))
 do
     src="$1"
@@ -398,45 +435,78 @@ do
     if [[ $src == --fast ]]
     then
 	OPT_FAST=1
-	OPT_RAR=0
-	printf "\n## --fast : includes --no-rar\n"
+	((opts++)) || printf "\n"
+	printf "## --fast : Do only WDF and WIA tests\n"
 	continue
     fi
 
-    if [[ $src == --bzip2 ]]
+    if [[ $src == --bzip2 || $src == --bz2 ]]
     then
 	OPT_BZIP2=$HAVE_BZIP2
-	printf "\n## --bzip2 : bzip2 tests enabled\n"
+	((opts++)) || printf "\n"
+	printf "## --bzip2 : bzip2 tests enabled\n"
 	continue
     fi
 
-    if [[ $src == --no-bzip2 || $src == --bzip2 ]]
+    if [[ $src == --no-bzip2 || $src == --nobzip2 || $src == --no-bz2 || $src == --nobz2 ]]
     then
 	OPT_BZIP2=0
-	printf "\n## --no-bzip2 : bzip2 tests disabled\n"
+	((opts++)) || printf "\n"
+	printf "## --no-bzip2 : bzip2 tests disabled\n"
 	continue
     fi
 
     if [[ $src == --rar ]]
     then
 	OPT_RAR=$HAVE_RAR
-	printf "\n## --rar : rar tests enabled\n"
+	((opts++)) || printf "\n"
+	printf "## --rar : rar tests enabled\n"
 	continue
     fi
 
-    if [[ $src == --no-rar || $src == --rar ]]
+    if [[ $src == --no-rar || $src == --norar ]]
     then
 	OPT_RAR=0
-	printf "\n## --no-rar : rar tests disabled\n"
+	((opts++)) || printf "\n"
+	printf "## --no-rar : rar tests disabled\n"
+	continue
+    fi
+
+    if [[ $src == --7z ]]
+    then
+	OPT_7Z=$HAVE_7Z
+	((opts++)) || printf "\n"
+	printf "## --7z : 7z tests enabled\n"
+	continue
+    fi
+
+    if [[ $src == --no-7z || $src == --no7z ]]
+    then
+	OPT_7Z=0
+	((opts++)) || printf "\n"
+	printf "## --no-7z : 7z tests disabled\n"
+	continue
+    fi
+
+    if [[ $src == --all ]]
+    then
+	OPT_BZIP2=$HAVE_BZIP2
+	OPT_RAR=$HAVE_RAR
+	OPT_7Z=$HAVE_7Z
+	((opts++)) || printf "\n"
+	printf "## --all : shortcut for --bzip2 --rar --7z\n"
 	continue
     fi
 
     if [[ $src == --diff ]]
     then
 	OPT_DIFF=1
-	printf "\n## --rar : 'wit DIFF' tests enabled\n"
+	((opts++)) || printf "\n"
+	printf "## --rar : 'wit DIFF' tests enabled\n"
 	continue
     fi
+
+    opts=0
 
     total_start=$(get_msec)
     test_suite "$src"

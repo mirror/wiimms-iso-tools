@@ -1,6 +1,6 @@
 wit v@@VERSION@@ r@@REV-NEXT@@ - @@@@-@@-@@
 
- - wit MIX: Forgotten options: --sio --wdf --ciso --wbfs
+ - wit MIX: Forgotten options: --iso --wdf --ciso --wbfs
  - wit ID6 --long: Print disc title too.
  - wwt ADD: Default is now: --enc encrypt
  - wit DIFF: Will patch the partiton tables for scrubbed diff, because
@@ -9,7 +9,7 @@ wit v@@VERSION@@ r@@REV-NEXT@@ - @@@@-@@-@@
    WIA will decrypt partitions and compress the data in chunks with bzip2.
    Because of the chunks the archive allows random read access to view
    only parts of the image. The option --no-compress disables compressing.
-   The result is than very effective packable by all compression tools.
+   The resulting image is very effective packable by all compression tools.
 
 Known bugs:
 
