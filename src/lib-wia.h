@@ -88,8 +88,8 @@
 #define WIA_MAGIC		"WIA\1"
 #define WIA_MAGIC_SIZE		4
 
-#define WIA_VERSION		0x000100ff  // AABBCCDD = A.BB | A.BB.CC
-#define WIA_VERSION_COMPATIBLE	0x000100ff  // if D != 0xff => append 'beta' D
+#define WIA_VERSION		0x00020000  // AABBCCDD = A.BB | A.BB.CC
+#define WIA_VERSION_COMPATIBLE	0x00020000  // if D != 0xff => append 'beta' D
 
 // the minimal size of holes in bytes that will be detected.
 
@@ -118,19 +118,19 @@ typedef struct wia_file_head_t
     // If additional info is needed, others will be expanded.
     // All values are stored in network byte order (big endian)
 
-    char		magic[WIA_MAGIC_SIZE];	// WIA_MAGIC, what else!
+    char		magic[WIA_MAGIC_SIZE];	// 0x00: WIA_MAGIC, what else!
 
-    u32			version;		// WIA_VERSION
-    u32			version_compatible;	// compatible down to
+    u32			version;		// 0x04: WIA_VERSION
+    u32			version_compatible;	// 0x08: compatible down to
 
-    u32			disc_size;		// size of wia_disc_t
-    sha1_hash		disc_hash;		// hash of wia_disc_t
+    u32			disc_size;		// 0x0c: size of wia_disc_t
+    sha1_hash		disc_hash;		// 0x10: hash of wia_disc_t
 
-    u64			iso_size;		// size of ISO image
-    u64			file_size;		// size of WIA file
-    sha1_hash		file_head_hash;		// hash of wia_file_head_t
+    u64			iso_file_size;		// 0x24: size of ISO image
+    u64			wia_file_size;		// 0x2c: size of WIA file
+    sha1_hash		file_head_hash;		// 0x34: hash of wia_file_head_t
 
-} __attribute__ ((packed)) wia_file_head_t;
+} __attribute__ ((packed)) wia_file_head_t;	// 0x48 = 72 = sizeof(wia_file_head_t)
 
 //
 ///////////////////////////////////////////////////////////////////////////////
@@ -143,40 +143,40 @@ typedef struct wia_disc_t
 
     //--- base infos
 
-    u32			compression;		// wia_compression_t
+    u32			compression;		// 0x00: wia_compression_t
 
 
     //--- disc header, first WII_PART_OFF bytes of a disc
 
-    wd_header_128_t	dhead;			// 128 bytes of disc header
-						// for a fast data access
+    wd_header_128_t	dhead;			// 0x04: 128 bytes of disc header
+						//	 for a fast data access
 
-    u64			disc_data_off;		// data of offset 0x80 .. 0x50000
-    u32			disc_data_size;		// compressed size of disc_data
-						// -> a list of wia_data_segment_t
+    u64			disc_data_off;		// 0x84: data of offset 0x80 .. 0x50000
+    u32			disc_data_size;		// 0x8c: compressed size of disc_data
+						//	 -> a list of wia_data_segment_t
 
 
     //--- non specific raw disc data
     //--- not used yet, but reserved for future extensions
 
-    u32			n_raw_data;		// number of wia_raw_data_t elements 
-    u64			raw_data_off;		// offset of wia_raw_data_t[n_raw_data]
-    sha1_hash		raw_data_hash;		// hash of wia_raw_data_t[n_raw_data]
+    u32			n_raw_data;		// 0x90: number of wia_raw_data_t elements 
+    u64			raw_data_off;		// 0x94: offset of wia_raw_data_t[n_raw_data]
+    sha1_hash		raw_data_hash;		// 0x9c: hash of wia_raw_data_t[n_raw_data]
 
 
     //--- partition data
 
-    u32			n_part;			// number or partitions
-    u32			part_t_size;		// size of 1 element of wia_part_t
+    u32			n_part;			// 0xb0: number or partitions
+    u32			part_t_size;		// 0xb4: size of 1 element of wia_part_t
 
-    u64			part_off;		// file offset wia_part_t[n_part]
-    sha1_hash		part_hash;		// hash of wia_part_t[n_part]
+    u64			part_off;		// 0xb8: file offset wia_part_t[n_part]
+    sha1_hash		part_hash;		// 0xc0: hash of wia_part_t[n_part]
 
-    u64			part_info_off;		// file offset of all partition info
-    u32			part_info_size;		// size of all partition info
-    sha1_hash		part_info_hash;		// hash of all partition info
+    u64			part_info_off;		// 0xd4: file offset of all partition info
+    u32			part_info_size;		// 0xdc: size of all partition info
+    sha1_hash		part_info_hash;		// 0xe0: hash of all partition info
 
-} __attribute__ ((packed)) wia_disc_t;
+} __attribute__ ((packed)) wia_disc_t;		// 0xf4 = 244 = sizeof(wia_disc_t)
 
 //
 ///////////////////////////////////////////////////////////////////////////////
@@ -189,29 +189,29 @@ typedef struct wia_part_t
 
     //--- partition info
 
-    u32			ptab_index;		// zero based index of ptab
-    u32			ptab_part_index;	// zero based index within ptab
-    u32			part_type;		// partition type
-    u64			part_off;		// disc offset of partition data
-    u8			part_key[WII_KEY_SIZE];	// partition key => build aes key
+    u32			ptab_index;		// 0x00: zero based index of ptab
+    u32			ptab_part_index;	// 0x04: zero based index within ptab
+    u32			part_type;		// 0x08: partition type
+    u64			part_off;		// 0x0c: disc offset of partition data
+    u8			part_key[WII_KEY_SIZE];	// 0x14: partition key => build aes key
 
     //--- data sectors
 
-    u32			first_sector;		// first data sector
-    u32			n_sectors;		// number of sectors
-    u32			n_groups;		// number of sector groups
+    u32			first_sector;		// 0x24: first data sector
+    u32			n_sectors;		// 0x28: number of sectors
+    u32			n_groups;		// 0x2c: number of sector groups
 
     //--- all offsets are relative to wia_disc_t::part_info_off
 
-    u32			ticket_off;		// part_info offset of partition ticket
-    u32			tmd_off;		// part_info offset of partition tmd
-    u32			tmd_size;		// size of tmd
-    u32			cert_off;		// part_info offset of partition cert
-    u32			cert_size;		// size of cert
-    u32			h3_off;			// part_info offset of partition h3
-    u32			group_off;		// part_info offset of wia_group_t[n_groups]
+    u32			ticket_off;		// 0x30: part_info offset of partition ticket
+    u32			tmd_off;		// 0x34: part_info offset of partition tmd
+    u32			tmd_size;		// 0x38: size of tmd
+    u32			cert_off;		// 0x3c: part_info offset of partition cert
+    u32			cert_size;		// 0x40: size of cert
+    u32			h3_off;			// 0x44: part_info offset of partition h3
+    u32			group_off;		// 0x48: p.i. offset of wia_group_t[n_groups]
 
-} __attribute__ ((packed)) wia_part_t;
+} __attribute__ ((packed)) wia_part_t;		// 0x4c = 76 = sizeof(wia_part_t)
 
 //
 ///////////////////////////////////////////////////////////////////////////////
@@ -223,11 +223,11 @@ typedef struct wia_raw_data_t
 {
     // All values are stored in network byte order (big endian)
 
-    u32			file_off4;		// file offset/4 of raw data
-    u32			iso_off4;		// iso offset/4 of raw dat
-    u32			data_size;		// size of raw data
+    u32			file_off4;		// 0x00: file offset/4 of raw data
+    u32			iso_off4;		// 0x04: iso offset/4 of raw dat
+    u32			data_size;		// 0x08: size of raw data
 
-} __attribute__ ((packed)) wia_raw_data_t;
+} __attribute__ ((packed)) wia_raw_data_t;	// 0x0c = 12 = sizeof(wia_raw_data_t)
 
 //
 ///////////////////////////////////////////////////////////////////////////////
@@ -238,10 +238,10 @@ typedef struct wia_group_t
 {
     // All values are stored in network byte order (big endian)
 
-    u32			data_off4;		// file offset/4 of wia_data_t
-    u32			data_size;		// total wia_data_t size
+    u32			data_off4;		// 0x00: file offset/4 of wia_data_t
+    u32			data_size;		// 0x04: total wia_data_t size
 
-} __attribute__ ((packed)) wia_group_t;
+} __attribute__ ((packed)) wia_group_t;		// 0x08 = 8 = sizeof(wia_group_t)
 
 //
 ///////////////////////////////////////////////////////////////////////////////
@@ -252,10 +252,10 @@ typedef struct wia_exception_t
 {
     // All values are stored in network byte order (big endian)
 
-    u16			offset;			// sector offset of hash
-    sha1_hash		hash;			// hash value
+    u16			offset;			// 0x00: sector offset of hash
+    sha1_hash		hash;			// 0x02: hash value
 
-} __attribute__ ((packed)) wia_exception_t;
+} __attribute__ ((packed)) wia_exception_t;	// 0x16 = 22 = sizeof(wia_exception_t)
 
 //
 ///////////////////////////////////////////////////////////////////////////////
@@ -266,11 +266,11 @@ typedef struct wia_data_segment_t
 {
     // All values are stored in network byte order (big endian)
 
-    u32			offset;			// offset relative to group
-    u32			size;			// size of 'data'
-    u8			data[0];		// data
+    u32			offset;			// 0x00: offset relative to group
+    u32			size;			// 0x04: size of 'data'
+    u8			data[0];		// 0x08: data
 
-} __attribute__ ((packed)) wia_data_segment_t;
+} __attribute__ ((packed)) wia_data_segment_t;	// 0x08 = 8 = sizeof(wia_data_segment_t)
 
 //
 ///////////////////////////////////////////////////////////////////////////////
@@ -279,16 +279,17 @@ typedef struct wia_data_segment_t
 
 typedef struct wia_data_t
 {
-    u32			seg_offset;		// offset of first segment
-    u16			n_exceptions;		// number of hash exceptions
-    wia_exception_t	exception[0];		// hash exceptions
+    u32			seg_offset;		// 0x00: offset of first segment
+    u16			n_exceptions;		// 0x04: number of hash exceptions
+    wia_exception_t	exception[0];		// 0x06: hash exceptions
 
-//  wia_data_segment_t	data[0];		// list of data segments
-//  wia_data_segment_t	term;			// terminating data segment (0,0)
+//  wia_data_segment_t	data[0];		// ----: list of data segments
+//  wia_data_segment_t	term;			// ----: terminating data segment (0,0)
 
-//  sha1_hash		hash;			// a hash value, only for uncompressed data
+//  sha1_hash		hash;			// ----: a hash value
+						//	 only for uncompressed data
 
-} __attribute__ ((packed)) wia_data_t;
+} __attribute__ ((packed)) wia_data_t;		// 0x06 = 6 = sizeof(wia_data_t)
 
 //
 ///////////////////////////////////////////////////////////////////////////////
@@ -302,7 +303,6 @@ typedef struct wia_controller_t
     wia_file_head_t	fhead;		// header in local endian
     wia_disc_t		disc;		// disc data
 
-    wd_ptab_entry_t	* pte;		// collected copy of all partion entries
     wia_part_t		* part;		// partition data
     u8			* part_info;	// partition info of all partitions
     u32			part_info_size;	// size of partition info

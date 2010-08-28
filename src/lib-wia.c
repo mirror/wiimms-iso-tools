@@ -47,7 +47,6 @@ void ResetWIA
 {
     if (wia)
     {
-	free(wia->pte);
 	free(wia->part);
 	free(wia->part_info);
 	wd_reset_patch(&wia->memmap);
@@ -458,10 +457,10 @@ static enumError read_part_data
     if (!data_size)
 	return ERR_OK;
 
-    if ( data_off + data_size > wia->fhead.file_size )
+    if ( data_off + data_size > wia->fhead.wia_file_size )
 	return ERROR0(ERR_WIA_INVALID,
 		"Invalid WIA data offset: %llx (max=%llx): %s\n",
-		data_off + data_size, wia->fhead.file_size, sf->f.fname );
+		data_off + data_size, wia->fhead.wia_file_size, sf->f.fname );
 
     if ( data_size > sizeof(wia->iobuf) )
 	return ERROR0(ERR_WIA_INVALID,
@@ -676,13 +675,13 @@ enumError SetupReadWIA
 
     //----- check file size
 
-    if ( sf->f.st.st_size < fhead->file_size )
+    if ( sf->f.st.st_size < fhead->wia_file_size )
 	SetupSplitFile(&sf->f,OFT_WIA,0);
 
-    if ( sf->f.st.st_size != fhead->file_size )
+    if ( sf->f.st.st_size != fhead->wia_file_size )
 	return ERROR0(ERR_WIA_INVALID,
 		"Wrong file size %llu (%llu expected): %s\n",
-		(u64)sf->f.st.st_size, fhead->file_size, sf->f.fname );
+		(u64)sf->f.st.st_size, fhead->wia_file_size, sf->f.fname );
 
 
     //----- read and check disc info
@@ -739,9 +738,8 @@ enumError SetupReadWIA
 	return ERROR0(ERR_WIA_INVALID,
 	    "Hash error for partition header: %s\n",sf->f.fname);
 
-    wia->pte  = calloc(disc->n_part,sizeof(wd_ptab_entry_t));
     wia->part = calloc(disc->n_part,sizeof(wia_part_t));
-    if ( !wia->pte || !wia->part )
+    if (!wia->part)
 	OUT_OF_MEMORY;
 
     int ip;
@@ -756,10 +754,6 @@ enumError SetupReadWIA
 	noTRACE("PT %u.%u, %s\n",
 		part->ptab_index, part->ptab_part_index,
 		wd_print_part_name(0,0,part->part_type,WD_PNAME_NUM_INFO) );
-
-	wd_ptab_entry_t * pte = wia->pte + ip;
-	pte->off4  = htonl(part->part_off >> 2);
-	pte->ptype = htonl(part->part_type);
 
 	src += disc->part_t_size;
     }
@@ -787,6 +781,7 @@ enumError SetupReadWIA
 
     //----- finish setup
 
+    sf->file_size = fhead->iso_file_size;
     wia->is_valid = true;
     SetupMemMap(wia);
     SetupIOD(sf,OFT_WIA,OFT_WIA);
@@ -1277,7 +1272,7 @@ enumError SetupWriteWIA
     fhead->magic[3]++; // magic is invalid now
     fhead->version		= WIA_VERSION;
     fhead->version_compatible	= WIA_VERSION_COMPATIBLE;
-    fhead->iso_size		= src->file_size;
+    fhead->iso_file_size	= src->file_size;
 
 
     //----- setup disc info
@@ -1303,21 +1298,16 @@ enumError SetupWriteWIA
 			"No WIA support for discs with invalid partitions: %s\n",
 			src->f.fname );
 
-    wd_ptab_entry_t * pte  = calloc(disc->n_part,sizeof(wd_ptab_entry_t));
     wia_part_t	    * part = calloc(disc->n_part,sizeof(wia_part_t));
-    if ( !pte || !part )
+    if (!part)
 	OUT_OF_MEMORY;
-    wia->pte  = pte;
     wia->part = part;
 
     u32 part_info_size = 0;
-    for ( pi = 0; pi < disc->n_part; pi++, part++, pte++ )
+    for ( pi = 0; pi < disc->n_part; pi++, part++ )
     {
 	wd_part_t * wpart	= wdisc->part + pi;
 	wd_load_part(wpart,true,true);
-
-	pte->off4		= htonl(wpart->part_off4);
-	pte->ptype		= htonl(wpart->part_type);
 
 	part->ptab_index	= wpart->ptab_index;
 	part->ptab_part_index	= wpart->ptab_part_index;
@@ -1489,7 +1479,7 @@ enumError TermWriteWIA
     fhead->version		= WIA_VERSION;
     fhead->version_compatible	= WIA_VERSION_COMPATIBLE;
     fhead->disc_size		= sizeof(wia_disc_t);
-    fhead->file_size		= sf->f.max_off;
+    fhead->wia_file_size	= sf->f.max_off;
 
     SHA1((u8*)disc,sizeof(*disc),fhead->disc_hash);
     wia_hton_file_head(fhead,fhead);
@@ -1546,8 +1536,11 @@ void wia_ntoh_file_head ( wia_file_head_t * dest, const wia_file_head_t * src )
 
     dest->version		= ntohl (src->version);
     dest->version_compatible	= ntohl (src->version_compatible);
+
     dest->disc_size		= ntohl (src->disc_size);
-    dest->file_size		= ntoh64(src->file_size);
+
+    dest->iso_file_size		= ntoh64(src->iso_file_size);
+    dest->wia_file_size		= ntoh64(src->wia_file_size);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -1563,8 +1556,11 @@ void wia_hton_file_head ( wia_file_head_t * dest, const wia_file_head_t * src )
 
     dest->version		= htonl (src->version);
     dest->version_compatible	= htonl (src->version_compatible);
+
     dest->disc_size		= htonl (src->disc_size);
-    dest->file_size		= hton64(src->file_size);
+
+    dest->iso_file_size		= hton64(src->iso_file_size);
+    dest->wia_file_size		= hton64(src->wia_file_size);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -1580,6 +1576,9 @@ void wia_ntoh_disc ( wia_disc_t * dest, const wia_disc_t * src )
 	memcpy(dest,src,sizeof(*dest));
 
     dest->compression		= ntohl (src->compression);
+
+    dest->disc_data_off		= ntoh64(src->disc_data_off);
+    dest->disc_data_size	= ntohl (src->disc_data_size);
 
     dest->n_raw_data		= ntohl (src->n_raw_data);
     dest->raw_data_off		= ntoh64(src->raw_data_off);
@@ -1603,6 +1602,9 @@ void wia_hton_disc ( wia_disc_t * dest, const wia_disc_t * src )
 	memcpy(dest,src,sizeof(*dest));
 
     dest->compression		= htonl (src->compression);
+
+    dest->disc_data_off		= hton64(src->disc_data_off);
+    dest->disc_data_size	= htonl (src->disc_data_size);
 
     dest->n_raw_data		= htonl (src->n_raw_data);
     dest->raw_data_off		= hton64(src->raw_data_off);

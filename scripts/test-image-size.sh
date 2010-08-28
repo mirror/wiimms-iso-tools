@@ -1,5 +1,5 @@
 #!/bin/bash
-# (c) Wiimm, 2010-08-25
+# (c) Wiimm, 2010-08-27
 
 myname="${0##*/}"
 base=image-size
@@ -159,11 +159,15 @@ function test_function()
     info="$3"
     shift 3
     print_stat " > %s" "$info"
+    #-----
+    sync
+    sleep 1
     start=$(get_msec)
     #echo; echo "$@"
     "$@" || return 1
+    sync
     let stop=$(get_msec)+basetime
-    #---
+    #-----
     size="$(stat -c%s "$tempdir/$dest")"
     ((basesize)) || basesize=$size
     let perc=size*10000/basesize
@@ -200,6 +204,14 @@ function test_suite()
 
     name="$($WIT ID6 --long --source "$1")"
     name="$( echo "$name" | sed 's/  /, /')"
+
+
+    #----- START, read source once
+
+    basesize=0
+    test_function 0 b.wdf "WDF/start" \
+        $WIT -q cp "$1" --wdf "$tempdir/b.wdf" || return 1
+    rm -f "$tempdir/time.log"
 
 
     #----- wdf

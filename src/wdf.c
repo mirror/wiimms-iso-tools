@@ -708,20 +708,20 @@ enumError wia_dump ( FILE *f, File_t *df, ccp fname )
 		"Size of disc section",
 		wia->fhead.disc_size, sizeof(wia_disc_t) );
 
-    if (wia->fhead.iso_size)
+    if (wia->fhead.iso_file_size)
     {
 	fprintf(f,"    %-23s: %10llu\n",
 		"ISO image size",
-		wia->fhead.iso_size );
+		wia->fhead.iso_file_size );
 	fprintf(f,"    %-23s: %10llu  %4.1f%%\n",
 		"Total file size",
-		wia->fhead.file_size,
-		100.0 * wia->fhead.file_size / wia->fhead.iso_size );
+		wia->fhead.wia_file_size,
+		100.0 * wia->fhead.wia_file_size / wia->fhead.iso_file_size );
     }
     else
 	fprintf(f,"    %-23s: %10llu\n",
 		"Total file size",
-		wia->fhead.file_size );
+		wia->fhead.wia_file_size );
 
     //-------------------------
 
