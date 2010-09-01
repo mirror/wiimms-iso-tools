@@ -88,8 +88,8 @@
 #define WIA_MAGIC		"WIA\1"
 #define WIA_MAGIC_SIZE		4
 
-#define WIA_VERSION		0x00020000  // AABBCCDD = A.BB | A.BB.CC
-#define WIA_VERSION_COMPATIBLE	0x00020000  // if D != 0xff => append 'beta' D
+#define WIA_VERSION		0x00030000  // AABBCCDD = A.BB | A.BB.CC
+#define WIA_VERSION_COMPATIBLE	0x00030000  // if D != 0xff => append 'beta' D
 
 // the minimal size of holes in bytes that will be detected.
 
@@ -143,40 +143,41 @@ typedef struct wia_disc_t
 
     //--- base infos
 
-    u32			compression;		// 0x00: wia_compression_t
+    u32			disc_type;		// 0x00: wd_disc_type_t
+    u32			compression;		// 0x04: wia_compression_t
 
 
     //--- disc header, first WII_PART_OFF bytes of a disc
 
-    wd_header_128_t	dhead;			// 0x04: 128 bytes of disc header
+    wd_header_128_t	dhead;			// 0x08: 128 bytes of disc header
 						//	 for a fast data access
 
-    u64			disc_data_off;		// 0x84: data of offset 0x80 .. 0x50000
-    u32			disc_data_size;		// 0x8c: compressed size of disc_data
+    u64			disc_data_off;		// 0x88: data of offset 0x80 .. 0x50000
+    u32			disc_data_size;		// 0x90: compressed size of disc_data
 						//	 -> a list of wia_data_segment_t
 
 
     //--- non specific raw disc data
     //--- not used yet, but reserved for future extensions
 
-    u32			n_raw_data;		// 0x90: number of wia_raw_data_t elements 
-    u64			raw_data_off;		// 0x94: offset of wia_raw_data_t[n_raw_data]
-    sha1_hash		raw_data_hash;		// 0x9c: hash of wia_raw_data_t[n_raw_data]
+    u32			n_raw_data;		// 0x94: number of wia_raw_data_t elements 
+    u64			raw_data_off;		// 0x98: offset of wia_raw_data_t[n_raw_data]
+    sha1_hash		raw_data_hash;		// 0xa0: hash of wia_raw_data_t[n_raw_data]
 
 
     //--- partition data
 
-    u32			n_part;			// 0xb0: number or partitions
-    u32			part_t_size;		// 0xb4: size of 1 element of wia_part_t
+    u32			n_part;			// 0xb4: number or partitions
+    u32			part_t_size;		// 0xb8: size of 1 element of wia_part_t
 
-    u64			part_off;		// 0xb8: file offset wia_part_t[n_part]
-    sha1_hash		part_hash;		// 0xc0: hash of wia_part_t[n_part]
+    u64			part_off;		// 0xbc: file offset wia_part_t[n_part]
+    sha1_hash		part_hash;		// 0xc4: hash of wia_part_t[n_part]
 
-    u64			part_info_off;		// 0xd4: file offset of all partition info
-    u32			part_info_size;		// 0xdc: size of all partition info
-    sha1_hash		part_info_hash;		// 0xe0: hash of all partition info
+    u64			part_info_off;		// 0xd8: file offset of all partition info
+    u32			part_info_size;		// 0xe0: size of all partition info
+    sha1_hash		part_info_hash;		// 0xe4: hash of all partition info
 
-} __attribute__ ((packed)) wia_disc_t;		// 0xf4 = 244 = sizeof(wia_disc_t)
+} __attribute__ ((packed)) wia_disc_t;		// 0xf8 = 248 = sizeof(wia_disc_t)
 
 //
 ///////////////////////////////////////////////////////////////////////////////
@@ -308,8 +309,9 @@ typedef struct wia_controller_t
     u32			part_info_size;	// size of partition info
 
     wd_patch_t		memmap;		// memory mapping
-    bool		encrypt;	// true: encrypt dats if reading
+    bool		encrypt;	// true: encrypt data if reading
     bool		is_valid;	// true: WIA header is valid
+    bool		is_gc;		// true: is a GameCube image
 
     u64			write_data_off;	// file offset for the next data
 
@@ -362,7 +364,9 @@ bool IsWIA
 (
     const void		* data,		// data to check
     size_t		data_size,	// size of data
-    void		* id6_result	// not NULL: store ID6 (6 bytes without null term)
+    void		* id6_result,	// not NULL: store ID6 (6 bytes without null term)
+    wd_disc_type_t	* disc_type,	// not NULL: store disc type
+    wia_compression_t	* compression	// not NULL: store compression
 );
 
 //-----------------------------------------------------------------------------

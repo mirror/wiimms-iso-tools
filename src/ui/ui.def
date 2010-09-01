@@ -345,28 +345,29 @@
 	" within TMD. The format is @'HIGH:LOW'@ or @'HIGH-LOW'@ or @'LOW'@." \
 	" If only @LOW@ is set than @HIGH@ is assumed as 1 (standard IOS)." )
 
-#:def_opt( "RM_FILES", "rm-files", "CP", \
+#:def_opt( "RM_FILES", "rm-files|rm-file|rmfiles|rmfile", "CP", \
 	"ruleset", \
 	"This patching option defines filter rules to remove real files and" \
 	" directories from the FST of the DATA partition. $Fake signing$ of" \
-	" the TMD is necessary. @--rm-files@ is processed before" \
-	" {--zero-files} and {--ignore-files}." )
+	" the TMD is necessary. The processing order of file options is:" \
+	" {--rm-files --zero-files --ignore-files}." )
 
-#:def_opt( "ZERO_FILES", "zero-files", "CP", \
+#:def_opt( "ZERO_FILES", "zero-files|zero-file|zerofiles|zerofile", "CP", \
 	"ruleset", \
 	"This patching option defines filter rules to zero (set size to zero)" \
 	" real files of the FST of the DATA partition. $Fake signing$ of the" \
-	" TMD is necessary. @--zero-files@ is processed after {--rm-files} and" \
-	" before {--ignore-files}." )
+	" TMD is necessary. The processing order of file options is:" \
+	" {--rm-files --zero-files --ignore-files}." )
 
-#:def_opt( "IGNORE_FILES", "ignore-files", "CP", \
+#:def_opt( "IGNORE_FILES", "ignore-files|ignore-file|ignorefiles|ignorefile", "CP", \
 	"ruleset", \
 	"This option defines filter rules to ignore real files of the FST of" \
 	" the DATA partition. $Fake signing$ is not necessary, but the" \
 	" partition becomes invalid, because the content of some files is not" \
 	" copied. If such file is accessed the Wii will halt immediately," \
-	" because the verification of the check sum calculation fails." \
-	" @--ignore-files@ is processed after {--rm-files} and {--zero-files}." )
+	" because the verification of the check sum calculation fails. The" \
+	" processing order of file options is: {--rm-files --zero-files" \
+	" --ignore-files}." )
 
 #:def_opt( "OVERLAY", "overlay", "C", \
 	"", \
@@ -3233,28 +3234,29 @@
 	" within TMD. The format is @'HIGH:LOW'@ or @'HIGH-LOW'@ or @'LOW'@." \
 	" If only @LOW@ is set than @HIGH@ is assumed as 1 (standard IOS)." )
 
-#:def_opt( "RM_FILES", "rm-files", "CP", \
+#:def_opt( "RM_FILES", "rm-files|rm-file|rmfiles|rmfile", "CP", \
 	"ruleset", \
 	"This patching option defines filter rules to remove real files and" \
 	" directories from the FST of the DATA partition. $Fake signing$ of" \
-	" the TMD is necessary. @--rm-files@ is processed before" \
-	" {--zero-files} and {--ignore-files}." )
+	" the TMD is necessary. The processing order of file options is:" \
+	" {--rm-files --zero-files --ignore-files}." )
 
-#:def_opt( "ZERO_FILES", "zero-files", "CP", \
+#:def_opt( "ZERO_FILES", "zero-files|zero-file|zerofiles|zerofile", "CP", \
 	"ruleset", \
 	"This patching option defines filter rules to zero (set size to zero)" \
 	" real files of the FST of the DATA partition. $Fake signing$ of the" \
-	" TMD is necessary. @--zero-files@ is processed after {--rm-files} and" \
-	" before {--ignore-files}." )
+	" TMD is necessary. The processing order of file options is:" \
+	" {--rm-files --zero-files --ignore-files}." )
 
-#:def_opt( "IGNORE_FILES", "ignore-files", "CP", \
+#:def_opt( "IGNORE_FILES", "ignore-files|ignore-file|ignorefiles|ignorefile", "CP", \
 	"ruleset", \
 	"This option defines filter rules to ignore real files of the FST of" \
 	" the DATA partition. $Fake signing$ is not necessary, but the" \
 	" partition becomes invalid, because the content of some files is not" \
 	" copied. If such file is accessed the Wii will halt immediately," \
-	" because the verification of the check sum calculation fails." \
-	" @--ignore-files@ is processed after {--rm-files} and {--zero-files}." )
+	" because the verification of the check sum calculation fails. The" \
+	" processing order of file options is: {--rm-files --zero-files" \
+	" --ignore-files}." )
 
 #:def_opt( "ENC", "enc", "CP", \
 	"encoding", \

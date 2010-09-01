@@ -364,15 +364,7 @@ enumError XCloseFile ( XPARM File_t * f, bool remove_file )
 	}
     }
 
-    f->is_caching = false;
-    while (f->cache)
-    {
-	FileCache_t * ptr = f->cache;
-	f->cache = ptr->next;
-	free((char*)ptr->data);
-	free(ptr);
-    }
-    f->cur_cache = 0;
+    ClearCache(f);
 
     f->cur_off = f->file_off = 0;
 
@@ -1337,6 +1329,22 @@ enumError XFindSplitFile ( XPARM File_t *f, uint * p_index, off_t * p_off )
 
 //
 ///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+
+void ClearCache	( File_t * f )
+{
+    DASSERT(f);
+    f->is_caching = false;
+    while (f->cache)
+    {
+	FileCache_t * ptr = f->cache;
+	f->cache = ptr->next;
+	free((char*)ptr->data);
+	free(ptr);
+    }
+    f->cur_cache = 0;
+}
+
 ///////////////////////////////////////////////////////////////////////////////
 
 void DefineCachedArea ( File_t * f, off_t off, size_t count )

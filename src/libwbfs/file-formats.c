@@ -396,7 +396,7 @@ void header_128_setup
 	disc_title = "WIT: Wiimms ISO Tools,http://wit.wiimm.de/";
     strncpy(dhead->disc_title,disc_title,sizeof(dhead->disc_title)-1);
 
-    dhead->magic = htonl(WII_MAGIC);
+    dhead->wii_magic = htonl(WII_MAGIC);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -578,11 +578,11 @@ void tmd_clear_encryption ( wd_tmd_t * tmd, int mark_not_encrypted )
 
 bool tmd_is_marked_not_encrypted ( const wd_tmd_t * tmd )
 {
-    ASSERT(tmd);
-    DASSERT( sizeof(not_encrypted_marker) < sizeof(tmd->sig_padding));
-    DASSERT( sizeof(not_encrypted_marker) < sizeof(tmd->fake_sign));
+    DASSERT( !tmd || sizeof(not_encrypted_marker) < sizeof(tmd->sig_padding));
+    DASSERT( !tmd || sizeof(not_encrypted_marker) < sizeof(tmd->fake_sign));
 
-    return !strncmp( (char*)tmd->sig_padding, not_encrypted_marker, sizeof(tmd->sig_padding) )
+    return tmd
+	&& !strncmp( (char*)tmd->sig_padding, not_encrypted_marker, sizeof(tmd->sig_padding) )
 	&& !strncmp( (char*)tmd->fake_sign, not_encrypted_marker, sizeof(tmd->fake_sign) );
 }
 
@@ -624,7 +624,8 @@ u32 tmd_fake_sign ( wd_tmd_t * tmd, u32 tmd_size )
 
 bool tmd_is_fake_signed ( const wd_tmd_t * tmd, u32 tmd_size )
 {
-    ASSERT(tmd);
+    if (!tmd)
+	return false;
    
     if (!tmd_size)  // auto calculation
 	tmd_size = sizeof(wd_tmd_t) + tmd->n_content * sizeof(wd_tmd_content_t);

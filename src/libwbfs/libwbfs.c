@@ -625,9 +625,12 @@ static wbfs_disc_t * wbfs_open_disc_by_info
     d->is_used = p->head->disc_table[slot] != 0;
     if ( *d->header->dhead )
     {
-	const u32 magic = wbfs_ntohl(*(u32*)(d->header->dhead+WII_MAGIC_OFF));
-	d->is_valid   = magic == WII_MAGIC;
-	d->is_deleted = magic == WII_MAGIC_DELETED;
+	const u32 wii_magic = be32(d->header->dhead+WII_MAGIC_OFF);
+	const u32 gc_magic  = be32(d->header->dhead+GC_MAGIC_OFF);
+	PRINT("MAGIC: %08x %08x => %d %d\n",
+		wii_magic, gc_magic, wii_magic == WII_MAGIC, gc_magic == GC_MAGIC ); 
+	d->is_valid   = wii_magic == WII_MAGIC || gc_magic == GC_MAGIC;
+	d->is_deleted = wii_magic == WII_MAGIC_DELETED;
     }
     else
 	d->is_valid = d->is_deleted = false;
@@ -724,7 +727,7 @@ wbfs_disc_t * wbfs_create_disc
 	OUT_OF_MEMORY;
     memset(info,0,p->disc_info_sz);
     wd_header_t * dhead = (wd_header_t*)info->dhead;
-    dhead->magic = htonl(WII_MAGIC);
+    dhead->wii_magic = htonl(WII_MAGIC);
 
     if (disc_header)
 	memcpy(info->dhead,disc_header,sizeof(info->dhead));
@@ -1023,8 +1026,12 @@ enumError wbfs_get_disc_info_by_slot
 			p->tmp_buffer );
 
 
-    const u32 magic = wbfs_ntohl(*(u32*)(p->tmp_buffer+24));
-    if ( magic != 0x5D1C9EA3 )
+    const u32 wii_magic = be32(p->tmp_buffer+WII_MAGIC_OFF);
+    const u32 gc_magic  = be32(p->tmp_buffer+GC_MAGIC_OFF);
+    PRINT("MAGIC: %08x %08x => %d %d\n",
+		wii_magic, gc_magic, wii_magic == WII_MAGIC, gc_magic == GC_MAGIC ); 
+
+    if ( wii_magic != WII_MAGIC && gc_magic != GC_MAGIC )
     {
 	p->head->disc_table[slot] = 0;
 	return ERR_WARNING;

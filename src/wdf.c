@@ -44,9 +44,9 @@
 
 ///////////////////////////////////////////////////////////////////////////////
 
-typedef enum FileMode { FMODE_WDF, FMODE_WIA, FMODE_CISO, FMODE_WBI } FileMode;
-ccp file_mode_name[] = { ".wdf", ".wia", ".ciso", ".wbi", 0 };
-enumOFT file_mode_oft[] = { OFT_WDF, OFT_WIA, OFT_CISO, OFT_CISO, 0 };
+typedef enum FileMode { FMODE_WDF, FMODE_CISO, FMODE_WBI } FileMode;
+ccp file_mode_name[] = { ".wdf", ".ciso", ".wbi", 0 };
+enumOFT file_mode_oft[] = { OFT_WDF, OFT_CISO, OFT_CISO, 0 };
 
 enumCommands the_cmd	= CMD_PACK;
 FileMode file_mode	= FMODE_WDF;
@@ -734,6 +734,9 @@ enumError wia_dump ( FILE *f, File_t *df, ccp fname )
 		wd_print_id(&disc->dhead.disc_id,6,0),
 		disc->dhead.disc_title );
     fprintf(f,"    %-23s: %10u = %s\n",
+		"Disc type",
+		disc->disc_type, wd_get_disc_type_name(disc->disc_type,"?") );
+    fprintf(f,"    %-23s: %10u = %s\n",
 		"Compression mode",
 		disc->compression, GetCompressionNameWIA(disc->compression,"?") );
 
@@ -1034,7 +1037,6 @@ enumError CheckOptions ( int argc, char ** argv )
 	case GO_MINUS1:		opt_minus1 = 1; break;
 
 	case GO_WDF:		file_mode = FMODE_WDF; break;
-	case GO_WIA:		file_mode = FMODE_WIA; break;
 	case GO_CISO:		file_mode = FMODE_CISO; break;
 	case GO_WBI:		file_mode = FMODE_WBI; break;
 	case GO_SUFFIX:		opt_suffix = optarg; break;
@@ -1157,9 +1159,7 @@ int main ( int argc, char ** argv )
 	else if ( !memcmp(iobuf,"un",2) )
 	    the_cmd = CMD_UNPACK;
 
-	if (strstr(iobuf,"wia"))
-	    file_mode = def_file_mode = FMODE_WIA;
-	else if (strstr(iobuf,"ciso"))
+	if (strstr(iobuf,"ciso"))
 	    file_mode = def_file_mode = FMODE_CISO;
 	else if (strstr(iobuf,"wbi"))
 	    file_mode = def_file_mode = FMODE_WBI;

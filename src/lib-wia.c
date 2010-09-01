@@ -24,7 +24,9 @@
 
 #define _GNU_SOURCE 1
 
-#include <bzlib.h>
+#ifndef NO_BZIP2
+  #include <bzlib.h>
+#endif
 
 #include "debug.h"
 #include "iso-interface.h"
@@ -34,6 +36,34 @@
 /************************************************************************
  **  BZIP2 support: http://www.bzip.org/1.0.5/bzip2-manual-1.0.5.html  **
  ************************************************************************/
+
+//
+///////////////////////////////////////////////////////////////////////////////
+///////////////			    manage WIA			///////////////
+///////////////////////////////////////////////////////////////////////////////
+
+#ifndef NO_BZIP2
+
+ static ccp get_bzip2_message ( int err, ccp unkown_error )
+ {
+    switch (err)
+    {
+	case BZ_CONFIG_ERROR:		return "CONFIG ERROR";
+	case BZ_DATA_ERROR:		return "DATA ERROR";
+	case BZ_DATA_ERROR_MAGIC:	return "DATA ERROR MAGIC";
+	case BZ_IO_ERROR:		return "IO ERROR";
+	case BZ_MEM_ERROR:		return "MEM ERROR";
+	case BZ_OK:			return "OK";
+	case BZ_PARAM_ERROR:		return "PARAM ERROR";
+	case BZ_SEQUENCE_ERROR:		return "SEQUENCE ERROR";
+	case BZ_STREAM_END:		return "STREAM END";
+	case BZ_UNEXPECTED_EOF:		return "UNEXPECTED EOF";
+    }
+
+    return unkown_error;
+ };
+
+#endif // !NO_BZIP2
 
 //
 ///////////////////////////////////////////////////////////////////////////////
@@ -126,7 +156,9 @@ bool IsWIA
 (
     const void		* data,		// data to check
     size_t		data_size,	// size of data
-    void		* id6_result	// not NULL: store ID6 (6 bytes without null term)
+    void		* id6_result,	// not NULL: store ID6 (6 bytes without null term)
+    wd_disc_type_t	* disc_type,	// not NULL: store disc type
+    wia_compression_t	* compression	// not NULL: store compression
 )
 {
     bool is_wia = false;
@@ -143,17 +175,31 @@ bool IsWIA
 	}
     }
 
+    const wia_disc_t * disc = (const wia_disc_t*)(fhead+1);
+
     if (id6_result)
     {
 	memset(id6_result,0,6);
-	if (is_wia)
-	{
-	    const wia_disc_t * disc = (const wia_disc_t*)(fhead+1);
-	    if ( data_size >= (ccp)&disc->dhead.disc_id - (ccp)data + 6 )
-		memcpy(id6_result,&disc->dhead.disc_id,6);
-	}
+	if ( is_wia && data_size >= (ccp)&disc->dhead.disc_id - (ccp)data + 6 )
+	    memcpy(id6_result,&disc->dhead.disc_id,6);
     }
-    
+
+    if (disc_type)
+    {
+	*disc_type = is_wia && data_size >= (ccp)&disc->disc_type
+						- (ccp)data + sizeof(disc->disc_type)
+		? ntohl(disc->disc_type)
+		: 0;
+    }
+
+    if (compression)
+    {
+	*compression = is_wia && data_size >= (ccp)&disc->compression
+						- (ccp)data + sizeof(disc->compression)
+		? ntohl(disc->compression)
+		: 0;
+    }
+
     return is_wia;
 }
 
@@ -185,12 +231,29 @@ void SetupMemMap
 		sizeof(disc->dhead),sizeof(wia->disc_data));
     DASSERT(it);
     it->data = wia->disc_data;
-    snprintf(it->info,sizeof(it->info),"Disc data");
+    snprintf(it->info,sizeof(it->info),
+		wia->is_gc ? "GameCube II" : "Disc data");
 
+    //----- gc data
+
+    if (wia->is_gc)
+    {
+	DASSERT(wia->part);
+	
+	u32 disc_size = GC_DISC_SIZE;
+	if ( wia->fhead.iso_file_size > disc_size && wia->fhead.iso_file_size <= ~(u32)0 )
+	    disc_size = wia->fhead.iso_file_size;
+	it = wd_insert_patch(mm,WD_PAT_PART_DATA,
+		WII_PART_OFF, disc_size - WII_PART_OFF );
+	DASSERT(it);
+	snprintf(it->info,sizeof(it->info),
+			"GameCube III, %u groups, %u sectors",
+			wia->part->n_groups, wia->part->n_sectors );
+    }
 
     //----- partitions
 
-    if (wia->part_info)
+    else if (wia->part_info)
     {
 	int ip;
 	for ( ip = 0; ip < disc->n_part; ip++ )
@@ -306,6 +369,10 @@ static enumError read_compressed_data
     switch(sf->wia->disc.compression)
     {
 	case WIA_COMPR_BZIP2:
+     #ifdef NO_BZIP2
+	    return ERROR0(ERR_NOT_IMPLEMENTED,
+			"No bzip2 support for this release! Sorry!\n");
+     #else
 	{ 
 	    ASSERT(sf->f.fp);
 	    enumError err = SeekF(&sf->f,file_offset);
@@ -319,23 +386,30 @@ static enumError read_compressed_data
 		if (bz)
 		    BZ2_bzReadClose(0,bz);
 		return ERROR0(ERR_BZIP2,
-				"Error while opening bzip2 stream: %s\n",sf->f.fname);
+			"Error while opening bzip2 stream: %s\n-> bzip2 error: %s\n",
+			sf->f.fname, get_bzip2_message(bzerror,"?") );
 	    }
 
 	    int bytes_read = BZ2_bzRead(&bzerror,bz,inbuf,inbuf_size);
 	    PRINT("BZREAD, num=%x, datasize=%x, err=%d\n",bytes_read,file_data_size,bzerror);
 	    if ( bzerror != BZ_STREAM_END )
+	    {
+		BZ2_bzReadClose(0,bz);
 		return ERROR0(ERR_BZIP2,
-				"Error while reading bzip2 stream: %s\n",sf->f.fname);
+			"Error while reading bzip2 stream: %s\n-> bzip2 error: %s\n",
+			sf->f.fname, get_bzip2_message(bzerror,"?") );
+	    }
 
 	    BZ2_bzReadClose(&bzerror,bz);
 	    if ( bzerror != BZ_OK )
 		return ERROR0(ERR_BZIP2,
-				"Error while closing bzip2 stream: %s\n",sf->f.fname);
+			"Error while closing bzip2 stream: %s\n-> bzip2 error: %s\n",
+			sf->f.fname, get_bzip2_message(bzerror,"?") );
 
 	    if (read_count)
 		*read_count = bytes_read;
 	}
+     #endif
 	break;
 
 	default:
@@ -419,6 +493,72 @@ static enumError expand_segments
 
 ///////////////////////////////////////////////////////////////////////////////
 
+static enumError read_gc_data
+(
+    struct SuperFile_t	* sf,		// source file
+    u32			part_index,	// partition index
+    u32			group		// group index
+    
+)
+{
+    DASSERT(sf);
+    DASSERT(sf->wia);
+    wia_controller_t * wia = sf->wia;
+    enumError err = ERR_OK;
+
+    if ( wia->gdata_part_index == part_index && wia->gdata_group == group )
+	return ERR_OK;
+
+    wia->gdata_part_index	= part_index;
+    wia->gdata_group		= group;
+    memset(wia->gdata,0,sizeof(wia->gdata));
+
+
+    //----- get group info
+
+    wia_part_t  * part	= wia->part + wia->gdata_part_index;
+    wia_group_t * grp	= ( wia_group_t *) ( wia->part_info + part->group_off )
+			+ group;
+    ASSERT( (u8*)grp + sizeof(*grp) <= wia->part_info + wia->part_info_size );
+
+    u64 data_off  = (u64)ntohl(grp->data_off4) << 2;
+    u32 data_size = ntohl(grp->data_size);
+
+    PRINT(" GRP=%5u[%zx], off=%llx, datasize=%x=%u\n",
+		wia->gdata_group, (u8*)grp - wia->part_info,
+		data_off, data_size, data_size );
+
+    if (!data_size)
+	return ERR_OK;
+
+    if ( data_off + data_size > wia->fhead.wia_file_size )
+	return ERROR0(ERR_WIA_INVALID,
+		"Invalid WIA data offset: %llx (max=%llx): %s\n",
+		data_off + data_size, wia->fhead.wia_file_size, sf->f.fname );
+
+    if ( data_size > sizeof(wia->iobuf) )
+	return ERROR0(ERR_WIA_INVALID,
+		"Invalid WIA data size: %x (max=%x): %s\n",
+		data_size, sizeof(wia->iobuf), sf->f.fname);
+
+
+    //----- load and decompress data
+
+    err = read_compressed_data( sf, data_off, data_size,
+				wia->iobuf, sizeof(wia->iobuf), &data_size );
+    if (err)
+	return err;
+
+
+    //----- process data segments
+
+    wia_data_segment_t * seg = (wia_data_segment_t*)wia->iobuf;
+    return expand_segments( sf, seg, wia->iobuf + data_size,
+				wia->gdata, sizeof(wia->gdata) );
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
 static enumError read_part_data
 (
     struct SuperFile_t	* sf,		// source file
@@ -430,6 +570,10 @@ static enumError read_part_data
     DASSERT(sf);
     DASSERT(sf->wia);
     wia_controller_t * wia = sf->wia;
+
+    if (wia->is_gc)
+	return read_gc_data(sf,part_index,group);
+
     enumError err = ERR_OK;
 
     if ( wia->gdata_part_index == part_index && wia->gdata_group == group )
@@ -560,7 +704,7 @@ enumError ReadWIA
 	    u64 overlap1 = item->offset > off ? item->offset : off;
 	    const u64 overlap2 = end < off2 ? end : off2;
 	    noTRACE(" -> %llx .. %llx\n",overlap1,overlap2);
-	    sf->f.bytes_read += overlap2 - overlap1;
+	    //sf->f.bytes_read += overlap2 - overlap1;
 
 	    switch (item->mode)
 	    {
@@ -579,7 +723,8 @@ enumError ReadWIA
 		    wia_part_t * part = wia->part + item->part_index;
 		    u32 sector = overlap1 / WII_SECTOR_SIZE - part->first_sector;
 		    const u32 group = sector / WII_GROUP_SECTORS;
-		    if ( item->part_index != wia->gdata_part_index || group != wia->gdata_group )
+		    if ( item->part_index != wia->gdata_part_index
+			|| group != wia->gdata_group )
 		    {
 			const enumError err = read_part_data(sf,item->part_index,group);
 			if (err)
@@ -652,7 +797,7 @@ enumError SetupReadWIA
     if (err)
 	return err;
 
-    const bool is_wia = IsWIA(fhead,sizeof(*fhead),0);
+    const bool is_wia = IsWIA(fhead,sizeof(*fhead),0,0,0);
     wia_ntoh_file_head(fhead,fhead);
     if ( !is_wia || fhead->disc_size > sizeof(wia->iobuf) )
 	return ERROR0(ERR_WIA_INVALID,"Invalid file header: %s\n",sf->f.fname);
@@ -706,23 +851,8 @@ enumError SetupReadWIA
     wia_disc_t *disc = &wia->disc;
     wia_ntoh_disc(disc,(wia_disc_t*)wia->iobuf);
 
-
-    //----- read and check disc data
-
-    PRINT("DISC DATA: %llx + %x\n", disc->disc_data_off, disc->disc_data_size );
-    if ( disc->disc_data_off && disc->disc_data_size )
-    {
-	err = read_compressed_data(sf, disc->disc_data_off, disc->disc_data_size,
-					wia->iobuf, sizeof(wia->iobuf), 0 );
-	if (err)
-	    return err;
-
-	err = expand_segments( sf, (wia_data_segment_t*)wia->iobuf,
-				wia->iobuf + sizeof(wia->iobuf),
-				wia->disc_data, sizeof(wia->disc_data) );
-    	if (err)
-	    return err;
-    }
+    wia->is_gc = disc->disc_type == WD_DT_GAMECUBE;
+    PRINT_IF(wia->is_gc,"*** GAMECUBE MODE ***\n");
 
 
     //----- read and check partition header
@@ -779,6 +909,30 @@ enumError SetupReadWIA
 	if (memcmp(hash,disc->part_info_hash,sizeof(hash)))
 	    return ERROR0(ERR_WIA_INVALID,
 		"Hash error for partition info: %s\n",sf->f.fname);
+    }
+
+
+    //----- read and check disc data / last because ClearCache()
+
+    if ( disc->compression != WIA_COMPR_NONE )
+    {
+	PRINT("DISABLE CACHE\n");
+	ClearCache(&sf->f);
+    }
+
+    PRINT("DISC DATA: %llx + %x\n", disc->disc_data_off, disc->disc_data_size );
+    if ( disc->disc_data_off && disc->disc_data_size )
+    {
+	err = read_compressed_data(sf, disc->disc_data_off, disc->disc_data_size,
+					wia->iobuf, sizeof(wia->iobuf), 0 );
+	if (err)
+	    return err;
+
+	err = expand_segments( sf, (wia_data_segment_t*)wia->iobuf,
+				wia->iobuf + sizeof(wia->iobuf),
+				wia->disc_data, sizeof(wia->disc_data) );
+    	if (err)
+	    return err;
     }
 
 
@@ -886,6 +1040,10 @@ static enumError write_compressed_data
     switch(wia->disc.compression)
     {
 	case WIA_COMPR_BZIP2:
+     #ifdef NO_BZIP2
+	    return ERROR0(ERR_NOT_IMPLEMENTED,
+			"No bzip2 support for this release! Sorry!\n");
+     #else
 	{
 	    ASSERT(sf->f.fp);
 	    enumError err = SeekF(&sf->f,wia->write_data_off);
@@ -899,30 +1057,40 @@ static enumError write_compressed_data
 		if (bz)
 		    BZ2_bzWriteClose(0,bz,0,0,0);
 		return ERROR0(ERR_BZIP2,
-			"Error while opening bzip2 stream: %s\n",sf->f.fname);
+			"Error while opening bzip2 stream: %s\n-> bzip2 error: %s\n",
+			sf->f.fname, get_bzip2_message(bzerror,"?") );
 	    }
 
 	    BZ2_bzWrite(&bzerror,bz,(u8*)data_ptr,data_size);
 	    if ( bzerror != BZ_OK )
+	    {
+		BZ2_bzWriteClose(0,bz,0,0,0);
 		return ERROR0(ERR_BZIP2,
-			"Error while writing bzip2 stream: %s\n",sf->f.fname);
+			"Error while writing bzip2 stream: %s\n-> bzip2 error: %s\n",
+			sf->f.fname, get_bzip2_message(bzerror,"?") );
+	    }
 
 	    unsigned int nbytes_out;
 	    BZ2_bzWriteClose(&bzerror,bz,0,0,&nbytes_out);
 	    if ( bzerror != BZ_OK )
 		return ERROR0(ERR_BZIP2,
-			"Error while closing bzip2 stream: %s\n",sf->f.fname);
+			"Error while closing bzip2 stream: %s\n-> bzip2 error: %s\n",
+			sf->f.fname, get_bzip2_message(bzerror,"?") );
 
 	    sf->f.max_off = wia->write_data_off + nbytes_out;
+	    PRINT("BZIP: %llx + %x => %llx => %llx\n",
+			wia->write_data_off, nbytes_out,
+			wia->write_data_off + nbytes_out,
+			wia->write_data_off + ( nbytes_out + 3 & ~3 ) );
 	    wia->write_data_off += nbytes_out + 3 & ~3;
 	    if (write_count)
 		*write_count = nbytes_out;
 	}
+     #endif
 	break;
 
 	default:
 	{
-
 	    enumError err = WriteAtF( &sf->f, wia->write_data_off, data_ptr, data_size );
 	    if (err)
 		return err;
@@ -949,6 +1117,60 @@ static enumError write_compressed_data
 
 ///////////////////////////////////////////////////////////////////////////////
 
+static enumError write_gc_data
+(
+    struct SuperFile_t	* sf		// destination file
+)
+{
+    DASSERT(sf);
+    DASSERT(sf->wia);
+    wia_controller_t * wia = sf->wia;
+
+    enumError err = ERR_OK;
+
+    if ( wia->gdata_group != ~(u32)0 && wia->gdata_part_index < wia->disc.n_part )
+    {
+	//----- calc data segments
+
+	wia_data_segment_t * seg = (wia_data_segment_t*)wia->iobuf;
+	seg = calc_segments( seg, wia->iobuf + sizeof(wia->iobuf),
+				wia->gdata, WII_GROUP_SIZE );
+
+	//----- compression
+
+	u32 data_size = (u8*)seg - wia->iobuf;
+	ASSERT( data_size <= sizeof(wia->iobuf) );
+	DASSERT(!(data_size&3));
+
+	const u64 write_data_off = wia->write_data_off;
+	err = write_compressed_data( sf, wia->iobuf, data_size, &data_size );
+	if (err)
+	    return err;
+
+
+	//----- set group info
+
+	wia_part_t  * part = wia->part + wia->gdata_part_index;
+	wia_group_t * grp  = ( wia_group_t *) ( wia->part_info + part->group_off )
+			   +  wia->gdata_group;
+	ASSERT( (u8*)grp + sizeof(*grp) <= wia->part_info + wia->part_info_size );
+	grp->data_off4  = htonl( write_data_off >> 2 );
+	grp->data_size  = htonl(data_size);
+
+	PRINT(" GRP=%5u[%zx], off=%llx, datasize=%x=%u\n",
+		wia->gdata_group, (u8*)grp - wia->part_info,
+		write_data_off, data_size, data_size );
+    }
+
+    wia->gdata_part_index	= 0;
+    wia->gdata_group		= ~(u32)0;
+    memset(wia->gdata,0,sizeof(wia->gdata));
+
+    return err;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
 static enumError write_part_data
 (
     struct SuperFile_t	* sf		// destination file
@@ -957,6 +1179,9 @@ static enumError write_part_data
     DASSERT(sf);
     DASSERT(sf->wia);
     wia_controller_t * wia = sf->wia;
+    if (wia->is_gc)
+	return write_gc_data(sf);
+
     enumError err = ERR_OK;
 
     if ( wia->gdata_group != ~(u32)0 && wia->gdata_part_index < wia->disc.n_part )
@@ -981,9 +1206,7 @@ static enumError write_part_data
 	wia_exception_t * except = data->exception;
 
 	u8 hashtab2[WII_GROUP_HASH_SIZE];
-	memset(hashtab2,0xdc,0x100);
 	wd_calc_group_hashes(wia->gdata,hashtab2,0,0);
-
 
 	int is;
 	for ( is = 0; is < WII_GROUP_SECTORS; is++ )
@@ -1050,6 +1273,8 @@ static enumError write_part_data
 
 	//----- align segment start
 
+	memset(except,0,sizeof(*except)); // no garbage
+
 	u32 data_size = (u8*)except - wia->iobuf + 3 & ~3;
 	data->seg_offset = htonl(data_size);
 	wia_data_segment_t * seg = (wia_data_segment_t*)( wia->iobuf + data_size );
@@ -1085,7 +1310,7 @@ static enumError write_part_data
 	PRINT(" GRP=%5u[%zx], N(exceptions)=%4u, DECRYPT=%d, off=%llx, datasize=%x=%u\n",
 		wia->gdata_group, (u8*)grp - wia->part_info,
 		ntohs(data->n_exceptions), wpart->is_encrypted,
-		wia->write_data_off - data_size, data_size, data_size );
+		write_data_off, data_size, data_size );
     }
 
     wia->gdata_part_index	= 0;
@@ -1132,7 +1357,7 @@ enumError WriteWIA
 	    u64 overlap1 = item->offset > off ? item->offset : off;
 	    const u64 overlap2 = end < off2 ? end : off2;
 	    noTRACE(" -> %llx .. %llx\n",overlap1,overlap2);
-	    sf->f.bytes_written += overlap2 - overlap1;
+	    //sf->f.bytes_written += overlap2 - overlap1;
 
 	    switch (item->mode)
 	    {
@@ -1228,7 +1453,7 @@ enumError WriteZeroWIA
 
 //
 ///////////////////////////////////////////////////////////////////////////////
-///////////////			setup and term write WIA	///////////////
+///////////////		    setup and term write WIA		///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
 enumError SetupWriteWIA
@@ -1269,6 +1494,8 @@ enumError SetupWriteWIA
 	return OUT_OF_MEMORY;
     sf->wia = wia;
     wia->wdisc = wdisc;
+    wia->is_gc = wdisc->disc_type == WD_DT_GAMECUBE;
+    PRINT_IF(wia->is_gc,"*** GAMECUBE MODE ***\n");
     wia->gdata_group = ~(u32)0;
 
 
@@ -1285,11 +1512,11 @@ enumError SetupWriteWIA
     //----- setup disc info
 
     wia_disc_t *disc = &wia->disc;
+    disc->disc_type	= wdisc->disc_type;
     disc->compression	= opt_no_compress ? WIA_COMPR_NONE : WIA_COMPR__DEFAULT;
     disc->n_part	= wdisc->n_part;
 
     memcpy(&disc->dhead,&wdisc->dhead,sizeof(disc->dhead));
-
 
     //----- setup part info
 
@@ -1326,7 +1553,9 @@ enumError SetupWriteWIA
 	memcpy(part->part_key,wpart->key,sizeof(part->part_key));
 
 	part->first_sector	= wpart->data_sector;
-	part->n_sectors		= wpart->end_sector - wpart->data_sector;
+	if ( part->first_sector < WII_PART_OFF / WII_SECTOR_SIZE )
+	     part->first_sector = WII_PART_OFF / WII_SECTOR_SIZE;
+	part->n_sectors		= wpart->end_sector - part->first_sector;
 	part->n_groups		= ( part->n_sectors + WII_GROUP_SECTORS - 1 )
 				/ WII_GROUP_SECTORS;
 	
@@ -1585,6 +1814,7 @@ void wia_ntoh_disc ( wia_disc_t * dest, const wia_disc_t * src )
     else if ( dest != src )
 	memcpy(dest,src,sizeof(*dest));
 
+    dest->disc_type		= ntohl (src->disc_type);
     dest->compression		= ntohl (src->compression);
 
     dest->disc_data_off		= ntoh64(src->disc_data_off);
@@ -1611,6 +1841,7 @@ void wia_hton_disc ( wia_disc_t * dest, const wia_disc_t * src )
     else if ( dest != src )
 	memcpy(dest,src,sizeof(*dest));
 
+    dest->disc_type		= htonl (src->disc_type);
     dest->compression		= htonl (src->compression);
 
     dest->disc_data_off		= hton64(src->disc_data_off);

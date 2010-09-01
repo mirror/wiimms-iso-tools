@@ -1730,8 +1730,9 @@ enumError exec_add ( SuperFile_t * sf, Iterator_t * it )
 	sf->show_msec		= verbose > 2;
 	sf->f.read_behind_eof	= verbose > 1 ? 1 : 2;
 
-	if ( AddWDisc(it->wbfs,sf,&part_selector) > ERR_WARNING )
-	    return ERROR0(ERR_WBFS,"Error while creating disc [%s] @%s\n",
+	enumError err = AddWDisc(it->wbfs,sf,&part_selector);
+	if ( err > ERR_WARNING )
+	    return ERROR0(err,"Error while adding disc [%s] @%s\n",
 			sf->f.id6, it->wbfs->sf->f.fname );
     }
     it->done_count++;
@@ -1768,6 +1769,7 @@ enumError cmd_add()
     it.act_non_exist	= it.act_non_iso;
     it.act_open		= it.act_non_iso;
     it.act_wbfs		= ACT_EXPAND;
+    it.act_gc		= ACT_ALLOW;
     it.act_fst		= allow_fst ? ACT_EXPAND : ACT_IGNORE;
     it.update		= OptionUsed[OPT_UPDATE]	? 1 : 0;
     it.newer		= OptionUsed[OPT_NEWER]		? 1 : 0;
@@ -1784,7 +1786,7 @@ enumError cmd_add()
     if ( OptionUsed[OPT_SYNC] )
     {
 	it.func = exec_scan_id;
-	err = SourceIteratorCollected(&it,0);
+	err = SourceIteratorCollected(&it,0,false);
 	if (err)
 	{
 	    ResetIterator(&it);
@@ -1859,7 +1861,7 @@ enumError cmd_add()
 	it.wbfs = &wbfs;
 	it.open_dev = wbfs.sf->f.st.st_dev;
 	it.open_ino = wbfs.sf->f.st.st_ino;
-	err = SourceIteratorCollected(&it,0);
+	err = SourceIteratorCollected(&it,0,false);
 	if (err)
 	    break;
 
@@ -2790,6 +2792,11 @@ enumError cmd_verify()
 				fail_verb = "found";
 			}
 		    }
+		    else if (stat)
+		    {
+			err = stat;
+			wbfs_fail_count++;
+		    }
 		}
 		wbfs_verify_count++;
 		CloseWDisc(&wbfs);
@@ -3008,6 +3015,9 @@ enumError CheckOptions ( int argc, char ** argv, bool is_env )
 	case GO_RM_FILES:	err += ScanFiles(optarg,PAT_RM_FILES); break;
 	case GO_ZERO_FILES:	err += ScanFiles(optarg,PAT_ZERO_FILES); break;
 	case GO_IGNORE_FILES:	err += ScanFiles(optarg,PAT_IGNORE_FILES); break;
+	case GO_REPL_FILE:	err += ScanOptFile(optarg,false);
+	case GO_ADD_FILE:	err += ScanOptFile(optarg,true);
+	case GO_ALIGN:		err += ScanOptAlign(optarg);
 	case GO_SPLIT:		opt_split++; break;
 	case GO_SPLIT_SIZE:	err += ScanOptSplitSize(optarg); break;
 	case GO_TRUNC:		opt_truncate++; break;

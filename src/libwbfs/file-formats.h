@@ -29,6 +29,7 @@
 //  - http://wiibrew.org/wiki/Wii_Disc
 //  - http://wiibrew.org/wiki/Ticket
 //  - http://wiibrew.org/wiki/Tmd_file_structure
+//  - http://hitmen.c02.at/files/yagcd/yagcd/chap13.html -> GameCube
 
 //
 ///////////////////////////////////////////////////////////////////////////////
@@ -142,6 +143,11 @@ enum // some constants
     WBFS_INODE_INFO_CMP_SIZE	=   10,
     WBFS_INODE_INFO_OFF		= 0x80,
     WBFS_INODE_INFO_SIZE	= 0x100 - WBFS_INODE_INFO_OFF,
+
+    GC_MAGIC			= 0xc2339f3d,
+    GC_MAGIC_OFF		=       0x1c,
+    GC_MAGIC_LEN		=       0x04,
+    GC_DISC_SIZE		= 1459978240,
 
     DOL_N_TEXT_SECTIONS		=     7,
     DOL_N_DATA_SECTIONS		=    11,
@@ -285,8 +291,8 @@ typedef struct wd_header_128_t
   /* 0x09 */	u8	streaming_buffer_size;
 
   /* 0x0a */	u8	unknown1[0x0e];
-  /* 0x18 */	u32	magic;				// off=WII_MAGIC_OFF, val=WII_MAGIC
-  /* 0x1c */	u8	unknown2[4];
+  /* 0x18 */	u32	wii_magic;		// off=WII_MAGIC_OFF, val=WII_MAGIC
+  /* 0x1c */	u32	gc_magic;		// off=GC_MAGIC_OFF, val=GC_MAGIC
 
   /* 0x20 */	char	disc_title[WII_TITLE_SIZE];	// off=WII_TITLE_OFF
 
@@ -326,8 +332,8 @@ typedef struct wd_header_t
   /* 0x09 */	u8	streaming_buffer_size;
 
   /* 0x0a */	u8	unknown1[0x0e];
-  /* 0x18 */	u32	magic;				// off=WII_MAGIC_OFF, val=WII_MAGIC
-  /* 0x1c */	u8	unknown2[4];
+  /* 0x18 */	u32	wii_magic;		// off=WII_MAGIC_OFF, val=WII_MAGIC
+  /* 0x1c */	u32	gc_magic;		// off=GC_MAGIC_OFF, val=GC_MAGIC
 
   /* 0x20 */	char	disc_title[WII_TITLE_SIZE];	// off=WII_TITLE_OFF
 

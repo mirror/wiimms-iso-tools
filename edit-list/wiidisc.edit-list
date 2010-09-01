@@ -3,6 +3,6 @@
 ../src/libwbfs/file-formats.[ch] ;
 @libwbfs-only.edit-list
 @iso-interface.edit-list
--y    1 ../src/libwbfs/wiidisc.c ;
+-y 4880 ../src/libwbfs/wiidisc.c ;
 -y    1 ../src/libwbfs/wiidisc.h ;
 -y    1 ../src/wit.c ;

@@ -196,6 +196,11 @@ enumError cmd_test_options()
 		(u64)opt_set_time, (u64)opt_set_time,buf_set_time );
  #endif
 
+    printf("  align:       %16x = %u, %x = %u, %x = %u\n",
+		opt_align1, opt_align1,
+		opt_align2, opt_align2,
+		opt_align3, opt_align3 );
+
     printf("  partition selector:\n");
     wd_print_select(stdout,6,&part_selector);
 

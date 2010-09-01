@@ -1223,9 +1223,9 @@ enumError RecoverWBFS ( WBFS_t * wbfs, ccp fname, bool testmode )
 		w->head->disc_table[slot] = 5;
 		wd_header_t * head
 		    = (wd_header_t*)( first_sector + w->hd_sec_sz + slot * w->disc_info_sz );
-		if ( ntohl(head->magic) == WII_MAGIC_DELETED )
+		if ( ntohl(head->wii_magic) == WII_MAGIC_DELETED )
 		{
-		    head->magic = htonl(WII_MAGIC);
+		    head->wii_magic = htonl(WII_MAGIC);
 		    inodes_dirty = true;
 		}
 	    }
@@ -1331,6 +1331,7 @@ enumError TruncateWBFS ( WBFS_t * w )
     PRINT("TruncateWBFS() fd=%d\n", w->sf ? GetFD(&w->sf->f) : -2 );
 
     enumError err = CloseWDisc(w);
+    SyncWBFS(w,false);
     if ( w->wbfs && w->sf )
     {
 	wbfs_trim(w->wbfs);
@@ -2053,7 +2054,7 @@ static void AW_discs ( AWData_t * awd, File_t * f, ccp data )
     for ( sec = 1; sec <= SEC_MAX; sec++ )
     {
 	wd_header_t *wd = (wd_header_t *)( data + sec * SEC_SIZE );
-	u32 magic = ntohl(wd->magic);
+	u32 magic = ntohl(wd->wii_magic);
 	if ( ( magic == WII_MAGIC || magic == WII_MAGIC_DELETED )
 		&& CheckID6(wd,false,false) )
 	{
@@ -2083,7 +2084,7 @@ static void AW_discs ( AWData_t * awd, File_t * f, ccp data )
 		const size_t WSS_CMP_SIZE = 128;
 		wd_header_t inode;
 		memcpy( &inode, wd, WSS_CMP_SIZE );
-		inode.magic = htonl(WII_MAGIC);
+		inode.wii_magic = htonl(WII_MAGIC);
 		off_t iso_sect = ntohs(*(u16*)(wd+1));
 
 		for ( level = WSS_MIN_LEVEL; level < WSS_MAX_LEVEL; level++ )
@@ -3015,7 +3016,7 @@ enumError GetWDiscInfoBySlot ( WBFS_t * w, WDiscInfo_t * dinfo, u32 disc_slot )
 
     if (err)
     {
-	TRACE("GetWDiscInfoBySlot() err=%d, magic=%x\n",err,dinfo->dhead.magic);
+	TRACE("GetWDiscInfoBySlot() err=%d, magic=%x\n",err,dinfo->dhead.wii_magic);
 	return err;
     }
 
@@ -3115,7 +3116,6 @@ void CopyWDiscInfo ( WDiscListItem_t * item, WDiscInfo_t * dinfo )
 {
     ASSERT(item);
     ASSERT(dinfo);
-    ASSERT( (FT_ID_WBFS|FT_A_WDISC) == (u16) (FT_ID_WBFS|FT_A_WDISC) );
 
     memset(item,0,sizeof(*item));
 
@@ -3155,7 +3155,7 @@ enumError DumpWDiscInfo
 
     indent = NormalizeIndent(indent);
 
-    const u32 magic = ntohl(di->dhead.magic);
+    const u32 magic = ntohl(di->dhead.wii_magic);
     fprintf(f,"%*smagic:      %08x, %.64s\n", indent, "", magic,
 		magic == WII_MAGIC ? " (=WII-DISC)"
 			: magic == WII_MAGIC_DELETED ? " (=DELETED)" : "" );
@@ -3686,11 +3686,7 @@ enumError CloseWDisc ( WBFS_t * w )
     }
 
     if (w->sf)
-    {
-	wd_close_disc(w->sf->disc2);
-	wd_close_disc(w->sf->disc1);
-	w->sf->disc1 = w->sf->disc2 = 0;
-    }
+	CloseDiscSF(w->sf);
 
     return ERR_OK;
 }
@@ -3772,7 +3768,7 @@ enumError AddWDisc ( WBFS_t * w, SuperFile_t * sf, const wd_select_t * psel )
     else
     {
 	ASSERT(w->sf);
-	TRACE("AddWDisc/stat: w=%p, slot=%d, w->sf=%p, oft=%d\n",
+	PRINT("AddWDisc/stat: w=%p, slot=%d, w->sf=%p, oft=%d\n",
 		w, w->disc_slot, w->sf, w->sf->iod.oft );
         err = RewriteModifiedSF(sf,0,w);
     }

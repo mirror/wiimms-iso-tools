@@ -534,21 +534,34 @@ info_t info_tab[] =
 		" within TMD. The format is @'HIGH:LOW'@ or @'HIGH-LOW'@ or @'LOW'@."
 		" If only @LOW@ is set than @HIGH@ is assumed as 1 (standard IOS)." },
 
-  { T_OPT_CP,	"RM_FILES",	"rm-files",
+  { T_OPT_CP,	"RM_FILES",	"rm-files|rm-file|rmfiles|rmfile",
 		"ruleset",
 		"This patching option defines filter rules to remove real files"
 		" and directories from the FST of the DATA partition."
 		" $Fake signing$ of the TMD is necessary."
-		" @--rm-files@ is processed before {--zero-files} and {--ignore-files}."},
+		" The processing order of file options is:"
+		" {--rm-files --zero-files --ignore-files}." },
 
-  { T_OPT_CP,	"ZERO_FILES",	"zero-files",
+  { T_OPT_CP,	"ZERO_FILES",	"zero-files|zero-file|zerofiles|zerofile",
 		"ruleset",
 		"This patching option defines filter rules to zero (set size to zero)"
 		" real files of the FST of the DATA partition."
 		" $Fake signing$ of the TMD is necessary."
-		" @--zero-files@ is processed after {--rm-files} and before {--ignore-files}."},
+		" The processing order of file options is:"
+		" {--rm-files --zero-files --ignore-files}." },
 
-  { T_OPT_CP,	"IGNORE_FILES",	"ignore-files",
+  { H_OPT_CP,	"REPL_FILE",	"repl-file|repl-files|replfile|replfiles",
+		"filedef",
+		" The processing order of file options is:"
+		" {--rm-files --zero-files --repl-file --add-file --ignore-files}." },
+
+  { H_OPT_CP,	"ADD_FILE",	"add-file|add-files|addfile|addfiles",
+		"filedef",
+		"???"
+		" The processing order of file options is:"
+		" {--rm-files --zero-files --repl-file --add-file --ignore-files}." },
+
+  { T_OPT_CP,	"IGNORE_FILES",	"ignore-files|ignore-file|ignorefiles|ignorefile",
 		"ruleset",
 		"This option defines filter rules to ignore"
 		" real files of the FST of the DATA partition."
@@ -556,7 +569,8 @@ info_t info_tab[] =
 		" because the content of some files is not copied."
 		" If such file is accessed the Wii will halt immediately,"
 		" because the verification of the check sum calculation fails."
-		" @--ignore-files@ is processed after {--rm-files} and {--zero-files}." },
+		" The processing order of file options is:"
+		" {--rm-files --zero-files --ignore-files}." },
 
   { T_OPT_C,	"OVERLAY",	"overlay",
 		0,
@@ -574,6 +588,10 @@ info_t info_tab[] =
 		" The mode is one of NONE, HASHONLY, DECRYPT, ENCRYPT, SIGN or AUTO."
 		" The case of the keywords is ignored."
 		" The default mode is 'AUTO'." },
+
+  { H_OPT_CP,	"ALIGN",	"align",
+		"align1[,align2][,align3]",
+		"???" },
 
   { T_OPT_CP,	"DEST",		"d|dest",
 		"path",
@@ -886,8 +904,11 @@ info_t info_tab[] =
   { T_COPT,	"IOS",		0,0,0 },
   { T_COPT,	"RM_FILES",	0,0,0 },
   { T_COPT,	"ZERO_FILES",	0,0,0 },
+  { H_COPT,	"REPL_FILE",	0,0,0 },
+  { H_COPT,	"ADD_FILE",	0,0,0 },
   { T_COPT,	"IGNORE_FILES",	0,0,0 },
   { T_COPT,	"ENC",		0,0,0 },
+  { H_COPT,	"ALIGN",	0,0,0 },
 
   //---------- wit GROUP SPLIT_CHUNK ----------
 
@@ -1637,16 +1658,25 @@ info_t info_tab[] =
   { T_OPT_CP,	"IOS",		"ios",
 		0, 0 /* copy of wit */ },
 
-  { T_OPT_CP,	"RM_FILES",	"rm-files",
+  { T_OPT_CP,	"RM_FILES",	"rm-files|rm-file|rmfiles|rmfile",
 		0, 0 /* copy of wit */ },
 
-  { T_OPT_CP,	"ZERO_FILES",	"zero-files",
+  { T_OPT_CP,	"ZERO_FILES",	"zero-files|zero-file|zerofiles|zerofile",
 		0, 0 /* copy of wit */ },
 
-  { T_OPT_CP,	"IGNORE_FILES",	"ignore-files",
+  { H_OPT_CP,	"REPL_FILE",	"repl-file|repl-files|replfile|replfiles",
+		0, 0 /* copy of wit */ },
+
+  { H_OPT_CP,	"ADD_FILE",	"add-file|add-files|addfile|addfiles",
+		0, 0 /* copy of wit */ },
+
+  { T_OPT_CP,	"IGNORE_FILES",	"ignore-files|ignore-file|ignorefiles|ignorefile",
 		0, 0 /* copy of wit */ },
 
   { T_OPT_CP,	"ENC",		"enc",
+		0, 0 /* copy of wit */ },
+
+  { H_OPT_CP,	"ALIGN",	"align",
 		0, 0 /* copy of wit */ },
 
   { T_OPT_CP,	"DEST",		"d|dest",
@@ -1903,8 +1933,11 @@ info_t info_tab[] =
   { T_COPT,	"IOS",		0,0,0 },
   { T_COPT,	"RM_FILES",	0,0,0 },
   { T_COPT,	"ZERO_FILES",	0,0,0 },
+  { H_COPT,	"REPL_FILE",	0,0,0 },
+  { H_COPT,	"ADD_FILE",	0,0,0 },
   { T_COPT,	"IGNORE_FILES",	0,0,0 },
   { T_COPT,	"ENC",		0,0,0 },
+  { H_COPT,	"ALIGN",	0,0,0 },
 
   //---------- wwt GROUP SPLIT_CHUNK ----------
 
@@ -2486,11 +2519,6 @@ info_t info_tab[] =
 		" and set the default suffix to @'.wdf'@."
 		" This is the general default." },
 
-  { T_OPT_C,	"WIA",		"wia",
-		0,
-		"Force WIA output mode if packing"
-		" and set the default suffix to @'.wia'@." },
-
   { T_OPT_C,	"CISO",		"C|ciso",
 		0,
 		"Force CISO output mode if packing"
@@ -2509,7 +2537,7 @@ info_t info_tab[] =
 
   { T_OPT_CP,	"SUFFIX",	"s|suffix",
 		".suf",
-		"Use suffix @'.suf'@ instead of @'.wdf'@, @'.wia'@"
+		"Use suffix @'.suf'@ instead of @'.wdf'@,"
 		" or @'.ciso'@ for packed files." },
 
   { T_SEP_OPT,	0,0,0,0 }, //----- separator -----
@@ -2595,7 +2623,6 @@ info_t info_tab[] =
   { T_GRP_BEG,	"FILETYPE",	0,0,0 },
 
   { T_COPT,	"WDF",		0,0,0 },
-  { T_COPT,	"WIA",		0,0,0 },
   { T_COPT,	"CISO",		0,0,0 },
   { T_COPT,	"WBI",		0,0,0 },
   { T_COPT,	"SUFFIX",	0,0,0 },

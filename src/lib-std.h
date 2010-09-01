@@ -273,36 +273,40 @@ typedef enum enumFileType
 
 	FT_UNKNOWN	= 0,     // not analyzed yet
 
-	FT_ID_DIR	= 0x001,  // is a directory
-	FT_ID_FST	= 0x002,  // is a directory with a FST
-	FT_ID_WBFS	= 0x004,  // file is a WBFS
-	FT_ID_ISO	= 0x008,  // file is a ISO image
+	FT_ID_DIR	= 0x0001,  // is a directory
+	FT_ID_FST	= 0x0002,  // is a directory with a FST
+	FT_ID_WBFS	= 0x0004,  // file is a WBFS
+	FT_ID_GC_ISO	= 0x0008,  // file is a GC ISO image
+	FT_ID_WII_ISO	= 0x0010,  // file is a WII ISO image
 
-	FT_ID_DOL	= 0x010,  // file is a DOL file
-	FT_ID_TIK_BIN	= 0x020,  // 'ticket.bin' like file
-	FT_ID_TMD_BIN	= 0x040,  // 'tmd.bin' like file
-	FT_ID_HEAD_BIN	= 0x080,  // 'header.bin' like file
-	FT_ID_BOOT_BIN	= 0x100,  // 'boot.bin' like file
-	FT_ID_FST_BIN	= 0x200,  // 'fst.bin' like file
-	 FT__SPC_MASK	= 0x3f0,  // mask of all special files
+	FT_ID_DOL	= 0x0100,  // file is a DOL file
+	FT_ID_TIK_BIN	= 0x0200,  // 'ticket.bin' like file
+	FT_ID_TMD_BIN	= 0x0400,  // 'tmd.bin' like file
+	FT_ID_HEAD_BIN	= 0x0800,  // 'header.bin' like file
+	FT_ID_BOOT_BIN	= 0x1000,  // 'boot.bin' like file
+	FT_ID_FST_BIN	= 0x2000,  // 'fst.bin' like file
+	 FT__SPC_MASK	= 0x3f00,  // mask of all special files
 
-	FT_ID_OTHER	= 0x400,  // unknown file
-	 FT__ID_MASK	= 0x7ff,  // mask of all 'FT_ID_' values
+	FT_ID_OTHER	= 0x4000,  // unknown file
+	 FT__ID_MASK	= 0x7f1f,  // mask of all 'FT_ID_' values
 
     // 2. attributes
 
-	FT_A_ISO	= 0x001000,  // file is some kind of a ISO image
-	FT_A_WDISC	= 0x002000,  // flag: specific disc of an WBFS file
-	FT_A_WDF	= 0x004000,  // flag: file is a packed WDF
-	FT_A_WIA	= 0x008000,  // flag: file is a packed WIA
-	FT_A_CISO	= 0x010000,  // flag: file is a packed CISO
-	FT_A_REGFILE	= 0x020000,  // flag: file is a regular file
-	FT_A_BLOCKDEV	= 0x040000,  // flag: file is a block device
-	FT_A_CHARDEV	= 0x080000,  // flag: file is a block device
-	FT_A_SEEKABLE	= 0x100000,  // flag: using of seek() is possible
-	FT_A_WRITING	= 0x200000,  // is opened for writing
-	FT_A_PART_DIR	= 0x400000,  // FST is a partition
-	FT__A_MASK	= 0x7ff000,  // mask of all 'FT_F_' values
+	FT_A_ISO	= 0x00010000,  // file is some kind of a ISO image
+	FT_A_GC_ISO	= 0x00020000,  // file is some kind of a GC ISO image
+	FT_A_WII_ISO	= 0x00040000,  // file is some kind of a WII ISO image
+
+	FT_A_WDISC	= 0x00100000,  // flag: specific disc of an WBFS file
+	FT_A_WDF	= 0x00200000,  // flag: file is a packed WDF
+	FT_A_WIA	= 0x00400000,  // flag: file is a packed WIA
+	FT_A_CISO	= 0x00800000,  // flag: file is a packed CISO
+	FT_A_REGFILE	= 0x01000000,  // flag: file is a regular file
+	FT_A_BLOCKDEV	= 0x02000000,  // flag: file is a block device
+	FT_A_CHARDEV	= 0x04000000,  // flag: file is a block device
+	FT_A_SEEKABLE	= 0x08000000,  // flag: using of seek() is possible
+	FT_A_WRITING	= 0x10000000,  // is opened for writing
+	FT_A_PART_DIR	= 0x20000000,  // FST is a partition
+	FT__A_MASK	= 0x3ff70000,  // mask of all 'FT_F_' values
 
     // 3. mask of all 'FT_ values
 
@@ -450,6 +454,7 @@ enumError XFindSplitFile  ( XPARM File_t *f, uint * index, off_t * off );
 void CopyFD ( File_t * dest, File_t * src );
 
 // read cache support
+void ClearCache		 ( File_t * f );
 void DefineCachedArea    ( File_t * f, off_t off, size_t count );
 void DefineCachedAreaISO ( File_t * f, bool head_only );
 

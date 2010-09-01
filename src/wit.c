@@ -161,7 +161,7 @@ void hint_exit ( enumError stat, ccp command )
 
 enumError cmd_test()
 {
- #if 0 || !defined(TEST) // test options
+ #if 1 || !defined(TEST) // test options
 
     return cmd_test_options();
 
@@ -438,6 +438,7 @@ enumError cmd_filelist()
     it.func		= exec_filelist;
     it.act_non_exist	= ignore_count > 0 ? ACT_IGNORE : ACT_ALLOW;
     it.act_non_iso	= ignore_count > 1 ? ACT_IGNORE : ACT_ALLOW;
+    it.act_gc		= ACT_ALLOW;
     it.act_fst		= allow_fst ? ACT_ALLOW : ACT_IGNORE;
     it.long_count	= long_count;
     const enumError err = SourceIterator(&it,1,true,false);
@@ -528,6 +529,7 @@ enumError cmd_filetype()
     it.func		= exec_filetype;
     it.act_non_exist	= ignore_count > 0 ? ACT_IGNORE : ACT_ALLOW;
     it.act_non_iso	= ignore_count > 1 ? ACT_IGNORE : ACT_ALLOW;
+    it.act_gc		= ACT_ALLOW;
     it.act_fst		= !allow_fst ? ACT_IGNORE
 					 : long_count > 1 ? ACT_EXPAND : ACT_ALLOW;
     it.long_count	= long_count;
@@ -641,6 +643,7 @@ enumError cmd_isosize()
     it.func		= exec_isosize;
     it.act_non_exist	= ignore_count > 0 ? ACT_IGNORE : ACT_ALLOW;
     it.act_non_iso	= ignore_count > 1 ? ACT_IGNORE : ACT_ALLOW;
+    it.act_gc		= ACT_ALLOW;
     it.act_fst		= allow_fst ? ACT_EXPAND : ACT_IGNORE;
     it.act_wbfs		= ACT_EXPAND;
     it.long_count	= long_count;
@@ -714,12 +717,13 @@ enumError cmd_dump()
     it.func		= exec_dump;
     it.act_known	= ACT_ALLOW;
     it.act_wbfs		= ACT_EXPAND;
+    it.act_gc		= ACT_ALLOW;
     it.act_fst		= allow_fst ? ACT_EXPAND : ACT_IGNORE;
     it.long_count	= long_count;
 
     enumError err = SourceIterator(&it,0,false,true);
     if ( err <= ERR_WARNING )
-	err = SourceIteratorCollected(&it,1);
+	err = SourceIteratorCollected(&it,1,false);
     ResetIterator(&it);
     return err;
 }
@@ -765,11 +769,12 @@ enumError cmd_dregion()
     it.func		= exec_dregion;
     it.act_known	= ACT_ALLOW;
     it.act_wbfs		= ACT_EXPAND;
+    it.act_gc		= ACT_IGNORE;
     it.act_fst		= ACT_IGNORE;
 
     enumError err = SourceIterator(&it,0,false,true);
     if ( err <= ERR_WARNING )
-	err = SourceIteratorCollected(&it,1);
+	err = SourceIteratorCollected(&it,1,false);
     ResetIterator(&it);
     return err;
 }
@@ -836,6 +841,7 @@ enumError cmd_id6()
 	InitializeIterator(&it);
 	it.func		= exec_collect;
 	it.act_wbfs	= ACT_EXPAND;
+	it.act_gc	= ACT_ALLOW;
 	it.act_fst	= allow_fst ? ACT_EXPAND : ACT_IGNORE;
 	it.long_count	= long_count;
 	it.wlist	= &wlist;
@@ -895,6 +901,7 @@ enumError cmd_list ( int long_level )
     InitializeIterator(&it);
     it.func		= exec_collect;
     it.act_wbfs		= ACT_EXPAND;
+    it.act_gc		= ACT_ALLOW;
     it.act_fst		= allow_fst ? ACT_EXPAND : ACT_IGNORE;
     it.long_count	= long_count;
     it.real_filename	= print_sections > 0;
@@ -1039,7 +1046,7 @@ enumError exec_files ( SuperFile_t * fi, Iterator_t * it )
     if ( fi->f.ftype & FT__SPC_MASK || !fi->f.id6[0] )
 	return OptionUsed[OPT_IGNORE]
 		? ERR_OK
-		: PrintErrorFT(&fi->f,FT_A_ISO);
+		: PrintErrorFT(&fi->f,FT_A_WII_ISO);
 
     wd_disc_t * disc = OpenDiscSF(fi,true,true);
     if (!disc)
@@ -1083,6 +1090,7 @@ enumError cmd_files ( int long_level )
     //it.act_non_iso	= OptionUsed[OPT_IGNORE] ? ACT_IGNORE : ACT_WARN;
     it.act_non_iso	= ACT_ALLOW;
     it.act_wbfs		= ACT_EXPAND;
+    it.act_gc		= ACT_ALLOW;
     it.act_fst		= allow_fst ? ACT_EXPAND : ACT_IGNORE;
     it.long_count	= long_count;
 
@@ -1105,7 +1113,7 @@ enumError cmd_files ( int long_level )
     if ( err <= ERR_WARNING )
     {
 	it.func = exec_files;
-	err = SourceIteratorCollected(&it,1);
+	err = SourceIteratorCollected(&it,1,false);
     }
     ResetIterator(&it);
 
@@ -1248,6 +1256,7 @@ enumError cmd_diff ( bool file_level )
     it.act_non_iso	= OptionUsed[OPT_IGNORE] ? ACT_IGNORE : ACT_WARN;
     it.act_non_exist	= it.act_non_iso;
     it.act_wbfs		= ACT_EXPAND;
+    it.act_gc		= ACT_ALLOW;
     it.act_fst		= allow_fst ? ACT_EXPAND : ACT_IGNORE;
     it.long_count	= long_count;
 
@@ -1376,6 +1385,7 @@ enumError cmd_extract()
     InitializeIterator(&it);
     it.act_non_iso	= OptionUsed[OPT_IGNORE] ? ACT_IGNORE : ACT_WARN;
     it.act_wbfs		= ACT_EXPAND;
+    it.act_gc		= ACT_ALLOW;
     it.act_fst		= allow_fst ? ACT_EXPAND : ACT_IGNORE;
     it.overwrite	= OptionUsed[OPT_OVERWRITE] ? 1 : 0;
 
@@ -1383,7 +1393,7 @@ enumError cmd_extract()
     if ( err <= ERR_WARNING )
     {
 	it.func = exec_extract;
-	err = SourceIteratorCollected(&it,2);
+	err = SourceIteratorCollected(&it,2,false);
 	if ( err == ERR_OK && it.exists_count )
 	    err = ERR_ALREADY_EXISTS;
     }
@@ -1540,6 +1550,7 @@ enumError cmd_copy()
     InitializeIterator(&it);
     it.act_non_iso	= OptionUsed[OPT_IGNORE] ? ACT_IGNORE : ACT_WARN;
     it.act_wbfs		= ACT_EXPAND;
+    it.act_gc		= ACT_ALLOW;
     it.act_fst		= allow_fst ? ACT_EXPAND : ACT_IGNORE;
     it.overwrite	= OptionUsed[OPT_OVERWRITE] ? 1 : 0;
     it.update		= OptionUsed[OPT_UPDATE] ? 1 : 0;
@@ -1558,7 +1569,7 @@ enumError cmd_copy()
     if ( err <= ERR_WARNING )
     {
 	it.func = exec_copy;
-	err = SourceIteratorCollected(&it,2);
+	err = SourceIteratorCollected(&it,2,false);
 	if ( err == ERR_OK && it.exists_count )
 	    err = ERR_ALREADY_EXISTS;
     }
@@ -1582,6 +1593,7 @@ enumError cmd_scrub()
     InitializeIterator(&it);
     it.act_non_iso	= OptionUsed[OPT_IGNORE] ? ACT_IGNORE : ACT_WARN;
     it.act_wbfs		= it.act_non_iso;
+    it.act_gc		= ACT_ALLOW;
     it.scrub_it		= true;
     it.overwrite	= true;
     it.remove_source	= true;
@@ -1599,7 +1611,7 @@ enumError cmd_scrub()
     if ( err <= ERR_WARNING )
     {
 	it.func = exec_copy;
-	err = SourceIteratorCollected(&it,2);
+	err = SourceIteratorCollected(&it,2,false);
 	if ( err == ERR_OK && it.exists_count )
 	    err = ERR_ALREADY_EXISTS;
     }
@@ -1662,6 +1674,7 @@ enumError cmd_edit()
     InitializeIterator(&it);
     it.act_non_iso	= OptionUsed[OPT_IGNORE] ? ACT_IGNORE : ACT_WARN;
     it.act_wbfs		= it.act_non_iso;
+    it.act_gc		= ACT_ALLOW;
 
     if ( testmode > 1 )
     {
@@ -1677,7 +1690,7 @@ enumError cmd_edit()
     {
 	it.func = exec_edit;
 	it.open_modify = !testmode;
-	err = SourceIteratorCollected(&it,2);
+	err = SourceIteratorCollected(&it,2,false);
 	if ( err == ERR_OK && it.exists_count )
 	    err = ERR_ALREADY_EXISTS;
     }
@@ -1760,6 +1773,7 @@ enumError cmd_move()
     InitializeIterator(&it);
     it.act_non_iso	= OptionUsed[OPT_IGNORE] ? ACT_IGNORE : ACT_WARN;
     it.act_wbfs		= ACT_ALLOW;
+    it.act_gc		= ACT_ALLOW;
     it.overwrite	= OptionUsed[OPT_OVERWRITE] ? 1 : 0;
 
     if ( testmode > 1 )
@@ -1775,7 +1789,7 @@ enumError cmd_move()
     if ( err <= ERR_WARNING )
     {
 	it.func = exec_move;
-	err = SourceIteratorCollected(&it,2);
+	err = SourceIteratorCollected(&it,2,false);
     }
     ResetIterator(&it);
     return err;
@@ -1853,6 +1867,7 @@ enumError cmd_rename ( bool rename_id )
     it.open_modify	= !testmode;
     it.act_non_iso	= OptionUsed[OPT_IGNORE] ? ACT_IGNORE : ACT_WARN;
     it.act_wbfs		= ACT_EXPAND;
+    it.act_gc		= ACT_ALLOW;
     it.long_count	= long_count;
 
     if ( testmode > 1 )
@@ -1935,6 +1950,7 @@ enumError cmd_verify()
     InitializeIterator(&it);
     it.act_non_iso	= OptionUsed[OPT_IGNORE] ? ACT_IGNORE : ACT_WARN;
     it.act_wbfs		= ACT_EXPAND;
+    it.act_gc		= ACT_WARN;
     it.act_fst		= allow_fst ? ACT_EXPAND : ACT_IGNORE;
     it.long_count	= long_count;
 
@@ -1951,7 +1967,7 @@ enumError cmd_verify()
     if ( err <= ERR_WARNING )
     {
 	it.func = exec_verify;
-	err = SourceIteratorCollected(&it,2);
+	err = SourceIteratorCollected(&it,2,true);
 	if ( err == ERR_OK && it.diff_count )
 	    err = ERR_DIFFER;
     }
@@ -2026,6 +2042,9 @@ enumError CheckOptions ( int argc, char ** argv, bool is_env )
 	case GO_RM_FILES:	err += ScanFiles(optarg,PAT_RM_FILES); break;
 	case GO_ZERO_FILES:	err += ScanFiles(optarg,PAT_ZERO_FILES); break;
 	case GO_IGNORE_FILES:	err += ScanFiles(optarg,PAT_IGNORE_FILES); break;
+	case GO_REPL_FILE:	err += ScanOptFile(optarg,false);
+	case GO_ADD_FILE:	err += ScanOptFile(optarg,true);
+	case GO_ALIGN:		err += ScanOptAlign(optarg);
 	case GO_OVERLAY:	break;
 	case GO_DEST:		opt_dest = optarg; break;
 	case GO_DEST2:		opt_dest = optarg; opt_mkdir = true; break;

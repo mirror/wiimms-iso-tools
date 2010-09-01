@@ -63,12 +63,6 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 	" '.wdf'. This is the general default."
     },
 
-    {	OPT_WIA, 0, "wia",
-	0,
-	"Force WIA output mode if packing and set the default suffix to"
-	" '.wia'."
-    },
-
     {	OPT_CISO, 'C', "ciso",
 	0,
 	"Force CISO output mode if packing and set the default suffix to"
@@ -87,8 +81,7 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 
     {	OPT_SUFFIX, 's', "suffix",
 	".suf",
-	"Use suffix '.suf' instead of '.wdf', '.wia' or '.ciso' for packed"
-	" files."
+	"Use suffix '.suf' instead of '.wdf', or '.ciso' for packed files."
     },
 
     {	OPT_DEST, 'd', "dest",
@@ -169,7 +162,7 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 	" --no-compress."
     },
 
-    {0,0,0,0,0}, // OPT__N_SPECIFIC == 19
+    {0,0,0,0,0}, // OPT__N_SPECIFIC == 18
 
     //----- global options -----
 
@@ -225,7 +218,7 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 	">>> USE THIS OPTION IF UNSURE! <<<"
     },
 
-    {0,0,0,0,0} // OPT__N_TOTAL == 28
+    {0,0,0,0,0} // OPT__N_TOTAL == 27
 
 };
 
@@ -286,7 +279,6 @@ const struct option OptionLong[] =
 	{ "minus-1",		0, 0, '1' },
 	 { "minus1",		0, 0, '1' },
 	{ "wdf",		0, 0, 'W' },
-	{ "wia",		0, 0, GO_WIA },
 	{ "ciso",		0, 0, 'C' },
 	{ "wbi",		0, 0, GO_WBI },
 	{ "suffix",		1, 0, 's' },
@@ -363,13 +355,12 @@ const u8 OptionIndex[OPT_INDEX_SIZE] =
 	/*80*/	OPT_XHELP,
 	/*81*/	OPT_WIDTH,
 	/*82*/	OPT_CHUNK,
-	/*83*/	OPT_WIA,
-	/*84*/	OPT_WBI,
-	/*85*/	OPT_CHUNK_MODE,
-	/*86*/	OPT_CHUNK_SIZE,
-	/*87*/	OPT_MAX_CHUNKS,
-	/*88*/	OPT_NO_COMPRESS,
-	/*89*/	 0,0,0,0, 0,0,0,
+	/*83*/	OPT_WBI,
+	/*84*/	OPT_CHUNK_MODE,
+	/*85*/	OPT_CHUNK_SIZE,
+	/*86*/	OPT_MAX_CHUNKS,
+	/*87*/	OPT_NO_COMPRESS,
+	/*88*/	 0,0,0,0, 0,0,0,0, 
 	/*90*/	 0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0,
 	/*a0*/	 0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0,
 	/*b0*/	 0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0,
@@ -380,39 +371,39 @@ const u8 OptionIndex[OPT_INDEX_SIZE] =
 ///////////////                opt_allowed_cmd_*                ///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-static u8 option_allowed_cmd_VERSION[19] = // cmd #1
+static u8 option_allowed_cmd_VERSION[18] = // cmd #1
 {
-    0,0,1,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0
+    0,0,1,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0
 };
 
-static u8 option_allowed_cmd_HELP[19] = // cmd #2
+static u8 option_allowed_cmd_HELP[18] = // cmd #2
 {
-    1,1,1,1,1, 1,1,1,1,1,  1,1,1,1,1, 1,1,1,1
+    1,1,1,1,1, 1,1,1,1,1,  1,1,1,1,1, 1,1,1
 };
 
-static u8 option_allowed_cmd_PACK[19] = // cmd #3
+static u8 option_allowed_cmd_PACK[18] = // cmd #3
 {
-    0,0,0,0,1, 1,1,1,1,1,  1,1,1,1,1, 1,1,1,1
+    0,0,0,0,1, 1,1,1,1,1,  1,1,1,1,1, 1,1,1
 };
 
-static u8 option_allowed_cmd_UNPACK[19] = // cmd #4
+static u8 option_allowed_cmd_UNPACK[18] = // cmd #4
 {
-    0,0,0,0,0, 0,0,0,0,1,  1,1,1,1,1, 1,1,1,1
+    0,0,0,0,0, 0,0,0,1,1,  1,1,1,1,1, 1,1,1
 };
 
-static u8 option_allowed_cmd_CAT[19] = // cmd #5
+static u8 option_allowed_cmd_CAT[18] = // cmd #5
 {
-    0,0,0,0,0, 0,0,0,0,1,  0,1,0,1,1, 1,1,1,1
+    0,0,0,0,0, 0,0,0,1,0,  1,0,1,1,1, 1,1,1
 };
 
-static u8 option_allowed_cmd_CMP[19] = // cmd #6
+static u8 option_allowed_cmd_CMP[18] = // cmd #6
 {
-    0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0
+    0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0
 };
 
-static u8 option_allowed_cmd_DUMP[19] = // cmd #7
+static u8 option_allowed_cmd_DUMP[18] = // cmd #7
 {
-    0,1,1,1,0, 0,0,0,0,1,  0,1,0,0,0, 0,0,0,0
+    0,1,1,1,0, 0,0,0,1,0,  1,0,0,0,0, 0,0,0
 };
 
 
@@ -476,7 +467,6 @@ static const InfoOption_t * option_tab_cmd_PACK[] =
 	OptionInfo + OPT_NONE, // separator
 
 	OptionInfo + OPT_WDF,
-	OptionInfo + OPT_WIA,
 	OptionInfo + OPT_CISO,
 	OptionInfo + OPT_WBI,
 	OptionInfo + OPT_SUFFIX,
@@ -591,7 +581,7 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	"+P",
 	"wdf +PACK [option]... files...",
 	"Pack sources into WDF or CISO archives. This is the general default.",
-	17,
+	16,
 	option_tab_cmd_PACK,
 	option_allowed_cmd_PACK
     },

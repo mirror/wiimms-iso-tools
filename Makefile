@@ -16,7 +16,7 @@ WWT_SHORT		= wwt
 WWT_LONG		= Wiimms WBFS Tool
 
 VERSION_NUM		= 1.16a
-BETA_VERSION		= 4
+BETA_VERSION		= 0
 			# 0:off  -1:"beta"  >0:"beta#"
 
 URI_HOME		= http://wit.wiimm.de/
@@ -164,6 +164,7 @@ DEFINES1	=  -DLARGE_FILES -D_FILE_OFFSET_BITS=64
 DEFINES1	+= -DWIT		# enable WIT specific modifications in libwbfs
 DEFINES1	+= -DDEBUG_ASSERT	# enable ASSERTions in release version too
 DEFINES1	+= -DEXTENDED_ERRORS=1	# enable extended error messages (function,line,file)
+#DEFINES1	+= -DNO_BZIP2=1
 DEFINES		=  $(strip $(DEFINES1) $(MODE) $(XDEF))
 
 CFLAGS		=  -fomit-frame-pointer -fno-strict-aliasing

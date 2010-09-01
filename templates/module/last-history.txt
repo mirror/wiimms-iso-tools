@@ -5,11 +5,15 @@ wit v@@VERSION@@ r@@REV-NEXT@@ - @@@@-@@-@@
  - wwt ADD: Default is now: --enc encrypt
  - wit DIFF: Will patch the partiton tables for scrubbed diff, because
    different tools modify them in a different way while scrubbing.
+ - Bug fix for wwt VERIFY: Iteration through whole WBFS failed.
+ - A little change when creating a WBFS file: The hss value in the WBFS header
+   is now set to the truncated value.
  - New file format supported: WIA = Wii ISO Archive (EXPERIMENTAL!)
    WIA will decrypt partitions and compress the data in chunks with bzip2.
    Because of the chunks the archive allows random read access to view
    only parts of the image. The option --no-compress disables compressing.
    The resulting image is very effective packable by all compression tools.
+ - Gamecube ISO support for nearly all commands. (EXPERIMENTAL!)
 
 Known bugs:
 
@@ -18,6 +22,7 @@ Known bugs:
    more lookups. I have to insert some code especially for pipes. My plans
    that copying multiple partition discs works too.
    ==> The best is to use a version 1.01c for pipes.
+ - No bzip2 (WIA) support for MAC/x86_64. (bug in the bzip2 library)
 
 Missing docu:
 

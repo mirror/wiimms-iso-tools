@@ -46,7 +46,6 @@ typedef enum enumOptions
 	OPT_LONG,
 	OPT_MINUS1,
 	OPT_WDF,
-	OPT_WIA,
 	OPT_CISO,
 	OPT_WBI,
 	OPT_SUFFIX,
@@ -61,7 +60,7 @@ typedef enum enumOptions
 	OPT_MAX_CHUNKS,
 	OPT_NO_COMPRESS,
 
-	OPT__N_SPECIFIC, // == 19 
+	OPT__N_SPECIFIC, // == 18 
 
 	//----- global options -----
 
@@ -75,7 +74,7 @@ typedef enum enumOptions
 	OPT_STDOUT,
 	OPT_TEST,
 
-	OPT__N_TOTAL // == 28
+	OPT__N_TOTAL // == 27
 
 } enumOptions;
 
@@ -94,7 +93,6 @@ typedef enum enumOptions
 //	OB_LONG			= 1llu << OPT_LONG,
 //	OB_MINUS1		= 1llu << OPT_MINUS1,
 //	OB_WDF			= 1llu << OPT_WDF,
-//	OB_WIA			= 1llu << OPT_WIA,
 //	OB_CISO			= 1llu << OPT_CISO,
 //	OB_WBI			= 1llu << OPT_WBI,
 //	OB_SUFFIX		= 1llu << OPT_SUFFIX,
@@ -125,7 +123,6 @@ typedef enum enumOptions
 //				| OB_NO_COMPRESS,
 //
 //	OB_GRP_FILETYPE		= OB_WDF
-//				| OB_WIA
 //				| OB_CISO
 //				| OB_WBI
 //				| OB_SUFFIX,
@@ -207,7 +204,6 @@ typedef enum enumGetOpt
 	GO_XHELP		= 0x80,
 	GO_WIDTH,
 	GO_CHUNK,
-	GO_WIA,
 	GO_WBI,
 	GO_CHUNK_MODE,
 	GO_CHUNK_SIZE,

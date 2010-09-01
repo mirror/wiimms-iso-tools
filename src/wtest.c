@@ -553,10 +553,13 @@ int test_copy_to_wbfs ( int argc, char ** argv )
 
 // http://www.bzip.org/1.0.5/bzip2-manual-1.0.5.html
 
-#include <bzlib.h>
+#ifndef NO_BZIP2
+ #include <bzlib.h>
+#endif
 
 void test_libbz2()
 {
+ #ifndef NO_BZIP2
     FILE * f = fopen("work/test.bz2","rb");
     if (f)
     {
@@ -565,6 +568,7 @@ void test_libbz2()
 	BZ2_bzReadClose(&bzerror,bz2);
 	fclose (f);
     }
+ #endif
 }
 
 //
