@@ -56,13 +56,10 @@
 
 
 time_t opt_set_time	= 0;
-int  print_sections	= 0;
-int  long_count		= 0;
 u64  opt_size		= 0;
 u32  opt_hss		= 0;
 u32  opt_wss		= 0;
 
-enumIOMode io_mode	= 0;
 
 //
 ///////////////////////////////////////////////////////////////////////////////
@@ -91,15 +88,26 @@ void version_exit()
 	fputs("[version]\n",stdout);
 
     if ( print_sections || long_count )
+    {
+	const u32 base = 0x04030201;
+	const u8 * e = (u8*)&base;
+	const u32 endian = be32(e);
+
 	printf(	"prog=" WWT_SHORT "\n"
 		"name=\"" WWT_LONG "\"\n"
 		"version=" VERSION "\n"
 		"beta=%d\n"
 		"revision=" REVISION  "\n"
 		"system=" SYSTEM "\n"
+		"endian=%u%u%u%u %s\n"
 		"author=\"" AUTHOR "\"\n"
 		"date=" DATE "\n"
-		, BETA_VERSION );
+		"url=" URI_HOME WWT_SHORT "\n"
+		, BETA_VERSION
+		, e[0], e[1], e[2], e[3]
+		, endian == 0x01020304 ? "little"
+		: endian == 0x04030201 ? "big" : "mixed" );
+    }
     else
 	fputs( TITLE "\n", stdout );
     exit(ERR_OK);
@@ -1722,8 +1730,9 @@ enumError exec_add ( SuperFile_t * sf, Iterator_t * it )
 	sf->show_msec		= verbose > 2;
 	sf->f.read_behind_eof	= verbose > 1 ? 1 : 2;
 
-	if ( AddWDisc(it->wbfs,sf,&part_selector) > ERR_WARNING )
-	    return ERROR0(ERR_WBFS,"Error while creating disc [%s] @%s\n",
+	enumError err = AddWDisc(it->wbfs,sf,&part_selector);
+	if ( err > ERR_WARNING )
+	    return ERROR0(err,"Error while adding disc [%s] @%s\n",
 			sf->f.id6, it->wbfs->sf->f.fname );
     }
     it->done_count++;
@@ -1752,12 +1761,15 @@ enumError cmd_add()
     if ( OptionUsed[OPT_SYNC] )
     	RegisterOptionByIndex(&InfoUI,OPT_UPDATE,1,false);
 
+    encoding |= ENCODE_F_ENCRYPT; // hint: encrypten and any signing wanted
+
     Iterator_t it;
     InitializeIterator(&it);
     it.act_non_iso	= OptionUsed[OPT_IGNORE] ? ACT_IGNORE : ACT_WARN;
     it.act_non_exist	= it.act_non_iso;
     it.act_open		= it.act_non_iso;
     it.act_wbfs		= ACT_EXPAND;
+    it.act_gc		= ACT_ALLOW;
     it.act_fst		= allow_fst ? ACT_EXPAND : ACT_IGNORE;
     it.update		= OptionUsed[OPT_UPDATE]	? 1 : 0;
     it.newer		= OptionUsed[OPT_NEWER]		? 1 : 0;
@@ -1774,7 +1786,7 @@ enumError cmd_add()
     if ( OptionUsed[OPT_SYNC] )
     {
 	it.func = exec_scan_id;
-	err = SourceIteratorCollected(&it,0);
+	err = SourceIteratorCollected(&it,0,false);
 	if (err)
 	{
 	    ResetIterator(&it);
@@ -1849,7 +1861,7 @@ enumError cmd_add()
 	it.wbfs = &wbfs;
 	it.open_dev = wbfs.sf->f.st.st_dev;
 	it.open_ino = wbfs.sf->f.st.st_ino;
-	err = SourceIteratorCollected(&it,0);
+	err = SourceIteratorCollected(&it,0,false);
 	if (err)
 	    break;
 
@@ -2077,7 +2089,7 @@ enumError cmd_extract()
 		    if (opt_split)
 			SetupSplitFile(&fo.f,oft,opt_split_size);
 
-		    if (SetupWriteSF(&fo,oft))
+		    if (SetupWriteSF(&fo,oft,0))
 		    {
 			RemoveSF(&fo);
 			goto abort;
@@ -2780,6 +2792,11 @@ enumError cmd_verify()
 				fail_verb = "found";
 			}
 		    }
+		    else if (stat)
+		    {
+			err = stat;
+			wbfs_fail_count++;
+		    }
 		}
 		wbfs_verify_count++;
 		CloseWDisc(&wbfs);
@@ -2998,6 +3015,9 @@ enumError CheckOptions ( int argc, char ** argv, bool is_env )
 	case GO_RM_FILES:	err += ScanFiles(optarg,PAT_RM_FILES); break;
 	case GO_ZERO_FILES:	err += ScanFiles(optarg,PAT_ZERO_FILES); break;
 	case GO_IGNORE_FILES:	err += ScanFiles(optarg,PAT_IGNORE_FILES); break;
+	case GO_REPL_FILE:	err += ScanOptFile(optarg,false);
+	case GO_ADD_FILE:	err += ScanOptFile(optarg,true);
+	case GO_ALIGN:		err += ScanOptAlign(optarg);
 	case GO_SPLIT:		opt_split++; break;
 	case GO_SPLIT_SIZE:	err += ScanOptSplitSize(optarg); break;
 	case GO_TRUNC:		opt_truncate++; break;
@@ -3005,6 +3025,7 @@ enumError CheckOptions ( int argc, char ** argv, bool is_env )
 	case GO_CHUNK_MODE:	err += ScanChunkMode(optarg); break;
 	case GO_CHUNK_SIZE:	err += ScanChunkSize(optarg); break;
 	case GO_MAX_CHUNKS:	err += ScanMaxChunks(optarg); break;
+	case GO_NO_COMPRESS:	opt_no_compress = true; break;
 	case GO_RECOVER:	break;
 	case GO_FORCE:		break;
 	case GO_NO_CHECK:	break;
@@ -3017,6 +3038,7 @@ enumError CheckOptions ( int argc, char ** argv, bool is_env )
 	case GO_REMOVE:		break;
 
 	case GO_WDF:		output_file_type = OFT_WDF; break;
+	case GO_WIA:		output_file_type = OFT_WIA; break;
 	case GO_ISO:		output_file_type = OFT_PLAIN; break;
 	case GO_CISO:		output_file_type = OFT_CISO; break;
 	case GO_WBFS:		output_file_type = OFT_WBFS; break;
@@ -3224,8 +3246,6 @@ int main ( int argc, char ** argv )
 {
     SetupLib(argc,argv,WWT_SHORT,PROG_WWT);
     allow_fst = true;
-
-    ASSERT( OPT__N_SPECIFIC <= 64 );
 
     //----- process arguments
 

@@ -30,16 +30,33 @@
 
 //
 ///////////////////////////////////////////////////////////////////////////////
-///////////////			enum wd_ckey_index_t		///////////////
+///////////////			Introduction			///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-typedef enum wd_ckey_index_t // known partition types
-{
-    WD_CKEY_STANDARD,		// standard common key
-    WD_CKEY_KOREA,		// common key for korea
-    WD_CKEY__N			// number of common keys
+/****************************************************************************
+ *									    *
+ *  This is a new wiidisc lib written by Dirk Clemens. It support GameCube  *
+ *  and Wii ISO images. If the name of a offset or size variable ends with  *
+ *  a '4' than the real value must be calculated with: (u64)value4<<2	    *
+ *  But this not true for GameCube discs. GameCube discs store the	    *
+ *  unshifted value.							    *
+ *									    *
+ ****************************************************************************/
 
-} wd_ckey_index_t;
+//
+///////////////////////////////////////////////////////////////////////////////
+///////////////			enum wd_disc_type_t		///////////////
+///////////////////////////////////////////////////////////////////////////////
+
+typedef enum wd_disc_type_t // never change the values, because WIA use it
+{
+    WD_DT_UNKOWN	= 0,	// unknown, always Null
+    WD_DT_GAMECUBE,		// GameCube disc type
+    WD_DT_WII,			// Wii disc type
+
+    WD_DT__N			// number of disc types
+
+} wd_disc_type_t;
 
 //
 ///////////////////////////////////////////////////////////////////////////////
@@ -56,6 +73,19 @@ typedef enum wd_part_type_t // known partition types
 
 //
 ///////////////////////////////////////////////////////////////////////////////
+///////////////			enum wd_ckey_index_t		///////////////
+///////////////////////////////////////////////////////////////////////////////
+
+typedef enum wd_ckey_index_t // known partition types
+{
+    WD_CKEY_STANDARD,		// standard common key
+    WD_CKEY_KOREA,		// common key for korea
+    WD_CKEY__N			// number of common keys
+
+} wd_ckey_index_t;
+
+//
+///////////////////////////////////////////////////////////////////////////////
 ///////////////			enum wd_select_mode_t		///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -67,12 +97,12 @@ typedef enum wd_select_mode_t // modes of selection
 
     WD_SM_ALLOW_PTYPE,		// allow partition type
     WD_SM_ALLOW_PTAB,		// allow partition table
-    WD_SM_ALLOW_INDEX,		// allow partition #index in absolut partiton count
-    WD_SM_ALLOW_LT_INDEX,	// allow partitions < #index in absolut partiton count
-    WD_SM_ALLOW_GT_INDEX,	// allow partitions > #index in absolut partiton count
+    WD_SM_ALLOW_INDEX,		// allow partition #index in absolut partition count
+    WD_SM_ALLOW_LT_INDEX,	// allow partitions < #index in absolut partition count
+    WD_SM_ALLOW_GT_INDEX,	// allow partitions > #index in absolut partition count
     WD_SM_ALLOW_PTAB_INDEX,	// allow partition #index in given table
     WD_SM_ALLOW_ID,		// allow ID
-    WD_SM_ALLOW_ALL,		// allow all partitons
+    WD_SM_ALLOW_ALL,		// allow all partitions
 
     WD_SM_N_MODE,		// number of modes
 
@@ -176,7 +206,7 @@ typedef enum wd_pname_mode_t // partition name modes
     WD_PNAME_P_NAME,		// NAME if possible, 'P-'ID or 'P'NUM else
     WD_PNAME_NUM_INFO,		// NUM + '[INFO]'
 
-    WD_PNAME__N			// numper of supported formats
+    WD_PNAME__N			// number of supported formats
 
 } wd_pname_mode_t;
 
@@ -188,8 +218,11 @@ typedef enum wd_pname_mode_t // partition name modes
 typedef enum wd_patch_mode_t // patching modes
 {
     WD_PAT_DATA,		// raw data
-    WD_PAT_PART_TICKET,		// parititon TICKET (fake sign)
-    WD_PAT_PART_TMD,		// parititon TMP (fake sign)
+    WD_PAT_PART_DATA,		// raw partition data (not used in wiidisc)
+    WD_PAT_PART_TICKET,		// partition TICKET (-> fake sign)
+    WD_PAT_PART_TMD,		// partition TMD (-> fake sign)
+
+    WD_PAT__N			// number of valid codes
 
 } wd_patch_mode_t;
 
@@ -305,14 +338,14 @@ typedef int (*wd_file_func_t)
 typedef struct wd_select_item_t // a select sub item
 {
     wd_select_mode_t	mode;		// select mode
-    u32			table;		// partiton table
-    u32			part;		// partiton type or index
+    u32			table;		// partition table
+    u32			part;		// partition type or index
     
 } wd_select_item_t;
 
 //
 ///////////////////////////////////////////////////////////////////////////////
-///////////////		    struct wd_select_item_t		///////////////
+///////////////			struct wd_select_t		///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
 typedef struct wd_select_t // a selector
@@ -336,10 +369,10 @@ typedef struct wd_patch_item_t // patching data item
     wd_patch_mode_t	mode;		// patching mode
     u64			offset;		// offset
     u64			size;		// size
-    struct wd_part_t	* part;		// NULL or relevant partition
+    u32			part_index;	// NULL or index of relevant partition
     void		* data;		// NULL or pointer to data/filename
-    bool		data_alloced;	// true if data must be freed.
-    char		info[40];	// comment for dumps
+    bool		data_alloced;	// true if data must be freed
+    char		info[43];	// comment for dumps
 
 } wd_patch_item_t;
 
@@ -355,6 +388,41 @@ typedef struct wd_patch_t // patching data structure
     u32			size;		// number of allocated items
 
 } wd_patch_t;
+
+//
+///////////////////////////////////////////////////////////////////////////////
+///////////////			struct wd_file_t		///////////////
+///////////////////////////////////////////////////////////////////////////////
+
+typedef struct wd_file_t
+{
+    u32			src_off4;		// offset of source in 4*bytes steps
+    u32			dest_off4;		// offset of dest in 4*bytes steps
+    u32			size;			// size of file
+    ccp			iso_path;		// path within iso image, never NULL
+    ccp			file_path;		// NULL or path of file to load
+
+    // For directories all values but iso_path are NULL
+    // and the 'iso_path' terminates with a slash ('/')
+    // For files the value of 'dest_off4' is never NULL.
+    // Use the function wd_file_is_directory() to distinguish between both.
+
+} wd_file_t;
+
+
+//
+///////////////////////////////////////////////////////////////////////////////
+///////////////			struct wd_file_list_t		///////////////
+///////////////////////////////////////////////////////////////////////////////
+
+typedef struct wd_file_list_t
+{
+    wd_file_t		* file;			// list with 'size' files
+    u32			used;			// number of used and
+						// initialized elements in 'list'
+    u32			size;			// number of alloced elements in 'list'
+
+} wd_file_list_t;
 
 //
 ///////////////////////////////////////////////////////////////////////////////
@@ -377,7 +445,7 @@ typedef struct wd_part_t
     struct wd_disc_t	* disc;		// pointer to disc
     wd_patch_t		patch;		// patching data
 
-    //----- status
+    //----- partition status
 
     bool		is_loaded;	// true if this partition info was loaded
     bool		is_valid;	// true if this partition is valid
@@ -385,11 +453,13 @@ typedef struct wd_part_t
     bool		is_ok;		// true if is_loaded && is_valid && is_enabled
     bool		is_encrypted;	// true if this partition is encrypted
     bool		is_overlay;	// true if this partition overlays other partitions
+    bool		is_gc;		// true for GC partition => no crypt, no hash
+
+    //----- to do status
 
     bool		sign_ticket;	// true if ticket must be signed
     bool		sign_tmd;	// true if tmd must be signed
     bool		h3_dirty;	// true if h3 is dirty -> calc h4 and sign tmd
-    
 
     //----- partition data, only valid if 'is_valid' is true
     
@@ -437,6 +507,8 @@ typedef struct wd_disc_t
 
     //----- raw data
 
+    wd_disc_type_t	disc_type;	// GameCube or Wii
+
     wd_header_t		dhead;		// copy of disc header
     wd_region_t		region;		// copy of disc region settings
     wd_ptab_info_t	ptab_info[WII_MAX_PTAB];
@@ -463,6 +535,7 @@ typedef struct wd_disc_t
     u32			fst_max_size;	// informative: maximal size value of all files
     u32			fst_dir_count;	// informative: number or directories in fst
     u32			fst_file_count;	// informative: number or real files in fst
+    bool		have_overlays;	// informative: overlayed partitions
     bool		patch_ptab_recommended;
 					// informative: patch ptab is recommended
 
@@ -521,7 +594,7 @@ typedef struct wd_iterator_t
     //----- file specific parameters
     
     wd_icm_t		icm;		// iterator call mode
-    u32			off4;		// offset/4 to read
+    u32			off4;		// offset/4 to read (GC: offset/1)
     u32			size;		// size of object
     const void		* data;		// NULL or pointer to data
     wd_fst_item_t	* fst_item;	// NULL or pointer to FST item
@@ -660,25 +733,34 @@ void wd_join_sectors
 ///////////////		interface: names, ids and titles	///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
+extern const char * wd_disc_type_name[];
 extern const char * wd_part_name[];
+
+//-----------------------------------------------------------------------------
+
+const char * wd_get_disc_type_name
+(
+    wd_disc_type_t	disc_type,	// disc type
+    ccp			not_found	// result if no name found
+);
 
 //-----------------------------------------------------------------------------
 
 const char * wd_get_part_name
 (
-	u32	ptype,			// partition type
-	ccp	result_if_not_found	// result if no name found
+    u32			ptype,		// partition type
+    ccp			not_found	// result if no name found
 );
 
 //-----------------------------------------------------------------------------
 
 char * wd_print_part_name
 (
-	char		* buf,		// result buffer
+    char		* buf,		// result buffer
 					// If NULL, a local circulary static buffer is used
-	size_t		buf_size,	// size of 'buf', ignored if buf==NULL
-	u32		ptype,		// partition type
-	wd_pname_mode_t	mode		// print mode
+    size_t		buf_size,	// size of 'buf', ignored if buf==NULL
+    u32			ptype,		// partition type
+    wd_pname_mode_t	mode		// print mode
 );
 
 //-----------------------------------------------------------------------------
@@ -686,9 +768,9 @@ char * wd_print_part_name
 	
 char * wd_print_id
 (
-	const void	* id,		// ID to convert in printable format
-	size_t		id_len,		// len of 'id'
-	void		* buf		// Pointer to buffer, size >= id_len + 1
+    const void		* id,		// ID to convert in printable format
+    size_t		id_len,		// len of 'id'
+    void		* buf		// Pointer to buffer, size >= id_len + 1
 					// If NULL, a local circulary static buffer is used
 );
 
@@ -697,9 +779,9 @@ char * wd_print_id
 
 int wd_rename
 (
-	void		* data,		// pointer to ISO data
-	ccp		new_id,		// if !NULL: take the first 6 chars as ID
-	ccp		new_title	// if !NULL: take the first 0x39 chars as title
+    void		* data,		// pointer to ISO data
+    ccp			new_id,		// if !NULL: take the first 6 chars as ID
+    ccp			new_title	// if !NULL: take the first 0x39 chars as title
 );
 
 //
@@ -773,25 +855,70 @@ int wd_is_block_encrypted
 
 wd_disc_t * wd_open_disc
 (
-	wd_read_func_t	read_func,	// read function, always valid
-	void		* read_data,	// data pointer for read function
-	u64		file_size,	// size of file, unknown if 0
-	ccp		file_name,	// used for error messages if not NULL
-	enumError	* error_code	// store error code if not NULL
+    wd_read_func_t	read_func,	// read function, always valid
+    void		* read_data,	// data pointer for read function
+    u64			file_size,	// size of file, unknown if 0
+    ccp			file_name,	// used for error messages if not NULL
+    enumError		* error_code	// store error code if not NULL
 );
 
 //-----------------------------------------------------------------------------
 
 wd_disc_t * wd_dup_disc
 (
-	wd_disc_t * disc		// NULL or a valid disc pointer
+    wd_disc_t		* disc		// NULL or a valid disc pointer
 );
 
 //-----------------------------------------------------------------------------
 
 void wd_close_disc
 (
-	wd_disc_t * disc		// NULL or a valid disc pointer
+    wd_disc_t		* disc		// NULL or valid disc pointer
+);
+
+//
+///////////////////////////////////////////////////////////////////////////////
+///////////////		    interface: get status		///////////////
+///////////////////////////////////////////////////////////////////////////////
+
+bool wd_disc_has_ptab
+(
+    wd_disc_t		*disc		// valid disc pointer
+);
+
+//-----------------------------------------------------------------------------
+
+bool wd_disc_has_region
+(
+    wd_disc_t		*disc		// valid disc pointer
+);
+
+//-----------------------------------------------------------------------------
+
+bool wd_part_has_ticket
+(
+    wd_part_t		*part		// valid disc partition pointer
+);
+
+//-----------------------------------------------------------------------------
+
+bool wd_part_has_tmd
+(
+    wd_part_t		*part		// valid disc partition pointer
+);
+
+//-----------------------------------------------------------------------------
+
+bool wd_part_has_cert
+(
+    wd_part_t		*part		// valid disc partition pointer
+);
+
+//-----------------------------------------------------------------------------
+
+bool wd_part_has_h3
+(
+    wd_part_t		*part		// valid disc partition pointer
 );
 
 //
@@ -894,8 +1021,8 @@ wd_select_item_t * wd_append_select_item
 (
     wd_select_t		* select,	// valid pointer to a partition selector
     wd_select_mode_t	mode,		// select mode of new item
-    u32			table,		// partiton table of new item
-    u32			part		// partiton type or index of new item
+    u32			table,		// partition table of new item
+    u32			part		// partition type or index of new item
 );
 
 //-----------------------------------------------------------------------------
@@ -1218,7 +1345,7 @@ wd_patch_item_t * wd_insert_patch_alloc
 wd_patch_item_t * wd_insert_patch_ticket
 (
     wd_part_t		* part		// valid pointer to a disc partition
-)  ;
+);
 
 //-----------------------------------------------------------------------------
 
@@ -1262,6 +1389,17 @@ enumError wd_read_and_patch
     u64			offset,		// offset to read
     void		* dest_buf,	// destination buffer
     u32			count		// number of bytes to read
+);
+
+//-----------------------------------------------------------------------------
+
+void wd_calc_group_hashes
+(
+    const u8		* group_data,	// group data space
+    u8			* group_hash,	// group hash space
+    u8			* h3,		// NULL or H3 element to change
+    const u8		dirty[WII_GROUP_SECTORS]
+					// NULL or 'dirty sector' flags
 );
 
 //
@@ -1368,6 +1506,77 @@ void wd_dump_disc_relocation
     int			indent,		// indention of the output
     wd_disc_t		* disc,		// valid pointer to a disc
     bool		print_title	// true: print table titles
+);
+
+//
+///////////////////////////////////////////////////////////////////////////////
+///////////////		     interface: file relocation		///////////////
+///////////////////////////////////////////////////////////////////////////////
+
+wd_file_list_t * wd_initialize_file_list
+(
+    wd_file_list_t	* fl		// NULL or working file list
+					// If NULL: allocate a file list
+);
+
+//-----------------------------------------------------------------------------
+
+void wd_reset_file_list
+(
+    wd_file_list_t	* fl,		// NULL or working file list to reset (free data)
+    bool		free_fl		// true: call 'free(fl)'
+);
+
+//-----------------------------------------------------------------------------
+
+wd_file_list_t * wd_create_file_list
+(
+    wd_file_list_t	* fl,		// NULL or working file list
+					// If NULL: allocate a file list
+    wd_fst_item_t	* fst,		// valid fst data structure
+    bool		fst_is_gc	// true: 'fst' is a GameCube source
+);
+
+//-----------------------------------------------------------------------------
+
+wd_file_t * wd_insert_file
+(
+    wd_file_list_t	* fl,		// working file list
+    u32			src_off4,	// source offset
+    u32			size,		// size of file
+    ccp			iso_path	// valid path of iso file
+);
+
+//-----------------------------------------------------------------------------
+
+wd_file_t * wd_insert_directory
+(
+    wd_file_list_t	* fl,		// working file list
+    ccp			dir_path	// valid path of iso directory
+);
+
+//-----------------------------------------------------------------------------
+
+wd_fst_item_t * wd_create_file_list_fst
+(
+    wd_file_list_t	* fl,		// working file list
+    u32			* n_fst,	// not NULL: store number of created fst elements
+    bool		create_gc_fst,	// true: create a GameCube fst
+
+    u32			align1,		// minimal alignment
+    u32			align2,		// alignment for files with size >= align2
+    u32			align3		// alignment for files with size >= align3
+					//   All aligment values are rounded 
+					//   up to the next power of 2.
+					//   The values are normalized (increased) 
+					//   to align1 <= align2 <= align3
+);
+
+//-----------------------------------------------------------------------------
+
+bool wd_is_directory
+(
+    wd_file_t		* file		// pointer to a file
 );
 
 //

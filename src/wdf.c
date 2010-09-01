@@ -46,6 +46,7 @@
 
 typedef enum FileMode { FMODE_WDF, FMODE_CISO, FMODE_WBI } FileMode;
 ccp file_mode_name[] = { ".wdf", ".ciso", ".wbi", 0 };
+enumOFT file_mode_oft[] = { OFT_WDF, OFT_CISO, OFT_CISO, 0 };
 
 enumCommands the_cmd	= CMD_PACK;
 FileMode file_mode	= FMODE_WDF;
@@ -54,7 +55,6 @@ FileMode def_file_mode	= FMODE_WDF;
 bool opt_stdout		= false;
 ccp  opt_suffix		= 0;
 bool opt_chunk		= false;
-int  long_count		= 0;
 int  opt_minus1		= 0;
 bool opt_preserve	= false;
 bool opt_overwrite	= false;
@@ -507,7 +507,7 @@ enumError cmd_pack()
     if ( verbose > 0 )
 	print_title(logout);
 
-    create_oft = file_mode == FMODE_WDF ? OFT_WDF : OFT_CISO;
+    create_oft = file_mode_oft[file_mode];
     extract_verb = copy_verb = "pack";
 
     char dest[PATH_MAX];
@@ -659,6 +659,163 @@ enumError ciso_dump ( FILE *f, CISO_Head_t * ch, File_t *df, ccp fname )
 
 ///////////////////////////////////////////////////////////////////////////////
 
+enumError wia_dump ( FILE *f, File_t *df, ccp fname )
+{
+    ASSERT(df);
+    ASSERT(fname);
+
+    if (testmode)
+    {
+	fprintf(f," - WOULD dump WIA %s\n",fname);
+	ResetFile(df,false);
+	return ERR_OK;
+    }
+
+    fprintf(f,"\nWIA dump of file %s\n\n",fname);
+
+    SuperFile_t sf;
+    InitializeSF(&sf);
+    memcpy(&sf.f,df,sizeof(File_t));
+    InitializeFile(df);
+    SetupReadWIA(&sf);
+
+    wia_controller_t * wia = sf.wia;
+    ASSERT(wia);
+
+    //-------------------------
+
+    fprintf(f,"\n  File header:\n");
+
+    u8 * m = (u8*)wia->fhead.magic;
+    fprintf(f,"    %-23s: \"%s\"  %02x %02x %02x %02x\n",
+		"Magic",
+		wd_print_id(m,4,0), m[0], m[1], m[2], m[3] );
+    fprintf(f,"    %-23s: 0x%08x => %s\n",
+		"Version",
+		wia->fhead.version,
+		PrintVersionWIA(0,0,wia->fhead.version) );
+    fprintf(f,"    %-23s: 0x%08x => %s\n",
+		"Version/compatible",
+		wia->fhead.version_compatible,
+		PrintVersionWIA(0,0,wia->fhead.version_compatible) );
+
+    if ( wia->fhead.disc_size == sizeof(wia_disc_t) )
+	fprintf(f,"    %-23s: %10u\n",
+		"Size of disc section",
+		wia->fhead.disc_size );
+    else
+	fprintf(f,"    %-23s: %10u [current: %zu]\n",
+		"Size of disc section",
+		wia->fhead.disc_size, sizeof(wia_disc_t) );
+
+    if (wia->fhead.iso_file_size)
+    {
+	fprintf(f,"    %-23s: %10llu\n",
+		"ISO image size",
+		wia->fhead.iso_file_size );
+	fprintf(f,"    %-23s: %10llu  %4.1f%%\n",
+		"Total file size",
+		wia->fhead.wia_file_size,
+		100.0 * wia->fhead.wia_file_size / wia->fhead.iso_file_size );
+    }
+    else
+	fprintf(f,"    %-23s: %10llu\n",
+		"Total file size",
+		wia->fhead.wia_file_size );
+
+    //-------------------------
+
+    fprintf(f,"\n  Disc header:\n");
+
+    const wia_disc_t * disc = &wia->disc;
+
+    fprintf(f,"    %-23s: %s, %.64s\n",
+		"ID & title",
+		wd_print_id(&disc->dhead.disc_id,6,0),
+		disc->dhead.disc_title );
+    fprintf(f,"    %-23s: %10u = %s\n",
+		"Disc type",
+		disc->disc_type, wd_get_disc_type_name(disc->disc_type,"?") );
+    fprintf(f,"    %-23s: %10u = %s\n",
+		"Compression mode",
+		disc->compression, GetCompressionNameWIA(disc->compression,"?") );
+
+    fprintf(f,"    %-23s: %10llu = %9llx/hex\n",
+		"Offset of disc data",
+		disc->disc_data_off, disc->disc_data_off );
+    fprintf(f,"    %-23s: %10u = %9x/hex\n",
+		"Size of disc data",
+		disc->disc_data_size, disc->disc_data_size );
+
+    fprintf(f,"    %-23s: %10u\n",
+		"Num. of raw data elem.", disc->n_raw_data );
+    fprintf(f,"    %-23s: %10llu = %9llx/hex\n",
+		"Offset of raw data tab.",
+		disc->raw_data_off, disc->raw_data_off );
+
+    fprintf(f,"    %-23s: %10u\n",
+		"Number of partitions",
+		disc->n_part );
+    fprintf(f,"    %-23s: %10llu = %9llx/hex\n",
+		"Offset of Part.header",
+		disc->part_off, disc->part_off );
+    fprintf(f,"    %-23s: %2d * %5u = %9u\n",
+		"Size of Part.header",
+		disc->n_part, disc->part_t_size,
+		disc->n_part * disc->part_t_size );
+
+    fprintf(f,"    %-23s: %10llu = %9llx/hex\n",
+		"Offset of Part.info",
+		disc->part_info_off, disc->part_info_off );
+    fprintf(f,"    %-23s: %10u = %9x/hex\n",
+		"Size of Part.info",
+		disc->part_info_size, disc->part_info_size );
+
+    //-------------------------
+
+    if (wia->part)
+    {
+	u32 ip;
+	for ( ip = 0; ip < disc->n_part; ip++ )
+	{
+	    wia_part_t * part = wia->part + ip;
+	    fprintf(f,"\n  Header of partition #%u:\n",ip);
+
+	    fprintf(f,"    %-23s: %u.%u, %s\n",
+		    "Partition table & type",
+		    part->ptab_index, part->ptab_part_index,
+		    wd_print_part_name(0,0,part->part_type,WD_PNAME_NUM_INFO) );
+
+	    fprintf(f,"    %-23s: %10u = %9x/hex\n",
+		    "First data sector",
+		    part->first_sector, part->first_sector );
+	    fprintf(f,"    %-23s: %10u = %9x/hex\n",
+		    "Number of data sectors",
+		    part->n_sectors, part->n_sectors );
+	    fprintf(f,"    %-23s: %10u = %9x/hex\n",
+		    "Number of sector groups",
+		    part->n_groups, part->n_groups );
+
+	    fprintf(f,"    %-23s: %10llu = %9llx/hex\n",
+		    "ISO offset of data",
+		    part->part_off, part->part_off );
+
+	    u8 * pk = part->part_key;
+	    fprintf(f,"    %-23s: %02x%02x%02x%02x %02x%02x%02x%02x"
+				" %02x%02x%02x%02x %02x%02x%02x%02x\n",
+		    "Partition key",
+		pk[0], pk[1], pk[2], pk[3], pk[4], pk[5], pk[6], pk[7],
+		pk[8], pk[9], pk[10], pk[11], pk[12], pk[13], pk[14], pk[15] );
+	}
+    }
+
+    fputc('\n',f);
+    CloseSF(&sf,0);
+    return ERR_OK;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
 enumError wdf_dump ( FILE *f, ccp fname )
 {
     ASSERT(fname);
@@ -691,6 +848,9 @@ enumError wdf_dump ( FILE *f, ccp fname )
 	}
 	return ciso_dump(f,&ch,&df,fname);
     }
+
+    if (!memcmp(&wh,WIA_MAGIC,WIA_MAGIC_SIZE))
+	return wia_dump(f,&df,fname);
 
     if (testmode)
     {
@@ -893,6 +1053,7 @@ enumError CheckOptions ( int argc, char ** argv )
 	case GO_CHUNK_MODE:	err += ScanChunkMode(optarg); break;
 	case GO_CHUNK_SIZE:	err += ScanChunkSize(optarg); break;
 	case GO_MAX_CHUNKS:	err += ScanMaxChunks(optarg); break;
+	case GO_NO_COMPRESS:	opt_no_compress = true; break;
 
 	case GO_TEST:		testmode++; break;
       }

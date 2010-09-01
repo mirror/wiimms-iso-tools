@@ -1,35 +1,19 @@
 wit v@@VERSION@@ r@@REV-NEXT@@ - @@@@-@@-@@
 
- - New "wit MIX" qualifer: HEADER: Copy the disc header (first 256 bytes of
-   disc) of the related source image to the destination image. Patching with
-   the options --id and --name is possible.
- - New "wit MIX" qualifer: REGION: Copy the region infor (32 Bytes at offset
-   0x4e000) of the related source image to the destination image. Patching
-   with the option --region is possible.
- - Bug fix: "wit mix --name discname" didn't work.
- - Bug fix for "wit mix --overlay".
- - Writing a WBFS file is now part of the file layer and libwbfs is only used
-   as helper. Now every command, and also "wit MIX", is able to write to a
-   WBFS file like to any other formats without special code.
- - "INSTALLER" is now an alternative name for the "UPDATE" partition, like
-   "GAME" for "DATA" since the epoch.
- - To manage allowed and permitted options, 64 bit integer numbers had been
-   used. Now arrays will be used, because wwt have already reached the limit
-   of 64 command specific options. Hope that all run as before.
- - Korean disc support implemented. (I can't test this by myself)
- - New option: --common-key index: Change the common key index of all partitions
-   and fake sign the tickets.
- - I have implemented a new "ID selection interface". It works with positive
-   ('+') and negative ('-' or '/') rules. A rule consist up to 6 characters,
-   case is ignored. Points ('.') are wildcards for a single character and mult
-   ('*') and plus ('+') for many characters. Each source ID6 is compared to
-   each rule of the list until a rules matches the ID. If it is a positive rule,
-   the ID is inserted into the workig list.
- - The syntax of the commands "wit ID6" and "wwt ID6" have changed to use the
-   new "ID selection interface" (see above). More commands will follow.
- - The commands 'wit ILIST/ILIST-L/ILIST-LL' are renamed to 'wit FILES/FILES-L
-   /FILES-LL'. The old command names are still allowed.
- - The new command "wit FDIFF" is a shortcut for "wit DIFF --files +".
+ - wit MIX: Forgotten options: --iso --wdf --ciso --wbfs
+ - wit ID6 --long: Print disc title too.
+ - wwt ADD: Default is now: --enc encrypt
+ - wit DIFF: Will patch the partiton tables for scrubbed diff, because
+   different tools modify them in a different way while scrubbing.
+ - Bug fix for wwt VERIFY: Iteration through whole WBFS failed.
+ - A little change when creating a WBFS file: The hss value in the WBFS header
+   is now set to the truncated value.
+ - New file format supported: WIA = Wii ISO Archive (EXPERIMENTAL!)
+   WIA will decrypt partitions and compress the data in chunks with bzip2.
+   Because of the chunks the archive allows random read access to view
+   only parts of the image. The option --no-compress disables compressing.
+   The resulting image is very effective packable by all compression tools.
+ - Gamecube ISO support for nearly all commands. (EXPERIMENTAL!)
 
 Known bugs:
 
@@ -38,6 +22,7 @@ Known bugs:
    more lookups. I have to insert some code especially for pipes. My plans
    that copying multiple partition discs works too.
    ==> The best is to use a version 1.01c for pipes.
+ - No bzip2 (WIA) support for MAC/x86_64. (bug in the bzip2 library)
 
 Missing docu:
 

@@ -47,6 +47,7 @@ int validate_file_format_sizes ( int trace_sizes )
 
 	TRACE_SIZEOF(dol_header_t);
 	TRACE_SIZEOF(wbfs_inode_info_t);
+	TRACE_SIZEOF(wd_header_128_t);
 	TRACE_SIZEOF(wd_header_t);
 	TRACE_SIZEOF(wd_boot_t);
 	TRACE_SIZEOF(wd_region_t);
@@ -98,6 +99,7 @@ int validate_file_format_sizes ( int trace_sizes )
     CHECK( sizeof(wbfs_inode_info_t)	== WBFS_INODE_INFO_SIZE );
 
     CHECK( sizeof(dol_header_t)		== DOL_HEADER_SIZE );
+    CHECK( sizeof(wd_header_128_t)	==  0x80 );
     CHECK( sizeof(wd_header_t)		== 0x100 );
     CHECK( sizeof(wd_region_t)		== WII_REGION_SIZE );
     CHECK( sizeof(wd_ptab_t)		== WII_MAX_PTAB_SIZE );
@@ -136,6 +138,7 @@ int validate_file_format_sizes ( int trace_sizes )
     CHECK( sizeof(wbfs_inode_info_t)	== WBFS_INODE_INFO_SIZE );
 
     CHECK( sizeof(dol_header_t)		== DOL_HEADER_SIZE );
+    CHECK( sizeof(wd_header_128_t)	==  0x80 );
     CHECK( sizeof(wd_header_t)		== 0x100 );
     CHECK( sizeof(wd_region_t)		== WII_REGION_SIZE );
     CHECK( sizeof(wd_ptab_t)		== WII_MAX_PTAB_SIZE );
@@ -210,9 +213,12 @@ u64 ntoh64 ( be64_t data )
 
 void ntoh_dol_header ( dol_header_t * dest, const dol_header_t * src )
 {
-    ASSERT(dest);
+    DASSERT(dest);
+
     if (!src)
 	src = dest;
+    else if ( dest != src )
+	memcpy(dest,src,sizeof(*dest));
 
     const u32 * src_ptr = src->sect_off;
     u32 * dest_ptr = dest->sect_off;
@@ -226,9 +232,12 @@ void ntoh_dol_header ( dol_header_t * dest, const dol_header_t * src )
 
 void hton_dol_header ( dol_header_t * dest, const dol_header_t * src )
 {
-    ASSERT(dest);
+    DASSERT(dest);
+
     if (!src)
 	src = dest;
+    else if ( dest != src )
+	memcpy(dest,src,sizeof(*dest));
 
     const u32 * src_ptr = src->sect_off;
     u32 * dest_ptr = dest->sect_off;
@@ -242,9 +251,12 @@ void hton_dol_header ( dol_header_t * dest, const dol_header_t * src )
 
 void ntoh_boot ( wd_boot_t * dest, const wd_boot_t * src )
 {
-    ASSERT(dest);
+    DASSERT(dest);
+
     if (!src)
 	src = dest;
+    else if ( dest != src )
+	memcpy(dest,src,sizeof(*dest));
 
     dest->dol_off4	= ntohl(src->dol_off4);
     dest->fst_off4	= ntohl(src->fst_off4);
@@ -255,9 +267,12 @@ void ntoh_boot ( wd_boot_t * dest, const wd_boot_t * src )
 
 void hton_boot ( wd_boot_t * dest, const wd_boot_t * src )
 {
-    ASSERT(dest);
+    DASSERT(dest);
+
     if (!src)
 	src = dest;
+    else if ( dest != src )
+	memcpy(dest,src,sizeof(*dest));
 
     dest->dol_off4	= htonl(src->dol_off4);
     dest->fst_off4	= htonl(src->fst_off4);
@@ -268,9 +283,12 @@ void hton_boot ( wd_boot_t * dest, const wd_boot_t * src )
 
 void ntoh_part_header ( wd_part_header_t * dest, const wd_part_header_t * src )
 {
-    ASSERT(dest);
+    DASSERT(dest);
+
     if (!src)
 	src = dest;
+    else if ( dest != src )
+	memcpy(dest,src,sizeof(*dest));
 
     dest->tmd_size	= ntohl(src->tmd_size);
     dest->tmd_off4	= ntohl(src->tmd_off4);
@@ -285,9 +303,12 @@ void ntoh_part_header ( wd_part_header_t * dest, const wd_part_header_t * src )
 
 void hton_part_header ( wd_part_header_t * dest, const wd_part_header_t * src )
 {
-    ASSERT(dest);
+    DASSERT(dest);
+
     if (!src)
 	src = dest;
+    else if ( dest != src )
+	memcpy(dest,src,sizeof(*dest));
 
     dest->tmd_size	= htonl(src->tmd_size);
     dest->tmd_off4	= htonl(src->tmd_off4);
@@ -302,9 +323,12 @@ void hton_part_header ( wd_part_header_t * dest, const wd_part_header_t * src )
 
 void ntoh_inode_info ( wbfs_inode_info_t * dest, const wbfs_inode_info_t * src )
 {
-    ASSERT(dest);
+    DASSERT(dest);
+
     if (!src)
 	src = dest;
+    else if ( dest != src )
+	memcpy(dest,src,sizeof(*dest));
 
     dest->n_hd_sec	= ntohl(src->n_hd_sec);
     dest->info_version	= ntohl(src->info_version);
@@ -320,9 +344,12 @@ void ntoh_inode_info ( wbfs_inode_info_t * dest, const wbfs_inode_info_t * src )
 
 void hton_inode_info ( wbfs_inode_info_t * dest, const wbfs_inode_info_t * src )
 {
-    ASSERT(dest);
+    DASSERT(dest);
+
     if (!src)
 	src = dest;
+    else if ( dest != src )
+	memcpy(dest,src,sizeof(*dest));
 
     dest->n_hd_sec	= htonl(src->n_hd_sec);
     dest->info_version	= htonl(src->info_version);
@@ -355,11 +382,11 @@ static void id_setup ( void * dest_id, const void * source_id, int id_size )
 
 ///////////////////////////////////////////////////////////////////////////////
 
-void header_setup
+void header_128_setup
 (
-    wd_header_t	* dhead,	// valid pointer
-    const void	* id6,		// NULL or pointer to ID
-    ccp		disc_title	// NULL or pointer to disc title (truncated)
+    wd_header_128_t	* dhead,	// valid pointer
+    const void		* id6,		// NULL or pointer to ID
+    ccp			disc_title	// NULL or pointer to disc title (truncated)
 )
 {
     memset(dhead,0,sizeof(*dhead));
@@ -369,7 +396,20 @@ void header_setup
 	disc_title = "WIT: Wiimms ISO Tools,http://wit.wiimm.de/";
     strncpy(dhead->disc_title,disc_title,sizeof(dhead->disc_title)-1);
 
-    dhead->magic = htonl(WII_MAGIC);
+    dhead->wii_magic = htonl(WII_MAGIC);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+void header_setup
+(
+    wd_header_t		* dhead,	// valid pointer
+    const void		* id6,		// NULL or pointer to ID
+    ccp			disc_title	// NULL or pointer to disc title (truncated)
+)
+{
+    memset(dhead,0,sizeof(*dhead));
+    header_128_setup((wd_header_128_t*)dhead,id6,disc_title);
 }
 
 //
@@ -538,11 +578,11 @@ void tmd_clear_encryption ( wd_tmd_t * tmd, int mark_not_encrypted )
 
 bool tmd_is_marked_not_encrypted ( const wd_tmd_t * tmd )
 {
-    ASSERT(tmd);
-    DASSERT( sizeof(not_encrypted_marker) < sizeof(tmd->sig_padding));
-    DASSERT( sizeof(not_encrypted_marker) < sizeof(tmd->fake_sign));
+    DASSERT( !tmd || sizeof(not_encrypted_marker) < sizeof(tmd->sig_padding));
+    DASSERT( !tmd || sizeof(not_encrypted_marker) < sizeof(tmd->fake_sign));
 
-    return !strncmp( (char*)tmd->sig_padding, not_encrypted_marker, sizeof(tmd->sig_padding) )
+    return tmd
+	&& !strncmp( (char*)tmd->sig_padding, not_encrypted_marker, sizeof(tmd->sig_padding) )
 	&& !strncmp( (char*)tmd->fake_sign, not_encrypted_marker, sizeof(tmd->fake_sign) );
 }
 
@@ -584,7 +624,8 @@ u32 tmd_fake_sign ( wd_tmd_t * tmd, u32 tmd_size )
 
 bool tmd_is_fake_signed ( const wd_tmd_t * tmd, u32 tmd_size )
 {
-    ASSERT(tmd);
+    if (!tmd)
+	return false;
    
     if (!tmd_size)  // auto calculation
 	tmd_size = sizeof(wd_tmd_t) + tmd->n_content * sizeof(wd_tmd_content_t);

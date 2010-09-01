@@ -534,21 +534,34 @@ info_t info_tab[] =
 		" within TMD. The format is @'HIGH:LOW'@ or @'HIGH-LOW'@ or @'LOW'@."
 		" If only @LOW@ is set than @HIGH@ is assumed as 1 (standard IOS)." },
 
-  { T_OPT_CP,	"RM_FILES",	"rm-files",
+  { T_OPT_CP,	"RM_FILES",	"rm-files|rm-file|rmfiles|rmfile",
 		"ruleset",
 		"This patching option defines filter rules to remove real files"
 		" and directories from the FST of the DATA partition."
 		" $Fake signing$ of the TMD is necessary."
-		" @--rm-files@ is processed before {--zero-files} and {--ignore-files}."},
+		" The processing order of file options is:"
+		" {--rm-files --zero-files --ignore-files}." },
 
-  { T_OPT_CP,	"ZERO_FILES",	"zero-files",
+  { T_OPT_CP,	"ZERO_FILES",	"zero-files|zero-file|zerofiles|zerofile",
 		"ruleset",
 		"This patching option defines filter rules to zero (set size to zero)"
 		" real files of the FST of the DATA partition."
 		" $Fake signing$ of the TMD is necessary."
-		" @--zero-files@ is processed after {--rm-files} and before {--ignore-files}."},
+		" The processing order of file options is:"
+		" {--rm-files --zero-files --ignore-files}." },
 
-  { T_OPT_CP,	"IGNORE_FILES",	"ignore-files",
+  { H_OPT_CP,	"REPL_FILE",	"repl-file|repl-files|replfile|replfiles",
+		"filedef",
+		" The processing order of file options is:"
+		" {--rm-files --zero-files --repl-file --add-file --ignore-files}." },
+
+  { H_OPT_CP,	"ADD_FILE",	"add-file|add-files|addfile|addfiles",
+		"filedef",
+		"???"
+		" The processing order of file options is:"
+		" {--rm-files --zero-files --repl-file --add-file --ignore-files}." },
+
+  { T_OPT_CP,	"IGNORE_FILES",	"ignore-files|ignore-file|ignorefiles|ignorefile",
 		"ruleset",
 		"This option defines filter rules to ignore"
 		" real files of the FST of the DATA partition."
@@ -556,12 +569,13 @@ info_t info_tab[] =
 		" because the content of some files is not copied."
 		" If such file is accessed the Wii will halt immediately,"
 		" because the verification of the check sum calculation fails."
-		" @--ignore-files@ is processed after {--rm-files} and {--zero-files}." },
+		" The processing order of file options is:"
+		" {--rm-files --zero-files --ignore-files}." },
 
   { T_OPT_C,	"OVERLAY",	"overlay",
 		0,
 		"Most partitions have holes (unused areas) in the data section."
-		" If combining multiple partitons into one disc it is possible"
+		" If combining multiple partitions into one disc it is possible"
 		" to overlay the partitions so that the data of one partition"
 		" resides in the hole of other partitions."
 		" This option enables this feature."
@@ -574,6 +588,10 @@ info_t info_tab[] =
 		" The mode is one of NONE, HASHONLY, DECRYPT, ENCRYPT, SIGN or AUTO."
 		" The case of the keywords is ignored."
 		" The default mode is 'AUTO'." },
+
+  { H_OPT_CP,	"ALIGN",	"align",
+		"align1[,align2][,align3]",
+		"???" },
 
   { T_OPT_CP,	"DEST",		"d|dest",
 		"path",
@@ -636,6 +654,11 @@ info_t info_tab[] =
 		"\n"
 		"@--mch@ is a shortcut for @--max-chunks@." },
 
+  { T_OPT_C,	"NO_COMPRESS",	"no-compress|nocompress|noc",
+		0,
+		"Disable compression for new WIA files."
+		" --noc is a shortcut for --no-compress." },
+
   { T_OPT_C,	"PRESERVE",	"p|preserve",
 		0, "Preserve file times (atime+mtime)." },
 
@@ -661,6 +684,15 @@ info_t info_tab[] =
 
   { T_OPT_C,	"WBFS",		"B|wbfs",
 		0, "Set ISO output file type to WBFS container." },
+
+  { T_OPT_C,	"WIA",		"wia",
+		0, "Set ISO output file type to WIA."
+		" WIA files are not editable."
+		"\n"
+		"\n"
+		"The WIA support is EXPERIMENTAL!"
+		" The WIA format is in development!"
+		" Don't use WIA files productive!" },
 
   { T_OPT_C,	"FST",		"fst",
 		0, "Set ISO output mode to 'file system' (extract ISO)." },
@@ -804,6 +836,29 @@ info_t info_tab[] =
 
   { T_SEP_OPT,	0,0,0,0 },
 
+  //---------- wit GROUP OUTMODE_EDIT ----------
+
+  { T_GRP_BEG,	"OUTMODE_EDIT",	0,0,0 },
+
+  { T_COPT,	"WDF",		0,0,0 },
+  { T_COPT,	"ISO",		0,0,0 },
+  { T_COPT,	"CISO",		0,0,0 },
+  { T_COPT,	"WBFS",		0,0,0 },
+
+  //---------- wit GROUP OUTMODE ----------
+
+  { T_GRP_BEG,	"OUTMODE",	0,0,0 },
+
+  { T_COPY_GRP,	"OUTMODE_EDIT",	0,0,0 },
+  { T_COPT,	"WIA",		0,0,0 },
+
+  //---------- wit GROUP OUTMODE_FST ----------
+
+  { T_GRP_BEG,	"OUTMODE_FST",	0,0,0 },
+
+  { T_COPY_GRP,	"OUTMODE",	0,0,0 },
+  { T_COPT,	"FST",		0,0,0 },
+
   //---------- wit GROUP XTIME ----------
 
   { T_GRP_BEG,	"XTIME",	0,0,0 },
@@ -849,8 +904,11 @@ info_t info_tab[] =
   { T_COPT,	"IOS",		0,0,0 },
   { T_COPT,	"RM_FILES",	0,0,0 },
   { T_COPT,	"ZERO_FILES",	0,0,0 },
+  { H_COPT,	"REPL_FILE",	0,0,0 },
+  { H_COPT,	"ADD_FILE",	0,0,0 },
   { T_COPT,	"IGNORE_FILES",	0,0,0 },
   { T_COPT,	"ENC",		0,0,0 },
+  { H_COPT,	"ALIGN",	0,0,0 },
 
   //---------- wit GROUP SPLIT_CHUNK ----------
 
@@ -862,6 +920,7 @@ info_t info_tab[] =
   { T_COPT,	"CHUNK_MODE",	0,0,0 },
   { T_COPT,	"CHUNK_SIZE",	0,0,0 },
   { T_COPT,	"MAX_CHUNKS",	0,0,0 },
+  { T_COPT,	"NO_COMPRESS",	0,0,0 },
 
   //
   //---------- COMMAND wit HELP ----------
@@ -987,6 +1046,8 @@ info_t info_tab[] =
   { T_COPT,	"IGNORE_FST",	0,0,0 },
 
   { T_COPT_M,	"LOGGING",	0,0,0 },
+  { T_COPT_M,	"LONG",		0,0,
+	"If set, the disc name of the title db is printed too." },
 
   //---------- COMMAND wit LIST ----------
 
@@ -1082,11 +1143,7 @@ info_t info_tab[] =
   { T_COPT,	"DEST",		0,0,0 },
   { T_COPT,	"DEST2",	0,0,0 },
   { T_COPT,	"ESC",		0,0,0 },
-  { T_COPT,	"WDF",		0,0,0 },
-  { T_COPT,	"ISO",		0,0,0 },
-  { T_COPT,	"CISO",		0,0,0 },
-  { T_COPT,	"WBFS",		0,0,0 },
-  { T_COPT,	"FST",		0,0,0 },
+  { T_COPY_GRP,	"OUTMODE_FST",	0,0,0 },
 
   //---------- COMMAND wit FDIFF ----------
 
@@ -1138,11 +1195,7 @@ info_t info_tab[] =
 
   { T_SEP_OPT,	0,0,0,0 },
 
-  { T_COPT,	"WDF",		0,0,0 },
-  { T_COPT,	"ISO",		0,0,0 },
-  { T_COPT,	"CISO",		0,0,0 },
-  { T_COPT,	"WBFS",		0,0,0 },
-  { T_COPT,	"FST",		0,0,0 },
+  { T_COPY_GRP,	"OUTMODE_FST",	0,0,0 },
 
   //---------- COMMAND wit SCRUB ----------
 
@@ -1169,10 +1222,7 @@ info_t info_tab[] =
   { T_COPT,	"PRESERVE",	0,0,0 },
   { T_COPY_GRP,	"PATCH",	0,0,0 },
 
-  { T_COPT,	"WDF",		0,0,0 },
-  { T_COPT,	"ISO",		0,0,0 },
-  { T_COPT,	"CISO",		0,0,0 },
-  { T_COPT,	"WBFS",		0,0,0 },
+  { T_COPY_GRP,	"OUTMODE",	0,0,0 },
 
 
   //---------- COMMAND wit EDIT ----------
@@ -1293,6 +1343,10 @@ info_t info_tab[] =
   { T_COPT,	"ESC",		0,0,0 },
   { T_COPT,	"OVERWRITE",	0,0,0 },
   { T_COPY_GRP,	"SPLIT_CHUNK",	0,0,0 },
+
+  { T_SEP_OPT,	0,0,0,0 },
+
+  { T_COPY_GRP,	"OUTMODE_EDIT",	0,0,0 },
 
   { T_SEP_OPT,	0,0,0,0 },
 
@@ -1604,16 +1658,25 @@ info_t info_tab[] =
   { T_OPT_CP,	"IOS",		"ios",
 		0, 0 /* copy of wit */ },
 
-  { T_OPT_CP,	"RM_FILES",	"rm-files",
+  { T_OPT_CP,	"RM_FILES",	"rm-files|rm-file|rmfiles|rmfile",
 		0, 0 /* copy of wit */ },
 
-  { T_OPT_CP,	"ZERO_FILES",	"zero-files",
+  { T_OPT_CP,	"ZERO_FILES",	"zero-files|zero-file|zerofiles|zerofile",
 		0, 0 /* copy of wit */ },
 
-  { T_OPT_CP,	"IGNORE_FILES",	"ignore-files",
+  { H_OPT_CP,	"REPL_FILE",	"repl-file|repl-files|replfile|replfiles",
+		0, 0 /* copy of wit */ },
+
+  { H_OPT_CP,	"ADD_FILE",	"add-file|add-files|addfile|addfiles",
+		0, 0 /* copy of wit */ },
+
+  { T_OPT_CP,	"IGNORE_FILES",	"ignore-files|ignore-file|ignorefiles|ignorefile",
 		0, 0 /* copy of wit */ },
 
   { T_OPT_CP,	"ENC",		"enc",
+		0, 0 /* copy of wit */ },
+
+  { H_OPT_CP,	"ALIGN",	"align",
 		0, 0 /* copy of wit */ },
 
   { T_OPT_CP,	"DEST",		"d|dest",
@@ -1641,6 +1704,9 @@ info_t info_tab[] =
 		0, 0 /* copy of wit */ },
 
   { T_OPT_CP,	"MAX_CHUNKS",	"max-chunks|maxchunks|mch",
+		0, 0 /* copy of wit */ },
+
+  { T_OPT_C,	"NO_COMPRESS",	"no-compress|nocompress|noc",
 		0, 0 /* copy of wit */ },
 
   { T_OPT_CP,	"SIZE",		"s|size",
@@ -1694,6 +1760,9 @@ info_t info_tab[] =
   { T_SEP_OPT,	0,0,0,0 }, //----- separator -----
 
   { T_OPT_C,	"WDF",		"W|wdf",
+		0, 0 /* copy of wit */ },
+
+  { T_OPT_C,	"WIA",		"wia",
 		0, 0 /* copy of wit */ },
 
   { T_OPT_C,	"ISO",		"I|iso",
@@ -1841,6 +1910,16 @@ info_t info_tab[] =
   { T_COPY_GRP,	"XTIME",	0,0,0 },
   { T_COPT_M,	"TIME",		0,0,0 },
 
+  //---------- wwt GROUP OUTMODE ----------
+
+  { T_GRP_BEG,	"OUTMODE",	0,0,0 },
+
+  { T_COPT,	"WDF",		0,0,0 },
+  { T_COPT,	"ISO",		0,0,0 },
+  { T_COPT,	"CISO",		0,0,0 },
+  { T_COPT,	"WBFS",		0,0,0 },
+  { T_COPT,	"WIA",		0,0,0 },
+
   //---------- wwt GROUP PATCH ----------
 
   { T_GRP_BEG,	"PATCH",	0,0,0 },
@@ -1854,8 +1933,11 @@ info_t info_tab[] =
   { T_COPT,	"IOS",		0,0,0 },
   { T_COPT,	"RM_FILES",	0,0,0 },
   { T_COPT,	"ZERO_FILES",	0,0,0 },
+  { H_COPT,	"REPL_FILE",	0,0,0 },
+  { H_COPT,	"ADD_FILE",	0,0,0 },
   { T_COPT,	"IGNORE_FILES",	0,0,0 },
   { T_COPT,	"ENC",		0,0,0 },
+  { H_COPT,	"ALIGN",	0,0,0 },
 
   //---------- wwt GROUP SPLIT_CHUNK ----------
 
@@ -1867,6 +1949,7 @@ info_t info_tab[] =
   { T_COPT,	"CHUNK_MODE",	0,0,0 },
   { T_COPT,	"CHUNK_SIZE",	0,0,0 },
   { T_COPT,	"MAX_CHUNKS",	0,0,0 },
+  { T_COPT,	"NO_COMPRESS",	0,0,0 },
 
 
   //
@@ -2184,10 +2267,7 @@ info_t info_tab[] =
 
   { T_SEP_OPT,	0,0,0,0 },
 
-  { T_COPT,	"WDF",		0,0,0 },
-  { T_COPT,	"ISO",		0,0,0 },
-  { T_COPT,	"CISO",		0,0,0 },
-  { T_COPT,	"WBFS",		0,0,0 },
+  { T_COPY_GRP,	"OUTMODE",	0,0,0 },
 
   { T_SEP_OPT,	0,0,0,0 },
 
@@ -2371,7 +2451,7 @@ info_t info_tab[] =
 		"contains the three letter @'cat'@ in any case." },
 
   { T_DEF_CMD,	"CMP",		"+CMP|+C|+DIFF",
-		    "wdf +CAT [option]... files...",
+		    "wdf +CMP [option]... files...",
 		"Compare files and unpack WDF and CISO while comparing."
 		"\n"
 		"The standard is to compare two source files."
@@ -2457,7 +2537,7 @@ info_t info_tab[] =
 
   { T_OPT_CP,	"SUFFIX",	"s|suffix",
 		".suf",
-		"Use suffix @'.suf'@ instead of @'.wdf'@"
+		"Use suffix @'.suf'@ instead of @'.wdf'@,"
 		" or @'.ciso'@ for packed files." },
 
   { T_SEP_OPT,	0,0,0,0 }, //----- separator -----
@@ -2502,6 +2582,9 @@ info_t info_tab[] =
   { T_OPT_CP,	"MAX_CHUNKS",	"max-chunks|maxchunks|mch",
 		0, 0 /* copy of wit */ },
 
+  { T_OPT_C,	"NO_COMPRESS",	"no-compress|nocompress|noc",
+		0, 0 /* copy of wit */ },
+
   { T_SEP_OPT,	0,0,0,0 }, //----- separator -----
 
   { T_OPT_G,	"TEST",		"t|test",
@@ -2523,28 +2606,17 @@ info_t info_tab[] =
   { T_COPT,	"DEST2",	0,0,0 },
   { T_COPT,	"OVERWRITE",	0,0,0 },
 
-  //---------- wdf GROUP SPLIT_DEST ----------
+  //---------- wdf GROUP DEST_PLUS ----------
 
-  { T_GRP_BEG,	"SPLIT_DEST",	0,0,0 },
+  { T_GRP_BEG,	"DEST_PLUS",	0,0,0 },
 
   { T_COPY_GRP,	"DEST",		0,0,0 },
   { T_COPT,	"SPLIT",	0,0,0 },
   { T_COPT,	"SPLIT_SIZE",	0,0,0 },
-
-  //---------- wdf GROUP CHUNK ----------
-
-  { T_GRP_BEG,	"CHUNK",	0,0,0 },
-
   { T_COPT,	"CHUNK_MODE",	0,0,0 },
   { T_COPT,	"CHUNK_SIZE",	0,0,0 },
   { T_COPT,	"MAX_CHUNKS",	0,0,0 },
-
-  //---------- wdf GROUP CHUNK_DEST ----------
-
-  { T_GRP_BEG,	"CHUNK_DEST",	0,0,0 },
-
-  { T_COPY_GRP,	"SPLIT_DEST",	0,0,0 },
-  { T_COPY_GRP,	"CHUNK",	0,0,0 },
+  { T_COPT,	"NO_COMPRESS",	0,0,0 },
 
   //---------- wdf GROUP FILETYPE ----------
 
@@ -2572,7 +2644,7 @@ info_t info_tab[] =
 
   { T_CMD_BEG,	"UNPACK",	0,0,0 },
 
-  { T_COPY_GRP,	"SPLIT_DEST",	0,0,0 },
+  { T_COPY_GRP,	"DEST_PLUS",	0,0,0 },
   { T_COPT,	"STDOUT",	0,0,0 },
   { T_COPT,	"KEEP",		0,0,0 },
   { T_COPT,	"PRESERVE",	0,0,0 },
@@ -2589,7 +2661,7 @@ info_t info_tab[] =
 
   { T_CMD_BEG,	"CAT",		0,0,0 },
 
-  { T_COPY_GRP,	"SPLIT_DEST",	0,0,0 },
+  { T_COPY_GRP,	"DEST_PLUS",	0,0,0 },
 
   //---------- COMMAND wdf CMP ----------
 

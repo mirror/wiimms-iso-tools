@@ -63,8 +63,11 @@ typedef enum enumOptions
 	OPT_IOS,
 	OPT_RM_FILES,
 	OPT_ZERO_FILES,
+	OPT_REPL_FILE,
+	OPT_ADD_FILE,
 	OPT_IGNORE_FILES,
 	OPT_ENC,
+	OPT_ALIGN,
 	OPT_DEST,
 	OPT_DEST2,
 	OPT_SPLIT,
@@ -74,6 +77,7 @@ typedef enum enumOptions
 	OPT_CHUNK_MODE,
 	OPT_CHUNK_SIZE,
 	OPT_MAX_CHUNKS,
+	OPT_NO_COMPRESS,
 	OPT_SIZE,
 	OPT_HSS,
 	OPT_WSS,
@@ -88,6 +92,7 @@ typedef enum enumOptions
 	OPT_OVERWRITE,
 	OPT_REMOVE,
 	OPT_WDF,
+	OPT_WIA,
 	OPT_ISO,
 	OPT_CISO,
 	OPT_WBFS,
@@ -106,7 +111,7 @@ typedef enum enumOptions
 	OPT_SORT,
 	OPT_LIMIT,
 
-	OPT__N_SPECIFIC, // == 64 
+	OPT__N_SPECIFIC, // == 69 
 
 	//----- global options -----
 
@@ -127,7 +132,7 @@ typedef enum enumOptions
 	OPT_TEST,
 	OPT_HOOK,
 
-	OPT__N_TOTAL // == 80
+	OPT__N_TOTAL // == 85
 
 } enumOptions;
 
@@ -163,8 +168,11 @@ typedef enum enumOptions
 //	OB_IOS			= 1llu << OPT_IOS,
 //	OB_RM_FILES		= 1llu << OPT_RM_FILES,
 //	OB_ZERO_FILES		= 1llu << OPT_ZERO_FILES,
+//	OB_REPL_FILE		= 1llu << OPT_REPL_FILE,
+//	OB_ADD_FILE		= 1llu << OPT_ADD_FILE,
 //	OB_IGNORE_FILES		= 1llu << OPT_IGNORE_FILES,
 //	OB_ENC			= 1llu << OPT_ENC,
+//	OB_ALIGN		= 1llu << OPT_ALIGN,
 //	OB_DEST			= 1llu << OPT_DEST,
 //	OB_DEST2		= 1llu << OPT_DEST2,
 //	OB_SPLIT		= 1llu << OPT_SPLIT,
@@ -174,6 +182,7 @@ typedef enum enumOptions
 //	OB_CHUNK_MODE		= 1llu << OPT_CHUNK_MODE,
 //	OB_CHUNK_SIZE		= 1llu << OPT_CHUNK_SIZE,
 //	OB_MAX_CHUNKS		= 1llu << OPT_MAX_CHUNKS,
+//	OB_NO_COMPRESS		= 1llu << OPT_NO_COMPRESS,
 //	OB_SIZE			= 1llu << OPT_SIZE,
 //	OB_HSS			= 1llu << OPT_HSS,
 //	OB_WSS			= 1llu << OPT_WSS,
@@ -188,6 +197,7 @@ typedef enum enumOptions
 //	OB_OVERWRITE		= 1llu << OPT_OVERWRITE,
 //	OB_REMOVE		= 1llu << OPT_REMOVE,
 //	OB_WDF			= 1llu << OPT_WDF,
+//	OB_WIA			= 1llu << OPT_WIA,
 //	OB_ISO			= 1llu << OPT_ISO,
 //	OB_CISO			= 1llu << OPT_CISO,
 //	OB_WBFS			= 1llu << OPT_WBFS,
@@ -242,6 +252,12 @@ typedef enum enumOptions
 //	OB_GRP_TIME		= OB_GRP_XTIME
 //				| OB_TIME,
 //
+//	OB_GRP_OUTMODE		= OB_WDF
+//				| OB_ISO
+//				| OB_CISO
+//				| OB_WBFS
+//				| OB_WIA,
+//
 //	OB_GRP_PATCH		= OB_ID
 //				| OB_NAME
 //				| OB_MODIFY
@@ -250,15 +266,19 @@ typedef enum enumOptions
 //				| OB_IOS
 //				| OB_RM_FILES
 //				| OB_ZERO_FILES
+//				| OB_REPL_FILE
+//				| OB_ADD_FILE
 //				| OB_IGNORE_FILES
-//				| OB_ENC,
+//				| OB_ENC
+//				| OB_ALIGN,
 //
 //	OB_GRP_SPLIT_CHUNK	= OB_SPLIT
 //				| OB_SPLIT_SIZE
 //				| OB_TRUNC
 //				| OB_CHUNK_MODE
 //				| OB_CHUNK_SIZE
-//				| OB_MAX_CHUNKS,
+//				| OB_MAX_CHUNKS
+//				| OB_NO_COMPRESS,
 //
 //	OB_CMD_VERSION		= OB_SECTIONS
 //				| OB_LONG,
@@ -374,10 +394,7 @@ typedef enum enumOptions
 //				| OB_DEST
 //				| OB_DEST2
 //				| OB_GRP_SPLIT_CHUNK
-//				| OB_WDF
-//				| OB_ISO
-//				| OB_CISO
-//				| OB_WBFS
+//				| OB_GRP_OUTMODE
 //				| OB_UNIQUE
 //				| OB_IGNORE
 //				| OB_REMOVE
@@ -557,18 +574,23 @@ typedef enum enumGetOpt
 	GO_IOS,
 	GO_RM_FILES,
 	GO_ZERO_FILES,
+	GO_REPL_FILE,
+	GO_ADD_FILE,
 	GO_IGNORE_FILES,
 	GO_ENC,
+	GO_ALIGN,
 	GO_TRUNC,
 	GO_CHUNK_MODE,
 	GO_CHUNK_SIZE,
 	GO_MAX_CHUNKS,
+	GO_NO_COMPRESS,
 	GO_HSS,
 	GO_WSS,
 	GO_RECOVER,
 	GO_NO_CHECK,
 	GO_REPAIR,
 	GO_NO_FREE,
+	GO_WIA,
 	GO_ITIME,
 	GO_MTIME,
 	GO_CTIME,

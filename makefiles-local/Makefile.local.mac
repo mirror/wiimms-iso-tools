@@ -61,7 +61,7 @@ mac-i386:
 .PHONY : mac-x86_64
 mac-x86_64:
 	@echo "building X86-64"
-	@XFLAGS="-arch x86_64 -mfpmath=sse" make clean all
+	@XFLAGS="-arch x86_64 -mfpmath=sse" XDEF="-DNO_BZIP2=1" make clean all
 	@mkdir -p bin/x86_64
 	@mv $(MAIN_TOOLS) bin/x86_64
 

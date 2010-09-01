@@ -53,7 +53,7 @@ The special filename '-' means: read from standard input (stdin).
 *******************************************************************************
 
 The tool 'wit' processes the --source and the --recurse options to built an
-internal ISO database (pure ISO and WDF-ISO files included). Most of the
+internal ISO database (any ISO formats like WDF and FST included). Most of the
 follwing commands works with the files of this ISO database (like 'wwt' do it
 with a WBFS). The options --source and --recurse atre described in the section
 "Processing --source and --recurse" in detail.
@@ -279,6 +279,7 @@ COMMANDS:
     ISO      : A ISO image.
     WDF+ISO  : A ISO image shrinked with WDF.
     WDF      : Any other WDF file (not WBFS or ISO)
+    WIA      : A ISO image packed with WIA.
     OTHER    : Any other file
 
 
@@ -408,7 +409,7 @@ COMMANDS:
     *SEC   : Short cut for '*,SEC'.  '*' is one of 'I', 'M', 'C' or 'A'.
 
  If the option --long is given three or more times a second line with the
- number of partitions, the file type ('ISO' or 'WDF') and the file path is
+ number of partitions, the file type ('ISO', 'WDF', ...) and the file path is
  printed. If the option --long is given three times the real path is printed.
 
  If the option --sections is set, then the layout is completly changed to a
@@ -653,8 +654,9 @@ COMMANDS:
 *******************************************************************************
 
 The tool 'wit' processes the --source and the --recurse options to built an
-internal ISO database (pure ISO and WDF-ISO files included). All operations are
-then done with the files of this ISO database (like 'wwt' do it with a WBFS).
+internal ISO database (ISO, WDF, WIA, FST and more ISO files included). All
+operations are then done with the files of this ISO database (like 'wwt' do it
+with a WBFS).
 
  Options:
     -s --source  path
@@ -663,8 +665,8 @@ then done with the files of this ISO database (like 'wwt' do it with a WBFS).
 
 Both options work similar and both option can be used multiple times. If 'path'
 is a non existing file an error message is printed. If 'path' is an plain file,
-it is opened and analyzed. If that files is an ISO file or and WDF-ISO than it
-is added to the internal ISO database.
+it is opened and analyzed. If that files is an ISO file in any supported format
+than it is added to the internal ISO database.
 
 The options --source and --recurse differ only if 'path' is an directory.
 Option --source searches that directory but not subdirectories for ISO files.
@@ -712,7 +714,7 @@ There are some hidden options implemented for testing:
     wit and the other tools can handle files via open() (file mode) and via
     fopen() (stream mode). The option --io=value allows to control the method.
     Bit #0 is for opening WBFS and Bit #1 is for openening ISO images.
-    ('ISO' includes 'WDF-ISO')
+    ('ISO' includes ISO in all supported formats)
 
     --io=0 : WBFS=open()  ISO=open()  **default**
     --io=1 : WBFS=fopen() ISO=open()

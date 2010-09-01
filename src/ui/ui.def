@@ -345,37 +345,38 @@
 	" within TMD. The format is @'HIGH:LOW'@ or @'HIGH-LOW'@ or @'LOW'@." \
 	" If only @LOW@ is set than @HIGH@ is assumed as 1 (standard IOS)." )
 
-#:def_opt( "RM_FILES", "rm-files", "CP", \
+#:def_opt( "RM_FILES", "rm-files|rm-file|rmfiles|rmfile", "CP", \
 	"ruleset", \
 	"This patching option defines filter rules to remove real files and" \
 	" directories from the FST of the DATA partition. $Fake signing$ of" \
-	" the TMD is necessary. @--rm-files@ is processed before" \
-	" {--zero-files} and {--ignore-files}." )
+	" the TMD is necessary. The processing order of file options is:" \
+	" {--rm-files --zero-files --ignore-files}." )
 
-#:def_opt( "ZERO_FILES", "zero-files", "CP", \
+#:def_opt( "ZERO_FILES", "zero-files|zero-file|zerofiles|zerofile", "CP", \
 	"ruleset", \
 	"This patching option defines filter rules to zero (set size to zero)" \
 	" real files of the FST of the DATA partition. $Fake signing$ of the" \
-	" TMD is necessary. @--zero-files@ is processed after {--rm-files} and" \
-	" before {--ignore-files}." )
+	" TMD is necessary. The processing order of file options is:" \
+	" {--rm-files --zero-files --ignore-files}." )
 
-#:def_opt( "IGNORE_FILES", "ignore-files", "CP", \
+#:def_opt( "IGNORE_FILES", "ignore-files|ignore-file|ignorefiles|ignorefile", "CP", \
 	"ruleset", \
 	"This option defines filter rules to ignore real files of the FST of" \
 	" the DATA partition. $Fake signing$ is not necessary, but the" \
 	" partition becomes invalid, because the content of some files is not" \
 	" copied. If such file is accessed the Wii will halt immediately," \
-	" because the verification of the check sum calculation fails." \
-	" @--ignore-files@ is processed after {--rm-files} and {--zero-files}." )
+	" because the verification of the check sum calculation fails. The" \
+	" processing order of file options is: {--rm-files --zero-files" \
+	" --ignore-files}." )
 
 #:def_opt( "OVERLAY", "overlay", "C", \
 	"", \
 	"Most partitions have holes (unused areas) in the data section. If" \
-	" combining multiple partitons into one disc it is possible to overlay" \
-	" the partitions so that the data of one partition resides in the hole" \
-	" of other partitions. This option enables this feature. It also" \
-	" limits the number of input partitions to 12, because the calculation" \
-	" is rated as O(2^n)." )
+	" combining multiple partitions into one disc it is possible to" \
+	" overlay the partitions so that the data of one partition resides in" \
+	" the hole of other partitions. This option enables this feature. It" \
+	" also limits the number of input partitions to 12, because the" \
+	" calculation is rated as O(2^n)." )
 
 #:def_opt( "ENC", "enc", "CP", \
 	"encoding", \
@@ -444,6 +445,11 @@
 	" calculation  of {--chunk-size} will be modified too.\n" \
 	"@--mch@ is a shortcut for @--max-chunks@." )
 
+#:def_opt( "NO_COMPRESS", "no-compress|nocompress|noc", "C", \
+	"", \
+	"Disable compression for new WIA files. --noc is a shortcut for" \
+	" --no-compress." )
+
 #:def_opt( "PRESERVE", "p|preserve", "C", \
 	"", \
 	"Preserve file times (atime+mtime)." )
@@ -475,6 +481,13 @@
 #:def_opt( "WBFS", "B|wbfs", "C", \
 	"", \
 	"Set ISO output file type to WBFS container." )
+
+#:def_opt( "WIA", "wia", "C", \
+	"", \
+	"Set ISO output file type to WIA. WIA files are not editable.\n" \
+	"\n" \
+	"The WIA support is EXPERIMENTAL! The WIA format is in development!" \
+	" Don't use WIA files productive!" )
 
 #:def_opt( "FST", "fst", "C", \
 	"", \
@@ -939,6 +952,10 @@
 #:def_cmd_opt( "ID6", "LOGGING", \
 	"", \
 	"" )
+
+#:def_cmd_opt( "ID6", "LONG", \
+	"", \
+	"If set, the disc name of the title db is printed too." )
 
 #:def_cmd_opt( "LIST", "TITLES", \
 	"", \
@@ -1674,6 +1691,10 @@
 	"", \
 	"" )
 
+#:def_cmd_opt( "DIFF", "WIA", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "DIFF", "FST", \
 	"", \
 	"" )
@@ -1799,6 +1820,10 @@
 	"" )
 
 #:def_cmd_opt( "FDIFF", "WBFS", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "FDIFF", "WIA", \
 	"", \
 	"" )
 
@@ -2154,6 +2179,10 @@
 	"", \
 	"" )
 
+#:def_cmd_opt( "COPY", "NO_COMPRESS", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "COPY", "WDF", \
 	"", \
 	"" )
@@ -2167,6 +2196,10 @@
 	"" )
 
 #:def_cmd_opt( "COPY", "WBFS", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "COPY", "WIA", \
 	"", \
 	"" )
 
@@ -2278,6 +2311,10 @@
 	"", \
 	"" )
 
+#:def_cmd_opt( "SCRUB", "NO_COMPRESS", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "SCRUB", "PRESERVE", \
 	"", \
 	"" )
@@ -2335,6 +2372,10 @@
 	"" )
 
 #:def_cmd_opt( "SCRUB", "WBFS", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "SCRUB", "WIA", \
 	"", \
 	"" )
 
@@ -2804,6 +2845,26 @@
 	"", \
 	"" )
 
+#:def_cmd_opt( "MIX", "NO_COMPRESS", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "MIX", "WDF", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "MIX", "ISO", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "MIX", "CISO", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "MIX", "WBFS", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "MIX", "ID", \
 	"", \
 	"Define an ID for the disc header. The default is 'WIT000'." )
@@ -3173,28 +3234,29 @@
 	" within TMD. The format is @'HIGH:LOW'@ or @'HIGH-LOW'@ or @'LOW'@." \
 	" If only @LOW@ is set than @HIGH@ is assumed as 1 (standard IOS)." )
 
-#:def_opt( "RM_FILES", "rm-files", "CP", \
+#:def_opt( "RM_FILES", "rm-files|rm-file|rmfiles|rmfile", "CP", \
 	"ruleset", \
 	"This patching option defines filter rules to remove real files and" \
 	" directories from the FST of the DATA partition. $Fake signing$ of" \
-	" the TMD is necessary. @--rm-files@ is processed before" \
-	" {--zero-files} and {--ignore-files}." )
+	" the TMD is necessary. The processing order of file options is:" \
+	" {--rm-files --zero-files --ignore-files}." )
 
-#:def_opt( "ZERO_FILES", "zero-files", "CP", \
+#:def_opt( "ZERO_FILES", "zero-files|zero-file|zerofiles|zerofile", "CP", \
 	"ruleset", \
 	"This patching option defines filter rules to zero (set size to zero)" \
 	" real files of the FST of the DATA partition. $Fake signing$ of the" \
-	" TMD is necessary. @--zero-files@ is processed after {--rm-files} and" \
-	" before {--ignore-files}." )
+	" TMD is necessary. The processing order of file options is:" \
+	" {--rm-files --zero-files --ignore-files}." )
 
-#:def_opt( "IGNORE_FILES", "ignore-files", "CP", \
+#:def_opt( "IGNORE_FILES", "ignore-files|ignore-file|ignorefiles|ignorefile", "CP", \
 	"ruleset", \
 	"This option defines filter rules to ignore real files of the FST of" \
 	" the DATA partition. $Fake signing$ is not necessary, but the" \
 	" partition becomes invalid, because the content of some files is not" \
 	" copied. If such file is accessed the Wii will halt immediately," \
-	" because the verification of the check sum calculation fails." \
-	" @--ignore-files@ is processed after {--rm-files} and {--zero-files}." )
+	" because the verification of the check sum calculation fails. The" \
+	" processing order of file options is: {--rm-files --zero-files" \
+	" --ignore-files}." )
 
 #:def_opt( "ENC", "enc", "CP", \
 	"encoding", \
@@ -3268,6 +3330,11 @@
 	" calculation  of {--chunk-size} will be modified too.\n" \
 	"@--mch@ is a shortcut for @--max-chunks@." )
 
+#:def_opt( "NO_COMPRESS", "no-compress|nocompress|noc", "C", \
+	"", \
+	"Disable compression for new WIA files. --noc is a shortcut for" \
+	" --no-compress." )
+
 #:def_opt( "SIZE", "s|size", "CP", \
 	"size", \
 	"Floating point size. Factors: bckKmMgGtT, default=G." )
@@ -3332,6 +3399,13 @@
 #:def_opt( "WDF", "W|wdf", "C", \
 	"", \
 	"Set ISO output file type to WDF. (default)" )
+
+#:def_opt( "WIA", "wia", "C", \
+	"", \
+	"Set ISO output file type to WIA. WIA files are not editable.\n" \
+	"\n" \
+	"The WIA support is EXPERIMENTAL! The WIA format is in development!" \
+	" Don't use WIA files productive!" )
 
 #:def_opt( "ISO", "I|iso", "C", \
 	"", \
@@ -4981,6 +5055,10 @@
 	"", \
 	"" )
 
+#:def_cmd_opt( "EXTRACT", "NO_COMPRESS", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "EXTRACT", "WDF", \
 	"", \
 	"" )
@@ -4994,6 +5072,10 @@
 	"" )
 
 #:def_cmd_opt( "EXTRACT", "WBFS", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "EXTRACT", "WIA", \
 	"", \
 	"" )
 

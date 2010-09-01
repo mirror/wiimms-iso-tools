@@ -283,7 +283,8 @@ int AppendWListID6 // returns number of inserted ids
 (
     StringField_t	* id6_list,	// append all selected IDs in this list
     const StringField_t	* select_list,	// selector list
-    WDiscList_t		* wlist		// valid list
+    WDiscList_t		* wlist,	// valid list
+    bool		add_to_title_db	// true: add to title DB if unkown
 );
 
 bool MatchRulesetID

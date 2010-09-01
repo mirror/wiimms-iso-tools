@@ -208,6 +208,7 @@ typedef struct Iterator_t
 	enumAction	act_known;	// action for non iso files but well known files
 	enumAction	act_wbfs;	// action for wbfs files with n(disc) != 1
 	enumAction	act_fst;	// action for fst
+	enumAction	act_gc;		// action for GameCube discs
 	enumAction	act_open;	// action for open output files
 
 	// source file list
@@ -254,7 +255,13 @@ enumError SourceIterator
 	bool collect_fnames
 );
 
-enumError SourceIteratorCollected ( Iterator_t * it, int warning_mode );
+enumError SourceIteratorCollected
+(
+    Iterator_t		* it,		// iterator info
+    int			warning_mode,	// warning mode if no source found
+					// 0:off, 1:only return status, 2:print error
+    bool		ignore_err	// false: break on error > ERR_WARNING 
+);
 
 enumError SourceIteratorWarning ( Iterator_t * it, enumError max_err, bool silent );
 
@@ -272,7 +279,7 @@ extern u8 wdisc_usage_tab2[WII_MAX_SECTORS];
 
 enumError ScanPartSelector
 (
-    wd_select_t * select,	// valid partiton selector
+    wd_select_t * select,	// valid partition selector
     ccp arg,			// argument to scan
     ccp err_text_extend		// error message extention
 );
@@ -293,8 +300,24 @@ enumError ScanPartTabAndType
 //-----------------------------------------------------------------------------
 
 extern wd_ipm_t prefix_mode;
+
 wd_ipm_t ScanPrefixMode ( ccp arg );
 void SetupSneekMode();
+
+//-----------------------------------------------------------------------------
+
+extern u32 opt_align1;
+extern u32 opt_align2;
+extern u32 opt_align3;
+
+int ScanOptAlign ( ccp arg );
+
+//-----------------------------------------------------------------------------
+
+extern StringField_t add_file;
+extern StringField_t repl_file;
+
+int ScanOptFile ( ccp arg, bool add );
 
 //
 ///////////////////////////////////////////////////////////////////////////////

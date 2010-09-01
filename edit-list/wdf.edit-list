@@ -5,3 +5,4 @@
 ../src/wwt.c ;
 @+all-source.edit-list
 @+doc.edit-list
+-y 670 ../src/wdf.c ;

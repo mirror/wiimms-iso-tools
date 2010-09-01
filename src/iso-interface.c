@@ -102,7 +102,9 @@ static int dump_header
     int			indent,		// indent
     SuperFile_t		* sf,		// file to dump
     ccp			id6,		// NULL or id6
-    ccp			real_path	// NULL or pointer to real path
+    ccp			real_path,	// NULL or pointer to real path
+    ccp			user_head,	// NULL or user defined field
+    ccp			user_parm	// NULL or parameter gor 'user_head'
 )
 {
     ASSERT(f);
@@ -113,14 +115,6 @@ static int dump_header
     indent += 2;
     if ( real_path && *real_path && strcmp(sf->f.fname,real_path) )
 	fprintf(f,"%*sReal path:       %s\n",indent,"",real_path);
-    if (!id6)
-	id6 = sf->f.id6;
-    if (*id6)
-	fprintf(f,"%*sID & type:       %s, %s\n",
-		indent,"", id6, GetNameFT(sf->f.ftype,0) );
-    else
-	fprintf(f,"%*stype:            %s\n",
-		indent,"", GetNameFT(sf->f.ftype,0) );
 
     const u64 file_size = sf->file_size;
     if (sf->wc)
@@ -130,6 +124,19 @@ static int dump_header
     }
     else
 	dump_size(f,indent,"File size:",file_size,0);
+
+    if ( user_head && user_parm )
+	fprintf(f,"%*s%-17s%s\n",
+		indent,"", user_head, user_parm );
+	
+    if (!id6)
+	id6 = sf->f.id6;
+    if (*id6)
+	fprintf(f,"%*sID & file type:  %s, %s\n",
+		indent,"", id6, GetNameFT(sf->f.ftype,0) );
+    else
+	fprintf(f,"%*stype:            %s\n",
+		indent,"", GetNameFT(sf->f.ftype,0) );
 
     return indent;
 }
@@ -197,7 +204,6 @@ enumError Dump_ISO
     const u32 used_blocks = wd_count_used_disc_blocks(disc,1,0);
     const u32 used_mib    = ( used_blocks + WII_SECTORS_PER_MIB/2 ) / WII_SECTORS_PER_MIB;
 
-
     char pname[100];
     FilePattern_t * pat = GetDefaultFilePattern();
     indent = NormalizeIndent(indent) + 2;
@@ -240,7 +246,8 @@ enumError Dump_ISO
 
     if ( show_mode & SHOW_INTRO )
     {
-	dump_header(f,indent-2,sf,&disc->dhead.disc_id,real_path);
+	dump_header(f,indent-2,sf,&disc->dhead.disc_id,real_path,
+			"Disc type:", wd_get_disc_type_name(disc->disc_type,"?") );
 
 	fprintf(f,"%*sDisc name:       %.64s\n",indent,"",disc->dhead.disc_title);
 
@@ -248,12 +255,15 @@ enumError Dump_ISO
 	if (title)
 	    fprintf(f,"%*sDB title:        %s\n",indent,"",title);
 
-	const RegionInfo_t * rinfo = GetRegionInfo(disc->dhead.region_code);
-	fprintf(f,"%*sRegion:          %s [%s]\n",indent,"",rinfo->name,rinfo->name4);
-	u8 * p8 = disc->region.region_info;
-	fprintf(f,"%*sRegion setting:  %x / %02x %02x %02x %02x  %02x %02x %02x %02x\n",
-			indent,"", ntohl(disc->region.region),
-			p8[0], p8[1], p8[2], p8[3], p8[4], p8[5], p8[6], p8[7] );
+	if (wd_disc_has_region(disc))
+	{
+	    const RegionInfo_t * rinfo = GetRegionInfo(disc->dhead.region_code);
+	    fprintf(f,"%*sRegion:          %s [%s]\n",indent,"",rinfo->name,rinfo->name4);
+	    u8 * p8 = disc->region.region_info;
+	    fprintf(f,"%*sRegion setting:  %x / %02x %02x %02x %02x  %02x %02x %02x %02x\n",
+			    indent,"", ntohl(disc->region.region),
+			    p8[0], p8[1], p8[2], p8[3], p8[4], p8[5], p8[6], p8[7] );
+	}
 
 	fprintf(f,"%*sDirectories:    %7u\n",indent,"",disc->fst_dir_count);
 	fprintf(f,"%*sFiles:          %7u\n",indent,"",disc->fst_file_count);
@@ -270,7 +280,7 @@ enumError Dump_ISO
     u32 nt = disc->n_ptab;
     u32 np = disc->n_part;
 
-    if ( show_mode & SHOW_P_TAB )
+    if ( show_mode & SHOW_P_TAB && wd_disc_has_ptab(disc) )
     {
 	fprintf(f,"\n%*s%d partition table%s with %d partition%s%s:\n\n"
 	    "%*s   tab.idx   n(part)       offset(part.tab) .. end(p.tab)\n"
@@ -332,7 +342,7 @@ enumError Dump_ISO
 
     //----- partitions
 
-    if ( show_mode & SHOW__PART )
+    if ( show_mode & SHOW__PART && disc->n_part && wd_disc_has_ptab(disc) )
     {
       wd_part_t * part = disc->part;
       DASSERT(part);
@@ -516,7 +526,7 @@ enumError Dump_DOL
     ASSERT(sf);
     if (!f)
 	return ERR_OK;
-    indent = dump_header(f,indent,sf,0,real_path);
+    indent = dump_header(f,indent,sf,0,real_path,"File type:","DOL");
 
     dol_header_t dol;
     enumError err = ReadSF(sf,0,&dol,sizeof(dol));
@@ -593,7 +603,7 @@ enumError Dump_TIK_BIN
     enumError err = ReadSF(sf,0,&tik,sizeof(tik));
     if (!err)
 	memcpy(sf->f.id6,tik.title_id+4,4);
-    indent = dump_header(f,indent,sf,0,real_path);
+    indent = dump_header(f,indent,sf,0,real_path,"File type:","TICKET");
 
     if (!err)
     {
@@ -682,7 +692,7 @@ enumError Dump_TMD_BIN
     enumError err = ReadSF(sf,0,buf,load_size);
     if (!err)
 	memcpy(sf->f.id6,tmd->title_id+4,4);
-    indent = dump_header(f,indent,sf,0,real_path);
+    indent = dump_header(f,indent,sf,0,real_path,"File type:","TMD");
 
     if (!err)
     {
@@ -780,7 +790,7 @@ enumError Dump_HEAD_BIN
     ASSERT(sf);
     if (!f)
 	return ERR_OK;
-    indent = dump_header(f,indent,sf,0,real_path);
+    indent = dump_header(f,indent,sf,0,real_path,"File type:","Disc header");
 
     wd_header_t head;
     enumError err = ReadSF(sf,0,&head,WBFS_INODE_INFO_OFF);
@@ -819,7 +829,7 @@ enumError Dump_BOOT_BIN
     ASSERT(sf);
     if (!f)
 	return ERR_OK;
-    indent = dump_header(f,indent,sf,0,real_path);
+    indent = dump_header(f,indent,sf,0,real_path,"File type:","BOOT.BIN");
 
     wd_boot_t wb;
     enumError err = ReadSF(sf,0,&wb,sizeof(wb));
@@ -881,7 +891,7 @@ enumError Dump_FST_BIN
 
     if ( show_mode & SHOW_INTRO )
     {
-	dump_header(f,indent,sf,0,real_path);
+	dump_header(f,indent,sf,0,real_path,"File type:","FST");
 	indent += 2;
     }
 
@@ -1067,7 +1077,7 @@ static s64 PartSelectorFunc
 
     wd_select_mode_t mode = prefix == '-' ? WD_SM_F_DENY : 0;
 
-    //----- scan partitons numbers
+    //----- scan partitions numbers
 
     if ( *name >= '0' && *name <= '9' )
     {
@@ -1200,7 +1210,7 @@ static s64 PartSelectorFunc
 
 enumError ScanPartSelector
 (
-    wd_select_t * select,	// valid partiton selector
+    wd_select_t * select,	// valid partition selector
     ccp arg,			// argument to scan
     ccp err_text_extend		// error message extention
 )
@@ -1379,6 +1389,77 @@ void SetupSneekMode()
     pat->rules.used = 0;
     AddFilePattern("=sneek",PAT_DEFAULT);
     SetupFilePattern(pat);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+u32 opt_align1 = 0;
+u32 opt_align2 = 0;
+u32 opt_align3 = 0;
+
+//-----------------------------------------------------------------------------
+
+int ScanOptAlign ( ccp p_arg )
+{
+    opt_align1 = opt_align2 = opt_align3 = 0;
+
+    static u32 * align_tab[] = { &opt_align1, &opt_align2, &opt_align3, 0 };
+    u32 ** align_ptr = align_tab;
+
+    ccp arg = p_arg, prev_arg = 0;
+    char * dest_end = iobuf + sizeof(iobuf) - 1;
+
+    while ( arg && *arg && *align_ptr )
+    {
+	ccp save_arg = arg;
+	char * dest = iobuf;
+	while ( dest < dest_end && *arg && *arg != ',' )
+	    *dest++ = *arg++;
+	*dest = 0;
+	if ( dest > iobuf
+		&& ScanSizeOptU32(*align_ptr,iobuf,1,0,"--align",0,32768,0,1,true) )
+	    return 1;
+
+	if ( prev_arg && align_ptr[-1][0] >= align_ptr[0][0] )
+	{
+	    ERROR0(ERR_SEMANTIC,
+			"Option --align: Ascending order expected: %.*s\n",
+			arg - prev_arg, prev_arg );
+	    return 1;
+	}
+
+	align_ptr++;
+	if ( !*align_ptr || !*arg )
+	    break;
+	arg++;
+	prev_arg = save_arg;
+    }
+
+    if (*arg)
+    {
+	ERROR0(ERR_SEMANTIC,
+		"Option --align: End of parameter expected: %.20s\n",arg);
+	return 1;
+    }
+	
+    return 0;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+StringField_t add_file;
+StringField_t repl_file;
+
+//-----------------------------------------------------------------------------
+
+int ScanOptFile ( ccp arg, bool add )
+{
+    if ( arg && *arg )
+    {
+	StringField_t * sf = add ? &add_file : &repl_file;
+	InsertStringField(sf,arg,false);
+    }
+    return 0;
 }
 
 //
@@ -1754,6 +1835,8 @@ static int CollectFST_helper
 
 	if ( cf->pat && !MatchFilePattern(cf->pat,it->fst_name) )
 	    return 0;
+
+	PRINT("%8x >> %8x + %8x  %s\n",it->off4,it->off4>>2,it->size,it->path);
 
 	size_t slen = strlen(it->path);
 	if ( fst->max_path_len < slen )
@@ -2375,7 +2458,7 @@ enumFileType IsFST ( ccp base_path, char * id6_result )
     //----- search for a data partition
 
     return SearchPartitionsFST(base_path,id6_result,0,0,0) & DATA_PART_FOUND
-		? FT_ID_FST|FT_A_ISO
+		? FT_ID_FST | FT_A_ISO | FT_A_WII_ISO
 		: FT_ID_DIR;
 }
 
@@ -2524,7 +2607,7 @@ enumFileType IsFSTPart ( ccp base_path, char * id6_result )
     }
  
     TRACE(" => FST found, id=%s\n",id6_result?id6_result:"");
-    return FT_ID_FST|FT_A_PART_DIR|FT_A_ISO;
+    return FT_ID_FST | FT_A_PART_DIR | FT_A_ISO | FT_A_WII_ISO;
 }
 
 //
@@ -2878,7 +2961,7 @@ u64 GenPartFST
 	memset(dest,0,sizeof(fst->dhead));
 	memcpy(dest,boot,6);
 	memcpy(dest+WII_TITLE_OFF,(ccp)boot+WII_TITLE_OFF,WII_TITLE_SIZE);
-	fst->dhead.magic = htonl(WII_MAGIC);
+	fst->dhead.wii_magic = htonl(WII_MAGIC);
     }
 
 
@@ -3086,6 +3169,10 @@ enumError SetupReadFST ( SuperFile_t * sf )
 
     enumEncoding enc = SetEncoding(encoding,0,0);
 
+    // check ENCODE_F_ENCRYPT
+    if ( enc & ENCODE_F_ENCRYPT )
+	enc = SetEncoding(enc,0,ENCODE_SIGN|ENCODE_ENCRYPT|ENCODE_CALC_HASH);
+
     // make some dependency checks
     if ( enc & ENCODE_SIGN )
 	enc = SetEncoding(enc,ENCODE_ENCRYPT|ENCODE_CALC_HASH,0);
@@ -3094,17 +3181,21 @@ enumError SetupReadFST ( SuperFile_t * sf )
     if ( enc & ENCODE_M_HASH )
 	enc = SetEncoding(enc,0,ENCODE_NO_SIGN|ENCODE_DECRYPT);
 
+    // force enrypting and signing if at least one is set
+    if ( enc & (ENCODE_SIGN|ENCODE_ENCRYPT) )
+	enc = SetEncoding(enc,ENCODE_SIGN|ENCODE_ENCRYPT|ENCODE_CALC_HASH,0);
+
     fst->encoding = SetEncoding(enc,0,
 		enc & ENCODE_F_FAST
 			? ENCODE_NO_SIGN|ENCODE_DECRYPT|ENCODE_CLEAR_HASH
 			: ENCODE_SIGN|ENCODE_ENCRYPT|ENCODE_CALC_HASH );
-    TRACE("ENCODING: %04x -> %04x\n",encoding,fst->encoding);
+    PRINT("ENCODING: %04x -> %04x\n",encoding,fst->encoding);
 
 
     //----- setup partitions --> [2do] use part_selector
 
-    u64 min_offset	= WII_GOOD_UPDATE_PART_OFF;
-    u64 update_off	= WII_GOOD_UPDATE_PART_OFF;
+    u64 min_offset	= WII_PART_OFF;
+    u64 update_off	= WII_PART_OFF;
     u64 update_size	= 0;
     u64 data_off	= WII_GOOD_DATA_PART_OFF;
     u64 data_size	= 0;
@@ -3495,7 +3586,7 @@ enumError ReadPartGroupFST ( SuperFile_t * sf, WiiFstPart_t * part,
 
     //----- setup vars
 
-    const u32 delta = n_groups * WII_SECTOR_DATA_OFF  * WII_GROUP_SECTORS;
+    const u32 delta = n_groups * WII_SECTOR_HASH_SIZE  * WII_GROUP_SECTORS;
     const u32 dsize = n_groups * WII_GROUP_DATA_SIZE;
           u64 off   = group_no * (u64)WII_GROUP_DATA_SIZE;
     const u64 max   = n_groups * (u64)WII_GROUP_DATA_SIZE + off;
@@ -3617,8 +3708,8 @@ enumError ReadPartGroupFST ( SuperFile_t * sf, WiiFstPart_t * part,
     dest = buf;
     for ( dest = buf; dest < src; )
     {
-	memset(dest,0,WII_SECTOR_DATA_OFF);
-	dest += WII_SECTOR_DATA_OFF;
+	memset(dest,0,WII_SECTOR_HASH_SIZE);
+	dest += WII_SECTOR_HASH_SIZE;
 
 	TRACE("GROUP %u+%u (%zx<-%zx)\n",
 		group_no, (u32)(dest-(ccp)buf)/WII_SECTOR_SIZE,
@@ -3857,7 +3948,7 @@ static enumError VerifyHash
 	{
 	    const u32 block	= offset / WII_SECTOR_SIZE;
 	    const u32 block_off	= offset - block * (u64)WII_SECTOR_SIZE;
-	    const u32 sub_block	= block_off / WII_SECTOR_DATA_OFF;
+	    const u32 sub_block	= block_off / WII_SECTOR_HASH_SIZE;
 
 	    printf("%*sgroup=%x.%x, block=%x.%x, data-off=%llx=B+%x, hash-off=%llx=B+%x\n",
 			ver->info_indent, "",

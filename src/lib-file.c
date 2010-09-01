@@ -364,15 +364,7 @@ enumError XCloseFile ( XPARM File_t * f, bool remove_file )
 	}
     }
 
-    f->is_caching = false;
-    while (f->cache)
-    {
-	FileCache_t * ptr = f->cache;
-	f->cache = ptr->next;
-	free((char*)ptr->data);
-	free(ptr);
-    }
-    f->cur_cache = 0;
+    ClearCache(f);
 
     f->cur_off = f->file_off = 0;
 
@@ -1015,8 +1007,10 @@ void GenImageFileName ( File_t * f, ccp dest, ccp default_name, enumOFT oft )
 
 ///////////////////////////////////////////////////////////////////////////////
 
-ccp oft_ext [OFT__N+1] = { "\0", ".iso", ".wdf", ".ciso", ".wbfs", "",    0 };
-ccp oft_name[OFT__N+1] = { "?",   "ISO",  "WDF",  "CISO",  "WBFS", "FST", 0 };
+ccp oft_ext [OFT__N+1]
+	= { "\0", ".iso", ".wdf", ".ciso", ".wbfs", ".wia", "",    0 };
+ccp oft_name[OFT__N+1]
+	= { "?",   "ISO",  "WDF",  "CISO",  "WBFS", "WIA",  "FST", 0 };
 
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -1033,6 +1027,9 @@ enumOFT CalcOFT ( enumOFT force, ccp fname_dest, ccp fname_src, enumOFT def )
 	{
 	    if ( !strcasecmp(fname+len-4,".wdf") )
 		return OFT_WDF;
+
+	    if ( !strcasecmp(fname+len-4,".wia") )
+		return OFT_WIA;
 
 	    if ( !strcasecmp(fname+len-4,".iso") )
 		return OFT_PLAIN;
@@ -1332,6 +1329,22 @@ enumError XFindSplitFile ( XPARM File_t *f, uint * p_index, off_t * p_off )
 
 //
 ///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+
+void ClearCache	( File_t * f )
+{
+    DASSERT(f);
+    f->is_caching = false;
+    while (f->cache)
+    {
+	FileCache_t * ptr = f->cache;
+	f->cache = ptr->next;
+	free((char*)ptr->data);
+	free(ptr);
+    }
+    f->cur_cache = 0;
+}
+
 ///////////////////////////////////////////////////////////////////////////////
 
 void DefineCachedArea ( File_t * f, off_t off, size_t count )

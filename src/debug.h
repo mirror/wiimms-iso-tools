@@ -121,9 +121,9 @@ void TRACE_ARG_FUNC ( const char * format, va_list arg );
     #define TRACE(...) TRACE_FUNC(__VA_ARGS__)
     #define TRACE_IF(cond,...) if (cond) TRACE_FUNC(__VA_ARGS__)
     #define TRACELINE TRACE_FUNC("line #%d @ %s\n",__LINE__,__FILE__)
-    #define TRACE_SIZEOF(t) TRACE_FUNC("%6zd == %5zx/hex == sizeof(%s)\n",sizeof(t),sizeof(t),#t)
+    #define TRACE_SIZEOF(t) TRACE_FUNC("%7zd ==%6zx/hex == sizeof(%s)\n",sizeof(t),sizeof(t),#t)
 
-    #define HEXDUMP(i,a,af,rl,d,c) HexDump(stderr,a,af,rl,d,c);
+    #define HEXDUMP(i,a,af,rl,d,c) HexDump(stderr,i,a,af,rl,d,c);
     #define HEXDUMP16(i,a,d,c) HexDump16(stderr,i,a,d,c);
     #define TRACE_HEXDUMP(i,a,af,rl,d,c) HexDump(TRACE_FILE,i,a,af,rl,d,c);
     #define TRACE_HEXDUMP16(i,a,d,c) HexDump16(TRACE_FILE,i,a,d,c);
@@ -184,6 +184,8 @@ void TRACE_ARG_FUNC ( const char * format, va_list arg );
 
 // prefix 'no' deactivates traces
 
+#undef noPRINT
+#undef noPRINT_IF
 #undef noTRACE
 #undef noTRACE_IF
 #undef noTRACELINE
@@ -193,6 +195,8 @@ void TRACE_ARG_FUNC ( const char * format, va_list arg );
 
 #ifdef TESTTRACE
 
+    #define noPRINT		PRINT
+    #define noPRINT_IF		PRINT_IF
     #define noTRACE		TRACE
     #define noTRACE_IF		TRACE_IF
     #define noTRACELINE		TRACELINE
@@ -202,6 +206,8 @@ void TRACE_ARG_FUNC ( const char * format, va_list arg );
 
 #else
 
+    #define noPRINT(...)
+    #define noPRINT_IF(...)
     #define noTRACE(...)
     #define noTRACE_IF(cond,...)
     #define noTRACELINE
