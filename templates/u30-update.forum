@@ -12,7 +12,6 @@
 [*] [url=@@URI-DOWNLOAD-X86_64@@][b]@@DISTRIB-X86_64@@[/b][/url] : Linux/x86_64 version
 [*] [url=@@URI-DOWNLOAD-MAC@@][b]@@DISTRIB-MAC@@[/b][/url] : Mac OS universal binaries (ppc, i386 and x86-64)
 [*] [url=@@URI-DOWNLOAD-CYGWIN@@][b]@@DISTRIB-CYGWIN@@[/b][/url] : Cygwin (Windows) version
-[*] Die MAC version fehlt leider wegen der fehlenden bzip2-lib.
 [*] Weitere Versionen sind unter [url=@@URI-HOME@@download.html][b]@@URI-HOME@@download.html[/b][/url] verfügbar.
 [/list]
 
@@ -31,26 +30,7 @@
 [size=120][color=#0000c0][b]Höhepunkte dieser Version:[/b][/color][/size]
 
 [list]
-[*] Es gibt 2 [color=#800000][b]experimentelle[/b][/color] neue Eigenschaften: [color=#000080][b]GameCube Unterstützung[/b][/color] und das neue [color=#000080][b]Dateiformat WIA (Wii ISO Archiv)[/b][/color].
-[ch]nbsp[/ch]
-
-[*] Die interne ISO Verwaltung erkennt nun auch [color=#000080][b]GameCube[/b][/color] Discs. Diese werden intern wie eine unverschlüsselte Wii Disc mit exakt einer Datenpartition gehandelt. Damit unterstützen alle Kommandos GameCube Discs. Nur VERIFY wurde ausgenommen, weil es auf GameCube Discs keine Prüfsummen gibt, die verifiziert werden könnten.
-
-GameCube Discs können in allen bekannten Kontainern (WDF, WIA, CISO, WBFS) gepackt werden. Scrubbing funktioniert auch, wobei die Korrektheit noch überprüft werden muss. Die Dateien einer GameCube Disc können mittels "wit extract" auch entpackt werden. Das Komponieren einer GameCube Disc aus Einzeldateien ist allerdings noch nicht möglich.
-
-Zum Abschluss noch einmal der Hinweis: [color=#800000][b]Die GameCube-Unterstützung ist experimentell![/b][/color]
-[ch]nbsp[/ch]
-
-[*] Ich habe ein neues Dateiformat entworfen und implementiert: [color=#000080][b]WIA = Wii ISO Archiv[/b][/color].
-
-Vor ein paar Monaten habe ich Experimente mit entschlüsselten Wii ISO Images gemacht. Verschlüsselte Images sehen wie Zufallsdaten aus und lassen sich nicht komprimierten (nur die gelöschten Bereiche (Strichwort [i]scrubbing[/i]) werden verkleinert. WDF verwaltet diese Löcher und liefert deswegen auch kleinere Dateien als die Packer (7Z, RAR, BZIP2, ...). Entschlüsselte Images lassen sich aber komprimieren. Außerdem müssen die ganzen berechenbaren Prüfsummen, die immerhin 3% ausmachen, nicht abgespeichert werden.
-
-Aus dieser Idee ist das Format WIA entstanden; es ist aber mehr ein Test, was möglich ist. Es speichert die Daten in Teilstücken (chunks) a 2 MiB und komprimiert sie. Durch die Verwendung der Teilstücke sind wahlfreie Lesezugriffe (random access) auf alle Daten möglich. Als Komprimierung verwende ich BZIP2, welches sowieso in Chunks zwischen 100KB und 900KB arbeitet. Als Ergebnis erhält man eine WIA Datei, die zwischen 10% und 50% kleiner ist als eine entsprechende WDF Datei. Aus einer WIA Datei kann das ursprüngliche ISO Image vollständig inkl. eventueller Prüfsummenfehler hergestellt werden. Nachteil des ganzen ist der wesentlich höhere Zeitaufwand beim Schreiben und Lesen von WIA Dateien.
-
-Wer es noch kleiner will, der verwendet WIA mit der Option --no-compress. Dann wird die Kompression ausgelassen und man erhält eine Datei, die sich hervoragend mit jedem externen Packer komprimieren lässt.
-
-Zum Abschluss noch einmal der Hinweis: [color=#800000][b]WIA ist experimentell![/b][/color]
-Das Dateiformat wird evtl. noch geändert. Daher sollten im Moment WIA Dateien nur Spielen und Testen verwendet werden.
+[*]
 [ch]nbsp[/ch]
 [/list]
 

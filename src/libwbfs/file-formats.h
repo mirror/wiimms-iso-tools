@@ -44,6 +44,15 @@
 ///////////////			  constants			///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
+#define KiB 1024
+#define MiB (1024*1024)
+#define GiB (1024*1024*1024)
+#define TiB (1024ull*1024*1024*1024)
+#define PiB (1024ull*1024*1024*1024*1024)
+#define EiB (1024ull*1024*1024*1024*1024*1024)
+
+///////////////////////////////////////////////////////////////////////////////
+
 enum // some constants
 {
     HD_SECTOR_SIZE		= 0x200,
@@ -129,6 +138,7 @@ enum // some constants
     WII_APL_OFF			= 0x2440,
     WII_BOOT_SIZE		= WII_BI2_OFF - WII_BOOT_OFF,
     WII_BI2_SIZE		= WII_APL_OFF - WII_BI2_OFF,
+    WII_BI2_REGION_OFF		=   0x18,
 
     WII_PART_OFF		=   0x50000,
     WII_GOOD_DATA_PART_OFF	= 0xf800000,
@@ -147,7 +157,11 @@ enum // some constants
     GC_MAGIC			= 0xc2339f3d,
     GC_MAGIC_OFF		=       0x1c,
     GC_MAGIC_LEN		=       0x04,
-    GC_DISC_SIZE		= 1459978240,
+    GC_DISC_SIZE		= 1459978240,	// standard GameCube disc size
+
+    GC_MULTIBOOT_PTAB_OFF	=    0x40,
+    GC_MULTIBOOT_MAX_PART	=    0xc0/4,
+    GC_PART_ALIGN		= 0x20000,	// alignment (= min off) of GC partitions
 
     DOL_N_TEXT_SECTIONS		=     7,
     DOL_N_DATA_SECTIONS		=    11,

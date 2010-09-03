@@ -603,7 +603,7 @@ enumError exec_isosize ( SuperFile_t * sf, Iterator_t * it )
 	    const u32 count = wd_count_used_blocks(wdisc_usage_tab,1);
 	    if (count)
 		snprintf(size,sizeof(size),"%6u %4u",
-			count, (count+WII_SECTORS_PER_MIB/2)/WII_SECTORS_PER_MIB);
+			count, (count+WII_SECTORS_PER_MIB/2)/WII_SECTORS_PER_MIB );
 	}
 	printf("%s  %s\n", size, sf->f.fname );
     }
@@ -611,16 +611,17 @@ enumError exec_isosize ( SuperFile_t * sf, Iterator_t * it )
     {
 	if ( print_header && !it->done_count++  )
 	    printf("\n"
-		"   ISO\n"
-		"blocks  filename\n"
+		" ISO\n"
+		" MiB  filename\n"
 		"%s\n", sep_79 );
 
-	char size[20] = "     -";
+	char size[20] = "   -";
 	if (sf->f.id6[0])
 	{
 	    const u32 count = wd_count_used_blocks(wdisc_usage_tab,1);
 	    if (count)
-		snprintf(size,sizeof(size),"%6u",count);
+		snprintf(size,sizeof(size),"%4u",
+			(count+WII_SECTORS_PER_MIB/2)/WII_SECTORS_PER_MIB );
 	}
 	printf("%s  %s\n", size, sf->f.fname );
     }
@@ -2028,7 +2029,8 @@ enumError CheckOptions ( int argc, char ** argv, bool is_env )
 	case GO_IGNORE_FST:	allow_fst = false; break;
 
 	case GO_PSEL:		err += ScanOptPartSelector(optarg); break;
-	case GO_RAW:		part_selector.whole_disc = true; break;
+	case GO_RAW:		part_selector.whole_disc
+					= part_selector.whole_part = true; break;
 	case GO_SNEEK:		SetupSneekMode(); break;
 	case GO_HOOK:		opt_hook = 1; break;
 	case GO_ENC:		err += ScanOptEncoding(optarg); break;
@@ -2042,9 +2044,11 @@ enumError CheckOptions ( int argc, char ** argv, bool is_env )
 	case GO_RM_FILES:	err += ScanFiles(optarg,PAT_RM_FILES); break;
 	case GO_ZERO_FILES:	err += ScanFiles(optarg,PAT_ZERO_FILES); break;
 	case GO_IGNORE_FILES:	err += ScanFiles(optarg,PAT_IGNORE_FILES); break;
-	case GO_REPL_FILE:	err += ScanOptFile(optarg,false);
-	case GO_ADD_FILE:	err += ScanOptFile(optarg,true);
-	case GO_ALIGN:		err += ScanOptAlign(optarg);
+	case GO_REPL_FILE:	err += ScanOptFile(optarg,false); break;
+	case GO_ADD_FILE:	err += ScanOptFile(optarg,true); break;
+	case GO_TRIM:		err += ScanOptTrim(optarg); break;
+	case GO_ALIGN:		err += ScanOptAlign(optarg); break;
+	case GO_DISC_SIZE:	err += ScanOptDiscSize(optarg); break;
 	case GO_OVERLAY:	break;
 	case GO_DEST:		opt_dest = optarg; break;
 	case GO_DEST2:		opt_dest = optarg; opt_mkdir = true; break;

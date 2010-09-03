@@ -55,6 +55,7 @@ typedef enum enumOptions
 	OPT_EXCLUDE_PATH,
 	OPT_IGNORE,
 	OPT_IGNORE_FST,
+	OPT_ENC,
 	OPT_ID,
 	OPT_NAME,
 	OPT_MODIFY,
@@ -66,12 +67,13 @@ typedef enum enumOptions
 	OPT_REPL_FILE,
 	OPT_ADD_FILE,
 	OPT_IGNORE_FILES,
-	OPT_ENC,
+	OPT_TRIM,
 	OPT_ALIGN,
 	OPT_DEST,
 	OPT_DEST2,
 	OPT_SPLIT,
 	OPT_SPLIT_SIZE,
+	OPT_DISC_SIZE,
 	OPT_TRUNC,
 	OPT_FAST,
 	OPT_CHUNK_MODE,
@@ -111,7 +113,7 @@ typedef enum enumOptions
 	OPT_SORT,
 	OPT_LIMIT,
 
-	OPT__N_SPECIFIC, // == 69 
+	OPT__N_SPECIFIC, // == 71 
 
 	//----- global options -----
 
@@ -132,7 +134,7 @@ typedef enum enumOptions
 	OPT_TEST,
 	OPT_HOOK,
 
-	OPT__N_TOTAL // == 85
+	OPT__N_TOTAL // == 87
 
 } enumOptions;
 
@@ -160,6 +162,7 @@ typedef enum enumOptions
 //	OB_EXCLUDE_PATH		= 1llu << OPT_EXCLUDE_PATH,
 //	OB_IGNORE		= 1llu << OPT_IGNORE,
 //	OB_IGNORE_FST		= 1llu << OPT_IGNORE_FST,
+//	OB_ENC			= 1llu << OPT_ENC,
 //	OB_ID			= 1llu << OPT_ID,
 //	OB_NAME			= 1llu << OPT_NAME,
 //	OB_MODIFY		= 1llu << OPT_MODIFY,
@@ -171,12 +174,13 @@ typedef enum enumOptions
 //	OB_REPL_FILE		= 1llu << OPT_REPL_FILE,
 //	OB_ADD_FILE		= 1llu << OPT_ADD_FILE,
 //	OB_IGNORE_FILES		= 1llu << OPT_IGNORE_FILES,
-//	OB_ENC			= 1llu << OPT_ENC,
+//	OB_TRIM			= 1llu << OPT_TRIM,
 //	OB_ALIGN		= 1llu << OPT_ALIGN,
 //	OB_DEST			= 1llu << OPT_DEST,
 //	OB_DEST2		= 1llu << OPT_DEST2,
 //	OB_SPLIT		= 1llu << OPT_SPLIT,
 //	OB_SPLIT_SIZE		= 1llu << OPT_SPLIT_SIZE,
+//	OB_DISC_SIZE		= 1llu << OPT_DISC_SIZE,
 //	OB_TRUNC		= 1llu << OPT_TRUNC,
 //	OB_FAST			= 1llu << OPT_FAST,
 //	OB_CHUNK_MODE		= 1llu << OPT_CHUNK_MODE,
@@ -258,22 +262,25 @@ typedef enum enumOptions
 //				| OB_WBFS
 //				| OB_WIA,
 //
-//	OB_GRP_PATCH		= OB_ID
+//	OB_GRP_PATCH		= OB_ENC
+//				| OB_ID
 //				| OB_NAME
 //				| OB_MODIFY
 //				| OB_REGION
 //				| OB_COMMON_KEY
 //				| OB_IOS
 //				| OB_RM_FILES
-//				| OB_ZERO_FILES
-//				| OB_REPL_FILE
+//				| OB_ZERO_FILES,
+//
+//	OB_GRP_RELOCATE		= OB_REPL_FILE
 //				| OB_ADD_FILE
 //				| OB_IGNORE_FILES
-//				| OB_ENC
+//				| OB_TRIM
 //				| OB_ALIGN,
 //
 //	OB_GRP_SPLIT_CHUNK	= OB_SPLIT
 //				| OB_SPLIT_SIZE
+//				| OB_DISC_SIZE
 //				| OB_TRUNC
 //				| OB_CHUNK_MODE
 //				| OB_CHUNK_SIZE
@@ -373,9 +380,10 @@ typedef enum enumOptions
 //				| OB_RDEPTH
 //				| OB_GRP_IGN_EXCLUDE
 //				| OB_GRP_VERBOSE
+//				| OB_GRP_PATCH
+//				| OB_GRP_RELOCATE
 //				| OB_PSEL
 //				| OB_RAW
-//				| OB_GRP_PATCH
 //				| OB_REMOVE
 //				| OB_TRUNC
 //				| OB_NEWER,
@@ -566,6 +574,7 @@ typedef enum enumGetOpt
 	GO_RAW,
 	GO_IGNORE_FST,
 	GO_HOOK,
+	GO_ENC,
 	GO_ID,
 	GO_NAME,
 	GO_MODIFY,
@@ -577,8 +586,9 @@ typedef enum enumGetOpt
 	GO_REPL_FILE,
 	GO_ADD_FILE,
 	GO_IGNORE_FILES,
-	GO_ENC,
+	GO_TRIM,
 	GO_ALIGN,
+	GO_DISC_SIZE,
 	GO_TRUNC,
 	GO_CHUNK_MODE,
 	GO_CHUNK_SIZE,

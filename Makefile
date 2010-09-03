@@ -15,8 +15,8 @@ WIT_LONG		= Wiimms ISO Tool
 WWT_SHORT		= wwt
 WWT_LONG		= Wiimms WBFS Tool
 
-VERSION_NUM		= 1.16a
-BETA_VERSION		= 0
+VERSION_NUM		= 1.17a
+BETA_VERSION		= 1
 			# 0:off  -1:"beta"  >0:"beta#"
 
 URI_HOME		= http://wit.wiimm.de/
@@ -198,7 +198,7 @@ BIN_FILES	= $(MAIN_TOOLS)
 LIB_FILES	= $(TITLE_FILES)
 
 CYGWIN_DIR	= pool/cygwin
-CYGWIN_BIN	= cygwin1.dll
+CYGWIN_BIN	= cygwin1.dll cygbz2-1.dll
 CYGWIN_BIN_SRC	= $(patsubst %,$(CYGWIN_DIR)/%,$(CYGWIN_BIN))
 
 DIR_LIST_BIN	= $(SCRIPTS) bin

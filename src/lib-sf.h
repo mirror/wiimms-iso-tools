@@ -262,6 +262,7 @@ enumError WriteZeroWBFS	( SuperFile_t * sf, off_t off, size_t count );
 enumError SetSizeSF	( SuperFile_t * sf, off_t off );
 enumError SetMinSizeSF	( SuperFile_t * sf, off_t off );
 enumError MarkMinSizeSF ( SuperFile_t * sf, off_t off );
+u64       GetGoodMinSize( bool is_gc );
 
 // standard read and write wrappers
 

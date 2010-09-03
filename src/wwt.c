@@ -2992,7 +2992,8 @@ enumError CheckOptions ( int argc, char ** argv, bool is_env )
 	case GO_PART:		AtFileHelper(optarg,0,0,AddPartition); break;
 	case GO_RECURSE:	AppendStringField(&recurse_list,optarg,false); break;
 	case GO_PSEL:		err += ScanOptPartSelector(optarg); break;
-	case GO_RAW:		part_selector.whole_disc = true; break;
+	case GO_RAW:		part_selector.whole_disc
+					= part_selector.whole_part = true; break;
 
 	case GO_INCLUDE:	AtFileHelper(optarg,0,0,AddIncludeID); break;
 	case GO_INCLUDE_PATH:	AtFileHelper(optarg,0,0,AddIncludePath); break;
@@ -3015,9 +3016,11 @@ enumError CheckOptions ( int argc, char ** argv, bool is_env )
 	case GO_RM_FILES:	err += ScanFiles(optarg,PAT_RM_FILES); break;
 	case GO_ZERO_FILES:	err += ScanFiles(optarg,PAT_ZERO_FILES); break;
 	case GO_IGNORE_FILES:	err += ScanFiles(optarg,PAT_IGNORE_FILES); break;
-	case GO_REPL_FILE:	err += ScanOptFile(optarg,false);
-	case GO_ADD_FILE:	err += ScanOptFile(optarg,true);
-	case GO_ALIGN:		err += ScanOptAlign(optarg);
+	case GO_REPL_FILE:	err += ScanOptFile(optarg,false); break;
+	case GO_ADD_FILE:	err += ScanOptFile(optarg,true); break;
+	case GO_TRIM:		err += ScanOptTrim(optarg); break;
+	case GO_ALIGN:		err += ScanOptAlign(optarg); break;
+	case GO_DISC_SIZE:	err += ScanOptDiscSize(optarg); break;
 	case GO_SPLIT:		opt_split++; break;
 	case GO_SPLIT_SIZE:	err += ScanOptSplitSize(optarg); break;
 	case GO_TRUNC:		opt_truncate++; break;

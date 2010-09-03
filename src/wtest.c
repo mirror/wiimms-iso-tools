@@ -551,24 +551,31 @@ int test_copy_to_wbfs ( int argc, char ** argv )
 
 ///////////////////////////////////////////////////////////////////////////////
 
-// http://www.bzip.org/1.0.5/bzip2-manual-1.0.5.html
-
-#ifndef NO_BZIP2
- #include <bzlib.h>
-#endif
-
-void test_libbz2()
+int test_print_size ( int argc, char ** argv )
 {
- #ifndef NO_BZIP2
-    FILE * f = fopen("work/test.bz2","rb");
-    if (f)
+    u64 i;
+    for ( i = 1; i; i <<= 10 )
     {
-	int bzerror;
-	BZFILE * bz2 = BZ2_bzReadOpen(&bzerror,f,0,0,0,0);
-	BZ2_bzReadClose(&bzerror,bz2);
-	fclose (f);
+	printf("%21llu |%s|%s|\n", i,
+		wd_print_size(0,0,i,true),
+		wd_print_size(0,0,i,false) );
     }
- #endif
+
+    u64 prev = 0;
+    for ( i = 1; i > prev; i *= 10 )
+    {
+	prev = i;
+	printf("%21llu |%s|%s|\n", i,
+		wd_print_size(0,0,i,true),
+		wd_print_size(0,0,i,false) );
+    }
+
+    i = ~(u64)0;
+    printf("%21llu |%s|%s|\n", i,
+		wd_print_size(0,0,i,true),
+		wd_print_size(0,0,i,false) );
+    
+    return 0;
 }
 
 //
@@ -647,6 +654,7 @@ int test ( int argc, char ** argv )
     //test_splitted_file();
     //test_zero_wdf();
     //test_copy_to_wbfs(argc,argv);
+    test_print_size(argc,argv);
 
     return 0;
 }

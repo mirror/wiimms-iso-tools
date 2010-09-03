@@ -1529,7 +1529,7 @@ enumError SetupWriteWIA
     for ( pi = 0; pi < disc->n_part; pi++ )
     {
 	wd_part_t * wpart = wdisc->part + pi;
-	wd_load_part(wpart,true,true);
+	wd_load_part(wpart,true,true,false);
 	if (!wpart->is_valid)
 	    return ERROR0(ERR_NO_WIA_SUPPORT,
 			"No WIA support for discs with invalid partitions: %s\n",

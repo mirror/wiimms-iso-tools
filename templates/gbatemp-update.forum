@@ -14,7 +14,6 @@
 [*] [url=@@URI-DOWNLOAD-X86_64@@][b]@@DISTRIB-X86_64@@[/b][/url] : Linux/x86_64 version
 [*] [url=@@URI-DOWNLOAD-MAC@@][b]@@DISTRIB-MAC@@[/b][/url] : Mac OS universal binaries (ppc, i386 and x86-64)
 [*] [url=@@URI-DOWNLOAD-CYGWIN@@][b]@@DISTRIB-CYGWIN@@[/b][/url] : Cygwin (Windows) version
-[*] No MAC version available because of missing the bzip2 lib.
 [*] Other releases are available from [url=@@URI-HOME@@download.html][b]@@URI-HOME@@download.html[/b][/url].
 [/list]
 
@@ -30,25 +29,7 @@
 
 [size="2"][color="#0000c0"][b]Highlights of this release:[/b][/color][/size]
 [list]
-[*] There are 2 [color=#800000][b]experimental[/b][/color] nnew features: [color=#000080][b]GameCube disc support[/b][/color] and the new file format [color=#000080][b]file format WIA (Wii ISO Archive)[/b][/color].
-[color=#ffffff].[/color]
-
-[*] The internal ISO interface is now able to work with [color=#000080][b]GameCube[/b][/color] discs. GameCube discs are supported as a decrypted Wii image with exact one DATA partition. Because of this simulation all commands support GameCube discs without special code.
-
-GameCube discs can be stored as PLAIN ISO and within all supported containers (WDF, WIA, CISO, WBFS). Scrubbing support is also available but must be tested. Extracting files from a GameCube disc works, but not composing a GameCube disc.
-
-Please consider: [color=#800000][b]The GameCube support is experimental![/b][/color]
-[color=#ffffff].[/color]
-
-[*] I have designed and implemented a new file format: [color=#000080][b]WIA = Wii ISO Archive[/b][/color].
-
-Some m onth ago I have made some experiments with decrypted Wii ISO images. The data of encrypted ISO images looks like random data. Because of this compressing (with 7Z, RAR, BZIP2,...) is not possible. The compressors only reduce the size of the holes (keyword [i]scrubbing[/i]). WDF manage such holes with the result of smaller files than the compressed ones. But Decrypted images are good for compression. Additional it is possible to ignore the reproducible HASH values (3% of image size).
-
-From these ideas I have developed the file format WIA. It is ready, but more a proof of concept. The disc data is stored in peaces of 2 MiB. Each peace is compressed with BZIP2 independent from the other peaces. This allows random access reading. BZIP2 is good because it works already in chunks between 100KB and 900KB. The resulting WIA file is about 10% .. 50% smaller than the WDF file. The original ISO can be restored from WIA completly including HASH errors. The disadvantage of WIA is the multiple time needed for writing and reading.
-
-There is a second way to reduce the size more effective: Create a WIA file with the option --no-compress and compress the resulting file with a packer of your choice.
-
-Please consider: [color=#800000][b]WIA is experimental![/b][/color] The file format will may be changed. Please use WIA files at the moment only for playing and testing.
+[*]
 [color=#ffffff].[/color]
 [/list]
 

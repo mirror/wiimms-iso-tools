@@ -1668,7 +1668,7 @@ u64 ScanSizeFactor ( char ch_factor, int force_base )
 {
     if ( force_base == 1000 )
     {
-	switch(ch_factor)
+	switch (ch_factor)
 	{
 	    case 'b': case 'c': return                   1;
 	    case 'k': case 'K': return                1000;
@@ -1677,11 +1677,14 @@ u64 ScanSizeFactor ( char ch_factor, int force_base )
 	    case 't': case 'T': return       1000000000000ull;
 	    case 'p': case 'P': return    1000000000000000ull;
 	    case 'e': case 'E': return 1000000000000000000ull;
+
+	    case 'u': case 'U': return GC_DISC_SIZE;
+	    case 'w': case 'W': return WII_SECTORS_SINGLE_LAYER *(u64)WII_SECTOR_SIZE;
 	}
     }
     else if ( force_base == 1024 )
     {
-	switch(ch_factor)
+	switch (ch_factor)
 	{
 	    case 'b': case 'c': return   1;
 	    case 'k': case 'K': return KiB;
@@ -1690,11 +1693,14 @@ u64 ScanSizeFactor ( char ch_factor, int force_base )
 	    case 't': case 'T': return TiB;
 	    case 'p': case 'P': return PiB;
 	    case 'e': case 'E': return EiB;
+
+	    case 'u': case 'U': return GC_DISC_SIZE;
+	    case 'w': case 'W': return WII_SECTORS_SINGLE_LAYER *(u64)WII_SECTOR_SIZE;
 	}
     }
     else
     {
-	switch(ch_factor)
+	switch (ch_factor)
 	{
 	    case 'b':
 	    case 'c': return                   1;
@@ -1711,6 +1717,12 @@ u64 ScanSizeFactor ( char ch_factor, int force_base )
 	    case 'T': return TiB;
 	    case 'P': return PiB;
 	    case 'E': return EiB;
+
+	    case 'u':
+	    case 'U': return GC_DISC_SIZE;
+
+	    case 'w':
+	    case 'W': return WII_SECTORS_SINGLE_LAYER *(u64)WII_SECTOR_SIZE;
 	}
     }
     return 0;

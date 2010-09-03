@@ -196,10 +196,14 @@ enumError cmd_test_options()
 		(u64)opt_set_time, (u64)opt_set_time,buf_set_time );
  #endif
 
+    printf("  trim:        %16x = %u\n",opt_trim,opt_trim);
     printf("  align:       %16x = %u, %x = %u, %x = %u\n",
 		opt_align1, opt_align1,
 		opt_align2, opt_align2,
 		opt_align3, opt_align3 );
+    printf("  disc-size:   %16llx = %llu = %s\n",
+		opt_disc_size, opt_disc_size,
+		wd_print_size(0,0,opt_disc_size,true) );
 
     printf("  partition selector:\n");
     wd_print_select(stdout,6,&part_selector);

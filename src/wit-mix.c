@@ -799,7 +799,7 @@ enumError cmd_mix()
 	{
 	    if (!part->is_enabled)
 		continue;
-	    err = wd_load_part(part,false,false);
+	    err = wd_load_part(part,false,false,false);
 	    if (err)
 		return err;
 
@@ -1105,7 +1105,7 @@ enumError cmd_mix()
 	if (err)
 	    goto abort;
 
-	err = SetMinSizeSF(&fo,dest_file_size);
+	err = SetMinSizeSF(&fo, opt_disc_size ? opt_disc_size : dest_file_size );
 	if (err)
 	    goto abort;
 

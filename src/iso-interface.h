@@ -304,21 +304,6 @@ extern wd_ipm_t prefix_mode;
 wd_ipm_t ScanPrefixMode ( ccp arg );
 void SetupSneekMode();
 
-//-----------------------------------------------------------------------------
-
-extern u32 opt_align1;
-extern u32 opt_align2;
-extern u32 opt_align3;
-
-int ScanOptAlign ( ccp arg );
-
-//-----------------------------------------------------------------------------
-
-extern StringField_t add_file;
-extern StringField_t repl_file;
-
-int ScanOptFile ( ccp arg, bool add );
-
 //
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////			  Iso Mapping			///////////////

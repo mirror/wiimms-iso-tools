@@ -3798,8 +3798,8 @@ enumError ExtractWDisc ( WBFS_t * w, SuperFile_t * sf )
     if ( !w || !w->wbfs | !w->sf || !w->disc || !sf )
 	return ERROR0(ERR_INTERNAL,0);
 
-    SetMinSizeSF(sf,(off_t)WII_SECTORS_SINGLE_LAYER *WII_SECTOR_SIZE);
-
+    SetMinSizeSF( sf, GetGoodMinSize( ( w->sf->f.ftype & FT_A_GC_ISO ) != 0 ));
+ 
     // this is needed for detailed error messages
     const enumError saved_max_error = max_error;
     max_error = 0;

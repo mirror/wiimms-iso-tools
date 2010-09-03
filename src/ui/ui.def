@@ -304,6 +304,12 @@
 	"", \
 	"Abbreviation of {--psel data --pmode none --files =sneek}." )
 
+#:def_opt( "ENC", "enc", "CP", \
+	"encoding", \
+	"Define the encoding mode. The mode is one of NONE, HASHONLY, DECRYPT," \
+	" ENCRYPT, SIGN or AUTO. The case of the keywords is ignored. The" \
+	" default mode is 'AUTO'." )
+
 #:def_opt( "ID", "id", "CP", \
 	"id", \
 	"This $patching$ option changes the ID of the disc to the given" \
@@ -359,16 +365,6 @@
 	" TMD is necessary. The processing order of file options is:" \
 	" {--rm-files --zero-files --ignore-files}." )
 
-#:def_opt( "IGNORE_FILES", "ignore-files|ignore-file|ignorefiles|ignorefile", "CP", \
-	"ruleset", \
-	"This option defines filter rules to ignore real files of the FST of" \
-	" the DATA partition. $Fake signing$ is not necessary, but the" \
-	" partition becomes invalid, because the content of some files is not" \
-	" copied. If such file is accessed the Wii will halt immediately," \
-	" because the verification of the check sum calculation fails. The" \
-	" processing order of file options is: {--rm-files --zero-files" \
-	" --ignore-files}." )
-
 #:def_opt( "OVERLAY", "overlay", "C", \
 	"", \
 	"Most partitions have holes (unused areas) in the data section. If" \
@@ -378,11 +374,15 @@
 	" also limits the number of input partitions to 12, because the" \
 	" calculation is rated as O(2^n)." )
 
-#:def_opt( "ENC", "enc", "CP", \
-	"encoding", \
-	"Define the encoding mode. The mode is one of NONE, HASHONLY, DECRYPT," \
-	" ENCRYPT, SIGN or AUTO. The case of the keywords is ignored. The" \
-	" default mode is 'AUTO'." )
+#:def_opt( "IGNORE_FILES", "ignore-files|ignore-file|ignorefiles|ignorefile", "CP", \
+	"ruleset", \
+	"This option defines filter rules to ignore real files of the FST of" \
+	" the DATA partition. $Fake signing$ is not necessary, but the" \
+	" partition becomes invalid, because the content of some files is not" \
+	" copied. If such file is accessed the Wii will halt immediately," \
+	" because the verification of the check sum calculation fails. The" \
+	" processing order of file options is: {--rm-files --zero-files" \
+	" --ignore-files}." )
 
 #:def_opt( "DEST", "d|dest", "CP", \
 	"path", \
@@ -404,6 +404,10 @@
 	" 'sz' is a floating point number followed by an optional unit factor" \
 	" (one of 'cb' [=1] or  'kmgtpe' [base=1000] or 'KMGTPE' [base=1024])." \
 	" The default unit is 'G' (GiB)." )
+
+#:def_opt( "DISC_SIZE", "disc-size|discsize", "CP", \
+	"size", \
+	"Define a minimal (virtual) ISO disc size." )
 
 #:def_opt( "TRUNC", "trunc", "C", \
 	"", \
@@ -840,6 +844,19 @@
 	"", \
 	"" )
 
+#:def_cmd_opt( "DUMP", "LONG", \
+	"", \
+	"If set at least once a memory map for each partition is printed. If" \
+	" set twice or more a memory map for whole ISO image is printed." )
+
+#:def_cmd_opt( "DUMP", "SHOW", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "DUMP", "ENC", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "DUMP", "ID", \
 	"", \
 	"" )
@@ -876,16 +893,7 @@
 	"", \
 	"" )
 
-#:def_cmd_opt( "DUMP", "ENC", \
-	"", \
-	"" )
-
-#:def_cmd_opt( "DUMP", "LONG", \
-	"", \
-	"If set at least once a memory map for each partition is printed. If" \
-	" set twice or more a memory map for whole ISO image is printed." )
-
-#:def_cmd_opt( "DUMP", "SHOW", \
+#:def_cmd_opt( "DUMP", "DISC_SIZE", \
 	"", \
 	"" )
 
@@ -1929,15 +1937,7 @@
 	"", \
 	"" )
 
-#:def_cmd_opt( "EXTRACT", "DEST", \
-	"", \
-	"" )
-
-#:def_cmd_opt( "EXTRACT", "DEST2", \
-	"", \
-	"" )
-
-#:def_cmd_opt( "EXTRACT", "ESC", \
+#:def_cmd_opt( "EXTRACT", "ENC", \
 	"", \
 	"" )
 
@@ -1977,7 +1977,15 @@
 	"", \
 	"" )
 
-#:def_cmd_opt( "EXTRACT", "ENC", \
+#:def_cmd_opt( "EXTRACT", "DEST", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "EXTRACT", "DEST2", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "EXTRACT", "ESC", \
 	"", \
 	"" )
 
@@ -2087,15 +2095,7 @@
 	"", \
 	"" )
 
-#:def_cmd_opt( "COPY", "DEST", \
-	"", \
-	"" )
-
-#:def_cmd_opt( "COPY", "DEST2", \
-	"", \
-	"" )
-
-#:def_cmd_opt( "COPY", "ESC", \
+#:def_cmd_opt( "COPY", "ENC", \
 	"", \
 	"" )
 
@@ -2135,7 +2135,15 @@
 	"", \
 	"" )
 
-#:def_cmd_opt( "COPY", "ENC", \
+#:def_cmd_opt( "COPY", "DEST", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "COPY", "DEST2", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "COPY", "ESC", \
 	"", \
 	"" )
 
@@ -2160,6 +2168,10 @@
 	"" )
 
 #:def_cmd_opt( "COPY", "SPLIT_SIZE", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "COPY", "DISC_SIZE", \
 	"", \
 	"" )
 
@@ -2287,35 +2299,7 @@
 	"", \
 	"" )
 
-#:def_cmd_opt( "SCRUB", "SPLIT", \
-	"", \
-	"" )
-
-#:def_cmd_opt( "SCRUB", "SPLIT_SIZE", \
-	"", \
-	"" )
-
-#:def_cmd_opt( "SCRUB", "TRUNC", \
-	"", \
-	"" )
-
-#:def_cmd_opt( "SCRUB", "CHUNK_MODE", \
-	"", \
-	"" )
-
-#:def_cmd_opt( "SCRUB", "CHUNK_SIZE", \
-	"", \
-	"" )
-
-#:def_cmd_opt( "SCRUB", "MAX_CHUNKS", \
-	"", \
-	"" )
-
-#:def_cmd_opt( "SCRUB", "NO_COMPRESS", \
-	"", \
-	"" )
-
-#:def_cmd_opt( "SCRUB", "PRESERVE", \
+#:def_cmd_opt( "SCRUB", "ENC", \
 	"", \
 	"" )
 
@@ -2355,7 +2339,39 @@
 	"", \
 	"" )
 
-#:def_cmd_opt( "SCRUB", "ENC", \
+#:def_cmd_opt( "SCRUB", "SPLIT", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "SCRUB", "SPLIT_SIZE", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "SCRUB", "DISC_SIZE", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "SCRUB", "TRUNC", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "SCRUB", "CHUNK_MODE", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "SCRUB", "CHUNK_SIZE", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "SCRUB", "MAX_CHUNKS", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "SCRUB", "NO_COMPRESS", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "SCRUB", "PRESERVE", \
 	"", \
 	"" )
 
@@ -2443,6 +2459,10 @@
 	"", \
 	"" )
 
+#:def_cmd_opt( "EDIT", "ENC", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "EDIT", "ID", \
 	"", \
 	"" )
@@ -2472,14 +2492,6 @@
 	"" )
 
 #:def_cmd_opt( "EDIT", "ZERO_FILES", \
-	"", \
-	"" )
-
-#:def_cmd_opt( "EDIT", "IGNORE_FILES", \
-	"", \
-	"" )
-
-#:def_cmd_opt( "EDIT", "ENC", \
 	"", \
 	"" )
 
@@ -2826,6 +2838,10 @@
 	"" )
 
 #:def_cmd_opt( "MIX", "SPLIT_SIZE", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "MIX", "DISC_SIZE", \
 	"", \
 	"" )
 
@@ -3193,6 +3209,12 @@
 	"", \
 	"Disable composing and ignore FST directories as input." )
 
+#:def_opt( "ENC", "enc", "CP", \
+	"encoding", \
+	"Define the encoding mode. The mode is one of NONE, HASHONLY, DECRYPT," \
+	" ENCRYPT, SIGN or AUTO. The case of the keywords is ignored. The" \
+	" default mode is 'AUTO'." )
+
 #:def_opt( "ID", "id", "CP", \
 	"id", \
 	"This $patching$ option changes the ID of the disc to the given" \
@@ -3258,12 +3280,6 @@
 	" processing order of file options is: {--rm-files --zero-files" \
 	" --ignore-files}." )
 
-#:def_opt( "ENC", "enc", "CP", \
-	"encoding", \
-	"Define the encoding mode. The mode is one of NONE, HASHONLY, DECRYPT," \
-	" ENCRYPT, SIGN or AUTO. The case of the keywords is ignored. The" \
-	" default mode is 'AUTO'." )
-
 #:def_opt( "DEST", "d|dest", "CP", \
 	"path", \
 	"Define a destination path (directory/file). The destination path is" \
@@ -3284,6 +3300,10 @@
 	" 'sz' is a floating point number followed by an optional unit factor" \
 	" (one of 'cb' [=1] or  'kmgtpe' [base=1000] or 'KMGTPE' [base=1024])." \
 	" The default unit is 'G' (GiB)." )
+
+#:def_opt( "DISC_SIZE", "disc-size|discsize", "CP", \
+	"size", \
+	"Define a minimal (virtual) ISO disc size." )
 
 #:def_opt( "TRUNC", "trunc", "C", \
 	"", \
@@ -4570,11 +4590,7 @@
 	"", \
 	"" )
 
-#:def_cmd_opt( "ADD", "PSEL", \
-	"", \
-	"" )
-
-#:def_cmd_opt( "ADD", "RAW", \
+#:def_cmd_opt( "ADD", "ENC", \
 	"", \
 	"" )
 
@@ -4614,7 +4630,11 @@
 	"", \
 	"" )
 
-#:def_cmd_opt( "ADD", "ENC", \
+#:def_cmd_opt( "ADD", "PSEL", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "ADD", "RAW", \
 	"", \
 	"" )
 
@@ -4733,11 +4753,7 @@
 	"", \
 	"" )
 
-#:def_cmd_opt( "UPDATE", "PSEL", \
-	"", \
-	"" )
-
-#:def_cmd_opt( "UPDATE", "RAW", \
+#:def_cmd_opt( "UPDATE", "ENC", \
 	"", \
 	"" )
 
@@ -4777,7 +4793,11 @@
 	"", \
 	"" )
 
-#:def_cmd_opt( "UPDATE", "ENC", \
+#:def_cmd_opt( "UPDATE", "PSEL", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "UPDATE", "RAW", \
 	"", \
 	"" )
 
@@ -4888,11 +4908,7 @@
 	"", \
 	"" )
 
-#:def_cmd_opt( "SYNC", "PSEL", \
-	"", \
-	"" )
-
-#:def_cmd_opt( "SYNC", "RAW", \
+#:def_cmd_opt( "SYNC", "ENC", \
 	"", \
 	"" )
 
@@ -4932,7 +4948,11 @@
 	"", \
 	"" )
 
-#:def_cmd_opt( "SYNC", "ENC", \
+#:def_cmd_opt( "SYNC", "PSEL", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "SYNC", "RAW", \
 	"", \
 	"" )
 
@@ -5036,6 +5056,10 @@
 	"" )
 
 #:def_cmd_opt( "EXTRACT", "SPLIT_SIZE", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "EXTRACT", "DISC_SIZE", \
 	"", \
 	"" )
 

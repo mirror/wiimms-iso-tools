@@ -60,6 +60,26 @@ typedef enum wd_disc_type_t // never change the values, because WIA use it
 
 //
 ///////////////////////////////////////////////////////////////////////////////
+///////////////			enum wd_disc_attrib_t		///////////////
+///////////////////////////////////////////////////////////////////////////////
+
+typedef enum wd_disc_attrib_t // never change the values, because WIA use it
+{
+    //--- disc type attributes
+
+    WD_DA_GAMECUBE	= 1 << WD_DT_GAMECUBE,
+    WD_DA_WII		= 1 << WD_DT_WII,
+    
+    //--- real attributes
+
+    WD_DA_GC_MULTIBOOT	= 0x0100,	// gamecube multiboot disc
+    WD_DA_GC_DVD9	= 0x0200,	// gc-mb disc with DVD9 part-tab
+    WD_DA_GC_START_PART	= 0x0400,	// gc-mb disc with valid start partition
+
+} wd_disc_attrib_t;
+
+//
+///////////////////////////////////////////////////////////////////////////////
 ///////////////			enum wd_part_type_t		///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -477,6 +497,7 @@ typedef struct wd_part_t
     wd_boot_t		boot;		// copy of boot.bin, host endian
     u32			dol_size;	// size of main.dol
     u32			apl_size;	// size of apploader.img
+    u32			region;		// gamecube region code, extract of bi2
 
     wd_fst_item_t	* fst;		// pointer to fst data
     u32			fst_n;		// number or elements in fst
@@ -507,7 +528,8 @@ typedef struct wd_disc_t
 
     //----- raw data
 
-    wd_disc_type_t	disc_type;	// GameCube or Wii
+    wd_disc_type_t	disc_type;	// disc type
+    wd_disc_attrib_t	disc_attrib;	// disc attrib
 
     wd_header_t		dhead;		// copy of disc header
     wd_region_t		region;		// copy of disc region settings
@@ -730,7 +752,7 @@ void wd_join_sectors
 
 //
 ///////////////////////////////////////////////////////////////////////////////
-///////////////		interface: names, ids and titles	///////////////
+///////////////		interface: names, ids, titles, ...	///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
 extern const char * wd_disc_type_name[];
@@ -782,6 +804,17 @@ int wd_rename
     void		* data,		// pointer to ISO data
     ccp			new_id,		// if !NULL: take the first 6 chars as ID
     ccp			new_title	// if !NULL: take the first 0x39 chars as title
+);
+
+//-----------------------------------------------------------------------------
+
+char * wd_print_size
+(
+    char		* buf,		// result buffer
+					// If NULL, a local circulary static buffer is used
+    size_t		buf_size,	// size of 'buf', ignored if buf==NULL
+    u64			size,		// size to print
+    bool		aligned		// true: use exact 4+4 characters for the number + unit
 );
 
 //
@@ -976,26 +1009,28 @@ wd_part_t * wd_get_part_by_type
 
 enumError wd_load_part
 (
-	wd_part_t	* part,		// valid disc partition pointer
-	bool		load_cert,	// true: load cert data too
-	bool		load_h3		// true: load h3 data too
+    wd_part_t		*part,		// valid disc partition pointer
+    bool		load_cert,	// true: load cert data too
+    bool		load_h3,	// true: load h3 data too
+    bool		silent		// true: don't print error messages
 );
 
 //-----------------------------------------------------------------------------
 
 enumError wd_load_all_part
 (
-	wd_disc_t	* disc,		// valid disc pointer
-	bool		load_cert,	// true: load cert data too
-	bool		load_h3		// true: load h3 data too
+    wd_disc_t		* disc,		// valid disc pointer
+    bool		load_cert,	// true: load cert data too
+    bool		load_h3,	// true: load h3 data too
+    bool		silent		// true: don't print error messages
 );
 
 //-----------------------------------------------------------------------------
 
 enumError wd_calc_fst_statistics
 (
-	wd_disc_t	* disc,		// valid disc pointer
-	bool		sum_all		// false: summarize only enabled partitions
+    wd_disc_t		* disc,		// valid disc pointer
+    bool		sum_all		// false: summarize only enabled partitions
 );
 
 //

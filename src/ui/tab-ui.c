@@ -488,6 +488,13 @@ info_t info_tab[] =
 		0,
 		"Force relocation hook while reading iso images." },
 
+  { T_OPT_CP,	"ENC",		"enc",
+		"encoding",
+		"Define the encoding mode."
+		" The mode is one of NONE, HASHONLY, DECRYPT, ENCRYPT, SIGN or AUTO."
+		" The case of the keywords is ignored."
+		" The default mode is 'AUTO'." },
+
   { T_OPT_CP,	"ID",		"id",
 		"id",
 		"This $patching$ option changes the ID of the disc"
@@ -550,14 +557,25 @@ info_t info_tab[] =
 		" The processing order of file options is:"
 		" {--rm-files --zero-files --ignore-files}." },
 
+  { T_OPT_C,	"OVERLAY",	"overlay",
+		0,
+		"Most partitions have holes (unused areas) in the data section."
+		" If combining multiple partitions into one disc it is possible"
+		" to overlay the partitions so that the data of one partition"
+		" resides in the hole of other partitions."
+		" This option enables this feature."
+		" It also limits the number of input partitions to 12,"
+		" because the calculation is rated as O(2^n)." },
+
   { H_OPT_CP,	"REPL_FILE",	"repl-file|repl-files|replfile|replfiles",
 		"filedef",
+		"This relocation option ???"
 		" The processing order of file options is:"
 		" {--rm-files --zero-files --repl-file --add-file --ignore-files}." },
 
   { H_OPT_CP,	"ADD_FILE",	"add-file|add-files|addfile|addfiles",
 		"filedef",
-		"???"
+		"This relocation option ???"
 		" The processing order of file options is:"
 		" {--rm-files --zero-files --repl-file --add-file --ignore-files}." },
 
@@ -572,22 +590,9 @@ info_t info_tab[] =
 		" The processing order of file options is:"
 		" {--rm-files --zero-files --ignore-files}." },
 
-  { T_OPT_C,	"OVERLAY",	"overlay",
-		0,
-		"Most partitions have holes (unused areas) in the data section."
-		" If combining multiple partitions into one disc it is possible"
-		" to overlay the partitions so that the data of one partition"
-		" resides in the hole of other partitions."
-		" This option enables this feature."
-		" It also limits the number of input partitions to 12,"
-		" because the calculation is rated as O(2^n)." },
-
-  { T_OPT_CP,	"ENC",		"enc",
-		"encoding",
-		"Define the encoding mode."
-		" The mode is one of NONE, HASHONLY, DECRYPT, ENCRYPT, SIGN or AUTO."
-		" The case of the keywords is ignored."
-		" The default mode is 'AUTO'." },
+  { H_OPT_CP,	"TRIM",		"trim",
+		"keylist",
+		"This relocation option ???" },
 
   { H_OPT_CP,	"ALIGN",	"align",
 		"align1[,align2][,align3]",
@@ -614,6 +619,10 @@ info_t info_tab[] =
 		" by an optional unit factor (one of 'cb' [=1] or "
 		" 'kmgtpe' [base=1000] or 'KMGTPE' [base=1024])."
 		" The default unit is 'G' (GiB)." },
+
+  { T_OPT_CP,	"DISC_SIZE",	"disc-size|discsize",
+		"size",
+		"Define a minimal (virtual) ISO disc size." },
 
   { T_OPT_C,	"TRUNC",	"trunc",
 		0, "Truncate PLAIN ISO images to the needed size while creating." },
@@ -896,6 +905,7 @@ info_t info_tab[] =
   { T_GRP_BEG,	"PATCH",	0,0,0 },
 
   { H_COPT,	"HOOK",		0,0,0 },
+  { T_COPT,	"ENC",		0,0,0 },
   { T_COPT,	"ID",		0,0,0 },
   { T_COPT,	"NAME",		0,0,0 },
   { T_COPT,	"MODIFY",	0,0,0 },
@@ -904,10 +914,15 @@ info_t info_tab[] =
   { T_COPT,	"IOS",		0,0,0 },
   { T_COPT,	"RM_FILES",	0,0,0 },
   { T_COPT,	"ZERO_FILES",	0,0,0 },
+
+  //---------- wit GROUP RELOCATE ----------
+
+  { T_GRP_BEG,	"RELOCATE",	0,0,0 },
+
   { H_COPT,	"REPL_FILE",	0,0,0 },
   { H_COPT,	"ADD_FILE",	0,0,0 },
   { T_COPT,	"IGNORE_FILES",	0,0,0 },
-  { T_COPT,	"ENC",		0,0,0 },
+  { H_COPT,	"TRIM",		0,0,0 },
   { H_COPT,	"ALIGN",	0,0,0 },
 
   //---------- wit GROUP SPLIT_CHUNK ----------
@@ -916,6 +931,7 @@ info_t info_tab[] =
 
   { T_COPT,	"SPLIT",	0,0,0 },
   { T_COPT,	"SPLIT_SIZE",	0,0,0 },
+  { T_COPT,	"DISC_SIZE",	0,0,0 },
   { T_COPT,	"TRUNC",	0,0,0 },
   { T_COPT,	"CHUNK_MODE",	0,0,0 },
   { T_COPT,	"CHUNK_SIZE",	0,0,0 },
@@ -1026,11 +1042,16 @@ info_t info_tab[] =
   { T_SEP_OPT,	0,0,0,0 },
 
   { T_COPT_M,	"LOGGING",	0,0,0 },
-  { T_COPY_GRP,	"PATCH",	0,0,0 },
   { T_COPT_M,	"LONG",		0,0,
 	"If set at least once a memory map for each partition is printed."
 	" If set twice or more a memory map for whole ISO image is printed." },
   { T_COPT,	"SHOW",		0,0,0 },
+
+  { T_SEP_OPT,	0,0,0,0 },
+
+  { T_COPY_GRP,	"PATCH",	0,0,0 },
+  { T_COPY_GRP,	"RELOCATE",	0,0,0 },
+  { T_COPT,	"DISC_SIZE",	0,0,0 },
 
   //---------- COMMAND wit DREGION ----------
 
@@ -1176,10 +1197,14 @@ info_t info_tab[] =
 
   { T_SEP_OPT,	0,0,0,0 },
 
+  { T_COPY_GRP,	"PATCH",	0,0,0 },
+  { T_COPY_GRP,	"RELOCATE",	0,0,0 },
+
+  { T_SEP_OPT,	0,0,0,0 },
+
   { T_COPT,	"DEST",		0,0,0 },
   { T_COPT,	"DEST2",	0,0,0 },
   { T_COPT,	"ESC",		0,0,0 },
-  { T_COPY_GRP,	"PATCH",	0,0,0 },
   { T_COPT,	"PRESERVE",	0,0,0 },
   { T_COPT,	"OVERWRITE",	0,0,0 },
 
@@ -1218,10 +1243,13 @@ info_t info_tab[] =
 
   { T_SEP_OPT,	0,0,0,0 },
 
+  { T_COPY_GRP,	"PATCH",	0,0,0 },
+  { T_COPY_GRP,	"RELOCATE",	0,0,0 },
+
+  { T_SEP_OPT,	0,0,0,0 },
+
   { T_COPY_GRP,	"SPLIT_CHUNK",	0,0,0 },
   { T_COPT,	"PRESERVE",	0,0,0 },
-  { T_COPY_GRP,	"PATCH",	0,0,0 },
-
   { T_COPY_GRP,	"OUTMODE",	0,0,0 },
 
 
@@ -1640,6 +1668,9 @@ info_t info_tab[] =
   { H_OPT_G,	"HOOK",		"hook",
 		0, 0 /* copy of wit */ },
 
+  { T_OPT_CP,	"ENC",		"enc",
+		0, 0 /* copy of wit */ },
+
   { T_OPT_CP,	"ID",		"id",
 		0, 0 /* copy of wit */ },
 
@@ -1673,7 +1704,7 @@ info_t info_tab[] =
   { T_OPT_CP,	"IGNORE_FILES",	"ignore-files|ignore-file|ignorefiles|ignorefile",
 		0, 0 /* copy of wit */ },
 
-  { T_OPT_CP,	"ENC",		"enc",
+  { H_OPT_CP,	"TRIM",		"trim",
 		0, 0 /* copy of wit */ },
 
   { H_OPT_CP,	"ALIGN",	"align",
@@ -1689,6 +1720,9 @@ info_t info_tab[] =
 		0, 0 /* copy of wit */ },
 
   { T_OPT_CP,	"SPLIT_SIZE",	"Z|split-size|splitsize",
+		0, 0 /* copy of wit */ },
+
+  { T_OPT_CP,	"DISC_SIZE",	"disc-size|discsize",
 		0, 0 /* copy of wit */ },
 
   { T_OPT_C,	"TRUNC",	"trunc",
@@ -1925,6 +1959,7 @@ info_t info_tab[] =
   { T_GRP_BEG,	"PATCH",	0,0,0 },
 
   { H_COPT,	"HOOK",		0,0,0 },
+  { T_COPT,	"ENC",		0,0,0 },
   { T_COPT,	"ID",		0,0,0 },
   { T_COPT,	"NAME",		0,0,0 },
   { T_COPT,	"MODIFY",	0,0,0 },
@@ -1933,10 +1968,15 @@ info_t info_tab[] =
   { T_COPT,	"IOS",		0,0,0 },
   { T_COPT,	"RM_FILES",	0,0,0 },
   { T_COPT,	"ZERO_FILES",	0,0,0 },
+
+  //---------- wwt GROUP RELOCATE ----------
+
+  { T_GRP_BEG,	"RELOCATE",	0,0,0 },
+
   { H_COPT,	"REPL_FILE",	0,0,0 },
   { H_COPT,	"ADD_FILE",	0,0,0 },
   { T_COPT,	"IGNORE_FILES",	0,0,0 },
-  { T_COPT,	"ENC",		0,0,0 },
+  { H_COPT,	"TRIM",		0,0,0 },
   { H_COPT,	"ALIGN",	0,0,0 },
 
   //---------- wwt GROUP SPLIT_CHUNK ----------
@@ -1945,6 +1985,7 @@ info_t info_tab[] =
 
   { T_COPT,	"SPLIT",	0,0,0 },
   { T_COPT,	"SPLIT_SIZE",	0,0,0 },
+  { T_COPT,	"DISC_SIZE",	0,0,0 },
   { T_COPT,	"TRUNC",	0,0,0 },
   { T_COPT,	"CHUNK_MODE",	0,0,0 },
   { T_COPT,	"CHUNK_SIZE",	0,0,0 },
@@ -2218,12 +2259,13 @@ info_t info_tab[] =
 
   { T_SEP_OPT,	0,0,0,0 },
 
-  { T_COPT,	"PSEL",		0,0,0 },
-  { T_COPT,	"RAW",		0,0,0 },
   { T_COPY_GRP,	"PATCH",	0,0,0 },
+  { T_COPY_GRP,	"RELOCATE",	0,0,0 },
 
   { T_SEP_OPT,	0,0,0,0 },
 
+  { T_COPT,	"PSEL",		0,0,0 },
+  { T_COPT,	"RAW",		0,0,0 },
   { T_COPT,	"REMOVE",	0,0,0 },
   { T_COPT,	"TRUNC",	0,0,
 	"Truncate WBFS until operation finished." },

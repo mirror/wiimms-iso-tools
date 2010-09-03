@@ -84,13 +84,6 @@ typedef enum enumRevID
 
 ///////////////////////////////////////////////////////////////////////////////
 
-#define KiB 1024
-#define MiB (1024*1024)
-#define GiB (1024*1024*1024)
-#define TiB (1024ull*1024*1024*1024)
-#define PiB (1024ull*1024*1024*1024*1024)
-#define EiB (1024ull*1024*1024*1024*1024*1024)
-
 #define TRACE_SEEK_FORMAT "%-20.20s f=%d,%p %9llx%s\n"
 #define TRACE_RDWR_FORMAT "%-20.20s f=%d,%p %9llx..%9llx %8zx%s\n"
 

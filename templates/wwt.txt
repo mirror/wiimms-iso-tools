@@ -114,7 +114,7 @@ are listed in alphabetic order:
 ~ [2do] copy to homepage
 
  The ANALYZE command analyze files and partitions and prints out the geometry.
- The files are niot modified and opened readonly.
+ The files are not modified and opened readonly.
 
  First ANALYZE looks into the file and search for old WBFS information. Second
  it makes a calculation like the INIT command for different sector sizes.

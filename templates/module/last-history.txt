@@ -1,19 +1,6 @@
 wit v@@VERSION@@ r@@REV-NEXT@@ - @@@@-@@-@@
 
- - wit MIX: Forgotten options: --iso --wdf --ciso --wbfs
- - wit ID6 --long: Print disc title too.
- - wwt ADD: Default is now: --enc encrypt
- - wit DIFF: Will patch the partiton tables for scrubbed diff, because
-   different tools modify them in a different way while scrubbing.
- - Bug fix for wwt VERIFY: Iteration through whole WBFS failed.
- - A little change when creating a WBFS file: The hss value in the WBFS header
-   is now set to the truncated value.
- - New file format supported: WIA = Wii ISO Archive (EXPERIMENTAL!)
-   WIA will decrypt partitions and compress the data in chunks with bzip2.
-   Because of the chunks the archive allows random read access to view
-   only parts of the image. The option --no-compress disables compressing.
-   The resulting image is very effective packable by all compression tools.
- - Gamecube ISO support for nearly all commands. (EXPERIMENTAL!)
+ - Support of GameCube multiboot discs. (EXPERIMENTAL!)
 
 Known bugs:
 
@@ -26,5 +13,5 @@ Known bugs:
 
 Missing docu:
 
- - wit commands ILIST + EXTRACT + EDIT => see built in help
+ - wit commands FILES + EXTRACT + EDIT => see built in help
  - Option --show => see built in help

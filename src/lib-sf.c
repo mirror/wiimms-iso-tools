@@ -634,7 +634,7 @@ wd_disc_t * OpenDiscSF
     sf->disc1 = disc;
 
     if (load_part_data)
-	wd_load_all_part(disc,false,false);
+	wd_load_all_part(disc,false,false,false);
 
     if ( opt_hook < 0 )
 	return sf->disc2 = wd_dup_disc(disc);
@@ -1338,6 +1338,17 @@ enumError MarkMinSizeSF ( SuperFile_t * sf, off_t off )
     if ( sf->min_file_size < off )
 	 sf->min_file_size = off;
     return ERR_OK;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+u64 GetGoodMinSize ( bool is_gc )
+{
+    return opt_disc_size
+	    ? opt_disc_size
+	    : is_gc
+		? GC_DISC_SIZE
+		: (u64)WII_SECTORS_SINGLE_LAYER * WII_SECTOR_SIZE;
 }
 
 //
@@ -2371,7 +2382,7 @@ enumError CopySF ( SuperFile_t * in, SuperFile_t * out, bool force_raw_mode )
 	wd_disc_t * disc = OpenDiscSF(in,true,false);
 	if (disc)
 	{
-	    MarkMinSizeSF(out,in->file_size);
+	    MarkMinSizeSF(out, opt_disc_size ? opt_disc_size : in->file_size );
 	    wd_filter_usage_table(disc,wdisc_usage_tab,0);
 
 	    if ( out->iod.oft == OFT_WDF )
@@ -2444,7 +2455,7 @@ enumError CopyRaw ( SuperFile_t * in, SuperFile_t * out )
     off_t copy_size = in->file_size;
     off_t off       = 0;
 
-    MarkMinSizeSF(out,copy_size);
+    MarkMinSizeSF(out, opt_disc_size ? opt_disc_size : copy_size );
 
     if ( out->show_progress )
 	PrintProgressSF(0,in->file_size,out);
@@ -2554,7 +2565,7 @@ enumError CopyWDF ( SuperFile_t * in, SuperFile_t * out )
     if (!in->wc)
 	return ERROR0(ERR_INTERNAL,0);
 
-    enumError err = MarkMinSizeSF(out,in->file_size);
+    enumError err = MarkMinSizeSF(out, opt_disc_size ? opt_disc_size : in->file_size );
     if (err)
 	return err;
 
@@ -2631,7 +2642,7 @@ enumError CopyWIA ( SuperFile_t * in, SuperFile_t * out )
     return CopyRaw(in,out);
 
  #if 0 // [2do] [wia]
-    enumError err = MarkMinSizeSF(out,in->file_size);
+    enumError err = MarkMinSizeSF(out, opt_disc_size ? opt_disc_size : in->file_size );
     if (err)
 	return err;
 
@@ -2670,7 +2681,7 @@ enumError CopyWBFSDisc ( SuperFile_t * in, SuperFile_t * out )
 	    OUT_OF_MEMORY;
     }
 
-    MarkMinSizeSF(out,in->file_size);
+    MarkMinSizeSF(out, opt_disc_size ? opt_disc_size : in->file_size );
     enumError err = ERR_OK;
 
     u64 pr_done = 0, pr_total = 0;
