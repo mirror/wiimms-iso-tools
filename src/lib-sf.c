@@ -636,6 +636,9 @@ wd_disc_t * OpenDiscSF
     if (load_part_data)
 	wd_load_all_part(disc,false,false,false);
 
+    if ( disc->disc_type == WD_DT_GAMECUBE )
+	sf->f.read_behind_eof = 2;
+
     if ( opt_hook < 0 )
 	return sf->disc2 = wd_dup_disc(disc);
 
@@ -1239,7 +1242,12 @@ enumError ReadISO
     const enumError err = ReadAtF(&sf->f,off,buf,count);
 
     off += count;
-    DASSERT_MSG( err || sf->f.cur_off == off, "%llx : %llx\n",sf->f.cur_off,off);
+    if ( sf->f.read_behind_eof && off > sf->f.st.st_size && sf->f.st.st_size )
+	off = sf->f.st.st_size;
+
+    DASSERT_MSG( err || sf->f.cur_off == (off_t)-1 || sf->f.cur_off == off,
+		"%llx : %llx\n",sf->f.cur_off,off);
+
     if ( sf->max_virt_off < off )
 	 sf->max_virt_off = off;
     if ( sf->file_size < off )

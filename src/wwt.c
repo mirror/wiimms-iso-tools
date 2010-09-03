@@ -3020,6 +3020,7 @@ enumError CheckOptions ( int argc, char ** argv, bool is_env )
 	case GO_ADD_FILE:	err += ScanOptFile(optarg,true); break;
 	case GO_TRIM:		err += ScanOptTrim(optarg); break;
 	case GO_ALIGN:		err += ScanOptAlign(optarg); break;
+	case GO_PART_ALIGN:	err += ScanOptPartAlign(optarg); break;
 	case GO_DISC_SIZE:	err += ScanOptDiscSize(optarg); break;
 	case GO_SPLIT:		opt_split++; break;
 	case GO_SPLIT_SIZE:	err += ScanOptSplitSize(optarg); break;

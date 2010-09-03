@@ -70,6 +70,7 @@ typedef enum enumOptions
 	OPT_IGNORE_FILES,
 	OPT_TRIM,
 	OPT_ALIGN,
+	OPT_PART_ALIGN,
 	OPT_DEST,
 	OPT_DEST2,
 	OPT_SPLIT,
@@ -104,7 +105,7 @@ typedef enum enumOptions
 	OPT_SORT,
 	OPT_LIMIT,
 
-	OPT__N_SPECIFIC, // == 62 
+	OPT__N_SPECIFIC, // == 63 
 
 	//----- global options -----
 
@@ -125,7 +126,7 @@ typedef enum enumOptions
 	OPT_TEST,
 	OPT_HOOK,
 
-	OPT__N_TOTAL // == 78
+	OPT__N_TOTAL // == 79
 
 } enumOptions;
 
@@ -168,6 +169,7 @@ typedef enum enumOptions
 //	OB_IGNORE_FILES		= 1llu << OPT_IGNORE_FILES,
 //	OB_TRIM			= 1llu << OPT_TRIM,
 //	OB_ALIGN		= 1llu << OPT_ALIGN,
+//	OB_PART_ALIGN		= 1llu << OPT_PART_ALIGN,
 //	OB_DEST			= 1llu << OPT_DEST,
 //	OB_DEST2		= 1llu << OPT_DEST2,
 //	OB_SPLIT		= 1llu << OPT_SPLIT,
@@ -263,7 +265,8 @@ typedef enum enumOptions
 //				| OB_ADD_FILE
 //				| OB_IGNORE_FILES
 //				| OB_TRIM
-//				| OB_ALIGN,
+//				| OB_ALIGN
+//				| OB_PART_ALIGN,
 //
 //	OB_GRP_SPLIT_CHUNK	= OB_SPLIT
 //				| OB_SPLIT_SIZE
@@ -551,6 +554,7 @@ typedef enum enumGetOpt
 	GO_IGNORE_FILES,
 	GO_TRIM,
 	GO_ALIGN,
+	GO_PART_ALIGN,
 	GO_DISC_SIZE,
 	GO_TRUNC,
 	GO_CHUNK_MODE,

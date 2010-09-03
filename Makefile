@@ -16,7 +16,7 @@ WWT_SHORT		= wwt
 WWT_LONG		= Wiimms WBFS Tool
 
 VERSION_NUM		= 1.17a
-BETA_VERSION		= 1
+BETA_VERSION		= 2
 			# 0:off  -1:"beta"  >0:"beta#"
 
 URI_HOME		= http://wit.wiimm.de/

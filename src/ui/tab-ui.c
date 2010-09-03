@@ -595,7 +595,11 @@ info_t info_tab[] =
 		"This relocation option ???" },
 
   { H_OPT_CP,	"ALIGN",	"align",
-		"align1[,align2][,align3]",
+		"size1[,size2][,size3]",
+		"???" },
+
+  { H_OPT_CP,	"PART_ALIGN",	"part-align|partalign",
+		"size",
 		"???" },
 
   { T_OPT_CP,	"DEST",		"d|dest",
@@ -924,6 +928,7 @@ info_t info_tab[] =
   { T_COPT,	"IGNORE_FILES",	0,0,0 },
   { H_COPT,	"TRIM",		0,0,0 },
   { H_COPT,	"ALIGN",	0,0,0 },
+  { H_COPT,	"PART_ALIGN",	0,0,0 },
 
   //---------- wit GROUP SPLIT_CHUNK ----------
 
@@ -1710,6 +1715,9 @@ info_t info_tab[] =
   { H_OPT_CP,	"ALIGN",	"align",
 		0, 0 /* copy of wit */ },
 
+  { H_OPT_CP,	"PART_ALIGN",	"part-align",
+		0, 0 /* copy of wit */ },
+
   { T_OPT_CP,	"DEST",		"d|dest",
 		0, 0 /* copy of wit */ },
 
@@ -1978,6 +1986,7 @@ info_t info_tab[] =
   { T_COPT,	"IGNORE_FILES",	0,0,0 },
   { H_COPT,	"TRIM",		0,0,0 },
   { H_COPT,	"ALIGN",	0,0,0 },
+  { H_COPT,	"PART_ALIGN",	0,0,0 },
 
   //---------- wwt GROUP SPLIT_CHUNK ----------
 

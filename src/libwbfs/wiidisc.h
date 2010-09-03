@@ -460,6 +460,7 @@ typedef struct wd_part_t
     u32			part_type;	// partition type
 
     u32			part_off4;	// offset/4 of partition relative to disc start
+    u64			max_marked;	// max marked offset relative to disc start
     u64			part_size;	// total size of partition
 
     struct wd_disc_t	* disc;		// pointer to disc

@@ -530,12 +530,13 @@ int ScanOptTrim ( ccp arg )
 
 //
 ///////////////////////////////////////////////////////////////////////////////
-///////////////			--align				///////////////
+///////////////			--align & --aprt-align		///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-u32 opt_align1 = 0;
-u32 opt_align2 = 0;
-u32 opt_align3 = 0;
+u32 opt_align1		= 0;
+u32 opt_align2		= 0;
+u32 opt_align3		= 0;
+u32 opt_part_align	= 0;
 
 //-----------------------------------------------------------------------------
 
@@ -556,8 +557,18 @@ int ScanOptAlign ( ccp p_arg )
 	while ( dest < dest_end && *arg && *arg != ',' )
 	    *dest++ = *arg++;
 	*dest = 0;
-	if ( dest > iobuf
-		&& ScanSizeOptU32(*align_ptr,iobuf,1,0,"align",0,32768,0,1,true) )
+	if ( dest > iobuf && ScanSizeOptU32(
+				*align_ptr,	// u32 * num
+				iobuf,		// ccp source
+				1,		// default_factor1
+				0,		// int force_base
+				"align",	// ccp opt_name
+				4,		// u64 min
+				32768,		// u64 max
+				0,		// u32 multiple
+				1,		// u32 pow2
+				true		// bool print_err
+				))
 	    return 1;
 
 	if ( prev_arg && align_ptr[-1][0] >= align_ptr[0][0] )
@@ -583,6 +594,24 @@ int ScanOptAlign ( ccp p_arg )
     }
 	
     return 0;
+}
+
+//-----------------------------------------------------------------------------
+
+int ScanOptPartAlign ( ccp arg )
+{
+    return ScanSizeOptU32(
+		&opt_part_align,	// u32 * num
+		arg,			// ccp source
+		1,			// default_factor1
+		0,			// int force_base
+		"align-part",		// ccp opt_name
+		32768,			// u64 min
+		MiB,			// u64 max
+		0,			// u32 multiple
+		1,			// u32 pow2
+		true			// bool print_err
+		) != ERR_OK;
 }
 
 //

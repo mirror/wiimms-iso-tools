@@ -984,11 +984,21 @@ enumError wd_read_part
 
     if (part->is_gc)
     {
-	PRINT("%llx+%x + %8x\n", (u64)part->part_off4<<2, data_offset4, read_size );
+	noPRINT("%llx+%x + %8x\n", (u64)part->part_off4<<2, data_offset4, read_size );
 	ASSERT(!(data_offset4&3));
-	return wd_read_raw(disc, part->part_off4 + ( data_offset4 >> 2 ),
-			dest_buf,read_size, mark_block ? part->usage_id : 0 );
+
+	const u64 off = part->part_off4 + ( data_offset4 >> 2 );
+	const u64 mark_end = ( off << 2 ) + read_size;
+	if ( part->max_marked < mark_end )
+	     part->max_marked = mark_end;
+
+	return wd_read_raw ( disc, off, dest_buf, read_size,
+				mark_block ? part->usage_id : 0 );
     }
+
+    const u64 mark_end = ( (u64)( part->data_off4 + data_offset4 ) << 2 ) + read_size;
+    if ( part->max_marked < mark_end )
+	 part->max_marked = mark_end;
 
     u8 * temp = disc->temp_buf;
     u8 * dest = dest_buf;
@@ -1036,6 +1046,10 @@ void wd_mark_part
 	end_block = ( data_offset4 + data_size + WII_SECTOR_SIZE - 1 )
 		  / WII_SECTOR_SIZE + block_delta;
 	marker = part->usage_id;
+
+	const u64 mark_end = data_offset4 + data_size;
+	if ( part->max_marked < mark_end )
+	     part->max_marked = mark_end;
     }
     else
     {
@@ -1045,13 +1059,14 @@ void wd_mark_part
 		  + data_offset4 ) / WII_SECTOR_DATA_SIZE4
 		  + block_delta;
 	marker = part->usage_id | WD_USAGE_F_CRYPT;
+
+	const u64 mark_end = ( (u64)data_offset4 << 2 ) + data_size;
+	if ( part->max_marked < mark_end )
+	     part->max_marked = mark_end;
     }
 
     if ( end_block > WII_MAX_SECTORS )
 	end_block = WII_MAX_SECTORS;
-
-	noTRACE("mark %x+%x => %x..%x [%x]\n",
-		    data_offset4, data_size, first_block, end_block, end_block-first_block );
 
     if ( first_block < end_block )
     {
@@ -1715,7 +1730,7 @@ enumError wd_load_part
 	free(part->fst);  part->fst  = 0;
 
 
-	//----- gamecube settings
+	//----- scan partition header
 
 	if (part->is_gc)
 	    part->data_off4 = part->part_off4;
@@ -1894,6 +1909,7 @@ enumError wd_load_part
 
 	//----- load and iterate fst
 
+
 	const u32 fst_size = boot->fst_size4 << 2;
 	if (fst_size)
 	{
@@ -1950,7 +1966,15 @@ enumError wd_load_part
 				+ ( fst_max_off4 + WII_SECTOR_SIZE - 1 ) / WII_SECTOR_SIZE;
 	    if ( part->end_sector > WII_MAX_SECTORS )
 		 part->end_sector = WII_MAX_SECTORS;
-	    part->part_size	= (u64)( part->end_sector - part->data_sector ) * WII_SECTOR_SIZE;
+
+	    part->part_size	= part->max_marked - ( (u64)part->data_off4 << 2 );
+	    PRINT("    %llx .. %llx / %llx / %llx\n",
+			(u64)part->data_off4<<2, part->part_size,
+			part->max_marked, disc->file_size );
+			
+	    if (wd_check_part_offset( part, (u64)part->data_off4<<2,
+					part->part_size, "PART", silent ))
+		return ERR_WDISC_INVALID;
 	}
 
 

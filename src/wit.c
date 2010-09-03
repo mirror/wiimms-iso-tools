@@ -2048,6 +2048,7 @@ enumError CheckOptions ( int argc, char ** argv, bool is_env )
 	case GO_ADD_FILE:	err += ScanOptFile(optarg,true); break;
 	case GO_TRIM:		err += ScanOptTrim(optarg); break;
 	case GO_ALIGN:		err += ScanOptAlign(optarg); break;
+	case GO_PART_ALIGN:	err += ScanOptPartAlign(optarg); break;
 	case GO_DISC_SIZE:	err += ScanOptDiscSize(optarg); break;
 	case GO_OVERLAY:	break;
 	case GO_DEST:		opt_dest = optarg; break;

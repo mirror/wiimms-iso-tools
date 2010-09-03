@@ -2053,7 +2053,7 @@ enumError XReadF ( XPARM File_t * f, void * iobuf, size_t count )
     }
 
     if ( err || read_count < count && !f->read_behind_eof )
-#else
+#else // [2do] [obsolete]
     bool err;
     if (f->fp)
 	err = count && fread(iobuf,count,1,f->fp) != 1;
@@ -2090,7 +2090,7 @@ enumError XReadF ( XPARM File_t * f, void * iobuf, size_t count )
 			f->file_off, count, f->fname );
 	f->last_error = ERR_READ_FAILED;
 	if ( f->max_error < f->last_error )
-	    f->max_error = f->last_error;
+	     f->max_error = f->last_error;
 	f->file_off = (off_t)-1;
     }
     else

@@ -176,6 +176,7 @@ extern u32 opt_align2;
 extern u32 opt_align3;
 
 int ScanOptAlign ( ccp arg );
+int ScanOptPartAlign ( ccp arg );
 
 //-----------------------------------------------------------------------------
 
