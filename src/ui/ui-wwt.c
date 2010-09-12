@@ -116,7 +116,7 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
     {	OPT_IGNORE, 'i', "ignore",
 	0,
 	"Ignore non existing files/discs without warning. If set twice then"
-	" all non Wii ISO images are ignored too."
+	" all non Wii and GameCube ISO images are ignored too."
     },
 
     {	OPT_IGNORE_FST, 0, "ignore-fst",
@@ -227,9 +227,11 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 	"???"
     },
 
-    {	OPT_PART_ALIGN, 0, "part-align",
+    {	OPT_ALIGN_PART, 0, "part-align",
 	"size",
-	"???"
+	"If creating or moving partitions the beginning of each partition is"
+	" set to an offset that is a multiple of the align size. Size must be"
+	" a power of 2 and at least 32 KiB (=default)."
     },
 
     {	OPT_DEST, 'd', "dest",
@@ -312,10 +314,14 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 	"--mch is a shortcut for --max-chunks."
     },
 
-    {	OPT_NO_COMPRESS, 0, "no-compress",
-	0,
-	"Disable compression for new WIA files. --noc is a shortcut for"
-	" --no-compress."
+    {	OPT_COMPRESSION, 0, "compression",
+	"method",
+	"Select one compression method for new WIA files. Possible"
+	" compressions and values are NONE, PURGE and BZIP2. There are 3"
+	" additional keywords: FAST (=PURGE), BEST and DEFAULT (both =BZIP2)."
+	" These keywords may change their meanings if a new compression method"
+	" is implemented.\n"
+	"--compr is a shortcut for --compression."
     },
 
     {	OPT_SIZE, 's', "size",
@@ -547,9 +553,8 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 
     {	OPT_LOGGING, 'L', "logging",
 	0,
-	"Special logging for patching and composing Wii discs. If set at least"
-	" once the disc layout is printed. If set at least twice the partition"
-	" layout is printed too."
+	"Enable the logging of internal memory maps. If set twice second level"
+	" memory maps are printed too."
     },
 
     {	OPT_ESC, 'E', "esc",
@@ -1021,7 +1026,7 @@ const struct option OptionLong[] =
 	 { "ignorefile",	1, 0, GO_IGNORE_FILES },
 	{ "trim",		1, 0, GO_TRIM },
 	{ "align",		1, 0, GO_ALIGN },
-	{ "part-align",		1, 0, GO_PART_ALIGN },
+	{ "part-align",		1, 0, GO_ALIGN_PART },
 	{ "dest",		1, 0, 'd' },
 	{ "DEST",		1, 0, 'D' },
 	{ "split",		0, 0, 'z' },
@@ -1040,9 +1045,8 @@ const struct option OptionLong[] =
 	{ "max-chunks",		1, 0, GO_MAX_CHUNKS },
 	 { "maxchunks",		1, 0, GO_MAX_CHUNKS },
 	 { "mch",		1, 0, GO_MAX_CHUNKS },
-	{ "no-compress",	0, 0, GO_NO_COMPRESS },
-	 { "nocompress",	0, 0, GO_NO_COMPRESS },
-	 { "noc",		0, 0, GO_NO_COMPRESS },
+	{ "compression",	1, 0, GO_COMPRESSION },
+	 { "compr",		1, 0, GO_COMPRESSION },
 	{ "size",		1, 0, 's' },
 	{ "hss",		1, 0, GO_HSS },
 	 { "sector-size",	1, 0, GO_HSS },
@@ -1176,13 +1180,13 @@ const u8 OptionIndex[OPT_INDEX_SIZE] =
 	/*96*/	OPT_IGNORE_FILES,
 	/*97*/	OPT_TRIM,
 	/*98*/	OPT_ALIGN,
-	/*99*/	OPT_PART_ALIGN,
+	/*99*/	OPT_ALIGN_PART,
 	/*9a*/	OPT_DISC_SIZE,
 	/*9b*/	OPT_TRUNC,
 	/*9c*/	OPT_CHUNK_MODE,
 	/*9d*/	OPT_CHUNK_SIZE,
 	/*9e*/	OPT_MAX_CHUNKS,
-	/*9f*/	OPT_NO_COMPRESS,
+	/*9f*/	OPT_COMPRESSION,
 	/*a0*/	OPT_HSS,
 	/*a1*/	OPT_WSS,
 	/*a2*/	OPT_RECOVER,
@@ -2021,6 +2025,7 @@ static const InfoOption_t * option_tab_cmd_ADD[] =
 	OptionInfo + OPT_RM_FILES,
 	OptionInfo + OPT_ZERO_FILES,
 	OptionInfo + OPT_IGNORE_FILES,
+	OptionInfo + OPT_ALIGN_PART,
 
 	OptionInfo + OPT_NONE, // separator
 
@@ -2085,6 +2090,7 @@ static const InfoOption_t * option_tab_cmd_UPDATE[] =
 	OptionInfo + OPT_RM_FILES,
 	OptionInfo + OPT_ZERO_FILES,
 	OptionInfo + OPT_IGNORE_FILES,
+	OptionInfo + OPT_ALIGN_PART,
 
 	OptionInfo + OPT_NONE, // separator
 
@@ -2147,6 +2153,7 @@ static const InfoOption_t * option_tab_cmd_SYNC[] =
 	OptionInfo + OPT_RM_FILES,
 	OptionInfo + OPT_ZERO_FILES,
 	OptionInfo + OPT_IGNORE_FILES,
+	OptionInfo + OPT_ALIGN_PART,
 
 	OptionInfo + OPT_NONE, // separator
 
@@ -2203,7 +2210,7 @@ static const InfoOption_t * option_tab_cmd_EXTRACT[] =
 	OptionInfo + OPT_CHUNK_MODE,
 	OptionInfo + OPT_CHUNK_SIZE,
 	OptionInfo + OPT_MAX_CHUNKS,
-	OptionInfo + OPT_NO_COMPRESS,
+	OptionInfo + OPT_COMPRESSION,
 
 	OptionInfo + OPT_NONE, // separator
 
@@ -2767,8 +2774,8 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	"ADD",
 	"A",
 	"wwt ADD iso|wbfs|dir...",
-	"Add Wii ISO discs to WBFS partitions.",
-	40,
+	"Add Wii and GameCube ISO discs to WBFS partitions.",
+	41,
 	option_tab_cmd_ADD,
 	option_allowed_cmd_ADD
     },
@@ -2779,9 +2786,9 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	"UPDATE",
 	"U",
 	"wwt UPDATE iso|wbfs|dir...",
-	"Add missing Wii ISO discs to WBFS partitions. 'UPDATE' is a shortcut"
-	" for 'ADD --update'.",
-	38,
+	"Add missing Wii and GameCube ISO discs to WBFS partitions. 'UPDATE'"
+	" is a shortcut for 'ADD --update'.",
+	39,
 	option_tab_cmd_UPDATE,
 	option_allowed_cmd_UPDATE
     },
@@ -2795,7 +2802,7 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	"Modify primary WBFS (REMOVE and ADD) until it contains exactly the"
 	" same discs as all sources together. 'SYNC' is a shortcut for 'ADD"
 	" --sync'.",
-	37,
+	38,
 	option_tab_cmd_SYNC,
 	option_allowed_cmd_SYNC
     },
@@ -2806,7 +2813,8 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	"EXTRACT",
 	"X",
 	"wwt EXTRACT id6[=dest]...",
-	"Extract discs from WBFS partitions and store them as Wii ISO images.",
+	"Extract discs from WBFS partitions and store them as Wii and GameCube"
+	" ISO images.",
 	39,
 	option_tab_cmd_EXTRACT,
 	option_allowed_cmd_EXTRACT

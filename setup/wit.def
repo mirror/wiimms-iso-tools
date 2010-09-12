@@ -12,6 +12,8 @@
 #gdef wit$['WIT_LONG']			= "@@WIT-LONG@@"
 #gdef wit$['WWT_SHORT']			= "@@WWT-SHORT@@"
 #gdef wit$['WWT_LONG']			= "@@WWT-LONG@@"
+#gdef wit$['WDF_SHORT']			= "@@WDF-SHORT@@"
+#gdef wit$['WDF_LONG']			= "@@WDF-LONG@@"
 #gdef wit$['AUTHOR']			= "@@AUTHOR@@"
 
 #gdef wit$['VERSION']			= "@@VERSION@@"

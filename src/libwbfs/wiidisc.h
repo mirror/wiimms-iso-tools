@@ -45,21 +45,6 @@
 
 //
 ///////////////////////////////////////////////////////////////////////////////
-///////////////			enum wd_disc_type_t		///////////////
-///////////////////////////////////////////////////////////////////////////////
-
-typedef enum wd_disc_type_t // never change the values, because WIA use it
-{
-    WD_DT_UNKOWN	= 0,	// unknown, always Null
-    WD_DT_GAMECUBE,		// GameCube disc type
-    WD_DT_WII,			// Wii disc type
-
-    WD_DT__N			// number of disc types
-
-} wd_disc_type_t;
-
-//
-///////////////////////////////////////////////////////////////////////////////
 ///////////////			enum wd_disc_attrib_t		///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -122,6 +107,7 @@ typedef enum wd_select_mode_t // modes of selection
     WD_SM_ALLOW_GT_INDEX,	// allow partitions > #index in absolut partition count
     WD_SM_ALLOW_PTAB_INDEX,	// allow partition #index in given table
     WD_SM_ALLOW_ID,		// allow ID
+    WD_SM_ALLOW_GC_BOOT,	// allow GameCube boot partition
     WD_SM_ALLOW_ALL,		// allow all partitions
 
     WD_SM_N_MODE,		// number of modes
@@ -140,6 +126,7 @@ typedef enum wd_select_mode_t // modes of selection
     WD_SM_DENY_GT_INDEX		= WD_SM_F_DENY | WD_SM_ALLOW_GT_INDEX,
     WD_SM_DENY_PTAB_INDEX	= WD_SM_F_DENY | WD_SM_ALLOW_PTAB_INDEX,
     WD_SM_DENY_ID		= WD_SM_F_DENY | WD_SM_ALLOW_ID,
+    WD_SM_DENY_GC_BOOT		= WD_SM_F_DENY | WD_SM_ALLOW_GC_BOOT,
     WD_SM_DENY_ALL		= WD_SM_F_DENY | WD_SM_ALLOW_ALL,
     
 } wd_select_mode_t;
@@ -237,8 +224,10 @@ typedef enum wd_pname_mode_t // partition name modes
 
 typedef enum wd_patch_mode_t // patching modes
 {
-    WD_PAT_DATA,		// raw data
-    WD_PAT_PART_DATA,		// raw partition data (not used in wiidisc)
+    WD_PAT_IGNORE	= 0,	// non used value, always zero
+
+    WD_PAT_ZERO,		// zero data area
+    WD_PAT_DATA,		// known raw data
     WD_PAT_PART_TICKET,		// partition TICKET (-> fake sign)
     WD_PAT_PART_TMD,		// partition TMD (-> fake sign)
 
@@ -319,35 +308,47 @@ typedef enum wd_modify_t // objects to modify
 struct wd_disc_t;
 struct wd_part_t;
 struct wd_iterator_t;
+struct wd_memmap_t;
+struct wd_memmap_item_t;
 
 //-----------------------------------------------------------------------------
 // Callback read function. Returns 0 on success and any other value on failutre.
 
 typedef int (*wd_read_func_t)
 (
-	void		* read_data,	// user defined data
-	u32		offset4,	// offset/4 to read
-	u32		count,		// num of bytes to read
-	void		* iobuf		// buffer, alloced with wbfs_ioalloc
+    void		* read_data,	// user defined data
+    u32			offset4,	// offset/4 to read
+    u32			count,		// num of bytes to read
+    void		* iobuf		// buffer, alloced with wbfs_ioalloc
 );
 
 //-----------------------------------------------------------------------------
-// callback definition for memory dump with wd_dump_mem()
+// Callback definition for memory dump with wd_dump_mem()
 
 typedef void (*wd_mem_func_t)
 (
-	void		* param,	// user defined parameter
-	u64		offset,		// offset of object
-	u64		size,		// size of object
-	ccp		info		// info about object
+    void		* param,	// user defined parameter
+    u64			offset,		// offset of object
+    u64			size,		// size of object
+    ccp			info		// info about object
 );
 
 //-----------------------------------------------------------------------------
-// callback definition for file iteration. if return != 0 => abort
+// Callback definition for file iteration. if return != 0 => abort
 
 typedef int (*wd_file_func_t)
 (
-	struct wd_iterator_t *it	// iterator struct with all infos
+    struct wd_iterator_t	*it	// iterator struct with all infos
+);
+
+//-----------------------------------------------------------------------------
+// Callback definition for wd_insert_memmap_disc_part() & wd_insert_memmap_part()
+
+typedef void (*wd_memmap_func_t)
+(
+    void			* param,	// user defined parameter
+    struct wd_memmap_t		* patch,	// valid pointer to patch object
+    struct wd_memmap_item_t	* item		// valid pointer to inserted item
 );
 
 //
@@ -381,33 +382,33 @@ typedef struct wd_select_t // a selector
 
 //
 ///////////////////////////////////////////////////////////////////////////////
-///////////////			struct wd_patch_item_t		///////////////
+///////////////			struct wd_memmap_item_t		///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-typedef struct wd_patch_item_t // patching data item
+typedef struct wd_memmap_item_t // patching data item
 {
-    wd_patch_mode_t	mode;		// patching mode
+    u32			mode;		// memmap mode (e.g. wd_patch_mode_t)
+    u32			index;		// user defined index (e.g. partition index)
     u64			offset;		// offset
     u64			size;		// size
-    u32			part_index;	// NULL or index of relevant partition
     void		* data;		// NULL or pointer to data/filename
     bool		data_alloced;	// true if data must be freed
-    char		info[43];	// comment for dumps
+    char		info[51];	// comment for dumps
 
-} wd_patch_item_t;
+} wd_memmap_item_t;
 
 //
 ///////////////////////////////////////////////////////////////////////////////
-///////////////			struct wd_patch_t		///////////////
+///////////////			struct wd_memmap_t		///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-typedef struct wd_patch_t // patching data structure
+typedef struct wd_memmap_t // patching data structure
 {
-    wd_patch_item_t	* item;		// pointer to first item
+    wd_memmap_item_t	* item;		// pointer to first item
     u32			used;		// number of used items
     u32			size;		// number of allocated items
 
-} wd_patch_t;
+} wd_memmap_t;
 
 //
 ///////////////////////////////////////////////////////////////////////////////
@@ -464,7 +465,7 @@ typedef struct wd_part_t
     u64			part_size;	// total size of partition
 
     struct wd_disc_t	* disc;		// pointer to disc
-    wd_patch_t		patch;		// patching data
+    wd_memmap_t		patch;		// patching data
 
     //----- partition status
 
@@ -520,7 +521,7 @@ typedef struct wd_disc_t
 
     wd_read_func_t	read_func;	// read function, always valid
     void		* read_data;	// data pointer for read function
-    u64			file_size;	// size of file, 0=unknown
+    u64			iso_size;	// size of file, 0=unknown
     int			open_count;	// open counter
 
     //----- errror support
@@ -543,8 +544,8 @@ typedef struct wd_disc_t
 
     bool		whole_disc;	// selection flag: copy whole disc (raw mode)
     bool		whole_part;	// selection flag: copy whole partitions
-    wd_patch_t		patch;		// patching data
-    wd_ptab_t		ptab;		// partition tables
+    wd_memmap_t		patch;		// patching data
+    wd_ptab_t		ptab;		// partition tables / GC: copy of dhead
     wd_reloc_t		* reloc;	// relocation data
 
     //----- partitions
@@ -585,7 +586,7 @@ typedef struct wd_disc_t
     u8	temp_buf[2*WII_SECTOR_SIZE];	// temp buffer for reading operations
 
     u32		cache_sector;		// sector number of 'cache'
-    u8		cache[WII_SECTOR_SIZE];	// cache for wd_read_and_path()
+    u8		cache[WII_SECTOR_SIZE];	// cache for wd_read_and_patch()
 
     wd_part_t	* group_cache_part;	// parttion of 'group_cache'
     u32		  group_cache_sector;	// sector number of 'group_cache'
@@ -660,7 +661,7 @@ typedef struct wd_print_fst_t
 
 //
 ///////////////////////////////////////////////////////////////////////////////
-///////////////		    interface: print errors		///////////////
+///////////////			    helpers			///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
 enumError wd_print_error
@@ -671,6 +672,44 @@ enumError wd_print_error
     enumError	err,		// error code
     ccp		format,		// NULL or format string for fprintf() function.
     ...				// parameters for 'format'
+);
+
+//-----------------------------------------------------------------------------
+
+char * wd_print_size
+(
+    char	* buf,		// result buffer
+				// If NULL, a local circulary static buffer is used
+    size_t	buf_size,	// size of 'buf', ignored if buf==NULL
+    u64		size,		// size to print
+    bool	aligned		// true: use exact 4+4 characters for the number + unit
+);
+
+//-----------------------------------------------------------------------------
+
+u32 wd_align32
+(
+    u32		number,		// object of aligning
+    u32		align,		// NULL or valid align factor
+    int		align_mode	// <0: round down, =0: round math, >0 round up
+);
+
+//-----------------------------------------------------------------------------
+
+u64 wd_align64
+(
+    u64		number,		// object of aligning
+    u64		align,		// NULL or valid align factor
+    int		align_mode	// <0: round down, =0: round math, >0 round up
+);
+
+//-----------------------------------------------------------------------------
+
+u64 wd_align_part
+(
+    u64		number,		// object of aligning
+    u64		align,		// NULL or valid align factor
+    bool	is_gamecube	// hint for automatic calculation (align==0)
 );
 
 //
@@ -807,17 +846,6 @@ int wd_rename
     ccp			new_title	// if !NULL: take the first 0x39 chars as title
 );
 
-//-----------------------------------------------------------------------------
-
-char * wd_print_size
-(
-    char		* buf,		// result buffer
-					// If NULL, a local circulary static buffer is used
-    size_t		buf_size,	// size of 'buf', ignored if buf==NULL
-    u64			size,		// size to print
-    bool		aligned		// true: use exact 4+4 characters for the number + unit
-);
-
 //
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////		    interface: read functions		///////////////
@@ -891,7 +919,7 @@ wd_disc_t * wd_open_disc
 (
     wd_read_func_t	read_func,	// read function, always valid
     void		* read_data,	// data pointer for read function
-    u64			file_size,	// size of file, unknown if 0
+    u64			iso_size,	// size of iso file, unknown if 0
     ccp			file_name,	// used for error messages if not NULL
     enumError		* error_code	// store error code if not NULL
 );
@@ -922,7 +950,7 @@ bool wd_disc_has_ptab
 
 //-----------------------------------------------------------------------------
 
-bool wd_disc_has_region
+bool wd_disc_has_region_setting
 (
     wd_disc_t		*disc		// valid disc pointer
 );
@@ -1338,72 +1366,111 @@ void wd_print_fst
 
 //
 ///////////////////////////////////////////////////////////////////////////////
-///////////////		     interface: patch helpers		///////////////
+///////////////		    interface: memmap helpers		///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-void wd_reset_patch 
+void wd_reset_memmap 
 (
-    wd_patch_t		* patch		// NULL or patching data
+    wd_memmap_t		* mm		// NULL or patching data
 );
 
 //-----------------------------------------------------------------------------
 
-wd_patch_item_t * wd_find_patch
+wd_memmap_item_t * wd_find_memmap
 (
-    wd_patch_t		* patch,	// patching data
-    wd_patch_mode_t	mode,		// patch mode
+    wd_memmap_t		* mm,		// patching data
+    u32			mode,		// memmap mode (e.g. wd_patch_mode_t)
     u64			offset,		// offset of object
     u64			size		// size of object
 );
 
 //-----------------------------------------------------------------------------
 
-wd_patch_item_t * wd_insert_patch
+wd_memmap_item_t * wd_insert_memmap
 (
-    wd_patch_t		* patch,	// patching data
-    wd_patch_mode_t	mode,		// patch mode
+    wd_memmap_t		* mm,		// patching data
+    u32			mode,		// memmap mode (e.g. wd_patch_mode_t)
     u64			offset,		// offset of object
     u64			size		// size of object
 );
 
 //-----------------------------------------------------------------------------
 
-wd_patch_item_t * wd_insert_patch_alloc
+wd_memmap_item_t * wd_insert_memmap_alloc
 (
-    wd_patch_t		* patch,	// patching data
-    wd_patch_mode_t	mode,		// patch mode
+    wd_memmap_t		* mm,		// patching data
+    u32			mode,		// memmap mode (e.g. wd_patch_mode_t)
     u64			offset,		// offset of object
     u64			size		// size of object
 );
 
 //-----------------------------------------------------------------------------
 
-wd_patch_item_t * wd_insert_patch_ticket
+int wd_insert_memmap_disc_part 
 (
-    wd_part_t		* part		// valid pointer to a disc partition
+    wd_memmap_t		* mm,		// patching data
+    wd_disc_t		* disc,		// valid disc pointer
+
+    wd_memmap_func_t	func,		// not NULL: Call func() for each inserted item
+    void		* param,	// user defined paramater for 'func()'
+
+    // creation modes:
+    // value WD_PAT_IGNORE means: do not create such entires
+
+    wd_patch_mode_t	wii_head_mode,	// value for the Wii partition header
+    wd_patch_mode_t	wii_data_mode,	// value for the Wii partition data
+    wd_patch_mode_t	gc_data_mode	// value for the partition header
 );
 
 //-----------------------------------------------------------------------------
 
-wd_patch_item_t * wd_insert_patch_tmd
+int wd_insert_memmap_part 
 (
-    wd_part_t		* part		// valid pointer to a disc partition
+    wd_memmap_t		* mm,		// patching data
+    wd_part_t		* part,		// valid pointer to a disc partition
+
+    wd_memmap_func_t	func,		// not NULL: Call func() for each inserted item
+    void		* param,	// user defined paramater for 'func()'
+
+    // creation modes:
+    // value WD_PAT_IGNORE means: do not create such entires
+
+    wd_patch_mode_t	wii_head_mode,	// value for the Wii partition header
+    wd_patch_mode_t	wii_data_mode,	// value for the Wii partition data
+    wd_patch_mode_t	gc_data_mode	// value for the partition header
 );
 
 //-----------------------------------------------------------------------------
 
-wd_patch_item_t * wd_insert_patch_fst
-(
-    wd_part_t		* part		// valid pointer to a disc partition
-);
-
-//-----------------------------------------------------------------------------
-
-void wd_dump_patch
+void wd_dump_memmap
 (
     FILE		* f,		// valid output file
     int			indent,		// indention of the output
-    wd_patch_t		* patch		// patching data
+    wd_memmap_t		* mm		// patching data
+);
+
+//
+///////////////////////////////////////////////////////////////////////////////
+///////////////		    interface: patch helpers		///////////////
+///////////////////////////////////////////////////////////////////////////////
+
+wd_memmap_item_t * wd_insert_patch_ticket
+(
+    wd_part_t		* part		// valid pointer to a disc partition
+);
+
+//-----------------------------------------------------------------------------
+
+wd_memmap_item_t * wd_insert_patch_tmd
+(
+    wd_part_t		* part		// valid pointer to a disc partition
+);
+
+//-----------------------------------------------------------------------------
+
+wd_memmap_item_t * wd_insert_patch_fst
+(
+    wd_part_t		* part		// valid pointer to a disc partition
 );
 
 //-----------------------------------------------------------------------------
@@ -1417,7 +1484,10 @@ void wd_dump_disc_patch
     bool		print_part	// true: print partitions too
 );
 
-//-----------------------------------------------------------------------------
+//
+///////////////////////////////////////////////////////////////////////////////
+///////////////		    interface: read and patch		///////////////
+///////////////////////////////////////////////////////////////////////////////
 
 enumError wd_read_and_patch
 (
@@ -1443,10 +1513,19 @@ void wd_calc_group_hashes
 ///////////////		     interface: patching		///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
+u32 wd_get_ptab_sector
+(
+    wd_disc_t		* disc		// valid disc pointer
+);
+
+//-----------------------------------------------------------------------------
+
 bool wd_patch_ptab // result = true if something changed
 (
     wd_disc_t		* disc,		// valid disc pointer
-    void		* data,		// pointer to data area, WII_MAX_PTAB_SIZE
+    void		* sector_data,	// valid pointer to sector data
+					//   GC:  GC_MULTIBOOT_PTAB_OFF + GC_MULTIBOOT_PTAB_SIZE
+					//   Wii: WII_MAX_PTAB_SIZE
     bool		force_patch	// false: patch only if needed
 );
 
@@ -1654,6 +1733,7 @@ void wd_dump_usage_tab
 	FILE		* f,		// valid output file
 	int		indent,		// indention of the output
 	const u8	* usage_tab,	// valid pointer, size = WII_MAX_SECTORS
+	u64		iso_size,	// NULL or size of iso file
 	bool		print_all	// false: ignore const lines
 );
 

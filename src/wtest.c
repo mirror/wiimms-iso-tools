@@ -58,6 +58,8 @@
 
 //
 ///////////////////////////////////////////////////////////////////////////////
+///////////////			    helpers			///////////////
+///////////////////////////////////////////////////////////////////////////////
 
 static enumError WriteBlock ( SuperFile_t * sf, char ch, off_t off, u32 count )
 {
@@ -69,7 +71,6 @@ static enumError WriteBlock ( SuperFile_t * sf, char ch, off_t off, u32 count )
     return WriteWDF(sf,off,iobuf,count);
 }
 
-//
 ///////////////////////////////////////////////////////////////////////////////
 
 static enumError gen_wdf ( ccp fname )
@@ -101,6 +102,8 @@ static enumError gen_wdf ( ccp fname )
 
 //
 ///////////////////////////////////////////////////////////////////////////////
+///////////////			test_zero_wdf()			///////////////
+///////////////////////////////////////////////////////////////////////////////
 
 static enumError test_zero_wdf()
 {
@@ -131,48 +134,7 @@ static enumError test_zero_wdf()
 
 //
 ///////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////
-
-static void read_behind_file ( ccp fname )
-{
-    File_t f;
-    InitializeFile(&f);
-
-    OpenFile(&f,fname,IOM_IS_IMAGE);
-    ReadAtF(&f,0,iobuf,sizeof(iobuf));
-    ReadAtF(&f,0x10000,iobuf,sizeof(iobuf));
-    ClearFile(&f,false);
-
-    OpenFile(&f,fname,IOM_IS_IMAGE);
-    f.read_behind_eof = 1;
-    ReadAtF(&f,0,iobuf,sizeof(iobuf));
-    ReadAtF(&f,0x10000,iobuf,sizeof(iobuf));
-    ClearFile(&f,false);
-}
-
-///////////////////////////////////////////////////////////////////////////////
-
-static void read_behind_wdf ( ccp fname )
-{
-    SuperFile_t sf;
-    InitializeSF(&sf);
-
-    OpenFile(&sf.f,fname,IOM_IS_IMAGE);
-    SetupReadWDF(&sf);
-    ReadWDF(&sf,0,iobuf,sizeof(iobuf));
-    ReadWDF(&sf,0x10000,iobuf,sizeof(iobuf));
-    CloseSF(&sf,0);
-
-    OpenFile(&sf.f,fname,IOM_IS_IMAGE);
-    SetupReadWDF(&sf);
-    sf.f.read_behind_eof = 1;
-    ReadWDF(&sf,0,iobuf,sizeof(iobuf));
-    ReadWDF(&sf,0x10000,iobuf,sizeof(iobuf));
-    CloseSF(&sf,0);
-}
-
-//
-///////////////////////////////////////////////////////////////////////////////
+///////////////			test_string_field()		///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
 static void test_string_field()
@@ -194,6 +156,7 @@ static void test_string_field()
 
 //
 ///////////////////////////////////////////////////////////////////////////////
+///////////////			test_create_file()		///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
 static void test_create_file()
@@ -212,6 +175,7 @@ static void test_create_file()
 
 //
 ///////////////////////////////////////////////////////////////////////////////
+///////////////			test_create_sparse_file()	///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
 static void test_create_sparse_file()
@@ -225,6 +189,7 @@ static void test_create_sparse_file()
 
 //
 ///////////////////////////////////////////////////////////////////////////////
+///////////////			test_splitted_file()		///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
 static void test_splitted_file()
@@ -272,6 +237,119 @@ static void test_splitted_file()
 
 //
 ///////////////////////////////////////////////////////////////////////////////
+///////////////			test_copy_to_wbfs()		///////////////
+///////////////////////////////////////////////////////////////////////////////
+
+#include "wbfs-interface.h"
+
+enumError CreateWBFSFile
+(
+    SuperFile_t * sf,		// valid pointer
+    ccp		fname,
+    int		overwrite,
+    const void	* disc_header,	// NULL or disc header to copy
+    const void	* disc_id	// NULL or ID6: check non existence
+				// disc_id overwrites the id of disc_header
+)
+{
+    DASSERT(sf);
+    enumError err = CreateSF(sf,fname,OFT_WBFS,IOM_IS_WBFS,overwrite);
+    if ( !err && sf->wbfs )
+    {
+	CloseWDisc(sf->wbfs);
+	wbfs_disc_t * disc = wbfs_create_disc(sf->wbfs->wbfs,disc_header,disc_id);
+	if (disc)
+	    sf->wbfs->disc = disc;
+	else
+	    err = ERR_CANT_CREATE;
+    }
+
+    return err;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+int test_copy_to_wbfs ( int argc, char ** argv )
+{
+    int i;
+    for ( i = 1; i < argc; i++ )
+    {
+	SuperFile_t fi;
+	InitializeSF(&fi);
+	if (!OpenSF(&fi,argv[i],false,false))
+	{
+	    wd_disc_t * disc = OpenDiscSF(&fi,false,true);
+	    if (disc)
+	    {
+		SuperFile_t fo;
+		InitializeSF(&fo);
+		enumError err = CreateWBFSFile(&fo,"pool/a.wbfs",true,&disc->dhead,0);
+		if (!err)
+		    err = CopySF(&fi,&fo,false);
+		ResetSF(&fo,0);
+	    }
+	}
+	ResetSF(&fi,0);
+    }
+    return 0;    
+}
+
+//
+///////////////////////////////////////////////////////////////////////////////
+///////////////			test_print_size()		///////////////
+///////////////////////////////////////////////////////////////////////////////
+
+int test_print_size ( int argc, char ** argv )
+{
+    u64 i;
+    for ( i = 1; i; i <<= 10 )
+    {
+	printf("%21llu |%s|%s|\n", i,
+		wd_print_size(0,0,i,true),
+		wd_print_size(0,0,i,false) );
+    }
+
+    u64 prev = 0;
+    for ( i = 1; i > prev; i *= 10 )
+    {
+	prev = i;
+	printf("%21llu |%s|%s|\n", i,
+		wd_print_size(0,0,i,true),
+		wd_print_size(0,0,i,false) );
+    }
+
+    i = ~(u64)0;
+    printf("%21llu |%s|%s|\n", i,
+		wd_print_size(0,0,i,true),
+		wd_print_size(0,0,i,false) );
+    
+    return 0;
+}
+
+
+//
+///////////////////////////////////////////////////////////////////////////////
+///////////////			test()				///////////////
+///////////////////////////////////////////////////////////////////////////////
+
+int test ( int argc, char ** argv )
+{
+    //test_zero_wdf();
+    //test_string_field();
+
+    //test_create_file();
+    //test_create_sparse_file();
+    //test_splitted_file();
+    //test_copy_to_wbfs(argc,argv);
+    test_print_size(argc,argv);
+
+
+    return 0;
+}
+
+//
+///////////////////////////////////////////////////////////////////////////////
+///////////////			test_match_pattern()		///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
 static void test_match_pattern ( int argc, char ** argv )
@@ -293,8 +371,8 @@ static void test_match_pattern ( int argc, char ** argv )
 
 //
 ///////////////////////////////////////////////////////////////////////////////
+///////////////			test_open_disc()		///////////////
 ///////////////////////////////////////////////////////////////////////////////
-//  test_open_disc
 
 static void test_open_disc ( int argc, char ** argv )
 {
@@ -379,8 +457,8 @@ static void test_open_disc ( int argc, char ** argv )
 
 //
 ///////////////////////////////////////////////////////////////////////////////
+///////////////			test_hexdump()			///////////////
 ///////////////////////////////////////////////////////////////////////////////
-//  test_hexdump
 
 static enumError test_hexdump_sf ( SuperFile_t *sf, u64 begin, u64 end )
 {
@@ -439,6 +517,7 @@ static void test_hexdump ( int argc, char ** argv )
 
 //
 ///////////////////////////////////////////////////////////////////////////////
+///////////////			test_sha1()			///////////////
 ///////////////////////////////////////////////////////////////////////////////
 #ifdef HAVE_OPENSSL
 
@@ -493,114 +572,91 @@ void test_sha1()
 #endif // HAVE_OPENSSL
 //
 ///////////////////////////////////////////////////////////////////////////////
+///////////////			develop()			///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-#include "wbfs-interface.h"
-
-enumError CreateWBFSFile
+static void patch_func
 (
-    SuperFile_t * sf,		// valid pointer
-    ccp		fname,
-    int		overwrite,
-    const void	* disc_header,	// NULL or disc header to copy
-    const void	* disc_id	// NULL or ID6: check non existence
-				// disc_id overwrites the id of disc_header
+    void			* param,	// user defined parameter
+    struct wd_memmap_t		* patch,	// valid pointer to patch object
+    struct wd_memmap_item_t	* item		// valid pointer to inserted item
 )
 {
-    DASSERT(sf);
-    enumError err = CreateSF(sf,fname,OFT_WBFS,IOM_IS_WBFS,overwrite);
-    if ( !err && sf->wbfs )
-    {
-	CloseWDisc(sf->wbfs);
-	wbfs_disc_t * disc = wbfs_create_disc(sf->wbfs->wbfs,disc_header,disc_id);
-	if (disc)
-	    sf->wbfs->disc = disc;
-	else
-	    err = ERR_CANT_CREATE;
-    }
-
-    return err;
+    printf(" -> %s\n",item->info);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 
-int test_copy_to_wbfs ( int argc, char ** argv )
+static enumError develop_sf ( SuperFile_t * sf )
 {
+    wd_disc_t * disc = OpenDiscSF(sf,true,true);
+    if (!disc)
+	return ERR_WDISC_NOT_FOUND;
+
+    wd_memmap_t mm;
+    memset(&mm,0,sizeof(mm));
+    int n = wd_insert_memmap_disc_part(&mm,disc,patch_func,0,1,2,3);
+
+    printf("Dump, N=%d:\n",n);
+    wd_dump_memmap(stdout,3,&mm);
+    printf("---\n");
+
+    return ERR_OK;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+static enumError develop ( int argc, char ** argv )
+{
+    putchar('\n');
     int i;
+
     for ( i = 1; i < argc; i++ )
     {
-	SuperFile_t fi;
-	InitializeSF(&fi);
-	if (!OpenSF(&fi,argv[i],false,false))
+	if ( *argv[i] == '-' )
+	    continue;
+
+	SuperFile_t sf;
+	InitializeSF(&sf);
+	if (!OpenSF(&sf,argv[i],false,false))
 	{
-	    wd_disc_t * disc = OpenDiscSF(&fi,false,true);
-	    if (disc)
-	    {
-		SuperFile_t fo;
-		InitializeSF(&fo);
-		enumError err = CreateWBFSFile(&fo,"pool/a.wbfs",true,&disc->dhead,0);
-		if (!err)
-		    err = CopySF(&fi,&fo,false);
-		ResetSF(&fo,0);
-	    }
+	    printf("*** %s\n",sf.f.fname);
+	    const enumError err = develop_sf(&sf);
+	    CloseSF(&sf,0);
+	    if (err)
+		return err;
 	}
-	ResetSF(&fi,0);
     }
-    return 0;    
-}
-
-///////////////////////////////////////////////////////////////////////////////
-
-int test_print_size ( int argc, char ** argv )
-{
-    u64 i;
-    for ( i = 1; i; i <<= 10 )
-    {
-	printf("%21llu |%s|%s|\n", i,
-		wd_print_size(0,0,i,true),
-		wd_print_size(0,0,i,false) );
-    }
-
-    u64 prev = 0;
-    for ( i = 1; i > prev; i *= 10 )
-    {
-	prev = i;
-	printf("%21llu |%s|%s|\n", i,
-		wd_print_size(0,0,i,true),
-		wd_print_size(0,0,i,false) );
-    }
-
-    i = ~(u64)0;
-    printf("%21llu |%s|%s|\n", i,
-		wd_print_size(0,0,i,true),
-		wd_print_size(0,0,i,false) );
     
-    return 0;
+    return ERR_OK;
 }
 
 //
 ///////////////////////////////////////////////////////////////////////////////
+///////////////			command definitions		///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
 enum
 {
-    CMD_HELP,			// help_exit();
     CMD_TEST,			// test();
 
     CMD_MATCH_PATTERN,		// test_match_pattern(argc,argv);
     CMD_OPEN_DISC,		// test_open_disc(argc,argv);
     CMD_HEXDUMP,		// test_hexdump(argc,argv);
+    CMD_DEVELOP,		// develop(argc,argv);
 
     CMD_SHA1,			// test_sha1();
     CMD_WIIMM,			// test_wiimm(argc,argv);
 
+    CMD_HELP,			// help_exit();
+
     CMD__N
 };
 
+///////////////////////////////////////////////////////////////////////////////
 
 static const CommandTab_t CommandTab[] =
 {
-	{ CMD_HELP,		"HELP",		"?",		0 },
 	{ CMD_TEST,		"TEST",		"T",		0 },
 
 	{ CMD_MATCH_PATTERN,	"MATCH",	0,		0 },
@@ -614,11 +670,15 @@ static const CommandTab_t CommandTab[] =
 	{ CMD_WIIMM,		"WIIMM",	"W",		0 },
  #endif
 
+	{ CMD_DEVELOP,		"DEVELOP",	"D",		0 },
+	{ CMD_HELP,		"HELP",		"?",		0 },
+
 	{ CMD__N,0,0,0 }
 };
 
 //
 ///////////////////////////////////////////////////////////////////////////////
+///////////////			help_exit()			///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
 void help_exit()
@@ -636,31 +696,7 @@ void help_exit()
 
 //
 ///////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////
-
-int test ( int argc, char ** argv )
-{
- #if 0
-    unlink("_temp.wdf");
-    gen_wdf("_temp.wdf");
-    read_behind_file("_temp.wdf");
-    read_behind_wdf("_temp.wdf");
- #endif
-
-    //test_string_field();
-
-    //test_create_file();
-    //test_create_sparse_file();
-    //test_splitted_file();
-    //test_zero_wdf();
-    //test_copy_to_wbfs(argc,argv);
-    test_print_size(argc,argv);
-
-    return 0;
-}
-
-//
-///////////////////////////////////////////////////////////////////////////////
+///////////////			main()				///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
 int main ( int argc, char ** argv )
@@ -701,7 +737,6 @@ int main ( int argc, char ** argv )
 
     switch(cmd_ct->id)
     {
-	case CMD_HELP:			help_exit(); break;
 	case CMD_TEST:			return test(argc,argv); break;
 
 	case CMD_MATCH_PATTERN:		test_match_pattern(argc,argv); break;
@@ -715,6 +750,9 @@ int main ( int argc, char ** argv )
 	case CMD_WIIMM:			test_wiimm(argc,argv); break;
  #endif
 
+	case CMD_DEVELOP:		develop(argc,argv); break;
+
+	//case CMD_HELP:
 	default:
 	    help_exit();
     }

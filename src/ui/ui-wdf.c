@@ -63,6 +63,14 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 	" '.wdf'. This is the general default."
     },
 
+    {	OPT_WIA, 0, "wia",
+	0,
+	"Force WIA output mode if packing and set the default suffix to"
+	" '.wia'.\n"
+	" This is the default, when the program name contains the sub string"
+	" 'wia' in any case."
+    },
+
     {	OPT_CISO, 'C', "ciso",
 	0,
 	"Force CISO output mode if packing and set the default suffix to"
@@ -81,12 +89,26 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 
     {	OPT_SUFFIX, 's', "suffix",
 	".suf",
-	"Use suffix '.suf' instead of '.wdf', or '.ciso' for packed files."
+	"Use suffix '.suf' instead of '.wdf', '.wia', or '.ciso' for packed"
+	" files."
     },
 
     {	OPT_DEST, 'd', "dest",
 	"path",
 	"Define a destination path (directory/file)."
+    },
+
+    {	OPT_DEST2, 'D', "DEST",
+	"path",
+	"Like --dest, but create the directory path automatically."
+    },
+
+    {	OPT_STDOUT, 'c', "stdout",
+	0,
+	"Write to standard output (stdout) and keep (don't delete) input"
+	" files.\n"
+	"This is the default, when the program is reading from standard input"
+	" (stdin)."
     },
 
     {	OPT_KEEP, 'k', "keep",
@@ -156,13 +178,17 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 	"--mch is a shortcut for --max-chunks."
     },
 
-    {	OPT_NO_COMPRESS, 0, "no-compress",
-	0,
-	"Disable compression for new WIA files. --noc is a shortcut for"
-	" --no-compress."
+    {	OPT_COMPRESSION, 0, "compression",
+	"method",
+	"Select one compression method for new WIA files. Possible"
+	" compressions and values are NONE, PURGE and BZIP2. There are 3"
+	" additional keywords: FAST (=PURGE), BEST and DEFAULT (both =BZIP2)."
+	" These keywords may change their meanings if a new compression method"
+	" is implemented.\n"
+	"--compr is a shortcut for --compression."
     },
 
-    {0,0,0,0,0}, // OPT__N_SPECIFIC == 18
+    {0,0,0,0,0}, // OPT__N_SPECIFIC == 21
 
     //----- global options -----
 
@@ -199,17 +225,10 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 	"Be verbose -> print program name."
     },
 
-    {	OPT_DEST2, 'D', "DEST",
-	"path",
-	"Like --dest, but create the directory path automatically."
-    },
-
-    {	OPT_STDOUT, 'c', "stdout",
+    {	OPT_LOGGING, 'L', "logging",
 	0,
-	"Write to standard output (stdout) and keep (don't delete) input"
-	" files.\n"
-	"This is the default, when the program is reading from standard input"
-	" (stdin)."
+	"Enable the logging of internal memory maps. If set twice second level"
+	" memory maps are printed too."
     },
 
     {	OPT_TEST, 't', "test",
@@ -218,7 +237,7 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 	">>> USE THIS OPTION IF UNSURE! <<<"
     },
 
-    {0,0,0,0,0} // OPT__N_TOTAL == 27
+    {0,0,0,0,0} // OPT__N_TOTAL == 29
 
 };
 
@@ -251,9 +270,8 @@ const CommandTab_t CommandTab[] =
     { CMD_HELP,		"+HELP",	"+H",		0 },
     { CMD_PACK,		"+PACK",	"+P",		0 },
     { CMD_UNPACK,	"+UNPACK",	"+U",		0 },
-    { CMD_CAT,		"+CAT",		"+A",		0 },
-    { CMD_CMP,		"+CMP",		"+C",		0 },
-    { CMD_CMP,		"+DIFF",	0,		0 },
+    { CMD_CAT,		"+CAT",		"+C",		0 },
+    { CMD_CMP,		"+DIFF",	"+CMP",		0 },
     { CMD_DUMP,		"+DUMP",	"+D",		0 },
 
     { CMD__N,0,0,0 }
@@ -264,7 +282,7 @@ const CommandTab_t CommandTab[] =
 ///////////////            OptionShort & OptionLong             ///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-const char OptionShort[] = "Vhqvl1WCs:d:D:ckopzZ:t";
+const char OptionShort[] = "VhqvLl1WCs:d:D:ckopzZ:t";
 
 const struct option OptionLong[] =
 {
@@ -274,11 +292,13 @@ const struct option OptionLong[] =
 	{ "width",		1, 0, GO_WIDTH },
 	{ "quiet",		0, 0, 'q' },
 	{ "verbose",		0, 0, 'v' },
+	{ "logging",		0, 0, 'L' },
 	{ "chunk",		0, 0, GO_CHUNK },
 	{ "long",		0, 0, 'l' },
 	{ "minus-1",		0, 0, '1' },
 	 { "minus1",		0, 0, '1' },
 	{ "wdf",		0, 0, 'W' },
+	{ "wia",		0, 0, GO_WIA },
 	{ "ciso",		0, 0, 'C' },
 	{ "wbi",		0, 0, GO_WBI },
 	{ "suffix",		1, 0, 's' },
@@ -300,9 +320,8 @@ const struct option OptionLong[] =
 	{ "max-chunks",		1, 0, GO_MAX_CHUNKS },
 	 { "maxchunks",		1, 0, GO_MAX_CHUNKS },
 	 { "mch",		1, 0, GO_MAX_CHUNKS },
-	{ "no-compress",	0, 0, GO_NO_COMPRESS },
-	 { "nocompress",	0, 0, GO_NO_COMPRESS },
-	 { "noc",		0, 0, GO_NO_COMPRESS },
+	{ "compression",	1, 0, GO_COMPRESSION },
+	 { "compr",		1, 0, GO_COMPRESSION },
 	{ "test",		0, 0, 't' },
 
 	{0,0,0,0}
@@ -326,8 +345,9 @@ const u8 OptionIndex[OPT_INDEX_SIZE] =
 	/*40*/	 0,0,0,
 	/*43*/	OPT_CISO,
 	/*44*/	OPT_DEST2,
-	/*45*/	 0,0,0,0, 0,0,0,0, 0,0,0,
-	/*50*/	 0,0,0,0, 0,0,
+	/*45*/	 0,0,0,0, 0,0,0,
+	/*4c*/	OPT_LOGGING,
+	/*4d*/	 0,0,0,0, 0,0,0,0, 0,
 	/*56*/	OPT_VERSION,
 	/*57*/	OPT_WDF,
 	/*58*/	 0,0,
@@ -355,12 +375,13 @@ const u8 OptionIndex[OPT_INDEX_SIZE] =
 	/*80*/	OPT_XHELP,
 	/*81*/	OPT_WIDTH,
 	/*82*/	OPT_CHUNK,
-	/*83*/	OPT_WBI,
-	/*84*/	OPT_CHUNK_MODE,
-	/*85*/	OPT_CHUNK_SIZE,
-	/*86*/	OPT_MAX_CHUNKS,
-	/*87*/	OPT_NO_COMPRESS,
-	/*88*/	 0,0,0,0, 0,0,0,0, 
+	/*83*/	OPT_WIA,
+	/*84*/	OPT_WBI,
+	/*85*/	OPT_CHUNK_MODE,
+	/*86*/	OPT_CHUNK_SIZE,
+	/*87*/	OPT_MAX_CHUNKS,
+	/*88*/	OPT_COMPRESSION,
+	/*89*/	 0,0,0,0, 0,0,0,
 	/*90*/	 0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0,
 	/*a0*/	 0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0,
 	/*b0*/	 0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0,
@@ -371,39 +392,39 @@ const u8 OptionIndex[OPT_INDEX_SIZE] =
 ///////////////                opt_allowed_cmd_*                ///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-static u8 option_allowed_cmd_VERSION[18] = // cmd #1
+static u8 option_allowed_cmd_VERSION[21] = // cmd #1
 {
-    0,0,1,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0
+    0,0,1,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,  0
 };
 
-static u8 option_allowed_cmd_HELP[18] = // cmd #2
+static u8 option_allowed_cmd_HELP[21] = // cmd #2
 {
-    1,1,1,1,1, 1,1,1,1,1,  1,1,1,1,1, 1,1,1
+    1,1,1,1,1, 1,1,1,1,1,  1,1,1,1,1, 1,1,1,1,1,  1
 };
 
-static u8 option_allowed_cmd_PACK[18] = // cmd #3
+static u8 option_allowed_cmd_PACK[21] = // cmd #3
 {
-    0,0,0,0,1, 1,1,1,1,1,  1,1,1,1,1, 1,1,1
+    0,0,0,0,1, 1,1,1,1,1,  1,1,1,1,1, 1,1,1,1,1,  1
 };
 
-static u8 option_allowed_cmd_UNPACK[18] = // cmd #4
+static u8 option_allowed_cmd_UNPACK[21] = // cmd #4
 {
-    0,0,0,0,0, 0,0,0,1,1,  1,1,1,1,1, 1,1,1
+    0,0,0,0,0, 0,0,0,0,1,  1,1,1,1,1, 1,1,1,1,1,  1
 };
 
-static u8 option_allowed_cmd_CAT[18] = // cmd #5
+static u8 option_allowed_cmd_CAT[21] = // cmd #5
 {
-    0,0,0,0,0, 0,0,0,1,0,  1,0,1,1,1, 1,1,1
+    0,0,0,0,0, 0,0,0,0,1,  1,0,0,1,0, 1,1,1,1,1,  1
 };
 
-static u8 option_allowed_cmd_CMP[18] = // cmd #6
+static u8 option_allowed_cmd_CMP[21] = // cmd #6
 {
-    0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0
+    0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,  0
 };
 
-static u8 option_allowed_cmd_DUMP[18] = // cmd #7
+static u8 option_allowed_cmd_DUMP[21] = // cmd #7
 {
-    0,1,1,1,0, 0,0,0,1,0,  1,0,0,0,0, 0,0,0
+    0,1,1,1,0, 0,0,0,0,1,  1,0,0,1,0, 0,0,0,0,0,  0
 };
 
 
@@ -423,11 +444,7 @@ const InfoOption_t * option_tab_tool[] =
 
 	OptionInfo + OPT_QUIET,
 	OptionInfo + OPT_VERBOSE,
-
-	OptionInfo + OPT_NONE, // separator
-
-	OptionInfo + OPT_DEST2,
-	OptionInfo + OPT_STDOUT,
+	OptionInfo + OPT_LOGGING,
 
 	OptionInfo + OPT_NONE, // separator
 
@@ -459,7 +476,7 @@ static const InfoOption_t * option_tab_cmd_PACK[] =
 	OptionInfo + OPT_CHUNK_MODE,
 	OptionInfo + OPT_CHUNK_SIZE,
 	OptionInfo + OPT_MAX_CHUNKS,
-	OptionInfo + OPT_NO_COMPRESS,
+	OptionInfo + OPT_COMPRESSION,
 	OptionInfo + OPT_STDOUT,
 	OptionInfo + OPT_KEEP,
 	OptionInfo + OPT_PRESERVE,
@@ -467,6 +484,7 @@ static const InfoOption_t * option_tab_cmd_PACK[] =
 	OptionInfo + OPT_NONE, // separator
 
 	OptionInfo + OPT_WDF,
+	OptionInfo + OPT_WIA,
 	OptionInfo + OPT_CISO,
 	OptionInfo + OPT_WBI,
 	OptionInfo + OPT_SUFFIX,
@@ -484,7 +502,7 @@ static const InfoOption_t * option_tab_cmd_UNPACK[] =
 	OptionInfo + OPT_CHUNK_MODE,
 	OptionInfo + OPT_CHUNK_SIZE,
 	OptionInfo + OPT_MAX_CHUNKS,
-	OptionInfo + OPT_NO_COMPRESS,
+	OptionInfo + OPT_COMPRESSION,
 	OptionInfo + OPT_STDOUT,
 	OptionInfo + OPT_KEEP,
 	OptionInfo + OPT_PRESERVE,
@@ -502,7 +520,7 @@ static const InfoOption_t * option_tab_cmd_CAT[] =
 	OptionInfo + OPT_CHUNK_MODE,
 	OptionInfo + OPT_CHUNK_SIZE,
 	OptionInfo + OPT_MAX_CHUNKS,
-	OptionInfo + OPT_NO_COMPRESS,
+	OptionInfo + OPT_COMPRESSION,
 
 	0
 };
@@ -544,7 +562,7 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	" depends on the program file name (see command descriptions). Usual"
 	" names are wdf, unwdf, wdf-cat, wdf-cmp and wdf-dump (with or without"
 	" minus signs).",
-	9,
+	8,
 	option_tab_tool,
 	0
     },
@@ -581,7 +599,7 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	"+P",
 	"wdf +PACK [option]... files...",
 	"Pack sources into WDF or CISO archives. This is the general default.",
-	16,
+	17,
 	option_tab_cmd_PACK,
 	option_allowed_cmd_PACK
     },
@@ -604,7 +622,7 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	false,
 	false,
 	"+CAT",
-	"+A",
+	"+C",
 	"wdf +CAT [option]... files...",
 	"Concatenate files and print on the standard output. WDF and CISO"
 	" files are extracted before printing, all other files are copied byte"
@@ -617,18 +635,18 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
     },
 
     {	CMD_CMP,
+	true,
 	false,
-	false,
+	"+DIFF",
 	"+CMP",
-	"+C",
-	"wdf +CMP [option]... files...",
+	"wdf +DIFF [option]... files...",
 	"Compare files and unpack WDF and CISO while comparing.\n"
 	"The standard is to compare two source files. If --dest or --DEST is"
 	" set, than all source files are compared against files in the"
 	" destination path with equal names. If the second source file is"
 	" mising then standard input (stdin) is used instead.\n"
 	"This is the default command, when the program namecontains the"
-	" letters 'cmp' or 'diff' in any case.",
+	" letters 'diff' or 'cmp' in any case.",
 	0,
 	option_tab_cmd_CMP,
 	option_allowed_cmd_CMP
@@ -640,8 +658,8 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	"+DUMP",
 	"+D",
 	"wdf +DUMP [option]... files...",
-	"Dump the data structure of all archives and ignore non WDF and non"
-	" CISO files.\n"
+	"Dump the data structure of WDF, WIA and CISO archives and ignore"
+	" other files.\n"
 	"This is the default command, when the program contains the sub string"
 	" 'dump' in any case.",
 	6,

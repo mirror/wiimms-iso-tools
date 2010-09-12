@@ -487,24 +487,30 @@ bool PatchName ( void * name, wd_modify_t condition )
 ///////////////			--trim				///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-enumTrim opt_trim = 0;
+enumTrim opt_trim = TRIM_DEFAULT;
 
 //-----------------------------------------------------------------------------
 
-enumTrim ScanTrim ( ccp arg )
+enumTrim ScanTrim
+(
+    ccp arg,			// argument to scan
+    ccp err_text_extend		// error message extention
+)
 {
     static const CommandTab_t tab[] =
     {
+	{ TRIM_DEFAULT,		"DEFAULT",	0,	TRIM_M_ALL },
+
 	{ TRIM_NONE,		"NONE",		"-",	TRIM_ALL },
 	{ TRIM_ALL,		"ALL",		0,	TRIM_ALL },
 	{ TRIM_FAST,		"FAST",		0,	TRIM_ALL },
 
-	{ TRIM_DISC,		"DISC",		"D",	0 },
-	{ TRIM_PART,		"PARTITION",	"P",	0 },
-	{ TRIM_FST,		"FILESYSTEM",	"F",	0 },
+	{ TRIM_DISC,		"DISC",		"D",	TRIM_DEFAULT },
+	{ TRIM_PART,		"PARTITION",	"P",	TRIM_DEFAULT },
+	{ TRIM_FST,		"FILESYSTEM",	"F",	TRIM_DEFAULT },
 
-	{ 0,			"BEGIN",	0,	TRIM_F_END },
-	{ TRIM_F_END,		"END",		0,	TRIM_F_END },
+	{ 0,			"BEGIN",	0,	TRIM_DEFAULT | TRIM_F_END },
+	{ TRIM_F_END,		"END",		0,	TRIM_DEFAULT | TRIM_F_END },
 
 	{ 0,0,0,0 }
     };
@@ -513,15 +519,18 @@ enumTrim ScanTrim ( ccp arg )
     if ( stat >= 0 )
 	return stat;
 
-    ERROR0(ERR_SYNTAX,"Illegal trim mode (option --trim): '%s'\n",arg);
+    ERROR0(ERR_SYNTAX,"Illegal trim mode%s: '%s'\n",err_text_extend,arg);
     return -1;
 }
 
 //-----------------------------------------------------------------------------
 
-int ScanOptTrim ( ccp arg )
+int ScanOptTrim
+(
+    ccp arg			// argument to scan
+)
 {
-    const int new_trim = ScanTrim(arg);
+    const int new_trim = ScanTrim(arg," (option --trim)");
     if ( new_trim == -1 )
 	return 1;
     opt_trim = new_trim;
@@ -530,13 +539,13 @@ int ScanOptTrim ( ccp arg )
 
 //
 ///////////////////////////////////////////////////////////////////////////////
-///////////////			--align & --aprt-align		///////////////
+///////////////			--align & --align-part		///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
 u32 opt_align1		= 0;
 u32 opt_align2		= 0;
 u32 opt_align3		= 0;
-u32 opt_part_align	= 0;
+u32 opt_align_part	= 0;
 
 //-----------------------------------------------------------------------------
 
@@ -564,7 +573,7 @@ int ScanOptAlign ( ccp p_arg )
 				0,		// int force_base
 				"align",	// ccp opt_name
 				4,		// u64 min
-				32768,		// u64 max
+				WII_SECTOR_SIZE,// u64 max
 				0,		// u32 multiple
 				1,		// u32 pow2
 				true		// bool print_err
@@ -598,16 +607,16 @@ int ScanOptAlign ( ccp p_arg )
 
 //-----------------------------------------------------------------------------
 
-int ScanOptPartAlign ( ccp arg )
+int ScanOptAlignPart ( ccp arg )
 {
     return ScanSizeOptU32(
-		&opt_part_align,	// u32 * num
+		&opt_align_part,	// u32 * num
 		arg,			// ccp source
 		1,			// default_factor1
 		0,			// int force_base
 		"align-part",		// ccp opt_name
-		32768,			// u64 min
-		MiB,			// u64 max
+		WII_SECTOR_SIZE,	// u64 min
+		WII_GROUP_SIZE,		// u64 max
 		0,			// u32 multiple
 		1,			// u32 pow2
 		true			// bool print_err

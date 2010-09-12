@@ -501,7 +501,7 @@ enumError SetupWriteSF
 	    return SetupWriteWDF(sf);
 
 	case OFT_WIA:
-	    return SetupWriteWIA(sf,src);
+	    return SetupWriteWIA(sf,src,0);
 
 	case OFT_CISO:
 	    return SetupWriteCISO(sf);
@@ -777,10 +777,11 @@ wd_disc_t * OpenDiscSF
 	PRINT("SETUP RELOC, enc=%04x->%04x->%d\n",
 		encoding, enc, !(enc&ENCODE_DECRYPT) );
 
+	wd_calc_relocation(disc,encrypt,true,0);
+
 	if ( logging > 0 )
 	    wd_dump_disc_patch(stdout,1,sf->disc1,true,logging>1);
 
-	wd_calc_relocation(disc,encrypt,true,0);
 	sf->iod.read_func = ReadDiscWrapper;
 	sf->disc2 = wd_open_disc(WrapperReadSF,sf,file_size,sf->f.fname,0);
     }
@@ -2838,7 +2839,15 @@ static void PrintDiff ( off_t off, ccp iobuf1, ccp iobuf2, size_t iosize )
 	if ( *iobuf1 != *iobuf2 )
 	{
 	    const size_t bl = off/WII_SECTOR_SIZE;
-	    printf("! differ at ISO block #%06zu, off=%#09llx     \n", bl, (u64)off );
+	    printf("! differ at ISO sector %6zu=0x%05zx, off=0x%09llx\n",
+				bl, bl, (u64)off );
+				
+	    if (verbose)
+	    {
+		printf("!"); HexDump(stdout,3,off,9,16,iobuf1,16);
+		printf("!"); HexDump(stdout,3,off,9,16,iobuf2,16);
+	    }
+
 	    off_t old = off;
 	    off = (bl+1) * (off_t)WII_SECTOR_SIZE;
 	    const size_t skip = off - old;
@@ -2931,6 +2940,9 @@ enumError DiffSF
     ASSERT( sizeof(iobuf) >= 2*WII_SECTOR_SIZE );
     char *iobuf1 = iobuf, *iobuf2 = iobuf + WII_SECTOR_SIZE;
 
+    const int ptab_index1 = wd_get_ptab_sector(disc1);
+    const int ptab_index2 = wd_get_ptab_sector(disc2);
+
     int run = 0;
     for(;;)
     {
@@ -2952,11 +2964,11 @@ enumError DiffSF
 		if (err)
 		    return err;
 
-		if ( idx == WII_PTAB_REF_OFF/WII_SECTOR_SIZE )
-		{
+		if ( idx == ptab_index1 )
 		    wd_patch_ptab(disc1,iobuf1,true);
+
+		if ( idx == ptab_index2 )
 		    wd_patch_ptab(disc2,iobuf2,true);
-		}
 
 		if (memcmp(iobuf1,iobuf2,WII_SECTOR_SIZE))
 		{

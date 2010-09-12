@@ -145,12 +145,14 @@ typedef enum enumTrim
 {
 	//--- main trimming modes
 
-	TRIM_DISC	= 0x001,	// trim disc: move whole partitions
-	TRIM_PART	= 0x002,	// trim partition: move sectors
-	TRIM_FST	= 0x004,	// trim filesystem: move files
+	TRIM_DEFAULT	= 0x001,	// default mode (no user value)
+
+	TRIM_DISC	= 0x002,	// trim disc: move whole partitions
+	TRIM_PART	= 0x004,	// trim partition: move sectors
+	TRIM_FST	= 0x008,	// trim filesystem: move files
 
 	TRIM_NONE	= 0x000,
-	TRIM_ALL	= 0x007,
+	TRIM_ALL	= 0x00f,
 	TRIM_FAST	= TRIM_DISC | TRIM_PART,
 
 	//--- trimming flags
@@ -166,17 +168,27 @@ typedef enum enumTrim
 } enumTrim;
 
 extern enumTrim opt_trim;
-enumTrim ScanTrim ( ccp arg );
-int ScanOptTrim ( ccp arg );
+
+enumTrim ScanTrim
+(
+    ccp arg,			// argument to scan
+    ccp err_text_extend		// error message extention
+);
+
+int ScanOptTrim
+(
+    ccp arg			// argument to scan
+);
 
 //-----------------------------------------------------------------------------
 
 extern u32 opt_align1;
 extern u32 opt_align2;
 extern u32 opt_align3;
+extern u32 opt_align_part;
 
 int ScanOptAlign ( ccp arg );
-int ScanOptPartAlign ( ccp arg );
+int ScanOptAlignPart ( ccp arg );
 
 //-----------------------------------------------------------------------------
 

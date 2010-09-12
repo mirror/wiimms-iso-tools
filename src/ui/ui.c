@@ -329,7 +329,8 @@ void PrintHelp
     const InfoUI_t * iu,	// valid pointer
     FILE	* f,		// valid output stream
     int		indent,		// indent of output
-    ccp		info		// NULL or poiner to additional text
+    ccp		help_cmd,	// NULL or name of help command
+    ccp		info		// NULL or additional text
 )
 {
     int cmd = 0;
@@ -356,7 +357,7 @@ void PrintHelp
 	    }
     }
     
-    PrintHelpCmd(iu,f,indent,cmd,info);
+    PrintHelpCmd(iu,f,indent,cmd,help_cmd,info);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -367,6 +368,7 @@ void PrintHelpCmd
     FILE	* f,		// valid output stream
     int		indent,		// indent of output
     int		cmd,		// index of command
+    ccp		help_cmd,	// NULL or name of help command
     ccp		info		// NULL or poiner to additional text
 )
 {
@@ -433,9 +435,10 @@ void PrintHelpCmd
 		PutLines(f,indent+len,fw,len,0,ic->help);
 	    }
 	
-	fprintf(f,
-		"\n%*sType '%s HELP command' to get command specific help.\n\n",
-		indent, "", iu->tool_name );
+	if (help_cmd)
+	    fprintf(f,
+		"\n%*sType '%s %s command' to get command specific help.\n\n",
+		indent, "", iu->tool_name, help_cmd );
     }
     
     if ( ic->n_opt )

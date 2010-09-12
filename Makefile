@@ -14,9 +14,11 @@ WIT_SHORT		= wit
 WIT_LONG		= Wiimms ISO Tool
 WWT_SHORT		= wwt
 WWT_LONG		= Wiimms WBFS Tool
+WDF_SHORT		= wdf
+WDF_LONG		= Wiimms WDF Tool
 
 VERSION_NUM		= 1.17a
-BETA_VERSION		= 2
+BETA_VERSION		= 3
 			# 0:off  -1:"beta"  >0:"beta#"
 
 URI_HOME		= http://wit.wiimm.de/
@@ -87,8 +89,8 @@ WBFS_COUNT	?= 4
 #-------------------------------------------------------------------------------
 # tools
 
-MAIN_TOOLS	:= wit wwt wdf-cat wdf-dump
-TEST_TOOLS	:= wtest wdf
+MAIN_TOOLS	:= wit wwt wdf wdf-cat wdf-dump
+TEST_TOOLS	:= wtest
 ALL_TOOLS	:= $(sort $(MAIN_TOOLS) $(TEST_TOOLS))
 
 HELPER_TOOLS	:= gen-ui
@@ -465,6 +467,8 @@ templates.sed: Makefile
 		's|@@WIT-LONG@@|$(WIT_LONG)|g;\n' \
 		's|@@WWT-SHORT@@|$(WWT_SHORT)|g;\n' \
 		's|@@WWT-LONG@@|$(WWT_LONG)|g;\n' \
+		's|@@WDF-SHORT@@|$(WDF_SHORT)|g;\n' \
+		's|@@WDF-LONG@@|$(WDF_LONG)|g;\n' \
 		's|@@VERSION@@|$(VERSION)|g;\n' \
 		's|@@VERSION-NUM@@|$(VERSION_NUM)|g;\n' \
 		's|@@BETA-VERSION@@|$(BETA_VERSION)|g;\n' \

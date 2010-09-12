@@ -17,12 +17,29 @@
 
 [size="2"][color="#0000c0"][b]Highlights of this release:[/b][/color][/size]
 [list]
-[*]
+[*] [color=#000080][b]WIA = Wii ISO Archive[/b][/color]
+I have reimplemented WIA. It support now 3 compression methods:
+[list]
+[*] [font="Courier New"][b]--compression NONE[/b][/font]
+Data of used (=non scrubbed sectors) are stored 1:1 with 0x8000 bytes (32KiB) or 0x7c00 bytes for decrypted data partitions (hash removed). This format is very good for an external packer. No hash values for the chunks available.
+[*] [font="Courier New"][b]--compression PURGE[/b][/font]
+Data is purged like WDF: Areas with zeros are detected and skipped. The image is smaller than 'NONE' but contains more management info. There is a SHA1 hash for each data chunk so that data errors can be noticed.
+[*] [font="Courier New"][b]--compression BZIP2[/b][/font]
+Each chunk is compressed with bzip2 level 9. bzip2 has its own verification code.
+[/list] 
+[color=#800000][b]WIA is experimental! The file format may change![/b][/color]
+Please use the thread [url=wit.wiimm.de/r/wia][b]"WIA = Wii ISO Archive"[/b][/url] for WIA discussions.
 [color=#ffffff].[/color]
+
+[*] [color=#000080][b]GameCube support[/b][/color]
+I'm still working at GameCube support. Reading of GameCube (standard and multiboot) works. Reading means, that the wit commands COPY, EXTRACT, DUMP, LIST, FILES, MOVE, RENAME and some more works fine. "wit MIX" is able to create a multiboot disc without a special boot partition, but the qualifier "boot" will mark one source partition as boot partition.
+
+[color=#800000][b]The GameCube support is experimental![/b][/color]
+Please use the thread [url=wit.wiimm.de/r/gamecube][b]"WIT GameCube disc support"[/b][/url] for WIT GameCube discussions.
 [/list]
 
-[size="4"][color="#800000"][b]Please report positive and negative tests![/b][/color][/size]
-
+~[size="4"][color="#800000"][b]Please report positive and negative tests![/b][/color][/size]
+~
 
 [size="2"][color="#0000c0"][b]Change log:[/b][/color][/size]
 

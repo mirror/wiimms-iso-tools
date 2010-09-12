@@ -39,41 +39,40 @@
 //	+-----------------------+
 //	| wia_file_head_t	|  data structure will never changed
 //	+-----------------------+
-//	| wia_disc_t		|  disc data + partition table
+//	| wia_disc_t		|  disc data
 //	+-----------------------+
 //	| wia_part_t #0		|  fixed size partition header 
 //	| wia_part_t #1		|  wia_disc_t::n_part elements
+//	| ...			|   -> data stored in wia_group_t elements
+//	+-----------------------+
+//	| compressed chunks	|  stored in any order
 //	| ...			|
 //	+-----------------------+
-//	| partition info #0	|  dynamic length partition header
-//	| partition info #1	|
-//	| ...			|
-//	+-----------------------+
-//	| sector group data	|  partition data, managed in sector groups
-//	| & raw disc data	|  & raw disc data
-//	| ...			|  This data segments are stored in any order
-//	+-----------------------+
 
-// ***  partition info ***
+
+// *** compressed chunks (any order) ***
 //
 //	+-----------------------+
-//	| wd_part_header_t	|  copy of partition header incl. ticket
-//	+-----------------------+
-//	| tmd			|  copy of tmd
-//	+-----------------------+
-//	| cert			|  copy of cert
-//	+-----------------------+
-//	| h3			|  copy of h3
-//	+-----------------------+
-//	| wia_group_t[*]	|  wia_part_t::n_groups elements
+//	| raw data table	|
+//	| group table		|
+//	| raw data		|  divided in groups, partition header is stored as raw data
+//	| partition data	|  divided in groups
 //	+-----------------------+
 
-// *** sector group data ***
+
+// *** partition data (Wii format) ***
 //
 //	+-----------------------+
-//	| wia_exception_t[*]	|  wia_group_t::n_exceptions hash exceptions
+//	| wia_except_list	|  wia_group_t::n_exceptions hash exceptions
 //	+-----------------------+
-//	| (un-)compressed data	|  compression dependent data
+//	| (compressed) data	|  compression dependent data
+//	+-----------------------+
+
+
+// *** other data (non partition data) ***
+//
+//	+-----------------------+
+//	| (compressed) data	|  compression dependent data
 //	+-----------------------+
 
 //
@@ -88,22 +87,40 @@
 #define WIA_MAGIC		"WIA\1"
 #define WIA_MAGIC_SIZE		4
 
-#define WIA_VERSION		0x00030000  // AABBCCDD = A.BB | A.BB.CC
-#define WIA_VERSION_COMPATIBLE	0x00030000  // if D != 0xff => append 'beta' D
+//-----------------------------------------------------
+// Format of version number: AABBCCDD = A.BB | A.BB.CC
+// If D != 0x00 && D != 0xff => append: 'beta' D
+//-----------------------------------------------------
+
+#define WIA_VERSION		0x00060000  // current writing version
+#define WIA_VERSION_COMPATIBLE	0x00060000  // down compatible
 
 // the minimal size of holes in bytes that will be detected.
 
 #define WIA_MIN_HOLE_SIZE	0x400
 
+// the maximal supported iso size
+
+#define WIA_MAX_SUPPORTED_ISO_SIZE (50ull*GiB)
+
 ///////////////////////////////////////////////////////////////////////////////
 
 typedef enum wia_compression_t
 {
-    WIA_COMPR_NONE,		// data is not compressed
+
+    //**********************************************************************
+    //***  never change the values, because they are used in arvchives!  ***
+    //**********************************************************************
+
+    WIA_COMPR_NONE	= 0,	// data is not compressed
+    WIA_COMPR_PURGE,		// data is not compressed but zero holes are purged
     WIA_COMPR_BZIP2,		// use bzip2 compression
 
     WIA_COMPR__N,		// number of compressions
-    WIA_COMPR__DEFAULT		= WIA_COMPR_BZIP2
+
+    WIA_COMPR__DEFAULT	= WIA_COMPR_BZIP2,	// default compression
+    WIA_COMPR__FAST	= WIA_COMPR_PURGE,	// fast compression
+    WIA_COMPR__BEST	= WIA_COMPR_BZIP2,	// best compression
 
 } wia_compression_t;
 
@@ -115,7 +132,7 @@ typedef enum wia_compression_t
 typedef struct wia_file_head_t
 {
     // This data structure is never changed.
-    // If additional info is needed, others will be expanded.
+    // If additional info is needed, others structures will be expanded.
     // All values are stored in network byte order (big endian)
 
     char		magic[WIA_MAGIC_SIZE];	// 0x00: WIA_MAGIC, what else!
@@ -128,6 +145,7 @@ typedef struct wia_file_head_t
 
     u64			iso_file_size;		// 0x24: size of ISO image
     u64			wia_file_size;		// 0x2c: size of WIA file
+
     sha1_hash		file_head_hash;		// 0x34: hash of wia_file_head_t
 
 } __attribute__ ((packed)) wia_file_head_t;	// 0x48 = 72 = sizeof(wia_file_head_t)
@@ -146,101 +164,84 @@ typedef struct wia_disc_t
     u32			disc_type;		// 0x00: wd_disc_type_t
     u32			compression;		// 0x04: wia_compression_t
 
+    //--- disc header, first 0x80 bytes of source for easy detection 
 
-    //--- disc header, first WII_PART_OFF bytes of a disc
-
-    wd_header_128_t	dhead;			// 0x08: 128 bytes of disc header
+    u8			dhead[0x80];		// 0x08: 128 bytes of disc header
 						//	 for a fast data access
+    //--- partition data, direct copy => hash needed
 
-    u64			disc_data_off;		// 0x88: data of offset 0x80 .. 0x50000
-    u32			disc_data_size;		// 0x90: compressed size of disc_data
-						//	 -> a list of wia_data_segment_t
+    u32			n_part;			// 0x88: number or partitions
+    u32			part_t_size;		// 0x8c: size of 1 element of wia_part_t
+    u64			part_off;		// 0x90: file offset wia_part_t[n_part]
+    sha1_hash		part_hash;		// 0x98: hash of wia_part_t[n_part]
 
+    //--- raw data, compressed
 
-    //--- non specific raw disc data
-    //--- not used yet, but reserved for future extensions
+    u32			n_raw_data;		// 0xac: number of wia_raw_data_t elements 
+    u64			raw_data_off;		// 0xb0: offset of wia_raw_data_t[n_raw_data]
+    u32			raw_data_size;		// 0xb8: conpressed size of raw data
 
-    u32			n_raw_data;		// 0x94: number of wia_raw_data_t elements 
-    u64			raw_data_off;		// 0x98: offset of wia_raw_data_t[n_raw_data]
-    sha1_hash		raw_data_hash;		// 0xa0: hash of wia_raw_data_t[n_raw_data]
+    //--- group header, compressed
 
+    u32			n_groups;		// 0xbc: number of wia_group_t elements
+    u64			group_off;		// 0xc0: offset of wia_group_t[n_groups]
+    u32			group_size;		// 0xc8: conpressed size of groups
 
-    //--- partition data
-
-    u32			n_part;			// 0xb4: number or partitions
-    u32			part_t_size;		// 0xb8: size of 1 element of wia_part_t
-
-    u64			part_off;		// 0xbc: file offset wia_part_t[n_part]
-    sha1_hash		part_hash;		// 0xc4: hash of wia_part_t[n_part]
-
-    u64			part_info_off;		// 0xd8: file offset of all partition info
-    u32			part_info_size;		// 0xe0: size of all partition info
-    sha1_hash		part_info_hash;		// 0xe4: hash of all partition info
-
-} __attribute__ ((packed)) wia_disc_t;		// 0xf8 = 248 = sizeof(wia_disc_t)
+} __attribute__ ((packed)) wia_disc_t;		// 0xcc = 204 = sizeof(wia_disc_t)
 
 //
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////			struct wia_part_t		///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
+// This data structure is only used for Wii like partitions but nor for GC.
+// It supports decrypting and hash removing.
+
 typedef struct wia_part_t
 {
     // All values are stored in network byte order (big endian)
 
-    //--- partition info
+    u8			part_key[WII_KEY_SIZE];	// 0x00: partition key => build aes key
 
-    u32			ptab_index;		// 0x00: zero based index of ptab
-    u32			ptab_part_index;	// 0x04: zero based index within ptab
-    u32			part_type;		// 0x08: partition type
-    u64			part_off;		// 0x0c: disc offset of partition data
-    u8			part_key[WII_KEY_SIZE];	// 0x14: partition key => build aes key
+    u32			first_sector;		// 0x10: first data sector
+    u32			n_sectors;		// 0x14: number of sectors
 
-    //--- data sectors
-
-    u32			first_sector;		// 0x24: first data sector
-    u32			n_sectors;		// 0x28: number of sectors
-    u32			n_groups;		// 0x2c: number of sector groups
-
-    //--- all offsets are relative to wia_disc_t::part_info_off
-
-    u32			ticket_off;		// 0x30: part_info offset of partition ticket
-    u32			tmd_off;		// 0x34: part_info offset of partition tmd
-    u32			tmd_size;		// 0x38: size of tmd
-    u32			cert_off;		// 0x3c: part_info offset of partition cert
-    u32			cert_size;		// 0x40: size of cert
-    u32			h3_off;			// 0x44: part_info offset of partition h3
-    u32			group_off;		// 0x48: p.i. offset of wia_group_t[n_groups]
-
-} __attribute__ ((packed)) wia_part_t;		// 0x4c = 76 = sizeof(wia_part_t)
+    u32			group_index;		// 0x18: index of first wia_group_t 
+    u32			n_groups;		// 0x1c: number of wia_group_t elements
+    
+} __attribute__ ((packed)) wia_part_t;		// 0x20 = 32 = sizeof(wia_part_t)
 
 //
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////			struct wia_raw_data_t		///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-
 typedef struct wia_raw_data_t
 {
     // All values are stored in network byte order (big endian)
 
-    u32			file_off4;		// 0x00: file offset/4 of raw data
-    u32			iso_off4;		// 0x04: iso offset/4 of raw dat
-    u32			data_size;		// 0x08: size of raw data
+    u64			raw_data_off;		// 0x00: disc offset of raw data
+    u64			raw_data_size;		// 0x08: size of raw data
+    
+    u32			group_index;		// 0x10: index of first wia_group_t 
+    u32			n_groups;		// 0x14: number of wia_group_t elements
 
-} __attribute__ ((packed)) wia_raw_data_t;	// 0x0c = 12 = sizeof(wia_raw_data_t)
+} __attribute__ ((packed)) wia_raw_data_t;	// 0x18 = 24 = sizeof(wia_raw_data_t)
 
 //
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////			struct wia_group_t		///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
+// Each group points to a data segment list. Size of last element is null.
+// Partition data groups are headed by a hash exeption list (wia_except_list_t).
+
 typedef struct wia_group_t
 {
     // All values are stored in network byte order (big endian)
 
-    u32			data_off4;		// 0x00: file offset/4 of wia_data_t
-    u32			data_size;		// 0x04: total wia_data_t size
+    u32			data_off4;		// 0x00: file offset/4 of data
+    u32			data_size;		// 0x04: file size of data
 
 } __attribute__ ((packed)) wia_group_t;		// 0x08 = 8 = sizeof(wia_group_t)
 
@@ -260,37 +261,32 @@ typedef struct wia_exception_t
 
 //
 ///////////////////////////////////////////////////////////////////////////////
-///////////////			struct wia_data_segment_t	///////////////
+///////////////			struct wia_except_list_t	///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-typedef struct wia_data_segment_t
+typedef struct wia_except_list_t
+{
+    u16			n_exceptions;		// 0x00: number of hash exceptions
+    wia_exception_t	exception[0];		// 0x02: hash exceptions
+
+} __attribute__ ((packed)) wia_except_list_t;	// 0x02 = 2 = sizeof(wia_except_list_t)
+
+//
+///////////////////////////////////////////////////////////////////////////////
+///////////////			struct wia_segment_t		///////////////
+///////////////////////////////////////////////////////////////////////////////
+
+typedef struct wia_segment_t
 {
     // All values are stored in network byte order (big endian)
+    // Segments are used to reduce the size of uncompressed data (method PURGE)
+    // This is done by eleminatin holes (zeroed areas)
 
     u32			offset;			// 0x00: offset relative to group
     u32			size;			// 0x04: size of 'data'
     u8			data[0];		// 0x08: data
 
-} __attribute__ ((packed)) wia_data_segment_t;	// 0x08 = 8 = sizeof(wia_data_segment_t)
-
-//
-///////////////////////////////////////////////////////////////////////////////
-///////////////			struct wia_data_t		///////////////
-///////////////////////////////////////////////////////////////////////////////
-
-typedef struct wia_data_t
-{
-    u32			seg_offset;		// 0x00: offset of first segment
-    u16			n_exceptions;		// 0x04: number of hash exceptions
-    wia_exception_t	exception[0];		// 0x06: hash exceptions
-
-//  wia_data_segment_t	data[0];		// ----: list of data segments
-//  wia_data_segment_t	term;			// ----: terminating data segment (0,0)
-
-//  sha1_hash		hash;			// ----: a hash value
-						//	 only for uncompressed data
-
-} __attribute__ ((packed)) wia_data_t;		// 0x06 = 6 = sizeof(wia_data_t)
+} __attribute__ ((packed)) wia_segment_t;	// 0x08 = 8 = sizeof(wia_segment_t)
 
 //
 ///////////////////////////////////////////////////////////////////////////////
@@ -304,36 +300,43 @@ typedef struct wia_controller_t
     wia_file_head_t	fhead;		// header in local endian
     wia_disc_t		disc;		// disc data
 
-    wia_part_t		* part;		// partition data
-    u8			* part_info;	// partition info of all partitions
-    u32			part_info_size;	// size of partition info
+    wia_part_t		* part;		// NULL or pointer to partition info
 
-    wd_patch_t		memmap;		// memory mapping
+    wia_raw_data_t	* raw_data;	// NULL or pointer to raw data list
+    u32			raw_data_used;	// number of used 'group' elements
+    u32			raw_data_size;	// number of alloced 'group' elements
+    wia_raw_data_t	* growing;	// NULL or pointer to last element of 'raw_data'
+					// used for writing behind expected file size
+
+    wia_group_t		* group;	// NULL or pointer to group list
+    u32			group_used;	// number of used 'group' elements
+    u32			group_size;	// number of alloced 'group' elements
+
+    wd_memmap_t		memmap;		// memory mapping
+
     bool		encrypt;	// true: encrypt data if reading
-    bool		is_valid;	// true: WIA header is valid
-    bool		is_gc;		// true: is a GameCube image
+    bool		is_writing;	// false: read a WIA / true: write a WIA
+    bool		is_valid;	// true: WIA is valid
 
-    u64			write_data_off;	// file offset for the next data
+    u64			write_data_off;	// writing file offset for the next data
 
-    u8  disc_data[WII_PART_OFF-sizeof(wd_header_128_t)];
-					// expanded disc header
+    //----- group data cache
 
-    u8	gdata[WII_GROUP_SIZE];		// group data
-    u32	gdata_part_index;		// partition index of current group data
-    u32	gdata_group;			// group index of current group data
+    u8			gdata[WII_GROUP_SIZE];	// group data
+    u32			gdata_size;	// relevant size of 'gdata'
+    int			gdata_group;	// index of current group, -1:invalid
+    int			gdata_part;	// partition index of current group data
 
-    u8  iobuf [ WII_GROUP_DATA_SIZE	// temporary iobuf
-		+ WII_N_HASH_GROUP * sizeof(wia_exception_t)
-		+ 0x100 ];
+    //----- temporary iobuf
+
+    u8  iobuf [ WII_GROUP_SIZE + WII_N_HASH_GROUP * sizeof(wia_exception_t) ];
 
 } wia_controller_t;
 
 //
 ///////////////////////////////////////////////////////////////////////////////
-///////////////			    	interface		///////////////
+///////////////			    interface			///////////////
 ///////////////////////////////////////////////////////////////////////////////
-
-struct SuperFile_t;
 
 void ResetWIA
 (
@@ -352,14 +355,6 @@ char * PrintVersionWIA
 
 //-----------------------------------------------------------------------------
 
-ccp GetCompressionNameWIA
-(
-    wia_compression_t	compr,		// compression mode
-    ccp			invalid_result	// return value if 'compr' is invalid
-);
-
-//-----------------------------------------------------------------------------
-
 bool IsWIA
 (
     const void		* data,		// data to check
@@ -369,18 +364,13 @@ bool IsWIA
     wia_compression_t	* compression	// not NULL: store compression
 );
 
-//-----------------------------------------------------------------------------
-
-void SetupMemMap
-(
-    wia_controller_t	* wia		// valid pointer
-);
-
 //
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////			SuperFile_t interface		///////////////
 ///////////////////////////////////////////////////////////////////////////////
 // WIA reading support
+
+struct SuperFile_t;
 
 enumError SetupReadWIA
 (
@@ -403,7 +393,8 @@ enumError ReadWIA
 enumError SetupWriteWIA
 (
     struct SuperFile_t	* sf,		// file to setup
-    struct SuperFile_t	* src		// NULL or source file
+    struct SuperFile_t	* src,		// NULL or source file
+    u64			src_file_size	// NULL or source file size
 );
 
 //-----------------------------------------------------------------------------
@@ -455,6 +446,38 @@ void wia_hton_disc ( wia_disc_t * dest, const wia_disc_t * src );
 
 void wia_ntoh_part ( wia_part_t * dest, const wia_part_t * src );
 void wia_hton_part ( wia_part_t * dest, const wia_part_t * src );
+
+void wia_ntoh_raw_data ( wia_raw_data_t * dest, const wia_raw_data_t * src );
+void wia_hton_raw_data ( wia_raw_data_t * dest, const wia_raw_data_t * src );
+
+//
+///////////////////////////////////////////////////////////////////////////////
+///////////////		interface: compression option		///////////////
+///////////////////////////////////////////////////////////////////////////////
+
+extern wia_compression_t opt_compression; // = WIA_COMPR__DEFAULT
+
+//-----------------------------------------------------------------------------
+
+ccp GetCompressionName
+(
+    wia_compression_t	compr,		// compression mode
+    ccp			invalid_result	// return value if 'compr' is invalid
+);
+
+//-----------------------------------------------------------------------------
+
+wia_compression_t ScanCompression
+(
+    ccp			arg		// argument to scan
+);
+
+//-----------------------------------------------------------------------------
+
+int ScanOptCompression
+(
+    ccp			arg		// argument to scan
+);
 
 //
 ///////////////////////////////////////////////////////////////////////////////

@@ -70,7 +70,7 @@ typedef enum enumOptions
 	OPT_IGNORE_FILES,
 	OPT_TRIM,
 	OPT_ALIGN,
-	OPT_PART_ALIGN,
+	OPT_ALIGN_PART,
 	OPT_DEST,
 	OPT_DEST2,
 	OPT_SPLIT,
@@ -80,7 +80,7 @@ typedef enum enumOptions
 	OPT_CHUNK_MODE,
 	OPT_CHUNK_SIZE,
 	OPT_MAX_CHUNKS,
-	OPT_NO_COMPRESS,
+	OPT_COMPRESSION,
 	OPT_PRESERVE,
 	OPT_UPDATE,
 	OPT_OVERWRITE,
@@ -169,7 +169,7 @@ typedef enum enumOptions
 //	OB_IGNORE_FILES		= 1llu << OPT_IGNORE_FILES,
 //	OB_TRIM			= 1llu << OPT_TRIM,
 //	OB_ALIGN		= 1llu << OPT_ALIGN,
-//	OB_PART_ALIGN		= 1llu << OPT_PART_ALIGN,
+//	OB_ALIGN_PART		= 1llu << OPT_ALIGN_PART,
 //	OB_DEST			= 1llu << OPT_DEST,
 //	OB_DEST2		= 1llu << OPT_DEST2,
 //	OB_SPLIT		= 1llu << OPT_SPLIT,
@@ -179,7 +179,7 @@ typedef enum enumOptions
 //	OB_CHUNK_MODE		= 1llu << OPT_CHUNK_MODE,
 //	OB_CHUNK_SIZE		= 1llu << OPT_CHUNK_SIZE,
 //	OB_MAX_CHUNKS		= 1llu << OPT_MAX_CHUNKS,
-//	OB_NO_COMPRESS		= 1llu << OPT_NO_COMPRESS,
+//	OB_COMPRESSION		= 1llu << OPT_COMPRESSION,
 //	OB_PRESERVE		= 1llu << OPT_PRESERVE,
 //	OB_UPDATE		= 1llu << OPT_UPDATE,
 //	OB_OVERWRITE		= 1llu << OPT_OVERWRITE,
@@ -266,7 +266,7 @@ typedef enum enumOptions
 //				| OB_IGNORE_FILES
 //				| OB_TRIM
 //				| OB_ALIGN
-//				| OB_PART_ALIGN,
+//				| OB_ALIGN_PART,
 //
 //	OB_GRP_SPLIT_CHUNK	= OB_SPLIT
 //				| OB_SPLIT_SIZE
@@ -275,7 +275,7 @@ typedef enum enumOptions
 //				| OB_CHUNK_MODE
 //				| OB_CHUNK_SIZE
 //				| OB_MAX_CHUNKS
-//				| OB_NO_COMPRESS,
+//				| OB_COMPRESSION,
 //
 //	OB_CMD_HELP		= ~(u64)0,
 //
@@ -383,7 +383,7 @@ typedef enum enumOptions
 //				| OB_GRP_SPLIT_CHUNK
 //				| OB_GRP_OUTMODE_FST,
 //
-//	OB_CMD_SCRUB		= OB_GRP_TITLES
+//	OB_CMD_CONVERT		= OB_GRP_TITLES
 //				| OB_GRP_XXSOURCE
 //				| OB_GRP_PARTITIONS
 //				| OB_GRP_PATCH
@@ -424,6 +424,7 @@ typedef enum enumOptions
 //				| OB_DEST2
 //				| OB_OVERWRITE
 //				| OB_GRP_SPLIT_CHUNK
+//				| OB_ALIGN_PART
 //				| OB_GRP_OUTMODE_EDIT
 //				| OB_ID
 //				| OB_NAME
@@ -469,7 +470,7 @@ typedef enum enumCommands
 	CMD_FDIFF,
 	CMD_EXTRACT,
 	CMD_COPY,
-	CMD_SCRUB,
+	CMD_CONVERT,
 	CMD_EDIT,
 	CMD_MOVE,
 	CMD_RENAME,
@@ -554,13 +555,13 @@ typedef enum enumGetOpt
 	GO_IGNORE_FILES,
 	GO_TRIM,
 	GO_ALIGN,
-	GO_PART_ALIGN,
+	GO_ALIGN_PART,
 	GO_DISC_SIZE,
 	GO_TRUNC,
 	GO_CHUNK_MODE,
 	GO_CHUNK_SIZE,
 	GO_MAX_CHUNKS,
-	GO_NO_COMPRESS,
+	GO_COMPRESSION,
 	GO_WIA,
 	GO_FST,
 	GO_ITIME,

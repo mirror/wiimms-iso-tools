@@ -63,6 +63,33 @@ are listed in alphabetic order:
 
 
 -------------------------------------------------------------------------------
+@@EXEC(./wit help --width 80 CONVERT)@@
+~ [2do] copy to homepage
+
+ The command CONVERT reorganize all given source files.
+
+ Each source is candidate for scrubbing. Non ISO files are ignored with a
+ warning. The option --ignore suppresses this warning. The output is scrubbed.
+ The scrubbing can be controled with the options --psel and --raw.
+
+ The options --split and --split-size control the splitting of the output
+ files. See section "Processing split options" for details.
+
+ The option --test enables test mode: No files are written or removed. If
+ --test is set at least two times a source list with a trailing destination
+ will be printed.
+
+
+ Usual ERROR/EXIT CODES:
+
+    0 == OK             : all done without errors.
+    SYNTAX ERROR        : at least one syntax error in command line found.
+    READ ERROR          : error while reading a file.
+    WRITE ERROR         : error while writing a file.
+    CANT CREATE         : Can't create output file.
+
+
+-------------------------------------------------------------------------------
 @@EXEC(./wit help --width 80 COPY)@@
 
 
@@ -480,33 +507,6 @@ COMMANDS:
 
 
 -------------------------------------------------------------------------------
-@@EXEC(./wit help --width 80 SCRUB)@@
-~ [2do] copy to homepage
-
- The command SCRUB reorganize all given source files.
-
- Each source is candidate for scrubbing. Non ISO files are ignored with a
- warning. The option --ignore suppresses this warning. The output is scrubbed.
- The scrubbing can be controled with the options --psel and --raw.
-
- The options --split and --split-size control the splitting of the output
- files. See section "Processing split options" for details.
-
- The option --test enables test mode: No files are written or removed. If
- --test is set at least two times a source list with a trailing destination
- will be printed.
-
-
- Usual ERROR/EXIT CODES:
-
-    0 == OK             : all done without errors.
-    SYNTAX ERROR        : at least one syntax error in command line found.
-    READ ERROR          : error while reading a file.
-    WRITE ERROR         : error while writing a file.
-    CANT CREATE         : Can't create output file.
-
-
--------------------------------------------------------------------------------
 @@EXEC(./wit help --width 80 SETTITLE)@@
 ~ [2do] copy to homepage
 
@@ -524,6 +524,7 @@ COMMANDS:
 
     0 == OK        : all done.
     SYNTAX ERROR   : at least one syntax error in command line found.
+
 
 -------------------------------------------------------------------------------
 @@EXEC(./wit help --width 80 TITLES)@@
@@ -542,92 +543,6 @@ COMMANDS:
 
 -------------------------------------------------------------------------------
 @@EXEC(./wit help --width 80 VERIFY)@@
-~ [2do] copy to homepage
-
- Every 1024 bytes of user data in every partition has its own SHA1 check sum
- (called 'H0'). There are also H1 (hash of 31*H0), H2 (hash of 8*H1), H3 (hash
- of 8*H2) and for the whole partition one H4 (hash of all H3) check sums. To
- validate a partition it is enought to calculate the check sums and compare
- them with the stored sums. For a scrubbed image it is enough to compare the
- check sums of the used sectors. "wit+wwt VERIFY" do exactly this.
-
- To validate a disc the tool must do 64 AES-128-CBC decryptions and 1029 SHA1
- calculations for each MiB of data. This slow down the opration rapidly and
- verifying is much slower then copying. 
-
- The options --quiet and --verbose control the verbosity level of the command:
-
-  -qq : level -2 : Be abossulte quiet. The status is only reported as exit status.
-  -q  : level -1 : Be quiet and report only the first errors of each partition.
-        level  0 : Print one status line for each partition (success or error).
-  -v  : level  1 : Print up to --limit error messages for each partition.
-  -vv : level  2 : Print progress information (not implemented yet).
-
- For levels <=0 the check of a partition is aborted on the first found error.
-
-
- Output format:
- --------------
-
-  The messages are printed in 5 columns (with examples). The first 4 columns
-  never contains spaces or other blanks ('awk' friendly).
-
-	STATUS  COUNTER PARTITION ID6    NAME
-	>scan   1.0/2   DATA      RUUP01 pool/corrupt/animal.wdf
-	!H0-ERR 1.0/2   DATA      RUUP01 pool/corrupt/animal.wdf
-	+OK     2.0/2   DATA      RUUP01 pool/wdf/animal.wdf
-      
-  STATUS:
-    This is tha staus column. The first character describes the message class:
-	> : informative message
-	+ : success
-	! : error message
-
-  COUNTER
-    A counter in the format:
-       DISC_INDEX . PARTITION_INDEX / TOTAL_DISCS 'd'
-    DISC_INDEX and TOTAL_DISCS are not printed if only 1 disc is verified.
-    The 'd' is only printed for decrypted (not encrypted) discs.
-
-  PARTITION
-    Type of the partition. For UPDATE, DATA and CHANNEL partitions the name is
-    printed, for all other the number.
-
-  ID6
-    ID6 of the disc.
-
-  NAME
-    Name (filename if available) of the disc.
-
-
- Error Mesages:
- --------------
-
-   +OK      : Success message.
-   !NO-HASH : No hash values found (all zero).
-   !INVALID : Invalid disc (can't find required files).
-   !H#-ERR  : Check sum error in table H0..H4.
-   !H1-DIFF : For each sequence of 8 sectors the H1 table must be identical.
-              'H1-DIFF' means, that at least on table differ.
-   !H2-DIFF : For each sequence of 64 sectors the H2 table must be identical.
-              'H2-DIFF' means, that at least on table differ.
-   !ABORT   : Check aborted because of 10 found errors.
-
-
- See also:
- ---------
-    wwt VERIFY
-    wit DIFF
-
-
- Usual ERROR/EXIT CODES:
- -----------------------
-
-    0 == OK             : all done without errors.
-    DIFFER              : At least one check sum error found.
-    SYNTAX ERROR        : at least one syntax error in command line found.
-    READ ERROR          : error while reading a file.
-    CANT OPEN           : Can't open file.
 
 
 -------------------------------------------------------------------------------

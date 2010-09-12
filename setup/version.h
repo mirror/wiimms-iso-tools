@@ -10,6 +10,8 @@
 #define WIT_LONG	"@@WIT-LONG@@"
 #define WWT_SHORT	"@@WWT-SHORT@@"
 #define WWT_LONG	"@@WWT-LONG@@"
+#define WDF_SHORT	"@@WDF-SHORT@@"
+#define WDF_LONG	"@@WDF-LONG@@"
 #define AUTHOR		"@@AUTHOR@@"
 
 #define VERSION		"@@VERSION@@"

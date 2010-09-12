@@ -158,6 +158,9 @@ enumError cmd_test_options()
     }
 
     printf("  split-size:  %16llx = %lld\n",opt_split_size,opt_split_size);
+    printf("  compression: %16x = %d = %s\n",
+		opt_compression, opt_compression,
+		GetCompressionName(opt_compression,"?") );
     printf("  escape-char: %16x = %d\n",escape_char,escape_char);
     printf("  print-time:  %16x = %d\n",opt_print_time,opt_print_time);
     printf("  sort-mode:   %16x = %d\n",sort_mode,sort_mode);
@@ -201,6 +204,9 @@ enumError cmd_test_options()
 		opt_align1, opt_align1,
 		opt_align2, opt_align2,
 		opt_align3, opt_align3 );
+    printf("  align-part:  %16x = %u = %s\n",
+		opt_align_part, opt_align_part,
+		wd_print_size(0,0,opt_align_part,true) );
     printf("  disc-size:   %16llx = %llu = %s\n",
 		opt_disc_size, opt_disc_size,
 		wd_print_size(0,0,opt_disc_size,true) );

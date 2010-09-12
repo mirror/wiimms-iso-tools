@@ -386,7 +386,8 @@ void header_128_setup
 (
     wd_header_128_t	* dhead,	// valid pointer
     const void		* id6,		// NULL or pointer to ID
-    ccp			disc_title	// NULL or pointer to disc title (truncated)
+    ccp			disc_title,	// NULL or pointer to disc title (truncated)
+    bool		is_gc		// true: GameCube setup
 )
 {
     memset(dhead,0,sizeof(*dhead));
@@ -396,7 +397,10 @@ void header_128_setup
 	disc_title = "WIT: Wiimms ISO Tools,http://wit.wiimm.de/";
     strncpy(dhead->disc_title,disc_title,sizeof(dhead->disc_title)-1);
 
-    dhead->wii_magic = htonl(WII_MAGIC);
+    if (is_gc)
+	dhead->gc_magic = htonl(GC_MAGIC);
+    else
+	dhead->wii_magic = htonl(WII_MAGIC);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -405,11 +409,12 @@ void header_setup
 (
     wd_header_t		* dhead,	// valid pointer
     const void		* id6,		// NULL or pointer to ID
-    ccp			disc_title	// NULL or pointer to disc title (truncated)
+    ccp			disc_title,	// NULL or pointer to disc title (truncated)
+    bool		is_gc		// true: GameCube setup
 )
 {
     memset(dhead,0,sizeof(*dhead));
-    header_128_setup((wd_header_128_t*)dhead,id6,disc_title);
+    header_128_setup((wd_header_128_t*)dhead,id6,disc_title,is_gc);
 }
 
 //
@@ -841,8 +846,11 @@ int part_control_is_fake_signed ( const wd_part_control_t * pc )
 unsigned char * wbfs_sha1_fake
 	( const unsigned char *d, size_t n, unsigned char *md )
 {
+    static unsigned char m[WII_HASH_SIZE];
+    if (!md)
+	md = m;
     memset(md,0,sizeof(*md));
-    return 0;
+    return md;
 }
 
 //

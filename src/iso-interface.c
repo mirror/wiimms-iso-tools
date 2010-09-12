@@ -428,6 +428,7 @@ enumError Dump_ISO
 
     const u32 used_blocks = wd_count_used_disc_blocks(disc,1,0);
     const u32 used_mib    = ( used_blocks + WII_SECTORS_PER_MIB/2 ) / WII_SECTORS_PER_MIB;
+    const bool is_gc	  = disc->disc_type == WD_DT_GAMECUBE;
 
     FilePattern_t * pat = GetDefaultFilePattern();
     indent = NormalizeIndent(indent) + 2;
@@ -445,7 +446,7 @@ enumError Dump_ISO
 		break;
 
 	    case 1:
-		show_mode &= ~(SHOW_D_MAP|SHOW_USAGE);
+		show_mode &= ~(SHOW_D_MAP|SHOW_USAGE|SHOW_TICKET|SHOW_TMD);
 		// fall through
 
 	    case 2:  
@@ -484,12 +485,19 @@ enumError Dump_ISO
 	if (title)
 	    fprintf(f,"%*sDB title:        %s\n",indent,"",title);
 
-	if (wd_disc_has_region(disc))
+	const RegionInfo_t * rinfo = GetRegionInfo(disc->dhead.region_code);
+	fprintf(f,"%*sID Region:       %s [%s]\n",indent,"",rinfo->name,rinfo->name4);
+
+	if (is_gc)
 	{
-	    const RegionInfo_t * rinfo = GetRegionInfo(disc->dhead.region_code);
-	    fprintf(f,"%*sRegion:          %s [%s]\n",indent,"",rinfo->name,rinfo->name4);
-	    u8 * p8 = disc->region.region_info;
 	    const enumRegion reg = ntohl(disc->region.region);
+	    fprintf(f,"%*sBI2 Region:      %x [%s]\n",
+			    indent,"", reg, GetRegionName(reg,"?") );
+	}
+	else    
+	{
+	    const enumRegion reg = ntohl(disc->region.region);
+	    u8 * p8 = disc->region.region_info;
 	    fprintf(f,"%*sRegion setting:  %x [%s] / %02x %02x %02x %02x  %02x %02x %02x %02x\n",
 			    indent,"", reg, GetRegionName(reg,"?"),
 			    p8[0], p8[1], p8[2], p8[3], p8[4], p8[5], p8[6], p8[7] );
@@ -538,7 +546,7 @@ enumError Dump_ISO
     {
 	fprintf(f,"\n\n%*sISO Usage Map:\n\n",indent,"");
 	wd_filter_usage_table(disc,wdisc_usage_tab,0);
-	wd_dump_usage_tab(f,indent+2,wdisc_usage_tab,false);
+	wd_dump_usage_tab(f,indent+2,wdisc_usage_tab,disc->iso_size,false);
     }
 
 
@@ -1181,6 +1189,7 @@ static s64 PartSelectorFunc
 	    case WD_SM_ALLOW_PTYPE:
 	    case WD_SM_ALLOW_PTAB:
 	    case WD_SM_ALLOW_ID:
+	    case WD_SM_ALLOW_GC_BOOT:
 	    case WD_SM_ALLOW_ALL:
 		wd_append_select_item(select,mode,cmd->opt,cmd->opt);
 		break;
@@ -1307,7 +1316,8 @@ enumError ScanPartSelector
 	{ WD_SM_ALLOW_PTAB,	"PTAB2",	"T2",	2 },
 	{ WD_SM_ALLOW_PTAB,	"PTAB3",	"T3",	3 },
 
-	{ WD_SM_ALLOW_ID,	"ID",		"I",	0 },
+	{ WD_SM_ALLOW_ID,	"ID",		0,	0 },
+	{ WD_SM_ALLOW_GC_BOOT,	"BOOT",		0,	0 },
 	{ WD_SM_ALLOW_ALL,	"ALL",		0,	0 },
 
 	{ WD_SM_N_MODE+1,	"1:1",		"RAW",	0 },
@@ -3213,6 +3223,7 @@ enumError SetupReadFST ( SuperFile_t * sf )
 
     if ( sf->f.ftype & FT_A_PART_DIR )
     {
+	min_offset = wd_align_part(min_offset,opt_align_part,false);
 	data_part = AppendPartFST(fst);
 	data_part->part_type = WD_PART_DATA;
 	data_size = GenPartFST(sf,data_part,sf->f.fname,data_off,min_offset);
@@ -3235,6 +3246,7 @@ enumError SetupReadFST ( SuperFile_t * sf )
 	char path_buf[PATH_MAX];
 	if ( stat & UPDATE_PART_FOUND )
 	{
+	    min_offset = wd_align_part(min_offset,opt_align_part,false);
 	    ccp path = PathCatPP(path_buf,sizeof(path_buf),sf->f.fname,update_path);
 	    WiiFstPart_t * update_part = AppendPartFST(fst);
 	    update_part->part_type = WD_PART_UPDATE;
@@ -3246,6 +3258,7 @@ enumError SetupReadFST ( SuperFile_t * sf )
 	    update_part->path = strdup(path);
 	}
 
+	min_offset = wd_align_part(min_offset,opt_align_part,false);
 	ccp path = PathCatPP(path_buf,sizeof(path_buf),sf->f.fname,data_path);
 	data_part = AppendPartFST(fst);
 	data_part->part_type = WD_PART_DATA;
@@ -3258,6 +3271,7 @@ enumError SetupReadFST ( SuperFile_t * sf )
 
 	if ( stat & CHANNEL_PART_FOUND )
 	{
+	    min_offset = wd_align_part(min_offset,opt_align_part,false);
 	    ccp path = PathCatPP(path_buf,sizeof(path_buf),sf->f.fname,channel_path);
 	    WiiFstPart_t * channel_part = AppendPartFST(fst);
 	    channel_part->part_type = WD_PART_CHANNEL;

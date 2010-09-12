@@ -225,7 +225,7 @@ typedef struct Iterator_t
 	// user defined parameters, ignores by SourceIterator()
 
 	ShowMode	show_mode;	// active show mode, initialized by opt_show_mode
-	bool		scrub_it;	// SCRUB instead of COPY
+	bool		convert_it;	// SCRUB instead of COPY
 	bool		update;		// update option set
 	bool		newer;		// newer option set
 	bool		overwrite;	// overwrite option set

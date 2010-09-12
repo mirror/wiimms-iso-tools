@@ -1,5 +1,5 @@
 #!/bin/bash
-# (c) Wiimm, 2010-08-28
+# (c) Wiimm, 2010-09-10
 
 myname="${0##*/}"
 base=image-size
@@ -278,70 +278,39 @@ function test_suite()
 
     #----- wia
 
-    test_function 0 a.wia "WIA" \
-	$WIT -q cp "$1" --wia "$tempdir/a.wia" || return 1
-    local wdf_time=$last_time
+    for method in NONE PURGE BZIP2
+    do
+	test_function 0 a.wia "WIA/$method" \
+	    $WIT -q cp "$1" --wia --compr $method "$tempdir/a.wia" || return 1
+	local wdf_time=$last_time
 
-    if ((OPT_BZIP2))
-    then
-	test_function $wdf_time a.wia.bz2 "WIA + BZIP2" \
-	    bzip2 --keep "$tempdir/a.wia" || return 1
-    fi
+	if ((OPT_BZIP2))
+	then
+	    test_function $wdf_time a.wia.bz2 "WIA/$method + BZIP2" \
+		bzip2 --keep "$tempdir/a.wia" || return 1
+	fi
 
-    if ((OPT_RAR))
-    then
-	test_function $wdf_time a.wia.rar "WIA + RAR" \
-	    rar a -inul "$tempdir/a.wia.rar" "$tempdir/a.wia" || return 1
-    fi
+	if ((OPT_RAR))
+	then
+	    test_function $wdf_time a.wia.rar "WIA/$method + RAR" \
+		rar a -inul "$tempdir/a.wia.rar" "$tempdir/a.wia" || return 1
+	fi
 
-    if ((OPT_7Z))
-    then
-	test_function $wdf_time a.wia.7z "WIA + 7Z" \
-	    7z a -bd "$tempdir/a.wia.7z" "$tempdir/a.wia" || return 1
-    fi
+	if ((OPT_7Z))
+	then
+	    test_function $wdf_time a.wia.7z "WIA/$method + 7Z" \
+		7z a -bd "$tempdir/a.wia.7z" "$tempdir/a.wia" || return 1
+	fi
 
-    if ((OPT_DIFF))
-    then
-	echo " - wit DIFF orig-source a.wia"
-	wit diff "$1" "$tempdir/a.wia" \
-	    || echo "!!! $id6: wit DIFF orig-source a.wia FAILED!" | tee -a "$log"
-    fi
+	if ((OPT_DIFF))
+	then
+	    echo " - wit DIFF orig-source a.wia --compr fast"
+	    wit diff "$1" "$tempdir/a.wia" \
+		|| echo "!!! $id6: wit DIFF orig-source a.wia/$method FAILED!" | tee -a "$log"
+	fi
 
-    rm -f "$tempdir/a.wia"*
-
-
-    #----- wia/nocompress
-    
-    test_function 0 a.wia "WIA/NOCOMPRESS" \
-	$WIT -q cp "$1" --wia --no-compress "$tempdir/a.wia" || return 1
-    local wdf_time=$last_time
-
-    if ((OPT_BZIP2))
-    then
-	test_function $wdf_time a.wia.bz2 "WIA/NOCOMPRESS + BZIP2" \
-	    bzip2 --keep "$tempdir/a.wia" || return 1
-    fi
-
-    if ((OPT_RAR))
-    then
-	test_function $wdf_time a.wia.rar "WIA/NOCOMPRESS + RAR" \
-	    rar a -inul "$tempdir/a.wia.rar" "$tempdir/a.wia" || return 1
-    fi
-
-    if ((OPT_7Z))
-    then
-	test_function $wdf_time a.wia.7z "WIA/NOCOMPRESS + 7Z" \
-	    7z a -bd "$tempdir/a.wia.7z" "$tempdir/a.wia" || return 1
-    fi
-
-    if ((OPT_DIFF))
-    then
-	echo " - wit DIFF orig-source a.wia --no-compress"
-	wit diff "$1" "$tempdir/a.wia" \
-	    || echo "!!! $id6: wit DIFF orig-source a.wia --no-compress FAILED!" | tee -a "$log"
-    fi
-
-    rm -f "$tempdir/a.wia"*
+	rm -f "$tempdir/a.wia"*
+    done
 
 
     #----- plain iso

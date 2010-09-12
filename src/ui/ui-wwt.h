@@ -69,7 +69,7 @@ typedef enum enumOptions
 	OPT_IGNORE_FILES,
 	OPT_TRIM,
 	OPT_ALIGN,
-	OPT_PART_ALIGN,
+	OPT_ALIGN_PART,
 	OPT_DEST,
 	OPT_DEST2,
 	OPT_SPLIT,
@@ -80,7 +80,7 @@ typedef enum enumOptions
 	OPT_CHUNK_MODE,
 	OPT_CHUNK_SIZE,
 	OPT_MAX_CHUNKS,
-	OPT_NO_COMPRESS,
+	OPT_COMPRESSION,
 	OPT_SIZE,
 	OPT_HSS,
 	OPT_WSS,
@@ -177,7 +177,7 @@ typedef enum enumOptions
 //	OB_IGNORE_FILES		= 1llu << OPT_IGNORE_FILES,
 //	OB_TRIM			= 1llu << OPT_TRIM,
 //	OB_ALIGN		= 1llu << OPT_ALIGN,
-//	OB_PART_ALIGN		= 1llu << OPT_PART_ALIGN,
+//	OB_ALIGN_PART		= 1llu << OPT_ALIGN_PART,
 //	OB_DEST			= 1llu << OPT_DEST,
 //	OB_DEST2		= 1llu << OPT_DEST2,
 //	OB_SPLIT		= 1llu << OPT_SPLIT,
@@ -188,7 +188,7 @@ typedef enum enumOptions
 //	OB_CHUNK_MODE		= 1llu << OPT_CHUNK_MODE,
 //	OB_CHUNK_SIZE		= 1llu << OPT_CHUNK_SIZE,
 //	OB_MAX_CHUNKS		= 1llu << OPT_MAX_CHUNKS,
-//	OB_NO_COMPRESS		= 1llu << OPT_NO_COMPRESS,
+//	OB_COMPRESSION		= 1llu << OPT_COMPRESSION,
 //	OB_SIZE			= 1llu << OPT_SIZE,
 //	OB_HSS			= 1llu << OPT_HSS,
 //	OB_WSS			= 1llu << OPT_WSS,
@@ -279,7 +279,7 @@ typedef enum enumOptions
 //				| OB_IGNORE_FILES
 //				| OB_TRIM
 //				| OB_ALIGN
-//				| OB_PART_ALIGN,
+//				| OB_ALIGN_PART,
 //
 //	OB_GRP_SPLIT_CHUNK	= OB_SPLIT
 //				| OB_SPLIT_SIZE
@@ -288,7 +288,7 @@ typedef enum enumOptions
 //				| OB_CHUNK_MODE
 //				| OB_CHUNK_SIZE
 //				| OB_MAX_CHUNKS
-//				| OB_NO_COMPRESS,
+//				| OB_COMPRESSION,
 //
 //	OB_CMD_VERSION		= OB_SECTIONS
 //				| OB_LONG,
@@ -591,13 +591,13 @@ typedef enum enumGetOpt
 	GO_IGNORE_FILES,
 	GO_TRIM,
 	GO_ALIGN,
-	GO_PART_ALIGN,
+	GO_ALIGN_PART,
 	GO_DISC_SIZE,
 	GO_TRUNC,
 	GO_CHUNK_MODE,
 	GO_CHUNK_SIZE,
 	GO_MAX_CHUNKS,
-	GO_NO_COMPRESS,
+	GO_COMPRESSION,
 	GO_HSS,
 	GO_WSS,
 	GO_RECOVER,

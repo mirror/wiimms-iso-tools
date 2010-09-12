@@ -106,6 +106,7 @@ enum // some constants
     WII_SECTORS_SINGLE_LAYER	= 143432,
     WII_SECTORS_DOUBLE_LAYER	= 2 * WII_SECTORS_SINGLE_LAYER,
     WII_MAX_SECTORS		= WII_SECTORS_DOUBLE_LAYER,
+    WII_MAX_U32_SECTORS		= 0x40000000/WII_SECTOR_SIZE4,
 
     WII_MAGIC			= 0x5d1c9ea3,
     WII_MAGIC_DELETED		= 0x2a44454c,
@@ -160,14 +161,34 @@ enum // some constants
     GC_DISC_SIZE		= 1459978240,	// standard GameCube disc size
 
     GC_MULTIBOOT_PTAB_OFF	=    0x40,
-    GC_MULTIBOOT_MAX_PART	=    0xc0/4,
-    GC_PART_ALIGN		= 0x20000,	// alignment (= min off) of GC partitions
+    GC_MULTIBOOT_PTAB_SIZE	=    0xc0,
+    GC_MULTIBOOT_MAX_PART	= GC_MULTIBOOT_PTAB_SIZE/4,
+    GC_GOOD_PART_ALIGN		= 0x20000,	// alignment (= min off) of GC partitions
 
     DOL_N_TEXT_SECTIONS		=     7,
     DOL_N_DATA_SECTIONS		=    11,
     DOL_N_SECTIONS		= DOL_N_TEXT_SECTIONS + DOL_N_DATA_SECTIONS,
     DOL_HEADER_SIZE		= 0x100,
 };
+
+//
+///////////////////////////////////////////////////////////////////////////////
+///////////////			enum wd_disc_type_t		///////////////
+///////////////////////////////////////////////////////////////////////////////
+
+typedef enum wd_disc_type_t
+{
+    //**********************************************************************
+    //***  never change the values, because they are used in arvchives!  ***
+    //**********************************************************************
+ 
+    WD_DT_UNKNOWN	= 0,	// unknown disc type
+    WD_DT_GAMECUBE,		// GameCube disc
+    WD_DT_WII,			// Wii disc
+
+    WD_DT__N			// number of defined disc types
+
+} wd_disc_type_t;
 
 //
 ///////////////////////////////////////////////////////////////////////////////
@@ -322,7 +343,8 @@ void header_128_setup
 (
     wd_header_128_t	* dhead,	// valid pointer
     const void		* id6,		// NULL or pointer to ID
-    ccp			disc_title	// NULL or pointer to disc title (truncated)
+    ccp			disc_title,	// NULL or pointer to disc title (truncated)
+    bool		is_gc		// true: GameCube setup
 );
 
 //
@@ -365,7 +387,8 @@ void header_setup
 (
     wd_header_t		* dhead,	// valid pointer
     const void		* id6,		// NULL or pointer to ID
-    ccp			disc_title	// NULL or pointer to disc title (truncated)
+    ccp			disc_title,	// NULL or pointer to disc title (truncated)
+    bool		is_gc		// true: GameCube setup
 );
 
 //
@@ -618,11 +641,11 @@ int part_control_is_fake_signed ( const wd_part_control_t * pc );
 typedef struct wd_part_sector_t
 {
   /* 0x000 */	u8 h0 [WII_N_ELEMENTS_H0][WII_HASH_SIZE];
-  /* 0x26c */	u8 padding0[20];
+  /* 0x26c */	u8 padding0[0x14];
   /* 0x280 */	u8 h1 [WII_N_ELEMENTS_H1][WII_HASH_SIZE];
-  /* 0x320 */	u8 padding1[32];
+  /* 0x320 */	u8 padding1[0x20];
   /* 0x340 */	u8 h2 [WII_N_ELEMENTS_H2][WII_HASH_SIZE];
-  /* 0x3e0 */	u8 padding2[32];
+  /* 0x3e0 */	u8 padding2[0x20];
 
   /* 0x400 */	u8 data[WII_N_ELEMENTS_H0][WII_H0_DATA_SIZE];
 }

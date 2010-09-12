@@ -156,6 +156,7 @@ void PrintHelp
     const InfoUI_t * iu,	// valid pointer
     FILE	* f,		// valid output stream
     int		indent,		// indent of output
+    ccp		help_cmd,	// NULL or name of help command
     ccp		info		// NULL or poiner to additional text
 );
 
@@ -165,6 +166,7 @@ void PrintHelpCmd
     FILE	* f,		// valid output stream
     int		indent,		// indent of output
     int		cmd,		// index of command
+    ccp		help_cmd,	// NULL or name of help command
     ccp		info		// NULL or poiner to additional text
 );
 

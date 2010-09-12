@@ -1,9 +1,26 @@
 wit v@@VERSION@@ r@@REV-NEXT@@ - @@@@-@@-@@
 
+ - The new tool wdf should replace the tools wdf-cat, wdf-dump and should
+   compensate the old tools wdf2iso and iso2wdf as general wdf converters.
+   See built in help for details. wdf is EXPERIMENTAL!
  - Support of GameCube multiboot discs. (EXPERIMENTAL!)
+ - New options --align-part: Align partitions while moving or creating them.
+ - New options --disc-size: Define a minimal disc size.
+ - Command "wit SCRUB" renamed to "wit CONVERT". "wit SCRUB" is still allowed.
+ - From now the first 0x50000 bytes of Wii discs will be scanned for non zero
+   data. Such data is included into the copy operations. The old and standard
+   scrubbing algorithm ignore such sectors in the range 0x08000..0x3ffff.
+ - The WIA file format was completely redesigned and a new beta test phase is
+   starting. Please see WIA still as EXPERIMENTAL!
+~
+~ - I declare the WIA file format stable and hope that converting to and from
+~   WIA is free of bugs. The best for users is to convert to WIA and back and
+~   compare the result with the original source. If creating a WIA file in raw
+~   mode data between partitions and behind the last partition is not copied.
 
 Known bugs:
 
+ - wit COPY --raw: Copying a image in raw mode to a wbfs file is buggy.
  - There are new problems while reading from non seekable sources (e.g. pipes).
    The reason is the complete new and more intelligent wiidisc lib which makes
    more lookups. I have to insert some code especially for pipes. My plans
@@ -15,3 +32,5 @@ Missing docu:
 
  - wit commands FILES + EXTRACT + EDIT => see built in help
  - Option --show => see built in help
+ - Tool wdf => see built in help
+

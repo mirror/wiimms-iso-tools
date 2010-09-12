@@ -81,7 +81,7 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
     {	OPT_IGNORE, 'i', "ignore",
 	0,
 	"Ignore non existing files/discs without warning. If set twice then"
-	" all non Wii ISO images are ignored too."
+	" all non Wii and GameCube ISO images are ignored too."
     },
 
     {	OPT_IGNORE_FST, 0, "ignore-fst",
@@ -238,9 +238,11 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 	"???"
     },
 
-    {	OPT_PART_ALIGN, 0, "part-align",
+    {	OPT_ALIGN_PART, 0, "align-part",
 	"size",
-	"???"
+	"If creating or moving partitions the beginning of each partition is"
+	" set to an offset that is a multiple of the align size. Size must be"
+	" a power of 2 and at least 32 KiB (=default)."
     },
 
     {	OPT_DEST, 'd', "dest",
@@ -317,10 +319,14 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 	"--mch is a shortcut for --max-chunks."
     },
 
-    {	OPT_NO_COMPRESS, 0, "no-compress",
-	0,
-	"Disable compression for new WIA files. --noc is a shortcut for"
-	" --no-compress."
+    {	OPT_COMPRESSION, 0, "compression",
+	"method",
+	"Select one compression method for new WIA files. Possible"
+	" compressions and values are NONE, PURGE and BZIP2. There are 3"
+	" additional keywords: FAST (=PURGE), BEST and DEFAULT (both =BZIP2)."
+	" These keywords may change their meanings if a new compression method"
+	" is implemented.\n"
+	"--compr is a shortcut for --compression."
     },
 
     {	OPT_PRESERVE, 'p', "preserve",
@@ -514,9 +520,8 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 
     {	OPT_LOGGING, 'L', "logging",
 	0,
-	"Special logging for patching and composing Wii discs. If set at least"
-	" once the disc layout is printed. If set at least twice the partition"
-	" layout is printed too."
+	"Enable the logging of internal memory maps. If set twice second level"
+	" memory maps are printed too."
     },
 
     {	OPT_ESC, 'E', "esc",
@@ -701,6 +706,15 @@ const InfoOption_t option_cmd_VERIFY_LONG =
 	" is printed too."
     };
 
+const InfoOption_t option_cmd_MIX_ALIGN_PART =
+    {	OPT_ALIGN_PART, 0, "align-part",
+	"size",
+	"The beginning of each partition is set to an offset that is a"
+	" multiple of the align size. Size must be a power of 2 and at least"
+	" 32 KiB (=default). If option --overlay is set only the first"
+	" partition is aligned."
+    };
+
 const InfoOption_t option_cmd_MIX_ID =
     {	OPT_ID, 0, "id",
 	"id",
@@ -755,7 +769,8 @@ const CommandTab_t CommandTab[] =
     { CMD_FDIFF,	"FDIFF",	"FCMP",		0 },
     { CMD_EXTRACT,	"EXTRACT",	"X",		0 },
     { CMD_COPY,		"COPY",		"CP",		0 },
-    { CMD_SCRUB,	"SCRUB",	"SB",		0 },
+    { CMD_CONVERT,	"CONVERT",	"CV",		0 },
+    { CMD_CONVERT,	"SCRUB",	"SB",		0 },
     { CMD_EDIT,		"EDIT",		"ED",		0 },
     { CMD_MOVE,		"MOVE",		"MV",		0 },
     { CMD_RENAME,	"RENAME",	"REN",		0 },
@@ -840,8 +855,8 @@ const struct option OptionLong[] =
 	 { "ignorefile",	1, 0, GO_IGNORE_FILES },
 	{ "trim",		1, 0, GO_TRIM },
 	{ "align",		1, 0, GO_ALIGN },
-	{ "part-align",		1, 0, GO_PART_ALIGN },
-	 { "partalign",		1, 0, GO_PART_ALIGN },
+	{ "align-part",		1, 0, GO_ALIGN_PART },
+	 { "alignpart",		1, 0, GO_ALIGN_PART },
 	{ "dest",		1, 0, 'd' },
 	{ "DEST",		1, 0, 'D' },
 	{ "split",		0, 0, 'z' },
@@ -859,9 +874,8 @@ const struct option OptionLong[] =
 	{ "max-chunks",		1, 0, GO_MAX_CHUNKS },
 	 { "maxchunks",		1, 0, GO_MAX_CHUNKS },
 	 { "mch",		1, 0, GO_MAX_CHUNKS },
-	{ "no-compress",	0, 0, GO_NO_COMPRESS },
-	 { "nocompress",	0, 0, GO_NO_COMPRESS },
-	 { "noc",		0, 0, GO_NO_COMPRESS },
+	{ "compression",	1, 0, GO_COMPRESSION },
+	 { "compr",		1, 0, GO_COMPRESSION },
 	{ "preserve",		0, 0, 'p' },
 	{ "update",		0, 0, 'u' },
 	{ "overwrite",		0, 0, 'o' },
@@ -978,13 +992,13 @@ const u8 OptionIndex[OPT_INDEX_SIZE] =
 	/*99*/	OPT_IGNORE_FILES,
 	/*9a*/	OPT_TRIM,
 	/*9b*/	OPT_ALIGN,
-	/*9c*/	OPT_PART_ALIGN,
+	/*9c*/	OPT_ALIGN_PART,
 	/*9d*/	OPT_DISC_SIZE,
 	/*9e*/	OPT_TRUNC,
 	/*9f*/	OPT_CHUNK_MODE,
 	/*a0*/	OPT_CHUNK_SIZE,
 	/*a1*/	OPT_MAX_CHUNKS,
-	/*a2*/	OPT_NO_COMPRESS,
+	/*a2*/	OPT_COMPRESSION,
 	/*a3*/	OPT_WIA,
 	/*a4*/	OPT_FST,
 	/*a5*/	OPT_ITIME,
@@ -1172,7 +1186,7 @@ static u8 option_allowed_cmd_COPY[63] = // cmd #24
     0,1,0
 };
 
-static u8 option_allowed_cmd_SCRUB[63] = // cmd #25
+static u8 option_allowed_cmd_CONVERT[63] = // cmd #25
 {
     0,1,1,1,1, 1,1,1,1,1,  1,1,0,0,1, 1,1,1,1,1,  1,1,1,0,1, 1,1,1,1,1,
     0,0,1,1,1, 1,1,1,1,1,  1,0,0,0,1, 1,1,1,1,0,  0,0,0,0,0, 0,0,0,0,0,
@@ -1216,7 +1230,7 @@ static u8 option_allowed_cmd_VERIFY[63] = // cmd #30
 
 static u8 option_allowed_cmd_MIX[63] = // cmd #31
 {
-    0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 1,1,0,1,0,  0,0,0,1,0, 0,0,0,0,0,
+    0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 1,1,0,1,0,  0,0,0,1,0, 0,0,0,0,1,
     1,1,1,1,1, 1,1,1,1,1,  0,0,1,0,1, 1,1,1,0,0,  0,0,0,0,0, 0,0,0,0,0,
     0,0,0
 };
@@ -1430,6 +1444,7 @@ static const InfoOption_t * option_tab_cmd_DUMP[] =
 	OptionInfo + OPT_RM_FILES,
 	OptionInfo + OPT_ZERO_FILES,
 	OptionInfo + OPT_IGNORE_FILES,
+	OptionInfo + OPT_ALIGN_PART,
 	OptionInfo + OPT_DISC_SIZE,
 
 	0
@@ -1907,6 +1922,7 @@ static const InfoOption_t * option_tab_cmd_EXTRACT[] =
 	OptionInfo + OPT_RM_FILES,
 	OptionInfo + OPT_ZERO_FILES,
 	OptionInfo + OPT_IGNORE_FILES,
+	OptionInfo + OPT_ALIGN_PART,
 
 	OptionInfo + OPT_NONE, // separator
 
@@ -1973,6 +1989,7 @@ static const InfoOption_t * option_tab_cmd_COPY[] =
 	OptionInfo + OPT_RM_FILES,
 	OptionInfo + OPT_ZERO_FILES,
 	OptionInfo + OPT_IGNORE_FILES,
+	OptionInfo + OPT_ALIGN_PART,
 
 	OptionInfo + OPT_NONE, // separator
 
@@ -1990,7 +2007,7 @@ static const InfoOption_t * option_tab_cmd_COPY[] =
 	OptionInfo + OPT_CHUNK_MODE,
 	OptionInfo + OPT_CHUNK_SIZE,
 	OptionInfo + OPT_MAX_CHUNKS,
-	OptionInfo + OPT_NO_COMPRESS,
+	OptionInfo + OPT_COMPRESSION,
 
 	OptionInfo + OPT_NONE, // separator
 
@@ -2004,7 +2021,7 @@ static const InfoOption_t * option_tab_cmd_COPY[] =
 	0
 };
 
-static const InfoOption_t * option_tab_cmd_SCRUB[] =
+static const InfoOption_t * option_tab_cmd_CONVERT[] =
 {
 	OptionInfo + OPT_TEST,
 
@@ -2054,6 +2071,7 @@ static const InfoOption_t * option_tab_cmd_SCRUB[] =
 	OptionInfo + OPT_RM_FILES,
 	OptionInfo + OPT_ZERO_FILES,
 	OptionInfo + OPT_IGNORE_FILES,
+	OptionInfo + OPT_ALIGN_PART,
 
 	OptionInfo + OPT_NONE, // separator
 
@@ -2064,7 +2082,7 @@ static const InfoOption_t * option_tab_cmd_SCRUB[] =
 	OptionInfo + OPT_CHUNK_MODE,
 	OptionInfo + OPT_CHUNK_SIZE,
 	OptionInfo + OPT_MAX_CHUNKS,
-	OptionInfo + OPT_NO_COMPRESS,
+	OptionInfo + OPT_COMPRESSION,
 	OptionInfo + OPT_PRESERVE,
 	OptionInfo + OPT_WDF,
 	OptionInfo + OPT_ISO,
@@ -2308,7 +2326,8 @@ static const InfoOption_t * option_tab_cmd_MIX[] =
 	OptionInfo + OPT_CHUNK_MODE,
 	OptionInfo + OPT_CHUNK_SIZE,
 	OptionInfo + OPT_MAX_CHUNKS,
-	OptionInfo + OPT_NO_COMPRESS,
+	OptionInfo + OPT_COMPRESSION,
+	&option_cmd_MIX_ALIGN_PART,
 
 	OptionInfo + OPT_NONE, // separator
 
@@ -2342,8 +2361,8 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	0,
 	"wit [option]... command [option|parameter|file]...",
 	"Wiimms ISO Tool : It can list, analyze, verify, convert, split, join,"
-	" patch, mix, extract, compose, rename and compare Wii discs. It can"
-	" create and dump different other file formats.",
+	" patch, mix, extract, compose, rename and compare Wii and GameCube"
+	" discs. It can create and dump different other file formats.",
 	15,
 	option_tab_tool,
 	0
@@ -2478,10 +2497,10 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	"DUMP",
 	"D",
 	"wit DUMP [source]...",
-	"Dump the data structure of Wii ISO files, ticket.bin, tmd.bin,"
-	" header.bin, boot.bin, fst.bin and of DOL-files. The file type is"
-	" detected automatically by analyzing the content.",
-	31,
+	"Dump the data structure of Wii and GameCube ISO files, ticket.bin,"
+	" tmd.bin, header.bin, boot.bin, fst.bin and of DOL-files. The file"
+	" type is detected automatically by analyzing the content.",
+	32,
 	option_tab_cmd_DUMP,
 	option_allowed_cmd_DUMP
     },
@@ -2635,7 +2654,7 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	"wit EXTRACT source dest\n"
 	"wit EXTRACT [-s path]... [-r path]... [source]... [-d|-D] dest",
 	"Extract all files from the source discs.",
-	39,
+	40,
 	option_tab_cmd_EXTRACT,
 	option_allowed_cmd_EXTRACT
     },
@@ -2648,24 +2667,25 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	"wit COPY source dest\n"
 	"wit COPY [-s path]... [-r path]... [source]... [-d|-D] dest",
 	"Copy, scrub, convert, join, split, compose, extract, patch, encrypt"
-	" and decrypt Wii disc images.",
-	55,
+	" and decrypt Wii and GameCube disc images.",
+	56,
 	option_tab_cmd_COPY,
 	option_allowed_cmd_COPY
     },
 
-    {	CMD_SCRUB,
+    {	CMD_CONVERT,
 	false,
 	false,
-	"SCRUB",
-	"SB",
-	"wit SCRUB source\n"
-	"wit SCRUB [-s path]... [-r path]... [source]...",
-	"Scrub, convert, join, split, compose, extract, patch, encrypt and"
-	" decrypt Wii disc images.",
-	44,
-	option_tab_cmd_SCRUB,
-	option_allowed_cmd_SCRUB
+	"CONVERT",
+	"CV",
+	"wit CONVERT source\n"
+	"wit CONVERT [-s path]... [-r path]... [source]...",
+	"Convert, scrub, join, split, compose, extract, patch, encrypt and"
+	" decrypt Wii and GameCube disc images and replace the source with the"
+	" result. The former command name was SCRUB.",
+	45,
+	option_tab_cmd_CONVERT,
+	option_allowed_cmd_CONVERT
     },
 
     {	CMD_EDIT,
@@ -2675,7 +2695,7 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	"ED",
 	"wit EDIT source\n"
 	"wit EDIT [-s path]... [-r path]... [source]...",
-	"Edit an existing Wii ISO images and patch some values.",
+	"Edit an existing Wii and GameCube ISO image and patch some values.",
 	25,
 	option_tab_cmd_EDIT,
 	option_allowed_cmd_EDIT
@@ -2688,7 +2708,7 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	"MV",
 	"wit MOVE source dest\n"
 	"wit MOVE [-s path]... [-r path]... [source]... [-d|-D] dest",
-	"Move and rename Wii ISO images.",
+	"Move and rename Wii and GameCube ISO images.",
 	18,
 	option_tab_cmd_MOVE,
 	option_allowed_cmd_MOVE
@@ -2743,8 +2763,9 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	"                  | 'ignore' ruleset\n"
 	"                  | 'header'\n"
 	"                  | 'region'",
-	"Mix the partitions from different sources into one new Wii disc.",
-	21,
+	"Mix the partitions from different sources into one new Wii or"
+	" GameCube disc.",
+	22,
 	option_tab_cmd_MIX,
 	option_allowed_cmd_MIX
     },

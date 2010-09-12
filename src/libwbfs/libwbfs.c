@@ -1368,7 +1368,8 @@ u32 wbfs_add_disc_param ( wbfs_t *p, wbfs_param_t * par )
     }
 
  #ifndef WIT // WIT does it in an other way
-    const int ptab_index = WII_PTAB_REF_OFF >> p->wbfs_sec_sz_s;
+    const u32 ptab_off  = wd_get_ptab_sector(disc) * WII_SECTOR_SIZE;
+    const int ptab_index = ptab_off >> p->wbfs_sec_sz_s;
  #endif
 
     for ( i = 0; i < p->n_wbfs_sec_per_disc; i++ )
@@ -1427,7 +1428,7 @@ u32 wbfs_add_disc_param ( wbfs_t *p, wbfs_param_t * par )
 	    // fix the partition table.
 	    if ( i == ptab_index )
 		wd_patch_ptab(	disc,
-				copy_buffer + WII_PTAB_REF_OFF - i * p->wbfs_sec_sz,
+				copy_buffer + ptab_off - i * p->wbfs_sec_sz,
 				false );
  #endif
 

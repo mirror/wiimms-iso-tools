@@ -80,7 +80,6 @@ int		testmode		= 0;
 ccp		opt_dest		= 0;
 bool		opt_mkdir		= false;
 int		opt_limit		= -1;
-bool		opt_no_compress		= false;
 int		print_sections		= 0;
 int		long_count		= 0;
 enumIOMode	io_mode			= 0;
@@ -272,12 +271,15 @@ void SetupLib ( int argc, char ** argv, ccp p_progname, enumProgID prid )
     TRACE_SIZEOF(dcUnicodeTripel);
     TRACE_SIZEOF(dol_header_t);
     TRACE_SIZEOF(id6_t);
+    TRACE_SIZEOF(sha1_hash);
+
     TRACE_SIZEOF(wbfs_disc_info_t);
     TRACE_SIZEOF(wbfs_disc_t);
     TRACE_SIZEOF(wbfs_head_t);
     TRACE_SIZEOF(wbfs_inode_info_t);
     TRACE_SIZEOF(wbfs_param_t);
     TRACE_SIZEOF(wbfs_t);
+
     TRACE_SIZEOF(wd_boot_t);
     TRACE_SIZEOF(wd_disc_t);
     TRACE_SIZEOF(wd_file_list_t);
@@ -288,15 +290,15 @@ void SetupLib ( int argc, char ** argv, ccp p_progname, enumProgID prid )
     TRACE_SIZEOF(wd_icm_t);
     TRACE_SIZEOF(wd_ipm_t);
     TRACE_SIZEOF(wd_iterator_t);
+    TRACE_SIZEOF(wd_memmap_item_t);
+    TRACE_SIZEOF(wd_memmap_t);
     TRACE_SIZEOF(wd_modify_t);
     TRACE_SIZEOF(wd_part_control_t);
     TRACE_SIZEOF(wd_part_header_t);
     TRACE_SIZEOF(wd_part_sector_t);
     TRACE_SIZEOF(wd_part_t);
     TRACE_SIZEOF(wd_part_type_t);
-    TRACE_SIZEOF(wd_patch_item_t);
     TRACE_SIZEOF(wd_patch_mode_t);
-    TRACE_SIZEOF(wd_patch_t);
     TRACE_SIZEOF(wd_pfst_t);
     TRACE_SIZEOF(wd_pname_mode_t);
     TRACE_SIZEOF(wd_print_fst_t);
@@ -312,12 +314,13 @@ void SetupLib ( int argc, char ** argv, ccp p_progname, enumProgID prid )
     TRACE_SIZEOF(wd_tmd_content_t);
     TRACE_SIZEOF(wd_tmd_t);
     TRACE_SIZEOF(wd_usage_t);
+
     TRACE_SIZEOF(wia_compression_t);
     TRACE_SIZEOF(wia_controller_t);
-    TRACE_SIZEOF(wia_data_t);
-    TRACE_SIZEOF(wia_data_segment_t);
+    TRACE_SIZEOF(wia_segment_t);
     TRACE_SIZEOF(wia_disc_t);
     TRACE_SIZEOF(wia_exception_t);
+    TRACE_SIZEOF(wia_except_list_t);
     TRACE_SIZEOF(wia_file_head_t);
     TRACE_SIZEOF(wia_group_t);
     TRACE_SIZEOF(wia_part_t);

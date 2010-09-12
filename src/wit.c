@@ -77,10 +77,10 @@ void help_exit ( bool xmode )
     {
 	int cmd;
 	for ( cmd = 0; cmd < CMD__N; cmd++ )
-	    PrintHelpCmd(&InfoUI,stdout,0,cmd,0);
+	    PrintHelpCmd(&InfoUI,stdout,0,cmd,0,0);
     }
     else
-	PrintHelpCmd(&InfoUI,stdout,0,0,0);
+	PrintHelpCmd(&InfoUI,stdout,0,0,"HELP",0);
 
     exit(ERR_OK);
 }
@@ -1411,12 +1411,12 @@ enumError exec_copy ( SuperFile_t * fi, Iterator_t * it )
 	return ERR_OK;
     fflush(0);
 
-    const bool scrub_it = it->scrub_it
+    const bool convert_it = it->convert_it
 		&& ( output_file_type == OFT_UNKNOWN
 			|| output_file_type == fi->iod.oft );
 
     ccp fname = fi->f.path ? fi->f.path : fi->f.fname;
-    const enumOFT oft = scrub_it
+    const enumOFT oft = convert_it
 			? fi->iod.oft
 			: CalcOFT(output_file_type,opt_dest,fname,OFT__DEFAULT);
 
@@ -1424,7 +1424,7 @@ enumError exec_copy ( SuperFile_t * fi, Iterator_t * it )
     InitializeSF(&fo);
     SetupIOD(&fo,oft,oft);
 
-    if (scrub_it)
+    if (convert_it)
 	fo.f.fname = strdup(fname);
     else
     {
@@ -1455,7 +1455,7 @@ enumError exec_copy ( SuperFile_t * fi, Iterator_t * it )
     const bool raw_mode = part_selector.whole_disc || !fi->f.id6[0];
     if (testmode)
     {
-	if (scrub_it)
+	if (convert_it)
 	    printf( "%s: WOULD %s %s %s:%s\n",
 		progname, raw_mode ? "COPY " : "SCRUB",
 		count_buf, oft_name[oft], fi->f.fname );
@@ -1470,7 +1470,7 @@ enumError exec_copy ( SuperFile_t * fi, Iterator_t * it )
 
     if ( verbose >= 0 )
     {
-	if (scrub_it)
+	if (convert_it)
 	    printf( "* %s %s %s %s %s\n",
 		progname, raw_mode ? "COPY " : "SCRUB",
 		count_buf, oft_name[oft], fi->f.fname );
@@ -1581,7 +1581,7 @@ enumError cmd_copy()
 //
 ///////////////////////////////////////////////////////////////////////////////
 
-enumError cmd_scrub()
+enumError cmd_convert()
 {
     if ( verbose >= 0 )
 	print_title(stdout);
@@ -1595,7 +1595,7 @@ enumError cmd_scrub()
     it.act_non_iso	= OptionUsed[OPT_IGNORE] ? ACT_IGNORE : ACT_WARN;
     it.act_wbfs		= it.act_non_iso;
     it.act_gc		= ACT_ALLOW;
-    it.scrub_it		= true;
+    it.convert_it	= true;
     it.overwrite	= true;
     it.remove_source	= true;
 
@@ -2048,7 +2048,7 @@ enumError CheckOptions ( int argc, char ** argv, bool is_env )
 	case GO_ADD_FILE:	err += ScanOptFile(optarg,true); break;
 	case GO_TRIM:		err += ScanOptTrim(optarg); break;
 	case GO_ALIGN:		err += ScanOptAlign(optarg); break;
-	case GO_PART_ALIGN:	err += ScanOptPartAlign(optarg); break;
+	case GO_ALIGN_PART:	err += ScanOptAlignPart(optarg); break;
 	case GO_DISC_SIZE:	err += ScanOptDiscSize(optarg); break;
 	case GO_OVERLAY:	break;
 	case GO_DEST:		opt_dest = optarg; break;
@@ -2059,7 +2059,7 @@ enumError CheckOptions ( int argc, char ** argv, bool is_env )
 	case GO_CHUNK_MODE:	err += ScanChunkMode(optarg); break;
 	case GO_CHUNK_SIZE:	err += ScanChunkSize(optarg); break;
 	case GO_MAX_CHUNKS:	err += ScanMaxChunks(optarg); break;
-	case GO_NO_COMPRESS:	opt_no_compress = true; break;
+	case GO_COMPRESSION:	err += ScanOptCompression(optarg); break;
 	case GO_PRESERVE:	break;
 	case GO_UPDATE:		break;
 	case GO_OVERWRITE:	break;
@@ -2187,7 +2187,7 @@ enumError CheckCommand ( int argc, char ** argv )
     switch ((enumCommands)cmd_ct->id)
     {
 	case CMD_VERSION:	version_exit();
-	case CMD_HELP:		PrintHelp(&InfoUI,stdout,0,0); break;
+	case CMD_HELP:		PrintHelp(&InfoUI,stdout,0,"HELP",0); break;
 	case CMD_TEST:		err = cmd_test(); break;
 	case CMD_ERROR:		err = cmd_error(); break;
 	case CMD_EXCLUDE:	err = cmd_exclude(); break;
@@ -2214,7 +2214,7 @@ enumError CheckCommand ( int argc, char ** argv )
 	case CMD_FDIFF:		err = cmd_diff(true); break;
 	case CMD_EXTRACT:	err = cmd_extract(); break;
 	case CMD_COPY:		err = cmd_copy(); break;
-	case CMD_SCRUB:		err = cmd_scrub(); break;
+	case CMD_CONVERT:	err = cmd_convert(); break;
 	case CMD_EDIT:		err = cmd_edit(); break;
 	case CMD_MOVE:		err = cmd_move(); break;
 	case CMD_RENAME:	err = cmd_rename(true); break;

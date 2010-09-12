@@ -1141,7 +1141,6 @@ extern int		testmode;
 extern ccp		opt_dest;
 extern bool		opt_mkdir;
 extern int		opt_limit;
-extern bool		opt_no_compress;
 extern int		print_sections;
 extern int		long_count;
 extern enumIOMode	io_mode;
