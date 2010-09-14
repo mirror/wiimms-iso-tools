@@ -45,8 +45,16 @@
 //	| wia_part_t #1		|  wia_disc_t::n_part elements
 //	| ...			|   -> data stored in wia_group_t elements
 //	+-----------------------+
-//	| compressed chunks	|  stored in any order
+//	| data chunks		|  stored in any order
 //	| ...			|
+//	+-----------------------+
+
+
+// *** data chunks (any order) ***
+//
+//	+-----------------------+
+//	| compressor data	|  data for compressors (e.g properties)
+//	| compressed chunks	|
 //	+-----------------------+
 
 
@@ -55,8 +63,8 @@
 //	+-----------------------+
 //	| raw data table	|
 //	| group table		|
-//	| raw data		|  divided in groups, partition header is stored as raw data
-//	| partition data	|  divided in groups
+//	| raw data		|  <- divided in groups (e.g partition .header)
+//	| partition data	|  <- divided in groups
 //	+-----------------------+
 
 
@@ -92,7 +100,7 @@
 // If D != 0x00 && D != 0xff => append: 'beta' D
 //-----------------------------------------------------
 
-#define WIA_VERSION		0x00060000  // current writing version
+#define WIA_VERSION		0x00070000  // current writing version
 #define WIA_VERSION_COMPATIBLE	0x00060000  // down compatible
 
 // the minimal size of holes in bytes that will be detected.
@@ -187,7 +195,12 @@ typedef struct wia_disc_t
     u64			group_off;		// 0xc0: offset of wia_group_t[n_groups]
     u32			group_size;		// 0xc8: conpressed size of groups
 
-} __attribute__ ((packed)) wia_disc_t;		// 0xcc = 204 = sizeof(wia_disc_t)
+    //--- compressor dependent data (e.g. LZMA properties)
+
+    u8			compr_data_len;		// 0xcc: used length of 'compr_data'
+    u8			compr_data[7];		// 0xcd: compressor specific data 
+
+} __attribute__ ((packed)) wia_disc_t;		// 0xd4 = 212 = sizeof(wia_disc_t)
 
 //
 ///////////////////////////////////////////////////////////////////////////////

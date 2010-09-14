@@ -2386,7 +2386,7 @@ enumError CopySF ( SuperFile_t * in, SuperFile_t * out, bool force_raw_mode )
     TRACE("---\n");
     TRACE("+++ CopySF(%d->%d,raw=%d) +++\n",GetFD(&in->f),GetFD(&out->f),force_raw_mode);
 
-    if (!force_raw_mode && !part_selector.whole_disc )
+    if ( !force_raw_mode && !part_selector.whole_disc )
     {
 	wd_disc_t * disc = OpenDiscSF(in,true,false);
 	if (disc)

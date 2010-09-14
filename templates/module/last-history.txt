@@ -1,4 +1,4 @@
-wit v@@VERSION@@ r@@REV-NEXT@@ - @@@@-@@-@@
+wit v1.17a.beta3 r1724 - 2010-09-12
 
  - The new tool wdf should replace the tools wdf-cat, wdf-dump and should
    compensate the old tools wdf2iso and iso2wdf as general wdf converters.
@@ -12,6 +12,11 @@ wit v@@VERSION@@ r@@REV-NEXT@@ - @@@@-@@-@@
    scrubbing algorithm ignore such sectors in the range 0x08000..0x3ffff.
  - The WIA file format was completely redesigned and a new beta test phase is
    starting. Please see WIA still as EXPERIMENTAL!
+
+wit v@@VERSION@@ r@@REV-NEXT@@ - @@@@-@@-@@
+
+ - Bug fix: Creation of a WIA file failed if option --psel is set and at least
+   one partition was removed (scrubbed). The result was an invalid disc image.
 ~
 ~ - I declare the WIA file format stable and hope that converting to and from
 ~   WIA is free of bugs. The best for users is to convert to WIA and back and

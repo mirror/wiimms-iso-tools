@@ -1,5 +1,5 @@
 #!/bin/bash
-# (c) Wiimm, 2010-09-10
+# (c) Wiimm, 2010-09-14
 
 myname="${0##*/}"
 base=image-size
@@ -7,6 +7,8 @@ log=$base.log
 err=$base.err
 
 export LC_ALL=C
+METHODS="NONE PURGE BZIP2"
+PSEL=
 
 if [[ $# == 0 ]]
 then
@@ -22,17 +24,21 @@ then
 	Usage:  $myname [option]... iso_file...
 
 	Options:
-	  --fast      : Enter fast mode => do only WDF and WIA
+	  --fast       : Enter fast mode => do only WDF and WIA
 	  
-	  --bzip2     : enable bzip2 tests (default if tool 'bzip2' found)
-	  --no-bzip2  : disable bzip2 tests
-	  --rar       : enable rar tests (default if tool 'rar' found)
-	  --no-rar    : disable rar tests
-	  --7z        : enable 7z tests (default if tool '7z' found)
-	  --no-7z     : disable 7z tests
-	  --all       : shortcut for --bzip2 --rar --7z
+	  --bzip2      : enable bzip2 tests (default if tool 'bzip2' found)
+	  --no-bzip2   : disable bzip2 tests
+	  --rar        : enable rar tests (default if tool 'rar' found)
+	  --no-rar     : disable rar tests
+	  --7z         : enable 7z tests (default if tool '7z' found)
+	  --no-7z      : disable 7z tests
+	  --all        : shortcut for --bzip2 --rar --7z
 
-	  --diff      : enable "wir DIFF" to verify WIA archives
+	  --data       : DATA partition only, scrub all others
+	  --compr list : Define a list of WIA compressing methods.
+	                 Default: $METHODS
+
+	  --diff       : enable "wit DIFF" to verify WIA archives
 
 	---EOT---
     exit 1
@@ -216,7 +222,7 @@ function test_suite()
 
     basesize=0
     test_function 0 b.wdf "WDF/start" \
-        $WIT -q cp "$1" --wdf "$tempdir/b.wdf" || return 1
+        $WIT $PSEL -q cp "$1" --wdf "$tempdir/b.wdf" || return 1
     rm -f "$tempdir/time.log"
 
 
@@ -225,7 +231,7 @@ function test_suite()
     basesize=0
 
     test_function 0 a.wdf "WDF" \
-	$WIT -q cp "$1" --wdf "$tempdir/a.wdf" || return 1
+	$WIT $PSEL -q cp "$1" --wdf "$tempdir/a.wdf" || return 1
     local wdf_time=$last_time
 
     if ((OPT_BZIP2))
@@ -252,7 +258,7 @@ function test_suite()
     #----- wdf/decrypt
     
     test_function 0 a.wdf "WDF/DECRYPT" \
-	$WIT -q cp "$1" --wdf --enc decrypt "$tempdir/a.wdf" || return 1
+	$WIT $PSEL -q cp "$1" --wdf --enc decrypt "$tempdir/a.wdf" || return 1
     local wdf_time=$last_time
 
     if ((OPT_BZIP2))
@@ -278,10 +284,10 @@ function test_suite()
 
     #----- wia
 
-    for method in NONE PURGE BZIP2
+    for method in $METHODS
     do
 	test_function 0 a.wia "WIA/$method" \
-	    $WIT -q cp "$1" --wia --compr $method "$tempdir/a.wia" || return 1
+	    $WIT $PSEL -q cp "$1" --wia --compr $method "$tempdir/a.wia" || return 1
 	local wdf_time=$last_time
 
 	if ((OPT_BZIP2))
@@ -304,8 +310,8 @@ function test_suite()
 
 	if ((OPT_DIFF))
 	then
-	    echo " - wit DIFF orig-source a.wia --compr fast"
-	    wit diff "$1" "$tempdir/a.wia" \
+	    echo " - wit DIFF orig-source a.wia"
+	    wit diff $PSEL "$1" "$tempdir/a.wia" \
 		|| echo "!!! $id6: wit DIFF orig-source a.wia/$method FAILED!" | tee -a "$log"
 	fi
 
@@ -318,7 +324,7 @@ function test_suite()
     if ((!OPT_FAST))
     then
 	test_function 0 a.iso "PLAIN ISO" \
-	    $WIT -q cp "$1" --iso "$tempdir/a.iso" || return 1
+	    $WIT $PSEL -q cp "$1" --iso "$tempdir/a.iso" || return 1
 	local iso_time=$last_time
 
 	if ((OPT_BZIP2))
@@ -348,7 +354,7 @@ function test_suite()
     if ((!OPT_FAST))
     then
 	test_function 0 a.ciso "CISO" \
-	    $WIT -q cp "$1" --ciso "$tempdir/a.ciso" || return 1
+	    $WIT $PSEL -q cp "$1" --ciso "$tempdir/a.ciso" || return 1
 
 	rm -f "$tempdir/a.ciso"*
     fi
@@ -359,7 +365,7 @@ function test_suite()
     if ((!OPT_FAST))
     then
 	test_function 0 a.wbfs "WBFS" \
-	    $WIT -q cp "$1" --wbfs "$tempdir/a.wbfs" || return 1
+	    $WIT $PSEL -q cp "$1" --wbfs "$tempdir/a.wbfs" || return 1
 
 	rm -f "$tempdir/a.wbfs"*
     fi
@@ -387,7 +393,6 @@ function test_suite()
     date '+%F %T'
     echo
     $WIT --version
-    echo
 } | tee -a $log $err
 
 #
@@ -471,7 +476,24 @@ do
     then
 	OPT_DIFF=1
 	((opts++)) || printf "\n"
-	printf "## --rar : 'wit DIFF' tests enabled\n"
+	printf "## --diff : 'wit DIFF' tests enabled\n"
+	continue
+    fi
+
+    if [[ $src == --data ]]
+    then
+	PSEL="--psel data"
+	((opts++)) || printf "\n"
+	printf "## --data : DATA partition only, scrub all others\n"
+	continue
+    fi
+
+    if [[ $src == --compr ]]
+    then
+	METHODS="$( echo "$1" | tr 'a-z,' 'A-Z ')"
+	shift
+	((opts++)) || printf "\n"
+	printf "## --compr : WIA compression methods set to: $METHODS\n"
 	continue
     fi
 

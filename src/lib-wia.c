@@ -784,7 +784,7 @@ enumError SetupReadWIA
     if (sf->wia)
 	return ERROR0(ERR_INTERNAL,0);
 
-    CleanSF(sf);
+    //CleanSF(sf);
     OpenStreamFile(&sf->f);
 
 
@@ -1555,26 +1555,27 @@ enumError WriteWIA
 		wia_part_t * part = wia->part + item->index;
 		while ( overlap1 < overlap2 )
 		{
-		    int group = ( overlap1 - item->offset ) / WII_GROUP_SIZE;
-		    DASSERT( group < part->n_groups );
-		    u64 base_off = item->offset + group * (u64)WII_GROUP_SIZE;
+		    const int base_group = ( overlap1 - item->offset ) / WII_GROUP_SIZE;
+		    u64 base_off = item->offset + base_group * (u64)WII_GROUP_SIZE;
 		    u64 end_off  = base_off + WII_GROUP_SIZE;
 		    if ( end_off > end )
 			 end_off = end;
 
-		    group += part->group_index;
-		    DASSERT( group >= 0 && group < wia->group_used );
+		    const int group = base_group + part->group_index;
 
 		    if ( group != wia->gdata_group || item->index != wia->gdata_part )
 		    {
-			write_cached_gdata(sf);
-			wia->gdata_group = group;
-			wia->gdata_part  = item->index;
-			wia->gdata_size  = end_off - base_off;
 			PRINT("----- SETUP PART%3u GROUP %4u/%4u>%4u, off=%9llx, size=%6x\n",
 				item->index,
 				group - part->group_index, part->n_groups, group,
 				base_off, wia->gdata_size );
+			DASSERT( group >= 0 && group < wia->group_used );
+			DASSERT( base_group >= 0 && base_group < part->n_groups );
+
+			write_cached_gdata(sf);
+			wia->gdata_group = group;
+			wia->gdata_part  = item->index;
+			wia->gdata_size  = end_off - base_off;
 		    }
 
 		    if ( end_off > overlap2 )
@@ -1855,7 +1856,7 @@ enumError SetupWriteWIA
 
     //----- setup controller
 
-    CleanSF(sf);
+    //CleanSF(sf);
     OpenStreamFile(&sf->f);
 
     wia_controller_t * wia = calloc(1,sizeof(*wia));
@@ -1909,10 +1910,12 @@ enumError SetupWriteWIA
 
 
     int ip;
-    for ( ip = 0; ip < disc->n_part; ip++ )
+    for ( ip = 0; ip < wdisc->n_part; ip++ )
     {
 	wd_part_t * wpart = wdisc->part + ip;
 	wd_load_part(wpart,true,true,false);
+	PRINT("SETUP PARTITION #%u: %s\n",
+		ip, wd_print_part_name(0,0,wpart->part_type,WD_PNAME_NUM_INFO) );
 	if (!wpart->is_valid)
 	{
 	    if ( verbose >= 0 )

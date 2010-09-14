@@ -770,6 +770,18 @@ enumError wia_dump ( FILE *f, File_t *df, ccp fname )
 		" Size of group tab.",
 		disc->group_size, disc->group_size );
 
+    fprintf(f,"    %-23s: %10u = %9x/hex\n",
+		"Compressor data length",
+		disc->compr_data_len, disc->compr_data_len );
+    if (disc->compr_data_len)
+    {
+	fprintf(f,"    %-23s:","Compressor Data");
+	int i;
+	for ( i = 0; i < disc->compr_data_len; i++ )
+	    fprintf(f," %02x",disc->compr_data[i]);
+	fputc('\n',f);
+    }
+
     //-------------------------
 
     if ( long_count > 0 )

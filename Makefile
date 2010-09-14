@@ -18,7 +18,7 @@ WDF_SHORT		= wdf
 WDF_LONG		= Wiimms WDF Tool
 
 VERSION_NUM		= 1.17a
-BETA_VERSION		= 3
+BETA_VERSION		= 4
 			# 0:off  -1:"beta"  >0:"beta#"
 
 URI_HOME		= http://wit.wiimm.de/

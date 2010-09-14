@@ -403,6 +403,8 @@ function test_suite()
 #------------------------------------------------------------------------------
 # main loop
 
+opts=0
+
 while (($#))
 do
     src="$1"
@@ -415,70 +417,80 @@ do
 	NOPIPE=1
 	MODELIST="$FAST_MODELIST"
 	BASEMODE="$FAST_BASEMODE"
-	printf "\n## --fast : check only %s, --no-fst --no-pipe\n" "$MODELIST"
+	((opts++)) || printf "\n"
+	printf "## --fast : check only %s, --no-fst --no-pipe\n" "$MODELIST"
 	continue
     fi
 
     if [[ $src == --verify ]]
     then
 	NOVERIFY=1
-	printf "\n## --verify : verify tests enabled\n"
+	((opts++)) || printf "\n"
+	printf "## --verify : verify tests enabled\n"
 	continue
     fi
 
     if [[ $src == --no-verify || $src == --noverify ]]
     then
 	NOVERIFY=1
-	printf "\n## --no-verify : verify tests disabled\n"
+	((opts++)) || printf "\n"
+	printf "## --no-verify : verify tests disabled\n"
 	continue
     fi
 
     if [[ $src == --fst ]]
     then
 	NOFST=0
-	printf "\n## --fst : fst tests enabled\n"
+	((opts++)) || printf "\n"
+	printf "## --fst : fst tests enabled\n"
 	continue
     fi
 
     if [[ $src == --no-fst || $src == --nofst ]]
     then
 	NOFST=1
-	printf "\n## --no-fst : fst tests diabled\n"
+	((opts++)) || printf "\n"
+	printf "## --no-fst : fst tests diabled\n"
 	continue
     fi
 
     if [[ $src == --pipe ]]
     then
 	NOPIPE=0
-	printf "\n## --pipe : pipe tests enabled\n"
+	((opts++)) || printf "\n"
+	printf "## --pipe : pipe tests enabled\n"
 	continue
     fi
 
     if [[ $src == --no-pipe || $src == --nopipe ]]
     then
 	NOPIPE=1
-	printf "\n## --no-pipe : pipe tests disabled\n"
+	((opts++)) || printf "\n"
+	printf "## --no-pipe : pipe tests disabled\n"
 	continue
     fi
 
     if [[ $src == --wia ]]
     then
 	NOWIA=0
-	printf "\n## --wia : compress WIA tests enabled\n"
+	((opts++)) || printf "\n"
+	printf "## --wia : compress WIA tests enabled\n"
 	continue
     fi
 
     if [[ $src == --raw ]]
     then
 	RAW=--raw
-	printf "\n## --raw : raw mode enabled.\n"
+	((opts++)) || printf "\n"
+	printf "## --raw : raw mode enabled.\n"
 	continue
     fi
 
     if [[ $src == --no-raw || $src == --noraw ]]
     then
 	RAW=
-	printf "\n## --no-raw : raw mode disabled.\n"
+	((opts++)) || printf "\n"
+	printf "## --no-raw : raw mode disabled.\n"
 	continue
     fi
 
@@ -486,7 +498,8 @@ do
     then
 	OPT_TEST=1
 	STAT_SUCCESS=$STAT_TEST
-	printf "\n## --test : test mode enabled\n"
+	((opts++)) || printf "\n"
+	printf "## --test : test mode enabled\n"
 	continue
     fi
 
@@ -494,7 +507,8 @@ do
     then
 	OPT_TEST_MODE=1
 	STAT_SUCCESS=$STAT_TEST
-	printf "\n## --test-modes : list of modes:\n"
+	((opts++)) || printf "\n"
+	printf "## --test-modes : list of modes:\n"
 	for xmode in $MODELIST
 	do
 	    [[ $xmode = ${xmode/.} ]] && compr="" || compr="--compr ${xmode#*.}"
@@ -503,6 +517,8 @@ do
 	done
 	continue
     fi
+
+    opts=0
 
     total_start=$(get_msec)
     test_suite "$src"
