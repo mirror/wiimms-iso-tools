@@ -700,28 +700,29 @@ enumError wia_dump ( FILE *f, File_t *df, ccp fname )
 		PrintVersionWIA(0,0,wia->fhead.version_compatible) );
 
     if ( wia->fhead.disc_size == sizeof(wia_disc_t) )
-	fprintf(f,"    %-23s: %10u\n",
+	fprintf(f,"    %-23s: %10u = %9x/hex\n",
 		"Size of disc section",
-		wia->fhead.disc_size );
+		wia->fhead.disc_size, wia->fhead.disc_size );
     else
-	fprintf(f,"    %-23s: %10u [current: %zu]\n",
+	fprintf(f,"    %-23s: %10u = %9x [current: %zu = %zx/hex]\n",
 		"Size of disc section",
-		wia->fhead.disc_size, sizeof(wia_disc_t) );
+		wia->fhead.disc_size, wia->fhead.disc_size,
+		sizeof(wia_disc_t), sizeof(wia_disc_t) );
 
     if (wia->fhead.iso_file_size)
     {
-	fprintf(f,"    %-23s: %10llu\n",
+	fprintf(f,"    %-23s: %10llu =%10llx/hex\n",
 		"ISO image size",
-		wia->fhead.iso_file_size );
-	fprintf(f,"    %-23s: %10llu  %4.1f%%\n",
+		wia->fhead.iso_file_size, wia->fhead.iso_file_size );
+	fprintf(f,"    %-23s: %10llu =%10llx/hex  %4.1f%%\n",
 		"Total file size",
-		wia->fhead.wia_file_size,
+		wia->fhead.wia_file_size, wia->fhead.wia_file_size,
 		100.0 * wia->fhead.wia_file_size / wia->fhead.iso_file_size );
     }
     else
-	fprintf(f,"    %-23s: %10llu\n",
+	fprintf(f,"    %-23s: %10llu =%10llx\n",
 		"Total file size",
-		wia->fhead.wia_file_size );
+		wia->fhead.wia_file_size, wia->fhead.wia_file_size );
 
     //-------------------------
 
@@ -739,7 +740,7 @@ enumError wia_dump ( FILE *f, File_t *df, ccp fname )
 		disc->disc_type, wd_get_disc_type_name(disc->disc_type,"?") );
     fprintf(f,"    %-23s: %10u = %s\n",
 		"Compression mode",
-		disc->compression, GetCompressionName(disc->compression,"?") );
+		disc->compression, wd_get_compression_name(disc->compression,"?") );
 
     fprintf(f,"    %-23s: %10u\n",
 		" Number of partitions",

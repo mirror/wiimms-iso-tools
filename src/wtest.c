@@ -44,7 +44,7 @@
 #include "lib-std.h"
 #include "match-pattern.h"
 #include "crypt.h"
-
+#include "lib-lzma.h"
 
 #ifdef HAVE_WORK_DIR
   #include "wtest+.c"
@@ -253,7 +253,7 @@ enumError CreateWBFSFile
 )
 {
     DASSERT(sf);
-    enumError err = CreateSF(sf,fname,OFT_WBFS,IOM_IS_WBFS,overwrite);
+    enumError err = CreateSF(sf,fname,OFT_WBFS,IOM_IS_WBFS_PART,overwrite);
     if ( !err && sf->wbfs )
     {
 	CloseWDisc(sf->wbfs);
@@ -291,7 +291,7 @@ int test_copy_to_wbfs ( int argc, char ** argv )
 	}
 	ResetSF(&fi,0);
     }
-    return 0;    
+    return 0;
 }
 
 //
@@ -322,7 +322,7 @@ int test_print_size ( int argc, char ** argv )
     printf("%21llu |%s|%s|\n", i,
 		wd_print_size(0,0,i,true),
 		wd_print_size(0,0,i,false) );
-    
+
     return 0;
 }
 
@@ -517,6 +517,143 @@ static void test_hexdump ( int argc, char ** argv )
 
 //
 ///////////////////////////////////////////////////////////////////////////////
+///////////////			test_lzma()			///////////////
+///////////////////////////////////////////////////////////////////////////////
+
+static enumError test_lzma ( int argc, char ** argv )
+{
+    putchar('\n');
+
+
+    //----- setup buffer
+
+    u8 src_buf[0x40000];
+    u8 dest_buf[sizeof(src_buf)+10];
+
+    int i;
+    for ( i = 0; i < sizeof(src_buf); i++ )
+	src_buf[i] = (u8)i;
+    for ( i = 0; i < sizeof(src_buf); i += 10 )
+	src_buf[i] = (u8)Random32(0);
+
+
+    //---- setup file
+
+    File_t f;
+    InitializeFile(&f);
+
+    //----- compress
+
+    enumError err = CreateFile(&f,"pool/lzma.tmp",IOM__IS_DEFAULT,1);
+    if (err)
+	return err;
+
+    err = EncLZMA_Data2File(0,&f,true,true,src_buf,sizeof(src_buf),0);
+    if (err)
+	return err;
+
+    err = CloseFile(&f,0);
+    if (err)
+	return err;
+
+
+    //----- decompress
+
+    err = OpenFile(&f,"pool/lzma.tmp",IOM__IS_DEFAULT);
+    if (err)
+	return err;
+
+    u32 written;
+    err = DecLZMA_File2Buf(&f,0,dest_buf,sizeof(dest_buf),&written,0);
+    PRINT("Decode called, err=%d, written=%x=%u\n",err,written,written);
+    if (err)
+	return err;
+
+    err = CloseFile(&f,0);
+    if (err)
+	return err;
+
+
+    //----- compare
+
+    if (memcmp(src_buf,dest_buf,sizeof(src_buf)))
+	printf("\n!!! BUFFER DIFFER !!!\n\n");
+    else
+	printf("\n+ buffer ok.\n\n");
+
+    return ERR_OK;
+}
+
+//
+///////////////////////////////////////////////////////////////////////////////
+///////////////			test_lzma2()			///////////////
+///////////////////////////////////////////////////////////////////////////////
+
+static enumError test_lzma2 ( int argc, char ** argv )
+{
+    putchar('\n');
+
+
+    //----- setup buffer
+
+    u8 src_buf[0x40000];
+    u8 dest_buf[sizeof(src_buf)+10];
+
+    int i;
+    for ( i = 0; i < sizeof(src_buf); i++ )
+	src_buf[i] = (u8)i;
+    for ( i = 0; i < sizeof(src_buf); i += 10 )
+	src_buf[i] = (u8)Random32(0);
+
+
+    //---- setup file
+
+    File_t f;
+    InitializeFile(&f);
+
+    //----- compress
+
+    enumError err = CreateFile(&f,"pool/lzma.tmp",IOM__IS_DEFAULT,1);
+    if (err)
+	return err;
+
+    err = EncLZMA2_Data2File(0,&f,true,true,src_buf,sizeof(src_buf),0);
+    if (err)
+	return err;
+
+    err = CloseFile(&f,0);
+    if (err)
+	return err;
+
+    //----- decompress
+
+    err = OpenFile(&f,"pool/lzma.tmp",IOM__IS_DEFAULT);
+    if (err)
+	return err;
+
+    u32 written;
+    err = DecLZMA2_File2Buf(&f,0,dest_buf,sizeof(dest_buf),&written,0);
+    PRINT("Decode called, err=%d, written=%x=%u\n",err,written,written);
+    if (err)
+	return err;
+
+    err = CloseFile(&f,0);
+    if (err)
+	return err;
+
+
+    //----- compare
+
+    if (memcmp(src_buf,dest_buf,sizeof(src_buf)))
+	printf("\n!!! BUFFER DIFFER !!!\n\n");
+    else
+	printf("\n+ buffer ok.\n\n");
+
+    return ERR_OK;
+}
+
+//
+///////////////////////////////////////////////////////////////////////////////
 ///////////////			test_sha1()			///////////////
 ///////////////////////////////////////////////////////////////////////////////
 #ifdef HAVE_OPENSSL
@@ -552,7 +689,7 @@ void test_sha1()
     printf("SHA1:     %8u msec / %u = %6llu nsec\n",t1,M,(u64)t1*1000000/M);
 
     for ( i = 0; i < N; i++ )
-    {    
+    {
 	RandomFill(h1,sizeof(h1));
 	memcpy(h2,h1,sizeof(h2));
 	RandomFill(source,sizeof(source));
@@ -627,7 +764,7 @@ static enumError develop ( int argc, char ** argv )
 		return err;
 	}
     }
-    
+
     return ERR_OK;
 }
 
@@ -643,11 +780,13 @@ enum
     CMD_MATCH_PATTERN,		// test_match_pattern(argc,argv);
     CMD_OPEN_DISC,		// test_open_disc(argc,argv);
     CMD_HEXDUMP,		// test_hexdump(argc,argv);
-    CMD_DEVELOP,		// develop(argc,argv);
+    CMD_LZMA,			// test_lzma(argc,argv);
+    CMD_LZMA2,			// test_lzma2(argc,argv);
 
     CMD_SHA1,			// test_sha1();
     CMD_WIIMM,			// test_wiimm(argc,argv);
 
+    CMD_DEVELOP,		// develop(argc,argv);
     CMD_HELP,			// help_exit();
 
     CMD__N
@@ -662,6 +801,8 @@ static const CommandTab_t CommandTab[] =
 	{ CMD_MATCH_PATTERN,	"MATCH",	0,		0 },
 	{ CMD_OPEN_DISC,	"OPENDISC",	"ODISC",	0 },
 	{ CMD_HEXDUMP,		"HEXDUMP",	0,		0 },
+	{ CMD_LZMA,		"LZMA",		"L1",		0 },
+	{ CMD_LZMA2,		"LZMA2",	"L2",		0 },
 
  #ifdef HAVE_OPENSSL
 	{ CMD_SHA1,		"SHA1",		0,		0 },
@@ -742,6 +883,8 @@ int main ( int argc, char ** argv )
 	case CMD_MATCH_PATTERN:		test_match_pattern(argc,argv); break;
 	case CMD_OPEN_DISC:		test_open_disc(argc,argv); break;
 	case CMD_HEXDUMP:		test_hexdump(argc,argv); break;
+	case CMD_LZMA:			test_lzma(argc,argv); break;
+	case CMD_LZMA2:			test_lzma2(argc,argv); break;
 
  #ifdef HAVE_OPENSSL
 	case CMD_SHA1:			test_sha1(); break;

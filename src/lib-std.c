@@ -228,6 +228,9 @@ void SetupLib ( int argc, char ** argv, ccp p_progname, enumProgID prid )
     TRACE_SIZEOF(CheckDisc_t);
     TRACE_SIZEOF(CheckWBFS_t);
     TRACE_SIZEOF(CommandTab_t);
+    TRACE_SIZEOF(DataArea_t);
+    TRACE_SIZEOF(DataList_t);
+    TRACE_SIZEOF(CommandTab_t);
     TRACE_SIZEOF(FileAttrib_t);
     TRACE_SIZEOF(FileCache_t);
     TRACE_SIZEOF(FilePattern_t);
@@ -281,6 +284,7 @@ void SetupLib ( int argc, char ** argv, ccp p_progname, enumProgID prid )
     TRACE_SIZEOF(wbfs_t);
 
     TRACE_SIZEOF(wd_boot_t);
+    TRACE_SIZEOF(wd_compression_t);
     TRACE_SIZEOF(wd_disc_t);
     TRACE_SIZEOF(wd_file_list_t);
     TRACE_SIZEOF(wd_file_t);
@@ -315,7 +319,6 @@ void SetupLib ( int argc, char ** argv, ccp p_progname, enumProgID prid )
     TRACE_SIZEOF(wd_tmd_t);
     TRACE_SIZEOF(wd_usage_t);
 
-    TRACE_SIZEOF(wia_compression_t);
     TRACE_SIZEOF(wia_controller_t);
     TRACE_SIZEOF(wia_segment_t);
     TRACE_SIZEOF(wia_disc_t);
@@ -640,6 +643,7 @@ ccp GetErrorName ( int stat )
 	case ERR_NO_WIA:		return "NO WIA FOUND";
 	case ERR_WIA_INVALID:		return "INVALID WIA";
 	case ERR_BZIP2:			return "BZIP2 ERROR";
+	case ERR_LZMA:			return "LZMA ERROR";
 
 	case ERR_ALREADY_EXISTS:	return "FILE ALREADY EXISTS";
 	case ERR_CANT_OPEN:		return "CAN'T OPEN FILE";
@@ -702,6 +706,7 @@ ccp GetErrorText ( int stat )
 	case ERR_NO_WIA:		return "No WIA found";
 	case ERR_WIA_INVALID:		return "Invalid WIA";
 	case ERR_BZIP2:			return "bzip2 error";
+	case ERR_LZMA:			return "lzma error";
 
 	case ERR_ALREADY_EXISTS:	return "File already exists";
 	case ERR_CANT_OPEN:		return "Can't open file";
@@ -2255,6 +2260,69 @@ enumError ScanHex
 
 //
 ///////////////////////////////////////////////////////////////////////////////
+///////////////		    scan compression option		///////////////
+///////////////////////////////////////////////////////////////////////////////
+
+wd_compression_t opt_compression = WD_COMPR__DEFAULT;
+
+///////////////////////////////////////////////////////////////////////////////
+
+wd_compression_t ScanCompression
+(
+    ccp			arg,		// argument to scan
+    bool		silent		// don't print error message
+)
+{
+    static const CommandTab_t tab[] =
+    {
+	{ WD_COMPR_NONE,	"NONE",		0,	0 },
+	{ WD_COMPR_PURGE,	"PURGE",	0,	0 },
+	{ WD_COMPR_BZIP2,	"BZIP2",	"BZ2",	0 },
+	{ WD_COMPR_LZMA,	"LZMA",		"LZ",	0 },
+	{ WD_COMPR_LZMA2,	"LZMA2",	"LZ2",	0 },
+
+	{ WD_COMPR__DEFAULT,	"DEFAULT",	"D",	0 },
+	{ WD_COMPR__FASTEST,	"FASTEST",	"F",	0 },
+	{ WD_COMPR__BEST,	"BEST",		"B",	0 },
+
+	{ 0,0,0,0 }
+    };
+
+    const CommandTab_t * cmd = ScanCommand(0,arg,tab);
+    if (cmd)
+	return cmd->id;
+
+    char * end;
+    u32 val = strtoul(arg,&end,10);
+ #ifdef TEST
+    if ( end > arg && !*end )
+	return val;
+ #else
+    if ( end > arg && !*end && val < WD_COMPR__N )
+	return val;
+ #endif
+
+    if (!silent)
+	ERROR0(ERR_SYNTAX,"Illegal compression method: '%s'\n",arg);
+    return -1;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+int ScanOptCompression
+(
+    ccp			arg		// argument to scan
+)
+{
+    const int new_compr = ScanCompression(arg,false);
+    if ( new_compr == -1 )
+	return 1;
+    opt_compression = new_compr;
+    return 0;
+}
+
+//
+///////////////////////////////////////////////////////////////////////////////
 ///////////////			 CommandTab_t			///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -3522,6 +3590,62 @@ enumError ScanSetupFile
     
     fclose(f);
     return ERR_OK;
+}
+
+//
+///////////////////////////////////////////////////////////////////////////////
+///////////////			data area & list		///////////////
+///////////////////////////////////////////////////////////////////////////////
+
+void SetupDataList
+(
+    DataList_t		* dl,		// Object for setup
+    const DataArea_t	* da		// Source list,
+					//  terminated with an element where addr==NULL
+					// The content of this area must not changed
+					//  while accessing the data list
+)
+{
+    DASSERT(dl);
+    memset(dl,0,sizeof(*dl));
+    dl->area = da;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+size_t ReadDataList // returns number of writen bytes
+(
+    DataList_t		* dl,		// NULL or pointer to data list
+    void		* buf,		// destination buffer
+    size_t		size		// size of destination buffer
+)
+{
+    u8 * dest = buf;
+    size_t written = 0;
+    if ( dl && dl->area )
+    {
+	while ( size > 0 )
+	{
+	    if (!dl->current.size)
+	    {
+		noPRINT("NEXT AREA: %p, %p, %u\n", dl->area, dl->area->data, dl->area->size );
+		if (!dl->area->data)
+		    break;
+		memcpy(&dl->current,dl->area++,sizeof(dl->current));
+	    }
+
+	    const size_t copy_size = size < dl->current.size ? size : dl->current.size;
+	    noPRINT("COPY AREA: %p <- %p, size = %u=%x\n",
+			dest,dl->current.data,copy_size,copy_size);
+	    memcpy(dest,dl->current.data,copy_size);
+	    written		+= copy_size;
+	    dest		+= copy_size;
+	    dl->current.data	+= copy_size;
+	    dl->current.size	-= copy_size;
+	    size		-= copy_size;
+	}
+    }
+    return written;
 }
 
 //

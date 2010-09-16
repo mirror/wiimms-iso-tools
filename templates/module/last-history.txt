@@ -1,8 +1,8 @@
 wit v1.17a.beta3 r1724 - 2010-09-12
 
- - The new tool wdf should replace the tools wdf-cat, wdf-dump and should
+ - The new tool 'wdf' should replace the tools wdf-cat, wdf-dump and should
    compensate the old tools wdf2iso and iso2wdf as general wdf converters.
-   See built in help for details. wdf is EXPERIMENTAL!
+   See built in help for details. The tool 'wdf' is EXPERIMENTAL!
  - Support of GameCube multiboot discs. (EXPERIMENTAL!)
  - New options --align-part: Align partitions while moving or creating them.
  - New options --disc-size: Define a minimal disc size.
@@ -15,8 +15,17 @@ wit v1.17a.beta3 r1724 - 2010-09-12
 
 wit v@@VERSION@@ r@@REV-NEXT@@ - @@@@-@@-@@
 
+ - Bug fix: While composing the FST size (var 'max_fst_size4' in 'boot.bin')
+   wasn't updated. If you compose an ISO and the resulting FST is bigger than
+   the original, the Wii apploader failed.
  - Bug fix: Creation of a WIA file failed if option --psel is set and at least
    one partition was removed (scrubbed). The result was an invalid disc image.
+ - Buf fix: "wit MOVE" didn't create the directory path even if --DEST is set.
+ - WIA supports now 5 compression methods: NONE, PURGE, BZIP2, LZMA and LZMA2.
+   There are 3 additional keywords: FASTEST (=PURGE), BEST and DEFAULT (=LZMA).
+ - New command: WIT COMPR: Prints a list with supported compression methods.
+   With parameters the normalized names of that parameters are printed.
+   WIT COMPR accepts the options --long (twice) --no-header and --sections.
 ~
 ~ - I declare the WIA file format stable and hope that converting to and from
 ~   WIA is free of bugs. The best for users is to convert to WIA and back and

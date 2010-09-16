@@ -60,6 +60,7 @@ typedef enum enumError
 	ERR_NO_WIA,
 	ERR_WIA_INVALID,
 	ERR_BZIP2,
+	ERR_LZMA,
 
 	ERR_ALREADY_EXISTS,
 	ERR_CANT_OPEN,

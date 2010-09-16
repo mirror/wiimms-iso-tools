@@ -193,6 +193,32 @@ u64 be64 ( const void * be_data_ptr )
 
 ///////////////////////////////////////////////////////////////////////////////
 
+u16 le16 ( const void * le_data_ptr )
+{
+    const u8 * d = le_data_ptr;
+    return d[1] << 8 | d[0];
+}
+
+u32 le24 ( const void * le_data_ptr )
+{
+    const u8 * d = le_data_ptr;
+    return ( d[2] << 8 | d[1] ) << 8 | d[0];
+}
+
+u32 le32 ( const void * le_data_ptr )
+{
+    const u8 * d = le_data_ptr;
+    return (( d[3] << 8 | d[2] ) << 8 | d[1] ) << 8 | d[0];
+}
+
+u64 le64 ( const void * le_data_ptr )
+{
+    const u8 * d = le_data_ptr;
+    return (u64)le32(d+4) << 32 | le32(d);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
 be64_t hton64 ( u64 data )
 {
     be64_t result;
@@ -261,6 +287,7 @@ void ntoh_boot ( wd_boot_t * dest, const wd_boot_t * src )
     dest->dol_off4	= ntohl(src->dol_off4);
     dest->fst_off4	= ntohl(src->fst_off4);
     dest->fst_size4	= ntohl(src->fst_size4);
+    dest->max_fst_size4	= ntohl(src->max_fst_size4);
 }
 
 //-----------------------------------------------------------------------------
@@ -277,6 +304,7 @@ void hton_boot ( wd_boot_t * dest, const wd_boot_t * src )
     dest->dol_off4	= htonl(src->dol_off4);
     dest->fst_off4	= htonl(src->fst_off4);
     dest->fst_size4	= htonl(src->fst_size4);
+    dest->max_fst_size4	= htonl(src->max_fst_size4);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -359,6 +387,29 @@ void hton_inode_info ( wbfs_inode_info_t * dest, const wbfs_inode_info_t * src )
     dest->ctime		= hton64(src->ctime);
     dest->atime		= hton64(src->atime);
     dest->dtime		= hton64(src->dtime);
+}
+
+//
+///////////////////////////////////////////////////////////////////////////////
+///////////////			enum wd_compression_t		///////////////
+///////////////////////////////////////////////////////////////////////////////
+
+ccp wd_get_compression_name
+(
+    wd_compression_t	compr,		// compression mode
+    ccp			invalid_result	// return value if 'compr' is invalid
+)
+{
+    static ccp tab[] =
+    {
+	"NONE",
+	"PURGE",
+	"BZIP2",
+	"LZMA",
+	"LZMA2",
+    };
+    
+    return (u32)compr < sizeof(tab)/sizeof(*tab) ? tab[compr] : invalid_result;
 }
 
 //

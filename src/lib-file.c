@@ -227,7 +227,7 @@ void InitializeFile ( File_t * f )
     opt_iomode = opt_iomode & IOM__IS_MASK | IOM_FORCE_STREAM;
 
  #ifdef __CYGWIN__
-    opt_iomode |= IOM_IS_WBFS;
+    opt_iomode |= IOM_IS_WBFS_PART;
  #endif
 }
 
@@ -1012,6 +1012,18 @@ ccp oft_ext [OFT__N+1]
 ccp oft_name[OFT__N+1]
 	= { "?",   "ISO",  "WDF",  "CISO",  "WBFS", "WIA",  "FST", 0 };
 
+enumIOMode oft_iom[OFT__N+1] =
+{
+    IOM__IS_DEFAULT,		// OFT_UNKNOWN
+    IOM_IS_IMAGE,		// OFT_PLAIN
+    IOM_IS_IMAGE,		// OFT_WDF
+    IOM_IS_IMAGE,		// OFT_CISO
+    IOM_IS_IMAGE,		// OFT_WBFS  -> IOM_IS_WBFS_PART is reserved for WBFS partitions
+    IOM_IS_WIA,			// OFT_WIA
+    IOM__IS_DEFAULT,		// OFT_FST
+    IOM__IS_DEFAULT,		// OFT__N
+};
+
 ///////////////////////////////////////////////////////////////////////////////
 
 enumOFT CalcOFT ( enumOFT force, ccp fname_dest, ccp fname_src, enumOFT def )
@@ -1767,7 +1779,7 @@ enumError XSeekF ( XPARM File_t * f, off_t off )
 	    f->max_error = f->last_error;
 	if (!f->disable_errors)
 	    PrintError( XERROR1, f->last_error,
-			"Seek failed [%c=%d,%llx]: %s\n",
+			"Seek failed [%c=%d,%llu]: %s\n",
 			GetFT(f), GetFD(f), off, f->fname );
 	f->file_off = (off_t)-1;
     }
@@ -1835,7 +1847,7 @@ enumError XSetSizeF ( XPARM File_t * f, off_t off )
 	    f->max_error = f->last_error;
 	if (!f->disable_errors)
 	    PrintError( XERROR1, f->last_error,
-			"Set file size failed [%c=%d,%llx]: %s\n",
+			"Set file size failed [%c=%d,%llu]: %s\n",
 			GetFT(f), GetFD(f), off, f->fname );
 	return f->last_error;
     }
@@ -2005,7 +2017,7 @@ enumError XReadF ( XPARM File_t * f, void * iobuf, size_t count )
 		f->read_behind_eof = 2;
 		if ( !f->disable_errors )
 		    PrintError( XERROR0, ERR_WARNING,
-			"Read behind eof -> zero filled [%c=%d,%llx+%zx]: %s\n",
+			"Read behind eof -> zero filled [%c=%d,%llu+%zu]: %s\n",
 			GetFT(f), GetFD(f),
 			f->file_off, count, f->fname );
 	    }
@@ -2085,7 +2097,7 @@ enumError XReadF ( XPARM File_t * f, void * iobuf, size_t count )
     {
 	if ( !f->disable_errors && f->last_error != ERR_READ_FAILED )
 	    PrintError( XERROR1, ERR_READ_FAILED,
-			"Read failed [%c=%d,%llx+%zx]: %s\n",
+			"Read failed [%c=%d,%llu+%zu]: %s\n",
 			GetFT(f), GetFD(f),
 			f->file_off, count, f->fname );
 	f->last_error = ERR_READ_FAILED;
@@ -2217,7 +2229,7 @@ enumError XWriteF ( XPARM File_t * f, const void * iobuf, size_t count )
     {
 	if ( !f->disable_errors && f->last_error != ERR_WRITE_FAILED )
 	    PrintError( XERROR1, ERR_WRITE_FAILED,
-			"Write failed [%c=%d,%llx+%zx]: %s\n",
+			"Write failed [%c=%d,%llu+%zu]: %s\n",
 			GetFT(f), GetFD(f),
 			f->file_off, count, f->fname );
 	f->last_error = ERR_WRITE_FAILED;

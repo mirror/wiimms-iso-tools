@@ -48,15 +48,6 @@
     #define EXTENDED_ERRORS 1		// undef | 1 | 2
 #endif
 
-#if defined(TEST)
-    #undef WRITE_CACHE_ENABLED
-    #define WRITE_CACHE_ENABLED 1	// undef | def
-#endif
-
-#ifndef WRITE_CACHE_ENABLED
-    #define WRITE_CACHE_ENABLED 0	// 0 | 1
-#endif
-
 #ifndef EXTENDED_IO_FUNC
     #define EXTENDED_IO_FUNC 1		// 0 | 1
 #endif
@@ -218,11 +209,11 @@ ccp PrintMSec ( char * buf, int bufsize, u32 msec, bool PrintMSec );
 
 typedef enum enumIOMode
 {
-	IOM_IS_WBFS		= 0x01, // is a WPFS partition
-	IOM_IS_IMAGE		= 0x02, // is a WDF or ISO file
-	//IOM_IS_OTHER		= 0x04, // is an other file
+	IOM_IS_WBFS_PART	= 0x01, // is a WBFS partition
+	IOM_IS_IMAGE		= 0x02, // is a disc image (PLAIN, WDF, CISO, ...)
+	IOM_IS_WIA		= 0x04, // is a WIA file
 
-	IOM__IS_MASK		= 0x03,
+	IOM__IS_MASK		= 0x07,
 	IOM__IS_DEFAULT		= 0,
 
 	IOM_FORCE_STREAM	= IOM__IS_MASK + 1,
@@ -254,6 +245,7 @@ typedef enum enumOFT // open file mode
 extern enumOFT output_file_type;
 extern ccp oft_ext [OFT__N+1]; // NULL terminated list
 extern ccp oft_name[OFT__N+1]; // NULL terminated list
+extern enumIOMode oft_iom[OFT__N+1];
 extern int opt_truncate;
 
 enumOFT CalcOFT ( enumOFT force, ccp fname_dest, ccp fname_src, enumOFT def );
@@ -1038,33 +1030,29 @@ enumError ScanSetupFile
 
 //
 ///////////////////////////////////////////////////////////////////////////////
-///////////////                     etc                         ///////////////
+///////////////		    scan compression option		///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-typedef enum RepairMode
-{
-	REPAIR_NONE		=     0,
+extern wd_compression_t opt_compression; // = WD_COMPR__DEFAULT
 
-	REPAIR_FBT		= 0x001, // repair free blocks table
-	REPAIR_INODES		= 0x002, // repair invalid inode infos
-	 REPAIR_DEFAULT		= 0x003, // standard value
+//-----------------------------------------------------------------------------
 
-	REPAIR_RM_INVALID	= 0x010, // remove discs with invalid blocks
-	REPAIR_RM_OVERLAP	= 0x020, // remove discs with overlaped blocks
-	REPAIR_RM_FREE		= 0x040, // remove discs with free marked blocks
-	REPAIR_RM_EMPTY		= 0x080, // remove discs without any valid blocks
-	 REPAIR_RM_ALL		= 0x0f0, // remove all discs with errors
+wd_compression_t ScanCompression
+(
+    ccp			arg,		// argument to scan
+    bool		silent		// don't print error message
+);
 
-	REPAIR_ALL		= 0x0f3, // repair all
-	
-	REPAIR__ERROR		= -1 // not a mode but an error message
+//-----------------------------------------------------------------------------
 
-} RepairMode;
+int ScanOptCompression
+(
+    ccp			arg		// argument to scan
+);
 
-extern RepairMode repair_mode;
-
-RepairMode ScanRepairMode ( ccp arg );
-
+//
+///////////////////////////////////////////////////////////////////////////////
+///////////////			commands			///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
 #define COMMAND_NAME_MAX 100
@@ -1119,6 +1107,76 @@ s64 ScanCommandListMask
     ccp			arg,		// argument to scan
     const CommandTab_t	* cmd_tab	// valid pointer to command table
 );
+
+//
+///////////////////////////////////////////////////////////////////////////////
+///////////////			data area & list		///////////////
+///////////////////////////////////////////////////////////////////////////////
+
+typedef struct DataArea_t
+{
+    const u8		* data;		// pointer to data area
+					// for lists: NULL is the end of list marker
+    size_t		size;		// size of data area
+
+} DataArea_t;
+
+//-----------------------------------------------------------------------------
+
+typedef struct DataList_t
+{
+    const DataArea_t	* area;		// pointer to a source list
+					//  terminated with an element where addr==NULL
+    DataArea_t		current;	// current element
+
+} DataList_t;
+
+//-----------------------------------------------------------------------------
+
+void SetupDataList
+(
+    DataList_t		* dl,		// Object for setup
+    const DataArea_t	* da		// Source list,
+					//  terminated with an element where addr==NULL
+					// The content of this area must not changed
+					//  while accessing the data list
+);
+
+size_t ReadDataList // returns number of writen bytes
+(
+    DataList_t		* dl,		// NULL or pointer to data list
+    void		* buf,		// destination buffer
+    size_t		size		// size of destination buffer
+);
+
+//
+///////////////////////////////////////////////////////////////////////////////
+///////////////                     etc                         ///////////////
+///////////////////////////////////////////////////////////////////////////////
+
+typedef enum RepairMode
+{
+	REPAIR_NONE		=     0,
+
+	REPAIR_FBT		= 0x001, // repair free blocks table
+	REPAIR_INODES		= 0x002, // repair invalid inode infos
+	 REPAIR_DEFAULT		= 0x003, // standard value
+
+	REPAIR_RM_INVALID	= 0x010, // remove discs with invalid blocks
+	REPAIR_RM_OVERLAP	= 0x020, // remove discs with overlaped blocks
+	REPAIR_RM_FREE		= 0x040, // remove discs with free marked blocks
+	REPAIR_RM_EMPTY		= 0x080, // remove discs without any valid blocks
+	 REPAIR_RM_ALL		= 0x0f0, // remove all discs with errors
+
+	REPAIR_ALL		= 0x0f3, // repair all
+	
+	REPAIR__ERROR		= -1 // not a mode but an error message
+
+} RepairMode;
+
+extern RepairMode repair_mode;
+
+RepairMode ScanRepairMode ( ccp arg );
 
 //
 ///////////////////////////////////////////////////////////////////////////////

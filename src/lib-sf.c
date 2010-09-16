@@ -1792,7 +1792,7 @@ enumFileType AnalyzeFT ( File_t * f )
 	SuperFile_t sf;
 	InitializeSF(&sf);
 	sf.f.disable_errors = true;
-	if (OpenFileModify(&sf.f,fname,IOM_IS_WBFS))
+	if (OpenFileModify(&sf.f,fname,IOM_IS_WBFS_PART))
 	    return f->ftype;
 
 	AnalyzeFT(&sf.f);

@@ -370,7 +370,7 @@ enumError cmd_analyze()
 	if ( !info->path || !*info->path )
 	    continue;
 
-	const enumError stat = OpenFile(&F,info->path,IOM_IS_WBFS);
+	const enumError stat = OpenFile(&F,info->path,IOM_IS_WBFS_PART);
 	if (stat)
 	    continue;
 
@@ -912,7 +912,7 @@ enumError cmd_format()
 
 	    File_t f;
 	    InitializeFile(&f);
-	    if ( OpenFile(&f,param->arg,IOM_IS_WBFS) == ERR_OK )
+	    if ( OpenFile(&f,param->arg,IOM_IS_WBFS_PART) == ERR_OK )
 	    {
 		AWData_t awd;
 		AnalyzeWBFS(&awd,&f);
@@ -3194,6 +3194,7 @@ enumError CheckCommand ( int argc, char ** argv )
 	case CMD_HELP:		PrintHelp(&InfoUI,stdout,0,"HELP",0); break;
 	case CMD_TEST:		err = cmd_test(); break;
 	case CMD_ERROR:		err = cmd_error(); break;
+	case CMD_COMPR:		err = cmd_compr(); break;
 	case CMD_EXCLUDE:	err = cmd_exclude(); break;
 	case CMD_TITLES:	err = cmd_titles(); break;
 

@@ -177,7 +177,13 @@ info_t info_tab[] =
   { T_DEF_CMD,	"ERROR",	"ERROR|ERR",
 		    "wit ERROR [error_code]",
 		"Translate exit code to message or print a table"
-		" with all error messages." },
+		" with all error messages if not exit code is given." },
+
+  { T_DEF_CMD,	"COMPR",	"COMPR",
+		    "wit COMPR [mode]...",
+		"Scan names of compression methods and print the normalized names"
+		" or or print a table with all compression methods"
+		" if not method is given." },
 
   { T_DEF_CMD,	"EXCLUDE",	"EXCLUDE",
 		    "wit EXCLUDE [additional_excludes]...",
@@ -385,7 +391,8 @@ info_t info_tab[] =
 		" The standard file IO is based on open() function."
 		" The value '1' defines that WBFS IO is based on fopen() function."
 		" The value '2' defines the same for ISO files"
-		" and the value '3' for both, WBFS and ISO." },
+		" and value '4' for WIA files."
+		" You can combine the values by adding them." },
 
   { T_SEP_OPT,	0,0,0,0 }, //----- separator -----
 
@@ -677,10 +684,11 @@ info_t info_tab[] =
   { T_OPT_CP,	"COMPRESSION",	"compression|compr",
 		"method",
 		"Select one compression method for new WIA files."
-		" Possible compressions and values are @NONE@, @PURGE@ and @BZIP2@."
-		" There are 3 additional keywords: @FAST@ (@=PURGE@),"
-		" @BEST@ and @DEFAULT@ (both @=BZIP2@)."
-		" These keywords may change their meanings"
+		" Possible compressions and values are @NONE@, @PURGE@, @BZIP2@,"
+		" @LZMA@ and @LZMA2@."
+		" There are 3 additional keywords: @FASTEST@ (@=PURGE@),"
+		" @BEST@ and @DEFAULT@ (both @=LZMA@)."
+		" These additional keywords may change their meanings"
 		" if a new compression method is implemented."
 		"\n"
 		"@--compr@ is a shortcut for @--compression@." },
@@ -985,6 +993,17 @@ info_t info_tab[] =
   { T_COPT,	"NO_HEADER",	0,0,0 },
   { T_COPT,	"LONG",		0,0,
 	"Print extended message instead of error name." },
+
+  //---------- COMMAND wit COMPR ----------
+
+  { T_CMD_BEG,	"COMPR",	0,0,0 },
+
+  { T_COPT,	"SECTIONS",	0,0,0 },
+  { T_COPT,	"NO_HEADER",	0,0,0 },
+  { T_COPT,	"LONG",		0,0,
+	"Print the numeric value and the normalized name."
+	" If set twice print a table with the numeric value,"
+	" normalized name and alternative names." },
 
   //---------- COMMAND wit EXCLUDE ----------
 
@@ -1438,6 +1457,10 @@ info_t info_tab[] =
 		0 /* copy of wit */ },
 
   { T_DEF_CMD,	"ERROR",	"ERROR|ERR",
+		    "wwt ERROR [error_code]",
+		0 /* copy of wit */ },
+
+  { T_DEF_CMD,	"COMPR",	"COMPR",
 		    "wwt ERROR [error_code]",
 		0 /* copy of wit */ },
 
@@ -2049,6 +2072,17 @@ info_t info_tab[] =
   { T_COPT,	"NO_HEADER",	0,0,0 },
   { T_COPT,	"LONG",		0,0,
 	"Print extended message instead of error name." },
+
+  //---------- COMMAND wwt COMPR ----------
+
+  { T_CMD_BEG,	"COMPR",	0,0,0 },
+
+  { T_COPT,	"SECTIONS",	0,0,0 },
+  { T_COPT,	"NO_HEADER",	0,0,0 },
+  { T_COPT,	"LONG",		0,0,
+	"Print the numeric value and the normalized name."
+	" If set twice print a table with the numeric value,"
+	" normalized name and alternative names." },
 
   //---------- COMMAND wwt EXCLUDE ----------
 

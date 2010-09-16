@@ -5,4 +5,4 @@
 ../src/lib-file.[ch] ;
 ../src/lib-ciso.[ch] ;
 @+all-source.edit-list
--y 580 ../src/lib-wia.c ;
+-y  1 ../src/lib-wia.c ;

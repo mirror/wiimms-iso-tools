@@ -1,14 +1,18 @@
 #!/bin/bash
-# (c) Wiimm, 2010-09-14
+# (c) Wiimm, 2010-09-15
 
 myname="${0##*/}"
 base=image-size
 log=$base.log
 err=$base.err
 
+WIT=wit
+[[ -x ./wit ]] && WIT=./wit
+
 export LC_ALL=C
-METHODS="NONE PURGE BZIP2"
+METHODS="$(echo $($WIT compr))"
 PSEL=
+IO=
 
 if [[ $# == 0 ]]
 then
@@ -46,10 +50,7 @@ fi
 
 #
 #------------------------------------------------------------------------------
-# check exitence of needed tools
-
-WIT=wit
-[[ -x ./wit ]] && WIT=./wit
+# check existence of needed tools
 
 errtool=
 for tool in $WIT
@@ -222,7 +223,7 @@ function test_suite()
 
     basesize=0
     test_function 0 b.wdf "WDF/start" \
-        $WIT $PSEL -q cp "$1" --wdf "$tempdir/b.wdf" || return 1
+        $WIT_CP "$1" --wdf "$tempdir/b.wdf" || return 1
     rm -f "$tempdir/time.log"
 
 
@@ -231,7 +232,7 @@ function test_suite()
     basesize=0
 
     test_function 0 a.wdf "WDF" \
-	$WIT $PSEL -q cp "$1" --wdf "$tempdir/a.wdf" || return 1
+	$WIT_CP "$1" --wdf "$tempdir/a.wdf" || return 1
     local wdf_time=$last_time
 
     if ((OPT_BZIP2))
@@ -258,7 +259,7 @@ function test_suite()
     #----- wdf/decrypt
     
     test_function 0 a.wdf "WDF/DECRYPT" \
-	$WIT $PSEL -q cp "$1" --wdf --enc decrypt "$tempdir/a.wdf" || return 1
+	$WIT_CP "$1" --wdf --enc decrypt "$tempdir/a.wdf" || return 1
     local wdf_time=$last_time
 
     if ((OPT_BZIP2))
@@ -287,7 +288,7 @@ function test_suite()
     for method in $METHODS
     do
 	test_function 0 a.wia "WIA/$method" \
-	    $WIT $PSEL -q cp "$1" --wia --compr $method "$tempdir/a.wia" || return 1
+	    $WIT_CP "$1" --wia --compr $method "$tempdir/a.wia" || return 1
 	local wdf_time=$last_time
 
 	if ((OPT_BZIP2))
@@ -324,7 +325,7 @@ function test_suite()
     if ((!OPT_FAST))
     then
 	test_function 0 a.iso "PLAIN ISO" \
-	    $WIT $PSEL -q cp "$1" --iso "$tempdir/a.iso" || return 1
+	    $WIT_CP "$1" --iso "$tempdir/a.iso" || return 1
 	local iso_time=$last_time
 
 	if ((OPT_BZIP2))
@@ -354,7 +355,7 @@ function test_suite()
     if ((!OPT_FAST))
     then
 	test_function 0 a.ciso "CISO" \
-	    $WIT $PSEL -q cp "$1" --ciso "$tempdir/a.ciso" || return 1
+	    $WIT_CP "$1" --ciso "$tempdir/a.ciso" || return 1
 
 	rm -f "$tempdir/a.ciso"*
     fi
@@ -365,7 +366,7 @@ function test_suite()
     if ((!OPT_FAST))
     then
 	test_function 0 a.wbfs "WBFS" \
-	    $WIT $PSEL -q cp "$1" --wbfs "$tempdir/a.wbfs" || return 1
+	    $WIT_CP "$1" --wbfs "$tempdir/a.wbfs" || return 1
 
 	rm -f "$tempdir/a.wbfs"*
     fi
@@ -497,7 +498,19 @@ do
 	continue
     fi
 
+    #---- hidden options
+
+    if [[ $src == --io ]]
+    then
+	IO="--io $( echo "$1" | tr -cd '0-9' )"
+	shift
+	((opts++)) || printf "\n"
+	printf "## Define option : $IO\n"
+	continue
+    fi
+
     opts=0
+    WIT_CP="$WIT COPY $PSEL $IO -q"
 
     total_start=$(get_msec)
     test_suite "$src"

@@ -283,7 +283,7 @@ enumError AnalyzePartitions ( FILE * outfile, bool non_found_is_ok, bool scan_wb
 	    File_t F;
 	    InitializeFile(&F);
 	    F.disable_errors = info->source != PS_PARAM || !outfile;
-	    enumError stat = OpenFile(&F,info->real_path,IOM_IS_WBFS);
+	    enumError stat = OpenFile(&F,info->real_path,IOM_IS_WBFS_PART);
 	    if (stat)
 	    {
 		read_error = ""; // message already printed
@@ -1150,7 +1150,7 @@ static enumError OpenWBFSHelper
 	OUT_OF_MEMORY;
     InitializeSF(sf);
     sf->f.disable_errors = !print_err;
-    enumError err = OpenFileModify(&sf->f,filename,IOM_IS_WBFS);
+    enumError err = OpenFileModify(&sf->f,filename,IOM_IS_WBFS_PART);
     if (err)
 	goto abort;
     sf->f.disable_errors = false;

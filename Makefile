@@ -18,7 +18,7 @@ WDF_SHORT		= wdf
 WDF_LONG		= Wiimms WDF Tool
 
 VERSION_NUM		= 1.17a
-BETA_VERSION		= 4
+BETA_VERSION		= 5
 			# 0:off  -1:"beta"  >0:"beta#"
 
 URI_HOME		= http://wit.wiimm.de/
@@ -132,19 +132,21 @@ OTHER_TOOLS_OBJ	:= $(patsubst %,%.o,$(TEST_TOOLS) $(HELPER_TOOLS))
 
 # other objects
 WIT_O		:= debug.o lib-std.o lib-file.o lib-sf.o \
+		   lib-bzip2.o lib-lzma.o \
 		   lib-wdf.o lib-wia.o lib-ciso.o \
 		   ui.o iso-interface.o wbfs-interface.o patch.o \
 		   titles.o match-pattern.o dclib-utf8.o \
 		   sha1dgst.o sha1_one.o
 LIBWBFS_O	:= file-formats.o libwbfs.o wiidisc.o rijndael.o
+LZMA_O		:= LzmaDec.o LzmaEnc.o LzFind.o Lzma2Dec.o Lzma2Enc.o
 
 # object groups
 UI_OBJECTS	:= $(sort $(MAIN_TOOLS_OBJ))
-C_OBJECTS	:= $(sort $(OTHER_TOOLS_OBJ) $(WIT_O) $(LIBWBFS_O) $(TOBJ_ALL))
+C_OBJECTS	:= $(sort $(OTHER_TOOLS_OBJ) $(WIT_O) $(LIBWBFS_O) $(LZMA_O) $(TOBJ_ALL))
 ASM_OBJECTS	:= ssl-asm.o
 
 # all objects + sources
-ALL_OBJECTS	:= $(sort $(WIT_O) $(LIBWBFS_O) $(ASM_OBJECTS))
+ALL_OBJECTS	:= $(sort $(WIT_O) $(LIBWBFS_O) $(LZMA_O) $(ASM_OBJECTS))
 ALL_SOURCES	:= $(patsubst %.o,%.c,$(UI_OBJECTS) $(C_OBJECTS) $(ASM_OBJECTS))
 
 #-------------------------------------------------------------------------------
@@ -157,21 +159,23 @@ TEMPLATES	= ./templates
 MODULES		= $(TEMPLATES)/module
 GEN_TEMPLATE	= ./gen-template.sh
 UI		= ./src/ui
-DIR_LIST	+= $(SCRIPTS) $(TEMPLATES) $(MODULES) $(UI)
+DIR_LIST	+= $(SCRIPTS) $(TEMPLATES) $(MODULES)
 
-VPATH		+= src src/libwbfs src/crypto $(UI) work
-DIR_LIST	+= src src/libwbfs src/crypto $(UI) work
+VPATH		+= src src/libwbfs src/lzma src/crypto $(UI) work
+DIR_LIST	+= src src/libwbfs src/lzma src/crypto $(UI) work
 
 DEFINES1	=  -DLARGE_FILES -D_FILE_OFFSET_BITS=64
 DEFINES1	+= -DWIT		# enable WIT specific modifications in libwbfs
 DEFINES1	+= -DDEBUG_ASSERT	# enable ASSERTions in release version too
 DEFINES1	+= -DEXTENDED_ERRORS=1	# enable extended error messages (function,line,file)
+DEFINES1	+= -D_7ZIP_ST=1		# disable 7zip multi threading
+DEFINES1	+= -D_LZMA_PROB32=1	# LZMA option
 #DEFINES1	+= -DNO_BZIP2=1
 DEFINES		=  $(strip $(DEFINES1) $(MODE) $(XDEF))
 
 CFLAGS		=  -fomit-frame-pointer -fno-strict-aliasing
 CFLAGS		+= -Wall -Wno-parentheses -Wno-unused-function
-CFLAGS		+= -O3 -Isrc/libwbfs -Isrc -I$(UI) -I. -Iwork
+CFLAGS		+= -O3 -Isrc/libwbfs -Isrc/lzma -Isrc -I$(UI) -I. -Iwork
 CFLAGS		+= $(XFLAGS)
 CFLAGS		:= $(strip $(CFLAGS))
 

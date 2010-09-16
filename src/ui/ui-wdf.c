@@ -181,10 +181,10 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
     {	OPT_COMPRESSION, 0, "compression",
 	"method",
 	"Select one compression method for new WIA files. Possible"
-	" compressions and values are NONE, PURGE and BZIP2. There are 3"
-	" additional keywords: FAST (=PURGE), BEST and DEFAULT (both =BZIP2)."
-	" These keywords may change their meanings if a new compression method"
-	" is implemented.\n"
+	" compressions and values are NONE, PURGE, BZIP2, LZMA and LZMA2."
+	" There are 3 additional keywords: FASTEST (=PURGE), BEST and DEFAULT"
+	" (both =LZMA). These additional keywords may change their meanings if"
+	" a new compression method is implemented.\n"
 	"--compr is a shortcut for --compression."
     },
 

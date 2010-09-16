@@ -25,7 +25,11 @@ Data of used (=non scrubbed sectors) are stored 1:1 with 0x8000 bytes (32KiB) or
 [*] [font="Courier New"][b]--compression PURGE[/b][/font]
 Data is purged like WDF: Areas with zeros are detected and skipped. The image is smaller than 'NONE' but contains more management info. There is a SHA1 hash for each data chunk so that data errors can be noticed.
 [*] [font="Courier New"][b]--compression BZIP2[/b][/font]
-Each chunk is compressed with bzip2 level 9. bzip2 has its own verification code.
+Each chunk is compressed with BZIP2 level 9. bzip2 has its own verification code.
+[*] [font="Courier New"][b]--compression LZMA[/b][/font]
+Each chunk is compressed with LZMA level 7. LZMA has its own verification code. LZMA und LZMA2 are developed in the 7zip project.
+[*] [font="Courier New"][b]--compression LZMA2[/b][/font]
+Each chunk is compressed with LZMA2 level 7. LZMA2 has its own verification code.
 [/list] 
 [color=#800000][b]WIA is experimental! The file format may change![/b][/color]
 Please use the thread [url=wit.wiimm.de/r/wia][b]"WIA = Wii ISO Archive"[/b][/url] for WIA discussions.

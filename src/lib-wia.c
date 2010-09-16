@@ -24,27 +24,17 @@
 
 #define _GNU_SOURCE 1
 
-#ifndef NO_BZIP2
-  #include <bzlib.h>
-#endif
-
 #include "debug.h"
 #include "iso-interface.h"
+#include "lib-bzip2.h"
+#include "lib-lzma.h"
 
 ///////////////////////////////////////////////////////////////////////////////
 
 	/////////////////////////////
 	//  [2do]:
-	//	- ReadWIA()
 	//	- WIA_MM_GROWING
-	//	- 7zip
 	/////////////////////////////
-
-///////////////////////////////////////////////////////////////////////////////
-
-/************************************************************************
- **  BZIP2 support: http://www.bzip.org/1.0.5/bzip2-manual-1.0.5.html  **
- ************************************************************************/
 
 //
 ///////////////////////////////////////////////////////////////////////////////
@@ -67,34 +57,6 @@ typedef enum mm_mode_t
     WIA_MM_GROWING,		// growing space
 
 } mm_mode_t;
-
-//
-///////////////////////////////////////////////////////////////////////////////
-///////////////			    bzip2 support		///////////////
-///////////////////////////////////////////////////////////////////////////////
-
-#ifndef NO_BZIP2
-
- static ccp get_bzip2_message ( int err, ccp unkown_error )
- {
-    switch (err)
-    {
-	case BZ_CONFIG_ERROR:		return "CONFIG ERROR";
-	case BZ_DATA_ERROR:		return "DATA ERROR";
-	case BZ_DATA_ERROR_MAGIC:	return "DATA ERROR MAGIC";
-	case BZ_IO_ERROR:		return "IO ERROR";
-	case BZ_MEM_ERROR:		return "MEM ERROR";
-	case BZ_OK:			return "OK";
-	case BZ_PARAM_ERROR:		return "PARAM ERROR";
-	case BZ_SEQUENCE_ERROR:		return "SEQUENCE ERROR";
-	case BZ_STREAM_END:		return "STREAM END";
-	case BZ_UNEXPECTED_EOF:		return "UNEXPECTED EOF";
-    }
-
-    return unkown_error;
- };
-
-#endif // !NO_BZIP2
 
 //
 ///////////////////////////////////////////////////////////////////////////////
@@ -173,7 +135,7 @@ bool IsWIA
     size_t		data_size,	// size of data
     void		* id6_result,	// not NULL: store ID6 (6 bytes without null term)
     wd_disc_type_t	* disc_type,	// not NULL: store disc type
-    wia_compression_t	* compression	// not NULL: store compression
+    wd_compression_t	* compression	// not NULL: store compression
 )
 {
     bool is_wia = false;
@@ -301,7 +263,7 @@ static enumError read_data
     wia_controller_t * wia = sf->wia;
     DASSERT(wia);
 
-    if ( file_data_size > sizeof(wia->iobuf) )
+    if ( file_data_size > 2 * sizeof(wia->iobuf) )
 	return ERROR0(ERR_WIA_INVALID,
 	    "WIA chunk size to large: %s\n",sf->f.fname);
 
@@ -311,11 +273,11 @@ static enumError read_data
     u8  * dest    = have_except ? wia->iobuf : inbuf;
     u32 dest_size = have_except ? sizeof(wia->iobuf) : inbuf_size;
 
-    switch((wia_compression_t)wia->disc.compression)
+    switch ((wd_compression_t)wia->disc.compression)
     {
       //----------------------------------------------------------------------
 
-      case WIA_COMPR_NONE:
+      case WD_COMPR_NONE:
       {
 	noPRINT(">> READ NONE: %9llx, %6x => %6x, except=%d, dest=%p, iobuf=%p\n",
 		file_offset, file_data_size, inbuf_size, have_except, dest, wia->iobuf );
@@ -334,7 +296,7 @@ static enumError read_data
 
       //----------------------------------------------------------------------
 
-      case WIA_COMPR_PURGE:
+      case WD_COMPR_PURGE:
       {
 	enumError err = ReadAtF( &sf->f, file_offset, wia->iobuf, file_data_size );
 	if (err)
@@ -370,11 +332,11 @@ static enumError read_data
 
       //----------------------------------------------------------------------
 
-      case WIA_COMPR_BZIP2:
+      case WD_COMPR_BZIP2:
 
  #ifdef NO_BZIP2
-	    return ERROR0(ERR_NOT_IMPLEMENTED,
-			"No bzip2 support for this release! Sorry!\n");
+	return ERROR0(ERR_NOT_IMPLEMENTED,
+			"No WIA/BZIP2 support for this release! Sorry!\n");
  #else
       { 
 	ASSERT(sf->f.fp);
@@ -382,32 +344,18 @@ static enumError read_data
 	if (err)
 	    return err;
 
-	int bzerror;
-	BZFILE *bz = BZ2_bzReadOpen(&bzerror,sf->f.fp,0,0,0,0);
-	if ( !bz || bzerror != BZ_OK )
-	{
-	    if (bz)
-		BZ2_bzReadClose(0,bz);
-	    return ERROR0(ERR_BZIP2,
-		    "Error while opening bzip2 stream: %s\n-> bzip2 error: %s\n",
-		    sf->f.fname, get_bzip2_message(bzerror,"?") );
-	}
+	BZIP2_t bz;
+	err = DecBZIP2_Open(&bz,&sf->f);
+	if (err)
+	    return err;
 
-	data_bytes_read = BZ2_bzRead(&bzerror,bz,dest,dest_size);
-	noPRINT("BZREAD, num=%x, datasize=%x, err=%d\n",data_bytes_read,file_data_size,bzerror);
-	if ( bzerror != BZ_STREAM_END )
-	{
-	    BZ2_bzReadClose(0,bz);
-	    return ERROR0(ERR_BZIP2,
-		    "Error while reading bzip2 stream: %s\n-> bzip2 error: %s\n",
-		    sf->f.fname, get_bzip2_message(bzerror,"?") );
-	}
+	err = DecBZIP2_Read(&bz,dest,dest_size,&data_bytes_read);
+	if (err)
+	    return err;
 
-	BZ2_bzReadClose(&bzerror,bz);
-	if ( bzerror != BZ_OK )
-	    return ERROR0(ERR_BZIP2,
-		    "Error while closing bzip2 stream: %s\n-> bzip2 error: %s\n",
-		    sf->f.fname, get_bzip2_message(bzerror,"?") );
+	err = DecBZIP2_Close(&bz);
+	if (err)
+	    return err;
       }
       break;
 
@@ -415,10 +363,41 @@ static enumError read_data
 
       //----------------------------------------------------------------------
 
+      case WD_COMPR_LZMA:
+      {
+	PRINT("SEEK TO %llx=%llu\n",file_offset,file_offset);
+	enumError err = SeekF(&sf->f,file_offset);
+	if (err)
+	    return err;
+
+	err = DecLZMA_File2Buf( &sf->f, file_data_size, dest, dest_size,
+				&data_bytes_read, wia->disc.compr_data );
+	if (err)
+	    return err;
+      }
+      break;
+
+      //----------------------------------------------------------------------
+
+      case WD_COMPR_LZMA2:
+      {
+	enumError err = SeekF(&sf->f,file_offset);
+	if (err)
+	    return err;
+
+	err = DecLZMA2_File2Buf( &sf->f, file_data_size, dest, dest_size,
+				&data_bytes_read, wia->disc.compr_data );
+	if (err)
+	    return err;
+      }
+      break;
+
+      //----------------------------------------------------------------------
+
       // no default case defined
       //	=> compiler checks the existence of all enum values
 
-      case WIA_COMPR__N:
+      case WD_COMPR__N:
 	ASSERT(0);
     }
     
@@ -775,17 +754,15 @@ enumError SetupReadWIA
     struct SuperFile_t	* sf	// file to setup
 )
 {
-    PRINT("#W# SetupReadWIA(%p) wc=%p wbfs=%p v=%s/%s\n",
-		sf, sf->wc, sf->wbfs,
+    PRINT("#W# SetupReadWIA(%p) file=%d/%p, wc=%p wbfs=%p v=%s/%s\n",
+		sf, GetFD(&sf->f), GetFP(&sf->f),
+		sf->wc, sf->wbfs,
 		PrintVersionWIA(0,0,WIA_VERSION_COMPATIBLE),
 		PrintVersionWIA(0,0,WIA_VERSION) );
     ASSERT(sf);
 
     if (sf->wia)
 	return ERROR0(ERR_INTERNAL,0);
-
-    //CleanSF(sf);
-    OpenStreamFile(&sf->f);
 
 
     //----- setup controller
@@ -893,12 +870,34 @@ enumError SetupReadWIA
     }
 
 
-    //----- clear cache for external read functions
+    //----- check compression method
 
-    if ( disc->compression > WIA_COMPR_PURGE )
+    switch ((wd_compression_t)disc->compression)
     {
-	PRINT("DISABLE CACHE\n");
-	ClearCache(&sf->f);
+	case WD_COMPR_BZIP2:
+	 #ifdef NO_BZIP2
+	    return ERROR0(ERR_NOT_IMPLEMENTED,
+			"No bzip2 support for this release! Sorry!\n");
+	 #endif
+	    PRINT("DISABLE CACHE & OPEN STREAM\n");
+	    ClearCache(&sf->f);
+	    OpenStreamFile(&sf->f);
+	    break;
+
+	case WD_COMPR__N:
+	case WD_COMPR_NONE:
+	case WD_COMPR_PURGE:
+	case WD_COMPR_LZMA:
+	case WD_COMPR_LZMA2:
+	    // nothing to do
+	    break;
+
+	default:
+	    return ERROR0(ERR_NOT_IMPLEMENTED,
+			"No support for compression method #%u (%x/hex, %s): \n",
+			disc->compression, disc->compression,
+			wd_get_compression_name(disc->compression,"unknown"),
+			sf->f.fname );
     }
 
 
@@ -1107,11 +1106,11 @@ static enumError write_data
 		ntohs(except->n_exceptions), group, except_size, except_size );
 
     u32 written = 0;
-    switch((wia_compression_t)wia->disc.compression)
+    switch((wd_compression_t)wia->disc.compression)
     {
       //----------------------------------------------------------------------
 
-      case WIA_COMPR_NONE:
+      case WD_COMPR_NONE:
       {
 	if (except_size)
 	{
@@ -1138,7 +1137,7 @@ static enumError write_data
 
       //----------------------------------------------------------------------
 
-      case WIA_COMPR_PURGE:
+      case WD_COMPR_PURGE:
       {
 	if (except_size)
 	{
@@ -1170,10 +1169,10 @@ static enumError write_data
 
       //----------------------------------------------------------------------
 
-      case WIA_COMPR_BZIP2:
+      case WD_COMPR_BZIP2:
  #ifdef NO_BZIP2
-	    return ERROR0(ERR_NOT_IMPLEMENTED,
-			"No bzip2 support for this release! Sorry!\n");
+	return ERROR0(ERR_NOT_IMPLEMENTED,
+			"No WIA/BZIP2 support for this release! Sorry!\n");
  #else
       {
 	ASSERT(sf->f.fp);
@@ -1181,51 +1180,75 @@ static enumError write_data
 	if (err)
 	    return err;
 
-	int bzerror;
-	BZFILE *bz = BZ2_bzWriteOpen(&bzerror,sf->f.fp,9,0,0);
-	if ( !bz || bzerror != BZ_OK )
-	{
-	    if (bz)
-		BZ2_bzWriteClose(0,bz,0,0,0);
-	    return ERROR0(ERR_BZIP2,
-		    "Error while opening bzip2 stream: %s\n-> bzip2 error: %s\n",
-		    sf->f.fname, get_bzip2_message(bzerror,"?") );
-	}
+	BZIP2_t bz;
+	err = EncBZIP2_Open(&bz,&sf->f);
+	if (err)
+	    return err;
 
-	if (except_size)
-	    BZ2_bzWrite(&bzerror,bz,(u8*)except,except_size);
-	if ( data_size && bzerror == BZ_OK )
-	    BZ2_bzWrite(&bzerror,bz,(u8*)data_ptr,data_size);
-	if ( bzerror != BZ_OK )
-	{
-	    BZ2_bzWriteClose(0,bz,0,0,0);
-	    return ERROR0(ERR_BZIP2,
-		    "Error while writing bzip2 stream: %s\n-> bzip2 error: %s\n",
-		    sf->f.fname, get_bzip2_message(bzerror,"?") );
-	}
+	err = EncBZIP2_Write(&bz,except,except_size);
+	if (err)
+	    return err;
 
-	unsigned int nbytes_out;
-	BZ2_bzWriteClose(&bzerror,bz,0,0,&nbytes_out);
-	if ( bzerror != BZ_OK )
-	    return ERROR0(ERR_BZIP2,
-		    "Error while closing bzip2 stream: %s\n-> bzip2 error: %s\n",
-		    sf->f.fname, get_bzip2_message(bzerror,"?") );
+	err = EncBZIP2_Write(&bz,data_ptr,data_size);
+	if (err)
+	    return err;
+
+	err = EncBZIP2_Close(&bz,&written);
+	if (err)
+	    return err;
 
 	noPRINT(">> WRITE BZIP2: %9llx, %6x+%6x => %6x, grp %d\n",
 		    wia->write_data_off, except_size, data_size, nbytes_out, group );
 
-	sf->f.max_off = wia->write_data_off + nbytes_out;
-	written = nbytes_out + 3 & ~3;
+	sf->f.max_off = wia->write_data_off + written;
       }
       break;
  #endif // !NO_BZIP2
 
       //----------------------------------------------------------------------
 
+      case WD_COMPR_LZMA:
+      case WD_COMPR_LZMA2:
+      {
+	enumError err = SeekF(&sf->f,wia->write_data_off);
+	if (err)
+	    return err;
+
+	DataArea_t area[3], *ap = area;
+	if (except_size)
+	{
+	    ap->data = (u8*)except;
+	    ap->size = except_size;
+	    ap++;
+	}
+	if (data_size)
+	{
+	    ap->data = data_ptr;
+	    ap->size = data_size;
+	    ap++;
+	}
+	ap->data = 0;
+
+	DataList_t list;
+	SetupDataList(&list,area);
+
+	err = wia->disc.compression == WD_COMPR_LZMA
+		? EncLZMA_List2File(0,&sf->f,false,true,&list,&written)
+		: EncLZMA2_List2File(0,&sf->f,false,true,&list,&written);
+	if (err)
+	    return err;
+
+	PRINT(">> WRITE LZMA: %9llx, %6x+%6x => %6x, grp %d\n",
+		    wia->write_data_off, except_size, data_size, written, group );
+      }
+      break;
+
+      //----------------------------------------------------------------------
+
       // no default case defined
       //	=> compiler checks the existence of all enum values
 
-      case WIA_COMPR__N:
+      case WD_COMPR__N:
 	ASSERT(0);
     }
 
@@ -1236,8 +1259,8 @@ static enumError write_data
 	grp->data_off4 = htonl( written ? wia->write_data_off >> 2 : 0 );
 	grp->data_size = htonl( written );
     }
-    
-    wia->write_data_off += written;
+
+    wia->write_data_off += written + 3 & ~3;
 
     if (write_count)
 	*write_count = written;
@@ -1525,12 +1548,14 @@ enumError WriteWIA
 
 		    if ( group != wia->gdata_group )
 		    {
-			write_cached_gdata(sf);
+			enumError err = write_cached_gdata(sf);
 			wia->gdata_group = group;
 			wia->gdata_size  = end_off - base_off;
 			PRINT("----- SETUP RAW%4u GROUP %4u/%4u>%4u, off=%9llx, size=%6x\n",
 				item->index, base_group, ntohl(rdata->n_groups), group,
 				base_off, wia->gdata_size );
+			if (err)
+			    return err;
 		    }
 
 		    if ( end_off > overlap2 )
@@ -1572,7 +1597,10 @@ enumError WriteWIA
 			DASSERT( group >= 0 && group < wia->group_used );
 			DASSERT( base_group >= 0 && base_group < part->n_groups );
 
-			write_cached_gdata(sf);
+			enumError err = write_cached_gdata(sf);
+			if (err)
+			    return err;
+
 			wia->gdata_group = group;
 			wia->gdata_part  = item->index;
 			wia->gdata_size  = end_off - base_off;
@@ -1845,8 +1873,10 @@ enumError SetupWriteWIA
 )
 {
     ASSERT(sf);
-    PRINT("#W# SetupWriteWIA(%p,%p,%llx) oft=%x, wia=%p, v=%s/%s\n",
-		sf, src, src_file_size, sf->iod.oft, sf->wia,
+    PRINT("#W# SetupWriteWIA(%p,%p,%llx) file=%d/%p, oft=%x, wia=%p, v=%s/%s\n",
+		sf, src, src_file_size,
+		GetFD(&sf->f), GetFP(&sf->f),
+		sf->iod.oft, sf->wia,
 		PrintVersionWIA(0,0,WIA_VERSION_COMPATIBLE),
 		PrintVersionWIA(0,0,WIA_VERSION) );
 
@@ -1855,9 +1885,6 @@ enumError SetupWriteWIA
 
 
     //----- setup controller
-
-    //CleanSF(sf);
-    OpenStreamFile(&sf->f);
 
     wia_controller_t * wia = calloc(1,sizeof(*wia));
     if (!wia)
@@ -1877,11 +1904,57 @@ enumError SetupWriteWIA
     fhead->iso_file_size	= src_file_size ? src_file_size : src ? src->file_size : 0;
 
 
-    //----- setup disc info
+    //----- setup disc info && compression
 
     wia_disc_t *disc = &wia->disc;
     disc->disc_type	= WD_DT_UNKNOWN;
     disc->compression	= opt_compression;
+
+    switch(opt_compression)
+    {
+	case WD_COMPR__N:
+	case WD_COMPR_NONE:
+	case WD_COMPR_PURGE:
+	    // nothing to do
+	    break;
+
+	case WD_COMPR_BZIP2:
+	 #ifdef NO_BZIP2
+	    return ERROR0(ERR_NOT_IMPLEMENTED,
+			"No bzip2 support for this release! Sorry!\n");
+	 #endif
+	    PRINT("OPEN STREAM\n");
+	    OpenStreamFile(&sf->f);
+	    break;
+
+	case WD_COMPR_LZMA:
+	    {
+		EncLZMA_t lzma;
+		enumError err = EncLZMA_Open(&lzma,sf->f.fname,false);
+		if (err)
+		    return err;
+		const size_t len = lzma.enc_props_len < sizeof(disc->compr_data)
+				 ? lzma.enc_props_len : sizeof(disc->compr_data);
+		disc->compr_data_len = len;
+		memcpy(disc->compr_data,lzma.enc_props,len);
+		EncLZMA_Close(&lzma);
+	    }
+	    break;
+
+	case WD_COMPR_LZMA2:
+	    {
+		EncLZMA_t lzma;
+		enumError err = EncLZMA2_Open(&lzma,sf->f.fname,false);
+		if (err)
+		    return err;
+		const size_t len = lzma.enc_props_len < sizeof(disc->compr_data)
+				 ? lzma.enc_props_len : sizeof(disc->compr_data);
+		disc->compr_data_len = len;
+		memcpy(disc->compr_data,lzma.enc_props,len);
+		EncLZMA2_Close(&lzma);
+	    }
+	    break;
+    }
 
 
     //----- check source disc type
@@ -1941,7 +2014,7 @@ enumError SetupWriteWIA
 	OUT_OF_MEMORY;
     wia->part = part;
 
-    for ( ip = 0; ip < disc->n_part; ip++, part++ )
+    for ( ip = 0; ip < wdisc->n_part; ip++, part++ )
     {
 	wd_part_t * wpart	= wdisc->part + ip;
 
@@ -2277,78 +2350,6 @@ void wia_hton_raw_data ( wia_raw_data_t * dest, const wia_raw_data_t * src )
 
     dest->group_index		= htonl (src->group_index);
     dest->n_groups		= htonl (src->n_groups);
-}
-
-//
-///////////////////////////////////////////////////////////////////////////////
-///////////////			compression option		///////////////
-///////////////////////////////////////////////////////////////////////////////
-
-wia_compression_t opt_compression = WIA_COMPR__DEFAULT;
-
-///////////////////////////////////////////////////////////////////////////////
-
-ccp GetCompressionName
-(
-    wia_compression_t	compr,		// compression mode
-    ccp			invalid_result	// return value if 'compr' is invalid
-)
-{
-    static ccp tab[] =
-    {
-	"none",
-	"purge",
-	"bzip2",
-    };
-    
-    return (u32)compr < WIA_COMPR__N ? tab[compr] : invalid_result;
-}
-
-///////////////////////////////////////////////////////////////////////////////
-
-wia_compression_t ScanCompression
-(
-    ccp			arg		// argument to scan
-)
-{
-    static const CommandTab_t tab[] =
-    {
-	{ WIA_COMPR_NONE,	"NONE",		0,	0 },
-	{ WIA_COMPR_PURGE,	"PURGE",	0,	0 },
-	{ WIA_COMPR_BZIP2,	"BZIP2",	"BZ2",	0 },
-
-	{ WIA_COMPR__DEFAULT,	"DEFAULT",	0,	0 },
-	{ WIA_COMPR__FAST,	"FAST",		0,	0 },
-	{ WIA_COMPR__BEST,	"BEST",		0,	0 },
-
-	{ 0,0,0,0 }
-    };
-
-    const CommandTab_t * cmd = ScanCommand(0,arg,tab);
-    if (cmd)
-	return cmd->id;
-
-    char * end;
-    u32 val = strtoul(arg,&end,10);
-    if ( end > arg && !*end && val < WIA_COMPR__N )
-	return val;
-
-    ERROR0(ERR_SYNTAX,"Illegal compression method: '%s'\n",arg);
-    return -1;
-}
-
-///////////////////////////////////////////////////////////////////////////////
-
-int ScanOptCompression
-(
-    ccp			arg		// argument to scan
-)
-{
-    const int new_compr = ScanCompression(arg);
-    if ( new_compr == -1 )
-	return 1;
-    opt_compression = new_compr;
-    return 0;
 }
 
 //

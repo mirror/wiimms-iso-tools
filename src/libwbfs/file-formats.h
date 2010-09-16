@@ -192,6 +192,39 @@ typedef enum wd_disc_type_t
 
 //
 ///////////////////////////////////////////////////////////////////////////////
+///////////////			enum wd_compression_t		///////////////
+///////////////////////////////////////////////////////////////////////////////
+
+typedef enum wd_compression_t
+{
+    //**********************************************************************
+    //***  never change the values, because they are used in arvchives!  ***
+    //**********************************************************************
+
+    WD_COMPR_NONE	= 0,	// data is not compressed
+    WD_COMPR_PURGE,		// data is not compressed but zero holes are purged
+    WD_COMPR_BZIP2,		// use BZIP2 compression
+    WD_COMPR_LZMA,		// use LZMA compression
+    WD_COMPR_LZMA2,		// use LZMA2 compression
+
+    WD_COMPR__N,		// number of compressions
+
+    WD_COMPR__DEFAULT	= WD_COMPR_LZMA,	// default compression
+    WD_COMPR__FASTEST	= WD_COMPR_PURGE,	// fast compression
+    WD_COMPR__BEST	= WD_COMPR_LZMA,	// best compression
+
+} wd_compression_t;
+
+//-----------------------------------------------------------------------------
+
+ccp wd_get_compression_name
+(
+    wd_compression_t	compr,		// compression mode
+    ccp			invalid_result	// return value if 'compr' is invalid
+);
+
+//
+///////////////////////////////////////////////////////////////////////////////
 ///////////////			typedefs			///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -209,11 +242,17 @@ int validate_file_format_sizes ( int trace_sizes );
 ///////////////		low level endian conversions		///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-// convert big endian date to number in host format
+// convert big endian data to a number in host format
 u16 be16 ( const void * be_data_ptr );
 u32 be24 ( const void * be_data_ptr );
 u32 be32 ( const void * be_data_ptr );
 u64 be64 ( const void * be_data_ptr );
+
+// convert little endian data to a number in host format
+u16 le16 ( const void * le_data_ptr );
+u32 le24 ( const void * le_data_ptr );
+u32 le32 ( const void * le_data_ptr );
+u64 le64 ( const void * le_data_ptr );
 
 // convert u64 from/to network byte order
 be64_t hton64 ( u64    data );
@@ -403,8 +442,8 @@ typedef struct wd_boot_t
   /* 0x420 */	u32		dol_off4;
   /* 0x424 */	u32		fst_off4;
   /* 0x428 */	u32		fst_size4;
-  /* 0x42c */	u32		copy_of__fst_size4;
-  /* 0x42c */	u8		unknown2[WII_BOOT_SIZE-0x430];
+  /* 0x42c */	u32		max_fst_size4;  // >= fst_size4 (max of multi discs)
+  /* 0x430 */	u8		unknown2[WII_BOOT_SIZE-0x430];
 }
 __attribute__ ((packed)) wd_boot_t;
 

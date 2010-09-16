@@ -2785,7 +2785,7 @@ u32 ScanPartFST
     if (boot)
     {
 	boot->fst_off4  = htonl(cur_offset4);
-	boot->fst_size4 = htonl(part->ftab_size>>2);
+	boot->fst_size4 = boot->max_fst_size4 = htonl(part->ftab_size>>2);
     }
 
     IsoMappingItem_t * imi;

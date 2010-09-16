@@ -1481,7 +1481,7 @@ enumError exec_copy ( SuperFile_t * fi, Iterator_t * it )
 		    oft_name[oft], fo.f.fname );
     }
 
-    enumError err = CreateFile( &fo.f, 0, IOM_IS_IMAGE, it->overwrite );
+    enumError err = CreateFile( &fo.f, 0, oft_iom[oft], it->overwrite );
     if ( err == ERR_ALREADY_EXISTS )
     {
 	it->exists_count++;
@@ -1734,8 +1734,18 @@ enumError exec_move ( SuperFile_t * fi, Iterator_t * it )
 		    oft_name[fo.iod.oft], fi->f.fname, fo.f.fname );
 	    }
 
-	    if ( !testmode && rename(fi->f.fname,fo.f.fname) )
-		return ERROR1( ERR_CANT_CREATE, "Can't create file: %s\n", fo.f.fname );
+	    if (!testmode)
+	    {
+		int stat = rename(fi->f.fname,fo.f.fname);
+		if ( stat && opt_mkdir )
+		{
+		    CreatePath(fo.f.fname);
+		    stat = rename(fi->f.fname,fo.f.fname);
+		}
+		if (stat)
+		    return ERROR1(ERR_CANT_CREATE,
+					"Can't create file: %s\n", fo.f.fname );
+	    }
 	}
     }
 
@@ -2190,6 +2200,7 @@ enumError CheckCommand ( int argc, char ** argv )
 	case CMD_HELP:		PrintHelp(&InfoUI,stdout,0,"HELP",0); break;
 	case CMD_TEST:		err = cmd_test(); break;
 	case CMD_ERROR:		err = cmd_error(); break;
+	case CMD_COMPR:		err = cmd_compr(); break;
 	case CMD_EXCLUDE:	err = cmd_exclude(); break;
 	case CMD_TITLES:	err = cmd_titles(); break;
 	case CMD_CREATE:	err = cmd_create(); break;

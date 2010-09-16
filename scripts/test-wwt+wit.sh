@@ -1,5 +1,5 @@
 #!/bin/bash
-# (c) Wiimm, 2010-09-12
+# (c) Wiimm, 2010-09-15
 
 myname="${0##*/}"
 base=wwt+wit
@@ -49,7 +49,7 @@ fi
 
 #
 #------------------------------------------------------------------------------
-# check exitence of needed tools
+# check existence of needed tools
 
 WWT=wwt
 WIT=wit
@@ -148,7 +148,8 @@ tempdir="$(mktemp -d ./.$base.tmp.XXXXXX)" || exit 1
 WBFS_FILE=a.wbfs
 WBFS="$tempdir/$WBFS_FILE"
 
-MODELIST="iso wdf wia.NONE wia.PURGE wia.BZIP2 ciso wbfs"
+WIALIST=$(echo $($WIT compr | sed 's/^/wia./'))
+MODELIST="iso wdf $WIALIST ciso wbfs"
 BASEMODE="wdf"
 
 FAST_MODELIST="wdf"
@@ -159,6 +160,7 @@ NOFST=0
 NOPIPE=0
 NOWIA=0
 RAW=
+IO=
 OPT_TEST=0
 OPT_TEST_MODES=0
 [[ $TERM = cygwin ]] && NOPIPE=1
@@ -238,7 +240,7 @@ function test_suite()
 	|| return $ERROR
 
     test_function "ADD-src" "wwt ADD source" \
-	$WWT $RAW -qp "$WBFS" ADD "$1" \
+	$WWT_ADD -p "$WBFS" "$1" \
 	|| return $ERROR
 
     for mode in $MODELIST
@@ -258,7 +260,7 @@ function test_suite()
 	let hss*=2
 
 	test_function "ADD-$mode" "wwt ADD from $mode" \
-	    $WWT $RAW -qp "$WBFS" ADD "$dest" \
+	    $WWT_ADD -p "$WBFS" "$dest" \
 	    || return $ERROR
 
 	[[ $mode = $BASEMODE ]] || rm -f "$dest"
@@ -283,7 +285,7 @@ function test_suite()
 	dest="$tempdir/copy.$xmode"
 
 	test_function "COPY-$xmode" "wit COPY to $xmode" \
-	    $WIT $RAW -q COPY "$src" "$dest" --$mode $compr \
+	    $WIT_CP "$src" "$dest" --$mode $compr \
 	    || return $ERROR
 
 	((count++)) && rm -f "$src"
@@ -306,11 +308,11 @@ function test_suite()
 	dest="$tempdir/fst"
 
 	test_function "EXTR-FST0" "wit EXTRACT source" \
-	    $WIT $RAW -q COPY "$1" "$dest/0" --fst -F :wit $FST_OPT \
+	    $WIT_CP "$1" "$dest/0" --fst -F :wit $FST_OPT \
 	    || return $ERROR
 
 	test_function "EXTR-FST1" "wit EXTRACT copy" \
-	    $WIT $RAW -q COPY "$src" "$dest/1" --fst -F :wit $FST_OPT \
+	    $WIT_CP "$src" "$dest/1" --fst -F :wit $FST_OPT \
 	    || return $ERROR
 
 	test_function "DIF-FST01" "DIFF fst/0 fst/1" \
@@ -320,7 +322,7 @@ function test_suite()
 	rm -rf "$dest/0"
 
 	test_function "GEN-ISO" "wit COMPOSE" \
-	    $WIT $RAW -q COPY "$dest/1" -D "$dest/a.wdf" --wdf --region=file \
+	    $WIT_CP "$dest/1" -D "$dest/a.wdf" --wdf --region=file \
 	    || return $ERROR
 
 	hss=512
@@ -330,7 +332,7 @@ function test_suite()
 	    || return $ERROR
 
 	test_function "ADD-FST" "wwt ADD FST" \
-	    $WWT $RAW -qp "$WBFS" ADD "$dest/1" --region=file \
+	    $WWT_ADD -p "$WBFS" "$dest/1" --region=file \
 	    || return $ERROR
 
 	test_function "CMP" "wit CMP 2x composed" \
@@ -338,7 +340,7 @@ function test_suite()
 	    || return $STAT_DIFF
 
 	test_function "EXTR-FST2" "wit EXTRACT" \
-	    $WIT $RAW -q COPY "$dest/a.wdf" "$dest/2" --fst -F :wit $FST_OPT \
+	    $WIT_CP "$dest/a.wdf" "$dest/2" --fst -F :wit $FST_OPT \
 	    || return $ERROR
 
 	#diff -rq "$dest/1" "$dest/2"
@@ -366,7 +368,7 @@ function test_suite()
 	ref="ADD pipe"
 	if ! $WDFCAT "$tempdir/image.$BASEMODE" |
 	    test_function "ADD-pipe" "wwt ADD $BASEMODE from pipe" \
-		$WWT $RAW -qp "$WBFS" ADD - --psel=DATA
+		$WWT_ADD -p "$WBFS" - --psel=DATA
 	then
 	    ref="NO-PIPE"
 	    return $STAT_SUCCESS
@@ -505,7 +507,6 @@ do
 
     if [[ $src == --test-modes || $src == --testmodes ]]
     then
-	OPT_TEST_MODE=1
 	STAT_SUCCESS=$STAT_TEST
 	((opts++)) || printf "\n"
 	printf "## --test-modes : list of modes:\n"
@@ -518,7 +519,21 @@ do
 	continue
     fi
 
+    #---- hidden options
+
+    if [[ $src == --io ]]
+    then
+	IO="--io $( echo "$1" | tr -cd 0-9 )"
+	shift
+	((opts++)) || printf "\n"
+	printf "## Define option : $IO\n"
+	continue
+    fi
+
+
     opts=0
+    WWT_ADD="$WWT ADD $RAW $IO -q"
+    WIT_CP="$WIT COPY $RAW $IO -q"
 
     total_start=$(get_msec)
     test_suite "$src"

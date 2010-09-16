@@ -111,27 +111,6 @@
 
 #define WIA_MAX_SUPPORTED_ISO_SIZE (50ull*GiB)
 
-///////////////////////////////////////////////////////////////////////////////
-
-typedef enum wia_compression_t
-{
-
-    //**********************************************************************
-    //***  never change the values, because they are used in arvchives!  ***
-    //**********************************************************************
-
-    WIA_COMPR_NONE	= 0,	// data is not compressed
-    WIA_COMPR_PURGE,		// data is not compressed but zero holes are purged
-    WIA_COMPR_BZIP2,		// use bzip2 compression
-
-    WIA_COMPR__N,		// number of compressions
-
-    WIA_COMPR__DEFAULT	= WIA_COMPR_BZIP2,	// default compression
-    WIA_COMPR__FAST	= WIA_COMPR_PURGE,	// fast compression
-    WIA_COMPR__BEST	= WIA_COMPR_BZIP2,	// best compression
-
-} wia_compression_t;
-
 //
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////			struct wia_file_head_t		///////////////
@@ -170,7 +149,7 @@ typedef struct wia_disc_t
     //--- base infos
 
     u32			disc_type;		// 0x00: wd_disc_type_t
-    u32			compression;		// 0x04: wia_compression_t
+    u32			compression;		// 0x04: wd_compression_t
 
     //--- disc header, first 0x80 bytes of source for easy detection 
 
@@ -374,7 +353,7 @@ bool IsWIA
     size_t		data_size,	// size of data
     void		* id6_result,	// not NULL: store ID6 (6 bytes without null term)
     wd_disc_type_t	* disc_type,	// not NULL: store disc type
-    wia_compression_t	* compression	// not NULL: store compression
+    wd_compression_t	* compression	// not NULL: store compression
 );
 
 //
@@ -462,35 +441,6 @@ void wia_hton_part ( wia_part_t * dest, const wia_part_t * src );
 
 void wia_ntoh_raw_data ( wia_raw_data_t * dest, const wia_raw_data_t * src );
 void wia_hton_raw_data ( wia_raw_data_t * dest, const wia_raw_data_t * src );
-
-//
-///////////////////////////////////////////////////////////////////////////////
-///////////////		interface: compression option		///////////////
-///////////////////////////////////////////////////////////////////////////////
-
-extern wia_compression_t opt_compression; // = WIA_COMPR__DEFAULT
-
-//-----------------------------------------------------------------------------
-
-ccp GetCompressionName
-(
-    wia_compression_t	compr,		// compression mode
-    ccp			invalid_result	// return value if 'compr' is invalid
-);
-
-//-----------------------------------------------------------------------------
-
-wia_compression_t ScanCompression
-(
-    ccp			arg		// argument to scan
-);
-
-//-----------------------------------------------------------------------------
-
-int ScanOptCompression
-(
-    ccp			arg		// argument to scan
-);
 
 //
 ///////////////////////////////////////////////////////////////////////////////

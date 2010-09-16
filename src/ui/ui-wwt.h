@@ -301,6 +301,10 @@ typedef enum enumOptions
 //				| OB_NO_HEADER
 //				| OB_LONG,
 //
+//	OB_CMD_COMPR		= OB_SECTIONS
+//				| OB_NO_HEADER
+//				| OB_LONG,
+//
 //	OB_CMD_EXCLUDE		= OB_EXCLUDE
 //				| OB_EXCLUDE_PATH,
 //
@@ -476,6 +480,7 @@ typedef enum enumCommands
 	CMD_HELP,
 	CMD_TEST,
 	CMD_ERROR,
+	CMD_COMPR,
 	CMD_EXCLUDE,
 	CMD_TITLES,
 
@@ -512,7 +517,7 @@ typedef enum enumCommands
 
 	CMD_FILETYPE,
 
-	CMD__N // == 35
+	CMD__N // == 36
 
 } enumCommands;
 
