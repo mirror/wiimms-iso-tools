@@ -1,5 +1,5 @@
 #!/bin/bash
-# (c) Wiimm, 2010-09-15
+# (c) Wiimm, 2010-09-17
 
 myname="${0##*/}"
 base=image-size
@@ -13,6 +13,7 @@ export LC_ALL=C
 METHODS="$(echo $($WIT compr))"
 PSEL=
 IO=
+LEVEL=0
 
 if [[ $# == 0 ]]
 then
@@ -41,6 +42,7 @@ then
 	  --data       : DATA partition only, scrub all others
 	  --compr list : Define a list of WIA compressing methods.
 	                 Default: $METHODS
+	  --level list : Test compression levels 'list' (1..9)
 
 	  --diff       : enable "wit DIFF" to verify WIA archives
 
@@ -118,6 +120,39 @@ function print_timer()
 function print_stat()
 {
     printf "%-26s : " "$(printf "$@")"
+}
+
+#
+#------------------------------------------------------------------------------
+# calc real methods
+
+function calc_real_methods()
+{
+    REALMETHODS=
+    for method in $METHODS
+    do	
+	method="$($WIT compr $method)"
+	case "$method" in
+	    -)
+		;;
+
+	    NONE|PURGE)
+		REALMETHODS="$REALMETHODS $method"
+		;;
+
+	    *)
+		if [[ $LEVEL == 0 ]]
+		then
+		    REALMETHODS="$REALMETHODS $method"
+		else
+		    for level in $LEVEL
+		    do
+			REALMETHODS="$REALMETHODS $method.$level"
+		    done
+		fi
+		;;
+	esac
+    done
 }
 
 #
@@ -262,48 +297,48 @@ function test_suite()
 	$WIT_CP "$1" --wdf --enc decrypt "$tempdir/a.wdf" || return 1
     local wdf_time=$last_time
 
-    if ((OPT_BZIP2))
-    then
-	test_function $wdf_time a.wdf.bz2 "WDF/DECRYPT + BZIP2" \
-	    bzip2 --keep "$tempdir/a.wdf" || return 1
-    fi
+#    if ((OPT_BZIP2))
+#    then
+#	test_function $wdf_time a.wdf.bz2 "WDF/DECRYPT + BZIP2" \
+#	    bzip2 --keep "$tempdir/a.wdf" || return 1
+#    fi
 
-    if ((OPT_RAR))
-    then
-	test_function $wdf_time a.wdf.rar "WDF/DECRYPT + RAR" \
-	    rar a -inul "$tempdir/a.wdf.rar" "$tempdir/a.wdf" || return 1
-    fi
+#    if ((OPT_RAR))
+#    then
+#	test_function $wdf_time a.wdf.rar "WDF/DECRYPT + RAR" \
+#	    rar a -inul "$tempdir/a.wdf.rar" "$tempdir/a.wdf" || return 1
+#    fi
 
-    if ((OPT_7Z))
-    then
-	test_function $wdf_time a.wdf.7z "WDF/DECRYPT + 7Z" \
-	    7z a -bd "$tempdir/a.wdf.7z" "$tempdir/a.wdf" || return 1
-    fi
+#    if ((OPT_7Z))
+#    then
+#	test_function $wdf_time a.wdf.7z "WDF/DECRYPT + 7Z" \
+#	    7z a -bd "$tempdir/a.wdf.7z" "$tempdir/a.wdf" || return 1
+#    fi
 
     rm -f "$tempdir/a.wdf"*
 
 
     #----- wia
 
-    for method in $METHODS
+    for method in $REALMETHODS
     do
 	test_function 0 a.wia "WIA/$method" \
 	    $WIT_CP "$1" --wia --compr $method "$tempdir/a.wia" || return 1
 	local wdf_time=$last_time
 
-	if ((OPT_BZIP2))
+	if ((OPT_BZIP2)) && [[ $method == NONE ]]
 	then
 	    test_function $wdf_time a.wia.bz2 "WIA/$method + BZIP2" \
 		bzip2 --keep "$tempdir/a.wia" || return 1
 	fi
 
-	if ((OPT_RAR))
+	if ((OPT_RAR)) && [[ $method == NONE ]]
 	then
 	    test_function $wdf_time a.wia.rar "WIA/$method + RAR" \
 		rar a -inul "$tempdir/a.wia.rar" "$tempdir/a.wia" || return 1
 	fi
 
-	if ((OPT_7Z))
+	if ((OPT_7Z)) && [[ $method == NONE ]]
 	then
 	    test_function $wdf_time a.wia.7z "WIA/$method + 7Z" \
 		7z a -bd "$tempdir/a.wia.7z" "$tempdir/a.wia" || return 1
@@ -402,6 +437,8 @@ function test_suite()
 
 opts=0
 
+REALMETHODS
+
 while (($#))
 do
     src="$1"
@@ -495,6 +532,19 @@ do
 	shift
 	((opts++)) || printf "\n"
 	printf "## --compr : WIA compression methods set to: $METHODS\n"
+	calc_real_methods
+	printf "## compr+level expanded to: $REALMETHODS\n"
+	continue
+    fi
+
+    if [[ $src == --level ]]
+    then
+	LEVEL="$( echo "$1" | tr ',' ' ' | tr -cd '1-9 ' )"
+	shift
+	((opts++)) || printf "\n"
+	printf "## --level : WIA compression level set to: $LEVEL\n"
+	calc_real_methods
+	printf "## compr+level expanded to: $REALMETHODS\n"
 	continue
     fi
 

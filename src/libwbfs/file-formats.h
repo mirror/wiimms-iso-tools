@@ -203,15 +203,17 @@ typedef enum wd_compression_t
 
     WD_COMPR_NONE	= 0,	// data is not compressed
     WD_COMPR_PURGE,		// data is not compressed but zero holes are purged
+
     WD_COMPR_BZIP2,		// use BZIP2 compression
     WD_COMPR_LZMA,		// use LZMA compression
     WD_COMPR_LZMA2,		// use LZMA2 compression
 
     WD_COMPR__N,		// number of compressions
 
-    WD_COMPR__DEFAULT	= WD_COMPR_LZMA,	// default compression
-    WD_COMPR__FASTEST	= WD_COMPR_PURGE,	// fast compression
-    WD_COMPR__BEST	= WD_COMPR_LZMA,	// best compression
+    WD_COMPR__FIRST_REAL	= WD_COMPR_BZIP2,	// first real compression
+    WD_COMPR__FASTEST		= WD_COMPR_PURGE,	// fast compression
+    WD_COMPR__BEST		= WD_COMPR_LZMA,	// best compression
+    WD_COMPR__DEFAULT		= WD_COMPR_LZMA,	// default compression
 
 } wd_compression_t;
 
@@ -219,8 +221,18 @@ typedef enum wd_compression_t
 
 ccp wd_get_compression_name
 (
-    wd_compression_t	compr,		// compression mode
+    wd_compression_t	compr,		// compression method
     ccp			invalid_result	// return value if 'compr' is invalid
+);
+
+ccp wd_print_compression_name
+(
+    char		* buf,		// result buffer
+					// If NULL, a local circulary static buffer is used
+    size_t		buf_size,	// size of 'buf', ignored if buf==NULL
+    wd_compression_t	compr_method,	// compression method
+    int			compr_level,	// compression level
+    int			mode		// 1=number, 2=name, 3=number and name
 );
 
 //

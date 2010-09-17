@@ -64,6 +64,16 @@ ccp GetMessageBZIP2
     return unkown_error;
 };
 
+///////////////////////////////////////////////////////////////////////////////
+
+int CalcCompressionLevelBZIP2
+(
+    int			compr_level	// valid are 1..9 / 0: use default value
+)
+{
+    return compr_level >= 1 && compr_level <= 9 ? compr_level : 9;
+}
+
 //
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////			BZIP2 writing			///////////////
@@ -72,7 +82,8 @@ ccp GetMessageBZIP2
 enumError EncBZIP2_Open
 (
     BZIP2_t		* bz,		// data structure, will be initialized
-    File_t		* file		// destination file
+    File_t		* file,		// destination file
+    int			compr_level	// valid are 1..9 / 0: use default value
 )
 {
     DASSERT(bz);
@@ -80,9 +91,10 @@ enumError EncBZIP2_Open
     DASSERT(file->fp);
 
     bz->file = file;
+    bz->compr_level = CalcCompressionLevelBZIP2(compr_level);
 
     int bzerror;
-    bz->handle = BZ2_bzWriteOpen(&bzerror,file->fp,9,0,0);
+    bz->handle = BZ2_bzWriteOpen(&bzerror,file->fp,bz->compr_level,0,0);
     if ( !bz || bzerror != BZ_OK )
     {
 	if (bz->handle)

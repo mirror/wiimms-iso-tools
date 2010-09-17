@@ -700,9 +700,10 @@ enumError wia_dump ( FILE *f, File_t *df, ccp fname )
 		PrintVersionWIA(0,0,wia->fhead.version_compatible) );
 
     if ( wia->fhead.disc_size == sizeof(wia_disc_t) )
-	fprintf(f,"    %-23s: %10u = %9x/hex\n",
+	fprintf(f,"    %-23s: %10u = %9x/hex = %s\n",
 		"Size of disc section",
-		wia->fhead.disc_size, wia->fhead.disc_size );
+		wia->fhead.disc_size, wia->fhead.disc_size,
+		wd_print_size(0,0,wia->fhead.disc_size,true) );
     else
 	fprintf(f,"    %-23s: %10u = %9x [current: %zu = %zx/hex]\n",
 		"Size of disc section",
@@ -711,18 +712,22 @@ enumError wia_dump ( FILE *f, File_t *df, ccp fname )
 
     if (wia->fhead.iso_file_size)
     {
-	fprintf(f,"    %-23s: %10llu =%10llx/hex\n",
+	fprintf(f,"    %-23s: %10llu =%10llx/hex = %s\n",
 		"ISO image size",
-		wia->fhead.iso_file_size, wia->fhead.iso_file_size );
-	fprintf(f,"    %-23s: %10llu =%10llx/hex  %4.1f%%\n",
+		wia->fhead.iso_file_size, wia->fhead.iso_file_size,
+		wd_print_size(0,0,wia->fhead.iso_file_size,true) );
+	double percent = 100.0 * wia->fhead.wia_file_size / wia->fhead.iso_file_size;
+	fprintf(f,"    %-23s: %10llu =%10llx/hex = %s  %4.*f%%\n",
 		"Total file size",
 		wia->fhead.wia_file_size, wia->fhead.wia_file_size,
-		100.0 * wia->fhead.wia_file_size / wia->fhead.iso_file_size );
+		wd_print_size(0,0,wia->fhead.wia_file_size,true),
+		percent <= 9.9 ? 2 : 1, percent );
     }
     else
-	fprintf(f,"    %-23s: %10llu =%10llx\n",
+	fprintf(f,"    %-23s: %10llu =%10llx/hex = %s\n",
 		"Total file size",
-		wia->fhead.wia_file_size, wia->fhead.wia_file_size );
+		wia->fhead.wia_file_size, wia->fhead.wia_file_size,
+		wd_print_size(0,0,wia->fhead.wia_file_size,true) );
 
     //-------------------------
 
@@ -739,15 +744,22 @@ enumError wia_dump ( FILE *f, File_t *df, ccp fname )
 		"Disc type",
 		disc->disc_type, wd_get_disc_type_name(disc->disc_type,"?") );
     fprintf(f,"    %-23s: %10u = %s\n",
-		"Compression mode",
+		"Compression method",
 		disc->compression, wd_get_compression_name(disc->compression,"?") );
+    fprintf(f,"    %-23s: %10u\n",
+		"Compression level", disc->compr_level);
+    fprintf(f,"    %-23s: %10u =%10x/hex = %s\n",
+		"Chunk size",
+		disc->chunk_size, disc->chunk_size,
+		wd_print_size(0,0,disc->chunk_size,true) );
 
     fprintf(f,"    %-23s: %10u\n",
 		" Number of partitions",
 		disc->n_part );
-    fprintf(f,"    %-23s: %10llu = %9llx/hex\n",
+    fprintf(f,"    %-23s: %10llu = %9llx/hex = %s\n",
 		" Offset of Part.header",
-		disc->part_off, disc->part_off );
+		disc->part_off, disc->part_off,
+		wd_print_size(0,0,disc->part_off,true) );
     fprintf(f,"    %-23s: %2d * %5u = %9u\n",
 		" Size of Part.header",
 		disc->n_part, disc->part_t_size,
@@ -755,25 +767,30 @@ enumError wia_dump ( FILE *f, File_t *df, ccp fname )
 
     fprintf(f,"    %-23s: %10u\n",
 		"Num. of raw data elem.", disc->n_raw_data );
-    fprintf(f,"    %-23s: %10llu = %9llx/hex\n",
+    fprintf(f,"    %-23s: %10llu = %9llx/hex = %s\n",
 		"Offset of raw data tab.",
-		disc->raw_data_off, disc->raw_data_off );
-    fprintf(f,"    %-23s: %10u = %9x/hex\n",
+		disc->raw_data_off, disc->raw_data_off,
+		wd_print_size(0,0,disc->raw_data_off,true) );
+    fprintf(f,"    %-23s: %10u = %9x/hex = %s\n",
 		"Size of raw data tab.",
-		disc->raw_data_size, disc->raw_data_size );
+		disc->raw_data_size, disc->raw_data_size,
+		wd_print_size(0,0,disc->raw_data_size,true) );
 
     fprintf(f,"    %-23s: %10u\n",
 		" Num. of group elem.", disc->n_groups );
-    fprintf(f,"    %-23s: %10llu = %9llx/hex\n",
+    fprintf(f,"    %-23s: %10llu = %9llx/hex = %s\n",
 		" Offset of group tab.",
-		disc->group_off, disc->group_off );
-    fprintf(f,"    %-23s: %10u = %9x/hex\n",
+		disc->group_off, disc->group_off,
+		wd_print_size(0,0,disc->group_off,true) );
+    fprintf(f,"    %-23s: %10u = %9x/hex = %s\n",
 		" Size of group tab.",
-		disc->group_size, disc->group_size );
+		disc->group_size, disc->group_size,
+		wd_print_size(0,0,disc->group_size,true) );
 
-    fprintf(f,"    %-23s: %10u = %9x/hex\n",
+    fprintf(f,"    %-23s: %10u = %9x/hex = %s\n",
 		"Compressor data length",
-		disc->compr_data_len, disc->compr_data_len );
+		disc->compr_data_len, disc->compr_data_len,
+		wd_print_size(0,0,disc->compr_data_len,true) );
     if (disc->compr_data_len)
     {
 	fprintf(f,"    %-23s:","Compressor Data");

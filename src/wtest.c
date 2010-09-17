@@ -548,7 +548,7 @@ static enumError test_lzma ( int argc, char ** argv )
     if (err)
 	return err;
 
-    err = EncLZMA_Data2File(0,&f,true,true,src_buf,sizeof(src_buf),0);
+    err = EncLZMA_Data2File(0,&f,opt_compr_level,true,true,src_buf,sizeof(src_buf),0);
     if (err)
 	return err;
 
@@ -617,7 +617,7 @@ static enumError test_lzma2 ( int argc, char ** argv )
     if (err)
 	return err;
 
-    err = EncLZMA2_Data2File(0,&f,true,true,src_buf,sizeof(src_buf),0);
+    err = EncLZMA2_Data2File(0,&f,opt_compr_level,true,true,src_buf,sizeof(src_buf),0);
     if (err)
 	return err;
 

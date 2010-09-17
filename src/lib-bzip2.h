@@ -43,6 +43,7 @@ typedef struct BZIP2_t
 {
     File_t		* file;		// IO file
     BZFILE		* handle;	// bzip2 handle
+    int			compr_level;	// active compression level
 
 } BZIP2_t;
 
@@ -57,6 +58,13 @@ ccp GetMessageBZIP2
     ccp			unkown_error	// result for unkown error codes
 );
 
+//-----------------------------------------------------------------------------
+
+int CalcCompressionLevelBZIP2
+(
+    int			compr_level	// valid are 1..9 / 0: use default value
+);
+
 //
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////			BZIP2 writing			///////////////
@@ -65,7 +73,8 @@ ccp GetMessageBZIP2
 enumError EncBZIP2_Open
 (
     BZIP2_t		* bz,		// data structure, will be initialized
-    File_t		* file		// destination file
+    File_t		* file,		// destination file
+    int			compr_level	// valid are 1..9 / 0: use default value
 );
 
 //-----------------------------------------------------------------------------

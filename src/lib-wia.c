@@ -836,6 +836,12 @@ enumError SetupReadWIA
     wia_disc_t *disc = &wia->disc;
     wia_ntoh_disc(disc,(wia_disc_t*)wia->iobuf);
 
+    if ( disc->chunk_size != WIA_BASE_CHUNK_SIZE )
+	return ERROR0(ERR_WIA_INVALID,
+	    "Only a chunk size of %s, but not %s, is supported: %s\n",
+		wd_print_size(0,0,WIA_BASE_CHUNK_SIZE,false),
+		wd_print_size(0,0,disc->chunk_size,false), sf->f.fname );
+
 
     //----- read and check partition header
 
@@ -1181,7 +1187,7 @@ static enumError write_data
 	    return err;
 
 	BZIP2_t bz;
-	err = EncBZIP2_Open(&bz,&sf->f);
+	err = EncBZIP2_Open(&bz,&sf->f,opt_compr_level);
 	if (err)
 	    return err;
 
@@ -1233,8 +1239,8 @@ static enumError write_data
 	SetupDataList(&list,area);
 
 	err = wia->disc.compression == WD_COMPR_LZMA
-		? EncLZMA_List2File(0,&sf->f,false,true,&list,&written)
-		: EncLZMA2_List2File(0,&sf->f,false,true,&list,&written);
+		? EncLZMA_List2File (0,&sf->f,opt_compr_level,false,true,&list,&written)
+		: EncLZMA2_List2File(0,&sf->f,opt_compr_level,false,true,&list,&written);
 	if (err)
 	    return err;
 
@@ -1908,9 +1914,10 @@ enumError SetupWriteWIA
 
     wia_disc_t *disc = &wia->disc;
     disc->disc_type	= WD_DT_UNKNOWN;
-    disc->compression	= opt_compression;
+    disc->compression	= opt_compr_method;
+    disc->chunk_size	= 2 * MiB;
 
-    switch(opt_compression)
+    switch(opt_compr_method)
     {
 	case WD_COMPR__N:
 	case WD_COMPR_NONE:
@@ -1923,6 +1930,7 @@ enumError SetupWriteWIA
 	    return ERROR0(ERR_NOT_IMPLEMENTED,
 			"No bzip2 support for this release! Sorry!\n");
 	 #endif
+	    disc->compr_level = CalcCompressionLevelBZIP2(opt_compr_level);
 	    PRINT("OPEN STREAM\n");
 	    OpenStreamFile(&sf->f);
 	    break;
@@ -1930,9 +1938,10 @@ enumError SetupWriteWIA
 	case WD_COMPR_LZMA:
 	    {
 		EncLZMA_t lzma;
-		enumError err = EncLZMA_Open(&lzma,sf->f.fname,false);
+		enumError err = EncLZMA_Open(&lzma,sf->f.fname,opt_compr_level,false);
 		if (err)
 		    return err;
+		disc->compr_level = lzma.compr_level;
 		const size_t len = lzma.enc_props_len < sizeof(disc->compr_data)
 				 ? lzma.enc_props_len : sizeof(disc->compr_data);
 		disc->compr_data_len = len;
@@ -1944,9 +1953,10 @@ enumError SetupWriteWIA
 	case WD_COMPR_LZMA2:
 	    {
 		EncLZMA_t lzma;
-		enumError err = EncLZMA2_Open(&lzma,sf->f.fname,false);
+		enumError err = EncLZMA2_Open(&lzma,sf->f.fname,opt_compr_level,false);
 		if (err)
 		    return err;
+		disc->compr_level = lzma.compr_level;
 		const size_t len = lzma.enc_props_len < sizeof(disc->compr_data)
 				 ? lzma.enc_props_len : sizeof(disc->compr_data);
 		disc->compr_data_len = len;
@@ -2237,6 +2247,8 @@ void wia_ntoh_disc ( wia_disc_t * dest, const wia_disc_t * src )
 
     dest->disc_type		= ntohl (src->disc_type);
     dest->compression		= ntohl (src->compression);
+    dest->compr_level		= ntohl (src->compr_level);
+    dest->chunk_size		= ntohl (src->chunk_size);
 
     dest->n_part		= ntohl (src->n_part);
     dest->part_t_size		= ntohl (src->part_t_size);
@@ -2264,6 +2276,8 @@ void wia_hton_disc ( wia_disc_t * dest, const wia_disc_t * src )
 
     dest->disc_type		= htonl (src->disc_type);
     dest->compression		= htonl (src->compression);
+    dest->compr_level		= htonl (src->compr_level);
+    dest->chunk_size		= htonl (src->chunk_size);
 
     dest->n_part		= htonl (src->n_part);
     dest->part_t_size		= htonl (src->part_t_size);

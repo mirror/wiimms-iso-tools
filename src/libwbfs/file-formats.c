@@ -412,6 +412,82 @@ ccp wd_get_compression_name
     return (u32)compr < sizeof(tab)/sizeof(*tab) ? tab[compr] : invalid_result;
 }
 
+///////////////////////////////////////////////////////////////////////////////
+
+ccp wd_print_compression_name
+(
+    char		* buf,		// result buffer
+					// If NULL, a local circulary static buffer is used
+    size_t		buf_size,	// size of 'buf', ignored if buf==NULL
+    wd_compression_t	compr_method,	// compression method
+    int			compr_level,	// compression level
+    int			mode		// 1=number, 2=name, 3=number and name
+)
+{
+    enum
+    {
+	SBUF_COUNT = 4,
+	SBUF_SIZE  = 15
+    };
+
+    static int  sbuf_index = 0;
+    static char sbuf[SBUF_COUNT][SBUF_SIZE+1];
+
+    if (!buf)
+    {
+	// use static buffer
+	buf = sbuf[sbuf_index];
+	buf_size = SBUF_SIZE;
+	sbuf_index = ( sbuf_index + 1 ) % SBUF_COUNT;
+    }
+
+    //----------------
+
+
+    if ( compr_method < 0 || compr_method >= WD_COMPR__N )
+    {
+	compr_method = WD_COMPR__N;
+	compr_level = 0;
+    }
+    else if ( compr_method < WD_COMPR__FIRST_REAL || compr_level < 0 || compr_level > 9 )
+	compr_level = 0;
+    
+
+    mode &= 3;
+    if ( mode == 1 )
+    {
+	if ( compr_method == WD_COMPR__N )
+	    snprintf(buf,buf_size,"-");
+	else if (compr_level)
+	    snprintf(buf,buf_size,"%u.%u",compr_method,compr_level);
+	else
+	    snprintf(buf,buf_size,"%u",compr_method);
+    }
+    else if ( mode == 2 )
+    {
+	ccp name = wd_get_compression_name(compr_method,"-");
+	if ( compr_method == WD_COMPR__N )
+	    snprintf(buf,buf_size,"-");
+	else if (compr_level)
+	    snprintf(buf,buf_size,"%s.%u",name,compr_level);
+	else
+	    snprintf(buf,buf_size,"%s",name);
+    }
+    else
+    {
+	ccp name = wd_get_compression_name(compr_method,"-");
+	if ( compr_method == WD_COMPR__N )
+	    snprintf(buf,buf_size,"- -");
+	else if (compr_level)
+	    snprintf(buf,buf_size,"%u.%u %s.%u",
+			compr_method,compr_level, name,compr_level );
+	else
+	    snprintf(buf,buf_size,"%u %s",compr_method,name);
+    }
+    
+    return buf;
+}
+
 //
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////			struct wd_header_t		///////////////

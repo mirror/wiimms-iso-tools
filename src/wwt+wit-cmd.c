@@ -99,8 +99,8 @@ enumError cmd_compr()
 			    && !OptionUsed[OPT_NO_HEADER];
     if (print_header)
 	printf(	"\n"
-		" num name  alternative names\n"
-		"-----------------------------\n");
+		" num  name    alternative names\n"
+		"--------------------------------\n");
 
     const bool have_param = n_param > 0;
     if (!n_param)
@@ -130,14 +130,17 @@ enumError cmd_compr()
 	ParamList_t * param;
 	for ( param = first_param; param; param = param->next, index++ )
 	{
-	    wd_compression_t compr = ScanCompression(param->arg,true);
+	    int level;
+	    wd_compression_t compr = ScanCompression(param->arg,true,&level);
 	    if ( compr == (wd_compression_t)-1 )
 		err_count++;
 	    printf( "\n[compression-method-%u]\n"
 		    "num=%d\n"
-		    "name=%s\n"
+		    "name=%s"
+		    "%s%d\n"
 		    "%s%s%s",
 		    index, compr, wd_get_compression_name(compr,"-"),
+		    level ? "\nlevel=" : "", level,
 		    compr == WD_COMPR__DEFAULT ? "is-default=1\n" : "",
 		    compr == WD_COMPR__FASTEST ? "is-fastest=1\n" : "",
 		    compr == WD_COMPR__BEST    ? "is-best=1\n" : "" );
@@ -153,7 +156,8 @@ enumError cmd_compr()
 	ParamList_t * param;
 	for ( param = first_param; param; param = param->next )
 	{
-	    wd_compression_t compr = ScanCompression(param->arg,true);
+	    int level;
+	    wd_compression_t compr = ScanCompression(param->arg,true,&level);
 	    if ( compr == (wd_compression_t)-1 )
 	    {
 		err_count++;
@@ -164,11 +168,13 @@ enumError cmd_compr()
 	     #ifdef NO_BZIP2
 		if ( have_param || compr != WD_COMPR_BZIP2 )
 	     #endif
-		printf("%u %s\n",compr,wd_get_compression_name(compr,"-"));
+		printf("%s\n",wd_print_compression_name(0,0,compr,level,3));
 	    }
 	    else
 	    {
-		printf("%4u %-5s",compr,wd_get_compression_name(compr,"-"));
+		printf(" %-4s %-7s",
+			wd_print_compression_name(0,0,compr,level,1),
+			wd_print_compression_name(0,0,compr,level,2) );
 		if ( long_count > 1 )
 		{
 		    if ( compr == WD_COMPR__DEFAULT )
@@ -191,14 +197,15 @@ enumError cmd_compr()
 	ParamList_t * param;
 	for ( param = first_param; param; param = param->next )
 	{
-	    wd_compression_t compr = ScanCompression(param->arg,true);
+	    int level;
+	    wd_compression_t compr = ScanCompression(param->arg,true,&level);
 	 #ifdef NO_BZIP2
 	    if ( !have_param && compr == WD_COMPR_BZIP2 )
 		continue; // ignore it
 	 #endif
 	    if ( compr == (wd_compression_t)-1 )
 		err_count++;
-	    printf("%s\n",wd_get_compression_name(compr,"-"));
+	    printf("%s\n",wd_print_compression_name(0,0,compr,level,2));
 	}
     }
 
@@ -277,9 +284,9 @@ enumError cmd_test_options()
     }
 
     printf("  split-size:  %16llx = %lld\n",opt_split_size,opt_split_size);
-    printf("  compression: %16x = %d = %s\n",
-		opt_compression, opt_compression,
-		wd_get_compression_name(opt_compression,"?") );
+    printf("  compression: %16x = %d = %s (level=%d)\n",
+		opt_compr_method, opt_compr_method,
+		wd_get_compression_name(opt_compr_method,"?"), opt_compr_level );
     printf("  escape-char: %16x = %d\n",escape_char,escape_char);
     printf("  print-time:  %16x = %d\n",opt_print_time,opt_print_time);
     printf("  sort-mode:   %16x = %d\n",sort_mode,sort_mode);

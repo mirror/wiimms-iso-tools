@@ -351,7 +351,7 @@ enumError XCloseFile ( XPARM File_t * f, bool remove_file )
 	    if (rename(*path,f->rename))
 	    {
 		if (!f->disable_errors)
-		    PrintError( XERROR1, ERR_CANT_CREATE,
+		    ERROR1( ERR_CANT_CREATE,
 			"Can't create file: %s\n", f->rename );
 		if ( err < ERR_CANT_CREATE )
 		    err = ERR_CANT_CREATE;

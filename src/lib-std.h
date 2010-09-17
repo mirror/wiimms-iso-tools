@@ -1033,14 +1033,17 @@ enumError ScanSetupFile
 ///////////////		    scan compression option		///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-extern wd_compression_t opt_compression; // = WD_COMPR__DEFAULT
+extern wd_compression_t opt_compr_method; // = WD_COMPR__DEFAULT
+extern int opt_compr_level;		  // = 0=default, 1..9=valid
 
 //-----------------------------------------------------------------------------
 
 wd_compression_t ScanCompression
 (
     ccp			arg,		// argument to scan
-    bool		silent		// don't print error message
+    bool		silent,		// don't print error message
+    int			* level		// not NULL: appendix ',digit' allowed
+					// The level will be stored in '*level'
 );
 
 //-----------------------------------------------------------------------------

@@ -18,7 +18,7 @@
 [size="2"][color="#0000c0"][b]Highlights of this release:[/b][/color][/size]
 [list]
 [*] [color=#000080][b]WIA = Wii ISO Archive[/b][/color]
-I have reimplemented WIA. It support now 3 compression methods:
+I have reimplemented WIA. It support now 5 compression methods:
 [list]
 [*] [font="Courier New"][b]--compression NONE[/b][/font]
 Data of used (=non scrubbed sectors) are stored 1:1 with 0x8000 bytes (32KiB) or 0x7c00 bytes for decrypted data partitions (hash removed). This format is very good for an external packer. No hash values for the chunks available.

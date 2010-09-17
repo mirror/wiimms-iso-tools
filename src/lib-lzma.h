@@ -39,6 +39,7 @@ typedef struct EncLZMA_t
     void *		handle;		// lzma handle
     u8			enc_props[8];	// encoded properties
     size_t		enc_props_len;	// used length of 'enc_props'
+    int			compr_level;	// active compression level
     ccp			error_object;	// object name for error messages
 
 } EncLZMA_t;
@@ -61,6 +62,13 @@ void InitializeLZMA
     EncLZMA_t		* lzma		// valid object to initialize
 );
 
+//-----------------------------------------------------------------------------
+
+int CalcCompressionLevelLZMA
+(
+    int			compr_level	// valid are 1..9 / 0: use default value
+);
+
 //
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////		   LZMA encoding (compression)		///////////////
@@ -70,6 +78,7 @@ enumError EncLZMA_Open
 (
     EncLZMA_t		* lzma,		// object, will be initialized
     ccp			error_object,	// object name for error messages
+    int			compr_level,	// valid are 1..9 / 0: use default value
     bool		write_endmark	// true: write end marker at end of stream
 );
 
@@ -109,6 +118,7 @@ enumError EncLZMA_Data2File // open + write + close lzma stream
 (
     EncLZMA_t		* lzma,		// if NULL: use internal structure
     File_t		* file,		// destination file, write to current offset
+    int			compr_level,	// valid are 1..9 / 0: use default value
     bool		write_props,	// true: write encoding properties
     bool		write_endmark,	// true: write end marker at end of stream
     const void		* data,		// data to write
@@ -122,6 +132,7 @@ enumError EncLZMA_List2File // open + write + close lzma stream
 (
     EncLZMA_t		* lzma,		// if NULL: use internal structure
     File_t		* file,		// destination file, write to current offset
+    int			compr_level,	// valid are 1..9 / 0: use default value
     bool		write_props,	// true: write encoding properties
     bool		write_endmark,	// true: write end marker at end of stream
     DataList_t		* data_list,	// NULL or data list (modified)
@@ -153,6 +164,7 @@ enumError EncLZMA2_Open
 (
     EncLZMA_t		* lzma,		// object, will be initialized
     ccp			error_object,	// object name for error messages
+    int			compr_level,	// valid are 1..9 / 0: use default value
     bool		write_endmark	// true: write end marker at end of stream
 );
 
@@ -192,6 +204,7 @@ enumError EncLZMA2_Data2File // open + write + close lzma stream
 (
     EncLZMA_t		* lzma,		// if NULL: use internal structure
     File_t		* file,		// destination file, write to current offset
+    int			compr_level,	// valid are 1..9 / 0: use default value
     bool		write_props,	// true: write encoding properties
     bool		write_endmark,	// true: write end marker at end of stream
     const void		* data,		// data to write
@@ -205,6 +218,7 @@ enumError EncLZMA2_List2File // open + write + close lzma stream
 (
     EncLZMA_t		* lzma,		// if NULL: use internal structure
     File_t		* file,		// destination file, write to current offset
+    int			compr_level,	// valid are 1..9 / 0: use default value
     bool		write_props,	// true: write encoding properties
     bool		write_endmark,	// true: write end marker at end of stream
     DataList_t		* data_list,	// NULL or data list (modified)

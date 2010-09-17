@@ -100,16 +100,17 @@
 // If D != 0x00 && D != 0xff => append: 'beta' D
 //-----------------------------------------------------
 
-#define WIA_VERSION		0x00070000  // current writing version
-#define WIA_VERSION_COMPATIBLE	0x00060000  // down compatible
+#define WIA_VERSION		0x00080000  // current writing version
+#define WIA_VERSION_COMPATIBLE	0x00080000  // down compatible
 
 // the minimal size of holes in bytes that will be detected.
-
 #define WIA_MIN_HOLE_SIZE	0x400
 
 // the maximal supported iso size
-
 #define WIA_MAX_SUPPORTED_ISO_SIZE (50ull*GiB)
+
+// the minimal chunk size (if ever, multiple of this are supported)
+#define WIA_BASE_CHUNK_SIZE (2*MiB)
 
 //
 ///////////////////////////////////////////////////////////////////////////////
@@ -150,36 +151,39 @@ typedef struct wia_disc_t
 
     u32			disc_type;		// 0x00: wd_disc_type_t
     u32			compression;		// 0x04: wd_compression_t
+    u32			compr_level;		// 0x08: method dependent compr.level
+						//       This value is informative only
+    u32			chunk_size;		// 0x0c: used chunk_size, 2 MiB is standard
 
     //--- disc header, first 0x80 bytes of source for easy detection 
 
-    u8			dhead[0x80];		// 0x08: 128 bytes of disc header
+    u8			dhead[0x80];		// 0x10: 128 bytes of disc header
 						//	 for a fast data access
     //--- partition data, direct copy => hash needed
 
-    u32			n_part;			// 0x88: number or partitions
-    u32			part_t_size;		// 0x8c: size of 1 element of wia_part_t
-    u64			part_off;		// 0x90: file offset wia_part_t[n_part]
-    sha1_hash		part_hash;		// 0x98: hash of wia_part_t[n_part]
+    u32			n_part;			// 0x90: number or partitions
+    u32			part_t_size;		// 0x94: size of 1 element of wia_part_t
+    u64			part_off;		// 0x98: file offset wia_part_t[n_part]
+    sha1_hash		part_hash;		// 0xa0: hash of wia_part_t[n_part]
 
     //--- raw data, compressed
 
-    u32			n_raw_data;		// 0xac: number of wia_raw_data_t elements 
-    u64			raw_data_off;		// 0xb0: offset of wia_raw_data_t[n_raw_data]
-    u32			raw_data_size;		// 0xb8: conpressed size of raw data
+    u32			n_raw_data;		// 0xb4: number of wia_raw_data_t elements 
+    u64			raw_data_off;		// 0xb8: offset of wia_raw_data_t[n_raw_data]
+    u32			raw_data_size;		// 0xc0: conpressed size of raw data
 
     //--- group header, compressed
 
-    u32			n_groups;		// 0xbc: number of wia_group_t elements
-    u64			group_off;		// 0xc0: offset of wia_group_t[n_groups]
-    u32			group_size;		// 0xc8: conpressed size of groups
+    u32			n_groups;		// 0xc4: number of wia_group_t elements
+    u64			group_off;		// 0xc8: offset of wia_group_t[n_groups]
+    u32			group_size;		// 0xd0: conpressed size of groups
 
     //--- compressor dependent data (e.g. LZMA properties)
 
-    u8			compr_data_len;		// 0xcc: used length of 'compr_data'
-    u8			compr_data[7];		// 0xcd: compressor specific data 
+    u8			compr_data_len;		// 0xd4: used length of 'compr_data'
+    u8			compr_data[7];		// 0xd5: compressor specific data 
 
-} __attribute__ ((packed)) wia_disc_t;		// 0xd4 = 212 = sizeof(wia_disc_t)
+} __attribute__ ((packed)) wia_disc_t;		// 0xdc = 220 = sizeof(wia_disc_t)
 
 //
 ///////////////////////////////////////////////////////////////////////////////

@@ -2263,14 +2263,17 @@ enumError ScanHex
 ///////////////		    scan compression option		///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-wd_compression_t opt_compression = WD_COMPR__DEFAULT;
+wd_compression_t opt_compr_method = WD_COMPR__DEFAULT;
+int opt_compr_level = 0;	// 0=default, 1..9=valid
 
 ///////////////////////////////////////////////////////////////////////////////
 
-wd_compression_t ScanCompression
+static wd_compression_t ScanCompression_helper
 (
     ccp			arg,		// argument to scan
-    bool		silent		// don't print error message
+    bool		silent,		// don't print error message
+    int			* level		// not NULL: appendix ',digit' allowed
+					// The level will be stored in '*level'
 )
 {
     static const CommandTab_t tab[] =
@@ -2288,23 +2291,64 @@ wd_compression_t ScanCompression
 	{ 0,0,0,0 }
     };
 
-    const CommandTab_t * cmd = ScanCommand(0,arg,tab);
+    if (level)
+	*level = 0;
+
+    char argbuf[100];
+    ccp scan_arg = arg ? arg : "";
+    if (level)
+    {
+	const int len = strlen(arg);
+	if ( len >= 2
+	    && len < sizeof(argbuf)
+	    && ( arg[len-2] == ',' || arg[len-2] == '.' )
+	    && arg[len-1] >= '0'
+	    && arg[len-1] <= '9'
+	   )
+	{
+	    *level = arg[len-1] - '0';
+	    if ( len == 2 )
+		return WD_COMPR__DEFAULT;
+
+	    memcpy(argbuf,arg,len-2);
+	    argbuf[len-2] = 0;
+	    scan_arg = argbuf;
+	}
+    }
+
+    const CommandTab_t * cmd = ScanCommand(0,scan_arg,tab);
     if (cmd)
 	return cmd->id;
 
     char * end;
-    u32 val = strtoul(arg,&end,10);
+    u32 val = strtoul(scan_arg,&end,10);
  #ifdef TEST
-    if ( end > arg && !*end )
+    if ( end > scan_arg && !*end )
 	return val;
  #else
-    if ( end > arg && !*end && val < WD_COMPR__N )
+    if ( end > scan_arg && !*end && val < WD_COMPR__N )
 	return val;
  #endif
 
     if (!silent)
-	ERROR0(ERR_SYNTAX,"Illegal compression method: '%s'\n",arg);
+	ERROR0(ERR_SYNTAX,"Illegal compression method: '%s'\n",scan_arg);
     return -1;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+wd_compression_t ScanCompression
+(
+    ccp			arg,		// argument to scan
+    bool		silent,		// don't print error message
+    int			* level		// not NULL: appendix ',digit' allowed
+					// The level will be stored in '*level'
+)
+{
+    wd_compression_t compr = ScanCompression_helper(arg,silent,level);
+    if ( level && ( compr < WD_COMPR__FIRST_REAL || compr >= WD_COMPR__N ))
+	*level = 0;
+    return compr;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -2314,10 +2358,12 @@ int ScanOptCompression
     ccp			arg		// argument to scan
 )
 {
-    const int new_compr = ScanCompression(arg,false);
+    int new_level = 0;
+    const int new_compr = ScanCompression(arg,false,&new_level);
     if ( new_compr == -1 )
 	return 1;
-    opt_compression = new_compr;
+    opt_compr_method = new_compr;
+    opt_compr_level  = new_level;
     return 0;
 }
 
