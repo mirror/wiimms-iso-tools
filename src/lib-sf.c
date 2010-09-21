@@ -3477,8 +3477,10 @@ static enumError SourceIteratorHelper
 	return ERR_OK;
     }
     sf.f.disable_errors = false;
+ #if 0 // [obsolete]
     if ( *sf.f.id6 )
 	OpenDiscSF(&sf,false,false);
+ #endif
 
     ccp real_path = realpath( sf.f.path ? sf.f.path : sf.f.fname, buf );
     if (!real_path)

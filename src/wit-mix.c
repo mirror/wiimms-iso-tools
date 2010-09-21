@@ -1298,9 +1298,12 @@ static enumError create_gc_mix
     if (testmode)
 	return ERR_OK;
 
- #ifndef TEST // [2do] [gc]
-    return ERROR0(ERR_NOT_IMPLEMENTED,
-	"Mixing of GameCube partitions is not implemented yet.");
+ #ifndef TEST // {2do]
+    if ( verbose >= 0 )
+	ERROR0(ERR_WARNING,
+		"***********************************************\n"
+		"***  The GameCube support is EXPERIMENTAL!  ***\n"
+		"***********************************************\n" );
  #endif
 
 
@@ -1551,14 +1554,16 @@ enumError cmd_mix()
     Mix_t * mix;
     for ( mix = mp.mix; mix < mp.end_mix; mix++ )
     {
-	dest += sprintf(dest,"%s%.6s",sep,&mix->part->boot.dhead.disc_id);
-	sep = " + ";
+	dest += sprintf(dest,"%s%s",sep,wd_print_id(&mix->part->boot.dhead.disc_id,6,0));
+	sep = "+";
 	const u64 end_off = mix->part->part_size + mix->dest_sector * (u64)WII_SECTOR_SIZE;
 	if ( dest_file_size < end_off )
 	     dest_file_size = end_off;
 	PRINT("FILE-SIZE: %9llx %9llx\n",end_off,dest_file_size);
     }
     mp.dest_file_size = dest_file_size;
+    if ( dest - iobuf >= ( mp.is_gc ? GC_MULTIBOOT_PTAB_OFF-WII_TITLE_OFF : WII_TITLE_SIZE ))
+	sprintf(iobuf,"WIT mix of %u discs",mp.n_mix);
 
     wd_header_t dhead;
     if (mp.source_dhead)

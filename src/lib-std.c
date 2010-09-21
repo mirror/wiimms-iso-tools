@@ -91,6 +91,11 @@ StringField_t	created_files;
 char		iobuf [0x400000];		// global io buffer
 const char	zerobuf[0x40000]	= {0};	// global zero buffer
 
+// 'tempbuf' is only for short usage
+//	==> don't call other functions while using tempbuf
+u8		* tempbuf		= 0;	// global temp buffer -> AllocTempBuffer()
+size_t		tempbuf_size		= 0;	// size of 'tempbuf'
+
 #ifdef __CYGWIN__
  bool		use_utf8		= false;
 #else
@@ -326,6 +331,7 @@ void SetupLib ( int argc, char ** argv, ccp p_progname, enumProgID prid )
     TRACE_SIZEOF(wia_except_list_t);
     TRACE_SIZEOF(wia_file_head_t);
     TRACE_SIZEOF(wia_group_t);
+    TRACE_SIZEOF(wia_part_data_t);
     TRACE_SIZEOF(wia_part_t);
     TRACE_SIZEOF(wia_raw_data_t);
 
@@ -2264,7 +2270,8 @@ enumError ScanHex
 ///////////////////////////////////////////////////////////////////////////////
 
 wd_compression_t opt_compr_method = WD_COMPR__DEFAULT;
-int opt_compr_level = 0;	// 0=default, 1..9=valid
+int opt_compr_level		  = 0;	// 0=default, 1..9=valid
+u32 opt_compr_chunk_size	  = 0;	// 0=default
 
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -2272,8 +2279,10 @@ static wd_compression_t ScanCompression_helper
 (
     ccp			arg,		// argument to scan
     bool		silent,		// don't print error message
-    int			* level		// not NULL: appendix ',digit' allowed
+    int			* level,	// not NULL: appendix '.digit' allowed
 					// The level will be stored in '*level'
+    u32			* chunk_size	// not NULL: appendix '@size' allowed
+					// The size will be stored in '*chunk_size'
 )
 {
     static const CommandTab_t tab[] =
@@ -2291,28 +2300,54 @@ static wd_compression_t ScanCompression_helper
 	{ 0,0,0,0 }
     };
 
-    if (level)
-	*level = 0;
-
     char argbuf[100];
     ccp scan_arg = arg ? arg : "";
-    if (level)
+    if ( level || chunk_size )
     {
-	const int len = strlen(arg);
-	if ( len >= 2
-	    && len < sizeof(argbuf)
-	    && ( arg[len-2] == ',' || arg[len-2] == '.' )
-	    && arg[len-1] >= '0'
-	    && arg[len-1] <= '9'
-	   )
-	{
-	    *level = arg[len-1] - '0';
-	    if ( len == 2 )
-		return WD_COMPR__DEFAULT;
+	if (level)
+	    *level = 0;
+	if (chunk_size)
+	    *chunk_size = 0;
 
-	    memcpy(argbuf,arg,len-2);
-	    argbuf[len-2] = 0;
+	const int len = strlen(arg);
+	if ( len < sizeof(argbuf) )
+	{
+	    strcpy(argbuf,arg);
 	    scan_arg = argbuf;
+
+	    if (chunk_size)
+	    {
+		char * found = strchr(argbuf,'@');
+		if (found)
+		{
+		    *found++ = 0;
+		    char * end;
+		    unsigned num = strtoul(found,&end,10);
+		    if (*end)
+		    {
+			if (!silent)
+			    ERROR0(ERR_SYNTAX,
+				"Unsigned number expected: --compression @%s\n",found);
+			return -1;
+		    }
+
+		    // +1: mark as set even if num is 0
+		    *chunk_size = num * WII_GROUP_SIZE + 1;
+		}
+	    }
+	    
+	    if (level)
+	    {
+		char * found = strchr(argbuf,'.');
+		if ( found && found[1] >= '0' && found[1] <= '9' && !found[2] )
+		{
+		    *level = found[1] - '0';
+		    *found = 0;
+		}
+	    }
+
+	    if (!*argbuf)
+		return WD_COMPR__DEFAULT;
 	}
     }
 
@@ -2341,11 +2376,13 @@ wd_compression_t ScanCompression
 (
     ccp			arg,		// argument to scan
     bool		silent,		// don't print error message
-    int			* level		// not NULL: appendix ',digit' allowed
+    int			* level,	// not NULL: appendix '.digit' allowed
 					// The level will be stored in '*level'
+    u32			* chunk_size	// not NULL: appendix '@size' allowed
+					// The size will be stored in '*chunk_size'
 )
 {
-    wd_compression_t compr = ScanCompression_helper(arg,silent,level);
+    wd_compression_t compr = ScanCompression_helper(arg,silent,level,chunk_size);
     if ( level && ( compr < WD_COMPR__FIRST_REAL || compr >= WD_COMPR__N ))
 	*level = 0;
     return compr;
@@ -2359,11 +2396,13 @@ int ScanOptCompression
 )
 {
     int new_level = 0;
-    const int new_compr = ScanCompression(arg,false,&new_level);
+    u32 new_chunk_size;
+    const int new_compr = ScanCompression(arg,false,&new_level,&new_chunk_size);
     if ( new_compr == -1 )
 	return 1;
-    opt_compr_method = new_compr;
-    opt_compr_level  = new_level;
+    opt_compr_method	 = new_compr;
+    opt_compr_level	 = new_level;
+    opt_compr_chunk_size = new_chunk_size;
     return 0;
 }
 
@@ -3878,6 +3917,34 @@ uint Count1Bits64 ( u64 data )
 	 + TableBitCount[d[5]]
 	 + TableBitCount[d[6]]
 	 + TableBitCount[d[7]];
+}
+
+//
+///////////////////////////////////////////////////////////////////////////////
+///////////////			    etc				///////////////
+///////////////////////////////////////////////////////////////////////////////
+
+size_t AllocTempBuffer ( size_t needed_size )
+{
+    // 'tempbuf' is only for short usage
+    //     ==> don't call other functions while using tempbuf
+
+    // align to 4K
+    needed_size = needed_size + 0xfff & ~(size_t)0xfff;
+
+    if ( tempbuf_size < needed_size )
+    {
+	PRINT("$$$ ALLOC TEMPBUF, SIZE: %zx > %zx (%s -> %s)\n",
+		tempbuf_size, needed_size,
+		wd_print_size(0,0,tempbuf_size,false),
+		wd_print_size(0,0,needed_size,false) );
+	tempbuf_size = needed_size;
+	free(tempbuf);
+	tempbuf = malloc(needed_size);
+	if (!tempbuf)
+	    OUT_OF_MEMORY;
+    }
+    return tempbuf_size;
 }
 
 //

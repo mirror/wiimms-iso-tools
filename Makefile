@@ -18,7 +18,7 @@ WDF_SHORT		= wdf
 WDF_LONG		= Wiimms WDF Tool
 
 VERSION_NUM		= 1.17a
-BETA_VERSION		= 6
+BETA_VERSION		= 7
 			# 0:off  -1:"beta"  >0:"beta#"
 
 URI_HOME		= http://wit.wiimm.de/
@@ -173,7 +173,7 @@ DEFINES1	+= -D_LZMA_PROB32=1	# LZMA option
 #DEFINES1	+= -DNO_BZIP2=1
 DEFINES		=  $(strip $(DEFINES1) $(MODE) $(XDEF))
 
-CFLAGS		=  -fomit-frame-pointer -fno-strict-aliasing
+CFLAGS		=  -fomit-frame-pointer -fno-strict-aliasing -funroll-loops
 CFLAGS		+= -Wall -Wno-parentheses -Wno-unused-function
 CFLAGS		+= -O3 -Isrc/libwbfs -Isrc/lzma -Isrc -I$(UI) -I. -Iwork
 CFLAGS		+= $(XFLAGS)

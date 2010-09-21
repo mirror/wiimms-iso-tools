@@ -643,6 +643,12 @@ enumError XCreateFile
 	fbuf[flen] = 0;
 	XXXXXX = fbuf + flen - 6;
     }
+    else if ( flen >= 11 && !memcmp(fname+flen-11,".XXXXXX.tmp",11) )
+    {
+	memcpy(fbuf,fname,flen);
+	fbuf[flen] = 0;
+	XXXXXX = fbuf + flen - 10;
+    }
     else
     {
 	if (XCheckCreated(XCALL fname,disable_errors))
@@ -656,19 +662,13 @@ enumError XCreateFile
 	char * dest = fbuf + (name-fname);
 	ASSERT( dest < fbuf + PATH_MAX );
 
+	char * dest_name = dest;
 	*dest++ = '.';
 	dest = StringCopyE(dest,fbuf+PATH_MAX,name);
-	*dest++ = '.';
-	XXXXXX = dest;
-	*dest++ = 'X';
-	*dest++ = 'X';
-	*dest++ = 'X';
-	*dest++ = 'X';
-	*dest++ = 'X';
-	*dest++ = 'X';
-	*dest = 0;
-
-	ASSERT( dest < fbuf + sizeof(fbuf) );
+	if ( dest - dest_name > 50 )
+	     dest = dest_name + 50;
+	XXXXXX = dest + 1;
+	StringCopyE(dest,fbuf+sizeof(fbuf),".XXXXXX.tmp");
 	TRACE("#F# TEMP:   '%s'\n",fbuf);
     }
 
@@ -701,6 +701,7 @@ enumError XCreateFile
 	const enumError err = XOpenFileHelper(XCALL f,iomode,open_flags,open_flags);
 	if ( err == ERR_OK || err == ERR_CANT_CREATE_DIR )
 	{
+	    noPRINT("#F# TEMP:   '%s'\n",fbuf);
 	    f->fname = strdup(fbuf);
 	    f->disable_errors = disable_errors;
 	    return f->last_error = f->max_error = err;
@@ -1835,7 +1836,7 @@ enumError XSetSizeF ( XPARM File_t * f, off_t off )
     if (f->fp)
 	fflush(f->fp); // [2do] ? error handling
 
-    if ( !f->seek_allowed && f->cur_off < off )
+    if ( !f->seek_allowed && f->cur_off <= off )
     {
 	if (!XSeekF(XCALL f,off))
 	    return f->last_error;

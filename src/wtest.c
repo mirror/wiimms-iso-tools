@@ -732,7 +732,7 @@ static enumError develop_sf ( SuperFile_t * sf )
 
     wd_memmap_t mm;
     memset(&mm,0,sizeof(mm));
-    int n = wd_insert_memmap_disc_part(&mm,disc,patch_func,0,1,2,3);
+    int n = wd_insert_memmap_disc_part(&mm,disc,patch_func,0,1,2,3,4,5);
 
     printf("Dump, N=%d:\n",n);
     wd_dump_memmap(stdout,3,&mm);

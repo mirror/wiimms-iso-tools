@@ -414,20 +414,21 @@ ccp wd_get_compression_name
 
 ///////////////////////////////////////////////////////////////////////////////
 
-ccp wd_print_compression_name
+ccp wd_print_compression
 (
     char		* buf,		// result buffer
 					// If NULL, a local circulary static buffer is used
     size_t		buf_size,	// size of 'buf', ignored if buf==NULL
     wd_compression_t	compr_method,	// compression method
     int			compr_level,	// compression level
+    u32			chunk_size,	// compression chunk size, multiple of MiB
     int			mode		// 1=number, 2=name, 3=number and name
 )
 {
     enum
     {
 	SBUF_COUNT = 4,
-	SBUF_SIZE  = 15
+	SBUF_SIZE  = 20
     };
 
     static int  sbuf_index = 0;
@@ -443,7 +444,6 @@ ccp wd_print_compression_name
 
     //----------------
 
-
     if ( compr_method < 0 || compr_method >= WD_COMPR__N )
     {
 	compr_method = WD_COMPR__N;
@@ -453,38 +453,46 @@ ccp wd_print_compression_name
 	compr_level = 0;
     
 
+    int len;
     mode &= 3;
     if ( mode == 1 )
     {
 	if ( compr_method == WD_COMPR__N )
-	    snprintf(buf,buf_size,"-");
+	    len = snprintf(buf,buf_size,"-");
 	else if (compr_level)
-	    snprintf(buf,buf_size,"%u.%u",compr_method,compr_level);
+	    len = snprintf(buf,buf_size,"%u.%u",compr_method,compr_level);
 	else
-	    snprintf(buf,buf_size,"%u",compr_method);
+	    len = snprintf(buf,buf_size,"%u",compr_method);
     }
     else if ( mode == 2 )
     {
 	ccp name = wd_get_compression_name(compr_method,"-");
 	if ( compr_method == WD_COMPR__N )
-	    snprintf(buf,buf_size,"-");
+	    len = snprintf(buf,buf_size,"-");
 	else if (compr_level)
-	    snprintf(buf,buf_size,"%s.%u",name,compr_level);
+	    len = snprintf(buf,buf_size,"%s.%u",name,compr_level);
 	else
-	    snprintf(buf,buf_size,"%s",name);
+	    len = snprintf(buf,buf_size,"%s",name);
     }
     else
     {
 	ccp name = wd_get_compression_name(compr_method,"-");
 	if ( compr_method == WD_COMPR__N )
-	    snprintf(buf,buf_size,"- -");
+	    len = snprintf(buf,buf_size,"- -");
 	else if (compr_level)
-	    snprintf(buf,buf_size,"%u.%u %s.%u",
+	    len = snprintf(buf,buf_size,"%u.%u %s.%u",
 			compr_method,compr_level, name,compr_level );
 	else
-	    snprintf(buf,buf_size,"%u %s",compr_method,name);
+	    len = snprintf(buf,buf_size,"%u %s",compr_method,name);
     }
-    
+
+    if ( compr_method != WD_COMPR__N )
+    {
+	chunk_size /= WII_GROUP_SIZE; // reduce chunk_size to a factor
+	if (chunk_size)
+	    snprintf(buf+len,buf_size-len,"@%u",chunk_size);
+    }
+
     return buf;
 }
 
@@ -521,7 +529,7 @@ void header_128_setup
     id_setup(&dhead->disc_id,id6,6);
 
     if (!disc_title)
-	disc_title = "WIT: Wiimms ISO Tools,http://wit.wiimm.de/";
+	disc_title = "WIT: Wiimms ISO Tools, http://wit.wiimm.de/";
     strncpy(dhead->disc_title,disc_title,sizeof(dhead->disc_title)-1);
 
     if (is_gc)

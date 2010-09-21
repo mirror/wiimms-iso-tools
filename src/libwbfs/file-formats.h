@@ -225,13 +225,14 @@ ccp wd_get_compression_name
     ccp			invalid_result	// return value if 'compr' is invalid
 );
 
-ccp wd_print_compression_name
+ccp wd_print_compression
 (
     char		* buf,		// result buffer
 					// If NULL, a local circulary static buffer is used
     size_t		buf_size,	// size of 'buf', ignored if buf==NULL
     wd_compression_t	compr_method,	// compression method
     int			compr_level,	// compression level
+    u32			chunk_size,	// compression chunk size, multiple of MiB
     int			mode		// 1=number, 2=name, 3=number and name
 );
 

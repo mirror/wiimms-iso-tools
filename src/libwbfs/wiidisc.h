@@ -494,6 +494,7 @@ typedef struct wd_part_t
 					// partition key, needed to build aes key
     u32			data_off4;	// offset/4 of partition data relative to disc start
     u32			data_sector;	// index of first data sector
+    u32			end_mgr_sector;	// index of last management sector + 1
     u32			end_sector;	// index of last data sector + 1
 
     wd_boot_t		boot;		// copy of boot.bin, host endian
@@ -1418,8 +1419,10 @@ int wd_insert_memmap_disc_part
     // value WD_PAT_IGNORE means: do not create such entires
 
     wd_patch_mode_t	wii_head_mode,	// value for the Wii partition header
+    wd_patch_mode_t	wii_mgr_mode,	// value for the Wii partition mgr data
     wd_patch_mode_t	wii_data_mode,	// value for the Wii partition data
-    wd_patch_mode_t	gc_data_mode	// value for the partition header
+    wd_patch_mode_t	gc_mgr_mode,	// value for the GC partition mgr header
+    wd_patch_mode_t	gc_data_mode	// value for the GC partition header
 );
 
 //-----------------------------------------------------------------------------
@@ -1436,8 +1439,10 @@ int wd_insert_memmap_part
     // value WD_PAT_IGNORE means: do not create such entires
 
     wd_patch_mode_t	wii_head_mode,	// value for the Wii partition header
+    wd_patch_mode_t	wii_mgr_mode,	// value for the Wii partition mgr data
     wd_patch_mode_t	wii_data_mode,	// value for the Wii partition data
-    wd_patch_mode_t	gc_data_mode	// value for the partition header
+    wd_patch_mode_t	gc_mgr_mode,	// value for the GC partition mgr header
+    wd_patch_mode_t	gc_data_mode	// value for the GC partition header
 );
 
 //-----------------------------------------------------------------------------

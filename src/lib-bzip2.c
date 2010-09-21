@@ -74,6 +74,16 @@ int CalcCompressionLevelBZIP2
     return compr_level >= 1 && compr_level <= 9 ? compr_level : 9;
 }
 
+///////////////////////////////////////////////////////////////////////////////
+
+u32 CalcMemoryUsageBZIP2
+(
+    int			compr_level	// valid are 1..9 / 0: use default value
+)
+{
+    return ( 4 + 8 * CalcCompressionLevelBZIP2(compr_level) ) * 102400;
+}
+
 //
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////			BZIP2 writing			///////////////

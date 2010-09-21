@@ -27,12 +27,25 @@ wit v1.17a.beta5 r1757 - 2010-09-16
    With parameters the normalized names of that parameters are printed.
    WIT COMPR accepts the options --long (twice) --no-header and --sections.
 
-wit v@@VERSION@@ r@@REV-NEXT@@ - @@@@-@@-@@
+wit v1.17a.beta6 r1764 - 2010-09-18
 
  - Extension of option --compr: If the compression method is followed by
    '.1' upto '.9' (e.g. 'lzma.5') the number is used to override the default
    compression level 9. Level is is the fastest and level 9 the best method.
 
+wit v@@VERSION@@ r@@REV-NEXT@@ - @@@@-@@-@@
+
+ - WIA: Improved handling of unused (scrubbed) sectors in used sector groups.
+   The output image becomes a little bit smaller.
+ - When creating a WIA the disc header and the manage area of each partiton
+   (boot.bin .. fst.bin) are stored in a separate  chunk. This reduces the
+   read access time when opening the WIA file.
+ - New extended syntax of option --compression: [method] [.level] [@factor]
+   'method' is the name (NONE, LZMA, ...) or index of the method. '.level' is
+   a point followed by one digit. It defines the compression level. The
+   special value '0' means: Use default compression level. '@factor' is a
+   factor for the chunk size. With the default factor '1' the chunk size is
+   2 MiB (size of 1 Wii sector group). All three fields are optional.
 ~
 ~ - I declare the WIA file format stable and hope that converting to and from
 ~   WIA is free of bugs. The best for users is to convert to WIA and back and

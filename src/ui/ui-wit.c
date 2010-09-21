@@ -293,12 +293,13 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 
     {	OPT_CHUNK_SIZE, 0, "chunk-size",
 	"sz",
-	"Define the minimal chunk size if creating a CISO file. The default is"
-	" to calculate the chunk size from the input file size and find a good"
-	" value by using a minimal value of 1 MiB for '--chunk-mode ISO' and"
-	" 32 KiB for modes 32K and POW2. For the modes ISO and POW2 the value"
-	" is rounded up to the next power of 2. This calculation also depends"
-	" from option --max-chunks.\n"
+	"Define the minimal chunk size if creating a CISO or WIA file (for WIA"
+	" details see option --compression). The default is to calculate the"
+	" chunk size from the input file size and find a good value by using a"
+	" minimal value of 1 MiB for '--chunk-mode ISO' and 32 KiB for modes"
+	" 32K and POW2. For the modes ISO and POW2 the value is rounded up to"
+	" the next power of 2. This calculation also depends from option"
+	" --max-chunks.\n"
 	"The parameter 'sz' is a floating point number followed by an optional"
 	" unit factor (one of 'cb' [=1] or  'kmgtpe' [base=1000] or 'KMGTPE'"
 	" [base=1024]). The default unit is 'M' (MiB). If the number is"
@@ -307,7 +308,7 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 	" changing.\n"
 	"If the input file size is not known (e.g. reading from pipe), its"
 	" size is assumed as 12 GiB.\n"
-	"--chz is a shortcut for --chunk-size."
+	"--chs is a shortcut for --chunk-size."
     },
 
     {	OPT_MAX_CHUNKS, 0, "max-chunks",
@@ -320,13 +321,23 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
     },
 
     {	OPT_COMPRESSION, 0, "compression",
-	"method",
-	"Select one compression method for new WIA files. Possible"
-	" compressions and values are NONE, PURGE, BZIP2, LZMA and LZMA2."
-	" There are 3 additional keywords: FASTEST (=PURGE), BEST and DEFAULT"
-	" (both =LZMA). These additional keywords may change their meanings if"
-	" a new compression method is implemented.\n"
-	"--compr is a shortcut for --compression."
+	"mode",
+	"Select one compression method, level and chunk size for new WIA"
+	" files. The syntax for mode is: [method] [.level] [@factor]\n"
+	"'method' is the name or index of the method. Possible compressions"
+	" method are NONE, PURGE, BZIP2, LZMA and LZMA2. There are 3"
+	" additional keywords: FASTEST (=PURGE), BEST and DEFAULT (both"
+	" =LZMA). These additional keywords may change their meanings if a new"
+	" compression method is implemented.\n"
+	"'.level' is a point followed by one digit. It defines the compression"
+	" level. The special value '0' means: Use default compression level"
+	" (=9).\n"
+	"'@factor' is a factor for the chunk size. With the default factor '1'"
+	" the chunk size is 2 MiB (size of 1 Wii sector group). If the factor"
+	" is not set it will be calculated by using a rounded value of the"
+	" option --chunk-size.\n"
+	"All three parts are optional. --compr is a shortcut for"
+	" --compression."
     },
 
     {	OPT_PRESERVE, 'p', "preserve",
@@ -878,7 +889,7 @@ const struct option OptionLong[] =
 	 { "chm",		1, 0, GO_CHUNK_MODE },
 	{ "chunk-size",		1, 0, GO_CHUNK_SIZE },
 	 { "chunksize",		1, 0, GO_CHUNK_SIZE },
-	 { "chz",		1, 0, GO_CHUNK_SIZE },
+	 { "chs",		1, 0, GO_CHUNK_SIZE },
 	{ "max-chunks",		1, 0, GO_MAX_CHUNKS },
 	 { "maxchunks",		1, 0, GO_MAX_CHUNKS },
 	 { "mch",		1, 0, GO_MAX_CHUNKS },

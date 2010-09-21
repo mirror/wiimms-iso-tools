@@ -120,14 +120,24 @@ static int dump_header
 	fprintf(f,"%*s%-17s%s\n",
 		indent,"", user_head, user_parm );
 	
+    char info[30] = {0};
+    if (sf->wia)
+    {
+	wia_disc_t * disc = &sf->wia->disc;
+	snprintf( info, sizeof(info), " (v%s,%s)",
+		PrintVersionWIA(0,0,sf->wia->fhead.version),
+		wd_print_compression(0,0,disc->compression,
+				disc->compr_level,disc->chunk_size,2) );
+    }
+
     if (!id6)
 	id6 = sf->f.id6;
     if (*id6)
-	fprintf(f,"%*sID & file type:  %s, %s\n",
-		indent,"", wd_print_id(id6,6,0), GetNameFT(sf->f.ftype,0) );
+	fprintf(f,"%*sID & file type:  %s, %s%s\n",
+		indent,"", wd_print_id(id6,6,0), GetNameFT(sf->f.ftype,0), info );
     else
-	fprintf(f,"%*stype:            %s\n",
-		indent,"", GetNameFT(sf->f.ftype,0) );
+	fprintf(f,"%*sFile type:       %s%s\n",
+		indent,"", GetNameFT(sf->f.ftype,0), info );
 
     return indent;
 }

@@ -100,8 +100,9 @@
 // If D != 0x00 && D != 0xff => append: 'beta' D
 //-----------------------------------------------------
 
-#define WIA_VERSION		0x00080000  // current writing version
-#define WIA_VERSION_COMPATIBLE	0x00080000  // down compatible
+#define WIA_VERSION			0x00090000  // current writing version
+#define WIA_VERSION_COMPATIBLE		0x00090000  // down compatible
+#define WIA_VERSION_READ_COMPATIBLE	0x00080000  // read compatible
 
 // the minimal size of holes in bytes that will be detected.
 #define WIA_MIN_HOLE_SIZE	0x400
@@ -110,7 +111,9 @@
 #define WIA_MAX_SUPPORTED_ISO_SIZE (50ull*GiB)
 
 // the minimal chunk size (if ever, multiple of this are supported)
-#define WIA_BASE_CHUNK_SIZE (2*MiB)
+#define WIA_BASE_CHUNK_SIZE	WII_GROUP_SIZE
+#define WIA_DEF_CHUNK_FACTOR	 20
+#define WIA_MAX_CHUNK_FACTOR	100
 
 //
 ///////////////////////////////////////////////////////////////////////////////
@@ -187,6 +190,25 @@ typedef struct wia_disc_t
 
 //
 ///////////////////////////////////////////////////////////////////////////////
+///////////////		    struct wia_part_data_t		///////////////
+///////////////////////////////////////////////////////////////////////////////
+
+// Sub structire for wia_part_t
+
+typedef struct wia_part_data_t
+{
+    // All values are stored in network byte order (big endian)
+
+    u32			first_sector;		// 0x00: first data sector
+    u32			n_sectors;		// 0x04: number of sectors
+
+    u32			group_index;		// 0x08: index of first wia_group_t 
+    u32			n_groups;		// 0x0c: number of wia_group_t elements
+    
+} __attribute__ ((packed)) wia_part_data_t;	// 0x10 = 16 = sizeof(wia_part_t)
+
+//
+///////////////////////////////////////////////////////////////////////////////
 ///////////////			struct wia_part_t		///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -199,13 +221,12 @@ typedef struct wia_part_t
 
     u8			part_key[WII_KEY_SIZE];	// 0x00: partition key => build aes key
 
-    u32			first_sector;		// 0x10: first data sector
-    u32			n_sectors;		// 0x14: number of sectors
+    wia_part_data_t	pd[2];			// 0x10: 2 partition data segments
+						//   segment 0 is small and defined
+						//   for managment data (boot .. fst).
+						//   segment 1 takes the remaining data
 
-    u32			group_index;		// 0x18: index of first wia_group_t 
-    u32			n_groups;		// 0x1c: number of wia_group_t elements
-    
-} __attribute__ ((packed)) wia_part_t;		// 0x20 = 32 = sizeof(wia_part_t)
+} __attribute__ ((packed)) wia_part_t;		// 0x30 = 48 = sizeof(wia_part_t)
 
 //
 ///////////////////////////////////////////////////////////////////////////////
@@ -314,18 +335,24 @@ typedef struct wia_controller_t
     bool		is_writing;	// false: read a WIA / true: write a WIA
     bool		is_valid;	// true: WIA is valid
 
+    u32			chunk_size;	// chunk size in use
+    u32			chunk_sectors;	// sector per chunk
+    u32			chunk_groups;	// sector groups per chunk
+    u32			memory_usage;	// calculated memory usage (RAM)
+
     u64			write_data_off;	// writing file offset for the next data
+
 
     //----- group data cache
 
-    u8			gdata[WII_GROUP_SIZE];	// group data
-    u32			gdata_size;	// relevant size of 'gdata'
+    u8			* gdata;	// group data
+    u32			gdata_size;	// alloced size of 'gdata'
+    u32			gdata_used;	// relevant size of 'gdata'
     int			gdata_group;	// index of current group, -1:invalid
     int			gdata_part;	// partition index of current group data
 
-    //----- temporary iobuf
-
-    u8  iobuf [ WII_GROUP_SIZE + WII_N_HASH_GROUP * sizeof(wia_exception_t) ];
+    aes_key_t		akey;		// akey of 'gdata_part'
+    wd_part_sector_t	empty_sector;	// empty encrypted sector, calced with 'akey'
 
 } wia_controller_t;
 

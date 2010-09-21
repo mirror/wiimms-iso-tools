@@ -131,7 +131,8 @@ enumError cmd_compr()
 	for ( param = first_param; param; param = param->next, index++ )
 	{
 	    int level;
-	    wd_compression_t compr = ScanCompression(param->arg,true,&level);
+	    u32 chunk_size;
+	    wd_compression_t compr = ScanCompression(param->arg,true,&level,&chunk_size);
 	    if ( compr == (wd_compression_t)-1 )
 		err_count++;
 	    printf( "\n[compression-method-%u]\n"
@@ -157,7 +158,8 @@ enumError cmd_compr()
 	for ( param = first_param; param; param = param->next )
 	{
 	    int level;
-	    wd_compression_t compr = ScanCompression(param->arg,true,&level);
+	    u32 chunk_size;
+	    wd_compression_t compr = ScanCompression(param->arg,true,&level,&chunk_size);
 	    if ( compr == (wd_compression_t)-1 )
 	    {
 		err_count++;
@@ -168,13 +170,13 @@ enumError cmd_compr()
 	     #ifdef NO_BZIP2
 		if ( have_param || compr != WD_COMPR_BZIP2 )
 	     #endif
-		printf("%s\n",wd_print_compression_name(0,0,compr,level,3));
+		printf("%s\n",wd_print_compression(0,0,compr,level,chunk_size,3));
 	    }
 	    else
 	    {
 		printf(" %-4s %-7s",
-			wd_print_compression_name(0,0,compr,level,1),
-			wd_print_compression_name(0,0,compr,level,2) );
+			wd_print_compression(0,0,compr,level,0,1),
+			wd_print_compression(0,0,compr,level,chunk_size,2) );
 		if ( long_count > 1 )
 		{
 		    if ( compr == WD_COMPR__DEFAULT )
@@ -198,14 +200,15 @@ enumError cmd_compr()
 	for ( param = first_param; param; param = param->next )
 	{
 	    int level;
-	    wd_compression_t compr = ScanCompression(param->arg,true,&level);
+	    u32 chunk_size;
+	    wd_compression_t compr = ScanCompression(param->arg,true,&level,&chunk_size);
 	 #ifdef NO_BZIP2
 	    if ( !have_param && compr == WD_COMPR_BZIP2 )
 		continue; // ignore it
 	 #endif
 	    if ( compr == (wd_compression_t)-1 )
 		err_count++;
-	    printf("%s\n",wd_print_compression_name(0,0,compr,level,2));
+	    printf("%s\n",wd_print_compression(0,0,compr,level,chunk_size,2));
 	}
     }
 
@@ -287,6 +290,8 @@ enumError cmd_test_options()
     printf("  compression: %16x = %d = %s (level=%d)\n",
 		opt_compr_method, opt_compr_method,
 		wd_get_compression_name(opt_compr_method,"?"), opt_compr_level );
+    printf("    level:     %16x = %d\n",opt_compr_level,opt_compr_level);
+    printf("    chunk-size:%16x = %d\n",opt_compr_chunk_size,opt_compr_chunk_size);
     printf("  escape-char: %16x = %d\n",escape_char,escape_char);
     printf("  print-time:  %16x = %d\n",opt_print_time,opt_print_time);
     printf("  sort-mode:   %16x = %d\n",sort_mode,sort_mode);

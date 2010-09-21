@@ -1,5 +1,5 @@
 #!/bin/bash
-# (c) Wiimm, 2010-09-17
+# (c) Wiimm, 2010-09-21
 
 myname="${0##*/}"
 base=image-size
@@ -9,11 +9,14 @@ err=$base.err
 WIT=wit
 [[ -x ./wit ]] && WIT=./wit
 
+WDF=wdf
+[[ -x ./wdf ]] && WDF=./wdf
+
 export LC_ALL=C
 METHODS="$(echo $($WIT compr))"
 PSEL=
 IO=
-LEVEL=0
+LEVEL=.0
 
 if [[ $# == 0 ]]
 then
@@ -35,16 +38,19 @@ then
 	  --no-bzip2   : disable bzip2 tests
 	  --rar        : enable rar tests (default if tool 'rar' found)
 	  --no-rar     : disable rar tests
-	  --7z         : enable 7z tests (default if tool '7z' found)
-	  --no-7z      : disable 7z tests
+	  --7zip       : enable 7zip tests (default if tool '7z' found)
+	  --no-7zip    : disable 7zip tests
 	  --all        : shortcut for --bzip2 --rar --7z
 
 	  --data       : DATA partition only, scrub all others
 	  --compr list : Define a list of WIA compressing methods.
 	                 Default: $METHODS
-	  --level list : Test compression levels 'list' (1..9)
+	  --level list : Test compression levels and chunk size factors.
+	                 Syntax: [.level][@factors] ...
 
-	  --diff       : enable "wit DIFF" to verify WIA archives
+	  --decrypt    : Enable WDF/DECRYPT tests.
+	  --diff       : Enable "wit DIFF" to verify WIA archives.
+	  --dump       : 'wdf +dump a.wia >$dumpdir'
 
 	---EOT---
     exit 1
@@ -73,8 +79,10 @@ let HAVE_7Z=!$(which 7z >/dev/null 2>&1; echo $?)
 OPT_FAST=0
 OPT_BZIP2=0
 OPT_RAR=0
-OPT_7Z=0
+OPT_7ZIP=0
+OPT_DECRYPT=0
 OPT_DIFF=0
+OPT_DUMP=0
 
 #
 #------------------------------------------------------------------------------
@@ -131,27 +139,16 @@ function calc_real_methods()
     REALMETHODS=
     for method in $METHODS
     do	
-	method="$($WIT compr $method)"
-	case "$method" in
-	    -)
-		;;
-
-	    NONE|PURGE)
-		REALMETHODS="$REALMETHODS $method"
-		;;
-
-	    *)
-		if [[ $LEVEL == 0 ]]
-		then
-		    REALMETHODS="$REALMETHODS $method"
-		else
-		    for level in $LEVEL
-		    do
-			REALMETHODS="$REALMETHODS $method.$level"
-		    done
-		fi
-		;;
-	esac
+	for level in $LEVEL
+	do
+	    local mode="$($WIT compr $method$level)"
+	    if [[ $mode == - ]]
+	    then
+		echo "Illegal compression mode: $method$level" >&2
+		exit 1
+	    fi
+	    REALMETHODS="$REALMETHODS $mode"
+	done
     done
 }
 
@@ -185,6 +182,9 @@ function f_abort()
 tempdir=
 trap f_abort INT TERM HUP
 tempdir="$(mktemp -d ./.$base.tmp.XXXXXX)" || exit 1
+
+dumpdir=./dumpdir.tmp
+mkdir -p $dumpdir
 
 export WIT_OPT=
 export WWT_OPT=
@@ -282,7 +282,7 @@ function test_suite()
 	    rar a -inul "$tempdir/a.wdf.rar" "$tempdir/a.wdf" || return 1
     fi
 
-    if ((OPT_7Z))
+    if ((OPT_7ZIP))
     then
 	test_function $wdf_time a.wdf.7z "WDF + 7Z" \
 	    7z a -bd "$tempdir/a.wdf.7z" "$tempdir/a.wdf" || return 1
@@ -292,31 +292,33 @@ function test_suite()
 
 
     #----- wdf/decrypt
-    
-    test_function 0 a.wdf "WDF/DECRYPT" \
-	$WIT_CP "$1" --wdf --enc decrypt "$tempdir/a.wdf" || return 1
-    local wdf_time=$last_time
+ 
+    if ((OPT_DECRYPT))
+    then   
+	test_function 0 a.wdf "WDF/DECRYPT" \
+	    $WIT_CP "$1" --wdf --enc decrypt "$tempdir/a.wdf" || return 1
+	local wdf_time=$last_time
 
-#    if ((OPT_BZIP2))
-#    then
-#	test_function $wdf_time a.wdf.bz2 "WDF/DECRYPT + BZIP2" \
-#	    bzip2 --keep "$tempdir/a.wdf" || return 1
-#    fi
+	if ((OPT_BZIP2))
+	then
+	    test_function $wdf_time a.wdf.bz2 "WDF/DECRYPT + BZIP2" \
+		bzip2 --keep "$tempdir/a.wdf" || return 1
+	fi
 
-#    if ((OPT_RAR))
-#    then
-#	test_function $wdf_time a.wdf.rar "WDF/DECRYPT + RAR" \
-#	    rar a -inul "$tempdir/a.wdf.rar" "$tempdir/a.wdf" || return 1
-#    fi
+	if ((OPT_RAR))
+	then
+	    test_function $wdf_time a.wdf.rar "WDF/DECRYPT + RAR" \
+		rar a -inul "$tempdir/a.wdf.rar" "$tempdir/a.wdf" || return 1
+	fi
 
-#    if ((OPT_7Z))
-#    then
-#	test_function $wdf_time a.wdf.7z "WDF/DECRYPT + 7Z" \
-#	    7z a -bd "$tempdir/a.wdf.7z" "$tempdir/a.wdf" || return 1
-#    fi
+	if ((OPT_7ZIP))
+	then
+	    test_function $wdf_time a.wdf.7z "WDF/DECRYPT + 7Z" \
+		7z a -bd "$tempdir/a.wdf.7z" "$tempdir/a.wdf" || return 1
+	fi
 
-    rm -f "$tempdir/a.wdf"*
-
+	rm -f "$tempdir/a.wdf"*
+    fi
 
     #----- wia
 
@@ -326,22 +328,27 @@ function test_suite()
 	    $WIT_CP "$1" --wia --compr $method "$tempdir/a.wia" || return 1
 	local wdf_time=$last_time
 
-	if ((OPT_BZIP2)) && [[ $method == NONE ]]
-	then
-	    test_function $wdf_time a.wia.bz2 "WIA/$method + BZIP2" \
-		bzip2 --keep "$tempdir/a.wia" || return 1
-	fi
+	((OPT_DUMP)) && $WDF +dump "$tempdir/a.wia" >"$dumpdir/$id6-$method.dump"
 
-	if ((OPT_RAR)) && [[ $method == NONE ]]
+	if [[ ${method:0:4}  == NONE ]]
 	then
-	    test_function $wdf_time a.wia.rar "WIA/$method + RAR" \
-		rar a -inul "$tempdir/a.wia.rar" "$tempdir/a.wia" || return 1
-	fi
+	    if ((OPT_BZIP2))
+	    then
+		test_function $wdf_time a.wia.bz2 "WIA/$method + BZIP2" \
+		    bzip2 --keep "$tempdir/a.wia" || return 1
+	    fi
 
-	if ((OPT_7Z)) && [[ $method == NONE ]]
-	then
-	    test_function $wdf_time a.wia.7z "WIA/$method + 7Z" \
-		7z a -bd "$tempdir/a.wia.7z" "$tempdir/a.wia" || return 1
+	    if ((OPT_RAR))
+	    then
+		test_function $wdf_time a.wia.rar "WIA/$method + RAR" \
+		    rar a -inul "$tempdir/a.wia.rar" "$tempdir/a.wia" || return 1
+	    fi
+
+	    if ((OPT_7ZIP))
+	    then
+		test_function $wdf_time a.wia.7z "WIA/$method + 7Z" \
+		    7z a -bd "$tempdir/a.wia.7z" "$tempdir/a.wia" || return 1
+	    fi
 	fi
 
 	if ((OPT_DIFF))
@@ -375,7 +382,7 @@ function test_suite()
 		rar a -inul "$tempdir/a.iso.rar" "$tempdir/a.iso" || return 1
 	fi
 
-	if ((OPT_7Z))
+	if ((OPT_7ZIP))
 	then
 	    test_function iso_time a.iso.7z "PLAIN ISO + 7Z" \
 		7z a -bd "$tempdir/a.iso.7z" "$tempdir/a.iso" || return 1
@@ -429,15 +436,17 @@ function test_suite()
     date '+%F %T'
     echo
     $WIT --version
+    echo
+    echo "PARAM: $*"
+    echo
 } | tee -a $log $err
 
 #
 #------------------------------------------------------------------------------
 # main loop
 
-opts=0
-
-REALMETHODS
+opts=1
+calc_real_methods
 
 while (($#))
 do
@@ -484,19 +493,19 @@ do
 	continue
     fi
 
-    if [[ $src == --7z ]]
+    if [[ $src == --7zip || $src == --7z ]]
     then
-	OPT_7Z=$HAVE_7Z
+	OPT_7ZIP=$HAVE_7Z
 	((opts++)) || printf "\n"
-	printf "## --7z : 7z tests enabled\n"
+	printf "## --7zip : 7zip tests enabled\n"
 	continue
     fi
 
-    if [[ $src == --no-7z || $src == --no7z ]]
+    if [[ $src == --no-7zip || $src == --no7zip || $src == --no-7z || $src == --no7z ]]
     then
-	OPT_7Z=0
+	OPT_7ZIP=0
 	((opts++)) || printf "\n"
-	printf "## --no-7z : 7z tests disabled\n"
+	printf "## --no-7zip : 7zip tests disabled\n"
 	continue
     fi
 
@@ -504,9 +513,17 @@ do
     then
 	OPT_BZIP2=$HAVE_BZIP2
 	OPT_RAR=$HAVE_RAR
-	OPT_7Z=$HAVE_7Z
+	OPT_7ZIP=$HAVE_7Z
 	((opts++)) || printf "\n"
 	printf "## --all : shortcut for --bzip2 --rar --7z\n"
+	continue
+    fi
+
+    if [[ $src == --decrypt ]]
+    then
+	OPT_DECRYPT=1
+	((opts++)) || printf "\n"
+	printf "## --decrypt : WDF/DECRYPT tests enabled\n"
 	continue
     fi
 
@@ -515,6 +532,14 @@ do
 	OPT_DIFF=1
 	((opts++)) || printf "\n"
 	printf "## --diff : 'wit DIFF' tests enabled\n"
+	continue
+    fi
+
+    if [[ $src == --dump ]]
+    then
+	OPT_DUMP=1
+	((opts++)) || printf "\n"
+	printf "## --dump : 'wdf +dump a.wia >$dumpdir'\n"
 	continue
     fi
 
@@ -539,7 +564,7 @@ do
 
     if [[ $src == --level ]]
     then
-	LEVEL="$( echo "$1" | tr ',' ' ' | tr -cd '1-9 ' )"
+	LEVEL="$( echo "$1" | tr ',' ' ' | tr -cd '0-9@. ' )"
 	shift
 	((opts++)) || printf "\n"
 	printf "## --level : WIA compression level set to: $LEVEL\n"

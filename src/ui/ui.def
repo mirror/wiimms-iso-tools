@@ -436,14 +436,15 @@
 	" keyword is ignored. The default key is @'ISO'@.\n" \
 	"@--chm@ is a shortcut for @--chunk-mode@." )
 
-#:def_opt( "CHUNK_SIZE", "chunk-size|chunksize|chz", "CP", \
+#:def_opt( "CHUNK_SIZE", "chunk-size|chunksize|chs", "CP", \
 	"sz", \
-	"Define the minimal chunk size if creating a CISO file. The default is" \
-	" to calculate the chunk size from the input file size and find a good" \
-	" value by using a minimal value of 1 MiB for {--chunk-mode @ISO@} and" \
-	" @32 KiB@ for modes @32K@ and @POW2@. For the modes @ISO@ and @POW2@" \
-	" the value is rounded up to the next power of 2. This calculation" \
-	" also depends from option {--max-chunks}.\n" \
+	"Define the minimal chunk size if creating a CISO or WIA file (for WIA" \
+	" details see option --compression}). The default is to calculate the" \
+	" chunk size from the input file size and find a good value by using a" \
+	" minimal value of 1 MiB for {--chunk-mode @ISO@} and @32 KiB@ for" \
+	" modes @32K@ and @POW2@. For the modes @ISO@ and @POW2@ the value is" \
+	" rounded up to the next power of 2. This calculation also depends" \
+	" from option {--max-chunks}.\n" \
 	"The parameter 'sz' is a floating point number followed by an optional" \
 	" unit factor (one of 'cb' [=1] or  'kmgtpe' [base=1000] or 'KMGTPE'" \
 	" [base=1024]). The default unit is 'M' (MiB). If the number is" \
@@ -452,7 +453,7 @@
 	" changing.\n" \
 	"If the input file size is not known (e.g. reading from pipe), its" \
 	" size is assumed as @12 GiB@.\n" \
-	"@--chz@ is a shortcut for @--chunk-size@." )
+	"@--chs@ is a shortcut for @--chunk-size@." )
 
 #:def_opt( "MAX_CHUNKS", "max-chunks|maxchunks|mch", "CP", \
 	"n", \
@@ -463,13 +464,23 @@
 	"@--mch@ is a shortcut for @--max-chunks@." )
 
 #:def_opt( "COMPRESSION", "compression|compr", "CP", \
-	"method", \
-	"Select one compression method for new WIA files. Possible" \
-	" compressions and values are @NONE@, @PURGE@, @BZIP2@, @LZMA@ and" \
-	" @LZMA2@. There are 3 additional keywords: @FASTEST@ (@=PURGE@)," \
-	" @BEST@ and @DEFAULT@ (both @=LZMA@). These additional keywords may" \
-	" change their meanings if a new compression method is implemented.\n" \
-	"@--compr@ is a shortcut for @--compression@." )
+	"mode", \
+	"Select one compression method, level and chunk size for new WIA" \
+	" files. The syntax for mode is: @[method] [.level] [@@factor]@\n" \
+	"@'method'@ is the name or index of the method. Possible compressions" \
+	" method are @NONE@, @PURGE@, @BZIP2@, @LZMA@ and @LZMA2@. There are 3" \
+	" additional keywords: @FASTEST@ (@=PURGE@), @BEST@ and @DEFAULT@" \
+	" (both @=LZMA@). These additional keywords may change their meanings" \
+	" if a new compression method is implemented.\n" \
+	"@'.level'@ is a point followed by one digit. It defines the" \
+	" compression level. The special value '0' means: Use default" \
+	" compression level (=9).\n" \
+	"@'@@factor'@ is a factor for the chunk size. With the default factor" \
+	" '1' the chunk size is 2 MiB (size of 1 Wii sector group). If the" \
+	" factor is not set it will be calculated by using a rounded value of" \
+	" the option {--chunk-size}.\n" \
+	"All three parts are optional. @--compr@ is a shortcut for" \
+	" @--compression@." )
 
 #:def_opt( "PRESERVE", "p|preserve", "C", \
 	"", \
@@ -3389,14 +3400,15 @@
 	" keyword is ignored. The default key is @'ISO'@.\n" \
 	"@--chm@ is a shortcut for @--chunk-mode@." )
 
-#:def_opt( "CHUNK_SIZE", "chunk-size|chunksize|chz", "CP", \
+#:def_opt( "CHUNK_SIZE", "chunk-size|chunksize|chs", "CP", \
 	"sz", \
-	"Define the minimal chunk size if creating a CISO file. The default is" \
-	" to calculate the chunk size from the input file size and find a good" \
-	" value by using a minimal value of 1 MiB for {--chunk-mode @ISO@} and" \
-	" @32 KiB@ for modes @32K@ and @POW2@. For the modes @ISO@ and @POW2@" \
-	" the value is rounded up to the next power of 2. This calculation" \
-	" also depends from option {--max-chunks}.\n" \
+	"Define the minimal chunk size if creating a CISO or WIA file (for WIA" \
+	" details see option --compression}). The default is to calculate the" \
+	" chunk size from the input file size and find a good value by using a" \
+	" minimal value of 1 MiB for {--chunk-mode @ISO@} and @32 KiB@ for" \
+	" modes @32K@ and @POW2@. For the modes @ISO@ and @POW2@ the value is" \
+	" rounded up to the next power of 2. This calculation also depends" \
+	" from option {--max-chunks}.\n" \
 	"The parameter 'sz' is a floating point number followed by an optional" \
 	" unit factor (one of 'cb' [=1] or  'kmgtpe' [base=1000] or 'KMGTPE'" \
 	" [base=1024]). The default unit is 'M' (MiB). If the number is" \
@@ -3405,7 +3417,7 @@
 	" changing.\n" \
 	"If the input file size is not known (e.g. reading from pipe), its" \
 	" size is assumed as @12 GiB@.\n" \
-	"@--chz@ is a shortcut for @--chunk-size@." )
+	"@--chs@ is a shortcut for @--chunk-size@." )
 
 #:def_opt( "MAX_CHUNKS", "max-chunks|maxchunks|mch", "CP", \
 	"n", \
@@ -3416,13 +3428,23 @@
 	"@--mch@ is a shortcut for @--max-chunks@." )
 
 #:def_opt( "COMPRESSION", "compression|compr", "CP", \
-	"method", \
-	"Select one compression method for new WIA files. Possible" \
-	" compressions and values are @NONE@, @PURGE@, @BZIP2@, @LZMA@ and" \
-	" @LZMA2@. There are 3 additional keywords: @FASTEST@ (@=PURGE@)," \
-	" @BEST@ and @DEFAULT@ (both @=LZMA@). These additional keywords may" \
-	" change their meanings if a new compression method is implemented.\n" \
-	"@--compr@ is a shortcut for @--compression@." )
+	"mode", \
+	"Select one compression method, level and chunk size for new WIA" \
+	" files. The syntax for mode is: @[method] [.level] [@@factor]@\n" \
+	"@'method'@ is the name or index of the method. Possible compressions" \
+	" method are @NONE@, @PURGE@, @BZIP2@, @LZMA@ and @LZMA2@. There are 3" \
+	" additional keywords: @FASTEST@ (@=PURGE@), @BEST@ and @DEFAULT@" \
+	" (both @=LZMA@). These additional keywords may change their meanings" \
+	" if a new compression method is implemented.\n" \
+	"@'.level'@ is a point followed by one digit. It defines the" \
+	" compression level. The special value '0' means: Use default" \
+	" compression level (=9).\n" \
+	"@'@@factor'@ is a factor for the chunk size. With the default factor" \
+	" '1' the chunk size is 2 MiB (size of 1 Wii sector group). If the" \
+	" factor is not set it will be calculated by using a rounded value of" \
+	" the option {--chunk-size}.\n" \
+	"All three parts are optional. @--compr@ is a shortcut for" \
+	" @--compression@." )
 
 #:def_opt( "SIZE", "s|size", "CP", \
 	"size", \
@@ -5842,14 +5864,15 @@
 	" keyword is ignored. The default key is @'32K'@.\n" \
 	"@--chm@ is a shortcut for @--chunk-mode@." )
 
-#:def_opt( "CHUNK_SIZE", "chunk-size|chunksize|chz", "CP", \
+#:def_opt( "CHUNK_SIZE", "chunk-size|chunksize|chs", "CP", \
 	"sz", \
-	"Define the minimal chunk size if creating a CISO file. The default is" \
-	" to calculate the chunk size from the input file size and find a good" \
-	" value by using a minimal value of 1 MiB for {--chunk-mode @ISO@} and" \
-	" @32 KiB@ for modes @32K@ and @POW2@. For the modes @ISO@ and @POW2@" \
-	" the value is rounded up to the next power of 2. This calculation" \
-	" also depends from option {--max-chunks}.\n" \
+	"Define the minimal chunk size if creating a CISO or WIA file (for WIA" \
+	" details see option --compression}). The default is to calculate the" \
+	" chunk size from the input file size and find a good value by using a" \
+	" minimal value of 1 MiB for {--chunk-mode @ISO@} and @32 KiB@ for" \
+	" modes @32K@ and @POW2@. For the modes @ISO@ and @POW2@ the value is" \
+	" rounded up to the next power of 2. This calculation also depends" \
+	" from option {--max-chunks}.\n" \
 	"The parameter 'sz' is a floating point number followed by an optional" \
 	" unit factor (one of 'cb' [=1] or  'kmgtpe' [base=1000] or 'KMGTPE'" \
 	" [base=1024]). The default unit is 'M' (MiB). If the number is" \
@@ -5858,7 +5881,7 @@
 	" changing.\n" \
 	"If the input file size is not known (e.g. reading from pipe), its" \
 	" size is assumed as @12 GiB@.\n" \
-	"@--chz@ is a shortcut for @--chunk-size@." )
+	"@--chs@ is a shortcut for @--chunk-size@." )
 
 #:def_opt( "MAX_CHUNKS", "max-chunks|maxchunks|mch", "CP", \
 	"n", \
@@ -5869,13 +5892,23 @@
 	"@--mch@ is a shortcut for @--max-chunks@." )
 
 #:def_opt( "COMPRESSION", "compression|compr", "CP", \
-	"method", \
-	"Select one compression method for new WIA files. Possible" \
-	" compressions and values are @NONE@, @PURGE@, @BZIP2@, @LZMA@ and" \
-	" @LZMA2@. There are 3 additional keywords: @FASTEST@ (@=PURGE@)," \
-	" @BEST@ and @DEFAULT@ (both @=LZMA@). These additional keywords may" \
-	" change their meanings if a new compression method is implemented.\n" \
-	"@--compr@ is a shortcut for @--compression@." )
+	"mode", \
+	"Select one compression method, level and chunk size for new WIA" \
+	" files. The syntax for mode is: @[method] [.level] [@@factor]@\n" \
+	"@'method'@ is the name or index of the method. Possible compressions" \
+	" method are @NONE@, @PURGE@, @BZIP2@, @LZMA@ and @LZMA2@. There are 3" \
+	" additional keywords: @FASTEST@ (@=PURGE@), @BEST@ and @DEFAULT@" \
+	" (both @=LZMA@). These additional keywords may change their meanings" \
+	" if a new compression method is implemented.\n" \
+	"@'.level'@ is a point followed by one digit. It defines the" \
+	" compression level. The special value '0' means: Use default" \
+	" compression level (=9).\n" \
+	"@'@@factor'@ is a factor for the chunk size. With the default factor" \
+	" '1' the chunk size is 2 MiB (size of 1 Wii sector group). If the" \
+	" factor is not set it will be calculated by using a rounded value of" \
+	" the option {--chunk-size}.\n" \
+	"All three parts are optional. @--compr@ is a shortcut for" \
+	" @--compression@." )
 
 #:def_opt( "TEST", "t|test", "G", \
 	"", \

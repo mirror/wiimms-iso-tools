@@ -65,6 +65,13 @@ int CalcCompressionLevelBZIP2
     int			compr_level	// valid are 1..9 / 0: use default value
 );
 
+//-----------------------------------------------------------------------------
+
+u32 CalcMemoryUsageBZIP2
+(
+    int			compr_level	// valid are 1..9 / 0: use default value
+);
+
 //
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////			BZIP2 writing			///////////////

@@ -1035,6 +1035,7 @@ enumError ScanSetupFile
 
 extern wd_compression_t opt_compr_method; // = WD_COMPR__DEFAULT
 extern int opt_compr_level;		  // = 0=default, 1..9=valid
+extern u32 opt_compr_chunk_size;	  // = 0=default
 
 //-----------------------------------------------------------------------------
 
@@ -1042,8 +1043,10 @@ wd_compression_t ScanCompression
 (
     ccp			arg,		// argument to scan
     bool		silent,		// don't print error message
-    int			* level		// not NULL: appendix ',digit' allowed
+    int			* level,	// not NULL: appendix '.digit' allowed
 					// The level will be stored in '*level'
+    u32			* chunk_size	// not NULL: appendix '@size' allowed
+					// The size will be stored in '*chunk_size'
 );
 
 //-----------------------------------------------------------------------------
@@ -1154,7 +1157,7 @@ size_t ReadDataList // returns number of writen bytes
 
 //
 ///////////////////////////////////////////////////////////////////////////////
-///////////////                     etc                         ///////////////
+///////////////			  enum RepairMode		///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
 typedef enum RepairMode
@@ -1181,9 +1184,38 @@ extern RepairMode repair_mode;
 
 RepairMode ScanRepairMode ( ccp arg );
 
+///////////////////////////////////////////////////////////////////////////////
+///////////////			random mumbers			///////////////
+///////////////////////////////////////////////////////////////////////////////
+
+u32 Random32 ( u32 max );
+u64 Seed32Time();
+u64 Seed32 ( u64 base );
+
+void RandomFill ( void * buf, size_t size );
+
+///////////////////////////////////////////////////////////////////////////////
+///////////////			    bit handling		///////////////
+///////////////////////////////////////////////////////////////////////////////
+
+extern const uchar TableBitCount[0x100];
+
+uint Count1Bits   ( const void * data, size_t len );
+uint Count1Bits8  ( u8  data );
+uint Count1Bits16 ( u16 data );
+uint Count1Bits32 ( u32 data );
+uint Count1Bits64 ( u64 data );
+
 //
 ///////////////////////////////////////////////////////////////////////////////
-///////////////                     vars                        ///////////////
+///////////////			    etc				///////////////
+///////////////////////////////////////////////////////////////////////////////
+
+size_t AllocTempBuffer ( size_t needed_size );
+
+//
+///////////////////////////////////////////////////////////////////////////////
+///////////////			    vars			///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
 extern enumProgID	prog_id;
@@ -1213,29 +1245,12 @@ extern StringField_t	created_files;
 extern       char	iobuf [0x400000];	// global io buffer
 extern const char	zerobuf[0x40000];	// global zero buffer
 
+// 'tempbuf' is only for short usage
+//	==> don't call other functions while using tempbuf
+extern u8		* tempbuf;		// global temp buffer -> AllocTempBuffer()
+extern size_t		tempbuf_size;		// size of 'tempbuf'
+
 extern const char	sep_79[80];		//  79 * '-' + NULL
-
-///////////////////////////////////////////////////////////////////////////////
-///////////////			random mumbers			///////////////
-///////////////////////////////////////////////////////////////////////////////
-
-u32 Random32 ( u32 max );
-u64 Seed32Time();
-u64 Seed32 ( u64 base );
-
-void RandomFill ( void * buf, size_t size );
-
-///////////////////////////////////////////////////////////////////////////////
-///////////////			    bit handling		///////////////
-///////////////////////////////////////////////////////////////////////////////
-
-extern const uchar TableBitCount[0x100];
-
-uint Count1Bits   ( const void * data, size_t len );
-uint Count1Bits8  ( u8  data );
-uint Count1Bits16 ( u16 data );
-uint Count1Bits32 ( u32 data );
-uint Count1Bits64 ( u64 data );
 
 //
 ///////////////////////////////////////////////////////////////////////////////

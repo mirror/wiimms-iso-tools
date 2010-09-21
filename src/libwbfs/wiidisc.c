@@ -1837,9 +1837,6 @@ enumError wd_load_part
 
 	    part->data_off4	= part->part_off4 + ph->data_off4;
 	    part->data_sector	= part->data_off4 / WII_SECTOR_SIZE4;
-	    part->end_sector	= part->data_sector + ph->data_size4 / WII_SECTOR_SIZE4;
-	    if ( part->end_sector > WII_MAX_SECTORS )
-		 part->end_sector = WII_MAX_SECTORS;
 	    part->part_size	= (u64)( part->data_off4 + ph->data_size4 - part->part_off4 ) << 2;
 
 	    TRACE("part=%llx,%llx, tmd=%llx,%x, cert=%llx,%x, h3=%llx, data=%llx,%llx\n",
@@ -1999,6 +1996,7 @@ enumError wd_load_part
 
 	//----- load and iterate fst
 
+	u32 mgr_sect = part->end_sector;
 
 	const u32 fst_size = boot->fst_size4 << 2;
 	if (fst_size)
@@ -2017,6 +2015,7 @@ enumError wd_load_part
 				    disc->error_term );
 		return ERR_WDISC_INVALID;
 	    }
+	    mgr_sect = part->end_sector;
 
 	    // mark used blocks
 
@@ -2067,6 +2066,28 @@ enumError wd_load_part
 					part->part_size, "PART", silent ))
 		return ERR_WDISC_INVALID;
 	}
+	else
+	{
+	    const u32 last_sect = part->data_sector + ph->data_size4 / WII_SECTOR_SIZE4;
+	    if ( part->end_sector < last_sect )
+	         part->end_sector = last_sect;
+	}
+	 
+	if ( part->end_sector > WII_MAX_SECTORS )
+	     part->end_sector = WII_MAX_SECTORS;
+
+	mgr_sect = ( mgr_sect - part->data_sector + WII_GROUP_SECTORS - 1 )
+		 / WII_GROUP_SECTORS * WII_GROUP_SECTORS + part->data_sector;
+	if ( mgr_sect > part->end_sector )
+	     mgr_sect = part->end_sector;
+	part->end_mgr_sector = mgr_sect;
+
+	PRINT("PART #%u, sectors: %llx .. %llx .. %llx .. %llx\n",
+		part->index,
+		(u64)WII_SECTOR_SIZE * part->data_sector,
+		(u64)WII_SECTOR_SIZE * part->end_mgr_sector,
+		(u64)WII_SECTOR_SIZE * part->end_sector,
+		(u64)WII_SECTOR_SIZE * WII_MAX_SECTORS );
 
 
 	//----- all done => mark as valid
@@ -3951,8 +3972,10 @@ int wd_insert_memmap_disc_part
     // value WD_PAT_IGNORE means: do not create such entires
 
     wd_patch_mode_t	wii_head_mode,	// value for the Wii partition header
+    wd_patch_mode_t	wii_mgr_mode,	// value for the Wii partition mgr data
     wd_patch_mode_t	wii_data_mode,	// value for the Wii partition data
-    wd_patch_mode_t	gc_data_mode	// value for the partition header
+    wd_patch_mode_t	gc_mgr_mode,	// value for the GC partition mgr header
+    wd_patch_mode_t	gc_data_mode	// value for the GC partition header
 )
 {
     DASSERT(disc);
@@ -3966,7 +3989,8 @@ int wd_insert_memmap_disc_part
 	if ( part->is_valid && part->is_enabled )
 	    count += wd_insert_memmap_part
 			( mm, part, func, param,
-				wii_head_mode, wii_data_mode, gc_data_mode );
+				wii_head_mode, wii_mgr_mode, wii_data_mode,
+				gc_mgr_mode, gc_data_mode );
     }
 
     return count;
@@ -3986,36 +4010,36 @@ int wd_insert_memmap_part
     // value WD_PAT_IGNORE means: do not create such entires
 
     wd_patch_mode_t	wii_head_mode,	// value for the Wii partition header
+    wd_patch_mode_t	wii_mgr_mode,	// value for the Wii partition mgr data
     wd_patch_mode_t	wii_data_mode,	// value for the Wii partition data
-    wd_patch_mode_t	gc_data_mode	// value for the partition header
+    wd_patch_mode_t	gc_mgr_mode,	// value for the GC partition mgr header
+    wd_patch_mode_t	gc_data_mode	// value for the GC partition header
 )
 {
     DASSERT(mm);
     DASSERT(part);
 
+    if ( !part->is_valid || !part->is_enabled )
+	return 0;
+
+    char intro[30];
     u32 count = mm->used;
-    if ( part->is_valid && part->is_enabled )
+
+    if (part->is_gc)
     {
-	if ( part->is_gc && gc_data_mode != WD_PAT_IGNORE )
-	{
-	    PRINT("INSERT GC PART PATCH %u\n",gc_data_mode);
-
-	    wd_memmap_item_t * item = wd_insert_memmap
-			( mm,
-			  gc_data_mode,
-			  (u64)part->part_off4<<2,
-			  (u64)( part->end_sector - part->data_sector ) * WII_SECTOR_SIZE
-			);
-	    DASSERT(item);
-	    item->index = part->index;
-	    snprintf(item->info,sizeof(item->info),
-			"GC P.%u, %s, raw data",
+	snprintf( intro, sizeof(intro), "GC P.%u, %s",
 			part->index, wd_print_id(&part->boot,6,0) );
-	    if (func)
-		func(param,mm,item);
-	}
 
-	if ( !part->is_gc && wii_head_mode != WD_PAT_IGNORE )
+	wii_mgr_mode = gc_mgr_mode;
+	wii_data_mode = gc_mgr_mode;
+    }
+    else
+    {
+	snprintf( intro, sizeof(intro), "P.%u.%u, %s",
+			part->ptab_index, part->ptab_part_index,
+			wd_print_part_name(0,0,part->part_type,WD_PNAME_NUM_INFO) );
+	
+	if ( wii_head_mode != WD_PAT_IGNORE )
 	{
 	    PRINT("INSERT WII PART-HEAD PATCH %u\n",wii_head_mode);
 
@@ -4026,10 +4050,7 @@ int wd_insert_memmap_part
 		= wd_insert_memmap(mm,wii_head_mode,head_off,head_size);
 	    DASSERT(item);
 	    item->index = part->index;
-	    snprintf(item->info,sizeof(item->info),
-		    "P.%u.%u, %s, partition head",
-		    part->ptab_index, part->ptab_part_index,
-		    wd_print_part_name(0,0,part->part_type,WD_PNAME_NUM_INFO) );
+	    snprintf(item->info,sizeof(item->info),"%s, partition head",intro);
 	    if (func)
 		func(param,mm,item);
 
@@ -4039,10 +4060,7 @@ int wd_insert_memmap_part
 		item = wd_insert_memmap(mm,wii_head_mode,head_off+off,part->ph.tmd_size);
 		DASSERT(item);
 		item->index = part->index;
-		snprintf(item->info,sizeof(item->info),
-		    "P.%u.%u, %s, tmd",
-		    part->ptab_index, part->ptab_part_index,
-		    wd_print_part_name(0,0,part->part_type,WD_PNAME_NUM_INFO) );
+		snprintf(item->info,sizeof(item->info),"%s, tmd",intro);
 		if (func)
 		    func(param,mm,item);
 	    }
@@ -4053,10 +4071,7 @@ int wd_insert_memmap_part
 		item = wd_insert_memmap(mm,wii_head_mode,head_off+off,part->ph.cert_size);
 		DASSERT(item);
 		item->index = part->index;
-		snprintf(item->info,sizeof(item->info),
-		    "P.%u.%u, %s, cert",
-		    part->ptab_index, part->ptab_part_index,
-		    wd_print_part_name(0,0,part->part_type,WD_PNAME_NUM_INFO) );
+		snprintf(item->info,sizeof(item->info),"%s, cert",intro);
 		if (func)
 		    func(param,mm,item);
 	    }
@@ -4067,31 +4082,62 @@ int wd_insert_memmap_part
 		item = wd_insert_memmap(mm,wii_head_mode,head_off+off,WII_H3_SIZE);
 		DASSERT(item);
 		item->index = part->index;
-		snprintf(item->info,sizeof(item->info),
-		    "P.%u.%u, %s, h3",
-		    part->ptab_index, part->ptab_part_index,
-		    wd_print_part_name(0,0,part->part_type,WD_PNAME_NUM_INFO) );
+		snprintf(item->info,sizeof(item->info),"%s, h3",intro);
 		if (func)
 		    func(param,mm,item);
 	    }
 	}
+    }
 
-	if ( !part->is_gc && wii_data_mode != WD_PAT_IGNORE )
+
+    if ( wii_mgr_mode != WD_PAT_IGNORE && wii_mgr_mode == wii_data_mode )
+    {
+	PRINT("INSERT PART-DATA PATCH %u\n",wii_data_mode);
+
+	wd_memmap_item_t * item = wd_insert_memmap
+		( mm,
+		  wii_mgr_mode,
+		 (u64)part->data_sector * WII_SECTOR_SIZE,
+		 (u64)( part->end_sector - part->data_sector ) * WII_SECTOR_SIZE
+		);
+	DASSERT(item);
+	item->index = part->index;
+	snprintf(item->info,sizeof(item->info),"%s, partition data",intro);
+	if (func)
+	    func(param,mm,item);
+    }
+    else
+    {
+	if ( wii_mgr_mode != WD_PAT_IGNORE )
 	{
-	    PRINT("INSERT WII PART-DATA PATCH %u\n",wii_data_mode);
+	    PRINT("INSERT WII PART-DATA #0 PATCH %u\n",wii_data_mode);
+
+	    wd_memmap_item_t * item = wd_insert_memmap
+			( mm,
+			  wii_mgr_mode,
+			 (u64)part->data_sector * WII_SECTOR_SIZE,
+			 (u64)( part->end_mgr_sector - part->data_sector ) * WII_SECTOR_SIZE
+			);
+	    DASSERT(item);
+	    item->index = part->index;
+	    snprintf(item->info,sizeof(item->info),"%s, partition data #0",intro);
+	    if (func)
+		func(param,mm,item);
+	}
+
+	if ( wii_data_mode != WD_PAT_IGNORE && part->end_mgr_sector < part->end_sector)
+	{
+	    PRINT("INSERT WII PART-DATA #1 PATCH %u\n",wii_data_mode);
 
 	    wd_memmap_item_t * item = wd_insert_memmap
 			( mm,
 			  wii_data_mode,
-			 (u64)part->data_sector* WII_SECTOR_SIZE,
-			 (u64)( part->end_sector - part->data_sector ) * WII_SECTOR_SIZE
+			 (u64)part->end_mgr_sector * WII_SECTOR_SIZE,
+			 (u64)( part->end_sector - part->end_mgr_sector ) * WII_SECTOR_SIZE
 			);
 	    DASSERT(item);
 	    item->index = part->index;
-	    snprintf(item->info,sizeof(item->info),
-			"P.%u.%u, %s, partition data",
-			part->ptab_index, part->ptab_part_index,
-			wd_print_part_name(0,0,part->part_type,WD_PNAME_NUM_INFO) );
+	    snprintf(item->info,sizeof(item->info),"%s, partition data #1",intro);
 	    if (func)
 		func(param,mm,item);
 	}

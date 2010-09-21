@@ -69,6 +69,13 @@ int CalcCompressionLevelLZMA
     int			compr_level	// valid are 1..9 / 0: use default value
 );
 
+//-----------------------------------------------------------------------------
+
+u32 CalcMemoryUsageLZMA
+(
+    int			compr_level	// valid are 1..9 / 0: use default value
+);
+
 //
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////		   LZMA encoding (compression)		///////////////

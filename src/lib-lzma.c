@@ -80,6 +80,33 @@ int CalcCompressionLevelLZMA
 
 ///////////////////////////////////////////////////////////////////////////////
 
+u32 CalcMemoryUsageLZMA
+(
+    int			compr_level	// valid are 1..9 / 0: use default value
+)
+{
+    static u32 dictsize[] =
+    {
+	 64 * KiB,	// level 1
+	256 * KiB,	// level 2
+	  1 * MiB,	// level 3
+	  4 * MiB,	// level 4
+	 16 * MiB,	// level 5
+	 32 * MiB,	// level 6
+	 64 * MiB,	// level 7
+    };
+
+    compr_level = CalcCompressionLevelLZMA(compr_level);
+    if ( compr_level < 0 )
+	compr_level = 0;
+    else if ( compr_level >= sizeof(dictsize)/sizeof(*dictsize) )
+	compr_level = sizeof(dictsize)/sizeof(*dictsize) - 1;
+
+    return dictsize[compr_level] + 6 * MiB;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
 static void * AllocLZMA ( void *p, size_t size )
 {
     return malloc(size);
@@ -271,8 +298,9 @@ enumError EncLZMA_WriteList2File
 		lzma->error_object, GetMessageLZMA(res,"?") );
     }
     
-    // count only uncomressed size
-    file->bytes_written += inbuf.bytes_read - outfile.bytes_written;
+    // count only uncomressed size -> sepaate operations because u32/u64 handling
+    file->bytes_written += inbuf.bytes_read;
+    file->bytes_written -= outfile.bytes_written;
 
     if (bytes_written)
 	*bytes_written = outfile.bytes_written;
@@ -598,8 +626,9 @@ enumError EncLZMA2_WriteList2File
 		lzma->error_object, GetMessageLZMA(res,"?") );
     }
 
-    // count only uncomressed size
-    file->bytes_written += inbuf.bytes_read - outfile.bytes_written;
+    // count only uncomressed size -> sepaate operations because u32/u64 handling
+    file->bytes_written += inbuf.bytes_read;
+    file->bytes_written -= outfile.bytes_written;
 
     if (bytes_written)
 	*bytes_written = outfile.bytes_written;

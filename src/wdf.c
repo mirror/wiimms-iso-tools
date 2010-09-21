@@ -804,7 +804,7 @@ enumError wia_dump ( FILE *f, File_t *df, ccp fname )
 
     if ( long_count > 0 )
     {
-	fprintf(f,"\n  WIA memory map:\n");
+	fprintf(f,"\n  ISO memory map:\n");
 	wd_dump_memmap(stdout,3,&wia->memmap);
 	putchar('\n');
     }

@@ -1,5 +1,5 @@
 #!/bin/bash
-# (c) Wiimm, 2010-09-15
+# (c) Wiimm, 2010-09-21
 
 myname="${0##*/}"
 base=wwt+wit
@@ -282,7 +282,7 @@ function test_suite()
 	[[ $mode = wia ]] && ((NOWIA)) && continue
 	[[ $mode = wbfs && $RAW != "" ]] && continue
 
-	dest="$tempdir/copy.$xmode"
+	dest="$tempdir/copy.$xmode.$mode"
 
 	test_function "COPY-$xmode" "wit COPY to $xmode" \
 	    $WIT_CP "$src" "$dest" --$mode $compr \
@@ -399,13 +399,15 @@ function test_suite()
     $WIT --version
     $WDFCAT --version
     echo
+    echo "PARAM: $*"
+    echo
 } | tee -a $log $err
 
 #
 #------------------------------------------------------------------------------
 # main loop
 
-opts=0
+opts=1
 
 while (($#))
 do

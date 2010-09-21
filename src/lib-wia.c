@@ -41,7 +41,8 @@
 ///////////////			    consts			///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-#define WATCH_GROUP -1  // -1: disabled
+#define WATCH_GROUP -1		// -1: disabled
+#define WATCH_SUB_GROUP 0
 
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -52,11 +53,20 @@ typedef enum mm_mode_t
     WIA_MM_HEADER_DATA,		// header data, part of wia_disc_t
     WIA_MM_CACHED_DATA,		// cached data, write at close
     WIA_MM_RAW_GDATA,		// raw data, managed with 'gdata'
-    WIA_MM_PART_GDATA,		// partition data, managed with 'gdata'
+    WIA_MM_PART_GDATA_0,	// partition data #0, managed with 'gdata'
+    WIA_MM_PART_GDATA_1,	// partition data #1, managed with 'gdata'
     WIA_MM_EOF,			// end of file marker
     WIA_MM_GROWING,		// growing space
 
 } mm_mode_t;
+
+//
+///////////////////////////////////////////////////////////////////////////////
+///////////////			    static data			///////////////
+///////////////////////////////////////////////////////////////////////////////
+
+static bool empty_decrypted_sector_initialized = false;
+static wd_part_sector_t empty_decrypted_sector;
 
 //
 ///////////////////////////////////////////////////////////////////////////////
@@ -73,11 +83,66 @@ void ResetWIA
 	free(wia->part);
 	free(wia->raw_data);
 	free(wia->group);
+	free(wia->gdata);
 	wd_reset_memmap(&wia->memmap);
 
 	memset(wia,0,sizeof(*wia));
     }
 }
+
+///////////////////////////////////////////////////////////////////////////////
+
+static u32 AllocBufferWIA
+(
+    wia_controller_t	* wia,		// valid pointer
+    u32			chunk_size,	// wanted chunk size
+    bool		is_writing	// true: cut chunk size
+)
+{
+    DASSERT(wia);
+
+    u32 chunk_groups = chunk_size <= 1
+		? WIA_DEF_CHUNK_FACTOR
+		: ( chunk_size + WIA_BASE_CHUNK_SIZE/2 ) / WIA_BASE_CHUNK_SIZE;
+		
+    if (!chunk_groups)
+	chunk_groups = 1;
+    else if ( is_writing && chunk_groups > WIA_MAX_CHUNK_FACTOR )
+	chunk_groups = WIA_MAX_CHUNK_FACTOR;
+
+    chunk_size = chunk_groups * WIA_BASE_CHUNK_SIZE;
+
+    if ( chunk_size != wia->chunk_size )
+    {
+	wia->chunk_groups  = chunk_groups;
+	wia->chunk_sectors = chunk_groups * WII_GROUP_SECTORS;
+	wia->chunk_size	   = chunk_size;
+	wia->gdata_size    = chunk_size;
+	u32 needed_tempbuf_size
+		= wia->chunk_groups
+		* ( WII_GROUP_SIZE + WII_N_HASH_GROUP * sizeof(wia_exception_t) );
+	AllocTempBuffer(needed_tempbuf_size);
+	wia->memory_usage = needed_tempbuf_size + wia->gdata_size;
+
+	PRINT("CHUNK_SIZE=%s, GDATA_SIZE=%s, IOBUF_SIZE=%s/%s, G+S=%u,%u\n",
+		wd_print_size(0,0,wia->chunk_size,0),
+		wd_print_size(0,0,wia->gdata_size,0),
+		wd_print_size(0,0,needed_tempbuf_size,0),
+		wd_print_size(0,0,tempbuf_size,0),
+		wia->chunk_groups, wia->chunk_sectors );
+
+	free(wia->gdata);
+	wia->gdata = malloc(wia->gdata_size);
+	if (!wia->gdata)
+	    OUT_OF_MEMORY;
+    }
+
+    DASSERT(wia->gdata);
+    DASSERT(tempbuf);
+    DASSERT( wia->chunk_sectors == wia->chunk_groups * WII_GROUP_SECTORS );
+
+    return wia->chunk_size;
+};
 
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -187,15 +252,42 @@ bool IsWIA
 
 static u32 calc_except_size
 (
-    const void		* except	// pointer to wia_except_list_t
+    const void		* except,	// pointer to wia_except_list_t
+    u32			n_groups	// number of groups
 )
 {
     DASSERT(except);
     DASSERT( be16(except) == ntohs(((wia_except_list_t*)except)->n_exceptions) );
 
-    return sizeof(wia_except_list_t)
-	 + sizeof(wia_exception_t)
-		* ntohs(((wia_except_list_t*)except)->n_exceptions);
+    wia_except_list_t * elist = (wia_except_list_t*)except;
+    while ( n_groups-- > 0 )
+	elist = (wia_except_list_t*)( elist->exception + ntohs(elist->n_exceptions) );
+
+    return (ccp)elist - (ccp)except;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+static u64 calc_group_size
+(
+    wia_controller_t	* wia,		// valid pointer
+    u32			first_group,	// index of first group
+    u32			n_groups	// number of groups
+)
+{
+    DASSERT(wia);
+    DASSERT( first_group <= wia->disc.n_groups );
+    DASSERT( first_group + n_groups <= wia->disc.n_groups );
+
+    u64 size = 0;
+    wia_group_t * grp = wia->group + first_group;
+    while ( n_groups-- > 0 )
+    {
+	size += ntohl(grp->data_size);
+	grp++;
+    }
+
+    return size;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -250,7 +342,7 @@ static enumError read_data
     u64			file_offset,	// file offset
     u32			file_data_size,	// expected file data size
     bool		have_except,	// true: data contains exception list and
-					// the exception list is stored in wia->iobuf
+					// the exception list is stored in 'tempbuf'
     void		* inbuf,	// valid pointer to data
     u32			inbuf_size	// size of data to read
 )
@@ -263,15 +355,15 @@ static enumError read_data
     wia_controller_t * wia = sf->wia;
     DASSERT(wia);
 
-    if ( file_data_size > 2 * sizeof(wia->iobuf) )
+    if ( file_data_size > 2 * tempbuf_size )
 	return ERROR0(ERR_WIA_INVALID,
 	    "WIA chunk size to large: %s\n",sf->f.fname);
 
     bool align_except = false;
     u32 data_bytes_read = 0;
 
-    u8  * dest    = have_except ? wia->iobuf : inbuf;
-    u32 dest_size = have_except ? sizeof(wia->iobuf) : inbuf_size;
+    u8  * dest    = have_except ? tempbuf : inbuf;
+    u32 dest_size = have_except ? tempbuf_size : inbuf_size;
 
     switch ((wd_compression_t)wia->disc.compression)
     {
@@ -280,7 +372,7 @@ static enumError read_data
       case WD_COMPR_NONE:
       {
 	noPRINT(">> READ NONE: %9llx, %6x => %6x, except=%d, dest=%p, iobuf=%p\n",
-		file_offset, file_data_size, inbuf_size, have_except, dest, wia->iobuf );
+		file_offset, file_data_size, inbuf_size, have_except, dest, tempbuf );
 
 	if ( file_data_size > dest_size )
 	    return ERROR0(ERR_WIA_INVALID,
@@ -298,7 +390,7 @@ static enumError read_data
 
       case WD_COMPR_PURGE:
       {
-	enumError err = ReadAtF( &sf->f, file_offset, wia->iobuf, file_data_size );
+	enumError err = ReadAtF( &sf->f, file_offset, tempbuf, file_data_size );
 	if (err)
 	    return err;
 
@@ -308,20 +400,20 @@ static enumError read_data
 		
 	file_data_size -= WII_HASH_SIZE;
 	sha1_hash hash;
-	SHA1(wia->iobuf,file_data_size,hash);
-	if (memcmp(hash,wia->iobuf+file_data_size,WII_HASH_SIZE))
+	SHA1(tempbuf,file_data_size,hash);
+	if (memcmp(hash,tempbuf+file_data_size,WII_HASH_SIZE))
 	{
 	    HEXDUMP16(0,0,inbuf,16);
-	    HEXDUMP(0,0,0,-WII_HASH_SIZE,wia->iobuf+file_data_size,WII_HASH_SIZE);
+	    HEXDUMP(0,0,0,-WII_HASH_SIZE,tempbuf+file_data_size,WII_HASH_SIZE);
 	    HEXDUMP(0,0,0,-WII_HASH_SIZE,hash,WII_HASH_SIZE);
 	    return ERROR0(ERR_WIA_INVALID,
 		"SHA1 check for WIA data segment failed: %s\n",sf->f.fname);
 	}
     
 	const u32 except_size
-	    = have_except ? calc_except_size(wia->iobuf) + 3 & ~(u32)3 : 0;
-	wia_segment_t * seg = (wia_segment_t*)( wia->iobuf + except_size );
-	err = expand_segments( sf, seg, wia->iobuf+file_data_size,
+	    = have_except ? calc_except_size(tempbuf,wia->chunk_groups) + 3 & ~(u32)3 : 0;
+	wia_segment_t * seg = (wia_segment_t*)( tempbuf + except_size );
+	err = expand_segments( sf, seg, tempbuf+file_data_size,
 				inbuf, inbuf_size );
 	if (err)
 	    return err;
@@ -403,14 +495,14 @@ static enumError read_data
     
     if (have_except)
     {
-	u32 except_size = calc_except_size(dest);
+	u32 except_size = calc_except_size(dest,wia->chunk_groups);
 	if (align_except)
 	    except_size = except_size + 3 & ~(u32)3;
 	noPRINT("%u exceptions, size=%u\n",be16(dest),except_size);
 
 	data_bytes_read -= except_size;
 	DASSERT( dest != inbuf );
-	DASSERT( dest == wia->iobuf );
+	DASSERT( dest == tempbuf );
 	memcpy( inbuf, dest + except_size, inbuf_size );
 	//HEXDUMP16(0,1,inbuf,16);
     }
@@ -431,14 +523,14 @@ static enumError read_gdata
     u32			group,		// group index
     u32			size,		// group size
     bool		have_except	// true: data contains exception list and
-					// the exception list is stored in wia->iobuf
+					// the exception list is stored in tempbuf
 )
 {
     DASSERT(sf);
     DASSERT(sf->wia);
     wia_controller_t * wia = sf->wia;
 
-    if ( group >= wia->group_used || size > sizeof(wia->gdata) )
+    if ( group >= wia->group_used || size > wia->gdata_size )
 	return ERROR0(ERR_WIA_INVALID,
 			"Access to invalid group: %s\n",sf->f.fname);
 
@@ -448,14 +540,14 @@ static enumError read_gdata
     u32 gsize = ntohl(grp->data_size);
     if (gsize)
     {
-	memset(wia->gdata+size,0,sizeof(wia->gdata)-size);
+	memset(wia->gdata+size,0,wia->gdata_size-size);
 	return read_data( sf, (u64)ntohl(grp->data_off4)<<2,
 			gsize, have_except, wia->gdata, size );
     }
     
-    memset(wia->gdata,0,sizeof(wia->gdata));
+    memset(wia->gdata,0,wia->gdata_size);
     if (have_except)
-	memset(wia->iobuf,0,sizeof(wia_except_list_t));
+	memset(tempbuf,0,sizeof(wia_except_list_t));
     return ERR_OK;
 }
 
@@ -479,15 +571,63 @@ static enumError read_part_gdata
 	return err;
     
     wia_controller_t * wia = sf->wia;
-    DASSERT( part_index < wia->disc.n_part ); 
-    wia->gdata_part = part_index;
+    DASSERT( part_index < wia->disc.n_part );
+    if ( wia->gdata_part != part_index )
+    {
+	wia->gdata_part = part_index;
+	wd_aes_set_key(&wia->akey,wia->part[part_index].part_key);
+    }
 
 
     //----- process hash and exceptions
 
-    u8 hashtab[WII_GROUP_HASH_SIZE+WII_HASH_SIZE]; // + reserve to avoid buf overflow
-    memset(hashtab,0,sizeof(hashtab));
-    wd_calc_group_hashes(wia->gdata,hashtab,0,0);
+    u8 * hashtab0 = tempbuf + tempbuf_size - WII_GROUP_HASH_SIZE * wia->chunk_groups;
+    u8 * hashtab = hashtab0;
+
+    int g;
+    wia_except_list_t * except_list = (wia_except_list_t*)tempbuf;
+    u8 * gdata = wia->gdata;
+    for ( g = 0;
+	  g < wia->chunk_groups;
+	  g++, gdata += WII_GROUP_DATA_SIZE, hashtab += WII_GROUP_HASH_SIZE )
+    {
+	DASSERT( hashtab + WII_GROUP_HASH_SIZE <= tempbuf + tempbuf_size );
+	memset(hashtab,0,WII_GROUP_HASH_SIZE);
+	wd_calc_group_hashes(gdata,hashtab,0,0);
+
+	u32 n_except = ntohs(except_list->n_exceptions);
+	wia_exception_t * except = except_list->exception;
+	if (n_except)
+	{
+	 #if WATCH_GROUP >= 0 && defined(TEST)
+	    if ( wia->gdata_group == WATCH_GROUP && g == WATCH_SUB_GROUP )
+	    {
+		FILE * f = fopen("pool/read.except.dump","wb");
+		if (f)
+		{
+		    const size_t sz = sizeof(wia_exception_t);
+		    HexDump(f,0,0,9,sz,except_list,sizeof(except_list));
+		    HexDump(f,0,0,9,sz,except_list->exception,n_except*sz);
+		    fclose(f);
+		}
+	    }
+	 #endif
+
+	    PRINT("%u exceptions for group %u\n",n_except,group);
+	    for ( ; n_except > 0; n_except--, except++  )
+	    {
+		noPRINT_IF(wia->gdata_group == WATCH_GROUP && g == WATCH_SUB_GROUP,
+			    "EXCEPT: %4x: %02x %02x %02x %02x\n",
+			    ntohs(except->offset), except->hash[0],
+			    except->hash[1], except->hash[2], except->hash[3] );
+		DASSERT( ntohs(except->offset) + WII_HASH_SIZE <= WII_GROUP_HASH_SIZE );
+		memcpy( hashtab + ntohs(except->offset), except->hash, WII_HASH_SIZE );
+	    }
+	}
+	except_list = (wia_except_list_t*)except;
+	DASSERT( (u8*)except_list < hashtab0 );
+    }
+    DASSERT( hashtab == tempbuf + tempbuf_size );
 
  #if WATCH_GROUP >= 0 && defined(TEST)
     if ( wia->gdata_group == WATCH_GROUP )
@@ -496,42 +636,11 @@ static enumError read_part_gdata
 	FILE * f = fopen("pool/read.calc.dump","wb");
 	if (f)
 	{
-	    HexDump(f,0,0,9,20,hashtab,WII_GROUP_HASH_SIZE);
+	    HexDump(f,0,0,9,16,hashtab,WII_GROUP_HASH_SIZE*wia->chunk_groups);
 	    fclose(f);
 	}
     }
  #endif
-
-    wia_except_list_t * except_list = (wia_except_list_t*)wia->iobuf;
-    u32 n_except = ntohs(except_list->n_exceptions);
-    if (n_except)
-    {
-     #if WATCH_GROUP >= 0 && defined(TEST)
-	if ( wia->gdata_group == WATCH_GROUP )
-	{
-	    FILE * f = fopen("pool/read.except.dump","wb");
-	    if (f)
-	    {
-		const size_t sz = sizeof(wia_exception_t);
-		HexDump(f,0,0,9,sz,except_list,sizeof(except_list));
-		HexDump(f,0,0,9,sz,except_list->exception,n_except*sz);
-		fclose(f);
-	    }
-	}
-     #endif
-
-	PRINT("%u execptions for group %u\n",n_except,group);
-	wia_exception_t * except;
-	for ( except = except_list->exception; n_except > 0; n_except--, except++  )
-	{
-	    noPRINT_IF(wia->gdata_group == WATCH_GROUP,
-			"EXCEPT: %4x: %02x %02x %02x %02x\n",
-			ntohs(except->offset), except->hash[0],
-			except->hash[1], except->hash[2], except->hash[3] );
-	    DASSERT( ntohs(except->offset) + WII_HASH_SIZE <= sizeof(hashtab) );
-	    memcpy( hashtab + ntohs(except->offset), except->hash, WII_HASH_SIZE );
-	}
-    }
 
 
     //----- encrpyt and join data
@@ -542,27 +651,24 @@ static enumError read_part_gdata
 	FILE * f = fopen("pool/read.split.dump","wb");
 	if (f)
 	{
-	    HexDump(f,0,0,9,16,wia->gdata,WII_GROUP_DATA_SIZE);
+	    HexDump(f,0,0,9,16,wia->gdata,WII_GROUP_DATA_SIZE*wia->chunk_groups);
 	    fclose(f);
 	}
 
 	f = fopen("pool/read.hash.dump","wb");
 	if (f)
 	{
-	    HexDump(f,0,0,9,20,hashtab,WII_GROUP_HASH_SIZE);
+	    HexDump(f,0,0,9,16,hashtab0,WII_GROUP_HASH_SIZE*wia->chunk_groups);
 	    fclose(f);
 	}
     }
  #endif
 
     if ( wia->encrypt )
-    {
-	aes_key_t akey;
-	wd_aes_set_key(&akey,wia->part[part_index].part_key);
-	wd_encrypt_sectors(0,&akey,wia->gdata,hashtab,wia->gdata,WII_GROUP_SECTORS);
-    }
+	wd_encrypt_sectors(0,&wia->akey,wia->gdata,
+				hashtab0,wia->gdata,wia->chunk_sectors);
     else
-	wd_join_sectors(wia->gdata,hashtab,wia->gdata,WII_GROUP_SECTORS);
+	wd_join_sectors(wia->gdata,hashtab0,wia->gdata,wia->chunk_sectors);
 
 
  #if WATCH_GROUP >= 0 && defined(TEST)
@@ -571,7 +677,7 @@ static enumError read_part_gdata
 	FILE * f = fopen("pool/read.all.dump","wb");
 	if (f)
 	{
-	    HexDump(f,0,0,9,16,wia->gdata,WII_GROUP_SIZE);
+	    HexDump(f,0,0,9,16,wia->gdata,wia->chunk_size);
 	    fclose(f);
 	}
     }
@@ -647,12 +753,12 @@ enumError ReadWIA
 
 		    const int base_sector = item->offset / WII_SECTOR_SIZE;
 		    const int sector      = overlap1 / WII_SECTOR_SIZE - base_sector;
-		    const int base_group  = sector / WII_GROUP_SECTORS;
+		    const int base_group  = sector / wia->chunk_sectors;
 		    const int group       = base_group + ntohl(rdata->group_index);
 
 		    u64 base_off = base_sector * (u64)WII_SECTOR_SIZE
-				 + base_group  * (u64)WII_GROUP_SIZE;
-		    u64 end_off  = base_off + WII_GROUP_SIZE;
+				 + base_group  * (u64)wia->chunk_size;
+		    u64 end_off  = base_off + wia->chunk_size;
 		    if ( end_off > end )
 			 end_off = end;
 
@@ -681,7 +787,7 @@ enumError ReadWIA
 			    " %llx .. %llx -> %llx + %llx, base = %9llx + %6x\n",
 				overlap1, end_off,
 				overlap1 - base_off, end_off - overlap1,
-				base_off, wia->gdata_size );
+				base_off, wia->gdata_used );
 		    memcpy( buf + (overlap1-off),
 			    wia->gdata + ( overlap1 - base_off ),
 			    end_off - overlap1 );
@@ -691,27 +797,30 @@ enumError ReadWIA
 	    break;
 
 
-	 case WIA_MM_PART_GDATA:
+	 case WIA_MM_PART_GDATA_0:
+	 case WIA_MM_PART_GDATA_1:
 	    {
 		DASSERT( item->index >= 0 && item->index < wia->disc.n_part );
 		wia_part_t * part = wia->part + item->index;
+		wia_part_data_t * pd = part->pd + ( item->mode - WIA_MM_PART_GDATA_0 );
+
 		while ( overlap1 < overlap2 )
 		{
-		    int group = ( overlap1 - item->offset ) / WII_GROUP_SIZE;
-		    DASSERT( group < part->n_groups );
-		    u64 base_off = item->offset + group * (u64)WII_GROUP_SIZE;
-		    u64 end_off  = base_off + WII_GROUP_SIZE;
+		    int group = ( overlap1 - item->offset ) / wia->chunk_size;
+		    DASSERT( group < pd->n_groups );
+		    u64 base_off = item->offset + group * (u64)wia->chunk_size;
+		    u64 end_off  = base_off + wia->chunk_size;
 		    if ( end_off > end )
 			 end_off = end;
 
-		    group += part->group_index;
+		    group += pd->group_index;
 		    DASSERT( group >= 0 && group < wia->group_used );
 
 		    if ( group != wia->gdata_group || item->index != wia->gdata_part )
 		    {
 			PRINT("----- SETUP PART%3u GROUP %4u/%4u>%4u, off=%9llx, size=%6llx\n",
 				item->index,
-				group - part->group_index, part->n_groups, group,
+				group - pd->group_index, pd->n_groups, group,
 				base_off, end_off-base_off );
 			enumError err
 			    = read_part_gdata( sf, item->index, group, end_off-base_off );
@@ -726,7 +835,7 @@ enumError ReadWIA
 			    " %llx .. %llx -> %llx + %llx, base = %9llx + %6x\n",
 				overlap1, end_off,
 				overlap1 - base_off, end_off - overlap1,
-				base_off, wia->gdata_size );
+				base_off, wia->gdata_used );
 		    memcpy( buf + (overlap1-off),
 			    wia->gdata + ( overlap1 - base_off ),
 			    end_off - overlap1 );
@@ -751,13 +860,13 @@ enumError ReadWIA
 
 enumError SetupReadWIA 
 (
-    struct SuperFile_t	* sf	// file to setup
+    struct SuperFile_t	* sf		// file to setup
 )
 {
     PRINT("#W# SetupReadWIA(%p) file=%d/%p, wc=%p wbfs=%p v=%s/%s\n",
 		sf, GetFD(&sf->f), GetFP(&sf->f),
 		sf->wc, sf->wbfs,
-		PrintVersionWIA(0,0,WIA_VERSION_COMPATIBLE),
+		PrintVersionWIA(0,0,WIA_VERSION_READ_COMPATIBLE),
 		PrintVersionWIA(0,0,WIA_VERSION) );
     ASSERT(sf);
 
@@ -771,8 +880,10 @@ enumError SetupReadWIA
     if (!wia)
 	return OUT_OF_MEMORY;
     sf->wia = wia;
-    wia->gdata_group = -1;  // reset gdata
+    wia->gdata_group = wia->gdata_part = -1;  // reset gdata
     wia->encrypt = encoding & ENCODE_ENCRYPT || !( encoding & ENCODE_DECRYPT );
+
+    AllocBufferWIA(wia,WIA_BASE_CHUNK_SIZE,false);
 
 
     //----- read and check file header
@@ -784,17 +895,17 @@ enumError SetupReadWIA
 
     const bool is_wia = IsWIA(fhead,sizeof(*fhead),0,0,0);
     wia_ntoh_file_head(fhead,fhead);
-    if ( !is_wia || fhead->disc_size > sizeof(wia->iobuf) )
+    if ( !is_wia || fhead->disc_size > MiB )
 	return ERROR0(ERR_WIA_INVALID,"Invalid file header: %s\n",sf->f.fname);
 
     if ( WIA_VERSION < fhead->version_compatible
-	|| fhead->version < WIA_VERSION_COMPATIBLE )
+	|| fhead->version < WIA_VERSION_READ_COMPATIBLE )
     {
-	if ( WIA_VERSION_COMPATIBLE < WIA_VERSION )
+	if ( WIA_VERSION_READ_COMPATIBLE < WIA_VERSION )
 	    return ERROR0(ERR_WIA_INVALID,
 		"Not supported WIA version %s (compatible %s .. %s): %s\n",
 		PrintVersionWIA(0,0,fhead->version),
-		PrintVersionWIA(0,0,WIA_VERSION_COMPATIBLE),
+		PrintVersionWIA(0,0,WIA_VERSION_READ_COMPATIBLE),
 		PrintVersionWIA(0,0,WIA_VERSION),
 		sf->f.fname );
 	else
@@ -819,42 +930,43 @@ enumError SetupReadWIA
 
     //----- read and check disc info
 
-    DASSERT( fhead->disc_size   <= sizeof(wia->iobuf) );
-    DASSERT( sizeof(wia_disc_t) <= sizeof(wia->iobuf) );
+    DASSERT( fhead->disc_size   <= tempbuf_size );
+    DASSERT( sizeof(wia_disc_t) <= tempbuf_size );
 
-    memset(wia->iobuf,0,sizeof(wia_disc_t));
-    ReadAtF(&sf->f,sizeof(*fhead),wia->iobuf,fhead->disc_size);
+    memset(tempbuf,0,sizeof(wia_disc_t));
+    ReadAtF(&sf->f,sizeof(*fhead),tempbuf,fhead->disc_size);
     if (err)
 	return err;
 
     sha1_hash hash;
-    SHA1(wia->iobuf,fhead->disc_size,hash);
+    SHA1(tempbuf,fhead->disc_size,hash);
     if (memcmp(hash,fhead->disc_hash,sizeof(hash)))
 	return ERROR0(ERR_WIA_INVALID,
 	    "Hash error for disc area: %s\n",sf->f.fname);
 
     wia_disc_t *disc = &wia->disc;
-    wia_ntoh_disc(disc,(wia_disc_t*)wia->iobuf);
+    wia_ntoh_disc(disc,(wia_disc_t*)tempbuf);
 
-    if ( disc->chunk_size != WIA_BASE_CHUNK_SIZE )
+    AllocBufferWIA(wia,disc->chunk_size,false);
+    if ( wia->chunk_size != disc->chunk_size )
 	return ERROR0(ERR_WIA_INVALID,
-	    "Only a chunk size of %s, but not %s, is supported: %s\n",
-		wd_print_size(0,0,WIA_BASE_CHUNK_SIZE,false),
+	    "Only multiple of %s, but not %s, are supported as a chunk size: %s\n",
+		wd_print_size(0,0,wia->chunk_size,false),
 		wd_print_size(0,0,disc->chunk_size,false), sf->f.fname );
 
 
     //----- read and check partition header
 
     const u32 load_part_size = disc->part_t_size * disc->n_part;
-    if ( load_part_size > sizeof(wia->iobuf) )
+    if ( load_part_size > tempbuf_size )
 	return ERROR0(ERR_WIA_INVALID,
 	    "Total partition header size to large: %s\n",sf->f.fname);
 
-    ReadAtF(&sf->f,disc->part_off,wia->iobuf,load_part_size);
+    ReadAtF(&sf->f,disc->part_off,tempbuf,load_part_size);
     if (err)
 	return err;
 
-    SHA1(wia->iobuf,load_part_size,hash);
+    SHA1(tempbuf,load_part_size,hash);
     if (memcmp(hash,disc->part_hash,sizeof(hash)))
 	return ERROR0(ERR_WIA_INVALID,
 	    "Hash error for partition header: %s\n",sf->f.fname);
@@ -864,7 +976,7 @@ enumError SetupReadWIA
 	OUT_OF_MEMORY;
 
     int ip;
-    const u8 * src = wia->iobuf;
+    const u8 * src = tempbuf;
     int shortage = sizeof(wia_part_t) - disc->part_t_size;
     for ( ip = 0; ip < disc->n_part; ip++ )
     {
@@ -960,26 +1072,37 @@ enumError SetupReadWIA
     DASSERT(it);
     snprintf(it->info,sizeof(it->info),"--- end of file ---");
     
+    const int g_fw = sprintf(iobuf,"%u",disc->n_groups);
 
     //----- setup memory map: partitions
 
     wia_part_t * part = wia->part;
     for ( ip = 0; ip < disc->n_part; ip++, part++ )
     {
-	const u64 size = part->n_sectors * (u64)WII_SECTOR_SIZE;
-	it = wd_insert_memmap(&wia->memmap,WIA_MM_PART_GDATA,
-			part->first_sector * (u64)WII_SECTOR_SIZE, size );
-	DASSERT(it);
-	it->index = ip;
-	snprintf(it->info,sizeof(it->info),
-			"Part%3u,%5u group%s start%5u, %s",
-			it->index,
-			part->n_groups, part->n_groups == 1 ? " " : "s",
-			part->group_index,
-			wd_print_size(0,0,size,true) );
+	int id;
+	for ( id = 0; id < sizeof(part->pd)/sizeof(part->pd[0]); id++ )
+	{
+	    wia_part_data_t * pd = part->pd + id;
+	    const u64 size = pd->n_sectors * (u64)WII_SECTOR_SIZE;
+	    if (size)
+	    {
+		it = wd_insert_memmap(&wia->memmap,WIA_MM_PART_GDATA_0+id,
+				pd->first_sector * (u64)WII_SECTOR_SIZE, size );
+		DASSERT(it);
+		it->index = ip;
+		const u64 compr_size = calc_group_size(wia,pd->group_index,pd->n_groups);
+		snprintf(it->info,sizeof(it->info),
+				"Part%3u,%5u chunk%s @%0*u, %s -> %s",
+				it->index,
+				pd->n_groups, pd->n_groups == 1 ? " " : "s",
+				g_fw, pd->group_index,
+				wd_print_size(0,0,size,true),
+				wd_print_size(0,0,compr_size,true) );
+	    }
+	}
     }
 
-    
+
     //----- setup memory map: raw data
 
     for ( ip = 0; ip < wia->raw_data_used; ip++ )
@@ -990,13 +1113,16 @@ enumError SetupReadWIA
 				ntoh64(rd->raw_data_off), size );
 	DASSERT(it);
 	it->index = ip;
+	const u32 group_index = ntohl(rd->group_index);
 	const u32 n_groups = ntohl(rd->n_groups);
+	const u64 compr_size = calc_group_size(wia,group_index,n_groups);
 	snprintf(it->info,sizeof(it->info),
-			"RAW%4u,%5u group%s start%5u, %s",
+			"RAW%4u,%5u chunk%s @%0*u, %s -> %s",
 			it->index,
 			n_groups, n_groups == 1 ? " " : "s",
-			ntohl(rd->group_index),
-			wd_print_size(0,0,size,true) );
+			g_fw, group_index,
+			wd_print_size(0,0,size,true),
+			wd_print_size(0,0,compr_size,true) );
     }
 
     
@@ -1106,10 +1232,12 @@ static enumError write_data
     wia_controller_t * wia = sf->wia;
     DASSERT(wia);
 
-    u32 except_size = except ? calc_except_size(except) : 0;
-    PRINT_IF( except && ntohs(except->n_exceptions),
-		"%d exceptions in group %d, size=%u=0x%x\n",
-		ntohs(except->n_exceptions), group, except_size, except_size );
+    u32 except_size = except ? calc_except_size(except,wia->chunk_groups) : 0;
+    PRINT_IF( except_size > wia->chunk_groups * sizeof(wia_except_list_t),
+		"%zd exceptions in group %d, size=%u=0x%x\n",
+		( except_size - wia->chunk_groups * sizeof(wia_except_list_t) )
+			/ sizeof(wia_exception_t),
+		group, except_size, except_size );
 
     u32 written = 0;
     switch((wd_compression_t)wia->disc.compression)
@@ -1148,22 +1276,22 @@ static enumError write_data
 	if (except_size)
 	{
 	    except_size = except_size + 3 & ~(u32)3; // u32 alignment
-	    if ( (u8*)except != wia->iobuf )
-		memmove(wia->iobuf,except,except_size);
+	    if ( (u8*)except != tempbuf )
+		memmove(tempbuf,except,except_size);
 	}
 
-	wia_segment_t * seg1 = (wia_segment_t*)(wia->iobuf+except_size);
+	wia_segment_t * seg1 = (wia_segment_t*)(tempbuf+except_size);
 	wia_segment_t * seg2
-	    = calc_segments( seg1, wia->iobuf + sizeof(wia->iobuf),
+	    = calc_segments( seg1, tempbuf + tempbuf_size,
 				data_ptr, data_size );
 
 	if ( except_size || seg2 > seg1+1 )
 	{
 	    written = except_size + ( (ccp)seg2 - (ccp)seg1 );
-	    SHA1(wia->iobuf,written,wia->iobuf+written);
+	    SHA1(tempbuf,written,tempbuf+written);
 	    written += WII_HASH_SIZE;
 
-	    enumError err = WriteAtF( &sf->f, wia->write_data_off, wia->iobuf, written );
+	    enumError err = WriteAtF( &sf->f, wia->write_data_off, tempbuf, written );
 	    if (err)
 		return err;
 	}
@@ -1304,17 +1432,18 @@ static enumError write_part_data
 	FILE * f = fopen("pool/write.all.dump","wb");
 	if (f)
 	{
-	    HexDump(f,0,0,9,16,wia->gdata,WII_GROUP_SIZE);
+	    HexDump(f,0,0,9,16,wia->gdata,wia->chunk_size);
 	    fclose(f);
 	}
     }
  #endif
 
-    u8 hashtab1[WII_GROUP_HASH_SIZE];
+    u8 * hashtab0 = tempbuf + tempbuf_size - WII_GROUP_HASH_SIZE * wia->chunk_groups;
     if ( wpart->is_encrypted )
-	wd_decrypt_sectors(wpart,0,wia->gdata,wia->gdata,hashtab1,WII_GROUP_SECTORS);
+	wd_decrypt_sectors(0,&wia->akey,
+			wia->gdata,wia->gdata,hashtab0,wia->chunk_sectors);
     else
-	wd_split_sectors(wia->gdata,wia->gdata,hashtab1,WII_GROUP_SECTORS);
+	wd_split_sectors(wia->gdata,wia->gdata,hashtab0,wia->chunk_sectors);
 
  #if WATCH_GROUP >= 0 && defined(TEST)
     if ( wia->gdata_group == WATCH_GROUP )
@@ -1322,14 +1451,19 @@ static enumError write_part_data
 	FILE * f = fopen("pool/write.split.dump","wb");
 	if (f)
 	{
-	    HexDump(f,0,0,9,16,wia->gdata,WII_GROUP_DATA_SIZE);
+	    HexDump(f,0,0,9,16,wia->gdata,WII_GROUP_DATA_SIZE*wia->chunk_groups);
 	    fclose(f);
 	}
 
 	f = fopen("pool/write.hash.dump","wb");
 	if (f)
 	{
-	    HexDump(f,0,0,9,20,hashtab1,WII_GROUP_HASH_SIZE);
+	    int g;
+	    for ( g = 0; g < wia->chunk_groups; g++ )
+	    {
+		HexDump(f,0,0,9,16,hashtab0+WII_GROUP_HASH_SIZE*g,WII_GROUP_HASH_SIZE);
+		fprintf(f,"---\f\n");
+	    }
 	    fclose(f);
 	}
     }
@@ -1338,106 +1472,127 @@ static enumError write_part_data
 
     //----- setup exceptions
 
-    wia_except_list_t * except_list = (wia_except_list_t*)(wia->iobuf);
-    wia_exception_t * except = except_list->exception;
+    u8 * gdata = wia->gdata;
+    u8 * hashtab1 = hashtab0;
+    wia_except_list_t * except_list = (wia_except_list_t*)tempbuf;
 
-    u8 hashtab2[WII_GROUP_HASH_SIZE];
-    wd_calc_group_hashes(wia->gdata,hashtab2,0,0);
-
- #if WATCH_GROUP >= 0 && defined(TEST)
-    if ( wia->gdata_group == WATCH_GROUP )
+    int g;
+    for ( g = 0;
+	  g < wia->chunk_groups;
+	  g++, gdata += WII_GROUP_DATA_SIZE, hashtab1 += WII_GROUP_HASH_SIZE )
     {
-	FILE * f = fopen("pool/write.calc.dump","wb");
-	if (f)
-	{
-	    HexDump(f,0,0,9,20,hashtab2,WII_GROUP_HASH_SIZE);
-	    fclose(f);
-	}
-    }
- #endif
+	u8 hashtab2[WII_GROUP_HASH_SIZE];
+	wd_calc_group_hashes(gdata,hashtab2,0,0);
 
-    int is;
-    for ( is = 0; is < WII_GROUP_SECTORS; is++ )
-    {
-	wd_part_sector_t * sector1
-	    = (wd_part_sector_t*)( hashtab1 + is * WII_SECTOR_HASH_SIZE );
-	wd_part_sector_t * sector2
-	    = (wd_part_sector_t*)( hashtab2 + is * WII_SECTOR_HASH_SIZE );
-
-	int ih;
-	u8 * h1 = sector1->h0[0];
-	u8 * h2 = sector2->h0[0];
-	for ( ih = 0; ih < WII_N_ELEMENTS_H0; ih++ )
+     #if WATCH_GROUP >= 0 && defined(TEST)
+	if ( wia->gdata_group == WATCH_GROUP && g == WATCH_SUB_GROUP )
 	{
-	    if (memcmp(h1,h2,WII_HASH_SIZE))
+	    FILE * f = fopen("pool/write.calc.dump","wb");
+	    if (f)
 	    {
-		TRACE("%5u.%02u.H0.%02u -> %04x,%04x\n",
-			    wia->gdata_group, is, ih,
-			    h1 - hashtab1,  h2 - hashtab2 );
-		except->offset = htons(h1-hashtab1);
-		memcpy(except->hash,h1,sizeof(except->hash));
-		except++;
+		HexDump(f,0,0,9,16,hashtab2,WII_GROUP_HASH_SIZE);
+		fclose(f);
 	    }
-	    h1 += WII_HASH_SIZE;
-	    h2 += WII_HASH_SIZE;
 	}
+     #endif
 
-	h1 = sector1->h1[0];
-	h2 = sector2->h1[0];
-	for ( ih = 0; ih < WII_N_ELEMENTS_H1; ih++ )
+	int is;
+	wia_exception_t * except = except_list->exception;
+	noPRINT("** exc=%p,%p, gdata=%p, hash=%p\n",
+		except_list, except, gdata, hashtab1 );
+	for ( is = 0; is < WII_GROUP_SECTORS; is++ )
 	{
-	    if (memcmp(h1,h2,WII_HASH_SIZE))
+	    wd_part_sector_t * sector1
+		= (wd_part_sector_t*)( hashtab1 + is * WII_SECTOR_HASH_SIZE );
+	    wd_part_sector_t * sector2
+		= (wd_part_sector_t*)( hashtab2 + is * WII_SECTOR_HASH_SIZE );
+
+	    int ih;
+	    u8 * h1 = sector1->h0[0];
+	    u8 * h2 = sector2->h0[0];
+	    for ( ih = 0; ih < WII_N_ELEMENTS_H0; ih++ )
 	    {
-		TRACE("%5u.%02u.H1.%u  -> %04x,%04x\n",
-			    wia->gdata_group, is, ih,
-			    h1 - hashtab1,  h2 - hashtab2 );
-		except->offset = htons(h1-hashtab1);
-		memcpy(except->hash,h1,sizeof(except->hash));
-		except++;
+		if (memcmp(h1,h2,WII_HASH_SIZE))
+		{
+		    TRACE("%5u.%02u.H0.%02u -> %04x,%04x\n",
+				wia->gdata_group, is, ih,
+				h1 - hashtab1,  h2 - hashtab2 );
+		    except->offset = htons(h1-hashtab1);
+		    memcpy(except->hash,h1,sizeof(except->hash));
+		    except++;
+		}
+		h1 += WII_HASH_SIZE;
+		h2 += WII_HASH_SIZE;
 	    }
-	    h1 += WII_HASH_SIZE;
-	    h2 += WII_HASH_SIZE;
-	}
 
-	h1 = sector1->h2[0];
-	h2 = sector2->h2[0];
-	for ( ih = 0; ih < WII_N_ELEMENTS_H2; ih++ )
-	{
-	    if (memcmp(h1,h2,WII_HASH_SIZE))
+	    h1 = sector1->h1[0];
+	    h2 = sector2->h1[0];
+	    for ( ih = 0; ih < WII_N_ELEMENTS_H1; ih++ )
 	    {
-		TRACE("%5u.%02u.H2.%u  -> %04x,%04x\n",
-			    wia->gdata_group, is, ih,
-			    h1 - hashtab1,  h2 - hashtab2 );
-		except->offset = htons(h1-hashtab1);
-		memcpy(except->hash,h1,sizeof(except->hash));
-		except++;
+		if (memcmp(h1,h2,WII_HASH_SIZE))
+		{
+		    TRACE("%5u.%02u.H1.%u  -> %04x,%04x\n",
+				wia->gdata_group, is, ih,
+				h1 - hashtab1,  h2 - hashtab2 );
+		    except->offset = htons(h1-hashtab1);
+		    memcpy(except->hash,h1,sizeof(except->hash));
+		    except++;
+		}
+		h1 += WII_HASH_SIZE;
+		h2 += WII_HASH_SIZE;
 	    }
-	    h1 += WII_HASH_SIZE;
-	    h2 += WII_HASH_SIZE;
-	}
-    }
-    except_list->n_exceptions = htons( except - except_list->exception );
-    memset(except,0,sizeof(*except)); // no garbage data
 
- #if WATCH_GROUP >= 0 && defined(TEST)
-    if ( wia->gdata_group == WATCH_GROUP && except > except_list->exception )
-    {
-	FILE * f = fopen("pool/write.except.dump","wb");
-	if (f)
-	{
-	    const size_t sz = sizeof(wia_exception_t);
-	    HexDump(f,0,0,9,sz,except_list,sizeof(except_list));
-	    HexDump(f,0,0,9,sz,except_list->exception,
-			    (except - except_list->exception) * sz );
-	    fclose(f);
+	    h1 = sector1->h2[0];
+	    h2 = sector2->h2[0];
+	    for ( ih = 0; ih < WII_N_ELEMENTS_H2; ih++ )
+	    {
+		if (memcmp(h1,h2,WII_HASH_SIZE))
+		{
+		    TRACE("%5u.%02u.H2.%u  -> %04x,%04x\n",
+				wia->gdata_group, is, ih,
+				h1 - hashtab1,  h2 - hashtab2 );
+		    except->offset = htons(h1-hashtab1);
+		    memcpy(except->hash,h1,sizeof(except->hash));
+		    except++;
+		}
+		h1 += WII_HASH_SIZE;
+		h2 += WII_HASH_SIZE;
+	    }
 	}
+	except_list->n_exceptions = htons( except - except_list->exception );
+	memset(except,0,sizeof(*except)); // no garbage data
+	noPRINT_IF( except > except_list->exception,
+			" + %zu excpetions in group %u.%u\n",
+			except - except_list->exception,
+			wia->gdata_group, g );
+
+     #if WATCH_GROUP >= 0 && defined(TEST)
+	if ( wia->gdata_group == WATCH_GROUP && g == WATCH_SUB_GROUP
+		&& except > except_list->exception )
+	{
+	    FILE * f = fopen("pool/write.except.dump","wb");
+	    if (f)
+	    {
+		const size_t sz = sizeof(wia_exception_t);
+		HexDump(f,0,0,9,sz,except_list,sizeof(except_list));
+		HexDump(f,0,0,9,sz,except_list->exception,
+				(except - except_list->exception) * sz );
+		fclose(f);
+	    }
+	}
+     #endif
+
+	except_list = (wia_except_list_t*)except;
+	DASSERT( (u8*)except_list < hashtab0 );
     }
- #endif
+    noPRINT("## exc=%p,%p, gdata=%p, hash=%p\n",
+		except_list, except_list, gdata, hashtab1 );
+
 
     //----- write data
 
-    return write_data( sf, except_list, wia->gdata,
-			wia->gdata_size / WII_SECTOR_SIZE * WII_SECTOR_DATA_SIZE,
+    return write_data( sf, (wia_except_list_t*)tempbuf, wia->gdata,
+			wia->gdata_used / WII_SECTOR_SIZE * WII_SECTOR_DATA_SIZE,
 			wia->gdata_group, 0 );
 }
 
@@ -1445,7 +1600,8 @@ static enumError write_part_data
 
 static enumError write_cached_gdata
 (
-    struct SuperFile_t	* sf		// destination file
+    struct SuperFile_t	* sf,		// destination file
+    int			new_part	// >=0: index of new partition
 )
 {
     DASSERT(sf);
@@ -1456,14 +1612,62 @@ static enumError write_cached_gdata
     if ( wia->gdata_group >= 0 && wia->gdata_group < wia->group_used )
     {
 	if ( wia->gdata_part < 0 || wia->gdata_part >= wia->disc.n_part )
-	    err = write_data(sf, 0, wia->gdata, wia->gdata_size, wia->gdata_group, 0 );
+	    err = write_data(sf, 0, wia->gdata, wia->gdata_used, wia->gdata_group, 0 );
 	else
 	    err = write_part_data(sf);
     }
-    
-    memset(wia->gdata,0,sizeof(wia->gdata));
-    wia->gdata_group	= -1;
-    wia->gdata_part	= -1;
+
+    // setup empty gdata
+
+    wia->gdata_group = -1;
+
+    if ( new_part < 0 )
+    {
+	memset(wia->gdata,0,wia->gdata_size);
+	wia->gdata_part  = -1;
+    }
+    else
+    {
+	DASSERT( new_part < wia->disc.n_part );
+	if ( wia->gdata_part != new_part )
+	{
+	    if (!empty_decrypted_sector_initialized)
+	    {
+		PRINT("SETUP empty_decrypted_sector\n");
+		empty_decrypted_sector_initialized = true;
+
+		wd_part_sector_t * empty = &empty_decrypted_sector;
+		memset(empty,0,sizeof(empty_decrypted_sector));
+
+		int i;
+		SHA1(empty->data[0],WII_H0_DATA_SIZE,empty->h0[0]);
+		for ( i = 1; i < WII_N_ELEMENTS_H0; i++ )
+		    memcpy(empty->h0[i],empty->h0[0],WII_HASH_SIZE);
+
+		SHA1(empty->h0[0],sizeof(empty->h0),empty->h1[0]);
+		for ( i = 1; i < WII_N_ELEMENTS_H1; i++ )
+		    memcpy(empty->h1[i],empty->h1[0],WII_HASH_SIZE);
+
+		SHA1(empty->h1[0],sizeof(empty->h1),empty->h2[0]);
+		for ( i = 1; i < WII_N_ELEMENTS_H2; i++ )
+		    memcpy(empty->h2[i],empty->h2[0],WII_HASH_SIZE);
+	    }
+
+	    wia->gdata_part = new_part;
+	    wd_aes_set_key(&wia->akey,wia->part[new_part].part_key);
+
+	    if ( wia->wdisc && !wia->wdisc->part[new_part].is_encrypted )
+		memcpy(&wia->empty_sector,&empty_decrypted_sector,sizeof(wia->empty_sector));
+	    else
+		wd_encrypt_sectors(0,&wia->akey,
+			&empty_decrypted_sector,0,&wia->empty_sector,1);
+	}
+
+	int i;
+	u8 * dest = wia->gdata;
+	for ( i = 0; i < wia->chunk_sectors; i++, dest += WII_SECTOR_SIZE )
+	    memcpy( dest, &wia->empty_sector, WII_SECTOR_SIZE );
+    }
 
     return err;
 }
@@ -1536,12 +1740,12 @@ enumError WriteWIA
 
 		    const int base_sector = item->offset / WII_SECTOR_SIZE;
 		    const int sector      = overlap1 / WII_SECTOR_SIZE - base_sector;
-		    const int base_group  = sector / WII_GROUP_SECTORS;
+		    const int base_group  = sector / wia->chunk_sectors;
 		    const int group       = base_group + ntohl(rdata->group_index);
 
 		    u64 base_off = base_sector * (u64)WII_SECTOR_SIZE
-				 + base_group  * (u64)WII_GROUP_SIZE;
-		    u64 end_off  = base_off + WII_GROUP_SIZE;
+				 + base_group  * (u64)wia->chunk_size;
+		    u64 end_off  = base_off + wia->chunk_size;
 		    if ( end_off > end )
 			 end_off = end;
 
@@ -1554,12 +1758,12 @@ enumError WriteWIA
 
 		    if ( group != wia->gdata_group )
 		    {
-			enumError err = write_cached_gdata(sf);
+			enumError err = write_cached_gdata(sf,-1);
 			wia->gdata_group = group;
-			wia->gdata_size  = end_off - base_off;
+			wia->gdata_used  = end_off - base_off;
 			PRINT("----- SETUP RAW%4u GROUP %4u/%4u>%4u, off=%9llx, size=%6x\n",
 				item->index, base_group, ntohl(rdata->n_groups), group,
-				base_off, wia->gdata_size );
+				base_off, wia->gdata_used );
 			if (err)
 			    return err;
 		    }
@@ -1571,7 +1775,7 @@ enumError WriteWIA
 			    " %llx .. %llx -> %llx + %llx, base = %9llx + %6x\n",
 				overlap1, end_off,
 				overlap1 - base_off, end_off - overlap1,
-				base_off, wia->gdata_size );
+				base_off, wia->gdata_used );
 		    memcpy( wia->gdata + ( overlap1 - base_off ),
 			    (ccp)buf + (overlap1-off),
 			    end_off - overlap1 );
@@ -1580,36 +1784,39 @@ enumError WriteWIA
 	    }
 	    break;
 
-	 case WIA_MM_PART_GDATA:
+	 case WIA_MM_PART_GDATA_0:
+	 case WIA_MM_PART_GDATA_1:
 	    {
 		DASSERT( item->index >= 0 && item->index < wia->disc.n_part );
 		wia_part_t * part = wia->part + item->index;
+		wia_part_data_t * pd = part->pd + ( item->mode - WIA_MM_PART_GDATA_0 );
+
 		while ( overlap1 < overlap2 )
 		{
-		    const int base_group = ( overlap1 - item->offset ) / WII_GROUP_SIZE;
-		    u64 base_off = item->offset + base_group * (u64)WII_GROUP_SIZE;
-		    u64 end_off  = base_off + WII_GROUP_SIZE;
+		    const int base_group = ( overlap1 - item->offset ) / wia->chunk_size;
+		    u64 base_off = item->offset + base_group * (u64)wia->chunk_size;
+		    u64 end_off  = base_off + wia->chunk_size;
 		    if ( end_off > end )
 			 end_off = end;
 
-		    const int group = base_group + part->group_index;
+		    const int group = base_group + pd->group_index;
 
 		    if ( group != wia->gdata_group || item->index != wia->gdata_part )
 		    {
 			PRINT("----- SETUP PART%3u GROUP %4u/%4u>%4u, off=%9llx, size=%6x\n",
 				item->index,
-				group - part->group_index, part->n_groups, group,
-				base_off, wia->gdata_size );
+				group - pd->group_index, pd->n_groups, group,
+				base_off, wia->gdata_used );
 			DASSERT( group >= 0 && group < wia->group_used );
-			DASSERT( base_group >= 0 && base_group < part->n_groups );
+			DASSERT( base_group >= 0 && base_group < pd->n_groups );
 
-			enumError err = write_cached_gdata(sf);
+			enumError err = write_cached_gdata(sf,item->index);
 			if (err)
 			    return err;
+			DASSERT( wia->gdata_part == item->index );
 
 			wia->gdata_group = group;
-			wia->gdata_part  = item->index;
-			wia->gdata_size  = end_off - base_off;
+			wia->gdata_used  = end_off - base_off;
 		    }
 
 		    if ( end_off > overlap2 )
@@ -1619,7 +1826,7 @@ enumError WriteWIA
 			    " %llx .. %llx -> %llx + %llx, base = %9llx + %6x\n",
 				overlap1, end_off,
 				overlap1 - base_off, end_off - overlap1,
-				base_off, wia->gdata_size );
+				base_off, wia->gdata_used );
 		    memcpy( wia->gdata + ( overlap1 - base_off ),
 			    (ccp)buf + (overlap1-off),
 			    end_off - overlap1 );
@@ -1710,7 +1917,7 @@ static wia_raw_data_t * need_raw_data
 	const u32 sect1  = data_offset / WII_SECTOR_SIZE;
 	const u32 sect2	 = ( data_offset + data_size + WII_SECTOR_SIZE - 1 ) / WII_SECTOR_SIZE;
 	const u32 n_sect = sect2 - sect1;
-	const u32 n_grp  = ( n_sect + WII_GROUP_SECTORS - 1 ) / WII_GROUP_SECTORS;
+	const u32 n_grp  = ( n_sect + wia->chunk_sectors - 1 ) / wia->chunk_sectors;
 
 	rdata->raw_data_off	= hton64(data_offset);
 	rdata->raw_data_size	= hton64(data_size);
@@ -1774,7 +1981,14 @@ static enumError FinishSetupWriteWIA
 	{
 	    if ( last_off < item->offset )
 	    {
-		const u64 size = item->offset - last_off;
+		u64 size = item->offset - last_off;
+		if ( last_off < WII_PART_OFF )
+		{
+		    // small chunk to allow fast access to disc header
+		    const u32 max_size = WII_PART_OFF - last_off;
+		    if ( size > max_size )
+			 size = max_size;
+		}
 		u32 n_sect;
 		wia_raw_data_t * rdata
 		    = need_raw_data( wia, 0x20, last_off, size, &n_sect );
@@ -1784,7 +1998,7 @@ static enumError FinishSetupWriteWIA
 		it->index = wia->raw_data_used - 1;
 		const u32 n_groups = ntohl(rdata->n_groups);
 		snprintf(it->info,sizeof(it->info),
-			    "RAW #%u, %u sector%s, %u group%s, %s",
+			    "RAW #%u, %u sector%s, %u chunk%s, %s",
 			    it->index,
 			    n_sect, n_sect == 1 ? "" : "s",
 			    n_groups, n_groups == 1 ? "" : "s",
@@ -1799,7 +2013,7 @@ static enumError FinishSetupWriteWIA
 	    break;
     }
     wia->growing = need_raw_data(wia,1,0,0,0);;
-
+    wia->memory_usage += wia->raw_data_size * sizeof(*wia->raw_data);
 
     //----- setup group area
 
@@ -1810,10 +2024,22 @@ static enumError FinishSetupWriteWIA
 	wia->group = calloc(wia->group_size,sizeof(*wia->group));
 	if (!wia->group)
 	    OUT_OF_MEMORY;
+	wia->memory_usage += wia->group_size * sizeof(*wia->group);
     }
-    
+
 
     //----- logging
+
+    if ( verbose > 1 )
+    {
+	wia_disc_t * disc = &wia->disc;
+	printf("  Compression mode: %s (method %s, level %u, chunk size %u MiB, RAM ~%u MiB)\n",
+		wd_print_compression(0,0,disc->compression,
+				disc->compr_level,disc->chunk_size,2),
+		wd_get_compression_name(disc->compression,"?"),
+		disc->compr_level, disc->chunk_size / MiB,
+		( wia->memory_usage + MiB/2 ) / MiB );
+    }
 
     if ( logging > 0 )
     {
@@ -1832,6 +2058,7 @@ static enumError FinishSetupWriteWIA
     wia->is_valid = true;
     SetupIOD(sf,OFT_WIA,OFT_WIA);
  
+ #ifndef TEST // {2do]
     if ( verbose >= 0 )
 	ERROR0(ERR_WARNING,
 		"*******************************************\n"
@@ -1839,6 +2066,7 @@ static enumError FinishSetupWriteWIA
 		"***  The WIA format is in development!  ***\n"
 		"***  Don't use WIA files productive!    ***\n"
 		"*******************************************\n" );
+ #endif
 
     return ERR_OK;
 }
@@ -1897,7 +2125,9 @@ enumError SetupWriteWIA
 	return OUT_OF_MEMORY;
     sf->wia = wia;
     wia->is_writing = true;
-    wia->gdata_group = -1;  // reset gdata
+    wia->gdata_group = wia->gdata_part = -1;  // reset gdata
+
+    AllocBufferWIA(wia, opt_compr_chunk_size ? opt_compr_chunk_size : opt_chunk_size, true );
 
 
     //----- setup file header
@@ -1915,7 +2145,7 @@ enumError SetupWriteWIA
     wia_disc_t *disc = &wia->disc;
     disc->disc_type	= WD_DT_UNKNOWN;
     disc->compression	= opt_compr_method;
-    disc->chunk_size	= 2 * MiB;
+    disc->chunk_size	= wia->chunk_size;
 
     switch(opt_compr_method)
     {
@@ -1929,8 +2159,10 @@ enumError SetupWriteWIA
 	 #ifdef NO_BZIP2
 	    return ERROR0(ERR_NOT_IMPLEMENTED,
 			"No bzip2 support for this release! Sorry!\n");
-	 #endif
+	 #else
 	    disc->compr_level = CalcCompressionLevelBZIP2(opt_compr_level);
+	    wia->memory_usage += CalcMemoryUsageBZIP2(opt_compr_level);
+	 #endif
 	    PRINT("OPEN STREAM\n");
 	    OpenStreamFile(&sf->f);
 	    break;
@@ -1942,6 +2174,7 @@ enumError SetupWriteWIA
 		if (err)
 		    return err;
 		disc->compr_level = lzma.compr_level;
+		wia->memory_usage += CalcMemoryUsageLZMA(lzma.compr_level);
 		const size_t len = lzma.enc_props_len < sizeof(disc->compr_data)
 				 ? lzma.enc_props_len : sizeof(disc->compr_data);
 		disc->compr_data_len = len;
@@ -1960,6 +2193,7 @@ enumError SetupWriteWIA
 		const size_t len = lzma.enc_props_len < sizeof(disc->compr_data)
 				 ? lzma.enc_props_len : sizeof(disc->compr_data);
 		disc->compr_data_len = len;
+		wia->memory_usage += CalcMemoryUsageLZMA(lzma.compr_level);
 		memcpy(disc->compr_data,lzma.enc_props,len);
 		EncLZMA2_Close(&lzma);
 	    }
@@ -2011,40 +2245,48 @@ enumError SetupWriteWIA
     }
 
 
-    //----- setup wii disc
+    //----- setup wii partitions
 
     disc->n_part = wdisc->n_part;
     memcpy(&disc->dhead,&wdisc->dhead,sizeof(disc->dhead));
 
-
-    //----- setup wii partitions
-
     wia_part_t * part = calloc(disc->n_part,sizeof(wia_part_t));
-    if (!part)
+    if (!part )
 	OUT_OF_MEMORY;
     wia->part = part;
 
     for ( ip = 0; ip < wdisc->n_part; ip++, part++ )
     {
 	wd_part_t * wpart	= wdisc->part + ip;
-
 	memcpy(part->part_key,wpart->key,sizeof(part->part_key));
 
-	part->first_sector	= wpart->data_sector;
-	if ( part->first_sector < WII_PART_OFF / WII_SECTOR_SIZE )
-	     part->first_sector = WII_PART_OFF / WII_SECTOR_SIZE;
-	part->n_sectors		= wpart->end_sector - part->first_sector;
-	part->n_groups		= ( part->n_sectors + WII_GROUP_SECTORS - 1 )
-				/ WII_GROUP_SECTORS;
-	part->group_index	= wia->group_used;
-	wia->group_used		+= part->n_groups;
+	wia_part_data_t * pd	= part->pd;
+	pd->first_sector	= wpart->data_sector;
+	if ( pd->first_sector < WII_PART_OFF / WII_SECTOR_SIZE )
+	     pd->first_sector = WII_PART_OFF / WII_SECTOR_SIZE;
+	pd->n_sectors		= wpart->end_mgr_sector - pd->first_sector;
+	pd->n_groups		= ( pd->n_sectors + wia->chunk_sectors - 1 )
+				/ wia->chunk_sectors;
+	pd->group_index		= wia->group_used;
+	wia->group_used		+= pd->n_groups;
+
+
+	pd++;
+	pd->first_sector	= wpart->end_mgr_sector;
+	pd->n_sectors		= wpart->end_sector - pd->first_sector;
+	pd->n_groups		= ( pd->n_sectors + wia->chunk_sectors - 1 )
+				/ wia->chunk_sectors;
+	pd->group_index		= wia->group_used;
+	wia->group_used		+= pd->n_groups;
 
 	noTRACE("PT %u, sect = %x,%x,%x\n",
 		ip, part->first_sector, part->n_sectors, part->n_groups );
     }
 
     wd_insert_memmap_disc_part(&wia->memmap,wdisc,setup_dynamic_mem,wia,
-			WIA_MM_CACHED_DATA, WIA_MM_PART_GDATA, WIA_MM_IGNORE );
+			WIA_MM_CACHED_DATA,
+			WIA_MM_PART_GDATA_0, WIA_MM_PART_GDATA_1,
+			WIA_MM_IGNORE, WIA_MM_IGNORE );
 
 
     //----- finish setup
@@ -2073,7 +2315,7 @@ enumError TermWriteWIA
 
     //----- write chached gdata
 
-    enumError err = write_cached_gdata(sf);
+    enumError err = write_cached_gdata(sf,-1);
     if (err)
 	return err;
 
@@ -2304,11 +2546,18 @@ void wia_ntoh_part ( wia_part_t * dest, const wia_part_t * src )
     else if ( dest != src )
 	memcpy(dest,src,sizeof(*dest));
 
-    dest->first_sector		= ntohl (src->first_sector);
-    dest->n_sectors		= ntohl (src->n_sectors);
+    int id;
+    const wia_part_data_t * src_pd = src->pd;
+    wia_part_data_t * dest_pd = dest->pd;
 
-    dest->group_index		= ntohl (src->group_index);
-    dest->n_groups		= ntohl (src->n_groups);
+    for ( id = 0; id < sizeof(src->pd)/sizeof(src->pd[0]); id++, src_pd++, dest_pd++ )
+    {
+	dest_pd->first_sector	= ntohl (src_pd->first_sector);
+	dest_pd->n_sectors	= ntohl (src_pd->n_sectors);
+
+	dest_pd->group_index	= ntohl (src_pd->group_index);
+	dest_pd->n_groups	= ntohl (src_pd->n_groups);
+    }
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -2322,11 +2571,18 @@ void wia_hton_part ( wia_part_t * dest, const wia_part_t * src )
     else if ( dest != src )
 	memcpy(dest,src,sizeof(*dest));
 
-    dest->first_sector		= htonl (src->first_sector);
-    dest->n_sectors		= htonl (src->n_sectors);
+    int id;
+    const wia_part_data_t * src_pd = src->pd;
+    wia_part_data_t * dest_pd = dest->pd;
 
-    dest->group_index		= htonl (src->group_index);
-    dest->n_groups		= htonl (src->n_groups);
+    for ( id = 0; id < sizeof(src->pd)/sizeof(src->pd[0]); id++, src_pd++, dest_pd++ )
+    {
+	dest_pd->first_sector	= htonl (src_pd->first_sector);
+	dest_pd->n_sectors	= htonl (src_pd->n_sectors);
+
+	dest_pd->group_index	= htonl (src_pd->group_index);
+	dest_pd->n_groups	= htonl (src_pd->n_groups);
+    }
 }
 
 ///////////////////////////////////////////////////////////////////////////////

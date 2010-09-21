@@ -3,6 +3,6 @@
 ../src/lib-std.[ch] ;
 ../src/lib-file.[ch] ;
 @+all-source.edit-list
--y 360 ../src/libwbfs/file-formats.c ;
--y  90 ../src/libwbfs/file-formats.h ;
--y 240 ../src/lib-std.c ;
+-y   1 ../src/libwbfs/file-formats.c ;
+-y  80 ../src/libwbfs/file-formats.h ;
+-y   1 ../src/lib-std.c ;
