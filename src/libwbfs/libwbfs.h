@@ -44,6 +44,20 @@ extern "C"
 
 ///////////////////////////////////////////////////////////////////////////////
 
+#ifdef NEW_FEATURES // [2do] [obsolete]
+
+    // 0: disable new interface
+    // 1: enable new interface
+    // 2: enable new interface && disable old interface
+
+    #define NEW_WBFS_INTERFACE 1
+
+#else
+    #define NEW_WBFS_INTERFACE 0
+#endif
+
+///////////////////////////////////////////////////////////////////////////////
+
 //  WBFS first wbfs_sector structure:
 //
 //  -----------
@@ -78,6 +92,30 @@ extern "C"
 
 typedef int (*rw_sector_callback_t)(void*fp,u32 lba,u32 count,void*iobuf);
 typedef void (*progress_callback_t) (u64 done, u64 total, void * callback_data );
+
+//-----------------------------------------------------------------------------
+
+typedef enum wbfs_slot_mode_t
+{
+    //--- the base info
+
+    WBFS_SLOT_FREE	= 0x00,  // dics slot is unused
+    WBFS_SLOT_VALID	= 0x01,  // dics slot is used and disc seems valid
+    WBFS_SLOT_INVALID	= 0x02,  // dics slot is used but disc is invalid
+
+    //--- some additionally flags
+
+    WBFS_SLOT_F_SHARED	= 0x04,  // flag: disc is/was sharing a block with other disc
+    WBFS_SLOT_F_FREED	= 0x08,  // flag: disc is/was using a 'marked free' block
+
+    //--- more values
+
+    WBFS_SLOT__MASK	= 0x0f,  // mask of all values above
+    WBFS_SLOT__USER	= 0x10,  // first free bit for extern usage
+
+} wbfs_slot_mode_t;
+
+extern char wbfs_slot_mode_info[WBFS_SLOT__MASK+1];
 
 //-----------------------------------------------------------------------------
 
@@ -116,6 +154,20 @@ typedef struct wbfs_t
     u32		freeblks_mask;		// mask for last used u32 of freeblks
     u32		* freeblks;		// if not NULL: copy of free blocks table
 
+ #if NEW_WBFS_INTERFACE
+
+    u8		* block0;		// NULL or copy of wbfs block #0
+    u8		* used_block;		// For each WBFS block 1 byte, N='n_wbfs_sec'
+					//    0: unused			==> OK
+					//    1: normal (=single) usage	==> OK
+					//   >1: shared by #N discs	==> BAD!
+					//  254: shared by >=254 discs	==> BAD!
+					//  255: bad used marker	==> BAD!
+    wbfs_slot_mode_t new_slot_err;	// new detected errors
+    wbfs_slot_mode_t all_slot_err;	// all detected errros
+    
+ #endif
+
     u16		disc_info_sz;
 
     u8		* tmp_buffer;		// pre-allocated buffer for unaligned read
@@ -130,15 +182,17 @@ typedef struct wbfs_t
 
 typedef struct wbfs_disc_t
 {
-    wbfs_t	* p;
-    wbfs_disc_info_t * header;		// pointer to wii header
-    int		slot;			// disc slot, range= 0 .. wbfs_t::max_disc-1
-    bool	is_used;		// disc is marked as 'used'?
-    bool	is_valid;		// disc has valid id and magic
-    bool	is_deleted;		// disc has valid id and deleted_magic
-    bool	is_iinfo_valid;		// disc has a valid wbfs_inode_info_t
-    bool	is_creating;		// disc is in creation process
-    bool	is_dirty;		// if >0: call wbfs_sync_disc_header() on close
+    wbfs_t		* p;
+    wbfs_disc_info_t	* header;	// pointer to wii header
+    int			slot;		// disc slot, range= 0 .. wbfs_t::max_disc-1
+    wd_disc_type_t	disc_type;	// disc type
+    wd_disc_attrib_t	disc_attrib;	// disc attrib
+    bool		is_used;	// disc is marked as 'used'?
+    bool		is_valid;	// disc has valid id and magic
+    bool		is_deleted;	// disc has valid id and deleted_magic
+    bool		is_iinfo_valid;	// disc has a valid wbfs_inode_info_t
+    bool		is_creating;	// disc is in creation process
+    bool		is_dirty;	// if >0: call wbfs_sync_disc_header() on close
 
 } wbfs_disc_t;
 
@@ -273,23 +327,69 @@ wbfs_inode_info_t * wbfs_get_disc_inode_info ( wbfs_disc_t * d, int clear_mode )
 	// clear_mode == 1 : clear if invalid
 	// clear_mode == 2 : clear always
 
-// rename a disc
+//-----------------------------------------------------------------------------
+
 int wbfs_rename_disc
 (
-	wbfs_disc_t * d,	// pointer to an open disc
-	const char * new_id,	// if !NULL: take the first 6 chars as ID
-	const char * new_title,	// if !NULL: take the first 0x39 chars as title
-	int change_wbfs_head,	// if !0: change ID/title of WBFS header
-	int change_iso_head	// if !0: change ID/title of ISO header
+    wbfs_disc_t		* d,		// pointer to an open disc
+    const char		* new_id,	// if !NULL: take the first 6 chars as ID
+    const char		* new_title,	// if !NULL: take the first 0x39 chars as title
+    int			chg_wbfs_head,	// if !0: change ID/title of WBFS header
+    int			chg_iso_head	// if !0: change ID/title of ISO header
 );
+
+//-----------------------------------------------------------------------------
 
 int wbfs_touch_disc
 (
-	wbfs_disc_t * d,	// pointer to an open disc
-	u64 itime,		// if != 0: new itime
-	u64 mtime,		// if != 0: new mtime
-	u64 ctime,		// if != 0: new ctime
-	u64 atime		// if != 0: new atime
+    wbfs_disc_t		* d,		// pointer to an open disc
+    u64			itime,		// if != 0: new itime
+    u64			mtime,		// if != 0: new mtime
+    u64			ctime,		// if != 0: new ctime
+    u64			atime		// if != 0: new atime
+);
+
+//-----------------------------------------------------------------------------
+
+void wbfs_print_block_usage
+(
+    FILE		* f,		// valid output file
+    int			indent,		// indention of the output
+    const wbfs_t	* p,		// valid WBFS descriptor
+    bool		print_all	// false: ignore const lines
+);
+
+//-----------------------------------------------------------------------------
+
+extern const char wbfs_usage_name_tab[256];
+ 
+void wbfs_print_usage_tab
+(
+    FILE		* f,		// valid output file
+    int			indent,		// indention of the output
+    const u8		* used_block,	// valid pointer to usage table
+    u32			block_used_sz,	// size of 'used_block'
+    u32			sector_size,	// wbfs sector size
+    bool		print_all	// false: ignore const lines
+);
+
+//-----------------------------------------------------------------------------
+
+int wbfs_calc_used_blocks
+(
+    wbfs_t	* p,		// valid WBFS descriptor
+    bool	force_reload,	// true: definitely reload block #0
+    bool	store_block0	// true: don't free block0
+);
+
+//-----------------------------------------------------------------------------
+
+u32 wbfs_find_free_blocks
+(
+    // returns index of first free block or WBFS_NO_BLOCK if not enough blocks free
+
+    wbfs_t	* p,		// valid WBFS descriptor
+    u32		n_needed	// number of needed blocks
 );
 
 //-----------------------------------------------------------------------------
@@ -322,9 +422,10 @@ u32 wbfs_count_unusedblocks ( wbfs_t * p );
 id6_t * wbfs_load_id_list	( wbfs_t * p, int force_reload );
 int  wbfs_find_slot		( wbfs_t * p, const u8 * disc_id );
 
-void wbfs_load_freeblocks ( wbfs_t * p );
-void wbfs_free_block	  ( wbfs_t * p, u32 bl );
-void wbfs_use_block	  ( wbfs_t * p, u32 bl );
+u32 * wbfs_free_freeblocks	( wbfs_t * p );
+u32 * wbfs_load_freeblocks	( wbfs_t * p );
+void wbfs_free_block		( wbfs_t * p, u32 bl );
+void wbfs_use_block		( wbfs_t * p, u32 bl );
 
 /*! add a wii dvd inside the partition
   @param read_src_wii_disc: a callback to access the wii dvd. offsets are in 32bit, len in bytes!

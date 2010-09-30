@@ -96,7 +96,8 @@ static u32 AllocBufferWIA
 (
     wia_controller_t	* wia,		// valid pointer
     u32			chunk_size,	// wanted chunk size
-    bool		is_writing	// true: cut chunk size
+    bool		is_writing,	// true: cut chunk size
+    bool		calc_only	// true: don't allocate memory
 )
 {
     DASSERT(wia);
@@ -112,37 +113,173 @@ static u32 AllocBufferWIA
 
     chunk_size = chunk_groups * WIA_BASE_CHUNK_SIZE;
 
-    if ( chunk_size != wia->chunk_size )
-    {
-	wia->chunk_groups  = chunk_groups;
-	wia->chunk_sectors = chunk_groups * WII_GROUP_SECTORS;
-	wia->chunk_size	   = chunk_size;
-	wia->gdata_size    = chunk_size;
-	u32 needed_tempbuf_size
+    wia->chunk_size	= chunk_size;
+    wia->chunk_groups	= chunk_groups;
+    wia->chunk_sectors	= chunk_groups * WII_GROUP_SECTORS;
+
+    u32 needed_tempbuf_size
 		= wia->chunk_groups
 		* ( WII_GROUP_SIZE + WII_N_HASH_GROUP * sizeof(wia_exception_t) );
-	AllocTempBuffer(needed_tempbuf_size);
-	wia->memory_usage = needed_tempbuf_size + wia->gdata_size;
+    wia->memory_usage = needed_tempbuf_size + chunk_size;
 
-	PRINT("CHUNK_SIZE=%s, GDATA_SIZE=%s, IOBUF_SIZE=%s/%s, G+S=%u,%u\n",
-		wd_print_size(0,0,wia->chunk_size,0),
-		wd_print_size(0,0,wia->gdata_size,0),
-		wd_print_size(0,0,needed_tempbuf_size,0),
-		wd_print_size(0,0,tempbuf_size,0),
-		wia->chunk_groups, wia->chunk_sectors );
-
+    if (calc_only)
+    {
+	wia->gdata_size = chunk_size;
 	free(wia->gdata);
-	wia->gdata = malloc(wia->gdata_size);
-	if (!wia->gdata)
-	    OUT_OF_MEMORY;
+	wia->gdata = 0;
+    }
+    else
+    {
+	PRINT("CHUNK_SIZE=%s, GDATA_SIZE=%s, IOBUF_SIZE=%s/%s, G+S=%u,%u\n",
+	    wd_print_size(0,0,wia->chunk_size,0),
+	    wd_print_size(0,0,wia->gdata_size,0),
+	    wd_print_size(0,0,needed_tempbuf_size,0),
+	    wd_print_size(0,0,tempbuf_size,0),
+	    wia->chunk_groups, wia->chunk_sectors );
+
+	AllocTempBuffer(needed_tempbuf_size);
+	if ( !wia->gdata || wia->gdata_size != chunk_size )
+	{
+	    wia->gdata_size = chunk_size;
+	    free(wia->gdata);
+	    wia->gdata = malloc(wia->gdata_size);
+	    if (!wia->gdata)
+		OUT_OF_MEMORY;
+	}
     }
 
-    DASSERT(wia->gdata);
-    DASSERT(tempbuf);
+    DASSERT( calc_only || wia->gdata );
+    DASSERT( calc_only || tempbuf );
     DASSERT( wia->chunk_sectors == wia->chunk_groups * WII_GROUP_SECTORS );
 
     return wia->chunk_size;
 };
+
+///////////////////////////////////////////////////////////////////////////////
+
+u32 CalcMemoryUsageWIA
+(
+    wd_compression_t	compression,	// compression method
+    int			compr_level,	// valid are 1..9 / 0: use default value
+    u32			chunk_size,	// wanted chunk size
+    bool		is_writing	// false: reading mode, true: writing mode
+)
+{
+    wia_controller_t wia;
+    memset(&wia,0,sizeof(wia));
+    u32 size = AllocBufferWIA(&wia,chunk_size,is_writing,true);
+    ResetWIA(&wia);
+
+    switch(compression)
+    {
+	case WD_COMPR__N:
+	case WD_COMPR_NONE:
+	case WD_COMPR_PURGE:
+	    break;
+
+	case WD_COMPR_BZIP2:
+	 #ifndef NO_BZIP2
+	    size += CalcMemoryUsageBZIP2(compr_level,is_writing);
+	 #endif
+	    break;
+
+	case WD_COMPR_LZMA:
+	    size += CalcMemoryUsageLZMA(compr_level,is_writing);
+	    break;
+
+	case WD_COMPR_LZMA2:
+	    size += CalcMemoryUsageLZMA2(compr_level,is_writing);
+	    break;
+    }
+
+    return size;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+int CalcDefaultSettingsWIA
+(
+    wd_compression_t	* compression,	// NULL or compression method
+    int			* compr_level,	// NULL or compression level
+    u32			* chunk_size	// NULL or wanted chunk size
+)
+{
+    //----- get param
+
+    wd_compression_t
+	compr = compression ? *compression : WD_COMPR__DEFAULT;
+    int level = compr_level ? *compr_level : 0;
+    u32 csize = chunk_size  ? *chunk_size  : 0;
+
+
+    //----- normalize compression method
+
+    if ( (unsigned)compr >= WD_COMPR__N )
+	compr = WD_COMPR__DEFAULT;
+
+
+    //----- normalize compression level
+
+    u32 clevel = WIA_DEF_CHUNK_FACTOR;
+    switch(compr)
+    {
+	case WD_COMPR__N:
+	case WD_COMPR_NONE:
+	case WD_COMPR_PURGE:
+	    level = 0;
+	    //clevel = WIA_DEF_CHUNK_FACTOR; // == default setting
+	    break;
+
+	case WD_COMPR_BZIP2:
+	 #ifdef NO_BZIP2
+	    level = 0;
+	 #else
+	    level = CalcCompressionLevelBZIP2(level);
+	 #endif
+	    //clevel = WIA_DEF_CHUNK_FACTOR; // == default setting
+	    break;
+
+	case WD_COMPR_LZMA:
+	case WD_COMPR_LZMA2:
+	    level = CalcCompressionLevelLZMA(level);
+	    //clevel = WIA_DEF_CHUNK_FACTOR; // == default setting
+	    break;
+    }
+
+
+    //----- normalize compression chunksize
+
+    if ( csize > 1 )
+    {
+	clevel = csize / WIA_BASE_CHUNK_SIZE;
+	if (!clevel)
+	    clevel = 1;
+	else if ( clevel > WIA_MAX_CHUNK_FACTOR )
+	    clevel = WIA_MAX_CHUNK_FACTOR;
+    }
+    csize = clevel * WIA_BASE_CHUNK_SIZE;
+
+
+    //----- store results
+
+    int stat = 0;
+    if ( compression && *compression != compr )
+    {
+	*compression = compr;
+	stat |= 1;
+    }
+    if ( compr_level && *compr_level != level )
+    {
+	*compr_level = level;
+	stat |= 2;
+    }
+    if ( chunk_size && *chunk_size != csize )
+    {
+	*chunk_size = csize;
+	stat |= 4;
+    }
+    return stat;
+}
 
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -883,7 +1020,7 @@ enumError SetupReadWIA
     wia->gdata_group = wia->gdata_part = -1;  // reset gdata
     wia->encrypt = encoding & ENCODE_ENCRYPT || !( encoding & ENCODE_DECRYPT );
 
-    AllocBufferWIA(wia,WIA_BASE_CHUNK_SIZE,false);
+    AllocBufferWIA(wia,WIA_BASE_CHUNK_SIZE,false,false);
 
 
     //----- read and check file header
@@ -947,7 +1084,7 @@ enumError SetupReadWIA
     wia_disc_t *disc = &wia->disc;
     wia_ntoh_disc(disc,(wia_disc_t*)tempbuf);
 
-    AllocBufferWIA(wia,disc->chunk_size,false);
+    AllocBufferWIA(wia,disc->chunk_size,false,false);
     if ( wia->chunk_size != disc->chunk_size )
 	return ERROR0(ERR_WIA_INVALID,
 	    "Only multiple of %s, but not %s, are supported as a chunk size: %s\n",
@@ -992,22 +1129,30 @@ enumError SetupReadWIA
 
     switch ((wd_compression_t)disc->compression)
     {
+	case WD_COMPR__N:
+	case WD_COMPR_NONE:
+	case WD_COMPR_PURGE:
+	    // nothing to do
+	    break;
+
 	case WD_COMPR_BZIP2:
 	 #ifdef NO_BZIP2
 	    return ERROR0(ERR_NOT_IMPLEMENTED,
 			"No bzip2 support for this release! Sorry!\n");
-	 #endif
+	 #else
+	    wia->memory_usage += CalcMemoryUsageBZIP2(disc->compr_level,false);
 	    PRINT("DISABLE CACHE & OPEN STREAM\n");
 	    ClearCache(&sf->f);
 	    OpenStreamFile(&sf->f);
+	 #endif
 	    break;
 
-	case WD_COMPR__N:
-	case WD_COMPR_NONE:
-	case WD_COMPR_PURGE:
 	case WD_COMPR_LZMA:
+	    wia->memory_usage += CalcMemoryUsageLZMA(disc->compr_level,false);
+	    break;
+
 	case WD_COMPR_LZMA2:
-	    // nothing to do
+	    wia->memory_usage += CalcMemoryUsageLZMA2(disc->compr_level,false);
 	    break;
 
 	default:
@@ -1036,6 +1181,8 @@ enumError SetupReadWIA
 			 0, wia->raw_data, raw_data_len );
 	if (err)
 	    return err;
+
+	wia->memory_usage += wia->raw_data_size * sizeof(*wia->raw_data);
     }
 
 
@@ -1056,6 +1203,8 @@ enumError SetupReadWIA
 			 0, wia->group, group_len );
 	if (err)
 	    return err;
+
+	wia->memory_usage += wia->group_size * sizeof(*wia->group);
     }
 
 
@@ -1128,10 +1277,18 @@ enumError SetupReadWIA
     
     //----- logging
 
+    if ( verbose > 2 )
+	printf("  Compression mode: %s (method %s, level %u, chunk size %u MiB, mem ~%u MiB)\n",
+		wd_print_compression(0,0,disc->compression,
+				disc->compr_level,disc->chunk_size,2),
+		wd_get_compression_name(disc->compression,"?"),
+		disc->compr_level, disc->chunk_size / MiB,
+		( wia->memory_usage + MiB/2 ) / MiB );
+
     if ( logging > 0 )
     {
 	printf("\nWIA memory map:\n\n");
-	wd_dump_memmap(stdout,3,&wia->memmap);
+	wd_print_memmap(stdout,3,&wia->memmap);
 	putchar('\n');
     }
 
@@ -2015,6 +2172,7 @@ static enumError FinishSetupWriteWIA
     wia->growing = need_raw_data(wia,1,0,0,0);;
     wia->memory_usage += wia->raw_data_size * sizeof(*wia->raw_data);
 
+
     //----- setup group area
 
     if (wia->group_used)
@@ -2031,20 +2189,17 @@ static enumError FinishSetupWriteWIA
     //----- logging
 
     if ( verbose > 1 )
-    {
-	wia_disc_t * disc = &wia->disc;
-	printf("  Compression mode: %s (method %s, level %u, chunk size %u MiB, RAM ~%u MiB)\n",
+	printf("  Compression mode: %s (method %s, level %u, chunk size %u MiB, mem ~%u MiB)\n",
 		wd_print_compression(0,0,disc->compression,
 				disc->compr_level,disc->chunk_size,2),
 		wd_get_compression_name(disc->compression,"?"),
 		disc->compr_level, disc->chunk_size / MiB,
 		( wia->memory_usage + MiB/2 ) / MiB );
-    }
 
     if ( logging > 0 )
     {
 	printf("\nWIA memory map:\n\n");
-	wd_dump_memmap(stdout,3,&wia->memmap);
+	wd_print_memmap(stdout,3,&wia->memmap);
 	putchar('\n');
     }
 
@@ -2127,7 +2282,8 @@ enumError SetupWriteWIA
     wia->is_writing = true;
     wia->gdata_group = wia->gdata_part = -1;  // reset gdata
 
-    AllocBufferWIA(wia, opt_compr_chunk_size ? opt_compr_chunk_size : opt_chunk_size, true );
+    AllocBufferWIA(wia, opt_compr_chunk_size
+			? opt_compr_chunk_size : opt_chunk_size, true, false );
 
 
     //----- setup file header
@@ -2161,7 +2317,7 @@ enumError SetupWriteWIA
 			"No bzip2 support for this release! Sorry!\n");
 	 #else
 	    disc->compr_level = CalcCompressionLevelBZIP2(opt_compr_level);
-	    wia->memory_usage += CalcMemoryUsageBZIP2(opt_compr_level);
+	    wia->memory_usage += CalcMemoryUsageBZIP2(opt_compr_level,true);
 	 #endif
 	    PRINT("OPEN STREAM\n");
 	    OpenStreamFile(&sf->f);
@@ -2174,7 +2330,7 @@ enumError SetupWriteWIA
 		if (err)
 		    return err;
 		disc->compr_level = lzma.compr_level;
-		wia->memory_usage += CalcMemoryUsageLZMA(lzma.compr_level);
+		wia->memory_usage += CalcMemoryUsageLZMA(lzma.compr_level,true);
 		const size_t len = lzma.enc_props_len < sizeof(disc->compr_data)
 				 ? lzma.enc_props_len : sizeof(disc->compr_data);
 		disc->compr_data_len = len;
@@ -2193,7 +2349,7 @@ enumError SetupWriteWIA
 		const size_t len = lzma.enc_props_len < sizeof(disc->compr_data)
 				 ? lzma.enc_props_len : sizeof(disc->compr_data);
 		disc->compr_data_len = len;
-		wia->memory_usage += CalcMemoryUsageLZMA(lzma.compr_level);
+		wia->memory_usage += CalcMemoryUsageLZMA2(lzma.compr_level,true);
 		memcpy(disc->compr_data,lzma.enc_props,len);
 		EncLZMA2_Close(&lzma);
 	    }

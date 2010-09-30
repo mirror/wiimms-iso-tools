@@ -780,7 +780,7 @@ wd_disc_t * OpenDiscSF
 	wd_calc_relocation(disc,encrypt,true,0);
 
 	if ( logging > 0 )
-	    wd_dump_disc_patch(stdout,1,sf->disc1,true,logging>1);
+	    wd_print_disc_patch(stdout,1,sf->disc1,true,logging>1);
 
 	sf->iod.read_func = ReadDiscWrapper;
 	sf->disc2 = wd_open_disc(WrapperReadSF,sf,file_size,sf->f.fname,0);
@@ -2014,7 +2014,23 @@ enumFileType AnalyzeFT ( File_t * f )
 			    WDiscInfo_t dinfo;
 			    InitializeWDiscInfo(&dinfo);
 			    if (!GetWDiscInfo(&wbfs,&dinfo,0))
-				CopyPatchedDiscId(f->id6,dinfo.id6);
+			    {
+			      switch (dinfo.disc_type)
+			      {
+				case WD_DT_UNKNOWN:
+				case WD_DT__N:
+				  break;
+
+				case WD_DT_GAMECUBE:
+				  ft |= FT_A_WDISC | FT_A_ISO | FT_A_GC_ISO;
+				  break;
+				
+				case WD_DT_WII:
+				  ft |= FT_A_WDISC | FT_A_ISO | FT_A_WII_ISO;
+				  break;
+			      }
+			      CopyPatchedDiscId(f->id6,dinfo.id6);
+			    }
 			    ResetWDiscInfo(&dinfo);
 			}
 		    }

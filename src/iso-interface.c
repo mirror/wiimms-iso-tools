@@ -556,7 +556,7 @@ enumError Dump_ISO
     {
 	fprintf(f,"\n\n%*sISO Usage Map:\n\n",indent,"");
 	wd_filter_usage_table(disc,wdisc_usage_tab,0);
-	wd_dump_usage_tab(f,indent+2,wdisc_usage_tab,disc->iso_size,false);
+	wd_print_usage_tab(f,indent+2,wdisc_usage_tab,disc->iso_size,false);
     }
 
 
@@ -580,7 +580,7 @@ enumError Dump_ISO
 	if ( show_mode & SHOW_PATCH )
 	{
 	    putc('\n',f);
-	    wd_dump_disc_patch(f,indent,sf->disc1,true,true);
+	    wd_print_disc_patch(f,indent,sf->disc1,true,true);
 	}
 
 
@@ -589,7 +589,7 @@ enumError Dump_ISO
 	if ( show_mode & SHOW_RELOCATE )
 	{
 	    putc('\n',f);
-	    wd_dump_disc_relocation(f,indent,sf->disc1,true);
+	    wd_print_disc_relocation(f,indent,sf->disc1,true);
 	}
     }
 

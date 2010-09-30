@@ -53,6 +53,10 @@
 #endif
 
 ///////////////////////////////////////////////////////////////////////////////
+
+char wbfs_slot_mode_info[WBFS_SLOT__MASK+1] = ".#!!" "-?!!" "-?!!" "-?!!";
+
+///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
 be64_t wbfs_setup_inode_info
@@ -305,12 +309,14 @@ wbfs_t * wbfs_open_partition_param ( wbfs_param_t * par )
 	    WBFS_ERROR("hd num sector doesn't match");
     }
 
+
     //----- setup wbfs geometry
 
     wbfs_calc_geometry(p,
 		wbfs_ntohl(head->n_hd_sec),
 		1 << head->hd_sec_sz_s,
 		1 << head->wbfs_sec_sz_s );
+
 
     //----- load/setup free block table
 
@@ -338,6 +344,7 @@ wbfs_t * wbfs_open_partition_param ( wbfs_param_t * par )
 	// fix the last entry
 	p->freeblks[p->freeblks_size4-1] = wbfs_htonl(p->freeblks_mask);
     }
+
 
     //----- etc
 
@@ -404,10 +411,36 @@ wbfs_t * wbfs_open_partition_param ( wbfs_param_t * par )
 	wbfs_sync(p);
     }
 
+
+ #if NEW_WBFS_INTERFACE
+
+    //---- check free blocks table and find invalid discs
+
+    PRINT("NEW_WBFS_INTERFACE: +++ check free blocks table and find invalid discs\n");
+    TRACE("NEW_WBFS_INTERFACE: +++ check free blocks table and find invalid discs\n");
+
+    if (wbfs_calc_used_blocks(p,true,false))
+	goto error;
+
+ #ifdef DEBUG
+    TRACE("NEW_WBFS_INTERFACE: --- free blocks table ready\n");
+    PRINT("NEW_WBFS_INTERFACE: --- free blocks table ready\n");
+    wbfs_print_block_usage(stdout,3,p,false);
+ #endif
+
+ #endif // NEW_WBFS_INTERFACE
+
+
+    //----- all done, terminate
+
     return p;
 
+
+    //----- error handling
+
 error:
-    wbfs_free(p);
+    p->is_dirty = false;
+    wbfs_close(p);
     wbfs_iofree(head);
     return 0;
 }
@@ -583,12 +616,14 @@ void wbfs_close ( wbfs_t * p )
     if (p->is_dirty)
 	wbfs_sync(p);
 
+    wbfs_free_freeblocks(p);
+ #if NEW_WBFS_INTERFACE
+    wbfs_iofree(p->block0);
+    wbfs_free(p->used_block);
+ #endif
+    wbfs_free(p->id_list);
     wbfs_iofree(p->head);
     wbfs_iofree(p->tmp_buffer);
-    if (p->freeblks)
-	wbfs_iofree(p->freeblks);
-    if (p->id_list)
-	wbfs_free(p->id_list);
     wbfs_free(p);
 
  error:
@@ -622,12 +657,13 @@ static wbfs_disc_t * wbfs_open_disc_by_info
     d->slot = slot;
     d->header = info;
 
-    d->is_used = p->head->disc_table[slot] != 0;
+    d->is_used = p->head->disc_table[slot] != WBFS_SLOT_FREE;
     if ( *d->header->dhead )
     {
+	d->disc_type = get_header_disc_type((wd_header_t*)d->header->dhead,&d->disc_attrib);
 	const u32 wii_magic = be32(d->header->dhead+WII_MAGIC_OFF);
 	const u32 gc_magic  = be32(d->header->dhead+GC_MAGIC_OFF);
-	PRINT("MAGIC: %08x %08x => %d %d\n",
+	noTRACE("MAGIC: %08x %08x => %d %d\n",
 		wii_magic, gc_magic, wii_magic == WII_MAGIC, gc_magic == GC_MAGIC ); 
 	d->is_valid   = wii_magic == WII_MAGIC || gc_magic == GC_MAGIC;
 	d->is_deleted = wii_magic == WII_MAGIC_DELETED;
@@ -637,7 +673,7 @@ static wbfs_disc_t * wbfs_open_disc_by_info
 
     if ( !force_open && !d->is_valid )
     {
-	p->head->disc_table[slot] = 0;
+	p->head->disc_table[slot] = WBFS_SLOT_FREE;
 	wbfs_free(info);
 	wbfs_free(d);
 	return 0;
@@ -719,7 +755,7 @@ wbfs_disc_t * wbfs_create_disc
 
     //----- open slot
 
-    p->head->disc_table[slot] = 1;
+    p->head->disc_table[slot] = WBFS_SLOT_VALID;
     p->is_dirty = true;
 
     wbfs_disc_info_t * info = wbfs_ioalloc(p->disc_info_sz);
@@ -806,11 +842,11 @@ wbfs_inode_info_t * wbfs_get_disc_inode_info ( wbfs_disc_t * d, int clear_mode )
 
 int wbfs_rename_disc
 (
-	wbfs_disc_t * d,	// pointer to an open disc
-	const char * new_id,	// if !NULL: take the first 6 chars as ID
-	const char * new_title,	// if !NULL: take the first 0x39 chars as title
-	int change_wbfs_head,	// if !0: change ID/title of WBFS header
-	int change_iso_head	// if !0: change ID/title of ISO header
+    wbfs_disc_t		* d,		// pointer to an open disc
+    const char		* new_id,	// if !NULL: take the first 6 chars as ID
+    const char		* new_title,	// if !NULL: take the first 0x39 chars as title
+    int			chg_wbfs_head,	// if !0: change ID/title of WBFS header
+    int			chg_iso_head	// if !0: change ID/title of ISO header
 )
 {
     ASSERT(d);
@@ -823,14 +859,14 @@ int wbfs_rename_disc
     const be64_t now = wbfs_setup_inode_info(p,iinfo,d->is_valid,0);
 
     int do_sync = 0;
-    if ( change_wbfs_head
+    if ( chg_wbfs_head
 	&& wd_rename(d->header->dhead,new_id,new_title) )
     {
 	iinfo->ctime = iinfo->atime = now;
 	do_sync++;
     }
 
-    if ( change_iso_head )
+    if ( chg_iso_head )
     {
 	u16 wlba = ntohs(d->header->wlba_table[0]);
 	if (wlba)
@@ -874,11 +910,11 @@ int wbfs_rename_disc
 
 int wbfs_touch_disc
 (
-	wbfs_disc_t * d,	// pointer to an open disc
-	u64 itime,		// if != 0: new itime
-	u64 mtime,		// if != 0: new mtime
-	u64 ctime,		// if != 0: new ctime
-	u64 atime		// if != 0: new atime
+    wbfs_disc_t		* d,		// pointer to an open disc
+    u64			itime,		// if != 0: new itime
+    u64			mtime,		// if != 0: new mtime
+    u64			ctime,		// if != 0: new ctime
+    u64			atime		// if != 0: new atime
 )
 {
     ASSERT(d);
@@ -900,6 +936,55 @@ int wbfs_touch_disc
 	iinfo->atime = hton64(atime);
 
     return wbfs_sync_disc_header(d);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+void wbfs_print_block_usage
+(
+    FILE		* f,		// valid output file
+    int			indent,		// indention of the output
+    const wbfs_t	* p,		// valid WBFS descriptor
+    bool		print_all	// false: ignore const lines
+)
+{
+    DASSERT(p);
+ #if NEW_WBFS_INTERFACE
+    DASSERT(p->used_block);
+    wbfs_print_usage_tab( f, indent, p->used_block, p->n_wbfs_sec,
+				p->wbfs_sec_sz, print_all );
+ #endif
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+const char wbfs_usage_name_tab[256] =
+{
+	".#23456789ABCDEFGHIJKLMNOPQRSTUV"
+	"WXYZabcdefghijklmnopqrstuvwxyz++"
+	"++++++++++++++++++++++++++++++++"
+	"+++++++++++++++++++++++++++++++*"
+
+	"0123456789ABCDEFGHIJKLMNOPQRSTUV"
+	"WXYZabcdefghijklmnopqrstuvwxyz++"
+	"++++++++++++++++++++++++++++++++"
+	"+++++++++++++++++++++++++++++++$"
+};
+
+//-----------------------------------------------------------------------------
+
+void wbfs_print_usage_tab
+(
+    FILE		* f,		// valid output file
+    int			indent,		// indention of the output
+    const u8		* used_block,	// valid pointer to usage table
+    u32			block_used_sz,	// size of 'used_block'
+    u32			sector_size,	// wbfs sector size
+    bool		print_all	// false: ignore const lines
+)
+{
+    wd_print_byte_tab( f, indent, used_block, block_used_sz, block_used_sz,
+			sector_size, wbfs_usage_name_tab, print_all );
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -1028,12 +1113,12 @@ enumError wbfs_get_disc_info_by_slot
 
     const u32 wii_magic = be32(p->tmp_buffer+WII_MAGIC_OFF);
     const u32 gc_magic  = be32(p->tmp_buffer+GC_MAGIC_OFF);
-    PRINT("MAGIC: %08x %08x => %d %d\n",
+    TRACE("MAGIC: %08x %08x => %d %d\n",
 		wii_magic, gc_magic, wii_magic == WII_MAGIC, gc_magic == GC_MAGIC ); 
 
     if ( wii_magic != WII_MAGIC && gc_magic != GC_MAGIC )
     {
-	p->head->disc_table[slot] = 0;
+	p->head->disc_table[slot] = WBFS_SLOT_FREE;
 	return ERR_WARNING;
     }
 
@@ -1099,6 +1184,7 @@ id6_t * wbfs_load_id_list ( wbfs_t * p, int force_reload )
     return p->id_list;
 }
 
+//
 ///////////////////////////////////////////////////////////////////////////////
 
 int wbfs_find_slot ( wbfs_t * p, const u8 * disc_id )
@@ -1126,24 +1212,354 @@ int wbfs_find_slot ( wbfs_t * p, const u8 * disc_id )
 
 ///////////////////////////////////////////////////////////////////////////////
 
-void wbfs_load_freeblocks ( wbfs_t * p )
+u32 * wbfs_free_freeblocks ( wbfs_t * p )
 {
-    if ( p->freeblks || !p->freeblks_lba_count )
-	return;
+    DASSERT(p);
 
-    p->freeblks = wbfs_ioalloc( p->freeblks_lba_count * p->hd_sec_sz );
-    if (!p->freeblks)
-	OUT_OF_MEMORY;
+ #if NEW_WBFS_INTERFACE
+    if (p->block0)
+    {
+	if ( p->freeblks && ( (u8*)p->freeblks < p->block0
+			   || (u8*)p->freeblks > p->block0 + p->wbfs_sec_sz ))
+	{
+	    wbfs_iofree(p->freeblks);
+	}
+	p->freeblks = (u32*)( p->block0
+				+ ( p->part_lba + p->freeblks_lba ) * p->hd_sec_sz );
+	return p->freeblks;
+    }
+ #endif // NEW_WBFS_INTERFACE
 
-    p->read_hdsector( p->callback_data,
-		      p->part_lba + p->freeblks_lba,
-		      p->freeblks_lba_count,
-		      p->freeblks );
-
-    // fix the last entry
-    p->freeblks[p->freeblks_size4-1] &= wbfs_htonl(p->freeblks_mask);
+    if (p->freeblks)
+    {
+	wbfs_iofree(p->freeblks);
+	p->freeblks = 0;
+    }
+    
+    return 0;
 }
 
+///////////////////////////////////////////////////////////////////////////////
+
+u32 * wbfs_load_freeblocks ( wbfs_t * p )
+{
+    DASSERT(p);
+ #if NEW_WBFS_INTERFACE
+    if (p->block0)
+	return wbfs_free_freeblocks(p);
+ #endif // NEW_WBFS_INTERFACE
+
+    if ( !p->freeblks && p->freeblks_lba_count )
+    {
+	p->freeblks = wbfs_ioalloc( p->freeblks_lba_count * p->hd_sec_sz );
+	if (!p->freeblks)
+	    OUT_OF_MEMORY;
+
+	p->read_hdsector( p->callback_data,
+			  p->part_lba + p->freeblks_lba,
+			  p->freeblks_lba_count,
+			  p->freeblks );
+
+	// fix the last entry
+	p->freeblks[p->freeblks_size4-1] &= wbfs_htonl(p->freeblks_mask);
+    }
+
+    return p->freeblks;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+#if NEW_WBFS_INTERFACE
+
+int wbfs_calc_used_blocks
+(
+    wbfs_t	* p,		// valid WBFS descriptor
+    bool	force_reload,	// true: definitely reload block #0
+    bool	store_block0	// true: don't free block0
+)
+{
+    DASSERT(p);
+    
+    //------ setup
+
+    u8 * block0;
+    if (p->block0)
+    {
+	block0 = p->block0;
+	store_block0 = true;
+    }
+    else
+    {
+	block0 = wbfs_ioalloc(p->wbfs_sec_sz);
+	force_reload = true;
+    }
+
+    const size_t used_size = p->n_wbfs_sec + 32;
+    if (!p->used_block)
+	p->used_block = malloc(used_size);
+    u8 * used = p->used_block;
+
+    const size_t id_list_size = (p->max_disc+1) * sizeof(*p->id_list);
+    if (!p->id_list)
+	p->id_list = wbfs_malloc(id_list_size);
+
+    if ( !block0 || !used || !p->id_list )
+	OUT_OF_MEMORY;
+
+    memset(used,0,used_size);
+    memset(p->id_list,0,id_list_size);
+
+    p->new_slot_err = p->all_slot_err = 0;
+
+
+    //----- read block #0
+
+    if (force_reload)
+    {
+	int read_stat = p->read_hdsector( p->callback_data,
+					p->part_lba,
+					p->wbfs_sec_sz / p->hd_sec_sz,
+					block0 );
+	if (read_stat)
+	{
+	    if (!store_block0)
+		wbfs_iofree(block0);
+	    return read_stat;
+	}
+    }
+
+
+    //----- scan free blocks table and mark free blocks with 0x80
+
+    u32 * fbt0 = (u32*)( block0 + ( p->part_lba + p->freeblks_lba ) * p->hd_sec_sz );
+    u32 * fbt = fbt0;
+    noPRINT("block0=%p..%p, fbt=%p [%zx]\n",
+		block0,block0+p->wbfs_sec_sz,fbt,(ccp)fbt-(ccp)block0);
+    u8 * dest = used + 1;
+    u32 i;
+    for ( i = 0; i < p->freeblks_size4; i++ )
+    {
+	DASSERT( dest - used <= used_size - 32 );
+	u32 v = wbfs_ntohl(*fbt++);
+	noPRINT("  %05x,%08x -> %04zx\n",i,v,dest-used);
+	if ( v == 0 )
+	{
+	    // 32 used blocks
+	    dest += 32;
+	}
+	else if ( v == ~(u32)0 )
+	{
+	    // 32 free blocks
+	    memset(dest,0x80,32);
+	    dest += 32;
+	}
+	else
+	{
+	    u32 j;
+	    for ( j = 0; j < 32; j++, v >>= 1 )
+		*dest++ = (v&1) ? 0x80 : 0x00;
+	}
+    }
+
+
+    //----- scan discs, pass 1/2
+
+    const bool valid_slot_info = p->head->wbfs_version > 1;
+    p->head->wbfs_version = WBFS_VERSION;
+
+    int slot;
+    wbfs_disc_info_t * info = (wbfs_disc_info_t*)( block0 + p->hd_sec_sz );
+
+    for ( slot = 0; slot < p->max_disc; slot++ )
+    {
+	DASSERT( (u8*)info + p->disc_info_sz < block0 + p->wbfs_sec_sz );
+	u8 slot_info = p->head->disc_table[slot]; // [dt]
+	if (slot_info)
+	{
+	    if (valid_slot_info)
+		p->all_slot_err |= slot_info & ~WBFS_SLOT_VALID;
+	    else
+		slot_info = WBFS_SLOT_VALID;
+
+	    memcpy(p->id_list[slot],info,6);
+	    noPRINT("NEW_WBFS_INTERFACE: check slot %u: stat=%x, off=%zx, id=%s\n",
+			slot, slot_info, (u8*)info - block0,
+			wd_print_id(info,6,0) );
+
+	    u16 * wlba_tab = info->wlba_table;
+	    int bl, bl_count = 0;
+	    for ( bl = 0; bl < p->n_wbfs_sec_per_disc; bl++ )
+	    {
+		const u32 wlba = wbfs_ntohs(wlba_tab[bl]);
+		if ( wlba >= p->n_wbfs_sec )
+		{
+		    PRINT("!!! NEW_WBFS_INTERFACE: invalid slot %u.%u\n",slot,bl);
+		    slot_info = slot_info & ~WBFS_SLOT_VALID | WBFS_SLOT_INVALID;
+		    p->new_slot_err |= WBFS_SLOT_INVALID;
+		}
+		else if ( wlba > 0 )
+		{
+		    bl_count++;
+		    
+		    if ( used[wlba] & 0x80 )
+		    {
+			PRINT("!!! NEW_WBFS_INTERFACE: slot %u.%x used free block #%x [%02x]\n",
+				slot, bl, wlba,  used[wlba] );
+			slot_info |= WBFS_SLOT_F_FREED;
+			p->new_slot_err |= WBFS_SLOT_F_FREED;
+		    }
+
+		    if ( ( used[wlba] & 0x7f ) < 0x7f )
+			used[wlba]++;
+		}
+	    }
+
+	    if (!bl_count)
+	    {
+		PRINT("!!! NEW_WBFS_INTERFACE: slot %u is empty & invalid\n",slot);
+		slot_info |= WBFS_SLOT_INVALID;
+		p->new_slot_err |= WBFS_SLOT_INVALID;
+	    }
+
+	    p->head->disc_table[slot] = slot_info;
+	}
+	info = (wbfs_disc_info_t*)( (u8*)info + p->disc_info_sz );
+    }
+
+
+    //----- normalize 'used'
+
+    fbt = fbt0;
+    u32 *fbt_end = fbt + p->freeblks_size4;
+    memset(fbt,0,p->freeblks_size4*4);
+    u32 v = 0;
+    int count = 32;
+    bool pass2_needed = false;
+
+    for ( i = 1; i < p->n_wbfs_sec; i++ )
+    {
+	const u8 ucnt = used[i] &= 0x7f;
+	if (!ucnt)
+	    v |= 1 << (i-1&31);
+	else if ( ucnt > 1 )
+	    pass2_needed = true;
+
+	if ( !--count && fbt < fbt_end )
+	{
+	    noPRINT("FBT[%04x] = %08x\n",4*(int)(fbt-fbt0),v);
+	    *fbt++ = wbfs_htonl(v);
+	    v = 0;
+	    count = 32;
+	}
+    }
+
+    if ( fbt < fbt_end )
+    {
+	noPRINT("FBT[%04x] = %08x [END]\n",4*(int)(fbt-fbt0),v);
+	*fbt = wbfs_htonl(v);
+    }
+	
+    used[0] = 0xff;
+    //HEXDUMP16(0,0,fbt0,p->freeblks_size4*4);
+
+
+    //----- scan discs, pass 2/2
+
+    if ( pass2_needed )
+    {
+	info = (wbfs_disc_info_t*)( block0 + p->hd_sec_sz );
+	for ( slot = 0; slot < p->max_disc; slot++ )
+	{
+	    DASSERT( (u8*)info + p->disc_info_sz < block0 + p->wbfs_sec_sz );
+	    u8 slot_info = p->head->disc_table[slot];
+	    if (slot_info)
+	    {
+		u16 * wlba_tab = info->wlba_table;
+		int bl;
+		for ( bl = 0; bl < p->n_wbfs_sec_per_disc; bl++ )
+		{
+		    const u32 wlba = wbfs_ntohs(wlba_tab[bl]);
+		    if ( wlba > 0 && wlba < p->n_wbfs_sec && used[wlba] > 1 )
+		    {
+			PRINT("!!! NEW_WBFS_INTERFACE: slot %u.%x shares block #%x [%02x]\n",
+				slot, bl, wlba, used[wlba] );
+			slot_info |= WBFS_SLOT_F_SHARED;
+			p->new_slot_err |= WBFS_SLOT_F_SHARED;
+		    }
+		}
+	    }
+	    info = (wbfs_disc_info_t*)( (u8*)info + p->disc_info_sz );
+	}
+    }
+
+
+    //----- terminate
+
+    
+    if (store_block0)
+    {
+	p->block0 = block0;
+	wbfs_load_freeblocks(p);
+    }
+    else
+	wbfs_iofree(block0);
+
+    p->all_slot_err |= p->new_slot_err;
+    PRINT("SLOT-STAT: %02x/%02x\n",p->new_slot_err,p->all_slot_err);
+    return 0;    
+}
+
+#endif // NEW_WBFS_INTERFACE
+///////////////////////////////////////////////////////////////////////////////
+#if NEW_WBFS_INTERFACE
+
+u32 wbfs_find_free_blocks
+(
+    // returns index of first free block or WBFS_NO_BLOCK if not enough blocks free
+
+    wbfs_t	* p,		// valid WBFS descriptor
+    u32		n_needed	// number of needed blocks
+)
+{
+    DASSERT(p);
+    DASSERT(n_needed);
+
+    u8 *p1, *p2, *end = p->used_block + p->n_wbfs_sec;
+    for ( p1 = p->used_block + 1; p1 < end && *p1; p1++ )
+	;
+
+    int count = n_needed;
+    for ( p2 = p1; p2 < end; p2++ )
+	if ( !*p2 && --count <= 0 )
+	    break;
+
+    if ( count > 0 )
+	return WBFS_NO_BLOCK;
+
+    PRINT("found: %5d..%5d [%5d]\n",p1-p->used_block,p2-p->used_block,p2-p1);
+    u8 *found = p1;
+    u32 range = p2 - p1;
+
+    while ( range >= n_needed )
+    {
+	for ( p1++; p1 < end && *p1; p1++ )
+	    ;
+	for ( p2++; p2 < end && *p2; p2++ )
+	    ;
+	if ( p2 >= end )
+	break;
+
+	if ( p2 - p1 < range )
+	{
+	    PRINT("found: %5d..%5d [%5d]\n",p1-p->used_block,p2-p->used_block,p2-p1);
+	    found = p1;
+	    range = p2 - p1;
+	}
+    }
+
+    return found - p->used_block;
+}
+
+#endif // NEW_WBFS_INTERFACE
 ///////////////////////////////////////////////////////////////////////////////
 
 u32 wbfs_count_unusedblocks ( wbfs_t * p )
@@ -1167,7 +1583,7 @@ u32 wbfs_count_unusedblocks ( wbfs_t * p )
 
 ///////////////////////////////////////////////////////////////////////////////
 
-static int block_used ( u8 *used, u32 i, u32 wblk_sz )
+static int used_block ( u8 *used, u32 i, u32 wblk_sz )
 {
     u32 k;
     i *= wblk_sz;
@@ -1333,13 +1749,13 @@ u32 wbfs_add_disc_param ( wbfs_t *p, wbfs_param_t * par )
  // [codeview]
 
     for ( i = 0; i < p->max_disc; i++) // find a free slot.
-	if (p->head->disc_table[i] == 0)
+	if (p->head->disc_table[i] == WBFS_SLOT_FREE)
 	    break;
 
     if (i == p->max_disc)
 	WBFS_ERROR("no space left on device (table full)");
 
-    p->head->disc_table[i] = 1;
+    p->head->disc_table[i] = WBFS_SLOT_VALID;
     slot = i;
     wbfs_load_freeblocks(p);
 
@@ -1362,7 +1778,7 @@ u32 wbfs_add_disc_param ( wbfs_t *p, wbfs_param_t * par )
     {
 	// count total number to write for spinner
 	for (i = 0; i < p->n_wbfs_sec_per_disc; i++)
-	    if (copy_1_1 || block_used(used, i, wii_sec_per_wbfs_sect))
+	    if (copy_1_1 || used_block(used, i, wii_sec_per_wbfs_sect))
 		tot++;
 	par->spinner(0,tot,par->callback_data);
     }
@@ -1375,13 +1791,13 @@ u32 wbfs_add_disc_param ( wbfs_t *p, wbfs_param_t * par )
     for ( i = 0; i < p->n_wbfs_sec_per_disc; i++ )
     {
 	u32 bl = 0;
-	if (copy_1_1 || block_used(used, i, wii_sec_per_wbfs_sect))
+	if (copy_1_1 || used_block(used, i, wii_sec_per_wbfs_sect))
 	{
 	    bl = wbfs_alloc_block(p);
 	    if ( bl == WBFS_NO_BLOCK )
 	    {
 		// free disc slot
-		p->head->disc_table[slot] = 0;
+		p->head->disc_table[slot] = WBFS_SLOT_FREE;
 
 		// free already allocated blocks
 		int j;
@@ -1507,7 +1923,7 @@ u32 wbfs_add_phantom ( wbfs_t *p, const char * phantom_id, u32 wii_sectors )
 	WBFS_ERROR("no space left on device (table full)");
     }
 
-    p->head->disc_table[slot] = 1;
+    p->head->disc_table[slot] = WBFS_SLOT_VALID;
     wbfs_load_freeblocks(p);
 
     // build disc info
@@ -1530,7 +1946,7 @@ u32 wbfs_add_phantom ( wbfs_t *p, const char * phantom_id, u32 wii_sectors )
 	if ( bl == WBFS_NO_BLOCK )
 	{
 	    if (!i)
-		p->head->disc_table[slot] = 0;
+		p->head->disc_table[slot] = WBFS_SLOT_FREE;
 	    err++;
 	    break; // use smaller phantom
 	}
@@ -1632,7 +2048,7 @@ u32 wbfs_estimate_disc
     read_src_wii_disc(callback_data, 0, 0x100, info->dhead);
 
     for (i = 0; i < p->n_wbfs_sec_per_disc; i++)
-	if (block_used(used, i, wii_sec_per_wbfs_sect))
+	if (used_block(used, i, wii_sec_per_wbfs_sect))
 	    tot++;
 
 error:
@@ -1662,7 +2078,7 @@ u32 wbfs_rm_disc ( wbfs_t * p, u8 * discid, int free_slot_only )
 	return 1;
     int slot = d->slot;
 
-    TRACE("LIBWBFS: disc_table[slot=%d]=%d\n", slot, p->head->disc_table[slot] );
+    TRACE("LIBWBFS: disc_table[slot=%d]=%x\n", slot, p->head->disc_table[slot] );
 
     if (!free_slot_only)
     {
@@ -1691,7 +2107,7 @@ u32 wbfs_rm_disc ( wbfs_t * p, u8 * discid, int free_slot_only )
     }
     wbfs_close_disc(d);
 
-    p->head->disc_table[slot] = 0;
+    p->head->disc_table[slot] = WBFS_SLOT_FREE;
     if (p->id_list)
 	memset(p->id_list[slot],0,sizeof(*p->id_list));
     wbfs_sync(p);

@@ -1260,9 +1260,9 @@ enumError cmd_edit()
 	    ccp info;
 	    switch(cptr->id)
 	    {
-		case DO_RM:  mode = 0; info = "remove"; break;
-		case DO_ACT: mode = 1; info = "activate"; break;
-		default:     mode = 2; info = "invalidate"; break;
+		case DO_RM:  mode = WBFS_SLOT_FREE;	info = "remove"; break;
+		case DO_ACT: mode = WBFS_SLOT_VALID;	info = "activate"; break;
+		default:     mode = WBFS_SLOT_INVALID;	info = "invalidate"; break;
 	    }
 
 	    while (*arg)
@@ -3030,6 +3030,7 @@ enumError CheckOptions ( int argc, char ** argv, bool is_env )
 	case GO_CHUNK_SIZE:	err += ScanChunkSize(optarg); break;
 	case GO_MAX_CHUNKS:	err += ScanMaxChunks(optarg); break;
 	case GO_COMPRESSION:	err += ScanOptCompression(optarg); break;
+	case GO_MEM:		err += ScanOptMem(optarg,true); break;
 	case GO_RECOVER:	break;
 	case GO_FORCE:		break;
 	case GO_NO_CHECK:	break;
@@ -3053,6 +3054,7 @@ enumError CheckOptions ( int argc, char ** argv, bool is_env )
 	case GO_ATIME:	    	SetTimeOpt(PT_USE_ATIME|PT_F_ATIME); break;
 
 	case GO_LONG:		long_count++; break;
+	case GO_NUMERIC:	break;
 	case GO_MIXED:	    	break;
 	case GO_UNIQUE:	    	break;
 	case GO_NO_HEADER:	break;

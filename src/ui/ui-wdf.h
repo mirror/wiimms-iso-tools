@@ -62,8 +62,9 @@ typedef enum enumOptions
 	OPT_CHUNK_SIZE,
 	OPT_MAX_CHUNKS,
 	OPT_COMPRESSION,
+	OPT_MEM,
 
-	OPT__N_SPECIFIC, // == 21 
+	OPT__N_SPECIFIC, // == 22 
 
 	//----- global options -----
 
@@ -76,7 +77,7 @@ typedef enum enumOptions
 	OPT_LOGGING,
 	OPT_TEST,
 
-	OPT__N_TOTAL // == 29
+	OPT__N_TOTAL // == 30
 
 } enumOptions;
 
@@ -111,6 +112,7 @@ typedef enum enumOptions
 //	OB_CHUNK_SIZE		= 1llu << OPT_CHUNK_SIZE,
 //	OB_MAX_CHUNKS		= 1llu << OPT_MAX_CHUNKS,
 //	OB_COMPRESSION		= 1llu << OPT_COMPRESSION,
+//	OB_MEM			= 1llu << OPT_MEM,
 //
 //	//----- group & command options -----
 //
@@ -126,7 +128,8 @@ typedef enum enumOptions
 //				| OB_CHUNK_MODE
 //				| OB_CHUNK_SIZE
 //				| OB_MAX_CHUNKS
-//				| OB_COMPRESSION,
+//				| OB_COMPRESSION
+//				| OB_MEM,
 //
 //	OB_GRP_FILETYPE		= OB_WDF
 //				| OB_WIA
@@ -219,6 +222,7 @@ typedef enum enumGetOpt
 	GO_CHUNK_SIZE,
 	GO_MAX_CHUNKS,
 	GO_COMPRESSION,
+	GO_MEM,
 
 } enumGetOpt;
 

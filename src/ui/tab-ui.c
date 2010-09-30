@@ -181,9 +181,10 @@ info_t info_tab[] =
 
   { T_DEF_CMD,	"COMPR",	"COMPR",
 		    "wit COMPR [mode]...",
-		"Scan names of compression methods and print the normalized names"
-		" or or print a table with all compression methods"
-		" if not method is given." },
+		"Scan compression modes and print the normalized names."
+		" See option {--compression} for syntax details."
+		" If no mode is given than print a table"
+		" with all available compression methods." },
 
   { T_DEF_CMD,	"EXCLUDE",	"EXCLUDE",
 		    "wit EXCLUDE [additional_excludes]...",
@@ -465,19 +466,19 @@ info_t info_tab[] =
 		"This option set the scrubbing mode and defines,"
 		" which disc partitions are handled."
 		" It expects a comma separated list of keywords, numbers and names;"
-		" all together called parameter. All parameter are case insensitive"
+		" all together called parameter. All parameters are case insensitive"
 		" and non ambiguous abbreviations of keyword are allowed."
-		"\n"
-		"Each parameter becomes a rule and each rule is appended to a rule list."
+		"\n "
+		" Each parameter becomes a rule and each rule is appended to a rule list."
 		" Rules prefixed by a minus sign are DENY rules."
 		" Rules prefixed by a plus sign or without a prefix are ALLOW rules."
 		" Each partition is compared with each rule until a rule matches the partition."
 		" If a match it found, the partition is enabled for a ALLOW rule"
 		" or disabled for a DENY rule."
-		"\n"
-		"The allowed keywords are: @DATA@, @UPDATE@, @CHANNEL@,"
+		"\n "
+		" The allowed keywords are: @DATA@, @UPDATE@, @CHANNEL@,"
 		" @PTAB0@ .. @PTAB3@, @ID@, @ALL@, @WHOLE@ and @RAW@."
-		" Additional the following input formats are accepted:"
+		" The following input formats are accepted too:"
 		" @ptype@, @#index@, @#<index@, @#<=index@, @#>index@, @#>=index@"
 		" and @#tab_index.part_index@."
 		"\1\n"
@@ -529,8 +530,8 @@ info_t info_tab[] =
 		" This $patching$ option expects a comma separated list"
 		" of the following keywords (case ignored) as parameter:"
 		" @NONE, DISC, BOOT, TICKET, TMD, WBFS, ALL@ and @AUTO@ (default)."
-		"\n"
-		"All keywords can be prefixed by @'+'@ to enable that option,"
+		"\n "
+		" All keywords can be prefixed by @'+'@ to enable that option,"
 		" by a @'-'@ to disable it or"
 		" by a @'='@ to enable that option and disable all others." },
 
@@ -654,23 +655,23 @@ info_t info_tab[] =
 		" or WIA file (for WIA details see option --compression})."
 		" The default is to calculate the chunk size from the input file size"
 		" and find a good value by using a minimal value of 1 MiB"
-		" for {--chunk-mode @ISO@} and @32 KiB@ for modes @32K@ and @POW2@."
+		" for {--chunk-mode ISO} and @32 KiB@ for modes @32K@ and @POW2@."
 		" For the modes @ISO@ and @POW2@ the value is rounded"
 		" up to the next power of 2."
 		" This calculation also depends from option {--max-chunks}."
-		"\n"
-		"The parameter 'sz' is a floating point number followed"
+		"\n "
+		" The parameter 'sz' is a floating point number followed"
 		" by an optional unit factor (one of 'cb' [=1] or "
 		" 'kmgtpe' [base=1000] or 'KMGTPE' [base=1024])."
 		" The default unit is 'M' (MiB)."
 		" If the number is prefixed with a @'='@ then options"
 		" {--chunk-mode} and {--max-chunks} are ignored"
 		" and the given value is used without any rounding or changing."
-		"\n"
-		"If the input file size is not known (e.g. reading from pipe),"
+		"\n "
+		" If the input file size is not known (e.g. reading from pipe),"
 		" its size is assumed as @12 GiB@."
-		"\n"
-		"@--chs@ is a shortcut for @--chunk-size@." },
+		"\n "
+		" @--chs@ is a shortcut for @--chunk-size@." },
 
   { T_OPT_CP,	"MAX_CHUNKS",	"max-chunks|maxchunks|mch",
 		"n",
@@ -679,34 +680,48 @@ info_t info_tab[] =
 		" and 32760 (maximal value) for all other modes."
 		" If this value is set than the automatic calculation "
 		" of {--chunk-size} will be modified too."
-		"\n"
-		"@--mch@ is a shortcut for @--max-chunks@." },
+		"\n "
+		" @--mch@ is a shortcut for @--max-chunks@." },
 
   { T_OPT_CP,	"COMPRESSION",	"compression|compr",
 		"mode",
 		"Select one compression method, level and chunk size for new WIA files."
 		" The syntax for mode is: @[method] [.level] [@@factor]@"
-		"\n"
-		"@'method'@ is the name or index of the method."
+		"\n "
+		" @'method'@ is the name or index of the method."
 		" Possible compressions method are @NONE@, @PURGE@, @BZIP2@,"
 		" @LZMA@ and @LZMA2@."
-		" There are 3 additional keywords: @FASTEST@ (@=PURGE@),"
-		" @BEST@ and @DEFAULT@ (both @=LZMA@)."
+		" There are additional keywords: @DEFAULT@ (=@LZMA.5@@20@),"
+		" @FAST@ (=@BZIP2.3@@10@), @GOOD@ (=@LZMA.5@@20@) @BEST@ (=@LZMA.7@@50@),"
+		" and @MEM@ (use best mode in respect to memory limit set by {--mem})."
 		" These additional keywords may change their meanings"
 		" if a new compression method is implemented."
-		"\n"
-		"@'.level'@ is a point followed by one digit."
+		"\n "
+		" @'.level'@ is a point followed by one digit."
 		" It defines the compression level."
-		" The special value '0' means: Use default compression level (=9)."
-		"\n"
-		"@'@@factor'@ is a factor for the chunk size."
-		" With the default factor '1' the chunk size is 2 MiB"
-		" (size of 1 Wii sector group)."
-		" If the factor is not set it will be calculated"
-		" by using a rounded value of the option {--chunk-size}."
-		"\n"
-		"All three parts are optional."
+		" The special value @.0@ means: Use default compression level (=@.5@)."
+		"\n "
+		" @'@@factor'@ is a factor for the chunk size. The base size is 2 MiB."
+		" The value@ @@0@ is replaced by the default factor@ @@20@ (40 MiB)."
+		" If the factor is not set but option {--chunk-size} is set,"
+		" the factor will be calculated by using a rounded value of that option."
+		"\n "
+		" All three parts are optional."
+		" All default values may be changed in the future."
 		" @--compr@ is a shortcut for @--compression@." },
+
+  { T_OPT_CP,	"MEM",		"mem",
+		"size",
+		"This option defines a memory usage limit for compressing files."
+		" When compressing a file with method @MEM@ (see {--compression})"
+		" the the compression method, level and chunk size"
+		" are calculated with respect to this limit."
+		"\n "
+		" If this option is not set or the value is 0,"
+		" then the environment WIT_MEM is tried to read instead."
+		" If this fails, the tool tries to find out the total memory"
+		" by reading @/proc/meminfo@."
+		" The limit is set to 80% of the total memory minus 50 MiB." },
 
   { T_OPT_C,	"PRESERVE",	"p|preserve",
 		0, "Preserve file times (atime+mtime)." },
@@ -737,8 +752,8 @@ info_t info_tab[] =
   { T_OPT_C,	"WIA",		"wia",
 		0, "Set ISO output file type to WIA."
 		" WIA files are not editable."
-		"\n"
-		"\n"
+		"\n "
+		" \n"
 		"The WIA support is EXPERIMENTAL!"
 		" The WIA format is in development!"
 		" Don't use WIA files productive!" },
@@ -789,6 +804,9 @@ info_t info_tab[] =
   { T_OPT_CM,	"LONG",		"l|long",
 		0, "Print in long format. Multiple usage possible." },
 
+  { T_OPT_C,	"NUMERIC",	"numeric",
+		0, "Force numeric output instead of printing names." },
+
   { T_OPT_CP,	"SHOW",		"show",
 		"list",
 		"This option allows fine control over the things that are to be printed."
@@ -799,16 +817,16 @@ info_t info_tab[] =
 		" There are some combined keys:"
 		" @PART := P-INFO,P-MAP,TICKET,TMD@,"
 		" @MAP := P-MAP,D-MAP@."
-		"\n"
-		"All keywords can be prefixed by '+' to enable that option,"
+		"\n "
+		" All keywords can be prefixed by '+' to enable that option,"
 		" by a '-' to disable it or"
 		" by a '=' to enable that option and disable all others."
-		"\n"
-		"The additional keywords @DEC@ and @HEX@ can be used to set"
+		"\n "
+		" The additional keywords @DEC@ and @HEX@ can be used to set"
 		" a prefered number format."
 		" @-HEADER@ suppresses the output of header lines."
-		"\n"
-		"The commands recognize only some of these keywords"
+		"\n "
+		" The commands recognize only some of these keywords"
 		" and ignore the others."
 		" If @--show@ is set, option {--long} is ignored"
 		" for selecting output elements." },
@@ -978,6 +996,7 @@ info_t info_tab[] =
   { T_COPT,	"CHUNK_SIZE",	0,0,0 },
   { T_COPT,	"MAX_CHUNKS",	0,0,0 },
   { T_COPT,	"COMPRESSION",	0,0,0 },
+  { T_COPT,	"MEM",		0,0,0 },
 
   //
   //---------- COMMAND wit HELP ----------
@@ -1013,12 +1032,17 @@ info_t info_tab[] =
 
   { T_CMD_BEG,	"COMPR",	0,0,0 },
 
+  { T_COPT,	"MEM",		0,0,0 },
   { T_COPT,	"SECTIONS",	0,0,0 },
   { T_COPT,	"NO_HEADER",	0,0,0 },
   { T_COPT,	"LONG",		0,0,
 	"Print the numeric value and the normalized name."
 	" If set twice print a table with the numeric value,"
 	" normalized name and alternative names." },
+  { T_COPT,	"VERBOSE",	0,0,
+	"Show default compression level and chunk size factor too."
+	" Standard is to suppress these values if not explicitly set." },
+  { T_COPT,	"NUMERIC",	0,0,0 },
 
   //---------- COMMAND wit EXCLUDE ----------
 
@@ -1236,7 +1260,7 @@ info_t info_tab[] =
   { T_COPY_GRP,	"PARTITIONS",	0,0,0 },
   { T_COPY_GRP,	"FILES",	0,0,0 },
   { T_COPT,	"SORT",		0,0,
-	"Define the exracting order."
+	"Define the extracting order."
 	" The parameter is a comma separated list of the following keywords:"
 	" NONE, NAME, SIZE, OFFSET, ASCENDING, DESCENDING = REVERSE." },
 
@@ -1808,6 +1832,9 @@ info_t info_tab[] =
   { T_OPT_CP,	"COMPRESSION",	"compression|compr",
 		0, 0 /* copy of wit */ },
 
+  { T_OPT_CP,	"MEM",		"mem",
+		0, 0 /* copy of wit */ },
+
   { T_OPT_CP,	"SIZE",		"s|size",
 		"size", "Floating point size. Factors: bckKmMgGtT, default=G." },
 
@@ -1896,6 +1923,9 @@ info_t info_tab[] =
   { T_SEP_OPT,	0,0,0,0 }, //----- separator -----
 
   { T_OPT_CM,	"LONG",		"l|long",
+		0, 0 /* copy of wit */ },
+
+  { T_OPT_C,	"NUMERIC",	"numeric",
 		0, 0 /* copy of wit */ },
 
   { T_OPT_C,	"INODE",	"inode",
@@ -2017,7 +2047,7 @@ info_t info_tab[] =
   { T_COPT,	"ISO",		0,0,0 },
   { T_COPT,	"CISO",		0,0,0 },
   { T_COPT,	"WBFS",		0,0,0 },
-  { T_COPT,	"WIA",		0,0,0 },
+//  { H_COPT,	"WIA",		0,0,0 },	// [2do]
 
   //---------- wwt GROUP PATCH ----------
 
@@ -2056,7 +2086,8 @@ info_t info_tab[] =
   { T_COPT,	"CHUNK_MODE",	0,0,0 },
   { T_COPT,	"CHUNK_SIZE",	0,0,0 },
   { T_COPT,	"MAX_CHUNKS",	0,0,0 },
-  { T_COPT,	"COMPRESSION",	0,0,0 },
+//  { H_COPT,	"COMPRESSION",	0,0,0 },	// [2do]
+//  { H_COPT,	"MEM",		0,0,0 },	// [2do]
 
 
   //
@@ -2098,6 +2129,7 @@ info_t info_tab[] =
 	"Print the numeric value and the normalized name."
 	" If set twice print a table with the numeric value,"
 	" normalized name and alternative names." },
+  { T_COPT,	"NUMERIC",	0,0,0 },
 
   //---------- COMMAND wwt EXCLUDE ----------
 
@@ -2556,8 +2588,8 @@ info_t info_tab[] =
   { T_DEF_CMD,	"UNPACK",	"+UNPACK|+U",
 		    "wdf +UNPACK [option]... files...",
 		"Unpack WDF and CISO archives."
-		"\n"
-		"This is the default command, when the program name starts"
+		"\n "
+		" This is the default command, when the program name starts"
 		" with the two letters @'un'@ in any case." },
 
   { T_DEF_CMD,	"CAT",		"+CAT|+C",
@@ -2565,29 +2597,29 @@ info_t info_tab[] =
 		"Concatenate files and print on the standard output."
 		" WDF and CISO files are extracted before printing,"
 		" all other files are copied byte by byte."
-		"\n"
-		"This is the default command, when the program name"
+		"\n "
+		" This is the default command, when the program name"
 		"contains the three letter @'cat'@ in any case." },
 
   { H_DEF_CMD,	"CMP",		"+DIFF|+CMP",
 		    "wdf +DIFF [option]... files...",
 		"Compare files and unpack WDF and CISO while comparing."
-		"\n"
-		"The standard is to compare two source files."
+		"\n "
+		" The standard is to compare two source files."
 		" If {--dest} or {--DEST} is set, than all source files"
 		" are compared against files in the destination path with equal names."
 		" If the second source file is mising then standard input"
 		" (stdin) is used instead."
-		"\n"
-		"This is the default command, when the program name"
+		"\n "
+		" This is the default command, when the program name"
 		"contains the letters @'diff'@ or @'cmp'@ in any case." },
 
   { T_DEF_CMD,	"DUMP",		"+DUMP|+D",
 		    "wdf +DUMP [option]... files...",
 		"Dump the data structure of WDF, WIA and CISO archives"
 		" and ignore other files."
-		"\n"
-		"This is the default command, when the program contains"
+		"\n "
+		" This is the default command, when the program contains"
 		" the sub string @'dump'@ in any case." },
 
   //
@@ -2645,24 +2677,24 @@ info_t info_tab[] =
 		0,
 		"Force WIA output mode if packing"
 		" and set the default suffix to @'.wia'@."
-		"\n"
-		" This is the default, when the program name contains"
+		"\n "
+		"  This is the default, when the program name contains"
 		" the sub string @'wia'@ in any case." },
 
   { T_OPT_C,	"CISO",		"C|ciso",
 		0,
 		"Force CISO output mode if packing"
 		" and set the default suffix to @'.ciso'@."
-		"\n"
-		" This is the default, when the program name contains"
+		"\n "
+		"  This is the default, when the program name contains"
 		" the sub string @'ciso'@ in any case." },
 
   { T_OPT_C,	"WBI",		"wbi",
 		0,
 		"Force CISO output mode if packing"
 		" and set the default suffix to @'.wbi'@."
-		"\n"
-		" This is the default, when the program name contains"
+		"\n "
+		"  This is the default, when the program name contains"
 		" the sub string @'wbi'@ but not @'ciso'@ in any case." },
 
   { T_OPT_CP,	"SUFFIX",	"s|suffix",
@@ -2683,8 +2715,8 @@ info_t info_tab[] =
 		0,
 		"Write to standard output (stdout)"
 		" and keep (don't delete) input files."
-		"\n"
-		"This is the default, when the program"
+		"\n "
+		" This is the default, when the program"
 		" is reading from standard input (stdin)." },
 
   { T_OPT_C,	"KEEP",		"k|keep",
@@ -2713,6 +2745,9 @@ info_t info_tab[] =
 		0, 0 /* copy of wit */ },
 
   { T_OPT_CP,	"COMPRESSION",	"compression|compr",
+		0, 0 /* copy of wit */ },
+
+  { T_OPT_CP,	"MEM",		"mem",
 		0, 0 /* copy of wit */ },
 
   { T_SEP_OPT,	0,0,0,0 }, //----- separator -----
@@ -2747,6 +2782,7 @@ info_t info_tab[] =
   { T_COPT,	"CHUNK_SIZE",	0,0,0 },
   { T_COPT,	"MAX_CHUNKS",	0,0,0 },
   { T_COPT,	"COMPRESSION",	0,0,0 },
+  { T_COPT,	"MEM",		0,0,0 },
 
   //---------- wdf GROUP FILETYPE ----------
 

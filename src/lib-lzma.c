@@ -36,6 +36,20 @@
 
 //
 ///////////////////////////////////////////////////////////////////////////////
+///////////////			debugging & logging		///////////////
+///////////////////////////////////////////////////////////////////////////////
+
+#if defined(TEST) && defined(DEBUG)
+    #define LOG_ALLOC 1
+    // 0: off
+    // 1: show only max value
+    // 2: show all values
+#else
+    #define LOG_ALLOC 0
+#endif
+
+//
+///////////////////////////////////////////////////////////////////////////////
 ///////////////			LZMA helpers			///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -75,45 +89,146 @@ int CalcCompressionLevelLZMA
     int			compr_level	// valid are 1..9 / 0: use default value
 )
 {
-    return compr_level >= 1 && compr_level <= 9 ? compr_level : 9;
+    return compr_level < 1
+		? 5
+		: compr_level < 7
+			? compr_level
+			: 7;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 
 u32 CalcMemoryUsageLZMA
 (
-    int			compr_level	// valid are 1..9 / 0: use default value
+    int			compr_level,	// valid are 1..9 / 0: use default value
+    bool		is_writing	// false: reading mode, true: writing mode
 )
 {
-    static u32 dictsize[] =
+    static u32 read_size[] =
     {
-	 64 * KiB,	// level 1
-	256 * KiB,	// level 2
-	  1 * MiB,	// level 3
-	  4 * MiB,	// level 4
-	 16 * MiB,	// level 5
-	 32 * MiB,	// level 6
-	 64 * MiB,	// level 7
+		0,  // not used
+	    97496,  // level 1
+	   294104,  // level 2
+	  1080536,  // level 3
+	  4226264,  // level 4
+	 16809176,  // level 5
+	 33586392,  // level 6
+	 67140824,  // level 7
     };
 
-    compr_level = CalcCompressionLevelLZMA(compr_level);
-    if ( compr_level < 0 )
-	compr_level = 0;
-    else if ( compr_level >= sizeof(dictsize)/sizeof(*dictsize) )
-	compr_level = sizeof(dictsize)/sizeof(*dictsize) - 1;
+    static u32 write_size[] =
+    {
+		0,  // not used
+	  1831198,  // level 1
+	  3174686,  // level 2
+	  9072926,  // level 3
+	 32665886,  // level 4
+	194146594,  // level 5
+	387084578,  // level 6
+	705851730,  // level 7
+    };
 
-    return dictsize[compr_level] + 6 * MiB;
+    DASSERT( sizeof(write_size) == sizeof(read_size) );
+
+   
+    compr_level = CalcCompressionLevelLZMA(compr_level);
+    if ( compr_level <= 0 )
+	 compr_level = 1;
+    else
+    {
+	const size_t N = sizeof(write_size) / sizeof(*write_size);
+	if ( compr_level >= N )
+	     compr_level = N-1;
+    }
+
+    u32 * tab = is_writing ? write_size : read_size;
+    return tab[compr_level];
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 
+u32 CalcMemoryUsageLZMA2
+(
+    int			compr_level,	// valid are 1..9 / 0: use default value
+    bool		is_writing	// false: reading mode, true: writing mode
+)
+{
+    static u32 read_size[] =
+    {
+		0,  // not used
+	   122072,  // level 1
+	   318680,  // level 2
+	  1105112,  // level 3
+	  4250840,  // level 4
+	 16833752,  // level 5
+	 33610968,  // level 6
+	 67165400,  // level 7
+    };
+
+    static u32 write_size[] =
+    {
+		0,  // not used
+	  4938158,  // level 1
+	  5986734,  // level 2
+	 10705326,  // level 3
+	 32731566,  // level 4
+	194212274,  // level 5
+	387150258,  // level 6
+	705917410,  // level 7
+    };
+
+    DASSERT( sizeof(write_size) == sizeof(read_size) );
+
+   
+    compr_level = CalcCompressionLevelLZMA(compr_level);
+    if ( compr_level <= 0 )
+	 compr_level = 1;
+    else
+    {
+	const size_t N = sizeof(write_size) / sizeof(*write_size);
+	if ( compr_level >= N )
+	     compr_level = N-1;
+    }
+
+    u32 * tab = is_writing ? write_size : read_size;
+    return tab[compr_level];
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+#if LOG_ALLOC
+ static u32 alloc_count = 0;
+ static u32 free_count = 0;
+ static u32 alloc_size = 0;
+#endif
+
 static void * AllocLZMA ( void *p, size_t size )
 {
+ #if LOG_ALLOC
+    void * ptr = malloc(size);
+    alloc_count++;
+    alloc_size += size;
+  #if LOG_ALLOC > 1
+    PRINT("$$$ LZMA ALLOC [%p]: %zu/%u [%u-%u=%u]\n",
+	ptr, size, alloc_size, alloc_count, free_count, alloc_count-free_count );
+  #endif
+    return ptr;
+ #else   
     return malloc(size);
+ #endif   
 }
 
 static void FreeLZMA ( void *p, void *ptr )
 {
+ #if LOG_ALLOC
+    if (ptr)
+    {
+	free_count++;
+	if ( LOG_ALLOC > 1 || free_count == 1 )
+	    PRINT("$$$ LZMA FREE [%p]: %u [%u-%u=%u]\n",
+		ptr, alloc_size, alloc_count, free_count, alloc_count-free_count );
+    }
+ #endif   
     free(ptr);
 }
 
@@ -184,6 +299,11 @@ enumError EncLZMA_Open
     memset(lzma,0,sizeof(*lzma));
     lzma->error_object = error_object ? error_object : "?";
 
+ #if LOG_ALLOC
+     alloc_count = 0;
+     free_count = 0;
+     alloc_size = 0;
+ #endif
 
     //----- create handle
 
@@ -399,6 +519,12 @@ enumError DecLZMA_File2Buf // open + read + close lzma stream
     DASSERT(file);
     DASSERT(buf);
 
+ #if LOG_ALLOC
+     alloc_count = 0;
+     free_count = 0;
+     alloc_size = 0;
+ #endif
+
     u8 prop_buf[LZMA_PROPS_SIZE];
     if (!enc_props)
     {
@@ -518,6 +644,11 @@ enumError EncLZMA2_Open
     memset(lzma,0,sizeof(*lzma));
     lzma->error_object = error_object ? error_object : "?";
 
+ #if LOG_ALLOC
+     alloc_count = 0;
+     free_count = 0;
+     alloc_size = 0;
+ #endif
 
     //----- create handle
 
@@ -726,6 +857,12 @@ enumError DecLZMA2_File2Buf // open + read + close lzma stream
 {
     DASSERT(file);
     DASSERT(buf);
+
+ #if LOG_ALLOC
+     alloc_count = 0;
+     free_count = 0;
+     alloc_size = 0;
+ #endif
 
     u8 prop_buf[1];
     if (!enc_props)

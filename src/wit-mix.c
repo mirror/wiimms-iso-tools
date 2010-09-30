@@ -192,9 +192,9 @@ static enumError verify_mix
 		max_sectors );
 
     #ifdef xxxDEBUG
-	wd_dump_usage_tab(stdout,2,utab,0,false);
+	wd_print_usage_tab(stdout,2,utab,0,false);
 	PRINT("--\n");
-	wd_dump_disc_usage_tab(stdout,2,mix->disc,false);
+	wd_print_disc_usage_tab(stdout,2,mix->disc,false);
     #endif
 
 	for ( ; dest < enddest; dest++, src++ )
@@ -256,7 +256,7 @@ static enumError verify_mix
     if (dump)
     {
 	printf("Usage table:\n\n");
-	wd_dump_usage_tab(stdout,2,utab,0,false);
+	wd_print_usage_tab(stdout,2,utab,0,false);
 	putchar('\n');
     }
 

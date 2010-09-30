@@ -774,17 +774,16 @@ char * NormalizeFileName ( char * buf, char * end, ccp source, bool allow_slash 
     if (source)
     {
      #ifdef __CYGWIN__
-	const int drv_len = IsWindowsDriveSpec(source);
-	if (drv_len)
+	if (allow_slash)
 	{
-	    if ( dest + 3 <= end )
+	    const int drv_len = IsWindowsDriveSpec(source);
+	    if (drv_len)
 	    {
-		// leave drive spec nearly untouched
-		*dest++ = *source;
-		*dest++ = ':';
-		*dest++ = '/';
+		dest = StringCopyE(dest,end,"/cygdrive/c/");
+		if ( dest < end )
+		    dest[-2] = tolower((int)*source);
+		source += drv_len;
 	    }
-	    source += drv_len;
 	}
      #endif
 
@@ -822,6 +821,13 @@ char * NormalizeFileName ( char * buf, char * end, ccp source, bool allow_slash 
 		    *dest++ = ch;
 		    skip_space = false;
 		}
+	     #ifdef __CYGWIN__
+		else if ( ch == '\\' && allow_slash )
+		{
+		    *dest++ = '/';
+		    skip_space = false;
+		}
+	     #endif
 		else if (!skip_space)
 		{
 		    *dest++ = ' ';

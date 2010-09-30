@@ -30,9 +30,9 @@
 
 #:def_cmd( "COMPR", "COMPR", \
 	"wit COMPR [mode]...", \
-	"Scan names of compression methods and print the normalized names or" \
-	" or print a table with all compression methods if not method is" \
-	" given." )
+	"Scan compression modes and print the normalized names. See option" \
+	" {--compression} for syntax details. If no mode is given than print a" \
+	" table with all available compression methods." )
 
 #:def_cmd( "EXCLUDE", "EXCLUDE", \
 	"wit EXCLUDE [additional_excludes]...", \
@@ -284,18 +284,18 @@
 	"list", \
 	"This option set the scrubbing mode and defines, which disc partitions" \
 	" are handled. It expects a comma separated list of keywords, numbers" \
-	" and names; all together called parameter. All parameter are case" \
+	" and names; all together called parameter. All parameters are case" \
 	" insensitive and non ambiguous abbreviations of keyword are allowed.\n" \
-	"Each parameter becomes a rule and each rule is appended to a rule" \
+	"  Each parameter becomes a rule and each rule is appended to a rule" \
 	" list. Rules prefixed by a minus sign are DENY rules. Rules prefixed" \
 	" by a plus sign or without a prefix are ALLOW rules. Each partition" \
 	" is compared with each rule until a rule matches the partition. If a" \
 	" match it found, the partition is enabled for a ALLOW rule or" \
 	" disabled for a DENY rule.\n" \
-	"The allowed keywords are: @DATA@, @UPDATE@, @CHANNEL@, @PTAB0@ .." \
-	" @PTAB3@, @ID@, @ALL@, @WHOLE@ and @RAW@. Additional the following" \
-	" input formats are accepted: @ptype@, @#index@, @#<index@," \
-	" @#<=index@, @#>index@, @#>=index@ and @#tab_index.part_index@." )
+	"  The allowed keywords are: @DATA@, @UPDATE@, @CHANNEL@, @PTAB0@ .." \
+	" @PTAB3@, @ID@, @ALL@, @WHOLE@ and @RAW@. The following input formats" \
+	" are accepted too: @ptype@, @#index@, @#<index@, @#<=index@," \
+	" @#>index@, @#>=index@ and @#tab_index.part_index@." )
 
 #:def_opt( "RAW", "raw", "C", \
 	"", \
@@ -337,7 +337,7 @@
 	" This $patching$ option expects a comma separated list of the" \
 	" following keywords (case ignored) as parameter: @NONE, DISC, BOOT," \
 	" TICKET, TMD, WBFS, ALL@ and @AUTO@ (default).\n" \
-	"All keywords can be prefixed by @'+'@ to enable that option, by a" \
+	"  All keywords can be prefixed by @'+'@ to enable that option, by a" \
 	" @'-'@ to disable it or by a @'='@ to enable that option and disable" \
 	" all others." )
 
@@ -441,19 +441,19 @@
 	"Define the minimal chunk size if creating a CISO or WIA file (for WIA" \
 	" details see option --compression}). The default is to calculate the" \
 	" chunk size from the input file size and find a good value by using a" \
-	" minimal value of 1 MiB for {--chunk-mode @ISO@} and @32 KiB@ for" \
-	" modes @32K@ and @POW2@. For the modes @ISO@ and @POW2@ the value is" \
+	" minimal value of 1 MiB for {--chunk-mode ISO} and @32 KiB@ for modes" \
+	" @32K@ and @POW2@. For the modes @ISO@ and @POW2@ the value is" \
 	" rounded up to the next power of 2. This calculation also depends" \
 	" from option {--max-chunks}.\n" \
-	"The parameter 'sz' is a floating point number followed by an optional" \
-	" unit factor (one of 'cb' [=1] or  'kmgtpe' [base=1000] or 'KMGTPE'" \
-	" [base=1024]). The default unit is 'M' (MiB). If the number is" \
-	" prefixed with a @'='@ then options {--chunk-mode} and {--max-chunks}" \
-	" are ignored and the given value is used without any rounding or" \
-	" changing.\n" \
-	"If the input file size is not known (e.g. reading from pipe), its" \
+	"  The parameter 'sz' is a floating point number followed by an" \
+	" optional unit factor (one of 'cb' [=1] or  'kmgtpe' [base=1000] or" \
+	" 'KMGTPE' [base=1024]). The default unit is 'M' (MiB). If the number" \
+	" is prefixed with a @'='@ then options {--chunk-mode} and" \
+	" {--max-chunks} are ignored and the given value is used without any" \
+	" rounding or changing.\n" \
+	"  If the input file size is not known (e.g. reading from pipe), its" \
 	" size is assumed as @12 GiB@.\n" \
-	"@--chs@ is a shortcut for @--chunk-size@." )
+	"  @--chs@ is a shortcut for @--chunk-size@." )
 
 #:def_opt( "MAX_CHUNKS", "max-chunks|maxchunks|mch", "CP", \
 	"n", \
@@ -461,26 +461,39 @@
 	" default value is 8192 for {--chunk-mode ISO} and 32760 (maximal" \
 	" value) for all other modes. If this value is set than the automatic" \
 	" calculation  of {--chunk-size} will be modified too.\n" \
-	"@--mch@ is a shortcut for @--max-chunks@." )
+	"  @--mch@ is a shortcut for @--max-chunks@." )
 
 #:def_opt( "COMPRESSION", "compression|compr", "CP", \
 	"mode", \
 	"Select one compression method, level and chunk size for new WIA" \
 	" files. The syntax for mode is: @[method] [.level] [@@factor]@\n" \
-	"@'method'@ is the name or index of the method. Possible compressions" \
-	" method are @NONE@, @PURGE@, @BZIP2@, @LZMA@ and @LZMA2@. There are 3" \
-	" additional keywords: @FASTEST@ (@=PURGE@), @BEST@ and @DEFAULT@" \
-	" (both @=LZMA@). These additional keywords may change their meanings" \
+	"  @'method'@ is the name or index of the method. Possible" \
+	" compressions method are @NONE@, @PURGE@, @BZIP2@, @LZMA@ and" \
+	" @LZMA2@. There are additional keywords: @DEFAULT@ (=@LZMA.5@@20@)," \
+	" @FAST@ (=@BZIP2.3@@10@), @GOOD@ (=@LZMA.5@@20@) @BEST@" \
+	" (=@LZMA.7@@50@), and @MEM@ (use best mode in respect to memory limit" \
+	" set by {--mem}). These additional keywords may change their meanings" \
 	" if a new compression method is implemented.\n" \
-	"@'.level'@ is a point followed by one digit. It defines the" \
-	" compression level. The special value '0' means: Use default" \
-	" compression level (=9).\n" \
-	"@'@@factor'@ is a factor for the chunk size. With the default factor" \
-	" '1' the chunk size is 2 MiB (size of 1 Wii sector group). If the" \
-	" factor is not set it will be calculated by using a rounded value of" \
-	" the option {--chunk-size}.\n" \
-	"All three parts are optional. @--compr@ is a shortcut for" \
-	" @--compression@." )
+	"  @'.level'@ is a point followed by one digit. It defines the" \
+	" compression level. The special value @.0@ means: Use default" \
+	" compression level (=@.5@).\n" \
+	"  @'@@factor'@ is a factor for the chunk size. The base size is 2" \
+	" MiB. The value@ @@0@ is replaced by the default factor@ @@20@ (40" \
+	" MiB). If the factor is not set but option {--chunk-size} is set, the" \
+	" factor will be calculated by using a rounded value of that option.\n" \
+	"  All three parts are optional. All default values may be changed in" \
+	" the future. @--compr@ is a shortcut for @--compression@." )
+
+#:def_opt( "MEM", "mem", "CP", \
+	"size", \
+	"This option defines a memory usage limit for compressing files. When" \
+	" compressing a file with method @MEM@ (see {--compression}) the the" \
+	" compression method, level and chunk size are calculated with respect" \
+	" to this limit.\n" \
+	"  If this option is not set or the value is 0, then the environment" \
+	" WIT_MEM is tried to read instead. If this fails, the tool tries to" \
+	" find out the total memory by reading @/proc/meminfo@. The limit is" \
+	" set to 80% of the total memory minus 50 MiB." )
 
 #:def_opt( "PRESERVE", "p|preserve", "C", \
 	"", \
@@ -517,7 +530,7 @@
 #:def_opt( "WIA", "wia", "C", \
 	"", \
 	"Set ISO output file type to WIA. WIA files are not editable.\n" \
-	"\n" \
+	"  \n" \
 	"The WIA support is EXPERIMENTAL! The WIA format is in development!" \
 	" Don't use WIA files productive!" )
 
@@ -563,6 +576,10 @@
 	"", \
 	"Print in long format. Multiple usage possible." )
 
+#:def_opt( "NUMERIC", "numeric", "C", \
+	"", \
+	"Force numeric output instead of printing names." )
+
 #:def_opt( "SHOW", "show", "CP", \
 	"list", \
 	"This option allows fine control over the things that are to be" \
@@ -571,12 +588,13 @@
 	" D-MAP, TICKET, TMD, USAGE, PATCH, RELOCATE, FILES, OFFSET, SIZE," \
 	" PATH@ and @ALL@. There are some combined keys: @PART :=" \
 	" P-INFO,P-MAP,TICKET,TMD@, @MAP := P-MAP,D-MAP@.\n" \
-	"All keywords can be prefixed by '+' to enable that option, by a '-'" \
+	"  All keywords can be prefixed by '+' to enable that option, by a '-'" \
 	" to disable it or by a '=' to enable that option and disable all" \
 	" others.\n" \
-	"The additional keywords @DEC@ and @HEX@ can be used to set a prefered" \
-	" number format. @-HEADER@ suppresses the output of header lines.\n" \
-	"The commands recognize only some of these keywords and ignore the" \
+	"  The additional keywords @DEC@ and @HEX@ can be used to set a" \
+	" prefered number format. @-HEADER@ suppresses the output of header" \
+	" lines.\n" \
+	"  The commands recognize only some of these keywords and ignore the" \
 	" others. If @--show@ is set, option {--long} is ignored for selecting" \
 	" output elements." )
 
@@ -623,6 +641,10 @@
 	"", \
 	"Print extended message instead of error name." )
 
+#:def_cmd_opt( "COMPR", "MEM", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "COMPR", "SECTIONS", \
 	"", \
 	"" )
@@ -635,6 +657,15 @@
 	"", \
 	"Print the numeric value and the normalized name. If set twice print a" \
 	" table with the numeric value, normalized name and alternative names." )
+
+#:def_cmd_opt( "COMPR", "VERBOSE", \
+	"", \
+	"Show default compression level and chunk size factor too. Standard is" \
+	" to suppress these values if not explicitly set." )
+
+#:def_cmd_opt( "COMPR", "NUMERIC", \
+	"", \
+	"" )
 
 #:def_cmd_opt( "EXCLUDE", "EXCLUDE", \
 	"", \
@@ -1962,7 +1993,7 @@
 
 #:def_cmd_opt( "EXTRACT", "SORT", \
 	"", \
-	"Define the exracting order. The parameter is a comma separated list" \
+	"Define the extracting order. The parameter is a comma separated list" \
 	" of the following keywords: NONE, NAME, SIZE, OFFSET, ASCENDING," \
 	" DESCENDING = REVERSE." )
 
@@ -2124,7 +2155,7 @@
 
 #:def_cmd_opt( "COPY", "SORT", \
 	"", \
-	"Define the exracting order. The parameter is a comma separated list" \
+	"Define the extracting order. The parameter is a comma separated list" \
 	" of the following keywords: NONE, NAME, SIZE, OFFSET, ASCENDING," \
 	" DESCENDING = REVERSE." )
 
@@ -2245,6 +2276,10 @@
 	"" )
 
 #:def_cmd_opt( "COPY", "COMPRESSION", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "COPY", "MEM", \
 	"", \
 	"" )
 
@@ -2425,6 +2460,10 @@
 	"" )
 
 #:def_cmd_opt( "CONVERT", "COMPRESSION", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "CONVERT", "MEM", \
 	"", \
 	"" )
 
@@ -2922,6 +2961,10 @@
 	"", \
 	"" )
 
+#:def_cmd_opt( "MIX", "MEM", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "MIX", "ALIGN_PART", \
 	"", \
 	"The beginning of each partition is set to an offset that is a" \
@@ -2994,9 +3037,9 @@
 
 #:def_cmd( "COMPR", "COMPR", \
 	"wwt ERROR [error_code]", \
-	"Scan names of compression methods and print the normalized names or" \
-	" or print a table with all compression methods if not method is" \
-	" given." )
+	"Scan compression modes and print the normalized names. See option" \
+	" {--compression} for syntax details. If no mode is given than print a" \
+	" table with all available compression methods." )
 
 #:def_cmd( "EXCLUDE", "EXCLUDE", \
 	"wwt EXCLUDE [additional_excludes]...", \
@@ -3233,18 +3276,18 @@
 	"list", \
 	"This option set the scrubbing mode and defines, which disc partitions" \
 	" are handled. It expects a comma separated list of keywords, numbers" \
-	" and names; all together called parameter. All parameter are case" \
+	" and names; all together called parameter. All parameters are case" \
 	" insensitive and non ambiguous abbreviations of keyword are allowed.\n" \
-	"Each parameter becomes a rule and each rule is appended to a rule" \
+	"  Each parameter becomes a rule and each rule is appended to a rule" \
 	" list. Rules prefixed by a minus sign are DENY rules. Rules prefixed" \
 	" by a plus sign or without a prefix are ALLOW rules. Each partition" \
 	" is compared with each rule until a rule matches the partition. If a" \
 	" match it found, the partition is enabled for a ALLOW rule or" \
 	" disabled for a DENY rule.\n" \
-	"The allowed keywords are: @DATA@, @UPDATE@, @CHANNEL@, @PTAB0@ .." \
-	" @PTAB3@, @ID@, @ALL@, @WHOLE@ and @RAW@. Additional the following" \
-	" input formats are accepted: @ptype@, @#index@, @#<index@," \
-	" @#<=index@, @#>index@, @#>=index@ and @#tab_index.part_index@." )
+	"  The allowed keywords are: @DATA@, @UPDATE@, @CHANNEL@, @PTAB0@ .." \
+	" @PTAB3@, @ID@, @ALL@, @WHOLE@ and @RAW@. The following input formats" \
+	" are accepted too: @ptype@, @#index@, @#<index@, @#<=index@," \
+	" @#>index@, @#>=index@ and @#tab_index.part_index@." )
 
 #:def_opt( "RAW", "raw", "C", \
 	"", \
@@ -3305,7 +3348,7 @@
 	" This $patching$ option expects a comma separated list of the" \
 	" following keywords (case ignored) as parameter: @NONE, DISC, BOOT," \
 	" TICKET, TMD, WBFS, ALL@ and @AUTO@ (default).\n" \
-	"All keywords can be prefixed by @'+'@ to enable that option, by a" \
+	"  All keywords can be prefixed by @'+'@ to enable that option, by a" \
 	" @'-'@ to disable it or by a @'='@ to enable that option and disable" \
 	" all others." )
 
@@ -3405,19 +3448,19 @@
 	"Define the minimal chunk size if creating a CISO or WIA file (for WIA" \
 	" details see option --compression}). The default is to calculate the" \
 	" chunk size from the input file size and find a good value by using a" \
-	" minimal value of 1 MiB for {--chunk-mode @ISO@} and @32 KiB@ for" \
-	" modes @32K@ and @POW2@. For the modes @ISO@ and @POW2@ the value is" \
+	" minimal value of 1 MiB for {--chunk-mode ISO} and @32 KiB@ for modes" \
+	" @32K@ and @POW2@. For the modes @ISO@ and @POW2@ the value is" \
 	" rounded up to the next power of 2. This calculation also depends" \
 	" from option {--max-chunks}.\n" \
-	"The parameter 'sz' is a floating point number followed by an optional" \
-	" unit factor (one of 'cb' [=1] or  'kmgtpe' [base=1000] or 'KMGTPE'" \
-	" [base=1024]). The default unit is 'M' (MiB). If the number is" \
-	" prefixed with a @'='@ then options {--chunk-mode} and {--max-chunks}" \
-	" are ignored and the given value is used without any rounding or" \
-	" changing.\n" \
-	"If the input file size is not known (e.g. reading from pipe), its" \
+	"  The parameter 'sz' is a floating point number followed by an" \
+	" optional unit factor (one of 'cb' [=1] or  'kmgtpe' [base=1000] or" \
+	" 'KMGTPE' [base=1024]). The default unit is 'M' (MiB). If the number" \
+	" is prefixed with a @'='@ then options {--chunk-mode} and" \
+	" {--max-chunks} are ignored and the given value is used without any" \
+	" rounding or changing.\n" \
+	"  If the input file size is not known (e.g. reading from pipe), its" \
 	" size is assumed as @12 GiB@.\n" \
-	"@--chs@ is a shortcut for @--chunk-size@." )
+	"  @--chs@ is a shortcut for @--chunk-size@." )
 
 #:def_opt( "MAX_CHUNKS", "max-chunks|maxchunks|mch", "CP", \
 	"n", \
@@ -3425,26 +3468,39 @@
 	" default value is 8192 for {--chunk-mode ISO} and 32760 (maximal" \
 	" value) for all other modes. If this value is set than the automatic" \
 	" calculation  of {--chunk-size} will be modified too.\n" \
-	"@--mch@ is a shortcut for @--max-chunks@." )
+	"  @--mch@ is a shortcut for @--max-chunks@." )
 
 #:def_opt( "COMPRESSION", "compression|compr", "CP", \
 	"mode", \
 	"Select one compression method, level and chunk size for new WIA" \
 	" files. The syntax for mode is: @[method] [.level] [@@factor]@\n" \
-	"@'method'@ is the name or index of the method. Possible compressions" \
-	" method are @NONE@, @PURGE@, @BZIP2@, @LZMA@ and @LZMA2@. There are 3" \
-	" additional keywords: @FASTEST@ (@=PURGE@), @BEST@ and @DEFAULT@" \
-	" (both @=LZMA@). These additional keywords may change their meanings" \
+	"  @'method'@ is the name or index of the method. Possible" \
+	" compressions method are @NONE@, @PURGE@, @BZIP2@, @LZMA@ and" \
+	" @LZMA2@. There are additional keywords: @DEFAULT@ (=@LZMA.5@@20@)," \
+	" @FAST@ (=@BZIP2.3@@10@), @GOOD@ (=@LZMA.5@@20@) @BEST@" \
+	" (=@LZMA.7@@50@), and @MEM@ (use best mode in respect to memory limit" \
+	" set by {--mem}). These additional keywords may change their meanings" \
 	" if a new compression method is implemented.\n" \
-	"@'.level'@ is a point followed by one digit. It defines the" \
-	" compression level. The special value '0' means: Use default" \
-	" compression level (=9).\n" \
-	"@'@@factor'@ is a factor for the chunk size. With the default factor" \
-	" '1' the chunk size is 2 MiB (size of 1 Wii sector group). If the" \
-	" factor is not set it will be calculated by using a rounded value of" \
-	" the option {--chunk-size}.\n" \
-	"All three parts are optional. @--compr@ is a shortcut for" \
-	" @--compression@." )
+	"  @'.level'@ is a point followed by one digit. It defines the" \
+	" compression level. The special value @.0@ means: Use default" \
+	" compression level (=@.5@).\n" \
+	"  @'@@factor'@ is a factor for the chunk size. The base size is 2" \
+	" MiB. The value@ @@0@ is replaced by the default factor@ @@20@ (40" \
+	" MiB). If the factor is not set but option {--chunk-size} is set, the" \
+	" factor will be calculated by using a rounded value of that option.\n" \
+	"  All three parts are optional. All default values may be changed in" \
+	" the future. @--compr@ is a shortcut for @--compression@." )
+
+#:def_opt( "MEM", "mem", "CP", \
+	"size", \
+	"This option defines a memory usage limit for compressing files. When" \
+	" compressing a file with method @MEM@ (see {--compression}) the the" \
+	" compression method, level and chunk size are calculated with respect" \
+	" to this limit.\n" \
+	"  If this option is not set or the value is 0, then the environment" \
+	" WIT_MEM is tried to read instead. If this fails, the tool tries to" \
+	" find out the total memory by reading @/proc/meminfo@. The limit is" \
+	" set to 80% of the total memory minus 50 MiB." )
 
 #:def_opt( "SIZE", "s|size", "CP", \
 	"size", \
@@ -3514,7 +3570,7 @@
 #:def_opt( "WIA", "wia", "C", \
 	"", \
 	"Set ISO output file type to WIA. WIA files are not editable.\n" \
-	"\n" \
+	"  \n" \
 	"The WIA support is EXPERIMENTAL! The WIA format is in development!" \
 	" Don't use WIA files productive!" )
 
@@ -3564,6 +3620,10 @@
 #:def_opt( "LONG", "l|long", "CM", \
 	"", \
 	"Print in long format. Multiple usage possible." )
+
+#:def_opt( "NUMERIC", "numeric", "C", \
+	"", \
+	"Force numeric output instead of printing names." )
 
 #:def_opt( "INODE", "inode", "C", \
 	"", \
@@ -3628,6 +3688,10 @@
 	"", \
 	"Print the numeric value and the normalized name. If set twice print a" \
 	" table with the numeric value, normalized name and alternative names." )
+
+#:def_cmd_opt( "COMPR", "NUMERIC", \
+	"", \
+	"" )
 
 #:def_cmd_opt( "EXCLUDE", "EXCLUDE", \
 	"", \
@@ -5195,10 +5259,6 @@
 	"", \
 	"" )
 
-#:def_cmd_opt( "EXTRACT", "COMPRESSION", \
-	"", \
-	"" )
-
 #:def_cmd_opt( "EXTRACT", "WDF", \
 	"", \
 	"" )
@@ -5212,10 +5272,6 @@
 	"" )
 
 #:def_cmd_opt( "EXTRACT", "WBFS", \
-	"", \
-	"" )
-
-#:def_cmd_opt( "EXTRACT", "WIA", \
 	"", \
 	"" )
 
@@ -5720,7 +5776,7 @@
 #:def_cmd( "UNPACK", "+UNPACK|+U", \
 	"wdf +UNPACK [option]... files...", \
 	"Unpack WDF and CISO archives.\n" \
-	"This is the default command, when the program name starts with the" \
+	"  This is the default command, when the program name starts with the" \
 	" two letters @'un'@ in any case." )
 
 #:def_cmd( "CAT", "+CAT|+C", \
@@ -5728,15 +5784,15 @@
 	"Concatenate files and print on the standard output. WDF and CISO" \
 	" files are extracted before printing, all other files are copied byte" \
 	" by byte.\n" \
-	"This is the default command, when the program namecontains the three" \
-	" letter @'cat'@ in any case." )
+	"  This is the default command, when the program namecontains the" \
+	" three letter @'cat'@ in any case." )
 
 #:def_cmd( "DUMP", "+DUMP|+D", \
 	"wdf +DUMP [option]... files...", \
 	"Dump the data structure of WDF, WIA and CISO archives and ignore" \
 	" other files.\n" \
-	"This is the default command, when the program contains the sub string" \
-	" @'dump'@ in any case." )
+	"  This is the default command, when the program contains the sub" \
+	" string @'dump'@ in any case." )
 
 #:def_opt( "VERSION", "V|version", "G", \
 	"", \
@@ -5794,21 +5850,21 @@
 	"", \
 	"Force WIA output mode if packing and set the default suffix to" \
 	" @'.wia'@.\n" \
-	" This is the default, when the program name contains the sub string" \
+	"   This is the default, when the program name contains the sub string" \
 	" @'wia'@ in any case." )
 
 #:def_opt( "CISO", "C|ciso", "C", \
 	"", \
 	"Force CISO output mode if packing and set the default suffix to" \
 	" @'.ciso'@.\n" \
-	" This is the default, when the program name contains the sub string" \
+	"   This is the default, when the program name contains the sub string" \
 	" @'ciso'@ in any case." )
 
 #:def_opt( "WBI", "wbi", "C", \
 	"", \
 	"Force CISO output mode if packing and set the default suffix to" \
 	" @'.wbi'@.\n" \
-	" This is the default, when the program name contains the sub string" \
+	"   This is the default, when the program name contains the sub string" \
 	" @'wbi'@ but not @'ciso'@ in any case." )
 
 #:def_opt( "SUFFIX", "s|suffix", "CP", \
@@ -5828,8 +5884,8 @@
 	"", \
 	"Write to standard output (stdout) and keep (don't delete) input" \
 	" files.\n" \
-	"This is the default, when the program is reading from standard input" \
-	" (stdin)." )
+	"  This is the default, when the program is reading from standard" \
+	" input (stdin)." )
 
 #:def_opt( "KEEP", "k|keep", "C", \
 	"", \
@@ -5869,19 +5925,19 @@
 	"Define the minimal chunk size if creating a CISO or WIA file (for WIA" \
 	" details see option --compression}). The default is to calculate the" \
 	" chunk size from the input file size and find a good value by using a" \
-	" minimal value of 1 MiB for {--chunk-mode @ISO@} and @32 KiB@ for" \
-	" modes @32K@ and @POW2@. For the modes @ISO@ and @POW2@ the value is" \
+	" minimal value of 1 MiB for {--chunk-mode ISO} and @32 KiB@ for modes" \
+	" @32K@ and @POW2@. For the modes @ISO@ and @POW2@ the value is" \
 	" rounded up to the next power of 2. This calculation also depends" \
 	" from option {--max-chunks}.\n" \
-	"The parameter 'sz' is a floating point number followed by an optional" \
-	" unit factor (one of 'cb' [=1] or  'kmgtpe' [base=1000] or 'KMGTPE'" \
-	" [base=1024]). The default unit is 'M' (MiB). If the number is" \
-	" prefixed with a @'='@ then options {--chunk-mode} and {--max-chunks}" \
-	" are ignored and the given value is used without any rounding or" \
-	" changing.\n" \
-	"If the input file size is not known (e.g. reading from pipe), its" \
+	"  The parameter 'sz' is a floating point number followed by an" \
+	" optional unit factor (one of 'cb' [=1] or  'kmgtpe' [base=1000] or" \
+	" 'KMGTPE' [base=1024]). The default unit is 'M' (MiB). If the number" \
+	" is prefixed with a @'='@ then options {--chunk-mode} and" \
+	" {--max-chunks} are ignored and the given value is used without any" \
+	" rounding or changing.\n" \
+	"  If the input file size is not known (e.g. reading from pipe), its" \
 	" size is assumed as @12 GiB@.\n" \
-	"@--chs@ is a shortcut for @--chunk-size@." )
+	"  @--chs@ is a shortcut for @--chunk-size@." )
 
 #:def_opt( "MAX_CHUNKS", "max-chunks|maxchunks|mch", "CP", \
 	"n", \
@@ -5889,26 +5945,39 @@
 	" default value is 8192 for {--chunk-mode ISO} and 32760 (maximal" \
 	" value) for all other modes. If this value is set than the automatic" \
 	" calculation  of {--chunk-size} will be modified too.\n" \
-	"@--mch@ is a shortcut for @--max-chunks@." )
+	"  @--mch@ is a shortcut for @--max-chunks@." )
 
 #:def_opt( "COMPRESSION", "compression|compr", "CP", \
 	"mode", \
 	"Select one compression method, level and chunk size for new WIA" \
 	" files. The syntax for mode is: @[method] [.level] [@@factor]@\n" \
-	"@'method'@ is the name or index of the method. Possible compressions" \
-	" method are @NONE@, @PURGE@, @BZIP2@, @LZMA@ and @LZMA2@. There are 3" \
-	" additional keywords: @FASTEST@ (@=PURGE@), @BEST@ and @DEFAULT@" \
-	" (both @=LZMA@). These additional keywords may change their meanings" \
+	"  @'method'@ is the name or index of the method. Possible" \
+	" compressions method are @NONE@, @PURGE@, @BZIP2@, @LZMA@ and" \
+	" @LZMA2@. There are additional keywords: @DEFAULT@ (=@LZMA.5@@20@)," \
+	" @FAST@ (=@BZIP2.3@@10@), @GOOD@ (=@LZMA.5@@20@) @BEST@" \
+	" (=@LZMA.7@@50@), and @MEM@ (use best mode in respect to memory limit" \
+	" set by {--mem}). These additional keywords may change their meanings" \
 	" if a new compression method is implemented.\n" \
-	"@'.level'@ is a point followed by one digit. It defines the" \
-	" compression level. The special value '0' means: Use default" \
-	" compression level (=9).\n" \
-	"@'@@factor'@ is a factor for the chunk size. With the default factor" \
-	" '1' the chunk size is 2 MiB (size of 1 Wii sector group). If the" \
-	" factor is not set it will be calculated by using a rounded value of" \
-	" the option {--chunk-size}.\n" \
-	"All three parts are optional. @--compr@ is a shortcut for" \
-	" @--compression@." )
+	"  @'.level'@ is a point followed by one digit. It defines the" \
+	" compression level. The special value @.0@ means: Use default" \
+	" compression level (=@.5@).\n" \
+	"  @'@@factor'@ is a factor for the chunk size. The base size is 2" \
+	" MiB. The value@ @@0@ is replaced by the default factor@ @@20@ (40" \
+	" MiB). If the factor is not set but option {--chunk-size} is set, the" \
+	" factor will be calculated by using a rounded value of that option.\n" \
+	"  All three parts are optional. All default values may be changed in" \
+	" the future. @--compr@ is a shortcut for @--compression@." )
+
+#:def_opt( "MEM", "mem", "CP", \
+	"size", \
+	"This option defines a memory usage limit for compressing files. When" \
+	" compressing a file with method @MEM@ (see {--compression}) the the" \
+	" compression method, level and chunk size are calculated with respect" \
+	" to this limit.\n" \
+	"  If this option is not set or the value is 0, then the environment" \
+	" WIT_MEM is tried to read instead. If this fails, the tool tries to" \
+	" find out the total memory by reading @/proc/meminfo@. The limit is" \
+	" set to 80% of the total memory minus 50 MiB." )
 
 #:def_opt( "TEST", "t|test", "G", \
 	"", \
@@ -5952,6 +6021,10 @@
 	"" )
 
 #:def_cmd_opt( "PACK", "COMPRESSION", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "PACK", "MEM", \
 	"", \
 	"" )
 
@@ -6023,6 +6096,10 @@
 	"", \
 	"" )
 
+#:def_cmd_opt( "UNPACK", "MEM", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "UNPACK", "STDOUT", \
 	"", \
 	"" )
@@ -6068,6 +6145,10 @@
 	"" )
 
 #:def_cmd_opt( "CAT", "COMPRESSION", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "CAT", "MEM", \
 	"", \
 	"" )
 

@@ -805,7 +805,7 @@ enumError wia_dump ( FILE *f, File_t *df, ccp fname )
     if ( long_count > 0 )
     {
 	fprintf(f,"\n  ISO memory map:\n");
-	wd_dump_memmap(stdout,3,&wia->memmap);
+	wd_print_memmap(stdout,3,&wia->memmap);
 	putchar('\n');
     }
 
@@ -1058,6 +1058,7 @@ enumError CheckOptions ( int argc, char ** argv )
 	case GO_CHUNK_SIZE:	err += ScanChunkSize(optarg); break;
 	case GO_MAX_CHUNKS:	err += ScanMaxChunks(optarg); break;
 	case GO_COMPRESSION:	err += ScanOptCompression(optarg); break;
+	case GO_MEM:		err += ScanOptMem(optarg,true); break;
 
 	case GO_TEST:		testmode++; break;
       }

@@ -71,17 +71,25 @@ int CalcCompressionLevelBZIP2
     int			compr_level	// valid are 1..9 / 0: use default value
 )
 {
-    return compr_level >= 1 && compr_level <= 9 ? compr_level : 9;
+    return compr_level < 1
+		? 5
+		: compr_level < 9
+			? compr_level
+			: 9;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 
 u32 CalcMemoryUsageBZIP2
 (
-    int			compr_level	// valid are 1..9 / 0: use default value
+    int			compr_level,	// valid are 1..9 / 0: use default value
+    bool		is_writing	// false: reading mode, true: writing mode
 )
 {
-    return ( 4 + 8 * CalcCompressionLevelBZIP2(compr_level) ) * 102400;
+    compr_level = CalcCompressionLevelBZIP2(compr_level);
+    return is_writing
+		? ( 4 + 8 * compr_level ) * 102400
+		: ( 1 + 4 * compr_level ) * 102400;
 }
 
 //

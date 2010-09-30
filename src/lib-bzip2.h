@@ -69,7 +69,8 @@ int CalcCompressionLevelBZIP2
 
 u32 CalcMemoryUsageBZIP2
 (
-    int			compr_level	// valid are 1..9 / 0: use default value
+    int			compr_level,	// valid are 1..9 / 0: use default value
+    bool		is_writing	// false: reading mode, true: writing mode
 );
 
 //

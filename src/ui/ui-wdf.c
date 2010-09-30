@@ -67,7 +67,7 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 	0,
 	"Force WIA output mode if packing and set the default suffix to"
 	" '.wia'.\n"
-	" This is the default, when the program name contains the sub string"
+	"   This is the default, when the program name contains the sub string"
 	" 'wia' in any case."
     },
 
@@ -75,7 +75,7 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 	0,
 	"Force CISO output mode if packing and set the default suffix to"
 	" '.ciso'.\n"
-	" This is the default, when the program name contains the sub string"
+	"   This is the default, when the program name contains the sub string"
 	" 'ciso' in any case."
     },
 
@@ -83,7 +83,7 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 	0,
 	"Force CISO output mode if packing and set the default suffix to"
 	" '.wbi'.\n"
-	" This is the default, when the program name contains the sub string"
+	"   This is the default, when the program name contains the sub string"
 	" 'wbi' but not 'ciso' in any case."
     },
 
@@ -107,8 +107,8 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 	0,
 	"Write to standard output (stdout) and keep (don't delete) input"
 	" files.\n"
-	"This is the default, when the program is reading from standard input"
-	" (stdin)."
+	"  This is the default, when the program is reading from standard"
+	" input (stdin)."
     },
 
     {	OPT_KEEP, 'k', "keep",
@@ -159,15 +159,15 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 	" 32K and POW2. For the modes ISO and POW2 the value is rounded up to"
 	" the next power of 2. This calculation also depends from option"
 	" --max-chunks.\n"
-	"The parameter 'sz' is a floating point number followed by an optional"
-	" unit factor (one of 'cb' [=1] or  'kmgtpe' [base=1000] or 'KMGTPE'"
-	" [base=1024]). The default unit is 'M' (MiB). If the number is"
-	" prefixed with a '=' then options --chunk-mode and --max-chunks are"
-	" ignored and the given value is used without any rounding or"
+	"  The parameter 'sz' is a floating point number followed by an"
+	" optional unit factor (one of 'cb' [=1] or  'kmgtpe' [base=1000] or"
+	" 'KMGTPE' [base=1024]). The default unit is 'M' (MiB). If the number"
+	" is prefixed with a '=' then options --chunk-mode and --max-chunks"
+	" are ignored and the given value is used without any rounding or"
 	" changing.\n"
-	"If the input file size is not known (e.g. reading from pipe), its"
+	"  If the input file size is not known (e.g. reading from pipe), its"
 	" size is assumed as 12 GiB.\n"
-	"--chs is a shortcut for --chunk-size."
+	"  --chs is a shortcut for --chunk-size."
     },
 
     {	OPT_MAX_CHUNKS, 0, "max-chunks",
@@ -176,30 +176,43 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 	" default value is 8192 for '--chunk-mode ISO' and 32760 (maximal"
 	" value) for all other modes. If this value is set than the automatic"
 	" calculation  of --chunk-size will be modified too.\n"
-	"--mch is a shortcut for --max-chunks."
+	"  --mch is a shortcut for --max-chunks."
     },
 
     {	OPT_COMPRESSION, 0, "compression",
 	"mode",
 	"Select one compression method, level and chunk size for new WIA"
 	" files. The syntax for mode is: [method] [.level] [@factor]\n"
-	"'method' is the name or index of the method. Possible compressions"
-	" method are NONE, PURGE, BZIP2, LZMA and LZMA2. There are 3"
-	" additional keywords: FASTEST (=PURGE), BEST and DEFAULT (both"
-	" =LZMA). These additional keywords may change their meanings if a new"
-	" compression method is implemented.\n"
-	"'.level' is a point followed by one digit. It defines the compression"
-	" level. The special value '0' means: Use default compression level"
-	" (=9).\n"
-	"'@factor' is a factor for the chunk size. With the default factor '1'"
-	" the chunk size is 2 MiB (size of 1 Wii sector group). If the factor"
-	" is not set it will be calculated by using a rounded value of the"
-	" option --chunk-size.\n"
-	"All three parts are optional. --compr is a shortcut for"
-	" --compression."
+	"  'method' is the name or index of the method. Possible compressions"
+	" method are NONE, PURGE, BZIP2, LZMA and LZMA2. There are additional"
+	" keywords: DEFAULT (=LZMA.5@20), FAST (=BZIP2.3@10), GOOD"
+	" (=LZMA.5@20) BEST (=LZMA.7@50), and MEM (use best mode in respect to"
+	" memory limit set by --mem). These additional keywords may change"
+	" their meanings if a new compression method is implemented.\n"
+	"  '.level' is a point followed by one digit. It defines the"
+	" compression level. The special value .0 means: Use default"
+	" compression level (=.5).\n"
+	"  '@factor' is a factor for the chunk size. The base size is 2 MiB."
+	" The value @0 is replaced by the default factor @20 (40 MiB). If the"
+	" factor is not set but option --chunk-size is set, the factor will be"
+	" calculated by using a rounded value of that option.\n"
+	"  All three parts are optional. All default values may be changed in"
+	" the future. --compr is a shortcut for --compression."
     },
 
-    {0,0,0,0,0}, // OPT__N_SPECIFIC == 21
+    {	OPT_MEM, 0, "mem",
+	"size",
+	"This option defines a memory usage limit for compressing files. When"
+	" compressing a file with method MEM (see --compression) the the"
+	" compression method, level and chunk size are calculated with respect"
+	" to this limit.\n"
+	"  If this option is not set or the value is 0, then the environment"
+	" WIT_MEM is tried to read instead. If this fails, the tool tries to"
+	" find out the total memory by reading /proc/meminfo. The limit is set"
+	" to 80% of the total memory minus 50 MiB."
+    },
+
+    {0,0,0,0,0}, // OPT__N_SPECIFIC == 22
 
     //----- global options -----
 
@@ -248,7 +261,7 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 	">>> USE THIS OPTION IF UNSURE! <<<"
     },
 
-    {0,0,0,0,0} // OPT__N_TOTAL == 29
+    {0,0,0,0,0} // OPT__N_TOTAL == 30
 
 };
 
@@ -333,6 +346,7 @@ const struct option OptionLong[] =
 	 { "mch",		1, 0, GO_MAX_CHUNKS },
 	{ "compression",	1, 0, GO_COMPRESSION },
 	 { "compr",		1, 0, GO_COMPRESSION },
+	{ "mem",		1, 0, GO_MEM },
 	{ "test",		0, 0, 't' },
 
 	{0,0,0,0}
@@ -392,7 +406,8 @@ const u8 OptionIndex[OPT_INDEX_SIZE] =
 	/*86*/	OPT_CHUNK_SIZE,
 	/*87*/	OPT_MAX_CHUNKS,
 	/*88*/	OPT_COMPRESSION,
-	/*89*/	 0,0,0,0, 0,0,0,
+	/*89*/	OPT_MEM,
+	/*8a*/	 0,0,0,0, 0,0,
 	/*90*/	 0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0,
 	/*a0*/	 0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0,
 	/*b0*/	 0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0,
@@ -403,39 +418,39 @@ const u8 OptionIndex[OPT_INDEX_SIZE] =
 ///////////////                opt_allowed_cmd_*                ///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-static u8 option_allowed_cmd_VERSION[21] = // cmd #1
+static u8 option_allowed_cmd_VERSION[22] = // cmd #1
 {
-    0,0,1,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,  0
+    0,0,1,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,  0,0
 };
 
-static u8 option_allowed_cmd_HELP[21] = // cmd #2
+static u8 option_allowed_cmd_HELP[22] = // cmd #2
 {
-    1,1,1,1,1, 1,1,1,1,1,  1,1,1,1,1, 1,1,1,1,1,  1
+    1,1,1,1,1, 1,1,1,1,1,  1,1,1,1,1, 1,1,1,1,1,  1,1
 };
 
-static u8 option_allowed_cmd_PACK[21] = // cmd #3
+static u8 option_allowed_cmd_PACK[22] = // cmd #3
 {
-    0,0,0,0,1, 1,1,1,1,1,  1,1,1,1,1, 1,1,1,1,1,  1
+    0,0,0,0,1, 1,1,1,1,1,  1,1,1,1,1, 1,1,1,1,1,  1,1
 };
 
-static u8 option_allowed_cmd_UNPACK[21] = // cmd #4
+static u8 option_allowed_cmd_UNPACK[22] = // cmd #4
 {
-    0,0,0,0,0, 0,0,0,0,1,  1,1,1,1,1, 1,1,1,1,1,  1
+    0,0,0,0,0, 0,0,0,0,1,  1,1,1,1,1, 1,1,1,1,1,  1,1
 };
 
-static u8 option_allowed_cmd_CAT[21] = // cmd #5
+static u8 option_allowed_cmd_CAT[22] = // cmd #5
 {
-    0,0,0,0,0, 0,0,0,0,1,  1,0,0,1,0, 1,1,1,1,1,  1
+    0,0,0,0,0, 0,0,0,0,1,  1,0,0,1,0, 1,1,1,1,1,  1,1
 };
 
-static u8 option_allowed_cmd_CMP[21] = // cmd #6
+static u8 option_allowed_cmd_CMP[22] = // cmd #6
 {
-    0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,  0
+    0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,  0,0
 };
 
-static u8 option_allowed_cmd_DUMP[21] = // cmd #7
+static u8 option_allowed_cmd_DUMP[22] = // cmd #7
 {
-    0,1,1,1,0, 0,0,0,0,1,  1,0,0,1,0, 0,0,0,0,0,  0
+    0,1,1,1,0, 0,0,0,0,1,  1,0,0,1,0, 0,0,0,0,0,  0,0
 };
 
 
@@ -488,6 +503,7 @@ static const InfoOption_t * option_tab_cmd_PACK[] =
 	OptionInfo + OPT_CHUNK_SIZE,
 	OptionInfo + OPT_MAX_CHUNKS,
 	OptionInfo + OPT_COMPRESSION,
+	OptionInfo + OPT_MEM,
 	OptionInfo + OPT_STDOUT,
 	OptionInfo + OPT_KEEP,
 	OptionInfo + OPT_PRESERVE,
@@ -514,6 +530,7 @@ static const InfoOption_t * option_tab_cmd_UNPACK[] =
 	OptionInfo + OPT_CHUNK_SIZE,
 	OptionInfo + OPT_MAX_CHUNKS,
 	OptionInfo + OPT_COMPRESSION,
+	OptionInfo + OPT_MEM,
 	OptionInfo + OPT_STDOUT,
 	OptionInfo + OPT_KEEP,
 	OptionInfo + OPT_PRESERVE,
@@ -532,6 +549,7 @@ static const InfoOption_t * option_tab_cmd_CAT[] =
 	OptionInfo + OPT_CHUNK_SIZE,
 	OptionInfo + OPT_MAX_CHUNKS,
 	OptionInfo + OPT_COMPRESSION,
+	OptionInfo + OPT_MEM,
 
 	0
 };
@@ -610,7 +628,7 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	"+P",
 	"wdf +PACK [option]... files...",
 	"Pack sources into WDF or CISO archives. This is the general default.",
-	17,
+	18,
 	option_tab_cmd_PACK,
 	option_allowed_cmd_PACK
     },
@@ -622,9 +640,9 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	"+U",
 	"wdf +UNPACK [option]... files...",
 	"Unpack WDF and CISO archives.\n"
-	"This is the default command, when the program name starts with the"
+	"  This is the default command, when the program name starts with the"
 	" two letters 'un' in any case.",
-	12,
+	13,
 	option_tab_cmd_UNPACK,
 	option_allowed_cmd_UNPACK
     },
@@ -638,9 +656,9 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	"Concatenate files and print on the standard output. WDF and CISO"
 	" files are extracted before printing, all other files are copied byte"
 	" by byte.\n"
-	"This is the default command, when the program namecontains the three"
-	" letter 'cat' in any case.",
-	9,
+	"  This is the default command, when the program namecontains the"
+	" three letter 'cat' in any case.",
+	10,
 	option_tab_cmd_CAT,
 	option_allowed_cmd_CAT
     },
@@ -652,11 +670,11 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	"+CMP",
 	"wdf +DIFF [option]... files...",
 	"Compare files and unpack WDF and CISO while comparing.\n"
-	"The standard is to compare two source files. If --dest or --DEST is"
+	"  The standard is to compare two source files. If --dest or --DEST is"
 	" set, than all source files are compared against files in the"
 	" destination path with equal names. If the second source file is"
 	" mising then standard input (stdin) is used instead.\n"
-	"This is the default command, when the program namecontains the"
+	"  This is the default command, when the program namecontains the"
 	" letters 'diff' or 'cmp' in any case.",
 	0,
 	option_tab_cmd_CMP,
@@ -671,8 +689,8 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	"wdf +DUMP [option]... files...",
 	"Dump the data structure of WDF, WIA and CISO archives and ignore"
 	" other files.\n"
-	"This is the default command, when the program contains the sub string"
-	" 'dump' in any case.",
+	"  This is the default command, when the program contains the sub"
+	" string 'dump' in any case.",
 	6,
 	option_tab_cmd_DUMP,
 	option_allowed_cmd_DUMP

@@ -1220,7 +1220,7 @@ enumError RecoverWBFS ( WBFS_t * wbfs, ccp fname, bool testmode )
 	{
 	    if (!w->head->disc_table[slot])
 	    {
-		w->head->disc_table[slot] = 5;
+		w->head->disc_table[slot] = WBFS_SLOT_VALID|WBFS_SLOT__USER;
 		wd_header_t * head
 		    = (wd_header_t*)( first_sector + w->hd_sec_sz + slot * w->disc_info_sz );
 		if ( ntohl(head->wii_magic) == WII_MAGIC_DELETED )
@@ -1230,7 +1230,7 @@ enumError RecoverWBFS ( WBFS_t * wbfs, ccp fname, bool testmode )
 		}
 	    }
 	    else
-		w->head->disc_table[slot] &= ~4;
+		w->head->disc_table[slot] &= ~WBFS_SLOT__USER;
 	}
 
 	if (inodes_dirty)
@@ -1251,17 +1251,16 @@ enumError RecoverWBFS ( WBFS_t * wbfs, ccp fname, bool testmode )
 	    ASSERT(ck.disc);
 	    bool dirty = false;
 	    int n_recoverd = 0;
-	    //u8 * ref = ((wbfs_head_t*)first_sector)->disc_table;
 
 	    for ( slot = 0; slot < w->max_disc; slot++ )
-		if ( w->head->disc_table[slot] & 4 )
+		if ( w->head->disc_table[slot] & WBFS_SLOT__USER )
 		{
 		    CheckDisc_t * cd = ck.disc + slot;
 		    if (   cd->no_blocks
 			|| cd->bl_overlap
 			|| cd->bl_invalid )
 		    {
-			w->head->disc_table[slot] = 0;
+			w->head->disc_table[slot] = WBFS_SLOT_FREE;
 			dirty = true;
 		    }
 		    else
@@ -1278,9 +1277,9 @@ enumError RecoverWBFS ( WBFS_t * wbfs, ccp fname, bool testmode )
 			n_recoverd, n_recoverd == 1 ? "" : "s" );
 
 		for ( slot = 0; slot < w->max_disc; slot++ )
-		    if ( w->head->disc_table[slot] & 4 )
+		    if ( w->head->disc_table[slot] & WBFS_SLOT__USER )
 		    {
-			w->head->disc_table[slot] &= ~4;
+			w->head->disc_table[slot] &= ~WBFS_SLOT__USER;
 			wd_header_t * inode
 			    = (wd_header_t*)( first_sector + w->hd_sec_sz
 						+ slot * w->disc_info_sz );
@@ -1532,7 +1531,7 @@ enumError DumpWBFS
 	    {
 		if (!(i%10))
 		    *dest++ = ' ';
-		*dest++ = *dt++ ? '#' : '.';
+		*dest++ = wbfs_slot_mode_info[ *dt++ & WBFS_SLOT__MASK ];
 	    }
 	    *dest = 0;
 	    fprintf( f, "%*s    %3d..%3d:%s\n", indent,"", idx, idx+n-1, buf );
@@ -1654,8 +1653,17 @@ enumError DumpWBFS
 	    fprintf(f,"\n%*sDump of %sWii disc at slot #%d of %d:\n",
 			indent,"", d->is_used ? "" : "*DELETED* ", slot, w->max_disc );
 	    DumpWDiscInfo(&dinfo,&ihead,f,indent+2);
-	    if ( w->head->disc_table[slot] & 2 )
+	    if ( w->head->disc_table[slot] & WBFS_SLOT_INVALID )
 		fprintf(f,"%*s>>> DISC MARKED AS INVALID! <<<\n",indent,"");
+ #if NEW_WBFS_INTERFACE
+	    else
+	    {
+		if ( w->head->disc_table[slot] & WBFS_SLOT_F_SHARED )
+		    fprintf(f,"%*s>>> DISC IS/WAS SHARING BLOCKS WITH OTHER DISCS! <<<\n",indent,"");
+		if ( w->head->disc_table[slot] & WBFS_SLOT_F_FREED )
+		    fprintf(f,"%*s>>> DISC IS/WAS USING FREE BLOCKS! <<<\n",indent,"");
+	    }
+ #endif
 
 	    if ( dump_level > 1 )
 	    {
@@ -2579,9 +2587,9 @@ enumError CheckWBFS
 	{
 	    invalid_disc_count += invalid_game;
 	    ASSERT(w->head);
-	    if ( !(w->head->disc_table[slot] & 2) )
+	    if ( !(w->head->disc_table[slot] & WBFS_SLOT_INVALID) )
 	    {
-		w->head->disc_table[slot] |= 2;
+		w->head->disc_table[slot] |= WBFS_SLOT_INVALID;
 		sync = true;
 	    }
 	}
@@ -2798,6 +2806,7 @@ enumError RepairWBFS ( CheckWBFS_t * ck, int testmode,
 	for ( slot = 0; slot < w->max_disc; slot++ )
 	{
 	    CheckDisc_t * disc = ck->disc + slot;
+	    // [dt] norm with WBFS_SLOT__MASK
 	    if ( w->head->disc_table[slot]
 		&& (   rm & REPAIR_RM_INVALID && disc->bl_invalid
 		    || rm & REPAIR_RM_OVERLAP && disc->bl_overlap
@@ -2815,7 +2824,7 @@ enumError RepairWBFS ( CheckWBFS_t * ck, int testmode,
 
 		if (!testmode)
 		{
-		    w->head->disc_table[slot] = 0;
+		    w->head->disc_table[slot] = WBFS_SLOT_FREE;
 		    sync++;
 		}
 		repair_count++;
@@ -2951,7 +2960,7 @@ bool CalcFBT ( CheckWBFS_t * ck )
 
 //
 ///////////////////////////////////////////////////////////////////////////////
-///////////////                     WiiDiscInfo                 ///////////////
+///////////////			   WDiscInfo_t			///////////////
 ///////////////////////////////////////////////////////////////////////////////
 // is WiiDiscInfo obsolete? [wiidisc] [obsolete]
 
@@ -3093,10 +3102,12 @@ void CalcWDiscInfo ( WDiscInfo_t * dinfo, SuperFile_t * sf )
 	wd_disc_t * disc = OpenDiscSF(sf,false,false);
 	if (disc)
 	{
-	    dinfo->n_part = disc->n_part;
-	    dinfo->magic2 = disc->magic2;
 	    memcpy(&dinfo->dhead,&disc->dhead,sizeof(dinfo->dhead));
-	    dinfo->used_blocks = CountUsedIsoBlocksSF(sf,&part_selector);
+	    //dinfo->disc_type	= disc->disc_type;
+	    //dinfo->disc_attrib	= disc->disc_attrib;
+	    dinfo->magic2	= disc->magic2;
+	    dinfo->n_part	= disc->n_part;
+	    dinfo->used_blocks	= CountUsedIsoBlocksSF(sf,&part_selector);
 	}
 	else
 	    ReadSF(sf,0,&dinfo->dhead,sizeof(dinfo->dhead));
@@ -3108,6 +3119,7 @@ void CalcWDiscInfo ( WDiscInfo_t * dinfo, SuperFile_t * sf )
     dinfo->disc_index	= 0;
     dinfo->size		= 0;
     dinfo->title	= GetTitle(dinfo->id6,0);
+    dinfo->disc_type	= get_header_disc_type(&dinfo->dhead,&dinfo->disc_attrib);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -3681,6 +3693,8 @@ enumError CloseWDisc ( WBFS_t * w )
 
     if (w->disc)
     {
+	if ( !w->sf || !IsOpenSF(w->sf) )
+	    w->disc->is_dirty = false;
 	wbfs_close_disc(w->disc);
 	w->disc = 0;
     }

@@ -1,38 +1,45 @@
 #!/bin/bash
-# (c) Wiimm, 2010-09-21
+# (c) Wiimm, 2010-09-24
 
 myname="${0##*/}"
 base=image-size
 log=$base.log
 err=$base.err
+db=$base.db
 
 WIT=wit
-[[ -x ./wit ]] && WIT=./wit
+[[ -f ./wit && -x ./wit ]] && WIT=./wit
 
 WDF=wdf
-[[ -x ./wdf ]] && WDF=./wdf
+[[ -f ./wdf && -x ./wdf ]] && WDF=./wdf
 
 export LC_ALL=C
-METHODS="$(echo $($WIT compr))"
+C1_LIST=($($WIT compr))
+C2_LIST=("")
+C3_LIST=("")
 PSEL=
 IO=
-LEVEL=.0
+
+#
+#------------------------------------------------------------------------------
+# built in help
 
 if [[ $# == 0 ]]
 then
     cat <<- ---EOT---
 
 	This script expect as parameters names of ISO files. ISO files are PLAIN,
-	WDF, CISO, WBFS or FST. Each source file is subject of this test suite.
+	WDF, WIA, CISO, WBFS or FST. Each source file is subject of this test suite.
 
 	Each source is converted to several formats to find out the size of the
-	output. Output formats are: WDF, PLAIN ISO, CISO, WBFS, WIA.
-	Some output images are additonally compressed with bzip2, rar and 7z.
+	output. Output formats are: WDF, PLAIN ISO, CISO, WBFS, WIA. WIA is checked
+	with different compeession modes controlled by --c1 --c2 and --c3.
+	Some output images may additonally compressed with bzip2, rar and 7z.
 
 	Usage:  $myname [option]... iso_file...
 
 	Options:
-	  --fast       : Enter fast mode => do only WDF and WIA
+	  --wia        : Enter fast mode => do only WDF and WIA test
 	  
 	  --bzip2      : enable bzip2 tests (default if tool 'bzip2' found)
 	  --no-bzip2   : disable bzip2 tests
@@ -43,14 +50,22 @@ then
 	  --all        : shortcut for --bzip2 --rar --7z
 
 	  --data       : DATA partition only, scrub all others
-	  --compr list : Define a list of WIA compressing methods.
-	                 Default: $METHODS
-	  --level list : Test compression levels and chunk size factors.
-	                 Syntax: [.level][@factors] ...
+
+	  --c1 list    : This three options define three lists of compression modes.
+	  --c2 list      modes. Each element of one list is combined with each element
+	  --c3 list      each element of the other lists ( c1 x c2 x c3 ). All
+	                 resulting modes are normalized, sorted and repeated modes are
+	                 removed. The default for --c1 are all compression methods.
+	                 Options --c2 and --c3 are initial empty.
 
 	  --decrypt    : Enable WDF/DECRYPT tests.
 	  --diff       : Enable "wit DIFF" to verify WIA archives.
+	  --read       : Enable read tests (conver WIA to to WDF file).
 	  --dump       : 'wdf +dump a.wia >$dumpdir'
+
+	  --db         : Enable DB mode:
+	                 1.) Scan DB to find if stat is already known.
+	                 2.) Append new WIA statistics to DB file '$db'.
 
 	---EOT---
     exit 1
@@ -76,13 +91,16 @@ let HAVE_BZIP2=!$(which bzip2 >/dev/null 2>&1; echo $?)
 let HAVE_RAR=!$(which rar >/dev/null 2>&1; echo $?)
 let HAVE_7Z=!$(which 7z >/dev/null 2>&1; echo $?)
 
-OPT_FAST=0
+OPT_WIA=0
 OPT_BZIP2=0
 OPT_RAR=0
 OPT_7ZIP=0
 OPT_DECRYPT=0
+OPT_DATA=0
 OPT_DIFF=0
+OPT_READ=0
 OPT_DUMP=0
+OPT_DB=0
 
 #
 #------------------------------------------------------------------------------
@@ -134,22 +152,31 @@ function print_stat()
 #------------------------------------------------------------------------------
 # calc real methods
 
-function calc_real_methods()
+function calc_compr_modes()
 {
-    REALMETHODS=
-    for method in $METHODS
-    do	
-	for level in $LEVEL
-	do
-	    local mode="$($WIT compr $method$level)"
-	    if [[ $mode == - ]]
-	    then
-		echo "Illegal compression mode: $method$level" >&2
-		exit 1
-	    fi
-	    REALMETHODS="$REALMETHODS $mode"
-	done
-    done
+    #echo "--c1, N=${#C1_LIST[@]}: ${C1_LIST[*]}" >&2
+    #echo "--c2, N=${#C2_LIST[@]}: ${C2_LIST[*]}" >&2
+    #echo "--c3, N=${#C3_LIST[@]}: ${C3_LIST[*]}" >&2
+   
+    CMODES=$(
+	for c1 in "${C1_LIST[@]}"
+	do	
+	    for c2 in "${C2_LIST[@]}"
+	    do	
+		for c3 in "${C3_LIST[@]}"
+		do	
+		    local mode="$($WIT compr --numeric --verbose "$c1$c2$c3")"
+		    if [[ $mode == - ]]
+		    then
+			echo "Illegal compression mode: $c1$c2$c3" >&2
+			exit 1
+		    fi
+		    echo "$mode"
+		done
+	    done
+	done | sort -n | uniq
+    )
+    CMODES=$(echo $($WIT compr $CMODES))
 }
 
 #
@@ -184,10 +211,39 @@ trap f_abort INT TERM HUP
 tempdir="$(mktemp -d ./.$base.tmp.XXXXXX)" || exit 1
 
 dumpdir=./dumpdir.tmp
-mkdir -p $dumpdir
 
 export WIT_OPT=
 export WWT_OPT=
+
+#
+#------------------------------------------------------------------------------
+# check_db
+
+function check_db()
+{
+    # $1 = id6
+    # $2 = cmode
+
+    if ((OPT_DB))
+    then
+	local id6 cmode logmsg
+	id6="$1"
+	cmode="$2"
+
+	DB_ID="$id6-$cmode"
+	((OPT_DATA)) && DB_ID="$DB_ID-d"
+	logmsg="$( grep "^$DB_ID:" $db | cut -c$((${#DB_ID}+2))- )"
+	if [[ $logmsg != "" ]]
+	then
+	    print_stat " > %s" "$cmode"
+	    printf "%s [DB]\n" "$logmsg"
+	    printf "%s\n" "$logmsg" >>"$tempdir/time.write.log"
+	    ((basesize)) || let basesize=$( echo "$logmsg" | awk '{print $1}' )
+	    return 0
+	fi
+    fi
+    return 1
+}
 
 #
 #------------------------------------------------------------------------------
@@ -195,17 +251,19 @@ export WWT_OPT=
 
 function test_function()
 {
-    # $1 = base time
-    # $2 = dest file
-    # $3 = info
-    # $4... = command
+    # $1 = class for log file
+    # $2 = base time
+    # $3 = dest file
+    # $4 = info
+    # $5... = command
 
-    local basetime dest start stop size perc
+    local class basetime dest start stop size perc
 
-    basetime="$1"
-    dest="$2"
-    info="$3"
-    shift 3
+    class="$1"
+    basetime="$2"
+    dest="$3"
+    info="$4"
+    shift 4
     print_stat " > %s" "$info"
     #-----
     sync
@@ -226,8 +284,12 @@ function test_function()
 	perc="$(printf "%3u.%02u%%" $((perc/100)) $((perc%100)))"
     fi
     size="$(printf "%10d %s" $size "$perc" )"
-    print_timer $start $stop "$size"
-    printf "  %s %s  %s\n" "$size" "$last_ftime" "$info" >>"$tempdir/time.log"
+    #print_timer $start $stop "$size"
+    print_timer $start $stop >/dev/null
+    logmsg=$(printf "  %s %s  %s" "$size" "$last_ftime" "$info")
+    printf "%s\n" "$logmsg"
+    printf "%s\n" "$logmsg" >>"$tempdir/time.$class.log"
+    [[ $DB_ID = "" ]] || printf "%s:%s\n" "$DB_ID" "$logmsg" >>"$db"
     return 0
 }
 
@@ -252,101 +314,120 @@ function test_suite()
 
     name="$($WIT ID6 --long --source "$1")"
     name="$( echo "$name" | sed 's/  /, /')"
+    
+    DB_ID=
 
 
     #----- START, read source once
 
-    basesize=0
-    test_function 0 b.wdf "WDF/start" \
-        $WIT_CP "$1" --wdf "$tempdir/b.wdf" || return 1
-    rm -f "$tempdir/time.log"
+    if ((!OPT_DB))
+    then
+	basesize=0
+	test_function write 0 b.wdf "WDF/start" \
+	    $WIT_CP "$1" --wdf "$tempdir/b.wdf" || return 1
+	rm -f "$tempdir"/time.*.log
+    fi
 
 
     #----- wdf
 
     basesize=0
 
-    test_function 0 a.wdf "WDF" \
-	$WIT_CP "$1" --wdf "$tempdir/a.wdf" || return 1
-    local wdf_time=$last_time
-
-    if ((OPT_BZIP2))
+    if ! check_db "$id6" "WDF"
     then
-	test_function $wdf_time a.wdf.bz2 "WDF + BZIP2" \
-	    bzip2 --keep "$tempdir/a.wdf" || return 1
-    fi
-
-    if ((OPT_RAR))
-    then
-	test_function $wdf_time a.wdf.rar "WDF + RAR" \
-	    rar a -inul "$tempdir/a.wdf.rar" "$tempdir/a.wdf" || return 1
-    fi
-
-    if ((OPT_7ZIP))
-    then
-	test_function $wdf_time a.wdf.7z "WDF + 7Z" \
-	    7z a -bd "$tempdir/a.wdf.7z" "$tempdir/a.wdf" || return 1
-    fi
-
-    rm -f "$tempdir/a.wdf"*
-
-
-    #----- wdf/decrypt
- 
-    if ((OPT_DECRYPT))
-    then   
-	test_function 0 a.wdf "WDF/DECRYPT" \
-	    $WIT_CP "$1" --wdf --enc decrypt "$tempdir/a.wdf" || return 1
+	test_function write 0 a.wdf "WDF" \
+	    $WIT_CP "$1" --wdf "$tempdir/a.wdf" || return 1
 	local wdf_time=$last_time
 
 	if ((OPT_BZIP2))
 	then
-	    test_function $wdf_time a.wdf.bz2 "WDF/DECRYPT + BZIP2" \
+	    test_function write $wdf_time a.wdf.bz2 "WDF + BZIP2" \
 		bzip2 --keep "$tempdir/a.wdf" || return 1
 	fi
 
 	if ((OPT_RAR))
 	then
-	    test_function $wdf_time a.wdf.rar "WDF/DECRYPT + RAR" \
+	    test_function write $wdf_time a.wdf.rar "WDF + RAR" \
 		rar a -inul "$tempdir/a.wdf.rar" "$tempdir/a.wdf" || return 1
 	fi
 
 	if ((OPT_7ZIP))
 	then
-	    test_function $wdf_time a.wdf.7z "WDF/DECRYPT + 7Z" \
+	    test_function write $wdf_time a.wdf.7z "WDF + 7Z" \
 		7z a -bd "$tempdir/a.wdf.7z" "$tempdir/a.wdf" || return 1
 	fi
 
 	rm -f "$tempdir/a.wdf"*
     fi
 
-    #----- wia
 
-    for method in $REALMETHODS
-    do
-	test_function 0 a.wia "WIA/$method" \
-	    $WIT_CP "$1" --wia --compr $method "$tempdir/a.wia" || return 1
+    #----- wdf/decrypt
+ 
+    if ((OPT_DECRYPT)) && ! check_db "$id6" "WDF/DECRYPT"
+    then   
+	test_function write 0 a.wdf "WDF/DECRYPT" \
+	    $WIT_CP "$1" --wdf --enc decrypt "$tempdir/a.wdf" || return 1
 	local wdf_time=$last_time
 
-	((OPT_DUMP)) && $WDF +dump "$tempdir/a.wia" >"$dumpdir/$id6-$method.dump"
+	if ((OPT_BZIP2))
+	then
+	    test_function write $wdf_time a.wdf.bz2 "WDF/DECRYPT + BZIP2" \
+		bzip2 --keep "$tempdir/a.wdf" || return 1
+	fi
 
-	if [[ ${method:0:4}  == NONE ]]
+	if ((OPT_RAR))
+	then
+	    test_function write $wdf_time a.wdf.rar "WDF/DECRYPT + RAR" \
+		rar a -inul "$tempdir/a.wdf.rar" "$tempdir/a.wdf" || return 1
+	fi
+
+	if ((OPT_7ZIP))
+	then
+	    test_function write $wdf_time a.wdf.7z "WDF/DECRYPT + 7Z" \
+		7z a -bd "$tempdir/a.wdf.7z" "$tempdir/a.wdf" || return 1
+	fi
+
+	rm -f "$tempdir/a.wdf"*
+    fi
+
+
+    #----- wia
+
+    for cmode in $CMODES
+    do
+	check_db "$id6" "WIA/$cmode" && continue
+
+	test_function write 0 a.wia "WIA/$cmode" \
+	    $WIT_CP "$1" --wia --compr $cmode "$tempdir/a.wia" || return 1
+	local wdf_time=$last_time
+	DB_ID=
+
+	if ((OPT_READ))
+	then
+	    test_function read 0 a.wia "READ/$cmode" \
+		$WIT_CP "$tempdir/a.wia" --wdf "$tempdir/read.wdf" || return 1
+	    rm -f "$tempdir/read.wdf"
+	fi
+
+	((OPT_DUMP)) && $WDF +dump "$tempdir/a.wia" >"$dumpdir/$id6-$cmode.dump"
+
+	if [[ ${cmode:0:4}  == NONE ]]
 	then
 	    if ((OPT_BZIP2))
 	    then
-		test_function $wdf_time a.wia.bz2 "WIA/$method + BZIP2" \
+		test_function write $wdf_time a.wia.bz2 "WIA/$cmode + BZIP2" \
 		    bzip2 --keep "$tempdir/a.wia" || return 1
 	    fi
 
 	    if ((OPT_RAR))
 	    then
-		test_function $wdf_time a.wia.rar "WIA/$method + RAR" \
+		test_function write $wdf_time a.wia.rar "WIA/$cmode + RAR" \
 		    rar a -inul "$tempdir/a.wia.rar" "$tempdir/a.wia" || return 1
 	    fi
 
 	    if ((OPT_7ZIP))
 	    then
-		test_function $wdf_time a.wia.7z "WIA/$method + 7Z" \
+		test_function write $wdf_time a.wia.7z "WIA/$cmode + 7Z" \
 		    7z a -bd "$tempdir/a.wia.7z" "$tempdir/a.wia" || return 1
 	    fi
 	fi
@@ -355,7 +436,7 @@ function test_suite()
 	then
 	    echo " - wit DIFF orig-source a.wia"
 	    wit diff $PSEL "$1" "$tempdir/a.wia" \
-		|| echo "!!! $id6: wit DIFF orig-source a.wia/$method FAILED!" | tee -a "$log"
+		|| echo "!!! $id6: wit DIFF orig-source a.wia/$cmode FAILED!" | tee -a "$log"
 	fi
 
 	rm -f "$tempdir/a.wia"*
@@ -364,27 +445,27 @@ function test_suite()
 
     #----- plain iso
 
-    if ((!OPT_FAST))
+    if ((!OPT_WIA))
     then
-	test_function 0 a.iso "PLAIN ISO" \
+	test_function write 0 a.iso "PLAIN ISO" \
 	    $WIT_CP "$1" --iso "$tempdir/a.iso" || return 1
 	local iso_time=$last_time
 
 	if ((OPT_BZIP2))
 	then
-	    test_function iso_time a.iso.bz2 "PLAIN ISO + BZIP2" \
+	    test_function write iso_time a.iso.bz2 "PLAIN ISO + BZIP2" \
 		bzip2 --keep "$tempdir/a.iso" || return 1
 	fi
 
 	if ((OPT_RAR))
 	then
-	    test_function iso_time a.iso.rar "PLAIN ISO + RAR" \
+	    test_function write iso_time a.iso.rar "PLAIN ISO + RAR" \
 		rar a -inul "$tempdir/a.iso.rar" "$tempdir/a.iso" || return 1
 	fi
 
 	if ((OPT_7ZIP))
 	then
-	    test_function iso_time a.iso.7z "PLAIN ISO + 7Z" \
+	    test_function write iso_time a.iso.7z "PLAIN ISO + 7Z" \
 		7z a -bd "$tempdir/a.iso.7z" "$tempdir/a.iso" || return 1
 	fi
 
@@ -394,9 +475,9 @@ function test_suite()
 
     #----- ciso
 
-    if ((!OPT_FAST))
+    if ((!OPT_WIA))
     then
-	test_function 0 a.ciso "CISO" \
+	test_function write 0 a.ciso "CISO" \
 	    $WIT_CP "$1" --ciso "$tempdir/a.ciso" || return 1
 
 	rm -f "$tempdir/a.ciso"*
@@ -405,9 +486,9 @@ function test_suite()
 
     #----- wbfs
 
-    if ((!OPT_FAST))
+    if ((!OPT_WIA))
     then
-	test_function 0 a.wbfs "WBFS" \
+	test_function write 0 a.wbfs "WBFS" \
 	    $WIT_CP "$1" --wbfs "$tempdir/a.wbfs" || return 1
 
 	rm -f "$tempdir/a.wbfs"*
@@ -416,13 +497,21 @@ function test_suite()
 
     #----- summary
 
-    {
-	printf "\nSummary of %s:\n\n" "$name"
-	sort "$tempdir/time.log"
-	printf "\n"
-    
-    } | tee -a "$log"
-    
+    for class in write read
+    do
+	if [[ -s "$tempdir/time.$class.log" ]]
+	then
+	{
+	    printf "\f\nSummary [$class,size] of %s:\n\n" "$name"
+	    sort "$tempdir/time.$class.log"
+	    printf "\nSummary [$class,time] of %s:\n\n" "$name"
+	    sort +2 "$tempdir/time.$class.log"
+	    printf "\n"
+
+	} | tee -a "$log"
+	fi
+    done
+     
     return 0
 }
 
@@ -446,18 +535,18 @@ function test_suite()
 # main loop
 
 opts=1
-calc_real_methods
+calc_compr_modes
 
 while (($#))
 do
     src="$1"
     shift
 
-    if [[ $src == --fast ]]
+    if [[ $src == --wia || $src == --fast ]] # --fast = old & obsolete
     then
-	OPT_FAST=1
+	OPT_WIA=1
 	((opts++)) || printf "\n"
-	printf "## --fast : Do only WDF and WIA tests\n"
+	printf "## --wia : Do only WDF and WIA tests\n"
 	continue
     fi
 
@@ -535,9 +624,18 @@ do
 	continue
     fi
 
+    if [[ $src == --read ]]
+    then
+	OPT_READ=1
+	((opts++)) || printf "\n"
+	printf "## --read : Read tests enabled\n"
+	continue
+    fi
+
     if [[ $src == --dump ]]
     then
 	OPT_DUMP=1
+	mkdir -p $dumpdir
 	((opts++)) || printf "\n"
 	printf "## --dump : 'wdf +dump a.wia >$dumpdir'\n"
 	continue
@@ -546,30 +644,54 @@ do
     if [[ $src == --data ]]
     then
 	PSEL="--psel data"
+	OPT_DATA=1
 	((opts++)) || printf "\n"
 	printf "## --data : DATA partition only, scrub all others\n"
 	continue
     fi
 
-    if [[ $src == --compr ]]
+    if [[ $src == --c1 || $src == --compr ]]  # --compr = old & obsolete
     then
-	METHODS="$( echo "$1" | tr 'a-z,' 'A-Z ')"
+	C1_LIST=($( echo "$1" | tr ',' ' '))
+	(( ${#C1_LIST[@]} )) || C1_LIST=("")
 	shift
 	((opts++)) || printf "\n"
-	printf "## --compr : WIA compression methods set to: $METHODS\n"
-	calc_real_methods
-	printf "## compr+level expanded to: $REALMETHODS\n"
+	printf "## --c1 : C1 list set to: ${C1_LIST[*]}\n"
+	calc_compr_modes
+	printf "## compression modes are: $CMODES\n"
 	continue
     fi
 
-    if [[ $src == --level ]]
+    if [[ $src == --c2 || $src == --level ]]  # --level = old & obsolete
     then
-	LEVEL="$( echo "$1" | tr ',' ' ' | tr -cd '0-9@. ' )"
+	C2_LIST=($( echo "$1" | tr ',' ' '))
+	(( ${#C2_LIST[@]} )) || C2_LIST=("")
 	shift
 	((opts++)) || printf "\n"
-	printf "## --level : WIA compression level set to: $LEVEL\n"
-	calc_real_methods
-	printf "## compr+level expanded to: $REALMETHODS\n"
+	printf "## --c2 : C2 list set to: ${C2_LIST[*]}\n"
+	calc_compr_modes
+	printf "## compression modes are: $CMODES\n"
+	continue
+    fi
+
+    if [[ $src == --c3 ]]
+    then
+	C3_LIST=($( echo "$1" | tr ',' ' '))
+	(( ${#C3_LIST[@]} )) || C3_LIST=("")
+	shift
+	((opts++)) || printf "\n"
+	printf "## --c3 : C3 list set to: ${C3_LIST[*]}\n"
+	calc_compr_modes
+	printf "## compression modes are: $CMODES\n"
+	continue
+    fi
+
+    if [[ $src == --db ]]
+    then
+	OPT_DB=1
+	printf "# %s - %s\n" "$(date '+%F %T')" "$($WIT --version)" >>$db
+	((opts++)) || printf "\n"
+	printf "## --db : DB mode enabled.\n"
 	continue
     fi
 
@@ -583,6 +705,9 @@ do
 	printf "## Define option : $IO\n"
 	continue
     fi
+
+
+    #---- execute
 
     opts=0
     WIT_CP="$WIT COPY $PSEL $IO -q"

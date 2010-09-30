@@ -270,7 +270,7 @@ are listed in alphabetic order:
 ~ [2do] copy to homepage
 
  EDIT is a dangerous command. It let you (de-)activate the disc slots and
- edit the block assignments. Exactly 1 WBFS must be specified. All parameters
+ edit the block assignments. Exact 1 WBFS must be specified. All parameters
  are sub commands. Modifications are only done if option --force is set.
 
      **********************************************************

@@ -179,7 +179,7 @@ enum // some constants
 typedef enum wd_disc_type_t
 {
     //**********************************************************************
-    //***  never change the values, because they are used in arvchives!  ***
+    //***  never change this values, because they are used in archives!  ***
     //**********************************************************************
  
     WD_DT_UNKNOWN	= 0,	// unknown disc type
@@ -192,17 +192,42 @@ typedef enum wd_disc_type_t
 
 //
 ///////////////////////////////////////////////////////////////////////////////
+///////////////			enum wd_disc_attrib_t		///////////////
+///////////////////////////////////////////////////////////////////////////////
+
+typedef enum wd_disc_attrib_t
+{
+    //--- disc type attributes, detected by get_header_disc_type()
+
+    WD_DA_GAMECUBE	= 1 << WD_DT_GAMECUBE,
+    WD_DA_WII		= 1 << WD_DT_WII,
+    
+
+    //--- real attributes, detected by get_header_disc_type()
+
+    WD_DA_GC_MULTIBOOT	= 0x0100,	// gamecube multiboot disc
+    WD_DA_GC_DVD9	= 0x0200,	// gc-mb disc with DVD9 part-tab
+
+
+    //--- more real attributes
+
+    WD_DA_GC_START_PART	= 0x0400,	// gc-mb disc with valid start partition
+
+} wd_disc_attrib_t;
+
+//
+///////////////////////////////////////////////////////////////////////////////
 ///////////////			enum wd_compression_t		///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
 typedef enum wd_compression_t
 {
     //**********************************************************************
-    //***  never change the values, because they are used in arvchives!  ***
+    //***  never change this values, because they are used in archives!  ***
     //**********************************************************************
 
     WD_COMPR_NONE	= 0,	// data is not compressed
-    WD_COMPR_PURGE,		// data is not compressed but zero holes are purged
+    WD_COMPR_PURGE,		// a WDF like compression: manage holes
 
     WD_COMPR_BZIP2,		// use BZIP2 compression
     WD_COMPR_LZMA,		// use LZMA compression
@@ -211,9 +236,14 @@ typedef enum wd_compression_t
     WD_COMPR__N,		// number of compressions
 
     WD_COMPR__FIRST_REAL	= WD_COMPR_BZIP2,	// first real compression
-    WD_COMPR__FASTEST		= WD_COMPR_PURGE,	// fast compression
-    WD_COMPR__BEST		= WD_COMPR_LZMA,	// best compression
-    WD_COMPR__DEFAULT		= WD_COMPR_LZMA,	// default compression
+ #ifdef NO_BZIP2
+    WD_COMPR__FAST		= WD_COMPR_LZMA,	// a fast compression
+ #else
+    WD_COMPR__FAST		= WD_COMPR_BZIP2,	// a fast compression
+ #endif
+    WD_COMPR__GOOD		= WD_COMPR_LZMA,	// a good compression
+    WD_COMPR__BEST		= WD_COMPR_LZMA,	// the best compression
+    WD_COMPR__DEFAULT		= WD_COMPR_LZMA,	// the default compression
 
 } wd_compression_t;
 
@@ -390,6 +420,7 @@ typedef struct wd_header_128_t
 
 } __attribute__ ((packed)) wd_header_128_t;
 
+//-----------------------------------------------------------------------------
 
 void header_128_setup
 (
@@ -397,6 +428,14 @@ void header_128_setup
     const void		* id6,		// NULL or pointer to ID
     ccp			disc_title,	// NULL or pointer to disc title (truncated)
     bool		is_gc		// true: GameCube setup
+);
+
+//-----------------------------------------------------------------------------
+
+wd_disc_type_t get_header_128_disc_type
+(
+    wd_header_128_t	* dhead,	// valid pointer
+    wd_disc_attrib_t	* attrib	// not NULL: store disc attributes
 );
 
 //
@@ -434,6 +473,7 @@ typedef struct wd_header_t
 
 } __attribute__ ((packed)) wd_header_t;
 
+//-----------------------------------------------------------------------------
 
 void header_setup
 (
@@ -441,6 +481,14 @@ void header_setup
     const void		* id6,		// NULL or pointer to ID
     ccp			disc_title,	// NULL or pointer to disc title (truncated)
     bool		is_gc		// true: GameCube setup
+);
+
+//-----------------------------------------------------------------------------
+
+wd_disc_type_t get_header_disc_type
+(
+    wd_header_t		* dhead,	// valid pointer
+    wd_disc_attrib_t	* attrib	// not NULL: store disc attributes
 );
 
 //

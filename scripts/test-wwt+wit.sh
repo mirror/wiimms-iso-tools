@@ -1,5 +1,5 @@
 #!/bin/bash
-# (c) Wiimm, 2010-09-21
+# (c) Wiimm, 2010-09-23
 
 myname="${0##*/}"
 base=wwt+wit
@@ -54,9 +54,9 @@ fi
 WWT=wwt
 WIT=wit
 WDFCAT=wdf-cat
-[[ -x ./wwt ]] && WWT=./wwt
-[[ -x ./wit ]] && WIT=./wit
-[[ -x ./wdf-cat ]] && WDFCAT=./wdf-cat
+[[ -f ./wwt && -x ./wwt ]] && WWT=./wwt
+[[ -f ./wit && -x ./wit ]] && WIT=./wit
+[[ -f ./wdf-cat && -x ./wdf-cat ]] && WDFCAT=./wdf-cat
 
 errtool=
 for tool in $WWT $WIT $WDFCAT cmp
@@ -250,7 +250,7 @@ function test_suite()
 
 	dest="$tempdir/image.$mode"
 	test_function "EXT-$mode" "wwt EXTRACT to $mode" \
-	    $WWT -qp "$WBFS" EXTRACT "$id6=$dest" --$mode --compr fast \
+	    $WWT -qp "$WBFS" EXTRACT "$id6=$dest" --$mode \
 	    || return $ERROR
 
 	rm -f "$WBFS"

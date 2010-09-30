@@ -39,16 +39,18 @@
 
 typedef struct WDiscInfo_t
 {
-	wd_header_t	dhead;
-	u32		magic2;
+    wd_header_t		dhead;
+    wd_disc_type_t	disc_type;	// disc type
+    wd_disc_attrib_t	disc_attrib;	// disc attrib
+    u32			magic2;
 
-	uint		disc_index;
-	char		id6[7];
-	u64		size;
-	u64		iso_size;
-	u32		used_blocks;
-	ccp		title;		// pointer to title DB
-	u32		n_part;		// number of partitions
+    uint		disc_index;
+    char		id6[7];
+    u64			size;
+    u64			iso_size;
+    u32			used_blocks;
+    ccp			title;		// pointer to title DB
+    u32			n_part;		// number of partitions
 
 } WDiscInfo_t;
 

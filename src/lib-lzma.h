@@ -73,7 +73,16 @@ int CalcCompressionLevelLZMA
 
 u32 CalcMemoryUsageLZMA
 (
-    int			compr_level	// valid are 1..9 / 0: use default value
+    int			compr_level,	// valid are 1..9 / 0: use default value
+    bool		is_writing	// false: reading mode, true: writing mode
+);
+
+//-----------------------------------------------------------------------------
+
+u32 CalcMemoryUsageLZMA2
+(
+    int			compr_level,	// valid are 1..9 / 0: use default value
+    bool		is_writing	// false: reading mode, true: writing mode
 );
 
 //

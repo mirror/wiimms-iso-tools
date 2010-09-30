@@ -1727,20 +1727,56 @@ enumError exec_move ( SuperFile_t * fi, Iterator_t * it )
 	{
 	    if ( testmode || verbose >= 0 )
 	    {
-		snprintf(iobuf,sizeof(iobuf), "%u", it->source_list.used );
-		printf(" - %sMove %*u/%u %s:%s -> %s\n",
+		const int fw = snprintf(iobuf,sizeof(iobuf), "%u", it->source_list.used );
+		if ( fi->f.split_used > 1 )
+		    snprintf(iobuf,sizeof(iobuf),"*%u",fi->f.split_used);
+		else
+		    *iobuf = 0;
+		printf(" - %sMove %*u/%u %s%s:%s -> %s\n",
 		    testmode ? "WOULD " : "",
-		    (int)strlen(iobuf), it->source_index+1, it->source_list.used,
-		    oft_name[fo.iod.oft], fi->f.fname, fo.f.fname );
+		    fw, it->source_index+1, it->source_list.used,
+		    oft_name[fo.iod.oft], iobuf, fi->f.fname, fo.f.fname );
 	    }
 
+	    CloseSF(fi,0);
 	    if (!testmode)
 	    {
-		int stat = rename(fi->f.fname,fo.f.fname);
-		if ( stat && opt_mkdir )
+		int stat = 0;
+		if (fi->f.split_used)
 		{
-		    CreatePath(fo.f.fname);
+		    char * format = iobuf + sizeof(iobuf);
+		    CalcSplitFilename(format,sizeof(iobuf)/2,fo.f.fname,fo.iod.oft);
+		    noPRINT(">> |%s|\n",format);
+		    int i;
+		    for ( i = 0; !stat && i < fi->f.split_used; i++ )
+		    {
+			ccp dest;
+			if (i)
+			{
+			    dest = iobuf;
+			    snprintf(iobuf,sizeof(iobuf)/2,format,i);
+			}
+			else
+			    dest = fo.f.fname;
+			File_t * f = fi->f.split_f[i];
+			DASSERT(f);
+			PRINT("rename %s -> %s\n",f->fname,dest);
+			stat = rename(f->fname,dest);
+			if ( stat && opt_mkdir )
+			{
+			    CreatePath(dest);
+			    stat = rename(f->fname,dest);
+			}
+		    }
+		}
+		else
+		{
 		    stat = rename(fi->f.fname,fo.f.fname);
+		    if ( stat && opt_mkdir )
+		    {
+			CreatePath(fo.f.fname);
+			stat = rename(fi->f.fname,fo.f.fname);
+		    }
 		}
 		if (stat)
 		    return ERROR1(ERR_CANT_CREATE,
@@ -1783,7 +1819,7 @@ enumError cmd_move()
     Iterator_t it;
     InitializeIterator(&it);
     it.act_non_iso	= OptionUsed[OPT_IGNORE] ? ACT_IGNORE : ACT_WARN;
-    it.act_wbfs		= ACT_ALLOW;
+    it.act_wbfs		= it.act_non_iso;
     it.act_gc		= ACT_ALLOW;
     it.overwrite	= OptionUsed[OPT_OVERWRITE] ? 1 : 0;
 
@@ -2070,6 +2106,7 @@ enumError CheckOptions ( int argc, char ** argv, bool is_env )
 	case GO_CHUNK_SIZE:	err += ScanChunkSize(optarg); break;
 	case GO_MAX_CHUNKS:	err += ScanMaxChunks(optarg); break;
 	case GO_COMPRESSION:	err += ScanOptCompression(optarg); break;
+	case GO_MEM:		err += ScanOptMem(optarg,true); break;
 	case GO_PRESERVE:	break;
 	case GO_UPDATE:		break;
 	case GO_OVERWRITE:	break;
@@ -2088,6 +2125,7 @@ enumError CheckOptions ( int argc, char ** argv, bool is_env )
 	case GO_ATIME:	    	SetTimeOpt(PT_USE_ATIME|PT_F_ATIME); break;
 
 	case GO_LONG:		long_count++; break;
+	case GO_NUMERIC:	break;
 	case GO_UNIQUE:	    	break;
 	case GO_NO_HEADER:	break;
 	case GO_SECTIONS:	print_sections++; break;

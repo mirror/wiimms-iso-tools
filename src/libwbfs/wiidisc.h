@@ -45,26 +45,6 @@
 
 //
 ///////////////////////////////////////////////////////////////////////////////
-///////////////			enum wd_disc_attrib_t		///////////////
-///////////////////////////////////////////////////////////////////////////////
-
-typedef enum wd_disc_attrib_t // never change the values, because WIA use it
-{
-    //--- disc type attributes
-
-    WD_DA_GAMECUBE	= 1 << WD_DT_GAMECUBE,
-    WD_DA_WII		= 1 << WD_DT_WII,
-    
-    //--- real attributes
-
-    WD_DA_GC_MULTIBOOT	= 0x0100,	// gamecube multiboot disc
-    WD_DA_GC_DVD9	= 0x0200,	// gc-mb disc with DVD9 part-tab
-    WD_DA_GC_START_PART	= 0x0400,	// gc-mb disc with valid start partition
-
-} wd_disc_attrib_t;
-
-//
-///////////////////////////////////////////////////////////////////////////////
 ///////////////			enum wd_part_type_t		///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -323,7 +303,7 @@ typedef int (*wd_read_func_t)
 );
 
 //-----------------------------------------------------------------------------
-// Callback definition for memory dump with wd_dump_mem()
+// Callback definition for memory dump with wd_print_mem()
 
 typedef void (*wd_mem_func_t)
 (
@@ -1447,7 +1427,7 @@ int wd_insert_memmap_part
 
 //-----------------------------------------------------------------------------
 
-void wd_dump_memmap
+void wd_print_memmap
 (
     FILE		* f,		// valid output file
     int			indent,		// indention of the output
@@ -1480,7 +1460,7 @@ wd_memmap_item_t * wd_insert_patch_fst
 
 //-----------------------------------------------------------------------------
 
-void wd_dump_disc_patch
+void wd_print_disc_patch
 (
     FILE		* f,		// valid output file
     int			indent,		// indention of the output
@@ -1610,7 +1590,7 @@ wd_reloc_t * wd_calc_relocation
 
 //-----------------------------------------------------------------------------
 
-void wd_dump_relocation
+void wd_print_relocation
 (
     FILE		* f,		// valid output file
     int			indent,		// indention of the output
@@ -1620,7 +1600,7 @@ void wd_dump_relocation
 
 //-----------------------------------------------------------------------------
 
-void wd_dump_disc_relocation
+void wd_print_disc_relocation
 (
     FILE		* f,		// valid output file
     int			indent,		// indention of the output
@@ -1706,45 +1686,59 @@ bool wd_is_directory
 
 int wd_normalize_indent
 (
-	int		indent		// base vlaue to normalize
+    int			indent		// base vlaue to normalize
 );
 
 //-----------------------------------------------------------------------------
 
-void wd_dump_disc
+void wd_print_disc
 (
-	FILE		* f,		// valid output file
-	int		indent,		// indention of the output
-	wd_disc_t	* disc,		// valid disc pointer
-	int		dump_level	// dump level
-					//	>0: print extended part info 
-					//	>1: print usage table
+    FILE		* f,		// valid output file
+    int			indent,		// indention of the output
+    wd_disc_t		* disc,		// valid disc pointer
+    int			dump_level	// dump level
+					//   >0: print extended part info 
+					//   >1: print usage table
 );
 
 //-----------------------------------------------------------------------------
 
-void wd_dump_disc_usage_tab
+void wd_print_disc_usage_tab
 (
-	FILE		* f,		// valid output file
-	int		indent,		// indention of the output
-	wd_disc_t	* disc,		// valid disc pointer
-	bool		print_all	// false: ignore const lines
+    FILE		* f,		// valid output file
+    int			indent,		// indention of the output
+    wd_disc_t		* disc,		// valid disc pointer
+    bool		print_all	// false: ignore const lines
 );
 
 //-----------------------------------------------------------------------------
 
-void wd_dump_usage_tab
+void wd_print_usage_tab
 (
-	FILE		* f,		// valid output file
-	int		indent,		// indention of the output
-	const u8	* usage_tab,	// valid pointer, size = WII_MAX_SECTORS
-	u64		iso_size,	// NULL or size of iso file
-	bool		print_all	// false: ignore const lines
+    FILE		* f,		// valid output file
+    int			indent,		// indention of the output
+    const u8		* usage_tab,	// valid pointer, size = WII_MAX_SECTORS
+    u64			iso_size,	// NULL or size of iso file
+    bool		print_all	// false: ignore const lines
 );
 
 //-----------------------------------------------------------------------------
 
-void wd_dump_mem
+void wd_print_byte_tab
+(
+    FILE		* f,		// valid output file
+    int			indent,		// indention of the output
+    const u8		* tab,		// valid pointer to byte table
+    u32			used,		// print minimal 'used' values of 'tab'
+    u32			size,		// size of 'tab'
+    u32			addr_factor,	// each 'tab' element represents 'addr_factor' bytes
+    const char		chartab[256],	// valid pointer to a char table
+    bool		print_all	// false: ignore const lines
+);
+
+//-----------------------------------------------------------------------------
+
+void wd_print_mem
 (
     wd_disc_t		* disc,		// valid disc pointer
     wd_mem_func_t	func,		// valid function pointer

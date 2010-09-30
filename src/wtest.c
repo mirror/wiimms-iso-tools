@@ -329,6 +329,37 @@ int test_print_size ( int argc, char ** argv )
 
 //
 ///////////////////////////////////////////////////////////////////////////////
+///////////////			test_wbfs_free_blocks()		///////////////
+///////////////////////////////////////////////////////////////////////////////
+
+int test_wbfs_free_blocks ( int argc, char ** argv )
+{
+    int i;
+    for ( i = 1; i < argc; i++ )
+    {
+	WBFS_t w;
+	InitializeWBFS(&w);
+	if (!OpenWBFS(&w,argv[i],true,0))
+	{
+	    printf("\n*** %s ***\n",argv[i]);
+	 #if NEW_WBFS_INTERFACE
+	    int i;
+	    for ( i = 1; ; i *= 2 )
+	    {
+		u32 bl = wbfs_find_free_blocks(w.wbfs,i);
+		printf("blocks: %d +%d\n",bl,i);
+		if ( bl == WBFS_NO_BLOCK )
+		    break;
+	    }
+	 #endif
+	}
+	ResetWBFS(&w);
+    }
+    return 0;
+}
+
+//
+///////////////////////////////////////////////////////////////////////////////
 ///////////////			test()				///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -341,10 +372,27 @@ int test ( int argc, char ** argv )
     //test_create_sparse_file();
     //test_splitted_file();
     //test_copy_to_wbfs(argc,argv);
-    test_print_size(argc,argv);
-
+    //test_print_size(argc,argv);
+    test_wbfs_free_blocks(argc,argv);
 
     return 0;
+}
+
+//
+///////////////////////////////////////////////////////////////////////////////
+///////////////			test_filename()			///////////////
+///////////////////////////////////////////////////////////////////////////////
+
+static void test_filename ( int argc, char ** argv )
+{
+    int i;
+    char buf[PATH_MAX];
+
+    for ( i = 1; i < argc; i++ )
+    {
+	NormalizeFileName(buf,buf+sizeof(buf),argv[i],true);
+	printf("%s -> %s\n",argv[i],buf);
+   }
 }
 
 //
@@ -407,7 +455,7 @@ static void test_open_disc ( int argc, char ** argv )
 	    if (disc)
 	    {
 		putchar('\n');
-		wd_dump_disc(stdout,3,disc,dump_level);
+		wd_print_disc(stdout,3,disc,dump_level);
 
 		if (print_mm)
 		{
@@ -735,7 +783,7 @@ static enumError develop_sf ( SuperFile_t * sf )
     int n = wd_insert_memmap_disc_part(&mm,disc,patch_func,0,1,2,3,4,5);
 
     printf("Dump, N=%d:\n",n);
-    wd_dump_memmap(stdout,3,&mm);
+    wd_print_memmap(stdout,3,&mm);
     printf("---\n");
 
     return ERR_OK;
@@ -777,6 +825,7 @@ enum
 {
     CMD_TEST,			// test();
 
+    CMD_FILENAME,		// test_filename(argc,argv);
     CMD_MATCH_PATTERN,		// test_match_pattern(argc,argv);
     CMD_OPEN_DISC,		// test_open_disc(argc,argv);
     CMD_HEXDUMP,		// test_hexdump(argc,argv);
@@ -798,6 +847,7 @@ static const CommandTab_t CommandTab[] =
 {
 	{ CMD_TEST,		"TEST",		"T",		0 },
 
+	{ CMD_FILENAME,		"FILENAME",	"FN",		0 },
 	{ CMD_MATCH_PATTERN,	"MATCH",	0,		0 },
 	{ CMD_OPEN_DISC,	"OPENDISC",	"ODISC",	0 },
 	{ CMD_HEXDUMP,		"HEXDUMP",	0,		0 },
@@ -880,6 +930,7 @@ int main ( int argc, char ** argv )
     {
 	case CMD_TEST:			return test(argc,argv); break;
 
+	case CMD_FILENAME:		test_filename(argc,argv); break;
 	case CMD_MATCH_PATTERN:		test_match_pattern(argc,argv); break;
 	case CMD_OPEN_DISC:		test_open_disc(argc,argv); break;
 	case CMD_HEXDUMP:		test_hexdump(argc,argv); break;

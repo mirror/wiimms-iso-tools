@@ -387,6 +387,25 @@ bool IsWIA
     wd_compression_t	* compression	// not NULL: store compression
 );
 
+//-----------------------------------------------------------------------------
+
+u32 CalcMemoryUsageWIA
+(
+    wd_compression_t	compression,	// compression method
+    int			compr_level,	// valid are 1..9 / 0: use default value
+    u32			chunk_size,	// wanted chunk size
+    bool		is_writing	// false: reading mode, true: writing mode
+);
+
+//-----------------------------------------------------------------------------
+
+int CalcDefaultSettingsWIA
+(
+    wd_compression_t	* compression,	// NULL or compression method
+    int			* compr_level,	// NULL or compression level
+    u32			* chunk_size	// NULL or wanted chunk size
+);
+
 //
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////			SuperFile_t interface		///////////////

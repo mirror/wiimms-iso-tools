@@ -408,7 +408,7 @@ ccp wd_get_compression_name
 	"LZMA",
 	"LZMA2",
     };
-    
+
     return (u32)compr < sizeof(tab)/sizeof(*tab) ? tab[compr] : invalid_result;
 }
 
@@ -449,9 +449,19 @@ ccp wd_print_compression
 	compr_method = WD_COMPR__N;
 	compr_level = 0;
     }
-    else if ( compr_method < WD_COMPR__FIRST_REAL || compr_level < 0 || compr_level > 9 )
+    else if ( compr_method < WD_COMPR__FIRST_REAL || compr_level < 0 )
 	compr_level = 0;
-    
+    else if ( compr_level > 9 )
+	compr_level = 9;
+
+    char cbuf[10] = {0};
+    if ( compr_method != WD_COMPR__N )
+    {
+	chunk_size /= WII_GROUP_SIZE; // reduce chunk_size to a factor
+	if (chunk_size)
+	    snprintf(cbuf,sizeof(cbuf),"@%u",chunk_size);
+    }
+
 
     int len;
     mode &= 3;
@@ -460,9 +470,9 @@ ccp wd_print_compression
 	if ( compr_method == WD_COMPR__N )
 	    len = snprintf(buf,buf_size,"-");
 	else if (compr_level)
-	    len = snprintf(buf,buf_size,"%u.%u",compr_method,compr_level);
+	    len = snprintf(buf,buf_size,"%u.%u%s",compr_method,compr_level,cbuf);
 	else
-	    len = snprintf(buf,buf_size,"%u",compr_method);
+	    len = snprintf(buf,buf_size,"%u%s",compr_method,cbuf);
     }
     else if ( mode == 2 )
     {
@@ -470,9 +480,9 @@ ccp wd_print_compression
 	if ( compr_method == WD_COMPR__N )
 	    len = snprintf(buf,buf_size,"-");
 	else if (compr_level)
-	    len = snprintf(buf,buf_size,"%s.%u",name,compr_level);
+	    len = snprintf(buf,buf_size,"%s.%u%s",name,compr_level,cbuf);
 	else
-	    len = snprintf(buf,buf_size,"%s",name);
+	    len = snprintf(buf,buf_size,"%s%s",name,cbuf);
     }
     else
     {
@@ -480,17 +490,12 @@ ccp wd_print_compression
 	if ( compr_method == WD_COMPR__N )
 	    len = snprintf(buf,buf_size,"- -");
 	else if (compr_level)
-	    len = snprintf(buf,buf_size,"%u.%u %s.%u",
-			compr_method,compr_level, name,compr_level );
+	    len = snprintf(buf,buf_size,"%u.%u%s %s.%u%s",
+			compr_method, compr_level, cbuf,
+			name, compr_level, cbuf );
 	else
-	    len = snprintf(buf,buf_size,"%u %s",compr_method,name);
-    }
-
-    if ( compr_method != WD_COMPR__N )
-    {
-	chunk_size /= WII_GROUP_SIZE; // reduce chunk_size to a factor
-	if (chunk_size)
-	    snprintf(buf+len,buf_size-len,"@%u",chunk_size);
+	    len = snprintf(buf,buf_size,"%u%s %s%s",
+			compr_method, cbuf, name, cbuf );
     }
 
     return buf;
@@ -550,6 +555,69 @@ void header_setup
 {
     memset(dhead,0,sizeof(*dhead));
     header_128_setup((wd_header_128_t*)dhead,id6,disc_title,is_gc);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+
+wd_disc_type_t get_header_128_disc_type
+(
+    wd_header_128_t	* dhead,	// valid pointer
+    wd_disc_attrib_t	* attrib	// not NULL: store disc attributes
+)
+{
+    DASSERT(dhead);
+
+    //----- check Wii disc
+
+    if ( ntohl(dhead->wii_magic) == WII_MAGIC )
+    {
+	if (attrib)
+	    *attrib = WD_DA_WII;
+	return WD_DT_WII;
+    }
+    
+
+    //----- check GameCube disc
+
+    if ( ntohl(dhead->gc_magic) == GC_MAGIC )
+    {
+	if (attrib)
+	{
+	    wd_disc_attrib_t att = WD_DA_GAMECUBE;
+
+	    ccp id6 = &dhead->disc_id;
+	    if (   !memcmp(id6,"GCOPDV",6)
+		|| !memcmp(id6,"COBRAM",6)
+		|| !memcmp(id6,"GGCOSD",6)
+		|| !memcmp(id6,"RGCOSD",6) )
+	    {
+		att |= WD_DA_GC_MULTIBOOT;
+		if (!memcmp(id6+4,"DVD9",4))
+		    att |= WD_DA_GC_DVD9;
+	    }
+	    *attrib = att;
+	}
+	return WD_DT_GAMECUBE;
+    }
+
+
+    //----- unknown disc
+
+    if (attrib)
+	*attrib = 0;
+    return WD_DT_UNKNOWN; 
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+wd_disc_type_t get_header_disc_type
+(
+    wd_header_t		* dhead,	// valid pointer
+    wd_disc_attrib_t	* attrib	// not NULL: store disc attributes
+)
+{
+    return get_header_128_disc_type((wd_header_128_t*)dhead,attrib);
 }
 
 //

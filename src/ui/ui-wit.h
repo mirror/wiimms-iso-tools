@@ -81,6 +81,7 @@ typedef enum enumOptions
 	OPT_CHUNK_SIZE,
 	OPT_MAX_CHUNKS,
 	OPT_COMPRESSION,
+	OPT_MEM,
 	OPT_PRESERVE,
 	OPT_UPDATE,
 	OPT_OVERWRITE,
@@ -98,6 +99,7 @@ typedef enum enumOptions
 	OPT_ATIME,
 	OPT_TIME,
 	OPT_LONG,
+	OPT_NUMERIC,
 	OPT_SHOW,
 	OPT_UNIQUE,
 	OPT_NO_HEADER,
@@ -105,7 +107,7 @@ typedef enum enumOptions
 	OPT_SORT,
 	OPT_LIMIT,
 
-	OPT__N_SPECIFIC, // == 63 
+	OPT__N_SPECIFIC, // == 65 
 
 	//----- global options -----
 
@@ -126,7 +128,7 @@ typedef enum enumOptions
 	OPT_TEST,
 	OPT_HOOK,
 
-	OPT__N_TOTAL // == 79
+	OPT__N_TOTAL // == 81
 
 } enumOptions;
 
@@ -180,6 +182,7 @@ typedef enum enumOptions
 //	OB_CHUNK_SIZE		= 1llu << OPT_CHUNK_SIZE,
 //	OB_MAX_CHUNKS		= 1llu << OPT_MAX_CHUNKS,
 //	OB_COMPRESSION		= 1llu << OPT_COMPRESSION,
+//	OB_MEM			= 1llu << OPT_MEM,
 //	OB_PRESERVE		= 1llu << OPT_PRESERVE,
 //	OB_UPDATE		= 1llu << OPT_UPDATE,
 //	OB_OVERWRITE		= 1llu << OPT_OVERWRITE,
@@ -197,6 +200,7 @@ typedef enum enumOptions
 //	OB_ATIME		= 1llu << OPT_ATIME,
 //	OB_TIME			= 1llu << OPT_TIME,
 //	OB_LONG			= 1llu << OPT_LONG,
+//	OB_NUMERIC		= 1llu << OPT_NUMERIC,
 //	OB_SHOW			= 1llu << OPT_SHOW,
 //	OB_UNIQUE		= 1llu << OPT_UNIQUE,
 //	OB_NO_HEADER		= 1llu << OPT_NO_HEADER,
@@ -275,7 +279,8 @@ typedef enum enumOptions
 //				| OB_CHUNK_MODE
 //				| OB_CHUNK_SIZE
 //				| OB_MAX_CHUNKS
-//				| OB_COMPRESSION,
+//				| OB_COMPRESSION
+//				| OB_MEM,
 //
 //	OB_CMD_HELP		= ~(u64)0,
 //
@@ -288,9 +293,11 @@ typedef enum enumOptions
 //				| OB_NO_HEADER
 //				| OB_LONG,
 //
-//	OB_CMD_COMPR		= OB_SECTIONS
+//	OB_CMD_COMPR		= OB_MEM
+//				| OB_SECTIONS
 //				| OB_NO_HEADER
-//				| OB_LONG,
+//				| OB_LONG
+//				| OB_NUMERIC,
 //
 //	OB_CMD_EXCLUDE		= OB_EXCLUDE
 //				| OB_EXCLUDE_PATH,
@@ -567,6 +574,7 @@ typedef enum enumGetOpt
 	GO_CHUNK_SIZE,
 	GO_MAX_CHUNKS,
 	GO_COMPRESSION,
+	GO_MEM,
 	GO_WIA,
 	GO_FST,
 	GO_ITIME,
@@ -574,6 +582,7 @@ typedef enum enumGetOpt
 	GO_CTIME,
 	GO_ATIME,
 	GO_TIME,
+	GO_NUMERIC,
 	GO_SHOW,
 	GO_SECTIONS,
 	GO_LIMIT,

@@ -1231,24 +1231,16 @@ static wd_disc_t * wd_open_gc_disc
 )
 {
     DASSERT(disc);
-
-    disc->disc_type	= WD_DT_GAMECUBE;
-    disc->disc_attrib	= WD_DA_GAMECUBE;
+    DASSERT( disc->disc_type == WD_DT_GAMECUBE );
+    DASSERT( disc->disc_attrib & WD_DA_GAMECUBE );
     disc->region.region	= *(u32*)(disc->temp_buf+WII_BI2_OFF+WII_BI2_REGION_OFF);
     memcpy(&disc->ptab,disc->temp_buf,sizeof(disc->ptab));
 
-    ccp id6 = &disc->dhead.disc_id;
-    if (   !memcmp(id6,"GCOPDV",6)
-	|| !memcmp(id6,"COBRAM",6)
-	|| !memcmp(id6,"GGCOSD",6)
-	|| !memcmp(id6,"RGCOSD",6) )
+    if ( disc->disc_attrib & WD_DA_GC_MULTIBOOT )
     {
 	//----- setup multiboot gamecube disc
 
-	const bool dvd9 = !memcmp(id6+4,"DVD9",4);
-	if (dvd9)
-	    disc->disc_attrib |= WD_DA_GC_DVD9;
-	disc->disc_attrib |= WD_DA_GC_MULTIBOOT;
+	const int dvd9 = disc->disc_attrib & WD_DA_GC_DVD9;
 
 	u32 * ptab_beg = (u32*)( (char*)&disc->dhead + GC_MULTIBOOT_PTAB_OFF );
 	u32 * ptab_end = ptab_beg + GC_MULTIBOOT_PTAB_SIZE/sizeof(u32);
@@ -1259,7 +1251,7 @@ static wd_disc_t * wd_open_gc_disc
 	    if (ntohl(*ptab))
 		n_part++;
 
-	PRINT("MULTIBOOT '%.6s', N=%d, dvd9=%d\n",id6,n_part,dvd9);
+	PRINT("MULTIBOOT '%.6s', N=%d, dvd9=%d\n",&disc->dhead.disc_id,n_part,dvd9);
 
 	wd_part_t * part = calloc(n_part,sizeof(*disc->part));
 	if (!part)
@@ -1330,7 +1322,7 @@ static wd_disc_t * wd_open_gc_disc
     //----- terminate
 
  #ifdef DEBUG
-    wd_dump_disc(TRACE_FILE,10,disc,0);
+    wd_print_disc(TRACE_FILE,10,disc,0);
  #endif
 
     wd_load_all_part(disc,false,false,false);
@@ -1390,17 +1382,21 @@ wd_disc_t * wd_open_disc
 					WII_BOOT_SIZE+WII_BI2_SIZE, WD_USAGE_DISC );
     memcpy(&disc->dhead,disc->temp_buf,sizeof(disc->dhead));
 
-    if (!err && ntohl(disc->dhead.wii_magic) != WII_MAGIC )
+    disc->disc_type = get_header_disc_type(&disc->dhead,&disc->disc_attrib);
+    switch(disc->disc_type)
     {
-	if ( ntohl(disc->dhead.gc_magic) == GC_MAGIC )
+	case WD_DT_GAMECUBE:
 	    return wd_open_gc_disc(disc,error_code);
 
-	WD_ERROR(ERR_WDISC_NOT_FOUND,"MAGIC not found%s",disc->error_term);
-	err = ERR_WDISC_NOT_FOUND;
-    }
+	case WD_DT_WII:
+	    // nothing to do
+	    break;
 
-    disc->disc_type	= WD_DT_WII;
-    disc->disc_attrib	= WD_DA_WII;
+	default:
+	    WD_ERROR(ERR_WDISC_NOT_FOUND,"Disc magic not found%s",disc->error_term);
+	    err = ERR_WDISC_NOT_FOUND;
+	    break;
+    }
 
 
     //----- read partition data
@@ -1499,7 +1495,7 @@ wd_disc_t * wd_open_disc
     //----- terminate
 
  #ifdef DEBUG
-    wd_dump_disc(TRACE_FILE,10,disc,0);
+    wd_print_disc(TRACE_FILE,10,disc,0);
  #endif
 
     if (err)
@@ -4148,7 +4144,7 @@ int wd_insert_memmap_part
 
 ///////////////////////////////////////////////////////////////////////////////
 
-void wd_dump_memmap
+void wd_print_memmap
 (
     FILE		* f,		// valid output file
     int			indent,		// indention of the output
@@ -4272,7 +4268,7 @@ wd_memmap_item_t * wd_insert_patch_fst
 
 ///////////////////////////////////////////////////////////////////////////////
 
-void wd_dump_disc_patch
+void wd_print_disc_patch
 (
     FILE		* f,		// valid output file
     int			indent,		// indention of the output
@@ -4293,7 +4289,7 @@ void wd_dump_disc_patch
 	    fprintf(f,"\n%*sPatching table of the disc:\n",indent,"");
 	    indent += 2;
 	}
-	wd_dump_memmap(f,indent,&disc->patch);
+	wd_print_memmap(f,indent,&disc->patch);
     }
 
     if (print_part)
@@ -4310,7 +4306,7 @@ void wd_dump_disc_patch
 			indent-2, "",
 			wd_print_part_name(buf,sizeof(buf),part->part_type,WD_PNAME_NUM_INFO));
 		}
-		wd_dump_memmap(f,indent,&part->patch);
+		wd_print_memmap(f,indent,&part->patch);
 	    }
 	}
     }
@@ -5444,7 +5440,7 @@ wd_reloc_t * wd_calc_relocation
 
 ///////////////////////////////////////////////////////////////////////////////
 
-void wd_dump_relocation
+void wd_print_relocation
 (
     FILE		* f,		// valid output file
     int			indent,		// indention of the output
@@ -5519,7 +5515,7 @@ void wd_dump_relocation
 
 ///////////////////////////////////////////////////////////////////////////////
 
-void wd_dump_disc_relocation
+void wd_print_disc_relocation
 (
     FILE		* f,		// valid output file
     int			indent,		// indention of the output
@@ -5527,7 +5523,7 @@ void wd_dump_disc_relocation
     bool		print_title	// true: print table titles
 )
 {
-    wd_dump_relocation(f,indent,
+    wd_print_relocation(f,indent,
 		wd_calc_relocation(disc,true,false,0),
 		print_title );
 }
@@ -5677,17 +5673,17 @@ int wd_normalize_indent
 
 ///////////////////////////////////////////////////////////////////////////////
 
-void wd_dump_disc
+void wd_print_disc
 (
-    FILE		*f,		// valid output file
+    FILE		* f,		// valid output file
     int			indent,		// indention of the output
-    wd_disc_t		*disc,		// valid disc pointer
+    wd_disc_t		* disc,		// valid disc pointer
     int			dump_level	// dump level
-					//	>0: print extended part info 
-					//	>1: print usage table
+					//   >0: print extended part info 
+					//   >1: print usage table
 )
 {
-    TRACE("wd_dump_disc()\n");
+    TRACE("wd_print_disc()\n");
 
     ASSERT(f);
     ASSERT(disc);
@@ -5806,63 +5802,80 @@ void wd_dump_disc
     if ( dump_level > 1 )
     {
 	fprintf(f,"\n%*sUsage map:\n",indent,"");
-	wd_dump_disc_usage_tab(f,indent+2,disc,false);
+	wd_print_disc_usage_tab(f,indent+2,disc,false);
     }
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 
-void wd_dump_disc_usage_tab
+void wd_print_disc_usage_tab
 (
-	FILE		* f,		// valid output file
-	int		indent,		// indention of the output
-	wd_disc_t	* disc,		// valid disc pointer
-	bool		print_all	// false: suppress repeated lines
+    FILE		* f,		// valid output file
+    int			indent,		// indention of the output
+    wd_disc_t		* disc,		// valid disc pointer
+    bool		print_all	// false: ignore const lines
 )
 {
-    wd_dump_usage_tab( f, indent, wd_calc_usage_table(disc), disc->iso_size, print_all );
+    wd_print_usage_tab( f, indent, wd_calc_usage_table(disc), disc->iso_size, print_all );
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 
-void wd_dump_usage_tab
+void wd_print_usage_tab
 (
-	FILE		* f,		// valid output file
-	int		indent,		// indention of the output
-	const u8	* usage_tab,	// valid pointer, size = WII_MAX_SECTORS
-	u64		iso_size,	// NULL or size of iso file
-	bool		print_all	// false: ignore const lines
+    FILE		* f,		// valid output file
+    int			indent,		// indention of the output
+    const u8		* usage_tab,	// valid pointer, size = WII_MAX_SECTORS
+    u64			iso_size,	// NULL or size of iso file
+    bool		print_all	// false: ignore const lines
+)
+{
+    wd_print_byte_tab( f, indent, usage_tab,
+			( iso_size + WII_SECTOR_SIZE - 1 ) / WII_SECTOR_SIZE,
+			WII_MAX_SECTORS, WII_SECTOR_SIZE,
+			wd_usage_name_tab, print_all );
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+void wd_print_byte_tab
+(
+    FILE		* f,		// valid output file
+    int			indent,		// indention of the output
+    const u8		* tab,		// valid pointer to byte table
+    u32			used,		// print minimal 'used' values of 'tab'
+    u32			size,		// size of 'tab'
+    u32			addr_factor,	// each 'tab' element represents 'addr_factor' bytes
+    const char		chartab[256],	// valid pointer to a char table
+    bool		print_all	// false: ignore const lines
 )
 {
     ASSERT(f);
-    ASSERT(usage_tab);
-
-    if ( indent < 0 )
-	indent = 0;
-    else if ( indent > 50 )
-	indent = 50;
-
-    indent += 9; // add address field width
-
-    const u8 * ptr = usage_tab;
-    const u8 * tab_end = ptr + WII_MAX_SECTORS - 1;
-    const u8 * tab_min = ptr + ( iso_size + WII_SECTOR_SIZE - 1 ) / WII_SECTOR_SIZE;
-    if (tab_min)
-	tab_min--;
-    while ( !*tab_end && tab_end > tab_min )
-	tab_end--;
-    tab_end++;
+    ASSERT(tab);
 
     enum { line_count = 64 };
     char buf[2*line_count];
     char skip_buf[2*line_count];
+
+    indent = wd_normalize_indent(indent);
+    const int addr_fw = snprintf(buf,sizeof(buf),"%llx",(u64)addr_factor*size);
+    indent += addr_fw; // add address field width
+
+    const u8 * ptr = tab;
+    const u8 * tab_end = ptr + size - 1;
+    const u8 * tab_min = ptr + used;
+    if ( tab_min > ptr )
+	tab_min--;
+    while ( !*tab_end && tab_end > tab_min )
+	tab_end--;
+    tab_end++;
 
     int skip_count = 0;
     u64 skip_addr = 0;
 
     while ( ptr < tab_end )
     {
-	const u64 addr = (u64)( ptr - usage_tab ) * WII_SECTOR_SIZE;
+	const u64 addr = (u64)( ptr - tab ) * addr_factor;
 	
 	char * dest = buf;
 	const u8 * line_end = ptr + line_count;
@@ -5876,7 +5889,7 @@ void wd_dump_usage_tab
 	    if ( !( pos++ & 15 ) )
 		*dest++ = ' ';
 	    last_count += *ptr == cmp_val;
-	    *dest++ = wd_usage_name_tab[*ptr++];
+	    *dest++ = chartab[*ptr++];
 	}
 	*dest = 0;
 	DASSERT( dest < buf + sizeof(buf) );
@@ -5907,7 +5920,7 @@ void wd_dump_usage_tab
 
 ///////////////////////////////////////////////////////////////////////////////
 
-static void wd_dump_files
+static void wd_print_files
 (
     wd_part_t		* part,		// pointer to partition
     wd_mem_func_t	func,		// valid function pointer
@@ -5967,7 +5980,7 @@ static void wd_dump_files
 
 ///////////////////////////////////////////////////////////////////////////////
 
-static void wd_dump_gc_mem
+static void wd_print_gc_mem
 (
     wd_disc_t		* disc,		// valid disc pointer
     wd_mem_func_t	func,		// valid function pointer
@@ -5977,7 +5990,7 @@ static void wd_dump_gc_mem
     ASSERT(disc);
     ASSERT(disc->part);
     DASSERT(func);
-    TRACE("wd_dump_gc_mem(%p,%p,%p)\n",disc,func,param);
+    TRACE("wd_print_gc_mem(%p,%p,%p)\n",disc,func,param);
 
     char msg[80];
     wd_part_t * part = disc->part, *part_end = part + disc->n_part;
@@ -6052,7 +6065,7 @@ static void wd_dump_gc_mem
 		min += base_off;
 		max += base_off;
 		snprintf( dest, msgsize, "%s", "files" );
-		wd_dump_files(part,func,param,min,max,min/WII_SECTOR_SIZE,msg);
+		wd_print_files(part,func,param,min,max,min/WII_SECTOR_SIZE,msg);
 	    }
 	}
     }
@@ -6072,7 +6085,7 @@ static void wd_dump_gc_mem
 
 ///////////////////////////////////////////////////////////////////////////////
 
-void wd_dump_mem
+void wd_print_mem
 (
     wd_disc_t		* disc,		// valid disc pointer
     wd_mem_func_t	func,		// valid function pointer
@@ -6084,11 +6097,11 @@ void wd_dump_mem
 
     if ( disc->disc_type == WD_DT_GAMECUBE )
     {
-	wd_dump_gc_mem(disc,func,param);
+	wd_print_gc_mem(disc,func,param);
 	return;
     }
 
-    TRACE("wd_dump_mem(%p,%p,%p)\n",disc,func,param);
+    TRACE("wd_print_mem(%p,%p,%p)\n",disc,func,param);
     char msg[80];
 
     //----- header
@@ -6215,7 +6228,7 @@ void wd_dump_mem
 			: 0;
 
 		snprintf(dest,msgsize,"data+fst");
-		wd_dump_files(part,func,param,off,end,fst_sect,msg);
+		wd_print_files(part,func,param,off,end,fst_sect,msg);
 	    }
 	}
     }

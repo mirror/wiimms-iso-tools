@@ -81,6 +81,7 @@ typedef enum enumOptions
 	OPT_CHUNK_SIZE,
 	OPT_MAX_CHUNKS,
 	OPT_COMPRESSION,
+	OPT_MEM,
 	OPT_SIZE,
 	OPT_HSS,
 	OPT_WSS,
@@ -106,6 +107,7 @@ typedef enum enumOptions
 	OPT_TIME,
 	OPT_SET_TIME,
 	OPT_LONG,
+	OPT_NUMERIC,
 	OPT_INODE,
 	OPT_MIXED,
 	OPT_UNIQUE,
@@ -114,7 +116,7 @@ typedef enum enumOptions
 	OPT_SORT,
 	OPT_LIMIT,
 
-	OPT__N_SPECIFIC, // == 72 
+	OPT__N_SPECIFIC, // == 74 
 
 	//----- global options -----
 
@@ -135,7 +137,7 @@ typedef enum enumOptions
 	OPT_TEST,
 	OPT_HOOK,
 
-	OPT__N_TOTAL // == 88
+	OPT__N_TOTAL // == 90
 
 } enumOptions;
 
@@ -189,6 +191,7 @@ typedef enum enumOptions
 //	OB_CHUNK_SIZE		= 1llu << OPT_CHUNK_SIZE,
 //	OB_MAX_CHUNKS		= 1llu << OPT_MAX_CHUNKS,
 //	OB_COMPRESSION		= 1llu << OPT_COMPRESSION,
+//	OB_MEM			= 1llu << OPT_MEM,
 //	OB_SIZE			= 1llu << OPT_SIZE,
 //	OB_HSS			= 1llu << OPT_HSS,
 //	OB_WSS			= 1llu << OPT_WSS,
@@ -214,6 +217,7 @@ typedef enum enumOptions
 //	OB_TIME			= 1llu << OPT_TIME,
 //	OB_SET_TIME		= 1llu << OPT_SET_TIME,
 //	OB_LONG			= 1llu << OPT_LONG,
+//	OB_NUMERIC		= 1llu << OPT_NUMERIC,
 //	OB_INODE		= 1llu << OPT_INODE,
 //	OB_MIXED		= 1llu << OPT_MIXED,
 //	OB_UNIQUE		= 1llu << OPT_UNIQUE,
@@ -261,8 +265,7 @@ typedef enum enumOptions
 //	OB_GRP_OUTMODE		= OB_WDF
 //				| OB_ISO
 //				| OB_CISO
-//				| OB_WBFS
-//				| OB_WIA,
+//				| OB_WBFS,
 //
 //	OB_GRP_PATCH		= OB_ENC
 //				| OB_ID
@@ -287,8 +290,7 @@ typedef enum enumOptions
 //				| OB_TRUNC
 //				| OB_CHUNK_MODE
 //				| OB_CHUNK_SIZE
-//				| OB_MAX_CHUNKS
-//				| OB_COMPRESSION,
+//				| OB_MAX_CHUNKS,
 //
 //	OB_CMD_VERSION		= OB_SECTIONS
 //				| OB_LONG,
@@ -303,7 +305,8 @@ typedef enum enumOptions
 //
 //	OB_CMD_COMPR		= OB_SECTIONS
 //				| OB_NO_HEADER
-//				| OB_LONG,
+//				| OB_LONG
+//				| OB_NUMERIC,
 //
 //	OB_CMD_EXCLUDE		= OB_EXCLUDE
 //				| OB_EXCLUDE_PATH,
@@ -603,6 +606,7 @@ typedef enum enumGetOpt
 	GO_CHUNK_SIZE,
 	GO_MAX_CHUNKS,
 	GO_COMPRESSION,
+	GO_MEM,
 	GO_HSS,
 	GO_WSS,
 	GO_RECOVER,
@@ -616,6 +620,7 @@ typedef enum enumGetOpt
 	GO_ATIME,
 	GO_TIME,
 	GO_SET_TIME,
+	GO_NUMERIC,
 	GO_INODE,
 	GO_SECTIONS,
 	GO_LIMIT,
