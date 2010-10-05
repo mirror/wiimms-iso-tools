@@ -44,6 +44,15 @@
 ///////////////			  constants			///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
+#define KiB 1024
+#define MiB (1024*1024)
+#define GiB (1024*1024*1024)
+#define TiB (1024ull*1024*1024*1024)
+#define PiB (1024ull*1024*1024*1024*1024)
+#define EiB (1024ull*1024*1024*1024*1024*1024)
+
+///////////////////////////////////////////////////////////////////////////////
+
 enum // some constants
 {
     HD_SECTOR_SIZE		= 0x200,
@@ -97,6 +106,7 @@ enum // some constants
     WII_SECTORS_SINGLE_LAYER	= 143432,
     WII_SECTORS_DOUBLE_LAYER	= 2 * WII_SECTORS_SINGLE_LAYER,
     WII_MAX_SECTORS		= WII_SECTORS_DOUBLE_LAYER,
+    WII_MAX_U32_SECTORS		= 0x40000000/WII_SECTOR_SIZE4,
 
     WII_MAGIC			= 0x5d1c9ea3,
     WII_MAGIC_DELETED		= 0x2a44454c,
@@ -129,6 +139,7 @@ enum // some constants
     WII_APL_OFF			= 0x2440,
     WII_BOOT_SIZE		= WII_BI2_OFF - WII_BOOT_OFF,
     WII_BI2_SIZE		= WII_APL_OFF - WII_BI2_OFF,
+    WII_BI2_REGION_OFF		=   0x18,
 
     WII_PART_OFF		=   0x50000,
     WII_GOOD_DATA_PART_OFF	= 0xf800000,
@@ -147,13 +158,113 @@ enum // some constants
     GC_MAGIC			= 0xc2339f3d,
     GC_MAGIC_OFF		=       0x1c,
     GC_MAGIC_LEN		=       0x04,
-    GC_DISC_SIZE		= 1459978240,
+    GC_DISC_SIZE		= 1459978240,	// standard GameCube disc size
+
+    GC_MULTIBOOT_PTAB_OFF	=    0x40,
+    GC_MULTIBOOT_PTAB_SIZE	=    0xc0,
+    GC_MULTIBOOT_MAX_PART	= GC_MULTIBOOT_PTAB_SIZE/4,
+    GC_GOOD_PART_ALIGN		= 0x20000,	// alignment (= min off) of GC partitions
 
     DOL_N_TEXT_SECTIONS		=     7,
     DOL_N_DATA_SECTIONS		=    11,
     DOL_N_SECTIONS		= DOL_N_TEXT_SECTIONS + DOL_N_DATA_SECTIONS,
     DOL_HEADER_SIZE		= 0x100,
 };
+
+//
+///////////////////////////////////////////////////////////////////////////////
+///////////////			enum wd_disc_type_t		///////////////
+///////////////////////////////////////////////////////////////////////////////
+
+typedef enum wd_disc_type_t
+{
+    //**********************************************************************
+    //***  never change this values, because they are used in archives!  ***
+    //**********************************************************************
+ 
+    WD_DT_UNKNOWN	= 0,	// unknown disc type
+    WD_DT_GAMECUBE,		// GameCube disc
+    WD_DT_WII,			// Wii disc
+
+    WD_DT__N			// number of defined disc types
+
+} wd_disc_type_t;
+
+//
+///////////////////////////////////////////////////////////////////////////////
+///////////////			enum wd_disc_attrib_t		///////////////
+///////////////////////////////////////////////////////////////////////////////
+
+typedef enum wd_disc_attrib_t
+{
+    //--- disc type attributes, detected by get_header_disc_type()
+
+    WD_DA_GAMECUBE	= 1 << WD_DT_GAMECUBE,
+    WD_DA_WII		= 1 << WD_DT_WII,
+    
+
+    //--- real attributes, detected by get_header_disc_type()
+
+    WD_DA_GC_MULTIBOOT	= 0x0100,	// gamecube multiboot disc
+    WD_DA_GC_DVD9	= 0x0200,	// gc-mb disc with DVD9 part-tab
+
+
+    //--- more real attributes
+
+    WD_DA_GC_START_PART	= 0x0400,	// gc-mb disc with valid start partition
+
+} wd_disc_attrib_t;
+
+//
+///////////////////////////////////////////////////////////////////////////////
+///////////////			enum wd_compression_t		///////////////
+///////////////////////////////////////////////////////////////////////////////
+
+typedef enum wd_compression_t
+{
+    //**********************************************************************
+    //***  never change this values, because they are used in archives!  ***
+    //**********************************************************************
+
+    WD_COMPR_NONE	= 0,	// data is not compressed
+    WD_COMPR_PURGE,		// a WDF like compression: manage holes
+
+    WD_COMPR_BZIP2,		// use BZIP2 compression
+    WD_COMPR_LZMA,		// use LZMA compression
+    WD_COMPR_LZMA2,		// use LZMA2 compression
+
+    WD_COMPR__N,		// number of compressions
+
+    WD_COMPR__FIRST_REAL	= WD_COMPR_BZIP2,	// first real compression
+ #ifdef NO_BZIP2
+    WD_COMPR__FAST		= WD_COMPR_LZMA,	// a fast compression
+ #else
+    WD_COMPR__FAST		= WD_COMPR_BZIP2,	// a fast compression
+ #endif
+    WD_COMPR__GOOD		= WD_COMPR_LZMA,	// a good compression
+    WD_COMPR__BEST		= WD_COMPR_LZMA,	// the best compression
+    WD_COMPR__DEFAULT		= WD_COMPR_LZMA,	// the default compression
+
+} wd_compression_t;
+
+//-----------------------------------------------------------------------------
+
+ccp wd_get_compression_name
+(
+    wd_compression_t	compr,		// compression method
+    ccp			invalid_result	// return value if 'compr' is invalid
+);
+
+ccp wd_print_compression
+(
+    char		* buf,		// result buffer
+					// If NULL, a local circulary static buffer is used
+    size_t		buf_size,	// size of 'buf', ignored if buf==NULL
+    wd_compression_t	compr_method,	// compression method
+    int			compr_level,	// compression level
+    u32			chunk_size,	// compression chunk size, multiple of MiB
+    int			mode		// 1=number, 2=name, 3=number and name
+);
 
 //
 ///////////////////////////////////////////////////////////////////////////////
@@ -174,11 +285,17 @@ int validate_file_format_sizes ( int trace_sizes );
 ///////////////		low level endian conversions		///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-// convert big endian date to number in host format
+// convert big endian data to a number in host format
 u16 be16 ( const void * be_data_ptr );
 u32 be24 ( const void * be_data_ptr );
 u32 be32 ( const void * be_data_ptr );
 u64 be64 ( const void * be_data_ptr );
+
+// convert little endian data to a number in host format
+u16 le16 ( const void * le_data_ptr );
+u32 le24 ( const void * le_data_ptr );
+u32 le32 ( const void * le_data_ptr );
+u64 le64 ( const void * le_data_ptr );
 
 // convert u64 from/to network byte order
 be64_t hton64 ( u64    data );
@@ -303,12 +420,22 @@ typedef struct wd_header_128_t
 
 } __attribute__ ((packed)) wd_header_128_t;
 
+//-----------------------------------------------------------------------------
 
 void header_128_setup
 (
     wd_header_128_t	* dhead,	// valid pointer
     const void		* id6,		// NULL or pointer to ID
-    ccp			disc_title	// NULL or pointer to disc title (truncated)
+    ccp			disc_title,	// NULL or pointer to disc title (truncated)
+    bool		is_gc		// true: GameCube setup
+);
+
+//-----------------------------------------------------------------------------
+
+wd_disc_type_t get_header_128_disc_type
+(
+    wd_header_128_t	* dhead,	// valid pointer
+    wd_disc_attrib_t	* attrib	// not NULL: store disc attributes
 );
 
 //
@@ -346,12 +473,22 @@ typedef struct wd_header_t
 
 } __attribute__ ((packed)) wd_header_t;
 
+//-----------------------------------------------------------------------------
 
 void header_setup
 (
     wd_header_t		* dhead,	// valid pointer
     const void		* id6,		// NULL or pointer to ID
-    ccp			disc_title	// NULL or pointer to disc title (truncated)
+    ccp			disc_title,	// NULL or pointer to disc title (truncated)
+    bool		is_gc		// true: GameCube setup
+);
+
+//-----------------------------------------------------------------------------
+
+wd_disc_type_t get_header_disc_type
+(
+    wd_header_t		* dhead,	// valid pointer
+    wd_disc_attrib_t	* attrib	// not NULL: store disc attributes
 );
 
 //
@@ -366,8 +503,8 @@ typedef struct wd_boot_t
   /* 0x420 */	u32		dol_off4;
   /* 0x424 */	u32		fst_off4;
   /* 0x428 */	u32		fst_size4;
-  /* 0x42c */	u32		copy_of__fst_size4;
-  /* 0x42c */	u8		unknown2[WII_BOOT_SIZE-0x430];
+  /* 0x42c */	u32		max_fst_size4;  // >= fst_size4 (max of multi discs)
+  /* 0x430 */	u8		unknown2[WII_BOOT_SIZE-0x430];
 }
 __attribute__ ((packed)) wd_boot_t;
 
@@ -604,11 +741,11 @@ int part_control_is_fake_signed ( const wd_part_control_t * pc );
 typedef struct wd_part_sector_t
 {
   /* 0x000 */	u8 h0 [WII_N_ELEMENTS_H0][WII_HASH_SIZE];
-  /* 0x26c */	u8 padding0[20];
+  /* 0x26c */	u8 padding0[0x14];
   /* 0x280 */	u8 h1 [WII_N_ELEMENTS_H1][WII_HASH_SIZE];
-  /* 0x320 */	u8 padding1[32];
+  /* 0x320 */	u8 padding1[0x20];
   /* 0x340 */	u8 h2 [WII_N_ELEMENTS_H2][WII_HASH_SIZE];
-  /* 0x3e0 */	u8 padding2[32];
+  /* 0x3e0 */	u8 padding2[0x20];
 
   /* 0x400 */	u8 data[WII_N_ELEMENTS_H0][WII_H0_DATA_SIZE];
 }

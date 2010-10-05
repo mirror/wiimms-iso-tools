@@ -72,10 +72,10 @@ void help_exit( bool xmode )
     {
 	int cmd;
 	for ( cmd = 0; cmd < CMD__N; cmd++ )
-	    PrintHelpCmd(&InfoUI,stdout,0,cmd,0);
+	    PrintHelpCmd(&InfoUI,stdout,0,cmd,0,0);
     }
     else
-	PrintHelpCmd(&InfoUI,stdout,0,0,0);
+	PrintHelpCmd(&InfoUI,stdout,0,0,"HELP",0);
 
     exit(ERR_OK);
 }
@@ -370,7 +370,7 @@ enumError cmd_analyze()
 	if ( !info->path || !*info->path )
 	    continue;
 
-	const enumError stat = OpenFile(&F,info->path,IOM_IS_WBFS);
+	const enumError stat = OpenFile(&F,info->path,IOM_IS_WBFS_PART);
 	if (stat)
 	    continue;
 
@@ -912,7 +912,7 @@ enumError cmd_format()
 
 	    File_t f;
 	    InitializeFile(&f);
-	    if ( OpenFile(&f,param->arg,IOM_IS_WBFS) == ERR_OK )
+	    if ( OpenFile(&f,param->arg,IOM_IS_WBFS_PART) == ERR_OK )
 	    {
 		AWData_t awd;
 		AnalyzeWBFS(&awd,&f);
@@ -1260,9 +1260,9 @@ enumError cmd_edit()
 	    ccp info;
 	    switch(cptr->id)
 	    {
-		case DO_RM:  mode = 0; info = "remove"; break;
-		case DO_ACT: mode = 1; info = "activate"; break;
-		default:     mode = 2; info = "invalidate"; break;
+		case DO_RM:  mode = WBFS_SLOT_FREE;	info = "remove"; break;
+		case DO_ACT: mode = WBFS_SLOT_VALID;	info = "activate"; break;
+		default:     mode = WBFS_SLOT_INVALID;	info = "invalidate"; break;
 	    }
 
 	    while (*arg)
@@ -2992,7 +2992,8 @@ enumError CheckOptions ( int argc, char ** argv, bool is_env )
 	case GO_PART:		AtFileHelper(optarg,0,0,AddPartition); break;
 	case GO_RECURSE:	AppendStringField(&recurse_list,optarg,false); break;
 	case GO_PSEL:		err += ScanOptPartSelector(optarg); break;
-	case GO_RAW:		part_selector.whole_disc = true; break;
+	case GO_RAW:		part_selector.whole_disc
+					= part_selector.whole_part = true; break;
 
 	case GO_INCLUDE:	AtFileHelper(optarg,0,0,AddIncludeID); break;
 	case GO_INCLUDE_PATH:	AtFileHelper(optarg,0,0,AddIncludePath); break;
@@ -3015,9 +3016,12 @@ enumError CheckOptions ( int argc, char ** argv, bool is_env )
 	case GO_RM_FILES:	err += ScanFiles(optarg,PAT_RM_FILES); break;
 	case GO_ZERO_FILES:	err += ScanFiles(optarg,PAT_ZERO_FILES); break;
 	case GO_IGNORE_FILES:	err += ScanFiles(optarg,PAT_IGNORE_FILES); break;
-	case GO_REPL_FILE:	err += ScanOptFile(optarg,false);
-	case GO_ADD_FILE:	err += ScanOptFile(optarg,true);
-	case GO_ALIGN:		err += ScanOptAlign(optarg);
+	case GO_REPL_FILE:	err += ScanOptFile(optarg,false); break;
+	case GO_ADD_FILE:	err += ScanOptFile(optarg,true); break;
+	case GO_TRIM:		err += ScanOptTrim(optarg); break;
+	case GO_ALIGN:		err += ScanOptAlign(optarg); break;
+	case GO_ALIGN_PART:	err += ScanOptAlignPart(optarg); break;
+	case GO_DISC_SIZE:	err += ScanOptDiscSize(optarg); break;
 	case GO_SPLIT:		opt_split++; break;
 	case GO_SPLIT_SIZE:	err += ScanOptSplitSize(optarg); break;
 	case GO_TRUNC:		opt_truncate++; break;
@@ -3025,7 +3029,8 @@ enumError CheckOptions ( int argc, char ** argv, bool is_env )
 	case GO_CHUNK_MODE:	err += ScanChunkMode(optarg); break;
 	case GO_CHUNK_SIZE:	err += ScanChunkSize(optarg); break;
 	case GO_MAX_CHUNKS:	err += ScanMaxChunks(optarg); break;
-	case GO_NO_COMPRESS:	opt_no_compress = true; break;
+	case GO_COMPRESSION:	err += ScanOptCompression(optarg); break;
+	case GO_MEM:		err += ScanOptMem(optarg,true); break;
 	case GO_RECOVER:	break;
 	case GO_FORCE:		break;
 	case GO_NO_CHECK:	break;
@@ -3049,6 +3054,7 @@ enumError CheckOptions ( int argc, char ** argv, bool is_env )
 	case GO_ATIME:	    	SetTimeOpt(PT_USE_ATIME|PT_F_ATIME); break;
 
 	case GO_LONG:		long_count++; break;
+	case GO_NUMERIC:	break;
 	case GO_MIXED:	    	break;
 	case GO_UNIQUE:	    	break;
 	case GO_NO_HEADER:	break;
@@ -3187,9 +3193,10 @@ enumError CheckCommand ( int argc, char ** argv )
     switch ((enumCommands)cmd_ct->id)
     {
 	case CMD_VERSION:	version_exit();
-	case CMD_HELP:		PrintHelp(&InfoUI,stdout,0,0); break;
+	case CMD_HELP:		PrintHelp(&InfoUI,stdout,0,"HELP",0); break;
 	case CMD_TEST:		err = cmd_test(); break;
 	case CMD_ERROR:		err = cmd_error(); break;
+	case CMD_COMPR:		err = cmd_compr(); break;
 	case CMD_EXCLUDE:	err = cmd_exclude(); break;
 	case CMD_TITLES:	err = cmd_titles(); break;
 

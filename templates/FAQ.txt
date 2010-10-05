@@ -27,7 +27,8 @@
     manipulating and converting ISO images.
     The general syntax is: wit <command> <option>... <parameter>...
     The importand commands are:
-	DUMP, LIST, DIFF, COPY, SCRUB, MOVE, RENAME, SETTTILE
+	DUMP, LIST, DIFF, COPY, CONVERT, EDIT, EXTRACT, MIX,
+	MOVE, RENAME, SETTTILE
 
 
 * What is "wwt"?

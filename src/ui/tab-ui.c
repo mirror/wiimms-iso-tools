@@ -153,7 +153,8 @@ info_t info_tab[] =
 		"wit [option]... command [option|parameter|@file]...",
 		"Wiimms ISO Tool :"
 		" It can list, analyze, verify, convert, split, join,"
-		" patch, mix, extract, compose, rename and compare Wii discs."
+		" patch, mix, extract, compose, rename and compare"
+		" Wii and GameCube discs."
 		" It can create and dump different other file formats." },
 
   //
@@ -176,7 +177,14 @@ info_t info_tab[] =
   { T_DEF_CMD,	"ERROR",	"ERROR|ERR",
 		    "wit ERROR [error_code]",
 		"Translate exit code to message or print a table"
-		" with all error messages." },
+		" with all error messages if not exit code is given." },
+
+  { T_DEF_CMD,	"COMPR",	"COMPR",
+		    "wit COMPR [mode]...",
+		"Scan compression modes and print the normalized names."
+		" See option {--compression} for syntax details."
+		" If no mode is given than print a table"
+		" with all available compression methods." },
 
   { T_DEF_CMD,	"EXCLUDE",	"EXCLUDE",
 		    "wit EXCLUDE [additional_excludes]...",
@@ -209,7 +217,8 @@ info_t info_tab[] =
 
   { T_DEF_CMD,	"DUMP",		"DUMP|D",
 		    "wit DUMP [source]...",
-		"Dump the data structure of Wii ISO files, ticket.bin, tmd.bin,"
+		"Dump the data structure of Wii and GameCube ISO files,"
+		" ticket.bin, tmd.bin,"
 		" header.bin, boot.bin, fst.bin and of DOL-files."
 		" The file type is detected automatically by analyzing the content." },
 
@@ -283,23 +292,26 @@ info_t info_tab[] =
 		"\n"
 		"wit COPY [-s path]... [-r path]... [source]... [-d|-D] dest",
 		"Copy, scrub, convert, join, split, compose, extract,"
-		" patch, encrypt and decrypt Wii disc images." },
+		" patch, encrypt and decrypt Wii and GameCube disc images." },
 
-  { T_DEF_CMD,	"SCRUB",	"SCRUB|SB",
-		    "wit SCRUB source\n"
-		    "wit SCRUB [-s path]... [-r path]... [source]...",
-		"Scrub, convert, join, split, compose, extract,"
-		" patch, encrypt and decrypt Wii disc images." },
+  { T_DEF_CMD,	"CONVERT",	"CONVERT|CV|SCRUB|SB",
+		    "wit CONVERT source\n"
+		    "wit CONVERT [-s path]... [-r path]... [source]...",
+		"Convert, scrub, join, split, compose, extract,"
+		" patch, encrypt and decrypt Wii and GameCube disc images"
+		" and replace the source with the result."
+		" The former command name was @SCRUB@." },
 
   { T_DEF_CMD,	"EDIT",		"EDIT|ED",
 		    "wit EDIT source\n"
 		    "wit EDIT [-s path]... [-r path]... [source]...",
-		"Edit an existing Wii ISO images and patch some values." },
+		"Edit an existing Wii and GameCube ISO image"
+		" and patch some values." },
 
   { T_DEF_CMD,	"MOVE",		"MOVE|MV",
 		    "wit MOVE source dest\n"
 		    "wit MOVE [-s path]... [-r path]... [source]... [-d|-D] dest",
-		"Move and rename Wii ISO images." },
+		"Move and rename Wii and GameCube ISO images." },
 
   { T_DEF_CMD,	"RENAME",	"RENAME|REN",
 		    "wit RENAME id6=[new][,title]...",
@@ -324,7 +336,8 @@ info_t info_tab[] =
 		    "                  | 'ignore' ruleset\n"
 		    "                  | 'header'\n"
 		    "                  | 'region'",
-		"Mix the partitions from different sources into one new Wii disc." },
+		"Mix the partitions from different sources into one new"
+		" Wii or GameCube disc." },
 
   //
   //---------- list of all wit options ----------
@@ -364,9 +377,8 @@ info_t info_tab[] =
 
   { T_OPT_GM,	"LOGGING",	"L|logging",
 		0,
-		"Special logging for $patching$ and $composing$ Wii discs."
-		" If set at least once the disc layout is printed."
-		" If set at least twice the partition layout is printed too." },
+		"Enable the logging of internal memory maps."
+		" If set twice second level memory maps are printed too." },
 
   { T_OPT_GP,	"ESC",		"E|esc",
 		"char",
@@ -380,7 +392,8 @@ info_t info_tab[] =
 		" The standard file IO is based on open() function."
 		" The value '1' defines that WBFS IO is based on fopen() function."
 		" The value '2' defines the same for ISO files"
-		" and the value '3' for both, WBFS and ISO." },
+		" and value '4' for WIA files."
+		" You can combine the values by adding them." },
 
   { T_SEP_OPT,	0,0,0,0 }, //----- separator -----
 
@@ -441,7 +454,7 @@ info_t info_tab[] =
   { T_OPT_CM,	"IGNORE",	"i|ignore",
 		0,
 		"Ignore non existing files/discs without warning."
-		" If set twice then all non Wii ISO images are ignored too." },
+		" If set twice then all non Wii and GameCube ISO images are ignored too." },
 
   { T_OPT_C,	"IGNORE_FST",	"ignore-fst|ignorefst",
 		0, "Disable composing and ignore FST directories as input." },
@@ -453,19 +466,19 @@ info_t info_tab[] =
 		"This option set the scrubbing mode and defines,"
 		" which disc partitions are handled."
 		" It expects a comma separated list of keywords, numbers and names;"
-		" all together called parameter. All parameter are case insensitive"
+		" all together called parameter. All parameters are case insensitive"
 		" and non ambiguous abbreviations of keyword are allowed."
-		"\n"
-		"Each parameter becomes a rule and each rule is appended to a rule list."
+		"\n "
+		" Each parameter becomes a rule and each rule is appended to a rule list."
 		" Rules prefixed by a minus sign are DENY rules."
 		" Rules prefixed by a plus sign or without a prefix are ALLOW rules."
 		" Each partition is compared with each rule until a rule matches the partition."
 		" If a match it found, the partition is enabled for a ALLOW rule"
 		" or disabled for a DENY rule."
-		"\n"
-		"The allowed keywords are: @DATA@, @UPDATE@, @CHANNEL@,"
+		"\n "
+		" The allowed keywords are: @DATA@, @UPDATE@, @CHANNEL@,"
 		" @PTAB0@ .. @PTAB3@, @ID@, @ALL@, @WHOLE@ and @RAW@."
-		" Additional the following input formats are accepted:"
+		" The following input formats are accepted too:"
 		" @ptype@, @#index@, @#<index@, @#<=index@, @#>index@, @#>=index@"
 		" and @#tab_index.part_index@."
 		"\1\n"
@@ -487,6 +500,13 @@ info_t info_tab[] =
   { H_OPT_G,	"HOOK",		"hook",
 		0,
 		"Force relocation hook while reading iso images." },
+
+  { T_OPT_CP,	"ENC",		"enc",
+		"encoding",
+		"Define the encoding mode."
+		" The mode is one of NONE, HASHONLY, DECRYPT, ENCRYPT, SIGN or AUTO."
+		" The case of the keywords is ignored."
+		" The default mode is 'AUTO'." },
 
   { T_OPT_CP,	"ID",		"id",
 		"id",
@@ -510,8 +530,8 @@ info_t info_tab[] =
 		" This $patching$ option expects a comma separated list"
 		" of the following keywords (case ignored) as parameter:"
 		" @NONE, DISC, BOOT, TICKET, TMD, WBFS, ALL@ and @AUTO@ (default)."
-		"\n"
-		"All keywords can be prefixed by @'+'@ to enable that option,"
+		"\n "
+		" All keywords can be prefixed by @'+'@ to enable that option,"
 		" by a @'-'@ to disable it or"
 		" by a @'='@ to enable that option and disable all others." },
 
@@ -550,14 +570,25 @@ info_t info_tab[] =
 		" The processing order of file options is:"
 		" {--rm-files --zero-files --ignore-files}." },
 
+  { T_OPT_C,	"OVERLAY",	"overlay",
+		0,
+		"Most partitions have holes (unused areas) in the data section."
+		" If combining multiple partitions into one disc it is possible"
+		" to overlay the partitions so that the data of one partition"
+		" resides in the hole of other partitions."
+		" This option enables this feature."
+		" It also limits the number of input partitions to 12,"
+		" because the calculation is rated as O(2^n)." },
+
   { H_OPT_CP,	"REPL_FILE",	"repl-file|repl-files|replfile|replfiles",
 		"filedef",
+		"This relocation option ???"
 		" The processing order of file options is:"
 		" {--rm-files --zero-files --repl-file --add-file --ignore-files}." },
 
   { H_OPT_CP,	"ADD_FILE",	"add-file|add-files|addfile|addfiles",
 		"filedef",
-		"???"
+		"This relocation option ???"
 		" The processing order of file options is:"
 		" {--rm-files --zero-files --repl-file --add-file --ignore-files}." },
 
@@ -572,26 +603,19 @@ info_t info_tab[] =
 		" The processing order of file options is:"
 		" {--rm-files --zero-files --ignore-files}." },
 
-  { T_OPT_C,	"OVERLAY",	"overlay",
-		0,
-		"Most partitions have holes (unused areas) in the data section."
-		" If combining multiple partitions into one disc it is possible"
-		" to overlay the partitions so that the data of one partition"
-		" resides in the hole of other partitions."
-		" This option enables this feature."
-		" It also limits the number of input partitions to 12,"
-		" because the calculation is rated as O(2^n)." },
-
-  { T_OPT_CP,	"ENC",		"enc",
-		"encoding",
-		"Define the encoding mode."
-		" The mode is one of NONE, HASHONLY, DECRYPT, ENCRYPT, SIGN or AUTO."
-		" The case of the keywords is ignored."
-		" The default mode is 'AUTO'." },
+  { H_OPT_CP,	"TRIM",		"trim",
+		"keylist",
+		"This relocation option ???" },
 
   { H_OPT_CP,	"ALIGN",	"align",
-		"align1[,align2][,align3]",
+		"size1[,size2][,size3]",
 		"???" },
+
+  { T_OPT_CP,	"ALIGN_PART",	"align-part|alignpart",
+		"size",
+		"If creating or moving partitions the beginning of each partition"
+		" is set to an offset that is a multiple of the align size."
+		" Size must be a power of 2 and at least 32 KiB (=default)." },
 
   { T_OPT_CP,	"DEST",		"d|dest",
 		"path",
@@ -615,34 +639,39 @@ info_t info_tab[] =
 		" 'kmgtpe' [base=1000] or 'KMGTPE' [base=1024])."
 		" The default unit is 'G' (GiB)." },
 
+  { T_OPT_CP,	"DISC_SIZE",	"disc-size|discsize",
+		"size",
+		"Define a minimal (virtual) ISO disc size." },
+
   { T_OPT_C,	"TRUNC",	"trunc",
 		0, "Truncate PLAIN ISO images to the needed size while creating." },
 
   { T_OPT_CP,	"CHUNK_MODE",	"chunk-mode|chunkmode|chm",
 		"mode", TEXT_OPT_CHUNK_MODE("ISO") },
 
-  { T_OPT_CP,	"CHUNK_SIZE",	"chunk-size|chunksize|chz",
+  { T_OPT_CP,	"CHUNK_SIZE",	"chunk-size|chunksize|chs",
 		"sz",
-		"Define the minimal chunk size if creating a CISO file."
+		"Define the minimal chunk size if creating a CISO"
+		" or WIA file (for WIA details see option --compression})."
 		" The default is to calculate the chunk size from the input file size"
 		" and find a good value by using a minimal value of 1 MiB"
-		" for {--chunk-mode @ISO@} and @32 KiB@ for modes @32K@ and @POW2@."
+		" for {--chunk-mode ISO} and @32 KiB@ for modes @32K@ and @POW2@."
 		" For the modes @ISO@ and @POW2@ the value is rounded"
 		" up to the next power of 2."
 		" This calculation also depends from option {--max-chunks}."
-		"\n"
-		"The parameter 'sz' is a floating point number followed"
+		"\n "
+		" The parameter 'sz' is a floating point number followed"
 		" by an optional unit factor (one of 'cb' [=1] or "
 		" 'kmgtpe' [base=1000] or 'KMGTPE' [base=1024])."
 		" The default unit is 'M' (MiB)."
 		" If the number is prefixed with a @'='@ then options"
 		" {--chunk-mode} and {--max-chunks} are ignored"
 		" and the given value is used without any rounding or changing."
-		"\n"
-		"If the input file size is not known (e.g. reading from pipe),"
+		"\n "
+		" If the input file size is not known (e.g. reading from pipe),"
 		" its size is assumed as @12 GiB@."
-		"\n"
-		"@--chz@ is a shortcut for @--chunk-size@." },
+		"\n "
+		" @--chs@ is a shortcut for @--chunk-size@." },
 
   { T_OPT_CP,	"MAX_CHUNKS",	"max-chunks|maxchunks|mch",
 		"n",
@@ -651,13 +680,48 @@ info_t info_tab[] =
 		" and 32760 (maximal value) for all other modes."
 		" If this value is set than the automatic calculation "
 		" of {--chunk-size} will be modified too."
-		"\n"
-		"@--mch@ is a shortcut for @--max-chunks@." },
+		"\n "
+		" @--mch@ is a shortcut for @--max-chunks@." },
 
-  { T_OPT_C,	"NO_COMPRESS",	"no-compress|nocompress|noc",
-		0,
-		"Disable compression for new WIA files."
-		" --noc is a shortcut for --no-compress." },
+  { T_OPT_CP,	"COMPRESSION",	"compression|compr",
+		"mode",
+		"Select one compression method, level and chunk size for new WIA files."
+		" The syntax for mode is: @[method] [.level] [@@factor]@"
+		"\n "
+		" @'method'@ is the name or index of the method."
+		" Possible compressions method are @NONE@, @PURGE@, @BZIP2@,"
+		" @LZMA@ and @LZMA2@."
+		" There are additional keywords: @DEFAULT@ (=@LZMA.5@@20@),"
+		" @FAST@ (=@BZIP2.3@@10@), @GOOD@ (=@LZMA.5@@20@) @BEST@ (=@LZMA.7@@50@),"
+		" and @MEM@ (use best mode in respect to memory limit set by {--mem})."
+		" These additional keywords may change their meanings"
+		" if a new compression method is implemented."
+		"\n "
+		" @'.level'@ is a point followed by one digit."
+		" It defines the compression level."
+		" The special value @.0@ means: Use default compression level (=@.5@)."
+		"\n "
+		" @'@@factor'@ is a factor for the chunk size. The base size is 2 MiB."
+		" The value@ @@0@ is replaced by the default factor@ @@20@ (40 MiB)."
+		" If the factor is not set but option {--chunk-size} is set,"
+		" the factor will be calculated by using a rounded value of that option."
+		"\n "
+		" All three parts are optional."
+		" All default values may be changed in the future."
+		" @--compr@ is a shortcut for @--compression@." },
+
+  { T_OPT_CP,	"MEM",		"mem",
+		"size",
+		"This option defines a memory usage limit for compressing files."
+		" When compressing a file with method @MEM@ (see {--compression})"
+		" the the compression method, level and chunk size"
+		" are calculated with respect to this limit."
+		"\n "
+		" If this option is not set or the value is 0,"
+		" then the environment @WIT_MEM@ is tried to read instead."
+		" If this fails, the tool tries to find out the total memory"
+		" by reading @/proc/meminfo@."
+		" The limit is set to 80% of the total memory minus 50 MiB." },
 
   { T_OPT_C,	"PRESERVE",	"p|preserve",
 		0, "Preserve file times (atime+mtime)." },
@@ -674,28 +738,23 @@ info_t info_tab[] =
   { T_SEP_OPT,	0,0,0,0 }, //----- separator -----
 
   { T_OPT_C,	"WDF",		"W|wdf",
-		0, "Set ISO output file type to WDF. (default)" },
+		0, "Set ISO output file type to WDF (Wii Disc Format, default)" },
 
   { T_OPT_C,	"ISO",		"I|iso",
 		0, "Set ISO output file type to PLAIN ISO." },
 
   { T_OPT_C,	"CISO",		"C|ciso",
-		0, "Set ISO output file type to CISO (=WBI)." },
+		0, "Set ISO output file type to CISO (Compact ISO, same as WBI)." },
 
   { T_OPT_C,	"WBFS",		"B|wbfs",
-		0, "Set ISO output file type to WBFS container." },
+		0, "Set ISO output file type to WBFS (Wii Backup File System) container." },
 
   { T_OPT_C,	"WIA",		"wia",
-		0, "Set ISO output file type to WIA."
-		" WIA files are not editable."
-		"\n"
-		"\n"
-		"The WIA support is EXPERIMENTAL!"
-		" The WIA format is in development!"
-		" Don't use WIA files productive!" },
+		0, "Set ISO output file type to WIA (Wii ISO Archive)."
+		" WIA files are not editable by {wit EDIT}." },
 
   { T_OPT_C,	"FST",		"fst",
-		0, "Set ISO output mode to 'file system' (extract ISO)." },
+		0, "Set ISO output mode to 'file system' (extracted ISO)." },
 
   { T_OPT_CMP,	"FILES",	"F|files",
 		"rules",
@@ -740,6 +799,9 @@ info_t info_tab[] =
   { T_OPT_CM,	"LONG",		"l|long",
 		0, "Print in long format. Multiple usage possible." },
 
+  { T_OPT_C,	"NUMERIC",	"numeric",
+		0, "Force numeric output instead of printing names." },
+
   { T_OPT_CP,	"SHOW",		"show",
 		"list",
 		"This option allows fine control over the things that are to be printed."
@@ -750,16 +812,16 @@ info_t info_tab[] =
 		" There are some combined keys:"
 		" @PART := P-INFO,P-MAP,TICKET,TMD@,"
 		" @MAP := P-MAP,D-MAP@."
-		"\n"
-		"All keywords can be prefixed by '+' to enable that option,"
+		"\n "
+		" All keywords can be prefixed by '+' to enable that option,"
 		" by a '-' to disable it or"
 		" by a '=' to enable that option and disable all others."
-		"\n"
-		"The additional keywords @DEC@ and @HEX@ can be used to set"
+		"\n "
+		" The additional keywords @DEC@ and @HEX@ can be used to set"
 		" a prefered number format."
 		" @-HEADER@ suppresses the output of header lines."
-		"\n"
-		"The commands recognize only some of these keywords"
+		"\n "
+		" The commands recognize only some of these keywords"
 		" and ignore the others."
 		" If @--show@ is set, option {--long} is ignored"
 		" for selecting output elements." },
@@ -896,6 +958,7 @@ info_t info_tab[] =
   { T_GRP_BEG,	"PATCH",	0,0,0 },
 
   { H_COPT,	"HOOK",		0,0,0 },
+  { T_COPT,	"ENC",		0,0,0 },
   { T_COPT,	"ID",		0,0,0 },
   { T_COPT,	"NAME",		0,0,0 },
   { T_COPT,	"MODIFY",	0,0,0 },
@@ -904,11 +967,17 @@ info_t info_tab[] =
   { T_COPT,	"IOS",		0,0,0 },
   { T_COPT,	"RM_FILES",	0,0,0 },
   { T_COPT,	"ZERO_FILES",	0,0,0 },
+
+  //---------- wit GROUP RELOCATE ----------
+
+  { T_GRP_BEG,	"RELOCATE",	0,0,0 },
+
   { H_COPT,	"REPL_FILE",	0,0,0 },
   { H_COPT,	"ADD_FILE",	0,0,0 },
   { T_COPT,	"IGNORE_FILES",	0,0,0 },
-  { T_COPT,	"ENC",		0,0,0 },
+  { H_COPT,	"TRIM",		0,0,0 },
   { H_COPT,	"ALIGN",	0,0,0 },
+  { T_COPT,	"ALIGN_PART",	0,0,0 },
 
   //---------- wit GROUP SPLIT_CHUNK ----------
 
@@ -916,11 +985,13 @@ info_t info_tab[] =
 
   { T_COPT,	"SPLIT",	0,0,0 },
   { T_COPT,	"SPLIT_SIZE",	0,0,0 },
+  { T_COPT,	"DISC_SIZE",	0,0,0 },
   { T_COPT,	"TRUNC",	0,0,0 },
   { T_COPT,	"CHUNK_MODE",	0,0,0 },
   { T_COPT,	"CHUNK_SIZE",	0,0,0 },
   { T_COPT,	"MAX_CHUNKS",	0,0,0 },
-  { T_COPT,	"NO_COMPRESS",	0,0,0 },
+  { T_COPT,	"COMPRESSION",	0,0,0 },
+  { T_COPT,	"MEM",		0,0,0 },
 
   //
   //---------- COMMAND wit HELP ----------
@@ -951,6 +1022,22 @@ info_t info_tab[] =
   { T_COPT,	"NO_HEADER",	0,0,0 },
   { T_COPT,	"LONG",		0,0,
 	"Print extended message instead of error name." },
+
+  //---------- COMMAND wit COMPR ----------
+
+  { T_CMD_BEG,	"COMPR",	0,0,0 },
+
+  { T_COPT,	"MEM",		0,0,0 },
+  { T_COPT,	"SECTIONS",	0,0,0 },
+  { T_COPT,	"NO_HEADER",	0,0,0 },
+  { T_COPT,	"LONG",		0,0,
+	"Print the numeric value and the normalized name."
+	" If set twice print a table with the numeric value,"
+	" normalized name and alternative names." },
+  { T_COPT,	"VERBOSE",	0,0,
+	"Show default compression level and chunk size factor too."
+	" Standard is to suppress these values if not explicitly set." },
+  { T_COPT,	"NUMERIC",	0,0,0 },
 
   //---------- COMMAND wit EXCLUDE ----------
 
@@ -1026,11 +1113,16 @@ info_t info_tab[] =
   { T_SEP_OPT,	0,0,0,0 },
 
   { T_COPT_M,	"LOGGING",	0,0,0 },
-  { T_COPY_GRP,	"PATCH",	0,0,0 },
   { T_COPT_M,	"LONG",		0,0,
 	"If set at least once a memory map for each partition is printed."
 	" If set twice or more a memory map for whole ISO image is printed." },
   { T_COPT,	"SHOW",		0,0,0 },
+
+  { T_SEP_OPT,	0,0,0,0 },
+
+  { T_COPY_GRP,	"PATCH",	0,0,0 },
+  { T_COPY_GRP,	"RELOCATE",	0,0,0 },
+  { T_COPT,	"DISC_SIZE",	0,0,0 },
 
   //---------- COMMAND wit DREGION ----------
 
@@ -1163,7 +1255,7 @@ info_t info_tab[] =
   { T_COPY_GRP,	"PARTITIONS",	0,0,0 },
   { T_COPY_GRP,	"FILES",	0,0,0 },
   { T_COPT,	"SORT",		0,0,
-	"Define the exracting order."
+	"Define the extracting order."
 	" The parameter is a comma separated list of the following keywords:"
 	" NONE, NAME, SIZE, OFFSET, ASCENDING, DESCENDING = REVERSE." },
 
@@ -1176,10 +1268,14 @@ info_t info_tab[] =
 
   { T_SEP_OPT,	0,0,0,0 },
 
+  { T_COPY_GRP,	"PATCH",	0,0,0 },
+  { T_COPY_GRP,	"RELOCATE",	0,0,0 },
+
+  { T_SEP_OPT,	0,0,0,0 },
+
   { T_COPT,	"DEST",		0,0,0 },
   { T_COPT,	"DEST2",	0,0,0 },
   { T_COPT,	"ESC",		0,0,0 },
-  { T_COPY_GRP,	"PATCH",	0,0,0 },
   { T_COPT,	"PRESERVE",	0,0,0 },
   { T_COPT,	"OVERWRITE",	0,0,0 },
 
@@ -1197,9 +1293,9 @@ info_t info_tab[] =
 
   { T_COPY_GRP,	"OUTMODE_FST",	0,0,0 },
 
-  //---------- COMMAND wit SCRUB ----------
+  //---------- COMMAND wit CONVERT ----------
 
-  { T_CMD_BEG,	"SCRUB",	0,0,0 },
+  { T_CMD_BEG,	"CONVERT",	0,0,0 },
 
   { T_COPT_M,	"TEST",		0,0,0 },
 
@@ -1218,10 +1314,13 @@ info_t info_tab[] =
 
   { T_SEP_OPT,	0,0,0,0 },
 
+  { T_COPY_GRP,	"PATCH",	0,0,0 },
+  { T_COPY_GRP,	"RELOCATE",	0,0,0 },
+
+  { T_SEP_OPT,	0,0,0,0 },
+
   { T_COPY_GRP,	"SPLIT_CHUNK",	0,0,0 },
   { T_COPT,	"PRESERVE",	0,0,0 },
-  { T_COPY_GRP,	"PATCH",	0,0,0 },
-
   { T_COPY_GRP,	"OUTMODE",	0,0,0 },
 
 
@@ -1343,6 +1442,11 @@ info_t info_tab[] =
   { T_COPT,	"ESC",		0,0,0 },
   { T_COPT,	"OVERWRITE",	0,0,0 },
   { T_COPY_GRP,	"SPLIT_CHUNK",	0,0,0 },
+  { T_COPT,	"ALIGN_PART",	0,0,
+	"The beginning of each partition is set to an offset that is"
+	" a multiple of the align size."
+	" Size must be a power of 2 and at least 32 KiB (=default)."
+	" If option {--overlay} is set only the first partition is aligned." },
 
   { T_SEP_OPT,	0,0,0,0 },
 
@@ -1387,6 +1491,10 @@ info_t info_tab[] =
 		0 /* copy of wit */ },
 
   { T_DEF_CMD,	"ERROR",	"ERROR|ERR",
+		    "wwt ERROR [error_code]",
+		0 /* copy of wit */ },
+
+  { T_DEF_CMD,	"COMPR",	"COMPR",
 		    "wwt ERROR [error_code]",
 		0 /* copy of wit */ },
 
@@ -1492,11 +1600,11 @@ info_t info_tab[] =
 
   { T_DEF_CMD,	"ADD",		"ADD|A",
 		    "wwt ADD iso|wbfs|dir...",
-		"Add Wii ISO discs to WBFS partitions." },
+		"Add Wii and GameCube ISO discs to WBFS partitions." },
 
   { T_DEF_CMD,	"UPDATE",	"UPDATE|U",
 		    "wwt UPDATE iso|wbfs|dir...",
-		"Add missing Wii ISO discs to WBFS partitions."
+		"Add missing Wii and GameCube ISO discs to WBFS partitions."
 		" 'UPDATE' is a shortcut for {ADD --update}."},
 
   { T_DEF_CMD,	"SYNC",		"SYNC",
@@ -1507,7 +1615,8 @@ info_t info_tab[] =
 
   { T_DEF_CMD,	"EXTRACT",	"EXTRACT|X",
 		    "wwt EXTRACT id6[=dest]...",
-		"Extract discs from WBFS partitions and store them as Wii ISO images." },
+		"Extract discs from WBFS partitions and store them"
+		" as Wii and GameCube ISO images." },
 
   { T_DEF_CMD,	"REMOVE",	"REMOVE|RM",
 		    "wwt REMOVE id6...",
@@ -1640,6 +1749,9 @@ info_t info_tab[] =
   { H_OPT_G,	"HOOK",		"hook",
 		0, 0 /* copy of wit */ },
 
+  { T_OPT_CP,	"ENC",		"enc",
+		0, 0 /* copy of wit */ },
+
   { T_OPT_CP,	"ID",		"id",
 		0, 0 /* copy of wit */ },
 
@@ -1673,10 +1785,13 @@ info_t info_tab[] =
   { T_OPT_CP,	"IGNORE_FILES",	"ignore-files|ignore-file|ignorefiles|ignorefile",
 		0, 0 /* copy of wit */ },
 
-  { T_OPT_CP,	"ENC",		"enc",
+  { H_OPT_CP,	"TRIM",		"trim",
 		0, 0 /* copy of wit */ },
 
   { H_OPT_CP,	"ALIGN",	"align",
+		0, 0 /* copy of wit */ },
+
+  { T_OPT_CP,	"ALIGN_PART",	"part-align",
 		0, 0 /* copy of wit */ },
 
   { T_OPT_CP,	"DEST",		"d|dest",
@@ -1691,6 +1806,9 @@ info_t info_tab[] =
   { T_OPT_CP,	"SPLIT_SIZE",	"Z|split-size|splitsize",
 		0, 0 /* copy of wit */ },
 
+  { T_OPT_CP,	"DISC_SIZE",	"disc-size|discsize",
+		0, 0 /* copy of wit */ },
+
   { T_OPT_C,	"TRUNC",	"trunc",
 		0, 0 /* copy of wit */ },
 
@@ -1700,13 +1818,16 @@ info_t info_tab[] =
   { T_OPT_CP,	"CHUNK_MODE",	"chunk-mode|chunkmode|chm",
 		0, 0 /* copy of wit */ },
 
-  { T_OPT_CP,	"CHUNK_SIZE",	"chunk-size|chunksize|chz",
+  { T_OPT_CP,	"CHUNK_SIZE",	"chunk-size|chunksize|chs",
 		0, 0 /* copy of wit */ },
 
   { T_OPT_CP,	"MAX_CHUNKS",	"max-chunks|maxchunks|mch",
 		0, 0 /* copy of wit */ },
 
-  { T_OPT_C,	"NO_COMPRESS",	"no-compress|nocompress|noc",
+  { T_OPT_CP,	"COMPRESSION",	"compression|compr",
+		0, 0 /* copy of wit */ },
+
+  { T_OPT_CP,	"MEM",		"mem",
 		0, 0 /* copy of wit */ },
 
   { T_OPT_CP,	"SIZE",		"s|size",
@@ -1797,6 +1918,9 @@ info_t info_tab[] =
   { T_SEP_OPT,	0,0,0,0 }, //----- separator -----
 
   { T_OPT_CM,	"LONG",		"l|long",
+		0, 0 /* copy of wit */ },
+
+  { T_OPT_C,	"NUMERIC",	"numeric",
 		0, 0 /* copy of wit */ },
 
   { T_OPT_C,	"INODE",	"inode",
@@ -1918,13 +2042,14 @@ info_t info_tab[] =
   { T_COPT,	"ISO",		0,0,0 },
   { T_COPT,	"CISO",		0,0,0 },
   { T_COPT,	"WBFS",		0,0,0 },
-  { T_COPT,	"WIA",		0,0,0 },
+//  { H_COPT,	"WIA",		0,0,0 },	// [2do]
 
   //---------- wwt GROUP PATCH ----------
 
   { T_GRP_BEG,	"PATCH",	0,0,0 },
 
   { H_COPT,	"HOOK",		0,0,0 },
+  { T_COPT,	"ENC",		0,0,0 },
   { T_COPT,	"ID",		0,0,0 },
   { T_COPT,	"NAME",		0,0,0 },
   { T_COPT,	"MODIFY",	0,0,0 },
@@ -1933,11 +2058,17 @@ info_t info_tab[] =
   { T_COPT,	"IOS",		0,0,0 },
   { T_COPT,	"RM_FILES",	0,0,0 },
   { T_COPT,	"ZERO_FILES",	0,0,0 },
+
+  //---------- wwt GROUP RELOCATE ----------
+
+  { T_GRP_BEG,	"RELOCATE",	0,0,0 },
+
   { H_COPT,	"REPL_FILE",	0,0,0 },
   { H_COPT,	"ADD_FILE",	0,0,0 },
   { T_COPT,	"IGNORE_FILES",	0,0,0 },
-  { T_COPT,	"ENC",		0,0,0 },
+  { H_COPT,	"TRIM",		0,0,0 },
   { H_COPT,	"ALIGN",	0,0,0 },
+  { T_COPT,	"ALIGN_PART",	0,0,0 },
 
   //---------- wwt GROUP SPLIT_CHUNK ----------
 
@@ -1945,11 +2076,13 @@ info_t info_tab[] =
 
   { T_COPT,	"SPLIT",	0,0,0 },
   { T_COPT,	"SPLIT_SIZE",	0,0,0 },
+  { T_COPT,	"DISC_SIZE",	0,0,0 },
   { T_COPT,	"TRUNC",	0,0,0 },
   { T_COPT,	"CHUNK_MODE",	0,0,0 },
   { T_COPT,	"CHUNK_SIZE",	0,0,0 },
   { T_COPT,	"MAX_CHUNKS",	0,0,0 },
-  { T_COPT,	"NO_COMPRESS",	0,0,0 },
+//  { H_COPT,	"COMPRESSION",	0,0,0 },	// [2do]
+//  { H_COPT,	"MEM",		0,0,0 },	// [2do]
 
 
   //
@@ -1980,6 +2113,18 @@ info_t info_tab[] =
   { T_COPT,	"NO_HEADER",	0,0,0 },
   { T_COPT,	"LONG",		0,0,
 	"Print extended message instead of error name." },
+
+  //---------- COMMAND wwt COMPR ----------
+
+  { T_CMD_BEG,	"COMPR",	0,0,0 },
+
+  { T_COPT,	"SECTIONS",	0,0,0 },
+  { T_COPT,	"NO_HEADER",	0,0,0 },
+  { T_COPT,	"LONG",		0,0,
+	"Print the numeric value and the normalized name."
+	" If set twice print a table with the numeric value,"
+	" normalized name and alternative names." },
+  { T_COPT,	"NUMERIC",	0,0,0 },
 
   //---------- COMMAND wwt EXCLUDE ----------
 
@@ -2218,12 +2363,13 @@ info_t info_tab[] =
 
   { T_SEP_OPT,	0,0,0,0 },
 
-  { T_COPT,	"PSEL",		0,0,0 },
-  { T_COPT,	"RAW",		0,0,0 },
   { T_COPY_GRP,	"PATCH",	0,0,0 },
+  { T_COPY_GRP,	"RELOCATE",	0,0,0 },
 
   { T_SEP_OPT,	0,0,0,0 },
 
+  { T_COPT,	"PSEL",		0,0,0 },
+  { T_COPT,	"RAW",		0,0,0 },
   { T_COPT,	"REMOVE",	0,0,0 },
   { T_COPT,	"TRUNC",	0,0,
 	"Truncate WBFS until operation finished." },
@@ -2404,11 +2550,11 @@ info_t info_tab[] =
   /////////////			  TOOL wdf			/////////////
   ///////////////////////////////////////////////////////////////////////////
 
-  { H_DEF_TOOL,	"wdf", 0,
+  { T_DEF_TOOL,	"wdf", 0,
 		"wdf [options]... [+command] [options]... files...",
 		"wdf is a support tool for WDF and CISO archives."
 		" It convert (pack and unpack), compare"
-		" and dump WDF and CISO archives."
+		" and dump WDF, WIA (only dump) and CISO archives."
 		" The default command depends on the program file name"
 		" (see command descriptions). Usual names are"
 		" @wdf@, @unwdf@, @wdf-cat@, @wdf-cmp@ and @wdf-dump@"
@@ -2437,38 +2583,38 @@ info_t info_tab[] =
   { T_DEF_CMD,	"UNPACK",	"+UNPACK|+U",
 		    "wdf +UNPACK [option]... files...",
 		"Unpack WDF and CISO archives."
-		"\n"
-		"This is the default command, when the program name starts"
+		"\n "
+		" This is the default command, when the program name starts"
 		" with the two letters @'un'@ in any case." },
 
-  { T_DEF_CMD,	"CAT",		"+CAT|+A",
+  { T_DEF_CMD,	"CAT",		"+CAT|+C",
 		    "wdf +CAT [option]... files...",
 		"Concatenate files and print on the standard output."
 		" WDF and CISO files are extracted before printing,"
 		" all other files are copied byte by byte."
-		"\n"
-		"This is the default command, when the program name"
+		"\n "
+		" This is the default command, when the program name"
 		"contains the three letter @'cat'@ in any case." },
 
-  { T_DEF_CMD,	"CMP",		"+CMP|+C|+DIFF",
-		    "wdf +CMP [option]... files...",
+  { H_DEF_CMD,	"CMP",		"+DIFF|+CMP",
+		    "wdf +DIFF [option]... files...",
 		"Compare files and unpack WDF and CISO while comparing."
-		"\n"
-		"The standard is to compare two source files."
+		"\n "
+		" The standard is to compare two source files."
 		" If {--dest} or {--DEST} is set, than all source files"
 		" are compared against files in the destination path with equal names."
 		" If the second source file is mising then standard input"
 		" (stdin) is used instead."
-		"\n"
-		"This is the default command, when the program name"
-		"contains the letters @'cmp'@ or @'diff'@ in any case." },
+		"\n "
+		" This is the default command, when the program name"
+		"contains the letters @'diff'@ or @'cmp'@ in any case." },
 
   { T_DEF_CMD,	"DUMP",		"+DUMP|+D",
 		    "wdf +DUMP [option]... files...",
-		"Dump the data structure of all archives"
-		" and ignore non WDF and non CISO files."
-		"\n"
-		"This is the default command, when the program contains"
+		"Dump the data structure of WDF, WIA and CISO archives"
+		" and ignore other files."
+		"\n "
+		" This is the default command, when the program contains"
 		" the sub string @'dump'@ in any case." },
 
   //
@@ -2493,6 +2639,9 @@ info_t info_tab[] =
 
   { T_OPT_G,	"VERBOSE",	"v|verbose",
 		0, "Be verbose -> print program name." },
+
+  { T_OPT_GM,	"LOGGING",	"L|logging",
+		0, 0 /* copy of wit */ },
 
   { T_SEP_OPT,	0,0,0,0 }, //----- separator -----
 
@@ -2519,25 +2668,33 @@ info_t info_tab[] =
 		" and set the default suffix to @'.wdf'@."
 		" This is the general default." },
 
+  { T_OPT_C,	"WIA",		"wia",
+		0,
+		"Force WIA output mode if packing"
+		" and set the default suffix to @'.wia'@."
+		"\n "
+		"  This is the default, when the program name contains"
+		" the sub string @'wia'@ in any case." },
+
   { T_OPT_C,	"CISO",		"C|ciso",
 		0,
 		"Force CISO output mode if packing"
 		" and set the default suffix to @'.ciso'@."
-		"\n"
-		" This is the default, when the program name contains"
+		"\n "
+		"  This is the default, when the program name contains"
 		" the sub string @'ciso'@ in any case." },
 
   { T_OPT_C,	"WBI",		"wbi",
 		0,
 		"Force CISO output mode if packing"
 		" and set the default suffix to @'.wbi'@."
-		"\n"
-		" This is the default, when the program name contains"
+		"\n "
+		"  This is the default, when the program name contains"
 		" the sub string @'wbi'@ but not @'ciso'@ in any case." },
 
   { T_OPT_CP,	"SUFFIX",	"s|suffix",
 		".suf",
-		"Use suffix @'.suf'@ instead of @'.wdf'@,"
+		"Use suffix @'.suf'@ instead of @'.wdf'@, @'.wia'@,"
 		" or @'.ciso'@ for packed files." },
 
   { T_SEP_OPT,	0,0,0,0 }, //----- separator -----
@@ -2546,15 +2703,15 @@ info_t info_tab[] =
 		"path",
 		"Define a destination path (directory/file)." },
 
-  { T_OPT_GP,	"DEST2",	"D|DEST",
+  { T_OPT_CP,	"DEST2",	"D|DEST",
 		0, 0 /* copy of wit */ },
 
-  { T_OPT_G,	"STDOUT",	"c|stdout",
+  { T_OPT_C,	"STDOUT",	"c|stdout",
 		0,
 		"Write to standard output (stdout)"
 		" and keep (don't delete) input files."
-		"\n"
-		"This is the default, when the program"
+		"\n "
+		" This is the default, when the program"
 		" is reading from standard input (stdin)." },
 
   { T_OPT_C,	"KEEP",		"k|keep",
@@ -2576,13 +2733,16 @@ info_t info_tab[] =
   { T_OPT_CP,	"CHUNK_MODE",	"chunk-mode|chunkmode|chm",
 		"mode", TEXT_OPT_CHUNK_MODE("32K") },
 
-  { T_OPT_CP,	"CHUNK_SIZE",	"chunk-size|chunksize|chz",
+  { T_OPT_CP,	"CHUNK_SIZE",	"chunk-size|chunksize|chs",
 		0, 0 /* copy of wit */ },
 
   { T_OPT_CP,	"MAX_CHUNKS",	"max-chunks|maxchunks|mch",
 		0, 0 /* copy of wit */ },
 
-  { T_OPT_C,	"NO_COMPRESS",	"no-compress|nocompress|noc",
+  { T_OPT_CP,	"COMPRESSION",	"compression|compr",
+		0, 0 /* copy of wit */ },
+
+  { T_OPT_CP,	"MEM",		"mem",
 		0, 0 /* copy of wit */ },
 
   { T_SEP_OPT,	0,0,0,0 }, //----- separator -----
@@ -2616,13 +2776,15 @@ info_t info_tab[] =
   { T_COPT,	"CHUNK_MODE",	0,0,0 },
   { T_COPT,	"CHUNK_SIZE",	0,0,0 },
   { T_COPT,	"MAX_CHUNKS",	0,0,0 },
-  { T_COPT,	"NO_COMPRESS",	0,0,0 },
+  { T_COPT,	"COMPRESSION",	0,0,0 },
+  { T_COPT,	"MEM",		0,0,0 },
 
   //---------- wdf GROUP FILETYPE ----------
 
   { T_GRP_BEG,	"FILETYPE",	0,0,0 },
 
   { T_COPT,	"WDF",		0,0,0 },
+  { T_COPT,	"WIA",		0,0,0 },
   { T_COPT,	"CISO",		0,0,0 },
   { T_COPT,	"WBI",		0,0,0 },
   { T_COPT,	"SUFFIX",	0,0,0 },

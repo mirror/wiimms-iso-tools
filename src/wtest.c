@@ -44,7 +44,7 @@
 #include "lib-std.h"
 #include "match-pattern.h"
 #include "crypt.h"
-
+#include "lib-lzma.h"
 
 #ifdef HAVE_WORK_DIR
   #include "wtest+.c"
@@ -58,6 +58,8 @@
 
 //
 ///////////////////////////////////////////////////////////////////////////////
+///////////////			    helpers			///////////////
+///////////////////////////////////////////////////////////////////////////////
 
 static enumError WriteBlock ( SuperFile_t * sf, char ch, off_t off, u32 count )
 {
@@ -69,7 +71,6 @@ static enumError WriteBlock ( SuperFile_t * sf, char ch, off_t off, u32 count )
     return WriteWDF(sf,off,iobuf,count);
 }
 
-//
 ///////////////////////////////////////////////////////////////////////////////
 
 static enumError gen_wdf ( ccp fname )
@@ -101,6 +102,8 @@ static enumError gen_wdf ( ccp fname )
 
 //
 ///////////////////////////////////////////////////////////////////////////////
+///////////////			test_zero_wdf()			///////////////
+///////////////////////////////////////////////////////////////////////////////
 
 static enumError test_zero_wdf()
 {
@@ -131,48 +134,7 @@ static enumError test_zero_wdf()
 
 //
 ///////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////
-
-static void read_behind_file ( ccp fname )
-{
-    File_t f;
-    InitializeFile(&f);
-
-    OpenFile(&f,fname,IOM_IS_IMAGE);
-    ReadAtF(&f,0,iobuf,sizeof(iobuf));
-    ReadAtF(&f,0x10000,iobuf,sizeof(iobuf));
-    ClearFile(&f,false);
-
-    OpenFile(&f,fname,IOM_IS_IMAGE);
-    f.read_behind_eof = 1;
-    ReadAtF(&f,0,iobuf,sizeof(iobuf));
-    ReadAtF(&f,0x10000,iobuf,sizeof(iobuf));
-    ClearFile(&f,false);
-}
-
-///////////////////////////////////////////////////////////////////////////////
-
-static void read_behind_wdf ( ccp fname )
-{
-    SuperFile_t sf;
-    InitializeSF(&sf);
-
-    OpenFile(&sf.f,fname,IOM_IS_IMAGE);
-    SetupReadWDF(&sf);
-    ReadWDF(&sf,0,iobuf,sizeof(iobuf));
-    ReadWDF(&sf,0x10000,iobuf,sizeof(iobuf));
-    CloseSF(&sf,0);
-
-    OpenFile(&sf.f,fname,IOM_IS_IMAGE);
-    SetupReadWDF(&sf);
-    sf.f.read_behind_eof = 1;
-    ReadWDF(&sf,0,iobuf,sizeof(iobuf));
-    ReadWDF(&sf,0x10000,iobuf,sizeof(iobuf));
-    CloseSF(&sf,0);
-}
-
-//
-///////////////////////////////////////////////////////////////////////////////
+///////////////			test_string_field()		///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
 static void test_string_field()
@@ -194,6 +156,7 @@ static void test_string_field()
 
 //
 ///////////////////////////////////////////////////////////////////////////////
+///////////////			test_create_file()		///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
 static void test_create_file()
@@ -212,6 +175,7 @@ static void test_create_file()
 
 //
 ///////////////////////////////////////////////////////////////////////////////
+///////////////			test_create_sparse_file()	///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
 static void test_create_sparse_file()
@@ -225,6 +189,7 @@ static void test_create_sparse_file()
 
 //
 ///////////////////////////////////////////////////////////////////////////////
+///////////////			test_splitted_file()		///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
 static void test_splitted_file()
@@ -272,6 +237,167 @@ static void test_splitted_file()
 
 //
 ///////////////////////////////////////////////////////////////////////////////
+///////////////			test_copy_to_wbfs()		///////////////
+///////////////////////////////////////////////////////////////////////////////
+
+#include "wbfs-interface.h"
+
+enumError CreateWBFSFile
+(
+    SuperFile_t * sf,		// valid pointer
+    ccp		fname,
+    int		overwrite,
+    const void	* disc_header,	// NULL or disc header to copy
+    const void	* disc_id	// NULL or ID6: check non existence
+				// disc_id overwrites the id of disc_header
+)
+{
+    DASSERT(sf);
+    enumError err = CreateSF(sf,fname,OFT_WBFS,IOM_IS_WBFS_PART,overwrite,0);
+    if ( !err && sf->wbfs )
+    {
+	CloseWDisc(sf->wbfs);
+	wbfs_disc_t * disc = wbfs_create_disc(sf->wbfs->wbfs,disc_header,disc_id);
+	if (disc)
+	    sf->wbfs->disc = disc;
+	else
+	    err = ERR_CANT_CREATE;
+    }
+
+    return err;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+int test_copy_to_wbfs ( int argc, char ** argv )
+{
+    int i;
+    for ( i = 1; i < argc; i++ )
+    {
+	SuperFile_t fi;
+	InitializeSF(&fi);
+	if (!OpenSF(&fi,argv[i],false,false))
+	{
+	    wd_disc_t * disc = OpenDiscSF(&fi,false,true);
+	    if (disc)
+	    {
+		SuperFile_t fo;
+		InitializeSF(&fo);
+		enumError err = CreateWBFSFile(&fo,"pool/a.wbfs",true,&disc->dhead,0);
+		if (!err)
+		    err = CopySF(&fi,&fo,false);
+		ResetSF(&fo,0);
+	    }
+	}
+	ResetSF(&fi,0);
+    }
+    return 0;
+}
+
+//
+///////////////////////////////////////////////////////////////////////////////
+///////////////			test_print_size()		///////////////
+///////////////////////////////////////////////////////////////////////////////
+
+int test_print_size ( int argc, char ** argv )
+{
+    u64 i;
+    for ( i = 1; i; i <<= 10 )
+    {
+	printf("%21llu |%s|%s|\n", i,
+		wd_print_size(0,0,i,true),
+		wd_print_size(0,0,i,false) );
+    }
+
+    u64 prev = 0;
+    for ( i = 1; i > prev; i *= 10 )
+    {
+	prev = i;
+	printf("%21llu |%s|%s|\n", i,
+		wd_print_size(0,0,i,true),
+		wd_print_size(0,0,i,false) );
+    }
+
+    i = ~(u64)0;
+    printf("%21llu |%s|%s|\n", i,
+		wd_print_size(0,0,i,true),
+		wd_print_size(0,0,i,false) );
+
+    return 0;
+}
+
+
+//
+///////////////////////////////////////////////////////////////////////////////
+///////////////			test_wbfs_free_blocks()		///////////////
+///////////////////////////////////////////////////////////////////////////////
+
+int test_wbfs_free_blocks ( int argc, char ** argv )
+{
+    int i;
+    for ( i = 1; i < argc; i++ )
+    {
+	WBFS_t w;
+	InitializeWBFS(&w);
+	if (!OpenWBFS(&w,argv[i],true,0))
+	{
+	    printf("\n*** %s ***\n",argv[i]);
+	 #if NEW_WBFS_INTERFACE
+	    int i;
+	    for ( i = 1; ; i *= 2 )
+	    {
+		u32 bl = wbfs_find_free_blocks(w.wbfs,i);
+		printf("blocks: %d +%d\n",bl,i);
+		if ( bl == WBFS_NO_BLOCK )
+		    break;
+	    }
+	 #endif
+	}
+	ResetWBFS(&w);
+    }
+    return 0;
+}
+
+//
+///////////////////////////////////////////////////////////////////////////////
+///////////////			test()				///////////////
+///////////////////////////////////////////////////////////////////////////////
+
+int test ( int argc, char ** argv )
+{
+    //test_zero_wdf();
+    //test_string_field();
+
+    //test_create_file();
+    //test_create_sparse_file();
+    //test_splitted_file();
+    //test_copy_to_wbfs(argc,argv);
+    //test_print_size(argc,argv);
+    test_wbfs_free_blocks(argc,argv);
+
+    return 0;
+}
+
+//
+///////////////////////////////////////////////////////////////////////////////
+///////////////			test_filename()			///////////////
+///////////////////////////////////////////////////////////////////////////////
+
+static void test_filename ( int argc, char ** argv )
+{
+    int i;
+    char buf[PATH_MAX];
+
+    for ( i = 1; i < argc; i++ )
+    {
+	NormalizeFileName(buf,buf+sizeof(buf),argv[i],true);
+	printf("%s -> %s\n",argv[i],buf);
+   }
+}
+
+//
+///////////////////////////////////////////////////////////////////////////////
+///////////////			test_match_pattern()		///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
 static void test_match_pattern ( int argc, char ** argv )
@@ -293,8 +419,8 @@ static void test_match_pattern ( int argc, char ** argv )
 
 //
 ///////////////////////////////////////////////////////////////////////////////
+///////////////			test_open_disc()		///////////////
 ///////////////////////////////////////////////////////////////////////////////
-//  test_open_disc
 
 static void test_open_disc ( int argc, char ** argv )
 {
@@ -329,7 +455,7 @@ static void test_open_disc ( int argc, char ** argv )
 	    if (disc)
 	    {
 		putchar('\n');
-		wd_dump_disc(stdout,3,disc,dump_level);
+		wd_print_disc(stdout,3,disc,dump_level);
 
 		if (print_mm)
 		{
@@ -379,8 +505,8 @@ static void test_open_disc ( int argc, char ** argv )
 
 //
 ///////////////////////////////////////////////////////////////////////////////
+///////////////			test_hexdump()			///////////////
 ///////////////////////////////////////////////////////////////////////////////
-//  test_hexdump
 
 static enumError test_hexdump_sf ( SuperFile_t *sf, u64 begin, u64 end )
 {
@@ -439,6 +565,144 @@ static void test_hexdump ( int argc, char ** argv )
 
 //
 ///////////////////////////////////////////////////////////////////////////////
+///////////////			test_lzma()			///////////////
+///////////////////////////////////////////////////////////////////////////////
+
+static enumError test_lzma ( int argc, char ** argv )
+{
+    putchar('\n');
+
+
+    //----- setup buffer
+
+    u8 src_buf[0x40000];
+    u8 dest_buf[sizeof(src_buf)+10];
+
+    int i;
+    for ( i = 0; i < sizeof(src_buf); i++ )
+	src_buf[i] = (u8)i;
+    for ( i = 0; i < sizeof(src_buf); i += 10 )
+	src_buf[i] = (u8)Random32(0);
+
+
+    //---- setup file
+
+    File_t f;
+    InitializeFile(&f);
+
+    //----- compress
+
+    enumError err = CreateFile(&f,"pool/lzma.tmp",IOM__IS_DEFAULT,1);
+    if (err)
+	return err;
+
+    err = EncLZMA_Data2File(0,&f,opt_compr_level,true,true,src_buf,sizeof(src_buf),0);
+    if (err)
+	return err;
+
+    err = CloseFile(&f,0);
+    if (err)
+	return err;
+
+
+    //----- decompress
+
+    err = OpenFile(&f,"pool/lzma.tmp",IOM__IS_DEFAULT);
+    if (err)
+	return err;
+
+    u32 written;
+    err = DecLZMA_File2Buf(&f,0,dest_buf,sizeof(dest_buf),&written,0);
+    PRINT("Decode called, err=%d, written=%x=%u\n",err,written,written);
+    if (err)
+	return err;
+
+    err = CloseFile(&f,0);
+    if (err)
+	return err;
+
+
+    //----- compare
+
+    if (memcmp(src_buf,dest_buf,sizeof(src_buf)))
+	printf("\n!!! BUFFER DIFFER !!!\n\n");
+    else
+	printf("\n+ buffer ok.\n\n");
+
+    return ERR_OK;
+}
+
+//
+///////////////////////////////////////////////////////////////////////////////
+///////////////			test_lzma2()			///////////////
+///////////////////////////////////////////////////////////////////////////////
+
+static enumError test_lzma2 ( int argc, char ** argv )
+{
+    putchar('\n');
+
+
+    //----- setup buffer
+
+    u8 src_buf[0x40000];
+    u8 dest_buf[sizeof(src_buf)+10];
+
+    int i;
+    for ( i = 0; i < sizeof(src_buf); i++ )
+	src_buf[i] = (u8)i;
+    for ( i = 0; i < sizeof(src_buf); i += 10 )
+	src_buf[i] = (u8)Random32(0);
+
+
+    //---- setup file
+
+    File_t f;
+    InitializeFile(&f);
+
+    //----- compress
+
+    enumError err = CreateFile(&f,"pool/lzma.tmp",IOM__IS_DEFAULT,1);
+    if (err)
+	return err;
+
+    err = EncLZMA2_Data2File(0,&f,opt_compr_level,true,true,src_buf,sizeof(src_buf),0);
+    if (err)
+	return err;
+
+    err = CloseFile(&f,0);
+    if (err)
+	return err;
+
+    //----- decompress
+
+    err = OpenFile(&f,"pool/lzma.tmp",IOM__IS_DEFAULT);
+    if (err)
+	return err;
+
+    u32 written;
+    err = DecLZMA2_File2Buf(&f,0,dest_buf,sizeof(dest_buf),&written,0);
+    PRINT("Decode called, err=%d, written=%x=%u\n",err,written,written);
+    if (err)
+	return err;
+
+    err = CloseFile(&f,0);
+    if (err)
+	return err;
+
+
+    //----- compare
+
+    if (memcmp(src_buf,dest_buf,sizeof(src_buf)))
+	printf("\n!!! BUFFER DIFFER !!!\n\n");
+    else
+	printf("\n+ buffer ok.\n\n");
+
+    return ERR_OK;
+}
+
+//
+///////////////////////////////////////////////////////////////////////////////
+///////////////			test_sha1()			///////////////
 ///////////////////////////////////////////////////////////////////////////////
 #ifdef HAVE_OPENSSL
 
@@ -473,7 +737,7 @@ void test_sha1()
     printf("SHA1:     %8u msec / %u = %6llu nsec\n",t1,M,(u64)t1*1000000/M);
 
     for ( i = 0; i < N; i++ )
-    {    
+    {
 	RandomFill(h1,sizeof(h1));
 	memcpy(h2,h1,sizeof(h2));
 	RandomFill(source,sizeof(source));
@@ -493,112 +757,102 @@ void test_sha1()
 #endif // HAVE_OPENSSL
 //
 ///////////////////////////////////////////////////////////////////////////////
+///////////////			develop()			///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-#include "wbfs-interface.h"
-
-enumError CreateWBFSFile
+static void patch_func
 (
-    SuperFile_t * sf,		// valid pointer
-    ccp		fname,
-    int		overwrite,
-    const void	* disc_header,	// NULL or disc header to copy
-    const void	* disc_id	// NULL or ID6: check non existence
-				// disc_id overwrites the id of disc_header
+    void			* param,	// user defined parameter
+    struct wd_memmap_t		* patch,	// valid pointer to patch object
+    struct wd_memmap_item_t	* item		// valid pointer to inserted item
 )
 {
-    DASSERT(sf);
-    enumError err = CreateSF(sf,fname,OFT_WBFS,IOM_IS_WBFS,overwrite);
-    if ( !err && sf->wbfs )
-    {
-	CloseWDisc(sf->wbfs);
-	wbfs_disc_t * disc = wbfs_create_disc(sf->wbfs->wbfs,disc_header,disc_id);
-	if (disc)
-	    sf->wbfs->disc = disc;
-	else
-	    err = ERR_CANT_CREATE;
-    }
-
-    return err;
+    printf(" -> %s\n",item->info);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 
-int test_copy_to_wbfs ( int argc, char ** argv )
+static enumError develop_sf ( SuperFile_t * sf )
 {
+    wd_disc_t * disc = OpenDiscSF(sf,true,true);
+    if (!disc)
+	return ERR_WDISC_NOT_FOUND;
+
+    wd_memmap_t mm;
+    memset(&mm,0,sizeof(mm));
+    int n = wd_insert_memmap_disc_part(&mm,disc,patch_func,0,1,2,3,4,5);
+
+    printf("Dump, N=%d:\n",n);
+    wd_print_memmap(stdout,3,&mm);
+    printf("---\n");
+
+    return ERR_OK;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+static enumError develop ( int argc, char ** argv )
+{
+    putchar('\n');
     int i;
+
     for ( i = 1; i < argc; i++ )
     {
-	SuperFile_t fi;
-	InitializeSF(&fi);
-	if (!OpenSF(&fi,argv[i],false,false))
+	if ( *argv[i] == '-' )
+	    continue;
+
+	SuperFile_t sf;
+	InitializeSF(&sf);
+	if (!OpenSF(&sf,argv[i],false,false))
 	{
-	    wd_disc_t * disc = OpenDiscSF(&fi,false,true);
-	    if (disc)
-	    {
-		SuperFile_t fo;
-		InitializeSF(&fo);
-		enumError err = CreateWBFSFile(&fo,"pool/a.wbfs",true,&disc->dhead,0);
-		if (!err)
-		    err = CopySF(&fi,&fo,false);
-		ResetSF(&fo,0);
-	    }
+	    printf("*** %s\n",sf.f.fname);
+	    const enumError err = develop_sf(&sf);
+	    CloseSF(&sf,0);
+	    if (err)
+		return err;
 	}
-	ResetSF(&fi,0);
     }
-    return 0;    
-}
 
-///////////////////////////////////////////////////////////////////////////////
-
-// http://www.bzip.org/1.0.5/bzip2-manual-1.0.5.html
-
-#ifndef NO_BZIP2
- #include <bzlib.h>
-#endif
-
-void test_libbz2()
-{
- #ifndef NO_BZIP2
-    FILE * f = fopen("work/test.bz2","rb");
-    if (f)
-    {
-	int bzerror;
-	BZFILE * bz2 = BZ2_bzReadOpen(&bzerror,f,0,0,0,0);
-	BZ2_bzReadClose(&bzerror,bz2);
-	fclose (f);
-    }
- #endif
+    return ERR_OK;
 }
 
 //
 ///////////////////////////////////////////////////////////////////////////////
+///////////////			command definitions		///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
 enum
 {
-    CMD_HELP,			// help_exit();
     CMD_TEST,			// test();
 
+    CMD_FILENAME,		// test_filename(argc,argv);
     CMD_MATCH_PATTERN,		// test_match_pattern(argc,argv);
     CMD_OPEN_DISC,		// test_open_disc(argc,argv);
     CMD_HEXDUMP,		// test_hexdump(argc,argv);
+    CMD_LZMA,			// test_lzma(argc,argv);
+    CMD_LZMA2,			// test_lzma2(argc,argv);
 
     CMD_SHA1,			// test_sha1();
     CMD_WIIMM,			// test_wiimm(argc,argv);
 
+    CMD_DEVELOP,		// develop(argc,argv);
+    CMD_HELP,			// help_exit();
+
     CMD__N
 };
 
+///////////////////////////////////////////////////////////////////////////////
 
 static const CommandTab_t CommandTab[] =
 {
-	{ CMD_HELP,		"HELP",		"?",		0 },
 	{ CMD_TEST,		"TEST",		"T",		0 },
 
+	{ CMD_FILENAME,		"FILENAME",	"FN",		0 },
 	{ CMD_MATCH_PATTERN,	"MATCH",	0,		0 },
 	{ CMD_OPEN_DISC,	"OPENDISC",	"ODISC",	0 },
 	{ CMD_HEXDUMP,		"HEXDUMP",	0,		0 },
+	{ CMD_LZMA,		"LZMA",		"L1",		0 },
+	{ CMD_LZMA2,		"LZMA2",	"L2",		0 },
 
  #ifdef HAVE_OPENSSL
 	{ CMD_SHA1,		"SHA1",		0,		0 },
@@ -607,11 +861,15 @@ static const CommandTab_t CommandTab[] =
 	{ CMD_WIIMM,		"WIIMM",	"W",		0 },
  #endif
 
+	{ CMD_DEVELOP,		"DEVELOP",	"D",		0 },
+	{ CMD_HELP,		"HELP",		"?",		0 },
+
 	{ CMD__N,0,0,0 }
 };
 
 //
 ///////////////////////////////////////////////////////////////////////////////
+///////////////			help_exit()			///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
 void help_exit()
@@ -629,30 +887,7 @@ void help_exit()
 
 //
 ///////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////
-
-int test ( int argc, char ** argv )
-{
- #if 0
-    unlink("_temp.wdf");
-    gen_wdf("_temp.wdf");
-    read_behind_file("_temp.wdf");
-    read_behind_wdf("_temp.wdf");
- #endif
-
-    //test_string_field();
-
-    //test_create_file();
-    //test_create_sparse_file();
-    //test_splitted_file();
-    //test_zero_wdf();
-    //test_copy_to_wbfs(argc,argv);
-
-    return 0;
-}
-
-//
-///////////////////////////////////////////////////////////////////////////////
+///////////////			main()				///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
 int main ( int argc, char ** argv )
@@ -693,12 +928,14 @@ int main ( int argc, char ** argv )
 
     switch(cmd_ct->id)
     {
-	case CMD_HELP:			help_exit(); break;
 	case CMD_TEST:			return test(argc,argv); break;
 
+	case CMD_FILENAME:		test_filename(argc,argv); break;
 	case CMD_MATCH_PATTERN:		test_match_pattern(argc,argv); break;
 	case CMD_OPEN_DISC:		test_open_disc(argc,argv); break;
 	case CMD_HEXDUMP:		test_hexdump(argc,argv); break;
+	case CMD_LZMA:			test_lzma(argc,argv); break;
+	case CMD_LZMA2:			test_lzma2(argc,argv); break;
 
  #ifdef HAVE_OPENSSL
 	case CMD_SHA1:			test_sha1(); break;
@@ -707,6 +944,9 @@ int main ( int argc, char ** argv )
 	case CMD_WIIMM:			test_wiimm(argc,argv); break;
  #endif
 
+	case CMD_DEVELOP:		develop(argc,argv); break;
+
+	//case CMD_HELP:
 	default:
 	    help_exit();
     }

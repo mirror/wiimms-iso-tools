@@ -77,10 +77,10 @@ void help_exit ( bool xmode )
     {
 	int cmd;
 	for ( cmd = 0; cmd < CMD__N; cmd++ )
-	    PrintHelpCmd(&InfoUI,stdout,0,cmd,0);
+	    PrintHelpCmd(&InfoUI,stdout,0,cmd,0,0);
     }
     else
-	PrintHelpCmd(&InfoUI,stdout,0,0,0);
+	PrintHelpCmd(&InfoUI,stdout,0,0,"HELP",0);
 
     exit(ERR_OK);
 }
@@ -603,7 +603,7 @@ enumError exec_isosize ( SuperFile_t * sf, Iterator_t * it )
 	    const u32 count = wd_count_used_blocks(wdisc_usage_tab,1);
 	    if (count)
 		snprintf(size,sizeof(size),"%6u %4u",
-			count, (count+WII_SECTORS_PER_MIB/2)/WII_SECTORS_PER_MIB);
+			count, (count+WII_SECTORS_PER_MIB/2)/WII_SECTORS_PER_MIB );
 	}
 	printf("%s  %s\n", size, sf->f.fname );
     }
@@ -611,16 +611,17 @@ enumError exec_isosize ( SuperFile_t * sf, Iterator_t * it )
     {
 	if ( print_header && !it->done_count++  )
 	    printf("\n"
-		"   ISO\n"
-		"blocks  filename\n"
+		" ISO\n"
+		" MiB  filename\n"
 		"%s\n", sep_79 );
 
-	char size[20] = "     -";
+	char size[20] = "   -";
 	if (sf->f.id6[0])
 	{
 	    const u32 count = wd_count_used_blocks(wdisc_usage_tab,1);
 	    if (count)
-		snprintf(size,sizeof(size),"%6u",count);
+		snprintf(size,sizeof(size),"%4u",
+			(count+WII_SECTORS_PER_MIB/2)/WII_SECTORS_PER_MIB );
 	}
 	printf("%s  %s\n", size, sf->f.fname );
     }
@@ -1410,12 +1411,12 @@ enumError exec_copy ( SuperFile_t * fi, Iterator_t * it )
 	return ERR_OK;
     fflush(0);
 
-    const bool scrub_it = it->scrub_it
+    const bool convert_it = it->convert_it
 		&& ( output_file_type == OFT_UNKNOWN
 			|| output_file_type == fi->iod.oft );
 
     ccp fname = fi->f.path ? fi->f.path : fi->f.fname;
-    const enumOFT oft = scrub_it
+    const enumOFT oft = convert_it
 			? fi->iod.oft
 			: CalcOFT(output_file_type,opt_dest,fname,OFT__DEFAULT);
 
@@ -1423,7 +1424,7 @@ enumError exec_copy ( SuperFile_t * fi, Iterator_t * it )
     InitializeSF(&fo);
     SetupIOD(&fo,oft,oft);
 
-    if (scrub_it)
+    if (convert_it)
 	fo.f.fname = strdup(fname);
     else
     {
@@ -1454,7 +1455,7 @@ enumError exec_copy ( SuperFile_t * fi, Iterator_t * it )
     const bool raw_mode = part_selector.whole_disc || !fi->f.id6[0];
     if (testmode)
     {
-	if (scrub_it)
+	if (convert_it)
 	    printf( "%s: WOULD %s %s %s:%s\n",
 		progname, raw_mode ? "COPY " : "SCRUB",
 		count_buf, oft_name[oft], fi->f.fname );
@@ -1469,7 +1470,7 @@ enumError exec_copy ( SuperFile_t * fi, Iterator_t * it )
 
     if ( verbose >= 0 )
     {
-	if (scrub_it)
+	if (convert_it)
 	    printf( "* %s %s %s %s %s\n",
 		progname, raw_mode ? "COPY " : "SCRUB",
 		count_buf, oft_name[oft], fi->f.fname );
@@ -1480,7 +1481,7 @@ enumError exec_copy ( SuperFile_t * fi, Iterator_t * it )
 		    oft_name[oft], fo.f.fname );
     }
 
-    enumError err = CreateFile( &fo.f, 0, IOM_IS_IMAGE, it->overwrite );
+    enumError err = CreateFile( &fo.f, 0, oft_iom[oft], it->overwrite );
     if ( err == ERR_ALREADY_EXISTS )
     {
 	it->exists_count++;
@@ -1580,7 +1581,7 @@ enumError cmd_copy()
 //
 ///////////////////////////////////////////////////////////////////////////////
 
-enumError cmd_scrub()
+enumError cmd_convert()
 {
     if ( verbose >= 0 )
 	print_title(stdout);
@@ -1594,7 +1595,7 @@ enumError cmd_scrub()
     it.act_non_iso	= OptionUsed[OPT_IGNORE] ? ACT_IGNORE : ACT_WARN;
     it.act_wbfs		= it.act_non_iso;
     it.act_gc		= ACT_ALLOW;
-    it.scrub_it		= true;
+    it.convert_it	= true;
     it.overwrite	= true;
     it.remove_source	= true;
 
@@ -1726,15 +1727,61 @@ enumError exec_move ( SuperFile_t * fi, Iterator_t * it )
 	{
 	    if ( testmode || verbose >= 0 )
 	    {
-		snprintf(iobuf,sizeof(iobuf), "%u", it->source_list.used );
-		printf(" - %sMove %*u/%u %s:%s -> %s\n",
+		const int fw = snprintf(iobuf,sizeof(iobuf), "%u", it->source_list.used );
+		if ( fi->f.split_used > 1 )
+		    snprintf(iobuf,sizeof(iobuf),"*%u",fi->f.split_used);
+		else
+		    *iobuf = 0;
+		printf(" - %sMove %*u/%u %s%s:%s -> %s\n",
 		    testmode ? "WOULD " : "",
-		    (int)strlen(iobuf), it->source_index+1, it->source_list.used,
-		    oft_name[fo.iod.oft], fi->f.fname, fo.f.fname );
+		    fw, it->source_index+1, it->source_list.used,
+		    oft_name[fo.iod.oft], iobuf, fi->f.fname, fo.f.fname );
 	    }
 
-	    if ( !testmode && rename(fi->f.fname,fo.f.fname) )
-		return ERROR1( ERR_CANT_CREATE, "Can't create file: %s\n", fo.f.fname );
+	    CloseSF(fi,0);
+	    if (!testmode)
+	    {
+		int stat = 0;
+		if (fi->f.split_used)
+		{
+		    char * format = iobuf + sizeof(iobuf);
+		    CalcSplitFilename(format,sizeof(iobuf)/2,fo.f.fname,fo.iod.oft);
+		    noPRINT(">> |%s|\n",format);
+		    int i;
+		    for ( i = 0; !stat && i < fi->f.split_used; i++ )
+		    {
+			ccp dest;
+			if (i)
+			{
+			    dest = iobuf;
+			    snprintf(iobuf,sizeof(iobuf)/2,format,i);
+			}
+			else
+			    dest = fo.f.fname;
+			File_t * f = fi->f.split_f[i];
+			DASSERT(f);
+			PRINT("rename %s -> %s\n",f->fname,dest);
+			stat = rename(f->fname,dest);
+			if ( stat && opt_mkdir )
+			{
+			    CreatePath(dest);
+			    stat = rename(f->fname,dest);
+			}
+		    }
+		}
+		else
+		{
+		    stat = rename(fi->f.fname,fo.f.fname);
+		    if ( stat && opt_mkdir )
+		    {
+			CreatePath(fo.f.fname);
+			stat = rename(fi->f.fname,fo.f.fname);
+		    }
+		}
+		if (stat)
+		    return ERROR1(ERR_CANT_CREATE,
+					"Can't create file: %s\n", fo.f.fname );
+	    }
 	}
     }
 
@@ -1772,7 +1819,7 @@ enumError cmd_move()
     Iterator_t it;
     InitializeIterator(&it);
     it.act_non_iso	= OptionUsed[OPT_IGNORE] ? ACT_IGNORE : ACT_WARN;
-    it.act_wbfs		= ACT_ALLOW;
+    it.act_wbfs		= it.act_non_iso;
     it.act_gc		= ACT_ALLOW;
     it.overwrite	= OptionUsed[OPT_OVERWRITE] ? 1 : 0;
 
@@ -2028,7 +2075,8 @@ enumError CheckOptions ( int argc, char ** argv, bool is_env )
 	case GO_IGNORE_FST:	allow_fst = false; break;
 
 	case GO_PSEL:		err += ScanOptPartSelector(optarg); break;
-	case GO_RAW:		part_selector.whole_disc = true; break;
+	case GO_RAW:		part_selector.whole_disc
+					= part_selector.whole_part = true; break;
 	case GO_SNEEK:		SetupSneekMode(); break;
 	case GO_HOOK:		opt_hook = 1; break;
 	case GO_ENC:		err += ScanOptEncoding(optarg); break;
@@ -2042,9 +2090,12 @@ enumError CheckOptions ( int argc, char ** argv, bool is_env )
 	case GO_RM_FILES:	err += ScanFiles(optarg,PAT_RM_FILES); break;
 	case GO_ZERO_FILES:	err += ScanFiles(optarg,PAT_ZERO_FILES); break;
 	case GO_IGNORE_FILES:	err += ScanFiles(optarg,PAT_IGNORE_FILES); break;
-	case GO_REPL_FILE:	err += ScanOptFile(optarg,false);
-	case GO_ADD_FILE:	err += ScanOptFile(optarg,true);
-	case GO_ALIGN:		err += ScanOptAlign(optarg);
+	case GO_REPL_FILE:	err += ScanOptFile(optarg,false); break;
+	case GO_ADD_FILE:	err += ScanOptFile(optarg,true); break;
+	case GO_TRIM:		err += ScanOptTrim(optarg); break;
+	case GO_ALIGN:		err += ScanOptAlign(optarg); break;
+	case GO_ALIGN_PART:	err += ScanOptAlignPart(optarg); break;
+	case GO_DISC_SIZE:	err += ScanOptDiscSize(optarg); break;
 	case GO_OVERLAY:	break;
 	case GO_DEST:		opt_dest = optarg; break;
 	case GO_DEST2:		opt_dest = optarg; opt_mkdir = true; break;
@@ -2054,7 +2105,8 @@ enumError CheckOptions ( int argc, char ** argv, bool is_env )
 	case GO_CHUNK_MODE:	err += ScanChunkMode(optarg); break;
 	case GO_CHUNK_SIZE:	err += ScanChunkSize(optarg); break;
 	case GO_MAX_CHUNKS:	err += ScanMaxChunks(optarg); break;
-	case GO_NO_COMPRESS:	opt_no_compress = true; break;
+	case GO_COMPRESSION:	err += ScanOptCompression(optarg); break;
+	case GO_MEM:		err += ScanOptMem(optarg,true); break;
 	case GO_PRESERVE:	break;
 	case GO_UPDATE:		break;
 	case GO_OVERWRITE:	break;
@@ -2073,6 +2125,7 @@ enumError CheckOptions ( int argc, char ** argv, bool is_env )
 	case GO_ATIME:	    	SetTimeOpt(PT_USE_ATIME|PT_F_ATIME); break;
 
 	case GO_LONG:		long_count++; break;
+	case GO_NUMERIC:	break;
 	case GO_UNIQUE:	    	break;
 	case GO_NO_HEADER:	break;
 	case GO_SECTIONS:	print_sections++; break;
@@ -2182,9 +2235,10 @@ enumError CheckCommand ( int argc, char ** argv )
     switch ((enumCommands)cmd_ct->id)
     {
 	case CMD_VERSION:	version_exit();
-	case CMD_HELP:		PrintHelp(&InfoUI,stdout,0,0); break;
+	case CMD_HELP:		PrintHelp(&InfoUI,stdout,0,"HELP",0); break;
 	case CMD_TEST:		err = cmd_test(); break;
 	case CMD_ERROR:		err = cmd_error(); break;
+	case CMD_COMPR:		err = cmd_compr(); break;
 	case CMD_EXCLUDE:	err = cmd_exclude(); break;
 	case CMD_TITLES:	err = cmd_titles(); break;
 	case CMD_CREATE:	err = cmd_create(); break;
@@ -2209,7 +2263,7 @@ enumError CheckCommand ( int argc, char ** argv )
 	case CMD_FDIFF:		err = cmd_diff(true); break;
 	case CMD_EXTRACT:	err = cmd_extract(); break;
 	case CMD_COPY:		err = cmd_copy(); break;
-	case CMD_SCRUB:		err = cmd_scrub(); break;
+	case CMD_CONVERT:	err = cmd_convert(); break;
 	case CMD_EDIT:		err = cmd_edit(); break;
 	case CMD_MOVE:		err = cmd_move(); break;
 	case CMD_RENAME:	err = cmd_rename(true); break;

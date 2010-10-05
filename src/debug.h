@@ -123,8 +123,8 @@ void TRACE_ARG_FUNC ( const char * format, va_list arg );
     #define TRACELINE TRACE_FUNC("line #%d @ %s\n",__LINE__,__FILE__)
     #define TRACE_SIZEOF(t) TRACE_FUNC("%7zd ==%6zx/hex == sizeof(%s)\n",sizeof(t),sizeof(t),#t)
 
-    #define HEXDUMP(i,a,af,rl,d,c) HexDump(stderr,i,a,af,rl,d,c);
-    #define HEXDUMP16(i,a,d,c) HexDump16(stderr,i,a,d,c);
+    #define HEXDUMP(i,a,af,rl,d,c) HexDump(stdout,i,a,af,rl,d,c);
+    #define HEXDUMP16(i,a,d,c) HexDump16(stdout,i,a,d,c);
     #define TRACE_HEXDUMP(i,a,af,rl,d,c) HexDump(TRACE_FILE,i,a,af,rl,d,c);
     #define TRACE_HEXDUMP16(i,a,d,c) HexDump16(TRACE_FILE,i,a,d,c);
 

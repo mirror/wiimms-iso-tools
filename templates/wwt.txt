@@ -114,7 +114,7 @@ are listed in alphabetic order:
 ~ [2do] copy to homepage
 
  The ANALYZE command analyze files and partitions and prints out the geometry.
- The files are niot modified and opened readonly.
+ The files are not modified and opened readonly.
 
  First ANALYZE looks into the file and search for old WBFS information. Second
  it makes a calculation like the INIT command for different sector sizes.
@@ -270,7 +270,7 @@ are listed in alphabetic order:
 ~ [2do] copy to homepage
 
  EDIT is a dangerous command. It let you (de-)activate the disc slots and
- edit the block assignments. Exactly 1 WBFS must be specified. All parameters
+ edit the block assignments. Exact 1 WBFS must be specified. All parameters
  are sub commands. Modifications are only done if option --force is set.
 
      **********************************************************
@@ -1106,42 +1106,6 @@ See command 'ADD' for options and details.
 
 -------------------------------------------------------------------------------
 @@EXEC(./wwt help --width 80 VERIFY)@@
-~ [2do] copy to homepage
-
- Every 1024 bytes of user data in every partition has its own SHA1 check sum
- (called 'H0'). There are also H1 (hash of 31*H0), H2 (hash of 8*H1), H3 (hash
- of 8*H2) and for the whole partition one H4 (hash of all H3) check sums. To
- validate a partition it is enought to calculate the check sums and compare
- them with the stored sums. For a scrubbed image it is enough to compare the
- check sums of the used sectors. "wwt+wit VERIFY" does exactly this.
-
- To validate a disc the tool must do 64 AES-128-CBC decryptions and 1029 SHA1
- calculations for each MiB of data. This slow down the opration rapidly and
- verifying is much slower then copying. 
-
- If the option --remove is set, invalid discs (bad dumps) are removed from
- WBFS. If the option --no-free is set then the disc is only marked as removed.
- The allocated blocks are not freed. After using --no-free you should use the
- command CHECK with --rapair=fbt to repair the free blocks table.
-
- Before verifying the WBFS a check (see CHECK) is done. If there are any
- problematic errors detected the WBFS is ignored. If the option --force is set,
- the test is done but the result is ignored. The option --no-check disables
- this automatic check.
-
- For more details about verifying see command "wit VERIFY" in file "wit.txt".
-
- See also:
-    wit VERIFY
-    wit DIFF
-
- Usual ERROR/EXIT CODES:
-
-    0 == OK             : all done without errors.
-    DIFFER              : At least one check sum error found.
-    SYNTAX ERROR        : at least one syntax error in command line found.
-    READ ERROR          : error while reading a file.
-    CANT OPEN           : Can't open file.
 
 
 -------------------------------------------------------------------------------

@@ -44,9 +44,9 @@
 
 ///////////////////////////////////////////////////////////////////////////////
 
-typedef enum FileMode { FMODE_WDF, FMODE_CISO, FMODE_WBI } FileMode;
-ccp file_mode_name[] = { ".wdf", ".ciso", ".wbi", 0 };
-enumOFT file_mode_oft[] = { OFT_WDF, OFT_CISO, OFT_CISO, 0 };
+typedef enum FileMode { FMODE_WDF, FMODE_WIA, FMODE_CISO, FMODE_WBI } FileMode;
+ccp file_mode_name[] = { ".wdf", ".wia", ".ciso", ".wbi", 0 };
+enumOFT file_mode_oft[] = { OFT_WDF, OFT_WIA, OFT_CISO, OFT_CISO, 0 };
 
 enumCommands the_cmd	= CMD_PACK;
 FileMode file_mode	= FMODE_WDF;
@@ -99,10 +99,10 @@ void help_exit ( bool xmode )
     {
 	int cmd;
 	for ( cmd = 0; cmd < CMD__N; cmd++ )
-	    PrintHelpCmd(&InfoUI,stdout,0,cmd, cmd ? 0 : default_settings );
+	    PrintHelpCmd(&InfoUI,stdout,0,cmd, 0, cmd ? 0 : default_settings );
     }
     else
-	PrintHelpCmd(&InfoUI,stdout,0,0,default_settings);
+	PrintHelpCmd(&InfoUI,stdout,0,0,"+HELP",default_settings);
 
     exit(ERR_OK);
 }
@@ -132,10 +132,11 @@ static void hint_exit ( enumError stat )
 ///////////////			   helpers			///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-static enumError OpenOutput ( SuperFile_t * sf, ccp fname, ccp testmode_msg )
+static enumError OpenOutput
+    ( SuperFile_t * fo, SuperFile_t * fi, ccp fname, ccp testmode_msg )
 {
-    TRACE("OpenOutput(%p,%s,%s)\n",sf,fname,testmode_msg);
-    DASSERT(sf);
+    PRINT("OpenOutput(%p,%p,%s,%s)\n",fo,fi,fname,testmode_msg);
+    DASSERT(fo);
 
     if ( verbose > 0 )
 	print_title(logout);
@@ -153,10 +154,17 @@ static enumError OpenOutput ( SuperFile_t * sf, ccp fname, ccp testmode_msg )
     if (!fname)
 	fname = "-";
 
-    sf->f.create_directory = opt_mkdir;
-    enumError err = CreateSF(sf,fname,create_oft,IOM_FORCE_STREAM,opt_overwrite);
-    if ( !err && opt_split && GetFileMode(sf->f.st.st_mode) == FM_PLAIN )
-	err = SetupSplitFile(&sf->f,sf->iod.oft,opt_split_size);
+    fo->f.create_directory = opt_mkdir;
+    DASSERT( !fi || IsOpenSF(fi) );
+    if ( fi && fi->iod.oft == OFT_UNKNOWN )
+    {
+	SetupIOD(fi,OFT_PLAIN,OFT_PLAIN);
+	fi->file_size = fi->f.st.st_size;
+    }
+
+    enumError err = CreateSF(fo,fname,create_oft,IOM_FORCE_STREAM,opt_overwrite,fi);
+    if ( !err && opt_split && GetFileMode(fo->f.st.st_mode) == FM_PLAIN )
+	err = SetupSplitFile(&fo->f,fo->iod.oft,opt_split_size);
 
     TRACE("OpenOutput() returns %d\n",err);
     return err;
@@ -250,7 +258,7 @@ enumError CatRaw ( SuperFile_t * fi, SuperFile_t * fo,
 				copy_verb, fi->f.fname, out_fname );
 		fo = &fo_local;
 		InitializeSF(fo);
-		err = OpenOutput(fo,out_fname,0);
+		err = OpenOutput(fo,fi,out_fname,0);
 	    }
 
 	    if (!err)
@@ -305,7 +313,7 @@ enumError CatCISO ( SuperFile_t * fi, CISO_Head_t * ch, SuperFile_t * fo,
 	    fprintf(logout," - %s CISO %s -> %s\n",extract_verb,fi->f.fname,out_fname);
 	fo = &fo_local;
 	InitializeSF(fo);
-	err = OpenOutput(fo,out_fname,0);
+	err = OpenOutput(fo,fi,out_fname,0);
     }
 
     if (!err)
@@ -402,7 +410,7 @@ enumError CatWDF ( ccp fname, SuperFile_t * fo, ccp out_fname,
 	    fprintf(logout," - %s WDF  %s -> %s\n",extract_verb,fname,out_fname);
 	fo = &fo_local;
 	InitializeSF(fo);
-	err = OpenOutput(fo,out_fname,0);
+	err = OpenOutput(fo,0,out_fname,0);
     }
 
     if (!err)
@@ -456,7 +464,7 @@ enumError cmd_cat ( bool ignore_raw )
 {
     SuperFile_t out;
     InitializeSF(&out);
-    enumError err = OpenOutput(&out,0,"CONCATENATE files:");
+    enumError err = OpenOutput(&out,0,0,"CONCATENATE files:");
     
     ParamList_t * param;
     for ( param = first_param; !err && param; param = param->next )
@@ -700,28 +708,34 @@ enumError wia_dump ( FILE *f, File_t *df, ccp fname )
 		PrintVersionWIA(0,0,wia->fhead.version_compatible) );
 
     if ( wia->fhead.disc_size == sizeof(wia_disc_t) )
-	fprintf(f,"    %-23s: %10u\n",
+	fprintf(f,"    %-23s: %10u = %9x/hex = %s\n",
 		"Size of disc section",
-		wia->fhead.disc_size );
+		wia->fhead.disc_size, wia->fhead.disc_size,
+		wd_print_size(0,0,wia->fhead.disc_size,true) );
     else
-	fprintf(f,"    %-23s: %10u [current: %zu]\n",
+	fprintf(f,"    %-23s: %10u = %9x [current: %zu = %zx/hex]\n",
 		"Size of disc section",
-		wia->fhead.disc_size, sizeof(wia_disc_t) );
+		wia->fhead.disc_size, wia->fhead.disc_size,
+		sizeof(wia_disc_t), sizeof(wia_disc_t) );
 
     if (wia->fhead.iso_file_size)
     {
-	fprintf(f,"    %-23s: %10llu\n",
+	fprintf(f,"    %-23s: %10llu =%10llx/hex = %s\n",
 		"ISO image size",
-		wia->fhead.iso_file_size );
-	fprintf(f,"    %-23s: %10llu  %4.1f%%\n",
+		wia->fhead.iso_file_size, wia->fhead.iso_file_size,
+		wd_print_size(0,0,wia->fhead.iso_file_size,true) );
+	double percent = 100.0 * wia->fhead.wia_file_size / wia->fhead.iso_file_size;
+	fprintf(f,"    %-23s: %10llu =%10llx/hex = %s  %4.*f%%\n",
 		"Total file size",
-		wia->fhead.wia_file_size,
-		100.0 * wia->fhead.wia_file_size / wia->fhead.iso_file_size );
+		wia->fhead.wia_file_size, wia->fhead.wia_file_size,
+		wd_print_size(0,0,wia->fhead.wia_file_size,true),
+		percent <= 9.9 ? 2 : 1, percent );
     }
     else
-	fprintf(f,"    %-23s: %10llu\n",
+	fprintf(f,"    %-23s: %10llu =%10llx/hex = %s\n",
 		"Total file size",
-		wia->fhead.wia_file_size );
+		wia->fhead.wia_file_size, wia->fhead.wia_file_size,
+		wd_print_size(0,0,wia->fhead.wia_file_size,true) );
 
     //-------------------------
 
@@ -729,85 +743,81 @@ enumError wia_dump ( FILE *f, File_t *df, ccp fname )
 
     const wia_disc_t * disc = &wia->disc;
 
-    fprintf(f,"    %-23s: %s, %.64s\n",
+    if (disc->disc_type)
+	fprintf(f,"    %-23s: %s, %.64s\n",
 		"ID & title",
-		wd_print_id(&disc->dhead.disc_id,6,0),
-		disc->dhead.disc_title );
+		wd_print_id(disc->dhead,6,0),
+		disc->dhead + WII_TITLE_OFF );
     fprintf(f,"    %-23s: %10u = %s\n",
 		"Disc type",
 		disc->disc_type, wd_get_disc_type_name(disc->disc_type,"?") );
     fprintf(f,"    %-23s: %10u = %s\n",
-		"Compression mode",
-		disc->compression, GetCompressionNameWIA(disc->compression,"?") );
-
-    fprintf(f,"    %-23s: %10llu = %9llx/hex\n",
-		"Offset of disc data",
-		disc->disc_data_off, disc->disc_data_off );
-    fprintf(f,"    %-23s: %10u = %9x/hex\n",
-		"Size of disc data",
-		disc->disc_data_size, disc->disc_data_size );
+		"Compression method",
+		disc->compression, wd_get_compression_name(disc->compression,"?") );
+    fprintf(f,"    %-23s: %10u\n",
+		"Compression level", disc->compr_level);
+    fprintf(f,"    %-23s: %10u =%10x/hex = %s\n",
+		"Chunk size",
+		disc->chunk_size, disc->chunk_size,
+		wd_print_size(0,0,disc->chunk_size,true) );
 
     fprintf(f,"    %-23s: %10u\n",
-		"Num. of raw data elem.", disc->n_raw_data );
-    fprintf(f,"    %-23s: %10llu = %9llx/hex\n",
-		"Offset of raw data tab.",
-		disc->raw_data_off, disc->raw_data_off );
-
-    fprintf(f,"    %-23s: %10u\n",
-		"Number of partitions",
+		" Number of partitions",
 		disc->n_part );
-    fprintf(f,"    %-23s: %10llu = %9llx/hex\n",
-		"Offset of Part.header",
-		disc->part_off, disc->part_off );
+    fprintf(f,"    %-23s: %10llu = %9llx/hex = %s\n",
+		" Offset of Part.header",
+		disc->part_off, disc->part_off,
+		wd_print_size(0,0,disc->part_off,true) );
     fprintf(f,"    %-23s: %2d * %5u = %9u\n",
-		"Size of Part.header",
+		" Size of Part.header",
 		disc->n_part, disc->part_t_size,
 		disc->n_part * disc->part_t_size );
 
-    fprintf(f,"    %-23s: %10llu = %9llx/hex\n",
-		"Offset of Part.info",
-		disc->part_info_off, disc->part_info_off );
-    fprintf(f,"    %-23s: %10u = %9x/hex\n",
-		"Size of Part.info",
-		disc->part_info_size, disc->part_info_size );
+    fprintf(f,"    %-23s: %10u\n",
+		"Num. of raw data elem.", disc->n_raw_data );
+    fprintf(f,"    %-23s: %10llu = %9llx/hex = %s\n",
+		"Offset of raw data tab.",
+		disc->raw_data_off, disc->raw_data_off,
+		wd_print_size(0,0,disc->raw_data_off,true) );
+    fprintf(f,"    %-23s: %10u = %9x/hex = %s\n",
+		"Size of raw data tab.",
+		disc->raw_data_size, disc->raw_data_size,
+		wd_print_size(0,0,disc->raw_data_size,true) );
+
+    fprintf(f,"    %-23s: %10u\n",
+		" Num. of group elem.", disc->n_groups );
+    fprintf(f,"    %-23s: %10llu = %9llx/hex = %s\n",
+		" Offset of group tab.",
+		disc->group_off, disc->group_off,
+		wd_print_size(0,0,disc->group_off,true) );
+    fprintf(f,"    %-23s: %10u = %9x/hex = %s\n",
+		" Size of group tab.",
+		disc->group_size, disc->group_size,
+		wd_print_size(0,0,disc->group_size,true) );
+
+    fprintf(f,"    %-23s: %10u = %9x/hex = %s\n",
+		"Compressor data length",
+		disc->compr_data_len, disc->compr_data_len,
+		wd_print_size(0,0,disc->compr_data_len,true) );
+    if (disc->compr_data_len)
+    {
+	fprintf(f,"    %-23s:","Compressor Data");
+	int i;
+	for ( i = 0; i < disc->compr_data_len; i++ )
+	    fprintf(f," %02x",disc->compr_data[i]);
+	fputc('\n',f);
+    }
 
     //-------------------------
 
-    if (wia->part)
+    if ( long_count > 0 )
     {
-	u32 ip;
-	for ( ip = 0; ip < disc->n_part; ip++ )
-	{
-	    wia_part_t * part = wia->part + ip;
-	    fprintf(f,"\n  Header of partition #%u:\n",ip);
-
-	    fprintf(f,"    %-23s: %u.%u, %s\n",
-		    "Partition table & type",
-		    part->ptab_index, part->ptab_part_index,
-		    wd_print_part_name(0,0,part->part_type,WD_PNAME_NUM_INFO) );
-
-	    fprintf(f,"    %-23s: %10u = %9x/hex\n",
-		    "First data sector",
-		    part->first_sector, part->first_sector );
-	    fprintf(f,"    %-23s: %10u = %9x/hex\n",
-		    "Number of data sectors",
-		    part->n_sectors, part->n_sectors );
-	    fprintf(f,"    %-23s: %10u = %9x/hex\n",
-		    "Number of sector groups",
-		    part->n_groups, part->n_groups );
-
-	    fprintf(f,"    %-23s: %10llu = %9llx/hex\n",
-		    "ISO offset of data",
-		    part->part_off, part->part_off );
-
-	    u8 * pk = part->part_key;
-	    fprintf(f,"    %-23s: %02x%02x%02x%02x %02x%02x%02x%02x"
-				" %02x%02x%02x%02x %02x%02x%02x%02x\n",
-		    "Partition key",
-		pk[0], pk[1], pk[2], pk[3], pk[4], pk[5], pk[6], pk[7],
-		pk[8], pk[9], pk[10], pk[11], pk[12], pk[13], pk[14], pk[15] );
-	}
+	fprintf(f,"\n  ISO memory map:\n");
+	wd_print_memmap(stdout,3,&wia->memmap);
+	putchar('\n');
     }
+
+    //-------------------------
 
     fputc('\n',f);
     CloseSF(&sf,0);
@@ -996,7 +1006,7 @@ enumError cmd_dump()
 {
     SuperFile_t sf;
     InitializeSF(&sf);
-    enumError err = OpenOutput(&sf,0,"DUMP WDF and CISO data strutures:");
+    enumError err = OpenOutput(&sf,0,0,"DUMP WDF and CISO data strutures:");
     
     ParamList_t * param;
     for ( param = first_param; !err && param; param = param->next )
@@ -1032,11 +1042,13 @@ enumError CheckOptions ( int argc, char ** argv )
 	case GO_WIDTH:		err += ScanOptWidth(optarg); break;
 	case GO_QUIET:		verbose = verbose > -1 ? -1 : verbose - 1; break;
 	case GO_VERBOSE:	verbose = verbose <  0 ?  0 : verbose + 1; break;
+	case GO_LOGGING:	logging++; break;
 	case GO_CHUNK:		opt_chunk = true; break;
 	case GO_LONG:		opt_chunk = true; long_count++; break;
 	case GO_MINUS1:		opt_minus1 = 1; break;
 
 	case GO_WDF:		file_mode = FMODE_WDF; break;
+	case GO_WIA:		file_mode = FMODE_WIA; break;
 	case GO_CISO:		file_mode = FMODE_CISO; break;
 	case GO_WBI:		file_mode = FMODE_WBI; break;
 	case GO_SUFFIX:		opt_suffix = optarg; break;
@@ -1053,7 +1065,8 @@ enumError CheckOptions ( int argc, char ** argv )
 	case GO_CHUNK_MODE:	err += ScanChunkMode(optarg); break;
 	case GO_CHUNK_SIZE:	err += ScanChunkSize(optarg); break;
 	case GO_MAX_CHUNKS:	err += ScanMaxChunks(optarg); break;
-	case GO_NO_COMPRESS:	opt_no_compress = true; break;
+	case GO_COMPRESSION:	err += ScanOptCompression(optarg); break;
+	case GO_MEM:		err += ScanOptMem(optarg,true); break;
 
 	case GO_TEST:		testmode++; break;
       }
@@ -1108,7 +1121,7 @@ enumError CheckCommand ( int argc, char ** argv )
     switch (the_cmd)
     {
 	case CMD_VERSION:	version_exit();
-	case CMD_HELP:		PrintHelp(&InfoUI,stdout,0,default_settings); break;
+	case CMD_HELP:		PrintHelp(&InfoUI,stdout,0,"+HELP",default_settings); break;
 
 	case CMD_PACK:		err = cmd_pack(); break;
 	case CMD_UNPACK:	err = cmd_unpack(); break;
@@ -1159,7 +1172,9 @@ int main ( int argc, char ** argv )
 	else if ( !memcmp(iobuf,"un",2) )
 	    the_cmd = CMD_UNPACK;
 
-	if (strstr(iobuf,"ciso"))
+	if (strstr(iobuf,"wia"))
+	    file_mode = def_file_mode = FMODE_WIA;
+	else if (strstr(iobuf,"ciso"))
 	    file_mode = def_file_mode = FMODE_CISO;
 	else if (strstr(iobuf,"wbi"))
 	    file_mode = def_file_mode = FMODE_WBI;

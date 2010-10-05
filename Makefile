@@ -14,8 +14,10 @@ WIT_SHORT		= wit
 WIT_LONG		= Wiimms ISO Tool
 WWT_SHORT		= wwt
 WWT_LONG		= Wiimms WBFS Tool
+WDF_SHORT		= wdf
+WDF_LONG		= Wiimms WDF Tool
 
-VERSION_NUM		= 1.16a
+VERSION_NUM		= 1.17a
 BETA_VERSION		= 0
 			# 0:off  -1:"beta"  >0:"beta#"
 
@@ -44,6 +46,9 @@ URI_TITLES		= http://wiitdb.com/titles.txt
 
 DUMMY			:= $(shell $(SHELL) ./setup.sh)
 include Makefile.setup
+
+# format for logging messages, $1=job, $2=object, $3=more info
+LOGFORMAT		:= *** %7s %-17s %s\n
 
 #-------------------------------------------------------------------------------
 # version+beta settings
@@ -87,8 +92,8 @@ WBFS_COUNT	?= 4
 #-------------------------------------------------------------------------------
 # tools
 
-MAIN_TOOLS	:= wit wwt wdf-cat wdf-dump
-TEST_TOOLS	:= wtest wdf
+MAIN_TOOLS	:= wit wwt wdf wdf-cat wdf-dump
+TEST_TOOLS	:= wtest
 ALL_TOOLS	:= $(sort $(MAIN_TOOLS) $(TEST_TOOLS))
 
 HELPER_TOOLS	:= gen-ui
@@ -130,19 +135,21 @@ OTHER_TOOLS_OBJ	:= $(patsubst %,%.o,$(TEST_TOOLS) $(HELPER_TOOLS))
 
 # other objects
 WIT_O		:= debug.o lib-std.o lib-file.o lib-sf.o \
+		   lib-bzip2.o lib-lzma.o \
 		   lib-wdf.o lib-wia.o lib-ciso.o \
 		   ui.o iso-interface.o wbfs-interface.o patch.o \
 		   titles.o match-pattern.o dclib-utf8.o \
 		   sha1dgst.o sha1_one.o
 LIBWBFS_O	:= file-formats.o libwbfs.o wiidisc.o rijndael.o
+LZMA_O		:= LzmaDec.o LzmaEnc.o LzFind.o Lzma2Dec.o Lzma2Enc.o
 
 # object groups
 UI_OBJECTS	:= $(sort $(MAIN_TOOLS_OBJ))
-C_OBJECTS	:= $(sort $(OTHER_TOOLS_OBJ) $(WIT_O) $(LIBWBFS_O) $(TOBJ_ALL))
+C_OBJECTS	:= $(sort $(OTHER_TOOLS_OBJ) $(WIT_O) $(LIBWBFS_O) $(LZMA_O) $(TOBJ_ALL))
 ASM_OBJECTS	:= ssl-asm.o
 
 # all objects + sources
-ALL_OBJECTS	:= $(sort $(WIT_O) $(LIBWBFS_O) $(ASM_OBJECTS))
+ALL_OBJECTS	:= $(sort $(WIT_O) $(LIBWBFS_O) $(LZMA_O) $(ASM_OBJECTS))
 ALL_SOURCES	:= $(patsubst %.o,%.c,$(UI_OBJECTS) $(C_OBJECTS) $(ASM_OBJECTS))
 
 #-------------------------------------------------------------------------------
@@ -155,21 +162,23 @@ TEMPLATES	= ./templates
 MODULES		= $(TEMPLATES)/module
 GEN_TEMPLATE	= ./gen-template.sh
 UI		= ./src/ui
-DIR_LIST	+= $(SCRIPTS) $(TEMPLATES) $(MODULES) $(UI)
+DIR_LIST	+= $(SCRIPTS) $(TEMPLATES) $(MODULES)
 
-VPATH		+= src src/libwbfs src/crypto $(UI) work
-DIR_LIST	+= src src/libwbfs src/crypto $(UI) work
+VPATH		+= src src/libwbfs src/lzma src/crypto $(UI) work
+DIR_LIST	+= src src/libwbfs src/lzma src/crypto $(UI) work
 
 DEFINES1	=  -DLARGE_FILES -D_FILE_OFFSET_BITS=64
 DEFINES1	+= -DWIT		# enable WIT specific modifications in libwbfs
 DEFINES1	+= -DDEBUG_ASSERT	# enable ASSERTions in release version too
 DEFINES1	+= -DEXTENDED_ERRORS=1	# enable extended error messages (function,line,file)
+DEFINES1	+= -D_7ZIP_ST=1		# disable 7zip multi threading
+DEFINES1	+= -D_LZMA_PROB32=1	# LZMA option
 #DEFINES1	+= -DNO_BZIP2=1
 DEFINES		=  $(strip $(DEFINES1) $(MODE) $(XDEF))
 
-CFLAGS		=  -fomit-frame-pointer -fno-strict-aliasing
+CFLAGS		=  -fomit-frame-pointer -fno-strict-aliasing -funroll-loops
 CFLAGS		+= -Wall -Wno-parentheses -Wno-unused-function
-CFLAGS		+= -O3 -Isrc/libwbfs -Isrc -I$(UI) -I. -Iwork
+CFLAGS		+= -O3 -Isrc/libwbfs -Isrc/lzma -Isrc -I$(UI) -I. -Iwork
 CFLAGS		+= $(XFLAGS)
 CFLAGS		:= $(strip $(CFLAGS))
 
@@ -198,7 +207,7 @@ BIN_FILES	= $(MAIN_TOOLS)
 LIB_FILES	= $(TITLE_FILES)
 
 CYGWIN_DIR	= pool/cygwin
-CYGWIN_BIN	= cygwin1.dll
+CYGWIN_BIN	= cygwin1.dll cygbz2-1.dll
 CYGWIN_BIN_SRC	= $(patsubst %,$(CYGWIN_DIR)/%,$(CYGWIN_BIN))
 
 DIR_LIST_BIN	= $(SCRIPTS) bin
@@ -226,7 +235,7 @@ default_rule: all
 # general rules
 
 $(ALL_TOOLS): %: %.o $(ALL_OBJECTS) $(TOBJ_ALL) Makefile | $(HELPER_TOOLS)
-	@echo "***    tool $@ $(TOBJ_$@) $(MODE)"
+	@printf "$(LOGFORMAT)" tool "$@ $(TOBJ_$@)" "$(MODE)"
 	@$(CC) $(CFLAGS) $(DEFINES) $(LDFLAGS) $@.o $(ALL_OBJECTS) $(TOBJ_$@) $(LIBS) -o $@
 	@if test -f $@.exe; then $(STRIP) $@.exe; else $(STRIP) $@; fi
 	@mkdir -p bin/debug
@@ -236,43 +245,43 @@ $(ALL_TOOLS): %: %.o $(ALL_OBJECTS) $(TOBJ_ALL) Makefile | $(HELPER_TOOLS)
 #--------------------------
 
 $(HELPER_TOOLS): %: %.o $(ALL_OBJECTS) Makefile
-	@echo "***  helper $@ $(TOBJ_$@) $(MODE)"
+	@printf "$(LOGFORMAT)" helper "$@ $(TOBJ_$@)" "$(MODE)"
 	@$(CC) $(CFLAGS) $(DEFINES) $(LDFLAGS) $@.o $(ALL_OBJECTS) $(TOBJ_$@) $(LIBS) -o $@
 
 #--------------------------
 
 $(UI_OBJECTS): %.o: %.c ui-%.c ui-%.h version.h Makefile
-	@echo "*** +object $@ $(MODE)"
+	@printf "$(LOGFORMAT)" +object "$@" "$(MODE)"
 	@$(CC) $(CFLAGS) $(DEPFLAGS) $(DEFINES) -c $< -o $@
 
 #--------------------------
 
 $(C_OBJECTS): %.o: %.c version.h Makefile
-	@echo "***  object $@ $(MODE)"
+	@printf "$(LOGFORMAT)" object "$@" "$(MODE)"
 	@$(CC) $(CFLAGS) $(DEPFLAGS) $(DEFINES) -c $< -o $@
 
 #--------------------------
 
 $(ASM_OBJECTS): %.o: %.S Makefile
-	@echo "***     asm $@ $(MODE)"
+	@printf "$(LOGFORMAT)" asm "$@" "$(MODE)"
 	@$(CC) $(CFLAGS) $(DEPFLAGS) $(DEFINES) -c $< -o $@
 
 #--------------------------
 
 $(SETUP_FILES): templates.sed $(SETUP_DIR)/$@
-	@echo "***  create $@"
+	@printf "$(LOGFORMAT)" create "$@" ""
 	@chmod 775 $(GEN_TEMPLATE)
 	@$(GEN_TEMPLATE) $@
 
 #--------------------------
 
 $(UI_FILES): gen-ui.c tab-ui.c ui.h | gen-ui
-	@echo "***     run gen-ui"
+	@printf "$(LOGFORMAT)" run gen-ui ""
 	@./gen-ui
 
 .PHONY : ui
 ui : gen-ui
-	@echo "***     run gen-ui"
+	@printf "$(LOGFORMAT)" run gen-ui ""
 	@./gen-ui
 
 #
@@ -299,7 +308,7 @@ ch+:	chmod chown chgrp
 
 .PHONY : chmod
 chmod:
-	@echo "***   chmod 775/664"
+	@printf "$(LOGFORMAT)" chmod 775/664 ""
 	@for d in . $(DIR_LIST); do test -d "$$d" && chmod ug+rw "$$d"/*; done
 	@for d in $(DIR_LIST); do test -d "$$d" && chmod 775 "$$d"; done
 	@find . -name '*.sh' -exec chmod 775 {} +
@@ -310,7 +319,7 @@ chmod:
 
 .PHONY : chown
 chown:
-	@echo "***   chown -R $$( stat -c%u . 2>/dev/null || stat -f%u . ) ."
+	@printf "$(LOGFORMAT)" chown "-R $$( stat -c%u . 2>/dev/null || stat -f%u . ) ." ""
 	@chown -R "$$( stat -c%u . 2>/dev/null || stat -f%u . )" .
 
 #
@@ -318,7 +327,7 @@ chown:
 
 .PHONY : chgrp
 chgrp:
-	@echo "***   chgrp -R $$( stat -c%g . 2>/dev/null || stat -f%g . ) ."
+	@printf "$(LOGFORMAT)" chgrp "-R $$( stat -c%g . 2>/dev/null || stat -f%g . ) ." ""
 	@chgrp -R "$$( stat -c%g . 2>/dev/null || stat -f%g . )" .
 
 #
@@ -326,13 +335,13 @@ chgrp:
 
 .PHONY : clean
 clean:
-	@echo "***      rm output files + distrib"
+	@printf "$(LOGFORMAT)" rm "output files + distrib" ""
 	@rm -f $(RM_FILES)
 	@rm -fr $(DISTRIB_RM)*
 
 .PHONY : clean+
 clean+: clean
-	@echo "***      rm test files + template output"
+	@printf "$(LOGFORMAT)" rm "test files + template output" ""
 	@rm -f $(RM_FILES2)
 	-@rm -fr doc
 
@@ -345,7 +354,7 @@ clean++: clean+
 
 .PHONY : debug
 debug:
-	@echo "***  enable debug (-DDEBUG)"
+	@printf "$(LOGFORMAT)" enable debug "(-DDEBUG)"
 	@rm -f *.o $(ALL_TOOLS)
 	@echo "-DDEBUG" >>$(MODE_FILE)
 	@sort $(MODE_FILE) | uniq > $(MODE_FILE).tmp
@@ -361,7 +370,7 @@ distrib: all doc gen-distrib wit.def
 
 .PHONY : gen-distrib
 gen-distrib:
-	@echo "***  create $(DISTRIB_PATH)"
+	@printf "$(LOGFORMAT)" create "$(DISTRIB_PATH)" ""
 
 ifeq ($(SYSTEM),cygwin)
 
@@ -400,7 +409,7 @@ doc: $(MAIN_TOOLS) templates.sed gen-doc
 
 .PHONY : gen-doc
 gen-doc:
-	@echo "***  create documentation"
+	@printf "$(LOGFORMAT)" create documentation ""
 	@chmod ug+x $(GEN_TEMPLATE)
 	@$(GEN_TEMPLATE)
 	@cp -p doc/WDF.txt .
@@ -436,6 +445,19 @@ install+: clean+ all
 #
 #--------------------------
 
+.PHONY : new
+new:
+	@printf "$(LOGFORMAT)" enable new "(-DNEW_FEATURES)"
+	@rm -f *.o $(ALL_TOOLS)
+	@echo "-DNEW_FEATURES" >>$(MODE_FILE)
+	@sort $(MODE_FILE) | uniq > $(MODE_FILE).tmp
+# 2 steps to bypass a cygwin mv failure
+	@cp $(MODE_FILE).tmp $(MODE_FILE)
+	@rm -f $(MODE_FILE).tmp
+
+#
+#--------------------------
+
 .PHONY : predef
 predef:
 	@gcc -E -dM none.c | sort
@@ -445,14 +467,14 @@ predef:
 
 .PHONY : $(SUB_PROJECTS)
 $(SUB_PROJECTS):
-	@echo "***    make $@"
+	@printf "$(LOGFORMAT)" make "$@" ""
 	@cd $@ && make
 
 #
 #--------------------------
 
 templates.sed: Makefile
-	@echo "***  create templates.sed"
+	@printf "$(LOGFORMAT)" create templates.sed ""
 	@echo -e '' \
 		'/^~/ d;\n' \
 		's|@.@@@|$(VERSION_NUM)|g;\n' \
@@ -465,6 +487,8 @@ templates.sed: Makefile
 		's|@@WIT-LONG@@|$(WIT_LONG)|g;\n' \
 		's|@@WWT-SHORT@@|$(WWT_SHORT)|g;\n' \
 		's|@@WWT-LONG@@|$(WWT_LONG)|g;\n' \
+		's|@@WDF-SHORT@@|$(WDF_SHORT)|g;\n' \
+		's|@@WDF-LONG@@|$(WDF_LONG)|g;\n' \
 		's|@@VERSION@@|$(VERSION)|g;\n' \
 		's|@@VERSION-NUM@@|$(VERSION_NUM)|g;\n' \
 		's|@@BETA-VERSION@@|$(BETA_VERSION)|g;\n' \
@@ -505,7 +529,7 @@ templates.sed: Makefile
 
 .PHONY : test
 test:
-	@echo "***  enable test (-DTEST)"
+	@printf "$(LOGFORMAT)" enable test "(-DTEST)"
 	@rm -f *.o $(ALL_TOOLS)
 	@echo "-DTEST" >>$(MODE_FILE)
 	@sort $(MODE_FILE) | uniq > $(MODE_FILE).tmp
@@ -518,7 +542,7 @@ test:
 
 .PHONY : test-trace
 test-trace:
-	@echo "***  enable testtrace (-DTESTTRACE)"
+	@printf "$(LOGFORMAT)" enable testtrace "(-DTESTTRACE)"
 	@rm -f *.o $(ALL_TOOLS)
 	@echo "-DTESTTRACE" >>$(MODE_FILE)
 	@sort $(MODE_FILE) | uniq > $(MODE_FILE).tmp
@@ -547,10 +571,10 @@ tools: $(ALL_TOOLS)
 #--------------------------
 
 %.wbfs: wwt
-	@echo "***  create $@, $(WBFS_SIZE)G, add smallest $(WBFS_COUNT) ISOs"
+	@printf "$(LOGFORMAT)" create "$@" "$(WBFS_SIZE)G, add smallest $(WBFS_COUNT) ISOs"
 	@rm -f $@
 	@./wwt format --force --inode --size $(WBFS_SIZE)- "$@"
-	@stat --format="%b|%n" pool/iso/*.iso \
+	@stat --format="%b|%n" pool/wdf/*.wdf \
 		| sort -n \
 		| awk '-F|' '{print $$2}' \
 		| head -n$(WBFS_COUNT) \
@@ -561,7 +585,7 @@ tools: $(ALL_TOOLS)
 
 .PHONY : format-wbfs
 format-wbfs:
-	@echo "***  create $(WBFS_FILES), size=$(WBFS_SIZE)G"
+	@printf "$(LOGFORMAT)" create "$(WBFS_FILES)," "size=$(WBFS_SIZE)G"
 	@rm -f $(WBFS_FILES)
 	@s=512; \
 	    for w in $(WBFS_FILES); \
@@ -577,7 +601,7 @@ wbfs: wwt format-wbfs gen-wbfs
 
 .PHONY : gen-wbfs
 gen-wbfs: format-wbfs
-	@echo "***  charge $(WBFS_FILE)"
+	@printf "$(LOGFORMAT)" charge "$(WBFS_FILE)" ""
 	@stat --format="%b|%n" pool/wdf/*.wdf \
 		| sort -n \
 		| awk '-F|' '{print $$2}' \
@@ -595,7 +619,7 @@ wbfs+: wwt format-wbfs gen-wbfs+
 
 .PHONY : gen-wbfs+
 gen-wbfs+: format-wbfs
-	@echo "***  charge $(WBFS_FILES)"
+	@printf "$(LOGFORMAT)" charge "$(WBFS_FILES)" ""
 	@stat --format="%b|%n" pool/iso/*.iso \
 		| sort -n \
 		| awk '-F|' '{print $$2}' \
@@ -611,17 +635,26 @@ gen-wbfs+: format-wbfs
 
 .PHONY : xwbfs
 xwbfs: wwt
-	@echo "***  create x.wbfs, 1TB, sec-size=2048 and then with sec-size=512"
+	@printf "$(LOGFORMAT)" create x.wbfs "1TB, sec-size=2048 and then with sec-size=512"
 	@./wwt init -qfs1t x.wbfs --inode --sector-size=2048
 	@sleep 2
 	@./wwt init -qfs1t x.wbfs --inode --sector-size=512
+
+#--------------------------
+
+.PHONY : bad-wbfs
+bad-wbfs: wwt a.wbfs
+	@printf "$(LOGFORMAT)" edit "a.wbfs" "(create errors)"
+#	@./wwt edit  -p a.wbfs -f rm=10 act=0
+	@./wwt edit  -p a.wbfs -f free=4 act=0-1 R64P01=10:1
+#	@./wwt check -p a.wbfs -vv
 
 #
 #--------------------------
 
 .PHONY : wdf-links
 wdf-links:
-	@echo "***    link $(WDF_LINKS) -> wdf"
+	@printf "$(LOGFORMAT)" link "$(WDF_LINKS) -> wdf" ""
 	@for l in $(WDF_LINKS); do rm -f $$l; ln -s wdf $$l; done
 
 #
@@ -646,6 +679,7 @@ help:
 	@echo  " make debug	enable '-DDEBUG'"
 	@echo  " make test	enable '-DTEST'"
 	@echo  " make testtrace	enable '-DTESTTRACE'"
+	@echo  " make new	enable '-DNEW_FEATURES'"
 	@echo  " make flags	print DEFINES, CFLAGS and LDFLAGS"
 	@echo  ""
 	@echo  " make doc	generate doc files from their templates"

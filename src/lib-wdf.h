@@ -40,7 +40,7 @@
 #define WDF_MAGIC		"WII\1DISC"
 #define WDF_MAGIC_SIZE		8
 
-#ifdef TEST
+#ifdef NEW_FEATURES
  #define WDF2_ENABLED		0	// [obsolete] [2do]
  #define WDF_VERSION		1
  #define WDF_COMPATIBLE		1

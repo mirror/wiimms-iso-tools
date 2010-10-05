@@ -22,6 +22,9 @@
  *                                                                         *
  ***************************************************************************/
 
+#include "lib-bzip2.h"
+#include "lib-lzma.h"
+
 ///////////////////////////////////////////////////////////////////////////////
 //   This file is included by wwt.c and wit.c and contains common commands.  //
 ///////////////////////////////////////////////////////////////////////////////
@@ -87,6 +90,170 @@ enumError cmd_error()
     else
 	printf("%s\n",GetErrorName(num));
     return stat;
+}
+
+//
+///////////////////////////////////////////////////////////////////////////////
+
+void print_default_compr ( ccp mode )
+{
+    int level = 0;
+    u32 csize = 0;
+    wd_compression_t compr = ScanCompression(mode,true,&level,&csize);
+    CalcDefaultSettingsWIA(&compr,&level,&csize);
+    printf("mode-%s=%s\n",
+		mode,
+		wd_print_compression(0,0,compr,level,csize,2));
+};
+
+//-----------------------------------------------------------------------------
+
+enumError cmd_compr()
+{
+    const bool print_header = !print_sections
+			    && long_count > 1
+			    && !OptionUsed[OPT_NO_HEADER];
+    if (print_header)
+	printf(	"\n"
+		" mode    mode           memory usage\n"
+		" num     name         reading   writing   input\n"
+		"----------------------------------------------------\n");
+
+    const bool have_param = n_param > 0;
+    if (!n_param)
+    {
+	int i;
+	for ( i = 0; i < WD_COMPR__N; i++ )
+	    AddParam(wd_get_compression_name(i,0),false);
+	if ( long_count > 1 )
+	{
+	    AddParam(" DEFAULT",false);
+	    AddParam(" FAST",false);
+	    AddParam(" GOOD",false);
+	    AddParam(" BEST",false);
+	    AddParam(" MEM",false);
+	}
+    }
+
+    int err_count = 0;
+    if (print_sections)
+    {
+	if (!have_param)
+	{
+	    printf( "\n[compression-modes]\n"
+		    "n-methods=%u\n", WD_COMPR__N );
+	    print_default_compr("default");
+	    print_default_compr("fast");
+	    print_default_compr("good");
+	    print_default_compr("best");
+	    print_default_compr("mem");
+	}
+
+	int index = 0;
+	ParamList_t * param;
+	for ( param = first_param; param; param = param->next, index++ )
+	{
+	    int level;
+	    u32 csize;
+	    wd_compression_t compr = ScanCompression(param->arg,true,&level,&csize);
+	    printf( "\n[compression-mode-%u]\n"
+		"num=%d\n"
+		"name=%s\n",
+		index, compr, wd_get_compression_name(compr,"-") );
+	    if ( compr == (wd_compression_t)-1 )
+		err_count++;
+	    else
+	    {
+		CalcDefaultSettingsWIA(&compr,&level,&csize);
+		if ( level > 0 )
+		    printf("level=%u\n",level);
+		if ( csize > 0 )
+		    printf("chunk-factor=%u\nchunk-size=%u\n",
+				csize/WIA_BASE_CHUNK_SIZE, csize );
+	     #ifdef NO_BZIP2
+		if ( compr == WD_COMPR_BZIP2 )
+		    fputs("not-supported=1\n",stdout);
+	     #endif
+	    }
+	}
+	putchar('\n');
+    }
+    else if ( long_count > 0 )
+    {
+	ParamList_t * param;
+	for ( param = first_param; param; param = param->next )
+	{
+	    int level;
+	    u32 csize;
+	    wd_compression_t compr = ScanCompression(param->arg,true,&level,&csize);
+	    if ( verbose > 0 )
+	    {
+		wd_compression_t compr2 = compr;
+		CalcDefaultSettingsWIA(&compr2,&level,&csize);
+	    }
+
+	    if ( long_count == 1 )
+	    {
+		if ( compr == (wd_compression_t)-1 )
+		{
+		    err_count++;
+		    printf(" -    -\n");
+		}
+		else
+	     #ifdef NO_BZIP2
+		if ( have_param || compr != WD_COMPR_BZIP2 )
+	     #endif
+		    printf("%s\n",wd_print_compression(0,0,compr,level,csize,3));
+	    }
+	    else if ( compr == (wd_compression_t)-1 )
+	    {
+		err_count++;
+		printf(" -       -                -         -     %s\n",param->arg);
+	    }
+	    else
+	    {
+		sprintf(iobuf," %-7s %-11s",
+			wd_print_compression(0,0,compr,level,csize,1),
+			wd_print_compression(0,0,compr,level,csize,2) );
+
+		u32 read_size  = CalcMemoryUsageWIA(compr,level,csize,false);
+		u32 write_size = CalcMemoryUsageWIA(compr,level,csize,true);
+		printf("%-16s %s  %s   %.30s\n",iobuf,
+			wd_print_size(0,0,read_size,true),
+			wd_print_size(0,0,write_size,true),
+			param->arg );
+	    }
+	}
+    }
+    else
+    {
+	ParamList_t * param;
+	int mode = OptionUsed[OPT_NUMERIC] ? 1 : 2;
+	for ( param = first_param; param; param = param->next )
+	{
+	    int level;
+	    u32 csize;
+	    wd_compression_t compr = ScanCompression(param->arg,true,&level,&csize);
+	    if ( verbose > 0 )
+	    {
+		wd_compression_t compr2 = compr;
+		CalcDefaultSettingsWIA(&compr2,&level,&csize);
+	    }
+
+	 #ifdef NO_BZIP2
+	    if ( !have_param && compr == WD_COMPR_BZIP2 )
+		continue; // ignore it
+	 #endif
+	    if ( compr == (wd_compression_t)-1 )
+		err_count++;
+	    printf("%s\n",wd_print_compression(0,0,compr,level,csize,mode));
+	}
+    }
+
+    if (print_header)
+	putchar('\n');
+
+    return err_count ? ERR_WARNING : ERR_OK;
 }
 
 //
@@ -158,6 +325,18 @@ enumError cmd_test_options()
     }
 
     printf("  split-size:  %16llx = %lld\n",opt_split_size,opt_split_size);
+    printf("  compression: %16x = %d = %s (level=%d)\n",
+		opt_compr_method, opt_compr_method,
+		wd_get_compression_name(opt_compr_method,"?"), opt_compr_level );
+    printf("    level:     %16x = %d\n",opt_compr_level,opt_compr_level);
+    printf("    chunk-size:%16x = %d\n",opt_compr_chunk_size,opt_compr_chunk_size);
+
+    printf("  mem:         %16llx = %lld = %s\n",
+			opt_mem,opt_mem,wd_print_size(0,0,opt_mem,false));
+    GetMemLimit();
+    printf("    mem limit: %16llx = %lld = %s\n",
+			opt_mem,opt_mem,wd_print_size(0,0,opt_mem,false));
+
     printf("  escape-char: %16x = %d\n",escape_char,escape_char);
     printf("  print-time:  %16x = %d\n",opt_print_time,opt_print_time);
     printf("  sort-mode:   %16x = %d\n",sort_mode,sort_mode);
@@ -196,10 +375,17 @@ enumError cmd_test_options()
 		(u64)opt_set_time, (u64)opt_set_time,buf_set_time );
  #endif
 
+    printf("  trim:        %16x = %u\n",opt_trim,opt_trim);
     printf("  align:       %16x = %u, %x = %u, %x = %u\n",
 		opt_align1, opt_align1,
 		opt_align2, opt_align2,
 		opt_align3, opt_align3 );
+    printf("  align-part:  %16x = %u = %s\n",
+		opt_align_part, opt_align_part,
+		wd_print_size(0,0,opt_align_part,true) );
+    printf("  disc-size:   %16llx = %llu = %s\n",
+		opt_disc_size, opt_disc_size,
+		wd_print_size(0,0,opt_disc_size,true) );
 
     printf("  partition selector:\n");
     wd_print_select(stdout,6,&part_selector);

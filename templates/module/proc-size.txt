@@ -21,11 +21,18 @@ with term := float [factor]
     'm' : mega, numeric factor = 1 MB = 1000*1000
     'g' : giga, numeric factor = 1 GB = 1000*1000*1000
     't' : tera, numeric factor = 1 TB = 1000*1000*1000*1000
+    'p' : peta, numeric factor = 1 PB = 1000*1000*1000*1000*1000
+    'e' : exa,  numeric factor = 1 EB = 1000*1000*1000*1000*1000*1000
 
     'K' : kilo, numeric factor = 1 KiB = 1024
     'M' : mega, numeric factor = 1 MiB = 1024*1024
     'G' : giga, numeric factor = 1 GiB = 1024*1024*1024
     'T' : tera, numeric factor = 1 TiB = 1024*1024*1024*1024
+    'P' : peta, numeric factor = 1 PiB = 1024*1024*1024*1024*1024
+    'E' : exa,  numeric factor = 1 EiB = 1024*1024*1024*1024*1024*1024
+
+    'u' | 'U' : size of a GameCube disc        = 1 459 978 240
+    'w' | 'W' : size of a singe layer Wii disc = 4 699 979 776
 
   Without 'factor' a default factor is used. This default factor is different
   for the first term and for the other terms. The default factors depends on

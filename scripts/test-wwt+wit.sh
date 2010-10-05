@@ -1,5 +1,5 @@
 #!/bin/bash
-# (c) Wiimm, 2010-08-26
+# (c) Wiimm, 2010-10-04
 
 myname="${0##*/}"
 base=wwt+wit
@@ -28,31 +28,35 @@ then
 	Usage:  $myname [option]... iso_file...
 
 	Options:
-	  --fast        : Enter fast mode
-	                => do only WDF tests and skip verify+fst+pipe tests
-	  --verify      : enable  verify tests
-	  --no-verify   : disable verify tests
-	  --fst         : enable  "EXTRACT FST" tests
-	  --no-fst      : disable "EXTRACT FST" tests
-	  --pipe        : enable  pipe tests
-	  --no-pipe     : disable pipe tests (default for cygwin)
-	  --compress    : enable WIA compression tests
-	  --no-compress : enable WIA compression tests
+	  --fast       : Enter fast mode
+	               => do only WDF tests and skip verify+fst+pipe tests
+	  --verify     : enable  verify tests (default)
+	  --no-verify  : disable verify tests
+	  --fst        : enable  "EXTRACT FST" tests (default)
+	  --no-fst     : disable "EXTRACT FST" tests
+	  --pipe       : enable  pipe tests (default)
+	  --no-pipe    : disable pipe tests (default for cygwin)
+	  --wia        : enable WIA compression tests (default)
+	  --no-wia     : disable WIA compression tests
+	  --raw        : enable raw mode
+	  --no-raw     : disable raw mode (default)
 
+	  --test       : enter command test mode
+	  --test-modes : test and print conversion modes
 	---EOT---
     exit 1
 fi
 
 #
 #------------------------------------------------------------------------------
-# check exitence of needed tools
+# check existence of needed tools
 
 WWT=wwt
 WIT=wit
 WDFCAT=wdf-cat
-[[ -x ./wwt ]] && WWT=./wwt
-[[ -x ./wit ]] && WIT=./wit
-[[ -x ./wdf-cat ]] && WDFCAT=./wdf-cat
+[[ -f ./wwt && -x ./wwt ]] && WWT=./wwt
+[[ -f ./wit && -x ./wit ]] && WIT=./wit
+[[ -f ./wdf-cat && -x ./wdf-cat ]] && WDFCAT=./wdf-cat
 
 errtool=
 for tool in $WWT $WIT $WDFCAT cmp
@@ -144,7 +148,8 @@ tempdir="$(mktemp -d ./.$base.tmp.XXXXXX)" || exit 1
 WBFS_FILE=a.wbfs
 WBFS="$tempdir/$WBFS_FILE"
 
-MODELIST="iso wdf wia ciso wbfs"
+WIALIST=$(echo $($WIT compr | sed 's/^/wia-/'))
+MODELIST="iso wdf $WIALIST ciso wbfs"
 BASEMODE="wdf"
 
 FAST_MODELIST="wdf"
@@ -153,7 +158,11 @@ FAST_BASEMODE="wdf"
 NOVERIFY=0
 NOFST=0
 NOPIPE=0
-NOCOMPRESS=1
+NOWIA=0
+RAW=
+IO=
+OPT_TEST=0
+OPT_TEST_MODES=0
 [[ $TERM = cygwin ]] && NOPIPE=1
 
 FST_OPT="--psel data,update,channel,ptab0"
@@ -165,9 +174,12 @@ export WWT_WBFS=
 # error codes
 
 STAT_OK=0
-STAT_NOISO=1
-STAT_DIFF=2
+STAT_TEST=1
+STAT_NOISO=2
+STAT_DIFF=3
 ERROR=10
+
+STAT_SUCCESS=$STAT_OK
 
 #
 #------------------------------------------------------------------------------
@@ -184,7 +196,7 @@ function test_function()
     shift 2
     start=$(get_msec)
     #echo; echo "$@"
-    "$@" || return $ERROR
+    ((OPT_TEST)) || "$@" || return $ERROR
     stop=$(get_msec)
     print_timer $start $stop
     return $STAT_OK
@@ -228,16 +240,18 @@ function test_suite()
 	|| return $ERROR
 
     test_function "ADD-src" "wwt ADD source" \
-	$WWT -qp "$WBFS" ADD "$1" \
+	$WWT_ADD -p "$WBFS" "$1" \
 	|| return $ERROR
 
-    for mode in $MODELIST
+    for xmode in $MODELIST
     do
+	mode="${xmode%%-*}"
+	#echo "|$mode|$xmode|"
 	[[ $mode = wia ]] && continue
 
 	dest="$tempdir/image.$mode"
 	test_function "EXT-$mode" "wwt EXTRACT to $mode" \
-	    $WWT -qp "$WBFS" EXTRACT "$id6=$dest" --$mode --no-compress \
+	    $WWT -qp "$WBFS" EXTRACT "$id6=$dest" --$mode \
 	    || return $ERROR
 
 	rm -f "$WBFS"
@@ -247,14 +261,14 @@ function test_suite()
 	let hss*=2
 
 	test_function "ADD-$mode" "wwt ADD from $mode" \
-	    $WWT -qp "$WBFS" ADD "$dest" \
+	    $WWT_ADD -p "$WBFS" "$dest" \
 	    || return $ERROR
 
 	[[ $mode = $BASEMODE ]] || rm -f "$dest"
     done
 
     test_function "CMP" "wit CMP wbfs source" \
-	$WIT -ql CMP "$WBFS" "$1" \
+	$WIT $RAW -ql CMP "$WBFS" "$1" \
 	|| return $STAT_DIFF
 
 
@@ -262,31 +276,26 @@ function test_suite()
 
     count=0
     src="$tempdir/image.$BASEMODE"
-    for mode in $MODELIST
+    for xmode in $MODELIST
     do
-	dest="$tempdir/copy.$mode"
+	mode="${xmode%%-*}"
+	[[ $xmode = ${xmode/-} ]] && compr="" || compr="--compr ${xmode#*-}"
+	[[ $mode = wia ]] && ((NOWIA)) && continue
+	[[ $mode = wbfs && $RAW != "" ]] && continue
 
-	test_function "COPY-$mode" "wit COPY to $mode" \
-	    $WIT -q COPY "$src" "$dest" --$mode --no-compress \
+	dest="$tempdir/copy.$xmode.$mode"
+
+	test_function "COPY-$xmode" "wit COPY to $xmode" \
+	    $WIT_CP "$src" "$dest" --$mode $compr \
 	    || return $ERROR
 
 	((count++)) && rm -f "$src"
 	src="$dest"
 
-	if ((!NOCOMPRESS)) && [[ $mode == wia ]]
-	then
-	    test_function "COPY-${mode}C" "wit COPY to $mode" \
-		$WIT -q COPY "$src" "$dest" --$mode \
-		|| return $ERROR
-
-	    ((count++)) && rm -f "$src"
-	    src="$dest"
-	fi
-
     done
 
     test_function "CMP" "wit CMP copied source" \
-	$WIT -ql CMP "$dest" "$1" \
+	$WIT $RAW -ql CMP "$dest" "$1" \
 	|| return $STAT_DIFF
 
     rm -f "$dest"
@@ -300,11 +309,11 @@ function test_suite()
 	dest="$tempdir/fst"
 
 	test_function "EXTR-FST0" "wit EXTRACT source" \
-	    $WIT -q COPY "$1" "$dest/0" --fst -F :wit $FST_OPT \
+	    $WIT_CP "$1" "$dest/0" --fst -F :wit $FST_OPT \
 	    || return $ERROR
 
 	test_function "EXTR-FST1" "wit EXTRACT copy" \
-	    $WIT -q COPY "$src" "$dest/1" --fst -F :wit $FST_OPT \
+	    $WIT_CP "$src" "$dest/1" --fst -F :wit $FST_OPT \
 	    || return $ERROR
 
 	test_function "DIF-FST01" "DIFF fst/0 fst/1" \
@@ -314,7 +323,7 @@ function test_suite()
 	rm -rf "$dest/0"
 
 	test_function "GEN-ISO" "wit COMPOSE" \
-	    $WIT -q COPY "$dest/1" -D "$dest/a.wdf" --wdf --region=file \
+	    $WIT_CP "$dest/1" -D "$dest/a.wdf" --wdf --region=file \
 	    || return $ERROR
 
 	hss=512
@@ -324,20 +333,20 @@ function test_suite()
 	    || return $ERROR
 
 	test_function "ADD-FST" "wwt ADD FST" \
-	    $WWT -qp "$WBFS" ADD "$dest/1" --region=file \
+	    $WWT_ADD -p "$WBFS" "$dest/1" --region=file \
 	    || return $ERROR
 
 	test_function "CMP" "wit CMP 2x composed" \
-	    $WIT -ql CMP "$WBFS" "$dest/a.wdf" \
+	    $WIT $RAW -ql CMP "$WBFS" "$dest/a.wdf" \
 	    || return $STAT_DIFF
 
 	test_function "EXTR-FST2" "wit EXTRACT" \
-	    $WIT -q COPY "$dest/a.wdf" "$dest/2" --fst -F :wit $FST_OPT \
+	    $WIT_CP "$dest/a.wdf" "$dest/2" --fst -F :wit $FST_OPT \
 	    || return $ERROR
 
 	#diff -rq "$dest/1" "$dest/2"
-	find "$dest" -name tmd.bin -type f -exec rm {} \;
-	find "$dest" -name ticket.bin -type f -exec rm {} \;
+	((OPT_TEST)) || find "$dest" -name tmd.bin -type f -exec rm {} \;
+	((OPT_TEST)) || find "$dest" -name ticket.bin -type f -exec rm {} \;
 
 	test_function "DIF-FST12" "DIFF fst/1 fst/2" \
 	    diff -rq "$dest/1" "$dest/2" \
@@ -348,7 +357,7 @@ function test_suite()
 
     #----- test WWT pipe
 
-    if ((!NOPIPE))
+    if (( !NOPIPE && !OPT_TEST ))
     then
 
 	hss=1024
@@ -360,14 +369,14 @@ function test_suite()
 	ref="ADD pipe"
 	if ! $WDFCAT "$tempdir/image.$BASEMODE" |
 	    test_function "ADD-pipe" "wwt ADD $BASEMODE from pipe" \
-		$WWT -qp "$WBFS" ADD - --psel=DATA
+		$WWT_ADD -p "$WBFS" - --psel=DATA
 	then
 	    ref="NO-PIPE"
-	    return $STAT_OK
+	    return $STAT_SUCCESS
 	fi
 
 	test_function "CMP" "wit CMP wbfs source" \
-	    $WIT -ql CMP "$WBFS" "$1" --psel=DATA \
+	    $WIT $RAW -ql CMP "$WBFS" "$1" --psel=DATA \
 	    || return $STAT_DIFF
 
     fi
@@ -375,7 +384,7 @@ function test_suite()
     #----- all tests done
 
     ref=-
-    return $STAT_OK
+    return $STAT_SUCCESS
 }
 
 #
@@ -391,11 +400,15 @@ function test_suite()
     $WIT --version
     $WDFCAT --version
     echo
+    echo "PARAM: $*"
+    echo
 } | tee -a $log $err
 
 #
 #------------------------------------------------------------------------------
 # main loop
+
+opts=1
 
 while (($#))
 do
@@ -409,65 +422,121 @@ do
 	NOPIPE=1
 	MODELIST="$FAST_MODELIST"
 	BASEMODE="$FAST_BASEMODE"
-	printf "\n## --fast : check only %s, --no-fst --no-pipe\n" "$MODELIST"
+	((opts++)) || printf "\n"
+	printf "## --fast : check only %s, --no-fst --no-pipe\n" "$MODELIST"
 	continue
     fi
 
     if [[ $src == --verify ]]
     then
 	NOVERIFY=1
-	printf "\n## --verify : verify tests enabled\n"
+	((opts++)) || printf "\n"
+	printf "## --verify : verify tests enabled\n"
 	continue
     fi
 
     if [[ $src == --no-verify || $src == --noverify ]]
     then
 	NOVERIFY=1
-	printf "\n## --no-verify : verify tests disabled\n"
+	((opts++)) || printf "\n"
+	printf "## --no-verify : verify tests disabled\n"
 	continue
     fi
 
     if [[ $src == --fst ]]
     then
 	NOFST=0
-	printf "\n## --fst : fst tests enabled\n"
+	((opts++)) || printf "\n"
+	printf "## --fst : fst tests enabled\n"
 	continue
     fi
 
     if [[ $src == --no-fst || $src == --nofst ]]
     then
 	NOFST=1
-	printf "\n## --no-fst : fst tests diabled\n"
+	((opts++)) || printf "\n"
+	printf "## --no-fst : fst tests diabled\n"
 	continue
     fi
 
     if [[ $src == --pipe ]]
     then
 	NOPIPE=0
-	printf "\n## --pipe : pipe tests enabled\n"
+	((opts++)) || printf "\n"
+	printf "## --pipe : pipe tests enabled\n"
 	continue
     fi
 
     if [[ $src == --no-pipe || $src == --nopipe ]]
     then
 	NOPIPE=1
-	printf "\n## --no-pipe : pipe tests disabled\n"
+	((opts++)) || printf "\n"
+	printf "## --no-pipe : pipe tests disabled\n"
 	continue
     fi
 
-    if [[ $src == --compress ]]
+    if [[ $src == --wia ]]
     then
-	NOCOMPRESS=0
-	printf "\n## --compress : compress WIA tests enabled\n"
+	NOWIA=0
+	((opts++)) || printf "\n"
+	printf "## --wia : compress WIA tests enabled\n"
 	continue
     fi
 
-    if [[ $src == --no-compress || $src == --nocompress ]]
+    if [[ $src == --raw ]]
     then
-	NOCOMPRESS=1
-	printf "\n## --no-compress : WIA compress tests diabled\n"
+	RAW=--raw
+	((opts++)) || printf "\n"
+	printf "## --raw : raw mode enabled.\n"
 	continue
     fi
+
+    if [[ $src == --no-raw || $src == --noraw ]]
+    then
+	RAW=
+	((opts++)) || printf "\n"
+	printf "## --no-raw : raw mode disabled.\n"
+	continue
+    fi
+
+    if [[ $src == --test ]]
+    then
+	OPT_TEST=1
+	STAT_SUCCESS=$STAT_TEST
+	((opts++)) || printf "\n"
+	printf "## --test : test mode enabled\n"
+	continue
+    fi
+
+    if [[ $src == --test-modes || $src == --testmodes ]]
+    then
+	STAT_SUCCESS=$STAT_TEST
+	((opts++)) || printf "\n"
+	printf "## --test-modes : list of modes:\n"
+	for xmode in $MODELIST
+	do
+	    [[ $xmode = ${xmode/.} ]] && compr="" || compr="--compr ${xmode#*.}"
+	    mode="${xmode%.*}"
+	    echo "# $mode $compr"
+	done
+	continue
+    fi
+
+    #---- hidden options
+
+    if [[ $src == --io ]]
+    then
+	IO="--io $( echo "$1" | tr -cd 0-9 )"
+	shift
+	((opts++)) || printf "\n"
+	printf "## Define option : $IO\n"
+	continue
+    fi
+
+
+    opts=0
+    WWT_ADD="$WWT ADD $RAW $IO -q"
+    WIT_CP="$WIT COPY $RAW $IO -q"
 
     total_start=$(get_msec)
     test_suite "$src"
@@ -479,6 +548,7 @@ do
 
     case "$stat" in
 	$STAT_OK)	stat="OK" ;;
+	$STAT_TEST)	stat="TEST" ;;
 	$STAT_NOISO)	stat="NO-ISO" ;;
 	$STAT_DIFF)	stat="DIFFER" ;;
 	*)		stat="ERROR" ;;

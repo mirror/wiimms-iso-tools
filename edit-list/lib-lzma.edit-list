@@ -1,0 +1,10 @@
+../src/lib-lzma.[ch] ;
+../src/lzma/LzmaDec.c ;
+../src/lzma/LzmaEnc.c ;
+../src/lzma/*.[ch] ;
+../src/lzma/*.txt ;
+../src/wtest.c ;
+@+all-source.edit-list
+-y   42 ../src/lib-lzma.c ;
+-y   42 ../src/lib-lzma.h ;
+-y  560 ../src/wtest.c ;

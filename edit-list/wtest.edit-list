@@ -3,4 +3,4 @@
 ../src/libwbfs/file-formats.h ;
 ../src/libwbfs/file-formats.c ;
 @+all-source.edit-list
--y 440 ../src/wtest.c ;
+-y 582 ../src/wtest.c ;

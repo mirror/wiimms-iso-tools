@@ -47,6 +47,8 @@
 #include "version.h"
 #include "lib-std.h"
 #include "lib-sf.h"
+#include "lib-bzip2.h"
+#include "lib-lzma.h"
 #include "wbfs-interface.h"
 #include "crypt.h"
 #include "titles.h"
@@ -80,7 +82,6 @@ int		testmode		= 0;
 ccp		opt_dest		= 0;
 bool		opt_mkdir		= false;
 int		opt_limit		= -1;
-bool		opt_no_compress		= false;
 int		print_sections		= 0;
 int		long_count		= 0;
 enumIOMode	io_mode			= 0;
@@ -91,6 +92,11 @@ StringField_t	recurse_list;
 StringField_t	created_files;
 char		iobuf [0x400000];		// global io buffer
 const char	zerobuf[0x40000]	= {0};	// global zero buffer
+
+// 'tempbuf' is only for short usage
+//	==> don't call other functions while using tempbuf
+u8		* tempbuf		= 0;	// global temp buffer -> AllocTempBuffer()
+size_t		tempbuf_size		= 0;	// size of 'tempbuf'
 
 #ifdef __CYGWIN__
  bool		use_utf8		= false;
@@ -229,6 +235,9 @@ void SetupLib ( int argc, char ** argv, ccp p_progname, enumProgID prid )
     TRACE_SIZEOF(CheckDisc_t);
     TRACE_SIZEOF(CheckWBFS_t);
     TRACE_SIZEOF(CommandTab_t);
+    TRACE_SIZEOF(DataArea_t);
+    TRACE_SIZEOF(DataList_t);
+    TRACE_SIZEOF(CommandTab_t);
     TRACE_SIZEOF(FileAttrib_t);
     TRACE_SIZEOF(FileCache_t);
     TRACE_SIZEOF(FilePattern_t);
@@ -272,13 +281,17 @@ void SetupLib ( int argc, char ** argv, ccp p_progname, enumProgID prid )
     TRACE_SIZEOF(dcUnicodeTripel);
     TRACE_SIZEOF(dol_header_t);
     TRACE_SIZEOF(id6_t);
+    TRACE_SIZEOF(sha1_hash);
+
     TRACE_SIZEOF(wbfs_disc_info_t);
     TRACE_SIZEOF(wbfs_disc_t);
     TRACE_SIZEOF(wbfs_head_t);
     TRACE_SIZEOF(wbfs_inode_info_t);
     TRACE_SIZEOF(wbfs_param_t);
     TRACE_SIZEOF(wbfs_t);
+
     TRACE_SIZEOF(wd_boot_t);
+    TRACE_SIZEOF(wd_compression_t);
     TRACE_SIZEOF(wd_disc_t);
     TRACE_SIZEOF(wd_file_list_t);
     TRACE_SIZEOF(wd_file_t);
@@ -288,15 +301,15 @@ void SetupLib ( int argc, char ** argv, ccp p_progname, enumProgID prid )
     TRACE_SIZEOF(wd_icm_t);
     TRACE_SIZEOF(wd_ipm_t);
     TRACE_SIZEOF(wd_iterator_t);
+    TRACE_SIZEOF(wd_memmap_item_t);
+    TRACE_SIZEOF(wd_memmap_t);
     TRACE_SIZEOF(wd_modify_t);
     TRACE_SIZEOF(wd_part_control_t);
     TRACE_SIZEOF(wd_part_header_t);
     TRACE_SIZEOF(wd_part_sector_t);
     TRACE_SIZEOF(wd_part_t);
     TRACE_SIZEOF(wd_part_type_t);
-    TRACE_SIZEOF(wd_patch_item_t);
     TRACE_SIZEOF(wd_patch_mode_t);
-    TRACE_SIZEOF(wd_patch_t);
     TRACE_SIZEOF(wd_pfst_t);
     TRACE_SIZEOF(wd_pname_mode_t);
     TRACE_SIZEOF(wd_print_fst_t);
@@ -312,14 +325,15 @@ void SetupLib ( int argc, char ** argv, ccp p_progname, enumProgID prid )
     TRACE_SIZEOF(wd_tmd_content_t);
     TRACE_SIZEOF(wd_tmd_t);
     TRACE_SIZEOF(wd_usage_t);
-    TRACE_SIZEOF(wia_compression_t);
+
     TRACE_SIZEOF(wia_controller_t);
-    TRACE_SIZEOF(wia_data_t);
-    TRACE_SIZEOF(wia_data_segment_t);
+    TRACE_SIZEOF(wia_segment_t);
     TRACE_SIZEOF(wia_disc_t);
     TRACE_SIZEOF(wia_exception_t);
+    TRACE_SIZEOF(wia_except_list_t);
     TRACE_SIZEOF(wia_file_head_t);
     TRACE_SIZEOF(wia_group_t);
+    TRACE_SIZEOF(wia_part_data_t);
     TRACE_SIZEOF(wia_part_t);
     TRACE_SIZEOF(wia_raw_data_t);
 
@@ -637,6 +651,7 @@ ccp GetErrorName ( int stat )
 	case ERR_NO_WIA:		return "NO WIA FOUND";
 	case ERR_WIA_INVALID:		return "INVALID WIA";
 	case ERR_BZIP2:			return "BZIP2 ERROR";
+	case ERR_LZMA:			return "LZMA ERROR";
 
 	case ERR_ALREADY_EXISTS:	return "FILE ALREADY EXISTS";
 	case ERR_CANT_OPEN:		return "CAN'T OPEN FILE";
@@ -699,6 +714,7 @@ ccp GetErrorText ( int stat )
 	case ERR_NO_WIA:		return "No WIA found";
 	case ERR_WIA_INVALID:		return "Invalid WIA";
 	case ERR_BZIP2:			return "bzip2 error";
+	case ERR_LZMA:			return "lzma error";
 
 	case ERR_ALREADY_EXISTS:	return "File already exists";
 	case ERR_CANT_OPEN:		return "Can't open file";
@@ -1668,7 +1684,7 @@ u64 ScanSizeFactor ( char ch_factor, int force_base )
 {
     if ( force_base == 1000 )
     {
-	switch(ch_factor)
+	switch (ch_factor)
 	{
 	    case 'b': case 'c': return                   1;
 	    case 'k': case 'K': return                1000;
@@ -1677,11 +1693,14 @@ u64 ScanSizeFactor ( char ch_factor, int force_base )
 	    case 't': case 'T': return       1000000000000ull;
 	    case 'p': case 'P': return    1000000000000000ull;
 	    case 'e': case 'E': return 1000000000000000000ull;
+
+	    case 'u': case 'U': return GC_DISC_SIZE;
+	    case 'w': case 'W': return WII_SECTORS_SINGLE_LAYER *(u64)WII_SECTOR_SIZE;
 	}
     }
     else if ( force_base == 1024 )
     {
-	switch(ch_factor)
+	switch (ch_factor)
 	{
 	    case 'b': case 'c': return   1;
 	    case 'k': case 'K': return KiB;
@@ -1690,11 +1709,14 @@ u64 ScanSizeFactor ( char ch_factor, int force_base )
 	    case 't': case 'T': return TiB;
 	    case 'p': case 'P': return PiB;
 	    case 'e': case 'E': return EiB;
+
+	    case 'u': case 'U': return GC_DISC_SIZE;
+	    case 'w': case 'W': return WII_SECTORS_SINGLE_LAYER *(u64)WII_SECTOR_SIZE;
 	}
     }
     else
     {
-	switch(ch_factor)
+	switch (ch_factor)
 	{
 	    case 'b':
 	    case 'c': return                   1;
@@ -1711,6 +1733,12 @@ u64 ScanSizeFactor ( char ch_factor, int force_base )
 	    case 'T': return TiB;
 	    case 'P': return PiB;
 	    case 'E': return EiB;
+
+	    case 'u':
+	    case 'U': return GC_DISC_SIZE;
+
+	    case 'w':
+	    case 'W': return WII_SECTORS_SINGLE_LAYER *(u64)WII_SECTOR_SIZE;
 	}
     }
     return 0;
@@ -2236,6 +2264,345 @@ enumError ScanHex
     arg = ScanHexHelper(buf,buf_size,&count,arg,99);
 
     return count == buf_size && !*arg ? ERR_OK : ERR_SYNTAX;
+}
+
+//
+///////////////////////////////////////////////////////////////////////////////
+///////////////		    scan compression option		///////////////
+///////////////////////////////////////////////////////////////////////////////
+
+wd_compression_t opt_compr_method = WD_COMPR__DEFAULT;
+int opt_compr_level		  = 0;	// 0=default, 1..9=valid
+u32 opt_compr_chunk_size	  = 0;	// 0=default
+
+///////////////////////////////////////////////////////////////////////////////
+
+static wd_compression_t ScanCompression_helper
+(
+    ccp			arg,		// argument to scan
+    bool		silent,		// don't print error message
+    int			* level,	// not NULL: appendix '.digit' allowed
+					// The level will be stored in '*level'
+    u32			* chunk_size	// not NULL: appendix '@size' allowed
+					// The size will be stored in '*chunk_size'
+)
+{
+    enum
+    {
+	COMPR_MEM = WD_COMPR__N+1
+    };
+
+    static const CommandTab_t tab[] =
+    {
+	{ WD_COMPR_NONE,	"NONE",		0,	0 },
+	{ WD_COMPR_PURGE,	"PURGE",	"WDF",	0 },
+	{ WD_COMPR_BZIP2,	"BZIP2",	"BZ2",	0 },
+	{ WD_COMPR_LZMA,	"LZMA",		"LZ",	0 },
+	{ WD_COMPR_LZMA2,	"LZMA2",	"LZ2",	0 },
+
+	{ WD_COMPR__DEFAULT,	"DEFAULT",	"D",	0 },
+	{ WD_COMPR__FAST,	"FAST",		"F",	0x300 + 10 },
+	{ WD_COMPR__GOOD,	"GOOD",		"G",	0 },
+	{ WD_COMPR__BEST,	"BEST",		"B",	0x900 + 50 },
+
+	{ COMPR_MEM,		"MEM",		"M",	0 },
+
+	{ 0,0,0,0 }
+    };
+
+    char argbuf[100];
+    ccp scan_arg = arg ? arg : "";
+    while ( *scan_arg > 0 && *scan_arg <= ' ' )
+	scan_arg++;
+
+    if ( level || chunk_size )
+    {
+	if (level)
+	    *level = -1; // -1 = mark as 'not set'
+	if (chunk_size)
+	    *chunk_size = 0;
+
+	const int len = strlen(scan_arg);
+	if ( len < sizeof(argbuf) )
+	{
+	    strcpy(argbuf,scan_arg);
+	    scan_arg = argbuf;
+
+	    if (chunk_size)
+	    {
+		char * found = strchr(argbuf,'@');
+		if (found)
+		{
+		    *found++ = 0;
+		    char * end;
+		    unsigned num = strtoul(found,&end,10);
+		    if (*end)
+		    {
+			if (!silent)
+			    ERROR0(ERR_SYNTAX,
+				"Unsigned number expected: --compression @%s\n",found);
+			return -1;
+		    }
+		    *chunk_size = ( num ? num : WIA_DEF_CHUNK_FACTOR ) * WII_GROUP_SIZE;
+		}
+	    }
+	    
+	    if (level)
+	    {
+		char * found = strchr(argbuf,'.');
+		if ( found && found[1] >= '0' && found[1] <= '9' && !found[2] )
+		{
+		    *level = found[1] - '0';
+		    *found = 0;
+		}
+	    }
+
+	    if (!*argbuf)
+		return WD_COMPR__DEFAULT;
+	}
+    }
+
+    const CommandTab_t * cmd = ScanCommand(0,scan_arg,tab);
+    if (cmd)
+    {
+	wd_compression_t compr = cmd->id;
+	u32 opt = cmd->opt;
+
+	if ( compr == COMPR_MEM )
+	{
+	    compr = WD_COMPR__DEFAULT;
+	    u32 memlimit = GetMemLimit();
+	    if (memlimit)
+	    {
+		typedef struct tripel
+		{
+		    wd_compression_t	compr;
+		    int			level;
+		    u32			csize;
+		} tripel;
+
+		static const tripel tab[] =
+		{
+		    { WD_COMPR_LZMA,	7, 50 * WIA_BASE_CHUNK_SIZE },
+		    { WD_COMPR_LZMA,	7, 40 * WIA_BASE_CHUNK_SIZE },
+		    { WD_COMPR_LZMA,	6, 50 * WIA_BASE_CHUNK_SIZE },
+		    { WD_COMPR_LZMA,	6, 40 * WIA_BASE_CHUNK_SIZE },
+		    { WD_COMPR_LZMA,	6, 30 * WIA_BASE_CHUNK_SIZE },
+		    { WD_COMPR_LZMA,	5, 50 * WIA_BASE_CHUNK_SIZE },
+		    { WD_COMPR_LZMA,	5, 40 * WIA_BASE_CHUNK_SIZE },
+		    { WD_COMPR_LZMA,	5, 30 * WIA_BASE_CHUNK_SIZE },
+		    { WD_COMPR_LZMA,	5, 20 * WIA_BASE_CHUNK_SIZE },
+		    { WD_COMPR_LZMA,	4, 50 * WIA_BASE_CHUNK_SIZE },
+		    { WD_COMPR_LZMA,	4, 40 * WIA_BASE_CHUNK_SIZE },
+		    { WD_COMPR_LZMA,	4, 30 * WIA_BASE_CHUNK_SIZE },
+		    { WD_COMPR_LZMA,	4, 20 * WIA_BASE_CHUNK_SIZE },
+		    { WD_COMPR_LZMA,	4, 10 * WIA_BASE_CHUNK_SIZE },
+
+		  #ifndef NO_BZIP2
+		    { WD_COMPR_BZIP2,	9, 50 * WIA_BASE_CHUNK_SIZE },
+		    { WD_COMPR_BZIP2,	8, 40 * WIA_BASE_CHUNK_SIZE },
+		    { WD_COMPR_BZIP2,	7, 30 * WIA_BASE_CHUNK_SIZE },
+		    { WD_COMPR_BZIP2,	6, 25 * WIA_BASE_CHUNK_SIZE },
+		    { WD_COMPR_BZIP2,	5, 20 * WIA_BASE_CHUNK_SIZE },
+		    { WD_COMPR_BZIP2,	4, 15 * WIA_BASE_CHUNK_SIZE },
+		    { WD_COMPR_BZIP2,	3, 10 * WIA_BASE_CHUNK_SIZE },
+		    { WD_COMPR_BZIP2,	2,  5 * WIA_BASE_CHUNK_SIZE },
+		    { WD_COMPR_BZIP2,	1,  1 * WIA_BASE_CHUNK_SIZE },
+		  #endif
+
+		    { WD_COMPR_LZMA,	4,  5 * WIA_BASE_CHUNK_SIZE },
+		    { WD_COMPR_LZMA,	3,  5 * WIA_BASE_CHUNK_SIZE },
+		    { WD_COMPR_LZMA,	2,  5 * WIA_BASE_CHUNK_SIZE },
+		    { WD_COMPR_LZMA,	1,  5 * WIA_BASE_CHUNK_SIZE },
+		    { WD_COMPR_LZMA,	1,  1 * WIA_BASE_CHUNK_SIZE },
+
+		    { 0,0,0 } // end marker
+		};
+
+		const tripel * p;
+		for ( p = tab; p->level; p++ )
+		{
+		    if ( CalcMemoryUsageWIA(p->compr,p->level,p->csize,true) <= memlimit )
+		    {
+			compr = p->compr;
+			opt   = p->level << 8 | p->csize / WIA_BASE_CHUNK_SIZE;
+			break;
+		    }
+		}
+	    }
+	}
+	
+	if (opt)
+	{
+	    if ( level && *level < 1 )
+		*level = opt >> 8;
+	    if ( chunk_size && *chunk_size <= 1 )
+		*chunk_size = ( opt & 0xff ) * WIA_BASE_CHUNK_SIZE;
+	}
+
+	return compr;
+    }
+
+    char * end;
+    u32 val = strtoul(scan_arg,&end,10);
+ #ifdef TEST
+    if ( end > scan_arg && !*end )
+	return val;
+ #else
+    if ( end > scan_arg && !*end && val < WD_COMPR__N )
+	return val;
+ #endif
+
+    if (!silent)
+	ERROR0(ERR_SYNTAX,"Illegal compression method: '%s'\n",scan_arg);
+    return -1;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+wd_compression_t ScanCompression
+(
+    ccp			arg,		// argument to scan
+    bool		silent,		// don't print error message
+    int			* level,	// not NULL: appendix '.digit' allowed
+					// The level will be stored in '*level'
+    u32			* chunk_size	// not NULL: appendix '@size' allowed
+					// The size will be stored in '*chunk_size'
+)
+{
+    wd_compression_t compr = ScanCompression_helper(arg,silent,level,chunk_size);
+    if (level)
+    {
+	if ( *level < 0 )
+	    *level = 0;
+	else switch(compr)
+	{
+	    case WD_COMPR__N:
+	    case WD_COMPR_NONE:
+	    case WD_COMPR_PURGE:
+		*level = 0;
+		break;
+
+	    case WD_COMPR_BZIP2:
+	     #ifdef NO_BZIP2
+		*level = 0;
+	     #else
+		*level = CalcCompressionLevelBZIP2(*level);
+	     #endif
+		break;
+	    
+	    case WD_COMPR_LZMA:
+	    case WD_COMPR_LZMA2:
+		*level = CalcCompressionLevelLZMA(*level);
+		break;
+	}
+    }
+
+    return compr;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+int ScanOptCompression
+(
+    ccp			arg		// argument to scan
+)
+{
+    int new_level = 0;
+    u32 new_chunk_size;
+    const int new_compr = ScanCompression(arg,false,&new_level,&new_chunk_size);
+    if ( new_compr == -1 )
+	return 1;
+    opt_compr_method	 = new_compr;
+    opt_compr_level	 = new_level;
+    opt_compr_chunk_size = new_chunk_size;
+    return 0;
+}
+
+//
+///////////////////////////////////////////////////////////////////////////////
+///////////////			scan mem option			///////////////
+///////////////////////////////////////////////////////////////////////////////
+
+u64 opt_mem = 0;
+
+///////////////////////////////////////////////////////////////////////////////
+
+int ScanOptMem
+(
+    ccp			arg,		// argument to scan
+    bool		print_err	// true: print error messages
+)
+{
+    u64 num;
+    enumError err = ScanSizeOptU64
+			( &num,		// u64 * num,
+			  arg,		// ccp source,
+			  MiB,		// u64 default_factor1,
+			  0,		// int force_base,
+			  "mem",	// ccp opt_name,
+			  0,		// u64 min,
+			  0,		// u64 max,
+			  0,		// u32 multiple,
+			  0,		// u32 pow2,
+			  print_err	// bool print_err
+			);
+
+    if (err)
+	return 1;
+
+    opt_mem = num;
+    return 0;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+u64 GetMemLimit()
+{
+    static bool done = false;
+    if ( !done && !opt_mem )
+    {
+	done = true;
+
+	char * env = getenv("WIT_MEM");
+	if ( env && *env )
+	    ScanOptMem(env,false);
+
+	if (!opt_mem)
+	{
+	    FILE * f = fopen("/proc/meminfo","r");
+	    if (f)
+	    {
+		PRINT("SCAN /proc/meminfo\n");
+		char buf[500];
+		while (fgets(buf,sizeof(buf),f))
+		{
+		    if (memcmp(buf,"MemTotal:",9))
+			continue;
+
+		    char * ptr;
+		    s64 num = strtoul(buf+9,&ptr,10);
+		    if (num)
+		    {
+			while ( *ptr && *ptr <= ' ' )
+			    ptr++;
+			switch (*ptr)
+			{
+			    case 'k': case 'K': num *= KiB; break;
+			    case 'm': case 'M': num *= MiB; break;
+			    case 'g': case 'G': num *= GiB; break;
+			}
+			num -= 50 * MiB + num/5;
+			opt_mem = num < 1 ? 1 : num;
+		    }
+		    break;
+		}
+		fclose(f);
+	    }
+	}
+    }
+
+    return opt_mem;
 }
 
 //
@@ -3292,7 +3659,7 @@ void InsertDiscMemMap
     noTRACE("InsertDiscMemMap(%p,%p)\n",mm,disc);
     DASSERT(mm);
     DASSERT(disc);
-    wd_dump_mem(disc,InsertMemMapWrapper,mm);
+    wd_print_mem(disc,InsertMemMapWrapper,mm);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -3511,6 +3878,62 @@ enumError ScanSetupFile
 
 //
 ///////////////////////////////////////////////////////////////////////////////
+///////////////			data area & list		///////////////
+///////////////////////////////////////////////////////////////////////////////
+
+void SetupDataList
+(
+    DataList_t		* dl,		// Object for setup
+    const DataArea_t	* da		// Source list,
+					//  terminated with an element where addr==NULL
+					// The content of this area must not changed
+					//  while accessing the data list
+)
+{
+    DASSERT(dl);
+    memset(dl,0,sizeof(*dl));
+    dl->area = da;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+size_t ReadDataList // returns number of writen bytes
+(
+    DataList_t		* dl,		// NULL or pointer to data list
+    void		* buf,		// destination buffer
+    size_t		size		// size of destination buffer
+)
+{
+    u8 * dest = buf;
+    size_t written = 0;
+    if ( dl && dl->area )
+    {
+	while ( size > 0 )
+	{
+	    if (!dl->current.size)
+	    {
+		noPRINT("NEXT AREA: %p, %p, %u\n", dl->area, dl->area->data, dl->area->size );
+		if (!dl->area->data)
+		    break;
+		memcpy(&dl->current,dl->area++,sizeof(dl->current));
+	    }
+
+	    const size_t copy_size = size < dl->current.size ? size : dl->current.size;
+	    noPRINT("COPY AREA: %p <- %p, size = %u=%x\n",
+			dest,dl->current.data,copy_size,copy_size);
+	    memcpy(dest,dl->current.data,copy_size);
+	    written		+= copy_size;
+	    dest		+= copy_size;
+	    dl->current.data	+= copy_size;
+	    dl->current.size	-= copy_size;
+	    size		-= copy_size;
+	}
+    }
+    return written;
+}
+
+//
+///////////////////////////////////////////////////////////////////////////////
 ///////////////			random mumbers			///////////////
 ///////////////////////////////////////////////////////////////////////////////
 // thanx to Donald Knuth
@@ -3693,6 +4116,34 @@ uint Count1Bits64 ( u64 data )
 	 + TableBitCount[d[5]]
 	 + TableBitCount[d[6]]
 	 + TableBitCount[d[7]];
+}
+
+//
+///////////////////////////////////////////////////////////////////////////////
+///////////////			    etc				///////////////
+///////////////////////////////////////////////////////////////////////////////
+
+size_t AllocTempBuffer ( size_t needed_size )
+{
+    // 'tempbuf' is only for short usage
+    //     ==> don't call other functions while using tempbuf
+
+    // align to 4K
+    needed_size = needed_size + 0xfff & ~(size_t)0xfff;
+
+    if ( tempbuf_size < needed_size )
+    {
+	PRINT("$$$ ALLOC TEMPBUF, SIZE: %zx > %zx (%s -> %s)\n",
+		tempbuf_size, needed_size,
+		wd_print_size(0,0,tempbuf_size,false),
+		wd_print_size(0,0,needed_size,false) );
+	tempbuf_size = needed_size;
+	free(tempbuf);
+	tempbuf = malloc(needed_size);
+	if (!tempbuf)
+	    OUT_OF_MEMORY;
+    }
+    return tempbuf_size;
 }
 
 //

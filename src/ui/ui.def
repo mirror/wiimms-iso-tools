@@ -7,8 +7,8 @@
 #:def_tool( "wit", \
 	"wit [option]... command [option|parameter|@file]...", \
 	"Wiimms ISO Tool : It can list, analyze, verify, convert, split, join," \
-	" patch, mix, extract, compose, rename and compare Wii discs. It can" \
-	" create and dump different other file formats." )
+	" patch, mix, extract, compose, rename and compare Wii and GameCube" \
+	" discs. It can create and dump different other file formats." )
 
 #:def_cmd( "VERSION", "VERSION", \
 	"wit VERSION [ignored]...", \
@@ -26,7 +26,13 @@
 #:def_cmd( "ERROR", "ERROR|ERR", \
 	"wit ERROR [error_code]", \
 	"Translate exit code to message or print a table with all error" \
-	" messages." )
+	" messages if not exit code is given." )
+
+#:def_cmd( "COMPR", "COMPR", \
+	"wit COMPR [mode]...", \
+	"Scan compression modes and print the normalized names. See option" \
+	" {--compression} for syntax details. If no mode is given than print a" \
+	" table with all available compression methods." )
 
 #:def_cmd( "EXCLUDE", "EXCLUDE", \
 	"wit EXCLUDE [additional_excludes]...", \
@@ -55,9 +61,9 @@
 
 #:def_cmd( "DUMP", "DUMP|D", \
 	"wit DUMP [source]...", \
-	"Dump the data structure of Wii ISO files, ticket.bin, tmd.bin," \
-	" header.bin, boot.bin, fst.bin and of DOL-files. The file type is" \
-	" detected automatically by analyzing the content." )
+	"Dump the data structure of Wii and GameCube ISO files, ticket.bin," \
+	" tmd.bin, header.bin, boot.bin, fst.bin and of DOL-files. The file" \
+	" type is detected automatically by analyzing the content." )
 
 #:def_cmd( "ID6", "ID6|ID", \
 	"wit ID6 [id]...", \
@@ -117,23 +123,24 @@
 	"wit COPY source dest\n" \
 	"wit COPY [-s path]... [-r path]... [source]... [-d|-D] dest", \
 	"Copy, scrub, convert, join, split, compose, extract, patch, encrypt" \
-	" and decrypt Wii disc images." )
+	" and decrypt Wii and GameCube disc images." )
 
-#:def_cmd( "SCRUB", "SCRUB|SB", \
-	"wit SCRUB source\n" \
-	"wit SCRUB [-s path]... [-r path]... [source]...", \
-	"Scrub, convert, join, split, compose, extract, patch, encrypt and" \
-	" decrypt Wii disc images." )
+#:def_cmd( "CONVERT", "CONVERT|CV|SCRUB|SB", \
+	"wit CONVERT source\n" \
+	"wit CONVERT [-s path]... [-r path]... [source]...", \
+	"Convert, scrub, join, split, compose, extract, patch, encrypt and" \
+	" decrypt Wii and GameCube disc images and replace the source with the" \
+	" result. The former command name was @SCRUB@." )
 
 #:def_cmd( "EDIT", "EDIT|ED", \
 	"wit EDIT source\n" \
 	"wit EDIT [-s path]... [-r path]... [source]...", \
-	"Edit an existing Wii ISO images and patch some values." )
+	"Edit an existing Wii and GameCube ISO image and patch some values." )
 
 #:def_cmd( "MOVE", "MOVE|MV", \
 	"wit MOVE source dest\n" \
 	"wit MOVE [-s path]... [-r path]... [source]... [-d|-D] dest", \
-	"Move and rename Wii ISO images." )
+	"Move and rename Wii and GameCube ISO images." )
 
 #:def_cmd( "RENAME", "RENAME|REN", \
 	"wit RENAME id6=[new][,title]...", \
@@ -156,7 +163,8 @@
 	"                  | 'ignore' ruleset\n" \
 	"                  | 'header'\n" \
 	"                  | 'region'", \
-	"Mix the partitions from different sources into one new Wii disc." )
+	"Mix the partitions from different sources into one new Wii or" \
+	" GameCube disc." )
 
 #:def_opt( "VERSION", "V|version", "G", \
 	"", \
@@ -194,9 +202,8 @@
 
 #:def_opt( "LOGGING", "L|logging", "GM", \
 	"", \
-	"Special logging for $patching$ and $composing$ Wii discs. If set at" \
-	" least once the disc layout is printed. If set at least twice the" \
-	" partition layout is printed too." )
+	"Enable the logging of internal memory maps. If set twice second level" \
+	" memory maps are printed too." )
 
 #:def_opt( "ESC", "E|esc", "GP", \
 	"char", \
@@ -209,7 +216,7 @@
 	"Setup the IO mode for experiments. The standard file IO is based on" \
 	" open() function. The value '1' defines that WBFS IO is based on" \
 	" fopen() function. The value '2' defines the same for ISO files and" \
-	" the value '3' for both, WBFS and ISO." )
+	" value '4' for WIA files. You can combine the values by adding them." )
 
 #:def_opt( "TITLES", "T|titles", "GMP", \
 	"file", \
@@ -267,7 +274,7 @@
 #:def_opt( "IGNORE", "i|ignore", "CM", \
 	"", \
 	"Ignore non existing files/discs without warning. If set twice then" \
-	" all non Wii ISO images are ignored too." )
+	" all non Wii and GameCube ISO images are ignored too." )
 
 #:def_opt( "IGNORE_FST", "ignore-fst|ignorefst", "C", \
 	"", \
@@ -277,18 +284,18 @@
 	"list", \
 	"This option set the scrubbing mode and defines, which disc partitions" \
 	" are handled. It expects a comma separated list of keywords, numbers" \
-	" and names; all together called parameter. All parameter are case" \
+	" and names; all together called parameter. All parameters are case" \
 	" insensitive and non ambiguous abbreviations of keyword are allowed.\n" \
-	"Each parameter becomes a rule and each rule is appended to a rule" \
+	"  Each parameter becomes a rule and each rule is appended to a rule" \
 	" list. Rules prefixed by a minus sign are DENY rules. Rules prefixed" \
 	" by a plus sign or without a prefix are ALLOW rules. Each partition" \
 	" is compared with each rule until a rule matches the partition. If a" \
 	" match it found, the partition is enabled for a ALLOW rule or" \
 	" disabled for a DENY rule.\n" \
-	"The allowed keywords are: @DATA@, @UPDATE@, @CHANNEL@, @PTAB0@ .." \
-	" @PTAB3@, @ID@, @ALL@, @WHOLE@ and @RAW@. Additional the following" \
-	" input formats are accepted: @ptype@, @#index@, @#<index@," \
-	" @#<=index@, @#>index@, @#>=index@ and @#tab_index.part_index@." )
+	"  The allowed keywords are: @DATA@, @UPDATE@, @CHANNEL@, @PTAB0@ .." \
+	" @PTAB3@, @ID@, @ALL@, @WHOLE@ and @RAW@. The following input formats" \
+	" are accepted too: @ptype@, @#index@, @#<index@, @#<=index@," \
+	" @#>index@, @#>=index@ and @#tab_index.part_index@." )
 
 #:def_opt( "RAW", "raw", "C", \
 	"", \
@@ -303,6 +310,12 @@
 #:def_opt( "SNEEK", "sneek", "C", \
 	"", \
 	"Abbreviation of {--psel data --pmode none --files =sneek}." )
+
+#:def_opt( "ENC", "enc", "CP", \
+	"encoding", \
+	"Define the encoding mode. The mode is one of NONE, HASHONLY, DECRYPT," \
+	" ENCRYPT, SIGN or AUTO. The case of the keywords is ignored. The" \
+	" default mode is 'AUTO'." )
 
 #:def_opt( "ID", "id", "CP", \
 	"id", \
@@ -324,7 +337,7 @@
 	" This $patching$ option expects a comma separated list of the" \
 	" following keywords (case ignored) as parameter: @NONE, DISC, BOOT," \
 	" TICKET, TMD, WBFS, ALL@ and @AUTO@ (default).\n" \
-	"All keywords can be prefixed by @'+'@ to enable that option, by a" \
+	"  All keywords can be prefixed by @'+'@ to enable that option, by a" \
 	" @'-'@ to disable it or by a @'='@ to enable that option and disable" \
 	" all others." )
 
@@ -359,6 +372,15 @@
 	" TMD is necessary. The processing order of file options is:" \
 	" {--rm-files --zero-files --ignore-files}." )
 
+#:def_opt( "OVERLAY", "overlay", "C", \
+	"", \
+	"Most partitions have holes (unused areas) in the data section. If" \
+	" combining multiple partitions into one disc it is possible to" \
+	" overlay the partitions so that the data of one partition resides in" \
+	" the hole of other partitions. This option enables this feature. It" \
+	" also limits the number of input partitions to 12, because the" \
+	" calculation is rated as O(2^n)." )
+
 #:def_opt( "IGNORE_FILES", "ignore-files|ignore-file|ignorefiles|ignorefile", "CP", \
 	"ruleset", \
 	"This option defines filter rules to ignore real files of the FST of" \
@@ -369,20 +391,11 @@
 	" processing order of file options is: {--rm-files --zero-files" \
 	" --ignore-files}." )
 
-#:def_opt( "OVERLAY", "overlay", "C", \
-	"", \
-	"Most partitions have holes (unused areas) in the data section. If" \
-	" combining multiple partitions into one disc it is possible to" \
-	" overlay the partitions so that the data of one partition resides in" \
-	" the hole of other partitions. This option enables this feature. It" \
-	" also limits the number of input partitions to 12, because the" \
-	" calculation is rated as O(2^n)." )
-
-#:def_opt( "ENC", "enc", "CP", \
-	"encoding", \
-	"Define the encoding mode. The mode is one of NONE, HASHONLY, DECRYPT," \
-	" ENCRYPT, SIGN or AUTO. The case of the keywords is ignored. The" \
-	" default mode is 'AUTO'." )
+#:def_opt( "ALIGN_PART", "align-part|alignpart", "CP", \
+	"size", \
+	"If creating or moving partitions the beginning of each partition is" \
+	" set to an offset that is a multiple of the align size. Size must be" \
+	" a power of 2 and at least 32 KiB (=default)." )
 
 #:def_opt( "DEST", "d|dest", "CP", \
 	"path", \
@@ -405,6 +418,10 @@
 	" (one of 'cb' [=1] or  'kmgtpe' [base=1000] or 'KMGTPE' [base=1024])." \
 	" The default unit is 'G' (GiB)." )
 
+#:def_opt( "DISC_SIZE", "disc-size|discsize", "CP", \
+	"size", \
+	"Define a minimal (virtual) ISO disc size." )
+
 #:def_opt( "TRUNC", "trunc", "C", \
 	"", \
 	"Truncate PLAIN ISO images to the needed size while creating." )
@@ -419,23 +436,24 @@
 	" keyword is ignored. The default key is @'ISO'@.\n" \
 	"@--chm@ is a shortcut for @--chunk-mode@." )
 
-#:def_opt( "CHUNK_SIZE", "chunk-size|chunksize|chz", "CP", \
+#:def_opt( "CHUNK_SIZE", "chunk-size|chunksize|chs", "CP", \
 	"sz", \
-	"Define the minimal chunk size if creating a CISO file. The default is" \
-	" to calculate the chunk size from the input file size and find a good" \
-	" value by using a minimal value of 1 MiB for {--chunk-mode @ISO@} and" \
-	" @32 KiB@ for modes @32K@ and @POW2@. For the modes @ISO@ and @POW2@" \
-	" the value is rounded up to the next power of 2. This calculation" \
-	" also depends from option {--max-chunks}.\n" \
-	"The parameter 'sz' is a floating point number followed by an optional" \
-	" unit factor (one of 'cb' [=1] or  'kmgtpe' [base=1000] or 'KMGTPE'" \
-	" [base=1024]). The default unit is 'M' (MiB). If the number is" \
-	" prefixed with a @'='@ then options {--chunk-mode} and {--max-chunks}" \
-	" are ignored and the given value is used without any rounding or" \
-	" changing.\n" \
-	"If the input file size is not known (e.g. reading from pipe), its" \
+	"Define the minimal chunk size if creating a CISO or WIA file (for WIA" \
+	" details see option --compression}). The default is to calculate the" \
+	" chunk size from the input file size and find a good value by using a" \
+	" minimal value of 1 MiB for {--chunk-mode ISO} and @32 KiB@ for modes" \
+	" @32K@ and @POW2@. For the modes @ISO@ and @POW2@ the value is" \
+	" rounded up to the next power of 2. This calculation also depends" \
+	" from option {--max-chunks}.\n" \
+	"  The parameter 'sz' is a floating point number followed by an" \
+	" optional unit factor (one of 'cb' [=1] or  'kmgtpe' [base=1000] or" \
+	" 'KMGTPE' [base=1024]). The default unit is 'M' (MiB). If the number" \
+	" is prefixed with a @'='@ then options {--chunk-mode} and" \
+	" {--max-chunks} are ignored and the given value is used without any" \
+	" rounding or changing.\n" \
+	"  If the input file size is not known (e.g. reading from pipe), its" \
 	" size is assumed as @12 GiB@.\n" \
-	"@--chz@ is a shortcut for @--chunk-size@." )
+	"  @--chs@ is a shortcut for @--chunk-size@." )
 
 #:def_opt( "MAX_CHUNKS", "max-chunks|maxchunks|mch", "CP", \
 	"n", \
@@ -443,12 +461,39 @@
 	" default value is 8192 for {--chunk-mode ISO} and 32760 (maximal" \
 	" value) for all other modes. If this value is set than the automatic" \
 	" calculation  of {--chunk-size} will be modified too.\n" \
-	"@--mch@ is a shortcut for @--max-chunks@." )
+	"  @--mch@ is a shortcut for @--max-chunks@." )
 
-#:def_opt( "NO_COMPRESS", "no-compress|nocompress|noc", "C", \
-	"", \
-	"Disable compression for new WIA files. --noc is a shortcut for" \
-	" --no-compress." )
+#:def_opt( "COMPRESSION", "compression|compr", "CP", \
+	"mode", \
+	"Select one compression method, level and chunk size for new WIA" \
+	" files. The syntax for mode is: @[method] [.level] [@@factor]@\n" \
+	"  @'method'@ is the name or index of the method. Possible" \
+	" compressions method are @NONE@, @PURGE@, @BZIP2@, @LZMA@ and" \
+	" @LZMA2@. There are additional keywords: @DEFAULT@ (=@LZMA.5@@20@)," \
+	" @FAST@ (=@BZIP2.3@@10@), @GOOD@ (=@LZMA.5@@20@) @BEST@" \
+	" (=@LZMA.7@@50@), and @MEM@ (use best mode in respect to memory limit" \
+	" set by {--mem}). These additional keywords may change their meanings" \
+	" if a new compression method is implemented.\n" \
+	"  @'.level'@ is a point followed by one digit. It defines the" \
+	" compression level. The special value @.0@ means: Use default" \
+	" compression level (=@.5@).\n" \
+	"  @'@@factor'@ is a factor for the chunk size. The base size is 2" \
+	" MiB. The value@ @@0@ is replaced by the default factor@ @@20@ (40" \
+	" MiB). If the factor is not set but option {--chunk-size} is set, the" \
+	" factor will be calculated by using a rounded value of that option.\n" \
+	"  All three parts are optional. All default values may be changed in" \
+	" the future. @--compr@ is a shortcut for @--compression@." )
+
+#:def_opt( "MEM", "mem", "CP", \
+	"size", \
+	"This option defines a memory usage limit for compressing files. When" \
+	" compressing a file with method @MEM@ (see {--compression}) the the" \
+	" compression method, level and chunk size are calculated with respect" \
+	" to this limit.\n" \
+	"  If this option is not set or the value is 0, then the environment" \
+	" @WIT_MEM@ is tried to read instead. If this fails, the tool tries to" \
+	" find out the total memory by reading @/proc/meminfo@. The limit is" \
+	" set to 80% of the total memory minus 50 MiB." )
 
 #:def_opt( "PRESERVE", "p|preserve", "C", \
 	"", \
@@ -468,7 +513,7 @@
 
 #:def_opt( "WDF", "W|wdf", "C", \
 	"", \
-	"Set ISO output file type to WDF. (default)" )
+	"Set ISO output file type to WDF (Wii Disc Format, default)" )
 
 #:def_opt( "ISO", "I|iso", "C", \
 	"", \
@@ -476,22 +521,20 @@
 
 #:def_opt( "CISO", "C|ciso", "C", \
 	"", \
-	"Set ISO output file type to CISO (=WBI)." )
+	"Set ISO output file type to CISO (Compact ISO, same as WBI)." )
 
 #:def_opt( "WBFS", "B|wbfs", "C", \
 	"", \
-	"Set ISO output file type to WBFS container." )
+	"Set ISO output file type to WBFS (Wii Backup File System) container." )
 
 #:def_opt( "WIA", "wia", "C", \
 	"", \
-	"Set ISO output file type to WIA. WIA files are not editable.\n" \
-	"\n" \
-	"The WIA support is EXPERIMENTAL! The WIA format is in development!" \
-	" Don't use WIA files productive!" )
+	"Set ISO output file type to WIA (Wii ISO Archive). WIA files are not" \
+	" editable by {wit EDIT}." )
 
 #:def_opt( "FST", "fst", "C", \
 	"", \
-	"Set ISO output mode to 'file system' (extract ISO)." )
+	"Set ISO output mode to 'file system' (extracted ISO)." )
 
 #:def_opt( "FILES", "F|files", "CMP", \
 	"rules", \
@@ -531,6 +574,10 @@
 	"", \
 	"Print in long format. Multiple usage possible." )
 
+#:def_opt( "NUMERIC", "numeric", "C", \
+	"", \
+	"Force numeric output instead of printing names." )
+
 #:def_opt( "SHOW", "show", "CP", \
 	"list", \
 	"This option allows fine control over the things that are to be" \
@@ -539,12 +586,13 @@
 	" D-MAP, TICKET, TMD, USAGE, PATCH, RELOCATE, FILES, OFFSET, SIZE," \
 	" PATH@ and @ALL@. There are some combined keys: @PART :=" \
 	" P-INFO,P-MAP,TICKET,TMD@, @MAP := P-MAP,D-MAP@.\n" \
-	"All keywords can be prefixed by '+' to enable that option, by a '-'" \
+	"  All keywords can be prefixed by '+' to enable that option, by a '-'" \
 	" to disable it or by a '=' to enable that option and disable all" \
 	" others.\n" \
-	"The additional keywords @DEC@ and @HEX@ can be used to set a prefered" \
-	" number format. @-HEADER@ suppresses the output of header lines.\n" \
-	"The commands recognize only some of these keywords and ignore the" \
+	"  The additional keywords @DEC@ and @HEX@ can be used to set a" \
+	" prefered number format. @-HEADER@ suppresses the output of header" \
+	" lines.\n" \
+	"  The commands recognize only some of these keywords and ignore the" \
 	" others. If @--show@ is set, option {--long} is ignored for selecting" \
 	" output elements." )
 
@@ -590,6 +638,32 @@
 #:def_cmd_opt( "ERROR", "LONG", \
 	"", \
 	"Print extended message instead of error name." )
+
+#:def_cmd_opt( "COMPR", "MEM", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "COMPR", "SECTIONS", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "COMPR", "NO_HEADER", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "COMPR", "LONG", \
+	"", \
+	"Print the numeric value and the normalized name. If set twice print a" \
+	" table with the numeric value, normalized name and alternative names." )
+
+#:def_cmd_opt( "COMPR", "VERBOSE", \
+	"", \
+	"Show default compression level and chunk size factor too. Standard is" \
+	" to suppress these values if not explicitly set." )
+
+#:def_cmd_opt( "COMPR", "NUMERIC", \
+	"", \
+	"" )
 
 #:def_cmd_opt( "EXCLUDE", "EXCLUDE", \
 	"", \
@@ -840,6 +914,19 @@
 	"", \
 	"" )
 
+#:def_cmd_opt( "DUMP", "LONG", \
+	"", \
+	"If set at least once a memory map for each partition is printed. If" \
+	" set twice or more a memory map for whole ISO image is printed." )
+
+#:def_cmd_opt( "DUMP", "SHOW", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "DUMP", "ENC", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "DUMP", "ID", \
 	"", \
 	"" )
@@ -876,16 +963,11 @@
 	"", \
 	"" )
 
-#:def_cmd_opt( "DUMP", "ENC", \
+#:def_cmd_opt( "DUMP", "ALIGN_PART", \
 	"", \
 	"" )
 
-#:def_cmd_opt( "DUMP", "LONG", \
-	"", \
-	"If set at least once a memory map for each partition is printed. If" \
-	" set twice or more a memory map for whole ISO image is printed." )
-
-#:def_cmd_opt( "DUMP", "SHOW", \
+#:def_cmd_opt( "DUMP", "DISC_SIZE", \
 	"", \
 	"" )
 
@@ -1909,7 +1991,7 @@
 
 #:def_cmd_opt( "EXTRACT", "SORT", \
 	"", \
-	"Define the exracting order. The parameter is a comma separated list" \
+	"Define the extracting order. The parameter is a comma separated list" \
 	" of the following keywords: NONE, NAME, SIZE, OFFSET, ASCENDING," \
 	" DESCENDING = REVERSE." )
 
@@ -1929,15 +2011,7 @@
 	"", \
 	"" )
 
-#:def_cmd_opt( "EXTRACT", "DEST", \
-	"", \
-	"" )
-
-#:def_cmd_opt( "EXTRACT", "DEST2", \
-	"", \
-	"" )
-
-#:def_cmd_opt( "EXTRACT", "ESC", \
+#:def_cmd_opt( "EXTRACT", "ENC", \
 	"", \
 	"" )
 
@@ -1977,7 +2051,19 @@
 	"", \
 	"" )
 
-#:def_cmd_opt( "EXTRACT", "ENC", \
+#:def_cmd_opt( "EXTRACT", "ALIGN_PART", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "EXTRACT", "DEST", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "EXTRACT", "DEST2", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "EXTRACT", "ESC", \
 	"", \
 	"" )
 
@@ -2067,7 +2153,7 @@
 
 #:def_cmd_opt( "COPY", "SORT", \
 	"", \
-	"Define the exracting order. The parameter is a comma separated list" \
+	"Define the extracting order. The parameter is a comma separated list" \
 	" of the following keywords: NONE, NAME, SIZE, OFFSET, ASCENDING," \
 	" DESCENDING = REVERSE." )
 
@@ -2087,15 +2173,7 @@
 	"", \
 	"" )
 
-#:def_cmd_opt( "COPY", "DEST", \
-	"", \
-	"" )
-
-#:def_cmd_opt( "COPY", "DEST2", \
-	"", \
-	"" )
-
-#:def_cmd_opt( "COPY", "ESC", \
+#:def_cmd_opt( "COPY", "ENC", \
 	"", \
 	"" )
 
@@ -2135,7 +2213,19 @@
 	"", \
 	"" )
 
-#:def_cmd_opt( "COPY", "ENC", \
+#:def_cmd_opt( "COPY", "ALIGN_PART", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "COPY", "DEST", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "COPY", "DEST2", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "COPY", "ESC", \
 	"", \
 	"" )
 
@@ -2163,6 +2253,10 @@
 	"", \
 	"" )
 
+#:def_cmd_opt( "COPY", "DISC_SIZE", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "COPY", "TRUNC", \
 	"", \
 	"" )
@@ -2179,7 +2273,11 @@
 	"", \
 	"" )
 
-#:def_cmd_opt( "COPY", "NO_COMPRESS", \
+#:def_cmd_opt( "COPY", "COMPRESSION", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "COPY", "MEM", \
 	"", \
 	"" )
 
@@ -2207,175 +2305,187 @@
 	"", \
 	"" )
 
-#:def_cmd_opt( "SCRUB", "TEST", \
+#:def_cmd_opt( "CONVERT", "TEST", \
 	"", \
 	"" )
 
-#:def_cmd_opt( "SCRUB", "TITLES", \
+#:def_cmd_opt( "CONVERT", "TITLES", \
 	"", \
 	"" )
 
-#:def_cmd_opt( "SCRUB", "UTF_8", \
+#:def_cmd_opt( "CONVERT", "UTF_8", \
 	"", \
 	"" )
 
-#:def_cmd_opt( "SCRUB", "NO_UTF_8", \
+#:def_cmd_opt( "CONVERT", "NO_UTF_8", \
 	"", \
 	"" )
 
-#:def_cmd_opt( "SCRUB", "LANG", \
+#:def_cmd_opt( "CONVERT", "LANG", \
 	"", \
 	"" )
 
-#:def_cmd_opt( "SCRUB", "SOURCE", \
+#:def_cmd_opt( "CONVERT", "SOURCE", \
 	"", \
 	"" )
 
-#:def_cmd_opt( "SCRUB", "RECURSE", \
+#:def_cmd_opt( "CONVERT", "RECURSE", \
 	"", \
 	"" )
 
-#:def_cmd_opt( "SCRUB", "RDEPTH", \
+#:def_cmd_opt( "CONVERT", "RDEPTH", \
 	"", \
 	"" )
 
-#:def_cmd_opt( "SCRUB", "INCLUDE", \
+#:def_cmd_opt( "CONVERT", "INCLUDE", \
 	"", \
 	"" )
 
-#:def_cmd_opt( "SCRUB", "INCLUDE_PATH", \
+#:def_cmd_opt( "CONVERT", "INCLUDE_PATH", \
 	"", \
 	"" )
 
-#:def_cmd_opt( "SCRUB", "EXCLUDE", \
+#:def_cmd_opt( "CONVERT", "EXCLUDE", \
 	"", \
 	"" )
 
-#:def_cmd_opt( "SCRUB", "EXCLUDE_PATH", \
+#:def_cmd_opt( "CONVERT", "EXCLUDE_PATH", \
 	"", \
 	"" )
 
-#:def_cmd_opt( "SCRUB", "IGNORE", \
+#:def_cmd_opt( "CONVERT", "IGNORE", \
 	"", \
 	"" )
 
-#:def_cmd_opt( "SCRUB", "IGNORE_FST", \
+#:def_cmd_opt( "CONVERT", "IGNORE_FST", \
 	"", \
 	"" )
 
-#:def_cmd_opt( "SCRUB", "PSEL", \
+#:def_cmd_opt( "CONVERT", "PSEL", \
 	"", \
 	"" )
 
-#:def_cmd_opt( "SCRUB", "RAW", \
+#:def_cmd_opt( "CONVERT", "RAW", \
 	"", \
 	"" )
 
-#:def_cmd_opt( "SCRUB", "QUIET", \
+#:def_cmd_opt( "CONVERT", "QUIET", \
 	"", \
 	"" )
 
-#:def_cmd_opt( "SCRUB", "VERBOSE", \
+#:def_cmd_opt( "CONVERT", "VERBOSE", \
 	"", \
 	"" )
 
-#:def_cmd_opt( "SCRUB", "LOGGING", \
+#:def_cmd_opt( "CONVERT", "LOGGING", \
 	"", \
 	"" )
 
-#:def_cmd_opt( "SCRUB", "PROGRESS", \
+#:def_cmd_opt( "CONVERT", "PROGRESS", \
 	"", \
 	"" )
 
-#:def_cmd_opt( "SCRUB", "SPLIT", \
+#:def_cmd_opt( "CONVERT", "ENC", \
 	"", \
 	"" )
 
-#:def_cmd_opt( "SCRUB", "SPLIT_SIZE", \
+#:def_cmd_opt( "CONVERT", "ID", \
 	"", \
 	"" )
 
-#:def_cmd_opt( "SCRUB", "TRUNC", \
+#:def_cmd_opt( "CONVERT", "NAME", \
 	"", \
 	"" )
 
-#:def_cmd_opt( "SCRUB", "CHUNK_MODE", \
+#:def_cmd_opt( "CONVERT", "MODIFY", \
 	"", \
 	"" )
 
-#:def_cmd_opt( "SCRUB", "CHUNK_SIZE", \
+#:def_cmd_opt( "CONVERT", "REGION", \
 	"", \
 	"" )
 
-#:def_cmd_opt( "SCRUB", "MAX_CHUNKS", \
+#:def_cmd_opt( "CONVERT", "COMMON_KEY", \
 	"", \
 	"" )
 
-#:def_cmd_opt( "SCRUB", "NO_COMPRESS", \
+#:def_cmd_opt( "CONVERT", "IOS", \
 	"", \
 	"" )
 
-#:def_cmd_opt( "SCRUB", "PRESERVE", \
+#:def_cmd_opt( "CONVERT", "RM_FILES", \
 	"", \
 	"" )
 
-#:def_cmd_opt( "SCRUB", "ID", \
+#:def_cmd_opt( "CONVERT", "ZERO_FILES", \
 	"", \
 	"" )
 
-#:def_cmd_opt( "SCRUB", "NAME", \
+#:def_cmd_opt( "CONVERT", "IGNORE_FILES", \
 	"", \
 	"" )
 
-#:def_cmd_opt( "SCRUB", "MODIFY", \
+#:def_cmd_opt( "CONVERT", "ALIGN_PART", \
 	"", \
 	"" )
 
-#:def_cmd_opt( "SCRUB", "REGION", \
+#:def_cmd_opt( "CONVERT", "SPLIT", \
 	"", \
 	"" )
 
-#:def_cmd_opt( "SCRUB", "COMMON_KEY", \
+#:def_cmd_opt( "CONVERT", "SPLIT_SIZE", \
 	"", \
 	"" )
 
-#:def_cmd_opt( "SCRUB", "IOS", \
+#:def_cmd_opt( "CONVERT", "DISC_SIZE", \
 	"", \
 	"" )
 
-#:def_cmd_opt( "SCRUB", "RM_FILES", \
+#:def_cmd_opt( "CONVERT", "TRUNC", \
 	"", \
 	"" )
 
-#:def_cmd_opt( "SCRUB", "ZERO_FILES", \
+#:def_cmd_opt( "CONVERT", "CHUNK_MODE", \
 	"", \
 	"" )
 
-#:def_cmd_opt( "SCRUB", "IGNORE_FILES", \
+#:def_cmd_opt( "CONVERT", "CHUNK_SIZE", \
 	"", \
 	"" )
 
-#:def_cmd_opt( "SCRUB", "ENC", \
+#:def_cmd_opt( "CONVERT", "MAX_CHUNKS", \
 	"", \
 	"" )
 
-#:def_cmd_opt( "SCRUB", "WDF", \
+#:def_cmd_opt( "CONVERT", "COMPRESSION", \
 	"", \
 	"" )
 
-#:def_cmd_opt( "SCRUB", "ISO", \
+#:def_cmd_opt( "CONVERT", "MEM", \
 	"", \
 	"" )
 
-#:def_cmd_opt( "SCRUB", "CISO", \
+#:def_cmd_opt( "CONVERT", "PRESERVE", \
 	"", \
 	"" )
 
-#:def_cmd_opt( "SCRUB", "WBFS", \
+#:def_cmd_opt( "CONVERT", "WDF", \
 	"", \
 	"" )
 
-#:def_cmd_opt( "SCRUB", "WIA", \
+#:def_cmd_opt( "CONVERT", "ISO", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "CONVERT", "CISO", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "CONVERT", "WBFS", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "CONVERT", "WIA", \
 	"", \
 	"" )
 
@@ -2443,6 +2553,10 @@
 	"", \
 	"" )
 
+#:def_cmd_opt( "EDIT", "ENC", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "EDIT", "ID", \
 	"", \
 	"" )
@@ -2472,14 +2586,6 @@
 	"" )
 
 #:def_cmd_opt( "EDIT", "ZERO_FILES", \
-	"", \
-	"" )
-
-#:def_cmd_opt( "EDIT", "IGNORE_FILES", \
-	"", \
-	"" )
-
-#:def_cmd_opt( "EDIT", "ENC", \
 	"", \
 	"" )
 
@@ -2829,6 +2935,10 @@
 	"", \
 	"" )
 
+#:def_cmd_opt( "MIX", "DISC_SIZE", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "MIX", "TRUNC", \
 	"", \
 	"" )
@@ -2845,9 +2955,20 @@
 	"", \
 	"" )
 
-#:def_cmd_opt( "MIX", "NO_COMPRESS", \
+#:def_cmd_opt( "MIX", "COMPRESSION", \
 	"", \
 	"" )
+
+#:def_cmd_opt( "MIX", "MEM", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "MIX", "ALIGN_PART", \
+	"", \
+	"The beginning of each partition is set to an offset that is a" \
+	" multiple of the align size. Size must be a power of 2 and at least" \
+	" 32 KiB (=default). If option {--overlay} is set only the first" \
+	" partition is aligned." )
 
 #:def_cmd_opt( "MIX", "WDF", \
 	"", \
@@ -2910,7 +3031,13 @@
 #:def_cmd( "ERROR", "ERROR|ERR", \
 	"wwt ERROR [error_code]", \
 	"Translate exit code to message or print a table with all error" \
-	" messages." )
+	" messages if not exit code is given." )
+
+#:def_cmd( "COMPR", "COMPR", \
+	"wwt ERROR [error_code]", \
+	"Scan compression modes and print the normalized names. See option" \
+	" {--compression} for syntax details. If no mode is given than print a" \
+	" table with all available compression methods." )
 
 #:def_cmd( "EXCLUDE", "EXCLUDE", \
 	"wwt EXCLUDE [additional_excludes]...", \
@@ -3006,12 +3133,12 @@
 
 #:def_cmd( "ADD", "ADD|A", \
 	"wwt ADD iso|wbfs|dir...", \
-	"Add Wii ISO discs to WBFS partitions." )
+	"Add Wii and GameCube ISO discs to WBFS partitions." )
 
 #:def_cmd( "UPDATE", "UPDATE|U", \
 	"wwt UPDATE iso|wbfs|dir...", \
-	"Add missing Wii ISO discs to WBFS partitions. 'UPDATE' is a shortcut" \
-	" for {ADD --update}." )
+	"Add missing Wii and GameCube ISO discs to WBFS partitions. 'UPDATE'" \
+	" is a shortcut for {ADD --update}." )
 
 #:def_cmd( "SYNC", "SYNC", \
 	"wwt SYNC iso|wbfs|dir...", \
@@ -3021,7 +3148,8 @@
 
 #:def_cmd( "EXTRACT", "EXTRACT|X", \
 	"wwt EXTRACT id6[=dest]...", \
-	"Extract discs from WBFS partitions and store them as Wii ISO images." )
+	"Extract discs from WBFS partitions and store them as Wii and GameCube" \
+	" ISO images." )
 
 #:def_cmd( "REMOVE", "REMOVE|RM", \
 	"wwt REMOVE id6...", \
@@ -3084,9 +3212,8 @@
 
 #:def_opt( "LOGGING", "L|logging", "G", \
 	"", \
-	"Special logging for $patching$ and $composing$ Wii discs. If set at" \
-	" least once the disc layout is printed. If set at least twice the" \
-	" partition layout is printed too." )
+	"Enable the logging of internal memory maps. If set twice second level" \
+	" memory maps are printed too." )
 
 #:def_opt( "ESC", "E|esc", "GP", \
 	"char", \
@@ -3099,7 +3226,7 @@
 	"Setup the IO mode for experiments. The standard file IO is based on" \
 	" open() function. The value '1' defines that WBFS IO is based on" \
 	" fopen() function. The value '2' defines the same for ISO files and" \
-	" the value '3' for both, WBFS and ISO." )
+	" value '4' for WIA files. You can combine the values by adding them." )
 
 #:def_opt( "TITLES", "T|titles", "GMP", \
 	"file", \
@@ -3147,18 +3274,18 @@
 	"list", \
 	"This option set the scrubbing mode and defines, which disc partitions" \
 	" are handled. It expects a comma separated list of keywords, numbers" \
-	" and names; all together called parameter. All parameter are case" \
+	" and names; all together called parameter. All parameters are case" \
 	" insensitive and non ambiguous abbreviations of keyword are allowed.\n" \
-	"Each parameter becomes a rule and each rule is appended to a rule" \
+	"  Each parameter becomes a rule and each rule is appended to a rule" \
 	" list. Rules prefixed by a minus sign are DENY rules. Rules prefixed" \
 	" by a plus sign or without a prefix are ALLOW rules. Each partition" \
 	" is compared with each rule until a rule matches the partition. If a" \
 	" match it found, the partition is enabled for a ALLOW rule or" \
 	" disabled for a DENY rule.\n" \
-	"The allowed keywords are: @DATA@, @UPDATE@, @CHANNEL@, @PTAB0@ .." \
-	" @PTAB3@, @ID@, @ALL@, @WHOLE@ and @RAW@. Additional the following" \
-	" input formats are accepted: @ptype@, @#index@, @#<index@," \
-	" @#<=index@, @#>index@, @#>=index@ and @#tab_index.part_index@." )
+	"  The allowed keywords are: @DATA@, @UPDATE@, @CHANNEL@, @PTAB0@ .." \
+	" @PTAB3@, @ID@, @ALL@, @WHOLE@ and @RAW@. The following input formats" \
+	" are accepted too: @ptype@, @#index@, @#<index@, @#<=index@," \
+	" @#>index@, @#>=index@ and @#tab_index.part_index@." )
 
 #:def_opt( "RAW", "raw", "C", \
 	"", \
@@ -3187,11 +3314,17 @@
 #:def_opt( "IGNORE", "i|ignore", "C", \
 	"", \
 	"Ignore non existing files/discs without warning. If set twice then" \
-	" all non Wii ISO images are ignored too." )
+	" all non Wii and GameCube ISO images are ignored too." )
 
 #:def_opt( "IGNORE_FST", "ignore-fst|ignorefst", "C", \
 	"", \
 	"Disable composing and ignore FST directories as input." )
+
+#:def_opt( "ENC", "enc", "CP", \
+	"encoding", \
+	"Define the encoding mode. The mode is one of NONE, HASHONLY, DECRYPT," \
+	" ENCRYPT, SIGN or AUTO. The case of the keywords is ignored. The" \
+	" default mode is 'AUTO'." )
 
 #:def_opt( "ID", "id", "CP", \
 	"id", \
@@ -3213,7 +3346,7 @@
 	" This $patching$ option expects a comma separated list of the" \
 	" following keywords (case ignored) as parameter: @NONE, DISC, BOOT," \
 	" TICKET, TMD, WBFS, ALL@ and @AUTO@ (default).\n" \
-	"All keywords can be prefixed by @'+'@ to enable that option, by a" \
+	"  All keywords can be prefixed by @'+'@ to enable that option, by a" \
 	" @'-'@ to disable it or by a @'='@ to enable that option and disable" \
 	" all others." )
 
@@ -3258,11 +3391,11 @@
 	" processing order of file options is: {--rm-files --zero-files" \
 	" --ignore-files}." )
 
-#:def_opt( "ENC", "enc", "CP", \
-	"encoding", \
-	"Define the encoding mode. The mode is one of NONE, HASHONLY, DECRYPT," \
-	" ENCRYPT, SIGN or AUTO. The case of the keywords is ignored. The" \
-	" default mode is 'AUTO'." )
+#:def_opt( "ALIGN_PART", "part-align", "CP", \
+	"size", \
+	"If creating or moving partitions the beginning of each partition is" \
+	" set to an offset that is a multiple of the align size. Size must be" \
+	" a power of 2 and at least 32 KiB (=default)." )
 
 #:def_opt( "DEST", "d|dest", "CP", \
 	"path", \
@@ -3285,6 +3418,10 @@
 	" (one of 'cb' [=1] or  'kmgtpe' [base=1000] or 'KMGTPE' [base=1024])." \
 	" The default unit is 'G' (GiB)." )
 
+#:def_opt( "DISC_SIZE", "disc-size|discsize", "CP", \
+	"size", \
+	"Define a minimal (virtual) ISO disc size." )
+
 #:def_opt( "TRUNC", "trunc", "C", \
 	"", \
 	"Truncate PLAIN ISO images to the needed size while creating." )
@@ -3304,23 +3441,24 @@
 	" keyword is ignored. The default key is @'ISO'@.\n" \
 	"@--chm@ is a shortcut for @--chunk-mode@." )
 
-#:def_opt( "CHUNK_SIZE", "chunk-size|chunksize|chz", "CP", \
+#:def_opt( "CHUNK_SIZE", "chunk-size|chunksize|chs", "CP", \
 	"sz", \
-	"Define the minimal chunk size if creating a CISO file. The default is" \
-	" to calculate the chunk size from the input file size and find a good" \
-	" value by using a minimal value of 1 MiB for {--chunk-mode @ISO@} and" \
-	" @32 KiB@ for modes @32K@ and @POW2@. For the modes @ISO@ and @POW2@" \
-	" the value is rounded up to the next power of 2. This calculation" \
-	" also depends from option {--max-chunks}.\n" \
-	"The parameter 'sz' is a floating point number followed by an optional" \
-	" unit factor (one of 'cb' [=1] or  'kmgtpe' [base=1000] or 'KMGTPE'" \
-	" [base=1024]). The default unit is 'M' (MiB). If the number is" \
-	" prefixed with a @'='@ then options {--chunk-mode} and {--max-chunks}" \
-	" are ignored and the given value is used without any rounding or" \
-	" changing.\n" \
-	"If the input file size is not known (e.g. reading from pipe), its" \
+	"Define the minimal chunk size if creating a CISO or WIA file (for WIA" \
+	" details see option --compression}). The default is to calculate the" \
+	" chunk size from the input file size and find a good value by using a" \
+	" minimal value of 1 MiB for {--chunk-mode ISO} and @32 KiB@ for modes" \
+	" @32K@ and @POW2@. For the modes @ISO@ and @POW2@ the value is" \
+	" rounded up to the next power of 2. This calculation also depends" \
+	" from option {--max-chunks}.\n" \
+	"  The parameter 'sz' is a floating point number followed by an" \
+	" optional unit factor (one of 'cb' [=1] or  'kmgtpe' [base=1000] or" \
+	" 'KMGTPE' [base=1024]). The default unit is 'M' (MiB). If the number" \
+	" is prefixed with a @'='@ then options {--chunk-mode} and" \
+	" {--max-chunks} are ignored and the given value is used without any" \
+	" rounding or changing.\n" \
+	"  If the input file size is not known (e.g. reading from pipe), its" \
 	" size is assumed as @12 GiB@.\n" \
-	"@--chz@ is a shortcut for @--chunk-size@." )
+	"  @--chs@ is a shortcut for @--chunk-size@." )
 
 #:def_opt( "MAX_CHUNKS", "max-chunks|maxchunks|mch", "CP", \
 	"n", \
@@ -3328,12 +3466,39 @@
 	" default value is 8192 for {--chunk-mode ISO} and 32760 (maximal" \
 	" value) for all other modes. If this value is set than the automatic" \
 	" calculation  of {--chunk-size} will be modified too.\n" \
-	"@--mch@ is a shortcut for @--max-chunks@." )
+	"  @--mch@ is a shortcut for @--max-chunks@." )
 
-#:def_opt( "NO_COMPRESS", "no-compress|nocompress|noc", "C", \
-	"", \
-	"Disable compression for new WIA files. --noc is a shortcut for" \
-	" --no-compress." )
+#:def_opt( "COMPRESSION", "compression|compr", "CP", \
+	"mode", \
+	"Select one compression method, level and chunk size for new WIA" \
+	" files. The syntax for mode is: @[method] [.level] [@@factor]@\n" \
+	"  @'method'@ is the name or index of the method. Possible" \
+	" compressions method are @NONE@, @PURGE@, @BZIP2@, @LZMA@ and" \
+	" @LZMA2@. There are additional keywords: @DEFAULT@ (=@LZMA.5@@20@)," \
+	" @FAST@ (=@BZIP2.3@@10@), @GOOD@ (=@LZMA.5@@20@) @BEST@" \
+	" (=@LZMA.7@@50@), and @MEM@ (use best mode in respect to memory limit" \
+	" set by {--mem}). These additional keywords may change their meanings" \
+	" if a new compression method is implemented.\n" \
+	"  @'.level'@ is a point followed by one digit. It defines the" \
+	" compression level. The special value @.0@ means: Use default" \
+	" compression level (=@.5@).\n" \
+	"  @'@@factor'@ is a factor for the chunk size. The base size is 2" \
+	" MiB. The value@ @@0@ is replaced by the default factor@ @@20@ (40" \
+	" MiB). If the factor is not set but option {--chunk-size} is set, the" \
+	" factor will be calculated by using a rounded value of that option.\n" \
+	"  All three parts are optional. All default values may be changed in" \
+	" the future. @--compr@ is a shortcut for @--compression@." )
+
+#:def_opt( "MEM", "mem", "CP", \
+	"size", \
+	"This option defines a memory usage limit for compressing files. When" \
+	" compressing a file with method @MEM@ (see {--compression}) the the" \
+	" compression method, level and chunk size are calculated with respect" \
+	" to this limit.\n" \
+	"  If this option is not set or the value is 0, then the environment" \
+	" @WIT_MEM@ is tried to read instead. If this fails, the tool tries to" \
+	" find out the total memory by reading @/proc/meminfo@. The limit is" \
+	" set to 80% of the total memory minus 50 MiB." )
 
 #:def_opt( "SIZE", "s|size", "CP", \
 	"size", \
@@ -3398,14 +3563,12 @@
 
 #:def_opt( "WDF", "W|wdf", "C", \
 	"", \
-	"Set ISO output file type to WDF. (default)" )
+	"Set ISO output file type to WDF (Wii Disc Format, default)" )
 
 #:def_opt( "WIA", "wia", "C", \
 	"", \
-	"Set ISO output file type to WIA. WIA files are not editable.\n" \
-	"\n" \
-	"The WIA support is EXPERIMENTAL! The WIA format is in development!" \
-	" Don't use WIA files productive!" )
+	"Set ISO output file type to WIA (Wii ISO Archive). WIA files are not" \
+	" editable by {wit EDIT}." )
 
 #:def_opt( "ISO", "I|iso", "C", \
 	"", \
@@ -3413,11 +3576,11 @@
 
 #:def_opt( "CISO", "C|ciso", "C", \
 	"", \
-	"Set ISO output file type to CISO (=WBI)." )
+	"Set ISO output file type to CISO (Compact ISO, same as WBI)." )
 
 #:def_opt( "WBFS", "B|wbfs", "C", \
 	"", \
-	"Set ISO output file type to WBFS container." )
+	"Set ISO output file type to WBFS (Wii Backup File System) container." )
 
 #:def_opt( "ITIME", "itime", "C", \
 	"", \
@@ -3453,6 +3616,10 @@
 #:def_opt( "LONG", "l|long", "CM", \
 	"", \
 	"Print in long format. Multiple usage possible." )
+
+#:def_opt( "NUMERIC", "numeric", "C", \
+	"", \
+	"Force numeric output instead of printing names." )
 
 #:def_opt( "INODE", "inode", "C", \
 	"", \
@@ -3504,6 +3671,23 @@
 #:def_cmd_opt( "ERROR", "LONG", \
 	"", \
 	"Print extended message instead of error name." )
+
+#:def_cmd_opt( "COMPR", "SECTIONS", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "COMPR", "NO_HEADER", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "COMPR", "LONG", \
+	"", \
+	"Print the numeric value and the normalized name. If set twice print a" \
+	" table with the numeric value, normalized name and alternative names." )
+
+#:def_cmd_opt( "COMPR", "NUMERIC", \
+	"", \
+	"" )
 
 #:def_cmd_opt( "EXCLUDE", "EXCLUDE", \
 	"", \
@@ -4570,11 +4754,7 @@
 	"", \
 	"" )
 
-#:def_cmd_opt( "ADD", "PSEL", \
-	"", \
-	"" )
-
-#:def_cmd_opt( "ADD", "RAW", \
+#:def_cmd_opt( "ADD", "ENC", \
 	"", \
 	"" )
 
@@ -4614,7 +4794,15 @@
 	"", \
 	"" )
 
-#:def_cmd_opt( "ADD", "ENC", \
+#:def_cmd_opt( "ADD", "ALIGN_PART", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "ADD", "PSEL", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "ADD", "RAW", \
 	"", \
 	"" )
 
@@ -4733,11 +4921,7 @@
 	"", \
 	"" )
 
-#:def_cmd_opt( "UPDATE", "PSEL", \
-	"", \
-	"" )
-
-#:def_cmd_opt( "UPDATE", "RAW", \
+#:def_cmd_opt( "UPDATE", "ENC", \
 	"", \
 	"" )
 
@@ -4777,7 +4961,15 @@
 	"", \
 	"" )
 
-#:def_cmd_opt( "UPDATE", "ENC", \
+#:def_cmd_opt( "UPDATE", "ALIGN_PART", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "UPDATE", "PSEL", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "UPDATE", "RAW", \
 	"", \
 	"" )
 
@@ -4888,11 +5080,7 @@
 	"", \
 	"" )
 
-#:def_cmd_opt( "SYNC", "PSEL", \
-	"", \
-	"" )
-
-#:def_cmd_opt( "SYNC", "RAW", \
+#:def_cmd_opt( "SYNC", "ENC", \
 	"", \
 	"" )
 
@@ -4932,7 +5120,15 @@
 	"", \
 	"" )
 
-#:def_cmd_opt( "SYNC", "ENC", \
+#:def_cmd_opt( "SYNC", "ALIGN_PART", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "SYNC", "PSEL", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "SYNC", "RAW", \
 	"", \
 	"" )
 
@@ -5039,6 +5235,10 @@
 	"", \
 	"" )
 
+#:def_cmd_opt( "EXTRACT", "DISC_SIZE", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "EXTRACT", "TRUNC", \
 	"", \
 	"" )
@@ -5055,10 +5255,6 @@
 	"", \
 	"" )
 
-#:def_cmd_opt( "EXTRACT", "NO_COMPRESS", \
-	"", \
-	"" )
-
 #:def_cmd_opt( "EXTRACT", "WDF", \
 	"", \
 	"" )
@@ -5072,10 +5268,6 @@
 	"" )
 
 #:def_cmd_opt( "EXTRACT", "WBFS", \
-	"", \
-	"" )
-
-#:def_cmd_opt( "EXTRACT", "WIA", \
 	"", \
 	"" )
 
@@ -5553,6 +5745,436 @@
 
 ##
 ###############################################################################
+###############                   Tool 'wdf'                    ###############
+###############################################################################
+
+#:def_tool( "wdf", \
+	"wdf [options]... [+command] [options]... files...", \
+	"wdf is a support tool for WDF and CISO archives. It convert (pack and" \
+	" unpack), compare and dump WDF, WIA (only dump) and CISO archives." \
+	" The default command depends on the program file name (see command" \
+	" descriptions). Usual names are @wdf@, @unwdf@, @wdf-cat@, @wdf-cmp@" \
+	" and @wdf-dump@ (with or without minus signs)." )
+
+#:def_cmd( "VERSION", "+VERSION|+V", \
+	"wdf +VERSION [ignored]...", \
+	"Print program name, version and the defaults and exit." )
+
+#:def_cmd( "HELP", "+HELP|+H", \
+	"wdf +HELP [+command] [ignored]...", \
+	"Print help and exit. If the first non option is a valid command name," \
+	" then a help for the given command is printed." )
+
+#:def_cmd( "PACK", "+PACK|+P", \
+	"wdf +PACK [option]... files...", \
+	"Pack sources into WDF or CISO archives. This is the general default." )
+
+#:def_cmd( "UNPACK", "+UNPACK|+U", \
+	"wdf +UNPACK [option]... files...", \
+	"Unpack WDF and CISO archives.\n" \
+	"  This is the default command, when the program name starts with the" \
+	" two letters @'un'@ in any case." )
+
+#:def_cmd( "CAT", "+CAT|+C", \
+	"wdf +CAT [option]... files...", \
+	"Concatenate files and print on the standard output. WDF and CISO" \
+	" files are extracted before printing, all other files are copied byte" \
+	" by byte.\n" \
+	"  This is the default command, when the program namecontains the" \
+	" three letter @'cat'@ in any case." )
+
+#:def_cmd( "DUMP", "+DUMP|+D", \
+	"wdf +DUMP [option]... files...", \
+	"Dump the data structure of WDF, WIA and CISO archives and ignore" \
+	" other files.\n" \
+	"  This is the default command, when the program contains the sub" \
+	" string @'dump'@ in any case." )
+
+#:def_opt( "VERSION", "V|version", "G", \
+	"", \
+	"Stop parsing the command line, print a version info and exit." )
+
+#:def_opt( "HELP", "h|help", "G", \
+	"", \
+	"Stop parsing the command line, print a help message and exit." )
+
+#:def_opt( "XHELP", "xhelp", "G", \
+	"", \
+	"Stop parsing the command line and print a help message with all" \
+	" commands included. Exit after printing." )
+
+#:def_opt( "WIDTH", "width", "GP", \
+	"width", \
+	"Define the width (number of columns) for help and some other" \
+	" messages. This option disables the automatic detection of the" \
+	" terminal width." )
+
+#:def_opt( "QUIET", "q|quiet", "G", \
+	"", \
+	"Be quiet and print only error messages." )
+
+#:def_opt( "VERBOSE", "v|verbose", "G", \
+	"", \
+	"Be verbose -> print program name." )
+
+#:def_opt( "LOGGING", "L|logging", "GM", \
+	"", \
+	"Enable the logging of internal memory maps. If set twice second level" \
+	" memory maps are printed too." )
+
+#:def_opt( "CHUNK", "chunk", "C", \
+	"", \
+	"Print table with chunk header too." )
+
+#:def_opt( "LONG", "l|long", "C", \
+	"", \
+	"Print (un)pack statistics, 1 line for each source. In dump mode:" \
+	" Print table with chunk header too (same as {--chunk})." )
+
+#:def_opt( "MINUS1", "1|minus-1|minus1", "C", \
+	"", \
+	"If set the end address is the last address of a range. The standard" \
+	" is to print the first address that is not part of the address of a" \
+	" range." )
+
+#:def_opt( "WDF", "W|wdf", "C", \
+	"", \
+	"Force WDF output mode if packing and set the default suffix to" \
+	" @'.wdf'@. This is the general default." )
+
+#:def_opt( "WIA", "wia", "C", \
+	"", \
+	"Force WIA output mode if packing and set the default suffix to" \
+	" @'.wia'@.\n" \
+	"   This is the default, when the program name contains the sub string" \
+	" @'wia'@ in any case." )
+
+#:def_opt( "CISO", "C|ciso", "C", \
+	"", \
+	"Force CISO output mode if packing and set the default suffix to" \
+	" @'.ciso'@.\n" \
+	"   This is the default, when the program name contains the sub string" \
+	" @'ciso'@ in any case." )
+
+#:def_opt( "WBI", "wbi", "C", \
+	"", \
+	"Force CISO output mode if packing and set the default suffix to" \
+	" @'.wbi'@.\n" \
+	"   This is the default, when the program name contains the sub string" \
+	" @'wbi'@ but not @'ciso'@ in any case." )
+
+#:def_opt( "SUFFIX", "s|suffix", "CP", \
+	".suf", \
+	"Use suffix @'.suf'@ instead of @'.wdf'@, @'.wia'@, or @'.ciso'@ for" \
+	" packed files." )
+
+#:def_opt( "DEST", "d|dest", "CP", \
+	"path", \
+	"Define a destination path (directory/file)." )
+
+#:def_opt( "DEST2", "D|DEST", "CP", \
+	"path", \
+	"Like {--dest}, but create the directory path automatically." )
+
+#:def_opt( "STDOUT", "c|stdout", "C", \
+	"", \
+	"Write to standard output (stdout) and keep (don't delete) input" \
+	" files.\n" \
+	"  This is the default, when the program is reading from standard" \
+	" input (stdin)." )
+
+#:def_opt( "KEEP", "k|keep", "C", \
+	"", \
+	"Keep (don't delete) input files during (un-)packing." )
+
+#:def_opt( "OVERWRITE", "o|overwrite", "C", \
+	"", \
+	"Overwrite already existing files." )
+
+#:def_opt( "PRESERVE", "p|preserve", "C", \
+	"", \
+	"Preserve file times (atime+mtime)." )
+
+#:def_opt( "SPLIT", "z|split", "C", \
+	"", \
+	"Enable output file splitting, default split size = 4 GB." )
+
+#:def_opt( "SPLIT_SIZE", "Z|split-size|splitsize", "CP", \
+	"sz", \
+	"Enable output file splitting and define split size. The parameter" \
+	" 'sz' is a floating point number followed by an optional unit factor" \
+	" (one of 'cb' [=1] or  'kmgtpe' [base=1000] or 'KMGTPE' [base=1024])." \
+	" The default unit is 'G' (GiB)." )
+
+#:def_opt( "CHUNK_MODE", "chunk-mode|chunkmode|chm", "CP", \
+	"mode", \
+	"Defines an operation mode for {--chunk-size} and {--max-chunks}." \
+	" Allowed keywords are @'ANY'@ to allow any values, @'32K'@ to force" \
+	" chunk sizes with a multiple of 32 KiB, @'POW2'@ to force chunk sizes" \
+	" >=32K and with a power of 2 or @'ISO'@ for ISO images (more" \
+	" restrictive as @'POW2'@, best for USB loaders). The case of the" \
+	" keyword is ignored. The default key is @'32K'@.\n" \
+	"@--chm@ is a shortcut for @--chunk-mode@." )
+
+#:def_opt( "CHUNK_SIZE", "chunk-size|chunksize|chs", "CP", \
+	"sz", \
+	"Define the minimal chunk size if creating a CISO or WIA file (for WIA" \
+	" details see option --compression}). The default is to calculate the" \
+	" chunk size from the input file size and find a good value by using a" \
+	" minimal value of 1 MiB for {--chunk-mode ISO} and @32 KiB@ for modes" \
+	" @32K@ and @POW2@. For the modes @ISO@ and @POW2@ the value is" \
+	" rounded up to the next power of 2. This calculation also depends" \
+	" from option {--max-chunks}.\n" \
+	"  The parameter 'sz' is a floating point number followed by an" \
+	" optional unit factor (one of 'cb' [=1] or  'kmgtpe' [base=1000] or" \
+	" 'KMGTPE' [base=1024]). The default unit is 'M' (MiB). If the number" \
+	" is prefixed with a @'='@ then options {--chunk-mode} and" \
+	" {--max-chunks} are ignored and the given value is used without any" \
+	" rounding or changing.\n" \
+	"  If the input file size is not known (e.g. reading from pipe), its" \
+	" size is assumed as @12 GiB@.\n" \
+	"  @--chs@ is a shortcut for @--chunk-size@." )
+
+#:def_opt( "MAX_CHUNKS", "max-chunks|maxchunks|mch", "CP", \
+	"n", \
+	"Define the maximal number of chunks if creating a CISO file. The" \
+	" default value is 8192 for {--chunk-mode ISO} and 32760 (maximal" \
+	" value) for all other modes. If this value is set than the automatic" \
+	" calculation  of {--chunk-size} will be modified too.\n" \
+	"  @--mch@ is a shortcut for @--max-chunks@." )
+
+#:def_opt( "COMPRESSION", "compression|compr", "CP", \
+	"mode", \
+	"Select one compression method, level and chunk size for new WIA" \
+	" files. The syntax for mode is: @[method] [.level] [@@factor]@\n" \
+	"  @'method'@ is the name or index of the method. Possible" \
+	" compressions method are @NONE@, @PURGE@, @BZIP2@, @LZMA@ and" \
+	" @LZMA2@. There are additional keywords: @DEFAULT@ (=@LZMA.5@@20@)," \
+	" @FAST@ (=@BZIP2.3@@10@), @GOOD@ (=@LZMA.5@@20@) @BEST@" \
+	" (=@LZMA.7@@50@), and @MEM@ (use best mode in respect to memory limit" \
+	" set by {--mem}). These additional keywords may change their meanings" \
+	" if a new compression method is implemented.\n" \
+	"  @'.level'@ is a point followed by one digit. It defines the" \
+	" compression level. The special value @.0@ means: Use default" \
+	" compression level (=@.5@).\n" \
+	"  @'@@factor'@ is a factor for the chunk size. The base size is 2" \
+	" MiB. The value@ @@0@ is replaced by the default factor@ @@20@ (40" \
+	" MiB). If the factor is not set but option {--chunk-size} is set, the" \
+	" factor will be calculated by using a rounded value of that option.\n" \
+	"  All three parts are optional. All default values may be changed in" \
+	" the future. @--compr@ is a shortcut for @--compression@." )
+
+#:def_opt( "MEM", "mem", "CP", \
+	"size", \
+	"This option defines a memory usage limit for compressing files. When" \
+	" compressing a file with method @MEM@ (see {--compression}) the the" \
+	" compression method, level and chunk size are calculated with respect" \
+	" to this limit.\n" \
+	"  If this option is not set or the value is 0, then the environment" \
+	" @WIT_MEM@ is tried to read instead. If this fails, the tool tries to" \
+	" find out the total memory by reading @/proc/meminfo@. The limit is" \
+	" set to 80% of the total memory minus 50 MiB." )
+
+#:def_opt( "TEST", "t|test", "G", \
+	"", \
+	"Run in test mode, modify nothing.\n" \
+	">>> USE THIS OPTION IF UNSURE! <<<" )
+
+#:def_cmd_opt( "VERSION", "LONG", \
+	"", \
+	"Print in long format." )
+
+#:def_cmd_opt( "PACK", "DEST", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "PACK", "DEST2", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "PACK", "OVERWRITE", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "PACK", "SPLIT", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "PACK", "SPLIT_SIZE", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "PACK", "CHUNK_MODE", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "PACK", "CHUNK_SIZE", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "PACK", "MAX_CHUNKS", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "PACK", "COMPRESSION", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "PACK", "MEM", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "PACK", "STDOUT", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "PACK", "KEEP", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "PACK", "PRESERVE", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "PACK", "WDF", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "PACK", "WIA", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "PACK", "CISO", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "PACK", "WBI", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "PACK", "SUFFIX", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "UNPACK", "DEST", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "UNPACK", "DEST2", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "UNPACK", "OVERWRITE", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "UNPACK", "SPLIT", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "UNPACK", "SPLIT_SIZE", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "UNPACK", "CHUNK_MODE", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "UNPACK", "CHUNK_SIZE", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "UNPACK", "MAX_CHUNKS", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "UNPACK", "COMPRESSION", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "UNPACK", "MEM", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "UNPACK", "STDOUT", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "UNPACK", "KEEP", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "UNPACK", "PRESERVE", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "CAT", "DEST", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "CAT", "DEST2", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "CAT", "OVERWRITE", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "CAT", "SPLIT", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "CAT", "SPLIT_SIZE", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "CAT", "CHUNK_MODE", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "CAT", "CHUNK_SIZE", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "CAT", "MAX_CHUNKS", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "CAT", "COMPRESSION", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "CAT", "MEM", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "DUMP", "DEST", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "DUMP", "DEST2", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "DUMP", "OVERWRITE", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "DUMP", "CHUNK", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "DUMP", "LONG", \
+	"", \
+	"Same as {--chunk}" )
+
+#:def_cmd_opt( "DUMP", "MINUS1", \
+	"", \
+	"" )
+
+
+##
+###############################################################################
 ###############                 Tool 'wdf-cat'                  ###############
 ###############################################################################
 
@@ -5585,7 +6207,7 @@
 	"Setup the IO mode for experiments. The standard file IO is based on" \
 	" open() function. The value '1' defines that WBFS IO is based on" \
 	" fopen() function. The value '2' defines the same for ISO files and" \
-	" the value '3' for both, WBFS and ISO." )
+	" value '4' for WIA files. You can combine the values by adding them." )
 
 
 ##
@@ -5628,7 +6250,7 @@
 	"Setup the IO mode for experiments. The standard file IO is based on" \
 	" open() function. The value '1' defines that WBFS IO is based on" \
 	" fopen() function. The value '2' defines the same for ISO files and" \
-	" the value '3' for both, WBFS and ISO." )
+	" value '4' for WIA files. You can combine the values by adding them." )
 
 #:def_opt( "CHUNK", "c|chunk", "G", \
 	"", \

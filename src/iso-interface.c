@@ -70,17 +70,8 @@ static void dump_size
     fprintf(f,"%*s%-14s%12llx/hex =%11llu",
 	indent,"", title, size, size );
 
-    u64 xsize = (size+KiB/2)/KiB;
-    if ( xsize >= 10000 )
-    {
-	xsize = (size+MiB/2)/MiB;
-	if ( xsize >= 10000 )
-	    fprintf(f," =%5llu GiB", (size+GiB/2)/GiB );
-	else    
-	    fprintf(f," =%5llu MiB", xsize);
-    }
-    else if ( xsize >= 10 )
-	fprintf(f," =%5llu KiB",xsize);
+    if ( size >= 10240 )
+	fprintf(f," = %s",wd_print_size(0,0,size,true));
 
     if ( percent_base > 0 )
     {
@@ -129,14 +120,24 @@ static int dump_header
 	fprintf(f,"%*s%-17s%s\n",
 		indent,"", user_head, user_parm );
 	
+    char info[30] = {0};
+    if (sf->wia)
+    {
+	wia_disc_t * disc = &sf->wia->disc;
+	snprintf( info, sizeof(info), " (v%s,%s)",
+		PrintVersionWIA(0,0,sf->wia->fhead.version),
+		wd_print_compression(0,0,disc->compression,
+				disc->compr_level,disc->chunk_size,2) );
+    }
+
     if (!id6)
 	id6 = sf->f.id6;
     if (*id6)
-	fprintf(f,"%*sID & file type:  %s, %s\n",
-		indent,"", id6, GetNameFT(sf->f.ftype,0) );
+	fprintf(f,"%*sID & file type:  %s, %s%s\n",
+		indent,"", wd_print_id(id6,6,0), GetNameFT(sf->f.ftype,0), info );
     else
-	fprintf(f,"%*stype:            %s\n",
-		indent,"", GetNameFT(sf->f.ftype,0) );
+	fprintf(f,"%*sFile type:       %s%s\n",
+		indent,"", GetNameFT(sf->f.ftype,0), info );
 
     return indent;
 }
@@ -178,108 +179,82 @@ static void dump_hex ( FILE * f, const void * p_data, size_t dsize, size_t asc_i
 ///////////////			 Dump_ISO()			///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-enumError Dump_ISO
+static void dump_gc_part
 (
     FILE		* f,		// valid output stream
     int			indent,		// indent of output
-    SuperFile_t		* sf,		// file to dump
-    ccp			real_path,	// NULL or pointer to real path
-    ShowMode		show_mode,	// what should be printed
-    int			dump_level	// dump level: 0..3, ignored if show_mode is set
+    wd_disc_t		* disc,		// disc pointer
+    ShowMode		show_mode	// what should be printed
 )
 {
-    //----- setup
+    DASSERT(f);
+    DASSERT(disc);
 
-    ASSERT(sf);
-    if ( !f || !sf->f.id6[0] )
-	return ERR_OK;
-    sf->f.read_behind_eof = 2;
+    if ( !( disc->disc_attrib & WD_DA_GC_MULTIBOOT ) )
+	return;
 
-    wd_disc_t * disc = OpenDiscSF(sf,true,true);
-    if ( show_mode & SHOW_F_PRIMARY )
-	disc = sf->disc1;
-    if (!disc)
-	return ERR_WDISC_NOT_FOUND;
+    //----- partitions
 
-    const u32 used_blocks = wd_count_used_disc_blocks(disc,1,0);
-    const u32 used_mib    = ( used_blocks + WII_SECTORS_PER_MIB/2 ) / WII_SECTORS_PER_MIB;
-
-    char pname[100];
-    FilePattern_t * pat = GetDefaultFilePattern();
-    indent = NormalizeIndent(indent) + 2;
-
-
-    //----- options --show and --long
-
-    if ( show_mode & SHOW__DEFAULT )
+    if ( show_mode & SHOW_P_INFO && disc->n_part )
     {
-	show_mode = SHOW__ALL;
-	switch (dump_level)
+	wd_part_t * part = disc->part;
+	DASSERT(part);
+
+	int i;
+	u32 np = disc->n_part;
+	for ( i = 0; i < np; i++, part++ )
 	{
-	    case 0:  
-		show_mode = SHOW_INTRO | SHOW_P_TAB;
-		break;
+	    if ( !part->is_valid || !part->is_enabled )
+		continue;
 
-	    case 1:
-		show_mode &= ~(SHOW_D_MAP|SHOW_USAGE);
-		// fall through
+	    fprintf(f,"\n%*sGameCube partition #%d, offset 0x%llx, size %s:\n",
+		indent,"", part->index,
+		(u64)part->part_off4 << 2,
+		wd_print_size(0,0,part->part_size,false));
 
-	    case 2:  
-		show_mode &= ~SHOW_FILES;
-		// fall through
+	    if (part->is_overlay)
+		fprintf(f,"%*s  Partition overlays other partitions.\n", indent,"" );
 
-	    case 3:
-		show_mode &= ~(SHOW_PATCH|SHOW_RELOCATE);
-		break;
+	    fprintf(f,"%*s  Partition type:  %s\n",
+			indent, "",
+			wd_print_part_name(0,0,part->part_type,WD_PNAME_NUM_INFO) );
+	    fprintf(f,"%*s  boot.bin, id:    %s\n",
+			indent, "", wd_print_id(&part->boot,6,0));
+	    fprintf(f,"%*s  boot.bin, title: %.64s\n",
+			indent, "", part->boot.dhead.disc_title);
+
+	    ccp title = GetTitle(&part->boot.dhead.disc_id,0);
+	    if (title)
+		fprintf(f,"%*s  Title DB:        %s\n", indent, "", title );
+
+	    fprintf(f,"%*s  Region:        %7u [%s]\n",indent,"",
+			part->region, GetRegionName(part->region,"?") );
+
+	    fprintf(f,"%*s  Directories:   %7u\n",indent,"",part->fst_dir_count);
+	    fprintf(f,"%*s  Files:         %7u\n",indent,"",part->fst_file_count);
 	}
-
-	show_mode |= SHOW_F_HEAD;
-	if (pat->is_active)
-	    show_mode |= SHOW_FILES;
     }
+}
 
-    if ( show_mode & SHOW_F_PRIMARY )
-	show_mode &= ~(SHOW_TICKET|SHOW_TMD); // TICKET nad TMD data is patched
+///////////////////////////////////////////////////////////////////////////////
 
-
-    //----- print header
-
-    if ( show_mode & SHOW_INTRO )
-    {
-	dump_header(f,indent-2,sf,&disc->dhead.disc_id,real_path,
-			"Disc type:", wd_get_disc_type_name(disc->disc_type,"?") );
-
-	fprintf(f,"%*sDisc name:       %.64s\n",indent,"",disc->dhead.disc_title);
-
-	ccp title = GetTitle((ccp)&disc->dhead,0);
-	if (title)
-	    fprintf(f,"%*sDB title:        %s\n",indent,"",title);
-
-	if (wd_disc_has_region(disc))
-	{
-	    const RegionInfo_t * rinfo = GetRegionInfo(disc->dhead.region_code);
-	    fprintf(f,"%*sRegion:          %s [%s]\n",indent,"",rinfo->name,rinfo->name4);
-	    u8 * p8 = disc->region.region_info;
-	    fprintf(f,"%*sRegion setting:  %x / %02x %02x %02x %02x  %02x %02x %02x %02x\n",
-			    indent,"", ntohl(disc->region.region),
-			    p8[0], p8[1], p8[2], p8[3], p8[4], p8[5], p8[6], p8[7] );
-	}
-
-	fprintf(f,"%*sDirectories:    %7u\n",indent,"",disc->fst_dir_count);
-	fprintf(f,"%*sFiles:          %7u\n",indent,"",disc->fst_file_count);
-	fprintf(f,"%*sUsed ISO blocks:%7u * 32 KiB = %u MiB\n",
-			indent,"", used_blocks, used_mib );
-    }
-    else
-	fprintf(f,"\n%*sDump of file %s\n",indent-2,"",sf->f.fname);
-
-
-    //----- partition tables
+static void dump_wii_part
+(
+    FILE		* f,		// valid output stream
+    int			indent,		// indent of output
+    wd_disc_t		* disc,		// disc pointer
+    ShowMode		show_mode	// what should be printed
+)
+{
+    DASSERT(f);
+    DASSERT(disc);
 
     int i;
     u32 nt = disc->n_ptab;
     u32 np = disc->n_part;
-
+ 
+    char pname[100];
+   
     if ( show_mode & SHOW_P_TAB && wd_disc_has_ptab(disc) )
     {
 	fprintf(f,"\n%*s%d partition table%s with %d partition%s%s:\n\n"
@@ -403,10 +378,12 @@ enumError Dump_ISO
 		}
 	    }
 
-	    fprintf(f,"%*s  boot.bin, id: %s\n",
+	    fprintf(f,"%*s  boot.bin, id:    %s\n",
 			indent, "", wd_print_id(&part->boot,6,0));
 	    fprintf(f,"%*s  boot.bin, title: %.64s\n",
 			indent, "", part->boot.dhead.disc_title);
+	    fprintf(f,"%*s  Directories:   %7u\n",indent,"",part->fst_dir_count);
+	    fprintf(f,"%*s  Files:         %7u\n",indent,"",part->fst_file_count);
 	}
 
 	if ( show_mode & SHOW_P_MAP )
@@ -432,6 +409,126 @@ enumError Dump_ISO
 	}
       }
     }
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+enumError Dump_ISO
+(
+    FILE		* f,		// valid output stream
+    int			indent,		// indent of output
+    SuperFile_t		* sf,		// file to dump
+    ccp			real_path,	// NULL or pointer to real path
+    ShowMode		show_mode,	// what should be printed
+    int			dump_level	// dump level: 0..3, ignored if show_mode is set
+)
+{
+    //----- setup
+
+    ASSERT(sf);
+    if ( !f || !sf->f.id6[0] )
+	return ERR_OK;
+    sf->f.read_behind_eof = 2;
+
+    wd_disc_t * disc = OpenDiscSF(sf,true,true);
+    if ( show_mode & SHOW_F_PRIMARY )
+	disc = sf->disc1;
+    if (!disc)
+	return ERR_WDISC_NOT_FOUND;
+
+    const u32 used_blocks = wd_count_used_disc_blocks(disc,1,0);
+    const u32 used_mib    = ( used_blocks + WII_SECTORS_PER_MIB/2 ) / WII_SECTORS_PER_MIB;
+    const bool is_gc	  = disc->disc_type == WD_DT_GAMECUBE;
+
+    FilePattern_t * pat = GetDefaultFilePattern();
+    indent = NormalizeIndent(indent) + 2;
+
+
+    //----- options --show and --long
+
+    if ( show_mode & SHOW__DEFAULT )
+    {
+	show_mode = SHOW__ALL;
+	switch (dump_level)
+	{
+	    case 0:  
+		show_mode = SHOW_INTRO | SHOW_P_TAB;
+		break;
+
+	    case 1:
+		show_mode &= ~(SHOW_D_MAP|SHOW_USAGE|SHOW_TICKET|SHOW_TMD);
+		// fall through
+
+	    case 2:  
+		show_mode &= ~SHOW_FILES;
+		// fall through
+
+	    case 3:
+		show_mode &= ~(SHOW_PATCH|SHOW_RELOCATE);
+		break;
+	}
+
+	show_mode |= SHOW_F_HEAD;
+	if (pat->is_active)
+	    show_mode |= SHOW_FILES;
+    }
+
+    if ( show_mode & SHOW_F_PRIMARY )
+	show_mode &= ~(SHOW_TICKET|SHOW_TMD); // TICKET nad TMD data is patched
+
+
+    //----- print header
+
+    if ( show_mode & SHOW_INTRO )
+    {
+	char buf[80];
+	snprintf(buf,sizeof(buf),"%s%s%s%s",
+		wd_get_disc_type_name(disc->disc_type,"?"),
+		disc->disc_attrib & WD_DA_GC_MULTIBOOT ? ", MultiBoot" : "",
+		disc->disc_attrib & WD_DA_GC_START_PART ? "+" : "",
+		disc->disc_attrib & WD_DA_GC_DVD9 ? ", DVD9" : "" );
+	dump_header(f,indent-2,sf,&disc->dhead.disc_id,real_path,"Disc type:",buf);
+
+	fprintf(f,"%*sDisc name:       %.64s\n",indent,"",disc->dhead.disc_title);
+
+	ccp title = GetTitle((ccp)&disc->dhead,0);
+	if (title)
+	    fprintf(f,"%*sDB title:        %s\n",indent,"",title);
+
+	const RegionInfo_t * rinfo = GetRegionInfo(disc->dhead.region_code);
+	fprintf(f,"%*sID Region:       %s [%s]\n",indent,"",rinfo->name,rinfo->name4);
+
+	if (is_gc)
+	{
+	    const enumRegion reg = ntohl(disc->region.region);
+	    fprintf(f,"%*sBI2 Region:      %x [%s]\n",
+			    indent,"", reg, GetRegionName(reg,"?") );
+	}
+	else    
+	{
+	    const enumRegion reg = ntohl(disc->region.region);
+	    u8 * p8 = disc->region.region_info;
+	    fprintf(f,"%*sRegion setting:  %x [%s] / %02x %02x %02x %02x  %02x %02x %02x %02x\n",
+			    indent,"", reg, GetRegionName(reg,"?"),
+			    p8[0], p8[1], p8[2], p8[3], p8[4], p8[5], p8[6], p8[7] );
+	}
+
+	fprintf(f,"%*sPartitions:     %7u\n",indent,"",disc->n_part);
+	fprintf(f,"%*sDirectories:    %7u\n",indent,"",disc->fst_dir_count);
+	fprintf(f,"%*sFiles:          %7u\n",indent,"",disc->fst_file_count);
+	fprintf(f,"%*sUsed ISO blocks:%7u * 32 KiB = %u MiB\n",
+			indent,"", used_blocks, used_mib );
+    }
+    else
+	fprintf(f,"\n%*sDump of file %s\n",indent-2,"",sf->f.fname);
+
+
+    //----- partition tables & partitions
+
+    if ( disc->disc_type == WD_DT_GAMECUBE )
+	dump_gc_part(f,indent,disc,show_mode);
+    else
+	dump_wii_part(f,indent,disc,show_mode);
 
 
     //----- FST (files)
@@ -459,7 +556,7 @@ enumError Dump_ISO
     {
 	fprintf(f,"\n\n%*sISO Usage Map:\n\n",indent,"");
 	wd_filter_usage_table(disc,wdisc_usage_tab,0);
-	wd_dump_usage_tab(f,indent+2,wdisc_usage_tab,false);
+	wd_print_usage_tab(f,indent+2,wdisc_usage_tab,disc->iso_size,false);
     }
 
 
@@ -483,7 +580,7 @@ enumError Dump_ISO
 	if ( show_mode & SHOW_PATCH )
 	{
 	    putc('\n',f);
-	    wd_dump_disc_patch(f,indent,sf->disc1,true,true);
+	    wd_print_disc_patch(f,indent,sf->disc1,true,true);
 	}
 
 
@@ -492,7 +589,7 @@ enumError Dump_ISO
 	if ( show_mode & SHOW_RELOCATE )
 	{
 	    putc('\n',f);
-	    wd_dump_disc_relocation(f,indent,sf->disc1,true);
+	    wd_print_disc_relocation(f,indent,sf->disc1,true);
 	}
     }
 
@@ -1102,6 +1199,7 @@ static s64 PartSelectorFunc
 	    case WD_SM_ALLOW_PTYPE:
 	    case WD_SM_ALLOW_PTAB:
 	    case WD_SM_ALLOW_ID:
+	    case WD_SM_ALLOW_GC_BOOT:
 	    case WD_SM_ALLOW_ALL:
 		wd_append_select_item(select,mode,cmd->opt,cmd->opt);
 		break;
@@ -1228,7 +1326,8 @@ enumError ScanPartSelector
 	{ WD_SM_ALLOW_PTAB,	"PTAB2",	"T2",	2 },
 	{ WD_SM_ALLOW_PTAB,	"PTAB3",	"T3",	3 },
 
-	{ WD_SM_ALLOW_ID,	"ID",		"I",	0 },
+	{ WD_SM_ALLOW_ID,	"ID",		0,	0 },
+	{ WD_SM_ALLOW_GC_BOOT,	"BOOT",		0,	0 },
 	{ WD_SM_ALLOW_ALL,	"ALL",		0,	0 },
 
 	{ WD_SM_N_MODE+1,	"1:1",		"RAW",	0 },
@@ -1389,77 +1488,6 @@ void SetupSneekMode()
     pat->rules.used = 0;
     AddFilePattern("=sneek",PAT_DEFAULT);
     SetupFilePattern(pat);
-}
-
-///////////////////////////////////////////////////////////////////////////////
-
-u32 opt_align1 = 0;
-u32 opt_align2 = 0;
-u32 opt_align3 = 0;
-
-//-----------------------------------------------------------------------------
-
-int ScanOptAlign ( ccp p_arg )
-{
-    opt_align1 = opt_align2 = opt_align3 = 0;
-
-    static u32 * align_tab[] = { &opt_align1, &opt_align2, &opt_align3, 0 };
-    u32 ** align_ptr = align_tab;
-
-    ccp arg = p_arg, prev_arg = 0;
-    char * dest_end = iobuf + sizeof(iobuf) - 1;
-
-    while ( arg && *arg && *align_ptr )
-    {
-	ccp save_arg = arg;
-	char * dest = iobuf;
-	while ( dest < dest_end && *arg && *arg != ',' )
-	    *dest++ = *arg++;
-	*dest = 0;
-	if ( dest > iobuf
-		&& ScanSizeOptU32(*align_ptr,iobuf,1,0,"--align",0,32768,0,1,true) )
-	    return 1;
-
-	if ( prev_arg && align_ptr[-1][0] >= align_ptr[0][0] )
-	{
-	    ERROR0(ERR_SEMANTIC,
-			"Option --align: Ascending order expected: %.*s\n",
-			arg - prev_arg, prev_arg );
-	    return 1;
-	}
-
-	align_ptr++;
-	if ( !*align_ptr || !*arg )
-	    break;
-	arg++;
-	prev_arg = save_arg;
-    }
-
-    if (*arg)
-    {
-	ERROR0(ERR_SEMANTIC,
-		"Option --align: End of parameter expected: %.20s\n",arg);
-	return 1;
-    }
-	
-    return 0;
-}
-
-///////////////////////////////////////////////////////////////////////////////
-
-StringField_t add_file;
-StringField_t repl_file;
-
-//-----------------------------------------------------------------------------
-
-int ScanOptFile ( ccp arg, bool add )
-{
-    if ( arg && *arg )
-    {
-	StringField_t * sf = add ? &add_file : &repl_file;
-	InsertStringField(sf,arg,false);
-    }
-    return 0;
 }
 
 //
@@ -2767,7 +2795,7 @@ u32 ScanPartFST
     if (boot)
     {
 	boot->fst_off4  = htonl(cur_offset4);
-	boot->fst_size4 = htonl(part->ftab_size>>2);
+	boot->fst_size4 = boot->max_fst_size4 = htonl(part->ftab_size>>2);
     }
 
     IsoMappingItem_t * imi;
@@ -3205,6 +3233,7 @@ enumError SetupReadFST ( SuperFile_t * sf )
 
     if ( sf->f.ftype & FT_A_PART_DIR )
     {
+	min_offset = wd_align_part(min_offset,opt_align_part,false);
 	data_part = AppendPartFST(fst);
 	data_part->part_type = WD_PART_DATA;
 	data_size = GenPartFST(sf,data_part,sf->f.fname,data_off,min_offset);
@@ -3227,6 +3256,7 @@ enumError SetupReadFST ( SuperFile_t * sf )
 	char path_buf[PATH_MAX];
 	if ( stat & UPDATE_PART_FOUND )
 	{
+	    min_offset = wd_align_part(min_offset,opt_align_part,false);
 	    ccp path = PathCatPP(path_buf,sizeof(path_buf),sf->f.fname,update_path);
 	    WiiFstPart_t * update_part = AppendPartFST(fst);
 	    update_part->part_type = WD_PART_UPDATE;
@@ -3238,6 +3268,7 @@ enumError SetupReadFST ( SuperFile_t * sf )
 	    update_part->path = strdup(path);
 	}
 
+	min_offset = wd_align_part(min_offset,opt_align_part,false);
 	ccp path = PathCatPP(path_buf,sizeof(path_buf),sf->f.fname,data_path);
 	data_part = AppendPartFST(fst);
 	data_part->part_type = WD_PART_DATA;
@@ -3250,6 +3281,7 @@ enumError SetupReadFST ( SuperFile_t * sf )
 
 	if ( stat & CHANNEL_PART_FOUND )
 	{
+	    min_offset = wd_align_part(min_offset,opt_align_part,false);
 	    ccp path = PathCatPP(path_buf,sizeof(path_buf),sf->f.fname,channel_path);
 	    WiiFstPart_t * channel_part = AppendPartFST(fst);
 	    channel_part->part_type = WD_PART_CHANNEL;
@@ -4007,7 +4039,7 @@ enumError VerifyPartition ( Verify_t * ver )
     //----- check partition header
 
     wd_part_t * part = ver->part;
-    wd_load_part(part,false,true);
+    wd_load_part(part,false,true,false);
 
     if (!part->is_valid)
     {

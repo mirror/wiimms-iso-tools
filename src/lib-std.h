@@ -48,15 +48,6 @@
     #define EXTENDED_ERRORS 1		// undef | 1 | 2
 #endif
 
-#if defined(TEST)
-    #undef WRITE_CACHE_ENABLED
-    #define WRITE_CACHE_ENABLED 1	// undef | def
-#endif
-
-#ifndef WRITE_CACHE_ENABLED
-    #define WRITE_CACHE_ENABLED 0	// 0 | 1
-#endif
-
 #ifndef EXTENDED_IO_FUNC
     #define EXTENDED_IO_FUNC 1		// 0 | 1
 #endif
@@ -83,13 +74,6 @@ typedef enum enumRevID
 } enumRevID;
 
 ///////////////////////////////////////////////////////////////////////////////
-
-#define KiB 1024
-#define MiB (1024*1024)
-#define GiB (1024*1024*1024)
-#define TiB (1024ull*1024*1024*1024)
-#define PiB (1024ull*1024*1024*1024*1024)
-#define EiB (1024ull*1024*1024*1024*1024*1024)
 
 #define TRACE_SEEK_FORMAT "%-20.20s f=%d,%p %9llx%s\n"
 #define TRACE_RDWR_FORMAT "%-20.20s f=%d,%p %9llx..%9llx %8zx%s\n"
@@ -225,11 +209,11 @@ ccp PrintMSec ( char * buf, int bufsize, u32 msec, bool PrintMSec );
 
 typedef enum enumIOMode
 {
-	IOM_IS_WBFS		= 0x01, // is a WPFS partition
-	IOM_IS_IMAGE		= 0x02, // is a WDF or ISO file
-	//IOM_IS_OTHER		= 0x04, // is an other file
+	IOM_IS_WBFS_PART	= 0x01, // is a WBFS partition
+	IOM_IS_IMAGE		= 0x02, // is a disc image (PLAIN, WDF, CISO, ...)
+	IOM_IS_WIA		= 0x04, // is a WIA file
 
-	IOM__IS_MASK		= 0x03,
+	IOM__IS_MASK		= 0x07,
 	IOM__IS_DEFAULT		= 0,
 
 	IOM_FORCE_STREAM	= IOM__IS_MASK + 1,
@@ -261,6 +245,7 @@ typedef enum enumOFT // open file mode
 extern enumOFT output_file_type;
 extern ccp oft_ext [OFT__N+1]; // NULL terminated list
 extern ccp oft_name[OFT__N+1]; // NULL terminated list
+extern enumIOMode oft_iom[OFT__N+1];
 extern int opt_truncate;
 
 enumOFT CalcOFT ( enumOFT force, ccp fname_dest, ccp fname_src, enumOFT def );
@@ -1045,33 +1030,50 @@ enumError ScanSetupFile
 
 //
 ///////////////////////////////////////////////////////////////////////////////
-///////////////                     etc                         ///////////////
+///////////////		    scan compression option		///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-typedef enum RepairMode
-{
-	REPAIR_NONE		=     0,
+extern wd_compression_t opt_compr_method; // = WD_COMPR__DEFAULT
+extern int opt_compr_level;		  // = 0=default, 1..9=valid
+extern u32 opt_compr_chunk_size;	  // = 0=default
 
-	REPAIR_FBT		= 0x001, // repair free blocks table
-	REPAIR_INODES		= 0x002, // repair invalid inode infos
-	 REPAIR_DEFAULT		= 0x003, // standard value
+//-----------------------------------------------------------------------------
 
-	REPAIR_RM_INVALID	= 0x010, // remove discs with invalid blocks
-	REPAIR_RM_OVERLAP	= 0x020, // remove discs with overlaped blocks
-	REPAIR_RM_FREE		= 0x040, // remove discs with free marked blocks
-	REPAIR_RM_EMPTY		= 0x080, // remove discs without any valid blocks
-	 REPAIR_RM_ALL		= 0x0f0, // remove all discs with errors
+wd_compression_t ScanCompression
+(
+    ccp			arg,		// argument to scan
+    bool		silent,		// don't print error message
+    int			* level,	// not NULL: appendix '.digit' allowed
+					// The level will be stored in '*level'
+    u32			* chunk_size	// not NULL: appendix '@size' allowed
+					// The size will be stored in '*chunk_size'
+);
 
-	REPAIR_ALL		= 0x0f3, // repair all
-	
-	REPAIR__ERROR		= -1 // not a mode but an error message
+//-----------------------------------------------------------------------------
 
-} RepairMode;
+int ScanOptCompression
+(
+    ccp			arg		// argument to scan
+);
 
-extern RepairMode repair_mode;
+//
+///////////////////////////////////////////////////////////////////////////////
+///////////////			scan mem option			///////////////
+///////////////////////////////////////////////////////////////////////////////
 
-RepairMode ScanRepairMode ( ccp arg );
+extern u64 opt_mem;			  // = 0
 
+int ScanOptMem
+(
+    ccp			arg,		// argument to scan
+    bool		print_err	// true: print error messages
+);
+
+u64 GetMemLimit();
+
+//
+///////////////////////////////////////////////////////////////////////////////
+///////////////			commands			///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
 #define COMMAND_NAME_MAX 100
@@ -1129,38 +1131,73 @@ s64 ScanCommandListMask
 
 //
 ///////////////////////////////////////////////////////////////////////////////
-///////////////                     vars                        ///////////////
+///////////////			data area & list		///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-extern enumProgID	prog_id;
-extern u32		revision_id;
-extern ccp		progname;
-extern ccp		search_path[];
-extern ccp		lang_info;
-extern volatile int	SIGINT_level;
-extern volatile int	verbose;
-extern volatile int	logging;
-extern int		progress;
-extern bool		use_utf8;
-extern char		escape_char;
-extern ccp		opt_clone;
-extern int		testmode;
-extern ccp		opt_dest;
-extern bool		opt_mkdir;
-extern int		opt_limit;
-extern bool		opt_no_compress;
-extern int		print_sections;
-extern int		long_count;
-extern enumIOMode	io_mode;
-extern u32		opt_recurse_depth;
+typedef struct DataArea_t
+{
+    const u8		* data;		// pointer to data area
+					// for lists: NULL is the end of list marker
+    size_t		size;		// size of data area
 
-extern StringField_t	source_list;
-extern StringField_t	recurse_list;
-extern StringField_t	created_files;
-extern       char	iobuf [0x400000];	// global io buffer
-extern const char	zerobuf[0x40000];	// global zero buffer
+} DataArea_t;
 
-extern const char	sep_79[80];		//  79 * '-' + NULL
+//-----------------------------------------------------------------------------
+
+typedef struct DataList_t
+{
+    const DataArea_t	* area;		// pointer to a source list
+					//  terminated with an element where addr==NULL
+    DataArea_t		current;	// current element
+
+} DataList_t;
+
+//-----------------------------------------------------------------------------
+
+void SetupDataList
+(
+    DataList_t		* dl,		// Object for setup
+    const DataArea_t	* da		// Source list,
+					//  terminated with an element where addr==NULL
+					// The content of this area must not changed
+					//  while accessing the data list
+);
+
+size_t ReadDataList // returns number of writen bytes
+(
+    DataList_t		* dl,		// NULL or pointer to data list
+    void		* buf,		// destination buffer
+    size_t		size		// size of destination buffer
+);
+
+//
+///////////////////////////////////////////////////////////////////////////////
+///////////////			  enum RepairMode		///////////////
+///////////////////////////////////////////////////////////////////////////////
+
+typedef enum RepairMode
+{
+	REPAIR_NONE		=     0,
+
+	REPAIR_FBT		= 0x001, // repair free blocks table
+	REPAIR_INODES		= 0x002, // repair invalid inode infos
+	 REPAIR_DEFAULT		= 0x003, // standard value
+
+	REPAIR_RM_INVALID	= 0x010, // remove discs with invalid blocks
+	REPAIR_RM_OVERLAP	= 0x020, // remove discs with overlaped blocks
+	REPAIR_RM_FREE		= 0x040, // remove discs with free marked blocks
+	REPAIR_RM_EMPTY		= 0x080, // remove discs without any valid blocks
+	 REPAIR_RM_ALL		= 0x0f0, // remove all discs with errors
+
+	REPAIR_ALL		= 0x0f3, // repair all
+	
+	REPAIR__ERROR		= -1 // not a mode but an error message
+
+} RepairMode;
+
+extern RepairMode repair_mode;
+
+RepairMode ScanRepairMode ( ccp arg );
 
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////			random mumbers			///////////////
@@ -1183,6 +1220,52 @@ uint Count1Bits8  ( u8  data );
 uint Count1Bits16 ( u16 data );
 uint Count1Bits32 ( u32 data );
 uint Count1Bits64 ( u64 data );
+
+//
+///////////////////////////////////////////////////////////////////////////////
+///////////////			    etc				///////////////
+///////////////////////////////////////////////////////////////////////////////
+
+size_t AllocTempBuffer ( size_t needed_size );
+
+//
+///////////////////////////////////////////////////////////////////////////////
+///////////////			    vars			///////////////
+///////////////////////////////////////////////////////////////////////////////
+
+extern enumProgID	prog_id;
+extern u32		revision_id;
+extern ccp		progname;
+extern ccp		search_path[];
+extern ccp		lang_info;
+extern volatile int	SIGINT_level;
+extern volatile int	verbose;
+extern volatile int	logging;
+extern int		progress;
+extern bool		use_utf8;
+extern char		escape_char;
+extern ccp		opt_clone;
+extern int		testmode;
+extern ccp		opt_dest;
+extern bool		opt_mkdir;
+extern int		opt_limit;
+extern int		print_sections;
+extern int		long_count;
+extern enumIOMode	io_mode;
+extern u32		opt_recurse_depth;
+
+extern StringField_t	source_list;
+extern StringField_t	recurse_list;
+extern StringField_t	created_files;
+extern       char	iobuf [0x400000];	// global io buffer
+extern const char	zerobuf[0x40000];	// global zero buffer
+
+// 'tempbuf' is only for short usage
+//	==> don't call other functions while using tempbuf
+extern u8		* tempbuf;		// global temp buffer -> AllocTempBuffer()
+extern size_t		tempbuf_size;		// size of 'tempbuf'
+
+extern const char	sep_79[80];		//  79 * '-' + NULL
 
 //
 ///////////////////////////////////////////////////////////////////////////////

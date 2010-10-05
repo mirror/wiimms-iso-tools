@@ -39,16 +39,18 @@
 
 typedef struct WDiscInfo_t
 {
-	wd_header_t	dhead;
-	u32		magic2;
+    wd_header_t		dhead;
+    wd_disc_type_t	disc_type;	// disc type
+    wd_disc_attrib_t	disc_attrib;	// disc attrib
+    u32			magic2;
 
-	uint		disc_index;
-	char		id6[7];
-	u64		size;
-	u64		iso_size;
-	u32		used_blocks;
-	ccp		title;		// pointer to title DB
-	u32		n_part;		// number of partitions
+    uint		disc_index;
+    char		id6[7];
+    u64			size;
+    u64			iso_size;
+    u32			used_blocks;
+    ccp			title;		// pointer to title DB
+    u32			n_part;		// number of partitions
 
 } WDiscInfo_t;
 
@@ -225,7 +227,7 @@ typedef struct Iterator_t
 	// user defined parameters, ignores by SourceIterator()
 
 	ShowMode	show_mode;	// active show mode, initialized by opt_show_mode
-	bool		scrub_it;	// SCRUB instead of COPY
+	bool		convert_it;	// SCRUB instead of COPY
 	bool		update;		// update option set
 	bool		newer;		// newer option set
 	bool		overwrite;	// overwrite option set
@@ -303,21 +305,6 @@ extern wd_ipm_t prefix_mode;
 
 wd_ipm_t ScanPrefixMode ( ccp arg );
 void SetupSneekMode();
-
-//-----------------------------------------------------------------------------
-
-extern u32 opt_align1;
-extern u32 opt_align2;
-extern u32 opt_align3;
-
-int ScanOptAlign ( ccp arg );
-
-//-----------------------------------------------------------------------------
-
-extern StringField_t add_file;
-extern StringField_t repl_file;
-
-int ScanOptFile ( ccp arg, bool add );
 
 //
 ///////////////////////////////////////////////////////////////////////////////

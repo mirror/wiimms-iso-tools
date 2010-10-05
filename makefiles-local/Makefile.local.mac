@@ -70,7 +70,7 @@ mac-x86_64:
 .PHONY : gen-mac-distrib
 gen-mac-distrib:
 
-	@echo "***  create $(DISTRIB_PATH)"
+	@printf "$(LOGFORMAT)" create "$(DISTRIB_PATH)" ""
 
 	@rm -rf $(DISTRIB_PATH)
 	@mkdir -p $(DISTRIB_PATH)/bin $(DISTRIB_PATH)/scripts $(DISTRIB_PATH)/lib $(DISTRIB_PATH)/doc

@@ -25,8 +25,9 @@
 #ifndef WIT_PATCH_H
 #define WIT_PATCH_H 1
 
+#include <stdio.h>
 #include "types.h"
-#include "stdio.h"
+#include "lib-std.h"
 #include "wiidisc.h"
 
 //
@@ -91,6 +92,7 @@ typedef enum enumRegion
 extern enumRegion opt_region;
 enumRegion ScanRegion ( ccp arg );
 int ScanOptRegion ( ccp arg );
+ccp GetRegionName ( enumRegion region, ccp unkown_value );
 
 //-----------------------------------------------------------------------------
 
@@ -136,6 +138,70 @@ int ScanOptName ( ccp arg );
 bool PatchId ( void * id, int skip, int maxlen, wd_modify_t condition );
 bool CopyPatchedDiscId ( void * dest, const void * src );
 bool PatchName ( void * name, wd_modify_t condition );
+
+//-----------------------------------------------------------------------------
+
+typedef enum enumTrim
+{
+	//--- main trimming modes
+
+	TRIM_DEFAULT	= 0x001,	// default mode (no user value)
+
+	TRIM_DISC	= 0x002,	// trim disc: move whole partitions
+	TRIM_PART	= 0x004,	// trim partition: move sectors
+	TRIM_FST	= 0x008,	// trim filesystem: move files
+
+	TRIM_NONE	= 0x000,
+	TRIM_ALL	= 0x00f,
+	TRIM_FAST	= TRIM_DISC | TRIM_PART,
+
+	//--- trimming flags
+
+	TRIM_F_END	= 0x100,	// flags for TRIM_DISC: move to disc end
+
+	TRIM_M_FLAGS	= 0x100,
+
+	//--- all valid bits
+
+	TRIM_M_ALL	= TRIM_ALL | TRIM_M_FLAGS
+
+} enumTrim;
+
+extern enumTrim opt_trim;
+
+enumTrim ScanTrim
+(
+    ccp arg,			// argument to scan
+    ccp err_text_extend		// error message extention
+);
+
+int ScanOptTrim
+(
+    ccp arg			// argument to scan
+);
+
+//-----------------------------------------------------------------------------
+
+extern u32 opt_align1;
+extern u32 opt_align2;
+extern u32 opt_align3;
+extern u32 opt_align_part;
+
+int ScanOptAlign ( ccp arg );
+int ScanOptAlignPart ( ccp arg );
+
+//-----------------------------------------------------------------------------
+
+extern u64 opt_disc_size;
+
+int ScanOptDiscSize ( ccp arg );
+
+//-----------------------------------------------------------------------------
+
+extern StringField_t add_file;
+extern StringField_t repl_file;
+
+int ScanOptFile ( ccp arg, bool add );
 
 //
 ///////////////////////////////////////////////////////////////////////////////

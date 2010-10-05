@@ -6,7 +6,7 @@
 
 
 *******************************************************************************
-*******                             HISTORY                             *******
+*******                           HISTORY v0.*                          *******
 *******************************************************************************
 
 wwt v0.00a r116 - 2009-09-28
@@ -623,6 +623,11 @@ wit v0.49a r1177 - 2010-06-06
 
  - Built in help improved.
 
+
+*******************************************************************************
+*******                           HISTORY v1.*                          *******
+*******************************************************************************
+
 wit v1.00a r1214 - 2010-06-12
 
  - Because I finished my work with wwt (the WBFS manager) it's time to
@@ -849,6 +854,23 @@ wit v1.15a r1554 - 2010-08-15
  - The commands 'wit ILIST/ILIST-L/ILIST-LL' are renamed to 'wit FILES/FILES-L
    /FILES-LL'. The old command names are still allowed.
  - The new command "wit FDIFF" is a shortcut for "wit DIFF --files +".
+
+wit v1.16a r1645 - 2010-09-01
+
+ - wit MIX: Forgotten options: --iso --wdf --ciso --wbfs
+ - wit ID6 --long: Print disc title too.
+ - wwt ADD: Default is now: --enc encrypt
+ - wit DIFF: Will patch the partiton tables for scrubbed diff, because
+   different tools modify them in a different way while scrubbing.
+ - Bug fix for wwt VERIFY: Iteration through whole WBFS failed.
+ - A little change when creating a WBFS file: The hss value in the WBFS header
+   is now set to the truncated value.
+ - New file format supported: WIA = Wii ISO Archive (EXPERIMENTAL!)
+   WIA will decrypt partitions and compress the data in chunks with bzip2.
+   Because of the chunks the archive allows random read access to view
+   only parts of the image. The option --no-compress disables compressing.
+   The resulting image is very effective packable by all compression tools.
+ - GameCube ISO support for nearly all commands. (EXPERIMENTAL!)
 
 @@MODULE(last-history.txt)@@
 

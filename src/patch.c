@@ -37,7 +37,7 @@
 
 //
 ///////////////////////////////////////////////////////////////////////////////
-///////////////			global options			///////////////
+///////////////			--enc				///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
 int opt_hook = 0; // <0: disabled, =0: auto, >0: enabled
@@ -113,7 +113,9 @@ enumEncoding SetEncoding
     return val & ENCODE_MASK;
 }
 
+//
 ///////////////////////////////////////////////////////////////////////////////
+///////////////			--region			///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
 enumRegion ScanRegion ( ccp arg )
@@ -158,6 +160,22 @@ int ScanOptRegion ( ccp arg )
     return 0;
 }
 
+//-----------------------------------------------------------------------------
+
+ccp GetRegionName ( enumRegion region, ccp unkown_value )
+{
+    static ccp tab[] =
+    {
+	"Japan",
+	"USA",
+	"Europe",
+	"Korea"
+    };
+
+    return (unsigned)region < sizeof(tab)/sizeof(*tab)
+		? tab[region]
+		: unkown_value;
+}
 
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
@@ -206,7 +224,9 @@ const RegionInfo_t * GetRegionInfo ( char region_code )
     return RegionTable + (region_code-'A');
 }
 
+//
 ///////////////////////////////////////////////////////////////////////////////
+///////////////			--common-key			///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
 wd_ckey_index_t ScanCommonKey ( ccp arg )
@@ -247,7 +267,9 @@ int ScanOptCommonKey ( ccp arg )
     return 0;
 }
 
+//
 ///////////////////////////////////////////////////////////////////////////////
+///////////////			--ios				///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
 u64 opt_ios = 0;
@@ -296,7 +318,9 @@ int ScanOptIOS ( ccp arg )
     return 1;
 }
 
+//
 ///////////////////////////////////////////////////////////////////////////////
+///////////////			--modify			///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
 wd_modify_t ScanModify ( ccp arg )
@@ -338,7 +362,9 @@ int ScanOptModify ( ccp arg )
     return 0;
 }
 
+//
 ///////////////////////////////////////////////////////////////////////////////
+///////////////			--id & --name			///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
 ccp modify_id		= 0;
@@ -458,6 +484,183 @@ bool PatchName ( void * name, wd_modify_t condition )
 
 //
 ///////////////////////////////////////////////////////////////////////////////
+///////////////			--trim				///////////////
+///////////////////////////////////////////////////////////////////////////////
+
+enumTrim opt_trim = TRIM_DEFAULT;
+
+//-----------------------------------------------------------------------------
+
+enumTrim ScanTrim
+(
+    ccp arg,			// argument to scan
+    ccp err_text_extend		// error message extention
+)
+{
+    static const CommandTab_t tab[] =
+    {
+	{ TRIM_DEFAULT,		"DEFAULT",	0,	TRIM_M_ALL },
+
+	{ TRIM_NONE,		"NONE",		"-",	TRIM_ALL },
+	{ TRIM_ALL,		"ALL",		0,	TRIM_ALL },
+	{ TRIM_FAST,		"FAST",		0,	TRIM_ALL },
+
+	{ TRIM_DISC,		"DISC",		"D",	TRIM_DEFAULT },
+	{ TRIM_PART,		"PARTITION",	"P",	TRIM_DEFAULT },
+	{ TRIM_FST,		"FILESYSTEM",	"F",	TRIM_DEFAULT },
+
+	{ 0,			"BEGIN",	0,	TRIM_DEFAULT | TRIM_F_END },
+	{ TRIM_F_END,		"END",		0,	TRIM_DEFAULT | TRIM_F_END },
+
+	{ 0,0,0,0 }
+    };
+
+    const int stat = ScanCommandList(arg,tab,0,true,0,0);
+    if ( stat >= 0 )
+	return stat;
+
+    ERROR0(ERR_SYNTAX,"Illegal trim mode%s: '%s'\n",err_text_extend,arg);
+    return -1;
+}
+
+//-----------------------------------------------------------------------------
+
+int ScanOptTrim
+(
+    ccp arg			// argument to scan
+)
+{
+    const int new_trim = ScanTrim(arg," (option --trim)");
+    if ( new_trim == -1 )
+	return 1;
+    opt_trim = new_trim;
+    return 0;
+}
+
+//
+///////////////////////////////////////////////////////////////////////////////
+///////////////			--align & --align-part		///////////////
+///////////////////////////////////////////////////////////////////////////////
+
+u32 opt_align1		= 0;
+u32 opt_align2		= 0;
+u32 opt_align3		= 0;
+u32 opt_align_part	= 0;
+
+//-----------------------------------------------------------------------------
+
+int ScanOptAlign ( ccp p_arg )
+{
+    opt_align1 = opt_align2 = opt_align3 = 0;
+
+    static u32 * align_tab[] = { &opt_align1, &opt_align2, &opt_align3, 0 };
+    u32 ** align_ptr = align_tab;
+
+    ccp arg = p_arg, prev_arg = 0;
+    char * dest_end = iobuf + sizeof(iobuf) - 1;
+
+    while ( arg && *arg && *align_ptr )
+    {
+	ccp save_arg = arg;
+	char * dest = iobuf;
+	while ( dest < dest_end && *arg && *arg != ',' )
+	    *dest++ = *arg++;
+	*dest = 0;
+	if ( dest > iobuf && ScanSizeOptU32(
+				*align_ptr,	// u32 * num
+				iobuf,		// ccp source
+				1,		// default_factor1
+				0,		// int force_base
+				"align",	// ccp opt_name
+				4,		// u64 min
+				WII_SECTOR_SIZE,// u64 max
+				0,		// u32 multiple
+				1,		// u32 pow2
+				true		// bool print_err
+				))
+	    return 1;
+
+	if ( prev_arg && align_ptr[-1][0] >= align_ptr[0][0] )
+	{
+	    ERROR0(ERR_SEMANTIC,
+			"Option --align: Ascending order expected: %.*s\n",
+			arg - prev_arg, prev_arg );
+	    return 1;
+	}
+
+	align_ptr++;
+	if ( !*align_ptr || !*arg )
+	    break;
+	arg++;
+	prev_arg = save_arg;
+    }
+
+    if (*arg)
+    {
+	ERROR0(ERR_SEMANTIC,
+		"Option --align: End of parameter expected: %.20s\n",arg);
+	return 1;
+    }
+	
+    return 0;
+}
+
+//-----------------------------------------------------------------------------
+
+int ScanOptAlignPart ( ccp arg )
+{
+    return ScanSizeOptU32(
+		&opt_align_part,	// u32 * num
+		arg,			// ccp source
+		1,			// default_factor1
+		0,			// int force_base
+		"align-part",		// ccp opt_name
+		WII_SECTOR_SIZE,	// u64 min
+		WII_GROUP_SIZE,		// u64 max
+		0,			// u32 multiple
+		1,			// u32 pow2
+		true			// bool print_err
+		) != ERR_OK;
+}
+
+//
+///////////////////////////////////////////////////////////////////////////////
+///////////////			--disc-size			///////////////
+///////////////////////////////////////////////////////////////////////////////
+
+u64 opt_disc_size = 0;
+
+//-----------------------------------------------------------------------------
+
+int ScanOptDiscSize ( ccp arg )
+{
+    return ScanSizeOptU64(&opt_disc_size,arg,GiB,0,"disc-size",
+		0, WII_SECTOR_SIZE * (u64)WII_MAX_SECTORS,
+		WII_SECTOR_SIZE, 0, true ) != ERR_OK;
+}
+
+//
+///////////////////////////////////////////////////////////////////////////////
+///////////////		    --add-files & --rm-files		///////////////
+///////////////////////////////////////////////////////////////////////////////
+
+StringField_t add_file;
+StringField_t repl_file;
+
+//-----------------------------------------------------------------------------
+
+int ScanOptFile ( ccp arg, bool add )
+{
+    if ( arg && *arg )
+    {
+	StringField_t * sf = add ? &add_file : &repl_file;
+	InsertStringField(sf,arg,false);
+    }
+    return 0;
+}
+
+//
+///////////////////////////////////////////////////////////////////////////////
 ///////////////		      RewriteModifiedSF()		///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -469,11 +672,14 @@ enumError RewriteModifiedSF ( SuperFile_t * fi, SuperFile_t * fo, WBFS_t * wbfs 
 	fo = wbfs->sf;
     ASSERT(fo);
     ASSERT(fo->f.is_writing);
-    TRACE("RewriteModifiedSF(%p,%p,%p), oft=%d,%d\n",fi,fo,wbfs,fi->iod.oft,fo->iod.oft);
+    TRACE("+++ RewriteModifiedSF(%p,%p,%p), oft=%d,%d\n",fi,fo,wbfs,fi->iod.oft,fo->iod.oft);
 
     wd_disc_t * disc = fi->disc1;
     if ( !fi->modified_list.used && ( !disc || !disc->reloc ))
+    {
+	TRACE("--- RewriteModifiedSF() ERR_OK: nothing to do\n");
 	return ERR_OK;
+    }
 
     UpdateSignatureFST(fi->fst); // NULL allowed
 
@@ -485,6 +691,7 @@ enumError RewriteModifiedSF ( SuperFile_t * fi, SuperFile_t * fo, WBFS_t * wbfs 
     }
 
  #ifdef DEBUG
+    fprintf(TRACE_FILE,"Rewrite:\n");
     PrintMemMap(&fi->modified_list,TRACE_FILE,3);
  #endif
 
@@ -501,7 +708,10 @@ enumError RewriteModifiedSF ( SuperFile_t * fi, SuperFile_t * fo, WBFS_t * wbfs 
 	{
 	    OpenWDiscSlot(wbfs,wbfs->disc_slot,0);
 	    if (!wbfs->disc)
+	    {
+		TRACE("--- RewriteModifiedSF() ERR_CANT_OPEN: wbfs disc\n");
 		return ERR_CANT_OPEN;
+	    }
 	    close_disc = true;
 	}
 	SetupIOD(fo,OFT_WBFS,OFT_WBFS);
@@ -532,6 +742,7 @@ enumError RewriteModifiedSF ( SuperFile_t * fi, SuperFile_t * fo, WBFS_t * wbfs 
 
     memcpy(&fo->iod,&iod,sizeof(fo->iod));
     fo->wbfs = saved_wbfs;
+    TRACE("--- RewriteModifiedSF() err=%u: END\n");
     return err;
 }
 

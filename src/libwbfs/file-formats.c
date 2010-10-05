@@ -193,6 +193,32 @@ u64 be64 ( const void * be_data_ptr )
 
 ///////////////////////////////////////////////////////////////////////////////
 
+u16 le16 ( const void * le_data_ptr )
+{
+    const u8 * d = le_data_ptr;
+    return d[1] << 8 | d[0];
+}
+
+u32 le24 ( const void * le_data_ptr )
+{
+    const u8 * d = le_data_ptr;
+    return ( d[2] << 8 | d[1] ) << 8 | d[0];
+}
+
+u32 le32 ( const void * le_data_ptr )
+{
+    const u8 * d = le_data_ptr;
+    return (( d[3] << 8 | d[2] ) << 8 | d[1] ) << 8 | d[0];
+}
+
+u64 le64 ( const void * le_data_ptr )
+{
+    const u8 * d = le_data_ptr;
+    return (u64)le32(d+4) << 32 | le32(d);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
 be64_t hton64 ( u64 data )
 {
     be64_t result;
@@ -261,6 +287,7 @@ void ntoh_boot ( wd_boot_t * dest, const wd_boot_t * src )
     dest->dol_off4	= ntohl(src->dol_off4);
     dest->fst_off4	= ntohl(src->fst_off4);
     dest->fst_size4	= ntohl(src->fst_size4);
+    dest->max_fst_size4	= ntohl(src->max_fst_size4);
 }
 
 //-----------------------------------------------------------------------------
@@ -277,6 +304,7 @@ void hton_boot ( wd_boot_t * dest, const wd_boot_t * src )
     dest->dol_off4	= htonl(src->dol_off4);
     dest->fst_off4	= htonl(src->fst_off4);
     dest->fst_size4	= htonl(src->fst_size4);
+    dest->max_fst_size4	= htonl(src->max_fst_size4);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -363,6 +391,118 @@ void hton_inode_info ( wbfs_inode_info_t * dest, const wbfs_inode_info_t * src )
 
 //
 ///////////////////////////////////////////////////////////////////////////////
+///////////////			enum wd_compression_t		///////////////
+///////////////////////////////////////////////////////////////////////////////
+
+ccp wd_get_compression_name
+(
+    wd_compression_t	compr,		// compression mode
+    ccp			invalid_result	// return value if 'compr' is invalid
+)
+{
+    static ccp tab[] =
+    {
+	"NONE",
+	"PURGE",
+	"BZIP2",
+	"LZMA",
+	"LZMA2",
+    };
+
+    return (u32)compr < sizeof(tab)/sizeof(*tab) ? tab[compr] : invalid_result;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+ccp wd_print_compression
+(
+    char		* buf,		// result buffer
+					// If NULL, a local circulary static buffer is used
+    size_t		buf_size,	// size of 'buf', ignored if buf==NULL
+    wd_compression_t	compr_method,	// compression method
+    int			compr_level,	// compression level
+    u32			chunk_size,	// compression chunk size, multiple of MiB
+    int			mode		// 1=number, 2=name, 3=number and name
+)
+{
+    enum
+    {
+	SBUF_COUNT = 4,
+	SBUF_SIZE  = 20
+    };
+
+    static int  sbuf_index = 0;
+    static char sbuf[SBUF_COUNT][SBUF_SIZE+1];
+
+    if (!buf)
+    {
+	// use static buffer
+	buf = sbuf[sbuf_index];
+	buf_size = SBUF_SIZE;
+	sbuf_index = ( sbuf_index + 1 ) % SBUF_COUNT;
+    }
+
+    //----------------
+
+    if ( compr_method < 0 || compr_method >= WD_COMPR__N )
+    {
+	compr_method = WD_COMPR__N;
+	compr_level = 0;
+    }
+    else if ( compr_method < WD_COMPR__FIRST_REAL || compr_level < 0 )
+	compr_level = 0;
+    else if ( compr_level > 9 )
+	compr_level = 9;
+
+    char cbuf[10] = {0};
+    if ( compr_method != WD_COMPR__N )
+    {
+	chunk_size /= WII_GROUP_SIZE; // reduce chunk_size to a factor
+	if (chunk_size)
+	    snprintf(cbuf,sizeof(cbuf),"@%u",chunk_size);
+    }
+
+
+    int len;
+    mode &= 3;
+    if ( mode == 1 )
+    {
+	if ( compr_method == WD_COMPR__N )
+	    len = snprintf(buf,buf_size,"-");
+	else if (compr_level)
+	    len = snprintf(buf,buf_size,"%u.%u%s",compr_method,compr_level,cbuf);
+	else
+	    len = snprintf(buf,buf_size,"%u%s",compr_method,cbuf);
+    }
+    else if ( mode == 2 )
+    {
+	ccp name = wd_get_compression_name(compr_method,"-");
+	if ( compr_method == WD_COMPR__N )
+	    len = snprintf(buf,buf_size,"-");
+	else if (compr_level)
+	    len = snprintf(buf,buf_size,"%s.%u%s",name,compr_level,cbuf);
+	else
+	    len = snprintf(buf,buf_size,"%s%s",name,cbuf);
+    }
+    else
+    {
+	ccp name = wd_get_compression_name(compr_method,"-");
+	if ( compr_method == WD_COMPR__N )
+	    len = snprintf(buf,buf_size,"- -");
+	else if (compr_level)
+	    len = snprintf(buf,buf_size,"%u.%u%s %s.%u%s",
+			compr_method, compr_level, cbuf,
+			name, compr_level, cbuf );
+	else
+	    len = snprintf(buf,buf_size,"%u%s %s%s",
+			compr_method, cbuf, name, cbuf );
+    }
+
+    return buf;
+}
+
+//
+///////////////////////////////////////////////////////////////////////////////
 ///////////////			struct wd_header_t		///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -386,17 +526,21 @@ void header_128_setup
 (
     wd_header_128_t	* dhead,	// valid pointer
     const void		* id6,		// NULL or pointer to ID
-    ccp			disc_title	// NULL or pointer to disc title (truncated)
+    ccp			disc_title,	// NULL or pointer to disc title (truncated)
+    bool		is_gc		// true: GameCube setup
 )
 {
     memset(dhead,0,sizeof(*dhead));
     id_setup(&dhead->disc_id,id6,6);
 
     if (!disc_title)
-	disc_title = "WIT: Wiimms ISO Tools,http://wit.wiimm.de/";
+	disc_title = "WIT: Wiimms ISO Tools, http://wit.wiimm.de/";
     strncpy(dhead->disc_title,disc_title,sizeof(dhead->disc_title)-1);
 
-    dhead->wii_magic = htonl(WII_MAGIC);
+    if (is_gc)
+	dhead->gc_magic = htonl(GC_MAGIC);
+    else
+	dhead->wii_magic = htonl(WII_MAGIC);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -405,11 +549,75 @@ void header_setup
 (
     wd_header_t		* dhead,	// valid pointer
     const void		* id6,		// NULL or pointer to ID
-    ccp			disc_title	// NULL or pointer to disc title (truncated)
+    ccp			disc_title,	// NULL or pointer to disc title (truncated)
+    bool		is_gc		// true: GameCube setup
 )
 {
     memset(dhead,0,sizeof(*dhead));
-    header_128_setup((wd_header_128_t*)dhead,id6,disc_title);
+    header_128_setup((wd_header_128_t*)dhead,id6,disc_title,is_gc);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+
+wd_disc_type_t get_header_128_disc_type
+(
+    wd_header_128_t	* dhead,	// valid pointer
+    wd_disc_attrib_t	* attrib	// not NULL: store disc attributes
+)
+{
+    DASSERT(dhead);
+
+    //----- check Wii disc
+
+    if ( ntohl(dhead->wii_magic) == WII_MAGIC )
+    {
+	if (attrib)
+	    *attrib = WD_DA_WII;
+	return WD_DT_WII;
+    }
+    
+
+    //----- check GameCube disc
+
+    if ( ntohl(dhead->gc_magic) == GC_MAGIC )
+    {
+	if (attrib)
+	{
+	    wd_disc_attrib_t att = WD_DA_GAMECUBE;
+
+	    ccp id6 = &dhead->disc_id;
+	    if (   !memcmp(id6,"GCOPDV",6)
+		|| !memcmp(id6,"COBRAM",6)
+		|| !memcmp(id6,"GGCOSD",6)
+		|| !memcmp(id6,"RGCOSD",6) )
+	    {
+		att |= WD_DA_GC_MULTIBOOT;
+		if (!memcmp(id6+4,"DVD9",4))
+		    att |= WD_DA_GC_DVD9;
+	    }
+	    *attrib = att;
+	}
+	return WD_DT_GAMECUBE;
+    }
+
+
+    //----- unknown disc
+
+    if (attrib)
+	*attrib = 0;
+    return WD_DT_UNKNOWN; 
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+wd_disc_type_t get_header_disc_type
+(
+    wd_header_t		* dhead,	// valid pointer
+    wd_disc_attrib_t	* attrib	// not NULL: store disc attributes
+)
+{
+    return get_header_128_disc_type((wd_header_128_t*)dhead,attrib);
 }
 
 //
@@ -841,8 +1049,11 @@ int part_control_is_fake_signed ( const wd_part_control_t * pc )
 unsigned char * wbfs_sha1_fake
 	( const unsigned char *d, size_t n, unsigned char *md )
 {
+    static unsigned char m[WII_HASH_SIZE];
+    if (!md)
+	md = m;
     memset(md,0,sizeof(*md));
-    return 0;
+    return md;
 }
 
 //

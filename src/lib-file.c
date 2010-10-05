@@ -227,7 +227,7 @@ void InitializeFile ( File_t * f )
     opt_iomode = opt_iomode & IOM__IS_MASK | IOM_FORCE_STREAM;
 
  #ifdef __CYGWIN__
-    opt_iomode |= IOM_IS_WBFS;
+    opt_iomode |= IOM_IS_WBFS_PART;
  #endif
 }
 
@@ -351,7 +351,7 @@ enumError XCloseFile ( XPARM File_t * f, bool remove_file )
 	    if (rename(*path,f->rename))
 	    {
 		if (!f->disable_errors)
-		    PrintError( XERROR1, ERR_CANT_CREATE,
+		    ERROR1( ERR_CANT_CREATE,
 			"Can't create file: %s\n", f->rename );
 		if ( err < ERR_CANT_CREATE )
 		    err = ERR_CANT_CREATE;
@@ -643,6 +643,12 @@ enumError XCreateFile
 	fbuf[flen] = 0;
 	XXXXXX = fbuf + flen - 6;
     }
+    else if ( flen >= 11 && !memcmp(fname+flen-11,".XXXXXX.tmp",11) )
+    {
+	memcpy(fbuf,fname,flen);
+	fbuf[flen] = 0;
+	XXXXXX = fbuf + flen - 10;
+    }
     else
     {
 	if (XCheckCreated(XCALL fname,disable_errors))
@@ -656,19 +662,13 @@ enumError XCreateFile
 	char * dest = fbuf + (name-fname);
 	ASSERT( dest < fbuf + PATH_MAX );
 
+	char * dest_name = dest;
 	*dest++ = '.';
 	dest = StringCopyE(dest,fbuf+PATH_MAX,name);
-	*dest++ = '.';
-	XXXXXX = dest;
-	*dest++ = 'X';
-	*dest++ = 'X';
-	*dest++ = 'X';
-	*dest++ = 'X';
-	*dest++ = 'X';
-	*dest++ = 'X';
-	*dest = 0;
-
-	ASSERT( dest < fbuf + sizeof(fbuf) );
+	if ( dest - dest_name > 50 )
+	     dest = dest_name + 50;
+	XXXXXX = dest + 1;
+	StringCopyE(dest,fbuf+sizeof(fbuf),".XXXXXX.tmp");
 	TRACE("#F# TEMP:   '%s'\n",fbuf);
     }
 
@@ -701,6 +701,7 @@ enumError XCreateFile
 	const enumError err = XOpenFileHelper(XCALL f,iomode,open_flags,open_flags);
 	if ( err == ERR_OK || err == ERR_CANT_CREATE_DIR )
 	{
+	    noPRINT("#F# TEMP:   '%s'\n",fbuf);
 	    f->fname = strdup(fbuf);
 	    f->disable_errors = disable_errors;
 	    return f->last_error = f->max_error = err;
@@ -773,17 +774,16 @@ char * NormalizeFileName ( char * buf, char * end, ccp source, bool allow_slash 
     if (source)
     {
      #ifdef __CYGWIN__
-	const int drv_len = IsWindowsDriveSpec(source);
-	if (drv_len)
+	if (allow_slash)
 	{
-	    if ( dest + 3 <= end )
+	    const int drv_len = IsWindowsDriveSpec(source);
+	    if (drv_len)
 	    {
-		// leave drive spec nearly untouched
-		*dest++ = *source;
-		*dest++ = ':';
-		*dest++ = '/';
+		dest = StringCopyE(dest,end,"/cygdrive/c/");
+		if ( dest < end )
+		    dest[-2] = tolower((int)*source);
+		source += drv_len;
 	    }
-	    source += drv_len;
 	}
      #endif
 
@@ -821,6 +821,13 @@ char * NormalizeFileName ( char * buf, char * end, ccp source, bool allow_slash 
 		    *dest++ = ch;
 		    skip_space = false;
 		}
+	     #ifdef __CYGWIN__
+		else if ( ch == '\\' && allow_slash )
+		{
+		    *dest++ = '/';
+		    skip_space = false;
+		}
+	     #endif
 		else if (!skip_space)
 		{
 		    *dest++ = ' ';
@@ -1011,6 +1018,18 @@ ccp oft_ext [OFT__N+1]
 	= { "\0", ".iso", ".wdf", ".ciso", ".wbfs", ".wia", "",    0 };
 ccp oft_name[OFT__N+1]
 	= { "?",   "ISO",  "WDF",  "CISO",  "WBFS", "WIA",  "FST", 0 };
+
+enumIOMode oft_iom[OFT__N+1] =
+{
+    IOM__IS_DEFAULT,		// OFT_UNKNOWN
+    IOM_IS_IMAGE,		// OFT_PLAIN
+    IOM_IS_IMAGE,		// OFT_WDF
+    IOM_IS_IMAGE,		// OFT_CISO
+    IOM_IS_IMAGE,		// OFT_WBFS  -> IOM_IS_WBFS_PART is reserved for WBFS partitions
+    IOM_IS_WIA,			// OFT_WIA
+    IOM__IS_DEFAULT,		// OFT_FST
+    IOM__IS_DEFAULT,		// OFT__N
+};
 
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -1767,7 +1786,7 @@ enumError XSeekF ( XPARM File_t * f, off_t off )
 	    f->max_error = f->last_error;
 	if (!f->disable_errors)
 	    PrintError( XERROR1, f->last_error,
-			"Seek failed [%c=%d,%llx]: %s\n",
+			"Seek failed [%c=%d,%llu]: %s\n",
 			GetFT(f), GetFD(f), off, f->fname );
 	f->file_off = (off_t)-1;
     }
@@ -1823,7 +1842,7 @@ enumError XSetSizeF ( XPARM File_t * f, off_t off )
     if (f->fp)
 	fflush(f->fp); // [2do] ? error handling
 
-    if ( !f->seek_allowed && f->cur_off < off )
+    if ( !f->seek_allowed && f->cur_off <= off )
     {
 	if (!XSeekF(XCALL f,off))
 	    return f->last_error;
@@ -1835,7 +1854,7 @@ enumError XSetSizeF ( XPARM File_t * f, off_t off )
 	    f->max_error = f->last_error;
 	if (!f->disable_errors)
 	    PrintError( XERROR1, f->last_error,
-			"Set file size failed [%c=%d,%llx]: %s\n",
+			"Set file size failed [%c=%d,%llu]: %s\n",
 			GetFT(f), GetFD(f), off, f->fname );
 	return f->last_error;
     }
@@ -2005,7 +2024,7 @@ enumError XReadF ( XPARM File_t * f, void * iobuf, size_t count )
 		f->read_behind_eof = 2;
 		if ( !f->disable_errors )
 		    PrintError( XERROR0, ERR_WARNING,
-			"Read behind eof -> zero filled [%c=%d,%llx+%zx]: %s\n",
+			"Read behind eof -> zero filled [%c=%d,%llu+%zu]: %s\n",
 			GetFT(f), GetFD(f),
 			f->file_off, count, f->fname );
 	    }
@@ -2053,7 +2072,7 @@ enumError XReadF ( XPARM File_t * f, void * iobuf, size_t count )
     }
 
     if ( err || read_count < count && !f->read_behind_eof )
-#else
+#else // [2do] [obsolete]
     bool err;
     if (f->fp)
 	err = count && fread(iobuf,count,1,f->fp) != 1;
@@ -2085,12 +2104,12 @@ enumError XReadF ( XPARM File_t * f, void * iobuf, size_t count )
     {
 	if ( !f->disable_errors && f->last_error != ERR_READ_FAILED )
 	    PrintError( XERROR1, ERR_READ_FAILED,
-			"Read failed [%c=%d,%llx+%zx]: %s\n",
+			"Read failed [%c=%d,%llu+%zu]: %s\n",
 			GetFT(f), GetFD(f),
 			f->file_off, count, f->fname );
 	f->last_error = ERR_READ_FAILED;
 	if ( f->max_error < f->last_error )
-	    f->max_error = f->last_error;
+	     f->max_error = f->last_error;
 	f->file_off = (off_t)-1;
     }
     else
@@ -2217,7 +2236,7 @@ enumError XWriteF ( XPARM File_t * f, const void * iobuf, size_t count )
     {
 	if ( !f->disable_errors && f->last_error != ERR_WRITE_FAILED )
 	    PrintError( XERROR1, ERR_WRITE_FAILED,
-			"Write failed [%c=%d,%llx+%zx]: %s\n",
+			"Write failed [%c=%d,%llu+%zu]: %s\n",
 			GetFT(f), GetFD(f),
 			f->file_off, count, f->fname );
 	f->last_error = ERR_WRITE_FAILED;

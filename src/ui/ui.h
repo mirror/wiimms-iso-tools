@@ -58,7 +58,7 @@ typedef struct InfoCommand_t
     ccp			param;		// NULL or parameter name
     ccp			help;		// help text
     int			n_opt;		// number of options == elements of 'opt'
-    const InfoOption_t	** opt;		// files with option info
+    const InfoOption_t	** opt;		// field with option info
     u8			* opt_allowed;	// field with OPT__N_SPECIFIC elements
 					// 0: option permitted, 1: option allowed
 
@@ -156,6 +156,7 @@ void PrintHelp
     const InfoUI_t * iu,	// valid pointer
     FILE	* f,		// valid output stream
     int		indent,		// indent of output
+    ccp		help_cmd,	// NULL or name of help command
     ccp		info		// NULL or poiner to additional text
 );
 
@@ -165,6 +166,7 @@ void PrintHelpCmd
     FILE	* f,		// valid output stream
     int		indent,		// indent of output
     int		cmd,		// index of command
+    ccp		help_cmd,	// NULL or name of help command
     ccp		info		// NULL or poiner to additional text
 );
 

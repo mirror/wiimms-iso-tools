@@ -64,7 +64,7 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 	"Setup the IO mode for experiments. The standard file IO is based on"
 	" open() function. The value '1' defines that WBFS IO is based on"
 	" fopen() function. The value '2' defines the same for ISO files and"
-	" the value '3' for both, WBFS and ISO."
+	" value '4' for WIA files. You can combine the values by adding them."
     },
 
     {0,0,0,0,0} // OPT__N_TOTAL == 6
