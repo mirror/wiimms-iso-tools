@@ -7,9 +7,9 @@ Features:
  - wdf-cat and wdf-dump are WDF and CISO support tools.
  - WIT supports 6 Wii disc file types (ISO, CISO, WDF, WIA, WBFS and FST) and
    can read from pipes (indirect RAR/ZIP/7Z support).
- - wit can verify and compare (diff) Wii ISO images.
+ - wit can verify and compare (diff) Wii and GameCube ISO images.
  - wit can extract and compose Wii ISO images.
- - wit can patch Wii ISO images while copying.
+ - wit can patch Wii and GameCube ISO images while copying.
  - wit can mix partitions from different sources into a new Wii ISO images.
  - wit and wwt support many diagnostic commands.
  - Advanced shell support.

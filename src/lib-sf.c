@@ -461,19 +461,20 @@ enumError OpenSF
 
 enumError CreateSF
 (
-	SuperFile_t * sf,
-	ccp fname,
-	enumOFT oft,
-	enumIOMode iomode,
-	int overwrite
+    SuperFile_t		* sf,		// file to setup
+    ccp			fname,		// NULL or filename
+    enumOFT		oft,		// output file mode
+    enumIOMode		iomode,		// io mode
+    int			overwrite,	// overwrite mode
+    SuperFile_t		* src		// NULL or source file
 )
 {
     ASSERT(sf);
     CloseSF(sf,0);
-    TRACE("#S# CreateSF(%p,%s,%x)\n",sf,fname,oft);
+    TRACE("#S# CreateSF(%p,%s,%x,%x,%x,%p)\n",sf,fname,oft,iomode,overwrite,src);
 
     const enumError err = CreateFile(&sf->f,fname,iomode,overwrite);
-    return err ? err : SetupWriteSF(sf,oft,0);
+    return err ? err : SetupWriteSF(sf,oft,src);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -3451,10 +3452,7 @@ static enumError SourceIteratorHelper
 		const enumAction act_non_iso	= it->act_non_iso;
 		const enumAction act_gc		= it->act_gc;
 
-		if ( it->act_non_exist == ACT_WARN )
-		     it->act_non_exist = ACT_IGNORE;
-		if ( it->act_non_iso == ACT_WARN )
-		     it->act_non_iso = ACT_IGNORE;
+		it->act_non_exist = it->act_non_iso = ACT_IGNORE;
 		if ( it->act_gc == ACT_WARN )
 		     it->act_gc = ACT_IGNORE;
 		     

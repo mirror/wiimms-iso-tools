@@ -1,5 +1,19 @@
-wit v1.17a.beta3 r1724 - 2010-09-12
+wit v@@VERSION@@ r@@REV-NEXT@@ - @@@@-@@-@@
 
+ - The WIA file format was completely redesigned. WIA supports now 5
+   compression methods: NONE, PURGE, BZIP2, LZMA and LZMA2.
+ - New extended syntax of option --compression: method.level@factor
+   'method' is the name (NONE, LZMA, ...) or index of the method. '.level' is
+   a point followed by one digit. It defines the compression level. The
+   special value '0' means: Use default compression level. '@factor' is a
+   factor for the chunk size. With the default factor '1' the chunk size is
+   2 MiB (size of 1 Wii sector group). All three fields are optional.
+ - I declare the WIA file format stable and hope that converting to and from
+   WIA is free of bugs. The best for users is to convert to WIA and back and
+   compare the result with the original source.
+ - New command: WIT COMPR: Prints a list with supported compression methods.
+   With parameters the normalized names of that parameters are printed.
+   WIT COMPR accepts the options --long (twice) --no-header and --sections.
  - The new tool 'wdf' should replace the tools wdf-cat, wdf-dump and should
    compensate the old tools wdf2iso and iso2wdf as general wdf converters.
    See built in help for details. The tool 'wdf' is EXPERIMENTAL!
@@ -10,69 +24,30 @@ wit v1.17a.beta3 r1724 - 2010-09-12
  - From now the first 0x50000 bytes of Wii discs will be scanned for non zero
    data. Such data is included into the copy operations. The old and standard
    scrubbing algorithm ignore such sectors in the range 0x08000..0x3ffff.
- - The WIA file format was completely redesigned and a new beta test phase is
-   starting. Please see WIA still as EXPERIMENTAL!
-
-wit v1.17a.beta5 r1757 - 2010-09-16
-
+ - WBFS files with more than 1 disc are not longer detected as ISO images.
+ - CYGWIN: Improved support of windows style pathes ('X:\path\file').
  - Bug fix: While composing the FST size (var 'max_fst_size4' in 'boot.bin')
    wasn't updated. If you compose an ISO and the resulting FST is bigger than
    the original, the Wii apploader failed.
  - Bug fix: Creation of a WIA file failed if option --psel is set and at least
    one partition was removed (scrubbed). The result was an invalid disc image.
- - Buf fix: "wit MOVE" didn't create the directory path even if --DEST is set.
- - WIA supports now 5 compression methods: NONE, PURGE, BZIP2, LZMA and LZMA2.
-   There are 3 additional keywords: FASTEST (=PURGE), BEST and DEFAULT (=LZMA).
- - New command: WIT COMPR: Prints a list with supported compression methods.
-   With parameters the normalized names of that parameters are printed.
-   WIT COMPR accepts the options --long (twice) --no-header and --sections.
-
-wit v1.17a.beta6 r1764 - 2010-09-18
-
- - Extension of option --compr: If the compression method is followed by
-   '.1' upto '.9' (e.g. 'lzma.5') the number is used to override the default
-   compression level 9. Level is is the fastest and level 9 the best method.
-
-wit v1.17a.beta7 r1786 - 2010-09-21
-
- - WIA: Improved handling of unused (scrubbed) sectors in used sector groups.
-   The output image becomes a little bit smaller.
- - When creating a WIA the disc header and the manage area of each partiton
-   (boot.bin .. fst.bin) are stored in a separate chunks. This reduces the
-   read access time when opening a WIA file.
- - New extended syntax of option --compression: [method] [.level] [@factor]
-   'method' is the name (NONE, LZMA, ...) or index of the method. '.level' is
-   a point followed by one digit. It defines the compression level. The
-   special value '0' means: Use default compression level. '@factor' is a
-   factor for the chunk size. With the default factor '1' the chunk size is
-   2 MiB (size of 1 Wii sector group). All three fields are optional.
-
-wit v@@VERSION@@ r@@REV-NEXT@@ - @@@@-@@-@@
-
+ - Bug fix: "wit MOVE" didn't create the directory path even if --DEST is set.
  - Bug fix for "wit move": wit move have forgotten to move the continuation
    files of splitted images.
- - CYGWIN: Improved support of windows style pathes ('X:\path\file').
- - WIA: New defaults and new meta methods:
-           DEFAULT = lzma  .5 @20
-           FAST    = bzip2 .3 @10
-           GOOD    = lzma  .5 @20
-           BEST    = lzma  .9 @50
-           MEM     = memory dependent
-~
-~ - I declare the WIA file format stable and hope that converting to and from
-~   WIA is free of bugs. The best for users is to convert to WIA and back and
-~   compare the result with the original source. If creating a WIA file in raw
-~   mode data between partitions and behind the last partition is not copied.
+ - Bug fix: Non Wii ISO images are not listed any more if the source is a
+   directory. This old behavior of wit was lost some releases ago.
+
 
 Known bugs:
 
- - wit COPY --raw: Copying an image in raw mode to a wbfs file is buggy.
+ - wit COPY --raw: Copying an image in raw mode to a WBFS file is buggy.
  - There are new problems while reading from non seekable sources (e.g. pipes).
    The reason is the complete new and more intelligent wiidisc lib which makes
    more lookups. I have to insert some code especially for pipes. My plans
    that copying multiple partition discs works too.
    ==> The best is to use a version 1.01c for pipes.
  - No bzip2 (WIA) support for MAC/x86_64. (bug in the bzip2 library)
+
 
 Missing docu:
 

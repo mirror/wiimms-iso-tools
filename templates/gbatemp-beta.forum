@@ -44,10 +44,10 @@ This is the default compression method.
 This is a fast compression method.
 [*] [font="Courier New"][b]--compression GOOD[/b] (=LZMA.5@20)[/font]
 This is a good compression method (like default).
-[*] [font="Courier New"][b]--compression BEST[/b] (=LZMA.9@50)[/font]
+[*] [font="Courier New"][b]--compression BEST[/b] (=LZMA.7@50)[/font]
 This is the best compression method.
 [*] [font="Courier New"][b]--compression MEM[/b][/font]
-This is a generic compression method. WIT try to detect the RAM size of the computer and tries to selects a good compression method, level and chunk size. The user can define the good memory value by using the option --mem or setting the environment variable WIT_MEM.
+This is a generic compression method. WIT tries to detect the RAM size of the computer and tries to selects a good compression method, level and chunk size. The user can define a good memory usage value by using the option --mem or setting the environment variable WIT_MEM.
 [/list]
 
 Try the command "wit compr" with or without compression parameters:

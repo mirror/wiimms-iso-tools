@@ -100,7 +100,7 @@
 // If D != 0x00 && D != 0xff => append: 'beta' D
 //-----------------------------------------------------
 
-#define WIA_VERSION			0x00090000  // current writing version
+#define WIA_VERSION			0x01000000  // current writing version
 #define WIA_VERSION_COMPATIBLE		0x00090000  // down compatible
 #define WIA_VERSION_READ_COMPATIBLE	0x00080000  // read compatible
 

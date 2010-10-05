@@ -29,7 +29,10 @@
 
 [size="2"][color="#0000c0"][b]Highlights of this release:[/b][/color][/size]
 [list]
-[*]
+[*] [color=#000080][b]WIA = Wii ISO Archive[/b][/color]
+WIA is a special archive format to reduce the needed disc space (usually 15%-50%, Animal Crossing saves 82%).  The data is stored in chunks to enable a kind of random access. Every chunk is compressed with BZIP2 or LZMA. USB loaders can't use WIA.
+
+Read [url=http://wit.wiimm.de/info/wia.html][b]"WIA (Wii ISO Archive)"[/b][/url] on the [url=http://wit.wiimm.de/]WIT site[/url] for details and some statistics and please use the GBAtemp thread [url=wit.wiimm.de/r/wia][b]"WIA = Wii ISO Archive"[/b][/url] for WIA discussions.
 [color=#ffffff].[/color]
 [/list]
 

@@ -672,11 +672,14 @@ enumError RewriteModifiedSF ( SuperFile_t * fi, SuperFile_t * fo, WBFS_t * wbfs 
 	fo = wbfs->sf;
     ASSERT(fo);
     ASSERT(fo->f.is_writing);
-    TRACE("RewriteModifiedSF(%p,%p,%p), oft=%d,%d\n",fi,fo,wbfs,fi->iod.oft,fo->iod.oft);
+    TRACE("+++ RewriteModifiedSF(%p,%p,%p), oft=%d,%d\n",fi,fo,wbfs,fi->iod.oft,fo->iod.oft);
 
     wd_disc_t * disc = fi->disc1;
     if ( !fi->modified_list.used && ( !disc || !disc->reloc ))
+    {
+	TRACE("--- RewriteModifiedSF() ERR_OK: nothing to do\n");
 	return ERR_OK;
+    }
 
     UpdateSignatureFST(fi->fst); // NULL allowed
 
@@ -688,6 +691,7 @@ enumError RewriteModifiedSF ( SuperFile_t * fi, SuperFile_t * fo, WBFS_t * wbfs 
     }
 
  #ifdef DEBUG
+    fprintf(TRACE_FILE,"Rewrite:\n");
     PrintMemMap(&fi->modified_list,TRACE_FILE,3);
  #endif
 
@@ -704,7 +708,10 @@ enumError RewriteModifiedSF ( SuperFile_t * fi, SuperFile_t * fo, WBFS_t * wbfs 
 	{
 	    OpenWDiscSlot(wbfs,wbfs->disc_slot,0);
 	    if (!wbfs->disc)
+	    {
+		TRACE("--- RewriteModifiedSF() ERR_CANT_OPEN: wbfs disc\n");
 		return ERR_CANT_OPEN;
+	    }
 	    close_disc = true;
 	}
 	SetupIOD(fo,OFT_WBFS,OFT_WBFS);
@@ -735,6 +742,7 @@ enumError RewriteModifiedSF ( SuperFile_t * fi, SuperFile_t * fo, WBFS_t * wbfs 
 
     memcpy(&fo->iod,&iod,sizeof(fo->iod));
     fo->wbfs = saved_wbfs;
+    TRACE("--- RewriteModifiedSF() err=%u: END\n");
     return err;
 }
 

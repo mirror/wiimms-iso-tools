@@ -132,10 +132,11 @@ static void hint_exit ( enumError stat )
 ///////////////			   helpers			///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-static enumError OpenOutput ( SuperFile_t * sf, ccp fname, ccp testmode_msg )
+static enumError OpenOutput
+    ( SuperFile_t * fo, SuperFile_t * fi, ccp fname, ccp testmode_msg )
 {
-    TRACE("OpenOutput(%p,%s,%s)\n",sf,fname,testmode_msg);
-    DASSERT(sf);
+    PRINT("OpenOutput(%p,%p,%s,%s)\n",fo,fi,fname,testmode_msg);
+    DASSERT(fo);
 
     if ( verbose > 0 )
 	print_title(logout);
@@ -153,10 +154,17 @@ static enumError OpenOutput ( SuperFile_t * sf, ccp fname, ccp testmode_msg )
     if (!fname)
 	fname = "-";
 
-    sf->f.create_directory = opt_mkdir;
-    enumError err = CreateSF(sf,fname,create_oft,IOM_FORCE_STREAM,opt_overwrite);
-    if ( !err && opt_split && GetFileMode(sf->f.st.st_mode) == FM_PLAIN )
-	err = SetupSplitFile(&sf->f,sf->iod.oft,opt_split_size);
+    fo->f.create_directory = opt_mkdir;
+    DASSERT( !fi || IsOpenSF(fi) );
+    if ( fi && fi->iod.oft == OFT_UNKNOWN )
+    {
+	SetupIOD(fi,OFT_PLAIN,OFT_PLAIN);
+	fi->file_size = fi->f.st.st_size;
+    }
+
+    enumError err = CreateSF(fo,fname,create_oft,IOM_FORCE_STREAM,opt_overwrite,fi);
+    if ( !err && opt_split && GetFileMode(fo->f.st.st_mode) == FM_PLAIN )
+	err = SetupSplitFile(&fo->f,fo->iod.oft,opt_split_size);
 
     TRACE("OpenOutput() returns %d\n",err);
     return err;
@@ -250,7 +258,7 @@ enumError CatRaw ( SuperFile_t * fi, SuperFile_t * fo,
 				copy_verb, fi->f.fname, out_fname );
 		fo = &fo_local;
 		InitializeSF(fo);
-		err = OpenOutput(fo,out_fname,0);
+		err = OpenOutput(fo,fi,out_fname,0);
 	    }
 
 	    if (!err)
@@ -305,7 +313,7 @@ enumError CatCISO ( SuperFile_t * fi, CISO_Head_t * ch, SuperFile_t * fo,
 	    fprintf(logout," - %s CISO %s -> %s\n",extract_verb,fi->f.fname,out_fname);
 	fo = &fo_local;
 	InitializeSF(fo);
-	err = OpenOutput(fo,out_fname,0);
+	err = OpenOutput(fo,fi,out_fname,0);
     }
 
     if (!err)
@@ -402,7 +410,7 @@ enumError CatWDF ( ccp fname, SuperFile_t * fo, ccp out_fname,
 	    fprintf(logout," - %s WDF  %s -> %s\n",extract_verb,fname,out_fname);
 	fo = &fo_local;
 	InitializeSF(fo);
-	err = OpenOutput(fo,out_fname,0);
+	err = OpenOutput(fo,0,out_fname,0);
     }
 
     if (!err)
@@ -456,7 +464,7 @@ enumError cmd_cat ( bool ignore_raw )
 {
     SuperFile_t out;
     InitializeSF(&out);
-    enumError err = OpenOutput(&out,0,"CONCATENATE files:");
+    enumError err = OpenOutput(&out,0,0,"CONCATENATE files:");
     
     ParamList_t * param;
     for ( param = first_param; !err && param; param = param->next )
@@ -998,7 +1006,7 @@ enumError cmd_dump()
 {
     SuperFile_t sf;
     InitializeSF(&sf);
-    enumError err = OpenOutput(&sf,0,"DUMP WDF and CISO data strutures:");
+    enumError err = OpenOutput(&sf,0,0,"DUMP WDF and CISO data strutures:");
     
     ParamList_t * param;
     for ( param = first_param; !err && param; param = param->next )

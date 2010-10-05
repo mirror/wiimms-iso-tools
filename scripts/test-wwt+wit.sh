@@ -1,5 +1,5 @@
 #!/bin/bash
-# (c) Wiimm, 2010-09-23
+# (c) Wiimm, 2010-10-04
 
 myname="${0##*/}"
 base=wwt+wit
@@ -148,7 +148,7 @@ tempdir="$(mktemp -d ./.$base.tmp.XXXXXX)" || exit 1
 WBFS_FILE=a.wbfs
 WBFS="$tempdir/$WBFS_FILE"
 
-WIALIST=$(echo $($WIT compr | sed 's/^/wia./'))
+WIALIST=$(echo $($WIT compr | sed 's/^/wia-/'))
 MODELIST="iso wdf $WIALIST ciso wbfs"
 BASEMODE="wdf"
 
@@ -243,9 +243,10 @@ function test_suite()
 	$WWT_ADD -p "$WBFS" "$1" \
 	|| return $ERROR
 
-    for mode in $MODELIST
+    for xmode in $MODELIST
     do
-	mode="${mode%.*}"
+	mode="${xmode%%-*}"
+	#echo "|$mode|$xmode|"
 	[[ $mode = wia ]] && continue
 
 	dest="$tempdir/image.$mode"
@@ -277,8 +278,8 @@ function test_suite()
     src="$tempdir/image.$BASEMODE"
     for xmode in $MODELIST
     do
-	mode="${xmode%.*}"
-	[[ $xmode = ${xmode/.} ]] && compr="" || compr="--compr ${xmode#*.}"
+	mode="${xmode%%-*}"
+	[[ $xmode = ${xmode/-} ]] && compr="" || compr="--compr ${xmode#*-}"
 	[[ $mode = wia ]] && ((NOWIA)) && continue
 	[[ $mode = wbfs && $RAW != "" ]] && continue
 

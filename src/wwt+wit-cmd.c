@@ -125,11 +125,14 @@ enumError cmd_compr()
 	int i;
 	for ( i = 0; i < WD_COMPR__N; i++ )
 	    AddParam(wd_get_compression_name(i,0),false);
-	AddParam(" DEFAULT",false);
-	AddParam(" FAST",false);
-	AddParam(" GOOD",false);
-	AddParam(" BEST",false);
-	AddParam(" MEM",false);
+	if ( long_count > 1 )
+	{
+	    AddParam(" DEFAULT",false);
+	    AddParam(" FAST",false);
+	    AddParam(" GOOD",false);
+	    AddParam(" BEST",false);
+	    AddParam(" MEM",false);
+	}
     }
 
     int err_count = 0;

@@ -22,7 +22,7 @@ Dieses ist das Ankündigungsthema für [url=@@URI-HOME@@][b]@@TOOLSET-SHORT@@[/b][
 
 [size=12][color=#0000c0][b]Es existieren auch zwei graphische Oberflächen (GUI) zur Bedienung von WIT:[/b][/color][/size]
 [list]
-[*] [url=@@URI-QTWITGUI@@][b]QtWitGui[/b], Berarbetung einzelner Wii ISO discs.[/url]
+[*] [url=@@URI-QTWITGUI@@][b]QtWitGui[/b], Berarbeitung einzelner Wii ISO discs.[/url]
     Dieses QT basierte GUI bietet Dinge rund um die Bearbeitung (Kopieren, modifizieren) von einzelnen WIi ISO discs.
 
 [*] [url=@@URI-WIIJMANAGER@@][b]WiiJManager Multiplatform[/b], ein WBFS-Manager[/url]

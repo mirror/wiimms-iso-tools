@@ -718,7 +718,7 @@ info_t info_tab[] =
 		" are calculated with respect to this limit."
 		"\n "
 		" If this option is not set or the value is 0,"
-		" then the environment WIT_MEM is tried to read instead."
+		" then the environment @WIT_MEM@ is tried to read instead."
 		" If this fails, the tool tries to find out the total memory"
 		" by reading @/proc/meminfo@."
 		" The limit is set to 80% of the total memory minus 50 MiB." },
@@ -738,28 +738,23 @@ info_t info_tab[] =
   { T_SEP_OPT,	0,0,0,0 }, //----- separator -----
 
   { T_OPT_C,	"WDF",		"W|wdf",
-		0, "Set ISO output file type to WDF. (default)" },
+		0, "Set ISO output file type to WDF (Wii Disc Format, default)" },
 
   { T_OPT_C,	"ISO",		"I|iso",
 		0, "Set ISO output file type to PLAIN ISO." },
 
   { T_OPT_C,	"CISO",		"C|ciso",
-		0, "Set ISO output file type to CISO (=WBI)." },
+		0, "Set ISO output file type to CISO (Compact ISO, same as WBI)." },
 
   { T_OPT_C,	"WBFS",		"B|wbfs",
-		0, "Set ISO output file type to WBFS container." },
+		0, "Set ISO output file type to WBFS (Wii Backup File System) container." },
 
   { T_OPT_C,	"WIA",		"wia",
-		0, "Set ISO output file type to WIA."
-		" WIA files are not editable."
-		"\n "
-		" \n"
-		"The WIA support is EXPERIMENTAL!"
-		" The WIA format is in development!"
-		" Don't use WIA files productive!" },
+		0, "Set ISO output file type to WIA (Wii ISO Archive)."
+		" WIA files are not editable by {wit EDIT}." },
 
   { T_OPT_C,	"FST",		"fst",
-		0, "Set ISO output mode to 'file system' (extract ISO)." },
+		0, "Set ISO output mode to 'file system' (extracted ISO)." },
 
   { T_OPT_CMP,	"FILES",	"F|files",
 		"rules",
@@ -2559,7 +2554,7 @@ info_t info_tab[] =
 		"wdf [options]... [+command] [options]... files...",
 		"wdf is a support tool for WDF and CISO archives."
 		" It convert (pack and unpack), compare"
-		" and dump WDF and CISO archives."
+		" and dump WDF, WIA (only dump) and CISO archives."
 		" The default command depends on the program file name"
 		" (see command descriptions). Usual names are"
 		" @wdf@, @unwdf@, @wdf-cat@, @wdf-cmp@ and @wdf-dump@"

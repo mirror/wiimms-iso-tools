@@ -18,7 +18,7 @@
 [size=120][color=#0000c0][b]Es existieren auch zwei graphische Oberflächen (GUI) zur Bedienung von WIT:[/b][/color][/size]
 
 [list]
-[*] [url=@@URI-QTWITGUI@@][b]QtWitGui[/b], Berarbetung einzelner Wii ISO discs.[/url]
+[*] [url=@@URI-QTWITGUI@@][b]QtWitGui[/b], Berarbeitung einzelner Wii ISO discs.[/url]
     Dieses QT basierte GUI bietet Dinge rund um die Bearbeitung (Kopieren, modifizieren) von einzelnen WIi ISO discs.
 [ch]nbsp[/ch]
 
@@ -30,7 +30,10 @@
 [size=120][color=#0000c0][b]Höhepunkte dieser Version:[/b][/color][/size]
 
 [list]
-[*]
+[*] [color=#000080][b]WIA = Wii ISO Archive[/b][/color]
+WIA ist ein neues spezielles Archiv-Format um den Speicherplatz auf der Festplatte zu reduzieren (Ersparnis üblicherweise 15%-50%, Animal Crossing sogar 82%). Die Daten werden in einzelnen Stücken (Chunks) unterteilt um den wahlfreien Zugriff auf die Datei zu ermöglichen. Jeder Chunk wird dann mittels BZIP2 oder LZMA komprimiert. USB-Loader können dieses Format definitiv nicht nutzen.
+
+Für weitere Details bitte den Artikel [url=http://wit.wiimm.de/info/wia.html][b][i]WIA (Wii ISO Archive)[/i][/b][/url] auf der englischsprachigen [url=http://wit.wiimm.de/]WIT Website[/url] lesen.
 [ch]nbsp[/ch]
 [/list]
 

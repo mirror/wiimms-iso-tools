@@ -491,7 +491,7 @@
 	" compression method, level and chunk size are calculated with respect" \
 	" to this limit.\n" \
 	"  If this option is not set or the value is 0, then the environment" \
-	" WIT_MEM is tried to read instead. If this fails, the tool tries to" \
+	" @WIT_MEM@ is tried to read instead. If this fails, the tool tries to" \
 	" find out the total memory by reading @/proc/meminfo@. The limit is" \
 	" set to 80% of the total memory minus 50 MiB." )
 
@@ -513,7 +513,7 @@
 
 #:def_opt( "WDF", "W|wdf", "C", \
 	"", \
-	"Set ISO output file type to WDF. (default)" )
+	"Set ISO output file type to WDF (Wii Disc Format, default)" )
 
 #:def_opt( "ISO", "I|iso", "C", \
 	"", \
@@ -521,22 +521,20 @@
 
 #:def_opt( "CISO", "C|ciso", "C", \
 	"", \
-	"Set ISO output file type to CISO (=WBI)." )
+	"Set ISO output file type to CISO (Compact ISO, same as WBI)." )
 
 #:def_opt( "WBFS", "B|wbfs", "C", \
 	"", \
-	"Set ISO output file type to WBFS container." )
+	"Set ISO output file type to WBFS (Wii Backup File System) container." )
 
 #:def_opt( "WIA", "wia", "C", \
 	"", \
-	"Set ISO output file type to WIA. WIA files are not editable.\n" \
-	"  \n" \
-	"The WIA support is EXPERIMENTAL! The WIA format is in development!" \
-	" Don't use WIA files productive!" )
+	"Set ISO output file type to WIA (Wii ISO Archive). WIA files are not" \
+	" editable by {wit EDIT}." )
 
 #:def_opt( "FST", "fst", "C", \
 	"", \
-	"Set ISO output mode to 'file system' (extract ISO)." )
+	"Set ISO output mode to 'file system' (extracted ISO)." )
 
 #:def_opt( "FILES", "F|files", "CMP", \
 	"rules", \
@@ -3498,7 +3496,7 @@
 	" compression method, level and chunk size are calculated with respect" \
 	" to this limit.\n" \
 	"  If this option is not set or the value is 0, then the environment" \
-	" WIT_MEM is tried to read instead. If this fails, the tool tries to" \
+	" @WIT_MEM@ is tried to read instead. If this fails, the tool tries to" \
 	" find out the total memory by reading @/proc/meminfo@. The limit is" \
 	" set to 80% of the total memory minus 50 MiB." )
 
@@ -3565,14 +3563,12 @@
 
 #:def_opt( "WDF", "W|wdf", "C", \
 	"", \
-	"Set ISO output file type to WDF. (default)" )
+	"Set ISO output file type to WDF (Wii Disc Format, default)" )
 
 #:def_opt( "WIA", "wia", "C", \
 	"", \
-	"Set ISO output file type to WIA. WIA files are not editable.\n" \
-	"  \n" \
-	"The WIA support is EXPERIMENTAL! The WIA format is in development!" \
-	" Don't use WIA files productive!" )
+	"Set ISO output file type to WIA (Wii ISO Archive). WIA files are not" \
+	" editable by {wit EDIT}." )
 
 #:def_opt( "ISO", "I|iso", "C", \
 	"", \
@@ -3580,11 +3576,11 @@
 
 #:def_opt( "CISO", "C|ciso", "C", \
 	"", \
-	"Set ISO output file type to CISO (=WBI)." )
+	"Set ISO output file type to CISO (Compact ISO, same as WBI)." )
 
 #:def_opt( "WBFS", "B|wbfs", "C", \
 	"", \
-	"Set ISO output file type to WBFS container." )
+	"Set ISO output file type to WBFS (Wii Backup File System) container." )
 
 #:def_opt( "ITIME", "itime", "C", \
 	"", \
@@ -5755,10 +5751,10 @@
 #:def_tool( "wdf", \
 	"wdf [options]... [+command] [options]... files...", \
 	"wdf is a support tool for WDF and CISO archives. It convert (pack and" \
-	" unpack), compare and dump WDF and CISO archives. The default command" \
-	" depends on the program file name (see command descriptions). Usual" \
-	" names are @wdf@, @unwdf@, @wdf-cat@, @wdf-cmp@ and @wdf-dump@ (with" \
-	" or without minus signs)." )
+	" unpack), compare and dump WDF, WIA (only dump) and CISO archives." \
+	" The default command depends on the program file name (see command" \
+	" descriptions). Usual names are @wdf@, @unwdf@, @wdf-cat@, @wdf-cmp@" \
+	" and @wdf-dump@ (with or without minus signs)." )
 
 #:def_cmd( "VERSION", "+VERSION|+V", \
 	"wdf +VERSION [ignored]...", \
@@ -5975,7 +5971,7 @@
 	" compression method, level and chunk size are calculated with respect" \
 	" to this limit.\n" \
 	"  If this option is not set or the value is 0, then the environment" \
-	" WIT_MEM is tried to read instead. If this fails, the tool tries to" \
+	" @WIT_MEM@ is tried to read instead. If this fails, the tool tries to" \
 	" find out the total memory by reading @/proc/meminfo@. The limit is" \
 	" set to 80% of the total memory minus 50 MiB." )
 

@@ -21,7 +21,7 @@
 
 [size=12][color=#0000c0][b]Es existieren auch zwei graphische Oberflächen (GUI) zur Bedienung von WIT:[/b][/color][/size]
 [list]
-[*] [url=@@URI-QTWITGUI@@][b]QtWitGui, Berarbetung einzelner Wii ISO discs.[/b][/url]
+[*] [url=@@URI-QTWITGUI@@][b]QtWitGui, Berarbeitung einzelner Wii ISO discs.[/b][/url]
     Dieses QT basierte GUI bietet Dinge rund um die Bearbeitung (Kopieren, modifizieren) von einzelnen WIi ISO discs.
 
 [*] [url=@@URI-WIIJMANAGER@@][b]WiiJManager Multiplatform, ein WBFS-Manager[/b][/url]
@@ -34,7 +34,10 @@ Details: [url=http://forum.wii-homebrew.com/board42-kreativit%C3%A4t/development
 ~ Highlights
 [size=12][color=#0000c0][b]Höhepunkte dieser Version:[/b][/color][/size]
 [list]
-[*]
+[*] [color=#000080][b]WIA = Wii ISO Archive[/b][/color]
+WIA ist ein neues spezielles Archiv-Format um den Speicherplatz auf der Festplatte zu reduzieren (Ersparnis üblicherweise 15%-50%, Animal Crossing sogar 82%). Die Daten werden in einzelnen Stücken (Chunks) unterteilt um den wahlfreien Zugriff auf die Datei zu ermöglichen. Jeder Chunk wird dann mittels BZIP2 oder LZMA komprimiert. USB-Loader können dieses Format definitiv nicht nutzen.
+
+Für weitere Details bitte den Artikel [url=http://wit.wiimm.de/info/wia.html][b]"WIA (Wii ISO Archive)"[/b][/url] auf der englischsprachigen [url=http://wit.wiimm.de/]WIT Website[/url] lesen. Für Diskussionen über WIA steht hier im Forum ein eigenes Thema bereit: [url=http://forum.wii-homebrew.com/board4-wii-homebrew-area/pc-tools/19197-wia-wii-iso-archive-ein-neues-wii-iso-dateiformat-inkl-kompression/]"WIA = Wii ISO Archive"[/url].
 [/list]
 
 [size=12][color=#0000c0][b]Letzte Änderungen:[/b][/color][/size]

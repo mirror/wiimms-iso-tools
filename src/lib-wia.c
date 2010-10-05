@@ -31,10 +31,11 @@
 
 ///////////////////////////////////////////////////////////////////////////////
 
-	/////////////////////////////
+	//////////////////////////////////
 	//  [2do]:
 	//	- WIA_MM_GROWING
-	/////////////////////////////
+	//	- raw data not 4-aligned
+	//////////////////////////////////
 
 //
 ///////////////////////////////////////////////////////////////////////////////
@@ -1993,6 +1994,9 @@ enumError WriteWIA
 	    break;
 
 	  default:
+	    if (!item->size)
+		break;
+	    PRINT("mode=%x, off=%llx, size=%llx\n",item->mode,item->offset,item->size);
 	    return ERROR0(ERR_INTERNAL,0);
 	}
       }
@@ -2216,11 +2220,11 @@ static enumError FinishSetupWriteWIA
  #ifndef TEST // {2do]
     if ( verbose >= 0 )
 	ERROR0(ERR_WARNING,
-		"*******************************************\n"
-		"***  The WIA support is EXPERIMENTAL!   ***\n"
-		"***  The WIA format is in development!  ***\n"
-		"***  Don't use WIA files productive!    ***\n"
-		"*******************************************\n" );
+		"*******************************************************\n"
+		"***  The WIA support is NEW! Convert the WIA image  ***\n"
+		"***  back and compare the result with the original  ***\n"
+		"***  source before removing the original source.    ***\n"
+		"*******************************************************\n" );
  #endif
 
     return ERR_OK;
@@ -2294,7 +2298,8 @@ enumError SetupWriteWIA
     fhead->version		= WIA_VERSION;
     fhead->version_compatible	= WIA_VERSION_COMPATIBLE;
     fhead->iso_file_size	= src_file_size ? src_file_size : src ? src->file_size : 0;
-
+PRINT("iso_file_size=%llx, src_file_size=%llx, src->file_size=%llx\n",
+	fhead->iso_file_size, src_file_size, src ? (u64)src->file_size : 0 );
 
     //----- setup disc info && compression
 

@@ -253,7 +253,7 @@ enumError CreateWBFSFile
 )
 {
     DASSERT(sf);
-    enumError err = CreateSF(sf,fname,OFT_WBFS,IOM_IS_WBFS_PART,overwrite);
+    enumError err = CreateSF(sf,fname,OFT_WBFS,IOM_IS_WBFS_PART,overwrite,0);
     if ( !err && sf->wbfs )
     {
 	CloseWDisc(sf->wbfs);

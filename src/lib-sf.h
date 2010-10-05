@@ -179,11 +179,12 @@ enumError OpenSF
 
 enumError CreateSF
 (
-	SuperFile_t * sf,
-	ccp fname,
-	enumOFT oft,
-	enumIOMode iomode,
-	int overwrite
+    SuperFile_t		* sf,		// file to setup
+    ccp			fname,		// NULL or filename
+    enumOFT		oft,		// output file mode
+    enumIOMode		iomode,		// io mode
+    int			overwrite,	// overwrite mode
+    SuperFile_t		* src		// NULL or source file
 );
 
 int IsFileSelected ( wd_iterator_t *it );

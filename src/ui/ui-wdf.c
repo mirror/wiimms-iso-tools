@@ -587,10 +587,10 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	0,
 	"wdf [options]... [+command] [options]... files...",
 	"wdf is a support tool for WDF and CISO archives. It convert (pack and"
-	" unpack), compare and dump WDF and CISO archives. The default command"
-	" depends on the program file name (see command descriptions). Usual"
-	" names are wdf, unwdf, wdf-cat, wdf-cmp and wdf-dump (with or without"
-	" minus signs).",
+	" unpack), compare and dump WDF, WIA (only dump) and CISO archives."
+	" The default command depends on the program file name (see command"
+	" descriptions). Usual names are wdf, unwdf, wdf-cat, wdf-cmp and"
+	" wdf-dump (with or without minus signs).",
 	8,
 	option_tab_tool,
 	0

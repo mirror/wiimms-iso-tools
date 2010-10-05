@@ -424,15 +424,13 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 
     {	OPT_WDF, 'W', "wdf",
 	0,
-	"Set ISO output file type to WDF. (default)"
+	"Set ISO output file type to WDF (Wii Disc Format, default)"
     },
 
     {	OPT_WIA, 0, "wia",
 	0,
-	"Set ISO output file type to WIA. WIA files are not editable.\n"
-	"  \n"
-	"The WIA support is EXPERIMENTAL! The WIA format is in development!"
-	" Don't use WIA files productive!"
+	"Set ISO output file type to WIA (Wii ISO Archive). WIA files are not"
+	" editable by 'wit EDIT'."
     },
 
     {	OPT_ISO, 'I', "iso",
@@ -442,12 +440,12 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 
     {	OPT_CISO, 'C', "ciso",
 	0,
-	"Set ISO output file type to CISO (=WBI)."
+	"Set ISO output file type to CISO (Compact ISO, same as WBI)."
     },
 
     {	OPT_WBFS, 'B', "wbfs",
 	0,
-	"Set ISO output file type to WBFS container."
+	"Set ISO output file type to WBFS (Wii Backup File System) container."
     },
 
     {	OPT_ITIME, 0, "itime",
