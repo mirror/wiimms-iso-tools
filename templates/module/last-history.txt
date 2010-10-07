@@ -1,42 +1,12 @@
 wit v@@VERSION@@ r@@REV-NEXT@@ - @@@@-@@-@@
 
- - The WIA file format was completely redesigned. WIA supports now 5
-   compression methods: NONE, PURGE, BZIP2, LZMA and LZMA2.
- - New extended syntax of option --compression: method.level@factor
-   'method' is the name (NONE, LZMA, ...) or index of the method. '.level' is
-   a point followed by one digit. It defines the compression level. The
-   special value '0' means: Use default compression level. '@factor' is a
-   factor for the chunk size. With the default factor '1' the chunk size is
-   2 MiB (size of 1 Wii sector group). All three fields are optional.
- - I declare the WIA file format stable and hope that converting to and from
-   WIA is free of bugs. The best for users is to convert to WIA and back and
-   compare the result with the original source.
- - New command: WIT COMPR: Prints a list with supported compression methods.
-   With parameters the normalized names of that parameters are printed.
-   WIT COMPR accepts the options --long (twice) --no-header and --sections.
- - The new tool 'wdf' should replace the tools wdf-cat, wdf-dump and should
-   compensate the old tools wdf2iso and iso2wdf as general wdf converters.
-   See built in help for details. The tool 'wdf' is EXPERIMENTAL!
- - Support of GameCube multiboot discs. (EXPERIMENTAL!)
- - New options --align-part: Align partitions while moving or creating them.
- - New options --disc-size: Define a minimal disc size.
- - Command "wit SCRUB" renamed to "wit CONVERT". "wit SCRUB" is still allowed.
- - From now the first 0x50000 bytes of Wii discs will be scanned for non zero
-   data. Such data is included into the copy operations. The old and standard
-   scrubbing algorithm ignore such sectors in the range 0x08000..0x3ffff.
- - WBFS files with more than 1 disc are not longer detected as ISO images.
- - CYGWIN: Improved support of windows style pathes ('X:\path\file').
- - Bug fix: While composing the FST size (var 'max_fst_size4' in 'boot.bin')
-   wasn't updated. If you compose an ISO and the resulting FST is bigger than
-   the original, the Wii apploader failed.
- - Bug fix: Creation of a WIA file failed if option --psel is set and at least
-   one partition was removed (scrubbed). The result was an invalid disc image.
- - Bug fix: "wit MOVE" didn't create the directory path even if --DEST is set.
- - Bug fix for "wit move": wit move have forgotten to move the continuation
-   files of splitted images.
- - Bug fix: Non Wii ISO images are not listed any more if the source is a
-   directory. This old behavior of wit was lost some releases ago.
-
+ - ETA calculation changed to support WIA chunk caching and writing.
+ - CYGWIN: The parameters of the options --dest and --DEST are now checked if
+   they start with 'X:\' or 'X:/'. These code are replaced by '/cygdrive/X/'
+ - New option: --unit: Specify the unit for size values. Some possible values
+   are BYTES,KB,KIB,1000,1024,AUTO,WII. Read built in help for more details.
+ - wit ISOSIZE: If option --long is not set the command uses the option --unit
+   to define the unit for the ISO sizes. A summary line is also printed.
 
 Known bugs:
 

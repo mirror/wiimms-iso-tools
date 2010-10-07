@@ -237,6 +237,7 @@ typedef struct Iterator_t
 	uint		done_count;	// done counter
 	uint		diff_count;	// diff counter
 	uint		exists_count;	// 'file alread exists' counter
+	u64		sum;		// any summary value
 	WDiscList_t	* wlist;	// pointer to WDiscList_t to collect data
 	struct WBFS_t	* wbfs;		// open WBFS
 	dev_t		open_dev;	// dev_t of open output file

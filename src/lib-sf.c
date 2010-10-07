@@ -171,6 +171,7 @@ enumError ResetSF ( SuperFile_t * sf, FileAttrib_t * set_time_ref )
     sf->max_virt_off = 0;
 
     // reset timer
+    sf->progress_trigger = sf->progress_trigger_init = 1;
     sf->progress_start_time = sf->progress_last_calc_time = GetTimerMSec();
     sf->progress_last_view_sec = 0;
     sf->progress_sum_time = 0;
@@ -256,6 +257,7 @@ enumOFT SetupIOD ( SuperFile_t * sf, enumOFT force, enumOFT def )
 	    sf->iod.write_func		= WriteISO;
 	    sf->iod.write_sparse_func	= WriteSparseISO;
 	    sf->iod.write_zero_func	= WriteZeroISO;
+	    sf->iod.flush_func		= FlushFile;		// standard function
 	    break;
 
 	case OFT_WDF:
@@ -263,6 +265,7 @@ enumOFT SetupIOD ( SuperFile_t * sf, enumOFT force, enumOFT def )
 	    sf->iod.write_func		= WriteWDF;
 	    sf->iod.write_sparse_func	= WriteSparseWDF;
 	    sf->iod.write_zero_func	= WriteZeroWDF;
+	    sf->iod.flush_func		= FlushFile;		// standard function
 	    break;
 
 	case OFT_WIA:
@@ -270,6 +273,7 @@ enumOFT SetupIOD ( SuperFile_t * sf, enumOFT force, enumOFT def )
 	    sf->iod.write_func		= WriteWIA;
 	    sf->iod.write_sparse_func	= WriteSparseWIA;
 	    sf->iod.write_zero_func	= WriteZeroWIA;
+	    sf->iod.flush_func		= FlushWIA;
 	    break;
 
 	case OFT_CISO:
@@ -277,6 +281,7 @@ enumOFT SetupIOD ( SuperFile_t * sf, enumOFT force, enumOFT def )
 	    sf->iod.write_func		= WriteCISO;
 	    sf->iod.write_sparse_func	= WriteSparseCISO;
 	    sf->iod.write_zero_func	= WriteZeroCISO;
+	    sf->iod.flush_func		= FlushFile;		// standard function
 	    break;
 
 	case OFT_WBFS:
@@ -284,6 +289,7 @@ enumOFT SetupIOD ( SuperFile_t * sf, enumOFT force, enumOFT def )
 	    sf->iod.write_func		= WriteWBFS;
 	    sf->iod.write_sparse_func	= WriteWBFS;		// no sparse support
 	    sf->iod.write_zero_func	= WriteZeroWBFS;
+	    sf->iod.flush_func		= FlushFile;		// standard function
 	    break;
 
 	case OFT_FST:
@@ -291,6 +297,7 @@ enumOFT SetupIOD ( SuperFile_t * sf, enumOFT force, enumOFT def )
 	    sf->iod.write_func		= WriteSwitchSF;	// not supported
 	    sf->iod.write_sparse_func	= WriteSparseSwitchSF;	// not supported
 	    sf->iod.write_zero_func	= WriteZeroSwitchSF;	// not supported
+	    sf->iod.flush_func		= 0;			// do nothing
 	    break;
 
 	default:
@@ -298,6 +305,7 @@ enumOFT SetupIOD ( SuperFile_t * sf, enumOFT force, enumOFT def )
 	    sf->iod.write_func		= WriteSwitchSF;
 	    sf->iod.write_sparse_func	= WriteSparseSwitchSF;
 	    sf->iod.write_zero_func	= WriteZeroSwitchSF;
+	    sf->iod.flush_func		= 0;			// do nothing
 	    break;
     }
     sf->std_read_func = sf->iod.read_func;
@@ -559,8 +567,8 @@ static enumError ReadDiscWrapper
     size_t	count
 )
 {
-    ASSERT(sf);
-    ASSERT(sf->disc1);
+    DASSERT(sf);
+    DASSERT(sf->disc1);
     return wd_read_and_patch(sf->disc1,off,buf,count);
 }
 
@@ -569,10 +577,9 @@ static enumError ReadDiscWrapper
 int IsFileSelected ( wd_iterator_t *it )
 {
     DASSERT(it);
+    DASSERT(it->param);
 
     FilePattern_t * pat = it->param;
-    DASSERT(pat);
-
     return MatchFilePattern(pat,it->fst_name);
 };
 
@@ -580,7 +587,7 @@ int IsFileSelected ( wd_iterator_t *it )
 
 void CloseDiscSF
 (
-	SuperFile_t * sf	// valid pointer
+    SuperFile_t		* sf		// valid file pointer
 )
 {
     DASSERT(sf);
@@ -594,9 +601,9 @@ void CloseDiscSF
 
 wd_disc_t * OpenDiscSF
 (
-	SuperFile_t * sf,	// valid pointer
-	bool load_part_data,	// true: load partition data
-	bool print_err		// true: print error message if open fails
+    SuperFile_t		* sf,		// valid file pointer
+    bool		load_part_data,	// true: load partition data
+    bool		print_err	// true: print error message if open fails
 )
 {
     ASSERT(sf);
@@ -1163,6 +1170,14 @@ enumError WriteZeroSF ( SuperFile_t * sf, off_t off, size_t count )
 }
 
 ///////////////////////////////////////////////////////////////////////////////
+
+enumError FlushSF ( SuperFile_t * sf )
+{
+    ASSERT(sf);
+    return sf->iod.flush_func ? sf->iod.flush_func(sf) : ERR_OK;
+}
+
+///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
 enumError ReadSwitchSF
@@ -1298,6 +1313,16 @@ enumError WriteZeroISO ( SuperFile_t * sf, off_t off, size_t size )
 	size -= size1;
     }
 
+    return ERR_OK;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+enumError FlushFile ( SuperFile_t * sf )
+{
+    DASSERT(sf);
+    if ( !sf->f.is_writing && sf->f.fp )
+	fflush(sf->f.fp);
     return ERR_OK;
 }
 
@@ -1600,13 +1625,16 @@ int WrapperWriteSparseSF ( void * p_sf, u32 lba, u32 count, void * iobuf )
 
 void CopyProgressSF ( SuperFile_t * dest, SuperFile_t * src )
 {
-    ASSERT(dest);
-    ASSERT(src);
+    DASSERT(dest);
+    DASSERT(src);
 
     dest->indent			= src->indent;
     dest->show_progress			= src->show_progress;
     dest->show_summary			= src->show_summary;
     dest->show_msec			= src->show_msec;
+
+    dest->progress_trigger		= src->progress_trigger;
+    dest->progress_trigger_init		= src->progress_trigger_init;
     dest->progress_start_time		= src->progress_start_time;
     dest->progress_last_view_sec	= src->progress_last_view_sec;
     dest->progress_last_calc_time	= src->progress_last_calc_time;
@@ -1618,7 +1646,6 @@ void CopyProgressSF ( SuperFile_t * dest, SuperFile_t * src )
 
 ///////////////////////////////////////////////////////////////////////////////
 
-
 void PrintProgressSF ( u64 p_done, u64 p_total, void * param )
 {
     SuperFile_t * sf = (SuperFile_t*) param;
@@ -1627,7 +1654,8 @@ void PrintProgressSF ( u64 p_done, u64 p_total, void * param )
 		sf ? GetFD(&sf->f) : -2,
 		sf ? sf->show_progress : -1 );
 
-    if ( !sf || !sf->show_progress || !p_done || !p_total )
+    if ( !sf || !sf->show_progress || !p_done || !p_total
+	    || sf->progress_trigger <= 0 && p_done )
 	return;
 
     if ( p_total > TiB )
@@ -1640,8 +1668,9 @@ void PrintProgressSF ( u64 p_done, u64 p_total, void * param )
     const u32 now		= GetTimerMSec();
     const u32 elapsed		= now - sf->progress_start_time;
     const u32 view_sec		= elapsed / 1000;
-    const u32 rate		= 10000 * p_done / p_total;
-    const u32 percent		= rate / 100;
+    const u32 max_rate		= 100000;
+    const u32 rate		= max_rate * p_done / p_total;
+    const u32 percent		= rate / (max_rate/100);
     const u64 total		= sf->f.bytes_read + sf->f.bytes_written;
 
     TRACE(" - sec=%d->%d, rate=%d, total=%llu=%llu+%llu\n",
@@ -1650,20 +1679,22 @@ void PrintProgressSF ( u64 p_done, u64 p_total, void * param )
 
     if ( sf->progress_last_view_sec != view_sec && rate > 0 && total > 0 )
     {
-	sf->progress_last_view_sec	= view_sec;
-	sf->progress_sum_time		+= ( now - sf->progress_last_calc_time ) * view_sec;
+	const u64 eta_total		 = elapsed * (u64)max_rate / rate;
+    
+	sf->progress_trigger		 = sf->progress_trigger_init;
+	sf->progress_last_view_sec	 = view_sec;
+	sf->progress_sum_time		+= view_sec * eta_total;
 	sf->progress_time_divisor	+= view_sec;
-	sf->progress_last_calc_time	= now;
+	sf->progress_last_calc_time	 = now;
 
-	const u32 elapsed	= now - sf->progress_start_time;
-	const u32 eta		= ( view_sec * sf->progress_sum_time * (10000-rate) )
-				/ ( sf->progress_time_divisor * rate );
+	// eta = elapsed / rate * max_rate - elapsed;
+	const u32 eta = sf->progress_sum_time / sf->progress_time_divisor - elapsed;
 
 	char buf1[50], buf2[50];
 	ccp time1 = PrintMSec(buf1,sizeof(buf1),elapsed,sf->show_msec);
 	ccp time2 = PrintMSec(buf2,sizeof(buf2),eta,false);
 
-	TRACE("PROGRESS: now=%7u quot=%8llu/%-5llu perc=%3u ela=%6u eta=%6u [%s,%s]\n",
+	PRINT("\nPROGRESS: now=%7u quot=%8llu/%-5llu perc=%3u ela=%6u eta=%6u [%s,%s]\n",
 		now, sf->progress_sum_time, sf->progress_time_divisor,
 		percent, elapsed, eta, time1, time2 );
 
@@ -1697,6 +1728,7 @@ void PrintSummarySF ( SuperFile_t * sf )
     char buf[200];
     buf[0] = 0;
 
+    FlushSF(sf);
     if (sf->show_summary)
     {
 	const u32 elapsed = GetTimerMSec() - sf->progress_start_time;
@@ -3491,10 +3523,6 @@ static enumError SourceIteratorHelper
 	return ERR_OK;
     }
     sf.f.disable_errors = false;
- #if 0 // [obsolete]
-    if ( *sf.f.id6 )
-	OpenDiscSF(&sf,false,false);
- #endif
 
     ccp real_path = realpath( sf.f.path ? sf.f.path : sf.f.fname, buf );
     if (!real_path)
@@ -3557,23 +3585,6 @@ static enumError SourceIteratorHelper
 	    for ( slot = max_disc-1; slot >= 0
 			&& !wbfs.wbfs->head->disc_table[slot]; slot-- )
 		;
-
-	 #if 0 // [obsolete]
-	    if (!slot)
-	    {
-		// only slot #0 is used!
-		if ( collect_fnames )
-		{
-		    InsertStringField(&it->source_list,sf.f.fname,false);
-		    err = ERR_OK;
-		}
-		else
-		    err = it->func(&sf,it);
-		ResetWBFS(&wbfs);
-		ResetSF(&sf,0);
-		return err;
-	    }
-	 #endif
 
 	    char fbuf[PATH_MAX+10];
 	    snprintf(fbuf,sizeof(fbuf),"%u%n",slot,&fw);

@@ -25,237 +25,20 @@
 #include "wiidisc.h"
 #include <ctype.h>
 
+//-----------------------------------------------------------------------------
+
 #ifdef __CYGWIN__
     #define ISALNUM(a) isalnum((int)(a))
 #else
     #define ISALNUM isalnum
 #endif
 
-//
-///////////////////////////////////////////////////////////////////////////////
-///////////////			    helpers			///////////////
-///////////////////////////////////////////////////////////////////////////////
+//-----------------------------------------------------------------------------
 
-enumError wd_print_error
-(
-    ccp		func,		// calling function, use macro __FUNCTION__
-    ccp		file,		// source file, use macro __FILE__
-    uint	line,		// line number of source file, use macro __LINE__
-    enumError	err,		// error code
-    ccp		format,		// NULL or format string for fprintf() function.
-    ...				// parameters for 'format'
-)
-{
-    fflush(stdout);
-
-    ccp msg_prefix, msg_name;
-    if ( err > ERR_ERROR )
-    {
-	msg_prefix = "!!! ";
-	msg_name   = "FATAL ERROR";
-    }
-    else if ( err > ERR_WARNING )
-    {
-	msg_prefix = "!! ";
-	msg_name   = "ERROR";
-    }
-    else if ( err > ERR_OK )
-    {
-	msg_prefix = "! ";
-	msg_name   = "WARNING";
-    }
-    else
-    {
-	msg_prefix = "";
-	msg_name   = "SUCCESS";
-    }
-
-    if ( err > ERR_OK )
-	fprintf(stderr,"%s%s in %s() @ %s#%d\n",
-	    msg_prefix, msg_name, func, file, line );
-
-    if (format)
-    {
-	fputs(msg_prefix,stderr);
-	va_list arg;
-	va_start(arg,format);
-	vfprintf(stderr,format,arg);
-	va_end(arg);
-	if ( format[strlen(format)-1] != '\n' )
-	    fputc('\n',stderr);
-    }
-
-    fflush(stderr);
-    
-    if ( err > ERR_ERROR )
-	exit(ERR_FATAL);
-
-    return err;
-}
-
-///////////////////////////////////////////////////////////////////////////////
-
-char * wd_print_size
-(
-    char		* buf,		// result buffer
-					// If NULL, a local circulary static buffer is used
-    size_t		buf_size,	// size of 'buf', ignored if buf==NULL
-    u64			size,		// size to print
-    bool		aligned		// true: use exact 4+4 characters for the number + unit
-)
-{
-    enum
-    {
-	SBUF_COUNT = 5,
-	SBUF_SIZE  = 20
-    };
-
-    static int  sbuf_index = 0;
-    static char sbuf[SBUF_COUNT][SBUF_SIZE+1];
-
-    if (!buf)
-    {
-	// use static buffer
-	buf = sbuf[sbuf_index];
-	buf_size = SBUF_SIZE;
-	sbuf_index = ( sbuf_index + 1 ) % SBUF_COUNT;
-    }
-
-    //----------------
-
-    ccp unit;
-    u64 num;
-
-    u64 mib = (size+MiB/2)/MiB; // maybe an overflow => extra if
-    if ( mib < 10000 && size < EiB )
-    {
-	u64 kib = (size+KiB/2)/KiB;
-	if ( kib < 10 )
-	{
-	    num = size;
-	    unit = "B";
-	}
-	else if ( kib < 10000 )
-	{
-	    num = kib;
-	    unit = "KiB";
-	}
-	else
-	{
-	    num = mib;
-	    unit = "MiB";
-	}
-    }
-    else
-    {
-	mib = size / MiB; // recalc because of possible overflow
-	u64 tib = (mib+MiB/2)/MiB;
-	if ( tib < 10000 )
-	{
-	    if ( tib < 10 )
-	    {
-		num = (mib+KiB/2)/KiB;
-		unit = "GiB";
-	    }
-	    else
-	    {
-		num = tib;
-		unit = "TiB";
-	    }
-	}
-	else
-	{
-	    u64 pib = (mib+GiB/2)/GiB;
-	    if ( pib < 10000 )
-	    {
-		num = pib;
-		unit = "PiB";
-	    }
-	    else
-	    {
-		num = (mib+TiB/2)/TiB;
-		unit = "EiB";
-	    }
-	}
-    }
-
-    if (aligned)
-	snprintf(buf,buf_size,"%4llu %-3s",num,unit);
-    else
-	snprintf(buf,buf_size,"%llu %s",num,unit);
-
-    return buf;
-};
-
-///////////////////////////////////////////////////////////////////////////////
-
-u32 wd_align32
-(
-    u32		number,		// object of aligning
-    u32		align,		// NULL or valid align factor
-    int		align_mode	// <0: round down, =0: round math, >0 round up
-)
-{
-    if ( align > 1 )
-    {
-	const u32 mod = number % align;
-	if (mod)
-	{
-	    if ( align_mode < 0 )
-		number -= mod;
-	    else if  ( align_mode > 0 )
-		number += align - mod;
-	    else if ( mod < align/2 )
-		number -= mod;
-	    else
-		number += align - mod;
-	}
-    }
-
-    return number;
-}
-
-///////////////////////////////////////////////////////////////////////////////
-
-u64 wd_align64
-(
-    u64		number,		// object of aligning
-    u64		align,		// NULL or valid align factor
-    int		align_mode	// <0: round down, =0: round math, >0 round up
-)
-{
-    if ( align > 1 )
-    {
-	const u64 mod = number % align;
-	if (mod)
-	{
-	    if ( align_mode < 0 )
-		number -= mod;
-	    else if  ( align_mode > 0 )
-		number += align - mod;
-	    else if ( mod < align/2 )
-		number -= mod;
-	    else
-		number += align - mod;
-	}
-    }
-
-    return number;
-}
-
-///////////////////////////////////////////////////////////////////////////////
-
-u64 wd_align_part
-(
-    u64		number,		// object of aligning
-    u64		align,		// NULL or valid align factor
-    bool	is_gamecube	// hint for automatic calculation (align==0)
-)
-{
-    if (!align)
-	align = is_gamecube ? GC_GOOD_PART_ALIGN : WII_SECTOR_SIZE;
-    return wd_align64(number,align,1);
-}
+#if 1
+    #undef PRINT
+    #define PRINT(...)
+#endif
 
 //
 ///////////////////////////////////////////////////////////////////////////////
@@ -5663,16 +5446,6 @@ bool wd_is_directory
 ///////////////			dump data structure		///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-int wd_normalize_indent
-(
-    int			indent		// base vlaue to normalize
-)
-{
-    return indent < 0 ? 0 : indent < 50 ? indent : 50;
-}
-
-///////////////////////////////////////////////////////////////////////////////
-
 void wd_print_disc
 (
     FILE		* f,		// valid output file
@@ -5834,88 +5607,6 @@ void wd_print_usage_tab
 			( iso_size + WII_SECTOR_SIZE - 1 ) / WII_SECTOR_SIZE,
 			WII_MAX_SECTORS, WII_SECTOR_SIZE,
 			wd_usage_name_tab, print_all );
-}
-
-///////////////////////////////////////////////////////////////////////////////
-
-void wd_print_byte_tab
-(
-    FILE		* f,		// valid output file
-    int			indent,		// indention of the output
-    const u8		* tab,		// valid pointer to byte table
-    u32			used,		// print minimal 'used' values of 'tab'
-    u32			size,		// size of 'tab'
-    u32			addr_factor,	// each 'tab' element represents 'addr_factor' bytes
-    const char		chartab[256],	// valid pointer to a char table
-    bool		print_all	// false: ignore const lines
-)
-{
-    ASSERT(f);
-    ASSERT(tab);
-
-    enum { line_count = 64 };
-    char buf[2*line_count];
-    char skip_buf[2*line_count];
-
-    indent = wd_normalize_indent(indent);
-    const int addr_fw = snprintf(buf,sizeof(buf),"%llx",(u64)addr_factor*size);
-    indent += addr_fw; // add address field width
-
-    const u8 * ptr = tab;
-    const u8 * tab_end = ptr + size - 1;
-    const u8 * tab_min = ptr + used;
-    if ( tab_min > ptr )
-	tab_min--;
-    while ( !*tab_end && tab_end > tab_min )
-	tab_end--;
-    tab_end++;
-
-    int skip_count = 0;
-    u64 skip_addr = 0;
-
-    while ( ptr < tab_end )
-    {
-	const u64 addr = (u64)( ptr - tab ) * addr_factor;
-	
-	char * dest = buf;
-	const u8 * line_end = ptr + line_count;
-	if ( line_end > tab_end )
-	    line_end = tab_end;
-
-	int pos = 0, last_count = 0;
-	const u8 cmp_val = *ptr;
-	while ( ptr < line_end )
-	{
-	    if ( !( pos++ & 15 ) )
-		*dest++ = ' ';
-	    last_count += *ptr == cmp_val;
-	    *dest++ = chartab[*ptr++];
-	}
-	*dest = 0;
-	DASSERT( dest < buf + sizeof(buf) );
-	if ( last_count < line_count )
-	{
-	    if (skip_count)
-	    {
-		if ( skip_count == 1 )
-		    fprintf(f,"%*llx:%s\n",indent,skip_addr,skip_buf);
-		else
-		    fprintf(f,"%*llx:%s *%5u\n",indent,skip_addr,skip_buf,skip_count);
-		skip_count = 0;
-	    }
-	    fprintf(f,"%*llx:%s\n",indent,addr,buf);
-	}
-	else if (!skip_count++)
-	{
-	    memcpy(skip_buf,buf,sizeof(skip_buf));
-	    skip_addr = addr;
-	}
-    }
-
-    if ( skip_count == 1 )
-	fprintf(f,"%*llx:%s\n",indent,skip_addr,skip_buf);
-    else if (skip_count)
-	fprintf(f,"%*llx:%s *%5u\n",indent,skip_addr,skip_buf,skip_count);
 }
 
 ///////////////////////////////////////////////////////////////////////////////

@@ -219,8 +219,8 @@ enumError cmd_compr()
 		u32 read_size  = CalcMemoryUsageWIA(compr,level,csize,false);
 		u32 write_size = CalcMemoryUsageWIA(compr,level,csize,true);
 		printf("%-16s %s  %s   %.30s\n",iobuf,
-			wd_print_size(0,0,read_size,true),
-			wd_print_size(0,0,write_size,true),
+			wd_print_size_1024(0,0,read_size,true),
+			wd_print_size_1024(0,0,write_size,true),
 			param->arg );
 	    }
 	}
@@ -332,15 +332,17 @@ enumError cmd_test_options()
     printf("    chunk-size:%16x = %d\n",opt_compr_chunk_size,opt_compr_chunk_size);
 
     printf("  mem:         %16llx = %lld = %s\n",
-			opt_mem,opt_mem,wd_print_size(0,0,opt_mem,false));
+			opt_mem,opt_mem,wd_print_size_1024(0,0,opt_mem,false));
     GetMemLimit();
     printf("    mem limit: %16llx = %lld = %s\n",
-			opt_mem,opt_mem,wd_print_size(0,0,opt_mem,false));
+			opt_mem,opt_mem,wd_print_size_1024(0,0,opt_mem,false));
 
     printf("  escape-char: %16x = %d\n",escape_char,escape_char);
     printf("  print-time:  %16x = %d\n",opt_print_time,opt_print_time);
     printf("  sort-mode:   %16x = %d\n",sort_mode,sort_mode);
     printf("  show-mode:   %16x = %d\n",opt_show_mode,opt_show_mode);
+    printf("  unit:        %16x = %d, unit=%s\n",
+			opt_unit, opt_unit, wd_get_size_unit(opt_unit,"?") );
     printf("  limit:       %16x = %d\n",opt_limit,opt_limit);
     printf("  rdepth:      %16x = %d\n",opt_recurse_depth,opt_recurse_depth);
     printf("  enc:         %16x = %d\n",encoding,encoding);
@@ -382,10 +384,10 @@ enumError cmd_test_options()
 		opt_align3, opt_align3 );
     printf("  align-part:  %16x = %u = %s\n",
 		opt_align_part, opt_align_part,
-		wd_print_size(0,0,opt_align_part,true) );
+		wd_print_size_1024(0,0,opt_align_part,true) );
     printf("  disc-size:   %16llx = %llu = %s\n",
 		opt_disc_size, opt_disc_size,
-		wd_print_size(0,0,opt_disc_size,true) );
+		wd_print_size_1024(0,0,opt_disc_size,true) );
 
     printf("  partition selector:\n");
     wd_print_select(stdout,6,&part_selector);

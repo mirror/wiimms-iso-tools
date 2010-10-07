@@ -301,12 +301,13 @@ int test_copy_to_wbfs ( int argc, char ** argv )
 
 int test_print_size ( int argc, char ** argv )
 {
+ #if 0
     u64 i;
     for ( i = 1; i; i <<= 10 )
     {
 	printf("%21llu |%s|%s|\n", i,
-		wd_print_size(0,0,i,true),
-		wd_print_size(0,0,i,false) );
+		wd_print_size_1024(0,0,i,true),
+		wd_print_size_1024(0,0,i,false) );
     }
 
     u64 prev = 0;
@@ -314,18 +315,30 @@ int test_print_size ( int argc, char ** argv )
     {
 	prev = i;
 	printf("%21llu |%s|%s|\n", i,
-		wd_print_size(0,0,i,true),
-		wd_print_size(0,0,i,false) );
+		wd_print_size_1024(0,0,i,true),
+		wd_print_size_1024(0,0,i,false) );
     }
 
     i = ~(u64)0;
     printf("%21llu |%s|%s|\n", i,
-		wd_print_size(0,0,i,true),
-		wd_print_size(0,0,i,false) );
+		wd_print_size_1024(0,0,i,true),
+		wd_print_size_1024(0,0,i,false) );
+ #else
+ 
+    u64 size = 1000000000;
+    wd_size_mode_t mode;
+    for ( mode = 0; mode < WD_SIZE_N_MODES; mode++ )
+	printf("|%s|\t|%s|\t|%s|\t|%s|\t|%s|\t|%s|\n",
+		wd_get_size_unit(mode,"?"),
+		wd_print_size(0,0,size,true,mode|WD_SIZE_F_NO_UNIT),
+		wd_print_size(0,0,size,true,mode|WD_SIZE_F_1000),
+		wd_print_size(0,0,size,true,mode),
+		wd_print_size(0,0,size,false,mode|WD_SIZE_F_1000),
+		wd_print_size(0,0,size,false,mode) );
 
+ #endif
     return 0;
 }
-
 
 //
 ///////////////////////////////////////////////////////////////////////////////
@@ -372,8 +385,8 @@ int test ( int argc, char ** argv )
     //test_create_sparse_file();
     //test_splitted_file();
     //test_copy_to_wbfs(argc,argv);
-    //test_print_size(argc,argv);
-    test_wbfs_free_blocks(argc,argv);
+    test_print_size(argc,argv);
+    //test_wbfs_free_blocks(argc,argv);
 
     return 0;
 }
@@ -897,7 +910,7 @@ int main ( int argc, char ** argv )
 
     printf("term width = %d\n",GetTermWidth(80,0));
 
- #ifdef TEST
+ #if defined(TEST) && defined(DEBUG)
     if (0)
     {
 	id6_t * id6 = (id6_t*)iobuf;

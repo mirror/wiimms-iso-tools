@@ -46,6 +46,9 @@ typedef enumError (*WriteFunc)
 typedef enumError (*ZeroFunc)
 	( struct SuperFile_t * sf, off_t off, size_t count );
 
+typedef enumError (*FlushFunc)
+	( struct SuperFile_t * sf );
+
 //
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////			struct IOData_t			///////////////
@@ -58,6 +61,7 @@ typedef struct IOData_t
 	WriteFunc write_func;		// write function
 	WriteFunc write_sparse_func;	// sparse write function
 	ZeroFunc  write_zero_func;	// zero data write function
+	FlushFunc flush_func;		// flush output
 
 } IOData_t;
 
@@ -80,6 +84,8 @@ typedef struct SuperFile_t
 
 	// internal values: progress
 
+	int progress_trigger;		// progress is only printed if value>0
+	int progress_trigger_init;	// if printed: init 'progress_trigger' with this value
 	u32 progress_start_time;	// time of start
 	u32 progress_last_view_sec;	// time of last progress viewing
 	u32 progress_last_calc_time;	// time of last calculation
@@ -259,6 +265,9 @@ enumError WriteWBFS	( SuperFile_t * sf, off_t off, const void * buf, size_t coun
 enumError WriteZeroSF	( SuperFile_t * sf, off_t off, size_t count );
 enumError WriteZeroISO	( SuperFile_t * sf, off_t off, size_t count );
 enumError WriteZeroWBFS	( SuperFile_t * sf, off_t off, size_t count );
+
+enumError FlushSF	( SuperFile_t * sf );
+enumError FlushFile	( SuperFile_t * sf );
 
 enumError SetSizeSF	( SuperFile_t * sf, off_t off );
 enumError SetMinSizeSF	( SuperFile_t * sf, off_t off );

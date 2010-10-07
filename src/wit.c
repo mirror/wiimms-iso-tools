@@ -562,7 +562,7 @@ enumError exec_isosize ( SuperFile_t * sf, Iterator_t * it )
 
     if ( it->long_count > 1 )
     {
-	if ( print_header && !it->done_count++  )
+	if ( !it->done_count++ && print_header )
 	    printf("\n"
 		"   ISO  ISO .wbfs 500g\n"
 		"blocks  MiB  file WBFS  %s\n"
@@ -591,7 +591,7 @@ enumError exec_isosize ( SuperFile_t * sf, Iterator_t * it )
     }
     else if ( it->long_count )
     {
-	if ( print_header && !it->done_count++  )
+	if ( !it->done_count++ && print_header )
 	    printf("\n"
 		"   ISO  ISO\n"
 		"blocks  MiB  filename\n"
@@ -609,21 +609,25 @@ enumError exec_isosize ( SuperFile_t * sf, Iterator_t * it )
     }
     else
     {
-	if ( print_header && !it->done_count++  )
+	const int fw = wd_get_size_fw(opt_unit,4);
+	if ( !it->done_count++ && print_header )
 	    printf("\n"
-		" ISO\n"
-		" MiB  filename\n"
-		"%s\n", sep_79 );
+		"%*s\n"
+		"%*s  filename\n"
+		"%s\n",
+		fw, "ISO",
+		fw, wd_get_size_unit(opt_unit,"?"),
+		sep_79 );
 
-	char size[20] = "   -";
+	ccp size = "-";
 	if (sf->f.id6[0])
 	{
-	    const u32 count = wd_count_used_blocks(wdisc_usage_tab,1);
-	    if (count)
-		snprintf(size,sizeof(size),"%4u",
-			(count+WII_SECTORS_PER_MIB/2)/WII_SECTORS_PER_MIB );
+	    u64 count = wd_count_used_blocks(wdisc_usage_tab,1);
+	    count *= WII_SECTOR_SIZE;
+	    it->sum += count;
+	    size = wd_print_size(0,0,count,false,opt_unit);
 	}
-	printf("%s  %s\n", size, sf->f.fname );
+	printf("%*s  %s\n", fw, size, sf->f.fname );
     }
 
     return ERR_OK;
@@ -639,19 +643,39 @@ enumError cmd_isosize()
 
     encoding |= ENCODE_F_FAST; // hint: no encryption needed
 
+    wd_size_mode_t orig_opt_unit = opt_unit;
+    if ( opt_unit == WD_SIZE_DEFAULT )
+	opt_unit = WD_SIZE_M;
+    opt_unit |= WD_SIZE_F_AUTO_UNIT;
+
     Iterator_t it;
     InitializeIterator(&it);
-    it.func		= exec_isosize;
     it.act_non_exist	= ignore_count > 0 ? ACT_IGNORE : ACT_ALLOW;
     it.act_non_iso	= ignore_count > 1 ? ACT_IGNORE : ACT_ALLOW;
     it.act_gc		= ACT_ALLOW;
     it.act_fst		= allow_fst ? ACT_EXPAND : ACT_IGNORE;
     it.act_wbfs		= ACT_EXPAND;
     it.long_count	= long_count;
-    const enumError err = SourceIterator(&it,1,true,false);
+
+    enumError err = SourceIterator(&it,1,true,true);
+    if ( err <= ERR_WARNING )
+    {
+	it.func = exec_isosize;
+	err = SourceIteratorCollected(&it,1,false);
+    }
 
     if ( !OptionUsed[OPT_NO_HEADER] && it.done_count )
+    {
+	if ( !long_count && it.done_count > 1 )
+	{
+	    printf("%s\n%*s in %u files\n",
+			sep_79,
+			wd_get_size_fw(opt_unit,4),
+			wd_print_size(0,0,it.sum,false,orig_opt_unit),
+			it.done_count );
+	}
 	putchar('\n');
+    }
 
     ResetIterator(&it);
     return err;
@@ -2097,8 +2121,8 @@ enumError CheckOptions ( int argc, char ** argv, bool is_env )
 	case GO_ALIGN_PART:	err += ScanOptAlignPart(optarg); break;
 	case GO_DISC_SIZE:	err += ScanOptDiscSize(optarg); break;
 	case GO_OVERLAY:	break;
-	case GO_DEST:		opt_dest = optarg; break;
-	case GO_DEST2:		opt_dest = optarg; opt_mkdir = true; break;
+	case GO_DEST:		SetDest(optarg,false); break;
+	case GO_DEST2:		SetDest(optarg,true); break;
 	case GO_SPLIT:		opt_split++; break;
 	case GO_SPLIT_SIZE:	err += ScanOptSplitSize(optarg); break;
 	case GO_TRUNC:		opt_truncate++; break;
@@ -2130,6 +2154,7 @@ enumError CheckOptions ( int argc, char ** argv, bool is_env )
 	case GO_NO_HEADER:	break;
 	case GO_SECTIONS:	print_sections++; break;
 	case GO_SHOW:		err += ScanOptShow(optarg); break;
+	case GO_UNIT:		err += ScanOptUnit(optarg); break;
 	case GO_SORT:		err += ScanOptSort(optarg); break;
 
 	case GO_RDEPTH:

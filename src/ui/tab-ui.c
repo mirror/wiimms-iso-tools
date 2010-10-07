@@ -252,7 +252,7 @@ info_t info_tab[] =
 
   { T_SEP_CMD,	0,0,0,0 }, //----- separator -----
 
-	// [2do] ILIST is obsolete since 2010-08-15
+	// [2do] old name 'ILIST' is obsolete since 2010-08-15
 
   { T_DEF_CMD,	"FILES",	"FILES|F|ILIST|IL",  
 		    "wit FILES [source]...",
@@ -826,6 +826,28 @@ info_t info_tab[] =
 		" If @--show@ is set, option {--long} is ignored"
 		" for selecting output elements." },
 
+  { T_OPT_CP,	"UNIT",		"unit",
+		"list",
+		"This option set the output unit for sizes."
+		" The parameter is a comma separated list of the"
+		" following keywords, case is ignored: "
+		" @1000=10, 1024=2, BYTES, K, M, G, T, P, E,"
+		" KB, MB, GB, TB, PB, EB, KIB, MIB, GIB, TIB, PIB, EIB,"
+		" HSS, WSS, GAMECUBE=GC, WII@, @AUTO@ and @DEFAULT@."
+		"\n "
+		" The values @1000@ and @1024@ (=default base) set the base factor"
+		" and @BYTES, K, M, G, T, P, E@ the SI factor."
+		" @MB@ is a shortcut for @1000,M@ and @MIB@ for @1024,M@; "
+		" this is also valid for the other SI factors."
+		" @AUTO@ selects the SI factor automatically."
+		"\n "
+		" @HSS@ and @WSS@ forces the output"
+		" as multiple of the HD or Wii sector size (512 or 32768 bytes)."
+		" @GAMECUBE@ and @WII@ forces the output of a floating point value"
+		" as multiple of the single layer ISO images size of the given type."
+		"\n "
+		" @DEFAULT@ allows the command to select a adequate size unit." },
+ 
   { T_OPT_C,	"UNIQUE",	"U|unique",
 		0, "Eliminate multiple entries with same ID6." },
 
@@ -1082,6 +1104,7 @@ info_t info_tab[] =
 	"If set the size is printed in MiB too."
 	" If set twice two columns with WBFS calculations are added."
 	" If set three times the real path of the source is printed." },
+  { T_COPT_M,	"UNIT",		0,0,0 },
 
   //---------- COMMAND wit CREATE ----------
 

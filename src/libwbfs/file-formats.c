@@ -25,6 +25,7 @@
 #include "file-formats.h"
 #include "crypt.h"
 
+//
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////				setup			///////////////
 ///////////////////////////////////////////////////////////////////////////////
@@ -160,76 +161,6 @@ int validate_file_format_sizes ( int trace_sizes )
     CHECK( sizeof(wd_tmd_t) + sizeof(wd_tmd_content_t) == WII_TMD_GOOD_SIZE );
 
     return 0;
-}
-
-//
-///////////////////////////////////////////////////////////////////////////////
-///////////////		low level endian conversions		///////////////
-///////////////////////////////////////////////////////////////////////////////
-
-u16 be16 ( const void * be_data_ptr )
-{
-    const u8 * d = be_data_ptr;
-    return d[0] << 8 | d[1];
-}
-
-u32 be24 ( const void * be_data_ptr )
-{
-    const u8 * d = be_data_ptr;
-    return ( d[0] << 8 | d[1] ) << 8 | d[2];
-}
-
-u32 be32 ( const void * be_data_ptr )
-{
-    const u8 * d = be_data_ptr;
-    return (( d[0] << 8 | d[1] ) << 8 | d[2] ) << 8 | d[3];
-}
-
-u64 be64 ( const void * be_data_ptr )
-{
-    const u8 * d = be_data_ptr;
-    return (u64)be32(d) << 32 | be32(d+4);
-}
-
-///////////////////////////////////////////////////////////////////////////////
-
-u16 le16 ( const void * le_data_ptr )
-{
-    const u8 * d = le_data_ptr;
-    return d[1] << 8 | d[0];
-}
-
-u32 le24 ( const void * le_data_ptr )
-{
-    const u8 * d = le_data_ptr;
-    return ( d[2] << 8 | d[1] ) << 8 | d[0];
-}
-
-u32 le32 ( const void * le_data_ptr )
-{
-    const u8 * d = le_data_ptr;
-    return (( d[3] << 8 | d[2] ) << 8 | d[1] ) << 8 | d[0];
-}
-
-u64 le64 ( const void * le_data_ptr )
-{
-    const u8 * d = le_data_ptr;
-    return (u64)le32(d+4) << 32 | le32(d);
-}
-
-///////////////////////////////////////////////////////////////////////////////
-
-be64_t hton64 ( u64 data )
-{
-    be64_t result;
-    ((u32*)&result)[0] = htonl( (u32)(data >> 32) );
-    ((u32*)&result)[1] = htonl( (u32)data );
-    return result;
-}
-
-u64 ntoh64 ( be64_t data )
-{
-    return (u64)ntohl(((u32*)&data)[0]) << 32 | ntohl(((u32*)&data)[1]);
 }
 
 //
@@ -1039,21 +970,6 @@ int part_control_is_fake_signed ( const wd_part_control_t * pc )
 {
     ASSERT(pc);
     return pc->is_valid && pc->tmd && tmd_is_fake_signed(pc->tmd,pc->tmd_size);
-}
-
-//
-///////////////////////////////////////////////////////////////////////////////
-///////////////			default helpers			///////////////
-///////////////////////////////////////////////////////////////////////////////
-
-unsigned char * wbfs_sha1_fake
-	( const unsigned char *d, size_t n, unsigned char *md )
-{
-    static unsigned char m[WII_HASH_SIZE];
-    if (!md)
-	md = m;
-    memset(md,0,sizeof(*md));
-    return md;
 }
 
 //

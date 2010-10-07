@@ -642,59 +642,6 @@ typedef struct wd_print_fst_t
 
 //
 ///////////////////////////////////////////////////////////////////////////////
-///////////////			    helpers			///////////////
-///////////////////////////////////////////////////////////////////////////////
-
-enumError wd_print_error
-(
-    ccp		func,		// calling function, use macro __FUNCTION__
-    ccp		file,		// source file, use macro __FILE__
-    uint	line,		// line number of source file, use macro __LINE__
-    enumError	err,		// error code
-    ccp		format,		// NULL or format string for fprintf() function.
-    ...				// parameters for 'format'
-);
-
-//-----------------------------------------------------------------------------
-
-char * wd_print_size
-(
-    char	* buf,		// result buffer
-				// If NULL, a local circulary static buffer is used
-    size_t	buf_size,	// size of 'buf', ignored if buf==NULL
-    u64		size,		// size to print
-    bool	aligned		// true: use exact 4+4 characters for the number + unit
-);
-
-//-----------------------------------------------------------------------------
-
-u32 wd_align32
-(
-    u32		number,		// object of aligning
-    u32		align,		// NULL or valid align factor
-    int		align_mode	// <0: round down, =0: round math, >0 round up
-);
-
-//-----------------------------------------------------------------------------
-
-u64 wd_align64
-(
-    u64		number,		// object of aligning
-    u64		align,		// NULL or valid align factor
-    int		align_mode	// <0: round down, =0: round math, >0 round up
-);
-
-//-----------------------------------------------------------------------------
-
-u64 wd_align_part
-(
-    u64		number,		// object of aligning
-    u64		align,		// NULL or valid align factor
-    bool	is_gamecube	// hint for automatic calculation (align==0)
-);
-
-//
-///////////////////////////////////////////////////////////////////////////////
 ///////////////		interface: common key & encryption	///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -1684,13 +1631,6 @@ bool wd_is_directory
 ///////////////		interface: dump data structures		///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-int wd_normalize_indent
-(
-    int			indent		// base vlaue to normalize
-);
-
-//-----------------------------------------------------------------------------
-
 void wd_print_disc
 (
     FILE		* f,		// valid output file
@@ -1719,20 +1659,6 @@ void wd_print_usage_tab
     int			indent,		// indention of the output
     const u8		* usage_tab,	// valid pointer, size = WII_MAX_SECTORS
     u64			iso_size,	// NULL or size of iso file
-    bool		print_all	// false: ignore const lines
-);
-
-//-----------------------------------------------------------------------------
-
-void wd_print_byte_tab
-(
-    FILE		* f,		// valid output file
-    int			indent,		// indention of the output
-    const u8		* tab,		// valid pointer to byte table
-    u32			used,		// print minimal 'used' values of 'tab'
-    u32			size,		// size of 'tab'
-    u32			addr_factor,	// each 'tab' element represents 'addr_factor' bytes
-    const char		chartab[256],	// valid pointer to a char table
     bool		print_all	// false: ignore const lines
 );
 

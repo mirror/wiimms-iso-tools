@@ -1,4 +1,5 @@
 ../src/libwbfs/wiidisc.[ch] ;
+../src/libwbfs/tools.[ch] ;
 ../src/wit.c ;
 ../src/libwbfs/file-formats.[ch] ;
 @lib-wbfs-only.edit-list

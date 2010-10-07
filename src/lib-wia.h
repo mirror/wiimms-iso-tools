@@ -475,6 +475,13 @@ enumError WriteZeroWIA
     size_t		count		// number of bytes to write
 );
 
+//-----------------------------------------------------------------------------
+
+enumError FlushWIA
+(
+    struct SuperFile_t	* sf		// destination file
+);
+
 //
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////			endian conversions		///////////////

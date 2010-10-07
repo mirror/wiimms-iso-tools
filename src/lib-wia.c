@@ -132,10 +132,10 @@ static u32 AllocBufferWIA
     else
     {
 	PRINT("CHUNK_SIZE=%s, GDATA_SIZE=%s, IOBUF_SIZE=%s/%s, G+S=%u,%u\n",
-	    wd_print_size(0,0,wia->chunk_size,0),
-	    wd_print_size(0,0,wia->gdata_size,0),
-	    wd_print_size(0,0,needed_tempbuf_size,0),
-	    wd_print_size(0,0,tempbuf_size,0),
+	    wd_print_size_1024(0,0,wia->chunk_size,0),
+	    wd_print_size_1024(0,0,wia->gdata_size,0),
+	    wd_print_size_1024(0,0,needed_tempbuf_size,0),
+	    wd_print_size_1024(0,0,tempbuf_size,0),
 	    wia->chunk_groups, wia->chunk_sectors );
 
 	AllocTempBuffer(needed_tempbuf_size);
@@ -595,7 +595,7 @@ static enumError read_data
 
       case WD_COMPR_LZMA:
       {
-	PRINT("SEEK TO %llx=%llu\n",file_offset,file_offset);
+	noPRINT("SEEK TO %llx=%llu\n",file_offset,file_offset);
 	enumError err = SeekF(&sf->f,file_offset);
 	if (err)
 	    return err;
@@ -751,7 +751,7 @@ static enumError read_part_gdata
 	    }
 	 #endif
 
-	    PRINT("%u exceptions for group %u\n",n_except,group);
+	    noPRINT("%u exceptions for group %u\n",n_except,group);
 	    for ( ; n_except > 0; n_except--, except++  )
 	    {
 		noPRINT_IF(wia->gdata_group == WATCH_GROUP && g == WATCH_SUB_GROUP,
@@ -909,7 +909,7 @@ enumError ReadWIA
 
 		    if ( group != wia->gdata_group )
 		    {
-			PRINT("----- SETUP RAW%4u GROUP %4u/%4u>%4u, off=%9llx, size=%6llx\n",
+			noPRINT("----- SETUP RAW%4u GROUP %4u/%4u>%4u, off=%9llx, size=%6llx\n",
 				item->index, base_group, ntohl(rdata->n_groups), group,
 				base_off, end_off - base_off );
 			enumError err = read_gdata( sf, group, end_off - base_off, false );
@@ -921,7 +921,7 @@ enumError ReadWIA
 		    if ( end_off > overlap2 )
 			 end_off = overlap2;
 
-		    PRINT("> READ RAW DATA:"
+		    noPRINT("> READ RAW DATA:"
 			    " %llx .. %llx -> %llx + %llx, base = %9llx + %6x\n",
 				overlap1, end_off,
 				overlap1 - base_off, end_off - overlap1,
@@ -956,7 +956,7 @@ enumError ReadWIA
 
 		    if ( group != wia->gdata_group || item->index != wia->gdata_part )
 		    {
-			PRINT("----- SETUP PART%3u GROUP %4u/%4u>%4u, off=%9llx, size=%6llx\n",
+			noPRINT("----- SETUP PART%3u GROUP %4u/%4u>%4u, off=%9llx, size=%6llx\n",
 				item->index,
 				group - pd->group_index, pd->n_groups, group,
 				base_off, end_off-base_off );
@@ -1089,8 +1089,8 @@ enumError SetupReadWIA
     if ( wia->chunk_size != disc->chunk_size )
 	return ERROR0(ERR_WIA_INVALID,
 	    "Only multiple of %s, but not %s, are supported as a chunk size: %s\n",
-		wd_print_size(0,0,wia->chunk_size,false),
-		wd_print_size(0,0,disc->chunk_size,false), sf->f.fname );
+		wd_print_size_1024(0,0,wia->chunk_size,false),
+		wd_print_size_1024(0,0,disc->chunk_size,false), sf->f.fname );
 
 
     //----- read and check partition header
@@ -1246,8 +1246,8 @@ enumError SetupReadWIA
 				it->index,
 				pd->n_groups, pd->n_groups == 1 ? " " : "s",
 				g_fw, pd->group_index,
-				wd_print_size(0,0,size,true),
-				wd_print_size(0,0,compr_size,true) );
+				wd_print_size_1024(0,0,size,true),
+				wd_print_size_1024(0,0,compr_size,true) );
 	    }
 	}
     }
@@ -1271,8 +1271,8 @@ enumError SetupReadWIA
 			it->index,
 			n_groups, n_groups == 1 ? " " : "s",
 			g_fw, group_index,
-			wd_print_size(0,0,size,true),
-			wd_print_size(0,0,compr_size,true) );
+			wd_print_size_1024(0,0,size,true),
+			wd_print_size_1024(0,0,compr_size,true) );
     }
 
     
@@ -1391,7 +1391,7 @@ static enumError write_data
     DASSERT(wia);
 
     u32 except_size = except ? calc_except_size(except,wia->chunk_groups) : 0;
-    PRINT_IF( except_size > wia->chunk_groups * sizeof(wia_except_list_t),
+    TRACE_IF( except_size > wia->chunk_groups * sizeof(wia_except_list_t),
 		"%zd exceptions in group %d, size=%u=0x%x\n",
 		( except_size - wia->chunk_groups * sizeof(wia_except_list_t) )
 			/ sizeof(wia_exception_t),
@@ -1530,7 +1530,7 @@ static enumError write_data
 	if (err)
 	    return err;
 
-	PRINT(">> WRITE LZMA: %9llx, %6x+%6x => %6x, grp %d\n",
+	noPRINT(">> WRITE LZMA: %9llx, %6x+%6x => %6x, grp %d\n",
 		    wia->write_data_off, except_size, data_size, written, group );
       }
       break;
@@ -1553,6 +1553,8 @@ static enumError write_data
     }
 
     wia->write_data_off += written + 3 & ~3;
+    if ( sf->f.bytes_written > wia->disc.chunk_size )
+	sf->progress_trigger++;
 
     if (write_count)
 	*write_count = written;
@@ -1845,6 +1847,7 @@ enumError WriteWIA
 {
     ASSERT(sf);
     ASSERT(sf->wia);
+    ASSERT(sf->wia->is_writing);
 
     TRACE("#W# -----\n");
     TRACE(TRACE_RDWR_FORMAT, "#W# WriteWIA()",
@@ -1876,7 +1879,7 @@ enumError WriteWIA
 	 case WIA_MM_HEADER_DATA:
 	 case WIA_MM_CACHED_DATA:
 	    DASSERT(item->data);
-	    PRINT("> COPY DATA: %9llx .. %9llx\n",overlap1,overlap2);
+	    noPRINT("> COPY DATA: %9llx .. %9llx\n",overlap1,overlap2);
 	    memcpy(	(u8*)item->data + (overlap1-item->offset),
 		    (ccp)buf + (overlap1-off),
 		    overlap2 - overlap1 );
@@ -1919,7 +1922,7 @@ enumError WriteWIA
 			enumError err = write_cached_gdata(sf,-1);
 			wia->gdata_group = group;
 			wia->gdata_used  = end_off - base_off;
-			PRINT("----- SETUP RAW%4u GROUP %4u/%4u>%4u, off=%9llx, size=%6x\n",
+			noPRINT("----- SETUP RAW%4u GROUP %4u/%4u>%4u, off=%9llx, size=%6x\n",
 				item->index, base_group, ntohl(rdata->n_groups), group,
 				base_off, wia->gdata_used );
 			if (err)
@@ -1961,7 +1964,7 @@ enumError WriteWIA
 
 		    if ( group != wia->gdata_group || item->index != wia->gdata_part )
 		    {
-			PRINT("----- SETUP PART%3u GROUP %4u/%4u>%4u, off=%9llx, size=%6x\n",
+			noPRINT("----- SETUP PART%3u GROUP %4u/%4u>%4u, off=%9llx, size=%6x\n",
 				item->index,
 				group - pd->group_index, pd->n_groups, group,
 				base_off, wia->gdata_used );
@@ -2044,6 +2047,28 @@ enumError WriteZeroWIA
     return ERROR0(ERR_NOT_IMPLEMENTED,"WIA is not supported yet.\n");
 }
 
+///////////////////////////////////////////////////////////////////////////////
+
+enumError FlushWIA
+(
+    struct SuperFile_t	* sf		// destination file
+)
+{
+    ASSERT(sf);
+    ASSERT(sf->wia);
+
+    enumError err = ERR_OK;
+    wia_controller_t * wia = sf->wia;
+    if (wia->is_writing)
+    {
+	err = write_cached_gdata(sf,-1);
+	if (!err)
+	    err = FlushFile(sf);
+    }
+
+    return err;
+}
+
 //
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////			setup write WIA			///////////////
@@ -2063,7 +2088,7 @@ static wia_raw_data_t * need_raw_data
     if ( wia->raw_data_used == wia->raw_data_size )
     {
 	wia->raw_data_size += grow_size;
-	PRINT("ALLOC %u RAW_DATA\n",wia->raw_data_size);
+	noPRINT("ALLOC %u RAW_DATA\n",wia->raw_data_size);
 	wia->raw_data
 	    = realloc( wia->raw_data, wia->raw_data_size * sizeof(*wia->raw_data) );
 	if (!wia->raw_data)
@@ -2163,7 +2188,7 @@ static enumError FinishSetupWriteWIA
 			    it->index,
 			    n_sect, n_sect == 1 ? "" : "s",
 			    n_groups, n_groups == 1 ? "" : "s",
-			    wd_print_size(0,0,size,false) );
+			    wd_print_size_1024(0,0,size,false) );
 
 		dirty = true;
 		break;
@@ -2276,6 +2301,8 @@ enumError SetupWriteWIA
     if (sf->wia)
 	return ERROR0(ERR_INTERNAL,0);
 
+    sf->progress_trigger = sf->progress_trigger_init = 0;
+
 
     //----- setup controller
 
@@ -2298,8 +2325,6 @@ enumError SetupWriteWIA
     fhead->version		= WIA_VERSION;
     fhead->version_compatible	= WIA_VERSION_COMPATIBLE;
     fhead->iso_file_size	= src_file_size ? src_file_size : src ? src->file_size : 0;
-PRINT("iso_file_size=%llx, src_file_size=%llx, src->file_size=%llx\n",
-	fhead->iso_file_size, src_file_size, src ? (u64)src->file_size : 0 );
 
     //----- setup disc info && compression
 
@@ -2392,7 +2417,7 @@ PRINT("iso_file_size=%llx, src_file_size=%llx, src->file_size=%llx\n",
     {
 	wd_part_t * wpart = wdisc->part + ip;
 	wd_load_part(wpart,true,true,false);
-	PRINT("SETUP PARTITION #%u: %s\n",
+	noPRINT("SETUP PARTITION #%u: %s\n",
 		ip, wd_print_part_name(0,0,wpart->part_type,WD_PNAME_NUM_INFO) );
 	if (!wpart->is_valid)
 	{
@@ -2469,6 +2494,7 @@ enumError TermWriteWIA
     ASSERT(sf->wia);
     TRACE("#W# TermWriteWIA(%p)\n",sf);
 
+    sf->progress_trigger = sf->progress_trigger_init = 1;
 
     wia_controller_t * wia = sf->wia;
     wia_disc_t *disc = &wia->disc;

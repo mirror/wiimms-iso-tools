@@ -36,21 +36,13 @@
 ///////////////			    setup			///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-#include "libwbfs_os.h"		// os dependent definitions
-#include "libwbfs_defaults.h"	// default settings
+#include "tools.h"
+
+int validate_file_format_sizes ( int trace_sizes );
 
 //
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////			  constants			///////////////
-///////////////////////////////////////////////////////////////////////////////
-
-#define KiB 1024
-#define MiB (1024*1024)
-#define GiB (1024*1024*1024)
-#define TiB (1024ull*1024*1024*1024)
-#define PiB (1024ull*1024*1024*1024*1024)
-#define EiB (1024ull*1024*1024*1024*1024*1024)
-
 ///////////////////////////////////////////////////////////////////////////////
 
 enum // some constants
@@ -144,6 +136,21 @@ enum // some constants
     WII_PART_OFF		=   0x50000,
     WII_GOOD_DATA_PART_OFF	= 0xf800000,
 
+    GC_MAGIC			= 0xc2339f3d,
+    GC_MAGIC_OFF		=       0x1c,
+    GC_MAGIC_LEN		=       0x04,
+    GC_DISC_SIZE		= 1459978240,	// standard GameCube disc size
+
+    GC_MULTIBOOT_PTAB_OFF	=  0x40,
+    GC_MULTIBOOT_PTAB_SIZE	= 0x100 - GC_MULTIBOOT_PTAB_OFF,
+    GC_MULTIBOOT_MAX_PART	= GC_MULTIBOOT_PTAB_SIZE/4,
+    GC_GOOD_PART_ALIGN		= 0x20000,	// alignment (= min off) of GC partitions
+
+    DOL_N_TEXT_SECTIONS		=     7,
+    DOL_N_DATA_SECTIONS		=    11,
+    DOL_N_SECTIONS		= DOL_N_TEXT_SECTIONS + DOL_N_DATA_SECTIONS,
+    DOL_HEADER_SIZE		= 0x100,
+
     WBFS_MIN_SECTOR_SHIFT	=  6,	// needed for wbfs_calc_size_shift()
     WBFS_MAX_SECTOR_SHIFT	= 11,	// needed for wbfs_calc_size_shift()
     WBFS_MIN_SECTOR_SIZE	= 1 << WBFS_MIN_SECTOR_SHIFT + WII_SECTOR_SIZE_SHIFT,
@@ -154,21 +161,6 @@ enum // some constants
     WBFS_INODE_INFO_CMP_SIZE	=   10,
     WBFS_INODE_INFO_OFF		= 0x80,
     WBFS_INODE_INFO_SIZE	= 0x100 - WBFS_INODE_INFO_OFF,
-
-    GC_MAGIC			= 0xc2339f3d,
-    GC_MAGIC_OFF		=       0x1c,
-    GC_MAGIC_LEN		=       0x04,
-    GC_DISC_SIZE		= 1459978240,	// standard GameCube disc size
-
-    GC_MULTIBOOT_PTAB_OFF	=    0x40,
-    GC_MULTIBOOT_PTAB_SIZE	=    0xc0,
-    GC_MULTIBOOT_MAX_PART	= GC_MULTIBOOT_PTAB_SIZE/4,
-    GC_GOOD_PART_ALIGN		= 0x20000,	// alignment (= min off) of GC partitions
-
-    DOL_N_TEXT_SECTIONS		=     7,
-    DOL_N_DATA_SECTIONS		=    11,
-    DOL_N_SECTIONS		= DOL_N_TEXT_SECTIONS + DOL_N_DATA_SECTIONS,
-    DOL_HEADER_SIZE		= 0x100,
 };
 
 //
@@ -265,41 +257,6 @@ ccp wd_print_compression
     u32			chunk_size,	// compression chunk size, multiple of MiB
     int			mode		// 1=number, 2=name, 3=number and name
 );
-
-//
-///////////////////////////////////////////////////////////////////////////////
-///////////////			typedefs			///////////////
-///////////////////////////////////////////////////////////////////////////////
-
-typedef u16 be16_t;
-typedef u32 be32_t;
-typedef u64 be64_t;
-
-typedef char id6_t[7];
-typedef u8 sha1_hash[WII_HASH_SIZE];
-
-int validate_file_format_sizes ( int trace_sizes );
-
-//
-///////////////////////////////////////////////////////////////////////////////
-///////////////		low level endian conversions		///////////////
-///////////////////////////////////////////////////////////////////////////////
-
-// convert big endian data to a number in host format
-u16 be16 ( const void * be_data_ptr );
-u32 be24 ( const void * be_data_ptr );
-u32 be32 ( const void * be_data_ptr );
-u64 be64 ( const void * be_data_ptr );
-
-// convert little endian data to a number in host format
-u16 le16 ( const void * le_data_ptr );
-u32 le24 ( const void * le_data_ptr );
-u32 le32 ( const void * le_data_ptr );
-u64 le64 ( const void * le_data_ptr );
-
-// convert u64 from/to network byte order
-be64_t hton64 ( u64    data );
-u64    ntoh64 ( be64_t data );
 
 //
 ///////////////////////////////////////////////////////////////////////////////
@@ -804,14 +761,6 @@ typedef struct wbfs_disc_info_t
 
 }
 __attribute__ ((packed)) wbfs_disc_info_t;
-
-//
-///////////////////////////////////////////////////////////////////////////////
-///////////////			default helpers			///////////////
-///////////////////////////////////////////////////////////////////////////////
-
-unsigned char * wbfs_sha1_fake
-	( const unsigned char *d, size_t n, unsigned char *md );
 
 //
 ///////////////////////////////////////////////////////////////////////////////

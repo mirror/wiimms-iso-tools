@@ -40,7 +40,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 
 #if defined(TEST) && defined(DEBUG)
-    #define LOG_ALLOC 1
+    #define LOG_ALLOC 0
     // 0: off
     // 1: show only max value
     // 2: show all values
@@ -305,6 +305,7 @@ enumError EncLZMA_Open
      alloc_size = 0;
  #endif
 
+
     //----- create handle
 
     lzma->handle = LzmaEnc_Create(&lzma_alloc);
@@ -322,8 +323,6 @@ enumError EncLZMA_Open
     props.level = lzma->compr_level;
     props.writeEndMark = write_endmark;
 
-    // [2do] size optimization
-
     SRes res = LzmaEnc_SetProps(lzma->handle,&props);
     if ( res != SZ_OK )
     {
@@ -332,6 +331,7 @@ enumError EncLZMA_Open
 		"Error while setup LZMA properties: %s\n-> LZMA error: %s\n",
 		lzma->error_object, GetMessageLZMA(res,"?") );
     }
+
 
     //----- store encoded properties
 
@@ -650,6 +650,7 @@ enumError EncLZMA2_Open
      alloc_size = 0;
  #endif
 
+
     //----- create handle
 
     lzma->handle = Lzma2Enc_Create(&lzma_alloc,&lzma_alloc);
@@ -667,8 +668,6 @@ enumError EncLZMA2_Open
     props.lzmaProps.level = lzma->compr_level;
     props.lzmaProps.writeEndMark = write_endmark;
 
-    // [2do] size optimization
-
     SRes res = Lzma2Enc_SetProps(lzma->handle,&props);
     if ( res != SZ_OK )
     {
@@ -677,6 +676,7 @@ enumError EncLZMA2_Open
 		"Error while setup LZMA2 properties: %s\n-> LZMA2 error: %s\n",
 		lzma->error_object, GetMessageLZMA(res,"?") );
     }
+
 
     //----- store encoded properties
 

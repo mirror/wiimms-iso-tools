@@ -71,7 +71,7 @@ static void dump_size
 	indent,"", title, size, size );
 
     if ( size >= 10240 )
-	fprintf(f," = %s",wd_print_size(0,0,size,true));
+	fprintf(f," = %s",wd_print_size_1024(0,0,size,true));
 
     if ( percent_base > 0 )
     {
@@ -210,7 +210,7 @@ static void dump_gc_part
 	    fprintf(f,"\n%*sGameCube partition #%d, offset 0x%llx, size %s:\n",
 		indent,"", part->index,
 		(u64)part->part_off4 << 2,
-		wd_print_size(0,0,part->part_size,false));
+		wd_print_size_1024(0,0,part->part_size,false));
 
 	    if (part->is_overlay)
 		fprintf(f,"%*s  Partition overlays other partitions.\n", indent,"" );

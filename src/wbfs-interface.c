@@ -2962,7 +2962,7 @@ bool CalcFBT ( CheckWBFS_t * ck )
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////			   WDiscInfo_t			///////////////
 ///////////////////////////////////////////////////////////////////////////////
-// is WiiDiscInfo obsolete? [wiidisc] [obsolete]
+// is WDiscInfo_t obsolete? [wiidisc] [obsolete]
 
 void InitializeWDiscInfo ( WDiscInfo_t * dinfo )
 {
@@ -3042,7 +3042,8 @@ enumError GetWDiscInfoBySlot ( WBFS_t * w, WDiscInfo_t * dinfo, u32 disc_slot )
 
 enumError FindWDiscInfo ( WBFS_t * w, WDiscInfo_t * dinfo, ccp id6 )
 {
-    // [2do] is this done by the wbfs subsystem?
+    // [2do] the wbfs subsystem can find ids!
+
     ASSERT(w);
     ASSERT(dinfo);
     ASSERT(id6);
