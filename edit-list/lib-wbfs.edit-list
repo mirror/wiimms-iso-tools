@@ -1,4 +1,5 @@
 ../src/libwbfs/libwbfs.[ch] ;
+../src/libwbfs/tools.[ch] ;
 @lib-wbfs-only.edit-list
 @iso-interface.edit-list
 -y 1524 ../src/libwbfs/libwbfs.c ;

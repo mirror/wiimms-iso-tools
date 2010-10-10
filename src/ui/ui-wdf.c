@@ -251,8 +251,8 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 
     {	OPT_LOGGING, 'L', "logging",
 	0,
-	"Enable the logging of internal memory maps. If set twice second level"
-	" memory maps are printed too."
+	"This debug option enables the logging of internal memory maps. If set"
+	" twice second level memory maps are printed too."
     },
 
     {	OPT_TEST, 't', "test",

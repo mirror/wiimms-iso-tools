@@ -523,7 +523,7 @@ static bool MatchPatternHelper ( ccp pattern, ccp text, bool skip_end, int alt_d
 				    return false;
 				break;
 
-			    case '[': // [2do]
+			    case '[': // [2do] forgotten marker?
 				pattern = AnalyseBrackets(pattern,0,0,0);
 				break;
 			}
@@ -557,7 +557,7 @@ static bool MatchPatternHelper ( ccp pattern, ccp text, bool skip_end, int alt_d
 				skip_depth--;
 				break;
 
-			    case '[': // [2do]
+			    case '[': // [2do] forgotten marker?
 				pattern = AnalyseBrackets(pattern,0,0,0);
 				break;
 			}

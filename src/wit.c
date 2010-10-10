@@ -559,71 +559,84 @@ enumError exec_isosize ( SuperFile_t * sf, Iterator_t * it )
     }
 
     const bool print_header = !OptionUsed[OPT_NO_HEADER];
+    const int size_fw = wd_get_size_fw(opt_unit,4);
+    const u64 blocks = disc ? wd_count_used_blocks(wdisc_usage_tab,1) : 0;
+    it->sum += blocks;
 
     if ( it->long_count > 1 )
     {
-	if ( print_header && !it->done_count++  )
+	const int wbfs_fw = size_fw > 5 ? size_fw : 5;
+	if ( !it->done_count++ && print_header )
 	    printf("\n"
-		"   ISO  ISO .wbfs 500g\n"
-		"blocks  MiB  file WBFS  %s\n"
+		"   ISO %*s %*s %*s\n"
+		"blocks %*s %*s %*s  %s\n"
 		"%s\n",
-		it->long_count > 2 ? "real path" : "filename", sep_79 );
+		size_fw, "ISO",
+		size_fw, ".wbfs",
+		size_fw, "500g",
+		size_fw, wd_get_size_unit(opt_unit,"?"),
+		wbfs_fw, "file",
+		size_fw, "WBFS",
+		it->long_count > 2 ? "real path" : "filename",
+		sep_79 );
 
-	char size[30] = "     -    -     -    -";
-	if (disc)
+	if (blocks)
 	{
-	    const u32 count = wd_count_used_blocks(wdisc_usage_tab,1);
-	    if (count)
-	    {
-		// wbfs: size=10g => block size = 2 MiB
-		const u32 wfile = 1 + wd_count_used_blocks( wdisc_usage_tab,
-						2 * WII_SECTORS_PER_MIB );
-		// wbfs: size=500g => block size = 8 MiB
-		const u32 w500 =  wd_count_used_blocks( wdisc_usage_tab,
-						8 * WII_SECTORS_PER_MIB );
+	    // wbfs: size=10g => block size = 2 MiB
+	    const u32 wfile = 1 + wd_count_used_blocks( wdisc_usage_tab,
+					    2 * WII_SECTORS_PER_MIB );
+	    // wbfs: size=500g => block size = 8 MiB
+	    const u32 w500 =  wd_count_used_blocks( wdisc_usage_tab,
+					    8 * WII_SECTORS_PER_MIB );
 
-		snprintf(size,sizeof(size),"%6u %4u %5u %4u",
-			count, (count+WII_SECTORS_PER_MIB/2)/WII_SECTORS_PER_MIB,
-			2*wfile, 8*w500 );
-	    }
+	    printf("%6llu %*s %*s %*s  %s\n",
+		blocks,
+		size_fw, wd_print_size(0,0,blocks*WII_SECTOR_SIZE,false,opt_unit),
+		wbfs_fw, wd_print_size(0,0,2ull*MiB*wfile,false,opt_unit),
+		size_fw, wd_print_size(0,0,8ull*MiB*w500,false,opt_unit),
+		sf->f.fname );
 	}
-	printf("%s  %s\n", size, it->long_count > 2 ? it->real_path : sf->f.fname );
+	else	
+	    printf("     - %*s %*s %*s  %s\n",
+		size_fw, "-",
+		wbfs_fw, "-",
+		size_fw, "-",
+		sf->f.fname );
     }
     else if ( it->long_count )
     {
-	if ( print_header && !it->done_count++  )
+	if ( !it->done_count++ && print_header )
 	    printf("\n"
-		"   ISO  ISO\n"
-		"blocks  MiB  filename\n"
-		"%s\n", sep_79 );
+		"   ISO %*s\n"
+		"blocks %*s  filename\n"
+		"%s\n",
+		size_fw, "ISO",
+		size_fw, wd_get_size_unit(opt_unit,"?"),
+		sep_79 );
 
-	char size[20] = "     -    -";
-	if (sf->f.id6[0])
-	{
-	    const u32 count = wd_count_used_blocks(wdisc_usage_tab,1);
-	    if (count)
-		snprintf(size,sizeof(size),"%6u %4u",
-			count, (count+WII_SECTORS_PER_MIB/2)/WII_SECTORS_PER_MIB );
-	}
-	printf("%s  %s\n", size, sf->f.fname );
+	if (blocks)
+	    printf("%6llu %*s  %s\n",
+		blocks,
+		size_fw, wd_print_size(0,0,blocks*WII_SECTOR_SIZE,false,opt_unit),
+		sf->f.fname );
+	else	
+	    printf("     - %*s  %s\n", size_fw, "-", sf->f.fname );
     }
     else
     {
-	if ( print_header && !it->done_count++  )
+	if ( !it->done_count++ && print_header )
 	    printf("\n"
-		" ISO\n"
-		" MiB  filename\n"
-		"%s\n", sep_79 );
+		"%*s\n"
+		"%*s  filename\n"
+		"%s\n",
+		size_fw, "ISO",
+		size_fw, wd_get_size_unit(opt_unit,"?"),
+		sep_79 );
 
-	char size[20] = "   -";
-	if (sf->f.id6[0])
-	{
-	    const u32 count = wd_count_used_blocks(wdisc_usage_tab,1);
-	    if (count)
-		snprintf(size,sizeof(size),"%4u",
-			(count+WII_SECTORS_PER_MIB/2)/WII_SECTORS_PER_MIB );
-	}
-	printf("%s  %s\n", size, sf->f.fname );
+	ccp size = "-";
+	if (blocks)
+	    size = wd_print_size(0,0,blocks*WII_SECTOR_SIZE,false,opt_unit);
+	printf("%*s  %s\n", size_fw, size, sf->f.fname );
     }
 
     return ERR_OK;
@@ -639,19 +652,59 @@ enumError cmd_isosize()
 
     encoding |= ENCODE_F_FAST; // hint: no encryption needed
 
+    wd_size_mode_t unit_mode = opt_unit & WD_SIZE_M_MODE;
+    if ( unit_mode == WD_SIZE_DEFAULT || unit_mode == WD_SIZE_WD_SECT && long_count )
+	unit_mode = WD_SIZE_M;
+    const wd_size_mode_t sum_unit = opt_unit & ~WD_SIZE_M_MODE | unit_mode;
+    const wd_size_mode_t total_unit = opt_unit & WD_SIZE_M_BASE | WD_SIZE_AUTO;
+    opt_unit = sum_unit | WD_SIZE_F_AUTO_UNIT;
+
     Iterator_t it;
     InitializeIterator(&it);
-    it.func		= exec_isosize;
     it.act_non_exist	= ignore_count > 0 ? ACT_IGNORE : ACT_ALLOW;
     it.act_non_iso	= ignore_count > 1 ? ACT_IGNORE : ACT_ALLOW;
     it.act_gc		= ACT_ALLOW;
     it.act_fst		= allow_fst ? ACT_EXPAND : ACT_IGNORE;
     it.act_wbfs		= ACT_EXPAND;
     it.long_count	= long_count;
-    const enumError err = SourceIterator(&it,1,true,false);
+
+    enumError err = SourceIterator(&it,1,true,true);
+    if ( err <= ERR_WARNING )
+    {
+	it.func = exec_isosize;
+	err = SourceIteratorCollected(&it,1,false);
+    }
 
     if ( !OptionUsed[OPT_NO_HEADER] && it.done_count )
+    {
+	if ( it.done_count > 1 )
+	{
+	    const u64 total_size = it.sum * WII_SECTOR_SIZE;
+	    ccp size1 = wd_print_size(0,0,total_size,false,sum_unit);
+	    ccp size2 = wd_print_size(0,0,total_size,false,total_unit);
+
+	    if (long_count)
+	    {
+		if (strcmp(size1,size2))
+		    printf("%s\nTotal: %llu blocks (%s = %s) in %u files\n",
+			sep_79, it.sum, size1, size2, it.done_count );
+		else
+		    printf("%s\nTotal: %llu blocks (%s) in %u files\n",
+			sep_79, it.sum, size1, it.done_count );
+	    }
+	    else
+	    {
+		const int size_fw = wd_get_size_fw(opt_unit,4)+4;
+		if (strcmp(size1,size2))
+		    printf("%s\n%*s (%s) in %u files\n",
+			    sep_79, size_fw, size1, size2, it.done_count );
+		else
+		    printf("%s\n%*s in %u files\n",
+			    sep_79, size_fw, size1, it.done_count );
+	    }
+	}
 	putchar('\n');
+    }
 
     ResetIterator(&it);
     return err;
@@ -919,6 +972,11 @@ enumError cmd_list ( int long_level )
 
     if ( print_sections )
     {
+	printf(	"\n[summary]\n"
+		"total-discs=%u\n"
+		"total-size=%llu\n",
+		wlist.used, wlist.total_size_mib * (u64)MiB );
+
 	char buf[10];
 	snprintf(buf,sizeof(buf),"%u",wlist.used-1);
 	const int fw = strlen(buf);
@@ -949,6 +1007,13 @@ enumError cmd_list ( int long_level )
 	opt_time = EnablePrintTime(opt_time);
     SetupPrintTime(&pt,opt_time);
 
+    if ( ( opt_unit & WD_SIZE_M_MODE ) == WD_SIZE_DEFAULT )
+	opt_unit = opt_unit & ~WD_SIZE_M_MODE | WD_SIZE_M;
+    const wd_size_mode_t column_unit = opt_unit | WD_SIZE_F_AUTO_UNIT;
+    const wd_size_mode_t total_unit = opt_unit & WD_SIZE_M_BASE | WD_SIZE_AUTO;
+    const int size_fw = wd_get_size_fw(column_unit,4);
+    const u64 total_size = wlist.total_size_mib * (u64)MiB;
+
     int max_name_wd = 0;
     if (print_header)
     {
@@ -967,10 +1032,17 @@ enumError cmd_list ( int long_level )
 	    }
 	}
 
-	footer_len = snprintf(footer,sizeof(footer),
-		"Total: %u discs, %u MiB ~ %u GiB used.",
-		wlist.used,
-		wlist.total_size_mib, (wlist.total_size_mib+512)/1024 );
+	ccp size1 = wd_print_size(0,0,total_size,false,opt_unit);
+	ccp size2 = wd_print_size(0,0,total_size,false,total_unit);
+	footer_len = strcmp(size1,size2)
+			? snprintf(footer,sizeof(footer),
+				"Total: %u disc%s, %s ~ %s used.",
+				wlist.used, wlist.used == 1 ? "" : "s",
+				size1, size2 )
+			: snprintf(footer,sizeof(footer),
+				"Total: %u disc%s, %s used.",
+				wlist.used, wlist.used == 1 ? "" : "s",
+				size1 );
     }
 
     if (long_count)
@@ -979,18 +1051,17 @@ enumError cmd_list ( int long_level )
 	{
 	    int n1, n2;
 	    putchar('\n');
-	    printf("ID6   %s  MiB Reg.  %n%d discs (%d GiB)%n\n",
-		    pt.head, &n1, wlist.used,
-		    (wlist.total_size_mib+512)/1024, &n2 );
+	    printf("ID6   %s %*s Reg.  %n%d discs (%s)%n\n",
+		    pt.head, size_fw, wd_get_size_unit(column_unit,"?"),
+		    &n1, wlist.used,
+		    wd_print_size(0,0,total_size,false,total_unit), &n2 );
 	    max_name_wd += n1;
 	    if ( max_name_wd < n2 )
 		max_name_wd = n2;
 
 	    if (line2)
-	    {
-		fputs(pt.fill,stdout);
-		fputs("      n(p) type   path of file\n",stdout);
-	    }
+		printf("%s%*s type   path of file\n",
+			pt.fill, size_fw + 6, "n(p)");
 
 	    if ( max_name_wd < footer_len )
 		max_name_wd = footer_len;
@@ -999,13 +1070,15 @@ enumError cmd_list ( int long_level )
 
 	for ( witem = wlist.first_disc; witem < wend; witem++ )
 	{
- 	    printf("%s%s %4d %s  %s\n",
+ 	    printf("%s%s %*s %s  %s\n",
 		    witem->id6, PrintTime(&pt,&witem->fatt),
-		    witem->size_mib, GetRegionInfo(witem->id6[3])->name4,
+		    size_fw,
+		    wd_print_size(0,0,witem->size_mib*(u64)MiB,false,column_unit),
+		    GetRegionInfo(witem->id6[3])->name4,
 		    witem->title ? witem->title : witem->name64 );
 	    if (line2)
-		printf("%s%9d %7s %s\n",
-		    pt.fill, witem->n_part, GetNameFT(witem->ftype,0),
+		printf("%s%*d %7s %s\n",
+		    pt.fill, size_fw + 5, witem->n_part, GetNameFT(witem->ftype,0),
 		    witem->fname ? witem->fname : "" );
 	}
     }
@@ -1015,11 +1088,15 @@ enumError cmd_list ( int long_level )
 	{
 	    int n1, n2;
 	    putchar('\n');
-	    printf("ID6    %s %n%d discs (%d GiB)%n\n",
-		    pt.head, &n1, wlist.used, (wlist.total_size_mib+512)/1024, &n2 );
+	    printf("ID6    %s %n%d disc%s (%s)%n\n",
+		    pt.head, &n1,
+		    wlist.used, wlist.used == 1 ? "" : "s",
+		    wd_print_size(0,0,total_size,false,total_unit), &n2 );
 	    max_name_wd += n1;
 	    if ( max_name_wd < n2 )
 		max_name_wd = n2;
+	    if ( max_name_wd < footer_len )
+		max_name_wd = footer_len;
 	    printf("%.*s\n", max_name_wd, wd_sep_200 );
 	}
 
@@ -1232,7 +1309,7 @@ enumError cmd_diff ( bool file_level )
 	    ;
 	ASSERT(param);
 	ASSERT(!param->next);
-	opt_dest = param->arg;
+	SetDest(param->arg,false);
 	param->arg = 0;
     }
 
@@ -1372,7 +1449,7 @@ enumError cmd_extract()
 	    ;
 	ASSERT(param);
 	ASSERT(!param->next);
-	opt_dest = param->arg;
+	SetDest(param->arg,false);
 	param->arg = 0;
     }
 
@@ -1539,7 +1616,7 @@ enumError cmd_copy()
 	    ;
 	ASSERT(param);
 	ASSERT(!param->next);
-	opt_dest = param->arg;
+	SetDest(param->arg,false);
 	param->arg = 0;
     }
 
@@ -1806,7 +1883,7 @@ enumError cmd_move()
 	    ;
 	ASSERT(param);
 	ASSERT(!param->next);
-	opt_dest = param->arg;
+	SetDest(param->arg,false);
 	param->arg = 0;
     }
 
@@ -2066,10 +2143,11 @@ enumError CheckOptions ( int argc, char ** argv, bool is_env )
 
 	case GO_SOURCE:		AppendStringField(&source_list,optarg,false); break;
 	case GO_RECURSE:	AppendStringField(&recurse_list,optarg,false); break;
+	case GO_AUTO:		opt_source_auto++; break;
 
-	case GO_INCLUDE:	AtFileHelper(optarg,0,0,AddIncludeID); break;
+	case GO_INCLUDE:	AtFileHelper(optarg,0,1,AddIncludeID); break;
 	case GO_INCLUDE_PATH:	AtFileHelper(optarg,0,0,AddIncludePath); break;
-	case GO_EXCLUDE:	AtFileHelper(optarg,0,0,AddExcludeID); break;
+	case GO_EXCLUDE:	AtFileHelper(optarg,0,1,AddExcludeID); break;
 	case GO_EXCLUDE_PATH:	AtFileHelper(optarg,0,0,AddExcludePath); break;
 	case GO_IGNORE:		ignore_count++; break;
 	case GO_IGNORE_FST:	allow_fst = false; break;
@@ -2097,8 +2175,8 @@ enumError CheckOptions ( int argc, char ** argv, bool is_env )
 	case GO_ALIGN_PART:	err += ScanOptAlignPart(optarg); break;
 	case GO_DISC_SIZE:	err += ScanOptDiscSize(optarg); break;
 	case GO_OVERLAY:	break;
-	case GO_DEST:		opt_dest = optarg; break;
-	case GO_DEST2:		opt_dest = optarg; opt_mkdir = true; break;
+	case GO_DEST:		SetDest(optarg,false); break;
+	case GO_DEST2:		SetDest(optarg,true); break;
 	case GO_SPLIT:		opt_split++; break;
 	case GO_SPLIT_SIZE:	err += ScanOptSplitSize(optarg); break;
 	case GO_TRUNC:		opt_truncate++; break;
@@ -2130,6 +2208,7 @@ enumError CheckOptions ( int argc, char ** argv, bool is_env )
 	case GO_NO_HEADER:	break;
 	case GO_SECTIONS:	print_sections++; break;
 	case GO_SHOW:		err += ScanOptShow(optarg); break;
+	case GO_UNIT:		err += ScanOptUnit(optarg); break;
 	case GO_SORT:		err += ScanOptSort(optarg); break;
 
 	case GO_RDEPTH:

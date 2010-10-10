@@ -181,6 +181,7 @@ enumError Dump_FST_MEM
 
 struct Iterator_t;
 typedef enumError (*IteratorFunc) ( SuperFile_t * sf, struct Iterator_t * it );
+extern int opt_source_auto;
 
 //-----------------------------------------------------------------------------
 
@@ -213,10 +214,11 @@ typedef struct Iterator_t
 	enumAction	act_gc;		// action for GameCube discs
 	enumAction	act_open;	// action for open output files
 
-	// source file list
+	// source info
 
-	StringField_t	source_list;	// collect first than run
+	StringField_t	source_list;	// collected files
 	int		source_index;	// informative: index of current file
+	bool		auto_processed;	// auto scanning of partitions done
 
 	// statistics
 
@@ -237,6 +239,7 @@ typedef struct Iterator_t
 	uint		done_count;	// done counter
 	uint		diff_count;	// diff counter
 	uint		exists_count;	// 'file alread exists' counter
+	u64		sum;		// any summary value
 	WDiscList_t	* wlist;	// pointer to WDiscList_t to collect data
 	struct WBFS_t	* wbfs;		// open WBFS
 	dev_t		open_dev;	// dev_t of open output file

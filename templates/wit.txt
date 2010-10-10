@@ -64,29 +64,6 @@ are listed in alphabetic order:
 
 -------------------------------------------------------------------------------
 @@EXEC(./wit help --width 80 CONVERT)@@
-~ [2do] copy to homepage
-
- The command CONVERT reorganize all given source files.
-
- Each source is candidate for scrubbing. Non ISO files are ignored with a
- warning. The option --ignore suppresses this warning. The output is scrubbed.
- The scrubbing can be controled with the options --psel and --raw.
-
- The options --split and --split-size control the splitting of the output
- files. See section "Processing split options" for details.
-
- The option --test enables test mode: No files are written or removed. If
- --test is set at least two times a source list with a trailing destination
- will be printed.
-
-
- Usual ERROR/EXIT CODES:
-
-    0 == OK             : all done without errors.
-    SYNTAX ERROR        : at least one syntax error in command line found.
-    READ ERROR          : error while reading a file.
-    WRITE ERROR         : error while writing a file.
-    CANT CREATE         : Can't create output file.
 
 
 -------------------------------------------------------------------------------
@@ -163,9 +140,6 @@ are listed in alphabetic order:
 
 -------------------------------------------------------------------------------
 @@EXEC(./wit help --width 80 EDIT)@@
-~ [2do] copy to homepage
-
- ** no documentation yet **
 
 
 -------------------------------------------------------------------------------

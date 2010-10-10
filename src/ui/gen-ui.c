@@ -1135,7 +1135,7 @@ static enumError Generate ( control_t * ctrl )
 ///////////////			  AddTables()			///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-void AddTables ( FILE * df )
+static void AddTables ( FILE * df )
 {
     ASSERT(df);
 

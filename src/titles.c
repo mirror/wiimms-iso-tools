@@ -296,14 +296,55 @@ int disable_exclude_db = 0;	// disable exclude db at all if > 0
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-int AddIncludeID ( ccp arg, int unused )
+static int AddId ( ID_DB_t * db, ccp arg, int scan_file )
 {
-    char id[7];
-    int idlen;
-    ScanID(id,&idlen,arg);
-    if ( idlen ==4 || idlen == 6 )
-	InsertID(&include_db,id,0);
+    char buf[200], id[7];
 
+    int count = 0;
+    if (scan_file)
+    {
+	int idlen;
+	ScanID(id,&idlen,arg);
+	if ( idlen == 4 || idlen == 6 )
+	{
+	    PRINT("ADD ID/FILE: %s\n",id);
+	    InsertID(db,id,0);
+	    count++;
+	}
+    }
+    else while (*arg)
+    {
+	ccp start = arg;
+	while ( *arg && *arg != ',' )
+	    arg++;
+
+	int len = arg - start;
+	if ( len > sizeof(buf)-1 )
+	     len = len > sizeof(buf)-1;
+	memcpy(buf,start,len);
+	buf[len] = 0;
+	
+	int idlen;
+	ScanID(id,&idlen,buf);
+	if ( idlen == 4 || idlen == 6 )
+	{
+	    PRINT("ADD ID/LIST: %s\n",id);
+	    InsertID(db,id,0);
+	    count++;
+	}
+
+	while ( *arg == ',' )
+	    arg++;
+    }
+
+    return count;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+int AddIncludeID ( ccp arg, int scan_file )
+{
+    AddId(&include_db,arg,scan_file);
     include_db_enabled = true;
     return 0;
 }
@@ -325,13 +366,9 @@ int AddIncludePath ( ccp arg, int unused )
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-int AddExcludeID ( ccp arg, int unused )
+int AddExcludeID ( ccp arg, int scan_file )
 {
-    char id[7];
-    int idlen;
-    ScanID(id,&idlen,arg);
-    if ( idlen ==4 || idlen == 6 )
-	InsertID(&exclude_db,id,0);
+    AddId(&exclude_db,arg,scan_file);
     return 0;
 }
 

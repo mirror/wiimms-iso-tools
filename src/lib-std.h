@@ -506,6 +506,8 @@ ccp GetFileModeText ( enumFileMode mode, bool longtext, ccp fail_text );
     char * AllocNormalizedFilenameCygwin ( ccp source );
 #endif
 
+void SetDest ( ccp arg, bool mkdir );
+
 s64 GetFileSize
 (
     ccp		path1,		// NULL or part 1 of path
@@ -699,7 +701,7 @@ int ScanOptSort ( ccp arg );
 
 //
 ///////////////////////////////////////////////////////////////////////////////
-///////////////                     show mode                   ///////////////
+///////////////			options show + unit		///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
 typedef enum ShowMode
@@ -763,6 +765,13 @@ int ConvertShow2PFST
 	ShowMode show_mode,	// show mode
 	ShowMode def_mode	// default mode
 );
+
+//-----------------------------------------------------------------------------
+
+extern wd_size_mode_t opt_unit;
+
+wd_size_mode_t ScanUnit ( ccp arg );
+int ScanOptUnit ( ccp arg );
 
 //
 ///////////////////////////////////////////////////////////////////////////////

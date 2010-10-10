@@ -4,6 +4,6 @@
 ../src/lib-wdf.[ch] ;
 ../src/lib-sf.[ch] ;
 @+all-source.edit-list
--y 2500 ../src/lib-std.c ;
+-y 3000 ../src/lib-std.c ;
 -y    1 ../src/lib-std.h ;
 -y    1 ../src/lib-file.c ;

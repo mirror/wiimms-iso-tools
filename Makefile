@@ -17,7 +17,7 @@ WWT_LONG		= Wiimms WBFS Tool
 WDF_SHORT		= wdf
 WDF_LONG		= Wiimms WDF Tool
 
-VERSION_NUM		= 1.17a
+VERSION_NUM		= 1.18a
 BETA_VERSION		= 0
 			# 0:off  -1:"beta"  >0:"beta#"
 
@@ -140,7 +140,7 @@ WIT_O		:= debug.o lib-std.o lib-file.o lib-sf.o \
 		   ui.o iso-interface.o wbfs-interface.o patch.o \
 		   titles.o match-pattern.o dclib-utf8.o \
 		   sha1dgst.o sha1_one.o
-LIBWBFS_O	:= file-formats.o libwbfs.o wiidisc.o rijndael.o
+LIBWBFS_O	:= tools.o file-formats.o libwbfs.o wiidisc.o rijndael.o
 LZMA_O		:= LzmaDec.o LzmaEnc.o LzFind.o Lzma2Dec.o Lzma2Enc.o
 
 # object groups

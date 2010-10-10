@@ -202,8 +202,8 @@
 
 #:def_opt( "LOGGING", "L|logging", "GM", \
 	"", \
-	"Enable the logging of internal memory maps. If set twice second level" \
-	" memory maps are printed too." )
+	"This debug option enables the logging of internal memory maps. If set" \
+	" twice second level memory maps are printed too." )
 
 #:def_opt( "ESC", "E|esc", "GP", \
 	"char", \
@@ -251,25 +251,41 @@
 	"depth", \
 	"Set the maximum recurse depth for option {--recurse} (default=10)." )
 
+#:def_opt( "AUTO", "a|auto", "C", \
+	"", \
+	"Search WBFS partitions using '/proc/partitions' or searching hard" \
+	" disks in '/dev/' and use all readable as source. This works like" \
+	" {wwt --auto --all}." )
+
 #:def_opt( "INCLUDE", "n|include", "CMP", \
 	"id", \
-	"Include only discs with given ID4 or ID6 from operation. If the" \
+	"A comma separated list with ID4 and ID6 values is expected. If the" \
 	" parameter begins with a '@@' the given file is read and each line is" \
-	" scanned for IDs." )
+	" scanned for one ID. Only images with the given ID are included into" \
+	" the operation. Each use of this option expands the include list. The" \
+	" exclude list takes precedence." )
 
 #:def_opt( "INCLUDE_PATH", "N|include-path|includepath", "CMP", \
 	"file_or_dir", \
-	"ISO file or base of directory tree -> scan their ID6." )
+	"Scan the ID of the source and add it to the include list. If the" \
+	" source is a directory then scan all images of the directory. Only" \
+	" images with the given ID are included into the operation. Each use" \
+	" of this option expands the include list. The exclude list takes" \
+	" precedence." )
 
 #:def_opt( "EXCLUDE", "x|exclude", "CMP", \
 	"id", \
-	"Exclude discs with given ID4 or ID6 from operation. If the parameter" \
-	" begins with a '@@' the given file is read and each line is scanned" \
-	" for IDs." )
+	"A comma separated list with ID4 and ID6 values is expected. If the" \
+	" parameter begins with a '@@' the given file is read and each line is" \
+	" scanned for one ID. Images with the given ID are excluded from" \
+	" operation. Each use of this option expands the exclude list." )
 
 #:def_opt( "EXCLUDE_PATH", "X|exclude-path|excludepath", "CMP", \
 	"file_or_dir", \
-	"ISO file or base of directory tree -> scan their ID6." )
+	"Scan the ID of the source and add it to the exclude list. If the" \
+	" source is a directory then scan all images of the directory. Images" \
+	" with the given ID are excluded from operation. Each use of this" \
+	" option expands the exclude list." )
 
 #:def_opt( "IGNORE", "i|ignore", "CM", \
 	"", \
@@ -529,8 +545,7 @@
 
 #:def_opt( "WIA", "wia", "C", \
 	"", \
-	"Set ISO output file type to WIA (Wii ISO Archive). WIA files are not" \
-	" editable by {wit EDIT}." )
+	"Set ISO output file type to WIA (Wii ISO Archive)." )
 
 #:def_opt( "FST", "fst", "C", \
 	"", \
@@ -565,10 +580,11 @@
 
 #:def_opt( "TIME", "time", "CMP", \
 	"list", \
-	"Set time printing and sorting mode The parameter is a comma separated" \
-	" list of the following keywords, case is ignored: RESET, OFF, ON," \
-	" SINGLE, MULTI, NONE, ALL, I, M, C, A, DATE, TIME, SEC, IDATE, MDATE," \
-	" CDATE, ADATE, ITIME, MTIME, CTIME, ATIME, ISEC, MSEC, CSEC, ASEC." )
+	"Set time printing and sorting mode. The parameter is a comma" \
+	" separated list of the following keywords, case is ignored: RESET," \
+	" OFF, ON, SINGLE, MULTI, NONE, ALL, I, M, C, A, DATE, TIME, SEC," \
+	" IDATE, MDATE, CDATE, ADATE, ITIME, MTIME, CTIME, ATIME, ISEC, MSEC," \
+	" CSEC, ASEC." )
 
 #:def_opt( "LONG", "l|long", "CM", \
 	"", \
@@ -595,6 +611,23 @@
 	"  The commands recognize only some of these keywords and ignore the" \
 	" others. If @--show@ is set, option {--long} is ignored for selecting" \
 	" output elements." )
+
+#:def_opt( "UNIT", "unit", "CP", \
+	"list", \
+	"This option set the output unit for sizes. The parameter is a comma" \
+	" separated list of the following keywords, case is ignored: " \
+	" @1000=10, 1024=2, BYTES, K, M, G, T, P, E, KB, MB, GB, TB, PB, EB," \
+	" KIB, MIB, GIB, TIB, PIB, EIB, HDS, WDS, GAMECUBE=GC, WII, AUTO@ and" \
+	" @DEFAULT@.\n" \
+	"  The values @1000@ and @1024@ (=default base) set the base factor" \
+	" and @BYTES, K, M, G, T, P, E@ the SI factor. @MB@ is a shortcut for" \
+	" @1000,M@ and @MIB@ for @1024,M@;  this is also valid for the other" \
+	" SI factors. @AUTO@ selects a value dependent SI factor.\n" \
+	"  @HDS@ and @WDS@ forces the output as multiple of the HD or Wii disc" \
+	" sector size (512 or 32768 bytes). @GAMECUBE@ and @WII@ forces the" \
+	" output of a floating point value as multiple of the single layer ISO" \
+	" images size of the given type.\n" \
+	"  @DEFAULT@ allows the command to select a adequate size unit." )
 
 #:def_opt( "UNIQUE", "U|unique", "C", \
 	"", \
@@ -710,6 +743,10 @@
 	"", \
 	"Define an IOS/SYS-VERSION for the TMD." )
 
+#:def_cmd_opt( "FILELIST", "AUTO", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "FILELIST", "SOURCE", \
 	"", \
 	"" )
@@ -749,6 +786,10 @@
 #:def_cmd_opt( "FILELIST", "LONG", \
 	"", \
 	"Print the real path instead of given path." )
+
+#:def_cmd_opt( "FILETYPE", "AUTO", \
+	"", \
+	"" )
 
 #:def_cmd_opt( "FILETYPE", "SOURCE", \
 	"", \
@@ -796,6 +837,10 @@
 	" ther region (2x) are enabled. If set three or more times the real" \
 	" path instead of given path is printed." )
 
+#:def_cmd_opt( "ISOSIZE", "AUTO", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "ISOSIZE", "SOURCE", \
 	"", \
 	"" )
@@ -842,6 +887,10 @@
 	" WBFS calculations are added. If set three times the real path of the" \
 	" source is printed." )
 
+#:def_cmd_opt( "ISOSIZE", "UNIT", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "DUMP", "TITLES", \
 	"", \
 	"" )
@@ -855,6 +904,10 @@
 	"" )
 
 #:def_cmd_opt( "DUMP", "LANG", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "DUMP", "AUTO", \
 	"", \
 	"" )
 
@@ -971,6 +1024,10 @@
 	"", \
 	"" )
 
+#:def_cmd_opt( "DREGION", "AUTO", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "DREGION", "SOURCE", \
 	"", \
 	"" )
@@ -996,6 +1053,10 @@
 	"" )
 
 #:def_cmd_opt( "DREGION", "EXCLUDE_PATH", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "ID6", "AUTO", \
 	"", \
 	"" )
 
@@ -1052,6 +1113,10 @@
 	"" )
 
 #:def_cmd_opt( "LIST", "LANG", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "LIST", "AUTO", \
 	"", \
 	"" )
 
@@ -1113,6 +1178,10 @@
 	" least on time columns is added. If set three times a second line" \
 	" with number or partitions, file type and real path is added." )
 
+#:def_cmd_opt( "LIST", "UNIT", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "LIST", "ITIME", \
 	"", \
 	"" )
@@ -1146,6 +1215,10 @@
 	"" )
 
 #:def_cmd_opt( "LIST_L", "LANG", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "LIST_L", "AUTO", \
 	"", \
 	"" )
 
@@ -1207,6 +1280,10 @@
 	" least on time columns is added. If set three times a second line" \
 	" with number or partitions, file type and real path is added." )
 
+#:def_cmd_opt( "LIST_L", "UNIT", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "LIST_L", "ITIME", \
 	"", \
 	"" )
@@ -1240,6 +1317,10 @@
 	"" )
 
 #:def_cmd_opt( "LIST_LL", "LANG", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "LIST_LL", "AUTO", \
 	"", \
 	"" )
 
@@ -1301,6 +1382,10 @@
 	" least on time columns is added. If set three times a second line" \
 	" with number or partitions, file type and real path is added." )
 
+#:def_cmd_opt( "LIST_LL", "UNIT", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "LIST_LL", "ITIME", \
 	"", \
 	"" )
@@ -1334,6 +1419,10 @@
 	"" )
 
 #:def_cmd_opt( "LIST_LLL", "LANG", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "LIST_LLL", "AUTO", \
 	"", \
 	"" )
 
@@ -1395,6 +1484,10 @@
 	" least on time columns is added. If set three times a second line" \
 	" with number or partitions, file type and real path is added." )
 
+#:def_cmd_opt( "LIST_LLL", "UNIT", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "LIST_LLL", "ITIME", \
 	"", \
 	"" )
@@ -1412,6 +1505,10 @@
 	"" )
 
 #:def_cmd_opt( "LIST_LLL", "TIME", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "FILES", "AUTO", \
 	"", \
 	"" )
 
@@ -1493,6 +1590,10 @@
 	" separated list of the following keywords: NONE, NAME, SIZE, OFFSET," \
 	" ASCENDING, DESCENDING = REVERSE." )
 
+#:def_cmd_opt( "FILES_L", "AUTO", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "FILES_L", "SOURCE", \
 	"", \
 	"" )
@@ -1570,6 +1671,10 @@
 	"Define the sort mode for the file listing. The parameter is a comma" \
 	" separated list of the following keywords: NONE, NAME, SIZE, OFFSET," \
 	" ASCENDING, DESCENDING = REVERSE." )
+
+#:def_cmd_opt( "FILES_LL", "AUTO", \
+	"", \
+	"" )
 
 #:def_cmd_opt( "FILES_LL", "SOURCE", \
 	"", \
@@ -1666,6 +1771,10 @@
 	"" )
 
 #:def_cmd_opt( "DIFF", "LANG", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "DIFF", "AUTO", \
 	"", \
 	"" )
 
@@ -1801,6 +1910,10 @@
 	"", \
 	"" )
 
+#:def_cmd_opt( "FDIFF", "AUTO", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "FDIFF", "SOURCE", \
 	"", \
 	"" )
@@ -1930,6 +2043,10 @@
 	"" )
 
 #:def_cmd_opt( "EXTRACT", "LANG", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "EXTRACT", "AUTO", \
 	"", \
 	"" )
 
@@ -2092,6 +2209,10 @@
 	"" )
 
 #:def_cmd_opt( "COPY", "LANG", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "COPY", "AUTO", \
 	"", \
 	"" )
 
@@ -2681,6 +2802,10 @@
 	"", \
 	"" )
 
+#:def_cmd_opt( "RENAME", "AUTO", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "RENAME", "SOURCE", \
 	"", \
 	"" )
@@ -2756,6 +2881,10 @@
 	"", \
 	"" )
 
+#:def_cmd_opt( "SETTITLE", "AUTO", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "SETTITLE", "SOURCE", \
 	"", \
 	"" )
@@ -2828,6 +2957,10 @@
 	"" )
 
 #:def_cmd_opt( "VERIFY", "LANG", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "VERIFY", "AUTO", \
 	"", \
 	"" )
 
@@ -3212,8 +3345,8 @@
 
 #:def_opt( "LOGGING", "L|logging", "G", \
 	"", \
-	"Enable the logging of internal memory maps. If set twice second level" \
-	" memory maps are printed too." )
+	"This debug option enables the logging of internal memory maps. If set" \
+	" twice second level memory maps are printed too." )
 
 #:def_opt( "ESC", "E|esc", "GP", \
 	"char", \
@@ -3293,23 +3426,33 @@
 
 #:def_opt( "INCLUDE", "n|include", "CMP", \
 	"id", \
-	"Include only discs with given ID4 or ID6 from operation. If the" \
+	"A comma separated list with ID4 and ID6 values is expected. If the" \
 	" parameter begins with a '@@' the given file is read and each line is" \
-	" scanned for IDs." )
+	" scanned for one ID. Only images with the given ID are included into" \
+	" the operation. Each use of this option expands the include list. The" \
+	" exclude list takes precedence." )
 
 #:def_opt( "INCLUDE_PATH", "N|include-path|includepath", "CMP", \
 	"file_or_dir", \
-	"ISO file or base of directory tree -> scan their ID6." )
+	"Scan the ID of the source and add it to the include list. If the" \
+	" source is a directory then scan all images of the directory. Only" \
+	" images with the given ID are included into the operation. Each use" \
+	" of this option expands the include list. The exclude list takes" \
+	" precedence." )
 
 #:def_opt( "EXCLUDE", "x|exclude", "CMP", \
 	"id", \
-	"Exclude discs with given ID4 or ID6 from operation. If the parameter" \
-	" begins with a '@@' the given file is read and each line is scanned" \
-	" for IDs." )
+	"A comma separated list with ID4 and ID6 values is expected. If the" \
+	" parameter begins with a '@@' the given file is read and each line is" \
+	" scanned for one ID. Images with the given ID are excluded from" \
+	" operation. Each use of this option expands the exclude list." )
 
 #:def_opt( "EXCLUDE_PATH", "X|exclude-path|excludepath", "CMP", \
 	"file_or_dir", \
-	"ISO file or base of directory tree -> scan their ID6." )
+	"Scan the ID of the source and add it to the exclude list. If the" \
+	" source is a directory then scan all images of the directory. Images" \
+	" with the given ID are excluded from operation. Each use of this" \
+	" option expands the exclude list." )
 
 #:def_opt( "IGNORE", "i|ignore", "C", \
 	"", \
@@ -3567,8 +3710,7 @@
 
 #:def_opt( "WIA", "wia", "C", \
 	"", \
-	"Set ISO output file type to WIA (Wii ISO Archive). WIA files are not" \
-	" editable by {wit EDIT}." )
+	"Set ISO output file type to WIA (Wii ISO Archive)." )
 
 #:def_opt( "ISO", "I|iso", "C", \
 	"", \
@@ -3604,10 +3746,11 @@
 
 #:def_opt( "TIME", "time", "CMP", \
 	"list", \
-	"Set time printing and sorting mode The parameter is a comma separated" \
-	" list of the following keywords, case is ignored: RESET, OFF, ON," \
-	" SINGLE, MULTI, NONE, ALL, I, M, C, A, DATE, TIME, SEC, IDATE, MDATE," \
-	" CDATE, ADATE, ITIME, MTIME, CTIME, ATIME, ISEC, MSEC, CSEC, ASEC." )
+	"Set time printing and sorting mode. The parameter is a comma" \
+	" separated list of the following keywords, case is ignored: RESET," \
+	" OFF, ON, SINGLE, MULTI, NONE, ALL, I, M, C, A, DATE, TIME, SEC," \
+	" IDATE, MDATE, CDATE, ADATE, ITIME, MTIME, CTIME, ATIME, ISEC, MSEC," \
+	" CSEC, ASEC." )
 
 #:def_opt( "SET_TIME", "set-time|settime", "CP", \
 	"time", \
@@ -5819,8 +5962,8 @@
 
 #:def_opt( "LOGGING", "L|logging", "GM", \
 	"", \
-	"Enable the logging of internal memory maps. If set twice second level" \
-	" memory maps are printed too." )
+	"This debug option enables the logging of internal memory maps. If set" \
+	" twice second level memory maps are printed too." )
 
 #:def_opt( "CHUNK", "chunk", "C", \
 	"", \

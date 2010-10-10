@@ -126,6 +126,7 @@ typedef struct WBFS_t
 
 	SuperFile_t * sf;	// attached super file
 	bool sf_alloced;	// true if 'sf' is alloced
+	bool is_growing;	// true if wbfs is of type growing
 	wbfs_t * wbfs;		// the pure wbfs handle
 	wbfs_disc_t * disc;	// the wbfs disc handle
 	int disc_slot;		// >=0: last opened slot
@@ -329,6 +330,9 @@ enumError GetNextWBFS	( WBFS_t * w, struct PartitionInfo_t ** info );
 
 enumError DumpWBFS	( WBFS_t * w, FILE * f, int indent,
 			  int dump_level, int view_invalid_discs, CheckWBFS_t * ck );
+
+extern StringField_t wbfs_part_list;
+u32 FindWBFSPartitions();
 
 //-----------------------------------------------------------------------------
 

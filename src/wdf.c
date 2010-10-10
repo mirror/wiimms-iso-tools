@@ -538,7 +538,7 @@ enumError cmd_pack()
 
 enumError cmd_cmp()
 {
-    // [2do]
+    // [2do] command is missing
     ParamList_t * param;
     for ( param = first_param; param; param = param->next )
 	printf("CMP %s\n",param->arg);
@@ -711,7 +711,7 @@ enumError wia_dump ( FILE *f, File_t *df, ccp fname )
 	fprintf(f,"    %-23s: %10u = %9x/hex = %s\n",
 		"Size of disc section",
 		wia->fhead.disc_size, wia->fhead.disc_size,
-		wd_print_size(0,0,wia->fhead.disc_size,true) );
+		wd_print_size_1024(0,0,wia->fhead.disc_size,true) );
     else
 	fprintf(f,"    %-23s: %10u = %9x [current: %zu = %zx/hex]\n",
 		"Size of disc section",
@@ -723,19 +723,19 @@ enumError wia_dump ( FILE *f, File_t *df, ccp fname )
 	fprintf(f,"    %-23s: %10llu =%10llx/hex = %s\n",
 		"ISO image size",
 		wia->fhead.iso_file_size, wia->fhead.iso_file_size,
-		wd_print_size(0,0,wia->fhead.iso_file_size,true) );
+		wd_print_size_1024(0,0,wia->fhead.iso_file_size,true) );
 	double percent = 100.0 * wia->fhead.wia_file_size / wia->fhead.iso_file_size;
 	fprintf(f,"    %-23s: %10llu =%10llx/hex = %s  %4.*f%%\n",
 		"Total file size",
 		wia->fhead.wia_file_size, wia->fhead.wia_file_size,
-		wd_print_size(0,0,wia->fhead.wia_file_size,true),
+		wd_print_size_1024(0,0,wia->fhead.wia_file_size,true),
 		percent <= 9.9 ? 2 : 1, percent );
     }
     else
 	fprintf(f,"    %-23s: %10llu =%10llx/hex = %s\n",
 		"Total file size",
 		wia->fhead.wia_file_size, wia->fhead.wia_file_size,
-		wd_print_size(0,0,wia->fhead.wia_file_size,true) );
+		wd_print_size_1024(0,0,wia->fhead.wia_file_size,true) );
 
     //-------------------------
 
@@ -759,7 +759,7 @@ enumError wia_dump ( FILE *f, File_t *df, ccp fname )
     fprintf(f,"    %-23s: %10u =%10x/hex = %s\n",
 		"Chunk size",
 		disc->chunk_size, disc->chunk_size,
-		wd_print_size(0,0,disc->chunk_size,true) );
+		wd_print_size_1024(0,0,disc->chunk_size,true) );
 
     fprintf(f,"    %-23s: %10u\n",
 		" Number of partitions",
@@ -767,7 +767,7 @@ enumError wia_dump ( FILE *f, File_t *df, ccp fname )
     fprintf(f,"    %-23s: %10llu = %9llx/hex = %s\n",
 		" Offset of Part.header",
 		disc->part_off, disc->part_off,
-		wd_print_size(0,0,disc->part_off,true) );
+		wd_print_size_1024(0,0,disc->part_off,true) );
     fprintf(f,"    %-23s: %2d * %5u = %9u\n",
 		" Size of Part.header",
 		disc->n_part, disc->part_t_size,
@@ -778,27 +778,27 @@ enumError wia_dump ( FILE *f, File_t *df, ccp fname )
     fprintf(f,"    %-23s: %10llu = %9llx/hex = %s\n",
 		"Offset of raw data tab.",
 		disc->raw_data_off, disc->raw_data_off,
-		wd_print_size(0,0,disc->raw_data_off,true) );
+		wd_print_size_1024(0,0,disc->raw_data_off,true) );
     fprintf(f,"    %-23s: %10u = %9x/hex = %s\n",
 		"Size of raw data tab.",
 		disc->raw_data_size, disc->raw_data_size,
-		wd_print_size(0,0,disc->raw_data_size,true) );
+		wd_print_size_1024(0,0,disc->raw_data_size,true) );
 
     fprintf(f,"    %-23s: %10u\n",
 		" Num. of group elem.", disc->n_groups );
     fprintf(f,"    %-23s: %10llu = %9llx/hex = %s\n",
 		" Offset of group tab.",
 		disc->group_off, disc->group_off,
-		wd_print_size(0,0,disc->group_off,true) );
+		wd_print_size_1024(0,0,disc->group_off,true) );
     fprintf(f,"    %-23s: %10u = %9x/hex = %s\n",
 		" Size of group tab.",
 		disc->group_size, disc->group_size,
-		wd_print_size(0,0,disc->group_size,true) );
+		wd_print_size_1024(0,0,disc->group_size,true) );
 
     fprintf(f,"    %-23s: %10u = %9x/hex = %s\n",
 		"Compressor data length",
 		disc->compr_data_len, disc->compr_data_len,
-		wd_print_size(0,0,disc->compr_data_len,true) );
+		wd_print_size_1024(0,0,disc->compr_data_len,true) );
     if (disc->compr_data_len)
     {
 	fprintf(f,"    %-23s:","Compressor Data");
@@ -1053,8 +1053,8 @@ enumError CheckOptions ( int argc, char ** argv )
 	case GO_WBI:		file_mode = FMODE_WBI; break;
 	case GO_SUFFIX:		opt_suffix = optarg; break;
 
-	case GO_DEST:		opt_dest = optarg; break;
-	case GO_DEST2:		opt_dest = optarg; opt_mkdir = true; break;
+	case GO_DEST:		SetDest(optarg,false); break;
+	case GO_DEST2:		SetDest(optarg,true); break;
 	case GO_STDOUT:		opt_stdout = true; break;
 	case GO_KEEP:		opt_keep = true; break;
 	case GO_OVERWRITE:	opt_overwrite = true; break;

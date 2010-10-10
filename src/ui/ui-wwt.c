@@ -91,26 +91,36 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 
     {	OPT_INCLUDE, 'n', "include",
 	"id",
-	"Include only discs with given ID4 or ID6 from operation. If the"
+	"A comma separated list with ID4 and ID6 values is expected. If the"
 	" parameter begins with a '@' the given file is read and each line is"
-	" scanned for IDs."
+	" scanned for one ID. Only images with the given ID are included into"
+	" the operation. Each use of this option expands the include list. The"
+	" exclude list takes precedence."
     },
 
     {	OPT_INCLUDE_PATH, 'N', "include-path",
 	"file_or_dir",
-	"ISO file or base of directory tree -> scan their ID6."
+	"Scan the ID of the source and add it to the include list. If the"
+	" source is a directory then scan all images of the directory. Only"
+	" images with the given ID are included into the operation. Each use"
+	" of this option expands the include list. The exclude list takes"
+	" precedence."
     },
 
     {	OPT_EXCLUDE, 'x', "exclude",
 	"id",
-	"Exclude discs with given ID4 or ID6 from operation. If the parameter"
-	" begins with a '@' the given file is read and each line is scanned"
-	" for IDs."
+	"A comma separated list with ID4 and ID6 values is expected. If the"
+	" parameter begins with a '@' the given file is read and each line is"
+	" scanned for one ID. Images with the given ID are excluded from"
+	" operation. Each use of this option expands the exclude list."
     },
 
     {	OPT_EXCLUDE_PATH, 'X', "exclude-path",
 	"file_or_dir",
-	"ISO file or base of directory tree -> scan their ID6."
+	"Scan the ID of the source and add it to the exclude list. If the"
+	" source is a directory then scan all images of the directory. Images"
+	" with the given ID are excluded from operation. Each use of this"
+	" option expands the exclude list."
     },
 
     {	OPT_IGNORE, 'i', "ignore",
@@ -429,8 +439,7 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 
     {	OPT_WIA, 0, "wia",
 	0,
-	"Set ISO output file type to WIA (Wii ISO Archive). WIA files are not"
-	" editable by 'wit EDIT'."
+	"Set ISO output file type to WIA (Wii ISO Archive)."
     },
 
     {	OPT_ISO, 'I', "iso",
@@ -474,10 +483,11 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 
     {	OPT_TIME, 0, "time",
 	"list",
-	"Set time printing and sorting mode The parameter is a comma separated"
-	" list of the following keywords, case is ignored: RESET, OFF, ON,"
-	" SINGLE, MULTI, NONE, ALL, I, M, C, A, DATE, TIME, SEC, IDATE, MDATE,"
-	" CDATE, ADATE, ITIME, MTIME, CTIME, ATIME, ISEC, MSEC, CSEC, ASEC."
+	"Set time printing and sorting mode. The parameter is a comma"
+	" separated list of the following keywords, case is ignored: RESET,"
+	" OFF, ON, SINGLE, MULTI, NONE, ALL, I, M, C, A, DATE, TIME, SEC,"
+	" IDATE, MDATE, CDATE, ADATE, ITIME, MTIME, CTIME, ATIME, ISEC, MSEC,"
+	" CSEC, ASEC."
     },
 
     {	OPT_SET_TIME, 0, "set-time",
@@ -580,8 +590,8 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 
     {	OPT_LOGGING, 'L', "logging",
 	0,
-	"Enable the logging of internal memory maps. If set twice second level"
-	" memory maps are printed too."
+	"This debug option enables the logging of internal memory maps. If set"
+	" twice second level memory maps are printed too."
     },
 
     {	OPT_ESC, 'E', "esc",

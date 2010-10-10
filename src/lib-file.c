@@ -2037,7 +2037,6 @@ enumError XReadF ( XPARM File_t * f, void * iobuf, size_t count )
 	}
     }
 
-#ifdef TEST // [2do]
     bool err;
     size_t read_count = 0;
     if ( f->fd == -1 )
@@ -2072,35 +2071,6 @@ enumError XReadF ( XPARM File_t * f, void * iobuf, size_t count )
     }
 
     if ( err || read_count < count && !f->read_behind_eof )
-#else // [2do] [obsolete]
-    bool err;
-    if (f->fp)
-	err = count && fread(iobuf,count,1,f->fp) != 1;
-    else if ( f->fd != -1 )
-    {
-	err = false;
-	size_t size = count;
-	while (size)
-	{
-	    ssize_t rstat = read(f->fd,iobuf,size);
-	    if ( rstat <= 0 )
-	    {
-		err = true;
-		break;
-	    }
-	    size -= rstat;
-	    iobuf = (void*)( (char*)iobuf + rstat );
-	}
-    }
-    else
-    {
-	err = true;
-	errno = 0;
-    }
-
-    if (err)
-#endif
-
     {
 	if ( !f->disable_errors && f->last_error != ERR_READ_FAILED )
 	    PrintError( XERROR1, ERR_READ_FAILED,
@@ -2114,7 +2084,6 @@ enumError XReadF ( XPARM File_t * f, void * iobuf, size_t count )
     }
     else
     {
- #ifdef TEST // [2do]
 	f->read_count++;
 	f->bytes_read += read_count;
 	f->file_off += read_count;
@@ -2127,13 +2096,6 @@ enumError XReadF ( XPARM File_t * f, void * iobuf, size_t count )
 	    f->cur_off = f->file_off;
 	    return XReadAtF(XCALL f,f->file_off,iobuf,count-read_count);
 	}
- #else
-	f->read_count++;
-	f->bytes_read += count;
-	f->file_off += count;
-	if ( f->max_off < f->file_off )
-	    f->max_off = f->file_off;
- #endif
     }
 
     f->cur_off = f->file_off;
@@ -2916,6 +2878,20 @@ char * AllocSplitFilename ( ccp path, enumOFT oft )
  }
 
 #endif // __CYGWIN__
+
+///////////////////////////////////////////////////////////////////////////////
+
+void SetDest ( ccp dest, bool mkdir )
+{
+ #ifdef __CYGWIN__
+    opt_dest = IsWindowsDriveSpec(dest)
+		? AllocNormalizedFilenameCygwin(dest)
+		: dest;
+ #else
+    opt_dest = dest;
+ #endif
+    opt_mkdir = mkdir;
+}
 
 //
 ///////////////////////////////////////////////////////////////////////////////

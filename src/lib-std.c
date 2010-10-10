@@ -71,6 +71,7 @@ volatile int	logging			= 0;
 int		progress		= 0;
 SortMode	sort_mode		= SORT_DEFAULT;
 ShowMode	opt_show_mode		= SHOW__DEFAULT;
+wd_size_mode_t	opt_unit		= WD_SIZE_DEFAULT;
 RepairMode	repair_mode		= REPAIR_NONE;
 char		escape_char		= '%';
 enumOFT		output_file_type	= OFT_UNKNOWN;
@@ -1686,13 +1687,13 @@ u64 ScanSizeFactor ( char ch_factor, int force_base )
     {
 	switch (ch_factor)
 	{
-	    case 'b': case 'c': return                   1;
-	    case 'k': case 'K': return                1000;
-	    case 'm': case 'M': return             1000000;
-	    case 'g': case 'G': return          1000000000;
-	    case 't': case 'T': return       1000000000000ull;
-	    case 'p': case 'P': return    1000000000000000ull;
-	    case 'e': case 'E': return 1000000000000000000ull;
+	    case 'b': case 'c': return     1;
+	    case 'k': case 'K': return KB_SI;
+	    case 'm': case 'M': return MB_SI;
+	    case 'g': case 'G': return GB_SI;
+	    case 't': case 'T': return TB_SI;
+	    case 'p': case 'P': return PB_SI;
+	    case 'e': case 'E': return EB_SI;
 
 	    case 'u': case 'U': return GC_DISC_SIZE;
 	    case 'w': case 'W': return WII_SECTORS_SINGLE_LAYER *(u64)WII_SECTOR_SIZE;
@@ -1719,13 +1720,14 @@ u64 ScanSizeFactor ( char ch_factor, int force_base )
 	switch (ch_factor)
 	{
 	    case 'b':
-	    case 'c': return                   1;
-	    case 'k': return                1000;
-	    case 'm': return             1000000;
-	    case 'g': return          1000000000;
-	    case 't': return       1000000000000ull;
-	    case 'p': return    1000000000000000ull;
-	    case 'e': return 1000000000000000000ull;
+	    case 'c': return 1;
+
+	    case 'k': return KB_SI;
+	    case 'm': return MB_SI;
+	    case 'g': return GB_SI;
+	    case 't': return TB_SI;
+	    case 'p': return PB_SI;
+	    case 'e': return EB_SI;
 
 	    case 'K': return KiB;
 	    case 'M': return MiB;
@@ -2230,7 +2232,7 @@ char * ScanHexHelper
 	}
     }
     
-    // [2do]
+    // [2do] What 2do?? Is this a forgotten marker?
 
     while ( hextab[*src] == 50 )
 	src++;
@@ -2573,7 +2575,7 @@ u64 GetMemLimit()
 	    FILE * f = fopen("/proc/meminfo","r");
 	    if (f)
 	    {
-		PRINT("SCAN /proc/meminfo\n");
+		TRACE("SCAN /proc/meminfo\n");
 		char buf[500];
 		while (fgets(buf,sizeof(buf),f))
 		{
@@ -2868,7 +2870,7 @@ int ScanOptSort ( ccp arg )
 
 //
 ///////////////////////////////////////////////////////////////////////////////
-///////////////                    show mode                    ///////////////
+///////////////			options show + unit		///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
 ShowMode ScanShowMode ( ccp arg )
@@ -2976,6 +2978,76 @@ int ConvertShow2PFST
     }
 
     return pfst;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+
+wd_size_mode_t ScanUnit ( ccp arg )
+{
+    enum
+    {
+	F_1000 = WD_SIZE_F_1000,
+	F_1024 = WD_SIZE_F_1024,
+    };
+
+    static const CommandTab_t tab[] =
+    {
+	{ WD_SIZE_DEFAULT,	"DEFAULT",0,	WD_SIZE_M_MODE|WD_SIZE_M_BASE },
+
+	{ WD_SIZE_F_1000,	"1000",	"10",	WD_SIZE_M_BASE },
+	{ WD_SIZE_F_1024,	"1024",	"2",	WD_SIZE_M_BASE },
+
+	{ WD_SIZE_AUTO,		"AUTO",	0,	WD_SIZE_M_MODE },
+	{ WD_SIZE_BYTES,	"BYTES",0,	WD_SIZE_M_MODE },
+	{ WD_SIZE_K,		"K",	0,	WD_SIZE_M_MODE },
+	{ WD_SIZE_M,		"M",	0,	WD_SIZE_M_MODE },
+	{ WD_SIZE_G,		"G",	0,	WD_SIZE_M_MODE },
+	{ WD_SIZE_T,		"T",	0,	WD_SIZE_M_MODE },
+	{ WD_SIZE_P,		"P",	0,	WD_SIZE_M_MODE },
+	{ WD_SIZE_E,		"E",	0,	WD_SIZE_M_MODE },
+
+	{ WD_SIZE_K | F_1000,	"KB",	0,	WD_SIZE_M_MODE|WD_SIZE_M_BASE },
+	{ WD_SIZE_M | F_1000,	"MB",	0,	WD_SIZE_M_MODE|WD_SIZE_M_BASE },
+	{ WD_SIZE_G | F_1000,	"GB",	0,	WD_SIZE_M_MODE|WD_SIZE_M_BASE },
+	{ WD_SIZE_T | F_1000,	"TB",	0,	WD_SIZE_M_MODE|WD_SIZE_M_BASE },
+	{ WD_SIZE_P | F_1000,	"PB",	0,	WD_SIZE_M_MODE|WD_SIZE_M_BASE },
+	{ WD_SIZE_E | F_1000,	"EB",	0,	WD_SIZE_M_MODE|WD_SIZE_M_BASE },
+
+	{ WD_SIZE_K | F_1024,	"KIB",	0,	WD_SIZE_M_MODE|WD_SIZE_M_BASE },
+	{ WD_SIZE_M | F_1024,	"MIB",	0,	WD_SIZE_M_MODE|WD_SIZE_M_BASE },
+	{ WD_SIZE_G | F_1024,	"GIB",	0,	WD_SIZE_M_MODE|WD_SIZE_M_BASE },
+	{ WD_SIZE_T | F_1024,	"TIB",	0,	WD_SIZE_M_MODE|WD_SIZE_M_BASE },
+	{ WD_SIZE_P | F_1024,	"PIB",	0,	WD_SIZE_M_MODE|WD_SIZE_M_BASE },
+	{ WD_SIZE_E | F_1024,	"EIB",	0,	WD_SIZE_M_MODE|WD_SIZE_M_BASE },
+
+	{ WD_SIZE_HD_SECT,	"HDSS",	"HSS",	WD_SIZE_M_MODE },
+	{ WD_SIZE_WD_SECT,	"WDSS",	"WSS",	WD_SIZE_M_MODE },
+	{ WD_SIZE_GC,		"GAMECUBE","GC",WD_SIZE_M_MODE },
+	{ WD_SIZE_WII,		"WII",	0,	WD_SIZE_M_MODE },
+	
+	{ 0,0,0,0 }
+    };
+
+    int stat = ScanCommandList(arg,tab,0,true,0,0);
+    if ( stat != -1 )
+	return stat;
+
+    ERROR0(ERR_SYNTAX,"Illegal unit mode (option --unit): '%s'\n",arg);
+    return -1;
+}
+
+//-----------------------------------------------------------------------------
+
+int ScanOptUnit ( ccp arg )
+{
+    const wd_size_mode_t new_mode = ScanUnit(arg);
+    if ( new_mode == -1 )
+	return 1;
+
+    TRACE("OPT --unit set: %x -> %x\n",opt_unit,new_mode);
+    opt_unit = new_mode;
+    return 0;
 }
 
 //
@@ -4135,8 +4207,8 @@ size_t AllocTempBuffer ( size_t needed_size )
     {
 	PRINT("$$$ ALLOC TEMPBUF, SIZE: %zx > %zx (%s -> %s)\n",
 		tempbuf_size, needed_size,
-		wd_print_size(0,0,tempbuf_size,false),
-		wd_print_size(0,0,needed_size,false) );
+		wd_print_size_1024(0,0,tempbuf_size,false),
+		wd_print_size_1024(0,0,needed_size,false) );
 	tempbuf_size = needed_size;
 	free(tempbuf);
 	tempbuf = malloc(needed_size);
