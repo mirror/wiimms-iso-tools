@@ -45,6 +45,7 @@ typedef enum enumOptions
 	OPT_SOURCE,
 	OPT_RECURSE,
 	OPT_RDEPTH,
+	OPT_AUTO,
 	OPT_INCLUDE,
 	OPT_INCLUDE_PATH,
 	OPT_EXCLUDE,
@@ -108,7 +109,7 @@ typedef enum enumOptions
 	OPT_SORT,
 	OPT_LIMIT,
 
-	OPT__N_SPECIFIC, // == 66 
+	OPT__N_SPECIFIC, // == 67 
 
 	//----- global options -----
 
@@ -129,7 +130,7 @@ typedef enum enumOptions
 	OPT_TEST,
 	OPT_HOOK,
 
-	OPT__N_TOTAL // == 82
+	OPT__N_TOTAL // == 83
 
 } enumOptions;
 
@@ -147,6 +148,7 @@ typedef enum enumOptions
 //	OB_SOURCE		= 1llu << OPT_SOURCE,
 //	OB_RECURSE		= 1llu << OPT_RECURSE,
 //	OB_RDEPTH		= 1llu << OPT_RDEPTH,
+//	OB_AUTO			= 1llu << OPT_AUTO,
 //	OB_INCLUDE		= 1llu << OPT_INCLUDE,
 //	OB_INCLUDE_PATH		= 1llu << OPT_INCLUDE_PATH,
 //	OB_EXCLUDE		= 1llu << OPT_EXCLUDE,
@@ -306,14 +308,17 @@ typedef enum enumOptions
 //
 //	OB_CMD_TITLES		= OB_GRP_TITLES,
 //
-//	OB_CMD_FILELIST		= OB_GRP_XXSOURCE
+//	OB_CMD_FILELIST		= OB_AUTO
+//				| OB_GRP_XXSOURCE
 //				| OB_LONG,
 //
-//	OB_CMD_FILETYPE		= OB_GRP_XXSOURCE
+//	OB_CMD_FILETYPE		= OB_AUTO
+//				| OB_GRP_XXSOURCE
 //				| OB_NO_HEADER
 //				| OB_LONG,
 //
-//	OB_CMD_ISOSIZE		= OB_GRP_XXSOURCE
+//	OB_CMD_ISOSIZE		= OB_AUTO
+//				| OB_GRP_XXSOURCE
 //				| OB_NO_HEADER
 //				| OB_LONG
 //				| OB_UNIT,
@@ -324,6 +329,7 @@ typedef enum enumOptions
 //				| OB_IOS,
 //
 //	OB_CMD_DUMP		= OB_GRP_TITLES
+//				| OB_AUTO
 //				| OB_GRP_XSOURCE
 //				| OB_IGNORE_FST
 //				| OB_GRP_PARTITIONS
@@ -334,13 +340,16 @@ typedef enum enumOptions
 //				| OB_GRP_RELOCATE
 //				| OB_DISC_SIZE,
 //
-//	OB_CMD_DREGION		= OB_GRP_XSOURCE,
+//	OB_CMD_DREGION		= OB_AUTO
+//				| OB_GRP_XSOURCE,
 //
-//	OB_CMD_ID6		= OB_GRP_XSOURCE
+//	OB_CMD_ID6		= OB_AUTO
+//				| OB_GRP_XSOURCE
 //				| OB_IGNORE_FST
 //				| OB_LONG,
 //
 //	OB_CMD_LIST		= OB_GRP_TITLES
+//				| OB_AUTO
 //				| OB_GRP_XSOURCE
 //				| OB_IGNORE_FST
 //				| OB_UNIQUE
@@ -348,6 +357,7 @@ typedef enum enumOptions
 //				| OB_SECTIONS
 //				| OB_NO_HEADER
 //				| OB_LONG
+//				| OB_UNIT
 //				| OB_GRP_TIME,
 //
 //	OB_CMD_LIST_L		= OB_CMD_LIST,
@@ -356,7 +366,8 @@ typedef enum enumOptions
 //
 //	OB_CMD_LIST_LLL		= OB_CMD_LIST_LL,
 //
-//	OB_CMD_FILES		= OB_GRP_XXSOURCE
+//	OB_CMD_FILES		= OB_AUTO
+//				| OB_GRP_XXSOURCE
 //				| OB_GRP_PARTITIONS
 //				| OB_GRP_FILES
 //				| OB_LONG
@@ -369,6 +380,7 @@ typedef enum enumOptions
 //	OB_CMD_FILES_LL		= OB_CMD_FILES,
 //
 //	OB_CMD_DIFF		= OB_GRP_TITLES
+//				| OB_AUTO
 //				| OB_GRP_XXSOURCE
 //				| OB_GRP_PARTITIONS
 //				| OB_GRP_FILES
@@ -380,6 +392,7 @@ typedef enum enumOptions
 //	OB_CMD_FDIFF		= OB_CMD_DIFF,
 //
 //	OB_CMD_EXTRACT		= OB_GRP_TITLES
+//				| OB_AUTO
 //				| OB_GRP_XXSOURCE
 //				| OB_GRP_PARTITIONS
 //				| OB_GRP_FILES
@@ -420,6 +433,7 @@ typedef enum enumOptions
 //				| OB_OVERWRITE,
 //
 //	OB_CMD_RENAME		= OB_GRP_TITLES
+//				| OB_AUTO
 //				| OB_GRP_XSOURCE
 //				| OB_IGNORE
 //				| OB_ISO
@@ -428,6 +442,7 @@ typedef enum enumOptions
 //	OB_CMD_SETTITLE		= OB_CMD_RENAME,
 //
 //	OB_CMD_VERIFY		= OB_GRP_TITLES
+//				| OB_AUTO
 //				| OB_GRP_XXSOURCE
 //				| OB_GRP_PARTITIONS
 //				| OB_IGNORE_FILES
@@ -526,6 +541,7 @@ typedef enum enumGetOpt
 	GO_EXCLUDE_PATH		= 'X',
 	GO_SPLIT_SIZE		= 'Z',
 
+	GO_AUTO			= 'a',
 	GO_DEST			= 'd',
 	GO_HELP			= 'h',
 	GO_IGNORE		= 'i',

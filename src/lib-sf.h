@@ -88,9 +88,6 @@ typedef struct SuperFile_t
 	int progress_trigger_init;	// if printed: init 'progress_trigger' with this value
 	u32 progress_start_time;	// time of start
 	u32 progress_last_view_sec;	// time of last progress viewing
-	u32 progress_last_calc_time;	// time of last calculation
-	u64 progress_sum_time;		// sum of time weighted intervalls
-	u64 progress_time_divisor;	// divisor == sum of weights
 	u32 progress_max_wd;		// max width used for progress output
 	ccp progress_verb;		// default is "copied"
 

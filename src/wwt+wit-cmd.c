@@ -263,7 +263,7 @@ enumError cmd_exclude()
 {
     ParamList_t * param;
     for ( param = first_param; param; param = param->next )
-	AtFileHelper(param->arg,true,true,AddExcludeID);
+	AtFileHelper(param->arg,0,1,AddExcludeID);
 
     SetupExcludeDB();
     DumpIDDB(&exclude_db,stdout);

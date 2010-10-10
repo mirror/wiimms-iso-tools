@@ -1132,7 +1132,13 @@ enumError CreateGrowingWBFS ( WBFS_t * w, SuperFile_t * sf, off_t size, int sect
 
     sf->f.read_behind_eof = 2;
 
-    return OpenParWBFS(w,sf,true,&par);
+    const enumError err = OpenParWBFS(w,sf,true,&par);
+    if ( !err && S_ISREG(sf->f.st.st_mode) )
+    {
+	PRINT("GROWING WBFS: %s\n",sf->f.fname);
+	w->is_growing = true;
+    }
+    return err;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -1473,6 +1479,38 @@ enumError GetNextWBFS ( WBFS_t * w, PartitionInfo_t ** info )
     if ( info && *info )
 	*info = (*info)->next;
     return GetWBFSHelper(w,info);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+StringField_t wbfs_part_list;
+
+u32 FindWBFSPartitions()
+{
+    static bool scanned = false;
+    if (!scanned)
+    {
+	scanned = true;
+	noPRINT("SCAN FOR WBFS PARTITIONS\n");
+	ScanPartitions(true);
+	AnalyzePartitions(0,true,false);
+
+	WBFS_t wbfs;
+	InitializeWBFS(&wbfs);
+	enumError err = ERR_OK;
+	InitializeStringField(&wbfs_part_list);
+	PartitionInfo_t * info;
+	for ( err = GetFirstWBFS(&wbfs,&info);
+	      !err && !SIGINT_level;
+	      err = GetNextWBFS(&wbfs,&info) )
+	{
+	    noPRINT("ADD WBFS PARTITION: %s,%d\n",info->path,info->part_mode);
+	    AppendStringField(&wbfs_part_list,info->path,false);
+	}
+	ResetWBFS(&wbfs);
+    }
+
+    return wbfs_part_list.used;
 }
 
 ///////////////////////////////////////////////////////////////////////////////

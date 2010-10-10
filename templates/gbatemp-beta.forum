@@ -17,76 +17,12 @@
 
 [size="2"][color="#0000c0"][b]Highlights of this release:[/b][/color][/size]
 [list]
-[*] [color=#000080][b]WIA = Wii ISO Archive[/b][/color]
-The implementation of WIA is stable now. I have done more than 1000 conversions to find out the best default configuration. WIA supports 5 compression methods:
-[list]
-[*] [font="Courier New"][b]--compression NONE[/b][/font]
-Data of used (=non scrubbed sectors) are stored 1:1 with 0x8000 bytes (32KiB) or 0x7c00 bytes for decrypted data partitions (hash removed). This format is very good for an external packer. No hash values for the chunks available.
-[*] [font="Courier New"][b]--compression PURGE[/b][/font]
-Data is purged like WDF: Areas with zeros are detected and skipped. The image is smaller than 'NONE' but contains more management info. There is a SHA1 hash for each data chunk so that data errors can be noticed.
-[*] [font="Courier New"][b]--compression BZIP2[/b][/font]
-Each chunk is compressed with BZIP2 level 5. bzip2 has its own verification code.
-[*] [font="Courier New"][b]--compression LZMA[/b][/font]
-Each chunk is compressed with LZMA level 5. LZMA has its own verification code. LZMA und LZMA2 are developed in the 7zip project.
-[*] [font="Courier New"][b]--compression LZMA2[/b][/font]
-Each chunk is compressed with LZMA2 level 5. LZMA2 has its own verification code.
-[/list]
-
-The compression level can be changed by appending a point and a digit at the end of the compression method (bzip2.3 or lzma.7). The general default is level .5.
-
-The compression is done in chunks. Because of the wii disc design the minimal chunk size is 2 MiB. The default chunk size for all compression methods is 40 MiB (factor @20). The factor can be changed by appendign a '@' and the chunk size factor. 'bzip2@10' means: use bzip2, default level, chunk size 10*2MiB. 'lz.7@25' means: use lzma, level 7, chunk size 25*2MiB.
-
-There are some additional meta compressions. The assignment may change in the future:
-[list]
-[*] [font="Courier New"][b]--compression DEFAULT[/b] (=LZMA.5@20)[/font]
-This is the default compression method.
-[*] [font="Courier New"][b]--compression FAST[/b] (=BZIP2.3@10)[/font]
-This is a fast compression method.
-[*] [font="Courier New"][b]--compression GOOD[/b] (=LZMA.5@20)[/font]
-This is a good compression method (like default).
-[*] [font="Courier New"][b]--compression BEST[/b] (=LZMA.7@50)[/font]
-This is the best compression method.
-[*] [font="Courier New"][b]--compression MEM[/b][/font]
-This is a generic compression method. WIT tries to detect the RAM size of the computer and tries to selects a good compression method, level and chunk size. The user can define a good memory usage value by using the option --mem or setting the environment variable WIT_MEM.
-[/list]
-
-Try the command "wit compr" with or without compression parameters:
-[code]
-# wit compr -ll
-
- mode    mode           memory usage
- num     name         reading   writing   input
-----------------------------------------------------
- 0       NONE          40 MiB    40 MiB   NONE
- 1       PURGE         40 MiB    40 MiB   PURGE
- 2       BZIP2         42 MiB    44 MiB   BZIP2
- 3       LZMA          56 MiB   225 MiB   LZMA
- 4       LZMA2         56 MiB   225 MiB   LZMA2
- 3       LZMA          56 MiB   225 MiB    DEFAULT
- 2.3@10  BZIP2.3@10    21 MiB    23 MiB    FAST
- 3       LZMA          56 MiB   225 MiB    GOOD
- 3.7@50  LZMA.7@50    164 MiB   773 MiB    BEST
- 3.6@50  LZMA.6@50    132 MiB   469 MiB    MEM
-
-
-# wit compr -ll def@30 mem --mem=300
-
- mode    mode           memory usage
- num     name         reading   writing   input
-----------------------------------------------------
- 3@30    LZMA@30       76 MiB   245 MiB   def@30
- 3.5@50  LZMA.5@50    116 MiB   285 MiB   mem
-[/code]
-
-[color=#800000][b]WIA is experimental! The file format seems stable but may change![/b][/color]
-Please use the thread [url=wit.wiimm.de/r/wia][b]"WIA = Wii ISO Archive"[/b][/url] for WIA discussions.
+~[*] [color=#000080][b]GameCube support[/b][/color]
+~I'm still working at GameCube support. Reading of GameCube (standard and multiboot) works. Reading means, that the wit commands COPY, EXTRACT, DUMP, LIST, FILES, MOVE, RENAME and some more works fine. "wit MIX" is able to create a multiboot disc without a special boot partition, but the qualifier "boot" will mark one source partition as boot partition.
+~
+~[color=#800000][b]The GameCube support is experimental![/b][/color]
+~Please use the thread [url=wit.wiimm.de/r/gamecube][b]"WIT GameCube disc support"[/b][/url] for WIT GameCube discussions.
 [color=#ffffff].[/color]
-
-[*] [color=#000080][b]GameCube support[/b][/color]
-I'm still working at GameCube support. Reading of GameCube (standard and multiboot) works. Reading means, that the wit commands COPY, EXTRACT, DUMP, LIST, FILES, MOVE, RENAME and some more works fine. "wit MIX" is able to create a multiboot disc without a special boot partition, but the qualifier "boot" will mark one source partition as boot partition.
-
-[color=#800000][b]The GameCube support is experimental![/b][/color]
-Please use the thread [url=wit.wiimm.de/r/gamecube][b]"WIT GameCube disc support"[/b][/url] for WIT GameCube discussions.
 [/list]
 
 ~[size="4"][color="#800000"][b]Please report positive and negative tests![/b][/color][/size]

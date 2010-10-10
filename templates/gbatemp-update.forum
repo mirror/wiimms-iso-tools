@@ -29,10 +29,29 @@
 
 [size="2"][color="#0000c0"][b]Highlights of this release:[/b][/color][/size]
 [list]
-[*] [color=#000080][b]WIA = Wii ISO Archive[/b][/color]
-WIA is a special archive format to reduce the needed disc space (usually 15%-50%, Animal Crossing saves 82%).  The data is stored in chunks to enable a kind of random access. Every chunk is compressed with BZIP2 or LZMA. USB loaders can't use WIA.
+[*] A week ago XFlak ask me if "wit LIST" can print sizes in in bytes instead of MiB. He need this for his ModMii. Therefor I implement the new option --unit: It defines the output unit of size values. "wit ISOSIZE" and "wit LIST" support this new option. Here is an extract of the built in help:
+[code]
+--unit list  This option set the output unit for sizes. The parameter
+             is a comma separated list of the following keywords, case
+             is ignored:  1000=10, 1024=2, BYTES, K, M, G, T, P, E, KB,
+             MB, GB, TB, PB, EB, KIB, MIB, GIB, TIB, PIB, EIB, HDS,
+             WDS, GAMECUBE=GC, WII, AUTO and DEFAULT.
+               The values 1000 and 1024 (=default base) set the base
+             factor and BYTES, K, M, G, T, P, E the SI factor. MB is a
+             shortcut for 1000,M and MIB for 1024,M;  this is also
+             valid for the other SI factors. AUTO selects a value
+             dependent SI factor.
+               HDS and WDS forces the output as multiple of the HD or
+             Wii disc sector size (512 or 32768 bytes). GAMECUBE and
+             WII forces the output of a floating point value as
+             multiple of the single layer ISO images size of the given
+             type.
+               DEFAULT allows the command to select a adequate size
+             unit.
+[/code]
+[color=#ffffff].[/color]
 
-Read [url=http://wit.wiimm.de/info/wia.html][b]"WIA (Wii ISO Archive)"[/b][/url] on the [url=http://wit.wiimm.de/]WIT site[/url] for details and some statistics and please use the GBAtemp thread [url=wit.wiimm.de/r/wia][b]"WIA = Wii ISO Archive"[/b][/url] for WIA discussions.
+[*] The new wit option --auto simplifies the access to WBFS partitions. It replaces parameters like "--source /dev/wbfs" and works like "wwt --auto --all".
 [color=#ffffff].[/color]
 [/list]
 

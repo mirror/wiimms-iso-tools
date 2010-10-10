@@ -110,10 +110,10 @@ extern StringField_t exclude_fname;
 
 extern int disable_exclude_db;	// disable exclude db at all if > 0
 
-int  AddIncludeID ( ccp arg, int unused );
+int  AddIncludeID ( ccp arg, int scan_file );
 int  AddIncludePath ( ccp arg, int unused );
 
-int  AddExcludeID ( ccp arg, int unused );
+int  AddExcludeID ( ccp arg, int scan_file );
 int  AddExcludePath ( ccp arg, int unused );
 
 void SetupExcludeDB();

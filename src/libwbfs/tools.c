@@ -271,8 +271,8 @@ ccp wd_get_size_unit // get a unit for column headers
 	case WD_SIZE_P:		return force_1000 ? "PB" : "PiB";
 	case WD_SIZE_E:		return force_1000 ? "EB" : "EiB";
 	
-	case WD_SIZE_HSS:	return "HSS";
-	case WD_SIZE_WSS:	return "WSS";
+	case WD_SIZE_HD_SECT:	return "HDS";
+	case WD_SIZE_WD_SECT:	return "WDS";
 	case WD_SIZE_GC:	return "GC";
 	case WD_SIZE_WII:	return "Wii";
     }
@@ -285,7 +285,8 @@ ccp wd_get_size_unit // get a unit for column headers
 int wd_get_size_fw // get a good value field width
 (
     wd_size_mode_t	mode,		// print mode
-    int			if_invalid	// output for invalid modes
+    int			min_fw		// minimal fw => return max(calc_fw,min_fw);
+					// this value is also returned for invalid modes
 )
 {
     int fw = mode & (WD_SIZE_F_AUTO_UNIT|WD_SIZE_F_NO_UNIT) ? 0 : 4;
@@ -307,13 +308,15 @@ int wd_get_size_fw // get a good value field width
 	case WD_SIZE_P:		fw +=  3; break;
 	case WD_SIZE_E:		fw +=  3; break;
 	
-	case WD_SIZE_HSS:	fw +=  8; break;
-	case WD_SIZE_WSS:	fw +=  6; break;
+	case WD_SIZE_HD_SECT:	fw +=  8; break;
+	case WD_SIZE_WD_SECT:	fw +=  6; break;
 	case WD_SIZE_GC:	fw +=  4; break;
 	case WD_SIZE_WII:	fw +=  4; break;
+
+	default:		fw = min_fw;
     }
     
-    return fw;
+    return fw > min_fw ? fw : min_fw;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -407,13 +410,13 @@ char * wd_print_size
 
 	//----- special formats
 
-	case WD_SIZE_HSS:
-	    snprintf(buf,buf_size, aligned ? "%4llu HSS" : "%llu HSS",
+	case WD_SIZE_HD_SECT:
+	    snprintf(buf,buf_size, aligned ? "%4llu HDS" : "%llu HDS",
 			( size + HD_SECTOR_SIZE/2 ) / HD_SECTOR_SIZE );
 	    break;
 
-	case WD_SIZE_WSS:
-	    snprintf(buf,buf_size, aligned ? "%4llu WSS" : "%llu WSS",
+	case WD_SIZE_WD_SECT:
+	    snprintf(buf,buf_size, aligned ? "%4llu WDS" : "%llu WDS",
 			( size + WII_SECTOR_SIZE/2 ) / WII_SECTOR_SIZE );
 	    break;
 

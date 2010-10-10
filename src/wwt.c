@@ -2995,9 +2995,9 @@ enumError CheckOptions ( int argc, char ** argv, bool is_env )
 	case GO_RAW:		part_selector.whole_disc
 					= part_selector.whole_part = true; break;
 
-	case GO_INCLUDE:	AtFileHelper(optarg,0,0,AddIncludeID); break;
+	case GO_INCLUDE:	AtFileHelper(optarg,0,1,AddIncludeID); break;
 	case GO_INCLUDE_PATH:	AtFileHelper(optarg,0,0,AddIncludePath); break;
-	case GO_EXCLUDE:	AtFileHelper(optarg,0,0,AddExcludeID); break;
+	case GO_EXCLUDE:	AtFileHelper(optarg,0,1,AddExcludeID); break;
 	case GO_EXCLUDE_PATH:	AtFileHelper(optarg,0,0,AddExcludePath); break;
 	case GO_IGNORE:		break;
 	case GO_IGNORE_FST:	allow_fst = false; break;

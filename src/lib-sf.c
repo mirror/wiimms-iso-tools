@@ -132,8 +132,9 @@ enumError CloseSF ( SuperFile_t * sf, FileAttrib_t * set_time_ref )
 	{
 	    err = CloseWDisc(sf->wbfs);
 	    if (!err)
-//		err = SyncWBFS(sf->wbfs,false);
-		err = TruncateWBFS(sf->wbfs);
+		err = sf->wbfs->is_growing
+			? TruncateWBFS(sf->wbfs)
+			: SyncWBFS(sf->wbfs,false);
 	}
 
 	if (sf->wia)
@@ -172,10 +173,8 @@ enumError ResetSF ( SuperFile_t * sf, FileAttrib_t * set_time_ref )
 
     // reset timer
     sf->progress_trigger = sf->progress_trigger_init = 1;
-    sf->progress_start_time = sf->progress_last_calc_time = GetTimerMSec();
+    sf->progress_start_time = GetTimerMSec();
     sf->progress_last_view_sec = 0;
-    sf->progress_sum_time = 0;
-    sf->progress_time_divisor = 0;
     sf->progress_max_wd = 0;
  #if defined(DEBUG) || defined(TEST)
     sf->show_msec = true;
@@ -1637,9 +1636,6 @@ void CopyProgressSF ( SuperFile_t * dest, SuperFile_t * src )
     dest->progress_trigger_init		= src->progress_trigger_init;
     dest->progress_start_time		= src->progress_start_time;
     dest->progress_last_view_sec	= src->progress_last_view_sec;
-    dest->progress_last_calc_time	= src->progress_last_calc_time;
-    dest->progress_sum_time		= src->progress_sum_time;
-    dest->progress_time_divisor		= src->progress_time_divisor;
     dest->progress_max_wd		= src->progress_max_wd;
     dest->progress_verb			= src->progress_verb;
 }
@@ -1658,45 +1654,39 @@ void PrintProgressSF ( u64 p_done, u64 p_total, void * param )
 	    || sf->progress_trigger <= 0 && p_done )
 	return;
 
-    if ( p_total > TiB )
+    if ( p_total > (u64)1 << 44 )
     {
 	// avoid integer overflow
-	p_done  >>= 15;
-	p_total >>= 15;
+	p_done  >>= 20;
+	p_total >>= 20;
     }
 
     const u32 now		= GetTimerMSec();
     const u32 elapsed		= now - sf->progress_start_time;
     const u32 view_sec		= elapsed / 1000;
-    const u32 max_rate		= 100000;
+    const u32 max_rate		= 1000000;
     const u32 rate		= max_rate * p_done / p_total;
     const u32 percent		= rate / (max_rate/100);
     const u64 total		= sf->f.bytes_read + sf->f.bytes_written;
 
-    TRACE(" - sec=%d->%d, rate=%d, total=%llu=%llu+%llu\n",
+    noTRACE(" - sec=%d->%d, rate=%d, total=%llu=%llu+%llu\n",
 		sf->progress_last_view_sec, view_sec, rate,
 		total, sf->f.bytes_read, sf->f.bytes_written );
 
     if ( sf->progress_last_view_sec != view_sec && rate > 0 && total > 0 )
     {
-	const u64 eta_total		 = elapsed * (u64)max_rate / rate;
-    
 	sf->progress_trigger		 = sf->progress_trigger_init;
 	sf->progress_last_view_sec	 = view_sec;
-	sf->progress_sum_time		+= view_sec * eta_total;
-	sf->progress_time_divisor	+= view_sec;
-	sf->progress_last_calc_time	 = now;
 
 	// eta = elapsed / rate * max_rate - elapsed;
-	const u32 eta = sf->progress_sum_time / sf->progress_time_divisor - elapsed;
+	const u32 eta = elapsed * (u64)max_rate / rate - elapsed;
 
 	char buf1[50], buf2[50];
 	ccp time1 = PrintMSec(buf1,sizeof(buf1),elapsed,sf->show_msec);
 	ccp time2 = PrintMSec(buf2,sizeof(buf2),eta,false);
 
-	PRINT("\nPROGRESS: now=%7u quot=%8llu/%-5llu perc=%3u ela=%6u eta=%6u [%s,%s]\n",
-		now, sf->progress_sum_time, sf->progress_time_divisor,
-		percent, elapsed, eta, time1, time2 );
+	noPRINT("PROGRESS: now=%7u perc=%3u ela=%6u eta=%6u [%s,%s]\n",
+		now, percent, elapsed, eta, time1, time2 );
 
 	if ( !sf->progress_verb || !*sf->progress_verb )
 	    sf->progress_verb = "copied";
@@ -3393,6 +3383,7 @@ abort:
 
 static StringField_t dir_done_list;
 static StringField_t file_done_list;
+int opt_source_auto = 0;
 
 //-----------------------------------------------------------------------------
 
@@ -3721,7 +3712,10 @@ enumError SourceIterator
 		it, it->func,
 		it->act_non_exist, it->act_non_iso, it->act_wbfs );
 
-    if ( current_dir_is_default && !source_list.used && !recurse_list.used )
+    if ( current_dir_is_default
+		&& !source_list.used
+		&& !recurse_list.used
+		&& !opt_source_auto )
 	AppendStringField(&source_list,".",false);
 
     if ( it->act_wbfs < it->act_non_iso )
@@ -3732,6 +3726,23 @@ enumError SourceIterator
 
     ccp *ptr, *end;
     enumError err = ERR_OK;
+
+    if ( opt_source_auto > 0 && !it->auto_processed && it->act_wbfs >= ACT_ALLOW )
+    {
+	it->auto_processed = true;
+	FindWBFSPartitions();
+
+	it->depth = 0;
+	it->max_depth = 1;
+	for ( ptr = wbfs_part_list.field, end = ptr + wbfs_part_list.used;
+		    err == ERR_OK && !SIGINT_level && ptr < end; ptr++ )
+	{
+	    if (collect_fnames)
+		InsertStringField(&it->source_list,*ptr,false);
+	    else
+		err = SourceIteratorStarter(it,*ptr,collect_fnames);
+	}
+    }
 
     it->depth = 0;
     it->max_depth = opt_recurse_depth;

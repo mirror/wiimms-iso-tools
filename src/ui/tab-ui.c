@@ -377,7 +377,7 @@ info_t info_tab[] =
 
   { T_OPT_GM,	"LOGGING",	"L|logging",
 		0,
-		"Enable the logging of internal memory maps."
+		"This debug option enables the logging of internal memory maps."
 		" If set twice second level memory maps are printed too." },
 
   { T_OPT_GP,	"ESC",		"E|esc",
@@ -426,30 +426,49 @@ info_t info_tab[] =
 		"path", "ISO file or base of a directory tree with ISO files." },
 
   { T_OPT_CP,	"RDEPTH",	"rdepth",
-		"depth", "Set the maximum recurse depth for option"
+		"depth",
+		"Set the maximum recurse depth for option"
 		" {--recurse} (default=10)." },
+
+  { T_OPT_C,	"AUTO",		"a|auto",
+		0,
+		"Search WBFS partitions using '/proc/partitions'"
+		" or searching hard disks in '/dev/' and use all readable as source."
+		" This works like {wwt --auto --all}." },
 
   { T_SEP_OPT,	0,0,0,0 }, //----- separator -----
 
   { T_OPT_CMP,	"INCLUDE",	"n|include",
 		"id",
-		"Include only discs with given ID4 or ID6 from operation."
+		"A comma separated list with ID4 and ID6 values is expected."
 		" If the parameter begins with a '@@' the given file is read"
-		" and each line is scanned for IDs." },
+		" and each line is scanned for one ID."
+		" Only images with the given ID are included into the operation."
+		" Each use of this option expands the include list."
+		" The exclude list takes precedence." },
 
   { T_OPT_CMP,	"INCLUDE_PATH",	"N|include-path|includepath",
 		"file_or_dir",
-		"ISO file or base of directory tree -> scan their ID6." },
+		"Scan the ID of the source and add it to the include list."
+		" If the source is a directory then scan all images of the directory."
+		" Only images with the given ID are included into the operation."
+		" Each use of this option expands the include list."
+		" The exclude list takes precedence." },
 
   { T_OPT_CMP,	"EXCLUDE",	"x|exclude",
 		"id",
-		"Exclude discs with given ID4 or ID6 from operation."
+		"A comma separated list with ID4 and ID6 values is expected."
 		" If the parameter begins with a '@@' the given file is read"
-		" and each line is scanned for IDs." },
+		" and each line is scanned for one ID."
+		" Images with the given ID are excluded from operation."
+		" Each use of this option expands the exclude list." },
 
   { T_OPT_CMP,	"EXCLUDE_PATH",	"X|exclude-path|excludepath",
 		"file_or_dir",
-		"ISO file or base of directory tree -> scan their ID6." },
+		"Scan the ID of the source and add it to the exclude list."
+		" If the source is a directory then scan all images of the directory."
+		" Images with the given ID are excluded from operation."
+		" Each use of this option expands the exclude list." },
 
   { T_OPT_CM,	"IGNORE",	"i|ignore",
 		0,
@@ -750,8 +769,7 @@ info_t info_tab[] =
 		0, "Set ISO output file type to WBFS (Wii Backup File System) container." },
 
   { T_OPT_C,	"WIA",		"wia",
-		0, "Set ISO output file type to WIA (Wii ISO Archive)."
-		" WIA files are not editable by {wit EDIT}." },
+		0, "Set ISO output file type to WIA (Wii ISO Archive)." },
 
   { T_OPT_C,	"FST",		"fst",
 		0, "Set ISO output mode to 'file system' (extracted ISO)." },
@@ -787,7 +805,7 @@ info_t info_tab[] =
 
   { T_OPT_CMP,	"TIME",		"time",
 		"list",
-		"Set time printing and sorting mode"
+		"Set time printing and sorting mode."
 		" The parameter is a comma separated list of the following keywords,"
 		" case is ignored:"
 		" RESET, OFF, ON, SINGLE, MULTI, NONE, ALL,"
@@ -833,16 +851,16 @@ info_t info_tab[] =
 		" following keywords, case is ignored: "
 		" @1000=10, 1024=2, BYTES, K, M, G, T, P, E,"
 		" KB, MB, GB, TB, PB, EB, KIB, MIB, GIB, TIB, PIB, EIB,"
-		" HSS, WSS, GAMECUBE=GC, WII@, @AUTO@ and @DEFAULT@."
+		" HDS, WDS, GAMECUBE=GC, WII, AUTO@ and @DEFAULT@."
 		"\n "
 		" The values @1000@ and @1024@ (=default base) set the base factor"
 		" and @BYTES, K, M, G, T, P, E@ the SI factor."
 		" @MB@ is a shortcut for @1000,M@ and @MIB@ for @1024,M@; "
 		" this is also valid for the other SI factors."
-		" @AUTO@ selects the SI factor automatically."
+		" @AUTO@ selects a value dependent SI factor."
 		"\n "
-		" @HSS@ and @WSS@ forces the output"
-		" as multiple of the HD or Wii sector size (512 or 32768 bytes)."
+		" @HDS@ and @WDS@ forces the output"
+		" as multiple of the HD or Wii disc sector size (512 or 32768 bytes)."
 		" @GAMECUBE@ and @WII@ forces the output of a floating point value"
 		" as multiple of the single layer ISO images size of the given type."
 		"\n "
@@ -1078,6 +1096,7 @@ info_t info_tab[] =
 
   { T_CMD_BEG,	"FILELIST",	0,0,0 },
 
+  { T_COPT,	"AUTO",		0,0,0 },
   { T_COPY_GRP,	"XXSOURCE",	0,0,0 },
   { T_COPT,	"LONG",		0,0,
 	"Print the real path instead of given path." },
@@ -1086,6 +1105,7 @@ info_t info_tab[] =
 
   { T_CMD_BEG,	"FILETYPE",	0,0,0 },
 
+  { T_COPT,	"AUTO",		0,0,0 },
   { T_COPY_GRP,	"XXSOURCE",	0,0,0 },
   { T_COPT,	"NO_HEADER",	0,0,0 },
   { T_COPT_M,	"LONG",		0,0,
@@ -1098,6 +1118,7 @@ info_t info_tab[] =
 
   { T_CMD_BEG,	"ISOSIZE",	0,0,0 },
 
+  { T_COPT,	"AUTO",		0,0,0 },
   { T_COPY_GRP,	"XXSOURCE",	0,0,0 },
   { T_COPT,	"NO_HEADER",	0,0,0 },
   { T_COPT_M,	"LONG",		0,0,
@@ -1128,6 +1149,7 @@ info_t info_tab[] =
   { T_CMD_BEG,	"DUMP",		0,0,0 },
 
   { T_COPY_GRP,	"TITLES",	0,0,0 },
+  { T_COPT,	"AUTO",		0,0,0 },
   { T_COPY_GRP,	"XSOURCE",	0,0,0 },
   { T_COPT,	"IGNORE_FST",	0,0,0 },
   { T_COPY_GRP,	"PARTITIONS",	0,0,0 },
@@ -1151,12 +1173,14 @@ info_t info_tab[] =
 
   { T_CMD_BEG,	"DREGION",	0,0,0 },
 
+  { T_COPT,	"AUTO",		0,0,0 },
   { T_COPY_GRP,	"XSOURCE",	0,0,0 },
 
   //---------- COMMAND wit ID6 ----------
 
   { T_CMD_BEG,	"ID6",		0,0,0 },
 
+  { T_COPT,	"AUTO",		0,0,0 },
   { T_COPY_GRP,	"XSOURCE",	0,0,0 },
   { T_COPT,	"IGNORE_FST",	0,0,0 },
 
@@ -1169,6 +1193,7 @@ info_t info_tab[] =
   { T_CMD_BEG,	"LIST",		0,0,0 },
 
   { T_COPY_GRP,	"TITLES",	0,0,0 },
+  { T_COPT,	"AUTO",		0,0,0 },
   { T_COPY_GRP,	"XSOURCE",	0,0,0 },
   { T_COPT,	"IGNORE_FST",	0,0,0 },
 
@@ -1183,6 +1208,7 @@ info_t info_tab[] =
 	" If set twice at least on time columns is added."
 	" If set three times a second line with number or partitions,"
 	" file type and real path is added." },
+  { T_COPT_M,	"UNIT",		0,0,0 },
 
   { T_SEP_OPT,	0,0,0,0 },
 
@@ -1207,6 +1233,7 @@ info_t info_tab[] =
 
   { T_CMD_BEG,	"FILES",	0,0,0 },
 
+  { T_COPT,	"AUTO",		0,0,0 },
   { T_COPY_GRP,	"XXSOURCE",	0,0,0 },
   { T_COPY_GRP,	"PARTITIONS",	0,0,0 },
   { T_COPY_GRP,	"FILES",	0,0,0 },
@@ -1241,6 +1268,7 @@ info_t info_tab[] =
   { T_SEP_OPT,	0,0,0,0 },
 
   { T_COPY_GRP,	"TITLES",	0,0,0 },
+  { T_COPT,	"AUTO",		0,0,0 },
   { T_COPY_GRP,	"XXSOURCE",	0,0,0 },
   { T_COPY_GRP,	"PARTITIONS",	0,0,0 },
   { T_COPY_GRP,	"FILES",	0,0,0 },
@@ -1274,6 +1302,7 @@ info_t info_tab[] =
   { T_SEP_OPT,	0,0,0,0 },
 
   { T_COPY_GRP,	"TITLES",	0,0,0 },
+  { T_COPT,	"AUTO",		0,0,0 },
   { T_COPY_GRP,	"XXSOURCE",	0,0,0 },
   { T_COPY_GRP,	"PARTITIONS",	0,0,0 },
   { T_COPY_GRP,	"FILES",	0,0,0 },
@@ -1399,6 +1428,7 @@ info_t info_tab[] =
   { T_SEP_OPT,	0,0,0,0 },
 
   { T_COPY_GRP,	"TITLES",	0,0,0 },
+  { T_COPT,	"AUTO",		0,0,0 },
   { T_COPY_GRP,	"XSOURCE",	0,0,0 },
   { T_COPT,	"IGNORE",	0,0,0 },
 
@@ -1432,6 +1462,7 @@ info_t info_tab[] =
   { T_SEP_OPT,	0,0,0,0 },
 
   { T_COPY_GRP,	"TITLES",	0,0,0 },
+  { T_COPT,	"AUTO",		0,0,0 },
   { T_COPY_GRP,	"XXSOURCE",	0,0,0 },
   { T_COPY_GRP,	"PARTITIONS",	0,0,0 },
   { T_COPT,	"IGNORE_FILES",	0,0,0 },

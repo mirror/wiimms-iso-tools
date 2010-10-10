@@ -150,8 +150,8 @@ typedef enum wd_size_mode_t
     WD_SIZE_P,			// force output in PB or PiB
     WD_SIZE_E,			// force output in EB or EiB
 
-    WD_SIZE_HSS,		// force output as multiples of HDD sector size (=512)
-    WD_SIZE_WSS,		// force output as multiples of WDD sector size (=32768)
+    WD_SIZE_HD_SECT,		// force output as multiples of HD sector size (=512)
+    WD_SIZE_WD_SECT,		// force output as multiples of WD sector size (=32768)
     WD_SIZE_GC,			// force output as float as multiples of GC discs
     WD_SIZE_WII,		// force output as float as multiples of Wii discs
 
@@ -185,7 +185,8 @@ ccp wd_get_size_unit // get a unit for column headers
 int wd_get_size_fw // get a good value field width
 (
     wd_size_mode_t	mode,		// print mode
-    int			if_invalid	// output for invalid modes
+    int			min_fw		// minimal fw => return max(calc_fw,min_fw);
+					// this value is also returned for invalid modes
 );
 
 //-----------------------------------------------------------------------------
