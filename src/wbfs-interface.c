@@ -3634,7 +3634,7 @@ static void print_sect_time ( FILE *f, char name, time_t tim )
 	fprintf(f,"%ctime=%llu %s\n", name, (u64)tim, timbuf );
     }
     else
-	fprintf(f,"%xtime=\n",name);
+	fprintf(f,"%ctime=\n",name);
 }
 
 //-----------------------------------------------------------------------------
@@ -3659,7 +3659,11 @@ void PrintSectWDiscListItem ( FILE * f, WDiscListItem_t * witem, ccp def_fname )
     print_sect_time(f,'a',witem->fatt.atime);
     //fprintf(f,"part_index=%u\n",witem->part_index);
     //fprintf(f,"n_part=%u\n",witem->n_part);
+
     fprintf(f,"filetype=%s\n",GetNameFT(witem->ftype,0));
+    fprintf(f,"container=%s\n",GetContainerNameFT(witem->ftype,"-"));
+    const wd_disc_type_t dt = FileType2DiscType(witem->ftype);
+    fprintf(f,"disctype=%d %s\n",dt,wd_get_disc_type_name(dt,"?"));
     fprintf(f,"wbfs_slot=%d\n",witem->wbfs_slot);
 
     ccp fname = witem->fname ? witem->fname : def_fname ? def_fname : "";

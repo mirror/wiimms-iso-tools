@@ -2287,6 +2287,10 @@ enumError XPrintErrorFT ( XPARM File_t * f, enumFileType err_mask )
 
 ccp GetNameFT ( enumFileType ftype, int ignore )
 {
+    //////////////////////////
+    // limit is 8 characters!
+    //////////////////////////
+
     switch ( ftype & FT__ID_MASK )
     {
 	case FT_UNKNOWN:
@@ -2298,13 +2302,13 @@ ccp GetNameFT ( enumFileType ftype, int ignore )
 
 	case FT_ID_FST:
 	    return ftype & FT_A_PART_DIR
-			? "FST/PART"
-			: "FST";
+			? ( ftype & FT_A_GC_ISO ? "FST/GC" : "FST/PART" )
+			: ( ftype & FT_A_GC_ISO ? "FST+GC*" : "FST+ISO" );
 	    break;
 
 	case FT_ID_WBFS:
 	    return ftype & FT_A_WDISC
-			? "WBFS/ISO"
+			? ( ftype & FT_A_GC_ISO ? "WBFS/GC" : "WBFS/ISO" )
 			: ignore > 1
 				? 0
 				: ftype & FT_A_WDF
@@ -2325,7 +2329,7 @@ ccp GetNameFT ( enumFileType ftype, int ignore )
 	    return ftype & FT_A_WDF
 			? "WDF+ISO"
 			: ftype & FT_A_WIA
-				? "WIA"
+				? "WIA+ISO"
 					: ftype & FT_A_CISO
 					? "CISO"
 					: "ISO";
@@ -2390,6 +2394,60 @@ ccp GetNameFT ( enumFileType ftype, int ignore )
     }
 }
 
+
+///////////////////////////////////////////////////////////////////////////////
+
+ccp GetContainerNameFT ( enumFileType ftype, ccp answer_if_no_container )
+{
+    const enumOFT oft = FileType2OFT(ftype);
+    return oft > OFT_PLAIN ? oft_name[oft] : answer_if_no_container;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+enumOFT FileType2OFT ( enumFileType ftype )
+{
+    if ( ftype & FT_A_WDF )
+	return OFT_WDF;
+
+    if ( ftype & FT_A_WIA )
+	return OFT_WIA;
+
+    if ( ftype & FT_A_CISO )
+	return OFT_CISO;
+
+    switch ( ftype & FT__ID_MASK )
+    {
+	case FT_ID_FST:
+	    return OFT_FST;
+
+	case FT_ID_WBFS:
+	    return OFT_WBFS;
+
+	case FT_ID_GC_ISO:
+	case FT_ID_WII_ISO:
+	    return OFT_PLAIN;
+    }
+
+    return OFT_UNKNOWN;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+wd_disc_type_t FileType2DiscType ( enumFileType ftype )
+{
+    switch ( ftype & FT__ID_MASK )
+    {
+	case FT_ID_GC_ISO:  return WD_DT_GAMECUBE;
+	case FT_ID_WII_ISO: return WD_DT_WII;
+    }
+
+    return ftype & FT_A_GC_ISO
+		? WD_DT_GAMECUBE
+		: ftype & FT_A_WII_ISO
+			? WD_DT_WII
+			: WD_DT_UNKNOWN;
+}
 
 ///////////////////////////////////////////////////////////////////////////////
 

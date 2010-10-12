@@ -1,4 +1,4 @@
-wit v@@VERSION@@ r@@REV-NEXT@@ - @@@@-@@-@@
+wit v1.18a r1868 - 2010-10-10
 
  - ETA calculation changed to support WIA chunk caching and writing.
  - CYGWIN: The parameters of the options --dest and --DEST are now checked if
@@ -15,6 +15,8 @@ wit v@@VERSION@@ r@@REV-NEXT@@ - @@@@-@@-@@
  - New wit option: --auto: If set, all devices are scanned for WBFS partitions
    and all WBFS partitions are added to the source list. It replaces parameters
    like "--source /dev/wbfs" and works like "wwt --auto --all".
+
+wit v@@VERSION@@ r@@REV-NEXT@@ - @@@@-@@-@@
 
 
 Known bugs:
