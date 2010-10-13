@@ -18,6 +18,7 @@ wit v1.18a r1868 - 2010-10-10
 
 wit v@@VERSION@@ r@@REV-NEXT@@ - @@@@-@@-@@
 
+ - "wwt ADD" accepts option "--source source" as alternative source definition.
 
 Known bugs:
 

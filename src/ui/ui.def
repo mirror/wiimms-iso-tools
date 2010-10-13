@@ -19,6 +19,12 @@
 	"Print help and exit. If the first non option is a valid command name," \
 	" then a help for the given command is printed." )
 
+#:def_cmd( "INFO", "INFO", \
+	"wit INFO [keyword]...", \
+	"Print some internal information about the keywords. If the keyword" \
+	" @ALL@ is set or no keyword is given information for all possible" \
+	" keywords are printed." )
+
 #:def_cmd( "TEST", "TEST", \
 	"wit TEST [ignored]...", \
 	"Test options: All options are allowed, some are printed." )
@@ -659,6 +665,18 @@
 #:def_cmd_opt( "VERSION", "LONG", \
 	"", \
 	"Print in long format. Ignored if option {--sections} is set." )
+
+#:def_cmd_opt( "INFO", "SECTIONS", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "INFO", "NO_HEADER", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "INFO", "LONG", \
+	"", \
+	"" )
 
 #:def_cmd_opt( "ERROR", "SECTIONS", \
 	"", \
@@ -3157,6 +3175,12 @@
 	"Print help and exit. If the first non option is a valid command name," \
 	" then a help for the given command is printed." )
 
+#:def_cmd( "INFO", "INFO", \
+	"wit INFO [keyword]...", \
+	"Print some internal information about the keywords. If the keyword" \
+	" @ALL@ is set or no keyword is given information for all possible" \
+	" keywords are printed." )
+
 #:def_cmd( "TEST", "TEST", \
 	"wwt TEST [ignored]...", \
 	"Test options: All options are allowed, some are printed." )
@@ -3394,6 +3418,10 @@
 #:def_opt( "PART", "p|part", "CMP", \
 	"part", \
 	"Define a primary WBFS partition. Multiple usage possible." )
+
+#:def_opt( "SOURCE", "source", "CMP", \
+	"path", \
+	"ISO file or directory with ISO files." )
 
 #:def_opt( "RECURSE", "r|recurse", "CMP", \
 	"path", \
@@ -3800,6 +3828,18 @@
 	"" )
 
 #:def_cmd_opt( "VERSION", "LONG", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "INFO", "SECTIONS", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "INFO", "NO_HEADER", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "INFO", "LONG", \
 	"", \
 	"" )
 
@@ -4843,6 +4883,10 @@
 	"", \
 	"Disable automatic check of WBFS before modifications." )
 
+#:def_cmd_opt( "ADD", "SOURCE", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "ADD", "RECURSE", \
 	"", \
 	"" )
@@ -5010,6 +5054,10 @@
 	"", \
 	"Disable automatic check of WBFS before modifications." )
 
+#:def_cmd_opt( "UPDATE", "SOURCE", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "UPDATE", "RECURSE", \
 	"", \
 	"" )
@@ -5168,6 +5216,10 @@
 #:def_cmd_opt( "SYNC", "NO_CHECK", \
 	"", \
 	"Disable automatic check of WBFS before modifications." )
+
+#:def_cmd_opt( "SYNC", "SOURCE", \
+	"", \
+	"" )
 
 #:def_cmd_opt( "SYNC", "RECURSE", \
 	"", \

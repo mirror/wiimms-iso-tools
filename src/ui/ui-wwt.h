@@ -45,6 +45,7 @@ typedef enum enumOptions
 	OPT_AUTO,
 	OPT_ALL,
 	OPT_PART,
+	OPT_SOURCE,
 	OPT_RECURSE,
 	OPT_RDEPTH,
 	OPT_PSEL,
@@ -116,7 +117,7 @@ typedef enum enumOptions
 	OPT_SORT,
 	OPT_LIMIT,
 
-	OPT__N_SPECIFIC, // == 74 
+	OPT__N_SPECIFIC, // == 75 
 
 	//----- global options -----
 
@@ -137,7 +138,7 @@ typedef enum enumOptions
 	OPT_TEST,
 	OPT_HOOK,
 
-	OPT__N_TOTAL // == 90
+	OPT__N_TOTAL // == 91
 
 } enumOptions;
 
@@ -155,6 +156,7 @@ typedef enum enumOptions
 //	OB_AUTO			= 1llu << OPT_AUTO,
 //	OB_ALL			= 1llu << OPT_ALL,
 //	OB_PART			= 1llu << OPT_PART,
+//	OB_SOURCE		= 1llu << OPT_SOURCE,
 //	OB_RECURSE		= 1llu << OPT_RECURSE,
 //	OB_RDEPTH		= 1llu << OPT_RDEPTH,
 //	OB_PSEL			= 1llu << OPT_PSEL,
@@ -297,6 +299,10 @@ typedef enum enumOptions
 //
 //	OB_CMD_HELP		= ~(u64)0,
 //
+//	OB_CMD_INFO		= OB_SECTIONS
+//				| OB_NO_HEADER
+//				| OB_LONG,
+//
 //	OB_CMD_TEST		= ~(u64)0,
 //
 //	OB_CMD_ERROR		= OB_SECTIONS
@@ -386,6 +392,7 @@ typedef enum enumOptions
 //
 //	OB_CMD_SYNC		= OB_GRP_TITLES
 //				| OB_GRP_MOD_WBFS
+//				| OB_SOURCE
 //				| OB_RECURSE
 //				| OB_RDEPTH
 //				| OB_GRP_IGN_EXCLUDE
@@ -481,6 +488,7 @@ typedef enum enumCommands
 
 	CMD_VERSION,
 	CMD_HELP,
+	CMD_INFO,
 	CMD_TEST,
 	CMD_ERROR,
 	CMD_COMPR,
@@ -520,7 +528,7 @@ typedef enum enumCommands
 
 	CMD_FILETYPE,
 
-	CMD__N // == 36
+	CMD__N // == 37
 
 } enumCommands;
 
@@ -580,6 +588,7 @@ typedef enum enumGetOpt
 	GO_UTF_8,
 	GO_NO_UTF_8,
 	GO_LANG,
+	GO_SOURCE,
 	GO_RDEPTH,
 	GO_PSEL,
 	GO_RAW,

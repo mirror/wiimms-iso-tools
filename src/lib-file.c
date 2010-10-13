@@ -961,31 +961,37 @@ void GenFileName ( File_t * f, ccp path, ccp name, ccp title, ccp id6, ccp ext )
 ///////////////////////////////////////////////////////////////////////////////
 
 void GenDestFileName
-	( File_t * f, ccp dest, ccp default_name, ccp ext, ccp * rm_ext )
+	( File_t * f, ccp dest, ccp default_name, ccp ext, bool rm_std_ext )
 {
     char fbuf[PATH_MAX];
-    if ( rm_ext && default_name )
+    if ( rm_std_ext && default_name )
     {
 	const size_t name_len = strlen(default_name);
-	for(;;)
+	bool done = false;
+	enumOFT oft;
+	for ( oft = 0; oft < OFT__N && !done; oft++ )
 	{
-	    ccp rm = *rm_ext++;
-	    if (!rm)
-		break;
-
-	    const size_t rm_len = strlen(rm);
-	    const size_t cut_len = name_len - rm_len;
-	    if ( rm_len && rm_len <= name_len && !strcasecmp(rm,default_name+cut_len) )
+	    int i;
+	    for ( i = 0; i < 2 && !done; i++ )
 	    {
-		// got it!
+		ccp rm = i ? oft_info[oft].ext2 : oft_info[oft].ext1;
+		if (!rm)
+		    continue;
 
-		if ( cut_len < sizeof(fbuf) )
+		const size_t rm_len = strlen(rm);
+		const size_t cut_len = name_len - rm_len;
+		if ( rm_len && rm_len <= name_len && !strcasecmp(rm,default_name+cut_len) )
 		{
-		    memcpy(fbuf,default_name,cut_len);
-		    fbuf[cut_len] = 0;
-		    default_name = fbuf;
+		    // got it!
+
+		    if ( cut_len < sizeof(fbuf) )
+		    {
+			memcpy(fbuf,default_name,cut_len);
+			fbuf[cut_len] = 0;
+			default_name = fbuf;
+		    }
+		    done = true; // remove maximal 1 extension
 		}
-		break; // remove maximal 1 extension
 	    }
 	}
     }
@@ -1008,27 +1014,39 @@ void GenDestFileName
 
 void GenImageFileName ( File_t * f, ccp dest, ccp default_name, enumOFT oft )
 {
-    ccp ext = (uint)oft < OFT__N ? oft_ext[oft] : 0;
-    GenDestFileName(f,dest,default_name,ext,oft_ext);
+    ccp ext = (uint)oft < OFT__N ? oft_info[oft].ext1 : 0;
+    GenDestFileName(f,dest,default_name,ext,true);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 
-ccp oft_ext [OFT__N+1]
-	= { "\0", ".iso", ".wdf", ".ciso", ".wbfs", ".wia", "",    0 };
-ccp oft_name[OFT__N+1]
-	= { "?",   "ISO",  "WDF",  "CISO",  "WBFS", "WIA",  "FST", 0 };
-
-enumIOMode oft_iom[OFT__N+1] =
+const OFT_info_t oft_info[OFT__N+1] =
 {
-    IOM__IS_DEFAULT,		// OFT_UNKNOWN
-    IOM_IS_IMAGE,		// OFT_PLAIN
-    IOM_IS_IMAGE,		// OFT_WDF
-    IOM_IS_IMAGE,		// OFT_CISO
-    IOM_IS_IMAGE,		// OFT_WBFS  -> IOM_IS_WBFS_PART is reserved for WBFS partitions
-    IOM_IS_WIA,			// OFT_WIA
-    IOM__IS_DEFAULT,		// OFT_FST
-    IOM__IS_DEFAULT,		// OFT__N
+    // HINT: The extra 0 in "\0" is needed because of: oft_info[].ext1+1
+
+    { OFT_UNKNOWN, 0, IOM__IS_DEFAULT,
+	"?", "\0", 0, "unkown file format" },
+
+    { OFT_PLAIN, OFT_A_READ|OFT_A_WRITE|OFT_A_EXTEND|OFT_A_EDIT, IOM_IS_IMAGE,
+	"ISO", ".iso", 0, "plain (ISO) file" },
+
+    { OFT_WDF, OFT_A_READ|OFT_A_WRITE|OFT_A_EXTEND|OFT_A_EDIT, IOM_IS_IMAGE,
+	"WDF", ".wdf", 0, "WDF (Wii Dic Format)" },
+
+    { OFT_CISO, OFT_A_READ|OFT_A_WRITE|OFT_A_EDIT, IOM_IS_IMAGE,
+	"CISO", ".ciso", ".wbi", "CISO (Compact ISO)" },
+
+    { OFT_WBFS, OFT_A_READ|OFT_A_WRITE|OFT_A_EXTEND|OFT_A_EDIT, IOM_IS_IMAGE,
+	"WBFS", ".wbfs", 0, "WBFS (Wii Backup File System)" },
+
+    { OFT_WIA, OFT_A_READ|OFT_A_WRITE, IOM_IS_WIA,
+	"WIA", ".wia", 0, "WIA (Wii ISO Archive)" },
+
+    { OFT_FST, OFT_A_READ|OFT_A_WRITE|OFT_A_FST, IOM__IS_DEFAULT,
+	"FST", "\0", 0, "FST (extracted File System)" },
+
+    { OFT__N, 0, IOM__IS_DEFAULT,
+	0, 0, 0, 0 },
 };
 
 ///////////////////////////////////////////////////////////////////////////////

@@ -3664,6 +3664,7 @@ void PrintSectWDiscListItem ( FILE * f, WDiscListItem_t * witem, ccp def_fname )
     fprintf(f,"container=%s\n",GetContainerNameFT(witem->ftype,"-"));
     const wd_disc_type_t dt = FileType2DiscType(witem->ftype);
     fprintf(f,"disctype=%d %s\n",dt,wd_get_disc_type_name(dt,"?"));
+    fprintf(f,"n-partitions=%d\n",witem->n_part);
     fprintf(f,"wbfs_slot=%d\n",witem->wbfs_slot);
 
     ccp fname = witem->fname ? witem->fname : def_fname ? def_fname : "";

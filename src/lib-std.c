@@ -548,6 +548,18 @@ void SetupLib ( int argc, char ** argv, ccp p_progname, enumProgID prid )
 
     InitializeAllFilePattern();
     wd_initialize_select(&part_selector);
+
+
+    //----- verify oft_info
+
+    {
+	ASSERT( OFT__N + 1 == sizeof(oft_info)/sizeof(*oft_info) );
+	enumOFT oft;
+	for ( oft = 0; oft <= OFT__N; oft++ )
+	{
+	    ASSERT( oft_info[oft].oft == oft );
+	}
+    }
 }
 
 ///////////////////////////////////////////////////////////////////////////////

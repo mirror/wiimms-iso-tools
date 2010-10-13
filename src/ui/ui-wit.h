@@ -286,9 +286,13 @@ typedef enum enumOptions
 //				| OB_COMPRESSION
 //				| OB_MEM,
 //
+//	OB_CMD_VERSION		= OB_SECTIONS
+//				| OB_LONG,
+//
 //	OB_CMD_HELP		= ~(u64)0,
 //
-//	OB_CMD_VERSION		= OB_SECTIONS
+//	OB_CMD_INFO		= OB_SECTIONS
+//				| OB_NO_HEADER
 //				| OB_LONG,
 //
 //	OB_CMD_TEST		= ~(u64)0,
@@ -473,6 +477,7 @@ typedef enum enumCommands
 
 	CMD_VERSION,
 	CMD_HELP,
+	CMD_INFO,
 	CMD_TEST,
 	CMD_ERROR,
 	CMD_COMPR,
@@ -509,7 +514,7 @@ typedef enum enumCommands
 	CMD_VERIFY,
 	CMD_MIX,
 
-	CMD__N // == 33
+	CMD__N // == 34
 
 } enumCommands;
 

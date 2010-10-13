@@ -1243,8 +1243,8 @@ enumError exec_diff ( SuperFile_t * f1, Iterator_t * it )
     {
 	printf( "%s: WOULD DIFF/%s %s:%s : %s:%s\n",
 		progname, raw_mode ? "RAW" : "SCRUB",
-		oft_name[f1->iod.oft], f1->f.fname,
-		oft_name[f2.iod.oft], f2.f.fname );
+		oft_info[f1->iod.oft].name, f1->f.fname,
+		oft_info[f2.iod.oft].name, f2.f.fname );
 	ResetSF(&f2,0);
 	return ERR_OK;
     }
@@ -1253,8 +1253,8 @@ enumError exec_diff ( SuperFile_t * f1, Iterator_t * it )
     {
 	printf( "* DIFF/%s %s:%s -> %s:%s\n",
 		raw_mode ? "RAW" : "SCRUB",
-		oft_name[f1->iod.oft], f1->f.fname,
-		oft_name[f2.iod.oft], f2.f.fname );
+		oft_info[f1->iod.oft].name, f1->f.fname,
+		oft_info[f2.iod.oft].name, f2.f.fname );
     }
 
     PRINT("DIFF: raw=%x, files=%x => diff files = %d\n",
@@ -1269,8 +1269,8 @@ enumError exec_diff ( SuperFile_t * f1, Iterator_t * it )
 	err = ERR_OK;
 	if ( verbose >= 0 )
 	    printf( "! ISOs differ: %s:%s : %s:%s\n",
-			oft_name[f1->iod.oft], f1->f.fname,
-			oft_name[f2.iod.oft], f2.f.fname );
+			oft_info[f1->iod.oft].name, f1->f.fname,
+			oft_info[f2.iod.oft].name, f2.f.fname );
     }
     it->done_count++;
 
@@ -1393,7 +1393,7 @@ enumError exec_extract ( SuperFile_t * fi, Iterator_t * it )
     {
 	printf( "%s: %sEXTRACT %s:%s -> %s\n",
 		progname, testmode ? "WOULD " : "",
-		oft_name[fi->iod.oft], fi->f.fname, dest_path );
+		oft_info[fi->iod.oft].name, fi->f.fname, dest_path );
 	if (testmode)
 	    return ERR_OK;
     }
@@ -1535,12 +1535,12 @@ enumError exec_copy ( SuperFile_t * fi, Iterator_t * it )
 	if (convert_it)
 	    printf( "%s: WOULD %s %s %s:%s\n",
 		progname, raw_mode ? "COPY " : "SCRUB",
-		count_buf, oft_name[oft], fi->f.fname );
+		count_buf, oft_info[oft].name, fi->f.fname );
 	else
 	    printf( "%s: WOULD %s %s %s:%s -> %s:%s\n",
 			progname, raw_mode ? "COPY " : "SCRUB", count_buf,
-			oft_name[fi->iod.oft], fi->f.fname,
-			oft_name[oft], fo.f.fname );
+			oft_info[fi->iod.oft].name, fi->f.fname,
+			oft_info[oft].name, fo.f.fname );
 	ResetSF(&fo,0);
 	return ERR_OK;
     }
@@ -1550,15 +1550,15 @@ enumError exec_copy ( SuperFile_t * fi, Iterator_t * it )
 	if (convert_it)
 	    printf( "* %s %s %s %s %s\n",
 		progname, raw_mode ? "COPY " : "SCRUB",
-		count_buf, oft_name[oft], fi->f.fname );
+		count_buf, oft_info[oft].name, fi->f.fname );
 	else
 	    printf( "* %s %s %s %s:%s -> %s:%s\n",
 			progname, raw_mode ? "COPY " : "SCRUB", count_buf,
-		    oft_name[fi->iod.oft], fi->f.fname,
-		    oft_name[oft], fo.f.fname );
+		    oft_info[fi->iod.oft].name, fi->f.fname,
+		    oft_info[oft].name, fo.f.fname );
     }
 
-    enumError err = CreateFile( &fo.f, 0, oft_iom[oft], it->overwrite );
+    enumError err = CreateFile( &fo.f, 0, oft_info[oft].iom, it->overwrite );
     if ( err == ERR_ALREADY_EXISTS )
     {
 	it->exists_count++;
@@ -1708,12 +1708,12 @@ enumError exec_edit ( SuperFile_t * fi, Iterator_t * it )
 
     if (testmode)
     {
-	printf( "%s: WOULD EDIT %s:%s\n", progname, oft_name[fi->iod.oft], fi->f.fname );
+	printf( "%s: WOULD EDIT %s:%s\n", progname, oft_info[fi->iod.oft].name, fi->f.fname );
 	return ERR_OK;
     }
 
     if ( verbose >= 0 )
-	printf( "%s: EDIT %s:%s\n", progname, oft_name[fi->iod.oft], fi->f.fname );
+	printf( "%s: EDIT %s:%s\n", progname, oft_info[fi->iod.oft].name, fi->f.fname );
 
     OpenDiscSF(fi,true,true);
     wd_disc_t * disc = fi->disc1;
@@ -1812,7 +1812,7 @@ enumError exec_move ( SuperFile_t * fi, Iterator_t * it )
 		printf(" - %sMove %*u/%u %s%s:%s -> %s\n",
 		    testmode ? "WOULD " : "",
 		    fw, it->source_index+1, it->source_list.used,
-		    oft_name[fo.iod.oft], iobuf, fi->f.fname, fo.f.fname );
+		    oft_info[fo.iod.oft].name, iobuf, fi->f.fname, fo.f.fname );
 	    }
 
 	    CloseSF(fi,0);
@@ -2027,7 +2027,7 @@ enumError exec_verify ( SuperFile_t * fi, Iterator_t * it )
     {
 	printf( "%s: %sVERIFY %s:%s\n",
 		progname, testmode ? "WOULD " : "",
-		oft_name[fi->iod.oft], fi->f.fname );
+		oft_info[fi->iod.oft].name, fi->f.fname );
 	if (testmode)
 	    return ERR_OK;
     }
@@ -2315,6 +2315,7 @@ enumError CheckCommand ( int argc, char ** argv )
     {
 	case CMD_VERSION:	version_exit();
 	case CMD_HELP:		PrintHelp(&InfoUI,stdout,0,"HELP",0); break;
+	case CMD_INFO:		err = cmd_info(); break;
 	case CMD_TEST:		err = cmd_test(); break;
 	case CMD_ERROR:		err = cmd_error(); break;
 	case CMD_COMPR:		err = cmd_compr(); break;

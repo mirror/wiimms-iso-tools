@@ -906,7 +906,7 @@ int SubstFileName
 
     char x_buf[1000];
     snprintf(x_buf,sizeof(x_buf),"%s [%s]%s",
-		title, id6, oft_ext[oft] );
+		title, id6, oft_info[oft].ext1 );
 
     char y_buf[1000];
     snprintf(y_buf,sizeof(y_buf),"%s [%s]",
@@ -917,7 +917,7 @@ int SubstFileName
     if ( oft == OFT_WBFS )
     {
 	snprintf(plus_buf,sizeof(plus_buf),"%s%s",
-	    id6, oft_ext[oft] );
+	    id6, oft_info[oft].ext1 );
 	plus_name = plus_buf;
     }
     else
@@ -928,7 +928,7 @@ int SubstFileName
 	{ 'i', 'I', 0, id6 },
 	{ 'n', 'N', 0, disc_name },
 	{ 't', 'T', 0, title },
-	{ 'e', 'E', 0, oft_ext[oft]+1 },
+	{ 'e', 'E', 0, oft_info[oft].ext1+1 },
 	{ 'p', 'P', 1, src_path },
 	{ 'f', 'F', 1, fname },
 	{ 'x', 'X', 0, x_buf },
@@ -2400,7 +2400,7 @@ ccp GetNameFT ( enumFileType ftype, int ignore )
 ccp GetContainerNameFT ( enumFileType ftype, ccp answer_if_no_container )
 {
     const enumOFT oft = FileType2OFT(ftype);
-    return oft > OFT_PLAIN ? oft_name[oft] : answer_if_no_container;
+    return oft > OFT_PLAIN ? oft_info[oft].name : answer_if_no_container;
 }
 
 ///////////////////////////////////////////////////////////////////////////////

@@ -197,7 +197,7 @@ static void test_splitted_file()
     File_t of;
     InitializeFile(&of);
 
-    GenDestFileName(&of,"pool/","split-file",".xxx",0);
+    GenDestFileName(&of,"pool/","split-file",".xxx",false);
     CreateFile( &of, 0, IOM_NO_STREAM,true);
 
     printf("*** created -> press ENTER: "); fflush(stdout); getchar();

@@ -170,6 +170,12 @@ info_t info_tab[] =
 		" If the first non option is a valid command name,"
 		" then a help for the given command is printed." },
 
+  { T_DEF_CMD,	"INFO",		"INFO",
+		    "wit INFO [keyword]...",
+		"Print some internal information about the keywords."
+		" If the keyword @ALL@ is set or no keyword is given"
+		" information for all possible keywords are printed." },
+
   { T_DEF_CMD,	"TEST",		"TEST",
 		    "wit TEST [ignored]...",
 		"Test options: All options are allowed, some are printed." },
@@ -1034,12 +1040,6 @@ info_t info_tab[] =
   { T_COPT,	"MEM",		0,0,0 },
 
   //
-  //---------- COMMAND wit HELP ----------
-
-  { T_CMD_BEG,	"HELP",		0,0,0 },
-
-  { T_ALL_OPT,	0,		0,0,0 },
-
   //---------- COMMAND wit VERSION ----------
 
   { T_CMD_BEG,	"VERSION",	0,0,0 },
@@ -1047,6 +1047,20 @@ info_t info_tab[] =
   { T_COPT,	"SECTIONS",	0,0,0 },
   { T_COPT,	"LONG",		0,0,
 	"Print in long format. Ignored if option {--sections} is set." },
+
+  //---------- COMMAND wit HELP ----------
+
+  { T_CMD_BEG,	"HELP",		0,0,0 },
+
+  { T_ALL_OPT,	0,		0,0,0 },
+
+  //---------- COMMAND wit INFO ----------
+
+  { T_CMD_BEG,	"INFO",		0,0,0 },
+
+  { T_COPT,	"SECTIONS",	0,0,0 },
+  { T_COPT,	"NO_HEADER",	0,0,0 },
+  { T_COPT,	"LONG",		0,0,0 },
 
   //---------- COMMAND wit TEST ----------
 
@@ -1540,6 +1554,10 @@ info_t info_tab[] =
 		    "wwt HELP [command] [ignored]...",
 		0 /* copy of wit */ },
 
+  { T_DEF_CMD,	"INFO",		"INFO",
+		    "wit INFO [keyword]...",
+		0 /* copy of wit */ },
+
   { T_DEF_CMD,	"TEST",		"TEST",
 		    "wwt TEST [ignored]...",
 		0 /* copy of wit */ },
@@ -1765,6 +1783,9 @@ info_t info_tab[] =
   { T_OPT_CMP,	"PART",		"p|part",
 		"part",
 		"Define a primary WBFS partition. Multiple usage possible." },
+
+  { T_OPT_CMP,	"SOURCE",	"source",
+		0, 0 /* copy of wit */ },
 
   { T_OPT_CMP,	"RECURSE",	"r|recurse",
 		0, 0 /* copy of wit */ },
@@ -2153,6 +2174,14 @@ info_t info_tab[] =
 
   { T_ALL_OPT,	0,		0,0,0 },
 
+  //---------- COMMAND wwt INFO ----------
+
+  { T_CMD_BEG,	"INFO",		0,0,0 },
+
+  { T_COPT,	"SECTIONS",	0,0,0 },
+  { T_COPT,	"NO_HEADER",	0,0,0 },
+  { T_COPT,	"LONG",		0,0,0 },
+
   //---------- COMMAND wwt TEST ----------
 
   { T_CMD_BEG,	"TEST",		0,0,0 },
@@ -2405,6 +2434,7 @@ info_t info_tab[] =
   { T_COPY_GRP,	"TITLES",	0,0,0 },
   { T_COPY_GRP,	"MOD_WBFS",	0,0,0 },
 
+  { T_COPT_M,	"SOURCE",	0,0,0 },
   { T_COPT_M,	"RECURSE",	0,0,0 },
   { T_COPT,	"RDEPTH",	0,0,0 },
   { T_COPY_GRP,	"IGN_EXCLUDE",	0,0,0 },
