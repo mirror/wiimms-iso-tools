@@ -3138,15 +3138,24 @@ void CalcWDiscInfo ( WDiscInfo_t * dinfo, SuperFile_t * sf )
 
     if (sf)
     {
-	wd_disc_t * disc = OpenDiscSF(sf,false,false);
+	const wd_disc_t * disc = OpenDiscSF(sf,false,false);
 	if (disc)
 	{
 	    memcpy(&dinfo->dhead,&disc->dhead,sizeof(dinfo->dhead));
-	    //dinfo->disc_type	= disc->disc_type;
-	    //dinfo->disc_attrib	= disc->disc_attrib;
 	    dinfo->magic2	= disc->magic2;
 	    dinfo->n_part	= disc->n_part;
 	    dinfo->used_blocks	= CountUsedIsoBlocksSF(sf,&part_selector);
+
+	    static char mask[] = "DUC?";
+	    strcpy(dinfo->part_info,"----");
+	    int ip;
+	    for ( ip = 0; ip < disc->n_part; ip++ )
+	    {
+		u32 pt = disc->part[ip].part_type;
+		if ( pt > sizeof(mask)-2 )
+		     pt = sizeof(mask)-2;
+		dinfo->part_info[pt] = mask[pt];
+	    }
 	}
 	else
 	    ReadSF(sf,0,&dinfo->dhead,sizeof(dinfo->dhead));
@@ -3173,6 +3182,7 @@ void CopyWDiscInfo ( WDiscListItem_t * item, WDiscInfo_t * dinfo )
     memcpy(item->id6,&dinfo->dhead.disc_id,6);
     item->size_mib = (u32)(( dinfo->size + MiB/2 ) / MiB );
     memcpy(item->name64,dinfo->dhead.disc_title,64);
+    memcpy(item->part_info,dinfo->part_info,sizeof(item->part_info));
     item->title		= dinfo->title;
     item->n_part	= dinfo->n_part;
     item->wbfs_slot	= dinfo->disc_index;
@@ -3664,9 +3674,14 @@ void PrintSectWDiscListItem ( FILE * f, WDiscListItem_t * witem, ccp def_fname )
     fprintf(f,"container=%s\n",GetContainerNameFT(witem->ftype,"-"));
     const wd_disc_type_t dt = FileType2DiscType(witem->ftype);
     fprintf(f,"disctype=%d %s\n",dt,wd_get_disc_type_name(dt,"?"));
-    fprintf(f,"n-partitions=%d\n",witem->n_part);
-    fprintf(f,"wbfs_slot=%d\n",witem->wbfs_slot);
 
+    if ( witem->n_part > 0 || *witem->part_info )
+    {
+	fprintf(f,"n-partitions=%d\n",witem->n_part);
+	fprintf(f,"partition-info=%s\n",witem->part_info);
+    }
+
+    fprintf(f,"wbfs_slot=%d\n",witem->wbfs_slot);
     ccp fname = witem->fname ? witem->fname : def_fname ? def_fname : "";
     fprintf(f,"filename=%s\n",fname);
     if ( *fname && witem->wbfs_slot >= 0 )

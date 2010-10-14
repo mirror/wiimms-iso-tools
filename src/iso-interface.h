@@ -46,6 +46,7 @@ typedef struct WDiscInfo_t
 
     uint		disc_index;
     char		id6[7];
+    char		part_info[5];
     u64			size;
     u64			iso_size;
     u32			used_blocks;
@@ -58,17 +59,18 @@ typedef struct WDiscInfo_t
 
 typedef struct WDiscListItem_t
 {
-	u32  size_mib;		// size of the source in MiB
-	u32  used_blocks;	// number of used ISO blocks
-	char id6[7];		// ID6
-	char name64[65];	// disc name from header
-	ccp  title;		// ptr into title DB (not alloced)
-	u16  part_index;	// WBFS partition index
-	u16  n_part;		// number of partitions
-	s16  wbfs_slot;		// slot number
-	enumFileType ftype;	// the type of the file
-	ccp  fname;		// filename, alloced
-	FileAttrib_t fatt;	// file attributes: size, itime, mtime, ctime, atime
+    u32			size_mib;	// size of the source in MiB
+    u32			used_blocks;	// number of used ISO blocks
+    char		id6[7];		// ID6
+    char		name64[65];	// disc name from header
+    char		part_info[5];	// string like 'DUC?'
+    ccp			title;		// ptr into title DB (not alloced)
+    u16			part_index;	// WBFS partition index
+    u16			n_part;		// number of partitions
+    s16			wbfs_slot;		// slot number
+    enumFileType	ftype;		// the type of the file
+    ccp			fname;		// filename, alloced
+    FileAttrib_t	fatt;		// file attributes: size, itime, mtime, ctime, atime
 
 } WDiscListItem_t;
 

@@ -3611,14 +3611,12 @@ static enumError SourceIteratorHelper
     }
     err = ERR_OK;
 
-    if ( sf.f.ftype & FT_A_WDISC )
+    if ( sf.f.ftype & FT_A_WDISC && sf.wbfs && sf.wbfs->disc )
     {
-	ccp slash = strrchr(path,'/');
-	if (slash)
-	{
-	    StringCat2S(buf,sizeof(buf),it->real_path,slash);
-	    real_path = buf;
-	}
+	char buf2[10];
+	snprintf(buf2,sizeof(buf2),"/#%u",sf.wbfs->disc->slot);
+	StringCat2S(buf,sizeof(buf),it->real_path,buf2);
+	it->real_path = real_path = buf;
     }
 
     if ( it->act_wbfs >= ACT_EXPAND

@@ -848,13 +848,22 @@ enumError exec_collect ( SuperFile_t * sf, Iterator_t * it )
 
     WDiscList_t * wl = it->wlist;
     WDiscListItem_t * item = AppendWDiscList(wl,&wdi);
-    if ( it->real_filename && sf->f.path && *sf->f.path )
+    if ( OptionUsed[OPT_REALPATH] )
+    {
+	int len = strlen(it->real_path);
+	if ( it->real_filename && sf->f.ftype & FT_A_WDISC )
+	{
+	    ccp slash = strrchr(it->real_path,'/');
+	    if (slash)
+		len = slash - it->real_path;
+	}
+	item->fname = MemDup(it->real_path,len);
+    }
+    else if ( it->real_filename && sf->f.path && *sf->f.path )
     {
 	item->fname = sf->f.path;
 	sf->f.path  = EmptyString;
     }
-    else if ( it->long_count > 2 )
-	item->fname = strdup(it->real_path);
     else
     {
 	item->fname = sf->f.fname;
@@ -950,6 +959,9 @@ enumError cmd_list ( int long_level )
 
     WDiscList_t wlist;
     InitializeWDiscList(&wlist);
+
+    if ( long_count > 3 )
+	OptionUsed[OPT_REALPATH] = 1;
 
     Iterator_t it;
     InitializeIterator(&it);
@@ -1047,6 +1059,10 @@ enumError cmd_list ( int long_level )
 
     if (long_count)
     {
+	int part_info_fw = pt.wd + size_fw - 3;
+	if ( part_info_fw < 6 )
+	    part_info_fw = 6;
+
 	if (print_header)
 	{
 	    int n1, n2;
@@ -1060,8 +1076,9 @@ enumError cmd_list ( int long_level )
 		max_name_wd = n2;
 
 	    if (line2)
-		printf("%s%*s type   path of file\n",
-			pt.fill, size_fw + 6, "n(p)");
+		printf("  n(p) %-*s type     %ssource\n",
+			part_info_fw, "p-info",
+			OptionUsed[OPT_REALPATH] ? "real " : "" );
 
 	    if ( max_name_wd < footer_len )
 		max_name_wd = footer_len;
@@ -1077,8 +1094,9 @@ enumError cmd_list ( int long_level )
 		    GetRegionInfo(witem->id6[3])->name4,
 		    witem->title ? witem->title : witem->name64 );
 	    if (line2)
-		printf("%s%*d %7s %s\n",
-		    pt.fill, size_fw + 5, witem->n_part, GetNameFT(witem->ftype,0),
+		printf("%6d %-*s %-8s %s\n",
+		    witem->n_part, part_info_fw, witem->part_info,
+		    GetNameFT(witem->ftype,0),
 		    witem->fname ? witem->fname : "" );
 	}
     }
@@ -2204,6 +2222,7 @@ enumError CheckOptions ( int argc, char ** argv, bool is_env )
 
 	case GO_LONG:		long_count++; break;
 	case GO_NUMERIC:	break;
+	case GO_REALPATH:	break;
 	case GO_UNIQUE:	    	break;
 	case GO_NO_HEADER:	break;
 	case GO_SECTIONS:	print_sections++; break;

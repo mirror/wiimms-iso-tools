@@ -19,6 +19,10 @@ wit v1.18a r1868 - 2010-10-10
 wit v@@VERSION@@ r@@REV-NEXT@@ - @@@@-@@-@@
 
  - "wwt ADD" accepts option "--source source" as alternative source definition.
+ - The layout of "wit LIST-LLL" is redesigned:
+    - Bug fix for real pathes for WBFS files.
+    - New option: --real-path: print the real path instead of the entered path.
+    - New column: p-info: Print a short info about available partitions: "DUC?"
 
 Known bugs:
 

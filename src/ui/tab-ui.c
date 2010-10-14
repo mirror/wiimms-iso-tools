@@ -826,6 +826,9 @@ info_t info_tab[] =
   { T_OPT_C,	"NUMERIC",	"numeric",
 		0, "Force numeric output instead of printing names." },
 
+  { T_OPT_C,	"REALPATH",	"real-path|realpath",
+		0, "Print real path instead of entered path." },
+
   { T_OPT_CP,	"SHOW",		"show",
 		"list",
 		"This option allows fine control over the things that are to be printed."
@@ -1222,6 +1225,7 @@ info_t info_tab[] =
 	" If set twice at least on time columns is added."
 	" If set three times a second line with number or partitions,"
 	" file type and real path is added." },
+  { T_COPT,	"REALPATH",	0,0,0 },
   { T_COPT_M,	"UNIT",		0,0,0 },
 
   { T_SEP_OPT,	0,0,0,0 },

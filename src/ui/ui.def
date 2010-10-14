@@ -600,6 +600,10 @@
 	"", \
 	"Force numeric output instead of printing names." )
 
+#:def_opt( "REALPATH", "real-path|realpath", "C", \
+	"", \
+	"Print real path instead of entered path." )
+
 #:def_opt( "SHOW", "show", "CP", \
 	"list", \
 	"This option allows fine control over the things that are to be" \
@@ -1196,6 +1200,10 @@
 	" least on time columns is added. If set three times a second line" \
 	" with number or partitions, file type and real path is added." )
 
+#:def_cmd_opt( "LIST", "REALPATH", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "LIST", "UNIT", \
 	"", \
 	"" )
@@ -1297,6 +1305,10 @@
 	"If set the size in MiB and the region is printed too. If set twice at" \
 	" least on time columns is added. If set three times a second line" \
 	" with number or partitions, file type and real path is added." )
+
+#:def_cmd_opt( "LIST_L", "REALPATH", \
+	"", \
+	"" )
 
 #:def_cmd_opt( "LIST_L", "UNIT", \
 	"", \
@@ -1400,6 +1412,10 @@
 	" least on time columns is added. If set three times a second line" \
 	" with number or partitions, file type and real path is added." )
 
+#:def_cmd_opt( "LIST_LL", "REALPATH", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "LIST_LL", "UNIT", \
 	"", \
 	"" )
@@ -1501,6 +1517,10 @@
 	"If set the size in MiB and the region is printed too. If set twice at" \
 	" least on time columns is added. If set three times a second line" \
 	" with number or partitions, file type and real path is added." )
+
+#:def_cmd_opt( "LIST_LLL", "REALPATH", \
+	"", \
+	"" )
 
 #:def_cmd_opt( "LIST_LLL", "UNIT", \
 	"", \
