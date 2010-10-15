@@ -22,8 +22,9 @@
 #:def_cmd( "INFO", "INFO", \
 	"wit INFO [keyword]...", \
 	"Print some internal information about the keywords. If the keyword" \
-	" @ALL@ is set or no keyword is given information for all possible" \
-	" keywords are printed." )
+	" @ALL@ is set or no keyword is entered information for all possible" \
+	" keywords are printed. Possible keywords are: @FILE-FORMAT@ and" \
+	" @ALL@." )
 
 #:def_cmd( "TEST", "TEST", \
 	"wit TEST [ignored]...", \
@@ -423,7 +424,7 @@
 	"path", \
 	"Define a destination path (directory/file). The destination path is" \
 	" scanned for escape sequences (see option {--esc}) to allow generic" \
-	" pathes." )
+	" paths." )
 
 #:def_opt( "DEST2", "D|DEST", "CP", \
 	"path", \
@@ -671,14 +672,6 @@
 	"Print in long format. Ignored if option {--sections} is set." )
 
 #:def_cmd_opt( "INFO", "SECTIONS", \
-	"", \
-	"" )
-
-#:def_cmd_opt( "INFO", "NO_HEADER", \
-	"", \
-	"" )
-
-#:def_cmd_opt( "INFO", "LONG", \
 	"", \
 	"" )
 
@@ -3198,8 +3191,9 @@
 #:def_cmd( "INFO", "INFO", \
 	"wit INFO [keyword]...", \
 	"Print some internal information about the keywords. If the keyword" \
-	" @ALL@ is set or no keyword is given information for all possible" \
-	" keywords are printed." )
+	" @ALL@ is set or no keyword is entered information for all possible" \
+	" keywords are printed. Possible keywords are: @FILE-FORMAT@ and" \
+	" @ALL@." )
 
 #:def_cmd( "TEST", "TEST", \
 	"wwt TEST [ignored]...", \
@@ -3592,7 +3586,7 @@
 	"path", \
 	"Define a destination path (directory/file). The destination path is" \
 	" scanned for escape sequences (see option {--esc}) to allow generic" \
-	" pathes." )
+	" paths." )
 
 #:def_opt( "DEST2", "D|DEST", "CP", \
 	"path", \
@@ -3852,14 +3846,6 @@
 	"" )
 
 #:def_cmd_opt( "INFO", "SECTIONS", \
-	"", \
-	"" )
-
-#:def_cmd_opt( "INFO", "NO_HEADER", \
-	"", \
-	"" )
-
-#:def_cmd_opt( "INFO", "LONG", \
 	"", \
 	"" )
 

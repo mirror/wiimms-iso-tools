@@ -248,8 +248,8 @@ typedef enum attribOFT // OFT attributes
 {
     OFT_A_READ		= 0x01,		// format can be read
     OFT_A_WRITE		= 0x02,		// format can be written
-    OFT_A_EXTEND	= 0x04,		// format can be extended
-    OFT_A_EDIT		= 0x08,		// format can be edited
+    OFT_A_MODIFY	= 0x04,		// format can be modified
+    OFT_A_EXTEND	= 0x08,		// format can be extended
     OFT_A_FST		= 0x10,		// format is an extracted file system
 
 } attribOFT;
@@ -263,6 +263,7 @@ typedef struct OFT_info_t
     enumIOMode		iom;	// preferred IO mode
 
     ccp			name;	// name
+    ccp			option;	// option to force output format
     ccp			ext1;	// standard file extension (maybe an empty string)
     ccp			ext2;	// NULL or alternative file extension
     ccp			info;	// short text info

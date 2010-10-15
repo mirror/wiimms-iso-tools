@@ -450,7 +450,6 @@ static void info_file_formats()
 {
     if (print_sections)
     {
-	// [2do]
 	printf(	"\n"
 		"[FILE-FORMAT]\n"
 		"n=%u\n",
@@ -465,39 +464,64 @@ static void info_file_formats()
 	}
 	putchar('\n');
 
-	if (long_count)
-	    for ( oft = 1; oft < OFT__N; oft++ )
-	    {
-		const OFT_info_t * info = oft_info + oft;
-		printf(	"\n"
+	for ( oft = 1; oft < OFT__N; oft++ )
+	{
+	    const OFT_info_t * info = oft_info + oft;
+	    printf(	"\n"
 			"[FILE-FORMAT:%s]\n"
 			"name=%s\n"
 			"info=%s\n"
-			"extension-1=%s\n"
-			"extension-2=%s\n"
-			"may-read=%d\n"
-			"may-write=%d\n"
-			"may-extend=%d\n"
-			"may-edit=%d\n"
-			"is-fst=%d\n"
+			"option=%s\n"
+			"extensions=%s %s\n"
+			"attributes=%s%s%s%s%s\n"
 			,info->name
 			,info->name
 			,info->info
+			,info->option
 			,info->ext1 ? info->ext1 : ""
 			,info->ext2 ? info->ext2 : ""
-			,info->attrib & OFT_A_READ ? 1 : 0
-			,info->attrib & OFT_A_WRITE ? 1 : 0
-			,info->attrib & OFT_A_EXTEND ? 1 : 0
-			,info->attrib & OFT_A_EDIT ? 1 : 0
-			,info->attrib & OFT_A_FST ? 1 : 0
+			,info->attrib & OFT_A_READ	? "read " : ""
+			,info->attrib & OFT_A_WRITE	? "write " : ""
+			,info->attrib & OFT_A_MODIFY	? "modify " : ""
+			,info->attrib & OFT_A_EXTEND	? "extend " : ""
+			,info->attrib & OFT_A_FST	? "fst " : ""
 			);
-	    }
+	}
 	return;
     }
 
-    // [2do]
-    print_sections++;
-    info_file_formats();
+    //----- table output
+
+    enumOFT oft;
+    int info_fw = 0;
+    for ( oft = 1; oft < OFT__N; oft++ )
+    {
+	const int len = strlen(oft_info[oft].info);
+	if ( info_fw < len )
+	     info_fw = len;
+    }
+
+    printf("\n"
+	   "File formats:\n\n"
+	   "  name  %-*s  option  extensions  attributes\n"
+	   " %.*s\n",
+	   info_fw, "description",
+	   info_fw+58, wd_sep_200 );
+
+    for ( oft = 1; oft < OFT__N; oft++ )
+    {
+	const OFT_info_t * i = oft_info + oft;
+	printf("  %-4s  %-*s  %-7s %-5s %-5s %s %s %s %s %s\n",
+		i->name, info_fw, i->info,
+		i->option ? i->option : "  -",
+		i->ext1 && *i->ext1 ? i->ext1 : " -",
+		i->ext2 && *i->ext2 ? i->ext2 : " -",
+		i->attrib & OFT_A_READ	? "read"   : "-  ",
+		i->attrib & OFT_A_WRITE	? "write"  : "-    ",
+		i->attrib & OFT_A_MODIFY? "modify" : "-     ",
+		i->attrib & OFT_A_EXTEND? "extend" : "-     ",
+		i->attrib & OFT_A_FST	? "fst"    : "-  " );
+    }
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -543,7 +567,7 @@ enumError cmd_info()
     {
 	printf("\n[INFO]\n");
 
-	ccp text = "INFOS-AVAIL=";
+	ccp text = "infos-avail=";
 	const CommandTab_t * cptr;
 	for ( cptr = cmdtab + 1; cptr->name1; cptr++ )
 	{

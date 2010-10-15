@@ -1024,31 +1024,34 @@ const OFT_info_t oft_info[OFT__N+1] =
 {
     // HINT: The extra 0 in "\0" is needed because of: oft_info[].ext1+1
 
+    // { oft, attrib, iom,
+    //     name, option, ext1, ext2, info },
+
     { OFT_UNKNOWN, 0, IOM__IS_DEFAULT,
-	"?", "\0", 0, "unkown file format" },
+	"?", 0, "\0", 0, "unkown file format" },
 
-    { OFT_PLAIN, OFT_A_READ|OFT_A_WRITE|OFT_A_EXTEND|OFT_A_EDIT, IOM_IS_IMAGE,
-	"ISO", ".iso", 0, "plain (ISO) file" },
+    { OFT_PLAIN, OFT_A_READ|OFT_A_WRITE|OFT_A_EXTEND|OFT_A_MODIFY, IOM_IS_IMAGE,
+	"ISO", "--iso", ".iso", 0, "plain file" },
 
-    { OFT_WDF, OFT_A_READ|OFT_A_WRITE|OFT_A_EXTEND|OFT_A_EDIT, IOM_IS_IMAGE,
-	"WDF", ".wdf", 0, "WDF (Wii Dic Format)" },
+    { OFT_WDF,	OFT_A_READ|OFT_A_WRITE|OFT_A_EXTEND|OFT_A_MODIFY, IOM_IS_IMAGE,
+	"WDF", "--wdf", ".wdf", 0, "Wii Disc Format" },
 
-    { OFT_CISO, OFT_A_READ|OFT_A_WRITE|OFT_A_EDIT, IOM_IS_IMAGE,
-	"CISO", ".ciso", ".wbi", "CISO (Compact ISO)" },
+    { OFT_CISO,	OFT_A_READ|OFT_A_WRITE|OFT_A_MODIFY, IOM_IS_IMAGE,
+	"CISO", "--ciso", ".ciso", ".wbi", "Compact ISO" },
 
-    { OFT_WBFS, OFT_A_READ|OFT_A_WRITE|OFT_A_EXTEND|OFT_A_EDIT, IOM_IS_IMAGE,
-	"WBFS", ".wbfs", 0, "WBFS (Wii Backup File System)" },
+    { OFT_WBFS,	OFT_A_READ|OFT_A_WRITE|OFT_A_EXTEND|OFT_A_MODIFY, IOM_IS_IMAGE,
+	"WBFS", "--wbfs", ".wbfs", 0, "Wii Backup File System" },
 
-    { OFT_WIA, OFT_A_READ|OFT_A_WRITE, IOM_IS_WIA,
-	"WIA", ".wia", 0, "WIA (Wii ISO Archive)" },
+    { OFT_WIA,	OFT_A_READ|OFT_A_WRITE, IOM_IS_WIA,
+	"WIA", "--wia", ".wia", 0, "compressed Wii ISO Archive" },
 
-    { OFT_FST, OFT_A_READ|OFT_A_WRITE|OFT_A_FST, IOM__IS_DEFAULT,
-	"FST", "\0", 0, "FST (extracted File System)" },
+    { OFT_FST,	OFT_A_READ|OFT_A_WRITE|OFT_A_FST, IOM__IS_DEFAULT,
+	"FST", "--fst", "\0", 0, "extracted File System" },
 
     { OFT__N, 0, IOM__IS_DEFAULT,
-	0, 0, 0, 0 },
+	0, 0, 0, 0, 0 },
 };
-
+ 
 ///////////////////////////////////////////////////////////////////////////////
 
 enumOFT CalcOFT ( enumOFT force, ccp fname_dest, ccp fname_src, enumOFT def )

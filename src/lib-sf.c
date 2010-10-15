@@ -1928,7 +1928,7 @@ enumFileType AnalyzeFT ( File_t * f )
     }
     else if (IsWIA(buf1,FILE_PRELOAD_SIZE,f->id6,&disc_type,0))
     {
-	PRINT("WIA found, dt=%d, id=%s: %s\n",disc_type,f->id6,f->fname);
+	noPRINT("WIA found, dt=%d, id=%s: %s\n",disc_type,f->id6,f->fname);
 	ft |= disc_type == WD_DT_GAMECUBE
 		? FT_ID_GC_ISO  | FT_A_ISO | FT_A_GC_ISO  | FT_A_WIA
 		: FT_ID_WII_ISO | FT_A_ISO | FT_A_WII_ISO | FT_A_WIA;

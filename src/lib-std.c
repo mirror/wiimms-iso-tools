@@ -4217,7 +4217,7 @@ size_t AllocTempBuffer ( size_t needed_size )
 
     if ( tempbuf_size < needed_size )
     {
-	PRINT("$$$ ALLOC TEMPBUF, SIZE: %zx > %zx (%s -> %s)\n",
+	noPRINT("$$$ ALLOC TEMPBUF, SIZE: %zx > %zx (%s -> %s)\n",
 		tempbuf_size, needed_size,
 		wd_print_size_1024(0,0,tempbuf_size,false),
 		wd_print_size_1024(0,0,needed_size,false) );

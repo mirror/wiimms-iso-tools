@@ -293,9 +293,7 @@ typedef enum enumOptions
 //
 //	OB_CMD_HELP		= ~(u64)0,
 //
-//	OB_CMD_INFO		= OB_SECTIONS
-//				| OB_NO_HEADER
-//				| OB_LONG,
+//	OB_CMD_INFO		= OB_SECTIONS,
 //
 //	OB_CMD_TEST		= ~(u64)0,
 //

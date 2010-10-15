@@ -266,7 +266,7 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 	"path",
 	"Define a destination path (directory/file). The destination path is"
 	" scanned for escape sequences (see option --esc) to allow generic"
-	" pathes."
+	" paths."
     },
 
     {	OPT_DEST2, 'D', "DEST",
@@ -1128,8 +1128,8 @@ static u8 option_allowed_cmd_HELP[68] = // cmd #2
 static u8 option_allowed_cmd_INFO[68] = // cmd #3
 {
     0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,
-    0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,1,0,
-    0,0,0,0,1, 1,0,0
+    0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,
+    0,0,0,0,0, 1,0,0
 };
 
 static u8 option_allowed_cmd_TEST[68] = // cmd #4
@@ -1392,8 +1392,6 @@ static const InfoOption_t * option_tab_cmd_HELP[] =
 static const InfoOption_t * option_tab_cmd_INFO[] =
 {
 	OptionInfo + OPT_SECTIONS,
-	OptionInfo + OPT_NO_HEADER,
-	OptionInfo + OPT_LONG,
 
 	0
 };
@@ -2560,9 +2558,9 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	0,
 	"wit INFO [keyword]...",
 	"Print some internal information about the keywords. If the keyword"
-	" ALL is set or no keyword is given information for all possible"
-	" keywords are printed.",
-	3,
+	" ALL is set or no keyword is entered information for all possible"
+	" keywords are printed. Possible keywords are: FILE-FORMAT and ALL.",
+	1,
 	option_tab_cmd_INFO,
 	option_allowed_cmd_INFO
     },

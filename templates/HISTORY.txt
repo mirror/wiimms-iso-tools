@@ -899,7 +899,7 @@ wit v1.17a r1834 - 2010-10-05
    data. Such data is included into the copy operations. The old and standard
    scrubbing algorithm ignore such sectors in the range 0x08000..0x3ffff.
  - WBFS files with more than 1 disc are not longer detected as ISO images.
- - CYGWIN: Improved support of windows style pathes ('X:\path\file').
+ - CYGWIN: Improved support of windows style paths ('X:\path\file').
  - Bug fix: While composing the FST size (var 'max_fst_size4' in 'boot.bin')
    wasn't updated. If you compose an ISO and the resulting FST is bigger than
    the original, the Wii apploader failed.
@@ -910,6 +910,24 @@ wit v1.17a r1834 - 2010-10-05
    files of splitted images.
  - Bug fix: Non Wii ISO images are not listed any more if the source is a
    directory. This old behavior of wit was lost some releases ago.
+
+wit v1.18a r1868 - 2010-10-10
+
+ - ETA calculation changed to support WIA chunk caching and writing.
+ - CYGWIN: The parameters of the options --dest and --DEST are now checked if
+   they start with 'X:\' or 'X:/'. These code are replaced by '/cygdrive/X/'.
+   This is also done for the last parameter of "wit COPY/MOVE/EXTRACT/DIFF" if
+   neither --dest nor --DEST is set and the last parameter is the destination.
+ - New option: --unit: Specify the unit for size values. Some possible values
+   are BYTES,KB,KIB,1000,1024,AUTO,WII. Read built in help for more details.
+ - wit LIST: Support of option --unit to define the unit for the ISO sizes.
+ - wit ISOSIZE: Support of option --unit to define the unit for the ISO sizes.
+   A summary line is also printed if the lsit contains 2 or more images.
+ - Options --include and --exclude accepts now a comma separated list of IDs.
+ - Bug fix: If wit had closed a WBFS partiton a truncation errors appeared.
+ - New wit option: --auto: If set, all devices are scanned for WBFS partitions
+   and all WBFS partitions are added to the source list. It replaces parameters
+   like "--source /dev/wbfs" and works like "wwt --auto --all".
 
 @@MODULE(last-history.txt)@@
 

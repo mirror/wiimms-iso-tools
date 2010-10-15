@@ -1724,14 +1724,19 @@ enumError exec_edit ( SuperFile_t * fi, Iterator_t * it )
 	return ERR_OK;
     fflush(0);
 
+    const OFT_info_t * oinfo = oft_info + fi->iod.oft;
+    if ( !(oinfo->attrib & OFT_A_MODIFY) )
+	return ERROR0(ERR_WARNING,"Can't modify file type '%s': %s\n",
+		    oinfo->name, fi->f.fname );
+
     if (testmode)
     {
-	printf( "%s: WOULD EDIT %s:%s\n", progname, oft_info[fi->iod.oft].name, fi->f.fname );
+	printf( "%s: WOULD EDIT %s:%s\n", progname, oinfo->name, fi->f.fname );
 	return ERR_OK;
     }
 
     if ( verbose >= 0 )
-	printf( "%s: EDIT %s:%s\n", progname, oft_info[fi->iod.oft].name, fi->f.fname );
+	printf( "%s: EDIT %s:%s\n", progname, oinfo->name, fi->f.fname );
 
     OpenDiscSF(fi,true,true);
     wd_disc_t * disc = fi->disc1;
@@ -1769,7 +1774,7 @@ enumError cmd_edit()
     Iterator_t it;
     InitializeIterator(&it);
     it.act_non_iso	= OptionUsed[OPT_IGNORE] ? ACT_IGNORE : ACT_WARN;
-    it.act_wbfs		= it.act_non_iso;
+    it.act_wbfs		= ACT_EXPAND;
     it.act_gc		= ACT_ALLOW;
 
     if ( testmode > 1 )

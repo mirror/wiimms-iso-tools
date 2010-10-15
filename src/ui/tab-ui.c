@@ -173,8 +173,9 @@ info_t info_tab[] =
   { T_DEF_CMD,	"INFO",		"INFO",
 		    "wit INFO [keyword]...",
 		"Print some internal information about the keywords."
-		" If the keyword @ALL@ is set or no keyword is given"
-		" information for all possible keywords are printed." },
+		" If the keyword @ALL@ is set or no keyword is entered"
+		" information for all possible keywords are printed."
+		" Possible keywords are: @FILE-FORMAT@ and @ALL@." },
 
   { T_DEF_CMD,	"TEST",		"TEST",
 		    "wit TEST [ignored]...",
@@ -646,7 +647,7 @@ info_t info_tab[] =
 		"path",
 		"Define a destination path (directory/file)."
 		" The destination path is scanned for escape sequences"
-		" (see option {--esc}) to allow generic pathes." },
+		" (see option {--esc}) to allow generic paths." },
 
   { T_OPT_CP,	"DEST2",	"D|DEST",
 		"path",
@@ -1062,8 +1063,6 @@ info_t info_tab[] =
   { T_CMD_BEG,	"INFO",		0,0,0 },
 
   { T_COPT,	"SECTIONS",	0,0,0 },
-  { T_COPT,	"NO_HEADER",	0,0,0 },
-  { T_COPT,	"LONG",		0,0,0 },
 
   //---------- COMMAND wit TEST ----------
 
@@ -2183,8 +2182,6 @@ info_t info_tab[] =
   { T_CMD_BEG,	"INFO",		0,0,0 },
 
   { T_COPT,	"SECTIONS",	0,0,0 },
-  { T_COPT,	"NO_HEADER",	0,0,0 },
-  { T_COPT,	"LONG",		0,0,0 },
 
   //---------- COMMAND wwt TEST ----------
 
