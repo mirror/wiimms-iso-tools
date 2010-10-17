@@ -9,6 +9,12 @@ wit v@@VERSION@@ r@@REV-NEXT@@ - @@@@-@@-@@
    to inform GUIs and other wit calling programs. Therefor option --sections
    is also supported. At this moment only supported file formats inclusive
    attributes (read/write/modify/extend/fst) are printed.
+ - "wit FILETYPE" and other listing commands: The file types are redefined in
+   a more consistence way. ISO images are tagged as 'CONTAINER/DISCTYPE' like
+   'ISO/WII', 'WDF/GC', 'WBFS/WII', 'FST/WII'.
+ - New option --no-expand: Do not expand directories to the containing files
+   or images. This option does not change the behavior of --recurse.
+
 
 Known bugs:
 
@@ -20,6 +26,7 @@ Known bugs:
    that copying multiple partition discs works too.
    ==> The best is to use a version 1.01c for pipes.
  - No bzip2 (WIA) support for MAC/x86_64. (bug in the bzip2 library)
+
 
 Missing docu:
 

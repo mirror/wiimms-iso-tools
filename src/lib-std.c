@@ -86,6 +86,7 @@ int		opt_limit		= -1;
 int		print_sections		= 0;
 int		long_count		= 0;
 enumIOMode	io_mode			= 0;
+bool		opt_no_expand		= false;
 u32		opt_recurse_depth	= DEF_RECURSE_DEPTH;
 
 StringField_t	source_list;
@@ -2040,6 +2041,24 @@ int ScanOptSplitSize ( ccp source )
 			MIN_SPLIT_SIZE,		// u64 min
 			0,			// u64 max
 			DEF_SPLIT_FACTOR,	// u32 multiple
+			0,			// u32 pow2
+			true			// bool print_err
+			);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+int ScanOptRDepth ( ccp source )
+{
+    return ERR_OK != ScanSizeOptU32(
+			&opt_recurse_depth,	// u32 * num
+			source,			// ccp source
+			1,			// default_factor1
+			0,			// int force_base
+			"rdepth",		// ccp opt_name
+			0,			// u64 min
+			MAX_RECURSE_DEPTH,	// u64 max
+			0,			// u32 multiple
 			0,			// u32 pow2
 			true			// bool print_err
 			);

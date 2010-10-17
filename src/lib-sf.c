@@ -2302,13 +2302,13 @@ ccp GetNameFT ( enumFileType ftype, int ignore )
 
 	case FT_ID_FST:
 	    return ftype & FT_A_PART_DIR
-			? ( ftype & FT_A_GC_ISO ? "FST/GC" : "FST/PART" )
-			: ( ftype & FT_A_GC_ISO ? "FST+GC*" : "FST+ISO" );
+			? ( ftype & FT_A_GC_ISO ? "FST/GC" : "FST/WII" )
+			: ( ftype & FT_A_GC_ISO ? "FST/GC+" : "FST/WII+" );
 	    break;
 
 	case FT_ID_WBFS:
 	    return ftype & FT_A_WDISC
-			? ( ftype & FT_A_GC_ISO ? "WBFS/GC" : "WBFS/ISO" )
+			? ( ftype & FT_A_GC_ISO ? "WBFS/GC" : "WBFS/WII" )
 			: ignore > 1
 				? 0
 				: ftype & FT_A_WDF
@@ -2317,29 +2317,29 @@ ccp GetNameFT ( enumFileType ftype, int ignore )
 
 	case FT_ID_GC_ISO:
 	    return ftype & FT_A_WDF
-			? "WDF+GC"
+			? "WDF/GC"
 			: ftype & FT_A_WIA
-				? "WIA+GC"
+				? "WIA/GC"
 					: ftype & FT_A_CISO
-					? "CISO+GC"
-					: "GC-ISO";
+					? "CISO/GC"
+					: "ISO/GC";
 	    break;
 
 	case FT_ID_WII_ISO:
 	    return ftype & FT_A_WDF
-			? "WDF+ISO"
+			? "WDF/WII"
 			: ftype & FT_A_WIA
-				? "WIA+ISO"
+				? "WIA/WII"
 					: ftype & FT_A_CISO
-					? "CISO"
-					: "ISO";
+					? "CISO/WII"
+					: "ISO/WII";
 	    break;
 
 	case FT_ID_DOL:
 	    return ignore > 1
 			? 0
 			: ftype & FT_A_WDF
-				? "WDF+DOL"
+				? "WDF/DOL"
 				: "DOL";
 	    break;
 
@@ -2347,7 +2347,7 @@ ccp GetNameFT ( enumFileType ftype, int ignore )
 	    return ignore > 1
 			? 0
 			: ftype & FT_A_WDF
-				? "WDF+TIK"
+				? "WDF/TIK"
 				: "TIK.BIN";
 	    break;
 
@@ -2355,7 +2355,7 @@ ccp GetNameFT ( enumFileType ftype, int ignore )
 	    return ignore > 1
 			? 0
 			: ftype & FT_A_WDF
-				? "WDF+TMD"
+				? "WDF/TMD"
 				: "TMD.BIN";
 	    break;
 
@@ -2363,7 +2363,7 @@ ccp GetNameFT ( enumFileType ftype, int ignore )
 	    return ignore > 1
 			? 0
 			: ftype & FT_A_WDF
-				? "WDF+HEAD"
+				? "WDF/HEAD"
 				: "HEAD.BIN";
 	    break;
 
@@ -2371,7 +2371,7 @@ ccp GetNameFT ( enumFileType ftype, int ignore )
 	    return ignore > 1
 			? 0
 			: ftype & FT_A_WDF
-				? "WDF+BOOT"
+				? "WDF/BOOT"
 				: "BOOT.BIN";
 	    break;
 
@@ -2379,7 +2379,7 @@ ccp GetNameFT ( enumFileType ftype, int ignore )
 	    return ignore > 1
 			? 0
 			: ftype & FT_A_WDF
-				? "W+FST.B"
+				? "WDF/FST"
 				: "FST.BIN";
 	    break;
 
@@ -2387,9 +2387,9 @@ ccp GetNameFT ( enumFileType ftype, int ignore )
 	    return ignore > 1
 			? 0
 			: ftype & FT_A_WDF
-				? "WDF"
+				? "WDF/*"
 				: ftype & FT_A_CISO
-					? "C-OTHER"
+					? "CiSO/*"
 					: "OTHER";
     }
 }
@@ -3506,6 +3506,13 @@ static enumError SourceIteratorHelper
 	    }
 	}
 
+	if (!it->expand_dir)
+	{
+	    it->num_of_files++;
+	    sf.f.ftype = FT_ID_DIR;
+	    goto check_file;
+	}
+
 	if ( it->depth >= it->max_depth )
 	{
 	    ResetSF(&sf,0);
@@ -3802,12 +3809,14 @@ enumError SourceIterator
 
     it->depth = 0;
     it->max_depth = opt_recurse_depth;
+    it->expand_dir = true;
     for ( ptr = recurse_list.field, end = ptr + recurse_list.used;
 		err == ERR_OK && !SIGINT_level && ptr < end; ptr++ )
 	err = SourceIteratorStarter(it,*ptr,collect_fnames);
 
     it->depth = 0;
     it->max_depth = 1;
+    it->expand_dir = !opt_no_expand;
     for ( ptr = source_list.field, end = ptr + source_list.used;
 		err == ERR_OK && !SIGINT_level && ptr < end; ptr++ )
 	err = SourceIteratorStarter(it,*ptr,collect_fnames);
@@ -3835,6 +3844,10 @@ enumError SourceIteratorCollected
     TRACE("SourceIteratorCollected(%p) count=%d\n",it,it->source_list.used);
 
     ResetStringField(&file_done_list);
+
+    it->depth = 0;
+    it->max_depth = 1;
+    it->expand_dir = false;
 
     enumError max_err = 0;
     int idx;

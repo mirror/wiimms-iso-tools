@@ -427,15 +427,34 @@ info_t info_tab[] =
   { T_SEP_OPT,	0,0,0,0 }, //----- separator -----
 
   { T_OPT_CMP,	"SOURCE",	"s|source",
-		"path", "ISO file or directory with ISO files." },
+		"path",
+		"Use the entered file or directory as source."
+		"\n "
+		" Directories are expanded to all containing files"
+		" but hidden files (files beginning with a point) are ignored."
+		" If a command needs only images then non image files"
+		" of the directory are ignored without notification."
+		" The option {--no-expand} supresses the directory expansion." },
+
+  { T_OPT_C,	"NO_EXPAND",	"no-expand|noexpand",
+		0,
+		"Do not expand directories to the containing files or images."
+		" This option does not change the behavior of {--recurse}." },
 
   { T_OPT_CMP,	"RECURSE",	"r|recurse",
-		"path", "ISO file or base of a directory tree with ISO files." },
+		"path",
+		" If @path@ is not a directory than use it as source like {--source}."
+		" If @path@ is a directory than it is scanned for source files and"
+		" the search iss recursive."
+		" The option {--rdepth} limit the search depth."
+		" Hidden files and sub directories (files beginning with a point)"
+		" and files with non supported file types"
+		" are ignored without notification." },
 
   { T_OPT_CP,	"RDEPTH",	"rdepth",
 		"depth",
-		"Set the maximum recurse depth for option"
-		" {--recurse} (default=10)." },
+		"Set the maximum recurse depth for option {--recurse}"
+		" The default search depth is 10." },
 
   { T_OPT_C,	"AUTO",		"a|auto",
 		0,
@@ -483,7 +502,8 @@ info_t info_tab[] =
 		" If set twice then all non Wii and GameCube ISO images are ignored too." },
 
   { T_OPT_C,	"IGNORE_FST",	"ignore-fst|ignorefst",
-		0, "Disable composing and ignore FST directories as input." },
+		0, 
+		"Disable composing and ignore FST directories as input." },
 
   { T_SEP_OPT,	0,0,0,0 }, //----- separator -----
 
@@ -914,6 +934,7 @@ info_t info_tab[] =
   { T_GRP_BEG,	"SOURCE",	0,0,0 },
 
   { T_COPT_M,	"SOURCE",	0,0,0 },
+  { T_COPT,	"NO_EXPAND",	0,0,0 },
   { T_COPT_M,	"RECURSE",	0,0,0 },
   { T_COPT,	"RDEPTH",	0,0,0 },
 
@@ -1790,6 +1811,9 @@ info_t info_tab[] =
   { T_OPT_CMP,	"SOURCE",	"source",
 		0, 0 /* copy of wit */ },
 
+  { T_OPT_C,	"NO_EXPAND",	"no-expand|noexpand",
+		0, 0 /* copy of wit */ },
+
   { T_OPT_CMP,	"RECURSE",	"r|recurse",
 		0, 0 /* copy of wit */ },
 
@@ -2436,6 +2460,7 @@ info_t info_tab[] =
   { T_COPY_GRP,	"MOD_WBFS",	0,0,0 },
 
   { T_COPT_M,	"SOURCE",	0,0,0 },
+  { T_COPT,	"NO_EXPAND",	0,0,0 },
   { T_COPT_M,	"RECURSE",	0,0,0 },
   { T_COPT,	"RDEPTH",	0,0,0 },
   { T_COPY_GRP,	"IGN_EXCLUDE",	0,0,0 },

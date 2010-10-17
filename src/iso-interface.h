@@ -202,6 +202,7 @@ typedef struct Iterator_t
 {
 	int		depth;		// current directory depth
 	int		max_depth;	// maximal directory depth
+	bool		expand_dir;	// true: expand directories
 	IteratorFunc	func;		// call back function
 	ccp		real_path;	// pointer to real_path;
 

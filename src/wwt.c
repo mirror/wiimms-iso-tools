@@ -2991,7 +2991,9 @@ enumError CheckOptions ( int argc, char ** argv, bool is_env )
 	case GO_ALL:		opt_all++; break;
 	case GO_PART:		AtFileHelper(optarg,0,0,AddPartition); break;
 	case GO_SOURCE:		AppendStringField(&source_list,optarg,false); break;
+	case GO_NO_EXPAND:	opt_no_expand = true; break;
 	case GO_RECURSE:	AppendStringField(&recurse_list,optarg,false); break;
+	case GO_RDEPTH:		err += ScanOptRDepth(optarg); break;
 	case GO_PSEL:		err += ScanOptPartSelector(optarg); break;
 	case GO_RAW:		part_selector.whole_disc
 					= part_selector.whole_part = true; break;
@@ -3066,12 +3068,6 @@ enumError CheckOptions ( int argc, char ** argv, bool is_env )
 	case GO_AUTO:
 	    if (!opt_auto)
 		ScanPartitions(false);
-	    break;
-
-	case GO_RDEPTH:
-	    if (ScanSizeOptU32(&opt_recurse_depth,optarg,1,0,
-				"rdepth",0,MAX_RECURSE_DEPTH,0,0,true))
-		hint_exit(ERR_SYNTAX);
 	    break;
 
 	case GO_SIZE:

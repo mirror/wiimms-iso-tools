@@ -692,7 +692,9 @@ enumError ScanSizeOptU32
 extern int opt_split;
 extern u64 opt_split_size;
 
-int ScanOptSplitSize ( ccp source ); // returns '1' on error, '0' else
+// returns '1' on error, '0' else
+int ScanOptSplitSize ( ccp source );
+int ScanOptRDepth ( ccp source );
 
 //
 ///////////////////////////////////////////////////////////////////////////////
@@ -1292,6 +1294,7 @@ extern int		opt_limit;
 extern int		print_sections;
 extern int		long_count;
 extern enumIOMode	io_mode;
+extern bool		opt_no_expand;
 extern u32		opt_recurse_depth;
 
 extern StringField_t	source_list;

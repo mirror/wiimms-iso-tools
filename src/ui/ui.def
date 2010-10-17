@@ -248,15 +248,31 @@
 
 #:def_opt( "SOURCE", "s|source", "CMP", \
 	"path", \
-	"ISO file or directory with ISO files." )
+	"Use the entered file or directory as source.\n" \
+	"  Directories are expanded to all containing files but hidden files" \
+	" (files beginning with a point) are ignored. If a command needs only" \
+	" images then non image files of the directory are ignored without" \
+	" notification. The option {--no-expand} supresses the directory" \
+	" expansion." )
+
+#:def_opt( "NO_EXPAND", "no-expand|noexpand", "C", \
+	"", \
+	"Do not expand directories to the containing files or images. This" \
+	" option does not change the behavior of {--recurse}." )
 
 #:def_opt( "RECURSE", "r|recurse", "CMP", \
 	"path", \
-	"ISO file or base of a directory tree with ISO files." )
+	" If @path@ is not a directory than use it as source like {--source}." \
+	" If @path@ is a directory than it is scanned for source files and the" \
+	" search iss recursive. The option {--rdepth} limit the search depth." \
+	" Hidden files and sub directories (files beginning with a point) and" \
+	" files with non supported file types are ignored without" \
+	" notification." )
 
 #:def_opt( "RDEPTH", "rdepth", "CP", \
 	"depth", \
-	"Set the maximum recurse depth for option {--recurse} (default=10)." )
+	"Set the maximum recurse depth for option {--recurse} The default" \
+	" search depth is 10." )
 
 #:def_opt( "AUTO", "a|auto", "C", \
 	"", \
@@ -766,6 +782,10 @@
 	"", \
 	"" )
 
+#:def_cmd_opt( "FILELIST", "NO_EXPAND", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "FILELIST", "RECURSE", \
 	"", \
 	"" )
@@ -807,6 +827,10 @@
 	"" )
 
 #:def_cmd_opt( "FILETYPE", "SOURCE", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "FILETYPE", "NO_EXPAND", \
 	"", \
 	"" )
 
@@ -857,6 +881,10 @@
 	"" )
 
 #:def_cmd_opt( "ISOSIZE", "SOURCE", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "ISOSIZE", "NO_EXPAND", \
 	"", \
 	"" )
 
@@ -927,6 +955,10 @@
 	"" )
 
 #:def_cmd_opt( "DUMP", "SOURCE", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "DUMP", "NO_EXPAND", \
 	"", \
 	"" )
 
@@ -1047,6 +1079,10 @@
 	"", \
 	"" )
 
+#:def_cmd_opt( "DREGION", "NO_EXPAND", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "DREGION", "RECURSE", \
 	"", \
 	"" )
@@ -1076,6 +1112,10 @@
 	"" )
 
 #:def_cmd_opt( "ID6", "SOURCE", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "ID6", "NO_EXPAND", \
 	"", \
 	"" )
 
@@ -1136,6 +1176,10 @@
 	"" )
 
 #:def_cmd_opt( "LIST", "SOURCE", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "LIST", "NO_EXPAND", \
 	"", \
 	"" )
 
@@ -1245,6 +1289,10 @@
 	"", \
 	"" )
 
+#:def_cmd_opt( "LIST_L", "NO_EXPAND", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "LIST_L", "RECURSE", \
 	"", \
 	"" )
@@ -1348,6 +1396,10 @@
 	"" )
 
 #:def_cmd_opt( "LIST_LL", "SOURCE", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "LIST_LL", "NO_EXPAND", \
 	"", \
 	"" )
 
@@ -1457,6 +1509,10 @@
 	"", \
 	"" )
 
+#:def_cmd_opt( "LIST_LLL", "NO_EXPAND", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "LIST_LLL", "RECURSE", \
 	"", \
 	"" )
@@ -1547,6 +1603,10 @@
 	"", \
 	"" )
 
+#:def_cmd_opt( "FILES", "NO_EXPAND", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "FILES", "RECURSE", \
 	"", \
 	"" )
@@ -1629,6 +1689,10 @@
 	"", \
 	"" )
 
+#:def_cmd_opt( "FILES_L", "NO_EXPAND", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "FILES_L", "RECURSE", \
 	"", \
 	"" )
@@ -1708,6 +1772,10 @@
 	"" )
 
 #:def_cmd_opt( "FILES_LL", "SOURCE", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "FILES_LL", "NO_EXPAND", \
 	"", \
 	"" )
 
@@ -1810,6 +1878,10 @@
 	"" )
 
 #:def_cmd_opt( "DIFF", "SOURCE", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "DIFF", "NO_EXPAND", \
 	"", \
 	"" )
 
@@ -1949,6 +2021,10 @@
 	"", \
 	"" )
 
+#:def_cmd_opt( "FDIFF", "NO_EXPAND", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "FDIFF", "RECURSE", \
 	"", \
 	"" )
@@ -2082,6 +2158,10 @@
 	"" )
 
 #:def_cmd_opt( "EXTRACT", "SOURCE", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "EXTRACT", "NO_EXPAND", \
 	"", \
 	"" )
 
@@ -2248,6 +2328,10 @@
 	"" )
 
 #:def_cmd_opt( "COPY", "SOURCE", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "COPY", "NO_EXPAND", \
 	"", \
 	"" )
 
@@ -2481,6 +2565,10 @@
 	"", \
 	"" )
 
+#:def_cmd_opt( "CONVERT", "NO_EXPAND", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "CONVERT", "RECURSE", \
 	"", \
 	"" )
@@ -2665,6 +2753,10 @@
 	"", \
 	"" )
 
+#:def_cmd_opt( "EDIT", "NO_EXPAND", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "EDIT", "RECURSE", \
 	"", \
 	"" )
@@ -2765,6 +2857,10 @@
 	"", \
 	"" )
 
+#:def_cmd_opt( "MOVE", "NO_EXPAND", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "MOVE", "RECURSE", \
 	"", \
 	"" )
@@ -2838,6 +2934,10 @@
 	"" )
 
 #:def_cmd_opt( "RENAME", "SOURCE", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "RENAME", "NO_EXPAND", \
 	"", \
 	"" )
 
@@ -2920,6 +3020,10 @@
 	"", \
 	"" )
 
+#:def_cmd_opt( "SETTITLE", "NO_EXPAND", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "SETTITLE", "RECURSE", \
 	"", \
 	"" )
@@ -2996,6 +3100,10 @@
 	"" )
 
 #:def_cmd_opt( "VERIFY", "SOURCE", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "VERIFY", "NO_EXPAND", \
 	"", \
 	"" )
 
@@ -3435,15 +3543,31 @@
 
 #:def_opt( "SOURCE", "source", "CMP", \
 	"path", \
-	"ISO file or directory with ISO files." )
+	"Use the entered file or directory as source.\n" \
+	"  Directories are expanded to all containing files but hidden files" \
+	" (files beginning with a point) are ignored. If a command needs only" \
+	" images then non image files of the directory are ignored without" \
+	" notification. The option {--no-expand} supresses the directory" \
+	" expansion." )
+
+#:def_opt( "NO_EXPAND", "no-expand|noexpand", "C", \
+	"", \
+	"Do not expand directories to the containing files or images. This" \
+	" option does not change the behavior of {--recurse}." )
 
 #:def_opt( "RECURSE", "r|recurse", "CMP", \
 	"path", \
-	"ISO file or base of a directory tree with ISO files." )
+	" If @path@ is not a directory than use it as source like {--source}." \
+	" If @path@ is a directory than it is scanned for source files and the" \
+	" search iss recursive. The option {--rdepth} limit the search depth." \
+	" Hidden files and sub directories (files beginning with a point) and" \
+	" files with non supported file types are ignored without" \
+	" notification." )
 
 #:def_opt( "RDEPTH", "rdepth", "CP", \
 	"depth", \
-	"Set the maximum recurse depth for option {--recurse} (default=10)." )
+	"Set the maximum recurse depth for option {--recurse} The default" \
+	" search depth is 10." )
 
 #:def_opt( "PSEL", "psel", "CP", \
 	"list", \
@@ -4893,6 +5017,10 @@
 	"", \
 	"" )
 
+#:def_cmd_opt( "ADD", "NO_EXPAND", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "ADD", "RECURSE", \
 	"", \
 	"" )
@@ -5064,6 +5192,10 @@
 	"", \
 	"" )
 
+#:def_cmd_opt( "UPDATE", "NO_EXPAND", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "UPDATE", "RECURSE", \
 	"", \
 	"" )
@@ -5224,6 +5356,10 @@
 	"Disable automatic check of WBFS before modifications." )
 
 #:def_cmd_opt( "SYNC", "SOURCE", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "SYNC", "NO_EXPAND", \
 	"", \
 	"" )
 

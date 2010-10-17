@@ -43,6 +43,7 @@ typedef enum enumOptions
 	//----- command specific options -----
 
 	OPT_SOURCE,
+	OPT_NO_EXPAND,
 	OPT_RECURSE,
 	OPT_RDEPTH,
 	OPT_AUTO,
@@ -110,7 +111,7 @@ typedef enum enumOptions
 	OPT_SORT,
 	OPT_LIMIT,
 
-	OPT__N_SPECIFIC, // == 68 
+	OPT__N_SPECIFIC, // == 69 
 
 	//----- global options -----
 
@@ -131,7 +132,7 @@ typedef enum enumOptions
 	OPT_TEST,
 	OPT_HOOK,
 
-	OPT__N_TOTAL // == 84
+	OPT__N_TOTAL // == 85
 
 } enumOptions;
 
@@ -147,6 +148,7 @@ typedef enum enumOptions
 //	//----- command specific options -----
 //
 //	OB_SOURCE		= 1llu << OPT_SOURCE,
+//	OB_NO_EXPAND		= 1llu << OPT_NO_EXPAND,
 //	OB_RECURSE		= 1llu << OPT_RECURSE,
 //	OB_RDEPTH		= 1llu << OPT_RDEPTH,
 //	OB_AUTO			= 1llu << OPT_AUTO,
@@ -219,6 +221,7 @@ typedef enum enumOptions
 //	OB_GRP_TITLES		= 0,
 //
 //	OB_GRP_SOURCE		= OB_SOURCE
+//				| OB_NO_EXPAND
 //				| OB_RECURSE
 //				| OB_RDEPTH,
 //
@@ -570,6 +573,7 @@ typedef enum enumGetOpt
 	GO_UTF_8,
 	GO_NO_UTF_8,
 	GO_LANG,
+	GO_NO_EXPAND,
 	GO_RDEPTH,
 	GO_IGNORE_FST,
 	GO_PSEL,

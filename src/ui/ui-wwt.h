@@ -46,6 +46,7 @@ typedef enum enumOptions
 	OPT_ALL,
 	OPT_PART,
 	OPT_SOURCE,
+	OPT_NO_EXPAND,
 	OPT_RECURSE,
 	OPT_RDEPTH,
 	OPT_PSEL,
@@ -117,7 +118,7 @@ typedef enum enumOptions
 	OPT_SORT,
 	OPT_LIMIT,
 
-	OPT__N_SPECIFIC, // == 75 
+	OPT__N_SPECIFIC, // == 76 
 
 	//----- global options -----
 
@@ -138,7 +139,7 @@ typedef enum enumOptions
 	OPT_TEST,
 	OPT_HOOK,
 
-	OPT__N_TOTAL // == 91
+	OPT__N_TOTAL // == 92
 
 } enumOptions;
 
@@ -157,6 +158,7 @@ typedef enum enumOptions
 //	OB_ALL			= 1llu << OPT_ALL,
 //	OB_PART			= 1llu << OPT_PART,
 //	OB_SOURCE		= 1llu << OPT_SOURCE,
+//	OB_NO_EXPAND		= 1llu << OPT_NO_EXPAND,
 //	OB_RECURSE		= 1llu << OPT_RECURSE,
 //	OB_RDEPTH		= 1llu << OPT_RDEPTH,
 //	OB_PSEL			= 1llu << OPT_PSEL,
@@ -391,6 +393,7 @@ typedef enum enumOptions
 //	OB_CMD_SYNC		= OB_GRP_TITLES
 //				| OB_GRP_MOD_WBFS
 //				| OB_SOURCE
+//				| OB_NO_EXPAND
 //				| OB_RECURSE
 //				| OB_RDEPTH
 //				| OB_GRP_IGN_EXCLUDE
@@ -587,6 +590,7 @@ typedef enum enumGetOpt
 	GO_NO_UTF_8,
 	GO_LANG,
 	GO_SOURCE,
+	GO_NO_EXPAND,
 	GO_RDEPTH,
 	GO_PSEL,
 	GO_RAW,

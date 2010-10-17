@@ -2165,7 +2165,9 @@ enumError CheckOptions ( int argc, char ** argv, bool is_env )
 	case GO_TEST:		testmode++; break;
 
 	case GO_SOURCE:		AppendStringField(&source_list,optarg,false); break;
+	case GO_NO_EXPAND:	opt_no_expand = true; break;
 	case GO_RECURSE:	AppendStringField(&recurse_list,optarg,false); break;
+	case GO_RDEPTH:		err += ScanOptRDepth(optarg); break;
 	case GO_AUTO:		opt_source_auto++; break;
 
 	case GO_INCLUDE:	AtFileHelper(optarg,0,1,AddIncludeID); break;
@@ -2234,12 +2236,6 @@ enumError CheckOptions ( int argc, char ** argv, bool is_env )
 	case GO_SHOW:		err += ScanOptShow(optarg); break;
 	case GO_UNIT:		err += ScanOptUnit(optarg); break;
 	case GO_SORT:		err += ScanOptSort(optarg); break;
-
-	case GO_RDEPTH:
-	    if (ScanSizeOptU32(&opt_recurse_depth,optarg,1,0,
-			    "rdepth",0,MAX_RECURSE_DEPTH,0,0,true))
-		err++;
-	    break;
 
 	case GO_PMODE:
 	    {
