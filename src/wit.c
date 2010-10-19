@@ -1542,38 +1542,34 @@ enumError exec_copy ( SuperFile_t * fi, Iterator_t * it )
     fo.show_summary	= verbose > 0 || progress;
     fo.show_msec	= verbose > 2;
 
-    char count_buf[100];
-    snprintf(count_buf,sizeof(count_buf), "%u", it->source_list.used );
-    snprintf(count_buf,sizeof(count_buf), "%*u/%u",
+    const bool raw_mode = part_selector.whole_disc || !fi->f.id6[0];
+
+    if ( testmode ||  verbose >= 0 )
+    {
+	char count_buf[30];
+	snprintf(count_buf,sizeof(count_buf), "%u", it->source_list.used );
+	snprintf(count_buf,sizeof(count_buf), "%*u/%u",
 		(int)strlen(count_buf), it->source_index+1, it->source_list.used );
 
-    const bool raw_mode = part_selector.whole_disc || !fi->f.id6[0];
-    if (testmode)
-    {
-	if (convert_it)
-	    printf( "%s: WOULD %s %s %s:%s\n",
-		progname, raw_mode ? "COPY " : "SCRUB",
-		count_buf, oft_info[oft].name, fi->f.fname );
+	char split_buf[10];
+	if ( fi->f.split_used > 1 )
+	    snprintf(split_buf,sizeof(split_buf),"*%u",fi->f.split_used);
 	else
-	    printf( "%s: WOULD %s %s %s:%s -> %s:%s\n",
-			progname, raw_mode ? "COPY " : "SCRUB", count_buf,
-			oft_info[fi->iod.oft].name, fi->f.fname,
-			oft_info[oft].name, fo.f.fname );
-	ResetSF(&fo,0);
-	return ERR_OK;
-    }
+	    *split_buf = 0;
 
-    if ( verbose >= 0 )
-    {
-	if (convert_it)
-	    printf( "* %s %s %s %s %s\n",
-		progname, raw_mode ? "COPY " : "SCRUB",
-		count_buf, oft_info[oft].name, fi->f.fname );
-	else
-	    printf( "* %s %s %s %s:%s -> %s:%s\n",
-			progname, raw_mode ? "COPY " : "SCRUB", count_buf,
-		    oft_info[fi->iod.oft].name, fi->f.fname,
-		    oft_info[oft].name, fo.f.fname );
+	printf( "* %s%s%s %s %s%s:%s -> %s:%s\n",
+		testmode ? "WOULD " : "",
+		convert_it ? "CONVERT" : "COPY",
+		raw_mode ? "" : "+SCRUB",
+		count_buf,
+		oft_info[fi->iod.oft].name, split_buf, fi->f.fname,
+		oft_info[oft].name, fo.f.fname );
+
+	if (testmode)
+	{
+	    ResetSF(&fo,0);
+	    return ERR_OK;
+	}
     }
 
     enumError err = CreateFile( &fo.f, 0, oft_info[oft].iom, it->overwrite );
@@ -1782,7 +1778,6 @@ enumError cmd_edit()
 	it.func = exec_filetype;
 	enumError err = SourceIterator(&it,1,false,false);
 	ResetIterator(&it);
-	printf("DESTINATION: %s\n",opt_dest);
 	return err;
     }
 
@@ -1832,6 +1827,7 @@ enumError exec_move ( SuperFile_t * fi, Iterator_t * it )
 		    snprintf(iobuf,sizeof(iobuf),"*%u",fi->f.split_used);
 		else
 		    *iobuf = 0;
+
 		printf(" - %sMove %*u/%u %s%s:%s -> %s\n",
 		    testmode ? "WOULD " : "",
 		    fw, it->source_index+1, it->source_list.used,

@@ -43,9 +43,9 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 	"path",
 	"Use the entered file or directory as source.\n"
 	"  Directories are expanded to all containing files but hidden files"
-	" (files beginning with a point) are ignored. If a command needs only"
-	" images then non image files of the directory are ignored without"
-	" notification. The option --no-expand supresses the directory"
+	" (file names begins with a point) are ignored. If a command needs"
+	" only images then non image files of the directory are ignored"
+	" without notification. The option --no-expand supresses the directory"
 	" expansion."
     },
 
@@ -57,18 +57,19 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 
     {	OPT_RECURSE, 'r', "recurse",
 	"path",
-	" If path is not a directory than use it as source like --source. If"
-	" path is a directory than it is scanned for source files and the"
-	" search iss recursive. The option --rdepth limit the search depth."
-	" Hidden files and sub directories (files beginning with a point) and"
-	" files with non supported file types are ignored without"
-	" notification."
+	" If path is not a directory then it is used as a simple source file"
+	" like --source.\n"
+	"  Directories are scanned for source files recursively. The option"
+	" --rdepth limits the search depth. Hidden files and and hidden sub"
+	" directories (file names begins with a point) and files with non"
+	" supported file types (non ISO files for most commands) are ignored"
+	" without notification."
     },
 
     {	OPT_RDEPTH, 0, "rdepth",
 	"depth",
-	"Set the maximum recurse depth for option --recurse The default search"
-	" depth is 10."
+	"Set the maximum recurse depth for option --recurse. The default"
+	" search depth is 10."
     },
 
     {	OPT_AUTO, 'a', "auto",

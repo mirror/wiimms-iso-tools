@@ -349,7 +349,7 @@ enumError SetupReadSF ( SuperFile_t * sf )
     if ( sf->f.ftype & FT_A_CISO )
 	return SetupReadCISO(sf);
 
-    if ( sf->f.ftype & FT_ID_WBFS && sf->f.id6[0] )
+    if ( sf->f.ftype & FT_ID_WBFS && ( sf->f.slot >= 0 || sf->f.id6[0] ) )
 	return SetupReadWBFS(sf);
 
     sf->file_size = sf->f.st.st_size;
@@ -377,7 +377,7 @@ enumError SetupReadISO ( SuperFile_t * sf )
 enumError SetupReadWBFS ( SuperFile_t * sf )
 {
     ASSERT(sf);
-    TRACE("SetupReadWBFS(%p)\n",sf);
+    TRACE("SetupReadWBFS(%p) id=%s, slot=%d\n",sf,sf->f.id6,sf->f.slot);
 
     if ( !sf || !sf->f.is_reading || sf->wbfs )
 	return ERROR0(ERR_INTERNAL,0);
@@ -390,7 +390,9 @@ enumError SetupReadWBFS ( SuperFile_t * sf )
     if (err)
 	goto abort;
 
-    err = OpenWDiscID6(wbfs,sf->f.id6);
+    err = sf->f.slot >= 0
+		? OpenWDiscSlot(wbfs,sf->f.slot,false)
+		: OpenWDiscID6(wbfs,sf->f.id6);
     if (err)
 	goto abort;
 
@@ -1863,12 +1865,13 @@ enumFileType AnalyzeFT ( File_t * f )
 
 	if (ok)
 	{
-	    TRACE(" - WBFS/%s found\n",id6);
+	    TRACE(" - WBFS/%s found, slot=%d\n",id6,wdisk.slot);
 	    sf.f.disable_errors = f->disable_errors;
 	    ASSERT(!sf.f.path);
 	    sf.f.path = sf.f.fname;
 	    sf.f.fname = f->fname;
 	    f->fname = 0;
+	    sf.f.slot = wdisk.slot;
 	    CopyFileAttribDiscInfo(&sf.f.fatt,&wdisk);
 
 	    ResetFile(f,false);
@@ -1878,7 +1881,21 @@ enumFileType AnalyzeFT ( File_t * f )
 	    TRACE(" - WBFS/fname = %s\n",f->fname);
 	    TRACE(" - WBFS/path  = %s\n",f->path);
 	    TRACE(" - WBFS/id6   = %s\n",f->id6);
-	    f->ftype |= FT_A_ISO|FT_A_WII_ISO|FT_A_WDISC;
+	    switch(get_header_disc_type(&wdisk.dhead,0))
+	    {
+		case WD_DT_UNKNOWN:
+		case WD_DT__N:
+		    f->ftype |= FT_A_WDISC;
+		    break;
+
+		case WD_DT_GAMECUBE:
+		    f->ftype |= FT_A_ISO|FT_A_GC_ISO|FT_A_WDISC;
+		    break;
+
+		case WD_DT_WII:
+		    f->ftype |= FT_A_ISO|FT_A_WII_ISO|FT_A_WDISC;
+		    break;
+	    }
 	}
 	else
 	    ResetSF(&sf,0);

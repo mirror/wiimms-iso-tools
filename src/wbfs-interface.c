@@ -3005,6 +3005,7 @@ bool CalcFBT ( CheckWBFS_t * ck )
 void InitializeWDiscInfo ( WDiscInfo_t * dinfo )
 {
     memset(dinfo,0,sizeof(*dinfo));
+    dinfo->slot = -1;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -3027,9 +3028,10 @@ enumError GetWDiscInfo ( WBFS_t * w, WDiscInfo_t * dinfo, int disc_index )
 
     w->disc_slot = -1;
 
-    u32 size4;
+    u32 slot, size4;
     const enumError err = wbfs_get_disc_info ( w->wbfs, disc_index,
-			    (u8*)&dinfo->dhead, sizeof(dinfo->dhead), &size4 );
+			    (u8*)&dinfo->dhead, sizeof(dinfo->dhead),
+			    &slot, &size4 );
 
     if (err)
     {
@@ -3039,6 +3041,7 @@ enumError GetWDiscInfo ( WBFS_t * w, WDiscInfo_t * dinfo, int disc_index )
 
     CalcWDiscInfo(dinfo,0);
     dinfo->disc_index	= disc_index;
+    dinfo->slot		= slot;
     dinfo->size		= (u64)size4 * 4;
     dinfo->used_blocks	= dinfo->size / WII_SECTOR_SIZE; // [2do] not exact
 
@@ -3069,6 +3072,7 @@ enumError GetWDiscInfoBySlot ( WBFS_t * w, WDiscInfo_t * dinfo, u32 disc_slot )
 
     CalcWDiscInfo(dinfo,0);
     dinfo->disc_index	= disc_slot;
+    dinfo->slot		= disc_slot;
     dinfo->size		= (u64)size4 * 4;
     dinfo->used_blocks	= dinfo->size / WII_SECTOR_SIZE; // [2do] not exact
 

@@ -833,7 +833,8 @@ int PrintError ( ccp func, ccp file, uint line,
     if (syserr)
     {
 	fprintf(stderr,"%s%*s-> ",prefix,plen,"");
-	PutLines(stderr,plen+3,fw,plen+3,prefix,strerror(syserr));
+	snprintf(msg,sizeof(msg),"%s [%d]",strerror(syserr),syserr);
+	PutLines(stderr,plen+3,fw,plen+3,prefix,msg);
     }
     fflush(stderr);
 
@@ -2401,7 +2402,7 @@ static wd_compression_t ScanCompression_helper
 	wd_compression_t compr = cmd->id;
 	u32 opt = cmd->opt;
 
-	if ( compr == COMPR_MEM )
+	if ( compr == (wd_compression_t)COMPR_MEM )
 	{
 	    compr = WD_COMPR__DEFAULT;
 	    u32 memlimit = GetMemLimit();

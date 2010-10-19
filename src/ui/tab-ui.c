@@ -431,7 +431,7 @@ info_t info_tab[] =
 		"Use the entered file or directory as source."
 		"\n "
 		" Directories are expanded to all containing files"
-		" but hidden files (files beginning with a point) are ignored."
+		" but hidden files (file names begins with a point) are ignored."
 		" If a command needs only images then non image files"
 		" of the directory are ignored without notification."
 		" The option {--no-expand} supresses the directory expansion." },
@@ -443,17 +443,18 @@ info_t info_tab[] =
 
   { T_OPT_CMP,	"RECURSE",	"r|recurse",
 		"path",
-		" If @path@ is not a directory than use it as source like {--source}."
-		" If @path@ is a directory than it is scanned for source files and"
-		" the search iss recursive."
-		" The option {--rdepth} limit the search depth."
-		" Hidden files and sub directories (files beginning with a point)"
-		" and files with non supported file types"
-		" are ignored without notification." },
+		" If @path@ is not a directory then it is used as a simple"
+		" source file like {--source}."
+		"\n "
+		" Directories are scanned for source files recursively."
+		" The option {--rdepth} limits the search depth."
+		" Hidden files and hidden sub directories (file names begins"
+		" with a point) and files with non supported file types (non ISO"
+		" files for most commands) are ignored without notification." },
 
   { T_OPT_CP,	"RDEPTH",	"rdepth",
 		"depth",
-		"Set the maximum recurse depth for option {--recurse}"
+		"Set the maximum recurse depth for option {--recurse}."
 		" The default search depth is 10." },
 
   { T_OPT_C,	"AUTO",		"a|auto",

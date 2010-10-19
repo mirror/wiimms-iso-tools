@@ -408,9 +408,23 @@ u32 wbfs_count_discs(wbfs_t*p);
 u32 wbfs_alloc_block ( wbfs_t * p );
 
 enumError wbfs_get_disc_info
-		( wbfs_t*p, u32 idx,  u8 *header, int header_size, u32 *size );
+(
+    wbfs_t		* p,		// valid wbfs descriptor
+    u32			index,		// disc index: 0 .. num_dics-1
+    u8			* header,	// header to store data
+    int			header_size,	// size of 'header'
+    u32			* slot_found,	// not NULL: store slot of found disc
+    u32			* size4		// not NULL: store 'size>>2' of found disc
+);
+
 enumError wbfs_get_disc_info_by_slot
-		( wbfs_t*p, u32 slot, u8 *header, int header_size, u32 *size );
+(
+    wbfs_t		* p,		// valid wbfs descriptor
+    u32			slot,		// disc index: 0 .. num_dics-1
+    u8			* header,	// header to store data
+    int			header_size,	// size of 'header'
+    u32			* size4		// not NULL: store 'size>>2' of found disc
+);
 
 /*! get the number of unuseds block of the partition.
   to be multiplied by p->wbfs_sec_sz (use 64bit multiplication) to have the number in bytes

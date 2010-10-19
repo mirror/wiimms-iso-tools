@@ -384,6 +384,7 @@ typedef struct File_t
 	bool is_stdfile;	// file is stdin or stdout
 	bool seek_allowed;	// seek is allowed (regular file or block device)
 	char id6[7];		// ID6 of a iso image
+	int  slot;		// >=0: slot number for WBFS
 
 	// virtual file atributes, initialized by a copy of 'struct stat st'
 

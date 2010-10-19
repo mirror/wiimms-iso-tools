@@ -44,7 +44,8 @@ typedef struct WDiscInfo_t
     wd_disc_attrib_t	disc_attrib;	// disc attrib
     u32			magic2;
 
-    uint		disc_index;
+    int			disc_index;
+    int			slot;
     char		id6[7];
     char		part_info[5];
     u64			size;

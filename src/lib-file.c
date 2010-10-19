@@ -222,6 +222,7 @@ void InitializeFile ( File_t * f )
     f->sector_size = 512;
     f->fname = EmptyString;
     f->split_fname_format = EmptyString;
+    f->slot = -1;
 
     // normalize 'opt_iomode'
     opt_iomode = opt_iomode & IOM__IS_MASK | IOM_FORCE_STREAM;
