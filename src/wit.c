@@ -1740,16 +1740,25 @@ enumError exec_edit ( SuperFile_t * fi, Iterator_t * it )
     enumError err = ERR_OK;
     if ( disc && disc->reloc )
     {
+	PRINT("EDIT PHASE I\n");
 	const wd_reloc_t * reloc = disc->reloc;
-	int idx;
+	u32 idx;
 	for ( idx = 0; idx < WII_MAX_SECTORS && !err; idx++, reloc++ )
-	    if ( ( *reloc & (WD_RELOC_F_PATCH|WD_RELOC_F_CLOSE)) == WD_RELOC_F_PATCH )
-		err = CopyRawData(fi,fi,idx*WII_SECTOR_SIZE,WII_SECTOR_SIZE);
+	    if ( *reloc & (WD_RELOC_F_PATCH|WD_RELOC_F_HASH)
+		&& !( *reloc & WD_RELOC_F_CLOSE ) )
+	    {
+		PRINT(" - WRITE SECTOR %x, off %llx\n",idx,idx*(u64)WII_SECTOR_SIZE);
+		err = CopyRawData(fi,fi,idx*(u64)WII_SECTOR_SIZE,WII_SECTOR_SIZE);
+	    }
 
+	PRINT("EDIT PHASE II\n");
 	reloc = disc->reloc;
 	for ( idx = 0; idx < WII_MAX_SECTORS && !err; idx++, reloc++ )
 	    if ( *reloc & WD_RELOC_F_CLOSE )
-		err = CopyRawData(fi,fi,idx*WII_SECTOR_SIZE,WII_SECTOR_SIZE);
+	    {
+		PRINT(" - WRITE SECTOR %x, off %llx\n",idx,idx*(u64)WII_SECTOR_SIZE);
+		err = CopyRawData(fi,fi,idx*(u64)WII_SECTOR_SIZE,WII_SECTOR_SIZE);
+	    }
     }
 
     ResetSF( fi, !err && OptionUsed[OPT_PRESERVE] ? &fi->f.fatt : 0 );

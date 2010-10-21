@@ -367,8 +367,9 @@ static void dump_wii_part
 	    {
 		if ( !(show_mode & SHOW_TMD) && part->tmd )
 		{
-		    const u32 hi = part->tmd->sys_version >> 32;
-		    const u32 lo = (u32)part->tmd->sys_version;
+		    const u64 sys_version = ntoh64(part->tmd->sys_version);
+		    const u32 hi = sys_version >> 32;
+		    const u32 lo = (u32)sys_version;
 		    if ( hi == 1 && lo < 0x100 )
 			fprintf(f,"%*s  System version: %08x-%08x = IOS 0x%02x = IOS %u\n",
 				    indent, "", hi, lo, lo, lo );

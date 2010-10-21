@@ -14,6 +14,9 @@ wit v@@VERSION@@ r@@REV-NEXT@@ - @@@@-@@-@@
    'ISO/WII', 'WDF/GC', 'WBFS/WII', 'FST/WII'.
  - New option --no-expand: Do not expand directories to the containing files
    or images. This option does not change the behavior of --recurse.
+ - Some minor output bug fixes.
+ - Bug fix for "wit EDIT": New hash values were not copied to other sectors
+   of the same sector group.
 
 
 Known bugs:

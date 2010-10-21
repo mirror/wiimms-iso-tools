@@ -35,10 +35,7 @@
 
 //-----------------------------------------------------------------------------
 
-#if 1
-    #undef PRINT
-    #define PRINT(...)
-#endif
+#define WDPRINT noPRINT
 
 //
 ///////////////////////////////////////////////////////////////////////////////
@@ -1034,7 +1031,7 @@ static wd_disc_t * wd_open_gc_disc
 	    if (ntohl(*ptab))
 		n_part++;
 
-	PRINT("MULTIBOOT '%.6s', N=%d, dvd9=%d\n",&disc->dhead.disc_id,n_part,dvd9);
+	WDPRINT("MULTIBOOT '%.6s', N=%d, dvd9=%d\n",&disc->dhead.disc_id,n_part,dvd9);
 
 	wd_part_t * part = calloc(n_part,sizeof(*disc->part));
 	if (!part)
@@ -1051,7 +1048,7 @@ static wd_disc_t * wd_open_gc_disc
 	part->disc		= disc;
 	if ( wd_load_part(part,false,false,true) == ERR_OK )
 	{
-	    PRINT("PRIMARY PARTITION FOUND\n");
+	    WDPRINT("PRIMARY PARTITION FOUND\n");
 	    disc->disc_attrib |= WD_DA_GC_START_PART;
 	    part++;
 	}
@@ -1071,7 +1068,7 @@ static wd_disc_t * wd_open_gc_disc
 		if (!dvd9)
 		    off >>= 2;
 
-		PRINT("PART #%u: off=%llx\n",disc->n_part,(u64)off<<2);
+		WDPRINT("PART #%u: off=%llx\n",disc->n_part,(u64)off<<2);
 
 		part->index		= disc->n_part;
 		part->usage_id		= disc->n_part + WD_USAGE_PART_0;
@@ -1268,7 +1265,7 @@ wd_disc_t * wd_open_disc
 		while ( ptr < end )
 		    if (*ptr++)
 		    {
-			PRINT("MARK SECTOR %u AS USED\n",sector);
+			WDPRINT("MARK SECTOR %u AS USED\n",sector);
 			disc->usage_table[sector] = WD_USAGE_DISC;
 			break;
 		    }
@@ -1735,7 +1732,7 @@ enumError wd_load_part
 	    TRACE("DOL-SIZE: %x <= %x\n",dol_size,boot->fst_off4-boot->dol_off4<<2);
 	    if ( dol_size > boot->fst_off4 - boot->dol_off4 << 2 )
 	    {
-		PRINT("!!! DOL-SIZE: %x <= %x & off=%x\n",
+		WDPRINT("!!! DOL-SIZE: %x <= %x & off=%x\n",
 			dol_size, boot->fst_off4-boot->dol_off4<<2, boot->dol_off4 );
 		if (!silent)
 		    WD_ERROR(ERR_WDISC_INVALID,"Invalid MAIN.DOL of partition '%s'%s",
@@ -1861,7 +1858,7 @@ enumError wd_load_part
 	     mgr_sect = part->end_sector;
 	part->end_mgr_sector = mgr_sect;
 
-	PRINT("PART #%u, sectors: %llx .. %llx .. %llx .. %llx\n",
+	WDPRINT("PART #%u, sectors: %llx .. %llx .. %llx .. %llx\n",
 		part->index,
 		(u64)WII_SECTOR_SIZE * part->data_sector,
 		(u64)WII_SECTOR_SIZE * part->end_mgr_sector,
@@ -3056,7 +3053,7 @@ int wd_remove_part_files
 			count++;
 		if (count)
 		    fst->is_dir &= 1;
-		PRINT("#%zu: N=%u/%u [%02x]\n",fst-part->fst,count,n,fst->is_dir);
+		WDPRINT("#%zu: N=%u/%u [%02x]\n",fst-part->fst,count,n,fst->is_dir);
 		fst->size = count;
 	    }
 	
@@ -3072,10 +3069,10 @@ int wd_remove_part_files
 	    if ( is_dir & 0x40 )
 		continue;
 
-	    PRINT("COPY %zu -> %zu size=%zu\n",fst-part->fst,dest-part->fst,sizeof(*dest));
+	    WDPRINT("COPY %zu -> %zu size=%zu\n",fst-part->fst,dest-part->fst,sizeof(*dest));
 	    memcpy(dest,fst,sizeof(*dest));
 	    
-	    PRINT("NAME-OFF: %x -> %x\n",
+	    WDPRINT("NAME-OFF: %x -> %x\n",
 		ntohl(dest->name_off) & 0xffffff,
 		( ntohl(dest->name_off) & 0xffffff ) + name_delta );
 	    
@@ -3088,13 +3085,13 @@ int wd_remove_part_files
 	    dest++;
 	}
 
-	PRINT("N: %u -> %zu\n", part->fst_n, dest - part->fst);
+	WDPRINT("N: %u -> %zu\n", part->fst_n, dest - part->fst);
 	part->fst_n = dest - part->fst;
 	DASSERT( part->fst->size = htonl(part->fst_n) );
 	part->fst->name_off = htonl(0);
 	part->fst->is_dir = 1;
 
-	PRINT("fst_end=%p new_end=%p, n=%u->%u\n",
+	WDPRINT("fst_end=%p new_end=%p, n=%u->%u\n",
 		fst_end, part->fst + part->fst_n, n_fst, part->fst_n );
 	HEXDUMP16(0,0,fst_end,16);
 	HEXDUMP16(0,0, (ccp)( part->fst + part->fst_n ) + name_delta,16);
@@ -3820,7 +3817,7 @@ int wd_insert_memmap_part
 	
 	if ( wii_head_mode != WD_PAT_IGNORE )
 	{
-	    PRINT("INSERT WII PART-HEAD PATCH %u\n",wii_head_mode);
+	    WDPRINT("INSERT WII PART-HEAD PATCH %u\n",wii_head_mode);
 
 	    const u64 head_off = (u64)part->part_off4 << 2;
 	    const u64 head_size = (u64)part->data_sector * WII_SECTOR_SIZE - head_off;
@@ -3871,7 +3868,7 @@ int wd_insert_memmap_part
 
     if ( wii_mgr_mode != WD_PAT_IGNORE && wii_mgr_mode == wii_data_mode )
     {
-	PRINT("INSERT PART-DATA PATCH %u\n",wii_data_mode);
+	WDPRINT("INSERT PART-DATA PATCH %u\n",wii_data_mode);
 
 	wd_memmap_item_t * item = wd_insert_memmap
 		( mm,
@@ -3889,7 +3886,7 @@ int wd_insert_memmap_part
     {
 	if ( wii_mgr_mode != WD_PAT_IGNORE )
 	{
-	    PRINT("INSERT WII PART-DATA #0 PATCH %u\n",wii_data_mode);
+	    WDPRINT("INSERT WII PART-DATA #0 PATCH %u\n",wii_data_mode);
 
 	    wd_memmap_item_t * item = wd_insert_memmap
 			( mm,
@@ -3906,7 +3903,7 @@ int wd_insert_memmap_part
 
 	if ( wii_data_mode != WD_PAT_IGNORE && part->end_mgr_sector < part->end_sector)
 	{
-	    PRINT("INSERT WII PART-DATA #1 PATCH %u\n",wii_data_mode);
+	    WDPRINT("INSERT WII PART-DATA #1 PATCH %u\n",wii_data_mode);
 
 	    wd_memmap_item_t * item = wd_insert_memmap
 			( mm,
@@ -4241,7 +4238,7 @@ static enumError wd_rap_part_sectors
 
     if ( is_encrypted && decrypt )
     {
-	PRINT("DECRYPT(%x->%x..%x) split=%d\n",src,sector,end_sector,hash_buf!=0);
+	WDPRINT("DECRYPT(%x->%x..%x) split=%d\n",src,sector,end_sector,hash_buf!=0);
 	is_encrypted = false;
 
 	wd_decrypt_sectors(part,0,buf,disc->group_cache,hash_buf,end_sector-sector);
@@ -4254,7 +4251,7 @@ static enumError wd_rap_part_sectors
 
     if (patch)
     {
-	PRINT("PATCH-P(%x->%x..%x) split=%d\n",src,sector,end_sector,!is_splitted);
+	WDPRINT("PATCH-P(%x->%x..%x) split=%d\n",src,sector,end_sector,!is_splitted);
 	DASSERT(!is_encrypted);
 	DASSERT(hash_buf);
 
@@ -4323,12 +4320,12 @@ static enumError wd_rap_part_sectors
 
     if ( !is_encrypted && encrypt )
     {
-	PRINT("ENCRYPT(%x->%x..%x) compose=%d\n",src,sector,end_sector,hash_buf!=0);
+	WDPRINT("ENCRYPT(%x->%x..%x) compose=%d\n",src,sector,end_sector,hash_buf!=0);
 	wd_encrypt_sectors(part,0,buf,hash_buf,buf,end_sector-sector);
     }
     else if (is_splitted)
     {
-	PRINT("COMPOSE(%x->%x..%x)\n",src,sector,end_sector);
+	WDPRINT("COMPOSE(%x->%x..%x)\n",src,sector,end_sector);
 	wd_join_sectors(buf,hash_buf,buf,end_sector-sector);
     }
 
@@ -4680,7 +4677,7 @@ bool wd_patch_ptab // result = true if something changed
 	const bool is_dvd9 = max_part_off4 >= 0x40000000;
 	if ( n_part > GC_MULTIBOOT_PTAB_SIZE/sizeof(u32) )
 	     n_part = GC_MULTIBOOT_PTAB_SIZE/sizeof(u32);
-	PRINT("PATCH-PTAB: np=%u, max_part_off4=%x, is_dvd9=%d\n",
+	WDPRINT("PATCH-PTAB: np=%u, max_part_off4=%x, is_dvd9=%d\n",
 			n_part, max_part_off4, is_dvd9 );
 
 	u32 * ptab = (u32*)( (char*)sector_data + GC_MULTIBOOT_PTAB_OFF );
@@ -5127,7 +5124,7 @@ wd_reloc_t * wd_calc_relocation
 	    DASSERT(part);
 	    if ( ( !part->is_valid || !part->is_enabled ) && !part->data_off4 )
 	    {
-		PRINT("REMOVE GC BOOT PARTITION\n");
+		WDPRINT("REMOVE GC BOOT PARTITION\n");
 		item = wd_insert_memmap(	&disc->patch,
 					WD_PAT_ZERO,
 					sizeof(disc->dhead),
@@ -5204,8 +5201,29 @@ wd_reloc_t * wd_calc_relocation
 	    const wd_memmap_item_t *last = patch->item + patch->used;
 	    for ( item = patch->item; item < last; item++ )
 		wd_mark_part_reloc(part,reloc,item->offset,item->size,WD_RELOC_F_PATCH);
+
+
+	    //--- calc WD_RELOC_F_HASH
+
+	    u32 sect = part->data_sector;
+	    while ( sect < part->end_sector )
+	    {
+		u32 start = sect;
+		u32 end = start + WII_GROUP_SECTORS;
+		if ( end > part->end_sector )
+		     end = part->end_sector;
+		for ( ; sect < end; sect++ )
+		    if ( reloc[sect] & WD_RELOC_F_PATCH )
+		    {
+			while ( start < end )
+			    reloc[start++] |= WD_RELOC_F_HASH;
+			break;
+		    }
+		sect = end;
+	    }
 	}
     }
+
 
     //----- disc patching
 
@@ -5244,7 +5262,7 @@ void wd_print_relocation
     fprintf(f,
 	"\n"
 	"%*s   offset     dest blocks : n(b) :  source blocks : partition and flags\n"
-	"%*s%.75s\n",
+	"%*s%.80s\n",
 	indent, "", indent, "", wd_sep_200 );
 	
     const wd_reloc_t *rel = reloc, *end = reloc + WII_MAX_SECTORS;
@@ -5287,11 +5305,12 @@ void wd_print_relocation
 	else
 	    fprintf(f,"%3u", pidx >> WD_RELOC_S_PART );
 
-	fprintf(f," %s %s %s %s\n",
+	fprintf(f," %s %s %s %s %s\n",
 		val & WD_RELOC_F_ENCRYPT ? "enc"
 					   : val & WD_RELOC_F_DECRYPT ? "dec" : " - ",
 		val & WD_RELOC_F_COPY  ? "copy"  : " -  ",
 		val & WD_RELOC_F_PATCH ? "patch" : "  -  ",
+		val & WD_RELOC_F_HASH  ? "hash"  : " -  ",
 		val & WD_RELOC_F_CLOSE ? "close" : "  -" );
     }
 }
@@ -5693,7 +5712,7 @@ static void wd_print_gc_mem
 	    have_0_part = true;
 
 	u64 base_off = (u64)part->part_off4 << 2;
-	PRINT("PART #%u, off=%9llx, size=%9llx, doff4=%8x, sect=%5x..%5x\n",
+	WDPRINT("PART #%u, off=%9llx, size=%9llx, doff4=%8x, sect=%5x..%5x\n",
 		part->index, base_off, part->part_size,
 		part->data_off4, part->data_sector, part->end_sector );
 
