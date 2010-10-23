@@ -497,6 +497,16 @@ info_t info_tab[] =
 		" Images with the given ID are excluded from operation."
 		" Each use of this option expands the exclude list." },
 
+  { T_OPT_C,	"ONE_JOB",	"1|one-job|onejob",
+		0,
+		"Execute only the first job and exit."
+		" This is a shortcut for {job-limit 1}." },
+
+  { T_OPT_CP,	"JOB_LIMIT",	"job-limit|joblimit",
+		"num",
+		"Execute only the first @'num'@ jobs and exit."
+		" If done without errors the exit status is OK (zero)." },
+
   { T_OPT_CM,	"IGNORE",	"i|ignore",
 		0,
 		"Ignore non existing files/discs without warning."
@@ -949,6 +959,8 @@ info_t info_tab[] =
   { T_COPT_M,	"INCLUDE_PATH",	0,0,0 },
   { T_COPT_M,	"EXCLUDE",	0,0,0 },
   { T_COPT_M,	"EXCLUDE_PATH",	0,0,0 },
+  { T_COPT_M,	"ONE_JOB",	0,0,0 },
+  { T_COPT_M,	"JOB_LIMIT",	0,0,0 },
 
   //---------- wit GROUP XSOURCE ----------
 

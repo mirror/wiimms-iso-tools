@@ -1690,7 +1690,7 @@ enumError DumpWBFS
 
 	    fprintf(f,"\n%*sDump of %sWii disc at slot #%d of %d:\n",
 			indent,"", d->is_used ? "" : "*DELETED* ", slot, w->max_disc );
-	    DumpWDiscInfo(&dinfo,&ihead,f,indent+2);
+	    DumpWDiscInfo( &dinfo, d->is_used ? &ihead : 0, f, indent+2 );
 	    if ( w->head->disc_table[slot] & WBFS_SLOT_INVALID )
 		fprintf(f,"%*s>>> DISC MARKED AS INVALID! <<<\n",indent,"");
  #if NEW_WBFS_INTERFACE
@@ -1760,7 +1760,7 @@ enumError DumpWBFS
 			    (u64)size );
 		}
 
-		if ( dump_level > 2 )
+		if ( dump_level > 2 && d->is_used )
 		{
 		    mi = InsertMemMap(&mm, w->hd_sec_sz+slot*w->disc_info_sz,
 				sizeof(d->header->dhead)
@@ -1851,6 +1851,15 @@ enumError DumpWBFS
 	fputc('\n',f);
     }
     ResetMemMap(&mm);
+
+
+ #if NEW_WBFS_INTERFACE
+    if ( dump_level > 3 )
+    {
+	fprintf(f,"\f\n%*sWBFS Memory Usage:\n\n", indent,"" );
+	wbfs_print_block_usage(stdout,3,w,false);
+    }
+ #endif
 
     if ( check_it && isatty(fileno(f)) )
     {
@@ -3030,8 +3039,8 @@ enumError GetWDiscInfo ( WBFS_t * w, WDiscInfo_t * dinfo, int disc_index )
 
     u32 slot, size4;
     const enumError err = wbfs_get_disc_info ( w->wbfs, disc_index,
-			    (u8*)&dinfo->dhead, sizeof(dinfo->dhead),
-			    &slot, &size4 );
+			    (u8*)&dinfo->dhead, sizeof(dinfo->dhead), &slot,
+			    &dinfo->disc_type, &dinfo->disc_attrib, &size4 );
 
     if (err)
     {
@@ -3045,7 +3054,7 @@ enumError GetWDiscInfo ( WBFS_t * w, WDiscInfo_t * dinfo, int disc_index )
     dinfo->size		= (u64)size4 * 4;
     dinfo->used_blocks	= dinfo->size / WII_SECTOR_SIZE; // [2do] not exact
 
-    return ERR_OK;
+    return dinfo->disc_type == WD_DT_UNKNOWN ? ERR_WARNING : ERR_OK;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -3062,7 +3071,8 @@ enumError GetWDiscInfoBySlot ( WBFS_t * w, WDiscInfo_t * dinfo, u32 disc_slot )
 
     u32 size4;
     const enumError err = wbfs_get_disc_info_by_slot ( w->wbfs, disc_slot,
-			    (u8*)&dinfo->dhead, sizeof(dinfo->dhead), &size4 );
+			    (u8*)&dinfo->dhead, sizeof(dinfo->dhead),
+			    &dinfo->disc_type, &dinfo->disc_attrib, &size4 );
 
     if (err)
     {
@@ -3077,7 +3087,7 @@ enumError GetWDiscInfoBySlot ( WBFS_t * w, WDiscInfo_t * dinfo, u32 disc_slot )
     dinfo->used_blocks	= dinfo->size / WII_SECTOR_SIZE; // [2do] not exact
 
     w->disc_slot = disc_slot;
-    return ERR_OK;
+    return dinfo->disc_type == WD_DT_UNKNOWN ? ERR_WARNING : ERR_OK;
 }
 
 ///////////////////////////////////////////////////////////////////////////////

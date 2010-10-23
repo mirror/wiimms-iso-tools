@@ -232,7 +232,7 @@ typedef enum wd_reloc_t // relocation modes
     WD_RELOC_F_COPY	= 0x10000000,	// set if source must be copied
     WD_RELOC_F_PATCH	= 0x20000000,	// set if patching is needed
     WD_RELOC_F_HASH	= 0x40000000,	// set if hash calculation is needed
-    WD_RELOC_F_CLOSE	= 0x80000000,	// set if copying on close is needed
+    WD_RELOC_F_LAST	= 0x80000000,	// set if must be copied after all other
     WD_RELOC_M_FLAGS	= 0xfc000000,	// sum of all flags
 
     WD_RELOC_M_CRYPT	= WD_RELOC_F_ENCRYPT | WD_RELOC_F_DECRYPT,

@@ -3561,7 +3561,7 @@ static enumError SourceIteratorHelper
 		if ( it->act_gc == ACT_WARN )
 		     it->act_gc = ACT_IGNORE;
 		     
-		while ( err == ERR_OK && !SIGINT_level )
+		while ( err == ERR_OK && !SIGINT_level && it->num_of_files < job_limit )
 		{
 		    struct dirent * dent = readdir(dir);
 		    if (!dent)
@@ -3815,7 +3815,11 @@ enumError SourceIterator
 	it->depth = 0;
 	it->max_depth = 1;
 	for ( ptr = wbfs_part_list.field, end = ptr + wbfs_part_list.used;
-		    err == ERR_OK && !SIGINT_level && ptr < end; ptr++ )
+	      err == ERR_OK
+			&& !SIGINT_level
+			&& ptr < end
+			&& it->num_of_files < job_limit;
+	      ptr++ )
 	{
 	    if (collect_fnames)
 		InsertStringField(&it->source_list,*ptr,false);
@@ -3828,15 +3832,27 @@ enumError SourceIterator
     it->max_depth = opt_recurse_depth;
     it->expand_dir = true;
     for ( ptr = recurse_list.field, end = ptr + recurse_list.used;
-		err == ERR_OK && !SIGINT_level && ptr < end; ptr++ )
+	  err == ERR_OK
+		&& !SIGINT_level
+		&& ptr < end
+		&& it->num_of_files < job_limit;
+	  ptr++ )
+    {
 	err = SourceIteratorStarter(it,*ptr,collect_fnames);
+    }
 
     it->depth = 0;
     it->max_depth = 1;
     it->expand_dir = !opt_no_expand;
     for ( ptr = source_list.field, end = ptr + source_list.used;
-		err == ERR_OK && !SIGINT_level && ptr < end; ptr++ )
+	  err == ERR_OK
+		&& !SIGINT_level
+		&& ptr < end
+		&& it->num_of_files < job_limit;
+	  ptr++ )
+    {
 	err = SourceIteratorStarter(it,*ptr,collect_fnames);
+    }
 
     ResetStringField(&dir_done_list);
     ResetStringField(&file_done_list);

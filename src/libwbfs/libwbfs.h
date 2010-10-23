@@ -414,6 +414,8 @@ enumError wbfs_get_disc_info
     u8			* header,	// header to store data
     int			header_size,	// size of 'header'
     u32			* slot_found,	// not NULL: store slot of found disc
+    wd_disc_type_t	* disc_type,	// not NULL: store disc type
+    wd_disc_attrib_t	* disc_attrib,	// not NULL: store disc attrib
     u32			* size4		// not NULL: store 'size>>2' of found disc
 );
 
@@ -421,8 +423,10 @@ enumError wbfs_get_disc_info_by_slot
 (
     wbfs_t		* p,		// valid wbfs descriptor
     u32			slot,		// disc index: 0 .. num_dics-1
-    u8			* header,	// header to store data
+    u8			* header,	// not NULL: header to store data
     int			header_size,	// size of 'header'
+    wd_disc_type_t	* disc_type,	// not NULL: store disc type
+    wd_disc_attrib_t	* disc_attrib,	// not NULL: store disc attrib
     u32			* size4		// not NULL: store 'size>>2' of found disc
 );
 

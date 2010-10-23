@@ -5178,7 +5178,7 @@ wd_reloc_t * wd_calc_relocation
 
 	    wd_load_part(part,false,true,false);
 	    wd_memmap_item_t * item = wd_insert_patch_tmd(part);
-		wd_mark_disc_reloc(reloc,item->offset,item->size,WD_RELOC_F_CLOSE);
+		wd_mark_disc_reloc(reloc,item->offset,item->size,WD_RELOC_F_LAST);
 
 	    //--- h3
 
@@ -5192,7 +5192,7 @@ wd_reloc_t * wd_calc_relocation
 		item->data = part->h3;
 		snprintf(item->info,sizeof(item->info),"h3");
 		wd_mark_disc_reloc(reloc,item->offset,item->size,
-					WD_RELOC_F_PATCH|WD_RELOC_F_CLOSE);
+					WD_RELOC_F_PATCH|WD_RELOC_F_LAST);
 	    }
 
 	    //--- items
@@ -5262,7 +5262,7 @@ void wd_print_relocation
     fprintf(f,
 	"\n"
 	"%*s   offset     dest blocks : n(b) :  source blocks : partition and flags\n"
-	"%*s%.80s\n",
+	"%*s%.79s\n",
 	indent, "", indent, "", wd_sep_200 );
 	
     const wd_reloc_t *rel = reloc, *end = reloc + WII_MAX_SECTORS;
@@ -5311,7 +5311,7 @@ void wd_print_relocation
 		val & WD_RELOC_F_COPY  ? "copy"  : " -  ",
 		val & WD_RELOC_F_PATCH ? "patch" : "  -  ",
 		val & WD_RELOC_F_HASH  ? "hash"  : " -  ",
-		val & WD_RELOC_F_CLOSE ? "close" : "  -" );
+		val & WD_RELOC_F_LAST  ? "last"  : " -" );
     }
 }
 

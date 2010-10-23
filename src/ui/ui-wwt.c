@@ -76,7 +76,7 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 	" If path is not a directory then it is used as a simple source file"
 	" like --source.\n"
 	"  Directories are scanned for source files recursively. The option"
-	" --rdepth limits the search depth. Hidden files and and hidden sub"
+	" --rdepth limits the search depth. Hidden files and hidden sub"
 	" directories (file names begins with a point) and files with non"
 	" supported file types (non ISO files for most commands) are ignored"
 	" without notification."

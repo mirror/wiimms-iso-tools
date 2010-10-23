@@ -1294,6 +1294,8 @@ extern bool		opt_mkdir;
 extern int		opt_limit;
 extern int		print_sections;
 extern int		long_count;
+extern int		ignore_count;
+extern u32		job_limit;
 extern enumIOMode	io_mode;
 extern bool		opt_no_expand;
 extern u32		opt_recurse_depth;

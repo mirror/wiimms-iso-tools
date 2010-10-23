@@ -265,7 +265,7 @@
 	" If @path@ is not a directory then it is used as a simple source file" \
 	" like {--source}.\n" \
 	"  Directories are scanned for source files recursively. The option" \
-	" {--rdepth} limits the search depth. Hidden files and and hidden sub" \
+	" {--rdepth} limits the search depth. Hidden files and hidden sub" \
 	" directories (file names begins with a point) and files with non" \
 	" supported file types (non ISO files for most commands) are ignored" \
 	" without notification." )
@@ -310,6 +310,16 @@
 	" source is a directory then scan all images of the directory. Images" \
 	" with the given ID are excluded from operation. Each use of this" \
 	" option expands the exclude list." )
+
+#:def_opt( "ONE_JOB", "1|one-job|onejob", "C", \
+	"", \
+	"Execute only the first job and exit. This is a shortcut for" \
+	" {job-limit 1}." )
+
+#:def_opt( "JOB_LIMIT", "job-limit|joblimit", "CP", \
+	"num", \
+	"Execute only the first @'num'@ jobs and exit. If done without errors" \
+	" the exit status is OK (zero)." )
 
 #:def_opt( "IGNORE", "i|ignore", "CM", \
 	"", \
@@ -811,6 +821,14 @@
 	"", \
 	"" )
 
+#:def_cmd_opt( "FILELIST", "ONE_JOB", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "FILELIST", "JOB_LIMIT", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "FILELIST", "IGNORE", \
 	"", \
 	"" )
@@ -856,6 +874,14 @@
 	"" )
 
 #:def_cmd_opt( "FILETYPE", "EXCLUDE_PATH", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "FILETYPE", "ONE_JOB", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "FILETYPE", "JOB_LIMIT", \
 	"", \
 	"" )
 
@@ -910,6 +936,14 @@
 	"" )
 
 #:def_cmd_opt( "ISOSIZE", "EXCLUDE_PATH", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "ISOSIZE", "ONE_JOB", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "ISOSIZE", "JOB_LIMIT", \
 	"", \
 	"" )
 
@@ -984,6 +1018,14 @@
 	"" )
 
 #:def_cmd_opt( "DUMP", "EXCLUDE_PATH", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "DUMP", "ONE_JOB", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "DUMP", "JOB_LIMIT", \
 	"", \
 	"" )
 
@@ -1108,6 +1150,14 @@
 	"", \
 	"" )
 
+#:def_cmd_opt( "DREGION", "ONE_JOB", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "DREGION", "JOB_LIMIT", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "ID6", "AUTO", \
 	"", \
 	"" )
@@ -1141,6 +1191,14 @@
 	"" )
 
 #:def_cmd_opt( "ID6", "EXCLUDE_PATH", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "ID6", "ONE_JOB", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "ID6", "JOB_LIMIT", \
 	"", \
 	"" )
 
@@ -1205,6 +1263,14 @@
 	"" )
 
 #:def_cmd_opt( "LIST", "EXCLUDE_PATH", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "LIST", "ONE_JOB", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "LIST", "JOB_LIMIT", \
 	"", \
 	"" )
 
@@ -1318,6 +1384,14 @@
 	"", \
 	"" )
 
+#:def_cmd_opt( "LIST_L", "ONE_JOB", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "LIST_L", "JOB_LIMIT", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "LIST_L", "IGNORE_FST", \
 	"", \
 	"" )
@@ -1425,6 +1499,14 @@
 	"" )
 
 #:def_cmd_opt( "LIST_LL", "EXCLUDE_PATH", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "LIST_LL", "ONE_JOB", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "LIST_LL", "JOB_LIMIT", \
 	"", \
 	"" )
 
@@ -1538,6 +1620,14 @@
 	"", \
 	"" )
 
+#:def_cmd_opt( "LIST_LLL", "ONE_JOB", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "LIST_LLL", "JOB_LIMIT", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "LIST_LLL", "IGNORE_FST", \
 	"", \
 	"" )
@@ -1632,6 +1722,14 @@
 	"", \
 	"" )
 
+#:def_cmd_opt( "FILES", "ONE_JOB", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "FILES", "JOB_LIMIT", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "FILES", "IGNORE", \
 	"", \
 	"" )
@@ -1718,6 +1816,14 @@
 	"", \
 	"" )
 
+#:def_cmd_opt( "FILES_L", "ONE_JOB", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "FILES_L", "JOB_LIMIT", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "FILES_L", "IGNORE", \
 	"", \
 	"" )
@@ -1801,6 +1907,14 @@
 	"" )
 
 #:def_cmd_opt( "FILES_LL", "EXCLUDE_PATH", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "FILES_LL", "ONE_JOB", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "FILES_LL", "JOB_LIMIT", \
 	"", \
 	"" )
 
@@ -1907,6 +2021,14 @@
 	"" )
 
 #:def_cmd_opt( "DIFF", "EXCLUDE_PATH", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "DIFF", "ONE_JOB", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "DIFF", "JOB_LIMIT", \
 	"", \
 	"" )
 
@@ -2050,6 +2172,14 @@
 	"", \
 	"" )
 
+#:def_cmd_opt( "FDIFF", "ONE_JOB", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "FDIFF", "JOB_LIMIT", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "FDIFF", "IGNORE", \
 	"", \
 	"" )
@@ -2187,6 +2317,14 @@
 	"" )
 
 #:def_cmd_opt( "EXTRACT", "EXCLUDE_PATH", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "EXTRACT", "ONE_JOB", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "EXTRACT", "JOB_LIMIT", \
 	"", \
 	"" )
 
@@ -2357,6 +2495,14 @@
 	"" )
 
 #:def_cmd_opt( "COPY", "EXCLUDE_PATH", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "COPY", "ONE_JOB", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "COPY", "JOB_LIMIT", \
 	"", \
 	"" )
 
@@ -2594,6 +2740,14 @@
 	"", \
 	"" )
 
+#:def_cmd_opt( "CONVERT", "ONE_JOB", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "CONVERT", "JOB_LIMIT", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "CONVERT", "IGNORE", \
 	"", \
 	"" )
@@ -2782,6 +2936,14 @@
 	"", \
 	"" )
 
+#:def_cmd_opt( "EDIT", "ONE_JOB", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "EDIT", "JOB_LIMIT", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "EDIT", "IGNORE", \
 	"", \
 	"" )
@@ -2886,6 +3048,14 @@
 	"", \
 	"" )
 
+#:def_cmd_opt( "MOVE", "ONE_JOB", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "MOVE", "JOB_LIMIT", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "MOVE", "IGNORE", \
 	"", \
 	"" )
@@ -2963,6 +3133,14 @@
 	"" )
 
 #:def_cmd_opt( "RENAME", "EXCLUDE_PATH", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "RENAME", "ONE_JOB", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "RENAME", "JOB_LIMIT", \
 	"", \
 	"" )
 
@@ -3049,6 +3227,14 @@
 	"", \
 	"" )
 
+#:def_cmd_opt( "SETTITLE", "ONE_JOB", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "SETTITLE", "JOB_LIMIT", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "SETTITLE", "IGNORE", \
 	"", \
 	"" )
@@ -3129,6 +3315,14 @@
 	"" )
 
 #:def_cmd_opt( "VERIFY", "EXCLUDE_PATH", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "VERIFY", "ONE_JOB", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "VERIFY", "JOB_LIMIT", \
 	"", \
 	"" )
 
@@ -3561,7 +3755,7 @@
 	" If @path@ is not a directory then it is used as a simple source file" \
 	" like {--source}.\n" \
 	"  Directories are scanned for source files recursively. The option" \
-	" {--rdepth} limits the search depth. Hidden files and and hidden sub" \
+	" {--rdepth} limits the search depth. Hidden files and hidden sub" \
 	" directories (file names begins with a point) and files with non" \
 	" supported file types (non ISO files for most commands) are ignored" \
 	" without notification." )

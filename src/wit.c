@@ -64,8 +64,6 @@ enumError cmd_mix();
 #define TITLE WIT_SHORT ": " WIT_LONG " v" VERSION " r" REVISION \
 	" " SYSTEM " - " AUTHOR " - " DATE
 
-int  ignore_count	= 0;
-
 //
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -1745,7 +1743,7 @@ enumError exec_edit ( SuperFile_t * fi, Iterator_t * it )
 	u32 idx;
 	for ( idx = 0; idx < WII_MAX_SECTORS && !err; idx++, reloc++ )
 	    if ( *reloc & (WD_RELOC_F_PATCH|WD_RELOC_F_HASH)
-		&& !( *reloc & WD_RELOC_F_CLOSE ) )
+		&& !( *reloc & WD_RELOC_F_LAST ) )
 	    {
 		PRINT(" - WRITE SECTOR %x, off %llx\n",idx,idx*(u64)WII_SECTOR_SIZE);
 		err = CopyRawData(fi,fi,idx*(u64)WII_SECTOR_SIZE,WII_SECTOR_SIZE);
@@ -1754,7 +1752,7 @@ enumError exec_edit ( SuperFile_t * fi, Iterator_t * it )
 	PRINT("EDIT PHASE II\n");
 	reloc = disc->reloc;
 	for ( idx = 0; idx < WII_MAX_SECTORS && !err; idx++, reloc++ )
-	    if ( *reloc & WD_RELOC_F_CLOSE )
+	    if ( *reloc & WD_RELOC_F_LAST )
 	    {
 		PRINT(" - WRITE SECTOR %x, off %llx\n",idx,idx*(u64)WII_SECTOR_SIZE);
 		err = CopyRawData(fi,fi,idx*(u64)WII_SECTOR_SIZE,WII_SECTOR_SIZE);
@@ -2179,6 +2177,7 @@ enumError CheckOptions ( int argc, char ** argv, bool is_env )
 	case GO_INCLUDE_PATH:	AtFileHelper(optarg,0,0,AddIncludePath); break;
 	case GO_EXCLUDE:	AtFileHelper(optarg,0,1,AddExcludeID); break;
 	case GO_EXCLUDE_PATH:	AtFileHelper(optarg,0,0,AddExcludePath); break;
+	case GO_ONE_JOB:	job_limit = 1; break;
 	case GO_IGNORE:		ignore_count++; break;
 	case GO_IGNORE_FST:	allow_fst = false; break;
 
@@ -2264,6 +2263,16 @@ enumError CheckOptions ( int argc, char ** argv, bool is_env )
 		    err++;
 		else
 		    opt_limit = limit;
+	    }
+	    break;
+
+	case GO_JOB_LIMIT:
+	    {
+		u32 limit;
+		if (ScanSizeOptU32(&limit,optarg,1,0,"job-limit",0,UINT_MAX,0,0,true))
+		    err++;
+		else
+		    job_limit = limit ? limit : ~(u32)0;
 	    }
 	    break;
 
