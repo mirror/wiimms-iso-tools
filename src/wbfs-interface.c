@@ -1690,7 +1690,7 @@ enumError DumpWBFS
 
 	    fprintf(f,"\n%*sDump of %sWii disc at slot #%d of %d:\n",
 			indent,"", d->is_used ? "" : "*DELETED* ", slot, w->max_disc );
-	    DumpWDiscInfo(&dinfo,&ihead,f,indent+2);
+	    DumpWDiscInfo( &dinfo, d->is_used ? &ihead : 0, f, indent+2 );
 	    if ( w->head->disc_table[slot] & WBFS_SLOT_INVALID )
 		fprintf(f,"%*s>>> DISC MARKED AS INVALID! <<<\n",indent,"");
  #if NEW_WBFS_INTERFACE
@@ -1760,7 +1760,7 @@ enumError DumpWBFS
 			    (u64)size );
 		}
 
-		if ( dump_level > 2 )
+		if ( dump_level > 2 && d->is_used )
 		{
 		    mi = InsertMemMap(&mm, w->hd_sec_sz+slot*w->disc_info_sz,
 				sizeof(d->header->dhead)
@@ -1851,6 +1851,15 @@ enumError DumpWBFS
 	fputc('\n',f);
     }
     ResetMemMap(&mm);
+
+
+ #if NEW_WBFS_INTERFACE
+    if ( dump_level > 3 )
+    {
+	fprintf(f,"\f\n%*sWBFS Memory Usage:\n\n", indent,"" );
+	wbfs_print_block_usage(stdout,3,w,false);
+    }
+ #endif
 
     if ( check_it && isatty(fileno(f)) )
     {
@@ -3005,6 +3014,7 @@ bool CalcFBT ( CheckWBFS_t * ck )
 void InitializeWDiscInfo ( WDiscInfo_t * dinfo )
 {
     memset(dinfo,0,sizeof(*dinfo));
+    dinfo->slot = -1;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -3027,9 +3037,10 @@ enumError GetWDiscInfo ( WBFS_t * w, WDiscInfo_t * dinfo, int disc_index )
 
     w->disc_slot = -1;
 
-    u32 size4;
+    u32 slot, size4;
     const enumError err = wbfs_get_disc_info ( w->wbfs, disc_index,
-			    (u8*)&dinfo->dhead, sizeof(dinfo->dhead), &size4 );
+			    (u8*)&dinfo->dhead, sizeof(dinfo->dhead), &slot,
+			    &dinfo->disc_type, &dinfo->disc_attrib, &size4 );
 
     if (err)
     {
@@ -3039,10 +3050,11 @@ enumError GetWDiscInfo ( WBFS_t * w, WDiscInfo_t * dinfo, int disc_index )
 
     CalcWDiscInfo(dinfo,0);
     dinfo->disc_index	= disc_index;
+    dinfo->slot		= slot;
     dinfo->size		= (u64)size4 * 4;
     dinfo->used_blocks	= dinfo->size / WII_SECTOR_SIZE; // [2do] not exact
 
-    return ERR_OK;
+    return dinfo->disc_type == WD_DT_UNKNOWN ? ERR_WARNING : ERR_OK;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -3059,7 +3071,8 @@ enumError GetWDiscInfoBySlot ( WBFS_t * w, WDiscInfo_t * dinfo, u32 disc_slot )
 
     u32 size4;
     const enumError err = wbfs_get_disc_info_by_slot ( w->wbfs, disc_slot,
-			    (u8*)&dinfo->dhead, sizeof(dinfo->dhead), &size4 );
+			    (u8*)&dinfo->dhead, sizeof(dinfo->dhead),
+			    &dinfo->disc_type, &dinfo->disc_attrib, &size4 );
 
     if (err)
     {
@@ -3069,11 +3082,12 @@ enumError GetWDiscInfoBySlot ( WBFS_t * w, WDiscInfo_t * dinfo, u32 disc_slot )
 
     CalcWDiscInfo(dinfo,0);
     dinfo->disc_index	= disc_slot;
+    dinfo->slot		= disc_slot;
     dinfo->size		= (u64)size4 * 4;
     dinfo->used_blocks	= dinfo->size / WII_SECTOR_SIZE; // [2do] not exact
 
     w->disc_slot = disc_slot;
-    return ERR_OK;
+    return dinfo->disc_type == WD_DT_UNKNOWN ? ERR_WARNING : ERR_OK;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -3138,15 +3152,24 @@ void CalcWDiscInfo ( WDiscInfo_t * dinfo, SuperFile_t * sf )
 
     if (sf)
     {
-	wd_disc_t * disc = OpenDiscSF(sf,false,false);
+	const wd_disc_t * disc = OpenDiscSF(sf,false,false);
 	if (disc)
 	{
 	    memcpy(&dinfo->dhead,&disc->dhead,sizeof(dinfo->dhead));
-	    //dinfo->disc_type	= disc->disc_type;
-	    //dinfo->disc_attrib	= disc->disc_attrib;
 	    dinfo->magic2	= disc->magic2;
 	    dinfo->n_part	= disc->n_part;
 	    dinfo->used_blocks	= CountUsedIsoBlocksSF(sf,&part_selector);
+
+	    static char mask[] = "DUC?";
+	    strcpy(dinfo->part_info,"----");
+	    int ip;
+	    for ( ip = 0; ip < disc->n_part; ip++ )
+	    {
+		u32 pt = disc->part[ip].part_type;
+		if ( pt > sizeof(mask)-2 )
+		     pt = sizeof(mask)-2;
+		dinfo->part_info[pt] = mask[pt];
+	    }
 	}
 	else
 	    ReadSF(sf,0,&dinfo->dhead,sizeof(dinfo->dhead));
@@ -3173,6 +3196,7 @@ void CopyWDiscInfo ( WDiscListItem_t * item, WDiscInfo_t * dinfo )
     memcpy(item->id6,&dinfo->dhead.disc_id,6);
     item->size_mib = (u32)(( dinfo->size + MiB/2 ) / MiB );
     memcpy(item->name64,dinfo->dhead.disc_title,64);
+    memcpy(item->part_info,dinfo->part_info,sizeof(item->part_info));
     item->title		= dinfo->title;
     item->n_part	= dinfo->n_part;
     item->wbfs_slot	= dinfo->disc_index;
@@ -3634,7 +3658,7 @@ static void print_sect_time ( FILE *f, char name, time_t tim )
 	fprintf(f,"%ctime=%llu %s\n", name, (u64)tim, timbuf );
     }
     else
-	fprintf(f,"%xtime=\n",name);
+	fprintf(f,"%ctime=\n",name);
 }
 
 //-----------------------------------------------------------------------------
@@ -3659,9 +3683,19 @@ void PrintSectWDiscListItem ( FILE * f, WDiscListItem_t * witem, ccp def_fname )
     print_sect_time(f,'a',witem->fatt.atime);
     //fprintf(f,"part_index=%u\n",witem->part_index);
     //fprintf(f,"n_part=%u\n",witem->n_part);
-    fprintf(f,"filetype=%s\n",GetNameFT(witem->ftype,0));
-    fprintf(f,"wbfs_slot=%d\n",witem->wbfs_slot);
 
+    fprintf(f,"filetype=%s\n",GetNameFT(witem->ftype,0));
+    fprintf(f,"container=%s\n",GetContainerNameFT(witem->ftype,"-"));
+    const wd_disc_type_t dt = FileType2DiscType(witem->ftype);
+    fprintf(f,"disctype=%d %s\n",dt,wd_get_disc_type_name(dt,"?"));
+
+    if ( witem->n_part > 0 || *witem->part_info )
+    {
+	fprintf(f,"n-partitions=%d\n",witem->n_part);
+	fprintf(f,"partition-info=%s\n",witem->part_info);
+    }
+
+    fprintf(f,"wbfs_slot=%d\n",witem->wbfs_slot);
     ccp fname = witem->fname ? witem->fname : def_fname ? def_fname : "";
     fprintf(f,"filename=%s\n",fname);
     if ( *fname && witem->wbfs_slot >= 0 )

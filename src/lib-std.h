@@ -204,7 +204,7 @@ ccp PrintMSec ( char * buf, int bufsize, u32 msec, bool PrintMSec );
 
 //
 ///////////////////////////////////////////////////////////////////////////////
-///////////////			file support			///////////////
+///////////////			Open File Mode			///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
 typedef enum enumIOMode
@@ -228,29 +228,60 @@ void ScanIOMode ( ccp arg );
 
 typedef enum enumOFT // open file mode
 {
-	OFT_UNKNOWN,		// not specified yet
+    OFT_UNKNOWN,		// not specified yet
 
-	OFT_PLAIN,		// plain (ISO) file
-	OFT_WDF,		// WDF file
-	OFT_CISO,		// CISO file
-	OFT_WBFS,		// WBFS disc
-	OFT_WIA,		// WIA file
-	OFT_FST,		// file system
+    OFT_PLAIN,			// plain (ISO) file
+    OFT_WDF,			// WDF file
+    OFT_CISO,			// CISO file
+    OFT_WBFS,			// WBFS disc
+    OFT_WIA,			// WIA file
+    OFT_FST,			// file system
 
-	OFT__N,			// number of variants
-	OFT__DEFAULT = OFT_WDF	// default value
+    OFT__N,			// number of variants
+    OFT__DEFAULT = OFT_WDF	// default value
 
 } enumOFT;
 
+//-----------------------------------------------------------------------------
+
+typedef enum attribOFT // OFT attributes
+{
+    OFT_A_READ		= 0x01,		// format can be read
+    OFT_A_WRITE		= 0x02,		// format can be written
+    OFT_A_MODIFY	= 0x04,		// format can be modified
+    OFT_A_EXTEND	= 0x08,		// format can be extended
+    OFT_A_FST		= 0x10,		// format is an extracted file system
+
+} attribOFT;
+
+//-----------------------------------------------------------------------------
+
+typedef struct OFT_info_t
+{
+    enumOFT		oft;	// = index
+    attribOFT		attrib;	// attributes
+    enumIOMode		iom;	// preferred IO mode
+
+    ccp			name;	// name
+    ccp			option;	// option to force output format
+    ccp			ext1;	// standard file extension (maybe an empty string)
+    ccp			ext2;	// NULL or alternative file extension
+    ccp			info;	// short text info
+    
+} OFT_info_t;
+
+//-----------------------------------------------------------------------------
+
+extern const OFT_info_t oft_info[OFT__N+1];
 extern enumOFT output_file_type;
-extern ccp oft_ext [OFT__N+1]; // NULL terminated list
-extern ccp oft_name[OFT__N+1]; // NULL terminated list
-extern enumIOMode oft_iom[OFT__N+1];
 extern int opt_truncate;
 
 enumOFT CalcOFT ( enumOFT force, ccp fname_dest, ccp fname_src, enumOFT def );
 
-//-----------------------------------------------------------------------------
+//
+///////////////////////////////////////////////////////////////////////////////
+///////////////			file support			///////////////
+///////////////////////////////////////////////////////////////////////////////
 
 typedef enum enumFileType
 {
@@ -353,6 +384,7 @@ typedef struct File_t
 	bool is_stdfile;	// file is stdin or stdout
 	bool seek_allowed;	// seek is allowed (regular file or block device)
 	char id6[7];		// ID6 of a iso image
+	int  slot;		// >=0: slot number for WBFS
 
 	// virtual file atributes, initialized by a copy of 'struct stat st'
 
@@ -480,7 +512,7 @@ char * NormalizeFileName ( char * buf, char * buf_end, ccp source, bool allow_sl
 
 void SetFileName      ( File_t * f, ccp source, bool allow_slash );
 void GenFileName      ( File_t * f, ccp path, ccp name, ccp title, ccp id6, ccp ext );
-void GenDestFileName  ( File_t * f, ccp dest, ccp default_name, ccp ext, ccp * rm_ext );
+void GenDestFileName  ( File_t * f, ccp dest, ccp default_name, ccp ext, bool rm_std_ext );
 void GenImageFileName ( File_t * f, ccp dest, ccp default_name, enumOFT oft );
 
 //-----------------------------------------------------------------------------
@@ -661,7 +693,9 @@ enumError ScanSizeOptU32
 extern int opt_split;
 extern u64 opt_split_size;
 
-int ScanOptSplitSize ( ccp source ); // returns '1' on error, '0' else
+// returns '1' on error, '0' else
+int ScanOptSplitSize ( ccp source );
+int ScanOptRDepth ( ccp source );
 
 //
 ///////////////////////////////////////////////////////////////////////////////
@@ -1260,7 +1294,10 @@ extern bool		opt_mkdir;
 extern int		opt_limit;
 extern int		print_sections;
 extern int		long_count;
+extern int		ignore_count;
+extern u32		job_limit;
 extern enumIOMode	io_mode;
+extern bool		opt_no_expand;
 extern u32		opt_recurse_depth;
 
 extern StringField_t	source_list;

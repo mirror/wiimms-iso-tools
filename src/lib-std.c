@@ -85,7 +85,10 @@ bool		opt_mkdir		= false;
 int		opt_limit		= -1;
 int		print_sections		= 0;
 int		long_count		= 0;
+int		ignore_count		= 0;
+u32		job_limit		= ~(u32)0;
 enumIOMode	io_mode			= 0;
+bool		opt_no_expand		= false;
 u32		opt_recurse_depth	= DEF_RECURSE_DEPTH;
 
 StringField_t	source_list;
@@ -548,6 +551,18 @@ void SetupLib ( int argc, char ** argv, ccp p_progname, enumProgID prid )
 
     InitializeAllFilePattern();
     wd_initialize_select(&part_selector);
+
+
+    //----- verify oft_info
+
+    {
+	ASSERT( OFT__N + 1 == sizeof(oft_info)/sizeof(*oft_info) );
+	enumOFT oft;
+	for ( oft = 0; oft <= OFT__N; oft++ )
+	{
+	    ASSERT( oft_info[oft].oft == oft );
+	}
+    }
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -820,7 +835,8 @@ int PrintError ( ccp func, ccp file, uint line,
     if (syserr)
     {
 	fprintf(stderr,"%s%*s-> ",prefix,plen,"");
-	PutLines(stderr,plen+3,fw,plen+3,prefix,strerror(syserr));
+	snprintf(msg,sizeof(msg),"%s [%d]",strerror(syserr),syserr);
+	PutLines(stderr,plen+3,fw,plen+3,prefix,msg);
     }
     fflush(stderr);
 
@@ -2033,6 +2049,24 @@ int ScanOptSplitSize ( ccp source )
 			);
 }
 
+///////////////////////////////////////////////////////////////////////////////
+
+int ScanOptRDepth ( ccp source )
+{
+    return ERR_OK != ScanSizeOptU32(
+			&opt_recurse_depth,	// u32 * num
+			source,			// ccp source
+			1,			// default_factor1
+			0,			// int force_base
+			"rdepth",		// ccp opt_name
+			0,			// u64 min
+			MAX_RECURSE_DEPTH,	// u64 max
+			0,			// u32 multiple
+			0,			// u32 pow2
+			true			// bool print_err
+			);
+}
+
 //
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////			  scan num/range		///////////////
@@ -2370,7 +2404,7 @@ static wd_compression_t ScanCompression_helper
 	wd_compression_t compr = cmd->id;
 	u32 opt = cmd->opt;
 
-	if ( compr == COMPR_MEM )
+	if ( compr == (wd_compression_t)COMPR_MEM )
 	{
 	    compr = WD_COMPR__DEFAULT;
 	    u32 memlimit = GetMemLimit();
@@ -4205,7 +4239,7 @@ size_t AllocTempBuffer ( size_t needed_size )
 
     if ( tempbuf_size < needed_size )
     {
-	PRINT("$$$ ALLOC TEMPBUF, SIZE: %zx > %zx (%s -> %s)\n",
+	noPRINT("$$$ ALLOC TEMPBUF, SIZE: %zx > %zx (%s -> %s)\n",
 		tempbuf_size, needed_size,
 		wd_print_size_1024(0,0,tempbuf_size,false),
 		wd_print_size_1024(0,0,needed_size,false) );

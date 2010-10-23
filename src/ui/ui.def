@@ -19,6 +19,13 @@
 	"Print help and exit. If the first non option is a valid command name," \
 	" then a help for the given command is printed." )
 
+#:def_cmd( "INFO", "INFO", \
+	"wit INFO [keyword]...", \
+	"Print some internal information about the keywords. If the keyword" \
+	" @ALL@ is set or no keyword is entered information for all possible" \
+	" keywords are printed. Possible keywords are: @FILE-FORMAT@ and" \
+	" @ALL@." )
+
 #:def_cmd( "TEST", "TEST", \
 	"wit TEST [ignored]...", \
 	"Test options: All options are allowed, some are printed." )
@@ -241,15 +248,32 @@
 
 #:def_opt( "SOURCE", "s|source", "CMP", \
 	"path", \
-	"ISO file or directory with ISO files." )
+	"Use the entered file or directory as source.\n" \
+	"  Directories are expanded to all containing files but hidden files" \
+	" (file names begins with a point) are ignored. If a command needs" \
+	" only images then non image files of the directory are ignored" \
+	" without notification. The option {--no-expand} supresses the" \
+	" directory expansion." )
+
+#:def_opt( "NO_EXPAND", "no-expand|noexpand", "C", \
+	"", \
+	"Do not expand directories to the containing files or images. This" \
+	" option does not change the behavior of {--recurse}." )
 
 #:def_opt( "RECURSE", "r|recurse", "CMP", \
 	"path", \
-	"ISO file or base of a directory tree with ISO files." )
+	" If @path@ is not a directory then it is used as a simple source file" \
+	" like {--source}.\n" \
+	"  Directories are scanned for source files recursively. The option" \
+	" {--rdepth} limits the search depth. Hidden files and hidden sub" \
+	" directories (file names begins with a point) and files with non" \
+	" supported file types (non ISO files for most commands) are ignored" \
+	" without notification." )
 
 #:def_opt( "RDEPTH", "rdepth", "CP", \
 	"depth", \
-	"Set the maximum recurse depth for option {--recurse} (default=10)." )
+	"Set the maximum recurse depth for option {--recurse}. The default" \
+	" search depth is 10." )
 
 #:def_opt( "AUTO", "a|auto", "C", \
 	"", \
@@ -286,6 +310,16 @@
 	" source is a directory then scan all images of the directory. Images" \
 	" with the given ID are excluded from operation. Each use of this" \
 	" option expands the exclude list." )
+
+#:def_opt( "ONE_JOB", "1|one-job|onejob", "C", \
+	"", \
+	"Execute only the first job and exit. This is a shortcut for" \
+	" {job-limit 1}." )
+
+#:def_opt( "JOB_LIMIT", "job-limit|joblimit", "CP", \
+	"num", \
+	"Execute only the first @'num'@ jobs and exit. If done without errors" \
+	" the exit status is OK (zero)." )
 
 #:def_opt( "IGNORE", "i|ignore", "CM", \
 	"", \
@@ -417,7 +451,7 @@
 	"path", \
 	"Define a destination path (directory/file). The destination path is" \
 	" scanned for escape sequences (see option {--esc}) to allow generic" \
-	" pathes." )
+	" paths." )
 
 #:def_opt( "DEST2", "D|DEST", "CP", \
 	"path", \
@@ -594,6 +628,10 @@
 	"", \
 	"Force numeric output instead of printing names." )
 
+#:def_opt( "REALPATH", "real-path|realpath", "C", \
+	"", \
+	"Print real path instead of entered path." )
+
 #:def_opt( "SHOW", "show", "CP", \
 	"list", \
 	"This option allows fine control over the things that are to be" \
@@ -659,6 +697,10 @@
 #:def_cmd_opt( "VERSION", "LONG", \
 	"", \
 	"Print in long format. Ignored if option {--sections} is set." )
+
+#:def_cmd_opt( "INFO", "SECTIONS", \
+	"", \
+	"" )
 
 #:def_cmd_opt( "ERROR", "SECTIONS", \
 	"", \
@@ -751,6 +793,10 @@
 	"", \
 	"" )
 
+#:def_cmd_opt( "FILELIST", "NO_EXPAND", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "FILELIST", "RECURSE", \
 	"", \
 	"" )
@@ -775,6 +821,14 @@
 	"", \
 	"" )
 
+#:def_cmd_opt( "FILELIST", "ONE_JOB", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "FILELIST", "JOB_LIMIT", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "FILELIST", "IGNORE", \
 	"", \
 	"" )
@@ -792,6 +846,10 @@
 	"" )
 
 #:def_cmd_opt( "FILETYPE", "SOURCE", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "FILETYPE", "NO_EXPAND", \
 	"", \
 	"" )
 
@@ -816,6 +874,14 @@
 	"" )
 
 #:def_cmd_opt( "FILETYPE", "EXCLUDE_PATH", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "FILETYPE", "ONE_JOB", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "FILETYPE", "JOB_LIMIT", \
 	"", \
 	"" )
 
@@ -845,6 +911,10 @@
 	"", \
 	"" )
 
+#:def_cmd_opt( "ISOSIZE", "NO_EXPAND", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "ISOSIZE", "RECURSE", \
 	"", \
 	"" )
@@ -866,6 +936,14 @@
 	"" )
 
 #:def_cmd_opt( "ISOSIZE", "EXCLUDE_PATH", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "ISOSIZE", "ONE_JOB", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "ISOSIZE", "JOB_LIMIT", \
 	"", \
 	"" )
 
@@ -915,6 +993,10 @@
 	"", \
 	"" )
 
+#:def_cmd_opt( "DUMP", "NO_EXPAND", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "DUMP", "RECURSE", \
 	"", \
 	"" )
@@ -936,6 +1018,14 @@
 	"" )
 
 #:def_cmd_opt( "DUMP", "EXCLUDE_PATH", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "DUMP", "ONE_JOB", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "DUMP", "JOB_LIMIT", \
 	"", \
 	"" )
 
@@ -1032,6 +1122,10 @@
 	"", \
 	"" )
 
+#:def_cmd_opt( "DREGION", "NO_EXPAND", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "DREGION", "RECURSE", \
 	"", \
 	"" )
@@ -1056,11 +1150,23 @@
 	"", \
 	"" )
 
+#:def_cmd_opt( "DREGION", "ONE_JOB", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "DREGION", "JOB_LIMIT", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "ID6", "AUTO", \
 	"", \
 	"" )
 
 #:def_cmd_opt( "ID6", "SOURCE", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "ID6", "NO_EXPAND", \
 	"", \
 	"" )
 
@@ -1085,6 +1191,14 @@
 	"" )
 
 #:def_cmd_opt( "ID6", "EXCLUDE_PATH", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "ID6", "ONE_JOB", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "ID6", "JOB_LIMIT", \
 	"", \
 	"" )
 
@@ -1124,6 +1238,10 @@
 	"", \
 	"" )
 
+#:def_cmd_opt( "LIST", "NO_EXPAND", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "LIST", "RECURSE", \
 	"", \
 	"" )
@@ -1145,6 +1263,14 @@
 	"" )
 
 #:def_cmd_opt( "LIST", "EXCLUDE_PATH", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "LIST", "ONE_JOB", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "LIST", "JOB_LIMIT", \
 	"", \
 	"" )
 
@@ -1177,6 +1303,10 @@
 	"If set the size in MiB and the region is printed too. If set twice at" \
 	" least on time columns is added. If set three times a second line" \
 	" with number or partitions, file type and real path is added." )
+
+#:def_cmd_opt( "LIST", "REALPATH", \
+	"", \
+	"" )
 
 #:def_cmd_opt( "LIST", "UNIT", \
 	"", \
@@ -1226,6 +1356,10 @@
 	"", \
 	"" )
 
+#:def_cmd_opt( "LIST_L", "NO_EXPAND", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "LIST_L", "RECURSE", \
 	"", \
 	"" )
@@ -1247,6 +1381,14 @@
 	"" )
 
 #:def_cmd_opt( "LIST_L", "EXCLUDE_PATH", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "LIST_L", "ONE_JOB", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "LIST_L", "JOB_LIMIT", \
 	"", \
 	"" )
 
@@ -1279,6 +1421,10 @@
 	"If set the size in MiB and the region is printed too. If set twice at" \
 	" least on time columns is added. If set three times a second line" \
 	" with number or partitions, file type and real path is added." )
+
+#:def_cmd_opt( "LIST_L", "REALPATH", \
+	"", \
+	"" )
 
 #:def_cmd_opt( "LIST_L", "UNIT", \
 	"", \
@@ -1328,6 +1474,10 @@
 	"", \
 	"" )
 
+#:def_cmd_opt( "LIST_LL", "NO_EXPAND", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "LIST_LL", "RECURSE", \
 	"", \
 	"" )
@@ -1349,6 +1499,14 @@
 	"" )
 
 #:def_cmd_opt( "LIST_LL", "EXCLUDE_PATH", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "LIST_LL", "ONE_JOB", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "LIST_LL", "JOB_LIMIT", \
 	"", \
 	"" )
 
@@ -1381,6 +1539,10 @@
 	"If set the size in MiB and the region is printed too. If set twice at" \
 	" least on time columns is added. If set three times a second line" \
 	" with number or partitions, file type and real path is added." )
+
+#:def_cmd_opt( "LIST_LL", "REALPATH", \
+	"", \
+	"" )
 
 #:def_cmd_opt( "LIST_LL", "UNIT", \
 	"", \
@@ -1430,6 +1592,10 @@
 	"", \
 	"" )
 
+#:def_cmd_opt( "LIST_LLL", "NO_EXPAND", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "LIST_LLL", "RECURSE", \
 	"", \
 	"" )
@@ -1451,6 +1617,14 @@
 	"" )
 
 #:def_cmd_opt( "LIST_LLL", "EXCLUDE_PATH", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "LIST_LLL", "ONE_JOB", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "LIST_LLL", "JOB_LIMIT", \
 	"", \
 	"" )
 
@@ -1484,6 +1658,10 @@
 	" least on time columns is added. If set three times a second line" \
 	" with number or partitions, file type and real path is added." )
 
+#:def_cmd_opt( "LIST_LLL", "REALPATH", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "LIST_LLL", "UNIT", \
 	"", \
 	"" )
@@ -1516,6 +1694,10 @@
 	"", \
 	"" )
 
+#:def_cmd_opt( "FILES", "NO_EXPAND", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "FILES", "RECURSE", \
 	"", \
 	"" )
@@ -1537,6 +1719,14 @@
 	"" )
 
 #:def_cmd_opt( "FILES", "EXCLUDE_PATH", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "FILES", "ONE_JOB", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "FILES", "JOB_LIMIT", \
 	"", \
 	"" )
 
@@ -1598,6 +1788,10 @@
 	"", \
 	"" )
 
+#:def_cmd_opt( "FILES_L", "NO_EXPAND", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "FILES_L", "RECURSE", \
 	"", \
 	"" )
@@ -1619,6 +1813,14 @@
 	"" )
 
 #:def_cmd_opt( "FILES_L", "EXCLUDE_PATH", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "FILES_L", "ONE_JOB", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "FILES_L", "JOB_LIMIT", \
 	"", \
 	"" )
 
@@ -1680,6 +1882,10 @@
 	"", \
 	"" )
 
+#:def_cmd_opt( "FILES_LL", "NO_EXPAND", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "FILES_LL", "RECURSE", \
 	"", \
 	"" )
@@ -1701,6 +1907,14 @@
 	"" )
 
 #:def_cmd_opt( "FILES_LL", "EXCLUDE_PATH", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "FILES_LL", "ONE_JOB", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "FILES_LL", "JOB_LIMIT", \
 	"", \
 	"" )
 
@@ -1782,6 +1996,10 @@
 	"", \
 	"" )
 
+#:def_cmd_opt( "DIFF", "NO_EXPAND", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "DIFF", "RECURSE", \
 	"", \
 	"" )
@@ -1803,6 +2021,14 @@
 	"" )
 
 #:def_cmd_opt( "DIFF", "EXCLUDE_PATH", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "DIFF", "ONE_JOB", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "DIFF", "JOB_LIMIT", \
 	"", \
 	"" )
 
@@ -1918,6 +2144,10 @@
 	"", \
 	"" )
 
+#:def_cmd_opt( "FDIFF", "NO_EXPAND", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "FDIFF", "RECURSE", \
 	"", \
 	"" )
@@ -1939,6 +2169,14 @@
 	"" )
 
 #:def_cmd_opt( "FDIFF", "EXCLUDE_PATH", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "FDIFF", "ONE_JOB", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "FDIFF", "JOB_LIMIT", \
 	"", \
 	"" )
 
@@ -2054,6 +2292,10 @@
 	"", \
 	"" )
 
+#:def_cmd_opt( "EXTRACT", "NO_EXPAND", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "EXTRACT", "RECURSE", \
 	"", \
 	"" )
@@ -2075,6 +2317,14 @@
 	"" )
 
 #:def_cmd_opt( "EXTRACT", "EXCLUDE_PATH", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "EXTRACT", "ONE_JOB", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "EXTRACT", "JOB_LIMIT", \
 	"", \
 	"" )
 
@@ -2220,6 +2470,10 @@
 	"", \
 	"" )
 
+#:def_cmd_opt( "COPY", "NO_EXPAND", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "COPY", "RECURSE", \
 	"", \
 	"" )
@@ -2241,6 +2495,14 @@
 	"" )
 
 #:def_cmd_opt( "COPY", "EXCLUDE_PATH", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "COPY", "ONE_JOB", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "COPY", "JOB_LIMIT", \
 	"", \
 	"" )
 
@@ -2450,6 +2712,10 @@
 	"", \
 	"" )
 
+#:def_cmd_opt( "CONVERT", "NO_EXPAND", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "CONVERT", "RECURSE", \
 	"", \
 	"" )
@@ -2471,6 +2737,14 @@
 	"" )
 
 #:def_cmd_opt( "CONVERT", "EXCLUDE_PATH", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "CONVERT", "ONE_JOB", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "CONVERT", "JOB_LIMIT", \
 	"", \
 	"" )
 
@@ -2634,6 +2908,10 @@
 	"", \
 	"" )
 
+#:def_cmd_opt( "EDIT", "NO_EXPAND", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "EDIT", "RECURSE", \
 	"", \
 	"" )
@@ -2655,6 +2933,14 @@
 	"" )
 
 #:def_cmd_opt( "EDIT", "EXCLUDE_PATH", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "EDIT", "ONE_JOB", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "EDIT", "JOB_LIMIT", \
 	"", \
 	"" )
 
@@ -2734,6 +3020,10 @@
 	"", \
 	"" )
 
+#:def_cmd_opt( "MOVE", "NO_EXPAND", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "MOVE", "RECURSE", \
 	"", \
 	"" )
@@ -2755,6 +3045,14 @@
 	"" )
 
 #:def_cmd_opt( "MOVE", "EXCLUDE_PATH", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "MOVE", "ONE_JOB", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "MOVE", "JOB_LIMIT", \
 	"", \
 	"" )
 
@@ -2810,6 +3108,10 @@
 	"", \
 	"" )
 
+#:def_cmd_opt( "RENAME", "NO_EXPAND", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "RENAME", "RECURSE", \
 	"", \
 	"" )
@@ -2831,6 +3133,14 @@
 	"" )
 
 #:def_cmd_opt( "RENAME", "EXCLUDE_PATH", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "RENAME", "ONE_JOB", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "RENAME", "JOB_LIMIT", \
 	"", \
 	"" )
 
@@ -2889,6 +3199,10 @@
 	"", \
 	"" )
 
+#:def_cmd_opt( "SETTITLE", "NO_EXPAND", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "SETTITLE", "RECURSE", \
 	"", \
 	"" )
@@ -2910,6 +3224,14 @@
 	"" )
 
 #:def_cmd_opt( "SETTITLE", "EXCLUDE_PATH", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "SETTITLE", "ONE_JOB", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "SETTITLE", "JOB_LIMIT", \
 	"", \
 	"" )
 
@@ -2968,6 +3290,10 @@
 	"", \
 	"" )
 
+#:def_cmd_opt( "VERIFY", "NO_EXPAND", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "VERIFY", "RECURSE", \
 	"", \
 	"" )
@@ -2989,6 +3315,14 @@
 	"" )
 
 #:def_cmd_opt( "VERIFY", "EXCLUDE_PATH", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "VERIFY", "ONE_JOB", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "VERIFY", "JOB_LIMIT", \
 	"", \
 	"" )
 
@@ -3156,6 +3490,13 @@
 	"wwt HELP [command] [ignored]...", \
 	"Print help and exit. If the first non option is a valid command name," \
 	" then a help for the given command is printed." )
+
+#:def_cmd( "INFO", "INFO", \
+	"wit INFO [keyword]...", \
+	"Print some internal information about the keywords. If the keyword" \
+	" @ALL@ is set or no keyword is entered information for all possible" \
+	" keywords are printed. Possible keywords are: @FILE-FORMAT@ and" \
+	" @ALL@." )
 
 #:def_cmd( "TEST", "TEST", \
 	"wwt TEST [ignored]...", \
@@ -3395,13 +3736,34 @@
 	"part", \
 	"Define a primary WBFS partition. Multiple usage possible." )
 
+#:def_opt( "SOURCE", "source", "CMP", \
+	"path", \
+	"Use the entered file or directory as source.\n" \
+	"  Directories are expanded to all containing files but hidden files" \
+	" (file names begins with a point) are ignored. If a command needs" \
+	" only images then non image files of the directory are ignored" \
+	" without notification. The option {--no-expand} supresses the" \
+	" directory expansion." )
+
+#:def_opt( "NO_EXPAND", "no-expand|noexpand", "C", \
+	"", \
+	"Do not expand directories to the containing files or images. This" \
+	" option does not change the behavior of {--recurse}." )
+
 #:def_opt( "RECURSE", "r|recurse", "CMP", \
 	"path", \
-	"ISO file or base of a directory tree with ISO files." )
+	" If @path@ is not a directory then it is used as a simple source file" \
+	" like {--source}.\n" \
+	"  Directories are scanned for source files recursively. The option" \
+	" {--rdepth} limits the search depth. Hidden files and hidden sub" \
+	" directories (file names begins with a point) and files with non" \
+	" supported file types (non ISO files for most commands) are ignored" \
+	" without notification." )
 
 #:def_opt( "RDEPTH", "rdepth", "CP", \
 	"depth", \
-	"Set the maximum recurse depth for option {--recurse} (default=10)." )
+	"Set the maximum recurse depth for option {--recurse}. The default" \
+	" search depth is 10." )
 
 #:def_opt( "PSEL", "psel", "CP", \
 	"list", \
@@ -3544,7 +3906,7 @@
 	"path", \
 	"Define a destination path (directory/file). The destination path is" \
 	" scanned for escape sequences (see option {--esc}) to allow generic" \
-	" pathes." )
+	" paths." )
 
 #:def_opt( "DEST2", "D|DEST", "CP", \
 	"path", \
@@ -3800,6 +4162,10 @@
 	"" )
 
 #:def_cmd_opt( "VERSION", "LONG", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "INFO", "SECTIONS", \
 	"", \
 	"" )
 
@@ -4843,6 +5209,14 @@
 	"", \
 	"Disable automatic check of WBFS before modifications." )
 
+#:def_cmd_opt( "ADD", "SOURCE", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "ADD", "NO_EXPAND", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "ADD", "RECURSE", \
 	"", \
 	"" )
@@ -5010,6 +5384,14 @@
 	"", \
 	"Disable automatic check of WBFS before modifications." )
 
+#:def_cmd_opt( "UPDATE", "SOURCE", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "UPDATE", "NO_EXPAND", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "UPDATE", "RECURSE", \
 	"", \
 	"" )
@@ -5168,6 +5550,14 @@
 #:def_cmd_opt( "SYNC", "NO_CHECK", \
 	"", \
 	"Disable automatic check of WBFS before modifications." )
+
+#:def_cmd_opt( "SYNC", "SOURCE", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "SYNC", "NO_EXPAND", \
+	"", \
+	"" )
 
 #:def_cmd_opt( "SYNC", "RECURSE", \
 	"", \

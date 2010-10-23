@@ -1713,7 +1713,7 @@ enumError exec_add ( SuperFile_t * sf, Iterator_t * it )
 	TRACE("WOULD ADD [%s] %s\n",sf->f.id6,sf->f.fname);
 	printf(" - WOULD ADD %*u/%u [%s] %s:%s\n",
 		(int)strlen(iobuf), it->source_index+1, it->source_list.used,
-		sf->f.id6, oft_name[sf->iod.oft], sf->f.fname );
+		sf->f.id6, oft_info[sf->iod.oft].name, sf->f.fname );
     }
     else
     {
@@ -1721,7 +1721,7 @@ enumError exec_add ( SuperFile_t * sf, Iterator_t * it )
 	if ( verbose >= 0 || progress > 0 )
 	    printf(" - ADD %*u/%u [%s] %s:%s\n",
 			(int)strlen(iobuf), it->source_index+1, it->source_list.used,
-			sf->f.id6, oft_name[sf->iod.oft], sf->f.fname );
+			sf->f.id6, oft_info[sf->iod.oft].name, sf->f.fname );
 	fflush(stdout);
 
 	sf->indent		= 5;
@@ -2069,7 +2069,7 @@ enumError cmd_extract()
 		    if ( overwrite > 0 || stat(fo.f.fname,&fo.f.st) )
 		    {
 			printf(" - WOULD EXTRACT %s -> %s:%s\n",
-				id6, oft_name[oft], fo.f.fname );
+				id6, oft_info[oft].name, fo.f.fname );
 			wbfs_extract_count++;
 		    }
 		    else if (!update)
@@ -2080,7 +2080,7 @@ enumError cmd_extract()
 		{
 		    if ( verbose >= 0 || progress > 0 )
 			printf(" - EXTRACT %s -> %s:%s\n",
-				id6, oft_name[oft], fo.f.fname );
+				id6, oft_info[oft].name, fo.f.fname );
 		    fflush(stdout);
 
 		    if (CreateFile( &fo.f, 0, IOM_IS_IMAGE, overwrite ))
@@ -2990,7 +2990,10 @@ enumError CheckOptions ( int argc, char ** argv, bool is_env )
 
 	case GO_ALL:		opt_all++; break;
 	case GO_PART:		AtFileHelper(optarg,0,0,AddPartition); break;
+	case GO_SOURCE:		AppendStringField(&source_list,optarg,false); break;
+	case GO_NO_EXPAND:	opt_no_expand = true; break;
 	case GO_RECURSE:	AppendStringField(&recurse_list,optarg,false); break;
+	case GO_RDEPTH:		err += ScanOptRDepth(optarg); break;
 	case GO_PSEL:		err += ScanOptPartSelector(optarg); break;
 	case GO_RAW:		part_selector.whole_disc
 					= part_selector.whole_part = true; break;
@@ -3065,12 +3068,6 @@ enumError CheckOptions ( int argc, char ** argv, bool is_env )
 	case GO_AUTO:
 	    if (!opt_auto)
 		ScanPartitions(false);
-	    break;
-
-	case GO_RDEPTH:
-	    if (ScanSizeOptU32(&opt_recurse_depth,optarg,1,0,
-				"rdepth",0,MAX_RECURSE_DEPTH,0,0,true))
-		hint_exit(ERR_SYNTAX);
 	    break;
 
 	case GO_SIZE:
@@ -3194,6 +3191,7 @@ enumError CheckCommand ( int argc, char ** argv )
     {
 	case CMD_VERSION:	version_exit();
 	case CMD_HELP:		PrintHelp(&InfoUI,stdout,0,"HELP",0); break;
+	case CMD_INFO:		err = cmd_info(); break;
 	case CMD_TEST:		err = cmd_test(); break;
 	case CMD_ERROR:		err = cmd_error(); break;
 	case CMD_COMPR:		err = cmd_compr(); break;

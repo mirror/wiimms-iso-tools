@@ -170,6 +170,13 @@ info_t info_tab[] =
 		" If the first non option is a valid command name,"
 		" then a help for the given command is printed." },
 
+  { T_DEF_CMD,	"INFO",		"INFO",
+		    "wit INFO [keyword]...",
+		"Print some internal information about the keywords."
+		" If the keyword @ALL@ is set or no keyword is entered"
+		" information for all possible keywords are printed."
+		" Possible keywords are: @FILE-FORMAT@ and @ALL@." },
+
   { T_DEF_CMD,	"TEST",		"TEST",
 		    "wit TEST [ignored]...",
 		"Test options: All options are allowed, some are printed." },
@@ -420,15 +427,35 @@ info_t info_tab[] =
   { T_SEP_OPT,	0,0,0,0 }, //----- separator -----
 
   { T_OPT_CMP,	"SOURCE",	"s|source",
-		"path", "ISO file or directory with ISO files." },
+		"path",
+		"Use the entered file or directory as source."
+		"\n "
+		" Directories are expanded to all containing files"
+		" but hidden files (file names begins with a point) are ignored."
+		" If a command needs only images then non image files"
+		" of the directory are ignored without notification."
+		" The option {--no-expand} supresses the directory expansion." },
+
+  { T_OPT_C,	"NO_EXPAND",	"no-expand|noexpand",
+		0,
+		"Do not expand directories to the containing files or images."
+		" This option does not change the behavior of {--recurse}." },
 
   { T_OPT_CMP,	"RECURSE",	"r|recurse",
-		"path", "ISO file or base of a directory tree with ISO files." },
+		"path",
+		" If @path@ is not a directory then it is used as a simple"
+		" source file like {--source}."
+		"\n "
+		" Directories are scanned for source files recursively."
+		" The option {--rdepth} limits the search depth."
+		" Hidden files and hidden sub directories (file names begins"
+		" with a point) and files with non supported file types (non ISO"
+		" files for most commands) are ignored without notification." },
 
   { T_OPT_CP,	"RDEPTH",	"rdepth",
 		"depth",
-		"Set the maximum recurse depth for option"
-		" {--recurse} (default=10)." },
+		"Set the maximum recurse depth for option {--recurse}."
+		" The default search depth is 10." },
 
   { T_OPT_C,	"AUTO",		"a|auto",
 		0,
@@ -470,13 +497,24 @@ info_t info_tab[] =
 		" Images with the given ID are excluded from operation."
 		" Each use of this option expands the exclude list." },
 
+  { T_OPT_C,	"ONE_JOB",	"1|one-job|onejob",
+		0,
+		"Execute only the first job and exit."
+		" This is a shortcut for {job-limit 1}." },
+
+  { T_OPT_CP,	"JOB_LIMIT",	"job-limit|joblimit",
+		"num",
+		"Execute only the first @'num'@ jobs and exit."
+		" If done without errors the exit status is OK (zero)." },
+
   { T_OPT_CM,	"IGNORE",	"i|ignore",
 		0,
 		"Ignore non existing files/discs without warning."
 		" If set twice then all non Wii and GameCube ISO images are ignored too." },
 
   { T_OPT_C,	"IGNORE_FST",	"ignore-fst|ignorefst",
-		0, "Disable composing and ignore FST directories as input." },
+		0, 
+		"Disable composing and ignore FST directories as input." },
 
   { T_SEP_OPT,	0,0,0,0 }, //----- separator -----
 
@@ -640,7 +678,7 @@ info_t info_tab[] =
 		"path",
 		"Define a destination path (directory/file)."
 		" The destination path is scanned for escape sequences"
-		" (see option {--esc}) to allow generic pathes." },
+		" (see option {--esc}) to allow generic paths." },
 
   { T_OPT_CP,	"DEST2",	"D|DEST",
 		"path",
@@ -820,6 +858,9 @@ info_t info_tab[] =
   { T_OPT_C,	"NUMERIC",	"numeric",
 		0, "Force numeric output instead of printing names." },
 
+  { T_OPT_C,	"REALPATH",	"real-path|realpath",
+		0, "Print real path instead of entered path." },
+
   { T_OPT_CP,	"SHOW",		"show",
 		"list",
 		"This option allows fine control over the things that are to be printed."
@@ -904,6 +945,7 @@ info_t info_tab[] =
   { T_GRP_BEG,	"SOURCE",	0,0,0 },
 
   { T_COPT_M,	"SOURCE",	0,0,0 },
+  { T_COPT,	"NO_EXPAND",	0,0,0 },
   { T_COPT_M,	"RECURSE",	0,0,0 },
   { T_COPT,	"RDEPTH",	0,0,0 },
 
@@ -917,6 +959,8 @@ info_t info_tab[] =
   { T_COPT_M,	"INCLUDE_PATH",	0,0,0 },
   { T_COPT_M,	"EXCLUDE",	0,0,0 },
   { T_COPT_M,	"EXCLUDE_PATH",	0,0,0 },
+  { T_COPT_M,	"ONE_JOB",	0,0,0 },
+  { T_COPT_M,	"JOB_LIMIT",	0,0,0 },
 
   //---------- wit GROUP XSOURCE ----------
 
@@ -1034,12 +1078,6 @@ info_t info_tab[] =
   { T_COPT,	"MEM",		0,0,0 },
 
   //
-  //---------- COMMAND wit HELP ----------
-
-  { T_CMD_BEG,	"HELP",		0,0,0 },
-
-  { T_ALL_OPT,	0,		0,0,0 },
-
   //---------- COMMAND wit VERSION ----------
 
   { T_CMD_BEG,	"VERSION",	0,0,0 },
@@ -1047,6 +1085,18 @@ info_t info_tab[] =
   { T_COPT,	"SECTIONS",	0,0,0 },
   { T_COPT,	"LONG",		0,0,
 	"Print in long format. Ignored if option {--sections} is set." },
+
+  //---------- COMMAND wit HELP ----------
+
+  { T_CMD_BEG,	"HELP",		0,0,0 },
+
+  { T_ALL_OPT,	0,		0,0,0 },
+
+  //---------- COMMAND wit INFO ----------
+
+  { T_CMD_BEG,	"INFO",		0,0,0 },
+
+  { T_COPT,	"SECTIONS",	0,0,0 },
 
   //---------- COMMAND wit TEST ----------
 
@@ -1208,6 +1258,7 @@ info_t info_tab[] =
 	" If set twice at least on time columns is added."
 	" If set three times a second line with number or partitions,"
 	" file type and real path is added." },
+  { T_COPT,	"REALPATH",	0,0,0 },
   { T_COPT_M,	"UNIT",		0,0,0 },
 
   { T_SEP_OPT,	0,0,0,0 },
@@ -1540,6 +1591,10 @@ info_t info_tab[] =
 		    "wwt HELP [command] [ignored]...",
 		0 /* copy of wit */ },
 
+  { T_DEF_CMD,	"INFO",		"INFO",
+		    "wit INFO [keyword]...",
+		0 /* copy of wit */ },
+
   { T_DEF_CMD,	"TEST",		"TEST",
 		    "wwt TEST [ignored]...",
 		0 /* copy of wit */ },
@@ -1765,6 +1820,12 @@ info_t info_tab[] =
   { T_OPT_CMP,	"PART",		"p|part",
 		"part",
 		"Define a primary WBFS partition. Multiple usage possible." },
+
+  { T_OPT_CMP,	"SOURCE",	"source",
+		0, 0 /* copy of wit */ },
+
+  { T_OPT_C,	"NO_EXPAND",	"no-expand|noexpand",
+		0, 0 /* copy of wit */ },
 
   { T_OPT_CMP,	"RECURSE",	"r|recurse",
 		0, 0 /* copy of wit */ },
@@ -2153,6 +2214,12 @@ info_t info_tab[] =
 
   { T_ALL_OPT,	0,		0,0,0 },
 
+  //---------- COMMAND wwt INFO ----------
+
+  { T_CMD_BEG,	"INFO",		0,0,0 },
+
+  { T_COPT,	"SECTIONS",	0,0,0 },
+
   //---------- COMMAND wwt TEST ----------
 
   { T_CMD_BEG,	"TEST",		0,0,0 },
@@ -2405,6 +2472,8 @@ info_t info_tab[] =
   { T_COPY_GRP,	"TITLES",	0,0,0 },
   { T_COPY_GRP,	"MOD_WBFS",	0,0,0 },
 
+  { T_COPT_M,	"SOURCE",	0,0,0 },
+  { T_COPT,	"NO_EXPAND",	0,0,0 },
   { T_COPT_M,	"RECURSE",	0,0,0 },
   { T_COPT,	"RDEPTH",	0,0,0 },
   { T_COPY_GRP,	"IGN_EXCLUDE",	0,0,0 },

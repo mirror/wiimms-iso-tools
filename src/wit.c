@@ -64,8 +64,6 @@ enumError cmd_mix();
 #define TITLE WIT_SHORT ": " WIT_LONG " v" VERSION " r" REVISION \
 	" " SYSTEM " - " AUTHOR " - " DATE
 
-int  ignore_count	= 0;
-
 //
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -848,13 +846,22 @@ enumError exec_collect ( SuperFile_t * sf, Iterator_t * it )
 
     WDiscList_t * wl = it->wlist;
     WDiscListItem_t * item = AppendWDiscList(wl,&wdi);
-    if ( it->real_filename && sf->f.path && *sf->f.path )
+    if ( OptionUsed[OPT_REALPATH] )
+    {
+	int len = strlen(it->real_path);
+	if ( it->real_filename && sf->f.ftype & FT_A_WDISC )
+	{
+	    ccp slash = strrchr(it->real_path,'/');
+	    if (slash)
+		len = slash - it->real_path;
+	}
+	item->fname = MemDup(it->real_path,len);
+    }
+    else if ( it->real_filename && sf->f.path && *sf->f.path )
     {
 	item->fname = sf->f.path;
 	sf->f.path  = EmptyString;
     }
-    else if ( it->long_count > 2 )
-	item->fname = strdup(it->real_path);
     else
     {
 	item->fname = sf->f.fname;
@@ -950,6 +957,9 @@ enumError cmd_list ( int long_level )
 
     WDiscList_t wlist;
     InitializeWDiscList(&wlist);
+
+    if ( long_count > 3 )
+	OptionUsed[OPT_REALPATH] = 1;
 
     Iterator_t it;
     InitializeIterator(&it);
@@ -1047,6 +1057,10 @@ enumError cmd_list ( int long_level )
 
     if (long_count)
     {
+	int part_info_fw = pt.wd + size_fw - 3;
+	if ( part_info_fw < 6 )
+	    part_info_fw = 6;
+
 	if (print_header)
 	{
 	    int n1, n2;
@@ -1060,8 +1074,9 @@ enumError cmd_list ( int long_level )
 		max_name_wd = n2;
 
 	    if (line2)
-		printf("%s%*s type   path of file\n",
-			pt.fill, size_fw + 6, "n(p)");
+		printf("  n(p) %-*s type     %ssource\n",
+			part_info_fw, "p-info",
+			OptionUsed[OPT_REALPATH] ? "real " : "" );
 
 	    if ( max_name_wd < footer_len )
 		max_name_wd = footer_len;
@@ -1077,8 +1092,9 @@ enumError cmd_list ( int long_level )
 		    GetRegionInfo(witem->id6[3])->name4,
 		    witem->title ? witem->title : witem->name64 );
 	    if (line2)
-		printf("%s%*d %7s %s\n",
-		    pt.fill, size_fw + 5, witem->n_part, GetNameFT(witem->ftype,0),
+		printf("%6d %-*s %-8s %s\n",
+		    witem->n_part, part_info_fw, witem->part_info,
+		    GetNameFT(witem->ftype,0),
 		    witem->fname ? witem->fname : "" );
 	}
     }
@@ -1243,8 +1259,8 @@ enumError exec_diff ( SuperFile_t * f1, Iterator_t * it )
     {
 	printf( "%s: WOULD DIFF/%s %s:%s : %s:%s\n",
 		progname, raw_mode ? "RAW" : "SCRUB",
-		oft_name[f1->iod.oft], f1->f.fname,
-		oft_name[f2.iod.oft], f2.f.fname );
+		oft_info[f1->iod.oft].name, f1->f.fname,
+		oft_info[f2.iod.oft].name, f2.f.fname );
 	ResetSF(&f2,0);
 	return ERR_OK;
     }
@@ -1253,8 +1269,8 @@ enumError exec_diff ( SuperFile_t * f1, Iterator_t * it )
     {
 	printf( "* DIFF/%s %s:%s -> %s:%s\n",
 		raw_mode ? "RAW" : "SCRUB",
-		oft_name[f1->iod.oft], f1->f.fname,
-		oft_name[f2.iod.oft], f2.f.fname );
+		oft_info[f1->iod.oft].name, f1->f.fname,
+		oft_info[f2.iod.oft].name, f2.f.fname );
     }
 
     PRINT("DIFF: raw=%x, files=%x => diff files = %d\n",
@@ -1269,8 +1285,8 @@ enumError exec_diff ( SuperFile_t * f1, Iterator_t * it )
 	err = ERR_OK;
 	if ( verbose >= 0 )
 	    printf( "! ISOs differ: %s:%s : %s:%s\n",
-			oft_name[f1->iod.oft], f1->f.fname,
-			oft_name[f2.iod.oft], f2.f.fname );
+			oft_info[f1->iod.oft].name, f1->f.fname,
+			oft_info[f2.iod.oft].name, f2.f.fname );
     }
     it->done_count++;
 
@@ -1393,7 +1409,7 @@ enumError exec_extract ( SuperFile_t * fi, Iterator_t * it )
     {
 	printf( "%s: %sEXTRACT %s:%s -> %s\n",
 		progname, testmode ? "WOULD " : "",
-		oft_name[fi->iod.oft], fi->f.fname, dest_path );
+		oft_info[fi->iod.oft].name, fi->f.fname, dest_path );
 	if (testmode)
 	    return ERR_OK;
     }
@@ -1524,41 +1540,37 @@ enumError exec_copy ( SuperFile_t * fi, Iterator_t * it )
     fo.show_summary	= verbose > 0 || progress;
     fo.show_msec	= verbose > 2;
 
-    char count_buf[100];
-    snprintf(count_buf,sizeof(count_buf), "%u", it->source_list.used );
-    snprintf(count_buf,sizeof(count_buf), "%*u/%u",
+    const bool raw_mode = part_selector.whole_disc || !fi->f.id6[0];
+
+    if ( testmode ||  verbose >= 0 )
+    {
+	char count_buf[30];
+	snprintf(count_buf,sizeof(count_buf), "%u", it->source_list.used );
+	snprintf(count_buf,sizeof(count_buf), "%*u/%u",
 		(int)strlen(count_buf), it->source_index+1, it->source_list.used );
 
-    const bool raw_mode = part_selector.whole_disc || !fi->f.id6[0];
-    if (testmode)
-    {
-	if (convert_it)
-	    printf( "%s: WOULD %s %s %s:%s\n",
-		progname, raw_mode ? "COPY " : "SCRUB",
-		count_buf, oft_name[oft], fi->f.fname );
+	char split_buf[10];
+	if ( fi->f.split_used > 1 )
+	    snprintf(split_buf,sizeof(split_buf),"*%u",fi->f.split_used);
 	else
-	    printf( "%s: WOULD %s %s %s:%s -> %s:%s\n",
-			progname, raw_mode ? "COPY " : "SCRUB", count_buf,
-			oft_name[fi->iod.oft], fi->f.fname,
-			oft_name[oft], fo.f.fname );
-	ResetSF(&fo,0);
-	return ERR_OK;
+	    *split_buf = 0;
+
+	printf( "* %s%s%s %s %s%s:%s -> %s:%s\n",
+		testmode ? "WOULD " : "",
+		convert_it ? "CONVERT" : "COPY",
+		raw_mode ? "" : "+SCRUB",
+		count_buf,
+		oft_info[fi->iod.oft].name, split_buf, fi->f.fname,
+		oft_info[oft].name, fo.f.fname );
+
+	if (testmode)
+	{
+	    ResetSF(&fo,0);
+	    return ERR_OK;
+	}
     }
 
-    if ( verbose >= 0 )
-    {
-	if (convert_it)
-	    printf( "* %s %s %s %s %s\n",
-		progname, raw_mode ? "COPY " : "SCRUB",
-		count_buf, oft_name[oft], fi->f.fname );
-	else
-	    printf( "* %s %s %s %s:%s -> %s:%s\n",
-			progname, raw_mode ? "COPY " : "SCRUB", count_buf,
-		    oft_name[fi->iod.oft], fi->f.fname,
-		    oft_name[oft], fo.f.fname );
-    }
-
-    enumError err = CreateFile( &fo.f, 0, oft_iom[oft], it->overwrite );
+    enumError err = CreateFile( &fo.f, 0, oft_info[oft].iom, it->overwrite );
     if ( err == ERR_ALREADY_EXISTS )
     {
 	it->exists_count++;
@@ -1706,14 +1718,19 @@ enumError exec_edit ( SuperFile_t * fi, Iterator_t * it )
 	return ERR_OK;
     fflush(0);
 
+    const OFT_info_t * oinfo = oft_info + fi->iod.oft;
+    if ( !(oinfo->attrib & OFT_A_MODIFY) )
+	return ERROR0(ERR_WARNING,"Can't modify file type '%s': %s\n",
+		    oinfo->name, fi->f.fname );
+
     if (testmode)
     {
-	printf( "%s: WOULD EDIT %s:%s\n", progname, oft_name[fi->iod.oft], fi->f.fname );
+	printf( "%s: WOULD EDIT %s:%s\n", progname, oinfo->name, fi->f.fname );
 	return ERR_OK;
     }
 
     if ( verbose >= 0 )
-	printf( "%s: EDIT %s:%s\n", progname, oft_name[fi->iod.oft], fi->f.fname );
+	printf( "%s: EDIT %s:%s\n", progname, oinfo->name, fi->f.fname );
 
     OpenDiscSF(fi,true,true);
     wd_disc_t * disc = fi->disc1;
@@ -1721,16 +1738,25 @@ enumError exec_edit ( SuperFile_t * fi, Iterator_t * it )
     enumError err = ERR_OK;
     if ( disc && disc->reloc )
     {
+	PRINT("EDIT PHASE I\n");
 	const wd_reloc_t * reloc = disc->reloc;
-	int idx;
+	u32 idx;
 	for ( idx = 0; idx < WII_MAX_SECTORS && !err; idx++, reloc++ )
-	    if ( ( *reloc & (WD_RELOC_F_PATCH|WD_RELOC_F_CLOSE)) == WD_RELOC_F_PATCH )
-		err = CopyRawData(fi,fi,idx*WII_SECTOR_SIZE,WII_SECTOR_SIZE);
+	    if ( *reloc & (WD_RELOC_F_PATCH|WD_RELOC_F_HASH)
+		&& !( *reloc & WD_RELOC_F_LAST ) )
+	    {
+		PRINT(" - WRITE SECTOR %x, off %llx\n",idx,idx*(u64)WII_SECTOR_SIZE);
+		err = CopyRawData(fi,fi,idx*(u64)WII_SECTOR_SIZE,WII_SECTOR_SIZE);
+	    }
 
+	PRINT("EDIT PHASE II\n");
 	reloc = disc->reloc;
 	for ( idx = 0; idx < WII_MAX_SECTORS && !err; idx++, reloc++ )
-	    if ( *reloc & WD_RELOC_F_CLOSE )
-		err = CopyRawData(fi,fi,idx*WII_SECTOR_SIZE,WII_SECTOR_SIZE);
+	    if ( *reloc & WD_RELOC_F_LAST )
+	    {
+		PRINT(" - WRITE SECTOR %x, off %llx\n",idx,idx*(u64)WII_SECTOR_SIZE);
+		err = CopyRawData(fi,fi,idx*(u64)WII_SECTOR_SIZE,WII_SECTOR_SIZE);
+	    }
     }
 
     ResetSF( fi, !err && OptionUsed[OPT_PRESERVE] ? &fi->f.fatt : 0 );
@@ -1751,7 +1777,7 @@ enumError cmd_edit()
     Iterator_t it;
     InitializeIterator(&it);
     it.act_non_iso	= OptionUsed[OPT_IGNORE] ? ACT_IGNORE : ACT_WARN;
-    it.act_wbfs		= it.act_non_iso;
+    it.act_wbfs		= ACT_EXPAND;
     it.act_gc		= ACT_ALLOW;
 
     if ( testmode > 1 )
@@ -1759,7 +1785,6 @@ enumError cmd_edit()
 	it.func = exec_filetype;
 	enumError err = SourceIterator(&it,1,false,false);
 	ResetIterator(&it);
-	printf("DESTINATION: %s\n",opt_dest);
 	return err;
     }
 
@@ -1809,10 +1834,11 @@ enumError exec_move ( SuperFile_t * fi, Iterator_t * it )
 		    snprintf(iobuf,sizeof(iobuf),"*%u",fi->f.split_used);
 		else
 		    *iobuf = 0;
+
 		printf(" - %sMove %*u/%u %s%s:%s -> %s\n",
 		    testmode ? "WOULD " : "",
 		    fw, it->source_index+1, it->source_list.used,
-		    oft_name[fo.iod.oft], iobuf, fi->f.fname, fo.f.fname );
+		    oft_info[fo.iod.oft].name, iobuf, fi->f.fname, fo.f.fname );
 	    }
 
 	    CloseSF(fi,0);
@@ -2027,7 +2053,7 @@ enumError exec_verify ( SuperFile_t * fi, Iterator_t * it )
     {
 	printf( "%s: %sVERIFY %s:%s\n",
 		progname, testmode ? "WOULD " : "",
-		oft_name[fi->iod.oft], fi->f.fname );
+		oft_info[fi->iod.oft].name, fi->f.fname );
 	if (testmode)
 	    return ERR_OK;
     }
@@ -2142,13 +2168,16 @@ enumError CheckOptions ( int argc, char ** argv, bool is_env )
 	case GO_TEST:		testmode++; break;
 
 	case GO_SOURCE:		AppendStringField(&source_list,optarg,false); break;
+	case GO_NO_EXPAND:	opt_no_expand = true; break;
 	case GO_RECURSE:	AppendStringField(&recurse_list,optarg,false); break;
+	case GO_RDEPTH:		err += ScanOptRDepth(optarg); break;
 	case GO_AUTO:		opt_source_auto++; break;
 
 	case GO_INCLUDE:	AtFileHelper(optarg,0,1,AddIncludeID); break;
 	case GO_INCLUDE_PATH:	AtFileHelper(optarg,0,0,AddIncludePath); break;
 	case GO_EXCLUDE:	AtFileHelper(optarg,0,1,AddExcludeID); break;
 	case GO_EXCLUDE_PATH:	AtFileHelper(optarg,0,0,AddExcludePath); break;
+	case GO_ONE_JOB:	job_limit = 1; break;
 	case GO_IGNORE:		ignore_count++; break;
 	case GO_IGNORE_FST:	allow_fst = false; break;
 
@@ -2204,18 +2233,13 @@ enumError CheckOptions ( int argc, char ** argv, bool is_env )
 
 	case GO_LONG:		long_count++; break;
 	case GO_NUMERIC:	break;
+	case GO_REALPATH:	break;
 	case GO_UNIQUE:	    	break;
 	case GO_NO_HEADER:	break;
 	case GO_SECTIONS:	print_sections++; break;
 	case GO_SHOW:		err += ScanOptShow(optarg); break;
 	case GO_UNIT:		err += ScanOptUnit(optarg); break;
 	case GO_SORT:		err += ScanOptSort(optarg); break;
-
-	case GO_RDEPTH:
-	    if (ScanSizeOptU32(&opt_recurse_depth,optarg,1,0,
-			    "rdepth",0,MAX_RECURSE_DEPTH,0,0,true))
-		err++;
-	    break;
 
 	case GO_PMODE:
 	    {
@@ -2239,6 +2263,16 @@ enumError CheckOptions ( int argc, char ** argv, bool is_env )
 		    err++;
 		else
 		    opt_limit = limit;
+	    }
+	    break;
+
+	case GO_JOB_LIMIT:
+	    {
+		u32 limit;
+		if (ScanSizeOptU32(&limit,optarg,1,0,"job-limit",0,UINT_MAX,0,0,true))
+		    err++;
+		else
+		    job_limit = limit ? limit : ~(u32)0;
 	    }
 	    break;
 
@@ -2315,6 +2349,7 @@ enumError CheckCommand ( int argc, char ** argv )
     {
 	case CMD_VERSION:	version_exit();
 	case CMD_HELP:		PrintHelp(&InfoUI,stdout,0,"HELP",0); break;
+	case CMD_INFO:		err = cmd_info(); break;
 	case CMD_TEST:		err = cmd_test(); break;
 	case CMD_ERROR:		err = cmd_error(); break;
 	case CMD_COMPR:		err = cmd_compr(); break;

@@ -730,7 +730,7 @@ enumError RewriteModifiedSF ( SuperFile_t * fi, SuperFile_t * fo, WBFS_t * wbfs 
     {
 	const wd_reloc_t * reloc = disc->reloc;
 	for ( idx = 0; idx < WII_MAX_SECTORS && !err; idx++, reloc++ )
-	    if ( *reloc & WD_RELOC_F_CLOSE )
+	    if ( *reloc & WD_RELOC_F_LAST )
 		err = CopyRawData(fi,fo,idx*WII_SECTOR_SIZE,WII_SECTOR_SIZE);
     }
 

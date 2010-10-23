@@ -43,6 +43,7 @@ typedef enum enumOptions
 	//----- command specific options -----
 
 	OPT_SOURCE,
+	OPT_NO_EXPAND,
 	OPT_RECURSE,
 	OPT_RDEPTH,
 	OPT_AUTO,
@@ -50,6 +51,8 @@ typedef enum enumOptions
 	OPT_INCLUDE_PATH,
 	OPT_EXCLUDE,
 	OPT_EXCLUDE_PATH,
+	OPT_ONE_JOB,
+	OPT_JOB_LIMIT,
 	OPT_IGNORE,
 	OPT_IGNORE_FST,
 	OPT_PSEL,
@@ -101,6 +104,7 @@ typedef enum enumOptions
 	OPT_TIME,
 	OPT_LONG,
 	OPT_NUMERIC,
+	OPT_REALPATH,
 	OPT_SHOW,
 	OPT_UNIT,
 	OPT_UNIQUE,
@@ -109,7 +113,7 @@ typedef enum enumOptions
 	OPT_SORT,
 	OPT_LIMIT,
 
-	OPT__N_SPECIFIC, // == 67 
+	OPT__N_SPECIFIC, // == 71 
 
 	//----- global options -----
 
@@ -130,7 +134,7 @@ typedef enum enumOptions
 	OPT_TEST,
 	OPT_HOOK,
 
-	OPT__N_TOTAL // == 83
+	OPT__N_TOTAL // == 87
 
 } enumOptions;
 
@@ -146,6 +150,7 @@ typedef enum enumOptions
 //	//----- command specific options -----
 //
 //	OB_SOURCE		= 1llu << OPT_SOURCE,
+//	OB_NO_EXPAND		= 1llu << OPT_NO_EXPAND,
 //	OB_RECURSE		= 1llu << OPT_RECURSE,
 //	OB_RDEPTH		= 1llu << OPT_RDEPTH,
 //	OB_AUTO			= 1llu << OPT_AUTO,
@@ -153,6 +158,8 @@ typedef enum enumOptions
 //	OB_INCLUDE_PATH		= 1llu << OPT_INCLUDE_PATH,
 //	OB_EXCLUDE		= 1llu << OPT_EXCLUDE,
 //	OB_EXCLUDE_PATH		= 1llu << OPT_EXCLUDE_PATH,
+//	OB_ONE_JOB		= 1llu << OPT_ONE_JOB,
+//	OB_JOB_LIMIT		= 1llu << OPT_JOB_LIMIT,
 //	OB_IGNORE		= 1llu << OPT_IGNORE,
 //	OB_IGNORE_FST		= 1llu << OPT_IGNORE_FST,
 //	OB_PSEL			= 1llu << OPT_PSEL,
@@ -204,6 +211,7 @@ typedef enum enumOptions
 //	OB_TIME			= 1llu << OPT_TIME,
 //	OB_LONG			= 1llu << OPT_LONG,
 //	OB_NUMERIC		= 1llu << OPT_NUMERIC,
+//	OB_REALPATH		= 1llu << OPT_REALPATH,
 //	OB_SHOW			= 1llu << OPT_SHOW,
 //	OB_UNIT			= 1llu << OPT_UNIT,
 //	OB_UNIQUE		= 1llu << OPT_UNIQUE,
@@ -217,13 +225,16 @@ typedef enum enumOptions
 //	OB_GRP_TITLES		= 0,
 //
 //	OB_GRP_SOURCE		= OB_SOURCE
+//				| OB_NO_EXPAND
 //				| OB_RECURSE
 //				| OB_RDEPTH,
 //
 //	OB_GRP_EXCLUDE		= OB_INCLUDE
 //				| OB_INCLUDE_PATH
 //				| OB_EXCLUDE
-//				| OB_EXCLUDE_PATH,
+//				| OB_EXCLUDE_PATH
+//				| OB_ONE_JOB
+//				| OB_JOB_LIMIT,
 //
 //	OB_GRP_XSOURCE		= OB_GRP_SOURCE
 //				| OB_GRP_EXCLUDE,
@@ -286,10 +297,12 @@ typedef enum enumOptions
 //				| OB_COMPRESSION
 //				| OB_MEM,
 //
-//	OB_CMD_HELP		= ~(u64)0,
-//
 //	OB_CMD_VERSION		= OB_SECTIONS
 //				| OB_LONG,
+//
+//	OB_CMD_HELP		= ~(u64)0,
+//
+//	OB_CMD_INFO		= OB_SECTIONS,
 //
 //	OB_CMD_TEST		= ~(u64)0,
 //
@@ -357,6 +370,7 @@ typedef enum enumOptions
 //				| OB_SECTIONS
 //				| OB_NO_HEADER
 //				| OB_LONG
+//				| OB_REALPATH
 //				| OB_UNIT
 //				| OB_GRP_TIME,
 //
@@ -473,6 +487,7 @@ typedef enum enumCommands
 
 	CMD_VERSION,
 	CMD_HELP,
+	CMD_INFO,
 	CMD_TEST,
 	CMD_ERROR,
 	CMD_COMPR,
@@ -509,7 +524,7 @@ typedef enum enumCommands
 	CMD_VERIFY,
 	CMD_MIX,
 
-	CMD__N // == 33
+	CMD__N // == 34
 
 } enumCommands;
 
@@ -520,6 +535,8 @@ typedef enum enumCommands
 
 typedef enum enumGetOpt
 {
+	GO_ONE_JOB		= '1',
+
 	GO__ERR			= '?',
 
 	GO_WBFS			= 'B',
@@ -564,7 +581,9 @@ typedef enum enumGetOpt
 	GO_UTF_8,
 	GO_NO_UTF_8,
 	GO_LANG,
+	GO_NO_EXPAND,
 	GO_RDEPTH,
+	GO_JOB_LIMIT,
 	GO_IGNORE_FST,
 	GO_PSEL,
 	GO_RAW,
@@ -602,6 +621,7 @@ typedef enum enumGetOpt
 	GO_ATIME,
 	GO_TIME,
 	GO_NUMERIC,
+	GO_REALPATH,
 	GO_SHOW,
 	GO_UNIT,
 	GO_SECTIONS,

@@ -1289,7 +1289,7 @@ static enumError create_gc_mix
 		"  Title:  %.64s\n"
 		"  Region: %x [%s]\n\n",
 		testmode ? "WOULD c" : "C",
-		head, oft_name[oft], mp->fo.f.fname,
+		head, oft_info[oft].name, mp->fo.f.fname,
 		disc_info1, disc_info2,
 		head + WII_TITLE_OFF,
 		regnum, GetRegionName(regnum,"?") );
@@ -1353,7 +1353,7 @@ static enumError create_wii_mix
 		"  Title:  %.64s\n"
 		"  Region: %x [%s] / %02x %02x %02x %02x  %02x %02x %02x %02x\n\n",
 		testmode ? "WOULD c" : "C",
-		&dhead->disc_id, oft_name[oft],
+		&dhead->disc_id, oft_info[oft].name,
 		mp->fo.f.fname, dhead->disc_title,
 		regnum, GetRegionName(regnum,"?"),
 		p8[0], p8[1], p8[2], p8[3], p8[4], p8[5], p8[6], p8[7] );

@@ -300,7 +300,12 @@ void PrintSummarySF ( SuperFile_t * sf );
 enumFileType AnalyzeFT ( File_t * f );
 enumFileType AnalyzeMemFT ( const void * buf_hd_sect_size, off_t file_size );
 enumError XPrintErrorFT ( XPARM File_t * f, enumFileType err_mask );
+
 ccp GetNameFT ( enumFileType ftype, int ignore );
+ccp GetContainerNameFT ( enumFileType ftype, ccp answer_if_no_container );
+enumOFT FileType2OFT ( enumFileType ftype );
+wd_disc_type_t FileType2DiscType ( enumFileType ftype );
+
 u32 CountUsedIsoBlocksSF ( SuperFile_t * sf, const wd_select_t * psel );
 
 // copy functions

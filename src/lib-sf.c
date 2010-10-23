@@ -349,7 +349,7 @@ enumError SetupReadSF ( SuperFile_t * sf )
     if ( sf->f.ftype & FT_A_CISO )
 	return SetupReadCISO(sf);
 
-    if ( sf->f.ftype & FT_ID_WBFS && sf->f.id6[0] )
+    if ( sf->f.ftype & FT_ID_WBFS && ( sf->f.slot >= 0 || sf->f.id6[0] ) )
 	return SetupReadWBFS(sf);
 
     sf->file_size = sf->f.st.st_size;
@@ -377,7 +377,7 @@ enumError SetupReadISO ( SuperFile_t * sf )
 enumError SetupReadWBFS ( SuperFile_t * sf )
 {
     ASSERT(sf);
-    TRACE("SetupReadWBFS(%p)\n",sf);
+    TRACE("SetupReadWBFS(%p) id=%s, slot=%d\n",sf,sf->f.id6,sf->f.slot);
 
     if ( !sf || !sf->f.is_reading || sf->wbfs )
 	return ERROR0(ERR_INTERNAL,0);
@@ -390,7 +390,9 @@ enumError SetupReadWBFS ( SuperFile_t * sf )
     if (err)
 	goto abort;
 
-    err = OpenWDiscID6(wbfs,sf->f.id6);
+    err = sf->f.slot >= 0
+		? OpenWDiscSlot(wbfs,sf->f.slot,false)
+		: OpenWDiscID6(wbfs,sf->f.id6);
     if (err)
 	goto abort;
 
@@ -906,7 +908,7 @@ int SubstFileName
 
     char x_buf[1000];
     snprintf(x_buf,sizeof(x_buf),"%s [%s]%s",
-		title, id6, oft_ext[oft] );
+		title, id6, oft_info[oft].ext1 );
 
     char y_buf[1000];
     snprintf(y_buf,sizeof(y_buf),"%s [%s]",
@@ -917,7 +919,7 @@ int SubstFileName
     if ( oft == OFT_WBFS )
     {
 	snprintf(plus_buf,sizeof(plus_buf),"%s%s",
-	    id6, oft_ext[oft] );
+	    id6, oft_info[oft].ext1 );
 	plus_name = plus_buf;
     }
     else
@@ -928,7 +930,7 @@ int SubstFileName
 	{ 'i', 'I', 0, id6 },
 	{ 'n', 'N', 0, disc_name },
 	{ 't', 'T', 0, title },
-	{ 'e', 'E', 0, oft_ext[oft]+1 },
+	{ 'e', 'E', 0, oft_info[oft].ext1+1 },
 	{ 'p', 'P', 1, src_path },
 	{ 'f', 'F', 1, fname },
 	{ 'x', 'X', 0, x_buf },
@@ -1863,12 +1865,13 @@ enumFileType AnalyzeFT ( File_t * f )
 
 	if (ok)
 	{
-	    TRACE(" - WBFS/%s found\n",id6);
+	    TRACE(" - WBFS/%s found, slot=%d\n",id6,wdisk.slot);
 	    sf.f.disable_errors = f->disable_errors;
 	    ASSERT(!sf.f.path);
 	    sf.f.path = sf.f.fname;
 	    sf.f.fname = f->fname;
 	    f->fname = 0;
+	    sf.f.slot = wdisk.slot;
 	    CopyFileAttribDiscInfo(&sf.f.fatt,&wdisk);
 
 	    ResetFile(f,false);
@@ -1878,7 +1881,21 @@ enumFileType AnalyzeFT ( File_t * f )
 	    TRACE(" - WBFS/fname = %s\n",f->fname);
 	    TRACE(" - WBFS/path  = %s\n",f->path);
 	    TRACE(" - WBFS/id6   = %s\n",f->id6);
-	    f->ftype |= FT_A_ISO|FT_A_WII_ISO|FT_A_WDISC;
+	    switch(get_header_disc_type(&wdisk.dhead,0))
+	    {
+		case WD_DT_UNKNOWN:
+		case WD_DT__N:
+		    f->ftype |= FT_A_WDISC;
+		    break;
+
+		case WD_DT_GAMECUBE:
+		    f->ftype |= FT_A_ISO|FT_A_GC_ISO|FT_A_WDISC;
+		    break;
+
+		case WD_DT_WII:
+		    f->ftype |= FT_A_ISO|FT_A_WII_ISO|FT_A_WDISC;
+		    break;
+	    }
 	}
 	else
 	    ResetSF(&sf,0);
@@ -1928,7 +1945,7 @@ enumFileType AnalyzeFT ( File_t * f )
     }
     else if (IsWIA(buf1,FILE_PRELOAD_SIZE,f->id6,&disc_type,0))
     {
-	PRINT("WIA found, dt=%d, id=%s: %s\n",disc_type,f->id6,f->fname);
+	noPRINT("WIA found, dt=%d, id=%s: %s\n",disc_type,f->id6,f->fname);
 	ft |= disc_type == WD_DT_GAMECUBE
 		? FT_ID_GC_ISO  | FT_A_ISO | FT_A_GC_ISO  | FT_A_WIA
 		: FT_ID_WII_ISO | FT_A_ISO | FT_A_WII_ISO | FT_A_WIA;
@@ -2287,6 +2304,10 @@ enumError XPrintErrorFT ( XPARM File_t * f, enumFileType err_mask )
 
 ccp GetNameFT ( enumFileType ftype, int ignore )
 {
+    //////////////////////////
+    // limit is 8 characters!
+    //////////////////////////
+
     switch ( ftype & FT__ID_MASK )
     {
 	case FT_UNKNOWN:
@@ -2298,13 +2319,13 @@ ccp GetNameFT ( enumFileType ftype, int ignore )
 
 	case FT_ID_FST:
 	    return ftype & FT_A_PART_DIR
-			? "FST/PART"
-			: "FST";
+			? ( ftype & FT_A_GC_ISO ? "FST/GC" : "FST/WII" )
+			: ( ftype & FT_A_GC_ISO ? "FST/GC+" : "FST/WII+" );
 	    break;
 
 	case FT_ID_WBFS:
 	    return ftype & FT_A_WDISC
-			? "WBFS/ISO"
+			? ( ftype & FT_A_GC_ISO ? "WBFS/GC" : "WBFS/WII" )
 			: ignore > 1
 				? 0
 				: ftype & FT_A_WDF
@@ -2313,29 +2334,29 @@ ccp GetNameFT ( enumFileType ftype, int ignore )
 
 	case FT_ID_GC_ISO:
 	    return ftype & FT_A_WDF
-			? "WDF+GC"
+			? "WDF/GC"
 			: ftype & FT_A_WIA
-				? "WIA+GC"
+				? "WIA/GC"
 					: ftype & FT_A_CISO
-					? "CISO+GC"
-					: "GC-ISO";
+					? "CISO/GC"
+					: "ISO/GC";
 	    break;
 
 	case FT_ID_WII_ISO:
 	    return ftype & FT_A_WDF
-			? "WDF+ISO"
+			? "WDF/WII"
 			: ftype & FT_A_WIA
-				? "WIA"
+				? "WIA/WII"
 					: ftype & FT_A_CISO
-					? "CISO"
-					: "ISO";
+					? "CISO/WII"
+					: "ISO/WII";
 	    break;
 
 	case FT_ID_DOL:
 	    return ignore > 1
 			? 0
 			: ftype & FT_A_WDF
-				? "WDF+DOL"
+				? "WDF/DOL"
 				: "DOL";
 	    break;
 
@@ -2343,7 +2364,7 @@ ccp GetNameFT ( enumFileType ftype, int ignore )
 	    return ignore > 1
 			? 0
 			: ftype & FT_A_WDF
-				? "WDF+TIK"
+				? "WDF/TIK"
 				: "TIK.BIN";
 	    break;
 
@@ -2351,7 +2372,7 @@ ccp GetNameFT ( enumFileType ftype, int ignore )
 	    return ignore > 1
 			? 0
 			: ftype & FT_A_WDF
-				? "WDF+TMD"
+				? "WDF/TMD"
 				: "TMD.BIN";
 	    break;
 
@@ -2359,7 +2380,7 @@ ccp GetNameFT ( enumFileType ftype, int ignore )
 	    return ignore > 1
 			? 0
 			: ftype & FT_A_WDF
-				? "WDF+HEAD"
+				? "WDF/HEAD"
 				: "HEAD.BIN";
 	    break;
 
@@ -2367,7 +2388,7 @@ ccp GetNameFT ( enumFileType ftype, int ignore )
 	    return ignore > 1
 			? 0
 			: ftype & FT_A_WDF
-				? "WDF+BOOT"
+				? "WDF/BOOT"
 				: "BOOT.BIN";
 	    break;
 
@@ -2375,7 +2396,7 @@ ccp GetNameFT ( enumFileType ftype, int ignore )
 	    return ignore > 1
 			? 0
 			: ftype & FT_A_WDF
-				? "W+FST.B"
+				? "WDF/FST"
 				: "FST.BIN";
 	    break;
 
@@ -2383,13 +2404,67 @@ ccp GetNameFT ( enumFileType ftype, int ignore )
 	    return ignore > 1
 			? 0
 			: ftype & FT_A_WDF
-				? "WDF"
+				? "WDF/*"
 				: ftype & FT_A_CISO
-					? "C-OTHER"
+					? "CiSO/*"
 					: "OTHER";
     }
 }
 
+
+///////////////////////////////////////////////////////////////////////////////
+
+ccp GetContainerNameFT ( enumFileType ftype, ccp answer_if_no_container )
+{
+    const enumOFT oft = FileType2OFT(ftype);
+    return oft > OFT_PLAIN ? oft_info[oft].name : answer_if_no_container;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+enumOFT FileType2OFT ( enumFileType ftype )
+{
+    if ( ftype & FT_A_WDF )
+	return OFT_WDF;
+
+    if ( ftype & FT_A_WIA )
+	return OFT_WIA;
+
+    if ( ftype & FT_A_CISO )
+	return OFT_CISO;
+
+    switch ( ftype & FT__ID_MASK )
+    {
+	case FT_ID_FST:
+	    return OFT_FST;
+
+	case FT_ID_WBFS:
+	    return OFT_WBFS;
+
+	case FT_ID_GC_ISO:
+	case FT_ID_WII_ISO:
+	    return OFT_PLAIN;
+    }
+
+    return OFT_UNKNOWN;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+wd_disc_type_t FileType2DiscType ( enumFileType ftype )
+{
+    switch ( ftype & FT__ID_MASK )
+    {
+	case FT_ID_GC_ISO:  return WD_DT_GAMECUBE;
+	case FT_ID_WII_ISO: return WD_DT_WII;
+    }
+
+    return ftype & FT_A_GC_ISO
+		? WD_DT_GAMECUBE
+		: ftype & FT_A_WII_ISO
+			? WD_DT_WII
+			: WD_DT_UNKNOWN;
+}
 
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -3448,6 +3523,13 @@ static enumError SourceIteratorHelper
 	    }
 	}
 
+	if (!it->expand_dir)
+	{
+	    it->num_of_files++;
+	    sf.f.ftype = FT_ID_DIR;
+	    goto check_file;
+	}
+
 	if ( it->depth >= it->max_depth )
 	{
 	    ResetSF(&sf,0);
@@ -3479,7 +3561,7 @@ static enumError SourceIteratorHelper
 		if ( it->act_gc == ACT_WARN )
 		     it->act_gc = ACT_IGNORE;
 		     
-		while ( err == ERR_OK && !SIGINT_level )
+		while ( err == ERR_OK && !SIGINT_level && it->num_of_files < job_limit )
 		{
 		    struct dirent * dent = readdir(dir);
 		    if (!dent)
@@ -3553,14 +3635,12 @@ static enumError SourceIteratorHelper
     }
     err = ERR_OK;
 
-    if ( sf.f.ftype & FT_A_WDISC )
+    if ( sf.f.ftype & FT_A_WDISC && sf.wbfs && sf.wbfs->disc )
     {
-	ccp slash = strrchr(path,'/');
-	if (slash)
-	{
-	    StringCat2S(buf,sizeof(buf),it->real_path,slash);
-	    real_path = buf;
-	}
+	char buf2[10];
+	snprintf(buf2,sizeof(buf2),"/#%u",sf.wbfs->disc->slot);
+	StringCat2S(buf,sizeof(buf),it->real_path,buf2);
+	it->real_path = real_path = buf;
     }
 
     if ( it->act_wbfs >= ACT_EXPAND
@@ -3735,7 +3815,11 @@ enumError SourceIterator
 	it->depth = 0;
 	it->max_depth = 1;
 	for ( ptr = wbfs_part_list.field, end = ptr + wbfs_part_list.used;
-		    err == ERR_OK && !SIGINT_level && ptr < end; ptr++ )
+	      err == ERR_OK
+			&& !SIGINT_level
+			&& ptr < end
+			&& it->num_of_files < job_limit;
+	      ptr++ )
 	{
 	    if (collect_fnames)
 		InsertStringField(&it->source_list,*ptr,false);
@@ -3746,15 +3830,29 @@ enumError SourceIterator
 
     it->depth = 0;
     it->max_depth = opt_recurse_depth;
+    it->expand_dir = true;
     for ( ptr = recurse_list.field, end = ptr + recurse_list.used;
-		err == ERR_OK && !SIGINT_level && ptr < end; ptr++ )
+	  err == ERR_OK
+		&& !SIGINT_level
+		&& ptr < end
+		&& it->num_of_files < job_limit;
+	  ptr++ )
+    {
 	err = SourceIteratorStarter(it,*ptr,collect_fnames);
+    }
 
     it->depth = 0;
     it->max_depth = 1;
+    it->expand_dir = !opt_no_expand;
     for ( ptr = source_list.field, end = ptr + source_list.used;
-		err == ERR_OK && !SIGINT_level && ptr < end; ptr++ )
+	  err == ERR_OK
+		&& !SIGINT_level
+		&& ptr < end
+		&& it->num_of_files < job_limit;
+	  ptr++ )
+    {
 	err = SourceIteratorStarter(it,*ptr,collect_fnames);
+    }
 
     ResetStringField(&dir_done_list);
     ResetStringField(&file_done_list);
@@ -3779,6 +3877,10 @@ enumError SourceIteratorCollected
     TRACE("SourceIteratorCollected(%p) count=%d\n",it,it->source_list.used);
 
     ResetStringField(&file_done_list);
+
+    it->depth = 0;
+    it->max_depth = 1;
+    it->expand_dir = false;
 
     enumError max_err = 0;
     int idx;

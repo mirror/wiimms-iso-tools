@@ -1085,20 +1085,42 @@ static u32 wbfs_sector_used ( wbfs_t * p, wbfs_disc_info_t * di )
 ///////////////////////////////////////////////////////////////////////////////
 
 enumError wbfs_get_disc_info
-	( wbfs_t * p, u32 index, u8 * header, int header_size, u32 * size )
+(
+    wbfs_t		* p,		// valid wbfs descriptor
+    u32			index,		// disc index: 0 .. num_dics-1
+    u8			* header,	// header to store data
+    int			header_size,	// size of 'header'
+    u32			* slot_found,	// not NULL: store slot of found disc
+    wd_disc_type_t	* disc_type,	// not NULL: store disc type
+    wd_disc_attrib_t	* disc_attrib,	// not NULL: store disc attrib
+    u32			* size4		// not NULL: store 'size>>2' of found disc
+)
 {
     u32 slot, count = 0;
     for( slot = 0; slot < p->max_disc; slot++ )
 	if (p->head->disc_table[slot])
 	    if ( count++ == index )
-		return wbfs_get_disc_info_by_slot(p,slot,header,header_size,size);
+	    {
+		if (slot_found)
+		    *slot_found = slot;
+		return wbfs_get_disc_info_by_slot(p,slot,header,header_size,
+						disc_type,disc_attrib,size4);
+	    }
     return ERR_WDISC_NOT_FOUND;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 
 enumError wbfs_get_disc_info_by_slot
-	( wbfs_t * p, u32 slot, u8 * header, int header_size, u32 * size )
+(
+    wbfs_t		* p,		// valid wbfs descriptor
+    u32			slot,		// disc index: 0 .. num_dics-1
+    u8			* header,	// not NULL: header to store data
+    int			header_size,	// size of 'header'
+    wd_disc_type_t	* disc_type,	// not NULL: store disc type
+    wd_disc_attrib_t	* disc_attrib,	// not NULL: store disc attrib
+    u32			* size4		// not NULL: store 'size>>2' of found disc
+)
 {
     ASSERT(p);
     if ( slot >= p->max_disc || !p->head->disc_table[slot] )
@@ -1122,11 +1144,22 @@ enumError wbfs_get_disc_info_by_slot
 	return ERR_WARNING;
     }
 
-    if (header_size > (int)p->hd_sec_sz)
-	header_size = p->hd_sec_sz;
-    memcpy( header, p->tmp_buffer, header_size );
+    if (header)
+    {
+	if (header_size > (int)p->hd_sec_sz)
+	    header_size = p->hd_sec_sz;
+	memcpy( header, p->tmp_buffer, header_size );
+    }
 
-    if (size)
+    if ( disc_type || disc_attrib )
+    {
+	const wd_disc_type_t dt
+	    = get_header_disc_type((wd_header_t*)p->tmp_buffer,disc_attrib);
+	if (disc_type)
+	    *disc_type = dt;
+    }
+
+    if (size4)
     {
 	u32 sec_used;
 	u8 * header = wbfs_ioalloc(p->disc_info_sz);
@@ -1138,7 +1171,7 @@ enumError wbfs_get_disc_info_by_slot
 
 	sec_used = wbfs_sector_used(p,(wbfs_disc_info_t *)header);
 	wbfs_iofree(header);
-	*size = sec_used << (p->wbfs_sec_sz_s-2);
+	*size4 = sec_used << (p->wbfs_sec_sz_s-2);
     }
     return ERR_OK;
 }
@@ -1535,7 +1568,7 @@ u32 wbfs_find_free_blocks
     if ( count > 0 )
 	return WBFS_NO_BLOCK;
 
-    PRINT("found: %5d..%5d [%5d]\n",p1-p->used_block,p2-p->used_block,p2-p1);
+    PRINT("found: %5zd..%5zd [%5zd]\n",p1-p->used_block,p2-p->used_block,p2-p1);
     u8 *found = p1;
     u32 range = p2 - p1;
 
@@ -1550,7 +1583,7 @@ u32 wbfs_find_free_blocks
 
 	if ( p2 - p1 < range )
 	{
-	    PRINT("found: %5d..%5d [%5d]\n",p1-p->used_block,p2-p->used_block,p2-p1);
+	    PRINT("found: %5zd..%5zd [%5zd]\n",p1-p->used_block,p2-p->used_block,p2-p1);
 	    found = p1;
 	    range = p2 - p1;
 	}

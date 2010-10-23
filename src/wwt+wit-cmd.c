@@ -29,6 +29,11 @@
 //   This file is included by wwt.c and wit.c and contains common commands.  //
 ///////////////////////////////////////////////////////////////////////////////
 
+//
+///////////////////////////////////////////////////////////////////////////////
+///////////////			    cmd_error()			///////////////
+///////////////////////////////////////////////////////////////////////////////
+
 enumError cmd_error()
 {
     if (!n_param)
@@ -94,6 +99,8 @@ enumError cmd_error()
 
 //
 ///////////////////////////////////////////////////////////////////////////////
+///////////////			    cmd_compr()			///////////////
+///////////////////////////////////////////////////////////////////////////////
 
 void print_default_compr ( ccp mode )
 {
@@ -106,7 +113,7 @@ void print_default_compr ( ccp mode )
 		wd_print_compression(0,0,compr,level,csize,2));
 };
 
-//-----------------------------------------------------------------------------
+///////////////////////////////////////////////////////////////////////////////
 
 enumError cmd_compr()
 {
@@ -258,6 +265,8 @@ enumError cmd_compr()
 
 //
 ///////////////////////////////////////////////////////////////////////////////
+///////////////			    cmd_exclude()		///////////////
+///////////////////////////////////////////////////////////////////////////////
 
 enumError cmd_exclude()
 {
@@ -272,6 +281,8 @@ enumError cmd_exclude()
 
 //
 ///////////////////////////////////////////////////////////////////////////////
+///////////////			    cmd_titles()		///////////////
+///////////////////////////////////////////////////////////////////////////////
 
 enumError cmd_titles()
 {
@@ -285,6 +296,8 @@ enumError cmd_titles()
 }
 
 //
+///////////////////////////////////////////////////////////////////////////////
+///////////////			cmd_test_options()		///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
 enumError cmd_test_options()
@@ -397,6 +410,8 @@ enumError cmd_test_options()
 
 //
 ///////////////////////////////////////////////////////////////////////////////
+///////////////			PrintErrorStat()		///////////////
+///////////////////////////////////////////////////////////////////////////////
 
 enumError PrintErrorStat ( enumError err, ccp cmdname )
 {
@@ -417,3 +432,171 @@ enumError PrintErrorStat ( enumError err, ccp cmdname )
 
 //
 ///////////////////////////////////////////////////////////////////////////////
+///////////////			  cmd_info()			///////////////
+///////////////////////////////////////////////////////////////////////////////
+
+typedef enum enumInfoPrint
+{
+    INFO_PRINT_LINES,		// print lines for the info section
+    INFO_PRINT_SECTIONS,	// print sections
+    INFO_PRINT_TABLES,		// print human readable table(s)
+
+} enumInfoPrint;
+    
+
+///////////////////////////////////////////////////////////////////////////////
+
+static void info_file_formats()
+{
+    if (print_sections)
+    {
+	printf(	"\n"
+		"[FILE-FORMAT]\n"
+		"n=%u\n",
+		OFT__N - 1);
+
+	ccp text = "list=";
+	enumOFT oft;
+	for ( oft = 1; oft < OFT__N; oft++ )
+	{
+	    printf("%s%s",text,oft_info[oft].name);
+	    text = " ";
+	}
+	putchar('\n');
+
+	for ( oft = 1; oft < OFT__N; oft++ )
+	{
+	    const OFT_info_t * info = oft_info + oft;
+	    printf(	"\n"
+			"[FILE-FORMAT:%s]\n"
+			"name=%s\n"
+			"info=%s\n"
+			"option=%s\n"
+			"extensions=%s %s\n"
+			"attributes=%s%s%s%s%s\n"
+			,info->name
+			,info->name
+			,info->info
+			,info->option
+			,info->ext1 ? info->ext1 : ""
+			,info->ext2 ? info->ext2 : ""
+			,info->attrib & OFT_A_READ	? "read " : ""
+			,info->attrib & OFT_A_WRITE	? "write " : ""
+			,info->attrib & OFT_A_MODIFY	? "modify " : ""
+			,info->attrib & OFT_A_EXTEND	? "extend " : ""
+			,info->attrib & OFT_A_FST	? "fst " : ""
+			);
+	}
+	return;
+    }
+
+    //----- table output
+
+    enumOFT oft;
+    int info_fw = 0;
+    for ( oft = 1; oft < OFT__N; oft++ )
+    {
+	const int len = strlen(oft_info[oft].info);
+	if ( info_fw < len )
+	     info_fw = len;
+    }
+
+    printf("\n"
+	   "File formats:\n\n"
+	   "  name  %-*s  option  extensions  attributes\n"
+	   " %.*s\n",
+	   info_fw, "description",
+	   info_fw+58, wd_sep_200 );
+
+    for ( oft = 1; oft < OFT__N; oft++ )
+    {
+	const OFT_info_t * i = oft_info + oft;
+	printf("  %-4s  %-*s  %-7s %-5s %-5s %s %s %s %s %s\n",
+		i->name, info_fw, i->info,
+		i->option ? i->option : "  -",
+		i->ext1 && *i->ext1 ? i->ext1 : " -",
+		i->ext2 && *i->ext2 ? i->ext2 : " -",
+		i->attrib & OFT_A_READ	? "read"   : "-  ",
+		i->attrib & OFT_A_WRITE	? "write"  : "-    ",
+		i->attrib & OFT_A_MODIFY? "modify" : "-     ",
+		i->attrib & OFT_A_EXTEND? "extend" : "-     ",
+		i->attrib & OFT_A_FST	? "fst"    : "-  " );
+    }
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+enum
+{
+    INFO_FILE_FORMAT	= 0x0001,
+
+    INFO__ALL		= 0x0001
+};
+
+///////////////////////////////////////////////////////////////////////////////
+
+enumError cmd_info()
+{
+    static const CommandTab_t cmdtab[] =
+    {
+	{ INFO__ALL,		"ALL",		0,		0 },
+	{ INFO_FILE_FORMAT,	"FILE-FORMAT",	"FORMAT",	0 },
+
+	{ 0,0,0,0 }
+    };
+
+    u32 keys = 0;
+    ParamList_t * param;
+    for (  param = first_param; param; param = param->next )
+    {
+	ccp arg = param->arg;
+	if ( !arg || !*arg )
+	    continue;
+
+	const CommandTab_t * cmd = ScanCommand(0,arg,cmdtab);
+	if (!cmd)
+	    return ERROR0(ERR_SYNTAX,"Unknown keyword: %s\n",arg);
+
+	keys |= cmd->id;
+    }
+
+    if (!keys)
+	keys = INFO__ALL;
+
+    if (print_sections)
+    {
+	printf("\n[INFO]\n");
+
+	ccp text = "infos-avail=";
+	const CommandTab_t * cptr;
+	for ( cptr = cmdtab + 1; cptr->name1; cptr++ )
+	{
+	    printf("%s%s",text,cptr->name1);
+	    text = " ";
+	}
+	putchar('\n');
+
+	text = "infos=";
+	for ( cptr = cmdtab + 1; cptr->name1; cptr++ )
+	{
+	    if ( cptr->id & keys )
+	    {
+		printf("%s%s",text,cptr->name1);
+		text = " ";
+	    }
+	}
+	putchar('\n');
+    }
+
+    if ( keys & INFO_FILE_FORMAT )
+	info_file_formats();
+
+    putchar('\n');
+    return ERR_OK;
+}
+
+//
+///////////////////////////////////////////////////////////////////////////////
+///////////////                     END                         ///////////////
+///////////////////////////////////////////////////////////////////////////////
+
