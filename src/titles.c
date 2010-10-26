@@ -284,69 +284,78 @@ ccp GetTitle ( ccp id6, ccp default_if_failed )
 ///////////////                 exclude interface               ///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-bool include_db_enabled = false;
-ID_DB_t include_db = {0,0,0};	// include database
-ID_DB_t exclude_db = {0,0,0};	// exclude database
+static bool include_db_enabled = false;
 
-StringField_t include_fname = {0,0,0};
-StringField_t exclude_fname = {0,0,0};
+static StringField_t include_id6 = {0,0,0};	// include id6 (without wildcard '.')
+static StringField_t include_pat = {0,0,0};	// include pattern (with wildcard '.')
+static StringField_t exclude_id6 = {0,0,0};	// exclude id6 (without wildcard '.')
+static StringField_t exclude_pat = {0,0,0};	// exclude pattern (with wildcard '.')
 
-int disable_exclude_db = 0;	// disable exclude db at all if > 0
+static StringField_t include_fname = {0,0,0};	// include filenames
+static StringField_t exclude_fname = {0,0,0};	// exclude filenames
+
+int disable_exclude_db = 0;			// disable exclude db at all if > 0
 
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-static int AddId ( ID_DB_t * db, ccp arg, int scan_file )
+static enumError AddId
+(
+    StringField_t	* sf_id6,
+    StringField_t	* sf_pat,
+    ccp			arg,
+    int			scan_file
+)
 {
-    char buf[200], id[7];
+    DASSERT(sf_id6);
+    DASSERT(sf_pat);
 
-    int count = 0;
+    char id[7];
+
     if (scan_file)
     {
-	int idlen;
-	ScanID(id,&idlen,arg);
-	if ( idlen == 4 || idlen == 6 )
+	ccp end = ScanArgID(id,arg,false);
+	PRINT("->|%s|\n",end);
+	if ( *id && ( !end || !*end ) )
 	{
-	    PRINT("ADD ID/FILE: %s\n",id);
-	    InsertID(db,id,0);
-	    count++;
+	    if (strchr(id,'.'))
+	    {
+		PRINT("ADD PAT/FILE: %s\n",id);
+		InsertStringField(sf_pat,id,false);
+	    }
+	    else
+	    {
+		PRINT("ADD ID6/FILE: %s\n",id);
+		InsertStringField(sf_id6,id,false);
+	    }
+	}
+	else
+	{
+	    int idlen;
+	    ScanID(id,&idlen,arg);
+	    if ( idlen == 4 || idlen == 6 )
+	    {
+		PRINT("ADD ID/FILE: %s\n",id);
+		InsertStringField(sf_id6,id,false);
+	    }
 	}
     }
-    else while (*arg)
+    else
     {
-	ccp start = arg;
-	while ( *arg && *arg != ',' )
-	    arg++;
-
-	int len = arg - start;
-	if ( len > sizeof(buf)-1 )
-	     len = len > sizeof(buf)-1;
-	memcpy(buf,start,len);
-	buf[len] = 0;
-	
-	int idlen;
-	ScanID(id,&idlen,buf);
-	if ( idlen == 4 || idlen == 6 )
-	{
-	    PRINT("ADD ID/LIST: %s\n",id);
-	    InsertID(db,id,0);
-	    count++;
-	}
-
-	while ( *arg == ',' )
-	    arg++;
+	PRINT("ADD PAT/PARAM: %s\n",id);
+	ccp res = ScanPatID(sf_id6,sf_pat,arg,false);
+	if (res)
+	    return ERROR0(ERR_SYNTAX,"Not a ID: %s\n",arg);
     }
-
-    return count;
+    return ERR_OK;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 
 int AddIncludeID ( ccp arg, int scan_file )
 {
-    AddId(&include_db,arg,scan_file);
     include_db_enabled = true;
-    return 0;
+    return AddId(&include_id6,&include_pat,arg,scan_file);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -368,8 +377,7 @@ int AddIncludePath ( ccp arg, int unused )
 
 int AddExcludeID ( ccp arg, int scan_file )
 {
-    AddId(&exclude_db,arg,scan_file);
-    return 0;
+    return AddId(&exclude_id6,&exclude_pat,arg,scan_file);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -388,11 +396,11 @@ int AddExcludePath ( ccp arg, int unused )
 ///////////////////////////////////////////////////////////////////////////////
 
 static void CheckExcludePath
-	( ccp path, StringField_t * sf, ID_DB_t * db, int max_dir_depth )
+	( ccp path, StringField_t * sf, StringField_t * sf_id6, int max_dir_depth )
 {
     TRACE("CheckExcludePath(%s,%p,%d)\n",path,sf,max_dir_depth);
-    ASSERT(sf);
-    ASSERT(db);
+    DASSERT(sf);
+    DASSERT(sf_id6);
 
     File_t f;
     InitializeFile(&f);
@@ -405,7 +413,7 @@ static void CheckExcludePath
     if ( f.id6[0] )
     {
 	TRACE(" - exclude id %s\n",f.id6);
-	InsertID(db,f.id6,0);
+	InsertStringField(sf_id6,f.id6,false);
     }
     else if ( max_dir_depth > 0 && f.ftype == FT_ID_DIR )
     {
@@ -434,7 +442,7 @@ static void CheckExcludePath
 		    if ( n[0] != '.' )
 		    {
 			StringCopyE(dest,bufend,dent->d_name);
-			CheckExcludePath(buf,sf,db,max_dir_depth);
+			CheckExcludePath(buf,sf,sf_id6,max_dir_depth);
 		    }
 		}
 		closedir(dir);
@@ -456,7 +464,7 @@ void SetupExcludeDB()
 	InitializeStringField(&sf);
 	ccp * ptr = include_fname.field + include_fname.used;
 	while ( ptr-- > include_fname.field )
-	    CheckExcludePath(*ptr,&sf,&include_db,15);
+	    CheckExcludePath(*ptr,&sf,&include_id6,15);
 	ResetStringField(&sf);
 	ResetStringField(&include_fname);
     }
@@ -468,7 +476,7 @@ void SetupExcludeDB()
 	InitializeStringField(&sf);
 	ccp * ptr = exclude_fname.field + exclude_fname.used;
 	while ( ptr-- > exclude_fname.field )
-	    CheckExcludePath(*ptr,&sf,&exclude_db,15);
+	    CheckExcludePath(*ptr,&sf,&exclude_id6,15);
 	ResetStringField(&sf);
 	ResetStringField(&exclude_fname);
     }
@@ -485,7 +493,7 @@ void DefineExcludePath ( ccp path, int max_dir_depth )
 
     StringField_t sf;
     InitializeStringField(&sf);
-    CheckExcludePath(path,&sf,&exclude_db,max_dir_depth);
+    CheckExcludePath(path,&sf,&exclude_id6,max_dir_depth);
     ResetStringField(&sf);
 }
 
@@ -503,17 +511,24 @@ bool IsExcluded ( ccp id6 )
     if ( exclude_fname.used || include_fname.used )
 	SetupExcludeDB();
 
-    TDBfind_t stat;
-    FindID(&exclude_db,id6,&stat,0);
-
-    if ( stat == IDB_ID_FOUND || stat == IDB_ABBREV_FOUND )
+    if (FindPatID(&exclude_id6,&exclude_pat,id6))
 	return true;
 
-    if (!include_db_enabled)
-	return false;
+    return include_db_enabled && !FindPatID(&include_id6,&include_pat,id6);
+}
 
-    FindID(&include_db,id6,&stat,0);
-    return stat != IDB_ID_FOUND && stat != IDB_ABBREV_FOUND;
+///////////////////////////////////////////////////////////////////////////////
+
+void DumpExcludeDB()
+{
+    SetupExcludeDB();
+    ccp *ptr = exclude_id6.field, *end;
+    for ( end = ptr + exclude_pat.used; ptr < end; ptr++ )
+	printf("%s\n",*ptr);
+
+    ptr = exclude_pat.field;
+    for ( end = ptr + exclude_pat.used; ptr < end; ptr++ )
+	printf("%s\n",*ptr);
 }
 
 //

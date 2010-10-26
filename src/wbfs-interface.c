@@ -665,6 +665,135 @@ int PrintParamID6()
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
+ccp ScanArgID
+(
+    char		buf[7],		// result buffer for ID6: 6 chars + NULL
+					// On error 'buf7' is filled with NULL
+    ccp			arg,		// argument to scan. Comma is a separator
+    bool		trim_end	// true: remove trailing '.'
+)
+{
+    if (!arg)
+    {
+	memset(buf,0,6);
+	return 0;
+    }
+	
+    while ( *arg > 0 && *arg <= ' ' )
+	arg++;
+
+    ccp start = arg;
+    int err = 0, wildcards = 0;
+    while ( *arg > ' ' && *arg != ',' )
+    {
+	int ch = *arg++;
+	if ( ch == '+' || ch == '*' )
+	    wildcards++;
+	else if (!isalnum(ch) && !strchr("_.",ch))
+	    err++;
+    }
+    const int arglen = arg - start;
+    if ( err || wildcards > 1 || arglen > 6 )
+    {
+	memset(buf,0,6);
+	return start;
+    }
+    
+    char * dest = buf;
+    for ( ; start < arg; start++ )
+    {
+	if ( *start == '+' || *start == '*' )
+	{
+	    int count = 7 - arglen;
+	    while ( count-- > 0 )
+		*dest++ = '.';
+	}
+	else
+	    *dest++ = toupper((int)*start);
+	DASSERT( dest <= buf + 6 );
+    }
+
+    if (trim_end)
+	while ( dest[-1] == '.' )
+	    dest--;
+    else
+	while ( dest < buf+6 )
+	    *dest++ = '.';
+    *dest = 0;
+
+    while ( *arg > 0 && *arg <= ' ' || *arg == ',' )
+	arg++;
+    return arg;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+ccp ScanPatID // return NULL if ok or a pointer to the invalid text
+(
+    StringField_t	* sf_id6,	// valid pointer: add real ID6
+    StringField_t	* sf_pat,	// valid pointer: add IDs with pattern '.'
+    ccp			arg,		// argument to scan. Comma is a separator
+    bool		trim_end	// true: remove trailing '.'
+)
+{
+    DASSERT(sf_id6);
+    DASSERT(sf_pat);
+
+    char buf[7];
+    while ( arg && *arg )
+    {
+ 	arg = ScanArgID(buf,arg,trim_end);
+	if (!*buf)
+	    return arg;
+
+	if ( sf_id6 != sf_pat && strchr(buf,'.') )
+	    InsertStringField(sf_pat,buf,false);
+	else
+	    InsertStringField(sf_id6,buf,false);
+    }
+    return 0;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+ccp FindPatID
+(
+    StringField_t	* sf_id6,	// valid pointer: search real ID6
+    StringField_t	* sf_pat,	// valid pointer: search IDs with pattern '.'
+    ccp			id6		// valid id6
+)
+{
+    if (!id6)
+	return 0;
+
+    if (sf_id6)
+    {
+	ccp found = FindStringField(sf_id6,id6);
+	if (found)
+	    return found;
+    }
+
+    if (sf_pat)
+    {
+	ccp *ptr = sf_pat->field, *end;
+	for ( end = ptr + sf_pat->used; ptr < end; ptr++ )
+	{
+	    ccp p1 = *ptr;
+	    ccp p2 = id6;
+	    while ( *p1 && *p2 && ( *p1 == '.' || *p2 == '.' || *p1 == *p2 ))
+		p1++, p2++;
+	    if ( !*p1 && !*p2 )
+		return *ptr;
+	}
+    }
+
+    return 0;
+}
+
+//
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+
 enumError ScanParamID6
 (
     StringField_t	* select_list,	// append all results to this list
@@ -694,6 +823,8 @@ enumError ScanParamID6
 		case '-': *rule = '-'; arg++; break;
 		default:  *rule = '+';
 	    }
+
+	    // [2do] ScanArgID() verwenden!
 
 	    ccp start = arg;
 	    int err = 0, wildcards = 0;
@@ -971,6 +1102,26 @@ enumError CheckParamRename ( bool rename_id, bool allow_plus, bool allow_index )
 ///////////////                access WBFS partitions           ///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
+static WBFS_t wbfs_cache;
+static bool wbfs_cache_valid = false;
+
+//-----------------------------------------------------------------------------
+
+enumError CloseWBFSCache()
+{
+    enumError err = ERR_OK;
+    if (wbfs_cache_valid)
+    {
+	PRINT("WBFS: CLOSE CACHE: %s\n",wbfs_cache.sf->f.fname);
+	wbfs_cache_valid = false;
+	wbfs_cache.cache_candidate = false;
+	err = ResetWBFS(&wbfs_cache);
+    }
+    return ERR_OK;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
 void InitializeWBFS ( WBFS_t * w )
 {
     ASSERT(w);
@@ -987,17 +1138,28 @@ enumError ResetWBFS ( WBFS_t * w )
 
     CloseWDisc(w);
 
-    if (w->wbfs)
-	wbfs_close(w->wbfs);
-
     enumError err = ERR_OK;
-    if (w->sf)
+    if ( w->cache_candidate && w->sf_alloced && w->sf && IsOpenSF(w->sf) )
     {
-	w->sf->wbfs = 0;
-	if (w->sf_alloced)
+	CloseWBFSCache();
+	PRINT("WBFS: SETUP CACHE: %s\n",w->sf->f.fname);
+	DASSERT(!wbfs_cache_valid);
+	memcpy(&wbfs_cache,w,sizeof(wbfs_cache));
+	wbfs_cache_valid = true;
+    }
+    else
+    {
+	if (w->wbfs)
+	    wbfs_close(w->wbfs);
+
+	if (w->sf)
 	{
-	    err = ResetSF(w->sf,0);
-	    free(w->sf);
+	    w->sf->wbfs = 0;
+	    if (w->sf_alloced)
+	    {
+		err = ResetSF(w->sf,0);
+		free(w->sf);
+	    }
 	}
     }
 
@@ -1148,8 +1310,20 @@ static enumError OpenWBFSHelper
 	  wbfs_param_t * par, int sector_size, bool recover )
 {
     ASSERT(w);
-    TRACE("OpenFileWBFS(%s,%d,%d,%d)\n",
+    PRINT("OpenFileWBFS(%s,%d,%d,%d)\n",
 		filename, print_err, sector_size, recover );
+
+    if ( wbfs_cache_valid
+	&& IsOpenSF(wbfs_cache.sf)
+	&& !strcmp(wbfs_cache.sf->f.fname,filename) )
+    {
+	PRINT("WBFS: USE CACHE: %s\n",wbfs_cache.sf->f.fname);
+	wbfs_cache_valid = false;
+	ResetWBFS(w);
+	memcpy(w,&wbfs_cache,sizeof(*w));
+	return ERR_OK;
+    }
+    CloseWBFSCache();
 
     SuperFile_t * sf = malloc(sizeof(SuperFile_t));
     if (!sf)
@@ -1168,6 +1342,7 @@ static enumError OpenWBFSHelper
 	goto abort;
 
     w->sf_alloced = true;
+    w->cache_candidate = true;
     return ERR_OK;
 
  abort:

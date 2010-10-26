@@ -461,6 +461,8 @@ int main ( int argc, char ** argv )
 	    max_err = last_err;
     }
 
+    CloseAll();
+
     if (SIGINT_level)
 	ERROR0(ERR_INTERRUPT,"Program interrupted by user.");
     return max_err > max_error ? max_err : max_error;

@@ -1865,7 +1865,7 @@ static int CollectFST_helper
 	if ( cf->pat && !MatchFilePattern(cf->pat,it->fst_name) )
 	    return 0;
 
-	PRINT("%8x >> %8x + %8x  %s\n",it->off4,it->off4>>2,it->size,it->path);
+	noPRINT("%8x >> %8x + %8x  %s\n",it->off4,it->off4>>2,it->size,it->path);
 
 	size_t slen = strlen(it->path);
 	if ( fst->max_path_len < slen )
@@ -2023,8 +2023,25 @@ enumError CreateFST ( WiiFstInfo_t *wfi, ccp dest_path )
     ASSERT( !fst->part_size == !fst->part );
     ASSERT( fst->part_used >= 0 && fst->part_used <= fst->part_size );
 
-    wfi->done_count =  0;
+    wfi->done_count  = 0;
     wfi->total_count = fst->total_file_count;
+    wfi->done_size   = 0;
+    wfi->total_size  = fst->total_file_size;
+
+#if 0
+    WiiFstPart_t *part, *part_end = fst->part + fst->part_used;
+    for ( part = fst->part; part < part_end; part++ )
+    {
+	WiiFstFile_t *file, *file_end = part->file + part->file_used;
+	for ( file = part->file; err == ERR_OK && file < file_end; file++ )
+	    if (   file->icm == WD_ICM_FILE
+		|| file->icm == WD_ICM_COPY
+		|| file->icm == WD_ICM_DATA )
+	    {
+		wfi->total_size += file->size;
+	    }
+    }
+#endif
 
     if (wfi->verbose)
     {
@@ -2121,6 +2138,7 @@ enumError CreateFileFST ( WiiFstInfo_t *wfi, ccp dest_path, WiiFstFile_t * file 
     DASSERT(part);
 
     wfi->done_count++;
+ 
 
     //----- setup path
 
@@ -2204,6 +2222,12 @@ enumError CreateFileFST ( WiiFstInfo_t *wfi, ccp dest_path, WiiFstFile_t * file 
 
 	    size -= read_size;
 	    off4 += read_size>>2;
+
+	    //----- progress
+
+	    wfi->done_size += read_size;
+	    if ( wfi->sf && wfi->sf->show_progress )
+		PrintProgressSF(wfi->done_size,wfi->total_size,wfi->sf);
 	}
     }
  #else
@@ -2229,6 +2253,12 @@ enumError CreateFileFST ( WiiFstInfo_t *wfi, ccp dest_path, WiiFstFile_t * file 
 
 	    size -= read_size;
 	    off4 += read_size>>2;
+
+	    //----- progress
+
+	    wfi->done_size += read_size;
+	    if ( wfi->sf && wfi->sf->show_progress )
+		PrintProgressSF(wfi->done_size,wfi->total_size,wfi->sf);
 	}
     }
  #endif
@@ -2240,11 +2270,6 @@ enumError CreateFileFST ( WiiFstInfo_t *wfi, ccp dest_path, WiiFstFile_t * file 
     }
 
     ResetFile( &fo, err != ERR_OK );
-
-    //----- progress
-
-    if ( wfi->sf && wfi->sf->show_progress )
-	PrintProgressSF(wfi->done_count,wfi->total_count,wfi->sf);
 
     return err;    
 }
@@ -3184,7 +3209,7 @@ enumError SetupReadFST ( SuperFile_t * sf )
     ASSERT(sf);
     ASSERT(!sf->fst);
     TRACE("SetupReadFST() -> %x %s\n",sf->f.ftype,sf->f.fname);
-    PRINT("SetupReadFST() -> %x %s\n",sf->f.ftype,sf->f.fname);
+    noPRINT("SetupReadFST() -> %x %s\n",sf->f.ftype,sf->f.fname);
 
     SetupIOD(sf,OFT_FST,OFT_FST);
     WiiFst_t * fst = malloc(sizeof(*fst));

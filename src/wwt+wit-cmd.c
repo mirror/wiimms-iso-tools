@@ -274,8 +274,7 @@ enumError cmd_exclude()
     for ( param = first_param; param; param = param->next )
 	AtFileHelper(param->arg,0,1,AddExcludeID);
 
-    SetupExcludeDB();
-    DumpIDDB(&exclude_db,stdout);
+    DumpExcludeDB();    
     return ERR_OK;
 }
 

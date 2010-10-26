@@ -1232,6 +1232,8 @@ int main ( int argc, char ** argv )
 
     //----- terminate
 
+    CloseAll();
+
     if (SIGINT_level)
 	ERROR0(ERR_INTERRUPT,"Program interrupted by user.");
     return err > max_error ? err : max_error;

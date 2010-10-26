@@ -114,11 +114,12 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 
     {	OPT_INCLUDE, 'n', "include",
 	"id",
-	"A comma separated list with ID4 and ID6 values is expected. If the"
-	" parameter begins with a '@' the given file is read and each line is"
-	" scanned for one ID. Only images with the given ID are included into"
-	" the operation. Each use of this option expands the include list. The"
-	" exclude list takes precedence."
+	"A comma separated list with ID values is expected. '.' is a wildcard"
+	" for exact 1 character and '+' and '*' (same meaning) are wildcards"
+	" for any number characters. If the parameter begins with a '@' the"
+	" given file is read and each line is scanned for one ID. Only images"
+	" with the given ID are included into the operation. Each use of this"
+	" option expands the include list. The exclude list takes precedence."
     },
 
     {	OPT_INCLUDE_PATH, 'N', "include-path",
@@ -132,10 +133,12 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 
     {	OPT_EXCLUDE, 'x', "exclude",
 	"id",
-	"A comma separated list with ID4 and ID6 values is expected. If the"
-	" parameter begins with a '@' the given file is read and each line is"
-	" scanned for one ID. Images with the given ID are excluded from"
-	" operation. Each use of this option expands the exclude list."
+	"A comma separated list with ID4 and ID6 values is expected. '.' is a"
+	" wildcard for exact 1 character and '+' and '*' (same meaning) are"
+	" wildcards for any number characters. If the parameter begins with a"
+	" '@' the given file is read and each line is scanned for one ID."
+	" Images with the given ID are excluded from operation. Each use of"
+	" this option expands the exclude list."
     },
 
     {	OPT_EXCLUDE_PATH, 'X', "exclude-path",

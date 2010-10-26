@@ -114,10 +114,6 @@ void TRACE_ARG_FUNC ( const char * format, va_list arg );
     #undef DEBUG_ASSERT
     #define DEBUG_ASSERT 1
 
-    #define PRINT(...) printf(__VA_ARGS__)
-    #define PRINT_IF(cond,...) if (cond) printf(__VA_ARGS__)
-    #define BINGO printf("BINGO! %s() #%d @ %s\n",__FUNCTION__,__LINE__,__FILE__)
-
     #define TRACE(...) TRACE_FUNC(__VA_ARGS__)
     #define TRACE_IF(cond,...) if (cond) TRACE_FUNC(__VA_ARGS__)
     #define TRACELINE TRACE_FUNC("line #%d @ %s\n",__LINE__,__FILE__)
@@ -132,9 +128,6 @@ void TRACE_ARG_FUNC ( const char * format, va_list arg );
 
     #undef DEBUG
 
-    #define PRINT(...)
-    #define PRINT_IF(cond,...)
-    #define BINGO
     #define TRACE(...)
     #define TRACE_IF(cond,...)
     #define TRACELINE
@@ -169,15 +162,39 @@ void TRACE_ARG_FUNC ( const char * format, va_list arg );
 
 ///////////////////////////////////////////////////////////////////////////////
 
+#undef PRINT
+#undef PRINT_IF
+#undef BINGO
+
+#if defined(DEBUG) && defined(TEST)
+
+    #define PRINT(...) printf(__VA_ARGS__)
+    #define PRINT_IF(cond,...) if (cond) printf(__VA_ARGS__)
+    #define BINGO printf("BINGO! %s() #%d @ %s\n",__FUNCTION__,__LINE__,__FILE__)
+
+#else
+
+    #define PRINT(...)
+    #define PRINT_IF(cond,...)
+    #define BINGO
+
+#endif
+
+///////////////////////////////////////////////////////////////////////////////
+
 #undef DASSERT
 #undef DASSERT_MSG
 
 #if defined(DEBUG) || defined(TEST)
+
     #define DASSERT ASSERT
     #define DASSERT_MSG ASSERT_MSG
+
 #else
+
     #define DASSERT(cond)
     #define DASSERT_MSG(a,...)
+
 #endif
 
 ///////////////////////////////////////////////////////////////////////////////

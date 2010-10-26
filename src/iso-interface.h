@@ -489,7 +489,8 @@ typedef struct WiiFstInfo_t
 	u32		total_count;		// total files to proceed
 	u32		done_count;		// preceeded files
 	u32		fw_done_count;		// field width of 'done_count'
-	u64		done_file_size;		// helper variable for progress statistics
+	u64		done_size;		// done file size for progress statistics
+	u64		total_size;		// total file size for progress statistics
 	u32		not_created_count;	// number of not created files+dirs
 
 	FileAttrib_t	* set_time;		// NULL or set time attrib

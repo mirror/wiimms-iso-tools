@@ -98,6 +98,7 @@ typedef enum enumRevID
 ///////////////////////////////////////////////////////////////////////////////
 
 void SetupLib ( int argc, char ** argv, ccp p_progname, enumProgID prid );
+void CloseAll();
 
 typedef enumError (*check_opt_func) ( int argc, char ** argv, bool mode );
 

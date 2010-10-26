@@ -1351,6 +1351,7 @@ int main ( int argc, char ** argv )
     print_section(df,sep2,"END");
     fclose(df);
     fclose(nf);
+    CloseAll();
     return ERR_OK;
 }
 

@@ -3269,6 +3269,7 @@ int main ( int argc, char ** argv )
 	hint_exit(err);
 
     err = CheckCommand(argc,argv);
+    CloseAll();
 
     if (SIGINT_level)
 	err = ERROR0(ERR_INTERRUPT,"Program interrupted by user.");

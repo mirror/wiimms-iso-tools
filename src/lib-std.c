@@ -567,6 +567,13 @@ void SetupLib ( int argc, char ** argv, ccp p_progname, enumProgID prid )
 
 ///////////////////////////////////////////////////////////////////////////////
 
+void CloseAll()
+{
+    CloseWBFSCache();
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
 enumError CheckEnvOptions ( ccp varname, check_opt_func func )
 {
     TRACE("CheckEnvOptions(%s,%p)\n",varname,func);

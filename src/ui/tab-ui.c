@@ -467,7 +467,9 @@ info_t info_tab[] =
 
   { T_OPT_CMP,	"INCLUDE",	"n|include",
 		"id",
-		"A comma separated list with ID4 and ID6 values is expected."
+		"A comma separated list with ID values is expected."
+		" @'.'@ is a wildcard for exact 1 character and @'+'@ and @'*'@"
+		" (same meaning) are wildcards for any number characters."
 		" If the parameter begins with a '@@' the given file is read"
 		" and each line is scanned for one ID."
 		" Only images with the given ID are included into the operation."
@@ -485,6 +487,8 @@ info_t info_tab[] =
   { T_OPT_CMP,	"EXCLUDE",	"x|exclude",
 		"id",
 		"A comma separated list with ID4 and ID6 values is expected."
+		" @'.'@ is a wildcard for exact 1 character and @'+'@ and @'*'@"
+		" (same meaning) are wildcards for any number characters."
 		" If the parameter begins with a '@@' the given file is read"
 		" and each line is scanned for one ID."
 		" Images with the given ID are excluded from operation."

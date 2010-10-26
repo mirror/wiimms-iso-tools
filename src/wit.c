@@ -159,9 +159,34 @@ void hint_exit ( enumError stat, ccp command )
 
 enumError cmd_test()
 {
- #if 1 || !defined(TEST) // test options
+ #if 0 || !defined(TEST) // test options
 
     return cmd_test_options();
+
+ #elif 1
+
+    char buf[20];
+    ParamList_t * param;
+    for ( param = first_param; param; param = param->next )
+    {
+	ccp arg = param->arg;
+	while ( arg && *arg )
+	{
+	    arg = ScanArgID(buf,arg,false);
+	    if (*buf)
+	    {
+		printf("%s ",buf);
+		if (!*arg)
+		    printf("= %s\n",param->arg);
+	    }
+	    else
+	    {
+		printf("ERR= %s\n",arg);
+		break;
+	    }
+	}
+    }
+    return ERR_OK;
 
  #elif 1
 
@@ -2428,6 +2453,7 @@ int main ( int argc, char ** argv )
 
     SetupFilePattern(file_pattern+PAT_FILES);
     err = CheckCommand(argc,argv);
+    CloseAll();
 
     if (SIGINT_level)
 	err = ERROR0(ERR_INTERRUPT,"Program interrupted by user.");
