@@ -2205,6 +2205,7 @@ enumError CheckOptions ( int argc, char ** argv, bool is_env )
 	case GO_ONE_JOB:	job_limit = 1; break;
 	case GO_IGNORE:		ignore_count++; break;
 	case GO_IGNORE_FST:	allow_fst = false; break;
+	case GO_IGNORE_SETUP:	ignore_setup = true; break;
 
 	case GO_PSEL:		err += ScanOptPartSelector(optarg); break;
 	case GO_RAW:		part_selector.whole_disc

@@ -3933,6 +3933,9 @@ enumError ScanSetupFile
 	while ( *ptr > 0 && *ptr <= ' ' )
 	    ptr++;
 
+	if ( *ptr == '!' || *ptr == '#' )
+	    continue;
+
 	//----- find end of name
 
 	char * name = ptr;

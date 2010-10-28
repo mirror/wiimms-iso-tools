@@ -334,6 +334,11 @@
 	"", \
 	"Disable composing and ignore FST directories as input." )
 
+#:def_opt( "IGNORE_SETUP", "ignore-setup|ignoresetup", "C", \
+	"", \
+	"While composing ignore the file @'setup.txt'@, which defines some" \
+	" partition parameters." )
+
 #:def_opt( "PSEL", "psel", "CP", \
 	"list", \
 	"This option set the scrubbing mode and defines, which disc partitions" \
@@ -841,6 +846,10 @@
 	"", \
 	"" )
 
+#:def_cmd_opt( "FILELIST", "IGNORE_SETUP", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "FILELIST", "LONG", \
 	"", \
 	"Print the real path instead of given path." )
@@ -894,6 +903,10 @@
 	"" )
 
 #:def_cmd_opt( "FILETYPE", "IGNORE_FST", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "FILETYPE", "IGNORE_SETUP", \
 	"", \
 	"" )
 
@@ -956,6 +969,10 @@
 	"" )
 
 #:def_cmd_opt( "ISOSIZE", "IGNORE_FST", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "ISOSIZE", "IGNORE_SETUP", \
 	"", \
 	"" )
 
@@ -1034,6 +1051,10 @@
 	"" )
 
 #:def_cmd_opt( "DUMP", "IGNORE_FST", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "DUMP", "IGNORE_SETUP", \
 	"", \
 	"" )
 
@@ -1210,6 +1231,10 @@
 	"", \
 	"" )
 
+#:def_cmd_opt( "ID6", "IGNORE_SETUP", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "ID6", "LOGGING", \
 	"", \
 	"" )
@@ -1279,6 +1304,10 @@
 	"" )
 
 #:def_cmd_opt( "LIST", "IGNORE_FST", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "LIST", "IGNORE_SETUP", \
 	"", \
 	"" )
 
@@ -1400,6 +1429,10 @@
 	"", \
 	"" )
 
+#:def_cmd_opt( "LIST_L", "IGNORE_SETUP", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "LIST_L", "LOGGING", \
 	"", \
 	"" )
@@ -1515,6 +1548,10 @@
 	"" )
 
 #:def_cmd_opt( "LIST_LL", "IGNORE_FST", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "LIST_LL", "IGNORE_SETUP", \
 	"", \
 	"" )
 
@@ -1636,6 +1673,10 @@
 	"", \
 	"" )
 
+#:def_cmd_opt( "LIST_LLL", "IGNORE_SETUP", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "LIST_LLL", "LOGGING", \
 	"", \
 	"" )
@@ -1742,6 +1783,10 @@
 	"", \
 	"" )
 
+#:def_cmd_opt( "FILES", "IGNORE_SETUP", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "FILES", "PSEL", \
 	"", \
 	"" )
@@ -1836,6 +1881,10 @@
 	"", \
 	"" )
 
+#:def_cmd_opt( "FILES_L", "IGNORE_SETUP", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "FILES_L", "PSEL", \
 	"", \
 	"" )
@@ -1927,6 +1976,10 @@
 	"" )
 
 #:def_cmd_opt( "FILES_LL", "IGNORE_FST", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "FILES_LL", "IGNORE_SETUP", \
 	"", \
 	"" )
 
@@ -2041,6 +2094,10 @@
 	"" )
 
 #:def_cmd_opt( "DIFF", "IGNORE_FST", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "DIFF", "IGNORE_SETUP", \
 	"", \
 	"" )
 
@@ -2192,6 +2249,10 @@
 	"", \
 	"" )
 
+#:def_cmd_opt( "FDIFF", "IGNORE_SETUP", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "FDIFF", "PSEL", \
 	"", \
 	"" )
@@ -2337,6 +2398,10 @@
 	"" )
 
 #:def_cmd_opt( "EXTRACT", "IGNORE_FST", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "EXTRACT", "IGNORE_SETUP", \
 	"", \
 	"" )
 
@@ -2515,6 +2580,10 @@
 	"" )
 
 #:def_cmd_opt( "COPY", "IGNORE_FST", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "COPY", "IGNORE_SETUP", \
 	"", \
 	"" )
 
@@ -2757,6 +2826,10 @@
 	"" )
 
 #:def_cmd_opt( "CONVERT", "IGNORE_FST", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "CONVERT", "IGNORE_SETUP", \
 	"", \
 	"" )
 
@@ -3338,6 +3411,10 @@
 	"", \
 	"" )
 
+#:def_cmd_opt( "VERIFY", "IGNORE_SETUP", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "VERIFY", "PSEL", \
 	"", \
 	"" )
@@ -3832,6 +3909,11 @@
 #:def_opt( "IGNORE_FST", "ignore-fst|ignorefst", "C", \
 	"", \
 	"Disable composing and ignore FST directories as input." )
+
+#:def_opt( "IGNORE_SETUP", "ignore-setup|ignoresetup", "C", \
+	"", \
+	"While composing ignore the file @'setup.txt'@, which defines some" \
+	" partition parameters." )
 
 #:def_opt( "ENC", "enc", "CP", \
 	"encoding", \
@@ -5257,6 +5339,10 @@
 	"", \
 	"" )
 
+#:def_cmd_opt( "ADD", "IGNORE_SETUP", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "ADD", "QUIET", \
 	"", \
 	"" )
@@ -5432,6 +5518,10 @@
 	"", \
 	"" )
 
+#:def_cmd_opt( "UPDATE", "IGNORE_SETUP", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "UPDATE", "QUIET", \
 	"", \
 	"" )
@@ -5596,6 +5686,10 @@
 	"" )
 
 #:def_cmd_opt( "SYNC", "IGNORE_FST", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "SYNC", "IGNORE_SETUP", \
 	"", \
 	"" )
 
@@ -6271,6 +6365,10 @@
 	"" )
 
 #:def_cmd_opt( "FILETYPE", "IGNORE_FST", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "FILETYPE", "IGNORE_SETUP", \
 	"", \
 	"" )
 

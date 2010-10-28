@@ -1325,6 +1325,7 @@ void wd_close_disc
 		free(part->tmd);
 		free(part->cert);
 		free(part->h3);
+		free(part->setup_txt);
 		free(part->fst);
 	    } 
 	    free(disc->part);
@@ -1547,10 +1548,10 @@ static enumError wd_check_part_offset
 //-----------------------------------------------------------------------------
 
 const int SYS_DIR_COUNT		= 3;
-const int SYS_FILE_COUNT	= 11;
+const int SYS_FILE_COUNT	= 12;
 
 const int SYS_DIR_COUNT_GC	= 2;
-const int SYS_FILE_COUNT_GC	= 5;
+const int SYS_FILE_COUNT_GC	= 6;
 
 //-----------------------------------------------------------------------------
 
@@ -1694,6 +1695,25 @@ enumError wd_load_part
 			disc->error_term );
 	    return ERR_WDISC_INVALID;
 	}
+
+	//----- setup setup_txt
+
+	// [2do] "setup.txt"
+	part->setup_txt_len
+	    = snprintf((char*)disc->temp_buf,sizeof(disc->temp_buf),
+			"# setup.txt : scanned by wit+wwt while composing a disc.\n"
+			"# remove the '!' before name to activate the parameter.\n"
+			"\n"
+			"!part-id = %.6s\n"
+			"!part-name = %.64s\n"
+			"!part-offset = 0x%llx\n"
+			"\n"
+			,wd_print_id(&boot->dhead.disc_id,6,0)
+			,boot->dhead.disc_title
+			,(u64)part->part_off4 << 2
+			);
+	part->setup_txt = strdup((char*)disc->temp_buf);
+
 
 	//----- calculate size of main.dol
 
@@ -2510,6 +2530,32 @@ u32 wd_count_used_blocks
     return count;
 }
 
+///////////////////////////////////////////////////////////////////////////////
+
+bool wd_is_block_used
+(
+    const u8		* usage_table,	// valid pointer to usage table
+    u32			block_index,	// index of block
+    u32			block_size	// if >1: number of sectors per block
+)
+{
+    DASSERT(usage_table);
+
+    if ( block_size <= 1 )
+	return block_index < WII_MAX_SECTORS && usage_table[block_index];
+
+    block_index *= block_size;
+    u32 end = block_index + block_size;
+    if ( end > WII_MAX_SECTORS )
+	 end = WII_MAX_SECTORS;
+    
+    while ( block_index < end )
+	if ( usage_table[block_index++] )
+	    return true;
+
+    return false;
+}
+
 //
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////			  file iteration		///////////////
@@ -2829,9 +2875,19 @@ int wd_iterate_files
 	if (stat)
 	    break;
 
+	// [2do] "setup.txt"
+	it.icm  = WD_ICM_DATA;
+	it.off4 = 0;
+	it.size = part->setup_txt_len;
+	it.data = part->setup_txt;
+	strcpy(it.fst_name,"setup.txt");
+	stat = func(&it);
+	if (stat)
+	    break;
+
 	if (!part->is_gc)
 	{
-	    it.icm  = WD_ICM_DATA;
+	    DASSERT( it.icm == WD_ICM_DATA );
 	    it.off4 = off4;
 	    it.size = sizeof(part->ph.ticket);
 	    it.data = &part->ph.ticket;
@@ -4739,15 +4795,16 @@ bool wd_patch_ptab // result = true if something changed
 bool wd_patch_id
 (
     void		* dest_id,	// destination, size=id_len, not 0 term
-    const void		* source_id,	// source id, length=id_len
+    const void		* source_id,	// NULL or source id, length=id_len
     const void		* new_id,	// NULL or new ID / 0 term / '.': don't change
     u32			id_len		// max length of id
 )
 {
     DASSERT(dest_id);
-    DASSERT(source_id);
 
-    if ( dest_id != source_id )
+    if (!source_id)
+	source_id = dest_id;
+    else if ( dest_id != source_id )
 	memcpy(dest_id,source_id,id_len);
     if (!new_id)
 	return false;

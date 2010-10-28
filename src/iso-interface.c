@@ -1137,7 +1137,8 @@ int RenameISOHeader ( void * data, ccp fname,
 ///////////////			global options			///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-bool allow_fst		= false; // FST diabled by default
+bool allow_fst		= false;  // FST diabled by default
+bool ignore_setup	= false;  // ignore file 'setup.txt' while composing
 
 wd_select_t part_selector = {0};
 
@@ -2028,21 +2029,6 @@ enumError CreateFST ( WiiFstInfo_t *wfi, ccp dest_path )
     wfi->done_size   = 0;
     wfi->total_size  = fst->total_file_size;
 
-#if 0
-    WiiFstPart_t *part, *part_end = fst->part + fst->part_used;
-    for ( part = fst->part; part < part_end; part++ )
-    {
-	WiiFstFile_t *file, *file_end = part->file + part->file_used;
-	for ( file = part->file; err == ERR_OK && file < file_end; file++ )
-	    if (   file->icm == WD_ICM_FILE
-		|| file->icm == WD_ICM_COPY
-		|| file->icm == WD_ICM_DATA )
-	    {
-		wfi->total_size += file->size;
-	    }
-    }
-#endif
-
     if (wfi->verbose)
     {
 	char buf[20];
@@ -2053,6 +2039,9 @@ enumError CreateFST ( WiiFstInfo_t *wfi, ccp dest_path )
 		fst->part_used, fst->part_used  == 1 ? "" : "s",
 		(fst->total_file_size + MiB/2) / MiB );
     }
+
+
+    //----- iterate partitions
 
     enumError err = ERR_OK;
     WiiFstPart_t *part_end = fst->part + fst->part_used;
@@ -2076,6 +2065,7 @@ enumError CreatePartFST ( WiiFstInfo_t *wfi, ccp dest_path )
     WiiFstPart_t * part = wfi->part;
     ASSERT(part);
 
+
     //----- setup basic dest path
 
     char path[PATH_MAX];
@@ -2086,6 +2076,7 @@ enumError CreatePartFST ( WiiFstInfo_t *wfi, ccp dest_path )
     else if ( path_dest[-1] != '/' )
 	*path_dest++ = '/';
     TRACE(" - basepath=%s\n",path);
+
 
     //----- setup include list
 
@@ -2102,6 +2093,7 @@ enumError CreatePartFST ( WiiFstInfo_t *wfi, ccp dest_path )
     for ( file = part->file; err == ERR_OK && file < file_end; file++ )
 	if ( file->icm != WD_ICM_COPY )
 	    err = CreateFileFST(wfi,path,file);
+
 
     //----- Update the signatures of the source FST
 
@@ -2503,6 +2495,25 @@ void ReversePartFST ( WiiFstPart_t * part )
 ///////////////			    IsFST()			///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
+enum
+{
+	PSUP_P_ID,
+	PSUP_P_NAME,
+	PSUP_P_OFFSET,
+
+	PSUB__N
+};
+
+static SetupDef_t part_setup_def[] =
+{
+	{ "part-id",		0 },
+	{ "part-name",		0 },
+	{ "part-offset",	0x10000 },
+	{0,0}
+};
+
+///////////////////////////////////////////////////////////////////////////////
+
 enumFileType IsFST ( ccp base_path, char * id6_result )
 {
     enumFileType ftype = IsFSTPart(base_path,id6_result);
@@ -2606,10 +2617,8 @@ enumFileType IsFSTPart ( ccp base_path, char * id6_result )
 {
     TRACE("IsFSTPart(%s,%p)\n",base_path,id6_result);
 
-    char id6_buf[7];
-    if (!id6_result)
-	id6_result = id6_buf;
-    memset(id6_result,0,7);
+    if (id6_result)
+	memset(id6_result,0,7);
 
     struct stat st;
     if ( !base_path || stat(base_path,&st) || !S_ISDIR(st.st_mode) )
@@ -2629,6 +2638,7 @@ enumFileType IsFSTPart ( ccp base_path, char * id6_result )
     if ( stat(path,&st) || !S_ISDIR(st.st_mode) )
 	return FT_ID_DIR;
 
+
     //------ boot.bin
 
     StringCat2S(path,sizeof(path),base_path,"/sys/boot.bin");
@@ -2640,14 +2650,30 @@ enumFileType IsFSTPart ( ccp base_path, char * id6_result )
     if ( fstat(fd,&st)
 	|| !S_ISREG(st.st_mode)
 	|| st.st_size != WII_BOOT_SIZE
-	|| read(fd,id6_result,6) != 6 )
+	|| id6_result && read(fd,id6_result,6) != 6 )
     {
 	close(fd);
-	memset(id6_result,0,7);
+	if (id6_result)
+	    memset(id6_result,0,7);
 	return FT_ID_DIR;
     }
     close(fd);
-    PatchId(id6_result,0,6,WD_MODIFY_DISC|WD_MODIFY__AUTO);
+
+
+    //----- patch id
+    
+    if (id6_result)
+    {
+	if (!ignore_setup)
+	{
+	    ScanSetupFile(part_setup_def,base_path,FST_SETUP_FILE,true);
+	    ccp part_id = part_setup_def[PSUP_P_ID].param;
+	    if (part_id)
+		wd_patch_id(id6_result,id6_result,part_id,6);
+	}
+	PatchId(id6_result,0,6,WD_MODIFY_DISC|WD_MODIFY__AUTO);
+    }
+
 
     //----- more required files
     
@@ -2935,16 +2961,6 @@ u32 ScanPartFST
 ///////////////			generate partition		///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-enum { PSUP_P_OFFSET };
-
-static SetupDef_t part_setup_def[] =
-{
-	{ "part-offset",	0x10000 },
-	{0,0}
-};
-
-///////////////////////////////////////////////////////////////////////////////
-
 u64 GenPartFST
 (
 	SuperFile_t	* sf,		// valid file pointer
@@ -2958,17 +2974,24 @@ u64 GenPartFST
     ASSERT(part);
     ASSERT(!part->file_used);
 
-    //----- scan setup.txt
 
+    //----- scan FST_SETUP_FILE
+
+    ccp part_id = 0;
+    ccp part_name = 0;
+    if (!ignore_setup)
     {
-	ScanSetupFile(part_setup_def,path,"setup.txt",true);
+	ScanSetupFile(part_setup_def,path,FST_SETUP_FILE,true);
+
+	part_id   = part_setup_def[PSUP_P_ID].param;
+	part_name = part_setup_def[PSUP_P_NAME].param;
 
 	SetupDef_t * sdef = part_setup_def + PSUP_P_OFFSET;
 	if (sdef->param)
 	    good_off = sdef->value;
-	
-	ResetSetup(part_setup_def);
+	PRINT("SETUP.TXT: id=%s name=%.20s off=%llx\n",part_id,part_name,good_off);
     }
+
 
     //----- setup
 
@@ -3001,14 +3024,17 @@ u64 GenPartFST
     LoadFile(path,"sys/boot.bin",0,imi->data,WII_BOOT_SIZE,false);
     LoadFile(path,"sys/bi2.bin",0,imi->data+WII_BOOT_SIZE,WII_BI2_SIZE,false);
 
+    wd_boot_t * boot = imi->data;
+    char * title = boot->dhead.disc_title;
+    PatchDiscHeader(&boot->dhead,part_id,part_name);
+
     if ( part->part_type == WD_PART_DATA )
     {
 	PatchId(imi->data,0,6,WD_MODIFY_BOOT|WD_MODIFY__AUTO);
-	PatchName(imi->data+WII_TITLE_OFF,WD_MODIFY_BOOT|WD_MODIFY__AUTO);
+	PatchName(title,WD_MODIFY_BOOT|WD_MODIFY__AUTO);
     }
     snprintf(imi->info,sizeof(imi->info),"boot.bin [%.6s] + bi2.bin",(ccp)imi->data);
 
-    wd_boot_t * boot = imi->data;
     if ( !fst->dhead.disc_id && part->part_type == WD_PART_DATA )
     {
 	char * dest = (char*)&fst->dhead;
@@ -3016,6 +3042,8 @@ u64 GenPartFST
 	memcpy(dest,boot,6);
 	memcpy(dest+WII_TITLE_OFF,(ccp)boot+WII_TITLE_OFF,WII_TITLE_SIZE);
 	fst->dhead.wii_magic = htonl(WII_MAGIC);
+	//HEXDUMP16(3,0,dest,6);
+	//HEXDUMP16(3,WII_TITLE_OFF,dest+WII_TITLE_OFF,16);
     }
 
 
@@ -3025,6 +3053,7 @@ u64 GenPartFST
     {
 	LoadFile(path,"disc/header.bin",0,
 			    &fst->dhead,sizeof(fst->dhead),true);
+	PatchDiscHeader(&fst->dhead,part_id,part_name);
 	PatchId(&fst->dhead.disc_id,0,6,WD_MODIFY_DISC|WD_MODIFY__AUTO);
 	PatchName(fst->dhead.disc_title,WD_MODIFY_DISC|WD_MODIFY__AUTO);
     }
@@ -3130,20 +3159,20 @@ u64 GenPartFST
 
     //----- setup partition control content
 
-    ccp use_id = modify_id ? modify_id : &fst->dhead.disc_id;
-    
     if (load_ticket)
 	load_ticket = LoadFile(path,"ticket.bin", 0,
 			    &pc->head->ticket, WII_TICKET_SIZE, false )
 		    == ERR_OK;
     if (!load_ticket)
-	ticket_setup(&pc->head->ticket,use_id);
+	ticket_setup(&pc->head->ticket,&fst->dhead.disc_id);
+    wd_patch_id(pc->head->ticket.title_id+4,0,part_id,4);
 
     if (load_tmd)
 	load_tmd = LoadFile( path, "tmd.bin", 0, pc->tmd, pc->tmd_size, false )
 		 == ERR_OK;
     if (!load_tmd)
-	tmd_setup(pc->tmd,pc->tmd_size,use_id);
+	tmd_setup(pc->tmd,pc->tmd_size,&fst->dhead.disc_id);
+    wd_patch_id(pc->tmd->title_id+4,0,part_id,4);
 
     LoadFile(path,"cert.bin",	0, pc->cert, pc->cert_size, false );
 
@@ -3196,6 +3225,7 @@ u64 GenPartFST
 
     //----- terminate
 
+    ResetSetup(part_setup_def);
     return pc->data_size;
 }
 

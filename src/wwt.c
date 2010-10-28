@@ -697,7 +697,7 @@ enumError cmd_list ( int long_level )
 		printf("file=%s\n",info->path);
 		printf("used_discs=%u\n",wlist->used);
 		printf("total_discs=%u\n",wbfs.total_discs);
-		printf("used_mib=%u\n",wbfs.total_discs);
+		printf("used_mib=%u\n",wbfs.used_mib);
 		printf("free_mib=%u\n",wbfs.free_mib);
 		printf("total_mib=%u\n",wbfs.total_mib);
 
@@ -3004,6 +3004,7 @@ enumError CheckOptions ( int argc, char ** argv, bool is_env )
 	case GO_EXCLUDE_PATH:	AtFileHelper(optarg,0,0,AddExcludePath); break;
 	case GO_IGNORE:		break;
 	case GO_IGNORE_FST:	allow_fst = false; break;
+	case GO_IGNORE_SETUP:	ignore_setup = true; break;
 
 	case GO_INODE:		break;
 	case GO_DEST:		SetDest(optarg,false); break;

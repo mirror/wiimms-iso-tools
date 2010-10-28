@@ -1484,7 +1484,7 @@ enumError WriteWBFS
 	u32 wlba = ntohs(wlba_tab[bl]);
 	if (!wlba)
 	{
-	    wlba = wbfs_alloc_block(w);
+	    wlba = wbfs_alloc_block(w,ntohs(wlba_tab[0]));
 	    if ( wlba == WBFS_NO_BLOCK )
 	    {
 		sf->f.last_error = ERR_WRITE_FAILED;

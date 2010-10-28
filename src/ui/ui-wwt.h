@@ -57,6 +57,7 @@ typedef enum enumOptions
 	OPT_EXCLUDE_PATH,
 	OPT_IGNORE,
 	OPT_IGNORE_FST,
+	OPT_IGNORE_SETUP,
 	OPT_ENC,
 	OPT_ID,
 	OPT_NAME,
@@ -118,7 +119,7 @@ typedef enum enumOptions
 	OPT_SORT,
 	OPT_LIMIT,
 
-	OPT__N_SPECIFIC, // == 76 
+	OPT__N_SPECIFIC, // == 77 
 
 	//----- global options -----
 
@@ -139,7 +140,7 @@ typedef enum enumOptions
 	OPT_TEST,
 	OPT_HOOK,
 
-	OPT__N_TOTAL // == 92
+	OPT__N_TOTAL // == 93
 
 } enumOptions;
 
@@ -169,6 +170,7 @@ typedef enum enumOptions
 //	OB_EXCLUDE_PATH		= 1llu << OPT_EXCLUDE_PATH,
 //	OB_IGNORE		= 1llu << OPT_IGNORE,
 //	OB_IGNORE_FST		= 1llu << OPT_IGNORE_FST,
+//	OB_IGNORE_SETUP		= 1llu << OPT_IGNORE_SETUP,
 //	OB_ENC			= 1llu << OPT_ENC,
 //	OB_ID			= 1llu << OPT_ID,
 //	OB_NAME			= 1llu << OPT_NAME,
@@ -244,6 +246,9 @@ typedef enum enumOptions
 //				| OB_FORCE
 //				| OB_NO_CHECK,
 //
+//	OB_GRP_FST		= OB_IGNORE_FST
+//				| OB_IGNORE_SETUP,
+//
 //	OB_GRP_EXCLUDE		= OB_INCLUDE
 //				| OB_INCLUDE_PATH
 //				| OB_EXCLUDE
@@ -254,7 +259,7 @@ typedef enum enumOptions
 //				| OB_EXCLUDE
 //				| OB_EXCLUDE_PATH
 //				| OB_IGNORE
-//				| OB_IGNORE_FST,
+//				| OB_GRP_FST,
 //
 //	OB_GRP_VERBOSE		= 0,
 //
@@ -472,7 +477,7 @@ typedef enum enumOptions
 //				| OB_LONG,
 //
 //	OB_CMD_FILETYPE		= OB_IGNORE
-//				| OB_IGNORE_FST
+//				| OB_GRP_FST
 //				| OB_NO_HEADER
 //				| OB_LONG,
 //
@@ -595,6 +600,7 @@ typedef enum enumGetOpt
 	GO_PSEL,
 	GO_RAW,
 	GO_IGNORE_FST,
+	GO_IGNORE_SETUP,
 	GO_HOOK,
 	GO_ENC,
 	GO_ID,

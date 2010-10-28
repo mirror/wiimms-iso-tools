@@ -56,7 +56,7 @@
 //#define be32 wbfs_be32
 //#define be64 wbfs_be64
 
-//#define wbfs_count_usedblocks wbfs_count_unusedblocks
+//#define wbfs_count_usedblocks wbfs_get_free_block_count
 //#define wbfs_open_disc wbfs_open_disc_by_id6
 
 //#define ONLY_GAME_PARTITION WD_PART_DATA

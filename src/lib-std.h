@@ -1053,7 +1053,7 @@ void PrintMemMap ( MemMap_t * mm, FILE * f, int indent );
 typedef struct SetupDef_t
 {
 	ccp	name;		// name of parameter, NULL=list terminator
-	u32	factor;		// factor, 0: text param
+	u32	factor;		// alignment factor;, 0: text param
 	ccp	param;		// malloced text param
 	u64	value;		// numeric value of param
 

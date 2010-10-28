@@ -279,7 +279,8 @@ enumError SourceIteratorWarning ( Iterator_t * it, enumError max_err, bool silen
 ///////////////			global options			///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-extern bool allow_fst;
+extern bool allow_fst;		// FST diabled by default
+extern bool ignore_setup;	// ignore file 'setup.txt' while composing
 
 extern wd_select_t part_selector;
 
@@ -369,6 +370,7 @@ void PrintIM ( IsoMapping_t * im, FILE * f, int indent );
 ///////////////                      Wii FST                    ///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
+#define FST_SETUP_FILE   "setup.txt"
 #define FST_INCLUDE_FILE "include.fst"
 
 enum // some const

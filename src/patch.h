@@ -138,6 +138,7 @@ int ScanOptName ( ccp arg );
 bool PatchId ( void * id, int skip, int maxlen, wd_modify_t condition );
 bool CopyPatchedDiscId ( void * dest, const void * src );
 bool PatchName ( void * name, wd_modify_t condition );
+bool PatchDiscHeader ( void * dhead, const void * patch_id, const void * patch_name );
 
 //-----------------------------------------------------------------------------
 

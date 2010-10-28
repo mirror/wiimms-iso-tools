@@ -470,6 +470,8 @@ typedef struct wd_part_t
     wd_tmd_t		* tmd;		// NULL or pointer to tmd, size = ph.tmd_size
     u8			* cert;		// NULL or pointer to cert, size = ph.cert_size
     u8			* h3;		// NULL or pointer to h3, size = WII_H3_SIZE
+    char		* setup_txt;	// NULL or pointer to content of file setup.txt
+    u32			setup_txt_len;	// = strlen(setup_txt)
 
     u8			key[WII_KEY_SIZE];
 					// partition key, needed to build aes key
@@ -1102,6 +1104,15 @@ u32 wd_count_used_blocks
 					//        continuous blocks as one block
 );
 
+//-----------------------------------------------------------------------------
+
+bool wd_is_block_used
+(
+    const u8		* usage_table,	// valid pointer to usage table
+    u32			block_index,	// index of block
+    u32			block_size	// if >1: number of sectors per block
+);
+
 //
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////		    interface: file iteration		///////////////
@@ -1467,7 +1478,7 @@ bool wd_patch_ptab // result = true if something changed
 bool wd_patch_id
 (
     void		* dest_id,	// destination, size=id_len, not 0 term
-    const void		* source_id,	// source id, length=id_len
+    const void		* source_id,	// NULL or source id, length=id_len
     const void		* new_id,	// NULL or new ID / 0 term / '.': don't change
     u32			id_len		// max length of id
 );

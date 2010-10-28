@@ -520,6 +520,11 @@ info_t info_tab[] =
 		0, 
 		"Disable composing and ignore FST directories as input." },
 
+  { T_OPT_C,	"IGNORE_SETUP",	"ignore-setup|ignoresetup",
+		0, 
+		"While composing ignore the file @'setup.txt'@,"
+		" which defines some partition parameters." },
+		
   { T_SEP_OPT,	0,0,0,0 }, //----- separator -----
 
   { T_OPT_CP,	"PSEL",		"psel",
@@ -943,6 +948,12 @@ info_t info_tab[] =
 
   { T_SEP_OPT,	0,0,0,0 },
 
+  //---------- wit GROUP FST ----------
+
+  { T_GRP_BEG,	"FST",		0,0,0 },
+
+  { T_COPT,	"IGNORE_FST",	0,0,0 },
+  { T_COPT,	"IGNORE_SETUP",	0,0,0 },
 
   //---------- wit GROUP SOURCE ----------
 
@@ -982,7 +993,7 @@ info_t info_tab[] =
   { T_COPY_GRP,	"SOURCE",	0,0,0 },
   { T_COPY_GRP,	"EXCLUDE",	0,0,0 },
   { T_COPT_M,	"IGNORE",	0,0,0 },
-  { T_COPT,	"IGNORE_FST",	0,0,0 },
+  { T_COPY_GRP,	"FST",		0,0,0 },
 
   { T_SEP_OPT,	0,0,0,0 },
 
@@ -1205,7 +1216,7 @@ info_t info_tab[] =
   { T_COPY_GRP,	"TITLES",	0,0,0 },
   { T_COPT,	"AUTO",		0,0,0 },
   { T_COPY_GRP,	"XSOURCE",	0,0,0 },
-  { T_COPT,	"IGNORE_FST",	0,0,0 },
+  { T_COPY_GRP,	"FST",		0,0,0 },
   { T_COPY_GRP,	"PARTITIONS",	0,0,0 },
   { T_COPY_GRP,	"FILES",	0,0,0 },
 
@@ -1236,7 +1247,7 @@ info_t info_tab[] =
 
   { T_COPT,	"AUTO",		0,0,0 },
   { T_COPY_GRP,	"XSOURCE",	0,0,0 },
-  { T_COPT,	"IGNORE_FST",	0,0,0 },
+  { T_COPY_GRP,	"FST",		0,0,0 },
 
   { T_COPT_M,	"LOGGING",	0,0,0 },
   { T_COPT_M,	"LONG",		0,0,
@@ -1249,7 +1260,7 @@ info_t info_tab[] =
   { T_COPY_GRP,	"TITLES",	0,0,0 },
   { T_COPT,	"AUTO",		0,0,0 },
   { T_COPY_GRP,	"XSOURCE",	0,0,0 },
-  { T_COPT,	"IGNORE_FST",	0,0,0 },
+  { T_COPY_GRP,	"FST",		0,0,0 },
 
   { T_COPT_M,	"LOGGING",	0,0,0 },
   { T_COPT,	"UNIQUE",	0,0,0 },
@@ -1863,6 +1874,9 @@ info_t info_tab[] =
   { T_OPT_C,	"IGNORE_FST",	"ignore-fst|ignorefst",
 		0, 0 /* copy of wit */ },
 
+  { T_OPT_C,	"IGNORE_SETUP",	"ignore-setup|ignoresetup",
+		0, 0 /* copy of wit */ },
+
   { T_SEP_OPT,	0,0,0,0 }, //----- separator -----
 
   { H_OPT_G,	"HOOK",		"hook",
@@ -2102,6 +2116,13 @@ info_t info_tab[] =
 
   { T_SEP_OPT,	0,0,0,0 },
 
+  //---------- wwt GROUP FST ----------
+
+  { T_GRP_BEG,	"FST",		0,0,0 },
+
+  { T_COPT,	"IGNORE_FST",	0,0,0 },
+  { T_COPT,	"IGNORE_SETUP",	0,0,0 },
+
   //---------- wwt GROUP EXCLUDE ----------
 
   { T_GRP_BEG,	"EXCLUDE",	0,0,0 },
@@ -2122,7 +2143,7 @@ info_t info_tab[] =
   { T_COPT_M,	"EXCLUDE",	0,0,0 },
   { T_COPT_M,	"EXCLUDE_PATH",	0,0,0 },
   { T_COPT,	"IGNORE",	0,0,0 },
-  { T_COPT,	"IGNORE_FST",	0,0,0 },
+  { T_COPY_GRP,	"FST",		0,0,0 },
 
   { T_SEP_OPT,	0,0,0,0 },
 
@@ -2666,7 +2687,7 @@ info_t info_tab[] =
   { T_CMD_BEG,	"FILETYPE",	0,0,0 },
 
   { T_COPT_M,	"IGNORE",	0,0,0 },
-  { T_COPT,	"IGNORE_FST",	0,0,0 },
+  { T_COPY_GRP,	"FST",		0,0,0 },
   { T_COPT,	"NO_HEADER",	0,0,0 },
   { T_COPT_M,	"LONG",		0,0,
 	"If set then ID6 and split file count are printed too."

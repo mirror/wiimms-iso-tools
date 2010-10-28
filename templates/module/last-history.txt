@@ -8,6 +8,10 @@ wit v@@VERSION@@ r@@REV-NEXT@@ - @@@@-@@-@@
  - Options --include and --exclude accept now IDs with wildcards:
    '.' is a wildcard for 1 character and '*' and '+' (same meaning) for any
    number of charaters.
+ - File 'setup.txt' is created as template while extracting a disc image.
+   It is scanned for ID, NAME and OFFSET while composing a disc image.
+   The new option --ignore-setup disables the scanning of 'setup.txt'.
+
 
 Known bugs:
 

@@ -1112,7 +1112,7 @@ enumError CloseWBFSCache()
     enumError err = ERR_OK;
     if (wbfs_cache_valid)
     {
-	PRINT("WBFS: CLOSE CACHE: %s\n",wbfs_cache.sf->f.fname);
+	TRACE("WBFS: CLOSE CACHE: %s\n",wbfs_cache.sf->f.fname);
 	wbfs_cache_valid = false;
 	wbfs_cache.cache_candidate = false;
 	err = ResetWBFS(&wbfs_cache);
@@ -1142,7 +1142,7 @@ enumError ResetWBFS ( WBFS_t * w )
     if ( w->cache_candidate && w->sf_alloced && w->sf && IsOpenSF(w->sf) )
     {
 	CloseWBFSCache();
-	PRINT("WBFS: SETUP CACHE: %s\n",w->sf->f.fname);
+	TRACE("WBFS: SETUP CACHE: %s\n",w->sf->f.fname);
 	DASSERT(!wbfs_cache_valid);
 	memcpy(&wbfs_cache,w,sizeof(wbfs_cache));
 	wbfs_cache_valid = true;
@@ -1310,14 +1310,14 @@ static enumError OpenWBFSHelper
 	  wbfs_param_t * par, int sector_size, bool recover )
 {
     ASSERT(w);
-    PRINT("OpenFileWBFS(%s,%d,%d,%d)\n",
+    TRACE("OpenFileWBFS(%s,%d,%d,%d)\n",
 		filename, print_err, sector_size, recover );
 
     if ( wbfs_cache_valid
 	&& IsOpenSF(wbfs_cache.sf)
 	&& !strcmp(wbfs_cache.sf->f.fname,filename) )
     {
-	PRINT("WBFS: USE CACHE: %s\n",wbfs_cache.sf->f.fname);
+	TRACE("WBFS: USE CACHE: %s\n",wbfs_cache.sf->f.fname);
 	wbfs_cache_valid = false;
 	ResetWBFS(w);
 	memcpy(w,&wbfs_cache,sizeof(*w));
@@ -1543,7 +1543,7 @@ enumError CalcWBFSUsage ( WBFS_t * w )
     w->total_discs	= w->wbfs->max_disc;
     w->free_discs	= w->total_discs - w->used_discs;
 
-    u32 free_count	= wbfs_count_unusedblocks(w->wbfs);
+    u32 free_count	= wbfs_get_free_block_count(w->wbfs);
     w->free_blocks	= free_count;
     w->free_mib		= ( (u64)w->wbfs->wbfs_sec_sz * free_count ) / MiB; // round down!
     w->total_mib	= ( (u64)w->wbfs->wbfs_sec_sz * w->wbfs->n_wbfs_sec + MiB/2 ) / MiB;
@@ -2033,6 +2033,7 @@ enumError DumpWBFS
     {
 	fprintf(f,"\f\n%*sWBFS Memory Usage:\n\n", indent,"" );
 	wbfs_print_block_usage(stdout,3,w,false);
+	fputc('\n',f);
     }
  #endif
 

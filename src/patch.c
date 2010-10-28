@@ -482,6 +482,30 @@ bool PatchName ( void * name, wd_modify_t condition )
     return true;
 }
 
+//-----------------------------------------------------------------------------
+
+bool PatchDiscHeader ( void * dhead, const void * patch_id, const void * patch_name )
+{
+    DASSERT(dhead);
+    bool stat = false;
+
+    if (patch_id)
+	stat = wd_patch_id(dhead,dhead,patch_id,6);
+
+    if (patch_name)
+    {
+	char * title = (char*)dhead + WII_TITLE_OFF;
+	if (memcmp(title,patch_name,WII_TITLE_SIZE))
+	{
+	    stat = true;
+	    strncpy(title,patch_name,WII_TITLE_SIZE);
+	    title[WII_TITLE_SIZE-1] = 0;
+	}
+    }
+
+    return stat;
+}
+
 //
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////			--trim				///////////////
