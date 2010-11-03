@@ -561,7 +561,7 @@ info_t info_tab[] =
 		" The default value is @'auto'@." },
 
   { T_OPT_C,	"SNEEK",	"sneek",
-		0, "Abbreviation of {--psel data --pmode none --files =sneek}." },
+		0, "Abbreviation of {--psel data --pmode none --files :sneek}." },
 
   { H_OPT_G,	"HOOK",		"hook",
 		0,
@@ -799,7 +799,9 @@ info_t info_tab[] =
 		0, "Overwrite already existing files." },
 
   { T_OPT_C,	"REMOVE",	"R|remove",
-		0, "Remove source files/discs if operation is successful." },
+		0,
+		"Remove source files/discs if operation is successful."
+		" If the source is an extracted file systems (FST) it isn't removed." },
 
   { T_SEP_OPT,	0,0,0,0 }, //----- separator -----
 

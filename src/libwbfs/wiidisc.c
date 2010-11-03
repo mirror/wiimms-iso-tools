@@ -1696,6 +1696,7 @@ enumError wd_load_part
 	    return ERR_WDISC_INVALID;
 	}
 
+
 	//----- setup setup_txt
 
 	// [2do] "setup.txt"
@@ -1793,11 +1794,14 @@ enumError wd_load_part
 	//----- load and iterate fst
 
 	u32 mgr_sect = part->end_sector;
+	u32 fst_size = boot->fst_size4;
 
-	const u32 fst_size = boot->fst_size4 << 2;
 	if (fst_size)
 	{
+	    if (!part->is_gc)
+		fst_size <<= 2;
 	    TRACE("fst_size=%x\n",fst_size);
+
 	    wd_fst_item_t * fst = malloc(fst_size);
 	    if (!fst)
 		OUT_OF_MEMORY;

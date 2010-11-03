@@ -1508,7 +1508,9 @@ enumError RecoverWBFS ( WBFS_t * wbfs, ccp fname, bool testmode )
 enumError TruncateWBFS ( WBFS_t * w )
 {
     ASSERT(w);
-    PRINT("TruncateWBFS() fd=%d\n", w->sf ? GetFD(&w->sf->f) : -2 );
+    PRINT("TruncateWBFS() fd=%d fp=%p\n",
+		w->sf ? GetFD(&w->sf->f) : -2,
+		w->sf ? GetFP(&w->sf->f) : 0 );
 
     enumError err = CloseWDisc(w);
     SyncWBFS(w,false);

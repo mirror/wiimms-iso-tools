@@ -1,6 +1,8 @@
 wit v@@VERSION@@ r@@REV-NEXT@@ - @@@@-@@-@@
 
  - WIA creation warning "WIA is NEW! Compare with original source." removed.
+ - Preparation: Tools will read future WDF versions without warnings, if the
+   compatibility parameter allow this.
  - The file descriptor of the last WBFS partition is saved/cached. This makes
    wit faster when reading multiple discs from a WBFS.
  - wit EXTRACT: The progress view is now based on the file size instead of
@@ -11,6 +13,15 @@ wit v@@VERSION@@ r@@REV-NEXT@@ - @@@@-@@-@@
  - File 'setup.txt' is created as template while extracting a disc image.
    It is scanned for ID, NAME and OFFSET while composing a disc image.
    The new option --ignore-setup disables the scanning of 'setup.txt'.
+ - Bug fix for "wit CONVERT": The destination path was the current working
+   directory.
+ - Bug fix for "wwt ADD --remove": If command is done without errors all
+   sources files -- but not FST -- are removed.
+ - Composed discs: New and correct calculation of total size and time stamps.
+   For time stamps the newest times of all scanned files are used.
+ - Bug fix: Calculation of fst size fixed for GameCube parsing.
+ - wit INFO FILE-FORMAT: New attribute 'compr': Signals a compressed file
+   format and that option --compr can be used to setup the compression mode.
 
 
 Known bugs:

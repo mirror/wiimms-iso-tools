@@ -400,37 +400,38 @@ typedef struct WiiFstFile_t
 
 typedef struct WiiFstPart_t
 {
-	//----- wd interface
+    //----- wd interface
 
-	wd_part_t	* part;			// NULL or partition pointer
+    wd_part_t		* part;			// NULL or partition pointer
 
-	//----- partition info
+    //----- partition info
 
-	u32		part_type;		// partition type
-	u64		part_off;		// offset of partition relative to disc start
-	u8		key[WII_KEY_SIZE];	// partition key
-	aes_key_t	akey;			// partition aes key
-	ccp		path;			// prefix path to partition
-	wd_part_control_t * pc;			// ticket + cert + tmd + h3;
+    u32			part_type;		// partition type
+    u64			part_off;		// offset of partition relative to disc start
+    u8			key[WII_KEY_SIZE];	// partition key
+    aes_key_t		akey;			// partition aes key
+    ccp			path;			// prefix path to partition
+    wd_part_control_t	* pc;			// ticket + cert + tmd + h3;
 
-	//----- files
+    //----- files
 
-	WiiFstFile_t	* file;			// alloced list of files
-	u32		file_used;		// number of used elements in 'file'
-	u32		file_size;		// number of allocated elements in 'file'
-	SortMode	sort_mode;		// current sort mode
-	StringField_t	include_list;		// list of files with trailing '.'
-	u64		total_file_size;	// total size of all files
+    WiiFstFile_t	* file;			// alloced list of files
+    u32			file_used;		// number of used elements in 'file'
+    u32			file_size;		// number of allocated elements in 'file'
+    SortMode		sort_mode;		// current sort mode
+    StringField_t	include_list;		// list of files with trailing '.'
+    FileAttrib_t	max_fatt;		// max file attributes
+    u64			total_file_size;	// total size of all files
 
-	//----- generator data
+    //----- generator data
 
-	u8		*ftab;			// file table (fst.bin)
-	u32		ftab_size;		// size of file table
-	IsoMapping_t	im;			// iso mapping
+    u8			* ftab;			// file table (fst.bin)
+    u32			ftab_size;		// size of file table
+    IsoMapping_t	im;			// iso mapping
 
-	//----- status
-	
-	int done;				// set if operation was done
+    //----- status
+
+    int			done;			// set if operation was done
 
 } WiiFstPart_t;
 

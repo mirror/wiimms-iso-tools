@@ -496,7 +496,7 @@ static enumError XOpenFileHelper
     }
     else
     {
-	CopyFileAttribStat(&f->fatt,&f->st);
+	CopyFileAttribStat(&f->fatt,&f->st,false);
 	f->seek_allowed =  GetFileMode(f->st.st_mode) != FM_OTHER
 			&& lseek(f->fd,0,SEEK_SET) != (off_t)-1;
 	if ( iomode & opt_iomode || S_ISCHR(f->st.st_mode) )
@@ -1043,7 +1043,7 @@ const OFT_info_t oft_info[OFT__N+1] =
     { OFT_WBFS,	OFT_A_READ|OFT_A_WRITE|OFT_A_EXTEND|OFT_A_MODIFY, IOM_IS_IMAGE,
 	"WBFS", "--wbfs", ".wbfs", 0, "Wii Backup File System" },
 
-    { OFT_WIA,	OFT_A_READ|OFT_A_WRITE, IOM_IS_WIA,
+    { OFT_WIA,	OFT_A_READ|OFT_A_WRITE|OFT_A_COMPR, IOM_IS_WIA,
 	"WIA", "--wia", ".wia", 0, "compressed Wii ISO Archive" },
 
     { OFT_FST,	OFT_A_READ|OFT_A_WRITE|OFT_A_FST, IOM__IS_DEFAULT,
@@ -1502,16 +1502,7 @@ enumError XAnalyzeWH ( XPARM File_t * f, WDF_Head_t * wh, bool print_err )
 		: ERR_WRONG_FILE_TYPE;
     }
 
-    const size_t wdf_size = GetHeadSizeWDF(wh->wdf_version);
-    if ( wdf_size && wdf_size < sizeof(WDF_Head_t) )
-	memset((char*)wh+wdf_size,0,sizeof(WDF_Head_t)-wdf_size);
-
- #if WDF2_ENABLED
-    if (!wh->wdf_compatible)
-	 wh->wdf_compatible = WDF_COMPATIBLE;
-    if (!wh->align_factor)
-	 wh->align_factor = 1;
- #endif
+    const size_t wdf_head_size = AdjustHeaderWDF(wh);
 
  #if WDF2_ENABLED
     if ( !wh->wdf_version || wh->wdf_compatible > WDF_VERSION )
@@ -1519,7 +1510,11 @@ enumError XAnalyzeWH ( XPARM File_t * f, WDF_Head_t * wh, bool print_err )
     if ( !wh->wdf_version || wh->wdf_version > WDF_VERSION )
  #endif
     {
-	TRACE(" - wrong WDF version\n");
+     #if WDF2_ENABLED
+	PRINT(" - wrong WDF version: %u,%u\n",wh->wdf_version,wh->wdf_compatible);
+     #else
+	PRINT(" - wrong WDF version: %u\n",wh->wdf_version);
+     #endif
 	return print_err
 		? PrintError( XERROR0, ERR_WDF_VERSION,
  #if WDF2_ENABLED
@@ -1553,14 +1548,14 @@ enumError XAnalyzeWH ( XPARM File_t * f, WDF_Head_t * wh, bool print_err )
 	XSetupSplitFile(XCALL f,OFT_UNKNOWN,0);
     }
 
-    if ( wh->chunk_off != wh->data_size + wdf_size
+    if ( wh->chunk_off != wh->data_size + wdf_head_size
 	|| wh->chunk_off + WDF_MAGIC_SIZE + chunk_tab_size != f->st.st_size )
     {
-	TRACE(" - file size error\n");
-	TRACE("   - %llx ? %llx = %llx + %zx\n",
-		(u64)wh->chunk_off, wh->data_size + wdf_size,
-		wh->data_size, wdf_size );
-	TRACE("   - %llx + %x + %x = %llx ? %llx\n",
+	PRINT(" - file size error\n");
+	PRINT("   - %llx ? %llx = %llx + %zx\n",
+		(u64)wh->chunk_off, wh->data_size + wdf_head_size,
+		wh->data_size, wdf_head_size );
+	PRINT("   - %llx + %x + %x = %llx ? %llx\n",
 		(u64)wh->chunk_off, WDF_MAGIC_SIZE, chunk_tab_size,
 		(u64)wh->chunk_off + WDF_MAGIC_SIZE + chunk_tab_size,
 		(u64)f->st.st_size );
@@ -2561,27 +2556,50 @@ enumError CreatePath ( ccp fname )
 
 s64 GetFileSize
 (
-    ccp		path1,		// NULL or part 1 of path
-    ccp		path2,		// NULL or part 2 of path
-    s64		not_found_value	// return value if no regular file found
+    ccp			path1,		// NULL or part 1 of path
+    ccp			path2,		// NULL or part 2 of path
+    s64			not_found_val,	// return value if no regular file found
+    FileAttrib_t	* fatt,		// not NULL: store file attributes
+    bool		fatt_max	// true: store max values to 'fatt'
 )
 {
     char pathbuf[PATH_MAX];
     ccp path = PathCatPP(pathbuf,sizeof(pathbuf),path1,path2);
-    TRACE("GetFileSize(%s,%lld)\n",path,not_found_value);
+    TRACE("GetFileSize(%s,%lld)\n",path,not_found_val);
 
     struct stat st;
-    return !stat(path,&st) && S_ISREG(st.st_mode) ? st.st_size : not_found_value;
+    if ( stat(path,&st) || !S_ISREG(st.st_mode) )
+    {
+	if ( fatt && !fatt_max )
+	    memset(fatt,0,sizeof(*fatt));
+	return not_found_val;
+    }
+
+    if (fatt)
+	CopyFileAttribStat(fatt,&st,fatt_max);
+    
+    return st.st_size;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 
-enumError LoadFile ( ccp path1, ccp path2, size_t skip,
-		     void * data, size_t size, bool silent )
+enumError LoadFile
+(
+    ccp			path1,		// NULL or part #1 of path
+    ccp			path2,		// NULL or part #2 of path
+    size_t		skip,		// skip num of bytes before reading
+    void		* data,		// destination buffer, size = 'size'
+    size_t		size,		// size to read
+    bool		silent,		// true: suppress printing of error messages
+    FileAttrib_t	* fatt,		// not NULL: store file attributes
+    bool		fatt_max	// true: store max values to 'fatt'
+)
 {
     // [2do] error handling
 
     ASSERT(data);
+    if ( fatt && !fatt_max )
+	memset(fatt,0,sizeof(*fatt));
 
     if (!size)
 	return ERR_OK;
@@ -2598,17 +2616,24 @@ enumError LoadFile ( ccp path1, ccp path2, size_t skip,
 	return ERR_CANT_OPEN;
     }
     
+    if (fatt)
+    {
+	struct stat st;
+	if (!fstat(fileno(f),&st))
+	    CopyFileAttribStat(fatt,&st,fatt_max);
+    }
+
     if ( skip > 0 )
 	fseek(f,skip,SEEK_SET);
 
-    size_t stat = fread(data,1,size,f);
+    size_t read_stat = fread(data,1,size,f);
     fclose(f);
 
-    if ( stat == size )
+    if ( read_stat == size )
 	return ERR_OK;
 
-    if ( stat >= 0 && stat < size )
-	memset((char*)data+stat,0,size-stat);
+    if ( read_stat >= 0 && read_stat < size )
+	memset((char*)data+read_stat,0,size-read_stat);
     
     return ERR_WARNING;
 }
@@ -2622,7 +2647,7 @@ enumError SaveFile ( ccp path1, ccp path2, bool create_dir,
 
     char pathbuf[PATH_MAX];
     ccp path = PathCatPP(pathbuf,sizeof(pathbuf),path1,path2);
-    TRACE("LoadFile(%s,%zx,%d)\n",path,size,silent);
+    TRACE("SaveFile(%s,%zx,%d)\n",path,size,silent);
 
     FILE * f = fopen(path,"wb");
     if (!f)
@@ -2659,9 +2684,12 @@ enumError SaveFile ( ccp path1, ccp path2, bool create_dir,
 ///////////////                  FileAttrib_t                   ///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-FileAttrib_t * NormalizeFileAttrib ( FileAttrib_t * fa )
+FileAttrib_t * NormalizeFileAttrib
+(
+    FileAttrib_t	* fa		// valid attribute
+)
 {
-    ASSERT(fa);
+    DASSERT(fa);
 
     if ( fa->size < 0 )
 	fa->size = 0;
@@ -2693,10 +2721,39 @@ FileAttrib_t * NormalizeFileAttrib ( FileAttrib_t * fa )
 
 //-----------------------------------------------------------------------------
 
-FileAttrib_t * CopyFileAttrib ( FileAttrib_t * dest, const FileAttrib_t * src )
+FileAttrib_t * MaxFileAttrib
+(
+    FileAttrib_t	* dest,		// source and destination atttibute
+    const FileAttrib_t	* src		// NULL or second source atttibute
+)
 {
-    ASSERT(src);
-    ASSERT(dest);
+    DASSERT(dest);
+    if (src)
+    {
+	if ( dest->size < src->size )
+	     dest->size = src->size;
+	if ( dest->itime < src->itime )
+	     dest->itime = src->itime;
+	if ( dest->mtime < src->mtime )
+	     dest->mtime = src->mtime;
+	if ( dest->ctime < src->ctime )
+	     dest->ctime = src->ctime;
+	if ( dest->atime < src->atime )
+	     dest->atime = src->atime;
+    }
+    return dest;
+}
+
+//-----------------------------------------------------------------------------
+
+FileAttrib_t * CopyFileAttrib
+(
+    FileAttrib_t	* dest,		// valid destination atttibute
+    const FileAttrib_t	* src		// valid source atttibute
+)
+{
+    DASSERT(src);
+    DASSERT(dest);
 
     memcpy(dest,src,sizeof(*dest));
     return NormalizeFileAttrib(dest);
@@ -2704,24 +2761,38 @@ FileAttrib_t * CopyFileAttrib ( FileAttrib_t * dest, const FileAttrib_t * src )
 
 //-----------------------------------------------------------------------------
 
-FileAttrib_t * CopyFileAttribStat ( FileAttrib_t * dest, const struct stat * src )
+FileAttrib_t * CopyFileAttribStat
+(
+    FileAttrib_t	* dest,		// valid destination atttibute
+    const struct stat	* src,		// NULL or source
+    bool		maximize	// true store max values to 'dest'
+)
 {
-    ASSERT(src);
-    ASSERT(dest);
+    DASSERT(dest);
 
-    dest->size  = src->st_size;
-    dest->itime = 0;
-
-    if ( S_ISREG(src->st_mode) )
+    if (src)
     {
-	dest->mtime = src->st_mtime;
-	dest->ctime = src->st_ctime;
-	dest->atime = src->st_atime;
+	FileAttrib_t temp_fatt;
+	FileAttrib_t * fatt = maximize ? &temp_fatt : dest;
+
+	memset(fatt,0,sizeof(*fatt));
+	fatt->size = src->st_size;
+
+	if ( S_ISREG(src->st_mode) )
+	{
+	    fatt->mtime = src->st_mtime;
+	    fatt->ctime = src->st_ctime;
+	    fatt->atime = src->st_atime;
+	}
+	NormalizeFileAttrib(fatt);
+
+	if (maximize)
+	    MaxFileAttrib(dest,fatt);
     }
-    else
-	dest->mtime = dest->ctime = dest->atime = (time_t)0;
-	
-    return NormalizeFileAttrib(dest);
+    else if (!maximize)
+	memset(dest,0,sizeof(*dest));
+
+    return dest;
 }
 
 //-----------------------------------------------------------------------------

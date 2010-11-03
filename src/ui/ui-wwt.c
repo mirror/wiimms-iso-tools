@@ -461,7 +461,8 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 
     {	OPT_REMOVE, 'R', "remove",
 	0,
-	"Remove source files/discs if operation is successful."
+	"Remove source files/discs if operation is successful. If the source"
+	" is an extracted file systems (FST) it isn't removed."
     },
 
     {	OPT_WDF, 'W', "wdf",

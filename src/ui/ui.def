@@ -368,7 +368,7 @@
 
 #:def_opt( "SNEEK", "sneek", "C", \
 	"", \
-	"Abbreviation of {--psel data --pmode none --files =sneek}." )
+	"Abbreviation of {--psel data --pmode none --files :sneek}." )
 
 #:def_opt( "ENC", "enc", "CP", \
 	"encoding", \
@@ -568,7 +568,8 @@
 
 #:def_opt( "REMOVE", "R|remove", "C", \
 	"", \
-	"Remove source files/discs if operation is successful." )
+	"Remove source files/discs if operation is successful. If the source" \
+	" is an extracted file systems (FST) it isn't removed." )
 
 #:def_opt( "WDF", "W|wdf", "C", \
 	"", \
@@ -4154,7 +4155,8 @@
 
 #:def_opt( "REMOVE", "R|remove", "C", \
 	"", \
-	"Remove source files/discs if operation is successful." )
+	"Remove source files/discs if operation is successful. If the source" \
+	" is an extracted file systems (FST) it isn't removed." )
 
 #:def_opt( "WDF", "W|wdf", "C", \
 	"", \

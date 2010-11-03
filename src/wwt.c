@@ -1638,6 +1638,26 @@ enumError exec_scan_id ( SuperFile_t * sf, Iterator_t * it )
 
 //-----------------------------------------------------------------------------
 
+enumError exec_rm_source ( SuperFile_t * sf, Iterator_t * it )
+{
+    ASSERT(sf);
+    ASSERT(it);
+
+    if (SIGINT_level)
+	return ERR_INTERRUPT;
+
+    if ( sf->f.id6 && !IsExcluded(sf->f.id6) && S_ISREG(sf->f.st.st_mode) )
+    {
+	if ( testmode || verbose > 0 )
+	    printf(" - %s\n",  sf->f.fname );
+	if (!testmode)
+	   RemoveSF(sf);
+    }
+    return ERR_OK;
+}
+
+//-----------------------------------------------------------------------------
+
 enumError exec_add ( SuperFile_t * sf, Iterator_t * it )
 {
     ASSERT(sf);
@@ -1774,7 +1794,7 @@ enumError cmd_add()
     it.update		= OptionUsed[OPT_UPDATE]	? 1 : 0;
     it.newer		= OptionUsed[OPT_NEWER]		? 1 : 0;
     it.overwrite	= OptionUsed[OPT_OVERWRITE]	? 1 : 0;
-    it.remove_source	= OptionUsed[OPT_REMOVE]	? 1 : 0;
+    //it.remove_source	= OptionUsed[OPT_REMOVE]	? 1 : 0;
 
     err = SourceIterator(&it,0,false,true);
     if ( err > ERR_WARNING )
@@ -1900,6 +1920,14 @@ enumError cmd_add()
 	}
     }
     max_error = SourceIteratorWarning(&it,max_error,false);
+
+    if ( !max_error && OptionUsed[OPT_REMOVE] && !SIGINT_level )
+    {
+	if ( testmode || verbose >= 0 )
+	    printf("%semove source files\n", testmode ? "WOULD r" : "R" );
+	it.func = exec_rm_source;
+	SourceIteratorCollected(&it,0,false); // max_error is adjusted automatically!
+    }
 
     ResetIterator(&it);
     ResetWBFS(&wbfs);

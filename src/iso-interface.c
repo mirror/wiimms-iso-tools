@@ -1488,7 +1488,7 @@ void SetupSneekMode()
 
     FilePattern_t * pat = file_pattern + PAT_DEFAULT;
     pat->rules.used = 0;
-    AddFilePattern("=sneek",PAT_DEFAULT);
+    AddFilePattern(":sneek",PAT_DEFAULT);
     SetupFilePattern(pat);
 }
 
@@ -2779,6 +2779,7 @@ static u32 scan_part ( scan_data_t * sd )
 		file->icm  = WD_ICM_FILE;
 		file->size = st.st_size;
 		sd->total_size += ALIGN32(file->size,4);
+		CopyFileAttribStat(&sd->part->max_fatt,&st,true);
 	    }
 	    // else ignore all other files
 	}
@@ -2815,6 +2816,7 @@ u32 ScanPartFST
     file->icm  = WD_ICM_DIRECTORY;
     file->path = strdup(sd.path_part);
     noTRACE("DIR:  %s\n",sd.path_dir);
+
 
     //----- scan files
 
@@ -3021,8 +3023,10 @@ u64 GenPartFST
     imi->data_alloced = true;
     u32 cur_offset4 = ALIGN32(boot_size>>2,good_align);
 
-    LoadFile(path,"sys/boot.bin",0,imi->data,WII_BOOT_SIZE,false);
-    LoadFile(path,"sys/bi2.bin",0,imi->data+WII_BOOT_SIZE,WII_BI2_SIZE,false);
+    LoadFile(path, "sys/boot.bin", 0, imi->data,
+		WII_BOOT_SIZE, false, &part->max_fatt, true );
+    LoadFile(path, "sys/bi2.bin", 0, imi->data+WII_BOOT_SIZE,
+		WII_BI2_SIZE, false, &part->max_fatt, true );
 
     wd_boot_t * boot = imi->data;
     char * title = boot->dhead.disc_title;
@@ -3052,11 +3056,13 @@ u64 GenPartFST
     if ( part->part_type == WD_PART_DATA )
     {
 	LoadFile(path,"disc/header.bin",0,
-			    &fst->dhead,sizeof(fst->dhead),true);
+			&fst->dhead, sizeof(fst->dhead), true,
+			&part->max_fatt, true);
 	PatchDiscHeader(&fst->dhead,part_id,part_name);
 	PatchId(&fst->dhead.disc_id,0,6,WD_MODIFY_DISC|WD_MODIFY__AUTO);
 	PatchName(fst->dhead.disc_title,WD_MODIFY_DISC|WD_MODIFY__AUTO);
     }
+
 
     //----- disc/region.bin
     
@@ -3071,8 +3077,8 @@ u64 GenPartFST
 	else if ( reg == REGION__AUTO || reg == REGION__FILE )
 	{
 	    reg = LoadFile(path,"disc/region.bin",0,
-				&fst->region,
-				sizeof(fst->region),true)
+				&fst->region, sizeof(fst->region), true,
+				&part->max_fatt, true )
 		? REGION__AUTO : REGION__FILE;
 	}
 
@@ -3088,7 +3094,7 @@ u64 GenPartFST
     //----- apploader.img
 
     ccp fpath = PathCatPP(pathbuf,sizeof(pathbuf),path,"sys/apploader.img");
-    const u32 app_fsize4 = GetFileSize(fpath,0,0) + 3 >> 2;
+    const u32 app_fsize4 = GetFileSize(fpath,0,0,&part->max_fatt,true) + 3 >> 2;
     imi = InsertIM(&part->im,IMT_FILE,WII_APL_OFF,(u64)app_fsize4<<2);
     imi->part = part;
     StringCopyS(imi->info,sizeof(imi->info),"apploader.img");
@@ -3107,7 +3113,7 @@ u64 GenPartFST
     boot->dol_off4 = htonl(cur_offset4);
     
     fpath = PathCatPP(pathbuf,sizeof(pathbuf),path,"sys/main.dol");
-    const u32 dol_fsize4 = GetFileSize(fpath,0,0) + 3 >> 2;
+    const u32 dol_fsize4 = GetFileSize(fpath,0,0,&part->max_fatt,true) + 3 >> 2;
     imi = InsertIM(&part->im,IMT_FILE,(u64)cur_offset4<<2,(u64)dol_fsize4<<2);
     imi->part = part;
     StringCopyS(imi->info,sizeof(imi->info),"main.dol");
@@ -3135,17 +3141,17 @@ u64 GenPartFST
 
     const u32 blocks = ( cur_offset4 - 1 ) / WII_SECTOR_DATA_SIZE4 + 1;
 
-    const s64 ticket_size = GetFileSize(path,"ticket.bin",-1);
+    const s64 ticket_size = GetFileSize(path,"ticket.bin",-1,&part->max_fatt,true);
     bool load_ticket = ticket_size == WII_TICKET_SIZE;
     if ( !load_ticket && ticket_size >= 0 )
 	ERROR0(ERR_WARNING,"Content of file 'ticket.bin' ignored!\n");
 
-    const s64 tmd_size = GetFileSize(path,"tmd.bin",-1);
+    const s64 tmd_size = GetFileSize(path,"tmd.bin",-1,&part->max_fatt,true);
     bool load_tmd = tmd_size == WII_TMD_GOOD_SIZE;
     if ( !load_tmd && tmd_size >= 0 )
 	ERROR0(ERR_WARNING,"Content of file 'tmd.bin' ignored!\n");
 
-    const s64 cert_size = GetFileSize(path,"cert.bin",0);
+    const s64 cert_size = GetFileSize(path,"cert.bin",0,&part->max_fatt,true);
 
     wd_part_control_t *pc = malloc(sizeof(wd_part_control_t));
     if (!pc)
@@ -3161,20 +3167,23 @@ u64 GenPartFST
 
     if (load_ticket)
 	load_ticket = LoadFile(path,"ticket.bin", 0,
-			    &pc->head->ticket, WII_TICKET_SIZE, false )
+			    &pc->head->ticket, WII_TICKET_SIZE, false,
+			    &part->max_fatt, true )
 		    == ERR_OK;
     if (!load_ticket)
 	ticket_setup(&pc->head->ticket,&fst->dhead.disc_id);
     wd_patch_id(pc->head->ticket.title_id+4,0,part_id,4);
 
     if (load_tmd)
-	load_tmd = LoadFile( path, "tmd.bin", 0, pc->tmd, pc->tmd_size, false )
+	load_tmd = LoadFile( path, "tmd.bin", 0,
+				pc->tmd, pc->tmd_size, false, &part->max_fatt, true )
 		 == ERR_OK;
     if (!load_tmd)
 	tmd_setup(pc->tmd,pc->tmd_size,&fst->dhead.disc_id);
     wd_patch_id(pc->tmd->title_id+4,0,part_id,4);
 
-    LoadFile(path,"cert.bin",	0, pc->cert, pc->cert_size, false );
+    LoadFile(path,"cert.bin",	0, pc->cert, pc->cert_size,
+			false, &part->max_fatt, true );
 
     if ( part->part_type == WD_PART_DATA )
     {
@@ -3225,6 +3234,7 @@ u64 GenPartFST
 
     //----- terminate
 
+    MaxFileAttrib(&sf->f.fatt,&part->max_fatt);
     ResetSetup(part_setup_def);
     return pc->data_size;
 }
@@ -3431,6 +3441,11 @@ enumError SetupReadFST ( SuperFile_t * sf )
 
     const off_t single_size = WII_SECTORS_SINGLE_LAYER * (off_t)WII_SECTOR_SIZE;
     sf->file_size = min_offset > single_size ? min_offset : single_size;
+
+    wd_disc_t * disc = OpenDiscSF(sf,false,true);
+    if (!disc)
+	return ERROR0(ERR_INTERNAL,"Composing error: %s\n",sf->f.fname);
+    sf->f.fatt.size = wd_count_used_disc_blocks(disc,1,0) * (u64)WII_SECTOR_SIZE;
 
     return ERR_OK;
 }
@@ -3744,7 +3759,7 @@ enumError ReadPartGroupFST ( SuperFile_t * sf, WiiFstPart_t * part,
 		noTRACE("IMT_FILE: %x %x -> %zx (%s)\n",
 			skip_count, max_copy, dest-src, imi->info );
 		ASSERT(imi->data);
-		LoadFile(imi->data,0,skip_count,dest,max_copy,false);
+		LoadFile(imi->data,0,skip_count,dest,max_copy,false,0,false);
 		break;
 
 	    case IMT_PART_FILES:
@@ -3773,7 +3788,7 @@ enumError ReadPartGroupFST ( SuperFile_t * sf, WiiFstPart_t * part,
 			    u32 load_size = file->size - skip;
 			    if ( load_size > max-loff )
 				 load_size = max-loff;
-			    LoadFile(part->path,file->path,skip,ldest,load_size,false);
+			    LoadFile(part->path,file->path,skip,ldest,load_size,false,0,false);
 			    ldest += load_size;
 			    loff  += load_size;
 			}

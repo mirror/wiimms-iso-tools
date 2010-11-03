@@ -1322,7 +1322,7 @@ enumError WriteZeroISO ( SuperFile_t * sf, off_t off, size_t size )
 enumError FlushFile ( SuperFile_t * sf )
 {
     DASSERT(sf);
-    if ( !sf->f.is_writing && sf->f.fp )
+    if ( sf->f.is_writing && sf->f.fp )
 	fflush(sf->f.fp);
     return ERR_OK;
 }
@@ -1496,10 +1496,7 @@ enumError WriteWBFS
 			    GetFT(&sf->f), GetFD(&sf->f), sf->f.fname );
 		return ERR_WRITE_FAILED;
 	    }
-  #ifdef TEST
-	    if ( bl <= 10 )
-		PRINT("WBFS WRITE: wlba_tab[%x] = %x\n",bl,wlba);
-  #endif
+	    noPRINT_IF( bl <= 10, "WBFS WRITE: wlba_tab[%x] = %x\n",bl,wlba);
 	    wlba_tab[bl] = htons(wlba);
 	    disc->is_dirty = 1;
 	}
@@ -1977,8 +1974,7 @@ enumFileType AnalyzeFT ( File_t * f )
 	ccp data_ptr = buf1;
 
 	WDF_Head_t wh;
-	memcpy(&wh,buf1,sizeof(wh));
-	ConvertToHostWH(&wh,&wh);
+	ConvertToHostWH(&wh,(WDF_Head_t*)buf1);
 
 	err = AnalyzeWH(f,&wh,false);
 	if ( err != ERR_NO_WDF )

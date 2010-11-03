@@ -41,8 +41,8 @@
 #define WDF_MAGIC_SIZE		8
 
 #ifdef NEW_FEATURES
- #define WDF2_ENABLED		0	// [obsolete] [2do]
- #define WDF_VERSION		1
+ #define WDF2_ENABLED		1	// [2do]
+ #define WDF_VERSION		2
  #define WDF_COMPATIBLE		1
 #else
  #define WDF2_ENABLED		0
@@ -73,9 +73,14 @@ typedef struct WDF_Head_t
 {
 	// magic and version number
 	char magic[WDF_MAGIC_SIZE];	// WDF_MAGIC, what else!
-	u32 wdf_version;		// WDF_VERSION
 
-	// split file support
+ #if WDF2_ENABLED
+	u32 wdf_compatible;		// this file is compatible down to version #
+ #else
+	u32 wdf_version;		// WDF_VERSION
+ #endif
+
+	// split file support (not used, values are 0,0,1)
 	u32 split_file_id;		// for plausibility checks
 	u32 split_file_index;		// zero based index ot this file
 	u32 split_file_num_of;		// number of split files
@@ -87,16 +92,16 @@ typedef struct WDF_Head_t
 	u64 data_size;			// the ISO data size in this file
 					// (without header and chunk table)
 	// chunks
-	u32 chunk_split_file;		// which spit file contains the chunk table
+	u32 chunk_split_file;		// which split file contains the chunk table
 	u32 chunk_n;			// total number of data chunks
 	u64 chunk_off;			// the 'MAGIC + chunk_table' file offset
 
 	//---------- here ends the header of WDF version 1 ----------
 
  #if WDF2_ENABLED
-	u32 wdf_compatible;		// this file is compatible down to version #
+	u32 wdf_version;		// WDF_VERSION
+	u32 wdf_head_size;		// size of WDF_Head_t
 	u32 align_factor;		// all data is aligned with a multiple of #
-	u8  bca[64];			// BCA data
  #endif
 
 } __attribute__ ((packed)) WDF_Head_t;
@@ -126,11 +131,12 @@ typedef struct WDF_Chunk_t
 void InitializeWH ( WDF_Head_t * wh );
 
 // convert WH data, src + dest may point to same structure
-void ConvertToNetworkWH ( WDF_Head_t * dest, WDF_Head_t * src );
-void ConvertToHostWH    ( WDF_Head_t * dest, WDF_Head_t * src );
+void ConvertToNetworkWH ( WDF_Head_t * dest, const WDF_Head_t * src );
+void ConvertToHostWH    ( WDF_Head_t * dest, const WDF_Head_t * src );
 
 // helpers
 size_t GetHeadSizeWDF ( u32 version );
+size_t AdjustHeaderWDF ( WDF_Head_t * wh );
 
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////               interface for WDF_Chunk_t         ///////////////
@@ -140,8 +146,8 @@ size_t GetHeadSizeWDF ( u32 version );
 void InitializeWC ( WDF_Chunk_t * wc, int n_elem );
 
 // convert WC data, src + dest may point to same structure
-void ConvertToNetworkWC ( WDF_Chunk_t * dest, WDF_Chunk_t * src );
-void ConvertToHostWC    ( WDF_Chunk_t * dest, WDF_Chunk_t * src );
+void ConvertToNetworkWC ( WDF_Chunk_t * dest, const WDF_Chunk_t * src );
+void ConvertToHostWC    ( WDF_Chunk_t * dest, const WDF_Chunk_t * src );
 
 //
 ///////////////////////////////////////////////////////////////////////////////

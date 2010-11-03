@@ -93,8 +93,8 @@ static const struct macro_tab_t macro_tab[] =
     { 7, "nofiles",	"-/files/" },
     { 3, "wit",		"2+/h3.bin;1+/sys/fst.bin;+" },
     { 3, "wwt",		"2+/h3.bin;1+/sys/fst.bin;+" },
-    { 7, "compose",	"3+/disc/;2+/h3.bin;1+/sys/fst.bin;+" },
-    { 5, "sneek",	"2+/h3.bin;1+/disc/;+" },
+    { 7, "compose",	"+/cert.bin;3+/disc/;2+/*$;1+/sys/fst.bin;+" },
+    { 5, "sneek",	"3+/setup.txt;2+/h3.bin;1+/disc/;+" },
 
     {0,0,0}
 };
