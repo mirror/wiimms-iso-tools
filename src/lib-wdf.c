@@ -63,11 +63,11 @@ void InitializeWH ( WDF_Head_t * wh )
     memcpy(wh->magic,WDF_MAGIC,sizeof(wh->magic));
 
     wh->wdf_version = WDF_VERSION;
-    wh->split_file_id = 0;
     wh->split_file_num_of = 1;
  #if WDF2_ENABLED
     wh->wdf_compatible = WDF_COMPATIBLE;
-    wh->align_factor = 1;
+    wh->wdf_head_size  = sizeof(WDF_Head_t);
+    wh->align_factor   = 1;
  #endif
 }
 
@@ -94,7 +94,7 @@ void InitializeWC ( WDF_Chunk_t * wc, int n_elem )
 
 ///////////////////////////////////////////////////////////////////////////////
 
-void ConvertToNetworkWH ( WDF_Head_t * dest, WDF_Head_t * src )
+void ConvertToNetworkWH ( WDF_Head_t * dest, const WDF_Head_t * src )
 {
     ASSERT(dest);
     ASSERT(src);
@@ -102,24 +102,33 @@ void ConvertToNetworkWH ( WDF_Head_t * dest, WDF_Head_t * src )
     // initialize this again before exporting
     memcpy(dest->magic,WDF_MAGIC,sizeof(dest->magic));
 
+ #if WDF2_ENABLED
+    CONV32(wdf_compatible);
+ #else
     CONV32(wdf_version);
+ #endif
+
     CONV32(split_file_id);
     CONV32(split_file_index);
     CONV32(split_file_num_of);
+
     CONV64(file_size);
     CONV64(data_size);
+
     CONV32(chunk_split_file);
     CONV32(chunk_n);
     CONV64(chunk_off);
+
  #if WDF2_ENABLED
-    CONV32(wdf_compatible);
+    CONV32(wdf_version);
+    CONV32(wdf_head_size);
     CONV32(align_factor);
  #endif
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 
-void ConvertToNetworkWC ( WDF_Chunk_t * dest, WDF_Chunk_t * src )
+void ConvertToNetworkWC ( WDF_Chunk_t * dest, const WDF_Chunk_t * src )
 {
     ASSERT(dest);
     ASSERT(src);
@@ -148,29 +157,40 @@ void ConvertToNetworkWC ( WDF_Chunk_t * dest, WDF_Chunk_t * src )
 
 ///////////////////////////////////////////////////////////////////////////////
 
-void ConvertToHostWH ( WDF_Head_t * dest, WDF_Head_t * src )
+void ConvertToHostWH ( WDF_Head_t * dest, const WDF_Head_t * src )
 {
     ASSERT(dest);
     ASSERT(src);
 
+    memcpy(dest->magic,src->magic,sizeof(dest->magic));
+
+ #if WDF2_ENABLED
+    CONV32(wdf_compatible);
+ #else
     CONV32(wdf_version);
+ #endif
+
     CONV32(split_file_id);
     CONV32(split_file_index);
     CONV32(split_file_num_of);
+
     CONV64(file_size);
     CONV64(data_size);
+
     CONV32(chunk_split_file);
     CONV32(chunk_n);
     CONV64(chunk_off);
+
  #if WDF2_ENABLED
-    CONV32(wdf_compatible);
+    CONV32(wdf_version);
+    CONV32(wdf_head_size);
     CONV32(align_factor);
  #endif
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 
-void ConvertToHostWC ( WDF_Chunk_t * dest, WDF_Chunk_t * src )
+void ConvertToHostWC ( WDF_Chunk_t * dest, const WDF_Chunk_t * src )
 {
     ASSERT(dest);
     ASSERT(src);
@@ -204,6 +224,35 @@ size_t GetHeadSizeWDF ( u32 version )
 
     return version < sizeof(WDFHeadSizeTab)/sizeof(*WDFHeadSizeTab)
 		? WDFHeadSizeTab[version] : 0;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+size_t AdjustHeaderWDF ( WDF_Head_t * wh )
+{
+    DASSERT(wh);
+
+ #if WDF2_ENABLED
+
+    if ( wh->wdf_compatible == 1 )
+    {
+	const u32 calced_wdf_head_size = wh->chunk_off - wh->data_size;
+	if ( calced_wdf_head_size == WDF_VERSION1_SIZE )
+	{
+	    PRINT("AdjustHeaderWDF() v=%u,%u, size=%u\n",
+		    wh->wdf_version, wh->wdf_compatible, calced_wdf_head_size );
+	    wh->wdf_version   = 1;
+	    wh->wdf_head_size = WDF_VERSION1_SIZE;
+	    wh->align_factor  = 1;
+	}
+    }
+    return wh->wdf_head_size;
+
+ #else
+
+    return wh->chunk_off - wh->data_size;
+
+ #endif
 }
 
 ///////////////////////////////////////////////////////////////////////////////

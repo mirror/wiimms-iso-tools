@@ -328,22 +328,32 @@ enumError wdf_dump ( ccp fname )
 	return error(ERR_WDF_INVALID,2,fname,"Wrong magic");
     }
 
+    const int head_size = AdjustHeaderWDF(&wh);
+
     #undef PRINT32
     #undef PRINT64
     #undef RANGE
     #define PRINT32(a) printf("    %-18s: %10x/hex =%11d\n",#a,wh.a,wh.a)
     #define PRINT64(a) printf("    %-18s: %10llx/hex =%11lld\n",#a,wh.a,wh.a)
 
-    PRINT32(wdf_version);
  #if WDF2_ENABLED
+    PRINT32(wdf_version);
     PRINT32(wdf_compatible);
+    PRINT32(wdf_head_size);
     PRINT32(align_factor);
+ #else
+    printf("    %-18s: %10x/hex =%11d%s\n",
+		"wdf_version", wh.wdf_version, wh.wdf_version,
+		 head_size == WDF_VERSION1_SIZE ? "" : "+" );
+    printf("    %-18s: %10x/hex =%11d\n"," - header size",head_size,head_size);
  #endif
+
     PRINT32(split_file_id);
     PRINT32(split_file_index);
     PRINT32(split_file_num_of);
     PRINT64(file_size);
-    printf("    %18s: %10llx/hex =%11lld  %4.2f%%\n","- WDF file size ",
+    printf("    %-18s: %10llx/hex =%11lld  %4.2f%%\n",
+		" - WDF file size ",
 		(u64)f.st.st_size, (u64)f.st.st_size,  100.0 * f.st.st_size / wh.file_size );
     PRINT64(data_size);
     PRINT32(chunk_split_file);
@@ -357,7 +367,6 @@ enumError wdf_dump ( ccp fname )
     int ec = 0; // error count
     prev_val = 0;
 
-    const int head_size  = GetHeadSizeWDF(wh.wdf_version);
     const int chunk_size = wh.chunk_n*sizeof(WDF_Chunk_t);
     
     ec += print_range( "Header",	head_size,			head_size );
@@ -460,6 +469,8 @@ int main ( int argc, char ** argv )
 	if ( max_err < last_err )
 	    max_err = last_err;
     }
+
+    CloseAll();
 
     if (SIGINT_level)
 	ERROR0(ERR_INTERRUPT,"Program interrupted by user.");

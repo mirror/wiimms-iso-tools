@@ -55,6 +55,7 @@ typedef enum enumOptions
 	OPT_JOB_LIMIT,
 	OPT_IGNORE,
 	OPT_IGNORE_FST,
+	OPT_IGNORE_SETUP,
 	OPT_PSEL,
 	OPT_RAW,
 	OPT_PMODE,
@@ -85,6 +86,7 @@ typedef enum enumOptions
 	OPT_CHUNK_SIZE,
 	OPT_MAX_CHUNKS,
 	OPT_COMPRESSION,
+	OPT_BEST,
 	OPT_MEM,
 	OPT_PRESERVE,
 	OPT_UPDATE,
@@ -113,7 +115,7 @@ typedef enum enumOptions
 	OPT_SORT,
 	OPT_LIMIT,
 
-	OPT__N_SPECIFIC, // == 71 
+	OPT__N_SPECIFIC, // == 73 
 
 	//----- global options -----
 
@@ -134,7 +136,7 @@ typedef enum enumOptions
 	OPT_TEST,
 	OPT_HOOK,
 
-	OPT__N_TOTAL // == 87
+	OPT__N_TOTAL // == 89
 
 } enumOptions;
 
@@ -162,6 +164,7 @@ typedef enum enumOptions
 //	OB_JOB_LIMIT		= 1llu << OPT_JOB_LIMIT,
 //	OB_IGNORE		= 1llu << OPT_IGNORE,
 //	OB_IGNORE_FST		= 1llu << OPT_IGNORE_FST,
+//	OB_IGNORE_SETUP		= 1llu << OPT_IGNORE_SETUP,
 //	OB_PSEL			= 1llu << OPT_PSEL,
 //	OB_RAW			= 1llu << OPT_RAW,
 //	OB_PMODE		= 1llu << OPT_PMODE,
@@ -192,6 +195,7 @@ typedef enum enumOptions
 //	OB_CHUNK_SIZE		= 1llu << OPT_CHUNK_SIZE,
 //	OB_MAX_CHUNKS		= 1llu << OPT_MAX_CHUNKS,
 //	OB_COMPRESSION		= 1llu << OPT_COMPRESSION,
+//	OB_BEST			= 1llu << OPT_BEST,
 //	OB_MEM			= 1llu << OPT_MEM,
 //	OB_PRESERVE		= 1llu << OPT_PRESERVE,
 //	OB_UPDATE		= 1llu << OPT_UPDATE,
@@ -224,6 +228,9 @@ typedef enum enumOptions
 //
 //	OB_GRP_TITLES		= 0,
 //
+//	OB_GRP_FST		= OB_IGNORE_FST
+//				| OB_IGNORE_SETUP,
+//
 //	OB_GRP_SOURCE		= OB_SOURCE
 //				| OB_NO_EXPAND
 //				| OB_RECURSE
@@ -242,7 +249,7 @@ typedef enum enumOptions
 //	OB_GRP_XXSOURCE		= OB_GRP_SOURCE
 //				| OB_GRP_EXCLUDE
 //				| OB_IGNORE
-//				| OB_IGNORE_FST,
+//				| OB_GRP_FST,
 //
 //	OB_GRP_OUTMODE_EDIT	= OB_WDF
 //				| OB_ISO
@@ -295,6 +302,7 @@ typedef enum enumOptions
 //				| OB_CHUNK_SIZE
 //				| OB_MAX_CHUNKS
 //				| OB_COMPRESSION
+//				| OB_BEST
 //				| OB_MEM,
 //
 //	OB_CMD_VERSION		= OB_SECTIONS
@@ -344,7 +352,7 @@ typedef enum enumOptions
 //	OB_CMD_DUMP		= OB_GRP_TITLES
 //				| OB_AUTO
 //				| OB_GRP_XSOURCE
-//				| OB_IGNORE_FST
+//				| OB_GRP_FST
 //				| OB_GRP_PARTITIONS
 //				| OB_GRP_FILES
 //				| OB_LONG
@@ -358,13 +366,13 @@ typedef enum enumOptions
 //
 //	OB_CMD_ID6		= OB_AUTO
 //				| OB_GRP_XSOURCE
-//				| OB_IGNORE_FST
+//				| OB_GRP_FST
 //				| OB_LONG,
 //
 //	OB_CMD_LIST		= OB_GRP_TITLES
 //				| OB_AUTO
 //				| OB_GRP_XSOURCE
-//				| OB_IGNORE_FST
+//				| OB_GRP_FST
 //				| OB_UNIQUE
 //				| OB_SORT
 //				| OB_SECTIONS
@@ -585,6 +593,7 @@ typedef enum enumGetOpt
 	GO_RDEPTH,
 	GO_JOB_LIMIT,
 	GO_IGNORE_FST,
+	GO_IGNORE_SETUP,
 	GO_PSEL,
 	GO_RAW,
 	GO_PMODE,
@@ -612,6 +621,7 @@ typedef enum enumGetOpt
 	GO_CHUNK_SIZE,
 	GO_MAX_CHUNKS,
 	GO_COMPRESSION,
+	GO_BEST,
 	GO_MEM,
 	GO_WIA,
 	GO_FST,

@@ -2252,16 +2252,6 @@ static enumError FinishSetupWriteWIA
     wia->is_valid = true;
     SetupIOD(sf,OFT_WIA,OFT_WIA);
  
- #ifndef TEST // {2do]
-    if ( verbose >= 0 )
-	ERROR0(ERR_WARNING,
-		"*******************************************************\n"
-		"***  The WIA support is NEW! Convert the WIA image  ***\n"
-		"***  back and compare the result with the original  ***\n"
-		"***  source before removing the original source.    ***\n"
-		"*******************************************************\n" );
- #endif
-
     return ERR_OK;
 }
 
@@ -2413,7 +2403,7 @@ enumError SetupWriteWIA
 
     if (wdisc->have_overlays)
     {
-	if ( verbose >= 0 )
+	if ( verbose >= -1 )
 	    ERROR0(ERR_WARNING,
 		"Wii disc contains overlayed partitions!\n"
 		"=> Create WIA in non effective raw mode: %s\n",
@@ -2431,7 +2421,7 @@ enumError SetupWriteWIA
 		ip, wd_print_part_name(0,0,wpart->part_type,WD_PNAME_NUM_INFO) );
 	if (!wpart->is_valid)
 	{
-	    if ( verbose >= 0 )
+	    if ( verbose >= -1 )
 		ERROR0(ERR_WARNING,
 			"Wii disc contains invalid partitions!\n"
 			"=> Create WIA in non effective raw mode: %s\n",

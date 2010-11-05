@@ -1,24 +1,29 @@
 wit v@@VERSION@@ r@@REV-NEXT@@ - @@@@-@@-@@
 
- - Bug fix for "wit EDIT": New hash values were not copied to other sectors
-   of the same sector group.
- - "wwt ADD" accepts option "--source source" as alternative source definition.
- - The layout of "wit LIST-LLL" is redesigned:
-    - Bug fix for real paths for WBFS files.
-    - New option: --real-path: print the real path instead of the entered path.
-    - New column: p-info: Print a short info about available partitions: "DUC?"
- - The new command "wit/wwt INFO" will inform about features. The intension is
-   to inform GUIs and other wit calling programs. Therefor option --sections
-   is also supported. At this moment only supported file formats inclusive
-   attributes (read/write/modify/extend/fst) are printed.
- - "wit FILETYPE" and other listing commands: The file types are redefined in
-   a more consistence way. ISO images are tagged as 'CONTAINER/DISCTYPE' like
-   'ISO/WII', 'WDF/GC', 'WBFS/WII', 'FST/WII'.
- - New option --no-expand: Do not expand directories to the containing files
-   or images. This option does not change the behavior of --recurse.
- - New options: --one-job and --job-limit=n: Limit the number of jobs to
-   execute. If done without errors the exit status is NULL.
- - Some minor output bug fixes.
+ - WIA creation warning "WIA is NEW! Compare with original source." removed.
+ - Preparation: Tools will read future WDF versions without warnings, if the
+   compatibility parameter allow this.
+ - The file descriptor of the last WBFS partition is saved/cached. This makes
+   wit faster when reading multiple discs from a WBFS.
+ - wit EXTRACT: The progress view is now based on the file size instead of
+   the file count.
+ - Options --include and --exclude accept now IDs with wildcards:
+   '.' is a wildcard for 1 character and '*' and '+' (same meaning) for any
+   number of charaters.
+ - File 'setup.txt' is created as template while extracting a disc image.
+   It is scanned for ID, NAME and OFFSET while composing a disc image.
+   The new option --ignore-setup disables the scanning of 'setup.txt'.
+ - Bug fix for "wit CONVERT": The destination path was the current working
+   directory.
+ - Bug fix for "wwt ADD --remove": If command is done without errors all
+   sources files -- but not FST -- are removed.
+ - Bug fix: Calculation of fst size fixed for GameCube parsing.
+ - Buf fix for "wit CONVERT": Aborting with CTRL-C don't remove the source.
+ - Composed discs: New and correct calculation of total size and time stamps.
+   For time stamps the newest times of all scanned files are used.
+ - wit INFO FILE-FORMAT: New attribute 'compr': Signals a compressed file
+   format and that option --compr can be used to setup the compression mode.
+ - Splitted are also detected, if the field width of the counters is 2-6.
 
 
 Known bugs:

@@ -894,22 +894,32 @@ enumError wdf_dump ( FILE *f, ccp fname )
 	return ERROR0(ERR_WDF_INVALID,"Wrong magic: %s\n",fname);
     }
 
+    const int head_size = AdjustHeaderWDF(&wh);
+
     #undef PRINT32
     #undef PRINT64
     #undef RANGE
     #define PRINT32(a) fprintf(f,"    %-18s: %10x/hex =%11d\n",#a,wh.a,wh.a)
     #define PRINT64(a) fprintf(f,"    %-18s: %10llx/hex =%11lld\n",#a,wh.a,wh.a)
 
-    PRINT32(wdf_version);
  #if WDF2_ENABLED
+    PRINT32(wdf_version);
     PRINT32(wdf_compatible);
+    PRINT32(wdf_head_size);
     PRINT32(align_factor);
+ #else
+    fprintf(f,"    %-18s: %10x/hex =%11d%s\n",
+		"wdf_version", wh.wdf_version, wh.wdf_version,
+		 head_size == WDF_VERSION1_SIZE ? "" : "+" );
+    fprintf(f,"    %-18s: %10x/hex =%11d\n"," - header size",head_size,head_size);
  #endif
+
     PRINT32(split_file_id);
     PRINT32(split_file_index);
     PRINT32(split_file_num_of);
     PRINT64(file_size);
-    fprintf(f,"    %18s: %10llx/hex =%11lld  %4.2f%%\n","- WDF file size ",
+    fprintf(f,"    %-18s: %10llx/hex =%11lld  %4.2f%%\n",
+		" - WDF file size ",
 		(u64)df.st.st_size, (u64)df.st.st_size,  100.0 * df.st.st_size / wh.file_size );
     PRINT64(data_size);
     PRINT32(chunk_split_file);
@@ -923,7 +933,6 @@ enumError wdf_dump ( FILE *f, ccp fname )
     int ec = 0; // error count
     prev_val = 0;
 
-    const int head_size  = GetHeadSizeWDF(wh.wdf_version);
     const int chunk_size = wh.chunk_n*sizeof(WDF_Chunk_t);
     
     ec += print_range(f, "Header",	head_size,			head_size );
@@ -1066,6 +1075,7 @@ enumError CheckOptions ( int argc, char ** argv )
 	case GO_CHUNK_SIZE:	err += ScanChunkSize(optarg); break;
 	case GO_MAX_CHUNKS:	err += ScanMaxChunks(optarg); break;
 	case GO_COMPRESSION:	err += ScanOptCompression(optarg); break;
+	case GO_BEST:		SetCompressionBest(); file_mode = FMODE_WIA; break;
 	case GO_MEM:		err += ScanOptMem(optarg,true); break;
 
 	case GO_TEST:		testmode++; break;
@@ -1231,6 +1241,8 @@ int main ( int argc, char ** argv )
 
 
     //----- terminate
+
+    CloseAll();
 
     if (SIGINT_level)
 	ERROR0(ERR_INTERRUPT,"Program interrupted by user.");

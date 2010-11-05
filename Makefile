@@ -17,7 +17,7 @@ WWT_LONG		= Wiimms WBFS Tool
 WDF_SHORT		= wdf
 WDF_LONG		= Wiimms WDF Tool
 
-VERSION_NUM		= 1.19a
+VERSION_NUM		= 1.20a
 BETA_VERSION		= 0
 			# 0:off  -1:"beta"  >0:"beta#"
 

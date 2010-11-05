@@ -923,11 +923,33 @@ wit v1.18a r1868 - 2010-10-10
  - wit LIST: Support of option --unit to define the unit for the ISO sizes.
  - wit ISOSIZE: Support of option --unit to define the unit for the ISO sizes.
    A summary line is also printed if the lsit contains 2 or more images.
- - Options --include and --exclude accepts now a comma separated list of IDs.
+ - Options --include and --exclude accept now a comma separated list of IDs.
  - Bug fix: If wit had closed a WBFS partiton a truncation errors appeared.
  - New wit option: --auto: If set, all devices are scanned for WBFS partitions
    and all WBFS partitions are added to the source list. It replaces parameters
    like "--source /dev/wbfs" and works like "wwt --auto --all".
+
+wit v1.19a r1904 - 2010-10-23
+
+ - Bug fix for "wit EDIT": New hash values were not copied to other sectors
+   of the same sector group.
+ - "wwt ADD" accepts option "--source source" as alternative source definition.
+ - The layout of "wit LIST-LLL" is redesigned:
+    - Bug fix for real paths for WBFS files.
+    - New option: --real-path: print the real path instead of the entered path.
+    - New column: p-info: Print a short info about available partitions: "DUC?"
+ - The new command "wit/wwt INFO" will inform about features. The intension is
+   to inform GUIs and other wit calling programs. Therefor option --sections
+   is also supported. At this moment only supported file formats inclusive
+   attributes (read/write/modify/extend/fst) are printed.
+ - "wit FILETYPE" and other listing commands: The file types are redefined in
+   a more consistence way. ISO images are tagged as 'CONTAINER/DISCTYPE' like
+   'ISO/WII', 'WDF/GC', 'WBFS/WII', 'FST/WII'.
+ - New option --no-expand: Do not expand directories to the containing files
+   or images. This option does not change the behavior of --recurse.
+ - New options: --one-job and --job-limit=n: Limit the number of jobs to
+   execute. If done without errors the exit status is NULL.
+ - Some minor output bug fixes.
 
 @@MODULE(last-history.txt)@@
 

@@ -964,6 +964,8 @@ int main ( int argc, char ** argv )
 	    help_exit();
     }
 
+    CloseAll();
+
     if (SIGINT_level)
 	ERROR0(ERR_INTERRUPT,"Program interrupted by user.");
 

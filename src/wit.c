@@ -159,9 +159,34 @@ void hint_exit ( enumError stat, ccp command )
 
 enumError cmd_test()
 {
- #if 1 || !defined(TEST) // test options
+ #if 0 || !defined(TEST) // test options
 
     return cmd_test_options();
+
+ #elif 1
+
+    char buf[20];
+    ParamList_t * param;
+    for ( param = first_param; param; param = param->next )
+    {
+	ccp arg = param->arg;
+	while ( arg && *arg )
+	{
+	    arg = ScanArgID(buf,arg,false);
+	    if (*buf)
+	    {
+		printf("%s ",buf);
+		if (!*arg)
+		    printf("= %s\n",param->arg);
+	    }
+	    else
+	    {
+		printf("ERR= %s\n",arg);
+		break;
+	    }
+	}
+    }
+    return ERR_OK;
 
  #elif 1
 
@@ -1085,10 +1110,12 @@ enumError cmd_list ( int long_level )
 
 	for ( witem = wlist.first_disc; witem < wend; witem++ )
 	{
+	    const u64 size = witem->fatt.size
+				? (u64)witem->fatt.size : witem->size_mib*(u64)MiB;
  	    printf("%s%s %*s %s  %s\n",
 		    witem->id6, PrintTime(&pt,&witem->fatt),
 		    size_fw,
-		    wd_print_size(0,0,witem->size_mib*(u64)MiB,false,column_unit),
+		    wd_print_size(0,0,size,false,column_unit),
 		    GetRegionInfo(witem->id6[3])->name4,
 		    witem->title ? witem->title : witem->name64 );
 	    if (line2)
@@ -1523,11 +1550,21 @@ enumError exec_copy ( SuperFile_t * fi, Iterator_t * it )
     {
 	TRACE("COPY, mkdir=%d\n",opt_mkdir);
 	fo.f.create_directory = opt_mkdir;
-	ccp oname = oft == OFT_WBFS && fi->f.id6[0]
-			? fi->f.id6
-			: fi->f.outname
-				? fi->f.outname
-				: fname;
+	ccp oname = fi->f.outname ? fi->f.outname : fname;
+	if ( oft == OFT_WBFS && fi->f.id6[0] )
+	{
+	    // use ID6 as default filename
+	    ccp pathend = strrchr(oname,'/');
+	    if (pathend)
+	    {
+		const int len = pathend - oname + 1;
+		memcpy(iobuf,oname,len);
+		strcpy(iobuf+len,fi->f.id6);
+		oname = iobuf;
+	    }
+	    else
+		oname = fi->f.id6;
+	}
 	GenImageFileName(&fo.f,opt_dest,oname,oft);
 	SubstFileNameSF(&fo,fi,0);
 
@@ -1595,7 +1632,7 @@ enumError exec_copy ( SuperFile_t * fi, Iterator_t * it )
     if (err)
 	goto abort;
     
-    if (it->remove_source)
+    if ( it->remove_source && SIGINT_level < 2 )
 	RemoveSF(fi);
 
     return ResetSF( &fo, OptionUsed[OPT_PRESERVE] ? &fi->f.fatt : 0 );
@@ -1821,7 +1858,14 @@ enumError exec_move ( SuperFile_t * fi, Iterator_t * it )
 
     if ( strcmp(fi->f.fname,fo.f.fname) )
     {
-	if ( !it->overwrite && !stat(fo.f.fname,&fo.f.st) )
+	const int stat_status = stat(fo.f.fname,&fo.f.st);
+	if ( !stat_status
+		&& fi->f.st.st_dev == fo.f.st.st_dev
+		&& fi->f.st.st_ino == fo.f.st.st_ino )
+	{
+	    // src==dest => nothing to do!
+	}
+	else if ( !it->overwrite && !stat_status )
 	{
 	    ERROR0(ERR_CANT_CREATE,"File already exists: %s\n",fo.f.fname);
 	}
@@ -2180,6 +2224,7 @@ enumError CheckOptions ( int argc, char ** argv, bool is_env )
 	case GO_ONE_JOB:	job_limit = 1; break;
 	case GO_IGNORE:		ignore_count++; break;
 	case GO_IGNORE_FST:	allow_fst = false; break;
+	case GO_IGNORE_SETUP:	ignore_setup = true; break;
 
 	case GO_PSEL:		err += ScanOptPartSelector(optarg); break;
 	case GO_RAW:		part_selector.whole_disc
@@ -2213,6 +2258,7 @@ enumError CheckOptions ( int argc, char ** argv, bool is_env )
 	case GO_CHUNK_SIZE:	err += ScanChunkSize(optarg); break;
 	case GO_MAX_CHUNKS:	err += ScanMaxChunks(optarg); break;
 	case GO_COMPRESSION:	err += ScanOptCompression(optarg); break;
+	case GO_BEST:		SetCompressionBest(); break;
 	case GO_MEM:		err += ScanOptMem(optarg,true); break;
 	case GO_PRESERVE:	break;
 	case GO_UPDATE:		break;
@@ -2428,6 +2474,7 @@ int main ( int argc, char ** argv )
 
     SetupFilePattern(file_pattern+PAT_FILES);
     err = CheckCommand(argc,argv);
+    CloseAll();
 
     if (SIGINT_level)
 	err = ERROR0(ERR_INTERRUPT,"Program interrupted by user.");

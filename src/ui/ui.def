@@ -283,11 +283,13 @@
 
 #:def_opt( "INCLUDE", "n|include", "CMP", \
 	"id", \
-	"A comma separated list with ID4 and ID6 values is expected. If the" \
-	" parameter begins with a '@@' the given file is read and each line is" \
-	" scanned for one ID. Only images with the given ID are included into" \
-	" the operation. Each use of this option expands the include list. The" \
-	" exclude list takes precedence." )
+	"A comma separated list with ID values is expected. @'.'@ is a" \
+	" wildcard for exact 1 character and @'+'@ and @'*'@ (same meaning)" \
+	" are wildcards for any number characters. If the parameter begins" \
+	" with a '@@' the given file is read and each line is scanned for one" \
+	" ID. Only images with the given ID are included into the operation." \
+	" Each use of this option expands the include list. The exclude list" \
+	" takes precedence." )
 
 #:def_opt( "INCLUDE_PATH", "N|include-path|includepath", "CMP", \
 	"file_or_dir", \
@@ -299,10 +301,12 @@
 
 #:def_opt( "EXCLUDE", "x|exclude", "CMP", \
 	"id", \
-	"A comma separated list with ID4 and ID6 values is expected. If the" \
-	" parameter begins with a '@@' the given file is read and each line is" \
-	" scanned for one ID. Images with the given ID are excluded from" \
-	" operation. Each use of this option expands the exclude list." )
+	"A comma separated list with ID4 and ID6 values is expected. @'.'@ is" \
+	" a wildcard for exact 1 character and @'+'@ and @'*'@ (same meaning)" \
+	" are wildcards for any number characters. If the parameter begins" \
+	" with a '@@' the given file is read and each line is scanned for one" \
+	" ID. Images with the given ID are excluded from operation. Each use" \
+	" of this option expands the exclude list." )
 
 #:def_opt( "EXCLUDE_PATH", "X|exclude-path|excludepath", "CMP", \
 	"file_or_dir", \
@@ -329,6 +333,11 @@
 #:def_opt( "IGNORE_FST", "ignore-fst|ignorefst", "C", \
 	"", \
 	"Disable composing and ignore FST directories as input." )
+
+#:def_opt( "IGNORE_SETUP", "ignore-setup|ignoresetup", "C", \
+	"", \
+	"While composing ignore the file @'setup.txt'@, which defines some" \
+	" partition parameters." )
 
 #:def_opt( "PSEL", "psel", "CP", \
 	"list", \
@@ -359,7 +368,7 @@
 
 #:def_opt( "SNEEK", "sneek", "C", \
 	"", \
-	"Abbreviation of {--psel data --pmode none --files =sneek}." )
+	"Abbreviation of {--psel data --pmode none --files :sneek}." )
 
 #:def_opt( "ENC", "enc", "CP", \
 	"encoding", \
@@ -559,7 +568,8 @@
 
 #:def_opt( "REMOVE", "R|remove", "C", \
 	"", \
-	"Remove source files/discs if operation is successful." )
+	"Remove source files/discs if operation is successful. If the source" \
+	" is an extracted file systems (FST) it isn't removed." )
 
 #:def_opt( "WDF", "W|wdf", "C", \
 	"", \
@@ -837,6 +847,10 @@
 	"", \
 	"" )
 
+#:def_cmd_opt( "FILELIST", "IGNORE_SETUP", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "FILELIST", "LONG", \
 	"", \
 	"Print the real path instead of given path." )
@@ -890,6 +904,10 @@
 	"" )
 
 #:def_cmd_opt( "FILETYPE", "IGNORE_FST", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "FILETYPE", "IGNORE_SETUP", \
 	"", \
 	"" )
 
@@ -952,6 +970,10 @@
 	"" )
 
 #:def_cmd_opt( "ISOSIZE", "IGNORE_FST", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "ISOSIZE", "IGNORE_SETUP", \
 	"", \
 	"" )
 
@@ -1030,6 +1052,10 @@
 	"" )
 
 #:def_cmd_opt( "DUMP", "IGNORE_FST", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "DUMP", "IGNORE_SETUP", \
 	"", \
 	"" )
 
@@ -1206,6 +1232,10 @@
 	"", \
 	"" )
 
+#:def_cmd_opt( "ID6", "IGNORE_SETUP", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "ID6", "LOGGING", \
 	"", \
 	"" )
@@ -1275,6 +1305,10 @@
 	"" )
 
 #:def_cmd_opt( "LIST", "IGNORE_FST", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "LIST", "IGNORE_SETUP", \
 	"", \
 	"" )
 
@@ -1396,6 +1430,10 @@
 	"", \
 	"" )
 
+#:def_cmd_opt( "LIST_L", "IGNORE_SETUP", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "LIST_L", "LOGGING", \
 	"", \
 	"" )
@@ -1511,6 +1549,10 @@
 	"" )
 
 #:def_cmd_opt( "LIST_LL", "IGNORE_FST", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "LIST_LL", "IGNORE_SETUP", \
 	"", \
 	"" )
 
@@ -1632,6 +1674,10 @@
 	"", \
 	"" )
 
+#:def_cmd_opt( "LIST_LLL", "IGNORE_SETUP", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "LIST_LLL", "LOGGING", \
 	"", \
 	"" )
@@ -1738,6 +1784,10 @@
 	"", \
 	"" )
 
+#:def_cmd_opt( "FILES", "IGNORE_SETUP", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "FILES", "PSEL", \
 	"", \
 	"" )
@@ -1832,6 +1882,10 @@
 	"", \
 	"" )
 
+#:def_cmd_opt( "FILES_L", "IGNORE_SETUP", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "FILES_L", "PSEL", \
 	"", \
 	"" )
@@ -1923,6 +1977,10 @@
 	"" )
 
 #:def_cmd_opt( "FILES_LL", "IGNORE_FST", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "FILES_LL", "IGNORE_SETUP", \
 	"", \
 	"" )
 
@@ -2037,6 +2095,10 @@
 	"" )
 
 #:def_cmd_opt( "DIFF", "IGNORE_FST", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "DIFF", "IGNORE_SETUP", \
 	"", \
 	"" )
 
@@ -2188,6 +2250,10 @@
 	"", \
 	"" )
 
+#:def_cmd_opt( "FDIFF", "IGNORE_SETUP", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "FDIFF", "PSEL", \
 	"", \
 	"" )
@@ -2333,6 +2399,10 @@
 	"" )
 
 #:def_cmd_opt( "EXTRACT", "IGNORE_FST", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "EXTRACT", "IGNORE_SETUP", \
 	"", \
 	"" )
 
@@ -2511,6 +2581,10 @@
 	"" )
 
 #:def_cmd_opt( "COPY", "IGNORE_FST", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "COPY", "IGNORE_SETUP", \
 	"", \
 	"" )
 
@@ -2753,6 +2827,10 @@
 	"" )
 
 #:def_cmd_opt( "CONVERT", "IGNORE_FST", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "CONVERT", "IGNORE_SETUP", \
 	"", \
 	"" )
 
@@ -3334,6 +3412,10 @@
 	"", \
 	"" )
 
+#:def_cmd_opt( "VERIFY", "IGNORE_SETUP", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "VERIFY", "PSEL", \
 	"", \
 	"" )
@@ -3788,11 +3870,13 @@
 
 #:def_opt( "INCLUDE", "n|include", "CMP", \
 	"id", \
-	"A comma separated list with ID4 and ID6 values is expected. If the" \
-	" parameter begins with a '@@' the given file is read and each line is" \
-	" scanned for one ID. Only images with the given ID are included into" \
-	" the operation. Each use of this option expands the include list. The" \
-	" exclude list takes precedence." )
+	"A comma separated list with ID values is expected. @'.'@ is a" \
+	" wildcard for exact 1 character and @'+'@ and @'*'@ (same meaning)" \
+	" are wildcards for any number characters. If the parameter begins" \
+	" with a '@@' the given file is read and each line is scanned for one" \
+	" ID. Only images with the given ID are included into the operation." \
+	" Each use of this option expands the include list. The exclude list" \
+	" takes precedence." )
 
 #:def_opt( "INCLUDE_PATH", "N|include-path|includepath", "CMP", \
 	"file_or_dir", \
@@ -3804,10 +3888,12 @@
 
 #:def_opt( "EXCLUDE", "x|exclude", "CMP", \
 	"id", \
-	"A comma separated list with ID4 and ID6 values is expected. If the" \
-	" parameter begins with a '@@' the given file is read and each line is" \
-	" scanned for one ID. Images with the given ID are excluded from" \
-	" operation. Each use of this option expands the exclude list." )
+	"A comma separated list with ID4 and ID6 values is expected. @'.'@ is" \
+	" a wildcard for exact 1 character and @'+'@ and @'*'@ (same meaning)" \
+	" are wildcards for any number characters. If the parameter begins" \
+	" with a '@@' the given file is read and each line is scanned for one" \
+	" ID. Images with the given ID are excluded from operation. Each use" \
+	" of this option expands the exclude list." )
 
 #:def_opt( "EXCLUDE_PATH", "X|exclude-path|excludepath", "CMP", \
 	"file_or_dir", \
@@ -3824,6 +3910,11 @@
 #:def_opt( "IGNORE_FST", "ignore-fst|ignorefst", "C", \
 	"", \
 	"Disable composing and ignore FST directories as input." )
+
+#:def_opt( "IGNORE_SETUP", "ignore-setup|ignoresetup", "C", \
+	"", \
+	"While composing ignore the file @'setup.txt'@, which defines some" \
+	" partition parameters." )
 
 #:def_opt( "ENC", "enc", "CP", \
 	"encoding", \
@@ -4064,7 +4155,8 @@
 
 #:def_opt( "REMOVE", "R|remove", "C", \
 	"", \
-	"Remove source files/discs if operation is successful." )
+	"Remove source files/discs if operation is successful. If the source" \
+	" is an extracted file systems (FST) it isn't removed." )
 
 #:def_opt( "WDF", "W|wdf", "C", \
 	"", \
@@ -5249,6 +5341,10 @@
 	"", \
 	"" )
 
+#:def_cmd_opt( "ADD", "IGNORE_SETUP", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "ADD", "QUIET", \
 	"", \
 	"" )
@@ -5424,6 +5520,10 @@
 	"", \
 	"" )
 
+#:def_cmd_opt( "UPDATE", "IGNORE_SETUP", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "UPDATE", "QUIET", \
 	"", \
 	"" )
@@ -5588,6 +5688,10 @@
 	"" )
 
 #:def_cmd_opt( "SYNC", "IGNORE_FST", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "SYNC", "IGNORE_SETUP", \
 	"", \
 	"" )
 
@@ -6263,6 +6367,10 @@
 	"" )
 
 #:def_cmd_opt( "FILETYPE", "IGNORE_FST", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "FILETYPE", "IGNORE_SETUP", \
 	"", \
 	"" )
 

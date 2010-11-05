@@ -567,6 +567,13 @@ void SetupLib ( int argc, char ** argv, ccp p_progname, enumProgID prid )
 
 ///////////////////////////////////////////////////////////////////////////////
 
+void CloseAll()
+{
+    CloseWBFSCache();
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
 enumError CheckEnvOptions ( ccp varname, check_opt_func func )
 {
     TRACE("CheckEnvOptions(%s,%p)\n",varname,func);
@@ -2555,6 +2562,15 @@ int ScanOptCompression
     return 0;
 }
 
+///////////////////////////////////////////////////////////////////////////////
+
+void SetCompressionBest()
+{
+    opt_compr_method	 = WD_COMPR__BEST;
+    opt_compr_level	 = 9;
+    opt_compr_chunk_size = 50 * WIA_BASE_CHUNK_SIZE;
+}
+
 //
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////			scan mem option			///////////////
@@ -3925,6 +3941,9 @@ enumError ScanSetupFile
 	char * ptr = iobuf;
 	while ( *ptr > 0 && *ptr <= ' ' )
 	    ptr++;
+
+	if ( *ptr == '!' || *ptr == '#' )
+	    continue;
 
 	//----- find end of name
 

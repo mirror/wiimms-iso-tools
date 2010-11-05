@@ -274,8 +274,7 @@ enumError cmd_exclude()
     for ( param = first_param; param; param = param->next )
 	AtFileHelper(param->arg,0,1,AddExcludeID);
 
-    SetupExcludeDB();
-    DumpIDDB(&exclude_db,stdout);
+    DumpExcludeDB();    
     return ERR_OK;
 }
 
@@ -435,17 +434,6 @@ enumError PrintErrorStat ( enumError err, ccp cmdname )
 ///////////////			  cmd_info()			///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-typedef enum enumInfoPrint
-{
-    INFO_PRINT_LINES,		// print lines for the info section
-    INFO_PRINT_SECTIONS,	// print sections
-    INFO_PRINT_TABLES,		// print human readable table(s)
-
-} enumInfoPrint;
-    
-
-///////////////////////////////////////////////////////////////////////////////
-
 static void info_file_formats()
 {
     if (print_sections)
@@ -473,18 +461,19 @@ static void info_file_formats()
 			"info=%s\n"
 			"option=%s\n"
 			"extensions=%s %s\n"
-			"attributes=%s%s%s%s%s\n"
+			"attributes=%s%s%s%s%s%s\n"
 			,info->name
 			,info->name
 			,info->info
 			,info->option
 			,info->ext1 ? info->ext1 : ""
 			,info->ext2 ? info->ext2 : ""
-			,info->attrib & OFT_A_READ	? "read " : ""
-			,info->attrib & OFT_A_WRITE	? "write " : ""
+			,info->attrib & OFT_A_READ	? "read "   : ""
+			,info->attrib & OFT_A_WRITE	? "write "  : ""
 			,info->attrib & OFT_A_MODIFY	? "modify " : ""
 			,info->attrib & OFT_A_EXTEND	? "extend " : ""
-			,info->attrib & OFT_A_FST	? "fst " : ""
+			,info->attrib & OFT_A_FST	? "fst "    : ""
+			,info->attrib & OFT_A_COMPR	? "compr "  : ""
 			);
 	}
 	return;
@@ -506,12 +495,12 @@ static void info_file_formats()
 	   "  name  %-*s  option  extensions  attributes\n"
 	   " %.*s\n",
 	   info_fw, "description",
-	   info_fw+58, wd_sep_200 );
+	   info_fw+64, wd_sep_200 );
 
     for ( oft = 1; oft < OFT__N; oft++ )
     {
 	const OFT_info_t * i = oft_info + oft;
-	printf("  %-4s  %-*s  %-7s %-5s %-5s %s %s %s %s %s\n",
+	printf("  %-4s  %-*s  %-7s %-5s %-5s %s %s %s %s %s %s\n",
 		i->name, info_fw, i->info,
 		i->option ? i->option : "  -",
 		i->ext1 && *i->ext1 ? i->ext1 : " -",
@@ -520,7 +509,8 @@ static void info_file_formats()
 		i->attrib & OFT_A_WRITE	? "write"  : "-    ",
 		i->attrib & OFT_A_MODIFY? "modify" : "-     ",
 		i->attrib & OFT_A_EXTEND? "extend" : "-     ",
-		i->attrib & OFT_A_FST	? "fst"    : "-  " );
+		i->attrib & OFT_A_FST	? "fst"    : "-  ",
+		i->attrib & OFT_A_COMPR	? "compr"  : "-" );
     }
 }
 
@@ -540,7 +530,7 @@ enumError cmd_info()
     static const CommandTab_t cmdtab[] =
     {
 	{ INFO__ALL,		"ALL",		0,		0 },
-	{ INFO_FILE_FORMAT,	"FILE-FORMAT",	"FORMAT",	0 },
+	{ INFO_FILE_FORMAT,	"FILE-FORMATS",	"FORMATS",	0 },
 
 	{ 0,0,0,0 }
     };

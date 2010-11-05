@@ -119,6 +119,21 @@ extern char wbfs_slot_mode_info[WBFS_SLOT__MASK+1];
 
 //-----------------------------------------------------------------------------
 
+typedef enum wbfs_balloc_mode_t // block allocation mode
+{
+    WBFS_BA_AUTO,	// let add disc the choice:
+			// for small WBFS partitons (<20G) use WBFS_BA_FIRST
+			// and all for other WBFS partitons use WBFS_BA_NO_FRAG
+
+    WBFS_BA_FIRST,	// don't find large blocks and use always the first free block
+    WBFS_BA_AVOID_FRAG,	// try to avoid fragments
+
+    WBFS_BA_DEFAULT	= WBFS_BA_AUTO
+
+} wbfs_balloc_mode_t;
+
+//-----------------------------------------------------------------------------
+
 typedef struct wbfs_t
 {
     wbfs_head_t	* head;
@@ -163,9 +178,11 @@ typedef struct wbfs_t
 					//   >1: shared by #N discs	==> BAD!
 					//  254: shared by >=254 discs	==> BAD!
 					//  255: bad used marker	==> BAD!
-    wbfs_slot_mode_t new_slot_err;	// new detected errors
-    wbfs_slot_mode_t all_slot_err;	// all detected errros
-    
+    bool	used_block_dirty;	// true: 'used_block' must be written to disc
+    wbfs_slot_mode_t	new_slot_err;	// new detected errors
+    wbfs_slot_mode_t	all_slot_err;	// all detected errros
+    wbfs_balloc_mode_t	balloc_mode;	// block allocation mode
+
  #endif
 
     u16		disc_info_sz;
@@ -405,7 +422,11 @@ int wbfs_disc_read(wbfs_disc_t*d,u32 offset, u8 *data, u32 len);
 /*! @return the number of discs inside the paritition */
 u32 wbfs_count_discs(wbfs_t*p);
 
-u32 wbfs_alloc_block ( wbfs_t * p );
+u32 wbfs_alloc_block
+(
+    wbfs_t		* p,		// valid WBFS descriptor
+    u32			start_block	// >0: start search at this block
+);
 
 enumError wbfs_get_disc_info
 (
@@ -433,7 +454,7 @@ enumError wbfs_get_disc_info_by_slot
 /*! get the number of unuseds block of the partition.
   to be multiplied by p->wbfs_sec_sz (use 64bit multiplication) to have the number in bytes
 */
-u32 wbfs_count_unusedblocks ( wbfs_t * p );
+u32 wbfs_get_free_block_count ( wbfs_t * p );
 
 /******************* write access  ******************/
 

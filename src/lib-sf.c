@@ -96,7 +96,8 @@ void CleanSF ( SuperFile_t * sf )
 
 ///////////////////////////////////////////////////////////////////////////////
 
-enumError CloseSF ( SuperFile_t * sf, FileAttrib_t * set_time_ref )
+static enumError CloseHelperSF
+	( SuperFile_t * sf, FileAttrib_t * set_time_ref, bool remove )
 {
     ASSERT(sf);
     enumError err = ERR_OK;
@@ -113,45 +114,56 @@ enumError CloseSF ( SuperFile_t * sf, FileAttrib_t * set_time_ref )
 	sf->disc1 = 0;
     }
 
-    if ( sf->f.is_writing && sf->min_file_size )
-    {
-	err = SetMinSizeSF(sf,sf->min_file_size);
-	sf->min_file_size = 0;
-    }
-
-    //if ( !err && sf->f.is_writing && !sf->f.is_reading )
-    if ( !err && sf->f.is_writing )
-    {
-	if (sf->wc)
-	    err = TermWriteWDF(sf);
-
-	if (sf->ciso.map)
-	    err = TermWriteCISO(sf);
-
-	if (sf->wbfs)
-	{
-	    err = CloseWDisc(sf->wbfs);
-	    if (!err)
-		err = sf->wbfs->is_growing
-			? TruncateWBFS(sf->wbfs)
-			: SyncWBFS(sf->wbfs,false);
-	}
-
-	if (sf->wia)
-	    err = TermWriteWIA(sf);
-    }
-
-    if ( err != ERR_OK )
-	CloseFile(&sf->f,true);
+    if (remove)
+	err = CloseFile(&sf->f,true);
     else
     {
-	err = CloseFile(&sf->f,false);
-	if (set_time_ref)
-	    SetFileTime(&sf->f,set_time_ref);
+	if ( sf->f.is_writing && sf->min_file_size )
+	{
+	    err = SetMinSizeSF(sf,sf->min_file_size);
+	    sf->min_file_size = 0;
+	}
+
+	if ( !err && sf->f.is_writing )
+	{
+	    if (sf->wc)
+		err = TermWriteWDF(sf);
+
+	    if (sf->ciso.map)
+		err = TermWriteCISO(sf);
+
+	    if (sf->wbfs)
+	    {
+		err = CloseWDisc(sf->wbfs);
+		if (!err)
+		    err = sf->wbfs->is_growing
+			    ? TruncateWBFS(sf->wbfs)
+			    : SyncWBFS(sf->wbfs,false);
+	    }
+
+	    if (sf->wia)
+		err = TermWriteWIA(sf);
+	}
+
+	if ( err != ERR_OK )
+	    CloseFile(&sf->f,true);
+	else
+	{
+	    err = CloseFile(&sf->f,false);
+	    if (set_time_ref)
+		SetFileTime(&sf->f,set_time_ref);
+	}
     }
 
     CleanSF(sf);
     return err;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+enumError CloseSF ( SuperFile_t * sf, FileAttrib_t * set_time_ref )
+{
+    return CloseHelperSF(sf,set_time_ref,false);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -161,7 +173,7 @@ enumError ResetSF ( SuperFile_t * sf, FileAttrib_t * set_time_ref )
     ASSERT(sf);
 
     // free dynamic memory
-    enumError err = CloseSF(sf,set_time_ref);
+    enumError err = CloseHelperSF(sf,set_time_ref,false);
     ResetFile(&sf->f,false);
     sf->indent = NormalizeIndent(sf->indent);
 
@@ -205,8 +217,7 @@ enumError RemoveSF ( SuperFile_t * sf )
     }
 
     TRACE(" - remove file %s\n",sf->f.fname);
-    enumError err = CloseSF(sf,0);
-    CloseFile(&sf->f,true);
+    enumError err = CloseHelperSF(sf,0,true);
     ResetSF(sf,0);
     return err;
 }
@@ -1322,7 +1333,7 @@ enumError WriteZeroISO ( SuperFile_t * sf, off_t off, size_t size )
 enumError FlushFile ( SuperFile_t * sf )
 {
     DASSERT(sf);
-    if ( !sf->f.is_writing && sf->f.fp )
+    if ( sf->f.is_writing && sf->f.fp )
 	fflush(sf->f.fp);
     return ERR_OK;
 }
@@ -1484,7 +1495,7 @@ enumError WriteWBFS
 	u32 wlba = ntohs(wlba_tab[bl]);
 	if (!wlba)
 	{
-	    wlba = wbfs_alloc_block(w);
+	    wlba = wbfs_alloc_block(w,ntohs(wlba_tab[0]));
 	    if ( wlba == WBFS_NO_BLOCK )
 	    {
 		sf->f.last_error = ERR_WRITE_FAILED;
@@ -1496,10 +1507,7 @@ enumError WriteWBFS
 			    GetFT(&sf->f), GetFD(&sf->f), sf->f.fname );
 		return ERR_WRITE_FAILED;
 	    }
-  #ifdef TEST
-	    if ( bl <= 10 )
-		PRINT("WBFS WRITE: wlba_tab[%x] = %x\n",bl,wlba);
-  #endif
+	    noPRINT_IF( bl <= 10, "WBFS WRITE: wlba_tab[%x] = %x\n",bl,wlba);
 	    wlba_tab[bl] = htons(wlba);
 	    disc->is_dirty = 1;
 	}
@@ -1977,8 +1985,7 @@ enumFileType AnalyzeFT ( File_t * f )
 	ccp data_ptr = buf1;
 
 	WDF_Head_t wh;
-	memcpy(&wh,buf1,sizeof(wh));
-	ConvertToHostWH(&wh,&wh);
+	ConvertToHostWH(&wh,(WDF_Head_t*)buf1);
 
 	err = AnalyzeWH(f,&wh,false);
 	if ( err != ERR_NO_WDF )

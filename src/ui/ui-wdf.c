@@ -200,6 +200,12 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 	" the future. --compr is a shortcut for --compression."
     },
 
+    {	OPT_BEST, 0, "best",
+	"param",
+	"Set ISO output file type to WIA (Wii ISO Archive) and set compression"
+	" mode to BEST. Option --best is a shortcut for '--wia --compr best'."
+    },
+
     {	OPT_MEM, 0, "mem",
 	"size",
 	"This option defines a memory usage limit for compressing files. When"
@@ -212,7 +218,7 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 	" to 80% of the total memory minus 50 MiB."
     },
 
-    {0,0,0,0,0}, // OPT__N_SPECIFIC == 22
+    {0,0,0,0,0}, // OPT__N_SPECIFIC == 23
 
     //----- global options -----
 
@@ -261,7 +267,7 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 	">>> USE THIS OPTION IF UNSURE! <<<"
     },
 
-    {0,0,0,0,0} // OPT__N_TOTAL == 30
+    {0,0,0,0,0} // OPT__N_TOTAL == 31
 
 };
 
@@ -346,6 +352,7 @@ const struct option OptionLong[] =
 	 { "mch",		1, 0, GO_MAX_CHUNKS },
 	{ "compression",	1, 0, GO_COMPRESSION },
 	 { "compr",		1, 0, GO_COMPRESSION },
+	{ "best",		1, 0, GO_BEST },
 	{ "mem",		1, 0, GO_MEM },
 	{ "test",		0, 0, 't' },
 
@@ -406,8 +413,9 @@ const u8 OptionIndex[OPT_INDEX_SIZE] =
 	/*86*/	OPT_CHUNK_SIZE,
 	/*87*/	OPT_MAX_CHUNKS,
 	/*88*/	OPT_COMPRESSION,
-	/*89*/	OPT_MEM,
-	/*8a*/	 0,0,0,0, 0,0,
+	/*89*/	OPT_BEST,
+	/*8a*/	OPT_MEM,
+	/*8b*/	 0,0,0,0, 0,
 	/*90*/	 0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0,
 	/*a0*/	 0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0,
 	/*b0*/	 0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0,
@@ -418,39 +426,39 @@ const u8 OptionIndex[OPT_INDEX_SIZE] =
 ///////////////                opt_allowed_cmd_*                ///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-static u8 option_allowed_cmd_VERSION[22] = // cmd #1
+static u8 option_allowed_cmd_VERSION[23] = // cmd #1
 {
-    0,0,1,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,  0,0
+    0,0,1,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,  0,0,0
 };
 
-static u8 option_allowed_cmd_HELP[22] = // cmd #2
+static u8 option_allowed_cmd_HELP[23] = // cmd #2
 {
-    1,1,1,1,1, 1,1,1,1,1,  1,1,1,1,1, 1,1,1,1,1,  1,1
+    1,1,1,1,1, 1,1,1,1,1,  1,1,1,1,1, 1,1,1,1,1,  1,1,1
 };
 
-static u8 option_allowed_cmd_PACK[22] = // cmd #3
+static u8 option_allowed_cmd_PACK[23] = // cmd #3
 {
-    0,0,0,0,1, 1,1,1,1,1,  1,1,1,1,1, 1,1,1,1,1,  1,1
+    0,0,0,0,1, 1,1,1,1,1,  1,1,1,1,1, 1,1,1,1,1,  1,1,1
 };
 
-static u8 option_allowed_cmd_UNPACK[22] = // cmd #4
+static u8 option_allowed_cmd_UNPACK[23] = // cmd #4
 {
-    0,0,0,0,0, 0,0,0,0,1,  1,1,1,1,1, 1,1,1,1,1,  1,1
+    0,0,0,0,0, 0,0,0,0,1,  1,1,1,1,1, 1,1,1,1,1,  1,1,1
 };
 
-static u8 option_allowed_cmd_CAT[22] = // cmd #5
+static u8 option_allowed_cmd_CAT[23] = // cmd #5
 {
-    0,0,0,0,0, 0,0,0,0,1,  1,0,0,1,0, 1,1,1,1,1,  1,1
+    0,0,0,0,0, 0,0,0,0,1,  1,0,0,1,0, 1,1,1,1,1,  1,1,1
 };
 
-static u8 option_allowed_cmd_CMP[22] = // cmd #6
+static u8 option_allowed_cmd_CMP[23] = // cmd #6
 {
-    0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,  0,0
+    0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,  0,0,0
 };
 
-static u8 option_allowed_cmd_DUMP[22] = // cmd #7
+static u8 option_allowed_cmd_DUMP[23] = // cmd #7
 {
-    0,1,1,1,0, 0,0,0,0,1,  1,0,0,1,0, 0,0,0,0,0,  0,0
+    0,1,1,1,0, 0,0,0,0,1,  1,0,0,1,0, 0,0,0,0,0,  0,0,0
 };
 
 

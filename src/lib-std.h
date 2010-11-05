@@ -98,6 +98,7 @@ typedef enum enumRevID
 ///////////////////////////////////////////////////////////////////////////////
 
 void SetupLib ( int argc, char ** argv, ccp p_progname, enumProgID prid );
+void CloseAll();
 
 typedef enumError (*check_opt_func) ( int argc, char ** argv, bool mode );
 
@@ -251,6 +252,7 @@ typedef enum attribOFT // OFT attributes
     OFT_A_MODIFY	= 0x04,		// format can be modified
     OFT_A_EXTEND	= 0x08,		// format can be extended
     OFT_A_FST		= 0x10,		// format is an extracted file system
+    OFT_A_COMPR		= 0x20,		// format uses compression
 
 } attribOFT;
 
@@ -360,13 +362,35 @@ typedef struct FileAttrib_t
 struct WDiscInfo_t;
 struct wbfs_inode_info_t;
 
-FileAttrib_t * NormalizeFileAttrib ( FileAttrib_t * fa );
-FileAttrib_t * CopyFileAttrib      ( FileAttrib_t * dest, const FileAttrib_t * src );
-FileAttrib_t * CopyFileAttribStat  ( FileAttrib_t * dest, const struct stat * src );
+FileAttrib_t * NormalizeFileAttrib
+(
+    FileAttrib_t	* fa		// valid attribute
+);
+
+FileAttrib_t * MaxFileAttrib
+(
+    FileAttrib_t	* dest,		// valid source and destination atttibute
+    const FileAttrib_t	* src		// NULL or second source atttibute
+);
+
+FileAttrib_t * CopyFileAttrib
+(
+    FileAttrib_t	* dest,		// valid destination atttibute
+    const FileAttrib_t	* src		// valid source atttibute
+);
+
+FileAttrib_t * CopyFileAttribStat
+(
+    FileAttrib_t	* dest,		// valid destination atttibute
+    const struct stat	* src,		// NULL or source
+    bool		maximize	// true store max values to 'dest'
+);
+
 FileAttrib_t * CopyFileAttribDiscInfo
 		( FileAttrib_t * dest, const struct WDiscInfo_t * src );
 FileAttrib_t * CopyFileAttribInode
 		( FileAttrib_t * dest, const struct wbfs_inode_info_t * src, off_t size );
+
 
 //-----------------------------------------------------------------------------
 
@@ -429,8 +453,8 @@ typedef struct File_t
 	struct File_t **split_f; // list with pointers to the split files
 	int split_used;		 // number of used split files in 'split_f'
 	off_t split_filesize;	 // max file size for new files
-	ccp split_fname_format;	 // format with '%u' at the end for 'fname'
-	ccp split_rename_format; // format with '%u' at the end for 'rename'
+	ccp split_fname_format;	 // format with '%01u' at the end for 'fname'
+	ccp split_rename_format; // format with '%01u' at the end for 'rename'
 
 	// wbfs vars
 
@@ -542,13 +566,25 @@ void SetDest ( ccp arg, bool mkdir );
 
 s64 GetFileSize
 (
-    ccp		path1,		// NULL or part 1 of path
-    ccp		path2,		// NULL or part 2 of path
-    s64		not_found_value	// return value if no regular file found
+    ccp			path1,		// NULL or part 1 of path
+    ccp			path2,		// NULL or part 2 of path
+    s64			not_found_val,	// return value if no regular file found
+    FileAttrib_t	* fatt,		// not NULL: store file attributes
+    bool		fatt_max	// true: store max values to 'fatt'
 );
 
-enumError LoadFile ( ccp path1, ccp path2, size_t skip,
-		     void * data, size_t size, bool silent );
+enumError LoadFile
+(
+    ccp			path1,		// NULL or part #1 of path
+    ccp			path2,		// NULL or part #2 of path
+    size_t		skip,		// skip num of bytes before reading
+    void		* data,		// destination buffer, size = 'size'
+    size_t		size,		// size to read
+    bool		silent,		// true: suppress printing of error messages
+    FileAttrib_t	* fatt,		// not NULL: store file attributes
+    bool		fatt_max	// true: store max values to 'fatt'
+);
+
 enumError SaveFile ( ccp path1, ccp path2, bool create_dir,
 		     void * data, size_t size, bool silent );
 
@@ -1052,7 +1088,7 @@ void PrintMemMap ( MemMap_t * mm, FILE * f, int indent );
 typedef struct SetupDef_t
 {
 	ccp	name;		// name of parameter, NULL=list terminator
-	u32	factor;		// factor, 0: text param
+	u32	factor;		// alignment factor;, 0: text param
 	ccp	param;		// malloced text param
 	u64	value;		// numeric value of param
 
@@ -1098,6 +1134,10 @@ int ScanOptCompression
 (
     ccp			arg		// argument to scan
 );
+
+//-----------------------------------------------------------------------------
+
+void SetCompressionBest();
 
 //
 ///////////////////////////////////////////////////////////////////////////////

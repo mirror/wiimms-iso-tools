@@ -279,7 +279,8 @@ enumError SourceIteratorWarning ( Iterator_t * it, enumError max_err, bool silen
 ///////////////			global options			///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-extern bool allow_fst;
+extern bool allow_fst;		// FST diabled by default
+extern bool ignore_setup;	// ignore file 'setup.txt' while composing
 
 extern wd_select_t part_selector;
 
@@ -369,6 +370,7 @@ void PrintIM ( IsoMapping_t * im, FILE * f, int indent );
 ///////////////                      Wii FST                    ///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
+#define FST_SETUP_FILE   "setup.txt"
 #define FST_INCLUDE_FILE "include.fst"
 
 enum // some const
@@ -398,37 +400,38 @@ typedef struct WiiFstFile_t
 
 typedef struct WiiFstPart_t
 {
-	//----- wd interface
+    //----- wd interface
 
-	wd_part_t	* part;			// NULL or partition pointer
+    wd_part_t		* part;			// NULL or partition pointer
 
-	//----- partition info
+    //----- partition info
 
-	u32		part_type;		// partition type
-	u64		part_off;		// offset of partition relative to disc start
-	u8		key[WII_KEY_SIZE];	// partition key
-	aes_key_t	akey;			// partition aes key
-	ccp		path;			// prefix path to partition
-	wd_part_control_t * pc;			// ticket + cert + tmd + h3;
+    u32			part_type;		// partition type
+    u64			part_off;		// offset of partition relative to disc start
+    u8			key[WII_KEY_SIZE];	// partition key
+    aes_key_t		akey;			// partition aes key
+    ccp			path;			// prefix path to partition
+    wd_part_control_t	* pc;			// ticket + cert + tmd + h3;
 
-	//----- files
+    //----- files
 
-	WiiFstFile_t	* file;			// alloced list of files
-	u32		file_used;		// number of used elements in 'file'
-	u32		file_size;		// number of allocated elements in 'file'
-	SortMode	sort_mode;		// current sort mode
-	StringField_t	include_list;		// list of files with trailing '.'
-	u64		total_file_size;	// total size of all files
+    WiiFstFile_t	* file;			// alloced list of files
+    u32			file_used;		// number of used elements in 'file'
+    u32			file_size;		// number of allocated elements in 'file'
+    SortMode		sort_mode;		// current sort mode
+    StringField_t	include_list;		// list of files with trailing '.'
+    FileAttrib_t	max_fatt;		// max file attributes
+    u64			total_file_size;	// total size of all files
 
-	//----- generator data
+    //----- generator data
 
-	u8		*ftab;			// file table (fst.bin)
-	u32		ftab_size;		// size of file table
-	IsoMapping_t	im;			// iso mapping
+    u8			* ftab;			// file table (fst.bin)
+    u32			ftab_size;		// size of file table
+    IsoMapping_t	im;			// iso mapping
 
-	//----- status
-	
-	int done;				// set if operation was done
+    //----- status
+
+    int			done;			// set if operation was done
 
 } WiiFstPart_t;
 
@@ -489,7 +492,8 @@ typedef struct WiiFstInfo_t
 	u32		total_count;		// total files to proceed
 	u32		done_count;		// preceeded files
 	u32		fw_done_count;		// field width of 'done_count'
-	u64		done_file_size;		// helper variable for progress statistics
+	u64		done_size;		// done file size for progress statistics
+	u64		total_size;		// total file size for progress statistics
 	u32		not_created_count;	// number of not created files+dirs
 
 	FileAttrib_t	* set_time;		// NULL or set time attrib

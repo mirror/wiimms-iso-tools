@@ -191,7 +191,7 @@ static const RegionInfo_t RegionTable[] =
 	/*E*/ { REGION_USA, 1,  "NTSC", "NTSC" },
 	/*F*/ { REGION_EUR, 1,  "FREN", "French" },
 	/*G*/ { REGION_EUR,  0, "-?- ", "-?-" },
-	/*H*/ { REGION_EUR,  0, "-?- ", "-?-" },
+	/*H*/ { REGION_EUR,  0, "NL  ", "Netherlands" },	// ??
 	/*I*/ { REGION_EUR, 1,  "ITAL", "Italian" },
 	/*J*/ { REGION_JAP, 1,  "JAPA", "Japan" },
 	/*K*/ { REGION_KOR, 1,  "KORE", "Korea" },
@@ -201,12 +201,12 @@ static const RegionInfo_t RegionTable[] =
 	/*O*/ { REGION_EUR,  0, "-?- ", "-?-" },
 	/*P*/ { REGION_EUR, 1,  "PAL ", "PAL" },
 	/*Q*/ { REGION_KOR, 1,  "KO/J", "Korea (japanese)" },
-	/*R*/ { REGION_EUR,  0, "-?- ", "-?-" },
+	/*R*/ { REGION_EUR,  0, "RUS ", "Russia" },		// ??
 	/*S*/ { REGION_EUR, 1,  "SPAN", "Spanish" },
 	/*T*/ { REGION_KOR, 1,  "KO/E", "Korea (english)" },
-	/*U*/ { REGION_EUR,  0, "-?- ", "-?-" },
-	/*V*/ { REGION_EUR,  0, "-?- ", "-?-" },
-	/*W*/ { REGION_EUR,  0, "-?- ", "-?-" },
+	/*U*/ { REGION_EUR,  0, "AUS ", "Australia" },		// ??
+	/*V*/ { REGION_EUR,  0, "SCAN", "Scandinavian" },	// ??
+	/*W*/ { REGION_EUR,  0, "CHIN", "China" },		// ??
 	/*X*/ { REGION_EUR, 1,  "RF  ", "Region free" },
 	/*Y*/ { REGION_EUR,  0, "-?- ", "-?-" },
 	/*Z*/ { REGION_EUR,  0, "-?- ", "-?-" },
@@ -480,6 +480,30 @@ bool PatchName ( void * name, wd_modify_t condition )
     ASSERT( strlen(modify_name) < WII_TITLE_SIZE );
     memcpy(name,modify_name,WII_TITLE_SIZE);
     return true;
+}
+
+//-----------------------------------------------------------------------------
+
+bool PatchDiscHeader ( void * dhead, const void * patch_id, const void * patch_name )
+{
+    DASSERT(dhead);
+    bool stat = false;
+
+    if (patch_id)
+	stat = wd_patch_id(dhead,dhead,patch_id,6);
+
+    if (patch_name)
+    {
+	char * title = (char*)dhead + WII_TITLE_OFF;
+	if (memcmp(title,patch_name,WII_TITLE_SIZE))
+	{
+	    stat = true;
+	    strncpy(title,patch_name,WII_TITLE_SIZE);
+	    title[WII_TITLE_SIZE-1] = 0;
+	}
+    }
+
+    return stat;
 }
 
 //

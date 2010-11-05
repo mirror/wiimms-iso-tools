@@ -127,6 +127,7 @@ typedef struct WBFS_t
 	SuperFile_t * sf;	// attached super file
 	bool sf_alloced;	// true if 'sf' is alloced
 	bool is_growing;	// true if wbfs is of type growing
+	bool cache_candidate;	// true if wbfs is a cache candidate
 	wbfs_t * wbfs;		// the pure wbfs handle
 	wbfs_disc_t * disc;	// the wbfs disc handle
 	int disc_slot;		// >=0: last opened slot
@@ -267,6 +268,33 @@ ParamList_t * CheckParamID6 ( bool unique, bool lookup_title_db );
 ParamList_t * SearchParamID6 ( ccp id6 );
 int PrintParamID6();
 
+//-----------------------------------------------------------------------------
+
+ccp ScanArgID
+(
+    char		buf[7],		// result buffer for ID6: 6 chars + NULL
+					// On error 'buf7' is filled with NULL
+    ccp			arg,		// argument to scan. Comma is a separator
+    bool		trim_end	// true: remove trailing '.'
+);
+
+ccp ScanPatID // return NULL if ok or a pointer to the invalid text
+(
+    StringField_t	* sf_id6,	// valid pointer: add real ID6
+    StringField_t	* sf_pat,	// valid pointer: add IDs with pattern '.'
+    ccp			arg,		// argument to scan. Comma is a separator
+    bool		trim_end	// true: remove trailing '.'
+);
+
+ccp FindPatID
+(
+    StringField_t	* sf_id6,	// if not NULL: search real ID6
+    StringField_t	* sf_pat,	// if not NULL: search IDs with pattern '.'
+    ccp			id6		// valid id6
+);
+
+//-----------------------------------------------------------------------------
+
 enumError ScanParamID6
 (
     StringField_t	* select_list,	// append all results to this list
@@ -306,6 +334,8 @@ enumError CheckParamRename ( bool rename_id, bool allow_plus, bool allow_index )
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////		    discs & wbfs interface		///////////////
 ///////////////////////////////////////////////////////////////////////////////
+
+enumError CloseWBFSCache();
 
 void InitializeWBFS	( WBFS_t * w );
 enumError ResetWBFS	( WBFS_t * w );
