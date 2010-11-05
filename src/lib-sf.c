@@ -96,7 +96,8 @@ void CleanSF ( SuperFile_t * sf )
 
 ///////////////////////////////////////////////////////////////////////////////
 
-enumError CloseSF ( SuperFile_t * sf, FileAttrib_t * set_time_ref )
+static enumError CloseHelperSF
+	( SuperFile_t * sf, FileAttrib_t * set_time_ref, bool remove )
 {
     ASSERT(sf);
     enumError err = ERR_OK;
@@ -113,45 +114,56 @@ enumError CloseSF ( SuperFile_t * sf, FileAttrib_t * set_time_ref )
 	sf->disc1 = 0;
     }
 
-    if ( sf->f.is_writing && sf->min_file_size )
-    {
-	err = SetMinSizeSF(sf,sf->min_file_size);
-	sf->min_file_size = 0;
-    }
-
-    //if ( !err && sf->f.is_writing && !sf->f.is_reading )
-    if ( !err && sf->f.is_writing )
-    {
-	if (sf->wc)
-	    err = TermWriteWDF(sf);
-
-	if (sf->ciso.map)
-	    err = TermWriteCISO(sf);
-
-	if (sf->wbfs)
-	{
-	    err = CloseWDisc(sf->wbfs);
-	    if (!err)
-		err = sf->wbfs->is_growing
-			? TruncateWBFS(sf->wbfs)
-			: SyncWBFS(sf->wbfs,false);
-	}
-
-	if (sf->wia)
-	    err = TermWriteWIA(sf);
-    }
-
-    if ( err != ERR_OK )
-	CloseFile(&sf->f,true);
+    if (remove)
+	err = CloseFile(&sf->f,true);
     else
     {
-	err = CloseFile(&sf->f,false);
-	if (set_time_ref)
-	    SetFileTime(&sf->f,set_time_ref);
+	if ( sf->f.is_writing && sf->min_file_size )
+	{
+	    err = SetMinSizeSF(sf,sf->min_file_size);
+	    sf->min_file_size = 0;
+	}
+
+	if ( !err && sf->f.is_writing )
+	{
+	    if (sf->wc)
+		err = TermWriteWDF(sf);
+
+	    if (sf->ciso.map)
+		err = TermWriteCISO(sf);
+
+	    if (sf->wbfs)
+	    {
+		err = CloseWDisc(sf->wbfs);
+		if (!err)
+		    err = sf->wbfs->is_growing
+			    ? TruncateWBFS(sf->wbfs)
+			    : SyncWBFS(sf->wbfs,false);
+	    }
+
+	    if (sf->wia)
+		err = TermWriteWIA(sf);
+	}
+
+	if ( err != ERR_OK )
+	    CloseFile(&sf->f,true);
+	else
+	{
+	    err = CloseFile(&sf->f,false);
+	    if (set_time_ref)
+		SetFileTime(&sf->f,set_time_ref);
+	}
     }
 
     CleanSF(sf);
     return err;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+enumError CloseSF ( SuperFile_t * sf, FileAttrib_t * set_time_ref )
+{
+    return CloseHelperSF(sf,set_time_ref,false);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -161,7 +173,7 @@ enumError ResetSF ( SuperFile_t * sf, FileAttrib_t * set_time_ref )
     ASSERT(sf);
 
     // free dynamic memory
-    enumError err = CloseSF(sf,set_time_ref);
+    enumError err = CloseHelperSF(sf,set_time_ref,false);
     ResetFile(&sf->f,false);
     sf->indent = NormalizeIndent(sf->indent);
 
@@ -205,8 +217,7 @@ enumError RemoveSF ( SuperFile_t * sf )
     }
 
     TRACE(" - remove file %s\n",sf->f.fname);
-    enumError err = CloseSF(sf,0);
-    CloseFile(&sf->f,true);
+    enumError err = CloseHelperSF(sf,0,true);
     ResetSF(sf,0);
     return err;
 }

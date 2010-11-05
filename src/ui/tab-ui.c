@@ -776,6 +776,12 @@ info_t info_tab[] =
 		" All default values may be changed in the future."
 		" @--compr@ is a shortcut for @--compression@." },
 
+  { H_OPT_C,	"BEST",		"best",
+		0,
+		"Set ISO output file type to WIA (Wii ISO Archive)"
+		" and set compression mode to @BEST@."
+		" Option @--best@ is a shortcut for {--wia --compr best}." },
+
   { T_OPT_CP,	"MEM",		"mem",
 		"size",
 		"This option defines a memory usage limit for compressing files."
@@ -1092,6 +1098,7 @@ info_t info_tab[] =
   { T_COPT,	"CHUNK_SIZE",	0,0,0 },
   { T_COPT,	"MAX_CHUNKS",	0,0,0 },
   { T_COPT,	"COMPRESSION",	0,0,0 },
+  { H_COPT,	"BEST",		0,0,0 },
   { T_COPT,	"MEM",		0,0,0 },
 
   //
@@ -1962,6 +1969,9 @@ info_t info_tab[] =
   { T_OPT_CP,	"COMPRESSION",	"compression|compr",
 		0, 0 /* copy of wit */ },
 
+  { H_OPT_CP,	"BEST",		"best",
+		0, 0 /* copy of wit */ },
+
   { T_OPT_CP,	"MEM",		"mem",
 		0, 0 /* copy of wit */ },
 
@@ -2224,6 +2234,7 @@ info_t info_tab[] =
   { T_COPT,	"CHUNK_SIZE",	0,0,0 },
   { T_COPT,	"MAX_CHUNKS",	0,0,0 },
 //  { H_COPT,	"COMPRESSION",	0,0,0 },	// [2do]
+//  { H_COPT,	"BEST",		0,0,0 },	// [2do]
 //  { H_COPT,	"MEM",		0,0,0 },	// [2do]
 
 
@@ -2892,6 +2903,9 @@ info_t info_tab[] =
   { T_OPT_CP,	"COMPRESSION",	"compression|compr",
 		0, 0 /* copy of wit */ },
 
+  { H_OPT_CP,	"BEST",		"best",
+		0, 0 /* copy of wit */ },
+
   { T_OPT_CP,	"MEM",		"mem",
 		0, 0 /* copy of wit */ },
 
@@ -2927,6 +2941,7 @@ info_t info_tab[] =
   { T_COPT,	"CHUNK_SIZE",	0,0,0 },
   { T_COPT,	"MAX_CHUNKS",	0,0,0 },
   { T_COPT,	"COMPRESSION",	0,0,0 },
+  { H_COPT,	"BEST",		0,0,0 },
   { T_COPT,	"MEM",		0,0,0 },
 
   //---------- wdf GROUP FILETYPE ----------

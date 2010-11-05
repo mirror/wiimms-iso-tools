@@ -1075,6 +1075,7 @@ enumError CheckOptions ( int argc, char ** argv )
 	case GO_CHUNK_SIZE:	err += ScanChunkSize(optarg); break;
 	case GO_MAX_CHUNKS:	err += ScanMaxChunks(optarg); break;
 	case GO_COMPRESSION:	err += ScanOptCompression(optarg); break;
+	case GO_BEST:		SetCompressionBest(); file_mode = FMODE_WIA; break;
 	case GO_MEM:		err += ScanOptMem(optarg,true); break;
 
 	case GO_TEST:		testmode++; break;

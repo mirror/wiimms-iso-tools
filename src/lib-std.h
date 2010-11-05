@@ -453,8 +453,8 @@ typedef struct File_t
 	struct File_t **split_f; // list with pointers to the split files
 	int split_used;		 // number of used split files in 'split_f'
 	off_t split_filesize;	 // max file size for new files
-	ccp split_fname_format;	 // format with '%u' at the end for 'fname'
-	ccp split_rename_format; // format with '%u' at the end for 'rename'
+	ccp split_fname_format;	 // format with '%01u' at the end for 'fname'
+	ccp split_rename_format; // format with '%01u' at the end for 'rename'
 
 	// wbfs vars
 
@@ -1134,6 +1134,10 @@ int ScanOptCompression
 (
     ccp			arg		// argument to scan
 );
+
+//-----------------------------------------------------------------------------
+
+void SetCompressionBest();
 
 //
 ///////////////////////////////////////////////////////////////////////////////

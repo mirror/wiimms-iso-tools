@@ -3062,6 +3062,7 @@ enumError CheckOptions ( int argc, char ** argv, bool is_env )
 	case GO_CHUNK_SIZE:	err += ScanChunkSize(optarg); break;
 	case GO_MAX_CHUNKS:	err += ScanMaxChunks(optarg); break;
 	case GO_COMPRESSION:	err += ScanOptCompression(optarg); break;
+	case GO_BEST:		SetCompressionBest(); break;
 	case GO_MEM:		err += ScanOptMem(optarg,true); break;
 	case GO_RECOVER:	break;
 	case GO_FORCE:		break;

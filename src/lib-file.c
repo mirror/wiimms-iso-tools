@@ -344,6 +344,8 @@ enumError XCloseFile ( XPARM File_t * f, bool remove_file )
 	{
 	    TRACE("REMOVE: %s\n",*path);
 	    unlink(*path);
+	    FreeString(f->rename);
+	    f->rename = 0;
 	}
 	else if (f->rename)
 	{
@@ -1130,7 +1132,27 @@ enumError XSetupSplitFile ( XPARM File_t *f, enumOFT oft, off_t split_size )
 	snprintf(fname,sizeof(fname),f->split_fname_format,1);
 	struct stat st;
 	if (stat(fname,&st))
-	    return ERR_OK; // no split files found -> return
+	{
+	    bool found = false;
+	    const int slen =  strlen(f->split_fname_format);
+	    if ( slen > 2 && f->split_fname_format[slen-2] == '1' )
+	    {
+		int fw;
+		for ( fw = '2'; fw <= '6'; fw++ )
+		{
+		    ((char*)f->split_fname_format)[slen-2] = fw;
+		    snprintf(fname,sizeof(fname),f->split_fname_format,1);
+		    if (!stat(fname,&st))
+		    {
+			found = true;
+			break;
+		    }
+		}   
+	    }
+	    if (!found)
+		return ERR_OK; // no split files found -> return
+	}
+	noPRINT("SPLIT-FNAME: %s\n",f->split_fname_format);
     }
 
     File_t ** list = calloc(MAX_SPLIT_FILES,sizeof(*list));
@@ -2830,7 +2852,7 @@ FileAttrib_t * CopyFileAttribDiscInfo
 
 int CalcSplitFilename ( char * buf, size_t buf_size, ccp path, enumOFT oft )
 {
-    const int needed_space = oft == OFT_WBFS ? 4 : 5;
+    const int needed_space = oft == OFT_WBFS ? 6 : 7;
     const int max_path_len = PATH_MAX - needed_space;
 
     if (!path)
@@ -2863,6 +2885,8 @@ int CalcSplitFilename ( char * buf, size_t buf_size, ccp path, enumOFT oft )
 	if ( oft != OFT_WBFS )
 	    *dest++ = '.';
 	*dest++ = '%';
+	*dest++ = '0';
+	*dest++ = '1';
 	*dest++ = 'u';
     }
     *dest = 0;
