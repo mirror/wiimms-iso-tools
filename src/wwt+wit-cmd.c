@@ -117,28 +117,26 @@ void print_default_compr ( ccp mode )
 
 enumError cmd_compr()
 {
-    const bool print_header = !print_sections
-			    && long_count > 1
-			    && !OptionUsed[OPT_NO_HEADER];
-    if (print_header)
-	printf(	"\n"
-		" mode    mode           memory usage\n"
-		" num     name         reading   writing   input\n"
-		"----------------------------------------------------\n");
-
     const bool have_param = n_param > 0;
     if (!n_param)
     {
 	int i;
 	for ( i = 0; i < WD_COMPR__N; i++ )
 	    AddParam(wd_get_compression_name(i,0),false);
-	if ( long_count > 1 )
+	if (long_count)
 	{
 	    AddParam(" DEFAULT",false);
 	    AddParam(" FAST",false);
 	    AddParam(" GOOD",false);
 	    AddParam(" BEST",false);
 	    AddParam(" MEM",false);
+	    
+	    char buf[2] = {0,0};
+	    for ( i = '0'; i <= '9'; i++ )
+	    {
+		buf[0] = i;
+		AddParam(buf,true);
+	    }
 	}
     }
 
@@ -164,9 +162,11 @@ enumError cmd_compr()
 	    u32 csize;
 	    wd_compression_t compr = ScanCompression(param->arg,true,&level,&csize);
 	    printf( "\n[compression-mode-%u]\n"
+		"input=%s\n"
 		"num=%d\n"
 		"name=%s\n",
-		index, compr, wd_get_compression_name(compr,"-") );
+		index, param->arg,
+		compr, wd_get_compression_name(compr,"-") );
 	    if ( compr == (wd_compression_t)-1 )
 		err_count++;
 	    else
@@ -185,8 +185,17 @@ enumError cmd_compr()
 	}
 	putchar('\n');
     }
-    else if ( long_count > 0 )
+    else if (long_count)
     {
+	const bool print_header = !OptionUsed[OPT_NO_HEADER];
+	if (print_header)
+	    printf( "\n"
+		    " mode           memory usage\n"
+		      " %s         reading   writing   input mode\n"
+		    "---------------------------------------------\n",
+		    OptionUsed[OPT_NUMERIC] ? "num " : "name" );
+
+	const int mode = OptionUsed[OPT_NUMERIC] ? 1 : 2;
 	ParamList_t * param;
 	for ( param = first_param; param; param = param->next )
 	{
@@ -199,43 +208,30 @@ enumError cmd_compr()
 		CalcDefaultSettingsWIA(&compr2,&level,&csize);
 	    }
 
-	    if ( long_count == 1 )
-	    {
-		if ( compr == (wd_compression_t)-1 )
-		{
-		    err_count++;
-		    printf(" -    -\n");
-		}
-		else
-	     #ifdef NO_BZIP2
-		if ( have_param || compr != WD_COMPR_BZIP2 )
-	     #endif
-		    printf("%s\n",wd_print_compression(0,0,compr,level,csize,3));
-	    }
-	    else if ( compr == (wd_compression_t)-1 )
+	    if ( compr == (wd_compression_t)-1 )
 	    {
 		err_count++;
-		printf(" -       -                -         -     %s\n",param->arg);
+		printf(" -                -         -     %s\n",param->arg);
 	    }
 	    else
 	    {
-		sprintf(iobuf," %-7s %-11s",
-			wd_print_compression(0,0,compr,level,csize,1),
-			wd_print_compression(0,0,compr,level,csize,2) );
-
 		u32 read_size  = CalcMemoryUsageWIA(compr,level,csize,false);
 		u32 write_size = CalcMemoryUsageWIA(compr,level,csize,true);
-		printf("%-16s %s  %s   %.30s\n",iobuf,
+		printf(" %-11s %s  %s   %.30s\n",
+			wd_print_compression(0,0,compr,level,csize,mode),
 			wd_print_size_1024(0,0,read_size,true),
 			wd_print_size_1024(0,0,write_size,true),
 			param->arg );
 	    }
 	}
+
+	if (print_header)
+	    putchar('\n');
     }
     else
     {
+	const int mode = OptionUsed[OPT_NUMERIC] ? 1 : 2;
 	ParamList_t * param;
-	int mode = OptionUsed[OPT_NUMERIC] ? 1 : 2;
 	for ( param = first_param; param; param = param->next )
 	{
 	    int level;
@@ -256,9 +252,6 @@ enumError cmd_compr()
 	    printf("%s\n",wd_print_compression(0,0,compr,level,csize,mode));
 	}
     }
-
-    if (print_header)
-	putchar('\n');
 
     return err_count ? ERR_WARNING : ERR_OK;
 }

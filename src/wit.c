@@ -384,7 +384,7 @@ enumError cmd_create()
 
 	    ticket_fake_sign(&tik,sizeof(tik));
 	    if ( verbose > 1 )
-		Dump_TIK_MEM(stdout,2,&tik);
+		Dump_TIK_MEM(stdout,2,&tik,0);
 	    if (!testmode)
 	    {
 		const enumError err = SaveFile(path,0,opt_mkdir,
@@ -419,7 +419,7 @@ enumError cmd_create()
 
 	    tmd_fake_sign(tmd,sizeof(tmd_buf));
 	    if ( verbose > 1 )
-		Dump_TMD_MEM(stdout,2,tmd,1);
+		Dump_TMD_MEM(stdout,2,tmd,1,0);
 	    if (!testmode)
 	    {
 		const enumError err = SaveFile(path,0,opt_mkdir,
@@ -761,6 +761,9 @@ enumError exec_dump ( SuperFile_t * sf, Iterator_t * it )
 
     if ( sf->f.ftype & FT_ID_FST_BIN )
 	return Dump_FST_BIN(stdout,0,sf,it->real_path,opt_show_mode);
+
+    if ( sf->f.ftype & FT_ID_CERT_BIN )
+	return Dump_CERT_BIN(stdout,0,sf,it->real_path);
 
     if ( sf->f.ftype & FT_ID_TIK_BIN )
 	return Dump_TIK_BIN(stdout,0,sf,it->real_path);
@@ -1246,83 +1249,6 @@ enumError cmd_files ( int long_level )
 //
 ///////////////////////////////////////////////////////////////////////////////
 
-enumError exec_diff ( SuperFile_t * f1, Iterator_t * it )
-{
-    if (!f1->f.id6[0])
-	return ERR_OK;
-    fflush(0);
-
-    SuperFile_t f2;
-    InitializeSF(&f2);
-    f2.allow_fst = allow_fst;
-
-    enumOFT oft = CalcOFT(output_file_type,opt_dest,f1->f.fname,OFT__DEFAULT);
-    ccp oname = oft == OFT_FST
-		    ? 0
-		    : oft == OFT_WBFS && f1->f.id6[0]
-			? f1->f.id6
-			: f1->f.outname
-			    ? f1->f.outname
-			    : f1->f.fname;
-    GenImageFileName(&f2.f,opt_dest,oname,oft);
-    SubstFileNameSF(&f2,f1,0);
-
-    //f2.f.disable_errors = it->act_non_exist != ACT_WARN;
-    enumError err = OpenSF(&f2,0,it->act_non_iso||it->act_wbfs>=ACT_ALLOW,0);
-    if (err)
-    {
-	it->diff_count++;
-	return ERR_OK;
-    }
-    f2.f.disable_errors = false;
-
-    f2.indent		= 5;
-    f2.show_progress	= verbose > 1 || progress;
-    f2.show_summary	= verbose > 0 || progress;
-    f2.show_msec	= verbose > 2;
-
-    const bool raw_mode = part_selector.whole_disc || !f1->f.id6[0];
-    if (testmode)
-    {
-	printf( "%s: WOULD DIFF/%s %s:%s : %s:%s\n",
-		progname, raw_mode ? "RAW" : "SCRUB",
-		oft_info[f1->iod.oft].name, f1->f.fname,
-		oft_info[f2.iod.oft].name, f2.f.fname );
-	ResetSF(&f2,0);
-	return ERR_OK;
-    }
-
-    if ( verbose > 0 )
-    {
-	printf( "* DIFF/%s %s:%s -> %s:%s\n",
-		raw_mode ? "RAW" : "SCRUB",
-		oft_info[f1->iod.oft].name, f1->f.fname,
-		oft_info[f2.iod.oft].name, f2.f.fname );
-    }
-
-    PRINT("DIFF: raw=%x, files=%x => diff files = %d\n",
-		raw_mode, OptionUsed[OPT_FILES], !raw_mode && OptionUsed[OPT_FILES] );
-    err = !raw_mode && OptionUsed[OPT_FILES]
-		? DiffFilesSF( f1, &f2, it->long_count, GetDefaultFilePattern(), prefix_mode )
-		: DiffSF( f1, &f2, it->long_count, raw_mode );
-
-    if ( err == ERR_DIFFER )
-    {
-	it->diff_count++;
-	err = ERR_OK;
-	if ( verbose >= 0 )
-	    printf( "! ISOs differ: %s:%s : %s:%s\n",
-			oft_info[f1->iod.oft].name, f1->f.fname,
-			oft_info[f2.iod.oft].name, f2.f.fname );
-    }
-    it->done_count++;
-
-    ResetSF(&f2,0);
-    return err;
-}
-
-//-----------------------------------------------------------------------------
-
 enumError cmd_diff ( bool file_level )
 {
     if ( verbose > 0 )
@@ -1390,10 +1316,17 @@ enumError cmd_diff ( bool file_level )
 	return err;
     }
 
-    it.func = exec_diff;
-    enumError err = SourceIterator(&it,2,false,false);
-    if ( err == ERR_OK && it.diff_count )
-	err = ERR_DIFFER;
+    enumError err = SourceIterator(&it,0,false,true);
+    if ( err <= ERR_WARNING )
+    {
+	enumError exec_copy ( SuperFile_t * fi, Iterator_t * it );
+	it.func = exec_copy;
+	it.diff_it = true;
+	err = SourceIteratorCollected(&it,2,false);
+	if ( err == ERR_OK && it.exists_count )
+	    err = ERR_ALREADY_EXISTS;
+    }
+
     ResetIterator(&it);
     return err;
 }
@@ -1531,7 +1464,9 @@ enumError exec_copy ( SuperFile_t * fi, Iterator_t * it )
 	return ERR_OK;
     fflush(0);
 
-    const bool convert_it = it->convert_it
+    const bool convert_it
+		=  it->convert_it
+		&& !it->diff_it
 		&& ( output_file_type == OFT_UNKNOWN
 			|| output_file_type == fi->iod.oft );
 
@@ -1594,8 +1529,11 @@ enumError exec_copy ( SuperFile_t * fi, Iterator_t * it )
 
 	printf( "* %s%s%s %s %s%s:%s -> %s:%s\n",
 		testmode ? "WOULD " : "",
-		convert_it ? "CONVERT" : "COPY",
-		raw_mode ? "" : "+SCRUB",
+		it->diff_it ? "DIFF" : convert_it ? "CONVERT" : "COPY",
+		it->diff_it
+			? ( raw_mode ? "/RAW" : OptionUsed[OPT_FILES]
+				? "/FILES" : "/SCRUB" )
+			: ( raw_mode ? "" : "+SCRUB" ),
 		count_buf,
 		oft_info[fi->iod.oft].name, split_buf, fi->f.fname,
 		oft_info[oft].name, fo.f.fname );
@@ -1605,7 +1543,44 @@ enumError exec_copy ( SuperFile_t * fi, Iterator_t * it )
 	    ResetSF(&fo,0);
 	    return ERR_OK;
 	}
+	
+	fflush(0);
     }
+
+
+    //----- diff image
+
+    if (it->diff_it)
+    {
+	enumError err = OpenSF(&fo,0,it->act_non_iso||it->act_wbfs>=ACT_ALLOW,0);
+	if (err)
+	{
+	    it->diff_count++;
+	    return ERR_OK;
+	}
+
+	err = !raw_mode && OptionUsed[OPT_FILES]
+		    ? DiffFilesSF( fi, &fo, it->long_count,
+				    GetDefaultFilePattern(), prefix_mode )
+		    : DiffSF( fi, &fo, it->long_count, raw_mode );
+
+	if ( err == ERR_DIFFER )
+	{
+	    it->diff_count++;
+	    err = ERR_OK;
+	    if ( verbose >= 0 )
+		printf( "! ISOs differ: %s:%s : %s:%s\n",
+			    oft_info[fi->iod.oft].name, fi->f.fname,
+			    oft_info[fo.iod.oft].name, fo.f.fname );
+	}
+	it->done_count++;
+
+	ResetSF(&fo,0);
+	return err;
+    }
+
+
+    //----- copy image
 
     enumError err = CreateFile( &fo.f, 0, oft_info[oft].iom, it->overwrite );
     if ( err == ERR_ALREADY_EXISTS )
@@ -1635,7 +1610,17 @@ enumError exec_copy ( SuperFile_t * fi, Iterator_t * it )
     if ( it->remove_source && SIGINT_level < 2 )
 	RemoveSF(fi);
 
-    return ResetSF( &fo, OptionUsed[OPT_PRESERVE] ? &fi->f.fatt : 0 );
+    const bool preserve_time = fi->disc1 == fi->disc2 || OptionUsed[OPT_PRESERVE];
+    err = ResetSF( &fo, preserve_time ? &fi->f.fatt : 0 );
+
+    if ( !err && OptionUsed[OPT_DIFF] )
+    {
+	it->diff_it = true;
+	err = exec_copy(fi,it);
+	it->diff_it = false;
+    }
+
+    return err;
 
  abort:
     RemoveSF(&fo);
@@ -2257,16 +2242,16 @@ enumError CheckOptions ( int argc, char ** argv, bool is_env )
 	case GO_CHUNK_MODE:	err += ScanChunkMode(optarg); break;
 	case GO_CHUNK_SIZE:	err += ScanChunkSize(optarg); break;
 	case GO_MAX_CHUNKS:	err += ScanMaxChunks(optarg); break;
-	case GO_COMPRESSION:	err += ScanOptCompression(optarg); break;
-	case GO_BEST:		SetCompressionBest(); break;
+	case GO_COMPRESSION:	err += ScanOptCompression(false,optarg); break;
 	case GO_MEM:		err += ScanOptMem(optarg,true); break;
 	case GO_PRESERVE:	break;
 	case GO_UPDATE:		break;
 	case GO_OVERWRITE:	break;
+	case GO_DIFF:		break;
 	case GO_REMOVE:		break;
 
 	case GO_WDF:		output_file_type = OFT_WDF; break;
-	case GO_WIA:		output_file_type = OFT_WIA; break;
+	case GO_WIA:		err += ScanOptCompression(true,optarg); break;
 	case GO_ISO:		output_file_type = OFT_PLAIN; break;
 	case GO_CISO:		output_file_type = OFT_CISO; break;
 	case GO_WBFS:		output_file_type = OFT_WBFS; break;

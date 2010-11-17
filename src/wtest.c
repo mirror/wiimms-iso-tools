@@ -46,6 +46,8 @@
 #include "crypt.h"
 #include "lib-lzma.h"
 
+#define CMD1_FW 10
+
 #ifdef HAVE_WORK_DIR
   #include "wtest+.c"
 #endif
@@ -891,10 +893,13 @@ void help_exit()
     const CommandTab_t * cmd;
     for ( cmd = CommandTab; cmd->name1; cmd++ )
 	if (cmd->name2)
-	    printf("  %-10s | %s\n",cmd->name1,cmd->name2);
+	    printf("  %-*s | %s\n",CMD1_FW,cmd->name1,cmd->name2);
 	else
 	    printf("  %s\n",cmd->name1);
     putchar('\n');
+ #ifdef HAVE_WORK_DIR
+    wiimm_help_exit(false);
+ #endif
     exit(ERR_SYNTAX);
 };
 

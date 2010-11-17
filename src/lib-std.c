@@ -57,7 +57,7 @@
 
 //
 ///////////////////////////////////////////////////////////////////////////////
-///////////////                       Setup                     ///////////////
+///////////////			    Setup			///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
 enumProgID	prog_id			= PROG_UNKNOWN;
@@ -282,6 +282,14 @@ void SetupLib ( int argc, char ** argv, ccp p_progname, enumProgID prid )
 
     TRACE("-\n");
     TRACE_SIZEOF(aes_key_t);
+
+    TRACE_SIZEOF(cert_chain_t);
+    TRACE_SIZEOF(cert_data_t);
+    TRACE_SIZEOF(cert_head_t);
+    TRACE_SIZEOF(cert_item_t);
+    TRACE_SIZEOF(cert_stat_flags_t);
+    TRACE_SIZEOF(cert_stat_t);
+
     TRACE_SIZEOF(dcUnicodeTripel);
     TRACE_SIZEOF(dol_header_t);
     TRACE_SIZEOF(id6_t);
@@ -639,7 +647,7 @@ enumError CheckEnvOptions ( ccp varname, check_opt_func func )
 
 //
 ///////////////////////////////////////////////////////////////////////////////
-///////////////                  error messages                 ///////////////
+///////////////			error messages			///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
 ccp GetErrorName ( int stat )
@@ -1007,7 +1015,7 @@ int GetTermWidthFD ( int fd, int default_value, int min_value )
 
 //
 ///////////////////////////////////////////////////////////////////////////////
-///////////////                    timer                        ///////////////
+///////////////			    timer			///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
 u32 GetTimerMSec()
@@ -1041,124 +1049,7 @@ ccp PrintMSec ( char * buf, int bufsize, u32 msec, bool PrintMSec )
 
 //
 ///////////////////////////////////////////////////////////////////////////////
-///////////////                string functions                 ///////////////
-///////////////////////////////////////////////////////////////////////////////
-
-const char EmptyString[] = "";
-const char MinusString[] = "-";
-
-///////////////////////////////////////////////////////////////////////////////
-
-void FreeString ( ccp str )
-{
-    noTRACE("FreeString(%p) EmptyString=%p MinusString=%p\n",
-	    str, EmptyString, MinusString );
-    if ( str && str != EmptyString && str != MinusString )
-	free((char*)str);
-}
-
-///////////////////////////////////////////////////////////////////////////////
-
-void * MemDup ( const void * src, size_t copylen )
-{
-    char * dest = malloc(copylen+1);
-    if (!dest)
-	OUT_OF_MEMORY;
-    memcpy(dest,src,copylen);
-    dest[copylen] = 0;
-    return dest;
-}
-
-///////////////////////////////////////////////////////////////////////////////
-
-char * StringCopyE ( char * buf, char * buf_end, ccp src )
-{
-    // RESULT: end of copied string pointing to NULL
-    // 'src' may be a NULL pointer.
-
-    ASSERT(buf);
-    ASSERT(buf<buf_end);
-    buf_end--;
-
-    if (src)
-	while( buf < buf_end && *src )
-	    *buf++ = *src++;
-
-    *buf = 0;
-    return buf;
-}
-
-//-----------------------------------------------------------------------------
-
-char * StringCopyS ( char * buf, size_t buf_size, ccp src )
-{
-    return StringCopyE(buf,buf+buf_size,src);
-}
-
-///////////////////////////////////////////////////////////////////////////////
-
-char * StringCat2E ( char * buf, char * buf_end, ccp src1, ccp src2 )
-{
-    // RESULT: end of copied string pointing to NULL
-    // 'src*' may be a NULL pointer.
-
-    ASSERT(buf);
-    ASSERT(buf<buf_end);
-    buf_end--;
-
-    if (src1)
-	while( buf < buf_end && *src1 )
-	    *buf++ = *src1++;
-
-    if (src2)
-	while( buf < buf_end && *src2 )
-	    *buf++ = *src2++;
-
-    *buf = 0;
-    return buf;
-}
-
-//-----------------------------------------------------------------------------
-
-char * StringCat2S ( char * buf, size_t buf_size, ccp src1, ccp src2 )
-{
-    return StringCat2E(buf,buf+buf_size,src1,src2);
-}
-
-///////////////////////////////////////////////////////////////////////////////
-
-char * StringCat3E ( char * buf, char * buf_end, ccp src1, ccp src2, ccp src3 )
-{
-    // RESULT: end of copied string pointing to NULL
-    // 'src*' may be a NULL pointer.
-
-    ASSERT(buf);
-    ASSERT(buf<buf_end);
-    buf_end--;
-
-    if (src1)
-	while( buf < buf_end && *src1 )
-	    *buf++ = *src1++;
-
-    if (src2)
-	while( buf < buf_end && *src2 )
-	    *buf++ = *src2++;
-
-    if (src3)
-	while( buf < buf_end && *src3 )
-	    *buf++ = *src3++;
-
-    *buf = 0;
-    return buf;
-}
-
-//-----------------------------------------------------------------------------
-
-char * StringCat3S ( char * buf, size_t buf_size, ccp src1, ccp src2, ccp src3 )
-{
-    return StringCat3E(buf,buf+buf_size,src1,src2,src3);
-}
-
+///////////////			string functions		///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
 ccp PathCatPP ( char * buf, size_t bufsize, ccp path1, ccp path2 )
@@ -1381,7 +1272,7 @@ char * ScanID ( char * destbuf7, int * destlen, ccp source )
 
 //
 ///////////////////////////////////////////////////////////////////////////////
-///////////////             time printing & scanning            ///////////////
+///////////////		    time printing & scanning		///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
 int opt_print_time  = PT__DEFAULT;
@@ -2193,7 +2084,7 @@ char * ScanRangeU32 ( ccp arg, u32 * p_stat, u32 * p_n1, u32 * p_n2, u32 min, u3
 
 //
 ///////////////////////////////////////////////////////////////////////////////
-///////////////                   ScanHex()			///////////////
+///////////////			    ScanHex()			///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
 // 0..15 : hex digit
@@ -2350,6 +2241,17 @@ static wd_compression_t ScanCompression_helper
 
 	{ COMPR_MEM,		"MEM",		"M",	0 },
 
+	{ WD_COMPR_NONE,	"0",		0,	0 },
+	{ WD_COMPR_LZMA,	"1",		0,	0x100 +  5 },
+	{ WD_COMPR_LZMA,	"2",		0,	0x200 + 10 },
+	{ WD_COMPR_LZMA,	"3",		0,	0x300 + 30 },
+	{ WD_COMPR_LZMA,	"4",		0,	0x400 + 30 },
+	{ WD_COMPR_LZMA,	"5",		0,	0x400 + 50 },
+	{ WD_COMPR_LZMA,	"6",		0,	0x500 + 20 },
+	{ WD_COMPR_LZMA,	"7",		0,	0x500 + 50 },
+	{ WD_COMPR_LZMA,	"8",		0,	0x600 + 50 },
+	{ WD_COMPR_LZMA,	"9",		0,	0x900 + 50 },
+
 	{ 0,0,0,0 }
     };
 
@@ -2486,6 +2388,7 @@ static wd_compression_t ScanCompression_helper
 	return compr;
     }
 
+#if 0 // [obsolete]
     char * end;
     u32 val = strtoul(scan_arg,&end,10);
  #ifdef TEST
@@ -2495,6 +2398,7 @@ static wd_compression_t ScanCompression_helper
     if ( end > scan_arg && !*end && val < WD_COMPR__N )
 	return val;
  #endif
+#endif
 
     if (!silent)
 	ERROR0(ERR_SYNTAX,"Illegal compression method: '%s'\n",scan_arg);
@@ -2548,27 +2452,25 @@ wd_compression_t ScanCompression
 
 int ScanOptCompression
 (
+    bool		set_oft_wia,	// true: output_file_type := OFT_WIA
     ccp			arg		// argument to scan
 )
 {
-    int new_level = 0;
-    u32 new_chunk_size;
-    const int new_compr = ScanCompression(arg,false,&new_level,&new_chunk_size);
-    if ( new_compr == -1 )
-	return 1;
-    opt_compr_method	 = new_compr;
-    opt_compr_level	 = new_level;
-    opt_compr_chunk_size = new_chunk_size;
+    if (set_oft_wia)
+	output_file_type = OFT_WIA;
+    
+    if (arg)
+    {
+	int new_level = 0;
+	u32 new_chunk_size;
+	const int new_compr = ScanCompression(arg,false,&new_level,&new_chunk_size);
+	if ( new_compr == -1 )
+	    return 1;
+	opt_compr_method	 = new_compr;
+	opt_compr_level	 = new_level;
+	opt_compr_chunk_size = new_chunk_size;
+    }
     return 0;
-}
-
-///////////////////////////////////////////////////////////////////////////////
-
-void SetCompressionBest()
-{
-    opt_compr_method	 = WD_COMPR__BEST;
-    opt_compr_level	 = 9;
-    opt_compr_chunk_size = 50 * WIA_BASE_CHUNK_SIZE;
 }
 
 //
@@ -2863,7 +2765,7 @@ s64 ScanCommandListMask
 
 //
 ///////////////////////////////////////////////////////////////////////////////
-///////////////                    sort mode                    ///////////////
+///////////////			    sort mode			///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
 SortMode ScanSortMode ( ccp arg )
@@ -2941,6 +2843,7 @@ ShowMode ScanShowMode ( ccp arg )
 	{ SHOW_P_INFO,		"P-INFO",	"PINFO",	0 },
 	{ SHOW_P_MAP,		"P-MAP",	"PMAP",		0 },
 	{ SHOW_D_MAP,		"D-MAP",	"DMAP",		0 },
+	{ SHOW_CERT,		"CERTIFICATES",	0,		0 },
 	{ SHOW_TICKET,		"TICKET",	0,		0 },
 	{ SHOW_TMD,		"TMD",		0,		0 },
 	{ SHOW_USAGE,		"USAGE",	0,		0 },
@@ -3102,7 +3005,7 @@ int ScanOptUnit ( ccp arg )
 
 //
 ///////////////////////////////////////////////////////////////////////////////
-///////////////                   repair mode                   ///////////////
+///////////////			   repair mode			///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
 RepairMode ScanRepairMode ( ccp arg )
@@ -3135,7 +3038,7 @@ RepairMode ScanRepairMode ( ccp arg )
 
 //
 ///////////////////////////////////////////////////////////////////////////////
-///////////////              string lists & fields              ///////////////
+///////////////		    string lists & fields		///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
 void InitializeStringField ( StringField_t * sf )
@@ -3190,9 +3093,11 @@ bool InsertStringField ( StringField_t * sf, ccp key, bool move_key )
 	{
 	    sf->size += 0x100;
 	    sf->field = realloc(sf->field,sf->size*sizeof(ccp));
+	    if (!sf->field)
+		OUT_OF_MEMORY;
 	}
 	TRACE("InsertStringField(%s,%d) %d/%d/%d\n",key,move_key,idx,sf->used,sf->size);
-	ASSERT( idx <= sf->used );
+	DASSERT( idx <= sf->used );
 	ccp * dest = sf->field + idx;
 	memmove(dest+1,dest,(sf->used-idx)*sizeof(ccp));
 	sf->used++;
@@ -3230,6 +3135,8 @@ void AppendStringField ( StringField_t * sf, ccp key, bool move_key )
 	{
 	    sf->size += 0x100;
 	    sf->field = realloc(sf->field,sf->size*sizeof(ccp));
+	    if (!sf->field)
+		OUT_OF_MEMORY;
 	}
 	TRACE("AppendStringField(%s,%d) %d/%d\n",key,move_key,sf->used,sf->size);
 	ccp * dest = sf->field + sf->used++;
@@ -3353,7 +3260,7 @@ enumError WriteStringField
 
 //
 ///////////////////////////////////////////////////////////////////////////////
-///////////////                  string lists                   ///////////////
+///////////////			  string lists			///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
 int AtFileHelper
@@ -3553,7 +3460,7 @@ void AtExpandAllParam ( ParamList_t ** p_param )
 
 //
 ///////////////////////////////////////////////////////////////////////////////
-///////////////              string substitutions               ///////////////
+///////////////		     string substitutions		///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
 char * SubstString
@@ -3676,7 +3583,7 @@ int ScanEscapeChar ( ccp arg )
 
 //
 ///////////////////////////////////////////////////////////////////////////////
-///////////////                   Memory Maps                   ///////////////
+///////////////			    Memory Maps			///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
 void InitializeMemMap ( MemMap_t * mm )
@@ -3737,9 +3644,11 @@ MemMapItem_t * InsertMemMap ( MemMap_t * mm, off_t off, off_t size )
     {
 	mm->size += 64;
 	mm->field = realloc(mm->field,mm->size*sizeof(MemMapItem_t*));
+	if (!mm->field)
+	    OUT_OF_MEMORY;
     }
 
-    ASSERT( idx <= mm->used );
+    DASSERT( idx <= mm->used );
     MemMapItem_t ** dest = mm->field + idx;
     memmove(dest+1,dest,(mm->used-idx)*sizeof(MemMapItem_t*));
     mm->used++;
@@ -4273,6 +4182,6 @@ size_t AllocTempBuffer ( size_t needed_size )
 
 //
 ///////////////////////////////////////////////////////////////////////////////
-///////////////                     END                         ///////////////
+///////////////			    END				///////////////
 ///////////////////////////////////////////////////////////////////////////////
 

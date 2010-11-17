@@ -3061,8 +3061,7 @@ enumError CheckOptions ( int argc, char ** argv, bool is_env )
 	case GO_CHUNK_MODE:	err += ScanChunkMode(optarg); break;
 	case GO_CHUNK_SIZE:	err += ScanChunkSize(optarg); break;
 	case GO_MAX_CHUNKS:	err += ScanMaxChunks(optarg); break;
-	case GO_COMPRESSION:	err += ScanOptCompression(optarg); break;
-	case GO_BEST:		SetCompressionBest(); break;
+	case GO_COMPRESSION:	err += ScanOptCompression(false,optarg); break;
 	case GO_MEM:		err += ScanOptMem(optarg,true); break;
 	case GO_RECOVER:	break;
 	case GO_FORCE:		break;
@@ -3076,7 +3075,7 @@ enumError CheckOptions ( int argc, char ** argv, bool is_env )
 	case GO_REMOVE:		break;
 
 	case GO_WDF:		output_file_type = OFT_WDF; break;
-	case GO_WIA:		output_file_type = OFT_WIA; break;
+	case GO_WIA:		err += ScanOptCompression(true,optarg); break;
 	case GO_ISO:		output_file_type = OFT_PLAIN; break;
 	case GO_CISO:		output_file_type = OFT_CISO; break;
 	case GO_WBFS:		output_file_type = OFT_WBFS; break;

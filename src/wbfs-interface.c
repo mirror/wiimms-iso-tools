@@ -3848,7 +3848,7 @@ void PrintSectWDiscListItem ( FILE * f, WDiscListItem_t * witem, ccp def_fname )
 
     fprintf(f,"id=%s\n",witem->id6);
     fprintf(f,"name=%s\n",witem->name64);
-    fprintf(f,"title=%s\n",witem->title);
+    fprintf(f,"title=%s\n", witem->title ? witem->title : "" );
     fprintf(f,"region=%s\n",GetRegionInfo(witem->id6[3])->name4);
     fprintf(f,"size=%llu\n",(u64)witem->fatt.size
 				? (u64)witem->fatt.size : (u64)witem->size_mib*MiB );
@@ -4099,7 +4099,7 @@ enumError ExtractWDisc ( WBFS_t * w, SuperFile_t * sf )
     if ( max_error < saved_max_error )
 	max_error = saved_max_error;
 
-    PrintSummarySF(sf);
+    sf->progress_summary = true;
 
     TRACE("ExtractWDisc() returns err=%d [%s]\n",err,GetErrorName(err));
     return err;

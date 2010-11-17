@@ -25,7 +25,7 @@
 #ifndef WIIDISC_H
 #define WIIDISC_H
 
-#include "file-formats.h"
+#include "cert.h"
 #include "rijndael.h"
 
 //
@@ -472,6 +472,10 @@ typedef struct wd_part_t
     u8			* h3;		// NULL or pointer to h3, size = WII_H3_SIZE
     char		* setup_txt;	// NULL or pointer to content of file setup.txt
     u32			setup_txt_len;	// = strlen(setup_txt)
+
+    cert_chain_t	cert_chain;	// list of ceritificates
+    cert_stat_t		cert_tik_stat;	// certificate state of ticket, NULL=not set
+    cert_stat_t		cert_tmd_stat;	// certificate state of tmd, NULL=not set
 
     u8			key[WII_KEY_SIZE];
 					// partition key, needed to build aes key
@@ -969,7 +973,7 @@ wd_part_t * wd_get_part_by_type
 
 enumError wd_load_part
 (
-    wd_part_t		*part,		// valid disc partition pointer
+    wd_part_t		* part,		// valid disc partition pointer
     bool		load_cert,	// true: load cert data too
     bool		load_h3,	// true: load h3 data too
     bool		silent		// true: don't print error messages
@@ -991,6 +995,33 @@ enumError wd_calc_fst_statistics
 (
     wd_disc_t		* disc,		// valid disc pointer
     bool		sum_all		// false: summarize only enabled partitions
+);
+
+//
+///////////////////////////////////////////////////////////////////////////////
+///////////////		interface: certificate support		///////////////
+///////////////////////////////////////////////////////////////////////////////
+
+const cert_chain_t * wd_load_cert_chain
+(
+    wd_part_t		* part,		// valid disc partition pointer
+    bool		silent		// true: don't print errors while loading cert
+);
+
+//-----------------------------------------------------------------------------
+
+cert_stat_t wd_get_cert_ticket_stat
+(
+    wd_part_t		* part,		// valid disc partition pointer
+    bool		silent		// true: don't print errors while loading cert
+);
+
+//-----------------------------------------------------------------------------
+
+cert_stat_t wd_get_cert_tmd_stat
+(
+    wd_part_t		* part,		// valid disc partition pointer
+    bool		silent		// true: don't print errors while loading cert
 );
 
 //

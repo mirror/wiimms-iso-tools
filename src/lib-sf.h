@@ -84,18 +84,21 @@ typedef struct SuperFile_t
 
 	// internal values: progress
 
-	int progress_trigger;		// progress is only printed if value>0
-	int progress_trigger_init;	// if printed: init 'progress_trigger' with this value
-	u32 progress_start_time;	// time of start
-	u32 progress_last_view_sec;	// time of last progress viewing
-	u32 progress_max_wd;		// max width used for progress output
-	ccp progress_verb;		// default is "copied"
+	int  progress_trigger;		// progress is only printed if value>0
+	int  progress_trigger_init;	// if printed: init 'progress_trigger' with this value
+	u32  progress_start_time;	// time of start
+	u32  progress_last_view_sec;	// time of last progress viewing
+	u32  progress_max_wd;		// max width used for progress output
+	ccp  progress_verb;		// default is "copied"
+	bool progress_summary;		// print summary (delayed) on closing
 
 	// internal values: file handling
 
-	off_t file_size;		// the size of the (virtual) ISO image
-	off_t min_file_size;		// if set: Call SetMinSizeSF() before closing
-	off_t max_virt_off;		// maximal used offset of virtual image
+	u64 file_size;			// the size of the (virtual) ISO image
+	u64 min_file_size;		// if set: Call SetMinSizeSF() before closing
+	u64 max_virt_off;		// maximal used offset of virtual image
+	u64 source_size;		// if set: size of source
+					//  => display compression ratio in summary stat
 
 	// read and write support
 
@@ -107,6 +110,7 @@ typedef struct SuperFile_t
 	bool discs_loaded;		// true: discs already loaded -> don't try again
 	wd_disc_t * disc1;		// NULL or pointer to unpatched wii disc
 	wd_disc_t * disc2;		// NULL or pointer to patched wii disc
+	wd_part_t * data_part;		// NULL or used data partition of 'disc1'
 
 	// WDF support
 

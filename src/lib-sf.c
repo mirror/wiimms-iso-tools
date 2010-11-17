@@ -36,6 +36,7 @@
 #include "lib-sf.h"
 #include "wbfs-interface.h"
 #include "titles.h"
+#include "cert.h"
 
 //
 ///////////////////////////////////////////////////////////////////////////////
@@ -153,6 +154,12 @@ static enumError CloseHelperSF
 	    if (set_time_ref)
 		SetFileTime(&sf->f,set_time_ref);
 	}
+    }
+	
+    if (sf->progress_summary)
+    {
+	sf->progress_summary = false;
+	PrintSummarySF(sf);
     }
 
     CleanSF(sf);
@@ -681,6 +688,7 @@ wd_disc_t * OpenDiscSF
 	if (!part->is_enabled)
 	    part = 0;
     }
+    sf->data_part = part;
 
 
     //----- check for patching
@@ -1735,19 +1743,29 @@ void PrintSummarySF ( SuperFile_t * sf )
 	char timbuf[50];
 	ccp tim = PrintMSec(timbuf,sizeof(timbuf),elapsed,sf->show_msec);
 
+	char ratebuf[50] = {0};
 	u64 total = sf->f.bytes_read + sf->f.bytes_written;
+	if (sf->source_size)
+	{
+	    total = sf->source_size;
+	    if ( sf->f.max_off )
+		snprintf(ratebuf,sizeof(ratebuf),
+			", compressed to %4.2f%%",
+			100.0 * (double)sf->f.max_off / sf->source_size );
+	}
+
 	if (total)
 	{
 	    if ( !sf->progress_verb || !*sf->progress_verb )
 		sf->progress_verb = "copied";
 
-	    snprintf(buf,sizeof(buf),"%*s%4llu MiB %s in %s, %4.1f MiB/sec",
+	    snprintf(buf,sizeof(buf),"%*s%4llu MiB %s in %s, %4.1f MiB/sec%s",
 		sf->indent,"", (total+MiB/2)/MiB, sf->progress_verb,
-		tim, (double)total * 1000 / MiB / elapsed );
+		tim, (double)total * 1000 / MiB / elapsed, ratebuf );
 	}
 	else
-	    snprintf(buf,sizeof(buf),"%*sFinished in %s",
-		sf->indent,"", tim );
+	    snprintf(buf,sizeof(buf),"%*sFinished in %s%s",
+		sf->indent,"", tim, ratebuf );
     }
 
     if (sf->show_progress)
@@ -1945,13 +1963,14 @@ enumFileType AnalyzeFT ( File_t * f )
     wd_disc_type_t disc_type;
 
     TRACELINE;
+    memset(buf1,0,sizeof(buf1));
     enumError err = ReadAtF(f,0,&buf1,sizeof(buf1));
     if (err)
     {
 	TRACELINE;
 	ft |= FT_ID_OTHER;
     }
-    else if (IsWIA(buf1,FILE_PRELOAD_SIZE,f->id6,&disc_type,0))
+    else if (IsWIA(buf1,sizeof(buf1),f->id6,&disc_type,0))
     {
 	noPRINT("WIA found, dt=%d, id=%s: %s\n",disc_type,f->id6,f->fname);
 	ft |= disc_type == WD_DT_GAMECUBE
@@ -2209,27 +2228,44 @@ enumFileType AnalyzeMemFT ( const void * preload_buf, off_t file_size )
     }
 
 
-    //----- test TMD.BIN
-
-    if ( file_size >= sizeof(wd_tmd_t) )
+    const int sig_size = cert_get_signature_size(be32(preload_buf));
+    if ( sig_size && sig_size < file_size )
     {
-	const wd_tmd_t * tmd = preload_buf;
-	const int n = ntohs(tmd->n_content);
-	if ( file_size == sizeof(wd_tmd_t) + n * sizeof(wd_tmd_content_t)
-	    && CheckID4(tmd->title_id+4,true,false) )
+	//----- test TMD.BIN
+
+	if ( file_size >= sizeof(wd_tmd_t) )
 	{
-	    return FT_ID_TMD_BIN;
+	    const wd_tmd_t * tmd = preload_buf;
+	    const int n = ntohs(tmd->n_content);
+	    if ( file_size == sizeof(wd_tmd_t) + n * sizeof(wd_tmd_content_t)
+		&& CheckID4(tmd->title_id+4,true,false) )
+	    {
+		return FT_ID_TMD_BIN;
+	    }
 	}
-    }
 
 
-    //----- test TICKET.BIN
+	//----- test TICKET.BIN
 
-    if ( file_size == sizeof(wd_ticket_t) )
-    {
-	const wd_ticket_t * tik = preload_buf;
-	if ( CheckID4(tik->title_id+4,true,false) )
-	    return FT_ID_TIK_BIN;
+	if ( file_size == sizeof(wd_ticket_t) )
+	{
+	    const wd_ticket_t * tik = preload_buf;
+	    if ( CheckID4(tik->title_id+4,true,false) )
+		return FT_ID_TIK_BIN;
+	}
+
+	//----- test CERT.bin
+
+	if ( !(file_size & WII_CERT_ALIGN-1) )
+	{
+	    const u8 * data = (u8*)cert_get_data(preload_buf);
+	    if ( data && data < (u8*)preload_buf + file_size )
+	    {
+		const u8 * next = (u8*)cert_get_next_head(data);
+		if ( next && next <= (u8*)preload_buf + file_size )
+		    return FT_ID_CERT_BIN;
+	    }
+	}
     }
 
 
@@ -2322,13 +2358,11 @@ ccp GetNameFT ( enumFileType ftype, int ignore )
 
 	case FT_ID_DIR:
 	    return ignore > 1 ? 0 : "DIR";
-	    break;
 
 	case FT_ID_FST:
 	    return ftype & FT_A_PART_DIR
 			? ( ftype & FT_A_GC_ISO ? "FST/GC" : "FST/WII" )
 			: ( ftype & FT_A_GC_ISO ? "FST/GC+" : "FST/WII+" );
-	    break;
 
 	case FT_ID_WBFS:
 	    return ftype & FT_A_WDISC
@@ -2347,7 +2381,6 @@ ccp GetNameFT ( enumFileType ftype, int ignore )
 					: ftype & FT_A_CISO
 					? "CISO/GC"
 					: "ISO/GC";
-	    break;
 
 	case FT_ID_WII_ISO:
 	    return ftype & FT_A_WDF
@@ -2357,55 +2390,28 @@ ccp GetNameFT ( enumFileType ftype, int ignore )
 					: ftype & FT_A_CISO
 					? "CISO/WII"
 					: "ISO/WII";
-	    break;
 
 	case FT_ID_DOL:
-	    return ignore > 1
-			? 0
-			: ftype & FT_A_WDF
-				? "WDF/DOL"
-				: "DOL";
-	    break;
+	    return ignore > 1 ? 0 : ftype & FT_A_WDF ? "WDF/DOL"  : "DOL";
+
+	case FT_ID_CERT_BIN:
+	    return ignore > 1 ? 0 : ftype & FT_A_WDF ? "WDF/CERT" : "CERT.BIN";
 
 	case FT_ID_TIK_BIN:
-	    return ignore > 1
-			? 0
-			: ftype & FT_A_WDF
-				? "WDF/TIK"
-				: "TIK.BIN";
-	    break;
+	    return ignore > 1 ? 0 : ftype & FT_A_WDF ? "WDF/TIK"  : "TIK.BIN";
 
 	case FT_ID_TMD_BIN:
-	    return ignore > 1
-			? 0
-			: ftype & FT_A_WDF
-				? "WDF/TMD"
-				: "TMD.BIN";
-	    break;
+	    return ignore > 1 ? 0 : ftype & FT_A_WDF ? "WDF/TMD"  : "TMD.BIN";
 
 	case FT_ID_HEAD_BIN:
-	    return ignore > 1
-			? 0
-			: ftype & FT_A_WDF
-				? "WDF/HEAD"
-				: "HEAD.BIN";
+	    return ignore > 1 ? 0 : ftype & FT_A_WDF ? "WDF/HEAD" : "HEAD.BIN";
 	    break;
 
 	case FT_ID_BOOT_BIN:
-	    return ignore > 1
-			? 0
-			: ftype & FT_A_WDF
-				? "WDF/BOOT"
-				: "BOOT.BIN";
-	    break;
+	    return ignore > 1 ? 0 : ftype & FT_A_WDF ? "WDF/BOOT" : "BOOT.BIN";
 
 	case FT_ID_FST_BIN:
-	    return ignore > 1
-			? 0
-			: ftype & FT_A_WDF
-				? "WDF/FST"
-				: "FST.BIN";
-	    break;
+	    return ignore > 1 ? 0 : ftype & FT_A_WDF ? "WDF/FST"  : "FST.BIN";
 
 	default:
 	    return ignore > 1
@@ -2556,7 +2562,7 @@ enumError CopySF ( SuperFile_t * in, SuperFile_t * out, bool force_raw_mode )
 		}
 	    }
 	    if ( out->show_progress || out->show_summary )
-		PrintSummarySF(out);
+		out->progress_summary = true; // delayed print after closing
 	    return ERR_OK;
 	}
     }
@@ -2611,7 +2617,7 @@ enumError CopyRaw ( SuperFile_t * in, SuperFile_t * out )
     }
 
     if ( out->show_progress || out->show_summary )
-	PrintSummarySF(out);
+	out->progress_summary = true;
 
     return ERR_OK;
 }
@@ -2751,7 +2757,7 @@ enumError CopyWDF ( SuperFile_t * in, SuperFile_t * out )
     }
 
     if ( out->show_progress || out->show_summary )
-	PrintSummarySF(out);
+	out->progress_summary = true;
 
     return ERR_OK;
 }
@@ -2846,7 +2852,7 @@ enumError CopyWBFSDisc ( SuperFile_t * in, SuperFile_t * out )
     }
 
     if ( out->show_progress || out->show_summary )
-	PrintSummarySF(out);
+	out->progress_summary = true;
 
  abort:
     if ( copybuf != iobuf )

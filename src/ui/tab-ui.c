@@ -50,12 +50,17 @@ typedef enum enumType
 	F_OPT_GLOBAL	=  0x020000,  // option is global
 	F_OPT_MULTIUSE	=  0x040000,  // multiple usage of option possible
 	F_OPT_PARAM	=  0x080000,  // option needs a parameter
-	F_SEPARATOR	=  0x100000,  // separator element
-	F_SUPERSEDE	=  0x200000,  // supersedes all other commands and options
+	F_OPT_OPTPARAM	=  0x100000,  // option accepts a optional parameter
+	F_SEPARATOR	=  0x200000,  // separator element
+	F_SUPERSEDE	=  0x400000,  // supersedes all other commands and options
+
+	F_OPT_XPARAM	=  F_OPT_PARAM | F_OPT_OPTPARAM,
+
 
 	//----- global flags
 
 	F_HIDDEN	= 0x1000000,  // option is hidden from help
+
 
 	//----- option combinations
 	
@@ -63,17 +68,22 @@ typedef enum enumType
 	T_OPT_CM	= T_DEF_OPT | F_OPT_COMMAND | F_OPT_MULTIUSE,
 	T_OPT_CP	= T_DEF_OPT | F_OPT_COMMAND                  | F_OPT_PARAM,
 	T_OPT_CMP	= T_DEF_OPT | F_OPT_COMMAND | F_OPT_MULTIUSE | F_OPT_PARAM,
+	T_OPT_CO	= T_DEF_OPT | F_OPT_COMMAND                  | F_OPT_OPTPARAM,
+	T_OPT_CMO	= T_DEF_OPT | F_OPT_COMMAND | F_OPT_MULTIUSE | F_OPT_OPTPARAM,
 
 	T_OPT_G		= T_DEF_OPT | F_OPT_GLOBAL,
 	T_OPT_GM	= T_DEF_OPT | F_OPT_GLOBAL  | F_OPT_MULTIUSE,
 	T_OPT_GP	= T_DEF_OPT | F_OPT_GLOBAL                   | F_OPT_PARAM,
 	T_OPT_GMP	= T_DEF_OPT | F_OPT_GLOBAL  | F_OPT_MULTIUSE | F_OPT_PARAM,
+	T_OPT_GO	= T_DEF_OPT | F_OPT_GLOBAL                   | F_OPT_OPTPARAM,
+	T_OPT_GMO	= T_DEF_OPT | F_OPT_GLOBAL  | F_OPT_MULTIUSE | F_OPT_OPTPARAM,
 
 	T_OPT_S		= T_DEF_OPT | F_OPT_GLOBAL | F_SUPERSEDE,
 
 
 	T_COPT		= T_CMD_OPT,
 	T_COPT_M	= T_CMD_OPT | F_OPT_MULTIUSE,
+
 
 	//----- hidden options and commands (hide from help)
 
@@ -84,11 +94,15 @@ typedef enum enumType
 	H_OPT_CM	= F_HIDDEN | T_OPT_CM,
 	H_OPT_CP	= F_HIDDEN | T_OPT_CP,
 	H_OPT_CMP	= F_HIDDEN | T_OPT_CMP,
+	H_OPT_CO	= F_HIDDEN | T_OPT_CO,
+	H_OPT_CMO	= F_HIDDEN | T_OPT_CMO,
 
 	H_OPT_G		= F_HIDDEN | T_OPT_G,
 	H_OPT_GM	= F_HIDDEN | T_OPT_GM,
 	H_OPT_GP	= F_HIDDEN | T_OPT_GP,
 	H_OPT_GMP	= F_HIDDEN | T_OPT_GMP,
+	H_OPT_GO	= F_HIDDEN | T_OPT_GO,
+	H_OPT_GMO	= F_HIDDEN | T_OPT_GMO,
 
 	H_COPT		= F_HIDDEN | T_COPT,
 	H_COPT_M	= F_HIDDEN | T_COPT_M,
@@ -191,7 +205,7 @@ info_t info_tab[] =
 		"Scan compression modes and print the normalized names."
 		" See option {--compression} for syntax details."
 		" If no mode is given than print a table"
-		" with all available compression methods." },
+		" with all available compression modes and alternative mode names." },
 
   { T_DEF_CMD,	"EXCLUDE",	"EXCLUDE",
 		    "wit EXCLUDE [additional_excludes]...",
@@ -754,12 +768,14 @@ info_t info_tab[] =
 		"Select one compression method, level and chunk size for new WIA files."
 		" The syntax for mode is: @[method] [.level] [@@factor]@"
 		"\n "
-		" @'method'@ is the name or index of the method."
+		" @'method'@ is the name of the method."
 		" Possible compressions method are @NONE@, @PURGE@, @BZIP2@,"
 		" @LZMA@ and @LZMA2@."
 		" There are additional keywords: @DEFAULT@ (=@LZMA.5@@20@),"
 		" @FAST@ (=@BZIP2.3@@10@), @GOOD@ (=@LZMA.5@@20@) @BEST@ (=@LZMA.7@@50@),"
 		" and @MEM@ (use best mode in respect to memory limit set by {--mem})."
+		" Additionally the single digit modes @0@ (=@NONE@), "
+		" @1@ (=fast @LZMA@) .. @9@ (=@BEST@)are defined."
 		" These additional keywords may change their meanings"
 		" if a new compression method is implemented."
 		"\n "
@@ -774,13 +790,8 @@ info_t info_tab[] =
 		"\n "
 		" All three parts are optional."
 		" All default values may be changed in the future."
-		" @--compr@ is a shortcut for @--compression@." },
-
-  { H_OPT_C,	"BEST",		"best",
-		0,
-		"Set ISO output file type to WIA (Wii ISO Archive)"
-		" and set compression mode to @BEST@."
-		" Option @--best@ is a shortcut for {--wia --compr best}." },
+		" @--compr@ is a shortcut for @--compression@."
+		" The command {wit COMPR} prints an overview about all compression modes." },
 
   { T_OPT_CP,	"MEM",		"mem",
 		"size",
@@ -804,6 +815,9 @@ info_t info_tab[] =
   { T_OPT_C,	"OVERWRITE",	"o|overwrite",
 		0, "Overwrite already existing files." },
 
+  { T_OPT_C,	"DIFF",		"diff",
+		0, "Diff source and dest after copying." },
+
   { T_OPT_C,	"REMOVE",	"R|remove",
 		0,
 		"Remove source files/discs if operation is successful."
@@ -823,11 +837,15 @@ info_t info_tab[] =
   { T_OPT_C,	"WBFS",		"B|wbfs",
 		0, "Set ISO output file type to WBFS (Wii Backup File System) container." },
 
-  { T_OPT_C,	"WIA",		"wia",
-		0, "Set ISO output file type to WIA (Wii ISO Archive)." },
+  { T_OPT_CO,	"WIA",		"wia",
+		"[=compr]",
+		"Set ISO output file type to WIA (Wii ISO Archive)."
+		" The optional parameter is a compression mode and"
+		" {--wia=mode} is a shortcut for {--wia --compression mode}." },
 
   { T_OPT_C,	"FST",		"fst",
-		0, "Set ISO output mode to 'file system' (extracted ISO)." },
+		0,
+		"Set ISO output mode to 'file system' (extracted ISO)." },
 
   { T_OPT_CMP,	"FILES",	"F|files",
 		"rules",
@@ -835,6 +853,8 @@ info_t info_tab[] =
 		" This option can be used multiple times to extend the rule list."
 		" Rules beginning with a '+' or a '-' are allow or deny rules rules."
 		" Rules beginning with a '=' are macros for internal rule sets." },
+    // [2do]	"\1\n"
+    //		"See http://wit.wiimm.de/opt/files for more details." },
 
   { T_SEP_OPT,	0,0,0,0 }, //----- separator -----
 
@@ -872,7 +892,7 @@ info_t info_tab[] =
   { T_OPT_CM,	"LONG",		"l|long",
 		0, "Print in long format. Multiple usage possible." },
 
-  { T_OPT_C,	"NUMERIC",	"numeric",
+  { H_OPT_C,	"NUMERIC",	"numeric",		// *** [2do] *** not used ***
 		0, "Force numeric output instead of printing names." },
 
   { T_OPT_C,	"REALPATH",	"real-path|realpath",
@@ -1098,7 +1118,6 @@ info_t info_tab[] =
   { T_COPT,	"CHUNK_SIZE",	0,0,0 },
   { T_COPT,	"MAX_CHUNKS",	0,0,0 },
   { T_COPT,	"COMPRESSION",	0,0,0 },
-  { H_COPT,	"BEST",		0,0,0 },
   { T_COPT,	"MEM",		0,0,0 },
 
   //
@@ -1145,13 +1164,12 @@ info_t info_tab[] =
   { T_COPT,	"SECTIONS",	0,0,0 },
   { T_COPT,	"NO_HEADER",	0,0,0 },
   { T_COPT,	"LONG",		0,0,
-	"Print the numeric value and the normalized name."
-	" If set twice print a table with the numeric value,"
-	" normalized name and alternative names." },
+	"Print a table with the normalized mode name,"
+	" compression level, chunk size factor and memory usage." },
   { T_COPT,	"VERBOSE",	0,0,
-	"Show default compression level and chunk size factor too."
+	"Print always compression level and chunk size factor."
 	" Standard is to suppress these values if not explicitly set." },
-  { T_COPT,	"NUMERIC",	0,0,0 },
+  { H_COPT,	"NUMERIC",	0,0,0 },
 
   //---------- COMMAND wit EXCLUDE ----------
 
@@ -1413,6 +1431,7 @@ info_t info_tab[] =
   { T_COPY_CMD,	"EXTRACT",	0,0,0 },
 
   { T_COPT,	"UPDATE",	0,0,0 },
+  { T_COPT,	"DIFF",		0,0,0 },
   { T_COPT,	"REMOVE",	0,0,0 },
   { T_COPY_GRP,	"SPLIT_CHUNK",	0,0,0 },
 
@@ -1969,9 +1988,6 @@ info_t info_tab[] =
   { T_OPT_CP,	"COMPRESSION",	"compression|compr",
 		0, 0 /* copy of wit */ },
 
-  { H_OPT_CP,	"BEST",		"best",
-		0, 0 /* copy of wit */ },
-
   { T_OPT_CP,	"MEM",		"mem",
 		0, 0 /* copy of wit */ },
 
@@ -2028,7 +2044,7 @@ info_t info_tab[] =
   { T_OPT_C,	"WDF",		"W|wdf",
 		0, 0 /* copy of wit */ },
 
-  { T_OPT_C,	"WIA",		"wia",
+  { T_OPT_CO,	"WIA",		"wia",
 		0, 0 /* copy of wit */ },
 
   { T_OPT_C,	"ISO",		"I|iso",
@@ -2065,7 +2081,7 @@ info_t info_tab[] =
   { T_OPT_CM,	"LONG",		"l|long",
 		0, 0 /* copy of wit */ },
 
-  { T_OPT_C,	"NUMERIC",	"numeric",
+  { H_OPT_C,	"NUMERIC",	"numeric",		// *** [2do] *** not used ***
 		0, 0 /* copy of wit */ },
 
   { T_OPT_C,	"INODE",	"inode",
@@ -2234,7 +2250,6 @@ info_t info_tab[] =
   { T_COPT,	"CHUNK_SIZE",	0,0,0 },
   { T_COPT,	"MAX_CHUNKS",	0,0,0 },
 //  { H_COPT,	"COMPRESSION",	0,0,0 },	// [2do]
-//  { H_COPT,	"BEST",		0,0,0 },	// [2do]
 //  { H_COPT,	"MEM",		0,0,0 },	// [2do]
 
 
@@ -2280,10 +2295,12 @@ info_t info_tab[] =
   { T_COPT,	"SECTIONS",	0,0,0 },
   { T_COPT,	"NO_HEADER",	0,0,0 },
   { T_COPT,	"LONG",		0,0,
-	"Print the numeric value and the normalized name."
-	" If set twice print a table with the numeric value,"
-	" normalized name and alternative names." },
-  { T_COPT,	"NUMERIC",	0,0,0 },
+	"Print a table with the normalized mode name,"
+	" compression level, chunk size factor and memory usage." },
+  { T_COPT,	"VERBOSE",	0,0,
+	"Print always compression level and chunk size factor."
+	" Standard is to suppress these values if not explicitly set." },
+  { H_COPT,	"NUMERIC",	0,0,0 },
 
   //---------- COMMAND wwt EXCLUDE ----------
 
@@ -2829,12 +2846,12 @@ info_t info_tab[] =
 		" and set the default suffix to @'.wdf'@."
 		" This is the general default." },
 
-  { T_OPT_C,	"WIA",		"wia",
+  { T_OPT_CO,	"WIA",		"wia",
 		0,
 		"Force WIA output mode if packing"
 		" and set the default suffix to @'.wia'@."
 		"\n "
-		"  This is the default, when the program name contains"
+		" This is the default, when the program name contains"
 		" the sub string @'wia'@ in any case." },
 
   { T_OPT_C,	"CISO",		"C|ciso",
@@ -2903,9 +2920,6 @@ info_t info_tab[] =
   { T_OPT_CP,	"COMPRESSION",	"compression|compr",
 		0, 0 /* copy of wit */ },
 
-  { H_OPT_CP,	"BEST",		"best",
-		0, 0 /* copy of wit */ },
-
   { T_OPT_CP,	"MEM",		"mem",
 		0, 0 /* copy of wit */ },
 
@@ -2941,7 +2955,6 @@ info_t info_tab[] =
   { T_COPT,	"CHUNK_SIZE",	0,0,0 },
   { T_COPT,	"MAX_CHUNKS",	0,0,0 },
   { T_COPT,	"COMPRESSION",	0,0,0 },
-  { H_COPT,	"BEST",		0,0,0 },
   { T_COPT,	"MEM",		0,0,0 },
 
   //---------- wdf GROUP FILETYPE ----------

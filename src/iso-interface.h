@@ -103,6 +103,8 @@ enumError Dump_ISO
     int			dump_level	// dump level: 0..3, ignored if show_mode is set
 );
 
+//-----------------------------------------------------------------------------
+
 enumError Dump_DOL
 (
     FILE		* f,		// valid output stream
@@ -110,6 +112,35 @@ enumError Dump_DOL
     SuperFile_t		* sf,		// file to dump
     ccp			real_path	// NULL or pointer to real path
 );
+
+//-----------------------------------------------------------------------------
+
+enumError Dump_CERT_BIN
+(
+    FILE		* f,		// valid output stream
+    int			indent,		// indent of output
+    SuperFile_t		* sf,		// file to dump
+    ccp			real_path	// NULL or pointer to real path
+);
+
+enumError Dump_CERT_MEM
+(
+    FILE		* f,		// valid output stream
+    int			indent,		// indent of output
+    const u8		* cert_data,	// valid pointer to cert data
+    size_t		cert_size,	// size of 'cert_data'
+    bool		print_ext	// true: print extended version
+);
+
+enumError Dump_CERT
+(
+    FILE		* f,		// valid output stream
+    int			indent,		// indent of output
+    const cert_chain_t	* cc,		// valid pinter to cert chain
+    bool		print_ext	// true: print extended version
+);
+
+//-----------------------------------------------------------------------------
 
 enumError Dump_TIK_BIN
 (
@@ -123,8 +154,11 @@ enumError Dump_TIK_MEM
 (
     FILE		* f,		// valid output stream
     int			indent,		// indent of output
-    const wd_ticket_t	* tik		// valid pointer to ticket
+    const wd_ticket_t	* tik,		// valid pointer to ticket
+    cert_stat_t		sig_status	// not NULL: cert status of signature
 );
+
+//-----------------------------------------------------------------------------
 
 enumError Dump_TMD_BIN
 (
@@ -139,8 +173,11 @@ enumError Dump_TMD_MEM
     FILE		* f,		// valid output stream
     int			indent,		// indent of output
     const wd_tmd_t	* tmd,		// valid pointer to ticket
-    int n_content			// number of loaded wd_tmd_content_t elementzs
+    int			n_content,	// number of loaded wd_tmd_content_t elements
+    cert_stat_t		sig_status	// not NULL: cert status of signature
 );
+
+//-----------------------------------------------------------------------------
 
 enumError Dump_HEAD_BIN
 (
@@ -150,6 +187,8 @@ enumError Dump_HEAD_BIN
     ccp			real_path	// NULL or pointer to real path
 );
 
+//-----------------------------------------------------------------------------
+
 enumError Dump_BOOT_BIN
 (
     FILE		* f,		// valid output stream
@@ -157,6 +196,8 @@ enumError Dump_BOOT_BIN
     SuperFile_t		* sf,		// file to dump
     ccp			real_path	// NULL or pointer to real path
 );
+
+//-----------------------------------------------------------------------------
 
 enumError Dump_FST_BIN
 (
@@ -233,7 +274,8 @@ typedef struct Iterator_t
 	// user defined parameters, ignores by SourceIterator()
 
 	ShowMode	show_mode;	// active show mode, initialized by opt_show_mode
-	bool		convert_it;	// SCRUB instead of COPY
+	bool		diff_it;	// DIFF instead of COPY/CONVERT
+	bool		convert_it;	// CONVERT instead of COPY
 	bool		update;		// update option set
 	bool		newer;		// newer option set
 	bool		overwrite;	// overwrite option set

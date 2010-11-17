@@ -21,10 +21,13 @@
 [*] Weitere Versionen sind unter [url=@@URI-HOME@@download.html][b]@@URI-HOME@@download.html[/b][/url] verfügbar.
 [/list]
 
-[size=12][color=#0000c0][b]Es existieren auch zwei graphische Oberflächen (GUI) zur Bedienung von WIT:[/b][/color][/size]
+[size=12][color=#0000c0][b]Es existieren auch drei graphische Oberflächen (GUI) zur Bedienung von WIT:[/b][/color][/size]
 [list]
 [*] [url=@@URI-QTWITGUI@@][b]QtWitGui, Berarbeitung einzelner Wii ISO discs.[/b][/url]
-    Dieses QT basierte GUI bietet Dinge rund um die Bearbeitung (Kopieren, modifizieren) von einzelnen WIi ISO discs.
+    Dieses QT basierte GUI bietet Dinge rund um die Bearbeitung (Kopieren, modifizieren) von einzelnen Wii ISO discs.
+
+[*] [color=#800000][url=@@URI-WIIBAFU@@][b]Wii Backup Fusion[/b], ein WBFS und ISO manager.[/url]
+    WiiBaFu ist ein sehr junges QT basiertes GUI und noch voll in der Entwiklung.[/color]
 
 [*] [url=@@URI-WIIJMANAGER@@][b]WiiJManager Multiplatform, ein WBFS-Manager[/b][/url]
     Dieses Java basierte GUI arbeitet wie andere WBFS-Manager. Umwandlung von einzelnen Wii ISO dics ist auch möglich. (Es sieht so aus, als sei das Projekt eingestellt worden)
@@ -36,7 +39,23 @@ Details: [url=http://forum.wii-homebrew.com/board42-kreativit%C3%A4t/development
 ~ Highlights
 [size=12][color=#0000c0][b]Höhepunkte dieser Version:[/b][/color][/size]
 [list]
-[*] In dieser Version gibt es wiederum keine richtigen Höhepunkte. Ich habe nur einige Bugs entfernt und ein paar Dinge meine Aufgabenliste abgearbeitet.
+[*] Es gibt 2 neue Erweiterungen, um den Umgang mot WIA-Dateien zu vereinfachen:
+[list]
+[*] Die Option "--compr mode" akzeptiert nun auch einzelne Ziffern von 0  (=NONE) bis 9 (=BEST) um ein Kompressions-Modus auszuwählen.
+[*] Die Option --wia akzeptiert nun einen optionalen Modus Parameter: --wia=mode
+Dieses ist dann gleichbedeutend mit "--wia --compr mode".
+[/list]
+
+[*] Die Tools können nun die Zertifikat-Ketten auswerten und Signaturen verifizieren:
+[list]
+[*] cert.bin werden automatisch am Inhalt erkannt..
+[*] "wit dump cert.bin" gibt eine Liste aller Zertifikate aus der Datei aus.
+[*] Mit dem Aufruf "wit dump ticket.bin tmd.bin" wird eine Datei namens "cert.bin" im selben Verzeichnis gesucht um die Signaturen zu verifizieren.
+[*] "wit dump isoimage" gibt nun eine Zertifikatliste für jede PArtition aus. TICKET und TMD werden gegen diese Zertifikate verifiziert.
+Versucht: wit dump isoimage --show part
+[/list]
+
+[*] Das UI (user interface) von "wit DIFF" sieht nun ähnlich wie das von "wit COPY" aus. Die Pfadnamen der Ausgabedateien werden nach exakt den selben Regeln ermittelt, so dass man zum überprüfen einfach das COPY durch ein DIFF ersetzen kann. Zusätzlich gibt es die neue Option --diff für das Kommando COPY: nach dem erfolgreichen Kopieren wird dann ein Vergleich durchgeführt.
 [/list]
 
 [size=12][color=#0000c0][b]Letzte Änderungen:[/b][/color][/size]

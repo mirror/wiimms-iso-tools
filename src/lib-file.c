@@ -34,6 +34,7 @@
 #include <errno.h>
 #include <utime.h>
 #include <ctype.h>
+#include <dirent.h>
 
 #if defined(__CYGWIN__)
   #include <cygwin/fs.h>

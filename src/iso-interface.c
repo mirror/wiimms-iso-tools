@@ -42,7 +42,7 @@
 
 //
 ///////////////////////////////////////////////////////////////////////////////
-///////////////			 dump files			///////////////
+///////////////			 dump helpers			///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
 static void dump_data
@@ -64,22 +64,32 @@ static void dump_size
     int			indent,		// indent
     ccp			title,		// header
     u64			size,		// size to print
-    u64			percent_base	// >0: print percent value based on 'percent_base'
+    u64			percent_base1,	// >0: print percent value based on 'percent_base'
+    u64			percent_base2	// >0: print percent value based on 'percent_base'
 )
 {
-    fprintf(f,"%*s%-14s%12llx/hex =%11llu",
+    fprintf(f,"%*s%-15s%11llx/hex =%11llu",
 	indent,"", title, size, size );
 
     if ( size >= 10240 )
 	fprintf(f," = %s",wd_print_size_1024(0,0,size,true));
 
-    if ( percent_base > 0 )
+    if ( percent_base1 > 0 )
     {
-	u32 percent = size * 100 / percent_base;
-	if ( percent >= 10 )
-	    fprintf(f,", %d%%",percent);
+	double percent = size * 100.0 / percent_base1;
+	if ( percent >= 9.95 )
+	    fprintf(f,", %4.1f%%",percent);
 	else
-	    fprintf(f,", %4.2f%%",size * 100.0 / percent_base);
+	    fprintf(f,", %4.2f%%",percent);
+    }
+
+    if ( percent_base2 > 0 )
+    {
+	double percent = size * 100.0 / percent_base2;
+	if ( percent >= 9.95 )
+	    fprintf(f,", %4.1f%%",percent);
+	else
+	    fprintf(f,", %4.2f%%",percent);
     }
     
     fputc('\n',f);
@@ -95,7 +105,7 @@ static int dump_header
     ccp			id6,		// NULL or id6
     ccp			real_path,	// NULL or pointer to real path
     ccp			user_head,	// NULL or user defined field
-    ccp			user_parm	// NULL or parameter gor 'user_head'
+    ccp			user_parm	// NULL or parameter for 'user_head'
 )
 {
     ASSERT(f);
@@ -105,19 +115,33 @@ static int dump_header
     fprintf(f,"\n%*sDump of file %s\n\n",indent,"",sf->f.fname);
     indent += 2;
     if ( real_path && *real_path && strcmp(sf->f.fname,real_path) )
-	fprintf(f,"%*sReal path:       %s\n",indent,"",real_path);
+	fprintf(f,"%*sReal path:         %s\n",indent,"",real_path);
 
-    const u64 file_size = sf->file_size;
-    if (sf->wc)
+    const u64 virt_size = sf->file_size;
+    const u64 real_size = sf->f.st.st_size;
+    if ( sf->iod.oft != OFT_UNKNOWN && sf->disc2 )
     {
-	dump_size(f,indent,"Virtual size:",file_size,0);
-	dump_size(f,indent,"WDF file size:",sf->f.st.st_size,file_size);
+	if ( sf->iod.oft == OFT_PLAIN )
+	    dump_size(f,indent,"ISO file size:",real_size,0,0);
+	else
+	    dump_size(f,indent,"Virtual size:",virt_size,0,0);
+
+	const u64 scrubbed_size = wd_count_used_disc_blocks(sf->disc2,1,0)
+				* (u64)WII_SECTOR_SIZE;
+	dump_size(f,indent,"Scrubbed size:",scrubbed_size,virt_size,0);
+
+	if ( sf->iod.oft != OFT_PLAIN )
+	{
+	    char buf[50];
+	    snprintf(buf,sizeof(buf),"%s file size:",oft_info[sf->iod.oft].name);
+	    dump_size(f,indent,buf,real_size,virt_size,scrubbed_size);
+	}
     }
     else
-	dump_size(f,indent,"File size:",file_size,0);
+	dump_size(f,indent,"File size:",real_size,0,0);
 
     if ( user_head && user_parm )
-	fprintf(f,"%*s%-17s%s\n",
+	fprintf(f,"%*s%-19s%s\n",
 		indent,"", user_head, user_parm );
 	
     char info[30] = {0};
@@ -133,13 +157,46 @@ static int dump_header
     if (!id6)
 	id6 = sf->f.id6;
     if (*id6)
-	fprintf(f,"%*sID & file type:  %s, %s%s\n",
+	fprintf(f,"%*sID & file type:    %s, %s%s\n",
 		indent,"", wd_print_id(id6,6,0), GetNameFT(sf->f.ftype,0), info );
     else
-	fprintf(f,"%*sFile type:       %s%s\n",
+	fprintf(f,"%*sFile type:         %s%s\n",
 		indent,"", GetNameFT(sf->f.ftype,0), info );
 
     return indent;
+}
+
+//-----------------------------------------------------------------------------
+
+static void dump_sig_type
+(
+    FILE		* f,		// output stream
+    int			indent,		// indent
+    u32			sig_type,	// signature or public key type
+    cert_stat_t		sig_status,	// not NULL: cert status of signature
+    bool		is_pubkey	// ture: nit sig but public key
+)
+{
+    const int size = is_pubkey
+			? cert_get_pubkey_size(sig_type)
+			: cert_get_signature_size(sig_type);
+
+    fprintf(f,"%*s%-17s%11x/hex =%11u  [%s, size=%u%s%s]\n",
+		indent, "",
+		is_pubkey ? "Public key type:" : "Signature type:",
+		sig_type, sig_type,
+		cert_get_signature_name(sig_type|0x10000,"?"),
+		size,
+		sig_status ? ", " : "",
+		sig_status ? cert_get_status_name(sig_status,"?") : "" );
+
+ #if 0
+    if (sig_status)
+	fprintf(f,"%*s%-19s%s\n",
+		indent, "",
+		is_pubkey ? "Public key status:" : "Signature status:",
+		cert_get_status_message(sig_status,"?") );
+ #endif
 }
 
 //-----------------------------------------------------------------------------
@@ -341,8 +398,10 @@ static void dump_wii_part
 		fprintf(f,"%*s  Partition is marked as 'not encrypted'.\n", indent,"" );
 	    else
 	    {
-		const bool tik_is_fakesig = ticket_is_fake_signed(&ph->ticket,0);
-		const bool tmd_is_fakesig = tmd_is_fake_signed(part->tmd,ph->tmd_size);
+		const cert_stat_t tik_is_fakesig
+			= wd_get_cert_ticket_stat(part,false) & CERT_F_HASH_FAKED;
+		const cert_stat_t tmd_is_fakesig
+			= wd_get_cert_tmd_stat(part,false) & CERT_F_HASH_FAKED;
 
 		fprintf(f,"%*s ", indent,"" );
 		if ( tik_is_fakesig && tmd_is_fakesig )
@@ -397,16 +456,19 @@ static void dump_wii_part
 	    dump_data(f,indent, off, ph->data_off4, (u64)ph->data_size4<<2, "Data:" );
 	}
 
+	if ( show_mode & SHOW_CERT )
+	    Dump_CERT(f,indent+2,wd_load_cert_chain(part,true),false);
+
 	if ( show_mode & SHOW_TICKET )
 	{
 	    fprintf(f,"%*s  Ticket:\n",indent,"");
-	    Dump_TIK_MEM(f,indent+4,&ph->ticket);
+	    Dump_TIK_MEM(f,indent+4,&ph->ticket,wd_get_cert_ticket_stat(part,false));
 	}
 
 	if ( show_mode & SHOW_TMD && part->tmd )
 	{
 	    fprintf(f,"%*s  TMD:\n",indent,"");
-	    Dump_TMD_MEM(f,indent+4,part->tmd,100);
+	    Dump_TMD_MEM(f,indent+4,part->tmd,100,wd_get_cert_tmd_stat(part,false));
 	}
       }
     }
@@ -475,7 +537,7 @@ enumError Dump_ISO
     }
 
     if ( show_mode & SHOW_F_PRIMARY )
-	show_mode &= ~(SHOW_TICKET|SHOW_TMD); // TICKET nad TMD data is patched
+	show_mode &= ~(SHOW_TICKET|SHOW_TMD); // TICKET and TMD data is patched
 
 
     //----- print header
@@ -490,34 +552,34 @@ enumError Dump_ISO
 		disc->disc_attrib & WD_DA_GC_DVD9 ? ", DVD9" : "" );
 	dump_header(f,indent-2,sf,&disc->dhead.disc_id,real_path,"Disc type:",buf);
 
-	fprintf(f,"%*sDisc name:       %.64s\n",indent,"",disc->dhead.disc_title);
+	fprintf(f,"%*sDisc name:         %.64s\n",indent,"",disc->dhead.disc_title);
 
 	ccp title = GetTitle((ccp)&disc->dhead,0);
 	if (title)
-	    fprintf(f,"%*sDB title:        %s\n",indent,"",title);
+	    fprintf(f,"%*sDB title:          %s\n",indent,"",title);
 
 	const RegionInfo_t * rinfo = GetRegionInfo(disc->dhead.region_code);
-	fprintf(f,"%*sID Region:       %s [%s]\n",indent,"",rinfo->name,rinfo->name4);
+	fprintf(f,"%*sID Region:         %s [%s]\n",indent,"",rinfo->name,rinfo->name4);
 
 	if (is_gc)
 	{
 	    const enumRegion reg = ntohl(disc->region.region);
-	    fprintf(f,"%*sBI2 Region:      %x [%s]\n",
+	    fprintf(f,"%*sBI2 Region:        %x [%s]\n",
 			    indent,"", reg, GetRegionName(reg,"?") );
 	}
 	else    
 	{
 	    const enumRegion reg = ntohl(disc->region.region);
 	    u8 * p8 = disc->region.region_info;
-	    fprintf(f,"%*sRegion setting:  %x [%s] / %02x %02x %02x %02x  %02x %02x %02x %02x\n",
+	    fprintf(f,"%*sRegion setting:    %x [%s] / %02x %02x %02x %02x  %02x %02x %02x %02x\n",
 			    indent,"", reg, GetRegionName(reg,"?"),
 			    p8[0], p8[1], p8[2], p8[3], p8[4], p8[5], p8[6], p8[7] );
 	}
 
-	fprintf(f,"%*sPartitions:     %7u\n",indent,"",disc->n_part);
-	fprintf(f,"%*sDirectories:    %7u\n",indent,"",disc->fst_dir_count);
-	fprintf(f,"%*sFiles:          %7u\n",indent,"",disc->fst_file_count);
-	fprintf(f,"%*sUsed ISO blocks:%7u * 32 KiB = %u MiB\n",
+	fprintf(f,"%*sPartitions:       %7u\n",indent,"",disc->n_part);
+	fprintf(f,"%*sDirectories:      %7u\n",indent,"",disc->fst_dir_count);
+	fprintf(f,"%*sFiles:            %7u\n",indent,"",disc->fst_file_count);
+	fprintf(f,"%*sUsed ISO blocks:  %7u * 32 KiB = %u MiB\n",
 			indent,"", used_blocks, used_mib );
     }
     else
@@ -624,7 +686,7 @@ enumError Dump_DOL
     ASSERT(sf);
     if (!f)
 	return ERR_OK;
-    indent = dump_header(f,indent,sf,0,real_path,"File type:","DOL");
+    indent = dump_header(f,indent,sf,0,real_path,0,0);
 
     dol_header_t dol;
     enumError err = ReadSF(sf,0,&dol,sizeof(dol));
@@ -682,8 +744,151 @@ enumError Dump_DOL
 
 //
 ///////////////////////////////////////////////////////////////////////////////
+///////////////		Dump_CERT_BIN() + Dump_CERT() 		///////////////
+///////////////////////////////////////////////////////////////////////////////
+
+enumError Dump_CERT_BIN
+(
+    FILE		* f,		// valid output stream
+    int			indent,		// indent of output
+    SuperFile_t		* sf,		// file to dump
+    ccp			real_path	// NULL or pointer to real path
+)
+{
+    ASSERT(sf);
+    if (!f)
+	return ERR_OK;
+
+    indent = dump_header(f,indent,sf,0,real_path,0,0);
+
+    u8 * buf = malloc(sf->file_size);
+    if (!buf)
+	OUT_OF_MEMORY;
+
+    enumError err = ReadSF(sf,0,buf,sf->file_size);
+    if (!err)
+    {
+	putc('\n',f);
+	Dump_CERT_MEM(f,indent,buf,sf->file_size,true);
+    }
+    free(buf);
+    return err;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+enumError Dump_CERT_MEM
+(
+    FILE		* f,		// valid output stream
+    int			indent,		// indent of output
+    const u8		* cert_data,	// valid pointer to cert data
+    size_t		cert_size,	// size of 'cert_data'
+    bool		print_ext	// true: print extended version
+)
+{
+    ASSERT(f);
+    ASSERT(cert_data);
+    indent = NormalizeIndent(indent);
+
+    cert_chain_t cc;
+    cert_initialize(&cc);
+    cert_append_data(&cc,cert_data,cert_size);
+    enumError err = Dump_CERT(f,indent,&cc,print_ext);
+    cert_reset(&cc);
+
+    return err;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+enumError Dump_CERT
+(
+    FILE		* f,		// valid output stream
+    int			indent,		// indent of output
+    const cert_chain_t	* cc,		// valid pinter to cert chain
+    bool		print_ext	// true: print extended version
+)
+{
+    ASSERT(f);
+    ASSERT(cc);
+    indent = NormalizeIndent(indent);
+
+    if (!cc->used)
+	fprintf(f,"%*sNo certificates found!%s\n",
+		indent, "", print_ext ? "\n" : "" );
+
+    int i;
+    for ( i = 0; i < cc->used; i++ )
+    {
+	cert_item_t * item = cc->cert + i;
+	fprintf(f,"%*sCertificate #%u, size=0x%x=%u\n",
+		indent, "", i, item->cert_size, item->cert_size );
+
+	fprintf(f,"%*s  Issuer:            %.64s\n",
+		indent, "", item->data->issuer );
+
+	fprintf(f,"%*s  Public key ID:     %.64s\n",
+		indent, "", item->data->key_id );
+
+	const cert_stat_t stat = cert_check_cert(cc,item,0);
+	dump_sig_type(f,indent+2,ntohl(item->head->sig_type),stat,false);
+	dump_sig_type(f,indent+2,ntohl(item->data->key_type),0,true);
+
+	if (print_ext)
+	{
+	    const u8 * p = item->head->sig_data;
+	    fprintf(f,"%*s  Signature:         "
+		"%02x %02x %02x %02x  %02x %02x %02x %02x  "
+		"%02x %02x %02x %02x  %02x %02x %02x %02x ...\n",
+		indent, "",
+		p[0], p[1], p[2], p[3], p[4], p[5], p[6], p[7],
+		p[8], p[9], p[10], p[11], p[12], p[13], p[14], p[15] );
+
+	    p = item->data->public_key;
+	    fprintf(f,"%*s  Public key:        "
+		"%02x %02x %02x %02x  %02x %02x %02x %02x  "
+		"%02x %02x %02x %02x  %02x %02x %02x %02x ...\n",
+		indent, "",
+		p[0], p[1], p[2], p[3], p[4], p[5], p[6], p[7],
+		p[8], p[9], p[10], p[11], p[12], p[13], p[14], p[15] );
+
+	    fprintf(f,"%*s  Pre+post key val:  %08x %08x\n\n",
+		indent, "",
+		ntohl(item->data->unknown1), be32(p+item->key_size) );
+	}
+    }
+
+    return ERR_OK;
+}
+
+//
+///////////////////////////////////////////////////////////////////////////////
 ///////////////		Dump_TIK_BIN() + Dump_TIK() 		///////////////
 ///////////////////////////////////////////////////////////////////////////////
+
+static int try_load_cert
+(
+    cert_chain_t	* cc,		// valid pointer to uninitialized data
+    ccp			filename	// filename of source
+)
+{
+    cert_initialize(cc);
+
+    char * pathend = strrchr(filename,'/');
+    if (pathend)
+    {
+	const int len = pathend - filename;
+	memcpy(iobuf,filename,len);
+	pathend = iobuf + len;
+    }
+    else
+	pathend = iobuf;
+    strcpy(pathend,"/cert.bin");
+    TRACE("CHECK %s\n",iobuf);
+    return cert_append_file(cc,iobuf);
+}
+
+//-----------------------------------------------------------------------------
 
 enumError Dump_TIK_BIN
 (
@@ -701,12 +906,15 @@ enumError Dump_TIK_BIN
     enumError err = ReadSF(sf,0,&tik,sizeof(tik));
     if (!err)
 	memcpy(sf->f.id6,tik.title_id+4,4);
-    indent = dump_header(f,indent,sf,0,real_path,"File type:","TICKET");
+    indent = dump_header(f,indent,sf,0,real_path,0,0);
 
     if (!err)
     {
 	putc('\n',f);
-	Dump_TIK_MEM(f,indent,&tik);
+	cert_chain_t cc;
+	try_load_cert(&cc,sf->f.fname);
+	Dump_TIK_MEM(f,indent,&tik,cert_check_ticket(&cc,&tik,0));
+	cert_reset(&cc);
     }
     putc('\n',f);
     return err;
@@ -718,42 +926,42 @@ enumError Dump_TIK_MEM
 (
     FILE		* f,		// valid output stream
     int			indent,		// indent of output
-    const wd_ticket_t	* tik		// valid pointer to ticket
+    const wd_ticket_t	* tik,		// valid pointer to ticket
+    cert_stat_t		sig_status	// not NULL: cert status of signature
 )
 {
     ASSERT(f);
     ASSERT(tik);
     indent = NormalizeIndent(indent);
 
-    fprintf(f,"%*sIssuer:          %s\n", indent,"", tik->issuer );
+    fprintf(f,"%*sIssuer:            %s\n", indent,"", tik->issuer );
 
-    u32 val = ntohl(tik->sig_type);
-    fprintf(f,"%*sSignature type:%11x/hex =%11u\n", indent,"", val,val );
+    dump_sig_type(f,indent,ntohl(tik->sig_type),sig_status,false);
     if ( !tik->sig && !memcmp(tik->sig,tik->sig+1,sizeof(tik->sig)-1) )
 	fprintf(f,"\n%*sSignature is cleared (all zero)\n", indent,"" );
 
-    val = ntohs(tik->n_dlc);
-    fprintf(f,"%*sN(DLC):        %11x/hex =%11u\n", indent,"", val,val );
+    u32 val = ntohs(tik->n_dlc);
+    fprintf(f,"%*sN(DLC):          %11x/hex =%11u\n", indent,"", val,val );
     val = tik->common_key_index;
-    fprintf(f,"%*sCommon key index:%9u     = '%s'\n",
+    fprintf(f,"%*sCommon key index:%11u     = '%s'\n",
 		indent,"", val, !val ? "standard" : val == 1 ? "korean" : "?" );
     val = ntohl(tik->time_limit);
-    fprintf(f,"%*sTime limit:    %11x/hex =%11u [%sabled]\n",
+    fprintf(f,"%*sTime limit:      %11x/hex =%11u [%sabled]\n",
 		indent,"", val,val, ntohl(tik->enable_time_limit) ? "en" : "dis" );
 
-    fprintf(f,"%*sTitle key:       ",indent,"");
+    fprintf(f,"%*sTitle key:         ",indent,"");
     dump_hex(f,tik->title_key,sizeof(tik->title_key),0);
 
     u8 key[WII_KEY_SIZE];
     wd_decrypt_title_key(tik,key);
-    fprintf(f,"%*s Decrypted key:  ",indent,"");
+    fprintf(f,"%*s Decrypted key:    ",indent,"");
     dump_hex(f,key,sizeof(key),0);
 
-    fprintf(f,"%*sTicket ID:       ",indent,"");
+    fprintf(f,"%*sTicket ID:         ",indent,"");
     dump_hex(f,tik->ticket_id,sizeof(tik->ticket_id),18);
-    fprintf(f,"%*sConsole ID:      ",indent,"");
+    fprintf(f,"%*sConsole ID:        ",indent,"");
     dump_hex(f,tik->console_id,sizeof(tik->console_id),18);
-    fprintf(f,"%*sTitle ID:        ",indent,"");
+    fprintf(f,"%*sTitle ID:          ",indent,"");
     dump_hex(f,tik->title_id,sizeof(tik->title_id),18);
 
     return ERR_OK;
@@ -790,12 +998,15 @@ enumError Dump_TMD_BIN
     enumError err = ReadSF(sf,0,buf,load_size);
     if (!err)
 	memcpy(sf->f.id6,tmd->title_id+4,4);
-    indent = dump_header(f,indent,sf,0,real_path,"File type:","TMD");
+    indent = dump_header(f,indent,sf,0,real_path,0,0);
 
     if (!err)
     {
 	putc('\n',f);
-	Dump_TMD_MEM(f,indent,tmd,max_content);
+	cert_chain_t cc;
+	try_load_cert(&cc,sf->f.fname);
+	Dump_TMD_MEM(f,indent,tmd,max_content,cert_check_tmd(&cc,tmd,0));
+	cert_reset(&cc);
     }
     putc('\n',f);
     return err;
@@ -808,7 +1019,8 @@ enumError Dump_TMD_MEM
     FILE		* f,		// valid output stream
     int			indent,		// indent of output
     const wd_tmd_t	* tmd,		// valid pointer to ticket
-    int n_content			// number of loaded wd_tmd_content_t elementzs
+    int			n_content,	// number of loaded wd_tmd_content_t elements
+    cert_stat_t		sig_status	// not NULL: cert status of signature
 )
 {
     ASSERT(f);
@@ -816,40 +1028,39 @@ enumError Dump_TMD_MEM
     ASSERT( n_content >= 0 );
     indent = NormalizeIndent(indent);
 
-    fprintf(f,"%*sIssuer:          %s\n", indent,"", tmd->issuer );
+    fprintf(f,"%*sIssuer:            %s\n", indent,"", tmd->issuer );
 
-    u32 val = ntohl(tmd->sig_type);
-    fprintf(f,"%*sSignature type:%11x/hex =%11u\n", indent,"", val,val );
+    dump_sig_type(f,indent,ntohl(tmd->sig_type),sig_status,false);
     if ( !tmd->sig && !memcmp(tmd->sig,tmd->sig+1,sizeof(tmd->sig)-1) )
 	fprintf(f,"\n%*sSignature is cleared (all zero)\n", indent,"" );
 
-    fprintf(f,"%*sVersion:       %11u\n", indent, "", tmd->version);
-    fprintf(f,"%*sCA version:    %11u\n", indent, "", tmd->ca_crl_version);
-    fprintf(f,"%*sSigner version:%11u\n", indent, "", tmd->signer_crl_version);
+    fprintf(f,"%*sVersion:         %11u\n", indent, "", tmd->version);
+    fprintf(f,"%*sCA version:      %11u\n", indent, "", tmd->ca_crl_version);
+    fprintf(f,"%*sSigner version:  %11u\n", indent, "", tmd->signer_crl_version);
 
     u32 high = be32((ccp)&tmd->sys_version);
     u32 low  = be32(((ccp)&tmd->sys_version)+4);
     if ( high == 1 && low < 0x100 )
-	fprintf(f,"%*sSystem version:  %08x %08x = IOS 0x%02x = IOS %u\n",
+	fprintf(f,"%*sSystem version:    %08x %08x = IOS 0x%02x = IOS %u\n",
 		indent, "", high, low, low, low );
     else
-	fprintf(f,"%*sSystem version:  %08x:%08x\n", indent, "", high, low );
-    fprintf(f,"%*sTitle ID:        ",indent,"");
+	fprintf(f,"%*sSystem version:    %08x:%08x\n", indent, "", high, low );
+    fprintf(f,"%*sTitle ID:          ",indent,"");
     dump_hex(f,tmd->title_id,sizeof(tmd->title_id),18);
 
-    val = ntohl(tmd->title_type);
-    fprintf(f,"%*sTitle type:    %11x/hex =%11u\n", indent,"", val, val );
+    u32 val = ntohl(tmd->title_type);
+    fprintf(f,"%*sTitle type:      %11x/hex =%11u\n", indent,"", val, val );
     val = ntohs(tmd->group_id);
-    fprintf(f,"%*sGroup ID:      %11x/hex =%11u\n", indent,"", val, val );
+    fprintf(f,"%*sGroup ID:        %11x/hex =%11u\n", indent,"", val, val );
     val = ntohl(tmd->access_rights);
-    fprintf(f,"%*sAccess rights: %11x/hex =%11u\n", indent,"", val, val );
+    fprintf(f,"%*sAccess rights:   %11x/hex =%11u\n", indent,"", val, val );
     val = ntohs(tmd->title_version);
-    fprintf(f,"%*sTitle version: %11x/hex =%11u\n", indent,"", val, val );
+    fprintf(f,"%*sTitle version:   %11x/hex =%11u\n", indent,"", val, val );
     val = ntohs(tmd->boot_index);
-    fprintf(f,"%*sBoot index:    %11x/hex =%11u\n", indent,"", val, val );
+    fprintf(f,"%*sBoot index:      %11x/hex =%11u\n", indent,"", val, val );
 
     val = ntohs(tmd->n_content);
-    fprintf(f,"%*sN(content):    %11x/hex =%11u\n", indent,"", val, val );
+    fprintf(f,"%*sN(content):      %11x/hex =%11u\n", indent,"", val, val );
     if ( n_content > val )
 	n_content = val;
 
@@ -858,14 +1069,14 @@ enumError Dump_TMD_MEM
     {
 	const wd_tmd_content_t * c = tmd->content + i;
 	val = ntohl(c->content_id);
-	fprintf(f,"%*sContent #%u, ID:    %7x/hex =%11u\n", indent,"", i, val, val );
+	fprintf(f,"%*sContent #%u, ID:    %9x/hex =%11u\n", indent,"", i, val, val );
 	val = ntohs(c->index);
-	fprintf(f,"%*sContent #%u, index: %7x/hex =%11u\n", indent,"", i, val, val );
+	fprintf(f,"%*sContent #%u, index: %9x/hex =%11u\n", indent,"", i, val, val );
 	val = ntohs(c->type);
-	fprintf(f,"%*sContent #%u, type:  %7x/hex =%11u\n", indent,"", i, val, val );
+	fprintf(f,"%*sContent #%u, type:  %9x/hex =%11u\n", indent,"", i, val, val );
 	u64 val64 = ntoh64(c->size);
-	fprintf(f,"%*sContent #%u, size:%9llx/hex =%11llu\n", indent,"", i, val64, val64 );
-	fprintf(f,"%*sContent #%u, hash: ",indent,"",i);
+	fprintf(f,"%*sContent #%u, size:%11llx/hex =%11llu\n", indent,"", i, val64, val64 );
+	fprintf(f,"%*sContent #%u, hash:   ",indent,"",i);
 	dump_hex(f,c->hash,sizeof(c->hash),0);
     }
 
@@ -899,12 +1110,12 @@ enumError Dump_HEAD_BIN
 	memcpy(&wdi.dhead,&head,sizeof(wdi.dhead));
 	CalcWDiscInfo(&wdi,0);
 
-	fprintf(f,"%*sDisc name:       %s\n",indent,"",wdi.dhead.disc_title);
+	fprintf(f,"%*sDisc name:         %s\n",indent,"",wdi.dhead.disc_title);
 	if (wdi.title)
-	    fprintf(f,"%*sDB title:        %s\n",indent,"",wdi.title);
+	    fprintf(f,"%*sDB title:          %s\n",indent,"",wdi.title);
 
 	const RegionInfo_t * rinfo = GetRegionInfo(wdi.id6[3]);
-	fprintf(f,"%*sRegion:          %s [%s]\n",indent,"", rinfo->name, rinfo->name4);
+	fprintf(f,"%*sRegion:            %s [%s]\n",indent,"", rinfo->name, rinfo->name4);
 	ResetWDiscInfo(&wdi);
     }
     putc('\n',f);
@@ -927,7 +1138,7 @@ enumError Dump_BOOT_BIN
     ASSERT(sf);
     if (!f)
 	return ERR_OK;
-    indent = dump_header(f,indent,sf,0,real_path,"File type:","BOOT.BIN");
+    indent = dump_header(f,indent,sf,0,real_path,0,0);
 
     wd_boot_t wb;
     enumError err = ReadSF(sf,0,&wb,sizeof(wb));
@@ -938,23 +1149,23 @@ enumError Dump_BOOT_BIN
 	memcpy(&wdi.dhead,&wb.dhead,sizeof(wdi.dhead));
 	CalcWDiscInfo(&wdi,0);
 
-	fprintf(f,"%*sDisc name:       %s\n",indent,"",wdi.dhead.disc_title);
+	fprintf(f,"%*sDisc name:         %s\n",indent,"",wdi.dhead.disc_title);
 	if (wdi.title)
-	    fprintf(f,"%*sDB title:        %s\n",indent,"",wdi.title);
+	    fprintf(f,"%*sDB title:          %s\n",indent,"",wdi.title);
 
 	const RegionInfo_t * rinfo = GetRegionInfo(wdi.id6[3]);
-	fprintf(f,"%*sRegion:          %s [%s]\n",indent,"",rinfo->name,rinfo->name4);
+	fprintf(f,"%*sRegion:            %s [%s]\n",indent,"",rinfo->name,rinfo->name4);
 	ResetWDiscInfo(&wdi);
 
 	ntoh_boot(&wb,&wb);
 	u64 val = (u64)wb.dol_off4 << 2;
-	fprintf(f,"%*sDOL offset: %10x/hex * 4 =%8llx/hex =%9llu\n",
+	fprintf(f,"%*sDOL offset: %12x/hex * 4 =%8llx/hex =%9llu\n",
 			indent,"", wb.dol_off4, val, val );
 	val = (u64)wb.fst_off4 << 2 ;
-	fprintf(f,"%*sFST offset: %10x/hex * 4 =%8llx/hex =%9llu\n",
+	fprintf(f,"%*sFST offset: %12x/hex * 4 =%8llx/hex =%9llu\n",
 			indent,"", wb.fst_off4, val, val );
 	val = (u64)wb.fst_size4 << 2;
-	fprintf(f,"%*sFST size:   %10x/hex * 4 =%8llx/hex =%9llu\n",
+	fprintf(f,"%*sFST size:   %12x/hex * 4 =%8llx/hex =%9llu\n",
 			indent,"", wb.fst_size4, val, val  );
     }
     putc('\n',f);
@@ -989,7 +1200,7 @@ enumError Dump_FST_BIN
 
     if ( show_mode & SHOW_INTRO )
     {
-	dump_header(f,indent,sf,0,real_path,"File type:","FST");
+	dump_header(f,indent,sf,0,real_path,0,0);
 	indent += 2;
     }
 
