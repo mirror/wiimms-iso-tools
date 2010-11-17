@@ -722,6 +722,126 @@ void wd_print_byte_tab
 
 //
 ///////////////////////////////////////////////////////////////////////////////
+///////////////			string helpers			///////////////
+///////////////////////////////////////////////////////////////////////////////
+
+const char EmptyString[] = "";
+const char MinusString[] = "-";
+
+///////////////////////////////////////////////////////////////////////////////
+
+void FreeString ( ccp str )
+{
+    noTRACE("FreeString(%p) EmptyString=%p MinusString=%p\n",
+	    str, EmptyString, MinusString );
+    if ( str != EmptyString && str != MinusString )
+	free((char*)str);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+void * MemDup ( const void * src, size_t copylen )
+{
+    char * dest = malloc(copylen+1);
+    if (!dest)
+	OUT_OF_MEMORY;
+    memcpy(dest,src,copylen);
+    dest[copylen] = 0;
+    return dest;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+char * StringCopyE ( char * buf, char * buf_end, ccp src )
+{
+    // RESULT: end of copied string pointing to NULL
+    // 'src' may be a NULL pointer.
+
+    ASSERT(buf);
+    ASSERT(buf<buf_end);
+    buf_end--;
+
+    if (src)
+	while( buf < buf_end && *src )
+	    *buf++ = *src++;
+
+    *buf = 0;
+    return buf;
+}
+
+//-----------------------------------------------------------------------------
+
+char * StringCopyS ( char * buf, size_t buf_size, ccp src )
+{
+    return StringCopyE(buf,buf+buf_size,src);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+char * StringCat2E ( char * buf, char * buf_end, ccp src1, ccp src2 )
+{
+    // RESULT: end of copied string pointing to NULL
+    // 'src*' may be a NULL pointer.
+
+    ASSERT(buf);
+    ASSERT(buf<buf_end);
+    buf_end--;
+
+    if (src1)
+	while( buf < buf_end && *src1 )
+	    *buf++ = *src1++;
+
+    if (src2)
+	while( buf < buf_end && *src2 )
+	    *buf++ = *src2++;
+
+    *buf = 0;
+    return buf;
+}
+
+//-----------------------------------------------------------------------------
+
+char * StringCat2S ( char * buf, size_t buf_size, ccp src1, ccp src2 )
+{
+    return StringCat2E(buf,buf+buf_size,src1,src2);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+char * StringCat3E ( char * buf, char * buf_end, ccp src1, ccp src2, ccp src3 )
+{
+    // RESULT: end of copied string pointing to NULL
+    // 'src*' may be a NULL pointer.
+
+    ASSERT(buf);
+    ASSERT(buf<buf_end);
+    buf_end--;
+
+    if (src1)
+	while( buf < buf_end && *src1 )
+	    *buf++ = *src1++;
+
+    if (src2)
+	while( buf < buf_end && *src2 )
+	    *buf++ = *src2++;
+
+    if (src3)
+	while( buf < buf_end && *src3 )
+	    *buf++ = *src3++;
+
+    *buf = 0;
+    return buf;
+}
+
+//-----------------------------------------------------------------------------
+
+char * StringCat3S ( char * buf, size_t buf_size, ccp src1, ccp src2, ccp src3 )
+{
+    return StringCat3E(buf,buf+buf_size,src1,src2,src3);
+}
+
+//
+///////////////////////////////////////////////////////////////////////////////
 ///////////////			fake functions			///////////////
 ///////////////////////////////////////////////////////////////////////////////
 

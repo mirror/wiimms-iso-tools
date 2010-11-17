@@ -1004,6 +1004,28 @@ int wd_is_block_encrypted
 ///////////////			open and close			///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
+static wd_part_t * wd_initialize_part
+(
+    wd_disc_t		* disc,		// a valid disc pointer
+    u32			part_index	// index of partition
+)
+{
+    DASSERT(disc);
+    DASSERT( part_index <= disc->n_part ); // = because delayed increment
+    wd_part_t * part = disc->part + part_index;
+
+    cert_initialize(&part->cert_chain);
+
+    part->index		= part_index;
+    part->usage_id	= part_index + WD_USAGE_PART_0;
+    part->is_enabled	= true;
+    part->disc		= disc;
+
+    return part;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
 static wd_disc_t * wd_open_gc_disc
 (
     wd_disc_t		* disc,		// a valid disc pointer
@@ -1041,11 +1063,9 @@ static wd_disc_t * wd_open_gc_disc
 	//----- check primary partition
 
 	disc->n_part		= 1;
-	part->usage_id		= WD_USAGE_PART_0;
+	wd_initialize_part(disc,0);
 	part->part_type		= be32(&disc->dhead);
-	part->is_enabled	= true;
 	part->is_gc		= true;
-	part->disc		= disc;
 	if ( wd_load_part(part,false,false,true) == ERR_OK )
 	{
 	    WDPRINT("PRIMARY PARTITION FOUND\n");
@@ -1060,7 +1080,7 @@ static wd_disc_t * wd_open_gc_disc
 
 	//----- check secondary partitions
 
-	for ( ptab = ptab_beg; ptab < ptab_end; ptab++, part++ )
+	for ( ptab = ptab_beg; ptab < ptab_end; ptab++ )
 	{
 	    u32 off = ntohl(*ptab);
 	    if (off)
@@ -1070,13 +1090,10 @@ static wd_disc_t * wd_open_gc_disc
 
 		WDPRINT("PART #%u: off=%llx\n",disc->n_part,(u64)off<<2);
 
-		part->index		= disc->n_part;
-		part->usage_id		= disc->n_part + WD_USAGE_PART_0;
+		part = wd_initialize_part(disc,disc->n_part);
 		part->part_type		= WD_PART_DATA; // will be changed after loading
 		part->part_off4		= off;
-		part->is_enabled	= true;
 		part->is_gc		= true;
-		part->disc		= disc;
 
 		disc->n_part++;
 	    }
@@ -1092,11 +1109,9 @@ static wd_disc_t * wd_open_gc_disc
 	    OUT_OF_MEMORY;
 	disc->part = part;
 
-	part->usage_id		= WD_USAGE_PART_0;
+	wd_initialize_part(disc,0);
 	part->part_type		= WD_PART_DATA; // will be changed after loading
-	part->is_enabled	= true;
 	part->is_gc		= true;
-	part->disc		= disc;
     }
 
     //----- terminate
@@ -1218,15 +1233,11 @@ wd_disc_t * wd_open_disc
 		    int pi;
 		    for ( pi = 0; pi < n; pi++, pe++ )
 		    {
-			wd_part_t * part	= disc->part + n_part + pi;
-			part->index		= n_part + pi;
-			part->usage_id		= part->index + WD_USAGE_PART_0;
+			wd_part_t * part = wd_initialize_part(disc,n_part+pi);
 			part->ptab_index	= ipt;
 			part->ptab_part_index	= pi;
 			part->part_type		= ntohl(pe->ptype);
 			part->part_off4		= ntohl(pe->off4);
-			part->is_enabled	= true;
-			part->disc		= disc;
 		    }
 		}
 		n_part += n;
@@ -1322,6 +1333,7 @@ void wd_close_disc
 	    for ( pi = 0; pi < disc->n_part; pi++, part++ )
 	    {
 		wd_reset_memmap(&part->patch);
+		cert_reset(&part->cert_chain);
 		free(part->tmd);
 		free(part->cert);
 		free(part->h3);
@@ -2034,6 +2046,64 @@ enumError wd_calc_fst_statistics
     disc->have_overlays	 = have_overlays;
 
     return invalid ? ERR_WDISC_INVALID : ERR_OK;
+}
+
+//
+///////////////////////////////////////////////////////////////////////////////
+///////////////		interface: certificate support		///////////////
+///////////////////////////////////////////////////////////////////////////////
+
+const cert_chain_t * wd_load_cert_chain
+(
+    wd_part_t		* part,		// valid disc partition pointer
+    bool		silent		// true: don't print errors while loading cert
+)
+{
+    DASSERT(part);
+
+    if (!part->cert)
+	wd_load_part(part,true,false,silent);
+
+    if ( part->cert && !part->cert_chain.used )
+	cert_append_data( &part->cert_chain, part->cert, part->ph.cert_size );
+
+    return &part->cert_chain;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+cert_stat_t wd_get_cert_ticket_stat
+(
+    wd_part_t		* part,		// valid disc partition pointer
+    bool		silent		// true: don't print errors while loading cert
+)
+{
+    DASSERT(part);
+
+    if (!part->cert_tik_stat)
+    {
+	const cert_chain_t * cc = wd_load_cert_chain(part,silent);
+	part->cert_tik_stat = cert_check_ticket(cc,&part->ph.ticket,0);
+    }
+
+    return part->cert_tik_stat;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+cert_stat_t wd_get_cert_tmd_stat
+(
+    wd_part_t		* part,		// valid disc partition pointer
+    bool		silent		// true: don't print errors while loading cert
+)
+{
+    if (!part->cert_tmd_stat)
+    {
+	const cert_chain_t * cc = wd_load_cert_chain(part,silent);
+	part->cert_tmd_stat = cert_check_tmd(cc,part->tmd,0);
+    }
+
+    return part->cert_tmd_stat;
 }
 
 //

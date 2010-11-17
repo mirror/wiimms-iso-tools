@@ -1289,12 +1289,15 @@ enumError SetupReadWIA
     //----- logging
 
     if ( verbose > 2 )
+    {
 	printf("  Compression mode: %s (method %s, level %u, chunk size %u MiB, mem ~%u MiB)\n",
 		wd_print_compression(0,0,disc->compression,
 				disc->compr_level,disc->chunk_size,2),
 		wd_get_compression_name(disc->compression,"?"),
 		disc->compr_level, disc->chunk_size / MiB,
 		( wia->memory_usage + MiB/2 ) / MiB );
+	fflush(0);
+    }
 
     if ( logging > 0 )
     {
@@ -2396,6 +2399,7 @@ enumError SetupWriteWIA
     if (!wdisc)
 	return FinishSetupWriteWIA(sf);
     wia->wdisc = wdisc;
+    sf->source_size = wd_count_used_disc_blocks(wdisc,1,0) * (u64)WII_SECTOR_SIZE;
 
     disc->disc_type = wdisc->disc_type;
     if ( disc->disc_type == WD_DT_GAMECUBE )

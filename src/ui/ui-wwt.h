@@ -84,7 +84,6 @@ typedef enum enumOptions
 	OPT_CHUNK_SIZE,
 	OPT_MAX_CHUNKS,
 	OPT_COMPRESSION,
-	OPT_BEST,
 	OPT_MEM,
 	OPT_SIZE,
 	OPT_HSS,
@@ -120,7 +119,7 @@ typedef enum enumOptions
 	OPT_SORT,
 	OPT_LIMIT,
 
-	OPT__N_SPECIFIC, // == 78 
+	OPT__N_SPECIFIC, // == 77 
 
 	//----- global options -----
 
@@ -141,7 +140,7 @@ typedef enum enumOptions
 	OPT_TEST,
 	OPT_HOOK,
 
-	OPT__N_TOTAL // == 94
+	OPT__N_TOTAL // == 93
 
 } enumOptions;
 
@@ -198,7 +197,6 @@ typedef enum enumOptions
 //	OB_CHUNK_SIZE		= 1llu << OPT_CHUNK_SIZE,
 //	OB_MAX_CHUNKS		= 1llu << OPT_MAX_CHUNKS,
 //	OB_COMPRESSION		= 1llu << OPT_COMPRESSION,
-//	OB_BEST			= 1llu << OPT_BEST,
 //	OB_MEM			= 1llu << OPT_MEM,
 //	OB_SIZE			= 1llu << OPT_SIZE,
 //	OB_HSS			= 1llu << OPT_HSS,
@@ -625,7 +623,6 @@ typedef enum enumGetOpt
 	GO_CHUNK_SIZE,
 	GO_MAX_CHUNKS,
 	GO_COMPRESSION,
-	GO_BEST,
 	GO_MEM,
 	GO_HSS,
 	GO_WSS,

@@ -86,11 +86,11 @@ typedef enum enumOptions
 	OPT_CHUNK_SIZE,
 	OPT_MAX_CHUNKS,
 	OPT_COMPRESSION,
-	OPT_BEST,
 	OPT_MEM,
 	OPT_PRESERVE,
 	OPT_UPDATE,
 	OPT_OVERWRITE,
+	OPT_DIFF,
 	OPT_REMOVE,
 	OPT_WDF,
 	OPT_ISO,
@@ -195,11 +195,11 @@ typedef enum enumOptions
 //	OB_CHUNK_SIZE		= 1llu << OPT_CHUNK_SIZE,
 //	OB_MAX_CHUNKS		= 1llu << OPT_MAX_CHUNKS,
 //	OB_COMPRESSION		= 1llu << OPT_COMPRESSION,
-//	OB_BEST			= 1llu << OPT_BEST,
 //	OB_MEM			= 1llu << OPT_MEM,
 //	OB_PRESERVE		= 1llu << OPT_PRESERVE,
 //	OB_UPDATE		= 1llu << OPT_UPDATE,
 //	OB_OVERWRITE		= 1llu << OPT_OVERWRITE,
+//	OB_DIFF			= 1llu << OPT_DIFF,
 //	OB_REMOVE		= 1llu << OPT_REMOVE,
 //	OB_WDF			= 1llu << OPT_WDF,
 //	OB_ISO			= 1llu << OPT_ISO,
@@ -302,7 +302,6 @@ typedef enum enumOptions
 //				| OB_CHUNK_SIZE
 //				| OB_MAX_CHUNKS
 //				| OB_COMPRESSION
-//				| OB_BEST
 //				| OB_MEM,
 //
 //	OB_CMD_VERSION		= OB_SECTIONS
@@ -428,6 +427,7 @@ typedef enum enumOptions
 //
 //	OB_CMD_COPY		= OB_CMD_EXTRACT
 //				| OB_UPDATE
+//				| OB_DIFF
 //				| OB_REMOVE
 //				| OB_GRP_SPLIT_CHUNK
 //				| OB_GRP_OUTMODE_FST,
@@ -621,8 +621,8 @@ typedef enum enumGetOpt
 	GO_CHUNK_SIZE,
 	GO_MAX_CHUNKS,
 	GO_COMPRESSION,
-	GO_BEST,
 	GO_MEM,
+	GO_DIFF,
 	GO_WIA,
 	GO_FST,
 	GO_ITIME,

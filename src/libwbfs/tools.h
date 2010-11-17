@@ -249,6 +249,36 @@ void wd_print_byte_tab
 
 //
 ///////////////////////////////////////////////////////////////////////////////
+///////////////			string helpers			///////////////
+///////////////////////////////////////////////////////////////////////////////
+
+extern const char EmptyString[]; // ""
+extern const char MinusString[]; // "-"
+
+//-----
+
+// frees string if str is not EmptyString|MinusString
+void FreeString ( ccp str );
+
+// works like strdup();
+void * MemDup ( const void * src, size_t copylen );
+
+//-----
+
+// StringCopy(), StringCopyE(), StringCat*()
+//	RESULT: end of copied string pointing to NULL.
+//	'src*' may be a NULL pointer.
+
+char * StringCopyS ( char * buf, size_t bufsize, ccp src );
+char * StringCat2S ( char * buf, size_t bufsize, ccp src1, ccp src2 );
+char * StringCat3S ( char * buf, size_t bufsize, ccp src1, ccp src2, ccp src3 );
+
+char * StringCopyE ( char * buf, char * buf_end, ccp src );
+char * StringCat2E ( char * buf, char * buf_end, ccp src1, ccp src2 );
+char * StringCat3E ( char * buf, char * buf_end, ccp src1, ccp src2, ccp src3 );
+
+//
+///////////////////////////////////////////////////////////////////////////////
 ///////////////			fake functions			///////////////
 ///////////////////////////////////////////////////////////////////////////////
 

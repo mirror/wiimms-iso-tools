@@ -78,7 +78,7 @@ typedef enum enumRevID
 #define TRACE_SEEK_FORMAT "%-20.20s f=%d,%p %9llx%s\n"
 #define TRACE_RDWR_FORMAT "%-20.20s f=%d,%p %9llx..%9llx %8zx%s\n"
 
-#define FILE_PRELOAD_SIZE	0x200
+#define FILE_PRELOAD_SIZE	0x800
 #define MIN_SPARSE_HOLE_SIZE	4096 // bytes
 #define MAX_SPLIT_FILES		100
 #define MIN_SPLIT_SIZE		100000000
@@ -298,15 +298,16 @@ typedef enum enumFileType
 	FT_ID_WII_ISO	= 0x0010,  // file is a WII ISO image
 
 	FT_ID_DOL	= 0x0100,  // file is a DOL file
-	FT_ID_TIK_BIN	= 0x0200,  // 'ticket.bin' like file
-	FT_ID_TMD_BIN	= 0x0400,  // 'tmd.bin' like file
-	FT_ID_HEAD_BIN	= 0x0800,  // 'header.bin' like file
-	FT_ID_BOOT_BIN	= 0x1000,  // 'boot.bin' like file
-	FT_ID_FST_BIN	= 0x2000,  // 'fst.bin' like file
-	 FT__SPC_MASK	= 0x3f00,  // mask of all special files
+	FT_ID_CERT_BIN	= 0x0200,  // 'cert.bin' like file
+	FT_ID_TIK_BIN	= 0x0400,  // 'ticket.bin' like file
+	FT_ID_TMD_BIN	= 0x0800,  // 'tmd.bin' like file
+	FT_ID_HEAD_BIN	= 0x1000,  // 'header.bin' like file
+	FT_ID_BOOT_BIN	= 0x2000,  // 'boot.bin' like file
+	FT_ID_FST_BIN	= 0x4000,  // 'fst.bin' like file
+	 FT__SPC_MASK	= 0x7f00,  // mask of all special files
 
-	FT_ID_OTHER	= 0x4000,  // unknown file
-	 FT__ID_MASK	= 0x7f1f,  // mask of all 'FT_ID_' values
+	FT_ID_OTHER	= 0x8000,  // unknown file
+	 FT__ID_MASK	= 0xff1f,  // mask of all 'FT_ID_' values
 
     // 2. attributes
 
@@ -593,31 +594,6 @@ enumError SaveFile ( ccp path1, ccp path2, bool create_dir,
 ///////////////                string functions                 ///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-extern const char EmptyString[]; // ""
-extern const char MinusString[]; // "-"
-
-//-----
-
-// frees string if str is not NULL|EmptyString|MinusString
-void FreeString ( ccp str );
-
-// works like strdup();
-void * MemDup ( const void * src, size_t copylen );
-
-//-----
-
-// StringCopy(), StringCopyE(), StringCat*()
-//	RESULT: end of copied string pointing to NULL.
-//	'src*' may be a NULL pointer.
-
-char * StringCopyS ( char * buf, size_t bufsize, ccp src );
-char * StringCat2S ( char * buf, size_t bufsize, ccp src1, ccp src2 );
-char * StringCat3S ( char * buf, size_t bufsize, ccp src1, ccp src2, ccp src3 );
-
-char * StringCopyE ( char * buf, char * buf_end, ccp src );
-char * StringCat2E ( char * buf, char * buf_end, ccp src1, ccp src2 );
-char * StringCat3E ( char * buf, char * buf_end, ccp src1, ccp src2, ccp src3 );
-
 ccp PathCatPP  ( char * buf, size_t bufsize, ccp path1, ccp path2 );
 ccp PathCatPPE ( char * buf, size_t bufsize, ccp path1, ccp path2, ccp ext );
 
@@ -785,16 +761,17 @@ typedef enum ShowMode
 	SHOW_P_INFO	= 0x00000004, // partition info
 	SHOW_P_MAP	= 0x00000008, // memory map of partitions
 	SHOW_D_MAP	= 0x00000010, // memory map of discs
-	SHOW_TICKET	= 0x00000020, // ticket info
-	SHOW_TMD	= 0x00000040, // tmd info
-	SHOW_USAGE	= 0x00000080, // usage table
-	SHOW_FILES	= 0x00000100, // file list
-	SHOW_PATCH	= 0x00000200, // patching table
-	SHOW_RELOCATE	= 0x00000400, // relocation table
-	SHOW_PATH	= 0x00000800, // full path
+	SHOW_CERT	= 0x00000020, // certificates info
+	SHOW_TICKET	= 0x00000040, // ticket info
+	SHOW_TMD	= 0x00000080, // tmd info
+	SHOW_USAGE	= 0x00000100, // usage table
+	SHOW_FILES	= 0x00000200, // file list
+	SHOW_PATCH	= 0x00000400, // patching table
+	SHOW_RELOCATE	= 0x00000800, // relocation table
+	SHOW_PATH	= 0x00001000, // full path
 
-	SHOW_OFFSET	= 0x00001000, // show offsets
-	SHOW_SIZE	= 0x00002000, // show size
+	SHOW_OFFSET	= 0x00002000, // show offsets
+	SHOW_SIZE	= 0x00004000, // show size
 	
 	SHOW__ALL	= 0x00003fff,
 
@@ -802,6 +779,7 @@ typedef enum ShowMode
 
 	SHOW__PART	= SHOW_P_INFO
 			| SHOW_P_MAP
+			| SHOW_CERT
 			| SHOW_TICKET
 			| SHOW_TMD,
 
@@ -1132,12 +1110,9 @@ wd_compression_t ScanCompression
 
 int ScanOptCompression
 (
+    bool		set_oft_wia,	// true: output_file_type := OFT_WIA
     ccp			arg		// argument to scan
 );
-
-//-----------------------------------------------------------------------------
-
-void SetCompressionBest();
 
 //
 ///////////////////////////////////////////////////////////////////////////////
@@ -1358,4 +1333,4 @@ extern const char	sep_79[80];		//  79 * '-' + NULL
 ///////////////				END			///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-#endif // WIT_LIB_STD_H 1
+#endif // WIT_LIB_STD_H

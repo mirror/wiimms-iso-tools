@@ -951,6 +951,33 @@ wit v1.19a r1904 - 2010-10-23
    execute. If done without errors the exit status is NULL.
  - Some minor output bug fixes.
 
+wit v1.20a r1945 - 2010-11-05
+
+ - WIA creation warning "WIA is NEW! Compare with original source." removed.
+ - Preparation: Tools will read future WDF versions without warnings, if the
+   compatibility parameter allow this.
+ - The file descriptor of the last WBFS partition is saved/cached. This makes
+   wit faster when reading multiple discs from a WBFS.
+ - wit EXTRACT: The progress view is now based on the file size instead of
+   the file count.
+ - Options --include and --exclude accept now IDs with wildcards:
+   '.' is a wildcard for 1 character and '*' and '+' (same meaning) for any
+   number of characters.
+ - File 'setup.txt' is created as template while extracting a disc image.
+   It is scanned for ID, NAME and OFFSET while composing a disc image.
+   The new option --ignore-setup disables the scanning of 'setup.txt'.
+ - Bug fix for "wit CONVERT": The destination path was the current working
+   directory.
+ - Bug fix for "wwt ADD --remove": If command is done without errors all
+   sources files -- but not FST -- are removed.
+ - Bug fix: Calculation of fst size fixed for GameCube parsing.
+ - Buf fix for "wit CONVERT": Aborting with CTRL-C don't remove the source.
+ - Composed discs: New and correct calculation of total size and time stamps.
+   For time stamps the newest times of all scanned files are used.
+ - wit INFO FILE-FORMAT: New attribute 'compr': Signals a compressed file
+   format and that option --compr can be used to setup the compression mode.
+ - Splitted are also detected, if the field width of the counters is 2-6.
+
 @@MODULE(last-history.txt)@@
 
 

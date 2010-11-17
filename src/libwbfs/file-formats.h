@@ -84,6 +84,8 @@ enum // some constants
 				+ WII_N_ELEMENTS_H2,
     WII_N_HASH_GROUP		= WII_N_HASH_SECTOR * WII_GROUP_SECTORS,
 
+    WII_CERT_ALIGN		= 0x40,		// alignment in Wii certificates
+
     WII_TICKET_SIZE		= 0x2a4,
     WII_TICKET_SIG_OFF		= 0x140, // do SHA1 up to end of ticket
     WII_TICKET_KEY_OFF		= 0x1bf,

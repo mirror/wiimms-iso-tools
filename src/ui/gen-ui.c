@@ -274,7 +274,7 @@ static void print_info_opt
 	    param  = default_info->param;
     }
 
-    if ( info->type & F_OPT_PARAM || default_info && default_info->type & F_OPT_PARAM )
+    if ( info->type & F_OPT_XPARAM || default_info && default_info->type & F_OPT_XPARAM )
 	fprintf(cf,"\t\"%s\",\n", param && *param ? param : "param" );
     else
 	fprintf(cf,"\t0,\n");
@@ -927,7 +927,9 @@ static enumError Generate ( control_t * ctrl )
 	if ( info->type & T_DEF_OPT && info->namelist[1] == '|' )
 	{
 	    *dest++ = info->namelist[0];
-	    if ( info->type & F_OPT_PARAM )
+	    if ( info->type & F_OPT_OPTPARAM )
+		*dest++ = ':';
+	    if ( info->type & (F_OPT_OPTPARAM|F_OPT_PARAM) )
 		*dest++ = ':';
 	}
     *dest = 0;
@@ -947,17 +949,23 @@ static enumError Generate ( control_t * ctrl )
 	if ( info->type & T_DEF_OPT )
 	{
 	    ccp ptr = info->namelist;
+	    const int pmode = (info->type & F_OPT_OPTPARAM)
+				? 2
+				: (info->type & F_OPT_PARAM)
+					? 1
+					: 0;
+
 	    if ( info->namelist[1] == '|' )
 	    {
 		snprintf(iobuf,sizeof(iobuf),"%d, 0, '%c'",
-			(info->type & F_OPT_PARAM) != 0, info->namelist[0] );
+			pmode, info->namelist[0] );
 		ptr += 2;
 		opt_buf[(u8)(info->namelist[0])] = info->c_name;
 	    }
 	    else
 	    {
 		snprintf(iobuf,sizeof(iobuf),"%d, 0, GO_%s",
-			(info->type & F_OPT_PARAM) != 0, info->c_name );
+			pmode, info->c_name );
 		ASSERT_MSG( getopt_idx < OPT_INDEX_SIZE,
 				"getopt_idx[%x] >= OPT_INDEX_SIZE[%x]\n",
 				getopt_idx, OPT_INDEX_SIZE );
@@ -1266,12 +1274,13 @@ int main ( int argc, char ** argv )
 
 		if ( !( info->type & F_HIDDEN ) )
 		{
-		    fprintf(ctrl.df,"#:def_opt( \"%s\", \"%s\", \"%s%s%s%s\", \\\n",
+		    fprintf(ctrl.df,"#:def_opt( \"%s\", \"%s\", \"%s%s%s%s%s\", \\\n",
 			info->c_name, info->namelist,
 			info->type & F_OPT_COMMAND  ? "C" : "",
 			info->type & F_OPT_GLOBAL   ? "G" : "",
 			info->type & F_OPT_MULTIUSE ? "M" : "",
-			info->type & F_OPT_PARAM    ? "P" : "" );
+			info->type & F_OPT_PARAM    ? "P" : "",
+			info->type & F_OPT_OPTPARAM ? "O" : "" );
 		    DumpText(ctrl.df,0,0,info->param,1,", \\\n");
 		    DumpText(ctrl.df,0,0,info->help,1," )\n\n");
 		}

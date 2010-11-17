@@ -1057,7 +1057,9 @@ enumError CheckOptions ( int argc, char ** argv )
 	case GO_MINUS1:		opt_minus1 = 1; break;
 
 	case GO_WDF:		file_mode = FMODE_WDF; break;
-	case GO_WIA:		file_mode = FMODE_WIA; break;
+	case GO_WIA:		file_mode = FMODE_WIA;
+					err += ScanOptCompression(false,optarg);
+					break;
 	case GO_CISO:		file_mode = FMODE_CISO; break;
 	case GO_WBI:		file_mode = FMODE_WBI; break;
 	case GO_SUFFIX:		opt_suffix = optarg; break;
@@ -1074,8 +1076,7 @@ enumError CheckOptions ( int argc, char ** argv )
 	case GO_CHUNK_MODE:	err += ScanChunkMode(optarg); break;
 	case GO_CHUNK_SIZE:	err += ScanChunkSize(optarg); break;
 	case GO_MAX_CHUNKS:	err += ScanMaxChunks(optarg); break;
-	case GO_COMPRESSION:	err += ScanOptCompression(optarg); break;
-	case GO_BEST:		SetCompressionBest(); file_mode = FMODE_WIA; break;
+	case GO_COMPRESSION:	err += ScanOptCompression(false,optarg); break;
 	case GO_MEM:		err += ScanOptMem(optarg,true); break;
 
 	case GO_TEST:		testmode++; break;

@@ -380,12 +380,14 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 	"mode",
 	"Select one compression method, level and chunk size for new WIA"
 	" files. The syntax for mode is: [method] [.level] [@factor]\n"
-	"  'method' is the name or index of the method. Possible compressions"
-	" method are NONE, PURGE, BZIP2, LZMA and LZMA2. There are additional"
+	"  'method' is the name of the method. Possible compressions method"
+	" are NONE, PURGE, BZIP2, LZMA and LZMA2. There are additional"
 	" keywords: DEFAULT (=LZMA.5@20), FAST (=BZIP2.3@10), GOOD"
 	" (=LZMA.5@20) BEST (=LZMA.7@50), and MEM (use best mode in respect to"
-	" memory limit set by --mem). These additional keywords may change"
-	" their meanings if a new compression method is implemented.\n"
+	" memory limit set by --mem). Additionally the single digit modes 0"
+	" (=NONE),  1 (=fast LZMA) .. 9 (=BEST)are defined. These additional"
+	" keywords may change their meanings if a new compression method is"
+	" implemented.\n"
 	"  '.level' is a point followed by one digit. It defines the"
 	" compression level. The special value .0 means: Use default"
 	" compression level (=.5).\n"
@@ -394,13 +396,8 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 	" factor is not set but option --chunk-size is set, the factor will be"
 	" calculated by using a rounded value of that option.\n"
 	"  All three parts are optional. All default values may be changed in"
-	" the future. --compr is a shortcut for --compression."
-    },
-
-    {	OPT_BEST, 0, "best",
-	0,
-	"Set ISO output file type to WIA (Wii ISO Archive) and set compression"
-	" mode to BEST. Option --best is a shortcut for '--wia --compr best'."
+	" the future. --compr is a shortcut for --compression. The command"
+	" 'wit COMPR' prints an overview about all compression modes."
     },
 
     {	OPT_MEM, 0, "mem",
@@ -430,6 +427,11 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 	"Overwrite already existing files."
     },
 
+    {	OPT_DIFF, 0, "diff",
+	0,
+	"Diff source and dest after copying."
+    },
+
     {	OPT_REMOVE, 'R', "remove",
 	0,
 	"Remove source files/discs if operation is successful. If the source"
@@ -457,8 +459,10 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
     },
 
     {	OPT_WIA, 0, "wia",
-	0,
-	"Set ISO output file type to WIA (Wii ISO Archive)."
+	"[=compr]",
+	"Set ISO output file type to WIA (Wii ISO Archive). The optional"
+	" parameter is a compression mode and --wia=mode is a shortcut for"
+	" '--wia --compression mode'."
     },
 
     {	OPT_FST, 0, "fst",
@@ -706,15 +710,15 @@ const InfoOption_t option_cmd_ERROR_LONG =
 const InfoOption_t option_cmd_COMPR_LONG =
     {	OPT_LONG, 'l', "long",
 	0,
-	"Print the numeric value and the normalized name. If set twice print a"
-	" table with the numeric value, normalized name and alternative names."
+	"Print a table with the normalized mode name, compression level, chunk"
+	" size factor and memory usage."
     };
 
 const InfoOption_t option_cmd_COMPR_VERBOSE =
     {	OPT_VERBOSE, 'v', "verbose",
 	0,
-	"Show default compression level and chunk size factor too. Standard is"
-	" to suppress these values if not explicitly set."
+	"Print always compression level and chunk size factor. Standard is to"
+	" suppress these values if not explicitly set."
     };
 
 const InfoOption_t option_cmd_FILELIST_LONG =
@@ -1013,17 +1017,17 @@ const struct option OptionLong[] =
 	 { "mch",		1, 0, GO_MAX_CHUNKS },
 	{ "compression",	1, 0, GO_COMPRESSION },
 	 { "compr",		1, 0, GO_COMPRESSION },
-	{ "best",		0, 0, GO_BEST },
 	{ "mem",		1, 0, GO_MEM },
 	{ "preserve",		0, 0, 'p' },
 	{ "update",		0, 0, 'u' },
 	{ "overwrite",		0, 0, 'o' },
+	{ "diff",		0, 0, GO_DIFF },
 	{ "remove",		0, 0, 'R' },
 	{ "wdf",		0, 0, 'W' },
 	{ "iso",		0, 0, 'I' },
 	{ "ciso",		0, 0, 'C' },
 	{ "wbfs",		0, 0, 'B' },
-	{ "wia",		0, 0, GO_WIA },
+	{ "wia",		2, 0, GO_WIA },
 	{ "fst",		0, 0, GO_FST },
 	{ "files",		1, 0, 'F' },
 	{ "itime",		0, 0, GO_ITIME },
@@ -1149,8 +1153,8 @@ const u8 OptionIndex[OPT_INDEX_SIZE] =
 	/*a3*/	OPT_CHUNK_SIZE,
 	/*a4*/	OPT_MAX_CHUNKS,
 	/*a5*/	OPT_COMPRESSION,
-	/*a6*/	OPT_BEST,
-	/*a7*/	OPT_MEM,
+	/*a6*/	OPT_MEM,
+	/*a7*/	OPT_DIFF,
 	/*a8*/	OPT_WIA,
 	/*a9*/	OPT_FST,
 	/*aa*/	OPT_ITIME,
@@ -1210,7 +1214,7 @@ static u8 option_allowed_cmd_ERROR[73] = // cmd #5
 static u8 option_allowed_cmd_COMPR[73] = // cmd #6
 {
     0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,
-    0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,1,0,0,0,  0,0,0,0,0, 0,0,0,0,0,
+    0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 1,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,
     0,0,0,1,1, 0,0,0,0,1,  1,0,0
 };
 
@@ -1343,7 +1347,7 @@ static u8 option_allowed_cmd_FDIFF[73] = // cmd #24
 static u8 option_allowed_cmd_EXTRACT[73] = // cmd #25
 {
     0,1,1,1,1, 1,1,1,1,1,  1,1,1,1,1, 1,1,1,1,1,  1,1,1,1,1, 1,1,1,0,1,
-    1,1,1,1,1, 1,1,0,0,0,  0,0,0,0,0, 0,0,1,0,1,  0,0,0,0,0, 0,0,1,0,0,
+    1,1,1,1,1, 1,1,0,0,0,  0,0,0,0,0, 0,1,0,1,0,  0,0,0,0,0, 0,0,1,0,0,
     0,0,0,0,0, 0,0,0,0,0,  0,1,0
 };
 
@@ -1357,21 +1361,21 @@ static u8 option_allowed_cmd_COPY[73] = // cmd #26
 static u8 option_allowed_cmd_CONVERT[73] = // cmd #27
 {
     0,1,1,1,1, 0,1,1,1,1,  1,1,1,1,1, 1,1,0,0,1,  1,1,1,1,1, 1,1,1,0,1,
-    1,1,1,1,1, 0,0,1,1,1,  1,1,1,1,1, 1,1,1,0,0,  0,1,1,1,1, 1,0,0,0,0,
+    1,1,1,1,1, 0,0,1,1,1,  1,1,1,1,1, 1,1,0,0,0,  0,1,1,1,1, 1,0,0,0,0,
     0,0,0,0,0, 0,0,0,0,0,  0,0,0
 };
 
 static u8 option_allowed_cmd_EDIT[73] = // cmd #28
 {
     0,1,1,1,1, 0,1,1,1,1,  1,1,1,0,0, 0,0,0,0,1,  1,1,1,1,1, 1,1,1,0,0,
-    0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,1,0,0,  0,0,0,0,0, 0,0,0,0,0,
+    0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,1,0,0,0,  0,0,0,0,0, 0,0,0,0,0,
     0,0,0,0,0, 0,0,0,0,0,  0,0,0
 };
 
 static u8 option_allowed_cmd_MOVE[73] = // cmd #29
 {
     0,1,1,1,1, 0,1,1,1,1,  1,1,1,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,
-    0,0,0,0,0, 1,1,0,0,0,  0,0,0,0,0, 0,0,0,0,1,  0,0,0,0,0, 0,0,0,0,0,
+    0,0,0,0,0, 1,1,0,0,0,  0,0,0,0,0, 0,0,0,1,0,  0,0,0,0,0, 0,0,0,0,0,
     0,0,0,0,0, 0,0,0,0,0,  0,0,0
 };
 
@@ -1399,7 +1403,7 @@ static u8 option_allowed_cmd_VERIFY[73] = // cmd #32
 static u8 option_allowed_cmd_MIX[73] = // cmd #33
 {
     0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,  1,1,0,1,0, 0,0,0,1,0,
-    0,0,0,0,1, 1,1,1,1,1,  1,1,1,1,1, 1,1,0,0,1,  0,1,1,1,1, 0,0,0,0,0,
+    0,0,0,0,1, 1,1,1,1,1,  1,1,1,1,1, 1,0,0,1,0,  0,1,1,1,1, 0,0,0,0,0,
     0,0,0,0,0, 0,0,0,0,0,  0,0,0
 };
 
@@ -1479,7 +1483,6 @@ static const InfoOption_t * option_tab_cmd_COMPR[] =
 	OptionInfo + OPT_NO_HEADER,
 	&option_cmd_COMPR_LONG,
 	&option_cmd_COMPR_VERBOSE,
-	OptionInfo + OPT_NUMERIC,
 
 	0
 };
@@ -2279,6 +2282,7 @@ static const InfoOption_t * option_tab_cmd_COPY[] =
 	OptionInfo + OPT_PRESERVE,
 	OptionInfo + OPT_OVERWRITE,
 	OptionInfo + OPT_UPDATE,
+	OptionInfo + OPT_DIFF,
 	OptionInfo + OPT_REMOVE,
 	OptionInfo + OPT_SPLIT,
 	OptionInfo + OPT_SPLIT_SIZE,
@@ -2746,8 +2750,9 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	"wit COMPR [mode]...",
 	"Scan compression modes and print the normalized names. See option"
 	" --compression for syntax details. If no mode is given than print a"
-	" table with all available compression methods.",
-	6,
+	" table with all available compression modes and alternative mode"
+	" names.",
+	5,
 	option_tab_cmd_COMPR,
 	option_allowed_cmd_COMPR
     },
@@ -3002,7 +3007,7 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	"wit COPY [-s path]... [-r path]... [source]... [-d|-D] dest",
 	"Copy, scrub, convert, join, split, compose, extract, patch, encrypt"
 	" and decrypt Wii and GameCube disc images.",
-	62,
+	63,
 	option_tab_cmd_COPY,
 	option_allowed_cmd_COPY
     },
