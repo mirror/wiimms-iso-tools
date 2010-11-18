@@ -140,6 +140,16 @@ enumError Dump_CERT
     bool		print_ext	// true: print extended version
 );
 
+void Dump_CERT_Item
+(
+    FILE		* f,		// valid output stream
+    int			indent,		// normalized indent of output
+    const cert_item_t	* item,		// valid item pointer
+    int			cert_index,	// >=0: print title with certificate index
+    bool		print_ext,	// true: print extended version
+    const cert_chain_t	* cc		// not NULL: verify signature
+);
+
 //-----------------------------------------------------------------------------
 
 enumError Dump_TIK_BIN

@@ -25,8 +25,6 @@
 #define _GNU_SOURCE 1
 #include "cert.h"
 
-#define ALIGN32(d,a) ((d)+((a)-1)&~(u32)((a)-1))
-
 //
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////			bn helpers			///////////////
@@ -318,10 +316,34 @@ cert_data_t root_cert =
 
 cert_item_t * cert_append_item
 (
-    cert_chain_t	* cc		// valid pointer to cert chain
+    cert_chain_t	* cc,		// valid pointer to cert chain
+    ccp			issuer,		// NULL or pointer to issuer
+    ccp			key_id		// NULL or valid pointer to key id
 )
 {
     DASSERT(cc);
+    
+    if ( issuer && key_id )
+    {
+	// search for item with identical name
+
+	int i;
+	for ( i = 0; i < cc->used; i++ )
+	{
+	    cert_item_t * item = cc->cert + i;
+	    const cert_data_t * data = item->data;
+	    if ( data
+		&& !strncmp(issuer,data->issuer,sizeof(data->issuer))
+		&& !strncmp(key_id,data->key_id,sizeof(data->key_id)) )
+	    {
+		
+		free((void*)item->head);
+		memset(item,0,sizeof(*item));
+		return item;
+	    }
+	}
+    }
+
     if ( cc->used == cc->size )
     {
 	cc->size = 2 * cc->size + 5;
@@ -337,14 +359,14 @@ cert_item_t * cert_append_item
 
 ///////////////////////////////////////////////////////////////////////////////
 
-static void cert_add_root()
+void cert_add_root()
 {
     static bool done = false;
     if (!done)
     {
 	done = true;
 
-	cert_item_t * item = cert_append_item(&global_cert);
+	cert_item_t * item = cert_append_item(&global_cert,0,0);
 	DASSERT(item);
 
 	item->data	= &root_cert;
@@ -405,12 +427,13 @@ int cert_append_data
 (
     cert_chain_t	* cc,		// valid pointer to cert chain
     const void		* data,		// NULL or pointer to cert data
-    size_t		data_size	// size of 'data'
+    size_t		data_size,	// size of 'data'
+    bool		uniq		// true: avoid duplicates
 )
 {
     DASSERT(cc);
-    TRACE("cert_append_data(%p,%p,%zu) n=%u/%u\n",
-		cc, data, data_size, cc->used, cc->size );
+    TRACE("cert_append_data(%p,%p,%zu,%d) n=%u/%u\n",
+		cc, data, data_size, uniq, cc->used, cc->size );
 
     if ( cc == &global_cert )
 	cert_add_root();
@@ -434,7 +457,8 @@ int cert_append_data
 	    if ( !ptr || ptr > end )
 		break;
 
-	    cert_item_t * item	= cert_append_item(cc);
+	    cert_item_t * item
+		= cert_append_item( cc, uniq ? data->issuer : 0, data->key_id );
 	    DASSERT(item);
 	    item->sig_size	= cert_get_signature_size(ntohl(head->sig_type));
 	    item->key_size	= cert_get_pubkey_size(ntohl(data->key_type));
@@ -462,7 +486,8 @@ int cert_append_data
 int cert_append_file
 (
     cert_chain_t	* cc,		// valid pointer to cert chain
-    ccp			filename	// name of file
+    ccp			filename,	// name of file
+    bool		uniq		// true: avoid duplicates
 )
 {
     DASSERT(cc);
@@ -474,7 +499,7 @@ int cert_append_file
 
     size_t stat = fread(buf,1,sizeof(buf),f);
     fclose(f);
-    return stat ? cert_append_data(cc,buf,stat) : 0;
+    return stat ? cert_append_data(cc,buf,stat,uniq) : 0;
 }
 
 //
@@ -484,7 +509,7 @@ int cert_append_file
 
 cert_stat_t cert_check
 (
-    const cert_chain_t	* cc,		// valid pointer to cert chain
+    const cert_chain_t	* cc,		// NULL or pointer to cert chain
     const void		* sig_data,	// pointer to signature data
     u32			sig_data_size,	// size of 'sig_data'
     const cert_item_t	** cert_found	// not NULL: return value: found certificate
@@ -531,6 +556,9 @@ cert_stat_t cert_check
 	base_len = 0;
 	parent_id = (ccp)data->issuer;
     }
+
+    if (!cc)
+	cc = &global_cert;
 
     for(;;)
     {    

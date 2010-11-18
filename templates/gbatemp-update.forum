@@ -25,8 +25,8 @@
     This QT based GUI focuses on manipulating single ISO images.
 [color=#ffffff].[/color]
 
-[*] [color=#800000][url=@@URI-WIIBAFU@@][b]Wii Backup Fusion[/b], a WBFS and ISO manager.[/url]
-    This is a very young QT based GUI and still in development.[/color]
+[*] [url=@@URI-WIIBAFU@@][b]Wii Backup Fusion[/b], a WBFS and ISO manager.[/url]
+    This is a very young QT based GUI and still in development.
 [color=#ffffff].[/color]
 
 [*] [url=@@URI-WIIJMANAGER@@][b]WiiJManager Multiplatform[/b], a WBFS manager GUI[/url]
@@ -35,25 +35,7 @@
 
 [size="2"][color="#0000c0"][b]Highlights of this release:[/b][/color][/size]
 [list]
-[*] There are 2 extensions to make handling of WIA file easier:
-[list]
-[*] The option "--compr mode" accept now 1 digit modes from 0  (=NONE) to 9 (=BEST) to select a compression mode.
-[*] The option --wia accepts now an optional mode parameter: --wia=mode
-This has the same meaning like "--wia --compr mode".
-[/list]
-[color=#ffffff].[/color]
-
-[*] The tools can now analyse certificate chains and can verify the signatures:
-[list]
-[*] cert.bin files are automatically detected.
-[*] "wit dump cert.bin" prints a detailed list of the certificates of a (extracted) file.
-[*] If calling "wit dump ticket.bin tmd.bin" a cert.bin is searched in the same directory and used to check the signature.
-[*] "wit dump isoimage" prints a detailed list of the certificates for each partition. TICKET and TMD will be checked against the certifacte chain and the status is printed.
-Try: wit dump isoimage --show part
-[/list]
-[color=#ffffff].[/color]
-
-[*] The user interface of "wit DIFF" is now similar to "wit COPY". The destination files are calculatet on the same way and the logging is similar too. Additionally the option --diff was added for COPY: After successfull copying a diff between source and dest is made.
+[*]
 [color=#ffffff].[/color]
 [/list]
 

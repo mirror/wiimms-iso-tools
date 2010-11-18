@@ -784,11 +784,6 @@ bool tmd_is_fake_signed ( const wd_tmd_t * tmd, u32 tmd_size )
 ///////////////		    struct wd_part_control_t		///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-#define ALIGN32(d,a) ((d)+((a)-1)&~(u32)((a)-1))
-#define ALIGN64(d,a) ((d)+((a)-1)&~(u64)((a)-1))
-
-///////////////////////////////////////////////////////////////////////////////
-
 static int setup_part_control_helper ( wd_part_control_t * pc )
 {
     // tmd, tmd_size, cert, cert_size and h3 must 0 or be valid

@@ -17,8 +17,8 @@ WWT_LONG		= Wiimms WBFS Tool
 WDF_SHORT		= wdf
 WDF_LONG		= Wiimms WDF Tool
 
-VERSION_NUM		= 1.21a
-BETA_VERSION		= 0
+VERSION_NUM		= 1.22a
+BETA_VERSION		= 1
 			# 0:off  -1:"beta"  >0:"beta#"
 
 URI_HOME		= http://wit.wiimm.de/
@@ -516,7 +516,7 @@ templates.sed: Makefile
 		's|@@URI-WDF@@|$(URI_WDF)|g;\n' \
 		's|@@URI-CISO@@|$(URI_CISO)|g;\n' \
 		's|@@URI-QTWITGUI@@|$(URI_QTWITGUI)|g;\n' \
-		's|@@URI-WIIWIIBAFU@@|$(URI_WIIWIIBAFU)|g;\n' \
+		's|@@URI-WIIBAFU@@|$(URI_WIIBAFU)|g;\n' \
 		's|@@URI-WIIJMANAGER@@|$(URI_WIIJMANAGER)|g;\n' \
 		's|@@URI-GBATEMP@@|$(URI_GBATEMP)|g;\n' \
 		's|@@URI-DOWNLOAD-I386@@|$(URI_DOWNLOAD_I386)|g;\n' \

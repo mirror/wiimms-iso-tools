@@ -262,6 +262,53 @@ enumError cmd_test()
 //
 ///////////////////////////////////////////////////////////////////////////////
 
+enumError cmd_cert()
+{
+    ParamList_t * param;
+    for ( param = first_param; param; param = param->next )
+	AtFileHelper(param->arg,0,0,AddCertFile);
+
+    cert_add_root(); // if not already inserted
+
+    FILE * f = 0;
+    if ( opt_dest && *opt_dest )
+    {
+	if (opt_mkdir)
+	    CreatePath(opt_dest);
+	f = fopen(opt_dest,"wb");
+	if (!f)
+	    return ERROR0(ERR_CANT_CREATE,"Can't create cert file: %s\n",opt_dest);
+    }
+
+    FilePattern_t * pat = GetDefaultFilePattern();
+    char buf[sizeof(cert_data_t)]; // more than enough space
+
+    int i;
+    for ( i = 0; i < global_cert.used; i++ )
+    {
+	cert_item_t * item = global_cert.cert + i;
+	snprintf(buf,sizeof(buf),"%s/%s",item->data->issuer,item->data->key_id);
+	if (MatchFilePattern(pat,buf))
+	{
+	    if ( !f || verbose > 0 )
+	    {
+		Dump_CERT_Item(stdout,0,item,i,true,&global_cert);
+		fputc('\n',stdout);
+	    }
+
+	    if ( f && item->head )
+		fwrite(item->head,1,item->cert_size,f);
+	}
+    }
+
+    if (f)
+	fclose(f);
+    return ERR_OK;
+}
+
+//
+///////////////////////////////////////////////////////////////////////////////
+
 enumError cmd_create()
 {
     if ( n_param < 1 )
@@ -2193,6 +2240,7 @@ enumError CheckOptions ( int argc, char ** argv, bool is_env )
 	case GO_UTF_8:		use_utf8 = true; break;
 	case GO_NO_UTF_8:	use_utf8 = false; break;
 	case GO_LANG:		lang_info = optarg; break;
+	case GO_CERT:		AtFileHelper(optarg,0,0,AddCertFile); break;
 
 	case GO_TEST:		testmode++; break;
 
@@ -2386,6 +2434,7 @@ enumError CheckCommand ( int argc, char ** argv )
 	case CMD_COMPR:		err = cmd_compr(); break;
 	case CMD_EXCLUDE:	err = cmd_exclude(); break;
 	case CMD_TITLES:	err = cmd_titles(); break;
+	case CMD_CERT:		err = cmd_cert(); break;
 	case CMD_CREATE:	err = cmd_create(); break;
 
 	case CMD_FILELIST:	err = cmd_filelist(); break;

@@ -47,8 +47,15 @@
 	"Dump the internal exclude database to standard output (stdout)." )
 
 #:def_cmd( "TITLES", "TITLES", \
-	"wit TITLES [additional_title_file]", \
+	"wit TITLES [additional_title_file]...", \
 	"Dump the internal title database to standard output (stdout)." )
+
+#:def_cmd( "CERT", "CERT", \
+	"wit CERT [additional_cert_file]...", \
+	"Collect certificates and eliminate multiple entires of the same" \
+	" certificate. Dump all collected certificates to standard output" \
+	" (stdout) or write the certificate as binary to a file. The optional" \
+	" parameters are handled like parameters of option {--cert}." )
 
 #:def_cmd( "CREATE", "CREATE", \
 	"wit CREATE TICKET outfile [--id id] [title_id] [decrypted_key]\n" \
@@ -241,6 +248,13 @@
 #:def_opt( "LANG", "lang", "GP", \
 	"lang", \
 	"Define the language for titles." )
+
+#:def_opt( "CERT", "cert", "GMP", \
+	"file", \
+	"Scan a file for certificates and add them to the internal certificate" \
+	" database. Valid sources are CERT, TICKET, TMD and ISO files. All" \
+	" partitions of ISO images are scanned for certificates. Files without" \
+	" certificates are ignored without notification." )
 
 #:def_opt( "TEST", "t|test", "GM", \
 	"", \
@@ -774,6 +788,29 @@
 #:def_cmd_opt( "TITLES", "LANG", \
 	"", \
 	"" )
+
+#:def_cmd_opt( "CERT", "CERT", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "CERT", "FILES", \
+	"", \
+	"Filter the certificates by rules. Therefor the certificate name is" \
+	" build in the form 'issuer/keyid'." )
+
+#:def_cmd_opt( "CERT", "DEST", \
+	"", \
+	"Define a destination file. All selected certificates are written to" \
+	" this new created file." )
+
+#:def_cmd_opt( "CERT", "DEST2", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "CERT", "VERBOSE", \
+	"", \
+	"Dump the content of all certificates to standard output. This is the" \
+	" default if neiter --dest nor --DEST are set." )
 
 #:def_cmd_opt( "CREATE", "TEST", \
 	"", \

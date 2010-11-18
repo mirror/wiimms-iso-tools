@@ -2228,10 +2228,67 @@ enumFileType AnalyzeMemFT ( const void * preload_buf, off_t file_size )
     }
 
 
-    const int sig_size = cert_get_signature_size(be32(preload_buf));
-    if ( sig_size && sig_size < file_size )
+    //----- test cert + ticket + tmd
+
+    const u32 sig_type	= be32(preload_buf);
+    const int sig_size	= cert_get_signature_size(sig_type);
+    const u32 head_size	= ALIGN32( sig_size + sizeof(cert_head_t), WII_CERT_ALIGN );
+    const bool is_root_sig = sig_size
+			   && sig_size < file_size
+			   && !memcmp(preload_buf+head_size,"Root",4);
+    if (is_root_sig)
     {
+	//----- test CERT.bin
+
+	if ( !(file_size & WII_CERT_ALIGN-1) )
+	{
+	    const cert_data_t * data = cert_get_data(preload_buf);
+	    if ( data
+		&& (ccp)data + sizeof(data) < (ccp)preload_buf + file_size
+		&& data->key_id[0] > ' ' && data->key_id[0] < 0x80 )
+	    {
+		const u8 * next = (u8*)cert_get_next_head(data);
+		if ( next && next <= (u8*)preload_buf + file_size )
+		    return FT_ID_CERT_BIN;
+	    }
+	}
+
+
+	//----- test TICKET.BIN
+
+	if ( sig_type == 0x10001 && file_size >= sizeof(wd_ticket_t) )
+	{
+	    if ( file_size == sizeof(wd_ticket_t)
+		|| cert_get_signature_size(be32((ccp)preload_buf+sizeof(wd_ticket_t))) )
+	    {
+		return FT_ID_TIK_BIN;
+	    }
+	}
+
+
 	//----- test TMD.BIN
+
+	if ( sig_type == 0x10001 && file_size >= sizeof(wd_tmd_t) )
+	{
+	    const wd_tmd_t * tmd = preload_buf;
+	    const int n = ntohs(tmd->n_content);
+	    if ( n > 0 )
+	    {
+		const int tmd_size = sizeof(wd_tmd_t) + n * sizeof(wd_tmd_content_t);
+		if ( file_size == tmd_size
+		    || file_size > tmd_size
+			    && cert_get_signature_size(be32((ccp)preload_buf+tmd_size)) )
+		{
+		    return FT_ID_TMD_BIN;
+		}
+	    }
+	}
+    }
+
+
+    if (sig_size) // ISO usual data
+    {
+	//----- test TMD.BIN (ISO usual data)
 
 	if ( file_size >= sizeof(wd_tmd_t) )
 	{
@@ -2245,26 +2302,13 @@ enumFileType AnalyzeMemFT ( const void * preload_buf, off_t file_size )
 	}
 
 
-	//----- test TICKET.BIN
+	//----- test TICKET.BIN (ISO usual data)
 
 	if ( file_size == sizeof(wd_ticket_t) )
 	{
 	    const wd_ticket_t * tik = preload_buf;
 	    if ( CheckID4(tik->title_id+4,true,false) )
 		return FT_ID_TIK_BIN;
-	}
-
-	//----- test CERT.bin
-
-	if ( !(file_size & WII_CERT_ALIGN-1) )
-	{
-	    const u8 * data = (u8*)cert_get_data(preload_buf);
-	    if ( data && data < (u8*)preload_buf + file_size )
-	    {
-		const u8 * next = (u8*)cert_get_next_head(data);
-		if ( next && next <= (u8*)preload_buf + file_size )
-		    return FT_ID_CERT_BIN;
-	    }
 	}
     }
 

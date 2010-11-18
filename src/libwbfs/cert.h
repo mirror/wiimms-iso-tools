@@ -91,7 +91,7 @@ typedef struct cert_head_t
 
 typedef struct cert_data_t
 {
-    u8			issuer[0x40]; 	// signature issuer
+    char		issuer[0x40]; 	// signature issuer
     u32			key_type;	// key type
     char		key_id[0x40];	// id of key
     u32			unknown1;
@@ -207,7 +207,9 @@ void cert_reset
 
 cert_item_t * cert_append_item
 (
-    cert_chain_t	* cc		// valid pointer to cert chain
+    cert_chain_t	* cc,		// valid pointer to cert chain
+    ccp			issuer,		// NULL or pointer to issuer
+    ccp			key_id		// NULL or valid pointer to key id
 );
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -216,7 +218,8 @@ int cert_append_data
 (
     cert_chain_t	* cc,		// valid pointer to cert chain
     const void		* data,		// NULL or pointer to cert data
-    size_t		data_size	// size of 'data'
+    size_t		data_size,	// size of 'data'
+    bool		uniq		// true: avoid duplicates
 );
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -224,8 +227,13 @@ int cert_append_data
 int cert_append_file
 (
     cert_chain_t	* cc,		// valid pointer to cert chain
-    ccp			filename	// name of file
+    ccp			filename,	// name of file
+    bool		uniq		// true: avoid duplicates
 );
+
+///////////////////////////////////////////////////////////////////////////////
+
+void cert_add_root();
 
 //
 ///////////////////////////////////////////////////////////////////////////////

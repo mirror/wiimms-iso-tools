@@ -2065,7 +2065,7 @@ const cert_chain_t * wd_load_cert_chain
 	wd_load_part(part,true,false,silent);
 
     if ( part->cert && !part->cert_chain.used )
-	cert_append_data( &part->cert_chain, part->cert, part->ph.cert_size );
+	cert_append_data( &part->cert_chain, part->cert, part->ph.cert_size, false );
 
     return &part->cert_chain;
 }

@@ -212,8 +212,16 @@ info_t info_tab[] =
 		"Dump the internal exclude database to standard output (stdout)." },
 
   { T_DEF_CMD,	"TITLES",	"TITLES",
-		    "wit TITLES [additional_title_file]",
+		    "wit TITLES [additional_title_file]...",
 		"Dump the internal title database to standard output (stdout)." },
+
+  { T_DEF_CMD,	"CERT",		"CERT",
+		    "wit CERT [additional_cert_file]...",
+		"Collect certificates"
+		" and eliminate multiple entires of the same certificate."
+		" Dump all collected certificates to standard output (stdout)"
+		" or write the certificate as binary to a file."
+		" The optional parameters are handled like parameters of option {--cert}." },
 
   { T_DEF_CMD,	"CREATE",	"CREATE",
 		    "wit CREATE TICKET outfile [--id id] [title_id] [decrypted_key]\n"
@@ -422,13 +430,24 @@ info_t info_tab[] =
 		"file", "Read file for disc titles. -T0 disables titles lookup." },
 
   { T_OPT_G,	"UTF_8",	"utf-8|utf8",
-		0, "Enables UTF-8 support (default)." },
+		0,
+		"Enables UTF-8 support (default)." },
 
   { T_OPT_G,	"NO_UTF_8",	"no-utf-8|no-utf8|noutf8",
-		0, "Disables UTF-8 support (CYGWIN default)." },
+		0, 
+		"Disables UTF-8 support (CYGWIN default)." },
 
   { T_OPT_GP,	"LANG",		"lang",
-		"lang", "Define the language for titles." },
+		"lang", 
+		"Define the language for titles." },
+
+  { T_OPT_GMP,	"CERT",		"cert",
+		"file",
+		"Scan a file for certificates"
+		" and add them to the internal certificate database."
+		" Valid sources are CERT, TICKET, TMD and ISO files."
+		" All partitions of ISO images are scanned for certificates."
+		" Files without certificates are ignored without notification." },
 
   { T_SEP_OPT,	0,0,0,0 }, //----- separator -----
 
@@ -1183,6 +1202,23 @@ info_t info_tab[] =
   { T_CMD_BEG,	"TITLES",	0,0,0 },
 
   { T_COPY_GRP,	"TITLES",	0,0,0 },
+
+  //---------- COMMAND wit CERT ----------
+
+  { T_CMD_BEG,	"CERT",		0,0,0 },
+
+  { T_COPT_M,	"CERT",		0,0,0 },
+  { T_COPT_M,	"FILES",	0,0,
+	"Filter the certificates by rules."
+	" Therefor the certificate name is build in the form 'issuer/keyid'." },
+  { T_COPT,	"DEST",		0,0,
+	"Define a destination file."
+	" All selected certificates are written to this new created file." },
+  { T_COPT,	"DEST2",	0,0,0 },
+  { T_COPT,	"VERBOSE",	0,0,
+	"Dump the content of all certificates to standard output."
+	" This is the default if neiter --dest nor --DEST are set." },
+  
 
   //---------- COMMAND wit FILELIST ----------
 

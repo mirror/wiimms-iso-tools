@@ -272,39 +272,20 @@ typedef struct wbfs_param_t // function parameters
 
 //-----------------------------------------------------------------------------
 
-/*! @brief open a MSDOS partitionned harddrive. This tries to find a wbfs partition into the harddrive
-   @param read_hdsector,write_hdsector: accessors to a harddrive
-   @hd_sector_size: size of the hd sector. Can be set to zero if the partition in already initialized
-   @num_hd_sector:  number of sectors in this disc. Can be set to zero if the partition in already initialized
-   @reset: not implemented, This will format the whole harddrive with one wbfs partition that fits the whole disk.
-   calls wbfs_error() to have textual meaning of errors
-   @return NULL in case of error
-*/
-
 #ifndef WIT // not used in WiT
 
- wbfs_t * wbfs_open_hd(rw_sector_callback_t read_hdsector,
-		      rw_sector_callback_t write_hdsector,
-		      void *callback_data,
-		      int hd_sector_size, int num_hd_sector, int reset);
+wbfs_t * wbfs_open_partition
+(
+    rw_sector_callback_t	read_hdsector,
+    rw_sector_callback_t	write_hdsector,
+    void			* callback_data,
+    int				hd_sector_size,
+    int				num_hd_sector,
+    u32				part_lba,
+    int				reset
+);
 
 #endif
-
-//-----------------------------------------------------------------------------
-
-/*! @brief open a wbfs partition
-   @param read_hdsector,write_hdsector: accessors to the partition
-   @hd_sector_size: size of the hd sector. Can be set to zero if the partition in already initialized
-   @num_hd_sector:  number of sectors in this partition. Can be set to zero if the partition in already initialized
-   @partition_lba:  The partitio offset if you provided accessors to the whole disc.
-   @reset: initialize the partition with an empty wbfs.
-   calls wbfs_error() to have textual meaning of errors
-   @return NULL in case of error
-*/
-wbfs_t*wbfs_open_partition(rw_sector_callback_t read_hdsector,
-			   rw_sector_callback_t write_hdsector,
-			   void *callback_data,
-			   int hd_sector_size, int num_hd_sector, u32 partition_lba, int reset);
 
 wbfs_t * wbfs_open_partition_param ( wbfs_param_t * par );
 
@@ -487,14 +468,6 @@ u32 wbfs_add_disc_param ( wbfs_t * p, wbfs_param_t * par );
 
 u32 wbfs_add_phantom ( wbfs_t * p, const char * phantom_id, u32 wii_sector_count );
 
-u32 wbfs_estimate_disc
-(
-    wbfs_t		* p,
-    wd_read_func_t	read_src_wii_disc,
-    void		* callback_data,
-    const wd_select_t	* psel
-);
-
 // remove a disc from partition
 u32 wbfs_rm_disc ( wbfs_t * p, u8 * discid, int free_slot_only );
 
@@ -513,15 +486,6 @@ u32 wbfs_trim(wbfs_t*p);
 Even if the filesize is 4.7GB, the disc usage will be less.
  */
 u32 wbfs_extract_disc(wbfs_disc_t*d, rw_sector_callback_t write_dst_wii_sector,void *callback_data,progress_callback_t spinner);
-
-/*! extract a file from the wii disc filesystem.
-  E.G. Allows to extract the opening.bnr to install a game as a system menu channel
- */
-u32 wbfs_extract_file(wbfs_disc_t*d, char *path);
-
-// remove some sanity checks
-void wbfs_set_force_mode(int force);
-
 
 /* OS specific functions provided by libwbfs_<os>.c */
 

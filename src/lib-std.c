@@ -2844,7 +2844,7 @@ ShowMode ScanShowMode ( ccp arg )
 	{ SHOW_P_MAP,		"P-MAP",	"PMAP",		0 },
 	{ SHOW_D_MAP,		"D-MAP",	"DMAP",		0 },
 	{ SHOW_CERT,		"CERTIFICATES",	0,		0 },
-	{ SHOW_TICKET,		"TICKET",	0,		0 },
+	{ SHOW_TICKET,		"TICKET",	"TIK",		0 },
 	{ SHOW_TMD,		"TMD",		0,		0 },
 	{ SHOW_USAGE,		"USAGE",	0,		0 },
 	{ SHOW_FILES,		"FILES",	0,		0 },

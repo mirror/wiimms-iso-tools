@@ -133,10 +133,11 @@ typedef enum enumOptions
 	OPT_UTF_8,
 	OPT_NO_UTF_8,
 	OPT_LANG,
+	OPT_CERT,
 	OPT_TEST,
 	OPT_HOOK,
 
-	OPT__N_TOTAL // == 89
+	OPT__N_TOTAL // == 90
 
 } enumOptions;
 
@@ -328,6 +329,10 @@ typedef enum enumOptions
 //
 //	OB_CMD_TITLES		= OB_GRP_TITLES,
 //
+//	OB_CMD_CERT		= OB_FILES
+//				| OB_DEST
+//				| OB_DEST2,
+//
 //	OB_CMD_FILELIST		= OB_AUTO
 //				| OB_GRP_XXSOURCE
 //				| OB_LONG,
@@ -501,6 +506,7 @@ typedef enum enumCommands
 	CMD_COMPR,
 	CMD_EXCLUDE,
 	CMD_TITLES,
+	CMD_CERT,
 	CMD_CREATE,
 
 	CMD_FILELIST,
@@ -532,7 +538,7 @@ typedef enum enumCommands
 	CMD_VERIFY,
 	CMD_MIX,
 
-	CMD__N // == 34
+	CMD__N // == 35
 
 } enumCommands;
 
@@ -589,6 +595,7 @@ typedef enum enumGetOpt
 	GO_UTF_8,
 	GO_NO_UTF_8,
 	GO_LANG,
+	GO_CERT,
 	GO_NO_EXPAND,
 	GO_RDEPTH,
 	GO_JOB_LIMIT,

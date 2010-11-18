@@ -25,6 +25,10 @@
     This QT based GUI focuses on manipulating single ISO images.
 [color=#ffffff].[/color]
 
+[*] [url=@@URI-WIIBAFU@@][b]Wii Backup Fusion[/b], a WBFS and ISO manager.[/url]
+    This is a very young QT based GUI and still in development.
+[color=#ffffff].[/color]
+
 [*] [url=@@URI-WIIJMANAGER@@][b]WiiJManager Multiplatform[/b], a WBFS manager GUI[/url]
     A java GUI that acts like a WBFS manager. Converting of ISO images is also possible. (The project seems to be dead)
 [/list]

@@ -2848,7 +2848,7 @@ FileAttrib_t * CopyFileAttribDiscInfo
 
 //
 ///////////////////////////////////////////////////////////////////////////////
-///////////////               split file support                ///////////////
+///////////////			split file support		///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
 int CalcSplitFilename ( char * buf, size_t buf_size, ccp path, enumOFT oft )
@@ -2905,7 +2905,7 @@ char * AllocSplitFilename ( ccp path, enumOFT oft )
 
 //
 ///////////////////////////////////////////////////////////////////////////////
-///////////////                  cygwin support                 ///////////////
+///////////////			cygwin support			///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
 #ifdef __CYGWIN__
@@ -3013,6 +3013,63 @@ void SetDest ( ccp dest, bool mkdir )
 
 //
 ///////////////////////////////////////////////////////////////////////////////
-///////////////                     END                         ///////////////
+///////////////			cert support			///////////////
+///////////////////////////////////////////////////////////////////////////////
+
+int AddCertFile ( ccp fname, int unused )
+{
+    SuperFile_t sf;
+    InitializeSF(&sf);
+    enumError err = OpenSF(&sf,fname,true,false);
+    if (!err)
+    {
+	if ( sf.f.ftype & FT_A_ISO )
+	{
+	    wd_disc_t * disc = OpenDiscSF(&sf,false,false);
+	    if (disc)
+	    {
+		int ip;
+		for ( ip = 0; ip < disc->n_part; ip++ )
+		{
+		    wd_part_t * part = disc->part + ip;
+		    if ( part->is_enabled
+			&& !wd_load_part(part,true,false,true)
+			&& part->cert )
+		    {
+			cert_append_data(&global_cert,part->cert,part->ph.cert_size,true);
+		    }
+		}
+	    }
+	}
+	else if ( sf.f.ftype & (FT_ID_CERT_BIN|FT_ID_TIK_BIN|FT_ID_TMD_BIN) )
+	{
+	    const size_t load_size = sf.file_size < sizeof(iobuf)
+				   ? sf.file_size : sizeof(iobuf);
+	    err = ReadSF(&sf,0,iobuf,load_size);
+	    if (!err)
+	    {
+		size_t skip = 0;
+		if ( sf.f.ftype & FT_ID_TIK_BIN )
+		    skip = sizeof(wd_ticket_t);
+		else if ( sf.f.ftype & FT_ID_TMD_BIN )
+		{
+		    wd_tmd_t * tmd = (wd_tmd_t*)iobuf;
+		    skip = sizeof(wd_tmd_t)
+			 + ntohs(tmd->n_content) * sizeof(wd_tmd_content_t);
+		}
+
+		if ( skip < load_size )
+		    cert_append_data(&global_cert,iobuf+skip,load_size-skip,true);
+	    }
+	}
+    }
+
+    ResetSF(&sf,0);
+    return err;
+}
+
+//
+///////////////////////////////////////////////////////////////////////////////
+///////////////			    END				///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
