@@ -428,8 +428,7 @@ static void test_match_pattern ( int argc, char ** argv )
 
     for ( i = 1; i < i_end; i++ )
 	for ( j = j_start; j < argc; j++ )
-	    //if ( i != j )
-		printf("%u |%s|%s|\n",MatchPattern(argv[i],argv[j]),argv[i],argv[j]);
+	    printf("%u |%s|%s|\n",MatchPattern(argv[i],argv[j],'/'),argv[i],argv[j]);
 }
 
 //

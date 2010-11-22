@@ -54,8 +54,8 @@
 	"wit CERT [additional_cert_file]...", \
 	"Collect certificates and eliminate multiple entires of the same" \
 	" certificate. Dump all collected certificates to standard output" \
-	" (stdout) or write the certificate as binary to a file. The optional" \
-	" parameters are handled like parameters of option {--cert}." )
+	" (stdout) and/or write the certificate to a new binary cert file. The" \
+	" optional parameters are handled like parameters of option {--cert}." )
 
 #:def_cmd( "CREATE", "CREATE", \
 	"wit CREATE TICKET outfile [--id id] [title_id] [decrypted_key]\n" \
@@ -340,6 +340,11 @@
 	"Execute only the first @'num'@ jobs and exit. If done without errors" \
 	" the exit status is OK (zero)." )
 
+#:def_opt( "FAKE_SIGN", "fake-sign|fakesign", "CP", \
+	"ruleset", \
+	"Add a certificate selection rule. All certificates that matches the" \
+	" ruleset will be fake signed." )
+
 #:def_opt( "IGNORE", "i|ignore", "CM", \
 	"", \
 	"Ignore non existing files/discs without warning. If set twice then" \
@@ -619,7 +624,7 @@
 	"Set ISO output mode to 'file system' (extracted ISO)." )
 
 #:def_opt( "FILES", "F|files", "CMP", \
-	"rules", \
+	"ruleset", \
 	"Append a file select rules. This option can be used multiple times to" \
 	" extend the rule list. Rules beginning with a '+' or a '-' are allow" \
 	" or deny rules rules. Rules beginning with a '=' are macros for" \
@@ -796,7 +801,11 @@
 #:def_cmd_opt( "CERT", "FILES", \
 	"", \
 	"Filter the certificates by rules. Therefor the certificate name is" \
-	" build in the form 'issuer/keyid'." )
+	" build in the form 'issuer.keyid'." )
+
+#:def_cmd_opt( "CERT", "FAKE_SIGN", \
+	"", \
+	"" )
 
 #:def_cmd_opt( "CERT", "DEST", \
 	"", \
@@ -1384,6 +1393,10 @@
 	"", \
 	"" )
 
+#:def_cmd_opt( "LIST", "PROGRESS", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "LIST", "ITIME", \
 	"", \
 	"" )
@@ -1503,6 +1516,10 @@
 	"" )
 
 #:def_cmd_opt( "LIST_L", "UNIT", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "LIST_L", "PROGRESS", \
 	"", \
 	"" )
 
@@ -1628,6 +1645,10 @@
 	"", \
 	"" )
 
+#:def_cmd_opt( "LIST_LL", "PROGRESS", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "LIST_LL", "ITIME", \
 	"", \
 	"" )
@@ -1747,6 +1768,10 @@
 	"" )
 
 #:def_cmd_opt( "LIST_LLL", "UNIT", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "LIST_LLL", "PROGRESS", \
 	"", \
 	"" )
 
@@ -6465,8 +6490,8 @@
 	"Concatenate files and print on the standard output. WDF and CISO" \
 	" files are extracted before printing, all other files are copied byte" \
 	" by byte.\n" \
-	"  This is the default command, when the program namecontains the" \
-	" three letter @'cat'@ in any case." )
+	"  This is the default command, when the program name contains the sub" \
+	" string @'cat'@ in any case." )
 
 #:def_cmd( "DUMP", "+DUMP|+D", \
 	"wdf +DUMP [option]... files...", \

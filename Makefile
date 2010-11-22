@@ -18,7 +18,7 @@ WDF_SHORT		= wdf
 WDF_LONG		= Wiimms WDF Tool
 
 VERSION_NUM		= 1.22a
-BETA_VERSION		= 1
+BETA_VERSION		= 0
 			# 0:off  -1:"beta"  >0:"beta#"
 
 URI_HOME		= http://wit.wiimm.de/
@@ -93,15 +93,17 @@ WBFS_COUNT	?= 4
 #-------------------------------------------------------------------------------
 # tools
 
-MAIN_TOOLS	:= wit wwt wdf wdf-cat wdf-dump
+MAIN_TOOLS	:= wit wwt wdf
+#MAIN_TOOLS	:= wit wwt wdf wdf-cat wdf-dump
 TEST_TOOLS	:= wtest
 ALL_TOOLS	:= $(sort $(MAIN_TOOLS) $(TEST_TOOLS))
 
 HELPER_TOOLS	:= gen-ui
 
-WDF_LINKS	:= WdfCat UnWdf WdfCmp WdfDump Ciso CisoCat UnCiso Wbi
+WDF_TEST_LINKS	:= WdfCat UnWdf WdfCmp WdfDump Ciso CisoCat UnCiso Wbi
+WDF_LINKS	:= wdf-cat wdf-dump
 
-RM_FILES	+= $(ALL_TOOLS) $(HELPER_TOOLS) $(WDF_LINKS)
+RM_FILES	+= $(ALL_TOOLS) $(HELPER_TOOLS) $(WDF_LINKS) $(WDF_TEST_LINKS)
 
 #-------------------------------------------------------------------------------
 # tool dependent objects
@@ -109,11 +111,8 @@ RM_FILES	+= $(ALL_TOOLS) $(HELPER_TOOLS) $(WDF_LINKS)
 TOBJ_wit	:= wit-mix.o
 TOBJ_wwt	:=
 TOBJ_wdf	:=
-TOBJ_wdf-cat	:=
-TOBJ_wdf-dump	:=
 
-TOBJ_ALL	:= $(TOBJ_wit) $(TOBJ_wwt) $(TOBJ_wdf) \
-		   $(TOBJ_wdf-cat) $(TOBJ_wdf-dump)
+TOBJ_ALL	:= $(TOBJ_wit) $(TOBJ_wwt) $(TOBJ_wdf)
 
 #-------------------------------------------------------------------------------
 # source files
@@ -207,7 +206,7 @@ LANGUAGES	= de es fr it ja ko nl pt ru zhcn zhtw
 BIN_FILES	= $(MAIN_TOOLS)
 LIB_FILES	= $(TITLE_FILES)
 
-CYGWIN_DIR	= pool/cygwin
+CYGWIN_DIR	= /usr/bin
 CYGWIN_BIN	= cygwin1.dll cygbz2-1.dll
 CYGWIN_BIN_SRC	= $(patsubst %,$(CYGWIN_DIR)/%,$(CYGWIN_BIN))
 
@@ -251,6 +250,12 @@ $(HELPER_TOOLS): %: %.o $(ALL_OBJECTS) Makefile
 
 #--------------------------
 
+$(WDF_LINKS): wdf
+	@printf "$(LOGFORMAT)" "link" "wdf -> $@" ""
+	@ln -f wdf "$@"
+
+#--------------------------
+
 $(UI_OBJECTS): %.o: %.c ui-%.c ui-%.h version.h Makefile
 	@printf "$(LOGFORMAT)" +object "$@" "$(MODE)"
 	@$(CC) $(CFLAGS) $(DEPFLAGS) $(DEFINES) -c $< -o $@
@@ -290,7 +295,7 @@ ui : gen-ui
 # specific rules in alphabetic order
 
 .PHONY : all
-all: $(HELPER_TOOLS) $(ALL_TOOLS) $(INSTALL_SCRIPTS)
+all: $(HELPER_TOOLS) $(ALL_TOOLS) $(WDF_LINKS) $(INSTALL_SCRIPTS)
 
 .PHONY : all+
 all+: clean+ all distrib
@@ -379,9 +384,11 @@ ifeq ($(SYSTEM),cygwin)
 	@rm -rf $(DISTRIB_PATH) 2>/dev/null || true
 	@mkdir -p $(DISTRIB_PATH)/bin $(DISTRIB_PATH)/doc
 	@cp -p gpl-2.0.txt $(DISTRIB_PATH)
-	@cp -p $(MAIN_TOOLS) $(CYGWIN_BIN_SRC) $(DISTRIB_PATH)/bin
+	@ln -f $(MAIN_TOOLS) $(WDF_LINKS) $(DISTRIB_PATH)/bin
+	@cp -p $(CYGWIN_BIN_SRC) $(DISTRIB_PATH)/bin
 	@( cd lib; cp $(TITLE_FILES) ../$(DISTRIB_PATH)/bin )
 	@cp -p $(DOC_FILES) $(DISTRIB_PATH)/doc
+
 	@zip -roq $(DISTRIB_PATH).zip $(DISTRIB_PATH)
 
 else
@@ -389,7 +396,7 @@ else
 	@mkdir -p $(DISTRIB_PATH)/bin $(DISTRIB_PATH)/scripts $(DISTRIB_PATH)/lib $(DISTRIB_PATH)/doc
 
 	@cp -p $(DISTRIB_FILES) $(DISTRIB_PATH)
-	@cp -p $(MAIN_TOOLS) $(DISTRIB_PATH)/bin
+	@ln -f $(MAIN_TOOLS) $(WDF_LINKS) $(DISTRIB_PATH)/bin
 	@cp -p lib/*.txt $(DISTRIB_PATH)/lib
 	@cp -p $(DOC_FILES) $(DISTRIB_PATH)/doc
 	@cp -p $(SCRIPTS)/*.{sh,txt} $(DISTRIB_PATH)/scripts
@@ -397,7 +404,6 @@ else
 	@chmod -R 664 $(DISTRIB_PATH)
 	@chmod a+x $(DISTRIB_PATH)/*.sh $(DISTRIB_PATH)/scripts/*.sh $(DISTRIB_PATH)/bin*/*
 	@chmod -R a+X $(DISTRIB_PATH)
-#	-@chown -R --reference=. $(DISTRIB_PATH) >/dev/null
 
 	@tar -czf $(DISTRIB_PATH).tar.gz $(DISTRIB_PATH)
 endif
@@ -503,6 +509,7 @@ templates.sed: Makefile
 		's|@@INSTALL-PATH@@|$(INSTALL_PATH)|g;\n' \
 		's|@@BIN-FILES@@|$(BIN_FILES)|g;\n' \
 		's|@@LIB-FILES@@|$(LIB_FILES)|g;\n' \
+		's|@@WDF-LINKS@@|$(WDF_LINKS)|g;\n' \
 		's|@@LANGUAGES@@|$(LANGUAGES)|g;\n' \
 		's|@@DISTRIB-I386@@|$(DISTRIB_I386)|g;\n' \
 		's|@@DISTRIB-X86_64@@|$(DISTRIB_X86_64)|g;\n' \
@@ -656,8 +663,8 @@ bad-wbfs: wwt a.wbfs
 
 .PHONY : wdf-links
 wdf-links:
-	@printf "$(LOGFORMAT)" link "$(WDF_LINKS) -> wdf" ""
-	@for l in $(WDF_LINKS); do rm -f $$l; ln -s wdf $$l; done
+	@printf "$(LOGFORMAT)" link "$(WDF_TEST_LINKS) -> wdf" ""
+	@for l in $(WDF_TEST_LINKS); do rm -f $$l; ln -s wdf $$l; done
 
 #
 ###############################################################################

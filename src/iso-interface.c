@@ -853,11 +853,7 @@ void Dump_CERT_Item
 	indent += 2;
     }
 
-    fprintf(f,"%*sIssuer:            %.64s\n",
-		indent, "", item->data->issuer );
-
-    fprintf(f,"%*sPublic key ID:     %.64s\n",
-		indent, "", item->data->key_id );
+    fprintf(f,"%*sIssuer & Key ID:   %s\n", indent, "", item->name );
 
     if (item->head)
     {
@@ -868,19 +864,17 @@ void Dump_CERT_Item
 
     if (print_ext)
     {
+	const u32 pub_exp = be32(item->data->public_key+item->key_size);
+	fprintf(f,"%*sPublic exponent: %11x/hex =%11u\n",indent,"",pub_exp,pub_exp);
+
+	fprintf(f,"%*sPublic key:        ",indent,"");
+	dump_hex(f,item->data->public_key,16,0," ...\n");
+
 	if (item->head)
 	{
 	    fprintf(f,"%*sSignature:         ",indent,"");
 	    dump_hex(f,item->head->sig_data,16,0," ...\n");
 	}
-
-	fprintf(f,"%*sPublic key:        ",indent,"");
-	dump_hex(f,item->data->public_key,16,0," ...\n");
-
-	fprintf(f,"%*sPre+post key val:  %08x %08x\n",
-		indent, "",
-		ntohl(item->data->unknown1),
-		be32(item->data->public_key+item->key_size) );
     }
 
     if (item->head)
@@ -2150,7 +2144,7 @@ static int CollectFST_helper
 	    part->total_file_size += it->size;
 	}
 
-	if ( cf->pat && !MatchFilePattern(cf->pat,it->fst_name) )
+	if ( cf->pat && !MatchFilePattern(cf->pat,it->fst_name,'/') )
 	    return 0;
 
 	noPRINT("%8x >> %8x + %8x  %s\n",it->off4,it->off4>>2,it->size,it->path);

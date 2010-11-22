@@ -262,7 +262,8 @@ enumError cmd_find()
 			"type  wbfs d.usage    size  file (sizes in MiB)\n"
 			"-----------------------------------------------\n");
 	    for ( info = first_partition_info; info; info = info->next )
-		 printf("%-5s %s %7lld %7lld  %s\n",
+		if ( info->part_mode > PM_IGNORE )
+		    printf("%-5s %s %7lld %7lld  %s\n",
 				GetFileModeText(info->filemode,false,"-"),
 				info->part_mode >= PM_WBFS ? "WBFS" : " -- ",
 				(info->disk_usage+MiB/2)/MiB,
@@ -278,7 +279,8 @@ enumError cmd_find()
 			"type  wbfs    disk usage     file size  full path\n"
 			"-------------------------------------------------\n");
 	    for ( info = first_partition_info; info; info = info->next )
-		printf("%-5s %s %13lld %13lld  %s\n",
+		if ( info->part_mode > PM_IGNORE )
+		    printf("%-5s %s %13lld %13lld  %s\n",
 				GetFileModeText(info->filemode,false,"-"),
 				info->part_mode >= PM_WBFS ? "WBFS" : " -- ",
 				info->disk_usage,
@@ -3045,9 +3047,9 @@ enumError CheckOptions ( int argc, char ** argv, bool is_env )
 	case GO_ID:		err += ScanOptId(optarg); break;
 	case GO_NAME:		err += ScanOptName(optarg); break;
 	case GO_MODIFY:		err += ScanOptModify(optarg); break;
-	case GO_RM_FILES:	err += ScanFiles(optarg,PAT_RM_FILES); break;
-	case GO_ZERO_FILES:	err += ScanFiles(optarg,PAT_ZERO_FILES); break;
-	case GO_IGNORE_FILES:	err += ScanFiles(optarg,PAT_IGNORE_FILES); break;
+	case GO_RM_FILES:	err += ScanRule(optarg,PAT_RM_FILES); break;
+	case GO_ZERO_FILES:	err += ScanRule(optarg,PAT_ZERO_FILES); break;
+	case GO_IGNORE_FILES:	err += ScanRule(optarg,PAT_IGNORE_FILES); break;
 	case GO_REPL_FILE:	err += ScanOptFile(optarg,false); break;
 	case GO_ADD_FILE:	err += ScanOptFile(optarg,true); break;
 	case GO_TRIM:		err += ScanOptTrim(optarg); break;

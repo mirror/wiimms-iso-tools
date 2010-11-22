@@ -370,19 +370,19 @@ FileAttrib_t * NormalizeFileAttrib
 
 FileAttrib_t * MaxFileAttrib
 (
-    FileAttrib_t	* dest,		// valid source and destination atttibute
-    const FileAttrib_t	* src		// NULL or second source atttibute
+    FileAttrib_t	* dest,		// valid source and destination attribute
+    const FileAttrib_t	* src		// NULL or second source attribute
 );
 
 FileAttrib_t * CopyFileAttrib
 (
-    FileAttrib_t	* dest,		// valid destination atttibute
-    const FileAttrib_t	* src		// valid source atttibute
+    FileAttrib_t	* dest,		// valid destination attribute
+    const FileAttrib_t	* src		// valid source attribute
 );
 
 FileAttrib_t * CopyFileAttribStat
 (
-    FileAttrib_t	* dest,		// valid destination atttibute
+    FileAttrib_t	* dest,		// valid destination attribute
     const struct stat	* src,		// NULL or source
     bool		maximize	// true store max values to 'dest'
 );

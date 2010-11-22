@@ -134,7 +134,7 @@ ccp cert_get_status_message
 	case CERT_HASH_FAILED:		return "Signature ok but hash failed";
 
 	case CERT_HASH_OK:		return "Signature wrong but hash is ok";
-	case CERT_HASH_FAKE_SIGNED:	return "Signature wrong but fake signed";
+	case CERT_FAKE_SIGNED:		return "Signature wrong but fake signed";
 	case CERT_SIG_FAILED:		return "Signature wrong";
 
 	case CERT_ERR_TYPE_MISSMATCH:	return "Different types of signature and key";
@@ -161,7 +161,7 @@ ccp cert_get_status_name
 	case CERT_HASH_FAILED:		return "HASH FAILED";
 
 	case CERT_HASH_OK:		return "HASH OK";
-	case CERT_HASH_FAKE_SIGNED:	return "HASH FAKE SIGNED";
+	case CERT_FAKE_SIGNED:		return "FAKE SIGNED";
 	case CERT_SIG_FAILED:		return "SIG FAILED";
 
 	case CERT_ERR_TYPE_MISSMATCH:	return "CERT TYPE MISMATCH";
@@ -318,28 +318,32 @@ cert_item_t * cert_append_item
 (
     cert_chain_t	* cc,		// valid pointer to cert chain
     ccp			issuer,		// NULL or pointer to issuer
-    ccp			key_id		// NULL or valid pointer to key id
+    ccp			key_id,		// valid pointer to key id
+    bool		uniq		// true: avoid duplicates
 )
 {
     DASSERT(cc);
-    
-    if ( issuer && key_id )
+    DASSERT( key_id && key_id );
+
+    cert_item_t * item;
+    char name[sizeof(item->name)];
+    if ( issuer && *issuer )
+	snprintf(name,sizeof(name),"%s-%s",issuer,key_id);
+    else
+	snprintf(name,sizeof(name),"%s",key_id);
+
+    if (uniq)
     {
 	// search for item with identical name
 
 	int i;
 	for ( i = 0; i < cc->used; i++ )
 	{
-	    cert_item_t * item = cc->cert + i;
-	    const cert_data_t * data = item->data;
-	    if ( data
-		&& !strncmp(issuer,data->issuer,sizeof(data->issuer))
-		&& !strncmp(key_id,data->key_id,sizeof(data->key_id)) )
+	    item = cc->cert + i;
+	    if (!strcmp(name,item->name))
 	    {
-		
 		free((void*)item->head);
-		memset(item,0,sizeof(*item));
-		return item;
+		goto found;
 	    }
 	}
     }
@@ -352,8 +356,11 @@ cert_item_t * cert_append_item
 	    OUT_OF_MEMORY;
     }
 
-    cert_item_t * item = cc->cert + cc->used++;
+    item = cc->cert + cc->used++;
+
+ found:
     memset(item,0,sizeof(*item));
+    memcpy(item->name,name,sizeof(item->name));
     return item;
 }
 
@@ -366,7 +373,7 @@ void cert_add_root()
     {
 	done = true;
 
-	cert_item_t * item = cert_append_item(&global_cert,0,0);
+	cert_item_t * item = cert_append_item(&global_cert,0,"Root",true);
 	DASSERT(item);
 
 	item->data	= &root_cert;
@@ -458,7 +465,7 @@ int cert_append_data
 		break;
 
 	    cert_item_t * item
-		= cert_append_item( cc, uniq ? data->issuer : 0, data->key_id );
+		= cert_append_item( cc, data->issuer, data->key_id, uniq );
 	    DASSERT(item);
 	    item->sig_size	= cert_get_signature_size(ntohl(head->sig_type));
 	    item->key_size	= cert_get_pubkey_size(ntohl(data->key_type));
@@ -544,19 +551,6 @@ cert_stat_t cert_check
 
     //--- find parent key in chain
 
-    int base_len;
-    ccp parent_id = strrchr((ccp)data->issuer,'-');
-    if (parent_id)
-    {
-	base_len = parent_id - (ccp)data->issuer;
-	parent_id++;
-    }
-    else
-    {
-	base_len = 0;
-	parent_id = (ccp)data->issuer;
-    }
-
     if (!cc)
 	cc = &global_cert;
 
@@ -569,9 +563,7 @@ cert_stat_t cert_check
 	for ( c = 0; c < cc->used; c++ )
 	{
 	    cert_item_t * item = cc->cert + c;
-	    if (!strcmp(parent_id,(ccp)item->data->key_id)
-		&& ( !base_len || !memcmp(data->issuer,item->data->issuer,base_len)
-				    && !item->data->issuer[base_len] ))
+	    if (!strcmp(data->issuer,item->name))
 	    {
 		TRACE("FOUND: %s . %s [%s]\n",
 			    item->data->issuer, item->data->key_id,
@@ -617,10 +609,11 @@ cert_stat_t cert_check
 				    ? CERT_SIG_FAKE_SIGNED
 				    : CERT_HASH_FAILED;
 		}
+
 		return !memcmp(h,hash,WII_HASH_SIZE)
 			? CERT_HASH_OK
 			: !strncmp((ccp)h,(ccp)hash,WII_HASH_SIZE)
-				? CERT_HASH_FAKE_SIGNED
+				? CERT_FAKE_SIGNED
 				: CERT_SIG_FAILED;
 	    }
 	}
@@ -688,6 +681,43 @@ cert_stat_t cert_check_tmd
 			+ ntohs(tmd->n_content) * sizeof(wd_tmd_content_t);
     return cert_check(cc,tmd,tmd_size,cert_found);
 };
+
+//
+///////////////////////////////////////////////////////////////////////////////
+///////////////			    etc				///////////////
+///////////////////////////////////////////////////////////////////////////////
+
+u32 cert_fake_sign 
+(
+    cert_item_t		* item		// pointer to certificate
+)
+{
+    DASSERT(item);
+    if (!item->head)
+	return 0;
+
+    memset((u8*)item->head->sig_data,0,item->sig_size);
+
+    u8 * addr = (u8*)item->data->public_key + item->key_size + 4;
+    if ( addr > (u8*)item->data + item->data_size - 4 )
+    {
+	addr = (u8*)item->data->key_id + sizeof(item->data->key_id) - 4;
+	addr[-1] = 0;
+    }
+
+    u32 val = 0;
+    u8 hash[WII_HASH_SIZE];
+    do
+    {
+	memcpy(addr,&val,sizeof(val));
+	SHA1((u8*)item->data,item->data_size,hash);
+	if (!*hash)
+	    break;
+	val++;
+
+    } while (val);
+    return val; 
+}
 
 //
 ///////////////////////////////////////////////////////////////////////////////

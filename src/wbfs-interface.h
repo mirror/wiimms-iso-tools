@@ -51,6 +51,7 @@ enum
 typedef enum enumPartMode
 {
 	PM_UNKNOWN,		// not analyzed yet
+	PM_IGNORE,		// ignore this entry
 	PM_CANT_READ,		// can't read file
 	PM_WRONG_TYPE,		// type must be regular or block
 	PM_NO_WBFS_MAGIC,	// no WBFS Magic found
@@ -67,6 +68,7 @@ typedef enum enumPartSource
 {
 	PS_PARAM,	// set by --part or by parameter
 	PS_AUTO,	// set by scanning because --auto is set
+	PS_AUTO_IGNORE,	// like PS_AUTO, but ignore if can't be opened
 	PS_ENV,		// set by scanninc env 'WWT_WBFS'
 
 } enumPartSource;

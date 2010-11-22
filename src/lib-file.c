@@ -388,12 +388,12 @@ enumError XSetFileTime ( XPARM File_t * f, FileAttrib_t * set_time )
     ASSERT(f);
 
     enumError err = ERR_OK;
-    if (set_time)
+    if ( set_time && set_time->mtime )
     {
 	err = XCloseFile( XCALL f, false );
 
 	struct utimbuf ubuf;
-	ubuf.actime  = set_time->atime;
+	ubuf.actime  = set_time->atime ? set_time->atime : set_time->mtime;
 	ubuf.modtime = set_time->mtime;
 
 	if (f->split_f)
@@ -2746,8 +2746,8 @@ FileAttrib_t * NormalizeFileAttrib
 
 FileAttrib_t * MaxFileAttrib
 (
-    FileAttrib_t	* dest,		// source and destination atttibute
-    const FileAttrib_t	* src		// NULL or second source atttibute
+    FileAttrib_t	* dest,		// source and destination attribute
+    const FileAttrib_t	* src		// NULL or second source attribute
 )
 {
     DASSERT(dest);
@@ -2771,8 +2771,8 @@ FileAttrib_t * MaxFileAttrib
 
 FileAttrib_t * CopyFileAttrib
 (
-    FileAttrib_t	* dest,		// valid destination atttibute
-    const FileAttrib_t	* src		// valid source atttibute
+    FileAttrib_t	* dest,		// valid destination attribute
+    const FileAttrib_t	* src		// valid source attribute
 )
 {
     DASSERT(src);
@@ -2786,7 +2786,7 @@ FileAttrib_t * CopyFileAttrib
 
 FileAttrib_t * CopyFileAttribStat
 (
-    FileAttrib_t	* dest,		// valid destination atttibute
+    FileAttrib_t	* dest,		// valid destination attribute
     const struct stat	* src,		// NULL or source
     bool		maximize	// true store max values to 'dest'
 )

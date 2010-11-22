@@ -53,6 +53,7 @@ typedef enum enumPattern
 	PAT_RM_FILES,		// ruleset of option --rm-files
 	PAT_ZERO_FILES,		// ruleset of option --zero-files
 	PAT_IGNORE_FILES,	// ruleset of option --ignore-files
+	PAT_FAKE_SIGN,		// ruleset of option --fake-sign
 	PAT_DEFAULT,		// default ruleset if PAT_FILES is empty
 	PAT_PARAM,		// file pattern for parameters
 
@@ -69,12 +70,18 @@ void InitializeFilePattern ( FilePattern_t * pat );
 void ResetFilePattern ( FilePattern_t * pat );
 void InitializeAllFilePattern();
 int  AddFilePattern ( ccp arg, int pattern_index );
-int ScanFiles ( ccp arg, enumPattern pattern_index );
+int ScanRule ( ccp arg, enumPattern pattern_index );
 FilePattern_t * GetDefaultFilePattern();
 void DefineNegatePattern ( FilePattern_t * pat, bool negate );
 void MoveParamPattern ( FilePattern_t * dest_pat );
 bool SetupFilePattern ( FilePattern_t * pat );
-bool MatchFilePattern ( FilePattern_t * pat, ccp text );
+
+bool MatchFilePattern
+(
+    FilePattern_t	* pat,		// filter rules
+    ccp			text,		// text to check
+    char		path_sep	// path separator character, standard is '/'
+);
 
 int MatchFilePatternFST
 (
@@ -84,7 +91,12 @@ int MatchFilePatternFST
 ///////////////////////////////////////////////////////////////////////////////
 // low level match pattern function
 
-bool MatchPattern ( ccp pattern, ccp text );
+bool MatchPattern
+(
+    ccp		pattern,	// pattern text
+    ccp		text,		// raw text
+    char	path_sep	// path separator character, standard is '/'
+);
 
 ///////////////////////////////////////////////////////////////////////////////
 
