@@ -41,6 +41,17 @@
 #include "wbfs-interface.h"
 #include "titles.h"
 
+///////////////////////////////////////////////////////////////////////////////
+
+#ifndef ENABLE_PARTITIONS_WORKAROUND
+    #if defined(__CYGWIN__)
+	// work around for a bug in /proc/partitions since cygwin 1.7.6
+	#define ENABLE_PARTITIONS_WORKAROUND 1
+    #else
+	#define ENABLE_PARTITIONS_WORKAROUND 0
+    #endif
+#endif
+
 //
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////                     partitions                  ///////////////
@@ -160,6 +171,23 @@ int ScanDevForPartitions ( ccp dev_prefix )
 }
 
 ///////////////////////////////////////////////////////////////////////////////
+#if ENABLE_PARTITIONS_WORKAROUND
+
+ static void iterate_dev ( ccp base )
+ {
+    PRINT("ITERATE %s\n",base);
+
+    char dev[100];
+    int i;
+    for ( i = 1; i <= 15; i++ )
+    {
+	snprintf(dev,sizeof(dev),"%s%u",base,i);
+	CreatePartitionInfo(dev,PS_AUTO_IGNORE);
+    }
+ }
+
+#endif // ENABLE_PARTITIONS_WORKAROUND
+///////////////////////////////////////////////////////////////////////////////
 
 int ScanPartitions ( bool all )
 {
@@ -169,10 +197,16 @@ int ScanPartitions ( bool all )
     int count = 0;
 
     static char prefix[] = "/dev/";
-    const int bufsize = 100;
+    enum { bufsize = 100 };
     char buf[bufsize+1];
     char buf2[bufsize+1+sizeof(prefix)];
     strcpy(buf2,prefix);
+
+ #if ENABLE_PARTITIONS_WORKAROUND
+    PRINT("PARTITIONS WORKAROUND ENABLED\n");
+    char prev_disc[sizeof(buf2)] = {0};
+    int  prev_disc_len = 0;
+ #endif
 
     FILE * f = fopen("/proc/partitions","r");
     if (f)
@@ -198,11 +232,31 @@ int ScanPartitions ( bool all )
 		if (*++ptr)
 		{
 		    strcpy(buf2+sizeof(prefix)-1,ptr);
+
+		 #if ENABLE_PARTITIONS_WORKAROUND
+
+		    if ( prev_disc_len && memcmp(prev_disc,buf2,prev_disc_len) )
+			iterate_dev(prev_disc);
+
+		    prev_disc_len = strlen(buf2);
+		    const int ch = buf2[prev_disc_len-1];
+		    if ( ch >= '0' && ch <= '9' )
+			prev_disc_len = 0;
+		    else
+			memcpy(prev_disc,buf2,sizeof(prev_disc));
+		    TRACE("STORE: %d %s\n",prev_disc_len,prev_disc);
+		 #endif
+
 		    CreatePartitionInfo(buf2,PS_AUTO);
 		}
 	    }
 	}
 	fclose(f);
+
+     #if ENABLE_PARTITIONS_WORKAROUND
+	if (prev_disc_len)
+	    iterate_dev(prev_disc);
+     #endif
     }
     else
     {
@@ -286,6 +340,8 @@ enumError AnalyzePartitions ( FILE * outfile, bool non_found_is_ok, bool scan_wb
 	    enumError stat = OpenFile(&F,info->real_path,IOM_IS_WBFS_PART);
 	    if (stat)
 	    {
+		if ( info->source == PS_AUTO_IGNORE )
+		    info->part_mode = PM_IGNORE;
 		read_error = ""; // message already printed
 		goto _done;
 	    }
@@ -358,7 +414,7 @@ enumError AnalyzePartitions ( FILE * outfile, bool non_found_is_ok, bool scan_wb
 	    int syserr = errno;
 	    ClearFile(&F,false);
 
-	    if (read_error)
+	    if ( read_error && info->part_mode != PM_IGNORE )
 	    {
 		TRACE(read_error," -> ",info->real_path);
 		if ( info->part_mode < PM_CANT_READ )

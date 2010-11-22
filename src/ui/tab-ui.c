@@ -212,8 +212,16 @@ info_t info_tab[] =
 		"Dump the internal exclude database to standard output (stdout)." },
 
   { T_DEF_CMD,	"TITLES",	"TITLES",
-		    "wit TITLES [additional_title_file]",
+		    "wit TITLES [additional_title_file]...",
 		"Dump the internal title database to standard output (stdout)." },
+
+  { T_DEF_CMD,	"CERT",		"CERT",
+		    "wit CERT [additional_cert_file]...",
+		"Collect certificates"
+		" and eliminate multiple entires of the same certificate."
+		" Dump all collected certificates to standard output (stdout)"
+		" and/or write the certificate to a new binary cert file."
+		" The optional parameters are handled like parameters of option {--cert}." },
 
   { T_DEF_CMD,	"CREATE",	"CREATE",
 		    "wit CREATE TICKET outfile [--id id] [title_id] [decrypted_key]\n"
@@ -422,13 +430,24 @@ info_t info_tab[] =
 		"file", "Read file for disc titles. -T0 disables titles lookup." },
 
   { T_OPT_G,	"UTF_8",	"utf-8|utf8",
-		0, "Enables UTF-8 support (default)." },
+		0,
+		"Enables UTF-8 support (default)." },
 
   { T_OPT_G,	"NO_UTF_8",	"no-utf-8|no-utf8|noutf8",
-		0, "Disables UTF-8 support (CYGWIN default)." },
+		0, 
+		"Disables UTF-8 support (CYGWIN default)." },
 
   { T_OPT_GP,	"LANG",		"lang",
-		"lang", "Define the language for titles." },
+		"lang", 
+		"Define the language for titles." },
+
+  { T_OPT_GMP,	"CERT",		"cert",
+		"file",
+		"Scan a file for certificates"
+		" and add them to the internal certificate database."
+		" Valid sources are CERT, TICKET, TMD and ISO files."
+		" All partitions of ISO images are scanned for certificates."
+		" Files without certificates are ignored without notification." },
 
   { T_SEP_OPT,	0,0,0,0 }, //----- separator -----
 
@@ -524,6 +543,14 @@ info_t info_tab[] =
 		"num",
 		"Execute only the first @'num'@ jobs and exit."
 		" If done without errors the exit status is OK (zero)." },
+
+  { T_OPT_CP,	"FAKE_SIGN",	"fake-sign|fakesign",
+		"ruleset",
+		"Add a certificate selection rule."
+		" All certificates that matches the ruleset will be fake signed."
+		"\1\n "
+		" See http://wit.wiimm.de/info/file-filter.html"
+		" for more details about filters." },
 
   { T_OPT_CM,	"IGNORE",	"i|ignore",
 		0,
@@ -640,7 +667,10 @@ info_t info_tab[] =
 		" and directories from the FST of the DATA partition."
 		" $Fake signing$ of the TMD is necessary."
 		" The processing order of file options is:"
-		" {--rm-files --zero-files --ignore-files}." },
+		" {--rm-files --zero-files --ignore-files}."
+		"\1\n "
+		" See http://wit.wiimm.de/info/file-filter.html"
+		" for more details about file filters." },
 
   { T_OPT_CP,	"ZERO_FILES",	"zero-files|zero-file|zerofiles|zerofile",
 		"ruleset",
@@ -648,7 +678,10 @@ info_t info_tab[] =
 		" real files of the FST of the DATA partition."
 		" $Fake signing$ of the TMD is necessary."
 		" The processing order of file options is:"
-		" {--rm-files --zero-files --ignore-files}." },
+		" {--rm-files --zero-files --ignore-files}."
+		"\1\n "
+		" See http://wit.wiimm.de/info/file-filter.html"
+		" for more details about file filters." },
 
   { T_OPT_C,	"OVERLAY",	"overlay",
 		0,
@@ -681,7 +714,10 @@ info_t info_tab[] =
 		" If such file is accessed the Wii will halt immediately,"
 		" because the verification of the check sum calculation fails."
 		" The processing order of file options is:"
-		" {--rm-files --zero-files --ignore-files}." },
+		" {--rm-files --zero-files --ignore-files}."
+		"\1\n "
+		" See http://wit.wiimm.de/info/file-filter.html"
+		" for more details about file filters." },
 
   { H_OPT_CP,	"TRIM",		"trim",
 		"keylist",
@@ -848,13 +884,14 @@ info_t info_tab[] =
 		"Set ISO output mode to 'file system' (extracted ISO)." },
 
   { T_OPT_CMP,	"FILES",	"F|files",
-		"rules",
+		"ruleset",
 		"Append a file select rules."
 		" This option can be used multiple times to extend the rule list."
 		" Rules beginning with a '+' or a '-' are allow or deny rules rules."
-		" Rules beginning with a '=' are macros for internal rule sets." },
-    // [2do]	"\1\n"
-    //		"See http://wit.wiimm.de/opt/files for more details." },
+		" Rules beginning with a '=' are macros for internal rule sets."
+		"\1\n "
+		" See http://wit.wiimm.de/info/file-filter.html"
+		" for more details about file filters." },
 
   { T_SEP_OPT,	0,0,0,0 }, //----- separator -----
 
@@ -1184,6 +1221,27 @@ info_t info_tab[] =
 
   { T_COPY_GRP,	"TITLES",	0,0,0 },
 
+  //---------- COMMAND wit CERT ----------
+
+  { T_CMD_BEG,	"CERT",		0,0,0 },
+
+  { T_COPT_M,	"CERT",		0,0,0 },
+  { T_COPT_M,	"FILES",	0,0,
+	"Filter the certificates by rules."
+	" Therefor the certificate name is build in the form 'issuer.keyid'."
+	"\1\n "
+	" See http://wit.wiimm.de/info/file-filter.html"
+	" for more details about filters." },
+  { T_COPT_M,	"FAKE_SIGN",	0,0,0 },
+  { T_COPT,	"DEST",		0,0,
+	"Define a destination file."
+	" All selected certificates are written to this new created file." },
+  { T_COPT,	"DEST2",	0,0,0 },
+  { T_COPT,	"VERBOSE",	0,0,
+	"Dump the content of all certificates to standard output."
+	" This is the default if neiter --dest nor --DEST are set." },
+
+
   //---------- COMMAND wit FILELIST ----------
 
   { T_CMD_BEG,	"FILELIST",	0,0,0 },
@@ -1302,6 +1360,7 @@ info_t info_tab[] =
 	" file type and real path is added." },
   { T_COPT,	"REALPATH",	0,0,0 },
   { T_COPT_M,	"UNIT",		0,0,0 },
+  { T_COPT,	"PROGRESS",	0,0,0 },
 
   { T_SEP_OPT,	0,0,0,0 },
 
@@ -2762,8 +2821,8 @@ info_t info_tab[] =
 		    "wdf +UNPACK [option]... files...",
 		"Unpack WDF and CISO archives."
 		"\n "
-		" This is the default command, when the program name starts"
-		" with the two letters @'un'@ in any case." },
+		" This is the default command, when the program name"
+		" starts with the two letters @'un'@ in any case." },
 
   { T_DEF_CMD,	"CAT",		"+CAT|+C",
 		    "wdf +CAT [option]... files...",
@@ -2772,7 +2831,7 @@ info_t info_tab[] =
 		" all other files are copied byte by byte."
 		"\n "
 		" This is the default command, when the program name"
-		"contains the three letter @'cat'@ in any case." },
+		" contains the sub string @'cat'@ in any case." },
 
   { H_DEF_CMD,	"CMP",		"+DIFF|+CMP",
 		    "wdf +DIFF [option]... files...",
@@ -2785,15 +2844,15 @@ info_t info_tab[] =
 		" (stdin) is used instead."
 		"\n "
 		" This is the default command, when the program name"
-		"contains the letters @'diff'@ or @'cmp'@ in any case." },
+		" contains the sub string @'diff'@ or @'cmp'@ in any case." },
 
   { T_DEF_CMD,	"DUMP",		"+DUMP|+D",
 		    "wdf +DUMP [option]... files...",
 		"Dump the data structure of WDF, WIA and CISO archives"
 		" and ignore other files."
 		"\n "
-		" This is the default command, when the program contains"
-		" the sub string @'dump'@ in any case." },
+		" This is the default command, when the program"
+		" contains the sub string @'dump'@ in any case." },
 
   //
   //---------- list of all wdf options ----------

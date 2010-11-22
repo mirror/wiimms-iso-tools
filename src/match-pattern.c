@@ -179,9 +179,20 @@ int AddFilePattern ( ccp arg, int pattern_index )
 
 ///////////////////////////////////////////////////////////////////////////////
 
-int ScanFiles ( ccp arg, enumPattern pattern_index )
+int ScanRule ( ccp arg, enumPattern pattern_index )
 {
     return AtFileHelper(arg,pattern_index,pattern_index,AddFilePattern) != 0;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+FilePattern_t * GetDFilePattern ( enumPattern pattern_index )
+{
+    DASSERT( (u32)pattern_index < PAT__N );
+    FilePattern_t * pat = file_pattern + pattern_index;
+    if (!pat->rules.used)
+	pat = file_pattern + PAT_DEFAULT;
+    return pat;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -262,7 +273,12 @@ bool SetupFilePattern ( FilePattern_t * pat )
 
 ///////////////////////////////////////////////////////////////////////////////
 
-bool MatchFilePattern ( FilePattern_t * pat, ccp text )
+bool MatchFilePattern
+(
+    FilePattern_t	* pat,		// filter rules
+    ccp			text,		// text to check
+    char		path_sep	// path separator character, standard is '/'
+)
 {
     if (!pat)
 	pat = GetDefaultFilePattern(); // use default pattern if not set
@@ -287,13 +303,13 @@ bool MatchFilePattern ( FilePattern_t * pat, ccp text )
 	switch (*pattern++)
 	{
 	    case '-':
-		if ( skip-- <= 0 && MatchPattern(pattern,text) )
+		if ( skip-- <= 0 && MatchPattern(pattern,text,path_sep) )
 		    return pat->active_negate;
 		default_result = !pat->active_negate;
 		break;
 
 	    case '+':
-		if ( skip-- <= 0 && MatchPattern(pattern,text) )
+		if ( skip-- <= 0 && MatchPattern(pattern,text,path_sep) )
 		    return !pat->active_negate;
 		default_result = pat->active_negate;
 		break;
@@ -306,12 +322,12 @@ bool MatchFilePattern ( FilePattern_t * pat, ccp text )
 		    switch (*pattern++)
 		    {
 			case '-':
-			    if (!MatchPattern(pattern,text))
+			    if (!MatchPattern(pattern,text,path_sep))
 				skip = num;
 			    break;
 
 			case '+':
-			    if (MatchPattern(pattern,text))
+			    if (MatchPattern(pattern,text,path_sep))
 				skip = num;
 			    break;
 		    }
@@ -333,7 +349,7 @@ int MatchFilePatternFST
     DASSERT(it);
     // result>0: ignore this file
     return it->icm >= WD_ICM_DIRECTORY
-	&& !MatchFilePattern(it->param,it->fst_name);
+	&& !MatchFilePattern(it->param,it->fst_name,'/');
 }
 
 //
@@ -342,7 +358,12 @@ int MatchFilePatternFST
 ///////////////////////////////////////////////////////////////////////////////
 
 static ccp AnalyseBrackets
-	( ccp pattern, ccp * p_start, bool * p_negate, int * p_multiple )
+(
+    ccp		pattern,
+    ccp		* p_start,
+    bool	* p_negate,
+    int		* p_multiple
+)
 {
     ASSERT(pattern);
 
@@ -382,7 +403,12 @@ static ccp AnalyseBrackets
 
 //-----------------------------------------------------------------------------
 
-static bool MatchBracktes ( char ch, ccp pattern, bool negate )
+static bool MatchBracktes
+(
+    char	ch,
+    ccp		pattern,
+    bool	negate
+)
 {
     if (!ch)
 	return false;
@@ -418,7 +444,14 @@ static bool MatchBracktes ( char ch, ccp pattern, bool negate )
 
 //-----------------------------------------------------------------------------
 
-static bool MatchPatternHelper ( ccp pattern, ccp text, bool skip_end, int alt_depth )
+static bool MatchPatternHelper
+(
+    ccp		pattern,
+    ccp		text,
+    bool	skip_end,
+    int		alt_depth,
+    char	path_sep	// path separator character, standard is '/'
+)
 {
     ASSERT(pattern);
     ASSERT(text);
@@ -434,14 +467,14 @@ static bool MatchPatternHelper ( ccp pattern, ccp text, bool skip_end, int alt_d
 		{
 		    pattern++;
 		    if (*pattern)
-			while (!MatchPatternHelper(pattern,text,skip_end,alt_depth))
+			while (!MatchPatternHelper(pattern,text,skip_end,alt_depth,path_sep))
 			    if (!*text++)
 				return false;
 		}
 		else
 		{
-		    while (!MatchPatternHelper(pattern,text,skip_end,alt_depth))
-			if ( *text == '/' || !*text++ )
+		    while (!MatchPatternHelper(pattern,text,skip_end,alt_depth,path_sep))
+			if ( *text == path_sep || !*text++ )
 			    return false;
 		}
 		return true;
@@ -450,7 +483,7 @@ static bool MatchPatternHelper ( ccp pattern, ccp text, bool skip_end, int alt_d
 	 	if ( *text < '0' || *text > '9' )
 		    return false;
 		while ( *text >= '0' && *text <= '9' )
-			if (MatchPatternHelper(pattern,++text,skip_end,alt_depth))
+			if (MatchPatternHelper(pattern,++text,skip_end,alt_depth,path_sep))
 			    return true;
 		return false;
 
@@ -461,7 +494,7 @@ static bool MatchPatternHelper ( ccp pattern, ccp text, bool skip_end, int alt_d
 		break;
 
 	    case '?':
-		if ( !*text || *text == '/' )
+		if ( !*text || *text == path_sep )
 		    return false;
 		text++;
 		break;
@@ -480,7 +513,7 @@ static bool MatchPatternHelper ( ccp pattern, ccp text, bool skip_end, int alt_d
 
 		    if (multiple)
 		    {
-			while (!MatchPatternHelper(pattern,text,skip_end,alt_depth))
+			while (!MatchPatternHelper(pattern,text,skip_end,alt_depth,path_sep))
 			    if (!MatchBracktes(*text++,start,negate))
 				return false;
 			return true;
@@ -491,7 +524,7 @@ static bool MatchPatternHelper ( ccp pattern, ccp text, bool skip_end, int alt_d
 	   case '{':
 		for (;;)
 		{
-		    if (MatchPatternHelper(pattern,text,skip_end,alt_depth+1))
+		    if (MatchPatternHelper(pattern,text,skip_end,alt_depth+1,path_sep))
 			return true;
 		    // skip until next ',' || '}'
 		    int skip_depth = 1;
@@ -594,9 +627,14 @@ static bool MatchPatternHelper ( ccp pattern, ccp text, bool skip_end, int alt_d
 
 //-----------------------------------------------------------------------------
 
-bool MatchPattern ( ccp pattern, ccp text )
+bool MatchPattern
+(
+    ccp		pattern,	// pattern text
+    ccp		text,		// raw text
+    char	path_sep	// path separator character, standard is '/'
+)
 {
-    TRACE("MatchPattern(|%s|%s|)\n",pattern,text);
+    TRACE("MatchPattern(|%s|%s|%c|)\n",pattern,text,path_sep);
     if ( !pattern || !*pattern )
 	return true;
 
@@ -612,14 +650,14 @@ bool MatchPattern ( ccp pattern, ccp text )
     if ( count & 1 )
 	last_ch = 0; // no special char!
 	
-    if ( *pattern == '/' )
+    if ( *pattern == path_sep )
     {
 	pattern++;
-	return MatchPatternHelper(pattern,text++,last_ch!='$',0);
+	return MatchPatternHelper(pattern,text++,last_ch!='$',0,path_sep);
     }
 
     while (*text)
-	if (MatchPatternHelper(pattern,text++,0,0))
+	if (MatchPatternHelper(pattern,text++,0,0,path_sep))
 	    return true;
 
     return false;

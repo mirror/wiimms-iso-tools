@@ -39,6 +39,8 @@
 
 typedef enum cert_stat_flags_t
 {
+    CERT_ERR_MASK	= 0x00ff,	// mask for error IDs
+
     CERT_F_BASE_OK	= 0x0100,	// signature base ok
     CERT_F_BASE_INVALID	= 0x0200,	// signature base wrong
 
@@ -62,7 +64,7 @@ typedef enum cert_stat_t
     CERT_HASH_FAILED		= CERT_F_BASE_OK | CERT_F_HASH_FAILED,
 
     CERT_HASH_OK		= CERT_F_BASE_INVALID | CERT_F_HASH_OK,
-    CERT_HASH_FAKE_SIGNED	= CERT_F_BASE_INVALID | CERT_F_HASH_FAKED,
+    CERT_FAKE_SIGNED		= CERT_F_BASE_INVALID | CERT_F_HASH_FAKED,
     CERT_SIG_FAILED		= CERT_F_BASE_INVALID | CERT_F_HASH_FAILED,
 
     CERT_ERR_TYPE_MISSMATCH	= CERT_F_ERROR + 1,
@@ -91,7 +93,7 @@ typedef struct cert_head_t
 
 typedef struct cert_data_t
 {
-    u8			issuer[0x40]; 	// signature issuer
+    char		issuer[0x40]; 	// signature issuer
     u32			key_type;	// key type
     char		key_id[0x40];	// id of key
     u32			unknown1;
@@ -106,6 +108,7 @@ typedef struct cert_data_t
 
 typedef struct cert_item_t
 {
+    char		name[0x82];	// concatenated name
     const cert_head_t	* head;		// pointer to cert head
     const cert_data_t	* data;		// pointer to cert data
     u32			sig_size;	// size of 'head->sig_data'
@@ -207,7 +210,10 @@ void cert_reset
 
 cert_item_t * cert_append_item
 (
-    cert_chain_t	* cc		// valid pointer to cert chain
+    cert_chain_t	* cc,		// valid pointer to cert chain
+    ccp			issuer,		// NULL or pointer to issuer
+    ccp			key_id,		// NULL or valid pointer to key id
+    bool		uniq		// true: avoid duplicates
 );
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -216,7 +222,8 @@ int cert_append_data
 (
     cert_chain_t	* cc,		// valid pointer to cert chain
     const void		* data,		// NULL or pointer to cert data
-    size_t		data_size	// size of 'data'
+    size_t		data_size,	// size of 'data'
+    bool		uniq		// true: avoid duplicates
 );
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -224,8 +231,13 @@ int cert_append_data
 int cert_append_file
 (
     cert_chain_t	* cc,		// valid pointer to cert chain
-    ccp			filename	// name of file
+    ccp			filename,	// name of file
+    bool		uniq		// true: avoid duplicates
 );
+
+///////////////////////////////////////////////////////////////////////////////
+
+void cert_add_root();
 
 //
 ///////////////////////////////////////////////////////////////////////////////
@@ -265,6 +277,16 @@ cert_stat_t cert_check_tmd
     const cert_chain_t	* cc,		// valid pointer to cert chain
     const wd_tmd_t	* tmd,		// NULL or pointer to tmd
     const cert_item_t	** cert_found	// not NULL: return value: found certificate
+);
+
+//
+///////////////////////////////////////////////////////////////////////////////
+///////////////			    etc				///////////////
+///////////////////////////////////////////////////////////////////////////////
+
+u32 cert_fake_sign 
+(
+    cert_item_t		* item		// pointer to certificate
 );
 
 //

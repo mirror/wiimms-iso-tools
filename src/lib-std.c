@@ -678,7 +678,6 @@ ccp GetErrorName ( int stat )
 	case ERR_TO_MUCH_WBFS_FOUND:	return "TO MUCH WBFS FOUND";
 	case ERR_WBFS_INVALID:		return "INVALID WBFS";
 
-	case ERR_NO_WIA_SUPPORT:	return "NO WIA SUPPORT";
 	case ERR_NO_WIA:		return "NO WIA FOUND";
 	case ERR_WIA_INVALID:		return "INVALID WIA";
 	case ERR_BZIP2:			return "BZIP2 ERROR";
@@ -721,18 +720,18 @@ ccp GetErrorText ( int stat )
 	case ERR_DIFFER:		return "Files differ";
 	case ERR_NOTHING_TO_DO:		return "Nothing to do";
 	case ERR_NO_SOURCE_FOUND:	return "No source file found";
-	case ERR_JOB_IGNORED:		return "Job Ignored";
-	case ERR_WARNING:		return "Warning";
+	case ERR_JOB_IGNORED:		return "Job ignored";
+	case ERR_WARNING:		return "Unspecific warning";
 
 	case ERR_INVALID_FILE:		return "File has invalid content";
 
 	case ERR_NO_WDF:		return "File is not a WDF";
 	case ERR_WDF_VERSION:		return "WDF version not supported";
 	case ERR_WDF_SPLIT:		return "Splitted WDF not supported";
-	case ERR_WDF_INVALID:		return "Invalid WDF";
+	case ERR_WDF_INVALID:		return "File is an invalid WDF";
 
 	case ERR_NO_CISO:		return "File is not a CISO";
-	case ERR_CISO_INVALID:		return "Invalid CISO";
+	case ERR_CISO_INVALID:		return "File is an invalid CISO";
 
 	case ERR_WDISC_INVALID:		return "Invalid Wii disc";
 	case ERR_WDISC_NOT_FOUND:	return "Wii disc not found";
@@ -741,11 +740,10 @@ ccp GetErrorText ( int stat )
 	case ERR_TO_MUCH_WBFS_FOUND:	return "To much WBFS found";
 	case ERR_WBFS_INVALID:		return "Invalid WBFS";
 
-	case ERR_NO_WIA_SUPPORT:	return "No WIA support";
-	case ERR_NO_WIA:		return "No WIA found";
-	case ERR_WIA_INVALID:		return "Invalid WIA";
-	case ERR_BZIP2:			return "bzip2 error";
-	case ERR_LZMA:			return "lzma error";
+	case ERR_NO_WIA:		return "File is not a WIA";
+	case ERR_WIA_INVALID:		return "File is an invalid WIA";
+	case ERR_BZIP2:			return "A bzip2 error occurred";
+	case ERR_LZMA:			return "A lzma error occurred";
 
 	case ERR_ALREADY_EXISTS:	return "File already exists";
 	case ERR_CANT_OPEN:		return "Can't open file";
@@ -756,20 +754,20 @@ ccp GetErrorText ( int stat )
 	case ERR_REMOVE_FAILED:		return "Removing a file failed";
 	case ERR_WRITE_FAILED:		return "Writing to file failed";
 
-	case ERR_WBFS:			return "WBFS error";
+	case ERR_WBFS:			return "A WBFS error occurred";
 
-	case ERR_MISSING_PARAM:		return "Missing parameters";
+	case ERR_MISSING_PARAM:		return "Missing ate least one parameter";
 	case ERR_SEMANTIC:		return "Semantic error";
 	case ERR_SYNTAX:		return "Syntax error";
 
-	case ERR_INTERRUPT:		return "Program interrupted";
+	case ERR_INTERRUPT:		return "Program interrupted by user";
 
-	case ERR_ERROR:			return "Error";
+	case ERR_ERROR:			return "Unspecific error";
 
 	case ERR_NOT_IMPLEMENTED:	return "Not implemented yet";
 	case ERR_INTERNAL:		return "Internal error";
 	case ERR_OUT_OF_MEMORY:		return "Allocation of dynamic memory failed";
-	case ERR_FATAL:			return "Fatal error";
+	case ERR_FATAL:			return "Unspecific fatal error";
     }
     return "?";
 }
@@ -2844,7 +2842,7 @@ ShowMode ScanShowMode ( ccp arg )
 	{ SHOW_P_MAP,		"P-MAP",	"PMAP",		0 },
 	{ SHOW_D_MAP,		"D-MAP",	"DMAP",		0 },
 	{ SHOW_CERT,		"CERTIFICATES",	0,		0 },
-	{ SHOW_TICKET,		"TICKET",	0,		0 },
+	{ SHOW_TICKET,		"TICKET",	"TIK",		0 },
 	{ SHOW_TMD,		"TMD",		0,		0 },
 	{ SHOW_USAGE,		"USAGE",	0,		0 },
 	{ SHOW_FILES,		"FILES",	0,		0 },

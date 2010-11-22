@@ -226,7 +226,9 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 	"This patching option defines filter rules to remove real files and"
 	" directories from the FST of the DATA partition. Fake signing of the"
 	" TMD is necessary. The processing order of file options is:"
-	" '--rm-files --zero-files --ignore-files'."
+	" '--rm-files --zero-files --ignore-files'.\n"
+	"  See http://wit.wiimm.de/info/file-filter.html for more details"
+	" about file filters."
     },
 
     {	OPT_ZERO_FILES, 0, "zero-files",
@@ -234,7 +236,9 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 	"This patching option defines filter rules to zero (set size to zero)"
 	" real files of the FST of the DATA partition. Fake signing of the TMD"
 	" is necessary. The processing order of file options is: '--rm-files"
-	" --zero-files --ignore-files'."
+	" --zero-files --ignore-files'.\n"
+	"  See http://wit.wiimm.de/info/file-filter.html for more details"
+	" about file filters."
     },
 
     {	OPT_REPL_FILE, 0, "repl-file",
@@ -256,7 +260,9 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 	" becomes invalid, because the content of some files is not copied. If"
 	" such file is accessed the Wii will halt immediately, because the"
 	" verification of the check sum calculation fails. The processing"
-	" order of file options is: '--rm-files --zero-files --ignore-files'."
+	" order of file options is: '--rm-files --zero-files --ignore-files'.\n"
+	"  See http://wit.wiimm.de/info/file-filter.html for more details"
+	" about file filters."
     },
 
     {	OPT_TRIM, 0, "trim",

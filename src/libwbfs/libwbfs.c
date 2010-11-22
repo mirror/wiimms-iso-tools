@@ -114,17 +114,6 @@ int wbfs_is_inode_info_valid ( wbfs_t * p, wbfs_inode_info_t * ii )
 
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
-#ifndef WIT // not used in WiT
-
-static int force_mode=0;
-
-void wbfs_set_force_mode(int force)
-{
-    force_mode = force;
-}
-
-#endif // !WIT 
-///////////////////////////////////////////////////////////////////////////////
 
 static u8 size_to_shift(u32 size)
 {
@@ -137,81 +126,20 @@ static u8 size_to_shift(u32 size)
     return ret-1;
 }
 
-///////////////////////////////////////////////////////////////////////////////
-#ifndef WIT // not used in WiT
-
-#define read_le32_unaligned(x) ((x)[0]|((x)[1]<<8)|((x)[2]<<16)|((x)[3]<<24))
-
-void wbfs_sync(wbfs_t*p);
-
-wbfs_t * wbfs_open_hd
-(
-	rw_sector_callback_t read_hdsector,
-	rw_sector_callback_t write_hdsector,
-	void *callback_data,
-	int hd_sector_size,
-	int num_hd_sector __attribute((unused)),
-	int reset
-)
-{ // [codeview]
-
-    int i
-#ifdef UNUSED_STUFF
-    = num_hd_sector
-#endif
-      , ret;
-    u8 part_table[16*4];
-    u8 *ptr, *tmp_buffer = wbfs_ioalloc(hd_sector_size);
-    if (!tmp_buffer)
-	OUT_OF_MEMORY;
-
-    ret = read_hdsector(callback_data,0,1,tmp_buffer);
-    if (ret)
-	return 0;
-
-    //find wbfs partition
-    wbfs_memcpy(part_table,tmp_buffer+0x1be,16*4);
-    ptr = part_table;
-    for (i=0; i<4; i++,ptr+=16)
-    {
-	u32 part_lba = read_le32_unaligned(ptr+0x8);
-	wbfs_head_t *head = (wbfs_head_t *)tmp_buffer;
-#ifdef UNUSED_STUFF
-	ret =
-#endif
-	    read_hdsector(callback_data,part_lba,1,tmp_buffer);
-	// verify there is the magic.
-	if (head->magic == wbfs_htonl(WBFS_MAGIC))
-	{
-	    wbfs_t *p = wbfs_open_partition(	read_hdsector,
-					     write_hdsector,
-					     callback_data,
-					     hd_sector_size,
-					     0,
-					     part_lba,reset
-					   );
-	    return p;
-	}
-    }
-    if (reset)// make a empty hd partition..
-    {
-    }
-    return 0;
-}
-
-#endif // !WIT 
 //
 ///////////////////////////////////////////////////////////////////////////////
 #ifndef WIT // not used in WiT
 
 wbfs_t * wbfs_open_partition
-		( rw_sector_callback_t read_hdsector,
-		  rw_sector_callback_t write_hdsector,
-		  void *callback_data,
-		  int hd_sector_size,
-		  int num_hd_sector,
-		  u32 part_lba,
-		  int reset )
+(
+    rw_sector_callback_t	read_hdsector,
+    rw_sector_callback_t	write_hdsector,
+    void			* callback_data,
+    int				hd_sector_size,
+    int				num_hd_sector,
+    u32				part_lba,
+    int				reset
+)
 {
     wbfs_param_t par;
     memset(&par,0,sizeof(par));
@@ -2088,7 +2016,7 @@ u32 wbfs_add_disc_param ( wbfs_t *p, wbfs_param_t * par )
 		}
 	    }
 
- #ifndef WIT // WIT does it in an other way
+ #ifndef WIT //  WIT does it in an other way (patching while reading)
 	    // fix the partition table.
 	    if ( i == ptab_index )
 		wd_patch_ptab(	disc,
@@ -2264,57 +2192,6 @@ u32 wbfs_nid_disc ( wbfs_t * p, u8 * discid, u8 * newid )
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-#ifndef WIT // not used in WiT
-
-u32 wbfs_estimate_disc
-(
-    wbfs_t		*p,
-    wd_read_func_t	read_src_wii_disc,
-    void		*callback_data,
-    const wd_select_t	* psel
-)
-{ // [codeview]
-    u8 *b;
-    int i;
-    u32 tot;
-    u32 wii_sec_per_wbfs_sect = 1 << (p->wbfs_sec_sz_s-p->wii_sec_sz_s);
-    u8 *used = 0;
-    wbfs_disc_info_t *info = 0;
-    wd_disc_t * disc = 0;
-
-    tot = 0;
-
-    used = wbfs_malloc(p->n_wii_sec_per_disc);
-    if (!used)
-	WBFS_ERROR("unable to alloc memory");
-
-    disc = wd_open_disc(read_src_wii_disc,callback_data,0,0,0);
-    if (!disc)
-	WBFS_ERROR("unable to open wii disc");
-    wd_filter_usage_table_sel(disc,used,psel);
-
-    info = wbfs_ioalloc(p->disc_info_sz);
-    b = (u8 *)info;
-    read_src_wii_disc(callback_data, 0, 0x100, info->dhead);
-
-    for (i = 0; i < p->n_wbfs_sec_per_disc; i++)
-	if ((used, i, wii_sec_per_wbfs_sect))
-	    tot++;
-
-error:
-    wd_close_disc(disc);
-
-    if (used)
-	wbfs_free(used);
-
-    if (info)
-	wbfs_iofree(info);
-
-    return tot * ((p->wbfs_sec_sz / p->hd_sec_sz) * 512);
-}
-
-#endif // !WIT
-///////////////////////////////////////////////////////////////////////////////
 
 u32 wbfs_rm_disc ( wbfs_t * p, u8 * discid, int free_slot_only )
 {
@@ -2482,7 +2359,8 @@ error:
     return 1;
 }
 
+//
 ///////////////////////////////////////////////////////////////////////////////
-
-// u32 wbfs_extract_file ( wbfs_disc_t * d, char *path );
+///////////////			    END				///////////////
+///////////////////////////////////////////////////////////////////////////////
 

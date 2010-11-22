@@ -262,6 +262,58 @@ enumError cmd_test()
 //
 ///////////////////////////////////////////////////////////////////////////////
 
+enumError cmd_cert()
+{
+    ParamList_t * param;
+    for ( param = first_param; param; param = param->next )
+	AtFileHelper(param->arg,0,0,AddCertFile);
+
+    cert_add_root(); // if not already inserted
+
+    FILE * f = 0;
+    if ( opt_dest && *opt_dest )
+    {
+	if (opt_mkdir)
+	    CreatePath(opt_dest);
+	f = fopen(opt_dest,"wb");
+	if (!f)
+	    return ERROR0(ERR_CANT_CREATE,"Can't create cert file: %s\n",opt_dest);
+    }
+
+    FilePattern_t * pat_select   = file_pattern + PAT_FILES;
+    FilePattern_t * pat_fakesign = file_pattern + PAT_FAKE_SIGN;
+    
+    int i;
+    for ( i = 0; i < global_cert.used; i++ )
+    {
+	cert_item_t * item = global_cert.cert + i;
+	if (MatchFilePattern(pat_select,item->name,'-'))
+	{
+	    if ( pat_fakesign->is_active
+			&& MatchFilePattern(pat_fakesign,item->name,'-') )
+	    {
+		cert_fake_sign(item);
+	    }
+
+	    if ( !f || verbose > 0 )
+	    {
+		Dump_CERT_Item(stdout,0,item,i,true,&global_cert);
+		fputc('\n',stdout);
+	    }
+
+	    if ( f && item->head )
+		fwrite(item->head,1,item->cert_size,f);
+	}
+    }
+
+    if (f)
+	fclose(f);
+    return ERR_OK;
+}
+
+//
+///////////////////////////////////////////////////////////////////////////////
+
 enumError cmd_create()
 {
     if ( n_param < 1 )
@@ -998,6 +1050,9 @@ enumError cmd_list ( int long_level )
     it.long_count	= long_count;
     it.real_filename	= print_sections > 0;
     it.wlist		= &wlist;
+    it.progress_enabled	= OptionUsed[OPT_PROGRESS] != 0;
+    it.progress_t_file	= "disc";
+    it.progress_t_files	= "discs";
 
     enumError err = SourceIterator(&it,1,true,false);
     ResetIterator(&it);
@@ -1606,12 +1661,17 @@ enumError exec_copy ( SuperFile_t * fi, Iterator_t * it )
     err = RewriteModifiedSF(fi,&fo,0);
     if (err)
 	goto abort;
+
+    if ( SIGINT_level > 1 )
+	goto abort;
     
-    if ( it->remove_source && SIGINT_level < 2 )
+    FileAttrib_t fatt;
+    memcpy(&fatt,&fi->f.fatt,sizeof(fatt));
+    if (it->remove_source)
 	RemoveSF(fi);
 
     const bool preserve_time = fi->disc1 == fi->disc2 || OptionUsed[OPT_PRESERVE];
-    err = ResetSF( &fo, preserve_time ? &fi->f.fatt : 0 );
+    err = ResetSF( &fo, preserve_time ? &fatt : 0 );
 
     if ( !err && OptionUsed[OPT_DIFF] )
     {
@@ -2193,6 +2253,8 @@ enumError CheckOptions ( int argc, char ** argv, bool is_env )
 	case GO_UTF_8:		use_utf8 = true; break;
 	case GO_NO_UTF_8:	use_utf8 = false; break;
 	case GO_LANG:		lang_info = optarg; break;
+	case GO_CERT:		AtFileHelper(optarg,0,0,AddCertFile); break;
+	case GO_FAKE_SIGN:	err += ScanRule(optarg,PAT_FAKE_SIGN); break;
 
 	case GO_TEST:		testmode++; break;
 
@@ -2223,10 +2285,10 @@ enumError CheckOptions ( int argc, char ** argv, bool is_env )
 	case GO_ID:		err += ScanOptId(optarg); break;
 	case GO_NAME:		err += ScanOptName(optarg); break;
 	case GO_MODIFY:		err += ScanOptModify(optarg); break;
-	case GO_FILES:		err += ScanFiles(optarg,PAT_FILES); break;
-	case GO_RM_FILES:	err += ScanFiles(optarg,PAT_RM_FILES); break;
-	case GO_ZERO_FILES:	err += ScanFiles(optarg,PAT_ZERO_FILES); break;
-	case GO_IGNORE_FILES:	err += ScanFiles(optarg,PAT_IGNORE_FILES); break;
+	case GO_FILES:		err += ScanRule(optarg,PAT_FILES); break;
+	case GO_RM_FILES:	err += ScanRule(optarg,PAT_RM_FILES); break;
+	case GO_ZERO_FILES:	err += ScanRule(optarg,PAT_ZERO_FILES); break;
+	case GO_IGNORE_FILES:	err += ScanRule(optarg,PAT_IGNORE_FILES); break;
 	case GO_REPL_FILE:	err += ScanOptFile(optarg,false); break;
 	case GO_ADD_FILE:	err += ScanOptFile(optarg,true); break;
 	case GO_TRIM:		err += ScanOptTrim(optarg); break;
@@ -2386,6 +2448,7 @@ enumError CheckCommand ( int argc, char ** argv )
 	case CMD_COMPR:		err = cmd_compr(); break;
 	case CMD_EXCLUDE:	err = cmd_exclude(); break;
 	case CMD_TITLES:	err = cmd_titles(); break;
+	case CMD_CERT:		err = cmd_cert(); break;
 	case CMD_CREATE:	err = cmd_create(); break;
 
 	case CMD_FILELIST:	err = cmd_filelist(); break;

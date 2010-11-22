@@ -53,6 +53,7 @@ typedef enum enumOptions
 	OPT_EXCLUDE_PATH,
 	OPT_ONE_JOB,
 	OPT_JOB_LIMIT,
+	OPT_FAKE_SIGN,
 	OPT_IGNORE,
 	OPT_IGNORE_FST,
 	OPT_IGNORE_SETUP,
@@ -115,7 +116,7 @@ typedef enum enumOptions
 	OPT_SORT,
 	OPT_LIMIT,
 
-	OPT__N_SPECIFIC, // == 73 
+	OPT__N_SPECIFIC, // == 74 
 
 	//----- global options -----
 
@@ -133,10 +134,11 @@ typedef enum enumOptions
 	OPT_UTF_8,
 	OPT_NO_UTF_8,
 	OPT_LANG,
+	OPT_CERT,
 	OPT_TEST,
 	OPT_HOOK,
 
-	OPT__N_TOTAL // == 89
+	OPT__N_TOTAL // == 91
 
 } enumOptions;
 
@@ -162,6 +164,7 @@ typedef enum enumOptions
 //	OB_EXCLUDE_PATH		= 1llu << OPT_EXCLUDE_PATH,
 //	OB_ONE_JOB		= 1llu << OPT_ONE_JOB,
 //	OB_JOB_LIMIT		= 1llu << OPT_JOB_LIMIT,
+//	OB_FAKE_SIGN		= 1llu << OPT_FAKE_SIGN,
 //	OB_IGNORE		= 1llu << OPT_IGNORE,
 //	OB_IGNORE_FST		= 1llu << OPT_IGNORE_FST,
 //	OB_IGNORE_SETUP		= 1llu << OPT_IGNORE_SETUP,
@@ -327,6 +330,11 @@ typedef enum enumOptions
 //				| OB_EXCLUDE_PATH,
 //
 //	OB_CMD_TITLES		= OB_GRP_TITLES,
+//
+//	OB_CMD_CERT		= OB_FILES
+//				| OB_FAKE_SIGN
+//				| OB_DEST
+//				| OB_DEST2,
 //
 //	OB_CMD_FILELIST		= OB_AUTO
 //				| OB_GRP_XXSOURCE
@@ -501,6 +509,7 @@ typedef enum enumCommands
 	CMD_COMPR,
 	CMD_EXCLUDE,
 	CMD_TITLES,
+	CMD_CERT,
 	CMD_CREATE,
 
 	CMD_FILELIST,
@@ -532,7 +541,7 @@ typedef enum enumCommands
 	CMD_VERIFY,
 	CMD_MIX,
 
-	CMD__N // == 34
+	CMD__N // == 35
 
 } enumCommands;
 
@@ -589,9 +598,11 @@ typedef enum enumGetOpt
 	GO_UTF_8,
 	GO_NO_UTF_8,
 	GO_LANG,
+	GO_CERT,
 	GO_NO_EXPAND,
 	GO_RDEPTH,
 	GO_JOB_LIMIT,
+	GO_FAKE_SIGN,
 	GO_IGNORE_FST,
 	GO_IGNORE_SETUP,
 	GO_PSEL,

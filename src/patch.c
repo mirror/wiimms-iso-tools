@@ -333,7 +333,7 @@ wd_modify_t ScanModify ( ccp arg )
 
 	{ WD_MODIFY_DISC,	"DISC",		0,	0 },
 	{ WD_MODIFY_BOOT,	"BOOT",		0,	0 },
-	{ WD_MODIFY_TICKET,	"TICKET",	0,	0 },
+	{ WD_MODIFY_TICKET,	"TICKET",	"TIK",	0 },
 	{ WD_MODIFY_TMD,	"TMD",		0,	0 },
 	{ WD_MODIFY_WBFS,	"WBFS",		0,	0 },
 

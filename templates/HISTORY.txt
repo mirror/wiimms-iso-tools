@@ -978,6 +978,27 @@ wit v1.20a r1945 - 2010-11-05
    format and that option --compr can be used to setup the compression mode.
  - Splitted are also detected, if the field width of the counters is 2-6.
 
+wit v1.21a r1980 - 2010-11-17
+
+ - Simplification of the selection of compression modes:
+    - Option --compr accepts the single digit modes '0' (=NONE), '1' (=fast
+      LZMA) .. '9'@ (=BEST, best LZMA).
+    - Option --wia accepts an optional parameter: --wia=mode
+      This is a shortcut for: --wia --compression mode
+   Example: Use --wia=9 to force WIA output with compression 9=BEST.
+ - wit+wwt COMPR: Layout restyled.
+ - wit DUMP: Additional scrubbed size info and tabbing changes.
+ - Update to Cygwin DLL release version 1.7.7-1.
+ - The verbose level and log output of "wit DIFF" is now like "wit COPY".
+ - New option: wit COPY --diff: Diff source and dest after copying.
+ - wit COPY: If copying without modifying content option --preserve is set
+   automatically.
+ - Detect and dump cert.bin files.
+ - Detection and status of fake signing improved. Try "wit DUMP".
+ - wit DUMP image --show cert: Print ceritificate chain.
+ - If dumping a ticket a tmd file, the source directory is searched for a file
+   named 'cert.bin' to check the signature.
+
 @@MODULE(last-history.txt)@@
 
 

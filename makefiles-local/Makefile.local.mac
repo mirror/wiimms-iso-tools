@@ -28,11 +28,15 @@ mac-distrib: mac doc $(INSTALL_SCRIPTS) gen-mac-distrib
 .PHONY : mac
 mac: mac-ppc mac-i386 mac-x86_64
 
-# commands that built universal binaries
-	@echo "building universal binaries"
+	@echo
+	@echo "----- building universal binaries -----"
 	@for i in $(MAIN_TOOLS); do \
-	    lipo -create bin/ppc/$${i} bin/i386/$${i} bin/x86_64/$${i} -output bin/$${i}; \
 	    lipo -create bin/ppc/$${i} bin/i386/$${i} bin/x86_64/$${i} -output $${i}; \
+	    ln -f $${i} bin/$${i}; \
+	done;
+	@for i in $(WDF_LINKS); do \
+	    ln -f wdf $${i}; \
+	    ln -f wdf bin/$${i}; \
 	done;
 	@rm -rf bin/ppc bin/i386 bin/x86_64
 	@echo "done"
@@ -41,7 +45,8 @@ mac: mac-ppc mac-i386 mac-x86_64
 
 .PHONY : mac-ppc
 mac-ppc:
-	@echo "building PowerPC"
+	@echo
+	@echo "----- building PowerPC -----"
 	@XFLAGS="-arch ppc -mcpu=powerpc" make clean all
 	@mkdir -p bin/ppc
 	@mv $(MAIN_TOOLS) bin/ppc
@@ -50,7 +55,8 @@ mac-ppc:
 
 .PHONY : mac-i386
 mac-i386:
-	@echo "building i386"
+	@echo
+	@echo "----- building i386 -----"
 	@XFLAGS="-arch i386 -mfpmath=sse -march=prescott" make clean all
 	@mkdir -p bin/i386
 	@mv $(MAIN_TOOLS) bin/i386
@@ -60,7 +66,8 @@ mac-i386:
 
 .PHONY : mac-x86_64
 mac-x86_64:
-	@echo "building X86-64"
+	@echo
+	@echo "----- building X86-64 -----"
 	@XFLAGS="-arch x86_64 -mfpmath=sse" XDEF="-DNO_BZIP2=1" make clean all
 	@mkdir -p bin/x86_64
 	@mv $(MAIN_TOOLS) bin/x86_64
@@ -76,7 +83,7 @@ gen-mac-distrib:
 	@mkdir -p $(DISTRIB_PATH)/bin $(DISTRIB_PATH)/scripts $(DISTRIB_PATH)/lib $(DISTRIB_PATH)/doc
 
 	@cp -p $(DISTRIB_FILES) $(DISTRIB_PATH)
-	@cp -p $(MAIN_TOOLS) $(DISTRIB_PATH)/bin
+	@ln -f $(MAIN_TOOLS) $(WDF_LINKS) $(DISTRIB_PATH)/bin
 	@cp -p lib/*.txt $(DISTRIB_PATH)/lib
 	@cp -p $(DOC_FILES) $(DISTRIB_PATH)/doc
 	@cp -p $(SCRIPTS)/*.{sh,txt} $(DISTRIB_PATH)/scripts

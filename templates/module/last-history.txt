@@ -1,23 +1,22 @@
 wit v@@VERSION@@ r@@REV-NEXT@@ - @@@@-@@-@@
 
- - Simplification of the selection of compression modes:
-    - Option --compr accepts the single digit modes '0' (=NONE), '1' (=fast
-      LZMA) .. '9'@ (=BEST, best LZMA).
-    - Option --wia accepts an optional parameter: --wia=mode
-      This is a shortcut for: --wia --compression mode
-   Example: Use --wia=9 to force WIA output with compression 9=BEST.
- - wit+wwt COMPR: Layout restyled.
- - wit DUMP: Additional scrubbed size info and tabbing changes.
- - Update to Cygwin DLL release version 1.7.7-1.
- - The verbose level and log output of "wit DIFF" is now like "wit COPY".
- - New option: wit COPY --diff: Diff source and dest after copying.
- - wit COPY: If copying without modifying content option --preserve is set
-   automatically.
- - Detect and dump cert.bin files.
- - Detection and status of fake signing improved. Try "wit DUMP".
- - wit DUMP image --show cert: Print ceritificate chain.
- - If dumping a ticket a tmd file, the source directory is searched for a file
-   named 'cert.bin' to check the signature.
+ - New command: wit CERT: Collect certificates and eliminate multiple entries
+   of the same certificate. Dump all collected certificates to standard
+   output (stdout) and/or write the certificate as binary to a file. Together
+   with the new option "--fake-sign filter" is is possible to fake sign some
+   or all certificates before dumping and/or storing.
+ - New global option: --cert: Add certificates to the global certificate
+   database. These certificates are used to check the signatures.
+ - "wit dump ticket.bin tmd.bin" is now able to dump the certificate chain
+   following the TICKET or TMD info. This combination is usual for 'cetk'
+   and 'tmd.1234' files in WADs.
+ - Workaround for Cygwin bug in /proc/partitions.
+ - Bug fix for "wit CONVERT --wia" (Segmentation fault).
+ - Bug fix for 'preserve time' if source is removed.
+ - Command "wit LIST" supports now --progress while scanning files and dirs.
+ - The old tools 'wdf-cat' and 'wdf-dump' are removed. Use instead the new
+   tool 'wdf'. 'wdf' is linked to 'wdf-cat' and 'wdf-dump' to facilitate the
+   old behavior when calling 'wdf-cat' or 'wdf-dump'.
 
 
 Known bugs:

@@ -8,6 +8,7 @@ LIB_PATH="$BASE_PATH/share/wit"
 OLD_LIB_PATH="$BASE_PATH/share/wwt"
 
 BIN_FILES="@@BIN-FILES@@"
+WDF_LINKS="@@WDF-LINKS@@"
 LIB_FILES="@@LIB-FILES@@"
 
 INST_FLAGS="-p"
@@ -32,6 +33,11 @@ echo "*** install binaries to $BIN_PATH"
 for f in $BIN_FILES
 do
     install $INST_FLAGS bin/$f "$BIN_PATH/$f"
+done
+
+for f in $WDF_LINKS
+do
+    ln -f "$BIN_PATH/wdf" "$BIN_PATH/$f"
 done
 
 echo "*** install lib files to $LIB_PATH"

@@ -38,8 +38,6 @@
 #include "dirent.h"
 #include "crypt.h"
 
-#define ALIGN32(d,a) ((d)+((a)-1)&~(u32)((a)-1))
-
 //
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////			 dump helpers			///////////////
@@ -201,11 +199,18 @@ static void dump_sig_type
 
 //-----------------------------------------------------------------------------
 
-static void dump_hex ( FILE * f, const void * p_data, size_t dsize, size_t asc_indent )
+static void dump_hex
+(
+    FILE		* f,		// output file
+    const void		* p_data,	// pointer to data
+    size_t		dsize,		// size of data, must be <100
+    size_t		asc_indent,	// if >0: print ":...:" with entered indent
+    ccp			tail		// print this test and end of line (eg. LF)
+)
 {
-    ASSERT(f);
+    DASSERT(f);
     const u8 * data = p_data;
-    ASSERT(p_data);
+    DASSERT(p_data);
     char buf[100];
     ASSERT(dsize < sizeof(buf) );
 
@@ -225,10 +230,10 @@ static void dump_hex ( FILE * f, const void * p_data, size_t dsize, size_t asc_i
     if ( asc_indent > 0 )
     {
 	buf[count] = 0;
-	fprintf(f,"%*s= '%s'\n",(int)(asc_indent-fw), "", buf );
+	fprintf(f,"%*s= '%s'%s",(int)(asc_indent-fw), "", buf, tail ? tail : "" );
     }
-    else
-	fputc('\n',f);
+    else if (tail)
+	fputs(tail,f);
 }
 
 //
@@ -792,7 +797,7 @@ enumError Dump_CERT_MEM
 
     cert_chain_t cc;
     cert_initialize(&cc);
-    cert_append_data(&cc,cert_data,cert_size);
+    cert_append_data(&cc,cert_data,cert_size,false);
     enumError err = Dump_CERT(f,indent,&cc,print_ext);
     cert_reset(&cc);
 
@@ -809,8 +814,8 @@ enumError Dump_CERT
     bool		print_ext	// true: print extended version
 )
 {
-    ASSERT(f);
-    ASSERT(cc);
+    DASSERT(f);
+    DASSERT(cc);
     indent = NormalizeIndent(indent);
 
     if (!cc->used)
@@ -820,45 +825,65 @@ enumError Dump_CERT
     int i;
     for ( i = 0; i < cc->used; i++ )
     {
-	cert_item_t * item = cc->cert + i;
-	fprintf(f,"%*sCertificate #%u, size=0x%x=%u\n",
-		indent, "", i, item->cert_size, item->cert_size );
-
-	fprintf(f,"%*s  Issuer:            %.64s\n",
-		indent, "", item->data->issuer );
-
-	fprintf(f,"%*s  Public key ID:     %.64s\n",
-		indent, "", item->data->key_id );
-
-	const cert_stat_t stat = cert_check_cert(cc,item,0);
-	dump_sig_type(f,indent+2,ntohl(item->head->sig_type),stat,false);
-	dump_sig_type(f,indent+2,ntohl(item->data->key_type),0,true);
-
+	Dump_CERT_Item(f,indent,cc->cert+i,i,print_ext,cc);
 	if (print_ext)
-	{
-	    const u8 * p = item->head->sig_data;
-	    fprintf(f,"%*s  Signature:         "
-		"%02x %02x %02x %02x  %02x %02x %02x %02x  "
-		"%02x %02x %02x %02x  %02x %02x %02x %02x ...\n",
-		indent, "",
-		p[0], p[1], p[2], p[3], p[4], p[5], p[6], p[7],
-		p[8], p[9], p[10], p[11], p[12], p[13], p[14], p[15] );
-
-	    p = item->data->public_key;
-	    fprintf(f,"%*s  Public key:        "
-		"%02x %02x %02x %02x  %02x %02x %02x %02x  "
-		"%02x %02x %02x %02x  %02x %02x %02x %02x ...\n",
-		indent, "",
-		p[0], p[1], p[2], p[3], p[4], p[5], p[6], p[7],
-		p[8], p[9], p[10], p[11], p[12], p[13], p[14], p[15] );
-
-	    fprintf(f,"%*s  Pre+post key val:  %08x %08x\n\n",
-		indent, "",
-		ntohl(item->data->unknown1), be32(p+item->key_size) );
-	}
+	    fputc('\n',f);
     }
 
     return ERR_OK;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+void Dump_CERT_Item
+(
+    FILE		* f,		// valid output stream
+    int			indent,		// normalized indent of output
+    const cert_item_t	* item,		// valid item pointer
+    int			cert_index,	// >=0: print title with certificate index
+    bool		print_ext,	// true: print extended version
+    const cert_chain_t	* cc		// not NULL: verify signature
+)
+{
+    if ( cert_index >= 0)
+    {
+	fprintf(f,"%*sCertificate #%u, size=0x%x=%u\n",
+		indent, "", cert_index,
+		item->cert_size, item->cert_size );
+	indent += 2;
+    }
+
+    fprintf(f,"%*sIssuer & Key ID:   %s\n", indent, "", item->name );
+
+    if (item->head)
+    {
+	const cert_stat_t stat = cc ? cert_check_cert(cc,item,0) : 0;
+	dump_sig_type(f,indent,ntohl(item->head->sig_type),stat,false);
+    }
+    dump_sig_type(f,indent,ntohl(item->data->key_type),0,true);
+
+    if (print_ext)
+    {
+	const u32 pub_exp = be32(item->data->public_key+item->key_size);
+	fprintf(f,"%*sPublic exponent: %11x/hex =%11u\n",indent,"",pub_exp,pub_exp);
+
+	fprintf(f,"%*sPublic key:        ",indent,"");
+	dump_hex(f,item->data->public_key,16,0," ...\n");
+
+	if (item->head)
+	{
+	    fprintf(f,"%*sSignature:         ",indent,"");
+	    dump_hex(f,item->head->sig_data,16,0," ...\n");
+	}
+    }
+
+    if (item->head)
+    {
+	u8 hash[WII_HASH_SIZE];
+	SHA1((u8*)item->data,item->data_size,hash);
+	fprintf(f,"%*sRelevant SHA1:     ",indent,"");
+	dump_hex(f,hash,20,0,"\n");
+    }
 }
 
 //
@@ -885,7 +910,7 @@ static int try_load_cert
 	pathend = iobuf;
     strcpy(pathend,"/cert.bin");
     TRACE("CHECK %s\n",iobuf);
-    return cert_append_file(cc,iobuf);
+    return cert_append_file(cc,iobuf,false);
 }
 
 //-----------------------------------------------------------------------------
@@ -902,20 +927,41 @@ enumError Dump_TIK_BIN
     if (!f)
 	return ERR_OK;
 
-    wd_ticket_t tik;
-    enumError err = ReadSF(sf,0,&tik,sizeof(tik));
+    const size_t load_size = sf->file_size < sizeof(iobuf) ? sf->file_size : sizeof(iobuf);
+    enumError err = ReadSF(sf,0,iobuf,load_size);
+    wd_ticket_t * tik = (wd_ticket_t*)iobuf;
     if (!err)
-	memcpy(sf->f.id6,tik.title_id+4,4);
+	memcpy(sf->f.id6,tik->title_id+4,4);
     indent = dump_header(f,indent,sf,0,real_path,0,0);
 
     if (!err)
     {
-	putc('\n',f);
-	cert_chain_t cc;
-	try_load_cert(&cc,sf->f.fname);
-	Dump_TIK_MEM(f,indent,&tik,cert_check_ticket(&cc,&tik,0));
-	cert_reset(&cc);
-    }
+	if ( sizeof(wd_ticket_t) > load_size )
+	    err = ERROR0(ERR_WARNING,"Not a valid TMD file: %s\n",sf->f.fname);
+	else
+	{
+	    putc('\n',f);
+	    cert_chain_t cc;
+
+	    if ( sizeof(wd_ticket_t) < load_size )
+	    {
+		cert_initialize(&cc);
+		cert_append_data(&cc,iobuf+sizeof(wd_ticket_t),
+			load_size-sizeof(wd_ticket_t),false);
+	    }
+	    else
+		try_load_cert(&cc,sf->f.fname);
+
+	    Dump_TIK_MEM(f,indent,tik,cert_check_ticket(&cc,tik,0));
+	    if ( sizeof(wd_ticket_t) < load_size )
+	    {
+		putc('\n',f);
+		Dump_CERT(f,indent,&cc,false);
+	    }
+	    cert_reset(&cc);
+	}
+    } 
+
     putc('\n',f);
     return err;
 }
@@ -950,19 +996,24 @@ enumError Dump_TIK_MEM
 		indent,"", val,val, ntohl(tik->enable_time_limit) ? "en" : "dis" );
 
     fprintf(f,"%*sTitle key:         ",indent,"");
-    dump_hex(f,tik->title_key,sizeof(tik->title_key),0);
+    dump_hex(f,tik->title_key,sizeof(tik->title_key),0,"\n");
 
     u8 key[WII_KEY_SIZE];
     wd_decrypt_title_key(tik,key);
     fprintf(f,"%*s Decrypted key:    ",indent,"");
-    dump_hex(f,key,sizeof(key),0);
+    dump_hex(f,key,sizeof(key),0,"\n");
 
     fprintf(f,"%*sTicket ID:         ",indent,"");
-    dump_hex(f,tik->ticket_id,sizeof(tik->ticket_id),18);
+    dump_hex(f,tik->ticket_id,sizeof(tik->ticket_id),18,"\n");
     fprintf(f,"%*sConsole ID:        ",indent,"");
-    dump_hex(f,tik->console_id,sizeof(tik->console_id),18);
+    dump_hex(f,tik->console_id,sizeof(tik->console_id),18,"\n");
     fprintf(f,"%*sTitle ID:          ",indent,"");
-    dump_hex(f,tik->title_id,sizeof(tik->title_id),18);
+    dump_hex(f,tik->title_id,sizeof(tik->title_id),18,"\n");
+
+    u8 hash[WII_HASH_SIZE];
+    SHA1( ((u8*)tik)+WII_TICKET_SIG_OFF, sizeof(*tik)-WII_TICKET_SIG_OFF, hash );
+    fprintf(f,"%*sRelevant SHA1:     ",indent,"");
+    dump_hex(f,hash,20,0,"\n");
 
     return ERR_OK;
 }
@@ -984,30 +1035,43 @@ enumError Dump_TMD_BIN
     if (!f)
 	return ERR_OK;
 
-    #define MAX_CONTENT 100
-    char buf[ sizeof(wd_tmd_t) + MAX_CONTENT * sizeof(wd_tmd_content_t) ];
-    wd_tmd_t * tmd = (wd_tmd_t*)buf;
-
-    int max_content = ( sf->file_size - sizeof(wd_tmd_t) ) / sizeof(wd_tmd_content_t);
-    if ( max_content > MAX_CONTENT )
-	max_content = MAX_CONTENT;
-
-    const size_t load_size = sizeof(wd_tmd_t) + max_content * sizeof(wd_tmd_content_t);
-    ASSERT( load_size <= sizeof(buf) );
+    const size_t load_size = sf->file_size < sizeof(iobuf) ? sf->file_size : sizeof(iobuf);
+    enumError err = ReadSF(sf,0,iobuf,load_size);
     
-    enumError err = ReadSF(sf,0,buf,load_size);
+    wd_tmd_t * tmd = (wd_tmd_t*)iobuf;
     if (!err)
 	memcpy(sf->f.id6,tmd->title_id+4,4);
     indent = dump_header(f,indent,sf,0,real_path,0,0);
 
     if (!err)
     {
-	putc('\n',f);
-	cert_chain_t cc;
-	try_load_cert(&cc,sf->f.fname);
-	Dump_TMD_MEM(f,indent,tmd,max_content,cert_check_tmd(&cc,tmd,0));
-	cert_reset(&cc);
+	const int n_content = ntohs(tmd->n_content);
+	const int tmd_size = sizeof(wd_tmd_t) + n_content * sizeof(wd_tmd_content_t);
+	if ( tmd_size > load_size )
+	    err = ERROR0(ERR_WARNING,"Not a valid TMD file: %s\n",sf->f.fname);
+	else
+	{
+	    putc('\n',f);
+	    cert_chain_t cc;
+
+	    if ( tmd_size < load_size )
+	    {
+		cert_initialize(&cc);
+		cert_append_data(&cc,iobuf+tmd_size,load_size-tmd_size,false);
+	    }
+	    else
+		try_load_cert(&cc,sf->f.fname);
+
+	    Dump_TMD_MEM(f,indent,tmd,n_content,cert_check_tmd(&cc,tmd,0));
+	    if ( tmd_size < load_size )
+	    {
+		putc('\n',f);
+		Dump_CERT(f,indent,&cc,false);
+	    }
+	    cert_reset(&cc);
+	}
     }
+
     putc('\n',f);
     return err;
 }
@@ -1046,21 +1110,21 @@ enumError Dump_TMD_MEM
     else
 	fprintf(f,"%*sSystem version:    %08x:%08x\n", indent, "", high, low );
     fprintf(f,"%*sTitle ID:          ",indent,"");
-    dump_hex(f,tmd->title_id,sizeof(tmd->title_id),18);
+    dump_hex(f,tmd->title_id,sizeof(tmd->title_id),18,"\n");
 
     u32 val = ntohl(tmd->title_type);
-    fprintf(f,"%*sTitle type:      %11x/hex =%11u\n", indent,"", val, val );
+    fprintf(f,"%*sTitle type:     %11x/hex =%11u\n", indent,"", val, val );
     val = ntohs(tmd->group_id);
-    fprintf(f,"%*sGroup ID:        %11x/hex =%11u\n", indent,"", val, val );
+    fprintf(f,"%*sGroup ID:       %11x/hex =%11u\n", indent,"", val, val );
     val = ntohl(tmd->access_rights);
-    fprintf(f,"%*sAccess rights:   %11x/hex =%11u\n", indent,"", val, val );
+    fprintf(f,"%*sAccess rights:  %11x/hex =%11u\n", indent,"", val, val );
     val = ntohs(tmd->title_version);
-    fprintf(f,"%*sTitle version:   %11x/hex =%11u\n", indent,"", val, val );
+    fprintf(f,"%*sTitle version:  %11x/hex =%11u\n", indent,"", val, val );
     val = ntohs(tmd->boot_index);
-    fprintf(f,"%*sBoot index:      %11x/hex =%11u\n", indent,"", val, val );
+    fprintf(f,"%*sBoot index:     %11x/hex =%11u\n", indent,"", val, val );
 
     val = ntohs(tmd->n_content);
-    fprintf(f,"%*sN(content):      %11x/hex =%11u\n", indent,"", val, val );
+    fprintf(f,"%*sN(content):     %11x/hex =%11u\n", indent,"", val, val );
     if ( n_content > val )
 	n_content = val;
 
@@ -1069,16 +1133,22 @@ enumError Dump_TMD_MEM
     {
 	const wd_tmd_content_t * c = tmd->content + i;
 	val = ntohl(c->content_id);
-	fprintf(f,"%*sContent #%u, ID:    %9x/hex =%11u\n", indent,"", i, val, val );
+	fprintf(f,"%*sContent #%u, ID:   %9x/hex =%11u\n", indent,"", i, val, val );
 	val = ntohs(c->index);
-	fprintf(f,"%*sContent #%u, index: %9x/hex =%11u\n", indent,"", i, val, val );
+	fprintf(f,"%*sContent #%u, index:%9x/hex =%11u\n", indent,"", i, val, val );
 	val = ntohs(c->type);
-	fprintf(f,"%*sContent #%u, type:  %9x/hex =%11u\n", indent,"", i, val, val );
+	fprintf(f,"%*sContent #%u, type: %9x/hex =%11u\n", indent,"", i, val, val );
 	u64 val64 = ntoh64(c->size);
-	fprintf(f,"%*sContent #%u, size:%11llx/hex =%11llu\n", indent,"", i, val64, val64 );
-	fprintf(f,"%*sContent #%u, hash:   ",indent,"",i);
-	dump_hex(f,c->hash,sizeof(c->hash),0);
+	fprintf(f,"%*sContent #%u, size:%10llx/hex =%11llu\n", indent,"", i, val64, val64 );
+	fprintf(f,"%*sContent #%u, hash:  ",indent,"",i);
+	dump_hex(f,c->hash,sizeof(c->hash),0,"\n");
     }
+
+    u8 hash[WII_HASH_SIZE];
+    const int tmd_size = sizeof(wd_tmd_t) + n_content * sizeof(wd_tmd_content_t);
+    SHA1( ((u8*)tmd)+WII_TMD_SIG_OFF, tmd_size-WII_TMD_SIG_OFF, hash );
+    fprintf(f,"%*sRelevant SHA1:     ",indent,"");
+    dump_hex(f,hash,20,0,"\n");
 
     return ERR_OK;
 }
@@ -2074,7 +2144,7 @@ static int CollectFST_helper
 	    part->total_file_size += it->size;
 	}
 
-	if ( cf->pat && !MatchFilePattern(cf->pat,it->fst_name) )
+	if ( cf->pat && !MatchFilePattern(cf->pat,it->fst_name,'/') )
 	    return 0;
 
 	noPRINT("%8x >> %8x + %8x  %s\n",it->off4,it->off4>>2,it->size,it->path);

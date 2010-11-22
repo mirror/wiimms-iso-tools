@@ -91,6 +91,7 @@ void ResetWIA
 {
     if (wia)
     {
+	wd_close_disc(wia->wdisc);
 	free(wia->part);
 	free(wia->raw_data);
 	free(wia->group);
@@ -1785,9 +1786,13 @@ static enumError write_cached_gdata
     if ( wia->gdata_group >= 0 && wia->gdata_group < wia->group_used )
     {
 	if ( wia->gdata_part < 0 || wia->gdata_part >= wia->disc.n_part )
+	{
 	    err = write_data(sf, 0, wia->gdata, wia->gdata_used, wia->gdata_group, 0 );
+	}
 	else
+	{
 	    err = write_part_data(sf);
+	}
     }
 
     // setup empty gdata
@@ -2398,7 +2403,7 @@ enumError SetupWriteWIA
     wd_disc_t * wdisc = OpenDiscSF(src,true,false);
     if (!wdisc)
 	return FinishSetupWriteWIA(sf);
-    wia->wdisc = wdisc;
+    wia->wdisc = wd_dup_disc(wdisc);
     sf->source_size = wd_count_used_disc_blocks(wdisc,1,0) * (u64)WII_SECTOR_SIZE;
 
     disc->disc_type = wdisc->disc_type;

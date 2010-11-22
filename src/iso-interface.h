@@ -140,6 +140,16 @@ enumError Dump_CERT
     bool		print_ext	// true: print extended version
 );
 
+void Dump_CERT_Item
+(
+    FILE		* f,		// valid output stream
+    int			indent,		// normalized indent of output
+    const cert_item_t	* item,		// valid item pointer
+    int			cert_index,	// >=0: print title with certificate index
+    bool		print_ext,	// true: print extended version
+    const cert_chain_t	* cc		// not NULL: verify signature
+);
+
 //-----------------------------------------------------------------------------
 
 enumError Dump_TIK_BIN
@@ -267,9 +277,17 @@ typedef struct Iterator_t
 
 	// statistics
 
+	u32		num_of_scans;	// number of scanned files and dirs
 	u32		num_of_files;	// number of found files
 	u32		num_of_dirs;	// number of found directories
 	u32		num_empty_dirs;	// number of empty base directories
+
+	// progress
+
+	bool	progress_enabled;	// true: show progress info
+	u32	progress_last_sec;	// time of last progress viewing
+	ccp	progress_t_file;	// text, default = 'supported file'
+	ccp	progress_t_files;	// text, default = 'supported files'
 
 	// user defined parameters, ignores by SourceIterator()
 

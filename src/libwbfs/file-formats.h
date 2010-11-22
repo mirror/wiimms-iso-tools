@@ -628,7 +628,7 @@ typedef struct wd_tmd_t
   /* 0x18c */	u8  title_id[8];
   /* 0x194 */	u32 title_type;
   /* 0x198 */	u16 group_id;
-  /* 0x19a */	u8  fake_sign[0x3e]; 	// padding => place of dake signing
+  /* 0x19a */	u8  fake_sign[0x3e]; 	// padding => place of fake signing
   /* 0x1d8 */	u32 access_rights;
   /* 0x1dc */	u16 title_version;
   /* 0x1de */	u16 n_content;

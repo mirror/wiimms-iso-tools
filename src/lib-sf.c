@@ -599,7 +599,7 @@ int IsFileSelected ( wd_iterator_t *it )
     DASSERT(it->param);
 
     FilePattern_t * pat = it->param;
-    return MatchFilePattern(pat,it->fst_name);
+    return MatchFilePattern(pat,it->fst_name,'/');
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -2228,10 +2228,67 @@ enumFileType AnalyzeMemFT ( const void * preload_buf, off_t file_size )
     }
 
 
-    const int sig_size = cert_get_signature_size(be32(preload_buf));
-    if ( sig_size && sig_size < file_size )
+    //----- test cert + ticket + tmd
+
+    const u32 sig_type	= be32(preload_buf);
+    const int sig_size	= cert_get_signature_size(sig_type);
+    const u32 head_size	= ALIGN32( sig_size + sizeof(cert_head_t), WII_CERT_ALIGN );
+    const bool is_root_sig = sig_size
+			   && sig_size < file_size
+			   && !memcmp(preload_buf+head_size,"Root",4);
+    if (is_root_sig)
     {
+	//----- test CERT.bin
+
+	if ( !(file_size & WII_CERT_ALIGN-1) )
+	{
+	    const cert_data_t * data = cert_get_data(preload_buf);
+	    if ( data
+		&& (ccp)data + sizeof(data) < (ccp)preload_buf + file_size
+		&& data->key_id[0] > ' ' && data->key_id[0] < 0x7f )
+	    {
+		const u8 * next = (u8*)cert_get_next_head(data);
+		if ( next && next <= (u8*)preload_buf + file_size )
+		    return FT_ID_CERT_BIN;
+	    }
+	}
+
+
+	//----- test TICKET.BIN
+
+	if ( sig_type == 0x10001 && file_size >= sizeof(wd_ticket_t) )
+	{
+	    if ( file_size == sizeof(wd_ticket_t)
+		|| cert_get_signature_size(be32((ccp)preload_buf+sizeof(wd_ticket_t))) )
+	    {
+		return FT_ID_TIK_BIN;
+	    }
+	}
+
+
 	//----- test TMD.BIN
+
+	if ( sig_type == 0x10001 && file_size >= sizeof(wd_tmd_t) )
+	{
+	    const wd_tmd_t * tmd = preload_buf;
+	    const int n = ntohs(tmd->n_content);
+	    if ( n > 0 )
+	    {
+		const int tmd_size = sizeof(wd_tmd_t) + n * sizeof(wd_tmd_content_t);
+		if ( file_size == tmd_size
+		    || file_size > tmd_size
+			    && cert_get_signature_size(be32((ccp)preload_buf+tmd_size)) )
+		{
+		    return FT_ID_TMD_BIN;
+		}
+	    }
+	}
+    }
+
+
+    if (sig_size) // ISO usual data
+    {
+	//----- test TMD.BIN (ISO usual data)
 
 	if ( file_size >= sizeof(wd_tmd_t) )
 	{
@@ -2245,26 +2302,13 @@ enumFileType AnalyzeMemFT ( const void * preload_buf, off_t file_size )
 	}
 
 
-	//----- test TICKET.BIN
+	//----- test TICKET.BIN (ISO usual data)
 
 	if ( file_size == sizeof(wd_ticket_t) )
 	{
 	    const wd_ticket_t * tik = preload_buf;
 	    if ( CheckID4(tik->title_id+4,true,false) )
 		return FT_ID_TIK_BIN;
-	}
-
-	//----- test CERT.bin
-
-	if ( !(file_size & WII_CERT_ALIGN-1) )
-	{
-	    const u8 * data = (u8*)cert_get_data(preload_buf);
-	    if ( data && data < (u8*)preload_buf + file_size )
-	    {
-		const u8 * next = (u8*)cert_get_next_head(data);
-		if ( next && next <= (u8*)preload_buf + file_size )
-		    return FT_ID_CERT_BIN;
-	    }
 	}
     }
 
@@ -3494,6 +3538,48 @@ void ResetIterator ( Iterator_t * it )
 
 //-----------------------------------------------------------------------------
 
+static void IteratorProgress ( Iterator_t * it, bool last_message )
+{
+    if ( it->num_of_scans || last_message )
+    {
+	const u32 sec = GetTimerMSec() / 1000 + 1;
+	if ( sec != it->progress_last_sec || last_message )
+	{
+	    it->progress_last_sec = sec;
+	    printf("  %u object%s scanned", it->num_of_scans,
+				it->num_of_scans == 1 ? "" : "s"  );
+
+	    ccp tie = ",", term = "";
+	    if ( it->num_of_dirs > 0 )
+	    {
+		printf(", %u director%s", it->num_of_dirs,
+				it->num_of_dirs == 1 ? "y" : "ies" );
+		tie = " and";
+		term = " found";
+	    }
+		
+	    if ( it->num_of_files > 0 )
+	    {
+		if (!it->progress_t_file)
+		    it->progress_t_file = "supported file";
+		if (!it->progress_t_files)
+		    it->progress_t_files = "supported files";
+
+		printf("%s %u %s", tie, it->num_of_files,
+				it->num_of_files == 1
+					? it->progress_t_file
+					: it->progress_t_files );
+		term = " found";
+	    }
+
+	    printf("%s.   %c", term, last_message ? '\n' : '\r' );
+	    fflush(stdout);
+	}
+    }
+}
+
+//-----------------------------------------------------------------------------
+
 static enumError SourceIteratorHelper
 	( Iterator_t * it, ccp path, bool collect_fnames )
 {
@@ -3508,6 +3594,8 @@ static enumError SourceIteratorHelper
 	InsertStringField(&it->source_list,path,false);
 	return ERR_OK;
     }
+
+    it->num_of_scans++;
 
  #ifdef __CYGWIN__
     char goodpath[PATH_MAX];
@@ -3556,6 +3644,8 @@ static enumError SourceIteratorHelper
 	if (InsertStringField(&dir_done_list,real_path,false))
 	{
 	    it->num_of_dirs++;
+	    if (it->progress_enabled)
+		IteratorProgress(it,false);
 	    DIR * dir = opendir(path);
 	    if (dir)
 	    {
@@ -3620,6 +3710,8 @@ static enumError SourceIteratorHelper
 	if ( it->act_non_exist >= ACT_ALLOW )
 	{
 	    it->num_of_files++;
+	    if (it->progress_enabled)
+		IteratorProgress(it,false);
 	    if (collect_fnames)
 	    {
 		InsertStringField(&it->source_list,sf.f.fname,false);
@@ -3660,6 +3752,8 @@ static enumError SourceIteratorHelper
 	&& ( sf.f.ftype & (FT_ID_WBFS|FT_A_WDISC) ) == FT_ID_WBFS )
     {
 	it->num_of_files++;
+	if (it->progress_enabled)
+	    IteratorProgress(it,false);
 	WBFS_t wbfs;
 	InitializeWBFS(&wbfs);
 	if (!SetupWBFS(&wbfs,&sf,false,0,false))
@@ -3755,6 +3849,8 @@ static enumError SourceIteratorHelper
     }
 
     it->num_of_files++;
+    if (it->progress_enabled)
+	IteratorProgress(it,false);
     if ( InsertStringField(&file_done_list,real_path,false)
 	&& ( !sf.f.id6[0] || !IsExcluded(sf.f.id6) ))
     {
@@ -3866,6 +3962,9 @@ enumError SourceIterator
     {
 	err = SourceIteratorStarter(it,*ptr,collect_fnames);
     }
+
+    if (it->progress_enabled)
+	IteratorProgress(it,true);
 
     ResetStringField(&dir_done_list);
     ResetStringField(&file_done_list);

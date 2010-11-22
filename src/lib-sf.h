@@ -75,12 +75,12 @@ typedef struct SuperFile_t
 	// parameters, set by user
 
 	File_t f;			// file handling struct
-	bool enable_fast;		// enables fast prosessing
+	bool enable_fast;		// true: enables fast prosessing
 	int  indent;			// indent of progress and summary
-	bool show_progress;		// show progress info
-	bool show_summary;		// show summary statistics
-	bool show_msec;			// show milli seconds in statistics
-	bool allow_fst;			// allow reading of fst
+	bool show_progress;		// true: show progress info
+	bool show_summary;		// true: show summary statistics
+	bool show_msec;			// true: show milli seconds in statistics
+	bool allow_fst;			// true: allow reading of fst
 
 	// internal values: progress
 

@@ -659,8 +659,8 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	"Concatenate files and print on the standard output. WDF and CISO"
 	" files are extracted before printing, all other files are copied byte"
 	" by byte.\n"
-	"  This is the default command, when the program namecontains the"
-	" three letter 'cat' in any case.",
+	"  This is the default command, when the program name contains the sub"
+	" string 'cat' in any case.",
 	10,
 	option_tab_cmd_CAT,
 	option_allowed_cmd_CAT
@@ -677,8 +677,8 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	" set, than all source files are compared against files in the"
 	" destination path with equal names. If the second source file is"
 	" mising then standard input (stdin) is used instead.\n"
-	"  This is the default command, when the program namecontains the"
-	" letters 'diff' or 'cmp' in any case.",
+	"  This is the default command, when the program name contains the sub"
+	" string 'diff' or 'cmp' in any case.",
 	0,
 	option_tab_cmd_CMP,
 	option_allowed_cmd_CMP
