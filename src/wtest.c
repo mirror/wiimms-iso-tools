@@ -255,7 +255,7 @@ enumError CreateWBFSFile
 )
 {
     DASSERT(sf);
-    enumError err = CreateSF(sf,fname,OFT_WBFS,IOM_IS_WBFS_PART,overwrite,0);
+    enumError err = CreateSF(sf,fname,OFT_WBFS,IOM_IS_WBFS_PART,overwrite);
     if ( !err && sf->wbfs )
     {
 	CloseWDisc(sf->wbfs);
@@ -287,7 +287,7 @@ int test_copy_to_wbfs ( int argc, char ** argv )
 		InitializeSF(&fo);
 		enumError err = CreateWBFSFile(&fo,"pool/a.wbfs",true,&disc->dhead,0);
 		if (!err)
-		    err = CopySF(&fi,&fo,false);
+		    err = CopySF(&fi,&fo);
 		ResetSF(&fo,0);
 	    }
 	}

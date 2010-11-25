@@ -759,6 +759,20 @@ info_t info_tab[] =
 		"size",
 		"Define a minimal (virtual) ISO disc size." },
 
+  { T_OPT_C,	"SPARSE",	"sparse",
+		0,
+		"Try to write the image with maximum sparse effect"
+		" and disables defragmentation optimization (option {--defrag})."
+		" The default is a balance between --sparse and --defrag."
+		" This option has only impact for ISO, CISO and WBFS files." },
+
+  { T_OPT_C,	"DEFRAG",	"defrag",
+		0,
+		"Try to write the image with minimal number of fragments"
+		" and disables sparse optimization (option {--sparse})."
+		" The default is a balance between --sparse and --defrag."
+		" This option has only impact for ISO, CISO and WBFS files." },
+
   { T_OPT_C,	"TRUNC",	"trunc",
 		0, "Truncate PLAIN ISO images to the needed size while creating." },
 
@@ -1150,6 +1164,8 @@ info_t info_tab[] =
   { T_COPT,	"SPLIT",	0,0,0 },
   { T_COPT,	"SPLIT_SIZE",	0,0,0 },
   { T_COPT,	"DISC_SIZE",	0,0,0 },
+  { T_COPT,	"SPARSE",	0,0,0 },
+  { T_COPT,	"DEFRAG",	0,0,0 },
   { T_COPT,	"TRUNC",	0,0,0 },
   { T_COPT,	"CHUNK_MODE",	0,0,0 },
   { T_COPT,	"CHUNK_SIZE",	0,0,0 },
@@ -2029,6 +2045,12 @@ info_t info_tab[] =
   { T_OPT_CP,	"DISC_SIZE",	"disc-size|discsize",
 		0, 0 /* copy of wit */ },
 
+  { T_OPT_C,	"SPARSE",	"sparse",
+		0, 0 /* copy of wit */ },
+
+  { T_OPT_C,	"DEFRAG",	"defrag",
+		0, 0 /* copy of wit */ },
+
   { T_OPT_C,	"TRUNC",	"trunc",
 		0, 0 /* copy of wit */ },
 
@@ -2304,6 +2326,8 @@ info_t info_tab[] =
   { T_COPT,	"SPLIT",	0,0,0 },
   { T_COPT,	"SPLIT_SIZE",	0,0,0 },
   { T_COPT,	"DISC_SIZE",	0,0,0 },
+  { T_COPT,	"SPARSE",	0,0,0 },
+  { T_COPT,	"DEFRAG",	0,0,0 },
   { T_COPT,	"TRUNC",	0,0,0 },
   { T_COPT,	"CHUNK_MODE",	0,0,0 },
   { T_COPT,	"CHUNK_SIZE",	0,0,0 },
@@ -2967,6 +2991,12 @@ info_t info_tab[] =
   { T_OPT_CP,	"SPLIT_SIZE",	"Z|split-size|splitsize",
 		0, 0 /* copy of wit */ },
 
+  { T_OPT_C,	"SPARSE",	"sparse",
+		0, 0 /* copy of wit */ },
+
+  { T_OPT_C,	"DEFRAG",	"defrag",
+		0, 0 /* copy of wit */ },
+
   { T_OPT_CP,	"CHUNK_MODE",	"chunk-mode|chunkmode|chm",
 		"mode", TEXT_OPT_CHUNK_MODE("32K") },
 
@@ -3010,6 +3040,8 @@ info_t info_tab[] =
   { T_COPY_GRP,	"DEST",		0,0,0 },
   { T_COPT,	"SPLIT",	0,0,0 },
   { T_COPT,	"SPLIT_SIZE",	0,0,0 },
+  { T_COPT,	"SPARSE",	0,0,0 },
+  { T_COPT,	"DEFRAG",	0,0,0 },
   { T_COPT,	"CHUNK_MODE",	0,0,0 },
   { T_COPT,	"CHUNK_SIZE",	0,0,0 },
   { T_COPT,	"MAX_CHUNKS",	0,0,0 },
@@ -3074,75 +3106,6 @@ info_t info_tab[] =
   { T_COPT,	"CHUNK",	0,0,0 },
   { T_COPT,	"LONG",		0,0, "Same as {--chunk}" },
   { T_COPT,	"MINUS1",	0,0,0 },
-
-  //
-  ///////////////////////////////////////////////////////////////////////////
-  /////////////			  TOOL wdf-cat			/////////////
-  ///////////////////////////////////////////////////////////////////////////
-
-  { T_DEF_TOOL,	"wdf-cat", 0,
-		"wdf-cat [option]... files...",
-		"Works like the 'cat' command:"
-		" Dump all file contents to standard output (stdout)"
-		" and extract WDF and CISO files on the fly."
-		" All other files are copied byte by byte." },
-
-  //---------- list of all options ----------
-
-  { T_OPT_S,	"VERSION",	"V|version",
-		0, 0 /* copy of wit */ },
-
-  { T_OPT_S,	"HELP",		"h|help",
-		0, 0 /* copy of wit */ },
-
-  { T_OPT_S,	"XHELP",	"xhelp",
-		0, "Same as {--help}." },
-
-  { T_OPT_GP,	"WIDTH",	"width",
-		0, 0 /* copy of wit */ },
-
-  { T_OPT_GP,	"IO",		"io",
-		0, 0 /* copy of wit */ },
-
-  //
-  ///////////////////////////////////////////////////////////////////////////
-  /////////////			  TOOL wdf-dump			/////////////
-  ///////////////////////////////////////////////////////////////////////////
-
-  { T_DEF_TOOL,	"wdf-dump", 0,
-		"wdf-dump [option]... files...",
-		"Dump the data structure of WDF and CISO files for analysis." },
-
-  //---------- list of all options ----------
-
-  { T_OPT_S,	"VERSION",	"V|version",
-		0, 0 /* copy of wit */ },
-
-  { T_OPT_S,	"HELP",		"h|help",
-		0, 0 /* copy of wit */ },
-
-  { T_OPT_S,	"XHELP",	"xhelp",
-		0, 0 /* copy of wdf-cat */ },
-
-  { T_OPT_GP,	"WIDTH",	"width",
-		0, 0 /* copy of wit */ },
-
-  { T_OPT_G,	"QUIET",	"q|quiet",
-		0, 0 /* copy of wit */ },
-
-  { T_OPT_G,	"VERBOSE",	"v|verbose",
-		0, "Be verbose -> print program name." },
-
-  { T_OPT_GP,	"IO",		"io",
-		0, 0 /* copy of wit */ },
-
-  { T_SEP_OPT,	0,0,0,0 }, //----- separator -----
-
-  { T_OPT_G,	"CHUNK",	"c|chunk",
-		0, "Print table with chunk header." },
-
-  { T_OPT_G,	"LONG",		"l|long",
-		0, "Alternative for {--chunk}: Print table with chunk header." },
 
   //
   ///////////////////////////////////////////////////////////////////////////

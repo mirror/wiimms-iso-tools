@@ -492,16 +492,86 @@ enumError CreateSF
     ccp			fname,		// NULL or filename
     enumOFT		oft,		// output file mode
     enumIOMode		iomode,		// io mode
-    int			overwrite,	// overwrite mode
-    SuperFile_t		* src		// NULL or source file
+    int			overwrite	// overwrite mode
 )
 {
     ASSERT(sf);
     CloseSF(sf,0);
-    TRACE("#S# CreateSF(%p,%s,%x,%x,%x,%p)\n",sf,fname,oft,iomode,overwrite,src);
+    TRACE("#S# CreateSF(%p,%s,%x,%x,%x)\n",sf,fname,oft,iomode,overwrite);
 
     const enumError err = CreateFile(&sf->f,fname,iomode,overwrite);
-    return err ? err : SetupWriteSF(sf,oft,src);
+    return err ? err : SetupWriteSF(sf,oft);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+enumError PreallocateSF
+(
+    SuperFile_t		* sf,		// file to operate
+    u64			base_off,	// offset of pre block
+    u64			base_size,	// size of pre block
+					// base_off+base_size == address fpr block #0
+    u32			block_size,	// size in wii sectors of 1 container block
+    u32			min_hole_size	// the minimal allowed hole size in 32K sectors
+)
+{
+    DASSERT(sf);
+    if (!sf->src)
+	return ERR_OK;
+
+    wd_disc_t * disc = OpenDiscSF(sf->src,false,false);
+    if (!disc)
+	return ERR_OK;
+
+    PRINT("PreallocateSF(%p,%llx,%llx,%x,%x)\n",
+		sf, base_off, base_size, block_size, min_hole_size );
+
+    u8 utab[WII_MAX_SECTORS];
+    const u8 * uptr = utab;
+    const u8 * uend = utab + wd_pack_disc_usage_table(utab,disc,block_size,0);
+    const u64 off0 = base_off + base_size;
+
+    while ( uptr < uend && !*uptr )
+	uptr++;
+
+    while ( uptr < uend )
+    {
+	const u32 beg = uptr - utab;
+	u32 end;
+	for(;;)
+	{
+	    while ( uptr < uend && *uptr )
+		uptr++;
+	    end =  uptr - utab;
+	    while ( uptr < uend && !*uptr )
+		uptr++;
+	    if ( uptr == uend || uptr-utab-end >= min_hole_size )
+		break;
+	}
+
+	if ( beg < end )
+	{
+	    u64 off  = off0 + beg * (u64)WII_SECTOR_SIZE;
+	    u64 size = ( end - beg )  * (u64)WII_SECTOR_SIZE;
+	    if ( base_size )
+	    {
+		if (beg)
+		    PreallocateF(&sf->f,base_off,base_size);
+		else
+		{
+		    off -= base_size;
+		    size += base_size;
+		}
+		base_size = 0;
+	    }
+	    PRINT("PREALLOC BLOCK %05x..%05x -> %9llx..%9llx [%llx]\n",
+			beg, end, off, off+size, size );
+
+	    PreallocateF(&sf->f,off,size);
+	}
+    }
+    return ERR_OK;
+
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -509,12 +579,11 @@ enumError CreateSF
 enumError SetupWriteSF
 (
     SuperFile_t		* sf,		// file to setup
-    enumOFT		oft,		// force OFT mode of 'sf' 
-    SuperFile_t		* src		// NULL or source file
+    enumOFT		oft		// force OFT mode of 'sf' 
 )
 {
     ASSERT(sf);
-    TRACE("SetupWriteSF(%p,%x,%p)\n",sf,oft,src);
+    TRACE("SetupWriteSF(%p,%x)\n",sf,oft);
 
     if ( !sf || sf->f.is_reading || !sf->f.is_writing )
 	return ERROR0(ERR_INTERNAL,0);
@@ -523,13 +592,26 @@ enumError SetupWriteSF
     switch(sf->iod.oft)
     {
 	case OFT_PLAIN:
+	    switch (prealloc_mode)
+	    {
+		case PREALLOC_SPARSE:
+		    break;
+
+		case PREALLOC_DEFAULT:
+		    PreallocateSF(sf,0,0,WII_MAX_SECTORS,1);
+		    break;
+
+		case PREALLOC_DEFRAG:
+		    PreallocateSF(sf,0,0,WII_MAX_SECTORS,16);
+		    break;
+	    }
 	    return ERR_OK;
 
 	case OFT_WDF:
 	    return SetupWriteWDF(sf);
 
 	case OFT_WIA:
-	    return SetupWriteWIA(sf,src,0);
+	    return SetupWriteWIA(sf,0);
 
 	case OFT_CISO:
 	    return SetupWriteCISO(sf);
@@ -2547,22 +2629,23 @@ u32 CountUsedIsoBlocksSF ( SuperFile_t * sf, const wd_select_t * psel )
 
 //
 ///////////////////////////////////////////////////////////////////////////////
-///////////////                    copy functions               ///////////////
+///////////////			copy functions			///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-enumError CopySF ( SuperFile_t * in, SuperFile_t * out, bool force_raw_mode )
+enumError CopySF ( SuperFile_t * in, SuperFile_t * out )
 {
     ASSERT(in);
     ASSERT(out);
     TRACE("---\n");
-    TRACE("+++ CopySF(%d->%d,raw=%d) +++\n",GetFD(&in->f),GetFD(&out->f),force_raw_mode);
+    TRACE("+++ CopySF(%d->%d) raw=%d+++\n",
+		GetFD(&in->f), GetFD(&out->f), out->raw_mode );
 
-    if ( !force_raw_mode && !part_selector.whole_disc )
+    if ( !out->raw_mode && !part_selector.whole_disc )
     {
 	wd_disc_t * disc = OpenDiscSF(in,true,false);
 	if (disc)
 	{
-	    MarkMinSizeSF(out, opt_disc_size ? opt_disc_size : in->file_size );
+	    MarkMinSizeSF( out, opt_disc_size ? opt_disc_size : in->file_size );
 	    wd_filter_usage_table(disc,wdisc_usage_tab,0);
 
 	    if ( out->iod.oft == OFT_WDF )

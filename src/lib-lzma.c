@@ -257,7 +257,7 @@ static SRes sz_read_buf ( void *pp, void *buf, size_t *size )
     noPRINT("sz_read_buf(%p,%p,%zx=%zu)\n",ibuf,buf,*size,*size);
 
     ibuf->bytes_read += *size = ReadDataList(ibuf->data,buf,*size);
-    noPRINT("sz_read_buf() size = %u\n",*size);
+    noPRINT("sz_read_buf() size = %zu\n",*size);
     return SZ_OK;
 }
 
@@ -346,7 +346,7 @@ enumError EncLZMA_Open
 		lzma->error_object, GetMessageLZMA(res,"?") );
     }
 
-    noPRINT("EncLZMA_Open() done: prop-size=%d\n", lzma->enc_props_len );
+    noPRINT("EncLZMA_Open() done: prop-size=%zd\n", lzma->enc_props_len );
 
     return ERR_OK;
 };
@@ -570,8 +570,8 @@ enumError DecLZMA_File2Buf // open + read + close lzma stream
 	    read_size = read_count;
 	    finish = LZMA_FINISH_END;
 	}
-	noPRINT("READ off=%llx, size=%x,%u, to=%u\n",
-		file->cur_off,read_size,read_size,in_buf_len);
+	noPRINT("READ off=%llx, size=%zx=%zu, to=%zu\n",
+		(u64)file->cur_off, read_size, read_size, in_buf_len );
 	err = ReadF(file,in_buf+in_buf_len,read_size);
 	if (err)
 	    return err;
@@ -590,7 +590,7 @@ enumError DecLZMA_File2Buf // open + read + close lzma stream
 	ELzmaStatus status;
 
 	res = LzmaDec_DecodeToBuf(&lzma,dest,&out_len,in_buf,&in_len,finish,&status);
-	noPRINT("DECODED, res=%s, stat=%d, in=%u/%u out=%u/%u\n",
+	noPRINT("DECODED, res=%s, stat=%d, in=%zu/%zu out=%zu/%zu\n",
 		GetMessageLZMA(res,"?"), status,
 		in_len, in_buf_len, out_len, buf_size );
 
@@ -685,7 +685,7 @@ enumError EncLZMA2_Open
     lzma->enc_props[0] = Lzma2Enc_WriteProperties(lzma->handle);
     lzma->enc_props_len = 1;
 
-    noPRINT("EncLZMA2_Open() done: prop-size=%d, byte=%02x\n",
+    noPRINT("EncLZMA2_Open() done: prop-size=%zd, byte=%02x\n",
 		lzma->enc_props_len, lzma->enc_props[0] );
 
     return ERR_OK;
@@ -909,8 +909,8 @@ enumError DecLZMA2_File2Buf // open + read + close lzma stream
 	    read_size = read_count;
 	    finish = LZMA_FINISH_END;
 	}
-	noPRINT("READ off=%llx, size=%x,%u, to=%u\n",
-		file->cur_off,read_size,read_size,in_buf_len);
+	noPRINT("READ off=%llx, size=%zx=%zu, to=%zu\n",
+		(u64)file->cur_off, read_size, read_size, in_buf_len );
 	err = ReadF(file,in_buf+in_buf_len,read_size);
 	if (err)
 	    return err;
@@ -929,7 +929,7 @@ enumError DecLZMA2_File2Buf // open + read + close lzma stream
 	ELzmaStatus status;
 
 	res = Lzma2Dec_DecodeToBuf(&lzma,dest,&out_len,in_buf,&in_len,finish,&status);
-	noPRINT("DECODED, res=%s, stat=%d, in=%u/%u out=%u/%u\n",
+	noPRINT("DECODED, res=%s, stat=%d, in=%zu/%zu out=%zu/%zu\n",
 		GetMessageLZMA(res,"?"), status,
 		in_len, in_buf_len, out_len, buf_size );
 

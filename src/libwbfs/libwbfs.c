@@ -423,6 +423,15 @@ int wbfs_calc_size_shift
 
 ///////////////////////////////////////////////////////////////////////////////
 
+u32 wbfs_calc_sect_size ( u64 total_size, u32 hd_sec_size )
+{
+    const u32 hd_sec_sz_s = size_to_shift(hd_sec_size);
+    hd_sec_size = (u32)1 << hd_sec_sz_s;
+    return (u32)1 << wbfs_calc_size_shift(hd_sec_sz_s,total_size/hd_sec_size,0);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
 void wbfs_calc_geometry
 (
 	wbfs_t * p,		// pointer to wbfs_t, p->head must be NULL or valid

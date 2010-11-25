@@ -1,40 +1,0 @@
-
-@@MODULE(head.txt)@@
-
-This file describes the tool 'wdf-cat'.
-
-
-@@MODULE(content.txt)@@
-
-
-*******************************************************************************
-*******                   Output of 'wdf-cat --help'                  *********
-*******************************************************************************
-@@EXEC(./wdf-cat --width 80 --help)@@
-
-
-*******************************************************************************
-*******                            wdf-cat                              *******
-*******************************************************************************
-
-The tool 'wdf-cat' works like the standard 'cat' tool: It concatenate files
-and print the result to standard output. While doing this WDF files will be
-expanded to the normal presentation. Other files will be copied directly.
-
-Usage example: cmp orig.iso <(wdf-cat the.wdf)
-
-Usual ERROR/EXIT CODES:
-
-    OK
-    CANT_OPEN
-    CANT_CREATE
-    READ_FAILED
-    WRITE_FAILED
-
-
-@@MODULE(signals.txt)@@
-
-
-*******************************************************************************
-*******                              END                                *******
-*******************************************************************************

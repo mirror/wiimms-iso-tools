@@ -2534,6 +2534,108 @@ u8 * wd_filter_usage_table
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
+u32 wd_pack_disc_usage_table // returns the index if the 'last_used_sector + 1'
+(
+    u8			* dest_table,	// valid pointer to destination table
+    wd_disc_t		* disc,		// valid pointer to a disc
+    u32			block_size,	// if >1: count every 'block_size'
+					//        continuous blocks as one block
+    const wd_select_t	* select	// NULL or a new selector
+)
+{
+    if (select)
+	wd_select(disc,select);
+    wd_calc_usage_table(disc);
+    return wd_pack_usage_table(dest_table,disc->usage_table,block_size);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+u32 wd_pack_usage_table // returns the index if the 'last_used_sector + 1'
+(
+    u8			* dest_table,	// valid pointer to destination table
+    const u8		* usage_table,	// valid pointer to usage table
+    u32			block_size	// if >1: count every 'block_size'
+					//        continuous blocks as one block
+)
+{
+    DASSERT(dest_table);
+    DASSERT(usage_table);
+
+    const u8 * end_tab = usage_table + WII_MAX_SECTORS;
+    u8 * dest = dest_table;
+
+    if (  block_size <= 1 )   
+    {
+	// optimization for single block count
+
+	for ( ; usage_table < end_tab; usage_table++ )
+	    if ( *usage_table )
+		*dest++ = *usage_table;
+    }
+    else
+    {
+	//----- block_size > 1
+
+	if ( block_size < WII_MAX_SECTORS )
+	{
+	    //----- process all but last block
+
+	    end_tab -= block_size;
+	    for ( ; usage_table < end_tab; usage_table += block_size )
+	    {
+		int i;
+		for ( i = 0; i < block_size; i++ )
+		    if (usage_table[i])
+		    {
+			memcpy(dest,usage_table,block_size);
+			dest += block_size;
+			break;
+		    }
+	    }
+	    end_tab += block_size;
+	}
+
+	//----- process last blocks
+
+	const u8 * ptr = usage_table;
+	while ( ptr < end_tab )
+	    if ( *ptr++ )
+	    {
+		block_size = end_tab - usage_table;
+		memcpy(dest,usage_table,block_size);
+		dest += block_size;
+		break;
+	    }
+
+	//---- find last used sector
+
+	while ( dest > dest_table && !dest[-1] )
+	    dest--;
+    }
+
+    memset(dest,0,dest_table+WII_MAX_SECTORS-dest);
+    return dest - dest_table;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+
+u64 wd_count_used_disc_size
+(
+    wd_disc_t		* disc,		// valid pointer to a disc
+    u32			block_size,	// if >1: count every 'block_size'
+					//        continuous blocks as one block
+    const wd_select_t	* select	// NULL or a new selector
+)
+{
+    return wd_count_used_disc_blocks(disc,block_size,select)
+	* (u64)block_size
+	* (u64)WII_SECTOR_SIZE;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
 u32 wd_count_used_disc_blocks
 (
     wd_disc_t		* disc,		// valid pointer to a disc

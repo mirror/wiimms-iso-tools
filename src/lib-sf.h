@@ -82,6 +82,11 @@ typedef struct SuperFile_t
 	bool show_msec;			// true: show milli seconds in statistics
 	bool allow_fst;			// true: allow reading of fst
 
+	// additional info
+
+	struct SuperFile_t *src;	// NULL or pointer to source to get info
+	bool  raw_mode;			// true: force raw mode
+
 	// internal values: progress
 
 	int  progress_trigger;		// progress is only printed if value>0
@@ -97,7 +102,7 @@ typedef struct SuperFile_t
 	u64 file_size;			// the size of the (virtual) ISO image
 	u64 min_file_size;		// if set: Call SetMinSizeSF() before closing
 	u64 max_virt_off;		// maximal used offset of virtual image
-	u64 source_size;		// if set: size of source
+	u64 source_size;		// if >0: size of source
 					//  => display compression ratio in summary stat
 
 	// read and write support
@@ -190,8 +195,7 @@ enumError CreateSF
     ccp			fname,		// NULL or filename
     enumOFT		oft,		// output file mode
     enumIOMode		iomode,		// io mode
-    int			overwrite,	// overwrite mode
-    SuperFile_t		* src		// NULL or source file
+    int			overwrite	// overwrite mode
 );
 
 int IsFileSelected ( wd_iterator_t *it );
@@ -210,11 +214,20 @@ wd_disc_t * OpenDiscSF
 
 enumError RewriteModifiedSF ( SuperFile_t * fi, SuperFile_t * fo, struct WBFS_t * wbfs );
 
+enumError PreallocateSF
+(
+    SuperFile_t		* sf,		// file to operate
+    u64			base_off,	// offset of pre block
+    u64			base_size,	// size of pre block
+					// base_off+base_size == address fpr block #0
+    u32			block_size,	// size in wii sectors of 1 container block
+    u32			min_hole_size	// the minimal allowed hole size in 32K sectors
+);
+
 enumError SetupWriteSF
 (
     SuperFile_t		* sf,		// file to setup
-    enumOFT		oft,		// force OFT mode of 'sf' 
-    SuperFile_t		* src		// NULL or source file
+    enumOFT		oft		// force OFT mode of 'sf' 
 );
 
 enumError SetupWriteWBFS( SuperFile_t * sf );		// setup wbfs/disc writing
@@ -250,7 +263,8 @@ int SubstFileName
     enumOFT	oft		// output file type
 );
 
-// main read and write functions
+
+//--- main read and write functions
 
 enumError ReadZero	( SuperFile_t * sf, off_t off, void * buf, size_t count );
 enumError ReadSF	( SuperFile_t * sf, off_t off, void * buf, size_t count );
@@ -313,7 +327,7 @@ wd_disc_type_t FileType2DiscType ( enumFileType ftype );
 u32 CountUsedIsoBlocksSF ( SuperFile_t * sf, const wd_select_t * psel );
 
 // copy functions
-enumError CopySF  ( SuperFile_t * in, SuperFile_t * out, bool force_raw_mode );
+enumError CopySF  ( SuperFile_t * in, SuperFile_t * out );
 enumError CopyRaw ( SuperFile_t * in, SuperFile_t * out );
 
 enumError CopyRawData

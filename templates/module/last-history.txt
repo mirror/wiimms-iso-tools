@@ -1,22 +1,7 @@
 wit v@@VERSION@@ r@@REV-NEXT@@ - @@@@-@@-@@
 
- - New command: wit CERT: Collect certificates and eliminate multiple entries
-   of the same certificate. Dump all collected certificates to standard
-   output (stdout) and/or write the certificate as binary to a file. Together
-   with the new option "--fake-sign filter" is is possible to fake sign some
-   or all certificates before dumping and/or storing.
- - New global option: --cert: Add certificates to the global certificate
-   database. These certificates are used to check the signatures.
- - "wit dump ticket.bin tmd.bin" is now able to dump the certificate chain
-   following the TICKET or TMD info. This combination is usual for 'cetk'
-   and 'tmd.1234' files in WADs.
- - Workaround for Cygwin bug in /proc/partitions.
- - Bug fix for "wit CONVERT --wia" (Segmentation fault).
- - Bug fix for 'preserve time' if source is removed.
- - Command "wit LIST" supports now --progress while scanning files and dirs.
- - The old tools 'wdf-cat' and 'wdf-dump' are removed. Use instead the new
-   tool 'wdf'. 'wdf' is linked to 'wdf-cat' and 'wdf-dump' to facilitate the
-   old behavior when calling 'wdf-cat' or 'wdf-dump'.
+ - Preallocation of disc space implemented. Set --sparse or --defrag to change
+   default behavior of ISO, CISO and WBFS files.
 
 
 Known bugs:

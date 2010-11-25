@@ -22,7 +22,7 @@ Dieses ist das Ankündigungsthema für [url=@@URI-HOME@@][b]@@TOOLSET-SHORT@@[/b][
 [*] Weitere Versionen sind unter [url=@@URI-HOME@@download.html][b]@@URI-HOME@@download.html[/b][/url] verfügbar.
 [/list]
 
-[size=12][color=#0000c0][b]Es existieren auch zwei graphische Oberflächen (GUI) zur Bedienung von WIT:[/b][/color][/size]
+[size=12][color=#0000c0][b]Es existieren auch drei graphische Oberflächen (GUI) zur Bedienung von WIT:[/b][/color][/size]
 [list]
 [*] [url=@@URI-QTWITGUI@@][b]QtWitGui[/b], Bearbeitung einzelner Wii ISO discs.[/url]
     Dieses QT basierte GUI bietet Dinge rund um die Bearbeitung (Kopieren, modifizieren) von einzelnen WIi ISO discs.
@@ -31,7 +31,7 @@ Dieses ist das Ankündigungsthema für [url=@@URI-HOME@@][b]@@TOOLSET-SHORT@@[/b][
     WiiBaFu ist ein sehr junges QT basiertes GUI und noch voll in der Entwiklung.
 
 [*] [url=@@URI-WIIJMANAGER@@][b]WiiJManager Multiplatform[/b], ein WBFS-Manager[/url]
-    Dieses Java basierte GUI arbeitet wie andere WBFS-Manager. Umwandlung von einzelnen Wii ISO dics ist auch möglich. (Es sieht so aus, als sei das Projekt eingestellt worden)
+    Dieses Java basierte GUI arbeitet wie andere WBFS-Manager. Umwandlung von einzelnen Wii ISO Dics ist auch möglich. Leider wurde die Entwicklung schon vor einiger Zeit eingestellt.
 [/list]
 
 [size=12][color=#0000c0][b]Letzte Änderungen:[/b][/color][/size]

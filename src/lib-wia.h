@@ -435,7 +435,6 @@ enumError ReadWIA
 enumError SetupWriteWIA
 (
     struct SuperFile_t	* sf,		// file to setup
-    struct SuperFile_t	* src,		// NULL or source file
     u64			src_file_size	// NULL or source file size
 );
 

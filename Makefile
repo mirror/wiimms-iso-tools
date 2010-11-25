@@ -17,8 +17,8 @@ WWT_LONG		= Wiimms WBFS Tool
 WDF_SHORT		= wdf
 WDF_LONG		= Wiimms WDF Tool
 
-VERSION_NUM		= 1.22a
-BETA_VERSION		= 0
+VERSION_NUM		= 1.23a
+BETA_VERSION		= 1
 			# 0:off  -1:"beta"  >0:"beta#"
 
 URI_HOME		= http://wit.wiimm.de/
@@ -575,6 +575,19 @@ gen-titles:
 
 .PHONY : tools
 tools: $(ALL_TOOLS)
+
+#
+#--------------------------
+
+.PHONY : wait
+wait:
+	@printf "$(LOGFORMAT)" enable wait "(-DWAIT_ENABLED)"
+	@rm -f *.o $(ALL_TOOLS)
+	@echo "-DWAIT_ENABLED" >>$(MODE_FILE)
+	@sort $(MODE_FILE) | uniq > $(MODE_FILE).tmp
+# 2 steps to bypass a cygwin mv failure
+	@cp $(MODE_FILE).tmp $(MODE_FILE)
+	@rm -f $(MODE_FILE).tmp
 
 #
 #--------------------------

@@ -139,6 +139,22 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 	" The default unit is 'G' (GiB)."
     },
 
+    {	OPT_SPARSE, 0, "sparse",
+	0,
+	"Try to write the image with maximum sparse effect and disables"
+	" defragmentation optimization (option --defrag). The default is a"
+	" balance between --sparse and --defrag. This option has only impact"
+	" for ISO, CISO and WBFS files."
+    },
+
+    {	OPT_DEFRAG, 0, "defrag",
+	0,
+	"Try to write the image with minimal number of fragments and disables"
+	" sparse optimization (option --sparse). The default is a balance"
+	" between --sparse and --defrag. This option has only impact for ISO,"
+	" CISO and WBFS files."
+    },
+
     {	OPT_CHUNK_MODE, 0, "chunk-mode",
 	"mode",
 	"Defines an operation mode for --chunk-size and --max-chunks. Allowed"
@@ -215,7 +231,7 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 	" to 80% of the total memory minus 50 MiB."
     },
 
-    {0,0,0,0,0}, // OPT__N_SPECIFIC == 22
+    {0,0,0,0,0}, // OPT__N_SPECIFIC == 24
 
     //----- global options -----
 
@@ -264,7 +280,7 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 	">>> USE THIS OPTION IF UNSURE! <<<"
     },
 
-    {0,0,0,0,0} // OPT__N_TOTAL == 30
+    {0,0,0,0,0} // OPT__N_TOTAL == 32
 
 };
 
@@ -338,6 +354,8 @@ const struct option OptionLong[] =
 	{ "split",		0, 0, 'z' },
 	{ "split-size",		1, 0, 'Z' },
 	 { "splitsize",		1, 0, 'Z' },
+	{ "sparse",		0, 0, GO_SPARSE },
+	{ "defrag",		0, 0, GO_DEFRAG },
 	{ "chunk-mode",		1, 0, GO_CHUNK_MODE },
 	 { "chunkmode",		1, 0, GO_CHUNK_MODE },
 	 { "chm",		1, 0, GO_CHUNK_MODE },
@@ -405,12 +423,14 @@ const u8 OptionIndex[OPT_INDEX_SIZE] =
 	/*82*/	OPT_CHUNK,
 	/*83*/	OPT_WIA,
 	/*84*/	OPT_WBI,
-	/*85*/	OPT_CHUNK_MODE,
-	/*86*/	OPT_CHUNK_SIZE,
-	/*87*/	OPT_MAX_CHUNKS,
-	/*88*/	OPT_COMPRESSION,
-	/*89*/	OPT_MEM,
-	/*8a*/	 0,0,0,0, 0,0,
+	/*85*/	OPT_SPARSE,
+	/*86*/	OPT_DEFRAG,
+	/*87*/	OPT_CHUNK_MODE,
+	/*88*/	OPT_CHUNK_SIZE,
+	/*89*/	OPT_MAX_CHUNKS,
+	/*8a*/	OPT_COMPRESSION,
+	/*8b*/	OPT_MEM,
+	/*8c*/	 0,0,0,0, 
 	/*90*/	 0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0,
 	/*a0*/	 0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0,
 	/*b0*/	 0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0,
@@ -421,39 +441,39 @@ const u8 OptionIndex[OPT_INDEX_SIZE] =
 ///////////////                opt_allowed_cmd_*                ///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-static u8 option_allowed_cmd_VERSION[22] = // cmd #1
+static u8 option_allowed_cmd_VERSION[24] = // cmd #1
 {
-    0,0,1,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,  0,0
+    0,0,1,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,  0,0,0,0
 };
 
-static u8 option_allowed_cmd_HELP[22] = // cmd #2
+static u8 option_allowed_cmd_HELP[24] = // cmd #2
 {
-    1,1,1,1,1, 1,1,1,1,1,  1,1,1,1,1, 1,1,1,1,1,  1,1
+    1,1,1,1,1, 1,1,1,1,1,  1,1,1,1,1, 1,1,1,1,1,  1,1,1,1
 };
 
-static u8 option_allowed_cmd_PACK[22] = // cmd #3
+static u8 option_allowed_cmd_PACK[24] = // cmd #3
 {
-    0,0,0,0,1, 1,1,1,1,1,  1,1,1,1,1, 1,1,1,1,1,  1,1
+    0,0,0,0,1, 1,1,1,1,1,  1,1,1,1,1, 1,1,1,1,1,  1,1,1,1
 };
 
-static u8 option_allowed_cmd_UNPACK[22] = // cmd #4
+static u8 option_allowed_cmd_UNPACK[24] = // cmd #4
 {
-    0,0,0,0,0, 0,0,0,0,1,  1,1,1,1,1, 1,1,1,1,1,  1,1
+    0,0,0,0,0, 0,0,0,0,1,  1,1,1,1,1, 1,1,1,1,1,  1,1,1,1
 };
 
-static u8 option_allowed_cmd_CAT[22] = // cmd #5
+static u8 option_allowed_cmd_CAT[24] = // cmd #5
 {
-    0,0,0,0,0, 0,0,0,0,1,  1,0,0,1,0, 1,1,1,1,1,  1,1
+    0,0,0,0,0, 0,0,0,0,1,  1,0,0,1,0, 1,1,1,1,1,  1,1,1,1
 };
 
-static u8 option_allowed_cmd_CMP[22] = // cmd #6
+static u8 option_allowed_cmd_CMP[24] = // cmd #6
 {
-    0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,  0,0
+    0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,  0,0,0,0
 };
 
-static u8 option_allowed_cmd_DUMP[22] = // cmd #7
+static u8 option_allowed_cmd_DUMP[24] = // cmd #7
 {
-    0,1,1,1,0, 0,0,0,0,1,  1,0,0,1,0, 0,0,0,0,0,  0,0
+    0,1,1,1,0, 0,0,0,0,1,  1,0,0,1,0, 0,0,0,0,0,  0,0,0,0
 };
 
 
@@ -502,6 +522,8 @@ static const InfoOption_t * option_tab_cmd_PACK[] =
 	OptionInfo + OPT_OVERWRITE,
 	OptionInfo + OPT_SPLIT,
 	OptionInfo + OPT_SPLIT_SIZE,
+	OptionInfo + OPT_SPARSE,
+	OptionInfo + OPT_DEFRAG,
 	OptionInfo + OPT_CHUNK_MODE,
 	OptionInfo + OPT_CHUNK_SIZE,
 	OptionInfo + OPT_MAX_CHUNKS,
@@ -529,6 +551,8 @@ static const InfoOption_t * option_tab_cmd_UNPACK[] =
 	OptionInfo + OPT_OVERWRITE,
 	OptionInfo + OPT_SPLIT,
 	OptionInfo + OPT_SPLIT_SIZE,
+	OptionInfo + OPT_SPARSE,
+	OptionInfo + OPT_DEFRAG,
 	OptionInfo + OPT_CHUNK_MODE,
 	OptionInfo + OPT_CHUNK_SIZE,
 	OptionInfo + OPT_MAX_CHUNKS,
@@ -548,6 +572,8 @@ static const InfoOption_t * option_tab_cmd_CAT[] =
 	OptionInfo + OPT_OVERWRITE,
 	OptionInfo + OPT_SPLIT,
 	OptionInfo + OPT_SPLIT_SIZE,
+	OptionInfo + OPT_SPARSE,
+	OptionInfo + OPT_DEFRAG,
 	OptionInfo + OPT_CHUNK_MODE,
 	OptionInfo + OPT_CHUNK_SIZE,
 	OptionInfo + OPT_MAX_CHUNKS,
@@ -631,7 +657,7 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	"+P",
 	"wdf +PACK [option]... files...",
 	"Pack sources into WDF or CISO archives. This is the general default.",
-	18,
+	20,
 	option_tab_cmd_PACK,
 	option_allowed_cmd_PACK
     },
@@ -645,7 +671,7 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	"Unpack WDF and CISO archives.\n"
 	"  This is the default command, when the program name starts with the"
 	" two letters 'un' in any case.",
-	13,
+	15,
 	option_tab_cmd_UNPACK,
 	option_allowed_cmd_UNPACK
     },
@@ -661,7 +687,7 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	" by byte.\n"
 	"  This is the default command, when the program name contains the sub"
 	" string 'cat' in any case.",
-	10,
+	12,
 	option_tab_cmd_CAT,
 	option_allowed_cmd_CAT
     },

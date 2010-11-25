@@ -239,7 +239,7 @@ enumError DecBZIP2_Read
 
     int bzerror;
     const u32 written = BZ2_bzRead(&bzerror,bz->handle,buf,buf_size);
-    noPRINT("BZREAD, num=%x, datasize=%x, err=%d\n",written,file_data_size,bzerror);
+    noPRINT("BZREAD, num=%x, buf_size=%zx, err=%d\n",written,buf_size,bzerror);
     if ( bzerror != BZ_STREAM_END )
     {
 	BZ2_bzReadClose(0,bz->handle);

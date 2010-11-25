@@ -137,7 +137,8 @@ enumError CheckEnvOptions ( ccp varname, check_opt_func );
  #define AnalyzeWH(f,h,p)	XAnalyzeWH	(__FUNCTION__,__FILE__,__LINE__,f,h,p)
  #define TellF(f)		XTellF		(__FUNCTION__,__FILE__,__LINE__,f)
  #define SeekF(f,o)		XSeekF		(__FUNCTION__,__FILE__,__LINE__,f,o)
- #define SetSizeF(f,o)		XSetSizeF	(__FUNCTION__,__FILE__,__LINE__,f,o)
+ #define SetSizeF(f,s)		XSetSizeF	(__FUNCTION__,__FILE__,__LINE__,f,s)
+ #define PreallocateF(f,o,s)	XPreallocateF	(__FUNCTION__,__FILE__,__LINE__,f,o,s)
  #define ReadF(f,b,c)		XReadF		(__FUNCTION__,__FILE__,__LINE__,f,b,c)
  #define WriteF(f,b,c)		XWriteF		(__FUNCTION__,__FILE__,__LINE__,f,b,c)
  #define ReadAtF(f,o,b,c)	XReadAtF	(__FUNCTION__,__FILE__,__LINE__,f,o,b,c)
@@ -171,7 +172,8 @@ enumError CheckEnvOptions ( ccp varname, check_opt_func );
  #define AnalyzeWH(f,h,p)	XAnalyzeWH	(f,h,p)
  #define TellF(f)		XTellF		(f)
  #define SeekF(f,o)		XSeekF		(f,o)
- #define SetSizeF(f,o)		XSetSizeF	(f,o)
+ #define SetSizeF(f,s)		XSetSizeF	(f,s)
+ #define PreallocateF(f,o,s)	XPreallocateF	(f,o,s)
  #define ReadF(f,b,c)		XReadF		(f,b,c)
  #define WriteF(f,b,c)		XWriteF		(f,b,c)
  #define ReadAtF(f,o,b,c)	XReadAtF	(f,o,b,c)
@@ -439,6 +441,7 @@ typedef struct File_t
 	off_t file_off;		// current real file offset
 	off_t cur_off;		// current virtual file offset
 	off_t max_off;		// max file offset
+	off_t prealloc_size;	// if >0: size of preallocation
 	int   read_behind_eof;	// 0:disallow, 1:allow+print warning, 2:allow silently
 
 	// read cache
@@ -510,7 +513,8 @@ enumError StatFile ( struct stat * st, ccp fname, int fd );
 
 enumError XTellF	 ( XPARM File_t * f );
 enumError XSeekF	 ( XPARM File_t * f, off_t off );
-enumError XSetSizeF	 ( XPARM File_t * f, off_t off );
+enumError XSetSizeF	 ( XPARM File_t * f, off_t size );
+enumError XPreallocateF	 ( XPARM File_t * f, off_t off, off_t size );
 enumError XReadF	 ( XPARM File_t * f,                  void * iobuf, size_t count );
 enumError XWriteF	 ( XPARM File_t * f,            const void * iobuf, size_t count );
 enumError XReadAtF	 ( XPARM File_t * f, off_t off,       void * iobuf, size_t count );
@@ -591,7 +595,22 @@ enumError SaveFile ( ccp path1, ccp path2, bool create_dir,
 
 //
 ///////////////////////////////////////////////////////////////////////////////
-///////////////                string functions                 ///////////////
+///////////////		    preallocation options		///////////////
+///////////////////////////////////////////////////////////////////////////////
+
+typedef enum PreallocMode
+{
+    PREALLOC_SPARSE,	// maximum sparse effect == no preallocation
+    PREALLOC_DEFAULT,	// default = good mix of sparse and preallocation
+    PREALLOC_DEFRAG,	// minimum sparse effect == maximum preallocation
+
+} PreallocMode;
+
+extern PreallocMode prealloc_mode;
+
+//
+///////////////////////////////////////////////////////////////////////////////
+///////////////			string functions		///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
 ccp PathCatPP  ( char * buf, size_t bufsize, ccp path1, ccp path2 );

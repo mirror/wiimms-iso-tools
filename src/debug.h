@@ -91,6 +91,10 @@
 extern FILE * TRACE_FILE;
 void TRACE_FUNC ( const char * format, ...);
 void TRACE_ARG_FUNC ( const char * format, va_list arg );
+void PRINT_FUNC ( const char * format, ...);
+void PRINT_ARG_FUNC ( const char * format, va_list arg );
+void WAIT_FUNC ( const char * format, ...);
+void WAIT_ARG_FUNC ( const char * format, va_list arg );
 
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -99,8 +103,22 @@ void TRACE_ARG_FUNC ( const char * format, va_list arg );
     #undef DEBUG
     #define DEBUG 1
 
+    #undef TEST
+    #define TEST 1
+
+    #undef WAIT_ENABLED
+    #define WAIT_ENABLED 1
+
+    #undef NEW_FEATURES
+    #define NEW_FEATURES 1
+
     #define TRACE_FUNC printf
+    #define PRINT_FUNC printf
+    #define WAIT_FUNC  printf
+
     #define TRACE_ARG_FUNC vprintf
+    #define PRINT_ARG_FUNC vprintf
+    #define WAIT_ARG_FUNC  vprintf
 
 #endif
 
@@ -168,15 +186,32 @@ void TRACE_ARG_FUNC ( const char * format, va_list arg );
 
 #if defined(DEBUG) && defined(TEST)
 
-    #define PRINT(...) printf(__VA_ARGS__)
-    #define PRINT_IF(cond,...) if (cond) printf(__VA_ARGS__)
-    #define BINGO printf("BINGO! %s() #%d @ %s\n",__FUNCTION__,__LINE__,__FILE__)
+    #define PRINT(...) PRINT_FUNC(__VA_ARGS__)
+    #define PRINT_IF(cond,...) if (cond) PRINT_FUNC(__VA_ARGS__)
+    #define BINGO PRINT_FUNC("BINGO! %s() #%d @ %s\n",__FUNCTION__,__LINE__,__FILE__)
 
 #else
 
     #define PRINT(...)
     #define PRINT_IF(cond,...)
     #define BINGO
+
+#endif
+
+///////////////////////////////////////////////////////////////////////////////
+
+#undef WAIT
+#undef WAIT_IF
+
+#if defined(WAIT_ENABLED)
+
+    #define WAIT(...) WAIT_FUNC(__VA_ARGS__)
+    #define WAIT_IF(cond,...) if (cond) WAIT_FUNC(__VA_ARGS__)
+
+#else
+
+    #define WAIT(...)
+    #define WAIT_IF(cond,...)
 
 #endif
 
@@ -201,34 +236,40 @@ void TRACE_ARG_FUNC ( const char * format, va_list arg );
 
 // prefix 'no' deactivates traces
 
-#undef noPRINT
-#undef noPRINT_IF
 #undef noTRACE
 #undef noTRACE_IF
 #undef noTRACELINE
 #undef noTRACE_SIZEOF
+#undef noPRINT
+#undef noPRINT_IF
+#undef noWAIT
+#undef noWAIT_IF
 #undef noASSERT
 
 
 #ifdef TESTTRACE
 
-    #define noPRINT		PRINT
-    #define noPRINT_IF		PRINT_IF
     #define noTRACE		TRACE
     #define noTRACE_IF		TRACE_IF
     #define noTRACELINE		TRACELINE
     #define noTRACE_SIZEOF	TRACE_SIZEOF
+    #define noPRINT		PRINT
+    #define noPRINT_IF		PRINT_IF
+    #define noWAIT		WAIT
+    #define noWAIT_IF		WAIT_IF
     #define noASSERT		ASSERT
     #define noASSERT_MSG	ASSERT_MSG
 
 #else
 
-    #define noPRINT(...)
-    #define noPRINT_IF(...)
     #define noTRACE(...)
     #define noTRACE_IF(cond,...)
     #define noTRACELINE
     #define noTRACE_SIZEOF(t)
+    #define noPRINT(...)
+    #define noPRINT_IF(...)
+    #define noWAIT(...)
+    #define noWAIT_IF(...)
     #define noASSERT(cond)
     #define noASSERT_MSG(cond,...)
 

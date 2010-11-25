@@ -1340,6 +1340,27 @@ enumError CreateGrowingWBFS ( WBFS_t * w, SuperFile_t * sf, off_t size, int sect
     ASSERT(sector_size);
     TRACE("CreateGrowingWBFS(%p,%p,%d)\n",w,sf,sector_size);
 
+    if ( S_ISREG(sf->f.st.st_mode) && sf->src && prealloc_mode > PREALLOC_SPARSE )
+    {
+	const u32 bl_size = wbfs_calc_sect_size(size,sector_size);
+	if ( prealloc_mode == PREALLOC_DEFRAG )
+	{
+	    wd_disc_t * disc = OpenDiscSF(sf->src,false,false);
+	    if (disc)
+	    {
+		const u32 n_blocks = wd_count_used_disc_blocks(disc,bl_size/WII_SECTOR_SIZE,0);
+		PreallocateF(&sf->f,0,(n_blocks+1)*(u64)bl_size);
+	    }
+	}
+	else
+	{
+	    PreallocateF(&sf->f,0,sector_size
+				+  ALIGN64( sizeof(wbfs_disc_info_t)
+					+ 2*WII_MAX_DISC_SIZE/bl_size,sector_size) );
+	    PreallocateSF(sf,bl_size,0,bl_size/WII_SECTOR_SIZE,1);
+	}
+    }
+
     wbfs_param_t par;
     memset(&par,0,sizeof(par));
 

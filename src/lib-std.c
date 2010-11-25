@@ -90,6 +90,7 @@ u32		job_limit		= ~(u32)0;
 enumIOMode	io_mode			= 0;
 bool		opt_no_expand		= false;
 u32		opt_recurse_depth	= DEF_RECURSE_DEPTH;
+PreallocMode	prealloc_mode		= PREALLOC_DEFAULT;
 
 StringField_t	source_list;
 StringField_t	recurse_list;
@@ -3944,14 +3945,15 @@ size_t ReadDataList // returns number of writen bytes
 	{
 	    if (!dl->current.size)
 	    {
-		noPRINT("NEXT AREA: %p, %p, %u\n", dl->area, dl->area->data, dl->area->size );
+		noPRINT("NEXT AREA: %p, %p, %zu\n",
+			dl->area, dl->area->data, dl->area->size );
 		if (!dl->area->data)
 		    break;
 		memcpy(&dl->current,dl->area++,sizeof(dl->current));
 	    }
 
 	    const size_t copy_size = size < dl->current.size ? size : dl->current.size;
-	    noPRINT("COPY AREA: %p <- %p, size = %u=%x\n",
+	    noPRINT("COPY AREA: %p <- %p, size = %zu=%zx\n",
 			dest,dl->current.data,copy_size,copy_size);
 	    memcpy(dest,dl->current.data,copy_size);
 	    written		+= copy_size;

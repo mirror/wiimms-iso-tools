@@ -1158,7 +1158,7 @@ static enumError create_output_image
     if (opt_split)
 	SetupSplitFile(&mp->fo.f,mp->fo.iod.oft,opt_split_size);
 
-    err = SetupWriteSF(&mp->fo,mp->fo.iod.oft,0);
+    err = SetupWriteSF(&mp->fo,mp->fo.iod.oft);
     if (err)
 	return err;
 

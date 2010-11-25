@@ -1533,6 +1533,7 @@ enumError exec_copy ( SuperFile_t * fi, Iterator_t * it )
     SuperFile_t fo;
     InitializeSF(&fo);
     SetupIOD(&fo,oft,oft);
+    fo.src = fi;
 
     if (convert_it)
 	fo.f.fname = strdup(fname);
@@ -1568,6 +1569,7 @@ enumError exec_copy ( SuperFile_t * fi, Iterator_t * it )
     fo.show_msec	= verbose > 2;
 
     const bool raw_mode = part_selector.whole_disc || !fi->f.id6[0];
+    fo.raw_mode = raw_mode;
 
     if ( testmode ||  verbose >= 0 )
     {
@@ -1582,13 +1584,13 @@ enumError exec_copy ( SuperFile_t * fi, Iterator_t * it )
 	else
 	    *split_buf = 0;
 
-	printf( "* %s%s%s %s %s%s:%s -> %s:%s\n",
+	printf( "* %s%s/%s %s %s%s:%s -> %s:%s\n",
 		testmode ? "WOULD " : "",
 		it->diff_it ? "DIFF" : convert_it ? "CONVERT" : "COPY",
 		it->diff_it
-			? ( raw_mode ? "/RAW" : OptionUsed[OPT_FILES]
-				? "/FILES" : "/SCRUB" )
-			: ( raw_mode ? "" : "+SCRUB" ),
+			? ( raw_mode ? "RAW" : OptionUsed[OPT_FILES]
+				? "FILES" : "SCRUB" )
+			: ( raw_mode ? "RAW" : "SCRUB" ),
 		count_buf,
 		oft_info[fi->iod.oft].name, split_buf, fi->f.fname,
 		oft_info[oft].name, fo.f.fname );
@@ -1650,11 +1652,11 @@ enumError exec_copy ( SuperFile_t * fi, Iterator_t * it )
     if (opt_split)
 	SetupSplitFile(&fo.f,oft,opt_split_size);
 
-    err = SetupWriteSF(&fo,oft,fi);
+    err = SetupWriteSF(&fo,oft);
     if (err)
 	goto abort;
 
-    err = CopySF( fi, &fo, raw_mode );
+    err = CopySF(fi,&fo);
     if (err)
 	goto abort;
 
@@ -1665,6 +1667,7 @@ enumError exec_copy ( SuperFile_t * fi, Iterator_t * it )
     if ( SIGINT_level > 1 )
 	goto abort;
     
+    fo.src = 0;
     FileAttrib_t fatt;
     memcpy(&fatt,&fi->f.fatt,sizeof(fatt));
     if (it->remove_source)
@@ -2300,6 +2303,8 @@ enumError CheckOptions ( int argc, char ** argv, bool is_env )
 	case GO_DEST2:		SetDest(optarg,true); break;
 	case GO_SPLIT:		opt_split++; break;
 	case GO_SPLIT_SIZE:	err += ScanOptSplitSize(optarg); break;
+	case GO_SPARSE:		prealloc_mode = PREALLOC_SPARSE; break;
+	case GO_DEFRAG:		prealloc_mode = PREALLOC_DEFRAG; break;
 	case GO_TRUNC:		opt_truncate++; break;
 	case GO_CHUNK_MODE:	err += ScanChunkMode(optarg); break;
 	case GO_CHUNK_SIZE:	err += ScanChunkSize(optarg); break;
@@ -2503,6 +2508,7 @@ int main ( int argc, char ** argv )
 
     InitializeStringField(&source_list);
     InitializeStringField(&recurse_list);
+
 
     //----- process arguments
 

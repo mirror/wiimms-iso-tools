@@ -158,11 +158,12 @@ static enumError OpenOutput
     DASSERT( !fi || IsOpenSF(fi) );
     if ( fi && fi->iod.oft == OFT_UNKNOWN )
     {
+	fo->src = fi;
 	SetupIOD(fi,OFT_PLAIN,OFT_PLAIN);
 	fi->file_size = fi->f.st.st_size;
     }
 
-    enumError err = CreateSF(fo,fname,create_oft,IOM_FORCE_STREAM,opt_overwrite,fi);
+    enumError err = CreateSF(fo,fname,create_oft,IOM_FORCE_STREAM,opt_overwrite);
     if ( !err && opt_split && GetFileMode(fo->f.st.st_mode) == FM_PLAIN )
 	err = SetupSplitFile(&fo->f,fo->iod.oft,opt_split_size);
 
@@ -1073,6 +1074,8 @@ enumError CheckOptions ( int argc, char ** argv )
 
 	case GO_SPLIT:		opt_split++; break;
 	case GO_SPLIT_SIZE:	err += ScanOptSplitSize(optarg); break;
+	case GO_SPARSE:		prealloc_mode = PREALLOC_SPARSE; break;
+	case GO_DEFRAG:		prealloc_mode = PREALLOC_DEFRAG; break;
 	case GO_CHUNK_MODE:	err += ScanChunkMode(optarg); break;
 	case GO_CHUNK_SIZE:	err += ScanChunkSize(optarg); break;
 	case GO_MAX_CHUNKS:	err += ScanMaxChunks(optarg); break;

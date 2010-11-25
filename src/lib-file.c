@@ -305,8 +305,15 @@ enumError XClearFile ( XPARM File_t * f, bool remove_file )
 
 enumError XCloseFile ( XPARM File_t * f, bool remove_file )
 {
-    ASSERT(f);
+    DASSERT(f);
     TRACE("#F# CloseFile(%p,%d) fd=%d fp=%p\n",f,remove_file,f->fd,f->fp);
+
+    if ( !remove_file && f->prealloc_size > f->max_off && IsOpenF(f) )
+    {
+	PRINT("PREALLOC/CLOSE: pre=%llx, max=%llx   \n",
+		(u64)f->prealloc_size, (u64)f->max_off );
+	XSetSizeF(XCALL f,f->max_off);
+    }
 
     bool close_err = false;
     if ( f->fp )
@@ -317,7 +324,6 @@ enumError XCloseFile ( XPARM File_t * f, bool remove_file )
     f->fp =  0;
     f->fd = -1;
 
-    TRACELINE;
     enumError err = ERR_OK;
     if (close_err)
     {
@@ -1844,25 +1850,25 @@ enumError XSeekF ( XPARM File_t * f, off_t off )
 
 ///////////////////////////////////////////////////////////////////////////////
 
-enumError XSetSizeF ( XPARM File_t * f, off_t off )
+enumError XSetSizeF ( XPARM File_t * f, off_t size )
 {
     ASSERT(f);
     TRACE(TRACE_SEEK_FORMAT, "#F# SetSizeF()",
-		GetFD(f), GetFP(f), (u64)off,
-		off < f->max_off ? " <" : off > f->max_off ? " >" : "" );
+		GetFD(f), GetFP(f), (u64)size,
+		size < f->max_off ? " <" : size > f->max_off ? " >" : "" );
 
     if (f->split_f)
     {
-	f->max_off = off;
+	f->max_off = size;
 
 	uint index;
-	enumError err = XFindSplitFile( XCALL f, &index, &off );
+	enumError err = XFindSplitFile( XCALL f, &index, &size );
 	if (err)
 	    return err;
 	ASSERT( index < MAX_SPLIT_FILES );
 	File_t ** ptr = f->split_f + index;
 	ASSERT(*ptr);
-	XSetSizeF(XCALL *ptr,off);
+	XSetSizeF(XCALL *ptr,size);
 
 	int count = f->split_used - index;
 	f->split_used = index+1;
@@ -1882,12 +1888,12 @@ enumError XSetSizeF ( XPARM File_t * f, off_t off )
     if (f->fp)
 	fflush(f->fp); // [2do] ? error handling
 
-    if ( !f->seek_allowed && f->cur_off <= off )
+    if ( !f->seek_allowed && f->cur_off <= size )
     {
-	if (!XSeekF(XCALL f,off))
+	if (!XSeekF(XCALL f,size))
 	    return f->last_error;
     }
-    else if (ftruncate(f->fd,off))
+    else if (ftruncate(f->fd,size))
     {
 	f->last_error = ERR_WRITE_FAILED;
 	if ( f->max_error < f->last_error )
@@ -1895,15 +1901,88 @@ enumError XSetSizeF ( XPARM File_t * f, off_t off )
 	if (!f->disable_errors)
 	    PrintError( XERROR1, f->last_error,
 			"Set file size failed [%c=%d,%llu]: %s\n",
-			GetFT(f), GetFD(f), off, f->fname );
+			GetFT(f), GetFD(f), size, f->fname );
 	return f->last_error;
     }
 
-    TRACE("fd=%d truncated to %llx\n",f->fd,(u64)off);
+    PRINT("fd=%d truncated to %llx\n",f->fd,(u64)size);
     f->setsize_count++;
-    if ( f->max_off < off )
-	f->max_off = off;
+    f->max_off = size;
     return ERR_OK;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+enumError XPreallocateF
+(
+    XPARM			// debugging and tracing infos
+    File_t	* f,		// valid file, writing
+    off_t	off,		// offset
+    off_t	size		// needed size
+)
+{
+    DASSERT(f);
+    enumError err = ERR_OK;
+    if (size)
+    {
+	PRINT("PREALLOC/FILE fd=%d, %llx+%llx max=%llu: %s\n",
+		f->fd, (u64)off, (u64)size, (u64)f->max_off, f->fname );
+	TRACE("PREALLOC/FILE fd=%d, %llx+%llx max=%llu: %s\n",
+		f->fd, (u64)off, (u64)size, (u64)f->max_off, f->fname );
+
+	const off_t max = off + size;
+	if ( f->prealloc_size < max )
+	     f->prealloc_size = max;
+
+	if (f->split_f)
+	{
+
+	    File_t ** ptr = f->split_f;
+	    while ( size > 0 )
+	    {
+		if (!*ptr)
+		{
+		    enumError err = XCreateSplitFile( XCALL f, ptr-f->split_f );
+		    if (err)
+			return err;
+		}
+
+		File_t *cur = *ptr;
+		ASSERT(cur);
+
+		if ( off < cur->split_filesize )
+		{
+		    // write to this file
+		    const off_t max_size = cur->split_filesize - off;
+		    const off_t cur_size = size < max_size ? size : max_size;
+		    err = XPreallocateF(XCALL cur, off, cur_size );
+		    if (err)
+			break;
+		    size -= cur_size;
+		    off = 0;
+		}
+		else
+		{
+		    // skip this file
+		    off -= cur->split_filesize;
+		}
+		ptr++;
+	    }
+	}
+	else if (posix_fallocate(f->fd,off,size))
+	{
+	    err = f->last_error = ERR_WRITE_FAILED;
+	    if ( !f->disable_errors )
+		ERROR1(err,
+			"Can't preallocate disc space [%c=%d,%llu+%llu]: %s\n",
+			GetFT(f), GetFD(f), (u64)off, (u64)size, f->fname );
+	    if ( f->max_error < f->last_error )
+		 f->max_error = f->last_error;
+	}
+	else
+	    WAIT("\0");
+    }
+    return err;
 }
 
 ///////////////////////////////////////////////////////////////////////////////

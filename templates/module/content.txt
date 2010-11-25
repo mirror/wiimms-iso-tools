@@ -10,8 +10,6 @@ The documentation is divided into several files:
 
   wit.txt           : Documentation about the tool 'wit'.
   wwt.txt           : Documentation about the tool 'wwt'.
-  wdf-cat.txt       : Documentation about the tool 'wdf-cat'.
-  wdf-dump.txt      : Documentation about the tool 'wdf-dump'.
 
   WDF.txt           : Definition of a WDF file.
   WBFS.txt          : Interesting things about WBFS

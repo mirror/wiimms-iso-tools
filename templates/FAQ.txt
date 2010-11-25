@@ -50,9 +50,12 @@
 
 * What are 'wdf-cat' and 'wdf-dump'?
 
-    'wdf-cat' and 'wdf-dump' are tools to confirm the WDF-Conversion (see file
-    'WDF.txt' for details). 'wdf-cat' copy any files to stdout. WDF files are
-    converted. 'wdf-dump' shows the internal data structure of WDF files.
+    These 2 discontinued tools are tools to confirm the WDF-Conversion (see
+    file 'WDF.txt' for details). 'wdf-cat' copy any files to stdout. WDF files
+    are converted. 'wdf-dump' shows the internal data structure of WDF files.
+
+    Both tools are replaced by 'wdf', which has the same functinality and is
+    linked to 'wdf-cat' and 'wdf-dump'.
 
 
 *******************************************************************************

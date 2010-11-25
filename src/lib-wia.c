@@ -48,7 +48,7 @@
 
 ///////////////////////////////////////////////////////////////////////////////
 
-#if 1
+#if 0
     #undef  PRINT
     #define PRINT noPRINT
     #undef  PRINT_IF
@@ -1341,7 +1341,7 @@ static wia_segment_t * calc_segments
     while ( src_end > src && !src_end[-1] )
 	src_end--;
     const u32 * src_end2 = src + 2 >= src_end ? src : src_end - 2;
-    noPRINT("SRC: %p, end=%x,%x\n", src, src_end2-src, src_end-src );
+    noPRINT("SRC: %p, end=%zx,%zx\n", src, src_end2-src, src_end-src );
 
     while ( src < src_end )
     {
@@ -1504,7 +1504,7 @@ static enumError write_data
 	    return err;
 
 	noPRINT(">> WRITE BZIP2: %9llx, %6x+%6x => %6x, grp %d\n",
-		    wia->write_data_off, except_size, data_size, nbytes_out, group );
+		    wia->write_data_off, except_size, data_size, written, group );
 
 	sf->f.max_off = wia->write_data_off + written;
       }
@@ -1688,7 +1688,7 @@ static enumError write_part_data
 	    {
 		if (memcmp(h1,h2,WII_HASH_SIZE))
 		{
-		    TRACE("%5u.%02u.H0.%02u -> %04x,%04x\n",
+		    TRACE("%5u.%02u.H0.%02u -> %04zx,%04zx\n",
 				wia->gdata_group, is, ih,
 				h1 - hashtab1,  h2 - hashtab2 );
 		    except->offset = htons(h1-hashtab1);
@@ -1705,7 +1705,7 @@ static enumError write_part_data
 	    {
 		if (memcmp(h1,h2,WII_HASH_SIZE))
 		{
-		    TRACE("%5u.%02u.H1.%u  -> %04x,%04x\n",
+		    TRACE("%5u.%02u.H1.%u  -> %04zx,%04zx\n",
 				wia->gdata_group, is, ih,
 				h1 - hashtab1,  h2 - hashtab2 );
 		    except->offset = htons(h1-hashtab1);
@@ -1722,7 +1722,7 @@ static enumError write_part_data
 	    {
 		if (memcmp(h1,h2,WII_HASH_SIZE))
 		{
-		    TRACE("%5u.%02u.H2.%u  -> %04x,%04x\n",
+		    TRACE("%5u.%02u.H2.%u  -> %04zx,%04zx\n",
 				wia->gdata_group, is, ih,
 				h1 - hashtab1,  h2 - hashtab2 );
 		    except->offset = htons(h1-hashtab1);
@@ -2259,7 +2259,20 @@ static enumError FinishSetupWriteWIA
 
     wia->is_valid = true;
     SetupIOD(sf,OFT_WIA,OFT_WIA);
- 
+
+    //----- preallocate disc space
+
+    if ( disc->compression >= WD_COMPR__FIRST_REAL )
+    {
+	if ( sf->src && !sf->raw_mode )
+	{
+	    wd_disc_t * disc = OpenDiscSF(sf->src,false,true);
+	    if (disc)
+		fsize = wd_count_used_disc_size(disc,1,0);
+	}
+	PreallocateF(&sf->f,0,fsize);
+    }
+
     return ERR_OK;
 }
 
@@ -2294,14 +2307,13 @@ static void setup_dynamic_mem
 enumError SetupWriteWIA
 (
     struct SuperFile_t	* sf,		// file to setup
-    struct SuperFile_t	* src,		// NULL or source file
     u64			src_file_size	// NULL or source file size
 )
 {
     ASSERT(sf);
-    PRINT("#W# SetupWriteWIA(%p,%p,%llx) file=%d/%p, oft=%x, wia=%p, v=%s/%s\n",
-		sf, src, src_file_size,
-		GetFD(&sf->f), GetFP(&sf->f),
+    PRINT("#W# SetupWriteWIA(%p,%llx) src=%p, file=%d/%p, oft=%x, wia=%p, v=%s/%s\n",
+		sf, src_file_size,
+		sf->src, GetFD(&sf->f), GetFP(&sf->f),
 		sf->iod.oft, sf->wia,
 		PrintVersionWIA(0,0,WIA_VERSION_COMPATIBLE),
 		PrintVersionWIA(0,0,WIA_VERSION) );
@@ -2332,7 +2344,8 @@ enumError SetupWriteWIA
     fhead->magic[3]++; // magic is invalid now
     fhead->version		= WIA_VERSION;
     fhead->version_compatible	= WIA_VERSION_COMPATIBLE;
-    fhead->iso_file_size	= src_file_size ? src_file_size : src ? src->file_size : 0;
+    fhead->iso_file_size	= src_file_size ? src_file_size
+					: sf->src ? sf->src->file_size : 0;
 
     //----- setup disc info && compression
 
@@ -2397,10 +2410,10 @@ enumError SetupWriteWIA
 
     //----- check source disc type
 
-    if (!src)
+    if (!sf->src)
 	return FinishSetupWriteWIA(sf);
 
-    wd_disc_t * wdisc = OpenDiscSF(src,true,false);
+    wd_disc_t * wdisc = OpenDiscSF(sf->src,true,false);
     if (!wdisc)
 	return FinishSetupWriteWIA(sf);
     wia->wdisc = wd_dup_disc(wdisc);
@@ -2475,7 +2488,7 @@ enumError SetupWriteWIA
 	wia->group_used		+= pd->n_groups;
 
 	noTRACE("PT %u, sect = %x,%x,%x\n",
-		ip, part->first_sector, part->n_sectors, part->n_groups );
+		ip, pd->first_sector, pd->n_sectors, pd->n_groups );
     }
 
     wd_insert_memmap_disc_part(&wia->memmap,wdisc,setup_dynamic_mem,wia,

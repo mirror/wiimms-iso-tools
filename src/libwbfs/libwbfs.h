@@ -145,7 +145,7 @@ typedef struct wbfs_t
 
     /* standard wii sector (0x8000 bytes) */
     u32		wii_sec_sz;		// always WII_SECTOR_SIZE
-    u8		wii_sec_sz_s;	// always 15
+    u8		wii_sec_sz_s;		// always 15
     u32		n_wii_sec;
     u32		n_wii_sec_per_disc;	// always WII_MAX_SECTORS
 
@@ -291,6 +291,8 @@ wbfs_t * wbfs_open_partition_param ( wbfs_param_t * par );
 
 int wbfs_calc_size_shift
 	( u32 hd_sec_sz_s, u32 num_hd_sector, int old_wii_sector_calc );
+
+u32 wbfs_calc_sect_size ( u64 total_size, u32 hd_sec_size );
 
 void wbfs_calc_geometry
 (

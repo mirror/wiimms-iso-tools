@@ -766,7 +766,7 @@ enumError RewriteModifiedSF ( SuperFile_t * fi, SuperFile_t * fo, WBFS_t * wbfs 
 
     memcpy(&fo->iod,&iod,sizeof(fo->iod));
     fo->wbfs = saved_wbfs;
-    TRACE("--- RewriteModifiedSF() err=%u: END\n");
+    TRACE("--- RewriteModifiedSF() err=%u: END\n",err);
     return err;
 }
 
