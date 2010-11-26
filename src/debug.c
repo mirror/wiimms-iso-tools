@@ -54,7 +54,10 @@ static void trace_helper ( int print_stderr, const char * format, va_list arg )
     {
 	fflush(stdout);
 	fprintf(stderr,"%4d.%03d  ",msec/1000,msec%1000);
-	vfprintf(stderr,format,arg);
+	va_list arg2;
+	va_copy(arg2,arg);
+	vfprintf(stderr,format,arg2);
+	va_end(arg2);
 	fflush(stderr);
     }
 

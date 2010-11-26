@@ -444,9 +444,10 @@ enumError SetupWriteCISO ( SuperFile_t * sf )
 	    wd_disc_t * disc = OpenDiscSF(sf->src,false,false);
 	    if (disc)
 	    {
-		const u32 n_blocks
-		    = wd_count_used_disc_blocks(disc,ci->block_size/WII_SECTOR_SIZE,0);
-		PreallocateF(&sf->f,0,n_blocks*(u64)ci->block_size+sizeof(CISO_Head_t));
+		const int sect_per_block = ci->block_size / WII_SECTOR_SIZE;
+		const u32 n_blocks = wd_count_used_disc_blocks(disc,-sect_per_block,0);
+		noPRINT("NB = %u\n",n_blocks);
+		PreallocateF(&sf->f,0,(n_blocks+sect_per_block)*(u64)WII_SECTOR_SIZE);
 	    }
 	}
 	else

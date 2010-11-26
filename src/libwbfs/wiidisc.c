@@ -2624,8 +2624,11 @@ u32 wd_pack_usage_table // returns the index if the 'last_used_sector + 1'
 u64 wd_count_used_disc_size
 (
     wd_disc_t		* disc,		// valid pointer to a disc
-    u32			block_size,	// if >1: count every 'block_size'
+    int			block_size,	// if >1: count every 'block_size'
 					//        continuous blocks as one block
+					// if <0: like >1, but give the result as multiple
+					//        of WII_SECTOR_SIZE and reduce the count
+					//        for non needed sectors at the end.
     const wd_select_t	* select	// NULL or a new selector
 )
 {
@@ -2639,8 +2642,11 @@ u64 wd_count_used_disc_size
 u32 wd_count_used_disc_blocks
 (
     wd_disc_t		* disc,		// valid pointer to a disc
-    u32			block_size,	// if >1: count every 'block_size'
+    int			block_size,	// if >1: count every 'block_size'
 					//        continuous blocks as one block
+					// if <0: like >1, but give the result as multiple
+					//        of WII_SECTOR_SIZE and reduce the count
+					//        for non needed sectors at the end.
     const wd_select_t	* select	// NULL or a new selector
 )
 {
@@ -2655,20 +2661,36 @@ u32 wd_count_used_disc_blocks
 u32 wd_count_used_blocks
 (
     const u8		* usage_table,	// valid pointer to usage table
-    u32			block_size	// if >1: count every 'block_size'
+    int			block_size	// if >1: count every 'block_size'
 					//        continuous blocks as one block
+					// if <0: like >1, but give the result as multiple
+					//        of WII_SECTOR_SIZE and reduce the count
+					//        for non needed sectors at the end.
 )
 {
     DASSERT(usage_table);
 
     const u8 * end_tab = usage_table + WII_MAX_SECTORS;
     u32 count = 0;
-    
+
+    const bool return_wii_sectors = block_size < 0;
+    if (return_wii_sectors)
+	block_size = -block_size;
+    PRINT("wd_count_used_blocks() => %d,%d\n",return_wii_sectors,block_size);
+
     if ( block_size > 1 )
     {
-	if ( block_size < WII_MAX_SECTORS )
+	//----- find last used sector
+	
+	end_tab--;
+	while ( end_tab >= usage_table && !*end_tab )
+	    end_tab--;
+	end_tab++;
+
+	//----- count all but last block
+
+	if ( block_size < end_tab - usage_table )
 	{
-	    //----- count all but last block
 
 	    end_tab -= block_size;
 	    for ( ; usage_table < end_tab; usage_table += block_size )
@@ -2685,14 +2707,12 @@ u32 wd_count_used_blocks
 	    end_tab += block_size;
 	}
 
-	//----- count last blocks
+	//----- count last block
 
-	while ( usage_table < end_tab )
-	    if ( *usage_table++ )
-	    {
-		count++;
-		break;
-	    }
+	if (return_wii_sectors)
+	    count = count * block_size + ( end_tab - usage_table );
+	else if ( usage_table < end_tab )
+	    count++;
     }
     else
     {

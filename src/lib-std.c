@@ -3633,9 +3633,16 @@ MemMapItem_t * FindMemMap ( MemMap_t * mm, off_t off, off_t size )
 
 ///////////////////////////////////////////////////////////////////////////////
 
-MemMapItem_t * InsertMemMap ( MemMap_t * mm, off_t off, off_t size )
+uint InsertMemMapIndex
+(
+    // returns the index of the new item
+
+    MemMap_t		* mm,		// mem map pointer
+    off_t		off,		// offset of area
+    off_t		size		// size of area
+)
 {
-    ASSERT(mm);
+    DASSERT(mm);
     uint idx = FindMemMapHelper(mm,off,size);
 
     ASSERT( mm->used <= mm->size );
@@ -3659,7 +3666,79 @@ MemMapItem_t * InsertMemMap ( MemMap_t * mm, off_t off, off_t size )
     mi->size = size;
     mi->overlap = 0;
     *dest = mi;
-    return mi;
+    return idx;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+MemMapItem_t * InsertMemMap
+(
+    // returns a pointer to a new item (never NULL)
+
+    MemMap_t		* mm,		// mem map pointer
+    off_t		off,		// offset of area
+    off_t		size		// size of area
+)
+{
+    const uint idx = InsertMemMapIndex(mm,off,size);
+    // a C sequence piunt is importand here
+    return mm->field[idx];
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+static bool TieMemMap 
+(
+    // returns true if element are tied togehther
+
+    MemMap_t		* mm,		// mem map pointer
+    uint		idx,		// tie element 'idx' and 'idx+1'
+    bool		force		// always tie and not only if overlapped
+)
+{
+    DASSERT(mm);
+    DASSERT( idx+1 < mm->used );
+
+    MemMapItem_t * i1 = mm->field[idx];
+    MemMapItem_t * i2 = mm->field[idx+1];
+    if ( force || i1->off + i1->size >= i2->off )
+    {
+	const off_t new_size = i2->off + i2->size - i1->off;
+	if ( i1->size < new_size )
+	     i1->size = new_size;
+	free(i2);
+	idx++;
+	mm->used--;
+	memmove( mm->field + idx,
+		 mm->field + idx + 1,
+		 ( mm->used - idx ) * sizeof(MemMapItem_t*) );
+
+	return true;
+    }
+    
+    return false;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+MemMapItem_t * InsertMemMapTie
+(
+    // returns a pointer to a new or existing item (never NULL)
+
+    MemMap_t		* mm,		// mem map pointer
+    off_t		off,		// offset of area
+    off_t		size		// size of area
+)
+{
+    uint idx = InsertMemMapIndex(mm,off,size);
+
+    if ( idx > 0 && TieMemMap(mm,idx-1,false) )
+	idx--;
+
+    while ( idx + 1 < mm->used && TieMemMap(mm,idx,false) )
+	;
+
+    return mm->field[idx];
 }
 
 ///////////////////////////////////////////////////////////////////////////////

@@ -1,6 +1,5 @@
 ../src/wtest.c ;
 ../work/wtest+.c ;
-../src/libwbfs/file-formats.h ;
-../src/libwbfs/file-formats.c ;
+../src/lib-std.c ;
 @+all-source.edit-list
--y 582 ../src/wtest.c ;
+-y 3700 ../src/lib-std.c ;

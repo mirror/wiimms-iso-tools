@@ -602,7 +602,7 @@ enumError SetupWriteSF
 		    break;
 
 		case PREALLOC_DEFRAG:
-		    PreallocateSF(sf,0,0,WII_MAX_SECTORS,16);
+		    PreallocateSF(sf,0,0,WII_MAX_SECTORS,32);
 		    break;
 	    }
 	    return ERR_OK;

@@ -308,12 +308,17 @@ enumError XCloseFile ( XPARM File_t * f, bool remove_file )
     DASSERT(f);
     TRACE("#F# CloseFile(%p,%d) fd=%d fp=%p\n",f,remove_file,f->fd,f->fp);
 
+    //----- pralloc support
+
     if ( !remove_file && f->prealloc_size > f->max_off && IsOpenF(f) )
     {
 	PRINT("PREALLOC/CLOSE: pre=%llx, max=%llx   \n",
 		(u64)f->prealloc_size, (u64)f->max_off );
 	XSetSizeF(XCALL f,f->max_off);
     }
+
+
+    //----- close file
 
     bool close_err = false;
     if ( f->fp )
@@ -332,6 +337,9 @@ enumError XCloseFile ( XPARM File_t * f, bool remove_file )
 	    PrintError( XERROR1, err,
 		"Close file failed: %s\n", f->fname );
     }
+
+
+    //----- split file support & removing & renaming
 
     if (f->split_f)
     {
@@ -374,7 +382,13 @@ enumError XCloseFile ( XPARM File_t * f, bool remove_file )
 	}
     }
 
+
+    //----- clean
+
     ClearCache(f);
+ #if PREALLOC_MAP
+    ResetMemMap(&f->prealloc_map);
+ #endif
 
     f->cur_off = f->file_off = 0;
 
@@ -1104,6 +1118,41 @@ enumOFT CalcOFT ( enumOFT force, ccp fname_dest, ccp fname_src, enumOFT def )
 //
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
+#if PREALLOC_MAP
+
+static void ExtractSplitMap
+(
+    File_t		* f,		// main file
+    File_t		* f2		// split file
+)
+{
+    DASSERT(f);
+    DASSERT(f2);
+
+    if ( !f2->prealloc_done && f->prealloc_map.used )
+    {
+	const off_t split_end = f2->split_off + f2->split_filesize;
+	MemMapItem_t ** end_field = f->prealloc_map.field + f->prealloc_map.used;
+	MemMapItem_t **ptr;
+	for ( ptr = f->prealloc_map.field; ptr < end_field; ptr++ )
+	{
+	    off_t beg = (*ptr)->off;
+	    off_t end = beg + (*ptr)->size;
+	    if ( beg < split_end && end > f2->split_off )
+	    {
+		if ( beg < f2->split_off )
+		     beg = f2->split_off;
+		if ( end > split_end )
+		     end = split_end;
+		PRINT(">>> PREALLOC: fd=%u, %9llx .. %9llx\n",f2->fd,beg,end);
+		InsertMemMapTie(&f2->prealloc_map,beg,end-beg);
+	    }
+	}
+    }
+}
+
+#endif
+///////////////////////////////////////////////////////////////////////////////
 
 enumError XSetupSplitFile ( XPARM File_t *f, enumOFT oft, off_t split_size )
 {
@@ -1197,7 +1246,7 @@ enumError XSetupSplitFile ( XPARM File_t *f, enumOFT oft, off_t split_size )
 
     if ( oft == OFT_PLAIN || oft == OFT_CISO || oft == OFT_WBFS )
     {
-	f->split_filesize  = split_size ? split_size : DEF_SPLIT_SIZE_ISO;
+	f->split_filesize = split_size ? split_size : DEF_SPLIT_SIZE_ISO;
 	if ( DEF_SPLIT_FACTOR_ISO > 0 )
 	{
 	    f->split_filesize &= ~(DEF_SPLIT_FACTOR_ISO-1);
@@ -1221,9 +1270,9 @@ enumError XSetupSplitFile ( XPARM File_t *f, enumOFT oft, off_t split_size )
     first->split_rename_format = 0;
     first->outname = 0;
 
-    TRACE("#S#   Split setup, size=%llu, fname=%s\n",
+    PRINT("#S#   Split setup, size=%llu, fname=%s\n",
 	(u64)f->split_filesize, f->fname );
-    TRACE("#S#0# split setup, size=%llu, fname=%s\n",
+    PRINT("#S#0# split setup, size=%llu, fname=%s\n",
 	(u64)first->split_filesize, first->fname );
 
     noTRACE(" fname:   %p %p\n",f->fname,first->fname);
@@ -1232,6 +1281,10 @@ enumError XSetupSplitFile ( XPARM File_t *f, enumOFT oft, off_t split_size )
     noTRACE(" outname: %p %p\n",f->outname,first->outname);
     noTRACE(" split-fname-format:  %s\n",f->split_fname_format);
     noTRACE(" split-rename-format: %s\n",f->split_rename_format);
+
+ #if PREALLOC_MAP
+    ExtractSplitMap(f,first);
+ #endif
 
     if (f->is_reading)
     {
@@ -1267,8 +1320,12 @@ enumError XSetupSplitFile ( XPARM File_t *f, enumOFT oft, off_t split_size )
 		fi->rename = strdup(fname);
 	    }
 
+	    fi->split_off = f->split_f[idx-1]->split_off
+			  + f->split_f[idx-1]->split_filesize;
 	    fi->split_filesize = fi->st.st_size;
-	    TRACE("#S#%u# Open %s, ssize=%llx\n",idx,fname,(u64)fi->split_filesize);
+	    
+	    PRINT("#S#%u# Open %s, soff=%llx, ssize=%llx\n",
+			idx, fname, (u64)fi->split_off, (u64)fi->split_filesize );
 	    f->st.st_size += fi->st.st_size;
 	    f->split_f[idx] = fi;
 	}
@@ -1303,7 +1360,7 @@ enumError XCreateSplitFile ( XPARM File_t *f, uint split_idx )
     ASSERT( f );
     ASSERT( f->split_f );
     ASSERT( split_idx > 0 );
-    TRACE("#S# CreateSplitFile() %u/%u/%u",split_idx,f->split_used,MAX_SPLIT_FILES);
+    TRACE("#S# CreateSplitFile() %u/%u/%u\n",split_idx,f->split_used,MAX_SPLIT_FILES);
 
     if ( split_idx > MAX_SPLIT_FILES )
     {
@@ -1350,13 +1407,21 @@ enumError XCreateSplitFile ( XPARM File_t *f, uint split_idx )
 				flags, flags );
 	if (err)
 	    return err;
+	if (prev)
+	    f2->split_off = prev->split_off + prev->split_filesize;
 	f2->split_filesize = f->split_filesize;
+	PRINT("SPLIT #%u: %9llx + %9llx\n",
+		split_idx, (u64)f2->split_off,(u64)f2->split_filesize);
 	if (f->split_rename_format)
 	{
 	    ASSERT(!f2->rename);
 	    snprintf(fname,sizeof(fname),f->split_rename_format,f->split_used-1);
 	    f2->rename = strdup(fname);
 	}
+	
+     #if PREALLOC_MAP
+	ExtractSplitMap(f,f2);
+     #endif
     }
     return ERR_OK;
 }
@@ -1370,7 +1435,7 @@ enumError XFindSplitFile ( XPARM File_t *f, uint * p_index, off_t * p_off )
     ASSERT(p_index);
     ASSERT(p_off);
     off_t off = *p_off;
-    TRACE("#S# XFindSplitFile(off=%llx) %u/%u",(u64)off,f->split_used,MAX_SPLIT_FILES);
+    TRACE("#S# XFindSplitFile(off=%llx) %u/%u\n",(u64)off,f->split_used,MAX_SPLIT_FILES);
 
     File_t ** ptr = f->split_f;
     for (;;)
@@ -1677,6 +1742,52 @@ static FileCache_t * XCacheHelper ( XPARM File_t * f, off_t off, size_t count )
 }
 
 ///////////////////////////////////////////////////////////////////////////////
+#if PREALLOC_MAP
+
+static void PreallocHelper ( File_t *f )
+{
+    DASSERT(f);
+
+    if ( !f->prealloc_done && f->prealloc_map.used )
+    {
+	f->prealloc_done = true;
+	if (f->split_f)
+	{
+	    ExtractSplitMap(f,f->split_f[0]);
+	    PreallocHelper(f->split_f[0]);
+	}
+	else
+	{
+	  #if defined(DEBUG) & defined(TEST)
+	    printf("PREALLOC:\n");
+	    PrintMemMap(&f->prealloc_map,stdout,3);
+	  #endif
+
+	    // prealloc largest block first
+
+	    MemMapItem_t ** end_field = f->prealloc_map.field + f->prealloc_map.used;
+	    for(;;)
+	    {
+		off_t found_size = 0;
+		MemMapItem_t **ptr, *found = 0;
+		for ( ptr = f->prealloc_map.field; ptr < end_field; ptr++ )
+		    if ( (*ptr)->size > found_size )
+		    {
+			found = *ptr;
+			found_size = found->size;
+		    }
+		if (!found)
+		    break;
+		PRINT("PREALLOC: %9llx + %9llx\n",(u64)found->off,(u64)found->size);
+		posix_fallocate(f->fd,found->off,found->size);
+		found->size = 0;
+	    }
+	}
+    }
+}
+
+#endif
+///////////////////////////////////////////////////////////////////////////////
 
 enumError XTellF ( XPARM File_t * f )
 {
@@ -1736,6 +1847,11 @@ enumError XSeekF ( XPARM File_t * f, off_t off )
 	if (cptr)
 	    return f->last_error; // all done
     }
+
+ #if PREALLOC_MAP
+    if (!f->prealloc_done)
+	PreallocHelper(f);
+ #endif
 
     if (f->split_f)
     {
@@ -1857,6 +1973,11 @@ enumError XSetSizeF ( XPARM File_t * f, off_t size )
 		GetFD(f), GetFP(f), (u64)size,
 		size < f->max_off ? " <" : size > f->max_off ? " >" : "" );
 
+ #if PREALLOC_MAP
+    if (!f->prealloc_done)
+	PreallocHelper(f);
+ #endif
+
     if (f->split_f)
     {
 	f->max_off = size;
@@ -1867,7 +1988,6 @@ enumError XSetSizeF ( XPARM File_t * f, off_t size )
 	    return err;
 	ASSERT( index < MAX_SPLIT_FILES );
 	File_t ** ptr = f->split_f + index;
-	ASSERT(*ptr);
 	XSetSizeF(XCALL *ptr,size);
 
 	int count = f->split_used - index;
@@ -1925,14 +2045,18 @@ enumError XPreallocateF
     enumError err = ERR_OK;
     if (size)
     {
-	PRINT("PREALLOC/FILE fd=%d, %llx+%llx max=%llu: %s\n",
-		f->fd, (u64)off, (u64)size, (u64)f->max_off, f->fname );
-	TRACE("PREALLOC/FILE fd=%d, %llx+%llx max=%llu: %s\n",
+	PRINT("PREALLOC/FILE fd=%d, %llx+%llx max=%llx: %s\n",
 		f->fd, (u64)off, (u64)size, (u64)f->max_off, f->fname );
 
 	const off_t max = off + size;
 	if ( f->prealloc_size < max )
 	     f->prealloc_size = max;
+
+ #if PREALLOC_MAP
+
+	InsertMemMapTie(&f->prealloc_map,off,size);
+
+ #else
 
 	if (f->split_f)
 	{
@@ -1979,8 +2103,8 @@ enumError XPreallocateF
 	    if ( f->max_error < f->last_error )
 		 f->max_error = f->last_error;
 	}
-	else
-	    WAIT("\0");
+
+ #endif
     }
     return err;
 }
@@ -2227,6 +2351,11 @@ enumError XWriteF ( XPARM File_t * f, const void * iobuf, size_t count )
 {
     ASSERT(f);
 
+ #if PREALLOC_MAP
+    if (!f->prealloc_done)
+	PreallocHelper(f);
+ #endif
+
     if (f->split_f)
     {
 	TRACE("#S# ---\n");
@@ -2397,7 +2526,7 @@ enumError XZeroAtF ( XPARM File_t * f, off_t off, size_t count )
     if ( last_off > f->max_off )
     {
 	const off_t max_off = f->max_off;
-	const enumError err = XSetSizeF(XCALL f, last_off );
+	const enumError err = XSetSizeF( XCALL f, last_off );
 	if ( err || off >= max_off )
 	    return err;
 	   

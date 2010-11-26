@@ -1135,6 +1135,9 @@ u32 wd_pack_usage_table // returns the index if the 'last_used_sector + 1'
     const u8		* usage_table,	// valid pointer to usage table
     u32			block_size	// if >1: count every 'block_size'
 					//        continuous blocks as one block
+					// if <0: like >1, but give the result as multiple
+					//        of WII_SECTOR_SIZE and reduce the count
+					//        for non needed sectors at the end.
 );
 
 //-----------------------------------------------------------------------------
@@ -1142,8 +1145,11 @@ u32 wd_pack_usage_table // returns the index if the 'last_used_sector + 1'
 u64 wd_count_used_disc_size
 (
     wd_disc_t		* disc,		// valid pointer to a disc
-    u32			block_size,	// if >1: count every 'block_size'
+    int			block_size,	// if >1: count every 'block_size'
 					//        continuous blocks as one block
+					// if <0: like >1, but give the result as multiple
+					//        of WII_SECTOR_SIZE and reduce the count
+					//        for non needed sectors at the end.
     const wd_select_t	* select	// NULL or a new selector
 );
 
@@ -1152,8 +1158,11 @@ u64 wd_count_used_disc_size
 u32 wd_count_used_disc_blocks
 (
     wd_disc_t		* disc,		// valid pointer to a disc
-    u32			block_size,	// if >1: count every 'block_size'
+    int			block_size,	// if >1: count every 'block_size'
 					//        continuous blocks as one block
+					// if <0: like >1, but give the result as multiple
+					//        of WII_SECTOR_SIZE and reduce the count
+					//        for non needed sectors at the end.
     const wd_select_t	* select	// NULL or a new selector
 );
 
@@ -1162,8 +1171,11 @@ u32 wd_count_used_disc_blocks
 u32 wd_count_used_blocks
 (
     const u8		* usage_table,	// valid pointer to usage table
-    u32			block_size	// if >1: count every 'block_size'
+    int			block_size	// if >1: count every 'block_size'
 					//        continuous blocks as one block
+					// if <0: like >1, but give the result as multiple
+					//        of WII_SECTOR_SIZE and reduce the count
+					//        for non needed sectors at the end.
 );
 
 //-----------------------------------------------------------------------------

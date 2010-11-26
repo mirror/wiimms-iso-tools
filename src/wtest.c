@@ -774,59 +774,24 @@ void test_sha1()
 ///////////////			develop()			///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-static void patch_func
-(
-    void			* param,	// user defined parameter
-    struct wd_memmap_t		* patch,	// valid pointer to patch object
-    struct wd_memmap_item_t	* item		// valid pointer to inserted item
-)
-{
-    printf(" -> %s\n",item->info);
-}
-
-///////////////////////////////////////////////////////////////////////////////
-
-static enumError develop_sf ( SuperFile_t * sf )
-{
-    wd_disc_t * disc = OpenDiscSF(sf,true,true);
-    if (!disc)
-	return ERR_WDISC_NOT_FOUND;
-
-    wd_memmap_t mm;
-    memset(&mm,0,sizeof(mm));
-    int n = wd_insert_memmap_disc_part(&mm,disc,patch_func,0,1,2,3,4,5);
-
-    printf("Dump, N=%d:\n",n);
-    wd_print_memmap(stdout,3,&mm);
-    printf("---\n");
-
-    return ERR_OK;
-}
-
-///////////////////////////////////////////////////////////////////////////////
-
 static enumError develop ( int argc, char ** argv )
 {
-    putchar('\n');
+    MemMap_t mm;
+    InitializeMemMap(&mm);
+
     int i;
+    for ( i = 0x1000; i <= 0x1900; i += 0x100 )
+	InsertMemMapTie(&mm,i,0x10);
 
-    for ( i = 1; i < argc; i++ )
-    {
-	if ( *argv[i] == '-' )
-	    continue;
+    putchar('\n'); PrintMemMap(&mm,stdout,3); putchar('\n'); getchar();
 
-	SuperFile_t sf;
-	InitializeSF(&sf);
-	if (!OpenSF(&sf,argv[i],false,false))
-	{
-	    printf("*** %s\n",sf.f.fname);
-	    const enumError err = develop_sf(&sf);
-	    CloseSF(&sf,0);
-	    if (err)
-		return err;
-	}
-    }
+    InsertMemMapTie(&mm,0x1110,5);
+    InsertMemMapTie(&mm,0x1208,0x10);
+    InsertMemMapTie(&mm,0x1408,0x300);
+    
+    putchar('\n'); PrintMemMap(&mm,stdout,3); putchar('\n'); getchar();
 
+    ResetMemMap(&mm);
     return ERR_OK;
 }
 

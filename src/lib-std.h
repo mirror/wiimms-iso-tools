@@ -52,6 +52,10 @@
     #define EXTENDED_IO_FUNC 1		// 0 | 1
 #endif
 
+#ifndef PREALLOC_MAP // [2do] [obsolete] 
+    #define PREALLOC_MAP 1		// 0 | 1
+#endif
+
 ///////////////////////////////////////////////////////////////////////////////
 
 typedef enum enumProgID
@@ -284,6 +288,104 @@ enumOFT CalcOFT ( enumOFT force, ccp fname_dest, ccp fname_src, enumOFT def );
 
 //
 ///////////////////////////////////////////////////////////////////////////////
+///////////////                   Memory Maps                   ///////////////
+///////////////////////////////////////////////////////////////////////////////
+
+typedef struct MemMapItem_t
+{
+    u64		off;		// offset
+    u64		size;		// size
+    u8		overlap;	// system info: item overlaps other items
+    u8		index;		// user defined index
+    char	info[62];	// user defined info text
+
+} MemMapItem_t;
+
+//-----------------------------------------------------------------------------
+
+typedef struct MemMap_t
+{
+    MemMapItem_t ** field;	// pointer to the item field
+    uint	used;		// number of used titles in the item field
+    uint	size;		// number of allocated pointer in 'field'
+    u64		begin;		// first address
+
+} MemMap_t;
+
+//-----------------------------------------------------------------------------
+//	Memory maps allow duplicate entries.
+//	The off+size pair is used as key.
+//	The entries are sorted by off and size (small values first).
+//-----------------------------------------------------------------------------
+
+void InitializeMemMap ( MemMap_t * mm );
+void ResetMemMap ( MemMap_t * mm );
+
+MemMapItem_t * FindMemMap
+(
+    // returns NULL or the pointer to the one! matched key (={off,size})
+
+    MemMap_t		* mm,
+    off_t		off,
+    off_t		size
+);
+
+uint InsertMemMapIndex
+(
+    // returns the index of the new item
+
+    MemMap_t		* mm,		// mem map pointer
+    off_t		off,		// offset of area
+    off_t		size		// size of area
+);
+
+MemMapItem_t * InsertMemMap
+(
+    // returns a pointer to a new item (never NULL)
+
+    MemMap_t		* mm,		// mem map pointer
+    off_t		off,		// offset of area
+    off_t		size		// size of area
+);
+
+MemMapItem_t * InsertMemMapTie
+(
+    // returns a pointer to a new or existing item (never NULL)
+
+    MemMap_t		* mm,		// mem map pointer
+    off_t		off,		// offset of area
+    off_t		size		// size of area
+);
+
+void InsertMemMapWrapper
+(
+    void		* param,	// user defined parameter
+    u64			offset,		// offset of object
+    u64			size,		// size of object
+    ccp			info		// info about object
+);
+
+struct wd_disc_t;
+void InsertDiscMemMap
+(
+    MemMap_t		* mm,		// valid memore map pointer
+    struct wd_disc_t	* disc		// valid disc pointer
+);
+
+// Remove all entires with key. Return number of delete entries
+//uint RemoveMemMap ( MemMap_t * mm, off_t off, off_t size );
+
+// Return the index of the found or next item
+uint FindMemMapHelper ( MemMap_t * mm, off_t off, off_t size );
+
+// Calculate overlaps. Return number of items with overlap.
+uint CalCoverlapMemMap ( MemMap_t * mm );
+
+// Print out memory map
+void PrintMemMap ( MemMap_t * mm, FILE * f, int indent );
+
+//
+///////////////////////////////////////////////////////////////////////////////
 ///////////////			file support			///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -452,11 +554,19 @@ typedef struct File_t
 	off_t  cache_info_off;	// info for cache missed message
 	size_t cache_info_size;	// info for cache missed message
 
+	// prealloc map
+ #if PREALLOC_MAP
+	bool	 prealloc_done;	// true if preallocation was done
+	MemMap_t prealloc_map;	// store prealloc areas until first write
+ #endif
+
 	// split file support
 
 	struct File_t **split_f; // list with pointers to the split files
 	int split_used;		 // number of used split files in 'split_f'
-	off_t split_filesize;	 // max file size for new files
+	off_t split_off;	 // if split file: offset in combined file
+	off_t split_filesize;	 // if split file: size of split file
+				 // max file size for new files
 	ccp split_fname_format;	 // format with '%01u' at the end for 'fname'
 	ccp split_rename_format; // format with '%01u' at the end for 'rename'
 
@@ -1008,74 +1118,6 @@ typedef struct SubstString_t
 char * SubstString
 	( char * buf, size_t bufsize, SubstString_t * tab, ccp source, int * count );
 int ScanEscapeChar ( ccp arg );
-
-//
-///////////////////////////////////////////////////////////////////////////////
-///////////////                   Memory Maps                   ///////////////
-///////////////////////////////////////////////////////////////////////////////
-
-typedef struct MemMapItem_t
-{
-    u64		off;		// offset
-    u64		size;		// size
-    u8		overlap;	// system info: item overlaps other items
-    u8		index;		// user defined index
-    char	info[62];	// user defined info text
-
-} MemMapItem_t;
-
-//-----------------------------------------------------------------------------
-
-typedef struct MemMap_t
-{
-    MemMapItem_t ** field;	// pointer to the item field
-    uint	used;		// number of used titles in the item field
-    uint	size;		// number of allocated pointer in 'field'
-    u64		begin;		// first address
-
-} MemMap_t;
-
-//-----------------------------------------------------------------------------
-//	Memory maps allow duplicate entries.
-//	The off+size pair is used as key.
-//	The entries are sorted by off and size (small values first).
-//-----------------------------------------------------------------------------
-
-void InitializeMemMap ( MemMap_t * mm );
-void ResetMemMap ( MemMap_t * mm );
-
-// Return: NULL or the pointer to the one! matched key (=off,size)
-MemMapItem_t * FindMemMap ( MemMap_t * mm, off_t off, off_t size );
-
-// Return pointer to new item (never NULL)
-MemMapItem_t * InsertMemMap ( MemMap_t * mm, off_t off, off_t size );
-
-void InsertMemMapWrapper
-(
-	void		* param,	// user defined parameter
-	u64		offset,		// offset of object
-	u64		size,		// size of object
-	ccp		info		// info about object
-);
-
-struct wd_disc_t;
-void InsertDiscMemMap
-(
-	MemMap_t	* mm,		// valid memore map pointer
-	struct wd_disc_t * disc		// valid disc pointer
-);
-
-// Remove all entires with key. Return number of delete entries
-//uint RemoveMemMap ( MemMap_t * mm, off_t off, off_t size );
-
-// Return the index of the found or next item
-uint FindMemMapHelper ( MemMap_t * mm, off_t off, off_t size );
-
-// Calculate overlaps. Return number of items with overlap.
-uint CalCoverlapMemMap ( MemMap_t * mm );
-
-// Print out memory map
-void PrintMemMap ( MemMap_t * mm, FILE * f, int indent );
 
 //
 ///////////////////////////////////////////////////////////////////////////////
