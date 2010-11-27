@@ -1076,6 +1076,7 @@ enumError CheckOptions ( int argc, char ** argv )
 	case GO_SPLIT_SIZE:	err += ScanOptSplitSize(optarg); break;
 	case GO_SPARSE:		prealloc_mode = PREALLOC_SPARSE; break;
 	case GO_DEFRAG:		prealloc_mode = PREALLOC_DEFRAG; break;
+	case GO_PA_LIMIT:	err += ScanPreallocationLimit(optarg); break;
 	case GO_CHUNK_MODE:	err += ScanChunkMode(optarg); break;
 	case GO_CHUNK_SIZE:	err += ScanChunkSize(optarg); break;
 	case GO_MAX_CHUNKS:	err += ScanMaxChunks(optarg); break;

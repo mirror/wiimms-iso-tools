@@ -292,6 +292,21 @@ enumError cmd_titles()
 ///////////////			cmd_test_options()		///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
+static void print_val( ccp title, u64 val, ccp comment )
+{
+    ccp t1000 = wd_print_size_1000(0,0,val,true);
+    ccp t1024 = wd_print_size_1024(0,0,val,true);
+
+    if (strcmp(t1000,t1024))
+	printf("  %-13s%16llx = %12lld = %s = %s%s\n",
+			title, val, val, t1024, t1000, comment ? comment : "" );
+    else
+	printf("  %-13s%16llx = %12lld%s\n",
+			title, val, val, comment ? comment : "" );
+}
+
+//-----------------------------------------------------------------------------
+
 enumError cmd_test_options()
 {
     printf("Options (hex=dec):\n");
@@ -301,19 +316,18 @@ enumError cmd_test_options()
     printf("  width:       %16d\n",opt_width);
 
  #if IS_WWT
-    printf("  size:        %16llx = %lld\n",opt_size,opt_size);
-    printf("  hd sec-size: %16x = %d\n",opt_hss,opt_hss);
-    printf("  wb sec-size: %16x = %d\n",opt_wss,opt_wss);
-    printf("  repair-mode: %16x = %d\n",repair_mode,repair_mode);
+    print_val( "size:",		opt_size, 0);
+    print_val( "hd sec-size:",	opt_hss, 0);
+    print_val( "wb sec-size:",	opt_wss, 0);
+    print_val( "repair-mode:",	repair_mode, 0);
  #else
     u64 opt_size = 0;
  #endif
 
-    printf("  chunk-mode:  %16x = %d\n",opt_chunk_mode,opt_chunk_mode);
-    printf("  chunk-size:  %16x = %d%s\n",
-		opt_chunk_size, opt_chunk_size,
-		force_chunk_size ? " FORCE!" : "" );
-    printf("  max-chunks:  %16x = %d\n",opt_max_chunks,opt_max_chunks);
+    print_val( "pa-limit:",	prealloc_limit, 0 );
+    print_val( "chunk-mode:",	opt_chunk_mode,	0 );
+    print_val( "chunk-size:",	opt_chunk_size,	force_chunk_size ? " FORCE!" : "" );
+    print_val( "max-chunks:",	opt_max_chunks,	0 );
     {
 	u64 filesize[] = { 100ull*MiB, 1ull*GiB, 10ull*GiB, opt_size, 0 };
 	u64 *fs_ptr = filesize;;
@@ -329,29 +343,27 @@ enumError cmd_test_options()
 	}
     }
 
-    printf("  split-size:  %16llx = %lld\n",opt_split_size,opt_split_size);
-    printf("  compression: %16x = %d = %s (level=%d)\n",
+    print_val( "split-size:",	opt_split_size, 0 );
+    printf("  compression: %16x = %12d = %s (level=%d)\n",
 		opt_compr_method, opt_compr_method,
 		wd_get_compression_name(opt_compr_method,"?"), opt_compr_level );
-    printf("    level:     %16x = %d\n",opt_compr_level,opt_compr_level);
-    printf("    chunk-size:%16x = %d\n",opt_compr_chunk_size,opt_compr_chunk_size);
+    printf("    level:     %16x = %12d\n",opt_compr_level,opt_compr_level);
+    print_val( "  chunk-size:",	opt_compr_chunk_size, 0 );
 
-    printf("  mem:         %16llx = %lld = %s\n",
-			opt_mem,opt_mem,wd_print_size_1024(0,0,opt_mem,false));
+    print_val( "mem:",		opt_mem, 0 );
     GetMemLimit();
-    printf("    mem limit: %16llx = %lld = %s\n",
-			opt_mem,opt_mem,wd_print_size_1024(0,0,opt_mem,false));
+    print_val( "mem limit:",	opt_mem, 0 );
 
-    printf("  escape-char: %16x = %d\n",escape_char,escape_char);
-    printf("  print-time:  %16x = %d\n",opt_print_time,opt_print_time);
-    printf("  sort-mode:   %16x = %d\n",sort_mode,sort_mode);
-    printf("  show-mode:   %16x = %d\n",opt_show_mode,opt_show_mode);
-    printf("  unit:        %16x = %d, unit=%s\n",
+    printf("  escape-char: %16x = %12d\n",escape_char,escape_char);
+    printf("  print-time:  %16x = %12d\n",opt_print_time,opt_print_time);
+    printf("  sort-mode:   %16x = %12d\n",sort_mode,sort_mode);
+    printf("  show-mode:   %16x = %12d\n",opt_show_mode,opt_show_mode);
+    printf("  unit:        %16x = %12d, unit=%s\n",
 			opt_unit, opt_unit, wd_get_size_unit(opt_unit,"?") );
-    printf("  limit:       %16x = %d\n",opt_limit,opt_limit);
-    printf("  rdepth:      %16x = %d\n",opt_recurse_depth,opt_recurse_depth);
-    printf("  enc:         %16x = %d\n",encoding,encoding);
-    printf("  region:      %16x = %d\n",opt_region,opt_region);
+    printf("  limit:       %16x = %12d\n",opt_limit,opt_limit);
+    printf("  rdepth:      %16x = %12d\n",opt_recurse_depth,opt_recurse_depth);
+    printf("  enc:         %16x = %12d\n",encoding,encoding);
+    printf("  region:      %16x = %12d\n",opt_region,opt_region);
 
     if (opt_ios_valid)
     {
@@ -363,7 +375,7 @@ enumError cmd_test_options()
 	    printf("  ios:        %08x-%08x\n", hi, lo );
     }
 
-    printf("  modify:      %16x = %d\n",opt_modify,opt_modify);
+    printf("  modify:      %16x = %12d\n",opt_modify,opt_modify);
     if (modify_id)
 	printf("  modify id:   '%s'\n",modify_id);
     if (modify_name)
@@ -378,22 +390,16 @@ enumError cmd_test_options()
     }
     else
 	strcpy(buf_set_time,"NULL");
-    printf("  set-time:    %16llx = %lld = %s\n",
+    printf("  set-time:    %16llx = %12lld = %s\n",
 		(u64)opt_set_time, (u64)opt_set_time,buf_set_time );
  #endif
 
-    printf("  trim:        %16x = %u\n",opt_trim,opt_trim);
-    printf("  align:       %16x = %u, %x = %u, %x = %u\n",
-		opt_align1, opt_align1,
-		opt_align2, opt_align2,
-		opt_align3, opt_align3 );
-    printf("  align-part:  %16x = %u = %s\n",
-		opt_align_part, opt_align_part,
-		wd_print_size_1024(0,0,opt_align_part,true) );
-    printf("  disc-size:   %16llx = %llu = %s\n",
-		opt_disc_size, opt_disc_size,
-		wd_print_size_1024(0,0,opt_disc_size,true) );
-
+    printf("  trim:        %16x = %12u\n",opt_trim,opt_trim);
+    print_val( "align #1:",	opt_align1, 0 );
+    print_val( "align #2:",	opt_align2, 0 );
+    print_val( "align #3:",	opt_align3, 0 );
+    print_val( "align-part:",	opt_align_part, 0 );
+    print_val( "disc-size:",	opt_disc_size, 0 );
     printf("  partition selector:\n");
     wd_print_select(stdout,6,&part_selector);
 

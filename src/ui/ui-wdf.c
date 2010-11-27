@@ -148,11 +148,21 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
     },
 
     {	OPT_DEFRAG, 0, "defrag",
-	0,
+	"param",
 	"Try to write the image with minimal number of fragments and disables"
 	" sparse optimization (option --sparse). The default is a balance"
 	" between --sparse and --defrag. This option has only impact for ISO,"
 	" CISO and WBFS files."
+    },
+
+    {	OPT_PA_LIMIT, 0, "pa-limit",
+	0,
+	"If --sparse is not set the space of new iso images is preallocated to"
+	" avoid fragmentation. Option --pa-limit ('pa'=PreAllocation) accepts"
+	" a size parameter (default unit is MiB). The value is silently"
+	" rounded up to the next multiple of 1 MiB. If a planned preallocation"
+	" block is larger than 'size' it is splitted into equal peaces. The"
+	" special value 0 (default) disables the limit."
     },
 
     {	OPT_CHUNK_MODE, 0, "chunk-mode",
@@ -231,7 +241,7 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 	" to 80% of the total memory minus 50 MiB."
     },
 
-    {0,0,0,0,0}, // OPT__N_SPECIFIC == 24
+    {0,0,0,0,0}, // OPT__N_SPECIFIC == 25
 
     //----- global options -----
 
@@ -280,7 +290,7 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 	">>> USE THIS OPTION IF UNSURE! <<<"
     },
 
-    {0,0,0,0,0} // OPT__N_TOTAL == 32
+    {0,0,0,0,0} // OPT__N_TOTAL == 33
 
 };
 
@@ -355,7 +365,9 @@ const struct option OptionLong[] =
 	{ "split-size",		1, 0, 'Z' },
 	 { "splitsize",		1, 0, 'Z' },
 	{ "sparse",		0, 0, GO_SPARSE },
-	{ "defrag",		0, 0, GO_DEFRAG },
+	{ "defrag",		1, 0, GO_DEFRAG },
+	{ "pa-limit",		0, 0, GO_PA_LIMIT },
+	 { "palimit",		0, 0, GO_PA_LIMIT },
 	{ "chunk-mode",		1, 0, GO_CHUNK_MODE },
 	 { "chunkmode",		1, 0, GO_CHUNK_MODE },
 	 { "chm",		1, 0, GO_CHUNK_MODE },
@@ -425,12 +437,13 @@ const u8 OptionIndex[OPT_INDEX_SIZE] =
 	/*84*/	OPT_WBI,
 	/*85*/	OPT_SPARSE,
 	/*86*/	OPT_DEFRAG,
-	/*87*/	OPT_CHUNK_MODE,
-	/*88*/	OPT_CHUNK_SIZE,
-	/*89*/	OPT_MAX_CHUNKS,
-	/*8a*/	OPT_COMPRESSION,
-	/*8b*/	OPT_MEM,
-	/*8c*/	 0,0,0,0, 
+	/*87*/	OPT_PA_LIMIT,
+	/*88*/	OPT_CHUNK_MODE,
+	/*89*/	OPT_CHUNK_SIZE,
+	/*8a*/	OPT_MAX_CHUNKS,
+	/*8b*/	OPT_COMPRESSION,
+	/*8c*/	OPT_MEM,
+	/*8d*/	 0,0,0,
 	/*90*/	 0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0,
 	/*a0*/	 0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0,
 	/*b0*/	 0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0,
@@ -441,39 +454,39 @@ const u8 OptionIndex[OPT_INDEX_SIZE] =
 ///////////////                opt_allowed_cmd_*                ///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-static u8 option_allowed_cmd_VERSION[24] = // cmd #1
+static u8 option_allowed_cmd_VERSION[25] = // cmd #1
 {
-    0,0,1,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,  0,0,0,0
+    0,0,1,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0
 };
 
-static u8 option_allowed_cmd_HELP[24] = // cmd #2
+static u8 option_allowed_cmd_HELP[25] = // cmd #2
 {
-    1,1,1,1,1, 1,1,1,1,1,  1,1,1,1,1, 1,1,1,1,1,  1,1,1,1
+    1,1,1,1,1, 1,1,1,1,1,  1,1,1,1,1, 1,1,1,1,1,  1,1,1,1,1
 };
 
-static u8 option_allowed_cmd_PACK[24] = // cmd #3
+static u8 option_allowed_cmd_PACK[25] = // cmd #3
 {
-    0,0,0,0,1, 1,1,1,1,1,  1,1,1,1,1, 1,1,1,1,1,  1,1,1,1
+    0,0,0,0,1, 1,1,1,1,1,  1,1,1,1,1, 1,1,1,1,1,  1,1,1,1,1
 };
 
-static u8 option_allowed_cmd_UNPACK[24] = // cmd #4
+static u8 option_allowed_cmd_UNPACK[25] = // cmd #4
 {
-    0,0,0,0,0, 0,0,0,0,1,  1,1,1,1,1, 1,1,1,1,1,  1,1,1,1
+    0,0,0,0,0, 0,0,0,0,1,  1,1,1,1,1, 1,1,1,1,1,  1,1,1,1,1
 };
 
-static u8 option_allowed_cmd_CAT[24] = // cmd #5
+static u8 option_allowed_cmd_CAT[25] = // cmd #5
 {
-    0,0,0,0,0, 0,0,0,0,1,  1,0,0,1,0, 1,1,1,1,1,  1,1,1,1
+    0,0,0,0,0, 0,0,0,0,1,  1,0,0,1,0, 1,1,1,1,1,  1,1,1,1,1
 };
 
-static u8 option_allowed_cmd_CMP[24] = // cmd #6
+static u8 option_allowed_cmd_CMP[25] = // cmd #6
 {
-    0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,  0,0,0,0
+    0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0
 };
 
-static u8 option_allowed_cmd_DUMP[24] = // cmd #7
+static u8 option_allowed_cmd_DUMP[25] = // cmd #7
 {
-    0,1,1,1,0, 0,0,0,0,1,  1,0,0,1,0, 0,0,0,0,0,  0,0,0,0
+    0,1,1,1,0, 0,0,0,0,1,  1,0,0,1,0, 0,0,0,0,0,  0,0,0,0,0
 };
 
 
@@ -524,6 +537,7 @@ static const InfoOption_t * option_tab_cmd_PACK[] =
 	OptionInfo + OPT_SPLIT_SIZE,
 	OptionInfo + OPT_SPARSE,
 	OptionInfo + OPT_DEFRAG,
+	OptionInfo + OPT_PA_LIMIT,
 	OptionInfo + OPT_CHUNK_MODE,
 	OptionInfo + OPT_CHUNK_SIZE,
 	OptionInfo + OPT_MAX_CHUNKS,
@@ -553,6 +567,7 @@ static const InfoOption_t * option_tab_cmd_UNPACK[] =
 	OptionInfo + OPT_SPLIT_SIZE,
 	OptionInfo + OPT_SPARSE,
 	OptionInfo + OPT_DEFRAG,
+	OptionInfo + OPT_PA_LIMIT,
 	OptionInfo + OPT_CHUNK_MODE,
 	OptionInfo + OPT_CHUNK_SIZE,
 	OptionInfo + OPT_MAX_CHUNKS,
@@ -574,6 +589,7 @@ static const InfoOption_t * option_tab_cmd_CAT[] =
 	OptionInfo + OPT_SPLIT_SIZE,
 	OptionInfo + OPT_SPARSE,
 	OptionInfo + OPT_DEFRAG,
+	OptionInfo + OPT_PA_LIMIT,
 	OptionInfo + OPT_CHUNK_MODE,
 	OptionInfo + OPT_CHUNK_SIZE,
 	OptionInfo + OPT_MAX_CHUNKS,
@@ -619,7 +635,9 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	" unpack), compare and dump WDF, WIA (only dump) and CISO archives."
 	" The default command depends on the program file name (see command"
 	" descriptions). Usual names are wdf, unwdf, wdf-cat, wdf-cmp and"
-	" wdf-dump (with or without minus signs).",
+	" wdf-dump (with or without minus signs). \n"
+	"  'wdf +CAT' replaces the old tool wdf-cat and 'wdf +DUMP' replaces"
+	" the old tool wdf-dump.",
 	8,
 	option_tab_tool,
 	0
@@ -657,7 +675,7 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	"+P",
 	"wdf +PACK [option]... files...",
 	"Pack sources into WDF or CISO archives. This is the general default.",
-	20,
+	21,
 	option_tab_cmd_PACK,
 	option_allowed_cmd_PACK
     },
@@ -671,7 +689,7 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	"Unpack WDF and CISO archives.\n"
 	"  This is the default command, when the program name starts with the"
 	" two letters 'un' in any case.",
-	15,
+	16,
 	option_tab_cmd_UNPACK,
 	option_allowed_cmd_UNPACK
     },
@@ -686,8 +704,8 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	" files are extracted before printing, all other files are copied byte"
 	" by byte.\n"
 	"  This is the default command, when the program name contains the sub"
-	" string 'cat' in any case.",
-	12,
+	" string 'cat' in any case. 'wdf +CAT' replaces the old tool wdf-cat.",
+	13,
 	option_tab_cmd_CAT,
 	option_allowed_cmd_CAT
     },
@@ -719,7 +737,8 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	"Dump the data structure of WDF, WIA and CISO archives and ignore"
 	" other files.\n"
 	"  This is the default command, when the program contains the sub"
-	" string 'dump' in any case.",
+	" string 'dump' in any case. 'wdf +DUMP' replaces the old tool"
+	" wdf-dump.",
 	6,
 	option_tab_cmd_DUMP,
 	option_allowed_cmd_DUMP

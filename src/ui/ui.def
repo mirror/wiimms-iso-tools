@@ -515,6 +515,15 @@
 	" between --sparse and --defrag. This option has only impact for ISO," \
 	" CISO and WBFS files." )
 
+#:def_opt( "PA_LIMIT", "pa-limit|palimit", "CP", \
+	"size", \
+	"If {--sparse} is not set the space of new iso images is preallocated" \
+	" to avoid fragmentation. Option --pa-limit ('pa'=PreAllocation)" \
+	" accepts a size parameter (default unit is MiB). The value is" \
+	" silently rounded up to the next multiple of 1 MiB. If a planned" \
+	" preallocation block is larger than @'size'@ it is splitted into" \
+	" equal peaces. The special value @0@ (default) disables the limit." )
+
 #:def_opt( "TRUNC", "trunc", "C", \
 	"", \
 	"Truncate PLAIN ISO images to the needed size while creating." )
@@ -2803,6 +2812,10 @@
 	"", \
 	"" )
 
+#:def_cmd_opt( "COPY", "PA_LIMIT", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "COPY", "TRUNC", \
 	"", \
 	"" )
@@ -3008,6 +3021,10 @@
 	"" )
 
 #:def_cmd_opt( "CONVERT", "DEFRAG", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "CONVERT", "PA_LIMIT", \
 	"", \
 	"" )
 
@@ -3593,6 +3610,10 @@
 	"", \
 	"" )
 
+#:def_cmd_opt( "MIX", "PA_LIMIT", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "MIX", "TRUNC", \
 	"", \
 	"" )
@@ -4131,12 +4152,21 @@
 	" balance between --sparse and --defrag. This option has only impact" \
 	" for ISO, CISO and WBFS files." )
 
-#:def_opt( "DEFRAG", "defrag", "C", \
+#:def_opt( "DEFRAG", "defrag", "CP", \
 	"", \
 	"Try to write the image with minimal number of fragments and disables" \
 	" sparse optimization (option {--sparse}). The default is a balance" \
 	" between --sparse and --defrag. This option has only impact for ISO," \
 	" CISO and WBFS files." )
+
+#:def_opt( "PA_LIMIT", "pa-limit|palimit", "CP", \
+	"size", \
+	"If {--sparse} is not set the space of new iso images is preallocated" \
+	" to avoid fragmentation. Option --pa-limit ('pa'=PreAllocation)" \
+	" accepts a size parameter (default unit is MiB). The value is" \
+	" silently rounded up to the next multiple of 1 MiB. If a planned" \
+	" preallocation block is larger than @'size'@ it is splitted into" \
+	" equal peaces. The special value @0@ (default) disables the limit." )
 
 #:def_opt( "TRUNC", "trunc", "C", \
 	"", \
@@ -6005,6 +6035,10 @@
 	"", \
 	"" )
 
+#:def_cmd_opt( "EXTRACT", "PA_LIMIT", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "EXTRACT", "TRUNC", \
 	"", \
 	"" )
@@ -6524,7 +6558,9 @@
 	" unpack), compare and dump WDF, WIA (only dump) and CISO archives." \
 	" The default command depends on the program file name (see command" \
 	" descriptions). Usual names are @wdf@, @unwdf@, @wdf-cat@, @wdf-cmp@" \
-	" and @wdf-dump@ (with or without minus signs)." )
+	" and @wdf-dump@ (with or without minus signs). \n" \
+	"  {wdf +CAT} replaces the old tool @wdf-cat@ and {wdf +DUMP} replaces" \
+	" the old tool @wdf-dump@." )
 
 #:def_cmd( "VERSION", "+VERSION|+V", \
 	"wdf +VERSION [ignored]...", \
@@ -6551,14 +6587,16 @@
 	" files are extracted before printing, all other files are copied byte" \
 	" by byte.\n" \
 	"  This is the default command, when the program name contains the sub" \
-	" string @'cat'@ in any case." )
+	" string @'cat'@ in any case. {wdf +CAT} replaces the old tool" \
+	" @wdf-cat@." )
 
 #:def_cmd( "DUMP", "+DUMP|+D", \
 	"wdf +DUMP [option]... files...", \
 	"Dump the data structure of WDF, WIA and CISO archives and ignore" \
 	" other files.\n" \
 	"  This is the default command, when the program contains the sub" \
-	" string @'dump'@ in any case." )
+	" string @'dump'@ in any case. {wdf +DUMP} replaces the old tool" \
+	" @wdf-dump@." )
 
 #:def_opt( "VERSION", "V|version", "G", \
 	"", \
@@ -6683,12 +6721,21 @@
 	" balance between --sparse and --defrag. This option has only impact" \
 	" for ISO, CISO and WBFS files." )
 
-#:def_opt( "DEFRAG", "defrag", "C", \
+#:def_opt( "DEFRAG", "defrag", "CP", \
 	"", \
 	"Try to write the image with minimal number of fragments and disables" \
 	" sparse optimization (option {--sparse}). The default is a balance" \
 	" between --sparse and --defrag. This option has only impact for ISO," \
 	" CISO and WBFS files." )
+
+#:def_opt( "PA_LIMIT", "pa-limit|palimit", "C", \
+	"size", \
+	"If {--sparse} is not set the space of new iso images is preallocated" \
+	" to avoid fragmentation. Option --pa-limit ('pa'=PreAllocation)" \
+	" accepts a size parameter (default unit is MiB). The value is" \
+	" silently rounded up to the next multiple of 1 MiB. If a planned" \
+	" preallocation block is larger than @'size'@ it is splitted into" \
+	" equal peaces. The special value @0@ (default) disables the limit." )
 
 #:def_opt( "CHUNK_MODE", "chunk-mode|chunkmode|chm", "CP", \
 	"mode", \
@@ -6798,6 +6845,10 @@
 	"", \
 	"" )
 
+#:def_cmd_opt( "PACK", "PA_LIMIT", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "PACK", "CHUNK_MODE", \
 	"", \
 	"" )
@@ -6878,6 +6929,10 @@
 	"", \
 	"" )
 
+#:def_cmd_opt( "UNPACK", "PA_LIMIT", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "UNPACK", "CHUNK_MODE", \
 	"", \
 	"" )
@@ -6935,6 +6990,10 @@
 	"" )
 
 #:def_cmd_opt( "CAT", "DEFRAG", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "CAT", "PA_LIMIT", \
 	"", \
 	"" )
 

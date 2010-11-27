@@ -773,6 +773,16 @@ info_t info_tab[] =
 		" The default is a balance between --sparse and --defrag."
 		" This option has only impact for ISO, CISO and WBFS files." },
 
+  { T_OPT_CP,	"PA_LIMIT",	"pa-limit|palimit",
+		"size",
+		"If {--sparse} is not set the space of new iso images is preallocated"
+		" to avoid fragmentation. Option --pa-limit ('pa'=PreAllocation)"
+		" accepts a size parameter (default unit is MiB)."
+		" The value is silently rounded up to the next multiple of 1 MiB."
+		" If a planned preallocation block is larger than @'size'@"
+		" it is splitted into equal peaces."
+		" The special value @0@ (default) disables the limit." },
+
   { T_OPT_C,	"TRUNC",	"trunc",
 		0, "Truncate PLAIN ISO images to the needed size while creating." },
 
@@ -1166,6 +1176,7 @@ info_t info_tab[] =
   { T_COPT,	"DISC_SIZE",	0,0,0 },
   { T_COPT,	"SPARSE",	0,0,0 },
   { T_COPT,	"DEFRAG",	0,0,0 },
+  { T_COPT,	"PA_LIMIT",	0,0,0 },
   { T_COPT,	"TRUNC",	0,0,0 },
   { T_COPT,	"CHUNK_MODE",	0,0,0 },
   { T_COPT,	"CHUNK_SIZE",	0,0,0 },
@@ -2048,7 +2059,10 @@ info_t info_tab[] =
   { T_OPT_C,	"SPARSE",	"sparse",
 		0, 0 /* copy of wit */ },
 
-  { T_OPT_C,	"DEFRAG",	"defrag",
+  { T_OPT_CP,	"DEFRAG",	"defrag",
+		0, 0 /* copy of wit */ },
+
+  { T_OPT_CP,	"PA_LIMIT",	"pa-limit|palimit",
 		0, 0 /* copy of wit */ },
 
   { T_OPT_C,	"TRUNC",	"trunc",
@@ -2328,6 +2342,7 @@ info_t info_tab[] =
   { T_COPT,	"DISC_SIZE",	0,0,0 },
   { T_COPT,	"SPARSE",	0,0,0 },
   { T_COPT,	"DEFRAG",	0,0,0 },
+  { T_COPT,	"PA_LIMIT",	0,0,0 },
   { T_COPT,	"TRUNC",	0,0,0 },
   { T_COPT,	"CHUNK_MODE",	0,0,0 },
   { T_COPT,	"CHUNK_SIZE",	0,0,0 },
@@ -2819,7 +2834,10 @@ info_t info_tab[] =
 		" The default command depends on the program file name"
 		" (see command descriptions). Usual names are"
 		" @wdf@, @unwdf@, @wdf-cat@, @wdf-cmp@ and @wdf-dump@"
-		" (with or without minus signs)." },
+		" (with or without minus signs)."
+		" \n "
+		" {wdf +CAT} replaces the old tool @wdf-cat@"
+		" and {wdf +DUMP} replaces the old tool @wdf-dump@." },
 
   //
   //---------- list of all wdf commands ----------
@@ -2855,7 +2873,8 @@ info_t info_tab[] =
 		" all other files are copied byte by byte."
 		"\n "
 		" This is the default command, when the program name"
-		" contains the sub string @'cat'@ in any case." },
+		" contains the sub string @'cat'@ in any case."
+		" {wdf +CAT} replaces the old tool @wdf-cat@." },
 
   { H_DEF_CMD,	"CMP",		"+DIFF|+CMP",
 		    "wdf +DIFF [option]... files...",
@@ -2876,7 +2895,8 @@ info_t info_tab[] =
 		" and ignore other files."
 		"\n "
 		" This is the default command, when the program"
-		" contains the sub string @'dump'@ in any case." },
+		" contains the sub string @'dump'@ in any case."
+		" {wdf +DUMP} replaces the old tool @wdf-dump@." },
 
   //
   //---------- list of all wdf options ----------
@@ -2994,7 +3014,10 @@ info_t info_tab[] =
   { T_OPT_C,	"SPARSE",	"sparse",
 		0, 0 /* copy of wit */ },
 
-  { T_OPT_C,	"DEFRAG",	"defrag",
+  { T_OPT_CP,	"DEFRAG",	"defrag",
+		0, 0 /* copy of wit */ },
+
+  { T_OPT_C,	"PA_LIMIT",	"pa-limit|palimit",
 		0, 0 /* copy of wit */ },
 
   { T_OPT_CP,	"CHUNK_MODE",	"chunk-mode|chunkmode|chm",
@@ -3042,6 +3065,7 @@ info_t info_tab[] =
   { T_COPT,	"SPLIT_SIZE",	0,0,0 },
   { T_COPT,	"SPARSE",	0,0,0 },
   { T_COPT,	"DEFRAG",	0,0,0 },
+  { T_COPT,	"PA_LIMIT",	0,0,0 },
   { T_COPT,	"CHUNK_MODE",	0,0,0 },
   { T_COPT,	"CHUNK_SIZE",	0,0,0 },
   { T_COPT,	"MAX_CHUNKS",	0,0,0 },

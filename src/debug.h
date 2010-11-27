@@ -192,9 +192,9 @@ void WAIT_ARG_FUNC ( const char * format, va_list arg );
 
 #else
 
-    #define PRINT(...)
-    #define PRINT_IF(cond,...)
-    #define BINGO
+    #define PRINT	TRACE
+    #define PRINT_IF	TRACE_IF
+    #define BINGO	TRACELINE
 
 #endif
 

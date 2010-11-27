@@ -60,13 +60,14 @@ typedef enum enumOptions
 	OPT_SPLIT_SIZE,
 	OPT_SPARSE,
 	OPT_DEFRAG,
+	OPT_PA_LIMIT,
 	OPT_CHUNK_MODE,
 	OPT_CHUNK_SIZE,
 	OPT_MAX_CHUNKS,
 	OPT_COMPRESSION,
 	OPT_MEM,
 
-	OPT__N_SPECIFIC, // == 24 
+	OPT__N_SPECIFIC, // == 25 
 
 	//----- global options -----
 
@@ -79,7 +80,7 @@ typedef enum enumOptions
 	OPT_LOGGING,
 	OPT_TEST,
 
-	OPT__N_TOTAL // == 32
+	OPT__N_TOTAL // == 33
 
 } enumOptions;
 
@@ -112,6 +113,7 @@ typedef enum enumOptions
 //	OB_SPLIT_SIZE		= 1llu << OPT_SPLIT_SIZE,
 //	OB_SPARSE		= 1llu << OPT_SPARSE,
 //	OB_DEFRAG		= 1llu << OPT_DEFRAG,
+//	OB_PA_LIMIT		= 1llu << OPT_PA_LIMIT,
 //	OB_CHUNK_MODE		= 1llu << OPT_CHUNK_MODE,
 //	OB_CHUNK_SIZE		= 1llu << OPT_CHUNK_SIZE,
 //	OB_MAX_CHUNKS		= 1llu << OPT_MAX_CHUNKS,
@@ -131,6 +133,7 @@ typedef enum enumOptions
 //				| OB_SPLIT_SIZE
 //				| OB_SPARSE
 //				| OB_DEFRAG
+//				| OB_PA_LIMIT
 //				| OB_CHUNK_MODE
 //				| OB_CHUNK_SIZE
 //				| OB_MAX_CHUNKS
@@ -226,6 +229,7 @@ typedef enum enumGetOpt
 	GO_WBI,
 	GO_SPARSE,
 	GO_DEFRAG,
+	GO_PA_LIMIT,
 	GO_CHUNK_MODE,
 	GO_CHUNK_SIZE,
 	GO_MAX_CHUNKS,

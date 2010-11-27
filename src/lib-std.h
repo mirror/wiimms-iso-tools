@@ -79,8 +79,8 @@ typedef enum enumRevID
 
 ///////////////////////////////////////////////////////////////////////////////
 
-#define TRACE_SEEK_FORMAT "%-20.20s f=%d,%p %9llx%s\n"
-#define TRACE_RDWR_FORMAT "%-20.20s f=%d,%p %9llx..%9llx %8zx%s\n"
+#define TRACE_SEEK_FORMAT "%-20.20s fd=%d,%p %9llx%s\n"
+#define TRACE_RDWR_FORMAT "%-20.20s fd=%d,%p %9llx..%9llx %8zx%s\n"
 
 #define FILE_PRELOAD_SIZE	0x800
 #define MIN_SPARSE_HOLE_SIZE	4096 // bytes
@@ -717,6 +717,13 @@ typedef enum PreallocMode
 } PreallocMode;
 
 extern PreallocMode prealloc_mode;
+extern u64 prealloc_limit;
+enum {
+	DEFAULT_PREALLOC_LIMIT	= 0,
+	PREALLOC_MULTIPLE	= MiB
+};
+
+int ScanPreallocationLimit ( ccp arg );
 
 //
 ///////////////////////////////////////////////////////////////////////////////

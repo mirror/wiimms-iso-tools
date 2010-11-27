@@ -84,6 +84,7 @@ typedef enum enumOptions
 	OPT_DISC_SIZE,
 	OPT_SPARSE,
 	OPT_DEFRAG,
+	OPT_PA_LIMIT,
 	OPT_TRUNC,
 	OPT_CHUNK_MODE,
 	OPT_CHUNK_SIZE,
@@ -118,7 +119,7 @@ typedef enum enumOptions
 	OPT_SORT,
 	OPT_LIMIT,
 
-	OPT__N_SPECIFIC, // == 76 
+	OPT__N_SPECIFIC, // == 77 
 
 	//----- global options -----
 
@@ -140,7 +141,7 @@ typedef enum enumOptions
 	OPT_TEST,
 	OPT_HOOK,
 
-	OPT__N_TOTAL // == 93
+	OPT__N_TOTAL // == 94
 
 } enumOptions;
 
@@ -197,6 +198,7 @@ typedef enum enumOptions
 //	OB_DISC_SIZE		= 1llu << OPT_DISC_SIZE,
 //	OB_SPARSE		= 1llu << OPT_SPARSE,
 //	OB_DEFRAG		= 1llu << OPT_DEFRAG,
+//	OB_PA_LIMIT		= 1llu << OPT_PA_LIMIT,
 //	OB_TRUNC		= 1llu << OPT_TRUNC,
 //	OB_CHUNK_MODE		= 1llu << OPT_CHUNK_MODE,
 //	OB_CHUNK_SIZE		= 1llu << OPT_CHUNK_SIZE,
@@ -306,6 +308,7 @@ typedef enum enumOptions
 //				| OB_DISC_SIZE
 //				| OB_SPARSE
 //				| OB_DEFRAG
+//				| OB_PA_LIMIT
 //				| OB_TRUNC
 //				| OB_CHUNK_MODE
 //				| OB_CHUNK_SIZE
@@ -635,6 +638,7 @@ typedef enum enumGetOpt
 	GO_DISC_SIZE,
 	GO_SPARSE,
 	GO_DEFRAG,
+	GO_PA_LIMIT,
 	GO_TRUNC,
 	GO_CHUNK_MODE,
 	GO_CHUNK_SIZE,

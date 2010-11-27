@@ -2,6 +2,8 @@ wit v@@VERSION@@ r@@REV-NEXT@@ - @@@@-@@-@@
 
  - Preallocation of disc space implemented. Set --sparse or --defrag to change
    default behavior of ISO, CISO and WBFS files.
+ - The new option "--pa-limit size" controls the maximum preallocation block
+   size. The default is 0 which means no limit.
 
 
 Known bugs:

@@ -1849,9 +1849,9 @@ enumError cmd_add()
 	int wbfs_rm_count = 0;
 	if ( OptionUsed[OPT_SYNC] )
 	{
-	    disable_exclude_db++;
+	    //disable_exclude_db++;
 	    WDiscList_t * wlist = GenerateWDiscList(&wbfs,0);
-	    disable_exclude_db--;
+	    //disable_exclude_db--;
 
 	    WDiscListItem_t * ptr = wlist->first_disc;
 	    WDiscListItem_t * end = ptr + wlist->used;
@@ -3060,6 +3060,7 @@ enumError CheckOptions ( int argc, char ** argv, bool is_env )
 	case GO_SPLIT_SIZE:	err += ScanOptSplitSize(optarg); break;
 	case GO_SPARSE:		prealloc_mode = PREALLOC_SPARSE; break;
 	case GO_DEFRAG:		prealloc_mode = PREALLOC_DEFRAG; break;
+	case GO_PA_LIMIT:	err += ScanPreallocationLimit(optarg); break;
 	case GO_TRUNC:		opt_truncate++; break;
 	case GO_FAST:		break;
 	case GO_CHUNK_MODE:	err += ScanChunkMode(optarg); break;
@@ -3104,6 +3105,7 @@ enumError CheckOptions ( int argc, char ** argv, bool is_env )
 	    break;
 
 	case GO_SIZE:
+	    BINGO;
 	    if (ScanSizeOptU64(&opt_size,optarg,GiB,0,
 				"size",MIN_WBFS_SIZE,0,0,0,true))
 		err++;

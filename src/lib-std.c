@@ -91,6 +91,7 @@ enumIOMode	io_mode			= 0;
 bool		opt_no_expand		= false;
 u32		opt_recurse_depth	= DEF_RECURSE_DEPTH;
 PreallocMode	prealloc_mode		= PREALLOC_DEFAULT;
+u64		prealloc_limit		= DEFAULT_PREALLOC_LIMIT;
 
 StringField_t	source_list;
 StringField_t	recurse_list;
@@ -1693,7 +1694,7 @@ char * ScanSizeTerm ( double * num, ccp source, u64 default_factor, int force_ba
 char * ScanSize ( double * num, ccp source,
 		  u64 default_factor1, u64 default_factor2, int force_base )
 {
-    ASSERT(source);
+    DASSERT(source);
     TRACE("ScanSize(df=%llx,%llx, base=%u)\n",
 			default_factor1, default_factor2, force_base );
 
@@ -4257,6 +4258,21 @@ size_t AllocTempBuffer ( size_t needed_size )
 	    OUT_OF_MEMORY;
     }
     return tempbuf_size;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+int ScanPreallocationLimit ( ccp arg )
+{
+    u64 limit = 0;
+    if (ScanSizeOptU64(&limit,arg,MiB,0,"pa-limit",0,0,0,0,true))
+	return 1;
+
+    prealloc_limit = limit
+			? ( limit + PREALLOC_MULTIPLE - 1 )
+				/ PREALLOC_MULTIPLE * PREALLOC_MULTIPLE
+			: DEFAULT_PREALLOC_LIMIT;
+    return 0;
 }
 
 //

@@ -2539,7 +2539,7 @@ u32 wd_pack_disc_usage_table // returns the index if the 'last_used_sector + 1'
     u8			* dest_table,	// valid pointer to destination table
     wd_disc_t		* disc,		// valid pointer to a disc
     u32			block_size,	// if >1: count every 'block_size'
-					//        continuous blocks as one block
+					//        continuous sectors as one block
     const wd_select_t	* select	// NULL or a new selector
 )
 {
@@ -2556,7 +2556,7 @@ u32 wd_pack_usage_table // returns the index if the 'last_used_sector + 1'
     u8			* dest_table,	// valid pointer to destination table
     const u8		* usage_table,	// valid pointer to usage table
     u32			block_size	// if >1: count every 'block_size'
-					//        continuous blocks as one block
+					//        continuous sectors as one block
 )
 {
     DASSERT(dest_table);
@@ -2625,7 +2625,8 @@ u64 wd_count_used_disc_size
 (
     wd_disc_t		* disc,		// valid pointer to a disc
     int			block_size,	// if >1: count every 'block_size'
-					//        continuous blocks as one block
+					//        continuous sectors as one block
+					//        and return the block count
 					// if <0: like >1, but give the result as multiple
 					//        of WII_SECTOR_SIZE and reduce the count
 					//        for non needed sectors at the end.
@@ -2643,7 +2644,8 @@ u32 wd_count_used_disc_blocks
 (
     wd_disc_t		* disc,		// valid pointer to a disc
     int			block_size,	// if >1: count every 'block_size'
-					//        continuous blocks as one block
+					//        continuous sectors as one block
+					//        and return the block count
 					// if <0: like >1, but give the result as multiple
 					//        of WII_SECTOR_SIZE and reduce the count
 					//        for non needed sectors at the end.
@@ -2662,7 +2664,8 @@ u32 wd_count_used_blocks
 (
     const u8		* usage_table,	// valid pointer to usage table
     int			block_size	// if >1: count every 'block_size'
-					//        continuous blocks as one block
+					//        continuous sectors as one block
+					//        and return the block count
 					// if <0: like >1, but give the result as multiple
 					//        of WII_SECTOR_SIZE and reduce the count
 					//        for non needed sectors at the end.
@@ -2676,7 +2679,7 @@ u32 wd_count_used_blocks
     const bool return_wii_sectors = block_size < 0;
     if (return_wii_sectors)
 	block_size = -block_size;
-    PRINT("wd_count_used_blocks() => %d,%d\n",return_wii_sectors,block_size);
+    TRACE("wd_count_used_blocks() => %d,%d\n",return_wii_sectors,block_size);
 
     if ( block_size > 1 )
     {
@@ -2691,8 +2694,8 @@ u32 wd_count_used_blocks
 
 	if ( block_size < end_tab - usage_table )
 	{
-
 	    end_tab -= block_size;
+
 	    for ( ; usage_table < end_tab; usage_table += block_size )
 	    {
 		int i;
