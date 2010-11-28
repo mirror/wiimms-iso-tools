@@ -324,7 +324,6 @@ enumError cmd_test_options()
     u64 opt_size = 0;
  #endif
 
-    print_val( "pa-limit:",	prealloc_limit, 0 );
     print_val( "chunk-mode:",	opt_chunk_mode,	0 );
     print_val( "chunk-size:",	opt_chunk_size,	force_chunk_size ? " FORCE!" : "" );
     print_val( "max-chunks:",	opt_max_chunks,	0 );
@@ -364,6 +363,7 @@ enumError cmd_test_options()
     printf("  rdepth:      %16x = %12d\n",opt_recurse_depth,opt_recurse_depth);
     printf("  enc:         %16x = %12d\n",encoding,encoding);
     printf("  region:      %16x = %12d\n",opt_region,opt_region);
+    printf("  prealloc:    %16x = %12d\n",prealloc_mode,prealloc_mode);
 
     if (opt_ios_valid)
     {

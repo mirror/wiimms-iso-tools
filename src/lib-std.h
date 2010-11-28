@@ -710,20 +710,22 @@ enumError SaveFile ( ccp path1, ccp path2, bool create_dir,
 
 typedef enum PreallocMode
 {
-    PREALLOC_SPARSE,	// maximum sparse effect == no preallocation
-    PREALLOC_DEFAULT,	// default = good mix of sparse and preallocation
-    PREALLOC_DEFRAG,	// minimum sparse effect == maximum preallocation
+    PREALLOC_OFF,	// preallocation is disabled
+    PREALLOC_SMART,	// enable smart preallocation
+    PREALLOC_ALL,	// preallocate the whole dest file
+
+ #if defined(__CYGWIN__)
+    PREALLOC_DEFAULT = PREALLOC_ALL,
+ #else
+    PREALLOC_DEFAULT = PREALLOC_OFF,
+ #endif
+
+    PREALLOC_OPT_DEFAULT = PREALLOC_ALL
 
 } PreallocMode;
 
 extern PreallocMode prealloc_mode;
-extern u64 prealloc_limit;
-enum {
-	DEFAULT_PREALLOC_LIMIT	= 0,
-	PREALLOC_MULTIPLE	= MiB
-};
-
-int ScanPreallocationLimit ( ccp arg );
+int ScanPreallocMode ( ccp arg );
 
 //
 ///////////////////////////////////////////////////////////////////////////////

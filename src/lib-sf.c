@@ -516,7 +516,7 @@ enumError PreallocateSF
 )
 {
     DASSERT(sf);
-    if (!sf->src)
+    if ( !sf->src || prealloc_mode == PREALLOC_OFF )
 	return ERR_OK;
 
     wd_disc_t * disc = OpenDiscSF(sf->src,false,false);
@@ -592,19 +592,8 @@ enumError SetupWriteSF
     switch(sf->iod.oft)
     {
 	case OFT_PLAIN:
-	    switch (prealloc_mode)
-	    {
-		case PREALLOC_SPARSE:
-		    break;
-
-		case PREALLOC_DEFAULT:
-		    PreallocateSF(sf,0,0,WII_MAX_SECTORS,1);
-		    break;
-
-		case PREALLOC_DEFRAG:
-		    PreallocateSF(sf,0,0,WII_MAX_SECTORS,32);
-		    break;
-	    }
+	    PreallocateSF(sf,0,0,WII_MAX_SECTORS,
+				prealloc_mode == PREALLOC_ALL ? 32 : 1 );
 	    return ERR_OK;
 
 	case OFT_WDF:

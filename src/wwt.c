@@ -3058,9 +3058,7 @@ enumError CheckOptions ( int argc, char ** argv, bool is_env )
 	case GO_DISC_SIZE:	err += ScanOptDiscSize(optarg); break;
 	case GO_SPLIT:		opt_split++; break;
 	case GO_SPLIT_SIZE:	err += ScanOptSplitSize(optarg); break;
-	case GO_SPARSE:		prealloc_mode = PREALLOC_SPARSE; break;
-	case GO_DEFRAG:		prealloc_mode = PREALLOC_DEFRAG; break;
-	case GO_PA_LIMIT:	err += ScanPreallocationLimit(optarg); break;
+	case GO_PREALLOC:	err += ScanPreallocMode(optarg); break;
 	case GO_TRUNC:		opt_truncate++; break;
 	case GO_FAST:		break;
 	case GO_CHUNK_MODE:	err += ScanChunkMode(optarg); break;

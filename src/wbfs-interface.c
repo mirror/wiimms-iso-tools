@@ -1340,10 +1340,10 @@ enumError CreateGrowingWBFS ( WBFS_t * w, SuperFile_t * sf, off_t size, int sect
     ASSERT(sector_size);
     TRACE("CreateGrowingWBFS(%p,%p,%d)\n",w,sf,sector_size);
 
-    if ( S_ISREG(sf->f.st.st_mode) && sf->src && prealloc_mode > PREALLOC_SPARSE )
+    if ( S_ISREG(sf->f.st.st_mode) && sf->src && prealloc_mode > PREALLOC_OFF )
     {
 	const int bl_size = wbfs_calc_sect_size(size,sector_size);
-	if ( prealloc_mode == PREALLOC_DEFRAG )
+	if ( prealloc_mode == PREALLOC_ALL )
 	{
 	    wd_disc_t * disc = OpenDiscSF(sf->src,false,false);
 	    if (disc)

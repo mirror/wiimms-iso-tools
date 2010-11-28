@@ -139,30 +139,23 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 	" The default unit is 'G' (GiB)."
     },
 
-    {	OPT_SPARSE, 0, "sparse",
-	0,
-	"Try to write the image with maximum sparse effect and disables"
-	" defragmentation optimization (option --defrag). The default is a"
-	" balance between --sparse and --defrag. This option has only impact"
-	" for ISO, CISO and WBFS files."
-    },
-
-    {	OPT_DEFRAG, 0, "defrag",
-	"param",
-	"Try to write the image with minimal number of fragments and disables"
-	" sparse optimization (option --sparse). The default is a balance"
-	" between --sparse and --defrag. This option has only impact for ISO,"
-	" CISO and WBFS files."
-    },
-
-    {	OPT_PA_LIMIT, 0, "pa-limit",
-	0,
-	"If --sparse is not set the space of new iso images is preallocated to"
-	" avoid fragmentation. Option --pa-limit ('pa'=PreAllocation) accepts"
-	" a size parameter (default unit is MiB). The value is silently"
-	" rounded up to the next multiple of 1 MiB. If a planned preallocation"
-	" block is larger than 'size' it is splitted into equal peaces. The"
-	" special value 0 (default) disables the limit."
+    {	OPT_PREALLOC, 0, "prealloc",
+	"[=mode]",
+	"This option enables or disables the disc space preallocation. If"
+	" enabled the tools tries to allocate disc space for the new files"
+	" before writing te data. This reduces the fragmentation but aoso"
+	" disables the sparse effect for prealocated areas.\n"
+	"  The optional parameter decides the preallocation modus: OFF (or 0),"
+	" SMART (or 1), ALL (or 2). If no parameter is set, ALL is used.\n"
+	"  OFF disables the preallocation. This is the default for all non"
+	" Cygwin releases because preallocation has only advantages on Windows"
+	" systems.\n"
+	"  SMART looks into the source disc to find out the writing areas."
+	" SMART is only avalable for ISO, CISO and WBFS file types. For other"
+	" file types ALL is used instead.\n"
+	"  ALL preallocate the whole destination file. This is the default for"
+	" Cygwin. Plain ISO images will an alternative SMART mode id ALL is"
+	" set."
     },
 
     {	OPT_CHUNK_MODE, 0, "chunk-mode",
@@ -241,7 +234,7 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 	" to 80% of the total memory minus 50 MiB."
     },
 
-    {0,0,0,0,0}, // OPT__N_SPECIFIC == 25
+    {0,0,0,0,0}, // OPT__N_SPECIFIC == 23
 
     //----- global options -----
 
@@ -290,7 +283,7 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 	">>> USE THIS OPTION IF UNSURE! <<<"
     },
 
-    {0,0,0,0,0} // OPT__N_TOTAL == 33
+    {0,0,0,0,0} // OPT__N_TOTAL == 31
 
 };
 
@@ -364,10 +357,7 @@ const struct option OptionLong[] =
 	{ "split",		0, 0, 'z' },
 	{ "split-size",		1, 0, 'Z' },
 	 { "splitsize",		1, 0, 'Z' },
-	{ "sparse",		0, 0, GO_SPARSE },
-	{ "defrag",		1, 0, GO_DEFRAG },
-	{ "pa-limit",		0, 0, GO_PA_LIMIT },
-	 { "palimit",		0, 0, GO_PA_LIMIT },
+	{ "prealloc",		2, 0, GO_PREALLOC },
 	{ "chunk-mode",		1, 0, GO_CHUNK_MODE },
 	 { "chunkmode",		1, 0, GO_CHUNK_MODE },
 	 { "chm",		1, 0, GO_CHUNK_MODE },
@@ -435,15 +425,13 @@ const u8 OptionIndex[OPT_INDEX_SIZE] =
 	/*82*/	OPT_CHUNK,
 	/*83*/	OPT_WIA,
 	/*84*/	OPT_WBI,
-	/*85*/	OPT_SPARSE,
-	/*86*/	OPT_DEFRAG,
-	/*87*/	OPT_PA_LIMIT,
-	/*88*/	OPT_CHUNK_MODE,
-	/*89*/	OPT_CHUNK_SIZE,
-	/*8a*/	OPT_MAX_CHUNKS,
-	/*8b*/	OPT_COMPRESSION,
-	/*8c*/	OPT_MEM,
-	/*8d*/	 0,0,0,
+	/*85*/	OPT_PREALLOC,
+	/*86*/	OPT_CHUNK_MODE,
+	/*87*/	OPT_CHUNK_SIZE,
+	/*88*/	OPT_MAX_CHUNKS,
+	/*89*/	OPT_COMPRESSION,
+	/*8a*/	OPT_MEM,
+	/*8b*/	 0,0,0,0, 0,
 	/*90*/	 0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0,
 	/*a0*/	 0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0,
 	/*b0*/	 0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0,
@@ -454,39 +442,39 @@ const u8 OptionIndex[OPT_INDEX_SIZE] =
 ///////////////                opt_allowed_cmd_*                ///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-static u8 option_allowed_cmd_VERSION[25] = // cmd #1
+static u8 option_allowed_cmd_VERSION[23] = // cmd #1
 {
-    0,0,1,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0
+    0,0,1,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,  0,0,0
 };
 
-static u8 option_allowed_cmd_HELP[25] = // cmd #2
+static u8 option_allowed_cmd_HELP[23] = // cmd #2
 {
-    1,1,1,1,1, 1,1,1,1,1,  1,1,1,1,1, 1,1,1,1,1,  1,1,1,1,1
+    1,1,1,1,1, 1,1,1,1,1,  1,1,1,1,1, 1,1,1,1,1,  1,1,1
 };
 
-static u8 option_allowed_cmd_PACK[25] = // cmd #3
+static u8 option_allowed_cmd_PACK[23] = // cmd #3
 {
-    0,0,0,0,1, 1,1,1,1,1,  1,1,1,1,1, 1,1,1,1,1,  1,1,1,1,1
+    0,0,0,0,1, 1,1,1,1,1,  1,1,1,1,1, 1,1,1,1,1,  1,1,1
 };
 
-static u8 option_allowed_cmd_UNPACK[25] = // cmd #4
+static u8 option_allowed_cmd_UNPACK[23] = // cmd #4
 {
-    0,0,0,0,0, 0,0,0,0,1,  1,1,1,1,1, 1,1,1,1,1,  1,1,1,1,1
+    0,0,0,0,0, 0,0,0,0,1,  1,1,1,1,1, 1,1,1,1,1,  1,1,1
 };
 
-static u8 option_allowed_cmd_CAT[25] = // cmd #5
+static u8 option_allowed_cmd_CAT[23] = // cmd #5
 {
-    0,0,0,0,0, 0,0,0,0,1,  1,0,0,1,0, 1,1,1,1,1,  1,1,1,1,1
+    0,0,0,0,0, 0,0,0,0,1,  1,0,0,1,0, 1,1,1,1,1,  1,1,1
 };
 
-static u8 option_allowed_cmd_CMP[25] = // cmd #6
+static u8 option_allowed_cmd_CMP[23] = // cmd #6
 {
-    0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0
+    0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,  0,0,0
 };
 
-static u8 option_allowed_cmd_DUMP[25] = // cmd #7
+static u8 option_allowed_cmd_DUMP[23] = // cmd #7
 {
-    0,1,1,1,0, 0,0,0,0,1,  1,0,0,1,0, 0,0,0,0,0,  0,0,0,0,0
+    0,1,1,1,0, 0,0,0,0,1,  1,0,0,1,0, 0,0,0,0,0,  0,0,0
 };
 
 
@@ -535,9 +523,7 @@ static const InfoOption_t * option_tab_cmd_PACK[] =
 	OptionInfo + OPT_OVERWRITE,
 	OptionInfo + OPT_SPLIT,
 	OptionInfo + OPT_SPLIT_SIZE,
-	OptionInfo + OPT_SPARSE,
-	OptionInfo + OPT_DEFRAG,
-	OptionInfo + OPT_PA_LIMIT,
+	OptionInfo + OPT_PREALLOC,
 	OptionInfo + OPT_CHUNK_MODE,
 	OptionInfo + OPT_CHUNK_SIZE,
 	OptionInfo + OPT_MAX_CHUNKS,
@@ -565,9 +551,7 @@ static const InfoOption_t * option_tab_cmd_UNPACK[] =
 	OptionInfo + OPT_OVERWRITE,
 	OptionInfo + OPT_SPLIT,
 	OptionInfo + OPT_SPLIT_SIZE,
-	OptionInfo + OPT_SPARSE,
-	OptionInfo + OPT_DEFRAG,
-	OptionInfo + OPT_PA_LIMIT,
+	OptionInfo + OPT_PREALLOC,
 	OptionInfo + OPT_CHUNK_MODE,
 	OptionInfo + OPT_CHUNK_SIZE,
 	OptionInfo + OPT_MAX_CHUNKS,
@@ -587,9 +571,7 @@ static const InfoOption_t * option_tab_cmd_CAT[] =
 	OptionInfo + OPT_OVERWRITE,
 	OptionInfo + OPT_SPLIT,
 	OptionInfo + OPT_SPLIT_SIZE,
-	OptionInfo + OPT_SPARSE,
-	OptionInfo + OPT_DEFRAG,
-	OptionInfo + OPT_PA_LIMIT,
+	OptionInfo + OPT_PREALLOC,
 	OptionInfo + OPT_CHUNK_MODE,
 	OptionInfo + OPT_CHUNK_SIZE,
 	OptionInfo + OPT_MAX_CHUNKS,
@@ -635,7 +617,7 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	" unpack), compare and dump WDF, WIA (only dump) and CISO archives."
 	" The default command depends on the program file name (see command"
 	" descriptions). Usual names are wdf, unwdf, wdf-cat, wdf-cmp and"
-	" wdf-dump (with or without minus signs). \n"
+	" wdf-dump (with or without minus signs).\n"
 	"  'wdf +CAT' replaces the old tool wdf-cat and 'wdf +DUMP' replaces"
 	" the old tool wdf-dump.",
 	8,
@@ -675,7 +657,7 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	"+P",
 	"wdf +PACK [option]... files...",
 	"Pack sources into WDF or CISO archives. This is the general default.",
-	21,
+	19,
 	option_tab_cmd_PACK,
 	option_allowed_cmd_PACK
     },
@@ -689,7 +671,7 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	"Unpack WDF and CISO archives.\n"
 	"  This is the default command, when the program name starts with the"
 	" two letters 'un' in any case.",
-	16,
+	14,
 	option_tab_cmd_UNPACK,
 	option_allowed_cmd_UNPACK
     },
@@ -705,7 +687,7 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	" by byte.\n"
 	"  This is the default command, when the program name contains the sub"
 	" string 'cat' in any case. 'wdf +CAT' replaces the old tool wdf-cat.",
-	13,
+	11,
 	option_tab_cmd_CAT,
 	option_allowed_cmd_CAT
     },

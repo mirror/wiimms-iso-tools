@@ -759,29 +759,28 @@ info_t info_tab[] =
 		"size",
 		"Define a minimal (virtual) ISO disc size." },
 
-  { T_OPT_C,	"SPARSE",	"sparse",
-		0,
-		"Try to write the image with maximum sparse effect"
-		" and disables defragmentation optimization (option {--defrag})."
-		" The default is a balance between --sparse and --defrag."
-		" This option has only impact for ISO, CISO and WBFS files." },
-
-  { T_OPT_C,	"DEFRAG",	"defrag",
-		0,
-		"Try to write the image with minimal number of fragments"
-		" and disables sparse optimization (option {--sparse})."
-		" The default is a balance between --sparse and --defrag."
-		" This option has only impact for ISO, CISO and WBFS files." },
-
-  { T_OPT_CP,	"PA_LIMIT",	"pa-limit|palimit",
-		"size",
-		"If {--sparse} is not set the space of new iso images is preallocated"
-		" to avoid fragmentation. Option --pa-limit ('pa'=PreAllocation)"
-		" accepts a size parameter (default unit is MiB)."
-		" The value is silently rounded up to the next multiple of 1 MiB."
-		" If a planned preallocation block is larger than @'size'@"
-		" it is splitted into equal peaces."
-		" The special value @0@ (default) disables the limit." },
+  { T_OPT_CO,	"PREALLOC",	"prealloc",
+		"[=mode]",
+		"This option enables or disables the disc space preallocation."
+		" If enabled the tools tries to allocate disc space for the new files"
+		" before writing te data. This reduces the fragmentation but aoso"
+		" disables the sparse effect for prealocated areas."
+		"\n "
+		" The optional parameter decides the preallocation modus:"
+		" @OFF@ (or @0@), @SMART@ (or @1@), @ALL@ (or @2@)."
+		" If no parameter is set, @ALL@ is used."
+		"\n "
+		" @OFF@ disables the preallocation."
+		" This is the default for all non Cygwin releases"
+		" because preallocation has only advantages on Windows systems."
+		"\n "
+		" @SMART@ looks into the source disc to find out the writing areas."
+		" @SMART@ is only avalable for ISO, CISO and WBFS file types."
+		" For other file types @ALL@ is used instead."
+		"\n "
+		" @ALL@ preallocate the whole destination file."
+		" This is the default for Cygwin."
+		" Plain ISO images will an alternative @SMART@ mode id @ALL@ is set." },
 
   { T_OPT_C,	"TRUNC",	"trunc",
 		0, "Truncate PLAIN ISO images to the needed size while creating." },
@@ -1174,9 +1173,7 @@ info_t info_tab[] =
   { T_COPT,	"SPLIT",	0,0,0 },
   { T_COPT,	"SPLIT_SIZE",	0,0,0 },
   { T_COPT,	"DISC_SIZE",	0,0,0 },
-  { T_COPT,	"SPARSE",	0,0,0 },
-  { T_COPT,	"DEFRAG",	0,0,0 },
-  { T_COPT,	"PA_LIMIT",	0,0,0 },
+  { T_COPT,	"PREALLOC",	0,0,0 },
   { T_COPT,	"TRUNC",	0,0,0 },
   { T_COPT,	"CHUNK_MODE",	0,0,0 },
   { T_COPT,	"CHUNK_SIZE",	0,0,0 },
@@ -2056,13 +2053,7 @@ info_t info_tab[] =
   { T_OPT_CP,	"DISC_SIZE",	"disc-size|discsize",
 		0, 0 /* copy of wit */ },
 
-  { T_OPT_C,	"SPARSE",	"sparse",
-		0, 0 /* copy of wit */ },
-
-  { T_OPT_CP,	"DEFRAG",	"defrag",
-		0, 0 /* copy of wit */ },
-
-  { T_OPT_CP,	"PA_LIMIT",	"pa-limit|palimit",
+  { T_OPT_CO,	"PREALLOC",	"prealloc",
 		0, 0 /* copy of wit */ },
 
   { T_OPT_C,	"TRUNC",	"trunc",
@@ -2340,9 +2331,7 @@ info_t info_tab[] =
   { T_COPT,	"SPLIT",	0,0,0 },
   { T_COPT,	"SPLIT_SIZE",	0,0,0 },
   { T_COPT,	"DISC_SIZE",	0,0,0 },
-  { T_COPT,	"SPARSE",	0,0,0 },
-  { T_COPT,	"DEFRAG",	0,0,0 },
-  { T_COPT,	"PA_LIMIT",	0,0,0 },
+  { T_COPT,	"PREALLOC",	0,0,0 },
   { T_COPT,	"TRUNC",	0,0,0 },
   { T_COPT,	"CHUNK_MODE",	0,0,0 },
   { T_COPT,	"CHUNK_SIZE",	0,0,0 },
@@ -2835,7 +2824,7 @@ info_t info_tab[] =
 		" (see command descriptions). Usual names are"
 		" @wdf@, @unwdf@, @wdf-cat@, @wdf-cmp@ and @wdf-dump@"
 		" (with or without minus signs)."
-		" \n "
+		"\n "
 		" {wdf +CAT} replaces the old tool @wdf-cat@"
 		" and {wdf +DUMP} replaces the old tool @wdf-dump@." },
 
@@ -3011,13 +3000,7 @@ info_t info_tab[] =
   { T_OPT_CP,	"SPLIT_SIZE",	"Z|split-size|splitsize",
 		0, 0 /* copy of wit */ },
 
-  { T_OPT_C,	"SPARSE",	"sparse",
-		0, 0 /* copy of wit */ },
-
-  { T_OPT_CP,	"DEFRAG",	"defrag",
-		0, 0 /* copy of wit */ },
-
-  { T_OPT_C,	"PA_LIMIT",	"pa-limit|palimit",
+  { T_OPT_CO,	"PREALLOC",	"prealloc",
 		0, 0 /* copy of wit */ },
 
   { T_OPT_CP,	"CHUNK_MODE",	"chunk-mode|chunkmode|chm",
@@ -3063,9 +3046,7 @@ info_t info_tab[] =
   { T_COPY_GRP,	"DEST",		0,0,0 },
   { T_COPT,	"SPLIT",	0,0,0 },
   { T_COPT,	"SPLIT_SIZE",	0,0,0 },
-  { T_COPT,	"SPARSE",	0,0,0 },
-  { T_COPT,	"DEFRAG",	0,0,0 },
-  { T_COPT,	"PA_LIMIT",	0,0,0 },
+  { T_COPT,	"PREALLOC",	0,0,0 },
   { T_COPT,	"CHUNK_MODE",	0,0,0 },
   { T_COPT,	"CHUNK_SIZE",	0,0,0 },
   { T_COPT,	"MAX_CHUNKS",	0,0,0 },

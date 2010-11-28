@@ -1,6 +1,4 @@
 ../src/wdf.c ;
-../src/wdf-cat.c ;
-../src/wdf-dump.c ;
 ../src/wit.c ;
 ../src/wwt.c ;
 @+all-source.edit-list

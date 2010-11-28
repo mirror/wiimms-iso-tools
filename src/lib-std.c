@@ -91,7 +91,6 @@ enumIOMode	io_mode			= 0;
 bool		opt_no_expand		= false;
 u32		opt_recurse_depth	= DEF_RECURSE_DEPTH;
 PreallocMode	prealloc_mode		= PREALLOC_DEFAULT;
-u64		prealloc_limit		= DEFAULT_PREALLOC_LIMIT;
 
 StringField_t	source_list;
 StringField_t	recurse_list;
@@ -4262,17 +4261,32 @@ size_t AllocTempBuffer ( size_t needed_size )
 
 ///////////////////////////////////////////////////////////////////////////////
 
-int ScanPreallocationLimit ( ccp arg )
+int ScanPreallocMode ( ccp arg )
 {
-    u64 limit = 0;
-    if (ScanSizeOptU64(&limit,arg,MiB,0,"pa-limit",0,0,0,0,true))
-	return 1;
+    if ( !arg || !*arg )
+    {
+	prealloc_mode = PREALLOC_OPT_DEFAULT;
+	return 0;
+    }
 
-    prealloc_limit = limit
-			? ( limit + PREALLOC_MULTIPLE - 1 )
-				/ PREALLOC_MULTIPLE * PREALLOC_MULTIPLE
-			: DEFAULT_PREALLOC_LIMIT;
-    return 0;
+    static const CommandTab_t tab[] =
+    {
+	{ PREALLOC_OFF,		"OFF",		"0",	0 },
+	{ PREALLOC_SMART,	"SMART",	"1",	0 },
+	{ PREALLOC_ALL,		"ALL",		"2",	0 },
+
+	{ 0,0,0,0 }
+    };
+
+    const CommandTab_t * cmd = ScanCommand(0,arg,tab);
+    if (cmd)
+    {
+	prealloc_mode = cmd->id;
+	return 0;
+    }
+
+    ERROR0(ERR_SYNTAX,"Illegal preallocation mode (option --prealloc): '%s'\n",arg);
+    return 1;
 }
 
 //

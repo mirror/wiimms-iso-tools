@@ -1779,25 +1779,10 @@ static void PreallocHelper ( File_t *f )
 		if (!found)
 		    break;
 
-		off_t psize = found_size;
-		if ( prealloc_limit && psize > prealloc_limit )
-		{
-		    const uint n = ( psize - 1 ) / prealloc_limit + 1;
-		    psize = found_size / n;
-		    psize = ( psize + PREALLOC_MULTIPLE - 1 )
-				/ PREALLOC_MULTIPLE * PREALLOC_MULTIPLE;
-		}
-		off_t found_off = found->off;
-		while ( found_size > 0 )
-		{
-		    u64 size = found_size < psize ? found_size : psize;
-		    PRINT("CALL posix_fallocate(%d,%9llx,%9llx [%s])\n",
-				f->fd, (u64)found_off, size,
-				wd_print_size_1024(0,0,size,true) );
-		    posix_fallocate(f->fd,found_off,size);
-		    found_off  += size;
-		    found_size -= size;
-		}
+		PRINT("CALL posix_fallocate(%d,%9llx,%9llx [%s])\n",
+			    f->fd, (u64)found->off, (u64)found->size,
+			    wd_print_size_1024(0,0,found->size,true) );
+		posix_fallocate(f->fd,found->off,found->size);
 		found->size = 0;
 		TRACELINE;
 	    }
@@ -2062,7 +2047,7 @@ enumError XPreallocateF
 {
     DASSERT(f);
     enumError err = ERR_OK;
-    if (size)
+    if ( size && prealloc_mode > PREALLOC_OFF )
     {
 	PRINT("PREALLOC/FILE fd=%d, %llx+%llx max=%llx: %s\n",
 		f->fd, (u64)off, (u64)size, (u64)f->max_off, f->fname );

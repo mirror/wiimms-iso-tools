@@ -437,9 +437,9 @@ enumError SetupWriteCISO ( SuperFile_t * sf )
 
     //---- preallocate disc space
 
-    if ( sf->src && prealloc_mode > PREALLOC_SPARSE )
+    if ( sf->src && prealloc_mode > PREALLOC_OFF )
     {
-	if ( prealloc_mode == PREALLOC_DEFRAG )
+	if ( prealloc_mode == PREALLOC_ALL )
 	{
 	    wd_disc_t * disc = OpenDiscSF(sf->src,false,false);
 	    if (disc)
