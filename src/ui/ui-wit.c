@@ -348,20 +348,20 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
     {	OPT_PREALLOC, 0, "prealloc",
 	"[=mode]",
 	"This option enables or disables the disc space preallocation. If"
-	" enabled the tools tries to allocate disc space for the new files"
-	" before writing te data. This reduces the fragmentation but aoso"
+	" enabled the tools try to allocate disc space for the new files"
+	" before writing the data. This reduces the fragmentation but also"
 	" disables the sparse effect for prealocated areas.\n"
 	"  The optional parameter decides the preallocation modus: OFF (or 0),"
 	" SMART (or 1), ALL (or 2). If no parameter is set, ALL is used.\n"
-	"  OFF disables the preallocation. This is the default for all non"
-	" Cygwin releases because preallocation has only advantages on Windows"
-	" systems.\n"
-	"  SMART looks into the source disc to find out the writing areas."
-	" SMART is only avalable for ISO, CISO and WBFS file types. For other"
-	" file types ALL is used instead.\n"
-	"  ALL preallocate the whole destination file. This is the default for"
-	" Cygwin. Plain ISO images will an alternative SMART mode id ALL is"
-	" set."
+	"  Mode 'OFF' disables the preallocation. This is the default for all"
+	" non Cygwin releases because preallocation has only advantages on"
+	" Windows systems.\n"
+	"  Mode 'SMART' looks into the source disc to find out the writing"
+	" areas. SMART is only avalable for ISO, CISO and WBFS file types. For"
+	" other file types ALL is used instead.\n"
+	"  Mode 'ALL' preallocate the whole destination file. This is the"
+	" default for Cygwin. Because of the large holes in plain ISO images,"
+	" the SMART mode is used for ISOs instead."
     },
 
     {	OPT_TRUNC, 0, "trunc",

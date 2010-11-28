@@ -515,6 +515,8 @@ enumError PreallocateSF
     u32			min_hole_size	// the minimal allowed hole size in 32K sectors
 )
 {
+    // [2do] is 'min_hole_size' obsolete?
+
     DASSERT(sf);
     if ( !sf->src || prealloc_mode == PREALLOC_OFF )
 	return ERR_OK;
@@ -592,8 +594,7 @@ enumError SetupWriteSF
     switch(sf->iod.oft)
     {
 	case OFT_PLAIN:
-	    PreallocateSF(sf,0,0,WII_MAX_SECTORS,
-				prealloc_mode == PREALLOC_ALL ? 32 : 1 );
+	    PreallocateSF(sf,0,0,WII_MAX_SECTORS,1);
 	    return ERR_OK;
 
 	case OFT_WDF:
