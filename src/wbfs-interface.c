@@ -520,6 +520,7 @@ void ScanPartitionGames()
 //
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
+#if !NEW_ID_PARM
 
 ParamList_t * CheckParamID6 ( bool unique, bool lookup_title_db )
 {
@@ -717,135 +718,7 @@ int PrintParamID6()
     return ERR_OK;
 }
 
-//
-///////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////
-
-ccp ScanArgID
-(
-    char		buf[7],		// result buffer for ID6: 6 chars + NULL
-					// On error 'buf7' is filled with NULL
-    ccp			arg,		// argument to scan. Comma is a separator
-    bool		trim_end	// true: remove trailing '.'
-)
-{
-    if (!arg)
-    {
-	memset(buf,0,6);
-	return 0;
-    }
-	
-    while ( *arg > 0 && *arg <= ' ' )
-	arg++;
-
-    ccp start = arg;
-    int err = 0, wildcards = 0;
-    while ( *arg > ' ' && *arg != ',' )
-    {
-	int ch = *arg++;
-	if ( ch == '+' || ch == '*' )
-	    wildcards++;
-	else if (!isalnum(ch) && !strchr("_.",ch))
-	    err++;
-    }
-    const int arglen = arg - start;
-    if ( err || wildcards > 1 || arglen > 6 )
-    {
-	memset(buf,0,6);
-	return start;
-    }
-    
-    char * dest = buf;
-    for ( ; start < arg; start++ )
-    {
-	if ( *start == '+' || *start == '*' )
-	{
-	    int count = 7 - arglen;
-	    while ( count-- > 0 )
-		*dest++ = '.';
-	}
-	else
-	    *dest++ = toupper((int)*start);
-	DASSERT( dest <= buf + 6 );
-    }
-
-    if (trim_end)
-	while ( dest[-1] == '.' )
-	    dest--;
-    else
-	while ( dest < buf+6 )
-	    *dest++ = '.';
-    *dest = 0;
-
-    while ( *arg > 0 && *arg <= ' ' || *arg == ',' )
-	arg++;
-    return arg;
-}
-
-///////////////////////////////////////////////////////////////////////////////
-
-ccp ScanPatID // return NULL if ok or a pointer to the invalid text
-(
-    StringField_t	* sf_id6,	// valid pointer: add real ID6
-    StringField_t	* sf_pat,	// valid pointer: add IDs with pattern '.'
-    ccp			arg,		// argument to scan. Comma is a separator
-    bool		trim_end	// true: remove trailing '.'
-)
-{
-    DASSERT(sf_id6);
-    DASSERT(sf_pat);
-
-    char buf[7];
-    while ( arg && *arg )
-    {
- 	arg = ScanArgID(buf,arg,trim_end);
-	if (!*buf)
-	    return arg;
-
-	if ( sf_id6 != sf_pat && strchr(buf,'.') )
-	    InsertStringField(sf_pat,buf,false);
-	else
-	    InsertStringField(sf_id6,buf,false);
-    }
-    return 0;
-}
-
-///////////////////////////////////////////////////////////////////////////////
-
-ccp FindPatID
-(
-    StringField_t	* sf_id6,	// valid pointer: search real ID6
-    StringField_t	* sf_pat,	// valid pointer: search IDs with pattern '.'
-    ccp			id6		// valid id6
-)
-{
-    if (!id6)
-	return 0;
-
-    if (sf_id6)
-    {
-	ccp found = FindStringField(sf_id6,id6);
-	if (found)
-	    return found;
-    }
-
-    if (sf_pat)
-    {
-	ccp *ptr = sf_pat->field, *end;
-	for ( end = ptr + sf_pat->used; ptr < end; ptr++ )
-	{
-	    ccp p1 = *ptr;
-	    ccp p2 = id6;
-	    while ( *p1 && *p2 && ( *p1 == '.' || *p2 == '.' || *p1 == *p2 ))
-		p1++, p2++;
-	    if ( !*p1 && !*p2 )
-		return *ptr;
-	}
-    }
-
-    return 0;
-}
-
+#endif // !NEW_ID_PARM
 //
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
@@ -4017,9 +3890,60 @@ enumError OpenWDiscSlot ( WBFS_t * w, u32 slot, bool force_open )
 
 ///////////////////////////////////////////////////////////////////////////////
 
+enumError OpenWDiscSF ( WBFS_t * w )
+{
+    DASSERT(w);
+    CloseWDiscSF(w);
+    if ( !w->sf || !w->disc )
+	return ERROR0(ERR_INTERNAL,0);
+
+    SuperFile_t * sf = w->sf;
+    sf->wbfs = w;
+    SetupIOD(sf,OFT_WBFS,OFT_WBFS);
+    memcpy(sf->f.id6,w->disc->header,6);
+    w->disc_sf_opened = true;
+
+    CopyFileAttribStat( &sf->f.fatt, &sf->f.st, false );
+    if ( w->disc->header && w->disc->header->dhead )
+    {
+	const wbfs_inode_info_t * ii
+	    = (wbfs_inode_info_t*) ( w->disc->header->dhead + WBFS_INODE_INFO_OFF );
+	CopyFileAttribInode( &sf->f.fatt, ii, 0 );
+    }
+
+    return ERR_OK;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+enumError CloseWDiscSF ( WBFS_t * w )
+{
+    DASSERT(w);
+    if ( w->disc_sf_opened )
+    {
+	w->disc_sf_opened = false;
+
+	SuperFile_t * sf = w->sf;
+	if ( sf && sf->iod.oft == OFT_WBFS )
+	{
+	    CloseDiscSF(sf);
+	    memset(sf->f.id6,0,sizeof(sf->f.id6));
+	    SetupIOD(sf,OFT_PLAIN,OFT_PLAIN);
+	    sf->wbfs = 0;
+	}
+
+	CopyFileAttribStat(&sf->f.fatt,&sf->f.st,false);
+    }
+    return ERR_OK;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
 enumError CloseWDisc ( WBFS_t * w )
 {
-    ASSERT(w);
+    DASSERT(w);
+
+    CloseWDiscSF(w);
 
     if (w->disc)
     {
@@ -4135,6 +4059,7 @@ enumError AddWDisc ( WBFS_t * w, SuperFile_t * sf, const wd_select_t * psel )
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////                    ExtractWDisc()               ///////////////
 ///////////////////////////////////////////////////////////////////////////////
+#if !NEW_EXTRACT
 
 enumError ExtractWDisc ( WBFS_t * w, SuperFile_t * sf )
 {
@@ -4184,25 +4109,35 @@ enumError ExtractWDisc ( WBFS_t * w, SuperFile_t * sf )
     return err;
 }
 
+#endif // !NEW_EXTRACT
 //
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////                    RemoveWDisc()                ///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-enumError RemoveWDisc ( WBFS_t * w, ccp id6, bool free_slot_only )
+enumError RemoveWDisc
+(
+    WBFS_t		* w,		// valid WBFS descriptor
+    ccp			id6,		// id6 to remove. If NULL: remove 'slot'
+    int			slot,		// slot index, only used if 'discid==NULL'
+    int			free_slot_only	// true: do not free blocks
+)
 {
-    TRACE("RemoveWDisc(%p,%s,%d)\n",w,id6?id6:"-",free_slot_only);
-    if ( !w || !w->wbfs || !w->sf || !id6 || strlen(id6) != 6 )
+    TRACE("RemoveWDisc(%p,%s,%d,%d)\n",w,id6?id6:"-",slot,free_slot_only);
+    if ( !w || !w->wbfs || !w->sf )
 	return ERROR0(ERR_INTERNAL,0);
+BINGO;
 
     // this is needed for detailed error messages
     const enumError saved_max_error = max_error;
     max_error = 0;
+BINGO;
 
     // remove the disc
     enumError err = ERR_OK;
-    if (wbfs_rm_disc(w->wbfs,(u8*)id6,free_slot_only))
+    if (wbfs_rm_disc(w->wbfs,(u8*)id6,slot,free_slot_only))
     {
+BINGO;
 	err = ERR_WDISC_NOT_FOUND;
 	if (!w->sf->f.disable_errors)
 	    ERROR0(err,"Can't remove disc non existing [%s]: %s\n",
@@ -4213,8 +4148,9 @@ enumError RemoveWDisc ( WBFS_t * w, ccp id6, bool free_slot_only )
     DumpWBFS(w,TRACE_FILE,15,0,0,0);
  #endif
 
+BINGO;
     // check if the disc is really removed
-    if (!ExistsWDisc(w,id6))
+    if ( id6 && !ExistsWDisc(w,id6) )
     {
 	err = ERR_REMOVE_FAILED;
 	if (!w->sf->f.disable_errors)
@@ -4222,11 +4158,13 @@ enumError RemoveWDisc ( WBFS_t * w, ccp id6, bool free_slot_only )
 		id6, w->sf->f.fname );
     }
 
+BINGO;
     // catch read/write errors
     err = max_error = max_error > err ? max_error : err;
     if ( max_error < saved_max_error )
 	max_error = saved_max_error;
 
+BINGO;
     // calculate the wbfs usage again
     CalcWBFSUsage(w);
 

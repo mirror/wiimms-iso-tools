@@ -280,7 +280,7 @@ static void dump_gc_part
 	    fprintf(f,"%*s  Partition type:  %s\n",
 			indent, "",
 			wd_print_part_name(0,0,part->part_type,WD_PNAME_NUM_INFO) );
-	    fprintf(f,"%*s  boot.bin, id:    %s\n",
+	    fprintf(f,"%*s  boot.bin, ID:    %s\n",
 			indent, "", wd_print_id(&part->boot,6,0));
 	    fprintf(f,"%*s  boot.bin, title: %.64s\n",
 			indent, "", part->boot.dhead.disc_title);
@@ -443,7 +443,7 @@ static void dump_wii_part
 		}
 	    }
 
-	    fprintf(f,"%*s  boot.bin, id:    %s\n",
+	    fprintf(f,"%*s  boot.bin, ID:    %s\n",
 			indent, "", wd_print_id(&part->boot,6,0));
 	    fprintf(f,"%*s  boot.bin, title: %.64s\n",
 			indent, "", part->boot.dhead.disc_title);
@@ -668,7 +668,7 @@ enumError Dump_ISO
     {
 	fprintf(f,"\n\nWARNING: Disc contains %u invalid partition%s!\n\n",
 		disc->invalid_part, disc->invalid_part == 1 ? "" : "s" );
-	return ERR_WDISC_INVALID;
+	return ERR_WPART_INVALID;
     }
 
     putc('\n',f);

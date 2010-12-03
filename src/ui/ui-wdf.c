@@ -145,17 +145,18 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 	" enabled the tools try to allocate disc space for the new files"
 	" before writing the data. This reduces the fragmentation but also"
 	" disables the sparse effect for prealocated areas.\n"
-	"  The optional parameter decides the preallocation modus: OFF (or 0),"
+	"  The optional parameter decides the preallocation mode: OFF (or 0),"
 	" SMART (or 1), ALL (or 2). If no parameter is set, ALL is used.\n"
 	"  Mode 'OFF' disables the preallocation. This is the default for all"
 	" non Cygwin releases because preallocation has only advantages on"
-	" Windows systems.\n"
-	"  Mode 'SMART' looks into the source disc to find out the writing"
-	" areas. SMART is only avalable for ISO, CISO and WBFS file types. For"
-	" other file types ALL is used instead.\n"
-	"  Mode 'ALL' preallocate the whole destination file. This is the"
-	" default for Cygwin. Because of the large holes in plain ISO images,"
-	" the SMART mode is used for ISOs instead."
+	" Windows systems. Mode 'SMART' looks into the source disc to find out"
+	" the writing areas. SMART is only avalable for ISO, CISO and WBFS"
+	" file types. For other file types ALL is used instead. Mode 'ALL'"
+	" preallocate the whole destination file. This is the default for"
+	" Cygwin. Because of the large holes in plain ISO images, the SMART"
+	" mode is used for ISOs instead.\n"
+	"  Mac ignores this option because the needed preallocation function"
+	" is not avaialable."
     },
 
     {	OPT_CHUNK_MODE, 0, "chunk-mode",
@@ -256,9 +257,8 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 
     {	OPT_WIDTH, 0, "width",
 	"width",
-	"Define the width (number of columns) for help and some other"
-	" messages. This option disables the automatic detection of the"
-	" terminal width."
+	"Define the width (number of columns) for help and some other messages"
+	" and disable the automatic detection of the terminal width."
     },
 
     {	OPT_QUIET, 'q', "quiet",
@@ -464,7 +464,7 @@ static u8 option_allowed_cmd_UNPACK[23] = // cmd #4
 
 static u8 option_allowed_cmd_CAT[23] = // cmd #5
 {
-    0,0,0,0,0, 0,0,0,0,1,  1,0,0,1,0, 1,1,1,1,1,  1,1,1
+    0,0,0,0,0, 0,0,0,0,1,  1,0,0,1,0, 0,0,0,0,0,  0,0,0
 };
 
 static u8 option_allowed_cmd_CMP[23] = // cmd #6
@@ -569,14 +569,6 @@ static const InfoOption_t * option_tab_cmd_CAT[] =
 	OptionInfo + OPT_DEST,
 	OptionInfo + OPT_DEST2,
 	OptionInfo + OPT_OVERWRITE,
-	OptionInfo + OPT_SPLIT,
-	OptionInfo + OPT_SPLIT_SIZE,
-	OptionInfo + OPT_PREALLOC,
-	OptionInfo + OPT_CHUNK_MODE,
-	OptionInfo + OPT_CHUNK_SIZE,
-	OptionInfo + OPT_MAX_CHUNKS,
-	OptionInfo + OPT_COMPRESSION,
-	OptionInfo + OPT_MEM,
 
 	0
 };
@@ -613,13 +605,13 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	"wdf",
 	0,
 	"wdf [options]... [+command] [options]... files...",
-	"wdf is a support tool for WDF and CISO archives. It convert (pack and"
-	" unpack), compare and dump WDF, WIA (only dump) and CISO archives."
-	" The default command depends on the program file name (see command"
-	" descriptions). Usual names are wdf, unwdf, wdf-cat, wdf-cmp and"
-	" wdf-dump (with or without minus signs).\n"
-	"  'wdf +CAT' replaces the old tool wdf-cat and 'wdf +DUMP' replaces"
-	" the old tool wdf-dump.",
+	"wdf is a support tool for WDF, WIA and CISO archives. It convert"
+	" (pack and unpack), compare and dump WDF, WIA (dump and cat only) and"
+	" CISO archives. The default command depends on the program file name"
+	" (see command descriptions). Usual names are wdf, unwdf, wdf-cat,"
+	" wdf-cmp and wdf-dump (with or without minus signs).\n"
+	"  'wdf +CAT' replaces the old tool wdf-cat and 'wdf +DUMP' the old"
+	" tool wdf-dump.",
 	8,
 	option_tab_tool,
 	0
@@ -687,7 +679,7 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	" by byte.\n"
 	"  This is the default command, when the program name contains the sub"
 	" string 'cat' in any case. 'wdf +CAT' replaces the old tool wdf-cat.",
-	11,
+	3,
 	option_tab_cmd_CAT,
 	option_allowed_cmd_CAT
     },

@@ -54,5 +54,16 @@ typedef enum bool { false, true } __attribute__ ((packed)) bool;
 
 ///////////////////////////////////////////////////////////////////////////////
 
+#define NEW_ID_PARM 1		// [2do] [obsolete]
+#define NEW_COPY_IMAGE 1	// [2do] [obsolete]
+
+#if NEW_ID_PARM
+  #define NEW_EXTRACT 1		// [2do] [obsolete] only possible if NEW_ID_PARM
+#else
+  #define NEW_EXTRACT 0
+#endif
+
+///////////////////////////////////////////////////////////////////////////////
+
 #endif // WIT_TYPES_H
 

@@ -217,7 +217,15 @@ typedef struct wbfs_disc_t
 
 be64_t	wbfs_setup_inode_info
 	( wbfs_t * p, wbfs_inode_info_t * ii, bool is_valid, int is_changed );
-int	wbfs_is_inode_info_valid( wbfs_t * p, wbfs_inode_info_t * ii );
+
+int wbfs_is_inode_info_valid
+(
+    // if valid   -> return WBFS_INODE_INFO_VERSION
+    // if invalid -> return 0
+
+    const wbfs_t		* p,	// NULL or WBFS
+    const wbfs_inode_info_t	* ii	// NULL or inode pointer
+);
 
 //-----------------------------------------------------------------------------
 
@@ -394,14 +402,6 @@ u32 wbfs_find_free_blocks
 
 //-----------------------------------------------------------------------------
 
-/*! @brief accessor to the wii disc
-  @param d: a pointer to already open disc
-  @param offset: an offset inside the disc, *points 32bit words*, allowing to access 16GB data
-  @param len: The length of the data to fetch, in *bytes*
- */
-// offset is pointing 32bit words to address the whole dvd, although len is in bytes
-int wbfs_disc_read(wbfs_disc_t*d,u32 offset, u8 *data, u32 len);
-
 /*! @return the number of discs inside the paritition */
 u32 wbfs_count_discs(wbfs_t*p);
 
@@ -471,23 +471,25 @@ u32 wbfs_add_disc_param ( wbfs_t * p, wbfs_param_t * par );
 u32 wbfs_add_phantom ( wbfs_t * p, const char * phantom_id, u32 wii_sector_count );
 
 // remove a disc from partition
-u32 wbfs_rm_disc ( wbfs_t * p, u8 * discid, int free_slot_only );
-
-// rename a wiidvd inside a partition
-u32 wbfs_ren_disc(wbfs_t*p, u8* discid, u8* newname);
-
-// edit a wiidvd diskid
-u32 wbfs_nid_disc(wbfs_t*p, u8* discid, u8* newid);
+u32 wbfs_rm_disc
+(
+    wbfs_t		* p,		// valid WBFS descriptor
+    u8			* discid,	// id6 to remove. If NULL: remove 'slot'
+    int			slot,		// slot index, only used if 'discid==NULL'
+    int			free_slot_only	// true: do not free blocks
+);
 
 /*! trim the file-system to its minimum size
   This allows to use wbfs as a wiidisc container
  */
 u32 wbfs_trim(wbfs_t*p);
 
+#if !NEW_EXTRACT
 /*! extract a disc from the wbfs, unused sectors are just untouched, allowing descent filesystem to only really usefull space to store the disc.
 Even if the filesize is 4.7GB, the disc usage will be less.
  */
 u32 wbfs_extract_disc(wbfs_disc_t*d, rw_sector_callback_t write_dst_wii_sector,void *callback_data,progress_callback_t spinner);
+#endif
 
 /* OS specific functions provided by libwbfs_<os>.c */
 

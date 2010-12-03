@@ -2216,8 +2216,7 @@ static enumError FinishSetupWriteWIA
 	if (!dirty)
 	    break;
     }
-    wia->growing = need_raw_data(wia,1,0,0,0);;
-    wia->memory_usage += wia->raw_data_size * sizeof(*wia->raw_data);
+    wia->growing = need_raw_data(wia,1,0,0,0);    wia->memory_usage += wia->raw_data_size * sizeof(*wia->raw_data);
 
 
     //----- setup group area

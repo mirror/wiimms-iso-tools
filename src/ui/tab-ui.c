@@ -151,6 +151,10 @@ typedef struct info_t
 	"\n" \
 	"@--chm@ is a shortcut for @--chunk-mode@."
 
+#define TEXT_EXTRACT_LONG \
+	"Print a summary line while extracting files." \
+	" If set at least twice, print a status line for each extracted files."
+
 //
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////			the info table			///////////////
@@ -250,10 +254,6 @@ info_t info_tab[] =
 		" ticket.bin, tmd.bin,"
 		" header.bin, boot.bin, fst.bin and of DOL-files."
 		" The file type is detected automatically by analyzing the content." },
-
-  { H_DEF_CMD,	"DREGION",	"DREGION|DR",
-		    "wit DREGION [source]...",
-		"Dump the region settings of Wii ISO files." },
 
   { T_DEF_CMD,	"ID6",		"ID6|ID",
 		    "wit ID6 [id]...",
@@ -386,8 +386,8 @@ info_t info_tab[] =
 
   { T_OPT_GP,	"WIDTH",	"width",
 		"width",
-		"Define the width (number of columns) for help and some other messages."
-		" This option disables the automatic detection of the terminal width." },
+		"Define the width (number of columns) for help and some other messages"
+		" and disable the automatic detection of the terminal width." },
 
   { T_OPT_GM,	"QUIET",	"q|quiet",
 		0,
@@ -501,8 +501,8 @@ info_t info_tab[] =
   { T_OPT_CMP,	"INCLUDE",	"n|include",
 		"id",
 		"A comma separated list with ID values is expected."
-		" @'.'@ is a wildcard for exact 1 character and @'+'@ and @'*'@"
-		" (same meaning) are wildcards for any number characters."
+		" @'.'@ is a wildcard for exact 1 character and @'+'@"
+		" is a wildcard for any number characters."
 		" If the parameter begins with a '@@' the given file is read"
 		" and each line is scanned for one ID."
 		" Only images with the given ID are included into the operation."
@@ -520,8 +520,8 @@ info_t info_tab[] =
   { T_OPT_CMP,	"EXCLUDE",	"x|exclude",
 		"id",
 		"A comma separated list with ID4 and ID6 values is expected."
-		" @'.'@ is a wildcard for exact 1 character and @'+'@ and @'*'@"
-		" (same meaning) are wildcards for any number characters."
+		" @'.'@ is a wildcard for exact 1 character and @'+'@"
+		" is a wildcard for any number characters."
 		" If the parameter begins with a '@@' the given file is read"
 		" and each line is scanned for one ID."
 		" Images with the given ID are excluded from operation."
@@ -537,7 +537,7 @@ info_t info_tab[] =
   { T_OPT_C,	"ONE_JOB",	"1|one-job|onejob",
 		0,
 		"Execute only the first job and exit."
-		" This is a shortcut for {job-limit 1}." },
+		" This is a shortcut for {--job-limit 1}." },
 
   { T_OPT_CP,	"JOB_LIMIT",	"job-limit|joblimit",
 		"num",
@@ -766,22 +766,23 @@ info_t info_tab[] =
 		" before writing the data. This reduces the fragmentation but also"
 		" disables the sparse effect for prealocated areas."
 		"\n "
-		" The optional parameter decides the preallocation modus:"
+		" The optional parameter decides the preallocation mode:"
 		" @OFF@ (or @0@), @SMART@ (or @1@), @ALL@ (or @2@)."
 		" If no parameter is set, @ALL@ is used."
 		"\n "
 		" Mode @'OFF'@ disables the preallocation."
 		" This is the default for all non Cygwin releases"
 		" because preallocation has only advantages on Windows systems."
-		"\n "
 		" Mode @'SMART'@ looks into the source disc to find out the writing areas."
 		" @SMART@ is only avalable for ISO, CISO and WBFS file types."
 		" For other file types @ALL@ is used instead."
-		"\n "
 		" Mode @'ALL'@ preallocate the whole destination file."
 		" This is the default for Cygwin."
 		" Because of the large holes in plain ISO images,"
-		" the @SMART@ mode is used for ISOs instead." },
+		" the @SMART@ mode is used for ISOs instead."
+		"\n "
+		" Mac ignores this option"
+		" because the needed preallocation function is not avaialable." },
 
   { T_OPT_C,	"TRUNC",	"trunc",
 		0, "Truncate PLAIN ISO images to the needed size while creating." },
@@ -912,7 +913,7 @@ info_t info_tab[] =
 		"Append a file select rules."
 		" This option can be used multiple times to extend the rule list."
 		" Rules beginning with a '+' or a '-' are allow or deny rules rules."
-		" Rules beginning with a '=' are macros for internal rule sets."
+		" Rules beginning with a ':' are macros for predefined rule sets."
 		"\1\n "
 		" See http://wit.wiimm.de/info/file-filter.html"
 		" for more details about file filters." },
@@ -1037,12 +1038,20 @@ info_t info_tab[] =
 
   { T_SEP_OPT,	0,0,0,0 },
 
-  //---------- wit GROUP FST ----------
+  //---------- wit GROUP FST_IGNORE ----------
 
-  { T_GRP_BEG,	"FST",		0,0,0 },
+  { T_GRP_BEG,	"FST_IGNORE",	0,0,0 },
 
   { T_COPT,	"IGNORE_FST",	0,0,0 },
   { T_COPT,	"IGNORE_SETUP",	0,0,0 },
+
+  //---------- wit GROUP FST_SELECT ----------
+
+  { T_GRP_BEG,	"FST_SELECT",	0,0,0 },
+
+  { T_COPT,	"PMODE",	0,0,0 },
+  { T_COPT_M,	"FILES",	0,0,0 },
+  { T_COPT,	"SNEEK",	0,0,0 },
 
   //---------- wit GROUP SOURCE ----------
 
@@ -1082,7 +1091,7 @@ info_t info_tab[] =
   { T_COPY_GRP,	"SOURCE",	0,0,0 },
   { T_COPY_GRP,	"EXCLUDE",	0,0,0 },
   { T_COPT_M,	"IGNORE",	0,0,0 },
-  { T_COPY_GRP,	"FST",		0,0,0 },
+  { T_COPY_GRP,	"FST_IGNORE",	0,0,0 },
 
   { T_SEP_OPT,	0,0,0,0 },
 
@@ -1132,14 +1141,6 @@ info_t info_tab[] =
 
   { T_COPT,	"PSEL",		0,0,0 },
   { T_COPT,	"RAW",		0,0,0 },
-
-  //---------- wit GROUP FILES ----------
-
-  { T_GRP_BEG,	"FILES",	0,0,0 },
-
-  { T_COPT,	"PMODE",	0,0,0 },
-  { T_COPT_M,	"FILES",	0,0,0 },
-  { T_COPT,	"SNEEK",	0,0,0 },
 
   //---------- wit GROUP PATCH ----------
 
@@ -1295,6 +1296,7 @@ info_t info_tab[] =
 
   { T_COPT,	"AUTO",		0,0,0 },
   { T_COPY_GRP,	"XXSOURCE",	0,0,0 },
+  { T_COPY_GRP,	"PARTITIONS",	0,0,0 },
   { T_COPT,	"NO_HEADER",	0,0,0 },
   { T_COPT_M,	"LONG",		0,0,
 	"If set the size is printed in MiB too."
@@ -1326,9 +1328,9 @@ info_t info_tab[] =
   { T_COPY_GRP,	"TITLES",	0,0,0 },
   { T_COPT,	"AUTO",		0,0,0 },
   { T_COPY_GRP,	"XSOURCE",	0,0,0 },
-  { T_COPY_GRP,	"FST",		0,0,0 },
+  { T_COPY_GRP,	"FST_IGNORE",	0,0,0 },
   { T_COPY_GRP,	"PARTITIONS",	0,0,0 },
-  { T_COPY_GRP,	"FILES",	0,0,0 },
+  { T_COPY_GRP,	"FST_SELECT",	0,0,0 },
 
   { T_SEP_OPT,	0,0,0,0 },
 
@@ -1344,20 +1346,13 @@ info_t info_tab[] =
   { T_COPY_GRP,	"RELOCATE",	0,0,0 },
   { T_COPT,	"DISC_SIZE",	0,0,0 },
 
-  //---------- COMMAND wit DREGION ----------
-
-  { T_CMD_BEG,	"DREGION",	0,0,0 },
-
-  { T_COPT,	"AUTO",		0,0,0 },
-  { T_COPY_GRP,	"XSOURCE",	0,0,0 },
-
   //---------- COMMAND wit ID6 ----------
 
   { T_CMD_BEG,	"ID6",		0,0,0 },
 
   { T_COPT,	"AUTO",		0,0,0 },
   { T_COPY_GRP,	"XSOURCE",	0,0,0 },
-  { T_COPY_GRP,	"FST",		0,0,0 },
+  { T_COPY_GRP,	"FST_IGNORE",	0,0,0 },
 
   { T_COPT_M,	"LOGGING",	0,0,0 },
   { T_COPT_M,	"LONG",		0,0,
@@ -1370,7 +1365,7 @@ info_t info_tab[] =
   { T_COPY_GRP,	"TITLES",	0,0,0 },
   { T_COPT,	"AUTO",		0,0,0 },
   { T_COPY_GRP,	"XSOURCE",	0,0,0 },
-  { T_COPY_GRP,	"FST",		0,0,0 },
+  { T_COPY_GRP,	"FST_IGNORE",	0,0,0 },
 
   { T_COPT_M,	"LOGGING",	0,0,0 },
   { T_COPT,	"UNIQUE",	0,0,0 },
@@ -1413,7 +1408,7 @@ info_t info_tab[] =
   { T_COPT,	"AUTO",		0,0,0 },
   { T_COPY_GRP,	"XXSOURCE",	0,0,0 },
   { T_COPY_GRP,	"PARTITIONS",	0,0,0 },
-  { T_COPY_GRP,	"FILES",	0,0,0 },
+  { T_COPY_GRP,	"FST_SELECT",	0,0,0 },
 
   { T_SEP_OPT,	0,0,0,0 },
 
@@ -1448,7 +1443,7 @@ info_t info_tab[] =
   { T_COPT,	"AUTO",		0,0,0 },
   { T_COPY_GRP,	"XXSOURCE",	0,0,0 },
   { T_COPY_GRP,	"PARTITIONS",	0,0,0 },
-  { T_COPY_GRP,	"FILES",	0,0,0 },
+  { T_COPY_GRP,	"FST_SELECT",	0,0,0 },
 
   { T_SEP_OPT,	0,0,0,0 },
 
@@ -1482,7 +1477,7 @@ info_t info_tab[] =
   { T_COPT,	"AUTO",		0,0,0 },
   { T_COPY_GRP,	"XXSOURCE",	0,0,0 },
   { T_COPY_GRP,	"PARTITIONS",	0,0,0 },
-  { T_COPY_GRP,	"FILES",	0,0,0 },
+  { T_COPY_GRP,	"FST_SELECT",	0,0,0 },
   { T_COPT,	"SORT",		0,0,
 	"Define the extracting order."
 	" The parameter is a comma separated list of the following keywords:"
@@ -1492,6 +1487,7 @@ info_t info_tab[] =
 
   { T_COPT,	"QUIET",	0,0,0 },
   { T_COPT_M,	"VERBOSE",	0,0,0 },
+  { T_COPT_M,	"LONG",		0,0, TEXT_EXTRACT_LONG },
   { T_COPT_M,	"LOGGING",	0,0,0 },
   { T_COPT,	"PROGRESS",	0,0,0 },
 
@@ -1991,6 +1987,12 @@ info_t info_tab[] =
 
   { T_SEP_OPT,	0,0,0,0 }, //----- separator -----
 
+  { T_OPT_CP,	"PMODE",	"pmode",
+		0, 0 /* copy of wit */ },
+
+  { T_OPT_C,	"SNEEK",	"sneek",
+		0, 0 /* copy of wit */ },
+
   { H_OPT_G,	"HOOK",		"hook",
 		0, 0 /* copy of wit */ },
 
@@ -2060,8 +2062,10 @@ info_t info_tab[] =
   { T_OPT_C,	"TRUNC",	"trunc",
 		0, 0 /* copy of wit */ },
 
-  { T_OPT_C,	"FAST",		"F|fast",
-		0, "Enables fast writing (disables searching for blocks with zeroed data)." },
+  { T_OPT_C,	"FAST",		"fast",
+		0,
+		"Enables fast writing (disables searching for blocks with zeroed data)."
+		"Don't use this option because it will be discontinued." },
 
   { T_OPT_CP,	"CHUNK_MODE",	"chunk-mode|chunkmode|chm",
 		0, 0 /* copy of wit */ },
@@ -2141,6 +2145,12 @@ info_t info_tab[] =
 		0, 0 /* copy of wit */ },
 
   { T_OPT_C,	"WBFS",		"B|wbfs",
+		0, 0 /* copy of wit */ },
+
+  { T_OPT_CO,	"FST",		"fst",
+		0, 0 /* copy of wit */ },
+
+  { T_OPT_CO,	"FILES",	"files",
 		0, 0 /* copy of wit */ },
 
   { T_SEP_OPT,	0,0,0,0 }, //----- separator -----
@@ -2231,9 +2241,9 @@ info_t info_tab[] =
 
   { T_SEP_OPT,	0,0,0,0 },
 
-  //---------- wwt GROUP FST ----------
+  //---------- wwt GROUP FST_IGNORE ----------
 
-  { T_GRP_BEG,	"FST",		0,0,0 },
+  { T_GRP_BEG,	"FST_IGNORE",	0,0,0 },
 
   { T_COPT,	"IGNORE_FST",	0,0,0 },
   { T_COPT,	"IGNORE_SETUP",	0,0,0 },
@@ -2258,7 +2268,7 @@ info_t info_tab[] =
   { T_COPT_M,	"EXCLUDE",	0,0,0 },
   { T_COPT_M,	"EXCLUDE_PATH",	0,0,0 },
   { T_COPT,	"IGNORE",	0,0,0 },
-  { T_COPY_GRP,	"FST",		0,0,0 },
+  { T_COPY_GRP,	"FST_IGNORE",	0,0,0 },
 
   { T_SEP_OPT,	0,0,0,0 },
 
@@ -2297,7 +2307,23 @@ info_t info_tab[] =
   { T_COPT,	"ISO",		0,0,0 },
   { T_COPT,	"CISO",		0,0,0 },
   { T_COPT,	"WBFS",		0,0,0 },
-//  { H_COPT,	"WIA",		0,0,0 },	// [2do]
+  { T_COPT,	"WIA",		0,0,0 },
+  { T_COPT,	"FST",		0,0,0 },
+
+  //---------- wwt GROUP PARTITIONS ----------
+
+  { T_GRP_BEG,	"PARTITIONS",	0,0,0 },
+
+  { T_COPT,	"PSEL",		0,0,0 },
+  { T_COPT,	"RAW",		0,0,0 },
+
+  //---------- wwt GROUP FST_SELECT ----------
+
+  { T_GRP_BEG,	"FST_SELECT",	0,0,0 },
+
+  { T_COPT,	"PMODE",	0,0,0 },
+  { T_COPT_M,	"FILES",	0,0,0 },
+  { T_COPT,	"SNEEK",	0,0,0 },
 
   //---------- wwt GROUP PATCH ----------
 
@@ -2631,11 +2657,10 @@ info_t info_tab[] =
 
   { T_COPY_GRP,	"PATCH",	0,0,0 },
   { T_COPY_GRP,	"RELOCATE",	0,0,0 },
+  { T_COPY_GRP,	"PARTITIONS",	0,0,0 },
 
   { T_SEP_OPT,	0,0,0,0 },
 
-  { T_COPT,	"PSEL",		0,0,0 },
-  { T_COPT,	"RAW",		0,0,0 },
   { T_COPT,	"REMOVE",	0,0,0 },
   { T_COPT,	"TRUNC",	0,0,
 	"Truncate WBFS until operation finished." },
@@ -2665,6 +2690,7 @@ info_t info_tab[] =
   { T_COPY_GRP,	"MOD_WBFS",	0,0,0 },
   { T_COPY_GRP,	"EXCLUDE",	0,0,0 },
   { T_COPY_GRP,	"VERBOSE",	0,0,0 },
+  { T_COPT_M,	"LONG",		0,0, TEXT_EXTRACT_LONG },
 
   { T_SEP_OPT,	0,0,0,0 },
 
@@ -2679,7 +2705,13 @@ info_t info_tab[] =
 
   { T_SEP_OPT,	0,0,0,0 },
 
+  { T_COPY_GRP,	"PATCH",	0,0,0 },
+  { T_COPY_GRP,	"PARTITIONS",	0,0,0 },
+
+  { T_SEP_OPT,	0,0,0,0 },
+
   { T_COPY_GRP,	"OUTMODE",	0,0,0 },
+  { T_COPY_GRP,	"FST_SELECT",	0,0,0 },
 
   { T_SEP_OPT,	0,0,0,0 },
 
@@ -2788,8 +2820,7 @@ info_t info_tab[] =
 
   { T_SEP_OPT,	0,0,0,0 },
 
-  { T_COPT,	"PSEL",		0,0,0 },
-  { T_COPT,	"RAW",		0,0,0 },
+  { T_COPY_GRP,	"PARTITIONS",	0,0,0 },
   { T_COPT,	"IGNORE_FILES",	0,0,0 },
   { T_COPT,	"UNIQUE",	0,0, "Eliminate multiple ID6 from the source list." },
   { T_COPT,	"IGNORE",	0,0, "Ignore non existing discs without any warning." },
@@ -2805,7 +2836,7 @@ info_t info_tab[] =
   { T_CMD_BEG,	"FILETYPE",	0,0,0 },
 
   { T_COPT_M,	"IGNORE",	0,0,0 },
-  { T_COPY_GRP,	"FST",		0,0,0 },
+  { T_COPY_GRP,	"FST_IGNORE",	0,0,0 },
   { T_COPT,	"NO_HEADER",	0,0,0 },
   { T_COPT_M,	"LONG",		0,0,
 	"If set then ID6 and split file count are printed too."
@@ -2818,16 +2849,16 @@ info_t info_tab[] =
 
   { T_DEF_TOOL,	"wdf", 0,
 		"wdf [options]... [+command] [options]... files...",
-		"wdf is a support tool for WDF and CISO archives."
+		"wdf is a support tool for WDF, WIA and CISO archives."
 		" It convert (pack and unpack), compare"
-		" and dump WDF, WIA (only dump) and CISO archives."
+		" and dump WDF, WIA (dump and cat only) and CISO archives."
 		" The default command depends on the program file name"
 		" (see command descriptions). Usual names are"
 		" @wdf@, @unwdf@, @wdf-cat@, @wdf-cmp@ and @wdf-dump@"
 		" (with or without minus signs)."
 		"\n "
 		" {wdf +CAT} replaces the old tool @wdf-cat@"
-		" and {wdf +DUMP} replaces the old tool @wdf-dump@." },
+		" and {wdf +DUMP} the old tool @wdf-dump@." },
 
   //
   //---------- list of all wdf commands ----------
@@ -3098,7 +3129,7 @@ info_t info_tab[] =
 
   { T_CMD_BEG,	"CAT",		0,0,0 },
 
-  { T_COPY_GRP,	"DEST_PLUS",	0,0,0 },
+  { T_COPY_GRP,	"DEST",		0,0,0 },
 
   //---------- COMMAND wdf CMP ----------
 

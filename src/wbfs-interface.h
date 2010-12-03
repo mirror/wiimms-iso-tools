@@ -129,6 +129,7 @@ typedef struct WBFS_t
 	SuperFile_t * sf;	// attached super file
 	bool sf_alloced;	// true if 'sf' is alloced
 	bool is_growing;	// true if wbfs is of type growing
+	bool disc_sf_opened;	// true if OpenWDiscSF() opened a disc
 	bool cache_candidate;	// true if wbfs is a cache candidate
 	wbfs_t * wbfs;		// the pure wbfs handle
 	wbfs_disc_t * disc;	// the wbfs disc handle
@@ -266,34 +267,11 @@ int PrintAnalyzeWBFS
 ///////////////			  ID handling			///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
+#if !NEW_ID_PARM
 ParamList_t * CheckParamID6 ( bool unique, bool lookup_title_db );
 ParamList_t * SearchParamID6 ( ccp id6 );
 int PrintParamID6();
-
-//-----------------------------------------------------------------------------
-
-ccp ScanArgID
-(
-    char		buf[7],		// result buffer for ID6: 6 chars + NULL
-					// On error 'buf7' is filled with NULL
-    ccp			arg,		// argument to scan. Comma is a separator
-    bool		trim_end	// true: remove trailing '.'
-);
-
-ccp ScanPatID // return NULL if ok or a pointer to the invalid text
-(
-    StringField_t	* sf_id6,	// valid pointer: add real ID6
-    StringField_t	* sf_pat,	// valid pointer: add IDs with pattern '.'
-    ccp			arg,		// argument to scan. Comma is a separator
-    bool		trim_end	// true: remove trailing '.'
-);
-
-ccp FindPatID
-(
-    StringField_t	* sf_id6,	// if not NULL: search real ID6
-    StringField_t	* sf_pat,	// if not NULL: search IDs with pattern '.'
-    ccp			id6		// valid id6
-);
+#endif
 
 //-----------------------------------------------------------------------------
 
@@ -421,14 +399,26 @@ void PrintSectWDiscListItem ( FILE * out, WDiscListItem_t * witem, ccp def_fname
 enumError OpenWDiscID6	( WBFS_t * w, ccp id6 );
 enumError OpenWDiscIndex( WBFS_t * w, u32 index );
 enumError OpenWDiscSlot	( WBFS_t * w, u32 slot, bool force_open );
+enumError OpenWDiscSF	( WBFS_t * w );
+enumError CloseWDiscSF	( WBFS_t * w );
 enumError CloseWDisc	( WBFS_t * w );
 enumError ExistsWDisc	( WBFS_t * w, ccp id6 );
 
 wd_header_t * GetWDiscHeader ( WBFS_t * w );
 
 enumError AddWDisc	( WBFS_t * w, SuperFile_t * sf, const wd_select_t * psel );
+#if !NEW_EXTRACT
 enumError ExtractWDisc	( WBFS_t * w, SuperFile_t * sf );
-enumError RemoveWDisc	( WBFS_t * w, ccp id6, bool free_slot_only );
+#endif
+
+enumError RemoveWDisc
+(
+    WBFS_t		* w,		// valid WBFS descriptor
+    ccp			id6,		// id6 to remove. If NULL: remove 'slot'
+    int			slot,		// slot index, only used if 'discid==NULL'
+    int			free_slot_only	// true: do not free blocks
+);
+
 enumError RenameWDisc	( WBFS_t * w, ccp new_id6, ccp new_title,
 	bool change_wbfs_head, bool change_iso_head, int verbose, int testmode );
 

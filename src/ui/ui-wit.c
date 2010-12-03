@@ -82,11 +82,11 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
     {	OPT_INCLUDE, 'n', "include",
 	"id",
 	"A comma separated list with ID values is expected. '.' is a wildcard"
-	" for exact 1 character and '+' and '*' (same meaning) are wildcards"
-	" for any number characters. If the parameter begins with a '@' the"
-	" given file is read and each line is scanned for one ID. Only images"
-	" with the given ID are included into the operation. Each use of this"
-	" option expands the include list. The exclude list takes precedence."
+	" for exact 1 character and '+' is a wildcard for any number"
+	" characters. If the parameter begins with a '@' the given file is"
+	" read and each line is scanned for one ID. Only images with the given"
+	" ID are included into the operation. Each use of this option expands"
+	" the include list. The exclude list takes precedence."
     },
 
     {	OPT_INCLUDE_PATH, 'N', "include-path",
@@ -101,11 +101,11 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
     {	OPT_EXCLUDE, 'x', "exclude",
 	"id",
 	"A comma separated list with ID4 and ID6 values is expected. '.' is a"
-	" wildcard for exact 1 character and '+' and '*' (same meaning) are"
-	" wildcards for any number characters. If the parameter begins with a"
-	" '@' the given file is read and each line is scanned for one ID."
-	" Images with the given ID are excluded from operation. Each use of"
-	" this option expands the exclude list."
+	" wildcard for exact 1 character and '+' is a wildcard for any number"
+	" characters. If the parameter begins with a '@' the given file is"
+	" read and each line is scanned for one ID. Images with the given ID"
+	" are excluded from operation. Each use of this option expands the"
+	" exclude list."
     },
 
     {	OPT_EXCLUDE_PATH, 'X', "exclude-path",
@@ -119,7 +119,7 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
     {	OPT_ONE_JOB, '1', "one-job",
 	0,
 	"Execute only the first job and exit. This is a shortcut for"
-	" 'job-limit 1'."
+	" '--job-limit 1'."
     },
 
     {	OPT_JOB_LIMIT, 0, "job-limit",
@@ -351,17 +351,18 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 	" enabled the tools try to allocate disc space for the new files"
 	" before writing the data. This reduces the fragmentation but also"
 	" disables the sparse effect for prealocated areas.\n"
-	"  The optional parameter decides the preallocation modus: OFF (or 0),"
+	"  The optional parameter decides the preallocation mode: OFF (or 0),"
 	" SMART (or 1), ALL (or 2). If no parameter is set, ALL is used.\n"
 	"  Mode 'OFF' disables the preallocation. This is the default for all"
 	" non Cygwin releases because preallocation has only advantages on"
-	" Windows systems.\n"
-	"  Mode 'SMART' looks into the source disc to find out the writing"
-	" areas. SMART is only avalable for ISO, CISO and WBFS file types. For"
-	" other file types ALL is used instead.\n"
-	"  Mode 'ALL' preallocate the whole destination file. This is the"
-	" default for Cygwin. Because of the large holes in plain ISO images,"
-	" the SMART mode is used for ISOs instead."
+	" Windows systems. Mode 'SMART' looks into the source disc to find out"
+	" the writing areas. SMART is only avalable for ISO, CISO and WBFS"
+	" file types. For other file types ALL is used instead. Mode 'ALL'"
+	" preallocate the whole destination file. This is the default for"
+	" Cygwin. Because of the large holes in plain ISO images, the SMART"
+	" mode is used for ISOs instead.\n"
+	"  Mac ignores this option because the needed preallocation function"
+	" is not avaialable."
     },
 
     {	OPT_TRUNC, 0, "trunc",
@@ -507,8 +508,8 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 	"ruleset",
 	"Append a file select rules. This option can be used multiple times to"
 	" extend the rule list. Rules beginning with a '+' or a '-' are allow"
-	" or deny rules rules. Rules beginning with a '=' are macros for"
-	" internal rule sets.\n"
+	" or deny rules rules. Rules beginning with a ':' are macros for"
+	" predefined rule sets.\n"
 	"  See http://wit.wiimm.de/info/file-filter.html for more details"
 	" about file filters."
     },
@@ -646,9 +647,8 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 
     {	OPT_WIDTH, 0, "width",
 	"width",
-	"Define the width (number of columns) for help and some other"
-	" messages. This option disables the automatic detection of the"
-	" terminal width."
+	"Define the width (number of columns) for help and some other messages"
+	" and disable the automatic detection of the terminal width."
     },
 
     {	OPT_QUIET, 'q', "quiet",
@@ -865,6 +865,13 @@ const InfoOption_t option_cmd_EXTRACT_SORT =
 	" DESCENDING = REVERSE."
     };
 
+const InfoOption_t option_cmd_EXTRACT_LONG =
+    {	OPT_LONG, 'l', "long",
+	0,
+	"Print a summary line while extracting files. If set at least twice,"
+	" print a status line for each extracted files."
+    };
+
 const InfoOption_t option_cmd_RENAME_ISO =
     {	OPT_ISO, 'I', "iso",
 	0,
@@ -947,7 +954,6 @@ const CommandTab_t CommandTab[] =
     { CMD_FILETYPE,	"FILETYPE",	"FTYPE",	0 },
     { CMD_ISOSIZE,	"ISOSIZE",	"SIZE",		0 },
     { CMD_DUMP,		"DUMP",		"D",		0 },
-    { CMD_DREGION,	"DREGION",	"DR",		0 },
     { CMD_ID6,		"ID6",		"ID",		0 },
     { CMD_LIST,		"LIST",		"LS",		0 },
     { CMD_LIST_L,	"LIST-L",	"LL",		0 },
@@ -1336,7 +1342,7 @@ static u8 option_allowed_cmd_FILETYPE[75] = // cmd #12
 
 static u8 option_allowed_cmd_ISOSIZE[75] = // cmd #13
 {
-    0,1,1,1,1, 1,1,1,1,1,  1,1,0,1,1, 1,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,
+    0,1,1,1,1, 1,1,1,1,1,  1,1,0,1,1, 1,1,1,0,0,  0,0,0,0,0, 0,0,0,0,0,
     0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,
     0,0,0,0,0, 1,0,0,0,1,  0,1,0,0,0
 };
@@ -1348,140 +1354,133 @@ static u8 option_allowed_cmd_DUMP[75] = // cmd #14
     0,0,0,0,0, 1,0,0,1,0,  0,0,0,0,0
 };
 
-static u8 option_allowed_cmd_DREGION[75] = // cmd #15
-{
-    0,1,1,1,1, 1,1,1,1,1,  1,1,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,
-    0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,
-    0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0
-};
-
-static u8 option_allowed_cmd_ID6[75] = // cmd #16
+static u8 option_allowed_cmd_ID6[75] = // cmd #15
 {
     0,1,1,1,1, 1,1,1,1,1,  1,1,0,0,1, 1,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,
     0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,
     0,0,0,0,0, 1,0,0,0,0,  0,0,0,0,0
 };
 
-static u8 option_allowed_cmd_LIST[75] = // cmd #17
+static u8 option_allowed_cmd_LIST[75] = // cmd #16
 {
     0,1,1,1,1, 1,1,1,1,1,  1,1,0,0,1, 1,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,
     0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,
     1,1,1,1,1, 1,0,1,0,1,  1,1,1,1,0
 };
 
-static u8 option_allowed_cmd_LIST_L[75] = // cmd #18
+static u8 option_allowed_cmd_LIST_L[75] = // cmd #17
 {
     0,1,1,1,1, 1,1,1,1,1,  1,1,0,0,1, 1,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,
     0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,
     1,1,1,1,1, 1,0,1,0,1,  1,1,1,1,0
 };
 
-static u8 option_allowed_cmd_LIST_LL[75] = // cmd #19
+static u8 option_allowed_cmd_LIST_LL[75] = // cmd #18
 {
     0,1,1,1,1, 1,1,1,1,1,  1,1,0,0,1, 1,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,
     0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,
     1,1,1,1,1, 1,0,1,0,1,  1,1,1,1,0
 };
 
-static u8 option_allowed_cmd_LIST_LLL[75] = // cmd #20
+static u8 option_allowed_cmd_LIST_LLL[75] = // cmd #19
 {
     0,1,1,1,1, 1,1,1,1,1,  1,1,0,0,1, 1,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,
     0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,
     1,1,1,1,1, 1,0,1,0,1,  1,1,1,1,0
 };
 
-static u8 option_allowed_cmd_FILES[75] = // cmd #21
+static u8 option_allowed_cmd_FILES[75] = // cmd #20
 {
     0,1,1,1,1, 1,1,1,1,1,  1,1,0,1,1, 1,1,1,1,1,  0,0,0,0,0, 0,0,0,0,0,
     0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,1,
     0,0,0,0,0, 1,0,0,1,0,  0,1,0,1,0
 };
 
-static u8 option_allowed_cmd_FILES_L[75] = // cmd #22
+static u8 option_allowed_cmd_FILES_L[75] = // cmd #21
 {
     0,1,1,1,1, 1,1,1,1,1,  1,1,0,1,1, 1,1,1,1,1,  0,0,0,0,0, 0,0,0,0,0,
     0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,1,
     0,0,0,0,0, 1,0,0,1,0,  0,1,0,1,0
 };
 
-static u8 option_allowed_cmd_FILES_LL[75] = // cmd #23
+static u8 option_allowed_cmd_FILES_LL[75] = // cmd #22
 {
     0,1,1,1,1, 1,1,1,1,1,  1,1,0,1,1, 1,1,1,1,1,  0,0,0,0,0, 0,0,0,0,0,
     0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,1,
     0,0,0,0,0, 1,0,0,1,0,  0,1,0,1,0
 };
 
-static u8 option_allowed_cmd_DIFF[75] = // cmd #24
+static u8 option_allowed_cmd_DIFF[75] = // cmd #23
 {
     0,1,1,1,1, 1,1,1,1,1,  1,1,0,1,1, 1,1,1,1,1,  0,0,0,0,0, 0,0,0,0,0,
     0,0,0,0,0, 0,1,1,0,0,  0,0,0,0,0, 0,0,0,0,0,  0,0,0,1,1, 1,1,1,1,1,
     0,0,0,0,0, 1,0,0,0,0,  0,0,0,0,0
 };
 
-static u8 option_allowed_cmd_FDIFF[75] = // cmd #25
+static u8 option_allowed_cmd_FDIFF[75] = // cmd #24
 {
     0,1,1,1,1, 1,1,1,1,1,  1,1,0,1,1, 1,1,1,1,1,  0,0,0,0,0, 0,0,0,0,0,
     0,0,0,0,0, 0,1,1,0,0,  0,0,0,0,0, 0,0,0,0,0,  0,0,0,1,1, 1,1,1,1,1,
     0,0,0,0,0, 1,0,0,0,0,  0,0,0,0,0
 };
 
-static u8 option_allowed_cmd_EXTRACT[75] = // cmd #26
+static u8 option_allowed_cmd_EXTRACT[75] = // cmd #25
 {
     0,1,1,1,1, 1,1,1,1,1,  1,1,0,1,1, 1,1,1,1,1,  1,1,1,1,1, 1,1,1,1,0,
     1,1,1,1,1, 1,1,1,0,0,  0,0,0,0,0, 0,0,0,1,0,  1,0,0,0,0, 0,0,0,0,1,
-    0,0,0,0,0, 0,0,0,0,0,  0,0,0,1,0
+    0,0,0,0,0, 1,0,0,0,0,  0,0,0,1,0
 };
 
-static u8 option_allowed_cmd_COPY[75] = // cmd #27
+static u8 option_allowed_cmd_COPY[75] = // cmd #26
 {
     0,1,1,1,1, 1,1,1,1,1,  1,1,0,1,1, 1,1,1,1,1,  1,1,1,1,1, 1,1,1,1,0,
     1,1,1,1,1, 1,1,1,1,1,  1,1,1,1,1, 1,1,1,1,1,  1,1,1,1,1, 1,1,1,1,1,
-    0,0,0,0,0, 0,0,0,0,0,  0,0,0,1,0
+    0,0,0,0,0, 1,0,0,0,0,  0,0,0,1,0
 };
 
-static u8 option_allowed_cmd_CONVERT[75] = // cmd #28
+static u8 option_allowed_cmd_CONVERT[75] = // cmd #27
 {
     0,1,1,1,1, 0,1,1,1,1,  1,1,0,1,1, 1,1,1,0,0,  1,1,1,1,1, 1,1,1,1,0,
     1,1,1,1,1, 1,0,0,1,1,  1,1,1,1,1, 1,1,1,1,0,  0,0,0,1,1, 1,1,1,0,0,
     0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0
 };
 
-static u8 option_allowed_cmd_EDIT[75] = // cmd #29
+static u8 option_allowed_cmd_EDIT[75] = // cmd #28
 {
     0,1,1,1,1, 0,1,1,1,1,  1,1,0,1,0, 0,0,0,0,0,  1,1,1,1,1, 1,1,1,1,0,
     0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,1,0,  0,0,0,0,0, 0,0,0,0,0,
     0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0
 };
 
-static u8 option_allowed_cmd_MOVE[75] = // cmd #30
+static u8 option_allowed_cmd_MOVE[75] = // cmd #29
 {
     0,1,1,1,1, 0,1,1,1,1,  1,1,0,1,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,
     0,0,0,0,0, 0,1,1,0,0,  0,0,0,0,0, 0,0,0,0,0,  1,0,0,0,0, 0,0,0,0,0,
     0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0
 };
 
-static u8 option_allowed_cmd_RENAME[75] = // cmd #31
+static u8 option_allowed_cmd_RENAME[75] = // cmd #30
 {
     0,1,1,1,1, 1,1,1,1,1,  1,1,0,1,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,
     0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,1, 0,1,0,0,0,
     0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0
 };
 
-static u8 option_allowed_cmd_SETTITLE[75] = // cmd #32
+static u8 option_allowed_cmd_SETTITLE[75] = // cmd #31
 {
     0,1,1,1,1, 1,1,1,1,1,  1,1,0,1,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,
     0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,1, 0,1,0,0,0,
     0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0
 };
 
-static u8 option_allowed_cmd_VERIFY[75] = // cmd #33
+static u8 option_allowed_cmd_VERIFY[75] = // cmd #32
 {
     0,1,1,1,1, 1,1,1,1,1,  1,1,0,1,1, 1,1,1,0,0,  0,0,0,0,0, 0,0,0,0,0,
     0,0,1,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,
     0,0,0,0,0, 1,0,0,0,0,  0,0,0,0,1
 };
 
-static u8 option_allowed_cmd_MIX[75] = // cmd #34
+static u8 option_allowed_cmd_MIX[75] = // cmd #33
 {
     0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,  0,1,1,0,1, 0,0,0,0,1,
     0,0,0,0,0, 1,1,1,1,1,  1,1,1,1,1, 1,1,1,0,0,  1,0,0,1,1, 1,1,0,0,0,
@@ -1690,6 +1689,8 @@ static const InfoOption_t * option_tab_cmd_ISOSIZE[] =
 
 	OptionInfo + OPT_NONE, // separator
 
+	OptionInfo + OPT_PSEL,
+	OptionInfo + OPT_RAW,
 	OptionInfo + OPT_NO_HEADER,
 	&option_cmd_ISOSIZE_LONG,
 	OptionInfo + OPT_UNIT,
@@ -1751,26 +1752,6 @@ static const InfoOption_t * option_tab_cmd_DUMP[] =
 	OptionInfo + OPT_IGNORE_FILES,
 	OptionInfo + OPT_ALIGN_PART,
 	OptionInfo + OPT_DISC_SIZE,
-
-	0
-};
-
-static const InfoOption_t * option_tab_cmd_DREGION[] =
-{
-	OptionInfo + OPT_AUTO,
-	OptionInfo + OPT_SOURCE,
-	OptionInfo + OPT_NO_EXPAND,
-	OptionInfo + OPT_RECURSE,
-	OptionInfo + OPT_RDEPTH,
-
-	OptionInfo + OPT_NONE, // separator
-
-	OptionInfo + OPT_INCLUDE,
-	OptionInfo + OPT_INCLUDE_PATH,
-	OptionInfo + OPT_EXCLUDE,
-	OptionInfo + OPT_EXCLUDE_PATH,
-	OptionInfo + OPT_ONE_JOB,
-	OptionInfo + OPT_JOB_LIMIT,
 
 	0
 };
@@ -2283,6 +2264,7 @@ static const InfoOption_t * option_tab_cmd_EXTRACT[] =
 
 	OptionInfo + OPT_QUIET,
 	OptionInfo + OPT_VERBOSE,
+	&option_cmd_EXTRACT_LONG,
 	OptionInfo + OPT_LOGGING,
 	OptionInfo + OPT_PROGRESS,
 
@@ -2355,6 +2337,7 @@ static const InfoOption_t * option_tab_cmd_COPY[] =
 
 	OptionInfo + OPT_QUIET,
 	OptionInfo + OPT_VERBOSE,
+	&option_cmd_EXTRACT_LONG,
 	OptionInfo + OPT_LOGGING,
 	OptionInfo + OPT_PROGRESS,
 
@@ -2941,7 +2924,7 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	"SIZE",
 	"wit ISOSIZE [source]...",
 	"Print a status line with size infos for each source file.",
-	17,
+	19,
 	option_tab_cmd_ISOSIZE,
 	option_allowed_cmd_ISOSIZE
     },
@@ -2958,18 +2941,6 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	37,
 	option_tab_cmd_DUMP,
 	option_allowed_cmd_DUMP
-    },
-
-    {	CMD_DREGION,
-	true,
-	false,
-	"DREGION",
-	"DR",
-	"wit DREGION [source]...",
-	"Dump the region settings of Wii ISO files.",
-	11,
-	option_tab_cmd_DREGION,
-	option_allowed_cmd_DREGION
     },
 
     {	CMD_ID6,
@@ -3109,7 +3080,7 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	"wit EXTRACT source dest\n"
 	"wit EXTRACT [-s path]... [-r path]... [source]... [-d|-D] dest",
 	"Extract all files from the source discs.",
-	45,
+	46,
 	option_tab_cmd_EXTRACT,
 	option_allowed_cmd_EXTRACT
     },
@@ -3123,7 +3094,7 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	"wit COPY [-s path]... [-r path]... [source]... [-d|-D] dest",
 	"Copy, scrub, convert, join, split, compose, extract, patch, encrypt"
 	" and decrypt Wii and GameCube disc images.",
-	64,
+	65,
 	option_tab_cmd_COPY,
 	option_allowed_cmd_COPY
     },

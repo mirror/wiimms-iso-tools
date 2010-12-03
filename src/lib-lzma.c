@@ -241,9 +241,10 @@ static ISzAlloc lzma_alloc = { AllocLZMA, FreeLZMA };
 
 typedef struct sz_inbuf_t
 {
-    ISeqInStream	func;
-    DataList_t		* data;
-    u32			bytes_read;
+    ISeqInStream	func;		// pounter to read function
+    DataList_t		* data;		// pointer to data list
+    u32			bytes_read;	// total read
+    //SuperFile_t	* progress;	// NULL or SF, used for progress only
 
 } sz_inbuf_t;
 
@@ -256,6 +257,19 @@ static SRes sz_read_buf ( void *pp, void *buf, size_t *size )
     sz_inbuf_t * ibuf = pp;
     noPRINT("sz_read_buf(%p,%p,%zx=%zu)\n",ibuf,buf,*size,*size);
 
+ #if 0 // [2do]
+    if (ibuf->progress)
+    {
+	// the previos data seems to be consumed
+	//   -> print progress with old counter
+
+	SuperFile_t * sf = ibuf->progress;
+	sf.f.bytes_written += ibuf->bytes_read;
+	// [2do]
+	sf.f.bytes_written -= ibuf->bytes_read;
+    }
+ #endif
+ 
     ibuf->bytes_read += *size = ReadDataList(ibuf->data,buf,*size);
     noPRINT("sz_read_buf() size = %zu\n",*size);
     return SZ_OK;
@@ -355,7 +369,7 @@ enumError EncLZMA_Open
 
 enumError EncLZMA_WriteDataToFile
 (
-    EncLZMA_t		* lzma,		// valid pointer, opend with EncLZMA_Open()
+    EncLZMA_t		* lzma,		// valid pointer, opened with EncLZMA_Open()
     File_t		* file,		// destination file, write to current offset
     bool		write_props,	// true: write encoding properties
     const void		* data,		// data to write
@@ -378,7 +392,7 @@ enumError EncLZMA_WriteDataToFile
 
 enumError EncLZMA_WriteList2File
 (
-    EncLZMA_t		* lzma,		// valid pointer, opend with EncLZMA_Open()
+    EncLZMA_t		* lzma,		// valid pointer, opened with EncLZMA_Open()
     File_t		* file,		// destination file, write to current offset
     bool		write_props,	// true: write encoding properties
     DataList_t		* data_list,	// NULL or data list (modified)
@@ -695,7 +709,7 @@ enumError EncLZMA2_Open
 
 enumError EncLZMA2_WriteDataToFile
 (
-    EncLZMA_t		* lzma,		// valid pointer, opend with EncLZMA2_Open()
+    EncLZMA_t		* lzma,		// valid pointer, opened with EncLZMA2_Open()
     File_t		* file,		// destination file, write to current offset
     bool		write_props,	// true: write encoding properties
     const void		* data,		// data to write
@@ -718,7 +732,7 @@ enumError EncLZMA2_WriteDataToFile
 
 enumError EncLZMA2_WriteList2File
 (
-    EncLZMA_t		* lzma,		// valid pointer, opend with EncLZMA2_Open()
+    EncLZMA_t		* lzma,		// valid pointer, opened with EncLZMA2_Open()
     File_t		* file,		// destination file, write to current offset
     bool		write_props,	// true: write encoding properties
     DataList_t		* data_list,	// NULL or data list (modified)

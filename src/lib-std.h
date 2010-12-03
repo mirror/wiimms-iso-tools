@@ -52,10 +52,6 @@
     #define EXTENDED_IO_FUNC 1		// 0 | 1
 #endif
 
-#ifndef PREALLOC_MAP // [2do] [obsolete] 
-    #define PREALLOC_MAP 1		// 0 | 1
-#endif
-
 ///////////////////////////////////////////////////////////////////////////////
 
 typedef enum enumProgID
@@ -555,10 +551,8 @@ typedef struct File_t
 	size_t cache_info_size;	// info for cache missed message
 
 	// prealloc map
- #if PREALLOC_MAP
 	bool	 prealloc_done;	// true if preallocation was done
 	MemMap_t prealloc_map;	// store prealloc areas until first write
- #endif
 
 	// split file support
 
@@ -1042,11 +1036,21 @@ time_t	ScanTime	( ccp arg );
 
 typedef struct StringField_t
 {
-	ccp * field;	// pointer to the string field
-	uint used;	// number of used titles in the title field
-	uint size;	// number of allocated pointer in 'field'
+    ccp		* field;	// pointer to the string field
+    uint	used;		// number of used titles in the title field
+    uint	size;		// number of allocated pointer in 'field'
 
 } StringField_t;
+
+//-----------------------------------------------------------------------------
+
+typedef struct StringItem_t
+{
+    char	id6[7];		// id6, null terminated
+    char	flag;		// a user defined flag
+    char	arg[0];		// additional string, null terminated
+
+} StringItem_t;
 
 //-----------------------------------------------------------------------------
 
@@ -1057,8 +1061,11 @@ void ResetStringField ( StringField_t * sf );
 ccp FindStringField ( StringField_t * sf, ccp key );
 
 // return: true if item inserted/deleted
-bool InsertStringField ( StringField_t * sf, ccp key, bool move_key );
+bool InsertStringField ( StringField_t * sf, ccp key,  bool move_key );
 bool RemoveStringField ( StringField_t * sf, ccp key );
+
+// special id6 support
+StringItem_t * InsertStringID6 ( StringField_t * sf, void * id6, char flag, ccp arg );
 
 // append at the end an do not sort
 void AppendStringField ( StringField_t * sf, ccp key, bool move_key );

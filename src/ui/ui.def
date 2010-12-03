@@ -196,9 +196,8 @@
 
 #:def_opt( "WIDTH", "width", "GP", \
 	"width", \
-	"Define the width (number of columns) for help and some other" \
-	" messages. This option disables the automatic detection of the" \
-	" terminal width." )
+	"Define the width (number of columns) for help and some other messages" \
+	" and disable the automatic detection of the terminal width." )
 
 #:def_opt( "QUIET", "q|quiet", "GM", \
 	"", \
@@ -299,12 +298,11 @@
 #:def_opt( "INCLUDE", "n|include", "CMP", \
 	"id", \
 	"A comma separated list with ID values is expected. @'.'@ is a" \
-	" wildcard for exact 1 character and @'+'@ and @'*'@ (same meaning)" \
-	" are wildcards for any number characters. If the parameter begins" \
-	" with a '@@' the given file is read and each line is scanned for one" \
-	" ID. Only images with the given ID are included into the operation." \
-	" Each use of this option expands the include list. The exclude list" \
-	" takes precedence." )
+	" wildcard for exact 1 character and @'+'@ is a wildcard for any" \
+	" number characters. If the parameter begins with a '@@' the given" \
+	" file is read and each line is scanned for one ID. Only images with" \
+	" the given ID are included into the operation. Each use of this" \
+	" option expands the include list. The exclude list takes precedence." )
 
 #:def_opt( "INCLUDE_PATH", "N|include-path|includepath", "CMP", \
 	"file_or_dir", \
@@ -317,11 +315,11 @@
 #:def_opt( "EXCLUDE", "x|exclude", "CMP", \
 	"id", \
 	"A comma separated list with ID4 and ID6 values is expected. @'.'@ is" \
-	" a wildcard for exact 1 character and @'+'@ and @'*'@ (same meaning)" \
-	" are wildcards for any number characters. If the parameter begins" \
-	" with a '@@' the given file is read and each line is scanned for one" \
-	" ID. Images with the given ID are excluded from operation. Each use" \
-	" of this option expands the exclude list." )
+	" a wildcard for exact 1 character and @'+'@ is a wildcard for any" \
+	" number characters. If the parameter begins with a '@@' the given" \
+	" file is read and each line is scanned for one ID. Images with the" \
+	" given ID are excluded from operation. Each use of this option" \
+	" expands the exclude list." )
 
 #:def_opt( "EXCLUDE_PATH", "X|exclude-path|excludepath", "CMP", \
 	"file_or_dir", \
@@ -333,7 +331,7 @@
 #:def_opt( "ONE_JOB", "1|one-job|onejob", "C", \
 	"", \
 	"Execute only the first job and exit. This is a shortcut for" \
-	" {job-limit 1}." )
+	" {--job-limit 1}." )
 
 #:def_opt( "JOB_LIMIT", "job-limit|joblimit", "CP", \
 	"num", \
@@ -507,18 +505,19 @@
 	" enabled the tools try to allocate disc space for the new files" \
 	" before writing the data. This reduces the fragmentation but also" \
 	" disables the sparse effect for prealocated areas.\n" \
-	"  The optional parameter decides the preallocation modus: @OFF@ (or" \
+	"  The optional parameter decides the preallocation mode: @OFF@ (or" \
 	" @0@), @SMART@ (or @1@), @ALL@ (or @2@). If no parameter is set," \
 	" @ALL@ is used.\n" \
 	"  Mode @'OFF'@ disables the preallocation. This is the default for" \
 	" all non Cygwin releases because preallocation has only advantages on" \
-	" Windows systems.\n" \
-	"  Mode @'SMART'@ looks into the source disc to find out the writing" \
-	" areas. @SMART@ is only avalable for ISO, CISO and WBFS file types." \
-	" For other file types @ALL@ is used instead.\n" \
-	"  Mode @'ALL'@ preallocate the whole destination file. This is the" \
-	" default for Cygwin. Because of the large holes in plain ISO images," \
-	" the @SMART@ mode is used for ISOs instead." )
+	" Windows systems. Mode @'SMART'@ looks into the source disc to find" \
+	" out the writing areas. @SMART@ is only avalable for ISO, CISO and" \
+	" WBFS file types. For other file types @ALL@ is used instead. Mode" \
+	" @'ALL'@ preallocate the whole destination file. This is the default" \
+	" for Cygwin. Because of the large holes in plain ISO images, the" \
+	" @SMART@ mode is used for ISOs instead.\n" \
+	"  Mac ignores this option because the needed preallocation function" \
+	" is not avaialable." )
 
 #:def_opt( "TRUNC", "trunc", "C", \
 	"", \
@@ -646,8 +645,8 @@
 	"ruleset", \
 	"Append a file select rules. This option can be used multiple times to" \
 	" extend the rule list. Rules beginning with a '+' or a '-' are allow" \
-	" or deny rules rules. Rules beginning with a '=' are macros for" \
-	" internal rule sets." )
+	" or deny rules rules. Rules beginning with a ':' are macros for" \
+	" predefined rule sets." )
 
 #:def_opt( "ITIME", "itime", "C", \
 	"", \
@@ -1043,6 +1042,14 @@
 	"", \
 	"" )
 
+#:def_cmd_opt( "ISOSIZE", "PSEL", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "ISOSIZE", "RAW", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "ISOSIZE", "NO_HEADER", \
 	"", \
 	"" )
@@ -1203,50 +1210,6 @@
 	"" )
 
 #:def_cmd_opt( "DUMP", "DISC_SIZE", \
-	"", \
-	"" )
-
-#:def_cmd_opt( "DREGION", "AUTO", \
-	"", \
-	"" )
-
-#:def_cmd_opt( "DREGION", "SOURCE", \
-	"", \
-	"" )
-
-#:def_cmd_opt( "DREGION", "NO_EXPAND", \
-	"", \
-	"" )
-
-#:def_cmd_opt( "DREGION", "RECURSE", \
-	"", \
-	"" )
-
-#:def_cmd_opt( "DREGION", "RDEPTH", \
-	"", \
-	"" )
-
-#:def_cmd_opt( "DREGION", "INCLUDE", \
-	"", \
-	"" )
-
-#:def_cmd_opt( "DREGION", "INCLUDE_PATH", \
-	"", \
-	"" )
-
-#:def_cmd_opt( "DREGION", "EXCLUDE", \
-	"", \
-	"" )
-
-#:def_cmd_opt( "DREGION", "EXCLUDE_PATH", \
-	"", \
-	"" )
-
-#:def_cmd_opt( "DREGION", "ONE_JOB", \
-	"", \
-	"" )
-
-#:def_cmd_opt( "DREGION", "JOB_LIMIT", \
 	"", \
 	"" )
 
@@ -2522,6 +2485,11 @@
 	"", \
 	"" )
 
+#:def_cmd_opt( "EXTRACT", "LONG", \
+	"", \
+	"Print a summary line while extracting files. If set at least twice," \
+	" print a status line for each extracted files." )
+
 #:def_cmd_opt( "EXTRACT", "LOGGING", \
 	"", \
 	"" )
@@ -2703,6 +2671,11 @@
 #:def_cmd_opt( "COPY", "VERBOSE", \
 	"", \
 	"" )
+
+#:def_cmd_opt( "COPY", "LONG", \
+	"", \
+	"Print a summary line while extracting files. If set at least twice," \
+	" print a status line for each extracted files." )
 
 #:def_cmd_opt( "COPY", "LOGGING", \
 	"", \
@@ -3846,9 +3819,8 @@
 
 #:def_opt( "WIDTH", "width", "GP", \
 	"width", \
-	"Define the width (number of columns) for help and some other" \
-	" messages. This option disables the automatic detection of the" \
-	" terminal width." )
+	"Define the width (number of columns) for help and some other messages" \
+	" and disable the automatic detection of the terminal width." )
 
 #:def_opt( "QUIET", "q|quiet", "GM", \
 	"", \
@@ -3970,12 +3942,11 @@
 #:def_opt( "INCLUDE", "n|include", "CMP", \
 	"id", \
 	"A comma separated list with ID values is expected. @'.'@ is a" \
-	" wildcard for exact 1 character and @'+'@ and @'*'@ (same meaning)" \
-	" are wildcards for any number characters. If the parameter begins" \
-	" with a '@@' the given file is read and each line is scanned for one" \
-	" ID. Only images with the given ID are included into the operation." \
-	" Each use of this option expands the include list. The exclude list" \
-	" takes precedence." )
+	" wildcard for exact 1 character and @'+'@ is a wildcard for any" \
+	" number characters. If the parameter begins with a '@@' the given" \
+	" file is read and each line is scanned for one ID. Only images with" \
+	" the given ID are included into the operation. Each use of this" \
+	" option expands the include list. The exclude list takes precedence." )
 
 #:def_opt( "INCLUDE_PATH", "N|include-path|includepath", "CMP", \
 	"file_or_dir", \
@@ -3988,11 +3959,11 @@
 #:def_opt( "EXCLUDE", "x|exclude", "CMP", \
 	"id", \
 	"A comma separated list with ID4 and ID6 values is expected. @'.'@ is" \
-	" a wildcard for exact 1 character and @'+'@ and @'*'@ (same meaning)" \
-	" are wildcards for any number characters. If the parameter begins" \
-	" with a '@@' the given file is read and each line is scanned for one" \
-	" ID. Images with the given ID are excluded from operation. Each use" \
-	" of this option expands the exclude list." )
+	" a wildcard for exact 1 character and @'+'@ is a wildcard for any" \
+	" number characters. If the parameter begins with a '@@' the given" \
+	" file is read and each line is scanned for one ID. Images with the" \
+	" given ID are excluded from operation. Each use of this option" \
+	" expands the exclude list." )
 
 #:def_opt( "EXCLUDE_PATH", "X|exclude-path|excludepath", "CMP", \
 	"file_or_dir", \
@@ -4014,6 +3985,16 @@
 	"", \
 	"While composing ignore the file @'setup.txt'@, which defines some" \
 	" partition parameters." )
+
+#:def_opt( "PMODE", "pmode", "CP", \
+	"p-mode", \
+	"This options set the prefix mode for listed or extracted files. One" \
+	" of the following values is allowed: @AUTO, NONE, POINT, NAME," \
+	" INDEX@. The default value is @'auto'@." )
+
+#:def_opt( "SNEEK", "sneek", "C", \
+	"", \
+	"Abbreviation of {--psel data --pmode none --files :sneek}." )
 
 #:def_opt( "ENC", "enc", "CP", \
 	"encoding", \
@@ -4123,27 +4104,28 @@
 	" enabled the tools try to allocate disc space for the new files" \
 	" before writing the data. This reduces the fragmentation but also" \
 	" disables the sparse effect for prealocated areas.\n" \
-	"  The optional parameter decides the preallocation modus: @OFF@ (or" \
+	"  The optional parameter decides the preallocation mode: @OFF@ (or" \
 	" @0@), @SMART@ (or @1@), @ALL@ (or @2@). If no parameter is set," \
 	" @ALL@ is used.\n" \
 	"  Mode @'OFF'@ disables the preallocation. This is the default for" \
 	" all non Cygwin releases because preallocation has only advantages on" \
-	" Windows systems.\n" \
-	"  Mode @'SMART'@ looks into the source disc to find out the writing" \
-	" areas. @SMART@ is only avalable for ISO, CISO and WBFS file types." \
-	" For other file types @ALL@ is used instead.\n" \
-	"  Mode @'ALL'@ preallocate the whole destination file. This is the" \
-	" default for Cygwin. Because of the large holes in plain ISO images," \
-	" the @SMART@ mode is used for ISOs instead." )
+	" Windows systems. Mode @'SMART'@ looks into the source disc to find" \
+	" out the writing areas. @SMART@ is only avalable for ISO, CISO and" \
+	" WBFS file types. For other file types @ALL@ is used instead. Mode" \
+	" @'ALL'@ preallocate the whole destination file. This is the default" \
+	" for Cygwin. Because of the large holes in plain ISO images, the" \
+	" @SMART@ mode is used for ISOs instead.\n" \
+	"  Mac ignores this option because the needed preallocation function" \
+	" is not avaialable." )
 
 #:def_opt( "TRUNC", "trunc", "C", \
 	"", \
 	"Truncate PLAIN ISO images to the needed size while creating." )
 
-#:def_opt( "FAST", "F|fast", "C", \
+#:def_opt( "FAST", "fast", "C", \
 	"", \
 	"Enables fast writing (disables searching for blocks with zeroed" \
-	" data)." )
+	" data).Don't use this option because it will be discontinued." )
 
 #:def_opt( "CHUNK_MODE", "chunk-mode|chunkmode|chm", "CP", \
 	"mode", \
@@ -4299,6 +4281,17 @@
 #:def_opt( "WBFS", "B|wbfs", "C", \
 	"", \
 	"Set ISO output file type to WBFS (Wii Backup File System) container." )
+
+#:def_opt( "FST", "fst", "CO", \
+	"", \
+	"Set ISO output mode to 'file system' (extracted ISO)." )
+
+#:def_opt( "FILES", "files", "CO", \
+	"ruleset", \
+	"Append a file select rules. This option can be used multiple times to" \
+	" extend the rule list. Rules beginning with a '+' or a '-' are allow" \
+	" or deny rules rules. Rules beginning with a ':' are macros for" \
+	" predefined rule sets." )
 
 #:def_opt( "ITIME", "itime", "C", \
 	"", \
@@ -5967,6 +5960,11 @@
 	"", \
 	"" )
 
+#:def_cmd_opt( "EXTRACT", "LONG", \
+	"", \
+	"Print a summary line while extracting files. If set at least twice," \
+	" print a status line for each extracted files." )
+
 #:def_cmd_opt( "EXTRACT", "TEST", \
 	"", \
 	"" )
@@ -6015,6 +6013,50 @@
 	"", \
 	"" )
 
+#:def_cmd_opt( "EXTRACT", "ENC", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "EXTRACT", "ID", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "EXTRACT", "NAME", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "EXTRACT", "MODIFY", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "EXTRACT", "REGION", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "EXTRACT", "COMMON_KEY", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "EXTRACT", "IOS", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "EXTRACT", "RM_FILES", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "EXTRACT", "ZERO_FILES", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "EXTRACT", "PSEL", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "EXTRACT", "RAW", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "EXTRACT", "WDF", \
 	"", \
 	"" )
@@ -6028,6 +6070,26 @@
 	"" )
 
 #:def_cmd_opt( "EXTRACT", "WBFS", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "EXTRACT", "WIA", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "EXTRACT", "FST", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "EXTRACT", "PMODE", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "EXTRACT", "FILES", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "EXTRACT", "SNEEK", \
 	"", \
 	"" )
 
@@ -6514,13 +6576,13 @@
 
 #:def_tool( "wdf", \
 	"wdf [options]... [+command] [options]... files...", \
-	"wdf is a support tool for WDF and CISO archives. It convert (pack and" \
-	" unpack), compare and dump WDF, WIA (only dump) and CISO archives." \
-	" The default command depends on the program file name (see command" \
-	" descriptions). Usual names are @wdf@, @unwdf@, @wdf-cat@, @wdf-cmp@" \
-	" and @wdf-dump@ (with or without minus signs).\n" \
-	"  {wdf +CAT} replaces the old tool @wdf-cat@ and {wdf +DUMP} replaces" \
-	" the old tool @wdf-dump@." )
+	"wdf is a support tool for WDF, WIA and CISO archives. It convert" \
+	" (pack and unpack), compare and dump WDF, WIA (dump and cat only) and" \
+	" CISO archives. The default command depends on the program file name" \
+	" (see command descriptions). Usual names are @wdf@, @unwdf@," \
+	" @wdf-cat@, @wdf-cmp@ and @wdf-dump@ (with or without minus signs).\n" \
+	"  {wdf +CAT} replaces the old tool @wdf-cat@ and {wdf +DUMP} the old" \
+	" tool @wdf-dump@." )
 
 #:def_cmd( "VERSION", "+VERSION|+V", \
 	"wdf +VERSION [ignored]...", \
@@ -6573,9 +6635,8 @@
 
 #:def_opt( "WIDTH", "width", "GP", \
 	"width", \
-	"Define the width (number of columns) for help and some other" \
-	" messages. This option disables the automatic detection of the" \
-	" terminal width." )
+	"Define the width (number of columns) for help and some other messages" \
+	" and disable the automatic detection of the terminal width." )
 
 #:def_opt( "QUIET", "q|quiet", "G", \
 	"", \
@@ -6680,18 +6741,19 @@
 	" enabled the tools try to allocate disc space for the new files" \
 	" before writing the data. This reduces the fragmentation but also" \
 	" disables the sparse effect for prealocated areas.\n" \
-	"  The optional parameter decides the preallocation modus: @OFF@ (or" \
+	"  The optional parameter decides the preallocation mode: @OFF@ (or" \
 	" @0@), @SMART@ (or @1@), @ALL@ (or @2@). If no parameter is set," \
 	" @ALL@ is used.\n" \
 	"  Mode @'OFF'@ disables the preallocation. This is the default for" \
 	" all non Cygwin releases because preallocation has only advantages on" \
-	" Windows systems.\n" \
-	"  Mode @'SMART'@ looks into the source disc to find out the writing" \
-	" areas. @SMART@ is only avalable for ISO, CISO and WBFS file types." \
-	" For other file types @ALL@ is used instead.\n" \
-	"  Mode @'ALL'@ preallocate the whole destination file. This is the" \
-	" default for Cygwin. Because of the large holes in plain ISO images," \
-	" the @SMART@ mode is used for ISOs instead." )
+	" Windows systems. Mode @'SMART'@ looks into the source disc to find" \
+	" out the writing areas. @SMART@ is only avalable for ISO, CISO and" \
+	" WBFS file types. For other file types @ALL@ is used instead. Mode" \
+	" @'ALL'@ preallocate the whole destination file. This is the default" \
+	" for Cygwin. Because of the large holes in plain ISO images, the" \
+	" @SMART@ mode is used for ISOs instead.\n" \
+	"  Mac ignores this option because the needed preallocation function" \
+	" is not avaialable." )
 
 #:def_opt( "CHUNK_MODE", "chunk-mode|chunkmode|chm", "CP", \
 	"mode", \
@@ -6914,38 +6976,6 @@
 	"" )
 
 #:def_cmd_opt( "CAT", "OVERWRITE", \
-	"", \
-	"" )
-
-#:def_cmd_opt( "CAT", "SPLIT", \
-	"", \
-	"" )
-
-#:def_cmd_opt( "CAT", "SPLIT_SIZE", \
-	"", \
-	"" )
-
-#:def_cmd_opt( "CAT", "PREALLOC", \
-	"", \
-	"" )
-
-#:def_cmd_opt( "CAT", "CHUNK_MODE", \
-	"", \
-	"" )
-
-#:def_cmd_opt( "CAT", "CHUNK_SIZE", \
-	"", \
-	"" )
-
-#:def_cmd_opt( "CAT", "MAX_CHUNKS", \
-	"", \
-	"" )
-
-#:def_cmd_opt( "CAT", "COMPRESSION", \
-	"", \
-	"" )
-
-#:def_cmd_opt( "CAT", "MEM", \
 	"", \
 	"" )
 

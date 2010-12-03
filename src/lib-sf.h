@@ -326,6 +326,32 @@ wd_disc_type_t FileType2DiscType ( enumFileType ftype );
 
 u32 CountUsedIsoBlocksSF ( SuperFile_t * sf, const wd_select_t * psel );
 
+enumError CopyImage
+(
+    SuperFile_t		* fi,		// valid input file
+    SuperFile_t		* fo,		// valid output file
+    enumOFT		oft,		// oft, if 'OFT_UNKNOWN' it is detected automatically
+    int			overwrite,	// overwrite mode
+    bool		preserve,	// true: force preserve time
+    bool		remove_source	// true: remove source on success
+);
+
+enumError NormalizeExtractPath
+(
+    char		* dest_dir,	// result: pointer to path buffer
+    size_t		dest_dir_size,	// size of 'dest_dir'
+    ccp			source_dest,	// source for destination path
+    int			overwrite	// overwrite mode
+);
+
+enumError ExtractImage
+(
+    SuperFile_t		* fi,		// valid input file
+    ccp			dest_dir,	// destination directory terminated with '/'
+    int			overwrite,	// overwrite mode
+    bool		preserve	// true: copy time to extracted files
+);
+
 // copy functions
 enumError CopySF  ( SuperFile_t * in, SuperFile_t * out );
 enumError CopyRaw ( SuperFile_t * in, SuperFile_t * out );

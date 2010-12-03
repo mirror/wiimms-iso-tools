@@ -95,21 +95,28 @@ be64_t wbfs_setup_inode_info
 
 ///////////////////////////////////////////////////////////////////////////////
 
-int wbfs_is_inode_info_valid ( wbfs_t * p, wbfs_inode_info_t * ii )
-{
-    ASSERT(p);
-    ASSERT(p->head);
-    ASSERT(ii);
-    ASSERT( sizeof(wbfs_inode_info_t) == WBFS_INODE_INFO_SIZE );
-
+int wbfs_is_inode_info_valid
+(
     // if valid   -> return WBFS_INODE_INFO_VERSION
     // if invalid -> return 0
 
+    const wbfs_t		* p,	// NULL or WBFS
+    const wbfs_inode_info_t	* ii	// NULL or inode pointer
+)
+{
+    DASSERT( sizeof(wbfs_inode_info_t) == WBFS_INODE_INFO_SIZE );
+
+    if (!ii)
+	return 0;
+
     const u32 version = ntohl(ii->info_version);
-    return !memcmp(ii,p->head,WBFS_INODE_INFO_CMP_SIZE)
-	&& version > 0
-	&& version <= WBFS_INODE_INFO_VERSION
-		? version : 0;
+    if ( !version || version > WBFS_INODE_INFO_VERSION )
+	return 0;
+
+    if ( p && p->head )
+	return memcmp(ii,p->head,WBFS_INODE_INFO_CMP_SIZE) ? 0 : version;
+
+    return ii->magic == wbfs_htonl(WBFS_MAGIC) ? version : 0;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -751,7 +758,6 @@ int wbfs_sync_disc_header ( wbfs_disc_t * d )
     d->is_dirty = false;
     wbfs_t * p = d->p;
     const u32 disc_info_sz_lba = p->disc_info_sz >> p->hd_sec_sz_s;
-//HEXDUMP16(0,0x100,d->header->wlba_table,16);
     return p->write_hdsector (
 			p->callback_data,
 			p->part_lba + 1 + d->slot * disc_info_sz_lba,
@@ -949,79 +955,6 @@ void wbfs_print_usage_tab
 {
     wd_print_byte_tab( f, indent, used_block, block_used_sz, block_used_sz,
 			sector_size, wbfs_usage_name_tab, print_all );
-}
-
-///////////////////////////////////////////////////////////////////////////////
-
-// offset is pointing 32bit words to address the whole dvd, although len is in bytes
-
-int wbfs_disc_read ( wbfs_disc_t *d, u32 offset, u8 *data, u32 len )
-{ // [codeview]
-
-    wbfs_t *p = d->p;
-    u16 wlba = offset>>(p->wbfs_sec_sz_s-2);
-    u32 iwlba_shift = p->wbfs_sec_sz_s - p->hd_sec_sz_s;
-    u32 lba_mask = (p->wbfs_sec_sz-1)>>(p->hd_sec_sz_s);
-    u32 lba = (offset>>(p->hd_sec_sz_s-2))&lba_mask;
-    u32 off = offset&((p->hd_sec_sz>>2)-1);
-    u16 iwlba = wbfs_ntohs(d->header->wlba_table[wlba]);
-    u32 len_copied;
-    int err = 0;
-    u8  *ptr = data;
-    if (unlikely(iwlba==0))
-	return 1;
-    if (unlikely(off))
-    {
-	off *= 4;
-	err = p->read_hdsector(p->callback_data,
-			       p->part_lba + (iwlba<<iwlba_shift) + lba, 1, p->tmp_buffer);
-	if (err)
-	    return err;
-	len_copied = p->hd_sec_sz - off;
-	if (likely(len < len_copied))
-	    len_copied = len;
-	wbfs_memcpy(ptr, p->tmp_buffer + off, len_copied);
-	len -= len_copied;
-	ptr += len_copied;
-	lba++;
-	if (unlikely(lba>lba_mask && len))
-	{
-	    lba = 0;
-	    iwlba = wbfs_ntohs(d->header->wlba_table[++wlba]);
-	    if (unlikely(iwlba==0))
-		return 1;
-	}
-    }
-    while (likely(len>=p->hd_sec_sz))
-    {
-	u32 nlb = len>>(p->hd_sec_sz_s);
-
-	if (unlikely(lba + nlb > p->wbfs_sec_sz)) // dont cross wbfs sectors..
-	    nlb = p->wbfs_sec_sz-lba;
-	err = p->read_hdsector(p->callback_data,
-			       p->part_lba + (iwlba<<iwlba_shift) + lba, nlb, ptr);
-	if (err)
-	    return err;
-	len -= nlb<<p->hd_sec_sz_s;
-	ptr += nlb<<p->hd_sec_sz_s;
-	lba += nlb;
-	if (unlikely(lba>lba_mask && len))
-	{
-	    lba = 0;
-	    iwlba =wbfs_ntohs(d->header->wlba_table[++wlba]);
-	    if (unlikely(iwlba==0))
-		return 1;
-	}
-    }
-    if (unlikely(len))
-    {
-	err = p->read_hdsector(p->callback_data,
-			       p->part_lba + (iwlba<<iwlba_shift) + lba, 1, p->tmp_buffer);
-	if (err)
-	    return err;
-	wbfs_memcpy(ptr, p->tmp_buffer, len);
-    }
-    return 0;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -1427,7 +1360,6 @@ int wbfs_calc_used_blocks
 			wd_print_id(info,6,0) );
 
 	    u16 * wlba_tab = info->wlba_table;
-//HEXDUMP16(0,0x100,wlba_tab,16);
 	    int bl, bl_count = 0;
 	    for ( bl = 0; bl < p->n_wbfs_sec_per_disc; bl++ )
 	    {
@@ -2171,48 +2103,26 @@ error:
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// old 'rename title' interface
 
-u32 wbfs_ren_disc ( wbfs_t * p, u8 * discid, u8 * newname )
+u32 wbfs_rm_disc
+(
+    wbfs_t		* p,		// valid WBFS descriptor
+    u8			* discid,	// id6 to remove. If NULL: remove 'slot'
+    int			slot,		// slot index, only used if 'discid==NULL'
+    int			free_slot_only	// true: do not free blocks
+)
 {
-    wbfs_disc_t *d = wbfs_open_disc_by_id6(p, discid);
+    TRACE("LIBWBFS: +wbfs_rm_disc(%p,%.6s,%d,%d)\n",
+		p, discid ? (ccp)discid : "-", slot, free_slot_only );
+    DASSERT(p);
+    DASSERT(p->head);
+
+    wbfs_disc_t *d = discid
+			? wbfs_open_disc_by_id6(p,discid)
+			: wbfs_open_disc_by_slot(p,slot,false);
     if (!d)
 	return 1;
-
-    // use the new implementation
-    int err = wbfs_rename_disc(d,0,(char*)newname,1,0);
-    wbfs_close_disc(d);
-    return err;
-}
-
-///////////////////////////////////////////////////////////////////////////////
-// old 'rename id' interface
-
-u32 wbfs_nid_disc ( wbfs_t * p, u8 * discid, u8 * newid )
-{
-    wbfs_disc_t *d = wbfs_open_disc_by_id6(p, discid);
-    if (!d)
-	return 1;
-
-    // use the new implementation
-    int err = wbfs_rename_disc(d,(char*)newid,0,1,0);
-    wbfs_close_disc(d);
-    return err;
-}
-
-///////////////////////////////////////////////////////////////////////////////
-
-u32 wbfs_rm_disc ( wbfs_t * p, u8 * discid, int free_slot_only )
-{
-    TRACE("LIBWBFS: +wbfs_rm_disc(%p,%.6s,%d)\n",p,discid,free_slot_only);
-    ASSERT(p);
-    ASSERT(discid);
-    ASSERT(p->head);
-
-    wbfs_disc_t *d = wbfs_open_disc_by_id6(p,discid);
-    if (!d)
-	return 1;
-    int slot = d->slot;
+    slot = d->slot;
 
     TRACE("LIBWBFS: disc_table[slot=%d]=%x\n", slot, p->head->disc_table[slot] );
 
@@ -2292,6 +2202,7 @@ u32 wbfs_trim ( wbfs_t * p ) // trim the file-system to its minimum size
 
 ///////////////////////////////////////////////////////////////////////////////
 // data extraction
+#if !NEW_EXTRACT // [2do] replace it with: #ifndef WIT // not used in WiT
 
 u32 wbfs_extract_disc
 	( wbfs_disc_t*d, rw_sector_callback_t write_dst_wii_sector,
@@ -2368,6 +2279,7 @@ error:
     return 1;
 }
 
+#endif // !NEW_EXTRACT
 //
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////			    END				///////////////

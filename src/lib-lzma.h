@@ -102,7 +102,7 @@ enumError EncLZMA_Open
 
 enumError EncLZMA_WriteDataToFile
 (
-    EncLZMA_t		* lzma,		// valid pointer, opend with EncLZMA_Open()
+    EncLZMA_t		* lzma,		// valid pointer, opened with EncLZMA_Open()
     File_t		* file,		// destination file, write to current offset
     bool		write_props,	// true: write encoding properties
     const void		* data,		// data to write
@@ -188,7 +188,7 @@ enumError EncLZMA2_Open
 
 enumError EncLZMA2_WriteDataToFile
 (
-    EncLZMA_t		* lzma,		// valid pointer, opend with EncLZMA2_Open()
+    EncLZMA_t		* lzma,		// valid pointer, opened with EncLZMA2_Open()
     File_t		* file,		// destination file, write to current offset
     bool		write_props,	// true: write encoding properties
     const void		* data,		// data to write

@@ -329,8 +329,7 @@ enumError cmd_test_options()
     print_val( "max-chunks:",	opt_max_chunks,	0 );
     {
 	u64 filesize[] = { 100ull*MiB, 1ull*GiB, 10ull*GiB, opt_size, 0 };
-	u64 *fs_ptr = filesize;;
-	for (;;)
+	u64 *fs_ptr = filesize;	for (;;)
 	{
 	    u32 n_blocks;
 	    u32 block_size = CalcBlockSizeCISO(&n_blocks,*fs_ptr);

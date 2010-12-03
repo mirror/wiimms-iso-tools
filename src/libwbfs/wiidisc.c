@@ -1535,22 +1535,22 @@ static enumError wd_check_part_offset
 	if ( off > iso_size )
 	{
 	    if (!silent)
-		WD_ERROR(ERR_WDISC_INVALID,
+		WD_ERROR(ERR_WPART_INVALID,
 		    "Partition %s: Offset of %s (%llx) behind end of file (%llx)%s",
 		    wd_print_part_name(0,0,part->part_type,WD_PNAME_NUM_INFO),
 		    name, off, iso_size, part->disc->error_term );
-	    return ERR_WDISC_INVALID;
+	    return ERR_WPART_INVALID;
 	}
 
 	off += size;
 	if ( off > iso_size )
 	{
 	    if (!silent)
-		WD_ERROR(ERR_WDISC_INVALID,
+		WD_ERROR(ERR_WPART_INVALID,
 		    "Partition %s: End of %s (%llx) behind end of file (%llx)%s",
 		    wd_print_part_name(0,0,part->part_type,WD_PNAME_NUM_INFO),
 		    name, off, iso_size, part->disc->error_term );
-	    return ERR_WDISC_INVALID;
+	    return ERR_WPART_INVALID;
 	}
     }
 
@@ -1609,16 +1609,16 @@ enumError wd_load_part
 
 	    const u64 part_off = (u64)part->part_off4 << 2;
 	    if (wd_check_part_offset(part,part_off,sizeof(part->ph),"TICKET",silent))
-		return ERR_WDISC_INVALID;
+		return ERR_WPART_INVALID;
 
 	    enumError err = wd_read_part_raw(part,0,&part->ph,sizeof(part->ph),true);
 	    if (err)
 	    {
 		if (!silent)
-		    WD_ERROR(ERR_WDISC_INVALID,"Can't read TICKET of partition '%s'%s",
+		    WD_ERROR(ERR_WPART_INVALID,"Can't read TICKET of partition '%s'%s",
 				    wd_print_part_name(0,0,part->part_type,WD_PNAME_NUM_INFO),
 				    disc->error_term );
-		return ERR_WDISC_INVALID;
+		return ERR_WPART_INVALID;
 	    }
 
 	    ntoh_part_header(&part->ph,&part->ph);
@@ -1640,7 +1640,7 @@ enumError wd_load_part
 
 	    if (wd_check_part_offset(part, part_off+((u64)ph->data_off4<<2),
 			(u64)ph->data_size4<<2, "data", silent ))
-		return ERR_WDISC_INVALID;
+		return ERR_WPART_INVALID;
 
 
 	    //----- load tmd
@@ -1648,11 +1648,11 @@ enumError wd_load_part
 	    if ( ph->tmd_size < sizeof(wd_tmd_t) )
 	    {
 		if (!silent)
-		    WD_ERROR(ERR_WDISC_INVALID,"Invalid TMD size (0x%x) in partition '%s'%s",
+		    WD_ERROR(ERR_WPART_INVALID,"Invalid TMD size (0x%x) in partition '%s'%s",
 			ph->tmd_size,
 			wd_print_part_name(0,0,part->part_type,WD_PNAME_NUM_INFO),
 			disc->error_term );
-		return ERR_WDISC_INVALID;
+		return ERR_WPART_INVALID;
 	    }
 
 	    wd_tmd_t * tmd = malloc(ph->tmd_size);
@@ -1663,10 +1663,10 @@ enumError wd_load_part
 	    if (err)
 	    {
 		if (!silent)
-		    WD_ERROR(ERR_WDISC_INVALID,"Can't read TMD of partition '%s'%s",
+		    WD_ERROR(ERR_WPART_INVALID,"Can't read TMD of partition '%s'%s",
 				wd_print_part_name(0,0,part->part_type,WD_PNAME_NUM_INFO),
 				disc->error_term );
-		return ERR_WDISC_INVALID;
+		return ERR_WPART_INVALID;
 	    }
 
 
@@ -1685,11 +1685,11 @@ enumError wd_load_part
 	if (err)
 	{
 	    if (!silent)
-		WD_ERROR(ERR_WDISC_INVALID,
+		WD_ERROR(ERR_WPART_INVALID,
 			"Can't read BOOT.BIN of partition '%s'%s",
 			wd_print_part_name(0,0,part->part_type,WD_PNAME_NUM_INFO),
 			disc->error_term );
-	    return ERR_WDISC_INVALID;
+	    return ERR_WPART_INVALID;
 	}
 
 	wd_boot_t * boot = &part->boot;
@@ -1701,11 +1701,11 @@ enumError wd_load_part
 	if ( !boot->dol_off4 && !boot->fst_off4 )
 	{
 	    if (!silent)
-		WD_ERROR(ERR_WDISC_INVALID,
+		WD_ERROR(ERR_WPART_INVALID,
 			"Invalid BOOT.BIN (no MAIN.DOL and no FST), partition '%s'%s",
 			wd_print_part_name(0,0,part->part_type,WD_PNAME_NUM_INFO),
 			disc->error_term );
-	    return ERR_WDISC_INVALID;
+	    return ERR_WPART_INVALID;
 	}
 
 
@@ -1746,10 +1746,10 @@ enumError wd_load_part
 	    if (err)
 	    {
 		if (!silent)
-		    WD_ERROR(ERR_WDISC_INVALID,"Can't read MAIN.DOL of partition '%s'%s",
+		    WD_ERROR(ERR_WPART_INVALID,"Can't read MAIN.DOL of partition '%s'%s",
 				    wd_print_part_name(0,0,part->part_type,WD_PNAME_NUM_INFO),
 				    disc->error_term );
-		return ERR_WDISC_INVALID;
+		return ERR_WPART_INVALID;
 	    }
 	    ntoh_dol_header(dol,dol);
 
@@ -1768,10 +1768,10 @@ enumError wd_load_part
 		WDPRINT("!!! DOL-SIZE: %x <= %x & off=%x\n",
 			dol_size, boot->fst_off4-boot->dol_off4<<2, boot->dol_off4 );
 		if (!silent)
-		    WD_ERROR(ERR_WDISC_INVALID,"Invalid MAIN.DOL of partition '%s'%s",
+		    WD_ERROR(ERR_WPART_INVALID,"Invalid MAIN.DOL of partition '%s'%s",
 				    wd_print_part_name(0,0,part->part_type,WD_PNAME_NUM_INFO),
 				    disc->error_term );
-		return ERR_WDISC_INVALID;
+		return ERR_WPART_INVALID;
 	    }
 	    part->dol_size = dol_size;
 	    if ( fst_max_size < dol_size )
@@ -1790,10 +1790,10 @@ enumError wd_load_part
 	    if (err)
 	    {
 		if (!silent)
-		    WD_ERROR(ERR_WDISC_INVALID,"Can't read APPLOADER of partition '%s'%s",
+		    WD_ERROR(ERR_WPART_INVALID,"Can't read APPLOADER of partition '%s'%s",
 				    wd_print_part_name(0,0,part->part_type,WD_PNAME_NUM_INFO),
 				    disc->error_term );
-		return ERR_WDISC_INVALID;
+		return ERR_WPART_INVALID;
 	    }
 	    part->apl_size = 0x20 + be32(apl_header+0x14) + be32(apl_header+0x18);
 	    if ( fst_max_size < part->apl_size )
@@ -1822,10 +1822,10 @@ enumError wd_load_part
 	    if (err)
 	    {
 		if (!silent)
-		    WD_ERROR(ERR_WDISC_INVALID,"Can't read FST of partition '%s'%s",
+		    WD_ERROR(ERR_WPART_INVALID,"Can't read FST of partition '%s'%s",
 				    wd_print_part_name(0,0,part->part_type,WD_PNAME_NUM_INFO),
 				    disc->error_term );
-		return ERR_WDISC_INVALID;
+		return ERR_WPART_INVALID;
 	    }
 	    mgr_sect = part->end_sector;
 
@@ -1876,7 +1876,7 @@ enumError wd_load_part
 			
 	    if (wd_check_part_offset( part, (u64)part->data_off4<<2,
 					part->part_size, "PART", silent ))
-		return ERR_WDISC_INVALID;
+		return ERR_WPART_INVALID;
 	}
 	else
 	{
@@ -1970,7 +1970,7 @@ enumError wd_load_part
 	}
     }
 
-    return part->is_valid ? ERR_OK : ERR_WDISC_INVALID;
+    return part->is_valid ? ERR_OK : ERR_WPART_INVALID;
 }
 
 ///////////////////////////////////////////////////////////////////////////////

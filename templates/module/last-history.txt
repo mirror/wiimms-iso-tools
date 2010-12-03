@@ -1,9 +1,14 @@
 wit v@@VERSION@@ r@@REV-NEXT@@ - @@@@-@@-@@
 
- - Preallocation of disc space implemented. Set --sparse or --defrag to change
-   default behavior of ISO, CISO and WBFS files.
- - The new option "--pa-limit size" controls the maximum preallocation block
-   size. The default is 0 which means no limit.
+ - Preallocation of disc space implemented. It is only enabled for Cygwin by
+   default. It can be disabled with --prealloc=0 or enabled with --prealloc.
+   The needed preallocation function is not avaialable for mac.
+ - wwt EXTRACT + REMOVE + TOUCH + VERIFY:
+   These commands accept now ID6 pattern like '...P' or '+1'. Each '.' is a
+   wildcard that matches any single character. A '+' matches any number of
+   characters. For details see http://wit.wiimm.de/info/disc-id.html
+ - wwt EXTRACT is now able to patch while extracting and to create WIA files.
+   It support also the options --fst --pmode --psel --raw --files and --sneek.
 
 
 Known bugs:
@@ -13,7 +18,7 @@ Known bugs:
  - There are new problems while reading from non seekable sources (e.g. pipes).
    The reason is the complete new and more intelligent wiidisc lib which makes
    more lookups ==> The best is to use version 1.01c for pipes.
- - No bzip2 (WIA) support for MAC/x86_64. (bug in the bzip2 library)
+ - No WIA/bzip2 support for MAC/x86_64. (bug in the Mac bzip2 library)
 
 
 Missing docu:

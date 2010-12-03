@@ -152,7 +152,7 @@ typedef enum enumOptions
 //	OB_CMD_PACK		= OB_CMD_UNPACK
 //				| OB_GRP_FILETYPE,
 //
-//	OB_CMD_CAT		= OB_GRP_DEST_PLUS,
+//	OB_CMD_CAT		= OB_GRP_DEST,
 //
 //	OB_CMD_CMP		= 0,
 //

@@ -218,7 +218,7 @@ enumError RemoveSF ( SuperFile_t * sf )
 	if ( sf->wbfs->used_discs > 1 )
 	{
 	    TRACE(" - remove wdisc %s\n",sf->f.id6);
-	    RemoveWDisc(sf->wbfs,sf->f.id6,0);
+	    RemoveWDisc(sf->wbfs,sf->f.id6,0,false);
 	    return ResetSF(sf,0);
 	}
     }
@@ -338,7 +338,7 @@ enumOFT SetupIOD ( SuperFile_t * sf, enumOFT force, enumOFT def )
 enumError SetupReadSF ( SuperFile_t * sf )
 {
     ASSERT(sf);
-    TRACE("SetupReadSF(%p) fd=%d is-r=%d is-w=%d\n",
+    PRINT("SetupReadSF(%p) fd=%d is-r=%d is-w=%d\n",
 	sf, sf->f.fd, sf->f.is_reading, sf->f.is_writing );
 
     if ( !sf || !sf->f.is_reading )
@@ -395,7 +395,7 @@ enumError SetupReadISO ( SuperFile_t * sf )
 enumError SetupReadWBFS ( SuperFile_t * sf )
 {
     ASSERT(sf);
-    TRACE("SetupReadWBFS(%p) id=%s, slot=%d\n",sf,sf->f.id6,sf->f.slot);
+    PRINT("SetupReadWBFS(%p) id=%s, slot=%d\n",sf,sf->f.id6,sf->f.slot);
 
     if ( !sf || !sf->f.is_reading || sf->wbfs )
 	return ERROR0(ERR_INTERNAL,0);
@@ -686,6 +686,7 @@ void CloseDiscSF
     wd_close_disc(sf->disc1);
     sf->disc1 = sf->disc2 = 0;
     sf->discs_loaded = false;
+    sf->data_part = 0;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -2615,6 +2616,148 @@ u32 CountUsedIsoBlocksSF ( SuperFile_t * sf, const wd_select_t * psel )
 	}
     }
     return count;
+}
+
+//
+///////////////////////////////////////////////////////////////////////////////
+///////////////	     high level copy and extract functions	///////////////
+///////////////////////////////////////////////////////////////////////////////
+
+enumError CopyImage
+(
+    SuperFile_t		* fi,		// valid input file
+    SuperFile_t		* fo,		// valid output file
+    enumOFT		oft,		// oft, if 'OFT_UNKNOWN' it is detected automatically
+    int			overwrite,	// overwrite mode
+    bool		preserve,	// true: force preserve time
+    bool		remove_source	// true: remove source on success
+)
+{
+    DASSERT(fi);
+    DASSERT(fo);
+    fflush(0);
+
+    if ( oft == OFT_UNKNOWN )
+	oft = CalcOFT(output_file_type,opt_dest,fo->f.fname,fo->iod.oft);
+    SetupIOD(fo,oft,oft);
+    fo->src = fi;
+    fo->f.create_directory = opt_mkdir;
+    fo->raw_mode = part_selector.whole_disc || !fi->f.id6[0];
+
+    enumError err = CreateFile( &fo->f, 0, oft_info[oft].iom, overwrite );
+    if ( err || SIGINT_level > 1 )
+	goto abort;
+
+    if (opt_split)
+	SetupSplitFile(&fo->f,oft,opt_split_size);
+
+    err = SetupWriteSF(fo,oft);
+    if ( err || SIGINT_level > 1 )
+	goto abort;
+
+    err = CopySF(fi,fo);
+    if ( err || SIGINT_level > 1 )
+	goto abort;
+
+    err = RewriteModifiedSF(fi,fo,0);
+    if ( err || SIGINT_level > 1 )
+	goto abort;
+
+    fo->src = 0;
+    FileAttrib_t fatt;
+    memcpy(&fatt,&fi->f.fatt,sizeof(fatt));
+    if (remove_source)
+	RemoveSF(fi);
+
+    return ResetSF( fo, preserve || fi->disc1 == fi->disc2 ? &fatt : 0 );
+
+ abort:
+    RemoveSF(fo);
+    return err;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+
+enumError NormalizeExtractPath
+(
+    char		* dest_dir,	// result: pointer to path buffer
+    size_t		dest_dir_size,	// size of 'dest_dir'
+    ccp			source_dest,	// source for destination path
+    int			overwrite	// overwrite mode
+)
+{
+    DASSERT(dest_dir);
+    DASSERT(dest_dir_size > 100 );
+    DASSERT(source_dest);
+    
+    char * dest = StringCopyS(dest_dir,dest_dir_size-1,source_dest);
+    if ( dest == dest_dir || dest[-1] != '/' )
+    {
+	*dest++ = '/';
+	*dest   = 0;
+    }
+
+    if (!overwrite)
+    {
+	struct stat st;
+	if (!stat(dest_dir,&st))
+	    return ERROR0(ERR_ALREADY_EXISTS,"Destination already exists: %s",dest_dir);
+    }
+
+    return ERR_OK;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+enumError ExtractImage
+(
+    SuperFile_t		* fi,		// valid input file
+    ccp			dest_dir,	// destination directory terminated with '/'
+    int			overwrite,	// overwrite mode
+    bool		preserve	// true: copy time to extracted files
+)
+{
+    DASSERT(fi);
+    DASSERT(dest_dir);
+    DASSERT( strlen(dest_dir) && dest_dir[strlen(dest_dir)-1] == '/' );
+    
+    wd_disc_t * disc = OpenDiscSF(fi,true,true);
+    if (!disc)
+	return ERR_WDISC_NOT_FOUND;
+
+    fi->indent		= 5;
+    fi->show_progress	= verbose > 1 || progress;
+    fi->show_summary	= verbose > 0 || progress;
+    fi->show_msec	= verbose > 2;
+
+    WiiFst_t fst;
+    InitializeFST(&fst);
+    CollectFST(&fst,disc,GetDefaultFilePattern(),false,prefix_mode,false);
+    SortFST(&fst,sort_mode,SORT_OFFSET);
+
+    WiiFstInfo_t wfi;
+    memset(&wfi,0,sizeof(wfi));
+    wfi.sf		= fi;
+    wfi.fst		= &fst;
+    wfi.set_time	= preserve ? &fi->f.fatt : 0;
+    wfi.overwrite	= overwrite;
+    wfi.verbose		= long_count > 0 ? long_count : verbose > 0 ? 1 : 0;
+
+    enumError err = CreateFST(&wfi,dest_dir);
+
+    if ( !err && wfi.not_created_count )
+    {	
+	if ( wfi.not_created_count == 1 )
+	    err = ERROR0(ERR_CANT_CREATE,
+			"1 file or directory not created\n" );
+	else
+	    err = ERROR0(ERR_CANT_CREATE,
+			"%d files and/or directories not created.\n",
+			wfi.not_created_count );
+    }
+    ResetFST(&fst);
+    return err;
 }
 
 //

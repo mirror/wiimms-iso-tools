@@ -347,7 +347,7 @@ int test_print_size ( int argc, char ** argv )
 ///////////////			test_wbfs_free_blocks()		///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-int test_wbfs_free_blocks ( int argc, char ** argv )
+static int test_wbfs_free_blocks ( int argc, char ** argv )
 {
     int i;
     for ( i = 1; i < argc; i++ )
@@ -375,6 +375,63 @@ int test_wbfs_free_blocks ( int argc, char ** argv )
 
 //
 ///////////////////////////////////////////////////////////////////////////////
+///////////////			test_open_wdisk()		///////////////
+///////////////////////////////////////////////////////////////////////////////
+
+static void dump_wbfs ( WBFS_t * w, enumError err, ccp title )
+{
+    DASSERT(w);
+    DASSERT(title);
+
+    printf("\n----- %s [%s] -----\n",title,GetErrorName(err));
+    printf("%p: sf=%p wbfs=%p disc=%p slot=%d\n",
+		w, w->sf, w->wbfs, w->disc, w->disc_slot );
+
+    SuperFile_t * sf = w->sf;
+    if (sf)
+    {
+	printf("sf: id=%s, oft=%u=%s, wbfs=%p, fname=%s\n",
+		sf->f.id6,
+		sf->iod.oft, oft_info[sf->iod.oft].name,
+		sf->wbfs, sf->f.fname );
+
+	char buf[16];
+	memset(buf,0,sizeof(buf));
+	ReadSF(sf,0,buf,sizeof(buf));
+	HEXDUMP16(0,0,buf,sizeof(buf));
+    }
+}
+
+//-------------------------------------------------------------------------------
+
+static int test_open_wdisk ( int argc, char ** argv )
+{
+    int i;
+    for ( i = 1; i < argc; i++ )
+    {
+	WBFS_t wbfs;
+	InitializeWBFS(&wbfs);
+	enumError err = OpenWBFS(&wbfs,argv[i],true,0);
+	dump_wbfs(&wbfs,err,"Open WBFS");
+
+	err = OpenWDiscSlot(&wbfs,0,false);
+	dump_wbfs(&wbfs,err,"Open Disc");
+
+	err = OpenWDiscSF(&wbfs);
+	dump_wbfs(&wbfs,err,"Open Disc");
+
+	err = CloseWDisc(&wbfs);
+	dump_wbfs(&wbfs,err,"Close Disc");
+	
+	err = ResetWBFS(&wbfs);
+	dump_wbfs(&wbfs,err,"Close WBFS");
+    }
+
+    return ERR_OK;
+}
+
+//
+///////////////////////////////////////////////////////////////////////////////
 ///////////////			test()				///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -387,9 +444,10 @@ int test ( int argc, char ** argv )
     //test_create_sparse_file();
     //test_splitted_file();
     //test_copy_to_wbfs(argc,argv);
-    test_print_size(argc,argv);
+    //test_print_size(argc,argv);
     //test_wbfs_free_blocks(argc,argv);
-
+    test_open_wdisk(argc,argv);
+   
     return 0;
 }
 
@@ -731,8 +789,7 @@ void test_sha1()
     const int M = 50000;
 
     int wit_failed = 0;
-    u8 h1[100], h2[100], source[1000-21];;
-
+    u8 h1[100], h2[100], source[1000-21];
     printf("\n*** test SHA1 ***\n\n");
 
     int i;

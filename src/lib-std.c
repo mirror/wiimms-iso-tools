@@ -263,6 +263,7 @@ void SetupLib ( int argc, char ** argv, ccp p_progname, enumProgID prid )
     TRACE_SIZEOF(PrintTime_t);
     TRACE_SIZEOF(RegionInfo_t);
     TRACE_SIZEOF(StringField_t);
+    TRACE_SIZEOF(StringItem_t);
     TRACE_SIZEOF(StringList_t);
     TRACE_SIZEOF(SubstString_t);
     TRACE_SIZEOF(SuperFile_t);
@@ -672,6 +673,7 @@ ccp GetErrorName ( int stat )
 	case ERR_NO_CISO:		return "NO WDF";
 	case ERR_CISO_INVALID:		return "INVALID WDF";
 
+	case ERR_WPART_INVALID:		return "INVALID WII PARTITION";
 	case ERR_WDISC_INVALID:		return "INVALID WII DISC";
 	case ERR_WDISC_NOT_FOUND:	return "WII DISC NOT FOUND";
 
@@ -734,6 +736,7 @@ ccp GetErrorText ( int stat )
 	case ERR_NO_CISO:		return "File is not a CISO";
 	case ERR_CISO_INVALID:		return "File is an invalid CISO";
 
+	case ERR_WPART_INVALID:		return "Invalid Wii partition";
 	case ERR_WDISC_INVALID:		return "Invalid Wii disc";
 	case ERR_WDISC_NOT_FOUND:	return "Wii disc not found";
 
@@ -3073,6 +3076,26 @@ ccp FindStringField ( StringField_t * sf, ccp key )
 
 ///////////////////////////////////////////////////////////////////////////////
 
+static ccp * InsertStringFieldHelper ( StringField_t * sf, int idx )
+{
+    DASSERT(sf);
+    DASSERT( sf->used <= sf->size );
+    if ( sf->used == sf->size )
+    {
+	sf->size += 0x100;
+	sf->field = realloc(sf->field,sf->size*sizeof(ccp));
+	if (!sf->field)
+	    OUT_OF_MEMORY;
+    }
+    DASSERT( idx <= sf->used );
+    ccp * dest = sf->field + idx;
+    memmove(dest+1,dest,(sf->used-idx)*sizeof(ccp));
+    sf->used++;
+    return dest;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
 bool InsertStringField ( StringField_t * sf, ccp key, bool move_key )
 {
     if (!key)
@@ -3087,23 +3110,45 @@ bool InsertStringField ( StringField_t * sf, ccp key, bool move_key )
     }
     else
     {
-	ASSERT( sf->used <= sf->size );
-	if ( sf->used == sf->size )
-	{
-	    sf->size += 0x100;
-	    sf->field = realloc(sf->field,sf->size*sizeof(ccp));
-	    if (!sf->field)
-		OUT_OF_MEMORY;
-	}
-	TRACE("InsertStringField(%s,%d) %d/%d/%d\n",key,move_key,idx,sf->used,sf->size);
-	DASSERT( idx <= sf->used );
-	ccp * dest = sf->field + idx;
-	memmove(dest+1,dest,(sf->used-idx)*sizeof(ccp));
-	sf->used++;
+	ccp * dest = InsertStringFieldHelper(sf,idx);
 	*dest = move_key ? key : strdup(key);
     }
 
     return !found;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+StringItem_t * InsertStringID6 ( StringField_t * sf, void * id6, char flag, ccp arg )
+{
+    if (!id6)
+	return 0;
+
+    bool found;
+    int idx = FindStringFieldHelper(sf,&found,id6);
+    ccp * dest;
+    if (found)
+    {
+	DASSERT( idx < sf->used );
+	dest = sf->field + idx;
+	free((char*)*dest);
+    }
+    else
+	dest = InsertStringFieldHelper(sf,idx);
+
+    const int arg_len   = arg ? strlen(arg) : 0;
+    const int item_size = sizeof(StringItem_t) + arg_len + 1;
+    StringItem_t * item = malloc(item_size);
+    if (!item)
+	OUT_OF_MEMORY;
+
+    *dest = (ccp)item;
+    memset(item,0,item_size);
+    strncpy(item->id6,id6,6);
+    item->flag = flag;
+    if (arg)
+	memcpy(item->arg,arg,arg_len);
+    return item;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -4263,9 +4308,17 @@ size_t AllocTempBuffer ( size_t needed_size )
 
 int ScanPreallocMode ( ccp arg )
 {
+ #ifdef NO_PREALLOC
+    static char errmsg[] = "Preallocation not supported and option --prealloc is ignored!\n";
+ #endif
+
     if ( !arg || !*arg )
     {
+     #ifdef NO_PREALLOC
+	ERROR0(ERR_WARNING,errmsg);
+     #else
 	prealloc_mode = PREALLOC_OPT_DEFAULT;
+     #endif
 	return 0;
     }
 
@@ -4281,7 +4334,12 @@ int ScanPreallocMode ( ccp arg )
     const CommandTab_t * cmd = ScanCommand(0,arg,tab);
     if (cmd)
     {
+     #ifdef NO_PREALLOC
+	if ( cmd->id != PREALLOC_OFF )
+	    ERROR0(ERR_WARNING,errmsg);
+     #else
 	prealloc_mode = cmd->id;
+     #endif
 	return 0;
     }
 
