@@ -20,14 +20,21 @@
 [size="2"][color="#0000c0"][b]Highlights of this release:[/b][/color][/size]
 [list]
 [*] [color=#000080][b]Preallocation to avoid fragmentation[/b][/color]
-I have implemented preallocation. Under Windows it can avoid fragmentation. Therfor it is only enabled for Cygwin by default. It can be disabled with --prealloc=0 or enabled with --prealloc. See http://wit.wiimm.de/opt/prealloc for more details.
+I have implemented disc space preallocation. Under Windows it can avoid fragmentation. Therefor it is only enabled for Cygwin by default. It can be disabled with --prealloc=0 or enabled with --prealloc. See http://wit.wiimm.de/opt/prealloc for more details.
+The needed preallocation function is not available for Mac. So Mac will ignore --prealloc.
+[color=#ffffff].[/color]
 
 [*] [color=#000080][b]ID wildcards for some wwt commands[/b][/color]
-The wwt commands EXTRACT + REMOVE + TOUCH + VERIFY wil support now ID wildcards to selct different discs. See http://wit.wiimm.de/info/disc-id.html for more details.
-The needed preallocation function is not avaialable for Mac. So Mac will ignore --prealloc.
+The wwt commands EXTRACT + REMOVE + TOUCH + VERIFY will support now ID wildcards to select different discs. See http://wit.wiimm.de/info/disc-id.html for more details.
+[color=#ffffff].[/color]
 
-[*] [color=#000080][b]Iwwt EXTRACT rewritten[/b][/color]
-"wwt EXTRACT" is now able to patch while extracting and to create WIA files like "wit COPY". It support also the options --fst --pmode --psel --raw --files and --sneek. http://wit.wiimm.de/wwt/cmd-extract.html for more details.
+[*] [color=#000080][b]wwt EXTRACT rewritten[/b][/color]
+"wwt EXTRACT" is now able to patch while extracting and to create WIA files like "wit COPY". Some new supported options are --wia --fst --pmode --psel --raw --files and --sneek. See http://wit.wiimm.de/wwt/cmd-extract.html for more details.
+[color=#ffffff].[/color]
+
+[*] [color=#000080][b]Environment Variables[/b][/color]
+The WIT tools support environment variables to change the defaults. This is a very old feature but seems forgotten. See http://wit.wiimm.de/info/environ.html for details.
+[color=#ffffff].[/color]
 
 ~[*] [color=#000080][b]GameCube support[/b][/color]
 ~I'm still working at GameCube support. Reading of GameCube (standard and multiboot) works. Reading means, that the wit commands COPY, EXTRACT, DUMP, LIST, FILES, MOVE, RENAME and some more works fine. "wit MIX" is able to create a multiboot disc without a special boot partition, but the qualifier "boot" will mark one source partition as boot partition.

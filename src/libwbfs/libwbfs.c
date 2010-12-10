@@ -1573,7 +1573,8 @@ u32 wbfs_get_free_block_count ( wbfs_t * p )
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// [2do] [obsolete] : replace it by direct call to wd_is_block_used()
+// [2do] [obsolete] since 2010-10-26
+//	==> replace it in 2011 by direct call to wd_is_block_used()
 
 static bool old_is_block_used
 (
@@ -1597,10 +1598,9 @@ static bool is_block_used
     u32			block_size	// if >1: number of sectors per block
 )
 {
-    const bool r1 = old_is_block_used(usage_table,block_index,block_size);
-    const bool r2 = wd_is_block_used(usage_table,block_index,block_size);
-    ASSERT(r1==r2);
-    return r2;
+    const bool res = wd_is_block_used(usage_table,block_index,block_size);
+    ASSERT( res == old_is_block_used(usage_table,block_index,block_size) );
+    return res;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -2200,86 +2200,6 @@ u32 wbfs_trim ( wbfs_t * p ) // trim the file-system to its minimum size
     return max_block;
 }
 
-///////////////////////////////////////////////////////////////////////////////
-// data extraction
-#if !NEW_EXTRACT // [2do] replace it with: #ifndef WIT // not used in WiT
-
-u32 wbfs_extract_disc
-	( wbfs_disc_t*d, rw_sector_callback_t write_dst_wii_sector,
-	  void *callback_data,progress_callback_t spinner)
-{
-    // [codeview]
-
-    wbfs_t *p = d->p;
-    u8* copy_buffer = 0;
-    int tot = 0, cur = 0;
-    int i;
-    int filling_info = 0;
-
-    int src_wbs_nlb=p->wbfs_sec_sz/p->hd_sec_sz;
-    int dst_wbs_nlb=p->wbfs_sec_sz/p->wii_sec_sz;
-
-    copy_buffer = wbfs_ioalloc(p->wbfs_sec_sz);
-
-    if (!copy_buffer)
-	WBFS_ERROR("alloc memory");
-
-    if (spinner)
-    {
-	// count total number to write for spinner
-	for (i = 0; i < p->n_wbfs_sec_per_disc; i++)
-	{
-	    if (wbfs_ntohs(d->header->wlba_table[i]))
-		tot++;
-	}
-	spinner(0,tot,callback_data);
-    }
-
-    for (i = 0; i < p->n_wbfs_sec_per_disc; i++)
-    {
-	u32 iwlba = wbfs_ntohs(d->header->wlba_table[i]);
-	if (iwlba)
-	{
-	    cur++;
-	    if (spinner)
-		spinner(cur,tot,callback_data);
-
-	    if (p->read_hdsector(p->callback_data, p->part_lba + iwlba*src_wbs_nlb, src_wbs_nlb, copy_buffer))
-		WBFS_ERROR("reading disc");
-	    if (write_dst_wii_sector(callback_data, i*dst_wbs_nlb, dst_wbs_nlb, copy_buffer))
-		WBFS_ERROR("writing disc");
-	}
-	else
-	{
-	    switch (filling_info)
-	    {
-		case 0:
-		    if (cur == tot)
-			filling_info = 1;
-		    break;
-
-		case 1:
-		    //fprintf(stderr, "Filling empty space in extracted image. Please wait...\n");
-		    filling_info = 2;
-		    break;
-
-		case 2:
-		default:
-		    break;
-	    }
-	}
-    }
-    wbfs_iofree(copy_buffer);
-
-    wbfs_inode_info_t * iinfo = wbfs_get_disc_inode_info(d,1);
-    iinfo->atime = wbfs_setup_inode_info(p,iinfo,1,0);
-    return 0;
-
-error:
-    return 1;
-}
-
-#endif // !NEW_EXTRACT
 //
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////			    END				///////////////

@@ -312,7 +312,7 @@ static ccp ScanArgID
 	    err++;
     }
     const int arglen = arg - start;
-    if ( err || wildcards > 1 || arglen > 6 )
+    if ( err || wildcards > 1 || !arglen || arglen > 6 )
     {
 	memset(buf,0,6);
 	return start;

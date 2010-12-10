@@ -64,11 +64,12 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
     },
 
     {	OPT_WIA, 0, "wia",
-	"param",
+	"[=compr]",
 	"Force WIA output mode if packing and set the default suffix to"
-	" '.wia'.\n"
-	"  This is the default, when the program name contains the sub string"
-	" 'wia' in any case."
+	" '.wia'. The optional parameter is a compression mode and --wia=mode"
+	" is a shortcut for '--wia --compression mode'.\n"
+	"  WIA output is the default, when the program name contains the sub"
+	" string 'wia' in any case."
     },
 
     {	OPT_CISO, 'C', "ciso",
@@ -118,22 +119,23 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 
     {	OPT_OVERWRITE, 'o', "overwrite",
 	0,
-	"Overwrite already existing files."
+	"Overwrite already existing files without warning."
     },
 
     {	OPT_PRESERVE, 'p', "preserve",
 	0,
-	"Preserve file times (atime+mtime)."
+	"Preserve file times (atime+mtime) while copying an image. This option"
+	" is enabled by default if an unmodified disc image is copied."
     },
 
     {	OPT_SPLIT, 'z', "split",
 	0,
-	"Enable output file splitting, default split size = 4 GB."
+	"Enable output file splitting. The default split size is 4 GB."
     },
 
     {	OPT_SPLIT_SIZE, 'Z', "split-size",
 	"sz",
-	"Enable output file splitting and define split size. The parameter"
+	"Enable output file splitting and define a split size. The parameter"
 	" 'sz' is a floating point number followed by an optional unit factor"
 	" (one of 'cb' [=1] or  'kmgtpe' [base=1000] or 'KMGTPE' [base=1024])."
 	" The default unit is 'G' (GiB)."
@@ -167,7 +169,7 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 	" with a power of 2 or 'ISO' for ISO images (more restrictive as"
 	" 'POW2', best for USB loaders). The case of the keyword is ignored."
 	" The default key is '32K'.\n"
-	"--chm is a shortcut for --chunk-mode."
+	"  --chm is a shortcut for --chunk-mode."
     },
 
     {	OPT_CHUNK_SIZE, 0, "chunk-size",
@@ -219,15 +221,16 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 	" factor is not set but option --chunk-size is set, the factor will be"
 	" calculated by using a rounded value of that option.\n"
 	"  All three parts are optional. All default values may be changed in"
-	" the future. --compr is a shortcut for --compression. The command"
-	" 'wit COMPR' prints an overview about all compression modes."
+	" the future. --compr is a shortcut for --compression and --wia=mode a"
+	" shortcut for '--wia --compression mode'. The command 'wit COMPR'"
+	" prints an overview about all compression modes."
     },
 
     {	OPT_MEM, 0, "mem",
 	"size",
 	"This option defines a memory usage limit for compressing files. When"
 	" compressing a file with method MEM (see --compression) the the"
-	" compression method, level and chunk size are calculated with respect"
+	" compression method, level and chunk size are selected with respect"
 	" to this limit.\n"
 	"  If this option is not set or the value is 0, then the environment"
 	" WIT_MEM is tried to read instead. If this fails, the tool tries to"

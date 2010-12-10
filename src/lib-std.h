@@ -43,7 +43,9 @@
 ///////////////                     some defs                   ///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-#if defined(DEBUG) || defined(TEST)
+#if defined(RELEASE) && RELEASE>1
+    #undef EXTENDED_ERRORS
+#elif defined(DEBUG) || defined(TEST)
     #undef EXTENDED_ERRORS
     #define EXTENDED_ERRORS 1		// undef | 1 | 2
 #endif

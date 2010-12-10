@@ -1352,8 +1352,6 @@ enumError exec_extract ( SuperFile_t * fi, Iterator_t * it )
     if (!disc)
 	return ERR_WDISC_NOT_FOUND;
 
- #if NEW_COPY_IMAGE
-
     char dest_dir[PATH_MAX];
     SubstFileNameBuf(dest_dir,sizeof(dest_dir)-1,fi,0,opt_dest,OFT_UNKNOWN);
     const enumError err
@@ -1371,70 +1369,6 @@ enumError exec_extract ( SuperFile_t * fi, Iterator_t * it )
     }
 
     return ExtractImage( fi, dest_dir, it->overwrite, OptionUsed[OPT_PRESERVE] != 0 );
-
- #else // !NEW_COPY_IMAGE
-
-    char dest_path[PATH_MAX];
-    SubstFileNameBuf(dest_path,sizeof(dest_path)-1,fi,0,opt_dest,OFT_UNKNOWN);
-    size_t dest_path_len = strlen(dest_path);
-    if ( !dest_path_len || dest_path[dest_path_len-1] != '/' )
-    {
-	dest_path[dest_path_len++] = '/';
-	dest_path[dest_path_len] = 0;
-    }
-   
-    if (!it->overwrite)
-    {
-	struct stat st;
-	if (!stat(dest_path,&st))
-	{
-	    ERROR0(ERR_ALREADY_EXISTS,"Destination already exists: %s",dest_path);
-	    return 0;
-	}
-    }
-
-    if ( testmode || verbose >= 0 )
-    {
-	printf( "%s: %sEXTRACT %s:%s -> %s\n",
-		progname, testmode ? "WOULD " : "",
-		oft_info[fi->iod.oft].name, fi->f.fname, dest_path );
-	if (testmode)
-	    return ERR_OK;
-    }
-
-    fi->indent		= 5;
-    fi->show_progress	= verbose > 1 || progress;
-    fi->show_summary	= verbose > 0 || progress;
-    fi->show_msec	= verbose > 2;
-
-    WiiFst_t fst;
-    InitializeFST(&fst);
-    CollectFST(&fst,disc,GetDefaultFilePattern(),false,prefix_mode,false);
-    SortFST(&fst,sort_mode,SORT_OFFSET);
-
-    WiiFstInfo_t wfi;
-    memset(&wfi,0,sizeof(wfi));
-    wfi.sf		= fi;
-    wfi.fst		= &fst;
-    wfi.set_time	= OptionUsed[OPT_PRESERVE] ? &fi->f.fatt : 0;    wfi.overwrite	= it->overwrite;
-    wfi.verbose		= long_count > 0 ? long_count : verbose > 0 ? 1 : 0;
-
-    enumError err = CreateFST(&wfi,dest_path);
-
-    if ( !err && wfi.not_created_count )
-    {	
-	if ( wfi.not_created_count == 1 )
-	    err = ERROR0(ERR_CANT_CREATE,
-			"1 file or directory not created\n" );
-	else
-	    err = ERROR0(ERR_CANT_CREATE,
-			"%d files and/or directories not created.\n",
-			wfi.not_created_count );
-    }
-    ResetFST(&fst);
-    return err;
-
- #endif // !NEW_COPY_IMAGE
 }
 
 //-----------------------------------------------------------------------------
@@ -1613,8 +1547,6 @@ enumError exec_copy ( SuperFile_t * fi, Iterator_t * it )
 
     //----- copy image
 
- #if NEW_COPY_IMAGE
-
     enumError err = CopyImage(  fi, &fo, oft,
 				it->overwrite,
 				OptionUsed[OPT_PRESERVE] != 0,
@@ -1633,60 +1565,6 @@ enumError exec_copy ( SuperFile_t * fi, Iterator_t * it )
     }
 
     return err;
-	
- #else // !NEW_COPY_IMAGE
-
-    enumError err = CreateFile( &fo.f, 0, oft_info[oft].iom, it->overwrite );
-    if ( err == ERR_ALREADY_EXISTS )
-    {
-	it->exists_count++;
-	err = ERR_OK;
-	goto abort;
-    }
-    if (err)
-	goto abort;
-
-    if (opt_split)
-	SetupSplitFile(&fo.f,oft,opt_split_size);
-
-    err = SetupWriteSF(&fo,oft);
-    if (err)
-	goto abort;
-
-    err = CopySF(fi,&fo);
-    if (err)
-	goto abort;
-
-    err = RewriteModifiedSF(fi,&fo,0);
-    if (err)
-	goto abort;
-
-    if ( SIGINT_level > 1 )
-	goto abort;
-    
-    fo.src = 0;
-    FileAttrib_t fatt;
-    memcpy(&fatt,&fi->f.fatt,sizeof(fatt));
-    if (it->remove_source)
-	RemoveSF(fi);
-
-    const bool preserve_time = fi->disc1 == fi->disc2 || OptionUsed[OPT_PRESERVE];
-    err = ResetSF( &fo, preserve_time ? &fatt : 0 );
-
-    if ( !err && OptionUsed[OPT_DIFF] )
-    {
-	it->diff_it = true;
-	err = exec_copy(fi,it);
-	it->diff_it = false;
-    }
-
-    return err;
-
- abort:
-    RemoveSF(&fo);
-    return err;
-
- #endif  // !NEW_COPY_IMAGE
 }
 
 //-----------------------------------------------------------------------------

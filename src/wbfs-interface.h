@@ -267,14 +267,6 @@ int PrintAnalyzeWBFS
 ///////////////			  ID handling			///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-#if !NEW_ID_PARM
-ParamList_t * CheckParamID6 ( bool unique, bool lookup_title_db );
-ParamList_t * SearchParamID6 ( ccp id6 );
-int PrintParamID6();
-#endif
-
-//-----------------------------------------------------------------------------
-
 enumError ScanParamID6
 (
     StringField_t	* select_list,	// append all results to this list
@@ -407,9 +399,6 @@ enumError ExistsWDisc	( WBFS_t * w, ccp id6 );
 wd_header_t * GetWDiscHeader ( WBFS_t * w );
 
 enumError AddWDisc	( WBFS_t * w, SuperFile_t * sf, const wd_select_t * psel );
-#if !NEW_EXTRACT
-enumError ExtractWDisc	( WBFS_t * w, SuperFile_t * sf );
-#endif
 
 enumError RemoveWDisc
 (

@@ -96,6 +96,12 @@ typedef struct SuperFile_t
 	u32  progress_max_wd;		// max width used for progress output
 	ccp  progress_verb;		// default is "copied"
 	bool progress_summary;		// print summary (delayed) on closing
+	u64  progress_add_total;	// add this value to the total (managment data)
+
+	u64  progress_last_done;	// last p_done value of PrintProgressSF() call
+	u64  progress_last_total;	// last p_total value of PrintProgressSF() call
+	u64  progress_data_size;	// value of DefineProgressChunkSF() call
+	u64  progress_chunk_size;	// value of DefineProgressChunkSF() call
 
 	// internal values: file handling
 
@@ -159,6 +165,14 @@ void CleanSF ( SuperFile_t * sf );
 
 // close file + remove all dynamic data
 enumError CloseSF ( SuperFile_t * sf, FileAttrib_t * set_time_ref );
+
+enumError Close2SF
+(
+    SuperFile_t		* sf,		// file to close
+    SuperFile_t		* remove_sf,	// not NULL & 'sf' finished without error:
+					// close & remove it before renaming 'sf'
+    bool		preserve	// true: force preserve time
+);
 
 // reset == CloseSF() + reset all but user settings
 enumError ResetSF ( SuperFile_t * sf, FileAttrib_t * set_time_ref );
@@ -313,6 +327,19 @@ enumError SparseHelper
 void CopyProgressSF ( SuperFile_t * dest, SuperFile_t * src );
 void PrintProgressSF ( u64 done, u64 total, void * param );
 void PrintSummarySF ( SuperFile_t * sf );
+
+void DefineProgressChunkSF
+(
+    SuperFile_t		* sf,		// valid file
+    u64			data_size,	// the relevant data size
+    u64			chunk_size	// size of chunk to write
+);
+
+void PrintProgressChunkSF
+(
+    SuperFile_t		* sf,		// valid file
+    u64			chunk_done	// size of progresses data
+);
 
 // find file type
 enumFileType AnalyzeFT ( File_t * f );

@@ -1744,8 +1744,10 @@ wd_ipm_t ScanPrefixMode ( ccp arg )
 
 	{ WD_IPM_NONE,		"NONE",		"-",		0 },
 	{ WD_IPM_POINT,		"POINT",	".",		0 },
-	{ WD_IPM_PART_INDEX,	"INDEX",	"I",		0 },
+	{ WD_IPM_PART_ID,	"ID",		"I",		0 },
 	{ WD_IPM_PART_NAME,	"NAME",		"N",		0 },
+	{ WD_IPM_PART_INDEX,	"INDEX",	"IDX",		0 },
+	{ WD_IPM_COMBI,		"COMBI",	"C",		0 },
 
 	{ 0,0,0,0 }
     };

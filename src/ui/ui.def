@@ -145,7 +145,12 @@
 	"wit CONVERT [-s path]... [-r path]... [source]...", \
 	"Convert, scrub, join, split, compose, extract, patch, encrypt and" \
 	" decrypt Wii and GameCube disc images and replace the source with the" \
-	" result. The former command name was @SCRUB@." )
+	" result. The former command name was @SCRUB@.\n" \
+	"  {wit CONVERT} is like {wit COPY} but removes the source and replace" \
+	" it with the new file if copying is successful. It have been" \
+	" implemented as replacement of the @SCRUB@ command of other tools." \
+	" {wit CONVERT does more than only scrubbing and rherefor it was" \
+	" renamed from @'SCRUB'@ to @'CONVERT'@." )
 
 #:def_cmd( "EDIT", "EDIT|ED", \
 	"wit EDIT source\n" \
@@ -238,11 +243,11 @@
 
 #:def_opt( "UTF_8", "utf-8|utf8", "G", \
 	"", \
-	"Enables UTF-8 support (default)." )
+	"Enables UTF-8 support for filenames (default)." )
 
 #:def_opt( "NO_UTF_8", "no-utf-8|no-utf8|noutf8", "G", \
 	"", \
-	"Disables UTF-8 support (CYGWIN default)." )
+	"Disables UTF-8 support for filenames." )
 
 #:def_opt( "LANG", "lang", "GP", \
 	"lang", \
@@ -381,8 +386,8 @@
 #:def_opt( "PMODE", "pmode", "CP", \
 	"p-mode", \
 	"This options set the prefix mode for listed or extracted files. One" \
-	" of the following values is allowed: @AUTO, NONE, POINT, NAME," \
-	" INDEX@. The default value is @'auto'@." )
+	" of the following values is allowed: @AUTO, NONE, POINT, ID, NAME," \
+	" INDEX, COMBI@. The default value is @'AUTO'@." )
 
 #:def_opt( "SNEEK", "sneek", "C", \
 	"", \
@@ -486,11 +491,11 @@
 
 #:def_opt( "SPLIT", "z|split", "C", \
 	"", \
-	"Enable output file splitting, default split size = 4 GB." )
+	"Enable output file splitting. The default split size is 4 GB." )
 
 #:def_opt( "SPLIT_SIZE", "Z|split-size|splitsize", "CP", \
 	"sz", \
-	"Enable output file splitting and define split size. The parameter" \
+	"Enable output file splitting and define a split size. The parameter" \
 	" 'sz' is a floating point number followed by an optional unit factor" \
 	" (one of 'cb' [=1] or  'kmgtpe' [base=1000] or 'KMGTPE' [base=1024])." \
 	" The default unit is 'G' (GiB)." )
@@ -511,17 +516,17 @@
 	"  Mode @'OFF'@ disables the preallocation. This is the default for" \
 	" all non Cygwin releases because preallocation has only advantages on" \
 	" Windows systems. Mode @'SMART'@ looks into the source disc to find" \
-	" out the writing areas. @SMART@ is only avalable for ISO, CISO and" \
-	" WBFS file types. For other file types @ALL@ is used instead. Mode" \
-	" @'ALL'@ preallocate the whole destination file. This is the default" \
-	" for Cygwin. Because of the large holes in plain ISO images, the" \
-	" @SMART@ mode is used for ISOs instead.\n" \
+	" out the writing areas. @SMART@ is only avalable for $ISO$, $CISO$" \
+	" and $WBFS$ file types. For other file types @ALL@ is used instead." \
+	" Mode @'ALL'@ preallocate the whole destination file. This is the" \
+	" default for Cygwin. Because of the large holes in plain ISO images," \
+	" the @SMART@ mode is used for ISOs instead.\n" \
 	"  Mac ignores this option because the needed preallocation function" \
 	" is not avaialable." )
 
 #:def_opt( "TRUNC", "trunc", "C", \
 	"", \
-	"Truncate PLAIN ISO images to the needed size while creating." )
+	"Truncate a $PLAIN ISO$ images to the needed size while creating." )
 
 #:def_opt( "CHUNK_MODE", "chunk-mode|chunkmode|chm", "CP", \
 	"mode", \
@@ -531,7 +536,7 @@
 	" >=32K and with a power of 2 or @'ISO'@ for ISO images (more" \
 	" restrictive as @'POW2'@, best for USB loaders). The case of the" \
 	" keyword is ignored. The default key is @'ISO'@.\n" \
-	"@--chm@ is a shortcut for @--chunk-mode@." )
+	"  @--chm@ is a shortcut for @--chunk-mode@." )
 
 #:def_opt( "CHUNK_SIZE", "chunk-size|chunksize|chs", "CP", \
 	"sz", \
@@ -580,14 +585,15 @@
 	" MiB). If the factor is not set but option {--chunk-size} is set, the" \
 	" factor will be calculated by using a rounded value of that option.\n" \
 	"  All three parts are optional. All default values may be changed in" \
-	" the future. @--compr@ is a shortcut for @--compression@. The command" \
+	" the future. @--compr@ is a shortcut for @--compression@ and" \
+	" {--wia=mode} a shortcut for {--wia --compression mode}. The command" \
 	" {wit COMPR} prints an overview about all compression modes." )
 
 #:def_opt( "MEM", "mem", "CP", \
 	"size", \
 	"This option defines a memory usage limit for compressing files. When" \
 	" compressing a file with method @MEM@ (see {--compression}) the the" \
-	" compression method, level and chunk size are calculated with respect" \
+	" compression method, level and chunk size are selected with respect" \
 	" to this limit.\n" \
 	"  If this option is not set or the value is 0, then the environment" \
 	" @WIT_MEM@ is tried to read instead. If this fails, the tool tries to" \
@@ -596,19 +602,21 @@
 
 #:def_opt( "PRESERVE", "p|preserve", "C", \
 	"", \
-	"Preserve file times (atime+mtime)." )
+	"Preserve file times (atime+mtime) while copying an image. This option" \
+	" is enabled by default if an unmodified disc image is copied." )
 
 #:def_opt( "UPDATE", "u|update", "C", \
 	"", \
-	"Copy only non existing files, ignore other without warning." )
+	"Copy only files that does not exist. Already existing files are" \
+	" ignored without warning." )
 
 #:def_opt( "OVERWRITE", "o|overwrite", "C", \
 	"", \
-	"Overwrite already existing files." )
+	"Overwrite already existing files without warning." )
 
 #:def_opt( "DIFF", "diff", "C", \
 	"", \
-	"Diff source and dest after copying." )
+	"Diff source and destination after copying." )
 
 #:def_opt( "REMOVE", "R|remove", "C", \
 	"", \
@@ -3105,6 +3113,14 @@
 	"", \
 	"" )
 
+#:def_cmd_opt( "EDIT", "PSEL", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "EDIT", "RAW", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "EDIT", "ENC", \
 	"", \
 	"" )
@@ -3861,11 +3877,11 @@
 
 #:def_opt( "UTF_8", "utf-8|utf8", "G", \
 	"", \
-	"Enables UTF-8 support (default)." )
+	"Enables UTF-8 support for filenames (default)." )
 
 #:def_opt( "NO_UTF_8", "no-utf-8|no-utf8|noutf8", "G", \
 	"", \
-	"Disables UTF-8 support (CYGWIN default)." )
+	"Disables UTF-8 support for filenames." )
 
 #:def_opt( "LANG", "lang", "GP", \
 	"lang", \
@@ -3989,8 +4005,8 @@
 #:def_opt( "PMODE", "pmode", "CP", \
 	"p-mode", \
 	"This options set the prefix mode for listed or extracted files. One" \
-	" of the following values is allowed: @AUTO, NONE, POINT, NAME," \
-	" INDEX@. The default value is @'auto'@." )
+	" of the following values is allowed: @AUTO, NONE, POINT, ID, NAME," \
+	" INDEX, COMBI@. The default value is @'AUTO'@." )
 
 #:def_opt( "SNEEK", "sneek", "C", \
 	"", \
@@ -4085,11 +4101,11 @@
 
 #:def_opt( "SPLIT", "z|split", "C", \
 	"", \
-	"Enable output file splitting, default split size = 4 GB." )
+	"Enable output file splitting. The default split size is 4 GB." )
 
 #:def_opt( "SPLIT_SIZE", "Z|split-size|splitsize", "CP", \
 	"sz", \
-	"Enable output file splitting and define split size. The parameter" \
+	"Enable output file splitting and define a split size. The parameter" \
 	" 'sz' is a floating point number followed by an optional unit factor" \
 	" (one of 'cb' [=1] or  'kmgtpe' [base=1000] or 'KMGTPE' [base=1024])." \
 	" The default unit is 'G' (GiB)." )
@@ -4110,22 +4126,22 @@
 	"  Mode @'OFF'@ disables the preallocation. This is the default for" \
 	" all non Cygwin releases because preallocation has only advantages on" \
 	" Windows systems. Mode @'SMART'@ looks into the source disc to find" \
-	" out the writing areas. @SMART@ is only avalable for ISO, CISO and" \
-	" WBFS file types. For other file types @ALL@ is used instead. Mode" \
-	" @'ALL'@ preallocate the whole destination file. This is the default" \
-	" for Cygwin. Because of the large holes in plain ISO images, the" \
-	" @SMART@ mode is used for ISOs instead.\n" \
+	" out the writing areas. @SMART@ is only avalable for $ISO$, $CISO$" \
+	" and $WBFS$ file types. For other file types @ALL@ is used instead." \
+	" Mode @'ALL'@ preallocate the whole destination file. This is the" \
+	" default for Cygwin. Because of the large holes in plain ISO images," \
+	" the @SMART@ mode is used for ISOs instead.\n" \
 	"  Mac ignores this option because the needed preallocation function" \
 	" is not avaialable." )
 
 #:def_opt( "TRUNC", "trunc", "C", \
 	"", \
-	"Truncate PLAIN ISO images to the needed size while creating." )
+	"Truncate a $PLAIN ISO$ images to the needed size while creating." )
 
 #:def_opt( "FAST", "fast", "C", \
 	"", \
 	"Enables fast writing (disables searching for blocks with zeroed" \
-	" data).Don't use this option because it will be discontinued." )
+	" data). Don't use this option because it will be discontinued." )
 
 #:def_opt( "CHUNK_MODE", "chunk-mode|chunkmode|chm", "CP", \
 	"mode", \
@@ -4135,7 +4151,7 @@
 	" >=32K and with a power of 2 or @'ISO'@ for ISO images (more" \
 	" restrictive as @'POW2'@, best for USB loaders). The case of the" \
 	" keyword is ignored. The default key is @'ISO'@.\n" \
-	"@--chm@ is a shortcut for @--chunk-mode@." )
+	"  @--chm@ is a shortcut for @--chunk-mode@." )
 
 #:def_opt( "CHUNK_SIZE", "chunk-size|chunksize|chs", "CP", \
 	"sz", \
@@ -4184,14 +4200,15 @@
 	" MiB). If the factor is not set but option {--chunk-size} is set, the" \
 	" factor will be calculated by using a rounded value of that option.\n" \
 	"  All three parts are optional. All default values may be changed in" \
-	" the future. @--compr@ is a shortcut for @--compression@. The command" \
+	" the future. @--compr@ is a shortcut for @--compression@ and" \
+	" {--wia=mode} a shortcut for {--wia --compression mode}. The command" \
 	" {wit COMPR} prints an overview about all compression modes." )
 
 #:def_opt( "MEM", "mem", "CP", \
 	"size", \
 	"This option defines a memory usage limit for compressing files. When" \
 	" compressing a file with method @MEM@ (see {--compression}) the the" \
-	" compression method, level and chunk size are calculated with respect" \
+	" compression method, level and chunk size are selected with respect" \
 	" to this limit.\n" \
 	"  If this option is not set or the value is 0, then the environment" \
 	" @WIT_MEM@ is tried to read instead. If this fails, the tool tries to" \
@@ -4200,19 +4217,30 @@
 
 #:def_opt( "SIZE", "s|size", "CP", \
 	"size", \
-	"Floating point size. Factors: bckKmMgGtT, default=G." )
+	"Define then total size of a WBFS file. @'size'@ is a floating number" \
+	" optionally followed by one of the single letter factors 'kKmMgGtT'." \
+	" This value is only used while creating a new WBFS file." )
 
 #:def_opt( "HSS", "hss|sector-size|sectorsize", "CP", \
 	"size", \
-	"Define HD sector size, default=512. Factors: kKmMgGtT" )
+	"Define HD sector size. The parameter 'size' is a floating point" \
+	" number followed by an optional unit factor (one of 'cb' [=1] or " \
+	" 'kmgtpe' [base=1000] or 'KMGTPE' [base=1024]). Only power of 2" \
+	" values larger or equal 512 are accepted. The default value is 512." )
 
 #:def_opt( "WSS", "wss", "CP", \
 	"size", \
-	"Define WBFS sector size, no default. Factors: kKmMgGtT" )
+	"Define WBFS sector size. The parameter 'size' is a floating point" \
+	" number followed by an optional unit factor (one of 'cb' [=1] or " \
+	" 'kmgtpe' [base=1000] or 'KMGTPE' [base=1024]). Only power of 2" \
+	" values larger or equal 1024 are accepted. If not set the WBFS sector" \
+	" size is calculated automatically." )
 
 #:def_opt( "RECOVER", "recover", "C", \
 	"", \
-	"Format a WBFS in recover mode." )
+	"Format a WBFS in recover mode:  Write the WBFS sector, but don't" \
+	" reset the disc info area. Then look into each disc slot to find" \
+	" valid discs and restore them." )
 
 #:def_opt( "FORCE", "f|force", "C", \
 	"", \
@@ -4228,7 +4256,7 @@
 	" comma separated list of the following keywords, case is ignored:" \
 	" @NONE, FBT, INODES, STANDARD, RM-INVALID, RM-OVERLAP, RM-FREE," \
 	" RM-EMPTY, RM-ALL, ALL@.\n" \
-	"All keywords can be prefixed by '+' to enable that option, by a '-'" \
+	"  All keywords can be prefixed by '+' to enable that option, by a '-'" \
 	" to disable it or by a '=' to enable that option and disable all" \
 	" others." )
 
@@ -4244,16 +4272,18 @@
 
 #:def_opt( "SYNC", "y|sync", "C", \
 	"", \
-	"Remove and copy discs until the destination WBFS contains exactly the" \
-	" same discs as all sources together." )
+	"Synchronize the destination with all sources: Remove and copy discs" \
+	" until the destination WBFS contains exactly the same discs as all" \
+	" sources together." )
 
 #:def_opt( "NEWER", "e|newer|new", "C", \
 	"", \
-	"If source and dest have valid mtimes: copy if source is newer." )
+	"If source and destination have valid mtimes: Copy only if source is" \
+	" newer." )
 
 #:def_opt( "OVERWRITE", "o|overwrite", "C", \
 	"", \
-	"Overwrite already existing files." )
+	"Overwrite already existing files without warning." )
 
 #:def_opt( "REMOVE", "R|remove", "C", \
 	"", \
@@ -5148,7 +5178,7 @@
 
 #:def_cmd_opt( "FORMAT", "FORCE", \
 	"", \
-	"This option is needed for leaving test mode and for formatting!" )
+	"This option is needed for leaving test mode and for real formatting!" )
 
 #:def_cmd_opt( "RECOVER", "TITLES", \
 	"", \
@@ -5232,7 +5262,7 @@
 	" comma separated list of the following keywords, case is ignored:" \
 	" @NONE, FBT, INODES, STANDARD, RM-INVALID, RM-OVERLAP, RM-FREE," \
 	" RM-EMPTY, RM-ALL, ALL@.\n" \
-	"All keywords can be prefixed by '+' to enable that option, by a '-'" \
+	"  All keywords can be prefixed by '+' to enable that option, by a '-'" \
 	" to disable it or by a '=' to enable that option and disable all" \
 	" others. The default is 'NONE'." )
 
@@ -5290,7 +5320,7 @@
 	" comma separated list of the following keywords, case is ignored:" \
 	" @NONE, FBT, INODES, STANDARD, RM-INVALID, RM-OVERLAP, RM-FREE," \
 	" RM-EMPTY, RM-ALL, ALL@.\n" \
-	"All keywords can be prefixed by '+' to enable that option, by a '-'" \
+	"  All keywords can be prefixed by '+' to enable that option, by a '-'" \
 	" to disable it or by a '=' to enable that option and disable all" \
 	" others. The default is 'STANDARD' (FBT,INODES)." )
 
@@ -6672,11 +6702,12 @@
 	" @'.wdf'@. This is the general default." )
 
 #:def_opt( "WIA", "wia", "CO", \
-	"", \
+	"[=compr]", \
 	"Force WIA output mode if packing and set the default suffix to" \
-	" @'.wia'@.\n" \
-	"  This is the default, when the program name contains the sub string" \
-	" @'wia'@ in any case." )
+	" @'.wia'@. The optional parameter is a compression mode and" \
+	" {--wia=mode} is a shortcut for {--wia --compression mode}.\n" \
+	"  WIA output is the default, when the program name contains the sub" \
+	" string @'wia'@ in any case." )
 
 #:def_opt( "CISO", "C|ciso", "C", \
 	"", \
@@ -6718,19 +6749,20 @@
 
 #:def_opt( "OVERWRITE", "o|overwrite", "C", \
 	"", \
-	"Overwrite already existing files." )
+	"Overwrite already existing files without warning." )
 
 #:def_opt( "PRESERVE", "p|preserve", "C", \
 	"", \
-	"Preserve file times (atime+mtime)." )
+	"Preserve file times (atime+mtime) while copying an image. This option" \
+	" is enabled by default if an unmodified disc image is copied." )
 
 #:def_opt( "SPLIT", "z|split", "C", \
 	"", \
-	"Enable output file splitting, default split size = 4 GB." )
+	"Enable output file splitting. The default split size is 4 GB." )
 
 #:def_opt( "SPLIT_SIZE", "Z|split-size|splitsize", "CP", \
 	"sz", \
-	"Enable output file splitting and define split size. The parameter" \
+	"Enable output file splitting and define a split size. The parameter" \
 	" 'sz' is a floating point number followed by an optional unit factor" \
 	" (one of 'cb' [=1] or  'kmgtpe' [base=1000] or 'KMGTPE' [base=1024])." \
 	" The default unit is 'G' (GiB)." )
@@ -6747,11 +6779,11 @@
 	"  Mode @'OFF'@ disables the preallocation. This is the default for" \
 	" all non Cygwin releases because preallocation has only advantages on" \
 	" Windows systems. Mode @'SMART'@ looks into the source disc to find" \
-	" out the writing areas. @SMART@ is only avalable for ISO, CISO and" \
-	" WBFS file types. For other file types @ALL@ is used instead. Mode" \
-	" @'ALL'@ preallocate the whole destination file. This is the default" \
-	" for Cygwin. Because of the large holes in plain ISO images, the" \
-	" @SMART@ mode is used for ISOs instead.\n" \
+	" out the writing areas. @SMART@ is only avalable for $ISO$, $CISO$" \
+	" and $WBFS$ file types. For other file types @ALL@ is used instead." \
+	" Mode @'ALL'@ preallocate the whole destination file. This is the" \
+	" default for Cygwin. Because of the large holes in plain ISO images," \
+	" the @SMART@ mode is used for ISOs instead.\n" \
 	"  Mac ignores this option because the needed preallocation function" \
 	" is not avaialable." )
 
@@ -6763,7 +6795,7 @@
 	" >=32K and with a power of 2 or @'ISO'@ for ISO images (more" \
 	" restrictive as @'POW2'@, best for USB loaders). The case of the" \
 	" keyword is ignored. The default key is @'32K'@.\n" \
-	"@--chm@ is a shortcut for @--chunk-mode@." )
+	"  @--chm@ is a shortcut for @--chunk-mode@." )
 
 #:def_opt( "CHUNK_SIZE", "chunk-size|chunksize|chs", "CP", \
 	"sz", \
@@ -6812,14 +6844,15 @@
 	" MiB). If the factor is not set but option {--chunk-size} is set, the" \
 	" factor will be calculated by using a rounded value of that option.\n" \
 	"  All three parts are optional. All default values may be changed in" \
-	" the future. @--compr@ is a shortcut for @--compression@. The command" \
+	" the future. @--compr@ is a shortcut for @--compression@ and" \
+	" {--wia=mode} a shortcut for {--wia --compression mode}. The command" \
 	" {wit COMPR} prints an overview about all compression modes." )
 
 #:def_opt( "MEM", "mem", "CP", \
 	"size", \
 	"This option defines a memory usage limit for compressing files. When" \
 	" compressing a file with method @MEM@ (see {--compression}) the the" \
-	" compression method, level and chunk size are calculated with respect" \
+	" compression method, level and chunk size are selected with respect" \
 	" to this limit.\n" \
 	"  If this option is not set or the value is 0, then the environment" \
 	" @WIT_MEM@ is tried to read instead. If this fails, the tool tries to" \

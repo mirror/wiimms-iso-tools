@@ -104,7 +104,7 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 	" ID, ALL, WHOLE and RAW. The following input formats are accepted"
 	" too: ptype, #index, #<index, #<=index, #>index, #>=index and"
 	" #tab_index.part_index.\n"
-	"See http://wit.wiimm.de/opt/psel for more details."
+	"  See http://wit.wiimm.de/opt/psel for more details."
     },
 
     {	OPT_RAW, 0, "raw",
@@ -169,8 +169,9 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
     {	OPT_PMODE, 0, "pmode",
 	"p-mode",
 	"This options set the prefix mode for listed or extracted files. One"
-	" of the following values is allowed: AUTO, NONE, POINT, NAME, INDEX."
-	" The default value is 'auto'."
+	" of the following values is allowed: AUTO, NONE, POINT, ID, NAME,"
+	" INDEX, COMBI. The default value is 'AUTO'. See"
+	" http://wit.wiimm.de/opt/pmode for more details."
     },
 
     {	OPT_SNEEK, 0, "sneek",
@@ -308,12 +309,12 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 
     {	OPT_SPLIT, 'z', "split",
 	0,
-	"Enable output file splitting, default split size = 4 GB."
+	"Enable output file splitting. The default split size is 4 GB."
     },
 
     {	OPT_SPLIT_SIZE, 'Z', "split-size",
 	"sz",
-	"Enable output file splitting and define split size. The parameter"
+	"Enable output file splitting and define a split size. The parameter"
 	" 'sz' is a floating point number followed by an optional unit factor"
 	" (one of 'cb' [=1] or  'kmgtpe' [base=1000] or 'KMGTPE' [base=1024])."
 	" The default unit is 'G' (GiB)."
@@ -346,13 +347,13 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 
     {	OPT_TRUNC, 0, "trunc",
 	0,
-	"Truncate PLAIN ISO images to the needed size while creating."
+	"Truncate a PLAIN ISO images to the needed size while creating."
     },
 
     {	OPT_FAST, 0, "fast",
 	0,
 	"Enables fast writing (disables searching for blocks with zeroed"
-	" data).Don't use this option because it will be discontinued."
+	" data). Don't use this option because it will be discontinued."
     },
 
     {	OPT_CHUNK_MODE, 0, "chunk-mode",
@@ -363,7 +364,7 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 	" with a power of 2 or 'ISO' for ISO images (more restrictive as"
 	" 'POW2', best for USB loaders). The case of the keyword is ignored."
 	" The default key is 'ISO'.\n"
-	"--chm is a shortcut for --chunk-mode."
+	"  --chm is a shortcut for --chunk-mode."
     },
 
     {	OPT_CHUNK_SIZE, 0, "chunk-size",
@@ -415,15 +416,16 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 	" factor is not set but option --chunk-size is set, the factor will be"
 	" calculated by using a rounded value of that option.\n"
 	"  All three parts are optional. All default values may be changed in"
-	" the future. --compr is a shortcut for --compression. The command"
-	" 'wit COMPR' prints an overview about all compression modes."
+	" the future. --compr is a shortcut for --compression and --wia=mode a"
+	" shortcut for '--wia --compression mode'. The command 'wit COMPR'"
+	" prints an overview about all compression modes."
     },
 
     {	OPT_MEM, 0, "mem",
 	"size",
 	"This option defines a memory usage limit for compressing files. When"
 	" compressing a file with method MEM (see --compression) the the"
-	" compression method, level and chunk size are calculated with respect"
+	" compression method, level and chunk size are selected with respect"
 	" to this limit.\n"
 	"  If this option is not set or the value is 0, then the environment"
 	" WIT_MEM is tried to read instead. If this fails, the tool tries to"
@@ -433,22 +435,33 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 
     {	OPT_SIZE, 's', "size",
 	"size",
-	"Floating point size. Factors: bckKmMgGtT, default=G."
+	"Define then total size of a WBFS file. 'size' is a floating number"
+	" optionally followed by one of the single letter factors 'kKmMgGtT'."
+	" This value is only used while creating a new WBFS file."
     },
 
     {	OPT_HSS, 0, "hss",
 	"size",
-	"Define HD sector size, default=512. Factors: kKmMgGtT"
+	"Define HD sector size. The parameter 'size' is a floating point"
+	" number followed by an optional unit factor (one of 'cb' [=1] or "
+	" 'kmgtpe' [base=1000] or 'KMGTPE' [base=1024]). Only power of 2"
+	" values larger or equal 512 are accepted. The default value is 512."
     },
 
     {	OPT_WSS, 0, "wss",
 	"size",
-	"Define WBFS sector size, no default. Factors: kKmMgGtT"
+	"Define WBFS sector size. The parameter 'size' is a floating point"
+	" number followed by an optional unit factor (one of 'cb' [=1] or "
+	" 'kmgtpe' [base=1000] or 'KMGTPE' [base=1024]). Only power of 2"
+	" values larger or equal 1024 are accepted. If not set the WBFS sector"
+	" size is calculated automatically."
     },
 
     {	OPT_RECOVER, 0, "recover",
 	0,
-	"Format a WBFS in recover mode."
+	"Format a WBFS in recover mode:  Write the WBFS sector, but don't"
+	" reset the disc info area. Then look into each disc slot to find"
+	" valid discs and restore them."
     },
 
     {	OPT_FORCE, 'f', "force",
@@ -467,7 +480,7 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 	" comma separated list of the following keywords, case is ignored:"
 	" NONE, FBT, INODES, STANDARD, RM-INVALID, RM-OVERLAP, RM-FREE,"
 	" RM-EMPTY, RM-ALL, ALL.\n"
-	"All keywords can be prefixed by '+' to enable that option, by a '-'"
+	"  All keywords can be prefixed by '+' to enable that option, by a '-'"
 	" to disable it or by a '=' to enable that option and disable all"
 	" others."
     },
@@ -486,18 +499,20 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 
     {	OPT_SYNC, 'y', "sync",
 	0,
-	"Remove and copy discs until the destination WBFS contains exactly the"
-	" same discs as all sources together."
+	"Synchronize the destination with all sources: Remove and copy discs"
+	" until the destination WBFS contains exactly the same discs as all"
+	" sources together."
     },
 
     {	OPT_NEWER, 'e', "newer",
 	0,
-	"If source and dest have valid mtimes: copy if source is newer."
+	"If source and destination have valid mtimes: Copy only if source is"
+	" newer."
     },
 
     {	OPT_OVERWRITE, 'o', "overwrite",
 	0,
-	"Overwrite already existing files."
+	"Overwrite already existing files without warning."
     },
 
     {	OPT_REMOVE, 'R', "remove",
@@ -706,12 +721,12 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 
     {	OPT_UTF_8, 0, "utf-8",
 	0,
-	"Enables UTF-8 support (default)."
+	"Enables UTF-8 support for filenames (default)."
     },
 
     {	OPT_NO_UTF_8, 0, "no-utf-8",
 	0,
-	"Disables UTF-8 support (CYGWIN default)."
+	"Disables UTF-8 support for filenames."
     },
 
     {	OPT_LANG, 0, "lang",
@@ -848,7 +863,7 @@ const InfoOption_t option_cmd_FORMAT_TEST =
 const InfoOption_t option_cmd_FORMAT_FORCE =
     {	OPT_FORCE, 'f', "force",
 	0,
-	"This option is needed for leaving test mode and for formatting!"
+	"This option is needed for leaving test mode and for real formatting!"
     };
 
 const InfoOption_t option_grp_CHECK_VERBOSE =
@@ -874,7 +889,7 @@ const InfoOption_t option_cmd_CHECK_REPAIR =
 	" comma separated list of the following keywords, case is ignored:"
 	" NONE, FBT, INODES, STANDARD, RM-INVALID, RM-OVERLAP, RM-FREE,"
 	" RM-EMPTY, RM-ALL, ALL.\n"
-	"All keywords can be prefixed by '+' to enable that option, by a '-'"
+	"  All keywords can be prefixed by '+' to enable that option, by a '-'"
 	" to disable it or by a '=' to enable that option and disable all"
 	" others. The default is 'NONE'."
     };
@@ -886,7 +901,7 @@ const InfoOption_t option_cmd_REPAIR_REPAIR =
 	" comma separated list of the following keywords, case is ignored:"
 	" NONE, FBT, INODES, STANDARD, RM-INVALID, RM-OVERLAP, RM-FREE,"
 	" RM-EMPTY, RM-ALL, ALL.\n"
-	"All keywords can be prefixed by '+' to enable that option, by a '-'"
+	"  All keywords can be prefixed by '+' to enable that option, by a '-'"
 	" to disable it or by a '=' to enable that option and disable all"
 	" others. The default is 'STANDARD' (FBT,INODES)."
     };
@@ -1589,7 +1604,7 @@ static u8 option_allowed_cmd_SYNC[82] = // cmd #29
 static u8 option_allowed_cmd_EXTRACT[82] = // cmd #30
 {
     0,1,1,1,0, 0,0,0,1,1,  1,1,1,1,1, 0,0,1,1,1,  1,1,1,1,1, 1,1,1,0,0,
-    0,0,0,0,1, 1,1,1,1,1,  1,1,1,1,1, 0,0,0,0,0,  0,1,1,0,0, 1,0,0,1,1,
+    0,0,0,0,1, 1,1,1,1,1,  1,1,1,1,1, 1,1,0,0,0,  0,1,1,0,0, 1,0,0,1,1,
     1,1,1,1,1, 1,1,0,0,0,  0,0,0,1,0, 0,0,1,0,0,  0,0
 };
 

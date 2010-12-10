@@ -90,7 +90,7 @@ wwt v0.05a r247 - 2009-10-14
    Can be used with: ADD, EXTRACT, REMOVE (replaces --force) and FILETYPE.
  - The lib path moved from '/usr/local/lib/' to '/usr/local/share/wwt/'.
  - New option --sector-size: Set logical hd sector size larger than 512
-   while formatting WBFS => The max disc count of a WBSF will be raised.
+   while formatting WBFS => The max disc count of a WBFS will be raised.
  - Title database implemented.
  - New command: TITLES: Print the internal title database to stdout.
  - ADD: ISO image is acepted from stdin if a file is named '-'. For pipes
@@ -163,7 +163,7 @@ wwt v0.11a r339 - 2009-11-02
  - New option --progress: enable progress counter independent of verbose level.
  - wdf2iso + iso2wdf:
     - Both accept any files as input. If the input is an ISO or a WDF+ISO than
-      the file is scrubbed (controled by optiond --psel snd --raw).
+      the file is scrubbed (controlled by optiond --psel snd --raw).
     - New option --preserve: preserves file times
  - New command: wit COPY source... dest -> converting and scrubbing.
  - wwt DUMP --long --long: Dump a memory layout map for each disc.
@@ -183,7 +183,7 @@ wwt v0.13a r383 - 2009-11-06
 
  - Option --cache removed: Cache is activated when needed.
  - Bug fix: "wit copy --remove wbfs/selector" removes disc from WBFS.
- - Bug fix: wit SCRUB: output file format was controled by options.
+ - Bug fix: wit SCRUB: output file format was controlled by options.
  - wwt EXTRACT: Can extract to wbfs files.
  - wwt ADD: Accept wbfs files as input (wbfs to wbfs copy)
  - New tool: iso2wbfs: Converts ISO images into a splitted WBFS files.
@@ -565,7 +565,7 @@ wit v0.46a r1043 - 2010-05-13
   - New command: wwt RECOVER: Works like "wwt INIT --recover", but only with
     already WBFS formatted files => not formatting, only recovering.
     "wwt RECOVER" can be used with the option --test to see what happen.
-  - wit VERIFY: Output messages redesigned. Verbosity can be controled in
+  - wit VERIFY: Output messages redesigned. Verbosity can be controlled in
     five levels from -qq up to -vv.
   - The new option --limit sets a limit for VERIFY error messages.
   - New command: wwt VERIFY: works like "wit VERIFY" but with wwt interface.

@@ -134,8 +134,8 @@ typedef struct info_t
 	" case is ignored:" \
 	" @NONE, FBT, INODES, STANDARD," \
 	" RM-INVALID, RM-OVERLAP, RM-FREE, RM-EMPTY, RM-ALL, ALL@." \
-	"\n" \
-	"All keywords can be prefixed by '+' to enable that option," \
+	"\n " \
+	" All keywords can be prefixed by '+' to enable that option," \
 	" by a '-' to disable it or" \
 	" by a '=' to enable that option and disable all others."
 
@@ -148,8 +148,8 @@ typedef struct info_t
 	" best for USB loaders)." \
 	" The case of the keyword is ignored." \
 	" The default key is @'" def "'@." \
-	"\n" \
-	"@--chm@ is a shortcut for @--chunk-mode@."
+	"\n " \
+	" @--chm@ is a shortcut for @--chunk-mode@."
 
 #define TEXT_EXTRACT_LONG \
 	"Print a summary line while extracting files." \
@@ -317,9 +317,8 @@ info_t info_tab[] =
 		"Extract all files from the source discs." },
 
   { T_DEF_CMD,	"COPY",		"COPY|CP",
-		    "wit COPY source dest"
-		"\n"
-		"wit COPY [-s path]... [-r path]... [source]... [-d|-D] dest",
+		    "wit COPY source dest\n"
+		    "wit COPY [-s path]... [-r path]... [source]... [-d|-D] dest",
 		"Copy, scrub, convert, join, split, compose, extract,"
 		" patch, encrypt and decrypt Wii and GameCube disc images." },
 
@@ -329,7 +328,13 @@ info_t info_tab[] =
 		"Convert, scrub, join, split, compose, extract,"
 		" patch, encrypt and decrypt Wii and GameCube disc images"
 		" and replace the source with the result."
-		" The former command name was @SCRUB@." },
+		" The former command name was @SCRUB@."
+		"\n "
+		" {wit CONVERT} is like {wit COPY} but removes the source"
+		" and replace it with the new file if copying is successful."
+		" It have been implemented as replacement of the @SCRUB@ command"
+		" of other tools. {wit CONVERT does more than only scrubbing"
+		" and rherefor it was renamed from @'SCRUB'@ to @'CONVERT'@." },
 
   { T_DEF_CMD,	"EDIT",		"EDIT|ED",
 		    "wit EDIT source\n"
@@ -431,11 +436,11 @@ info_t info_tab[] =
 
   { T_OPT_G,	"UTF_8",	"utf-8|utf8",
 		0,
-		"Enables UTF-8 support (default)." },
+		"Enables UTF-8 support for filenames (default)." },
 
   { T_OPT_G,	"NO_UTF_8",	"no-utf-8|no-utf8|noutf8",
 		0, 
-		"Disables UTF-8 support (CYGWIN default)." },
+		"Disables UTF-8 support for filenames." },
 
   { T_OPT_GP,	"LANG",		"lang",
 		"lang", 
@@ -588,8 +593,8 @@ info_t info_tab[] =
 		" The following input formats are accepted too:"
 		" @ptype@, @#index@, @#<index@, @#<=index@, @#>index@, @#>=index@"
 		" and @#tab_index.part_index@."
-		"\1\n"
-		"See http://wit.wiimm.de/opt/psel for more details." },
+		"\1\n "
+		" See http://wit.wiimm.de/opt/psel for more details." },
 
   { T_OPT_C,	"RAW",		"raw",
 		0, "Abbreviation of {--psel RAW}." },
@@ -598,8 +603,9 @@ info_t info_tab[] =
 		"p-mode",
 		"This options set the prefix mode for listed or extracted files."
 		" One of the following values is allowed:"
-		" @AUTO, NONE, POINT, NAME, INDEX@."
-		" The default value is @'auto'@." },
+		" @AUTO, NONE, POINT, ID, NAME, INDEX, COMBI@."
+		" The default value is @'AUTO'@."
+		"\1 See http://wit.wiimm.de/opt/pmode for more details." },
 
   { T_OPT_C,	"SNEEK",	"sneek",
 		0, "Abbreviation of {--psel data --pmode none --files :sneek}." },
@@ -745,11 +751,11 @@ info_t info_tab[] =
 
   { T_OPT_C,	"SPLIT",	"z|split",
 		0,
-		"Enable output file splitting, default split size = 4 GB." },
+		"Enable output file splitting. The default split size is 4 GB." },
 
   { T_OPT_CP,	"SPLIT_SIZE",	"Z|split-size|splitsize",
 		"sz",
-		"Enable output file splitting and define split size."
+		"Enable output file splitting and define a split size."
 		" The parameter 'sz' is a floating point number followed"
 		" by an optional unit factor (one of 'cb' [=1] or "
 		" 'kmgtpe' [base=1000] or 'KMGTPE' [base=1024])."
@@ -774,7 +780,7 @@ info_t info_tab[] =
 		" This is the default for all non Cygwin releases"
 		" because preallocation has only advantages on Windows systems."
 		" Mode @'SMART'@ looks into the source disc to find out the writing areas."
-		" @SMART@ is only avalable for ISO, CISO and WBFS file types."
+		" @SMART@ is only avalable for $ISO$, $CISO$ and $WBFS$ file types."
 		" For other file types @ALL@ is used instead."
 		" Mode @'ALL'@ preallocate the whole destination file."
 		" This is the default for Cygwin."
@@ -785,7 +791,7 @@ info_t info_tab[] =
 		" because the needed preallocation function is not avaialable." },
 
   { T_OPT_C,	"TRUNC",	"trunc",
-		0, "Truncate PLAIN ISO images to the needed size while creating." },
+		0, "Truncate a $PLAIN ISO$ images to the needed size while creating." },
 
   { T_OPT_CP,	"CHUNK_MODE",	"chunk-mode|chunkmode|chm",
 		"mode", TEXT_OPT_CHUNK_MODE("ISO") },
@@ -851,7 +857,8 @@ info_t info_tab[] =
 		"\n "
 		" All three parts are optional."
 		" All default values may be changed in the future."
-		" @--compr@ is a shortcut for @--compression@."
+		" @--compr@ is a shortcut for @--compression@"
+		" and {--wia=mode} a shortcut for {--wia --compression mode}."
 		" The command {wit COMPR} prints an overview about all compression modes." },
 
   { T_OPT_CP,	"MEM",		"mem",
@@ -859,7 +866,7 @@ info_t info_tab[] =
 		"This option defines a memory usage limit for compressing files."
 		" When compressing a file with method @MEM@ (see {--compression})"
 		" the the compression method, level and chunk size"
-		" are calculated with respect to this limit."
+		" are selected with respect to this limit."
 		"\n "
 		" If this option is not set or the value is 0,"
 		" then the environment @WIT_MEM@ is tried to read instead."
@@ -868,16 +875,22 @@ info_t info_tab[] =
 		" The limit is set to 80% of the total memory minus 50 MiB." },
 
   { T_OPT_C,	"PRESERVE",	"p|preserve",
-		0, "Preserve file times (atime+mtime)." },
+		0,
+		"Preserve file times (atime+mtime) while copying an image."
+		" This option is enabled by default if an unmodified disc image is copied." },
 
   { T_OPT_C,	"UPDATE",	"u|update",
-		0, "Copy only non existing files, ignore other without warning." },
+		0,
+		"Copy only files that does not exist."
+		" Already existing files are ignored without warning." },
 
   { T_OPT_C,	"OVERWRITE",	"o|overwrite",
-		0, "Overwrite already existing files." },
+		0,
+		"Overwrite already existing files without warning." },
 
   { T_OPT_C,	"DIFF",		"diff",
-		0, "Diff source and dest after copying." },
+		0,
+		"Diff source and destination after copying." },
 
   { T_OPT_C,	"REMOVE",	"R|remove",
 		0,
@@ -1570,6 +1583,7 @@ info_t info_tab[] =
 
   { T_SEP_OPT,	0,0,0,0 },
 
+  { T_COPY_GRP,	"PARTITIONS",	0,0,0 },
   { T_COPY_GRP,	"PATCH",	0,0,0 },
 
 
@@ -2062,10 +2076,11 @@ info_t info_tab[] =
   { T_OPT_C,	"TRUNC",	"trunc",
 		0, 0 /* copy of wit */ },
 
+  // [2do] [obsolte] hide after 2011-02, remove after 2011-07
   { T_OPT_C,	"FAST",		"fast",
 		0,
 		"Enables fast writing (disables searching for blocks with zeroed data)."
-		"Don't use this option because it will be discontinued." },
+		" Don't use this option because it will be discontinued." },
 
   { T_OPT_CP,	"CHUNK_MODE",	"chunk-mode|chunkmode|chm",
 		0, 0 /* copy of wit */ },
@@ -2083,16 +2098,35 @@ info_t info_tab[] =
 		0, 0 /* copy of wit */ },
 
   { T_OPT_CP,	"SIZE",		"s|size",
-		"size", "Floating point size. Factors: bckKmMgGtT, default=G." },
+		"size",
+		"Define then total size of a WBFS file."
+		" @'size'@ is a floating number optionally followed"
+		" by one of the single letter factors 'kKmMgGtT'."
+		" This value is only used while creating a new WBFS file." },
 
   { T_OPT_CP,	"HSS",		"hss|sector-size|sectorsize",
-		"size", "Define HD sector size, default=512. Factors: kKmMgGtT" },
+		"size",
+		"Define HD sector size."
+		" The parameter 'size' is a floating point number followed"
+		" by an optional unit factor (one of 'cb' [=1] or "
+		" 'kmgtpe' [base=1000] or 'KMGTPE' [base=1024])."
+		" Only power of 2 values larger or equal 512 are accepted."
+		" The default value is 512."  },
 
   { T_OPT_CP,	"WSS",		"wss",
-		"size", "Define WBFS sector size, no default. Factors: kKmMgGtT" },
+		"size",
+		"Define WBFS sector size."
+		" The parameter 'size' is a floating point number followed"
+		" by an optional unit factor (one of 'cb' [=1] or "
+		" 'kmgtpe' [base=1000] or 'KMGTPE' [base=1024])."
+		" Only power of 2 values larger or equal 1024 are accepted."
+		" If not set the WBFS sector size is calculated automatically." },
 
   { T_OPT_C,	"RECOVER",	"recover",
-		0, "Format a WBFS in recover mode." },
+		0,
+		"Format a WBFS in recover mode: "
+		" Write the WBFS sector, but don't reset the disc info area."
+		" Then look into each disc slot to find valid discs and restore them." },
 
   { T_OPT_C,	"FORCE",	"f|force",
 		0, "Force operation." },
@@ -2118,11 +2152,14 @@ info_t info_tab[] =
 
   { T_OPT_C,	"SYNC",		"y|sync",
 		0,
-		"Remove and copy discs until the destination WBFS"
+		"Synchronize the destination with all sources:"
+		" Remove and copy discs until the destination WBFS"
 		" contains exactly the same discs as all sources together." },
 
   { T_OPT_C,	"NEWER",	"e|newer|new",
-		0, "If source and dest have valid mtimes: copy if source is newer." },
+		0,
+		"If source and destination have valid mtimes:"
+		" Copy only if source is newer." },
 
   { T_OPT_C,	"OVERWRITE",	"o|overwrite",
 		0, 0 /* copy of wit */ },
@@ -2363,8 +2400,8 @@ info_t info_tab[] =
   { T_COPT,	"CHUNK_MODE",	0,0,0 },
   { T_COPT,	"CHUNK_SIZE",	0,0,0 },
   { T_COPT,	"MAX_CHUNKS",	0,0,0 },
-//  { H_COPT,	"COMPRESSION",	0,0,0 },	// [2do]
-//  { H_COPT,	"MEM",		0,0,0 },	// [2do]
+  { H_COPT,	"COMPRESSION",	0,0,0 },
+  { H_COPT,	"MEM",		0,0,0 },
 
 
   //
@@ -2549,7 +2586,7 @@ info_t info_tab[] =
   { T_COPT,	"TEST",		0,0,
 	"Force test mode and ignore {--force}." },
   { T_COPT,	"FORCE",	0,0,
-	"This option is needed for leaving test mode and for formatting!" },
+	"This option is needed for leaving test mode and for real formatting!" },
 
   //---------- COMMAND wwt RECOVER ----------
 
@@ -2971,11 +3008,13 @@ info_t info_tab[] =
 		" This is the general default." },
 
   { T_OPT_CO,	"WIA",		"wia",
-		0,
+		"[=compr]",
 		"Force WIA output mode if packing"
 		" and set the default suffix to @'.wia'@."
+		" The optional parameter is a compression mode and"
+		" {--wia=mode} is a shortcut for {--wia --compression mode}."
 		"\n "
-		" This is the default, when the program name contains"
+		" WIA output is the default, when the program name contains"
 		" the sub string @'wia'@ in any case." },
 
   { T_OPT_C,	"CISO",		"C|ciso",

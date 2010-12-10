@@ -169,7 +169,7 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 	" ID, ALL, WHOLE and RAW. The following input formats are accepted"
 	" too: ptype, #index, #<index, #<=index, #>index, #>=index and"
 	" #tab_index.part_index.\n"
-	"See http://wit.wiimm.de/opt/psel for more details."
+	"  See http://wit.wiimm.de/opt/psel for more details."
     },
 
     {	OPT_RAW, 0, "raw",
@@ -180,8 +180,9 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
     {	OPT_PMODE, 0, "pmode",
 	"p-mode",
 	"This options set the prefix mode for listed or extracted files. One"
-	" of the following values is allowed: AUTO, NONE, POINT, NAME, INDEX."
-	" The default value is 'auto'."
+	" of the following values is allowed: AUTO, NONE, POINT, ID, NAME,"
+	" INDEX, COMBI. The default value is 'AUTO'. See"
+	" http://wit.wiimm.de/opt/pmode for more details."
     },
 
     {	OPT_SNEEK, 0, "sneek",
@@ -329,12 +330,12 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 
     {	OPT_SPLIT, 'z', "split",
 	0,
-	"Enable output file splitting, default split size = 4 GB."
+	"Enable output file splitting. The default split size is 4 GB."
     },
 
     {	OPT_SPLIT_SIZE, 'Z', "split-size",
 	"sz",
-	"Enable output file splitting and define split size. The parameter"
+	"Enable output file splitting and define a split size. The parameter"
 	" 'sz' is a floating point number followed by an optional unit factor"
 	" (one of 'cb' [=1] or  'kmgtpe' [base=1000] or 'KMGTPE' [base=1024])."
 	" The default unit is 'G' (GiB)."
@@ -367,7 +368,7 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 
     {	OPT_TRUNC, 0, "trunc",
 	0,
-	"Truncate PLAIN ISO images to the needed size while creating."
+	"Truncate a PLAIN ISO images to the needed size while creating."
     },
 
     {	OPT_CHUNK_MODE, 0, "chunk-mode",
@@ -378,7 +379,7 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 	" with a power of 2 or 'ISO' for ISO images (more restrictive as"
 	" 'POW2', best for USB loaders). The case of the keyword is ignored."
 	" The default key is 'ISO'.\n"
-	"--chm is a shortcut for --chunk-mode."
+	"  --chm is a shortcut for --chunk-mode."
     },
 
     {	OPT_CHUNK_SIZE, 0, "chunk-size",
@@ -430,15 +431,16 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 	" factor is not set but option --chunk-size is set, the factor will be"
 	" calculated by using a rounded value of that option.\n"
 	"  All three parts are optional. All default values may be changed in"
-	" the future. --compr is a shortcut for --compression. The command"
-	" 'wit COMPR' prints an overview about all compression modes."
+	" the future. --compr is a shortcut for --compression and --wia=mode a"
+	" shortcut for '--wia --compression mode'. The command 'wit COMPR'"
+	" prints an overview about all compression modes."
     },
 
     {	OPT_MEM, 0, "mem",
 	"size",
 	"This option defines a memory usage limit for compressing files. When"
 	" compressing a file with method MEM (see --compression) the the"
-	" compression method, level and chunk size are calculated with respect"
+	" compression method, level and chunk size are selected with respect"
 	" to this limit.\n"
 	"  If this option is not set or the value is 0, then the environment"
 	" WIT_MEM is tried to read instead. If this fails, the tool tries to"
@@ -448,22 +450,24 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 
     {	OPT_PRESERVE, 'p', "preserve",
 	0,
-	"Preserve file times (atime+mtime)."
+	"Preserve file times (atime+mtime) while copying an image. This option"
+	" is enabled by default if an unmodified disc image is copied."
     },
 
     {	OPT_UPDATE, 'u', "update",
 	0,
-	"Copy only non existing files, ignore other without warning."
+	"Copy only files that does not exist. Already existing files are"
+	" ignored without warning."
     },
 
     {	OPT_OVERWRITE, 'o', "overwrite",
 	0,
-	"Overwrite already existing files."
+	"Overwrite already existing files without warning."
     },
 
     {	OPT_DIFF, 0, "diff",
 	0,
-	"Diff source and dest after copying."
+	"Diff source and destination after copying."
     },
 
     {	OPT_REMOVE, 'R', "remove",
@@ -697,12 +701,12 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 
     {	OPT_UTF_8, 0, "utf-8",
 	0,
-	"Enables UTF-8 support (default)."
+	"Enables UTF-8 support for filenames (default)."
     },
 
     {	OPT_NO_UTF_8, 0, "no-utf-8",
 	0,
-	"Disables UTF-8 support (CYGWIN default)."
+	"Disables UTF-8 support for filenames."
     },
 
     {	OPT_LANG, 0, "lang",
@@ -1447,7 +1451,7 @@ static u8 option_allowed_cmd_CONVERT[75] = // cmd #27
 
 static u8 option_allowed_cmd_EDIT[75] = // cmd #28
 {
-    0,1,1,1,1, 0,1,1,1,1,  1,1,0,1,0, 0,0,0,0,0,  1,1,1,1,1, 1,1,1,1,0,
+    0,1,1,1,1, 0,1,1,1,1,  1,1,0,1,0, 0,1,1,0,0,  1,1,1,1,1, 1,1,1,1,0,
     0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,1,0,  0,0,0,0,0, 0,0,0,0,0,
     0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0
 };
@@ -2505,6 +2509,8 @@ static const InfoOption_t * option_tab_cmd_EDIT[] =
 
 	OptionInfo + OPT_NONE, // separator
 
+	OptionInfo + OPT_PSEL,
+	OptionInfo + OPT_RAW,
 	OptionInfo + OPT_ENC,
 	OptionInfo + OPT_ID,
 	OptionInfo + OPT_NAME,
@@ -3108,7 +3114,12 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	"wit CONVERT [-s path]... [-r path]... [source]...",
 	"Convert, scrub, join, split, compose, extract, patch, encrypt and"
 	" decrypt Wii and GameCube disc images and replace the source with the"
-	" result. The former command name was SCRUB.",
+	" result. The former command name was SCRUB.\n"
+	"  'wit CONVERT' is like 'wit COPY' but removes the source and replace"
+	" it with the new file if copying is successful. It have been"
+	" implemented as replacement of the SCRUB command of other tools. 'wit"
+	" CONVERT does more than only scrubbing and rherefor it was renamed"
+	" from 'SCRUB' to 'CONVERT'.",
 	51,
 	option_tab_cmd_CONVERT,
 	option_allowed_cmd_CONVERT
@@ -3122,7 +3133,7 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	"wit EDIT source\n"
 	"wit EDIT [-s path]... [-r path]... [source]...",
 	"Edit an existing Wii and GameCube ISO image and patch some values.",
-	28,
+	30,
 	option_tab_cmd_EDIT,
 	option_allowed_cmd_EDIT
     },

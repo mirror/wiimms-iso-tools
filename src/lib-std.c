@@ -74,6 +74,7 @@ ShowMode	opt_show_mode		= SHOW__DEFAULT;
 wd_size_mode_t	opt_unit		= WD_SIZE_DEFAULT;
 RepairMode	repair_mode		= REPAIR_NONE;
 char		escape_char		= '%';
+bool		use_utf8		= true;
 enumOFT		output_file_type	= OFT_UNKNOWN;
 int		opt_truncate		= 0;
 int		opt_split		= 0;
@@ -102,13 +103,6 @@ const char	zerobuf[0x40000]	= {0};	// global zero buffer
 //	==> don't call other functions while using tempbuf
 u8		* tempbuf		= 0;	// global temp buffer -> AllocTempBuffer()
 size_t		tempbuf_size		= 0;	// size of 'tempbuf'
-
-#ifdef __CYGWIN__
- bool		use_utf8		= false;
-#else
- bool		use_utf8		= true;
-#endif
-
 
 const char sep_79[80] =		//  79 * '-' + NULL
 	"----------------------------------------"
@@ -494,9 +488,6 @@ void SetupLib ( int argc, char ** argv, ccp p_progname, enumProgID prid )
     //----- setup language info
 
     char * wit_lang = getenv("WIT_LANG");
-    if ( !wit_lang || !*wit_lang )
-	wit_lang = getenv("WWT_LANG");
-    if ( wit_lang && *wit_lang )
     if ( wit_lang && *wit_lang )
     {
 	lang_info = strdup(wit_lang);
@@ -565,6 +556,7 @@ void SetupLib ( int argc, char ** argv, ccp p_progname, enumProgID prid )
 
     //----- verify oft_info
 
+ #if defined(TEST) || defined(DEBUG)
     {
 	ASSERT( OFT__N + 1 == sizeof(oft_info)/sizeof(*oft_info) );
 	enumOFT oft;
@@ -573,6 +565,7 @@ void SetupLib ( int argc, char ** argv, ccp p_progname, enumProgID prid )
 	    ASSERT( oft_info[oft].oft == oft );
 	}
     }
+ #endif
 }
 
 ///////////////////////////////////////////////////////////////////////////////

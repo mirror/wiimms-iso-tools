@@ -615,26 +615,10 @@ There are some hidden options implemented for testing:
 *******                      Environment variables                      *******
 *******************************************************************************
 
-The user can define environment variables as additional way to submit
-parameters to the tool:
+The user can define environment variables as additional way to submit options
+to the tool. All options are accepted and used as default. 
 
-WIT_LANG
-
- With 'WIT_LANG' the user can spezifiy a default language for wit and wwt
- titles. If 'WIT_LANG' is empty 'LC_CTYPE' will be scanned. The option
- --lang overides this default setting.
-
- Example: WIT_LANG="de"
-
-WIT_OPT
-
- 'WIT_OPT' is scanned like a command line and before the real command line is
- scanned. Therefor 'WIT_OPT' will be converted to a parameter list. Each SPACE
- or other control is a separator. Quoting is not possible. Only options and
- their parameters will recognized. If such option is not compatible with
- the command it is silently ignored.
-
- Example: WIT_OPT="--force --overwrite -vv -T0"
+See http://wit.wiimm.de/info/environ.html for details.
 
 
 @@MODULE(signals.txt)@@

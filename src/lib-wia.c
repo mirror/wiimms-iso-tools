@@ -611,7 +611,7 @@ static enumError read_data
 	if (err)
 	    return err;
 
-	err = DecLZMA_File2Buf( &sf->f, file_data_size, dest, dest_size,
+	err = DecLZMA_File2Buf( sf, file_data_size, dest, dest_size,
 				&data_bytes_read, wia->disc.compr_data );
 	if (err)
 	    return err;
@@ -626,7 +626,7 @@ static enumError read_data
 	if (err)
 	    return err;
 
-	err = DecLZMA2_File2Buf( &sf->f, file_data_size, dest, dest_size,
+	err = DecLZMA2_File2Buf( sf, file_data_size, dest, dest_size,
 				&data_bytes_read, wia->disc.compr_data );
 	if (err)
 	    return err;
@@ -1411,6 +1411,8 @@ static enumError write_data
 			/ sizeof(wia_exception_t),
 		group, except_size, except_size );
 
+    DefineProgressChunkSF(sf,data_size,data_size+except_size);
+
     u32 written = 0;
     switch((wd_compression_t)wia->disc.compression)
     {
@@ -1539,8 +1541,8 @@ static enumError write_data
 	SetupDataList(&list,area);
 
 	err = wia->disc.compression == WD_COMPR_LZMA
-		? EncLZMA_List2File (0,&sf->f,opt_compr_level,false,true,&list,&written)
-		: EncLZMA2_List2File(0,&sf->f,opt_compr_level,false,true,&list,&written);
+		? EncLZMA_List2File (0,sf,opt_compr_level,false,true,&list,&written)
+		: EncLZMA2_List2File(0,sf,opt_compr_level,false,true,&list,&written);
 	if (err)
 	    return err;
 
@@ -2216,7 +2218,9 @@ static enumError FinishSetupWriteWIA
 	if (!dirty)
 	    break;
     }
-    wia->growing = need_raw_data(wia,1,0,0,0);    wia->memory_usage += wia->raw_data_size * sizeof(*wia->raw_data);
+    wia->growing = need_raw_data(wia,1,0,0,0);
+    wia->memory_usage += wia->raw_data_size * sizeof(*wia->raw_data);
+    sf->progress_add_total += wia->raw_data_size * sizeof(*wia->raw_data);
 
 
     //----- setup group area
@@ -2229,6 +2233,7 @@ static enumError FinishSetupWriteWIA
 	if (!wia->group)
 	    OUT_OF_MEMORY;
 	wia->memory_usage += wia->group_size * sizeof(*wia->group);
+	sf->progress_add_total += wia->group_size * sizeof(*wia->group);
     }
 
 
@@ -2255,6 +2260,7 @@ static enumError FinishSetupWriteWIA
     wia->write_data_off	= sizeof(wia_file_head_t)
 			+ sizeof(wia_disc_t)
 			+ sizeof(wia_part_t) * disc->n_part;
+    sf->progress_add_total += wia->write_data_off + sizeof(wia_part_t) * disc->n_part;
 
     wia->is_valid = true;
     SetupIOD(sf,OFT_WIA,OFT_WIA);
@@ -2295,9 +2301,12 @@ static void setup_dynamic_mem
 	wia_controller_t * wia = param;
 	DASSERT(wia);
 	item->index = wia->raw_data_used;
+
+     #if HAVE_ASSERT
 	wia_raw_data_t * rdata = need_raw_data(wia,0x20,item->offset,item->size,0);
 	ASSERT(rdata);
 	ASSERT( ntohl(rdata->n_groups) == 1 ); // [2do] really needed?
+     #endif
     }
 }
 
@@ -2513,7 +2522,7 @@ enumError TermWriteWIA
 {
     ASSERT(sf);
     ASSERT(sf->wia);
-    TRACE("#W# TermWriteWIA(%p)\n",sf);
+    PRINT("#W# TermWriteWIA(%p)\n",sf);
 
     sf->progress_trigger = sf->progress_trigger_init = 1;
 

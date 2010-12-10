@@ -1307,7 +1307,6 @@ enumError XSetupSplitFile ( XPARM File_t *f, enumOFT oft, off_t split_size )
 		return err;
 	    }
 
-
 	    if (f->split_rename_format)
 	    {
 		ASSERT(!fi->rename);
@@ -1778,7 +1777,7 @@ static void PreallocHelper ( File_t *f )
 			    wd_print_size_1024(0,0,found->size,true) );
 		posix_fallocate(f->fd,found->off,found->size);
 		found->size = 0;
-		TRACELINE;
+		PRINT("posix_fallocate() done\n");
 	    }
 	}
     }

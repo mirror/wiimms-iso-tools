@@ -455,6 +455,7 @@ typedef enum enumOptions
 //				| OB_GRP_XSOURCE
 //				| OB_IGNORE
 //				| OB_PRESERVE
+//				| OB_GRP_PARTITIONS
 //				| OB_GRP_PATCH,
 //
 //	OB_CMD_MOVE		= OB_GRP_TITLES

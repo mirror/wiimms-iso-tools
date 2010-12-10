@@ -141,8 +141,10 @@ typedef enum wd_ipm_t // iterator prefix mode
 
     WD_IPM_NONE,		// no prefix: ""
     WD_IPM_POINT,		// prefix with "./"
-    WD_IPM_PART_INDEX,		// prefix with 'P' and partition id: "P%u/"
+    WD_IPM_PART_ID,		// prefix with 'P' and partition id: "P%u/"
     WD_IPM_PART_NAME,		// prefix with partition name or "P<id>": "NAME/"
+    WD_IPM_PART_INDEX,		// prefix with 'P' and table + partition index: "P%u.%u/"
+    WD_IPM_COMBI,		// WD_IPM_PART_INDEX + ID|NAME: "P%u.%u-%s/"
 
 } wd_ipm_t;
 

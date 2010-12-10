@@ -98,7 +98,13 @@ void CleanSF ( SuperFile_t * sf )
 ///////////////////////////////////////////////////////////////////////////////
 
 static enumError CloseHelperSF
-	( SuperFile_t * sf, FileAttrib_t * set_time_ref, bool remove )
+(
+    SuperFile_t		* sf,		// file to close
+    FileAttrib_t	* set_time_ref,	// not NULL: set time
+    bool		remove,		// true: remove file
+    SuperFile_t		* remove_sf	// not NULL & 'sf' finished without error:
+					// close & remove it before renaming 'sf'
+)
 {
     ASSERT(sf);
     enumError err = ERR_OK;
@@ -146,6 +152,12 @@ static enumError CloseHelperSF
 		err = TermWriteWIA(sf);
 	}
 
+	if ( err == ERR_OK && remove_sf )
+	{
+	    err = FlushSF(sf);
+	    RemoveSF(remove_sf);
+	}
+
 	if ( err != ERR_OK )
 	    CloseFile(&sf->f,true);
 	else
@@ -170,7 +182,26 @@ static enumError CloseHelperSF
 
 enumError CloseSF ( SuperFile_t * sf, FileAttrib_t * set_time_ref )
 {
-    return CloseHelperSF(sf,set_time_ref,false);
+    return CloseHelperSF(sf,set_time_ref,false,0);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+enumError Close2SF
+(
+    SuperFile_t		* sf,		// file to close
+    SuperFile_t		* remove_sf,	// not NULL & 'sf' finished without error:
+					// close & remove it before renaming 'sf'
+    bool		preserve	// true: force preserve time
+)
+{
+    DASSERT(sf);
+    DASSERT(remove_sf);
+
+    sf->src = 0;
+    FileAttrib_t set_time_ref;
+    memcpy(&set_time_ref,&remove_sf->f.fatt,sizeof(set_time_ref));
+    return CloseHelperSF(sf,&set_time_ref,false,remove_sf);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -180,7 +211,7 @@ enumError ResetSF ( SuperFile_t * sf, FileAttrib_t * set_time_ref )
     ASSERT(sf);
 
     // free dynamic memory
-    enumError err = CloseHelperSF(sf,set_time_ref,false);
+    enumError err = CloseHelperSF(sf,set_time_ref,false,0);
     ResetFile(&sf->f,false);
     sf->indent = NormalizeIndent(sf->indent);
 
@@ -224,7 +255,7 @@ enumError RemoveSF ( SuperFile_t * sf )
     }
 
     TRACE(" - remove file %s\n",sf->f.fname);
-    enumError err = CloseHelperSF(sf,0,true);
+    enumError err = CloseHelperSF(sf,0,true,0);
     ResetSF(sf,0);
     return err;
 }
@@ -1741,10 +1772,16 @@ void PrintProgressSF ( u64 p_done, u64 p_total, void * param )
 		sf ? GetFD(&sf->f) : -2,
 		sf ? sf->show_progress : -1 );
 
-    if ( !sf || !sf->show_progress || !p_done || !p_total
-	    || sf->progress_trigger <= 0 && p_done )
+    if ( !sf || !sf->show_progress || !p_total )
 	return;
 
+    sf->progress_last_done  = p_done;
+    sf->progress_last_total = p_total;
+
+    if ( sf->progress_trigger <= 0 && p_done )
+	return;
+
+    p_total += sf->progress_add_total;
     if ( p_total > (u64)1 << 44 )
     {
 	// avoid integer overflow
@@ -1846,6 +1883,55 @@ void PrintSummarySF ( SuperFile_t * sf )
     else
 	printf("%s\n",buf);
     fflush(stdout);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+
+void DefineProgressChunkSF
+(
+    SuperFile_t		* sf,		// valid file
+    u64			data_size,	// the relevant data size
+    u64			chunk_size	// size of chunk to write
+)
+{
+    DASSERT(sf);
+    TRACE("PROGCHUNK: %u, %u [setup]\n",data_size,chunk_size);
+    sf->progress_data_size  = data_size;
+    sf->progress_chunk_size = chunk_size;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+void PrintProgressChunkSF
+(
+    SuperFile_t		* sf,		// valid file
+    u64			chunk_done	// size of progresses data
+)
+{
+    if ( sf && sf->show_progress && sf->progress_chunk_size )
+    {
+	const u64 last_done	 = sf->progress_last_done;
+	const int trigger	 = sf->progress_trigger;
+	sf->progress_trigger	 = 1;
+	sf->f.bytes_read	+= chunk_done;
+
+	u64 done = last_done
+		 + chunk_done * sf->progress_data_size / sf->progress_chunk_size
+		 - sf->progress_data_size;
+	u64 total = sf->progress_last_total + sf->progress_add_total;
+
+	noTRACE("PROGCHUNK: %u,%u %u [+%u]\n",
+		last_done, done, total, sf->progress_add_total );
+
+	if ( done > total )
+	     done = total;
+	PrintProgressSF( done, sf->progress_last_total, sf );
+
+	sf->f.bytes_read	-= chunk_done;
+	sf->progress_last_done	 = last_done;
+	sf->progress_trigger	 = trigger;
+    }
 }
 
 //
@@ -2663,6 +2749,23 @@ enumError CopyImage
     if ( err || SIGINT_level > 1 )
 	goto abort;
 
+#if 0 && defined(TEST)  // [2do]
+
+    fo->src = 0;
+    if ( fi->disc1 == fi->disc2 )
+	preserve = true;
+
+    if (remove_source)
+    {
+	err = Close2SF(fo,fi,preserve);
+	ResetSF(fo,0);
+    }
+    else
+	err = ResetSF( fo, preserve ? &fi->f.fatt : 0 );
+    return err;
+
+#else
+
     fo->src = 0;
     FileAttrib_t fatt;
     memcpy(&fatt,&fi->f.fatt,sizeof(fatt));
@@ -2670,6 +2773,7 @@ enumError CopyImage
 	RemoveSF(fi);
 
     return ResetSF( fo, preserve || fi->disc1 == fi->disc2 ? &fatt : 0 );
+#endif
 
  abort:
     RemoveSF(fo);
@@ -2796,6 +2900,7 @@ enumError CopySF ( SuperFile_t * in, SuperFile_t * out )
 		for ( idx = 0; idx < sizeof(wdisc_usage_tab); idx++ )
 		    if (wdisc_usage_tab[idx])
 			pr_total++;
+		pr_total *= WII_SECTOR_SIZE;
 		PrintProgressSF(0,pr_total,out);
 	    }
 
@@ -2817,8 +2922,10 @@ enumError CopySF ( SuperFile_t * in, SuperFile_t * out )
 			return err;
 
 		    if ( out->show_progress )
-			PrintProgressSF(++pr_done,pr_total,out);
-
+		    {
+			pr_done += WII_SECTOR_SIZE;
+			PrintProgressSF(pr_done,pr_total,out);
+		    }
 		}
 	    }
 	    if ( out->show_progress || out->show_summary )
@@ -2844,9 +2951,6 @@ enumError CopyRaw ( SuperFile_t * in, SuperFile_t * out )
     ASSERT(out);
     TRACE("---\n");
     TRACE("+++ CopyRaw(%d,%d) +++\n",GetFD(&in->f),GetFD(&out->f));
-
-    const int align_mask = sizeof(u32)-1;
-    ASSERT( (align_mask & align_mask+1) == 0 );
 
     off_t copy_size = in->file_size;
     off_t off       = 0;
@@ -3087,6 +3191,7 @@ enumError CopyWBFSDisc ( SuperFile_t * in, SuperFile_t * out )
 	for ( bl = 0; bl < w->n_wbfs_sec_per_disc; bl++ )
 	    if (ntohs(wlba_tab[bl]))
 		pr_total++;
+	pr_total *= WII_SECTOR_SIZE;
 	PrintProgressSF(0,pr_total,out);
     }
 
@@ -3107,7 +3212,10 @@ enumError CopyWBFSDisc ( SuperFile_t * in, SuperFile_t * out )
 		goto abort;
 
 	    if ( out->show_progress )
-		PrintProgressSF(++pr_done,pr_total,out);
+	    {
+		pr_done += WII_SECTOR_SIZE;
+		PrintProgressSF(pr_done,pr_total,out);
+	    }
 	}
     }
 
@@ -3322,7 +3430,10 @@ enumError DiffSF
     }
 
     if ( f2->show_progress )
+    {
+	pr_total *= WII_SECTOR_SIZE;
 	PrintProgressSF(0,pr_total,f2);
+    }
 
     ASSERT( sizeof(iobuf) >= 2*WII_SECTOR_SIZE );
     char *iobuf1 = iobuf, *iobuf2 = iobuf + WII_SECTOR_SIZE;
@@ -3367,7 +3478,10 @@ enumError DiffSF
 		}
 
 		if ( f2->show_progress )
-		    PrintProgressSF(++pr_done,pr_total,f2);
+		{
+		    pr_done += WII_SECTOR_SIZE;
+		    PrintProgressSF(pr_done,pr_total,f2);
+		}
 	    }
 	}
 	if ( !have_mod_list || run++ )

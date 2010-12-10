@@ -484,13 +484,6 @@ u32 wbfs_rm_disc
  */
 u32 wbfs_trim(wbfs_t*p);
 
-#if !NEW_EXTRACT
-/*! extract a disc from the wbfs, unused sectors are just untouched, allowing descent filesystem to only really usefull space to store the disc.
-Even if the filesize is 4.7GB, the disc usage will be less.
- */
-u32 wbfs_extract_disc(wbfs_disc_t*d, rw_sector_callback_t write_dst_wii_sector,void *callback_data,progress_callback_t spinner);
-#endif
-
 /* OS specific functions provided by libwbfs_<os>.c */
 
 wbfs_t *wbfs_try_open(char *disk, char *partition, int reset);

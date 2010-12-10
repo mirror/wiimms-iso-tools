@@ -637,143 +637,6 @@ static void test_hexdump ( int argc, char ** argv )
 
 //
 ///////////////////////////////////////////////////////////////////////////////
-///////////////			test_lzma()			///////////////
-///////////////////////////////////////////////////////////////////////////////
-
-static enumError test_lzma ( int argc, char ** argv )
-{
-    putchar('\n');
-
-
-    //----- setup buffer
-
-    u8 src_buf[0x40000];
-    u8 dest_buf[sizeof(src_buf)+10];
-
-    int i;
-    for ( i = 0; i < sizeof(src_buf); i++ )
-	src_buf[i] = (u8)i;
-    for ( i = 0; i < sizeof(src_buf); i += 10 )
-	src_buf[i] = (u8)Random32(0);
-
-
-    //---- setup file
-
-    File_t f;
-    InitializeFile(&f);
-
-    //----- compress
-
-    enumError err = CreateFile(&f,"pool/lzma.tmp",IOM__IS_DEFAULT,1);
-    if (err)
-	return err;
-
-    err = EncLZMA_Data2File(0,&f,opt_compr_level,true,true,src_buf,sizeof(src_buf),0);
-    if (err)
-	return err;
-
-    err = CloseFile(&f,0);
-    if (err)
-	return err;
-
-
-    //----- decompress
-
-    err = OpenFile(&f,"pool/lzma.tmp",IOM__IS_DEFAULT);
-    if (err)
-	return err;
-
-    u32 written;
-    err = DecLZMA_File2Buf(&f,0,dest_buf,sizeof(dest_buf),&written,0);
-    PRINT("Decode called, err=%d, written=%x=%u\n",err,written,written);
-    if (err)
-	return err;
-
-    err = CloseFile(&f,0);
-    if (err)
-	return err;
-
-
-    //----- compare
-
-    if (memcmp(src_buf,dest_buf,sizeof(src_buf)))
-	printf("\n!!! BUFFER DIFFER !!!\n\n");
-    else
-	printf("\n+ buffer ok.\n\n");
-
-    return ERR_OK;
-}
-
-//
-///////////////////////////////////////////////////////////////////////////////
-///////////////			test_lzma2()			///////////////
-///////////////////////////////////////////////////////////////////////////////
-
-static enumError test_lzma2 ( int argc, char ** argv )
-{
-    putchar('\n');
-
-
-    //----- setup buffer
-
-    u8 src_buf[0x40000];
-    u8 dest_buf[sizeof(src_buf)+10];
-
-    int i;
-    for ( i = 0; i < sizeof(src_buf); i++ )
-	src_buf[i] = (u8)i;
-    for ( i = 0; i < sizeof(src_buf); i += 10 )
-	src_buf[i] = (u8)Random32(0);
-
-
-    //---- setup file
-
-    File_t f;
-    InitializeFile(&f);
-
-    //----- compress
-
-    enumError err = CreateFile(&f,"pool/lzma.tmp",IOM__IS_DEFAULT,1);
-    if (err)
-	return err;
-
-    err = EncLZMA2_Data2File(0,&f,opt_compr_level,true,true,src_buf,sizeof(src_buf),0);
-    if (err)
-	return err;
-
-    err = CloseFile(&f,0);
-    if (err)
-	return err;
-
-    //----- decompress
-
-    err = OpenFile(&f,"pool/lzma.tmp",IOM__IS_DEFAULT);
-    if (err)
-	return err;
-
-    u32 written;
-    err = DecLZMA2_File2Buf(&f,0,dest_buf,sizeof(dest_buf),&written,0);
-    PRINT("Decode called, err=%d, written=%x=%u\n",err,written,written);
-    if (err)
-	return err;
-
-    err = CloseFile(&f,0);
-    if (err)
-	return err;
-
-
-    //----- compare
-
-    if (memcmp(src_buf,dest_buf,sizeof(src_buf)))
-	printf("\n!!! BUFFER DIFFER !!!\n\n");
-    else
-	printf("\n+ buffer ok.\n\n");
-
-    return ERR_OK;
-}
-
-//
-///////////////////////////////////////////////////////////////////////////////
 ///////////////			test_sha1()			///////////////
 ///////////////////////////////////////////////////////////////////////////////
 #ifdef HAVE_OPENSSL
@@ -865,8 +728,6 @@ enum
     CMD_MATCH_PATTERN,		// test_match_pattern(argc,argv);
     CMD_OPEN_DISC,		// test_open_disc(argc,argv);
     CMD_HEXDUMP,		// test_hexdump(argc,argv);
-    CMD_LZMA,			// test_lzma(argc,argv);
-    CMD_LZMA2,			// test_lzma2(argc,argv);
 
     CMD_SHA1,			// test_sha1();
     CMD_WIIMM,			// test_wiimm(argc,argv);
@@ -887,8 +748,6 @@ static const CommandTab_t CommandTab[] =
 	{ CMD_MATCH_PATTERN,	"MATCH",	0,		0 },
 	{ CMD_OPEN_DISC,	"OPENDISC",	"ODISC",	0 },
 	{ CMD_HEXDUMP,		"HEXDUMP",	0,		0 },
-	{ CMD_LZMA,		"LZMA",		"L1",		0 },
-	{ CMD_LZMA2,		"LZMA2",	"L2",		0 },
 
  #ifdef HAVE_OPENSSL
 	{ CMD_SHA1,		"SHA1",		0,		0 },
@@ -973,8 +832,6 @@ int main ( int argc, char ** argv )
 	case CMD_MATCH_PATTERN:		test_match_pattern(argc,argv); break;
 	case CMD_OPEN_DISC:		test_open_disc(argc,argv); break;
 	case CMD_HEXDUMP:		test_hexdump(argc,argv); break;
-	case CMD_LZMA:			test_lzma(argc,argv); break;
-	case CMD_LZMA2:			test_lzma2(argc,argv); break;
 
  #ifdef HAVE_OPENSSL
 	case CMD_SHA1:			test_sha1(); break;

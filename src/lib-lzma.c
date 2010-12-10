@@ -244,7 +244,6 @@ typedef struct sz_inbuf_t
     ISeqInStream	func;		// pounter to read function
     DataList_t		* data;		// pointer to data list
     u32			bytes_read;	// total read
-    //SuperFile_t	* progress;	// NULL or SF, used for progress only
 
 } sz_inbuf_t;
 
@@ -255,21 +254,8 @@ static SRes sz_read_buf ( void *pp, void *buf, size_t *size )
     DASSERT(pp);
     DASSERT(size);
     sz_inbuf_t * ibuf = pp;
-    noPRINT("sz_read_buf(%p,%p,%zx=%zu)\n",ibuf,buf,*size,*size);
+    noPRINT("$$$ sz_read_buf(%p,%p,%zx=%zu)\n",ibuf,buf,*size,*size);
 
- #if 0 // [2do]
-    if (ibuf->progress)
-    {
-	// the previos data seems to be consumed
-	//   -> print progress with old counter
-
-	SuperFile_t * sf = ibuf->progress;
-	sf.f.bytes_written += ibuf->bytes_read;
-	// [2do]
-	sf.f.bytes_written -= ibuf->bytes_read;
-    }
- #endif
- 
     ibuf->bytes_read += *size = ReadDataList(ibuf->data,buf,*size);
     noPRINT("sz_read_buf() size = %zu\n",*size);
     return SZ_OK;
@@ -291,9 +277,50 @@ static size_t sz_write_file ( void *pp, const void *data, size_t size )
 {
     DASSERT(pp);
     sz_outfile_t * obuf = pp;
-    noPRINT("sz_write_file(%p->%p,%p,%zx=%zu)\n",obuf,obuf->file,data,size,size);
+    noPRINT("$$$ sz_write_file(%p->%p,%p,%zx=%zu)\n",obuf,obuf->file,data,size,size);
     obuf->bytes_written += size;
-    return WriteF(obuf->file,data,size) ? 0 : size;
+    obuf->file->bytes_written -= size;  // [2do] [progress]
+    return SIGINT_level>1 || WriteF(obuf->file,data,size) ? 0 : size;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+typedef struct sz_progress_t
+{
+    ICompressProgress	func;	    // progress function
+    SuperFile_t		* file;	    // file for progress output
+
+} sz_progress_t;
+
+//-----------------------------------------------------------------------------
+
+SRes sz_progress ( void *pp, UInt64 in_size, UInt64 out_size )
+{
+    // *_size (UInt64)(Int64)-1 for size means unknown value.
+
+ #ifdef TEST // [2do] [progress]
+
+    sz_progress_t * prog = (sz_progress_t*)pp;
+    DASSERT( prog );
+    DASSERT( prog->func.Progress == sz_progress );
+    DASSERT( prog->file );
+
+    if ( in_size != ~(UInt64)0 )
+    {
+	//File_t * f = &prog->file->f;
+	//f->bytes_read += in_size;
+	noPRINT("$$$ sz_progress(%10llu,%10llu) => %10llu +%10llu =%10llu  /%10llu\n",
+		in_size, out_size,
+		f->bytes_read, f->bytes_written, f->bytes_read + f->bytes_written,
+		prog->file->progress_last_total );
+
+	PrintProgressChunkSF(prog->file,in_size);
+	//PrintProgressSF( f->bytes_read + f->bytes_written, 0, prog->file );
+	//f->bytes_read -= in_size;
+    }
+
+ #endif
+    return SZ_OK; // other than SZ_OK means: terminate compression
 }
 
 //
@@ -370,7 +397,8 @@ enumError EncLZMA_Open
 enumError EncLZMA_WriteDataToFile
 (
     EncLZMA_t		* lzma,		// valid pointer, opened with EncLZMA_Open()
-    File_t		* file,		// destination file, write to current offset
+    SuperFile_t		* file,		// destination file and progress support
+					//  -> write to 'file->f' at current offset
     bool		write_props,	// true: write encoding properties
     const void		* data,		// data to write
     size_t		data_size,	// size of data to write
@@ -393,7 +421,8 @@ enumError EncLZMA_WriteDataToFile
 enumError EncLZMA_WriteList2File
 (
     EncLZMA_t		* lzma,		// valid pointer, opened with EncLZMA_Open()
-    File_t		* file,		// destination file, write to current offset
+    SuperFile_t		* file,		// destination file and progress support
+					//  -> write to 'file->f' at current offset
     bool		write_props,	// true: write encoding properties
     DataList_t		* data_list,	// NULL or data list (modified)
     u32			* bytes_written	// not NULL: store written bytes
@@ -405,7 +434,7 @@ enumError EncLZMA_WriteList2File
 
     if (write_props)
     {
-	enumError err = WriteF(file,lzma->enc_props,lzma->enc_props_len);
+	enumError err = WriteF(&file->f,lzma->enc_props,lzma->enc_props_len);
 	if (err)
 	    return err;
     }
@@ -417,13 +446,19 @@ enumError EncLZMA_WriteList2File
 
     sz_outfile_t outfile;
     outfile.func.Write = sz_write_file;
-    outfile.file = file;
+    outfile.file = &file->f;
     outfile.bytes_written = write_props ? lzma->enc_props_len : 0;
 
-    SRes res = LzmaEnc_Encode( lzma->handle,
+    // [2do] [progress]
+    sz_progress_t progress;
+    progress.func.Progress = sz_progress;
+    progress.file = file;
+
+    SRes res = LzmaEnc_Encode(	lzma->handle,
 				(ISeqOutStream*)&outfile,
 				(ISeqInStream*)&inbuf,
-				0, &lzma_alloc, &lzma_alloc );
+				(ICompressProgress*)&progress,
+				&lzma_alloc, &lzma_alloc );
     if ( res != SZ_OK )
     {
 	EncLZMA_Close(lzma);
@@ -432,9 +467,9 @@ enumError EncLZMA_WriteList2File
 		lzma->error_object, GetMessageLZMA(res,"?") );
     }
     
-    // count only uncomressed size -> sepaate operations because u32/u64 handling
-    file->bytes_written += inbuf.bytes_read;
-    file->bytes_written -= outfile.bytes_written;
+    // count only uncomressed size -> separate operations because u32/u64 handling
+    file->f.bytes_written += inbuf.bytes_read;
+    //file->f.bytes_written -= outfile.bytes_written;  // [2do] [progress]
 
     if (bytes_written)
 	*bytes_written = outfile.bytes_written;
@@ -463,7 +498,8 @@ enumError EncLZMA_Close
 enumError EncLZMA_Data2File // open + write + close lzma stream
 (
     EncLZMA_t		* lzma,		// if NULL: use internal structure
-    File_t		* file,		// destination file, write to current offset
+    SuperFile_t		* file,		// destination file and progress support
+					//  -> write to 'file->f' at current offset
     int			compr_level,	// valid are 1..9 / 0: use default value
     bool		write_props,	// true: write encoding properties
     bool		write_endmark,	// true: write end marker at end of stream
@@ -489,7 +525,8 @@ enumError EncLZMA_Data2File // open + write + close lzma stream
 enumError EncLZMA_List2File // open + write + close lzma stream
 (
     EncLZMA_t		* lzma,		// if NULL: use internal structure
-    File_t		* file,		// destination file, write to current offset
+    SuperFile_t		* file,		// destination file and progress support
+					//  -> write to 'file->f' at current offset
     int			compr_level,	// valid are 1..9 / 0: use default value
     bool		write_props,	// true: write encoding properties
     bool		write_endmark,	// true: write end marker at end of stream
@@ -503,7 +540,7 @@ enumError EncLZMA_List2File // open + write + close lzma stream
     if (!lzma)
 	lzma = &internal_lzma;
 
-    enumError err = EncLZMA_Open(lzma,file->fname,compr_level,write_endmark);
+    enumError err = EncLZMA_Open(lzma,file->f.fname,compr_level,write_endmark);
     if (err)
 	return err;
 
@@ -521,7 +558,8 @@ enumError EncLZMA_List2File // open + write + close lzma stream
 
 enumError DecLZMA_File2Buf // open + read + close lzma stream
 (
-    File_t		* file,		// source file, read from current offset
+    SuperFile_t		* file,		// source file and progress support
+					//  -> read from 'file->f' at current offset
     size_t		read_count,	// not NULL: max bytes to read from file
     void		* buf,		// destination buffer
     size_t		buf_size,	// size of destination buffer
@@ -530,8 +568,9 @@ enumError DecLZMA_File2Buf // open + read + close lzma stream
 					// If NULL: read it from file
 )
 {
-    DASSERT(file);
     DASSERT(buf);
+    DASSERT(file);
+    File_t * f = &file->f;
 
  #if LOG_ALLOC
      alloc_count = 0;
@@ -542,7 +581,7 @@ enumError DecLZMA_File2Buf // open + read + close lzma stream
     u8 prop_buf[LZMA_PROPS_SIZE];
     if (!enc_props)
     {
-	const enumError err = ReadF(file,prop_buf,sizeof(prop_buf));
+	const enumError err = ReadF(&file->f,prop_buf,sizeof(prop_buf));
 	if (err)
 	    return err;
 	enc_props = prop_buf;
@@ -554,18 +593,18 @@ enumError DecLZMA_File2Buf // open + read + close lzma stream
     if ( res != SZ_OK )
 	return ERROR0(ERR_LZMA,
 		"Error while setup LZMA properties: %s\n-> LZMA error: %s\n",
-		file->fname, GetMessageLZMA(res,"?") );
+		f->fname, GetMessageLZMA(res,"?") );
 
     enumError err = ERR_OK;
     u8 in_buf[0x10000];
     size_t in_buf_len = 0;
 
-    const int read_behind_eof = file->read_behind_eof;
-    if ( !read_count && file->seek_allowed && file->st.st_size )
-	read_count = file->st.st_size - file->cur_off;
+    const int read_behind_eof = f->read_behind_eof;
+    if ( !read_count && f->seek_allowed && f->st.st_size )
+	read_count = f->st.st_size - f->cur_off;
     const bool have_max_read = read_count > 0;
     if (!have_max_read)
-	file->read_behind_eof = 2;
+	f->read_behind_eof = 2;
 
     u8 * dest = buf;
     u32 written = 0;
@@ -573,6 +612,8 @@ enumError DecLZMA_File2Buf // open + read + close lzma stream
     LzmaDec_Init(&lzma);
     for(;;)
     {
+	// [2do] [progress]
+
 	//--- fill input buffer
 
 	ELzmaFinishMode finish = LZMA_FINISH_ANY;
@@ -585,13 +626,13 @@ enumError DecLZMA_File2Buf // open + read + close lzma stream
 	    finish = LZMA_FINISH_END;
 	}
 	noPRINT("READ off=%llx, size=%zx=%zu, to=%zu\n",
-		(u64)file->cur_off, read_size, read_size, in_buf_len );
-	err = ReadF(file,in_buf+in_buf_len,read_size);
+		(u64)f->cur_off, read_size, read_size, in_buf_len );
+	err = ReadF(f,in_buf+in_buf_len,read_size);
 	if (err)
 	    return err;
 	in_buf_len	 += read_size;
 	read_count	 -= read_size;
-	file->bytes_read -= read_size; // count only decompressed data
+	f->bytes_read -= read_size; // count only decompressed data
 
 	if (!in_buf_len)
 	    break;
@@ -614,12 +655,12 @@ enumError DecLZMA_File2Buf // open + read + close lzma stream
 	if ( res != SZ_OK )
 	    return ERROR0(ERR_LZMA,
 		"Error while reading LZMA stream: %s\n-> LZMA error: %s\n",
-		file->fname, GetMessageLZMA(res,"?") );
+		f->fname, GetMessageLZMA(res,"?") );
 
 	written		 += out_len;
 	dest		 += out_len;
 	buf_size	 -= out_len;
-	file->bytes_read += out_len; // count only decompressed data
+	f->bytes_read += out_len; // count only decompressed data
 
 	if ( in_len < in_buf_len )
 	{
@@ -633,7 +674,7 @@ enumError DecLZMA_File2Buf // open + read + close lzma stream
 	    break;
     }
 
-    file->read_behind_eof = read_behind_eof;
+    f->read_behind_eof = read_behind_eof;
     LzmaDec_Free(&lzma,&lzma_alloc);
 
     if (bytes_written)
@@ -710,7 +751,8 @@ enumError EncLZMA2_Open
 enumError EncLZMA2_WriteDataToFile
 (
     EncLZMA_t		* lzma,		// valid pointer, opened with EncLZMA2_Open()
-    File_t		* file,		// destination file, write to current offset
+    SuperFile_t		* file,		// destination file and progress support
+					//  -> write to 'file->f' at current offset
     bool		write_props,	// true: write encoding properties
     const void		* data,		// data to write
     size_t		data_size,	// size of data to write
@@ -733,7 +775,8 @@ enumError EncLZMA2_WriteDataToFile
 enumError EncLZMA2_WriteList2File
 (
     EncLZMA_t		* lzma,		// valid pointer, opened with EncLZMA2_Open()
-    File_t		* file,		// destination file, write to current offset
+    SuperFile_t		* file,		// destination file and progress support
+					//  -> write to 'file->f' at current offset
     bool		write_props,	// true: write encoding properties
     DataList_t		* data_list,	// NULL or data list (modified)
     u32			* bytes_written	// not NULL: store written bytes
@@ -745,7 +788,7 @@ enumError EncLZMA2_WriteList2File
 
     if (write_props)
     {
-	enumError err = WriteF(file,lzma->enc_props,lzma->enc_props_len);
+	enumError err = WriteF(&file->f,lzma->enc_props,lzma->enc_props_len);
 	if (err)
 	    return err;
     }
@@ -757,12 +800,18 @@ enumError EncLZMA2_WriteList2File
 
     sz_outfile_t outfile;
     outfile.func.Write = sz_write_file;
-    outfile.file = file;
+    outfile.file = &file->f;
     outfile.bytes_written = write_props ? lzma->enc_props_len : 0;
+
+    // [2do] [progress]
+    sz_progress_t progress;
+    progress.func.Progress = sz_progress;
+    progress.file = file;
 
     SRes res = Lzma2Enc_Encode( lzma->handle,
 				(ISeqOutStream*)&outfile,
-				(ISeqInStream*)&inbuf, 0 );
+				(ISeqInStream*)&inbuf,
+				(ICompressProgress*)&progress );
     if ( res != SZ_OK )
     {
 	EncLZMA2_Close(lzma);
@@ -771,9 +820,9 @@ enumError EncLZMA2_WriteList2File
 		lzma->error_object, GetMessageLZMA(res,"?") );
     }
 
-    // count only uncomressed size -> sepaate operations because u32/u64 handling
-    file->bytes_written += inbuf.bytes_read;
-    file->bytes_written -= outfile.bytes_written;
+    // count only uncomressed size -> separate operations because u32/u64 handling
+    file->f.bytes_written += inbuf.bytes_read;
+    //file->f.bytes_written -= outfile.bytes_written; // [2do] [progress]
 
     if (bytes_written)
 	*bytes_written = outfile.bytes_written;
@@ -802,7 +851,8 @@ enumError EncLZMA2_Close
 enumError EncLZMA2_Data2File // open + write + close lzma stream
 (
     EncLZMA_t		* lzma,		// if NULL: use internal structure
-    File_t		* file,		// destination file, write to current offset
+    SuperFile_t		* file,		// destination file and progress support
+					//  -> write to 'file->f' at current offset
     int			compr_level,	// valid are 1..9 / 0: use default value
     bool		write_props,	// true: write encoding properties
     bool		write_endmark,	// true: write end marker at end of stream
@@ -828,7 +878,8 @@ enumError EncLZMA2_Data2File // open + write + close lzma stream
 enumError EncLZMA2_List2File // open + write + close lzma stream
 (
     EncLZMA_t		* lzma,		// if NULL: use internal structure
-    File_t		* file,		// destination file, write to current offset
+    SuperFile_t		* file,		// destination file and progress support
+					//  -> write to 'file->f' at current offset
     int			compr_level,	// valid are 1..9 / 0: use default value
     bool		write_props,	// true: write encoding properties
     bool		write_endmark,	// true: write end marker at end of stream
@@ -842,7 +893,7 @@ enumError EncLZMA2_List2File // open + write + close lzma stream
     if (!lzma)
 	lzma = &internal_lzma;
 
-    enumError err = EncLZMA2_Open(lzma,file->fname,compr_level,write_endmark);
+    enumError err = EncLZMA2_Open(lzma,file->f.fname,compr_level,write_endmark);
     if (err)
 	return err;
 
@@ -860,7 +911,8 @@ enumError EncLZMA2_List2File // open + write + close lzma stream
 
 enumError DecLZMA2_File2Buf // open + read + close lzma stream
 (
-    File_t		* file,		// source file, read from current offset
+    SuperFile_t		* file,		// source file and progress support
+					//  -> read from 'file->f' at current offset
     size_t		read_count,	// not NULL: max bytes to read from file
     void		* buf,		// destination buffer
     size_t		buf_size,	// size of destination buffer
@@ -869,8 +921,9 @@ enumError DecLZMA2_File2Buf // open + read + close lzma stream
 					// If NULL: read it from file
 )
 {
-    DASSERT(file);
     DASSERT(buf);
+    DASSERT(file);
+    File_t * f = &file->f;
 
  #if LOG_ALLOC
      alloc_count = 0;
@@ -881,7 +934,7 @@ enumError DecLZMA2_File2Buf // open + read + close lzma stream
     u8 prop_buf[1];
     if (!enc_props)
     {
-	const enumError err = ReadF(file,prop_buf,sizeof(prop_buf));
+	const enumError err = ReadF(f,prop_buf,sizeof(prop_buf));
 	if (err)
 	    return err;
 	enc_props = prop_buf;
@@ -893,18 +946,18 @@ enumError DecLZMA2_File2Buf // open + read + close lzma stream
     if ( res != SZ_OK )
 	return ERROR0(ERR_LZMA,
 		"Error while setup LZMA properties: %s\n-> LZMA error: %s\n",
-		file->fname, GetMessageLZMA(res,"?") );
+		f->fname, GetMessageLZMA(res,"?") );
 
     enumError err = ERR_OK;
     u8 in_buf[0x10000];
     size_t in_buf_len = 0;
 
-    const int read_behind_eof = file->read_behind_eof;
-    if ( !read_count && file->seek_allowed && file->st.st_size )
-	read_count = file->st.st_size - file->cur_off;
+    const int read_behind_eof = f->read_behind_eof;
+    if ( !read_count && f->seek_allowed && f->st.st_size )
+	read_count = f->st.st_size - f->cur_off;
     const bool have_max_read = read_count > 0;
     if (!have_max_read)
-	file->read_behind_eof = 2;
+	f->read_behind_eof = 2;
 
     u8 * dest = buf;
     u32 written = 0;
@@ -912,6 +965,8 @@ enumError DecLZMA2_File2Buf // open + read + close lzma stream
     Lzma2Dec_Init(&lzma);
     for(;;)
     {
+	// [2do] [progress]
+
 	//--- fill input buffer
 
 	ELzmaFinishMode finish = LZMA_FINISH_ANY;
@@ -924,13 +979,13 @@ enumError DecLZMA2_File2Buf // open + read + close lzma stream
 	    finish = LZMA_FINISH_END;
 	}
 	noPRINT("READ off=%llx, size=%zx=%zu, to=%zu\n",
-		(u64)file->cur_off, read_size, read_size, in_buf_len );
-	err = ReadF(file,in_buf+in_buf_len,read_size);
+		(u64)f->cur_off, read_size, read_size, in_buf_len );
+	err = ReadF(f,in_buf+in_buf_len,read_size);
 	if (err)
 	    return err;
 	in_buf_len	 += read_size;
 	read_count	 -= read_size;
-	file->bytes_read -= read_size; // count only decompressed data
+	f->bytes_read -= read_size; // count only decompressed data
 
 	if (!in_buf_len)
 	    break;
@@ -953,12 +1008,12 @@ enumError DecLZMA2_File2Buf // open + read + close lzma stream
 	if ( res != SZ_OK )
 	    return ERROR0(ERR_LZMA,
 		"Error while reading LZMA stream: %s\n-> LZMA error: %s\n",
-		file->fname, GetMessageLZMA(res,"?") );
+		f->fname, GetMessageLZMA(res,"?") );
 
 	written		 += out_len;
 	dest		 += out_len;
 	buf_size	 -= out_len;
-	file->bytes_read += out_len; // count only decompressed data
+	f->bytes_read	+= out_len; // count only decompressed data
 
 	if ( in_len < in_buf_len )
 	{
@@ -972,7 +1027,7 @@ enumError DecLZMA2_File2Buf // open + read + close lzma stream
 	    break;
     }
 
-    file->read_behind_eof = read_behind_eof;
+    f->read_behind_eof = read_behind_eof;
     Lzma2Dec_Free(&lzma,&lzma_alloc);
 
     if (bytes_written)

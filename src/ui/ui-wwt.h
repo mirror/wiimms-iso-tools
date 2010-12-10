@@ -319,7 +319,9 @@ typedef enum enumOptions
 //				| OB_TRUNC
 //				| OB_CHUNK_MODE
 //				| OB_CHUNK_SIZE
-//				| OB_MAX_CHUNKS,
+//				| OB_MAX_CHUNKS
+//				| OB_COMPRESSION
+//				| OB_MEM,
 //
 //	OB_CMD_VERSION		= OB_SECTIONS
 //				| OB_LONG,

@@ -3009,6 +3009,16 @@ int wd_iterate_files
 	for ( part = disc->part; part < part_end; part++ )
 	    if ( part->is_valid && part->is_enabled )
 	    {
+		wd_part_t *part2;
+		for ( part2 = disc->part; part2 < part; part2++ )
+		    if (   part2->is_valid
+			&& part2->is_enabled
+			&& part2->part_type == part->part_type )
+		    {
+			prefix_mode = WD_IPM_COMBI;
+			goto exit_auto_text;
+		    }
+
 		if ( part->part_type == WD_PART_DATA )
 		    count++;
 		else
@@ -3016,6 +3026,7 @@ int wd_iterate_files
 	    }
 	prefix_mode = count == 1 ? WD_IPM_POINT : WD_IPM_PART_NAME;
     }
+ exit_auto_text:
     it.prefix_mode = prefix_mode;
 
 
@@ -3038,8 +3049,19 @@ int wd_iterate_files
 		strcpy(it.prefix,"./");
 		break;
 
-	    case WD_IPM_PART_INDEX:
+	    case WD_IPM_PART_ID:
 		snprintf(it.prefix,sizeof(it.prefix),"P%x/", part->part_type );
+		break;
+
+	    case WD_IPM_PART_INDEX:
+		snprintf(it.prefix,sizeof(it.prefix),"P%u.%u/",
+			part->ptab_index, part->ptab_part_index );
+		break;
+
+	    case WD_IPM_COMBI:
+		snprintf(it.prefix,sizeof(it.prefix),"P%u.%u-%s/",
+			part->ptab_index, part->ptab_part_index,
+			wd_print_part_name(0,0,part->part_type,WD_PNAME_NAME));
 		break;
 
 	    //case WD_IPM_PART_NAME:
