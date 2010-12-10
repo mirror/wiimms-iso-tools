@@ -58,13 +58,14 @@ typedef enum enumOptions
 	OPT_PRESERVE,
 	OPT_SPLIT,
 	OPT_SPLIT_SIZE,
+	OPT_PREALLOC,
 	OPT_CHUNK_MODE,
 	OPT_CHUNK_SIZE,
 	OPT_MAX_CHUNKS,
 	OPT_COMPRESSION,
 	OPT_MEM,
 
-	OPT__N_SPECIFIC, // == 22 
+	OPT__N_SPECIFIC, // == 23 
 
 	//----- global options -----
 
@@ -77,7 +78,7 @@ typedef enum enumOptions
 	OPT_LOGGING,
 	OPT_TEST,
 
-	OPT__N_TOTAL // == 30
+	OPT__N_TOTAL // == 31
 
 } enumOptions;
 
@@ -108,6 +109,7 @@ typedef enum enumOptions
 //	OB_PRESERVE		= 1llu << OPT_PRESERVE,
 //	OB_SPLIT		= 1llu << OPT_SPLIT,
 //	OB_SPLIT_SIZE		= 1llu << OPT_SPLIT_SIZE,
+//	OB_PREALLOC		= 1llu << OPT_PREALLOC,
 //	OB_CHUNK_MODE		= 1llu << OPT_CHUNK_MODE,
 //	OB_CHUNK_SIZE		= 1llu << OPT_CHUNK_SIZE,
 //	OB_MAX_CHUNKS		= 1llu << OPT_MAX_CHUNKS,
@@ -125,6 +127,7 @@ typedef enum enumOptions
 //	OB_GRP_DEST_PLUS	= OB_GRP_DEST
 //				| OB_SPLIT
 //				| OB_SPLIT_SIZE
+//				| OB_PREALLOC
 //				| OB_CHUNK_MODE
 //				| OB_CHUNK_SIZE
 //				| OB_MAX_CHUNKS
@@ -149,7 +152,7 @@ typedef enum enumOptions
 //	OB_CMD_PACK		= OB_CMD_UNPACK
 //				| OB_GRP_FILETYPE,
 //
-//	OB_CMD_CAT		= OB_GRP_DEST_PLUS,
+//	OB_CMD_CAT		= OB_GRP_DEST,
 //
 //	OB_CMD_CMP		= 0,
 //
@@ -218,6 +221,7 @@ typedef enum enumGetOpt
 	GO_CHUNK,
 	GO_WIA,
 	GO_WBI,
+	GO_PREALLOC,
 	GO_CHUNK_MODE,
 	GO_CHUNK_SIZE,
 	GO_MAX_CHUNKS,

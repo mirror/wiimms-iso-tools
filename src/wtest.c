@@ -255,7 +255,7 @@ enumError CreateWBFSFile
 )
 {
     DASSERT(sf);
-    enumError err = CreateSF(sf,fname,OFT_WBFS,IOM_IS_WBFS_PART,overwrite,0);
+    enumError err = CreateSF(sf,fname,OFT_WBFS,IOM_IS_WBFS_PART,overwrite);
     if ( !err && sf->wbfs )
     {
 	CloseWDisc(sf->wbfs);
@@ -287,7 +287,7 @@ int test_copy_to_wbfs ( int argc, char ** argv )
 		InitializeSF(&fo);
 		enumError err = CreateWBFSFile(&fo,"pool/a.wbfs",true,&disc->dhead,0);
 		if (!err)
-		    err = CopySF(&fi,&fo,false);
+		    err = CopySF(&fi,&fo);
 		ResetSF(&fo,0);
 	    }
 	}
@@ -347,7 +347,7 @@ int test_print_size ( int argc, char ** argv )
 ///////////////			test_wbfs_free_blocks()		///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-int test_wbfs_free_blocks ( int argc, char ** argv )
+static int test_wbfs_free_blocks ( int argc, char ** argv )
 {
     int i;
     for ( i = 1; i < argc; i++ )
@@ -375,6 +375,63 @@ int test_wbfs_free_blocks ( int argc, char ** argv )
 
 //
 ///////////////////////////////////////////////////////////////////////////////
+///////////////			test_open_wdisk()		///////////////
+///////////////////////////////////////////////////////////////////////////////
+
+static void dump_wbfs ( WBFS_t * w, enumError err, ccp title )
+{
+    DASSERT(w);
+    DASSERT(title);
+
+    printf("\n----- %s [%s] -----\n",title,GetErrorName(err));
+    printf("%p: sf=%p wbfs=%p disc=%p slot=%d\n",
+		w, w->sf, w->wbfs, w->disc, w->disc_slot );
+
+    SuperFile_t * sf = w->sf;
+    if (sf)
+    {
+	printf("sf: id=%s, oft=%u=%s, wbfs=%p, fname=%s\n",
+		sf->f.id6,
+		sf->iod.oft, oft_info[sf->iod.oft].name,
+		sf->wbfs, sf->f.fname );
+
+	char buf[16];
+	memset(buf,0,sizeof(buf));
+	ReadSF(sf,0,buf,sizeof(buf));
+	HEXDUMP16(0,0,buf,sizeof(buf));
+    }
+}
+
+//-------------------------------------------------------------------------------
+
+static int test_open_wdisk ( int argc, char ** argv )
+{
+    int i;
+    for ( i = 1; i < argc; i++ )
+    {
+	WBFS_t wbfs;
+	InitializeWBFS(&wbfs);
+	enumError err = OpenWBFS(&wbfs,argv[i],true,0);
+	dump_wbfs(&wbfs,err,"Open WBFS");
+
+	err = OpenWDiscSlot(&wbfs,0,false);
+	dump_wbfs(&wbfs,err,"Open Disc");
+
+	err = OpenWDiscSF(&wbfs);
+	dump_wbfs(&wbfs,err,"Open Disc");
+
+	err = CloseWDisc(&wbfs);
+	dump_wbfs(&wbfs,err,"Close Disc");
+	
+	err = ResetWBFS(&wbfs);
+	dump_wbfs(&wbfs,err,"Close WBFS");
+    }
+
+    return ERR_OK;
+}
+
+//
+///////////////////////////////////////////////////////////////////////////////
 ///////////////			test()				///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -387,9 +444,10 @@ int test ( int argc, char ** argv )
     //test_create_sparse_file();
     //test_splitted_file();
     //test_copy_to_wbfs(argc,argv);
-    test_print_size(argc,argv);
+    //test_print_size(argc,argv);
     //test_wbfs_free_blocks(argc,argv);
-
+    test_open_wdisk(argc,argv);
+   
     return 0;
 }
 
@@ -579,143 +637,6 @@ static void test_hexdump ( int argc, char ** argv )
 
 //
 ///////////////////////////////////////////////////////////////////////////////
-///////////////			test_lzma()			///////////////
-///////////////////////////////////////////////////////////////////////////////
-
-static enumError test_lzma ( int argc, char ** argv )
-{
-    putchar('\n');
-
-
-    //----- setup buffer
-
-    u8 src_buf[0x40000];
-    u8 dest_buf[sizeof(src_buf)+10];
-
-    int i;
-    for ( i = 0; i < sizeof(src_buf); i++ )
-	src_buf[i] = (u8)i;
-    for ( i = 0; i < sizeof(src_buf); i += 10 )
-	src_buf[i] = (u8)Random32(0);
-
-
-    //---- setup file
-
-    File_t f;
-    InitializeFile(&f);
-
-    //----- compress
-
-    enumError err = CreateFile(&f,"pool/lzma.tmp",IOM__IS_DEFAULT,1);
-    if (err)
-	return err;
-
-    err = EncLZMA_Data2File(0,&f,opt_compr_level,true,true,src_buf,sizeof(src_buf),0);
-    if (err)
-	return err;
-
-    err = CloseFile(&f,0);
-    if (err)
-	return err;
-
-
-    //----- decompress
-
-    err = OpenFile(&f,"pool/lzma.tmp",IOM__IS_DEFAULT);
-    if (err)
-	return err;
-
-    u32 written;
-    err = DecLZMA_File2Buf(&f,0,dest_buf,sizeof(dest_buf),&written,0);
-    PRINT("Decode called, err=%d, written=%x=%u\n",err,written,written);
-    if (err)
-	return err;
-
-    err = CloseFile(&f,0);
-    if (err)
-	return err;
-
-
-    //----- compare
-
-    if (memcmp(src_buf,dest_buf,sizeof(src_buf)))
-	printf("\n!!! BUFFER DIFFER !!!\n\n");
-    else
-	printf("\n+ buffer ok.\n\n");
-
-    return ERR_OK;
-}
-
-//
-///////////////////////////////////////////////////////////////////////////////
-///////////////			test_lzma2()			///////////////
-///////////////////////////////////////////////////////////////////////////////
-
-static enumError test_lzma2 ( int argc, char ** argv )
-{
-    putchar('\n');
-
-
-    //----- setup buffer
-
-    u8 src_buf[0x40000];
-    u8 dest_buf[sizeof(src_buf)+10];
-
-    int i;
-    for ( i = 0; i < sizeof(src_buf); i++ )
-	src_buf[i] = (u8)i;
-    for ( i = 0; i < sizeof(src_buf); i += 10 )
-	src_buf[i] = (u8)Random32(0);
-
-
-    //---- setup file
-
-    File_t f;
-    InitializeFile(&f);
-
-    //----- compress
-
-    enumError err = CreateFile(&f,"pool/lzma.tmp",IOM__IS_DEFAULT,1);
-    if (err)
-	return err;
-
-    err = EncLZMA2_Data2File(0,&f,opt_compr_level,true,true,src_buf,sizeof(src_buf),0);
-    if (err)
-	return err;
-
-    err = CloseFile(&f,0);
-    if (err)
-	return err;
-
-    //----- decompress
-
-    err = OpenFile(&f,"pool/lzma.tmp",IOM__IS_DEFAULT);
-    if (err)
-	return err;
-
-    u32 written;
-    err = DecLZMA2_File2Buf(&f,0,dest_buf,sizeof(dest_buf),&written,0);
-    PRINT("Decode called, err=%d, written=%x=%u\n",err,written,written);
-    if (err)
-	return err;
-
-    err = CloseFile(&f,0);
-    if (err)
-	return err;
-
-
-    //----- compare
-
-    if (memcmp(src_buf,dest_buf,sizeof(src_buf)))
-	printf("\n!!! BUFFER DIFFER !!!\n\n");
-    else
-	printf("\n+ buffer ok.\n\n");
-
-    return ERR_OK;
-}
-
-//
-///////////////////////////////////////////////////////////////////////////////
 ///////////////			test_sha1()			///////////////
 ///////////////////////////////////////////////////////////////////////////////
 #ifdef HAVE_OPENSSL
@@ -731,8 +652,7 @@ void test_sha1()
     const int M = 50000;
 
     int wit_failed = 0;
-    u8 h1[100], h2[100], source[1000-21];;
-
+    u8 h1[100], h2[100], source[1000-21];
     printf("\n*** test SHA1 ***\n\n");
 
     int i;
@@ -774,59 +694,24 @@ void test_sha1()
 ///////////////			develop()			///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-static void patch_func
-(
-    void			* param,	// user defined parameter
-    struct wd_memmap_t		* patch,	// valid pointer to patch object
-    struct wd_memmap_item_t	* item		// valid pointer to inserted item
-)
-{
-    printf(" -> %s\n",item->info);
-}
-
-///////////////////////////////////////////////////////////////////////////////
-
-static enumError develop_sf ( SuperFile_t * sf )
-{
-    wd_disc_t * disc = OpenDiscSF(sf,true,true);
-    if (!disc)
-	return ERR_WDISC_NOT_FOUND;
-
-    wd_memmap_t mm;
-    memset(&mm,0,sizeof(mm));
-    int n = wd_insert_memmap_disc_part(&mm,disc,patch_func,0,1,2,3,4,5);
-
-    printf("Dump, N=%d:\n",n);
-    wd_print_memmap(stdout,3,&mm);
-    printf("---\n");
-
-    return ERR_OK;
-}
-
-///////////////////////////////////////////////////////////////////////////////
-
 static enumError develop ( int argc, char ** argv )
 {
-    putchar('\n');
+    MemMap_t mm;
+    InitializeMemMap(&mm);
+
     int i;
+    for ( i = 0x1000; i <= 0x1900; i += 0x100 )
+	InsertMemMapTie(&mm,i,0x10);
 
-    for ( i = 1; i < argc; i++ )
-    {
-	if ( *argv[i] == '-' )
-	    continue;
+    putchar('\n'); PrintMemMap(&mm,stdout,3); putchar('\n'); getchar();
 
-	SuperFile_t sf;
-	InitializeSF(&sf);
-	if (!OpenSF(&sf,argv[i],false,false))
-	{
-	    printf("*** %s\n",sf.f.fname);
-	    const enumError err = develop_sf(&sf);
-	    CloseSF(&sf,0);
-	    if (err)
-		return err;
-	}
-    }
+    InsertMemMapTie(&mm,0x1110,5);
+    InsertMemMapTie(&mm,0x1208,0x10);
+    InsertMemMapTie(&mm,0x1408,0x300);
+    
+    putchar('\n'); PrintMemMap(&mm,stdout,3); putchar('\n'); getchar();
 
+    ResetMemMap(&mm);
     return ERR_OK;
 }
 
@@ -843,8 +728,6 @@ enum
     CMD_MATCH_PATTERN,		// test_match_pattern(argc,argv);
     CMD_OPEN_DISC,		// test_open_disc(argc,argv);
     CMD_HEXDUMP,		// test_hexdump(argc,argv);
-    CMD_LZMA,			// test_lzma(argc,argv);
-    CMD_LZMA2,			// test_lzma2(argc,argv);
 
     CMD_SHA1,			// test_sha1();
     CMD_WIIMM,			// test_wiimm(argc,argv);
@@ -865,8 +748,6 @@ static const CommandTab_t CommandTab[] =
 	{ CMD_MATCH_PATTERN,	"MATCH",	0,		0 },
 	{ CMD_OPEN_DISC,	"OPENDISC",	"ODISC",	0 },
 	{ CMD_HEXDUMP,		"HEXDUMP",	0,		0 },
-	{ CMD_LZMA,		"LZMA",		"L1",		0 },
-	{ CMD_LZMA2,		"LZMA2",	"L2",		0 },
 
  #ifdef HAVE_OPENSSL
 	{ CMD_SHA1,		"SHA1",		0,		0 },
@@ -951,8 +832,6 @@ int main ( int argc, char ** argv )
 	case CMD_MATCH_PATTERN:		test_match_pattern(argc,argv); break;
 	case CMD_OPEN_DISC:		test_open_disc(argc,argv); break;
 	case CMD_HEXDUMP:		test_hexdump(argc,argv); break;
-	case CMD_LZMA:			test_lzma(argc,argv); break;
-	case CMD_LZMA2:			test_lzma2(argc,argv); break;
 
  #ifdef HAVE_OPENSSL
 	case CMD_SHA1:			test_sha1(); break;

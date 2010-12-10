@@ -134,8 +134,8 @@ typedef struct info_t
 	" case is ignored:" \
 	" @NONE, FBT, INODES, STANDARD," \
 	" RM-INVALID, RM-OVERLAP, RM-FREE, RM-EMPTY, RM-ALL, ALL@." \
-	"\n" \
-	"All keywords can be prefixed by '+' to enable that option," \
+	"\n " \
+	" All keywords can be prefixed by '+' to enable that option," \
 	" by a '-' to disable it or" \
 	" by a '=' to enable that option and disable all others."
 
@@ -148,8 +148,12 @@ typedef struct info_t
 	" best for USB loaders)." \
 	" The case of the keyword is ignored." \
 	" The default key is @'" def "'@." \
-	"\n" \
-	"@--chm@ is a shortcut for @--chunk-mode@."
+	"\n " \
+	" @--chm@ is a shortcut for @--chunk-mode@."
+
+#define TEXT_EXTRACT_LONG \
+	"Print a summary line while extracting files." \
+	" If set at least twice, print a status line for each extracted files."
 
 //
 ///////////////////////////////////////////////////////////////////////////////
@@ -251,10 +255,6 @@ info_t info_tab[] =
 		" header.bin, boot.bin, fst.bin and of DOL-files."
 		" The file type is detected automatically by analyzing the content." },
 
-  { H_DEF_CMD,	"DREGION",	"DREGION|DR",
-		    "wit DREGION [source]...",
-		"Dump the region settings of Wii ISO files." },
-
   { T_DEF_CMD,	"ID6",		"ID6|ID",
 		    "wit ID6 [id]...",
 		"Print ID6 of all found ISO files."
@@ -317,9 +317,8 @@ info_t info_tab[] =
 		"Extract all files from the source discs." },
 
   { T_DEF_CMD,	"COPY",		"COPY|CP",
-		    "wit COPY source dest"
-		"\n"
-		"wit COPY [-s path]... [-r path]... [source]... [-d|-D] dest",
+		    "wit COPY source dest\n"
+		    "wit COPY [-s path]... [-r path]... [source]... [-d|-D] dest",
 		"Copy, scrub, convert, join, split, compose, extract,"
 		" patch, encrypt and decrypt Wii and GameCube disc images." },
 
@@ -329,7 +328,13 @@ info_t info_tab[] =
 		"Convert, scrub, join, split, compose, extract,"
 		" patch, encrypt and decrypt Wii and GameCube disc images"
 		" and replace the source with the result."
-		" The former command name was @SCRUB@." },
+		" The former command name was @SCRUB@."
+		"\n "
+		" {wit CONVERT} is like {wit COPY} but removes the source"
+		" and replace it with the new file if copying is successful."
+		" It have been implemented as replacement of the @SCRUB@ command"
+		" of other tools. {wit CONVERT does more than only scrubbing"
+		" and rherefor it was renamed from @'SCRUB'@ to @'CONVERT'@." },
 
   { T_DEF_CMD,	"EDIT",		"EDIT|ED",
 		    "wit EDIT source\n"
@@ -386,8 +391,8 @@ info_t info_tab[] =
 
   { T_OPT_GP,	"WIDTH",	"width",
 		"width",
-		"Define the width (number of columns) for help and some other messages."
-		" This option disables the automatic detection of the terminal width." },
+		"Define the width (number of columns) for help and some other messages"
+		" and disable the automatic detection of the terminal width." },
 
   { T_OPT_GM,	"QUIET",	"q|quiet",
 		0,
@@ -431,11 +436,11 @@ info_t info_tab[] =
 
   { T_OPT_G,	"UTF_8",	"utf-8|utf8",
 		0,
-		"Enables UTF-8 support (default)." },
+		"Enables UTF-8 support for filenames (default)." },
 
   { T_OPT_G,	"NO_UTF_8",	"no-utf-8|no-utf8|noutf8",
 		0, 
-		"Disables UTF-8 support (CYGWIN default)." },
+		"Disables UTF-8 support for filenames." },
 
   { T_OPT_GP,	"LANG",		"lang",
 		"lang", 
@@ -501,8 +506,8 @@ info_t info_tab[] =
   { T_OPT_CMP,	"INCLUDE",	"n|include",
 		"id",
 		"A comma separated list with ID values is expected."
-		" @'.'@ is a wildcard for exact 1 character and @'+'@ and @'*'@"
-		" (same meaning) are wildcards for any number characters."
+		" @'.'@ is a wildcard for exact 1 character and @'+'@"
+		" is a wildcard for any number characters."
 		" If the parameter begins with a '@@' the given file is read"
 		" and each line is scanned for one ID."
 		" Only images with the given ID are included into the operation."
@@ -520,8 +525,8 @@ info_t info_tab[] =
   { T_OPT_CMP,	"EXCLUDE",	"x|exclude",
 		"id",
 		"A comma separated list with ID4 and ID6 values is expected."
-		" @'.'@ is a wildcard for exact 1 character and @'+'@ and @'*'@"
-		" (same meaning) are wildcards for any number characters."
+		" @'.'@ is a wildcard for exact 1 character and @'+'@"
+		" is a wildcard for any number characters."
 		" If the parameter begins with a '@@' the given file is read"
 		" and each line is scanned for one ID."
 		" Images with the given ID are excluded from operation."
@@ -537,7 +542,7 @@ info_t info_tab[] =
   { T_OPT_C,	"ONE_JOB",	"1|one-job|onejob",
 		0,
 		"Execute only the first job and exit."
-		" This is a shortcut for {job-limit 1}." },
+		" This is a shortcut for {--job-limit 1}." },
 
   { T_OPT_CP,	"JOB_LIMIT",	"job-limit|joblimit",
 		"num",
@@ -588,8 +593,8 @@ info_t info_tab[] =
 		" The following input formats are accepted too:"
 		" @ptype@, @#index@, @#<index@, @#<=index@, @#>index@, @#>=index@"
 		" and @#tab_index.part_index@."
-		"\1\n"
-		"See http://wit.wiimm.de/opt/psel for more details." },
+		"\1\n "
+		" See http://wit.wiimm.de/opt/psel for more details." },
 
   { T_OPT_C,	"RAW",		"raw",
 		0, "Abbreviation of {--psel RAW}." },
@@ -598,8 +603,9 @@ info_t info_tab[] =
 		"p-mode",
 		"This options set the prefix mode for listed or extracted files."
 		" One of the following values is allowed:"
-		" @AUTO, NONE, POINT, NAME, INDEX@."
-		" The default value is @'auto'@." },
+		" @AUTO, NONE, POINT, ID, NAME, INDEX, COMBI@."
+		" The default value is @'AUTO'@."
+		"\1 See http://wit.wiimm.de/opt/pmode for more details." },
 
   { T_OPT_C,	"SNEEK",	"sneek",
 		0, "Abbreviation of {--psel data --pmode none --files :sneek}." },
@@ -745,11 +751,11 @@ info_t info_tab[] =
 
   { T_OPT_C,	"SPLIT",	"z|split",
 		0,
-		"Enable output file splitting, default split size = 4 GB." },
+		"Enable output file splitting. The default split size is 4 GB." },
 
   { T_OPT_CP,	"SPLIT_SIZE",	"Z|split-size|splitsize",
 		"sz",
-		"Enable output file splitting and define split size."
+		"Enable output file splitting and define a split size."
 		" The parameter 'sz' is a floating point number followed"
 		" by an optional unit factor (one of 'cb' [=1] or "
 		" 'kmgtpe' [base=1000] or 'KMGTPE' [base=1024])."
@@ -759,8 +765,33 @@ info_t info_tab[] =
 		"size",
 		"Define a minimal (virtual) ISO disc size." },
 
+  { T_OPT_CO,	"PREALLOC",	"prealloc",
+		"[=mode]",
+		"This option enables or disables the disc space preallocation."
+		" If enabled the tools try to allocate disc space for the new files"
+		" before writing the data. This reduces the fragmentation but also"
+		" disables the sparse effect for prealocated areas."
+		"\n "
+		" The optional parameter decides the preallocation mode:"
+		" @OFF@ (or @0@), @SMART@ (or @1@), @ALL@ (or @2@)."
+		" If no parameter is set, @ALL@ is used."
+		"\n "
+		" Mode @'OFF'@ disables the preallocation."
+		" This is the default for all non Cygwin releases"
+		" because preallocation has only advantages on Windows systems."
+		" Mode @'SMART'@ looks into the source disc to find out the writing areas."
+		" @SMART@ is only avalable for $ISO$, $CISO$ and $WBFS$ file types."
+		" For other file types @ALL@ is used instead."
+		" Mode @'ALL'@ preallocate the whole destination file."
+		" This is the default for Cygwin."
+		" Because of the large holes in plain ISO images,"
+		" the @SMART@ mode is used for ISOs instead."
+		"\n "
+		" Mac ignores this option"
+		" because the needed preallocation function is not avaialable." },
+
   { T_OPT_C,	"TRUNC",	"trunc",
-		0, "Truncate PLAIN ISO images to the needed size while creating." },
+		0, "Truncate a $PLAIN ISO$ images to the needed size while creating." },
 
   { T_OPT_CP,	"CHUNK_MODE",	"chunk-mode|chunkmode|chm",
 		"mode", TEXT_OPT_CHUNK_MODE("ISO") },
@@ -826,7 +857,8 @@ info_t info_tab[] =
 		"\n "
 		" All three parts are optional."
 		" All default values may be changed in the future."
-		" @--compr@ is a shortcut for @--compression@."
+		" @--compr@ is a shortcut for @--compression@"
+		" and {--wia=mode} a shortcut for {--wia --compression mode}."
 		" The command {wit COMPR} prints an overview about all compression modes." },
 
   { T_OPT_CP,	"MEM",		"mem",
@@ -834,7 +866,7 @@ info_t info_tab[] =
 		"This option defines a memory usage limit for compressing files."
 		" When compressing a file with method @MEM@ (see {--compression})"
 		" the the compression method, level and chunk size"
-		" are calculated with respect to this limit."
+		" are selected with respect to this limit."
 		"\n "
 		" If this option is not set or the value is 0,"
 		" then the environment @WIT_MEM@ is tried to read instead."
@@ -843,16 +875,22 @@ info_t info_tab[] =
 		" The limit is set to 80% of the total memory minus 50 MiB." },
 
   { T_OPT_C,	"PRESERVE",	"p|preserve",
-		0, "Preserve file times (atime+mtime)." },
+		0,
+		"Preserve file times (atime+mtime) while copying an image."
+		" This option is enabled by default if an unmodified disc image is copied." },
 
   { T_OPT_C,	"UPDATE",	"u|update",
-		0, "Copy only non existing files, ignore other without warning." },
+		0,
+		"Copy only files that does not exist."
+		" Already existing files are ignored without warning." },
 
   { T_OPT_C,	"OVERWRITE",	"o|overwrite",
-		0, "Overwrite already existing files." },
+		0,
+		"Overwrite already existing files without warning." },
 
   { T_OPT_C,	"DIFF",		"diff",
-		0, "Diff source and dest after copying." },
+		0,
+		"Diff source and destination after copying." },
 
   { T_OPT_C,	"REMOVE",	"R|remove",
 		0,
@@ -888,7 +926,7 @@ info_t info_tab[] =
 		"Append a file select rules."
 		" This option can be used multiple times to extend the rule list."
 		" Rules beginning with a '+' or a '-' are allow or deny rules rules."
-		" Rules beginning with a '=' are macros for internal rule sets."
+		" Rules beginning with a ':' are macros for predefined rule sets."
 		"\1\n "
 		" See http://wit.wiimm.de/info/file-filter.html"
 		" for more details about file filters." },
@@ -1013,12 +1051,20 @@ info_t info_tab[] =
 
   { T_SEP_OPT,	0,0,0,0 },
 
-  //---------- wit GROUP FST ----------
+  //---------- wit GROUP FST_IGNORE ----------
 
-  { T_GRP_BEG,	"FST",		0,0,0 },
+  { T_GRP_BEG,	"FST_IGNORE",	0,0,0 },
 
   { T_COPT,	"IGNORE_FST",	0,0,0 },
   { T_COPT,	"IGNORE_SETUP",	0,0,0 },
+
+  //---------- wit GROUP FST_SELECT ----------
+
+  { T_GRP_BEG,	"FST_SELECT",	0,0,0 },
+
+  { T_COPT,	"PMODE",	0,0,0 },
+  { T_COPT_M,	"FILES",	0,0,0 },
+  { T_COPT,	"SNEEK",	0,0,0 },
 
   //---------- wit GROUP SOURCE ----------
 
@@ -1058,7 +1104,7 @@ info_t info_tab[] =
   { T_COPY_GRP,	"SOURCE",	0,0,0 },
   { T_COPY_GRP,	"EXCLUDE",	0,0,0 },
   { T_COPT_M,	"IGNORE",	0,0,0 },
-  { T_COPY_GRP,	"FST",		0,0,0 },
+  { T_COPY_GRP,	"FST_IGNORE",	0,0,0 },
 
   { T_SEP_OPT,	0,0,0,0 },
 
@@ -1109,14 +1155,6 @@ info_t info_tab[] =
   { T_COPT,	"PSEL",		0,0,0 },
   { T_COPT,	"RAW",		0,0,0 },
 
-  //---------- wit GROUP FILES ----------
-
-  { T_GRP_BEG,	"FILES",	0,0,0 },
-
-  { T_COPT,	"PMODE",	0,0,0 },
-  { T_COPT_M,	"FILES",	0,0,0 },
-  { T_COPT,	"SNEEK",	0,0,0 },
-
   //---------- wit GROUP PATCH ----------
 
   { T_GRP_BEG,	"PATCH",	0,0,0 },
@@ -1150,6 +1188,7 @@ info_t info_tab[] =
   { T_COPT,	"SPLIT",	0,0,0 },
   { T_COPT,	"SPLIT_SIZE",	0,0,0 },
   { T_COPT,	"DISC_SIZE",	0,0,0 },
+  { T_COPT,	"PREALLOC",	0,0,0 },
   { T_COPT,	"TRUNC",	0,0,0 },
   { T_COPT,	"CHUNK_MODE",	0,0,0 },
   { T_COPT,	"CHUNK_SIZE",	0,0,0 },
@@ -1270,6 +1309,7 @@ info_t info_tab[] =
 
   { T_COPT,	"AUTO",		0,0,0 },
   { T_COPY_GRP,	"XXSOURCE",	0,0,0 },
+  { T_COPY_GRP,	"PARTITIONS",	0,0,0 },
   { T_COPT,	"NO_HEADER",	0,0,0 },
   { T_COPT_M,	"LONG",		0,0,
 	"If set the size is printed in MiB too."
@@ -1301,9 +1341,9 @@ info_t info_tab[] =
   { T_COPY_GRP,	"TITLES",	0,0,0 },
   { T_COPT,	"AUTO",		0,0,0 },
   { T_COPY_GRP,	"XSOURCE",	0,0,0 },
-  { T_COPY_GRP,	"FST",		0,0,0 },
+  { T_COPY_GRP,	"FST_IGNORE",	0,0,0 },
   { T_COPY_GRP,	"PARTITIONS",	0,0,0 },
-  { T_COPY_GRP,	"FILES",	0,0,0 },
+  { T_COPY_GRP,	"FST_SELECT",	0,0,0 },
 
   { T_SEP_OPT,	0,0,0,0 },
 
@@ -1319,20 +1359,13 @@ info_t info_tab[] =
   { T_COPY_GRP,	"RELOCATE",	0,0,0 },
   { T_COPT,	"DISC_SIZE",	0,0,0 },
 
-  //---------- COMMAND wit DREGION ----------
-
-  { T_CMD_BEG,	"DREGION",	0,0,0 },
-
-  { T_COPT,	"AUTO",		0,0,0 },
-  { T_COPY_GRP,	"XSOURCE",	0,0,0 },
-
   //---------- COMMAND wit ID6 ----------
 
   { T_CMD_BEG,	"ID6",		0,0,0 },
 
   { T_COPT,	"AUTO",		0,0,0 },
   { T_COPY_GRP,	"XSOURCE",	0,0,0 },
-  { T_COPY_GRP,	"FST",		0,0,0 },
+  { T_COPY_GRP,	"FST_IGNORE",	0,0,0 },
 
   { T_COPT_M,	"LOGGING",	0,0,0 },
   { T_COPT_M,	"LONG",		0,0,
@@ -1345,7 +1378,7 @@ info_t info_tab[] =
   { T_COPY_GRP,	"TITLES",	0,0,0 },
   { T_COPT,	"AUTO",		0,0,0 },
   { T_COPY_GRP,	"XSOURCE",	0,0,0 },
-  { T_COPY_GRP,	"FST",		0,0,0 },
+  { T_COPY_GRP,	"FST_IGNORE",	0,0,0 },
 
   { T_COPT_M,	"LOGGING",	0,0,0 },
   { T_COPT,	"UNIQUE",	0,0,0 },
@@ -1388,7 +1421,7 @@ info_t info_tab[] =
   { T_COPT,	"AUTO",		0,0,0 },
   { T_COPY_GRP,	"XXSOURCE",	0,0,0 },
   { T_COPY_GRP,	"PARTITIONS",	0,0,0 },
-  { T_COPY_GRP,	"FILES",	0,0,0 },
+  { T_COPY_GRP,	"FST_SELECT",	0,0,0 },
 
   { T_SEP_OPT,	0,0,0,0 },
 
@@ -1423,7 +1456,7 @@ info_t info_tab[] =
   { T_COPT,	"AUTO",		0,0,0 },
   { T_COPY_GRP,	"XXSOURCE",	0,0,0 },
   { T_COPY_GRP,	"PARTITIONS",	0,0,0 },
-  { T_COPY_GRP,	"FILES",	0,0,0 },
+  { T_COPY_GRP,	"FST_SELECT",	0,0,0 },
 
   { T_SEP_OPT,	0,0,0,0 },
 
@@ -1457,7 +1490,7 @@ info_t info_tab[] =
   { T_COPT,	"AUTO",		0,0,0 },
   { T_COPY_GRP,	"XXSOURCE",	0,0,0 },
   { T_COPY_GRP,	"PARTITIONS",	0,0,0 },
-  { T_COPY_GRP,	"FILES",	0,0,0 },
+  { T_COPY_GRP,	"FST_SELECT",	0,0,0 },
   { T_COPT,	"SORT",		0,0,
 	"Define the extracting order."
 	" The parameter is a comma separated list of the following keywords:"
@@ -1467,6 +1500,7 @@ info_t info_tab[] =
 
   { T_COPT,	"QUIET",	0,0,0 },
   { T_COPT_M,	"VERBOSE",	0,0,0 },
+  { T_COPT_M,	"LONG",		0,0, TEXT_EXTRACT_LONG },
   { T_COPT_M,	"LOGGING",	0,0,0 },
   { T_COPT,	"PROGRESS",	0,0,0 },
 
@@ -1549,6 +1583,7 @@ info_t info_tab[] =
 
   { T_SEP_OPT,	0,0,0,0 },
 
+  { T_COPY_GRP,	"PARTITIONS",	0,0,0 },
   { T_COPY_GRP,	"PATCH",	0,0,0 },
 
 
@@ -1966,6 +2001,12 @@ info_t info_tab[] =
 
   { T_SEP_OPT,	0,0,0,0 }, //----- separator -----
 
+  { T_OPT_CP,	"PMODE",	"pmode",
+		0, 0 /* copy of wit */ },
+
+  { T_OPT_C,	"SNEEK",	"sneek",
+		0, 0 /* copy of wit */ },
+
   { H_OPT_G,	"HOOK",		"hook",
 		0, 0 /* copy of wit */ },
 
@@ -2029,11 +2070,17 @@ info_t info_tab[] =
   { T_OPT_CP,	"DISC_SIZE",	"disc-size|discsize",
 		0, 0 /* copy of wit */ },
 
+  { T_OPT_CO,	"PREALLOC",	"prealloc",
+		0, 0 /* copy of wit */ },
+
   { T_OPT_C,	"TRUNC",	"trunc",
 		0, 0 /* copy of wit */ },
 
-  { T_OPT_C,	"FAST",		"F|fast",
-		0, "Enables fast writing (disables searching for blocks with zeroed data)." },
+  // [2do] [obsolte] hide after 2011-02, remove after 2011-07
+  { T_OPT_C,	"FAST",		"fast",
+		0,
+		"Enables fast writing (disables searching for blocks with zeroed data)."
+		" Don't use this option because it will be discontinued." },
 
   { T_OPT_CP,	"CHUNK_MODE",	"chunk-mode|chunkmode|chm",
 		0, 0 /* copy of wit */ },
@@ -2051,16 +2098,35 @@ info_t info_tab[] =
 		0, 0 /* copy of wit */ },
 
   { T_OPT_CP,	"SIZE",		"s|size",
-		"size", "Floating point size. Factors: bckKmMgGtT, default=G." },
+		"size",
+		"Define then total size of a WBFS file."
+		" @'size'@ is a floating number optionally followed"
+		" by one of the single letter factors 'kKmMgGtT'."
+		" This value is only used while creating a new WBFS file." },
 
   { T_OPT_CP,	"HSS",		"hss|sector-size|sectorsize",
-		"size", "Define HD sector size, default=512. Factors: kKmMgGtT" },
+		"size",
+		"Define HD sector size."
+		" The parameter 'size' is a floating point number followed"
+		" by an optional unit factor (one of 'cb' [=1] or "
+		" 'kmgtpe' [base=1000] or 'KMGTPE' [base=1024])."
+		" Only power of 2 values larger or equal 512 are accepted."
+		" The default value is 512."  },
 
   { T_OPT_CP,	"WSS",		"wss",
-		"size", "Define WBFS sector size, no default. Factors: kKmMgGtT" },
+		"size",
+		"Define WBFS sector size."
+		" The parameter 'size' is a floating point number followed"
+		" by an optional unit factor (one of 'cb' [=1] or "
+		" 'kmgtpe' [base=1000] or 'KMGTPE' [base=1024])."
+		" Only power of 2 values larger or equal 1024 are accepted."
+		" If not set the WBFS sector size is calculated automatically." },
 
   { T_OPT_C,	"RECOVER",	"recover",
-		0, "Format a WBFS in recover mode." },
+		0,
+		"Format a WBFS in recover mode: "
+		" Write the WBFS sector, but don't reset the disc info area."
+		" Then look into each disc slot to find valid discs and restore them." },
 
   { T_OPT_C,	"FORCE",	"f|force",
 		0, "Force operation." },
@@ -2086,11 +2152,14 @@ info_t info_tab[] =
 
   { T_OPT_C,	"SYNC",		"y|sync",
 		0,
-		"Remove and copy discs until the destination WBFS"
+		"Synchronize the destination with all sources:"
+		" Remove and copy discs until the destination WBFS"
 		" contains exactly the same discs as all sources together." },
 
   { T_OPT_C,	"NEWER",	"e|newer|new",
-		0, "If source and dest have valid mtimes: copy if source is newer." },
+		0,
+		"If source and destination have valid mtimes:"
+		" Copy only if source is newer." },
 
   { T_OPT_C,	"OVERWRITE",	"o|overwrite",
 		0, 0 /* copy of wit */ },
@@ -2113,6 +2182,12 @@ info_t info_tab[] =
 		0, 0 /* copy of wit */ },
 
   { T_OPT_C,	"WBFS",		"B|wbfs",
+		0, 0 /* copy of wit */ },
+
+  { T_OPT_CO,	"FST",		"fst",
+		0, 0 /* copy of wit */ },
+
+  { T_OPT_CO,	"FILES",	"files",
 		0, 0 /* copy of wit */ },
 
   { T_SEP_OPT,	0,0,0,0 }, //----- separator -----
@@ -2203,9 +2278,9 @@ info_t info_tab[] =
 
   { T_SEP_OPT,	0,0,0,0 },
 
-  //---------- wwt GROUP FST ----------
+  //---------- wwt GROUP FST_IGNORE ----------
 
-  { T_GRP_BEG,	"FST",		0,0,0 },
+  { T_GRP_BEG,	"FST_IGNORE",	0,0,0 },
 
   { T_COPT,	"IGNORE_FST",	0,0,0 },
   { T_COPT,	"IGNORE_SETUP",	0,0,0 },
@@ -2230,7 +2305,7 @@ info_t info_tab[] =
   { T_COPT_M,	"EXCLUDE",	0,0,0 },
   { T_COPT_M,	"EXCLUDE_PATH",	0,0,0 },
   { T_COPT,	"IGNORE",	0,0,0 },
-  { T_COPY_GRP,	"FST",		0,0,0 },
+  { T_COPY_GRP,	"FST_IGNORE",	0,0,0 },
 
   { T_SEP_OPT,	0,0,0,0 },
 
@@ -2269,7 +2344,23 @@ info_t info_tab[] =
   { T_COPT,	"ISO",		0,0,0 },
   { T_COPT,	"CISO",		0,0,0 },
   { T_COPT,	"WBFS",		0,0,0 },
-//  { H_COPT,	"WIA",		0,0,0 },	// [2do]
+  { T_COPT,	"WIA",		0,0,0 },
+  { T_COPT,	"FST",		0,0,0 },
+
+  //---------- wwt GROUP PARTITIONS ----------
+
+  { T_GRP_BEG,	"PARTITIONS",	0,0,0 },
+
+  { T_COPT,	"PSEL",		0,0,0 },
+  { T_COPT,	"RAW",		0,0,0 },
+
+  //---------- wwt GROUP FST_SELECT ----------
+
+  { T_GRP_BEG,	"FST_SELECT",	0,0,0 },
+
+  { T_COPT,	"PMODE",	0,0,0 },
+  { T_COPT_M,	"FILES",	0,0,0 },
+  { T_COPT,	"SNEEK",	0,0,0 },
 
   //---------- wwt GROUP PATCH ----------
 
@@ -2304,12 +2395,13 @@ info_t info_tab[] =
   { T_COPT,	"SPLIT",	0,0,0 },
   { T_COPT,	"SPLIT_SIZE",	0,0,0 },
   { T_COPT,	"DISC_SIZE",	0,0,0 },
+  { T_COPT,	"PREALLOC",	0,0,0 },
   { T_COPT,	"TRUNC",	0,0,0 },
   { T_COPT,	"CHUNK_MODE",	0,0,0 },
   { T_COPT,	"CHUNK_SIZE",	0,0,0 },
   { T_COPT,	"MAX_CHUNKS",	0,0,0 },
-//  { H_COPT,	"COMPRESSION",	0,0,0 },	// [2do]
-//  { H_COPT,	"MEM",		0,0,0 },	// [2do]
+  { H_COPT,	"COMPRESSION",	0,0,0 },
+  { H_COPT,	"MEM",		0,0,0 },
 
 
   //
@@ -2494,7 +2586,7 @@ info_t info_tab[] =
   { T_COPT,	"TEST",		0,0,
 	"Force test mode and ignore {--force}." },
   { T_COPT,	"FORCE",	0,0,
-	"This option is needed for leaving test mode and for formatting!" },
+	"This option is needed for leaving test mode and for real formatting!" },
 
   //---------- COMMAND wwt RECOVER ----------
 
@@ -2602,11 +2694,10 @@ info_t info_tab[] =
 
   { T_COPY_GRP,	"PATCH",	0,0,0 },
   { T_COPY_GRP,	"RELOCATE",	0,0,0 },
+  { T_COPY_GRP,	"PARTITIONS",	0,0,0 },
 
   { T_SEP_OPT,	0,0,0,0 },
 
-  { T_COPT,	"PSEL",		0,0,0 },
-  { T_COPT,	"RAW",		0,0,0 },
   { T_COPT,	"REMOVE",	0,0,0 },
   { T_COPT,	"TRUNC",	0,0,
 	"Truncate WBFS until operation finished." },
@@ -2636,6 +2727,7 @@ info_t info_tab[] =
   { T_COPY_GRP,	"MOD_WBFS",	0,0,0 },
   { T_COPY_GRP,	"EXCLUDE",	0,0,0 },
   { T_COPY_GRP,	"VERBOSE",	0,0,0 },
+  { T_COPT_M,	"LONG",		0,0, TEXT_EXTRACT_LONG },
 
   { T_SEP_OPT,	0,0,0,0 },
 
@@ -2650,7 +2742,13 @@ info_t info_tab[] =
 
   { T_SEP_OPT,	0,0,0,0 },
 
+  { T_COPY_GRP,	"PATCH",	0,0,0 },
+  { T_COPY_GRP,	"PARTITIONS",	0,0,0 },
+
+  { T_SEP_OPT,	0,0,0,0 },
+
   { T_COPY_GRP,	"OUTMODE",	0,0,0 },
+  { T_COPY_GRP,	"FST_SELECT",	0,0,0 },
 
   { T_SEP_OPT,	0,0,0,0 },
 
@@ -2759,8 +2857,7 @@ info_t info_tab[] =
 
   { T_SEP_OPT,	0,0,0,0 },
 
-  { T_COPT,	"PSEL",		0,0,0 },
-  { T_COPT,	"RAW",		0,0,0 },
+  { T_COPY_GRP,	"PARTITIONS",	0,0,0 },
   { T_COPT,	"IGNORE_FILES",	0,0,0 },
   { T_COPT,	"UNIQUE",	0,0, "Eliminate multiple ID6 from the source list." },
   { T_COPT,	"IGNORE",	0,0, "Ignore non existing discs without any warning." },
@@ -2776,7 +2873,7 @@ info_t info_tab[] =
   { T_CMD_BEG,	"FILETYPE",	0,0,0 },
 
   { T_COPT_M,	"IGNORE",	0,0,0 },
-  { T_COPY_GRP,	"FST",		0,0,0 },
+  { T_COPY_GRP,	"FST_IGNORE",	0,0,0 },
   { T_COPT,	"NO_HEADER",	0,0,0 },
   { T_COPT_M,	"LONG",		0,0,
 	"If set then ID6 and split file count are printed too."
@@ -2789,13 +2886,16 @@ info_t info_tab[] =
 
   { T_DEF_TOOL,	"wdf", 0,
 		"wdf [options]... [+command] [options]... files...",
-		"wdf is a support tool for WDF and CISO archives."
+		"wdf is a support tool for WDF, WIA and CISO archives."
 		" It convert (pack and unpack), compare"
-		" and dump WDF, WIA (only dump) and CISO archives."
+		" and dump WDF, WIA (dump and cat only) and CISO archives."
 		" The default command depends on the program file name"
 		" (see command descriptions). Usual names are"
 		" @wdf@, @unwdf@, @wdf-cat@, @wdf-cmp@ and @wdf-dump@"
-		" (with or without minus signs)." },
+		" (with or without minus signs)."
+		"\n "
+		" {wdf +CAT} replaces the old tool @wdf-cat@"
+		" and {wdf +DUMP} the old tool @wdf-dump@." },
 
   //
   //---------- list of all wdf commands ----------
@@ -2831,7 +2931,8 @@ info_t info_tab[] =
 		" all other files are copied byte by byte."
 		"\n "
 		" This is the default command, when the program name"
-		" contains the sub string @'cat'@ in any case." },
+		" contains the sub string @'cat'@ in any case."
+		" {wdf +CAT} replaces the old tool @wdf-cat@." },
 
   { H_DEF_CMD,	"CMP",		"+DIFF|+CMP",
 		    "wdf +DIFF [option]... files...",
@@ -2852,7 +2953,8 @@ info_t info_tab[] =
 		" and ignore other files."
 		"\n "
 		" This is the default command, when the program"
-		" contains the sub string @'dump'@ in any case." },
+		" contains the sub string @'dump'@ in any case."
+		" {wdf +DUMP} replaces the old tool @wdf-dump@." },
 
   //
   //---------- list of all wdf options ----------
@@ -2906,11 +3008,13 @@ info_t info_tab[] =
 		" This is the general default." },
 
   { T_OPT_CO,	"WIA",		"wia",
-		0,
+		"[=compr]",
 		"Force WIA output mode if packing"
 		" and set the default suffix to @'.wia'@."
+		" The optional parameter is a compression mode and"
+		" {--wia=mode} is a shortcut for {--wia --compression mode}."
 		"\n "
-		" This is the default, when the program name contains"
+		" WIA output is the default, when the program name contains"
 		" the sub string @'wia'@ in any case." },
 
   { T_OPT_C,	"CISO",		"C|ciso",
@@ -2967,6 +3071,9 @@ info_t info_tab[] =
   { T_OPT_CP,	"SPLIT_SIZE",	"Z|split-size|splitsize",
 		0, 0 /* copy of wit */ },
 
+  { T_OPT_CO,	"PREALLOC",	"prealloc",
+		0, 0 /* copy of wit */ },
+
   { T_OPT_CP,	"CHUNK_MODE",	"chunk-mode|chunkmode|chm",
 		"mode", TEXT_OPT_CHUNK_MODE("32K") },
 
@@ -3010,6 +3117,7 @@ info_t info_tab[] =
   { T_COPY_GRP,	"DEST",		0,0,0 },
   { T_COPT,	"SPLIT",	0,0,0 },
   { T_COPT,	"SPLIT_SIZE",	0,0,0 },
+  { T_COPT,	"PREALLOC",	0,0,0 },
   { T_COPT,	"CHUNK_MODE",	0,0,0 },
   { T_COPT,	"CHUNK_SIZE",	0,0,0 },
   { T_COPT,	"MAX_CHUNKS",	0,0,0 },
@@ -3060,7 +3168,7 @@ info_t info_tab[] =
 
   { T_CMD_BEG,	"CAT",		0,0,0 },
 
-  { T_COPY_GRP,	"DEST_PLUS",	0,0,0 },
+  { T_COPY_GRP,	"DEST",		0,0,0 },
 
   //---------- COMMAND wdf CMP ----------
 
@@ -3074,75 +3182,6 @@ info_t info_tab[] =
   { T_COPT,	"CHUNK",	0,0,0 },
   { T_COPT,	"LONG",		0,0, "Same as {--chunk}" },
   { T_COPT,	"MINUS1",	0,0,0 },
-
-  //
-  ///////////////////////////////////////////////////////////////////////////
-  /////////////			  TOOL wdf-cat			/////////////
-  ///////////////////////////////////////////////////////////////////////////
-
-  { T_DEF_TOOL,	"wdf-cat", 0,
-		"wdf-cat [option]... files...",
-		"Works like the 'cat' command:"
-		" Dump all file contents to standard output (stdout)"
-		" and extract WDF and CISO files on the fly."
-		" All other files are copied byte by byte." },
-
-  //---------- list of all options ----------
-
-  { T_OPT_S,	"VERSION",	"V|version",
-		0, 0 /* copy of wit */ },
-
-  { T_OPT_S,	"HELP",		"h|help",
-		0, 0 /* copy of wit */ },
-
-  { T_OPT_S,	"XHELP",	"xhelp",
-		0, "Same as {--help}." },
-
-  { T_OPT_GP,	"WIDTH",	"width",
-		0, 0 /* copy of wit */ },
-
-  { T_OPT_GP,	"IO",		"io",
-		0, 0 /* copy of wit */ },
-
-  //
-  ///////////////////////////////////////////////////////////////////////////
-  /////////////			  TOOL wdf-dump			/////////////
-  ///////////////////////////////////////////////////////////////////////////
-
-  { T_DEF_TOOL,	"wdf-dump", 0,
-		"wdf-dump [option]... files...",
-		"Dump the data structure of WDF and CISO files for analysis." },
-
-  //---------- list of all options ----------
-
-  { T_OPT_S,	"VERSION",	"V|version",
-		0, 0 /* copy of wit */ },
-
-  { T_OPT_S,	"HELP",		"h|help",
-		0, 0 /* copy of wit */ },
-
-  { T_OPT_S,	"XHELP",	"xhelp",
-		0, 0 /* copy of wdf-cat */ },
-
-  { T_OPT_GP,	"WIDTH",	"width",
-		0, 0 /* copy of wit */ },
-
-  { T_OPT_G,	"QUIET",	"q|quiet",
-		0, 0 /* copy of wit */ },
-
-  { T_OPT_G,	"VERBOSE",	"v|verbose",
-		0, "Be verbose -> print program name." },
-
-  { T_OPT_GP,	"IO",		"io",
-		0, 0 /* copy of wit */ },
-
-  { T_SEP_OPT,	0,0,0,0 }, //----- separator -----
-
-  { T_OPT_G,	"CHUNK",	"c|chunk",
-		0, "Print table with chunk header." },
-
-  { T_OPT_G,	"LONG",		"l|long",
-		0, "Alternative for {--chunk}: Print table with chunk header." },
 
   //
   ///////////////////////////////////////////////////////////////////////////

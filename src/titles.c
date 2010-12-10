@@ -54,7 +54,7 @@ const int tdb_grow_size = 1000;
 
 //
 ///////////////////////////////////////////////////////////////////////////////
-///////////////                 titles interface                ///////////////
+///////////////			titles interface		///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
 int AddTitleFile ( ccp arg, int unused )
@@ -281,7 +281,217 @@ ccp GetTitle ( ccp id6, ccp default_if_failed )
 
 //
 ///////////////////////////////////////////////////////////////////////////////
-///////////////                 exclude interface               ///////////////
+///////////////			scan id helpers			///////////////
+///////////////////////////////////////////////////////////////////////////////
+
+static ccp ScanArgID
+(
+    char		buf[7],		// result buffer for ID6: 6 chars + NULL
+					// On error 'buf7' is filled with NULL
+    ccp			arg,		// argument to scan. Comma is a separator
+    bool		trim_end	// true: remove trailing '.'
+)
+{
+    if (!arg)
+    {
+	memset(buf,0,6);
+	return 0;
+    }
+	
+    while ( *arg > 0 && *arg <= ' ' )
+	arg++;
+
+    ccp start = arg;
+    int err = 0, wildcards = 0;
+    while ( *arg > ' ' && *arg != ',' && *arg != '=' )
+    {
+	int ch = *arg++;
+	if ( ch == '+' || ch == '*' )
+	    wildcards++;
+	else if (!isalnum(ch) && !strchr("_.",ch))
+	    err++;
+    }
+    const int arglen = arg - start;
+    if ( err || wildcards > 1 || !arglen || arglen > 6 )
+    {
+	memset(buf,0,6);
+	return start;
+    }
+    
+    char * dest = buf;
+    for ( ; start < arg; start++ )
+    {
+	if ( *start == '+' || *start == '*' )
+	{
+	    int count = 7 - arglen;
+	    while ( count-- > 0 )
+		*dest++ = '.';
+	}
+	else
+	    *dest++ = toupper((int)*start);
+	DASSERT( dest <= buf + 6 );
+    }
+
+    if (trim_end)
+	while ( dest[-1] == '.' )
+	    dest--;
+    else
+	while ( dest < buf+6 )
+	    *dest++ = '.';
+    *dest = 0;
+
+    while ( *arg > 0 && *arg <= ' ' || *arg == ',' )
+	arg++;
+    return arg;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+static ccp ScanPatID // return NULL if ok or a pointer to the invalid text
+(
+    StringField_t	* sf_id6,	// valid pointer: add real ID6
+    StringField_t	* sf_pat,	// valid pointer: add IDs with pattern '.'
+    ccp			arg,		// argument to scan. Comma is a separator
+    bool		trim_end,	// true: remove trailing '.'
+    bool		allow_arg	// true: allow and store '=arg'
+)
+{
+    DASSERT(sf_id6);
+    DASSERT(sf_pat);
+
+    char buf[7];
+    while ( arg && *arg )
+    {
+ 	arg = ScanArgID(buf,arg,trim_end);
+ 	PRINT(" -> |%s|\n",arg);
+	if (!*buf)
+	    return arg;
+
+	ccp eq_arg = 0;
+	if ( arg && *arg == '=' )
+	{
+	    if (!allow_arg)
+		return arg;
+	    eq_arg = ++arg;
+	    arg = 0;
+	}
+
+	if ( sf_id6 != sf_pat && strchr(buf,'.') )
+	    InsertStringID6(sf_pat,buf,SEL_UNUSED,eq_arg);
+	else
+	    InsertStringID6(sf_id6,buf,SEL_UNUSED,eq_arg);
+    }
+    return 0;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+static enumError AddId
+(
+    StringField_t	* sf_id6,
+    StringField_t	* sf_pat,
+    ccp			arg,
+    int			select_mode
+)
+{
+    DASSERT(sf_id6);
+    DASSERT(sf_pat);
+
+
+    if ( select_mode & SEL_F_FILE )
+    {
+	char id[7];
+	ccp end = ScanArgID(id,arg,false);
+	PRINT("->|%s|\n",end);
+	if ( *id && ( !end || !*end ) )
+	{
+	    if (strchr(id,'.'))
+	    {
+		PRINT("ADD PAT/FILE: %s\n",id);
+		InsertStringID6(sf_pat,id,SEL_UNUSED,0);
+	    }
+	    else
+	    {
+		PRINT("ADD ID6/FILE: %s\n",id);
+		InsertStringID6(sf_id6,id,SEL_UNUSED,0);
+	    }
+	}
+	else
+	{
+	    int idlen;
+	    ScanID(id,&idlen,arg);
+	    if ( idlen == 4 || idlen == 6 )
+	    {
+		PRINT("ADD ID/FILE: %s\n",id);
+		InsertStringID6(sf_id6,id,SEL_UNUSED,0);
+	    }
+	}
+    }
+    else
+    {
+	PRINT("ADD PAT/PARAM: %s\n",arg);
+	ccp res = ScanPatID(sf_id6,sf_pat,arg,false,
+			(select_mode & SEL_F_PARAM) != 0 );
+	if (res)
+	    return ERROR0(ERR_SYNTAX,"Not a ID: %s\n",res);
+    }
+    return ERR_OK;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+static StringItem_t * FindPatID
+(
+    StringField_t	* sf_id6,	// valid pointer: search real ID6
+    StringField_t	* sf_pat,	// valid pointer: search IDs with pattern '.'
+    ccp			id6,		// valid id6
+    bool		mark_matching	// true: mark *all* matching records
+)
+{
+    if (!id6)
+	return 0;
+
+    StringItem_t * found = 0;
+    if (sf_id6)
+    {
+	found = (StringItem_t*)FindStringField(sf_id6,id6);
+	if (found)
+	{
+	    if ( found->flag == 2 )
+		return found;
+
+	    found->flag = SEL_USED;
+	    if (!mark_matching)
+		return found;
+	}
+    }
+
+    if (sf_pat)
+    {
+	StringItem_t **ptr = (StringItem_t**)sf_pat->field, **end;
+	for ( end = ptr + sf_pat->used; ptr < end; ptr++ )
+	{
+	    ccp p1 = ptr[0]->id6;
+	    ccp p2 = id6;
+	    while ( *p1 && *p2 && ( *p1 == '.' || *p2 == '.' || *p1 == *p2 ))
+		p1++, p2++;
+	    if ( !*p1 && !*p2 )
+	    {
+		(*ptr)->flag = SEL_USED;
+		if (!mark_matching)
+		    return *ptr;
+		if (!found)
+		    found = *ptr;
+	    }
+	}
+    }
+
+    return found;
+}
+
+//
+///////////////////////////////////////////////////////////////////////////////
+///////////////			select id interface		///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
 static bool include_db_enabled = false;
@@ -299,63 +509,10 @@ int disable_exclude_db = 0;			// disable exclude db at all if > 0
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-static enumError AddId
-(
-    StringField_t	* sf_id6,
-    StringField_t	* sf_pat,
-    ccp			arg,
-    int			scan_file
-)
-{
-    DASSERT(sf_id6);
-    DASSERT(sf_pat);
-
-    char id[7];
-
-    if (scan_file)
-    {
-	ccp end = ScanArgID(id,arg,false);
-	PRINT("->|%s|\n",end);
-	if ( *id && ( !end || !*end ) )
-	{
-	    if (strchr(id,'.'))
-	    {
-		PRINT("ADD PAT/FILE: %s\n",id);
-		InsertStringField(sf_pat,id,false);
-	    }
-	    else
-	    {
-		PRINT("ADD ID6/FILE: %s\n",id);
-		InsertStringField(sf_id6,id,false);
-	    }
-	}
-	else
-	{
-	    int idlen;
-	    ScanID(id,&idlen,arg);
-	    if ( idlen == 4 || idlen == 6 )
-	    {
-		PRINT("ADD ID/FILE: %s\n",id);
-		InsertStringField(sf_id6,id,false);
-	    }
-	}
-    }
-    else
-    {
-	PRINT("ADD PAT/PARAM: %s\n",id);
-	ccp res = ScanPatID(sf_id6,sf_pat,arg,false);
-	if (res)
-	    return ERROR0(ERR_SYNTAX,"Not a ID: %s\n",arg);
-    }
-    return ERR_OK;
-}
-
-///////////////////////////////////////////////////////////////////////////////
-
-int AddIncludeID ( ccp arg, int scan_file )
+int AddIncludeID ( ccp arg, int select_mode )
 {
     include_db_enabled = true;
-    return AddId(&include_id6,&include_pat,arg,scan_file);
+    return AddId(&include_id6,&include_pat,arg,select_mode);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -375,9 +532,9 @@ int AddIncludePath ( ccp arg, int unused )
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-int AddExcludeID ( ccp arg, int scan_file )
+int AddExcludeID ( ccp arg, int select_mode )
 {
-    return AddId(&exclude_id6,&exclude_pat,arg,scan_file);
+    return AddId(&exclude_id6,&exclude_pat,arg,select_mode);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -413,7 +570,7 @@ static void CheckExcludePath
     if ( f.id6[0] )
     {
 	TRACE(" - exclude id %s\n",f.id6);
-	InsertStringField(sf_id6,f.id6,false);
+	InsertStringID6(sf_id6,f.id6,SEL_UNUSED,0);
     }
     else if ( max_dir_depth > 0 && f.ftype == FT_ID_DIR )
     {
@@ -464,7 +621,7 @@ void SetupExcludeDB()
 	InitializeStringField(&sf);
 	ccp * ptr = include_fname.field + include_fname.used;
 	while ( ptr-- > include_fname.field )
-	    CheckExcludePath(*ptr,&sf,&include_id6,15);
+	    CheckExcludePath(*ptr,&sf,&include_id6,opt_recurse_depth);
 	ResetStringField(&sf);
 	ResetStringField(&include_fname);
     }
@@ -476,7 +633,7 @@ void SetupExcludeDB()
 	InitializeStringField(&sf);
 	ccp * ptr = exclude_fname.field + exclude_fname.used;
 	while ( ptr-- > exclude_fname.field )
-	    CheckExcludePath(*ptr,&sf,&exclude_id6,15);
+	    CheckExcludePath(*ptr,&sf,&exclude_id6,opt_recurse_depth);
 	ResetStringField(&sf);
 	ResetStringField(&exclude_fname);
     }
@@ -498,6 +655,7 @@ void DefineExcludePath ( ccp path, int max_dir_depth )
 }
 
 ///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
 
 bool IsExcluded ( ccp id6 )
 {
@@ -511,10 +669,10 @@ bool IsExcluded ( ccp id6 )
     if ( exclude_fname.used || include_fname.used )
 	SetupExcludeDB();
 
-    if (FindPatID(&exclude_id6,&exclude_pat,id6))
+    if (FindPatID(&exclude_id6,&exclude_pat,id6,false))
 	return true;
 
-    return include_db_enabled && !FindPatID(&include_id6,&include_pat,id6);
+    return include_db_enabled && !FindPatID(&include_id6,&include_pat,id6,false);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -533,7 +691,200 @@ void DumpExcludeDB()
 
 //
 ///////////////////////////////////////////////////////////////////////////////
-///////////////                 low level interface             ///////////////
+///////////////			param id6 interface		///////////////
+///////////////////////////////////////////////////////////////////////////////
+
+StringField_t	param_id6 = {0,0,0};	// param id6 (without wildcard '.')
+StringField_t	param_pat = {0,0,0};	// param pattern (with wildcard '.')
+
+///////////////////////////////////////////////////////////////////////////////
+
+void ClearParamDB()
+{
+    ResetStringField(&param_id6);
+    ResetStringField(&param_pat);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+int AddParamID ( ccp arg, int select_mode )
+{
+    return AddId(&param_id6,&param_pat,arg,select_mode);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+int CountParamID()
+{
+    return param_id6.used + param_pat.used;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+StringItem_t * FindParamID ( ccp id6 )
+{
+    return FindPatID(&param_id6,&param_pat,id6,true);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+int DumpParamDB ( enumSelectUsed mask, bool warn )
+{
+    int count_id6 = 0, count_pat = 0;
+
+    StringItem_t **ptr = (StringItem_t**)param_id6.field, **end;
+    for ( end = ptr + param_id6.used; ptr < end; ptr++ )
+    {
+	StringItem_t * item = *ptr;
+	DASSERT(item);
+	if ( item->flag & mask )
+	{
+	    count_id6++;
+	    if (warn)
+		ERROR0(ERR_WARNING,"Disc with ID6 [%s] not found.\n",item->id6);
+	    else
+		printf("%s%s%s\n", item->id6, *item->arg ? "=" : "", item->arg );
+	}
+    }
+
+    ptr = (StringItem_t**)param_pat.field;
+    for ( end = ptr + param_pat.used; ptr < end; ptr++ )
+    {
+	StringItem_t * item = *ptr;
+	DASSERT(item);
+	if ( item->flag & mask )
+	{
+	    count_pat++;
+	    if (warn)
+		ERROR0(ERR_WARNING,"Disc with pattern [%s] not found.\n",item->id6);
+	    else
+		printf("%s%s%s\n", item->id6, *item->arg ? "=" : "", item->arg );
+	}
+    }
+
+    if ( warn && count_id6 + count_pat > 1 )
+    {
+	if ( count_id6 && count_pat )
+	    ERROR0(ERR_WARNING,"==> %u disc ID%s and %u pattern not found!\n",
+			count_id6, count_id6 == 1 ? "" : "s", count_pat );
+	else if ( count_id6 )
+	    ERROR0(ERR_WARNING,"==> %u disc ID%s not found!\n",
+			count_id6, count_id6 == 1 ? "" : "s" );
+	else if ( count_pat )
+	    ERROR0(ERR_WARNING,"==> %u disc pattern not found!\n",
+			count_pat );
+	if ( count_id6 || count_pat )
+	    putchar('\n');
+    }
+
+    return count_id6 + count_pat;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+int SetupParamDB
+(
+    // return the number of valid parameters or NULL on error
+
+    ccp		default_param,		// not NULL: use this if no param is defined
+    bool	warn,			// print a warning if no param is defined
+    bool	allow_arg		// allow arguments '=arg'
+)
+{
+    if ( default_param && !n_param )
+	AddParam(default_param,false);
+
+    enumSelectID id1 = SEL_ID;
+    enumSelectID id2 = SEL_FILE;
+    if ( allow_arg )
+    {
+	id1 |= SEL_F_PARAM;
+	id2 |= SEL_F_PARAM;
+    }
+
+    ClearParamDB();
+    ParamList_t * param;
+    for ( param = first_param; param; param = param->next )
+	AtFileHelper(param->arg,id1,id2,AddParamID);
+
+    const int count = CountParamID();
+    if ( !count && warn )
+	ERROR0(ERR_MISSING_PARAM,"Missing ID parameters\n");
+
+    return count;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+StringItem_t * CheckParamSlot
+(
+    // return NULL if no disc at slot found or disc not match or disabled
+    // or a pointer to the ID6
+
+    struct WBFS_t	* wbfs,		// valid and opened WBFS
+    int			slot,		// valid slot index
+    bool		open_disc,	// true: open the disc
+    ccp			* ret_id6,	// not NULL: store pointer to ID6 of disc
+					//   The ID6 is valid until the WBFS is closed
+    ccp			* ret_title	// not NULL: store pointer to title of disc
+					//   The title is searched in the title db first
+					//   The title may be stored in a static buffer
+)
+{
+    DASSERT(wbfs);
+    DASSERT(wbfs->wbfs);
+    DASSERT( slot >= 0 && slot < wbfs->wbfs->max_disc );
+
+    CloseWDisc(wbfs);
+
+    if (ret_title)
+	*ret_title = 0;
+    if (ret_id6)
+	*ret_id6 = 0;
+
+    ccp id6 = wbfs_load_id_list(wbfs->wbfs,false)[slot];
+    if (!*id6)
+	return 0;
+
+    StringItem_t * item = FindParamID(id6);
+    if ( !item || IsExcluded(id6) )
+	return 0;
+
+    if (open_disc)
+	OpenWDiscID6(wbfs,id6);
+
+    if (ret_title)
+    {
+	static char disc_title[WII_TITLE_SIZE+1];
+	ccp title = GetTitle(id6,0);
+	if (!title)
+	{
+	    if ( wbfs->disc || !OpenWDiscID6(wbfs,id6) )
+	    {
+		wd_header_t *dh = GetWDiscHeader(wbfs);
+		if (dh)
+		{
+		    StringCopyS(disc_title,sizeof(disc_title),(ccp)dh->disc_title);
+		    title = disc_title;
+		}
+		CloseWDisc(wbfs);
+	    }
+	}
+	*ret_title = title ? title : "?";
+    }
+
+    TRACE("CheckParamSlot(,%u,%d,%u) => disc=%p, %s, %s\n",
+		slot, open_disc, ret_title!=0,
+		wbfs->disc, id6, ret_title ? *ret_title : "-" );
+
+    if (ret_id6)
+	*ret_id6 = id6;
+    return item;
+}
+
+//
+///////////////////////////////////////////////////////////////////////////////
+///////////////		 low level title id interface		///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
 // disable extended tracing
@@ -618,8 +969,7 @@ int FindID ( ID_DB_t * db, ccp id, TDBfind_t * p_stat, int * p_num )
 	while ( idx < db->used && !memcmp(id,db->list[idx],id_len) )
 	    idx++;
 	xTRACE(" - num = %d\n",idx-beg);
-	*p_num = idx - beg;;
-    }
+	*p_num = idx - beg;    }
 
     return beg;
 }

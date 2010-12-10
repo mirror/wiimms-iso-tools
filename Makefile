@@ -1,3 +1,13 @@
+
+#####################################################################
+##                                                                 ##
+##   This file is part of the WIT project.                         ##
+##   Visit http://wit.wiimm.de/ for project details and sources.   ##
+##                                                                 ##
+##   Copyright (c) 2009-2010 by Dirk Clemens <wiimm@wiimm.de>      ##
+##                                                                 ##
+#####################################################################
+
 #----------------------------------------------------------------
 # make manual: http://www.gnu.org/software/make/manual/make.html
 #----------------------------------------------------------------
@@ -10,6 +20,7 @@ SHELL			= /bin/bash
 AUTHOR			= Dirk Clemens
 TOOLSET_SHORT		= WIT
 TOOLSET_LONG		= Wiimms ISO Tools
+
 WIT_SHORT		= wit
 WIT_LONG		= Wiimms ISO Tool
 WWT_SHORT		= wwt
@@ -17,7 +28,7 @@ WWT_LONG		= Wiimms WBFS Tool
 WDF_SHORT		= wdf
 WDF_LONG		= Wiimms WDF Tool
 
-VERSION_NUM		= 1.22a
+VERSION_NUM		= 1.23a
 BETA_VERSION		= 0
 			# 0:off  -1:"beta"  >0:"beta#"
 
@@ -235,7 +246,7 @@ default_rule: all
 # general rules
 
 $(ALL_TOOLS): %: %.o $(ALL_OBJECTS) $(TOBJ_ALL) Makefile | $(HELPER_TOOLS)
-	@printf "$(LOGFORMAT)" tool "$@ $(TOBJ_$@)" "$(MODE)"
+	@printf "$(LOGFORMAT)" tool "$@" "$(TOBJ_$@)"
 	@$(CC) $(CFLAGS) $(DEFINES) $(LDFLAGS) $@.o $(ALL_OBJECTS) $(TOBJ_$@) $(LIBS) -o $@
 	@if test -f $@.exe; then $(STRIP) $@.exe; else $(STRIP) $@; fi
 	@mkdir -p bin/debug
@@ -360,7 +371,7 @@ clean++: clean+
 
 .PHONY : debug
 debug:
-	@printf "$(LOGFORMAT)" enable debug "(-DDEBUG)"
+	@printf "$(LOGFORMAT)" enable debug "-> define -DDEBUG"
 	@rm -f *.o $(ALL_TOOLS)
 	@echo "-DDEBUG" >>$(MODE_FILE)
 	@sort $(MODE_FILE) | uniq > $(MODE_FILE).tmp
@@ -454,7 +465,7 @@ install+: clean+ all
 
 .PHONY : new
 new:
-	@printf "$(LOGFORMAT)" enable new "(-DNEW_FEATURES)"
+	@printf "$(LOGFORMAT)" enable new "-> define -DNEW_FEATURES"
 	@rm -f *.o $(ALL_TOOLS)
 	@echo "-DNEW_FEATURES" >>$(MODE_FILE)
 	@sort $(MODE_FILE) | uniq > $(MODE_FILE).tmp
@@ -538,7 +549,7 @@ templates.sed: Makefile
 
 .PHONY : test
 test:
-	@printf "$(LOGFORMAT)" enable test "(-DTEST)"
+	@printf "$(LOGFORMAT)" enable test "-> define -DTEST"
 	@rm -f *.o $(ALL_TOOLS)
 	@echo "-DTEST" >>$(MODE_FILE)
 	@sort $(MODE_FILE) | uniq > $(MODE_FILE).tmp
@@ -551,7 +562,7 @@ test:
 
 .PHONY : test-trace
 test-trace:
-	@printf "$(LOGFORMAT)" enable testtrace "(-DTESTTRACE)"
+	@printf "$(LOGFORMAT)" enable testtrace "-> define -DTESTTRACE"
 	@rm -f *.o $(ALL_TOOLS)
 	@echo "-DTESTTRACE" >>$(MODE_FILE)
 	@sort $(MODE_FILE) | uniq > $(MODE_FILE).tmp
@@ -575,6 +586,19 @@ gen-titles:
 
 .PHONY : tools
 tools: $(ALL_TOOLS)
+
+#
+#--------------------------
+
+.PHONY : wait
+wait:
+	@printf "$(LOGFORMAT)" enable wait "-> define -DWAIT_ENABLED"
+	@rm -f *.o $(ALL_TOOLS)
+	@echo "-DWAIT_ENABLED" >>$(MODE_FILE)
+	@sort $(MODE_FILE) | uniq > $(MODE_FILE).tmp
+# 2 steps to bypass a cygwin mv failure
+	@cp $(MODE_FILE).tmp $(MODE_FILE)
+	@rm -f $(MODE_FILE).tmp
 
 #
 #--------------------------
@@ -687,15 +711,16 @@ help:
 	@echo  ""
 	@echo  " make debug	enable '-DDEBUG'"
 	@echo  " make test	enable '-DTEST'"
-	@echo  " make testtrace	enable '-DTESTTRACE'"
 	@echo  " make new	enable '-DNEW_FEATURES'"
+	@echo  " make wait	enable '-DWAIT'"
+	@echo  " make testtrace	enable '-DTESTTRACE'"
 	@echo  " make flags	print DEFINES, CFLAGS and LDFLAGS"
 	@echo  ""
 	@echo  " make doc	generate doc files from their templates"
-	@echo  " make distrib	make all & build $(DISTRIB_FILE)"
+	@echo  " make distrib	make all & build $(DISTRIB_PATH)"
 	@echo  " make titles	get titles from $(URI_TITLES)"
 	@echo  " make install	make all & copy tools to $(INSTALL_PATH)"
-	@echo  " make install+	make clean+ all & copy tools to $(INSTALL_PATH)"
+	@echo  " make install+	:= make clean+ install"
 	@echo  ""
 	@echo  " make chmod	change mode 775/644 for known dirs and files"
 	@echo  " make chown	change owner of all dirs+files to owner of ."

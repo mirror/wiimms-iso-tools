@@ -165,6 +165,8 @@ enum // some constants
     WBFS_INODE_INFO_SIZE	= 0x100 - WBFS_INODE_INFO_OFF,
 };
 
+#define WII_MAX_DISC_SIZE ((u64)WII_MAX_SECTORS*(u64)WII_SECTOR_SIZE)
+
 //
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////			enum wd_disc_type_t		///////////////

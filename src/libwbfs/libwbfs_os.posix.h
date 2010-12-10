@@ -88,6 +88,7 @@ typedef enum enumError
 	ERR_OK,
 	ERR_WARNING,		// separator: below = real errors and not warnings
 	ERR_WDISC_NOT_FOUND,
+	ERR_WPART_INVALID,
 	ERR_WDISC_INVALID,
 	ERR_READ_FAILED,
 	ERR_ERROR,		// separator: below = hard/fatal errors => exit

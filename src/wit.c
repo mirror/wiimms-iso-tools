@@ -133,16 +133,18 @@ void print_title ( FILE * f )
 
 ///////////////////////////////////////////////////////////////////////////////
 
-void hint_exit ( enumError stat, ccp command )
+static const CommandTab_t * current_command = 0;
+
+void hint_exit ( enumError stat )
 {
-    if (command)
+    if ( current_command )
 	fprintf(stderr,
-	    "-> Type '%s help %s' for more help.\n\n",
-	    progname, command );
+	    "-> Type '%s help %s' (pipe it to a pager like 'less') for more help.\n\n",
+	    progname, CommandInfo[current_command->id].name1 );
     else
 	fprintf(stderr,
-	    "-> Type '%s -h', '%s help' or '%s help command' for more help.\n\n",
-	    progname, progname, progname );
+	    "-> Type '%s -h', '%s help' (pipe it to a pager like 'less') for more help.\n\n",
+	    progname, progname );
     exit(stat);
 }
 
@@ -159,11 +161,11 @@ void hint_exit ( enumError stat, ccp command )
 
 enumError cmd_test()
 {
- #if 0 || !defined(TEST) // test options
+ #if 1 || !defined(TEST) // test options
 
     return cmd_test_options();
 
- #elif 1
+ #elif 0
 
     char buf[20];
     ParamList_t * param;
@@ -319,7 +321,7 @@ enumError cmd_create()
     if ( n_param < 1 )
     {
 	ERROR0(ERR_SYNTAX,"Missing sub command for CREATE.\n");
-	hint_exit(ERR_SYNTAX,"create");
+	hint_exit(ERR_SYNTAX);
     }
 
     //----- find sub command
@@ -349,7 +351,7 @@ enumError cmd_create()
 	    ERROR0(ERR_SYNTAX,"Sub command abbreviation is ambiguous: %s\n",cmd_name);
 	else
 	    ERROR0(ERR_SYNTAX,"Unknown sub command: %s\n",cmd_name);
-	hint_exit(ERR_SYNTAX,"create");
+	hint_exit(ERR_SYNTAX);
     }
 
     param = param->next;
@@ -360,7 +362,7 @@ enumError cmd_create()
     if ( !param )
     {
 	ERROR0(ERR_SYNTAX,"Missing filename for CREATE.\n");
-	hint_exit(ERR_SYNTAX,"create");
+	hint_exit(ERR_SYNTAX);
     }
 
     char pbuf1[PATH_MAX], pbuf2[PATH_MAX], namebuf[50];
@@ -393,7 +395,7 @@ enumError cmd_create()
     if ( n_param < min_param || n_param > max_param )
     {
 	ERROR0(ERR_SYNTAX,"Wrong number of arguments.\n");
-	hint_exit(ERR_SYNTAX,"create");
+	hint_exit(ERR_SYNTAX);
     }
 
     if ( testmode || verbose > 0 )
@@ -863,57 +865,6 @@ enumError cmd_dump()
 //
 ///////////////////////////////////////////////////////////////////////////////
 
-enumError exec_dregion ( SuperFile_t * sf, Iterator_t * it )
-{
-    TRACE("exec_dump()");
-    ASSERT(sf);
-    ASSERT(it);
-    fflush(0);
-
-    char buf[WII_REGION_SIZE];
-    if (!ReadSF(sf,WII_REGION_OFF,buf,sizeof(buf)))
-    {
-	ASSERT( sizeof(buf) == 32 );
-	u32 * p = (u32*)buf;
-	printf("%.1s %-6s %08x %08x %08x %08x %08x %08x %08x %08x\n",
-		sf->f.id6+3, sf->f.id6,
-		ntohl(p[0]), ntohl(p[1]), ntohl(p[2]), ntohl(p[3]),
-		ntohl(p[4]), ntohl(p[5]), ntohl(p[6]), ntohl(p[7]) );
-    }
-
-    return ERR_OK;
-}
-
-//-----------------------------------------------------------------------------
-
-enumError cmd_dregion()
-{
-    ParamList_t * param;
-    for ( param = first_param; param; param = param->next )
-	AppendStringField(&source_list,param->arg,true);
-
-    encoding |= ENCODE_F_FAST; // hint: no encryption needed
-
-    printf("R   ID  off=%-8x    +4       +8       +c      +10      +14      +18      +1c\n"
-	   "%.80s\n", WII_REGION_OFF, wd_sep_200 );
-    Iterator_t it;
-    InitializeIterator(&it);
-    it.func		= exec_dregion;
-    it.act_known	= ACT_ALLOW;
-    it.act_wbfs		= ACT_EXPAND;
-    it.act_gc		= ACT_IGNORE;
-    it.act_fst		= ACT_IGNORE;
-
-    enumError err = SourceIterator(&it,0,false,true);
-    if ( err <= ERR_WARNING )
-	err = SourceIteratorCollected(&it,1,false);
-    ResetIterator(&it);
-    return err;
-}
-
-//
-///////////////////////////////////////////////////////////////////////////////
-
 enumError exec_collect ( SuperFile_t * sf, Iterator_t * it )
 {
     ASSERT(sf);
@@ -1245,7 +1196,7 @@ enumError exec_files ( SuperFile_t * fi, Iterator_t * it )
     DumpFilesFST(stdout,0,&fst,ConvertShow2PFST(it->show_mode,0),prefix);
     ResetFST(&fst);
 
-    return disc->invalid_part ? ERR_WDISC_INVALID : ERR_OK;
+    return disc->invalid_part ? ERR_WPART_INVALID : ERR_OK;
 }
 
 //-----------------------------------------------------------------------------
@@ -1401,66 +1352,23 @@ enumError exec_extract ( SuperFile_t * fi, Iterator_t * it )
     if (!disc)
 	return ERR_WDISC_NOT_FOUND;
 
-    char dest_path[PATH_MAX];
-    SubstFileNameBuf(dest_path,sizeof(dest_path)-1,fi,0,opt_dest,OFT_UNKNOWN);
-    size_t dest_path_len = strlen(dest_path);
-    if ( !dest_path_len || dest_path[dest_path_len-1] != '/' )
-    {
-	dest_path[dest_path_len++] = '/';
-	dest_path[dest_path_len] = 0;
-    }
-   
-    if (!it->overwrite)
-    {
-	struct stat st;
-	if (!stat(dest_path,&st))
-	{
-	    ERROR0(ERR_ALREADY_EXISTS,"Destination already exists: %s",dest_path);
-	    return 0;
-	}
-    }
+    char dest_dir[PATH_MAX];
+    SubstFileNameBuf(dest_dir,sizeof(dest_dir)-1,fi,0,opt_dest,OFT_UNKNOWN);
+    const enumError err
+	= NormalizeExtractPath( dest_dir, sizeof(dest_dir), dest_dir, it->overwrite );
+    if (err)
+	return err;
 
     if ( testmode || verbose >= 0 )
     {
 	printf( "%s: %sEXTRACT %s:%s -> %s\n",
 		progname, testmode ? "WOULD " : "",
-		oft_info[fi->iod.oft].name, fi->f.fname, dest_path );
+		oft_info[fi->iod.oft].name, fi->f.fname, dest_dir );
 	if (testmode)
 	    return ERR_OK;
     }
 
-    fi->indent		= 5;
-    fi->show_progress	= verbose > 1 || progress;
-    fi->show_summary	= verbose > 0 || progress;
-    fi->show_msec	= verbose > 2;
-
-    WiiFst_t fst;
-    InitializeFST(&fst);
-    CollectFST(&fst,disc,GetDefaultFilePattern(),false,prefix_mode,false);
-    SortFST(&fst,sort_mode,SORT_OFFSET);
-
-    WiiFstInfo_t wfi;
-    memset(&wfi,0,sizeof(wfi));
-    wfi.sf		= fi;
-    wfi.fst		= &fst;
-    wfi.set_time	= OptionUsed[OPT_PRESERVE] ? &fi->f.fatt : 0;;
-    wfi.overwrite	= it->overwrite;
-    wfi.verbose		= long_count > 0 ? long_count : verbose > 0 ? 1 : 0;
-
-    enumError err = CreateFST(&wfi,dest_path);
-
-    if ( !err && wfi.not_created_count )
-    {	
-	if ( wfi.not_created_count == 1 )
-	    err = ERROR0(ERR_CANT_CREATE,
-			"1 file or directory not created\n" );
-	else
-	    err = ERROR0(ERR_CANT_CREATE,
-			"%d files and/or directories not created.\n",
-			wfi.not_created_count );
-    }
-    ResetFST(&fst);
-    return err;
+    return ExtractImage( fi, dest_dir, it->overwrite, OptionUsed[OPT_PRESERVE] != 0 );
 }
 
 //-----------------------------------------------------------------------------
@@ -1533,6 +1441,7 @@ enumError exec_copy ( SuperFile_t * fi, Iterator_t * it )
     SuperFile_t fo;
     InitializeSF(&fo);
     SetupIOD(&fo,oft,oft);
+    fo.src = fi;
 
     if (convert_it)
 	fo.f.fname = strdup(fname);
@@ -1568,6 +1477,7 @@ enumError exec_copy ( SuperFile_t * fi, Iterator_t * it )
     fo.show_msec	= verbose > 2;
 
     const bool raw_mode = part_selector.whole_disc || !fi->f.id6[0];
+    fo.raw_mode = raw_mode;
 
     if ( testmode ||  verbose >= 0 )
     {
@@ -1582,13 +1492,13 @@ enumError exec_copy ( SuperFile_t * fi, Iterator_t * it )
 	else
 	    *split_buf = 0;
 
-	printf( "* %s%s%s %s %s%s:%s -> %s:%s\n",
+	printf( "* %s%s/%s %s %s%s:%s -> %s:%s\n",
 		testmode ? "WOULD " : "",
 		it->diff_it ? "DIFF" : convert_it ? "CONVERT" : "COPY",
 		it->diff_it
-			? ( raw_mode ? "/RAW" : OptionUsed[OPT_FILES]
-				? "/FILES" : "/SCRUB" )
-			: ( raw_mode ? "" : "+SCRUB" ),
+			? ( raw_mode ? "RAW" : OptionUsed[OPT_FILES]
+				? "FILES" : "SCRUB" )
+			: ( raw_mode ? "RAW" : "SCRUB" ),
 		count_buf,
 		oft_info[fi->iod.oft].name, split_buf, fi->f.fname,
 		oft_info[oft].name, fo.f.fname );
@@ -1637,41 +1547,15 @@ enumError exec_copy ( SuperFile_t * fi, Iterator_t * it )
 
     //----- copy image
 
-    enumError err = CreateFile( &fo.f, 0, oft_info[oft].iom, it->overwrite );
+    enumError err = CopyImage(  fi, &fo, oft,
+				it->overwrite,
+				OptionUsed[OPT_PRESERVE] != 0,
+				it->remove_source );
     if ( err == ERR_ALREADY_EXISTS )
     {
 	it->exists_count++;
-	err = ERR_OK;
-	goto abort;
+	return ERR_OK;
     }
-    if (err)
-	goto abort;
-
-    if (opt_split)
-	SetupSplitFile(&fo.f,oft,opt_split_size);
-
-    err = SetupWriteSF(&fo,oft,fi);
-    if (err)
-	goto abort;
-
-    err = CopySF( fi, &fo, raw_mode );
-    if (err)
-	goto abort;
-
-    err = RewriteModifiedSF(fi,&fo,0);
-    if (err)
-	goto abort;
-
-    if ( SIGINT_level > 1 )
-	goto abort;
-    
-    FileAttrib_t fatt;
-    memcpy(&fatt,&fi->f.fatt,sizeof(fatt));
-    if (it->remove_source)
-	RemoveSF(fi);
-
-    const bool preserve_time = fi->disc1 == fi->disc2 || OptionUsed[OPT_PRESERVE];
-    err = ResetSF( &fo, preserve_time ? &fatt : 0 );
 
     if ( !err && OptionUsed[OPT_DIFF] )
     {
@@ -1680,10 +1564,6 @@ enumError exec_copy ( SuperFile_t * fi, Iterator_t * it )
 	it->diff_it = false;
     }
 
-    return err;
-
- abort:
-    RemoveSF(&fo);
     return err;
 }
 
@@ -2264,9 +2144,9 @@ enumError CheckOptions ( int argc, char ** argv, bool is_env )
 	case GO_RDEPTH:		err += ScanOptRDepth(optarg); break;
 	case GO_AUTO:		opt_source_auto++; break;
 
-	case GO_INCLUDE:	AtFileHelper(optarg,0,1,AddIncludeID); break;
+	case GO_INCLUDE:	AtFileHelper(optarg,SEL_ID,SEL_FILE,AddIncludeID); break;
+	case GO_EXCLUDE:	AtFileHelper(optarg,SEL_ID,SEL_FILE,AddExcludeID); break;
 	case GO_INCLUDE_PATH:	AtFileHelper(optarg,0,0,AddIncludePath); break;
-	case GO_EXCLUDE:	AtFileHelper(optarg,0,1,AddExcludeID); break;
 	case GO_EXCLUDE_PATH:	AtFileHelper(optarg,0,0,AddExcludePath); break;
 	case GO_ONE_JOB:	job_limit = 1; break;
 	case GO_IGNORE:		ignore_count++; break;
@@ -2300,6 +2180,7 @@ enumError CheckOptions ( int argc, char ** argv, bool is_env )
 	case GO_DEST2:		SetDest(optarg,true); break;
 	case GO_SPLIT:		opt_split++; break;
 	case GO_SPLIT_SIZE:	err += ScanOptSplitSize(optarg); break;
+	case GO_PREALLOC:	err += ScanPreallocMode(optarg); break;
 	case GO_TRUNC:		opt_truncate++; break;
 	case GO_CHUNK_MODE:	err += ScanChunkMode(optarg); break;
 	case GO_CHUNK_SIZE:	err += ScanChunkSize(optarg); break;
@@ -2408,7 +2289,7 @@ enumError CheckCommand ( int argc, char ** argv )
     if ( optind >= argc )
     {
 	ERROR0(ERR_SYNTAX,"Missing command.\n");
-	hint_exit(ERR_SYNTAX,0);
+	hint_exit(ERR_SYNTAX);
     }
 
     int cmd_stat;
@@ -2419,14 +2300,15 @@ enumError CheckCommand ( int argc, char ** argv )
 	    ERROR0(ERR_SYNTAX,"Command abbreviation is ambiguous: %s\n",argv[optind]);
 	else
 	    ERROR0(ERR_SYNTAX,"Unknown command: %s\n",argv[optind]);
-	hint_exit(ERR_SYNTAX,0);
+	hint_exit(ERR_SYNTAX);
     }
 
     TRACE("COMMAND FOUND: #%lld = %s\n",(u64)cmd_ct->id,cmd_ct->name1);
+    current_command = cmd_ct;
 
     enumError err = VerifySpecificOptions(&InfoUI,cmd_ct);
     if (err)
-	hint_exit(err,cmd_ct->name1);
+	hint_exit(err);
 
     argc -= optind+1;
     argv += optind+1;
@@ -2456,7 +2338,6 @@ enumError CheckCommand ( int argc, char ** argv )
 	case CMD_ISOSIZE:	err = cmd_isosize(); break;
 
 	case CMD_DUMP:		err = cmd_dump(); break;
-	case CMD_DREGION:	err = cmd_dregion(); break;
 	case CMD_ID6:		err = cmd_id6(); break;
 	case CMD_LIST:		err = cmd_list(0); break;
 	case CMD_LIST_L:	err = cmd_list(1); break;
@@ -2504,21 +2385,22 @@ int main ( int argc, char ** argv )
     InitializeStringField(&source_list);
     InitializeStringField(&recurse_list);
 
+
     //----- process arguments
 
     if ( argc < 2 )
     {
 	printf("\n%s\nVisit %s%s for more info.\n\n",TITLE,URI_HOME,WIT_SHORT);
-	hint_exit(ERR_OK,0);
+	hint_exit(ERR_OK);
     }
 
     enumError err = CheckEnvOptions("WIT_OPT",CheckOptions);
     if (err)
-	hint_exit(err,0);
+	hint_exit(err);
 
     err = CheckOptions(argc,argv,false);
     if (err)
-	hint_exit(err,0);
+	hint_exit(err);
 
     SetupFilePattern(file_pattern+PAT_FILES);
     err = CheckCommand(argc,argv);

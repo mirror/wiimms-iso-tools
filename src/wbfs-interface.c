@@ -521,335 +521,6 @@ void ScanPartitionGames()
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-ParamList_t * CheckParamID6 ( bool unique, bool lookup_title_db )
-{
-    // Checks each parameter for an ID6.
-    // Illegal parameters are removed.
-    // Function result is the new number of parameters.
-
- #ifdef DEBUG
-    {
-	TRACE("START CheckParamID6(%d,%d) n_param=%d\n",
-		unique, lookup_title_db, n_param );
-	ParamList_t * p;
-	for ( p = first_param; p; p = p->next )
-	    TRACE(" | P=%p ARG=%p,%s\n",p,p->arg,p->arg);
-    }
- #endif
-
-    bool id6_scanned = false;
-
-    // get first old parameter
-    ParamList_t * param = first_param;
-
-    // reset list
-    n_param = 0;
-    id6_param_found = 0;
-    first_param = 0;
-    append_param = &first_param;
-
-    noTRACE("C-0: A=%p->%p P=%p &N=%p->%p\n",
-	    append_param, *append_param,
-	    param, param ? &param->next : 0,
-	    param ? param->next : 0 );
-
-    while (param)
-    {
-	int id_len;
-	param->arg = ScanID(param->id6,&id_len,param->arg);
-	if (id_len)
-	    id6_param_found++;
-
-	if ( id_len == 1 )
-	{
-	    TRACE(" - ID6 '+|*' found, already scanned = %d\n",id6_scanned);
-	    if (!id6_scanned)
-	    {
-		id6_scanned = true;
-		ScanPartitionGames();
-		SortWDiscList(&pi_wlist,sort_mode,SORT_TITLE,true);
-
-		int i;
-		WDiscListItem_t * witem;
-		for ( i = pi_wlist.used, witem = pi_wlist.first_disc; i-- > 0; witem++ )
-		{
-		    if ( !IsExcluded(witem->id6)
-			&& ( !unique || !SearchParamID6(witem->id6) ))
-		    {
-			// append with dummy 'arg' ...
-			ParamList_t * p = AppendParam(witem->id6,false);
-			p->arg = param->arg;
-			memcpy(p->id6,witem->id6,6);
-			p->id6[6] = 0;
-		    }
-		}
-	    }
-	}
-
-	if (IsExcluded(param->id6))
-	    param->id6[0] = 0;
-
-	if ( param->id6[0] )
-	{
-	    if ( param->arg && param->arg[0] )
-	    {
-		// normalize arg
-
-		bool skip_blank = true;
-		char *src, *dest;
-		for ( src = dest = param->arg; *src; src++ )
-		{
-		    const char ch = *(u8*)src < ' ' ? ' ' : *src;
-		    if ( ch != ' ' )
-		    {
-			*dest++ = ch;
-			skip_blank = false;
-		    }
-		    else if (!skip_blank)
-		    {
-			*dest++ = ch;
-			skip_blank = true;
-		    }
-		}
-		if ( dest > param->arg && dest[-1] == ' ' )
-		    dest--;
-		*dest = 0;
-	    }
-
-	    if (unique)
-	    {
-		ParamList_t * found = SearchParamID6(param->id6);
-		if (found)
-		{
-		    param->id6[0] = 0; // disable this
-		    if ( param->arg && *param->arg )
-		    {
-			// last non empty arg overides previous!
-			found->arg = param->arg;
-		    }
-		}
-	    }
-	}
-
-	if ( param->id6[0] )
-	{
-	    // check arg
-	    if ( !param->arg || !param->arg[0] )
-	    {
-		param->arg = 0;
-		if (lookup_title_db)
-		    param->arg = (char*)GetTitle(param->id6,0);
-	    }
-
-	    // normalize ID6
-	    char * id6ptr = param->id6;
-	    int i;
-	    for ( i=0; i<6; i++, id6ptr++ )
-		*id6ptr = toupper((int)*id6ptr);
-	    ASSERT( id6ptr == param->id6 + 6 );
-	    *id6ptr = 0;
-
-	    // reset counter
-	    param->count = 0;
-
-	    // append parameter
-	    noTRACE("CHK: A=%p->%p P=%p &N=%p->%p\n",
-		    append_param, *append_param,
-		    param, &param->next, param->next );
-	    *append_param = param;
-	    append_param = &param->next;
-	    param = param->next;
-	    *append_param = 0;
-	    noTRACE("  => A=%p->%p P=%p &N=%p->%p\n",
-		    append_param, *append_param,
-		    param, (param?&param->next:0), (param?param->next:0) );
-	    n_param++;
-	}
-	else
-	{
-	    // do *not* free 'current' or 'current->arg'
-	    param = param->next;
-	    noTRACE("  == A=%p->%p P=%p &N=%p->%p\n",
-		    append_param, *append_param,
-		    param, (param?&param->next:0), (param?param->next:0) );
-	}
-    }
-
- #ifdef DEBUG
-    {
-	TRACE("TERM CheckParamID6(%d,%d) n_param=%d\n",
-		unique, lookup_title_db, n_param );
-	ParamList_t * p;
-	for ( p = first_param; p; p = p->next )
-	    TRACE(" | P=%p ID6=%s ARG=%p,%s\n",p,p->id6,p->arg,p->arg);
-    }
- #endif
-
-    return first_param;
-}
-
-///////////////////////////////////////////////////////////////////////////////
-
-ParamList_t * SearchParamID6 ( ccp id6 )
-{
-    ParamList_t * search;
-    for ( search = first_param; search; search = search->next )
-    {
-	if (!memcmp(search->id6,id6,6))
-	    return search;
-    }
-    return 0;
-}
-
-///////////////////////////////////////////////////////////////////////////////
-
-int PrintParamID6()
-{
-    ParamList_t * param;
-    for ( param = first_param; param; param = param->next )
-	if ( *param->id6 )
-	{
-	    if ( param->arg && *param->arg )
-		printf("%s=%s\n",param->id6,param->arg);
-	    else
-		printf("%s\n",param->id6);
-	}
-    return ERR_OK;
-}
-
-//
-///////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////
-
-ccp ScanArgID
-(
-    char		buf[7],		// result buffer for ID6: 6 chars + NULL
-					// On error 'buf7' is filled with NULL
-    ccp			arg,		// argument to scan. Comma is a separator
-    bool		trim_end	// true: remove trailing '.'
-)
-{
-    if (!arg)
-    {
-	memset(buf,0,6);
-	return 0;
-    }
-	
-    while ( *arg > 0 && *arg <= ' ' )
-	arg++;
-
-    ccp start = arg;
-    int err = 0, wildcards = 0;
-    while ( *arg > ' ' && *arg != ',' )
-    {
-	int ch = *arg++;
-	if ( ch == '+' || ch == '*' )
-	    wildcards++;
-	else if (!isalnum(ch) && !strchr("_.",ch))
-	    err++;
-    }
-    const int arglen = arg - start;
-    if ( err || wildcards > 1 || arglen > 6 )
-    {
-	memset(buf,0,6);
-	return start;
-    }
-    
-    char * dest = buf;
-    for ( ; start < arg; start++ )
-    {
-	if ( *start == '+' || *start == '*' )
-	{
-	    int count = 7 - arglen;
-	    while ( count-- > 0 )
-		*dest++ = '.';
-	}
-	else
-	    *dest++ = toupper((int)*start);
-	DASSERT( dest <= buf + 6 );
-    }
-
-    if (trim_end)
-	while ( dest[-1] == '.' )
-	    dest--;
-    else
-	while ( dest < buf+6 )
-	    *dest++ = '.';
-    *dest = 0;
-
-    while ( *arg > 0 && *arg <= ' ' || *arg == ',' )
-	arg++;
-    return arg;
-}
-
-///////////////////////////////////////////////////////////////////////////////
-
-ccp ScanPatID // return NULL if ok or a pointer to the invalid text
-(
-    StringField_t	* sf_id6,	// valid pointer: add real ID6
-    StringField_t	* sf_pat,	// valid pointer: add IDs with pattern '.'
-    ccp			arg,		// argument to scan. Comma is a separator
-    bool		trim_end	// true: remove trailing '.'
-)
-{
-    DASSERT(sf_id6);
-    DASSERT(sf_pat);
-
-    char buf[7];
-    while ( arg && *arg )
-    {
- 	arg = ScanArgID(buf,arg,trim_end);
-	if (!*buf)
-	    return arg;
-
-	if ( sf_id6 != sf_pat && strchr(buf,'.') )
-	    InsertStringField(sf_pat,buf,false);
-	else
-	    InsertStringField(sf_id6,buf,false);
-    }
-    return 0;
-}
-
-///////////////////////////////////////////////////////////////////////////////
-
-ccp FindPatID
-(
-    StringField_t	* sf_id6,	// valid pointer: search real ID6
-    StringField_t	* sf_pat,	// valid pointer: search IDs with pattern '.'
-    ccp			id6		// valid id6
-)
-{
-    if (!id6)
-	return 0;
-
-    if (sf_id6)
-    {
-	ccp found = FindStringField(sf_id6,id6);
-	if (found)
-	    return found;
-    }
-
-    if (sf_pat)
-    {
-	ccp *ptr = sf_pat->field, *end;
-	for ( end = ptr + sf_pat->used; ptr < end; ptr++ )
-	{
-	    ccp p1 = *ptr;
-	    ccp p2 = id6;
-	    while ( *p1 && *p2 && ( *p1 == '.' || *p2 == '.' || *p1 == *p2 ))
-		p1++, p2++;
-	    if ( !*p1 && !*p2 )
-		return *ptr;
-	}
-    }
-
-    return 0;
-}
-
-//
-///////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////
-
 enumError ScanParamID6
 (
     StringField_t	* select_list,	// append all results to this list
@@ -1339,6 +1010,29 @@ enumError CreateGrowingWBFS ( WBFS_t * w, SuperFile_t * sf, off_t size, int sect
     ASSERT(size);
     ASSERT(sector_size);
     TRACE("CreateGrowingWBFS(%p,%p,%d)\n",w,sf,sector_size);
+
+    if ( S_ISREG(sf->f.st.st_mode) && sf->src && prealloc_mode > PREALLOC_OFF )
+    {
+	const int bl_size = wbfs_calc_sect_size(size,sector_size);
+	if ( prealloc_mode == PREALLOC_ALL )
+	{
+	    wd_disc_t * disc = OpenDiscSF(sf->src,false,false);
+	    if (disc)
+	    {
+		const int sect_per_block = bl_size / WII_SECTOR_SIZE;
+		const u32 n_blocks = wd_count_used_disc_blocks(disc,-sect_per_block,0);
+		noPRINT("NB = %u\n",n_blocks);
+		PreallocateF(&sf->f,0,(n_blocks+sect_per_block)*(u64)WII_SECTOR_SIZE);
+	    }
+	}
+	else
+	{
+	    PreallocateF(&sf->f,0,sector_size
+				+  ALIGN64( sizeof(wbfs_disc_info_t)
+					+ 2*WII_MAX_DISC_SIZE/bl_size,sector_size) );
+	    PreallocateSF(sf,bl_size,0,bl_size/WII_SECTOR_SIZE,1);
+	}
+    }
 
     wbfs_param_t par;
     memset(&par,0,sizeof(par));
@@ -3994,9 +3688,60 @@ enumError OpenWDiscSlot ( WBFS_t * w, u32 slot, bool force_open )
 
 ///////////////////////////////////////////////////////////////////////////////
 
+enumError OpenWDiscSF ( WBFS_t * w )
+{
+    DASSERT(w);
+    CloseWDiscSF(w);
+    if ( !w->sf || !w->disc )
+	return ERROR0(ERR_INTERNAL,0);
+
+    SuperFile_t * sf = w->sf;
+    sf->wbfs = w;
+    SetupIOD(sf,OFT_WBFS,OFT_WBFS);
+    memcpy(sf->f.id6,w->disc->header,6);
+    w->disc_sf_opened = true;
+
+    CopyFileAttribStat( &sf->f.fatt, &sf->f.st, false );
+    if ( w->disc->header && w->disc->header->dhead )
+    {
+	const wbfs_inode_info_t * ii
+	    = (wbfs_inode_info_t*) ( w->disc->header->dhead + WBFS_INODE_INFO_OFF );
+	CopyFileAttribInode( &sf->f.fatt, ii, 0 );
+    }
+
+    return ERR_OK;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+enumError CloseWDiscSF ( WBFS_t * w )
+{
+    DASSERT(w);
+    if ( w->disc_sf_opened )
+    {
+	w->disc_sf_opened = false;
+
+	SuperFile_t * sf = w->sf;
+	if ( sf && sf->iod.oft == OFT_WBFS )
+	{
+	    CloseDiscSF(sf);
+	    memset(sf->f.id6,0,sizeof(sf->f.id6));
+	    SetupIOD(sf,OFT_PLAIN,OFT_PLAIN);
+	    sf->wbfs = 0;
+	}
+
+	CopyFileAttribStat(&sf->f.fatt,&sf->f.st,false);
+    }
+    return ERR_OK;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
 enumError CloseWDisc ( WBFS_t * w )
 {
-    ASSERT(w);
+    DASSERT(w);
+
+    CloseWDiscSF(w);
 
     if (w->disc)
     {
@@ -4110,76 +3855,32 @@ enumError AddWDisc ( WBFS_t * w, SuperFile_t * sf, const wd_select_t * psel )
 
 //
 ///////////////////////////////////////////////////////////////////////////////
-///////////////                    ExtractWDisc()               ///////////////
-///////////////////////////////////////////////////////////////////////////////
-
-enumError ExtractWDisc ( WBFS_t * w, SuperFile_t * sf )
-{
-    TRACE("ExtractWDisc(%p,%p)\n",w,sf);
-    if ( !w || !w->wbfs | !w->sf || !w->disc || !sf )
-	return ERROR0(ERR_INTERNAL,0);
-
-    SetMinSizeSF( sf, GetGoodMinSize( ( w->sf->f.ftype & FT_A_GC_ISO ) != 0 ));
- 
-    // this is needed for detailed error messages
-    const enumError saved_max_error = max_error;
-    max_error = 0;
-
-    enumError err = ERR_OK;
-
-    if ( sf->iod.oft == OFT_WDF )
-    {
-	// write an empty disc header -> makes renaming easier
-	err = WriteWDF(sf,0,zerobuf,WII_TITLE_OFF+WII_TITLE_SIZE);
-    }
-
-    int ex_stat = wbfs_extract_disc( w->disc,
-	    sf->enable_fast ? WrapperWriteSF : WrapperWriteSparseSF,
-	    sf, sf->show_progress ? PrintProgressSF : 0 );
-
-    if (!err)
-    {
-	if ( w->sf && w->sf->f.is_writing )
-	    wbfs_sync_disc_header(w->disc);
-
-	err = max_error;
-	if ( !err && ex_stat )
-	{
-	    err = ERR_WBFS;
-	    if (!w->sf->f.disable_errors)
-		ERROR0(err,"Error while extracting disc [%s]: %s\n",
-			sf->f.id6, w->sf->f.fname );
-	}
-    }
-
-    if ( max_error < saved_max_error )
-	max_error = saved_max_error;
-
-    sf->progress_summary = true;
-
-    TRACE("ExtractWDisc() returns err=%d [%s]\n",err,GetErrorName(err));
-    return err;
-}
-
-//
-///////////////////////////////////////////////////////////////////////////////
 ///////////////                    RemoveWDisc()                ///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-enumError RemoveWDisc ( WBFS_t * w, ccp id6, bool free_slot_only )
+enumError RemoveWDisc
+(
+    WBFS_t		* w,		// valid WBFS descriptor
+    ccp			id6,		// id6 to remove. If NULL: remove 'slot'
+    int			slot,		// slot index, only used if 'discid==NULL'
+    int			free_slot_only	// true: do not free blocks
+)
 {
-    TRACE("RemoveWDisc(%p,%s,%d)\n",w,id6?id6:"-",free_slot_only);
-    if ( !w || !w->wbfs || !w->sf || !id6 || strlen(id6) != 6 )
+    TRACE("RemoveWDisc(%p,%s,%d,%d)\n",w,id6?id6:"-",slot,free_slot_only);
+    if ( !w || !w->wbfs || !w->sf )
 	return ERROR0(ERR_INTERNAL,0);
+BINGO;
 
     // this is needed for detailed error messages
     const enumError saved_max_error = max_error;
     max_error = 0;
+BINGO;
 
     // remove the disc
     enumError err = ERR_OK;
-    if (wbfs_rm_disc(w->wbfs,(u8*)id6,free_slot_only))
+    if (wbfs_rm_disc(w->wbfs,(u8*)id6,slot,free_slot_only))
     {
+BINGO;
 	err = ERR_WDISC_NOT_FOUND;
 	if (!w->sf->f.disable_errors)
 	    ERROR0(err,"Can't remove disc non existing [%s]: %s\n",
@@ -4190,8 +3891,9 @@ enumError RemoveWDisc ( WBFS_t * w, ccp id6, bool free_slot_only )
     DumpWBFS(w,TRACE_FILE,15,0,0,0);
  #endif
 
+BINGO;
     // check if the disc is really removed
-    if (!ExistsWDisc(w,id6))
+    if ( id6 && !ExistsWDisc(w,id6) )
     {
 	err = ERR_REMOVE_FAILED;
 	if (!w->sf->f.disable_errors)
@@ -4199,11 +3901,13 @@ enumError RemoveWDisc ( WBFS_t * w, ccp id6, bool free_slot_only )
 		id6, w->sf->f.fname );
     }
 
+BINGO;
     // catch read/write errors
     err = max_error = max_error > err ? max_error : err;
     if ( max_error < saved_max_error )
 	max_error = saved_max_error;
 
+BINGO;
     // calculate the wbfs usage again
     CalcWBFSUsage(w);
 

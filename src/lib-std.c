@@ -74,6 +74,7 @@ ShowMode	opt_show_mode		= SHOW__DEFAULT;
 wd_size_mode_t	opt_unit		= WD_SIZE_DEFAULT;
 RepairMode	repair_mode		= REPAIR_NONE;
 char		escape_char		= '%';
+bool		use_utf8		= true;
 enumOFT		output_file_type	= OFT_UNKNOWN;
 int		opt_truncate		= 0;
 int		opt_split		= 0;
@@ -90,6 +91,7 @@ u32		job_limit		= ~(u32)0;
 enumIOMode	io_mode			= 0;
 bool		opt_no_expand		= false;
 u32		opt_recurse_depth	= DEF_RECURSE_DEPTH;
+PreallocMode	prealloc_mode		= PREALLOC_DEFAULT;
 
 StringField_t	source_list;
 StringField_t	recurse_list;
@@ -101,13 +103,6 @@ const char	zerobuf[0x40000]	= {0};	// global zero buffer
 //	==> don't call other functions while using tempbuf
 u8		* tempbuf		= 0;	// global temp buffer -> AllocTempBuffer()
 size_t		tempbuf_size		= 0;	// size of 'tempbuf'
-
-#ifdef __CYGWIN__
- bool		use_utf8		= false;
-#else
- bool		use_utf8		= true;
-#endif
-
 
 const char sep_79[80] =		//  79 * '-' + NULL
 	"----------------------------------------"
@@ -262,6 +257,7 @@ void SetupLib ( int argc, char ** argv, ccp p_progname, enumProgID prid )
     TRACE_SIZEOF(PrintTime_t);
     TRACE_SIZEOF(RegionInfo_t);
     TRACE_SIZEOF(StringField_t);
+    TRACE_SIZEOF(StringItem_t);
     TRACE_SIZEOF(StringList_t);
     TRACE_SIZEOF(SubstString_t);
     TRACE_SIZEOF(SuperFile_t);
@@ -492,9 +488,6 @@ void SetupLib ( int argc, char ** argv, ccp p_progname, enumProgID prid )
     //----- setup language info
 
     char * wit_lang = getenv("WIT_LANG");
-    if ( !wit_lang || !*wit_lang )
-	wit_lang = getenv("WWT_LANG");
-    if ( wit_lang && *wit_lang )
     if ( wit_lang && *wit_lang )
     {
 	lang_info = strdup(wit_lang);
@@ -563,6 +556,7 @@ void SetupLib ( int argc, char ** argv, ccp p_progname, enumProgID prid )
 
     //----- verify oft_info
 
+ #if defined(TEST) || defined(DEBUG)
     {
 	ASSERT( OFT__N + 1 == sizeof(oft_info)/sizeof(*oft_info) );
 	enumOFT oft;
@@ -571,6 +565,7 @@ void SetupLib ( int argc, char ** argv, ccp p_progname, enumProgID prid )
 	    ASSERT( oft_info[oft].oft == oft );
 	}
     }
+ #endif
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -671,6 +666,7 @@ ccp GetErrorName ( int stat )
 	case ERR_NO_CISO:		return "NO WDF";
 	case ERR_CISO_INVALID:		return "INVALID WDF";
 
+	case ERR_WPART_INVALID:		return "INVALID WII PARTITION";
 	case ERR_WDISC_INVALID:		return "INVALID WII DISC";
 	case ERR_WDISC_NOT_FOUND:	return "WII DISC NOT FOUND";
 
@@ -733,6 +729,7 @@ ccp GetErrorText ( int stat )
 	case ERR_NO_CISO:		return "File is not a CISO";
 	case ERR_CISO_INVALID:		return "File is an invalid CISO";
 
+	case ERR_WPART_INVALID:		return "Invalid Wii partition";
 	case ERR_WDISC_INVALID:		return "Invalid Wii disc";
 	case ERR_WDISC_NOT_FOUND:	return "Wii disc not found";
 
@@ -1692,7 +1689,7 @@ char * ScanSizeTerm ( double * num, ccp source, u64 default_factor, int force_ba
 char * ScanSize ( double * num, ccp source,
 		  u64 default_factor1, u64 default_factor2, int force_base )
 {
-    ASSERT(source);
+    DASSERT(source);
     TRACE("ScanSize(df=%llx,%llx, base=%u)\n",
 			default_factor1, default_factor2, force_base );
 
@@ -3072,6 +3069,26 @@ ccp FindStringField ( StringField_t * sf, ccp key )
 
 ///////////////////////////////////////////////////////////////////////////////
 
+static ccp * InsertStringFieldHelper ( StringField_t * sf, int idx )
+{
+    DASSERT(sf);
+    DASSERT( sf->used <= sf->size );
+    if ( sf->used == sf->size )
+    {
+	sf->size += 0x100;
+	sf->field = realloc(sf->field,sf->size*sizeof(ccp));
+	if (!sf->field)
+	    OUT_OF_MEMORY;
+    }
+    DASSERT( idx <= sf->used );
+    ccp * dest = sf->field + idx;
+    memmove(dest+1,dest,(sf->used-idx)*sizeof(ccp));
+    sf->used++;
+    return dest;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
 bool InsertStringField ( StringField_t * sf, ccp key, bool move_key )
 {
     if (!key)
@@ -3086,23 +3103,45 @@ bool InsertStringField ( StringField_t * sf, ccp key, bool move_key )
     }
     else
     {
-	ASSERT( sf->used <= sf->size );
-	if ( sf->used == sf->size )
-	{
-	    sf->size += 0x100;
-	    sf->field = realloc(sf->field,sf->size*sizeof(ccp));
-	    if (!sf->field)
-		OUT_OF_MEMORY;
-	}
-	TRACE("InsertStringField(%s,%d) %d/%d/%d\n",key,move_key,idx,sf->used,sf->size);
-	DASSERT( idx <= sf->used );
-	ccp * dest = sf->field + idx;
-	memmove(dest+1,dest,(sf->used-idx)*sizeof(ccp));
-	sf->used++;
+	ccp * dest = InsertStringFieldHelper(sf,idx);
 	*dest = move_key ? key : strdup(key);
     }
 
     return !found;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+StringItem_t * InsertStringID6 ( StringField_t * sf, void * id6, char flag, ccp arg )
+{
+    if (!id6)
+	return 0;
+
+    bool found;
+    int idx = FindStringFieldHelper(sf,&found,id6);
+    ccp * dest;
+    if (found)
+    {
+	DASSERT( idx < sf->used );
+	dest = sf->field + idx;
+	free((char*)*dest);
+    }
+    else
+	dest = InsertStringFieldHelper(sf,idx);
+
+    const int arg_len   = arg ? strlen(arg) : 0;
+    const int item_size = sizeof(StringItem_t) + arg_len + 1;
+    StringItem_t * item = malloc(item_size);
+    if (!item)
+	OUT_OF_MEMORY;
+
+    *dest = (ccp)item;
+    memset(item,0,item_size);
+    strncpy(item->id6,id6,6);
+    item->flag = flag;
+    if (arg)
+	memcpy(item->arg,arg,arg_len);
+    return item;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -3632,9 +3671,16 @@ MemMapItem_t * FindMemMap ( MemMap_t * mm, off_t off, off_t size )
 
 ///////////////////////////////////////////////////////////////////////////////
 
-MemMapItem_t * InsertMemMap ( MemMap_t * mm, off_t off, off_t size )
+uint InsertMemMapIndex
+(
+    // returns the index of the new item
+
+    MemMap_t		* mm,		// mem map pointer
+    off_t		off,		// offset of area
+    off_t		size		// size of area
+)
 {
-    ASSERT(mm);
+    DASSERT(mm);
     uint idx = FindMemMapHelper(mm,off,size);
 
     ASSERT( mm->used <= mm->size );
@@ -3658,7 +3704,79 @@ MemMapItem_t * InsertMemMap ( MemMap_t * mm, off_t off, off_t size )
     mi->size = size;
     mi->overlap = 0;
     *dest = mi;
-    return mi;
+    return idx;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+MemMapItem_t * InsertMemMap
+(
+    // returns a pointer to a new item (never NULL)
+
+    MemMap_t		* mm,		// mem map pointer
+    off_t		off,		// offset of area
+    off_t		size		// size of area
+)
+{
+    const uint idx = InsertMemMapIndex(mm,off,size);
+    // a C sequence piunt is importand here
+    return mm->field[idx];
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+static bool TieMemMap 
+(
+    // returns true if element are tied togehther
+
+    MemMap_t		* mm,		// mem map pointer
+    uint		idx,		// tie element 'idx' and 'idx+1'
+    bool		force		// always tie and not only if overlapped
+)
+{
+    DASSERT(mm);
+    DASSERT( idx+1 < mm->used );
+
+    MemMapItem_t * i1 = mm->field[idx];
+    MemMapItem_t * i2 = mm->field[idx+1];
+    if ( force || i1->off + i1->size >= i2->off )
+    {
+	const off_t new_size = i2->off + i2->size - i1->off;
+	if ( i1->size < new_size )
+	     i1->size = new_size;
+	free(i2);
+	idx++;
+	mm->used--;
+	memmove( mm->field + idx,
+		 mm->field + idx + 1,
+		 ( mm->used - idx ) * sizeof(MemMapItem_t*) );
+
+	return true;
+    }
+    
+    return false;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+MemMapItem_t * InsertMemMapTie
+(
+    // returns a pointer to a new or existing item (never NULL)
+
+    MemMap_t		* mm,		// mem map pointer
+    off_t		off,		// offset of area
+    off_t		size		// size of area
+)
+{
+    uint idx = InsertMemMapIndex(mm,off,size);
+
+    if ( idx > 0 && TieMemMap(mm,idx-1,false) )
+	idx--;
+
+    while ( idx + 1 < mm->used && TieMemMap(mm,idx,false) )
+	;
+
+    return mm->field[idx];
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -3944,14 +4062,15 @@ size_t ReadDataList // returns number of writen bytes
 	{
 	    if (!dl->current.size)
 	    {
-		noPRINT("NEXT AREA: %p, %p, %u\n", dl->area, dl->area->data, dl->area->size );
+		noPRINT("NEXT AREA: %p, %p, %zu\n",
+			dl->area, dl->area->data, dl->area->size );
 		if (!dl->area->data)
 		    break;
 		memcpy(&dl->current,dl->area++,sizeof(dl->current));
 	    }
 
 	    const size_t copy_size = size < dl->current.size ? size : dl->current.size;
-	    noPRINT("COPY AREA: %p <- %p, size = %u=%x\n",
+	    noPRINT("COPY AREA: %p <- %p, size = %zu=%zx\n",
 			dest,dl->current.data,copy_size,copy_size);
 	    memcpy(dest,dl->current.data,copy_size);
 	    written		+= copy_size;
@@ -4176,6 +4295,49 @@ size_t AllocTempBuffer ( size_t needed_size )
 	    OUT_OF_MEMORY;
     }
     return tempbuf_size;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+int ScanPreallocMode ( ccp arg )
+{
+ #ifdef NO_PREALLOC
+    static char errmsg[] = "Preallocation not supported and option --prealloc is ignored!\n";
+ #endif
+
+    if ( !arg || !*arg )
+    {
+     #ifdef NO_PREALLOC
+	ERROR0(ERR_WARNING,errmsg);
+     #else
+	prealloc_mode = PREALLOC_OPT_DEFAULT;
+     #endif
+	return 0;
+    }
+
+    static const CommandTab_t tab[] =
+    {
+	{ PREALLOC_OFF,		"OFF",		"0",	0 },
+	{ PREALLOC_SMART,	"SMART",	"1",	0 },
+	{ PREALLOC_ALL,		"ALL",		"2",	0 },
+
+	{ 0,0,0,0 }
+    };
+
+    const CommandTab_t * cmd = ScanCommand(0,arg,tab);
+    if (cmd)
+    {
+     #ifdef NO_PREALLOC
+	if ( cmd->id != PREALLOC_OFF )
+	    ERROR0(ERR_WARNING,errmsg);
+     #else
+	prealloc_mode = cmd->id;
+     #endif
+	return 0;
+    }
+
+    ERROR0(ERR_SYNTAX,"Illegal preallocation mode (option --prealloc): '%s'\n",arg);
+    return 1;
 }
 
 //

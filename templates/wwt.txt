@@ -378,83 +378,6 @@ are listed in alphabetic order:
 
 -------------------------------------------------------------------------------
 @@EXEC(./wwt help --width 80 EXTRACT)@@
-~ [2do] copy to homepage
-
- The EXTRACT command extracts all discs identified by ID6 from all given WBFS
- partitions. The options --all, --auto and --part decides which partitions
- will be modified (see section "Options in detail: partitions" for details).
-
- Each parameter is scanned for an ID6. Possible formats are:
-    '*' | '+'
-    ID6
-    ID6=name
-    name [ID6]
-    ID6 anything
- A single '*' (must be escaped by shells) or '+' means 'all'.
- Please read section "Processing ID6 parameters" for details.
-
- For each ID6 a Wii ISO image is created in the current working directory.
- The option --dest can be used to define an other existing destination
- directory. If a disc is found on 2 ore more WBFS partitions it wil only
- extracted from the first one. To overwrite an existing file the option
- --overwrite must be set. The option --ignore suppresses error messages
- about not found disc images.
-
- Option --DEST is like --dest, but the directory path is created
- automaticaly.
-
- The ISO image will be generated in an ,scrubbed' mode with holes in it.
- It will be stored as a sparse file to save disk space. The ISO file is
- filled at the end to the native IOS file size, 4.699.979.776 bytes for
- single layer discs. If the option --trunc is set, then this filling is
- disabled. --trunc seems not to be effective yet, because the data is
- stored at the end of the image.
-
- When writing ISO files the option --wdf, --iso, --ciso and --wbfs control the
- output format. If writing a WBFS file this WBFS is truncated and contains
- exactly one ISO image. The default file name of this WBFS is '<ID6>.wbfs'. If
- none of --wdf, --iso, --ciso or --wbfs is set, the destination filename will
- be analyzed. If the extension (ignoring case) is ".wdf", ".iso", ".ciso",
- ".wbi" (an alternative for ".ciso") or ".wbfs", the specific output format
- is used. The default is WDF if all other fails.
-
- If the --fast option is set then blocks will not be searched for zeroed
- areas before writing it. Searching for holes works for both, WDF and ISO
- and saves disk space but needs more calculation time.
-
- If the option --remove is set then the discs which are extracted without
- errors are removed from *all* WBFS partitions.
-
- If the --quiet option is set only error messages will be printed.
- If the --verbose option is set run time calculations will be made too.
- If the --verbose option is at least twice a progress status will be shown.
-
- If the --test option is set the programm does nothing, neither copying nor
- removing. Instead it will print some 'WOULD ...' messages.
- If the --test option is set two or more times then only a normalized ID6
- list is printed. For each ID6 one line is printed. If a destination
- filename is known 'ID=name' is printed, else 'ID6' alone.
-
- Before modifying the WBFS a check (see CHECK) is done. If there are any
- problematic errors detected the WBFS is ignored. If the option --force is set,
- the test is done but the result is ignored. The option --no-check disables
- this automatic check.
-
- DESTINATION FILENAME
-
-@@MODULE(output-filename.txt)@@
-
-
- Usual ERROR/EXIT CODES:
-
-    0 == OK             : all done without errors.
-    SYNTAX ERROR        : at least one syntax error in command line found.
-    MISSING PARAMETERS  : no parameters (ID6) given.
-    NO WBFS FOUND       : no WBFS partition found.
-    TO MUCH WBFS FOUND  : 2 to more no WBFS partition found but --all missed.
-    WDISC NOT FOUND     : disc not found on any WBFS partition.
-    REMOVE ERROR        : error while removing a disc from a WBFS.
-    READ ERROR          : error while reading an ISO image or a WBFS.
 
 
 -------------------------------------------------------------------------------
@@ -1209,35 +1132,10 @@ There are some hidden options implemented for testing:
 *******                      Environment variables                      *******
 *******************************************************************************
 
-The user can define environment variables as additional way to submit
-parameters to the tool:
+The user can define environment variables as additional way to submit options
+to the tool. All options are accepted and used as default. 
 
-WIT_LANG
-
- With 'WIT_LANG' (not 'WWT_LANG') the user can spezifiy a default language for
- wit and wwt titles. If 'WIT_LANG' is empty 'LC_CTYPE' will be scanned. The
- option --lang overides this default setting.
-
- Example: WIT_LANG="de"
-
-WWT_WBFS
-
- If neither the option --part nor --auto is set then the environment variable
- 'WWT_WBFS' is searched. It contains a semicolon separated list of filenames.
- If one ore more of this files is a valid WBFS partition it is silently added
- to the partition list and the option --all is set.
-
- Example: WWT_WBFS="a.wbfs;/dev/sdc1;/dev/sdc2"
-
-WWT_OPT
-
- 'WWT_OPT' is scanned like a command line and before the real command line is
- scanned. Therefor 'WWT_OPT' will be converted to a parameter list. Each SPACE
- or other control is a separator. Quoting is not possible. Only options and
- their parameters will recognized. If such option is not compatible with
- the command it is silently ignored.
-
- Example: WWT_OPT="--force --overwrite -vv -T0"
+See http://wit.wiimm.de/info/environ.html for details.
 
 
 @@MODULE(signals.txt)@@

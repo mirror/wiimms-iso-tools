@@ -28,6 +28,7 @@
 #define _GNU_SOURCE 1
 
 #include "lib-std.h"
+#include "lib-sf.h"
 
 //
 ///////////////////////////////////////////////////////////////////////////////
@@ -102,8 +103,9 @@ enumError EncLZMA_Open
 
 enumError EncLZMA_WriteDataToFile
 (
-    EncLZMA_t		* lzma,		// valid pointer, opend with EncLZMA_Open()
-    File_t		* file,		// destination file, write to current offset
+    EncLZMA_t		* lzma,		// valid pointer, opened with EncLZMA_Open()
+    SuperFile_t		* file,		// destination file and progress support
+					//  -> write to 'file->f' at current offset
     bool		write_props,	// true: write encoding properties
     const void		* data,		// data to write
     size_t		data_size,	// size of data to write
@@ -115,7 +117,8 @@ enumError EncLZMA_WriteDataToFile
 enumError EncLZMA_WriteList2File
 (
     EncLZMA_t		* lzma,		// valid pointer, opened with EncLZMA_Open()
-    File_t		* file,		// destination file, write to current offset
+    SuperFile_t		* file,		// destination file and progress support
+					//  -> write to 'file->f' at current offset
     bool		write_props,	// true: write encoding properties
     DataList_t		* data_list,	// NULL or data list (modified)
     u32			* bytes_written	// not NULL: store written bytes
@@ -133,7 +136,8 @@ enumError EncLZMA_Close
 enumError EncLZMA_Data2File // open + write + close lzma stream
 (
     EncLZMA_t		* lzma,		// if NULL: use internal structure
-    File_t		* file,		// destination file, write to current offset
+    SuperFile_t		* file,		// destination file and progress support
+					//  -> write to 'file->f' at current offset
     int			compr_level,	// valid are 1..9 / 0: use default value
     bool		write_props,	// true: write encoding properties
     bool		write_endmark,	// true: write end marker at end of stream
@@ -147,7 +151,8 @@ enumError EncLZMA_Data2File // open + write + close lzma stream
 enumError EncLZMA_List2File // open + write + close lzma stream
 (
     EncLZMA_t		* lzma,		// if NULL: use internal structure
-    File_t		* file,		// destination file, write to current offset
+    SuperFile_t		* file,		// destination file and progress support
+					//  -> write to 'file->f' at current offset
     int			compr_level,	// valid are 1..9 / 0: use default value
     bool		write_props,	// true: write encoding properties
     bool		write_endmark,	// true: write end marker at end of stream
@@ -162,7 +167,8 @@ enumError EncLZMA_List2File // open + write + close lzma stream
 
 enumError DecLZMA_File2Buf // open + read + close lzma stream
 (
-    File_t		* file,		// source file, read from current offset
+    SuperFile_t		* file,		// source file and progress support
+					//  -> read from 'file->f' at current offset
     size_t		read_count,	// not NULL: max bytes to read from file
     void		* buf,		// destination buffer
     size_t		buf_size,	// size of destination buffer
@@ -188,8 +194,9 @@ enumError EncLZMA2_Open
 
 enumError EncLZMA2_WriteDataToFile
 (
-    EncLZMA_t		* lzma,		// valid pointer, opend with EncLZMA2_Open()
-    File_t		* file,		// destination file, write to current offset
+    EncLZMA_t		* lzma,		// valid pointer, opened with EncLZMA2_Open()
+    SuperFile_t		* file,		// destination file and progress support
+					//  -> write to 'file->f' at current offset
     bool		write_props,	// true: write encoding properties
     const void		* data,		// data to write
     size_t		data_size,	// size of data to write
@@ -201,7 +208,8 @@ enumError EncLZMA2_WriteDataToFile
 enumError EncLZMA2_WriteList2File
 (
     EncLZMA_t		* lzma,		// valid pointer, opened with EncLZMA2_Open()
-    File_t		* file,		// destination file, write to current offset
+    SuperFile_t		* file,		// destination file and progress support
+					//  -> write to 'file->f' at current offset
     bool		write_props,	// true: write encoding properties
     DataList_t		* data_list,	// NULL or data list (modified)
     u32			* bytes_written	// not NULL: store written bytes
@@ -219,7 +227,8 @@ enumError EncLZMA2_Close
 enumError EncLZMA2_Data2File // open + write + close lzma stream
 (
     EncLZMA_t		* lzma,		// if NULL: use internal structure
-    File_t		* file,		// destination file, write to current offset
+    SuperFile_t		* file,		// destination file and progress support
+					//  -> write to 'file->f' at current offset
     int			compr_level,	// valid are 1..9 / 0: use default value
     bool		write_props,	// true: write encoding properties
     bool		write_endmark,	// true: write end marker at end of stream
@@ -233,7 +242,8 @@ enumError EncLZMA2_Data2File // open + write + close lzma stream
 enumError EncLZMA2_List2File // open + write + close lzma stream
 (
     EncLZMA_t		* lzma,		// if NULL: use internal structure
-    File_t		* file,		// destination file, write to current offset
+    SuperFile_t		* file,		// destination file and progress support
+					//  -> write to 'file->f' at current offset
     int			compr_level,	// valid are 1..9 / 0: use default value
     bool		write_props,	// true: write encoding properties
     bool		write_endmark,	// true: write end marker at end of stream
@@ -248,7 +258,8 @@ enumError EncLZMA2_List2File // open + write + close lzma stream
 
 enumError DecLZMA2_File2Buf // open + read + close lzma stream
 (
-    File_t		* file,		// source file, read from current offset
+    SuperFile_t		* file,		// source file and progress support
+					//  -> read from 'file->f' at current offset
     size_t		read_count,	// not NULL: max bytes to read from file
     void		* buf,		// destination buffer
     size_t		buf_size,	// size of destination buffer

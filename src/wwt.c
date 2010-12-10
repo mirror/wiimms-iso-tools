@@ -54,12 +54,10 @@
 #define TITLE WWT_SHORT ": " WWT_LONG " v" VERSION " r" REVISION \
 		" " SYSTEM " - " AUTHOR " - " DATE
 
-
 time_t opt_set_time	= 0;
 u64  opt_size		= 0;
 u32  opt_hss		= 0;
 u32  opt_wss		= 0;
-
 
 //
 ///////////////////////////////////////////////////////////////////////////////
@@ -130,11 +128,18 @@ void print_title ( FILE * f )
 
 ///////////////////////////////////////////////////////////////////////////////
 
+static const CommandTab_t * current_command = 0;
+
 void hint_exit ( enumError stat )
 {
-    fprintf(stderr,
-	    "-> Type '%s -h', '%s help' or '%s help command' for more help.\n\n",
-	    progname, progname, progname );
+    if ( current_command )
+	fprintf(stderr,
+	    "-> Type '%s help %s' (pipe it to a pager like 'less') for more help.\n\n",
+	    progname, CommandInfo[current_command->id].name1 );
+    else
+	fprintf(stderr,
+	    "-> Type '%s -h', '%s help' (pipe it to a pager like 'less') for more help.\n\n",
+	    progname, progname );
     exit(stat);
 }
 
@@ -1715,7 +1720,7 @@ enumError exec_add ( SuperFile_t * sf, Iterator_t * it )
 		TRACE("REMOVE [%s] %s\n",sf->f.id6,title);
 		if (verbose>=0)
 		    printf(" - REMOVE [%s] %s\n",sf->f.id6,title);
-		if (RemoveWDisc(it->wbfs,sf->f.id6,0))
+		if (RemoveWDisc(it->wbfs,sf->f.id6,0,false))
 		    return ERR_WBFS;
 	    }
 	}
@@ -1849,9 +1854,9 @@ enumError cmd_add()
 	int wbfs_rm_count = 0;
 	if ( OptionUsed[OPT_SYNC] )
 	{
-	    disable_exclude_db++;
+	    //disable_exclude_db++;
 	    WDiscList_t * wlist = GenerateWDiscList(&wbfs,0);
-	    disable_exclude_db--;
+	    //disable_exclude_db--;
 
 	    WDiscListItem_t * ptr = wlist->first_disc;
 	    WDiscListItem_t * end = ptr + wlist->used;
@@ -1871,7 +1876,7 @@ enumError cmd_add()
 		    {
 			printf(" - REMOVE [%s] %s\n",
 				ptr->id6, GetTitle(ptr->id6,ptr->name64) );
-			if (!RemoveWDisc(&wbfs,ptr->id6,false))
+			if (!RemoveWDisc(&wbfs,ptr->id6,0,false))
 			    wbfs_rm_count++;
 		    }
 		}
@@ -1966,14 +1971,15 @@ enumError cmd_extract()
     if (err)
 	return err;
 
-    CheckParamID6( OptionUsed[OPT_UNIQUE] != 0, testmode > 1 );
-    if ( testmode > 1 )
-	return PrintParamID6();
 
-    if (!id6_param_found)
-	return OptionUsed[OPT_IGNORE]
-		? ERR_OK 
-		: ERROR0(ERR_MISSING_PARAM,"missing parameters\n");
+    if (!SetupParamDB(0,!OptionUsed[OPT_IGNORE],true))
+	return OptionUsed[OPT_IGNORE] ? ERR_OK : ERR_MISSING_PARAM;
+
+    if ( testmode > 1 )
+    {
+	DumpParamDB(SEL_ALL,false);
+	return ERR_OK;
+    }
 
 
     //----- dest path
@@ -2023,6 +2029,8 @@ enumError cmd_extract()
 
     SuperFile_t fo;
     InitializeSF(&fo);
+    StringField_t id_done_list;
+    InitializeStringField(&id_done_list);
 
     WBFS_t wbfs;
     InitializeWBFS(&wbfs);
@@ -2049,123 +2057,103 @@ enumError cmd_extract()
 	}
 
 	int wbfs_extract_count = 0, wbfs_rm_count = 0;
-	ParamList_t * param;
-	for ( param = first_param;
-	      param && !SIGINT_level;
-	      param = param->next )
+	bool wbfs_go = true;
+
+	int slot;
+	for ( slot = 0;
+	     slot < wbfs.wbfs->max_disc && wbfs_go && !SIGINT_level;
+	     slot++ )
 	{
-	    ccp id6 = param->id6;
-	    if ( !*id6 || IsExcluded(id6) )
+	    ccp id6, title;
+	    const StringItem_t * item = CheckParamSlot(&wbfs,slot,true,&id6,&title);
+	    if (item)
 	    {
-		param->count++;
-		continue;
+		DASSERT( id6 && *id6 && title );
+		wd_header_t * dhead = GetWDiscHeader(&wbfs);
+		if (dhead)
+		{
+		    if (!InsertStringField(&id_done_list,id6,false))
+		    {
+			TRACE("ALREADY DONE %s @ %s\n",id6,info->path);
+			if ( verbose > 0 )
+			    printf(" - ALREADY EXTRACTED: [%s] %s\n",id6,title);
+			continue;
+		    }
+		    RemoveSF(&fo);
+
+		    char dbuf[PATH_MAX], fbuf[PATH_MAX];
+		    ccp dpath;
+		    if ( *item->arg )
+		    {
+			dpath = PathCatPP(dbuf,sizeof(dbuf),dest_path,item->arg);
+			if (IsDirectory(dpath,true))
+			    dpath = PathCatPP(dbuf,sizeof(dbuf),dpath,default_fname);
+		    }
+		    else
+			dpath = PathCatPP(dbuf,sizeof(dbuf),dest_path,default_fname);
+
+		    enumOFT oft = CalcOFT(output_file_type,dpath,0,OFT__DEFAULT);
+		    int conv_count = SubstFileName( fbuf, sizeof(fbuf),
+						    id6, (ccp)dhead->disc_title,
+						    info->path, 0, dpath, oft );
+		    noTRACE("|%s|%s|\n",dpath,fbuf);
+		    SetFileName(&fo.f,fbuf,true);
+		    fo.f.create_directory = conv_count || opt_mkdir;
+
+		    ccp fname;
+		    char dest_dir[PATH_MAX];
+		    if ( oft == OFT_FST )
+		    {
+			NormalizeExtractPath ( dest_dir, sizeof(dest_dir), fo.f.fname, 1 );
+			fname = dest_dir;
+		    }
+		    else
+			fname = fo.f.fname;
+		    
+		    if (testmode)
+		    {
+			if ( overwrite > 0 || stat(fo.f.fname,&fo.f.st) )
+			{
+			    printf(" - WOULD EXTRACT %s -> %s:%s\n",
+				    id6, oft_info[oft].name, fname );
+			    wbfs_extract_count++;
+			}
+			else if (!update)
+			    printf(" - WOULD NOT OVERWRITE %s -> %s\n",id6,fname);
+		    }
+		    else
+		    {
+			if ( verbose >= 0 || progress > 0 )
+			    printf(" - EXTRACT %s -> %s:%s\n",
+				    id6, oft_info[oft].name, fo.f.fname );
+			fflush(stdout);
+
+			OpenWDiscSF(&wbfs);
+			OpenDiscSF(wbfs.sf,true,true);
+
+			if ( oft == OFT_FST )
+			{
+			    ExtractImage( wbfs.sf, fname, overwrite, false );
+			}
+			else
+			{
+			    fo.src		= wbfs.sf;
+			    fo.enable_fast	= OptionUsed[OPT_FAST] != 0;
+			    fo.indent		= 5;
+			    fo.show_progress	= verbose > 1 || progress > 0;
+			    fo.show_summary	= verbose > 0 || progress > 0;
+			    fo.show_msec	= verbose > 2;
+
+			    enumError err = CopyImage(wbfs.sf,&fo,oft,overwrite,false,false);
+			    if (!err)
+				wbfs_extract_count++;
+			    else if ( err != ERR_ALREADY_EXISTS )
+				ERROR0(ERR_WBFS,"Can't extract disc [%s] @%s\n",id6,info->path);
+			}
+		    }
+		}
+		CloseWDisc(&wbfs);
 	    }
-
-	    OpenWDiscID6(&wbfs,id6);
-	    wd_header_t * dhead = GetWDiscHeader(&wbfs);
-	    if (dhead)
-	    {
-		if (param->count)
-		{
-		    TRACE("ALREADY DONE %s @ %s\n",id6,info->path);
-		    if ( verbose > 0 )
-			printf(" - ALREADY EXTRACTED: [%s]\n",id6);
-		    continue;
-		}
-
-		RemoveSF(&fo);
-
-		char dbuf[PATH_MAX], fbuf[PATH_MAX];
-		ccp dpath;
-		if ( param->arg && *param->arg )
-		{
-		    dpath = PathCatPP(dbuf,sizeof(dbuf),dest_path,param->arg);
-		    if (IsDirectory(dpath,true))
-			dpath = PathCatPP(dbuf,sizeof(dbuf),dpath,default_fname);
-		}
-		else
-		    dpath = PathCatPP(dbuf,sizeof(dbuf),dest_path,default_fname);
-
-		enumOFT oft = CalcOFT(output_file_type,dpath,0,OFT__DEFAULT);
-		int conv_count = SubstFileName( fbuf, sizeof(fbuf),
-						id6, (ccp)dhead->disc_title,
-						info->path, 0, dpath, oft );
-		noTRACE("|%s|%s|\n",dpath,fbuf);
-		SetFileName(&fo.f,fbuf,true);
-		fo.f.create_directory = conv_count || opt_mkdir;
-
-		if (testmode)
-		{
-		    if ( overwrite > 0 || stat(fo.f.fname,&fo.f.st) )
-		    {
-			printf(" - WOULD EXTRACT %s -> %s:%s\n",
-				id6, oft_info[oft].name, fo.f.fname );
-			wbfs_extract_count++;
-		    }
-		    else if (!update)
-			printf(" - WOULD NOT OVERWRITE %s -> %s\n",id6,fo.f.fname);
-		    param->count++;
-		}
-		else
-		{
-		    if ( verbose >= 0 || progress > 0 )
-			printf(" - EXTRACT %s -> %s:%s\n",
-				id6, oft_info[oft].name, fo.f.fname );
-		    fflush(stdout);
-
-		    if (CreateFile( &fo.f, 0, IOM_IS_IMAGE, overwrite ))
-			goto abort;
-
-		    if (opt_split)
-			SetupSplitFile(&fo.f,oft,opt_split_size);
-
-		    if (SetupWriteSF(&fo,oft,0))
-		    {
-			RemoveSF(&fo);
-			goto abort;
-		    }
-
-		    fo.enable_fast	= OptionUsed[OPT_FAST] != 0;
-		    fo.indent		= 5;
-		    fo.show_progress	= verbose > 1 || progress > 0;
-		    fo.show_summary	= verbose > 0 || progress > 0;
-		    fo.show_msec	= verbose > 2;
-
-		    FileAttrib_t fatt, *set_time_ref = 0;
-		    const time_t mtime = ntoh64(dhead->iinfo.mtime);
-		    if (mtime)
-		    {
-			memset(&fatt,0,sizeof(fatt));
-			fatt.mtime = fatt.atime = mtime;
-			set_time_ref = &fatt;
-		    }
-
-		    if (ExtractWDisc(&wbfs,&fo))
-		    {
-			RemoveSF(&fo);
-			ERROR0(ERR_WBFS,"Can't extract disc [%s] @%s\n",id6,info->path);
-		    }
-		    else if (!ResetSF(&fo,set_time_ref))
-		    {
-			wbfs_extract_count++;
-			param->count++;
-		    }
-		}
-	    }
-	  abort:
-	    CloseWDisc(&wbfs);
-	}
-
-	if (OptionUsed[OPT_REMOVE])
-	{
-	    for ( param = first_param; param; param = param->next )
-		if ( param->id6[0] && param->count )
-		{
-		    TRACE("REMOVE [%s] count=%d\n",param->id6,param->count);
-		    if ( RemoveWDisc(&wbfs,param->id6,0) == ERR_OK )
-			wbfs_rm_count++;
-		}
-	    TRACE("%d disc(s) removed\n",wbfs_rm_count);
 	}
 
 	if ( wbfs_extract_count || wbfs_rm_count )
@@ -2198,23 +2186,13 @@ enumError cmd_extract()
     }
     ResetWBFS(&wbfs);
     ResetSF(&fo,0);
+    ResetStringField(&id_done_list);
 
     if ( verbose >= 1 )
 	printf("\n");
 
     if ( !OptionUsed[OPT_IGNORE] && !SIGINT_level )
-    {
-	ParamList_t * param;
-	int warn_count = 0;
-	for ( param = first_param; param; param = param->next )
-	    if ( param->id6[0] && !param->count )
-	    {
-		ERROR0(ERR_WARNING,"Disc [%s] not found.\n",param->id6);
-		warn_count++;
-	    }
-	if ( warn_count && verbose >= 1 )
-	    printf("\n");
-    }
+	DumpParamDB(SEL_UNUSED,true);
 
     if ( verbose >= 0 )
     {
@@ -2247,14 +2225,15 @@ enumError cmd_remove()
     if (err)
 	return err;
 
-    CheckParamID6( OptionUsed[OPT_UNIQUE] != 0, true );
-    if ( testmode > 1 )
-	return PrintParamID6();
+    if (!SetupParamDB(0,!OptionUsed[OPT_IGNORE],false))
+	return OptionUsed[OPT_IGNORE] ? ERR_OK : ERR_MISSING_PARAM;
 
-    if (!id6_param_found)
-	return OptionUsed[OPT_IGNORE]
-		? ERR_OK 
-		: ERROR0(ERR_MISSING_PARAM,"missing parameters\n");
+    if ( testmode > 1 )
+    {
+	DumpParamDB(SEL_ALL,false);
+	return ERR_OK;
+    }
+
 
     //----- remove discs
 
@@ -2289,28 +2268,17 @@ enumError cmd_remove()
 
 	int wbfs_rm_count = 0;
 	bool wbfs_go = true;
-	ParamList_t * param;
-	for ( param = first_param;
-	      param && wbfs_go && !SIGINT_level;
-	      param = param->next )
+	
+	int slot;
+	for ( slot = 0;
+	     slot < wbfs.wbfs->max_disc && wbfs_go && !SIGINT_level;
+	     slot++ )
 	{
-	    ccp id6 = param->id6;
-	    if (!*id6)
-		continue;
-	    fflush(stdout);
-
-	    if (!OpenWDiscID6(&wbfs,id6))
+	    ccp id6, title;
+	    if (CheckParamSlot(&wbfs,slot,false,&id6,&title))
 	    {
-		char disc_title[WII_TITLE_SIZE+1];
-		wd_header_t *dh = GetWDiscHeader(&wbfs);
-		if (dh)
-		    StringCopyS(disc_title,sizeof(disc_title),(ccp)dh->disc_title);
-		else
-		    *disc_title = 0;
-		CloseWDisc(&wbfs);
-		ccp title = GetTitle(id6,disc_title);
-		param->count++;
-		if (testmode || verbose > 0 )
+		DASSERT( id6 && *id6 && title );
+		if ( testmode || verbose > 0 )
 		{
 		    TRACE("%s%s %s @ %s\n",
 			testmode ? "WOULD " : "",
@@ -2322,13 +2290,13 @@ enumError cmd_remove()
 		}
 		if (testmode)
 		    wbfs_rm_count++;
-		else if (RemoveWDisc(&wbfs,id6,free_slot_only))
+		else if (RemoveWDisc(&wbfs,0,slot,free_slot_only))
 		    wbfs_go = false;
 		else
 		    wbfs_rm_count++;
 	    }
 	}
-
+    
 	if (wbfs_rm_count)
 	{
 	    wbfs_mod_count++;
@@ -2345,18 +2313,7 @@ enumError cmd_remove()
 	printf("\n");
 
     if ( !OptionUsed[OPT_IGNORE] && !SIGINT_level )
-    {
-	ParamList_t * param;
-	int warn_count = 0;
-	for ( param = first_param; param; param = param->next )
-	    if ( param->id6[0] && !param->count )
-	    {
-		ERROR0(ERR_WARNING,"Disc [%s] not found.\n",param->id6);
-		warn_count++;
-	    }
-	if ( warn_count && verbose >= 1 )
-	    printf("\n");
-    }
+	DumpParamDB(SEL_UNUSED,true);
 
     if ( verbose >= 0 )
     {
@@ -2546,14 +2503,15 @@ enumError cmd_touch()
     if (err)
 	return err;
 
-    CheckParamID6( OptionUsed[OPT_UNIQUE] != 0, true );
-    if ( testmode > 1 )
-	return PrintParamID6();
+    if (!SetupParamDB(0,!OptionUsed[OPT_IGNORE],false))
+	return OptionUsed[OPT_IGNORE] ? ERR_OK : ERR_MISSING_PARAM;
 
-    if (!id6_param_found)
-	return OptionUsed[OPT_IGNORE]
-		? ERR_OK 
-		: ERROR0(ERR_MISSING_PARAM,"missing parameters\n");
+    if ( testmode > 1 )
+    {
+	DumpParamDB(SEL_ALL,false);
+	return ERR_OK;
+    }
+
 
     //----- setup time modes
 
@@ -2601,26 +2559,16 @@ enumError cmd_touch()
 
 	int wbfs_touch_count = 0;
 	bool wbfs_go = true;
-	ParamList_t * param;
-	for ( param = first_param;
-	      param && wbfs_go && !SIGINT_level;
-	      param = param->next )
-	{
-	    ccp id6 = param->id6;
-	    if ( !*id6 || IsExcluded(id6) )
-		continue;
-	    fflush(stdout);
 
-	    if (!OpenWDiscID6(&wbfs,id6))
+	int slot;
+	for ( slot = 0;
+	     slot < wbfs.wbfs->max_disc && wbfs_go && !SIGINT_level;
+	     slot++ )
+	{
+	    ccp id6, title;
+	    if ( CheckParamSlot(&wbfs,slot,true,&id6,&title) && wbfs.disc )
 	    {
-		char disc_title[WII_TITLE_SIZE+1];
-		wd_header_t *dh = GetWDiscHeader(&wbfs);
-		if (dh)
-		    StringCopyS(disc_title,sizeof(disc_title),(ccp)dh->disc_title);
-		else
-		    *disc_title = 0;
-		ccp title = GetTitle(id6,disc_title);
-		param->count++;
+		DASSERT( id6 && *id6 && title );
 		if (testmode || verbose > 0 )
 		{
 		    TRACE("%sTOUCH %s @ %s\n",
@@ -2652,18 +2600,7 @@ enumError cmd_touch()
 	printf("\n");
 
     if ( !OptionUsed[OPT_IGNORE] && !SIGINT_level )
-    {
-	ParamList_t * param;
-	int warn_count = 0;
-	for ( param = first_param; param; param = param->next )
-	    if ( param->id6[0] && !param->count )
-	    {
-		ERROR0(ERR_WARNING,"Disc [%s] not found.\n",param->id6);
-		warn_count++;
-	    }
-	if ( warn_count && verbose >= 1 )
-	    printf("\n");
-    }
+	DumpParamDB(SEL_UNUSED,true);
 
     if ( verbose >= 0 )
     {
@@ -2691,12 +2628,13 @@ enumError cmd_verify()
     if (err)
 	return err;
 
-    if (!n_param)
-	AddParam("+",false);
+    SetupParamDB("+",!OptionUsed[OPT_IGNORE],false);
 
-    CheckParamID6( OptionUsed[OPT_UNIQUE] != 0, true );
     if ( testmode > 1 )
-	return PrintParamID6();
+    {
+	DumpParamDB(SEL_ALL,false);
+	return ERR_OK;
+    }
 
 
     //----- count discs
@@ -2725,18 +2663,13 @@ enumError cmd_verify()
 	    }
 	}
 
-	ParamList_t * param;
-	for ( param = first_param;
-	      param && !SIGINT_level;
-	      param = param->next )
+	int slot;
+	for ( slot = 0;
+	     slot < wbfs.wbfs->max_disc && !SIGINT_level;
+	     slot++ )
 	{
-	    ccp id6 = param->id6;
-	    if (*id6)
-	    {
-		param->count++;
-		if (!IsExcluded(id6))
-		    disc_count++;
-	    }
+	    if (CheckParamSlot(&wbfs,slot,false,0,0))
+	    	disc_count++;
 	}
     }
 
@@ -2762,26 +2695,16 @@ enumError cmd_verify()
 
 	int wbfs_verify_count = 0, wbfs_fail_count = 0;
 
-	ParamList_t * param;
-	for ( param = first_param;
-	      param && !SIGINT_level;
-	      param = param->next )
+	int slot;
+	for ( slot = 0;
+	     slot < wbfs.wbfs->max_disc && !SIGINT_level;
+	     slot++ )
 	{
-	    ccp id6 = param->id6;
-	    if ( !*id6 || IsExcluded(id6) )
-		continue;
-	    disc_index++;
-
-	    if (!OpenWDiscID6(&wbfs,id6))
+	    ccp id6, title;
+	    if (CheckParamSlot(&wbfs,slot,true,&id6,&title))
 	    {
-		char disc_title[WII_TITLE_SIZE+1];
-		wd_header_t *dh = GetWDiscHeader(&wbfs);
-		if (dh)
-		    StringCopyS(disc_title,sizeof(disc_title),(ccp)dh->disc_title);
-		else
-		    *disc_title = 0;
-		ccp title = GetTitle(id6,disc_title);
-
+		DASSERT( id6 && *id6 && title );
+		disc_index++;
 		if (testmode )
 		    printf(" - WOULD VERIFY [%s] %s\n", id6, title );
 		else
@@ -2818,7 +2741,7 @@ enumError cmd_verify()
 			    if ( verbose >= 0 )
 				printf(" - %s disc [%s] %s\n",
 					free_slot_only ? "DROP" : "REMOVE", id6, title );
-			    if (RemoveWDisc(&wbfs,id6,free_slot_only))
+			    if (RemoveWDisc(&wbfs,id6,0,free_slot_only))
 				fail_verb = "found";
 			}
 		    }
@@ -2858,18 +2781,7 @@ enumError cmd_verify()
 	printf("\n");
 
     if ( !OptionUsed[OPT_IGNORE] && !SIGINT_level )
-    {
-	ParamList_t * param;
-	int warn_count = 0;
-	for ( param = first_param; param; param = param->next )
-	    if ( param->id6[0] && !param->count )
-	    {
-		ERROR0(ERR_WARNING,"Disc [%s] not found.\n",param->id6);
-		warn_count++;
-	    }
-	if ( warn_count && verbose >= 1 )
-	    printf("\n");
-    }
+	DumpParamDB(SEL_UNUSED,true);
 
     if ( verbose >= 0 )
     {
@@ -3027,10 +2939,11 @@ enumError CheckOptions ( int argc, char ** argv, bool is_env )
 	case GO_PSEL:		err += ScanOptPartSelector(optarg); break;
 	case GO_RAW:		part_selector.whole_disc
 					= part_selector.whole_part = true; break;
+	case GO_SNEEK:		SetupSneekMode(); break;
 
-	case GO_INCLUDE:	AtFileHelper(optarg,0,1,AddIncludeID); break;
+	case GO_INCLUDE:	AtFileHelper(optarg,SEL_ID,SEL_FILE,AddIncludeID); break;
+	case GO_EXCLUDE:	AtFileHelper(optarg,SEL_ID,SEL_FILE,AddExcludeID); break;
 	case GO_INCLUDE_PATH:	AtFileHelper(optarg,0,0,AddIncludePath); break;
-	case GO_EXCLUDE:	AtFileHelper(optarg,0,1,AddExcludeID); break;
 	case GO_EXCLUDE_PATH:	AtFileHelper(optarg,0,0,AddExcludePath); break;
 	case GO_IGNORE:		break;
 	case GO_IGNORE_FST:	allow_fst = false; break;
@@ -3047,6 +2960,7 @@ enumError CheckOptions ( int argc, char ** argv, bool is_env )
 	case GO_ID:		err += ScanOptId(optarg); break;
 	case GO_NAME:		err += ScanOptName(optarg); break;
 	case GO_MODIFY:		err += ScanOptModify(optarg); break;
+	case GO_FILES:		err += ScanRule(optarg,PAT_FILES); break;
 	case GO_RM_FILES:	err += ScanRule(optarg,PAT_RM_FILES); break;
 	case GO_ZERO_FILES:	err += ScanRule(optarg,PAT_ZERO_FILES); break;
 	case GO_IGNORE_FILES:	err += ScanRule(optarg,PAT_IGNORE_FILES); break;
@@ -3058,6 +2972,7 @@ enumError CheckOptions ( int argc, char ** argv, bool is_env )
 	case GO_DISC_SIZE:	err += ScanOptDiscSize(optarg); break;
 	case GO_SPLIT:		opt_split++; break;
 	case GO_SPLIT_SIZE:	err += ScanOptSplitSize(optarg); break;
+	case GO_PREALLOC:	err += ScanPreallocMode(optarg); break;
 	case GO_TRUNC:		opt_truncate++; break;
 	case GO_FAST:		break;
 	case GO_CHUNK_MODE:	err += ScanChunkMode(optarg); break;
@@ -3081,6 +2996,7 @@ enumError CheckOptions ( int argc, char ** argv, bool is_env )
 	case GO_ISO:		output_file_type = OFT_PLAIN; break;
 	case GO_CISO:		output_file_type = OFT_CISO; break;
 	case GO_WBFS:		output_file_type = OFT_WBFS; break;
+	case GO_FST:		output_file_type = OFT_FST; break;
 
 	case GO_ITIME:	    	SetTimeOpt(PT_USE_ITIME|PT_F_ITIME); break;
 	case GO_MTIME:	    	SetTimeOpt(PT_USE_MTIME|PT_F_MTIME); break;
@@ -3102,6 +3018,7 @@ enumError CheckOptions ( int argc, char ** argv, bool is_env )
 	    break;
 
 	case GO_SIZE:
+	    BINGO;
 	    if (ScanSizeOptU64(&opt_size,optarg,GiB,0,
 				"size",MIN_WBFS_SIZE,0,0,0,true))
 		err++;
@@ -3117,6 +3034,16 @@ enumError CheckOptions ( int argc, char ** argv, bool is_env )
 	    if (ScanSizeOptU32(&opt_wss,optarg,1,0,
 				"wss",1024,0,0,1,true))
 		err++;
+	    break;
+
+	case GO_PMODE:
+	    {
+		const int new_pmode = ScanPrefixMode(optarg);
+		if ( new_pmode == -1 )
+		    err++;
+		else
+		    prefix_mode = new_pmode;
+	    }
 	    break;
 
 	case GO_REPAIR:
@@ -3207,6 +3134,7 @@ enumError CheckCommand ( int argc, char ** argv )
     }
 
     TRACE("COMMAND FOUND: #%lld = %s\n",(u64)cmd_ct->id,cmd_ct->name1);
+    current_command = cmd_ct;
 
     enumError err = VerifySpecificOptions(&InfoUI,cmd_ct);
     if (err)

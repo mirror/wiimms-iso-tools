@@ -1,22 +1,21 @@
 wit v@@VERSION@@ r@@REV-NEXT@@ - @@@@-@@-@@
 
- - New command: wit CERT: Collect certificates and eliminate multiple entries
-   of the same certificate. Dump all collected certificates to standard
-   output (stdout) and/or write the certificate as binary to a file. Together
-   with the new option "--fake-sign filter" is is possible to fake sign some
-   or all certificates before dumping and/or storing.
- - New global option: --cert: Add certificates to the global certificate
-   database. These certificates are used to check the signatures.
- - "wit dump ticket.bin tmd.bin" is now able to dump the certificate chain
-   following the TICKET or TMD info. This combination is usual for 'cetk'
-   and 'tmd.1234' files in WADs.
- - Workaround for Cygwin bug in /proc/partitions.
- - Bug fix for "wit CONVERT --wia" (Segmentation fault).
- - Bug fix for 'preserve time' if source is removed.
- - Command "wit LIST" supports now --progress while scanning files and dirs.
- - The old tools 'wdf-cat' and 'wdf-dump' are removed. Use instead the new
-   tool 'wdf'. 'wdf' is linked to 'wdf-cat' and 'wdf-dump' to facilitate the
-   old behavior when calling 'wdf-cat' or 'wdf-dump'.
+ - Preallocation of disc space implemented. It is only enabled for Cygwin by
+   default. It can be disabled with --prealloc=0 or enabled with --prealloc.
+   The needed preallocation function is not available for mac.
+ - wwt EXTRACT + REMOVE + TOUCH + VERIFY:
+   These commands accept now ID6 pattern like '...P' or '+1'. Each '.' is a
+   wildcard that matches any single character. A '+' matches any number of
+   characters. For details see http://wit.wiimm.de/info/disc-id.html
+ - wwt EXTRACT is now able to patch while extracting and to create WIA files.
+   It support also the options --fst --pmode --psel --raw --files and --sneek.
+ - Cygwin will support UTF-8 by default.
+ - Bug fix: Error while scanning LC_CTYPE for language detection.
+ - Support of environment variable 'WWT_LANG' removed. Use 'WIT_LANG' instead.
+ - "wit EDIT" supports now the options --psel and --raw.
+ - Option --pmode accepts now the keywords AUTO, NONE, POINT, ID, NAME, INDEX
+   and COMBI. Mode 'AUTO' switches to 'COMBI' if there are multiple partitions
+   with the same partition type.
 
 
 Known bugs:
@@ -26,7 +25,7 @@ Known bugs:
  - There are new problems while reading from non seekable sources (e.g. pipes).
    The reason is the complete new and more intelligent wiidisc lib which makes
    more lookups ==> The best is to use version 1.01c for pipes.
- - No bzip2 (WIA) support for MAC/x86_64. (bug in the bzip2 library)
+ - No WIA/bzip2 support for MAC/x86_64. (bug in the Mac bzip2 library)
 
 
 Missing docu:

@@ -119,10 +119,17 @@ void version_exit()
 
 ///////////////////////////////////////////////////////////////////////////////
 
-static void hint_exit ( enumError stat )
+static const CommandTab_t * current_command = 0;
+
+void hint_exit ( enumError stat )
 {
-    fprintf(stderr,
-	    "-> Type '%s -h' (or better '%s -h|less') for more help.\n\n",
+    if ( current_command )
+	fprintf(stderr,
+	    "-> Type '%s help %s' (pipe it to a pager like 'less') for more help.\n\n",
+	    progname, CommandInfo[current_command->id].name1 );
+    else
+	fprintf(stderr,
+	    "-> Type '%s -h', '%s help' (pipe it to a pager like 'less') for more help.\n\n",
 	    progname, progname );
     exit(stat);
 }
@@ -158,11 +165,12 @@ static enumError OpenOutput
     DASSERT( !fi || IsOpenSF(fi) );
     if ( fi && fi->iod.oft == OFT_UNKNOWN )
     {
+	fo->src = fi;
 	SetupIOD(fi,OFT_PLAIN,OFT_PLAIN);
 	fi->file_size = fi->f.st.st_size;
     }
 
-    enumError err = CreateSF(fo,fname,create_oft,IOM_FORCE_STREAM,opt_overwrite,fi);
+    enumError err = CreateSF(fo,fname,create_oft,IOM_FORCE_STREAM,opt_overwrite);
     if ( !err && opt_split && GetFileMode(fo->f.st.st_mode) == FM_PLAIN )
 	err = SetupSplitFile(&fo->f,fo->iod.oft,opt_split_size);
 
@@ -1073,6 +1081,7 @@ enumError CheckOptions ( int argc, char ** argv )
 
 	case GO_SPLIT:		opt_split++; break;
 	case GO_SPLIT_SIZE:	err += ScanOptSplitSize(optarg); break;
+	case GO_PREALLOC:	err += ScanPreallocMode(optarg); break;
 	case GO_CHUNK_MODE:	err += ScanChunkMode(optarg); break;
 	case GO_CHUNK_SIZE:	err += ScanChunkSize(optarg); break;
 	case GO_MAX_CHUNKS:	err += ScanMaxChunks(optarg); break;
@@ -1115,14 +1124,28 @@ enumError CheckCommand ( int argc, char ** argv )
 	}
 
 	TRACE("COMMAND FOUND: #%lld = %s\n",cmd_ct->id,cmd_ct->name1);
-
-	enumError err = VerifySpecificOptions(&InfoUI,cmd_ct);
-	if (err)
-	    hint_exit(err);
+	current_command = cmd_ct;
 
 	the_cmd = cmd_ct->id;
 	argc--;
 	argv++;
+    }
+    else
+    {
+	const CommandTab_t * cmd_ct;
+	for ( cmd_ct = CommandTab; cmd_ct->name1; cmd_ct++ )
+	    if ( cmd_ct->id == the_cmd )
+	    {
+		current_command = cmd_ct;
+		break;
+	    }
+    }
+
+    if (current_command)
+    {
+	enumError err = VerifySpecificOptions(&InfoUI,current_command);
+	if (err)
+	    hint_exit(err);
     }
 
     while ( argc-- > 0 )

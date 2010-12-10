@@ -1,7 +1,5 @@
 ../src/wit.c ;
 ../src/wwt.c ;
-../src/wdf-dump.c ;
-../src/wdf-cat.c ;
 ../src/lib-std.[ch] ;
 ../src/lib-file.[ch] ;
 ../src/lib-error.[ch] ;

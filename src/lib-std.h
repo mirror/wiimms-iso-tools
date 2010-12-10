@@ -43,7 +43,9 @@
 ///////////////                     some defs                   ///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-#if defined(DEBUG) || defined(TEST)
+#if defined(RELEASE) && RELEASE>1
+    #undef EXTENDED_ERRORS
+#elif defined(DEBUG) || defined(TEST)
     #undef EXTENDED_ERRORS
     #define EXTENDED_ERRORS 1		// undef | 1 | 2
 #endif
@@ -75,8 +77,8 @@ typedef enum enumRevID
 
 ///////////////////////////////////////////////////////////////////////////////
 
-#define TRACE_SEEK_FORMAT "%-20.20s f=%d,%p %9llx%s\n"
-#define TRACE_RDWR_FORMAT "%-20.20s f=%d,%p %9llx..%9llx %8zx%s\n"
+#define TRACE_SEEK_FORMAT "%-20.20s fd=%d,%p %9llx%s\n"
+#define TRACE_RDWR_FORMAT "%-20.20s fd=%d,%p %9llx..%9llx %8zx%s\n"
 
 #define FILE_PRELOAD_SIZE	0x800
 #define MIN_SPARSE_HOLE_SIZE	4096 // bytes
@@ -137,7 +139,8 @@ enumError CheckEnvOptions ( ccp varname, check_opt_func );
  #define AnalyzeWH(f,h,p)	XAnalyzeWH	(__FUNCTION__,__FILE__,__LINE__,f,h,p)
  #define TellF(f)		XTellF		(__FUNCTION__,__FILE__,__LINE__,f)
  #define SeekF(f,o)		XSeekF		(__FUNCTION__,__FILE__,__LINE__,f,o)
- #define SetSizeF(f,o)		XSetSizeF	(__FUNCTION__,__FILE__,__LINE__,f,o)
+ #define SetSizeF(f,s)		XSetSizeF	(__FUNCTION__,__FILE__,__LINE__,f,s)
+ #define PreallocateF(f,o,s)	XPreallocateF	(__FUNCTION__,__FILE__,__LINE__,f,o,s)
  #define ReadF(f,b,c)		XReadF		(__FUNCTION__,__FILE__,__LINE__,f,b,c)
  #define WriteF(f,b,c)		XWriteF		(__FUNCTION__,__FILE__,__LINE__,f,b,c)
  #define ReadAtF(f,o,b,c)	XReadAtF	(__FUNCTION__,__FILE__,__LINE__,f,o,b,c)
@@ -171,7 +174,8 @@ enumError CheckEnvOptions ( ccp varname, check_opt_func );
  #define AnalyzeWH(f,h,p)	XAnalyzeWH	(f,h,p)
  #define TellF(f)		XTellF		(f)
  #define SeekF(f,o)		XSeekF		(f,o)
- #define SetSizeF(f,o)		XSetSizeF	(f,o)
+ #define SetSizeF(f,s)		XSetSizeF	(f,s)
+ #define PreallocateF(f,o,s)	XPreallocateF	(f,o,s)
  #define ReadF(f,b,c)		XReadF		(f,b,c)
  #define WriteF(f,b,c)		XWriteF		(f,b,c)
  #define ReadAtF(f,o,b,c)	XReadAtF	(f,o,b,c)
@@ -279,6 +283,104 @@ extern enumOFT output_file_type;
 extern int opt_truncate;
 
 enumOFT CalcOFT ( enumOFT force, ccp fname_dest, ccp fname_src, enumOFT def );
+
+//
+///////////////////////////////////////////////////////////////////////////////
+///////////////                   Memory Maps                   ///////////////
+///////////////////////////////////////////////////////////////////////////////
+
+typedef struct MemMapItem_t
+{
+    u64		off;		// offset
+    u64		size;		// size
+    u8		overlap;	// system info: item overlaps other items
+    u8		index;		// user defined index
+    char	info[62];	// user defined info text
+
+} MemMapItem_t;
+
+//-----------------------------------------------------------------------------
+
+typedef struct MemMap_t
+{
+    MemMapItem_t ** field;	// pointer to the item field
+    uint	used;		// number of used titles in the item field
+    uint	size;		// number of allocated pointer in 'field'
+    u64		begin;		// first address
+
+} MemMap_t;
+
+//-----------------------------------------------------------------------------
+//	Memory maps allow duplicate entries.
+//	The off+size pair is used as key.
+//	The entries are sorted by off and size (small values first).
+//-----------------------------------------------------------------------------
+
+void InitializeMemMap ( MemMap_t * mm );
+void ResetMemMap ( MemMap_t * mm );
+
+MemMapItem_t * FindMemMap
+(
+    // returns NULL or the pointer to the one! matched key (={off,size})
+
+    MemMap_t		* mm,
+    off_t		off,
+    off_t		size
+);
+
+uint InsertMemMapIndex
+(
+    // returns the index of the new item
+
+    MemMap_t		* mm,		// mem map pointer
+    off_t		off,		// offset of area
+    off_t		size		// size of area
+);
+
+MemMapItem_t * InsertMemMap
+(
+    // returns a pointer to a new item (never NULL)
+
+    MemMap_t		* mm,		// mem map pointer
+    off_t		off,		// offset of area
+    off_t		size		// size of area
+);
+
+MemMapItem_t * InsertMemMapTie
+(
+    // returns a pointer to a new or existing item (never NULL)
+
+    MemMap_t		* mm,		// mem map pointer
+    off_t		off,		// offset of area
+    off_t		size		// size of area
+);
+
+void InsertMemMapWrapper
+(
+    void		* param,	// user defined parameter
+    u64			offset,		// offset of object
+    u64			size,		// size of object
+    ccp			info		// info about object
+);
+
+struct wd_disc_t;
+void InsertDiscMemMap
+(
+    MemMap_t		* mm,		// valid memore map pointer
+    struct wd_disc_t	* disc		// valid disc pointer
+);
+
+// Remove all entires with key. Return number of delete entries
+//uint RemoveMemMap ( MemMap_t * mm, off_t off, off_t size );
+
+// Return the index of the found or next item
+uint FindMemMapHelper ( MemMap_t * mm, off_t off, off_t size );
+
+// Calculate overlaps. Return number of items with overlap.
+uint CalCoverlapMemMap ( MemMap_t * mm );
+
+// Print out memory map
+void PrintMemMap ( MemMap_t * mm, FILE * f, int indent );
 
 //
 ///////////////////////////////////////////////////////////////////////////////
@@ -439,6 +541,7 @@ typedef struct File_t
 	off_t file_off;		// current real file offset
 	off_t cur_off;		// current virtual file offset
 	off_t max_off;		// max file offset
+	off_t prealloc_size;	// if >0: size of preallocation
 	int   read_behind_eof;	// 0:disallow, 1:allow+print warning, 2:allow silently
 
 	// read cache
@@ -449,11 +552,17 @@ typedef struct File_t
 	off_t  cache_info_off;	// info for cache missed message
 	size_t cache_info_size;	// info for cache missed message
 
+	// prealloc map
+	bool	 prealloc_done;	// true if preallocation was done
+	MemMap_t prealloc_map;	// store prealloc areas until first write
+
 	// split file support
 
 	struct File_t **split_f; // list with pointers to the split files
 	int split_used;		 // number of used split files in 'split_f'
-	off_t split_filesize;	 // max file size for new files
+	off_t split_off;	 // if split file: offset in combined file
+	off_t split_filesize;	 // if split file: size of split file
+				 // max file size for new files
 	ccp split_fname_format;	 // format with '%01u' at the end for 'fname'
 	ccp split_rename_format; // format with '%01u' at the end for 'rename'
 
@@ -510,7 +619,8 @@ enumError StatFile ( struct stat * st, ccp fname, int fd );
 
 enumError XTellF	 ( XPARM File_t * f );
 enumError XSeekF	 ( XPARM File_t * f, off_t off );
-enumError XSetSizeF	 ( XPARM File_t * f, off_t off );
+enumError XSetSizeF	 ( XPARM File_t * f, off_t size );
+enumError XPreallocateF	 ( XPARM File_t * f, off_t off, off_t size );
 enumError XReadF	 ( XPARM File_t * f,                  void * iobuf, size_t count );
 enumError XWriteF	 ( XPARM File_t * f,            const void * iobuf, size_t count );
 enumError XReadAtF	 ( XPARM File_t * f, off_t off,       void * iobuf, size_t count );
@@ -591,7 +701,31 @@ enumError SaveFile ( ccp path1, ccp path2, bool create_dir,
 
 //
 ///////////////////////////////////////////////////////////////////////////////
-///////////////                string functions                 ///////////////
+///////////////		    preallocation options		///////////////
+///////////////////////////////////////////////////////////////////////////////
+
+typedef enum PreallocMode
+{
+    PREALLOC_OFF,	// preallocation is disabled
+    PREALLOC_SMART,	// enable smart preallocation
+    PREALLOC_ALL,	// preallocate the whole dest file
+
+ #if defined(__CYGWIN__)
+    PREALLOC_DEFAULT = PREALLOC_ALL,
+ #else
+    PREALLOC_DEFAULT = PREALLOC_OFF,
+ #endif
+
+    PREALLOC_OPT_DEFAULT = PREALLOC_ALL
+
+} PreallocMode;
+
+extern PreallocMode prealloc_mode;
+int ScanPreallocMode ( ccp arg );
+
+//
+///////////////////////////////////////////////////////////////////////////////
+///////////////			string functions		///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
 ccp PathCatPP  ( char * buf, size_t bufsize, ccp path1, ccp path2 );
@@ -904,11 +1038,21 @@ time_t	ScanTime	( ccp arg );
 
 typedef struct StringField_t
 {
-	ccp * field;	// pointer to the string field
-	uint used;	// number of used titles in the title field
-	uint size;	// number of allocated pointer in 'field'
+    ccp		* field;	// pointer to the string field
+    uint	used;		// number of used titles in the title field
+    uint	size;		// number of allocated pointer in 'field'
 
 } StringField_t;
+
+//-----------------------------------------------------------------------------
+
+typedef struct StringItem_t
+{
+    char	id6[7];		// id6, null terminated
+    char	flag;		// a user defined flag
+    char	arg[0];		// additional string, null terminated
+
+} StringItem_t;
 
 //-----------------------------------------------------------------------------
 
@@ -919,8 +1063,11 @@ void ResetStringField ( StringField_t * sf );
 ccp FindStringField ( StringField_t * sf, ccp key );
 
 // return: true if item inserted/deleted
-bool InsertStringField ( StringField_t * sf, ccp key, bool move_key );
+bool InsertStringField ( StringField_t * sf, ccp key,  bool move_key );
 bool RemoveStringField ( StringField_t * sf, ccp key );
+
+// special id6 support
+StringItem_t * InsertStringID6 ( StringField_t * sf, void * id6, char flag, ccp arg );
 
 // append at the end an do not sort
 void AppendStringField ( StringField_t * sf, ccp key, bool move_key );
@@ -989,74 +1136,6 @@ typedef struct SubstString_t
 char * SubstString
 	( char * buf, size_t bufsize, SubstString_t * tab, ccp source, int * count );
 int ScanEscapeChar ( ccp arg );
-
-//
-///////////////////////////////////////////////////////////////////////////////
-///////////////                   Memory Maps                   ///////////////
-///////////////////////////////////////////////////////////////////////////////
-
-typedef struct MemMapItem_t
-{
-    u64		off;		// offset
-    u64		size;		// size
-    u8		overlap;	// system info: item overlaps other items
-    u8		index;		// user defined index
-    char	info[62];	// user defined info text
-
-} MemMapItem_t;
-
-//-----------------------------------------------------------------------------
-
-typedef struct MemMap_t
-{
-    MemMapItem_t ** field;	// pointer to the item field
-    uint	used;		// number of used titles in the item field
-    uint	size;		// number of allocated pointer in 'field'
-    u64		begin;		// first address
-
-} MemMap_t;
-
-//-----------------------------------------------------------------------------
-//	Memory maps allow duplicate entries.
-//	The off+size pair is used as key.
-//	The entries are sorted by off and size (small values first).
-//-----------------------------------------------------------------------------
-
-void InitializeMemMap ( MemMap_t * mm );
-void ResetMemMap ( MemMap_t * mm );
-
-// Return: NULL or the pointer to the one! matched key (=off,size)
-MemMapItem_t * FindMemMap ( MemMap_t * mm, off_t off, off_t size );
-
-// Return pointer to new item (never NULL)
-MemMapItem_t * InsertMemMap ( MemMap_t * mm, off_t off, off_t size );
-
-void InsertMemMapWrapper
-(
-	void		* param,	// user defined parameter
-	u64		offset,		// offset of object
-	u64		size,		// size of object
-	ccp		info		// info about object
-);
-
-struct wd_disc_t;
-void InsertDiscMemMap
-(
-	MemMap_t	* mm,		// valid memore map pointer
-	struct wd_disc_t * disc		// valid disc pointer
-);
-
-// Remove all entires with key. Return number of delete entries
-//uint RemoveMemMap ( MemMap_t * mm, off_t off, off_t size );
-
-// Return the index of the found or next item
-uint FindMemMapHelper ( MemMap_t * mm, off_t off, off_t size );
-
-// Calculate overlaps. Return number of items with overlap.
-uint CalCoverlapMemMap ( MemMap_t * mm );
-
-// Print out memory map
-void PrintMemMap ( MemMap_t * mm, FILE * f, int indent );
 
 //
 ///////////////////////////////////////////////////////////////////////////////

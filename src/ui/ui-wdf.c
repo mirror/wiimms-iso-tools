@@ -64,11 +64,12 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
     },
 
     {	OPT_WIA, 0, "wia",
-	"param",
+	"[=compr]",
 	"Force WIA output mode if packing and set the default suffix to"
-	" '.wia'.\n"
-	"  This is the default, when the program name contains the sub string"
-	" 'wia' in any case."
+	" '.wia'. The optional parameter is a compression mode and --wia=mode"
+	" is a shortcut for '--wia --compression mode'.\n"
+	"  WIA output is the default, when the program name contains the sub"
+	" string 'wia' in any case."
     },
 
     {	OPT_CISO, 'C', "ciso",
@@ -118,25 +119,46 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 
     {	OPT_OVERWRITE, 'o', "overwrite",
 	0,
-	"Overwrite already existing files."
+	"Overwrite already existing files without warning."
     },
 
     {	OPT_PRESERVE, 'p', "preserve",
 	0,
-	"Preserve file times (atime+mtime)."
+	"Preserve file times (atime+mtime) while copying an image. This option"
+	" is enabled by default if an unmodified disc image is copied."
     },
 
     {	OPT_SPLIT, 'z', "split",
 	0,
-	"Enable output file splitting, default split size = 4 GB."
+	"Enable output file splitting. The default split size is 4 GB."
     },
 
     {	OPT_SPLIT_SIZE, 'Z', "split-size",
 	"sz",
-	"Enable output file splitting and define split size. The parameter"
+	"Enable output file splitting and define a split size. The parameter"
 	" 'sz' is a floating point number followed by an optional unit factor"
 	" (one of 'cb' [=1] or  'kmgtpe' [base=1000] or 'KMGTPE' [base=1024])."
 	" The default unit is 'G' (GiB)."
+    },
+
+    {	OPT_PREALLOC, 0, "prealloc",
+	"[=mode]",
+	"This option enables or disables the disc space preallocation. If"
+	" enabled the tools try to allocate disc space for the new files"
+	" before writing the data. This reduces the fragmentation but also"
+	" disables the sparse effect for prealocated areas.\n"
+	"  The optional parameter decides the preallocation mode: OFF (or 0),"
+	" SMART (or 1), ALL (or 2). If no parameter is set, ALL is used.\n"
+	"  Mode 'OFF' disables the preallocation. This is the default for all"
+	" non Cygwin releases because preallocation has only advantages on"
+	" Windows systems. Mode 'SMART' looks into the source disc to find out"
+	" the writing areas. SMART is only avalable for ISO, CISO and WBFS"
+	" file types. For other file types ALL is used instead. Mode 'ALL'"
+	" preallocate the whole destination file. This is the default for"
+	" Cygwin. Because of the large holes in plain ISO images, the SMART"
+	" mode is used for ISOs instead.\n"
+	"  Mac ignores this option because the needed preallocation function"
+	" is not avaialable."
     },
 
     {	OPT_CHUNK_MODE, 0, "chunk-mode",
@@ -147,7 +169,7 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 	" with a power of 2 or 'ISO' for ISO images (more restrictive as"
 	" 'POW2', best for USB loaders). The case of the keyword is ignored."
 	" The default key is '32K'.\n"
-	"--chm is a shortcut for --chunk-mode."
+	"  --chm is a shortcut for --chunk-mode."
     },
 
     {	OPT_CHUNK_SIZE, 0, "chunk-size",
@@ -199,15 +221,16 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 	" factor is not set but option --chunk-size is set, the factor will be"
 	" calculated by using a rounded value of that option.\n"
 	"  All three parts are optional. All default values may be changed in"
-	" the future. --compr is a shortcut for --compression. The command"
-	" 'wit COMPR' prints an overview about all compression modes."
+	" the future. --compr is a shortcut for --compression and --wia=mode a"
+	" shortcut for '--wia --compression mode'. The command 'wit COMPR'"
+	" prints an overview about all compression modes."
     },
 
     {	OPT_MEM, 0, "mem",
 	"size",
 	"This option defines a memory usage limit for compressing files. When"
 	" compressing a file with method MEM (see --compression) the the"
-	" compression method, level and chunk size are calculated with respect"
+	" compression method, level and chunk size are selected with respect"
 	" to this limit.\n"
 	"  If this option is not set or the value is 0, then the environment"
 	" WIT_MEM is tried to read instead. If this fails, the tool tries to"
@@ -215,7 +238,7 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 	" to 80% of the total memory minus 50 MiB."
     },
 
-    {0,0,0,0,0}, // OPT__N_SPECIFIC == 22
+    {0,0,0,0,0}, // OPT__N_SPECIFIC == 23
 
     //----- global options -----
 
@@ -237,9 +260,8 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 
     {	OPT_WIDTH, 0, "width",
 	"width",
-	"Define the width (number of columns) for help and some other"
-	" messages. This option disables the automatic detection of the"
-	" terminal width."
+	"Define the width (number of columns) for help and some other messages"
+	" and disable the automatic detection of the terminal width."
     },
 
     {	OPT_QUIET, 'q', "quiet",
@@ -264,7 +286,7 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 	">>> USE THIS OPTION IF UNSURE! <<<"
     },
 
-    {0,0,0,0,0} // OPT__N_TOTAL == 30
+    {0,0,0,0,0} // OPT__N_TOTAL == 31
 
 };
 
@@ -338,6 +360,7 @@ const struct option OptionLong[] =
 	{ "split",		0, 0, 'z' },
 	{ "split-size",		1, 0, 'Z' },
 	 { "splitsize",		1, 0, 'Z' },
+	{ "prealloc",		2, 0, GO_PREALLOC },
 	{ "chunk-mode",		1, 0, GO_CHUNK_MODE },
 	 { "chunkmode",		1, 0, GO_CHUNK_MODE },
 	 { "chm",		1, 0, GO_CHUNK_MODE },
@@ -405,12 +428,13 @@ const u8 OptionIndex[OPT_INDEX_SIZE] =
 	/*82*/	OPT_CHUNK,
 	/*83*/	OPT_WIA,
 	/*84*/	OPT_WBI,
-	/*85*/	OPT_CHUNK_MODE,
-	/*86*/	OPT_CHUNK_SIZE,
-	/*87*/	OPT_MAX_CHUNKS,
-	/*88*/	OPT_COMPRESSION,
-	/*89*/	OPT_MEM,
-	/*8a*/	 0,0,0,0, 0,0,
+	/*85*/	OPT_PREALLOC,
+	/*86*/	OPT_CHUNK_MODE,
+	/*87*/	OPT_CHUNK_SIZE,
+	/*88*/	OPT_MAX_CHUNKS,
+	/*89*/	OPT_COMPRESSION,
+	/*8a*/	OPT_MEM,
+	/*8b*/	 0,0,0,0, 0,
 	/*90*/	 0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0,
 	/*a0*/	 0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0,
 	/*b0*/	 0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0,
@@ -421,39 +445,39 @@ const u8 OptionIndex[OPT_INDEX_SIZE] =
 ///////////////                opt_allowed_cmd_*                ///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-static u8 option_allowed_cmd_VERSION[22] = // cmd #1
+static u8 option_allowed_cmd_VERSION[23] = // cmd #1
 {
-    0,0,1,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,  0,0
+    0,0,1,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,  0,0,0
 };
 
-static u8 option_allowed_cmd_HELP[22] = // cmd #2
+static u8 option_allowed_cmd_HELP[23] = // cmd #2
 {
-    1,1,1,1,1, 1,1,1,1,1,  1,1,1,1,1, 1,1,1,1,1,  1,1
+    1,1,1,1,1, 1,1,1,1,1,  1,1,1,1,1, 1,1,1,1,1,  1,1,1
 };
 
-static u8 option_allowed_cmd_PACK[22] = // cmd #3
+static u8 option_allowed_cmd_PACK[23] = // cmd #3
 {
-    0,0,0,0,1, 1,1,1,1,1,  1,1,1,1,1, 1,1,1,1,1,  1,1
+    0,0,0,0,1, 1,1,1,1,1,  1,1,1,1,1, 1,1,1,1,1,  1,1,1
 };
 
-static u8 option_allowed_cmd_UNPACK[22] = // cmd #4
+static u8 option_allowed_cmd_UNPACK[23] = // cmd #4
 {
-    0,0,0,0,0, 0,0,0,0,1,  1,1,1,1,1, 1,1,1,1,1,  1,1
+    0,0,0,0,0, 0,0,0,0,1,  1,1,1,1,1, 1,1,1,1,1,  1,1,1
 };
 
-static u8 option_allowed_cmd_CAT[22] = // cmd #5
+static u8 option_allowed_cmd_CAT[23] = // cmd #5
 {
-    0,0,0,0,0, 0,0,0,0,1,  1,0,0,1,0, 1,1,1,1,1,  1,1
+    0,0,0,0,0, 0,0,0,0,1,  1,0,0,1,0, 0,0,0,0,0,  0,0,0
 };
 
-static u8 option_allowed_cmd_CMP[22] = // cmd #6
+static u8 option_allowed_cmd_CMP[23] = // cmd #6
 {
-    0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,  0,0
+    0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,  0,0,0
 };
 
-static u8 option_allowed_cmd_DUMP[22] = // cmd #7
+static u8 option_allowed_cmd_DUMP[23] = // cmd #7
 {
-    0,1,1,1,0, 0,0,0,0,1,  1,0,0,1,0, 0,0,0,0,0,  0,0
+    0,1,1,1,0, 0,0,0,0,1,  1,0,0,1,0, 0,0,0,0,0,  0,0,0
 };
 
 
@@ -502,6 +526,7 @@ static const InfoOption_t * option_tab_cmd_PACK[] =
 	OptionInfo + OPT_OVERWRITE,
 	OptionInfo + OPT_SPLIT,
 	OptionInfo + OPT_SPLIT_SIZE,
+	OptionInfo + OPT_PREALLOC,
 	OptionInfo + OPT_CHUNK_MODE,
 	OptionInfo + OPT_CHUNK_SIZE,
 	OptionInfo + OPT_MAX_CHUNKS,
@@ -529,6 +554,7 @@ static const InfoOption_t * option_tab_cmd_UNPACK[] =
 	OptionInfo + OPT_OVERWRITE,
 	OptionInfo + OPT_SPLIT,
 	OptionInfo + OPT_SPLIT_SIZE,
+	OptionInfo + OPT_PREALLOC,
 	OptionInfo + OPT_CHUNK_MODE,
 	OptionInfo + OPT_CHUNK_SIZE,
 	OptionInfo + OPT_MAX_CHUNKS,
@@ -546,13 +572,6 @@ static const InfoOption_t * option_tab_cmd_CAT[] =
 	OptionInfo + OPT_DEST,
 	OptionInfo + OPT_DEST2,
 	OptionInfo + OPT_OVERWRITE,
-	OptionInfo + OPT_SPLIT,
-	OptionInfo + OPT_SPLIT_SIZE,
-	OptionInfo + OPT_CHUNK_MODE,
-	OptionInfo + OPT_CHUNK_SIZE,
-	OptionInfo + OPT_MAX_CHUNKS,
-	OptionInfo + OPT_COMPRESSION,
-	OptionInfo + OPT_MEM,
 
 	0
 };
@@ -589,11 +608,13 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	"wdf",
 	0,
 	"wdf [options]... [+command] [options]... files...",
-	"wdf is a support tool for WDF and CISO archives. It convert (pack and"
-	" unpack), compare and dump WDF, WIA (only dump) and CISO archives."
-	" The default command depends on the program file name (see command"
-	" descriptions). Usual names are wdf, unwdf, wdf-cat, wdf-cmp and"
-	" wdf-dump (with or without minus signs).",
+	"wdf is a support tool for WDF, WIA and CISO archives. It convert"
+	" (pack and unpack), compare and dump WDF, WIA (dump and cat only) and"
+	" CISO archives. The default command depends on the program file name"
+	" (see command descriptions). Usual names are wdf, unwdf, wdf-cat,"
+	" wdf-cmp and wdf-dump (with or without minus signs).\n"
+	"  'wdf +CAT' replaces the old tool wdf-cat and 'wdf +DUMP' the old"
+	" tool wdf-dump.",
 	8,
 	option_tab_tool,
 	0
@@ -631,7 +652,7 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	"+P",
 	"wdf +PACK [option]... files...",
 	"Pack sources into WDF or CISO archives. This is the general default.",
-	18,
+	19,
 	option_tab_cmd_PACK,
 	option_allowed_cmd_PACK
     },
@@ -645,7 +666,7 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	"Unpack WDF and CISO archives.\n"
 	"  This is the default command, when the program name starts with the"
 	" two letters 'un' in any case.",
-	13,
+	14,
 	option_tab_cmd_UNPACK,
 	option_allowed_cmd_UNPACK
     },
@@ -660,8 +681,8 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	" files are extracted before printing, all other files are copied byte"
 	" by byte.\n"
 	"  This is the default command, when the program name contains the sub"
-	" string 'cat' in any case.",
-	10,
+	" string 'cat' in any case. 'wdf +CAT' replaces the old tool wdf-cat.",
+	3,
 	option_tab_cmd_CAT,
 	option_allowed_cmd_CAT
     },
@@ -693,7 +714,8 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	"Dump the data structure of WDF, WIA and CISO archives and ignore"
 	" other files.\n"
 	"  This is the default command, when the program contains the sub"
-	" string 'dump' in any case.",
+	" string 'dump' in any case. 'wdf +DUMP' replaces the old tool"
+	" wdf-dump.",
 	6,
 	option_tab_cmd_DUMP,
 	option_allowed_cmd_DUMP

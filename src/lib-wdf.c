@@ -503,10 +503,34 @@ enumError SetupWriteWDF ( SuperFile_t * sf )
     TRACE("#W# SetupWriteWDF(%p)\n",sf);
 
     InitializeWH(&sf->wh);
+
+    if (sf->src)
+    {
+	u64 size = 0;
+	if (sf->raw_mode)
+	    size = sf->f.st.st_size;
+	else
+	{
+	    wd_disc_t * disc = OpenDiscSF(sf->src,false,true);
+	    if (disc)
+		size = wd_count_used_disc_size(disc,1,0);
+	}
+
+	if (size)
+	{
+	    const enumError err = PreallocateF(&sf->f,0,size+sizeof(WDF_Head_t));
+	    if (err)
+	    {
+		TRACE("#W# SetupWriteWDF() returns %d\n",err);
+		return err;
+	    }
+	}
+    }
+
     SetupIOD(sf,OFT_WDF,OFT_WDF);
     sf->max_virt_off = 0;
     sf->wh.magic[0] = '-'; // write a 'not complete' indicator
-    enumError stat = WriteAtF(&sf->f,0,&sf->wh,sizeof(WDF_Head_t));
+    const enumError err = WriteAtF(&sf->f,0,&sf->wh,sizeof(WDF_Head_t));
 
     sf->wc_used = 0;
 
@@ -514,8 +538,8 @@ enumError SetupWriteWDF ( SuperFile_t * sf )
     WDF_Chunk_t * wc = NeedChunkWDF(sf,0);
     wc->data_off = sf->f.file_off;
 
-    TRACE("#W# SetupWriteWDF() returns %d\n",stat);
-    return stat;
+    TRACE("#W# SetupWriteWDF() returns %d\n",err);
+    return err;
 }
 
 ///////////////////////////////////////////////////////////////////////////////

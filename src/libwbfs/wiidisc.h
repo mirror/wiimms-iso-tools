@@ -141,8 +141,10 @@ typedef enum wd_ipm_t // iterator prefix mode
 
     WD_IPM_NONE,		// no prefix: ""
     WD_IPM_POINT,		// prefix with "./"
-    WD_IPM_PART_INDEX,		// prefix with 'P' and partition id: "P%u/"
+    WD_IPM_PART_ID,		// prefix with 'P' and partition id: "P%u/"
     WD_IPM_PART_NAME,		// prefix with partition name or "P<id>": "NAME/"
+    WD_IPM_PART_INDEX,		// prefix with 'P' and table + partition index: "P%u.%u/"
+    WD_IPM_COMBI,		// WD_IPM_PART_INDEX + ID|NAME: "P%u.%u-%s/"
 
 } wd_ipm_t;
 
@@ -1118,11 +1120,50 @@ u8 * wd_filter_usage_table
 
 //-----------------------------------------------------------------------------
 
+u32 wd_pack_disc_usage_table // returns the index if the 'last_used_sector + 1'
+(
+    u8			* dest_table,	// valid pointer to destination table
+    wd_disc_t		* disc,		// valid pointer to a disc
+    u32			block_size,	// if >1: count every 'block_size'
+					//        continuous sectors as one block
+    const wd_select_t	* select	// NULL or a new selector
+);
+
+//-----------------------------------------------------------------------------
+
+u32 wd_pack_usage_table // returns the index if the 'last_used_sector + 1'
+(
+    u8			* dest_table,	// valid pointer to destination table
+    const u8		* usage_table,	// valid pointer to usage table
+    u32			block_size	// if >1: count every 'block_size'
+					//        continuous sectors as one block
+);
+
+//-----------------------------------------------------------------------------
+
+u64 wd_count_used_disc_size
+(
+    wd_disc_t		* disc,		// valid pointer to a disc
+    int			block_size,	// if >1: count every 'block_size'
+					//        continuous sectors as one block
+					//        and return the block count
+					// if <0: like >1, but give the result as multiple
+					//        of WII_SECTOR_SIZE and reduce the count
+					//        for non needed sectors at the end.
+    const wd_select_t	* select	// NULL or a new selector
+);
+
+//-----------------------------------------------------------------------------
+
 u32 wd_count_used_disc_blocks
 (
     wd_disc_t		* disc,		// valid pointer to a disc
-    u32			block_size,	// if >1: count every 'block_size'
-					//        continuous blocks as one block
+    int			block_size,	// if >1: count every 'block_size'
+					//        continuous sectors as one block
+					//        and return the block count
+					// if <0: like >1, but give the result as multiple
+					//        of WII_SECTOR_SIZE and reduce the count
+					//        for non needed sectors at the end.
     const wd_select_t	* select	// NULL or a new selector
 );
 
@@ -1131,8 +1172,12 @@ u32 wd_count_used_disc_blocks
 u32 wd_count_used_blocks
 (
     const u8		* usage_table,	// valid pointer to usage table
-    u32			block_size	// if >1: count every 'block_size'
-					//        continuous blocks as one block
+    int			block_size	// if >1: count every 'block_size'
+					//        continuous sectors as one block
+					//        and return the block count
+					// if <0: like >1, but give the result as multiple
+					//        of WII_SECTOR_SIZE and reduce the count
+					//        for non needed sectors at the end.
 );
 
 //-----------------------------------------------------------------------------

@@ -48,7 +48,7 @@
 
 ///////////////////////////////////////////////////////////////////////////////
 
-#if 1
+#if 0
     #undef  PRINT
     #define PRINT noPRINT
     #undef  PRINT_IF
@@ -611,7 +611,7 @@ static enumError read_data
 	if (err)
 	    return err;
 
-	err = DecLZMA_File2Buf( &sf->f, file_data_size, dest, dest_size,
+	err = DecLZMA_File2Buf( sf, file_data_size, dest, dest_size,
 				&data_bytes_read, wia->disc.compr_data );
 	if (err)
 	    return err;
@@ -626,7 +626,7 @@ static enumError read_data
 	if (err)
 	    return err;
 
-	err = DecLZMA2_File2Buf( &sf->f, file_data_size, dest, dest_size,
+	err = DecLZMA2_File2Buf( sf, file_data_size, dest, dest_size,
 				&data_bytes_read, wia->disc.compr_data );
 	if (err)
 	    return err;
@@ -1341,7 +1341,7 @@ static wia_segment_t * calc_segments
     while ( src_end > src && !src_end[-1] )
 	src_end--;
     const u32 * src_end2 = src + 2 >= src_end ? src : src_end - 2;
-    noPRINT("SRC: %p, end=%x,%x\n", src, src_end2-src, src_end-src );
+    noPRINT("SRC: %p, end=%zx,%zx\n", src, src_end2-src, src_end-src );
 
     while ( src < src_end )
     {
@@ -1410,6 +1410,8 @@ static enumError write_data
 		( except_size - wia->chunk_groups * sizeof(wia_except_list_t) )
 			/ sizeof(wia_exception_t),
 		group, except_size, except_size );
+
+    DefineProgressChunkSF(sf,data_size,data_size+except_size);
 
     u32 written = 0;
     switch((wd_compression_t)wia->disc.compression)
@@ -1504,7 +1506,7 @@ static enumError write_data
 	    return err;
 
 	noPRINT(">> WRITE BZIP2: %9llx, %6x+%6x => %6x, grp %d\n",
-		    wia->write_data_off, except_size, data_size, nbytes_out, group );
+		    wia->write_data_off, except_size, data_size, written, group );
 
 	sf->f.max_off = wia->write_data_off + written;
       }
@@ -1539,8 +1541,8 @@ static enumError write_data
 	SetupDataList(&list,area);
 
 	err = wia->disc.compression == WD_COMPR_LZMA
-		? EncLZMA_List2File (0,&sf->f,opt_compr_level,false,true,&list,&written)
-		: EncLZMA2_List2File(0,&sf->f,opt_compr_level,false,true,&list,&written);
+		? EncLZMA_List2File (0,sf,opt_compr_level,false,true,&list,&written)
+		: EncLZMA2_List2File(0,sf,opt_compr_level,false,true,&list,&written);
 	if (err)
 	    return err;
 
@@ -1688,7 +1690,7 @@ static enumError write_part_data
 	    {
 		if (memcmp(h1,h2,WII_HASH_SIZE))
 		{
-		    TRACE("%5u.%02u.H0.%02u -> %04x,%04x\n",
+		    TRACE("%5u.%02u.H0.%02u -> %04zx,%04zx\n",
 				wia->gdata_group, is, ih,
 				h1 - hashtab1,  h2 - hashtab2 );
 		    except->offset = htons(h1-hashtab1);
@@ -1705,7 +1707,7 @@ static enumError write_part_data
 	    {
 		if (memcmp(h1,h2,WII_HASH_SIZE))
 		{
-		    TRACE("%5u.%02u.H1.%u  -> %04x,%04x\n",
+		    TRACE("%5u.%02u.H1.%u  -> %04zx,%04zx\n",
 				wia->gdata_group, is, ih,
 				h1 - hashtab1,  h2 - hashtab2 );
 		    except->offset = htons(h1-hashtab1);
@@ -1722,7 +1724,7 @@ static enumError write_part_data
 	    {
 		if (memcmp(h1,h2,WII_HASH_SIZE))
 		{
-		    TRACE("%5u.%02u.H2.%u  -> %04x,%04x\n",
+		    TRACE("%5u.%02u.H2.%u  -> %04zx,%04zx\n",
 				wia->gdata_group, is, ih,
 				h1 - hashtab1,  h2 - hashtab2 );
 		    except->offset = htons(h1-hashtab1);
@@ -2216,8 +2218,9 @@ static enumError FinishSetupWriteWIA
 	if (!dirty)
 	    break;
     }
-    wia->growing = need_raw_data(wia,1,0,0,0);;
+    wia->growing = need_raw_data(wia,1,0,0,0);
     wia->memory_usage += wia->raw_data_size * sizeof(*wia->raw_data);
+    sf->progress_add_total += wia->raw_data_size * sizeof(*wia->raw_data);
 
 
     //----- setup group area
@@ -2230,6 +2233,7 @@ static enumError FinishSetupWriteWIA
 	if (!wia->group)
 	    OUT_OF_MEMORY;
 	wia->memory_usage += wia->group_size * sizeof(*wia->group);
+	sf->progress_add_total += wia->group_size * sizeof(*wia->group);
     }
 
 
@@ -2256,10 +2260,24 @@ static enumError FinishSetupWriteWIA
     wia->write_data_off	= sizeof(wia_file_head_t)
 			+ sizeof(wia_disc_t)
 			+ sizeof(wia_part_t) * disc->n_part;
+    sf->progress_add_total += wia->write_data_off + sizeof(wia_part_t) * disc->n_part;
 
     wia->is_valid = true;
     SetupIOD(sf,OFT_WIA,OFT_WIA);
- 
+
+    //----- preallocate disc space
+
+    if ( disc->compression >= WD_COMPR__FIRST_REAL )
+    {
+	if ( sf->src && !sf->raw_mode )
+	{
+	    wd_disc_t * disc = OpenDiscSF(sf->src,false,true);
+	    if (disc)
+		fsize = wd_count_used_disc_size(disc,1,0);
+	}
+	PreallocateF(&sf->f,0,fsize);
+    }
+
     return ERR_OK;
 }
 
@@ -2283,9 +2301,12 @@ static void setup_dynamic_mem
 	wia_controller_t * wia = param;
 	DASSERT(wia);
 	item->index = wia->raw_data_used;
+
+     #if HAVE_ASSERT
 	wia_raw_data_t * rdata = need_raw_data(wia,0x20,item->offset,item->size,0);
 	ASSERT(rdata);
 	ASSERT( ntohl(rdata->n_groups) == 1 ); // [2do] really needed?
+     #endif
     }
 }
 
@@ -2294,14 +2315,13 @@ static void setup_dynamic_mem
 enumError SetupWriteWIA
 (
     struct SuperFile_t	* sf,		// file to setup
-    struct SuperFile_t	* src,		// NULL or source file
     u64			src_file_size	// NULL or source file size
 )
 {
     ASSERT(sf);
-    PRINT("#W# SetupWriteWIA(%p,%p,%llx) file=%d/%p, oft=%x, wia=%p, v=%s/%s\n",
-		sf, src, src_file_size,
-		GetFD(&sf->f), GetFP(&sf->f),
+    PRINT("#W# SetupWriteWIA(%p,%llx) src=%p, file=%d/%p, oft=%x, wia=%p, v=%s/%s\n",
+		sf, src_file_size,
+		sf->src, GetFD(&sf->f), GetFP(&sf->f),
 		sf->iod.oft, sf->wia,
 		PrintVersionWIA(0,0,WIA_VERSION_COMPATIBLE),
 		PrintVersionWIA(0,0,WIA_VERSION) );
@@ -2332,7 +2352,8 @@ enumError SetupWriteWIA
     fhead->magic[3]++; // magic is invalid now
     fhead->version		= WIA_VERSION;
     fhead->version_compatible	= WIA_VERSION_COMPATIBLE;
-    fhead->iso_file_size	= src_file_size ? src_file_size : src ? src->file_size : 0;
+    fhead->iso_file_size	= src_file_size ? src_file_size
+					: sf->src ? sf->src->file_size : 0;
 
     //----- setup disc info && compression
 
@@ -2397,10 +2418,10 @@ enumError SetupWriteWIA
 
     //----- check source disc type
 
-    if (!src)
+    if (!sf->src)
 	return FinishSetupWriteWIA(sf);
 
-    wd_disc_t * wdisc = OpenDiscSF(src,true,false);
+    wd_disc_t * wdisc = OpenDiscSF(sf->src,true,false);
     if (!wdisc)
 	return FinishSetupWriteWIA(sf);
     wia->wdisc = wd_dup_disc(wdisc);
@@ -2475,7 +2496,7 @@ enumError SetupWriteWIA
 	wia->group_used		+= pd->n_groups;
 
 	noTRACE("PT %u, sect = %x,%x,%x\n",
-		ip, part->first_sector, part->n_sectors, part->n_groups );
+		ip, pd->first_sector, pd->n_sectors, pd->n_groups );
     }
 
     wd_insert_memmap_disc_part(&wia->memmap,wdisc,setup_dynamic_mem,wia,
@@ -2501,7 +2522,7 @@ enumError TermWriteWIA
 {
     ASSERT(sf);
     ASSERT(sf->wia);
-    TRACE("#W# TermWriteWIA(%p)\n",sf);
+    PRINT("#W# TermWriteWIA(%p)\n",sf);
 
     sf->progress_trigger = sf->progress_trigger_init = 1;
 

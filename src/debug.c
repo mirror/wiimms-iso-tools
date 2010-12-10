@@ -28,14 +28,18 @@
 #include <stdlib.h>
 #include <stdarg.h>
 
-#undef TRACE_ARG_FUNC
-#undef TRACE_FUNC
+//
+///////////////////////////////////////////////////////////////////////////////
+///////////////			 trace functions		///////////////
+///////////////////////////////////////////////////////////////////////////////
 
 FILE * TRACE_FILE = 0;
 
 unsigned GetTimerMSec();
 
-void TRACE_ARG_FUNC ( const char * format, va_list arg )
+///////////////////////////////////////////////////////////////////////////////
+
+static void trace_helper ( int print_stderr, const char * format, va_list arg )
 {
     if (!TRACE_FILE)
     {
@@ -45,16 +49,93 @@ void TRACE_ARG_FUNC ( const char * format, va_list arg )
     }
 
     unsigned msec = GetTimerMSec();
-    fprintf(TRACE_FILE,"%4d.%03d  ",msec/1000,msec%1000);
-    vfprintf(TRACE_FILE,format,arg);
-    fflush(TRACE_FILE);
+
+    if ( print_stderr || TRACE_FILE == stderr )
+    {
+	fflush(stdout);
+	fprintf(stderr,"%4d.%03d  ",msec/1000,msec%1000);
+	va_list arg2;
+	va_copy(arg2,arg);
+	vfprintf(stderr,format,arg2);
+	va_end(arg2);
+	fflush(stderr);
+    }
+
+    if ( TRACE_FILE != stderr )
+    {
+	fprintf(TRACE_FILE,"%4d.%03d  ",msec/1000,msec%1000);
+	vfprintf(TRACE_FILE,format,arg);
+	fflush(TRACE_FILE);
+    }
 }
+
+///////////////////////////////////////////////////////////////////////////////
+
+#undef TRACE_ARG_FUNC
+
+void TRACE_ARG_FUNC ( const char * format, va_list arg )
+{
+    trace_helper(0,format,arg);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+#undef TRACE_FUNC
 
 void TRACE_FUNC ( const char * format, ... )
 {
     va_list arg;
     va_start(arg,format);
-    TRACE_ARG_FUNC(format,arg);
+    trace_helper(0,format,arg);
     va_end(arg);
 }
 
+///////////////////////////////////////////////////////////////////////////////
+
+#undef PRINT_ARG_FUNC
+
+void PRINT_ARG_FUNC ( const char * format, va_list arg )
+{
+    trace_helper(1,format,arg);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+#undef PRINT_FUNC
+
+void PRINT_FUNC ( const char * format, ... )
+{
+    va_list arg;
+    va_start(arg,format);
+    trace_helper(1,format,arg);
+    va_end(arg);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+#undef WAIT_ARG_FUNC
+
+void WAIT_ARG_FUNC ( const char * format, va_list arg )
+{
+    if ( format && *format )
+	trace_helper(1,format,arg);
+    PRINT_FUNC(">>>>>> PRESS RETURN: ");
+    getchar();
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+#undef WAIT_FUNC
+
+void WAIT_FUNC ( const char * format, ... )
+{
+    va_list arg;
+    va_start(arg,format);
+    WAIT_ARG_FUNC(format,arg);
+    va_end(arg);
+}
+
+//
+///////////////////////////////////////////////////////////////////////////////
+///////////////				END			///////////////
+///////////////////////////////////////////////////////////////////////////////
