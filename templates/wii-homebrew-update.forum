@@ -36,18 +36,7 @@
 ~ Highlights
 [size=12][color=#0000c0][b]Höhepunkte dieser Version:[/b][/color][/size]
 [list]
-[*] [color=#000080][b]Preallocation um Fragmentierung zu vermeiden[/b][/color]
-Ich habe eine Vorreservierung (Preallocation) von Plattenplatz implementiert. Unter Windows vermeidet bzw. vermindert es die Fragmentierung von Dateien. Daher ist es unter Cygwin standardmäßig aktiviert. Die Preallocation kann durch --prealloc=0 abgeschaltet und durch --prealloc eingeschaltet werden. Siehe http://wit.wiimm.de/opt/prealloc für mehr Details.
-Leider ist die benötigte Preallocation-Funktion für den Mac nicht verfügbar und --prealloc wird ignoriert.
-
-[*] [color=#000080][b]ID Platzhalter für einige wwt Kommandos[/b][/color]
-Die wwt Kommandos EXTRACT + REMOVE + TOUCH + VERIFY unterstützen nun Platzhalter bei der Angabe von IDs um verschiedene Spiele auszuwählen. Siehe http://wit.wiimm.de/info/disc-id.html für mehr Details.
-
-[*] [color=#000080][b]wwt EXTRACT neu implementiert[/b][/color]
-"wwt EXTRACT" kann nun beim Extrahieren ähnlich wie "wit COPY" die ISO-Images patchen und nun auch WIA-Dateien direkt erzeugen. Unter anderem werden die Optionen --wia --fst --pmode --psel --raw --files und --sneek unterstützt. Siehe http://wit.wiimm.de/wwt/cmd-extract.html für mehr Details.
-
-[*] [color=#000080][b]Umgebungsvariablen[/b][/color]
-Alle WIT-Tools unterstützen seit je her Umgebungsvariablen. Diese alte Eigenschaft scheint vergessen. Siehe http://wit.wiimm.de/info/environ.html für mehr Details.
+[*] Es gibt nur 2 kleine Änderungen, die von anderen Projekten gewünscht bzw. benötigt werden.
 [/list]
 
 [size=12][color=#0000c0][b]Letzte Änderungen:[/b][/color][/size]

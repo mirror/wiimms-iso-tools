@@ -369,7 +369,7 @@ enumOFT SetupIOD ( SuperFile_t * sf, enumOFT force, enumOFT def )
 enumError SetupReadSF ( SuperFile_t * sf )
 {
     ASSERT(sf);
-    PRINT("SetupReadSF(%p) fd=%d is-r=%d is-w=%d\n",
+    TRACE("SetupReadSF(%p) fd=%d is-r=%d is-w=%d\n",
 	sf, sf->f.fd, sf->f.is_reading, sf->f.is_writing );
 
     if ( !sf || !sf->f.is_reading )
@@ -3994,7 +3994,7 @@ static enumError SourceIteratorHelper
 		if ( it->act_gc == ACT_WARN )
 		     it->act_gc = ACT_IGNORE;
 		     
-		while ( err == ERR_OK && !SIGINT_level && it->num_of_files < job_limit )
+		while ( !err && SIGINT_level < 2 && it->num_of_files < job_limit )
 		{
 		    struct dirent * dent = readdir(dir);
 		    if (!dent)
@@ -4178,12 +4178,12 @@ static enumError SourceIteratorHelper
 	}
     }
 
-    it->num_of_files++;
-    if (it->progress_enabled)
-	IteratorProgress(it,false);
     if ( InsertStringField(&file_done_list,real_path,false)
 	&& ( !sf.f.id6[0] || !IsExcluded(sf.f.id6) ))
     {
+	it->num_of_files++;
+	if (it->progress_enabled)
+	    IteratorProgress(it,false);
 	if (collect_fnames)
 	{
 	    InsertStringField(&it->source_list,sf.f.fname,false);
@@ -4323,6 +4323,7 @@ enumError SourceIteratorCollected
     it->depth = 0;
     it->max_depth = 1;
     it->expand_dir = false;
+    it->num_of_files = 0;
 
     enumError max_err = 0;
     int idx;

@@ -1019,6 +1019,25 @@ wit v1.22a r2012 - 2010-11-22
    tool 'wdf'. 'wdf' is linked to 'wdf-cat' and 'wdf-dump' to facilitate the
    old behavior when calling 'wdf-cat' or 'wdf-dump'.
 
+wit v1.23a r2092 - 2010-12-10
+
+ - Preallocation of disc space implemented. It is only enabled for Cygwin by
+   default. It can be disabled with --prealloc=0 or enabled with --prealloc.
+   The needed preallocation function is not available for mac.
+ - wwt EXTRACT + REMOVE + TOUCH + VERIFY:
+   These commands accept now ID6 pattern like '...P' or '+1'. Each '.' is a
+   wildcard that matches any single character. A '+' matches any number of
+   characters. For details see http://wit.wiimm.de/info/disc-id.html
+ - wwt EXTRACT is now able to patch while extracting and to create WIA files.
+   It support also the options --fst --pmode --psel --raw --files and --sneek.
+ - Cygwin will support UTF-8 by default.
+ - Bug fix: Error while scanning LC_CTYPE for language detection.
+ - Support of environment variable 'WWT_LANG' removed. Use 'WIT_LANG' instead.
+ - "wit EDIT" supports now the options --psel and --raw.
+ - Option --pmode accepts now the keywords AUTO, NONE, POINT, ID, NAME, INDEX
+   and COMBI. Mode 'AUTO' switches to 'COMBI' if there are multiple partitions
+   with the same partition type.
+
 @@MODULE(last-history.txt)@@
 
 
