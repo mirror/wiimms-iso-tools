@@ -279,7 +279,7 @@ static size_t sz_write_file ( void *pp, const void *data, size_t size )
     sz_outfile_t * obuf = pp;
     noPRINT("$$$ sz_write_file(%p->%p,%p,%zx=%zu)\n",obuf,obuf->file,data,size,size);
     obuf->bytes_written += size;
-    obuf->file->bytes_written -= size;  // [2do] [progress]
+    obuf->file->bytes_written -= size;
     return SIGINT_level>1 || WriteF(obuf->file,data,size) ? 0 : size;
 }
 
@@ -298,28 +298,21 @@ SRes sz_progress ( void *pp, UInt64 in_size, UInt64 out_size )
 {
     // *_size (UInt64)(Int64)-1 for size means unknown value.
 
- #ifdef TEST // [2do] [progress]
-
-    sz_progress_t * prog = (sz_progress_t*)pp;
-    DASSERT( prog );
-    DASSERT( prog->func.Progress == sz_progress );
-    DASSERT( prog->file );
-
     if ( in_size != ~(UInt64)0 )
     {
-	//File_t * f = &prog->file->f;
-	//f->bytes_read += in_size;
+	sz_progress_t * prog = (sz_progress_t*)pp;
+	DASSERT( prog );
+	DASSERT( prog->func.Progress == sz_progress );
+	DASSERT( prog->file );
+
 	noPRINT("$$$ sz_progress(%10llu,%10llu) => %10llu +%10llu =%10llu  /%10llu\n",
 		in_size, out_size,
 		f->bytes_read, f->bytes_written, f->bytes_read + f->bytes_written,
 		prog->file->progress_last_total );
 
 	PrintProgressChunkSF(prog->file,in_size);
-	//PrintProgressSF( f->bytes_read + f->bytes_written, 0, prog->file );
-	//f->bytes_read -= in_size;
     }
 
- #endif
     return SZ_OK; // other than SZ_OK means: terminate compression
 }
 
@@ -449,7 +442,6 @@ enumError EncLZMA_WriteList2File
     outfile.file = &file->f;
     outfile.bytes_written = write_props ? lzma->enc_props_len : 0;
 
-    // [2do] [progress]
     sz_progress_t progress;
     progress.func.Progress = sz_progress;
     progress.file = file;
@@ -469,7 +461,6 @@ enumError EncLZMA_WriteList2File
     
     // count only uncomressed size -> separate operations because u32/u64 handling
     file->f.bytes_written += inbuf.bytes_read;
-    //file->f.bytes_written -= outfile.bytes_written;  // [2do] [progress]
 
     if (bytes_written)
 	*bytes_written = outfile.bytes_written;
@@ -803,7 +794,6 @@ enumError EncLZMA2_WriteList2File
     outfile.file = &file->f;
     outfile.bytes_written = write_props ? lzma->enc_props_len : 0;
 
-    // [2do] [progress]
     sz_progress_t progress;
     progress.func.Progress = sz_progress;
     progress.file = file;
@@ -822,7 +812,6 @@ enumError EncLZMA2_WriteList2File
 
     // count only uncomressed size -> separate operations because u32/u64 handling
     file->f.bytes_written += inbuf.bytes_read;
-    //file->f.bytes_written -= outfile.bytes_written; // [2do] [progress]
 
     if (bytes_written)
 	*bytes_written = outfile.bytes_written;
