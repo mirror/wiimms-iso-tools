@@ -8,7 +8,7 @@
 	"wit [option]... command [option|parameter|@file]...", \
 	"Wiimms ISO Tool : It can list, analyze, verify, convert, split, join," \
 	" patch, mix, extract, compose, rename and compare Wii and GameCube" \
-	" discs. It can create and dump different other file formats." )
+	" discs. It can create and dump different other Wii file formats." )
 
 #:def_cmd( "VERSION", "VERSION", \
 	"wit VERSION [ignored]...", \
@@ -76,9 +76,10 @@
 
 #:def_cmd( "DUMP", "DUMP|D", \
 	"wit DUMP [source]...", \
-	"Dump the data structure of Wii and GameCube ISO files, ticket.bin," \
-	" tmd.bin, header.bin, boot.bin, fst.bin and of DOL-files. The file" \
-	" type is detected automatically by analyzing the content." )
+	"Dump the data structure and content of Wii and GameCube ISO files," \
+	" @cert.bin@, @ticket.bin@, @tmd.bin@, @header.bin@, @boot.bin@," \
+	" @fst.bin@ and of DOL-files. The file type is detected automatically" \
+	" by analyzing the content." )
 
 #:def_cmd( "ID6", "ID6|ID", \
 	"wit ID6 [id]...", \
@@ -149,7 +150,7 @@
 	"  {wit CONVERT} is like {wit COPY} but removes the source and replace" \
 	" it with the new file if copying is successful. It have been" \
 	" implemented as replacement of the @SCRUB@ command of other tools." \
-	" {wit CONVERT does more than only scrubbing and rherefor it was" \
+	" {wit CONVERT does more than only scrubbing and therefor it was" \
 	" renamed from @'SCRUB'@ to @'CONVERT'@." )
 
 #:def_cmd( "EDIT", "EDIT|ED", \
@@ -513,14 +514,12 @@
 	"  The optional parameter decides the preallocation mode: @OFF@ (or" \
 	" @0@), @SMART@ (or @1@), @ALL@ (or @2@). If no parameter is set," \
 	" @ALL@ is used.\n" \
-	"  Mode @'OFF'@ disables the preallocation. This is the default for" \
-	" all non Cygwin releases because preallocation has only advantages on" \
-	" Windows systems. Mode @'SMART'@ looks into the source disc to find" \
-	" out the writing areas. @SMART@ is only avalable for $ISO$, $CISO$" \
-	" and $WBFS$ file types. For other file types @ALL@ is used instead." \
-	" Mode @'ALL'@ preallocate the whole destination file. This is the" \
-	" default for Cygwin. Because of the large holes in plain ISO images," \
-	" the @SMART@ mode is used for ISOs instead.\n" \
+	"  Mode @'OFF'@ disables the preallocation. Mode @'SMART'@ looks into" \
+	" the source disc to find out the writing areas. @SMART@ is only" \
+	" avalable for $ISO$, $CISO$ and $WBFS$ file types. For other file" \
+	" types @ALL@ is used instead. Mode @'ALL'@ (the default) preallocate" \
+	" the whole destination file. Because of the large holes in plain ISO" \
+	" images, the @SMART@ mode is used for ISOs instead.\n" \
 	"  Mac ignores this option because the needed preallocation function" \
 	" is not avaialable." )
 
@@ -2479,6 +2478,10 @@
 	"", \
 	"" )
 
+#:def_cmd_opt( "EXTRACT", "PREALLOC", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "EXTRACT", "SORT", \
 	"", \
 	"Define the extracting order. The parameter is a comma separated list" \
@@ -2666,6 +2669,10 @@
 	"", \
 	"" )
 
+#:def_cmd_opt( "COPY", "PREALLOC", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "COPY", "SORT", \
 	"", \
 	"Define the extracting order. The parameter is a comma separated list" \
@@ -2778,10 +2785,6 @@
 	"" )
 
 #:def_cmd_opt( "COPY", "DISC_SIZE", \
-	"", \
-	"" )
-
-#:def_cmd_opt( "COPY", "PREALLOC", \
 	"", \
 	"" )
 
@@ -3988,6 +3991,16 @@
 	" with the given ID are excluded from operation. Each use of this" \
 	" option expands the exclude list." )
 
+#:def_opt( "ONE_JOB", "1|one-job|onejob", "C", \
+	"", \
+	"Execute only the first job and exit. This is a shortcut for" \
+	" {--job-limit 1}." )
+
+#:def_opt( "JOB_LIMIT", "job-limit|joblimit", "CP", \
+	"num", \
+	"Execute only the first @'num'@ jobs and exit. If done without errors" \
+	" the exit status is OK (zero)." )
+
 #:def_opt( "IGNORE", "i|ignore", "C", \
 	"", \
 	"Ignore non existing files/discs without warning. If set twice then" \
@@ -4123,14 +4136,12 @@
 	"  The optional parameter decides the preallocation mode: @OFF@ (or" \
 	" @0@), @SMART@ (or @1@), @ALL@ (or @2@). If no parameter is set," \
 	" @ALL@ is used.\n" \
-	"  Mode @'OFF'@ disables the preallocation. This is the default for" \
-	" all non Cygwin releases because preallocation has only advantages on" \
-	" Windows systems. Mode @'SMART'@ looks into the source disc to find" \
-	" out the writing areas. @SMART@ is only avalable for $ISO$, $CISO$" \
-	" and $WBFS$ file types. For other file types @ALL@ is used instead." \
-	" Mode @'ALL'@ preallocate the whole destination file. This is the" \
-	" default for Cygwin. Because of the large holes in plain ISO images," \
-	" the @SMART@ mode is used for ISOs instead.\n" \
+	"  Mode @'OFF'@ disables the preallocation. Mode @'SMART'@ looks into" \
+	" the source disc to find out the writing areas. @SMART@ is only" \
+	" avalable for $ISO$, $CISO$ and $WBFS$ file types. For other file" \
+	" types @ALL@ is used instead. Mode @'ALL'@ (the default) preallocate" \
+	" the whole destination file. Because of the large holes in plain ISO" \
+	" images, the @SMART@ mode is used for ISOs instead.\n" \
 	"  Mac ignores this option because the needed preallocation function" \
 	" is not avaialable." )
 
@@ -4588,6 +4599,14 @@
 	"", \
 	"" )
 
+#:def_cmd_opt( "ID6", "ONE_JOB", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "ID6", "JOB_LIMIT", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "LIST", "TITLES", \
 	"", \
 	"" )
@@ -4629,6 +4648,14 @@
 	"" )
 
 #:def_cmd_opt( "LIST", "EXCLUDE_PATH", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "LIST", "ONE_JOB", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "LIST", "JOB_LIMIT", \
 	"", \
 	"" )
 
@@ -4721,6 +4748,14 @@
 	"", \
 	"" )
 
+#:def_cmd_opt( "LIST_L", "ONE_JOB", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "LIST_L", "JOB_LIMIT", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "LIST_L", "MIXED", \
 	"", \
 	"" )
@@ -4807,6 +4842,14 @@
 	"" )
 
 #:def_cmd_opt( "LIST_LL", "EXCLUDE_PATH", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "LIST_LL", "ONE_JOB", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "LIST_LL", "JOB_LIMIT", \
 	"", \
 	"" )
 
@@ -4899,6 +4942,14 @@
 	"", \
 	"" )
 
+#:def_cmd_opt( "LIST_A", "ONE_JOB", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "LIST_A", "JOB_LIMIT", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "LIST_A", "MIXED", \
 	"", \
 	"" )
@@ -4988,6 +5039,14 @@
 	"", \
 	"" )
 
+#:def_cmd_opt( "LIST_M", "ONE_JOB", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "LIST_M", "JOB_LIMIT", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "LIST_M", "MIXED", \
 	"", \
 	"" )
@@ -5074,6 +5133,14 @@
 	"" )
 
 #:def_cmd_opt( "LIST_U", "EXCLUDE_PATH", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "LIST_U", "ONE_JOB", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "LIST_U", "JOB_LIMIT", \
 	"", \
 	"" )
 
@@ -5475,6 +5542,14 @@
 	"", \
 	"" )
 
+#:def_cmd_opt( "ADD", "ONE_JOB", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "ADD", "JOB_LIMIT", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "ADD", "IGNORE", \
 	"", \
 	"" )
@@ -5654,6 +5729,14 @@
 	"", \
 	"" )
 
+#:def_cmd_opt( "UPDATE", "ONE_JOB", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "UPDATE", "JOB_LIMIT", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "UPDATE", "IGNORE", \
 	"", \
 	"" )
@@ -5825,6 +5908,14 @@
 	"", \
 	"" )
 
+#:def_cmd_opt( "SYNC", "ONE_JOB", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "SYNC", "JOB_LIMIT", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "SYNC", "IGNORE", \
 	"", \
 	"" )
@@ -5973,6 +6064,14 @@
 	"" )
 
 #:def_cmd_opt( "EXTRACT", "EXCLUDE_PATH", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "EXTRACT", "ONE_JOB", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "EXTRACT", "JOB_LIMIT", \
 	"", \
 	"" )
 
@@ -6200,6 +6299,14 @@
 	"", \
 	"" )
 
+#:def_cmd_opt( "REMOVE", "ONE_JOB", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "REMOVE", "JOB_LIMIT", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "REMOVE", "QUIET", \
 	"", \
 	"" )
@@ -6283,6 +6390,14 @@
 	"", \
 	"" )
 
+#:def_cmd_opt( "RENAME", "ONE_JOB", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "RENAME", "JOB_LIMIT", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "RENAME", "TEST", \
 	"", \
 	"" )
@@ -6359,6 +6474,14 @@
 	"", \
 	"" )
 
+#:def_cmd_opt( "SETTITLE", "ONE_JOB", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "SETTITLE", "JOB_LIMIT", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "SETTITLE", "TEST", \
 	"", \
 	"" )
@@ -6432,6 +6555,14 @@
 	"" )
 
 #:def_cmd_opt( "TOUCH", "EXCLUDE_PATH", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "TOUCH", "ONE_JOB", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "TOUCH", "JOB_LIMIT", \
 	"", \
 	"" )
 
@@ -6517,6 +6648,14 @@
 	"" )
 
 #:def_cmd_opt( "VERIFY", "EXCLUDE_PATH", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "VERIFY", "ONE_JOB", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "VERIFY", "JOB_LIMIT", \
 	"", \
 	"" )
 
@@ -6776,14 +6915,12 @@
 	"  The optional parameter decides the preallocation mode: @OFF@ (or" \
 	" @0@), @SMART@ (or @1@), @ALL@ (or @2@). If no parameter is set," \
 	" @ALL@ is used.\n" \
-	"  Mode @'OFF'@ disables the preallocation. This is the default for" \
-	" all non Cygwin releases because preallocation has only advantages on" \
-	" Windows systems. Mode @'SMART'@ looks into the source disc to find" \
-	" out the writing areas. @SMART@ is only avalable for $ISO$, $CISO$" \
-	" and $WBFS$ file types. For other file types @ALL@ is used instead." \
-	" Mode @'ALL'@ preallocate the whole destination file. This is the" \
-	" default for Cygwin. Because of the large holes in plain ISO images," \
-	" the @SMART@ mode is used for ISOs instead.\n" \
+	"  Mode @'OFF'@ disables the preallocation. Mode @'SMART'@ looks into" \
+	" the source disc to find out the writing areas. @SMART@ is only" \
+	" avalable for $ISO$, $CISO$ and $WBFS$ file types. For other file" \
+	" types @ALL@ is used instead. Mode @'ALL'@ (the default) preallocate" \
+	" the whole destination file. Because of the large holes in plain ISO" \
+	" images, the @SMART@ mode is used for ISOs instead.\n" \
 	"  Mac ignores this option because the needed preallocation function" \
 	" is not avaialable." )
 

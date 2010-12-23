@@ -710,13 +710,8 @@ typedef enum PreallocMode
     PREALLOC_SMART,	// enable smart preallocation
     PREALLOC_ALL,	// preallocate the whole dest file
 
- #if defined(__CYGWIN__)
-    PREALLOC_DEFAULT = PREALLOC_ALL,
- #else
-    PREALLOC_DEFAULT = PREALLOC_OFF,
- #endif
-
-    PREALLOC_OPT_DEFAULT = PREALLOC_ALL
+    PREALLOC_DEFAULT	 = PREALLOC_ALL, // default
+    PREALLOC_OPT_DEFAULT = PREALLOC_ALL  // default if --prealloc is set without param
 
 } PreallocMode;
 
@@ -907,7 +902,7 @@ typedef enum ShowMode
 	SHOW_OFFSET	= 0x00002000, // show offsets
 	SHOW_SIZE	= 0x00004000, // show size
 	
-	SHOW__ALL	= 0x00003fff,
+	SHOW__ALL	= 0x00007fff,
 
 	//----- combinations
 

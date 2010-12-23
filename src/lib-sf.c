@@ -4081,9 +4081,6 @@ static enumError SourceIteratorHelper
     if ( it->act_wbfs >= ACT_EXPAND
 	&& ( sf.f.ftype & (FT_ID_WBFS|FT_A_WDISC) ) == FT_ID_WBFS )
     {
-	it->num_of_files++;
-	if (it->progress_enabled)
-	    IteratorProgress(it,false);
 	WBFS_t wbfs;
 	InitializeWBFS(&wbfs);
 	if (!SetupWBFS(&wbfs,&sf,false,0,false))
@@ -4104,15 +4101,19 @@ static enumError SourceIteratorHelper
 		// fast scan of wbfs
 		WDiscInfo_t wdisk;
 		InitializeWDiscInfo(&wdisk);
-		for ( slot = 0; slot < max_disc; slot++ )
+		for ( slot = 0; slot < max_disc && it->num_of_files < job_limit; slot++ )
 		{
 		    if ( !GetWDiscInfoBySlot(&wbfs,&wdisk,slot)
 			&& !IsExcluded(wdisk.id6) )
 		    {
 			snprintf(dest,fbuf+sizeof(fbuf)-dest,"#%0*u",fw,slot);
 			InsertStringField(&it->source_list,fbuf,false);
+			it->num_of_files++;
 		    }
 		}
+		if (it->progress_enabled)
+		    IteratorProgress(it,false);
+
 		ResetWDiscInfo(&wdisk);
 		ResetWBFS(&wbfs);
 		ResetSF(&sf,0);
@@ -4129,7 +4130,7 @@ static enumError SourceIteratorHelper
 	    ResetWBFS(&wbfs);
 	    ResetSF(&sf,0);
 
-	    for ( slot = 0; slot < max_disc && err == ERR_OK; slot++ )
+	    for ( slot = 0; !err && slot < max_disc && it->num_of_files < job_limit; slot++ )
 	    {
 		if (disc_table[slot])
 		{

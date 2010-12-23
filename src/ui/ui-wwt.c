@@ -149,6 +149,18 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 	" option expands the exclude list."
     },
 
+    {	OPT_ONE_JOB, '1', "one-job",
+	0,
+	"Execute only the first job and exit. This is a shortcut for"
+	" '--job-limit 1'."
+    },
+
+    {	OPT_JOB_LIMIT, 0, "job-limit",
+	"num",
+	"Execute only the first 'num' jobs and exit. If done without errors"
+	" the exit status is OK (zero)."
+    },
+
     {	OPT_IGNORE, 'i', "ignore",
 	0,
 	"Ignore non existing files/discs without warning. If set twice then"
@@ -333,14 +345,12 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 	" disables the sparse effect for prealocated areas.\n"
 	"  The optional parameter decides the preallocation mode: OFF (or 0),"
 	" SMART (or 1), ALL (or 2). If no parameter is set, ALL is used.\n"
-	"  Mode 'OFF' disables the preallocation. This is the default for all"
-	" non Cygwin releases because preallocation has only advantages on"
-	" Windows systems. Mode 'SMART' looks into the source disc to find out"
-	" the writing areas. SMART is only avalable for ISO, CISO and WBFS"
-	" file types. For other file types ALL is used instead. Mode 'ALL'"
-	" preallocate the whole destination file. This is the default for"
-	" Cygwin. Because of the large holes in plain ISO images, the SMART"
-	" mode is used for ISOs instead.\n"
+	"  Mode 'OFF' disables the preallocation. Mode 'SMART' looks into the"
+	" source disc to find out the writing areas. SMART is only avalable"
+	" for ISO, CISO and WBFS file types. For other file types ALL is used"
+	" instead. Mode 'ALL' (the default) preallocate the whole destination"
+	" file. Because of the large holes in plain ISO images, the SMART mode"
+	" is used for ISOs instead.\n"
 	"  Mac ignores this option because the needed preallocation function"
 	" is not avaialable."
     },
@@ -649,7 +659,7 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 	"Limit the output to NUM messages."
     },
 
-    {0,0,0,0,0}, // OPT__N_SPECIFIC == 82
+    {0,0,0,0,0}, // OPT__N_SPECIFIC == 84
 
     //----- global options -----
 
@@ -745,7 +755,7 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 	"Force relocation hook while reading iso images."
     },
 
-    {0,0,0,0,0} // OPT__N_TOTAL == 98
+    {0,0,0,0,0} // OPT__N_TOTAL == 100
 
 };
 
@@ -1123,7 +1133,7 @@ const CommandTab_t CommandTab[] =
 ///////////////            OptionShort & OptionLong             ///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-const char OptionShort[] = "VhqvPLE:T:taAp:r:n:N:x:X:id:D:zZ:s:fuyeoRWICBlMUHS:";
+const char OptionShort[] = "VhqvPLE:T:taAp:r:n:N:x:X:1id:D:zZ:s:fuyeoRWICBlMUHS:";
 
 const struct option OptionLong[] =
 {
@@ -1161,6 +1171,10 @@ const struct option OptionLong[] =
 	{ "exclude",		1, 0, 'x' },
 	{ "exclude-path",	1, 0, 'X' },
 	 { "excludepath",	1, 0, 'X' },
+	{ "one-job",		0, 0, '1' },
+	 { "onejob",		0, 0, '1' },
+	{ "job-limit",		1, 0, GO_JOB_LIMIT },
+	 { "joblimit",		1, 0, GO_JOB_LIMIT },
 	{ "ignore",		0, 0, 'i' },
 	{ "ignore-fst",		0, 0, GO_IGNORE_FST },
 	 { "ignorefst",		0, 0, GO_IGNORE_FST },
@@ -1279,8 +1293,9 @@ const u8 OptionIndex[OPT_INDEX_SIZE] =
 	/*00*/	 0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0,
 	/*10*/	 0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0,
 	/*20*/	 0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0,
-	/*30*/	 0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0,
-	/*40*/	 0,
+	/*30*/	 0,
+	/*31*/	OPT_ONE_JOB,
+	/*32*/	 0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,
 	/*41*/	OPT_ALL,
 	/*42*/	OPT_WBFS,
 	/*43*/	OPT_CISO,
@@ -1342,55 +1357,56 @@ const u8 OptionIndex[OPT_INDEX_SIZE] =
 	/*88*/	OPT_RDEPTH,
 	/*89*/	OPT_PSEL,
 	/*8a*/	OPT_RAW,
-	/*8b*/	OPT_IGNORE_FST,
-	/*8c*/	OPT_IGNORE_SETUP,
-	/*8d*/	OPT_PMODE,
-	/*8e*/	OPT_SNEEK,
-	/*8f*/	OPT_HOOK,
-	/*90*/	OPT_ENC,
-	/*91*/	OPT_ID,
-	/*92*/	OPT_NAME,
-	/*93*/	OPT_MODIFY,
-	/*94*/	OPT_REGION,
-	/*95*/	OPT_COMMON_KEY,
-	/*96*/	OPT_IOS,
-	/*97*/	OPT_RM_FILES,
-	/*98*/	OPT_ZERO_FILES,
-	/*99*/	OPT_REPL_FILE,
-	/*9a*/	OPT_ADD_FILE,
-	/*9b*/	OPT_IGNORE_FILES,
-	/*9c*/	OPT_TRIM,
-	/*9d*/	OPT_ALIGN,
-	/*9e*/	OPT_ALIGN_PART,
-	/*9f*/	OPT_DISC_SIZE,
-	/*a0*/	OPT_PREALLOC,
-	/*a1*/	OPT_TRUNC,
-	/*a2*/	OPT_FAST,
-	/*a3*/	OPT_CHUNK_MODE,
-	/*a4*/	OPT_CHUNK_SIZE,
-	/*a5*/	OPT_MAX_CHUNKS,
-	/*a6*/	OPT_COMPRESSION,
-	/*a7*/	OPT_MEM,
-	/*a8*/	OPT_HSS,
-	/*a9*/	OPT_WSS,
-	/*aa*/	OPT_RECOVER,
-	/*ab*/	OPT_NO_CHECK,
-	/*ac*/	OPT_REPAIR,
-	/*ad*/	OPT_NO_FREE,
-	/*ae*/	OPT_WIA,
-	/*af*/	OPT_FST,
-	/*b0*/	OPT_FILES,
-	/*b1*/	OPT_ITIME,
-	/*b2*/	OPT_MTIME,
-	/*b3*/	OPT_CTIME,
-	/*b4*/	OPT_ATIME,
-	/*b5*/	OPT_TIME,
-	/*b6*/	OPT_SET_TIME,
-	/*b7*/	OPT_NUMERIC,
-	/*b8*/	OPT_INODE,
-	/*b9*/	OPT_SECTIONS,
-	/*ba*/	OPT_LIMIT,
-	/*bb*/	 0,0,0,0, 0,
+	/*8b*/	OPT_JOB_LIMIT,
+	/*8c*/	OPT_IGNORE_FST,
+	/*8d*/	OPT_IGNORE_SETUP,
+	/*8e*/	OPT_PMODE,
+	/*8f*/	OPT_SNEEK,
+	/*90*/	OPT_HOOK,
+	/*91*/	OPT_ENC,
+	/*92*/	OPT_ID,
+	/*93*/	OPT_NAME,
+	/*94*/	OPT_MODIFY,
+	/*95*/	OPT_REGION,
+	/*96*/	OPT_COMMON_KEY,
+	/*97*/	OPT_IOS,
+	/*98*/	OPT_RM_FILES,
+	/*99*/	OPT_ZERO_FILES,
+	/*9a*/	OPT_REPL_FILE,
+	/*9b*/	OPT_ADD_FILE,
+	/*9c*/	OPT_IGNORE_FILES,
+	/*9d*/	OPT_TRIM,
+	/*9e*/	OPT_ALIGN,
+	/*9f*/	OPT_ALIGN_PART,
+	/*a0*/	OPT_DISC_SIZE,
+	/*a1*/	OPT_PREALLOC,
+	/*a2*/	OPT_TRUNC,
+	/*a3*/	OPT_FAST,
+	/*a4*/	OPT_CHUNK_MODE,
+	/*a5*/	OPT_CHUNK_SIZE,
+	/*a6*/	OPT_MAX_CHUNKS,
+	/*a7*/	OPT_COMPRESSION,
+	/*a8*/	OPT_MEM,
+	/*a9*/	OPT_HSS,
+	/*aa*/	OPT_WSS,
+	/*ab*/	OPT_RECOVER,
+	/*ac*/	OPT_NO_CHECK,
+	/*ad*/	OPT_REPAIR,
+	/*ae*/	OPT_NO_FREE,
+	/*af*/	OPT_WIA,
+	/*b0*/	OPT_FST,
+	/*b1*/	OPT_FILES,
+	/*b2*/	OPT_ITIME,
+	/*b3*/	OPT_MTIME,
+	/*b4*/	OPT_CTIME,
+	/*b5*/	OPT_ATIME,
+	/*b6*/	OPT_TIME,
+	/*b7*/	OPT_SET_TIME,
+	/*b8*/	OPT_NUMERIC,
+	/*b9*/	OPT_INODE,
+	/*ba*/	OPT_SECTIONS,
+	/*bb*/	OPT_LIMIT,
+	/*bc*/	 0,0,0,0, 
 };
 
 //
@@ -1398,256 +1414,256 @@ const u8 OptionIndex[OPT_INDEX_SIZE] =
 ///////////////                opt_allowed_cmd_*                ///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-static u8 option_allowed_cmd_VERSION[82] = // cmd #1
+static u8 option_allowed_cmd_VERSION[84] = // cmd #1
 {
     0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,
     0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,
-    0,0,0,0,0, 0,0,0,0,0,  0,0,0,1,0, 0,0,0,0,1,  0,0
+    0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 1,0,0,0,0,  0,1,0,0
 };
 
-static u8 option_allowed_cmd_HELP[82] = // cmd #2
-{
-    1,1,1,1,1, 1,1,1,1,1,  1,1,1,1,1, 1,1,1,1,1,  1,1,1,1,1, 1,1,1,1,1,
-    1,1,1,1,1, 1,1,1,1,1,  1,1,1,1,1, 1,1,1,1,1,  1,1,1,1,1, 1,1,1,1,1,
-    1,1,1,1,1, 1,1,1,1,1,  1,1,1,1,1, 1,1,1,1,1,  1,1
-};
-
-static u8 option_allowed_cmd_INFO[82] = // cmd #3
-{
-    0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,
-    0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,
-    0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,1,  0,0
-};
-
-static u8 option_allowed_cmd_TEST[82] = // cmd #4
+static u8 option_allowed_cmd_HELP[84] = // cmd #2
 {
     1,1,1,1,1, 1,1,1,1,1,  1,1,1,1,1, 1,1,1,1,1,  1,1,1,1,1, 1,1,1,1,1,
     1,1,1,1,1, 1,1,1,1,1,  1,1,1,1,1, 1,1,1,1,1,  1,1,1,1,1, 1,1,1,1,1,
-    1,1,1,1,1, 1,1,1,1,1,  1,1,1,1,1, 1,1,1,1,1,  1,1
+    1,1,1,1,1, 1,1,1,1,1,  1,1,1,1,1, 1,1,1,1,1,  1,1,1,1
 };
 
-static u8 option_allowed_cmd_ERROR[82] = // cmd #5
+static u8 option_allowed_cmd_INFO[84] = // cmd #3
 {
     0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,
     0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,
-    0,0,0,0,0, 0,0,0,0,0,  0,0,0,1,0, 0,0,0,1,1,  0,0
+    0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,  0,1,0,0
 };
 
-static u8 option_allowed_cmd_COMPR[82] = // cmd #6
+static u8 option_allowed_cmd_TEST[84] = // cmd #4
+{
+    1,1,1,1,1, 1,1,1,1,1,  1,1,1,1,1, 1,1,1,1,1,  1,1,1,1,1, 1,1,1,1,1,
+    1,1,1,1,1, 1,1,1,1,1,  1,1,1,1,1, 1,1,1,1,1,  1,1,1,1,1, 1,1,1,1,1,
+    1,1,1,1,1, 1,1,1,1,1,  1,1,1,1,1, 1,1,1,1,1,  1,1,1,1
+};
+
+static u8 option_allowed_cmd_ERROR[84] = // cmd #5
 {
     0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,
     0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,
-    0,0,0,0,0, 0,0,0,0,0,  0,0,0,1,1, 0,0,0,1,1,  0,0
+    0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 1,0,0,0,0,  1,1,0,0
 };
 
-static u8 option_allowed_cmd_EXCLUDE[82] = // cmd #7
+static u8 option_allowed_cmd_COMPR[84] = // cmd #6
+{
+    0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,
+    0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,
+    0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 1,1,0,0,0,  1,1,0,0
+};
+
+static u8 option_allowed_cmd_EXCLUDE[84] = // cmd #7
 {
     0,0,0,0,0, 0,0,0,0,0,  0,0,1,1,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,
     0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,
-    0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,  0,0
+    0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,  0,0,0,0
 };
 
-static u8 option_allowed_cmd_TITLES[82] = // cmd #8
+static u8 option_allowed_cmd_TITLES[84] = // cmd #8
 {
     0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,
     0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,
-    0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,  0,0
+    0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,  0,0,0,0
 };
 
-static u8 option_allowed_cmd_FIND[82] = // cmd #9
+static u8 option_allowed_cmd_FIND[84] = // cmd #9
 {
     0,1,1,1,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,
     0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,
-    0,0,0,0,0, 0,0,0,0,0,  0,0,0,1,0, 0,0,0,1,0,  0,0
+    0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 1,0,0,0,0,  1,0,0,0
 };
 
-static u8 option_allowed_cmd_SPACE[82] = // cmd #10
+static u8 option_allowed_cmd_SPACE[84] = // cmd #10
 {
     0,1,1,1,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,
     0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,
-    0,0,0,0,0, 0,0,0,0,0,  0,0,0,1,0, 0,0,0,1,0,  0,0
+    0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 1,0,0,0,0,  1,0,0,0
 };
 
-static u8 option_allowed_cmd_ANALYZE[82] = // cmd #11
+static u8 option_allowed_cmd_ANALYZE[84] = // cmd #11
 {
     0,1,1,1,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,
     0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,
-    0,0,0,0,0, 0,0,0,0,0,  0,0,0,1,0, 0,0,0,0,0,  0,0
+    0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 1,0,0,0,0,  0,0,0,0
 };
 
-static u8 option_allowed_cmd_DUMP[82] = // cmd #12
+static u8 option_allowed_cmd_DUMP[84] = // cmd #12
 {
     0,1,1,1,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,
     0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,
-    0,0,0,0,0, 0,0,0,0,0,  0,0,0,1,0, 1,0,0,0,0,  0,0
+    0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 1,0,1,0,0,  0,0,0,0
 };
 
-static u8 option_allowed_cmd_ID6[82] = // cmd #13
+static u8 option_allowed_cmd_ID6[84] = // cmd #13
 {
-    0,1,1,1,0, 0,0,0,0,0,  1,1,1,1,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,
+    0,1,1,1,0, 0,0,0,0,0,  1,1,1,1,1, 1,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,
     0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,
-    0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,  0,0
+    0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,  0,0,0,0
 };
 
-static u8 option_allowed_cmd_LIST[82] = // cmd #14
+static u8 option_allowed_cmd_LIST[84] = // cmd #14
 {
-    0,1,1,1,0, 0,0,0,0,0,  1,1,1,1,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,
+    0,1,1,1,0, 0,0,0,0,0,  1,1,1,1,1, 1,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,
     0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,
-    0,0,0,0,0, 0,0,1,1,1,  1,1,0,1,0, 0,1,1,1,1,  1,0
+    0,0,0,0,0, 0,0,0,0,1,  1,1,1,1,0, 1,0,0,1,1,  1,1,1,0
 };
 
-static u8 option_allowed_cmd_LIST_L[82] = // cmd #15
+static u8 option_allowed_cmd_LIST_L[84] = // cmd #15
 {
-    0,1,1,1,0, 0,0,0,0,0,  1,1,1,1,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,
+    0,1,1,1,0, 0,0,0,0,0,  1,1,1,1,1, 1,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,
     0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,
-    0,0,0,0,0, 0,0,1,1,1,  1,1,0,1,0, 0,1,1,1,1,  1,0
+    0,0,0,0,0, 0,0,0,0,1,  1,1,1,1,0, 1,0,0,1,1,  1,1,1,0
 };
 
-static u8 option_allowed_cmd_LIST_LL[82] = // cmd #16
+static u8 option_allowed_cmd_LIST_LL[84] = // cmd #16
 {
-    0,1,1,1,0, 0,0,0,0,0,  1,1,1,1,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,
+    0,1,1,1,0, 0,0,0,0,0,  1,1,1,1,1, 1,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,
     0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,
-    0,0,0,0,0, 0,0,1,1,1,  1,1,0,1,0, 0,1,1,1,1,  1,0
+    0,0,0,0,0, 0,0,0,0,1,  1,1,1,1,0, 1,0,0,1,1,  1,1,1,0
 };
 
-static u8 option_allowed_cmd_LIST_A[82] = // cmd #17
+static u8 option_allowed_cmd_LIST_A[84] = // cmd #17
 {
-    0,1,1,1,0, 0,0,0,0,0,  1,1,1,1,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,
+    0,1,1,1,0, 0,0,0,0,0,  1,1,1,1,1, 1,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,
     0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,
-    0,0,0,0,0, 0,0,1,1,1,  1,1,0,1,0, 0,1,1,1,1,  1,0
+    0,0,0,0,0, 0,0,0,0,1,  1,1,1,1,0, 1,0,0,1,1,  1,1,1,0
 };
 
-static u8 option_allowed_cmd_LIST_M[82] = // cmd #18
+static u8 option_allowed_cmd_LIST_M[84] = // cmd #18
 {
-    0,1,1,1,0, 0,0,0,0,0,  1,1,1,1,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,
+    0,1,1,1,0, 0,0,0,0,0,  1,1,1,1,1, 1,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,
     0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,
-    0,0,0,0,0, 0,0,1,1,1,  1,1,0,1,0, 0,1,1,1,1,  1,0
+    0,0,0,0,0, 0,0,0,0,1,  1,1,1,1,0, 1,0,0,1,1,  1,1,1,0
 };
 
-static u8 option_allowed_cmd_LIST_U[82] = // cmd #19
+static u8 option_allowed_cmd_LIST_U[84] = // cmd #19
 {
-    0,1,1,1,0, 0,0,0,0,0,  1,1,1,1,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,
+    0,1,1,1,0, 0,0,0,0,0,  1,1,1,1,1, 1,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,
     0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,
-    0,0,0,0,0, 0,0,1,1,1,  1,1,0,1,0, 0,1,1,1,1,  1,0
+    0,0,0,0,0, 0,0,0,0,1,  1,1,1,1,0, 1,0,0,1,1,  1,1,1,0
 };
 
-static u8 option_allowed_cmd_FORMAT[82] = // cmd #20
+static u8 option_allowed_cmd_FORMAT[84] = // cmd #20
 {
     0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,
-    0,0,0,0,0, 0,1,1,0,0,  0,0,0,0,0, 0,0,1,1,1,  1,1,0,0,0, 0,0,0,0,0,
-    0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 1,0,0,0,0,  0,0
+    0,0,0,0,0, 0,0,0,1,1,  0,0,0,0,0, 0,0,0,0,1,  1,1,1,1,0, 0,0,0,0,0,
+    0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,1,0,0,  0,0,0,0
 };
 
-static u8 option_allowed_cmd_RECOVER[82] = // cmd #21
+static u8 option_allowed_cmd_RECOVER[84] = // cmd #21
 {
     0,1,1,1,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,
     0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,
-    0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,  0,0
+    0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,  0,0,0,0
 };
 
-static u8 option_allowed_cmd_CHECK[82] = // cmd #22
+static u8 option_allowed_cmd_CHECK[84] = // cmd #22
 {
     0,1,1,1,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,
-    0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,  0,0,0,1,0, 0,0,0,0,0,
-    0,0,0,0,0, 0,0,0,0,0,  0,0,0,1,0, 0,0,0,0,0,  0,0
+    0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 1,0,0,0,0,
+    0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 1,0,0,0,0,  0,0,0,0
 };
 
-static u8 option_allowed_cmd_REPAIR[82] = // cmd #23
+static u8 option_allowed_cmd_REPAIR[84] = // cmd #23
 {
     0,1,1,1,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,
-    0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,  0,0,0,1,0, 0,0,0,0,0,
-    0,0,0,0,0, 0,0,0,0,0,  0,0,0,1,0, 0,0,0,0,0,  0,0
+    0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 1,0,0,0,0,
+    0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 1,0,0,0,0,  0,0,0,0
 };
 
-static u8 option_allowed_cmd_EDIT[82] = // cmd #24
+static u8 option_allowed_cmd_EDIT[84] = // cmd #24
 {
     0,1,0,1,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,
-    0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,  0,1,0,0,0, 0,0,0,0,0,
-    0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,  0,0
+    0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,  0,0,0,1,0, 0,0,0,0,0,
+    0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,  0,0,0,0
 };
 
-static u8 option_allowed_cmd_PHANTOM[82] = // cmd #25
+static u8 option_allowed_cmd_PHANTOM[84] = // cmd #25
 {
     0,1,1,1,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,
-    0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,  0,1,1,0,0, 0,0,0,0,0,
-    0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,  0,0
+    0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,  0,0,0,1,1, 0,0,0,0,0,
+    0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,  0,0,0,0
 };
 
-static u8 option_allowed_cmd_TRUNCATE[82] = // cmd #26
+static u8 option_allowed_cmd_TRUNCATE[84] = // cmd #26
 {
     0,1,1,1,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,
-    0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,  0,1,1,0,0, 0,0,0,0,0,
-    0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,  0,0
+    0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,  0,0,0,1,1, 0,0,0,0,0,
+    0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,  0,0,0,0
 };
 
-static u8 option_allowed_cmd_ADD[82] = // cmd #27
+static u8 option_allowed_cmd_ADD[84] = // cmd #27
 {
-    0,1,1,1,1, 1,1,1,1,1,  1,1,1,1,1, 1,1,0,0,1,  1,1,1,1,1, 1,1,1,1,1,
-    1,1,1,1,0, 0,0,0,0,0,  1,0,0,0,0, 0,0,0,0,0,  0,1,1,0,0, 1,1,1,1,1,
-    0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,  0,0
+    0,1,1,1,1, 1,1,1,1,1,  1,1,1,1,1, 1,1,1,1,0,  0,1,1,1,1, 1,1,1,1,1,
+    1,1,1,1,1, 1,0,0,0,0,  0,0,1,0,0, 0,0,0,0,0,  0,0,0,1,1, 0,0,1,1,1,
+    1,1,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,  0,0,0,0
 };
 
-static u8 option_allowed_cmd_UPDATE[82] = // cmd #28
+static u8 option_allowed_cmd_UPDATE[84] = // cmd #28
 {
-    0,1,1,1,1, 1,1,1,1,1,  1,1,1,1,1, 1,1,0,0,1,  1,1,1,1,1, 1,1,1,1,1,
-    1,1,1,1,0, 0,0,0,0,0,  1,0,0,0,0, 0,0,0,0,0,  0,1,1,0,0, 0,1,1,0,1,
-    0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,  0,0
+    0,1,1,1,1, 1,1,1,1,1,  1,1,1,1,1, 1,1,1,1,0,  0,1,1,1,1, 1,1,1,1,1,
+    1,1,1,1,1, 1,0,0,0,0,  0,0,1,0,0, 0,0,0,0,0,  0,0,0,1,1, 0,0,0,1,1,
+    0,1,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,  0,0,0,0
 };
 
-static u8 option_allowed_cmd_SYNC[82] = // cmd #29
+static u8 option_allowed_cmd_SYNC[84] = // cmd #29
 {
-    0,1,1,1,1, 1,1,1,1,1,  1,1,1,1,1, 1,1,0,0,1,  1,1,1,1,1, 1,1,1,1,1,
-    1,1,1,1,0, 0,0,0,0,0,  1,0,0,0,0, 0,0,0,0,0,  0,1,1,0,0, 0,0,1,0,1,
-    0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,  0,0
+    0,1,1,1,1, 1,1,1,1,1,  1,1,1,1,1, 1,1,1,1,0,  0,1,1,1,1, 1,1,1,1,1,
+    1,1,1,1,1, 1,0,0,0,0,  0,0,1,0,0, 0,0,0,0,0,  0,0,0,1,1, 0,0,0,0,1,
+    0,1,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,  0,0,0,0
 };
 
-static u8 option_allowed_cmd_EXTRACT[82] = // cmd #30
+static u8 option_allowed_cmd_EXTRACT[84] = // cmd #30
 {
-    0,1,1,1,0, 0,0,0,1,1,  1,1,1,1,1, 0,0,1,1,1,  1,1,1,1,1, 1,1,1,0,0,
-    0,0,0,0,1, 1,1,1,1,1,  1,1,1,1,1, 1,1,0,0,0,  0,1,1,0,0, 1,0,0,1,1,
-    1,1,1,1,1, 1,1,0,0,0,  0,0,0,1,0, 0,0,1,0,0,  0,0
+    0,1,1,1,0, 0,0,0,1,1,  1,1,1,1,1, 1,1,0,0,1,  1,1,1,1,1, 1,1,1,1,1,
+    0,0,0,0,0, 0,1,1,1,1,  1,1,1,1,1, 1,1,1,1,0,  0,0,0,1,1, 0,0,1,0,0,
+    1,1,1,1,1, 1,1,1,1,0,  0,0,0,0,0, 1,0,0,0,1,  0,0,0,0
 };
 
-static u8 option_allowed_cmd_REMOVE[82] = // cmd #31
+static u8 option_allowed_cmd_REMOVE[84] = // cmd #31
 {
-    0,1,1,1,0, 0,0,0,0,0,  1,1,1,1,1, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,
-    0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,  0,1,1,0,1, 0,0,0,0,0,
-    0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,1,0,0,  0,0
+    0,1,1,1,0, 0,0,0,0,0,  1,1,1,1,1, 1,1,0,0,0,  0,0,0,0,0, 0,0,0,0,0,
+    0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,  0,0,0,1,1, 0,1,0,0,0,
+    0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,1,  0,0,0,0
 };
 
-static u8 option_allowed_cmd_RENAME[82] = // cmd #32
+static u8 option_allowed_cmd_RENAME[84] = // cmd #32
 {
-    0,1,1,1,0, 0,0,0,0,0,  1,1,1,1,1, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,
-    0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,  0,1,1,0,0, 0,0,0,0,0,
-    0,0,1,0,1, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,  0,0
+    0,1,1,1,0, 0,0,0,0,0,  1,1,1,1,1, 1,1,0,0,0,  0,0,0,0,0, 0,0,0,0,0,
+    0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,  0,0,0,1,1, 0,0,0,0,0,
+    0,0,0,0,1, 0,1,0,0,0,  0,0,0,0,0, 0,0,0,0,0,  0,0,0,0
 };
 
-static u8 option_allowed_cmd_SETTITLE[82] = // cmd #33
+static u8 option_allowed_cmd_SETTITLE[84] = // cmd #33
 {
-    0,1,1,1,0, 0,0,0,0,0,  1,1,1,1,1, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,
-    0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,  0,1,1,0,0, 0,0,0,0,0,
-    0,0,1,0,1, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,  0,0
+    0,1,1,1,0, 0,0,0,0,0,  1,1,1,1,1, 1,1,0,0,0,  0,0,0,0,0, 0,0,0,0,0,
+    0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,  0,0,0,1,1, 0,0,0,0,0,
+    0,0,0,0,1, 0,1,0,0,0,  0,0,0,0,0, 0,0,0,0,0,  0,0,0,0
 };
 
-static u8 option_allowed_cmd_TOUCH[82] = // cmd #34
+static u8 option_allowed_cmd_TOUCH[84] = // cmd #34
 {
-    0,1,1,1,0, 0,0,0,0,0,  1,1,1,1,1, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,
-    0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,  0,1,1,0,0, 0,0,0,0,0,
-    0,0,0,0,0, 0,0,1,1,1,  1,0,1,0,0, 0,0,1,0,0,  0,0
+    0,1,1,1,0, 0,0,0,0,0,  1,1,1,1,1, 1,1,0,0,0,  0,0,0,0,0, 0,0,0,0,0,
+    0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,  0,0,0,1,1, 0,0,0,0,0,
+    0,0,0,0,0, 0,0,0,0,1,  1,1,1,0,1, 0,0,0,0,1,  0,0,0,0
 };
 
-static u8 option_allowed_cmd_VERIFY[82] = // cmd #35
+static u8 option_allowed_cmd_VERIFY[84] = // cmd #35
 {
-    0,1,1,1,0, 0,0,0,1,1,  1,1,1,1,1, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,
-    1,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,  0,1,1,0,1, 0,0,0,0,1,
-    0,0,0,0,0, 0,0,0,0,0,  0,0,0,1,0, 0,0,1,0,0,  0,1
+    0,1,1,1,0, 0,0,0,1,1,  1,1,1,1,1, 1,1,0,0,0,  0,0,0,0,0, 0,0,0,0,0,
+    0,0,1,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,  0,0,0,1,1, 0,1,0,0,0,
+    0,1,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 1,0,0,0,1,  0,0,0,1
 };
 
-static u8 option_allowed_cmd_FILETYPE[82] = // cmd #36
+static u8 option_allowed_cmd_FILETYPE[84] = // cmd #36
 {
-    0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,1, 1,1,0,0,0,  0,0,0,0,0, 0,0,0,0,0,
+    0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,1,1,1,0,  0,0,0,0,0, 0,0,0,0,0,
     0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,
-    0,0,0,0,0, 0,0,0,0,0,  0,0,0,1,0, 0,0,0,1,0,  0,0
+    0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 1,0,0,0,0,  1,0,0,0
 };
 
 
@@ -1822,6 +1838,8 @@ static const InfoOption_t * option_tab_cmd_ID6[] =
 	OptionInfo + OPT_INCLUDE_PATH,
 	OptionInfo + OPT_EXCLUDE,
 	OptionInfo + OPT_EXCLUDE_PATH,
+	OptionInfo + OPT_ONE_JOB,
+	OptionInfo + OPT_JOB_LIMIT,
 
 	0
 };
@@ -1845,6 +1863,8 @@ static const InfoOption_t * option_tab_cmd_LIST[] =
 	OptionInfo + OPT_INCLUDE_PATH,
 	OptionInfo + OPT_EXCLUDE,
 	OptionInfo + OPT_EXCLUDE_PATH,
+	OptionInfo + OPT_ONE_JOB,
+	OptionInfo + OPT_JOB_LIMIT,
 
 	OptionInfo + OPT_NONE, // separator
 
@@ -1882,6 +1902,8 @@ static const InfoOption_t * option_tab_cmd_LIST_L[] =
 	OptionInfo + OPT_INCLUDE_PATH,
 	OptionInfo + OPT_EXCLUDE,
 	OptionInfo + OPT_EXCLUDE_PATH,
+	OptionInfo + OPT_ONE_JOB,
+	OptionInfo + OPT_JOB_LIMIT,
 
 	OptionInfo + OPT_NONE, // separator
 
@@ -1919,6 +1941,8 @@ static const InfoOption_t * option_tab_cmd_LIST_LL[] =
 	OptionInfo + OPT_INCLUDE_PATH,
 	OptionInfo + OPT_EXCLUDE,
 	OptionInfo + OPT_EXCLUDE_PATH,
+	OptionInfo + OPT_ONE_JOB,
+	OptionInfo + OPT_JOB_LIMIT,
 
 	OptionInfo + OPT_NONE, // separator
 
@@ -1956,6 +1980,8 @@ static const InfoOption_t * option_tab_cmd_LIST_A[] =
 	OptionInfo + OPT_INCLUDE_PATH,
 	OptionInfo + OPT_EXCLUDE,
 	OptionInfo + OPT_EXCLUDE_PATH,
+	OptionInfo + OPT_ONE_JOB,
+	OptionInfo + OPT_JOB_LIMIT,
 
 	OptionInfo + OPT_NONE, // separator
 
@@ -1993,6 +2019,8 @@ static const InfoOption_t * option_tab_cmd_LIST_M[] =
 	OptionInfo + OPT_INCLUDE_PATH,
 	OptionInfo + OPT_EXCLUDE,
 	OptionInfo + OPT_EXCLUDE_PATH,
+	OptionInfo + OPT_ONE_JOB,
+	OptionInfo + OPT_JOB_LIMIT,
 
 	OptionInfo + OPT_NONE, // separator
 
@@ -2030,6 +2058,8 @@ static const InfoOption_t * option_tab_cmd_LIST_U[] =
 	OptionInfo + OPT_INCLUDE_PATH,
 	OptionInfo + OPT_EXCLUDE,
 	OptionInfo + OPT_EXCLUDE_PATH,
+	OptionInfo + OPT_ONE_JOB,
+	OptionInfo + OPT_JOB_LIMIT,
 
 	OptionInfo + OPT_NONE, // separator
 
@@ -2219,6 +2249,8 @@ static const InfoOption_t * option_tab_cmd_ADD[] =
 	OptionInfo + OPT_INCLUDE_PATH,
 	OptionInfo + OPT_EXCLUDE,
 	OptionInfo + OPT_EXCLUDE_PATH,
+	OptionInfo + OPT_ONE_JOB,
+	OptionInfo + OPT_JOB_LIMIT,
 	OptionInfo + OPT_IGNORE,
 	OptionInfo + OPT_IGNORE_FST,
 	OptionInfo + OPT_IGNORE_SETUP,
@@ -2287,6 +2319,8 @@ static const InfoOption_t * option_tab_cmd_UPDATE[] =
 	OptionInfo + OPT_INCLUDE_PATH,
 	OptionInfo + OPT_EXCLUDE,
 	OptionInfo + OPT_EXCLUDE_PATH,
+	OptionInfo + OPT_ONE_JOB,
+	OptionInfo + OPT_JOB_LIMIT,
 	OptionInfo + OPT_IGNORE,
 	OptionInfo + OPT_IGNORE_FST,
 	OptionInfo + OPT_IGNORE_SETUP,
@@ -2353,6 +2387,8 @@ static const InfoOption_t * option_tab_cmd_SYNC[] =
 	OptionInfo + OPT_INCLUDE_PATH,
 	OptionInfo + OPT_EXCLUDE,
 	OptionInfo + OPT_EXCLUDE_PATH,
+	OptionInfo + OPT_ONE_JOB,
+	OptionInfo + OPT_JOB_LIMIT,
 	OptionInfo + OPT_IGNORE,
 	OptionInfo + OPT_IGNORE_FST,
 	OptionInfo + OPT_IGNORE_SETUP,
@@ -2414,6 +2450,8 @@ static const InfoOption_t * option_tab_cmd_EXTRACT[] =
 	OptionInfo + OPT_INCLUDE_PATH,
 	OptionInfo + OPT_EXCLUDE,
 	OptionInfo + OPT_EXCLUDE_PATH,
+	OptionInfo + OPT_ONE_JOB,
+	OptionInfo + OPT_JOB_LIMIT,
 
 	OptionInfo + OPT_NONE, // separator
 
@@ -2499,6 +2537,8 @@ static const InfoOption_t * option_tab_cmd_REMOVE[] =
 	OptionInfo + OPT_INCLUDE_PATH,
 	OptionInfo + OPT_EXCLUDE,
 	OptionInfo + OPT_EXCLUDE_PATH,
+	OptionInfo + OPT_ONE_JOB,
+	OptionInfo + OPT_JOB_LIMIT,
 
 	OptionInfo + OPT_NONE, // separator
 
@@ -2540,6 +2580,8 @@ static const InfoOption_t * option_tab_cmd_RENAME[] =
 	OptionInfo + OPT_INCLUDE_PATH,
 	OptionInfo + OPT_EXCLUDE,
 	OptionInfo + OPT_EXCLUDE_PATH,
+	OptionInfo + OPT_ONE_JOB,
+	OptionInfo + OPT_JOB_LIMIT,
 
 	OptionInfo + OPT_NONE, // separator
 
@@ -2576,6 +2618,8 @@ static const InfoOption_t * option_tab_cmd_SETTITLE[] =
 	OptionInfo + OPT_INCLUDE_PATH,
 	OptionInfo + OPT_EXCLUDE,
 	OptionInfo + OPT_EXCLUDE_PATH,
+	OptionInfo + OPT_ONE_JOB,
+	OptionInfo + OPT_JOB_LIMIT,
 
 	OptionInfo + OPT_NONE, // separator
 
@@ -2612,6 +2656,8 @@ static const InfoOption_t * option_tab_cmd_TOUCH[] =
 	OptionInfo + OPT_INCLUDE_PATH,
 	OptionInfo + OPT_EXCLUDE,
 	OptionInfo + OPT_EXCLUDE_PATH,
+	OptionInfo + OPT_ONE_JOB,
+	OptionInfo + OPT_JOB_LIMIT,
 
 	OptionInfo + OPT_NONE, // separator
 
@@ -2654,6 +2700,8 @@ static const InfoOption_t * option_tab_cmd_VERIFY[] =
 	OptionInfo + OPT_INCLUDE_PATH,
 	OptionInfo + OPT_EXCLUDE,
 	OptionInfo + OPT_EXCLUDE_PATH,
+	OptionInfo + OPT_ONE_JOB,
+	OptionInfo + OPT_JOB_LIMIT,
 
 	OptionInfo + OPT_NONE, // separator
 
@@ -2873,7 +2921,7 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	"wwt ID6 [id]...",
 	"List all ID6 of all discs of WBFS partitions. If the ID list is set"
 	" use it as selector.",
-	7,
+	9,
 	option_tab_cmd_ID6,
 	option_allowed_cmd_ID6
     },
@@ -2885,7 +2933,7 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	"LS",
 	"wwt LIST [wbfs_partition]...",
 	"List all discs of WBFS partitions.",
-	22,
+	24,
 	option_tab_cmd_LIST,
 	option_allowed_cmd_LIST
     },
@@ -2898,7 +2946,7 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	"wwt LIST-L [wbfs_partition]...",
 	"List all discs of WBFS partitions. 'LIST-L' is a shortcut for 'LIST"
 	" --long'.",
-	22,
+	24,
 	option_tab_cmd_LIST_L,
 	option_allowed_cmd_LIST_L
     },
@@ -2911,7 +2959,7 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	"wwt LIST-LL [wbfs_partition]...",
 	"List all discs of WBFS partitions. 'LIST-LL' is a shortcut for 'LIST"
 	" --long --long'.",
-	22,
+	24,
 	option_tab_cmd_LIST_LL,
 	option_allowed_cmd_LIST_LL
     },
@@ -2924,7 +2972,7 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	"wwt LIST-A [wbfs_partition]...",
 	"List all discs of all WBFS partitions. 'LIST-A' is a shortcut for"
 	" 'LIST --long --long --auto'.",
-	22,
+	24,
 	option_tab_cmd_LIST_A,
 	option_allowed_cmd_LIST_A
     },
@@ -2937,7 +2985,7 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	"wwt LIST-M [wbfs_partition]...",
 	"List all discs of WBFS partitions in mixed view. 'LIST-M' is a"
 	" shortcut for 'LIST --long --long --mixed'.",
-	22,
+	24,
 	option_tab_cmd_LIST_M,
 	option_allowed_cmd_LIST_M
     },
@@ -2950,7 +2998,7 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	"wwt LIST-U [wbfs_partition]...",
 	"List all discs of WBFS partitions in mixed view. 'LIST-U' is a"
 	" shortcut for 'LIST --long --long --unique'.",
-	22,
+	24,
 	option_tab_cmd_LIST_U,
 	option_allowed_cmd_LIST_U
     },
@@ -3051,7 +3099,7 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	"A",
 	"wwt ADD iso|wbfs|dir...",
 	"Add Wii and GameCube ISO discs to WBFS partitions.",
-	44,
+	46,
 	option_tab_cmd_ADD,
 	option_allowed_cmd_ADD
     },
@@ -3064,7 +3112,7 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	"wwt UPDATE iso|wbfs|dir...",
 	"Add missing Wii and GameCube ISO discs to WBFS partitions. 'UPDATE'"
 	" is a shortcut for 'ADD --update'.",
-	42,
+	44,
 	option_tab_cmd_UPDATE,
 	option_allowed_cmd_UPDATE
     },
@@ -3078,7 +3126,7 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	"Modify primary WBFS (REMOVE and ADD) until it contains exactly the"
 	" same discs as all sources together. 'SYNC' is a shortcut for 'ADD"
 	" --sync'.",
-	41,
+	43,
 	option_tab_cmd_SYNC,
 	option_allowed_cmd_SYNC
     },
@@ -3091,7 +3139,7 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	"wwt EXTRACT id6[=dest]...",
 	"Extract discs from WBFS partitions and store them as Wii and GameCube"
 	" ISO images.",
-	55,
+	57,
 	option_tab_cmd_EXTRACT,
 	option_allowed_cmd_EXTRACT
     },
@@ -3103,7 +3151,7 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	"RM",
 	"wwt REMOVE id6...",
 	"Remove discs from WBFS partitions.",
-	20,
+	22,
 	option_tab_cmd_REMOVE,
 	option_allowed_cmd_REMOVE
     },
@@ -3115,7 +3163,7 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	"REN",
 	"wwt RENAME id6=[new][,title]...",
 	"Rename the ID6 of WBFS discs. Disc title can also be set.",
-	18,
+	20,
 	option_tab_cmd_RENAME,
 	option_allowed_cmd_RENAME
     },
@@ -3127,7 +3175,7 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	"ST",
 	"wwt SETTITLE id6=title...",
 	"Set the disc title of WBFS discs.",
-	18,
+	20,
 	option_tab_cmd_SETTITLE,
 	option_allowed_cmd_SETTITLE
     },
@@ -3139,7 +3187,7 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	0,
 	"wwt TOUCH id6...",
 	"Set time stamps of WBFS discs.",
-	21,
+	23,
 	option_tab_cmd_TOUCH,
 	option_allowed_cmd_TOUCH
     },
@@ -3152,7 +3200,7 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	"wwt VERIFY id6...",
 	"Verify all discs of WBFS (calculate and compare SHA1 check sums) to"
 	" find bad dumps.",
-	26,
+	28,
 	option_tab_cmd_VERIFY,
 	option_allowed_cmd_VERIFY
     },

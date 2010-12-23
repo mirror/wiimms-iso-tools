@@ -6,4 +6,4 @@
 @+all-source.edit-list
 -y    1 ../src/lib-std.c ;
 -y    1 ../src/lib-std.h ;
--y 1925 ../src/lib-file.c ;
+-y 1780 ../src/lib-file.c ;

@@ -402,23 +402,7 @@ static void dump_wii_part
 	    if ( tmd_is_marked_not_encrypted(part->tmd) )
 		fprintf(f,"%*s  Partition is marked as 'not encrypted'.\n", indent,"" );
 	    else
-	    {
-		const cert_stat_t tik_is_fakesig
-			= wd_get_cert_ticket_stat(part,false) & CERT_F_HASH_FAKED;
-		const cert_stat_t tmd_is_fakesig
-			= wd_get_cert_tmd_stat(part,false) & CERT_F_HASH_FAKED;
-
-		fprintf(f,"%*s ", indent,"" );
-		if ( tik_is_fakesig && tmd_is_fakesig )
-		    fprintf(f," TICKET & TMD are fake signed.");
-		else if ( tik_is_fakesig )
-		    fprintf(f," TICKET is fake signed.");
-		else if ( tmd_is_fakesig )
-		    fprintf(f," TMD is fake signed.");
-
-		fprintf(f," Partition is %scrypted.\n",
-				part->is_encrypted ? "en" : "de" );
-	    }
+		fprintf(f,"%*s  %s\n", indent,"", wd_print_sig_status(0,0,part,false,true) );
 
 	    u8 * p8 = part->key;
 	    fprintf(f,"%*s  Partition key: %02x%02x%02x%02x %02x%02x%02x%02x"
@@ -2267,6 +2251,7 @@ void DumpFilesFST
 )
 {
     DASSERT(fst);
+    PRINT("DumpFilesFST() pfst=%x\n",pfst);
     if ( pfst & WD_PFST_HEADER )
 	putchar('\n');
 
@@ -2476,7 +2461,10 @@ enumError CreateFileFST ( WiiFstInfo_t *wfi, ccp dest_path, WiiFstFile_t * file 
 	return ERR_OK;
     }
 
- #if 0 && defined(TEST) // test ReadFileFST()
+    if ( file->size > sizeof(iobuf) )
+	PreallocateF(&fo,0,file->size);
+
+ #if 0 && defined(TEST) // test ReadFileFST() [obsolete]
     if ( file->icm == WD_ICM_DATA ) 
 	err = WriteF(&fo,file->data,file->size);
     else
@@ -4386,7 +4374,19 @@ enumError VerifyPartition ( Verify_t * ver )
 	return ERROR0(ERR_INTERNAL,0);
 
     ver->indent = NormalizeIndent(ver->indent);
-    if ( ver->verbose > 1 )
+
+    if (  ver->verbose > 0
+	|| ver->verbose >= 0
+	    && ( !ver->part->is_encrypted
+		|| ! ( CERT_F_HASH_OK
+			& wd_get_cert_ticket_stat(ver->part,true)
+			& wd_get_cert_tmd_stat(ver->part,true) )))
+    {
+	PrintVerifyMessage(ver,">scan");
+	printf("%-*s%s\n", ver->info_indent+8, ">info",
+		wd_print_sig_status(0,0,ver->part,true,true) );
+    }
+    else if ( ver->verbose > 1 )
 	PrintVerifyMessage(ver,">scan");
 
 

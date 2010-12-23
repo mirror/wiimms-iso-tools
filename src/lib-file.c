@@ -1752,7 +1752,7 @@ static void PreallocHelper ( File_t *f )
 	{
 	    if ( logging > 0 )
 	    {
-		printf("\nPrealloccation table:\n");
+		printf("\nPreallocation table:\n");
 		PrintMemMap(&f->prealloc_map,stdout,3);
 	    }
 
@@ -1772,12 +1772,33 @@ static void PreallocHelper ( File_t *f )
 		if (!found)
 		    break;
 
+	#ifdef __CYGWIN__
 		PRINT("CALL posix_fallocate(%d,%9llx,%9llx [%s])\n",
 			    f->fd, (u64)found->off, (u64)found->size,
 			    wd_print_size_1024(0,0,found->size,true) );
 		posix_fallocate(f->fd,found->off,found->size);
+		PRINT("TERM posix_fallocate()\n");
+	#elif __APPLE__
+		PRINT("CALL fcntl(%d,F_PREALLOCATE,%9llx,%9llx [%s])\n",
+			    f->fd, (u64)found->off, (u64)found->size,
+			    wd_print_size_1024(0,0,found->size,true) );
+		fstore_t fst;
+		fst.fst_flags	= F_ALLOCATECONTIG;
+		fst.fst_posmode	= F_PEOFPOSMODE;
+		fst.fst_offset	= found->off;
+		fst.fst_length	= found->size;
+		fst.fst_bytesalloc = 0;
+		fcntl( f->fd, F_PREALLOCATE, &fst );
+		PRINT("TERM fcntl()\n");
+	#else
+		PRINT("CALL fallocate(%d,0,%9llx,%9llx [%s])\n",
+			    f->fd, (u64)found->off, (u64)found->size,
+			    wd_print_size_1024(0,0,found->size,true) );
+		fallocate(f->fd,0,found->off,found->size);
+		PRINT("TERM fallocate()\n");
+	#endif
+  
 		found->size = 0;
-		PRINT("posix_fallocate() done\n");
 	    }
 	}
     }

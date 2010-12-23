@@ -354,14 +354,12 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 	" disables the sparse effect for prealocated areas.\n"
 	"  The optional parameter decides the preallocation mode: OFF (or 0),"
 	" SMART (or 1), ALL (or 2). If no parameter is set, ALL is used.\n"
-	"  Mode 'OFF' disables the preallocation. This is the default for all"
-	" non Cygwin releases because preallocation has only advantages on"
-	" Windows systems. Mode 'SMART' looks into the source disc to find out"
-	" the writing areas. SMART is only avalable for ISO, CISO and WBFS"
-	" file types. For other file types ALL is used instead. Mode 'ALL'"
-	" preallocate the whole destination file. This is the default for"
-	" Cygwin. Because of the large holes in plain ISO images, the SMART"
-	" mode is used for ISOs instead.\n"
+	"  Mode 'OFF' disables the preallocation. Mode 'SMART' looks into the"
+	" source disc to find out the writing areas. SMART is only avalable"
+	" for ISO, CISO and WBFS file types. For other file types ALL is used"
+	" instead. Mode 'ALL' (the default) preallocate the whole destination"
+	" file. Because of the large holes in plain ISO images, the SMART mode"
+	" is used for ISOs instead.\n"
 	"  Mac ignores this option because the needed preallocation function"
 	" is not avaialable."
     },
@@ -1431,7 +1429,7 @@ static u8 option_allowed_cmd_FDIFF[75] = // cmd #24
 static u8 option_allowed_cmd_EXTRACT[75] = // cmd #25
 {
     0,1,1,1,1, 1,1,1,1,1,  1,1,0,1,1, 1,1,1,1,1,  1,1,1,1,1, 1,1,1,1,0,
-    1,1,1,1,1, 1,1,1,0,0,  0,0,0,0,0, 0,0,0,1,0,  1,0,0,0,0, 0,0,0,0,1,
+    1,1,1,1,1, 1,1,1,0,0,  0,1,0,0,0, 0,0,0,1,0,  1,0,0,0,0, 0,0,0,0,1,
     0,0,0,0,0, 1,0,0,0,0,  0,0,0,1,0
 };
 
@@ -2262,6 +2260,7 @@ static const InfoOption_t * option_tab_cmd_EXTRACT[] =
 	OptionInfo + OPT_PMODE,
 	OptionInfo + OPT_FILES,
 	OptionInfo + OPT_SNEEK,
+	OptionInfo + OPT_PREALLOC,
 	&option_cmd_EXTRACT_SORT,
 
 	OptionInfo + OPT_NONE, // separator
@@ -2335,6 +2334,7 @@ static const InfoOption_t * option_tab_cmd_COPY[] =
 	OptionInfo + OPT_PMODE,
 	OptionInfo + OPT_FILES,
 	OptionInfo + OPT_SNEEK,
+	OptionInfo + OPT_PREALLOC,
 	&option_cmd_EXTRACT_SORT,
 
 	OptionInfo + OPT_NONE, // separator
@@ -2372,7 +2372,6 @@ static const InfoOption_t * option_tab_cmd_COPY[] =
 	OptionInfo + OPT_SPLIT,
 	OptionInfo + OPT_SPLIT_SIZE,
 	OptionInfo + OPT_DISC_SIZE,
-	OptionInfo + OPT_PREALLOC,
 	OptionInfo + OPT_TRUNC,
 	OptionInfo + OPT_CHUNK_MODE,
 	OptionInfo + OPT_CHUNK_SIZE,
@@ -2762,7 +2761,7 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	"wit [option]... command [option|parameter|file]...",
 	"Wiimms ISO Tool : It can list, analyze, verify, convert, split, join,"
 	" patch, mix, extract, compose, rename and compare Wii and GameCube"
-	" discs. It can create and dump different other file formats.",
+	" discs. It can create and dump different other Wii file formats.",
 	16,
 	option_tab_tool,
 	0
@@ -2941,9 +2940,10 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	"DUMP",
 	"D",
 	"wit DUMP [source]...",
-	"Dump the data structure of Wii and GameCube ISO files, ticket.bin,"
-	" tmd.bin, header.bin, boot.bin, fst.bin and of DOL-files. The file"
-	" type is detected automatically by analyzing the content.",
+	"Dump the data structure and content of Wii and GameCube ISO files,"
+	" cert.bin, ticket.bin, tmd.bin, header.bin, boot.bin, fst.bin and of"
+	" DOL-files. The file type is detected automatically by analyzing the"
+	" content.",
 	37,
 	option_tab_cmd_DUMP,
 	option_allowed_cmd_DUMP
@@ -3086,7 +3086,7 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	"wit EXTRACT source dest\n"
 	"wit EXTRACT [-s path]... [-r path]... [source]... [-d|-D] dest",
 	"Extract all files from the source discs.",
-	46,
+	47,
 	option_tab_cmd_EXTRACT,
 	option_allowed_cmd_EXTRACT
     },
@@ -3118,7 +3118,7 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	"  'wit CONVERT' is like 'wit COPY' but removes the source and replace"
 	" it with the new file if copying is successful. It have been"
 	" implemented as replacement of the SCRUB command of other tools. 'wit"
-	" CONVERT does more than only scrubbing and rherefor it was renamed"
+	" CONVERT does more than only scrubbing and therefor it was renamed"
 	" from 'SCRUB' to 'CONVERT'.",
 	51,
 	option_tab_cmd_CONVERT,

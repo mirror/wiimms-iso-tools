@@ -2036,7 +2036,7 @@ enumError cmd_extract()
     InitializeWBFS(&wbfs);
     PartitionInfo_t * info;
     for ( err = GetFirstWBFS(&wbfs,&info);
-	  !err && !SIGINT_level;
+	  !err && !SIGINT_level && extract_count < job_limit;
 	  err = GetNextWBFS(&wbfs,&info) )
     {
 	wbfs_count++;
@@ -2061,8 +2061,11 @@ enumError cmd_extract()
 
 	int slot;
 	for ( slot = 0;
-	     slot < wbfs.wbfs->max_disc && wbfs_go && !SIGINT_level;
-	     slot++ )
+	      slot < wbfs.wbfs->max_disc
+			&& extract_count < job_limit
+			&& wbfs_go
+			&& !SIGINT_level;
+	      slot++ )
 	{
 	    ccp id6, title;
 	    const StringItem_t * item = CheckParamSlot(&wbfs,slot,true,&id6,&title);
@@ -2117,6 +2120,7 @@ enumError cmd_extract()
 			    printf(" - WOULD EXTRACT %s -> %s:%s\n",
 				    id6, oft_info[oft].name, fname );
 			    wbfs_extract_count++;
+			    extract_count++;
 			}
 			else if (!update)
 			    printf(" - WOULD NOT OVERWRITE %s -> %s\n",id6,fname);
@@ -2146,7 +2150,10 @@ enumError cmd_extract()
 
 			    enumError err = CopyImage(wbfs.sf,&fo,oft,overwrite,false,false);
 			    if (!err)
+			    {
 				wbfs_extract_count++;
+				extract_count++;
+			    }
 			    else if ( err != ERR_ALREADY_EXISTS )
 				ERROR0(ERR_WBFS,"Can't extract disc [%s] @%s\n",id6,info->path);
 			}
@@ -2159,10 +2166,7 @@ enumError cmd_extract()
 	if ( wbfs_extract_count || wbfs_rm_count )
 	{
 	    if (wbfs_extract_count)
-	    {
 		wbfs_used_count++;
-		extract_count += wbfs_extract_count;
-	    }
 	    if (wbfs_rm_count)
 	    {
 		rm_count += wbfs_rm_count;
@@ -2945,6 +2949,7 @@ enumError CheckOptions ( int argc, char ** argv, bool is_env )
 	case GO_EXCLUDE:	AtFileHelper(optarg,SEL_ID,SEL_FILE,AddExcludeID); break;
 	case GO_INCLUDE_PATH:	AtFileHelper(optarg,0,0,AddIncludePath); break;
 	case GO_EXCLUDE_PATH:	AtFileHelper(optarg,0,0,AddExcludePath); break;
+	case GO_ONE_JOB:	job_limit = 1; break;
 	case GO_IGNORE:		break;
 	case GO_IGNORE_FST:	allow_fst = false; break;
 	case GO_IGNORE_SETUP:	ignore_setup = true; break;
@@ -3078,6 +3083,16 @@ enumError CheckOptions ( int argc, char ** argv, bool is_env )
 		    err++;
 		else
 		    opt_limit = limit;
+	    }
+	    break;
+
+	case GO_JOB_LIMIT:
+	    {
+		u32 limit;
+		if (ScanSizeOptU32(&limit,optarg,1,0,"job-limit",0,UINT_MAX,0,0,true))
+		    err++;
+		else
+		    job_limit = limit ? limit : ~(u32)0;
 	    }
 	    break;
 
