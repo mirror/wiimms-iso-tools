@@ -2895,13 +2895,17 @@ int ConvertShow2PFST
 	ShowMode def_mode	// default mode
 )
 {
-    const ShowMode OFF_SIZE = SHOW_OFFSET | SHOW_SIZE;
-    if ( !(show_mode & OFF_SIZE) )
-	show_mode |= def_mode & OFF_SIZE;
+    TRACE("ConvertShow2PFST(%x,%x)\n",show_mode,def_mode);
+    const ShowMode MASK_OFF_SIZE = SHOW_OFFSET | SHOW_SIZE;
+    if ( !(show_mode & MASK_OFF_SIZE) )
+	show_mode |= def_mode & MASK_OFF_SIZE;
 
-    const ShowMode DEC_HEX = SHOW_F_DEC | SHOW_F_HEX;
-    if ( !(show_mode & DEC_HEX) )
-	show_mode |= def_mode & DEC_HEX;
+    const ShowMode MASK_DEC_HEX = SHOW_F_DEC | SHOW_F_HEX;
+    if ( !(show_mode & MASK_DEC_HEX) )
+	show_mode |= def_mode & MASK_DEC_HEX;
+
+    noTRACE(" --> val=%x, off/size=%x, dec/hex=%x\n",
+	show_mode, show_mode & MASK_OFF_SIZE, show_mode & MASK_DEC_HEX );
 
     wd_pfst_t pfst = 0;
     if ( show_mode & SHOW_F_HEAD )
@@ -2910,7 +2914,7 @@ int ConvertShow2PFST
 	pfst |= WD_PFST_OFFSET;
     if ( show_mode & SHOW_SIZE )
     {
-	switch ( show_mode & DEC_HEX )
+	switch ( show_mode & MASK_DEC_HEX )
 	{
 	    case SHOW_F_DEC:
 		pfst |= WD_PFST_SIZE_DEC;
@@ -2925,6 +2929,7 @@ int ConvertShow2PFST
 	}
     }
 
+    TRACE(" --> PFST=%x\n",pfst);
     return pfst;
 }
 

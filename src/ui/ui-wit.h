@@ -426,6 +426,7 @@ typedef enum enumOptions
 //				| OB_GRP_XXSOURCE
 //				| OB_GRP_PARTITIONS
 //				| OB_GRP_FST_SELECT
+//				| OB_PREALLOC
 //				| OB_SORT
 //				| OB_LONG
 //				| OB_GRP_PATCH

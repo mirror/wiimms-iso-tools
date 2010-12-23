@@ -1038,6 +1038,11 @@ wit v1.23a r2092 - 2010-12-10
    and COMBI. Mode 'AUTO' switches to 'COMBI' if there are multiple partitions
    with the same partition type.
 
+wit v1.23b r2096 - 2010-12-12
+
+ - The progress counter is updated more frequently while creating a WIA file.
+ - Bug fix for options --one-job and --job-limit.
+
 @@MODULE(last-history.txt)@@
 
 

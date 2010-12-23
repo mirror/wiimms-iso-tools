@@ -17,9 +17,14 @@ do
     usage=$(($(stat -c'%B/512*%b' "$file")/2048))
     size=$(($(stat -c%s "$file")/1024/1024))
 
-    echo -n "$src -> $dev $inode, $usage/$size MiB, frag="
-    DEBUGFS_PAGER=cat /sbin/debugfs "$dev" -R "stat $inode" 2>&1 \
-	| sed -r '0,/^(EXTENTS|BLOCKS):/ d; s/, */\n/g' \
-	| grep -vF '(IND)' \
-	| wc -l
+    if ((1))
+    then
+	echo -n "$src -> $dev $inode, $usage/$size MiB, frag="
+	DEBUGFS_PAGER=cat /sbin/debugfs "$dev" -R "stat $inode" 2>&1 \
+	    | sed -r '0,/^(EXTENTS|BLOCKS):/ d; s/, */\n/g' \
+	    | grep -vF '(IND)' \
+	    | wc -l
+    else
+	DEBUGFS_PAGER=cat /sbin/debugfs "$dev" -R "stat $inode"
+    fi
 done

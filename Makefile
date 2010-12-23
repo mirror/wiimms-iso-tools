@@ -28,7 +28,7 @@ WWT_LONG		= Wiimms WBFS Tool
 WDF_SHORT		= wdf
 WDF_LONG		= Wiimms WDF Tool
 
-VERSION_NUM		= 1.23b
+VERSION_NUM		= 1.24a
 BETA_VERSION		= 0
 			# 0:off  -1:"beta"  >0:"beta#"
 
@@ -394,6 +394,7 @@ ifeq ($(SYSTEM),cygwin)
 	@rm -rf $(DISTRIB_PATH)/* 2>/dev/null || true
 	@rm -rf $(DISTRIB_PATH) 2>/dev/null || true
 	@mkdir -p $(DISTRIB_PATH)/bin $(DISTRIB_PATH)/doc
+	@echo cmd >$(DISTRIB_PATH)/bin/wit-console.bat
 	@cp -p gpl-2.0.txt $(DISTRIB_PATH)
 	@ln -f $(MAIN_TOOLS) $(WDF_LINKS) $(DISTRIB_PATH)/bin
 	@cp -p $(CYGWIN_BIN_SRC) $(DISTRIB_PATH)/bin
@@ -401,8 +402,10 @@ ifeq ($(SYSTEM),cygwin)
 	@cp -p $(DOC_FILES) $(DISTRIB_PATH)/doc
 
 	@zip -roq $(DISTRIB_PATH).zip $(DISTRIB_PATH)
+	@chmod 664 $(DISTRIB_PATH).zip
 
 else
+
 	@rm -rf $(DISTRIB_PATH)
 	@mkdir -p $(DISTRIB_PATH)/bin $(DISTRIB_PATH)/scripts $(DISTRIB_PATH)/lib $(DISTRIB_PATH)/doc
 
@@ -417,6 +420,8 @@ else
 	@chmod -R a+X $(DISTRIB_PATH)
 
 	@tar -czf $(DISTRIB_PATH).tar.gz $(DISTRIB_PATH)
+	@chmod 664 $(DISTRIB_PATH).tar.gz
+
 endif
 
 #

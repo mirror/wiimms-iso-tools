@@ -173,7 +173,7 @@ info_t info_tab[] =
 		" It can list, analyze, verify, convert, split, join,"
 		" patch, mix, extract, compose, rename and compare"
 		" Wii and GameCube discs."
-		" It can create and dump different other file formats." },
+		" It can create and dump different other Wii file formats." },
 
   //
   //---------- list of all wit commands ----------
@@ -250,9 +250,9 @@ info_t info_tab[] =
 
   { T_DEF_CMD,	"DUMP",		"DUMP|D",
 		    "wit DUMP [source]...",
-		"Dump the data structure of Wii and GameCube ISO files,"
-		" ticket.bin, tmd.bin,"
-		" header.bin, boot.bin, fst.bin and of DOL-files."
+		"Dump the data structure and content of Wii and GameCube ISO files,"
+		" @cert.bin@, @ticket.bin@, @tmd.bin@,"
+		" @header.bin@, @boot.bin@, @fst.bin@ and of DOL-files."
 		" The file type is detected automatically by analyzing the content." },
 
   { T_DEF_CMD,	"ID6",		"ID6|ID",
@@ -334,7 +334,7 @@ info_t info_tab[] =
 		" and replace it with the new file if copying is successful."
 		" It have been implemented as replacement of the @SCRUB@ command"
 		" of other tools. {wit CONVERT does more than only scrubbing"
-		" and rherefor it was renamed from @'SCRUB'@ to @'CONVERT'@." },
+		" and therefor it was renamed from @'SCRUB'@ to @'CONVERT'@." },
 
   { T_DEF_CMD,	"EDIT",		"EDIT|ED",
 		    "wit EDIT source\n"
@@ -777,13 +777,10 @@ info_t info_tab[] =
 		" If no parameter is set, @ALL@ is used."
 		"\n "
 		" Mode @'OFF'@ disables the preallocation."
-		" This is the default for all non Cygwin releases"
-		" because preallocation has only advantages on Windows systems."
 		" Mode @'SMART'@ looks into the source disc to find out the writing areas."
 		" @SMART@ is only avalable for $ISO$, $CISO$ and $WBFS$ file types."
 		" For other file types @ALL@ is used instead."
-		" Mode @'ALL'@ preallocate the whole destination file."
-		" This is the default for Cygwin."
+		" Mode @'ALL'@ (the default) preallocate the whole destination file."
 		" Because of the large holes in plain ISO images,"
 		" the @SMART@ mode is used for ISOs instead."
 		"\n "
@@ -1491,6 +1488,7 @@ info_t info_tab[] =
   { T_COPY_GRP,	"XXSOURCE",	0,0,0 },
   { T_COPY_GRP,	"PARTITIONS",	0,0,0 },
   { T_COPY_GRP,	"FST_SELECT",	0,0,0 },
+  { T_COPT,	"PREALLOC",	0,0,0 },
   { T_COPT,	"SORT",		0,0,
 	"Define the extracting order."
 	" The parameter is a comma separated list of the following keywords:"
@@ -1990,6 +1988,12 @@ info_t info_tab[] =
   { T_OPT_CMP,	"EXCLUDE_PATH",	"X|exclude-path|excludepath",
 		0, 0 /* copy of wit */ },
 
+  { T_OPT_C,	"ONE_JOB",	"1|one-job|onejob",
+		0, 0 /* copy of wit */ },
+
+  { T_OPT_CP,	"JOB_LIMIT",	"job-limit|joblimit",
+		0, 0 /* copy of wit */ },
+
   { T_OPT_C,	"IGNORE",	"i|ignore",
 		0, 0 /* copy of wit */ },
 
@@ -2293,6 +2297,8 @@ info_t info_tab[] =
   { T_COPT_M,	"INCLUDE_PATH",	0,0,0 },
   { T_COPT_M,	"EXCLUDE",	0,0,0 },
   { T_COPT_M,	"EXCLUDE_PATH",	0,0,0 },
+  { T_COPT_M,	"ONE_JOB",	0,0,0 },
+  { T_COPT_M,	"JOB_LIMIT",	0,0,0 },
 
   { T_SEP_OPT,	0,0,0,0 },
 
@@ -2304,6 +2310,8 @@ info_t info_tab[] =
   { T_COPT_M,	"INCLUDE_PATH",	0,0,0 },
   { T_COPT_M,	"EXCLUDE",	0,0,0 },
   { T_COPT_M,	"EXCLUDE_PATH",	0,0,0 },
+  { T_COPT_M,	"ONE_JOB",	0,0,0 },
+  { T_COPT_M,	"JOB_LIMIT",	0,0,0 },
   { T_COPT,	"IGNORE",	0,0,0 },
   { T_COPY_GRP,	"FST_IGNORE",	0,0,0 },
 

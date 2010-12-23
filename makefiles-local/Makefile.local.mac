@@ -47,7 +47,7 @@ mac: mac-ppc mac-i386 mac-x86_64
 mac-ppc:
 	@echo
 	@echo "----- building PowerPC -----"
-	@XFLAGS="-arch ppc -mcpu=powerpc" XDEF="-DNO_PREALLOC=1" make clean all
+	@XFLAGS="-arch ppc -mcpu=powerpc" make clean all
 	@mkdir -p bin/ppc
 	@mv $(MAIN_TOOLS) bin/ppc
 
@@ -57,7 +57,7 @@ mac-ppc:
 mac-i386:
 	@echo
 	@echo "----- building i386 -----"
-	@XFLAGS="-arch i386 -mfpmath=sse -march=prescott" XDEF="-DNO_PREALLOC=1" make clean all
+	@XFLAGS="-arch i386 -mfpmath=sse -march=prescott" make clean all
 	@mkdir -p bin/i386
 	@mv $(MAIN_TOOLS) bin/i386
 
@@ -68,7 +68,7 @@ mac-i386:
 mac-x86_64:
 	@echo
 	@echo "----- building X86-64 -----"
-	@XFLAGS="-arch x86_64 -mfpmath=sse" XDEF="-DNO_BZIP2=1 -DNO_PREALLOC=1" make clean all
+	@XFLAGS="-arch x86_64 -mfpmath=sse" XDEF="-DNO_BZIP2=1" make clean all
 	@mkdir -p bin/x86_64
 	@mv $(MAIN_TOOLS) bin/x86_64
 

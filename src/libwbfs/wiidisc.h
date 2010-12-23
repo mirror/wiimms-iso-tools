@@ -1026,6 +1026,25 @@ cert_stat_t wd_get_cert_tmd_stat
     bool		silent		// true: don't print errors while loading cert
 );
 
+//-----------------------------------------------------------------------------
+
+ccp wd_get_sig_status_text
+(
+    cert_stat_t		sig_stat
+);
+
+//-----------------------------------------------------------------------------
+
+char * wd_print_sig_status
+(
+    char		* buf,		// result buffer
+					// If NULL, a local circulary static buffer is used
+    size_t		buf_size,	// size of 'buf', ignored if buf==NULL
+    wd_part_t		* part,		// valid disc partition pointer
+    bool		silent,		// true: don't print errors while loading cert
+    bool		add_enc_info	// true: append " Partition is *crypted."
+);
+
 //
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////		interface: select partitions		///////////////

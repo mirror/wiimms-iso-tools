@@ -2106,6 +2106,95 @@ cert_stat_t wd_get_cert_tmd_stat
     return part->cert_tmd_stat;
 }
 
+///////////////////////////////////////////////////////////////////////////////
+
+ccp wd_get_sig_status_text
+(
+    cert_stat_t		sig_stat
+)
+{
+    return  sig_stat & CERT_F_HASH_FAILED
+		? "not signed"
+		: sig_stat & CERT_F_HASH_FAKED
+			? "fake signed"
+			: sig_stat & CERT_F_HASH_OK
+				? "well signed"
+				: 0;
+}
+
+
+///////////////////////////////////////////////////////////////////////////////
+
+char * wd_print_sig_status
+(
+    char		* buf,		// result buffer
+					// If NULL, a local circulary static buffer is used
+    size_t		buf_size,	// size of 'buf', ignored if buf==NULL
+    wd_part_t		* part,		// valid disc partition pointer
+    bool		silent,		// true: don't print errors while loading cert
+    bool		add_enc_info	// true: append " Partition is *crypted."
+)
+{
+    DASSERT(part);
+
+    enum
+    {
+	SBUF_COUNT = 2,
+	SBUF_SIZE  = 80
+    };
+
+    static int  sbuf_index = 0;
+    static char sbuf[SBUF_COUNT][SBUF_SIZE+1];
+
+    if (!buf)
+    {
+	// use static buffer
+	buf = sbuf[sbuf_index];
+	buf_size = SBUF_SIZE;
+	sbuf_index = ( sbuf_index + 1 ) % SBUF_COUNT;
+    }
+
+    ccp enc_info = !add_enc_info
+			? ""
+			: part->is_encrypted
+				? " Partition is encrypted."
+				: " Partition is decrypted.";
+
+//    const cert_stat_t mask = CERT_F_HASH_OK | CERT_F_HASH_FAKED | CERT_F_HASH_FAILED;
+//    const cert_stat_t tik_stat = wd_get_cert_ticket_stat(part,silent) & mask;
+//    const cert_stat_t tmd_stat = wd_get_cert_tmd_stat(part,silent) & mask;
+
+    ccp tik_text = wd_get_sig_status_text(wd_get_cert_ticket_stat(part,silent));
+    ccp tmd_text = wd_get_sig_status_text(wd_get_cert_tmd_stat(part,silent));
+
+    if ( tik_text == tmd_text )
+    {
+	if (!tik_text)
+	    snprintf(buf,buf_size,
+		"Signing of TICKET & TMD is unknown.%s", enc_info );
+	else
+	    snprintf(buf,buf_size,
+		"TICKET & TMD are %s.%s", tik_text, enc_info );
+    }
+    else
+    {
+	if (!tik_text)
+	    snprintf(buf,buf_size,
+		"Signing of TICKET is unknown. TMD is %s.%s", tmd_text, enc_info );
+	else if (!tmd_text)
+	    snprintf(buf,buf_size,
+		"TICKET is %s. Signing of TMD is unknown.%s", tik_text, enc_info );
+	else
+	{
+	    DASSERT( tik_text && tmd_text );
+	    snprintf(buf,buf_size,
+		"TICKET is %s. TMD is %s.%s", tik_text, tmd_text, enc_info );
+	}
+    }
+
+    return buf;
+}
+
 //
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////			select partitions		///////////////
@@ -3831,7 +3920,7 @@ void wd_print_fst
 )
 {
     ASSERT(f);
-    TRACE("wd_print_fst() filter_func = %p\n",filter_func);
+    TRACE("wd_print_fst() pfst=%x, filter_func=%p\n",pfst_mode,filter_func);
     indent = wd_normalize_indent(indent);
 
     //----- setup pf and calc fw

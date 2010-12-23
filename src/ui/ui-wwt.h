@@ -55,6 +55,8 @@ typedef enum enumOptions
 	OPT_INCLUDE_PATH,
 	OPT_EXCLUDE,
 	OPT_EXCLUDE_PATH,
+	OPT_ONE_JOB,
+	OPT_JOB_LIMIT,
 	OPT_IGNORE,
 	OPT_IGNORE_FST,
 	OPT_IGNORE_SETUP,
@@ -124,7 +126,7 @@ typedef enum enumOptions
 	OPT_SORT,
 	OPT_LIMIT,
 
-	OPT__N_SPECIFIC, // == 82 
+	OPT__N_SPECIFIC, // == 84 
 
 	//----- global options -----
 
@@ -145,7 +147,7 @@ typedef enum enumOptions
 	OPT_TEST,
 	OPT_HOOK,
 
-	OPT__N_TOTAL // == 98
+	OPT__N_TOTAL // == 100
 
 } enumOptions;
 
@@ -173,6 +175,8 @@ typedef enum enumOptions
 //	OB_INCLUDE_PATH		= 1llu << OPT_INCLUDE_PATH,
 //	OB_EXCLUDE		= 1llu << OPT_EXCLUDE,
 //	OB_EXCLUDE_PATH		= 1llu << OPT_EXCLUDE_PATH,
+//	OB_ONE_JOB		= 1llu << OPT_ONE_JOB,
+//	OB_JOB_LIMIT		= 1llu << OPT_JOB_LIMIT,
 //	OB_IGNORE		= 1llu << OPT_IGNORE,
 //	OB_IGNORE_FST		= 1llu << OPT_IGNORE_FST,
 //	OB_IGNORE_SETUP		= 1llu << OPT_IGNORE_SETUP,
@@ -262,12 +266,16 @@ typedef enum enumOptions
 //	OB_GRP_EXCLUDE		= OB_INCLUDE
 //				| OB_INCLUDE_PATH
 //				| OB_EXCLUDE
-//				| OB_EXCLUDE_PATH,
+//				| OB_EXCLUDE_PATH
+//				| OB_ONE_JOB
+//				| OB_JOB_LIMIT,
 //
 //	OB_GRP_IGN_EXCLUDE	= OB_INCLUDE
 //				| OB_INCLUDE_PATH
 //				| OB_EXCLUDE
 //				| OB_EXCLUDE_PATH
+//				| OB_ONE_JOB
+//				| OB_JOB_LIMIT
 //				| OB_IGNORE
 //				| OB_GRP_FST_IGNORE,
 //
@@ -569,6 +577,8 @@ typedef enum enumCommands
 
 typedef enum enumGetOpt
 {
+	GO_ONE_JOB		= '1',
+
 	GO__ERR			= '?',
 
 	GO_ALL			= 'A',
@@ -622,6 +632,7 @@ typedef enum enumGetOpt
 	GO_RDEPTH,
 	GO_PSEL,
 	GO_RAW,
+	GO_JOB_LIMIT,
 	GO_IGNORE_FST,
 	GO_IGNORE_SETUP,
 	GO_PMODE,

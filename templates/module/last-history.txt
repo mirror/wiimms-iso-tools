@@ -1,7 +1,11 @@
 wit v@@VERSION@@ r@@REV-NEXT@@ - @@@@-@@-@@
 
- - The progress counter is updated more frequently while creating a WIA file.
- - Bug fix for options --one-job and --job-limit.
+ - "wwt ADD+EXTRACT" support now --one-job and --job-limit=n
+ - Preallocation is now enabled by default for all systems without known
+   disadvantages. Preallocation is also used for extrated files. Thanx to
+   deo at gbatemp who shows me Linux and Mac optimizations.
+ - wit+wwt VERIFY: Print signing and encryption status.
+ - Bug fix: "wit FILES+DUMP" print the file size again.
 
 
 Known bugs:
@@ -12,10 +16,4 @@ Known bugs:
    The reason is the complete new and more intelligent wiidisc lib which makes
    more lookups ==> The best is to use version 1.01c for pipes.
  - No WIA/bzip2 support for MAC/x86_64. (bug in the Mac bzip2 library)
-
-
-Missing docu:
-
- - wit commands FILES + EXTRACT => see built in help
- - Tool wdf => see built in help
 
