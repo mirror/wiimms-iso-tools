@@ -1772,7 +1772,13 @@ static void PreallocHelper ( File_t *f )
 		if (!found)
 		    break;
 
-	#ifdef __CYGWIN__
+	#ifdef HAVE_FALLOCATE
+		PRINT("CALL fallocate(%d,0,%9llx,%9llx [%s])\n",
+			    f->fd, (u64)found->off, (u64)found->size,
+			    wd_print_size_1024(0,0,found->size,true) );
+		fallocate(f->fd,0,found->off,found->size);
+		PRINT("TERM fallocate()\n");
+	#elif HAVE_POSIX_FALLOCATE
 		PRINT("CALL posix_fallocate(%d,%9llx,%9llx [%s])\n",
 			    f->fd, (u64)found->off, (u64)found->size,
 			    wd_print_size_1024(0,0,found->size,true) );
@@ -1791,11 +1797,7 @@ static void PreallocHelper ( File_t *f )
 		fcntl( f->fd, F_PREALLOCATE, &fst );
 		PRINT("TERM fcntl()\n");
 	#else
-		PRINT("CALL fallocate(%d,0,%9llx,%9llx [%s])\n",
-			    f->fd, (u64)found->off, (u64)found->size,
-			    wd_print_size_1024(0,0,found->size,true) );
-		fallocate(f->fd,0,found->off,found->size);
-		PRINT("TERM fallocate()\n");
+		#error "no preallocation support -> use -DNO_PREALLOC"
 	#endif
   
 		found->size = 0;

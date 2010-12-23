@@ -44,16 +44,19 @@ typedef enum enumSystemID
 #ifdef __CYGWIN__
 	#define SYSTEM "cygwin"
 	#define SYSTEMID SYSID_CYGWIN
+	#define HAVE_POSIX_FALLOCATE 1
 #elif __APPLE__
 	#define SYSTEM "mac"
 	#define SYSTEMID SYSID_APPLE
 #elif __linux__
+	#define HAVE_POSIX_FALLOCATE 1
   #ifdef __i386__
 	#define SYSTEM "i386"
 	#define SYSTEMID SYSID_I386
   #elif __x86_64__
 	#define SYSTEM "x86_64"
 	#define SYSTEMID SYSID_X86_64
+	#define HAVE_FALLOCATE 1
   #else
 	#define SYSTEM "linux"
 	#define SYSTEMID SYSID_LINUX
