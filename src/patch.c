@@ -688,7 +688,13 @@ int ScanOptFile ( ccp arg, bool add )
 ///////////////		      RewriteModifiedSF()		///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-enumError RewriteModifiedSF ( SuperFile_t * fi, SuperFile_t * fo, WBFS_t * wbfs )
+enumError RewriteModifiedSF
+(
+    SuperFile_t		* fi,		// valid input file
+    SuperFile_t		* fo,		// NULL or output file
+    struct WBFS_t	* wbfs,		// NULL or output WBFS
+    u64			off		// offset: write_off := read_off + off
+)
 {
     ASSERT(fi);
     ASSERT(fi->f.is_reading);
@@ -696,7 +702,8 @@ enumError RewriteModifiedSF ( SuperFile_t * fi, SuperFile_t * fo, WBFS_t * wbfs 
 	fo = wbfs->sf;
     ASSERT(fo);
     ASSERT(fo->f.is_writing);
-    TRACE("+++ RewriteModifiedSF(%p,%p,%p), oft=%d,%d\n",fi,fo,wbfs,fi->iod.oft,fo->iod.oft);
+    TRACE("+++ RewriteModifiedSF(%p,%p,%p,%x), oft=%d,%d\n",
+		fi,fo,wbfs,off,fi->iod.oft,fo->iod.oft);
 
     wd_disc_t * disc = fi->disc1;
     if ( !fi->modified_list.used && ( !disc || !disc->reloc ))
@@ -709,8 +716,10 @@ enumError RewriteModifiedSF ( SuperFile_t * fi, SuperFile_t * fo, WBFS_t * wbfs 
 
     if ( logging > 2 )
     {
-	printf("\nRewrite:\n\n");
+	printf("\n Rewrite:\n\n");
 	PrintMemMap(&fi->modified_list,stdout,3);
+	if ( disc && disc->reloc )
+	    wd_print_relocation(stdout,3,disc->reloc,true);
 	putchar('\n');
     }
 
@@ -719,8 +728,8 @@ enumError RewriteModifiedSF ( SuperFile_t * fi, SuperFile_t * fo, WBFS_t * wbfs 
     PrintMemMap(&fi->modified_list,TRACE_FILE,3);
  #endif
 
-    IOData_t iod;
-    memcpy(&iod,&fo->iod,sizeof(iod));
+    IOData_t saved_iod;
+    memcpy(&saved_iod,&fo->iod,sizeof(saved_iod));
     WBFS_t * saved_wbfs = fo->wbfs;
     bool close_disc = false;
 
@@ -747,7 +756,7 @@ enumError RewriteModifiedSF ( SuperFile_t * fi, SuperFile_t * fo, WBFS_t * wbfs 
     for ( idx = 0; idx < fi->modified_list.used && !err; idx++ )
     {
 	const MemMapItem_t * mmi = fi->modified_list.field[idx];
-	err = CopyRawData(fi,fo,mmi->off,mmi->size);
+	err = CopyRawData2(fi,mmi->off,fo,mmi->off+off,mmi->size);
     }
 
     if ( disc && disc->reloc )
@@ -755,7 +764,10 @@ enumError RewriteModifiedSF ( SuperFile_t * fi, SuperFile_t * fo, WBFS_t * wbfs 
 	const wd_reloc_t * reloc = disc->reloc;
 	for ( idx = 0; idx < WII_MAX_SECTORS && !err; idx++, reloc++ )
 	    if ( *reloc & WD_RELOC_F_LAST )
-		err = CopyRawData(fi,fo,idx*WII_SECTOR_SIZE,WII_SECTOR_SIZE);
+	    {
+		u64 inoff = idx*WII_SECTOR_SIZE;
+		err = CopyRawData2(fi,inoff,fo,inoff+off,WII_SECTOR_SIZE);
+	    }
     }
 
     if (close_disc)
@@ -764,7 +776,7 @@ enumError RewriteModifiedSF ( SuperFile_t * fi, SuperFile_t * fo, WBFS_t * wbfs 
 	wbfs->disc = 0;
     }
 
-    memcpy(&fo->iod,&iod,sizeof(fo->iod));
+    memcpy(&fo->iod,&saved_iod,sizeof(fo->iod));
     fo->wbfs = saved_wbfs;
     TRACE("--- RewriteModifiedSF() err=%u: END\n",err);
     return err;

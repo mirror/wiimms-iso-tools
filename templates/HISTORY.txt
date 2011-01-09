@@ -1043,6 +1043,15 @@ wit v1.23b r2096 - 2010-12-12
  - The progress counter is updated more frequently while creating a WIA file.
  - Bug fix for options --one-job and --job-limit.
 
+wit v1.24a r2114 - 2010-12-23
+
+ - "wwt ADD+EXTRACT" support now --one-job and --job-limit=n
+ - Preallocation is now enabled by default for all systems without known
+   disadvantages. Preallocation is also used for extrated files. Thanx to
+   deo at gbatemp who shows me Linux and Mac optimizations.
+ - wit+wwt VERIFY: Print signing and encryption status.
+ - Bug fix: "wit FILES+DUMP" print the file size again.
+
 @@MODULE(last-history.txt)@@
 
 

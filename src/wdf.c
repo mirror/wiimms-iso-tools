@@ -75,7 +75,7 @@ ccp copy_verb	 = "copy   ";
 ///////////////			    help()			///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-void print_title ( FILE * f )
+static void print_title ( FILE * f )
 {
     static bool done = false;
     if (!done)
@@ -91,7 +91,7 @@ void print_title ( FILE * f )
 
 ///////////////////////////////////////////////////////////////////////////////
 
-void help_exit ( bool xmode )
+static void help_exit ( bool xmode )
 {
     printf("%s%s\n",progname,TITLE);
 
@@ -109,7 +109,7 @@ void help_exit ( bool xmode )
 
 ///////////////////////////////////////////////////////////////////////////////
 
-void version_exit()
+static void version_exit()
 {
     printf("%s%s\n%.*s",
 	progname, TITLE,

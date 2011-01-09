@@ -3836,7 +3836,7 @@ enumError AddWDisc ( WBFS_t * w, SuperFile_t * sf, const wd_select_t * psel )
 	ASSERT(w->sf);
 	PRINT("AddWDisc/stat: w=%p, slot=%d, w->sf=%p, oft=%d\n",
 		w, w->disc_slot, w->sf, w->sf->iod.oft );
-        err = RewriteModifiedSF(sf,0,w);
+        err = RewriteModifiedSF(sf,0,w,0);
     }
 
     // catch read/write errors
@@ -3869,18 +3869,15 @@ enumError RemoveWDisc
     TRACE("RemoveWDisc(%p,%s,%d,%d)\n",w,id6?id6:"-",slot,free_slot_only);
     if ( !w || !w->wbfs || !w->sf )
 	return ERROR0(ERR_INTERNAL,0);
-BINGO;
 
     // this is needed for detailed error messages
     const enumError saved_max_error = max_error;
     max_error = 0;
-BINGO;
 
     // remove the disc
     enumError err = ERR_OK;
     if (wbfs_rm_disc(w->wbfs,(u8*)id6,slot,free_slot_only))
     {
-BINGO;
 	err = ERR_WDISC_NOT_FOUND;
 	if (!w->sf->f.disable_errors)
 	    ERROR0(err,"Can't remove disc non existing [%s]: %s\n",
@@ -3891,7 +3888,6 @@ BINGO;
     DumpWBFS(w,TRACE_FILE,15,0,0,0);
  #endif
 
-BINGO;
     // check if the disc is really removed
     if ( id6 && !ExistsWDisc(w,id6) )
     {
@@ -3901,13 +3897,11 @@ BINGO;
 		id6, w->sf->f.fname );
     }
 
-BINGO;
     // catch read/write errors
     err = max_error = max_error > err ? max_error : err;
     if ( max_error < saved_max_error )
 	max_error = saved_max_error;
 
-BINGO;
     // calculate the wbfs usage again
     CalcWBFSUsage(w);
 

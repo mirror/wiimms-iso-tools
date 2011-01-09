@@ -415,6 +415,7 @@ typedef enum enumOptions
 //				| OB_GRP_PARTITIONS
 //				| OB_GRP_FST_SELECT
 //				| OB_LONG
+//				| OB_SECTIONS
 //				| OB_DEST
 //				| OB_DEST2
 //				| OB_GRP_OUTMODE_FST,
@@ -429,6 +430,7 @@ typedef enum enumOptions
 //				| OB_PREALLOC
 //				| OB_SORT
 //				| OB_LONG
+//				| OB_SECTIONS
 //				| OB_GRP_PATCH
 //				| OB_GRP_RELOCATE
 //				| OB_DEST
@@ -446,6 +448,7 @@ typedef enum enumOptions
 //	OB_CMD_CONVERT		= OB_GRP_TITLES
 //				| OB_GRP_XXSOURCE
 //				| OB_GRP_PARTITIONS
+//				| OB_SECTIONS
 //				| OB_GRP_PATCH
 //				| OB_GRP_RELOCATE
 //				| OB_GRP_SPLIT_CHUNK

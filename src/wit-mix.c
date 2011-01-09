@@ -1177,6 +1177,8 @@ static enumError copy_partitions
 {
     DASSERT(mp);
 
+    //----- copy data
+
     int mi;
     for ( mi = 0; mi < mp->mm.used; mi++ )
     {
@@ -1195,6 +1197,22 @@ static enumError copy_partitions
 
 	const enumError err
 	    = CopyRawData2(mix->sf,src_off,&mp->fo,item->off,item->size);
+	if (err)
+	    return err;
+    }
+
+
+    //----- rewrite modified data
+
+    for ( mi = 0; mi < mp->n_mix; mi++ )
+    {
+	Mix_t * mix = mp->mix + mi;
+	u64 delta_off = ( (int)mix->dest_sector - (int)mix->src_sector )
+			* (s64)WII_SECTOR_SIZE;
+	PRINT("-> REWRITE #%02u: %16llx\n",mi,delta_off);
+
+	const enumError err
+	    = RewriteModifiedSF(mix->sf,&mp->fo,0,delta_off);
 	if (err)
 	    return err;
     }
@@ -1517,7 +1535,7 @@ enumError cmd_mix()
 
 
     //---------------------------------------------------------------------
-    //-----------			logging			-----------
+    //-----------		      logging			-----------
     //---------------------------------------------------------------------
 
     err = verify_mix( &mp, testmode > 1 || verbose > 2, true );
@@ -1538,7 +1556,7 @@ enumError cmd_mix()
 
 
     //---------------------------------------------------------------------
-    //-----------		    create files		-----------
+    //-----------		    create file			-----------
     //---------------------------------------------------------------------
 
 

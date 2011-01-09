@@ -650,7 +650,7 @@ info_t info_tab[] =
 
   { T_OPT_CP,	"REGION",	"region",
 		"region",
-		"This $patching$ option defines the region of the disc. "
+		"This $patching$ option defines the region of the disc."
 		" The region is one of @JAPAN, USA, EUROPE, KOREA, FILE@"
 		" or @AUTO@ (default). The case of the keywords is ignored."
 		" Unsigned numbers are also accepted." },
@@ -975,10 +975,11 @@ info_t info_tab[] =
 		"This option allows fine control over the things that are to be printed."
 		" The parameter is a comma separated list of the"
 		" following keywords, case is ignored: "
-		" @NONE, INTRO, P-TAB, P-INFO, P-MAP, D-MAP, TICKET, TMD, USAGE,"
+		" @NONE, INTRO, D-ID, P-ID, P-TAB, P-INFO, P-MAP, D-MAP, TICKET, TMD, USAGE,"
 		" PATCH, RELOCATE, FILES, OFFSET, SIZE, PATH@ and @ALL@."
 		" There are some combined keys:"
-		" @PART := P-INFO,P-MAP,TICKET,TMD@,"
+		" @ID := D-ID,P-ID@,"
+		" @PART := P-INFO,P-ID,P-MAP,TICKET,TMD@,"
 		" @MAP := P-MAP,D-MAP@."
 		"\n "
 		" All keywords can be prefixed by '+' to enable that option,"
@@ -1462,6 +1463,7 @@ info_t info_tab[] =
   { T_COPT_M,	"LOGGING",	0,0,0 },
   { T_COPT,	"PROGRESS",	0,0,0 },
   { T_COPT_M,	"LONG",		0,0,0 },
+  { T_COPT,	"SECTIONS",	0,0,0 },
 
   { T_SEP_OPT,	0,0,0,0 },
 
@@ -1501,6 +1503,7 @@ info_t info_tab[] =
   { T_COPT_M,	"LONG",		0,0, TEXT_EXTRACT_LONG },
   { T_COPT_M,	"LOGGING",	0,0,0 },
   { T_COPT,	"PROGRESS",	0,0,0 },
+  { T_COPT,	"SECTIONS",	0,0,0 },
 
   { T_SEP_OPT,	0,0,0,0 },
 
@@ -1514,6 +1517,7 @@ info_t info_tab[] =
   { T_COPT,	"ESC",		0,0,0 },
   { T_COPT,	"PRESERVE",	0,0,0 },
   { T_COPT,	"OVERWRITE",	0,0,0 },
+
 
   //---------- COMMAND wit COPY ----------
 
@@ -1529,6 +1533,7 @@ info_t info_tab[] =
   { T_SEP_OPT,	0,0,0,0 },
 
   { T_COPY_GRP,	"OUTMODE_FST",	0,0,0 },
+
 
   //---------- COMMAND wit CONVERT ----------
 
@@ -1548,6 +1553,7 @@ info_t info_tab[] =
   { T_COPT_M,	"VERBOSE",	0,0,0 },
   { T_COPT_M,	"LOGGING",	0,0,0 },
   { T_COPT,	"PROGRESS",	0,0,0 },
+  { T_COPT,	"SECTIONS",	0,0,0 },
 
   { T_SEP_OPT,	0,0,0,0 },
 

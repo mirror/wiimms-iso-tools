@@ -121,7 +121,6 @@ typedef struct SuperFile_t
 	bool discs_loaded;		// true: discs already loaded -> don't try again
 	wd_disc_t * disc1;		// NULL or pointer to unpatched wii disc
 	wd_disc_t * disc2;		// NULL or pointer to patched wii disc
-	wd_part_t * data_part;		// NULL or used data partition of 'disc1'
 
 	// WDF support
 
@@ -216,17 +215,23 @@ int IsFileSelected ( wd_iterator_t *it );
 
 void CloseDiscSF
 (
-	SuperFile_t * sf	// valid pointer
+    SuperFile_t		* sf		// valid pointer
 );
 
 wd_disc_t * OpenDiscSF
 (
-	SuperFile_t * sf,	// valid pointer
-	bool load_part_data,	// true: load partition data
-	bool print_err		// true: print error message if open fails
+    SuperFile_t		* sf,		// valid file pointer
+    bool		load_part_data,	// true: load partition data
+    bool		print_err	// true: print error message if open fails
 );
 
-enumError RewriteModifiedSF ( SuperFile_t * fi, SuperFile_t * fo, struct WBFS_t * wbfs );
+enumError RewriteModifiedSF
+(
+    SuperFile_t		* fi,		// valid input file
+    SuperFile_t		* fo,		// NULL or output file
+    struct WBFS_t	* wbfs,		// NULL or output WBFS
+    u64			off		// offset: write_off := read_off + off
+);
 
 enumError PreallocateSF
 (

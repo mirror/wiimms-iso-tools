@@ -2834,6 +2834,8 @@ ShowMode ScanShowMode ( ccp arg )
 	{ SHOW__ALL,		"ALL",		0,		0 },
 
 	{ SHOW_INTRO,		"INTRO",	0,		0 },
+	{ SHOW_D_ID,		"D-ID",		"DID",		0 },
+	{ SHOW_P_ID,		"P-IDS",	"PIDS",		0 },
 	{ SHOW_P_TAB,		"P-TAB",	"PTAB",		0 },
 	{ SHOW_P_INFO,		"P-INFO",	"PINFO",	0 },
 	{ SHOW_P_MAP,		"P-MAP",	"PMAP",		0 },
@@ -2850,6 +2852,7 @@ ShowMode ScanShowMode ( ccp arg )
 	{ SHOW_OFFSET,		"OFFSET",	0,		0 },
 	{ SHOW_SIZE,		"SIZE",		0,		0 },
 
+	{ SHOW__ID,		"IDS",		0,		0 },
 	{ SHOW__PART,		"PART",		0,		0 },
 	{ SHOW__MAP,		"MAP",		0,		0 },
 
@@ -3893,8 +3896,8 @@ void PrintMemMap ( MemMap_t * mm, FILE * f, int indent )
 	    max_ilen = ilen;
     }
 
-    fprintf(f,"%*s      unused :   off(beg) ..   off(end) :      size : info\n%*s%.*s\n",
-	    indent, "", indent, "", max_ilen+54, wd_sep_200 );
+    fprintf(f,"%*s      unused :  off(beg) ..  off(end) :      size : info\n%*s%.*s\n",
+	    indent, "", indent, "", max_ilen+52, wd_sep_200 );
 
     off_t max_end = mm->begin;
     for ( i = 0; i < mm->used; i++ )
@@ -3904,11 +3907,11 @@ void PrintMemMap ( MemMap_t * mm, FILE * f, int indent )
 	    max_end = ptr->off;
 	const off_t end = ptr->off + ptr->size;
 	if ( ptr->off > max_end )
-	    fprintf(f,"%*s%s%10llx :%11llx ..%11llx :%10llx : %s\n",
+	    fprintf(f,"%*s%s%10llx :%10llx ..%10llx :%10llx : %s\n",
 		indent, "", ovl[ptr->overlap&3], (u64)( ptr->off - max_end ),
 		(u64)ptr->off, (u64)end, (u64)ptr->size, ptr->info );
 	else
-	    fprintf(f,"%*s%s           :%11llx ..%11llx :%10llx : %s\n",
+	    fprintf(f,"%*s%s           :%10llx ..%10llx :%10llx : %s\n",
 		indent, "", ovl[ptr->overlap&3],
 		(u64)ptr->off, (u64)end, (u64)ptr->size, ptr->info );
 	if ( max_end < end )

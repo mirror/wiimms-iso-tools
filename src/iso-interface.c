@@ -66,7 +66,7 @@ static void dump_size
     u64			percent_base2	// >0: print percent value based on 'percent_base'
 )
 {
-    fprintf(f,"%*s%-15s%11llx/hex =%11llu",
+    fprintf(f,"%*s%-17s%11llx/hex =%11llu",
 	indent,"", title, size, size );
 
     if ( size >= 10240 )
@@ -95,6 +95,59 @@ static void dump_size
 
 //-----------------------------------------------------------------------------
 
+static void dump_sys_version
+(
+    FILE		* f,		// output stream
+    int			indent,		// indent
+    u64			sys_version,	// system version to print
+    int			title_fw	// field width of title
+)
+{
+    const u32 hi = sys_version >> 32;
+    const u32 lo = (u32)sys_version;
+    if ( hi == 1 && lo < 0x100 )
+	fprintf(f,"%*s%-*s%08x-%08x = IOS 0x%02x = IOS %u\n",
+		    indent, "", title_fw, "System version: ", hi, lo, lo, lo );
+    else
+	fprintf(f,"%*s%-*s%08x-%08x\n",
+		    indent, "", title_fw, "System version: ", hi, lo );
+}
+
+//-----------------------------------------------------------------------------
+
+static void dump_id
+(
+    FILE		* f,		// output stream
+    int			indent,		// indent
+    ccp			id6,		// NULL or id6
+    wd_part_t		* part,		// not NULL: retrieve IDs from partition
+    int			title_fw	// field width of title
+)
+{
+    if (part)
+    {
+	if ( id6 && *id6 )
+	    fprintf(f,"%*s%-*sdisc=%s, ticket=%s, tmd=%s, boot=%s\n",
+		indent,"", title_fw, "Disc & part IDs: ",
+		wd_print_id(id6,6,0),
+		wd_print_id(part->ph.ticket.title_id+4,4,0),
+		part->tmd ? wd_print_id(part->tmd->title_id+4,4,0) : "-",
+		wd_print_id(&part->boot,6,0) );
+	else
+	    fprintf(f,"%*s%-*sticket=%s, tmd=%s, boot=%s\n",
+		indent,"", title_fw, "Partition IDs: ",
+		wd_print_id(part->ph.ticket.title_id+4,4,0),
+		part->tmd ? wd_print_id(part->tmd->title_id+4,4,0) : "-",
+		wd_print_id(&part->boot,6,0) );
+    }
+    else if ( id6 && *id6 )
+	fprintf(f,"%*s%-*s%s\n",
+		indent,"",  title_fw, "Disc ID: ",
+		wd_print_id(id6,6,0) );
+}
+
+//-----------------------------------------------------------------------------
+
 static int dump_header
 (
     FILE		* f,		// output stream
@@ -102,8 +155,7 @@ static int dump_header
     SuperFile_t		* sf,		// file to dump
     ccp			id6,		// NULL or id6
     ccp			real_path,	// NULL or pointer to real path
-    ccp			user_head,	// NULL or user defined field
-    ccp			user_parm	// NULL or parameter for 'user_head'
+    wd_disc_t		* disc		// not NULL: retrieve info from disc
 )
 {
     ASSERT(f);
@@ -138,28 +190,36 @@ static int dump_header
     else
 	dump_size(f,indent,"File size:",real_size,0,0);
 
-    if ( user_head && user_parm )
-	fprintf(f,"%*s%-19s%s\n",
-		indent,"", user_head, user_parm );
-	
-    char info[30] = {0};
+    //----- file and disc type
+
+    char ftype_info[30] = {0};
     if (sf->wia)
     {
 	wia_disc_t * disc = &sf->wia->disc;
-	snprintf( info, sizeof(info), " (v%s,%s)",
-		PrintVersionWIA(0,0,sf->wia->fhead.version),
-		wd_print_compression(0,0,disc->compression,
-				disc->compr_level,disc->chunk_size,2) );
+	if (disc)
+	    snprintf( ftype_info, sizeof(ftype_info), " (v%s,%s)",
+		    PrintVersionWIA(0,0,sf->wia->fhead.version),
+		    wd_print_compression(0,0,disc->compression,
+		    disc->compr_level,disc->chunk_size,2) );
     }
 
-    if (!id6)
-	id6 = sf->f.id6;
-    if (*id6)
-	fprintf(f,"%*sID & file type:    %s, %s%s\n",
-		indent,"", wd_print_id(id6,6,0), GetNameFT(sf->f.ftype,0), info );
+    if (disc)
+    {
+	fprintf(f,"%*sFile & disc type:  %s%s  &  %s%s%s%s\n",
+		indent,"",
+		GetNameFT(sf->f.ftype,0), ftype_info,
+		wd_get_disc_type_name(disc->disc_type,"?"),
+		disc->disc_attrib & WD_DA_GC_MULTIBOOT ? ", MultiBoot" : "",
+		disc->disc_attrib & WD_DA_GC_START_PART ? "+" : "",
+		disc->disc_attrib & WD_DA_GC_DVD9 ? ", DVD9" : "" );
+
+	if ( !id6 && sf )
+	    id6 = sf->f.id6;
+	dump_id(f,indent,id6,disc->main_part,19);
+    }
     else
 	fprintf(f,"%*sFile type:         %s%s\n",
-		indent,"", GetNameFT(sf->f.ftype,0), info );
+		indent,"", GetNameFT(sf->f.ftype,0), ftype_info );
 
     return indent;
 }
@@ -172,7 +232,7 @@ static void dump_sig_type
     int			indent,		// indent
     u32			sig_type,	// signature or public key type
     cert_stat_t		sig_status,	// not NULL: cert status of signature
-    bool		is_pubkey	// ture: nit sig but public key
+    bool		is_pubkey	// true: not sig but public key
 )
 {
     const int size = is_pubkey
@@ -277,17 +337,15 @@ static void dump_gc_part
 	    if (part->is_overlay)
 		fprintf(f,"%*s  Partition overlays other partitions.\n", indent,"" );
 
-	    fprintf(f,"%*s  Partition type:  %s\n",
+	    fprintf(f,"%*s  Partition type:   %s\n",
 			indent, "",
 			wd_print_part_name(0,0,part->part_type,WD_PNAME_NUM_INFO) );
-	    fprintf(f,"%*s  boot.bin, ID:    %s\n",
-			indent, "", wd_print_id(&part->boot,6,0));
-	    fprintf(f,"%*s  boot.bin, title: %.64s\n",
+	    fprintf(f,"%*s  boot.bin, title:  %.64s\n",
 			indent, "", part->boot.dhead.disc_title);
 
 	    ccp title = GetTitle(&part->boot.dhead.disc_id,0);
 	    if (title)
-		fprintf(f,"%*s  Title DB:        %s\n", indent, "", title );
+		fprintf(f,"%*s  Title DB:         %s\n", indent, "", title );
 
 	    fprintf(f,"%*s  Region:        %7u [%s]\n",indent,"",
 			part->region, GetRegionName(part->region,"?") );
@@ -405,7 +463,7 @@ static void dump_wii_part
 		fprintf(f,"%*s  %s\n", indent,"", wd_print_sig_status(0,0,part,false,true) );
 
 	    u8 * p8 = part->key;
-	    fprintf(f,"%*s  Partition key: %02x%02x%02x%02x %02x%02x%02x%02x"
+	    fprintf(f,"%*s  Partition key:    %02x%02x%02x%02x %02x%02x%02x%02x"
 					 " %02x%02x%02x%02x %02x%02x%02x%02x\n",
 		indent,"",
 		p8[0], p8[1], p8[2], p8[3], p8[4], p8[5], p8[6], p8[7],
@@ -413,27 +471,18 @@ static void dump_wii_part
 
 	    if ( !(show_mode & SHOW_F_PRIMARY) )
 	    {
+		dump_id(f,indent+2,0,part,18);
+		fprintf(f,"%*s  boot.bin, title:  %.64s\n",
+			indent, "", part->boot.dhead.disc_title);
 		if ( !(show_mode & SHOW_TMD) && part->tmd )
-		{
-		    const u64 sys_version = ntoh64(part->tmd->sys_version);
-		    const u32 hi = sys_version >> 32;
-		    const u32 lo = (u32)sys_version;
-		    if ( hi == 1 && lo < 0x100 )
-			fprintf(f,"%*s  System version: %08x-%08x = IOS 0x%02x = IOS %u\n",
-				    indent, "", hi, lo, lo, lo );
-		    else
-			fprintf(f,"%*s  System version: %08x-%08x\n",
-				    indent, "", hi, lo );
-		}
+		    dump_sys_version(f,indent+2,ntoh64(part->tmd->sys_version),18);
 	    }
 
-	    fprintf(f,"%*s  boot.bin, ID:    %s\n",
-			indent, "", wd_print_id(&part->boot,6,0));
-	    fprintf(f,"%*s  boot.bin, title: %.64s\n",
-			indent, "", part->boot.dhead.disc_title);
 	    fprintf(f,"%*s  Directories:   %7u\n",indent,"",part->fst_dir_count);
 	    fprintf(f,"%*s  Files:         %7u\n",indent,"",part->fst_file_count);
 	}
+	else if ( show_mode & SHOW_P_ID )
+	    dump_id(f,indent+2,0,part,18);
 
 	if ( show_mode & SHOW_P_MAP )
 	{
@@ -533,16 +582,9 @@ enumError Dump_ISO
 
     if ( show_mode & SHOW_INTRO )
     {
-	char buf[80];
-	snprintf(buf,sizeof(buf),"%s%s%s%s",
-		wd_get_disc_type_name(disc->disc_type,"?"),
-		disc->disc_attrib & WD_DA_GC_MULTIBOOT ? ", MultiBoot" : "",
-		disc->disc_attrib & WD_DA_GC_START_PART ? "+" : "",
-		disc->disc_attrib & WD_DA_GC_DVD9 ? ", DVD9" : "" );
-	dump_header(f,indent-2,sf,&disc->dhead.disc_id,real_path,"Disc type:",buf);
+	dump_header(f,indent-2,sf,&disc->dhead.disc_id,real_path,disc);
 
 	fprintf(f,"%*sDisc name:         %.64s\n",indent,"",disc->dhead.disc_title);
-
 	ccp title = GetTitle((ccp)&disc->dhead,0);
 	if (title)
 	    fprintf(f,"%*sDB title:          %s\n",indent,"",title);
@@ -554,15 +596,19 @@ enumError Dump_ISO
 	{
 	    const enumRegion reg = ntohl(disc->region.region);
 	    fprintf(f,"%*sBI2 Region:        %x [%s]\n",
-			    indent,"", reg, GetRegionName(reg,"?") );
+			indent,"", reg, GetRegionName(reg,"?") );
 	}
 	else    
 	{
 	    const enumRegion reg = ntohl(disc->region.region);
 	    u8 * p8 = disc->region.region_info;
-	    fprintf(f,"%*sRegion setting:    %x [%s] / %02x %02x %02x %02x  %02x %02x %02x %02x\n",
-			    indent,"", reg, GetRegionName(reg,"?"),
-			    p8[0], p8[1], p8[2], p8[3], p8[4], p8[5], p8[6], p8[7] );
+	    fprintf(f,"%*sRegion setting:    "
+		      "%x [%s] / %02x %02x %02x %02x  %02x %02x %02x %02x\n",
+			indent,"", reg, GetRegionName(reg,"?"),
+			p8[0], p8[1], p8[2], p8[3], p8[4], p8[5], p8[6], p8[7] );
+
+	    if ( disc && disc->main_part )
+		dump_sys_version(f,indent,ntoh64(disc->main_part->tmd->sys_version),19);
 	}
 
 	fprintf(f,"%*sPartitions:       %7u\n",indent,"",disc->n_part);
@@ -572,7 +618,11 @@ enumError Dump_ISO
 			indent,"", used_blocks, used_mib );
     }
     else
+    {
 	fprintf(f,"\n%*sDump of file %s\n",indent-2,"",sf->f.fname);
+	if ( show_mode & SHOW_D_ID )
+	    dump_id(f,indent,&disc->dhead.disc_id,disc->main_part,19);
+    }
 
 
     //----- partition tables & partitions
@@ -606,7 +656,7 @@ enumError Dump_ISO
 
     if ( show_mode & SHOW_USAGE )
     {
-	fprintf(f,"\n\n%*sISO Usage Map:\n\n",indent,"");
+	fprintf(f,"\n\n%*sSector Usage Map:\n\n",indent,"");
 	wd_filter_usage_table(disc,wdisc_usage_tab,0);
 	wd_print_usage_tab(f,indent+2,wdisc_usage_tab,disc->iso_size,false);
     }
@@ -675,7 +725,7 @@ enumError Dump_DOL
     ASSERT(sf);
     if (!f)
 	return ERR_OK;
-    indent = dump_header(f,indent,sf,0,real_path,0,0);
+    indent = dump_header(f,indent,sf,0,real_path,0);
 
     dol_header_t dol;
     enumError err = ReadSF(sf,0,&dol,sizeof(dol));
@@ -748,7 +798,7 @@ enumError Dump_CERT_BIN
     if (!f)
 	return ERR_OK;
 
-    indent = dump_header(f,indent,sf,0,real_path,0,0);
+    indent = dump_header(f,indent,sf,0,real_path,0);
 
     u8 * buf = malloc(sf->file_size);
     if (!buf)
@@ -916,7 +966,7 @@ enumError Dump_TIK_BIN
     wd_ticket_t * tik = (wd_ticket_t*)iobuf;
     if (!err)
 	memcpy(sf->f.id6,tik->title_id+4,4);
-    indent = dump_header(f,indent,sf,0,real_path,0,0);
+    indent = dump_header(f,indent,sf,0,real_path,0);
 
     if (!err)
     {
@@ -1025,7 +1075,7 @@ enumError Dump_TMD_BIN
     wd_tmd_t * tmd = (wd_tmd_t*)iobuf;
     if (!err)
 	memcpy(sf->f.id6,tmd->title_id+4,4);
-    indent = dump_header(f,indent,sf,0,real_path,0,0);
+    indent = dump_header(f,indent,sf,0,real_path,0);
 
     if (!err)
     {
@@ -1153,7 +1203,8 @@ enumError Dump_HEAD_BIN
     ASSERT(sf);
     if (!f)
 	return ERR_OK;
-    indent = dump_header(f,indent,sf,0,real_path,"File type:","Disc header");
+
+    indent = dump_header(f,indent,sf,0,real_path,0);
 
     wd_header_t head;
     enumError err = ReadSF(sf,0,&head,WBFS_INODE_INFO_OFF);
@@ -1192,7 +1243,7 @@ enumError Dump_BOOT_BIN
     ASSERT(sf);
     if (!f)
 	return ERR_OK;
-    indent = dump_header(f,indent,sf,0,real_path,0,0);
+    indent = dump_header(f,indent,sf,0,real_path,0);
 
     wd_boot_t wb;
     enumError err = ReadSF(sf,0,&wb,sizeof(wb));
@@ -1254,7 +1305,7 @@ enumError Dump_FST_BIN
 
     if ( show_mode & SHOW_INTRO )
     {
-	dump_header(f,indent,sf,0,real_path,0,0);
+	dump_header(f,indent,sf,0,real_path,0);
 	indent += 2;
     }
 

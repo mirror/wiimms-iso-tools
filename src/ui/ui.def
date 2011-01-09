@@ -426,7 +426,7 @@
 
 #:def_opt( "REGION", "region", "CP", \
 	"region", \
-	"This $patching$ option defines the region of the disc.  The region is" \
+	"This $patching$ option defines the region of the disc. The region is" \
 	" one of @JAPAN, USA, EUROPE, KOREA, FILE@ or @AUTO@ (default). The" \
 	" case of the keywords is ignored. Unsigned numbers are also accepted." )
 
@@ -695,10 +695,11 @@
 	"list", \
 	"This option allows fine control over the things that are to be" \
 	" printed. The parameter is a comma separated list of the following" \
-	" keywords, case is ignored:  @NONE, INTRO, P-TAB, P-INFO, P-MAP," \
-	" D-MAP, TICKET, TMD, USAGE, PATCH, RELOCATE, FILES, OFFSET, SIZE," \
-	" PATH@ and @ALL@. There are some combined keys: @PART :=" \
-	" P-INFO,P-MAP,TICKET,TMD@, @MAP := P-MAP,D-MAP@.\n" \
+	" keywords, case is ignored:  @NONE, INTRO, D-ID, P-ID, P-TAB, P-INFO," \
+	" P-MAP, D-MAP, TICKET, TMD, USAGE, PATCH, RELOCATE, FILES, OFFSET," \
+	" SIZE, PATH@ and @ALL@. There are some combined keys: @ID :=" \
+	" D-ID,P-ID@, @PART := P-INFO,P-ID,P-MAP,TICKET,TMD@, @MAP :=" \
+	" P-MAP,D-MAP@.\n" \
 	"  All keywords can be prefixed by '+' to enable that option, by a '-'" \
 	" to disable it or by a '=' to enable that option and disable all" \
 	" others.\n" \
@@ -2194,6 +2195,10 @@
 	"", \
 	"" )
 
+#:def_cmd_opt( "DIFF", "SECTIONS", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "DIFF", "DEST", \
 	"", \
 	"" )
@@ -2343,6 +2348,10 @@
 	"" )
 
 #:def_cmd_opt( "FDIFF", "LONG", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "FDIFF", "SECTIONS", \
 	"", \
 	"" )
 
@@ -2506,6 +2515,10 @@
 	"" )
 
 #:def_cmd_opt( "EXTRACT", "PROGRESS", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "EXTRACT", "SECTIONS", \
 	"", \
 	"" )
 
@@ -2697,6 +2710,10 @@
 	"" )
 
 #:def_cmd_opt( "COPY", "PROGRESS", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "COPY", "SECTIONS", \
 	"", \
 	"" )
 
@@ -2929,6 +2946,10 @@
 	"" )
 
 #:def_cmd_opt( "CONVERT", "PROGRESS", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "CONVERT", "SECTIONS", \
 	"", \
 	"" )
 
@@ -4057,7 +4078,7 @@
 
 #:def_opt( "REGION", "region", "CP", \
 	"region", \
-	"This $patching$ option defines the region of the disc.  The region is" \
+	"This $patching$ option defines the region of the disc. The region is" \
 	" one of @JAPAN, USA, EUROPE, KOREA, FILE@ or @AUTO@ (default). The" \
 	" case of the keywords is ignored. Unsigned numbers are also accepted." )
 

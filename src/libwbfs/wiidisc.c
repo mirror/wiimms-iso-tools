@@ -2016,6 +2016,7 @@ enumError wd_calc_fst_statistics
     u32  file_count	= 0;
     bool have_overlays	= false;
 
+    disc->data_part = disc->update_part = disc->channel_part = disc->main_part = 0;
     wd_part_t *part, *part_end = disc->part + disc->n_part;
     for ( part = disc->part; part < part_end; part++ )
     {
@@ -2035,7 +2036,42 @@ enumError wd_calc_fst_statistics
 	    if ( part->is_overlay )
 		have_overlays = true;
 	}
+
+	if (part->is_ok)
+	{
+	    switch (part->part_type)
+	    {
+		case WD_PART_DATA:
+		    if (!disc->data_part)
+			disc->data_part = part;
+		    break;
+
+		case WD_PART_UPDATE:
+		    if (!disc->update_part)
+			disc->update_part = part;
+		    break;
+
+		case WD_PART_CHANNEL:
+		    if (!disc->channel_part)
+			disc->channel_part = part;
+		    break;
+	    }
+	    if (!disc->main_part)
+		disc->main_part = part;
+	}
     }
+
+    if (disc->data_part)
+	disc->main_part = disc->data_part;
+    else if (disc->update_part)
+	disc->main_part = disc->update_part;
+    else if (disc->channel_part)
+	disc->main_part = disc->channel_part;
+    PRINT("*_PART= %d %d %d %d\n",
+	disc->data_part	   ? disc->data_part    - disc->part : -1,
+	disc->update_part  ? disc->update_part  - disc->part : -1,
+	disc->channel_part ? disc->channel_part - disc->part : -1,
+	disc->main_part    ? disc->main_part    - disc->part : -1 );
 
     disc->invalid_part	 = invalid;
     disc->fst_n		 = n;
