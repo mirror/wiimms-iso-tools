@@ -228,7 +228,7 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 
     {	OPT_REGION, 0, "region",
 	"region",
-	"This patching option defines the region of the disc.  The region is"
+	"This patching option defines the region of the disc. The region is"
 	" one of JAPAN, USA, EUROPE, KOREA, FILE or AUTO (default). The case"
 	" of the keywords is ignored. Unsigned numbers are also accepted."
     },

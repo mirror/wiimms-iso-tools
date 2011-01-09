@@ -28,7 +28,7 @@ WWT_LONG		= Wiimms WBFS Tool
 WDF_SHORT		= wdf
 WDF_LONG		= Wiimms WDF Tool
 
-VERSION_NUM		= 1.24a
+VERSION_NUM		= 1.25a
 BETA_VERSION		= 0
 			# 0:off  -1:"beta"  >0:"beta#"
 
@@ -178,7 +178,7 @@ DIR_LIST	+= $(SCRIPTS) $(TEMPLATES) $(MODULES)
 VPATH		+= src src/libwbfs src/lzma src/crypto $(UI) work
 DIR_LIST	+= src src/libwbfs src/lzma src/crypto $(UI) work
 
-DEFINES1	=  -DLARGE_FILES -D_FILE_OFFSET_BITS=64
+DEFINES1	+= -DLARGE_FILES -D_FILE_OFFSET_BITS=64
 DEFINES1	+= -DWIT		# enable WIT specific modifications in libwbfs
 DEFINES1	+= -DDEBUG_ASSERT	# enable ASSERTions in release version too
 DEFINES1	+= -DEXTENDED_ERRORS=1	# enable extended error messages (function,line,file)
@@ -187,7 +187,7 @@ DEFINES1	+= -D_LZMA_PROB32=1	# LZMA option
 #DEFINES1	+= -DNO_BZIP2=1
 DEFINES		=  $(strip $(DEFINES1) $(MODE) $(XDEF))
 
-CFLAGS		=  -fomit-frame-pointer -fno-strict-aliasing -funroll-loops
+CFLAGS		+= -fomit-frame-pointer -fno-strict-aliasing -funroll-loops
 CFLAGS		+= -Wall -Wno-parentheses -Wno-unused-function
 CFLAGS		+= -O3 -Isrc/libwbfs -Isrc/lzma -Isrc -I$(UI) -I. -Iwork
 CFLAGS		+= $(XFLAGS)
@@ -199,7 +199,10 @@ LDFLAGS		+= -static-libgcc
 #LDFLAGS	+= -static
 LDFLAGS		:= $(strip $(LDFLAGS))
 
-LIBS		+= -lbz2 $(XLIBS)
+ifndef NO_BZIP2
+  LIBS		+= -lbz2
+endif
+LIBS		+= $(XLIBS)
 
 DISTRIB_RM	= ./wit-v$(VERSION)-r
 DISTRIB_BASE	= wit-v$(VERSION)-r$(REVISION_NEXT)

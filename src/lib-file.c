@@ -1143,7 +1143,12 @@ static void ExtractSplitMap
 		if ( end > split_end )
 		     end = split_end;
 		PRINT(">>> PREALLOC: fd=%u, %9llx .. %9llx\n",f2->fd,beg,end);
-		InsertMemMapTie(&f2->prealloc_map,beg,end-beg);
+		MemMapItem_t * item
+		    = InsertMemMapTie(&f2->prealloc_map,beg-f2->split_off,end-beg);
+		DASSERT(item);
+		snprintf(item->info,sizeof(item->info),
+			"v-off=%llx, %s\n",
+			(u64)beg, wd_print_size(0,0,end-beg,false,WD_SIZE_AUTO) );
 	    }
 	}
     }
@@ -1752,8 +1757,9 @@ static void PreallocHelper ( File_t *f )
 	{
 	    if ( logging > 0 )
 	    {
-		printf("\nPreallocation table:\n");
+		printf("\n Preallocation table:\n");
 		PrintMemMap(&f->prealloc_map,stdout,3);
+		putchar('\n');
 	    }
 
 	    // prealloc largest block first

@@ -67,7 +67,7 @@ enumError cmd_mix();
 //
 ///////////////////////////////////////////////////////////////////////////////
 
-void help_exit ( bool xmode )
+static void help_exit ( bool xmode )
 {
     fputs( TITLE "\n", stdout );
 
@@ -85,34 +85,43 @@ void help_exit ( bool xmode )
 
 ///////////////////////////////////////////////////////////////////////////////
 
-void version_exit()
+static void print_version_section ( bool print_header )
 {
-    if (print_sections)
+    if (print_header)
 	fputs("[version]\n",stdout);
 
-    if ( print_sections || long_count )
-    {
-	const u32 base = 0x04030201;
-	const u8 * e = (u8*)&base;
-	const u32 endian = be32(e);
+    const u32 base = 0x04030201;
+    const u8 * e = (u8*)&base;
+    const u32 endian = be32(e);
 
-	printf(	"prog=" WIT_SHORT "\n"
-		"name=\"" WIT_LONG "\"\n"
-		"version=" VERSION "\n"
-		"beta=%d\n"
-		"revision=" REVISION  "\n"
-		"system=" SYSTEM "\n"
-		"endian=%u%u%u%u %s\n"
-		"author=\"" AUTHOR "\"\n"
-		"date=" DATE "\n"
-		"url=" URI_HOME WIT_SHORT "\n"
-		, BETA_VERSION
-		, e[0], e[1], e[2], e[3]
-		, endian == 0x01020304 ? "little"
+    printf( "prog=" WIT_SHORT "\n"
+	    "name=\"" WIT_LONG "\"\n"
+	    "version=" VERSION "\n"
+	    "beta=%d\n"
+	    "revision=" REVISION  "\n"
+	    "system=" SYSTEM "\n"
+	    "endian=%u%u%u%u %s\n"
+	    "author=\"" AUTHOR "\"\n"
+	    "date=" DATE "\n"
+	    "url=" URI_HOME WIT_SHORT "\n"
+	    "\n"
+	    , BETA_VERSION
+	    , e[0], e[1], e[2], e[3]
+	    , endian == 0x01020304 ? "little"
 		: endian == 0x04030201 ? "big" : "mixed" );
-    }
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+static void version_exit()
+{
+    if (print_sections)
+	print_version_section(true);
+    else if (long_count)
+	print_version_section(false);
     else
 	fputs( TITLE "\n", stdout );
+
     exit(ERR_OK);
 }
 
@@ -124,7 +133,9 @@ void print_title ( FILE * f )
     if (!done)
     {
 	done = true;
-	if ( verbose >= 1 && f == stdout )
+	if (print_sections)
+	    print_version_section(true);
+	else if ( verbose >= 1 && f == stdout )
 	    fprintf(f,"\n%s\n\n",TITLE);
 	else
 	    fprintf(f,"*****  %s  *****\n",TITLE);
@@ -135,7 +146,7 @@ void print_title ( FILE * f )
 
 static const CommandTab_t * current_command = 0;
 
-void hint_exit ( enumError stat )
+static void hint_exit ( enumError stat )
 {
     if ( current_command )
 	fprintf(stderr,
@@ -1001,7 +1012,6 @@ enumError cmd_list ( int long_level )
     it.long_count	= long_count;
     it.real_filename	= print_sections > 0;
     it.wlist		= &wlist;
-    it.progress_enabled	= OptionUsed[OPT_PROGRESS] != 0;
     it.progress_t_file	= "disc";
     it.progress_t_files	= "discs";
 
@@ -1265,7 +1275,7 @@ enumError cmd_diff ( bool file_level )
 	FilePattern_t * pat = file_pattern + PAT_DEFAULT;
 	pat->rules.used = 0;
 	AddFilePattern("+",PAT_DEFAULT);
-	PRINT("FIRCE FILE LEVEL\n");
+	PRINT("FIRST FILE LEVEL\n");
 	RegisterOptionByIndex(&InfoUI,OPT_FILES,1,false);
     }
     else if (OptionUsed[OPT_FILES])
@@ -1471,45 +1481,72 @@ enumError exec_copy ( SuperFile_t * fi, Iterator_t * it )
 	    return ERR_OK;
     }
 
-    fo.indent		= 5;
-    fo.show_progress	= verbose > 1 || progress;
-    fo.show_summary	= verbose > 0 || progress;
-    fo.show_msec	= verbose > 2;
-
     const bool raw_mode = part_selector.whole_disc || !fi->f.id6[0];
     fo.raw_mode = raw_mode;
 
-    if ( testmode ||  verbose >= 0 )
+    ccp job_mode = raw_mode
+			? "RAW"
+			: it->diff_it && OptionUsed[OPT_FILES]
+				? "FILES"
+				: "SCRUB";
+
+    if ( testmode || verbose >= 0 )
     {
-	char count_buf[30];
-	snprintf(count_buf,sizeof(count_buf), "%u", it->source_list.used );
-	snprintf(count_buf,sizeof(count_buf), "%*u/%u",
-		(int)strlen(count_buf), it->source_index+1, it->source_list.used );
+	ccp job = it->diff_it ? "DIFF" : convert_it ? "CONVERT" : "COPY";
 
-	char split_buf[10];
-	if ( fi->f.split_used > 1 )
-	    snprintf(split_buf,sizeof(split_buf),"*%u",fi->f.split_used);
+	if (print_sections)
+	{
+	    printf(
+		"[%s]\n"
+		"test-mode=%d\n"
+		"data-mode=%s\n"
+		"job-counter=%d\n"
+		"job-total=%d\n"
+		"source-path=%s\n"
+		"source-real-path=%s\n"
+		"source-type=%s\n"
+		"source-n-split=%d\n"
+		"dest-path=%s\n"
+		"dest-type=%s\n"
+		"\n"
+		,job
+		,testmode>0
+		,job_mode
+		,it->source_index+1
+		,it->source_list.used
+		,fi->f.fname
+		,it->real_path
+		,oft_info[fi->iod.oft].name
+		,fi->f.split_used
+		,fo.f.fname
+		,oft_info[oft].name
+		);
+	}
 	else
-	    *split_buf = 0;
+	{
+	    char count_buf[30];
+	    snprintf(count_buf,sizeof(count_buf), "%u", it->source_list.used );
+	    snprintf(count_buf,sizeof(count_buf), "%*u/%u",
+		    (int)strlen(count_buf), it->source_index+1, it->source_list.used );
 
-	printf( "* %s%s/%s %s %s%s:%s -> %s:%s\n",
-		testmode ? "WOULD " : "",
-		it->diff_it ? "DIFF" : convert_it ? "CONVERT" : "COPY",
-		it->diff_it
-			? ( raw_mode ? "RAW" : OptionUsed[OPT_FILES]
-				? "FILES" : "SCRUB" )
-			: ( raw_mode ? "RAW" : "SCRUB" ),
-		count_buf,
+	    char split_buf[10];
+	    if ( fi->f.split_used > 1 )
+		snprintf(split_buf,sizeof(split_buf),"*%u",fi->f.split_used);
+	    else
+		*split_buf = 0;
+
+	    printf( "* %s%s/%s %s %s%s:%s -> %s:%s\n",
+		testmode ? "WOULD " : "", job, job_mode, count_buf,
 		oft_info[fi->iod.oft].name, split_buf, fi->f.fname,
 		oft_info[oft].name, fo.f.fname );
+	}
+	fflush(0);
 
 	if (testmode)
 	{
 	    ResetSF(&fo,0);
 	    return ERR_OK;
 	}
-	
-	fflush(0);
     }
 
 
@@ -1534,9 +1571,31 @@ enumError exec_copy ( SuperFile_t * fi, Iterator_t * it )
 	    it->diff_count++;
 	    err = ERR_OK;
 	    if ( verbose >= 0 )
-		printf( "! ISOs differ: %s:%s : %s:%s\n",
+	    {
+		if (print_sections)
+		printf(
+		    "[differ]\n"
+		    "data-mode=%s\n"
+		    "job-counter=%d\n"
+		    "job-total=%d\n"
+		    "source-path=%s\n"
+		    "source-type=%s\n"
+		    "dest-path=%s\n"
+		    "dest-type=%s\n"
+		    "\n"
+		    ,job_mode
+		    ,it->source_index+1
+		    ,it->source_list.used
+		    ,fi->f.fname
+		    ,oft_info[fi->iod.oft].name
+		    ,fo.f.fname
+		    ,oft_info[oft].name
+		    );
+		else
+		    printf( "! ISOs differ: %s:%s : %s:%s\n",
 			    oft_info[fi->iod.oft].name, fi->f.fname,
 			    oft_info[fo.iod.oft].name, fo.f.fname );
+	    }
 	}
 	it->done_count++;
 
@@ -1605,8 +1664,8 @@ enumError cmd_copy()
     it.act_gc		= ACT_ALLOW;
     it.act_fst		= allow_fst ? ACT_EXPAND : ACT_IGNORE;
     it.overwrite	= OptionUsed[OPT_OVERWRITE] ? 1 : 0;
-    it.update		= OptionUsed[OPT_UPDATE] ? 1 : 0;
-    it.remove_source	= OptionUsed[OPT_REMOVE] ? 1 : 0;
+    it.update		= OptionUsed[OPT_UPDATE]    ? 1 : 0;
+    it.remove_source	= OptionUsed[OPT_REMOVE]    ? 1 : 0;
 
     if ( testmode > 1 )
     {
@@ -2026,11 +2085,6 @@ enumError exec_verify ( SuperFile_t * fi, Iterator_t * it )
 	if (testmode)
 	    return ERR_OK;
     }
-
-    fi->indent		= 5;
-    fi->show_progress	= verbose > 1 || progress;
-    fi->show_summary	= verbose > 0 || progress;
-    fi->show_msec	= verbose > 2;
 
     Verify_t ver;
     InitializeVerify(&ver,fi);

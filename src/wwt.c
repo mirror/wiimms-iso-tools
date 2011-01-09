@@ -62,7 +62,7 @@ u32  opt_wss		= 0;
 //
 ///////////////////////////////////////////////////////////////////////////////
 
-void help_exit( bool xmode )
+static void help_exit( bool xmode )
 {
     fputs( TITLE "\n", stdout );
 
@@ -80,34 +80,43 @@ void help_exit( bool xmode )
 
 ///////////////////////////////////////////////////////////////////////////////
 
-void version_exit()
+static void print_version_section ( bool print_header )
 {
-    if (print_sections)
+    if (print_header)
 	fputs("[version]\n",stdout);
 
-    if ( print_sections || long_count )
-    {
-	const u32 base = 0x04030201;
-	const u8 * e = (u8*)&base;
-	const u32 endian = be32(e);
+    const u32 base = 0x04030201;
+    const u8 * e = (u8*)&base;
+    const u32 endian = be32(e);
 
-	printf(	"prog=" WWT_SHORT "\n"
-		"name=\"" WWT_LONG "\"\n"
-		"version=" VERSION "\n"
-		"beta=%d\n"
-		"revision=" REVISION  "\n"
-		"system=" SYSTEM "\n"
-		"endian=%u%u%u%u %s\n"
-		"author=\"" AUTHOR "\"\n"
-		"date=" DATE "\n"
-		"url=" URI_HOME WWT_SHORT "\n"
-		, BETA_VERSION
-		, e[0], e[1], e[2], e[3]
-		, endian == 0x01020304 ? "little"
-		: endian == 0x04030201 ? "big" : "mixed" );
-    }
+    printf( "prog=" WWT_SHORT "\n"
+	    "name=\"" WWT_LONG "\"\n"
+	    "version=" VERSION "\n"
+	    "beta=%d\n"
+	    "revision=" REVISION  "\n"
+	    "system=" SYSTEM "\n"
+	    "endian=%u%u%u%u %s\n"
+	    "author=\"" AUTHOR "\"\n"
+	    "date=" DATE "\n"
+	    "url=" URI_HOME WWT_SHORT "\n"
+	    "\n"
+	    , BETA_VERSION
+	    , e[0], e[1], e[2], e[3]
+	    , endian == 0x01020304 ? "little"
+	    : endian == 0x04030201 ? "big" : "mixed" );
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+static void version_exit()
+{
+    if (print_sections)
+	print_version_section(true);
+    else if (long_count)
+	print_version_section(false);
     else
 	fputs( TITLE "\n", stdout );
+
     exit(ERR_OK);
 }
 
@@ -119,7 +128,9 @@ void print_title ( FILE * f )
     if (!done)
     {
 	done = true;
-	if ( verbose >= 1 && f == stdout )
+	if (print_sections)
+	    print_version_section(true);
+	else if ( verbose >= 1 && f == stdout )
 	    fprintf(f,"\n%s\n\n",TITLE);
 	else
 	    fprintf(f,"*****  %s  *****\n",TITLE);
@@ -130,7 +141,7 @@ void print_title ( FILE * f )
 
 static const CommandTab_t * current_command = 0;
 
-void hint_exit ( enumError stat )
+static void hint_exit ( enumError stat )
 {
     if ( current_command )
 	fprintf(stderr,
@@ -931,6 +942,9 @@ enumError cmd_format()
 		ResetFile(&f,0);
 	    }
 	}
+
+	if ( !hss && ( S_ISBLK(st.st_mode) || S_ISCHR(st.st_mode) ))
+	    hss = st.st_blksize;
 
 	if ( hss < HD_SECTOR_SIZE )
 	    hss = HD_SECTOR_SIZE;
@@ -1751,10 +1765,6 @@ enumError exec_add ( SuperFile_t * sf, Iterator_t * it )
 			sf->f.id6, oft_info[sf->iod.oft].name, sf->f.fname );
 	fflush(stdout);
 
-	sf->indent		= 5;
-	sf->show_progress	= verbose > 1 || progress > 0;
-	sf->show_summary	= verbose > 0 || progress > 0;
-	sf->show_msec		= verbose > 2;
 	sf->f.read_behind_eof	= verbose > 1 ? 1 : 2;
 
 	enumError err = AddWDisc(it->wbfs,sf,&part_selector);
@@ -2143,10 +2153,6 @@ enumError cmd_extract()
 			{
 			    fo.src		= wbfs.sf;
 			    fo.enable_fast	= OptionUsed[OPT_FAST] != 0;
-			    fo.indent		= 5;
-			    fo.show_progress	= verbose > 1 || progress > 0;
-			    fo.show_summary	= verbose > 0 || progress > 0;
-			    fo.show_msec	= verbose > 2;
 
 			    enumError err = CopyImage(wbfs.sf,&fo,oft,overwrite,false,false);
 			    if (!err)
@@ -3023,7 +3029,6 @@ enumError CheckOptions ( int argc, char ** argv, bool is_env )
 	    break;
 
 	case GO_SIZE:
-	    BINGO;
 	    if (ScanSizeOptU64(&opt_size,optarg,GiB,0,
 				"size",MIN_WBFS_SIZE,0,0,0,true))
 		err++;

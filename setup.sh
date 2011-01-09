@@ -18,6 +18,18 @@ revision_next=$revision_num
 
 tim=($(date '+%s %Y-%m-%d %T'))
 
+if [[ $M32 = 1 ]]
+then
+    force_m32=1
+    cflags="-m32"
+    defines=
+    #defines="-DHAVE_FALLOCATE=1"
+else
+    force_m32=0
+    cflags=
+    defines=
+fi
+
 cat <<- ---EOT--- >Makefile.setup
 	REVISION	:= $revision
 	REVISION_NUM	:= $revision_num
@@ -25,8 +37,13 @@ cat <<- ---EOT--- >Makefile.setup
 	BINTIME		:= ${tim[0]}
 	DATE		:= ${tim[1]}
 	TIME		:= ${tim[2]}
+
+	FORCE_M32	:= $force_m32
+	CFLAGS		:= $cflags
+	DEFINES1	:= $defines
+
 	---EOT---
 
-gcc system.c -o system.tmp && ./system.tmp >>Makefile.setup
+gcc $cflags system.c -o system.tmp && ./system.tmp >>Makefile.setup
 rm -f system.tmp
 

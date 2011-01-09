@@ -886,27 +886,33 @@ typedef enum ShowMode
 	SHOW__NONE	= 0,
 
 	SHOW_INTRO	= 0x00000001, // introduction
-	SHOW_P_TAB	= 0x00000002, // partition table
-	SHOW_P_INFO	= 0x00000004, // partition info
-	SHOW_P_MAP	= 0x00000008, // memory map of partitions
-	SHOW_D_MAP	= 0x00000010, // memory map of discs
-	SHOW_CERT	= 0x00000020, // certificates info
-	SHOW_TICKET	= 0x00000040, // ticket info
-	SHOW_TMD	= 0x00000080, // tmd info
-	SHOW_USAGE	= 0x00000100, // usage table
-	SHOW_FILES	= 0x00000200, // file list
-	SHOW_PATCH	= 0x00000400, // patching table
-	SHOW_RELOCATE	= 0x00000800, // relocation table
-	SHOW_PATH	= 0x00001000, // full path
+	SHOW_D_ID	= 0x00000002, // disc ID
+	SHOW_P_ID	= 0x00000004, // partition IDs
+	SHOW_P_TAB	= 0x00000008, // partition table
+	SHOW_P_INFO	= 0x00000010, // partition info
+	SHOW_P_MAP	= 0x00000020, // memory map of partitions
+	SHOW_D_MAP	= 0x00000040, // memory map of discs
+	SHOW_CERT	= 0x00000080, // certificates info
+	SHOW_TICKET	= 0x00000100, // ticket info
+	SHOW_TMD	= 0x00000200, // tmd info
+	SHOW_USAGE	= 0x00000400, // usage table
+	SHOW_FILES	= 0x00000800, // file list
+	SHOW_PATCH	= 0x00001000, // patching table
+	SHOW_RELOCATE	= 0x00002000, // relocation table
+	SHOW_PATH	= 0x00004000, // full path
 
-	SHOW_OFFSET	= 0x00002000, // show offsets
-	SHOW_SIZE	= 0x00004000, // show size
+	SHOW_OFFSET	= 0x00008000, // show offsets
+	SHOW_SIZE	= 0x00010000, // show size
 	
-	SHOW__ALL	= 0x00007fff,
+	SHOW__ALL	= 0x0001ffff,
 
 	//----- combinations
 
+	SHOW__ID	= SHOW_D_ID
+			| SHOW_P_ID,
+
 	SHOW__PART	= SHOW_P_INFO
+			| SHOW_P_ID
 			| SHOW_P_MAP
 			| SHOW_CERT
 			| SHOW_TICKET
@@ -917,11 +923,11 @@ typedef enum ShowMode
 
 	//----- flags
 
-	SHOW_F_DEC1	= 0x00010000, // prefer DEC, only one of DEC1,HEX1 is set
-	SHOW_F_HEX1	= 0x00020000, // prefer HEX, only one of DEC1,HEX1 is set
-	SHOW_F_DEC	= 0x00040000, // prefer DEC
-	SHOW_F_HEX	= 0x00080000, // prefer HEX,
-	SHOW_F__NUM	= 0x000f0000,
+	SHOW_F_DEC1	= 0x00100000, // prefer DEC, only one of DEC1,HEX1 is set
+	SHOW_F_HEX1	= 0x00200000, // prefer HEX, only one of DEC1,HEX1 is set
+	SHOW_F_DEC	= 0x00400000, // prefer DEC
+	SHOW_F_HEX	= 0x00800000, // prefer HEX,
+	SHOW_F__NUM	= 0x00f00000,
 
 	SHOW_F_HEAD	= 0x00100000, // print header lines
 	SHOW_F_PRIMARY	= 0x00200000, // print primary (unpatched) disc

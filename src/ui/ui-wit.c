@@ -227,7 +227,7 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 
     {	OPT_REGION, 0, "region",
 	"region",
-	"This patching option defines the region of the disc.  The region is"
+	"This patching option defines the region of the disc. The region is"
 	" one of JAPAN, USA, EUROPE, KOREA, FILE or AUTO (default). The case"
 	" of the keywords is ignored. Unsigned numbers are also accepted."
     },
@@ -568,10 +568,10 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 	"list",
 	"This option allows fine control over the things that are to be"
 	" printed. The parameter is a comma separated list of the following"
-	" keywords, case is ignored:  NONE, INTRO, P-TAB, P-INFO, P-MAP,"
-	" D-MAP, TICKET, TMD, USAGE, PATCH, RELOCATE, FILES, OFFSET, SIZE,"
-	" PATH and ALL. There are some combined keys: PART :="
-	" P-INFO,P-MAP,TICKET,TMD, MAP := P-MAP,D-MAP.\n"
+	" keywords, case is ignored:  NONE, INTRO, D-ID, P-ID, P-TAB, P-INFO,"
+	" P-MAP, D-MAP, TICKET, TMD, USAGE, PATCH, RELOCATE, FILES, OFFSET,"
+	" SIZE, PATH and ALL. There are some combined keys: ID := D-ID,P-ID,"
+	" PART := P-INFO,P-ID,P-MAP,TICKET,TMD, MAP := P-MAP,D-MAP.\n"
 	"  All keywords can be prefixed by '+' to enable that option, by a '-'"
 	" to disable it or by a '=' to enable that option and disable all"
 	" others.\n"
@@ -1416,35 +1416,35 @@ static u8 option_allowed_cmd_DIFF[75] = // cmd #23
 {
     0,1,1,1,1, 1,1,1,1,1,  1,1,0,1,1, 1,1,1,1,1,  0,0,0,0,0, 0,0,0,0,0,
     0,0,0,0,0, 0,1,1,0,0,  0,0,0,0,0, 0,0,0,0,0,  0,0,0,1,1, 1,1,1,1,1,
-    0,0,0,0,0, 1,0,0,0,0,  0,0,0,0,0
+    0,0,0,0,0, 1,0,0,0,0,  0,0,1,0,0
 };
 
 static u8 option_allowed_cmd_FDIFF[75] = // cmd #24
 {
     0,1,1,1,1, 1,1,1,1,1,  1,1,0,1,1, 1,1,1,1,1,  0,0,0,0,0, 0,0,0,0,0,
     0,0,0,0,0, 0,1,1,0,0,  0,0,0,0,0, 0,0,0,0,0,  0,0,0,1,1, 1,1,1,1,1,
-    0,0,0,0,0, 1,0,0,0,0,  0,0,0,0,0
+    0,0,0,0,0, 1,0,0,0,0,  0,0,1,0,0
 };
 
 static u8 option_allowed_cmd_EXTRACT[75] = // cmd #25
 {
     0,1,1,1,1, 1,1,1,1,1,  1,1,0,1,1, 1,1,1,1,1,  1,1,1,1,1, 1,1,1,1,0,
     1,1,1,1,1, 1,1,1,0,0,  0,1,0,0,0, 0,0,0,1,0,  1,0,0,0,0, 0,0,0,0,1,
-    0,0,0,0,0, 1,0,0,0,0,  0,0,0,1,0
+    0,0,0,0,0, 1,0,0,0,0,  0,0,1,1,0
 };
 
 static u8 option_allowed_cmd_COPY[75] = // cmd #26
 {
     0,1,1,1,1, 1,1,1,1,1,  1,1,0,1,1, 1,1,1,1,1,  1,1,1,1,1, 1,1,1,1,0,
     1,1,1,1,1, 1,1,1,1,1,  1,1,1,1,1, 1,1,1,1,1,  1,1,1,1,1, 1,1,1,1,1,
-    0,0,0,0,0, 1,0,0,0,0,  0,0,0,1,0
+    0,0,0,0,0, 1,0,0,0,0,  0,0,1,1,0
 };
 
 static u8 option_allowed_cmd_CONVERT[75] = // cmd #27
 {
     0,1,1,1,1, 0,1,1,1,1,  1,1,0,1,1, 1,1,1,0,0,  1,1,1,1,1, 1,1,1,1,0,
     1,1,1,1,1, 1,0,0,1,1,  1,1,1,1,1, 1,1,1,1,0,  0,0,0,1,1, 1,1,1,0,0,
-    0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0
+    0,0,0,0,0, 0,0,0,0,0,  0,0,1,0,0
 };
 
 static u8 option_allowed_cmd_EDIT[75] = // cmd #28
@@ -2144,6 +2144,7 @@ static const InfoOption_t * option_tab_cmd_DIFF[] =
 	OptionInfo + OPT_LOGGING,
 	OptionInfo + OPT_PROGRESS,
 	OptionInfo + OPT_LONG,
+	OptionInfo + OPT_SECTIONS,
 
 	OptionInfo + OPT_NONE, // separator
 
@@ -2206,6 +2207,7 @@ static const InfoOption_t * option_tab_cmd_FDIFF[] =
 	OptionInfo + OPT_LOGGING,
 	OptionInfo + OPT_PROGRESS,
 	OptionInfo + OPT_LONG,
+	OptionInfo + OPT_SECTIONS,
 
 	OptionInfo + OPT_NONE, // separator
 
@@ -2270,6 +2272,7 @@ static const InfoOption_t * option_tab_cmd_EXTRACT[] =
 	&option_cmd_EXTRACT_LONG,
 	OptionInfo + OPT_LOGGING,
 	OptionInfo + OPT_PROGRESS,
+	OptionInfo + OPT_SECTIONS,
 
 	OptionInfo + OPT_NONE, // separator
 
@@ -2344,6 +2347,7 @@ static const InfoOption_t * option_tab_cmd_COPY[] =
 	&option_cmd_EXTRACT_LONG,
 	OptionInfo + OPT_LOGGING,
 	OptionInfo + OPT_PROGRESS,
+	OptionInfo + OPT_SECTIONS,
 
 	OptionInfo + OPT_NONE, // separator
 
@@ -2432,6 +2436,7 @@ static const InfoOption_t * option_tab_cmd_CONVERT[] =
 	OptionInfo + OPT_VERBOSE,
 	OptionInfo + OPT_LOGGING,
 	OptionInfo + OPT_PROGRESS,
+	OptionInfo + OPT_SECTIONS,
 
 	OptionInfo + OPT_NONE, // separator
 
@@ -3059,7 +3064,7 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	"wit DIFF [-s path]... [-r path]... [source]... [-d|-D] dest",
 	"DIFF compares ISO images in scrubbed or raw mode or on file level."
 	" DIFF works like COPY but comparing source and destination.",
-	38,
+	39,
 	option_tab_cmd_DIFF,
 	option_allowed_cmd_DIFF
     },
@@ -3073,7 +3078,7 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	"wit FDIFF [-s path]... [-r path]... [source]... [-d|-D] dest",
 	"FDIFF compares ISO images on file level. 'FDIFF' is a shortcut for"
 	" 'DIFF --files +'.",
-	38,
+	39,
 	option_tab_cmd_FDIFF,
 	option_allowed_cmd_FDIFF
     },
@@ -3086,7 +3091,7 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	"wit EXTRACT source dest\n"
 	"wit EXTRACT [-s path]... [-r path]... [source]... [-d|-D] dest",
 	"Extract all files from the source discs.",
-	47,
+	48,
 	option_tab_cmd_EXTRACT,
 	option_allowed_cmd_EXTRACT
     },
@@ -3100,7 +3105,7 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	"wit COPY [-s path]... [-r path]... [source]... [-d|-D] dest",
 	"Copy, scrub, convert, join, split, compose, extract, patch, encrypt"
 	" and decrypt Wii and GameCube disc images.",
-	65,
+	66,
 	option_tab_cmd_COPY,
 	option_allowed_cmd_COPY
     },
@@ -3120,7 +3125,7 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	" implemented as replacement of the SCRUB command of other tools. 'wit"
 	" CONVERT does more than only scrubbing and therefor it was renamed"
 	" from 'SCRUB' to 'CONVERT'.",
-	51,
+	52,
 	option_tab_cmd_CONVERT,
 	option_allowed_cmd_CONVERT
     },

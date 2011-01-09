@@ -220,19 +220,18 @@ enumError ResetSF ( SuperFile_t * sf, FileAttrib_t * set_time_ref )
     InitializeWH(&sf->wh);
     ResetCISO(&sf->ciso);
     sf->max_virt_off = 0;
-
-    // reset timer
-    sf->progress_trigger = sf->progress_trigger_init = 1;
-    sf->progress_start_time = GetTimerMSec();
-    sf->progress_last_view_sec = 0;
-    sf->progress_max_wd = 0;
- #if defined(DEBUG) || defined(TEST)
-    sf->show_msec = true;
- #else
-    sf->show_msec = false;
- #endif
-    
     sf->allow_fst = allow_fst;
+
+    // reset progress info
+    sf->indent			= 5;
+    sf->show_progress		= verbose > 1 || progress;
+    sf->show_summary		= verbose > 0 || progress;
+    sf->show_msec		= verbose > 2;
+    sf->progress_trigger	= 1;
+    sf->progress_trigger_init	= 1;
+    sf->progress_start_time	= GetTimerMSec();
+    sf->progress_last_view_sec	= 0;
+    sf->progress_max_wd		= 0;
 
     return err;
 }
@@ -717,7 +716,6 @@ void CloseDiscSF
     wd_close_disc(sf->disc1);
     sf->disc1 = sf->disc2 = 0;
     sf->discs_loaded = false;
-    sf->data_part = 0;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -777,22 +775,7 @@ wd_disc_t * OpenDiscSF
     //----- select partitions
 
     wd_select(disc,&part_selector);
-
-
-    //----- find data partition
-    
-    wd_part_t * part = wd_get_part_by_type(disc,WD_PART_DATA,0);
-    if ( part && !part->is_enabled )
-	part = 0;
-
-    int ip;
-    for ( ip = 0; ip < disc->n_part && !part; ip++ )
-    {
-	part = wd_get_part_by_index(disc,ip,0);
-	if (!part->is_enabled)
-	    part = 0;
-    }
-    sf->data_part = part;
+    wd_part_t * main_part = disc->main_part;
 
 
     //----- check for patching
@@ -813,14 +796,14 @@ wd_disc_t * OpenDiscSF
     }
     else
     {
-	if (part)
+	if (main_part)
 	{
 	    if (modify_id)
-		reloc |= wd_patch_part_id(part,modify_id,modify);
+		reloc |= wd_patch_part_id(main_part,modify_id,modify);
 	    if (modify_name)
-		reloc |= wd_patch_part_name(part,modify_name,modify);
+		reloc |= wd_patch_part_name(main_part,modify_name,modify);
 	    if (opt_ios_valid)
-		reloc |= wd_patch_part_system(part,opt_ios);
+		reloc |= wd_patch_part_system(main_part,opt_ios);
 	}
 	else if (modify & (WD_MODIFY_DISC|WD_MODIFY__AUTO) )
 	    reloc |= wd_patch_disc_header(disc,modify_id,modify_name);
@@ -841,6 +824,7 @@ wd_disc_t * OpenDiscSF
 	    && disc->disc_type != WD_DT_GAMECUBE
 	    && enc & (ENCODE_M_CRYPT|ENCODE_F_ENCRYPT) )
 	{
+	    int ip;
 	    for ( ip = 0; ip < disc->n_part; ip++ )
 		if ( wd_get_part_by_index(disc,ip,0)->is_encrypted != encrypt )
 		{
@@ -852,6 +836,7 @@ wd_disc_t * OpenDiscSF
 	if ( enc & ENCODE_SIGN )
 	{
 	    reloc = true;
+	    int ip;
 	    for ( ip = 0; ip < disc->n_part; ip++ )
 	    {
 		wd_part_t * part = wd_get_part_by_index(disc,ip,0);
@@ -868,12 +853,15 @@ wd_disc_t * OpenDiscSF
     //----- common key
 
     if ( (unsigned)opt_common_key < WD_CKEY__N )
+    {
+	int ip;
 	for ( ip = 0; ip < disc->n_part; ip++ )
 	{
 	    wd_part_t * part = wd_get_part_by_index(disc,ip,0);
 	    if ( part && part->is_valid && part->is_enabled )
 		reloc |= wd_patch_common_key(part,opt_common_key);
 	}
+    }
 
 
     //----- check file pattern
@@ -1819,18 +1807,46 @@ void PrintProgressSF ( u64 p_done, u64 p_total, void * param )
 	if ( !sf->progress_verb || !*sf->progress_verb )
 	    sf->progress_verb = "copied";
 
-	int wd;
-	if ( percent < 10 && view_sec < 10 )
-	    printf("%*s%3d%% %s in %s (%3.1f MiB/sec)  %n\r",
-		sf->indent,"", percent, sf->progress_verb, time1,
-		(double)total * 1000 / MiB / elapsed, &wd );
+	if (print_sections)
+	{
+	    printf(
+		"[progress]\n"
+		"verb=%s\n"
+		"percent=%d\n"
+		"elapsed-msec=%d\n"
+		"elapsed-text=%s\n"
+		"eta-trigger=%d\n"
+		"eta-msec=%d\n"
+		"eta-text=%s\n"
+		"mib-total=%llu\n"
+		"mib-per-sec=%3.1f\n"
+		"\n"
+		,sf->progress_verb
+		,percent
+		,elapsed
+		,time1
+		,percent >= 10 || view_sec >= 10
+		,eta
+		,time2
+		,(total+MiB/2)/MiB
+		,(double)total * 1000 / MiB / elapsed
+		);
+	}
 	else
-	    printf("%*s%3d%% %s in %s (%3.1f MiB/sec) -> ETA %s   %n\r",
-		sf->indent,"", percent, sf->progress_verb, time1,
-		(double)total * 1000 / MiB / elapsed, time2, &wd );
+	{
+	    int wd;
+	    if ( percent < 10 && view_sec < 10 )
+		printf("%*s%3d%% %s in %s (%3.1f MiB/sec)  %n\r",
+		    sf->indent,"", percent, sf->progress_verb, time1,
+		    (double)total * 1000 / MiB / elapsed, &wd );
+	    else
+		printf("%*s%3d%% %s in %s (%3.1f MiB/sec) -> ETA %s   %n\r",
+		    sf->indent,"", percent, sf->progress_verb, time1,
+		    (double)total * 1000 / MiB / elapsed, time2, &wd );
 
-	if ( sf->progress_max_wd < wd )
-	    sf->progress_max_wd = wd;
+	    if ( sf->progress_max_wd < wd )
+		sf->progress_max_wd = wd;
+	}
 	fflush(stdout);
     }
 }
@@ -1864,11 +1880,33 @@ void PrintSummarySF ( SuperFile_t * sf )
 			100.0 * (double)sf->f.max_off / sf->source_size );
 	}
 
-	if (total)
-	{
-	    if ( !sf->progress_verb || !*sf->progress_verb )
-		sf->progress_verb = "copied";
+	if ( !sf->progress_verb || !*sf->progress_verb )
+	    sf->progress_verb = "copied";
 
+	if (print_sections)
+	{
+	    printf(
+		"[progress:summary]\n"
+		"verb=%s\n"
+		"elapsed-msec=%d\n"
+		"elapsed-text=%s\n"
+		"mib-total=%llu\n"
+		"mib-per-sec=%3.1f\n"
+		,sf->progress_verb
+		,elapsed
+		,tim
+		,(total+MiB/2)/MiB
+		,(double)total * 1000 / MiB / elapsed
+		);
+
+	    if (*ratebuf)
+		printf("compression-percent=%4.2f\n",
+			100.0 * (double)sf->f.max_off / sf->source_size);
+	    
+	    putchar('\n');
+	}
+	else if (total)
+	{
 	    snprintf(buf,sizeof(buf),"%*s%4llu MiB %s in %s, %4.1f MiB/sec%s",
 		sf->indent,"", (total+MiB/2)/MiB, sf->progress_verb,
 		tim, (double)total * 1000 / MiB / elapsed, ratebuf );
@@ -1878,10 +1916,13 @@ void PrintSummarySF ( SuperFile_t * sf )
 		sf->indent,"", tim, ratebuf );
     }
 
-    if (sf->show_progress)
-	printf("%-*s\n",sf->progress_max_wd,buf);
-    else
-	printf("%s\n",buf);
+    if (!print_sections)
+    {
+	if (sf->show_progress)
+	    printf("%-*s\n",sf->progress_max_wd,buf);
+	else
+	    printf("%s\n",buf);
+    }
     fflush(stdout);
 }
 
@@ -2745,7 +2786,7 @@ enumError CopyImage
     if ( err || SIGINT_level > 1 )
 	goto abort;
 
-    err = RewriteModifiedSF(fi,fo,0);
+    err = RewriteModifiedSF(fi,fo,0,0);
     if ( err || SIGINT_level > 1 )
 	goto abort;
 
@@ -2829,11 +2870,6 @@ enumError ExtractImage
     wd_disc_t * disc = OpenDiscSF(fi,true,true);
     if (!disc)
 	return ERR_WDISC_NOT_FOUND;
-
-    fi->indent		= 5;
-    fi->show_progress	= verbose > 1 || progress;
-    fi->show_summary	= verbose > 0 || progress;
-    fi->show_msec	= verbose > 2;
 
     WiiFst_t fst;
     InitializeFST(&fst);
@@ -3855,6 +3891,7 @@ void InitializeIterator ( Iterator_t * it )
     memset(it,0,sizeof(*it));
     InitializeStringField(&it->source_list);
     it->show_mode = opt_show_mode;
+    it->progress_enabled = verbose > 1 || progress;
 }
 
 //-----------------------------------------------------------------------------
@@ -3876,33 +3913,54 @@ static void IteratorProgress ( Iterator_t * it, bool last_message )
 	if ( sec != it->progress_last_sec || last_message )
 	{
 	    it->progress_last_sec = sec;
-	    printf("  %u object%s scanned", it->num_of_scans,
-				it->num_of_scans == 1 ? "" : "s"  );
 
-	    ccp tie = ",", term = "";
-	    if ( it->num_of_dirs > 0 )
+	    if (!it->progress_t_file)
+		it->progress_t_file = "supported file";
+	    if (!it->progress_t_files)
+		it->progress_t_files = "supported files";
+
+	    if (print_sections)
 	    {
-		printf(", %u director%s", it->num_of_dirs,
-				it->num_of_dirs == 1 ? "y" : "ies" );
-		tie = " and";
-		term = " found";
+		printf(
+		    "[progress:scan%s]\n"
+		    "n-scanned=%d\n"
+		    "n-directories=%d\n"
+		    "n-found=%d\n"
+		    "found-name-1=%s\n"
+		    "found-name-2=%s\n"
+		    "\n"
+		    ,last_message ? ":term" : ""
+		    ,it->num_of_scans
+		    ,it->num_of_dirs
+		    ,it->num_of_files
+		    ,it->progress_t_file
+		    ,it->progress_t_files
+		    );
 	    }
-		
-	    if ( it->num_of_files > 0 )
+	    else
 	    {
-		if (!it->progress_t_file)
-		    it->progress_t_file = "supported file";
-		if (!it->progress_t_files)
-		    it->progress_t_files = "supported files";
+		printf("  %u object%s scanned", it->num_of_scans,
+				    it->num_of_scans == 1 ? "" : "s"  );
 
-		printf("%s %u %s", tie, it->num_of_files,
-				it->num_of_files == 1
-					? it->progress_t_file
-					: it->progress_t_files );
-		term = " found";
+		ccp tie = ",", term = "";
+		if ( it->num_of_dirs > 0 )
+		{
+		    printf(", %u director%s", it->num_of_dirs,
+				    it->num_of_dirs == 1 ? "y" : "ies" );
+		    tie = " and";
+		    term = " found";
+		}
+
+		if ( it->num_of_files > 0 )
+		{
+		    printf("%s %u %s", tie, it->num_of_files,
+				    it->num_of_files == 1
+					    ? it->progress_t_file
+					    : it->progress_t_files );
+		    term = " found";
+		}
+		printf("%s.   %c", term, last_message ? '\n' : '\r' );
 	    }
-
-	    printf("%s.   %c", term, last_message ? '\n' : '\r' );
 	    fflush(stdout);
 	}
     }

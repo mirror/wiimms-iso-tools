@@ -542,7 +542,16 @@ typedef struct wd_disc_t
 
     int			n_ptab;		// number of valid partition tables
     int			n_part;		// number of partitions
-    wd_part_t		* part;		// partition data
+    wd_part_t		* part;		// list of partitions (N='n_part')
+    wd_part_t		* data_part;	// NULL or pointer to first DATA partition
+    wd_part_t		* update_part;	// NULL or pointer to first UPDATE partition
+    wd_part_t		* channel_part;	// NULL or pointer to first CHANNEL partition
+    wd_part_t		* main_part;	// NULL or pointer to main partition
+					// This is the first of:
+					//   first DATA partition
+					//   first UPDATE partition
+					//   first CHANNEL partition
+					//   first partition at all
     u32			invalid_part;	// number of invalid partitions
     u32			fst_n;		// informative: number or elements in fst
     u32			fst_max_off4;	// informative: maximal offset4 value of all files
