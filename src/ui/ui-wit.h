@@ -113,11 +113,12 @@ typedef enum enumOptions
 	OPT_UNIT,
 	OPT_UNIQUE,
 	OPT_NO_HEADER,
+	OPT_OLD_STYLE,
 	OPT_SECTIONS,
 	OPT_SORT,
 	OPT_LIMIT,
 
-	OPT__N_SPECIFIC, // == 75 
+	OPT__N_SPECIFIC, // == 76 
 
 	//----- global options -----
 
@@ -139,7 +140,7 @@ typedef enum enumOptions
 	OPT_TEST,
 	OPT_HOOK,
 
-	OPT__N_TOTAL // == 92
+	OPT__N_TOTAL // == 93
 
 } enumOptions;
 
@@ -225,6 +226,7 @@ typedef enum enumOptions
 //	OB_UNIT			= 1llu << OPT_UNIT,
 //	OB_UNIQUE		= 1llu << OPT_UNIQUE,
 //	OB_NO_HEADER		= 1llu << OPT_NO_HEADER,
+//	OB_OLD_STYLE		= 1llu << OPT_OLD_STYLE,
 //	OB_SECTIONS		= 1llu << OPT_SECTIONS,
 //	OB_SORT			= 1llu << OPT_SORT,
 //	OB_LIMIT		= 1llu << OPT_LIMIT,
@@ -652,6 +654,7 @@ typedef enum enumGetOpt
 	GO_REALPATH,
 	GO_SHOW,
 	GO_UNIT,
+	GO_OLD_STYLE,
 	GO_SECTIONS,
 	GO_LIMIT,
 

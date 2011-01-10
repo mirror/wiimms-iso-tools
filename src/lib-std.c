@@ -84,6 +84,7 @@ int		testmode		= 0;
 ccp		opt_dest		= 0;
 bool		opt_mkdir		= false;
 int		opt_limit		= -1;
+int		print_old_style		= 0;
 int		print_sections		= 0;
 int		long_count		= 0;
 int		ignore_count		= 0;

@@ -2,7 +2,9 @@ wit v@@VERSION@@ r@@REV-NEXT@@ - @@@@-@@-@@
 
  - Bug fix for "wwt init": Auto hd sector size (hss) detection was wrong and
    returns always the value 4096.
- - "wwt FIND2 supports option --sections.
+ - "wwt FIND" supports option --sections and --old-style. The later one will
+   ensure that the GUIs can read and scan the old style because I will change
+   the layout completly in one of the next releases.
 
 
 Known bugs:

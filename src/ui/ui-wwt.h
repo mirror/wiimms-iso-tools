@@ -122,11 +122,12 @@ typedef enum enumOptions
 	OPT_MIXED,
 	OPT_UNIQUE,
 	OPT_NO_HEADER,
+	OPT_OLD_STYLE,
 	OPT_SECTIONS,
 	OPT_SORT,
 	OPT_LIMIT,
 
-	OPT__N_SPECIFIC, // == 84 
+	OPT__N_SPECIFIC, // == 85 
 
 	//----- global options -----
 
@@ -147,7 +148,7 @@ typedef enum enumOptions
 	OPT_TEST,
 	OPT_HOOK,
 
-	OPT__N_TOTAL // == 100
+	OPT__N_TOTAL // == 101
 
 } enumOptions;
 
@@ -242,6 +243,7 @@ typedef enum enumOptions
 //	OB_MIXED		= 1llu << OPT_MIXED,
 //	OB_UNIQUE		= 1llu << OPT_UNIQUE,
 //	OB_NO_HEADER		= 1llu << OPT_NO_HEADER,
+//	OB_OLD_STYLE		= 1llu << OPT_OLD_STYLE,
 //	OB_SECTIONS		= 1llu << OPT_SECTIONS,
 //	OB_SORT			= 1llu << OPT_SORT,
 //	OB_LIMIT		= 1llu << OPT_LIMIT,
@@ -357,6 +359,7 @@ typedef enum enumOptions
 //	OB_CMD_FIND		= OB_GRP_READ_WBFS
 //				| OB_NO_HEADER
 //				| OB_LONG
+//				| OB_OLD_STYLE
 //				| OB_SECTIONS,
 //
 //	OB_CMD_SPACE		= OB_GRP_READ_WBFS
@@ -680,6 +683,7 @@ typedef enum enumGetOpt
 	GO_SET_TIME,
 	GO_NUMERIC,
 	GO_INODE,
+	GO_OLD_STYLE,
 	GO_SECTIONS,
 	GO_LIMIT,
 

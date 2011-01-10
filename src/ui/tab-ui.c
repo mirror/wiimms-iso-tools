@@ -1023,6 +1023,11 @@ info_t info_tab[] =
   { T_OPT_C,	"NO_HEADER",	"H|no-header|noheader",
 		0, "Suppress printing of header and footer." },
 
+  { T_OPT_C,	"OLD_STYLE",	"old-style|oldstyle",
+		0,
+		"Print in old style."
+		" This is important for tools and GUIs that are scanning the output." },
+
   { T_OPT_C,	"SECTIONS",	"sections",
 		0, "Print in machine readable sections and parameter lines." },
 
@@ -2241,6 +2246,9 @@ info_t info_tab[] =
   { T_OPT_C,	"NO_HEADER",	"H|no-header|noheader",
 		0, 0 /* copy of wit */ },
 
+  { T_OPT_C,	"OLD_STYLE",	"old-style|oldstyle",
+		0, 0 /* copy of wit */ },
+
   { T_OPT_C,	"SECTIONS",	"sections",
 		0, 0 /* copy of wit */ },
 
@@ -2494,6 +2502,7 @@ info_t info_tab[] =
 	" each partition, WBFS or not (this includes output via --sections)."
 	" If option @--long@ is set at least twice"
 	" the real path and the size in bytes are printed." },
+  { T_COPT,	"OLD_STYLE",	0,0,0 },
   { T_COPT,	"SECTIONS",	0,0,0 },
 
   //---------- COMMAND wwt SPACE ----------

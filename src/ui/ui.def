@@ -735,6 +735,11 @@
 	"", \
 	"Suppress printing of header and footer." )
 
+#:def_opt( "OLD_STYLE", "old-style|oldstyle", "C", \
+	"", \
+	"Print in old style. This is important for tools and GUIs that are" \
+	" scanning the output." )
+
 #:def_opt( "SECTIONS", "sections", "C", \
 	"", \
 	"Print in machine readable sections and parameter lines." )
@@ -4407,6 +4412,11 @@
 	"", \
 	"Suppress printing of header and footer." )
 
+#:def_opt( "OLD_STYLE", "old-style|oldstyle", "C", \
+	"", \
+	"Print in old style. This is important for tools and GUIs that are" \
+	" scanning the output." )
+
 #:def_opt( "SECTIONS", "sections", "C", \
 	"", \
 	"Print in machine readable sections and parameter lines." )
@@ -4515,6 +4525,10 @@
 	" partition, WBFS or not (this includes output via --sections). If" \
 	" option @--long@ is set at least twice the real path and the size in" \
 	" bytes are printed." )
+
+#:def_cmd_opt( "FIND", "OLD_STYLE", \
+	"", \
+	"" )
 
 #:def_cmd_opt( "FIND", "SECTIONS", \
 	"", \
