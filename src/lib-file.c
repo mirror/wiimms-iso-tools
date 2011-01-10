@@ -69,6 +69,38 @@ void ScanIOMode ( ccp arg )
 
 ///////////////////////////////////////////////////////////////////////////////
 
+u32 GetHSS ( int fd, u32 default_value )
+{
+ #ifdef DKIOCGETBLOCKSIZE
+    PRINT(" - try DKIOCGETBLOCKSIZE\n");
+    {
+	unsigned long size32 = 0;
+	if ( ioctl(fd, DKIOCGETBLOCKSIZE, &size32 ) >= 0 && size32 )
+	{
+	    PRINT("GetHSS(%d) DKIOCGETBLOCKSIZE := %x = %u\n",fd,size32,size32);
+	    return size32;
+	}
+    }
+ #endif
+    
+ #ifdef BLKSSZGET
+    PRINT(" - try BLKSSZGET\n");
+    {
+	unsigned long size32 = 0;
+	if ( ioctl(fd, BLKSSZGET, &size32 ) >= 0 && size32 )
+	{
+	    PRINT("GetHSS(%d) BLKSSZGET := %x = %u\n",fd,size32,size32);
+	    return size32;
+	}
+    }
+ #endif
+
+    PRINT("GetHSS(%d) default_value := %x = %u\n",fd,default_value,default_value);
+    return default_value;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
 static int valid_offset ( int fd, off_t off )
 {
     noTRACE(" - valid_offset(%d,%llu=%#llx)\n",fd,(u64)off,(u64)off);
@@ -82,7 +114,7 @@ static int valid_offset ( int fd, off_t off )
 
 //-----------------------------------------------------------------------------
 
-static off_t GetBlockDevSize ( int fd )
+off_t GetBlockDevSize ( int fd )
 {
     TRACE("GetBlockDevSize(%d)\n",fd);
 
@@ -100,7 +132,7 @@ static off_t GetBlockDevSize ( int fd )
     {
 	unsigned long long size64 = 0;
 	if ( ioctl(fd, DKIOCGETBLOCKCOUNT, &size64 ) >= 0  && size64 )
-	    return size64 << 9;
+	    return size64 * GetHSS(fd,HD_SECTOR_SIZE);
     }
  #endif
 
@@ -109,7 +141,7 @@ static off_t GetBlockDevSize ( int fd )
     {
 	unsigned long size32 = 0;
 	if ( ioctl(fd, BLKGETSIZE, &size32 ) >= 0 && size32 )
-	    return (off_t)size32 << 9;
+	    return (off_t)size32 * GetHSS(fd,HD_SECTOR_SIZE);
     }
  #endif
 

@@ -1,22 +1,15 @@
 wit v@@VERSION@@ r@@REV-NEXT@@ - @@@@-@@-@@
 
- - Bug fix for "wit mix": If reading from FST signing failed.
- - Bug fix: The space preallocation for splitted files exceeded the defined
-   limit. This results in an error on FAT partitions.
- - "wit DUMP image": IDs (ticket, tmd, boot) and IOS of the data partition are
-   printed in the "intro" and "partition info" sections of the dump. Therefor
-   the option --show has 3 new keywords: D-ID, P-ID and ID (=D-ID|P-ID).
-   These new keywords can be used to minimze the dump (print IDs only).
- - wwt format: If formatting a device and option --hss is not, then the real
-   sector size of the device is used. This is a concession for the new drives
-   with 4096 instead of 512 bytes per block.
+ - Bug fix for "wwt init": Auto hd sector size (hss) detection was wrong and
+   returns always the value 4096.
+ - "wwt FIND2 supports option --sections.
 
 
 Known bugs:
 
  - The GameCube support is in development and EXPERIMENTAL!
     - Conversion to WIA fails.
- - wit COPY --raw: Copying an image in raw mode to a WBFS file is buggy.
+~ - wit COPY --raw: Copying an image in raw mode to a WBFS file is buggy.
  - There are new problems while reading from non seekable sources (e.g. pipes).
    The reason is the complete new and more intelligent wiidisc lib which makes
    more lookups ==> The best is to use version 1.01c for pipes.

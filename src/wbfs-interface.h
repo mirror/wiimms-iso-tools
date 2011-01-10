@@ -84,8 +84,12 @@ typedef struct PartitionInfo_t
 	enumFileMode filemode;
 	bool is_checked;
 	bool ignore;
+	u32  hss;
 	u64  file_size;
 	u64  disk_usage;
+	u32  wbfs_hss;
+	u32  wbfs_wss;
+	u64  wbfs_size;
 	enumPartMode part_mode;
 	enumPartSource source;
 

@@ -1052,6 +1052,19 @@ wit v1.24a r2114 - 2010-12-23
  - wit+wwt VERIFY: Print signing and encryption status.
  - Bug fix: "wit FILES+DUMP" print the file size again.
 
+wit v1.25a r2133 - 2011-01-09
+
+ - Bug fix for "wit mix": If reading from FST signing failed.
+ - Bug fix: The space preallocation for splitted files exceeded the defined
+   limit. This results in an error on FAT partitions.
+ - "wit DUMP image": IDs (ticket, tmd, boot) and IOS of the data partition are
+   printed in the "intro" and "partition info" sections of the dump. Therefor
+   the option --show has 3 new keywords: D-ID, P-ID and ID (=D-ID|P-ID).
+   These new keywords can be used to minimze the dump (print IDs only).
+ - wwt format: If formatting a device and option --hss is not, then the real
+   sector size of the device is used. This is a concession for the new drives
+   with 4096 instead of 512 bytes per block.
+
 @@MODULE(last-history.txt)@@
 
 
