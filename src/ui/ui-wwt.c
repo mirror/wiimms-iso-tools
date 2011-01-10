@@ -816,8 +816,9 @@ const InfoOption_t option_cmd_FIND_LONG =
 	0,
 	"Without --long only partition names of WBFS partitions are printed."
 	" If option --long is set then additional infos are printed for each"
-	" partition, WBFS or not. If option --long is set at least twice the"
-	" real path is printed."
+	" partition, WBFS or not (this includes output via --sections). If"
+	" option --long is set at least twice the real path and the size in"
+	" bytes are printed."
     };
 
 const InfoOption_t option_cmd_SPACE_LONG =
@@ -1474,7 +1475,7 @@ static u8 option_allowed_cmd_FIND[84] = // cmd #9
 {
     0,1,1,1,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,
     0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,
-    0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 1,0,0,0,0,  1,0,0,0
+    0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 1,0,0,0,0,  1,1,0,0
 };
 
 static u8 option_allowed_cmd_SPACE[84] = // cmd #10
@@ -1774,6 +1775,7 @@ static const InfoOption_t * option_tab_cmd_FIND[] =
 	&option_cmd_FIND_QUIET,
 	OptionInfo + OPT_NO_HEADER,
 	&option_cmd_FIND_LONG,
+	OptionInfo + OPT_SECTIONS,
 
 	0
 };
@@ -2871,7 +2873,7 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	"F",
 	"wwt FIND [wbfs_partition]...",
 	"Find WBFS partitions and optionally print some geometric values.",
-	6,
+	7,
 	option_tab_cmd_FIND,
 	option_allowed_cmd_FIND
     },

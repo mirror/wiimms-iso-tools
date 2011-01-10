@@ -26,6 +26,7 @@
 
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <sys/ioctl.h>
 
 #include <fcntl.h>
 #include <unistd.h>
@@ -35,7 +36,15 @@
 #include <string.h>
 #include <stdarg.h>
 #include <limits.h>
-#include <iso-interface.h>
+
+#if defined(__CYGWIN__)
+  #include <cygwin/fs.h>
+  #include <io.h>
+#elif defined(__APPLE__)
+  #include <sys/disk.h>
+#elif defined(__linux__)
+  #include <linux/fs.h>
+#endif
 
 #include "debug.h"
 #include "version.h"
@@ -45,6 +54,7 @@
 #include "match-pattern.h"
 #include "crypt.h"
 #include "lib-lzma.h"
+#include "iso-interface.h"
 
 #define CMD1_FW 10
 
@@ -696,22 +706,23 @@ void test_sha1()
 
 static enumError develop ( int argc, char ** argv )
 {
-    MemMap_t mm;
-    InitializeMemMap(&mm);
-
     int i;
-    for ( i = 0x1000; i <= 0x1900; i += 0x100 )
-	InsertMemMapTie(&mm,i,0x10);
+    for ( i = 1; i < argc; i++ )
+    {
+	ccp fname = argv[i];
+	printf("*****  %s  *****\n",fname);
+	int fd = open(fname,O_RDONLY);
+	if ( fd == -1 )
+	    continue;
 
-    putchar('\n'); PrintMemMap(&mm,stdout,3); putchar('\n'); getchar();
+	u32 hss = GetHSS(fd,0);
+	u64 size = GetBlockDevSize(fd);
+	printf(" -> hss  = %x = %u\n",hss,hss);
+	printf(" -> size = %llx = %llu\n",size,size);
 
-    InsertMemMapTie(&mm,0x1110,5);
-    InsertMemMapTie(&mm,0x1208,0x10);
-    InsertMemMapTie(&mm,0x1408,0x300);
-    
-    putchar('\n'); PrintMemMap(&mm,stdout,3); putchar('\n'); getchar();
+	close(fd);
+    }
 
-    ResetMemMap(&mm);
     return ERR_OK;
 }
 

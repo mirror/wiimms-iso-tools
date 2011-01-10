@@ -356,7 +356,8 @@ typedef enum enumOptions
 //
 //	OB_CMD_FIND		= OB_GRP_READ_WBFS
 //				| OB_NO_HEADER
-//				| OB_LONG,
+//				| OB_LONG
+//				| OB_SECTIONS,
 //
 //	OB_CMD_SPACE		= OB_GRP_READ_WBFS
 //				| OB_NO_HEADER

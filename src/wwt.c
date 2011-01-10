@@ -262,49 +262,117 @@ enumError cmd_find()
 	return err;
     }
 
-    PartitionInfo_t * info;
-    const bool print_header = !OptionUsed[OPT_NO_HEADER];
-    switch(long_count)
+    if (print_sections)
     {
-	case 0:
-	    for ( info = first_partition_info; info; info = info->next )
+	int n_wbfs = 0, n_total = 0;
+	
+	PartitionInfo_t * info;
+	for ( info = first_partition_info; info; info = info->next )
+	{
+	    if ( info->part_mode > PM_IGNORE )
+	    {
+		n_total++;
 		if ( info->part_mode >= PM_WBFS )
-		    printf("%s\n",info->path);
-	    break;
+		    n_wbfs++;
+	    }
+	}
 
-	case 1:
-	    if (print_header)
-		printf("\n"
-			"type  wbfs d.usage    size  file (sizes in MiB)\n"
-			"-----------------------------------------------\n");
-	    for ( info = first_partition_info; info; info = info->next )
-		if ( info->part_mode > PM_IGNORE )
-		    printf("%-5s %s %7lld %7lld  %s\n",
-				GetFileModeText(info->filemode,false,"-"),
-				info->part_mode >= PM_WBFS ? "WBFS" : " -- ",
-				(info->disk_usage+MiB/2)/MiB,
-				(info->file_size+MiB/2)/MiB,
-				info->path );
-	    if (print_header)
-		printf("\n");
-	    break;
+	printf(
+	    "[FIND]\n"
+	    "n-partitions=%u\n"
+	    "n-wbfs=%u\n"
+	    "n-print=%u\n"
+	    ,n_total
+	    ,n_wbfs
+	    ,long_count ? n_total : n_wbfs
+	    );
+	    
+	int count = 0;
+	for ( info = first_partition_info; info; info = info->next )
+	{
+	    if ( info->part_mode >= PM_WBFS ||
+		 info->part_mode > PM_IGNORE && long_count )
+	    {
+		const bool is_wbfs = info->part_mode >= PM_WBFS;
+		printf(
+		    "\n"
+		    "[part-%u]\n"
+		    "path=%s\n"
+		    "real-path=%s\n"
+		    "file-type=%s\n"
+		    "is-wbfs=%u\n"
+		    "hss=%u\n"
+		    "size=%llu\n"
+		    "disc-usage=%llu\n"
+		    ,count++
+		    ,info->path
+		    ,info->real_path
+		    ,GetFileModeText(info->filemode,false,"-")
+		    ,is_wbfs
+		    ,info->hss
+		    ,info->file_size
+		    ,info->disk_usage ? info->disk_usage : info->file_size
+		);
 
-	default: // >= 2x long_count
-	    if (print_header)
-		printf("\n"
-			"type  wbfs    disk usage     file size  full path\n"
-			"-------------------------------------------------\n");
-	    for ( info = first_partition_info; info; info = info->next )
-		if ( info->part_mode > PM_IGNORE )
-		    printf("%-5s %s %13lld %13lld  %s\n",
-				GetFileModeText(info->filemode,false,"-"),
-				info->part_mode >= PM_WBFS ? "WBFS" : " -- ",
-				info->disk_usage,
-				info->file_size,
-				info->real_path );
-	    if (print_header)
-		printf("\n");
-	    break;
+		if (is_wbfs)
+		    printf(
+			"wbfs-hss=%u\n"
+			"wbfs-wss=%u\n"
+			"wbfs-size=%llu\n"
+			,info->wbfs_hss
+			,info->wbfs_wss
+			,info->wbfs_size
+		    );
+	    }
+	}
+	putchar('\n');
+    }
+    else
+    {
+	PartitionInfo_t * info;
+	const bool print_header = !OptionUsed[OPT_NO_HEADER];
+	switch(long_count)
+	{
+	    case 0:
+		for ( info = first_partition_info; info; info = info->next )
+		    if ( info->part_mode >= PM_WBFS )
+			printf("%s\n",info->path);
+		break;
+
+	    case 1:
+		if (print_header)
+		    printf("\n"
+			    "type  wbfs d.usage    size  file (sizes in MiB)\n"
+			    "-----------------------------------------------\n");
+		for ( info = first_partition_info; info; info = info->next )
+		    if ( info->part_mode > PM_IGNORE )
+			printf("%-5s %s %7lld %7lld  %s\n",
+				    GetFileModeText(info->filemode,false,"-"),
+				    info->part_mode >= PM_WBFS ? "WBFS" : " -- ",
+				    (info->disk_usage+MiB/2)/MiB,
+				    (info->file_size+MiB/2)/MiB,
+				    info->path );
+		if (print_header)
+		    printf("\n");
+		break;
+
+	    default: // >= 2x long_count
+		if (print_header)
+		    printf("\n"
+			    "type  wbfs    disk usage     file size  full path\n"
+			    "-------------------------------------------------\n");
+		for ( info = first_partition_info; info; info = info->next )
+		    if ( info->part_mode > PM_IGNORE )
+			printf("%-5s %s %13lld %13lld  %s\n",
+				    GetFileModeText(info->filemode,false,"-"),
+				    info->part_mode >= PM_WBFS ? "WBFS" : " -- ",
+				    info->disk_usage,
+				    info->file_size,
+				    info->real_path );
+		if (print_header)
+		    printf("\n");
+		break;
+	}
     }
 
     return 0;
@@ -944,7 +1012,20 @@ enumError cmd_format()
 	}
 
 	if ( !hss && ( S_ISBLK(st.st_mode) || S_ISCHR(st.st_mode) ))
-	    hss = st.st_blksize;
+	{
+	    const int fd = open(param->arg,O_RDONLY);
+	    if ( fd != -1 )
+	    {
+		u32 dev_hss = GetHSS(fd,0);
+		close(fd);
+		if (dev_hss)
+		{
+		    hss = HD_SECTOR_SIZE;
+		    while ( hss && hss < dev_hss )
+			hss <<= 1;
+		}
+	    }
+	}
 
 	if ( hss < HD_SECTOR_SIZE )
 	    hss = HD_SECTOR_SIZE;

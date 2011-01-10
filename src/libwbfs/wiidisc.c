@@ -2533,6 +2533,10 @@ bool wd_select // return true if selection changed
 
     wd_calc_fst_statistics(disc,false);
     disc->patch_ptab_recommended = any_part_disabled && !disc->whole_disc;
+
+    noPRINT("wd_select(%p,%p) recom=%d chg=%d\n",
+		disc, select,
+		disc->patch_ptab_recommended, selection_changed );
     return selection_changed;
 }
 
@@ -2777,10 +2781,9 @@ u32 wd_count_used_disc_blocks
     const wd_select_t	* select	// NULL or a new selector
 )
 {
-    if (select)
-	wd_select(disc,select);
-    wd_calc_usage_table(disc);
-    return wd_count_used_blocks(disc->usage_table,block_size);
+    u8 utab[WII_MAX_SECTORS];
+    wd_filter_usage_table(disc,utab,select);
+    return wd_count_used_blocks(utab,block_size);
 }
 
 ///////////////////////////////////////////////////////////////////////////////

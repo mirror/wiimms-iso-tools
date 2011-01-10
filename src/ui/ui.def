@@ -4512,8 +4512,13 @@
 	"", \
 	"Without @--long@ only partition names of WBFS partitions are printed." \
 	" If option @--long@ is set then additional infos are printed for each" \
-	" partition, WBFS or not. If option @--long@ is set at least twice the" \
-	" real path is printed." )
+	" partition, WBFS or not (this includes output via --sections). If" \
+	" option @--long@ is set at least twice the real path and the size in" \
+	" bytes are printed." )
+
+#:def_cmd_opt( "FIND", "SECTIONS", \
+	"", \
+	"" )
 
 #:def_cmd_opt( "SPACE", "AUTO", \
 	"", \

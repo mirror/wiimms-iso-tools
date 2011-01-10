@@ -2491,8 +2491,10 @@ info_t info_tab[] =
   { T_COPT_M,	"LONG",		0,0,
 	"Without @--long@ only partition names of WBFS partitions are printed."
 	" If option @--long@ is set then additional infos are printed for"
-	" each partition, WBFS or not."
-	" If option @--long@ is set at least twice the real path is printed." },
+	" each partition, WBFS or not (this includes output via --sections)."
+	" If option @--long@ is set at least twice"
+	" the real path and the size in bytes are printed." },
+  { T_COPT,	"SECTIONS",	0,0,0 },
 
   //---------- COMMAND wwt SPACE ----------
 

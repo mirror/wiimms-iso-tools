@@ -371,26 +371,31 @@ enumError AnalyzePartitions ( FILE * outfile, bool non_found_is_ok, bool scan_wb
 	    TRACE("st_blksize=%lld st_blocks=%lld\n",
 			(u64)F.st.st_blksize, (u64)F.st.st_blocks );
 	    info->file_size  = F.st.st_size;
-	    info->disk_usage = 512ull * F.st.st_blocks;
+	    info->hss = GetHSS(F.fd,HD_SECTOR_SIZE);
+	    info->disk_usage = info->hss * (u64)F.st.st_blocks;
+	    TRACE(" - hss:        %13d\n",info->hss);
 	    TRACE(" - file-size:  %13lld = %5lld GiB\n",info->file_size,info->file_size/GiB);
 	    TRACE(" - disk-usage: %13lld = %5lld GiB\n",info->disk_usage,info->disk_usage/GiB);
 
-	    char magic_buf[4];
-	    stat = F.st.st_size < sizeof(magic_buf)
+	    wbfs_head_t whead;
+	    stat = F.st.st_size < sizeof(whead)
 			? ERR_WARNING
-			: ReadF(&F,magic_buf,sizeof(magic_buf));
+			: ReadF(&F,&whead,sizeof(whead));
 	    if (stat)
 	    {
-		read_error = "Can't read WBFS magic: %s\n";
+		read_error = "Can't read WBFS header: %s\n";
 		goto _done;
 	    }
 
-	    if (memcmp(magic_buf,"WBFS",sizeof(magic_buf)))
+	    if (memcmp(&whead.magic,"WBFS",sizeof(whead.magic)))
 	    {
 		info->part_mode = PM_NO_WBFS_MAGIC;
 		read_error = "No WBFS magic found: %s\n";
 		goto _done;
 	    }
+	    info->wbfs_hss  = 1 << whead.hd_sec_sz_s;
+	    info->wbfs_wss  = 1 << whead.wbfs_sec_sz_s;
+	    info->wbfs_size = (u64)whead.n_hd_sec * info->wbfs_hss;
 
 	    info->part_mode = PM_WBFS_MAGIC_FOUND;
 	    wbfs_count++;
