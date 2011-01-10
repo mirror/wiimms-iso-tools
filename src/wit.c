@@ -2264,6 +2264,7 @@ enumError CheckOptions ( int argc, char ** argv, bool is_env )
 	case GO_REALPATH:	break;
 	case GO_UNIQUE:	    	break;
 	case GO_NO_HEADER:	break;
+	case GO_OLD_STYLE:	print_old_style++; break;
 	case GO_SECTIONS:	print_sections++; break;
 	case GO_SHOW:		err += ScanOptShow(optarg); break;
 	case GO_UNIT:		err += ScanOptUnit(optarg); break;

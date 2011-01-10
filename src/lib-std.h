@@ -1396,6 +1396,7 @@ extern int		testmode;
 extern ccp		opt_dest;
 extern bool		opt_mkdir;
 extern int		opt_limit;
+extern int		print_old_style;
 extern int		print_sections;
 extern int		long_count;
 extern int		ignore_count;
