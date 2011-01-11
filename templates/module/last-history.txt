@@ -1,19 +1,22 @@
 wit v@@VERSION@@ r@@REV-NEXT@@ - @@@@-@@-@@
 
- - Bug fix for "wwt init": Auto hd sector size (hss) detection was wrong and
-   returns always the value 4096.
- - "wwt FIND" supports option --sections and --old-style. The later one will
-   ensure that the GUIs can read and scan the old style because I will change
-   the layout completly in one of the next releases.
+ - I have made some changes in the make system to support local libraries with
+   own makefiles (libbz2.a), option -static and cross compiling (Linux/i386 on
+   Linux/x86_64). Hope that all work as usual.
+    - BZIP2 support is now included as source and should work for all systems.
+      This enables WIA/bzip2 support for Mac/x86_64.
+    - The distributions of Linux/i386 and Linux/X86_64 are linked static to
+      to avoid GLIBC version issues (e.g. fallocate() support).
+    - On Linux/x86_64: Enter "M32=1 make ..." to create i386 binaries.
+      I386 libraries and include files are needed.
+ - "wit COPY/CONVERT/EXTRACT/DIFF" support option --sections.
 
 
 Known bugs:
 
  - The GameCube support is in development and EXPERIMENTAL!
-    - Conversion to WIA fails.
-~ - wit COPY --raw: Copying an image in raw mode to a WBFS file is buggy.
+    - GameCube conversion to WIA fails.
  - There are new problems while reading from non seekable sources (e.g. pipes).
    The reason is the complete new and more intelligent wiidisc lib which makes
    more lookups ==> The best is to use version 1.01c for pipes.
- - No WIA/bzip2 support for MAC/x86_64. (bug in the Mac bzip2 library)
 

@@ -21,14 +21,20 @@ tim=($(date '+%s %Y-%m-%d %T'))
 if [[ $M32 = 1 ]]
 then
     force_m32=1
-    cflags="-m32"
-    defines=
-    #defines="-DHAVE_FALLOCATE=1"
+    xflags="-m32"
+    defines=-DFORCE_M32=1
 else
     force_m32=0
-    cflags=
+    xflags=
     defines=
 fi
+
+[[ -r /usr/include/bits/fcntl.h ]] \
+	&& grep -qw fallocate /usr/include/bits/fcntl.h \
+	&& defines="$defines -DHAVE_FALLOCATE=1"
+[[ -r /usr/include/fcntl.h ]] \
+	&& grep -qw posix_fallocate /usr/include/fcntl.h \
+	&& defines="$defines -DHAVE_POSIX_FALLOCATE=1"
 
 cat <<- ---EOT--- >Makefile.setup
 	REVISION	:= $revision
@@ -39,11 +45,11 @@ cat <<- ---EOT--- >Makefile.setup
 	TIME		:= ${tim[2]}
 
 	FORCE_M32	:= $force_m32
-	CFLAGS		:= $cflags
+	XFLAGS		+= $xflags
 	DEFINES1	:= $defines
 
 	---EOT---
 
-gcc $cflags system.c -o system.tmp && ./system.tmp >>Makefile.setup
+gcc $xflags system.c -o system.tmp && ./system.tmp >>Makefile.setup
 rm -f system.tmp
 

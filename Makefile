@@ -28,8 +28,8 @@ WWT_LONG		= Wiimms WBFS Tool
 WDF_SHORT		= wdf
 WDF_LONG		= Wiimms WDF Tool
 
-VERSION_NUM		= 1.25b
-BETA_VERSION		= 0
+VERSION_NUM		= 1.26a
+BETA_VERSION		= 1
 			# 0:off  -1:"beta"  >0:"beta#"
 
 URI_HOME		= http://wit.wiimm.de/
@@ -88,7 +88,7 @@ STRIP		= $(PRE)strip
 
 DIR_LIST	=
 
-RM_FILES	= *.{o,d,tmp,bak,exe} */*.{tmp,bak} */*/*.{tmp,bak}
+RM_FILES	= *.{a,o,d,tmp,bak,exe} */*.{tmp,bak} */*/*.{tmp,bak}
 RM_FILES2	= *.{iso,ciso,wdf,wbfs} templates.sed
 
 MODE_FILE	= ./_mode.flag
@@ -184,7 +184,6 @@ DEFINES1	+= -DDEBUG_ASSERT	# enable ASSERTions in release version too
 DEFINES1	+= -DEXTENDED_ERRORS=1	# enable extended error messages (function,line,file)
 DEFINES1	+= -D_7ZIP_ST=1		# disable 7zip multi threading
 DEFINES1	+= -D_LZMA_PROB32=1	# LZMA option
-#DEFINES1	+= -DNO_BZIP2=1
 DEFINES		=  $(strip $(DEFINES1) $(MODE) $(XDEF))
 
 CFLAGS		+= -fomit-frame-pointer -fno-strict-aliasing -funroll-loops
@@ -199,9 +198,6 @@ LDFLAGS		+= -static-libgcc
 #LDFLAGS	+= -static
 LDFLAGS		:= $(strip $(LDFLAGS))
 
-ifndef NO_BZIP2
-  LIBS		+= -lbz2
-endif
 LIBS		+= $(XLIBS)
 
 DISTRIB_RM	= ./wit-v$(VERSION)-r
@@ -218,7 +214,7 @@ TITLE_FILES	= titles.txt $(patsubst %,titles-%.txt,$(LANGUAGES))
 LANGUAGES	= de es fr it ja ko nl pt ru zhcn zhtw
 
 BIN_FILES	= $(MAIN_TOOLS)
-LIB_FILES	= $(TITLE_FILES)
+SHARE_FILES	= $(TITLE_FILES)
 
 CYGWIN_DIR	= /usr/bin
 CYGWIN_BIN	= cygwin1.dll cygbz2-1.dll
@@ -226,13 +222,19 @@ CYGWIN_BIN_SRC	= $(patsubst %,$(CYGWIN_DIR)/%,$(CYGWIN_BIN))
 
 DIR_LIST_BIN	= $(SCRIPTS) bin
 DIR_LIST	+= $(DIR_LIST_BIN)
-DIR_LIST	+= lib doc work pool makefiles-local edit-list
+DIR_LIST	+= share work pool makefiles-local edit-list
+
+#-------------------------------------------------------------------------------
+# sub libs
+
+LIB_LIST	:= libbz2
+LIB_FILES	:= $(patsubst %,%.a,$(LIB_LIST))
 
 #-------------------------------------------------------------------------------
 # sub projects
 
 SUB_PROJECTS	+= test-libwbfs
-RM_FILES	+= $(foreach p,$(SUB_PROJECTS),$(p)/*.d $(p)/*.o $(p)/$(p))
+RM_FILES	+= $(foreach p,$(SUB_PROJECTS),$(p)/*.{d,o} $(p)/$(p))
 
 #
 ###############################################################################
@@ -248,9 +250,10 @@ default_rule: all
 ###############################################################################
 # general rules
 
-$(ALL_TOOLS): %: %.o $(ALL_OBJECTS) $(TOBJ_ALL) Makefile | $(HELPER_TOOLS)
+$(ALL_TOOLS): %: %.o $(ALL_OBJECTS) $(TOBJ_ALL) $(LIB_FILES) Makefile | $(HELPER_TOOLS)
 	@printf "$(LOGFORMAT)" tool "$@" "$(TOBJ_$@)"
-	@$(CC) $(CFLAGS) $(DEFINES) $(LDFLAGS) $@.o $(ALL_OBJECTS) $(TOBJ_$@) $(LIBS) -o $@
+	@$(CC) $(CFLAGS) $(DEFINES) $(LDFLAGS) $@.o \
+		$(ALL_OBJECTS) $(TOBJ_$@) $(LIB_FILES) $(LIBS) -o $@
 	@if test -f $@.exe; then $(STRIP) $@.exe; else $(STRIP) $@; fi
 	@mkdir -p bin/debug
 	@cp -p $@ bin
@@ -258,9 +261,10 @@ $(ALL_TOOLS): %: %.o $(ALL_OBJECTS) $(TOBJ_ALL) Makefile | $(HELPER_TOOLS)
 
 #--------------------------
 
-$(HELPER_TOOLS): %: %.o $(ALL_OBJECTS) Makefile
+$(HELPER_TOOLS): %: %.o $(ALL_OBJECTS) $(LIB_FILES) Makefile
 	@printf "$(LOGFORMAT)" helper "$@ $(TOBJ_$@)" "$(MODE)"
-	@$(CC) $(CFLAGS) $(DEFINES) $(LDFLAGS) $@.o $(ALL_OBJECTS) $(TOBJ_$@) $(LIBS) -o $@
+	@$(CC) $(CFLAGS) $(DEFINES) $(LDFLAGS) $@.o \
+		$(ALL_OBJECTS) $(TOBJ_$@) $(LIB_FILES) $(LIBS) -o $@
 
 #--------------------------
 
@@ -303,6 +307,14 @@ $(UI_FILES): gen-ui.c tab-ui.c ui.h | gen-ui
 ui : gen-ui
 	@printf "$(LOGFORMAT)" run gen-ui ""
 	@./gen-ui
+
+#--------------------------
+
+$(LIB_FILES):
+	@printf "$(LOGFORMAT)" "----------  ENTER "./src/$(patsubst %.a,%,$@)/"  ----------" "" ""
+	@XFLAGS="$(XFLAGS)" make --no-print-directory -C "src/$(patsubst %.a,%,$@)"
+	@printf "$(LOGFORMAT)" "----------  LEAVE "./src/$(patsubst %.a,%,$@)/"  ----------" "" ""
+	@cp -p "src/$(patsubst %.a,%,$@)/$@" .
 
 #
 ###############################################################################
@@ -358,6 +370,7 @@ clean:
 	@printf "$(LOGFORMAT)" rm "output files + distrib" ""
 	@rm -f $(RM_FILES)
 	@rm -fr $(DISTRIB_RM)*
+	@for l in $(LIB_LIST); do make --no-print-directory -C "src/$$l" clean; done
 
 .PHONY : clean+
 clean+: clean
@@ -386,7 +399,12 @@ debug:
 #--------------------------
 
 .PHONY : distrib
-distrib: all doc gen-distrib wit.def
+distrib:
+ifeq ($(SYSTEM),mac)
+	@make -w mac-distrib
+else
+	@make -w auto-static all doc gen-distrib wit.def
+endif
 
 .PHONY : gen-distrib
 gen-distrib:
@@ -401,7 +419,7 @@ ifeq ($(SYSTEM),cygwin)
 	@cp -p gpl-2.0.txt $(DISTRIB_PATH)
 	@ln -f $(MAIN_TOOLS) $(WDF_LINKS) $(DISTRIB_PATH)/bin
 	@cp -p $(CYGWIN_BIN_SRC) $(DISTRIB_PATH)/bin
-	@( cd lib; cp $(TITLE_FILES) ../$(DISTRIB_PATH)/bin )
+	@( cd share; cp $(TITLE_FILES) ../$(DISTRIB_PATH)/bin )
 	@cp -p $(DOC_FILES) $(DISTRIB_PATH)/doc
 
 	@zip -roq $(DISTRIB_PATH).zip $(DISTRIB_PATH)
@@ -410,11 +428,11 @@ ifeq ($(SYSTEM),cygwin)
 else
 
 	@rm -rf $(DISTRIB_PATH)
-	@mkdir -p $(DISTRIB_PATH)/bin $(DISTRIB_PATH)/scripts $(DISTRIB_PATH)/lib $(DISTRIB_PATH)/doc
+	@mkdir -p $(DISTRIB_PATH)/bin $(DISTRIB_PATH)/scripts $(DISTRIB_PATH)/share $(DISTRIB_PATH)/doc
 
 	@cp -p $(DISTRIB_FILES) $(DISTRIB_PATH)
 	@ln -f $(MAIN_TOOLS) $(WDF_LINKS) $(DISTRIB_PATH)/bin
-	@cp -p lib/*.txt $(DISTRIB_PATH)/lib
+	@cp -p share/*.txt $(DISTRIB_PATH)/share
 	@cp -p $(DOC_FILES) $(DISTRIB_PATH)/doc
 	@cp -p $(SCRIPTS)/*.{sh,txt} $(DISTRIB_PATH)/scripts
 
@@ -491,6 +509,32 @@ predef:
 #
 #--------------------------
 
+.PHONY : static
+static:
+	@printf "$(LOGFORMAT)" enable -static ""
+	@rm -f *.o $(ALL_TOOLS)
+	@echo "-static" >>$(MODE_FILE)
+	@sort $(MODE_FILE) | uniq > $(MODE_FILE).tmp
+# 2 steps to bypass a cygwin mv failure
+	@cp $(MODE_FILE).tmp $(MODE_FILE)
+	@rm -f $(MODE_FILE).tmp
+
+.PHONY : auto-static
+auto-static:
+ifeq ($(SYSTEM_LINUX),1)
+	@printf "$(LOGFORMAT)" enable -static ""
+	@echo "-static" >>$(MODE_FILE)
+	@sort $(MODE_FILE) | uniq > $(MODE_FILE).tmp
+# 2 steps to bypass a cygwin mv failure
+	@cp $(MODE_FILE).tmp $(MODE_FILE)
+	@rm -f $(MODE_FILE).tmp
+else
+	@true
+endif
+
+#
+#--------------------------
+
 .PHONY : $(SUB_PROJECTS)
 $(SUB_PROJECTS):
 	@printf "$(LOGFORMAT)" make "$@" ""
@@ -527,7 +571,7 @@ templates.sed: Makefile
 		's|@@TIME@@|$(TIME)|g;\n' \
 		's|@@INSTALL-PATH@@|$(INSTALL_PATH)|g;\n' \
 		's|@@BIN-FILES@@|$(BIN_FILES)|g;\n' \
-		's|@@LIB-FILES@@|$(LIB_FILES)|g;\n' \
+		's|@@SHARE-FILES@@|$(SHARE_FILES)|g;\n' \
 		's|@@WDF-LINKS@@|$(WDF_LINKS)|g;\n' \
 		's|@@LANGUAGES@@|$(LANGUAGES)|g;\n' \
 		's|@@DISTRIB-I386@@|$(DISTRIB_I386)|g;\n' \

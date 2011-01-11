@@ -19,7 +19,8 @@
 
 [size="2"][color="#0000c0"][b]Highlights of this release:[/b][/color][/size]
 [list]
-[*]
+[*] I have made some changes in the make system to support local libraries with own makefiles (libbz2.a), option -static and cross compiling (Linux/i386 on Linux/x86_64). Hope that all work as usual.
+[color=#800000]Please test it![/color]
 [color=#ffffff].[/color]
 
 ~[*] [color=#000080][b]GameCube support[/b][/color]

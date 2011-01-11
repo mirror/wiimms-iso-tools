@@ -1065,6 +1065,14 @@ wit v1.25a r2133 - 2011-01-09
    sector size of the device is used. This is a concession for the new drives
    with 4096 instead of 512 bytes per block.
 
+wit v1.25b r2143 - 2011-01-10
+
+ - Bug fix for "wwt init": Auto hd sector size (hss) detection was wrong and
+   returns always the value 4096.
+ - "wwt FIND" supports option --sections and --old-style. The later one will
+   ensure that the GUIs can read and scan the old style because I will change
+   the layout completly in one of the next releases.
+
 @@MODULE(last-history.txt)@@
 
 

@@ -5353,14 +5353,14 @@
 
 #:def_cmd_opt( "CHECK", "VERBOSE", \
 	"", \
-	"Be verbose. If set once then more detaiuls are printed. If set twice" \
-	" a info dump of all coruppted discs is included. If set three times a" \
+	"Be verbose. If set once then more details are printed. If set twice a" \
+	" info dump of all coruppted discs is included. If set three times a" \
 	" info dump of all discs is included if a error is found. If set four" \
-	" times a full memory mal is included." )
+	" times a full memory map is included." )
 
 #:def_cmd_opt( "CHECK", "LONG", \
 	"", \
-	"Option @--long@ does the same as option {--verbose}. If set at last" \
+	"Option @--long@ does the same as option {--verbose}. If set at least" \
 	" once it overwrites the {--verbose} level." )
 
 #:def_cmd_opt( "CHECK", "REPAIR", \
@@ -5411,14 +5411,14 @@
 
 #:def_cmd_opt( "REPAIR", "VERBOSE", \
 	"", \
-	"Be verbose. If set once then more detaiuls are printed. If set twice" \
-	" a info dump of all coruppted discs is included. If set three times a" \
+	"Be verbose. If set once then more details are printed. If set twice a" \
+	" info dump of all coruppted discs is included. If set three times a" \
 	" info dump of all discs is included if a error is found. If set four" \
-	" times a full memory mal is included." )
+	" times a full memory map is included." )
 
 #:def_cmd_opt( "REPAIR", "LONG", \
 	"", \
-	"Option @--long@ does the same as option {--verbose}. If set at last" \
+	"Option @--long@ does the same as option {--verbose}. If set at least" \
 	" once it overwrites the {--verbose} level." )
 
 #:def_cmd_opt( "REPAIR", "REPAIR", \

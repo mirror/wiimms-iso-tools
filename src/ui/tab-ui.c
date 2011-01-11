@@ -2631,14 +2631,14 @@ info_t info_tab[] =
   { T_COPT,	"QUIET",	0,0,0 },
   { T_COPT,	"VERBOSE",	0,0,
 	"Be verbose."
-	" If set once then more detaiuls are printed."
+	" If set once then more details are printed."
 	" If set twice a info dump of all coruppted discs is included."
 	" If set three times a info dump of all discs is included if a error is found."
-	" If set four times a full memory mal is included." },
+	" If set four times a full memory map is included." },
 
   { T_COPT_M,	"LONG",		0,0,
 	"Option @--long@ does the same as option {--verbose}."
-	" If set at last once it overwrites the {--verbose} level." },
+	" If set at least once it overwrites the {--verbose} level." },
 
   //---------- COMMAND wwt CHECK ----------
 

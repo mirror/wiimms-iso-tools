@@ -1371,9 +1371,49 @@ enumError exec_extract ( SuperFile_t * fi, Iterator_t * it )
 
     if ( testmode || verbose >= 0 )
     {
-	printf( "%s: %sEXTRACT %s:%s -> %s\n",
+	if (print_sections)
+	{
+	    printf(
+		"[EXTRACT]\n"
+		"test-mode=%d\n"
+		"job-counter=%d\n"
+		"job-total=%d\n"
+		"source-path=%s\n"
+		"source-real-path=%s\n"
+		"source-type=%s\n"
+		"source-n-split=%d\n"
+		"dest-path=%s\n"
+		"dest-type=FST\n"
+		"\n"
+		,testmode>0
+		,it->source_index+1
+		,it->source_list.used
+		,fi->f.fname
+		,it->real_path
+		,oft_info[fi->iod.oft].name
+		,fi->f.split_used
+		,dest_dir
+		);
+	}
+	else
+	{
+	    char count_buf[30];
+	    snprintf(count_buf,sizeof(count_buf), "%*u/%u",
+		    (int)strlen(count_buf), it->source_index+1, it->source_list.used );
+
+	    char split_buf[10];
+	    if ( fi->f.split_used > 1 )
+		snprintf(split_buf,sizeof(split_buf),"*%u",fi->f.split_used);
+	    else
+		*split_buf = 0;
+
+	    printf( "%s: %sEXTRACT %s %s%s:%s -> %s\n",
 		progname, testmode ? "WOULD " : "",
-		oft_info[fi->iod.oft].name, fi->f.fname, dest_dir );
+		count_buf, oft_info[fi->iod.oft].name,
+		split_buf, fi->f.fname, dest_dir );
+	}
+	fflush(0);
+
 	if (testmode)
 	    return ERR_OK;
     }
@@ -1525,7 +1565,6 @@ enumError exec_copy ( SuperFile_t * fi, Iterator_t * it )
 	else
 	{
 	    char count_buf[30];
-	    snprintf(count_buf,sizeof(count_buf), "%u", it->source_list.used );
 	    snprintf(count_buf,sizeof(count_buf), "%*u/%u",
 		    (int)strlen(count_buf), it->source_index+1, it->source_list.used );
 

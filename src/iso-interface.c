@@ -2350,13 +2350,29 @@ enumError CreateFST ( WiiFstInfo_t *wfi, ccp dest_path )
 
     if (wfi->verbose)
     {
-	char buf[20];
-	wfi->fw_done_count = snprintf(buf,sizeof(buf),"%u",wfi->total_count);
+	if (print_sections)
+	{
+	    printf(
+		"[extract:info]\n"
+		"n-partitions=%u\n"
+		"n-files=%u\n"
+		"total-size=%llu\n"
+		"\n"
+		,fst->part_used
+		,fst->total_file_count
+		,fst->total_file_size
+		);
+	}
+	else
+	{
+	    char buf[20];
+	    wfi->fw_done_count = snprintf(buf,sizeof(buf),"%u",wfi->total_count);
 
-	printf(" - will extract %u file%s of %u partition%s, %llu MiB total\n",
+	    printf(" - will extract %u file%s of %u partition%s, %llu MiB total\n",
 		fst->total_file_count, fst->total_file_count == 1 ? "" : "s",
 		fst->part_used, fst->part_used  == 1 ? "" : "s",
 		(fst->total_file_size + MiB/2) / MiB );
+	}
     }
 
 
@@ -2482,9 +2498,26 @@ enumError CreateFileFST ( WiiFstInfo_t *wfi, ccp dest_path, WiiFstFile_t * file 
     if ( file->icm == WD_ICM_DIRECTORY )
     {
 	if ( wfi->verbose > 1 )
-	    printf(" - %*u/%u create directory %s\n",
+	{
+	    if (print_sections) // [sections]
+		printf(
+		    "[extract:create-dir]\n"
+		    "done-count=%u\n"
+		    "total-count=%u\n"
+		    "iso-path=%s%s\n"
+		    "dest-path=%s\n"
+		    "\n"
+		    ,wfi->done_count
+		    ,wfi->total_count
+		    ,part->path
+		    ,file->path
+		    ,dest
+		    );
+	    else
+		printf(" - %*u/%u create directory %s\n",
 			wfi->fw_done_count, wfi->done_count, wfi->total_count,
 			dest);
+	}
 	if (CreatePath(dest))
 	    wfi->not_created_count++;
 	return ERR_OK;
@@ -2497,9 +2530,28 @@ enumError CreateFileFST ( WiiFstInfo_t *wfi, ccp dest_path, WiiFstFile_t * file 
     //----- file handling
 
     if ( wfi->verbose > 1 )
-	printf(" - %*u/%u %s %8u bytes to %s\n",
+    {
+	if (print_sections) // [sections]
+	    printf(
+		"[extract:create-file]\n"
+		"done-count=%u\n"
+		"total-count=%u\n"
+		"iso-path=%s%s\n"
+		"dest-path=%s\n"
+		"file-size=%u\n"
+		"\n"
+		,wfi->done_count
+		,wfi->total_count
+		,part->path
+		,file->path
+		,dest
+		,file->size
+		);
+	else
+	    printf(" - %*u/%u %s %8u bytes to %s\n",
 		wfi->fw_done_count, wfi->done_count, wfi->total_count,
 		file->icm == WD_ICM_DATA ? "write  " : "extract", file->size, dest );
+    }
 
     File_t fo;
     InitializeFile(&fo);
