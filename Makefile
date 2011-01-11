@@ -29,7 +29,7 @@ WDF_SHORT		= wdf
 WDF_LONG		= Wiimms WDF Tool
 
 VERSION_NUM		= 1.26a
-BETA_VERSION		= 1
+BETA_VERSION		= 2
 			# 0:off  -1:"beta"  >0:"beta#"
 
 URI_HOME		= http://wit.wiimm.de/
@@ -312,7 +312,7 @@ ui : gen-ui
 
 $(LIB_FILES):
 	@printf "$(LOGFORMAT)" "----------  ENTER "./src/$(patsubst %.a,%,$@)/"  ----------" "" ""
-	@XFLAGS="$(XFLAGS)" make --no-print-directory -C "src/$(patsubst %.a,%,$@)"
+	@XFLAGS="$(XFLAGS)" $(MAKE) --no-print-directory -C "src/$(patsubst %.a,%,$@)"
 	@printf "$(LOGFORMAT)" "----------  LEAVE "./src/$(patsubst %.a,%,$@)/"  ----------" "" ""
 	@cp -p "src/$(patsubst %.a,%,$@)/$@" .
 
@@ -370,7 +370,7 @@ clean:
 	@printf "$(LOGFORMAT)" rm "output files + distrib" ""
 	@rm -f $(RM_FILES)
 	@rm -fr $(DISTRIB_RM)*
-	@for l in $(LIB_LIST); do make --no-print-directory -C "src/$$l" clean; done
+	@for l in $(LIB_LIST); do $(MAKE) --no-print-directory -C "src/$$l" clean; done
 
 .PHONY : clean+
 clean+: clean
@@ -398,13 +398,33 @@ debug:
 #
 #--------------------------
 
+.PHONY : distrib2
+distrib2:
+ifeq ($(SYSTEM_LINUX),1)
+
+	@printf "\n---------- BUILDING LINUX/X86_64 ----------\n\n"
+	@$(MAKE) --no-print-directory clean+ distrib
+	@mv "$(DISTRIB_X86_64)" "save-$(DISTRIB_X86_64)"
+
+	@printf "\n---------- BUILDING LINUX/I386 ----------\n\n"
+	@M32=1 $(MAKE) --no-print-directory clean+ distrib
+	@mv "save-$(DISTRIB_X86_64)" "$(DISTRIB_X86_64)"
+
+else
+	@$(MAKE) --no-print-directory clean+ distrib
+endif
+
+#-----
+
 .PHONY : distrib
 distrib:
 ifeq ($(SYSTEM),mac)
-	@make -w mac-distrib
+	@$(MAKE) --no-print-directory mac-distrib
 else
-	@make -w auto-static all doc gen-distrib wit.def
+	@$(MAKE) --no-print-directory auto-static all doc gen-distrib wit.def
 endif
+
+#-----
 
 .PHONY : gen-distrib
 gen-distrib:
@@ -538,7 +558,7 @@ endif
 .PHONY : $(SUB_PROJECTS)
 $(SUB_PROJECTS):
 	@printf "$(LOGFORMAT)" make "$@" ""
-	@cd $@ && make
+	@$(MAKE) -C "$@"
 
 #
 #--------------------------

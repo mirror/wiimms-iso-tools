@@ -28,8 +28,9 @@
   #ifndef NO_BZIP2
 /******************/
 
+//#include <bzlib.h>
+#include "src/libbz2/bzlib.h"
 #include "lib-bzip2.h"
-#include <bzlib.h>
 
 /************************************************************************
  **  BZIP2 support: http://www.bzip.org/1.0.5/bzip2-manual-1.0.5.html  **

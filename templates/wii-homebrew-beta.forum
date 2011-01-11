@@ -1,12 +1,13 @@
 
 [img]http://wit.wiimm.de/images/wiimms-tools.png[/img]
 
-[size=18][color=#0000FF][b]@@TOOLSET-SHORT@@: @@TOOLSET-LONG@@ v@@VERSION@@ - @@@@-@@-@@[/b][/color][/size]
+[size=18][color=#0000FF][b]@@TOOLSET-SHORT@@: @@TOOLSET-LONG@@
+v@@VERSION@@ - @@@@-@@-@@[/b][/color][/size]
 [size=15][color="#800000"][b]Beta-Test-Version![/b][/color][/size]
 
-[color="#800000"]Die Produktiv-Version witd im [url=http://wit.wiimm.de/r/wii-homebrew]WIT Hauptthema[/url] besprochen.[/color]
+[color="#800000"]Die Produktiv-Version wird im [url=http://wit.wiimm.de/r/wii-homebrew]WIT Hauptthema[/url] besprochen.[/color]
 
-[size="2"][color="#0000c0"][b]Download[/b][/color] [color="#800000"][b]Dieses ist eine EXPERIMENTELLE Version:[/b][/color][/size]
+[size=12][color=#0000c0][b]Download[/b][/color] [color=#800000][b]der EXPERIMENTELLEN Version:[/b][/color][/size]
 [list]
 [*] [url=@@URI-DOWNLOAD-I386@@][b]@@DISTRIB-I386@@[/b][/url] : Linux/i386 Version
 [*] [url=@@URI-DOWNLOAD-X86_64@@][b]@@DISTRIB-X86_64@@[/b][/url] : Linux/x86_64 Version
@@ -23,7 +24,7 @@
 [/list]
 
 
-[size="2"][color="#0000c0"][b]Change log:[/b][/color][/size]
+[size=12][color=#0000c0][b]Letzte Änderungen:[/b][/color][/size]
 
 [code]
 @@MODULE(last-history.txt)@@
