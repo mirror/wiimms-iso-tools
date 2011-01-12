@@ -2173,7 +2173,7 @@ enumError cmd_extract()
 			    printf(" - ALREADY EXTRACTED: [%s] %s\n",id6,title);
 			continue;
 		    }
-		    RemoveSF(&fo);
+		    ResetSF(&fo,0);
 
 		    char dbuf[PATH_MAX], fbuf[PATH_MAX];
 		    ccp dpath;

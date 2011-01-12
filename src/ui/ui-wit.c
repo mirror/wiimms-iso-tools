@@ -272,7 +272,9 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 	" overlay the partitions so that the data of one partition resides in"
 	" the hole of other partitions. This option enables this feature. It"
 	" also limits the number of input partitions to 12, because the"
-	" calculation is rated as O(2^n)."
+	" calculation is rated as O(2^N). 12 partitions can be combined in 479"
+	" millions permutations and all are tested with a back tracking"
+	" algorithm to find the best one."
     },
 
     {	OPT_REPL_FILE, 0, "repl-file",
@@ -3210,10 +3212,11 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	"wit MIX SOURCE... --dest|--DEST outfile\n"
 	"  where SOURCE    = infile [QUALIFIER]...\n"
 	"  where QUALIFIER = 'select' part_type\n"
-	"                  | 'as' [part_table '.'] [part_type]]\n"
+	"                  | 'as' [part_table '.'] [part_type]\n"
 	"                  | 'ignore' ruleset\n"
 	"                  | 'header'\n"
-	"                  | 'region'",
+	"                  | 'region'\n"
+	"Read http://wit.wiimm.de/wit/cmd-mix.html for more details.",
 	"Mix the partitions from different sources into one new Wii or"
 	" GameCube disc.",
 	24,

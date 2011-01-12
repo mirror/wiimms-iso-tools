@@ -2814,6 +2814,7 @@ enumError CopyImage
 	RemoveSF(fi);
 
     return ResetSF( fo, preserve || fi->disc1 == fi->disc2 ? &fatt : 0 );
+
 #endif
 
  abort:

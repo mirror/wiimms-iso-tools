@@ -22,6 +22,12 @@
 #ifndef _BZLIB_PRIVATE_H
 #define _BZLIB_PRIVATE_H
 
+/****************************************/
+/***** This is an extension for WIT *****/
+/****************************************/
+#define _GNU_SOURCE 1
+/****************************************/
+
 #include <stdlib.h>
 
 #ifndef BZ_NO_STDIO

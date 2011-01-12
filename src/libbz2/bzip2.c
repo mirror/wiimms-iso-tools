@@ -17,6 +17,11 @@
    in the file LICENSE.
    ------------------------------------------------------------------ */
 
+/****************************************/
+/***** This is an extension for WIT *****/
+/****************************************/
+#define _GNU_SOURCE 1
+/****************************************/
 
 /* Place a 1 beside your platform, and 0 elsewhere.
    Generic 32-bit Unix.

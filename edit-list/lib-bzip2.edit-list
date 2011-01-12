@@ -1,4 +1,5 @@
 ../src/lib-bzip2.[ch] ;
+../src/libbz2/*.[ch] ;
 ../src/lib-lzma.[ch] ;
 @+all-source.edit-list
 -y   42 ../src/lib-bzip2.c ;

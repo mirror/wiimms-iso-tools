@@ -88,7 +88,7 @@ typedef struct MixFree_t
 ///////////////			struct MixParam_t		///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-#define MAX_MIX_PERM 12
+#define MAX_MIX_PERM 12  // = 479 001 600 permutations
 
 enum { NO_OVERLAY, SIMPLE_OVERLAY, MULTI_HOLE_OVERLAY };
 

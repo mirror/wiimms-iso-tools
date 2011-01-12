@@ -10,6 +10,8 @@ wit v@@VERSION@@ r@@REV-NEXT@@ - @@@@-@@-@@
     - On Linux/x86_64: Enter "M32=1 make ..." to create i386 binaries.
       I386 libraries and include files are needed.
  - "wit COPY/CONVERT/EXTRACT/DIFF" support option --sections.
+ - Bug fix for "wwt EXTRACT --test": If extracting to an already existing file
+   the old file was removed.
 
 
 Known bugs:

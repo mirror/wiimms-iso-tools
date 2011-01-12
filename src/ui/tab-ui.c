@@ -24,6 +24,16 @@
 
 //
 ///////////////////////////////////////////////////////////////////////////////
+///////////////			  text controls			///////////////
+///////////////////////////////////////////////////////////////////////////////
+
+//	\1 : the following text is only for the built in help
+//	\2 : the following text is only for the web site
+//	\3 : the following text is for both, built in help and web site
+//	\4 : replace by '<' for html tags on web site
+
+//
+///////////////////////////////////////////////////////////////////////////////
 ///////////////			  declarations			///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -366,10 +376,11 @@ info_t info_tab[] =
 		    "wit MIX SOURCE... --dest|--DEST outfile\n"
 		    "  where SOURCE    = infile [QUALIFIER]...\n"
 		    "  where QUALIFIER = 'select' part_type\n"
-		    "                  | 'as' [part_table '.'] [part_type]]\n"
+		    "                  | 'as' [part_table '.'] [part_type]\n"
 		    "                  | 'ignore' ruleset\n"
 		    "                  | 'header'\n"
-		    "                  | 'region'",
+		    "                  | 'region'\1\n"
+		    "Read http://wit.wiimm.de/wit/cmd-mix.html for more details.",
 		"Mix the partitions from different sources into one new"
 		" Wii or GameCube disc." },
 
@@ -697,7 +708,9 @@ info_t info_tab[] =
 		" resides in the hole of other partitions."
 		" This option enables this feature."
 		" It also limits the number of input partitions to 12,"
-		" because the calculation is rated as O(2^n)." },
+		" because the calculation is rated as O(2\1^N\2\4sup>N\4/sup>\3)."
+		" 12 partitions can be combined in 479 millions permutations and"
+		" all are tested with a back tracking algorithm to find the best one." },
 
   { H_OPT_CP,	"REPL_FILE",	"repl-file|repl-files|replfile|replfiles",
 		"filedef",

@@ -180,7 +180,7 @@
 	"wit MIX SOURCE... --dest|--DEST outfile\n" \
 	"  where SOURCE    = infile [QUALIFIER]...\n" \
 	"  where QUALIFIER = 'select' part_type\n" \
-	"                  | 'as' [part_table '.'] [part_type]]\n" \
+	"                  | 'as' [part_table '.'] [part_type]\n" \
 	"                  | 'ignore' ruleset\n" \
 	"                  | 'header'\n" \
 	"                  | 'region'", \
@@ -462,7 +462,9 @@
 	" overlay the partitions so that the data of one partition resides in" \
 	" the hole of other partitions. This option enables this feature. It" \
 	" also limits the number of input partitions to 12, because the" \
-	" calculation is rated as O(2^n)." )
+	" calculation is rated as O(2sup>N/sup>). 12 partitions can be" \
+	" combined in 479 millions permutations and all are tested with a back" \
+	" tracking algorithm to find the best one." )
 
 #:def_opt( "IGNORE_FILES", "ignore-files|ignore-file|ignorefiles|ignorefile", "CP", \
 	"ruleset", \
