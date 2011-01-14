@@ -1,10 +1,22 @@
 
 /***************************************************************************
+ *                    __            __ _ ___________                       *
+ *                    \ \          / /| |____   ____|                      *
+ *                     \ \        / / | |    | |                           *
+ *                      \ \  /\  / /  | |    | |                           *
+ *                       \ \/  \/ /   | |    | |                           *
+ *                        \  /\  /    | |    | |                           *
+ *                         \/  \/     |_|    |_|                           *
+ *                                                                         *
+ *                           Wiimms ISO Tools                              *
+ *                         http://wit.wiimm.de/                            *
+ *                                                                         *
+ ***************************************************************************
  *                                                                         *
  *   This file is part of the WIT project.                                 *
  *   Visit http://wit.wiimm.de/ for project details and sources.           *
  *                                                                         *
- *   Copyright (c) 2009-2010 by Dirk Clemens <wiimm@wiimm.de>              *
+ *   Copyright (c) 2009-2011 by Dirk Clemens <wiimm@wiimm.de>              *
  *                                                                         *
  ***************************************************************************
  *                                                                         *
@@ -131,7 +143,7 @@ int AddPartition ( ccp arg, int unused )
 
 int ScanDevForPartitions ( ccp dev_prefix )
 {
-    printf("ScanDevForPartitions(%s)\n",dev_prefix);
+    TRACE("ScanDevForPartitions(%s)\n",dev_prefix);
     size_t len_prefix = strlen(dev_prefix);
 
     static char prefix[] = "/dev/";
@@ -156,7 +168,7 @@ int ScanDevForPartitions ( ccp dev_prefix )
 		if (!memcmp(dent->d_name,dev_prefix,len_prefix))
 		{
 		    StringCopyE(buf+sizeof(prefix)-1,buf+sizeof(buf),dent->d_name);
-		    printf(" - part found: %s\n",buf);
+		    PRINT(" - part found: %s\n",buf);
 		    CreatePartitionInfo(buf,PS_AUTO);
 		    count++;
 		}
@@ -570,7 +582,8 @@ enumError ScanParamID6
 	    }
 	    const int arglen = arg - start;
 	    if ( err || wildcards > 1 || arglen > 6 )
-		return ERROR0(ERR_SEMANTIC,"Illegal ID selector: %.*s\n", arg-start, start );
+		return ERROR0(ERR_SEMANTIC,
+			"Illegal ID selector: %.*s\n", (int)(arg-start), start );
 
 	    char * dest = rule+1;
 	    for ( ; start < arg; start++ )

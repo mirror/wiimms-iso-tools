@@ -1,10 +1,22 @@
 
 /***************************************************************************
+ *                    __            __ _ ___________                       *
+ *                    \ \          / /| |____   ____|                      *
+ *                     \ \        / / | |    | |                           *
+ *                      \ \  /\  / /  | |    | |                           *
+ *                       \ \/  \/ /   | |    | |                           *
+ *                        \  /\  /    | |    | |                           *
+ *                         \/  \/     |_|    |_|                           *
+ *                                                                         *
+ *                           Wiimms ISO Tools                              *
+ *                         http://wit.wiimm.de/                            *
+ *                                                                         *
+ ***************************************************************************
  *                                                                         *
  *   This file is part of the WIT project.                                 *
  *   Visit http://wit.wiimm.de/ for project details and sources.           *
  *                                                                         *
- *   Copyright (c) 2009-2010 by Dirk Clemens <wiimm@wiimm.de>              *
+ *   Copyright (c) 2009-2011 by Dirk Clemens <wiimm@wiimm.de>              *
  *                                                                         *
  ***************************************************************************
  *                                                                         *
@@ -530,7 +542,7 @@ enumError WriteCISO ( SuperFile_t * sf, off_t off, const void * buf, size_t coun
 		ERROR1 ( ERR_WRITE_FAILED,
 			"File to large [%c=%d, block=%u/%u]: %s\n",
 			GetFT(&sf->f), GetFD(&sf->f),
-			sf->f.fname, block, ci->map_size );
+			block, ci->map_size, sf->f.fname );
 	    return sf->f.last_error = ERR_WRITE_FAILED;
 	}
 
@@ -574,7 +586,7 @@ enumError WriteCISO ( SuperFile_t * sf, off_t off, const void * buf, size_t coun
 		ERROR1( ERR_WRITE_FAILED,
 			"Can't write to already skiped block [%c=%d, block=%u/%u]: %s\n",
 			GetFT(&sf->f), GetFD(&sf->f),
-			sf->f.fname, block, ci->map_size );
+			block, ci->map_size, sf->f.fname );
 	    return sf->f.last_error = ERR_WRITE_FAILED;
 	}
 

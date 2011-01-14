@@ -3140,6 +3140,10 @@
 	"", \
 	"" )
 
+#:def_cmd_opt( "EDIT", "SECTIONS", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "EDIT", "PRESERVE", \
 	"", \
 	"" )
@@ -3253,6 +3257,10 @@
 	"" )
 
 #:def_cmd_opt( "MOVE", "QUIET", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "MOVE", "SECTIONS", \
 	"", \
 	"" )
 

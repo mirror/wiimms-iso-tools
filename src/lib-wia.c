@@ -1,10 +1,22 @@
 
 /***************************************************************************
+ *                    __            __ _ ___________                       *
+ *                    \ \          / /| |____   ____|                      *
+ *                     \ \        / / | |    | |                           *
+ *                      \ \  /\  / /  | |    | |                           *
+ *                       \ \/  \/ /   | |    | |                           *
+ *                        \  /\  /    | |    | |                           *
+ *                         \/  \/     |_|    |_|                           *
+ *                                                                         *
+ *                           Wiimms ISO Tools                              *
+ *                         http://wit.wiimm.de/                            *
+ *                                                                         *
+ ***************************************************************************
  *                                                                         *
  *   This file is part of the WIT project.                                 *
  *   Visit http://wit.wiimm.de/ for project details and sources.           *
  *                                                                         *
- *   Copyright (c) 2009-2010 by Dirk Clemens <wiimm@wiimm.de>              *
+ *   Copyright (c) 2009-2011 by Dirk Clemens <wiimm@wiimm.de>              *
  *                                                                         *
  ***************************************************************************
  *                                                                         *
@@ -1169,10 +1181,9 @@ enumError SetupReadWIA
 
 	default:
 	    return ERROR0(ERR_NOT_IMPLEMENTED,
-			"No support for compression method #%u (%x/hex, %s): \n",
+			"No support for compression method #%u (%x/hex, %s)\n",
 			disc->compression, disc->compression,
-			wd_get_compression_name(disc->compression,"unknown"),
-			sf->f.fname );
+			wd_get_compression_name(disc->compression,"unknown") );
     }
 
 

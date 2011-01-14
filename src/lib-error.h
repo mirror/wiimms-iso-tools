@@ -1,10 +1,22 @@
 
 /***************************************************************************
+ *                    __            __ _ ___________                       *
+ *                    \ \          / /| |____   ____|                      *
+ *                     \ \        / / | |    | |                           *
+ *                      \ \  /\  / /  | |    | |                           *
+ *                       \ \/  \/ /   | |    | |                           *
+ *                        \  /\  /    | |    | |                           *
+ *                         \/  \/     |_|    |_|                           *
+ *                                                                         *
+ *                           Wiimms ISO Tools                              *
+ *                         http://wit.wiimm.de/                            *
+ *                                                                         *
+ ***************************************************************************
  *                                                                         *
  *   This file is part of the WIT project.                                 *
  *   Visit http://wit.wiimm.de/ for project details and sources.           *
  *                                                                         *
- *   Copyright (c) 2009-2010 by Dirk Clemens <wiimm@wiimm.de>              *
+ *   Copyright (c) 2009-2011 by Dirk Clemens <wiimm@wiimm.de>              *
  *                                                                         *
  ***************************************************************************
  *                                                                         *
@@ -104,7 +116,8 @@ extern u32 error_count;
 const char * GetErrorName ( int stat );
 const char * GetErrorText ( int stat );
 int PrintError ( const char * func, const char * file, unsigned int line,
-		int syserr, enumError err_code, const char * format, ... );
+		int syserr, enumError err_code, const char * format, ... )
+		__attribute__ ((__format__(__printf__,6,7)));
 
 #define OUT_OF_MEMORY PrintError(__FUNCTION__,__FILE__,__LINE__,0,ERR_OUT_OF_MEMORY,0)
 

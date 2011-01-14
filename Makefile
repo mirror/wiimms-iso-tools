@@ -1,10 +1,22 @@
 
 #####################################################################
+##                 __            __ _ ___________                  ##
+##                 \ \          / /| |____   ____|                 ##
+##                  \ \        / / | |    | |                      ##
+##                   \ \  /\  / /  | |    | |                      ##
+##                    \ \/  \/ /   | |    | |                      ##
+##                     \  /\  /    | |    | |                      ##
+##                      \/  \/     |_|    |_|                      ##
+##                                                                 ##
+##                        Wiimms ISO Tools                         ##
+##                      http://wit.wiimm.de/                       ##
+##                                                                 ##
+#####################################################################
 ##                                                                 ##
 ##   This file is part of the WIT project.                         ##
 ##   Visit http://wit.wiimm.de/ for project details and sources.   ##
 ##                                                                 ##
-##   Copyright (c) 2009-2010 by Dirk Clemens <wiimm@wiimm.de>      ##
+##   Copyright (c) 2009-2011 by Dirk Clemens <wiimm@wiimm.de>      ##
 ##                                                                 ##
 #####################################################################
 
@@ -29,7 +41,7 @@ WDF_SHORT		= wdf
 WDF_LONG		= Wiimms WDF Tool
 
 VERSION_NUM		= 1.26a
-BETA_VERSION		= 3
+BETA_VERSION		= 4
 			# 0:off  -1:"beta"  >0:"beta#"
 
 URI_HOME		= http://wit.wiimm.de/
@@ -231,6 +243,14 @@ DIR_LIST	+= share work pool makefiles-local edit-list
 LIB_LIST	:= libbz2
 LIB_FILES	:= $(patsubst %,%.a,$(LIB_LIST))
 
+LIB_OBJ += src/libbz2/blocksort.o
+LIB_OBJ += src/libbz2/bzlib.o
+LIB_OBJ += src/libbz2/compress.o
+LIB_OBJ += src/libbz2/crctable.o
+LIB_OBJ += src/libbz2/decompress.o
+LIB_OBJ += src/libbz2/huffman.o
+LIB_OBJ += src/libbz2/randtable.o
+
 #-------------------------------------------------------------------------------
 # sub projects
 
@@ -254,7 +274,7 @@ default_rule: all
 $(ALL_TOOLS): %: %.o $(ALL_OBJECTS) $(TOBJ_ALL) $(LIB_FILES) Makefile | $(HELPER_TOOLS)
 	@printf "$(LOGFORMAT)" tool "$@" "$(TOBJ_$@)"
 	@$(CC) $(CFLAGS) $(DEFINES) $(LDFLAGS) $@.o \
-		$(ALL_OBJECTS) $(TOBJ_$@) $(LIB_FILES) $(LIBS) -o $@
+		$(ALL_OBJECTS) $(TOBJ_$@) $(LIB_OBJ) $(LIBS) -o $@
 	@if test -f $@.exe; then $(STRIP) $@.exe; else $(STRIP) $@; fi
 	@mkdir -p bin/debug
 	@cp -p $@ bin
@@ -265,7 +285,7 @@ $(ALL_TOOLS): %: %.o $(ALL_OBJECTS) $(TOBJ_ALL) $(LIB_FILES) Makefile | $(HELPER
 $(HELPER_TOOLS): %: %.o $(ALL_OBJECTS) $(LIB_FILES) Makefile
 	@printf "$(LOGFORMAT)" helper "$@ $(TOBJ_$@)" "$(MODE)"
 	@$(CC) $(CFLAGS) $(DEFINES) $(LDFLAGS) $@.o \
-		$(ALL_OBJECTS) $(TOBJ_$@) $(LIB_FILES) $(LIBS) -o $@
+		$(ALL_OBJECTS) $(TOBJ_$@) $(LIB_OBJ) $(LIBS) -o $@
 
 #--------------------------
 
@@ -315,7 +335,8 @@ $(LIB_FILES):
 	@printf "$(LOGFORMAT)" "----------  ENTER "./src/$(patsubst %.a,%,$@)/"  ----------" "" ""
 	@XFLAGS="$(XFLAGS)" $(MAKE) --no-print-directory -C "src/$(patsubst %.a,%,$@)"
 	@printf "$(LOGFORMAT)" "----------  LEAVE "./src/$(patsubst %.a,%,$@)/"  ----------" "" ""
-	@cp -p "src/$(patsubst %.a,%,$@)/$@" .
+#	@cp -p "src/$(patsubst %.a,%,$@)/$@" .
+	@touch "$@"
 
 #
 ###############################################################################

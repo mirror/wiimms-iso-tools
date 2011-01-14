@@ -1,10 +1,22 @@
 
 /***************************************************************************
+ *                    __            __ _ ___________                       *
+ *                    \ \          / /| |____   ____|                      *
+ *                     \ \        / / | |    | |                           *
+ *                      \ \  /\  / /  | |    | |                           *
+ *                       \ \/  \/ /   | |    | |                           *
+ *                        \  /\  /    | |    | |                           *
+ *                         \/  \/     |_|    |_|                           *
+ *                                                                         *
+ *                           Wiimms ISO Tools                              *
+ *                         http://wit.wiimm.de/                            *
+ *                                                                         *
+ ***************************************************************************
  *                                                                         *
  *   This file is part of the WIT project.                                 *
  *   Visit http://wit.wiimm.de/ for project details and sources.           *
  *                                                                         *
- *   Copyright (c) 2009-2010 by Dirk Clemens <wiimm@wiimm.de>              *
+ *   Copyright (c) 2009-2011 by Dirk Clemens <wiimm@wiimm.de>              *
  *                                                                         *
  ***************************************************************************
  *                                                                         *
@@ -393,7 +405,7 @@ enumError ReadWDF ( SuperFile_t * sf, off_t off, void * buf, size_t count )
 	    if ( !sf->f.disable_errors )
 		ERROR0( ERR_READ_FAILED, "Read behind eof [%c,%llx+%zx]: %s\n",
 		    sf->f.fp ? 'S' : sf->f.fd != -1 ? 'F' : '-',
-		    off, count, sf->f.fname );
+		    (u64)off, count, sf->f.fname );
 	    return ERR_READ_FAILED;
 	}
 
@@ -408,7 +420,7 @@ enumError ReadWDF ( SuperFile_t * sf, off_t off, void * buf, size_t count )
 	    if ( !sf->f.disable_errors )
 		ERROR0( ERR_WARNING, "Read behind eof -> zero filled [%c,%llx+%zx]: %s\n",
 		    sf->f.fp ? 'S' : sf->f.fd != -1 ? 'F' : '-',
-		    off, count, sf->f.fname );
+		    (u64)off, count, sf->f.fname );
 	}
 
 	size_t fill_count = count - (size_t)max_read;

@@ -1,10 +1,22 @@
 
 /***************************************************************************
+ *                    __            __ _ ___________                       *
+ *                    \ \          / /| |____   ____|                      *
+ *                     \ \        / / | |    | |                           *
+ *                      \ \  /\  / /  | |    | |                           *
+ *                       \ \/  \/ /   | |    | |                           *
+ *                        \  /\  /    | |    | |                           *
+ *                         \/  \/     |_|    |_|                           *
+ *                                                                         *
+ *                           Wiimms ISO Tools                              *
+ *                         http://wit.wiimm.de/                            *
+ *                                                                         *
+ ***************************************************************************
  *                                                                         *
  *   This file is part of the WIT project.                                 *
  *   Visit http://wit.wiimm.de/ for project details and sources.           *
  *                                                                         *
- *   Copyright (c) 2009-2010 by Dirk Clemens <wiimm@wiimm.de>              *
+ *   Copyright (c) 2009-2011 by Dirk Clemens <wiimm@wiimm.de>              *
  *                                                                         *
  ***************************************************************************
  *                                                                         *
@@ -380,7 +392,7 @@ info_t info_tab[] =
 		    "                  | 'ignore' ruleset\n"
 		    "                  | 'header'\n"
 		    "                  | 'region'\1\n"
-		    "Read http://wit.wiimm.de/wit/cmd-mix.html for more details.",
+		    "Read http://wit.wiimm.de/cmd/wit/mix for more details.",
 		"Mix the partitions from different sources into one new"
 		" Wii or GameCube disc." },
 
@@ -1042,7 +1054,9 @@ info_t info_tab[] =
 		" This is important for tools and GUIs that are scanning the output." },
 
   { T_OPT_C,	"SECTIONS",	"sections",
-		0, "Print in machine readable sections and parameter lines." },
+		0,
+		"Print in machine readable sections and parameter lines."
+		"\1 Read http://wit.wiimm.de/opt/sections for more details." },
 
   { T_OPT_CP,	"SORT",		"S|sort",
 		"list",
@@ -1601,6 +1615,7 @@ info_t info_tab[] =
 
   { T_COPT,	"QUIET",	0,0,0 },
   { T_COPT_M,	"VERBOSE",	0,0,0 },
+  { T_COPT,	"SECTIONS",	0,0,0 },
   { T_COPT,	"PRESERVE",	0,0,0 },
 
   { T_SEP_OPT,	0,0,0,0 },
@@ -1621,6 +1636,7 @@ info_t info_tab[] =
   { T_COPY_GRP,	"XSOURCE",	0,0,0 },
   { T_COPT,	"IGNORE",	0,0,0 },
   { T_COPT,	"QUIET",	0,0,0 },
+  { T_COPT,	"SECTIONS",	0,0,0 },
 
   { T_SEP_OPT,	0,0,0,0 },
 

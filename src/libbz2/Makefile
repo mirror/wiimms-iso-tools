@@ -8,7 +8,8 @@ RANLIB=ranlib
 LDFLAGS=
 
 BIGFILES=-D_FILE_OFFSET_BITS=64
-CFLAGS  = -Wall -Winline -O3 -fno-stack-protector
+CFLAGS  = -Wall -Winline -O3
+#CFLAGS += -fno-stack-protector
 CFLAGS += -fomit-frame-pointer -fno-strict-aliasing -funroll-loops
 CFLAGS +=  $(BIGFILES) $(XFLAGS)
 

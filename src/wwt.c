@@ -1,10 +1,22 @@
 
 /***************************************************************************
+ *                    __            __ _ ___________                       *
+ *                    \ \          / /| |____   ____|                      *
+ *                     \ \        / / | |    | |                           *
+ *                      \ \  /\  / /  | |    | |                           *
+ *                       \ \/  \/ /   | |    | |                           *
+ *                        \  /\  /    | |    | |                           *
+ *                         \/  \/     |_|    |_|                           *
+ *                                                                         *
+ *                           Wiimms ISO Tools                              *
+ *                         http://wit.wiimm.de/                            *
+ *                                                                         *
+ ***************************************************************************
  *                                                                         *
  *   This file is part of the WIT project.                                 *
  *   Visit http://wit.wiimm.de/ for project details and sources.           *
  *                                                                         *
- *   Copyright (c) 2009-2010 by Dirk Clemens <wiimm@wiimm.de>              *
+ *   Copyright (c) 2009-2011 by Dirk Clemens <wiimm@wiimm.de>              *
  *                                                                         *
  ***************************************************************************
  *                                                                         *
@@ -90,13 +102,13 @@ static void print_version_section ( bool print_header )
     const u32 endian = be32(e);
 
     printf( "prog=" WWT_SHORT "\n"
-	    "name=\"" WWT_LONG "\"\n"
+	    "name=" WWT_LONG "\n"
 	    "version=" VERSION "\n"
 	    "beta=%d\n"
 	    "revision=" REVISION  "\n"
 	    "system=" SYSTEM "\n"
 	    "endian=%u%u%u%u %s\n"
-	    "author=\"" AUTHOR "\"\n"
+	    "author=" AUTHOR "\n"
 	    "date=" DATE "\n"
 	    "url=" URI_HOME WWT_SHORT "\n"
 	    "\n"
@@ -149,7 +161,7 @@ static void hint_exit ( enumError stat )
 	    progname, CommandInfo[current_command->id].name1 );
     else
 	fprintf(stderr,
-	    "-> Type '%s -h', '%s help' (pipe it to a pager like 'less') for more help.\n\n",
+	    "-> Type '%s -h' or '%s help' (pipe it to a pager like 'less') for more help.\n\n",
 	    progname, progname );
     exit(stat);
 }
@@ -983,7 +995,8 @@ enumError cmd_format()
 	    if ( filemode == FM_OTHER )
 	    {
 		ERROR0(ERR_WRONG_FILE_TYPE,
-		    "%s: Neither regular file nor block device: %s\n",param->arg);
+		    "%s: Neither regular file nor block device: %s\n",
+				progname, param->arg);
 		continue;
 	    }
 	}
