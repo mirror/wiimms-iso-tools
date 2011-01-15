@@ -41,7 +41,7 @@ WDF_SHORT		= wdf
 WDF_LONG		= Wiimms WDF Tool
 
 VERSION_NUM		= 1.26a
-BETA_VERSION		= 4
+BETA_VERSION		= 5
 			# 0:off  -1:"beta"  >0:"beta#"
 
 URI_HOME		= http://wit.wiimm.de/
@@ -139,6 +139,18 @@ TOBJ_wdf	:=
 TOBJ_ALL	:= $(TOBJ_wit) $(TOBJ_wwt) $(TOBJ_wdf)
 
 #-------------------------------------------------------------------------------
+# sub libs
+
+# libbz2
+LIBBZ2_SRC	= $(shell echo src/libbz2/*.c)
+LIBBZ2_OBJ	= $(patsubst %.c,%.o,$(LIBBZ2_SRC))
+
+# lib summary
+LIB_LIST	+= libbz2
+LIB_OBJECTS	+= $(LIBBZ2_OBJ)
+RM_FILES	+= $(foreach l,$(LIB_LIST),src/$(l)/*.{d,o})
+
+#-------------------------------------------------------------------------------
 # source files
 
 UI_FILES	= ui.def
@@ -173,8 +185,8 @@ C_OBJECTS	:= $(sort $(OTHER_TOOLS_OBJ) $(WIT_O) $(LIBWBFS_O) $(LZMA_O) $(TOBJ_AL
 ASM_OBJECTS	:= ssl-asm.o
 
 # all objects + sources
-ALL_OBJECTS	:= $(sort $(WIT_O) $(LIBWBFS_O) $(LZMA_O) $(ASM_OBJECTS))
-ALL_SOURCES	:= $(patsubst %.o,%.c,$(UI_OBJECTS) $(C_OBJECTS) $(ASM_OBJECTS))
+ALL_OBJECTS	= $(sort $(WIT_O) $(LIBWBFS_O) $(LZMA_O) $(ASM_OBJECTS) $(LIB_OBJECTS))
+ALL_SOURCES	= $(patsubst %.o,%.c,$(UI_OBJECTS) $(C_OBJECTS) $(ASM_OBJECTS))
 
 #-------------------------------------------------------------------------------
 
@@ -237,19 +249,6 @@ DIR_LIST_BIN	= $(SCRIPTS) bin
 DIR_LIST	+= $(DIR_LIST_BIN)
 DIR_LIST	+= share work pool makefiles-local edit-list
 
-#-------------------------------------------------------------------------------
-# sub libs
-
-LIB_LIST	:= libbz2
-LIB_FILES	:= $(patsubst %,%.a,$(LIB_LIST))
-
-LIB_OBJ += src/libbz2/blocksort.o
-LIB_OBJ += src/libbz2/bzlib.o
-LIB_OBJ += src/libbz2/compress.o
-LIB_OBJ += src/libbz2/crctable.o
-LIB_OBJ += src/libbz2/decompress.o
-LIB_OBJ += src/libbz2/huffman.o
-LIB_OBJ += src/libbz2/randtable.o
 
 #-------------------------------------------------------------------------------
 # sub projects
@@ -271,10 +270,10 @@ default_rule: all
 ###############################################################################
 # general rules
 
-$(ALL_TOOLS): %: %.o $(ALL_OBJECTS) $(TOBJ_ALL) $(LIB_FILES) Makefile | $(HELPER_TOOLS)
+$(ALL_TOOLS): %: %.o $(ALL_OBJECTS) $(TOBJ_ALL) Makefile | $(HELPER_TOOLS)
 	@printf "$(LOGFORMAT)" tool "$@" "$(TOBJ_$@)"
 	@$(CC) $(CFLAGS) $(DEFINES) $(LDFLAGS) $@.o \
-		$(ALL_OBJECTS) $(TOBJ_$@) $(LIB_OBJ) $(LIBS) -o $@
+		$(ALL_OBJECTS) $(TOBJ_$@) $(LIBS) -o $@
 	@if test -f $@.exe; then $(STRIP) $@.exe; else $(STRIP) $@; fi
 	@mkdir -p bin/debug
 	@cp -p $@ bin
@@ -282,10 +281,10 @@ $(ALL_TOOLS): %: %.o $(ALL_OBJECTS) $(TOBJ_ALL) $(LIB_FILES) Makefile | $(HELPER
 
 #--------------------------
 
-$(HELPER_TOOLS): %: %.o $(ALL_OBJECTS) $(LIB_FILES) Makefile
+$(HELPER_TOOLS): %: %.o $(ALL_OBJECTS) Makefile
 	@printf "$(LOGFORMAT)" helper "$@ $(TOBJ_$@)" "$(MODE)"
 	@$(CC) $(CFLAGS) $(DEFINES) $(LDFLAGS) $@.o \
-		$(ALL_OBJECTS) $(TOBJ_$@) $(LIB_OBJ) $(LIBS) -o $@
+		$(ALL_OBJECTS) $(TOBJ_$@) $(LIBS) -o $@
 
 #--------------------------
 
@@ -329,14 +328,13 @@ ui : gen-ui
 	@printf "$(LOGFORMAT)" run gen-ui ""
 	@./gen-ui
 
-#--------------------------
+#
+###############################################################################
+# lib specific rules
 
-$(LIB_FILES):
-	@printf "$(LOGFORMAT)" "----------  ENTER "./src/$(patsubst %.a,%,$@)/"  ----------" "" ""
-	@XFLAGS="$(XFLAGS)" $(MAKE) --no-print-directory -C "src/$(patsubst %.a,%,$@)"
-	@printf "$(LOGFORMAT)" "----------  LEAVE "./src/$(patsubst %.a,%,$@)/"  ----------" "" ""
-#	@cp -p "src/$(patsubst %.a,%,$@)/$@" .
-	@touch "$@"
+$(LIBBZ2_OBJ): %.o: %.c Makefile
+	@printf "$(LOGFORMAT)" object "$(subst src/libbz2/,,$@)" "$(MODE) [libbz2]"
+	@$(CC) $(CFLAGS) $(DEPFLAGS) $(DEFINES) -c $< -o $@
 
 #
 ###############################################################################
@@ -392,7 +390,6 @@ clean:
 	@printf "$(LOGFORMAT)" rm "output files + distrib" ""
 	@rm -f $(RM_FILES)
 	@rm -fr $(DISTRIB_RM)*
-	@for l in $(LIB_LIST); do $(MAKE) --no-print-directory -C "src/$$l" clean; done
 
 .PHONY : clean+
 clean+: clean

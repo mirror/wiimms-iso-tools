@@ -2,16 +2,14 @@
 SHELL=/bin/sh
 
 # To assist in cross-compiling
-CC=gcc
-AR=ar
-RANLIB=ranlib
-LDFLAGS=
+#CC=gcc
+#AR=ar
+#RANLIB=ranlib
 
-BIGFILES=-D_FILE_OFFSET_BITS=64
-CFLAGS  = -Wall -Winline -O3
+CFLAGS	 = -Wall -Winline -O3 -D_FILE_OFFSET_BITS=64
 #CFLAGS += -fno-stack-protector
-CFLAGS += -fomit-frame-pointer -fno-strict-aliasing -funroll-loops
-CFLAGS +=  $(BIGFILES) $(XFLAGS)
+CFLAGS	+= -fomit-frame-pointer -fno-strict-aliasing -funroll-loops
+CFLAGS	+=  $(XFLAGS)
 
 OBJS= blocksort.o  \
       huffman.o    \
@@ -45,5 +43,5 @@ clean:
 
 $(OBJS): %.o: %.c Makefile
 	@printf "$(LOGFORMAT)" object "$@" ""
-	@$(CC) $(CFLAGS) -c $< -o $@
+	$(CC) $(CFLAGS) -c $< -o $@
 
