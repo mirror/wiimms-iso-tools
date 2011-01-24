@@ -389,13 +389,16 @@ static void dump_wii_part
    
     if ( show_mode & SHOW_P_TAB && wd_disc_has_ptab(disc) )
     {
+	ccp sep = "  -------------------------------------------"
+		  "---------------------------------------------";
+	
 	fprintf(f,"\n%*s%d partition table%s with %d partition%s%s:\n\n"
-	    "%*s   tab.idx   n(part)       offset(part.tab) .. end(p.tab)\n"
-	    "%*s  --------------------------------------------------------\n",
+	    "%*s  index      type    offset ..   end off   size/hex =   size/dec =  MiB  status\n"
+	    "%*s%s\n",
 		indent,"", nt, nt == 1 ? "" : "s",
 		np, np == 1 ? "" : "s",
 		disc->patch_ptab_recommended ? " (patching recommended)" : "",
-		indent,"", indent,"" );
+		indent,"", indent,"", sep );
 
 	wd_ptab_info_t * pc = disc->ptab_info;
 	for ( i = 0; i < WII_MAX_PTAB; i++, pc++ )
@@ -403,20 +406,16 @@ static void dump_wii_part
 	    const u32 np = ntohl(pc->n_part);
 	    if (np)
 	    {
-		const u32 off4 = ntohl(pc->off4);
-		const u64 off = (u64)off4 << 2;
-		fprintf(f,"%*s%7d %8d %11x*4 = %10llx .. %10llx\n",
-		    indent,"", i, np, off4, off,
-		    off + np * sizeof(wd_ptab_entry_t) );
+		const u64 off  = (u64)ntohl(pc->off4) << 2;
+		const u32 size = np * sizeof(wd_ptab_entry_t);
+		fprintf(f,
+		    "%*s%4d     part.tab%10llx ..%10llx %10x =%11u         %u partition%s\n",
+		    indent,"", i, off, off+size, size, size,
+		    np, np == 1 ? "" : "s" );
 	    }
 	}
 
-	//---------------
-
-	fprintf(f,"\n%*s%d partition%s:\n\n"
-	    "%*s   index      type      offset .. end offset   size/hex =   size/dec =  MiB  status\n"
-	    "%*s  ------------------------------------------------------------------------------------\n",
-	    indent,"", np, np == 1 ? "" : "s", indent,"", indent,"" );
+	fprintf(f,"%*s%s\n",indent,"",sep);
 
 	wd_part_t * part = disc->part;
 	DASSERT(part);
@@ -425,25 +424,23 @@ static void dump_wii_part
 	    wd_print_part_name(pname,sizeof(pname),part->part_type,WD_PNAME_COLUMN_9);
 
 	    const u64 off  = (u64)part->part_off4 << 2;
-	    ccp status = !part->is_enabled
-				? "disabled"
-				: part->is_encrypted
-					? "-"
-					: "decrypted";
-	    
+
 	    if (part->is_valid)
 	    {
 		const u64 size = part->part_size;
-		fprintf(f,"%*s%5d.%-2d %s %11llx ..%11llx %10llx =%11llu =%5llu  %s\n",
+		fprintf(f,"%*s%4d.%-2d %s %9llx ..%10llx %10llx =%11llu =%5llu  %s\n",
 		    indent,"", part->ptab_index, part->ptab_part_index,
-		    pname, off, off + size, size, size, (size+MiB/2)/MiB, status );
+		    pname, off, off + size, size, size, (size+MiB/2)/MiB,
+		    wd_print_part_status(0,0,part,true) );
 	    }
 	    else
-		fprintf(f,"%*s%5d.%-2d %s %11llx         "
+		fprintf(f,"%*s%4d.%-2d %s %9llx         "
 			  "** INVALID PARTITION **               invalid\n",
 		    indent,"", part->ptab_index, part->ptab_part_index,
 		    pname, off );
 	}
+
+	fprintf(f,"%*s%s\n",indent,"",sep);
     }
 
 
@@ -623,7 +620,10 @@ enumError Dump_ISO
 		dump_sys_version(f,indent,ntoh64(disc->main_part->tmd->sys_version),19);
 	}
 
-	fprintf(f,"%*sPartitions:       %7u\n",indent,"",disc->n_part);
+	fprintf(f,"%*sPartitions:       %7u%s\n",
+		indent,"", disc->n_part,
+		!wd_is_disc_scrubbed(disc) ? "" : disc->n_part > 1
+			? " (at least one is scrubbed)" : " (scrubbed)" );
 	fprintf(f,"%*sDirectories:      %7u\n",indent,"",disc->fst_dir_count);
 	fprintf(f,"%*sFiles:            %7u\n",indent,"",disc->fst_file_count);
 	fprintf(f,"%*sUsed ISO blocks:  %7u * 32 KiB = %u MiB\n",
@@ -4803,6 +4803,283 @@ enumError VerifyDisc ( Verify_t * ver )
 
     return err ? err : differ_count ? ERR_DIFFER : ERR_OK;
 };
+
+//
+///////////////////////////////////////////////////////////////////////////////
+///////////////			  Skeletonize			///////////////
+///////////////////////////////////////////////////////////////////////////////
+
+static void skel_copy_phead
+(
+    wd_memmap_t		* mm,		// valid memory map
+    void		* data,		// pointer to data
+    u64			offset,		// disc offset
+    u32			size,		// data size
+    ccp			info		// info
+)
+{
+    DASSERT(mm);
+    ASSERT(data);
+    wd_memmap_item_t * mi = wd_insert_memmap(mm,0,offset,size);
+    DASSERT(mi);
+    mi->data = data;
+    StringCopyS(mi->info,sizeof(mi->info),info);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+static enumError skel_load_part
+(
+    wd_memmap_t		* mm,		// valid memory map
+    wd_part_t		* part,		// valid partition
+    u64			data_offset4,	// partition data offset
+    u32			data_size,	// data size
+    ccp			info		// info
+)
+{
+    DASSERT(mm);
+    DASSERT(part);
+
+    //--- calculate disc offset
+
+    u8 * data = malloc(data_size);
+    if (!data)
+	OUT_OF_MEMORY;
+
+    const enumError err = wd_read_part(part,data_offset4,data,data_size,false);
+    if (err)
+    {
+	free(data);
+	return err;
+    }
+
+    u64 disc_off_begin = wd_calc_disc_offset(part,data_offset4);
+    u64 disc_off_end   = wd_calc_disc_offset(part,data_offset4+(data_size+3>>2));
+    PRINT("P: %llx+%x -> %llx..%llx: %s\n",
+		data_offset4, data_size,
+		disc_off_begin, disc_off_end, info );
+
+    int idx = 0;
+    while ( disc_off_begin < disc_off_end )
+    {
+	u64 end = ( disc_off_begin / WII_SECTOR_SIZE + 1 ) * WII_SECTOR_SIZE;
+	if ( end > disc_off_end )
+	     end = disc_off_end;
+
+	const u32 chunk_size = end - disc_off_begin;
+	wd_memmap_item_t * mi
+		= wd_insert_memmap(mm,0,disc_off_begin,chunk_size);
+	DASSERT(mi);
+	mi->data = data;
+	if (!idx)
+	    mi->data_alloced = true;
+
+	if ( idx++ || end < disc_off_end )
+	    snprintf(mi->info,sizeof(mi->info),"%s #%u",info,idx);
+	else
+	    snprintf(mi->info,sizeof(mi->info),"%s",info);
+
+	data += chunk_size;
+	disc_off_begin += chunk_size + WII_SECTOR_HASH_SIZE;
+    }
+    
+    return ERR_OK;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+enumError Skeletonize
+(
+    SuperFile_t		* fi,		// valid input file
+    ccp			path,		// NULL or path for logging
+    int			disc_index,	// 1 based index of disc
+    int			disc_total	// total numbers of discs
+)
+{
+    DASSERT(fi);
+    DASSERT( disc_total > 0 );
+    DASSERT( disc_index > 0 && disc_index <= disc_total );
+
+    if ( testmode || verbose >= 0 )
+	printf("SKELETONIZE %u/%u [%s] %s\n",
+		disc_index, disc_total,
+		fi->f.id6, path ? path : fi->f.fname );
+
+    wd_memmap_t mm;
+    memset(&mm,0,sizeof(mm));
+
+    enumError err = ERR_OK;
+    wd_disc_t * disc = OpenDiscSF(fi,true,true);
+    if (!disc)
+    {
+	err = ERR_WDISC_NOT_FOUND;
+	goto abort;
+    }
+
+
+    //--- collect data
+
+    wd_memmap_item_t * mi = wd_insert_memmap_alloc(&mm,0,0,WII_PART_OFF);
+    DASSERT( mi && mi->data );
+    snprintf(mi->info,sizeof(mi->info),"Disc header of %s",fi->f.id6);
+    err = ReadSF(fi,0,mi->data,WII_PART_OFF);
+    if (err)
+	goto abort;
+
+    int ip;
+    for ( ip = 0; ip < disc->n_part; ip++ )
+    {
+	wd_part_t * part = wd_get_part_by_index(disc,ip,2);
+	if (!part)
+	    continue;
+
+	skel_copy_phead( &mm, &part->ph,
+			(u64)part->part_off4<<2,
+			sizeof(part->ph), "ticket" );
+	skel_copy_phead( &mm, part->tmd,
+			(u64)(part->part_off4+part->ph.tmd_off4)<<2,
+			part->ph.tmd_size, "tmd" );
+	skel_copy_phead( &mm, part->cert,
+			(u64)(part->part_off4+part->ph.cert_off4)<<2,
+			part->ph.cert_size, "cert" );
+
+	err = skel_load_part( &mm, part,
+			WII_BOOT_OFF>>2, WII_BOOT_SIZE,
+			"boot.bin" );
+	if (err)
+	    goto abort;
+
+	err = skel_load_part( &mm, part,
+			WII_BI2_OFF>>2, WII_BI2_SIZE,
+			"bi2.bin" );
+	if (err)
+	    goto abort;
+
+	err = skel_load_part( &mm, part,
+			part->boot.fst_off4,
+			part->boot.fst_size4<<2,
+			"fst.bin" );
+	if (err)
+	    goto abort;
+
+	err = skel_load_part( &mm, part,
+			part->boot.dol_off4,
+			DOL_HEADER_SIZE,
+			"main.dol/header" );
+	if (err)
+	    goto abort;
+
+	const u32 apl_off4 = part->is_gc ? WII_APL_OFF : WII_APL_OFF >> 2;
+	err = skel_load_part( &mm, part,
+			apl_off4,
+			0x20,
+			"apploader/header" );
+	if (err)
+	    goto abort;
+
+	hton_part_header(&part->ph,&part->ph); // values are not longer needed
+    }
+
+
+    //--- calc sha1 + fname
+
+    bool local_mkdir = opt_mkdir;
+    ccp local_dest = opt_dest;
+    if ( !local_dest || !*local_dest )
+    {
+	local_mkdir = true;
+	local_dest  = "./wit-skel";
+    }
+    
+    char fname[PATH_MAX];
+    
+    {
+	WIT_SHA_CTX ctx;
+	if (!WIT_SHA1_Init(&ctx))
+	{
+	    ASSERT(0);
+	    exit(0);
+	}
+
+	int i;
+	for ( i = 0; i < mm.used; i++ )
+	{
+	    wd_memmap_item_t * mi = mm.item + i;
+	    PRINT("### %p %9llx %6llx\n",mi->data,mi->offset,mi->size);
+	    WIT_SHA1_Update(&ctx,mi->data,mi->size);
+	}
+	u8 h[WII_HASH_SIZE];
+	WIT_SHA1_Final(h,&ctx);
+
+	snprintf(fname,sizeof(fname),
+		"%s/%.6s-%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x"
+		     "%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x",
+		local_dest, fi->f.id6,
+		h[0], h[1], h[2], h[3], h[4], 
+		h[5], h[6], h[7], h[8], h[9], 
+		h[10], h[11], h[12], h[13], h[14], 
+		h[15], h[16], h[17], h[18], h[19] );
+    }
+
+
+    //--- create output filename
+
+    const enumOFT oft = CalcOFT(output_file_type,0,0,OFT__DEFAULT);
+
+    SuperFile_t fo;
+    InitializeSF(&fo);
+    SetupIOD(&fo,oft,oft);
+    fo.f.create_directory = local_mkdir;
+
+    GenImageFileName(&fo.f,0,fname,oft);
+    SubstFileNameSF(&fo,fi,0);
+
+    if ( testmode || verbose >= 0 )
+	printf(" - %sCREATE %s:%s\n",
+		testmode ? "WOULD " : "", oft_info[oft].name, fo.f.fname );
+
+
+    //--- create output
+
+    if (!testmode)
+    {
+	err = CreateFile( &fo.f, 0, oft_info[oft].iom, true );
+	if (!err)
+	{
+	    err = SetupWriteSF(&fo,oft);
+	    MarkMinSizeSF(&fo,fi->file_size);
+	    if (!err)
+	    {
+		int i;
+		for ( i = 0; !err && i < mm.used; i++ )
+		{
+		    wd_memmap_item_t * mi = mm.item + i;
+		    err = WriteSparseSF(&fo,mi->offset,mi->data,mi->size);
+		}
+	    }
+	}
+
+	if (err)
+	    RemoveSF(&fo);
+	else
+	    err = ResetSF(&fo,&fi->f.fatt);
+    }
+    ResetSF(&fo,0);
+
+
+    //--- terminate
+
+ abort:
+    if (logging)
+    {
+	printf("\n   SKELETON Memory Map:\n\n");
+	wd_print_memmap(stdout,3,&mm);
+	putchar('\n');
+    }
+    wd_reset_memmap(&mm);
+
+    return err;
+}
 
 //
 ///////////////////////////////////////////////////////////////////////////////

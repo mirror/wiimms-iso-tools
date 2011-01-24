@@ -88,9 +88,11 @@ typedef enum enumOptions
 	OPT_QUIET,
 	OPT_VERBOSE,
 	OPT_LOGGING,
+	OPT_IO,
+	OPT_DIRECT,
 	OPT_TEST,
 
-	OPT__N_TOTAL // == 31
+	OPT__N_TOTAL // == 33
 
 } enumOptions;
 
@@ -230,6 +232,8 @@ typedef enum enumGetOpt
 
 	GO_XHELP		= 0x80,
 	GO_WIDTH,
+	GO_IO,
+	GO_DIRECT,
 	GO_CHUNK,
 	GO_WIA,
 	GO_WBI,

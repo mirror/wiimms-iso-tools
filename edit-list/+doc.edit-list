@@ -1,7 +1,7 @@
 ../templates/module/last-history.txt ;
 ../templates/{wit,wwt}.txt ;
 ../templates/DOCUMENTATION.txt ;
-../templates/HISTORY.txt ;
+../templates/HISTORY*.txt ;
 ../templates/*.txt ;
 ../templates/*.forum ;
 ../templates/&/*.{txt,def,inc} ;

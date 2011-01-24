@@ -144,6 +144,7 @@ typedef enum enumOptions
 	OPT_LOGGING,
 	OPT_ESC,
 	OPT_IO,
+	OPT_DIRECT,
 	OPT_TITLES,
 	OPT_UTF_8,
 	OPT_NO_UTF_8,
@@ -152,7 +153,7 @@ typedef enum enumOptions
 	OPT_TEST,
 	OPT_HOOK,
 
-	OPT__N_TOTAL // == 93
+	OPT__N_TOTAL // == 94
 
 } enumOptions;
 
@@ -502,6 +503,15 @@ typedef enum enumOptions
 //				| OB_LIMIT
 //				| OB_LONG,
 //
+//	OB_CMD_SKELETON		= OB_GRP_TITLES
+//				| OB_AUTO
+//				| OB_GRP_XXSOURCE
+//				| OB_GRP_PARTITIONS
+//				| OB_GRP_OUTMODE_EDIT
+//				| OB_FST
+//				| OB_DEST
+//				| OB_DEST2,
+//
 //	OB_CMD_MIX		= OB_DEST
 //				| OB_DEST2
 //				| OB_OVERWRITE
@@ -561,9 +571,10 @@ typedef enum enumCommands
 	CMD_SETTITLE,
 
 	CMD_VERIFY,
+	CMD_SKELETON,
 	CMD_MIX,
 
-	CMD__N // == 34
+	CMD__N // == 35
 
 } enumCommands;
 
@@ -617,6 +628,7 @@ typedef enum enumGetOpt
 	GO_XHELP		= 0x80,
 	GO_WIDTH,
 	GO_IO,
+	GO_DIRECT,
 	GO_UTF_8,
 	GO_NO_UTF_8,
 	GO_LANG,

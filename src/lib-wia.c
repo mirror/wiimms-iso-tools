@@ -315,22 +315,8 @@ char * PrintVersionWIA
     u32			version		// version number to print
 )
 {
-    enum
-    {
-	SBUF_COUNT = 4,
-	SBUF_SIZE  = 20
-    };
-
-    static int  sbuf_index = 0;
-    static char sbuf[SBUF_COUNT][SBUF_SIZE+1];
-
     if (!buf)
-    {
-	// use static buffer
-	buf = sbuf[sbuf_index];
-	buf_size = SBUF_SIZE;
-	sbuf_index = ( sbuf_index + 1 ) % SBUF_COUNT;
-    }
+	buf = GetCircBuf( buf_size = 20 );
 
     version = htonl(version); // we need big endian here
     const u8 * v = (const u8 *)&version;

@@ -41,7 +41,7 @@ WDF_SHORT		= wdf
 WDF_LONG		= Wiimms WDF Tool
 
 VERSION_NUM		= 1.26a
-BETA_VERSION		= 5
+BETA_VERSION		= 6
 			# 0:off  -1:"beta"  >0:"beta#"
 
 URI_HOME		= http://wit.wiimm.de/
@@ -235,6 +235,7 @@ DISTRIB_CYGWIN	= $(DISTRIB_BASE)-cygwin.zip
 DISTRIB_FILES	= gpl-2.0.txt $(INSTALL_SCRIPTS)
 
 DOC_FILES	= doc/*.txt
+IGNORE_DOC_FILES= HISTORY-v*.txt
 TITLE_FILES	= titles.txt $(patsubst %,titles-%.txt,$(LANGUAGES))
 LANGUAGES	= de es fr it ja ko nl pt ru zhcn zhtw
 
@@ -271,7 +272,7 @@ default_rule: all
 # general rules
 
 $(ALL_TOOLS): %: %.o $(ALL_OBJECTS) $(TOBJ_ALL) Makefile | $(HELPER_TOOLS)
-	@printf "$(LOGFORMAT)" tool "$@" "$(TOBJ_$@)"
+	@printf "$(LOGFORMAT)" tool "$@" "$(MODE) $(TOBJ_$@)"
 	@$(CC) $(CFLAGS) $(DEFINES) $(LDFLAGS) $@.o \
 		$(ALL_OBJECTS) $(TOBJ_$@) $(LIBS) -o $@
 	@if test -f $@.exe; then $(STRIP) $@.exe; else $(STRIP) $@; fi
@@ -454,12 +455,13 @@ ifeq ($(SYSTEM),cygwin)
 	@rm -rf $(DISTRIB_PATH)/* 2>/dev/null || true
 	@rm -rf $(DISTRIB_PATH) 2>/dev/null || true
 	@mkdir -p $(DISTRIB_PATH)/bin $(DISTRIB_PATH)/doc
-	@echo cmd >$(DISTRIB_PATH)/bin/wit-console.bat
+	@printf '@cmd\r\n' >$(DISTRIB_PATH)/bin/wit-console.bat
 	@cp -p gpl-2.0.txt $(DISTRIB_PATH)
 	@ln -f $(MAIN_TOOLS) $(WDF_LINKS) $(DISTRIB_PATH)/bin
 	@cp -p $(CYGWIN_BIN_SRC) $(DISTRIB_PATH)/bin
 	@( cd share; cp $(TITLE_FILES) ../$(DISTRIB_PATH)/bin )
 	@cp -p $(DOC_FILES) $(DISTRIB_PATH)/doc
+	@rm -f $(DISTRIB_PATH)/doc/$(IGNORE_DOC_FILES)
 
 	@zip -roq $(DISTRIB_PATH).zip $(DISTRIB_PATH)
 	@chmod 664 $(DISTRIB_PATH).zip
@@ -473,6 +475,7 @@ else
 	@ln -f $(MAIN_TOOLS) $(WDF_LINKS) $(DISTRIB_PATH)/bin
 	@cp -p share/*.txt $(DISTRIB_PATH)/share
 	@cp -p $(DOC_FILES) $(DISTRIB_PATH)/doc
+	@rm -f $(DISTRIB_PATH)/doc/$(IGNORE_DOC_FILES)
 	@cp -p $(SCRIPTS)/*.{sh,txt} $(DISTRIB_PATH)/scripts
 
 	@chmod -R 664 $(DISTRIB_PATH)

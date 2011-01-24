@@ -2,18 +2,21 @@ wit v@@VERSION@@ r@@REV-NEXT@@ - @@@@-@@-@@
 
  - Bug fix for "wwt EXTRACT --test": If extracting to an already existing file
    the old file was removed.
- - I have made some changes in the make system to support local libraries with
-   own makefiles (libbz2.a), option -static and cross compiling (Linux/i386 on
-   Linux/x86_64). Hope that all work as usual.
-    - BZIP2 support is now included as source and should work for all systems.
-      This enables WIA/bzip2 support for Mac/x86_64.
-    - The distributions of Linux/i386 and Linux/X86_64 are linked static to
-      to avoid GLIBC version issues (e.g. fallocate() support).
-    - On Linux/x86_64: Enter "M32=1 make ..." to create i386 binaries.
-      I386 libraries and include files are needed.
- - Linux/i386: Because of the static linking I can use the latest preallocation
-   support for Linux. Copying file is now fast again.
- - "wit COPY/CONVERT/EXTRACT/EDIT/MOVE/DIFF" support option --sections.
+ - Bug fix for "wdf +PACK": wrong data written if packing a raw file.
+ - I have made some changes in the make system to support GCC option -static
+   and cross compiling (Linux/i386 on Linux/x86_64).
+ - Linux/i386: Because of the static linking I can use the latest version of
+   the Linux GLIBC with preallocation support. Copying file is now fast again.
+ - BZIP2 support is now included as source and should work for all systems.
+   This enables WIA/bzip2 support for Mac/x86_64.
+ - "wit COPY/CONVERT/EXTRACT/EDIT/MOVE/DIFF" and "wwt ADD/EXTRACT/REMOVE"
+   support now the option --sections.
+ - "wwt add": New user interface implemented: In a first fast loop the jobs are
+   counted with respect to the options like --update and --newer (ignore skiped
+   files). In a second loop the jobs are executed with correct job counters.
+ - wit DUMP: Scrubbing status of disc and partitions are printed. Example:
+      "TICKET & TMD are well signed. Partition is encrypted and scrubbed."
+ - "wit EXTARCT" failed if the disc title could not found in the title db.
 
 
 Known bugs:

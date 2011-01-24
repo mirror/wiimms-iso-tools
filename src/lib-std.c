@@ -270,7 +270,8 @@ void SetupLib ( int argc, char ** argv, ccp p_progname, enumProgID prid )
     TRACE_SIZEOF(PrintTime_t);
     TRACE_SIZEOF(RegionInfo_t);
     TRACE_SIZEOF(StringField_t);
-    TRACE_SIZEOF(StringItem_t);
+    TRACE_SIZEOF(IdField_t);
+    TRACE_SIZEOF(IdItem_t);
     TRACE_SIZEOF(StringList_t);
     TRACE_SIZEOF(SubstString_t);
     TRACE_SIZEOF(SuperFile_t);
@@ -339,6 +340,8 @@ void SetupLib ( int argc, char ** argv, ccp p_progname, enumProgID prid )
     TRACE_SIZEOF(wd_ptab_t);
     TRACE_SIZEOF(wd_region_t);
     TRACE_SIZEOF(wd_reloc_t);
+    TRACE_SIZEOF(wd_scrubbed_t);
+    TRACE_SIZEOF(wd_sector_status_t);
     TRACE_SIZEOF(wd_select_item_t);
     TRACE_SIZEOF(wd_select_mode_t);
     TRACE_SIZEOF(wd_select_t);
@@ -3054,7 +3057,176 @@ RepairMode ScanRepairMode ( ccp arg )
 
 //
 ///////////////////////////////////////////////////////////////////////////////
-///////////////		    string lists & fields		///////////////
+///////////////			  IdField_t			///////////////
+///////////////////////////////////////////////////////////////////////////////
+
+void InitializeIdField ( IdField_t * idf )
+{
+    ASSERT(idf);
+    memset(idf,0,sizeof(*idf));
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+void ResetIdField ( IdField_t * idf )
+{
+    ASSERT(idf);
+    if ( idf && idf->used > 0 )
+    {
+	ASSERT(idf->field);
+	IdItem_t **ptr = idf->field, **end;
+	for ( end = ptr + idf->used; ptr < end; ptr++ )
+	    free(*ptr);
+	free(idf->field);
+    }
+    InitializeIdField(idf);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+static uint FindIdFieldHelper ( IdField_t * idf, bool * p_found, ccp key )
+{
+    ASSERT(idf);
+
+    int beg = 0;
+    if ( idf && key )
+    {
+	int end = idf->used - 1;
+	while ( beg <= end )
+	{
+	    uint idx = (beg+end)/2;
+	    int stat = strcmp(key,idf->field[idx]->arg);
+	    if ( stat < 0 )
+		end = idx - 1 ;
+	    else if ( stat > 0 )
+		beg = idx + 1;
+	    else
+	    {
+		TRACE("FindIdFieldHelper(%s) FOUND=%d/%d/%d\n",
+			key, idx, idf->used, idf->size );
+		if (p_found)
+		    *p_found = true;
+		return idx;
+	    }
+	}
+    }
+
+    TRACE("FindIdFieldHelper(%s) failed=%d/%d/%d\n",
+		key, beg, idf->used, idf->size );
+
+    if (p_found)
+	*p_found = false;
+    return beg;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+static IdItem_t ** InsertIdFieldHelper ( IdField_t * idf, int idx )
+{
+    DASSERT(idf);
+    DASSERT( idf->used <= idf->size );
+    if ( idf->used == idf->size )
+    {
+	idf->size += 0x100;
+	idf->field = realloc(idf->field,idf->size*sizeof(ccp));
+	if (!idf->field)
+	    OUT_OF_MEMORY;
+    }
+    DASSERT( idx <= idf->used );
+    IdItem_t ** dest = idf->field + idx;
+    memmove(dest+1,dest,(idf->used-idx)*sizeof(ccp));
+    idf->used++;
+    return dest;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+const IdItem_t * FindIdField ( IdField_t * idf, ccp key )
+{
+    bool found;
+    int idx = FindIdFieldHelper(idf,&found,key);
+    return found ? idf->field[idx] : 0;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+bool InsertIdField ( IdField_t * idf, void * id6, char flag, time_t mtime, ccp key )
+{
+    bool found;
+    int idx = FindIdFieldHelper(idf,&found,key);
+    IdItem_t ** dest;
+    if (found)
+    {
+	DASSERT( idx < idf->used );
+	dest = idf->field + idx;
+	free((char*)*dest);
+    }
+    else
+	dest = InsertIdFieldHelper(idf,idx);
+
+    const int key_len   = key ? strlen(key) : 0;
+    const int item_size = sizeof(IdItem_t) + key_len + 1;
+    IdItem_t * item = malloc(item_size);
+    if (!item)
+	OUT_OF_MEMORY;
+    *dest = item;
+
+    memset(item,0,item_size);
+    if (id6)
+	strncpy(item->id6,id6,6);
+    item->flag = flag;
+    item->mtime = mtime;
+    if (key)
+	memcpy(item->arg,key,key_len);
+    return !found;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+bool RemoveIdField ( IdField_t * idf, ccp key )
+{
+    bool found;
+    uint idx = FindIdFieldHelper(idf,&found,key);
+    if (found)
+    {
+	idf->used--;
+	ASSERT( idx <= idf->used );
+	IdItem_t ** dest = idf->field + idx;
+	free(*dest);
+	memmove(dest,dest+1,(idf->used-idx)*sizeof(ccp));
+    }
+    return found;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+void DumpIdField ( FILE *f, int indent, const IdField_t * idf )
+{
+    DASSERT(f);
+    DASSERT(idf);
+    indent = NormalizeIndent(indent);
+
+    int i;
+    for ( i = 0; i < idf->used; i++ )
+    {
+	const IdItem_t * item = idf->field[i];
+	char timbuf[40];
+	if (item->mtime)
+	{
+	    struct tm * tm = localtime(&item->mtime);
+	    strftime(timbuf,sizeof(timbuf),"%F %T",tm);
+	}
+	else
+	    strncpy(timbuf,"     -         -   ",sizeof(timbuf));
+	
+	fprintf(f,"%*s%-6s %02x %s %s\n",
+		indent, "", item->id6, item->flag, timbuf, item->arg );
+    }
+}
+
+//
+///////////////////////////////////////////////////////////////////////////////
+///////////////			  StringField_t			///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
 void InitializeStringField ( StringField_t * sf )
@@ -3133,7 +3305,7 @@ bool InsertStringField ( StringField_t * sf, ccp key, bool move_key )
 
 ///////////////////////////////////////////////////////////////////////////////
 
-StringItem_t * InsertStringID6 ( StringField_t * sf, void * id6, char flag, ccp arg )
+IdItem_t * InsertStringID6 ( StringField_t * sf, void * id6, char flag, ccp arg )
 {
     if (!id6)
 	return 0;
@@ -3151,8 +3323,8 @@ StringItem_t * InsertStringID6 ( StringField_t * sf, void * id6, char flag, ccp 
 	dest = InsertStringFieldHelper(sf,idx);
 
     const int arg_len   = arg ? strlen(arg) : 0;
-    const int item_size = sizeof(StringItem_t) + arg_len + 1;
-    StringItem_t * item = malloc(item_size);
+    const int item_size = sizeof(IdItem_t) + arg_len + 1;
+    IdItem_t * item = malloc(item_size);
     if (!item)
 	OUT_OF_MEMORY;
 

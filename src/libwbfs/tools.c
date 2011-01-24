@@ -247,19 +247,6 @@ u64 wd_align_part
 ///////////////			print size			///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-// circulary buffer for print size functions
-
-enum
-{
-    PRINT_SIZE_BUF_COUNT =  8,
-    PRINT_SIZE_BUF_SIZE  = 20
-};
-
-static int  print_size_buf_index = 0;
-static char print_size_buf[PRINT_SIZE_BUF_COUNT][PRINT_SIZE_BUF_SIZE+1];
-
-///////////////////////////////////////////////////////////////////////////////
-
 ccp wd_get_size_unit // get a unit for column headers
 (
     wd_size_mode_t	mode,		// print mode
@@ -346,14 +333,7 @@ char * wd_print_size
     DASSERT( WD_SIZE_N_MODES <= WD_SIZE_M_MODE + 1 );
 
     if (!buf)
-    {
-	// use static buffer
-	buf = print_size_buf[print_size_buf_index];
-	buf_size = PRINT_SIZE_BUF_SIZE;
-	print_size_buf_index = ( print_size_buf_index + 1 ) % PRINT_SIZE_BUF_COUNT;
-    }
-
-    //----------------
+	buf = GetCircBuf( buf_size = 20 );
 
     const bool force_1000 = ( mode & WD_SIZE_M_BASE ) == WD_SIZE_F_1000;
 
@@ -479,14 +459,7 @@ char * wd_print_size_1000
 )
 {
     if (!buf)
-    {
-	// use static buffer
-	buf = print_size_buf[print_size_buf_index];
-	buf_size = PRINT_SIZE_BUF_SIZE;
-	print_size_buf_index = ( print_size_buf_index + 1 ) % PRINT_SIZE_BUF_COUNT;
-    }
-
-    //----------------
+	buf = GetCircBuf( buf_size = 20 );
 
     ccp unit;
     u64 num;
@@ -564,14 +537,7 @@ char * wd_print_size_1024
 )
 {
     if (!buf)
-    {
-	// use static buffer
-	buf = print_size_buf[print_size_buf_index];
-	buf_size = PRINT_SIZE_BUF_SIZE;
-	print_size_buf_index = ( print_size_buf_index + 1 ) % PRINT_SIZE_BUF_COUNT;
-    }
-
-    //----------------
+	buf = GetCircBuf( buf_size = 20 );
 
     ccp unit;
     u64 num;
@@ -730,6 +696,32 @@ void wd_print_byte_tab
 	fprintf(f,"%*llx:%s\n",indent,skip_addr,skip_buf);
     else if (skip_count)
 	fprintf(f,"%*llx:%s *%5u\n",indent,skip_addr,skip_buf,skip_count);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+char * GetCircBuf // never returns NULL
+(
+    u32		buf_size	// wanted buffer size
+)
+{
+    static char buf[500];
+    static char * ptr = buf;
+    DASSERT( ptr >= buf && ptr <= buf + sizeof(buf) );
+
+    if ( buf_size > sizeof(buf) )
+	OUT_OF_MEMORY;
+
+    if ( buf + sizeof(buf) - ptr < buf_size )
+	ptr = buf;
+
+    char * result = ptr;
+    ptr = result + buf_size;
+    DASSERT( ptr >= buf && ptr <= buf + sizeof(buf) );
+
+    noPRINT("CIRC-BUF: %3u -> %3zu / %3zu / %3zu\n",
+		buf_size, result-buf, ptr-buf, sizeof(buf) );
+    return result;
 }
 
 //

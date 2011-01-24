@@ -716,7 +716,7 @@ enumError RewriteModifiedSF
 	fo = wbfs->sf;
     ASSERT(fo);
     ASSERT(fo->f.is_writing);
-    TRACE("+++ RewriteModifiedSF(%p,%p,%p,%x), oft=%d,%d\n",
+    TRACE("+++ RewriteModifiedSF(%p,%p,%p,%llx), oft=%d,%d\n",
 		fi,fo,wbfs,off,fi->iod.oft,fo->iod.oft);
 
     wd_disc_t * disc = fi->disc1;

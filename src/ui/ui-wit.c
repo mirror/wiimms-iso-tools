@@ -713,6 +713,13 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 	" value '4' for WIA files. You can combine the values by adding them."
     },
 
+    {	OPT_DIRECT, 0, "direct",
+	0,
+	"This option allows the tools to use direct file io for some file"
+	" types. Therefore the flag O_DIRECT is set while opening files.\n"
+	">>> DIRECT IO IS EXPERIMENTAL! <<<"
+    },
+
     {	OPT_TITLES, 'T', "titles",
 	"file",
 	"Read file for disc titles. -T0 disables titles lookup."
@@ -752,7 +759,7 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 	"Force relocation hook while reading iso images."
     },
 
-    {0,0,0,0,0} // OPT__N_TOTAL == 93
+    {0,0,0,0,0} // OPT__N_TOTAL == 94
 
 };
 
@@ -1004,6 +1011,7 @@ const CommandTab_t CommandTab[] =
     { CMD_RENAME,	"RENAME",	"REN",		0 },
     { CMD_SETTITLE,	"SETTITLE",	"ST",		0 },
     { CMD_VERIFY,	"VERIFY",	"V",		0 },
+    { CMD_SKELETON,	"SKELETON",	"SKEL",		0 },
     { CMD_MIX,		"MIX",		0,		0 },
 
     { CMD__N,0,0,0 }
@@ -1028,6 +1036,7 @@ const struct option OptionLong[] =
 	{ "logging",		0, 0, 'L' },
 	{ "esc",		1, 0, 'E' },
 	{ "io",			1, 0, GO_IO },
+	{ "direct",		0, 0, GO_DIRECT },
 	{ "titles",		1, 0, 'T' },
 	{ "utf-8",		0, 0, GO_UTF_8 },
 	 { "utf8",		0, 0, GO_UTF_8 },
@@ -1220,61 +1229,62 @@ const u8 OptionIndex[OPT_INDEX_SIZE] =
 	/*80*/	OPT_XHELP,
 	/*81*/	OPT_WIDTH,
 	/*82*/	OPT_IO,
-	/*83*/	OPT_UTF_8,
-	/*84*/	OPT_NO_UTF_8,
-	/*85*/	OPT_LANG,
-	/*86*/	OPT_CERT,
-	/*87*/	OPT_NO_EXPAND,
-	/*88*/	OPT_RDEPTH,
-	/*89*/	OPT_JOB_LIMIT,
-	/*8a*/	OPT_FAKE_SIGN,
-	/*8b*/	OPT_IGNORE_FST,
-	/*8c*/	OPT_IGNORE_SETUP,
-	/*8d*/	OPT_PSEL,
-	/*8e*/	OPT_RAW,
-	/*8f*/	OPT_PMODE,
-	/*90*/	OPT_SNEEK,
-	/*91*/	OPT_HOOK,
-	/*92*/	OPT_ENC,
-	/*93*/	OPT_ID,
-	/*94*/	OPT_NAME,
-	/*95*/	OPT_MODIFY,
-	/*96*/	OPT_REGION,
-	/*97*/	OPT_COMMON_KEY,
-	/*98*/	OPT_IOS,
-	/*99*/	OPT_RM_FILES,
-	/*9a*/	OPT_ZERO_FILES,
-	/*9b*/	OPT_OVERLAY,
-	/*9c*/	OPT_REPL_FILE,
-	/*9d*/	OPT_ADD_FILE,
-	/*9e*/	OPT_IGNORE_FILES,
-	/*9f*/	OPT_TRIM,
-	/*a0*/	OPT_ALIGN,
-	/*a1*/	OPT_ALIGN_PART,
-	/*a2*/	OPT_DISC_SIZE,
-	/*a3*/	OPT_PREALLOC,
-	/*a4*/	OPT_TRUNC,
-	/*a5*/	OPT_CHUNK_MODE,
-	/*a6*/	OPT_CHUNK_SIZE,
-	/*a7*/	OPT_MAX_CHUNKS,
-	/*a8*/	OPT_COMPRESSION,
-	/*a9*/	OPT_MEM,
-	/*aa*/	OPT_DIFF,
-	/*ab*/	OPT_WIA,
-	/*ac*/	OPT_FST,
-	/*ad*/	OPT_ITIME,
-	/*ae*/	OPT_MTIME,
-	/*af*/	OPT_CTIME,
-	/*b0*/	OPT_ATIME,
-	/*b1*/	OPT_TIME,
-	/*b2*/	OPT_NUMERIC,
-	/*b3*/	OPT_REALPATH,
-	/*b4*/	OPT_SHOW,
-	/*b5*/	OPT_UNIT,
-	/*b6*/	OPT_OLD_STYLE,
-	/*b7*/	OPT_SECTIONS,
-	/*b8*/	OPT_LIMIT,
-	/*b9*/	 0,0,0,0, 0,0,0,
+	/*83*/	OPT_DIRECT,
+	/*84*/	OPT_UTF_8,
+	/*85*/	OPT_NO_UTF_8,
+	/*86*/	OPT_LANG,
+	/*87*/	OPT_CERT,
+	/*88*/	OPT_NO_EXPAND,
+	/*89*/	OPT_RDEPTH,
+	/*8a*/	OPT_JOB_LIMIT,
+	/*8b*/	OPT_FAKE_SIGN,
+	/*8c*/	OPT_IGNORE_FST,
+	/*8d*/	OPT_IGNORE_SETUP,
+	/*8e*/	OPT_PSEL,
+	/*8f*/	OPT_RAW,
+	/*90*/	OPT_PMODE,
+	/*91*/	OPT_SNEEK,
+	/*92*/	OPT_HOOK,
+	/*93*/	OPT_ENC,
+	/*94*/	OPT_ID,
+	/*95*/	OPT_NAME,
+	/*96*/	OPT_MODIFY,
+	/*97*/	OPT_REGION,
+	/*98*/	OPT_COMMON_KEY,
+	/*99*/	OPT_IOS,
+	/*9a*/	OPT_RM_FILES,
+	/*9b*/	OPT_ZERO_FILES,
+	/*9c*/	OPT_OVERLAY,
+	/*9d*/	OPT_REPL_FILE,
+	/*9e*/	OPT_ADD_FILE,
+	/*9f*/	OPT_IGNORE_FILES,
+	/*a0*/	OPT_TRIM,
+	/*a1*/	OPT_ALIGN,
+	/*a2*/	OPT_ALIGN_PART,
+	/*a3*/	OPT_DISC_SIZE,
+	/*a4*/	OPT_PREALLOC,
+	/*a5*/	OPT_TRUNC,
+	/*a6*/	OPT_CHUNK_MODE,
+	/*a7*/	OPT_CHUNK_SIZE,
+	/*a8*/	OPT_MAX_CHUNKS,
+	/*a9*/	OPT_COMPRESSION,
+	/*aa*/	OPT_MEM,
+	/*ab*/	OPT_DIFF,
+	/*ac*/	OPT_WIA,
+	/*ad*/	OPT_FST,
+	/*ae*/	OPT_ITIME,
+	/*af*/	OPT_MTIME,
+	/*b0*/	OPT_CTIME,
+	/*b1*/	OPT_ATIME,
+	/*b2*/	OPT_TIME,
+	/*b3*/	OPT_NUMERIC,
+	/*b4*/	OPT_REALPATH,
+	/*b5*/	OPT_SHOW,
+	/*b6*/	OPT_UNIT,
+	/*b7*/	OPT_OLD_STYLE,
+	/*b8*/	OPT_SECTIONS,
+	/*b9*/	OPT_LIMIT,
+	/*ba*/	 0,0,0,0, 0,0,
 };
 
 //
@@ -1506,7 +1516,14 @@ static u8 option_allowed_cmd_VERIFY[76] = // cmd #32
     0,0,0,0,0, 1,0,0,0,0,  0,0,0,0,0, 1
 };
 
-static u8 option_allowed_cmd_MIX[76] = // cmd #33
+static u8 option_allowed_cmd_SKELETON[76] = // cmd #33
+{
+    0,1,1,1,1, 1,1,1,1,1,  1,1,0,1,1, 1,1,1,0,0,  0,0,0,0,0, 0,0,0,0,0,
+    0,0,0,0,0, 0,1,1,0,0,  0,0,0,0,0, 0,0,0,0,0,  0,0,0,1,1, 1,1,0,1,0,
+    0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0
+};
+
+static u8 option_allowed_cmd_MIX[76] = // cmd #34
 {
     0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,  0,1,1,0,1, 0,0,0,0,1,
     0,0,0,0,0, 1,1,1,1,1,  1,1,1,1,1, 1,1,1,0,0,  1,0,0,1,1, 1,1,0,0,0,
@@ -2737,6 +2754,57 @@ static const InfoOption_t * option_tab_cmd_VERIFY[] =
 	0
 };
 
+static const InfoOption_t * option_tab_cmd_SKELETON[] =
+{
+	OptionInfo + OPT_TEST,
+	OptionInfo + OPT_QUIET,
+	OptionInfo + OPT_LOGGING,
+
+	OptionInfo + OPT_NONE, // separator
+
+	OptionInfo + OPT_TITLES,
+	OptionInfo + OPT_UTF_8,
+	OptionInfo + OPT_NO_UTF_8,
+	OptionInfo + OPT_LANG,
+
+	OptionInfo + OPT_NONE, // separator
+
+	OptionInfo + OPT_AUTO,
+	OptionInfo + OPT_SOURCE,
+	OptionInfo + OPT_NO_EXPAND,
+	OptionInfo + OPT_RECURSE,
+	OptionInfo + OPT_RDEPTH,
+
+	OptionInfo + OPT_NONE, // separator
+
+	OptionInfo + OPT_INCLUDE,
+	OptionInfo + OPT_INCLUDE_PATH,
+	OptionInfo + OPT_EXCLUDE,
+	OptionInfo + OPT_EXCLUDE_PATH,
+	OptionInfo + OPT_ONE_JOB,
+	OptionInfo + OPT_JOB_LIMIT,
+	OptionInfo + OPT_IGNORE,
+	OptionInfo + OPT_IGNORE_FST,
+	OptionInfo + OPT_IGNORE_SETUP,
+
+	OptionInfo + OPT_NONE, // separator
+
+	OptionInfo + OPT_PSEL,
+	OptionInfo + OPT_RAW,
+
+	OptionInfo + OPT_NONE, // separator
+
+	OptionInfo + OPT_WDF,
+	OptionInfo + OPT_ISO,
+	OptionInfo + OPT_CISO,
+	OptionInfo + OPT_WBFS,
+	OptionInfo + OPT_FST,
+	OptionInfo + OPT_DEST,
+	OptionInfo + OPT_DEST2,
+
+	0
+};
+
 static const InfoOption_t * option_tab_cmd_MIX[] =
 {
 	OptionInfo + OPT_TEST,
@@ -3087,9 +3155,10 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	"DIFF",
 	"CMP",
 	"wit DIFF source dest\n"
-	"wit DIFF [-s path]... [-r path]... [source]... [-d|-D] dest",
+	"wit DIFF [[--source] source]... [--recurse source]... [-d|-D] dest",
 	"DIFF compares ISO images in scrubbed or raw mode or on file level."
-	" DIFF works like COPY but comparing source and destination.",
+	" Images, WBFS partitions and directories are accepted as source. DIFF"
+	" works like COPY but comparing source and destination.",
 	39,
 	option_tab_cmd_DIFF,
 	option_allowed_cmd_DIFF
@@ -3101,9 +3170,10 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	"FDIFF",
 	"FCMP",
 	"wit FDIFF source dest\n"
-	"wit FDIFF [-s path]... [-r path]... [source]... [-d|-D] dest",
-	"FDIFF compares ISO images on file level. 'FDIFF' is a shortcut for"
-	" 'DIFF --files +'.",
+	"wit FDIFF [[--source] source]... [--recurse source]... [-d|-D] dest",
+	"FDIFF compares ISO images on file level. Images, WBFS partitions and"
+	" directories are accepted as source. 'FDIFF' is a shortcut for 'DIFF"
+	" --files +'.",
 	39,
 	option_tab_cmd_FDIFF,
 	option_allowed_cmd_FDIFF
@@ -3115,8 +3185,9 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	"EXTRACT",
 	"X",
 	"wit EXTRACT source dest\n"
-	"wit EXTRACT [-s path]... [-r path]... [source]... [-d|-D] dest",
-	"Extract all files from the source discs.",
+	"wit EXTRACT [[--source] source]... [--recurse source]... [-d|-D] dest",
+	"Extract all files from the source discs. Images, WBFS partitions and"
+	" directories are accepted as source.",
 	48,
 	option_tab_cmd_EXTRACT,
 	option_allowed_cmd_EXTRACT
@@ -3128,9 +3199,10 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	"COPY",
 	"CP",
 	"wit COPY source dest\n"
-	"wit COPY [-s path]... [-r path]... [source]... [-d|-D] dest",
+	"wit COPY [[--source] source]... [--recurse source]... [-d|-D] dest",
 	"Copy, scrub, convert, join, split, compose, extract, patch, encrypt"
-	" and decrypt Wii and GameCube disc images.",
+	" and decrypt Wii and GameCube disc images. Images, WBFS partitions"
+	" and directories are accepted as source.",
 	66,
 	option_tab_cmd_COPY,
 	option_allowed_cmd_COPY
@@ -3142,10 +3214,11 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	"CONVERT",
 	"CV",
 	"wit CONVERT source\n"
-	"wit CONVERT [-s path]... [-r path]... [source]...",
+	"wit CONVERT [[--source] source]... [--recurse source]...",
 	"Convert, scrub, join, split, compose, extract, patch, encrypt and"
 	" decrypt Wii and GameCube disc images and replace the source with the"
-	" result. The former command name was SCRUB.\n"
+	" result. Images, WBFS partitions and directories are accepted as"
+	" source. The former command name was SCRUB.\n"
 	"  'wit CONVERT' is like 'wit COPY' but removes the source and replace"
 	" it with the new file if copying is successful. It have been"
 	" implemented as replacement of the SCRUB command of other tools. 'wit"
@@ -3162,8 +3235,9 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	"EDIT",
 	"ED",
 	"wit EDIT source\n"
-	"wit EDIT [-s path]... [-r path]... [source]...",
-	"Edit an existing Wii and GameCube ISO image and patch some values.",
+	"wit EDIT [[--source] source]... [--recurse source]...",
+	"Edit an existing Wii and GameCube ISO image and patch some values."
+	" Images, WBFS partitions and directories are accepted as source.",
 	31,
 	option_tab_cmd_EDIT,
 	option_allowed_cmd_EDIT
@@ -3175,8 +3249,9 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	"MOVE",
 	"MV",
 	"wit MOVE source dest\n"
-	"wit MOVE [-s path]... [-r path]... [source]... [-d|-D] dest",
-	"Move and rename Wii and GameCube ISO images.",
+	"wit MOVE [[--source] source]... [--recurse source]... [-d|-D] dest",
+	"Move and rename Wii and GameCube ISO images. Images, WBFS partitions"
+	" and directories are accepted as source.",
 	22,
 	option_tab_cmd_MOVE,
 	option_allowed_cmd_MOVE
@@ -3217,6 +3292,22 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	28,
 	option_tab_cmd_VERIFY,
 	option_allowed_cmd_VERIFY
+    },
+
+    {	CMD_SKELETON,
+	true,
+	false,
+	"SKELETON",
+	"SKEL",
+	"wit SKELETON [source]...",
+	"Create skeletons of ISO images, which are much smaller than complete"
+	" copies. This skeletons contains only disc and partiton header for"
+	" further analysis and are not playable because all files are zeroed."
+	" If no destination directory is set with --dest or --DEST then the"
+	" skeleton is stored in './wit-skel/'.",
+	30,
+	option_tab_cmd_SKELETON,
+	option_allowed_cmd_SKELETON
     },
 
     {	CMD_MIX,

@@ -611,10 +611,11 @@ enumError WriteWDF ( SuperFile_t * sf, off_t off, const void * buf, size_t count
     ASSERT(sf->wc);
 
     TRACE("#W# -----\n");
-    TRACE(TRACE_RDWR_FORMAT, "#W# WriteWDF()",
+    PRINT(TRACE_RDWR_FORMAT, "#W# WriteWDF()",
 		GetFD(&sf->f), GetFP(&sf->f), (u64)off, (u64)off+count, count,
 		off < sf->max_virt_off ? " <" : "" );
-    TRACE(" - off = %llx,%llx\n",(u64)sf->f.file_off,(u64)sf->f.max_off);
+    PRINT(" - off = %llx,%llx, fs = %llx\n",
+		(u64)sf->f.file_off, (u64)sf->f.max_off, (u64)sf->file_size );
 
     if (!count)
 	return ERR_OK;
@@ -622,7 +623,7 @@ enumError WriteWDF ( SuperFile_t * sf, off_t off, const void * buf, size_t count
     // adjust the file size
     const off_t data_end = off + count;
     if ( sf->file_size < data_end )
-	sf->file_size = data_end;
+	 sf->file_size = data_end;
 
     ASSERT( sf->wc_used > 0 );
     const int used_m1 = sf->wc_used - 1;
@@ -633,20 +634,22 @@ enumError WriteWDF ( SuperFile_t * sf, off_t off, const void * buf, size_t count
 	//    the current virtual file will be extended
 	//    -> no need to search chunks
 
-	if ( off == sf->max_virt_off )
+	if ( off <= sf->max_virt_off + WDF_MIN_HOLE_SIZE )
 	{
 	    // maybe an extend of the last chunk -> get the last chunk
 	    WDF_Chunk_t * wc = sf->wc + used_m1;
 	    if ( wc->data_off + wc->data_size == sf->f.max_off )
 	    {
+		// yes, it is the last written chunk
+		const u32 skip = off - sf->max_virt_off;
+
 		// adjust max_virt_off
 		sf->max_virt_off = off + count;
 
-		// yes, it is the last written chunk
-		const enumError stat
-		    = WriteAtF(&sf->f,wc->data_off+wc->data_size,buf,count);
-		wc->data_size += count;
-		return stat;
+		const enumError err
+		    = WriteAtF(&sf->f,skip+wc->data_off+wc->data_size,buf,count);
+		wc->data_size += skip + count;
+		return err;
 	    }
 	}
 

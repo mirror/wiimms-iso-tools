@@ -153,6 +153,7 @@ typedef enum enumOptions
 	OPT_LOGGING,
 	OPT_ESC,
 	OPT_IO,
+	OPT_DIRECT,
 	OPT_TITLES,
 	OPT_UTF_8,
 	OPT_NO_UTF_8,
@@ -160,7 +161,7 @@ typedef enum enumOptions
 	OPT_TEST,
 	OPT_HOOK,
 
-	OPT__N_TOTAL // == 101
+	OPT__N_TOTAL // == 102
 
 } enumOptions;
 
@@ -303,10 +304,12 @@ typedef enum enumOptions
 //	OB_GRP_TIME		= OB_GRP_XTIME
 //				| OB_TIME,
 //
-//	OB_GRP_OUTMODE		= OB_WDF
+//	OB_GRP_OUTMODE_EDIT	= OB_WDF
 //				| OB_ISO
 //				| OB_CISO
-//				| OB_WBFS
+//				| OB_WBFS,
+//
+//	OB_GRP_OUTMODE		= OB_GRP_OUTMODE_EDIT
 //				| OB_WIA
 //				| OB_FST,
 //
@@ -449,6 +452,7 @@ typedef enum enumOptions
 //				| OB_RDEPTH
 //				| OB_GRP_IGN_EXCLUDE
 //				| OB_GRP_VERBOSE
+//				| OB_SECTIONS
 //				| OB_GRP_PATCH
 //				| OB_GRP_RELOCATE
 //				| OB_GRP_PARTITIONS
@@ -468,6 +472,7 @@ typedef enum enumOptions
 //				| OB_GRP_EXCLUDE
 //				| OB_GRP_VERBOSE
 //				| OB_LONG
+//				| OB_SECTIONS
 //				| OB_DEST
 //				| OB_DEST2
 //				| OB_GRP_SPLIT_CHUNK
@@ -487,6 +492,7 @@ typedef enum enumOptions
 //				| OB_GRP_MOD_WBFS
 //				| OB_GRP_EXCLUDE
 //				| OB_GRP_VERBOSE
+//				| OB_SECTIONS
 //				| OB_UNIQUE
 //				| OB_IGNORE
 //				| OB_NO_FREE,
@@ -523,6 +529,16 @@ typedef enum enumOptions
 //				| OB_REMOVE
 //				| OB_NO_FREE
 //				| OB_LONG,
+//
+//	OB_CMD_SKELETON		= OB_GRP_TITLES
+//				| OB_GRP_MOD_WBFS
+//				| OB_GRP_EXCLUDE
+//				| OB_GRP_PARTITIONS
+//				| OB_IGNORE
+//				| OB_GRP_OUTMODE_EDIT
+//				| OB_FST
+//				| OB_DEST
+//				| OB_DEST2,
 //
 //	OB_CMD_FILETYPE		= OB_IGNORE
 //				| OB_GRP_FST_IGNORE
@@ -579,10 +595,11 @@ typedef enum enumCommands
 	CMD_SETTITLE,
 	CMD_TOUCH,
 	CMD_VERIFY,
+	CMD_SKELETON,
 
 	CMD_FILETYPE,
 
-	CMD__N // == 37
+	CMD__N // == 38
 
 } enumCommands;
 
@@ -640,6 +657,7 @@ typedef enum enumGetOpt
 	GO_XHELP		= 0x80,
 	GO_WIDTH,
 	GO_IO,
+	GO_DIRECT,
 	GO_UTF_8,
 	GO_NO_UTF_8,
 	GO_LANG,

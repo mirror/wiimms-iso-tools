@@ -66,6 +66,7 @@
 ///////////////                   file support                  ///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
+int opt_direct = 0;
 enumIOMode opt_iomode = IOM__IS_DEFAULT | IOM_FORCE_STREAM;
 
 //-----------------------------------------------------------------------------
@@ -84,7 +85,7 @@ void ScanIOMode ( ccp arg )
 u32 GetHSS ( int fd, u32 default_value )
 {
  #ifdef DKIOCGETBLOCKSIZE
-    PRINT(" - try DKIOCGETBLOCKSIZE\n");
+    TRACE(" - try DKIOCGETBLOCKSIZE\n");
     {
 	unsigned long size32 = 0;
 	if ( ioctl(fd, DKIOCGETBLOCKSIZE, &size32 ) >= 0 && size32 )
@@ -96,18 +97,18 @@ u32 GetHSS ( int fd, u32 default_value )
  #endif
     
  #ifdef BLKSSZGET
-    PRINT(" - try BLKSSZGET\n");
+    TRACE(" - try BLKSSZGET\n");
     {
 	unsigned long size32 = 0;
 	if ( ioctl(fd, BLKSSZGET, &size32 ) >= 0 && size32 )
 	{
-	    PRINT("GetHSS(%d) BLKSSZGET := %x = %u\n",fd,size32,size32);
+	    PRINT("GetHSS(%d) BLKSSZGET := %lx = %lu\n",fd,size32,size32);
 	    return size32;
 	}
     }
  #endif
 
-    PRINT("GetHSS(%d) default_value := %x = %u\n",fd,default_value,default_value);
+    TRACE("GetHSS(%d) default_value := %x = %u\n",fd,default_value,default_value);
     return default_value;
 }
 
@@ -289,6 +290,7 @@ enumError XResetFile ( XPARM File_t * f, bool remove_file )
     const bool open_flags	= f->open_flags;
     const bool disable_errors	= f->disable_errors;
     const bool create_directory	= f->create_directory;
+    const bool allow_direct_io	= f->allow_direct_io;
 
     InitializeFile(f);
 
@@ -296,6 +298,7 @@ enumError XResetFile ( XPARM File_t * f, bool remove_file )
     f->open_flags	= open_flags;
     f->disable_errors	= disable_errors;
     f->create_directory	= create_directory;
+    f->allow_direct_io	= allow_direct_io;
 
     return stat;
 }
@@ -490,6 +493,12 @@ static enumError XOpenFileHelper
  #ifdef O_LARGEFILE
     TRACE("FORCE O_LARGEFILE\n");
     force_flags |= O_LARGEFILE;
+ #endif
+
+ #ifdef O_DIRECT
+    TRACE("FORCE O_DIRECT = %d,%d\n",opt_direct,f->allow_direct_io);
+    if ( opt_direct && f->allow_direct_io )
+	force_flags |= O_DIRECT;
  #endif
 
     f->active_open_flags = ( f->open_flags ? f->open_flags : default_flags )
@@ -1186,7 +1195,7 @@ static void ExtractSplitMap
 		     beg = f2->split_off;
 		if ( end > split_end )
 		     end = split_end;
-		PRINT(">>> PREALLOC: fd=%u, %9llx .. %9llx\n",f2->fd,beg,end);
+		PRINT(">>> PREALLOC: fd=%u, %9llx .. %9llx\n",f2->fd,(u64)beg,(u64)end);
 		MemMapItem_t * item
 		    = InsertMemMapTie(&f2->prealloc_map,beg-f2->split_off,end-beg);
 		DASSERT(item);

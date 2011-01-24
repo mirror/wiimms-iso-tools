@@ -550,7 +550,7 @@ void PrintHelpCmd
 	    *dest++ = *src == '_' ? '-' : tolower((int)*src);
 	*dest = 0;
 
-	fprintf(f,"%*sMore help is available from %s%s/%s\n\n",
+	fprintf(f,"%*sMore help is available from %scmd/%s/%s\n\n",
 		indent, "", URI_HOME, iu->tool_name, iobuf );
     }
 }

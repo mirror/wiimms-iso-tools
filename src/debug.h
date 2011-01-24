@@ -112,11 +112,16 @@
 ///////////////////////////////////////////////////////////////////////////////
 
 extern FILE * TRACE_FILE;
-void TRACE_FUNC ( const char * format, ...);
+void TRACE_FUNC ( const char * format, ...)
+	__attribute__ ((__format__(__printf__,1,2)));
 void TRACE_ARG_FUNC ( const char * format, va_list arg );
-void PRINT_FUNC ( const char * format, ...);
+
+void PRINT_FUNC ( const char * format, ...)
+	__attribute__ ((__format__(__printf__,1,2)));
 void PRINT_ARG_FUNC ( const char * format, va_list arg );
-void WAIT_FUNC ( const char * format, ...);
+
+void WAIT_FUNC ( const char * format, ...)
+	__attribute__ ((__format__(__printf__,1,2)));
 void WAIT_ARG_FUNC ( const char * format, va_list arg );
 
 ///////////////////////////////////////////////////////////////////////////////

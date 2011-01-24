@@ -368,24 +368,8 @@ ccp wd_print_compression
     int			mode		// 1=number, 2=name, 3=number and name
 )
 {
-    enum
-    {
-	SBUF_COUNT = 4,
-	SBUF_SIZE  = 20
-    };
-
-    static int  sbuf_index = 0;
-    static char sbuf[SBUF_COUNT][SBUF_SIZE+1];
-
     if (!buf)
-    {
-	// use static buffer
-	buf = sbuf[sbuf_index];
-	buf_size = SBUF_SIZE;
-	sbuf_index = ( sbuf_index + 1 ) % SBUF_COUNT;
-    }
-
-    //----------------
+	buf = GetCircBuf( buf_size = 20 );
 
     if ( compr_method < 0 || compr_method >= WD_COMPR__N )
     {

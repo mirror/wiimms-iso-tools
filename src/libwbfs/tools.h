@@ -267,6 +267,13 @@ void wd_print_byte_tab
     bool		print_all	// false: ignore const lines
 );
 
+//-----------------------------------------------------------------------------
+
+char * GetCircBuf // never returns NULL
+(
+    u32		buf_size	// wanted buffer size
+);
+
 //
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////			string helpers			///////////////
