@@ -939,6 +939,13 @@ const InfoOption_t option_cmd_VERIFY_LONG =
 	" is printed too."
     };
 
+const InfoOption_t option_cmd_SKELETON_DEST =
+    {	OPT_DEST, 'd', "dest",
+	"path",
+	"Define a destination directory for the skeleton files. The default is"
+	" '--DEST ./.skel/'."
+    };
+
 const InfoOption_t option_cmd_MIX_ALIGN_PART =
     {	OPT_ALIGN_PART, 0, "align-part",
 	"size",
@@ -1519,7 +1526,7 @@ static u8 option_allowed_cmd_VERIFY[76] = // cmd #32
 static u8 option_allowed_cmd_SKELETON[76] = // cmd #33
 {
     0,1,1,1,1, 1,1,1,1,1,  1,1,0,1,1, 1,1,1,0,0,  0,0,0,0,0, 0,0,0,0,0,
-    0,0,0,0,0, 0,1,1,0,0,  0,0,0,0,0, 0,0,0,0,0,  0,0,0,1,1, 1,1,0,1,0,
+    0,0,0,0,0, 0,1,1,0,0,  0,0,0,0,0, 0,0,0,0,0,  0,0,0,1,1, 1,1,0,0,0,
     0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0
 };
 
@@ -2798,8 +2805,7 @@ static const InfoOption_t * option_tab_cmd_SKELETON[] =
 	OptionInfo + OPT_ISO,
 	OptionInfo + OPT_CISO,
 	OptionInfo + OPT_WBFS,
-	OptionInfo + OPT_FST,
-	OptionInfo + OPT_DEST,
+	&option_cmd_SKELETON_DEST,
 	OptionInfo + OPT_DEST2,
 
 	0
@@ -3295,17 +3301,16 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
     },
 
     {	CMD_SKELETON,
-	true,
+	false,
 	false,
 	"SKELETON",
 	"SKEL",
 	"wit SKELETON [source]...",
-	"Create skeletons of ISO images, which are much smaller than complete"
-	" copies. This skeletons contains only disc and partiton header for"
-	" further analysis and are not playable because all files are zeroed."
-	" If no destination directory is set with --dest or --DEST then the"
-	" skeleton is stored in './wit-skel/'.",
-	30,
+	"Create very small skeletons of ISO images. A skeleton contains only"
+	" disc and partiton headers for further analysis and is not playable"
+	" because all files are zeroed. Read http://wit.wiimm.de/cmd/wit/skel"
+	" for more details.",
+	29,
 	option_tab_cmd_SKELETON,
 	option_allowed_cmd_SKELETON
     },

@@ -508,7 +508,6 @@ typedef enum enumOptions
 //				| OB_GRP_XXSOURCE
 //				| OB_GRP_PARTITIONS
 //				| OB_GRP_OUTMODE_EDIT
-//				| OB_FST
 //				| OB_DEST
 //				| OB_DEST2,
 //

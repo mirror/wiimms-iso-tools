@@ -536,7 +536,6 @@ typedef enum enumOptions
 //				| OB_GRP_PARTITIONS
 //				| OB_IGNORE
 //				| OB_GRP_OUTMODE_EDIT
-//				| OB_FST
 //				| OB_DEST
 //				| OB_DEST2,
 //

@@ -3,9 +3,9 @@
 
 [size=18][color=#0000FF][b]@@TOOLSET-SHORT@@: @@TOOLSET-LONG@@
 v@@VERSION@@ - @@@@-@@-@@[/b][/color][/size]
-[size=15][color="#800000"][b]Beta-Test-Version![/b][/color][/size]
+[size=15][color=#800000][b]Beta-Test-Version![/b][/color][/size]
 
-[color="#800000"]Die Produktiv-Version wird im [url=http://wit.wiimm.de/r/wii-homebrew]WIT Hauptthema[/url] besprochen.[/color]
+[color=#800000]Die Produkt-Version wird im [url=http://wit.wiimm.de/r/wii-homebrew]WIT Hauptthema[/url] besprochen.[/color]
 
 [size=12][color=#0000c0][b]Download[/b][/color] [color=#800000][b]der EXPERIMENTELLEN Version:[/b][/color][/size]
 [list]
@@ -19,7 +19,7 @@ v@@VERSION@@ - @@@@-@@-@@[/b][/color][/size]
 ~ Highlights
 [size=12][color=#0000c0][b]Höhepunkte dieser Version:[/b][/color][/size]
 [list]
-[*] I habe diverse Änderungen am Make-System vorgenommen, um Libs mit eigenen Makefile zu unterstützen, zur Unterstützung der Option -static und um die Linux/i386 Tools unter Linux/x86_64 übersetzen zu können. Ich hoffe, dass für euch alles wie bisher funktioniert.
+[*]
 [color=#800000]Bitte testet es![/color]
 [/list]
 

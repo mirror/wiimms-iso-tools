@@ -35,7 +35,16 @@
 
 [size="2"][color="#0000c0"][b]Highlights of this release:[/b][/color][/size]
 [list]
-[*]
+[*] This is basically a maintenance update. I have fixed much things (not only bugs) from my to do list. Read the change log for details.
+[color=#ffffff].[/color]
+
+[*] The Linux distributions are now linked 'static'. This makes the distribution compatible for most Linux installations. Because of this the tools support now the most current implementation of preallocation which results in faster file generation. A side effect is the integration of LIBBZ2 as source (and MAC support).
+[color=#ffffff].[/color]
+
+[*] In general the user interface (layout of tables) has changed. E.g. "wit dump" prints IDs of TICKET, TMD and BOOT.BIN in the summary and the partition status (en-/decrypted, scrubbed, sign status) is printed too. I will change more in the next releases.
+[color=#ffffff].[/color]
+
+[*] The user interface changes may break the GUI support. Therefor I have implemented the --sections support for many more commands. If option --sections is set the output is printed in machine readable sections and parameter lines. GUIs should use this very stable output.
 [color=#ffffff].[/color]
 [/list]
 

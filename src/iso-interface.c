@@ -620,10 +620,10 @@ enumError Dump_ISO
 		dump_sys_version(f,indent,ntoh64(disc->main_part->tmd->sys_version),19);
 	}
 
-	fprintf(f,"%*sPartitions:       %7u%s\n",
+	wd_calc_disc_status(disc,true);
+	fprintf(f,"%*sPartitions:       %7u  [%s]\n",
 		indent,"", disc->n_part,
-		!wd_is_disc_scrubbed(disc) ? "" : disc->n_part > 1
-			? " (at least one is scrubbed)" : " (scrubbed)" );
+		wd_print_sector_status(0,0,disc->sector_stat,disc->cert_summary) );
 	fprintf(f,"%*sDirectories:      %7u\n",indent,"",disc->fst_dir_count);
 	fprintf(f,"%*sFiles:            %7u\n",indent,"",disc->fst_file_count);
 	fprintf(f,"%*sUsed ISO blocks:  %7u * 32 KiB = %u MiB\n",
@@ -4815,7 +4815,8 @@ static void skel_copy_phead
     void		* data,		// pointer to data
     u64			offset,		// disc offset
     u32			size,		// data size
-    ccp			info		// info
+    ccp			info,		// info
+    u32			id4_off		// NULL or data offset of ID4
 )
 {
     DASSERT(mm);
@@ -4823,7 +4824,11 @@ static void skel_copy_phead
     wd_memmap_item_t * mi = wd_insert_memmap(mm,0,offset,size);
     DASSERT(mi);
     mi->data = data;
-    StringCopyS(mi->info,sizeof(mi->info),info);
+    if (id4_off)
+	snprintf(mi->info,sizeof(mi->info),"%s, id=%s",
+		info, wd_print_id((ccp)data+id4_off,4,0) );
+    else
+	StringCopyS(mi->info,sizeof(mi->info),info);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -4834,7 +4839,8 @@ static enumError skel_load_part
     wd_part_t		* part,		// valid partition
     u64			data_offset4,	// partition data offset
     u32			data_size,	// data size
-    ccp			info		// info
+    ccp			info,		// info
+    bool		have_id		// true: ID6 available
 )
 {
     DASSERT(mm);
@@ -4855,7 +4861,7 @@ static enumError skel_load_part
 
     u64 disc_off_begin = wd_calc_disc_offset(part,data_offset4);
     u64 disc_off_end   = wd_calc_disc_offset(part,data_offset4+(data_size+3>>2));
-    PRINT("P: %llx+%x -> %llx..%llx: %s\n",
+    noPRINT("P: %llx+%x -> %llx..%llx: %s\n",
 		data_offset4, data_size,
 		disc_off_begin, disc_off_end, info );
 
@@ -4875,9 +4881,12 @@ static enumError skel_load_part
 	    mi->data_alloced = true;
 
 	if ( idx++ || end < disc_off_end )
+	    // id support is here not needed!
 	    snprintf(mi->info,sizeof(mi->info),"%s #%u",info,idx);
 	else
-	    snprintf(mi->info,sizeof(mi->info),"%s",info);
+	    snprintf(mi->info,sizeof(mi->info),"%s%s%s",
+			info, have_id ? ", id=" : "",
+			have_id ? wd_print_id(data,6,0) : "" );
 
 	data += chunk_size;
 	disc_off_begin += chunk_size + WII_SECTOR_HASH_SIZE;
@@ -4916,6 +4925,8 @@ enumError Skeletonize
 	goto abort;
     }
 
+    const enumOFT oft = CalcOFT(output_file_type,0,0,OFT__DEFAULT);
+
 
     //--- collect data
 
@@ -4935,37 +4946,46 @@ enumError Skeletonize
 
 	skel_copy_phead( &mm, &part->ph,
 			(u64)part->part_off4<<2,
-			sizeof(part->ph), "ticket" );
+			sizeof(part->ph), "ticket", WII_TICKET_ID4_OFF );
+
 	skel_copy_phead( &mm, part->tmd,
 			(u64)(part->part_off4+part->ph.tmd_off4)<<2,
-			part->ph.tmd_size, "tmd" );
+			part->ph.tmd_size, "tmd", WII_TMD_ID4_OFF );
+
 	skel_copy_phead( &mm, part->cert,
 			(u64)(part->part_off4+part->ph.cert_off4)<<2,
-			part->ph.cert_size, "cert" );
+			part->ph.cert_size, "cert", 0 );
+
+	const size_t ssm = sizeof(skeleton_marker);
+	mi = wd_insert_memmap_alloc(&mm,0,
+			wd_calc_disc_offset(part,0)-ssm,ssm);
+	DASSERT(mi);
+	memcpy(mi->data,skeleton_marker,ssm);
+	snprintf(mi->info,sizeof(mi->info),"Marker '%s'",skeleton_marker);
 
 	err = skel_load_part( &mm, part,
 			WII_BOOT_OFF>>2, WII_BOOT_SIZE,
-			"boot.bin" );
+			"boot.bin", true );
 	if (err)
 	    goto abort;
 
 	err = skel_load_part( &mm, part,
 			WII_BI2_OFF>>2, WII_BI2_SIZE,
-			"bi2.bin" );
+			"bi2.bin", false );
 	if (err)
 	    goto abort;
 
 	err = skel_load_part( &mm, part,
 			part->boot.fst_off4,
 			part->boot.fst_size4<<2,
-			"fst.bin" );
+			"fst.bin", false );
 	if (err)
 	    goto abort;
 
 	err = skel_load_part( &mm, part,
 			part->boot.dol_off4,
 			DOL_HEADER_SIZE,
-			"main.dol/header" );
+			"main.dol/header", false );
 	if (err)
 	    goto abort;
 
@@ -4973,7 +4993,7 @@ enumError Skeletonize
 	err = skel_load_part( &mm, part,
 			apl_off4,
 			0x20,
-			"apploader/header" );
+			"apploader/header", false );
 	if (err)
 	    goto abort;
 
@@ -4988,7 +5008,7 @@ enumError Skeletonize
     if ( !local_dest || !*local_dest )
     {
 	local_mkdir = true;
-	local_dest  = "./wit-skel";
+	local_dest  = "./.skel";
     }
     
     char fname[PATH_MAX];
@@ -5005,7 +5025,7 @@ enumError Skeletonize
 	for ( i = 0; i < mm.used; i++ )
 	{
 	    wd_memmap_item_t * mi = mm.item + i;
-	    PRINT("### %p %9llx %6llx\n",mi->data,mi->offset,mi->size);
+	    noPRINT("### %p %9llx %6llx\n",mi->data,mi->offset,mi->size);
 	    WIT_SHA1_Update(&ctx,mi->data,mi->size);
 	}
 	u8 h[WII_HASH_SIZE];
@@ -5013,25 +5033,25 @@ enumError Skeletonize
 
 	snprintf(fname,sizeof(fname),
 		"%s/%.6s-%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x"
-		     "%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x",
+		     "%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%s",
 		local_dest, fi->f.id6,
 		h[0], h[1], h[2], h[3], h[4], 
 		h[5], h[6], h[7], h[8], h[9], 
 		h[10], h[11], h[12], h[13], h[14], 
-		h[15], h[16], h[17], h[18], h[19] );
+		h[15], h[16], h[17], h[18], h[19],
+		output_file_type == OFT_UNKNOWN ? ".skel" : oft_info[oft].ext1 );
+
     }
 
 
     //--- create output filename
-
-    const enumOFT oft = CalcOFT(output_file_type,0,0,OFT__DEFAULT);
 
     SuperFile_t fo;
     InitializeSF(&fo);
     SetupIOD(&fo,oft,oft);
     fo.f.create_directory = local_mkdir;
 
-    GenImageFileName(&fo.f,0,fname,oft);
+    GenImageFileName(&fo.f,fname,0,oft);
     SubstFileNameSF(&fo,fi,0);
 
     if ( testmode || verbose >= 0 )

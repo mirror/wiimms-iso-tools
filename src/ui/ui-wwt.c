@@ -1702,7 +1702,7 @@ static u8 option_allowed_cmd_SKELETON[85] = // cmd #36
 {
     0,1,1,1,0, 0,0,0,1,1,  1,1,1,1,1, 1,1,0,0,0,  0,0,0,0,0, 0,0,0,0,0,
     0,0,0,0,0, 0,1,1,0,0,  0,0,0,0,0, 0,0,0,0,0,  0,0,0,1,1, 0,0,0,0,0,
-    0,0,1,0,1, 1,1,1,0,0,  0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0
+    0,0,1,0,1, 1,1,0,0,0,  0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0
 };
 
 static u8 option_allowed_cmd_FILETYPE[85] = // cmd #37
@@ -2827,7 +2827,6 @@ static const InfoOption_t * option_tab_cmd_SKELETON[] =
 	OptionInfo + OPT_ISO,
 	OptionInfo + OPT_CISO,
 	OptionInfo + OPT_WBFS,
-	OptionInfo + OPT_FST,
 	OptionInfo + OPT_DEST,
 	OptionInfo + OPT_DEST2,
 
@@ -3315,17 +3314,16 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
     },
 
     {	CMD_SKELETON,
-	true,
+	false,
 	false,
 	"SKELETON",
 	"SKEL",
 	"wit SKELETON [id6]...",
-	"Create skeletons of ISO images, which are much smaller than complete"
-	" copies. This skeletons contains only disc and partiton header for"
-	" further analysis and are not playable because all files are zeroed."
-	" If no destination directory is set with --dest or --DEST then the"
-	" skeleton is stored in './wit-skel/'.",
-	28,
+	"Create very small skeletons of ISO images. A skeleton contains only"
+	" disc and partiton headers for further analysis and is not playable"
+	" because all files are zeroed. Read http://wit.wiimm.de/cmd/wwt/skel"
+	" for more details.",
+	27,
 	option_tab_cmd_SKELETON,
 	option_allowed_cmd_SKELETON
     },

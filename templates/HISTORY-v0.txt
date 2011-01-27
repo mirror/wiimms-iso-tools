@@ -615,7 +615,7 @@ wit v0.48b r1164 - 2010-06-01  (repository only)
    in libwbfs for the free tables size results in zero. Accessing the non
    existent table forces a segmentation fault. For compatibility reasons
    the calculation can't be changed.
- - Bug fix: wit DUMP have always reported encrypted partitions.
+ - Bug fix: wit DUMP had always reported encrypted partitions.
  - Composing bug fix: Copy only really needed data from boot.bin if file
    header.bin is missed.
 

@@ -391,14 +391,12 @@ info_t info_tab[] =
 		"Verify ISO images (calculate and compare SHA1 check sums)"
 		" to find bad dumps." },
 
-  { H_DEF_CMD,	"SKELETON",	"SKELETON|SKEL",
+  { T_DEF_CMD,	"SKELETON",	"SKELETON|SKEL",
 		    "wit SKELETON [source]...",
-		"Create skeletons of ISO images, which are much smaller"
-		" than complete copies. This skeletons contains only disc"
-		" and partiton header for further analysis"
-		" and are not playable because all files are zeroed."
-		" If no destination directory is set with --dest or --DEST"
-		" then the skeleton is stored in @'./wit-skel/'@." },
+		"Create very small skeletons of ISO images."
+		" A skeleton contains only disc and partiton headers for further"
+		" analysis and is not playable because all files are zeroed."
+		"\1 Read http://wit.wiimm.de/cmd/wit/skel for more details." },
 
   { T_DEF_CMD,	"MIX",		"MIX",
 		    "wit MIX SOURCE... --dest|--DEST outfile\n"
@@ -1751,8 +1749,9 @@ info_t info_tab[] =
   { T_SEP_OPT,	0,0,0,0 },
 
   { T_COPY_GRP,	"OUTMODE_EDIT",	0,0,0 },
-  { T_COPT,	"FST",		0,0,0 },
-  { T_COPT_M,	"DEST",		0,0,0 },
+  { T_COPT_M,	"DEST",		0,0,
+	"Define a destination directory for the skeleton files."
+	" The default is {--DEST ./.skel/}." },
   { T_COPT_M,	"DEST2",	0,0,0 },
 
   //---------- COMMAND wit MIX ----------
@@ -1972,14 +1971,12 @@ info_t info_tab[] =
 		"Verify all discs of WBFS (calculate and compare SHA1 check sums)"
 		" to find bad dumps." },
 
-  { H_DEF_CMD,	"SKELETON",	"SKELETON|SKEL",
+  { T_DEF_CMD,	"SKELETON",	"SKELETON|SKEL",
 		    "wit SKELETON [id6]...",
-		"Create skeletons of ISO images, which are much smaller"
-		" than complete copies. This skeletons contains only disc"
-		" and partiton header for further analysis"
-		" and are not playable because all files are zeroed."
-		" If no destination directory is set with --dest or --DEST"
-		" then the skeleton is stored in @'./wit-skel/'@." },
+		"Create very small skeletons of ISO images."
+		" A skeleton contains only disc and partiton headers for further"
+		" analysis and is not playable because all files are zeroed."
+		"\1 Read http://wit.wiimm.de/cmd/wwt/skel for more details." },
 
   { T_SEP_CMD,	0,0,0,0 }, //----- separator -----
 
@@ -3016,7 +3013,6 @@ info_t info_tab[] =
   { T_SEP_OPT,	0,0,0,0 },
 
   { T_COPY_GRP,	"OUTMODE_EDIT",	0,0,0 },
-  { T_COPT,	"FST",		0,0,0 },
   { T_COPT_M,	"DEST",		0,0,0 },
   { T_COPT_M,	"DEST2",	0,0,0 },
 

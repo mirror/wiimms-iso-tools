@@ -183,6 +183,12 @@
 	"Verify ISO images (calculate and compare SHA1 check sums) to find bad" \
 	" dumps." )
 
+#:def_cmd( "SKELETON", "SKELETON|SKEL", \
+	"wit SKELETON [source]...", \
+	"Create very small skeletons of ISO images. A skeleton contains only" \
+	" disc and partiton headers for further analysis and is not playable" \
+	" because all files are zeroed." )
+
 #:def_cmd( "MIX", "MIX", \
 	"wit MIX SOURCE... --dest|--DEST outfile\n" \
 	"  where SOURCE    = infile [QUALIFIER]...\n" \
@@ -3693,13 +3699,10 @@
 	"", \
 	"" )
 
-#:def_cmd_opt( "SKELETON", "FST", \
-	"", \
-	"" )
-
 #:def_cmd_opt( "SKELETON", "DEST", \
 	"", \
-	"" )
+	"Define a destination directory for the skeleton files. The default is" \
+	" {--DEST ./.skel/}." )
 
 #:def_cmd_opt( "SKELETON", "DEST2", \
 	"", \
@@ -3984,6 +3987,12 @@
 	"wwt VERIFY [id6]...", \
 	"Verify all discs of WBFS (calculate and compare SHA1 check sums) to" \
 	" find bad dumps." )
+
+#:def_cmd( "SKELETON", "SKELETON|SKEL", \
+	"wit SKELETON [id6]...", \
+	"Create very small skeletons of ISO images. A skeleton contains only" \
+	" disc and partiton headers for further analysis and is not playable" \
+	" because all files are zeroed." )
 
 #:def_cmd( "FILETYPE", "FILETYPE|FTYPE", \
 	"wwt FILETYPE filename...", \
@@ -7018,10 +7027,6 @@
 	"" )
 
 #:def_cmd_opt( "SKELETON", "WBFS", \
-	"", \
-	"" )
-
-#:def_cmd_opt( "SKELETON", "FST", \
 	"", \
 	"" )
 

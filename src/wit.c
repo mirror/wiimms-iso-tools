@@ -668,14 +668,16 @@ enumError exec_isosize ( SuperFile_t * sf, Iterator_t * it )
 	const int wbfs_fw = size_fw > 5 ? size_fw : 5;
 	if ( !it->done_count++ && print_header )
 	    printf("\n"
-		"   ISO %*s %*s %*s\n"
-		"blocks %*s %*s %*s  %s\n"
+		"   ISO %*s %*s %*s %*s\n"
+		"blocks %*s %*s %*s %*s  %s\n"
 		"%s\n",
 		size_fw, "ISO",
 		size_fw, ".wbfs",
 		size_fw, "500g",
+		size_fw, "  3t",
 		size_fw, wd_get_size_unit(opt_unit,"?"),
 		wbfs_fw, "file",
+		size_fw, "WBFS",
 		size_fw, "WBFS",
 		it->long_count > 2 ? "real path" : "filename",
 		sep_79 );
@@ -684,16 +686,21 @@ enumError exec_isosize ( SuperFile_t * sf, Iterator_t * it )
 	{
 	    // wbfs: size=10g => block size = 2 MiB
 	    const u32 wfile = 1 + wd_count_used_blocks( wdisc_usage_tab,
-					    2 * WII_SECTORS_PER_MIB );
+						2 * WII_SECTORS_PER_MIB );
 	    // wbfs: size=500g => block size = 8 MiB
-	    const u32 w500 =  wd_count_used_blocks( wdisc_usage_tab,
-					    8 * WII_SECTORS_PER_MIB );
+	    const u32 w500g = wd_count_used_blocks( wdisc_usage_tab,
+						8 * WII_SECTORS_PER_MIB );
 
-	    printf("%6llu %*s %*s %*s  %s\n",
+	    // wbfs: size=3t => block size = 8 MiB
+	    const u32 w3t   = wd_count_used_blocks( wdisc_usage_tab,
+						64 * WII_SECTORS_PER_MIB );
+
+	    printf("%6llu %*s %*s %*s %*s  %s\n",
 		blocks,
 		size_fw, wd_print_size(0,0,blocks*WII_SECTOR_SIZE,false,opt_unit),
 		wbfs_fw, wd_print_size(0,0,2ull*MiB*wfile,false,opt_unit),
-		size_fw, wd_print_size(0,0,8ull*MiB*w500,false,opt_unit),
+		size_fw, wd_print_size(0,0,8ull*MiB*w500g,false,opt_unit),
+		size_fw, wd_print_size(0,0,64ull*MiB*w3t,false,opt_unit),
 		sf->f.fname );
 	}
 	else	

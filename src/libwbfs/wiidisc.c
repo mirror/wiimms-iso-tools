@@ -936,17 +936,26 @@ u64 wd_calc_disc_offset
 wd_sector_status_t wd_get_part_sector_status
 (
     wd_part_t		* part,		// valid pointer to a disc partition
-    u32			block_num	// block number of partition
+    u32			block_num,	// block number of partition
+    bool		silent		// true: don't print error messages
 )
 {
     DASSERT(part);
     DASSERT(part->disc);
+    noPRINT("wd_get_part_sector_status(%p,%d)\n",part,block_num);
 
-    if (wd_load_part(part,false,false,false))
+
+    //----- setup
+
+    // extra test '!part->is_loaded' to avoid circulary calling
+    if ( !part->is_loaded && wd_load_part(part,false,false,silent) )
 	return WD_SS_READ_ERROR;
 
     if ( block_num >= part->end_sector - part->data_sector )
 	return WD_SS_INVALID_SECTOR;
+
+
+    //----- load block
 
     wd_disc_t * disc = part->disc;
     u8 * rdbuf = part->disc->temp_buf;
@@ -960,16 +969,30 @@ wd_sector_status_t wd_get_part_sector_status
     if (err)
 	return WD_SS_READ_ERROR|WD_SS_F_PART_DATA;
 
-    wd_sector_status_t stat = WD_SS_F_PART_DATA;
-    if (!disc->usage_table[abs_block_num])
-	stat |= WD_SS_F_SCRUB;
 
-    if ( !memcmp(rdbuf,rdbuf+1,WII_SECTOR_HASH_SIZE-1))
+    //----- check for 'SKELETON'
+
+    wd_sector_status_t stat = WD_SS_F_PART_DATA;
+
+    if ( !*rdbuf
+	&& !memcmp(data-sizeof(skeleton_marker),skeleton_marker,sizeof(skeleton_marker))
+	&& !memcmp(rdbuf,rdbuf+1,WII_SECTOR_HASH_SIZE-sizeof(skeleton_marker)-1) )
+    {
+	stat |= WD_SS_F_SKELETON;
+    }
+
+
+    //----- check cleared HASH
+
+    if ( !memcmp(rdbuf,rdbuf+1,WII_SECTOR_HASH_SIZE-1) )
     {
 	stat |= WD_SS_HASH_CLEARED;
 	if (!*rdbuf)
 	    stat |= WD_SS_HASH_ZEROED;
     }
+
+
+    //----- check cleared DATA
 
     if ( !memcmp(data,data+1,WII_SECTOR_DATA_SIZE-1))
     {
@@ -977,40 +1000,50 @@ wd_sector_status_t wd_get_part_sector_status
 	if (!*data)
 	    stat |= WD_SS_DATA_ZEROED;
 	if ( stat & WD_SS_HASH_CLEARED && *rdbuf == *data )
+	{
 	    stat |= WD_SS_SECTOR_CLEARED;
+	    if (!disc->usage_table[abs_block_num])
+		stat |= WD_SS_F_SCRUBBED;
+	}
     }
 
-    if ( !(stat & WD_SS_HASH_CLEARED) )
+
+    //----- check cleared encryption
+
+    if ( !(stat & (WD_SS_HASH_CLEARED|WD_SS_F_SKELETON)) )
     {
 	u8 hash[WII_HASH_SIZE];
-	SHA1( rdbuf + WII_SECTOR_HASH_SIZE, WII_H0_DATA_SIZE, hash );
-	if (!memcmp(rdbuf,hash,sizeof(hash)))
-	    stat |= WD_SS_DECRYPTED;
-	else
+	u8 dcbuf[WII_SECTOR_SIZE];
+
+	int h0idx;
+	for ( h0idx = 0; h0idx < WII_N_ELEMENTS_H0; h0idx++ )
 	{
-	    if ( disc->akey_part != part )
+	    //--- check for decryption
+
+	    SHA1( data + h0idx * WII_H0_DATA_SIZE, WII_H0_DATA_SIZE, hash );
+	    if (!memcmp(rdbuf + h0idx * WII_HASH_SIZE , hash, WII_HASH_SIZE))
 	    {
-		disc->akey_part = part;
-		wd_aes_set_key(&disc->akey,part->key);
+		noPRINT("- DEC #%02u!\n",h0idx);
+		stat |= WD_SS_DECRYPTED;
+		break;
 	    }
 
-	    u8 dcbuf[WII_SECTOR_SIZE];
-	    u8 iv[WII_KEY_SIZE];
-	    memset(iv,0,sizeof(iv));
-	    wd_aes_decrypt (	&disc->akey,
-				iv,
-				rdbuf,
-				dcbuf,
-				WII_SECTOR_HASH_SIZE );
-	    wd_aes_decrypt (	&disc->akey,
-				rdbuf + WII_SECTOR_IV_OFF,
-				rdbuf + WII_SECTOR_HASH_SIZE,
-				dcbuf + WII_SECTOR_HASH_SIZE,
-				WII_SECTOR_DATA_SIZE );
+	    //--- decrypt
 
-	    SHA1( dcbuf + WII_SECTOR_HASH_SIZE, WII_H0_DATA_SIZE, hash );
-	    if (!memcmp(dcbuf,hash,sizeof(hash)))
+	    if (!h0idx) // decrypt only once
+		wd_decrypt_sectors(part,0,rdbuf,dcbuf,0,1);
+
+
+	    //--- check for encryption
+
+	    SHA1( dcbuf + WII_SECTOR_HASH_SIZE + h0idx * WII_H0_DATA_SIZE,
+			WII_H0_DATA_SIZE, hash );
+	    if (!memcmp(dcbuf + h0idx * WII_HASH_SIZE , hash, WII_HASH_SIZE))
+	    {
+		noPRINT("- ENC #%02u!\n",h0idx);
 		stat |= WD_SS_ENCRYPTED;
+		break;
+	    }
 	}
     }
 
@@ -1022,15 +1055,174 @@ wd_sector_status_t wd_get_part_sector_status
 wd_sector_status_t wd_get_disc_sector_status
 (
     wd_disc_t		* disc,		// valid disc pointer
-    u32			block_num	// block number of disc
+    u32			block_num,	// block number of disc
+    bool		silent		// true: don't print error messages
 )
 {
     DASSERT(disc);
+    noPRINT("wd_get_disc_sector_status(%p,%d)\n",disc,block_num);
+
     if ( block_num >= WII_MAX_SECTORS )
 	return WD_SS_INVALID_SECTOR;
 
-    // [2do]
-    return 0;
+    //----- block in usage table?
+
+    wd_usage_t usage = disc->usage_table[block_num];
+    wd_part_t * part = 0;
+    if (!usage)
+    {
+	//--- find partition
+	
+	const u64 block_off = block_num * (u64)WII_SECTOR_SIZE;
+
+	int pi;
+	for ( pi = disc->n_part-1; pi >= 0; pi-- )
+	{
+	    wd_part_t * test_part = disc->part + pi;
+	    u64 off = (u64)test_part->part_off4 << 2;
+	    noPRINT(" %llx: %llx .. %llx\n", block_off, off, off+test_part->part_size );
+	    if ( block_off >= off
+		&& wd_load_part(test_part,false,false,silent)
+		&& block_off < off + test_part->part_size )
+	    {
+		part = test_part;
+		break;
+	    }
+	}
+    }
+    else if ( usage & WD_USAGE_F_CRYPT )
+    {
+	const uint idx = ( usage & WD_USAGE__MASK ) - WD_USAGE_PART_0;
+	if ( idx < disc->n_part )
+	    part = disc->part + idx;
+    }
+
+    //----- if partiton found -> ...
+ 
+    if (part)
+	return wd_load_part(part,false,false,silent)
+		? WD_SS_READ_ERROR
+		: wd_get_part_sector_status(part,block_num-part->data_sector,silent);
+
+
+    //----- not partiton data: load block
+
+    u8 * rdbuf = disc->temp_buf;
+    DASSERT(rdbuf);
+    enumError err = wd_read_raw(disc,
+				block_num * WII_SECTOR_SIZE4,
+				rdbuf,
+				WII_SECTOR_SIZE,
+				0 );
+    if (err)
+	return WD_SS_READ_ERROR|WD_SS_F_PART_DATA;
+
+
+    //----- check cleared DATA
+
+    wd_sector_status_t stat = 0;
+
+    if ( !memcmp(rdbuf,rdbuf+1,WII_SECTOR_SIZE-1) )
+    {
+	stat |= WD_SS_DATA_CLEARED | WD_SS_SECTOR_CLEARED;
+	if (!*rdbuf)
+	    stat |= WD_SS_DATA_ZEROED;
+    }
+
+    return stat;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+typedef struct info_t
+{
+    ccp		text;		// info to print if 'condition'
+    u32		condition;	// condition
+    u32		clear_flags;	// clear flags if 'condition'
+
+} info_t;
+
+//-----------------------------------------------------------------------------
+
+static char * proceed_info_tab
+(
+    char	* buf,		// destination buffer
+    ccp		buf_end,	// end of destination buffer
+    info_t	* info,		// info table
+    u32		flags,		// flags
+    bool	sep		// use ", " as initial separator
+)
+{
+    DASSERT(buf);
+    DASSERT( buf < buf_end );
+    DASSERT( info );
+
+    char * dest = buf;
+    if (flags)
+    {
+	for ( ; info->text; info++ )
+	{
+	    if ( flags & info->condition )
+	    {
+		flags &= ~info->clear_flags;
+		const int len = strlen(info->text);
+		if ( dest + len + 2 < buf_end )
+		{
+		    if (sep)
+		    {
+			*dest++ = ',';
+			*dest++ = ' ';
+		    }
+		    else
+			sep = true;
+		    memcpy(dest,info->text,len);
+		    dest += len;
+		    DASSERT( dest <= buf_end );
+		}
+	    }
+	}
+    }
+    DASSERT( dest < buf_end );
+    *dest = 0;
+    return dest;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+ccp wd_log_sector_status
+(
+    char		* buf,		// result buffer
+					// If NULL, a local circulary static buffer is used
+    size_t		buf_size,	// size of 'buf', ignored if buf==NULL
+    wd_sector_status_t	sect_stat	// sector status
+)
+{
+    static info_t info_tab[] =
+    {
+	{ "err:sect",	WD_SS_INVALID_SECTOR,	WD_SS_INVALID_SECTOR },
+	{ "err:read",	WD_SS_READ_ERROR,	WD_SS_READ_ERROR },
+	{ "err:?",	WD_SS_M_ERROR,		WD_SS_M_ERROR },
+
+	{ "Ac",		WD_SS_SECTOR_CLEARED,	WD_SS_HASH_CLEARED|WD_SS_DATA_CLEARED },
+	{ "Hz",		WD_SS_HASH_ZEROED,	WD_SS_HASH_CLEARED },
+	{ "Dz",		WD_SS_DATA_ZEROED,	WD_SS_DATA_CLEARED },
+	{ "Hc",		WD_SS_HASH_CLEARED,	0 },
+	{ "Dc",		WD_SS_DATA_CLEARED,	0 },
+
+	{ "enc",	WD_SS_ENCRYPTED,	0 },
+	{ "dec",	WD_SS_DECRYPTED,	0 },
+
+	{ "pdata",	WD_SS_F_PART_DATA,	0 },
+	{ "scrub",	WD_SS_F_SCRUBBED,	0 },
+	{ "skel",	WD_SS_F_SKELETON,	0 },
+
+	{0,0,0}
+    };
+
+    if (!buf)
+	buf = GetCircBuf( buf_size = 50 );
+    proceed_info_tab( buf, buf+buf_size, info_tab, sect_stat, false );
+    return buf;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -1044,62 +1236,29 @@ ccp wd_print_sector_status
     cert_stat_t		sig_stat	// not NULL: add signature status
 )
 {
-    if (!buf)
-	buf = GetCircBuf( buf_size = 50 );
-    char * dest = buf;
-    char * dest_end = buf + buf_size - 1;
-
-    struct info_t
+    static info_t info_tab_sect[] =
     {
-	ccp text;		// info to print if 'condition'
-	u32 condition;		// condition
-	u32 clear_flags;	// clear flags if 'condition'
-    };
-    
-    static struct info_t info_tab[] =
-    {
-	
-	{ "ERR:",	WD_SS_M_ERROR,		~WD_SS_M_ERROR },
-	{ "sect",	WD_SS_INVALID_SECTOR,	WD_SS_INVALID_SECTOR },
-	{ "read",	WD_SS_READ_ERROR,	WD_SS_READ_ERROR },
-	{ "?",		WD_SS_M_ERROR,		WD_SS_M_ERROR },
-
-	{ "Ac",		WD_SS_SECTOR_CLEARED,	WD_SS_HASH_CLEARED|WD_SS_DATA_CLEARED },
-	{ "Hz",		WD_SS_HASH_ZEROED,	WD_SS_HASH_CLEARED },
-	{ "Dz",		WD_SS_DATA_ZEROED,	WD_SS_DATA_CLEARED },
-	{ "Hc",		WD_SS_HASH_CLEARED,	0 },
-	{ "Dc",		WD_SS_DATA_CLEARED,	0 },
-
-	{ "enc",	WD_SS_ENCRYPTED,	0 },
-	{ "dec",	WD_SS_DECRYPTED,	0 },
-
-	{ "pdata",	WD_SS_F_PART_DATA,	0 },
-	{ "scrub",	WD_SS_F_SCRUB,		0 },
+	{ "encrypted",		WD_SS_ENCRYPTED,	0 },
+	{ "decrypted",		WD_SS_DECRYPTED,	0 },
+	{ "skeleton",		WD_SS_F_SKELETON,	WD_SS_F_SCRUBBED },
+	{ "scrubbed",		WD_SS_F_SCRUBBED,	0 },
 
 	{0,0,0}
     };
 
-    
-    struct info_t * info;
-    for ( info = info_tab; info->text; info++ )
+    static info_t info_tab_sig[] =
     {
-	if ( sect_stat & info->condition )
-	{
-	    sect_stat &= ~info->clear_flags;
-	    const int len = strlen(info->text);
-	    if ( dest + len < dest_end )
-	    {
-		if ( dest > buf )
-		    *dest++ = ' ';
-		memcpy(dest,info->text,len);
-		dest += len;
-		DASSERT( dest <= dest_end );
-	    }
-	}
-    }
-    DASSERT( dest <= dest_end );
-    *dest = 0;
-    
+	{ "not signed",		CERT_F_HASH_FAILED,	CERT_F_HASH_OK },
+	{ "fake signed",	CERT_F_HASH_FAKED,	CERT_F_HASH_OK },
+	{ "well signed",	CERT_F_HASH_OK,		0 },
+
+	{0,0,0}
+    };
+
+    if (!buf)
+	buf = GetCircBuf( buf_size = 80 );
+    char * dest = proceed_info_tab( buf, buf+buf_size, info_tab_sect, sect_stat, false );
+    proceed_info_tab( dest, buf+buf_size, info_tab_sig, sig_stat, dest > buf );
     return buf;
 }
 
@@ -1111,164 +1270,90 @@ int wd_is_block_encrypted
 
     wd_part_t		* part,		// valid pointer to a disc partition
     u32			block_num,	// block number of partition
-    int			unknown_result	// result if status is unknown
+    int			unknown_result,	// result if status is unknown
+    bool		silent		// true: don't print error messages
 )
 {
-    TRACE("wd_is_block_encrypted(%p,%u,%d)\n", part, block_num, unknown_result );
     DASSERT(part);
     DASSERT(part->disc);
 
-    wd_disc_t * disc = part->disc;
-
-    u8 * rdbuf = disc->temp_buf;
-    enumError err = wd_read_raw(disc,
-				part->data_off4 + block_num * WII_SECTOR_SIZE4,
-				rdbuf,
-				WII_SECTOR_SIZE,
-				0 );
-    if (err)
+    const wd_sector_status_t ss = wd_get_part_sector_status(part,block_num,silent);
+    if ( ss & WD_SS_F_PART_DATA )
     {
-	TRACE(" - read error, return -1\n");
-	return -1;
+	part->sector_stat |= ss;
+	part->disc->sector_stat |= part->sector_stat;
     }
 
-    //HEXDUMP16(0,0,rdbuf,WII_SECTOR_HASH_SIZE);
-    if ( !memcmp(rdbuf,rdbuf+1,WII_SECTOR_HASH_SIZE-1))
-    {
-	TRACE(" - return 0 [filled[%02x]=not encrypted]\n",*rdbuf); 
-	return 0;
-    }
-
-    u8 hash[WII_HASH_SIZE];
-    SHA1( rdbuf + WII_SECTOR_HASH_SIZE, WII_H0_DATA_SIZE, hash );
-    TRACE(" - HASH: "); TRACE_HEXDUMP(0,0,1,WII_HASH_SIZE,hash,WII_HASH_SIZE);
-    TRACE(" - H0:   "); TRACE_HEXDUMP(0,0,1,WII_HASH_SIZE,rdbuf,WII_HASH_SIZE);
-    if (!memcmp(rdbuf,hash,sizeof(hash)))
-    {
-	TRACE(" - return 0 [not encrypted]\n"); 
-	return 0;
-    }
-
-    if ( disc->akey_part != part )
-    {
-	disc->akey_part = part;
-	wd_aes_set_key(&disc->akey,part->key);
-    }
-
-    u8 dcbuf[WII_SECTOR_SIZE];
-    u8 iv[WII_KEY_SIZE];
-    memset(iv,0,sizeof(iv));
-    wd_aes_decrypt (	&disc->akey,
-			iv,
-			rdbuf,
-			dcbuf,
-			WII_SECTOR_HASH_SIZE );
-    wd_aes_decrypt (	&disc->akey,
-			rdbuf + WII_SECTOR_IV_OFF,
-			rdbuf + WII_SECTOR_HASH_SIZE,
-			dcbuf + WII_SECTOR_HASH_SIZE,
-			WII_SECTOR_DATA_SIZE );
-
-    SHA1(dcbuf+WII_SECTOR_HASH_SIZE,WII_H0_DATA_SIZE,hash);
-    TRACE(" - HASH: "); TRACE_HEXDUMP(0,0,1,WII_HASH_SIZE,hash,WII_HASH_SIZE);
-    TRACE(" - H0:   "); TRACE_HEXDUMP(0,0,1,WII_HASH_SIZE,dcbuf,WII_HASH_SIZE);
-    if (!memcmp(dcbuf,hash,sizeof(hash)))
-    {
-	TRACE(" - return 1 [encrypted]\n"); 
-	return 1;
-    }
-
-    TRACE(" - return %d [unknown]\n",unknown_result); 
-    return unknown_result;
-}
-
-///////////////////////////////////////////////////////////////////////////////
-
-wd_scrubbed_t wd_is_block_scrubbed
-(
-    // returns -1 on read error
-
-    wd_disc_t		* disc,		// valid disc pointer
-    u32			block_num	// block number of disc
-)
-{
-    DASSERT(disc);
-
-    u8 * rdbuf = disc->temp_buf;
-    enumError err = wd_read_raw(disc,
-				block_num * WII_SECTOR_SIZE4,
-				rdbuf,
-				WII_SECTOR_SIZE,
-				0 );
-    if (err)
-    {
-	TRACE("wd_is_block_scrubbed(%p,%u) => read error, return -1\n",
-	    disc, block_num );
-	return -1;
-    }
-
-    wd_scrubbed_t stat = WD_SCRUBBED_NONE;
-    if ( !memcmp(rdbuf,rdbuf+1,WII_SECTOR_HASH_SIZE-1))
-	stat |= WD_SCRUBBED_HASH;
-	
-    rdbuf += WII_SECTOR_HASH_SIZE;
-    if ( !memcmp(rdbuf,rdbuf+1,WII_SECTOR_DATA_SIZE-1))
-	stat |= WD_SCRUBBED_DATA;
-
-    TRACE("wd_is_block_scrubbed(%p,%u) => return %u\n", disc, block_num, stat );
-    return stat;
+    noPRINT("wd_is_block_encrypted(%d) -> %04x '%s'\n",
+	block_num, ss, wd_log_sector_status(0,0,ss) );
+    return ss & WD_SS_ENCRYPTED
+		? 1
+		: ss & (WD_SS_DECRYPTED|WD_SS_F_SKELETON)
+			? 0
+			: unknown_result;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 
 bool wd_is_part_scrubbed
 (
-    wd_part_t		* part		// valid pointer to a disc partition
+    wd_part_t		* part,		// valid pointer to a disc partition
+    bool		silent		// true: don't print error messages
 )
 {
     DASSERT(part);
     DASSERT(part->disc);
 
-    if (part->is_scrubbed)
-	return true;
-
-    const enumError err = wd_load_part(part,false,false,false);
-    if (err)
-	return false;
-
-    int try_count = 5, sector;
-    for ( sector = part->data_sector;
-	  sector < part->end_sector && try_count && !part->is_scrubbed;
-	  sector++ )
+    if (!part->scrub_test_done)
     {
-	DASSERT( sector < WII_MAX_SECTORS );
-	if (!part->disc->usage_table[sector])
+	part->scrub_test_done = true;
+
+	const enumError err = wd_load_part(part,false,false,silent);
+	if (err)
+	    return false;
+
+	int try_count = 5, sector;
+	for ( sector = part->data_sector;
+	      sector < part->end_sector
+			&& try_count
+			&& !(part->sector_stat&WD_SS_F_SCRUBBED);
+	      sector++ )
 	{
-	    try_count--;
-	    part->is_scrubbed
-		= wd_is_block_scrubbed(part->disc,sector) == WD_SCRUBBED_ALL;
+	    DASSERT( sector < WII_MAX_SECTORS );
+	    if (!part->disc->usage_table[sector])
+	    {
+		try_count--;
+		wd_sector_status_t ss = wd_get_part_sector_status(part,sector,silent);
+		if ( ss & WD_SS_F_PART_DATA )
+		    part->sector_stat |= ss;
+	    }
 	}
+	part->disc->sector_stat |= part->sector_stat;
     }
-    
-    if (part->is_scrubbed)
-	part->disc->is_scrubbed = true;
-    return part->is_scrubbed;
+
+    return ( part->sector_stat & WD_SS_F_SCRUBBED ) != 0;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 
 bool wd_is_disc_scrubbed
 (
-    wd_disc_t		* disc		// valid disc pointer
+    wd_disc_t		* disc,		// valid disc pointer
+    bool		silent		// true: don't print error messages
 )
 {
     DASSERT(disc);
 
-    int pi;
-    for ( pi = 0; !disc->is_scrubbed && pi < disc->n_part; pi++ )
-	wd_is_part_scrubbed(disc->part+pi);
+    if (!disc->scrub_test_done)
+    {
+	disc->scrub_test_done = true;
 
-    return disc->is_scrubbed;
+	int pi;
+	for ( pi = 0; pi < disc->n_part; pi++ )
+	    wd_is_part_scrubbed(disc->part+pi,silent);
+    }
+
+    return ( disc->sector_stat & WD_SS_F_SCRUBBED ) != 0;
 }
 
 //
@@ -1570,6 +1655,24 @@ wd_disc_t * wd_open_disc
 
     if (error_code)
 	*error_code = err;
+
+#if 0 && defined(TEST) && defined(DEBUG) // [2do]
+    if (disc)
+    {
+	static int tab[] = { 0, 4, 7935, 7936, 7940, 7941, -1 };
+
+	PRINT("+++++++\n");
+	int i;
+	for ( i = 0; tab[i] >= 0; i++ )
+	{
+	    wd_sector_status_t ss = wd_get_disc_sector_status(disc,tab[i],false);
+	    printf("%5d: %04x |%s|\n",
+		    tab[i], ss, wd_log_sector_status(0,0,ss) );
+	}
+	PRINT("-------\n");
+    }
+#endif
+
     return disc;
 }
 
@@ -1943,9 +2046,10 @@ enumError wd_load_part
 
 
 	    //----- check encryption
+	    //   -> call wd_is_block_encrypted() first because of 'sector_stat' setup
 
-	    part->is_encrypted = !tmd_is_marked_not_encrypted(tmd)
-			       && wd_is_block_encrypted(part,0,1);
+	    part->is_encrypted = wd_is_block_encrypted(part,0,1,false)
+				&& !tmd_is_marked_not_encrypted(tmd);
 	    TRACE("is_encrypted=%d\n",part->is_encrypted);
 
 	} // !is_gc
@@ -2154,7 +2258,7 @@ enumError wd_load_part
 	else
 	{
 	    const u32 last_sect = part->data_sector + ph->data_size4 / WII_SECTOR_SIZE4;
-	    PRINT("last_sect=%x, end_sector=%x\n",last_sect,part->end_sector);
+	    noPRINT("last_sect=%x, end_sector=%x\n",last_sect,part->end_sector);
 	    if ( part->end_sector < last_sect )
 	         part->end_sector = last_sect;
 	}
@@ -2213,14 +2317,14 @@ enumError wd_load_part
 	    }
 	}
 
-     #if defined(TEST) && defined(DEBUG) // [2do]
+     #if 0 && defined(TEST) && defined(DEBUG) // [2do]
 	{
 	    int i;
 	    for ( i = -1; i < 10; i += 1 )
 	    {
-		wd_sector_status_t ss = wd_get_part_sector_status(part,i);
+		wd_sector_status_t ss = wd_get_part_sector_status(part,i,silent);
 		printf("%2zu.%03d: %04x |%s|\n",
-			part-disc->part, i, ss, wd_print_sector_status(0,0,ss,0) );
+			part-disc->part, i, ss, wd_log_sector_status(0,0,ss) );
 	    }
 	}
      #endif
@@ -2402,11 +2506,13 @@ cert_stat_t wd_get_cert_ticket_stat
 )
 {
     DASSERT(part);
+    DASSERT(part->disc);
 
     if (!part->cert_tik_stat)
     {
 	const cert_chain_t * cc = wd_load_cert_chain(part,silent);
 	part->cert_tik_stat = cert_check_ticket(cc,&part->ph.ticket,0);
+	part->disc->cert_summary |= part->cert_tik_stat;
     }
 
     return part->cert_tik_stat;
@@ -2420,10 +2526,14 @@ cert_stat_t wd_get_cert_tmd_stat
     bool		silent		// true: don't print errors while loading cert
 )
 {
+    DASSERT(part);
+    DASSERT(part->disc);
+
     if (!part->cert_tmd_stat)
     {
 	const cert_chain_t * cc = wd_load_cert_chain(part,silent);
 	part->cert_tmd_stat = cert_check_tmd(cc,part->tmd,0);
+	part->disc->cert_summary |= part->cert_tmd_stat;
     }
 
     return part->cert_tmd_stat;
@@ -2470,7 +2580,7 @@ char * wd_print_sig_status
 					// If NULL, a local circulary static buffer is used
     size_t		buf_size,	// size of 'buf', ignored if buf==NULL
     wd_part_t		* part,		// valid disc partition pointer
-    bool		silent,		// true: don't print errors while loading cert
+    bool		silent,		// true: don't print errors while loading data
     bool		add_enc_info	// true: append " Partition is *crypted."
 )
 {
@@ -2486,7 +2596,7 @@ char * wd_print_sig_status
 				: " Partition is decrypted";
     ccp scrub_info = !add_enc_info
 			? ""
-			: wd_is_part_scrubbed(part)
+			: wd_is_part_scrubbed(part,silent)
 				? " and scrubbed."
 				: ".";
 
@@ -2550,13 +2660,56 @@ char * wd_print_part_status
 	ccp sign_info  = wd_get_sig_status_short_text
 			( wd_get_cert_ticket_stat(part,silent)
 			| wd_get_cert_tmd_stat(part,silent));
-	ccp scrub_info = wd_is_part_scrubbed(part) ? ",scrub" : "";
+	ccp scrub_info = wd_is_part_scrubbed(part,silent) ? ",scrub" : "";
+	if ( part->sector_stat & WD_SS_F_SKELETON )
+	    scrub_info = ",skel";
 	snprintf(buf,buf_size,"%s,%s%s",enc_info,sign_info,scrub_info);
     }
     else
 	snprintf(buf,buf_size,"disabled");
 
     return buf;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+enumError wd_calc_part_status
+(
+    wd_part_t		* part,		// valid pointer to a disc partition
+    bool		silent		// true: don't print error messages
+)
+{
+    DASSERT(part);
+    DASSERT(part->disc);
+
+    const enumError err = wd_load_part(part,true,false,silent);
+    wd_get_cert_ticket_stat(part,silent);
+    wd_get_cert_tmd_stat(part,silent);
+    wd_is_part_scrubbed(part,silent);
+    return err;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+enumError wd_calc_disc_status
+(
+    wd_disc_t		* disc,		// valid disc pointer
+    bool		silent		// true: don't print error messages
+)
+{
+    DASSERT(disc);
+
+    int ip;
+    enumError max_err = ERR_OK;
+    for ( ip = 0; ip < disc->n_part; ip++ )
+    {
+	const enumError err = wd_calc_part_status(disc->part+ip,silent);
+	if ( max_err < err )
+	     max_err = err;
+    }
+
+    disc->scrub_test_done = true;
+    return max_err;
 }
 
 //

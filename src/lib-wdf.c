@@ -611,10 +611,10 @@ enumError WriteWDF ( SuperFile_t * sf, off_t off, const void * buf, size_t count
     ASSERT(sf->wc);
 
     TRACE("#W# -----\n");
-    PRINT(TRACE_RDWR_FORMAT, "#W# WriteWDF()",
+    TRACE(TRACE_RDWR_FORMAT, "#W# WriteWDF()",
 		GetFD(&sf->f), GetFP(&sf->f), (u64)off, (u64)off+count, count,
 		off < sf->max_virt_off ? " <" : "" );
-    PRINT(" - off = %llx,%llx, fs = %llx\n",
+    TRACE(" - off = %llx,%llx, fs = %llx\n",
 		(u64)sf->f.file_off, (u64)sf->f.max_off, (u64)sf->file_size );
 
     if (!count)

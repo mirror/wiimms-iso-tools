@@ -1921,7 +1921,6 @@ enumError XSeekF ( XPARM File_t * f, off_t off )
 
     if (f->is_caching)
     {
-	TRACELINE;
 	FileCache_t * cptr = XCacheHelper(XCALL f,off,1);
 	if (cptr)
 	    return f->last_error; // all done
@@ -2266,13 +2265,12 @@ enumError XReadF ( XPARM File_t * f, void * iobuf, size_t count )
 	const int stat = XSeekF(XCALL f,f->cur_off);
 	if (stat)
 	    return stat;
+	// f->cur_off and f->file_off may differ because of cache access
     }
 
     TRACE(TRACE_RDWR_FORMAT, "#F# ReadF()",
 		GetFD(f), GetFP(f), (u64)f->cur_off, (u64)f->cur_off+count, count,
 		f->cur_off < f->max_off ? " <" : "" );
-    ASSERT_MSG( f->cur_off == f->file_off,
-		"ASSERTION FAILED: %llx %llx\n", (u64)f->cur_off, (u64)f->file_off );
 
     if ( f->read_behind_eof && ( f->st.st_size > 0 || f->is_writing ) )
     {

@@ -346,7 +346,7 @@ enumError SourceIteratorCollected
 					// with: ( mask & itme->flag ) != 0
     int			warning_mode,	// warning mode if no source found
 					// 0:off, 1:only return status, 2:print error
-    bool		ignore_err	// false: break on error > ERR_WARNING 
+    bool		ignore_err	// false: abort on error > ERR_WARNING 
 );
 
 enumError SourceIteratorWarning ( Iterator_t * it, enumError max_err, bool silent );

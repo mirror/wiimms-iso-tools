@@ -1382,6 +1382,7 @@ enumError OpenPartWBFS ( WBFS_t * w, PartitionInfo_t * info )
     if (err)
     {
 	info->part_mode = PM_WBFS_INVALID;
+	info->ignore = true;
 	return err;
     }
 
@@ -1535,7 +1536,7 @@ uint CountWBFS()
     uint count = 0;
     PartitionInfo_t * info;
     for ( info = first_partition_info; info; info = info->next )
-	if (!info->ignore)
+	if ( !info->ignore && info->part_mode >= PM_WBFS_MAGIC_FOUND )
 	    count++;
     TRACE("CountWBFS(), N=%u\n",count);
     return count;

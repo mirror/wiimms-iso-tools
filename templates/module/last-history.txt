@@ -3,6 +3,8 @@ wit v@@VERSION@@ r@@REV-NEXT@@ - @@@@-@@-@@
  - Bug fix for "wwt EXTRACT --test": If extracting to an already existing file
    the old file was removed.
  - Bug fix for "wdf +PACK": wrong data written if packing a raw file.
+ - Bug fix: Reading a GameCube WIA is now done without an assertion failure.
+   But remember: GameCube support is still EXPERIMENTAL!
  - I have made some changes in the make system to support GCC option -static
    and cross compiling (Linux/i386 on Linux/x86_64).
  - Linux/i386: Because of the static linking I can use the latest version of
@@ -16,7 +18,9 @@ wit v@@VERSION@@ r@@REV-NEXT@@ - @@@@-@@-@@
    files). In a second loop the jobs are executed with correct job counters.
  - wit DUMP: Scrubbing status of disc and partitions are printed. Example:
       "TICKET & TMD are well signed. Partition is encrypted and scrubbed."
- - "wit EXTARCT" failed if the disc title could not found in the title db.
+ - "wit EXTRACT" failed if the disc title could not found in the title db.
+ - New commands: "wit/wwt SKELETON": Create skeleton copies of discs for
+   further analysis. Details: http://wit.wiimm.de/cmd/wit/skeleton#desc
 
 
 Known bugs:

@@ -3956,7 +3956,7 @@ void ResetIterator ( Iterator_t * it )
 
 static void IteratorProgress ( Iterator_t * it, bool last_message )
 {
-    if ( it->num_of_scans || last_message )
+    if ( it->progress_enabled && ( it->num_of_scans || last_message ))
     {
 	const u32 sec = GetTimerMSec() / 1000 + 1;
 	if ( sec != it->progress_last_sec || last_message )
@@ -4424,7 +4424,7 @@ enumError SourceIteratorCollected
 					// with: ( mask & itme->flag ) != 0
     int			warning_mode,	// warning mode if no source found
 					// 0:off, 1:only return status, 2:print error
-    bool		ignore_err	// false: break on error > ERR_WARNING 
+    bool		ignore_err	// false: abort on error > ERR_WARNING 
 )
 {
     ASSERT(it);
@@ -4438,6 +4438,9 @@ enumError SourceIteratorCollected
     it->expand_dir	= false;
     it->num_of_files	= 0;
     it->job_count	= 0;
+
+    const bool progress_enabled = it->progress_enabled;
+    it->progress_enabled = false;
 
     enumError max_err = 0;
     int idx;
@@ -4458,6 +4461,8 @@ enumError SourceIteratorCollected
 	if ( !ignore_err && err > ERR_WARNING )
 	    break;
     }
+
+    it->progress_enabled = progress_enabled;
 
     return warning_mode > 0
 		? SourceIteratorWarning(it,max_err,warning_mode==1)
