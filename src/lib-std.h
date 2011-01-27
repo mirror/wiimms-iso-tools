@@ -1,10 +1,22 @@
 
 /***************************************************************************
+ *                    __            __ _ ___________                       *
+ *                    \ \          / /| |____   ____|                      *
+ *                     \ \        / / | |    | |                           *
+ *                      \ \  /\  / /  | |    | |                           *
+ *                       \ \/  \/ /   | |    | |                           *
+ *                        \  /\  /    | |    | |                           *
+ *                         \/  \/     |_|    |_|                           *
+ *                                                                         *
+ *                           Wiimms ISO Tools                              *
+ *                         http://wit.wiimm.de/                            *
+ *                                                                         *
+ ***************************************************************************
  *                                                                         *
  *   This file is part of the WIT project.                                 *
  *   Visit http://wit.wiimm.de/ for project details and sources.           *
  *                                                                         *
- *   Copyright (c) 2009-2010 by Dirk Clemens <wiimm@wiimm.de>              *
+ *   Copyright (c) 2009-2011 by Dirk Clemens <wiimm@wiimm.de>              *
  *                                                                         *
  ***************************************************************************
  *                                                                         *
@@ -234,6 +246,7 @@ typedef enum enumIOMode
 
 } enumIOMode;
 
+extern int opt_direct;
 extern enumIOMode opt_iomode;
 void ScanIOMode ( ccp arg );
 
@@ -538,6 +551,8 @@ typedef struct File_t
 	int  open_flags;	// proposed open flags; if zero then ignore
 	bool disable_errors;	// don't print error messages
 	bool create_directory;	// create direcotries automatically
+	bool allow_direct_io;	// allow the usage of O_DIRECT
+
 
 	// error codes
 
@@ -1045,6 +1060,43 @@ time_t	ScanTime	( ccp arg );
 ///////////////              string fields & lists              ///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
+typedef struct IdItem_t
+{
+    char	id6[7];		// NULL or id6, null terminated
+    char	flag;		// a user defined flag
+    time_t	mtime;		// NULL or mtime of source file
+    char	arg[0];		// additional string, null terminated
+
+} IdItem_t;
+
+//-----------------------------------------------------------------------------
+
+typedef struct IdField_t
+{
+    IdItem_t	** field;	// pointer to the string field
+    uint	used;		// number of used titles in the title field
+    uint	size;		// number of allocated pointer in 'field'
+
+} IdField_t;
+
+//-----------------------------------------------------------------------------
+
+void InitializeIdField ( IdField_t * idf );
+void ResetIdField ( IdField_t * idf );
+
+// return: pointer to matched key if the key is in the field.
+const IdItem_t * FindIdField ( IdField_t * idf, ccp key );
+
+// return: true if item inserted/deleted
+bool InsertIdField ( IdField_t * idf, void * id6, char flag, time_t mtime, ccp key );
+bool RemoveIdField ( IdField_t * idf, ccp key );
+
+// dump list
+void DumpIdField ( FILE *f, int indent, const IdField_t * idf );
+
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+
 typedef struct StringField_t
 {
     ccp		* field;	// pointer to the string field
@@ -1052,16 +1104,6 @@ typedef struct StringField_t
     uint	size;		// number of allocated pointer in 'field'
 
 } StringField_t;
-
-//-----------------------------------------------------------------------------
-
-typedef struct StringItem_t
-{
-    char	id6[7];		// id6, null terminated
-    char	flag;		// a user defined flag
-    char	arg[0];		// additional string, null terminated
-
-} StringItem_t;
 
 //-----------------------------------------------------------------------------
 
@@ -1076,7 +1118,7 @@ bool InsertStringField ( StringField_t * sf, ccp key,  bool move_key );
 bool RemoveStringField ( StringField_t * sf, ccp key );
 
 // special id6 support
-StringItem_t * InsertStringID6 ( StringField_t * sf, void * id6, char flag, ccp arg );
+IdItem_t * InsertStringID6 ( StringField_t * sf, void * id6, char flag, ccp arg );
 
 // append at the end an do not sort
 void AppendStringField ( StringField_t * sf, ccp key, bool move_key );

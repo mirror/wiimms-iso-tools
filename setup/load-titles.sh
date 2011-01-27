@@ -3,7 +3,7 @@
 NEEDED="wit wget comm"
 
 BASE_PATH="@@INSTALL-PATH@@"
-LIB_PATH="$BASE_PATH/share/wit"
+SHARE_PATH="$BASE_PATH/share/wit"
 URI_TITLES=@@URI-TITLES@@
 LANGUAGES="@@LANGUAGES@@"
 
@@ -61,22 +61,22 @@ fi
 
 #------------------------------------------------------------------------------
 
-mkdir -p "$LIB_PATH" lib
+mkdir -p "$SHARE_PATH" share
 
-load_and_store "$URI_TITLES" "lib/titles.txt"
+load_and_store "$URI_TITLES" "share/titles.txt"
 
 # load language specifig title files
 
 for lang in $LANGUAGES
 do
     LANG="$( echo $lang | awk '{print toupper($0)}' )"
-    load_and_store $URI_TITLES?LANG=$LANG "lib/titles-$lang.txt" lib/titles.txt
+    load_and_store $URI_TITLES?LANG=$LANG "share/titles-$lang.txt" share/titles.txt
 done
 
 if ((!make))
 then
-    echo "*** install titles to $LIB_PATH"
-    mkdir -p "$LIB_PATH"
-    cp -p lib/titles*.txt "$LIB_PATH"
+    echo "*** install titles to $SHARE_PATH"
+    mkdir -p "$SHARE_PATH"
+    cp -p share/titles*.txt "$SHARE_PATH"
 fi
 

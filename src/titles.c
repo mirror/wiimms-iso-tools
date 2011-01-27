@@ -1,10 +1,22 @@
 
 /***************************************************************************
+ *                    __            __ _ ___________                       *
+ *                    \ \          / /| |____   ____|                      *
+ *                     \ \        / / | |    | |                           *
+ *                      \ \  /\  / /  | |    | |                           *
+ *                       \ \/  \/ /   | |    | |                           *
+ *                        \  /\  /    | |    | |                           *
+ *                         \/  \/     |_|    |_|                           *
+ *                                                                         *
+ *                           Wiimms ISO Tools                              *
+ *                         http://wit.wiimm.de/                            *
+ *                                                                         *
+ ***************************************************************************
  *                                                                         *
  *   This file is part of the WIT project.                                 *
  *   Visit http://wit.wiimm.de/ for project details and sources.           *
  *                                                                         *
- *   Copyright (c) 2009-2010 by Dirk Clemens <wiimm@wiimm.de>              *
+ *   Copyright (c) 2009-2011 by Dirk Clemens <wiimm@wiimm.de>              *
  *                                                                         *
  ***************************************************************************
  *                                                                         *
@@ -363,7 +375,7 @@ static ccp ScanPatID // return NULL if ok or a pointer to the invalid text
     while ( arg && *arg )
     {
  	arg = ScanArgID(buf,arg,trim_end);
- 	PRINT(" -> |%s|\n",arg);
+ 	TRACE(" -> |%s|\n",arg);
 	if (!*buf)
 	    return arg;
 
@@ -402,17 +414,17 @@ static enumError AddId
     {
 	char id[7];
 	ccp end = ScanArgID(id,arg,false);
-	PRINT("->|%s|\n",end);
+	TRACE("->|%s|\n",end);
 	if ( *id && ( !end || !*end ) )
 	{
 	    if (strchr(id,'.'))
 	    {
-		PRINT("ADD PAT/FILE: %s\n",id);
+		TRACE("ADD PAT/FILE: %s\n",id);
 		InsertStringID6(sf_pat,id,SEL_UNUSED,0);
 	    }
 	    else
 	    {
-		PRINT("ADD ID6/FILE: %s\n",id);
+		TRACE("ADD ID6/FILE: %s\n",id);
 		InsertStringID6(sf_id6,id,SEL_UNUSED,0);
 	    }
 	}
@@ -422,14 +434,14 @@ static enumError AddId
 	    ScanID(id,&idlen,arg);
 	    if ( idlen == 4 || idlen == 6 )
 	    {
-		PRINT("ADD ID/FILE: %s\n",id);
+		TRACE("ADD ID/FILE: %s\n",id);
 		InsertStringID6(sf_id6,id,SEL_UNUSED,0);
 	    }
 	}
     }
     else
     {
-	PRINT("ADD PAT/PARAM: %s\n",arg);
+	TRACE("ADD PAT/PARAM: %s\n",arg);
 	ccp res = ScanPatID(sf_id6,sf_pat,arg,false,
 			(select_mode & SEL_F_PARAM) != 0 );
 	if (res)
@@ -440,7 +452,7 @@ static enumError AddId
 
 ///////////////////////////////////////////////////////////////////////////////
 
-static StringItem_t * FindPatID
+static IdItem_t * FindPatID
 (
     StringField_t	* sf_id6,	// valid pointer: search real ID6
     StringField_t	* sf_pat,	// valid pointer: search IDs with pattern '.'
@@ -451,10 +463,10 @@ static StringItem_t * FindPatID
     if (!id6)
 	return 0;
 
-    StringItem_t * found = 0;
+    IdItem_t * found = 0;
     if (sf_id6)
     {
-	found = (StringItem_t*)FindStringField(sf_id6,id6);
+	found = (IdItem_t*)FindStringField(sf_id6,id6);
 	if (found)
 	{
 	    if ( found->flag == 2 )
@@ -468,7 +480,7 @@ static StringItem_t * FindPatID
 
     if (sf_pat)
     {
-	StringItem_t **ptr = (StringItem_t**)sf_pat->field, **end;
+	IdItem_t **ptr = (IdItem_t**)sf_pat->field, **end;
 	for ( end = ptr + sf_pat->used; ptr < end; ptr++ )
 	{
 	    ccp p1 = ptr[0]->id6;
@@ -721,7 +733,7 @@ int CountParamID()
 
 ///////////////////////////////////////////////////////////////////////////////
 
-StringItem_t * FindParamID ( ccp id6 )
+IdItem_t * FindParamID ( ccp id6 )
 {
     return FindPatID(&param_id6,&param_pat,id6,true);
 }
@@ -732,10 +744,10 @@ int DumpParamDB ( enumSelectUsed mask, bool warn )
 {
     int count_id6 = 0, count_pat = 0;
 
-    StringItem_t **ptr = (StringItem_t**)param_id6.field, **end;
+    IdItem_t **ptr = (IdItem_t**)param_id6.field, **end;
     for ( end = ptr + param_id6.used; ptr < end; ptr++ )
     {
-	StringItem_t * item = *ptr;
+	IdItem_t * item = *ptr;
 	DASSERT(item);
 	if ( item->flag & mask )
 	{
@@ -747,10 +759,10 @@ int DumpParamDB ( enumSelectUsed mask, bool warn )
 	}
     }
 
-    ptr = (StringItem_t**)param_pat.field;
+    ptr = (IdItem_t**)param_pat.field;
     for ( end = ptr + param_pat.used; ptr < end; ptr++ )
     {
-	StringItem_t * item = *ptr;
+	IdItem_t * item = *ptr;
 	DASSERT(item);
 	if ( item->flag & mask )
 	{
@@ -816,7 +828,7 @@ int SetupParamDB
 
 ///////////////////////////////////////////////////////////////////////////////
 
-StringItem_t * CheckParamSlot
+IdItem_t * CheckParamSlot
 (
     // return NULL if no disc at slot found or disc not match or disabled
     // or a pointer to the ID6
@@ -846,7 +858,7 @@ StringItem_t * CheckParamSlot
     if (!*id6)
 	return 0;
 
-    StringItem_t * item = FindParamID(id6);
+    IdItem_t * item = FindParamID(id6);
     if ( !item || IsExcluded(id6) )
 	return 0;
 
@@ -867,7 +879,8 @@ StringItem_t * CheckParamSlot
 		    StringCopyS(disc_title,sizeof(disc_title),(ccp)dh->disc_title);
 		    title = disc_title;
 		}
-		CloseWDisc(wbfs);
+		if (!open_disc)
+		    CloseWDisc(wbfs);
 	    }
 	}
 	*ret_title = title ? title : "?";

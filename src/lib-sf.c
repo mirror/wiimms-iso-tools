@@ -1,10 +1,22 @@
 
 /***************************************************************************
+ *                    __            __ _ ___________                       *
+ *                    \ \          / /| |____   ____|                      *
+ *                     \ \        / / | |    | |                           *
+ *                      \ \  /\  / /  | |    | |                           *
+ *                       \ \/  \/ /   | |    | |                           *
+ *                        \  /\  /    | |    | |                           *
+ *                         \/  \/     |_|    |_|                           *
+ *                                                                         *
+ *                           Wiimms ISO Tools                              *
+ *                         http://wit.wiimm.de/                            *
+ *                                                                         *
+ ***************************************************************************
  *                                                                         *
  *   This file is part of the WIT project.                                 *
  *   Visit http://wit.wiimm.de/ for project details and sources.           *
  *                                                                         *
- *   Copyright (c) 2009-2010 by Dirk Clemens <wiimm@wiimm.de>              *
+ *   Copyright (c) 2009-2011 by Dirk Clemens <wiimm@wiimm.de>              *
  *                                                                         *
  ***************************************************************************
  *                                                                         *
@@ -425,7 +437,7 @@ enumError SetupReadISO ( SuperFile_t * sf )
 enumError SetupReadWBFS ( SuperFile_t * sf )
 {
     ASSERT(sf);
-    PRINT("SetupReadWBFS(%p) id=%s, slot=%d\n",sf,sf->f.id6,sf->f.slot);
+    TRACE("SetupReadWBFS(%p) id=%s, slot=%d\n",sf,sf->f.id6,sf->f.slot);
 
     if ( !sf || !sf->f.is_reading || sf->wbfs )
 	return ERROR0(ERR_INTERNAL,0);
@@ -528,6 +540,16 @@ enumError CreateSF
     ASSERT(sf);
     CloseSF(sf,0);
     TRACE("#S# CreateSF(%p,%s,%x,%x,%x)\n",sf,fname,oft,iomode,overwrite);
+
+    if (opt_direct)
+    {
+	switch((int)oft)
+	{
+	    case OFT_WBFS:
+		PRINT("ENABLE allow_direct_io\n");
+		sf->f.allow_direct_io = true;
+	};
+    }
 
     const enumError err = CreateFile(&sf->f,fname,iomode,overwrite);
     return err ? err : SetupWriteSF(sf,oft);
@@ -640,7 +662,8 @@ enumError SetupWriteSF
 	    return SetupWriteWBFS(sf);
 
 	default:
-	    return ERROR0(ERR_INTERNAL,"Unknown output file format: %s\n",sf->iod.oft);
+	    return ERROR0(ERR_INTERNAL,
+			"Unknown output file format: %d\n",sf->iod.oft);
     }
 }
 
@@ -1102,7 +1125,7 @@ static enumError SparseHelperByte
 	const size_t wlen = (ccp)data_end - (ccp)data_beg;
 	if (wlen)
 	{
-	    const off_t  woff = off + ( (ccp)data_beg - (ccp)buf );
+	    const off_t woff = off + ( (ccp)data_beg - (ccp)buf );
 	    const enumError err = write_func(sf,woff,data_beg,wlen);
 	    if (err)
 		return err;
@@ -1125,6 +1148,12 @@ enumError SparseHelper
 	GetFD(&sf->f), GetFP(&sf->f), (u64)off, (u64)off+count, count, "" );
     TRACE(" -> write_func = %p, min_chunk_size = %zu\n",write_func, min_chunk_size );
 
+    // adjust the file size
+    const off_t off_end = off + count;
+    if ( sf->file_size < off_end )
+	 sf->file_size = off_end;
+
+
     //----- disable sparse check for already existing file areas
 
     if ( off < sf->max_virt_off )
@@ -1135,6 +1164,7 @@ enumError SparseHelper
 	count -= overlap;
 	if ( err || !count )
 	    return err;
+
 	off += overlap;
 	buf = (char*)buf + overlap;
     }
@@ -1143,8 +1173,8 @@ enumError SparseHelper
     //----- check minimal size
 
     if ( min_chunk_size < sizeof(WDF_Hole_t) )
-	min_chunk_size = sizeof(WDF_Hole_t);
-    if ( count < 50 || count < min_chunk_size )
+	 min_chunk_size = sizeof(WDF_Hole_t);
+    if ( count < 30 || count < min_chunk_size )
 	return SparseHelperByte( sf, off, buf, count, write_func, min_chunk_size );
 
 
@@ -1154,18 +1184,22 @@ enumError SparseHelper
     const size_t align_mask = sizeof(WDF_Hole_t) - 1;
 
     ccp start = buf;
+#if !defined(__i386__) && !defined(__x86_64__)
+    // avoid reading 'WDF_Hole_t' values from non aligned addresses 
+    // not needed for i386 & x86_64 because they can do such readings
     const size_t start_align = (size_t)start & align_mask;
     if ( start_align )
     {
 	const size_t wr_size =  sizeof(WDF_Hole_t) - start_align;
 	const enumError err
-	    = SparseHelperByte( sf, off, start, count, write_func, min_chunk_size );
+	    = SparseHelperByte( sf, off, start, wr_size, write_func, min_chunk_size );
 	if (err)
 	    return err;
 	start += wr_size;
-	off   -= wr_size;
+	off   += wr_size;
 	count -= wr_size;
     }
+#endif
 
 
     //----- check aligned data
@@ -1375,7 +1409,7 @@ enumError ReadISO
 	off = sf->f.st.st_size;
 
     DASSERT_MSG( err || sf->f.cur_off == (off_t)-1 || sf->f.cur_off == off,
-		"%llx : %llx\n",sf->f.cur_off,off);
+		"%llx : %llx\n",(u64)sf->f.cur_off,(u64)off);
 
     if ( sf->max_virt_off < off )
 	 sf->max_virt_off = off;
@@ -1393,7 +1427,8 @@ enumError WriteISO
     const enumError err = WriteAtF(&sf->f,off,buf,count);
 
     off += count;
-    DASSERT_MSG( err || sf->f.cur_off == off, "%llx : %llx\n",sf->f.cur_off,off);
+    DASSERT_MSG( err || sf->f.cur_off == off,
+		"%llx : %llx\n",(u64)sf->f.cur_off,(u64)off);
     if ( sf->max_virt_off < off )
 	 sf->max_virt_off = off;
     if ( sf->file_size < off )
@@ -1937,7 +1972,7 @@ void DefineProgressChunkSF
 )
 {
     DASSERT(sf);
-    TRACE("PROGCHUNK: %u, %u [setup]\n",data_size,chunk_size);
+    TRACE("PROGCHUNK: %llu, %llu [setup]\n",data_size,chunk_size);
     sf->progress_data_size  = data_size;
     sf->progress_chunk_size = chunk_size;
 }
@@ -2771,6 +2806,16 @@ enumError CopyImage
     fo->f.create_directory = opt_mkdir;
     fo->raw_mode = part_selector.whole_disc || !fi->f.id6[0];
 
+    if (opt_direct)
+    {
+	switch((int)oft)
+	{
+	    case OFT_WBFS:
+		PRINT("ENABLE allow_direct_io\n");
+		fo->f.allow_direct_io = true;
+	};
+    }
+
     enumError err = CreateFile( &fo->f, 0, oft_info[oft].iom, overwrite );
     if ( err || SIGINT_level > 1 )
 	goto abort;
@@ -2814,6 +2859,7 @@ enumError CopyImage
 	RemoveSF(fi);
 
     return ResetSF( fo, preserve || fi->disc1 == fi->disc2 ? &fatt : 0 );
+
 #endif
 
  abort:
@@ -3310,7 +3356,10 @@ enumError AppendSparseF
 	if (err)
 	    return err;
 
-	err = WriteSparseSF(out,out->max_virt_off,iobuf,size);
+	noPRINT(" - %9llx -> %9llx, size=%8x/%9zx\n",
+		in_off, out->max_virt_off, size, count );
+	//err = WriteSparseSF(out,out->max_virt_off,iobuf,size); // [wdf-cat] [obsolete]
+	err = WriteSparseSF(out,out->file_size,iobuf,size);
 	if (err)
 	    return err;
 
@@ -3889,7 +3938,7 @@ void InitializeIterator ( Iterator_t * it )
 {
     ASSERT(it);
     memset(it,0,sizeof(*it));
-    InitializeStringField(&it->source_list);
+    InitializeIdField(&it->source_list);
     it->show_mode = opt_show_mode;
     it->progress_enabled = verbose > 1 || progress;
 }
@@ -3899,7 +3948,7 @@ void InitializeIterator ( Iterator_t * it )
 void ResetIterator ( Iterator_t * it )
 {
     ASSERT(it);
-    ResetStringField(&it->source_list);
+    ResetIdField(&it->source_list);
     memset(it,0,sizeof(*it));
 }
 
@@ -3907,7 +3956,7 @@ void ResetIterator ( Iterator_t * it )
 
 static void IteratorProgress ( Iterator_t * it, bool last_message )
 {
-    if ( it->num_of_scans || last_message )
+    if ( it->progress_enabled && ( it->num_of_scans || last_message ))
     {
 	const u32 sec = GetTimerMSec() / 1000 + 1;
 	if ( sec != it->progress_last_sec || last_message )
@@ -3939,8 +3988,8 @@ static void IteratorProgress ( Iterator_t * it, bool last_message )
 	    }
 	    else
 	    {
-		printf("  %u object%s scanned", it->num_of_scans,
-				    it->num_of_scans == 1 ? "" : "s"  );
+		printf("%u object%s scanned", it->num_of_scans,
+				it->num_of_scans == 1 ? "" : "s"  );
 
 		ccp tie = ",", term = "";
 		if ( it->num_of_dirs > 0 )
@@ -3954,12 +4003,12 @@ static void IteratorProgress ( Iterator_t * it, bool last_message )
 		if ( it->num_of_files > 0 )
 		{
 		    printf("%s %u %s", tie, it->num_of_files,
-				    it->num_of_files == 1
-					    ? it->progress_t_file
-					    : it->progress_t_files );
+				it->num_of_files == 1
+					? it->progress_t_file
+					: it->progress_t_files );
 		    term = " found";
 		}
-		printf("%s.   %c", term, last_message ? '\n' : '\r' );
+		printf("%s%s", term, last_message ? ".   \n" : " ... \r" );
 	    }
 	    fflush(stdout);
 	}
@@ -3979,7 +4028,7 @@ static enumError SourceIteratorHelper
     if ( collect_fnames && path && *path == '-' && !path[1] )
     {
 	TRACE(" - ADD STDIN\n");
-	InsertStringField(&it->source_list,path,false);
+	InsertIdField(&it->source_list,0,0,0,path);
 	return ERR_OK;
     }
 
@@ -4102,7 +4151,7 @@ static enumError SourceIteratorHelper
 		IteratorProgress(it,false);
 	    if (collect_fnames)
 	    {
-		InsertStringField(&it->source_list,sf.f.fname,false);
+		InsertIdField(&it->source_list,0,0,0,sf.f.fname);
 		err = ERR_OK;
 	    }
 	    else
@@ -4165,7 +4214,10 @@ static enumError SourceIteratorHelper
 			&& !IsExcluded(wdisk.id6) )
 		    {
 			snprintf(dest,fbuf+sizeof(fbuf)-dest,"#%0*u",fw,slot);
-			InsertStringField(&it->source_list,fbuf,false);
+			const time_t mtime
+			    = wbfs_is_inode_info_valid(wbfs.wbfs,&wdisk.dhead.iinfo)
+					? ntoh64(wdisk.dhead.iinfo.mtime) : 0;
+			InsertIdField(&it->source_list,wdisk.id6,0,mtime,fbuf);
 			it->num_of_files++;
 		    }
 		}
@@ -4245,7 +4297,7 @@ static enumError SourceIteratorHelper
 	    IteratorProgress(it,false);
 	if (collect_fnames)
 	{
-	    InsertStringField(&it->source_list,sf.f.fname,false);
+	    InsertIdField(&it->source_list,sf.f.id6,0,sf.f.fatt.mtime,sf.f.fname);
 	    err = ERR_OK;
 	}
 	else
@@ -4320,7 +4372,7 @@ enumError SourceIterator
 	      ptr++ )
 	{
 	    if (collect_fnames)
-		InsertStringField(&it->source_list,*ptr,false);
+		InsertIdField(&it->source_list,0,0,0,*ptr);
 	    else
 		err = SourceIteratorStarter(it,*ptr,collect_fnames);
 	}
@@ -4368,9 +4420,11 @@ enumError SourceIterator
 enumError SourceIteratorCollected
 (
     Iterator_t		* it,		// iterator info
+    u8			mask,		// not NULL: execute only items
+					// with: ( mask & itme->flag ) != 0
     int			warning_mode,	// warning mode if no source found
 					// 0:off, 1:only return status, 2:print error
-    bool		ignore_err	// false: break on error > ERR_WARNING 
+    bool		ignore_err	// false: abort on error > ERR_WARNING 
 )
 {
     ASSERT(it);
@@ -4379,23 +4433,36 @@ enumError SourceIteratorCollected
 
     ResetStringField(&file_done_list);
 
-    it->depth = 0;
-    it->max_depth = 1;
-    it->expand_dir = false;
-    it->num_of_files = 0;
+    it->depth		= 0;
+    it->max_depth	= 1;
+    it->expand_dir	= false;
+    it->num_of_files	= 0;
+    it->job_count	= 0;
+
+    const bool progress_enabled = it->progress_enabled;
+    it->progress_enabled = false;
 
     enumError max_err = 0;
     int idx;
     for ( idx = 0; idx < it->source_list.used && !SIGINT_level; idx++ )
     {
 	it->source_index = idx;
+	if ( mask && !( mask & it->source_list.field[idx]->flag ) )
+	{
+	    it->num_of_files++; // count this ignored file
+	    continue;
+	}
+
+	it->job_count++;
 	const enumError err
-	    = SourceIteratorStarter(it,it->source_list.field[idx],false);
+	    = SourceIteratorStarter(it,it->source_list.field[idx]->arg,false);
 	if ( max_err < err )
 	     max_err = err;
 	if ( !ignore_err && err > ERR_WARNING )
 	    break;
     }
+
+    it->progress_enabled = progress_enabled;
 
     return warning_mode > 0
 		? SourceIteratorWarning(it,max_err,warning_mode==1)

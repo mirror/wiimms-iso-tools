@@ -1,10 +1,22 @@
 
 #####################################################################
+##                 __            __ _ ___________                  ##
+##                 \ \          / /| |____   ____|                 ##
+##                  \ \        / / | |    | |                      ##
+##                   \ \  /\  / /  | |    | |                      ##
+##                    \ \/  \/ /   | |    | |                      ##
+##                     \  /\  /    | |    | |                      ##
+##                      \/  \/     |_|    |_|                      ##
+##                                                                 ##
+##                        Wiimms ISO Tools                         ##
+##                      http://wit.wiimm.de/                       ##
+##                                                                 ##
+#####################################################################
 ##                                                                 ##
 ##   This file is part of the WIT project.                         ##
 ##   Visit http://wit.wiimm.de/ for project details and sources.   ##
 ##                                                                 ##
-##   Copyright (c) 2009-2010 by Dirk Clemens <wiimm@wiimm.de>      ##
+##   Copyright (c) 2009-2011 by Dirk Clemens <wiimm@wiimm.de>      ##
 ##                                                                 ##
 #####################################################################
 
@@ -28,7 +40,7 @@ WWT_LONG		= Wiimms WBFS Tool
 WDF_SHORT		= wdf
 WDF_LONG		= Wiimms WDF Tool
 
-VERSION_NUM		= 1.25b
+VERSION_NUM		= 1.26a
 BETA_VERSION		= 0
 			# 0:off  -1:"beta"  >0:"beta#"
 
@@ -48,6 +60,7 @@ URI_WDF			= http://wit.wiimm.de/r/wdf
 URI_CISO		= http://wit.wiimm.de/r/ciso
 URI_QTWITGUI		= http://wit.wiimm.de/r/qtwitgui
 URI_WIIBAFU		= http://wit.wiimm.de/r/wiibafu
+URI_WCDWM		= http://wit.wiimm.de/r/wcdwm
 URI_WIIJMANAGER		= http://wit.wiimm.de/r/wiijman
 URI_GBATEMP		= http://gbatemp.net/index.php?showtopic=182236\#entry2286365
 URI_DOWNLOAD_I386	= $(URI_DOWNLOAD)/$(DISTRIB_I386)
@@ -88,7 +101,7 @@ STRIP		= $(PRE)strip
 
 DIR_LIST	=
 
-RM_FILES	= *.{o,d,tmp,bak,exe} */*.{tmp,bak} */*/*.{tmp,bak}
+RM_FILES	= *.{a,o,d,tmp,bak,exe} */*.{tmp,bak} */*/*.{tmp,bak}
 RM_FILES2	= *.{iso,ciso,wdf,wbfs} templates.sed
 
 MODE_FILE	= ./_mode.flag
@@ -126,6 +139,18 @@ TOBJ_wdf	:=
 TOBJ_ALL	:= $(TOBJ_wit) $(TOBJ_wwt) $(TOBJ_wdf)
 
 #-------------------------------------------------------------------------------
+# sub libs
+
+# libbz2
+LIBBZ2_SRC	= $(shell echo src/libbz2/*.c)
+LIBBZ2_OBJ	= $(patsubst %.c,%.o,$(LIBBZ2_SRC))
+
+# lib summary
+LIB_LIST	+= libbz2
+LIB_OBJECTS	+= $(LIBBZ2_OBJ)
+RM_FILES	+= $(foreach l,$(LIB_LIST),src/$(l)/*.{d,o})
+
+#-------------------------------------------------------------------------------
 # source files
 
 UI_FILES	= ui.def
@@ -160,8 +185,8 @@ C_OBJECTS	:= $(sort $(OTHER_TOOLS_OBJ) $(WIT_O) $(LIBWBFS_O) $(LZMA_O) $(TOBJ_AL
 ASM_OBJECTS	:= ssl-asm.o
 
 # all objects + sources
-ALL_OBJECTS	:= $(sort $(WIT_O) $(LIBWBFS_O) $(LZMA_O) $(ASM_OBJECTS))
-ALL_SOURCES	:= $(patsubst %.o,%.c,$(UI_OBJECTS) $(C_OBJECTS) $(ASM_OBJECTS))
+ALL_OBJECTS	= $(sort $(WIT_O) $(LIBWBFS_O) $(LZMA_O) $(ASM_OBJECTS) $(LIB_OBJECTS))
+ALL_SOURCES	= $(patsubst %.o,%.c,$(UI_OBJECTS) $(C_OBJECTS) $(ASM_OBJECTS))
 
 #-------------------------------------------------------------------------------
 
@@ -184,7 +209,6 @@ DEFINES1	+= -DDEBUG_ASSERT	# enable ASSERTions in release version too
 DEFINES1	+= -DEXTENDED_ERRORS=1	# enable extended error messages (function,line,file)
 DEFINES1	+= -D_7ZIP_ST=1		# disable 7zip multi threading
 DEFINES1	+= -D_LZMA_PROB32=1	# LZMA option
-#DEFINES1	+= -DNO_BZIP2=1
 DEFINES		=  $(strip $(DEFINES1) $(MODE) $(XDEF))
 
 CFLAGS		+= -fomit-frame-pointer -fno-strict-aliasing -funroll-loops
@@ -199,9 +223,6 @@ LDFLAGS		+= -static-libgcc
 #LDFLAGS	+= -static
 LDFLAGS		:= $(strip $(LDFLAGS))
 
-ifndef NO_BZIP2
-  LIBS		+= -lbz2
-endif
 LIBS		+= $(XLIBS)
 
 DISTRIB_RM	= ./wit-v$(VERSION)-r
@@ -214,11 +235,12 @@ DISTRIB_CYGWIN	= $(DISTRIB_BASE)-cygwin.zip
 DISTRIB_FILES	= gpl-2.0.txt $(INSTALL_SCRIPTS)
 
 DOC_FILES	= doc/*.txt
+IGNORE_DOC_FILES= HISTORY-v*.txt
 TITLE_FILES	= titles.txt $(patsubst %,titles-%.txt,$(LANGUAGES))
 LANGUAGES	= de es fr it ja ko nl pt ru zhcn zhtw
 
 BIN_FILES	= $(MAIN_TOOLS)
-LIB_FILES	= $(TITLE_FILES)
+SHARE_FILES	= $(TITLE_FILES)
 
 CYGWIN_DIR	= /usr/bin
 CYGWIN_BIN	= cygwin1.dll cygbz2-1.dll
@@ -226,13 +248,14 @@ CYGWIN_BIN_SRC	= $(patsubst %,$(CYGWIN_DIR)/%,$(CYGWIN_BIN))
 
 DIR_LIST_BIN	= $(SCRIPTS) bin
 DIR_LIST	+= $(DIR_LIST_BIN)
-DIR_LIST	+= lib doc work pool makefiles-local edit-list
+DIR_LIST	+= share work pool makefiles-local edit-list
+
 
 #-------------------------------------------------------------------------------
 # sub projects
 
 SUB_PROJECTS	+= test-libwbfs
-RM_FILES	+= $(foreach p,$(SUB_PROJECTS),$(p)/*.d $(p)/*.o $(p)/$(p))
+RM_FILES	+= $(foreach p,$(SUB_PROJECTS),$(p)/*.{d,o} $(p)/$(p))
 
 #
 ###############################################################################
@@ -249,8 +272,9 @@ default_rule: all
 # general rules
 
 $(ALL_TOOLS): %: %.o $(ALL_OBJECTS) $(TOBJ_ALL) Makefile | $(HELPER_TOOLS)
-	@printf "$(LOGFORMAT)" tool "$@" "$(TOBJ_$@)"
-	@$(CC) $(CFLAGS) $(DEFINES) $(LDFLAGS) $@.o $(ALL_OBJECTS) $(TOBJ_$@) $(LIBS) -o $@
+	@printf "$(LOGFORMAT)" tool "$@" "$(MODE) $(TOBJ_$@)"
+	@$(CC) $(CFLAGS) $(DEFINES) $(LDFLAGS) $@.o \
+		$(ALL_OBJECTS) $(TOBJ_$@) $(LIBS) -o $@
 	@if test -f $@.exe; then $(STRIP) $@.exe; else $(STRIP) $@; fi
 	@mkdir -p bin/debug
 	@cp -p $@ bin
@@ -260,7 +284,8 @@ $(ALL_TOOLS): %: %.o $(ALL_OBJECTS) $(TOBJ_ALL) Makefile | $(HELPER_TOOLS)
 
 $(HELPER_TOOLS): %: %.o $(ALL_OBJECTS) Makefile
 	@printf "$(LOGFORMAT)" helper "$@ $(TOBJ_$@)" "$(MODE)"
-	@$(CC) $(CFLAGS) $(DEFINES) $(LDFLAGS) $@.o $(ALL_OBJECTS) $(TOBJ_$@) $(LIBS) -o $@
+	@$(CC) $(CFLAGS) $(DEFINES) $(LDFLAGS) $@.o \
+		$(ALL_OBJECTS) $(TOBJ_$@) $(LIBS) -o $@
 
 #--------------------------
 
@@ -303,6 +328,14 @@ $(UI_FILES): gen-ui.c tab-ui.c ui.h | gen-ui
 ui : gen-ui
 	@printf "$(LOGFORMAT)" run gen-ui ""
 	@./gen-ui
+
+#
+###############################################################################
+# lib specific rules
+
+$(LIBBZ2_OBJ): %.o: %.c Makefile
+	@printf "$(LOGFORMAT)" object "$(subst src/libbz2/,,$@)" "$(MODE) [libbz2]"
+	@$(CC) $(CFLAGS) $(DEPFLAGS) $(DEFINES) -c $< -o $@
 
 #
 ###############################################################################
@@ -385,8 +418,33 @@ debug:
 #
 #--------------------------
 
+.PHONY : distrib2
+distrib2:
+ifeq ($(SYSTEM_LINUX),1)
+
+	@printf "\n---------- BUILDING LINUX/X86_64 ----------\n\n"
+	@$(MAKE) --no-print-directory clean+ distrib
+	@mv "$(DISTRIB_X86_64)" "save-$(DISTRIB_X86_64)"
+
+	@printf "\n---------- BUILDING LINUX/I386 ----------\n\n"
+	@M32=1 $(MAKE) --no-print-directory clean+ distrib
+	@mv "save-$(DISTRIB_X86_64)" "$(DISTRIB_X86_64)"
+
+else
+	@$(MAKE) --no-print-directory clean+ distrib
+endif
+
+#-----
+
 .PHONY : distrib
-distrib: all doc gen-distrib wit.def
+distrib:
+ifeq ($(SYSTEM),mac)
+	@$(MAKE) --no-print-directory mac-distrib
+else
+	@$(MAKE) --no-print-directory auto-static all doc gen-distrib wit.def
+endif
+
+#-----
 
 .PHONY : gen-distrib
 gen-distrib:
@@ -397,12 +455,13 @@ ifeq ($(SYSTEM),cygwin)
 	@rm -rf $(DISTRIB_PATH)/* 2>/dev/null || true
 	@rm -rf $(DISTRIB_PATH) 2>/dev/null || true
 	@mkdir -p $(DISTRIB_PATH)/bin $(DISTRIB_PATH)/doc
-	@echo cmd >$(DISTRIB_PATH)/bin/wit-console.bat
+	@printf '@cmd\r\n' >$(DISTRIB_PATH)/bin/wit-console.bat
 	@cp -p gpl-2.0.txt $(DISTRIB_PATH)
 	@ln -f $(MAIN_TOOLS) $(WDF_LINKS) $(DISTRIB_PATH)/bin
 	@cp -p $(CYGWIN_BIN_SRC) $(DISTRIB_PATH)/bin
-	@( cd lib; cp $(TITLE_FILES) ../$(DISTRIB_PATH)/bin )
+	@( cd share; cp $(TITLE_FILES) ../$(DISTRIB_PATH)/bin )
 	@cp -p $(DOC_FILES) $(DISTRIB_PATH)/doc
+	@rm -f $(DISTRIB_PATH)/doc/$(IGNORE_DOC_FILES)
 
 	@zip -roq $(DISTRIB_PATH).zip $(DISTRIB_PATH)
 	@chmod 664 $(DISTRIB_PATH).zip
@@ -410,12 +469,13 @@ ifeq ($(SYSTEM),cygwin)
 else
 
 	@rm -rf $(DISTRIB_PATH)
-	@mkdir -p $(DISTRIB_PATH)/bin $(DISTRIB_PATH)/scripts $(DISTRIB_PATH)/lib $(DISTRIB_PATH)/doc
+	@mkdir -p $(DISTRIB_PATH)/bin $(DISTRIB_PATH)/scripts $(DISTRIB_PATH)/share $(DISTRIB_PATH)/doc
 
 	@cp -p $(DISTRIB_FILES) $(DISTRIB_PATH)
 	@ln -f $(MAIN_TOOLS) $(WDF_LINKS) $(DISTRIB_PATH)/bin
-	@cp -p lib/*.txt $(DISTRIB_PATH)/lib
+	@cp -p share/*.txt $(DISTRIB_PATH)/share
 	@cp -p $(DOC_FILES) $(DISTRIB_PATH)/doc
+	@rm -f $(DISTRIB_PATH)/doc/$(IGNORE_DOC_FILES)
 	@cp -p $(SCRIPTS)/*.{sh,txt} $(DISTRIB_PATH)/scripts
 
 	@chmod -R 664 $(DISTRIB_PATH)
@@ -491,10 +551,36 @@ predef:
 #
 #--------------------------
 
+.PHONY : static
+static:
+	@printf "$(LOGFORMAT)" enable -static ""
+	@rm -f *.o $(ALL_TOOLS)
+	@echo "-static" >>$(MODE_FILE)
+	@sort $(MODE_FILE) | uniq > $(MODE_FILE).tmp
+# 2 steps to bypass a cygwin mv failure
+	@cp $(MODE_FILE).tmp $(MODE_FILE)
+	@rm -f $(MODE_FILE).tmp
+
+.PHONY : auto-static
+auto-static:
+ifeq ($(SYSTEM_LINUX),1)
+	@printf "$(LOGFORMAT)" enable -static ""
+	@echo "-static" >>$(MODE_FILE)
+	@sort $(MODE_FILE) | uniq > $(MODE_FILE).tmp
+# 2 steps to bypass a cygwin mv failure
+	@cp $(MODE_FILE).tmp $(MODE_FILE)
+	@rm -f $(MODE_FILE).tmp
+else
+	@true
+endif
+
+#
+#--------------------------
+
 .PHONY : $(SUB_PROJECTS)
 $(SUB_PROJECTS):
 	@printf "$(LOGFORMAT)" make "$@" ""
-	@cd $@ && make
+	@$(MAKE) -C "$@"
 
 #
 #--------------------------
@@ -527,7 +613,7 @@ templates.sed: Makefile
 		's|@@TIME@@|$(TIME)|g;\n' \
 		's|@@INSTALL-PATH@@|$(INSTALL_PATH)|g;\n' \
 		's|@@BIN-FILES@@|$(BIN_FILES)|g;\n' \
-		's|@@LIB-FILES@@|$(LIB_FILES)|g;\n' \
+		's|@@SHARE-FILES@@|$(SHARE_FILES)|g;\n' \
 		's|@@WDF-LINKS@@|$(WDF_LINKS)|g;\n' \
 		's|@@LANGUAGES@@|$(LANGUAGES)|g;\n' \
 		's|@@DISTRIB-I386@@|$(DISTRIB_I386)|g;\n' \
@@ -543,6 +629,7 @@ templates.sed: Makefile
 		's|@@URI-CISO@@|$(URI_CISO)|g;\n' \
 		's|@@URI-QTWITGUI@@|$(URI_QTWITGUI)|g;\n' \
 		's|@@URI-WIIBAFU@@|$(URI_WIIBAFU)|g;\n' \
+		's|@@URI-WCDWM@@|$(URI_WCDWM)|g;\n' \
 		's|@@URI-WIIJMANAGER@@|$(URI_WIIJMANAGER)|g;\n' \
 		's|@@URI-GBATEMP@@|$(URI_GBATEMP)|g;\n' \
 		's|@@URI-DOWNLOAD-I386@@|$(URI_DOWNLOAD_I386)|g;\n' \

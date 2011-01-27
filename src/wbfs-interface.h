@@ -1,10 +1,22 @@
 
 /***************************************************************************
+ *                    __            __ _ ___________                       *
+ *                    \ \          / /| |____   ____|                      *
+ *                     \ \        / / | |    | |                           *
+ *                      \ \  /\  / /  | |    | |                           *
+ *                       \ \/  \/ /   | |    | |                           *
+ *                        \  /\  /    | |    | |                           *
+ *                         \/  \/     |_|    |_|                           *
+ *                                                                         *
+ *                           Wiimms ISO Tools                              *
+ *                         http://wit.wiimm.de/                            *
+ *                                                                         *
+ ***************************************************************************
  *                                                                         *
  *   This file is part of the WIT project.                                 *
  *   Visit http://wit.wiimm.de/ for project details and sources.           *
  *                                                                         *
- *   Copyright (c) 2009-2010 by Dirk Clemens <wiimm@wiimm.de>              *
+ *   Copyright (c) 2009-2011 by Dirk Clemens <wiimm@wiimm.de>              *
  *                                                                         *
  ***************************************************************************
  *                                                                         *
@@ -333,6 +345,31 @@ enumError ReloadWBFS	( WBFS_t * w );
 enumError OpenPartWBFS	( WBFS_t * w, struct PartitionInfo_t *  info );
 enumError GetFirstWBFS	( WBFS_t * w, struct PartitionInfo_t ** info );
 enumError GetNextWBFS	( WBFS_t * w, struct PartitionInfo_t ** info );
+
+void LogOpenedWBFS
+(
+    WBFS_t		* w,		// valid and opened WBFS
+    int			count,		// wbfs counter, 1 based
+					// if NULL: neither 'count' nor 'total' are printed
+    int			total,		// total wbfs count to handle
+					// if NULL: don't print info
+    ccp			path		// path of sourcefile
+					// if NULL: use 'w->sf->f.fname' (real path)
+);
+
+void LogCloseWBFS
+(
+    WBFS_t		* w,		// valid and opened WBFS
+    int			count,		// wbfs counter, 1 based
+					// if NULL: neither 'count' nor 'total' are printed
+    int			total,		// total wbfs count to handle
+					// if NULL: don't print info
+    ccp			path		// path of sourcefile
+					// if NULL: use 'w->sf->f.fname' (real path)
+);
+
+uint      CountWBFS	();
+uint	  GetIdWBFS	( WBFS_t * w, IdField_t * idf );
 
 enumError DumpWBFS	( WBFS_t * w, FILE * f, int indent,
 			  int dump_level, int view_invalid_discs, CheckWBFS_t * ck );

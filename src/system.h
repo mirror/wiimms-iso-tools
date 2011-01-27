@@ -1,10 +1,22 @@
 
 /***************************************************************************
+ *                    __            __ _ ___________                       *
+ *                    \ \          / /| |____   ____|                      *
+ *                     \ \        / / | |    | |                           *
+ *                      \ \  /\  / /  | |    | |                           *
+ *                       \ \/  \/ /   | |    | |                           *
+ *                        \  /\  /    | |    | |                           *
+ *                         \/  \/     |_|    |_|                           *
+ *                                                                         *
+ *                           Wiimms ISO Tools                              *
+ *                         http://wit.wiimm.de/                            *
+ *                                                                         *
+ ***************************************************************************
  *                                                                         *
  *   This file is part of the WIT project.                                 *
  *   Visit http://wit.wiimm.de/ for project details and sources.           *
  *                                                                         *
- *   Copyright (c) 2009-2010 by Dirk Clemens <wiimm@wiimm.de>              *
+ *   Copyright (c) 2009-2011 by Dirk Clemens <wiimm@wiimm.de>              *
  *                                                                         *
  ***************************************************************************
  *                                                                         *
@@ -41,22 +53,22 @@ typedef enum enumSystemID
 
 ///////////////////////////////////////////////////////////////////////////////
 
+#undef SYSTEM_LINUX
+
 #ifdef __CYGWIN__
 	#define SYSTEM "cygwin"
 	#define SYSTEMID SYSID_CYGWIN
-	#define HAVE_POSIX_FALLOCATE 1
 #elif __APPLE__
 	#define SYSTEM "mac"
 	#define SYSTEMID SYSID_APPLE
 #elif __linux__
-	#define HAVE_POSIX_FALLOCATE 1
+  #define SYSTEM_LINUX 1
   #ifdef __i386__
 	#define SYSTEM "i386"
 	#define SYSTEMID SYSID_I386
   #elif __x86_64__
 	#define SYSTEM "x86_64"
 	#define SYSTEMID SYSID_X86_64
-	#define HAVE_FALLOCATE 1
   #else
 	#define SYSTEM "linux"
 	#define SYSTEMID SYSID_LINUX

@@ -1,10 +1,22 @@
 
 /***************************************************************************
+ *                    __            __ _ ___________                       *
+ *                    \ \          / /| |____   ____|                      *
+ *                     \ \        / / | |    | |                           *
+ *                      \ \  /\  / /  | |    | |                           *
+ *                       \ \/  \/ /   | |    | |                           *
+ *                        \  /\  /    | |    | |                           *
+ *                         \/  \/     |_|    |_|                           *
+ *                                                                         *
+ *                           Wiimms ISO Tools                              *
+ *                         http://wit.wiimm.de/                            *
+ *                                                                         *
+ ***************************************************************************
  *                                                                         *
  *   This file is part of the WIT project.                                 *
  *   Visit http://wit.wiimm.de/ for project details and sources.           *
  *                                                                         *
- *   Copyright (c) 2009-2010 by Dirk Clemens <wiimm@wiimm.de>              *
+ *   Copyright (c) 2009-2011 by Dirk Clemens <wiimm@wiimm.de>              *
  *                                                                         *
  ***************************************************************************
  *                                                                         *
@@ -356,24 +368,8 @@ ccp wd_print_compression
     int			mode		// 1=number, 2=name, 3=number and name
 )
 {
-    enum
-    {
-	SBUF_COUNT = 4,
-	SBUF_SIZE  = 20
-    };
-
-    static int  sbuf_index = 0;
-    static char sbuf[SBUF_COUNT][SBUF_SIZE+1];
-
     if (!buf)
-    {
-	// use static buffer
-	buf = sbuf[sbuf_index];
-	buf_size = SBUF_SIZE;
-	sbuf_index = ( sbuf_index + 1 ) % SBUF_COUNT;
-    }
-
-    //----------------
+	buf = GetCircBuf( buf_size = 20 );
 
     if ( compr_method < 0 || compr_method >= WD_COMPR__N )
     {
@@ -966,6 +962,13 @@ int part_control_is_fake_signed ( const wd_part_control_t * pc )
     ASSERT(pc);
     return pc->is_valid && pc->tmd && tmd_is_fake_signed(pc->tmd,pc->tmd_size);
 }
+
+//
+///////////////////////////////////////////////////////////////////////////////
+///////////////			consts & vars			///////////////
+///////////////////////////////////////////////////////////////////////////////
+
+const char skeleton_marker[10] = "[SKELETON]";
 
 //
 ///////////////////////////////////////////////////////////////////////////////

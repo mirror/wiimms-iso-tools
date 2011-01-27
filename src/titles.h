@@ -1,10 +1,22 @@
 
 /***************************************************************************
+ *                    __            __ _ ___________                       *
+ *                    \ \          / /| |____   ____|                      *
+ *                     \ \        / / | |    | |                           *
+ *                      \ \  /\  / /  | |    | |                           *
+ *                       \ \/  \/ /   | |    | |                           *
+ *                        \  /\  /    | |    | |                           *
+ *                         \/  \/     |_|    |_|                           *
+ *                                                                         *
+ *                           Wiimms ISO Tools                              *
+ *                         http://wit.wiimm.de/                            *
+ *                                                                         *
+ ***************************************************************************
  *                                                                         *
  *   This file is part of the WIT project.                                 *
  *   Visit http://wit.wiimm.de/ for project details and sources.           *
  *                                                                         *
- *   Copyright (c) 2009-2010 by Dirk Clemens <wiimm@wiimm.de>              *
+ *   Copyright (c) 2009-2011 by Dirk Clemens <wiimm@wiimm.de>              *
  *                                                                         *
  ***************************************************************************
  *                                                                         *
@@ -152,7 +164,7 @@ extern StringField_t param_pat;	 // param pattern (with wildcard '.')
 void ClearParamDB();
 int AddParamID ( ccp arg, int select_mode );
 int CountParamID ();
-StringItem_t * FindParamID ( ccp id6 );
+IdItem_t * FindParamID ( ccp id6 );
 int DumpParamDB ( enumSelectUsed mask, bool warn );
 
 int SetupParamDB
@@ -166,7 +178,7 @@ int SetupParamDB
 
 struct WBFS_t;
 
-StringItem_t * CheckParamSlot
+IdItem_t * CheckParamSlot
 (
     // return NULL if no disc at slot found or disc not match or disabled
     // or a pointer to the string item

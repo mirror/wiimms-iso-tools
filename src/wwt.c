@@ -1,10 +1,22 @@
 
 /***************************************************************************
+ *                    __            __ _ ___________                       *
+ *                    \ \          / /| |____   ____|                      *
+ *                     \ \        / / | |    | |                           *
+ *                      \ \  /\  / /  | |    | |                           *
+ *                       \ \/  \/ /   | |    | |                           *
+ *                        \  /\  /    | |    | |                           *
+ *                         \/  \/     |_|    |_|                           *
+ *                                                                         *
+ *                           Wiimms ISO Tools                              *
+ *                         http://wit.wiimm.de/                            *
+ *                                                                         *
+ ***************************************************************************
  *                                                                         *
  *   This file is part of the WIT project.                                 *
  *   Visit http://wit.wiimm.de/ for project details and sources.           *
  *                                                                         *
- *   Copyright (c) 2009-2010 by Dirk Clemens <wiimm@wiimm.de>              *
+ *   Copyright (c) 2009-2011 by Dirk Clemens <wiimm@wiimm.de>              *
  *                                                                         *
  ***************************************************************************
  *                                                                         *
@@ -90,13 +102,13 @@ static void print_version_section ( bool print_header )
     const u32 endian = be32(e);
 
     printf( "prog=" WWT_SHORT "\n"
-	    "name=\"" WWT_LONG "\"\n"
+	    "name=" WWT_LONG "\n"
 	    "version=" VERSION "\n"
 	    "beta=%d\n"
 	    "revision=" REVISION  "\n"
 	    "system=" SYSTEM "\n"
 	    "endian=%u%u%u%u %s\n"
-	    "author=\"" AUTHOR "\"\n"
+	    "author=" AUTHOR "\n"
 	    "date=" DATE "\n"
 	    "url=" URI_HOME WWT_SHORT "\n"
 	    "\n"
@@ -149,7 +161,7 @@ static void hint_exit ( enumError stat )
 	    progname, CommandInfo[current_command->id].name1 );
     else
 	fprintf(stderr,
-	    "-> Type '%s -h', '%s help' (pipe it to a pager like 'less') for more help.\n\n",
+	    "-> Type '%s -h' or '%s help' (pipe it to a pager like 'less') for more help.\n\n",
 	    progname, progname );
     exit(stat);
 }
@@ -983,7 +995,8 @@ enumError cmd_format()
 	    if ( filemode == FM_OTHER )
 	    {
 		ERROR0(ERR_WRONG_FILE_TYPE,
-		    "%s: Neither regular file nor block device: %s\n",param->arg);
+		    "%s: Neither regular file nor block device: %s\n",
+				progname, param->arg);
 		continue;
 	    }
 	}
@@ -1497,7 +1510,8 @@ enumError cmd_phantom()
 
     const bool check_it	    = OptionUsed[OPT_NO_CHECK] == 0;
     const bool ignore_check = OptionUsed[OPT_FORCE]    != 0;
-    const u32 max_mib = (u64)WII_MAX_SECTORS * WII_SECTOR_SIZE / MiB;
+    const u32  max_mib = (u64)WII_MAX_SECTORS * WII_SECTOR_SIZE / MiB;
+    const uint n_wbfs = CountWBFS();
 
     WBFS_t wbfs;
     InitializeWBFS(&wbfs);
@@ -1511,9 +1525,7 @@ enumError cmd_phantom()
 
 	wbfs_count++;
 	if (verbose>=0)
-	    printf("%sWBFSv%u #%d opened: %s\n",
-		    verbose>0 ? "\n" : "",
-		    wbfs.wbfs->head->wbfs_version, wbfs_count, info->path );
+	    LogOpenedWBFS(&wbfs,wbfs_count,n_wbfs,info->path);
 
 	if ( !info->is_checked && check_it )
 	{
@@ -1751,11 +1763,114 @@ enumError exec_rm_source ( SuperFile_t * sf, Iterator_t * it )
     if ( sf->f.id6 && !IsExcluded(sf->f.id6) && S_ISREG(sf->f.st.st_mode) )
     {
 	if ( testmode || verbose > 0 )
-	    printf(" - %s\n",  sf->f.fname );
+	{
+	    if (print_sections)
+		printf(
+		    "[REMOVE-SOURCE]\n"
+		    "testmode=%u\n"
+		    "path=%s\n"
+		    "\n"
+		    ,testmode
+		    ,sf->f.fname
+		    );
+	    else
+		printf(" - %s\n",  sf->f.fname );
+	}
 	if (!testmode)
 	   RemoveSF(sf);
     }
     return ERR_OK;
+}
+
+//-----------------------------------------------------------------------------
+
+static void count_jobs ( WBFS_t * w, Iterator_t * it, bool count_it )
+{
+    noPRINT("COUNT JOBS\n");
+    DASSERT(w);
+    DASSERT(it);
+
+    if ( it->overwrite && !it->update && !it->newer )
+    {
+	// with this options a WBFS scanning is not needed
+
+	IdItem_t ** ptr = it->source_list.field;
+	IdItem_t ** end = ptr + it->source_list.used;
+	while ( ptr < end )
+	{
+	    IdItem_t *item = *ptr++;
+	    DASSERT(item);
+	    item->flag = 1;
+	    if (count_it)
+		it->job_total++;
+	}
+	//DumpIdField(stdout,0,&it->source_list);
+	return;
+    }
+
+    IdField_t id_wbfs;
+    InitializeIdField(&id_wbfs);
+    GetIdWBFS(w,&id_wbfs);
+    //DumpIdField(stdout,0,&id_wbfs);
+
+    IdItem_t ** ptr = it->source_list.field;
+    IdItem_t ** end = ptr + it->source_list.used;
+    while ( ptr < end )
+    {
+	IdItem_t *item = *ptr++;
+	DASSERT(item);
+
+	if ( !item->id6[0] )
+	{
+	    // any special like stdin/pipe
+	    item->flag = 1;
+	    if (count_it)
+		it->job_total++;
+	    continue;
+	}
+
+	item->flag = 0;
+	if (IsExcluded(item->id6))
+	    continue;
+
+	//---- find id
+
+	IdItem_t ** wptr = id_wbfs.field;
+	IdItem_t ** wend = wptr + id_wbfs.used;
+	IdItem_t * wfound = 0;
+	while ( wptr < wend )
+	{
+	    IdItem_t *witem = *wptr++;
+	    DASSERT(witem);
+	    if (!memcmp(witem->id6,item->id6,6))
+	    {
+		noPRINT("FOUND: %s\n",witem->id6);
+		wfound = witem;
+		break;
+	    }
+	}
+	noPRINT("found=%u mtime=%llx,%llx\n",
+		wfound != 0, (u64)item->mtime, wfound ? (u64)wfound->mtime : 0 );
+	if ( !wfound || it->overwrite || it->newer && item->mtime > wfound->mtime )
+	{
+	    item->flag = 1;
+	    if (count_it)
+		it->job_total++;
+	    if (wfound)
+		wfound->mtime = item->mtime;
+	    else
+		InsertIdField(&id_wbfs,item->id6,0,item->mtime,item->arg);
+	}
+	else if ( !it->update && !it->newer )
+	{
+	    item->flag = 3;
+	    if (count_it)
+		it->job_total++;
+	}
+    }
+    //DumpIdField(stdout,0,&it->source_list);
+
+    ResetIdField(&id_wbfs);
 }
 
 //-----------------------------------------------------------------------------
@@ -1768,6 +1883,8 @@ enumError exec_add ( SuperFile_t * sf, Iterator_t * it )
 
     if (SIGINT_level)
 	return ERR_INTERRUPT;
+
+    // [2do] [rewrite] count_jobs() does most decicions
 
     enumFileType ft_test = FT_A_ISO|FT_A_SEEKABLE;
     if ( !(sf->f.ftype&FT_A_WDF) && !sf->f.seek_allowed )
@@ -1796,6 +1913,9 @@ enumError exec_add ( SuperFile_t * sf, Iterator_t * it )
 	}
 	CloseWDisc(it->wbfs);
     }
+
+    const int fw_counter = snprintf(iobuf,sizeof(iobuf),"%u",it->job_total);
+    ccp title = GetTitle(sf->f.id6,"");
     
     if ( exists>0 || exists < 0 && !ExistsWDisc(it->wbfs,sf->f.id6))
     {
@@ -1804,24 +1924,32 @@ enumError exec_add ( SuperFile_t * sf, Iterator_t * it )
 
 	if (overwrite)
 	{
-	    ccp title = GetTitle(sf->f.id6,"");
-	    if (testmode)
+	    if ( testmode || verbose >= 0 )
 	    {
-		TRACE("WOULD REMOVE [%s] %s\n",sf->f.id6,title);
-		printf(" - WOULD REMOVE [%s] %s\n",sf->f.id6,title);
+		if (print_sections)
+		    printf(
+			"[REMOVE]\n"
+			"testmode=%d\n"
+			"id=%s\n"
+			"title=%s\n"
+			"\n"
+			,testmode
+			,sf->f.id6
+			,title
+			);
+		else
+		    printf(" - %s%-*s [%s] %s\n",
+			testmode ? "WOULD " : "",
+			2 * fw_counter + 5, "REMOVE",
+			sf->f.id6, title );
 	    }
-	    else
-	    {
-		TRACE("REMOVE [%s] %s\n",sf->f.id6,title);
-		if (verbose>=0)
-		    printf(" - REMOVE [%s] %s\n",sf->f.id6,title);
-		if (RemoveWDisc(it->wbfs,sf->f.id6,0,false))
-		    return ERR_WBFS;
-	    }
+	    if ( !testmode && RemoveWDisc(it->wbfs,sf->f.id6,0,false) )
+		return ERR_WBFS;
+	    it->rm_count++;
 	}
 	else
 	{
-	    printf(" - DISC %s [%s] already exists -> ignore\n",
+	    printf("! DISC %s [%s] already exists -> ignore\n",
 		    sf->f.fname, sf->f.id6 );
 	    if ( max_error < ERR_JOB_IGNORED )
 		max_error = ERR_JOB_IGNORED;
@@ -1829,23 +1957,42 @@ enumError exec_add ( SuperFile_t * sf, Iterator_t * it )
 	}
     }
 
-    snprintf(iobuf,sizeof(iobuf),"%d",it->source_list.used);
-    if (testmode)
+    if ( testmode || verbose >= 0 || progress > 0 )
     {
-	TRACE("WOULD ADD [%s] %s\n",sf->f.id6,sf->f.fname);
-	printf(" - WOULD ADD %*u/%u [%s] %s:%s\n",
-		(int)strlen(iobuf), it->source_index+1, it->source_list.used,
+	TRACE("%sADD [%s] %s\n",testmode ? "WOULD " : "",sf->f.id6,sf->f.fname);
+	if (print_sections)
+	    printf(
+		"[ADD]\n"
+		"testmode=%d\n"
+		"job-counter=%u\n"
+		"job-total=%u\n"
+		"id=%s\n"
+		"title=%s\n"
+		"source-path=%s\n"
+		"source-real-path=%s\n"
+		"source-type=%s\n"
+		"source-n-split=%d\n"
+		"\n"
+		,testmode
+		,it->job_count
+		,it->job_total
+		,sf->f.id6
+		,title
+		,sf->f.fname
+		,it->real_path
+		,oft_info[sf->iod.oft].name
+		,sf->f.split_used
+		);
+	else
+	    printf(" - %sADD %*u/%u [%s] %s:%s\n",
+		testmode ? "WOULD " : "",
+		fw_counter, it->job_count, it->job_total,
 		sf->f.id6, oft_info[sf->iod.oft].name, sf->f.fname );
-    }
-    else
-    {
-	TRACE("ADD [%s] %s\n",sf->f.id6,sf->f.fname);
-	if ( verbose >= 0 || progress > 0 )
-	    printf(" - ADD %*u/%u [%s] %s:%s\n",
-			(int)strlen(iobuf), it->source_index+1, it->source_list.used,
-			sf->f.id6, oft_info[sf->iod.oft].name, sf->f.fname );
 	fflush(stdout);
+    }
 
+    if (!testmode)
+    {
 	sf->f.read_behind_eof	= verbose > 1 ? 1 : 2;
 
 	enumError err = AddWDisc(it->wbfs,sf,&part_selector);
@@ -1904,7 +2051,7 @@ enumError cmd_add()
     if ( OptionUsed[OPT_SYNC] )
     {
 	it.func = exec_scan_id;
-	err = SourceIteratorCollected(&it,0,false);
+	err = SourceIteratorCollected(&it,0,0,false);
 	if (err)
 	{
 	    ResetIterator(&it);
@@ -1913,6 +2060,8 @@ enumError cmd_add()
     }
     it.func = exec_add;
 
+    //---------------
+    
     uint copy_count = 0, rm_count = 0, wbfs_count = 0, wbfs_mod_count = 0;
 
     const bool check_it	    = OptionUsed[OPT_NO_CHECK] == 0;
@@ -1921,15 +2070,37 @@ enumError cmd_add()
     WBFS_t wbfs;
     InitializeWBFS(&wbfs);
     PartitionInfo_t * info;
+
+    const uint n_wbfs = CountWBFS();
+    if ( n_wbfs > 1 )
+    {
+	for ( err = GetFirstWBFS(&wbfs,&info);
+		!err && !SIGINT_level;
+		err = GetNextWBFS(&wbfs,&info) )
+	{
+	    if ( !info->is_checked && check_it )
+	    {
+		info->is_checked = true;
+		if ( AutoCheckWBFS(&wbfs,ignore_check) > ERR_WARNING )
+		{
+		    ERROR0(ERR_WBFS_INVALID,"Ignore invalid WBFS: %s\n\n",info->path);
+		    ResetWBFS(&wbfs);
+		    info->ignore = true;
+		    continue;
+		}
+	    }
+
+	    count_jobs(&wbfs,&it,true);
+	}
+    }
+
     for ( err = GetFirstWBFS(&wbfs,&info);
 	  !err && !SIGINT_level;
 	  err = GetNextWBFS(&wbfs,&info) )
     {
 	wbfs_count++;
-	if (verbose>=0)
-	    printf("%sWBFSv%u #%d opened: %s\n",
-		    verbose>0 ? "\n" : "",
-		    wbfs.wbfs->head->wbfs_version, wbfs_count, info->path );
+	if ( verbose >= 0 )
+	    LogOpenedWBFS(&wbfs,wbfs_count,n_wbfs,info->path);
 
 	if ( !info->is_checked && check_it )
 	{
@@ -1942,7 +2113,9 @@ enumError cmd_add()
 	    }
 	}
 
-	int wbfs_rm_count = 0;
+	count_jobs(&wbfs,&it,n_wbfs==1);
+	it.rm_count = 0;
+
 	if ( OptionUsed[OPT_SYNC] )
 	{
 	    //disable_exclude_db++;
@@ -1957,19 +2130,26 @@ enumError cmd_add()
 		FindID(&sync_list,ptr->id6,&stat,0);
 		if ( stat != IDB_ID_FOUND || IsExcluded(ptr->id6) )
 		{
-		    if (testmode)
+		    if ( testmode || verbose >= 0 )
 		    {
-			printf(" - WOULD REMOVE [%s] %s\n",
+			if (print_sections)
+			    printf(
+				"[REMOVE]\n"
+				"testmode=%d\n"
+				"id=%s\n"
+				"title=%s\n"
+				"\n"
+				,testmode
+				,ptr->id6
+				,GetTitle(ptr->id6,ptr->name64)
+				);
+			else
+			    printf(" - %sREMOVE [%s] %s\n",
+				testmode ? "WOULD " : "",
 				ptr->id6, GetTitle(ptr->id6,ptr->name64) );
-			wbfs_rm_count++;
 		    }
-		    else
-		    {
-			printf(" - REMOVE [%s] %s\n",
-				ptr->id6, GetTitle(ptr->id6,ptr->name64) );
-			if (!RemoveWDisc(&wbfs,ptr->id6,0,false))
-			    wbfs_rm_count++;
-		    }
+		    if ( testmode || !RemoveWDisc(&wbfs,ptr->id6,0,false) )
+			it.rm_count++;
 		}
 	    }
 	    FreeWDiscList(wlist);
@@ -1979,24 +2159,42 @@ enumError cmd_add()
 	it.wbfs = &wbfs;
 	it.open_dev = wbfs.sf->f.st.st_dev;
 	it.open_ino = wbfs.sf->f.st.st_ino;
-	err = SourceIteratorCollected(&it,0,false);
+	err = SourceIteratorCollected(&it,1,0,false);
 	if (err)
 	    break;
 
-	if ( it.done_count || wbfs_rm_count )
+	if ( it.done_count || it.rm_count || print_sections )
 	{
-	    wbfs_mod_count++;
-	    copy_count += it.done_count;
-	    rm_count += wbfs_rm_count;
-	    if (verbose>=0)
+	    if ( it.done_count || it.rm_count )
 	    {
-		*iobuf = 0;
-		if ( wbfs_rm_count )
-		    snprintf(iobuf,sizeof(iobuf)," %d disc%s removed,",
-			wbfs_rm_count, wbfs_rm_count == 1 ? "" : "s" );
-		printf("* WBFS #%d:%s %d disc%s added.\n",
-		    wbfs_count, iobuf,
-		    it.done_count, it.done_count==1 ? "" : "s" );
+		wbfs_mod_count++;
+		copy_count += it.done_count;
+		rm_count += it.rm_count;
+	    }
+
+	    if ( testmode || verbose >= 0 )
+	    {
+		if (print_sections)
+		{
+		    LogCloseWBFS(&wbfs,wbfs_count,n_wbfs,info->path);
+		    printf(
+			"n-removed=%u\n"
+			"n-added=%u\n"
+			"\n"
+			,it.rm_count
+			,it.done_count
+			);
+		}
+		else
+		{
+		    *iobuf = 0;
+		    if ( it.rm_count )
+			snprintf(iobuf,sizeof(iobuf)," %d disc%s removed,",
+			    it.rm_count, it.rm_count == 1 ? "" : "s" );
+		    printf("* WBFS #%d:%s %d disc%s added.\n",
+			wbfs_count, iobuf,
+			it.done_count, it.done_count==1 ? "" : "s" );
+		}
 	    }
 	}
 
@@ -2010,21 +2208,22 @@ enumError cmd_add()
 	    }
 	    else if ( TruncateWBFS(&wbfs) == ERR_OK )
 	    {
-		if (verbose>=0)
+		if ( verbose >= 0 && !print_sections )
 		    printf("* WBFS #%d truncated to minimal size.\n",wbfs_count);
 		if (!it.done_count)
 		    wbfs_mod_count++;
 	    }
 	}
+	// [2do] missing: totals if n_wbfs > 1
     }
     max_error = SourceIteratorWarning(&it,max_error,false);
 
     if ( !max_error && OptionUsed[OPT_REMOVE] && !SIGINT_level )
     {
-	if ( testmode || verbose >= 0 )
+	if (( testmode || verbose >= 0 ) && !print_sections )
 	    printf("%semove source files\n", testmode ? "WOULD r" : "R" );
 	it.func = exec_rm_source;
-	SourceIteratorCollected(&it,0,false); // max_error is adjusted automatically!
+	SourceIteratorCollected(&it,0,0,false); // max_error is adjusted automatically!
     }
 
     ResetIterator(&it);
@@ -2114,9 +2313,10 @@ enumError cmd_extract()
 
     int extract_count = 0, rm_count = 0;
     int wbfs_count = 0, wbfs_used_count = 0, wbfs_mod_count = 0;
-    const int overwrite = update ? -1 : OptionUsed[OPT_OVERWRITE] ? 1 : 0;
+    const int overwrite	    = update ? -1 : OptionUsed[OPT_OVERWRITE] ? 1 : 0;
     const bool check_it	    = OptionUsed[OPT_NO_CHECK] == 0;
     const bool ignore_check = OptionUsed[OPT_FORCE]    != 0;
+    const uint n_wbfs	    = CountWBFS();
 
     SuperFile_t fo;
     InitializeSF(&fo);
@@ -2131,10 +2331,9 @@ enumError cmd_extract()
 	  err = GetNextWBFS(&wbfs,&info) )
     {
 	wbfs_count++;
+	
 	if (verbose>=0)
-	    printf("%sWBFSv%u #%d opened: %s\n",
-		    verbose>0 ? "\n" : "",
-		    wbfs.wbfs->head->wbfs_version, wbfs_count, info->path );
+	    LogOpenedWBFS(&wbfs,wbfs_count,n_wbfs,info->path);
 
 	if ( !info->is_checked && check_it )
 	{
@@ -2159,7 +2358,7 @@ enumError cmd_extract()
 	      slot++ )
 	{
 	    ccp id6, title;
-	    const StringItem_t * item = CheckParamSlot(&wbfs,slot,true,&id6,&title);
+	    const IdItem_t * item = CheckParamSlot(&wbfs,slot,true,&id6,&title);
 	    if (item)
 	    {
 		DASSERT( id6 && *id6 && title );
@@ -2169,11 +2368,11 @@ enumError cmd_extract()
 		    if (!InsertStringField(&id_done_list,id6,false))
 		    {
 			TRACE("ALREADY DONE %s @ %s\n",id6,info->path);
-			if ( verbose > 0 )
+			if ( verbose > 0 && !print_sections )
 			    printf(" - ALREADY EXTRACTED: [%s] %s\n",id6,title);
 			continue;
 		    }
-		    RemoveSF(&fo);
+		    ResetSF(&fo,0);
 
 		    char dbuf[PATH_MAX], fbuf[PATH_MAX];
 		    ccp dpath;
@@ -2204,31 +2403,65 @@ enumError cmd_extract()
 		    else
 			fname = fo.f.fname;
 		    
+		    if (print_sections)
+		    {
+			printf(
+			    "[EXTRACT]\n"
+			    "test-mode=%d\n"
+			    "data-mode=%s\n"
+			    "job-counter=%d\n"
+			    "wbfs-slot=%u\n"
+			    "id=%s\n"
+			    "title=%s\n"
+			    "dest-path=%s\n"
+			    "dest-type=%s\n"
+			    "\n"
+			    ,testmode>0
+			    ,oft == OFT_FST ? "extract"
+				: part_selector.whole_disc ? "copy/raw" : "copy/scrubbed"
+			    ,extract_count+1
+			    ,slot
+			    ,id6
+			    ,title
+			    ,fo.f.fname
+			    ,oft_info[oft].name
+			    );
+			fflush(stdout);
+		    }
+
 		    if (testmode)
 		    {
 			if ( overwrite > 0 || stat(fo.f.fname,&fo.f.st) )
 			{
-			    printf(" - WOULD EXTRACT %s -> %s:%s\n",
-				    id6, oft_info[oft].name, fname );
+			    if (!print_sections)
+				printf(" - WOULD EXTRACT %s -> %s:%s\n",
+					id6, oft_info[oft].name, fname );
 			    wbfs_extract_count++;
 			    extract_count++;
 			}
 			else if (!update)
-			    printf(" - WOULD NOT OVERWRITE %s -> %s\n",id6,fname);
+			    printf("!- WOULD NOT OVERWRITE %s -> %s\n",id6,fname);
+			fflush(stdout);
 		    }
 		    else
 		    {
-			if ( verbose >= 0 || progress > 0 )
+			if ( !print_sections && ( verbose >= 0 || progress > 0 ))
+			{
 			    printf(" - EXTRACT %s -> %s:%s\n",
 				    id6, oft_info[oft].name, fo.f.fname );
-			fflush(stdout);
+			    fflush(stdout);
+			}
 
 			OpenWDiscSF(&wbfs);
 			OpenDiscSF(wbfs.sf,true,true);
 
 			if ( oft == OFT_FST )
 			{
-			    ExtractImage( wbfs.sf, fname, overwrite, false );
+			    if (!ExtractImage( wbfs.sf, fname, overwrite, false ))
+			    {
+				wbfs_extract_count++;
+				extract_count++;
+			    }
 			}
 			else
 			{
@@ -2260,18 +2493,32 @@ enumError cmd_extract()
 		wbfs_mod_count++;
 	    }
 
-	    if (verbose>=0)
+	    if ( verbose >= 0 )
 	    {
-		const int bufsize = 100;
-		char buf[bufsize+1];
-
-		if (wbfs_rm_count)
-		    snprintf(buf,bufsize,", %d disc%s removed",
-				wbfs_rm_count, wbfs_rm_count==1 ? "" : "s" );
+		if (print_sections)
+		{
+		    LogCloseWBFS(&wbfs,wbfs_count,n_wbfs,info->path);
+		    printf(
+			"n-removed=%u\n"
+			"n-extracted=%u\n"
+			"\n"
+			,wbfs_rm_count
+			,wbfs_extract_count
+			);
+		}
 		else
-		    *buf = 0;
-		printf("* WBFS #%d: %d disc%s extracted%s.\n",
-		    wbfs_count, wbfs_extract_count, wbfs_extract_count==1 ? "" : "s", buf );
+		{
+		    char buf[50];
+		    if (wbfs_rm_count)
+			snprintf(buf,sizeof(buf),", %d disc%s removed",
+				    wbfs_rm_count, wbfs_rm_count==1 ? "" : "s" );
+		    else
+			*buf = 0;
+
+		    printf("* WBFS #%d: %d disc%s extracted%s.\n",
+			wbfs_count, wbfs_extract_count,
+			wbfs_extract_count==1 ? "" : "s", buf );
+		}
 	    }
 	}
     }
@@ -2287,7 +2534,7 @@ enumError cmd_extract()
 
     if ( verbose >= 0 )
     {
-	if ( wbfs_count > 1 )
+	if ( wbfs_count > 1 && !print_sections )
 	{
 	    printf("** %d disc%s extracted, %d of %d WBFS used.\n",
 			extract_count, extract_count==1 ? "" : "s",
@@ -2328,9 +2575,10 @@ enumError cmd_remove()
 
     //----- remove discs
 
-    const bool check_it	      = OptionUsed[OPT_NO_CHECK] == 0;
-    const bool ignore_check   = OptionUsed[OPT_FORCE]    != 0;
-    const bool free_slot_only = OptionUsed[OPT_NO_FREE]  != 0;
+    const bool check_it		= OptionUsed[OPT_NO_CHECK] == 0;
+    const bool ignore_check	= OptionUsed[OPT_FORCE]    != 0;
+    const bool free_slot_only	= OptionUsed[OPT_NO_FREE]  != 0;
+    const uint n_wbfs		= CountWBFS();
     int rm_count = 0, wbfs_count = 0, wbfs_mod_count = 0;
 
     WBFS_t wbfs;
@@ -2342,9 +2590,7 @@ enumError cmd_remove()
     {
 	wbfs_count++;
 	if (verbose>=0)
-	    printf("%sWBFSv%u #%d opened: %s\n",
-		    verbose>0 ? "\n" : "",
-		    wbfs.wbfs->head->wbfs_version, wbfs_count, info->path );
+	    LogOpenedWBFS(&wbfs,wbfs_count,n_wbfs,info->path);
 
 	if ( !info->is_checked && check_it )
 	{
@@ -2374,10 +2620,28 @@ enumError cmd_remove()
 		    TRACE("%s%s %s @ %s\n",
 			testmode ? "WOULD " : "",
 			free_slot_only ? "DROP" : "REMOVE", id6, info->path );
-		    printf(" - %s%s [%s] %s\n",
-			testmode ? "WOULD " : "",
-			free_slot_only ? "DROP" : "REMOVE",
-			id6, title );
+		    if (print_sections)
+		    {
+			printf(
+			    "[REMOVE]\n"
+			    "test-mode=%d\n"
+			    "job-counter=%d\n"
+			    "wbfs-slot=%u\n"
+			    "id=%s\n"
+			    "title=%s\n"
+			    "\n"
+			    ,testmode>0
+			    ,wbfs_rm_count+rm_count+1
+			    ,slot
+			    ,id6
+			    ,title
+			    );
+		    }
+		    else
+			printf(" - %s%s [%s] %s\n",
+			    testmode ? "WOULD " : "",
+			    free_slot_only ? "DROP" : "REMOVE",
+			    id6, title );
 		}
 		if (testmode)
 		    wbfs_rm_count++;
@@ -2392,10 +2656,19 @@ enumError cmd_remove()
 	{
 	    wbfs_mod_count++;
 	    rm_count += wbfs_rm_count;
-	    if (verbose>=0)
-		printf("* WBFS #%d: %d disc%s %s.\n",
-		    wbfs_count, wbfs_rm_count, wbfs_rm_count==1 ? "" : "s",
-		    free_slot_only ? "droped" : "removed" );
+
+	    if ( verbose >= 0 )
+	    {
+		if (print_sections)
+		{
+		    LogCloseWBFS(&wbfs,wbfs_count,n_wbfs,info->path);
+		    printf("n-removed=%u\n\n",wbfs_rm_count);
+		}
+		else
+		    printf("* WBFS #%d: %d disc%s %s.\n",
+			wbfs_count, wbfs_rm_count, wbfs_rm_count==1 ? "" : "s",
+			free_slot_only ? "droped" : "removed" );
+	    }
 	}
     }
     ResetWBFS(&wbfs);
@@ -2406,7 +2679,7 @@ enumError cmd_remove()
     if ( !OptionUsed[OPT_IGNORE] && !SIGINT_level )
 	DumpParamDB(SEL_UNUSED,true);
 
-    if ( verbose >= 0 )
+    if ( verbose >= 0 && !print_sections )
     {
 	if ( wbfs_count > 1 )
 	    printf("** %d disc%s %s, %d of %d WBFS modified.\n",
@@ -2451,6 +2724,7 @@ enumError cmd_rename ( bool rename_id )
     const bool ignore_check	= 0 != OptionUsed[OPT_FORCE];
     const bool change_wbfs	= 0 != OptionUsed[OPT_WBFS];
     const bool change_iso	= 0 != OptionUsed[OPT_ISO];
+    const uint n_wbfs		= CountWBFS();
 
     int mv_count = 0, wbfs_count = 0, wbfs_mod_count = 0;
 
@@ -2463,9 +2737,7 @@ enumError cmd_rename ( bool rename_id )
     {
 	wbfs_count++;
 	if (verbose>=0)
-	    printf("%sWBFSv%u #%d opened: %s\n",
-		    verbose>0 ? "\n" : "",
-		    wbfs.wbfs->head->wbfs_version, wbfs_count, info->path );
+	    LogOpenedWBFS(&wbfs,wbfs_count,n_wbfs,info->path);
 
 	if ( !info->is_checked && check_it )
 	{
@@ -2623,6 +2895,7 @@ enumError cmd_touch()
 
     const bool check_it		= 0 == OptionUsed[OPT_NO_CHECK];
     const bool ignore_check	= 0 != OptionUsed[OPT_FORCE];
+    const uint n_wbfs		= CountWBFS();
 
     WBFS_t wbfs;
     InitializeWBFS(&wbfs);
@@ -2633,9 +2906,7 @@ enumError cmd_touch()
     {
 	wbfs_count++;
 	if (verbose>=0)
-	    printf("%sWBFSv%u #%d opened: %s\n",
-		    verbose>0 ? "\n" : "",
-		    wbfs.wbfs->head->wbfs_version, wbfs_count, info->path );
+	    LogOpenedWBFS(&wbfs,wbfs_count,n_wbfs,info->path);
 
 	if ( !info->is_checked && check_it )
 	{
@@ -2771,6 +3042,7 @@ enumError cmd_verify()
 
     const bool remove		= OptionUsed[OPT_REMOVE]  != 0;
     const bool free_slot_only	= OptionUsed[OPT_NO_FREE] != 0;
+    const uint n_wbfs		= CountWBFS();
     ccp fail_verb = !remove ? "found" : free_slot_only ? "dropped" : "removed";
     char fail_buf[100];
 
@@ -2780,9 +3052,7 @@ enumError cmd_verify()
     {
 	wbfs_count++;
 	if (verbose>=0)
-	    printf("%sWBFSv%u #%d opened: %s\n",
-		    verbose>0 ? "\n" : "",
-		    wbfs.wbfs->head->wbfs_version, wbfs_count, info->path );
+	    LogOpenedWBFS(&wbfs,wbfs_count,n_wbfs,info->path);
 
 	int wbfs_verify_count = 0, wbfs_fail_count = 0;
 
@@ -2890,6 +3160,102 @@ enumError cmd_verify()
 	if ( verbose >= 1 )
 	    printf("\n");
     }
+
+    return max_error;
+}
+
+//
+///////////////////////////////////////////////////////////////////////////////
+
+enumError cmd_skeletonize()
+{
+    if ( verbose >= 0 && testmode < 2 )
+	print_title(stdout);
+
+    enumError err = AnalyzePartitions(stdout,false,false);
+    if (err)
+	return err;
+
+    SetupParamDB("+",!OptionUsed[OPT_IGNORE],false);
+
+    if ( testmode > 1 )
+    {
+	DumpParamDB(SEL_ALL,false);
+	return ERR_OK;
+    }
+
+
+    //----- count discs
+
+    const bool check_it		= 0 == OptionUsed[OPT_NO_CHECK];
+    const bool ignore_check	= 0 != OptionUsed[OPT_FORCE];
+
+    int disc_count = 0;
+
+    WBFS_t wbfs;
+    InitializeWBFS(&wbfs);
+    PartitionInfo_t * info;
+    for ( err = GetFirstWBFS(&wbfs,&info);
+	  !err && !SIGINT_level;
+	  err = GetNextWBFS(&wbfs,&info) )
+    {
+	if ( !info->is_checked && check_it )
+	{
+	    info->is_checked = true;
+	    if ( AutoCheckWBFS(&wbfs,ignore_check) > ERR_WARNING )
+	    {
+		ERROR0(ERR_WBFS_INVALID,"Ignore invalid WBFS: %s\n\n",info->path);
+		ResetWBFS(&wbfs);
+		info->ignore = true;
+		continue;
+	    }
+	}
+
+	int slot;
+	for ( slot = 0;
+	     slot < wbfs.wbfs->max_disc && !SIGINT_level;
+	     slot++ )
+	{
+	    if (CheckParamSlot(&wbfs,slot,false,0,0))
+	    	disc_count++;
+	}
+    }
+
+
+    //----- verify discs
+
+    int disc_index = 0, wbfs_count = 0;
+    const uint n_wbfs = CountWBFS();
+
+    for ( err = GetFirstWBFS(&wbfs,&info);
+	  !err && !SIGINT_level;
+	  err = GetNextWBFS(&wbfs,&info) )
+    {
+	wbfs_count++;
+	if (verbose>=0)
+	    LogOpenedWBFS(&wbfs,wbfs_count,n_wbfs,info->path);
+
+	int slot;
+	for ( slot = 0;
+	     slot < wbfs.wbfs->max_disc && !SIGINT_level;
+	     slot++ )
+	{
+	    ccp id6, title;
+	    if (CheckParamSlot(&wbfs,slot,true,&id6,&title))
+	    {
+		DASSERT( id6 && *id6 && title );
+		OpenWDiscSF(&wbfs);
+		OpenDiscSF(wbfs.sf,true,true);
+		snprintf(iobuf,sizeof(iobuf),"%s/#%u",info->path,slot);
+		err = Skeletonize(wbfs.sf,iobuf,++disc_index,disc_count);
+		CloseWDisc(&wbfs);
+	    }
+	}
+    }
+    ResetWBFS(&wbfs);
+
+    if ( !OptionUsed[OPT_IGNORE] && !SIGINT_level )
+	DumpParamDB(SEL_UNUSED,true);
 
     return max_error;
 }
@@ -3013,6 +3379,7 @@ enumError CheckOptions ( int argc, char ** argv, bool is_env )
 	case GO_LOGGING:	logging++; break;
 	case GO_ESC:		err += ScanEscapeChar(optarg) < 0; break;
 	case GO_IO:		ScanIOMode(optarg); break;
+	case GO_DIRECT:		opt_direct++; break;
 
 	case GO_TITLES:		AtFileHelper(optarg,0,0,AddTitleFile); break;
 	case GO_UTF_8:		use_utf8 = true; break;
@@ -3289,6 +3656,7 @@ enumError CheckCommand ( int argc, char ** argv )
 	case CMD_SETTITLE:	err = cmd_rename(false); break;
 	case CMD_TOUCH:		err = cmd_touch(); break;
 	case CMD_VERIFY:	err = cmd_verify(); break;
+	case CMD_SKELETON:	err = cmd_skeletonize(); break;
 
 	case CMD_FILETYPE:	err = cmd_filetype(); break;
 

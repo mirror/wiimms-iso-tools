@@ -14,10 +14,10 @@
 [size=12][color=#0000c0][b]Download der aktuellen Version:[/b][/color][/size]
 ~[size=12][color=#0000c0][b]Download[/b][/color] [color=#800000][b]der EXPERIMENTELLEN Version:[/b][/color][/size]
 [list]
-[*] [url=@@URI-DOWNLOAD-I386@@][b]@@DISTRIB-I386@@[/b][/url] : Linux/i386 version
-[*] [url=@@URI-DOWNLOAD-X86_64@@][b]@@DISTRIB-X86_64@@[/b][/url] : Linux/x86_64 version
-[*] [url=@@URI-DOWNLOAD-MAC@@][b]@@DISTRIB-MAC@@[/b][/url] : Mac OS universal binaries (ppc, i386 and x86-64)
-[*] [url=@@URI-DOWNLOAD-CYGWIN@@][b]@@DISTRIB-CYGWIN@@[/b][/url] : Cygwin (Windows) version
+[*] [url=@@URI-DOWNLOAD-I386@@][b]@@DISTRIB-I386@@[/b][/url] : Linux/i386 Version
+[*] [url=@@URI-DOWNLOAD-X86_64@@][b]@@DISTRIB-X86_64@@[/b][/url] : Linux/x86_64 Version
+[*] [url=@@URI-DOWNLOAD-MAC@@][b]@@DISTRIB-MAC@@[/b][/url] : Mac OS Universal Binaries (ppc, i386 und x86-64)
+[*] [url=@@URI-DOWNLOAD-CYGWIN@@][b]@@DISTRIB-CYGWIN@@[/b][/url] : Cygwin (Windows) Version
 [*] Weitere Versionen sind unter [url=@@URI-HOME@@download.html][b]@@URI-HOME@@download.html[/b][/url] verfügbar.
 [/list]
 
@@ -36,7 +36,13 @@
 ~ Highlights
 [size=12][color=#0000c0][b]Höhepunkte dieser Version:[/b][/color][/size]
 [list]
-[*]
+[*] Dieses ist in der Hauptsache ein Wartung-Update. Ich habe sehr viele Punkte meiner To-Do-Liste abgearbeitet und es war nicht nur eine Fehlerbeseitigung. Der Change Log liefert detaillierte Infos.
+
+[*] Die Linux Distributionen werden von nun an statisch gelinkt. Dieses macht sie kompatible zu viel mehr Linux Installationen. Hierdurch kann ich auch die aktuellste Preallocation-Funktionalität von Linux verwenden, was die Erzeugung von Dateien wesentlich beschleunigen kann.
+
+[*] Allgemein habe ich viele Änderungen am Layout des User-Interfaces vorgenommen. So werden z.B. bei "wit DUMP" nun alle möglichen IDs in der Zusammenfassung angezeigt. Außerdem wird nun ein Partitions-Status (ver-/enstschlüsselt, Scrubbed, Signatur) angezeigt. Ich werde mit den nächsten Versionen weitere derartige Änderungen vornehmen.
+
+[*] Durch die Änderungen am User-Interface habe ich evtl. die GUI-Unterstützung unterlaufen. Als Ausgleich habe ich die Unterstützung der Option --sections für weitere Kommandos implementiert. Durch Angabe dieser Option werden die Tools veranlasst, die Ausgabe maschinenlesbar zu getsalten. Diese Ausgabe unterliegt auch kaum Änderungen und höchstens Ergänzungen.
 [/list]
 
 [size=12][color=#0000c0][b]Letzte Änderungen:[/b][/color][/size]
@@ -45,4 +51,4 @@
 @@MODULE(last-history.txt)@@
 [/code]
 
-Die Quellen stehen unter der GPL2 Lizenz und können entweder direkt aus dem [url=@@URI-REPOS@@][b]SVN repository[/b][/url] exportiert oder mit einem [url=@@URI-VIEWVC@@][b]Browser besurft werden[/b][/url]. Besuche [url=@@URI-HOME@@][b]@@URI-HOME@@[/b][/url] für weitere Informationen.
+Die Quellen stehen unter der GPL2 Lizenz und können entweder direkt aus dem [url=@@URI-REPOS@@][b]SVN Repository[/b][/url] exportiert oder mit einem [url=@@URI-VIEWVC@@][b]Browser besurft werden[/b][/url]. Unter [url=@@URI-HOME@@][b]@@URI-HOME@@[/b][/url] gibt es weitere Informationen.

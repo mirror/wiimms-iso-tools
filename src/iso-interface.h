@@ -1,10 +1,22 @@
 
 /***************************************************************************
+ *                    __            __ _ ___________                       *
+ *                    \ \          / /| |____   ____|                      *
+ *                     \ \        / / | |    | |                           *
+ *                      \ \  /\  / /  | |    | |                           *
+ *                       \ \/  \/ /   | |    | |                           *
+ *                        \  /\  /    | |    | |                           *
+ *                         \/  \/     |_|    |_|                           *
+ *                                                                         *
+ *                           Wiimms ISO Tools                              *
+ *                         http://wit.wiimm.de/                            *
+ *                                                                         *
+ ***************************************************************************
  *                                                                         *
  *   This file is part of the WIT project.                                 *
  *   Visit http://wit.wiimm.de/ for project details and sources.           *
  *                                                                         *
- *   Copyright (c) 2009-2010 by Dirk Clemens <wiimm@wiimm.de>              *
+ *   Copyright (c) 2009-2011 by Dirk Clemens <wiimm@wiimm.de>              *
  *                                                                         *
  ***************************************************************************
  *                                                                         *
@@ -271,7 +283,7 @@ typedef struct Iterator_t
 
 	// source info
 
-	StringField_t	source_list;	// collected files
+	IdField_t	source_list;	// collected files
 	int		source_index;	// informative: index of current file
 	bool		auto_processed;	// auto scanning of partitions done
 
@@ -300,6 +312,9 @@ typedef struct Iterator_t
 	bool		remove_source;	// remove option set
 	int		real_filename;	// set real filename without any selector
 	int		long_count;	// long counter for output
+	uint		job_count;	// job counter
+	uint		job_total;	// total jobs
+	uint		rm_count;	// remove counter
 	uint		done_count;	// done counter
 	uint		diff_count;	// diff counter
 	uint		exists_count;	// 'file alread exists' counter
@@ -327,9 +342,11 @@ enumError SourceIterator
 enumError SourceIteratorCollected
 (
     Iterator_t		* it,		// iterator info
+    u8			mask,		// not NULL: execute only items
+					// with: ( mask & itme->flag ) != 0
     int			warning_mode,	// warning mode if no source found
 					// 0:off, 1:only return status, 2:print error
-    bool		ignore_err	// false: break on error > ERR_WARNING 
+    bool		ignore_err	// false: abort on error > ERR_WARNING 
 );
 
 enumError SourceIteratorWarning ( Iterator_t * it, enumError max_err, bool silent );
@@ -704,6 +721,19 @@ void InitializeVerify ( Verify_t * ver, SuperFile_t * sf );
 void ResetVerify ( Verify_t * ver );
 enumError VerifyPartition ( Verify_t * ver );
 enumError VerifyDisc ( Verify_t * ver );
+
+//
+///////////////////////////////////////////////////////////////////////////////
+///////////////			  Skeletonize			///////////////
+///////////////////////////////////////////////////////////////////////////////
+
+enumError Skeletonize
+(
+    SuperFile_t		* fi,		// valid input file
+    ccp			path,		// NULL or path for logging
+    int			disc_index,	// 1 based index of disc
+    int			disc_total	// total numbers of discs
+);
 
 //
 ///////////////////////////////////////////////////////////////////////////////

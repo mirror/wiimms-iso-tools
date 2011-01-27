@@ -1,10 +1,22 @@
 
 /***************************************************************************
+ *                    __            __ _ ___________                       *
+ *                    \ \          / /| |____   ____|                      *
+ *                     \ \        / / | |    | |                           *
+ *                      \ \  /\  / /  | |    | |                           *
+ *                       \ \/  \/ /   | |    | |                           *
+ *                        \  /\  /    | |    | |                           *
+ *                         \/  \/     |_|    |_|                           *
+ *                                                                         *
+ *                           Wiimms ISO Tools                              *
+ *                         http://wit.wiimm.de/                            *
+ *                                                                         *
+ ***************************************************************************
  *                                                                         *
  *   This file is part of the WIT project.                                 *
  *   Visit http://wit.wiimm.de/ for project details and sources.           *
  *                                                                         *
- *   Copyright (c) 2009-2010 by Dirk Clemens <wiimm@wiimm.de>              *
+ *   Copyright (c) 2009-2011 by Dirk Clemens <wiimm@wiimm.de>              *
  *                                                                         *
  ***************************************************************************
  *                                                                         *
@@ -131,7 +143,7 @@ int AddPartition ( ccp arg, int unused )
 
 int ScanDevForPartitions ( ccp dev_prefix )
 {
-    printf("ScanDevForPartitions(%s)\n",dev_prefix);
+    TRACE("ScanDevForPartitions(%s)\n",dev_prefix);
     size_t len_prefix = strlen(dev_prefix);
 
     static char prefix[] = "/dev/";
@@ -156,7 +168,7 @@ int ScanDevForPartitions ( ccp dev_prefix )
 		if (!memcmp(dent->d_name,dev_prefix,len_prefix))
 		{
 		    StringCopyE(buf+sizeof(prefix)-1,buf+sizeof(buf),dent->d_name);
-		    printf(" - part found: %s\n",buf);
+		    TRACE(" - part found: %s\n",buf);
 		    CreatePartitionInfo(buf,PS_AUTO);
 		    count++;
 		}
@@ -175,7 +187,7 @@ int ScanDevForPartitions ( ccp dev_prefix )
 
  static void iterate_dev ( ccp base )
  {
-    PRINT("ITERATE %s\n",base);
+    TRACE("ITERATE %s\n",base);
 
     char dev[100];
     int i;
@@ -446,7 +458,8 @@ enumError AnalyzePartitions ( FILE * outfile, bool non_found_is_ok, bool scan_wb
     else if ( return_stat )
     {
 	// [2do] ??? never reached
-	fprintf(outfile,"%d WBFS partition%s found\n",
+	if (!print_sections)
+	    fprintf(outfile,"%d WBFS partition%s found\n",
 			wbfs_count, wbfs_count == 1 ? "" : "s" );
 	ERROR0(ERR_WARNING,"Abort because of read errors while scanning\n");
     }
@@ -455,11 +468,11 @@ enumError AnalyzePartitions ( FILE * outfile, bool non_found_is_ok, bool scan_wb
 	if ( !opt_all )
 	    return_stat = ERROR0(ERR_TO_MUCH_WBFS_FOUND,
 			"%d (more than 1) WBFS partitions found -> abort.\n",wbfs_count);
-	else if ( verbose >= 1 )
+	else if ( verbose >= 1 && !print_sections )
 	    fprintf(outfile,"%d WBFS partition%s found\n",
 			wbfs_count, wbfs_count == 1 ? "" : "s" );
     }
-    else if ( verbose > 0 )
+    else if ( verbose > 0 && !print_sections )
     {
 	fprintf(outfile,"One WBFS partition found.\n");
     }
@@ -570,7 +583,8 @@ enumError ScanParamID6
 	    }
 	    const int arglen = arg - start;
 	    if ( err || wildcards > 1 || arglen > 6 )
-		return ERROR0(ERR_SEMANTIC,"Illegal ID selector: %.*s\n", arg-start, start );
+		return ERROR0(ERR_SEMANTIC,
+			"Illegal ID selector: %.*s\n", (int)(arg-start), start );
 
 	    char * dest = rule+1;
 	    for ( ; start < arg; start++ )
@@ -1052,7 +1066,7 @@ enumError CreateGrowingWBFS ( WBFS_t * w, SuperFile_t * sf, off_t size, int sect
     const enumError err = OpenParWBFS(w,sf,true,&par);
     if ( !err && S_ISREG(sf->f.st.st_mode) )
     {
-	PRINT("GROWING WBFS: %s\n",sf->f.fname);
+	TRACE("GROWING WBFS: %s\n",sf->f.fname);
 	w->is_growing = true;
     }
     return err;
@@ -1263,7 +1277,7 @@ enumError RecoverWBFS ( WBFS_t * wbfs, ccp fname, bool testmode )
 enumError TruncateWBFS ( WBFS_t * w )
 {
     ASSERT(w);
-    PRINT("TruncateWBFS() fd=%d fp=%p\n",
+    TRACE("TruncateWBFS() fd=%d fp=%p\n",
 		w->sf ? GetFD(&w->sf->f) : -2,
 		w->sf ? GetFP(&w->sf->f) : 0 );
 
@@ -1368,6 +1382,7 @@ enumError OpenPartWBFS ( WBFS_t * w, PartitionInfo_t * info )
     if (err)
     {
 	info->part_mode = PM_WBFS_INVALID;
+	info->ignore = true;
 	return err;
     }
 
@@ -1411,6 +1426,149 @@ enumError GetNextWBFS ( WBFS_t * w, PartitionInfo_t ** info )
     if ( info && *info )
 	*info = (*info)->next;
     return GetWBFSHelper(w,info);
+}
+
+//-----------------------------------------------------------------------------
+
+static void print_wbfs_section 
+(
+    WBFS_t		* w,		// valid and opened WBFS
+    int			count,		// wbfs counter, 1 based
+					// if NULL: neither 'count' nor 'total' are printed
+    int			total,		// total wbfs count to handle
+					// if NULL: don't print info
+    ccp			path,		// path of sourcefile
+					// if NULL: use 'w->sf->f.fname' (real path)
+    ccp			sub_mode,	// "open" | "close"
+    ccp			term_string	// append this string
+)
+{
+    DASSERT(w);
+    DASSERT(w->wbfs);
+    DASSERT(sub_mode);
+    DASSERT(term_string);
+
+    if (!count)
+	printf("[wbfs:%s]\n",sub_mode);
+    else if (!total)
+	printf("[wbfs:%s]\nwbfs-count=%u\n",sub_mode,count);
+    else
+	printf("[wbfs:%s]\nwbfs-count=%u\nwbfs-total=%u\n",sub_mode,count,total);
+
+    printf(
+	"path=%s\n"
+	"version=%u\n"
+	"n-discs=%u\n"
+	"max-discs=%u\n"
+	"free-mib=%u\n"
+	"used-mib=%u\n"
+	"total-mib=%u\n"
+	"%s"
+	,path ? path : w->sf ? w->sf->f.fname : ""
+	,w->wbfs->head->wbfs_version
+	,wbfs_count_discs(w->wbfs)
+	,w->wbfs->max_disc
+	,w->free_mib
+	,w->used_mib
+	,w->total_mib
+	,term_string
+	);
+}
+ 
+//-----------------------------------------------------------------------------
+
+void LogOpenedWBFS
+(
+    WBFS_t		* w,		// valid and opened WBFS
+    int			count,		// wbfs counter, 1 based
+					// if NULL: neither 'count' nor 'total' are printed
+    int			total,		// total wbfs count to handle
+					// if NULL: don't print info
+    ccp			path		// path of sourcefile
+					// if NULL: use 'w->sf->f.fname' (real path)
+)
+{
+    DASSERT(w);
+    DASSERT(w->wbfs);
+    if ( !w || !w->wbfs )
+	return;
+
+    if (!path)
+	path = w->sf ? w->sf->f.fname : "";
+	
+    if (print_sections)
+	print_wbfs_section(w,count,total,path,"open","\n");
+    else if (!count)
+	printf("%sWBFSv%u opened: %s\n",
+		verbose>0 ? "\n" : "",
+		w->wbfs->head->wbfs_version, path );
+    else if (!total)
+	printf("%sWBFSv%u #%u opened: %s\n",
+		verbose>0 ? "\n" : "",
+		w->wbfs->head->wbfs_version, count, path );
+    else
+	printf("%sWBFSv%u #%u/%u opened: %s\n",
+		verbose>0 ? "\n" : "",
+		w->wbfs->head->wbfs_version, count, total, path );
+}
+
+//-----------------------------------------------------------------------------
+
+void LogCloseWBFS
+(
+    WBFS_t		* w,		// valid and opened WBFS
+    int			count,		// wbfs counter, 1 based
+					// if NULL: neither 'count' nor 'total' are printed
+    int			total,		// total wbfs count to handle
+					// if NULL: don't print info
+    ccp			path		// path of sourcefile
+					// if NULL: use 'w->sf->f.fname' (real path)
+)
+{
+    if (print_sections)
+	print_wbfs_section(w,count,total,path,"close","");
+}
+
+//-----------------------------------------------------------------------------
+
+uint CountWBFS()
+{
+    uint count = 0;
+    PartitionInfo_t * info;
+    for ( info = first_partition_info; info; info = info->next )
+	if ( !info->ignore && info->part_mode >= PM_WBFS_MAGIC_FOUND )
+	    count++;
+    TRACE("CountWBFS(), N=%u\n",count);
+    return count;
+}
+
+//-----------------------------------------------------------------------------
+
+uint GetIdWBFS ( WBFS_t * wbfs, IdField_t * idf )
+{
+    DASSERT(wbfs);
+    DASSERT(idf);
+    uint count = 0;
+    
+    wbfs_t *w = wbfs->wbfs;
+    if (w)
+    {
+	int slot;
+	wd_header_t head;
+	char slot_name[20];
+	const int slot_fw = snprintf(slot_name,sizeof(slot_name),"#%u",w->max_disc-1);
+	
+	for ( slot = 0; slot < w->max_disc; slot++ )
+	    if (!wbfs_get_disc_info_by_slot(w,slot,(u8*)&head,sizeof(head),0,0,0))
+	    {
+		const time_t mtime = wbfs_is_inode_info_valid(w,&head.iinfo)
+					? ntoh64(head.iinfo.mtime) : 0;
+		snprintf(slot_name,sizeof(slot_name),"#%0*u",slot_fw,slot);
+		InsertIdField(idf,&head.disc_id,0,mtime,slot_name);
+	    }
+    }
+    
+    return count;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -2702,8 +2860,8 @@ enumError AutoCheckWBFS	( WBFS_t * wbfs, bool ignore_check )
     {
 	PrintCheckedWBFS(&ck,stdout,1);
 	if ( !ignore_check && err > ERR_WARNING )
-	    printf(" >> To avoid this automatic check use the option --no-check.\n"
-		   " >> To ignore the results of this check use option --force.\n"
+	    printf("!>> To avoid this automatic check use the option --no-check.\n"
+		   "!>> To ignore the results of this check use option --force.\n"
 		   "\n" );
     }
     ResetCheckWBFS(&ck);
@@ -3839,7 +3997,7 @@ enumError AddWDisc ( WBFS_t * w, SuperFile_t * sf, const wd_select_t * psel )
     else
     {
 	ASSERT(w->sf);
-	PRINT("AddWDisc/stat: w=%p, slot=%d, w->sf=%p, oft=%d\n",
+	TRACE("AddWDisc/stat: w=%p, slot=%d, w->sf=%p, oft=%d\n",
 		w, w->disc_slot, w->sf, w->sf->iod.oft );
         err = RewriteModifiedSF(sf,0,w,0);
     }

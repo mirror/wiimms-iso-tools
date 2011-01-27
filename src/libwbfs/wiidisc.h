@@ -1,10 +1,22 @@
 
 /***************************************************************************
+ *                    __            __ _ ___________                       *
+ *                    \ \          / /| |____   ____|                      *
+ *                     \ \        / / | |    | |                           *
+ *                      \ \  /\  / /  | |    | |                           *
+ *                       \ \/  \/ /   | |    | |                           *
+ *                        \  /\  /    | |    | |                           *
+ *                         \/  \/     |_|    |_|                           *
+ *                                                                         *
+ *                           Wiimms ISO Tools                              *
+ *                         http://wit.wiimm.de/                            *
+ *                                                                         *
+ ***************************************************************************
  *                                                                         *
  *   This file is part of the WIT project.                                 *
  *   Visit http://wit.wiimm.de/ for project details and sources.           *
  *                                                                         *
- *   Copyright (c) 2009-2010 by Dirk Clemens <wiimm@wiimm.de>              *
+ *   Copyright (c) 2009-2011 by Dirk Clemens <wiimm@wiimm.de>              *
  *                                                                         *
  ***************************************************************************
  *                                                                         *
@@ -167,6 +179,72 @@ typedef enum wd_pfst_t // print-fst mode
 
 //
 ///////////////////////////////////////////////////////////////////////////////
+///////////////		    enum wd_sector_status_t		///////////////
+///////////////////////////////////////////////////////////////////////////////
+
+typedef enum wd_sector_status_t
+{
+    //----- cleared status
+
+    WD_SS_HASH_CLEARED		= 0x0001,   // hash area cleard with any constant
+    WD_SS_DATA_CLEARED		= 0x0002,   // data area cleard with any constant
+    WD_SS_SECTOR_CLEARED	= 0x0004,   // complete sector cleard with any constant
+					    // if set: WD_SS_HASH_CLEARED
+					    //	     & WD_SS_DATA_CLEARED are set too
+
+    WD_SS_HASH_ZEROED		= 0x0010,   // hash area zeroed ==> WD_SS_HASH_CLEARED
+    WD_SS_DATA_ZEROED		= 0x0020,   // data area zeroed ==> WD_SS_DATA_CLEARED
+
+    WD_SS_M_CLEARED		= WD_SS_HASH_CLEARED
+				| WD_SS_DATA_CLEARED
+				| WD_SS_SECTOR_CLEARED
+				| WD_SS_HASH_ZEROED
+				| WD_SS_DATA_ZEROED,
+
+    //----- encryption status
+
+    WD_SS_ENCRYPTED		= 0x0040,   // sector encrypted (decrypted H0 hash is ok)
+    WD_SS_DECRYPTED		= 0x0080,   // sector decrypted (H0 hash is ok)
+
+    WD_SS_M_CRYPT		= WD_SS_ENCRYPTED
+				| WD_SS_DECRYPTED,
+
+    //----- flags
+
+    WD_SS_F_PART_DATA		= 0x0100,   // sector contains partition data
+    WD_SS_F_SCRUBBED		= 0x0200,   // sector is scrubbed
+    WD_SS_F_SKELETON		= 0x0400,   // sector is marked 'SKELETON'
+
+    WD_SS_M_FLAGS		= WD_SS_F_PART_DATA
+				| WD_SS_F_SCRUBBED
+				| WD_SS_F_SKELETON,
+
+    //----- error status
+
+    WD_SS_INVALID_SECTOR	= 0x1000,   // invalid sector index
+    WD_SS_READ_ERROR		= 0x2000,   // error while reading sector
+
+    WD_SS_M_ERROR		= WD_SS_INVALID_SECTOR
+				| WD_SS_READ_ERROR,
+
+} wd_sector_status_t;
+
+//
+///////////////////////////////////////////////////////////////////////////////
+///////////////			enum wd_scrubbed_t		///////////////
+///////////////////////////////////////////////////////////////////////////////
+
+typedef enum wd_scrubbed_t // scrubbing mode
+{
+    WD_SCRUBBED_NONE	= 0,
+    WD_SCRUBBED_HASH	= 1,
+    WD_SCRUBBED_DATA	= 2,
+    WD_SCRUBBED_ALL	= WD_SCRUBBED_HASH | WD_SCRUBBED_DATA,
+
+} wd_scrubbed_t;
+
+//
+///////////////////////////////////////////////////////////////////////////////
 ///////////////			enum wd_usage_t			///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -177,7 +255,7 @@ typedef enum wd_usage_t // usage table values
     WD_USAGE_PART_0,		// index for first partition
     
     WD_USAGE__MASK	= 0x7f,	// mask for codes above
-    WD_USAGE_F_CRYPT	= 0x80,	// flag: encrypted data block
+    WD_USAGE_F_CRYPT	= 0x80,	// flag: encryption candidate
 
 } wd_usage_t;
 
@@ -460,15 +538,20 @@ typedef struct wd_part_t
     bool		is_overlay;	// true if this partition overlays other partitions
     bool		is_gc;		// true for GC partition => no crypt, no hash
 
+    wd_sector_status_t	sector_stat;	// sector status: OR'ed for different sectors
+    bool		scrub_test_done;// true if scrubbing test already done
+
     //----- to do status
 
     bool		sign_ticket;	// true if ticket must be signed
     bool		sign_tmd;	// true if tmd must be signed
     bool		h3_dirty;	// true if h3 is dirty -> calc h4 and sign tmd
 
+
     //----- partition data, only valid if 'is_valid' is true
     
-    wd_part_header_t	ph;		// partition header (incl. ticket), host endian
+    wd_part_header_t	ph		// partition header (incl. ticket), host endian
+	    __attribute__ ((aligned(4)));
     wd_tmd_t		* tmd;		// NULL or pointer to tmd, size = ph.tmd_size
     u8			* cert;		// NULL or pointer to cert, size = ph.cert_size
     u8			* h3;		// NULL or pointer to h3, size = WII_H3_SIZE
@@ -558,7 +641,11 @@ typedef struct wd_disc_t
     u32			fst_max_size;	// informative: maximal size value of all files
     u32			fst_dir_count;	// informative: number or directories in fst
     u32			fst_file_count;	// informative: number or real files in fst
-    bool		have_overlays;	// informative: overlayed partitions
+
+    cert_stat_t		cert_summary;	// summary of partitions stats
+    wd_sector_status_t	sector_stat;	// sector status: OR'ed for different sectors
+    bool		scrub_test_done;// true if scrubbing test already done
+    bool		have_overlays;	// overlayed partitions found
     bool		patch_ptab_recommended;
 					// informative: patch ptab is recommended
 
@@ -799,61 +886,130 @@ int wd_rename
 
 enumError wd_read_raw
 (
-	wd_disc_t	* disc,		// valid disc pointer
-	u32		disc_offset4,	// disc offset/4
-	void		* dest_buf,	// destination buffer
-	u32		read_size,	// number of bytes to read
-	wd_usage_t	usage_id	// not 0: mark usage usage_tab with this value
+    wd_disc_t		* disc,		// valid disc pointer
+    u32			disc_offset4,	// disc offset/4
+    void		* dest_buf,	// destination buffer
+    u32			read_size,	// number of bytes to read 
+    wd_usage_t		usage_id	// not 0: mark usage usage_tab with this value
 );
 
 //-----------------------------------------------------------------------------
 
 enumError wd_read_part_raw
 (
-	wd_part_t	* part,		// valid pointer to a disc partition
-	u32		offset4,	// offset/4 to partition start
-	void		* dest_buf,	// destination buffer
-	u32		read_size,	// number of bytes to read 
-	bool		mark_block	// true: mark block in 'usage_table'
+    wd_part_t		* part,		// valid pointer to a disc partition
+    u32			offset4,	// offset/4 to partition start
+    void		* dest_buf,	// destination buffer
+    u32			read_size,	// number of bytes to read 
+    bool		mark_block	// true: mark block in 'usage_table'
 );
 
 //-----------------------------------------------------------------------------
 
 enumError wd_read_part_block
 (
-	wd_part_t	* part,		// valid pointer to a disc partition
-	u32		block_num,	// block number of partition
-	u8		* block,	// destination buf
-	bool		mark_block	// true: mark block in 'usage_table'
+    wd_part_t		* part,		// valid pointer to a disc partition
+    u32			block_num,	// block number of partition
+    u8			* block,	// destination buf
+    bool		mark_block	// true: mark block in 'usage_table'
 );
 
 //-----------------------------------------------------------------------------
 
 enumError wd_read_part
 (
-	wd_part_t	* part,		// valid pointer to a disc partition
-	u32		data_offset4,	// partition data offset/4
-	void		* dest_buf,	// destination buffer
-	u32		read_size,	// number of bytes to read 
-	bool		mark_block	// true: mark block in 'usage_table'
+    wd_part_t		* part,		// valid pointer to a disc partition
+    u32			data_offset4,	// partition data offset/4
+    void		* dest_buf,	// estination buffer
+    u32			read_size,	// number of bytes to read 
+    bool		mark_block	// true: mark block in 'usage_table'
 );
 
 //-----------------------------------------------------------------------------
 
 void wd_mark_part
 (
-	wd_part_t	* part,		// valid pointer to a disc partition
-	u32		data_offset4,	// partition data offset/4
-	u32		data_size	// number of bytes to mark
+    wd_part_t		* part,		// valid pointer to a disc partition
+    u32			data_offset4,	// partition data offset/4
+    u32			data_size	// number of bytes to mark
+);
+
+//-----------------------------------------------------------------------------
+
+u64 wd_calc_disc_offset
+(
+    wd_part_t		* part,		// valid pointer to a disc partition
+    u64			data_offset4	// partition data offset
+);
+
+//
+///////////////////////////////////////////////////////////////////////////////
+///////////////			get sector status		///////////////
+///////////////////////////////////////////////////////////////////////////////
+
+wd_sector_status_t wd_get_part_sector_status
+(
+    wd_part_t		* part,		// valid pointer to a disc partition
+    u32			block_num,	// block number of disc
+    bool		silent		// true: don't print error messages
+);
+
+//-----------------------------------------------------------------------------
+
+wd_sector_status_t wd_get_disc_sector_status
+(
+    wd_disc_t		* disc,		// valid disc pointer
+    u32			block_num,	// block number of partition
+    bool		silent		// true: don't print error messages
+);
+
+//-----------------------------------------------------------------------------
+
+ccp wd_log_sector_status
+(
+    char		* buf,		// result buffer
+					// If NULL, a local circulary static buffer is used
+    size_t		buf_size,	// size of 'buf', ignored if buf==NULL
+    wd_sector_status_t	sect_stat	// sector status
+);
+
+//-----------------------------------------------------------------------------
+
+ccp wd_print_sector_status
+(
+    char		* buf,		// result buffer
+					// If NULL, a local circulary static buffer is used
+    size_t		buf_size,	// size of 'buf', ignored if buf==NULL
+    wd_sector_status_t	sect_stat,	// sector status
+    cert_stat_t		sig_stat	// not NULL: add signature status
 );
 
 //-----------------------------------------------------------------------------
 
 int wd_is_block_encrypted
 (
-	wd_part_t	* part,		// valid pointer to a disc partition
-	u32		block_num,	// block number of partition
-	int		unknown_result	// result if status is unknown
+    // returns -1 on read error
+
+    wd_part_t		* part,		// valid pointer to a disc partition
+    u32			block_num,	// block number of partition
+    int			unknown_result,	// result if status is unknown
+    bool		silent		// true: don't print error messages
+);
+
+//-----------------------------------------------------------------------------
+
+bool wd_is_part_scrubbed
+(
+    wd_part_t		* part,		// valid pointer to a disc partition
+    bool		silent		// true: don't print error messages
+);
+
+//-----------------------------------------------------------------------------
+
+bool wd_is_disc_scrubbed
+(
+    wd_disc_t		* disc,		// valid disc pointer
+    bool		silent		// true: don't print error messages
 );
 
 //
@@ -1037,6 +1193,13 @@ cert_stat_t wd_get_cert_tmd_stat
 
 //-----------------------------------------------------------------------------
 
+ccp wd_get_sig_status_short_text
+(
+    cert_stat_t		sig_stat
+);
+
+//-----------------------------------------------------------------------------
+
 ccp wd_get_sig_status_text
 (
     cert_stat_t		sig_stat
@@ -1050,8 +1213,35 @@ char * wd_print_sig_status
 					// If NULL, a local circulary static buffer is used
     size_t		buf_size,	// size of 'buf', ignored if buf==NULL
     wd_part_t		* part,		// valid disc partition pointer
-    bool		silent,		// true: don't print errors while loading cert
+    bool		silent,		// true: don't print errors while loading data
     bool		add_enc_info	// true: append " Partition is *crypted."
+);
+
+//-----------------------------------------------------------------------------
+
+char * wd_print_part_status
+(
+    char		* buf,		// result buffer
+					// If NULL, a local circulary static buffer is used
+    size_t		buf_size,	// size of 'buf', ignored if buf==NULL
+    wd_part_t		* part,		// valid disc partition pointer
+    bool		silent		// true: don't print errors while loading cert
+);
+
+//-----------------------------------------------------------------------------
+
+enumError wd_calc_part_status
+(
+    wd_part_t		* part,		// valid pointer to a disc partition
+    bool		silent		// true: don't print error messages
+);
+
+//-----------------------------------------------------------------------------
+
+enumError wd_calc_disc_status
+(
+    wd_disc_t		* disc,		// valid disc pointer
+    bool		silent		// true: don't print error messages
 );
 
 //

@@ -1,10 +1,22 @@
 
 /***************************************************************************
+ *                    __            __ _ ___________                       *
+ *                    \ \          / /| |____   ____|                      *
+ *                     \ \        / / | |    | |                           *
+ *                      \ \  /\  / /  | |    | |                           *
+ *                       \ \/  \/ /   | |    | |                           *
+ *                        \  /\  /    | |    | |                           *
+ *                         \/  \/     |_|    |_|                           *
+ *                                                                         *
+ *                           Wiimms ISO Tools                              *
+ *                         http://wit.wiimm.de/                            *
+ *                                                                         *
+ ***************************************************************************
  *                                                                         *
  *   This file is part of the WIT project.                                 *
  *   Visit http://wit.wiimm.de/ for project details and sources.           *
  *                                                                         *
- *   Copyright (c) 2009-2010 by Dirk Clemens <wiimm@wiimm.de>              *
+ *   Copyright (c) 2009-2011 by Dirk Clemens <wiimm@wiimm.de>              *
  *                                                                         *
  ***************************************************************************
  *                                                                         *
@@ -98,7 +110,8 @@ enumError wd_print_error
     enumError	err,		// error code
     ccp		format,		// NULL or format string for fprintf() function.
     ...				// parameters for 'format'
-);
+
+) __attribute__ ((__format__(__printf__,5,6)));
 
 //
 ///////////////////////////////////////////////////////////////////////////////
@@ -252,6 +265,13 @@ void wd_print_byte_tab
     u32			addr_factor,	// each 'tab' element represents 'addr_factor' bytes
     const char		chartab[256],	// valid pointer to a char table
     bool		print_all	// false: ignore const lines
+);
+
+//-----------------------------------------------------------------------------
+
+char * GetCircBuf // never returns NULL
+(
+    u32		buf_size	// wanted buffer size
 );
 
 //

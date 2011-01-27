@@ -1,10 +1,22 @@
 
 /***************************************************************************
+ *                    __            __ _ ___________                       *
+ *                    \ \          / /| |____   ____|                      *
+ *                     \ \        / / | |    | |                           *
+ *                      \ \  /\  / /  | |    | |                           *
+ *                       \ \/  \/ /   | |    | |                           *
+ *                        \  /\  /    | |    | |                           *
+ *                         \/  \/     |_|    |_|                           *
+ *                                                                         *
+ *                           Wiimms ISO Tools                              *
+ *                         http://wit.wiimm.de/                            *
+ *                                                                         *
+ ***************************************************************************
  *                                                                         *
  *   This file is part of the WIT project.                                 *
  *   Visit http://wit.wiimm.de/ for project details and sources.           *
  *                                                                         *
- *   Copyright (c) 2009-2010 by Dirk Clemens <wiimm@wiimm.de>              *
+ *   Copyright (c) 2009-2011 by Dirk Clemens <wiimm@wiimm.de>              *
  *                                                                         *
  ***************************************************************************
  *                                                                         *
@@ -100,11 +112,16 @@
 ///////////////////////////////////////////////////////////////////////////////
 
 extern FILE * TRACE_FILE;
-void TRACE_FUNC ( const char * format, ...);
+void TRACE_FUNC ( const char * format, ...)
+	__attribute__ ((__format__(__printf__,1,2)));
 void TRACE_ARG_FUNC ( const char * format, va_list arg );
-void PRINT_FUNC ( const char * format, ...);
+
+void PRINT_FUNC ( const char * format, ...)
+	__attribute__ ((__format__(__printf__,1,2)));
 void PRINT_ARG_FUNC ( const char * format, va_list arg );
-void WAIT_FUNC ( const char * format, ...);
+
+void WAIT_FUNC ( const char * format, ...)
+	__attribute__ ((__format__(__printf__,1,2)));
 void WAIT_ARG_FUNC ( const char * format, va_list arg );
 
 ///////////////////////////////////////////////////////////////////////////////

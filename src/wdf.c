@@ -1,10 +1,22 @@
 
 /***************************************************************************
+ *                    __            __ _ ___________                       *
+ *                    \ \          / /| |____   ____|                      *
+ *                     \ \        / / | |    | |                           *
+ *                      \ \  /\  / /  | |    | |                           *
+ *                       \ \/  \/ /   | |    | |                           *
+ *                        \  /\  /    | |    | |                           *
+ *                         \/  \/     |_|    |_|                           *
+ *                                                                         *
+ *                           Wiimms ISO Tools                              *
+ *                         http://wit.wiimm.de/                            *
+ *                                                                         *
+ ***************************************************************************
  *                                                                         *
  *   This file is part of the WIT project.                                 *
  *   Visit http://wit.wiimm.de/ for project details and sources.           *
  *                                                                         *
- *   Copyright (c) 2009-2010 by Dirk Clemens <wiimm@wiimm.de>              *
+ *   Copyright (c) 2009-2011 by Dirk Clemens <wiimm@wiimm.de>              *
  *                                                                         *
  ***************************************************************************
  *                                                                         *
@@ -129,7 +141,7 @@ void hint_exit ( enumError stat )
 	    progname, CommandInfo[current_command->id].name1 );
     else
 	fprintf(stderr,
-	    "-> Type '%s -h', '%s help' (pipe it to a pager like 'less') for more help.\n\n",
+	    "-> Type '%s -h' or '%s help' (pipe it to a pager like 'less') for more help.\n\n",
 	    progname, progname );
     exit(stat);
 }
@@ -240,10 +252,10 @@ static char * RemoveExt ( char *buf, size_t bufsize, ccp * ext_list, ccp fname )
 enumError CatRaw ( SuperFile_t * fi, SuperFile_t * fo,
 			ccp out_fname, bool ignore_raw, bool remove_source )
 {
-    TRACELINE;
+    TRACE("CatRaw()\n");
     DASSERT(fi);
     DASSERT( fo || out_fname );
-
+    
     enumError err = ERR_OK;
     SuperFile_t fo_local;
 
@@ -272,7 +284,7 @@ enumError CatRaw ( SuperFile_t * fi, SuperFile_t * fo,
 	    if (!err)
 	    {
 		SetupIOD(fi,OFT_PLAIN,OFT_PLAIN);
-		err = AppendF(&fi->f,fo,0,fi->f.fatt.size);
+		err = AppendSparseF(&fi->f,fo,0,fi->f.fatt.size);
 	    }
 	}
     }
@@ -286,7 +298,7 @@ enumError CatRaw ( SuperFile_t * fi, SuperFile_t * fo,
 enumError CatCISO ( SuperFile_t * fi, CISO_Head_t * ch, SuperFile_t * fo,
 			ccp out_fname, bool ignore_raw, bool remove_source )
 {
-    TRACELINE;
+    TRACE("CatCISO()\n");
     DASSERT(fi);
     DASSERT(ch);
     DASSERT( fo || out_fname );
@@ -365,7 +377,7 @@ enumError CatCISO ( SuperFile_t * fi, CISO_Head_t * ch, SuperFile_t * fo,
 enumError CatWDF ( ccp fname, SuperFile_t * fo, ccp out_fname,
 			bool ignore_raw, bool remove_source )
 {
-    TRACELINE;
+    TRACE("CatWDF()\n");
     DASSERT(fname);
     DASSERT( fo || out_fname );
 
@@ -1060,6 +1072,8 @@ enumError CheckOptions ( int argc, char ** argv )
 	case GO_QUIET:		verbose = verbose > -1 ? -1 : verbose - 1; break;
 	case GO_VERBOSE:	verbose = verbose <  0 ?  0 : verbose + 1; break;
 	case GO_LOGGING:	logging++; break;
+	case GO_IO:		ScanIOMode(optarg); break;
+	case GO_DIRECT:		opt_direct++; break;
 	case GO_CHUNK:		opt_chunk = true; break;
 	case GO_LONG:		opt_chunk = true; long_count++; break;
 	case GO_MINUS1:		opt_minus1 = 1; break;

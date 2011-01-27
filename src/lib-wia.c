@@ -1,10 +1,22 @@
 
 /***************************************************************************
+ *                    __            __ _ ___________                       *
+ *                    \ \          / /| |____   ____|                      *
+ *                     \ \        / / | |    | |                           *
+ *                      \ \  /\  / /  | |    | |                           *
+ *                       \ \/  \/ /   | |    | |                           *
+ *                        \  /\  /    | |    | |                           *
+ *                         \/  \/     |_|    |_|                           *
+ *                                                                         *
+ *                           Wiimms ISO Tools                              *
+ *                         http://wit.wiimm.de/                            *
+ *                                                                         *
+ ***************************************************************************
  *                                                                         *
  *   This file is part of the WIT project.                                 *
  *   Visit http://wit.wiimm.de/ for project details and sources.           *
  *                                                                         *
- *   Copyright (c) 2009-2010 by Dirk Clemens <wiimm@wiimm.de>              *
+ *   Copyright (c) 2009-2011 by Dirk Clemens <wiimm@wiimm.de>              *
  *                                                                         *
  ***************************************************************************
  *                                                                         *
@@ -303,22 +315,8 @@ char * PrintVersionWIA
     u32			version		// version number to print
 )
 {
-    enum
-    {
-	SBUF_COUNT = 4,
-	SBUF_SIZE  = 20
-    };
-
-    static int  sbuf_index = 0;
-    static char sbuf[SBUF_COUNT][SBUF_SIZE+1];
-
     if (!buf)
-    {
-	// use static buffer
-	buf = sbuf[sbuf_index];
-	buf_size = SBUF_SIZE;
-	sbuf_index = ( sbuf_index + 1 ) % SBUF_COUNT;
-    }
+	buf = GetCircBuf( buf_size = 20 );
 
     version = htonl(version); // we need big endian here
     const u8 * v = (const u8 *)&version;
@@ -1169,10 +1167,9 @@ enumError SetupReadWIA
 
 	default:
 	    return ERROR0(ERR_NOT_IMPLEMENTED,
-			"No support for compression method #%u (%x/hex, %s): \n",
+			"No support for compression method #%u (%x/hex, %s)\n",
 			disc->compression, disc->compression,
-			wd_get_compression_name(disc->compression,"unknown"),
-			sf->f.fname );
+			wd_get_compression_name(disc->compression,"unknown") );
     }
 
 

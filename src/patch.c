@@ -1,10 +1,22 @@
 
 /***************************************************************************
+ *                    __            __ _ ___________                       *
+ *                    \ \          / /| |____   ____|                      *
+ *                     \ \        / / | |    | |                           *
+ *                      \ \  /\  / /  | |    | |                           *
+ *                       \ \/  \/ /   | |    | |                           *
+ *                        \  /\  /    | |    | |                           *
+ *                         \/  \/     |_|    |_|                           *
+ *                                                                         *
+ *                           Wiimms ISO Tools                              *
+ *                         http://wit.wiimm.de/                            *
+ *                                                                         *
+ ***************************************************************************
  *                                                                         *
  *   This file is part of the WIT project.                                 *
  *   Visit http://wit.wiimm.de/ for project details and sources.           *
  *                                                                         *
- *   Copyright (c) 2009-2010 by Dirk Clemens <wiimm@wiimm.de>              *
+ *   Copyright (c) 2009-2011 by Dirk Clemens <wiimm@wiimm.de>              *
  *                                                                         *
  ***************************************************************************
  *                                                                         *
@@ -387,7 +399,7 @@ int ScanOptId ( ccp arg )
     size_t len = strlen(arg);
     if ( len > max_len )
     {
-	ERROR0(ERR_SYNTAX,"option --id: id is %d characters to long: %s\n",
+	ERROR0(ERR_SYNTAX,"option --id: id is %zu characters to long: %s\n",
 		len - max_len, arg);
 	return 1;
     }
@@ -395,16 +407,18 @@ int ScanOptId ( ccp arg )
     memset(modify_id_buf,0,sizeof(modify_id_buf));
     char *dest = modify_id_buf;
     while ( *arg )
+    {
 	if ( *arg == '.' || *arg == '_' )
 	    *dest++ = *arg++;
 	else if ( isalnum((int)*arg) )
 	    *dest++ = toupper((int)*arg++);
 	else
 	{
-	    ERROR0(ERR_SYNTAX,"option --id: illaegal character at index #%u: %s\n",
-		    dest - modify_id_buf, arg);
+	    ERROR0(ERR_SYNTAX,"option --id: illegal character at index #%u: %s\n",
+			(int)(dest - modify_id_buf), arg);
 	    return 1;
 	}
+    }
     modify_id = modify_id_buf;
 
     return 0;
@@ -424,7 +438,7 @@ int ScanOptName ( ccp arg )
     size_t len = strlen(arg);
     if ( len > max_len )
     {
-	ERROR0(ERR_WARNING,"option --name: name is %d characters to long:\n!\t-> %s\n",
+	ERROR0(ERR_WARNING,"option --name: name is %zu characters to long:\n!\t-> %s\n",
 		len - max_len, arg);
 	len = max_len;
     }
@@ -608,7 +622,7 @@ int ScanOptAlign ( ccp p_arg )
 	{
 	    ERROR0(ERR_SEMANTIC,
 			"Option --align: Ascending order expected: %.*s\n",
-			arg - prev_arg, prev_arg );
+			(int)(arg - prev_arg), prev_arg );
 	    return 1;
 	}
 
@@ -702,7 +716,7 @@ enumError RewriteModifiedSF
 	fo = wbfs->sf;
     ASSERT(fo);
     ASSERT(fo->f.is_writing);
-    TRACE("+++ RewriteModifiedSF(%p,%p,%p,%x), oft=%d,%d\n",
+    TRACE("+++ RewriteModifiedSF(%p,%p,%p,%llx), oft=%d,%d\n",
 		fi,fo,wbfs,off,fi->iod.oft,fo->iod.oft);
 
     wd_disc_t * disc = fi->disc1;

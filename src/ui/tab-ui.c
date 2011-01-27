@@ -1,10 +1,22 @@
 
 /***************************************************************************
+ *                    __            __ _ ___________                       *
+ *                    \ \          / /| |____   ____|                      *
+ *                     \ \        / / | |    | |                           *
+ *                      \ \  /\  / /  | |    | |                           *
+ *                       \ \/  \/ /   | |    | |                           *
+ *                        \  /\  /    | |    | |                           *
+ *                         \/  \/     |_|    |_|                           *
+ *                                                                         *
+ *                           Wiimms ISO Tools                              *
+ *                         http://wit.wiimm.de/                            *
+ *                                                                         *
+ ***************************************************************************
  *                                                                         *
  *   This file is part of the WIT project.                                 *
  *   Visit http://wit.wiimm.de/ for project details and sources.           *
  *                                                                         *
- *   Copyright (c) 2009-2010 by Dirk Clemens <wiimm@wiimm.de>              *
+ *   Copyright (c) 2009-2011 by Dirk Clemens <wiimm@wiimm.de>              *
  *                                                                         *
  ***************************************************************************
  *                                                                         *
@@ -21,6 +33,16 @@
  *   See file gpl-2.0.txt or http://www.gnu.org/licenses/gpl-2.0.txt       *
  *                                                                         *
  ***************************************************************************/
+
+//
+///////////////////////////////////////////////////////////////////////////////
+///////////////			  text controls			///////////////
+///////////////////////////////////////////////////////////////////////////////
+
+//	\1 : the following text is only for the built in help
+//	\2 : the following text is only for the web site
+//	\3 : the following text is for both, built in help and web site
+//	\4 : replace by '<' for html tags on web site
 
 //
 ///////////////////////////////////////////////////////////////////////////////
@@ -301,33 +323,38 @@ info_t info_tab[] =
 
   { T_DEF_CMD,	"DIFF",		"DIFF|CMP",
 		    "wit DIFF source dest\n"
-		    "wit DIFF [-s path]... [-r path]... [source]... [-d|-D] dest",
+		    "wit DIFF [[--source] source]... [--recurse source]... [-d|-D] dest",
 		"DIFF compares ISO images in scrubbed or raw mode or on file level."
+		" Images, WBFS partitions and directories are accepted as source."
 		" DIFF works like {COPY} but comparing source and destination." },
 
   { T_DEF_CMD,	"FDIFF",	"FDIFF|FCMP",
 		    "wit FDIFF source dest\n"
-		    "wit FDIFF [-s path]... [-r path]... [source]... [-d|-D] dest",
+		    "wit FDIFF [[--source] source]... [--recurse source]... [-d|-D] dest",
 		"FDIFF compares ISO images on file level."
+		" Images, WBFS partitions and directories are accepted as source."
 		" 'FDIFF' is a shortcut for {DIFF --files +}." },
 
   { T_DEF_CMD,	"EXTRACT",	"EXTRACT|X",
 		    "wit EXTRACT source dest\n"
-		    "wit EXTRACT [-s path]... [-r path]... [source]... [-d|-D] dest",
-		"Extract all files from the source discs." },
+		    "wit EXTRACT [[--source] source]... [--recurse source]... [-d|-D] dest",
+		"Extract all files from the source discs."
+		" Images, WBFS partitions and directories are accepted as source."  },
 
   { T_DEF_CMD,	"COPY",		"COPY|CP",
 		    "wit COPY source dest\n"
-		    "wit COPY [-s path]... [-r path]... [source]... [-d|-D] dest",
+		    "wit COPY [[--source] source]... [--recurse source]... [-d|-D] dest",
 		"Copy, scrub, convert, join, split, compose, extract,"
-		" patch, encrypt and decrypt Wii and GameCube disc images." },
+		" patch, encrypt and decrypt Wii and GameCube disc images."
+		" Images, WBFS partitions and directories are accepted as source." },
 
   { T_DEF_CMD,	"CONVERT",	"CONVERT|CV|SCRUB|SB",
 		    "wit CONVERT source\n"
-		    "wit CONVERT [-s path]... [-r path]... [source]...",
+		    "wit CONVERT [[--source] source]... [--recurse source]...",
 		"Convert, scrub, join, split, compose, extract,"
 		" patch, encrypt and decrypt Wii and GameCube disc images"
 		" and replace the source with the result."
+		" Images, WBFS partitions and directories are accepted as source."
 		" The former command name was @SCRUB@."
 		"\n "
 		" {wit CONVERT} is like {wit COPY} but removes the source"
@@ -338,14 +365,16 @@ info_t info_tab[] =
 
   { T_DEF_CMD,	"EDIT",		"EDIT|ED",
 		    "wit EDIT source\n"
-		    "wit EDIT [-s path]... [-r path]... [source]...",
+		    "wit EDIT [[--source] source]... [--recurse source]...",
 		"Edit an existing Wii and GameCube ISO image"
-		" and patch some values." },
+		" and patch some values."
+		" Images, WBFS partitions and directories are accepted as source." },
 
   { T_DEF_CMD,	"MOVE",		"MOVE|MV",
 		    "wit MOVE source dest\n"
-		    "wit MOVE [-s path]... [-r path]... [source]... [-d|-D] dest",
-		"Move and rename Wii and GameCube ISO images." },
+		    "wit MOVE [[--source] source]... [--recurse source]... [-d|-D] dest",
+		"Move and rename Wii and GameCube ISO images."
+		" Images, WBFS partitions and directories are accepted as source." },
 
   { T_DEF_CMD,	"RENAME",	"RENAME|REN",
 		    "wit RENAME id6=[new][,title]...",
@@ -362,14 +391,22 @@ info_t info_tab[] =
 		"Verify ISO images (calculate and compare SHA1 check sums)"
 		" to find bad dumps." },
 
+  { T_DEF_CMD,	"SKELETON",	"SKELETON|SKEL",
+		    "wit SKELETON [source]...",
+		"Create very small skeletons of ISO images."
+		" A skeleton contains only disc and partiton headers for further"
+		" analysis and is not playable because all files are zeroed."
+		"\1 Read http://wit.wiimm.de/cmd/wit/skel for more details." },
+
   { T_DEF_CMD,	"MIX",		"MIX",
 		    "wit MIX SOURCE... --dest|--DEST outfile\n"
 		    "  where SOURCE    = infile [QUALIFIER]...\n"
 		    "  where QUALIFIER = 'select' part_type\n"
-		    "                  | 'as' [part_table '.'] [part_type]]\n"
+		    "                  | 'as' [part_table '.'] [part_type]\n"
 		    "                  | 'ignore' ruleset\n"
 		    "                  | 'header'\n"
-		    "                  | 'region'",
+		    "                  | 'region'\1\n"
+		    "Read http://wit.wiimm.de/cmd/wit/mix for more details.",
 		"Mix the partitions from different sources into one new"
 		" Wii or GameCube disc." },
 
@@ -428,6 +465,14 @@ info_t info_tab[] =
 		" The value '2' defines the same for ISO files"
 		" and value '4' for WIA files."
 		" You can combine the values by adding them." },
+
+  { H_OPT_G,	"DIRECT",	"direct",
+		0,
+		"This option allows the tools to use direct file io for some file types."
+		" Therefore the flag @O_DIRECT@ is set while opening files."
+		"\n"
+		">>> DIRECT IO IS EXPERIMENTAL! <<<" },
+
 
   { T_SEP_OPT,	0,0,0,0 }, //----- separator -----
 
@@ -697,7 +742,9 @@ info_t info_tab[] =
 		" resides in the hole of other partitions."
 		" This option enables this feature."
 		" It also limits the number of input partitions to 12,"
-		" because the calculation is rated as O(2^n)." },
+		" because the calculation is rated as O(2\1^N\2\4sup>N\4/sup>\3)."
+		" 12 partitions can be combined in 479 millions permutations and"
+		" all are tested with a back tracking algorithm to find the best one." },
 
   { H_OPT_CP,	"REPL_FILE",	"repl-file|repl-files|replfile|replfiles",
 		"filedef",
@@ -1029,7 +1076,9 @@ info_t info_tab[] =
 		" This is important for tools and GUIs that are scanning the output." },
 
   { T_OPT_C,	"SECTIONS",	"sections",
-		0, "Print in machine readable sections and parameter lines." },
+		0,
+		"Print in machine readable sections and parameter lines."
+		"\1 Read http://wit.wiimm.de/opt/sections for more details." },
 
   { T_OPT_CP,	"SORT",		"S|sort",
 		"list",
@@ -1588,6 +1637,7 @@ info_t info_tab[] =
 
   { T_COPT,	"QUIET",	0,0,0 },
   { T_COPT_M,	"VERBOSE",	0,0,0 },
+  { T_COPT,	"SECTIONS",	0,0,0 },
   { T_COPT,	"PRESERVE",	0,0,0 },
 
   { T_SEP_OPT,	0,0,0,0 },
@@ -1608,6 +1658,7 @@ info_t info_tab[] =
   { T_COPY_GRP,	"XSOURCE",	0,0,0 },
   { T_COPT,	"IGNORE",	0,0,0 },
   { T_COPT,	"QUIET",	0,0,0 },
+  { T_COPT,	"SECTIONS",	0,0,0 },
 
   { T_SEP_OPT,	0,0,0,0 },
 
@@ -1679,6 +1730,29 @@ info_t info_tab[] =
 	"On error print an additional line to localize the exact"
 	" position where the error is found."
 	" If set twice a hexdump of the hash values is printed too." },
+
+  //---------- COMMAND wit SKELETON ----------
+
+  { T_CMD_BEG,	"SKELETON",	0,0,0 },
+
+  { T_COPT_M,	"TEST",		0,0,0 },
+  { T_COPT_M,	"QUIET",	0,0,0 },
+  { T_COPT_M,	"LOGGING",	0,0,0 },
+
+  { T_SEP_OPT,	0,0,0,0 },
+
+  { T_COPY_GRP,	"TITLES",	0,0,0 },
+  { T_COPT,	"AUTO",		0,0,0 },
+  { T_COPY_GRP,	"XXSOURCE",	0,0,0 },
+  { T_COPY_GRP,	"PARTITIONS",	0,0,0 },
+
+  { T_SEP_OPT,	0,0,0,0 },
+
+  { T_COPY_GRP,	"OUTMODE_EDIT",	0,0,0 },
+  { T_COPT_M,	"DEST",		0,0,
+	"Define a destination directory for the skeleton files."
+	" The default is {--DEST ./.skel/}." },
+  { T_COPT_M,	"DEST2",	0,0,0 },
 
   //---------- COMMAND wit MIX ----------
 
@@ -1854,24 +1928,27 @@ info_t info_tab[] =
   { T_SEP_CMD,	0,0,0,0 }, //----- separator -----
 
   { T_DEF_CMD,	"ADD",		"ADD|A",
-		    "wwt ADD iso|wbfs|dir...",
-		"Add Wii and GameCube ISO discs to WBFS partitions." },
+		    "wwt ADD [[--source] source]... [--recurse source]...",
+		"Add Wii and GameCube ISO discs to WBFS partitions."
+		" Images, WBFS partitions and directories are accepted as source." },
 
   { T_DEF_CMD,	"UPDATE",	"UPDATE|U",
-		    "wwt UPDATE iso|wbfs|dir...",
+		    "wwt UPDATE [[--source] source]... [--recurse source]...",
 		"Add missing Wii and GameCube ISO discs to WBFS partitions."
-		" 'UPDATE' is a shortcut for {ADD --update}."},
+		" Images, WBFS partitions and directories are accepted as source."
+		" 'UPDATE' is a shortcut for {ADD --update}." },
 
   { T_DEF_CMD,	"SYNC",		"SYNC",
-		    "wwt SYNC iso|wbfs|dir...",
+		    "wwt SYNC [[--source] source]... [--recurse source]...",
 		"Modify primary WBFS (REMOVE and ADD)"
 		" until it contains exactly the same discs as all sources together."
-		" 'SYNC' is a shortcut for {ADD --sync}."},
+		" Images, WBFS partitions and directories are accepted as source."
+		" 'SYNC' is a shortcut for {ADD --sync}." },
 
   { T_DEF_CMD,	"EXTRACT",	"EXTRACT|X",
 		    "wwt EXTRACT id6[=dest]...",
 		"Extract discs from WBFS partitions and store them"
-		" as Wii and GameCube ISO images." },
+		" as Wii or GameCube images." },
 
   { T_DEF_CMD,	"REMOVE",	"REMOVE|RM",
 		    "wwt REMOVE id6...",
@@ -1890,9 +1967,16 @@ info_t info_tab[] =
 		"Set time stamps of WBFS discs." },
 
   { T_DEF_CMD,	"VERIFY",	"VERIFY|V",
-		    "wwt VERIFY id6...",
+		    "wwt VERIFY [id6]...",
 		"Verify all discs of WBFS (calculate and compare SHA1 check sums)"
 		" to find bad dumps." },
+
+  { T_DEF_CMD,	"SKELETON",	"SKELETON|SKEL",
+		    "wit SKELETON [id6]...",
+		"Create very small skeletons of ISO images."
+		" A skeleton contains only disc and partiton headers for further"
+		" analysis and is not playable because all files are zeroed."
+		"\1 Read http://wit.wiimm.de/cmd/wwt/skel for more details." },
 
   { T_SEP_CMD,	0,0,0,0 }, //----- separator -----
 
@@ -1931,6 +2015,9 @@ info_t info_tab[] =
 		0, 0 /* copy of wit */ },
 
   { T_OPT_GP,	"IO",		"io",
+		0, 0 /* copy of wit */ },
+
+  { H_OPT_G,	"DIRECT",	"direct",
 		0, 0 /* copy of wit */ },
 
   { T_SEP_OPT,	0,0,0,0 }, //----- separator -----
@@ -2358,14 +2445,20 @@ info_t info_tab[] =
   { T_COPY_GRP,	"XTIME",	0,0,0 },
   { T_COPT_M,	"TIME",		0,0,0 },
 
-  //---------- wwt GROUP OUTMODE ----------
+  //---------- wwt GROUP OUTMODE_EDIT ----------
 
-  { T_GRP_BEG,	"OUTMODE",	0,0,0 },
+  { T_GRP_BEG,	"OUTMODE_EDIT",	0,0,0 },
 
   { T_COPT,	"WDF",		0,0,0 },
   { T_COPT,	"ISO",		0,0,0 },
   { T_COPT,	"CISO",		0,0,0 },
   { T_COPT,	"WBFS",		0,0,0 },
+
+  //---------- wwt GROUP OUTMODE ----------
+
+  { T_GRP_BEG,	"OUTMODE",	0,0,0 },
+
+  { T_COPY_GRP,	"OUTMODE_EDIT",	0,0,0 },
   { T_COPT,	"WIA",		0,0,0 },
   { T_COPT,	"FST",		0,0,0 },
 
@@ -2631,14 +2724,14 @@ info_t info_tab[] =
   { T_COPT,	"QUIET",	0,0,0 },
   { T_COPT,	"VERBOSE",	0,0,
 	"Be verbose."
-	" If set once then more detaiuls are printed."
+	" If set once then more details are printed."
 	" If set twice a info dump of all coruppted discs is included."
 	" If set three times a info dump of all discs is included if a error is found."
-	" If set four times a full memory mal is included." },
+	" If set four times a full memory map is included." },
 
   { T_COPT_M,	"LONG",		0,0,
 	"Option @--long@ does the same as option {--verbose}."
-	" If set at last once it overwrites the {--verbose} level." },
+	" If set at least once it overwrites the {--verbose} level." },
 
   //---------- COMMAND wwt CHECK ----------
 
@@ -2709,6 +2802,7 @@ info_t info_tab[] =
   { T_COPT,	"RDEPTH",	0,0,0 },
   { T_COPY_GRP,	"IGN_EXCLUDE",	0,0,0 },
   { T_COPY_GRP,	"VERBOSE",	0,0,0 },
+  { T_COPT,	"SECTIONS",	0,0,0 },
   { T_COPT,	"LOGGING",	0,0,0 },
 
   { T_SEP_OPT,	0,0,0,0 },
@@ -2753,6 +2847,7 @@ info_t info_tab[] =
   { T_COPY_GRP,	"EXCLUDE",	0,0,0 },
   { T_COPY_GRP,	"VERBOSE",	0,0,0 },
   { T_COPT_M,	"LONG",		0,0, TEXT_EXTRACT_LONG },
+  { T_COPT,	"SECTIONS",	0,0,0 },
 
   { T_SEP_OPT,	0,0,0,0 },
 
@@ -2795,6 +2890,7 @@ info_t info_tab[] =
   { T_COPY_GRP,	"MOD_WBFS",	0,0,0 },
   { T_COPY_GRP,	"EXCLUDE",	0,0,0 },
   { T_COPY_GRP,	"VERBOSE",	0,0,0 },
+  { T_COPT,	"SECTIONS",	0,0,0 },
 
   { T_SEP_OPT,	0,0,0,0 },
 
@@ -2872,6 +2968,7 @@ info_t info_tab[] =
   { T_COPY_GRP,	"MOD_WBFS",	0,0,0 },
   { T_COPY_GRP,	"EXCLUDE",	0,0,0 },
   { T_COPY_GRP,	"VERBOSE",	0,0,0 },
+  { T_COPT_M,	"LOGGING",	0,0,0 },
   { T_COPT,	"LIMIT",	0,0,
 	"Maximal printed errors of each partition."
 	" A zero means unlimitted. The default is 10." },
@@ -2892,6 +2989,33 @@ info_t info_tab[] =
 	"On error print an additional line to localize the exact"
 	" position where the error is found."
 	" If set twice a hexdump of the hash values is printed too." },
+
+
+  //---------- COMMAND wwt SKELETON ----------
+
+  { T_CMD_BEG,	"SKELETON",	0,0,0 },
+
+  { T_COPY_GRP,	"TITLES",	0,0,0 },
+  { T_COPY_GRP,	"MOD_WBFS",	0,0,0 },
+  { T_COPY_GRP,	"EXCLUDE",	0,0,0 },
+  { T_COPT,	"QUIET",	0,0,0 },
+  { T_COPT_M,	"LOGGING",	0,0,0 },
+
+  { T_SEP_OPT,	0,0,0,0 },
+
+  { T_COPT,	"TEST",		0,0,0 },
+
+  { T_SEP_OPT,	0,0,0,0 },
+
+  { T_COPY_GRP,	"PARTITIONS",	0,0,0 },
+  { T_COPT,	"IGNORE",	0,0, "Ignore non existing discs without any warning." },
+
+  { T_SEP_OPT,	0,0,0,0 },
+
+  { T_COPY_GRP,	"OUTMODE_EDIT",	0,0,0 },
+  { T_COPT_M,	"DEST",		0,0,0 },
+  { T_COPT_M,	"DEST2",	0,0,0 },
+
 
   //---------- COMMAND wwt FILETYPE ----------
 
@@ -3005,6 +3129,12 @@ info_t info_tab[] =
 		0, "Be verbose -> print program name." },
 
   { T_OPT_GM,	"LOGGING",	"L|logging",
+		0, 0 /* copy of wit */ },
+
+  { T_OPT_GP,	"IO",		"io",
+		0, 0 /* copy of wit */ },
+
+  { H_OPT_G,	"DIRECT",	"direct",
 		0, 0 /* copy of wit */ },
 
   { T_SEP_OPT,	0,0,0,0 }, //----- separator -----

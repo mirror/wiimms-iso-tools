@@ -1,10 +1,22 @@
 
 /***************************************************************************
+ *                    __            __ _ ___________                       *
+ *                    \ \          / /| |____   ____|                      *
+ *                     \ \        / / | |    | |                           *
+ *                      \ \  /\  / /  | |    | |                           *
+ *                       \ \/  \/ /   | |    | |                           *
+ *                        \  /\  /    | |    | |                           *
+ *                         \/  \/     |_|    |_|                           *
+ *                                                                         *
+ *                           Wiimms ISO Tools                              *
+ *                         http://wit.wiimm.de/                            *
+ *                                                                         *
+ ***************************************************************************
  *                                                                         *
  *   This file is part of the WIT project.                                 *
  *   Visit http://wit.wiimm.de/ for project details and sources.           *
  *                                                                         *
- *   Copyright (c) 2009-2010 by Dirk Clemens <wiimm@wiimm.de>              *
+ *   Copyright (c) 2009-2011 by Dirk Clemens <wiimm@wiimm.de>              *
  *                                                                         *
  ***************************************************************************
  *                                                                         *
@@ -90,10 +102,12 @@ enum // some constants
     WII_TICKET_SIG_OFF		= 0x140, // do SHA1 up to end of ticket
     WII_TICKET_KEY_OFF		= 0x1bf,
     WII_TICKET_IV_OFF		= 0x1dc,
+    WII_TICKET_ID4_OFF		= 0x1e0, // offset of ID4
     WII_TICKET_BRUTE_FORCE_OFF	= 0x24c, // this u32 will be iterated
 
     WII_TMD_GOOD_SIZE		= 0x208, // tmd with 1 content (usual)
     WII_TMD_SIG_OFF		= 0x140, // do SHA1 up to end of tmd
+    WII_TMD_ID4_OFF		= 0x190, // offset of ID4
     WII_TMD_BRUTE_FORCE_OFF	= 0x19a, // this u32 will be iterated
     WII_PARTITION_BIN_SIZE	= 0x20000,
 
@@ -765,6 +779,13 @@ typedef struct wbfs_disc_info_t
 
 }
 __attribute__ ((packed)) wbfs_disc_info_t;
+
+//
+///////////////////////////////////////////////////////////////////////////////
+///////////////			consts & vars			///////////////
+///////////////////////////////////////////////////////////////////////////////
+
+extern const char skeleton_marker[10];
 
 //
 ///////////////////////////////////////////////////////////////////////////////

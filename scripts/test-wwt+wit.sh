@@ -1,5 +1,5 @@
 #!/bin/bash
-# (c) Wiimm, 2010-10-04
+# (c) Wiimm, 2011-01-21
 
 myname="${0##*/}"
 base=wwt+wit
@@ -316,7 +316,7 @@ function test_suite()
 	    $WIT_CP "$src" "$dest/1" --fst -F :wit $FST_OPT \
 	    || return $ERROR
 
-	test_function "DIF-FST01" "DIFF fst/0 fst/1" \
+	test_function "DIF-FST1" "DIFF fst/0 fst/1" \
 	    diff -rq "$dest/0" "$dest/1" \
 	    || return $STAT_DIFF
 
@@ -348,7 +348,7 @@ function test_suite()
 	((OPT_TEST)) || find "$dest" -name tmd.bin -type f -exec rm {} \;
 	((OPT_TEST)) || find "$dest" -name ticket.bin -type f -exec rm {} \;
 
-	test_function "DIF-FST12" "DIFF fst/1 fst/2" \
+	test_function "DIF-FST2" "DIFF fst/1 fst/2" \
 	    diff -rq "$dest/1" "$dest/2" \
 	    || return $STAT_DIFF
 
@@ -480,6 +480,14 @@ do
 	NOWIA=0
 	((opts++)) || printf "\n"
 	printf "## --wia : compress WIA tests enabled\n"
+	continue
+    fi
+
+    if [[ $src == --no-wia ]]
+    then
+	NOWIA=1
+	((opts++)) || printf "\n"
+	printf "## ---no-wia : compress WIA tests disabled\n"
 	continue
     fi
 

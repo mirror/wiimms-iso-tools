@@ -1,10 +1,22 @@
 
 /***************************************************************************
+ *                    __            __ _ ___________                       *
+ *                    \ \          / /| |____   ____|                      *
+ *                     \ \        / / | |    | |                           *
+ *                      \ \  /\  / /  | |    | |                           *
+ *                       \ \/  \/ /   | |    | |                           *
+ *                        \  /\  /    | |    | |                           *
+ *                         \/  \/     |_|    |_|                           *
+ *                                                                         *
+ *                           Wiimms ISO Tools                              *
+ *                         http://wit.wiimm.de/                            *
+ *                                                                         *
+ ***************************************************************************
  *                                                                         *
  *   This file is part of the WIT project.                                 *
  *   Visit http://wit.wiimm.de/ for project details and sources.           *
  *                                                                         *
- *   Copyright (c) 2009-2010 by Dirk Clemens <wiimm@wiimm.de>              *
+ *   Copyright (c) 2009-2011 by Dirk Clemens <wiimm@wiimm.de>              *
  *                                                                         *
  ***************************************************************************
  *                                                                         *
@@ -54,6 +66,7 @@
 ///////////////                   file support                  ///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
+int opt_direct = 0;
 enumIOMode opt_iomode = IOM__IS_DEFAULT | IOM_FORCE_STREAM;
 
 //-----------------------------------------------------------------------------
@@ -72,7 +85,7 @@ void ScanIOMode ( ccp arg )
 u32 GetHSS ( int fd, u32 default_value )
 {
  #ifdef DKIOCGETBLOCKSIZE
-    PRINT(" - try DKIOCGETBLOCKSIZE\n");
+    TRACE(" - try DKIOCGETBLOCKSIZE\n");
     {
 	unsigned long size32 = 0;
 	if ( ioctl(fd, DKIOCGETBLOCKSIZE, &size32 ) >= 0 && size32 )
@@ -84,18 +97,18 @@ u32 GetHSS ( int fd, u32 default_value )
  #endif
     
  #ifdef BLKSSZGET
-    PRINT(" - try BLKSSZGET\n");
+    TRACE(" - try BLKSSZGET\n");
     {
 	unsigned long size32 = 0;
 	if ( ioctl(fd, BLKSSZGET, &size32 ) >= 0 && size32 )
 	{
-	    PRINT("GetHSS(%d) BLKSSZGET := %x = %u\n",fd,size32,size32);
+	    PRINT("GetHSS(%d) BLKSSZGET := %lx = %lu\n",fd,size32,size32);
 	    return size32;
 	}
     }
  #endif
 
-    PRINT("GetHSS(%d) default_value := %x = %u\n",fd,default_value,default_value);
+    TRACE("GetHSS(%d) default_value := %x = %u\n",fd,default_value,default_value);
     return default_value;
 }
 
@@ -277,6 +290,7 @@ enumError XResetFile ( XPARM File_t * f, bool remove_file )
     const bool open_flags	= f->open_flags;
     const bool disable_errors	= f->disable_errors;
     const bool create_directory	= f->create_directory;
+    const bool allow_direct_io	= f->allow_direct_io;
 
     InitializeFile(f);
 
@@ -284,6 +298,7 @@ enumError XResetFile ( XPARM File_t * f, bool remove_file )
     f->open_flags	= open_flags;
     f->disable_errors	= disable_errors;
     f->create_directory	= create_directory;
+    f->allow_direct_io	= allow_direct_io;
 
     return stat;
 }
@@ -478,6 +493,12 @@ static enumError XOpenFileHelper
  #ifdef O_LARGEFILE
     TRACE("FORCE O_LARGEFILE\n");
     force_flags |= O_LARGEFILE;
+ #endif
+
+ #ifdef O_DIRECT
+    TRACE("FORCE O_DIRECT = %d,%d\n",opt_direct,f->allow_direct_io);
+    if ( opt_direct && f->allow_direct_io )
+	force_flags |= O_DIRECT;
  #endif
 
     f->active_open_flags = ( f->open_flags ? f->open_flags : default_flags )
@@ -1174,7 +1195,7 @@ static void ExtractSplitMap
 		     beg = f2->split_off;
 		if ( end > split_end )
 		     end = split_end;
-		PRINT(">>> PREALLOC: fd=%u, %9llx .. %9llx\n",f2->fd,beg,end);
+		PRINT(">>> PREALLOC: fd=%u, %9llx .. %9llx\n",f2->fd,(u64)beg,(u64)end);
 		MemMapItem_t * item
 		    = InsertMemMapTie(&f2->prealloc_map,beg-f2->split_off,end-beg);
 		DASSERT(item);
@@ -1398,7 +1419,7 @@ enumError XCreateSplitFile ( XPARM File_t *f, uint split_idx )
 	if ( !f->disable_errors )
 	    PrintError( XERROR1, ERR_WRITE_FAILED,
 			"Max number of split files (%d,off=%llx) reached: %s\n",
-			MAX_SPLIT_FILES, f->file_off, f->fname );
+			MAX_SPLIT_FILES, (u64)f->file_off, f->fname );
 
 	f->last_error = ERR_WRITE_FAILED;
 	if ( f->max_error < f->last_error )
@@ -1900,7 +1921,6 @@ enumError XSeekF ( XPARM File_t * f, off_t off )
 
     if (f->is_caching)
     {
-	TRACELINE;
 	FileCache_t * cptr = XCacheHelper(XCALL f,off,1);
 	if (cptr)
 	    return f->last_error; // all done
@@ -2005,7 +2025,7 @@ enumError XSeekF ( XPARM File_t * f, off_t off )
 	if (!f->disable_errors)
 	    PrintError( XERROR1, f->last_error,
 			"Seek failed [%c=%d,%llu]: %s\n",
-			GetFT(f), GetFD(f), off, f->fname );
+			GetFT(f), GetFD(f), (u64)off, f->fname );
 	f->file_off = (off_t)-1;
     }
     else
@@ -2075,7 +2095,7 @@ enumError XSetSizeF ( XPARM File_t * f, off_t size )
 	if (!f->disable_errors)
 	    PrintError( XERROR1, f->last_error,
 			"Set file size failed [%c=%d,%llu]: %s\n",
-			GetFT(f), GetFD(f), size, f->fname );
+			GetFT(f), GetFD(f), (u64)size, f->fname );
 	return f->last_error;
     }
 
@@ -2245,13 +2265,12 @@ enumError XReadF ( XPARM File_t * f, void * iobuf, size_t count )
 	const int stat = XSeekF(XCALL f,f->cur_off);
 	if (stat)
 	    return stat;
+	// f->cur_off and f->file_off may differ because of cache access
     }
 
     TRACE(TRACE_RDWR_FORMAT, "#F# ReadF()",
 		GetFD(f), GetFP(f), (u64)f->cur_off, (u64)f->cur_off+count, count,
 		f->cur_off < f->max_off ? " <" : "" );
-    ASSERT_MSG( f->cur_off == f->file_off,
-		"ASSERTION FAILED: %llx %llx\n", (u64)f->cur_off, (u64)f->file_off );
 
     if ( f->read_behind_eof && ( f->st.st_size > 0 || f->is_writing ) )
     {
@@ -2271,7 +2290,7 @@ enumError XReadF ( XPARM File_t * f, void * iobuf, size_t count )
 		    PrintError( XERROR0, ERR_WARNING,
 			"Read behind eof -> zero filled [%c=%d,%llu+%zu]: %s\n",
 			GetFT(f), GetFD(f),
-			f->file_off, count, f->fname );
+			(u64)f->file_off, count, f->fname );
 	    }
 	    size_t fill_count = count - (size_t)max_read;
 	    count = (size_t)max_read;
@@ -2321,7 +2340,7 @@ enumError XReadF ( XPARM File_t * f, void * iobuf, size_t count )
 	    PrintError( XERROR1, ERR_READ_FAILED,
 			"Read failed [%c=%d,%llu+%zu]: %s\n",
 			GetFT(f), GetFD(f),
-			f->file_off, count, f->fname );
+			(u64)f->file_off, count, f->fname );
 	f->last_error = ERR_READ_FAILED;
 	if ( f->max_error < f->last_error )
 	     f->max_error = f->last_error;
@@ -2448,7 +2467,7 @@ enumError XWriteF ( XPARM File_t * f, const void * iobuf, size_t count )
 	    PrintError( XERROR1, ERR_WRITE_FAILED,
 			"Write failed [%c=%d,%llu+%zu]: %s\n",
 			GetFT(f), GetFD(f),
-			f->file_off, count, f->fname );
+			(u64)f->file_off, count, f->fname );
 	f->last_error = ERR_WRITE_FAILED;
 	if ( f->max_error < f->last_error )
 	    f->max_error = f->last_error;
