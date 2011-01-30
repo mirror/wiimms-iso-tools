@@ -1467,6 +1467,7 @@ int RenameISOHeader ( void * data, ccp fname,
 
 bool allow_fst		= false;  // FST diabled by default
 bool ignore_setup	= false;  // ignore file 'setup.txt' while composing
+bool opt_links		= false;  // find linked files and create hard links
 
 wd_select_t part_selector = {0};
 
@@ -1966,16 +1967,154 @@ void PrintFstIM
 
 //
 ///////////////////////////////////////////////////////////////////////////////
+///////////////			file index list			///////////////
+///////////////////////////////////////////////////////////////////////////////
+
+void InitializeFileIndex ( FileIndex_t * fidx )
+{
+    DASSERT(fidx);
+    memset(fidx,0,sizeof(*fidx));
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+void ResetFileIndex ( FileIndex_t * fidx )
+{
+    DASSERT(fidx);
+    while ( fidx->data )
+    {
+	FileIndexData_t * ptr = fidx->data;
+	fidx->data = ptr->next;
+	free(ptr);
+    }
+    free(fidx->sort);
+    memset(fidx,0,sizeof(*fidx));
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+static uint FindFileIndexHelper
+	( const FileIndex_t * fidx, bool * found, dev_t dev, ino_t ino )
+{
+    DASSERT(fidx);
+
+    int beg = 0;
+    int end = fidx->used - 1;
+    while ( beg <= end )
+    {
+	uint idx = (beg+end)/2;
+	const FileIndexItem_t * item = fidx->sort[idx];
+	if      ( ino < item->ino ) end = idx - 1;
+	else if ( ino > item->ino ) beg = idx + 1;
+	else if ( dev < item->dev ) end = idx - 1;
+	else if ( dev > item->dev ) beg = idx + 1;
+	else
+	{
+	    PRINT("FindFileIndexHelper(%llx,%llx) FOUND=%d/%d/%d\n",
+			(u64)dev, (u64)ino, idx, fidx->used, fidx->size );
+	    if (found)
+		*found = true;
+	    return idx;
+	}
+    }
+
+    PRINT("FindFileIndexHelper(%llx,%llx) failed=%d/%d/%d\n",
+		(u64)dev, (u64)ino, beg, fidx->used, fidx->size );
+
+    if (found)
+	*found = false;
+    return beg;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+FileIndexItem_t * FindFileIndex ( FileIndex_t * fidx, dev_t dev, ino_t ino )
+{
+    DASSERT(fidx);
+
+    bool found;
+    const int idx = FindFileIndexHelper(fidx,&found,dev,ino);
+    return found ? fidx->sort[idx] : 0;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+FileIndexItem_t * InsertFileIndex
+	( FileIndex_t * fidx, bool * found, dev_t dev, ino_t ino )
+{
+    DASSERT(fidx);
+
+    bool local_found;
+    if (!found)
+	found = &local_found;
+    const int idx = FindFileIndexHelper(fidx,found,dev,ino);
+    if (*found)
+	return fidx->sort[idx];
+
+    if ( fidx->used == fidx->size )
+    {
+	fidx->size = 2 * fidx->size + 0x100;
+	fidx->sort  = realloc(fidx->sort, fidx->size*sizeof(*fidx->sort));
+	if (!fidx->sort)
+	    OUT_OF_MEMORY;
+    }
+    
+    if ( !fidx->data || !fidx->data->unused )
+    {
+	const int count = 0x1000;
+	FileIndexData_t * data
+	    = malloc( sizeof(FileIndexData_t) + count * sizeof(FileIndexItem_t) );
+	if (!data)
+	    OUT_OF_MEMORY;
+	data->unused = count;
+	data->next   = fidx->data;
+	fidx->data   = data;
+    }
+
+    DASSERT( idx <= fidx->used );
+    FileIndexItem_t ** dest = fidx->sort + idx;
+    memmove(dest+1,dest,(fidx->used-idx)*sizeof(*dest));
+
+    FileIndexData_t * data = fidx->data;
+    ASSERT( data && data->unused > 0 );
+    FileIndexItem_t * item = data->data + --data->unused; 
+    *dest = item;
+    item->dev  = dev;
+    item->ino  = ino;
+    item->file = 0;
+    fidx->used++;
+
+    return item;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+void DumpFileIndex ( FILE *f, int indent, const FileIndex_t * fidx )
+{
+    DASSERT(f);
+    DASSERT(fidx);
+    indent = NormalizeIndent(indent);
+
+    uint i;
+    for ( i = 0; i < fidx->used; i++ )
+    {
+	const FileIndexItem_t * item = fidx->sort[i];
+	fprintf(f,"%*s%8llx %8llx %p\n",
+		indent, "", (u64)item->dev, (u64)item->ino, item->file );
+    }
+}
+
+//
+///////////////////////////////////////////////////////////////////////////////
 ///////////////                      Wii FST                    ///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-ccp SpecialFilesFST[] =
+ccp SpecialRequiredFilesFST[] =
 {
 	"/sys/boot.bin",
 	"/sys/bi2.bin",
 	"/sys/apploader.img",
 	"/sys/main.dol",
-	"/cert.bin",
 	0
 };
 
@@ -2033,6 +2172,7 @@ void ResetPartFST ( WiiFstPart_t * part )
     ResetIM(&part->im);
     free(part->ftab);
     free(part->pc);
+    ResetFileIndex(&part->fidx);
 
     memset(part,0,sizeof(*part));
     InitializeIM(&part->im);
@@ -2538,6 +2678,52 @@ enumError CreateFileFST ( WiiFstInfo_t *wfi, ccp dest_path, WiiFstFile_t * file 
     if ( file->icm != WD_ICM_FILE && file->icm != WD_ICM_COPY && file->icm != WD_ICM_DATA )
 	return 0;
 
+
+    //----- detect links
+
+    if ( opt_links && file->icm == WD_ICM_FILE )
+    {
+	WiiFstFile_t * last = wfi->last_file;
+	if ( last && last->offset4 == file->offset4 && last->size == file->size )
+	{
+	    char source[PATH_MAX];
+	    char * source_end = source + sizeof(source);
+	    char * source_part = StringCat2E(source,source_end,dest_path,part->path);
+	    StringCopyE(source_part,source_end,last->path);
+	    PRINT("LINK %s ->%s\n",source,dest);
+	    unlink(dest);
+	    if (!link(source,dest))
+	    {
+		if ( wfi->verbose > 1 )
+		{
+		    if (print_sections) // [sections]
+			printf(
+			    "[extract:link-file]\n"
+			    "done-count=%u\n"
+			    "total-count=%u\n"
+			    "iso-path=%s%s\n"
+			    "dest-path=%s\n"
+			    "link-source=%s\n"
+			    "file-size=%u\n"
+			    "\n"
+			    ,wfi->done_count
+			    ,wfi->total_count
+			    ,part->path
+			    ,file->path
+			    ,dest
+			    ,source
+			    ,file->size
+			    );
+		    else
+			printf(" - %*u/%u link %s -> %s\n",
+			    wfi->fw_done_count, wfi->done_count, wfi->total_count,
+			    source, dest );
+		}
+		return ERR_OK;
+	    }
+	}
+	wfi->last_file = file;
+    }
 
     //----- file handling
 
@@ -3064,7 +3250,7 @@ enumFileType IsFSTPart ( ccp base_path, char * id6_result )
     //----- more required files
     
     ccp * fname;
-    for ( fname = SpecialFilesFST; *fname; fname++ )
+    for ( fname = SpecialRequiredFilesFST; *fname; fname++ )
     {
 	StringCat2S(path,sizeof(path),base_path,*fname);
 	TRACE(" - test file %s\n",path);
@@ -3164,7 +3350,12 @@ static u32 scan_part ( scan_data_t * sd )
 		noTRACE("FILE: %s\n",path_dir);
 		file->icm  = WD_ICM_FILE;
 		file->size = st.st_size;
-		sd->total_size += ALIGN32(file->size,4);
+		bool found = false;
+		if (opt_links)
+		    file->data = (u8*)InsertFileIndex(&sd->part->fidx,
+							&found,st.st_dev,st.st_ino);
+		if (!found)
+		    sd->total_size += ALIGN32(file->size,4);
 		CopyFileAttribStat(&sd->part->max_fatt,&st,true);
 	    }
 	    // else ignore all other files
@@ -3293,14 +3484,35 @@ u32 ScanPartFST
 	}
 	else
 	{
-	    ASSERT(file->icm == WD_ICM_FILE);
+	    DASSERT(file->icm == WD_ICM_FILE);
 	    nameptr++;
 	    ftab->size = htonl(file->size);
 	    ftab->offset4 = htonl(offset4);
 	    file->offset4 = offset4;
-	    offset4 += file->size + 3 >> 2;
-	    memcpy(file_dest,file,sizeof(*file_dest));
-	    file_dest++;
+	    bool ignore = false;
+	    if (file->data)
+	    {
+		FileIndexItem_t * item = (FileIndexItem_t*)file->data;
+		if (item->file)
+		{
+		    ignore = true;
+		    ftab->offset4 = htonl(item->file->offset4);
+		    PRINT("COPY: %p %8x %s %s\n",
+			    item,item->file->offset4<<2,file->path,item->file->path);
+		}
+		else
+		{
+		    item->file = file;
+		    PRINT("NEW:  %p %8x %s\n",item,offset4<<2,file->path);
+		}
+	    }
+
+	    if (!ignore)
+	    {
+		offset4 += file->size + 3 >> 2;
+		memcpy(file_dest,file,sizeof(*file_dest));
+		file_dest++;
+	    }
 	    file_count++;
 	}
 
@@ -3315,6 +3527,15 @@ u32 ScanPartFST
     }
     part->file_used = file_dest - part->file;
     ASSERT( (char*)ftab == namebase );
+
+ #if defined(TEST)
+    if ( logging > 2 )
+    {
+	printf("File Index:\n");
+	DumpFileIndex(stdout,3,&part->fidx);
+    }
+ #endif
+    ResetFileIndex(&part->fidx);
 
  #ifdef DEBUG
     {
@@ -3537,7 +3758,10 @@ u64 GenPartFST
     if ( !load_tmd && tmd_size >= 0 )
 	ERROR0(ERR_WARNING,"Content of file 'tmd.bin' ignored!\n");
 
-    const s64 cert_size = GetFileSize(path,"cert.bin",0,&part->max_fatt,true);
+    s64 cert_size = GetFileSize(path,"cert.bin",0,&part->max_fatt,true);
+    const bool use_std_cert_chain = !cert_size;
+    if (use_std_cert_chain)
+	cert_size = sizeof(std_cert_chain);
 
     wd_part_control_t *pc = malloc(sizeof(wd_part_control_t));
     if (!pc)
@@ -3568,7 +3792,14 @@ u64 GenPartFST
 	tmd_setup(pc->tmd,pc->tmd_size,&fst->dhead.disc_id);
     wd_patch_id(pc->tmd->title_id+4,0,part_id,4);
 
-    LoadFile(path,"cert.bin",	0, pc->cert, pc->cert_size,
+    if (use_std_cert_chain)
+    {
+	DASSERT( pc->cert_size == sizeof(std_cert_chain) );
+    	setup_cert_data();
+	memcpy(pc->cert,std_cert_chain,pc->cert_size);
+    }
+    else
+	LoadFile(path,"cert.bin", 0, pc->cert, pc->cert_size,
 			false, &part->max_fatt, true );
 
     if ( part->part_type == WD_PART_DATA )
@@ -4083,7 +4314,7 @@ enumError ReadPartGroupFST ( SuperFile_t * sf, WiiFstPart_t * part,
 
     char * dest = (char*)buf + delta, *src = dest;
     memset(dest,0,dsize);
-    TRACE("CACHE=%p, buf=%p, dest=%p\n",sf->fst->cache,buf,dest);
+    PRINT("CACHE=%p, buf=%p, dest=%p, delta=%x\n",sf->fst->cache,buf,dest,delta);
     
     const IsoMappingItem_t * imi = part->im.field;
     const IsoMappingItem_t * imi_end = imi + part->im.used;
@@ -4163,7 +4394,7 @@ enumError ReadPartGroupFST ( SuperFile_t * sf, WiiFstPart_t * part,
 			u64 foff = (u64)file->offset4 << 2;
 			if ( loff < foff )
 			{
-			    TRACE("SKIP %llx [%s]\n",foff-loff,file->path);
+			    PRINT("SKIP %9llx [%s]\n",foff-loff,file->path);
 			    ldest += foff - loff;
 			    loff = foff;
 			}
@@ -4174,6 +4405,7 @@ enumError ReadPartGroupFST ( SuperFile_t * sf, WiiFstPart_t * part,
 			    u32 load_size = file->size - skip;
 			    if ( load_size > max-loff )
 				 load_size = max-loff;
+			    PRINT("LOAD %9llx %p [%s]\n",loff,ldest,file->path);
 			    LoadFile(part->path,file->path,skip,ldest,load_size,false,0,false);
 			    ldest += load_size;
 			    loff  += load_size;
@@ -4302,6 +4534,12 @@ void EncryptSectorGroup
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////			    Verify			///////////////
 ///////////////////////////////////////////////////////////////////////////////
+
+#ifdef TEST // [obsolete] [2do]
+  #define NEW_VERIFY_UI 1
+#else
+  #define NEW_VERIFY_UI 0
+#endif
 
 #ifdef TEST
   #define WATCH_BLOCK 0
@@ -4741,6 +4979,7 @@ enumError VerifyDisc ( Verify_t * ver )
     TRACE(" - psel=%p, v=%d, lc=%d, maxerr=%d\n",
 		ver->psel, ver->verbose, ver->long_count, ver->max_err_msg );
 
+
     //----- setup Verify_t data
 
     wd_disc_t * disc = OpenDiscSF(ver->sf,true,true);
@@ -4755,6 +4994,7 @@ enumError VerifyDisc ( Verify_t * ver )
 	wd_filter_usage_table(disc,local_usage_tab,ver->psel);
     }
     
+
     //----- iterate partitions
 
     enumError err = ERR_OK;

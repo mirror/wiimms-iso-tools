@@ -1442,6 +1442,7 @@ extern int		print_old_style;
 extern int		print_sections;
 extern int		long_count;
 extern int		ignore_count;
+extern int		opt_technical;
 extern u32		job_limit;
 extern enumIOMode	io_mode;
 extern bool		opt_no_expand;

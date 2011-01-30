@@ -3767,7 +3767,7 @@ void PrintSectWDiscListItem ( FILE * f, WDiscListItem_t * witem, ccp def_fname )
 				? (u64)witem->fatt.size : (u64)witem->size_mib*MiB );
     //fprintf(f,"size_mib=%u\n",witem->size_mib);
     if (witem->used_blocks)
-	fprintf(f,"used_blocks=%u\n",witem->used_blocks);
+	fprintf(f,"used-blocks=%u\n",witem->used_blocks);
     print_sect_time(f,'i',witem->fatt.itime);
     print_sect_time(f,'m',witem->fatt.mtime);
     print_sect_time(f,'c',witem->fatt.ctime);

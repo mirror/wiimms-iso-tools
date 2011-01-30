@@ -2856,7 +2856,7 @@ enumError LoadFile
 
     char pathbuf[PATH_MAX];
     ccp path = PathCatPP(pathbuf,sizeof(pathbuf),path1,path2);
-    TRACE("LoadFile(%s,%zx,%zx,%d)\n",path,skip,size,silent);
+    TRACE("LoadFile(%s,%zu,%zu,%d)\n",path,skip,size,silent);
 
     FILE * f = fopen(path,"rb");
     if (!f)
@@ -2882,9 +2882,10 @@ enumError LoadFile
     if ( read_stat == size )
 	return ERR_OK;
 
+    noPRINT("D=%p, s=%zu/%zu: %s\n",data,read_stat,size,path);
     if ( read_stat >= 0 && read_stat < size )
 	memset((char*)data+read_stat,0,size-read_stat);
-    
+
     return ERR_WARNING;
 }
 

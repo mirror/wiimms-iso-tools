@@ -2396,6 +2396,7 @@ enumError CheckOptions ( int argc, char ** argv, bool is_env )
 	case GO_IGNORE:		ignore_count++; break;
 	case GO_IGNORE_FST:	allow_fst = false; break;
 	case GO_IGNORE_SETUP:	ignore_setup = true; break;
+	case GO_LINKS:		opt_links = true; break;
 
 	case GO_PSEL:		err += ScanOptPartSelector(optarg); break;
 	case GO_RAW:		part_selector.whole_disc
@@ -2451,6 +2452,7 @@ enumError CheckOptions ( int argc, char ** argv, bool is_env )
 
 	case GO_LONG:		long_count++; break;
 	case GO_NUMERIC:	break;
+	case GO_TECHNICAL:	opt_technical++; break;
 	case GO_REALPATH:	break;
 	case GO_UNIQUE:	    	break;
 	case GO_NO_HEADER:	break;

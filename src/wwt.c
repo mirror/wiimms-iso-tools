@@ -3407,6 +3407,7 @@ enumError CheckOptions ( int argc, char ** argv, bool is_env )
 	case GO_IGNORE:		break;
 	case GO_IGNORE_FST:	allow_fst = false; break;
 	case GO_IGNORE_SETUP:	ignore_setup = true; break;
+	case GO_LINKS:		opt_links = true; break;
 
 	case GO_INODE:		break;
 	case GO_DEST:		SetDest(optarg,false); break;
@@ -3464,6 +3465,7 @@ enumError CheckOptions ( int argc, char ** argv, bool is_env )
 
 	case GO_LONG:		long_count++; break;
 	case GO_NUMERIC:	break;
+	case GO_TECHNICAL:	opt_technical++; break;
 	case GO_MIXED:	    	break;
 	case GO_UNIQUE:	    	break;
 	case GO_NO_HEADER:	break;

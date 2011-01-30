@@ -2920,7 +2920,8 @@ enumError ExtractImage
     WiiFst_t fst;
     InitializeFST(&fst);
     CollectFST(&fst,disc,GetDefaultFilePattern(),false,prefix_mode,false);
-    SortFST(&fst,sort_mode,SORT_OFFSET);
+    // to detect links the files must be sorted by offset
+    SortFST( &fst, opt_links ? SORT_OFFSET : sort_mode, SORT_OFFSET );
 
     WiiFstInfo_t wfi;
     memset(&wfi,0,sizeof(wfi));
@@ -2986,6 +2987,47 @@ enumError CopySF ( SuperFile_t * in, SuperFile_t * out )
 		PrintProgressSF(0,pr_total,out);
 	    }
 
+ #if defined(TEST) && 0 // [2do] scheint nutzlos zu sein (test mit linux64)
+	    const int max_sect = sizeof(iobuf) / WII_SECTOR_SIZE;
+	    idx = 0;
+	    while ( idx < sizeof(wdisc_usage_tab) )
+	    {
+		const u8 cur_id = wdisc_usage_tab[idx];
+		if (!cur_id)
+		{
+		    idx++;
+		    continue;
+		}
+
+		if ( SIGINT_level > 1 )
+		    return ERR_INTERRUPT;
+
+		const int idx_end = idx + max_sect < sizeof(wdisc_usage_tab)
+				  ? idx + max_sect : sizeof(wdisc_usage_tab);
+		const int idx_begin = idx++;
+		while ( idx < idx_end && cur_id == wdisc_usage_tab[idx] )
+		    idx++;
+
+		noPRINT("COPY: %5x .. %5x / %5x, n=%2x\n",idx_begin,idx,idx_end,idx-idx_begin);
+		
+		const off_t off = (off_t)WII_SECTOR_SIZE * idx_begin;
+		const size_t size = (size_t)( idx - idx_begin ) * WII_SECTOR_SIZE;
+		DASSERT( size <= sizeof(iobuf) );
+		enumError err = ReadSF(in,off,iobuf,size);
+		if (err)
+		    return err;
+
+		err = WriteSparseSF(out,off,iobuf,size);
+		if (err)
+		    return err;
+
+		if ( out->show_progress )
+		{
+		    pr_done += size;
+		    PrintProgressSF(pr_done,pr_total,out);
+		}
+	    }
+ #else
 	    for ( idx = 0; idx < sizeof(wdisc_usage_tab); idx++ )
 	    {
 		const u8 cur_id = wdisc_usage_tab[idx];
@@ -2994,6 +3036,8 @@ enumError CopySF ( SuperFile_t * in, SuperFile_t * out )
 		    if ( SIGINT_level > 1 )
 			return ERR_INTERRUPT;
     
+		    noPRINT("COPY: %5x\n",idx);
+
 		    off_t off = (off_t)WII_SECTOR_SIZE * idx;
 		    enumError err = ReadSF(in,off,iobuf,WII_SECTOR_SIZE);
 		    if (err)
@@ -3010,6 +3054,7 @@ enumError CopySF ( SuperFile_t * in, SuperFile_t * out )
 		    }
 		}
 	    }
+ #endif
 	    if ( out->show_progress || out->show_summary )
 		out->progress_summary = true; // delayed print after closing
 	    return ERR_OK;

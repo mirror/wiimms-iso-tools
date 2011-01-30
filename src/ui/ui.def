@@ -376,12 +376,18 @@
 	"While composing ignore the file @'setup.txt'@, which defines some" \
 	" partition parameters." )
 
+#:def_opt( "LINKS", "links", "C", \
+	"", \
+	"Detect soft and hard linked source files while composing or" \
+	" extracting discs and try to create hard links instead of independent" \
+	" copies on the destination file system." )
+
 #:def_opt( "PSEL", "psel", "CP", \
 	"list", \
 	"This option set the scrubbing mode and defines, which disc partitions" \
 	" are handled. It expects a comma separated list of keywords, numbers" \
 	" and names; all together called parameter. All parameters are case" \
-	" insensitive and non ambiguous abbreviations of keyword are allowed.\n" \
+	" insensitive and non ambiguous abbreviations of keywords are allowed.\n" \
 	"  Each parameter becomes a rule and each rule is appended to a rule" \
 	" list. Rules prefixed by a minus sign are DENY rules. Rules prefixed" \
 	" by a plus sign or without a prefix are ALLOW rules. Each partition" \
@@ -702,6 +708,15 @@
 	"", \
 	"Print in long format. Multiple usage possible." )
 
+#:def_opt( "NUMERIC", "numeric", "C", \
+	"", \
+	"Force numeric output instead of printing names." )
+
+#:def_opt( "TECHNICAL", "technical|tech", "C", \
+	"", \
+	"Force a technical output instead of user friendly text. --tech is a" \
+	" short cut for --technical." )
+
 #:def_opt( "REALPATH", "real-path|realpath", "C", \
 	"", \
 	"Print real path instead of entered path." )
@@ -815,6 +830,10 @@
 	"", \
 	"Print always compression level and chunk size factor. Standard is to" \
 	" suppress these values if not explicitly set." )
+
+#:def_cmd_opt( "COMPR", "NUMERIC", \
+	"", \
+	"" )
 
 #:def_cmd_opt( "EXCLUDE", "EXCLUDE", \
 	"", \
@@ -944,6 +963,10 @@
 	"", \
 	"" )
 
+#:def_cmd_opt( "FILELIST", "LINKS", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "FILELIST", "LONG", \
 	"", \
 	"Print the real path instead of given path." )
@@ -1001,6 +1024,10 @@
 	"" )
 
 #:def_cmd_opt( "FILETYPE", "IGNORE_SETUP", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "FILETYPE", "LINKS", \
 	"", \
 	"" )
 
@@ -1067,6 +1094,10 @@
 	"" )
 
 #:def_cmd_opt( "ISOSIZE", "IGNORE_SETUP", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "ISOSIZE", "LINKS", \
 	"", \
 	"" )
 
@@ -1157,6 +1188,10 @@
 	"" )
 
 #:def_cmd_opt( "DUMP", "IGNORE_SETUP", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "DUMP", "LINKS", \
 	"", \
 	"" )
 
@@ -1293,6 +1328,10 @@
 	"", \
 	"" )
 
+#:def_cmd_opt( "ID6", "LINKS", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "ID6", "LOGGING", \
 	"", \
 	"" )
@@ -1366,6 +1405,10 @@
 	"" )
 
 #:def_cmd_opt( "LIST", "IGNORE_SETUP", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "LIST", "LINKS", \
 	"", \
 	"" )
 
@@ -1495,6 +1538,10 @@
 	"", \
 	"" )
 
+#:def_cmd_opt( "LIST_L", "LINKS", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "LIST_L", "LOGGING", \
 	"", \
 	"" )
@@ -1618,6 +1665,10 @@
 	"" )
 
 #:def_cmd_opt( "LIST_LL", "IGNORE_SETUP", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "LIST_LL", "LINKS", \
 	"", \
 	"" )
 
@@ -1747,6 +1798,10 @@
 	"", \
 	"" )
 
+#:def_cmd_opt( "LIST_LLL", "LINKS", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "LIST_LLL", "LOGGING", \
 	"", \
 	"" )
@@ -1861,6 +1916,10 @@
 	"", \
 	"" )
 
+#:def_cmd_opt( "FILES", "LINKS", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "FILES", "PSEL", \
 	"", \
 	"" )
@@ -1959,6 +2018,10 @@
 	"", \
 	"" )
 
+#:def_cmd_opt( "FILES_L", "LINKS", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "FILES_L", "PSEL", \
 	"", \
 	"" )
@@ -2054,6 +2117,10 @@
 	"" )
 
 #:def_cmd_opt( "FILES_LL", "IGNORE_SETUP", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "FILES_LL", "LINKS", \
 	"", \
 	"" )
 
@@ -2172,6 +2239,10 @@
 	"" )
 
 #:def_cmd_opt( "DIFF", "IGNORE_SETUP", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "DIFF", "LINKS", \
 	"", \
 	"" )
 
@@ -2331,6 +2402,10 @@
 	"", \
 	"" )
 
+#:def_cmd_opt( "FDIFF", "LINKS", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "FDIFF", "PSEL", \
 	"", \
 	"" )
@@ -2484,6 +2559,10 @@
 	"" )
 
 #:def_cmd_opt( "EXTRACT", "IGNORE_SETUP", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "EXTRACT", "LINKS", \
 	"", \
 	"" )
 
@@ -2679,6 +2758,10 @@
 	"" )
 
 #:def_cmd_opt( "COPY", "IGNORE_SETUP", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "COPY", "LINKS", \
 	"", \
 	"" )
 
@@ -2942,6 +3025,10 @@
 	"" )
 
 #:def_cmd_opt( "CONVERT", "IGNORE_SETUP", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "CONVERT", "LINKS", \
 	"", \
 	"" )
 
@@ -3551,6 +3638,10 @@
 	"", \
 	"" )
 
+#:def_cmd_opt( "VERIFY", "LINKS", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "VERIFY", "PSEL", \
 	"", \
 	"" )
@@ -3590,6 +3681,10 @@
 	"On error print an additional line to localize the exact position" \
 	" where the error is found. If set twice a hexdump of the hash values" \
 	" is printed too." )
+
+#:def_cmd_opt( "VERIFY", "TECHNICAL", \
+	"", \
+	"" )
 
 #:def_cmd_opt( "SKELETON", "TEST", \
 	"", \
@@ -3672,6 +3767,10 @@
 	"" )
 
 #:def_cmd_opt( "SKELETON", "IGNORE_SETUP", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "SKELETON", "LINKS", \
 	"", \
 	"" )
 
@@ -4117,7 +4216,7 @@
 	"This option set the scrubbing mode and defines, which disc partitions" \
 	" are handled. It expects a comma separated list of keywords, numbers" \
 	" and names; all together called parameter. All parameters are case" \
-	" insensitive and non ambiguous abbreviations of keyword are allowed.\n" \
+	" insensitive and non ambiguous abbreviations of keywords are allowed.\n" \
 	"  Each parameter becomes a rule and each rule is appended to a rule" \
 	" list. Rules prefixed by a minus sign are DENY rules. Rules prefixed" \
 	" by a plus sign or without a prefix are ALLOW rules. Each partition" \
@@ -4189,6 +4288,12 @@
 	"", \
 	"While composing ignore the file @'setup.txt'@, which defines some" \
 	" partition parameters." )
+
+#:def_opt( "LINKS", "links", "C", \
+	"", \
+	"Detect soft and hard linked source files while composing or" \
+	" extracting discs and try to create hard links instead of independent" \
+	" copies on the destination file system." )
 
 #:def_opt( "PMODE", "pmode", "CP", \
 	"p-mode", \
@@ -4545,6 +4650,15 @@
 	"", \
 	"Print in long format. Multiple usage possible." )
 
+#:def_opt( "NUMERIC", "numeric", "C", \
+	"", \
+	"Force numeric output instead of printing names." )
+
+#:def_opt( "TECHNICAL", "technical|tech", "C", \
+	"", \
+	"Force a technical output instead of user friendly text. --tech is a" \
+	" short cut for --technical." )
+
 #:def_opt( "INODE", "inode", "C", \
 	"", \
 	"Print information for all inodes (invalid discs too)." )
@@ -4622,6 +4736,10 @@
 	"", \
 	"Print always compression level and chunk size factor. Standard is to" \
 	" suppress these values if not explicitly set." )
+
+#:def_cmd_opt( "COMPR", "NUMERIC", \
+	"", \
+	"" )
 
 #:def_cmd_opt( "EXCLUDE", "EXCLUDE", \
 	"", \
@@ -5751,6 +5869,10 @@
 	"", \
 	"" )
 
+#:def_cmd_opt( "ADD", "LINKS", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "ADD", "QUIET", \
 	"", \
 	"" )
@@ -5942,6 +6064,10 @@
 	"", \
 	"" )
 
+#:def_cmd_opt( "UPDATE", "LINKS", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "UPDATE", "QUIET", \
 	"", \
 	"" )
@@ -6122,6 +6248,10 @@
 	"" )
 
 #:def_cmd_opt( "SYNC", "IGNORE_SETUP", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "SYNC", "LINKS", \
 	"", \
 	"" )
 
@@ -6424,6 +6554,10 @@
 	"" )
 
 #:def_cmd_opt( "EXTRACT", "SNEEK", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "EXTRACT", "LINKS", \
 	"", \
 	"" )
 
@@ -6929,6 +7063,10 @@
 	" where the error is found. If set twice a hexdump of the hash values" \
 	" is printed too." )
 
+#:def_cmd_opt( "VERIFY", "TECHNICAL", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "SKELETON", "TITLES", \
 	"", \
 	"" )
@@ -7047,6 +7185,10 @@
 	"" )
 
 #:def_cmd_opt( "FILETYPE", "IGNORE_SETUP", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "FILETYPE", "LINKS", \
 	"", \
 	"" )
 

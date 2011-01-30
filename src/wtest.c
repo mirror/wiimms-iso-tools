@@ -66,6 +66,7 @@
 #include "match-pattern.h"
 #include "crypt.h"
 #include "lib-lzma.h"
+#include "titles.h"
 #include "iso-interface.h"
 
 #define CMD1_FW 10
@@ -713,26 +714,276 @@ void test_sha1()
 #endif // HAVE_OPENSSL
 //
 ///////////////////////////////////////////////////////////////////////////////
+///////////////			 disc info			///////////////
+///////////////////////////////////////////////////////////////////////////////
+
+typedef struct wd_part_info_t
+{
+    //----- base infos
+
+    int			index;		// zero based index within wd_disc_t
+    int			ptab_index;	// zero based index of owning partition table
+    int			ptab_part_index;// zero based index within owning partition table
+    u32			part_type;	// partition type
+#if 0
+    char		ticket_id4[5];	// NULL or ID4 of ticket
+    char		tmd_id4[5];	// NULL or ID4 of tmd
+    char		boot_id6[7];	// NULL or ID6 of boot.bin
+    char		boot_title[WII_TITLE_SIZE+1];
+					// NULL or title of boot.bin
+
+    //----- partition status
+
+    bool		is_valid;	// true if this partition is valid
+    bool		is_encrypted;	// true if this partition is encrypted
+    bool		is_overlay;	// true if this partition overlays other partitions
+    bool		is_gc;		// true for GC partition => no crypt, no hash
+
+    //----- size statistics
+
+    u32			used_sectors;	// number of used (non scrubbed) sectors
+    u32			total_sectors;	// total number of sectors
+#endif
+
+} wd_part_info_t;
+
+///////////////////////////////////////////////////////////////////////////////
+
+typedef struct wd_disc_info_t
+{
+    //----- base infos
+
+    char		id6[7];		// NULL or ID6 of disc header
+    char		title[WII_TITLE_SIZE+1];
+					// NULL or title of disc header
+
+#if 0
+    wd_disc_type_t	disc_type;	// disc type
+    wd_disc_attrib_t	disc_attrib;	// disc attrib
+
+
+    //----- size statstics
+
+    u32			used_sectors;	// number of used (non scrubbed) sectors
+    u32			total_sectors;	// total number of sectors
+					//	== index of last used sector + 1
+
+
+    //----- members for external usage
+
+    ccp			source;
+    ccp			filename;
+    int			wbfs_slot;
+    u64			source_size;
+#endif
+
+    //----- partition info
+
+    u32			n_part;		// total number of disc partitions
+    u32			used_part;	// number of used elements in 'part'
+    u32			alloced_part;	// number of alloced elements in 'part'
+    wd_part_info_t	part[0];	// info about partitions
+
+} wd_disc_info_t;
+
+///////////////////////////////////////////////////////////////////////////////
+
+wd_part_info_t * wd_get_part_info
+(
+    wd_part_info_t	* pinfo,	// store info here.
+					// if NULL: allocate mem -> call free()
+    wd_part_t		* part		// valid partition pointer
+)
+{
+    DASSERT(part);
+
+    //----- prepare data structure
+
+    if (!pinfo)
+    {
+	pinfo = malloc(sizeof(*pinfo));
+	if (!pinfo)
+	    OUT_OF_MEMORY;
+    }
+    memset(pinfo,0,sizeof(*pinfo));
+
+
+    //-----  fill partiton data
+
+    // [2do]
+
+    return pinfo;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+void wd_print_part_info_section
+(
+    FILE		* f,		// valid output file
+    wd_part_info_t	* pinfo,	// calid partition info
+    int			disc_idx,	// >=0: print index in section header
+    int			part_idx	// >=0: print index in section header
+)
+{
+    DASSERT(f);
+    DASSERT(pinfo);
+
+    if ( disc_idx >= 0 )
+    {
+	if ( part_idx >= 0 )
+	    printf("[disc-%u:partition-%u]\n", disc_idx, part_idx );
+	else
+	    printf("[disc-%u:partition]\n", disc_idx );
+    }
+    else
+    {
+	if ( part_idx >= 0 )
+	    printf("[partition-%u]\n", part_idx );
+	else
+	    printf("[partition]\n" );
+    }
+
+
+    printf(
+	"part-index=%u\n"
+	"ptab-index=%u\n"
+	"ptab-part-index=%u\n"
+	"part-type=%x\n"
+	"\n"
+	,pinfo->index
+	,pinfo->ptab_index
+	,pinfo->ptab_part_index
+	,pinfo->part_type
+	);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+wd_disc_info_t * wd_get_disc_info
+(
+    wd_disc_info_t	* dinfo,	// store info here.
+					// if NULL: allocate mem -> call free()
+    wd_disc_t		* disc,		// valid disc pointer
+    int			pmode		// partition mode:
+					//   0: no partition info
+					//   1: p-info for main partition only
+					//   2: p-info for all partitions
+)
+{
+    DASSERT(disc);
+
+    //----- prepare data structure
+
+    int alloced_part, used_part = pmode < 1 ? 0 : pmode < 2 ? 1 : disc->n_part;
+    
+    if (dinfo)
+    {
+	alloced_part = dinfo->alloced_part;
+	if ( used_part > alloced_part )
+	     used_part = alloced_part;
+    }
+    else
+    {
+	alloced_part = used_part;
+	dinfo = malloc( sizeof(*dinfo) + alloced_part * sizeof(wd_part_info_t) );
+	if (!dinfo)
+	    OUT_OF_MEMORY;
+    }
+    memset(dinfo,0,sizeof(*dinfo));
+    dinfo->alloced_part = alloced_part;
+
+
+    //----- fill disc data
+
+    // [2do]
+
+
+    //-----  fill partiton data
+
+    if ( used_part == 1 && disc->main_part )
+    {
+	int idx = dinfo->used_part++;
+	wd_get_part_info( dinfo->part + idx, disc->main_part );
+    }
+    else if ( used_part > 0 )
+    {
+	int idx;
+	for ( idx = 0; idx < used_part; idx++ )
+	    wd_get_part_info( dinfo->part + idx, disc->part + idx );
+	dinfo->used_part = idx;
+    }
+
+    return dinfo;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+void wd_print_disc_info_section
+(
+    FILE		* f,		// valid output file
+    wd_disc_info_t	* dinfo,	// calid partition info
+    int			disc_idx,	// >=0: print index in section header
+    bool		pmode		// true: print aprtitions sectiosn too
+)
+{
+    DASSERT(f);
+    DASSERT(dinfo);
+
+    if ( disc_idx >= 0 )
+	printf("[disc-%u]\n", disc_idx );
+    else
+	printf("[disc]\n" );
+
+    printf(
+	"disc-id=%s\n"
+	"disc-title=%s\n"
+	"db-title=%s\n"
+	"\n"
+	,wd_print_id(dinfo->id6,6,0)
+	,dinfo->title
+	,GetTitle(dinfo->id6,"")
+	);
+
+    if (pmode)
+    {
+	int idx;
+	for ( idx = 0; idx < dinfo->used_part; idx++ )
+	    wd_print_part_info_section(f,dinfo->part+idx,disc_idx,idx);
+    }
+}
+
+//
+///////////////////////////////////////////////////////////////////////////////
 ///////////////			develop()			///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
 static enumError develop ( int argc, char ** argv )
 {
+    PRINT(" %4zu == sizeof(wd_part_info_t)\n", sizeof(wd_part_info_t) );
+    PRINT(" %4zu == sizeof(wd_disc_info_t)\n", sizeof(wd_disc_info_t) );
+
+    SuperFile_t sf;
+    InitializeSF(&sf);
     int i;
     for ( i = 1; i < argc; i++ )
     {
-	ccp fname = argv[i];
-	printf("*****  %s  *****\n",fname);
-	int fd = open(fname,O_RDONLY);
-	if ( fd == -1 )
+	ResetSF(&sf,0);
+	if (OpenSF(&sf,argv[i],false,false))
 	    continue;
 
-	u32 hss = GetHSS(fd,0);
-	u64 size = GetBlockDevSize(fd);
-	printf(" -> hss  = %x = %u\n",hss,hss);
-	printf(" -> size = %llx = %llu\n",size,size);
+	printf("*** %s\n",sf.f.fname);
+	wd_disc_t * disc = OpenDiscSF(&sf,false,true);
+	if (!disc)
+	{
+	    CloseSF(&sf,0);
+	    continue;
+	}
 
-	close(fd);
+	wd_disc_info_t * dinfo = wd_get_disc_info(0,disc,2);
+	wd_print_disc_info_section(stdout,dinfo,i,true);
+	free(dinfo);
+	
+	CloseSF(&sf,0);
     }
 
     return ERR_OK;
