@@ -3075,9 +3075,8 @@ void InitializeIdField ( IdField_t * idf )
 void ResetIdField ( IdField_t * idf )
 {
     ASSERT(idf);
-    if (idf)
+    if ( idf && idf->field )
     {
-	ASSERT(idf->field);
 	IdItem_t **ptr = idf->field, **end;
 	for ( end = ptr + idf->used; ptr < end; ptr++ )
 	    free(*ptr);
