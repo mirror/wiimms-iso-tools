@@ -404,7 +404,7 @@ static size_t print_wbfs_info
 
 //
 ///////////////////////////////////////////////////////////////////////////////
-///////////////			analyse_path()			///////////////
+///////////////			analyze_path()			///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
 typedef enum enumAnaPath
@@ -468,9 +468,9 @@ static AnaPath_t ana_path_tab_iso[] =
 
 //-----------------------------------------------------------------------------
 
-static ccp analyse_path ( enumAnaPath * stat, ccp path, enumAnaPath base )
+static ccp analyze_path ( enumAnaPath * stat, ccp path, enumAnaPath base )
 {
-    TRACE("analyse_path(%p,%s)\n",stat,path);
+    TRACE("analyze_path(%p,%s)\n",stat,path);
     if (!path)
 	path = "";
     const int plen = strlen(path);
@@ -506,17 +506,17 @@ static ccp analyse_path ( enumAnaPath * stat, ccp path, enumAnaPath base )
 
 //
 ///////////////////////////////////////////////////////////////////////////////
-///////////////			analyse_part()			///////////////
+///////////////			analyze_part()			///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-static wd_part_t * analyse_part
+static wd_part_t * analyze_part
 (
     ccp		* subpath,	// result
     ccp		path,		// source path
     wd_disc_t	* disc		// disc
 )
 {
-    TRACE("analyse_part(%s)\n",path);
+    TRACE("analyze_part(%s)\n",path);
     DASSERT(path);
 
     wd_part_t * found_part = 0;
@@ -556,16 +556,16 @@ static wd_part_t * analyse_part
 
 //
 ///////////////////////////////////////////////////////////////////////////////
-///////////////			analyse_slot()			///////////////
+///////////////			analyze_slot()			///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-static int analyse_slot
+static int analyze_slot
 (
     ccp		* subpath,	// result
     ccp		path		// source path
 )
 {
-    TRACE("analyse_slot(%s)\n",path);
+    TRACE("analyze_slot(%s)\n",path);
     DASSERT(path);
 
     int found_slot = -1;
@@ -591,12 +591,12 @@ static int analyse_slot
 
 ///////////////////////////////////////////////////////////////////////////////
 
-static int analyse_wbfs_id
+static int analyze_wbfs_id
 (
     ccp		path		// source path
 )
 {
-    TRACE("analyse_wbfs_id(%s)\n",path);
+    TRACE("analyze_wbfs_id(%s)\n",path);
     DASSERT(path);
 
     wbfs_t * w = wbfs.wbfs;
@@ -636,7 +636,7 @@ static int wfuse_getattr_iso
     char pbuf[200];
 
     enumAnaPath ap;
-    ccp subpath = analyse_path(&ap,path,AP_ISO);
+    ccp subpath = analyze_path(&ap,path,AP_ISO);
 
     switch(ap)
     {
@@ -680,7 +680,7 @@ static int wfuse_getattr_iso
 	    }
 	    else
 	    {
-		wd_part_t * part = analyse_part(&subpath,subpath,df->disc);
+		wd_part_t * part = analyze_part(&subpath,subpath,df->disc);
 		if (part)
 		{
 		    memcpy(st,&df->stat_dir,sizeof(*st));
@@ -723,7 +723,7 @@ static int wfuse_getattr
     DASSERT(st);
 
     enumAnaPath ap;
-    ccp subpath = analyse_path(&ap,path,AP_ROOT);
+    ccp subpath = analyze_path(&ap,path,AP_ROOT);
 
     char pbuf[200];
 
@@ -776,7 +776,7 @@ static int wfuse_getattr
 		return 0;
 	    }
 
-	    const int slot = analyse_slot(&subpath,subpath);
+	    const int slot = analyze_slot(&subpath,subpath);
 	    if ( slot >= 0 )
 	    {
 		if (!*subpath)
@@ -807,7 +807,7 @@ static int wfuse_getattr
 	    }
 	    else
 	    {
-		int slot = analyse_wbfs_id(subpath);
+		int slot = analyze_wbfs_id(subpath);
 		if ( slot >= 0 )
 		{
 		    memcpy(st,&stat_link,sizeof(*st));
@@ -851,7 +851,7 @@ static int wfuse_readlink_iso
     DASSERT(df);
 
     enumAnaPath ap;
-    ccp subpath = analyse_path(&ap,path,AP_ISO);
+    ccp subpath = analyze_path(&ap,path,AP_ISO);
 
     switch(ap)
     {
@@ -931,7 +931,7 @@ static int wfuse_readlink
     DASSERT(fuse_buf);
 
     enumAnaPath ap;
-    ccp subpath = analyse_path(&ap,path,AP_ROOT);
+    ccp subpath = analyze_path(&ap,path,AP_ROOT);
 
     switch(ap)
     {
@@ -941,7 +941,7 @@ static int wfuse_readlink
 	case AP_WBFS_ID:
 	    if ( is_wbfs && *subpath )
 	    {
-		int slot = analyse_wbfs_id(subpath);
+		int slot = analyze_wbfs_id(subpath);
 		if ( slot >= 0 )
 		    snprintf(fuse_buf,bufsize,"../slot/%u/",slot);
 		return 0;
@@ -953,7 +953,7 @@ static int wfuse_readlink
 		break;
 	    if (*subpath)
 	    {
-		const int slot = analyse_slot(&subpath,subpath);
+		const int slot = analyze_slot(&subpath,subpath);
 		if ( slot >= 0 )
 		{
 		    DiscFile_t * df = GetDiscFile(slot);
@@ -996,7 +996,7 @@ static int wfuse_readdir_iso
     DASSERT(df->sf);
 
     enumAnaPath ap;
-    ccp subpath = analyse_path(&ap,path,AP_ISO);
+    ccp subpath = analyze_path(&ap,path,AP_ISO);
 
     char pbuf[100];
 
@@ -1064,7 +1064,7 @@ static int wfuse_readdir
 
     DASSERT(filler);
     enumAnaPath ap;
-    ccp subpath = analyse_path(&ap,path,AP_ROOT);
+    ccp subpath = analyze_path(&ap,path,AP_ROOT);
 
     char pbuf[20];
 
@@ -1118,7 +1118,7 @@ static int wfuse_readdir
 	    }
 	    else
 	    {
-		const int slot = analyse_slot(&subpath,subpath);
+		const int slot = analyze_slot(&subpath,subpath);
 		if ( slot >= 0 )
 		{
 		    DiscFile_t * df = GetDiscFile(slot);
@@ -1189,6 +1189,34 @@ int main ( int argc, char ** argv )
     enumError err = OpenSF(&main_sf,source_file,true,false);
     if (err)
 	return err;
+
+
+    //----- setup stat templates
+
+    memcpy(&stat_dir, &main_sf.f.st,sizeof(stat_dir));
+    memcpy(&stat_file,&main_sf.f.st,sizeof(stat_file));
+    memcpy(&stat_link,&main_sf.f.st,sizeof(stat_link));
+
+    const mode_t mode	= main_sf.f.st.st_mode & 0444;
+    stat_dir .st_mode	= S_IFDIR | mode | mode >> 2;
+    stat_file.st_mode	= S_IFREG | mode;
+    stat_link.st_mode	= S_IFLNK | mode | mode >> 2;
+
+    stat_dir .st_nlink	= 2;
+    stat_file.st_nlink	= 1;
+    stat_link.st_nlink	= 1;
+
+    stat_dir .st_size	= 0;
+    stat_file.st_size	= 0;
+    stat_link.st_size	= 0;
+
+    stat_dir .st_blocks	= 0;
+    stat_file.st_blocks	= 0;
+    stat_link.st_blocks	= 0;
+
+
+    //----- analyze file type
+
     enumFileType ftype = AnalyzeFT(&main_sf.f);
     if ( ftype & FT_ID_WBFS )
     {
@@ -1251,30 +1279,6 @@ int main ( int argc, char ** argv )
     printf("mount %s:%s -> %s\n",
 		oft_info[main_sf.iod.oft].name, source_file, mount_point );
     source_file = realpath(source_file,0);
-
-
-    //----- setup stat templates
-
-    memcpy(&stat_dir, &main_sf.f.st,sizeof(stat_dir));
-    memcpy(&stat_file,&main_sf.f.st,sizeof(stat_file));
-    memcpy(&stat_link,&main_sf.f.st,sizeof(stat_link));
-
-    const mode_t mode	= main_sf.f.st.st_mode & 0444;
-    stat_dir .st_mode	= S_IFDIR | mode | mode >> 2;
-    stat_file.st_mode	= S_IFREG | mode;
-    stat_link.st_mode	= S_IFLNK | mode | mode >> 2;
-
-    stat_dir .st_nlink	= 2;
-    stat_file.st_nlink	= 1;
-    stat_link.st_nlink	= 1;
-
-    stat_dir .st_size	= 0;
-    stat_file.st_size	= 0;
-    stat_link.st_size	= 0;
-
-    stat_dir .st_blocks	= 0;
-    stat_file.st_blocks	= 0;
-    stat_link.st_blocks	= 0;
 
 
     //----- start fuse
