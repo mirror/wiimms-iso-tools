@@ -850,6 +850,7 @@ enumError CheckParamRename ( bool rename_id, bool allow_plus, bool allow_index )
 
 static WBFS_t wbfs_cache;
 static bool wbfs_cache_valid = false;
+bool wbfs_cache_enabled = true;
 
 //-----------------------------------------------------------------------------
 
@@ -885,7 +886,11 @@ enumError ResetWBFS ( WBFS_t * w )
     CloseWDisc(w);
 
     enumError err = ERR_OK;
-    if ( w->cache_candidate && w->sf_alloced && w->sf && IsOpenSF(w->sf) )
+    if ( wbfs_cache_enabled
+	&& w->cache_candidate
+	&& w->sf_alloced
+	&& w->sf
+	&& IsOpenSF(w->sf) )
     {
 	CloseWBFSCache();
 	TRACE("WBFS: SETUP CACHE: %s\n",w->sf->f.fname);
@@ -1032,16 +1037,17 @@ enumError CreateGrowingWBFS ( WBFS_t * w, SuperFile_t * sf, off_t size, int sect
 
     if ( S_ISREG(sf->f.st.st_mode) && sf->src && prealloc_mode > PREALLOC_OFF )
     {
-	const int bl_size = wbfs_calc_sect_size(size,sector_size);
+	const u32 bl_size = wbfs_calc_sect_size(size,sector_size);
 	if ( prealloc_mode == PREALLOC_ALL )
 	{
 	    wd_disc_t * disc = OpenDiscSF(sf->src,false,false);
 	    if (disc)
 	    {
-		const int sect_per_block = bl_size / WII_SECTOR_SIZE;
-		const u32 n_blocks = wd_count_used_disc_blocks(disc,-sect_per_block,0);
-		noPRINT("NB = %u\n",n_blocks);
-		PreallocateF(&sf->f,0,(n_blocks+sect_per_block)*(u64)WII_SECTOR_SIZE);
+		const u32 sect_per_block = bl_size / WII_SECTOR_SIZE;
+		const u32 n_blocks = wd_count_used_disc_blocks(disc,sect_per_block,0);
+		noPRINT("NB = ( %u + 1 ) * 0x%x == %llx\n",
+			n_blocks, bl_size, (n_blocks+1) * (u64)bl_size );
+		PreallocateF( &sf->f, 0, (n_blocks+1) * (u64)bl_size );
 	    }
 	}
 	else

@@ -144,7 +144,7 @@ wit v1.10a r1386 - 2010-07-15
    values are always printed.
  - wit+wwt: Option --trunc: Truncate created PLAIN ISO image to needed size.
 
-wit v1.10a.beta r1428 - 2010-07-24  (correct version should be "v1.11a.beta")
+wit v1.11a.beta r1428 - 2010-07-24
 
  - Computed line breaks for error messages.
  - "wit COPY" accepts the options --id --name --ios --region to patch the

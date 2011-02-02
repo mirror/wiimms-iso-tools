@@ -74,8 +74,7 @@ typedef enum enumProgID
 	PROG_WIT,
 	PROG_WWT,
 	PROG_WDF,
-	PROG_WDF_CAT,
-	PROG_WDF_DUMP,
+	PROG_WFUSE,
 
 } enumProgID;
 

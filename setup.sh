@@ -35,6 +35,8 @@ fi
 [[ -r /usr/include/fcntl.h ]] \
 	&& grep -qw posix_fallocate /usr/include/fcntl.h \
 	&& defines="$defines -DHAVE_POSIX_FALLOCATE=1"
+[[ -r /usr/include/fuse.h ]] \
+	&& defines="$defines -DHAVE_FUSE=1"
 
 cat <<- ---EOT--- >Makefile.setup
 	REVISION	:= $revision

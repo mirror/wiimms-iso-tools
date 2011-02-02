@@ -3397,6 +3397,7 @@ enumError CheckOptions ( int argc, char ** argv, bool is_env )
 	case GO_PSEL:		err += ScanOptPartSelector(optarg); break;
 	case GO_RAW:		part_selector.whole_disc
 					= part_selector.whole_part = true; break;
+	case GO_FLAT:		opt_flat++; break;
 	case GO_SNEEK:		SetupSneekMode(); break;
 
 	case GO_INCLUDE:	AtFileHelper(optarg,SEL_ID,SEL_FILE,AddIncludeID); break;

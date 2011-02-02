@@ -74,6 +74,7 @@ typedef enum enumOptions
 	OPT_IGNORE_SETUP,
 	OPT_LINKS,
 	OPT_PMODE,
+	OPT_FLAT,
 	OPT_SNEEK,
 	OPT_ENC,
 	OPT_ID,
@@ -141,7 +142,7 @@ typedef enum enumOptions
 	OPT_SORT,
 	OPT_LIMIT,
 
-	OPT__N_SPECIFIC, // == 87 
+	OPT__N_SPECIFIC, // == 88 
 
 	//----- global options -----
 
@@ -163,7 +164,7 @@ typedef enum enumOptions
 	OPT_TEST,
 	OPT_HOOK,
 
-	OPT__N_TOTAL // == 104
+	OPT__N_TOTAL // == 105
 
 } enumOptions;
 
@@ -198,6 +199,7 @@ typedef enum enumOptions
 //	OB_IGNORE_SETUP		= 1llu << OPT_IGNORE_SETUP,
 //	OB_LINKS		= 1llu << OPT_LINKS,
 //	OB_PMODE		= 1llu << OPT_PMODE,
+//	OB_FLAT			= 1llu << OPT_FLAT,
 //	OB_SNEEK		= 1llu << OPT_SNEEK,
 //	OB_ENC			= 1llu << OPT_ENC,
 //	OB_ID			= 1llu << OPT_ID,
@@ -322,6 +324,7 @@ typedef enum enumOptions
 //				| OB_RAW,
 //
 //	OB_GRP_FST_SELECT	= OB_PMODE
+//				| OB_FLAT
 //				| OB_FILES
 //				| OB_SNEEK,
 //
@@ -677,6 +680,7 @@ typedef enum enumGetOpt
 	GO_IGNORE_SETUP,
 	GO_LINKS,
 	GO_PMODE,
+	GO_FLAT,
 	GO_SNEEK,
 	GO_HOOK,
 	GO_ENC,

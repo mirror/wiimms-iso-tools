@@ -1780,6 +1780,7 @@ enumError ScanPartTabAndType
 ///////////////////////////////////////////////////////////////////////////////
 
 wd_ipm_t prefix_mode = WD_IPM_DEFAULT;
+int opt_flat = 0;
 
 //-----------------------------------------------------------------------------
 
@@ -2324,7 +2325,7 @@ static int CollectFST_helper
 	if ( it->icm == WD_ICM_DIRECTORY )
 	{
 	    fst->dirs_served++;
-	    if (cf->ignore_dir)
+	    if ( cf->ignore_dir || opt_flat )
 		return 0;
 	}
 	else
@@ -2350,8 +2351,22 @@ static int CollectFST_helper
 	wff->icm	= it->icm;
 	wff->offset4	= it->off4;
 	wff->size	= it->size;
-	wff->path	= strdup( cf->store_prefix ? it->path : it->fst_name );
 	wff->data	= (u8*)it->data;
+	if (opt_flat)
+	{
+	    ccp src = strrchr(it->fst_name,'/');
+	    src = src ? src+1 : it->fst_name;
+	    if ( cf->store_prefix )
+	    {
+		char fname[sizeof(it->path)];
+		StringCat2S(fname,sizeof(fname),it->prefix,src);
+		wff->path = strdup(fname);
+	    }
+	    else
+		wff->path = strdup(src);
+	}
+	else
+	    wff->path	= strdup( cf->store_prefix ? it->path : it->fst_name );
     }
     else switch(it->icm)
     {
@@ -2418,6 +2433,8 @@ int CollectFST
     cf.ignore_dir	= ignore_dir;
     cf.store_prefix	= store_prefix;
     
+    if ( opt_flat && ( prefix_mode == WD_IPM_DEFAULT || prefix_mode == WD_IPM_DEFAULT ))
+	prefix_mode = WD_IPM_NONE;
     return wd_iterate_files(disc,CollectFST_helper,&cf,prefix_mode);
 }
 

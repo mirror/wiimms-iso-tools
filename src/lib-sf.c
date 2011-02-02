@@ -2889,7 +2889,7 @@ enumError NormalizeExtractPath
 	*dest   = 0;
     }
 
-    if (!overwrite)
+    if ( !overwrite && !opt_flat )
     {
 	struct stat st;
 	if (!stat(dest_dir,&st))

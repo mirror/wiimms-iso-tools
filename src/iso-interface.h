@@ -388,6 +388,7 @@ enumError ScanPartTabAndType
 //-----------------------------------------------------------------------------
 
 extern wd_ipm_t prefix_mode;
+extern int opt_flat;
 
 wd_ipm_t ScanPrefixMode ( ccp arg );
 void SetupSneekMode();

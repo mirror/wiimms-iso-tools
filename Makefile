@@ -39,9 +39,11 @@ WWT_SHORT		= wwt
 WWT_LONG		= Wiimms WBFS Tool
 WDF_SHORT		= wdf
 WDF_LONG		= Wiimms WDF Tool
+WFUSE_SHORT		= wfuse
+WFUSE_LONG		= Wiimms FUSE Tool
 
 VERSION_NUM		= 1.27a
-BETA_VERSION		= 1
+BETA_VERSION		= 2
 			# 0:off  -1:"beta"  >0:"beta#"
 
 URI_HOME		= http://wit.wiimm.de/
@@ -118,16 +120,17 @@ WBFS_COUNT	?= 4
 # tools
 
 MAIN_TOOLS	:= wit wwt wdf
-#MAIN_TOOLS	:= wit wwt wdf wdf-cat wdf-dump
 TEST_TOOLS	:= wtest
+EXTRA_TOOLS	:= wfuse
 ALL_TOOLS	:= $(sort $(MAIN_TOOLS) $(TEST_TOOLS))
+ALL_TOOLS_X	:= $(sort $(MAIN_TOOLS) $(TEST_TOOLS) $(EXTRA_TOOLS))
 
 HELPER_TOOLS	:= gen-ui
 
 WDF_TEST_LINKS	:= WdfCat UnWdf WdfCmp WdfDump Ciso CisoCat UnCiso Wbi
 WDF_LINKS	:= wdf-cat wdf-dump
 
-RM_FILES	+= $(ALL_TOOLS) $(HELPER_TOOLS) $(WDF_LINKS) $(WDF_TEST_LINKS)
+RM_FILES	+= $(ALL_TOOLS_X) $(HELPER_TOOLS) $(WDF_LINKS) $(WDF_TEST_LINKS)
 
 #-------------------------------------------------------------------------------
 # tool dependent objects
@@ -135,8 +138,18 @@ RM_FILES	+= $(ALL_TOOLS) $(HELPER_TOOLS) $(WDF_LINKS) $(WDF_TEST_LINKS)
 TOBJ_wit	:= wit-mix.o
 TOBJ_wwt	:=
 TOBJ_wdf	:=
+TOBJ_wfuse	:=
 
-TOBJ_ALL	:= $(TOBJ_wit) $(TOBJ_wwt) $(TOBJ_wdf)
+TOBJ_ALL	:= $(TOBJ_wit) $(TOBJ_wwt) $(TOBJ_wdf) $(TOBJ_wfuse)
+
+#---------------
+
+TLIB_wit	:=
+TLIB_wwt	:=
+TLIB_wdf	:=
+TLIB_wfuse	:= -lfuse -lpthread -ldl
+
+TLIB_ALL	:= $(TLIB_wit) $(TLIB_wwt) $(TLIB_wdf) $(TLIB_wfuse)
 
 #-------------------------------------------------------------------------------
 # sub libs
@@ -166,7 +179,7 @@ RM_FILES2	+= $(SETUP_FILES)
 # object files
 
 # objects of tools
-MAIN_TOOLS_OBJ	:= $(patsubst %,%.o,$(MAIN_TOOLS))
+MAIN_TOOLS_OBJ	:= $(patsubst %,%.o,$(MAIN_TOOLS) $(EXTRA_TOOLS))
 OTHER_TOOLS_OBJ	:= $(patsubst %,%.o,$(TEST_TOOLS) $(HELPER_TOOLS))
 
 # other objects
@@ -271,10 +284,10 @@ default_rule: all
 ###############################################################################
 # general rules
 
-$(ALL_TOOLS): %: %.o $(ALL_OBJECTS) $(TOBJ_ALL) Makefile | $(HELPER_TOOLS)
-	@printf "$(LOGFORMAT)" tool "$@" "$(MODE) $(TOBJ_$@)"
+$(ALL_TOOLS_X): %: %.o $(ALL_OBJECTS) $(TOBJ_ALL) Makefile | $(HELPER_TOOLS)
+	@printf "$(LOGFORMAT)" tool "$@" "$(MODE) $(TOBJ_$@) $(TLIB_$@)"
 	@$(CC) $(CFLAGS) $(DEFINES) $(LDFLAGS) $@.o \
-		$(ALL_OBJECTS) $(TOBJ_$@) $(LIBS) -o $@
+		$(ALL_OBJECTS) $(TOBJ_$@) $(LIBS) $(TLIB_$@) -o $@
 	@if test -f $@.exe; then $(STRIP) $@.exe; else $(STRIP) $@; fi
 	@mkdir -p bin/debug
 	@cp -p $@ bin
@@ -365,7 +378,7 @@ chmod:
 	@for d in . $(DIR_LIST); do test -d "$$d" && chmod ug+rw "$$d"/*; done
 	@for d in $(DIR_LIST); do test -d "$$d" && chmod 775 "$$d"; done
 	@find . -name '*.sh' -exec chmod 775 {} +
-	@for t in $(ALL_TOOLS); do test -f "$$t" && chmod 775 "$$t"; done || true
+	@for t in $(ALL_TOOLS_X); do test -f "$$t" && chmod 775 "$$t"; done || true
 
 #
 #--------------------------
@@ -408,7 +421,7 @@ clean++: clean+
 .PHONY : debug
 debug:
 	@printf "$(LOGFORMAT)" enable debug "-> define -DDEBUG"
-	@rm -f *.o $(ALL_TOOLS)
+	@rm -f *.o $(ALL_TOOLS_X)
 	@echo "-DDEBUG" >>$(MODE_FILE)
 	@sort $(MODE_FILE) | uniq > $(MODE_FILE).tmp
 # 2 steps to bypass a cygwin mv failure
@@ -514,6 +527,8 @@ flags:
 	@echo  ""
 	@echo  "LIBS: $(LIBS)"
 	@echo  ""
+	@echo  "C_OBJECTS: $(C_OBJECTS)"
+	@echo  ""
 
 #
 #--------------------------
@@ -534,7 +549,7 @@ install+: clean+ all
 .PHONY : new
 new:
 	@printf "$(LOGFORMAT)" enable new "-> define -DNEW_FEATURES"
-	@rm -f *.o $(ALL_TOOLS)
+	@rm -f *.o $(ALL_TOOLS_X)
 	@echo "-DNEW_FEATURES" >>$(MODE_FILE)
 	@sort $(MODE_FILE) | uniq > $(MODE_FILE).tmp
 # 2 steps to bypass a cygwin mv failure
@@ -554,7 +569,7 @@ predef:
 .PHONY : static
 static:
 	@printf "$(LOGFORMAT)" enable -static ""
-	@rm -f *.o $(ALL_TOOLS)
+	@rm -f *.o $(ALL_TOOLS_X)
 	@echo "-static" >>$(MODE_FILE)
 	@sort $(MODE_FILE) | uniq > $(MODE_FILE).tmp
 # 2 steps to bypass a cygwin mv failure
@@ -601,6 +616,8 @@ templates.sed: Makefile
 		's|@@WWT-LONG@@|$(WWT_LONG)|g;\n' \
 		's|@@WDF-SHORT@@|$(WDF_SHORT)|g;\n' \
 		's|@@WDF-LONG@@|$(WDF_LONG)|g;\n' \
+		's|@@WFUSE-SHORT@@|$(WFUSE_SHORT)|g;\n' \
+		's|@@WFUSE-LONG@@|$(WFUSE_LONG)|g;\n' \
 		's|@@VERSION@@|$(VERSION)|g;\n' \
 		's|@@VERSION-NUM@@|$(VERSION_NUM)|g;\n' \
 		's|@@BETA-VERSION@@|$(BETA_VERSION)|g;\n' \
@@ -645,7 +662,7 @@ templates.sed: Makefile
 .PHONY : test
 test:
 	@printf "$(LOGFORMAT)" enable test "-> define -DTEST"
-	@rm -f *.o $(ALL_TOOLS)
+	@rm -f *.o $(ALL_TOOLS_X)
 	@echo "-DTEST" >>$(MODE_FILE)
 	@sort $(MODE_FILE) | uniq > $(MODE_FILE).tmp
 # 2 steps to bypass a cygwin mv failure
@@ -658,7 +675,7 @@ test:
 .PHONY : test-trace
 test-trace:
 	@printf "$(LOGFORMAT)" enable testtrace "-> define -DTESTTRACE"
-	@rm -f *.o $(ALL_TOOLS)
+	@rm -f *.o $(ALL_TOOLS_X)
 	@echo "-DTESTTRACE" >>$(MODE_FILE)
 	@sort $(MODE_FILE) | uniq > $(MODE_FILE).tmp
 # 2 steps to bypass a cygwin mv failure
@@ -688,7 +705,7 @@ tools: $(ALL_TOOLS)
 .PHONY : wait
 wait:
 	@printf "$(LOGFORMAT)" enable wait "-> define -DWAIT_ENABLED"
-	@rm -f *.o $(ALL_TOOLS)
+	@rm -f *.o $(ALL_TOOLS_X)
 	@echo "-DWAIT_ENABLED" >>$(MODE_FILE)
 	@sort $(MODE_FILE) | uniq > $(MODE_FILE).tmp
 # 2 steps to bypass a cygwin mv failure

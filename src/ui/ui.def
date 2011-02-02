@@ -409,6 +409,12 @@
 	" of the following values is allowed: @AUTO, NONE, POINT, ID, NAME," \
 	" INDEX, COMBI@. The default value is @'AUTO'@." )
 
+#:def_opt( "FLAT", "flat", "C", \
+	"", \
+	"While extracting a disc image strip all path names of the source file" \
+	" and store all files in the same directory. This option sets the" \
+	" default for {--pmode} to @NONE@." )
+
 #:def_opt( "SNEEK", "sneek", "C", \
 	"", \
 	"Abbreviation of {--psel data --pmode none --files :sneek}." )
@@ -1207,6 +1213,10 @@
 	"", \
 	"" )
 
+#:def_cmd_opt( "DUMP", "FLAT", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "DUMP", "FILES", \
 	"", \
 	"" )
@@ -1932,6 +1942,10 @@
 	"", \
 	"" )
 
+#:def_cmd_opt( "FILES", "FLAT", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "FILES", "FILES", \
 	"", \
 	"" )
@@ -2034,6 +2048,10 @@
 	"", \
 	"" )
 
+#:def_cmd_opt( "FILES_L", "FLAT", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "FILES_L", "FILES", \
 	"", \
 	"" )
@@ -2133,6 +2151,10 @@
 	"" )
 
 #:def_cmd_opt( "FILES_LL", "PMODE", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "FILES_LL", "FLAT", \
 	"", \
 	"" )
 
@@ -2255,6 +2277,10 @@
 	"" )
 
 #:def_cmd_opt( "DIFF", "PMODE", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "DIFF", "FLAT", \
 	"", \
 	"" )
 
@@ -2418,6 +2444,10 @@
 	"", \
 	"" )
 
+#:def_cmd_opt( "FDIFF", "FLAT", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "FDIFF", "FILES", \
 	"", \
 	"" )
@@ -2575,6 +2605,10 @@
 	"" )
 
 #:def_cmd_opt( "EXTRACT", "PMODE", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "EXTRACT", "FLAT", \
 	"", \
 	"" )
 
@@ -2774,6 +2808,10 @@
 	"" )
 
 #:def_cmd_opt( "COPY", "PMODE", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "COPY", "FLAT", \
 	"", \
 	"" )
 
@@ -4300,6 +4338,12 @@
 	"This options set the prefix mode for listed or extracted files. One" \
 	" of the following values is allowed: @AUTO, NONE, POINT, ID, NAME," \
 	" INDEX, COMBI@. The default value is @'AUTO'@." )
+
+#:def_opt( "FLAT", "flat", "C", \
+	"", \
+	"While extracting a disc image strip all path names of the source file" \
+	" and store all files in the same directory. This option sets the" \
+	" default for {--pmode} to @NONE@." )
 
 #:def_opt( "SNEEK", "sneek", "C", \
 	"", \
@@ -6549,6 +6593,10 @@
 	"", \
 	"" )
 
+#:def_cmd_opt( "EXTRACT", "FLAT", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "EXTRACT", "FILES", \
 	"", \
 	"" )
@@ -7643,6 +7691,41 @@
 #:def_cmd_opt( "DUMP", "MINUS1", \
 	"", \
 	"" )
+
+
+##
+###############################################################################
+###############                  Tool 'wfuse'                   ###############
+###############################################################################
+
+#:def_tool( "wfuse", \
+	"wfuse [option]... source mountdir", \
+	"Mount the source file on mount point using FUSE (Filesystem in" \
+	" Userspace)." )
+
+#:def_opt( "VERSION", "V|version", "G", \
+	"", \
+	"Stop parsing the command line, print a version info and exit." )
+
+#:def_opt( "HELP", "h|help", "G", \
+	"", \
+	"Stop parsing the command line, print a help message and exit." )
+
+#:def_opt( "XHELP", "xhelp", "G", \
+	"", \
+	"Same as {--help}." )
+
+#:def_opt( "WIDTH", "width", "GP", \
+	"width", \
+	"Define the width (number of columns) for help and some other messages" \
+	" and disable the automatic detection of the terminal width." )
+
+#:def_opt( "IO", "io", "GP", \
+	"flags", \
+	"Setup the IO mode for experiments. The standard file IO is based on" \
+	" open() function. The value '1' defines that WBFS IO is based on" \
+	" fopen() function. The value '2' defines the same for ISO files and" \
+	" value '4' for WIA files. You can combine the values by adding them." )
 
 
 ##

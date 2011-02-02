@@ -12,6 +12,8 @@
 #define WWT_LONG	"@@WWT-LONG@@"
 #define WDF_SHORT	"@@WDF-SHORT@@"
 #define WDF_LONG	"@@WDF-LONG@@"
+#define WFUSE_SHORT	"@@WFUSE-SHORT@@"
+#define WFUSE_LONG	"@@WFUSE-LONG@@"
 #define AUTHOR		"@@AUTHOR@@"
 
 #define VERSION		"@@VERSION@@"

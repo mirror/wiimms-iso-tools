@@ -164,6 +164,8 @@ typedef struct WBFS_t
 
 } WBFS_t;
 
+extern bool wbfs_cache_enabled;
+
 //-----------------------------------------------------------------------------
 
 typedef struct CheckDisc_t

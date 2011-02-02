@@ -635,9 +635,9 @@ info_t info_tab[] =
 		" Each parameter becomes a rule and each rule is appended to a rule list."
 		" Rules prefixed by a minus sign are DENY rules."
 		" Rules prefixed by a plus sign or without a prefix are ALLOW rules."
-		" Each partition is compared with each rule until a rule matches the partition."
-		" If a match it found, the partition is enabled for a ALLOW rule"
-		" or disabled for a DENY rule."
+		" Each partition is compared with each rule until a rule matches"
+		" the partition. If a match it found, the partition is enabled"
+		" for a ALLOW rule or disabled for a DENY rule."
 		"\n "
 		" The allowed keywords are: @DATA@, @UPDATE@, @CHANNEL@,"
 		" @PTAB0@ .. @PTAB3@, @ID@, @ALL@, @WHOLE@ and @RAW@."
@@ -657,6 +657,12 @@ info_t info_tab[] =
 		" @AUTO, NONE, POINT, ID, NAME, INDEX, COMBI@."
 		" The default value is @'AUTO'@."
 		"\1 See http://wit.wiimm.de/opt/pmode for more details." },
+
+  { T_OPT_C,	"FLAT",		"flat",
+		0,
+		"While extracting a disc image strip all path names of the source file"
+		" and store all files in the same directory."
+		" This option sets the default for {--pmode} to @NONE@." },
 
   { T_OPT_C,	"SNEEK",	"sneek",
 		0, "Abbreviation of {--psel data --pmode none --files :sneek}." },
@@ -1127,6 +1133,7 @@ info_t info_tab[] =
   { T_GRP_BEG,	"FST_SELECT",	0,0,0 },
 
   { T_COPT,	"PMODE",	0,0,0 },
+  { T_COPT,	"FLAT",		0,0,0 },
   { T_COPT_M,	"FILES",	0,0,0 },
   { T_COPT,	"SNEEK",	0,0,0 },
 
@@ -2122,6 +2129,9 @@ info_t info_tab[] =
   { T_OPT_CP,	"PMODE",	"pmode",
 		0, 0 /* copy of wit */ },
 
+  { T_OPT_C,	"FLAT",		"flat",
+		0, 0 /* copy of wit */ },
+
   { T_OPT_C,	"SNEEK",	"sneek",
 		0, 0 /* copy of wit */ },
 
@@ -2494,6 +2504,7 @@ info_t info_tab[] =
   { T_GRP_BEG,	"FST_SELECT",	0,0,0 },
 
   { T_COPT,	"PMODE",	0,0,0 },
+  { T_COPT,	"FLAT",		0,0,0 },
   { T_COPT_M,	"FILES",	0,0,0 },
   { T_COPT,	"SNEEK",	0,0,0 },
 
@@ -3359,6 +3370,35 @@ info_t info_tab[] =
   { T_COPT,	"CHUNK",	0,0,0 },
   { T_COPT,	"LONG",		0,0, "Same as {--chunk}" },
   { T_COPT,	"MINUS1",	0,0,0 },
+
+
+  //
+  ///////////////////////////////////////////////////////////////////////////
+  /////////////			  TOOL wfuse			/////////////
+  ///////////////////////////////////////////////////////////////////////////
+
+  { T_DEF_TOOL,	"wfuse", 0,
+		"wfuse [option]... source mountdir",
+		"Mount the source file on mount point using"
+		" FUSE (Filesystem in Userspace)." },
+
+  //---------- list of all options ----------
+
+  { T_OPT_S,	"VERSION",	"V|version",
+		0, 0 /* copy of wit */ },
+
+  { T_OPT_S,	"HELP",		"h|help",
+		0, 0 /* copy of wit */ },
+
+  { T_OPT_S,	"XHELP",	"xhelp",
+		0, "Same as {--help}." },
+
+  { T_OPT_GP,	"WIDTH",	"width",
+		0, 0 /* copy of wit */ },
+
+  { T_OPT_GP,	"IO",		"io",
+		0, 0 /* copy of wit */ },
+
 
   //
   ///////////////////////////////////////////////////////////////////////////
