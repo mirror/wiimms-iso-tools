@@ -3654,6 +3654,10 @@ int wd_iterate_files
 	    case WD_IPM_NONE:
 		break;
 
+	    case WD_IPM_SLASH:
+		strcpy(it.prefix,"/");
+		break;
+
 	    case WD_IPM_POINT:
 		strcpy(it.prefix,"./");
 		break;

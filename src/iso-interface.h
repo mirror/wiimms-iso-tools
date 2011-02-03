@@ -687,13 +687,22 @@ enumError CreateFST	( WiiFstInfo_t *wfi, ccp dest_path );
 enumError CreatePartFST	( WiiFstInfo_t *wfi, ccp dest_path );
 enumError CreateFileFST	( WiiFstInfo_t *wfi, ccp dest_path, WiiFstFile_t * file );
 
+enumError ReadFileFST4
+(
+    WiiFstPart_t	* part,	// valid fst partition pointer
+    const WiiFstFile_t	*file,	// valid fst file pointer
+    u32			off4,	// file offset/4
+    void		* buf,	// destination buffer with at least 'size' bytes
+    u32			size	// number of bytes to read
+);
+
 enumError ReadFileFST
 (
-	WiiFstPart_t *	part,		// valid fst partition pointer
-	const WiiFstFile_t * file,	// valid fst file pointer
-	u32		off,		// file offset
-	void		* buf,		// destination buffer with at least 'size' bytes
-	u32		size		// number of bytes to read
+    WiiFstPart_t	* part,	// valid fst partition pointer
+    const WiiFstFile_t	*file,	// valid fst file pointer
+    u64			off,	// file offset
+    void		* buf,	// destination buffer with at least 'size' bytes
+    u32			size	// number of bytes to read
 );
 
 //-----------------------------------------------------------------------------

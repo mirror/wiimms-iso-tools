@@ -417,10 +417,9 @@ static void dump_wii_part
 
 	fprintf(f,"%*s%s\n",indent,"",sep);
 
-	wd_part_t * part = disc->part;
-	DASSERT(part);
-	for ( i = 0; i < np; i++, part++ )
+	for ( i = 0; i < np; i++ )
 	{
+	    wd_part_t * part = disc->part + i;
 	    wd_print_part_name(pname,sizeof(pname),part->part_type,WD_PNAME_COLUMN_9);
 
 	    const u64 off  = (u64)part->part_off4 << 2;
@@ -448,10 +447,9 @@ static void dump_wii_part
 
     if ( show_mode & SHOW__PART && disc->n_part && wd_disc_has_ptab(disc) )
     {
-      wd_part_t * part = disc->part;
-      DASSERT(part);
-      for ( i = 0; i < np; i++, part++ )
+      for ( i = 0; i < np; i++ )
       {
+	wd_part_t * part = disc->part + i;
 	if ( !part->is_valid || !part->is_enabled )
 	    continue;
 
@@ -973,9 +971,10 @@ enumError Dump_TIK_BIN
     if (!f)
 	return ERR_OK;
 
-    const size_t load_size = sf->file_size < sizeof(iobuf) ? sf->file_size : sizeof(iobuf);
-    enumError err = ReadSF(sf,0,iobuf,load_size);
-    wd_ticket_t * tik = (wd_ticket_t*)iobuf;
+    char buf[10000];
+    const size_t load_size = sf->file_size < sizeof(buf) ? sf->file_size : sizeof(buf);
+    enumError err = ReadSF(sf,0,buf,load_size);
+    wd_ticket_t * tik = (wd_ticket_t*)buf;
     if (!err)
 	memcpy(sf->f.id6,tik->title_id+4,4);
     indent = dump_header(f,indent,sf,0,real_path,0);
@@ -992,7 +991,7 @@ enumError Dump_TIK_BIN
 	    if ( sizeof(wd_ticket_t) < load_size )
 	    {
 		cert_initialize(&cc);
-		cert_append_data(&cc,iobuf+sizeof(wd_ticket_t),
+		cert_append_data(&cc,buf+sizeof(wd_ticket_t),
 			load_size-sizeof(wd_ticket_t),false);
 	    }
 	    else
@@ -1081,10 +1080,11 @@ enumError Dump_TMD_BIN
     if (!f)
 	return ERR_OK;
 
-    const size_t load_size = sf->file_size < sizeof(iobuf) ? sf->file_size : sizeof(iobuf);
-    enumError err = ReadSF(sf,0,iobuf,load_size);
+    char buf[10000];
+    const size_t load_size = sf->file_size < sizeof(buf) ? sf->file_size : sizeof(buf);
+    enumError err = ReadSF(sf,0,buf,load_size);
     
-    wd_tmd_t * tmd = (wd_tmd_t*)iobuf;
+    wd_tmd_t * tmd = (wd_tmd_t*)buf;
     if (!err)
 	memcpy(sf->f.id6,tmd->title_id+4,4);
     indent = dump_header(f,indent,sf,0,real_path,0);
@@ -1103,7 +1103,7 @@ enumError Dump_TMD_BIN
 	    if ( tmd_size < load_size )
 	    {
 		cert_initialize(&cc);
-		cert_append_data(&cc,iobuf+tmd_size,load_size-tmd_size,false);
+		cert_append_data(&cc,buf+tmd_size,load_size-tmd_size,false);
 	    }
 	    else
 		try_load_cert(&cc,sf->f.fname);
@@ -1792,6 +1792,7 @@ wd_ipm_t ScanPrefixMode ( ccp arg )
 	{ WD_IPM_AUTO,		"AUTO",		"A",		0 },
 
 	{ WD_IPM_NONE,		"NONE",		"-",		0 },
+	{ WD_IPM_SLASH,		"SLASH",	"/",		0 },
 	{ WD_IPM_POINT,		"POINT",	".",		0 },
 	{ WD_IPM_PART_ID,	"ID",		"I",		0 },
 	{ WD_IPM_PART_NAME,	"NAME",		"N",		0 },
@@ -2366,7 +2367,15 @@ static int CollectFST_helper
 		wff->path = strdup(src);
 	}
 	else
-	    wff->path	= strdup( cf->store_prefix ? it->path : it->fst_name );
+	{
+	    wff->path = strdup( cf->store_prefix ? it->path : it->fst_name );
+	    if ( it->icm == WD_ICM_DIRECTORY && it->prefix_mode == WD_IPM_SLASH )
+	    {
+		const int plen = strlen(wff->path) - 1;
+		if ( plen >= 0 && wff->path[plen] == '/' )
+		    ((char*)wff->path)[plen] = 0;
+	    }
+	}
     }
     else switch(it->icm)
     {
@@ -2433,7 +2442,7 @@ int CollectFST
     cf.ignore_dir	= ignore_dir;
     cf.store_prefix	= store_prefix;
     
-    if ( opt_flat && ( prefix_mode == WD_IPM_DEFAULT || prefix_mode == WD_IPM_DEFAULT ))
+    if ( opt_flat && ( prefix_mode == WD_IPM_AUTO || prefix_mode == WD_IPM_DEFAULT ))
 	prefix_mode = WD_IPM_NONE;
     return wd_iterate_files(disc,CollectFST_helper,&cf,prefix_mode);
 }
@@ -2782,7 +2791,7 @@ enumError CreateFileFST ( WiiFstInfo_t *wfi, ccp dest_path, WiiFstFile_t * file 
     if ( file->size > sizeof(iobuf) )
 	PreallocateF(&fo,0,file->size);
 
- #if 0 && defined(TEST) // test ReadFileFST() [obsolete]
+ #if 0 && defined(TEST) // test ReadFileFST4() [obsolete]
     if ( file->icm == WD_ICM_DATA ) 
 	err = WriteF(&fo,file->data,file->size);
     else
@@ -2793,7 +2802,7 @@ enumError CreateFileFST ( WiiFstInfo_t *wfi, ccp dest_path, WiiFstFile_t * file 
 	while ( size > 0 )
 	{
 	    const u32 read_size = size < sizeof(iobuf) ? size : sizeof(iobuf);
-	    err = ReadFileFST(part,file,off4,iobuf,read_size);
+	    err = ReadFileFST4(part,file,off4,iobuf,read_size);
 	    if (err)
 		break;
 
@@ -2857,13 +2866,13 @@ enumError CreateFileFST ( WiiFstInfo_t *wfi, ccp dest_path, WiiFstFile_t * file 
 
 ///////////////////////////////////////////////////////////////////////////////
 
-enumError ReadFileFST
+enumError ReadFileFST4
 (
-	WiiFstPart_t *	part,		// valid fst partition pointer
-	const WiiFstFile_t * file,	// valid fst file pointer
-	u32		off4,		// file offset
-	void		* buf,		// destination buffer with at least 'size' bytes
-	u32		size		// number of bytes to read
+    WiiFstPart_t	* part,	// valid fst partition pointer
+    const WiiFstFile_t	*file,	// valid fst file pointer
+    u32			off4,	// file offset/4
+    void		* buf,	// destination buffer with at least 'size' bytes
+    u32			size	// number of bytes to read
 )
 {
     DASSERT(part);
@@ -2872,7 +2881,7 @@ enumError ReadFileFST
     DASSERT(file);
     DASSERT(buf);
 
-    noTRACE("ReadFileFST(off=%x,sz=%x) icm=%x, off=%x, sz=%x\n",
+    noTRACE("ReadFileFST4(off=%x,sz=%x) icm=%x, off=%x, sz=%x\n",
 		off4<<2, size, file->icm, file->offset4<<2, file->size );
 
     char mode = 0;
@@ -2915,6 +2924,45 @@ enumError ReadFileFST
     return ERROR0(ERR_READ_FAILED,
 		"Reading from FST file failed [%c:%llx+%x>%x]: %s\n",
 		mode, (u64)off4<<2, size, file->size, file->path );
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+enumError ReadFileFST
+(
+    WiiFstPart_t	* part,	// valid fst partition pointer
+    const WiiFstFile_t	*file,	// valid fst file pointer
+    u64			off,	// file offset
+    void		* buf,	// destination buffer with at least 'size' bytes
+    u32			size	// number of bytes to read
+)
+{
+    const uint skip = (uint)off & 3;
+    if (!skip)
+	return ReadFileFST4(part,file,off>>2,buf,size);
+
+    DASSERT(part);
+    DASSERT(part->part);
+    DASSERT(part->part->disc);
+    DASSERT(file);
+    DASSERT(buf);
+    
+    TRACE("ReadFileFST(off=%llx,sz=%x) icm=%x, off=%x, sz=%x\n",
+		off, size, file->icm, file->offset4<<2, file->size );
+
+    char temp[4];
+    const enumError err = ReadFileFST4(part,file,off>>2,temp,sizeof(temp));
+    if (err)
+	return err;
+
+    uint pre_read = 4 - skip;
+    if ( pre_read > size )
+         pre_read = size;
+    DASSERT( pre_read > 0 && pre_read < sizeof(temp) );
+
+    memcpy(buf,temp+skip,pre_read);
+    buf = (char*)buf + pre_read;
+    return ReadFileFST4(part,file,(off+skip)>>2,buf,size-pre_read);
 }
 
 //

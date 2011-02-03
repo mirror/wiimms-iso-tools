@@ -1,5 +1,4 @@
 ../src/wfuse.c ;
-../work/fuse-info.txt ;
 ../src/wit.c ;
 ../src/wwt.c ;
 @+all-source.edit-list

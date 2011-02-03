@@ -5,4 +5,4 @@
 ../makefiles-local/Makefile.* ;
 ../*/Makefile. ;
 -R *.bak
--y 306 ../work/Makefile.user ;
+-y -30 ../work/Makefile.user ;

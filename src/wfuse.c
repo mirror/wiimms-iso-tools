@@ -40,12 +40,14 @@
 
 #include <fuse.h>
 #include <pthread.h>
+#include <errno.h>
 
 #include "debug.h"
 #include "version.h"
 #include "lib-std.h"
 #include "lib-sf.h"
 #include "titles.h"
+#include "iso-interface.h"
 #include "wbfs-interface.h"
 
 #include "ui-wfuse.c"
@@ -179,18 +181,19 @@ static void unlock_mutex()
 
 typedef struct DiscFile_t
 {
-    bool	used;		// false: entry not used
-    uint	lock_count;	// number of locks
-    time_t	timestamp;	// timestamp of last usage
+    bool		used;		// false: entry not used
+    uint		lock_count;	// number of locks
+    time_t		timestamp;	// timestamp of last usage
 
-    int		slot;		// -1 or slot index of WBFS
-    WBFS_t	* wbfs;		// NULL or wbfs
-    SuperFile_t * sf;		// NULL or file pointer
-    wd_disc_t	* disc;		// NULL or disc pointer
+    int			slot;		// -1 or slot index of WBFS
+    WBFS_t		* wbfs;		// NULL or wbfs
+    SuperFile_t 	* sf;		// NULL or file pointer
+    wd_disc_t		* disc;		// NULL or disc pointer
+    volatile WiiFst_t	* fst;		// NULL or collected files
 
-    struct stat	stat_dir;	// template for directories
-    struct stat	stat_file;	// template for regular files
-    struct stat	stat_link;	// template for soft links
+    struct stat		stat_dir;	// template for directories
+    struct stat		stat_file;	// template for regular files
+    struct stat		stat_link;	// template for soft links
 
 } DiscFile_t;
 
@@ -204,7 +207,7 @@ int n_dfile = 0;
 
 ///////////////////////////////////////////////////////////////////////////////
 
-DiscFile_t * GetDiscFile ( int slot )
+static DiscFile_t * get_disc_file ( int slot )
 {
     DiscFile_t * df;
     DiscFile_t * end_dfile = dfile + MAX_DISC_FILES;
@@ -237,6 +240,13 @@ DiscFile_t * GetDiscFile ( int slot )
 	{
 	    TRACE(">>D<< CLOSE DISC #%zu, slot=%d, lock=%d, n=%d/%d\n",
 		df-dfile, df->slot, df->lock_count, n_dfile, MAX_DISC_FILES );
+	    if (df->fst)
+	    {
+		WiiFst_t * fst = (WiiFst_t*)df->fst; // avoid volatile warnings
+	        df->fst = 0;
+	        ResetFST(fst);
+	        free(fst);
+	    }
 	    ResetWBFS(df->wbfs);
 	    free(df->wbfs);
 	    memset(df,0,sizeof(df));
@@ -273,6 +283,8 @@ DiscFile_t * GetDiscFile ( int slot )
 	}
 	else
 	{
+	    wd_calc_disc_status(disc,true);
+
 	    found_df->used		= true;
 	    found_df->lock_count	= 1;
 	    found_df->slot		= slot;
@@ -325,7 +337,7 @@ DiscFile_t * GetDiscFile ( int slot )
 
 ///////////////////////////////////////////////////////////////////////////////
 
-void FreeDiscFile ( DiscFile_t * df )
+static void free_disc_file ( DiscFile_t * df )
 {
     if (df)
     {
@@ -341,9 +353,189 @@ void FreeDiscFile ( DiscFile_t * df )
     }
 }
 
+///////////////////////////////////////////////////////////////////////////////
+
+static WiiFst_t * get_fst ( DiscFile_t * df )
+{
+    DASSERT(df);
+    WiiFst_t * fst = (WiiFst_t*)df->fst; // cast to avaoid volatile warnings
+    if (!fst)
+    {
+	lock_mutex();
+	fst = (WiiFst_t*)df->fst;
+	if (!fst)
+	{
+	    fst = malloc(sizeof(*fst));
+	    if (!fst)
+		OUT_OF_MEMORY;
+	    InitializeFST(fst);
+	    CollectFST(fst,df->disc,0,false,WD_IPM_SLASH,true);
+	    SortFST(fst,SORT_NAME,SORT_NAME);
+	    df->fst = fst;
+	}
+	unlock_mutex();
+    }
+    return fst;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+static int get_fst_pointer // return relevant subpath length; -1 on error
+(
+    WiiFstPart_t	** found_part,	// not NULL: store found partition
+    WiiFstFile_t	** found_file,	// not NULL: store first founds item
+    WiiFstFile_t	** list_end,	// not NULL: store end of list
+    DiscFile_t		* df,		// valid disc file
+    wd_part_t		* part,		// NULL or relevant partition
+    ccp			subpath		// NULL or subpath
+)
+{
+    DASSERT(df);
+    TRACE("get_fst_pointer(...,%s)\n",subpath);
+
+    if (found_part)
+	*found_part = 0;
+    if (found_file)
+	*found_file = 0;
+    if (list_end)
+	*list_end = 0;
+    if (!part)
+	return -1;
+    if (!subpath)
+	subpath = "";
+
+    WiiFst_t * fst = get_fst(df);
+    if (fst)
+    {
+	WiiFstPart_t *fst_part, *part_end = fst->part + fst->part_used;
+	for ( fst_part = fst->part; fst_part < part_end; fst_part++ )
+	    if ( part == fst_part->part )
+	    {
+		noTRACE("PART-FOUND:\n");
+		// [2do] binary search
+
+		int slen = strlen(subpath);
+		WiiFstFile_t * ptr = fst_part->file;
+		WiiFstFile_t * end = ptr + fst_part->file_used;
+		for ( ; ptr < end; ptr++ )
+		{
+		    noTRACE("CHECK: %s\n",ptr->path);
+		    if (!memcmp(subpath,ptr->path,slen))
+		    {
+			const char ch = ptr->path[slen];
+			noTRACE("FOUND[%02x]: %s\n",ch,ptr->path);
+			if ( !ch || ch == '/' )
+			{
+			    if (found_part)
+				*found_part = fst_part;
+			    if (found_file)
+				*found_file = ptr;
+			    if (list_end)
+				*list_end = end;
+			    return slen;
+			}
+		    }
+		}
+		break;
+	    }
+    }
+    return -1;
+}
+
 //
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////			info helpers			///////////////
+///////////////////////////////////////////////////////////////////////////////
+
+#define INFO_SIZE 500
+
+///////////////////////////////////////////////////////////////////////////////
+
+static size_t print_root_info
+(
+    char		* pbuf,
+    size_t		bufsize
+)
+{
+    DASSERT(pbuf);
+
+    return snprintf( pbuf, bufsize,
+		"is-iso=%u\n"
+		"is-wbfs=%u\n"
+		"file-type=%s\n"
+		"file-size=%llu\n"
+		"split-count=%u\n"
+		,is_iso
+		,is_wbfs
+		,oft_info[main_sf.iod.oft].name
+		,(u64)main_sf.f.st.st_size
+		,main_sf.f.split_used > 1 ? main_sf.f.split_used : 0
+		);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+static size_t print_wbfs_info
+(
+    char		* pbuf,
+    size_t		bufsize
+)
+{
+    DASSERT(pbuf);
+    char * dest = pbuf;
+
+    wbfs_t * w = wbfs.wbfs;
+    if (w)    
+    {
+	dest += snprintf( pbuf, bufsize,
+		"hd-sector-size=%u\n"
+		"n-hd-sectors=%u\n"
+
+		"wii-sector-size=%u\n"
+		"wii-sectors=%u\n"
+		"wii-sectors-per-disc=%u\n"
+
+		"wbfs-sector-size=%u\n"
+		"wbfs-sectors=%u\n"
+		"wbfs-sectors-per-disc=%u\n"
+
+		"part-lba=%u\n"
+
+		"used-discs=%u\n"
+		"free-discs=%u\n"
+		"total-discs=%u\n"
+
+		"used-size-mib=%u\n"
+		"free-size-mib=%u\n"
+		"total-size-mib=%u\n"
+
+		,w->hd_sec_sz
+		,w->n_hd_sec
+
+		,w->wii_sec_sz
+		,w->n_wii_sec
+		,w->n_wii_sec_per_disc
+
+		,w->wbfs_sec_sz
+		,w->n_wbfs_sec
+		,w->n_wbfs_sec_per_disc
+
+		,w->part_lba
+
+		,wbfs.used_discs
+		,wbfs.free_discs
+		,wbfs.total_discs
+
+		,wbfs.used_mib
+		,wbfs.free_mib
+		,wbfs.total_mib
+		);
+    }
+
+    *dest = 0;
+    return dest - pbuf;
+}
+
 ///////////////////////////////////////////////////////////////////////////////
 
 static size_t print_iso_info
@@ -381,25 +573,72 @@ static size_t print_iso_info
 
 ///////////////////////////////////////////////////////////////////////////////
 
-static size_t print_wbfs_info
+static ccp get_sign_info ( cert_stat_t stat )
+{
+    if ( stat & CERT_F_HASH_FAILED )	return "not signed";
+    if ( stat & CERT_F_HASH_FAKED )	return "fake signed";
+    if ( stat & CERT_F_HASH_OK )	return "well signed";
+    return "";
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+static size_t print_part_info
 (
+    wd_part_t		* part,
     char		* pbuf,
     size_t		bufsize
 )
 {
+    DASSERT(part);
     DASSERT(pbuf);
-    char * dest = pbuf;
 
-    wbfs_t * w = wbfs.wbfs;
-    if (w)    
-    {
-	dest += snprintf( pbuf, bufsize,
-		"xxx=yyy\n"
+    return snprintf( pbuf, bufsize,
+		"index=%u\n"
+		"ptab=%u\n"
+		"ptab-index=%u\n"
+		"type=%x\n"
+		"size=%llu\n"
+
+		"is-overlay=%u\n"
+		"is-gc=%u\n"
+		"is-encrypted=%u\n"
+		"is-decrypted=%u\n"
+		"is-skeleton=%u\n"
+		"is-scrubbed=%u\n"
+		"ticket-signed=%s\n"
+		"tmd-signed=%s\n"
+
+		"start-sector=%u\n"
+		"end-sector=%u\n"
+
+		"fst-entries=%u\n"
+		"virtual-dirs=%u\n"
+		"virtual-files=%u\n"
+
+		,part->index
+		,part->ptab_index
+		,part->ptab_part_index
+		,part->part_type
+		,part->part_size
+
+		,part->is_overlay
+		,part->is_gc
+		,0 != ( part->sector_stat & WD_SS_ENCRYPTED )
+		,0 != ( part->sector_stat & WD_SS_DECRYPTED )
+		,0 != ( part->sector_stat & WD_SS_F_SKELETON )
+		,0 != ( part->sector_stat & WD_SS_F_SCRUBBED )
+
+		,get_sign_info(part->cert_tik_stat)
+		,get_sign_info(part->cert_tmd_stat)
+
+		,part->data_sector
+		,part->end_sector
+
+		,part->fst_n
+		,part->fst_dir_count
+		,part->fst_file_count
 		);
-    }
-
-    *dest = 0;
-    return dest - pbuf;
 }
 
 //
@@ -412,6 +651,7 @@ typedef enum enumAnaPath
     AP_UNKNOWN,
 
     AP_ROOT,
+    AP_ROOT_INFO,
 
     AP_ISO,
     AP_ISO_RAW,
@@ -444,13 +684,14 @@ typedef struct AnaPath_t
 
 #define DEF_AP(a,s) { a, sizeof(s)-1, s }
 
-static AnaPath_t ana_path_tab[] =
+static AnaPath_t ana_path_tab_root[] =
 {
     DEF_AP( AP_ISO,		"/iso" ),
     DEF_AP( AP_WBFS_SLOT,	"/wbfs/slot" ),
     DEF_AP( AP_WBFS_ID,		"/wbfs/id" ),
     DEF_AP( AP_WBFS_INFO,	"/wbfs/info.txt" ),
     DEF_AP( AP_WBFS,		"/wbfs" ),
+    DEF_AP( AP_ROOT_INFO,	"/info.txt" ),
     {0,0,0}
 };
 
@@ -468,16 +709,14 @@ static AnaPath_t ana_path_tab_iso[] =
 
 //-----------------------------------------------------------------------------
 
-static ccp analyze_path ( enumAnaPath * stat, ccp path, enumAnaPath base )
+static ccp analyze_path ( enumAnaPath * stat, ccp path, AnaPath_t * tab )
 {
-    TRACE("analyze_path(%p,%s)\n",stat,path);
+    TRACE("analyze_path(%p,%s,%p)\n",stat,path,tab);
+    DASSERT(tab);
     if (!path)
 	path = "";
     const int plen = strlen(path);
 
-    const AnaPath_t * tab = base == AP_ISO
-				? ana_path_tab_iso
-				: ana_path_tab;
     for ( ; tab->path; tab++ )
     {
 	if ( ( plen == tab->len || plen > tab->len && path[tab->len] == '/' )
@@ -620,6 +859,23 @@ static int analyze_wbfs_id
 ///////////////			wfuse_getattr()			///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
+static u64 get_iso_size
+(
+    DiscFile_t		* df
+)
+{
+    DASSERT(df);
+
+    u64 fsize = df->sf->file_size;
+    if (!fsize)
+	fsize = (u64)WII_SECTOR_SIZE
+		* ( df->disc->usage_max > WII_SECTORS_SINGLE_LAYER
+		  ? df->disc->usage_max : WII_SECTORS_SINGLE_LAYER );
+    return fsize;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
 static int wfuse_getattr_iso
 (
     const char		* path,
@@ -633,10 +889,10 @@ static int wfuse_getattr_iso
     DASSERT(df);
     DASSERT(df->sf);
 
-    char pbuf[200];
+    char pbuf[INFO_SIZE];
 
     enumAnaPath ap;
-    ccp subpath = analyze_path(&ap,path,AP_ISO);
+    ccp subpath = analyze_path(&ap,path,ana_path_tab_iso);
 
     switch(ap)
     {
@@ -646,17 +902,10 @@ static int wfuse_getattr_iso
 	    return 0;
 
 	case AP_ISO_RAW:
-	    TRACE(" -> AP_ISO_RAW, sub=|%s|\n",subpath);
 	    if (!*subpath)
 	    {
 		memcpy(st,&df->stat_file,sizeof(*st));
-		st->st_size = df->sf->file_size;
-		if (!st->st_size)
-		{
-		    st->st_size = (u64)WII_SECTOR_SIZE
-				* ( df->disc->usage_max > WII_SECTORS_SINGLE_LAYER
-				  ? df->disc->usage_max : WII_SECTORS_SINGLE_LAYER );
-		}
+		st->st_size = get_iso_size(df);
 		return 0;
 	    }
 	    break;
@@ -678,16 +927,45 @@ static int wfuse_getattr_iso
 		    st->st_nlink += df->disc->n_part;
 		return 0;
 	    }
-	    else
+
+	    wd_part_t * part = analyze_part(&subpath,subpath,df->disc);
+	    if (part)
 	    {
-		wd_part_t * part = analyze_part(&subpath,subpath,df->disc);
-		if (part)
+		if (!strcmp(subpath,"/info.txt"))
 		{
-		    memcpy(st,&df->stat_dir,sizeof(*st));
+		    memcpy(st,&df->stat_file,sizeof(*st));
+		    st->st_size = print_part_info(part,pbuf,sizeof(pbuf));
 		    return 0;
 		}
-		memcpy(st,&df->stat_file,sizeof(*st));
-		return 0;
+		
+		WiiFstFile_t *file, *end;
+		const uint slen = get_fst_pointer(0,&file,&end,df,part,subpath);
+		if (file)
+		{
+		    if ( file->icm == WD_ICM_DIRECTORY )
+		    {
+			memcpy(st,&df->stat_dir,sizeof(*st));
+			for ( file++; file < end && !memcmp(subpath,file->path,slen); file++ )
+			{
+			    if ( file->icm == WD_ICM_DIRECTORY )
+			    {
+				ccp path = file->path+slen;
+				if ( *path == '/' )
+				{
+				    path++;
+				    if ( *path && !strchr(path,'/') )
+					st->st_nlink++;
+				}
+			    }
+			}
+		    }
+		    else
+		    {
+			memcpy(st,&df->stat_file,sizeof(*st));
+			st->st_size = file->size;
+		    }
+		    return 0;
+		}
 	    }
 	    break;
 
@@ -723,9 +1001,9 @@ static int wfuse_getattr
     DASSERT(st);
 
     enumAnaPath ap;
-    ccp subpath = analyze_path(&ap,path,AP_ROOT);
+    ccp subpath = analyze_path(&ap,path,ana_path_tab_root);
 
-    char pbuf[200];
+    char pbuf[INFO_SIZE];
 
     switch(ap)
     {
@@ -733,6 +1011,15 @@ static int wfuse_getattr
 	    memcpy(st,&stat_dir,sizeof(*st));
 	    st->st_nlink = is_wbfs_iso ? 4 : 3;
 	    return 0;
+		
+	case AP_ROOT_INFO:
+	    if (!*subpath)
+	    {
+		memcpy(st,&stat_file,sizeof(*st));
+		st->st_size = print_root_info(pbuf,sizeof(pbuf));
+		return 0;
+	    }
+	    break;
 		
 	case AP_ISO:
 	    noTRACE(" -> AP_ISO, sub=%s\n",subpath);
@@ -786,11 +1073,11 @@ static int wfuse_getattr
 		    return 0;
 		}
 
-		DiscFile_t * df = GetDiscFile(slot);
+		DiscFile_t * df = get_disc_file(slot);
 		if (df)
 		{
 		    const int stat = wfuse_getattr_iso(subpath,st,df);
-		    FreeDiscFile(df);
+		    free_disc_file(df);
 		    return stat;
 		}
 	    }
@@ -835,6 +1122,171 @@ static int wfuse_getattr
 
 //
 ///////////////////////////////////////////////////////////////////////////////
+///////////////			wfuse_read()			///////////////
+///////////////////////////////////////////////////////////////////////////////
+
+static int copy_helper
+(
+    char		* buf,		// read buffer
+    size_t		size,		// size of buf and size to read
+    off_t		offset,		// read offset
+    const void		* src,		// source buffer
+    size_t		src_len		// length of 'copy_buf'
+) 
+{
+    DASSERT(buf);
+    DASSERT(src);
+
+    if ( offset >= src_len )
+	return 0;
+
+    src_len -= offset;
+    if ( src_len > size )
+	 src_len = size;
+    memcpy(buf,(ccp)src+offset,src_len);
+    return src_len;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+static int wfuse_read_iso
+(
+    const char		* path,		// path to the file
+    char		* buf,		// read buffer
+    size_t		size,		// size of buf and size to read
+    off_t		offset,		// read offset
+    fuse_file_info	* info,		// fuse info
+
+    DiscFile_t		* df,		// related disc file
+    char		* pbuf,		// temporary print buffer
+    size_t		pbuf_size	// size of 'pbuf'
+) 
+{
+    TRACE("##### wfuse_read_iso(%s,%llu+%zu)\n",path,(u64)offset,size);
+
+    enumAnaPath ap;
+    ccp subpath = analyze_path(&ap,path,ana_path_tab_iso);
+    wd_part_t * part;
+
+    switch(ap)
+    {
+	case AP_ISO_INFO:
+	    if (!*subpath)
+		return copy_helper(buf,size,offset,pbuf,
+					print_iso_info(df,pbuf,pbuf_size));
+	    break;
+
+	case AP_ISO_RAW:
+	    if (!*subpath)
+	    {
+		const u64 fsize = get_iso_size(df);
+		if ( offset < fsize )
+		{
+		    if ( size > fsize - offset )
+			 size = fsize - offset;
+		    return ReadSF(df->sf,offset,buf,size) ? -EIO : size;
+		}
+	    }
+	    return 0;
+
+	case AP_ISO_PART:
+	    part = analyze_part(&subpath,subpath,df->disc);
+	    if ( part && *subpath )
+	    {
+		if (!strcmp(subpath,"/info.txt"))
+		    return copy_helper(buf,size,offset,pbuf,
+					print_part_info(part,pbuf,pbuf_size));
+
+		WiiFstPart_t *fst_part;
+		WiiFstFile_t *file;
+		get_fst_pointer(&fst_part,&file,0,df,part,subpath);
+		if ( file && file->icm != WD_ICM_DIRECTORY )
+		{
+		    if ( offset < file->size )
+		    {
+			if ( size > file->size - offset )
+			     size = file->size - offset;
+			lock_mutex();
+			int stat = ReadFileFST(fst_part,file,offset,buf,size) ? -EIO : size;
+			unlock_mutex();
+			return stat;
+		    }
+		    return 0;
+		}
+	    }
+	    break;
+
+	default:
+	    break;
+    }
+
+    return -ENOENT;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+static int wfuse_read
+(
+    const char		* path,		// path to the file
+    char		* buf,		// read buffer
+    size_t		size,		// size of buf and size to read
+    off_t		offset,		// read offset
+    fuse_file_info	* info		// fuse info
+) 
+{
+    TRACE("##### wfuse_read(%s,%llu+%zu)\n",path,(u64)offset,size);
+
+    enumAnaPath ap;
+    ccp subpath = analyze_path(&ap,path,ana_path_tab_root);
+
+    char pbuf[INFO_SIZE];
+
+    switch(ap)
+    {
+	case AP_ROOT_INFO:
+	    if (!*subpath)
+		return copy_helper(buf,size,offset,pbuf,
+					print_root_info(pbuf,sizeof(pbuf)));
+	    break;
+
+	case AP_ISO:
+	    return wfuse_read_iso( subpath, buf, size, offset, info,
+					dfile, pbuf,sizeof(pbuf) );
+
+	case AP_WBFS_SLOT:
+	    if ( is_wbfs && *subpath )
+	    {
+		const int slot = analyze_slot(&subpath,subpath);
+		if ( slot >= 0 )
+		{
+		    DiscFile_t * df = get_disc_file(slot);
+		    if (df)
+		    {
+			const int stat
+			    = wfuse_read_iso( subpath, buf, size, offset, info,
+					df, pbuf,sizeof(pbuf) );
+			free_disc_file(df);
+			return stat;
+		    }
+		}
+	    }
+	    break;
+
+	case AP_WBFS_INFO:
+	    if (!*subpath)
+		return copy_helper(buf,size,offset,pbuf,
+					print_wbfs_info(pbuf,sizeof(pbuf)));
+	    break;
+
+	default:
+	    break;
+    }
+
+    return -ENOENT;
+}
+
+//
+///////////////////////////////////////////////////////////////////////////////
 ///////////////			wfuse_readlink()		///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -851,7 +1303,7 @@ static int wfuse_readlink_iso
     DASSERT(df);
 
     enumAnaPath ap;
-    ccp subpath = analyze_path(&ap,path,AP_ISO);
+    ccp subpath = analyze_path(&ap,path,ana_path_tab_iso);
 
     switch(ap)
     {
@@ -931,7 +1383,7 @@ static int wfuse_readlink
     DASSERT(fuse_buf);
 
     enumAnaPath ap;
-    ccp subpath = analyze_path(&ap,path,AP_ROOT);
+    ccp subpath = analyze_path(&ap,path,ana_path_tab_root);
 
     switch(ap)
     {
@@ -956,12 +1408,12 @@ static int wfuse_readlink
 		const int slot = analyze_slot(&subpath,subpath);
 		if ( slot >= 0 )
 		{
-		    DiscFile_t * df = GetDiscFile(slot);
+		    DiscFile_t * df = get_disc_file(slot);
 		    if (df)
 		    {
 			const int stat
 			    = wfuse_readlink_iso(subpath,fuse_buf,bufsize,df);
-			FreeDiscFile(df);
+			free_disc_file(df);
 			return stat;
 		    }
 		}
@@ -996,7 +1448,7 @@ static int wfuse_readdir_iso
     DASSERT(df->sf);
 
     enumAnaPath ap;
-    ccp subpath = analyze_path(&ap,path,AP_ISO);
+    ccp subpath = analyze_path(&ap,path,ana_path_tab_iso);
 
     char pbuf[100];
 
@@ -1039,6 +1491,32 @@ static int wfuse_readdir_iso
 		    if (disc->main_part)
 			filler(fuse_buf,"main",0,0);
 		}
+		return 0;
+	    }
+	    
+	    wd_part_t * part = analyze_part(&subpath,subpath,df->disc);
+	    if (part)
+	    {
+		if (!*subpath)
+		    filler(fuse_buf,"info.txt",0,0);
+
+		WiiFstFile_t *ptr, *end;
+		int slen = get_fst_pointer(0,&ptr,&end,df,part,subpath);
+		if ( slen >= 0 )
+		{
+		    for ( ; ptr < end && !memcmp(subpath,ptr->path,slen); ptr++ )
+		    {
+			ccp path = ptr->path+slen;
+			noTRACE("XCHECK: %s\n",path);
+			if ( *path == '/' )
+			{
+			    path++;
+			    TRACE("PATH: %s\n",path);
+			    if ( *path && !strchr(path,'/') )
+				filler(fuse_buf,path,0,0);
+			}
+		    }
+		}
 	    }
 	    break;
 
@@ -1064,7 +1542,7 @@ static int wfuse_readdir
 
     DASSERT(filler);
     enumAnaPath ap;
-    ccp subpath = analyze_path(&ap,path,AP_ROOT);
+    ccp subpath = analyze_path(&ap,path,ana_path_tab_root);
 
     char pbuf[20];
 
@@ -1079,6 +1557,7 @@ static int wfuse_readdir
 		    filler(fuse_buf,"iso",0,0);
 		if (is_wbfs)
 		    filler(fuse_buf,"wbfs",0,0);
+		filler(fuse_buf,"info.txt",0,0);
 	    }
 	    break;
 		
@@ -1121,12 +1600,12 @@ static int wfuse_readdir
 		const int slot = analyze_slot(&subpath,subpath);
 		if ( slot >= 0 )
 		{
-		    DiscFile_t * df = GetDiscFile(slot);
+		    DiscFile_t * df = get_disc_file(slot);
 		    if (df)
 		    {
 			const int stat
 			    = wfuse_readdir_iso(subpath,fuse_buf,filler,offset,info,df);
-			FreeDiscFile(df);
+			free_disc_file(df);
 			return stat;
 		    }
 		}
@@ -1163,12 +1642,13 @@ static int wfuse_readdir
 
 int main ( int argc, char ** argv )
 {
-    SetupLib(argc,argv,WFUSE_SHORT,PROG_WFUSE);
+    //----- setup
 
+    SetupLib(argc,argv,WFUSE_SHORT,PROG_WFUSE);
     InitializeSF(&main_sf);
     InitializeWBFS(&wbfs);
     memset(&dfile,0,sizeof(dfile));
-//    wbfs_cache_enabled = false; // [2do] is 'wbfs_cache_enabled' [obsolete] ?
+    GetTitle("ABC",0); // force loading title DB
 
 
     //----- process arguments
@@ -1254,6 +1734,8 @@ int main ( int argc, char ** argv )
 	if (!disc)
 	    return ERR_INVALID_FILE;
 
+	wd_calc_disc_status(disc,true);
+
 	// setup the only disc file!
 	dfile->used		= true;
 	dfile->lock_count	= 1;
@@ -1274,8 +1756,6 @@ int main ( int argc, char ** argv )
 			GetNameFT(ftype,0), source_file );
     }
 
-    GetTitle("ABC",0); // force loading title DB
-
     printf("mount %s:%s -> %s\n",
 		oft_info[main_sf.iod.oft].name, source_file, mount_point );
     source_file = realpath(source_file,0);
@@ -1293,10 +1773,9 @@ int main ( int argc, char ** argv )
     static struct fuse_operations wfuse_oper =
     {
 	.getattr    = wfuse_getattr,
+	.read	    = wfuse_read,
 	.readlink   = wfuse_readlink,
 	.readdir    = wfuse_readdir,
-//	.open	    = wfuse_open,
-//	.read	    = wfuse_read,
     };
 
     return fuse_main(ac,av,&wfuse_oper);

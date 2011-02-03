@@ -3911,8 +3911,8 @@ enumError DiffFilesSF
 		    while ( size > 0 )
 		    {
 			const u32 read_size = size < BUF_SIZE ? size : BUF_SIZE;
-			if (   ReadFileFST(p1,file1,off4,buf1,read_size)
-			    || ReadFileFST(p2,file2,off4,buf2,read_size) )
+			if (   ReadFileFST4(p1,file1,off4,buf1,read_size)
+			    || ReadFileFST4(p2,file2,off4,buf2,read_size) )
 			{
 			    err = ERR_READ_FAILED;
 			    goto abort;

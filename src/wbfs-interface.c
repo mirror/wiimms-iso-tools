@@ -850,7 +850,7 @@ enumError CheckParamRename ( bool rename_id, bool allow_plus, bool allow_index )
 
 static WBFS_t wbfs_cache;
 static bool wbfs_cache_valid = false;
-bool wbfs_cache_enabled = true;
+bool wbfs_cache_enabled = true;	 // [2do] is 'wbfs_cache_enabled' [obsolete] ?
 
 //-----------------------------------------------------------------------------
 
