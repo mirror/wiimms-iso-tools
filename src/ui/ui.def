@@ -7700,8 +7700,8 @@
 
 #:def_tool( "wfuse", \
 	"wfuse [option]... source mountdir", \
-	"Mount the source file on mount point using FUSE (Filesystem in" \
-	" Userspace)." )
+	"Mount a Wii or GameCube image or a WBFS file or partition to a mount" \
+	" point using FUSE (Filesystem in Userspace)." )
 
 #:def_opt( "VERSION", "V|version", "G", \
 	"", \
@@ -7726,6 +7726,18 @@
 	" open() function. The value '1' defines that WBFS IO is based on" \
 	" fopen() function. The value '2' defines the same for ISO files and" \
 	" value '4' for WIA files. You can combine the values by adding them." )
+
+#:def_opt( "HELP_FUSE", "H|help-fuse|helpfuse", "G", \
+	"", \
+	"Stop parsing the command line and print a FUSE help message." )
+
+#:def_opt( "OPTION", "o|option", "GP", \
+	"param", \
+	"This option is forwarded to FUSE as @'-o param'@." )
+
+#:def_opt( "PARAM", "p|param", "GP", \
+	"param", \
+	"The parameter is forwarded to the FUSE command line scanner." )
 
 
 ##

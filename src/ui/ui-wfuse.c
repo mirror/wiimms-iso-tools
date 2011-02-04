@@ -78,7 +78,22 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 	" value '4' for WIA files. You can combine the values by adding them."
     },
 
-    {0,0,0,0,0} // OPT__N_TOTAL == 6
+    {	OPT_HELP_FUSE, 'H', "help-fuse",
+	0,
+	"Stop parsing the command line and print a FUSE help message."
+    },
+
+    {	OPT_OPTION, 'o', "option",
+	"param",
+	"This option is forwarded to FUSE as '-o param'."
+    },
+
+    {	OPT_PARAM, 'p', "param",
+	"param",
+	"The parameter is forwarded to the FUSE command line scanner."
+    },
+
+    {0,0,0,0,0} // OPT__N_TOTAL == 9
 
 };
 
@@ -87,7 +102,7 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 ///////////////            OptionShort & OptionLong             ///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-const char OptionShort[] = "Vh";
+const char OptionShort[] = "VhHo:p:";
 
 const struct option OptionLong[] =
 {
@@ -96,6 +111,10 @@ const struct option OptionLong[] =
 	{ "xhelp",		0, 0, GO_XHELP },
 	{ "width",		1, 0, GO_WIDTH },
 	{ "io",			1, 0, GO_IO },
+	{ "help-fuse",		0, 0, 'H' },
+	 { "helpfuse",		0, 0, 'H' },
+	{ "option",		1, 0, 'o' },
+	{ "param",		1, 0, 'p' },
 
 	{0,0,0,0}
 };
@@ -113,14 +132,17 @@ const u8 OptionIndex[OPT_INDEX_SIZE] =
 	/*10*/	 0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0,
 	/*20*/	 0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0,
 	/*30*/	 0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0,
-	/*40*/	 0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0,
-	/*50*/	 0,0,0,0, 0,0,
+	/*40*/	 0,0,0,0, 0,0,0,0, 
+	/*48*/	OPT_HELP_FUSE,
+	/*49*/	 0,0,0,0, 0,0,0,0, 0,0,0,0, 0,
 	/*56*/	OPT_VERSION,
 	/*57*/	 0,0,0,0, 0,0,0,0, 0,
 	/*60*/	 0,0,0,0, 0,0,0,0, 
 	/*68*/	OPT_HELP,
-	/*69*/	 0,0,0,0, 0,0,0,
-	/*70*/	 0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0,
+	/*69*/	 0,0,0,0, 0,0,
+	/*6f*/	OPT_OPTION,
+	/*70*/	OPT_PARAM,
+	/*71*/	 0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,
 	/*80*/	OPT_XHELP,
 	/*81*/	OPT_WIDTH,
 	/*82*/	OPT_IO,
@@ -147,6 +169,12 @@ const InfoOption_t * option_tab_tool[] =
 	OptionInfo + OPT_WIDTH,
 	OptionInfo + OPT_IO,
 
+	OptionInfo + OPT_NONE, // separator
+
+	OptionInfo + OPT_HELP_FUSE,
+	OptionInfo + OPT_OPTION,
+	OptionInfo + OPT_PARAM,
+
 	0
 };
 
@@ -164,9 +192,9 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	"wfuse",
 	0,
 	"wfuse [option]... source mountdir",
-	"Mount the source file on mount point using FUSE (Filesystem in"
-	" Userspace).",
-	5,
+	"Mount a Wii or GameCube image or a WBFS file or partition to a mount"
+	" point using FUSE (Filesystem in Userspace).",
+	8,
 	option_tab_tool,
 	0
     },

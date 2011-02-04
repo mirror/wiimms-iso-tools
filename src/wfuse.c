@@ -59,6 +59,9 @@
 	" " SYSTEM " - " AUTHOR " - " DATE
 
 ///////////////////////////////////////////////////////////////////////////////
+// http://fuse.sourceforge.net/
+// http://sourceforge.net/apps/mediawiki/fuse/index.php?title=API
+///////////////////////////////////////////////////////////////////////////////
 
 typedef enum enumOpenMode
 {
@@ -93,10 +96,34 @@ static pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 
 //
 ///////////////////////////////////////////////////////////////////////////////
+///////////////			    args			///////////////
+///////////////////////////////////////////////////////////////////////////////
+
+#define MAX_WBFUSE_ARG 100
+static char * wbfuse_argv[MAX_WBFUSE_ARG];
+static int wbfuse_argc = 0;
+
+//-----------------------------------------------------------------------------
+
+static void add_arg ( char * arg1, char * arg2 )
+{
+    if (arg1)
+    {
+	if ( wbfuse_argc == MAX_WBFUSE_ARG )
+	    exit(ERROR0(ERR_SYNTAX,"To many options."));
+	wbfuse_argv[wbfuse_argc++] = arg1;
+    }
+
+    if (arg2)
+	add_arg(arg2,0);
+}
+
+//
+///////////////////////////////////////////////////////////////////////////////
 ///////////////			built in help			///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-void help_exit()
+static void help_exit()
 {
     PrintHelpCmd(&InfoUI,stdout,0,0,0,0);
     exit(ERR_OK);
@@ -104,7 +131,17 @@ void help_exit()
 
 ///////////////////////////////////////////////////////////////////////////////
 
-void version_exit()
+static void help__fuse_exit()
+{
+    add_arg("--help",0);
+    static struct fuse_operations wfuse_oper = {0};
+    fuse_main(wbfuse_argc,wbfuse_argv,&wfuse_oper);
+    exit(ERR_OK);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+static void version_exit()
 {
     printf("%s\n",TITLE);
     exit(ERR_OK);
@@ -112,7 +149,7 @@ void version_exit()
 
 ///////////////////////////////////////////////////////////////////////////////
 
-void hint_exit ( enumError stat )
+static void hint_exit ( enumError stat )
 {
     fprintf(stderr,
 	    "-> Type '%s -h' (or better '%s -h|less') for more help.\n\n",
@@ -120,6 +157,7 @@ void hint_exit ( enumError stat )
     exit(stat);
 }
 
+///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
 static enumError CheckOptions ( int argc, char ** argv )
@@ -142,6 +180,10 @@ static enumError CheckOptions ( int argc, char ** argv )
 	case GO_XHELP:		help_exit();
 	case GO_WIDTH:		err += ScanOptWidth(optarg); break;
 	case GO_IO:		ScanIOMode(optarg); break;
+
+	case GO_HELP_FUSE:	help__fuse_exit();
+	case GO_OPTION:		add_arg("-o",optarg); break;
+	case GO_PARAM:		add_arg(optarg,0); break;
       }
     }
  #ifdef DEBUG
@@ -161,7 +203,6 @@ static void lock_mutex()
     int err = pthread_mutex_lock(&mutex);
     if (err)
 	TRACE("MUTEX LOCK ERR %u\n",err);
-	
 }
 
 //-----------------------------------------------------------------------------
@@ -171,8 +212,26 @@ static void unlock_mutex()
     int err = pthread_mutex_unlock(&mutex);
     if (err)
 	TRACE("MUTEX UNLOCK ERR %u\n",err);
-	
 }
+
+//
+///////////////////////////////////////////////////////////////////////////////
+///////////////			struct SlotInfo_t		///////////////
+///////////////////////////////////////////////////////////////////////////////
+
+typedef struct SlotInfo_t
+{
+    char		id6[7];
+    char		disc_title[WII_TITLE_SIZE+1];
+    ccp			title;
+    time_t		atime;
+    time_t		mtime;
+    time_t		ctime;
+
+} SlotInfo_t;
+
+static int n_slots = 0;
+static SlotInfo_t * slot_info = 0;
 
 //
 ///////////////////////////////////////////////////////////////////////////////
@@ -197,7 +256,7 @@ typedef struct DiscFile_t
 
 } DiscFile_t;
 
-#define MAX_DISC_FILES		100
+#define MAX_DISC_FILES		 50
 #define GOOD_DISC_FILES		  5
 #define DISC_FILES_TIMEOUT1	 15
 #define DISC_FILES_TIMEOUT2	 60
@@ -207,8 +266,9 @@ int n_dfile = 0;
 
 ///////////////////////////////////////////////////////////////////////////////
 
-static DiscFile_t * get_disc_file ( int slot )
+static DiscFile_t * get_disc_file ( uint slot )
 {
+    DASSERT( slot < n_slots );
     DiscFile_t * df;
     DiscFile_t * end_dfile = dfile + MAX_DISC_FILES;
     
@@ -229,7 +289,8 @@ static DiscFile_t * get_disc_file ( int slot )
     //----- not found: find first free slot && close timeouts
 
     time_t ref_time = time(0)
-		- ( n_dfile < GOOD_DISC_FILES ? DISC_FILES_TIMEOUT1 : DISC_FILES_TIMEOUT2 );
+		- ( n_dfile < GOOD_DISC_FILES
+			? DISC_FILES_TIMEOUT1 : DISC_FILES_TIMEOUT2 );
 
     DiscFile_t * found_df = 0;
     for ( df = dfile; df < end_dfile; df++ )
@@ -296,32 +357,18 @@ static DiscFile_t * get_disc_file ( int slot )
 	    memcpy(&found_df->stat_file,&stat_file,sizeof(found_df->stat_file));
 	    memcpy(&found_df->stat_link,&stat_link,sizeof(found_df->stat_link));
 
-	    wbfs_disc_t * d = wbfs->disc;
-	    if (d)
-	    {
-		wbfs_inode_info_t * iinfo = wbfs_get_disc_inode_info(d,0);
-		if (wbfs_is_inode_info_valid(wbfs->wbfs,iinfo))
-		{
-		    time_t tim = ntoh64(iinfo->atime);
-		    if (tim)
-			found_df->stat_dir .st_atime =
-			found_df->stat_file.st_atime =
-			found_df->stat_link.st_atime = tim;
+	    DASSERT(slot_info);
+	    SlotInfo_t * si = slot_info + slot;
+	    found_df  ->stat_dir .st_atime =
+	      found_df->stat_file.st_atime =
+	      found_df->stat_link.st_atime = si->atime;
+	    found_df  ->stat_dir .st_mtime =
+	      found_df->stat_file.st_mtime =
+	      found_df->stat_link.st_mtime = si->mtime;
+	    found_df  ->stat_dir .st_ctime =
+	      found_df->stat_file.st_ctime =
+	      found_df->stat_link.st_ctime = si->ctime;
 
-		    tim = ntoh64(iinfo->mtime);
-		    if (tim)
-			found_df->stat_dir .st_mtime =
-			found_df->stat_file.st_mtime =
-			found_df->stat_link.st_mtime = tim;
-
-		    tim = ntoh64(iinfo->ctime);
-		    if (tim)
-			found_df->stat_dir .st_ctime =
-			found_df->stat_file.st_ctime =
-			found_df->stat_link.st_ctime = tim;
-		}
-	    }
-	    
 	    n_dfile++;
 
 	    TRACE(">>D<< OPEN DISC #%zu, slot=%d, lock=%d, n=%d/%d\n",
@@ -482,12 +529,10 @@ static size_t print_wbfs_info
 )
 {
     DASSERT(pbuf);
-    char * dest = pbuf;
-
     wbfs_t * w = wbfs.wbfs;
-    if (w)    
-    {
-	dest += snprintf( pbuf, bufsize,
+    return !is_wbfs || !w
+	? 0
+	: snprintf( pbuf, bufsize,
 		"hd-sector-size=%u\n"
 		"n-hd-sectors=%u\n"
 
@@ -501,9 +546,9 @@ static size_t print_wbfs_info
 
 		"part-lba=%u\n"
 
-		"used-discs=%u\n"
-		"free-discs=%u\n"
-		"total-discs=%u\n"
+		"used-slots=%u\n"
+		"free-slots=%u\n"
+		"total-slots=%u\n"
 
 		"used-size-mib=%u\n"
 		"free-size-mib=%u\n"
@@ -530,10 +575,6 @@ static size_t print_wbfs_info
 		,wbfs.free_mib
 		,wbfs.total_mib
 		);
-    }
-
-    *dest = 0;
-    return dest - pbuf;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -654,7 +695,7 @@ typedef enum enumAnaPath
     AP_ROOT_INFO,
 
     AP_ISO,
-    AP_ISO_RAW,
+    AP_ISO_DISC,
     AP_ISO_INFO,
     AP_ISO_PART,
 
@@ -666,6 +707,7 @@ typedef enum enumAnaPath
     AP_WBFS,
     AP_WBFS_SLOT,
     AP_WBFS_ID,
+    AP_WBFS_TITLE,
     AP_WBFS_INFO,
 
 } enumAnaPath;
@@ -689,6 +731,7 @@ static AnaPath_t ana_path_tab_root[] =
     DEF_AP( AP_ISO,		"/iso" ),
     DEF_AP( AP_WBFS_SLOT,	"/wbfs/slot" ),
     DEF_AP( AP_WBFS_ID,		"/wbfs/id" ),
+    DEF_AP( AP_WBFS_TITLE,	"/wbfs/title" ),
     DEF_AP( AP_WBFS_INFO,	"/wbfs/info.txt" ),
     DEF_AP( AP_WBFS,		"/wbfs" ),
     DEF_AP( AP_ROOT_INFO,	"/info.txt" ),
@@ -697,7 +740,7 @@ static AnaPath_t ana_path_tab_root[] =
 
 static AnaPath_t ana_path_tab_iso[] =
 {
-    DEF_AP( AP_ISO_RAW,		"/raw.iso" ),
+    DEF_AP( AP_ISO_DISC,	"/disc.iso" ),
     DEF_AP( AP_ISO_INFO,	"/info.txt" ),
     DEF_AP( AP_ISO_PART_DATA,	"/part/data" ),
     DEF_AP( AP_ISO_PART_UPDATE,	"/part/update" ),
@@ -809,14 +852,14 @@ static int analyze_slot
 
     int found_slot = -1;
     wbfs_t * w = wbfs.wbfs;
-    if ( path[0] == '/' && w )
+    if ( slot_info && path[0] == '/' )
     {
 	char * end;
 	const uint slot = strtoul(path+1,&end,10);
 	if ( end > path+1
 	    && ( !*end || *end == '/' )
-	    && slot < w->max_disc
-	    &&  w->head->disc_table[slot] )
+	    && slot < n_slots
+	    && w->head->disc_table[slot] )
 	{
 	    found_slot = slot;
 	    path = end;
@@ -832,23 +875,35 @@ static int analyze_slot
 
 static int analyze_wbfs_id
 (
-    ccp		path		// source path
+    ccp			path,		// source path
+    bool		extend		// true; allow "name [id]"
 )
 {
     TRACE("analyze_wbfs_id(%s)\n",path);
     DASSERT(path);
 
-    wbfs_t * w = wbfs.wbfs;
-    if ( path[0] == '/' && strlen(path) == 7 && w )
+    if (!slot_info)
+	return -1;
+
+    const int slen = strlen(path);
+    bool ok = path[0] == '/' && slen == 7;
+    if ( !ok
+	&& extend
+	&& slen >= 8
+	&& path[slen-8] == '['
+	&& path[slen-1] == ']' )
     {
-	id6_t * id_list = wbfs_load_id_list(w,false);
-	if (id_list)
-	{
-	    int slot;
-	    for ( slot = 0; slot < w->max_disc; slot++ )
-		if ( w->head->disc_table[slot] && !memcmp(path+1,id_list[slot],6) )
-		    return slot;
-	}
+	ok = true;
+	path += slen - 8;
+    }
+    noTRACE("ANA-ID: ok=%d, extend=%d, path=|%s|\n",ok,extend,path);
+
+    if (ok)
+    {
+	int slot;
+	for ( slot = 0; slot < n_slots; slot++ )
+	    if ( !memcmp(path+1,slot_info[slot].id6,6) )
+		return slot;
     }
 
     return -1;
@@ -901,7 +956,7 @@ static int wfuse_getattr_iso
 	    st->st_nlink = 3;
 	    return 0;
 
-	case AP_ISO_RAW:
+	case AP_ISO_DISC:
 	    if (!*subpath)
 	    {
 		memcpy(st,&df->stat_file,sizeof(*st));
@@ -945,7 +1000,9 @@ static int wfuse_getattr_iso
 		    if ( file->icm == WD_ICM_DIRECTORY )
 		    {
 			memcpy(st,&df->stat_dir,sizeof(*st));
-			for ( file++; file < end && !memcmp(subpath,file->path,slen); file++ )
+			for ( file++;
+			      file < end && !memcmp(subpath,file->path,slen);
+			      file++ )
 			{
 			    if ( file->icm == WD_ICM_DIRECTORY )
 			    {
@@ -1047,7 +1104,7 @@ static int wfuse_getattr
 	    if ( is_wbfs && !*subpath )
 	    {
 		memcpy(st,&stat_dir,sizeof(*st));
-		st->st_nlink = 4;
+		st->st_nlink = 5;
 		return 0;
 	    }
 	    break;
@@ -1070,6 +1127,11 @@ static int wfuse_getattr
 		{
 		    memcpy(st,&stat_dir,sizeof(*st));
 		    st->st_nlink = 3;
+		    DASSERT(slot_info);
+		    SlotInfo_t * si = slot_info + slot;
+		    st->st_atime = si->atime;
+		    st->st_mtime = si->mtime;
+		    st->st_ctime = si->ctime;
 		    return 0;
 		}
 
@@ -1084,20 +1146,24 @@ static int wfuse_getattr
 	    break;
 	    
 	case AP_WBFS_ID:
+	case AP_WBFS_TITLE:
 	    if (!is_wbfs)
 		break;
 	    if (!*subpath)
 	    {
 		memcpy(st,&stat_dir,sizeof(*st));
-		st->st_nlink = 2 + wbfs.used_discs;
 		return 0;
 	    }
 	    else
 	    {
-		int slot = analyze_wbfs_id(subpath);
+		int slot = analyze_wbfs_id(subpath,ap==AP_WBFS_TITLE);
 		if ( slot >= 0 )
 		{
 		    memcpy(st,&stat_link,sizeof(*st));
+		    SlotInfo_t * si = slot_info + slot;
+		    st->st_atime = si->atime;
+		    st->st_mtime = si->mtime;
+		    st->st_ctime = si->ctime;
 		    return 0;
 		}
 	    }
@@ -1176,7 +1242,7 @@ static int wfuse_read_iso
 					print_iso_info(df,pbuf,pbuf_size));
 	    break;
 
-	case AP_ISO_RAW:
+	case AP_ISO_DISC:
 	    if (!*subpath)
 	    {
 		const u64 fsize = get_iso_size(df);
@@ -1391,9 +1457,10 @@ static int wfuse_readlink
 	    return wfuse_readlink_iso(subpath,fuse_buf,bufsize,dfile);
 	    
 	case AP_WBFS_ID:
+	case AP_WBFS_TITLE:
 	    if ( is_wbfs && *subpath )
 	    {
-		int slot = analyze_wbfs_id(subpath);
+		int slot = analyze_wbfs_id(subpath,ap==AP_WBFS_TITLE);
 		if ( slot >= 0 )
 		    snprintf(fuse_buf,bufsize,"../slot/%u/",slot);
 		return 0;
@@ -1460,7 +1527,7 @@ static int wfuse_readdir_iso
 		filler(fuse_buf,".",0,0);
 		filler(fuse_buf,"..",0,0);
 		filler(fuse_buf,"part",0,0);
-		filler(fuse_buf,"raw.iso",0,0);
+		filler(fuse_buf,"disc.iso",0,0);
 		filler(fuse_buf,"info.txt",0,0);
 	    }
 	    break;
@@ -1544,7 +1611,7 @@ static int wfuse_readdir
     enumAnaPath ap;
     ccp subpath = analyze_path(&ap,path,ana_path_tab_root);
 
-    char pbuf[20];
+    char pbuf[100];
 
     switch(ap)
     {
@@ -1571,6 +1638,7 @@ static int wfuse_readdir
 		filler(fuse_buf,"..",0,0);
 		filler(fuse_buf,"slot",0,0);
 		filler(fuse_buf,"id",0,0);
+		filler(fuse_buf,"title",0,0);
 		filler(fuse_buf,"info.txt",0,0);
 	    }
 	    break;
@@ -1613,18 +1681,26 @@ static int wfuse_readdir
 	    break;
     
 	case AP_WBFS_ID:
-	    if ( is_wbfs && !*subpath )
+	case AP_WBFS_TITLE:
+	    if ( is_wbfs && slot_info && !*subpath )
 	    {
 		filler(fuse_buf,".",0,0);
 		filler(fuse_buf,"..",0,0);
-		wbfs_t * w = wbfs.wbfs;
-		if (w)
+		int slot;
+		for ( slot = 0; slot < n_slots; slot++ )
 		{
-		    id6_t * id_list = wbfs_load_id_list(w,false);
-		    int slot;
-		    for ( slot = 0; slot < w->max_disc; slot++ )
-			if (w->head->disc_table[slot])
-			    filler(fuse_buf,id_list[slot],0,0);
+		    SlotInfo_t * si = slot_info + slot;
+		    if (si->id6[0])
+		    {
+			if ( ap == AP_WBFS_TITLE )
+			{
+			    snprintf(pbuf,sizeof(pbuf),
+					"%.80s [%s]", si->title, si->id6 );
+			    filler(fuse_buf,pbuf,0,0);
+			}
+			else
+			    filler(fuse_buf,si->id6,0,0);
+		    }
 		}
 	    }
 	    break;
@@ -1649,6 +1725,8 @@ int main ( int argc, char ** argv )
     InitializeWBFS(&wbfs);
     memset(&dfile,0,sizeof(dfile));
     GetTitle("ABC",0); // force loading title DB
+
+    add_arg( argv[0] ? argv[0] : WFUSE_SHORT, 0 );
 
 
     //----- process arguments
@@ -1709,7 +1787,15 @@ int main ( int argc, char ** argv )
 	wbfs.cache_candidate = false;
 	CalcWBFSUsage(&wbfs);
 
-	if ( wbfs.used_discs == 1 && wbfs.wbfs )
+	wbfs_t * w = wbfs.wbfs;
+	if (!w)
+	    return ERR_WBFS_INVALID;
+	    
+	id6_t * id_list = wbfs_load_id_list(w,false);
+	if (!id_list)
+	    return ERR_WBFS_INVALID;
+
+	if ( wbfs.used_discs == 1 )
 	{
 	    wbfs_t * w = wbfs.wbfs;
 	    wbfs_load_id_list(w,false);
@@ -1722,6 +1808,46 @@ int main ( int argc, char ** argv )
 		    open_mode = OMODE_WBFS_ISO;
 		    break;
 		}
+	}
+
+	n_slots = w->max_disc;
+	slot_info = calloc(sizeof(*slot_info),n_slots);
+	if (!slot_info)
+	    OUT_OF_MEMORY;
+	int slot;
+	for ( slot = 0; slot < n_slots; slot++ )
+	{
+	    wbfs_disc_t * d = wbfs_open_disc_by_slot(w,slot,false);
+	    if (d)
+	    {
+		SlotInfo_t * si = slot_info + slot;
+		memcpy(si->id6,id_list[slot],6);
+		memcpy(si->disc_title, d->header->dhead+WII_TITLE_OFF,
+			sizeof(si->disc_title)-1 );
+		si->title = GetTitle(si->id6,si->disc_title);
+
+		si->atime = main_sf.f.st.st_atime;
+		si->mtime = main_sf.f.st.st_mtime;
+		si->ctime = main_sf.f.st.st_ctime;
+		wbfs_inode_info_t * ii = wbfs_get_disc_inode_info(d,1);
+		if (ii)
+		{
+		    time_t tim = ntoh64(ii->atime);
+		    if (tim)
+			si->atime = tim;
+		    tim = ntoh64(ii->mtime);
+		    if (tim)
+			si->mtime = tim;
+		    tim = ntoh64(ii->ctime);
+		    if (tim)
+			si->ctime = tim;
+		}
+		PRINT("%11llx %11llx %11llx\n",
+			(u64)si->atime, (u64)si->mtime, (u64)si->ctime );
+
+		d->is_dirty = false;
+		wbfs_close_disc(d);
+	    }
 	}
     }
     else if ( ftype & FT_A_ISO )
@@ -1763,13 +1889,6 @@ int main ( int argc, char ** argv )
 
     //----- start fuse
 
-    char * av[10];
-    int ac = 0;
-    av[ac++] = argv[0];
-    av[ac++] = mount_point;
-    av[ac] = 0;
-    ASSERT( ac < sizeof(av)/sizeof(*av) );
-    
     static struct fuse_operations wfuse_oper =
     {
 	.getattr    = wfuse_getattr,
@@ -1778,8 +1897,10 @@ int main ( int argc, char ** argv )
 	.readdir    = wfuse_readdir,
     };
 
-    return fuse_main(ac,av,&wfuse_oper);
+    add_arg(mount_point,0);
+    return fuse_main(wbfuse_argc,wbfuse_argv,&wfuse_oper);
 }
+
 
 //
 ///////////////////////////////////////////////////////////////////////////////

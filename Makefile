@@ -43,7 +43,7 @@ WFUSE_SHORT		= wfuse
 WFUSE_LONG		= Wiimms FUSE Tool
 
 VERSION_NUM		= 1.27a
-BETA_VERSION		= 3
+BETA_VERSION		= 4
 			# 0:off  -1:"beta"  >0:"beta#"
 
 URI_HOME		= http://wit.wiimm.de/
@@ -252,7 +252,7 @@ IGNORE_DOC_FILES= HISTORY-v*.txt
 TITLE_FILES	= titles.txt $(patsubst %,titles-%.txt,$(LANGUAGES))
 LANGUAGES	= de es fr it ja ko nl pt ru zhcn zhtw
 
-BIN_FILES	= $(MAIN_TOOLS)
+BIN_FILES	= $(MAIN_TOOLS) $(EXTRA_TOOLS)
 SHARE_FILES	= $(TITLE_FILES)
 
 CYGWIN_DIR	= /usr/bin
@@ -289,9 +289,11 @@ $(ALL_TOOLS_X): %: %.o $(ALL_OBJECTS) $(TOBJ_ALL) Makefile | $(HELPER_TOOLS)
 	@$(CC) $(CFLAGS) $(DEFINES) $(LDFLAGS) $@.o \
 		$(ALL_OBJECTS) $(TOBJ_$@) $(LIBS) $(TLIB_$@) -o $@
 	@if test -f $@.exe; then $(STRIP) $@.exe; else $(STRIP) $@; fi
-	@mkdir -p bin/debug
-	@cp -p $@ bin
-	@if test -s $(MODE_FILE) && grep -Fq -e -DDEBUG $(MODE_FILE); then cp -p $@ bin/debug; fi
+
+	@mkdir -p bin/$(SYSTEM) bin/$(SYSTEM)/debug
+	@if test -s $(MODE_FILE) && grep -Fq -e -DDEBUG $(MODE_FILE); \
+		then cp -p $@ bin/$(SYSTEM)/debug/; \
+		else cp -p $@ bin/; cp -p $@ bin/$(SYSTEM)/; fi
 
 #--------------------------
 
@@ -435,13 +437,15 @@ debug:
 distrib2:
 ifeq ($(SYSTEM_LINUX),1)
 
-	@printf "\n---------- BUILDING LINUX/X86_64 ----------\n\n"
-	@$(MAKE) --no-print-directory clean+ distrib
-	@mv "$(DISTRIB_X86_64)" "save-$(DISTRIB_X86_64)"
-
 	@printf "\n---------- BUILDING LINUX/I386 ----------\n\n"
+	@for t in $(ALL_TOOLS_X); do rm -f bin/$$t; done
 	@M32=1 $(MAKE) --no-print-directory clean+ distrib
-	@mv "save-$(DISTRIB_X86_64)" "$(DISTRIB_X86_64)"
+	@mv "$(DISTRIB_I386)" "save-$(DISTRIB_I386)"
+
+	@printf "\n---------- BUILDING LINUX/X86_64 ----------\n\n"
+	@for t in $(ALL_TOOLS_X); do rm -f bin/$$t; done
+	@$(MAKE) --no-print-directory clean+ wfuse distrib
+	@mv "save-$(DISTRIB_I386)" "$(DISTRIB_I386)"
 
 else
 	@$(MAKE) --no-print-directory clean+ distrib
@@ -486,6 +490,8 @@ else
 
 	@cp -p $(DISTRIB_FILES) $(DISTRIB_PATH)
 	@ln -f $(MAIN_TOOLS) $(WDF_LINKS) $(DISTRIB_PATH)/bin
+	@for t in $(EXTRA_TOOLS); do [[ -f bin/$(SYSTEM)/$$t ]] \
+		&& ln -f bin/$(SYSTEM)/$$t $(DISTRIB_PATH)/bin; done || true
 	@cp -p share/*.txt $(DISTRIB_PATH)/share
 	@cp -p $(DOC_FILES) $(DISTRIB_PATH)/doc
 	@rm -f $(DISTRIB_PATH)/doc/$(IGNORE_DOC_FILES)

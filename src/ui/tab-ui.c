@@ -3379,8 +3379,8 @@ info_t info_tab[] =
 
   { T_DEF_TOOL,	"wfuse", 0,
 		"wfuse [option]... source mountdir",
-		"Mount the source file on mount point using"
-		" FUSE (Filesystem in Userspace)." },
+		"Mount a Wii or GameCube image or a WBFS file or partition"
+		" to a mount point using FUSE (Filesystem in Userspace)." },
 
   //---------- list of all options ----------
 
@@ -3399,6 +3399,19 @@ info_t info_tab[] =
   { T_OPT_GP,	"IO",		"io",
 		0, 0 /* copy of wit */ },
 
+  { T_SEP_OPT,	0,0,0,0 }, //----- separator -----
+
+  { T_OPT_S,	"HELP_FUSE",	"H|help-fuse|helpfuse",
+		0,
+		"Stop parsing the command line and print a FUSE help message." },
+
+  { T_OPT_GP,	"OPTION",	"o|option",
+		"param",
+		"This option is forwarded to FUSE as @'-o param'@." },
+
+  { T_OPT_GP,	"PARAM",	"p|param",
+		"param",
+		"The parameter is forwarded to the FUSE command line scanner." },
 
   //
   ///////////////////////////////////////////////////////////////////////////
