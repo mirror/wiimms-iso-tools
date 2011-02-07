@@ -453,7 +453,7 @@ ifeq ($(SYSTEM_LINUX),1)
 	@for t in $(ALL_TOOLS_X); do rm -f bin/$$t; done
 # a little bit tricky because wfuse is never linked static
 ifeq ($(HAVE_FUSE),1)
-	@$(MAKE) --no-print-directory clean+ fuse distrib
+	@$(MAKE) --no-print-directory clean+ wfuse distrib
 else
 	@$(MAKE) --no-print-directory clean+ distrib
 endif
