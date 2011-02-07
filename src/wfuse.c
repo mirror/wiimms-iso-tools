@@ -41,6 +41,7 @@
 #include <fuse.h>
 #include <pthread.h>
 #include <errno.h>
+#include <ctype.h>
 
 #include "debug.h"
 #include "version.h"
@@ -58,6 +59,10 @@
 #define TITLE WFUSE_SHORT ": " WFUSE_LONG " v" VERSION " r" REVISION \
 	" " SYSTEM " - " AUTHOR " - " DATE
 
+#ifndef ENOATTR
+    #define ENOATTR ENOENT
+#endif
+    
 ///////////////////////////////////////////////////////////////////////////////
 // http://fuse.sourceforge.net/
 // http://sourceforge.net/apps/mediawiki/fuse/index.php?title=API
@@ -221,12 +226,11 @@ static void unlock_mutex()
 
 typedef struct SlotInfo_t
 {
-    char		id6[7];
-    char		disc_title[WII_TITLE_SIZE+1];
-    ccp			title;
-    time_t		atime;
-    time_t		mtime;
-    time_t		ctime;
+    char		id6[7];		// ID6 of image
+    ccp			fname;		// normalized filename
+    time_t		atime;		// atime of image
+    time_t		mtime;		// mtime of image
+    time_t		ctime;		// ctime of image
 
 } SlotInfo_t;
 
@@ -983,6 +987,17 @@ static int wfuse_getattr_iso
 		return 0;
 	    }
 
+	    if ( strlen(subpath) == 5
+		 && *subpath == '/'
+		 && isalnum(subpath[1])
+		 && isalnum(subpath[2])
+		 && isalnum(subpath[3])
+		 && isalnum(subpath[4]) )
+	    {
+		memcpy(st,&df->stat_link,sizeof(*st));
+		return 0;
+	    }
+
 	    wd_part_t * part = analyze_part(&subpath,subpath,df->disc);
 	    if (part)
 	    {
@@ -1042,7 +1057,7 @@ static int wfuse_getattr_iso
     }
 
     memset(st,0,sizeof(*st));
-    return 1;
+    return -ENOATTR;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -1183,7 +1198,7 @@ static int wfuse_getattr
     }
 
     memset(st,0,sizeof(*st));
-    return 1;
+    return -ENOATTR;
 }
 
 //
@@ -1428,7 +1443,36 @@ static int wfuse_readlink_iso
 		return 0;
 	    }
 	    break;
-	    
+
+	case AP_ISO_PART:
+	    if ( strlen(subpath) == 5
+		 && *subpath == '/'
+		 && isalnum(subpath[1])
+		 && isalnum(subpath[2])
+		 && isalnum(subpath[3])
+		 && isalnum(subpath[4]) )
+	    {
+		wd_disc_t * disc = df->disc;
+		if (disc)
+		{
+		    u32 ptype = (( subpath[1] << 8 | subpath[2] ) << 8
+					| subpath[3] ) << 8 | subpath[4];
+		    int ip;
+		    for ( ip = 0; ip < disc->n_part; ip++ )
+		    {
+			wd_part_t * part = disc->part + ip;
+			if ( part->part_type == ptype )
+			{
+			    snprintf(fuse_buf,bufsize,"%u.%u/",
+				part->ptab_index, part->ptab_part_index);
+			    return 0;
+			}
+		    }
+		}
+		snprintf(fuse_buf,bufsize,"main");
+		return 0;
+	    }
+    
 	default:
 	    break;
     }
@@ -1548,6 +1592,16 @@ static int wfuse_readdir_iso
 			snprintf( pbuf, sizeof(pbuf),"%u.%u",
 				part->ptab_index, part->ptab_part_index );
 			filler(fuse_buf,pbuf,0,0);
+
+			u32 ptype = htonl(disc->part[ip].part_type);
+			ccp id4 = (ccp)&ptype;
+			if ( isalnum(id4[0]) && isalnum(id4[1])
+				&& isalnum(id4[2]) && isalnum(id4[3]) )
+			{
+			    memcpy(pbuf,id4,4);
+			    pbuf[4] = 0;
+			    filler(fuse_buf,pbuf,0,0);
+			}
 		    }
 		    if (disc->data_part)
 			filler(fuse_buf,"data",0,0);
@@ -1695,7 +1749,7 @@ static int wfuse_readdir
 			if ( ap == AP_WBFS_TITLE )
 			{
 			    snprintf(pbuf,sizeof(pbuf),
-					"%.80s [%s]", si->title, si->id6 );
+					"%.80s [%s]", si->fname, si->id6 );
 			    filler(fuse_buf,pbuf,0,0);
 			}
 			else
@@ -1775,6 +1829,8 @@ int main ( int argc, char ** argv )
 
     //----- analyze file type
 
+    char buf[200];
+
     enumFileType ftype = AnalyzeFT(&main_sf.f);
     if ( ftype & FT_ID_WBFS )
     {
@@ -1822,9 +1878,9 @@ int main ( int argc, char ** argv )
 	    {
 		SlotInfo_t * si = slot_info + slot;
 		memcpy(si->id6,id_list[slot],6);
-		memcpy(si->disc_title, d->header->dhead+WII_TITLE_OFF,
-			sizeof(si->disc_title)-1 );
-		si->title = GetTitle(si->id6,si->disc_title);
+		ccp title = GetTitle(si->id6,(ccp)d->header->dhead+WII_TITLE_OFF);
+		NormalizeFileName(buf,buf+sizeof(buf)-1,title,false)[0] = 0;
+		si->fname = strdup(buf);
 
 		si->atime = main_sf.f.st.st_atime;
 		si->mtime = main_sf.f.st.st_mtime;
@@ -1884,7 +1940,7 @@ int main ( int argc, char ** argv )
 
     printf("mount %s:%s -> %s\n",
 		oft_info[main_sf.iod.oft].name, source_file, mount_point );
-    source_file = realpath(source_file,0);
+    source_file = AllocRealPath(source_file);
 
 
     //----- start fuse
@@ -1898,9 +1954,9 @@ int main ( int argc, char ** argv )
     };
 
     add_arg(mount_point,0);
+    TRACE("CALL fuse_main(argc=%d\n",argc);
     return fuse_main(wbfuse_argc,wbfuse_argv,&wfuse_oper);
 }
-
 
 //
 ///////////////////////////////////////////////////////////////////////////////

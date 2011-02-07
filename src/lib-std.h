@@ -1415,6 +1415,7 @@ uint Count1Bits64 ( u64 data );
 
 size_t AllocTempBuffer ( size_t needed_size );
 int AddCertFile ( ccp fname, int unused );
+char * AllocRealPath ( ccp source );
 
 //
 ///////////////////////////////////////////////////////////////////////////////

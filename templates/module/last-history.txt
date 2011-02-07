@@ -9,6 +9,9 @@ wit v@@VERSION@@ r@@REV-NEXT@@ - @@@@-@@-@@
    are removed. This enables extracting of all files to s specific destination
    directory without creation of subdirectories. Command "wit files --flat"
    can be used to verify the flat names.
+ - New tool: wfuse: Mount a Wii or GameCube image or a WBFS file or partition
+   to a mount point using FUSE (Filesystem in Userspace). FUSE and wfuse are
+   not available for Cygwin/Windows.
 
 
 Known bugs:

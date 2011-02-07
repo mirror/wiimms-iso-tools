@@ -43,7 +43,7 @@ WFUSE_SHORT		= wfuse
 WFUSE_LONG		= Wiimms FUSE Tool
 
 VERSION_NUM		= 1.27a
-BETA_VERSION		= 4
+BETA_VERSION		= 5
 			# 0:off  -1:"beta"  >0:"beta#"
 
 URI_HOME		= http://wit.wiimm.de/
@@ -121,7 +121,11 @@ WBFS_COUNT	?= 4
 
 MAIN_TOOLS	:= wit wwt wdf
 TEST_TOOLS	:= wtest
-EXTRA_TOOLS	:= wfuse
+ifeq ($(SYSTEM)-$(HAVE_FUSE),mac-1)
+  MAIN_TOOLS	+= wfuse
+else
+  EXTRA_TOOLS	:= wfuse
+endif
 ALL_TOOLS	:= $(sort $(MAIN_TOOLS) $(TEST_TOOLS))
 ALL_TOOLS_X	:= $(sort $(MAIN_TOOLS) $(TEST_TOOLS) $(EXTRA_TOOLS))
 
@@ -149,7 +153,7 @@ TLIB_wwt	:=
 TLIB_wdf	:=
 TLIB_wfuse	:= -lfuse -lpthread -ldl
 
-TLIB_ALL	:= $(TLIB_wit) $(TLIB_wwt) $(TLIB_wdf) $(TLIB_wfuse)
+#TLIB_ALL	:= $(TLIB_wit) $(TLIB_wwt) $(TLIB_wdf) $(TLIB_wfuse)
 
 #-------------------------------------------------------------------------------
 # sub libs
@@ -227,6 +231,9 @@ DEFINES		=  $(strip $(DEFINES1) $(MODE) $(XDEF))
 CFLAGS		+= -fomit-frame-pointer -fno-strict-aliasing -funroll-loops
 CFLAGS		+= -Wall -Wno-parentheses -Wno-unused-function
 CFLAGS		+= -O3 -Isrc/libwbfs -Isrc/lzma -Isrc -I$(UI) -I. -Iwork
+ifeq ($(SYSTEM),mac)
+ CFLAGS		+= -I/usr/local/include
+endif
 CFLAGS		+= $(XFLAGS)
 CFLAGS		:= $(strip $(CFLAGS))
 
@@ -444,7 +451,12 @@ ifeq ($(SYSTEM_LINUX),1)
 
 	@printf "\n---------- BUILDING LINUX/X86_64 ----------\n\n"
 	@for t in $(ALL_TOOLS_X); do rm -f bin/$$t; done
-	@$(MAKE) --no-print-directory clean+ wfuse distrib
+# a little bit tricky because wfuse is never linked static
+ifeq ($(HAVE_FUSE),1)
+	@$(MAKE) --no-print-directory clean+ fuse distrib
+else
+	@$(MAKE) --no-print-directory clean+ distrib
+endif
 	@mv "save-$(DISTRIB_I386)" "$(DISTRIB_I386)"
 
 else
