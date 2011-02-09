@@ -74,8 +74,7 @@ typedef enum enumProgID
 	PROG_WIT,
 	PROG_WWT,
 	PROG_WDF,
-	PROG_WDF_CAT,
-	PROG_WDF_DUMP,
+	PROG_WFUSE,
 
 } enumProgID;
 
@@ -1416,6 +1415,7 @@ uint Count1Bits64 ( u64 data );
 
 size_t AllocTempBuffer ( size_t needed_size );
 int AddCertFile ( ccp fname, int unused );
+char * AllocRealPath ( ccp source );
 
 //
 ///////////////////////////////////////////////////////////////////////////////
@@ -1442,6 +1442,7 @@ extern int		print_old_style;
 extern int		print_sections;
 extern int		long_count;
 extern int		ignore_count;
+extern int		opt_technical;
 extern u32		job_limit;
 extern enumIOMode	io_mode;
 extern bool		opt_no_expand;

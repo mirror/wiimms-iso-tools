@@ -39,8 +39,10 @@ WWT_SHORT		= wwt
 WWT_LONG		= Wiimms WBFS Tool
 WDF_SHORT		= wdf
 WDF_LONG		= Wiimms WDF Tool
+WFUSE_SHORT		= wfuse
+WFUSE_LONG		= Wiimms FUSE Tool
 
-VERSION_NUM		= 1.26a
+VERSION_NUM		= 1.27a
 BETA_VERSION		= 0
 			# 0:off  -1:"beta"  >0:"beta#"
 
@@ -118,25 +120,51 @@ WBFS_COUNT	?= 4
 # tools
 
 MAIN_TOOLS	:= wit wwt wdf
-#MAIN_TOOLS	:= wit wwt wdf wdf-cat wdf-dump
 TEST_TOOLS	:= wtest
+EXTRA_TOOLS	:=
+
+ifeq ($(HAVE_FUSE),1)
+  MAIN_TOOLS	+= wfuse
+else
+  EXTRA_TOOLS	:= wfuse
+endif
+
 ALL_TOOLS	:= $(sort $(MAIN_TOOLS) $(TEST_TOOLS))
+ALL_TOOLS_X	:= $(sort $(MAIN_TOOLS) $(TEST_TOOLS) $(EXTRA_TOOLS))
 
 HELPER_TOOLS	:= gen-ui
 
 WDF_TEST_LINKS	:= WdfCat UnWdf WdfCmp WdfDump Ciso CisoCat UnCiso Wbi
 WDF_LINKS	:= wdf-cat wdf-dump
 
-RM_FILES	+= $(ALL_TOOLS) $(HELPER_TOOLS) $(WDF_LINKS) $(WDF_TEST_LINKS)
+RM_FILES	+= $(ALL_TOOLS_X) $(HELPER_TOOLS) $(WDF_LINKS) $(WDF_TEST_LINKS)
 
 #-------------------------------------------------------------------------------
-# tool dependent objects
+# tool dependent options and objects
+
+ifeq ($(STATIC),1)
+    OPT_STATIC	:= -static
+else
+    OPT_STATIC	:=
+endif
+
+#---------------
+
+TOPT_wit	:= $(OPT_STATIC)
+TOPT_wwt	:= $(OPT_STATIC)
+TOPT_wdf	:= $(OPT_STATIC)
+TOPT_wfuse	:= -lfuse -lpthread -ldl
+
+#TOPT_ALL	:= $(TOPT_wit) $(TOPT_wwt) $(TOPT_wdf) $(TOPT_wfuse)
+
+#---------------
 
 TOBJ_wit	:= wit-mix.o
 TOBJ_wwt	:=
 TOBJ_wdf	:=
+TOBJ_wfuse	:=
 
-TOBJ_ALL	:= $(TOBJ_wit) $(TOBJ_wwt) $(TOBJ_wdf)
+TOBJ_ALL	:= $(TOBJ_wit) $(TOBJ_wwt) $(TOBJ_wdf) $(TOBJ_wfuse)
 
 #-------------------------------------------------------------------------------
 # sub libs
@@ -154,8 +182,8 @@ RM_FILES	+= $(foreach l,$(LIB_LIST),src/$(l)/*.{d,o})
 # source files
 
 UI_FILES	= ui.def
-UI_FILES	+= $(patsubst %,ui-%.c,$(MAIN_TOOLS))
-UI_FILES	+= $(patsubst %,ui-%.h,$(MAIN_TOOLS))
+UI_FILES	+= $(patsubst %,ui-%.c,$(MAIN_TOOLS) $(EXTRA_TOOLS))
+UI_FILES	+= $(patsubst %,ui-%.h,$(MAIN_TOOLS) $(EXTRA_TOOLS))
 
 SETUP_DIR	= ./setup
 SETUP_FILES	= version.h install.sh load-titles.sh wit.def
@@ -166,7 +194,7 @@ RM_FILES2	+= $(SETUP_FILES)
 # object files
 
 # objects of tools
-MAIN_TOOLS_OBJ	:= $(patsubst %,%.o,$(MAIN_TOOLS))
+MAIN_TOOLS_OBJ	:= $(patsubst %,%.o,$(MAIN_TOOLS) $(EXTRA_TOOLS))
 OTHER_TOOLS_OBJ	:= $(patsubst %,%.o,$(TEST_TOOLS) $(HELPER_TOOLS))
 
 # other objects
@@ -214,13 +242,15 @@ DEFINES		=  $(strip $(DEFINES1) $(MODE) $(XDEF))
 CFLAGS		+= -fomit-frame-pointer -fno-strict-aliasing -funroll-loops
 CFLAGS		+= -Wall -Wno-parentheses -Wno-unused-function
 CFLAGS		+= -O3 -Isrc/libwbfs -Isrc/lzma -Isrc -I$(UI) -I. -Iwork
+ifeq ($(SYSTEM),mac)
+ CFLAGS		+= -I/usr/local/include
+endif
 CFLAGS		+= $(XFLAGS)
 CFLAGS		:= $(strip $(CFLAGS))
 
 DEPFLAGS	+= -MMD
 
 LDFLAGS		+= -static-libgcc
-#LDFLAGS	+= -static
 LDFLAGS		:= $(strip $(LDFLAGS))
 
 LIBS		+= $(XLIBS)
@@ -239,7 +269,7 @@ IGNORE_DOC_FILES= HISTORY-v*.txt
 TITLE_FILES	= titles.txt $(patsubst %,titles-%.txt,$(LANGUAGES))
 LANGUAGES	= de es fr it ja ko nl pt ru zhcn zhtw
 
-BIN_FILES	= $(MAIN_TOOLS)
+BIN_FILES	= $(MAIN_TOOLS) $(EXTRA_TOOLS)
 SHARE_FILES	= $(TITLE_FILES)
 
 CYGWIN_DIR	= /usr/bin
@@ -271,14 +301,16 @@ default_rule: all
 ###############################################################################
 # general rules
 
-$(ALL_TOOLS): %: %.o $(ALL_OBJECTS) $(TOBJ_ALL) Makefile | $(HELPER_TOOLS)
-	@printf "$(LOGFORMAT)" tool "$@" "$(MODE) $(TOBJ_$@)"
+$(ALL_TOOLS_X): %: %.o $(ALL_OBJECTS) $(TOBJ_ALL) Makefile | $(HELPER_TOOLS)
+	@printf "$(LOGFORMAT)" tool "$@" "$(MODE) $(TOPT_$@) $(TOBJ_$@)"
 	@$(CC) $(CFLAGS) $(DEFINES) $(LDFLAGS) $@.o \
-		$(ALL_OBJECTS) $(TOBJ_$@) $(LIBS) -o $@
+		$(ALL_OBJECTS) $(TOBJ_$@) $(LIBS) $(TOPT_$@) -o $@
 	@if test -f $@.exe; then $(STRIP) $@.exe; else $(STRIP) $@; fi
-	@mkdir -p bin/debug
-	@cp -p $@ bin
-	@if test -s $(MODE_FILE) && grep -Fq -e -DDEBUG $(MODE_FILE); then cp -p $@ bin/debug; fi
+
+	@mkdir -p bin/$(SYSTEM) bin/$(SYSTEM)/debug
+	@if test -s $(MODE_FILE) && grep -Fq -e -DDEBUG $(MODE_FILE); \
+		then cp -p $@ bin/$(SYSTEM)/debug/; \
+		else cp -p $@ bin/; cp -p $@ bin/$(SYSTEM)/; fi
 
 #--------------------------
 
@@ -365,7 +397,7 @@ chmod:
 	@for d in . $(DIR_LIST); do test -d "$$d" && chmod ug+rw "$$d"/*; done
 	@for d in $(DIR_LIST); do test -d "$$d" && chmod 775 "$$d"; done
 	@find . -name '*.sh' -exec chmod 775 {} +
-	@for t in $(ALL_TOOLS); do test -f "$$t" && chmod 775 "$$t"; done || true
+	@for t in $(ALL_TOOLS_X); do test -f "$$t" && chmod 775 "$$t"; done || true
 
 #
 #--------------------------
@@ -408,7 +440,7 @@ clean++: clean+
 .PHONY : debug
 debug:
 	@printf "$(LOGFORMAT)" enable debug "-> define -DDEBUG"
-	@rm -f *.o $(ALL_TOOLS)
+	@rm -f *.o $(ALL_TOOLS_X)
 	@echo "-DDEBUG" >>$(MODE_FILE)
 	@sort $(MODE_FILE) | uniq > $(MODE_FILE).tmp
 # 2 steps to bypass a cygwin mv failure
@@ -422,13 +454,15 @@ debug:
 distrib2:
 ifeq ($(SYSTEM_LINUX),1)
 
-	@printf "\n---------- BUILDING LINUX/X86_64 ----------\n\n"
-	@$(MAKE) --no-print-directory clean+ distrib
-	@mv "$(DISTRIB_X86_64)" "save-$(DISTRIB_X86_64)"
-
 	@printf "\n---------- BUILDING LINUX/I386 ----------\n\n"
+	@for t in $(ALL_TOOLS_X); do rm -f bin/$$t; done
 	@M32=1 $(MAKE) --no-print-directory clean+ distrib
-	@mv "save-$(DISTRIB_X86_64)" "$(DISTRIB_X86_64)"
+	@mv "$(DISTRIB_I386)" "save-$(DISTRIB_I386)"
+
+	@printf "\n---------- BUILDING LINUX/X86_64 ----------\n\n"
+	@for t in $(ALL_TOOLS_X); do rm -f bin/$$t; done
+	@$(MAKE) --no-print-directory clean+ distrib
+	@mv "save-$(DISTRIB_I386)" "$(DISTRIB_I386)"
 
 else
 	@$(MAKE) --no-print-directory clean+ distrib
@@ -440,8 +474,10 @@ endif
 distrib:
 ifeq ($(SYSTEM),mac)
 	@$(MAKE) --no-print-directory mac-distrib
+else ifeq ($(SYSTEM),cygwin)
+	$(MAKE) --no-print-directory all doc gen-distrib wit.def
 else
-	@$(MAKE) --no-print-directory auto-static all doc gen-distrib wit.def
+	@STATIC=1 $(MAKE) --no-print-directory all doc gen-distrib wit.def
 endif
 
 #-----
@@ -473,6 +509,8 @@ else
 
 	@cp -p $(DISTRIB_FILES) $(DISTRIB_PATH)
 	@ln -f $(MAIN_TOOLS) $(WDF_LINKS) $(DISTRIB_PATH)/bin
+	@for t in $(EXTRA_TOOLS); do [[ -f bin/$(SYSTEM)/$$t ]] \
+		&& ln -f bin/$(SYSTEM)/$$t $(DISTRIB_PATH)/bin; done || true
 	@cp -p share/*.txt $(DISTRIB_PATH)/share
 	@cp -p $(DOC_FILES) $(DISTRIB_PATH)/doc
 	@rm -f $(DISTRIB_PATH)/doc/$(IGNORE_DOC_FILES)
@@ -514,6 +552,8 @@ flags:
 	@echo  ""
 	@echo  "LIBS: $(LIBS)"
 	@echo  ""
+	@echo  "C_OBJECTS: $(C_OBJECTS)"
+	@echo  ""
 
 #
 #--------------------------
@@ -534,7 +574,7 @@ install+: clean+ all
 .PHONY : new
 new:
 	@printf "$(LOGFORMAT)" enable new "-> define -DNEW_FEATURES"
-	@rm -f *.o $(ALL_TOOLS)
+	@rm -f *.o $(ALL_TOOLS_X)
 	@echo "-DNEW_FEATURES" >>$(MODE_FILE)
 	@sort $(MODE_FILE) | uniq > $(MODE_FILE).tmp
 # 2 steps to bypass a cygwin mv failure
@@ -547,32 +587,6 @@ new:
 .PHONY : predef
 predef:
 	@gcc -E -dM none.c | sort
-
-#
-#--------------------------
-
-.PHONY : static
-static:
-	@printf "$(LOGFORMAT)" enable -static ""
-	@rm -f *.o $(ALL_TOOLS)
-	@echo "-static" >>$(MODE_FILE)
-	@sort $(MODE_FILE) | uniq > $(MODE_FILE).tmp
-# 2 steps to bypass a cygwin mv failure
-	@cp $(MODE_FILE).tmp $(MODE_FILE)
-	@rm -f $(MODE_FILE).tmp
-
-.PHONY : auto-static
-auto-static:
-ifeq ($(SYSTEM_LINUX),1)
-	@printf "$(LOGFORMAT)" enable -static ""
-	@echo "-static" >>$(MODE_FILE)
-	@sort $(MODE_FILE) | uniq > $(MODE_FILE).tmp
-# 2 steps to bypass a cygwin mv failure
-	@cp $(MODE_FILE).tmp $(MODE_FILE)
-	@rm -f $(MODE_FILE).tmp
-else
-	@true
-endif
 
 #
 #--------------------------
@@ -601,6 +615,8 @@ templates.sed: Makefile
 		's|@@WWT-LONG@@|$(WWT_LONG)|g;\n' \
 		's|@@WDF-SHORT@@|$(WDF_SHORT)|g;\n' \
 		's|@@WDF-LONG@@|$(WDF_LONG)|g;\n' \
+		's|@@WFUSE-SHORT@@|$(WFUSE_SHORT)|g;\n' \
+		's|@@WFUSE-LONG@@|$(WFUSE_LONG)|g;\n' \
 		's|@@VERSION@@|$(VERSION)|g;\n' \
 		's|@@VERSION-NUM@@|$(VERSION_NUM)|g;\n' \
 		's|@@BETA-VERSION@@|$(BETA_VERSION)|g;\n' \
@@ -645,7 +661,7 @@ templates.sed: Makefile
 .PHONY : test
 test:
 	@printf "$(LOGFORMAT)" enable test "-> define -DTEST"
-	@rm -f *.o $(ALL_TOOLS)
+	@rm -f *.o $(ALL_TOOLS_X)
 	@echo "-DTEST" >>$(MODE_FILE)
 	@sort $(MODE_FILE) | uniq > $(MODE_FILE).tmp
 # 2 steps to bypass a cygwin mv failure
@@ -658,7 +674,7 @@ test:
 .PHONY : test-trace
 test-trace:
 	@printf "$(LOGFORMAT)" enable testtrace "-> define -DTESTTRACE"
-	@rm -f *.o $(ALL_TOOLS)
+	@rm -f *.o $(ALL_TOOLS_X)
 	@echo "-DTESTTRACE" >>$(MODE_FILE)
 	@sort $(MODE_FILE) | uniq > $(MODE_FILE).tmp
 # 2 steps to bypass a cygwin mv failure
@@ -688,7 +704,7 @@ tools: $(ALL_TOOLS)
 .PHONY : wait
 wait:
 	@printf "$(LOGFORMAT)" enable wait "-> define -DWAIT_ENABLED"
-	@rm -f *.o $(ALL_TOOLS)
+	@rm -f *.o $(ALL_TOOLS_X)
 	@echo "-DWAIT_ENABLED" >>$(MODE_FILE)
 	@sort $(MODE_FILE) | uniq > $(MODE_FILE).tmp
 # 2 steps to bypass a cygwin mv failure

@@ -942,7 +942,7 @@ wd_sector_status_t wd_get_part_sector_status
 {
     DASSERT(part);
     DASSERT(part->disc);
-    noPRINT("wd_get_part_sector_status(%p,%d)\n",part,block_num);
+    TRACE("wd_get_part_sector_status(%p,%d)\n",part,block_num);
 
 
     //----- setup
@@ -1047,6 +1047,7 @@ wd_sector_status_t wd_get_part_sector_status
 	}
     }
 
+    TRACELINE;
     return stat;
 }
 
@@ -2361,6 +2362,7 @@ enumError wd_load_part
 	}
     }
 
+    TRACELINE;
     return part->is_valid ? ERR_OK : ERR_WPART_INVALID;
 }
 
@@ -3652,6 +3654,10 @@ int wd_iterate_files
 	switch(prefix_mode)
 	{
 	    case WD_IPM_NONE:
+		break;
+
+	    case WD_IPM_SLASH:
+		strcpy(it.prefix,"/");
 		break;
 
 	    case WD_IPM_POINT:

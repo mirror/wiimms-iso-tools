@@ -152,6 +152,7 @@ typedef enum wd_ipm_t // iterator prefix mode
     WD_IPM_AUTO,		// for single partitions: WD_IPM_PART_NAME, else: WD_IPM_POINT
 
     WD_IPM_NONE,		// no prefix: ""
+    WD_IPM_SLASH,		// prefix with "/"
     WD_IPM_POINT,		// prefix with "./"
     WD_IPM_PART_ID,		// prefix with 'P' and partition id: "P%u/"
     WD_IPM_PART_NAME,		// prefix with partition name or "P<id>": "NAME/"

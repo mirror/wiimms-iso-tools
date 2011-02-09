@@ -1,32 +1,23 @@
 wit v@@VERSION@@ r@@REV-NEXT@@ - @@@@-@@-@@
 
- - Bug fix for "wwt EXTRACT --test": If extracting to an already existing file
-   the old file was removed.
- - Bug fix for "wdf +PACK": wrong data written if packing a raw file.
- - Bug fix: Reading a GameCube WIA is now done without an assertion failure.
-   But remember: GameCube support is still EXPERIMENTAL!
- - I have made some changes in the make system to support GCC option -static
-   and cross compiling (Linux/i386 on Linux/x86_64).
- - Linux/i386: Because of the static linking I can use the latest version of
-   the Linux GLIBC with preallocation support. Copying file is now fast again.
- - BZIP2 support is now included as source and should work for all systems.
-   This enables WIA/bzip2 support for Mac/x86_64.
- - "wit COPY/CONVERT/EXTRACT/EDIT/MOVE/DIFF" and "wwt ADD/EXTRACT/REMOVE"
-   support now the option --sections.
- - "wwt add": New user interface implemented: In a first fast loop the jobs are
-   counted with respect to the options like --update and --newer (ignore skiped
-   files). In a second loop the jobs are executed with correct job counters.
- - wit DUMP: Scrubbing status of disc and partitions are printed. Example:
-      "TICKET & TMD are well signed. Partition is encrypted and scrubbed."
- - "wit EXTRACT" failed if the disc title could not found in the title db.
- - New commands: "wit/wwt SKELETON": Create skeleton copies of discs for
-   further analysis. Details: http://wit.wiimm.de/cmd/wit/skeleton#desc
+ - Bug fix: WBFS preallocation was always a little bit to short.
+ - Bug fix: Wrong signature when dumping the content of TICKET and TMD files.
+ - Bug fix: "wwt sync --newer FST" failed because of missing timestamp.
+ - New option --links: Detect soft and hard linked source files while composing
+   or extracting discs and try to create hard links instead of independent
+   copies on the destination file system.
+ - New option: --flat: If extracting files the path names of the source discs
+   are removed. This enables extracting of all files to s specific destination
+   directory without creation of subdirectories. Command "wit files --flat"
+   can be used to verify the flat names.
+ - New tool: wfuse: Mount a Wii or GameCube image or a WBFS file or partition
+   to a mount point using FUSE (Filesystem in Userspace). FUSE and wfuse are
+   not available for Cygwin/Windows.
 
 
 Known bugs:
 
  - The GameCube support is in development and EXPERIMENTAL!
-    - GameCube conversion to WIA fails.
  - There are new problems while reading from non seekable sources (e.g. pipes).
    The reason is the complete new and more intelligent wiidisc lib which makes
    more lookups ==> The best is to use version 1.01c for pipes.

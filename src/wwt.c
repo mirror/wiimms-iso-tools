@@ -1849,9 +1849,13 @@ static void count_jobs ( WBFS_t * w, Iterator_t * it, bool count_it )
 		break;
 	    }
 	}
-	noPRINT("found=%u mtime=%llx,%llx\n",
-		wfound != 0, (u64)item->mtime, wfound ? (u64)wfound->mtime : 0 );
-	if ( !wfound || it->overwrite || it->newer && item->mtime > wfound->mtime )
+	PRINT_IF(wfound,"FOUND: mtime= %llu/src %c %llu/found\n",
+		(u64)item->mtime,
+		item->mtime < wfound->mtime
+			? '<' : item->mtime > wfound->mtime ? '>' : '=',
+		(u64)wfound->mtime );
+	if ( !wfound || it->overwrite
+		|| it->newer && ( !item->mtime || item->mtime > wfound->mtime ))
 	{
 	    item->flag = 1;
 	    if (count_it)
@@ -3397,6 +3401,7 @@ enumError CheckOptions ( int argc, char ** argv, bool is_env )
 	case GO_PSEL:		err += ScanOptPartSelector(optarg); break;
 	case GO_RAW:		part_selector.whole_disc
 					= part_selector.whole_part = true; break;
+	case GO_FLAT:		opt_flat++; break;
 	case GO_SNEEK:		SetupSneekMode(); break;
 
 	case GO_INCLUDE:	AtFileHelper(optarg,SEL_ID,SEL_FILE,AddIncludeID); break;
@@ -3407,6 +3412,7 @@ enumError CheckOptions ( int argc, char ** argv, bool is_env )
 	case GO_IGNORE:		break;
 	case GO_IGNORE_FST:	allow_fst = false; break;
 	case GO_IGNORE_SETUP:	ignore_setup = true; break;
+	case GO_LINKS:		opt_links = true; break;
 
 	case GO_INODE:		break;
 	case GO_DEST:		SetDest(optarg,false); break;
@@ -3464,6 +3470,7 @@ enumError CheckOptions ( int argc, char ** argv, bool is_env )
 
 	case GO_LONG:		long_count++; break;
 	case GO_NUMERIC:	break;
+	case GO_TECHNICAL:	opt_technical++; break;
 	case GO_MIXED:	    	break;
 	case GO_UNIQUE:	    	break;
 	case GO_NO_HEADER:	break;

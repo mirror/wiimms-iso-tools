@@ -110,10 +110,10 @@ typedef struct InfoUI_t
 
 enum // some const
 {
-	OPT_MAX		=   100,	// max number of options
-	OPT_USED_MASK	=  0x7f,	// mask to calculate usage count
-	OPT_LONG_BASE	=  0x80,	// first index for "only long options"
-	OPT_INDEX_SIZE	=  0xc0,	// size of OptionIndex[]
+	OPT_MAX		=    100,	// max number of options
+	OPT_USED_MASK	=   0x7f,	// mask to calculate usage count
+	OPT_LONG_BASE	=   0x80,	// first index for "only long options"
+	OPT_INDEX_SIZE	=  0x100,	// size of OptionIndex[]
 };
 
 ///////////////////////////////////////////////////////////////////////////////

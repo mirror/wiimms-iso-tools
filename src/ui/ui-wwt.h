@@ -72,7 +72,9 @@ typedef enum enumOptions
 	OPT_IGNORE,
 	OPT_IGNORE_FST,
 	OPT_IGNORE_SETUP,
+	OPT_LINKS,
 	OPT_PMODE,
+	OPT_FLAT,
 	OPT_SNEEK,
 	OPT_ENC,
 	OPT_ID,
@@ -130,6 +132,7 @@ typedef enum enumOptions
 	OPT_SET_TIME,
 	OPT_LONG,
 	OPT_NUMERIC,
+	OPT_TECHNICAL,
 	OPT_INODE,
 	OPT_MIXED,
 	OPT_UNIQUE,
@@ -139,7 +142,7 @@ typedef enum enumOptions
 	OPT_SORT,
 	OPT_LIMIT,
 
-	OPT__N_SPECIFIC, // == 85 
+	OPT__N_SPECIFIC, // == 88 
 
 	//----- global options -----
 
@@ -161,7 +164,7 @@ typedef enum enumOptions
 	OPT_TEST,
 	OPT_HOOK,
 
-	OPT__N_TOTAL // == 102
+	OPT__N_TOTAL // == 105
 
 } enumOptions;
 
@@ -194,7 +197,9 @@ typedef enum enumOptions
 //	OB_IGNORE		= 1llu << OPT_IGNORE,
 //	OB_IGNORE_FST		= 1llu << OPT_IGNORE_FST,
 //	OB_IGNORE_SETUP		= 1llu << OPT_IGNORE_SETUP,
+//	OB_LINKS		= 1llu << OPT_LINKS,
 //	OB_PMODE		= 1llu << OPT_PMODE,
+//	OB_FLAT			= 1llu << OPT_FLAT,
 //	OB_SNEEK		= 1llu << OPT_SNEEK,
 //	OB_ENC			= 1llu << OPT_ENC,
 //	OB_ID			= 1llu << OPT_ID,
@@ -252,6 +257,7 @@ typedef enum enumOptions
 //	OB_SET_TIME		= 1llu << OPT_SET_TIME,
 //	OB_LONG			= 1llu << OPT_LONG,
 //	OB_NUMERIC		= 1llu << OPT_NUMERIC,
+//	OB_TECHNICAL		= 1llu << OPT_TECHNICAL,
 //	OB_INODE		= 1llu << OPT_INODE,
 //	OB_MIXED		= 1llu << OPT_MIXED,
 //	OB_UNIQUE		= 1llu << OPT_UNIQUE,
@@ -275,8 +281,9 @@ typedef enum enumOptions
 //				| OB_FORCE
 //				| OB_NO_CHECK,
 //
-//	OB_GRP_FST_IGNORE	= OB_IGNORE_FST
-//				| OB_IGNORE_SETUP,
+//	OB_GRP_FST_OPTIONS	= OB_IGNORE_FST
+//				| OB_IGNORE_SETUP
+//				| OB_LINKS,
 //
 //	OB_GRP_EXCLUDE		= OB_INCLUDE
 //				| OB_INCLUDE_PATH
@@ -292,7 +299,7 @@ typedef enum enumOptions
 //				| OB_ONE_JOB
 //				| OB_JOB_LIMIT
 //				| OB_IGNORE
-//				| OB_GRP_FST_IGNORE,
+//				| OB_GRP_FST_OPTIONS,
 //
 //	OB_GRP_VERBOSE		= 0,
 //
@@ -317,6 +324,7 @@ typedef enum enumOptions
 //				| OB_RAW,
 //
 //	OB_GRP_FST_SELECT	= OB_PMODE
+//				| OB_FLAT
 //				| OB_FILES
 //				| OB_SNEEK,
 //
@@ -480,6 +488,7 @@ typedef enum enumOptions
 //				| OB_GRP_PARTITIONS
 //				| OB_GRP_OUTMODE
 //				| OB_GRP_FST_SELECT
+//				| OB_LINKS
 //				| OB_UNIQUE
 //				| OB_IGNORE
 //				| OB_REMOVE
@@ -528,7 +537,8 @@ typedef enum enumOptions
 //				| OB_IGNORE
 //				| OB_REMOVE
 //				| OB_NO_FREE
-//				| OB_LONG,
+//				| OB_LONG
+//				| OB_TECHNICAL,
 //
 //	OB_CMD_SKELETON		= OB_GRP_TITLES
 //				| OB_GRP_MOD_WBFS
@@ -540,7 +550,7 @@ typedef enum enumOptions
 //				| OB_DEST2,
 //
 //	OB_CMD_FILETYPE		= OB_IGNORE
-//				| OB_GRP_FST_IGNORE
+//				| OB_GRP_FST_OPTIONS
 //				| OB_NO_HEADER
 //				| OB_LONG,
 //
@@ -668,7 +678,9 @@ typedef enum enumGetOpt
 	GO_JOB_LIMIT,
 	GO_IGNORE_FST,
 	GO_IGNORE_SETUP,
+	GO_LINKS,
 	GO_PMODE,
+	GO_FLAT,
 	GO_SNEEK,
 	GO_HOOK,
 	GO_ENC,
@@ -711,6 +723,7 @@ typedef enum enumGetOpt
 	GO_TIME,
 	GO_SET_TIME,
 	GO_NUMERIC,
+	GO_TECHNICAL,
 	GO_INODE,
 	GO_OLD_STYLE,
 	GO_SECTIONS,

@@ -90,7 +90,7 @@ u32 GetHSS ( int fd, u32 default_value )
 	unsigned long size32 = 0;
 	if ( ioctl(fd, DKIOCGETBLOCKSIZE, &size32 ) >= 0 && size32 )
 	{
-	    PRINT("GetHSS(%d) DKIOCGETBLOCKSIZE := %x = %u\n",fd,size32,size32);
+	    TRACE("GetHSS(%d) DKIOCGETBLOCKSIZE := %x = %u\n",fd,size32,size32);
 	    return size32;
 	}
     }
@@ -102,7 +102,7 @@ u32 GetHSS ( int fd, u32 default_value )
 	unsigned long size32 = 0;
 	if ( ioctl(fd, BLKSSZGET, &size32 ) >= 0 && size32 )
 	{
-	    PRINT("GetHSS(%d) BLKSSZGET := %lx = %lu\n",fd,size32,size32);
+	    TRACE("GetHSS(%d) BLKSSZGET := %lx = %lu\n",fd,size32,size32);
 	    return size32;
 	}
     }
@@ -2856,7 +2856,7 @@ enumError LoadFile
 
     char pathbuf[PATH_MAX];
     ccp path = PathCatPP(pathbuf,sizeof(pathbuf),path1,path2);
-    TRACE("LoadFile(%s,%zx,%zx,%d)\n",path,skip,size,silent);
+    TRACE("LoadFile(%s,%zu,%zu,%d)\n",path,skip,size,silent);
 
     FILE * f = fopen(path,"rb");
     if (!f)
@@ -2882,9 +2882,10 @@ enumError LoadFile
     if ( read_stat == size )
 	return ERR_OK;
 
+    noPRINT("D=%p, s=%zu/%zu: %s\n",data,read_stat,size,path);
     if ( read_stat >= 0 && read_stat < size )
 	memset((char*)data+read_stat,0,size-read_stat);
-    
+
     return ERR_WARNING;
 }
 

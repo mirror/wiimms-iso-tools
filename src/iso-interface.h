@@ -273,6 +273,7 @@ typedef struct Iterator_t
 	// options
 
 	bool		open_modify;	// open in modify mode
+	bool		newer;		// newer option set, caller needs mtime
 	enumAction	act_non_exist;	// action for non existing files
 	enumAction	act_non_iso;	// action for non iso files
 	enumAction	act_known;	// action for non iso files but well known files
@@ -307,7 +308,6 @@ typedef struct Iterator_t
 	bool		diff_it;	// DIFF instead of COPY/CONVERT
 	bool		convert_it;	// CONVERT instead of COPY
 	bool		update;		// update option set
-	bool		newer;		// newer option set
 	bool		overwrite;	// overwrite option set
 	bool		remove_source;	// remove option set
 	int		real_filename;	// set real filename without any selector
@@ -358,6 +358,7 @@ enumError SourceIteratorWarning ( Iterator_t * it, enumError max_err, bool silen
 
 extern bool allow_fst;		// FST diabled by default
 extern bool ignore_setup;	// ignore file 'setup.txt' while composing
+extern bool opt_links;		// find linked files and create hard links
 
 extern wd_select_t part_selector;
 
@@ -387,6 +388,7 @@ enumError ScanPartTabAndType
 //-----------------------------------------------------------------------------
 
 extern wd_ipm_t prefix_mode;
+extern int opt_flat;
 
 wd_ipm_t ScanPrefixMode ( ccp arg );
 void SetupSneekMode();
@@ -444,7 +446,55 @@ void PrintIM ( IsoMapping_t * im, FILE * f, int indent );
 
 //
 ///////////////////////////////////////////////////////////////////////////////
-///////////////                      Wii FST                    ///////////////
+///////////////			file index list			///////////////
+///////////////////////////////////////////////////////////////////////////////
+
+typedef struct FileIndexItem_t
+{
+    dev_t		dev;		// ID of device containing file
+    ino_t		ino;		// inode number
+    struct WiiFstFile_t * file;		// pointer to file;
+        
+} FileIndexItem_t;
+
+//-----------------------------------------------------------------------------
+
+typedef struct FileIndexData_t
+{
+    struct FileIndexData_t	*next;	// next data element
+    uint			unused;	// num of unused elements in 'data'
+    FileIndexItem_t		data[];	// item  pool
+
+} FileIndexData_t;
+
+//-----------------------------------------------------------------------------
+
+typedef struct FileIndex_t
+{
+    // The field is soreted by 1. 'ino' and 2. 'dev'
+    // because 'dev' is almost the same
+
+    FileIndexData_t	* data;		// data pool
+    FileIndexItem_t	** sort;	// sorted pointers to 'field'
+    uint		used;		// num of used elements in 'field' & 'sort'
+    uint		size;		// num of alloced elements in 'field' & 'sort'
+
+} FileIndex_t;
+
+//-----------------------------------------------------------------------------
+
+void InitializeFileIndex ( FileIndex_t * fidx );
+void ResetFileIndex ( FileIndex_t * fidx );
+
+FileIndexItem_t * FindFileIndex ( FileIndex_t * fidx, dev_t dev, ino_t ino );
+FileIndexItem_t * InsertFileIndex
+	( FileIndex_t * fidx, bool * found, dev_t dev, ino_t ino );
+
+void DumpFileIndex ( FILE *f, int indent, const FileIndex_t * fidx );
+
+//
+///////////////////////////////////////////////////////////////////////////////
+///////////////			    Wii FST			///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
 #define FST_SETUP_FILE   "setup.txt"
@@ -465,11 +515,13 @@ extern ccp SpecialFilesFST[]; // NULL terminated list
 
 typedef struct WiiFstFile_t
 {
-	u16		icm;			// wd_icm_t
-	u32		offset4;		// offset in 4*bytes steps
-	u32		size;			// size of file
-	ccp		path;			// alloced path name
-	u8		* data;			// raw data
+    u16			icm;			// wd_icm_t
+    u32			offset4;		// offset in 4*bytes steps
+    u32			size;			// size of file
+    ccp			path;			// alloced path name
+    u8			* data;			// raw data
+
+    // if ( icm == WD_ICM_FILE ) 'data' is used as link to hardlink list
 
 } WiiFstFile_t;
 
@@ -505,6 +557,7 @@ typedef struct WiiFstPart_t
     u8			* ftab;			// file table (fst.bin)
     u32			ftab_size;		// size of file table
     IsoMapping_t	im;			// iso mapping
+    FileIndex_t		fidx;			// file index for searching links
 
     //----- status
 
@@ -565,6 +618,7 @@ typedef struct WiiFstInfo_t
 	SuperFile_t	* sf;			// NULL or pointer to input file
 	WiiFst_t	* fst;			// NULL or pointer to file system
 	WiiFstPart_t	* part;			// NULL or pointer to partion
+	WiiFstFile_t	* last_file;		// NULL or last file -> detect links
 
 	u32		total_count;		// total files to proceed
 	u32		done_count;		// preceeded files
@@ -633,13 +687,22 @@ enumError CreateFST	( WiiFstInfo_t *wfi, ccp dest_path );
 enumError CreatePartFST	( WiiFstInfo_t *wfi, ccp dest_path );
 enumError CreateFileFST	( WiiFstInfo_t *wfi, ccp dest_path, WiiFstFile_t * file );
 
+enumError ReadFileFST4
+(
+    WiiFstPart_t	* part,	// valid fst partition pointer
+    const WiiFstFile_t	*file,	// valid fst file pointer
+    u32			off4,	// file offset/4
+    void		* buf,	// destination buffer with at least 'size' bytes
+    u32			size	// number of bytes to read
+);
+
 enumError ReadFileFST
 (
-	WiiFstPart_t *	part,		// valid fst partition pointer
-	const WiiFstFile_t * file,	// valid fst file pointer
-	u32		off,		// file offset
-	void		* buf,		// destination buffer with at least 'size' bytes
-	u32		size		// number of bytes to read
+    WiiFstPart_t	* part,	// valid fst partition pointer
+    const WiiFstFile_t	*file,	// valid fst file pointer
+    u64			off,	// file offset
+    void		* buf,	// destination buffer with at least 'size' bytes
+    u32			size	// number of bytes to read
 );
 
 //-----------------------------------------------------------------------------

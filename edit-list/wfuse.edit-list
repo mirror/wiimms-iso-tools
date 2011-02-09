@@ -1,0 +1,6 @@
+../src/wfuse.c ;
+../src/wit.c ;
+../src/wwt.c ;
+@+all-source.edit-list
+@+doc.edit-list
+-y 100 ../src/wfuse.c ;

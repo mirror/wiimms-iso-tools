@@ -30,7 +30,7 @@ echo "*** install binaries to $BIN_PATH"
 
 for f in $BIN_FILES
 do
-    install $INST_FLAGS bin/$f "$BIN_PATH/$f"
+    [[ -f bin/$f ]] && install $INST_FLAGS bin/$f "$BIN_PATH/$f"
 done
 
 for f in $WDF_LINKS

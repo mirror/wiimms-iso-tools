@@ -100,6 +100,7 @@ int		print_old_style		= 0;
 int		print_sections		= 0;
 int		long_count		= 0;
 int		ignore_count		= 0;
+int		opt_technical		= 0;
 u32		job_limit		= ~(u32)0;
 enumIOMode	io_mode			= 0;
 bool		opt_no_expand		= false;
@@ -250,10 +251,13 @@ void SetupLib ( int argc, char ** argv, ccp p_progname, enumProgID prid )
     TRACE_SIZEOF(DataArea_t);
     TRACE_SIZEOF(DataList_t);
     TRACE_SIZEOF(CommandTab_t);
+    TRACE_SIZEOF(File_t);
     TRACE_SIZEOF(FileAttrib_t);
     TRACE_SIZEOF(FileCache_t);
+    TRACE_SIZEOF(FileIndex_t);
+    TRACE_SIZEOF(FileIndexData_t);
+    TRACE_SIZEOF(FileIndexItem_t);
     TRACE_SIZEOF(FilePattern_t);
-    TRACE_SIZEOF(File_t);
     TRACE_SIZEOF(ID_DB_t);
     TRACE_SIZEOF(ID_t);
     TRACE_SIZEOF(InfoCommand_t);
@@ -3071,9 +3075,8 @@ void InitializeIdField ( IdField_t * idf )
 void ResetIdField ( IdField_t * idf )
 {
     ASSERT(idf);
-    if ( idf && idf->used > 0 )
+    if ( idf && idf->field )
     {
-	ASSERT(idf->field);
 	IdItem_t **ptr = idf->field, **end;
 	for ( end = ptr + idf->used; ptr < end; ptr++ )
 	    free(*ptr);
@@ -4531,6 +4534,17 @@ int ScanPreallocMode ( ccp arg )
 
     ERROR0(ERR_SYNTAX,"Illegal preallocation mode (option --prealloc): '%s'\n",arg);
     return 1;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+char * AllocRealPath ( ccp source )
+{
+    // Mac does not support: realpath(src,0)
+
+    char fname[PATH_MAX];
+    realpath(source,fname);
+    return strdup(fname);
 }
 
 //

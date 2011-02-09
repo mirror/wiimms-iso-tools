@@ -615,7 +615,13 @@ info_t info_tab[] =
 		0, 
 		"While composing ignore the file @'setup.txt'@,"
 		" which defines some partition parameters." },
-		
+
+  { T_OPT_C,	"LINKS",	"links",
+		0, 
+		"Detect soft and hard linked source files while composing"
+		" or extracting discs and try to create hard links instead"
+		" of independent copies on the destination file system." },
+
   { T_SEP_OPT,	0,0,0,0 }, //----- separator -----
 
   { T_OPT_CP,	"PSEL",		"psel",
@@ -624,14 +630,14 @@ info_t info_tab[] =
 		" which disc partitions are handled."
 		" It expects a comma separated list of keywords, numbers and names;"
 		" all together called parameter. All parameters are case insensitive"
-		" and non ambiguous abbreviations of keyword are allowed."
+		" and non ambiguous abbreviations of keywords are allowed."
 		"\n "
 		" Each parameter becomes a rule and each rule is appended to a rule list."
 		" Rules prefixed by a minus sign are DENY rules."
 		" Rules prefixed by a plus sign or without a prefix are ALLOW rules."
-		" Each partition is compared with each rule until a rule matches the partition."
-		" If a match it found, the partition is enabled for a ALLOW rule"
-		" or disabled for a DENY rule."
+		" Each partition is compared with each rule until a rule matches"
+		" the partition. If a match it found, the partition is enabled"
+		" for a ALLOW rule or disabled for a DENY rule."
 		"\n "
 		" The allowed keywords are: @DATA@, @UPDATE@, @CHANNEL@,"
 		" @PTAB0@ .. @PTAB3@, @ID@, @ALL@, @WHOLE@ and @RAW@."
@@ -651,6 +657,12 @@ info_t info_tab[] =
 		" @AUTO, NONE, POINT, ID, NAME, INDEX, COMBI@."
 		" The default value is @'AUTO'@."
 		"\1 See http://wit.wiimm.de/opt/pmode for more details." },
+
+  { T_OPT_C,	"FLAT",		"flat",
+		0,
+		"While extracting a disc image strip all path names of the source file"
+		" and store all files in the same directory."
+		" This option sets the default for {--pmode} to @NONE@." },
 
   { T_OPT_C,	"SNEEK",	"sneek",
 		0, "Abbreviation of {--psel data --pmode none --files :sneek}." },
@@ -1011,8 +1023,13 @@ info_t info_tab[] =
   { T_OPT_CM,	"LONG",		"l|long",
 		0, "Print in long format. Multiple usage possible." },
 
-  { H_OPT_C,	"NUMERIC",	"numeric",		// *** [2do] *** not used ***
+  { T_OPT_C,	"NUMERIC",	"numeric",
 		0, "Force numeric output instead of printing names." },
+
+  { T_OPT_C,	"TECHNICAL",	"technical|tech",
+		0,
+		"Force a technical output instead of user friendly text."
+		" --tech is a short cut for --technical."},
 
   { T_OPT_C,	"REALPATH",	"real-path|realpath",
 		0, "Print real path instead of entered path." },
@@ -1103,18 +1120,20 @@ info_t info_tab[] =
 
   { T_SEP_OPT,	0,0,0,0 },
 
-  //---------- wit GROUP FST_IGNORE ----------
+  //---------- wit GROUP FST_OPTIONS ----------
 
-  { T_GRP_BEG,	"FST_IGNORE",	0,0,0 },
+  { T_GRP_BEG,	"FST_OPTIONS",	0,0,0 },
 
   { T_COPT,	"IGNORE_FST",	0,0,0 },
   { T_COPT,	"IGNORE_SETUP",	0,0,0 },
+  { T_COPT,	"LINKS",	0,0,0 },
 
   //---------- wit GROUP FST_SELECT ----------
 
   { T_GRP_BEG,	"FST_SELECT",	0,0,0 },
 
   { T_COPT,	"PMODE",	0,0,0 },
+  { T_COPT,	"FLAT",		0,0,0 },
   { T_COPT_M,	"FILES",	0,0,0 },
   { T_COPT,	"SNEEK",	0,0,0 },
 
@@ -1156,7 +1175,7 @@ info_t info_tab[] =
   { T_COPY_GRP,	"SOURCE",	0,0,0 },
   { T_COPY_GRP,	"EXCLUDE",	0,0,0 },
   { T_COPT_M,	"IGNORE",	0,0,0 },
-  { T_COPY_GRP,	"FST_IGNORE",	0,0,0 },
+  { T_COPY_GRP,	"FST_OPTIONS",	0,0,0 },
 
   { T_SEP_OPT,	0,0,0,0 },
 
@@ -1297,7 +1316,7 @@ info_t info_tab[] =
   { T_COPT,	"VERBOSE",	0,0,
 	"Print always compression level and chunk size factor."
 	" Standard is to suppress these values if not explicitly set." },
-  { H_COPT,	"NUMERIC",	0,0,0 },
+  { T_COPT,	"NUMERIC",	0,0,0 },
 
   //---------- COMMAND wit EXCLUDE ----------
 
@@ -1393,7 +1412,7 @@ info_t info_tab[] =
   { T_COPY_GRP,	"TITLES",	0,0,0 },
   { T_COPT,	"AUTO",		0,0,0 },
   { T_COPY_GRP,	"XSOURCE",	0,0,0 },
-  { T_COPY_GRP,	"FST_IGNORE",	0,0,0 },
+  { T_COPY_GRP,	"FST_OPTIONS",	0,0,0 },
   { T_COPY_GRP,	"PARTITIONS",	0,0,0 },
   { T_COPY_GRP,	"FST_SELECT",	0,0,0 },
 
@@ -1417,7 +1436,7 @@ info_t info_tab[] =
 
   { T_COPT,	"AUTO",		0,0,0 },
   { T_COPY_GRP,	"XSOURCE",	0,0,0 },
-  { T_COPY_GRP,	"FST_IGNORE",	0,0,0 },
+  { T_COPY_GRP,	"FST_OPTIONS",	0,0,0 },
 
   { T_COPT_M,	"LOGGING",	0,0,0 },
   { T_COPT_M,	"LONG",		0,0,
@@ -1430,7 +1449,7 @@ info_t info_tab[] =
   { T_COPY_GRP,	"TITLES",	0,0,0 },
   { T_COPT,	"AUTO",		0,0,0 },
   { T_COPY_GRP,	"XSOURCE",	0,0,0 },
-  { T_COPY_GRP,	"FST_IGNORE",	0,0,0 },
+  { T_COPY_GRP,	"FST_OPTIONS",	0,0,0 },
 
   { T_COPT_M,	"LOGGING",	0,0,0 },
   { T_COPT,	"UNIQUE",	0,0,0 },
@@ -1730,6 +1749,7 @@ info_t info_tab[] =
 	"On error print an additional line to localize the exact"
 	" position where the error is found."
 	" If set twice a hexdump of the hash values is printed too." },
+  { T_COPT_M,	"TECHNICAL",	0,0,0 },
 
   //---------- COMMAND wit SKELETON ----------
 
@@ -2101,9 +2121,15 @@ info_t info_tab[] =
   { T_OPT_C,	"IGNORE_SETUP",	"ignore-setup|ignoresetup",
 		0, 0 /* copy of wit */ },
 
+  { T_OPT_C,	"LINKS",	"links",
+		0, 0 /* copy of wit */ },
+
   { T_SEP_OPT,	0,0,0,0 }, //----- separator -----
 
   { T_OPT_CP,	"PMODE",	"pmode",
+		0, 0 /* copy of wit */ },
+
+  { T_OPT_C,	"FLAT",		"flat",
 		0, 0 /* copy of wit */ },
 
   { T_OPT_C,	"SNEEK",	"sneek",
@@ -2317,7 +2343,10 @@ info_t info_tab[] =
   { T_OPT_CM,	"LONG",		"l|long",
 		0, 0 /* copy of wit */ },
 
-  { H_OPT_C,	"NUMERIC",	"numeric",		// *** [2do] *** not used ***
+  { T_OPT_C,	"NUMERIC",	"numeric",
+		0, 0 /* copy of wit */ },
+
+  { T_OPT_C,	"TECHNICAL",	"technical|tech",
 		0, 0 /* copy of wit */ },
 
   { T_OPT_C,	"INODE",	"inode",
@@ -2383,12 +2412,13 @@ info_t info_tab[] =
 
   { T_SEP_OPT,	0,0,0,0 },
 
-  //---------- wwt GROUP FST_IGNORE ----------
+  //---------- wwt GROUP FST_OPTIONS ----------
 
-  { T_GRP_BEG,	"FST_IGNORE",	0,0,0 },
+  { T_GRP_BEG,	"FST_OPTIONS",	0,0,0 },
 
   { T_COPT,	"IGNORE_FST",	0,0,0 },
   { T_COPT,	"IGNORE_SETUP",	0,0,0 },
+  { T_COPT,	"LINKS",	0,0,0 },
 
   //---------- wwt GROUP EXCLUDE ----------
 
@@ -2414,7 +2444,7 @@ info_t info_tab[] =
   { T_COPT_M,	"ONE_JOB",	0,0,0 },
   { T_COPT_M,	"JOB_LIMIT",	0,0,0 },
   { T_COPT,	"IGNORE",	0,0,0 },
-  { T_COPY_GRP,	"FST_IGNORE",	0,0,0 },
+  { T_COPY_GRP,	"FST_OPTIONS",	0,0,0 },
 
   { T_SEP_OPT,	0,0,0,0 },
 
@@ -2474,6 +2504,7 @@ info_t info_tab[] =
   { T_GRP_BEG,	"FST_SELECT",	0,0,0 },
 
   { T_COPT,	"PMODE",	0,0,0 },
+  { T_COPT,	"FLAT",		0,0,0 },
   { T_COPT_M,	"FILES",	0,0,0 },
   { T_COPT,	"SNEEK",	0,0,0 },
 
@@ -2566,7 +2597,7 @@ info_t info_tab[] =
   { T_COPT,	"VERBOSE",	0,0,
 	"Print always compression level and chunk size factor."
 	" Standard is to suppress these values if not explicitly set." },
-  { H_COPT,	"NUMERIC",	0,0,0 },
+  { T_COPT,	"NUMERIC",	0,0,0 },
 
   //---------- COMMAND wwt EXCLUDE ----------
 
@@ -2869,6 +2900,7 @@ info_t info_tab[] =
 
   { T_COPY_GRP,	"OUTMODE",	0,0,0 },
   { T_COPY_GRP,	"FST_SELECT",	0,0,0 },
+  { T_COPT,	"LINKS",	0,0,0 },
 
   { T_SEP_OPT,	0,0,0,0 },
 
@@ -2989,6 +3021,7 @@ info_t info_tab[] =
 	"On error print an additional line to localize the exact"
 	" position where the error is found."
 	" If set twice a hexdump of the hash values is printed too." },
+  { T_COPT_M,	"TECHNICAL",	0,0,0 },
 
 
   //---------- COMMAND wwt SKELETON ----------
@@ -3022,7 +3055,7 @@ info_t info_tab[] =
   { T_CMD_BEG,	"FILETYPE",	0,0,0 },
 
   { T_COPT_M,	"IGNORE",	0,0,0 },
-  { T_COPY_GRP,	"FST_IGNORE",	0,0,0 },
+  { T_COPY_GRP,	"FST_OPTIONS",	0,0,0 },
   { T_COPT,	"NO_HEADER",	0,0,0 },
   { T_COPT_M,	"LONG",		0,0,
 	"If set then ID6 and split file count are printed too."
@@ -3337,6 +3370,70 @@ info_t info_tab[] =
   { T_COPT,	"CHUNK",	0,0,0 },
   { T_COPT,	"LONG",		0,0, "Same as {--chunk}" },
   { T_COPT,	"MINUS1",	0,0,0 },
+
+
+  //
+  ///////////////////////////////////////////////////////////////////////////
+  /////////////			  TOOL wfuse			/////////////
+  ///////////////////////////////////////////////////////////////////////////
+
+  { T_DEF_TOOL,	"wfuse", 0,
+		"wfuse [option]... source mountdir\n"
+		"wfuse --umount mountdir...",
+		"Mount a Wii or GameCube image or a WBFS file or partition"
+		" to a mount point using FUSE (Filesystem in Userspace)."
+		" Use @'wfuse --umount mountdir'@ for unmounting." },
+
+  //---------- list of all options ----------
+
+  { T_OPT_S,	"VERSION",	"V|version",
+		0, 0 /* copy of wit */ },
+
+  { T_OPT_S,	"HELP",		"h|help",
+		0, 0 /* copy of wit */ },
+
+  { T_OPT_S,	"XHELP",	"xhelp",
+		0, "Same as {--help}." },
+
+  { T_OPT_S,	"HELP_FUSE",	"H|help-fuse|helpfuse",
+		0,
+		"Stop parsing the command line and print a FUSE help message." },
+
+  { T_OPT_GP,	"WIDTH",	"width",
+		0, 0 /* copy of wit */ },
+
+  { T_OPT_GM,	"QUIET",	"q|quiet",
+		0,
+		"Be quiet and print only error messages." },
+
+  { H_OPT_GM,	"VERBOSE",	"v|verbose",
+		0,
+		"Be verbose and print more progress information." },
+
+  { H_OPT_GP,	"IO",		"io",
+		0, 0 /* copy of wit */ },
+
+  { T_SEP_OPT,	0,0,0,0 }, //----- separator -----
+
+  { T_OPT_GP,	"OPTION",	"o|option",
+		"param",
+		"This option is forwarded to FUSE command line scanner as @'-o param'@." },
+
+  { T_OPT_GP,	"PARAM",	"p|param",
+		"param",
+		"The parameter is forwarded to the FUSE command line scanner." },
+
+  { T_OPT_G,	"UMOUNT",	"u|umount|unmount",
+		0,
+		"Unmount each entered directory by calling"
+		" @'fusermount -u mountdir'@ or alternatively @'umount mountdir'@." },
+
+  { T_OPT_G,	"LAZY",		"l|lazy",
+		0,
+		"Lazy unmount:"
+		" Detach the filesystem from the filesystem hierarchy now,"
+		" and cleanup all references to the filesystem"
+		" as soon as it is not busy anymore." },
 
   //
   ///////////////////////////////////////////////////////////////////////////

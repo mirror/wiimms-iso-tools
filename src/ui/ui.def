@@ -376,12 +376,18 @@
 	"While composing ignore the file @'setup.txt'@, which defines some" \
 	" partition parameters." )
 
+#:def_opt( "LINKS", "links", "C", \
+	"", \
+	"Detect soft and hard linked source files while composing or" \
+	" extracting discs and try to create hard links instead of independent" \
+	" copies on the destination file system." )
+
 #:def_opt( "PSEL", "psel", "CP", \
 	"list", \
 	"This option set the scrubbing mode and defines, which disc partitions" \
 	" are handled. It expects a comma separated list of keywords, numbers" \
 	" and names; all together called parameter. All parameters are case" \
-	" insensitive and non ambiguous abbreviations of keyword are allowed.\n" \
+	" insensitive and non ambiguous abbreviations of keywords are allowed.\n" \
 	"  Each parameter becomes a rule and each rule is appended to a rule" \
 	" list. Rules prefixed by a minus sign are DENY rules. Rules prefixed" \
 	" by a plus sign or without a prefix are ALLOW rules. Each partition" \
@@ -402,6 +408,12 @@
 	"This options set the prefix mode for listed or extracted files. One" \
 	" of the following values is allowed: @AUTO, NONE, POINT, ID, NAME," \
 	" INDEX, COMBI@. The default value is @'AUTO'@." )
+
+#:def_opt( "FLAT", "flat", "C", \
+	"", \
+	"While extracting a disc image strip all path names of the source file" \
+	" and store all files in the same directory. This option sets the" \
+	" default for {--pmode} to @NONE@." )
 
 #:def_opt( "SNEEK", "sneek", "C", \
 	"", \
@@ -702,6 +714,15 @@
 	"", \
 	"Print in long format. Multiple usage possible." )
 
+#:def_opt( "NUMERIC", "numeric", "C", \
+	"", \
+	"Force numeric output instead of printing names." )
+
+#:def_opt( "TECHNICAL", "technical|tech", "C", \
+	"", \
+	"Force a technical output instead of user friendly text. --tech is a" \
+	" short cut for --technical." )
+
 #:def_opt( "REALPATH", "real-path|realpath", "C", \
 	"", \
 	"Print real path instead of entered path." )
@@ -815,6 +836,10 @@
 	"", \
 	"Print always compression level and chunk size factor. Standard is to" \
 	" suppress these values if not explicitly set." )
+
+#:def_cmd_opt( "COMPR", "NUMERIC", \
+	"", \
+	"" )
 
 #:def_cmd_opt( "EXCLUDE", "EXCLUDE", \
 	"", \
@@ -944,6 +969,10 @@
 	"", \
 	"" )
 
+#:def_cmd_opt( "FILELIST", "LINKS", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "FILELIST", "LONG", \
 	"", \
 	"Print the real path instead of given path." )
@@ -1001,6 +1030,10 @@
 	"" )
 
 #:def_cmd_opt( "FILETYPE", "IGNORE_SETUP", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "FILETYPE", "LINKS", \
 	"", \
 	"" )
 
@@ -1067,6 +1100,10 @@
 	"" )
 
 #:def_cmd_opt( "ISOSIZE", "IGNORE_SETUP", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "ISOSIZE", "LINKS", \
 	"", \
 	"" )
 
@@ -1160,6 +1197,10 @@
 	"", \
 	"" )
 
+#:def_cmd_opt( "DUMP", "LINKS", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "DUMP", "PSEL", \
 	"", \
 	"" )
@@ -1169,6 +1210,10 @@
 	"" )
 
 #:def_cmd_opt( "DUMP", "PMODE", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "DUMP", "FLAT", \
 	"", \
 	"" )
 
@@ -1293,6 +1338,10 @@
 	"", \
 	"" )
 
+#:def_cmd_opt( "ID6", "LINKS", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "ID6", "LOGGING", \
 	"", \
 	"" )
@@ -1366,6 +1415,10 @@
 	"" )
 
 #:def_cmd_opt( "LIST", "IGNORE_SETUP", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "LIST", "LINKS", \
 	"", \
 	"" )
 
@@ -1495,6 +1548,10 @@
 	"", \
 	"" )
 
+#:def_cmd_opt( "LIST_L", "LINKS", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "LIST_L", "LOGGING", \
 	"", \
 	"" )
@@ -1618,6 +1675,10 @@
 	"" )
 
 #:def_cmd_opt( "LIST_LL", "IGNORE_SETUP", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "LIST_LL", "LINKS", \
 	"", \
 	"" )
 
@@ -1747,6 +1808,10 @@
 	"", \
 	"" )
 
+#:def_cmd_opt( "LIST_LLL", "LINKS", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "LIST_LLL", "LOGGING", \
 	"", \
 	"" )
@@ -1861,6 +1926,10 @@
 	"", \
 	"" )
 
+#:def_cmd_opt( "FILES", "LINKS", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "FILES", "PSEL", \
 	"", \
 	"" )
@@ -1870,6 +1939,10 @@
 	"" )
 
 #:def_cmd_opt( "FILES", "PMODE", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "FILES", "FLAT", \
 	"", \
 	"" )
 
@@ -1959,6 +2032,10 @@
 	"", \
 	"" )
 
+#:def_cmd_opt( "FILES_L", "LINKS", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "FILES_L", "PSEL", \
 	"", \
 	"" )
@@ -1968,6 +2045,10 @@
 	"" )
 
 #:def_cmd_opt( "FILES_L", "PMODE", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "FILES_L", "FLAT", \
 	"", \
 	"" )
 
@@ -2057,6 +2138,10 @@
 	"", \
 	"" )
 
+#:def_cmd_opt( "FILES_LL", "LINKS", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "FILES_LL", "PSEL", \
 	"", \
 	"" )
@@ -2066,6 +2151,10 @@
 	"" )
 
 #:def_cmd_opt( "FILES_LL", "PMODE", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "FILES_LL", "FLAT", \
 	"", \
 	"" )
 
@@ -2175,6 +2264,10 @@
 	"", \
 	"" )
 
+#:def_cmd_opt( "DIFF", "LINKS", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "DIFF", "PSEL", \
 	"", \
 	"" )
@@ -2184,6 +2277,10 @@
 	"" )
 
 #:def_cmd_opt( "DIFF", "PMODE", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "DIFF", "FLAT", \
 	"", \
 	"" )
 
@@ -2331,6 +2428,10 @@
 	"", \
 	"" )
 
+#:def_cmd_opt( "FDIFF", "LINKS", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "FDIFF", "PSEL", \
 	"", \
 	"" )
@@ -2340,6 +2441,10 @@
 	"" )
 
 #:def_cmd_opt( "FDIFF", "PMODE", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "FDIFF", "FLAT", \
 	"", \
 	"" )
 
@@ -2487,6 +2592,10 @@
 	"", \
 	"" )
 
+#:def_cmd_opt( "EXTRACT", "LINKS", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "EXTRACT", "PSEL", \
 	"", \
 	"" )
@@ -2496,6 +2605,10 @@
 	"" )
 
 #:def_cmd_opt( "EXTRACT", "PMODE", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "EXTRACT", "FLAT", \
 	"", \
 	"" )
 
@@ -2682,6 +2795,10 @@
 	"", \
 	"" )
 
+#:def_cmd_opt( "COPY", "LINKS", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "COPY", "PSEL", \
 	"", \
 	"" )
@@ -2691,6 +2808,10 @@
 	"" )
 
 #:def_cmd_opt( "COPY", "PMODE", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "COPY", "FLAT", \
 	"", \
 	"" )
 
@@ -2942,6 +3063,10 @@
 	"" )
 
 #:def_cmd_opt( "CONVERT", "IGNORE_SETUP", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "CONVERT", "LINKS", \
 	"", \
 	"" )
 
@@ -3551,6 +3676,10 @@
 	"", \
 	"" )
 
+#:def_cmd_opt( "VERIFY", "LINKS", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "VERIFY", "PSEL", \
 	"", \
 	"" )
@@ -3590,6 +3719,10 @@
 	"On error print an additional line to localize the exact position" \
 	" where the error is found. If set twice a hexdump of the hash values" \
 	" is printed too." )
+
+#:def_cmd_opt( "VERIFY", "TECHNICAL", \
+	"", \
+	"" )
 
 #:def_cmd_opt( "SKELETON", "TEST", \
 	"", \
@@ -3672,6 +3805,10 @@
 	"" )
 
 #:def_cmd_opt( "SKELETON", "IGNORE_SETUP", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "SKELETON", "LINKS", \
 	"", \
 	"" )
 
@@ -4117,7 +4254,7 @@
 	"This option set the scrubbing mode and defines, which disc partitions" \
 	" are handled. It expects a comma separated list of keywords, numbers" \
 	" and names; all together called parameter. All parameters are case" \
-	" insensitive and non ambiguous abbreviations of keyword are allowed.\n" \
+	" insensitive and non ambiguous abbreviations of keywords are allowed.\n" \
 	"  Each parameter becomes a rule and each rule is appended to a rule" \
 	" list. Rules prefixed by a minus sign are DENY rules. Rules prefixed" \
 	" by a plus sign or without a prefix are ALLOW rules. Each partition" \
@@ -4190,11 +4327,23 @@
 	"While composing ignore the file @'setup.txt'@, which defines some" \
 	" partition parameters." )
 
+#:def_opt( "LINKS", "links", "C", \
+	"", \
+	"Detect soft and hard linked source files while composing or" \
+	" extracting discs and try to create hard links instead of independent" \
+	" copies on the destination file system." )
+
 #:def_opt( "PMODE", "pmode", "CP", \
 	"p-mode", \
 	"This options set the prefix mode for listed or extracted files. One" \
 	" of the following values is allowed: @AUTO, NONE, POINT, ID, NAME," \
 	" INDEX, COMBI@. The default value is @'AUTO'@." )
+
+#:def_opt( "FLAT", "flat", "C", \
+	"", \
+	"While extracting a disc image strip all path names of the source file" \
+	" and store all files in the same directory. This option sets the" \
+	" default for {--pmode} to @NONE@." )
 
 #:def_opt( "SNEEK", "sneek", "C", \
 	"", \
@@ -4545,6 +4694,15 @@
 	"", \
 	"Print in long format. Multiple usage possible." )
 
+#:def_opt( "NUMERIC", "numeric", "C", \
+	"", \
+	"Force numeric output instead of printing names." )
+
+#:def_opt( "TECHNICAL", "technical|tech", "C", \
+	"", \
+	"Force a technical output instead of user friendly text. --tech is a" \
+	" short cut for --technical." )
+
 #:def_opt( "INODE", "inode", "C", \
 	"", \
 	"Print information for all inodes (invalid discs too)." )
@@ -4622,6 +4780,10 @@
 	"", \
 	"Print always compression level and chunk size factor. Standard is to" \
 	" suppress these values if not explicitly set." )
+
+#:def_cmd_opt( "COMPR", "NUMERIC", \
+	"", \
+	"" )
 
 #:def_cmd_opt( "EXCLUDE", "EXCLUDE", \
 	"", \
@@ -5751,6 +5913,10 @@
 	"", \
 	"" )
 
+#:def_cmd_opt( "ADD", "LINKS", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "ADD", "QUIET", \
 	"", \
 	"" )
@@ -5942,6 +6108,10 @@
 	"", \
 	"" )
 
+#:def_cmd_opt( "UPDATE", "LINKS", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "UPDATE", "QUIET", \
 	"", \
 	"" )
@@ -6122,6 +6292,10 @@
 	"" )
 
 #:def_cmd_opt( "SYNC", "IGNORE_SETUP", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "SYNC", "LINKS", \
 	"", \
 	"" )
 
@@ -6419,11 +6593,19 @@
 	"", \
 	"" )
 
+#:def_cmd_opt( "EXTRACT", "FLAT", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "EXTRACT", "FILES", \
 	"", \
 	"" )
 
 #:def_cmd_opt( "EXTRACT", "SNEEK", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "EXTRACT", "LINKS", \
 	"", \
 	"" )
 
@@ -6929,6 +7111,10 @@
 	" where the error is found. If set twice a hexdump of the hash values" \
 	" is printed too." )
 
+#:def_cmd_opt( "VERIFY", "TECHNICAL", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "SKELETON", "TITLES", \
 	"", \
 	"" )
@@ -7047,6 +7233,10 @@
 	"" )
 
 #:def_cmd_opt( "FILETYPE", "IGNORE_SETUP", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "FILETYPE", "LINKS", \
 	"", \
 	"" )
 
@@ -7501,6 +7691,64 @@
 #:def_cmd_opt( "DUMP", "MINUS1", \
 	"", \
 	"" )
+
+
+##
+###############################################################################
+###############                  Tool 'wfuse'                   ###############
+###############################################################################
+
+#:def_tool( "wfuse", \
+	"wfuse [option]... source mountdir\n" \
+	"wfuse --umount mountdir...", \
+	"Mount a Wii or GameCube image or a WBFS file or partition to a mount" \
+	" point using FUSE (Filesystem in Userspace). Use @'wfuse --umount" \
+	" mountdir'@ for unmounting." )
+
+#:def_opt( "VERSION", "V|version", "G", \
+	"", \
+	"Stop parsing the command line, print a version info and exit." )
+
+#:def_opt( "HELP", "h|help", "G", \
+	"", \
+	"Stop parsing the command line, print a help message and exit." )
+
+#:def_opt( "XHELP", "xhelp", "G", \
+	"", \
+	"Same as {--help}." )
+
+#:def_opt( "HELP_FUSE", "H|help-fuse|helpfuse", "G", \
+	"", \
+	"Stop parsing the command line and print a FUSE help message." )
+
+#:def_opt( "WIDTH", "width", "GP", \
+	"width", \
+	"Define the width (number of columns) for help and some other messages" \
+	" and disable the automatic detection of the terminal width." )
+
+#:def_opt( "QUIET", "q|quiet", "GM", \
+	"", \
+	"Be quiet and print only error messages." )
+
+#:def_opt( "OPTION", "o|option", "GP", \
+	"param", \
+	"This option is forwarded to FUSE command line scanner as @'-o" \
+	" param'@." )
+
+#:def_opt( "PARAM", "p|param", "GP", \
+	"param", \
+	"The parameter is forwarded to the FUSE command line scanner." )
+
+#:def_opt( "UMOUNT", "u|umount|unmount", "G", \
+	"", \
+	"Unmount each entered directory by calling @'fusermount -u mountdir'@" \
+	" or alternatively @'umount mountdir'@." )
+
+#:def_opt( "LAZY", "l|lazy", "G", \
+	"", \
+	"Lazy unmount: Detach the filesystem from the filesystem hierarchy" \
+	" now, and cleanup all references to the filesystem as soon as it is" \
+	" not busy anymore." )
 
 
 ##

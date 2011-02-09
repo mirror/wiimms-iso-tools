@@ -18,9 +18,14 @@ revision_next=$revision_num
 
 tim=($(date '+%s %Y-%m-%d %T'))
 
+have_fuse=0
+[[ $NO_FUSE != 1 && -r /usr/include/fuse.h || -r /usr/local/include/fuse.h ]] \
+	&& have_fuse=1
+
 if [[ $M32 = 1 ]]
 then
     force_m32=1
+    have_fuse=0
     xflags="-m32"
     defines=-DFORCE_M32=1
 else
@@ -32,9 +37,12 @@ fi
 [[ -r /usr/include/bits/fcntl.h ]] \
 	&& grep -qw fallocate /usr/include/bits/fcntl.h \
 	&& defines="$defines -DHAVE_FALLOCATE=1"
+
 [[ -r /usr/include/fcntl.h ]] \
 	&& grep -qw posix_fallocate /usr/include/fcntl.h \
 	&& defines="$defines -DHAVE_POSIX_FALLOCATE=1"
+
+[[ $STATIC = 1 ]] || STATIC=0
 
 cat <<- ---EOT--- >Makefile.setup
 	REVISION	:= $revision
@@ -45,6 +53,8 @@ cat <<- ---EOT--- >Makefile.setup
 	TIME		:= ${tim[2]}
 
 	FORCE_M32	:= $force_m32
+	HAVE_FUSE	:= $have_fuse
+	STATIC		:= $STATIC
 	XFLAGS		+= $xflags
 	DEFINES1	:= $defines
 
