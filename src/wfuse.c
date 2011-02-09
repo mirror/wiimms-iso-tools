@@ -38,6 +38,8 @@
 #define _GNU_SOURCE 1
 #define FUSE_USE_VERSION  25
 
+#include <sys/wait.h>
+
 #include <fuse.h>
 #include <pthread.h>
 #include <errno.h>
@@ -78,15 +80,18 @@ typedef enum enumOpenMode
 
 enumMode open_mode = OMODE_ISO;
 
-bool is_iso      = false;
-bool is_wbfs_iso = false;
 bool is_wbfs     = false;
+bool is_iso      = false;
+bool is_fst	 = false;
+bool is_wbfs_iso = false;
 int  wbfs_slot	 = -1;
 
 ///////////////////////////////////////////////////////////////////////////////
 
 typedef struct fuse_file_info fuse_file_info;
 
+static bool opt_umount = false;
+static bool opt_lazy = false;
 static char * source_file = 0;
 static char * mount_point = 0;
 
@@ -136,7 +141,7 @@ static void help_exit()
 
 ///////////////////////////////////////////////////////////////////////////////
 
-static void help__fuse_exit()
+static void help_fuse_exit()
 {
     add_arg("--help",0);
     static struct fuse_operations wfuse_oper = {0};
@@ -157,8 +162,8 @@ static void version_exit()
 static void hint_exit ( enumError stat )
 {
     fprintf(stderr,
-	    "-> Type '%s -h' (or better '%s -h|less') for more help.\n\n",
-	    progname, progname );
+	"-> Type '%s -h' (pipe it to a pager like 'less') for more help.\n\n",
+	progname );
     exit(stat);
 }
 
@@ -184,11 +189,15 @@ static enumError CheckOptions ( int argc, char ** argv )
 	case GO_HELP:
 	case GO_XHELP:		help_exit();
 	case GO_WIDTH:		err += ScanOptWidth(optarg); break;
+	case GO_QUIET:		verbose = verbose > -1 ? -1 : verbose - 1; break;
+	case GO_VERBOSE:	verbose = verbose <  0 ?  0 : verbose + 1; break;
 	case GO_IO:		ScanIOMode(optarg); break;
 
-	case GO_HELP_FUSE:	help__fuse_exit();
+	case GO_HELP_FUSE:	help_fuse_exit();
 	case GO_OPTION:		add_arg("-o",optarg); break;
 	case GO_PARAM:		add_arg(optarg,0); break;
+	case GO_UMOUNT:		opt_umount = true; break;
+	case GO_LAZY:		opt_lazy = true; break;
       }
     }
  #ifdef DEBUG
@@ -961,7 +970,7 @@ static int wfuse_getattr_iso
 	    return 0;
 
 	case AP_ISO_DISC:
-	    if (!*subpath)
+	    if ( !is_fst && !*subpath )
 	    {
 		memcpy(st,&df->stat_file,sizeof(*st));
 		st->st_size = get_iso_size(df);
@@ -1258,7 +1267,7 @@ static int wfuse_read_iso
 	    break;
 
 	case AP_ISO_DISC:
-	    if (!*subpath)
+	    if ( !is_fst && !*subpath )
 	    {
 		const u64 fsize = get_iso_size(df);
 		if ( offset < fsize )
@@ -1571,8 +1580,9 @@ static int wfuse_readdir_iso
 		filler(fuse_buf,".",0,0);
 		filler(fuse_buf,"..",0,0);
 		filler(fuse_buf,"part",0,0);
-		filler(fuse_buf,"disc.iso",0,0);
 		filler(fuse_buf,"info.txt",0,0);
+		if (!is_fst)
+		    filler(fuse_buf,"disc.iso",0,0);
 	    }
 	    break;
 
@@ -1767,6 +1777,100 @@ static int wfuse_readdir
 
 //
 ///////////////////////////////////////////////////////////////////////////////
+///////////////			    umount()			///////////////
+///////////////////////////////////////////////////////////////////////////////
+
+static int exec_cmd ( ccp cmd, ccp p1, ccp p2, ccp p3 )
+{
+    const pid_t pid = fork();
+    if ( pid == -1 )
+	return ERROR1(ERR_FATAL,"Can't exec fork()\n");
+
+    if (!pid)
+    {
+	// *** child ***
+
+	char * argv[5], **arg = argv;
+	*arg++ = (char*)cmd;
+	if (p1) *arg++ = (char*)p1;
+	if (p2) *arg++ = (char*)p2;
+	if (p3) *arg++ = (char*)p3;
+	DASSERT( arg-argv < sizeof(argv)/sizeof(*argv) );
+	*arg = 0;
+
+	execvp(cmd,argv);
+	PRINT("CALL to '%s' failed\n",cmd);
+	exit(127);
+    }
+
+    // *** parent ***
+
+    int status;
+    const pid_t wpid = waitpid(pid,&status,0);
+    if ( wpid == -1 )
+	return ERROR1(ERR_FATAL,"Can't exec waitpid()\n");
+
+    const int exit_stat = WEXITSTATUS(status);
+    noPRINT("CALLED[%d,%d]: %s\n",status,exit_stat,cmd);
+    return WIFEXITED(status) && exit_stat != 127 ? exit_stat : -1;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+static enumError umount ( int argc, char ** argv )
+{
+    if ( optind == argc )
+	hint_exit(ERR_SYNTAX);
+
+    bool use_fusermount = true;
+    int argi, errcount = 0;
+
+    for ( argi = optind; argi < argc; argi++ )
+    {
+	ccp mpt = argv[argi];
+	if (!IsDirectory(mpt,0))
+	{
+	    ERROR0(ERR_WARNING,"Not a directory: %s\n",mpt);
+	    errcount++;
+	    continue;
+	}
+
+	if ( verbose >= 0 )
+	    printf(WFUSE_SHORT " umount %s\n",mpt);
+
+	bool done = false;
+	if (use_fusermount)
+	{
+	    const int stat = exec_cmd("fusermount", "-u", opt_lazy ? "-z" : 0, mpt );
+	    if ( stat == -1 )
+	    {
+		use_fusermount = false;
+		if ( verbose >= 0 )
+		    ERROR0(ERR_WARNING,"'fusermount' not found, try 'umount' now!\n");
+	    }
+	    else
+	    {
+		done = true;
+		if (stat)
+		    errcount++;
+	    }
+	}
+    
+	if (!done)
+	{
+	    const int stat = exec_cmd("umount", opt_lazy ? "-l" : 0, mpt, 0 );
+	    if ( stat == -1 )
+		return ERROR0(ERR_FATAL,
+			"Can't find neither 'fusermount' nor 'umount' -> abort\n");
+	    else if (stat)
+		errcount++;
+	}
+    }
+    return errcount ? ERR_WARNING : ERR_OK;
+}
+
+//
+///////////////////////////////////////////////////////////////////////////////
 ///////////////			    main()			///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -1791,13 +1895,24 @@ int main ( int argc, char ** argv )
 	hint_exit(ERR_OK);
     }
 
-    printf( TITLE "\n" );
-    if ( CheckOptions(argc,argv) || optind + 2 != argc )
+    if ( verbose >= 0 )
+	printf( TITLE "\n" );
+    if (CheckOptions(argc,argv))
+	hint_exit(ERR_SYNTAX);
+
+    if (opt_umount)
+	return umount(argc,argv);
+
+    if ( optind + 2 != argc )
 	hint_exit(ERR_SYNTAX);
 
     source_file = argv[optind];
     mount_point = argv[optind+1];
 
+
+    //----- open file
+
+    main_sf.allow_fst = true;
     enumError err = OpenSF(&main_sf,source_file,true,false);
     if (err)
 	return err;
@@ -1912,6 +2027,9 @@ int main ( int argc, char ** argv )
 	is_iso = true;
 	open_mode = OMODE_ISO;
 
+	if ( ftype & FT_ID_FST )
+	    is_fst = true;
+
 	wd_disc_t * disc = OpenDiscSF(&main_sf,true,true);
 	if (!disc)
 	    return ERR_INVALID_FILE;
@@ -1938,7 +2056,8 @@ int main ( int argc, char ** argv )
 			GetNameFT(ftype,0), source_file );
     }
 
-    printf("mount %s:%s -> %s\n",
+    if ( verbose >= 0 )
+	printf("mount %s:%s -> %s\n",
 		oft_info[main_sf.iod.oft].name, source_file, mount_point );
     source_file = AllocRealPath(source_file);
 

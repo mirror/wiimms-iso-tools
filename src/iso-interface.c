@@ -3930,8 +3930,7 @@ enumError SetupReadFST ( SuperFile_t * sf )
 {
     ASSERT(sf);
     ASSERT(!sf->fst);
-    TRACE("SetupReadFST() -> %x %s\n",sf->f.ftype,sf->f.fname);
-    noPRINT("SetupReadFST() -> %x %s\n",sf->f.ftype,sf->f.fname);
+    PRINT("SetupReadFST() -> %x %s\n",sf->f.ftype,sf->f.fname);
 
     SetupIOD(sf,OFT_FST,OFT_FST);
     WiiFst_t * fst = malloc(sizeof(*fst));
@@ -4379,7 +4378,7 @@ enumError ReadPartGroupFST ( SuperFile_t * sf, WiiFstPart_t * part,
 
     char * dest = (char*)buf + delta, *src = dest;
     memset(dest,0,dsize);
-    PRINT("CACHE=%p, buf=%p, dest=%p, delta=%x\n",sf->fst->cache,buf,dest,delta);
+    noPRINT("CACHE=%p, buf=%p, dest=%p, delta=%x\n",sf->fst->cache,buf,dest,delta);
     
     const IsoMappingItem_t * imi = part->im.field;
     const IsoMappingItem_t * imi_end = imi + part->im.used;
@@ -4459,7 +4458,7 @@ enumError ReadPartGroupFST ( SuperFile_t * sf, WiiFstPart_t * part,
 			u64 foff = (u64)file->offset4 << 2;
 			if ( loff < foff )
 			{
-			    PRINT("SKIP %9llx [%s]\n",foff-loff,file->path);
+			    noPRINT("SKIP %9llx [%s]\n",foff-loff,file->path);
 			    ldest += foff - loff;
 			    loff = foff;
 			}
@@ -4470,7 +4469,7 @@ enumError ReadPartGroupFST ( SuperFile_t * sf, WiiFstPart_t * part,
 			    u32 load_size = file->size - skip;
 			    if ( load_size > max-loff )
 				 load_size = max-loff;
-			    PRINT("LOAD %9llx %p [%s]\n",loff,ldest,file->path);
+			    noPRINT("LOAD %9llx %p [%s]\n",loff,ldest,file->path);
 			    LoadFile(part->path,file->path,skip,ldest,load_size,false,0,false);
 			    ldest += load_size;
 			    loff  += load_size;

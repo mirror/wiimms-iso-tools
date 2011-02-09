@@ -43,7 +43,7 @@ WFUSE_SHORT		= wfuse
 WFUSE_LONG		= Wiimms FUSE Tool
 
 VERSION_NUM		= 1.27a
-BETA_VERSION		= 5
+BETA_VERSION		= 0
 			# 0:off  -1:"beta"  >0:"beta#"
 
 URI_HOME		= http://wit.wiimm.de/
@@ -121,11 +121,14 @@ WBFS_COUNT	?= 4
 
 MAIN_TOOLS	:= wit wwt wdf
 TEST_TOOLS	:= wtest
-ifeq ($(SYSTEM)-$(HAVE_FUSE),mac-1)
+EXTRA_TOOLS	:=
+
+ifeq ($(HAVE_FUSE),1)
   MAIN_TOOLS	+= wfuse
 else
   EXTRA_TOOLS	:= wfuse
 endif
+
 ALL_TOOLS	:= $(sort $(MAIN_TOOLS) $(TEST_TOOLS))
 ALL_TOOLS_X	:= $(sort $(MAIN_TOOLS) $(TEST_TOOLS) $(EXTRA_TOOLS))
 
@@ -137,7 +140,24 @@ WDF_LINKS	:= wdf-cat wdf-dump
 RM_FILES	+= $(ALL_TOOLS_X) $(HELPER_TOOLS) $(WDF_LINKS) $(WDF_TEST_LINKS)
 
 #-------------------------------------------------------------------------------
-# tool dependent objects
+# tool dependent options and objects
+
+ifeq ($(STATIC),1)
+    OPT_STATIC	:= -static
+else
+    OPT_STATIC	:=
+endif
+
+#---------------
+
+TOPT_wit	:= $(OPT_STATIC)
+TOPT_wwt	:= $(OPT_STATIC)
+TOPT_wdf	:= $(OPT_STATIC)
+TOPT_wfuse	:= -lfuse -lpthread -ldl
+
+#TOPT_ALL	:= $(TOPT_wit) $(TOPT_wwt) $(TOPT_wdf) $(TOPT_wfuse)
+
+#---------------
 
 TOBJ_wit	:= wit-mix.o
 TOBJ_wwt	:=
@@ -145,15 +165,6 @@ TOBJ_wdf	:=
 TOBJ_wfuse	:=
 
 TOBJ_ALL	:= $(TOBJ_wit) $(TOBJ_wwt) $(TOBJ_wdf) $(TOBJ_wfuse)
-
-#---------------
-
-TLIB_wit	:=
-TLIB_wwt	:=
-TLIB_wdf	:=
-TLIB_wfuse	:= -lfuse -lpthread -ldl
-
-#TLIB_ALL	:= $(TLIB_wit) $(TLIB_wwt) $(TLIB_wdf) $(TLIB_wfuse)
 
 #-------------------------------------------------------------------------------
 # sub libs
@@ -171,8 +182,8 @@ RM_FILES	+= $(foreach l,$(LIB_LIST),src/$(l)/*.{d,o})
 # source files
 
 UI_FILES	= ui.def
-UI_FILES	+= $(patsubst %,ui-%.c,$(MAIN_TOOLS))
-UI_FILES	+= $(patsubst %,ui-%.h,$(MAIN_TOOLS))
+UI_FILES	+= $(patsubst %,ui-%.c,$(MAIN_TOOLS) $(EXTRA_TOOLS))
+UI_FILES	+= $(patsubst %,ui-%.h,$(MAIN_TOOLS) $(EXTRA_TOOLS))
 
 SETUP_DIR	= ./setup
 SETUP_FILES	= version.h install.sh load-titles.sh wit.def
@@ -240,7 +251,6 @@ CFLAGS		:= $(strip $(CFLAGS))
 DEPFLAGS	+= -MMD
 
 LDFLAGS		+= -static-libgcc
-#LDFLAGS	+= -static
 LDFLAGS		:= $(strip $(LDFLAGS))
 
 LIBS		+= $(XLIBS)
@@ -292,9 +302,9 @@ default_rule: all
 # general rules
 
 $(ALL_TOOLS_X): %: %.o $(ALL_OBJECTS) $(TOBJ_ALL) Makefile | $(HELPER_TOOLS)
-	@printf "$(LOGFORMAT)" tool "$@" "$(MODE) $(TOBJ_$@) $(TLIB_$@)"
+	@printf "$(LOGFORMAT)" tool "$@" "$(MODE) $(TOPT_$@) $(TOBJ_$@)"
 	@$(CC) $(CFLAGS) $(DEFINES) $(LDFLAGS) $@.o \
-		$(ALL_OBJECTS) $(TOBJ_$@) $(LIBS) $(TLIB_$@) -o $@
+		$(ALL_OBJECTS) $(TOBJ_$@) $(LIBS) $(TOPT_$@) -o $@
 	@if test -f $@.exe; then $(STRIP) $@.exe; else $(STRIP) $@; fi
 
 	@mkdir -p bin/$(SYSTEM) bin/$(SYSTEM)/debug
@@ -451,12 +461,7 @@ ifeq ($(SYSTEM_LINUX),1)
 
 	@printf "\n---------- BUILDING LINUX/X86_64 ----------\n\n"
 	@for t in $(ALL_TOOLS_X); do rm -f bin/$$t; done
-# a little bit tricky because wfuse is never linked static
-ifeq ($(HAVE_FUSE),1)
-	@$(MAKE) --no-print-directory clean+ wfuse distrib
-else
 	@$(MAKE) --no-print-directory clean+ distrib
-endif
 	@mv "save-$(DISTRIB_I386)" "$(DISTRIB_I386)"
 
 else
@@ -469,8 +474,10 @@ endif
 distrib:
 ifeq ($(SYSTEM),mac)
 	@$(MAKE) --no-print-directory mac-distrib
+else ifeq ($(SYSTEM),cygwin)
+	$(MAKE) --no-print-directory all doc gen-distrib wit.def
 else
-	@$(MAKE) --no-print-directory auto-static all doc gen-distrib wit.def
+	@STATIC=1 $(MAKE) --no-print-directory all doc gen-distrib wit.def
 endif
 
 #-----
@@ -580,32 +587,6 @@ new:
 .PHONY : predef
 predef:
 	@gcc -E -dM none.c | sort
-
-#
-#--------------------------
-
-.PHONY : static
-static:
-	@printf "$(LOGFORMAT)" enable -static ""
-	@rm -f *.o $(ALL_TOOLS_X)
-	@echo "-static" >>$(MODE_FILE)
-	@sort $(MODE_FILE) | uniq > $(MODE_FILE).tmp
-# 2 steps to bypass a cygwin mv failure
-	@cp $(MODE_FILE).tmp $(MODE_FILE)
-	@rm -f $(MODE_FILE).tmp
-
-.PHONY : auto-static
-auto-static:
-ifeq ($(SYSTEM_LINUX),1)
-	@printf "$(LOGFORMAT)" enable -static ""
-	@echo "-static" >>$(MODE_FILE)
-	@sort $(MODE_FILE) | uniq > $(MODE_FILE).tmp
-# 2 steps to bypass a cygwin mv failure
-	@cp $(MODE_FILE).tmp $(MODE_FILE)
-	@rm -f $(MODE_FILE).tmp
-else
-	@true
-endif
 
 #
 #--------------------------

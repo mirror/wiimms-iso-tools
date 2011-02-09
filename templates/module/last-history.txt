@@ -2,6 +2,7 @@ wit v@@VERSION@@ r@@REV-NEXT@@ - @@@@-@@-@@
 
  - Bug fix: WBFS preallocation was always a little bit to short.
  - Bug fix: Wrong signature when dumping the content of TICKET and TMD files.
+ - Bug fix: "wwt sync --newer FST" failed because of missing timestamp.
  - New option --links: Detect soft and hard linked source files while composing
    or extracting discs and try to create hard links instead of independent
    copies on the destination file system.

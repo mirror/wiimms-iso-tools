@@ -37,10 +37,12 @@ fi
 [[ -r /usr/include/bits/fcntl.h ]] \
 	&& grep -qw fallocate /usr/include/bits/fcntl.h \
 	&& defines="$defines -DHAVE_FALLOCATE=1"
+
 [[ -r /usr/include/fcntl.h ]] \
 	&& grep -qw posix_fallocate /usr/include/fcntl.h \
 	&& defines="$defines -DHAVE_POSIX_FALLOCATE=1"
 
+[[ $STATIC = 1 ]] || STATIC=0
 
 cat <<- ---EOT--- >Makefile.setup
 	REVISION	:= $revision
@@ -52,6 +54,7 @@ cat <<- ---EOT--- >Makefile.setup
 
 	FORCE_M32	:= $force_m32
 	HAVE_FUSE	:= $have_fuse
+	STATIC		:= $STATIC
 	XFLAGS		+= $xflags
 	DEFINES1	:= $defines
 

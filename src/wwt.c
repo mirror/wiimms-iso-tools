@@ -1849,9 +1849,13 @@ static void count_jobs ( WBFS_t * w, Iterator_t * it, bool count_it )
 		break;
 	    }
 	}
-	noPRINT("found=%u mtime=%llx,%llx\n",
-		wfound != 0, (u64)item->mtime, wfound ? (u64)wfound->mtime : 0 );
-	if ( !wfound || it->overwrite || it->newer && item->mtime > wfound->mtime )
+	PRINT_IF(wfound,"FOUND: mtime= %llu/src %c %llu/found\n",
+		(u64)item->mtime,
+		item->mtime < wfound->mtime
+			? '<' : item->mtime > wfound->mtime ? '>' : '=',
+		(u64)wfound->mtime );
+	if ( !wfound || it->overwrite
+		|| it->newer && ( !item->mtime || item->mtime > wfound->mtime ))
 	{
 	    item->flag = 1;
 	    if (count_it)

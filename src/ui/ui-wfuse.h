@@ -55,13 +55,17 @@ typedef enum enumOptions
 	OPT_VERSION,
 	OPT_HELP,
 	OPT_XHELP,
-	OPT_WIDTH,
-	OPT_IO,
 	OPT_HELP_FUSE,
+	OPT_WIDTH,
+	OPT_QUIET,
+	OPT_VERBOSE,
+	OPT_IO,
 	OPT_OPTION,
 	OPT_PARAM,
+	OPT_UMOUNT,
+	OPT_LAZY,
 
-	OPT__N_TOTAL // == 9
+	OPT__N_TOTAL // == 13
 
 } enumOptions;
 
@@ -90,8 +94,12 @@ typedef enum enumGetOpt
 	GO_VERSION		= 'V',
 
 	GO_HELP			= 'h',
+	GO_LAZY			= 'l',
 	GO_OPTION		= 'o',
 	GO_PARAM		= 'p',
+	GO_QUIET		= 'q',
+	GO_UMOUNT		= 'u',
+	GO_VERBOSE		= 'v',
 
 	GO_XHELP		= 0x80,
 	GO_WIDTH,

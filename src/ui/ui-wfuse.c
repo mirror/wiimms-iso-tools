@@ -64,10 +64,25 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 	"Same as --help."
     },
 
+    {	OPT_HELP_FUSE, 'H', "help-fuse",
+	0,
+	"Stop parsing the command line and print a FUSE help message."
+    },
+
     {	OPT_WIDTH, 0, "width",
 	"width",
 	"Define the width (number of columns) for help and some other messages"
 	" and disable the automatic detection of the terminal width."
+    },
+
+    {	OPT_QUIET, 'q', "quiet",
+	0,
+	"Be quiet and print only error messages."
+    },
+
+    {	OPT_VERBOSE, 'v', "verbose",
+	0,
+	"Be verbose and print more progress information."
     },
 
     {	OPT_IO, 0, "io",
@@ -78,14 +93,9 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 	" value '4' for WIA files. You can combine the values by adding them."
     },
 
-    {	OPT_HELP_FUSE, 'H', "help-fuse",
-	0,
-	"Stop parsing the command line and print a FUSE help message."
-    },
-
     {	OPT_OPTION, 'o', "option",
 	"param",
-	"This option is forwarded to FUSE as '-o param'."
+	"This option is forwarded to FUSE command line scanner as '-o param'."
     },
 
     {	OPT_PARAM, 'p', "param",
@@ -93,7 +103,20 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 	"The parameter is forwarded to the FUSE command line scanner."
     },
 
-    {0,0,0,0,0} // OPT__N_TOTAL == 9
+    {	OPT_UMOUNT, 'u', "umount",
+	0,
+	"Unmount each entered directory by calling 'fusermount -u mountdir' or"
+	" alternatively 'umount mountdir'."
+    },
+
+    {	OPT_LAZY, 'l', "lazy",
+	0,
+	"Lazy unmount: Detach the filesystem from the filesystem hierarchy"
+	" now, and cleanup all references to the filesystem as soon as it is"
+	" not busy anymore."
+    },
+
+    {0,0,0,0,0} // OPT__N_TOTAL == 13
 
 };
 
@@ -102,19 +125,24 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 ///////////////            OptionShort & OptionLong             ///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-const char OptionShort[] = "VhHo:p:";
+const char OptionShort[] = "VhHqvo:p:ul";
 
 const struct option OptionLong[] =
 {
 	{ "version",		0, 0, 'V' },
 	{ "help",		0, 0, 'h' },
 	{ "xhelp",		0, 0, GO_XHELP },
-	{ "width",		1, 0, GO_WIDTH },
-	{ "io",			1, 0, GO_IO },
 	{ "help-fuse",		0, 0, 'H' },
 	 { "helpfuse",		0, 0, 'H' },
+	{ "width",		1, 0, GO_WIDTH },
+	{ "quiet",		0, 0, 'q' },
+	{ "verbose",		0, 0, 'v' },
+	{ "io",			1, 0, GO_IO },
 	{ "option",		1, 0, 'o' },
 	{ "param",		1, 0, 'p' },
+	{ "umount",		0, 0, 'u' },
+	 { "unmount",		0, 0, 'u' },
+	{ "lazy",		0, 0, 'l' },
 
 	{0,0,0,0}
 };
@@ -139,10 +167,16 @@ const u8 OptionIndex[OPT_INDEX_SIZE] =
 	/*57*/	 0,0,0,0, 0,0,0,0, 0,
 	/*60*/	 0,0,0,0, 0,0,0,0, 
 	/*68*/	OPT_HELP,
-	/*69*/	 0,0,0,0, 0,0,
+	/*69*/	 0,0,0,
+	/*6c*/	OPT_LAZY,
+	/*6d*/	 0,0,
 	/*6f*/	OPT_OPTION,
 	/*70*/	OPT_PARAM,
-	/*71*/	 0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,
+	/*71*/	OPT_QUIET,
+	/*72*/	 0,0,0,
+	/*75*/	OPT_UMOUNT,
+	/*76*/	OPT_VERBOSE,
+	/*77*/	 0,0,0,0, 0,0,0,0, 0,
 	/*80*/	OPT_XHELP,
 	/*81*/	OPT_WIDTH,
 	/*82*/	OPT_IO,
@@ -166,14 +200,16 @@ const InfoOption_t * option_tab_tool[] =
 	OptionInfo + OPT_VERSION,
 	OptionInfo + OPT_HELP,
 	OptionInfo + OPT_XHELP,
+	OptionInfo + OPT_HELP_FUSE,
 	OptionInfo + OPT_WIDTH,
-	OptionInfo + OPT_IO,
+	OptionInfo + OPT_QUIET,
 
 	OptionInfo + OPT_NONE, // separator
 
-	OptionInfo + OPT_HELP_FUSE,
 	OptionInfo + OPT_OPTION,
 	OptionInfo + OPT_PARAM,
+	OptionInfo + OPT_UMOUNT,
+	OptionInfo + OPT_LAZY,
 
 	0
 };
@@ -191,10 +227,12 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	false,
 	"wfuse",
 	0,
-	"wfuse [option]... source mountdir",
+	"wfuse [option]... source mountdir\n"
+	"wfuse --umount mountdir...",
 	"Mount a Wii or GameCube image or a WBFS file or partition to a mount"
-	" point using FUSE (Filesystem in Userspace).",
-	8,
+	" point using FUSE (Filesystem in Userspace). Use 'wfuse --umount"
+	" mountdir' for unmounting.",
+	10,
 	option_tab_tool,
 	0
     },

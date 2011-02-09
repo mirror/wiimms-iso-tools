@@ -4342,6 +4342,8 @@ static enumError SourceIteratorHelper
 	    IteratorProgress(it,false);
 	if (collect_fnames)
 	{
+	    if ( !sf.f.fatt.mtime && it->newer && sf.f.ftype & FT_ID_FST )
+		SetupReadFST(&sf);
 	    InsertIdField(&it->source_list,sf.f.id6,0,sf.f.fatt.mtime,sf.f.fname);
 	    err = ERR_OK;
 	}

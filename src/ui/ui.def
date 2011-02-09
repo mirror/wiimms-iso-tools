@@ -7699,9 +7699,11 @@
 ###############################################################################
 
 #:def_tool( "wfuse", \
-	"wfuse [option]... source mountdir", \
+	"wfuse [option]... source mountdir\n" \
+	"wfuse --umount mountdir...", \
 	"Mount a Wii or GameCube image or a WBFS file or partition to a mount" \
-	" point using FUSE (Filesystem in Userspace)." )
+	" point using FUSE (Filesystem in Userspace). Use @'wfuse --umount" \
+	" mountdir'@ for unmounting." )
 
 #:def_opt( "VERSION", "V|version", "G", \
 	"", \
@@ -7715,29 +7717,38 @@
 	"", \
 	"Same as {--help}." )
 
+#:def_opt( "HELP_FUSE", "H|help-fuse|helpfuse", "G", \
+	"", \
+	"Stop parsing the command line and print a FUSE help message." )
+
 #:def_opt( "WIDTH", "width", "GP", \
 	"width", \
 	"Define the width (number of columns) for help and some other messages" \
 	" and disable the automatic detection of the terminal width." )
 
-#:def_opt( "IO", "io", "GP", \
-	"flags", \
-	"Setup the IO mode for experiments. The standard file IO is based on" \
-	" open() function. The value '1' defines that WBFS IO is based on" \
-	" fopen() function. The value '2' defines the same for ISO files and" \
-	" value '4' for WIA files. You can combine the values by adding them." )
-
-#:def_opt( "HELP_FUSE", "H|help-fuse|helpfuse", "G", \
+#:def_opt( "QUIET", "q|quiet", "GM", \
 	"", \
-	"Stop parsing the command line and print a FUSE help message." )
+	"Be quiet and print only error messages." )
 
 #:def_opt( "OPTION", "o|option", "GP", \
 	"param", \
-	"This option is forwarded to FUSE as @'-o param'@." )
+	"This option is forwarded to FUSE command line scanner as @'-o" \
+	" param'@." )
 
 #:def_opt( "PARAM", "p|param", "GP", \
 	"param", \
 	"The parameter is forwarded to the FUSE command line scanner." )
+
+#:def_opt( "UMOUNT", "u|umount|unmount", "G", \
+	"", \
+	"Unmount each entered directory by calling @'fusermount -u mountdir'@" \
+	" or alternatively @'umount mountdir'@." )
+
+#:def_opt( "LAZY", "l|lazy", "G", \
+	"", \
+	"Lazy unmount: Detach the filesystem from the filesystem hierarchy" \
+	" now, and cleanup all references to the filesystem as soon as it is" \
+	" not busy anymore." )
 
 
 ##

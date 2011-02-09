@@ -36,7 +36,8 @@
 ~ Highlights
 [size=12][color=#0000c0][b]Höhepunkte dieser Version:[/b][/color][/size]
 [list]
-[*]
+[*] Es gibt ein neues Tool: [color=#0000c0][b]wfuse[/b][/color]
+Dieses neue Tool ist eine FUSE (Filesystem in Userspace) Anwendung. [color=#0000c0][b]wfuse[/b][/color] kann ISO-Images in allen unterstützten Datei-Formaten (ISO, CISO, WDF, WIA, WBFS, FST) sowie komplette WBFS-Dateien und -Partitionen schreibgeschützt mounten. [color=#0000c0][b]wfuse[/b][/color] ist für Linux und Mac verfügbar;  Windows hat leider keine passende FUSE-Unterstützung. Mehr Details gibt es unter http://wit.wiimm.de/wfuse/
 [/list]
 
 [size=12][color=#0000c0][b]Letzte Änderungen:[/b][/color][/size]

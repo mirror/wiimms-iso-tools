@@ -35,7 +35,8 @@
 
 [size="2"][color="#0000c0"][b]Highlights of this release:[/b][/color][/size]
 [list]
-[*]
+[*] A new tool is included: [color="#0000c0"][b]wfuse[/b][/color]
+This new tool is a FUSE (Filesystem in Userspace) application. [color="#0000c0"][b]wfuse[/b][/color] can mount ISO images in all supported file formats (ISO, CISO, WDF, WIA, WBFS, FST) and also complete WBFS files and partitions. The mounted file system is readonly. [color="#0000c0"][b]wfuse[/b][/color] is available for Linux and Mac; Windows has no FUSE support. For more details read http://wit.wiimm.de/wfuse/
 [color=#ffffff].[/color]
 [/list]
 

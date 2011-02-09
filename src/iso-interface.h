@@ -273,6 +273,7 @@ typedef struct Iterator_t
 	// options
 
 	bool		open_modify;	// open in modify mode
+	bool		newer;		// newer option set, caller needs mtime
 	enumAction	act_non_exist;	// action for non existing files
 	enumAction	act_non_iso;	// action for non iso files
 	enumAction	act_known;	// action for non iso files but well known files
@@ -307,7 +308,6 @@ typedef struct Iterator_t
 	bool		diff_it;	// DIFF instead of COPY/CONVERT
 	bool		convert_it;	// CONVERT instead of COPY
 	bool		update;		// update option set
-	bool		newer;		// newer option set
 	bool		overwrite;	// overwrite option set
 	bool		remove_source;	// remove option set
 	int		real_filename;	// set real filename without any selector

@@ -3378,9 +3378,11 @@ info_t info_tab[] =
   ///////////////////////////////////////////////////////////////////////////
 
   { T_DEF_TOOL,	"wfuse", 0,
-		"wfuse [option]... source mountdir",
+		"wfuse [option]... source mountdir\n"
+		"wfuse --umount mountdir...",
 		"Mount a Wii or GameCube image or a WBFS file or partition"
-		" to a mount point using FUSE (Filesystem in Userspace)." },
+		" to a mount point using FUSE (Filesystem in Userspace)."
+		" Use @'wfuse --umount mountdir'@ for unmounting." },
 
   //---------- list of all options ----------
 
@@ -3393,25 +3395,45 @@ info_t info_tab[] =
   { T_OPT_S,	"XHELP",	"xhelp",
 		0, "Same as {--help}." },
 
-  { T_OPT_GP,	"WIDTH",	"width",
-		0, 0 /* copy of wit */ },
-
-  { T_OPT_GP,	"IO",		"io",
-		0, 0 /* copy of wit */ },
-
-  { T_SEP_OPT,	0,0,0,0 }, //----- separator -----
-
   { T_OPT_S,	"HELP_FUSE",	"H|help-fuse|helpfuse",
 		0,
 		"Stop parsing the command line and print a FUSE help message." },
 
+  { T_OPT_GP,	"WIDTH",	"width",
+		0, 0 /* copy of wit */ },
+
+  { T_OPT_GM,	"QUIET",	"q|quiet",
+		0,
+		"Be quiet and print only error messages." },
+
+  { H_OPT_GM,	"VERBOSE",	"v|verbose",
+		0,
+		"Be verbose and print more progress information." },
+
+  { H_OPT_GP,	"IO",		"io",
+		0, 0 /* copy of wit */ },
+
+  { T_SEP_OPT,	0,0,0,0 }, //----- separator -----
+
   { T_OPT_GP,	"OPTION",	"o|option",
 		"param",
-		"This option is forwarded to FUSE as @'-o param'@." },
+		"This option is forwarded to FUSE command line scanner as @'-o param'@." },
 
   { T_OPT_GP,	"PARAM",	"p|param",
 		"param",
 		"The parameter is forwarded to the FUSE command line scanner." },
+
+  { T_OPT_G,	"UMOUNT",	"u|umount|unmount",
+		0,
+		"Unmount each entered directory by calling"
+		" @'fusermount -u mountdir'@ or alternatively @'umount mountdir'@." },
+
+  { T_OPT_G,	"LAZY",		"l|lazy",
+		0,
+		"Lazy unmount:"
+		" Detach the filesystem from the filesystem hierarchy now,"
+		" and cleanup all references to the filesystem"
+		" as soon as it is not busy anymore." },
 
   //
   ///////////////////////////////////////////////////////////////////////////

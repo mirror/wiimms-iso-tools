@@ -90,7 +90,7 @@ u32 GetHSS ( int fd, u32 default_value )
 	unsigned long size32 = 0;
 	if ( ioctl(fd, DKIOCGETBLOCKSIZE, &size32 ) >= 0 && size32 )
 	{
-	    PRINT("GetHSS(%d) DKIOCGETBLOCKSIZE := %x = %u\n",fd,size32,size32);
+	    TRACE("GetHSS(%d) DKIOCGETBLOCKSIZE := %x = %u\n",fd,size32,size32);
 	    return size32;
 	}
     }
@@ -102,7 +102,7 @@ u32 GetHSS ( int fd, u32 default_value )
 	unsigned long size32 = 0;
 	if ( ioctl(fd, BLKSSZGET, &size32 ) >= 0 && size32 )
 	{
-	    PRINT("GetHSS(%d) BLKSSZGET := %lx = %lu\n",fd,size32,size32);
+	    TRACE("GetHSS(%d) BLKSSZGET := %lx = %lu\n",fd,size32,size32);
 	    return size32;
 	}
     }
