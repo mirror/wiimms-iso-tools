@@ -2213,9 +2213,20 @@ enumError wd_load_part
 	    fst_n = ntohl(fst->size);
 	    const wd_fst_item_t *fst_end = fst + fst_n;
 
+	    bool in_wad_dir = false;
+
 	    for ( fst++; fst < fst_end; fst++ )
 		if (fst->is_dir)
+		{
 		    fst_dir_count++;
+		    in_wad_dir = false;
+		    if ( part->part_type == WD_PART_UPDATE )
+		    {
+			ccp fname = (ccp)fst_end + (ntohl(fst->name_off)&0xffffff);
+			in_wad_dir = fname < (ccp)part->fst + fst_size
+					&& !strcasecmp(fname,"_sys");
+		    }
+		}
 		else
 		{
 		    fst_file_count++;
@@ -2226,6 +2237,23 @@ enumError wd_load_part
 		    if ( fst_max_size < size )
 			 fst_max_size = size;
 		    wd_mark_part(part,off4,size);
+
+		    if ( in_wad_dir )
+		    {
+			ccp fname = (ccp)fst_end + (ntohl(fst->name_off)&0xffffff);
+			if ( fname < (ccp)part->fst + fst_size
+			    && !strncasecmp(fname,"RVL-WiiSystemmenu-v",19)
+			    && !strncasecmp(fname+strlen(fname)-4,".wad",4) )
+			{
+			    const u32 num = strtoul(fname+19,0,10);
+			    if ( disc->system_menu < num )
+			    {
+				noPRINT("SYS-MENU: %u -> %u [%s]\n",
+					disc->system_menu,num,fname);
+				disc->system_menu = num;
+			    }
+			}
+		    }
 		}
 	}
 
@@ -3532,8 +3560,7 @@ static int wd_iterate_fst_helper
 	    path_ptr = stack->path;
 	}
 
-	const char * fname = (char*)fst_end
-			   + (ntohl(fst->name_off)&0xffffff);
+	ccp fname = (ccp)fst_end + (ntohl(fst->name_off)&0xffffff);
 	char * path_dest = path_ptr;
 	while ( path_dest < path_end && *fname )
 	    *path_dest++ = *fname++;
@@ -5961,12 +5988,25 @@ wd_reloc_t * wd_calc_relocation
 (
     wd_disc_t		* disc,		// valid disc pointer
     bool		encrypt,	// true: encrypt partition data
-    bool		force,		// true: force new calculation
-    const wd_select_t	* select	// NULL or a new selector
+    wd_trim_mode_t	trim_mode,	// trim mode
+    u32			trim_align,	// alignment value for trimming
+    const wd_select_t	* select,	// NULL or a new selector
+    bool		force		// true: force new calculation
 )
 {
     DASSERT(disc);
-    TRACE("wd_calc_relocation(%p,%d,%d,%p)\n",disc,encrypt,force,select);
+    TRACE("wd_calc_relocation(%p,%d,%x,%x,%p,%d)\n",
+		disc, encrypt, trim_mode, trim_align, select, force );
+
+    trim_mode  = wd_get_relococation_trim(trim_mode,&trim_align,disc->disc_type);
+    if ( disc->trim_mode != trim_mode || disc->trim_align != trim_align )
+    {
+	PRINT("TRIM: %x/%x -> %x/%x\n",
+		disc->trim_mode, disc->trim_align, trim_mode, trim_align );
+	disc->trim_mode = trim_mode;
+	disc->trim_align = trim_align;
+	force = true;
+    }
 
     if (select)
     {
@@ -6218,9 +6258,46 @@ void wd_print_disc_relocation
     bool		print_title	// true: print table titles
 )
 {
+    DASSERT(disc);
     wd_print_relocation(f,indent,
-		wd_calc_relocation(disc,true,false,0),
-		print_title );
+	wd_calc_relocation(disc,true,disc->trim_mode,disc->trim_align,0,false),
+	print_title );
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+wd_trim_mode_t wd_get_relococation_trim
+(
+    wd_trim_mode_t	trim_mode,	// trim mode to check
+    u32			* trim_align,	// NULL or trim alignment (modify)
+    wd_disc_type_t	disc_type	// type of disc for align calculation
+)
+{
+    wd_trim_mode_t res = trim_mode & (WD_TRIM_DISC|WD_TRIM_PART);
+    if ( res & WD_TRIM_DISC )
+	res |= trim_mode & WD_TRIM_F_END;
+
+    if ( trim_align )
+    {
+	if (!res)
+	    *trim_align = 0;
+	else
+	{
+	    const u32 align0
+		= *trim_align > WII_GROUP_SIZE
+			? WII_GROUP_SIZE
+			: *trim_align
+				? *trim_align
+				: disc_type == WD_DT_GAMECUBE
+					? GC_GOOD_PART_ALIGN
+					: WII_SECTOR_SIZE;
+	    u32 align = WII_SECTOR_SIZE;
+	    while ( align < align0 )
+		align <<= 1;
+	    *trim_align = align;
+	}
+    }
+    return res;
 }
 
 //

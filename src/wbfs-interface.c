@@ -2406,6 +2406,7 @@ int AnalyzeWBFS ( AWData_t * awd, File_t * f )
     for ( sec_size = 512; sec_size <= 4096; sec_size <<= 1 )
 	AW_calc(awd,f,sec_size,true);
 
+
     //----- calculate dependencies and remove invalid data
 
     int i;
@@ -3867,7 +3868,7 @@ enumError OpenWDiscSF ( WBFS_t * w )
     SuperFile_t * sf = w->sf;
     sf->wbfs = w;
     SetupIOD(sf,OFT_WBFS,OFT_WBFS);
-    memcpy(sf->f.id6,w->disc->header,6);
+    SetPatchFileID(&sf->f,w->disc->header,6); // [2do] SetFileID() ?
     w->disc_sf_opened = true;
 
     CopyFileAttribStat( &sf->f.fatt, &sf->f.st, false );
@@ -3894,7 +3895,7 @@ enumError CloseWDiscSF ( WBFS_t * w )
 	if ( sf && sf->iod.oft == OFT_WBFS )
 	{
 	    CloseDiscSF(sf);
-	    memset(sf->f.id6,0,sizeof(sf->f.id6));
+	    ClearFileID(&sf->f);
 	    SetupIOD(sf,OFT_PLAIN,OFT_PLAIN);
 	    sf->wbfs = 0;
 	}
@@ -3998,7 +3999,7 @@ enumError AddWDisc ( WBFS_t * w, SuperFile_t * sf, const wd_select_t * psel )
 	err = ERR_WBFS;
 	if (!w->sf->f.disable_errors)
 	    ERROR0(err,"Error while adding disc [%s]: %s\n",
-		    sf->f.id6, w->sf->f.fname );
+		    sf->f.id6_dest, w->sf->f.fname );
     }
     else
     {

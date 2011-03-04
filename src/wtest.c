@@ -413,8 +413,8 @@ static void dump_wbfs ( WBFS_t * w, enumError err, ccp title )
     SuperFile_t * sf = w->sf;
     if (sf)
     {
-	printf("sf: id=%s, oft=%u=%s, wbfs=%p, fname=%s\n",
-		sf->f.id6,
+	printf("sf: id=%s,%s, oft=%u=%s, wbfs=%p, fname=%s\n",
+		sf->f.id6_src, sf->f.id6_dest,
 		sf->iod.oft, oft_info[sf->iod.oft].name,
 		sf->wbfs, sf->f.fname );
 
@@ -957,7 +957,7 @@ void wd_print_disc_info_section
 ///////////////			develop()			///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-static enumError develop ( int argc, char ** argv )
+static enumError develop_x ( int argc, char ** argv )
 {
     PRINT(" %4zu == sizeof(wd_part_info_t)\n", sizeof(wd_part_info_t) );
     PRINT(" %4zu == sizeof(wd_disc_info_t)\n", sizeof(wd_disc_info_t) );
@@ -983,6 +983,38 @@ static enumError develop ( int argc, char ** argv )
 	wd_print_disc_info_section(stdout,dinfo,i,true);
 	free(dinfo);
 	
+	CloseSF(&sf,0);
+    }
+
+    return ERR_OK;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+static enumError develop ( int argc, char ** argv )
+{
+    //logging = 1;
+
+    SuperFile_t sf;
+    InitializeSF(&sf);
+    int i;
+    for ( i = 1; i < argc; i++ )
+    {
+	ResetSF(&sf,0);
+	if (OpenSF(&sf,argv[i],false,false))
+	    continue;
+	printf("--- %s:%s\n",oft_info[sf.iod.oft].name,argv[i]);
+
+	static off_t tab[] = { 0x50000, 0x8000010, 0xf800010, 0xf820010, 0 };
+	off_t * ptr;
+	for ( ptr = tab; *ptr; ptr++ )
+	{
+	    off_t size;
+	    off_t off = DataBlockSF(&sf,*ptr,HD_BLOCK_SIZE,&size);
+	    printf("%9llx -> %9llx .. %9llx, %9llx\n",
+			(u64)*ptr, (u64)off, (u64)(off+size), (u64)size );
+	}
+
 	CloseSF(&sf,0);
     }
 

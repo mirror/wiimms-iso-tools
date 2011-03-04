@@ -62,10 +62,12 @@ typedef enum enumOptions
 	OPT_IO,
 	OPT_OPTION,
 	OPT_PARAM,
+	OPT_CREATE,
+	OPT_REMOUNT,
 	OPT_UMOUNT,
 	OPT_LAZY,
 
-	OPT__N_TOTAL // == 13
+	OPT__N_TOTAL // == 15
 
 } enumOptions;
 
@@ -93,11 +95,13 @@ typedef enum enumGetOpt
 	GO_HELP_FUSE		= 'H',
 	GO_VERSION		= 'V',
 
+	GO_CREATE		= 'c',
 	GO_HELP			= 'h',
 	GO_LAZY			= 'l',
 	GO_OPTION		= 'o',
 	GO_PARAM		= 'p',
 	GO_QUIET		= 'q',
+	GO_REMOUNT		= 'r',
 	GO_UMOUNT		= 'u',
 	GO_VERBOSE		= 'v',
 

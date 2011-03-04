@@ -442,6 +442,16 @@ enumError ReadWIA
 );
 
 //-----------------------------------------------------------------------------
+
+off_t DataBlockWIA
+(
+    struct SuperFile_t	* sf,		// source file
+    off_t		off,		// virtual file offset
+    size_t		hint_align,	// if >1: hint for a aligment factor
+    off_t		* block_size	// not null: return block size
+);
+
+//-----------------------------------------------------------------------------
 // WIA writing support
 
 enumError SetupWriteWIA

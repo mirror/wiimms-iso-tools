@@ -59,10 +59,11 @@ typedef enum enumOptions
 	OPT_RECURSE,
 	OPT_RDEPTH,
 	OPT_AUTO,
-	OPT_INCLUDE,
-	OPT_INCLUDE_PATH,
 	OPT_EXCLUDE,
 	OPT_EXCLUDE_PATH,
+	OPT_INCLUDE,
+	OPT_INCLUDE_PATH,
+	OPT_INCLUDE_FIRST,
 	OPT_ONE_JOB,
 	OPT_JOB_LIMIT,
 	OPT_FAKE_SIGN,
@@ -101,6 +102,7 @@ typedef enum enumOptions
 	OPT_CHUNK_MODE,
 	OPT_CHUNK_SIZE,
 	OPT_MAX_CHUNKS,
+	OPT_BLOCK_SIZE,
 	OPT_COMPRESSION,
 	OPT_MEM,
 	OPT_PRESERVE,
@@ -132,8 +134,9 @@ typedef enum enumOptions
 	OPT_SECTIONS,
 	OPT_SORT,
 	OPT_LIMIT,
+	OPT_FILE_LIMIT,
 
-	OPT__N_SPECIFIC, // == 79 
+	OPT__N_SPECIFIC, // == 82 
 
 	//----- global options -----
 
@@ -154,9 +157,11 @@ typedef enum enumOptions
 	OPT_LANG,
 	OPT_CERT,
 	OPT_TEST,
+	OPT_OLD,
+	OPT_NEW,
 	OPT_HOOK,
 
-	OPT__N_TOTAL // == 97
+	OPT__N_TOTAL // == 102
 
 } enumOptions;
 
@@ -176,10 +181,11 @@ typedef enum enumOptions
 //	OB_RECURSE		= 1llu << OPT_RECURSE,
 //	OB_RDEPTH		= 1llu << OPT_RDEPTH,
 //	OB_AUTO			= 1llu << OPT_AUTO,
-//	OB_INCLUDE		= 1llu << OPT_INCLUDE,
-//	OB_INCLUDE_PATH		= 1llu << OPT_INCLUDE_PATH,
 //	OB_EXCLUDE		= 1llu << OPT_EXCLUDE,
 //	OB_EXCLUDE_PATH		= 1llu << OPT_EXCLUDE_PATH,
+//	OB_INCLUDE		= 1llu << OPT_INCLUDE,
+//	OB_INCLUDE_PATH		= 1llu << OPT_INCLUDE_PATH,
+//	OB_INCLUDE_FIRST	= 1llu << OPT_INCLUDE_FIRST,
 //	OB_ONE_JOB		= 1llu << OPT_ONE_JOB,
 //	OB_JOB_LIMIT		= 1llu << OPT_JOB_LIMIT,
 //	OB_FAKE_SIGN		= 1llu << OPT_FAKE_SIGN,
@@ -218,6 +224,7 @@ typedef enum enumOptions
 //	OB_CHUNK_MODE		= 1llu << OPT_CHUNK_MODE,
 //	OB_CHUNK_SIZE		= 1llu << OPT_CHUNK_SIZE,
 //	OB_MAX_CHUNKS		= 1llu << OPT_MAX_CHUNKS,
+//	OB_BLOCK_SIZE		= 1llu << OPT_BLOCK_SIZE,
 //	OB_COMPRESSION		= 1llu << OPT_COMPRESSION,
 //	OB_MEM			= 1llu << OPT_MEM,
 //	OB_PRESERVE		= 1llu << OPT_PRESERVE,
@@ -249,6 +256,7 @@ typedef enum enumOptions
 //	OB_SECTIONS		= 1llu << OPT_SECTIONS,
 //	OB_SORT			= 1llu << OPT_SORT,
 //	OB_LIMIT		= 1llu << OPT_LIMIT,
+//	OB_FILE_LIMIT		= 1llu << OPT_FILE_LIMIT,
 //
 //	//----- group & command options -----
 //
@@ -268,10 +276,11 @@ typedef enum enumOptions
 //				| OB_RECURSE
 //				| OB_RDEPTH,
 //
-//	OB_GRP_EXCLUDE		= OB_INCLUDE
-//				| OB_INCLUDE_PATH
-//				| OB_EXCLUDE
+//	OB_GRP_EXCLUDE		= OB_EXCLUDE
 //				| OB_EXCLUDE_PATH
+//				| OB_INCLUDE
+//				| OB_INCLUDE_PATH
+//				| OB_INCLUDE_FIRST
 //				| OB_ONE_JOB
 //				| OB_JOB_LIMIT,
 //
@@ -437,7 +446,10 @@ typedef enum enumOptions
 //				| OB_GRP_XXSOURCE
 //				| OB_GRP_PARTITIONS
 //				| OB_GRP_FST_SELECT
+//				| OB_FILE_LIMIT
+//				| OB_LIMIT
 //				| OB_LONG
+//				| OB_BLOCK_SIZE
 //				| OB_SECTIONS
 //				| OB_DEST
 //				| OB_DEST2
@@ -641,8 +653,11 @@ typedef enum enumGetOpt
 	GO_NO_UTF_8,
 	GO_LANG,
 	GO_CERT,
+	GO_OLD,
+	GO_NEW,
 	GO_NO_EXPAND,
 	GO_RDEPTH,
+	GO_INCLUDE_FIRST,
 	GO_JOB_LIMIT,
 	GO_FAKE_SIGN,
 	GO_IGNORE_FST,
@@ -676,6 +691,7 @@ typedef enum enumGetOpt
 	GO_CHUNK_MODE,
 	GO_CHUNK_SIZE,
 	GO_MAX_CHUNKS,
+	GO_BLOCK_SIZE,
 	GO_COMPRESSION,
 	GO_MEM,
 	GO_DIFF,
@@ -694,6 +710,7 @@ typedef enum enumGetOpt
 	GO_OLD_STYLE,
 	GO_SECTIONS,
 	GO_LIMIT,
+	GO_FILE_LIMIT,
 
 } enumGetOpt;
 

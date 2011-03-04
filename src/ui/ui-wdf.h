@@ -57,6 +57,9 @@ typedef enum enumOptions
 	OPT_CHUNK,
 	OPT_LONG,
 	OPT_MINUS1,
+	OPT_LIMIT,
+	OPT_FILE_LIMIT,
+	OPT_BLOCK_SIZE,
 	OPT_WDF,
 	OPT_WIA,
 	OPT_CISO,
@@ -77,7 +80,7 @@ typedef enum enumOptions
 	OPT_COMPRESSION,
 	OPT_MEM,
 
-	OPT__N_SPECIFIC, // == 23 
+	OPT__N_SPECIFIC, // == 26 
 
 	//----- global options -----
 
@@ -91,8 +94,10 @@ typedef enum enumOptions
 	OPT_IO,
 	OPT_DIRECT,
 	OPT_TEST,
+	OPT_OLD,
+	OPT_NEW,
 
-	OPT__N_TOTAL // == 33
+	OPT__N_TOTAL // == 38
 
 } enumOptions;
 
@@ -110,6 +115,9 @@ typedef enum enumOptions
 //	OB_CHUNK		= 1llu << OPT_CHUNK,
 //	OB_LONG			= 1llu << OPT_LONG,
 //	OB_MINUS1		= 1llu << OPT_MINUS1,
+//	OB_LIMIT		= 1llu << OPT_LIMIT,
+//	OB_FILE_LIMIT		= 1llu << OPT_FILE_LIMIT,
+//	OB_BLOCK_SIZE		= 1llu << OPT_BLOCK_SIZE,
 //	OB_WDF			= 1llu << OPT_WDF,
 //	OB_WIA			= 1llu << OPT_WIA,
 //	OB_CISO			= 1llu << OPT_CISO,
@@ -168,7 +176,10 @@ typedef enum enumOptions
 //
 //	OB_CMD_CAT		= OB_GRP_DEST,
 //
-//	OB_CMD_CMP		= 0,
+//	OB_CMD_CMP		= OB_FILE_LIMIT
+//				| OB_LIMIT
+//				| OB_LONG
+//				| OB_BLOCK_SIZE,
 //
 //	OB_CMD_DUMP		= OB_GRP_DEST
 //				| OB_CHUNK
@@ -235,6 +246,9 @@ typedef enum enumGetOpt
 	GO_IO,
 	GO_DIRECT,
 	GO_CHUNK,
+	GO_LIMIT,
+	GO_FILE_LIMIT,
+	GO_BLOCK_SIZE,
 	GO_WIA,
 	GO_WBI,
 	GO_PREALLOC,
@@ -243,6 +257,8 @@ typedef enum enumGetOpt
 	GO_MAX_CHUNKS,
 	GO_COMPRESSION,
 	GO_MEM,
+	GO_OLD,
+	GO_NEW,
 
 } enumGetOpt;
 

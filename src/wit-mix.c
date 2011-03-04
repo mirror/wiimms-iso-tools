@@ -42,7 +42,7 @@ typedef struct Mix_t
     ccp		source;		// pointer to source file ( := param->arg )
     u32		ptab;		// destination partition tables
     u32		ptype;		// destination partition type
-    enumTrim	trim;		// trim mode
+    wd_trim_mode_t trim;	// trim mode
     bool	is_boot_part;	// true: special boot partition (always at index #0)
 
     //--- secondary data
@@ -319,7 +319,7 @@ static enumError scan_mix_param
 	ResetFilePattern( file_pattern + PAT_PARAM );
 
 	bool qual_boot = false, qual_header = false, qual_region = false;
-	enumTrim trim = opt_trim; // [doc]
+	wd_trim_mode_t trim = opt_trim; // [doc]
 
 	while ( scan_qualifier )
 	{
@@ -349,7 +349,7 @@ static enumError scan_mix_param
 		param = param->next;
 		AtExpandParam(&param);
 		trim = ScanTrim(param->arg," (qualifier 'trim')");
-		if ( trim == (enumTrim)-1 )
+		if ( trim == (wd_trim_mode_t)-1 )
 		    return ERR_SYNTAX;
 		param = param->next;
 		scan_qualifier = true;

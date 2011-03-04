@@ -35,8 +35,14 @@ do
 	dest="doc/$fname"
 	ext="${dest##*.}"
 	#[[ $ext == edit-list ]] && continue
-	[[ $ext = "sh" || $ext = "h" ]] && dest="$fname"
-	awk "$awkprog" $src | sed -f templates.sed  >$dest
+	[[ $ext = "sh" || $ext = "bat" || $ext = "h" ]] && dest="$fname"
+	#echo "|$src|$dest|"
+	if [[ $ext = "bat" ]]
+	then
+	    awk "$awkprog" $src | sed -f templates.sed | sed 's/$/\r/' >$dest
+	else
+	    awk "$awkprog" $src | sed -f templates.sed  >$dest
+	fi
 	[[ $ext = "sh" ]] && chmod a+x "$fname"
     fi
 done

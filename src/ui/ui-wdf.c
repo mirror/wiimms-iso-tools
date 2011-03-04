@@ -69,6 +69,28 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 	" range."
     },
 
+    {	OPT_LIMIT, 0, "limit",
+	"num",
+	"Limit the output to NUM messages."
+    },
+
+    {	OPT_FILE_LIMIT, 0, "file-limit",
+	"size",
+	"This option is only used if comparing discs on file level. If not set"
+	" or set to null, then all files will be compared. If set to a value"
+	" greater than comparison is aborted for the current source image if"
+	" the entered number of files differ. This option is ignored in quiet"
+	" mode."
+    },
+
+    {	OPT_BLOCK_SIZE, 0, "block-size",
+	"size",
+	"If a mismatch is found in raw or disc mode then the comparison is"
+	" continued with the next block. This option sets the block size. The"
+	" default value is 32K (Wii sector size). This option is ignored in"
+	" quiet mode."
+    },
+
     {	OPT_WDF, 'W', "wdf",
 	0,
 	"Force WDF output mode if packing and set the default suffix to"
@@ -248,7 +270,7 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 	" to 80% of the total memory minus 50 MiB."
     },
 
-    {0,0,0,0,0}, // OPT__N_SPECIFIC == 23
+    {0,0,0,0,0}, // OPT__N_SPECIFIC == 26
 
     //----- global options -----
 
@@ -311,7 +333,17 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 	">>> USE THIS OPTION IF UNSURE! <<<"
     },
 
-    {0,0,0,0,0} // OPT__N_TOTAL == 33
+    {	OPT_OLD, 0, "OLD",
+	0,
+	"Use old implemenation if available."
+    },
+
+    {	OPT_NEW, 0, "NEW",
+	0,
+	"Use new implemenation if available."
+    },
+
+    {0,0,0,0,0} // OPT__N_TOTAL == 38
 
 };
 
@@ -324,6 +356,43 @@ const InfoOption_t option_cmd_VERSION_LONG =
     {	OPT_LONG, 'l', "long",
 	0,
 	"Print in long format."
+    };
+
+const InfoOption_t option_cmd_CMP_QUIET =
+    {	OPT_QUIET, 'q', "quiet",
+	0,
+	"Be quiet and print only error messages and failure messages on"
+	" mismatch. The comparison is aborted at the first mismatch for each"
+	" source image. If set twice print nothing and report the diff result"
+	" only as exit status and the complete comparison is aborted at the"
+	" first mismatch at all."
+    };
+
+const InfoOption_t option_cmd_CMP_VERBOSE =
+    {	OPT_VERBOSE, 'v', "verbose",
+	0,
+	"The default is to print only differ messages. If set success messages"
+	" and summaries are printed too. If set at least twice, a progress"
+	" counter is printed too."
+    };
+
+const InfoOption_t option_cmd_CMP_LIMIT =
+    {	OPT_LIMIT, 0, "limit",
+	"num",
+	"If not set, the comparison of the current file is aborted if a"
+	" mismatch is found. If set, the comparison is aborted after 'limit'"
+	" mismatches. To compare the whole file use the special value 0. This"
+	" option is ignored in quiet mode."
+    };
+
+const InfoOption_t option_cmd_CMP_LONG =
+    {	OPT_LONG, 'l', "long",
+	0,
+	"If set, a status line with the offset is printed for each found"
+	" mismatch. If set twice, an additonal hexdump of the first bytes is"
+	" printed. If set 3 or 4 times, the limit is set to 10 or unlimited if"
+	" option --limit is not already set. This option is ignored in quiet"
+	" mode."
     };
 
 const InfoOption_t option_cmd_DUMP_LONG =
@@ -373,6 +442,11 @@ const struct option OptionLong[] =
 	{ "long",		0, 0, 'l' },
 	{ "minus-1",		0, 0, '1' },
 	 { "minus1",		0, 0, '1' },
+	{ "limit",		1, 0, GO_LIMIT },
+	{ "file-limit",		1, 0, GO_FILE_LIMIT },
+	 { "filelimit",		1, 0, GO_FILE_LIMIT },
+	{ "block-size",		1, 0, GO_BLOCK_SIZE },
+	 { "blocksize",		1, 0, GO_BLOCK_SIZE },
 	{ "wdf",		0, 0, 'W' },
 	{ "wia",		2, 0, GO_WIA },
 	{ "ciso",		0, 0, 'C' },
@@ -401,6 +475,8 @@ const struct option OptionLong[] =
 	 { "compr",		1, 0, GO_COMPRESSION },
 	{ "mem",		1, 0, GO_MEM },
 	{ "test",		0, 0, 't' },
+	{ "OLD",		0, 0, GO_OLD },
+	{ "NEW",		0, 0, GO_NEW },
 
 	{0,0,0,0}
 };
@@ -455,16 +531,20 @@ const u8 OptionIndex[OPT_INDEX_SIZE] =
 	/*82*/	OPT_IO,
 	/*83*/	OPT_DIRECT,
 	/*84*/	OPT_CHUNK,
-	/*85*/	OPT_WIA,
-	/*86*/	OPT_WBI,
-	/*87*/	OPT_PREALLOC,
-	/*88*/	OPT_CHUNK_MODE,
-	/*89*/	OPT_CHUNK_SIZE,
-	/*8a*/	OPT_MAX_CHUNKS,
-	/*8b*/	OPT_COMPRESSION,
-	/*8c*/	OPT_MEM,
-	/*8d*/	 0,0,0,
-	/*90*/	 0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0,
+	/*85*/	OPT_LIMIT,
+	/*86*/	OPT_FILE_LIMIT,
+	/*87*/	OPT_BLOCK_SIZE,
+	/*88*/	OPT_WIA,
+	/*89*/	OPT_WBI,
+	/*8a*/	OPT_PREALLOC,
+	/*8b*/	OPT_CHUNK_MODE,
+	/*8c*/	OPT_CHUNK_SIZE,
+	/*8d*/	OPT_MAX_CHUNKS,
+	/*8e*/	OPT_COMPRESSION,
+	/*8f*/	OPT_MEM,
+	/*90*/	OPT_OLD,
+	/*91*/	OPT_NEW,
+	/*92*/	 0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,
 	/*a0*/	 0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0,
 	/*b0*/	 0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0,
 	/*c0*/	 0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0,
@@ -478,39 +558,39 @@ const u8 OptionIndex[OPT_INDEX_SIZE] =
 ///////////////                opt_allowed_cmd_*                ///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-static u8 option_allowed_cmd_VERSION[23] = // cmd #1
+static u8 option_allowed_cmd_VERSION[26] = // cmd #1
 {
-    0,0,1,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,  0,0,0
+    0,0,1,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0
 };
 
-static u8 option_allowed_cmd_HELP[23] = // cmd #2
+static u8 option_allowed_cmd_HELP[26] = // cmd #2
 {
-    1,1,1,1,1, 1,1,1,1,1,  1,1,1,1,1, 1,1,1,1,1,  1,1,1
+    1,1,1,1,1, 1,1,1,1,1,  1,1,1,1,1, 1,1,1,1,1,  1,1,1,1,1, 1
 };
 
-static u8 option_allowed_cmd_PACK[23] = // cmd #3
+static u8 option_allowed_cmd_PACK[26] = // cmd #3
 {
-    0,0,0,0,1, 1,1,1,1,1,  1,1,1,1,1, 1,1,1,1,1,  1,1,1
+    0,0,0,0,0, 0,0,1,1,1,  1,1,1,1,1, 1,1,1,1,1,  1,1,1,1,1, 1
 };
 
-static u8 option_allowed_cmd_UNPACK[23] = // cmd #4
+static u8 option_allowed_cmd_UNPACK[26] = // cmd #4
 {
-    0,0,0,0,0, 0,0,0,0,1,  1,1,1,1,1, 1,1,1,1,1,  1,1,1
+    0,0,0,0,0, 0,0,0,0,0,  0,0,1,1,1, 1,1,1,1,1,  1,1,1,1,1, 1
 };
 
-static u8 option_allowed_cmd_CAT[23] = // cmd #5
+static u8 option_allowed_cmd_CAT[26] = // cmd #5
 {
-    0,0,0,0,0, 0,0,0,0,1,  1,0,0,1,0, 0,0,0,0,0,  0,0,0
+    0,0,0,0,0, 0,0,0,0,0,  0,0,1,1,0, 0,1,0,0,0,  0,0,0,0,0, 0
 };
 
-static u8 option_allowed_cmd_CMP[23] = // cmd #6
+static u8 option_allowed_cmd_CMP[26] = // cmd #6
 {
-    0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,  0,0,0
+    0,0,1,0,1, 1,1,0,0,0,  0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0
 };
 
-static u8 option_allowed_cmd_DUMP[23] = // cmd #7
+static u8 option_allowed_cmd_DUMP[26] = // cmd #7
 {
-    0,1,1,1,0, 0,0,0,0,1,  1,0,0,1,0, 0,0,0,0,0,  0,0,0
+    0,1,1,1,0, 0,0,0,0,0,  0,0,1,1,0, 0,1,0,0,0,  0,0,0,0,0, 0
 };
 
 
@@ -612,6 +692,12 @@ static const InfoOption_t * option_tab_cmd_CAT[] =
 
 static const InfoOption_t * option_tab_cmd_CMP[] =
 {
+	&option_cmd_CMP_QUIET,
+	&option_cmd_CMP_VERBOSE,
+	OptionInfo + OPT_FILE_LIMIT,
+	&option_cmd_CMP_LIMIT,
+	&option_cmd_CMP_LONG,
+	OptionInfo + OPT_BLOCK_SIZE,
 
 	0
 };
@@ -734,7 +820,7 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	" mising then standard input (stdin) is used instead.\n"
 	"  This is the default command, when the program name contains the sub"
 	" string 'diff' or 'cmp' in any case.",
-	0,
+	6,
 	option_tab_cmd_CMP,
 	option_allowed_cmd_CMP
     },

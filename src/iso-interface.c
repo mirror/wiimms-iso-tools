@@ -75,7 +75,8 @@ static void dump_size
     ccp			title,		// header
     u64			size,		// size to print
     u64			percent_base1,	// >0: print percent value based on 'percent_base'
-    u64			percent_base2	// >0: print percent value based on 'percent_base'
+    u64			percent_base2,	// >0: print percent value based on 'percent_base'
+    ccp			append_text	// NULL or text to append
 )
 {
     fprintf(f,"%*s%-17s%11llx/hex =%11llu",
@@ -101,7 +102,10 @@ static void dump_size
 	else
 	    fprintf(f,", %4.2f%%",percent);
     }
-    
+
+    if (append_text)
+	fputs(append_text,f);
+
     fputc('\n',f);
 }
 
@@ -184,23 +188,24 @@ static int dump_header
     if ( sf->iod.oft != OFT_UNKNOWN && sf->disc2 )
     {
 	if ( sf->iod.oft == OFT_PLAIN )
-	    dump_size(f,indent,"ISO file size:",real_size,0,0);
+	    dump_size(f,indent,"ISO file size:",real_size,0,0,0);
 	else
-	    dump_size(f,indent,"Virtual size:",virt_size,0,0);
+	    dump_size(f,indent,"Virtual size:",virt_size,0,0,0);
 
-	const u64 scrubbed_size = wd_count_used_disc_blocks(sf->disc2,1,0)
-				* (u64)WII_SECTOR_SIZE;
-	dump_size(f,indent,"Scrubbed size:",scrubbed_size,virt_size,0);
+	char buf[50];
+	const u32 n_blocks = wd_count_used_disc_blocks(sf->disc2,1,0);
+	snprintf(buf,sizeof(buf),", %u*%uK",n_blocks,WII_SECTOR_SIZE/KiB);
+	const u64 scrubbed_size = n_blocks * (u64)WII_SECTOR_SIZE;
+	dump_size(f,indent,"Scrubbed size:",scrubbed_size,virt_size,0,buf);
 
 	if ( sf->iod.oft != OFT_PLAIN )
 	{
-	    char buf[50];
 	    snprintf(buf,sizeof(buf),"%s file size:",oft_info[sf->iod.oft].name);
-	    dump_size(f,indent,buf,real_size,virt_size,scrubbed_size);
+	    dump_size(f,indent,buf,real_size,virt_size,scrubbed_size,0);
 	}
     }
     else
-	dump_size(f,indent,"File size:",real_size,0,0);
+	dump_size(f,indent,"File size:",real_size,0,0,0);
 
     //----- file and disc type
 
@@ -226,7 +231,7 @@ static int dump_header
 		disc->disc_attrib & WD_DA_GC_DVD9 ? ", DVD9" : "" );
 
 	if ( !id6 && sf )
-	    id6 = sf->f.id6;
+	    id6 = sf->f.id6_dest;
 	dump_id(f,indent,id6,disc->main_part,19);
     }
     else
@@ -534,7 +539,7 @@ enumError Dump_ISO
     //----- setup
 
     ASSERT(sf);
-    if ( !f || !sf->f.id6[0] )
+    if ( !f || !sf->f.id6_dest[0] )
 	return ERR_OK;
     sf->f.read_behind_eof = 2;
 
@@ -544,8 +549,6 @@ enumError Dump_ISO
     if (!disc)
 	return ERR_WDISC_NOT_FOUND;
 
-    const u32 used_blocks = wd_count_used_disc_blocks(disc,1,0);
-    const u32 used_mib    = ( used_blocks + WII_SECTORS_PER_MIB/2 ) / WII_SECTORS_PER_MIB;
     const bool is_gc	  = disc->disc_type == WD_DT_GAMECUBE;
 
     FilePattern_t * pat = GetDefaultFilePattern();
@@ -614,8 +617,16 @@ enumError Dump_ISO
 			indent,"", reg, GetRegionName(reg,"?"),
 			p8[0], p8[1], p8[2], p8[3], p8[4], p8[5], p8[6], p8[7] );
 
-	    if ( disc && disc->main_part )
-		dump_sys_version(f,indent,ntoh64(disc->main_part->tmd->sys_version),19);
+	    if (disc)
+	    {
+		if (disc->system_menu)
+		    fprintf(f,"%*sSystem menu:       v%u = %s\n",
+			indent,"", disc->system_menu,
+			GetSystemMenu(disc->system_menu,"?") );
+
+		if ( disc->main_part && disc->main_part->tmd )
+		    dump_sys_version(f,indent,ntoh64(disc->main_part->tmd->sys_version),19);
+	    }
 	}
 
 	wd_calc_disc_status(disc,true);
@@ -624,8 +635,6 @@ enumError Dump_ISO
 		wd_print_sector_status(0,0,disc->sector_stat,disc->cert_summary) );
 	fprintf(f,"%*sDirectories:      %7u\n",indent,"",disc->fst_dir_count);
 	fprintf(f,"%*sFiles:            %7u\n",indent,"",disc->fst_file_count);
-	fprintf(f,"%*sUsed ISO blocks:  %7u * 32 KiB = %u MiB\n",
-			indent,"", used_blocks, used_mib );
     }
     else
     {
@@ -648,6 +657,9 @@ enumError Dump_ISO
     if ( show_mode & SHOW_FILES )
     {
 	SetupFilePattern(pat);
+
+	const u32 used_mib = ( wd_count_used_disc_blocks(disc,1,0)
+				+ WII_SECTORS_PER_MIB/2 ) / WII_SECTORS_PER_MIB;
 
 	fprintf(f,"\n\n%*s%u director%s with %u file%s, disk usage %u MiB:\n\n",
 		indent,"",
@@ -976,7 +988,7 @@ enumError Dump_TIK_BIN
     enumError err = ReadSF(sf,0,buf,load_size);
     wd_ticket_t * tik = (wd_ticket_t*)buf;
     if (!err)
-	memcpy(sf->f.id6,tik->title_id+4,4);
+	SetFileID(&sf->f,tik->title_id+4,4);
     indent = dump_header(f,indent,sf,0,real_path,0);
 
     if (!err)
@@ -1086,7 +1098,7 @@ enumError Dump_TMD_BIN
     
     wd_tmd_t * tmd = (wd_tmd_t*)buf;
     if (!err)
-	memcpy(sf->f.id6,tmd->title_id+4,4);
+	SetFileID(&sf->f,tmd->title_id+4,4);
     indent = dump_header(f,indent,sf,0,real_path,0);
 
     if (!err)
@@ -5216,7 +5228,7 @@ enumError Skeletonize
     if ( testmode || verbose >= 0 )
 	printf("SKELETONIZE %u/%u [%s] %s\n",
 		disc_index, disc_total,
-		fi->f.id6, path ? path : fi->f.fname );
+		fi->f.id6_dest, path ? path : fi->f.fname );
 
     wd_memmap_t mm;
     memset(&mm,0,sizeof(mm));
@@ -5236,7 +5248,7 @@ enumError Skeletonize
 
     wd_memmap_item_t * mi = wd_insert_memmap_alloc(&mm,0,0,WII_PART_OFF);
     DASSERT( mi && mi->data );
-    snprintf(mi->info,sizeof(mi->info),"Disc header of %s",fi->f.id6);
+    snprintf(mi->info,sizeof(mi->info),"Disc header of %s",fi->f.id6_dest);
     err = ReadSF(fi,0,mi->data,WII_PART_OFF);
     if (err)
 	goto abort;
@@ -5338,7 +5350,7 @@ enumError Skeletonize
 	snprintf(fname,sizeof(fname),
 		"%s/%.6s-%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x"
 		     "%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%s",
-		local_dest, fi->f.id6,
+		local_dest, fi->f.id6_dest,
 		h[0], h[1], h[2], h[3], h[4], 
 		h[5], h[6], h[7], h[8], h[9], 
 		h[10], h[11], h[12], h[13], h[14], 

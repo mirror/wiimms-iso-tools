@@ -21,110 +21,56 @@
     ##                                                                 ##
     #####################################################################
     ##                                                                 ##
-    ##   This file loads the title files from WiiTDB.com               ##
+    ##   This file copies the cygwin tools and DLLs into the binary    ##
+    ##   directory to prepare the distribution.                        ##
     ##                                                                 ##
     #####################################################################
 
 
 #------------------------------------------------------------------------------
+# setup
 
-NEEDED="wit wget comm tr"
+CYGWIN_DIR="@@CYGWIN-DIR@@"
+CYGWIN_TOOLS="@@CYGWIN-TOOLS@@"
+BIN_FILES="@@BIN-FILES@@"
+DISTRIB_PATH="@@DISTRIB-PATH@@"
 
-BASE_PATH="@@INSTALL-PATH@@"
-SHARE_PATH="$BASE_PATH/share/wit"
-URI_TITLES=@@URI-TITLES@@
-LANGUAGES="@@LANGUAGES@@"
-
-SHARE_DIR=./share
-
-#------------------------------------------------------------------------------
-
-CYGWIN=0
-if [[ $1 = --cygwin ]]
-then
-    shift
-    CYGWIN=1
-    SHARE_DIR=.
-    export PATH=".:$PATH"
-fi
+BIN_PATH="$DISTRIB_PATH/bin"
+mkdir -p "$BIN_PATH" || exit 1
 
 #------------------------------------------------------------------------------
+# copy cygwin tools
 
-MAKE=0
-if [[ $1 = --make ]]
-then
-    # it's called from make
-    shift
-    MAKE=1
-fi
+for tool in $CYGWIN_TOOLS
+do
+    cp --preserve=time "$CYGWIN_DIR/$tool.exe" "$BIN_PATH" || exit 1
+done
 
 #------------------------------------------------------------------------------
+# copy wit tools
 
-function load_and_store()
-{
-    local URI="$1"
-    local DEST="$2"
-    local ADD="$3"
-
-    echo "***    load $DEST from $URI"
-
-    if wget -q -O- "$URI" | wit titles / - >"$DEST.tmp" && test -s "$DEST.tmp"
+for tool in $BIN_FILES
+do
+    if [[ -s ./$tool.exe ]]
     then
-	if [[ $ADD != "" ]]
-	then
-	    wit titles / "$ADD" "$DEST.tmp" >"$DEST.tmp.2"
-	    mv "$DEST.tmp.2" "$DEST.tmp"
-	fi
-
-	if [[ -s $DEST ]]
-	then
-	    grep -v ^TITLES "$DEST"     >"$DEST.tmp.1"
-	    grep -v ^TITLES "$DEST.tmp" >"$DEST.tmp.2"
-	    if ! diff -q "$DEST.tmp.1" "$DEST.tmp.2" >/dev/null
-	    then
-		#echo "            => content changed!"
-		mv "$DEST.tmp" "$DEST"
-	    fi
-	else
-	    mv "$DEST.tmp" "$DEST"
-	fi
+	CYGWIN_TOOLS="$CYGWIN_TOOLS $tool"
+	ln -f ./$tool.exe "$BIN_PATH" || exit 1
     fi
-    rm -f "$DEST.tmp" "$DEST.tmp.1" "$DEST.tmp.2"
-}
-
-#------------------------------------------------------------------------------
-
-errtool=
-for tool in $NEEDED
-do
-    ((CYGWIN)) && [[ -x $tool.exe ]] && continue
-    which $tool >/dev/null 2>&1 || errtool="$errtool $tool"
 done
 
-if [[ $errtool != "" ]]
-then
-    echo "missing tools in PATH:$errtool" >&2
-    exit 2
-fi
-
 #------------------------------------------------------------------------------
+# copy needed cygwin dlls
 
-mkdir -p "$SHARE_DIR"
-
-load_and_store "$URI_TITLES" "$SHARE_DIR/titles.txt"
-
-# load language specific title files
-
-for lang in $LANGUAGES
+for tool in $CYGWIN_TOOLS
 do
-    LANG="$( echo $lang | tr '[a-z]' '[A-Z]' )"
-    load_and_store $URI_TITLES?LANG=$LANG "$SHARE_DIR/titles-$lang.txt" "$SHARE_DIR/titles.txt"
+    ldd "$BIN_PATH/$tool.exe" | grep -F "=> $CYGWIN_DIR/" | awk '{print $1}'
+done | sort | uniq | while read dll
+do
+    cp --preserve=time "$CYGWIN_DIR/$dll" "$BIN_PATH" || exit 1
 done
 
-if (( !MAKE && !CYGWIN ))
-then
-    echo "*** install titles to $SHARE_PATH"
-    mkdir -p "$SHARE_PATH"
-    cp -p "$SHARE_DIR/titles*.txt" "$SHARE_PATH"
-fi
+#------------------------------------------------------------------------------
+# done
+
+exit 0
 

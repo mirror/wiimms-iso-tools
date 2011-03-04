@@ -314,23 +314,6 @@
 	" disks in '/dev/' and use all readable as source. This works like" \
 	" {wwt --auto --all}." )
 
-#:def_opt( "INCLUDE", "n|include", "CMP", \
-	"id", \
-	"A comma separated list with ID values is expected. @'.'@ is a" \
-	" wildcard for exact 1 character and @'+'@ is a wildcard for any" \
-	" number characters. If the parameter begins with a '@@' the given" \
-	" file is read and each line is scanned for one ID. Only images with" \
-	" the given ID are included into the operation. Each use of this" \
-	" option expands the include list. The exclude list takes precedence." )
-
-#:def_opt( "INCLUDE_PATH", "N|include-path|includepath", "CMP", \
-	"file_or_dir", \
-	"Scan the ID of the source and add it to the include list. If the" \
-	" source is a directory then scan all images of the directory. Only" \
-	" images with the given ID are included into the operation. Each use" \
-	" of this option expands the include list. The exclude list takes" \
-	" precedence." )
-
 #:def_opt( "EXCLUDE", "x|exclude", "CMP", \
 	"id", \
 	"A comma separated list with ID4 and ID6 values is expected. @'.'@ is" \
@@ -338,14 +321,48 @@
 	" number characters. If the parameter begins with a '@@' the given" \
 	" file is read and each line is scanned for one ID. Images with the" \
 	" given ID are excluded from operation. Each use of this option" \
-	" expands the exclude list." )
+	" expands the exclude list. See {--include-first} for precedence" \
+	" issues." )
 
 #:def_opt( "EXCLUDE_PATH", "X|exclude-path|excludepath", "CMP", \
 	"file_or_dir", \
 	"Scan the ID of the source and add it to the exclude list. If the" \
 	" source is a directory then scan all images of the directory. Images" \
 	" with the given ID are excluded from operation. Each use of this" \
-	" option expands the exclude list." )
+	" option expands the exclude list. See {--include-first} for" \
+	" precedence issues." )
+
+#:def_opt( "INCLUDE", "n|include", "CMP", \
+	"id", \
+	"A comma separated list with ID values is expected. @'.'@ is a" \
+	" wildcard for exact 1 character and @'+'@ is a wildcard for any" \
+	" number characters. If the parameter begins with a '@@' the given" \
+	" file is read and each line is scanned for one ID. Only images with" \
+	" the given ID are included into the operation. Each use of this" \
+	" option expands the include list. See {--include-first} for" \
+	" precedence issues." )
+
+#:def_opt( "INCLUDE_PATH", "N|include-path|includepath", "CMP", \
+	"file_or_dir", \
+	"Scan the ID of the source and add it to the include list. If the" \
+	" source is a directory then scan all images of the directory. Only" \
+	" images with the given ID are included into the operation. Each use" \
+	" of this option expands the include list. See {--include-first} for" \
+	" precedence issues." )
+
+#:def_opt( "INCLUDE_FIRST", "include-first|includefirst", "C", \
+	"", \
+	"The options {--include}, {--include-path}, {--exclude} and" \
+	" {--exclude-path} decide which discs are included into the operation." \
+	" If neither include nor exclude options are used, than all disc are" \
+	" included into the operation. If only include options are used, than" \
+	" only the specified discs are operated. If only exclude options are" \
+	" used, than all all discs but not the excluded are operated.\n" \
+	"  If include and exclude options are used together and" \
+	" @--include-first@ is not set, than all discs are operated that are" \
+	" specified by any include option and not by any exclude option. If" \
+	" @--include-first@ is set, than all discs are ignored that are" \
+	" specified by any exclude option and not by any include option." )
 
 #:def_opt( "ONE_JOB", "1|one-job|onejob", "C", \
 	"", \
@@ -591,6 +608,13 @@
 	" calculation  of {--chunk-size} will be modified too.\n" \
 	"  @--mch@ is a shortcut for @--max-chunks@." )
 
+#:def_opt( "BLOCK_SIZE", "block-size|blocksize", "CP", \
+	"size", \
+	"If a mismatch is found in raw or disc mode then the comparison is" \
+	" continued with the next block. This option sets the block size. The" \
+	" default value is @32K@ (Wii sector size). This option is ignored in" \
+	" quiet mode." )
+
 #:def_opt( "COMPRESSION", "compression|compr", "CP", \
 	"mode", \
 	"Select one compression method, level and chunk size for new WIA" \
@@ -791,6 +815,14 @@
 	"num", \
 	"Limit the output to NUM messages." )
 
+#:def_opt( "FILE_LIMIT", "file-limit|filelimit", "CP", \
+	"size", \
+	"This option is only used if comparing discs on file level. If not set" \
+	" or set to null, then all files will be compared. If set to a value" \
+	" greater than comparison is aborted for the current source image if" \
+	" the entered number of files differ. This option is ignored in quiet" \
+	" mode." )
+
 #:def_cmd_opt( "VERSION", "SECTIONS", \
 	"", \
 	"" )
@@ -933,6 +965,14 @@
 	"", \
 	"" )
 
+#:def_cmd_opt( "FILELIST", "EXCLUDE", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "FILELIST", "EXCLUDE_PATH", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "FILELIST", "INCLUDE", \
 	"", \
 	"" )
@@ -941,11 +981,7 @@
 	"", \
 	"" )
 
-#:def_cmd_opt( "FILELIST", "EXCLUDE", \
-	"", \
-	"" )
-
-#:def_cmd_opt( "FILELIST", "EXCLUDE_PATH", \
+#:def_cmd_opt( "FILELIST", "INCLUDE_FIRST", \
 	"", \
 	"" )
 
@@ -997,6 +1033,14 @@
 	"", \
 	"" )
 
+#:def_cmd_opt( "FILETYPE", "EXCLUDE", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "FILETYPE", "EXCLUDE_PATH", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "FILETYPE", "INCLUDE", \
 	"", \
 	"" )
@@ -1005,11 +1049,7 @@
 	"", \
 	"" )
 
-#:def_cmd_opt( "FILETYPE", "EXCLUDE", \
-	"", \
-	"" )
-
-#:def_cmd_opt( "FILETYPE", "EXCLUDE_PATH", \
+#:def_cmd_opt( "FILETYPE", "INCLUDE_FIRST", \
 	"", \
 	"" )
 
@@ -1067,6 +1107,14 @@
 	"", \
 	"" )
 
+#:def_cmd_opt( "ISOSIZE", "EXCLUDE", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "ISOSIZE", "EXCLUDE_PATH", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "ISOSIZE", "INCLUDE", \
 	"", \
 	"" )
@@ -1075,11 +1123,7 @@
 	"", \
 	"" )
 
-#:def_cmd_opt( "ISOSIZE", "EXCLUDE", \
-	"", \
-	"" )
-
-#:def_cmd_opt( "ISOSIZE", "EXCLUDE_PATH", \
+#:def_cmd_opt( "ISOSIZE", "INCLUDE_FIRST", \
 	"", \
 	"" )
 
@@ -1165,6 +1209,14 @@
 	"", \
 	"" )
 
+#:def_cmd_opt( "DUMP", "EXCLUDE", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "DUMP", "EXCLUDE_PATH", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "DUMP", "INCLUDE", \
 	"", \
 	"" )
@@ -1173,11 +1225,7 @@
 	"", \
 	"" )
 
-#:def_cmd_opt( "DUMP", "EXCLUDE", \
-	"", \
-	"" )
-
-#:def_cmd_opt( "DUMP", "EXCLUDE_PATH", \
+#:def_cmd_opt( "DUMP", "INCLUDE_FIRST", \
 	"", \
 	"" )
 
@@ -1306,6 +1354,14 @@
 	"", \
 	"" )
 
+#:def_cmd_opt( "ID6", "EXCLUDE", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "ID6", "EXCLUDE_PATH", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "ID6", "INCLUDE", \
 	"", \
 	"" )
@@ -1314,11 +1370,7 @@
 	"", \
 	"" )
 
-#:def_cmd_opt( "ID6", "EXCLUDE", \
-	"", \
-	"" )
-
-#:def_cmd_opt( "ID6", "EXCLUDE_PATH", \
+#:def_cmd_opt( "ID6", "INCLUDE_FIRST", \
 	"", \
 	"" )
 
@@ -1386,6 +1438,14 @@
 	"", \
 	"" )
 
+#:def_cmd_opt( "LIST", "EXCLUDE", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "LIST", "EXCLUDE_PATH", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "LIST", "INCLUDE", \
 	"", \
 	"" )
@@ -1394,11 +1454,7 @@
 	"", \
 	"" )
 
-#:def_cmd_opt( "LIST", "EXCLUDE", \
-	"", \
-	"" )
-
-#:def_cmd_opt( "LIST", "EXCLUDE_PATH", \
+#:def_cmd_opt( "LIST", "INCLUDE_FIRST", \
 	"", \
 	"" )
 
@@ -1516,6 +1572,14 @@
 	"", \
 	"" )
 
+#:def_cmd_opt( "LIST_L", "EXCLUDE", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "LIST_L", "EXCLUDE_PATH", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "LIST_L", "INCLUDE", \
 	"", \
 	"" )
@@ -1524,11 +1588,7 @@
 	"", \
 	"" )
 
-#:def_cmd_opt( "LIST_L", "EXCLUDE", \
-	"", \
-	"" )
-
-#:def_cmd_opt( "LIST_L", "EXCLUDE_PATH", \
+#:def_cmd_opt( "LIST_L", "INCLUDE_FIRST", \
 	"", \
 	"" )
 
@@ -1646,6 +1706,14 @@
 	"", \
 	"" )
 
+#:def_cmd_opt( "LIST_LL", "EXCLUDE", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "LIST_LL", "EXCLUDE_PATH", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "LIST_LL", "INCLUDE", \
 	"", \
 	"" )
@@ -1654,11 +1722,7 @@
 	"", \
 	"" )
 
-#:def_cmd_opt( "LIST_LL", "EXCLUDE", \
-	"", \
-	"" )
-
-#:def_cmd_opt( "LIST_LL", "EXCLUDE_PATH", \
+#:def_cmd_opt( "LIST_LL", "INCLUDE_FIRST", \
 	"", \
 	"" )
 
@@ -1776,6 +1840,14 @@
 	"", \
 	"" )
 
+#:def_cmd_opt( "LIST_LLL", "EXCLUDE", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "LIST_LLL", "EXCLUDE_PATH", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "LIST_LLL", "INCLUDE", \
 	"", \
 	"" )
@@ -1784,11 +1856,7 @@
 	"", \
 	"" )
 
-#:def_cmd_opt( "LIST_LLL", "EXCLUDE", \
-	"", \
-	"" )
-
-#:def_cmd_opt( "LIST_LLL", "EXCLUDE_PATH", \
+#:def_cmd_opt( "LIST_LLL", "INCLUDE_FIRST", \
 	"", \
 	"" )
 
@@ -1890,6 +1958,14 @@
 	"", \
 	"" )
 
+#:def_cmd_opt( "FILES", "EXCLUDE", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "FILES", "EXCLUDE_PATH", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "FILES", "INCLUDE", \
 	"", \
 	"" )
@@ -1898,11 +1974,7 @@
 	"", \
 	"" )
 
-#:def_cmd_opt( "FILES", "EXCLUDE", \
-	"", \
-	"" )
-
-#:def_cmd_opt( "FILES", "EXCLUDE_PATH", \
+#:def_cmd_opt( "FILES", "INCLUDE_FIRST", \
 	"", \
 	"" )
 
@@ -1996,6 +2068,14 @@
 	"", \
 	"" )
 
+#:def_cmd_opt( "FILES_L", "EXCLUDE", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "FILES_L", "EXCLUDE_PATH", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "FILES_L", "INCLUDE", \
 	"", \
 	"" )
@@ -2004,11 +2084,7 @@
 	"", \
 	"" )
 
-#:def_cmd_opt( "FILES_L", "EXCLUDE", \
-	"", \
-	"" )
-
-#:def_cmd_opt( "FILES_L", "EXCLUDE_PATH", \
+#:def_cmd_opt( "FILES_L", "INCLUDE_FIRST", \
 	"", \
 	"" )
 
@@ -2102,6 +2178,14 @@
 	"", \
 	"" )
 
+#:def_cmd_opt( "FILES_LL", "EXCLUDE", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "FILES_LL", "EXCLUDE_PATH", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "FILES_LL", "INCLUDE", \
 	"", \
 	"" )
@@ -2110,11 +2194,7 @@
 	"", \
 	"" )
 
-#:def_cmd_opt( "FILES_LL", "EXCLUDE", \
-	"", \
-	"" )
-
-#:def_cmd_opt( "FILES_LL", "EXCLUDE_PATH", \
+#:def_cmd_opt( "FILES_LL", "INCLUDE_FIRST", \
 	"", \
 	"" )
 
@@ -2228,6 +2308,14 @@
 	"", \
 	"" )
 
+#:def_cmd_opt( "DIFF", "EXCLUDE", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "DIFF", "EXCLUDE_PATH", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "DIFF", "INCLUDE", \
 	"", \
 	"" )
@@ -2236,11 +2324,7 @@
 	"", \
 	"" )
 
-#:def_cmd_opt( "DIFF", "EXCLUDE", \
-	"", \
-	"" )
-
-#:def_cmd_opt( "DIFF", "EXCLUDE_PATH", \
+#:def_cmd_opt( "DIFF", "INCLUDE_FIRST", \
 	"", \
 	"" )
 
@@ -2294,25 +2378,50 @@
 
 #:def_cmd_opt( "DIFF", "QUIET", \
 	"", \
-	"" )
+	"Be quiet and print only error messages and failure messages on" \
+	" mismatch. The comparison is aborted at the first mismatch for each" \
+	" source image. If set twice print nothing and report the diff result" \
+	" only as exit status and the complete comparison is aborted at the" \
+	" first mismatch at all." )
 
 #:def_cmd_opt( "DIFF", "VERBOSE", \
 	"", \
-	"" )
-
-#:def_cmd_opt( "DIFF", "LOGGING", \
-	"", \
-	"" )
+	"The default is to print only differ messages. If set success messages" \
+	" and summaries are printed too. If set at least twice, a progress" \
+	" counter is printed too." )
 
 #:def_cmd_opt( "DIFF", "PROGRESS", \
 	"", \
 	"" )
 
+#:def_cmd_opt( "DIFF", "FILE_LIMIT", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "DIFF", "LIMIT", \
+	"", \
+	"If not set, the comparison of the current file is aborted if a" \
+	" mismatch is found. If set, the comparison is aborted after @'limit'@" \
+	" mismatches. To compare the whole file use the special value @0@." \
+	" This option is ignored in quiet mode." )
+
 #:def_cmd_opt( "DIFF", "LONG", \
+	"", \
+	"If set, a status line with the offset is printed for each found" \
+	" mismatch. If set twice, an additonal hexdump of the first bytes is" \
+	" printed. If set 3 or 4 times, the limit is set to 10 or unlimited if" \
+	" option {--limit} is not already set. This option is ignored in quiet" \
+	" mode." )
+
+#:def_cmd_opt( "DIFF", "BLOCK_SIZE", \
 	"", \
 	"" )
 
 #:def_cmd_opt( "DIFF", "SECTIONS", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "DIFF", "LOGGING", \
 	"", \
 	"" )
 
@@ -2392,6 +2501,14 @@
 	"", \
 	"" )
 
+#:def_cmd_opt( "FDIFF", "EXCLUDE", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "FDIFF", "EXCLUDE_PATH", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "FDIFF", "INCLUDE", \
 	"", \
 	"" )
@@ -2400,11 +2517,7 @@
 	"", \
 	"" )
 
-#:def_cmd_opt( "FDIFF", "EXCLUDE", \
-	"", \
-	"" )
-
-#:def_cmd_opt( "FDIFF", "EXCLUDE_PATH", \
+#:def_cmd_opt( "FDIFF", "INCLUDE_FIRST", \
 	"", \
 	"" )
 
@@ -2458,25 +2571,50 @@
 
 #:def_cmd_opt( "FDIFF", "QUIET", \
 	"", \
-	"" )
+	"Be quiet and print only error messages and failure messages on" \
+	" mismatch. The comparison is aborted at the first mismatch for each" \
+	" source image. If set twice print nothing and report the diff result" \
+	" only as exit status and the complete comparison is aborted at the" \
+	" first mismatch at all." )
 
 #:def_cmd_opt( "FDIFF", "VERBOSE", \
 	"", \
-	"" )
-
-#:def_cmd_opt( "FDIFF", "LOGGING", \
-	"", \
-	"" )
+	"The default is to print only differ messages. If set success messages" \
+	" and summaries are printed too. If set at least twice, a progress" \
+	" counter is printed too." )
 
 #:def_cmd_opt( "FDIFF", "PROGRESS", \
 	"", \
 	"" )
 
+#:def_cmd_opt( "FDIFF", "FILE_LIMIT", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "FDIFF", "LIMIT", \
+	"", \
+	"If not set, the comparison of the current file is aborted if a" \
+	" mismatch is found. If set, the comparison is aborted after @'limit'@" \
+	" mismatches. To compare the whole file use the special value @0@." \
+	" This option is ignored in quiet mode." )
+
 #:def_cmd_opt( "FDIFF", "LONG", \
+	"", \
+	"If set, a status line with the offset is printed for each found" \
+	" mismatch. If set twice, an additonal hexdump of the first bytes is" \
+	" printed. If set 3 or 4 times, the limit is set to 10 or unlimited if" \
+	" option {--limit} is not already set. This option is ignored in quiet" \
+	" mode." )
+
+#:def_cmd_opt( "FDIFF", "BLOCK_SIZE", \
 	"", \
 	"" )
 
 #:def_cmd_opt( "FDIFF", "SECTIONS", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "FDIFF", "LOGGING", \
 	"", \
 	"" )
 
@@ -2556,6 +2694,14 @@
 	"", \
 	"" )
 
+#:def_cmd_opt( "EXTRACT", "EXCLUDE", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "EXTRACT", "EXCLUDE_PATH", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "EXTRACT", "INCLUDE", \
 	"", \
 	"" )
@@ -2564,11 +2710,7 @@
 	"", \
 	"" )
 
-#:def_cmd_opt( "EXTRACT", "EXCLUDE", \
-	"", \
-	"" )
-
-#:def_cmd_opt( "EXTRACT", "EXCLUDE_PATH", \
+#:def_cmd_opt( "EXTRACT", "INCLUDE_FIRST", \
 	"", \
 	"" )
 
@@ -2759,6 +2901,14 @@
 	"", \
 	"" )
 
+#:def_cmd_opt( "COPY", "EXCLUDE", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "COPY", "EXCLUDE_PATH", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "COPY", "INCLUDE", \
 	"", \
 	"" )
@@ -2767,11 +2917,7 @@
 	"", \
 	"" )
 
-#:def_cmd_opt( "COPY", "EXCLUDE", \
-	"", \
-	"" )
-
-#:def_cmd_opt( "COPY", "EXCLUDE_PATH", \
+#:def_cmd_opt( "COPY", "INCLUDE_FIRST", \
 	"", \
 	"" )
 
@@ -3030,6 +3176,14 @@
 	"", \
 	"" )
 
+#:def_cmd_opt( "CONVERT", "EXCLUDE", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "CONVERT", "EXCLUDE_PATH", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "CONVERT", "INCLUDE", \
 	"", \
 	"" )
@@ -3038,11 +3192,7 @@
 	"", \
 	"" )
 
-#:def_cmd_opt( "CONVERT", "EXCLUDE", \
-	"", \
-	"" )
-
-#:def_cmd_opt( "CONVERT", "EXCLUDE_PATH", \
+#:def_cmd_opt( "CONVERT", "INCLUDE_FIRST", \
 	"", \
 	"" )
 
@@ -3242,6 +3392,14 @@
 	"", \
 	"" )
 
+#:def_cmd_opt( "EDIT", "EXCLUDE", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "EDIT", "EXCLUDE_PATH", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "EDIT", "INCLUDE", \
 	"", \
 	"" )
@@ -3250,11 +3408,7 @@
 	"", \
 	"" )
 
-#:def_cmd_opt( "EDIT", "EXCLUDE", \
-	"", \
-	"" )
-
-#:def_cmd_opt( "EDIT", "EXCLUDE_PATH", \
+#:def_cmd_opt( "EDIT", "INCLUDE_FIRST", \
 	"", \
 	"" )
 
@@ -3366,6 +3520,14 @@
 	"", \
 	"" )
 
+#:def_cmd_opt( "MOVE", "EXCLUDE", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "MOVE", "EXCLUDE_PATH", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "MOVE", "INCLUDE", \
 	"", \
 	"" )
@@ -3374,11 +3536,7 @@
 	"", \
 	"" )
 
-#:def_cmd_opt( "MOVE", "EXCLUDE", \
-	"", \
-	"" )
-
-#:def_cmd_opt( "MOVE", "EXCLUDE_PATH", \
+#:def_cmd_opt( "MOVE", "INCLUDE_FIRST", \
 	"", \
 	"" )
 
@@ -3458,6 +3616,14 @@
 	"", \
 	"" )
 
+#:def_cmd_opt( "RENAME", "EXCLUDE", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "RENAME", "EXCLUDE_PATH", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "RENAME", "INCLUDE", \
 	"", \
 	"" )
@@ -3466,11 +3632,7 @@
 	"", \
 	"" )
 
-#:def_cmd_opt( "RENAME", "EXCLUDE", \
-	"", \
-	"" )
-
-#:def_cmd_opt( "RENAME", "EXCLUDE_PATH", \
+#:def_cmd_opt( "RENAME", "INCLUDE_FIRST", \
 	"", \
 	"" )
 
@@ -3549,6 +3711,14 @@
 	"", \
 	"" )
 
+#:def_cmd_opt( "SETTITLE", "EXCLUDE", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "SETTITLE", "EXCLUDE_PATH", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "SETTITLE", "INCLUDE", \
 	"", \
 	"" )
@@ -3557,11 +3727,7 @@
 	"", \
 	"" )
 
-#:def_cmd_opt( "SETTITLE", "EXCLUDE", \
-	"", \
-	"" )
-
-#:def_cmd_opt( "SETTITLE", "EXCLUDE_PATH", \
+#:def_cmd_opt( "SETTITLE", "INCLUDE_FIRST", \
 	"", \
 	"" )
 
@@ -3640,6 +3806,14 @@
 	"", \
 	"" )
 
+#:def_cmd_opt( "VERIFY", "EXCLUDE", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "VERIFY", "EXCLUDE_PATH", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "VERIFY", "INCLUDE", \
 	"", \
 	"" )
@@ -3648,11 +3822,7 @@
 	"", \
 	"" )
 
-#:def_cmd_opt( "VERIFY", "EXCLUDE", \
-	"", \
-	"" )
-
-#:def_cmd_opt( "VERIFY", "EXCLUDE_PATH", \
+#:def_cmd_opt( "VERIFY", "INCLUDE_FIRST", \
 	"", \
 	"" )
 
@@ -3772,6 +3942,14 @@
 	"", \
 	"" )
 
+#:def_cmd_opt( "SKELETON", "EXCLUDE", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "SKELETON", "EXCLUDE_PATH", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "SKELETON", "INCLUDE", \
 	"", \
 	"" )
@@ -3780,11 +3958,7 @@
 	"", \
 	"" )
 
-#:def_cmd_opt( "SKELETON", "EXCLUDE", \
-	"", \
-	"" )
-
-#:def_cmd_opt( "SKELETON", "EXCLUDE_PATH", \
+#:def_cmd_opt( "SKELETON", "INCLUDE_FIRST", \
 	"", \
 	"" )
 
@@ -4270,23 +4444,6 @@
 	"", \
 	"Abbreviation of {--psel RAW}." )
 
-#:def_opt( "INCLUDE", "n|include", "CMP", \
-	"id", \
-	"A comma separated list with ID values is expected. @'.'@ is a" \
-	" wildcard for exact 1 character and @'+'@ is a wildcard for any" \
-	" number characters. If the parameter begins with a '@@' the given" \
-	" file is read and each line is scanned for one ID. Only images with" \
-	" the given ID are included into the operation. Each use of this" \
-	" option expands the include list. The exclude list takes precedence." )
-
-#:def_opt( "INCLUDE_PATH", "N|include-path|includepath", "CMP", \
-	"file_or_dir", \
-	"Scan the ID of the source and add it to the include list. If the" \
-	" source is a directory then scan all images of the directory. Only" \
-	" images with the given ID are included into the operation. Each use" \
-	" of this option expands the include list. The exclude list takes" \
-	" precedence." )
-
 #:def_opt( "EXCLUDE", "x|exclude", "CMP", \
 	"id", \
 	"A comma separated list with ID4 and ID6 values is expected. @'.'@ is" \
@@ -4294,14 +4451,48 @@
 	" number characters. If the parameter begins with a '@@' the given" \
 	" file is read and each line is scanned for one ID. Images with the" \
 	" given ID are excluded from operation. Each use of this option" \
-	" expands the exclude list." )
+	" expands the exclude list. See {--include-first} for precedence" \
+	" issues." )
 
 #:def_opt( "EXCLUDE_PATH", "X|exclude-path|excludepath", "CMP", \
 	"file_or_dir", \
 	"Scan the ID of the source and add it to the exclude list. If the" \
 	" source is a directory then scan all images of the directory. Images" \
 	" with the given ID are excluded from operation. Each use of this" \
-	" option expands the exclude list." )
+	" option expands the exclude list. See {--include-first} for" \
+	" precedence issues." )
+
+#:def_opt( "INCLUDE", "n|include", "CMP", \
+	"id", \
+	"A comma separated list with ID values is expected. @'.'@ is a" \
+	" wildcard for exact 1 character and @'+'@ is a wildcard for any" \
+	" number characters. If the parameter begins with a '@@' the given" \
+	" file is read and each line is scanned for one ID. Only images with" \
+	" the given ID are included into the operation. Each use of this" \
+	" option expands the include list. See {--include-first} for" \
+	" precedence issues." )
+
+#:def_opt( "INCLUDE_PATH", "N|include-path|includepath", "C", \
+	"file_or_dir", \
+	"Scan the ID of the source and add it to the include list. If the" \
+	" source is a directory then scan all images of the directory. Only" \
+	" images with the given ID are included into the operation. Each use" \
+	" of this option expands the include list. See {--include-first} for" \
+	" precedence issues." )
+
+#:def_opt( "INCLUDE_FIRST", "include-first|includefirst", "C", \
+	"", \
+	"The options {--include}, {--include-path}, {--exclude} and" \
+	" {--exclude-path} decide which discs are included into the operation." \
+	" If neither include nor exclude options are used, than all disc are" \
+	" included into the operation. If only include options are used, than" \
+	" only the specified discs are operated. If only exclude options are" \
+	" used, than all all discs but not the excluded are operated.\n" \
+	"  If include and exclude options are used together and" \
+	" @--include-first@ is not set, than all discs are operated that are" \
+	" specified by any include option and not by any exclude option. If" \
+	" @--include-first@ is set, than all discs are ignored that are" \
+	" specified by any exclude option and not by any include option." )
 
 #:def_opt( "ONE_JOB", "1|one-job|onejob", "C", \
 	"", \
@@ -4609,7 +4800,15 @@
 	"", \
 	"Synchronize the destination with all sources: Remove and copy discs" \
 	" until the destination WBFS contains exactly the same discs as all" \
-	" sources together." )
+	" sources together. Remove and add only discs in respect to the" \
+	" include and exclude lists." )
+
+#:def_opt( "SYNC_ALL", "sync-all|syncall", "C", \
+	"", \
+	"Synchronize the destination with all sources like {--sync}. But use" \
+	" the include and exclude lists only to create the sync list and" \
+	" remove all disc on the destination WBFS that are not part of the" \
+	" sync list." )
 
 #:def_opt( "NEWER", "e|newer|new", "C", \
 	"", \
@@ -4934,6 +5133,14 @@
 	"", \
 	"" )
 
+#:def_cmd_opt( "ID6", "EXCLUDE", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "ID6", "EXCLUDE_PATH", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "ID6", "INCLUDE", \
 	"", \
 	"" )
@@ -4942,11 +5149,7 @@
 	"", \
 	"" )
 
-#:def_cmd_opt( "ID6", "EXCLUDE", \
-	"", \
-	"" )
-
-#:def_cmd_opt( "ID6", "EXCLUDE_PATH", \
+#:def_cmd_opt( "ID6", "INCLUDE_FIRST", \
 	"", \
 	"" )
 
@@ -4986,6 +5189,14 @@
 	"", \
 	"" )
 
+#:def_cmd_opt( "LIST", "EXCLUDE", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "LIST", "EXCLUDE_PATH", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "LIST", "INCLUDE", \
 	"", \
 	"" )
@@ -4994,11 +5205,7 @@
 	"", \
 	"" )
 
-#:def_cmd_opt( "LIST", "EXCLUDE", \
-	"", \
-	"" )
-
-#:def_cmd_opt( "LIST", "EXCLUDE_PATH", \
+#:def_cmd_opt( "LIST", "INCLUDE_FIRST", \
 	"", \
 	"" )
 
@@ -5083,6 +5290,14 @@
 	"", \
 	"" )
 
+#:def_cmd_opt( "LIST_L", "EXCLUDE", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "LIST_L", "EXCLUDE_PATH", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "LIST_L", "INCLUDE", \
 	"", \
 	"" )
@@ -5091,11 +5306,7 @@
 	"", \
 	"" )
 
-#:def_cmd_opt( "LIST_L", "EXCLUDE", \
-	"", \
-	"" )
-
-#:def_cmd_opt( "LIST_L", "EXCLUDE_PATH", \
+#:def_cmd_opt( "LIST_L", "INCLUDE_FIRST", \
 	"", \
 	"" )
 
@@ -5180,6 +5391,14 @@
 	"", \
 	"" )
 
+#:def_cmd_opt( "LIST_LL", "EXCLUDE", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "LIST_LL", "EXCLUDE_PATH", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "LIST_LL", "INCLUDE", \
 	"", \
 	"" )
@@ -5188,11 +5407,7 @@
 	"", \
 	"" )
 
-#:def_cmd_opt( "LIST_LL", "EXCLUDE", \
-	"", \
-	"" )
-
-#:def_cmd_opt( "LIST_LL", "EXCLUDE_PATH", \
+#:def_cmd_opt( "LIST_LL", "INCLUDE_FIRST", \
 	"", \
 	"" )
 
@@ -5277,6 +5492,14 @@
 	"", \
 	"" )
 
+#:def_cmd_opt( "LIST_A", "EXCLUDE", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "LIST_A", "EXCLUDE_PATH", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "LIST_A", "INCLUDE", \
 	"", \
 	"" )
@@ -5285,11 +5508,7 @@
 	"", \
 	"" )
 
-#:def_cmd_opt( "LIST_A", "EXCLUDE", \
-	"", \
-	"" )
-
-#:def_cmd_opt( "LIST_A", "EXCLUDE_PATH", \
+#:def_cmd_opt( "LIST_A", "INCLUDE_FIRST", \
 	"", \
 	"" )
 
@@ -5374,6 +5593,14 @@
 	"", \
 	"" )
 
+#:def_cmd_opt( "LIST_M", "EXCLUDE", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "LIST_M", "EXCLUDE_PATH", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "LIST_M", "INCLUDE", \
 	"", \
 	"" )
@@ -5382,11 +5609,7 @@
 	"", \
 	"" )
 
-#:def_cmd_opt( "LIST_M", "EXCLUDE", \
-	"", \
-	"" )
-
-#:def_cmd_opt( "LIST_M", "EXCLUDE_PATH", \
+#:def_cmd_opt( "LIST_M", "INCLUDE_FIRST", \
 	"", \
 	"" )
 
@@ -5471,6 +5694,14 @@
 	"", \
 	"" )
 
+#:def_cmd_opt( "LIST_U", "EXCLUDE", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "LIST_U", "EXCLUDE_PATH", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "LIST_U", "INCLUDE", \
 	"", \
 	"" )
@@ -5479,11 +5710,7 @@
 	"", \
 	"" )
 
-#:def_cmd_opt( "LIST_U", "EXCLUDE", \
-	"", \
-	"" )
-
-#:def_cmd_opt( "LIST_U", "EXCLUDE_PATH", \
+#:def_cmd_opt( "LIST_U", "INCLUDE_FIRST", \
 	"", \
 	"" )
 
@@ -5877,6 +6104,14 @@
 	"", \
 	"" )
 
+#:def_cmd_opt( "ADD", "EXCLUDE", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "ADD", "EXCLUDE_PATH", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "ADD", "INCLUDE", \
 	"", \
 	"" )
@@ -5885,11 +6120,7 @@
 	"", \
 	"" )
 
-#:def_cmd_opt( "ADD", "EXCLUDE", \
-	"", \
-	"" )
-
-#:def_cmd_opt( "ADD", "EXCLUDE_PATH", \
+#:def_cmd_opt( "ADD", "INCLUDE_FIRST", \
 	"", \
 	"" )
 
@@ -6007,6 +6238,10 @@
 	"", \
 	"" )
 
+#:def_cmd_opt( "ADD", "SYNC_ALL", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "ADD", "SYNC", \
 	"", \
 	"" )
@@ -6072,6 +6307,14 @@
 	"", \
 	"" )
 
+#:def_cmd_opt( "UPDATE", "EXCLUDE", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "UPDATE", "EXCLUDE_PATH", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "UPDATE", "INCLUDE", \
 	"", \
 	"" )
@@ -6080,11 +6323,7 @@
 	"", \
 	"" )
 
-#:def_cmd_opt( "UPDATE", "EXCLUDE", \
-	"", \
-	"" )
-
-#:def_cmd_opt( "UPDATE", "EXCLUDE_PATH", \
+#:def_cmd_opt( "UPDATE", "INCLUDE_FIRST", \
 	"", \
 	"" )
 
@@ -6202,6 +6441,10 @@
 	"", \
 	"" )
 
+#:def_cmd_opt( "UPDATE", "SYNC_ALL", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "UPDATE", "SYNC", \
 	"", \
 	"" )
@@ -6259,6 +6502,14 @@
 	"", \
 	"" )
 
+#:def_cmd_opt( "SYNC", "EXCLUDE", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "SYNC", "EXCLUDE_PATH", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "SYNC", "INCLUDE", \
 	"", \
 	"" )
@@ -6267,11 +6518,7 @@
 	"", \
 	"" )
 
-#:def_cmd_opt( "SYNC", "EXCLUDE", \
-	"", \
-	"" )
-
-#:def_cmd_opt( "SYNC", "EXCLUDE_PATH", \
+#:def_cmd_opt( "SYNC", "INCLUDE_FIRST", \
 	"", \
 	"" )
 
@@ -6389,6 +6636,10 @@
 	"", \
 	"" )
 
+#:def_cmd_opt( "SYNC", "SYNC_ALL", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "EXTRACT", "TITLES", \
 	"", \
 	"" )
@@ -6426,6 +6677,14 @@
 	"", \
 	"Disable automatic check of WBFS before modifications." )
 
+#:def_cmd_opt( "EXTRACT", "EXCLUDE", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "EXTRACT", "EXCLUDE_PATH", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "EXTRACT", "INCLUDE", \
 	"", \
 	"" )
@@ -6434,11 +6693,7 @@
 	"", \
 	"" )
 
-#:def_cmd_opt( "EXTRACT", "EXCLUDE", \
-	"", \
-	"" )
-
-#:def_cmd_opt( "EXTRACT", "EXCLUDE_PATH", \
+#:def_cmd_opt( "EXTRACT", "INCLUDE_FIRST", \
 	"", \
 	"" )
 
@@ -6670,6 +6925,14 @@
 	"", \
 	"Disable automatic check of WBFS before modifications." )
 
+#:def_cmd_opt( "REMOVE", "EXCLUDE", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "REMOVE", "EXCLUDE_PATH", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "REMOVE", "INCLUDE", \
 	"", \
 	"" )
@@ -6678,11 +6941,7 @@
 	"", \
 	"" )
 
-#:def_cmd_opt( "REMOVE", "EXCLUDE", \
-	"", \
-	"" )
-
-#:def_cmd_opt( "REMOVE", "EXCLUDE_PATH", \
+#:def_cmd_opt( "REMOVE", "INCLUDE_FIRST", \
 	"", \
 	"" )
 
@@ -6765,6 +7024,14 @@
 	"", \
 	"Disable automatic check of WBFS before modifications." )
 
+#:def_cmd_opt( "RENAME", "EXCLUDE", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "RENAME", "EXCLUDE_PATH", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "RENAME", "INCLUDE", \
 	"", \
 	"" )
@@ -6773,11 +7040,7 @@
 	"", \
 	"" )
 
-#:def_cmd_opt( "RENAME", "EXCLUDE", \
-	"", \
-	"" )
-
-#:def_cmd_opt( "RENAME", "EXCLUDE_PATH", \
+#:def_cmd_opt( "RENAME", "INCLUDE_FIRST", \
 	"", \
 	"" )
 
@@ -6849,6 +7112,14 @@
 	"", \
 	"Disable automatic check of WBFS before modifications." )
 
+#:def_cmd_opt( "SETTITLE", "EXCLUDE", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "SETTITLE", "EXCLUDE_PATH", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "SETTITLE", "INCLUDE", \
 	"", \
 	"" )
@@ -6857,11 +7128,7 @@
 	"", \
 	"" )
 
-#:def_cmd_opt( "SETTITLE", "EXCLUDE", \
-	"", \
-	"" )
-
-#:def_cmd_opt( "SETTITLE", "EXCLUDE_PATH", \
+#:def_cmd_opt( "SETTITLE", "INCLUDE_FIRST", \
 	"", \
 	"" )
 
@@ -6933,6 +7200,14 @@
 	"", \
 	"Disable automatic check of WBFS before modifications." )
 
+#:def_cmd_opt( "TOUCH", "EXCLUDE", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "TOUCH", "EXCLUDE_PATH", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "TOUCH", "INCLUDE", \
 	"", \
 	"" )
@@ -6941,11 +7216,7 @@
 	"", \
 	"" )
 
-#:def_cmd_opt( "TOUCH", "EXCLUDE", \
-	"", \
-	"" )
-
-#:def_cmd_opt( "TOUCH", "EXCLUDE_PATH", \
+#:def_cmd_opt( "TOUCH", "INCLUDE_FIRST", \
 	"", \
 	"" )
 
@@ -7026,6 +7297,14 @@
 	"", \
 	"Disable automatic check of WBFS before modifications." )
 
+#:def_cmd_opt( "VERIFY", "EXCLUDE", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "VERIFY", "EXCLUDE_PATH", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "VERIFY", "INCLUDE", \
 	"", \
 	"" )
@@ -7034,11 +7313,7 @@
 	"", \
 	"" )
 
-#:def_cmd_opt( "VERIFY", "EXCLUDE", \
-	"", \
-	"" )
-
-#:def_cmd_opt( "VERIFY", "EXCLUDE_PATH", \
+#:def_cmd_opt( "VERIFY", "INCLUDE_FIRST", \
 	"", \
 	"" )
 
@@ -7152,6 +7427,14 @@
 	"", \
 	"Disable automatic check of WBFS before modifications." )
 
+#:def_cmd_opt( "SKELETON", "EXCLUDE", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "SKELETON", "EXCLUDE_PATH", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "SKELETON", "INCLUDE", \
 	"", \
 	"" )
@@ -7160,11 +7443,7 @@
 	"", \
 	"" )
 
-#:def_cmd_opt( "SKELETON", "EXCLUDE", \
-	"", \
-	"" )
-
-#:def_cmd_opt( "SKELETON", "EXCLUDE_PATH", \
+#:def_cmd_opt( "SKELETON", "INCLUDE_FIRST", \
 	"", \
 	"" )
 
@@ -7353,6 +7632,25 @@
 	"If set the end address is the last address of a range. The standard" \
 	" is to print the first address that is not part of the address of a" \
 	" range." )
+
+#:def_opt( "LIMIT", "limit", "CP", \
+	"num", \
+	"Limit the output to NUM messages." )
+
+#:def_opt( "FILE_LIMIT", "file-limit|filelimit", "CP", \
+	"size", \
+	"This option is only used if comparing discs on file level. If not set" \
+	" or set to null, then all files will be compared. If set to a value" \
+	" greater than comparison is aborted for the current source image if" \
+	" the entered number of files differ. This option is ignored in quiet" \
+	" mode." )
+
+#:def_opt( "BLOCK_SIZE", "block-size|blocksize", "CP", \
+	"size", \
+	"If a mismatch is found in raw or disc mode then the comparison is" \
+	" continued with the next block. This option sets the block size. The" \
+	" default value is @32K@ (Wii sector size). This option is ignored in" \
+	" quiet mode." )
 
 #:def_opt( "WDF", "W|wdf", "C", \
 	"", \
@@ -7668,6 +7966,43 @@
 	"", \
 	"" )
 
+#:def_cmd_opt( "CMP", "QUIET", \
+	"", \
+	"Be quiet and print only error messages and failure messages on" \
+	" mismatch. The comparison is aborted at the first mismatch for each" \
+	" source image. If set twice print nothing and report the diff result" \
+	" only as exit status and the complete comparison is aborted at the" \
+	" first mismatch at all." )
+
+#:def_cmd_opt( "CMP", "VERBOSE", \
+	"", \
+	"The default is to print only differ messages. If set success messages" \
+	" and summaries are printed too. If set at least twice, a progress" \
+	" counter is printed too." )
+
+#:def_cmd_opt( "CMP", "FILE_LIMIT", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "CMP", "LIMIT", \
+	"", \
+	"If not set, the comparison of the current file is aborted if a" \
+	" mismatch is found. If set, the comparison is aborted after @'limit'@" \
+	" mismatches. To compare the whole file use the special value @0@." \
+	" This option is ignored in quiet mode." )
+
+#:def_cmd_opt( "CMP", "LONG", \
+	"", \
+	"If set, a status line with the offset is printed for each found" \
+	" mismatch. If set twice, an additonal hexdump of the first bytes is" \
+	" printed. If set 3 or 4 times, the limit is set to 10 or unlimited if" \
+	" option {--limit} is not already set. This option is ignored in quiet" \
+	" mode." )
+
+#:def_cmd_opt( "CMP", "BLOCK_SIZE", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "DUMP", "DEST", \
 	"", \
 	"" )
@@ -7739,10 +8074,20 @@
 	"param", \
 	"The parameter is forwarded to the FUSE command line scanner." )
 
+#:def_opt( "CREATE", "c|create", "G", \
+	"", \
+	"If the mount point does not exist, create it and remove it on" \
+	" unmount." )
+
+#:def_opt( "REMOUNT", "r|remount", "G", \
+	"", \
+	"If the mount point is already mounted, try silently to unmount it" \
+	" first." )
+
 #:def_opt( "UMOUNT", "u|umount|unmount", "G", \
 	"", \
-	"Unmount each entered directory by calling @'fusermount -u mountdir'@" \
-	" or alternatively @'umount mountdir'@." )
+	"Enter 'unmount mode' and unmount each entered directory by calling" \
+	" @'fusermount -u mountdir'@ or alternatively @'umount mountdir'@." )
 
 #:def_opt( "LAZY", "l|lazy", "G", \
 	"", \

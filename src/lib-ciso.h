@@ -134,6 +134,7 @@ SUPERFILE;
 // CISO reading support
 enumError SetupReadCISO	( SUPERFILE * sf );
 enumError ReadCISO	( SUPERFILE * sf, off_t off, void * buf, size_t size );
+off_t     DataBlockCISO	( SUPERFILE * sf, off_t off, size_t hint_align, off_t * block_size );
 
 // CISO writing support
 enumError SetupWriteCISO ( SUPERFILE * sf );

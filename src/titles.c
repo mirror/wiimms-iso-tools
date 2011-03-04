@@ -517,6 +517,7 @@ static StringField_t include_fname = {0,0,0};	// include filenames
 static StringField_t exclude_fname = {0,0,0};	// exclude filenames
 
 int disable_exclude_db = 0;			// disable exclude db at all if > 0
+bool include_first = false;			// use include rules before exclude
 
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
@@ -553,6 +554,7 @@ int AddExcludeID ( ccp arg, int select_mode )
 
 int AddExcludePath ( ccp arg, int unused )
 {
+    noPRINT("AddExcludePath(%s,%d)\n",arg,unused);
     char buf[PATH_MAX];
     if (realpath(arg,buf))
 	arg = buf;
@@ -579,10 +581,10 @@ static void CheckExcludePath
     AnalyzeFT(&f);
     ClearFile(&f,false);
 
-    if ( f.id6[0] )
+    if ( *f.id6_src )
     {
-	TRACE(" - exclude id %s\n",f.id6);
-	InsertStringID6(sf_id6,f.id6,SEL_UNUSED,0);
+	TRACE(" - exclude id %s\n",f.id6_src);
+	InsertStringID6(sf_id6,f.id6_src,SEL_UNUSED,0);
     }
     else if ( max_dir_depth > 0 && f.ftype == FT_ID_DIR )
     {
@@ -681,10 +683,17 @@ bool IsExcluded ( ccp id6 )
     if ( exclude_fname.used || include_fname.used )
 	SetupExcludeDB();
 
+    if ( include_first
+		&& include_db_enabled
+		&& FindPatID(&include_id6,&include_pat,id6,false) )
+	return false;
+
     if (FindPatID(&exclude_id6,&exclude_pat,id6,false))
 	return true;
 
-    return include_db_enabled && !FindPatID(&include_id6,&include_pat,id6,false);
+    return !include_first
+	&& include_db_enabled
+	&& !FindPatID(&include_id6,&include_pat,id6,false);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -692,8 +701,10 @@ bool IsExcluded ( ccp id6 )
 void DumpExcludeDB()
 {
     SetupExcludeDB();
+    noPRINT("DumpExcludeDB() n=%d+%d\n",exclude_pat.used,exclude_pat.used);
+
     ccp *ptr = exclude_id6.field, *end;
-    for ( end = ptr + exclude_pat.used; ptr < end; ptr++ )
+    for ( end = ptr + exclude_id6.used; ptr < end; ptr++ )
 	printf("%s\n",*ptr);
 
     ptr = exclude_pat.field;
@@ -1089,6 +1100,90 @@ void DumpIDDB ( ID_DB_t * db, FILE * f )
 	else
 	    fprintf(f,"%-6s\n",elem->id);
     }
+}
+
+//
+///////////////////////////////////////////////////////////////////////////////
+///////////////			system menu interface		///////////////
+///////////////////////////////////////////////////////////////////////////////
+
+static bool system_menu_loaded = false;
+static StringField_t system_menu = {0};
+
+///////////////////////////////////////////////////////////////////////////////
+
+static void LoadSystemMenuTab()
+{
+    if (!system_menu_loaded)
+    {
+	system_menu_loaded = true;
+	ResetStringField(&system_menu);
+
+	char buf[PATH_MAX+100];
+	FILE *f = 0;
+
+	ccp * sp;
+	for ( sp = search_path; *sp && !f; sp++ )
+	{
+	    snprintf(buf,sizeof(buf),"%s%s",*sp,"system-menu.txt");
+	    f = fopen(buf,"r");
+	}
+
+	if (f)
+	{
+	    TRACE("SYS-MENU: f=%p: %s\n",f,buf);
+
+	    while (fgets(buf,sizeof(buf),f))
+	    {
+		char * ptr;
+		u32 vers = strtoul(buf,&ptr,10);
+		if ( !vers || ptr == buf )
+		    continue;
+
+		while ( *ptr > 0 && *ptr <= ' ' )
+		    ptr++;
+		if ( *ptr != '=' )
+		    continue;
+		ptr++;
+		while ( *ptr > 0 && *ptr <= ' ' )
+		    ptr++;
+		ccp text = ptr;
+		while (*ptr)
+		    ptr++;
+		ptr--;
+		while ( *ptr > 0 && *ptr <= ' ' )
+		    ptr--;
+		*++ptr = 0;
+		
+		const int len = snprintf(buf,sizeof(buf),"%u%c%s",vers,0,text) + 1;
+		noPRINT("SYS-MENU: %6u = '%s' [%u]\n",vers,buf+strlen(buf)+1,len);
+
+		char * dest = malloc(len);
+		if (!dest)
+		    OUT_OF_MEMORY;
+		memcpy(dest,buf,len);
+		InsertStringField(&system_menu,dest,true);
+	    }
+
+	    fclose(f);
+	}
+    }
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+ccp GetSystemMenu
+(
+    u32		version,		// system version number
+    ccp		return_if_not_found	// return value if not found
+)
+{
+    LoadSystemMenuTab();
+
+    char key[20];
+    snprintf(key,sizeof(key),"%u",version);
+    ccp res = FindStringField(&system_menu,key);
+    return res ? res + strlen(res) + 1 : return_if_not_found;
 }
 
 //

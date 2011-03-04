@@ -125,6 +125,37 @@ typedef enum wd_select_mode_t // modes of selection
 
 //
 ///////////////////////////////////////////////////////////////////////////////
+///////////////			enum wd_trim_mode_t		///////////////
+///////////////////////////////////////////////////////////////////////////////
+
+typedef enum wd_trim_mode_t
+{
+	//--- main trimming modes
+
+	WD_TRIM_DEFAULT	= 0x001,	// default mode (no user value)
+
+	WD_TRIM_DISC	= 0x002,	// trim disc: move whole partitions
+	WD_TRIM_PART	= 0x004,	// trim partition: move sectors
+	WD_TRIM_FST	= 0x008,	// trim filesystem: move files
+
+	WD_TRIM_NONE	= 0x000,
+	WD_TRIM_ALL	= WD_TRIM_DISC | WD_TRIM_PART | WD_TRIM_FST,
+	WD_TRIM_FAST	= WD_TRIM_DISC | WD_TRIM_PART,
+
+	//--- trimming flags
+
+	WD_TRIM_F_END	= 0x100,	// flags for WD_TRIM_DISC: move to disc end
+
+	WD_TRIM_M_FLAGS	= 0x100,
+
+	//--- all valid bits
+
+	WD_TRIM_M_ALL	= WD_TRIM_DEFAULT | WD_TRIM_ALL | WD_TRIM_M_FLAGS
+
+} wd_trim_mode_t;
+
+//
+///////////////////////////////////////////////////////////////////////////////
 ///////////////			enum wd_icm_t			///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -618,6 +649,8 @@ typedef struct wd_disc_t
 
     bool		whole_disc;	// selection flag: copy whole disc (raw mode)
     bool		whole_part;	// selection flag: copy whole partitions
+    wd_trim_mode_t	trim_mode;	// active trim mode
+    u32			trim_align;	// alignment value for trimming
     wd_memmap_t		patch;		// patching data
     wd_ptab_t		ptab;		// partition tables / GC: copy of dhead
     wd_reloc_t		* reloc;	// relocation data
@@ -642,6 +675,7 @@ typedef struct wd_disc_t
     u32			fst_max_size;	// informative: maximal size value of all files
     u32			fst_dir_count;	// informative: number or directories in fst
     u32			fst_file_count;	// informative: number or real files in fst
+    u32			system_menu;	// version of system menu file in update partition
 
     cert_stat_t		cert_summary;	// summary of partitions stats
     wd_sector_status_t	sector_stat;	// sector status: OR'ed for different sectors
@@ -1838,8 +1872,10 @@ wd_reloc_t * wd_calc_relocation
 (
     wd_disc_t		* disc,		// valid disc pointer
     bool		encrypt,	// true: encrypt partition data
-    bool		force,		// true: force new calculation
-    const wd_select_t	* select	// NULL or a new selector
+    wd_trim_mode_t	trim_mode,	// trim mode
+    u32			trim_align,	// alignment value for trimming
+    const wd_select_t	* select,	// NULL or a new selector
+    bool		force		// true: force new calculation
 );
 
 //-----------------------------------------------------------------------------
@@ -1860,6 +1896,15 @@ void wd_print_disc_relocation
     int			indent,		// indention of the output
     wd_disc_t		* disc,		// valid pointer to a disc
     bool		print_title	// true: print table titles
+);
+
+//-----------------------------------------------------------------------------
+
+wd_trim_mode_t wd_get_relococation_trim
+(
+    wd_trim_mode_t	trim_mode,	// trim mode to check
+    u32			* trim_align,	// NULL or trim alignment (modify)
+    wd_disc_type_t	disc_type	// type of disc for align calculation
 );
 
 //

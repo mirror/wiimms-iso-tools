@@ -1,5 +1,31 @@
 #!/bin/bash
 
+    #####################################################################
+    ##                 __            __ _ ___________                  ##
+    ##                 \ \          / /| |____   ____|                 ##
+    ##                  \ \        / / | |    | |                      ##
+    ##                   \ \  /\  / /  | |    | |                      ##
+    ##                    \ \/  \/ /   | |    | |                      ##
+    ##                     \  /\  /    | |    | |                      ##
+    ##                      \/  \/     |_|    |_|                      ##
+    ##                                                                 ##
+    ##                        Wiimms ISO Tools                         ##
+    ##                      http://wit.wiimm.de/                       ##
+    ##                                                                 ##
+    #####################################################################
+    ##                                                                 ##
+    ##   This file is part of the WIT project.                         ##
+    ##   Visit http://wit.wiimm.de/ for project details and sources.   ##
+    ##                                                                 ##
+    ##   Copyright (c) 2009-2011 by Dirk Clemens <wiimm@wiimm.de>      ##
+    ##                                                                 ##
+    #####################################################################
+    ##                                                                 ##
+    ##   This file installs the distribution.                          ##
+    ##                                                                 ##
+    #####################################################################
+
+
 #------------------------------------------------------------------------------
 
 BASE_PATH="@@INSTALL-PATH@@"
@@ -42,7 +68,7 @@ echo "*** install share files to $SHARE_PATH"
 
 for f in $SHARE_FILES
 do
-    install $INST_FLAGS share/$f "$SHARE_PATH/$f"
+    install $INST_FLAGS --mode=644 share/$f "$SHARE_PATH/$f"
 done
 
 #------------------------------------------------------------------------------

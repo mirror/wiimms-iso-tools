@@ -1745,8 +1745,8 @@ static ID_DB_t sync_list;
 
 enumError exec_scan_id ( SuperFile_t * sf, Iterator_t * it )
 {
-    if (sf->f.id6[0])
-	InsertID(&sync_list,sf->f.id6,0);
+    if (sf->f.id6_src[0])
+	InsertID(&sync_list,sf->f.id6_src,0);
     return ERR_OK;
 }
 
@@ -1760,7 +1760,7 @@ enumError exec_rm_source ( SuperFile_t * sf, Iterator_t * it )
     if (SIGINT_level)
 	return ERR_INTERRUPT;
 
-    if ( sf->f.id6 && !IsExcluded(sf->f.id6) && S_ISREG(sf->f.st.st_mode) )
+    if ( sf->f.id6_src && !IsExcluded(sf->f.id6_src) && S_ISREG(sf->f.st.st_mode) )
     {
 	if ( testmode || verbose > 0 )
 	{
@@ -1894,7 +1894,7 @@ enumError exec_add ( SuperFile_t * sf, Iterator_t * it )
     if ( !(sf->f.ftype&FT_A_WDF) && !sf->f.seek_allowed )
 	ft_test = FT_A_ISO;
 
-    if ( IsExcluded(sf->f.id6) || PrintErrorFT(&sf->f,ft_test) )
+    if ( IsExcluded(sf->f.id6_src) || PrintErrorFT(&sf->f,ft_test) )
 	return ERR_OK;
 
     bool update    = it->update;
@@ -1903,7 +1903,7 @@ enumError exec_add ( SuperFile_t * sf, Iterator_t * it )
 
     if (   it->newer
 	&& sf->f.fatt.mtime
-	&& OpenWDiscID6(it->wbfs,sf->f.id6) == ERR_OK )
+	&& OpenWDiscID6(it->wbfs,sf->f.id6_dest) == ERR_OK )
     {
 	exists = 1;
 	ASSERT(it->wbfs->disc);
@@ -1919,9 +1919,9 @@ enumError exec_add ( SuperFile_t * sf, Iterator_t * it )
     }
 
     const int fw_counter = snprintf(iobuf,sizeof(iobuf),"%u",it->job_total);
-    ccp title = GetTitle(sf->f.id6,"");
+    ccp title = GetTitle(sf->f.id6_dest,"");
     
-    if ( exists>0 || exists < 0 && !ExistsWDisc(it->wbfs,sf->f.id6))
+    if ( exists>0 || exists < 0 && !ExistsWDisc(it->wbfs,sf->f.id6_dest))
     {
 	if (update)
 	    return ERR_OK;
@@ -1938,23 +1938,23 @@ enumError exec_add ( SuperFile_t * sf, Iterator_t * it )
 			"title=%s\n"
 			"\n"
 			,testmode
-			,sf->f.id6
+			,sf->f.id6_dest
 			,title
 			);
 		else
 		    printf(" - %s%-*s [%s] %s\n",
 			testmode ? "WOULD " : "",
 			2 * fw_counter + 5, "REMOVE",
-			sf->f.id6, title );
+			sf->f.id6_dest, title );
 	    }
-	    if ( !testmode && RemoveWDisc(it->wbfs,sf->f.id6,0,false) )
+	    if ( !testmode && RemoveWDisc(it->wbfs,sf->f.id6_dest,0,false) )
 		return ERR_WBFS;
 	    it->rm_count++;
 	}
 	else
 	{
 	    printf("! DISC %s [%s] already exists -> ignore\n",
-		    sf->f.fname, sf->f.id6 );
+		    sf->f.fname, sf->f.id6_dest );
 	    if ( max_error < ERR_JOB_IGNORED )
 		max_error = ERR_JOB_IGNORED;
 	    return ERR_OK;
@@ -1963,7 +1963,7 @@ enumError exec_add ( SuperFile_t * sf, Iterator_t * it )
 
     if ( testmode || verbose >= 0 || progress > 0 )
     {
-	TRACE("%sADD [%s] %s\n",testmode ? "WOULD " : "",sf->f.id6,sf->f.fname);
+	TRACE("%sADD [%s] %s\n",testmode ? "WOULD " : "",sf->f.id6_dest,sf->f.fname);
 	if (print_sections)
 	    printf(
 		"[ADD]\n"
@@ -1980,7 +1980,7 @@ enumError exec_add ( SuperFile_t * sf, Iterator_t * it )
 		,testmode
 		,it->job_count
 		,it->job_total
-		,sf->f.id6
+		,sf->f.id6_dest
 		,title
 		,sf->f.fname
 		,it->real_path
@@ -1991,7 +1991,7 @@ enumError exec_add ( SuperFile_t * sf, Iterator_t * it )
 	    printf(" - %sADD %*u/%u [%s] %s:%s\n",
 		testmode ? "WOULD " : "",
 		fw_counter, it->job_count, it->job_total,
-		sf->f.id6, oft_info[sf->iod.oft].name, sf->f.fname );
+		sf->f.id6_dest, oft_info[sf->iod.oft].name, sf->f.fname );
 	fflush(stdout);
     }
 
@@ -2002,7 +2002,7 @@ enumError exec_add ( SuperFile_t * sf, Iterator_t * it )
 	enumError err = AddWDisc(it->wbfs,sf,&part_selector);
 	if ( err > ERR_WARNING )
 	    return ERROR0(err,"Error while adding disc [%s] @%s\n",
-			sf->f.id6, it->wbfs->sf->f.fname );
+			sf->f.id6_dest, it->wbfs->sf->f.fname );
     }
     it->done_count++;
     return ERR_OK;
@@ -2043,7 +2043,9 @@ enumError cmd_add()
     it.update		= OptionUsed[OPT_UPDATE]	? 1 : 0;
     it.newer		= OptionUsed[OPT_NEWER]		? 1 : 0;
     it.overwrite	= OptionUsed[OPT_OVERWRITE]	? 1 : 0;
-    //it.remove_source	= OptionUsed[OPT_REMOVE]	? 1 : 0;
+    //it.remove_source	= OptionUsed[OPT_REMOVE]	? 1 : 0; -> see below
+    it.progress_t_file	= "disc";
+    it.progress_t_files	= "discs";
 
     err = SourceIterator(&it,0,false,true);
     if ( err > ERR_WARNING )
@@ -2122,14 +2124,21 @@ enumError cmd_add()
 
 	if ( OptionUsed[OPT_SYNC] )
 	{
-	    //disable_exclude_db++;
+	    const int fw_counter = snprintf(iobuf,sizeof(iobuf),"%u",it.job_total);
+
+	    if (OptionUsed[OPT_SYNC_ALL])
+		disable_exclude_db++;
 	    WDiscList_t * wlist = GenerateWDiscList(&wbfs,0);
-	    //disable_exclude_db--;
+	    if (OptionUsed[OPT_SYNC_ALL])
+		disable_exclude_db--;
 
 	    WDiscListItem_t * ptr = wlist->first_disc;
 	    WDiscListItem_t * end = ptr + wlist->used;
 	    for ( ; ptr < end; ptr++ )
 	    {
+		if ( *ptr->id6 == '_' ) // special handling for discs like '__CFG_' 
+		    continue;
+
 		TDBfind_t stat;
 		FindID(&sync_list,ptr->id6,&stat,0);
 		if ( stat != IDB_ID_FOUND || IsExcluded(ptr->id6) )
@@ -2148,8 +2157,9 @@ enumError cmd_add()
 				,GetTitle(ptr->id6,ptr->name64)
 				);
 			else
-			    printf(" - %sREMOVE [%s] %s\n",
+			    printf(" - %s%-*s [%s] %s\n",
 				testmode ? "WOULD " : "",
+				2 * fw_counter + 5, "REMOVE",
 				ptr->id6, GetTitle(ptr->id6,ptr->name64) );
 		    }
 		    if ( testmode || !RemoveWDisc(&wbfs,ptr->id6,0,false) )
@@ -3312,9 +3322,9 @@ enumError cmd_filetype()
 
 		ccp region = "-   ";
 		char size[10] = "   -";
-		if (sf.f.id6[0])
+		if (sf.f.id6_dest[0])
 		{
-		    region = GetRegionInfo(sf.f.id6[3])->name4;
+		    region = GetRegionInfo(sf.f.id6_dest[3])->name4;
 		    u32 count = CountUsedIsoBlocksSF(&sf,&part_selector);
 		    if (count)
 			snprintf(size,sizeof(size),"%4u",
@@ -3322,7 +3332,7 @@ enumError cmd_filetype()
 		}
 
 		printf("%-8s %-6s %s %s %s  %s\n",
-			ftype, sf.f.id6[0] ? sf.f.id6 : "-",
+			ftype, sf.f.id6_dest[0] ? sf.f.id6_dest : "-",
 			size, region, split, sf.f.fname );
 	    }
 	    else if (long_count)
@@ -3331,7 +3341,7 @@ enumError cmd_filetype()
 		if ( sf.f.split_used > 1 )
 		    snprintf(split,sizeof(split),"%2d",sf.f.split_used);
 		printf("%-8s %-6s %s  %s\n",
-			ftype, sf.f.id6[0] ? sf.f.id6 : "-",
+			ftype, sf.f.id6_dest[0] ? sf.f.id6_dest : "-",
 			split, sf.f.fname );
 	    }
 	    else
@@ -3392,6 +3402,11 @@ enumError CheckOptions ( int argc, char ** argv, bool is_env )
 
 	case GO_TEST:		testmode++; break;
 
+#if OPT_OLD_NEW
+	case GO_OLD:		newmode = -1; break;
+	case GO_NEW:		newmode = +1; break;
+#endif
+
 	case GO_ALL:		opt_all++; break;
 	case GO_PART:		AtFileHelper(optarg,0,0,AddPartition); break;
 	case GO_SOURCE:		AppendStringField(&source_list,optarg,false); break;
@@ -3408,6 +3423,8 @@ enumError CheckOptions ( int argc, char ** argv, bool is_env )
 	case GO_EXCLUDE:	AtFileHelper(optarg,SEL_ID,SEL_FILE,AddExcludeID); break;
 	case GO_INCLUDE_PATH:	AtFileHelper(optarg,0,0,AddIncludePath); break;
 	case GO_EXCLUDE_PATH:	AtFileHelper(optarg,0,0,AddExcludePath); break;
+	case GO_INCLUDE_FIRST:	include_first = true; break;
+
 	case GO_ONE_JOB:	job_limit = 1; break;
 	case GO_IGNORE:		break;
 	case GO_IGNORE_FST:	allow_fst = false; break;
@@ -3452,6 +3469,7 @@ enumError CheckOptions ( int argc, char ** argv, bool is_env )
 
 	case GO_UPDATE:		break;
 	case GO_SYNC:		break;
+	case GO_SYNC_ALL:	break;
 	case GO_NEWER:		break;
 	case GO_OVERWRITE:	break;
 	case GO_REMOVE:		break;

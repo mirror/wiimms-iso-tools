@@ -42,7 +42,7 @@ WDF_LONG		= Wiimms WDF Tool
 WFUSE_SHORT		= wfuse
 WFUSE_LONG		= Wiimms FUSE Tool
 
-VERSION_NUM		= 1.27a
+VERSION_NUM		= 1.28a
 BETA_VERSION		= 0
 			# 0:off  -1:"beta"  >0:"beta#"
 
@@ -185,8 +185,8 @@ UI_FILES	= ui.def
 UI_FILES	+= $(patsubst %,ui-%.c,$(MAIN_TOOLS) $(EXTRA_TOOLS))
 UI_FILES	+= $(patsubst %,ui-%.h,$(MAIN_TOOLS) $(EXTRA_TOOLS))
 
-SETUP_DIR	= ./setup
-SETUP_FILES	= version.h install.sh load-titles.sh wit.def
+SETUP_DIR	=  ./setup
+SETUP_FILES	=  version.h install.sh cygwin-copy.sh wit.def $(CYGWIN_SCRIPTS)
 DIR_LIST	+= $(SETUP_DIR)
 RM_FILES2	+= $(SETUP_FILES)
 
@@ -270,11 +270,12 @@ TITLE_FILES	= titles.txt $(patsubst %,titles-%.txt,$(LANGUAGES))
 LANGUAGES	= de es fr it ja ko nl pt ru zhcn zhtw
 
 BIN_FILES	= $(MAIN_TOOLS) $(EXTRA_TOOLS)
-SHARE_FILES	= $(TITLE_FILES)
+SHARE_FILES	= $(TITLE_FILES) system-menu.txt
 
 CYGWIN_DIR	= /usr/bin
-CYGWIN_BIN	= cygwin1.dll cygbz2-1.dll
-CYGWIN_BIN_SRC	= $(patsubst %,$(CYGWIN_DIR)/%,$(CYGWIN_BIN))
+CYGWIN_TOOLS	= bash comm cp mkdir realpath regtool sed stat tr wget
+CYGWIN_SCRIPTS	= load-titles.sh load-titles.bat windows-install.sh windows-install.bat
+WIN_INSTALL_PATH= Wiimm/WIT
 
 DIR_LIST_BIN	= $(SCRIPTS) bin
 DIR_LIST	+= $(DIR_LIST_BIN)
@@ -475,7 +476,8 @@ distrib:
 ifeq ($(SYSTEM),mac)
 	@$(MAKE) --no-print-directory mac-distrib
 else ifeq ($(SYSTEM),cygwin)
-	$(MAKE) --no-print-directory all doc gen-distrib wit.def
+	$(MAKE) --no-print-directory all doc cygwin-copy.sh \
+		$(CYGWIN_SCRIPTS) gen-distrib wit.def
 else
 	@STATIC=1 $(MAKE) --no-print-directory all doc gen-distrib wit.def
 endif
@@ -491,11 +493,12 @@ ifeq ($(SYSTEM),cygwin)
 	@rm -rf $(DISTRIB_PATH)/* 2>/dev/null || true
 	@rm -rf $(DISTRIB_PATH) 2>/dev/null || true
 	@mkdir -p $(DISTRIB_PATH)/bin $(DISTRIB_PATH)/doc
+	@./cygwin-copy.sh
 	@printf '@cmd\r\n' >$(DISTRIB_PATH)/bin/wit-console.bat
 	@cp -p gpl-2.0.txt $(DISTRIB_PATH)
-	@ln -f $(MAIN_TOOLS) $(WDF_LINKS) $(DISTRIB_PATH)/bin
-	@cp -p $(CYGWIN_BIN_SRC) $(DISTRIB_PATH)/bin
-	@( cd share; cp $(TITLE_FILES) ../$(DISTRIB_PATH)/bin )
+	@ln -f $(MAIN_TOOLS) $(WDF_LINKS) $(CYGWIN_SCRIPTS) $(DISTRIB_PATH)/bin
+	@ln -f windows-install.bat $(DISTRIB_PATH)
+	@( cd share; cp $(SHARE_FILES) ../$(DISTRIB_PATH)/bin )
 	@cp -p $(DOC_FILES) $(DISTRIB_PATH)/doc
 	@rm -f $(DISTRIB_PATH)/doc/$(IGNORE_DOC_FILES)
 
@@ -505,7 +508,8 @@ ifeq ($(SYSTEM),cygwin)
 else
 
 	@rm -rf $(DISTRIB_PATH)
-	@mkdir -p $(DISTRIB_PATH)/bin $(DISTRIB_PATH)/scripts $(DISTRIB_PATH)/share $(DISTRIB_PATH)/doc
+	@mkdir -p $(DISTRIB_PATH)/bin $(DISTRIB_PATH)/scripts
+	@mkdir -p $(DISTRIB_PATH)/share $(DISTRIB_PATH)/doc
 
 	@cp -p $(DISTRIB_FILES) $(DISTRIB_PATH)
 	@ln -f $(MAIN_TOOLS) $(WDF_LINKS) $(DISTRIB_PATH)/bin
@@ -560,8 +564,13 @@ flags:
 
 .PHONY : install
 install: all
+ifeq ($(SYSTEM),cygwin)
+	@[[ -d $(DISTRIB_PATH)/bin ]] || make distrib
+	@( cd "$(DISTRIB_PATH)/bin" && ./windows-install.sh --cygwin )
+else
 	@chmod a+x install.sh
 	@./install.sh --make
+endif
 
 .PHONY : install+
 install+: clean+ all
@@ -631,7 +640,11 @@ templates.sed: Makefile
 		's|@@BIN-FILES@@|$(BIN_FILES)|g;\n' \
 		's|@@SHARE-FILES@@|$(SHARE_FILES)|g;\n' \
 		's|@@WDF-LINKS@@|$(WDF_LINKS)|g;\n' \
+		's|@@CYGWIN-DIR@@|$(CYGWIN_DIR)|g;\n' \
+		's|@@CYGWIN-TOOLS@@|$(CYGWIN_TOOLS)|g;\n' \
+		's|@@WIN-INSTALL-PATH@@|$(WIN_INSTALL_PATH)|g;\n' \
 		's|@@LANGUAGES@@|$(LANGUAGES)|g;\n' \
+		's|@@DISTRIB-PATH@@|$(DISTRIB_PATH)|g;\n' \
 		's|@@DISTRIB-I386@@|$(DISTRIB_I386)|g;\n' \
 		's|@@DISTRIB-X86_64@@|$(DISTRIB_X86_64)|g;\n' \
 		's|@@DISTRIB-MAC@@|$(DISTRIB_MAC)|g;\n' \

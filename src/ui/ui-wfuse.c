@@ -103,10 +103,22 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 	"The parameter is forwarded to the FUSE command line scanner."
     },
 
+    {	OPT_CREATE, 'c', "create",
+	0,
+	"If the mount point does not exist, create it and remove it on"
+	" unmount."
+    },
+
+    {	OPT_REMOUNT, 'r', "remount",
+	0,
+	"If the mount point is already mounted, try silently to unmount it"
+	" first."
+    },
+
     {	OPT_UMOUNT, 'u', "umount",
 	0,
-	"Unmount each entered directory by calling 'fusermount -u mountdir' or"
-	" alternatively 'umount mountdir'."
+	"Enter 'unmount mode' and unmount each entered directory by calling"
+	" 'fusermount -u mountdir' or alternatively 'umount mountdir'."
     },
 
     {	OPT_LAZY, 'l', "lazy",
@@ -116,7 +128,7 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 	" not busy anymore."
     },
 
-    {0,0,0,0,0} // OPT__N_TOTAL == 13
+    {0,0,0,0,0} // OPT__N_TOTAL == 15
 
 };
 
@@ -125,7 +137,7 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 ///////////////            OptionShort & OptionLong             ///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-const char OptionShort[] = "VhHqvo:p:ul";
+const char OptionShort[] = "VhHqvo:p:crul";
 
 const struct option OptionLong[] =
 {
@@ -140,6 +152,8 @@ const struct option OptionLong[] =
 	{ "io",			1, 0, GO_IO },
 	{ "option",		1, 0, 'o' },
 	{ "param",		1, 0, 'p' },
+	{ "create",		0, 0, 'c' },
+	{ "remount",		0, 0, 'r' },
 	{ "umount",		0, 0, 'u' },
 	 { "unmount",		0, 0, 'u' },
 	{ "lazy",		0, 0, 'l' },
@@ -164,8 +178,9 @@ const u8 OptionIndex[OPT_INDEX_SIZE] =
 	/*48*/	OPT_HELP_FUSE,
 	/*49*/	 0,0,0,0, 0,0,0,0, 0,0,0,0, 0,
 	/*56*/	OPT_VERSION,
-	/*57*/	 0,0,0,0, 0,0,0,0, 0,
-	/*60*/	 0,0,0,0, 0,0,0,0, 
+	/*57*/	 0,0,0,0, 0,0,0,0, 0,0,0,0, 
+	/*63*/	OPT_CREATE,
+	/*64*/	 0,0,0,0, 
 	/*68*/	OPT_HELP,
 	/*69*/	 0,0,0,
 	/*6c*/	OPT_LAZY,
@@ -173,7 +188,8 @@ const u8 OptionIndex[OPT_INDEX_SIZE] =
 	/*6f*/	OPT_OPTION,
 	/*70*/	OPT_PARAM,
 	/*71*/	OPT_QUIET,
-	/*72*/	 0,0,0,
+	/*72*/	OPT_REMOUNT,
+	/*73*/	 0,0,
 	/*75*/	OPT_UMOUNT,
 	/*76*/	OPT_VERBOSE,
 	/*77*/	 0,0,0,0, 0,0,0,0, 0,
@@ -208,6 +224,11 @@ const InfoOption_t * option_tab_tool[] =
 
 	OptionInfo + OPT_OPTION,
 	OptionInfo + OPT_PARAM,
+	OptionInfo + OPT_CREATE,
+	OptionInfo + OPT_REMOUNT,
+
+	OptionInfo + OPT_NONE, // separator
+
 	OptionInfo + OPT_UMOUNT,
 	OptionInfo + OPT_LAZY,
 
@@ -232,7 +253,7 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	"Mount a Wii or GameCube image or a WBFS file or partition to a mount"
 	" point using FUSE (Filesystem in Userspace). Use 'wfuse --umount"
 	" mountdir' for unmounting.",
-	10,
+	12,
 	option_tab_tool,
 	0
     },

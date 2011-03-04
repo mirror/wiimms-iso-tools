@@ -173,6 +173,7 @@ SUPERFILE;
 // WDF reading support
 enumError SetupReadWDF	( SUPERFILE * sf );
 enumError ReadWDF	( SUPERFILE * sf, off_t off, void * buf, size_t size );
+off_t     DataBlockWDF	( SUPERFILE * sf, off_t off, size_t hint_align, off_t * block_size );
 
 // WDF writing support
 enumError SetupWriteWDF	( SUPERFILE * sf );

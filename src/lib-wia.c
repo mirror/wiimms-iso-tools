@@ -864,7 +864,6 @@ enumError ReadWIA
     if (!wia->is_valid)
 	return ERR_WIA_INVALID;
 
-
     const u64 off2 = off + count;
     const wd_memmap_item_t * item = wia->memmap.item;
     const wd_memmap_item_t * item_end = item + wia->memmap.used;
@@ -998,6 +997,51 @@ enumError ReadWIA
       }
     }
     return ERR_OK;
+}
+
+//
+///////////////////////////////////////////////////////////////////////////////
+///////////////			DataBlockWIA()			///////////////
+///////////////////////////////////////////////////////////////////////////////
+
+off_t DataBlockWIA
+	( SuperFile_t * sf, off_t off, size_t hint_align, off_t * block_size )
+{
+    // [2do] [datablock] : analyze chunks
+
+    ASSERT(sf);
+    ASSERT(sf->wia);
+
+    wia_controller_t * wia = sf->wia;
+    if (!wia->is_valid)
+	return DataBlockStandard(sf,off,hint_align,block_size);
+
+    const wd_memmap_item_t * item = wia->memmap.item;
+    const wd_memmap_item_t * item_end = item + wia->memmap.used;
+
+    for ( ; item < item_end && off >= item->offset + item->size; item++ )
+	PRINT("%llx %llx+%llx\n",(u64)off,item->offset,item->size);
+
+    if ( off < item->offset )
+	 off = item->offset;
+
+    if (block_size)
+    {
+	if ( hint_align < HD_BLOCK_SIZE )
+	    hint_align = HD_BLOCK_SIZE;
+
+	item_end--;
+	while ( item < item_end )
+	{
+	    // [2do] this loops ends always with item==item_end
+	    if ( item[1].offset - (item->offset + item->size) >= hint_align )
+		break;
+	    item++;
+	}
+	*block_size = item->offset + item->size - off;
+    }
+
+    return off;
 }
 
 //

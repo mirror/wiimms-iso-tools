@@ -80,20 +80,22 @@ typedef enum enumOpenMode
 
 enumMode open_mode = OMODE_ISO;
 
-bool is_wbfs     = false;
-bool is_iso      = false;
-bool is_fst	 = false;
-bool is_wbfs_iso = false;
-int  wbfs_slot	 = -1;
+bool is_wbfs		= false;
+bool is_iso		= false;
+bool is_fst		= false;
+bool is_wbfs_iso	= false;
+int  wbfs_slot		= -1;
 
 ///////////////////////////////////////////////////////////////////////////////
 
 typedef struct fuse_file_info fuse_file_info;
 
-static bool opt_umount = false;
-static bool opt_lazy = false;
-static char * source_file = 0;
-static char * mount_point = 0;
+static bool opt_umount		= false;
+static bool opt_lazy		= false;
+static bool opt_create		= false;
+static bool opt_remount		= false;
+static char * source_file	= 0;
+static char * mount_point	= 0;
 
 static SuperFile_t main_sf;
 static WBFS_t wbfs;
@@ -135,6 +137,7 @@ static void add_arg ( char * arg1, char * arg2 )
 
 static void help_exit()
 {
+    fputs( TITLE "\n", stdout );
     PrintHelpCmd(&InfoUI,stdout,0,0,0,0);
     exit(ERR_OK);
 }
@@ -143,6 +146,7 @@ static void help_exit()
 
 static void help_fuse_exit()
 {
+    fputs( TITLE "\n", stdout );
     add_arg("--help",0);
     static struct fuse_operations wfuse_oper = {0};
     fuse_main(wbfuse_argc,wbfuse_argv,&wfuse_oper);
@@ -153,7 +157,10 @@ static void help_fuse_exit()
 
 static void version_exit()
 {
-    printf("%s\n",TITLE);
+    fputs( TITLE "\n", stdout );
+    add_arg("--version",0);
+    static struct fuse_operations wfuse_oper = {0};
+    fuse_main(wbfuse_argc,wbfuse_argv,&wfuse_oper);
     exit(ERR_OK);
 }
 
@@ -198,6 +205,8 @@ static enumError CheckOptions ( int argc, char ** argv )
 	case GO_PARAM:		add_arg(optarg,0); break;
 	case GO_UMOUNT:		opt_umount = true; break;
 	case GO_LAZY:		opt_lazy = true; break;
+	case GO_CREATE:		opt_create = true; break;
+	case GO_REMOUNT:	opt_remount = true; break;
       }
     }
  #ifdef DEBUG
@@ -1777,10 +1786,41 @@ static int wfuse_readdir
 
 //
 ///////////////////////////////////////////////////////////////////////////////
+///////////////			wfuse_destroy()			///////////////
+///////////////////////////////////////////////////////////////////////////////
+
+static int sleep_msec ( long msec )
+{
+    struct timespec ts;
+    ts.tv_sec  = msec/1000;
+    ts.tv_nsec = ( msec % 1000 ) * 1000000;
+    return nanosleep(&ts,0);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+void wfuse_destroy()
+{
+    TRACE("DESTROY\n");
+    if (opt_create)
+    {
+	TRACE("TRY UMOUNT #1: %s\n",mount_point);
+	if ( rmdir(mount_point) == -1 )
+	{
+	    // give it a second chance
+	    sleep_msec(1000);
+	    TRACE("TRY UMOUNT #2: %s\n",mount_point);
+	    rmdir(mount_point);
+	}
+    }
+}
+
+//
+///////////////////////////////////////////////////////////////////////////////
 ///////////////			    umount()			///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-static int exec_cmd ( ccp cmd, ccp p1, ccp p2, ccp p3 )
+static int exec_cmd ( ccp cmd, ccp p1, ccp p2, ccp p3, bool silent )
 {
     const pid_t pid = fork();
     if ( pid == -1 )
@@ -1797,6 +1837,18 @@ static int exec_cmd ( ccp cmd, ccp p1, ccp p2, ccp p3 )
 	if (p3) *arg++ = (char*)p3;
 	DASSERT( arg-argv < sizeof(argv)/sizeof(*argv) );
 	*arg = 0;
+
+	if (silent)
+	{
+	    int fd = creat("/dev/null",0777);
+	    if ( fd == -1 )
+		perror(0);
+	    else
+	    {
+		dup2(fd,STDOUT_FILENO);
+		dup2(fd,STDERR_FILENO);
+	    }
+	}
 
 	execvp(cmd,argv);
 	PRINT("CALL to '%s' failed\n",cmd);
@@ -1817,55 +1869,53 @@ static int exec_cmd ( ccp cmd, ccp p1, ccp p2, ccp p3 )
 
 ///////////////////////////////////////////////////////////////////////////////
 
+static enumError umount_path ( ccp mpt, bool silent )
+{
+    if (!IsDirectory(mpt,0))
+    {
+	if (!silent)
+	    ERROR0(ERR_WARNING,"Not a directory: %s\n",mpt);
+	return ERR_WARNING;
+    }
+
+    if ( !silent && verbose >= 0 )
+	printf(WFUSE_SHORT " umount %s\n",mpt);
+
+    static bool use_fusermount = true;
+    if (use_fusermount)
+    {
+	const int stat = exec_cmd("fusermount", "-u", opt_lazy ? "-z" : 0, mpt, silent );
+	if ( stat == -1 )
+	{
+	    use_fusermount = false;
+	    if ( !silent && verbose >= 0 )
+		ERROR0(ERR_WARNING,"'fusermount' not found, try 'umount' now!\n");
+	}
+	else
+	    return stat ? ERR_WARNING : ERR_OK;
+    }
+
+    const int stat = exec_cmd("umount", opt_lazy ? "-l" : 0, mpt, 0, silent );
+    if ( stat == -1 )
+	return ERROR0(ERR_FATAL,
+		"Can't find neither 'fusermount' nor 'umount' -> abort\n");
+
+    return stat ? ERR_WARNING : ERR_OK;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
 static enumError umount ( int argc, char ** argv )
 {
     if ( optind == argc )
 	hint_exit(ERR_SYNTAX);
 
-    bool use_fusermount = true;
+    const bool silent = verbose < -1;
     int argi, errcount = 0;
 
     for ( argi = optind; argi < argc; argi++ )
-    {
-	ccp mpt = argv[argi];
-	if (!IsDirectory(mpt,0))
-	{
-	    ERROR0(ERR_WARNING,"Not a directory: %s\n",mpt);
+	if (umount_path(argv[argi],silent))
 	    errcount++;
-	    continue;
-	}
-
-	if ( verbose >= 0 )
-	    printf(WFUSE_SHORT " umount %s\n",mpt);
-
-	bool done = false;
-	if (use_fusermount)
-	{
-	    const int stat = exec_cmd("fusermount", "-u", opt_lazy ? "-z" : 0, mpt );
-	    if ( stat == -1 )
-	    {
-		use_fusermount = false;
-		if ( verbose >= 0 )
-		    ERROR0(ERR_WARNING,"'fusermount' not found, try 'umount' now!\n");
-	    }
-	    else
-	    {
-		done = true;
-		if (stat)
-		    errcount++;
-	    }
-	}
-    
-	if (!done)
-	{
-	    const int stat = exec_cmd("umount", opt_lazy ? "-l" : 0, mpt, 0 );
-	    if ( stat == -1 )
-		return ERROR0(ERR_FATAL,
-			"Can't find neither 'fusermount' nor 'umount' -> abort\n");
-	    else if (stat)
-		errcount++;
-	}
-    }
     return errcount ? ERR_WARNING : ERR_OK;
 }
 
@@ -1895,10 +1945,11 @@ int main ( int argc, char ** argv )
 	hint_exit(ERR_OK);
     }
 
-    if ( verbose >= 0 )
-	printf( TITLE "\n" );
     if (CheckOptions(argc,argv))
 	hint_exit(ERR_SYNTAX);
+
+    if ( verbose >= 0 )
+	printf( TITLE "\n" );
 
     if (opt_umount)
 	return umount(argc,argv);
@@ -2059,7 +2110,34 @@ int main ( int argc, char ** argv )
     if ( verbose >= 0 )
 	printf("mount %s:%s -> %s\n",
 		oft_info[main_sf.iod.oft].name, source_file, mount_point );
+
+
+    //----- create absolute pathes for further usage
+
     source_file = AllocRealPath(source_file);
+    mount_point = AllocRealPath(mount_point);
+
+
+    //----- umount first
+
+    if (opt_remount)
+    {
+	opt_lazy = true;
+	if (!umount_path(mount_point,true))
+	    sleep_msec(200);
+    }
+
+
+    //----- create mount point
+
+    if (opt_create)
+    {
+	struct stat st;
+	if ( stat(mount_point,&st) == -1 )
+	    mkdir(mount_point,0777);
+	else
+	    opt_create = false;
+    }
 
 
     //----- start fuse
@@ -2070,6 +2148,7 @@ int main ( int argc, char ** argv )
 	.read	    = wfuse_read,
 	.readlink   = wfuse_readlink,
 	.readdir    = wfuse_readdir,
+	.destroy    = wfuse_destroy,
     };
 
     add_arg(mount_point,0);
