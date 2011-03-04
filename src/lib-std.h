@@ -277,6 +277,7 @@ typedef enum attribOFT // OFT attributes
     OFT_A_EXTEND	= 0x08,		// format can be extended
     OFT_A_FST		= 0x10,		// format is an extracted file system
     OFT_A_COMPR		= 0x20,		// format uses compression
+    OFT_A_NOSIZE	= 0x40,		// format has no file size info
 
 } attribOFT;
 
@@ -519,88 +520,101 @@ FileAttrib_t * CopyFileAttribInode
 
 typedef struct File_t
 {
-	// file handles and status
+    //--- file handles and status
 
-	int fd;			// file handle, -1=invalid
-	FILE * fp;		// stream handle, 0=invalid
-	struct stat st;		// file status after OpenFile()
-	int  active_open_flags;	// active open flags.
-	enumFileType ftype;	// the type of the file
-	bool is_reading;	// file opened in read mode;
-	bool is_writing;	// file opened in write mode;
-	bool is_stdfile;	// file is stdin or stdout
-	bool seek_allowed;	// seek is allowed (regular file or block device)
-	char id6[7];		// ID6 of a iso image
-	int  slot;		// >=0: slot number for WBFS
-
-	// virtual file atributes, initialized by a copy of 'struct stat st'
-
-	FileAttrib_t fatt;	// size, itime, mtime, ctime, atime
-
-	// file names, alloced
-
-	ccp fname;		// current virtual filename
-	ccp path;		// not NULL: path of real file (not realpath)
-	ccp rename;		// not NULL: rename rename to fname if closed
-	ccp outname;		// not NULL: hint for a good output filename
-				// outname is without path/directory or extension
-
-	// options set by user, not resetted by ResetFile()
-
-	int  open_flags;	// proposed open flags; if zero then ignore
-	bool disable_errors;	// don't print error messages
-	bool create_directory;	// create direcotries automatically
-	bool allow_direct_io;	// allow the usage of O_DIRECT
+    int		fd;			// file handle, -1=invalid
+    FILE	* fp;			// stream handle, 0=invalid
+    struct stat st;			// file status after OpenFile()
+    int		active_open_flags;	// active open flags.
+    enumFileType ftype;			// the type of the file
+    bool	is_reading;		// file opened in read mode;
+    bool	is_writing;		// file opened in write mode;
+    bool	is_stdfile;		// file is stdin or stdout
+    bool	seek_allowed;		// seek is allowed
+					// (regular file or block device)
+    id6_t	id6_src;		// ID6 of the src iso image
+    id6_t	id6_dest;		// patched ID6 for output
+    int		slot;			// >=0: slot number for WBFS
 
 
-	// error codes
+    //--- virtual file atributes, initialized by a copy of 'struct stat st'
 
-	enumError last_error;	// error code of last operation
-	enumError max_error;	// max error code since open/create
+    FileAttrib_t fatt;	// size, itime, mtime, ctime, atime
 
-	// offset handling
 
-	off_t file_off;		// current real file offset
-	off_t cur_off;		// current virtual file offset
-	off_t max_off;		// max file offset
-	off_t prealloc_size;	// if >0: size of preallocation
-	int   read_behind_eof;	// 0:disallow, 1:allow+print warning, 2:allow silently
+    //--- file names, alloced
 
-	// read cache
+    ccp		fname;			// current virtual filename
+    ccp		path;			// not NULL: path of real file (not realpath)
+    ccp		rename;			// not NULL: rename rename to fname if closed
+    ccp		outname;		// not NULL: hint for a good output filename
+					// outname is without path/directory
+					// or extension
 
-	bool is_caching;	// true if cache is active
-	FileCache_t *cache;	// data cache
-	FileCache_t *cur_cache;	// pointer to current cache entry
-	off_t  cache_info_off;	// info for cache missed message
-	size_t cache_info_size;	// info for cache missed message
+    //--- options set by user, not resetted by ResetFile()
 
-	// prealloc map
-	bool	 prealloc_done;	// true if preallocation was done
-	MemMap_t prealloc_map;	// store prealloc areas until first write
+    int		open_flags;		// proposed open flags; if zero then ignore
+    bool	disable_errors;		// don't print error messages
+    bool	create_directory;	// create direcotries automatically
+    bool	allow_direct_io;	// allow the usage of O_DIRECT
 
-	// split file support
 
-	struct File_t **split_f; // list with pointers to the split files
-	int split_used;		 // number of used split files in 'split_f'
-	off_t split_off;	 // if split file: offset in combined file
-	off_t split_filesize;	 // if split file: size of split file
-				 // max file size for new files
-	ccp split_fname_format;	 // format with '%01u' at the end for 'fname'
-	ccp split_rename_format; // format with '%01u' at the end for 'rename'
+    //--- error codes
 
-	// wbfs vars
+    enumError	last_error;		// error code of last operation
+    enumError	max_error;		// max error code since open/create
 
-	u32 sector_size;	// size of one hd sector, default = 512
 
-	// statistics
+    //--- offset handling
 
-	u32 tell_count;		// number of successfull tell operations
-	u32 seek_count;		// number of successfull seek operations
-	u32 setsize_count;	// number of successfull set-size operations
-	u32 read_count;		// number of successfull read operations
-	u32 write_count;	// number of successfull write operations
-	u64 bytes_read;		// number of bytes read
-	u64 bytes_written;	// number of bytes written
+    off_t	file_off;		// current real file offset
+    off_t	cur_off;		// current virtual file offset
+    off_t	max_off;		// max file offset
+    off_t	prealloc_size;		// if >0: size of preallocation
+    int		read_behind_eof;	// 0: disallow
+					// 1: allow + print warning + switch to '2'
+					// 2: allow silently
+
+    //--- read cache
+
+    bool	is_caching;		// true if cache is active
+    FileCache_t	* cache;		// data cache
+    FileCache_t	* cur_cache;		// pointer to current cache entry
+    off_t	cache_info_off;		// info for cache missed message
+    size_t	cache_info_size;	// info for cache missed message
+
+
+    //--- prealloc map
+
+    bool	prealloc_done;		// true if preallocation was done
+    MemMap_t	prealloc_map;		// store prealloc areas until first write
+
+
+    //--- split file support
+
+    struct File_t **split_f;		// list with pointers to the split files
+    int		split_used;		// number of used split files in 'split_f'
+    off_t	split_off;		// if split file: offset in combined file
+    off_t	split_filesize;		// if split file: size of split file
+					// max file size for new files
+    ccp		split_fname_format;	// format with '%01u' at the end for 'fname'
+    ccp		split_rename_format;	// format with '%01u' at the end for 'rename'
+
+
+    //--- wbfs vars
+
+    u32		sector_size;		// size of one hd sector, default = 512
+
+
+    //--- statistics
+
+    u32		tell_count;		// number of successfull tell operations
+    u32		seek_count;		// number of successfull seek operations
+    u32		setsize_count;		// number of successfull set-size operations
+    u32		read_count;		// number of successfull read operations
+    u32		write_count;		// number of successfull write operations
+    u64		bytes_read;		// number of bytes read
+    u64		bytes_written;		// number of bytes written
 
 } File_t;
 
@@ -720,6 +734,27 @@ enumError LoadFile
 
 enumError SaveFile ( ccp path1, ccp path2, bool create_dir,
 		     void * data, size_t size, bool silent );
+
+//-----------------------------------------------------------------------------
+
+void ClearFileID
+(
+    File_t		* f
+);
+
+void SetFileID
+(
+    File_t		* f,
+    const void		* new_id,
+    int			id_length
+);
+
+bool SetPatchFileID
+(
+    File_t		* f,
+    const void		* new_id,
+    int			id_length
+);
 
 //
 ///////////////////////////////////////////////////////////////////////////////
@@ -1435,9 +1470,12 @@ extern bool		use_utf8;
 extern char		escape_char;
 extern ccp		opt_clone;
 extern int		testmode;
+extern int		newmode;
 extern ccp		opt_dest;
 extern bool		opt_mkdir;
 extern int		opt_limit;
+extern int		opt_file_limit;
+extern int		opt_block_size;
 extern int		print_old_style;
 extern int		print_sections;
 extern int		long_count;

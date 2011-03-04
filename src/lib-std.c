@@ -75,7 +75,7 @@
 enumProgID	prog_id			= PROG_UNKNOWN;
 u32		revision_id		= SYSTEMID + REVISION_NUM;
 ccp		progname		= "?";
-ccp		search_path[5]		= {0};
+ccp		search_path[6]		= {0};
 ccp		lang_info		= 0;
 volatile int	SIGINT_level		= 0;
 volatile int	verbose			= 0;
@@ -93,9 +93,12 @@ int		opt_split		= 0;
 u64		opt_split_size		= 0;
 ccp		opt_clone		= 0;
 int		testmode		= 0;
+int		newmode			= 0;
 ccp		opt_dest		= 0;
 bool		opt_mkdir		= false;
 int		opt_limit		= -1;
+int		opt_file_limit		= -1;
+int		opt_block_size		= -1;
 int		print_old_style		= 0;
 int		print_sections		= 0;
 int		long_count		= 0;
@@ -250,7 +253,7 @@ void SetupLib ( int argc, char ** argv, ccp p_progname, enumProgID prid )
     TRACE_SIZEOF(CommandTab_t);
     TRACE_SIZEOF(DataArea_t);
     TRACE_SIZEOF(DataList_t);
-    TRACE_SIZEOF(CommandTab_t);
+    TRACE_SIZEOF(Diff_t);
     TRACE_SIZEOF(File_t);
     TRACE_SIZEOF(FileAttrib_t);
     TRACE_SIZEOF(FileCache_t);
@@ -352,6 +355,7 @@ void SetupLib ( int argc, char ** argv, ccp p_progname, enumProgID prid )
     TRACE_SIZEOF(wd_ticket_t);
     TRACE_SIZEOF(wd_tmd_content_t);
     TRACE_SIZEOF(wd_tmd_t);
+    TRACE_SIZEOF(wd_trim_mode_t);
     TRACE_SIZEOF(wd_usage_t);
 
     TRACE_SIZEOF(wia_controller_t);
@@ -435,7 +439,7 @@ void SetupLib ( int argc, char ** argv, ccp p_progname, enumProgID prid )
     //----- setup search_path
 
     ccp *sp = search_path, *sp2;
-    ASSERT( sizeof(search_path)/sizeof(*search_path) > 4 );
+    ASSERT( sizeof(search_path)/sizeof(*search_path) > 5 );
 
     // determine program path
     char proc_path[30];
@@ -456,6 +460,18 @@ void SetupLib ( int argc, char ** argv, ccp p_progname, enumProgID prid )
 	{
 	    // seems to be a real path -> terminate string behind '/'
 	    *++file_ptr = 0;
+
+	    #ifdef TEST
+		// for development: append 'share' dir
+		StringCopyE(file_ptr,path+sizeof(path),"share/");
+		*sp = strdup(path);
+		if (!*sp)
+		    OUT_OF_MEMORY;
+		TRACE("SEARCH_PATH[%zd] = %s\n",sp-search_path,*sp);
+		sp++;
+		*file_ptr = 0;
+	    #endif
+
 	    *sp = strdup(path);
 	    if (!*sp)
 		OUT_OF_MEMORY;
@@ -915,14 +931,23 @@ void HexDump ( FILE * f, int indent, u64 addr, int addr_fw, int row_len,
     else if ( row_len > MAX_LEN )
 	row_len = MAX_LEN;
 
-    const int fw = snprintf(buf,sizeof(buf),"%llx",addr+count-1);
-    if ( addr_fw < fw )
-	 addr_fw = fw;
+
+    if ( (s64)addr != -1 )
+    {
+	const int fw = snprintf(buf,sizeof(buf),"%llx",addr+count-1);
+	if ( addr_fw < fw )
+	     addr_fw = fw;
+    }
 
     while ( count > 0 )
     {
-	fprintf(f,"%*s%*llx:", indent,"", addr_fw, addr );
-	addr += row_len;
+	if ( (s64)addr == -1 )
+	    fprintf(f,"%*s", indent,"" );
+	else
+	{
+	    fprintf(f,"%*s%*llx:", indent,"", addr_fw, addr );
+	    addr += row_len;
+	}
 	char * dest = buf;
 
 	int i;
@@ -1624,6 +1649,7 @@ u64 ScanSizeFactor ( char ch_factor, int force_base )
 	    case 'p': case 'P': return PB_SI;
 	    case 'e': case 'E': return EB_SI;
 
+	    case 's': case 'S': return WII_SECTOR_SIZE;
 	    case 'u': case 'U': return GC_DISC_SIZE;
 	    case 'w': case 'W': return WII_SECTORS_SINGLE_LAYER *(u64)WII_SECTOR_SIZE;
 	}
@@ -1640,6 +1666,7 @@ u64 ScanSizeFactor ( char ch_factor, int force_base )
 	    case 'p': case 'P': return PiB;
 	    case 'e': case 'E': return EiB;
 
+	    case 's': case 'S': return WII_SECTOR_SIZE;
 	    case 'u': case 'U': return GC_DISC_SIZE;
 	    case 'w': case 'W': return WII_SECTORS_SINGLE_LAYER *(u64)WII_SECTOR_SIZE;
 	}
@@ -1664,6 +1691,9 @@ u64 ScanSizeFactor ( char ch_factor, int force_base )
 	    case 'T': return TiB;
 	    case 'P': return PiB;
 	    case 'E': return EiB;
+
+	    case 's':
+	    case 'S': return WII_SECTOR_SIZE;
 
 	    case 'u':
 	    case 'U': return GC_DISC_SIZE;

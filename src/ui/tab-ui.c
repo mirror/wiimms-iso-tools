@@ -177,6 +177,46 @@ typedef struct info_t
 	"Print a summary line while extracting files." \
 	" If set at least twice, print a status line for each extracted files."
 
+///////////////////////////////////////////////////////////////////////////////
+
+#define TEXT_DIFF_QUIET \
+	"Be quiet and print only error messages and failure messages on mismatch." \
+	" The comparison is aborted at the first mismatch for each source image." \
+	" If set twice print nothing and report the diff result only as exit status" \
+	" and the complete comparison is aborted at the first mismatch at all."
+
+#define TEXT_DIFF_VERBOSE \
+	"The default is to print only differ messages." \
+	" If set success messages and summaries are printed too." \
+	" If set at least twice, a progress counter is printed too."
+
+#define TEXT_DIFF_FILE_LIMIT \
+	"This option is only used if comparing discs on file level." \
+	" If not set or set to null, then all files will be compared." \
+	" If set to a value greater than comparison is aborted for" \
+	" the current source image if the entered number of files differ." \
+	" This option is ignored in quiet mode."
+
+#define TEXT_DIFF_LIMIT \
+	"If not set, the comparison of the current file is aborted" \
+	" if a mismatch is found." \
+	" If set, the comparison is aborted after @'limit'@ mismatches." \
+	" To compare the whole file use the special value @0@." \
+	" This option is ignored in quiet mode."
+
+#define TEXT_DIFF_LONG \
+	"If set, a status line with the offset is printed for each found mismatch." \
+	" If set twice, an additonal hexdump of the first bytes is printed." \
+	" If set 3 or 4 times, the limit is set to 10 or unlimited" \
+	" if option {--limit} is not already set." \
+	" This option is ignored in quiet mode."
+
+#define TEXT_DIFF_BLOCK_SIZE \
+	"If a mismatch is found in raw or disc mode then the comparison" \
+	" is continued with the next block. This option sets the block size." \
+	" The default value is @32K@ (Wii sector size)." \
+	" This option is ignored in quiet mode."
+
 //
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////			the info table			///////////////
@@ -507,6 +547,16 @@ info_t info_tab[] =
 		"\n"
 		">>> USE THIS OPTION IF UNSURE! <<<" },
 
+ #if OPT_OLD_NEW
+  { H_OPT_GM,	"OLD",		"OLD",
+		0,
+		"Use old implemenation if available." },
+
+  { H_OPT_GM,	"NEW",		"NEW",
+		0,
+		"Use new implemenation if available." },
+ #endif
+
   { T_SEP_OPT,	0,0,0,0 }, //----- separator -----
 
   { T_OPT_CMP,	"SOURCE",	"s|source",
@@ -548,6 +598,25 @@ info_t info_tab[] =
 
   { T_SEP_OPT,	0,0,0,0 }, //----- separator -----
 
+  { T_OPT_CMP,	"EXCLUDE",	"x|exclude",
+		"id",
+		"A comma separated list with ID4 and ID6 values is expected."
+		" @'.'@ is a wildcard for exact 1 character and @'+'@"
+		" is a wildcard for any number characters."
+		" If the parameter begins with a '@@' the given file is read"
+		" and each line is scanned for one ID."
+		" Images with the given ID are excluded from operation."
+		" Each use of this option expands the exclude list."
+		" See {--include-first} for precedence issues." },
+
+  { T_OPT_CMP,	"EXCLUDE_PATH",	"X|exclude-path|excludepath",
+		"file_or_dir",
+		"Scan the ID of the source and add it to the exclude list."
+		" If the source is a directory then scan all images of the directory."
+		" Images with the given ID are excluded from operation."
+		" Each use of this option expands the exclude list."
+		" See {--include-first} for precedence issues." },
+
   { T_OPT_CMP,	"INCLUDE",	"n|include",
 		"id",
 		"A comma separated list with ID values is expected."
@@ -557,7 +626,7 @@ info_t info_tab[] =
 		" and each line is scanned for one ID."
 		" Only images with the given ID are included into the operation."
 		" Each use of this option expands the include list."
-		" The exclude list takes precedence." },
+		" See {--include-first} for precedence issues." },
 
   { T_OPT_CMP,	"INCLUDE_PATH",	"N|include-path|includepath",
 		"file_or_dir",
@@ -565,24 +634,23 @@ info_t info_tab[] =
 		" If the source is a directory then scan all images of the directory."
 		" Only images with the given ID are included into the operation."
 		" Each use of this option expands the include list."
-		" The exclude list takes precedence." },
+		" See {--include-first} for precedence issues." },
 
-  { T_OPT_CMP,	"EXCLUDE",	"x|exclude",
-		"id",
-		"A comma separated list with ID4 and ID6 values is expected."
-		" @'.'@ is a wildcard for exact 1 character and @'+'@"
-		" is a wildcard for any number characters."
-		" If the parameter begins with a '@@' the given file is read"
-		" and each line is scanned for one ID."
-		" Images with the given ID are excluded from operation."
-		" Each use of this option expands the exclude list." },
-
-  { T_OPT_CMP,	"EXCLUDE_PATH",	"X|exclude-path|excludepath",
-		"file_or_dir",
-		"Scan the ID of the source and add it to the exclude list."
-		" If the source is a directory then scan all images of the directory."
-		" Images with the given ID are excluded from operation."
-		" Each use of this option expands the exclude list." },
+  { T_OPT_C,	"INCLUDE_FIRST","include-first|includefirst",
+		0,
+		"The options {--include}, {--include-path}, {--exclude} and"
+		" {--exclude-path} decide which discs are included into the"
+		" operation. If neither include nor exclude options are used,"
+		" than all disc are included into the operation."
+		" If only include options are used, than only the specified"
+		" discs are operated. If only exclude options are used,"
+		" than all all discs but not the excluded are operated."
+		"\n "
+		" If include and exclude options are used together and @--include-first@"
+		" is not set, than all discs are operated that are specified by"
+		" any include option and not by any exclude option."
+		" If @--include-first@ is set, than all discs are ignored that"
+		" are specified by any exclude option and not by any include option." },
 
   { T_OPT_C,	"ONE_JOB",	"1|one-job|onejob",
 		0,
@@ -886,6 +954,10 @@ info_t info_tab[] =
 		"\n "
 		" @--mch@ is a shortcut for @--max-chunks@." },
 
+  { T_OPT_CP,	"BLOCK_SIZE",	"block-size|blocksize",
+		"size",
+		TEXT_DIFF_BLOCK_SIZE },
+
   { T_OPT_CP,	"COMPRESSION",	"compression|compr",
 		"mode",
 		"Select one compression method, level and chunk size for new WIA files."
@@ -1106,7 +1178,12 @@ info_t info_tab[] =
 		" ASCENDING, DESCENDING = REVERSE@." },
 
   { T_OPT_CP,	"LIMIT",	"limit",
-		"num", "Limit the output to NUM messages." },
+		"num",
+		"Limit the output to NUM messages." },
+
+  { T_OPT_CP,	"FILE_LIMIT",	"file-limit|filelimit",
+		"size",
+		TEXT_DIFF_FILE_LIMIT },
 
   //
   //---------- wit GROUP TITLES ----------
@@ -1152,10 +1229,11 @@ info_t info_tab[] =
 
   { T_GRP_BEG,	"EXCLUDE",	0,0,0 },
 
-  { T_COPT_M,	"INCLUDE",	0,0,0 },
-  { T_COPT_M,	"INCLUDE_PATH",	0,0,0 },
   { T_COPT_M,	"EXCLUDE",	0,0,0 },
   { T_COPT_M,	"EXCLUDE_PATH",	0,0,0 },
+  { T_COPT_M,	"INCLUDE",	0,0,0 },
+  { T_COPT_M,	"INCLUDE_PATH",	0,0,0 },
+  { T_COPT,	"INCLUDE_FIRST",0,0,0 },
   { T_COPT_M,	"ONE_JOB",	0,0,0 },
   { T_COPT_M,	"JOB_LIMIT",	0,0,0 },
 
@@ -1531,12 +1609,15 @@ info_t info_tab[] =
 
   { T_SEP_OPT,	0,0,0,0 },
 
-  { T_COPT,	"QUIET",	0,0,0 },
-  { T_COPT_M,	"VERBOSE",	0,0,0 },
-  { T_COPT_M,	"LOGGING",	0,0,0 },
+  { T_COPT,	"QUIET",	0,0, TEXT_DIFF_QUIET },
+  { T_COPT_M,	"VERBOSE",	0,0, TEXT_DIFF_VERBOSE },
   { T_COPT,	"PROGRESS",	0,0,0 },
-  { T_COPT_M,	"LONG",		0,0,0 },
+  { T_COPT_M,	"FILE_LIMIT",	0,0,0 },
+  { T_COPT_M,	"LIMIT",	0,0, TEXT_DIFF_LIMIT },
+  { T_COPT_M,	"LONG",		0,0, TEXT_DIFF_LONG },
+  { T_COPT,	"BLOCK_SIZE",	0,0,0 },
   { T_COPT,	"SECTIONS",	0,0,0 },
+  { T_COPT_M,	"LOGGING",	0,0,0 },
 
   { T_SEP_OPT,	0,0,0,0 },
 
@@ -2059,6 +2140,14 @@ info_t info_tab[] =
   { T_OPT_GM,	"TEST",		"t|test",
 		0, 0 /* copy of wit */ },
 
+#if OPT_OLD_NEW
+  { H_OPT_GM,	"OLD",		"OLD",
+		0, 0 /* copy of wit */ },
+
+  { H_OPT_GM,	"NEW",		"NEW",
+		0, 0 /* copy of wit */ },
+#endif
+
   { T_SEP_OPT,	0,0,0,0 }, //----- separator -----
 
   { T_OPT_C,	"AUTO",		"a|auto",
@@ -2094,16 +2183,19 @@ info_t info_tab[] =
 
   { T_SEP_OPT,	0,0,0,0 }, //----- separator -----
 
-  { T_OPT_CMP,	"INCLUDE",	"n|include",
-		0, 0 /* copy of wit */ },
-
-  { T_OPT_CMP,	"INCLUDE_PATH",	"N|include-path|includepath",
-		0, 0 /* copy of wit */ },
-
   { T_OPT_CMP,	"EXCLUDE",	"x|exclude",
 		0, 0 /* copy of wit */ },
 
   { T_OPT_CMP,	"EXCLUDE_PATH",	"X|exclude-path|excludepath",
+		0, 0 /* copy of wit */ },
+
+  { T_OPT_CMP,	"INCLUDE",	"n|include",
+		0, 0 /* copy of wit */ },
+
+  { T_OPT_C,	"INCLUDE_PATH","N|include-path|includepath",
+		0, 0 /* copy of wit */ },
+
+  { T_OPT_C,	"INCLUDE_FIRST","include-first|includefirst",
 		0, 0 /* copy of wit */ },
 
   { T_OPT_C,	"ONE_JOB",	"1|one-job|onejob",
@@ -2282,7 +2374,16 @@ info_t info_tab[] =
 		0,
 		"Synchronize the destination with all sources:"
 		" Remove and copy discs until the destination WBFS"
-		" contains exactly the same discs as all sources together." },
+		" contains exactly the same discs as all sources together."
+		" Remove and add only discs in respect to the"
+		" include and exclude lists."},
+
+  { T_OPT_C,	"SYNC_ALL",	"sync-all|syncall",
+		0,
+		"Synchronize the destination with all sources like {--sync}."
+		" But use the include and exclude lists only to create the"
+		" sync list and remove all disc on the destination WBFS"
+		" that are not part of the sync list." },
 
   { T_OPT_C,	"NEWER",	"e|newer|new",
 		0,
@@ -2424,10 +2525,11 @@ info_t info_tab[] =
 
   { T_GRP_BEG,	"EXCLUDE",	0,0,0 },
 
-  { T_COPT_M,	"INCLUDE",	0,0,0 },
-  { T_COPT_M,	"INCLUDE_PATH",	0,0,0 },
   { T_COPT_M,	"EXCLUDE",	0,0,0 },
   { T_COPT_M,	"EXCLUDE_PATH",	0,0,0 },
+  { T_COPT_M,	"INCLUDE",	0,0,0 },
+  { T_COPT_M,	"INCLUDE_PATH",	0,0,0 },
+  { T_COPT,	"INCLUDE_FIRST",0,0,0 },
   { T_COPT_M,	"ONE_JOB",	0,0,0 },
   { T_COPT_M,	"JOB_LIMIT",	0,0,0 },
 
@@ -2437,10 +2539,11 @@ info_t info_tab[] =
 
   { T_GRP_BEG,	"IGN_EXCLUDE",	0,0,0 },
 
-  { T_COPT_M,	"INCLUDE",	0,0,0 },
-  { T_COPT_M,	"INCLUDE_PATH",	0,0,0 },
   { T_COPT_M,	"EXCLUDE",	0,0,0 },
   { T_COPT_M,	"EXCLUDE_PATH",	0,0,0 },
+  { T_COPT_M,	"INCLUDE",	0,0,0 },
+  { T_COPT_M,	"INCLUDE_PATH",	0,0,0 },
+  { T_COPT,	"INCLUDE_FIRST",0,0,0 },
   { T_COPT_M,	"ONE_JOB",	0,0,0 },
   { T_COPT_M,	"JOB_LIMIT",	0,0,0 },
   { T_COPT,	"IGNORE",	0,0,0 },
@@ -2852,6 +2955,7 @@ info_t info_tab[] =
   { T_COPT,	"TRUNC",	0,0,
 	"Truncate WBFS until operation finished." },
   { T_COPT,	"NEWER",	0,0,0 },
+  { T_COPT,	"SYNC_ALL",	0,0,0 },
 
   //---------- COMMAND wwt UPDATE ----------
 
@@ -3187,6 +3291,16 @@ info_t info_tab[] =
 		" The standard is to print the first address"
 		" that is not part of the address of a range." },
 
+  { T_OPT_CP,	"LIMIT",	"limit",
+		0, 0 /* copy of wit */ },
+
+  { T_OPT_CP,	"FILE_LIMIT",	"file-limit|filelimit",
+		0, 0 /* copy of wit */ },
+
+  { T_OPT_CP,	"BLOCK_SIZE",	"block-size|blocksize",
+		0, 0 /* copy of wit */ },
+
+
   { T_SEP_OPT,	0,0,0,0 }, //----- separator -----
 
   { T_OPT_C,	"WDF",		"W|wdf",
@@ -3282,6 +3396,14 @@ info_t info_tab[] =
   { T_OPT_G,	"TEST",		"t|test",
 		0, 0 /* copy of wit */ },
 
+#if OPT_OLD_NEW
+  { H_OPT_GM,	"OLD",		"OLD",
+		0, 0 /* copy of wit */ },
+
+  { H_OPT_GM,	"NEW",		"NEW",
+		0, 0 /* copy of wit */ },
+#endif
+
   //
   //---------- wdf GROUP BASE ----------
 
@@ -3362,6 +3484,13 @@ info_t info_tab[] =
 
   { T_CMD_BEG,	"CMP",		0,0,0 },
 
+  { T_COPT,	"QUIET",	0,0, TEXT_DIFF_QUIET },
+  { T_COPT_M,	"VERBOSE",	0,0, TEXT_DIFF_VERBOSE },
+  { T_COPT_M,	"FILE_LIMIT",	0,0,0 },
+  { T_COPT_M,	"LIMIT",	0,0, TEXT_DIFF_LIMIT },
+  { T_COPT_M,	"LONG",		0,0, TEXT_DIFF_LONG },
+  { T_COPT,	"BLOCK_SIZE",	0,0,0 },
+
   //---------- COMMAND wdf DUMP ----------
 
   { T_CMD_BEG,	"DUMP",		0,0,0 },
@@ -3423,9 +3552,19 @@ info_t info_tab[] =
 		"param",
 		"The parameter is forwarded to the FUSE command line scanner." },
 
+  { T_OPT_G,	"CREATE",	"c|create",
+		0,
+		"If the mount point does not exist, create it and remove it on unmount." },
+
+  { T_OPT_G,	"REMOUNT",	"r|remount",
+		0,
+		"If the mount point is already mounted, try silently to unmount it first." },
+
+  { T_SEP_OPT,	0,0,0,0 }, //----- separator -----
+
   { T_OPT_G,	"UMOUNT",	"u|umount|unmount",
 		0,
-		"Unmount each entered directory by calling"
+		"Enter 'unmount mode' and unmount each entered directory by calling"
 		" @'fusermount -u mountdir'@ or alternatively @'umount mountdir'@." },
 
   { T_OPT_G,	"LAZY",		"l|lazy",

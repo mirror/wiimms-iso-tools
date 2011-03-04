@@ -558,11 +558,43 @@ enumError cmd_pack()
 
 enumError cmd_cmp()
 {
-    // [2do] command is missing
-    ParamList_t * param;
-    for ( param = first_param; param; param = param->next )
-	printf("CMP %s\n",param->arg);
-    return ERR_OK;
+    if ( n_param < 1 )
+	return ERROR0(ERR_SYNTAX,"Missing source file!");
+    if ( n_param > 2 )
+	return ERROR0(ERR_SYNTAX,"To much source files!");
+
+    ccp fname1, fname2;
+    if ( n_param == 1 )
+    {
+	fname1 = "-";
+	fname2 = first_param->arg;
+    }
+    else
+    {
+	fname1 = first_param->arg;
+	fname2 = first_param->next->arg;
+    }
+
+    SuperFile_t f1, f2;
+    InitializeSF(&f1);
+    InitializeSF(&f2);
+
+    enumError err;
+    err = OpenSF(&f1,fname1,true,false);
+    if (err)
+	return err;
+    err = OpenSF(&f2,fname2,true,false);
+    if (err)
+	return err;
+
+    Diff_t diff;
+    SetupDiff(&diff,long_count);
+    OpenDiffSource(&diff,&f1,&f2,true);
+    err = DiffRawSF(&diff);
+    
+    ResetSF(&f1,0);
+    ResetSF(&f2,0);
+    return err;
 }
 
 //
@@ -1103,6 +1135,41 @@ enumError CheckOptions ( int argc, char ** argv )
 	case GO_MEM:		err += ScanOptMem(optarg,true); break;
 
 	case GO_TEST:		testmode++; break;
+
+#if OPT_OLD_NEW
+	case GO_OLD:		newmode = -1; break;
+	case GO_NEW:		newmode = +1; break;
+#endif
+
+	case GO_LIMIT:
+	    {
+		u32 limit;
+		if (ScanSizeOptU32(&limit,optarg,1,0,"limit",0,INT_MAX,0,0,true))
+		    err++;
+		else
+		    opt_limit = limit;
+	    }
+	    break;
+
+	case GO_FILE_LIMIT:
+	    {
+		u32 file_limit;
+		if (ScanSizeOptU32(&file_limit,optarg,1,0,"fil-limit",0,INT_MAX,0,0,true))
+		    err++;
+		else
+		    opt_file_limit = file_limit;
+	    }
+	    break;
+
+	case GO_BLOCK_SIZE:
+	    {
+		u32 block_size;
+		if (ScanSizeOptU32(&block_size,optarg,1,0,"block-size",0,INT_MAX,0,0,true))
+		    err++;
+		else
+		    opt_block_size = block_size;
+	    }
+	    break;
       }
     }
  #ifdef DEBUG

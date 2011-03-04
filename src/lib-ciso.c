@@ -412,6 +412,42 @@ enumError ReadCISO ( SuperFile_t * sf, off_t off, void * buf, size_t count )
     return ERR_OK;
 }
 
+///////////////////////////////////////////////////////////////////////////////
+
+off_t DataBlockCISO
+	( SuperFile_t * sf, off_t off, size_t hint_align, off_t * block_size )
+{
+    DASSERT(sf);
+    CISO_Info_t *ci = &sf->ciso;
+    DASSERT(ci->map);
+    DASSERT(ci->block_size);
+
+    const u64 ciso_block_size = ci->block_size;
+    u32 block = off / ciso_block_size;
+
+    for(;;)
+    {
+	if ( block >= ci->map_size )
+	    return DataBlockStandard(sf,off,hint_align,block_size);
+	if ( ci->map[block] != CISO_UNUSED_BLOCK )
+	    break;
+	block++;
+    }
+
+    const off_t off1 = block * ciso_block_size;
+    if ( off < off1 )
+	 off = off1;
+
+    if (block_size)
+    {
+	while ( block < ci->map_size && ci->map[block] != CISO_UNUSED_BLOCK )
+	    block++;
+	*block_size = block * ciso_block_size - off;
+    }
+ 
+    return off;
+}
+
 //
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////			    write CISO			///////////////

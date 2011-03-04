@@ -52,6 +52,9 @@ struct SuperFile_t;
 typedef enumError (*ReadFunc)
 	( struct SuperFile_t * sf, off_t off, void * buf, size_t count );
 
+typedef off_t (*DataBlockFunc)
+	( struct SuperFile_t * sf, off_t off, size_t hint_align, off_t * block_size );
+
 typedef enumError (*WriteFunc)
 	( struct SuperFile_t * sf, off_t off, const void * buf, size_t count );
 
@@ -68,12 +71,16 @@ typedef enumError (*FlushFunc)
 
 typedef struct IOData_t
 {
-	enumOFT   oft;			// open file mode
-	ReadFunc  read_func;		// read function
-	WriteFunc write_func;		// write function
-	WriteFunc write_sparse_func;	// sparse write function
-	ZeroFunc  write_zero_func;	// zero data write function
-	FlushFunc flush_func;		// flush output
+    enumOFT	oft;			// open file mode
+
+    ReadFunc	read_func;		// read function
+    DataBlockFunc data_block_func;	// get next data block
+
+    WriteFunc	write_func;		// write function
+    WriteFunc	write_sparse_func;	// sparse write function
+    ZeroFunc	write_zero_func;	// zero data write function
+
+    FlushFunc	flush_func;		// flush output
 
 } IOData_t;
 
@@ -299,6 +306,7 @@ int SubstFileName
 
 enumError ReadZero	( SuperFile_t * sf, off_t off, void * buf, size_t count );
 enumError ReadSF	( SuperFile_t * sf, off_t off, void * buf, size_t count );
+enumError ReadDirectSF	( SuperFile_t * sf, off_t off, void * buf, size_t count );
 enumError ReadISO	( SuperFile_t * sf, off_t off, void * buf, size_t count );
 enumError ReadWBFS	( SuperFile_t * sf, off_t off, void * buf, size_t count );
 
@@ -319,6 +327,42 @@ enumError SetSizeSF	( SuperFile_t * sf, off_t off );
 enumError SetMinSizeSF	( SuperFile_t * sf, off_t off );
 enumError MarkMinSizeSF ( SuperFile_t * sf, off_t off );
 u64       GetGoodMinSize( bool is_gc );
+
+// data block functions
+
+off_t DataBlockStandard
+(
+    SuperFile_t		* sf,		// valid file
+    off_t		off,		// file offset
+    size_t		hint_align,	// if >1: hint for a aligment factor
+    off_t		* block_size	// not null: return block size
+);
+
+off_t DataBlockWBFS
+(
+    SuperFile_t		* sf,		// valid file
+    off_t		off,		// file offset
+    size_t		hint_align,	// if >1: hint for a aligment factor
+    off_t		* block_size	// not null: return block size
+);
+
+off_t DataBlockSF
+(
+    SuperFile_t		* sf,		// valid file
+    off_t		off,		// file offset
+    size_t		align,		// if >1: round results to multiple of 'align'
+    off_t		* block_size	// not null: return block size
+);
+
+off_t UnionDataBlockSF
+(
+    SuperFile_t		* sf1,		// first file
+    SuperFile_t		* sf2,		// second file
+    off_t		off,		// file offset
+    size_t		align,		// if >1: round results to multiple of 'align'
+    off_t		* block_size	// not null: return block size
+);
+
 
 // standard read and write wrappers
 
@@ -343,6 +387,7 @@ enumError SparseHelper
 // progress and statistics
 void CopyProgressSF ( SuperFile_t * dest, SuperFile_t * src );
 void PrintProgressSF ( u64 done, u64 total, void * param );
+void ClearProgressLineSF ( SuperFile_t * sf );
 void PrintSummarySF ( SuperFile_t * sf );
 
 void DefineProgressChunkSF
@@ -425,9 +470,169 @@ enumError AppendSparseF	(      File_t * in, SuperFile_t * out, off_t in_off, siz
 enumError AppendSF	( SuperFile_t * in, SuperFile_t * out, off_t in_off, size_t count );
 enumError AppendZeroSF	( SuperFile_t * out, off_t count );
 
-// diff functions
+//
+///////////////////////////////////////////////////////////////////////////////
+///////////////			    diff			///////////////
+///////////////////////////////////////////////////////////////////////////////
+
+typedef struct Diff_t
+{
+    //--- options
+
+    int  verbose;		// verbose level, <0: quiet
+    int  info_level;		// level of diff output
+    int  block_size;		// size of 1 block, setup value
+    int  active_block_size;	// size of 1 block, active value
+
+    //--- flags
+
+    bool diff_iso;		// true: diff wii/gc iso images
+    bool source_differ;		// true: mismatch found in source
+    bool file_differ;		// true: mismatch found in file
+    bool mismatch_marked;	// true: mismatch externaly marked
+
+    //--- file info
+
+    SuperFile_t	* f1;		// first file
+    SuperFile_t	* f2;		// second file
+    ccp	 file_prefix;		// NULL or prefix for 'file_name'
+    ccp	 file_name;		// NULL or name of file in file mode
+
+    //--- source statistics
+
+    u32 source_count;		// number of sources
+    u32 source_differ_count;	// number of mismatched sources
+    u32 source_differ_limit;	// limit of mismatched sources
+
+    //--- file statistics
+
+    u32 file_count;		// number of files in current source
+    u32 file_differ_count;	// number of mismatched files in current source
+    u32 file_differ_limit;	// limit of mismatched sources in current source
+    u32 total_file_count;	// total number of files
+    u32 total_file_differ_count;// total number of mismatched files
+
+    //--- mismatch statistics
+
+    u32 mismatch_count;		// number of mismatches in current file
+    u32 mismatch_limit;		// limit of mismatches in current file
+    u64 total_mismatch_count;	// total number of mismatches
+
+    //--- data for DiffData()
+
+    char  data1[16];		// copy of mismatched data of previous call to
+    char  data2[16];		//    -> needed for complete hexdumps
+    off_t data_off;		// offset of 'data*'
+    int	  data_size;		// length of 'data*'
+
+    u32	  chunk_count;		// number of compared chunks
+    off_t next_off;		// result: next offset to check
+
+} Diff_t;
+
+//-----------------------------------------------------------------------------
+
+void SetupDiff
+(
+    // use globals: verbose, print_sections,
+    //		    opt_limit, opt_file_limit, opt_block_size
+
+    Diff_t		* diff,		// diff structure to setup
+    int			long_count	// relevant long count
+);
+
+//-----------------------------------------------------------------------------
+
+bool OpenDiffSource
+(
+    // returns true on *non* abort
+
+    Diff_t		* diff,		// valid diff structure
+    SuperFile_t		* f1,		// first file
+    SuperFile_t		* f2,		// second file
+    bool		diff_iso	// true: diff iso images
+);
+
+//-----------------------------------------------------------------------------
+
+bool CloseDiffSource
+(
+    // returns true on *non* abort
+
+    Diff_t		* diff,		// valid diff structure
+    bool		silent		// true: suppress printing status messages
+);
+
+//-----------------------------------------------------------------------------
+
+bool OpenDiffFile
+(
+    // returns true on *non* abort
+
+    Diff_t		* diff,		// valid diff structure
+    ccp			file_prefix,	// NULL or prefix of file_name
+    ccp			file_name	// file name
+);
+
+//-----------------------------------------------------------------------------
+
+bool CloseDiffFile
+(
+    // returns true on *non* abort
+
+    Diff_t		* diff,		// valid diff structure
+    bool		silent		// true: suppress printing status messages
+);
+
+//-----------------------------------------------------------------------------
+
+bool DiffData
+(
+    // returns true on *non* abort
+
+    Diff_t		* diff,		// valid diff structure
+    off_t		off,		// offset of 'data*'
+    size_t		iosize,		// size of 'data*', NULL for terminatiing
+    ccp			data1,		// first data
+    ccp			data2,		// second data
+    int			mode		// 0:in file, 1:term, 2:complete
+);
+
+//-----------------------------------------------------------------------------
+
+enumError GetDiffStatus
+(
+    Diff_t		* diff		// valid diff structure
+);
+
+//-----------------------------------------------------------------------------
 
 enumError DiffSF
+(
+    Diff_t		* diff,		// valid diff structure
+    bool		force_raw_mode	// true: force raw mode
+);
+
+//-----------------------------------------------------------------------------
+
+enumError DiffRawSF
+(
+    Diff_t		* diff		// valid diff structure
+);
+
+//-----------------------------------------------------------------------------
+
+struct FilePattern_t;
+enumError DiffFilesSF
+(
+    Diff_t		* diff,		// valid diff structure
+    struct FilePattern_t * pat,		// NULL or file pattern
+    wd_ipm_t		pmode		// prefix mode
+);
+
+///////////////////////////////////////////////////////////////////////////////
+
+enumError oldDiffSF
 (
 	SuperFile_t	* f1,
 	SuperFile_t	* f2,
@@ -435,15 +640,14 @@ enumError DiffSF
 	bool		force_raw_mode
 );
 
-enumError DiffRawSF
+enumError oldDiffRawSF
 (
 	SuperFile_t	* f1,
 	SuperFile_t	* f2,
 	int		long_count
 );
 
-struct FilePattern_t;
-enumError DiffFilesSF
+enumError oldDiffFilesSF
 (
 	SuperFile_t	* f1,
 	SuperFile_t	* f2,

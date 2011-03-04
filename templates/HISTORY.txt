@@ -478,6 +478,23 @@ wit v1.26a r2223 - 2011-01-27
  - New commands: "wit/wwt SKELETON": Create skeleton copies of discs for
    further analysis. Details: http://wit.wiimm.de/cmd/wit/skeleton#desc
 
+wit v1.27a r2289 - 2011-02-09
+
+ - Bug fix: WBFS preallocation was always a little bit to short.
+ - Bug fix: Wrong signature status printed when dumping the content of TICKET
+   and TMD files.
+ - Bug fix: "wwt sync --newer FST" failed because of missing timestamp.
+ - New option --links: Detect soft and hard linked source files while composing
+   or extracting discs and try to create hard links instead of independent
+   copies on the destination file system.
+ - New option: --flat: If extracting files the path names of the source discs
+   are removed. This enables extracting of all files to s specific destination
+   directory without creation of subdirectories. Command "wit files --flat"
+   can be used to verify the flat names.
+ - New tool: wfuse: Mount a Wii or GameCube image or a WBFS file or partition
+   to a mount point using FUSE (Filesystem in Userspace). FUSE and wfuse are
+   not available for Cygwin/Windows.
+
 @@MODULE(last-history.txt)@@
 
 

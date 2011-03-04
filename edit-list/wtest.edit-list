@@ -2,4 +2,4 @@
 ../work/wtest+.c ;
 ../src/lib-std.c ;
 @+all-source.edit-list
--y 720 ../src/wtest.c ;
+-y 1000 ../src/wtest.c ;

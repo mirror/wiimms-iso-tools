@@ -59,7 +59,8 @@ int validate_file_format_sizes ( int trace_sizes );
 
 enum // some constants
 {
-    HD_SECTOR_SIZE		= 0x200,
+    HD_SECTOR_SIZE		=  0x200, // classic HD sector size
+    HD_BLOCK_SIZE		= 0x1000, // good HD block value
 
     WII_SECTOR_SIZE_SHIFT	= 15,
     WII_SECTOR_SIZE		= 1 << WII_SECTOR_SIZE_SHIFT,

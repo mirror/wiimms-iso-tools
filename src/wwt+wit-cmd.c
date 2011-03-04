@@ -371,6 +371,10 @@ enumError cmd_test_options()
     printf("  unit:        %16x = %12d, unit=%s\n",
 			opt_unit, opt_unit, wd_get_size_unit(opt_unit,"?") );
     printf("  limit:       %16x = %12d\n",opt_limit,opt_limit);
+ #if IS_WIT
+    printf("  file-limit:  %16x = %12d\n",opt_file_limit,opt_file_limit);
+    printf("  block-size:  %16x = %12d\n",opt_block_size,opt_block_size);
+ #endif
     printf("  rdepth:      %16x = %12d\n",opt_recurse_depth,opt_recurse_depth);
     printf("  enc:         %16x = %12d\n",encoding,encoding);
     printf("  region:      %16x = %12d\n",opt_region,opt_region);
@@ -471,7 +475,7 @@ static void info_file_formats()
 			"info=%s\n"
 			"option=%s\n"
 			"extensions=%s %s\n"
-			"attributes=%s%s%s%s%s%s\n"
+			"attributes=%s%s%s%s%s%s%s\n"
 			,info->name
 			,info->name
 			,info->info
@@ -484,6 +488,7 @@ static void info_file_formats()
 			,info->attrib & OFT_A_EXTEND	? "extend " : ""
 			,info->attrib & OFT_A_FST	? "fst "    : ""
 			,info->attrib & OFT_A_COMPR	? "compr "  : ""
+			,info->attrib & OFT_A_NOSIZE	? "nosize "  : ""
 			);
 	}
 	return;
@@ -505,22 +510,23 @@ static void info_file_formats()
 	   "  name  %-*s  option  extensions  attributes\n"
 	   " %.*s\n",
 	   info_fw, "description",
-	   info_fw+64, wd_sep_200 );
+	   info_fw+61, wd_sep_200 );
 
     for ( oft = 1; oft < OFT__N; oft++ )
     {
 	const OFT_info_t * i = oft_info + oft;
-	printf("  %-4s  %-*s  %-7s %-5s %-5s %s %s %s %s %s %s\n",
+	printf("  %-4s  %-*s  %-7s %-5s %-5s %s %s %s %s %s\n",
 		i->name, info_fw, i->info,
 		i->option ? i->option : "  -",
 		i->ext1 && *i->ext1 ? i->ext1 : " -",
 		i->ext2 && *i->ext2 ? i->ext2 : " -",
-		i->attrib & OFT_A_READ	? "read"   : "-  ",
-		i->attrib & OFT_A_WRITE	? "write"  : "-    ",
-		i->attrib & OFT_A_MODIFY? "modify" : "-     ",
-		i->attrib & OFT_A_EXTEND? "extend" : "-     ",
-		i->attrib & OFT_A_FST	? "fst"    : "-  ",
-		i->attrib & OFT_A_COMPR	? "compr"  : "-" );
+		i->attrib & OFT_A_READ		? "read"   : "-  ",
+		i->attrib & OFT_A_WRITE		? "write"  : "-    ",
+		i->attrib & OFT_A_MODIFY	? "modify" : "-     ",
+		i->attrib & OFT_A_EXTEND	? "extend" : "-     ",
+		i->attrib & OFT_A_FST		? "fst"
+		: i->attrib & OFT_A_COMPR	? "compr"
+		: i->attrib & OFT_A_NOSIZE	? "nosize" : "-" );
     }
 }
 

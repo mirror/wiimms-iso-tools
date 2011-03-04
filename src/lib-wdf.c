@@ -251,7 +251,7 @@ size_t AdjustHeaderWDF ( WDF_Head_t * wh )
 	const u32 calced_wdf_head_size = wh->chunk_off - wh->data_size;
 	if ( calced_wdf_head_size == WDF_VERSION1_SIZE )
 	{
-	    PRINT("AdjustHeaderWDF() v=%u,%u, size=%u\n",
+	    noPRINT("AdjustHeaderWDF() v=%u,%u, size=%u\n",
 		    wh->wdf_version, wh->wdf_compatible, calced_wdf_head_size );
 	    wh->wdf_version   = 1;
 	    wh->wdf_head_size = WDF_VERSION1_SIZE;
@@ -502,6 +502,69 @@ enumError ReadWDF ( SuperFile_t * sf, off_t off, void * buf, size_t count )
 
     TRACE("#W#  - done, dest = %p\n",dest);
     return ERR_OK;
+}
+
+
+///////////////////////////////////////////////////////////////////////////////
+
+off_t DataBlockWDF
+	( SuperFile_t * sf, off_t off, size_t hint_align, off_t * block_size )
+{
+    if ( off >= sf->wh.file_size )
+	return DataBlockStandard(sf,off,hint_align,block_size);
+
+    //--- find chunk header
+
+    WDF_Chunk_t * wc = sf->wc;
+    const int used_m1 = sf->wc_used - 1;
+    int beg = 0, end = used_m1;
+    ASSERT( beg <= end );
+    while ( beg < end )
+    {
+	int idx = (beg+end)/2;
+	wc = sf->wc + idx;
+	if ( off < wc->file_pos )
+	    end = idx-1;
+	else if ( idx < used_m1 && off >= wc[1].file_pos )
+	    beg = idx + 1;
+	else
+	    beg = end = idx;
+    }
+    wc = sf->wc + beg;
+
+    while ( off >= wc->file_pos + wc->data_size )
+    {
+	if ( ++beg >= sf->wc_used )
+	    return DataBlockStandard(sf,off,hint_align,block_size);
+	wc++;
+    }
+    noPRINT("WC: %llx %llx %llx\n",wc->file_pos,wc->data_off,wc->data_size);
+
+    if ( off < wc->file_pos )
+	 off = wc->file_pos;
+
+
+    //--- calc block_size, ignore holes < 4k
+
+    if ( block_size )
+    {
+	if ( hint_align < HD_BLOCK_SIZE )
+	    hint_align = HD_BLOCK_SIZE;
+
+	for (;;)
+	{
+	    if ( ++beg >= sf->wc_used
+		    || wc[1].file_pos - (wc->file_pos+wc->data_size) >= hint_align )
+		break;
+	    wc++;
+	}
+	*block_size = wc->data_size - ( off - wc->file_pos );
+    }
+
+
+    //--- term
+
+    return off;
 }
 
 //

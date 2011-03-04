@@ -154,35 +154,9 @@ bool PatchDiscHeader ( void * dhead, const void * patch_id, const void * patch_n
 
 //-----------------------------------------------------------------------------
 
-typedef enum enumTrim
-{
-	//--- main trimming modes
+extern wd_trim_mode_t opt_trim;
 
-	TRIM_DEFAULT	= 0x001,	// default mode (no user value)
-
-	TRIM_DISC	= 0x002,	// trim disc: move whole partitions
-	TRIM_PART	= 0x004,	// trim partition: move sectors
-	TRIM_FST	= 0x008,	// trim filesystem: move files
-
-	TRIM_NONE	= 0x000,
-	TRIM_ALL	= 0x00f,
-	TRIM_FAST	= TRIM_DISC | TRIM_PART,
-
-	//--- trimming flags
-
-	TRIM_F_END	= 0x100,	// flags for TRIM_DISC: move to disc end
-
-	TRIM_M_FLAGS	= 0x100,
-
-	//--- all valid bits
-
-	TRIM_M_ALL	= TRIM_ALL | TRIM_M_FLAGS
-
-} enumTrim;
-
-extern enumTrim opt_trim;
-
-enumTrim ScanTrim
+wd_trim_mode_t ScanTrim
 (
     ccp arg,			// argument to scan
     ccp err_text_extend		// error message extention

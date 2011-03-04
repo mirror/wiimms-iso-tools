@@ -525,11 +525,11 @@ bool PatchDiscHeader ( void * dhead, const void * patch_id, const void * patch_n
 ///////////////			--trim				///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-enumTrim opt_trim = TRIM_DEFAULT;
+wd_trim_mode_t opt_trim = WD_TRIM_DEFAULT;
 
 //-----------------------------------------------------------------------------
 
-enumTrim ScanTrim
+wd_trim_mode_t ScanTrim
 (
     ccp arg,			// argument to scan
     ccp err_text_extend		// error message extention
@@ -537,18 +537,18 @@ enumTrim ScanTrim
 {
     static const CommandTab_t tab[] =
     {
-	{ TRIM_DEFAULT,		"DEFAULT",	0,	TRIM_M_ALL },
+	{ WD_TRIM_DEFAULT,	"DEFAULT",	0,	WD_TRIM_M_ALL },
 
-	{ TRIM_NONE,		"NONE",		"-",	TRIM_ALL },
-	{ TRIM_ALL,		"ALL",		0,	TRIM_ALL },
-	{ TRIM_FAST,		"FAST",		0,	TRIM_ALL },
+	{ WD_TRIM_NONE,		"NONE",		"-",	WD_TRIM_ALL },
+	{ WD_TRIM_ALL,		"ALL",		0,	WD_TRIM_ALL },
+	{ WD_TRIM_FAST,		"FAST",		0,	WD_TRIM_ALL },
 
-	{ TRIM_DISC,		"DISC",		"D",	TRIM_DEFAULT },
-	{ TRIM_PART,		"PARTITION",	"P",	TRIM_DEFAULT },
-	{ TRIM_FST,		"FILESYSTEM",	"F",	TRIM_DEFAULT },
+	{ WD_TRIM_DISC,		"DISC",		"D",	WD_TRIM_DEFAULT },
+	{ WD_TRIM_PART,		"PARTITION",	"P",	WD_TRIM_DEFAULT },
+	{ WD_TRIM_FST,		"FILESYSTEM",	"F",	WD_TRIM_DEFAULT },
 
-	{ 0,			"BEGIN",	0,	TRIM_DEFAULT | TRIM_F_END },
-	{ TRIM_F_END,		"END",		0,	TRIM_DEFAULT | TRIM_F_END },
+	{ 0,			"BEGIN",	0,	WD_TRIM_DEFAULT | WD_TRIM_F_END },
+	{ WD_TRIM_F_END,	"END",		0,	WD_TRIM_DEFAULT | WD_TRIM_F_END },
 
 	{ 0,0,0,0 }
     };

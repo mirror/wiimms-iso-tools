@@ -140,6 +140,7 @@ typedef enum enumSelectUsed
 
 
 extern int disable_exclude_db;	// disable exclude db at all if > 0
+extern bool include_first;	// use include rules before exclude
 
 int  AddIncludeID ( ccp arg, int select_mode );
 int  AddIncludePath ( ccp arg, int unused );
@@ -212,6 +213,17 @@ int InsertID ( ID_DB_t * db, ccp id, ccp title );
 int RemoveID ( ID_DB_t * db, ccp id, bool remove_extended );
 
 void DumpIDDB ( ID_DB_t * db, FILE * f );
+
+//
+///////////////////////////////////////////////////////////////////////////////
+///////////////			system menu interface		///////////////
+///////////////////////////////////////////////////////////////////////////////
+
+ccp GetSystemMenu
+(
+    u32		version,		// system version number
+    ccp		return_if_not_found	// return value if not found
+);
 
 //
 ///////////////////////////////////////////////////////////////////////////////

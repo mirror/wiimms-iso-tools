@@ -572,9 +572,9 @@ enumError exec_filetype ( SuperFile_t * sf, Iterator_t * it )
 
 	ccp region = "-   ";
 	char size[10] = "   -";
-	if (sf->f.id6[0])
+	if (sf->f.id6_dest[0])
 	{
-	    region = GetRegionInfo(sf->f.id6[3])->name4;
+	    region = GetRegionInfo(sf->f.id6_dest[3])->name4;
 	    u32 count = CountUsedIsoBlocksSF(sf,&part_selector);
 	    if (count)
 		snprintf(size,sizeof(size),"%4u",
@@ -582,7 +582,7 @@ enumError exec_filetype ( SuperFile_t * sf, Iterator_t * it )
 	}
 
 	printf("%-8s %-6s %s %s %s  %s\n",
-		ftype, sf->f.id6[0] ? sf->f.id6 : "-",
+		ftype, sf->f.id6_dest[0] ? sf->f.id6_dest : "-",
 		size, region, split,
 		it->long_count > 2 ? it->real_path : sf->f.fname );
     }
@@ -598,7 +598,8 @@ enumError exec_filetype ( SuperFile_t * sf, Iterator_t * it )
 	if ( sf->f.split_used > 1 )
 	    snprintf(split,sizeof(split),"%2d",sf->f.split_used);
 	printf("%-8s %-6s %s  %s\n",
-		ftype, sf->f.id6[0] ? sf->f.id6 : "-", split, sf->f.fname );
+		ftype, sf->f.id6_dest[0] ? sf->f.id6_dest : "-",
+		split, sf->f.fname );
     }
     else
     {
@@ -651,7 +652,7 @@ enumError exec_isosize ( SuperFile_t * sf, Iterator_t * it )
     ASSERT(it);
 
     wd_disc_t * disc = 0;
-    if (sf->f.id6[0])
+    if (sf->f.id6_dest[0])
     {
 	disc = OpenDiscSF(sf,true,true);
 	if (disc)
@@ -1202,7 +1203,7 @@ enumError exec_files ( SuperFile_t * fi, Iterator_t * it )
     if ( fi->f.ftype & FT_ID_FST_BIN )
 	return Dump_FST_BIN(stdout,0,fi,it->real_path,it->show_mode&~SHOW_INTRO);
 
-    if ( fi->f.ftype & FT__SPC_MASK || !fi->f.id6[0] )
+    if ( fi->f.ftype & FT__SPC_MASK || !fi->f.id6_dest[0] )
 	return OptionUsed[OPT_IGNORE]
 		? ERR_OK
 		: PrintErrorFT(&fi->f,FT_A_WII_ISO);
@@ -1284,6 +1285,8 @@ enumError cmd_files ( int long_level )
 //
 ///////////////////////////////////////////////////////////////////////////////
 
+static Diff_t diff = {0};
+
 enumError cmd_diff ( bool file_level )
 {
     if ( verbose > 0 )
@@ -1316,6 +1319,8 @@ enumError cmd_diff ( bool file_level )
 	SetDest(param->arg,false);
 	param->arg = 0;
     }
+
+    SetupDiff(&diff,long_count);
 
     if ( output_file_type == OFT_UNKNOWN && allow_fst && IsFST(opt_dest,0) )
 	output_file_type = OFT_FST;
@@ -1362,6 +1367,8 @@ enumError cmd_diff ( bool file_level )
 	    err = ERR_ALREADY_EXISTS;
     }
 
+    if ( !err && it.diff_count )
+	err = ERR_DIFFER;
     ResetIterator(&it);
     return err;
 }
@@ -1373,7 +1380,7 @@ enumError exec_extract ( SuperFile_t * fi, Iterator_t * it )
 {
     ASSERT(fi);
 
-    if (!fi->f.id6[0])
+    if (!fi->f.id6_dest[0])
 	return ERR_OK;
     fflush(0);
 
@@ -1491,7 +1498,7 @@ enumError cmd_extract()
 
 enumError exec_copy ( SuperFile_t * fi, Iterator_t * it )
 {
-    if (!fi->f.id6[0])
+    if (!fi->f.id6_dest[0])
 	return ERR_OK;
     fflush(0);
 
@@ -1504,7 +1511,7 @@ enumError exec_copy ( SuperFile_t * fi, Iterator_t * it )
     ccp fname = fi->f.path ? fi->f.path : fi->f.fname;
     const enumOFT oft = convert_it
 			? fi->iod.oft
-			: CalcOFT(output_file_type,opt_dest,fname,OFT__DEFAULT);
+			: CalcOFT(output_file_type,opt_dest,fname,fi->iod.oft);
 
     SuperFile_t fo;
     InitializeSF(&fo);
@@ -1518,7 +1525,7 @@ enumError exec_copy ( SuperFile_t * fi, Iterator_t * it )
 	TRACE("COPY, mkdir=%d\n",opt_mkdir);
 	fo.f.create_directory = opt_mkdir;
 	ccp oname = fi->f.outname ? fi->f.outname : fname;
-	if ( oft == OFT_WBFS && fi->f.id6[0] )
+	if ( oft == OFT_WBFS && fi->f.id6_dest[0] )
 	{
 	    // use ID6 as default filename
 	    ccp pathend = strrchr(oname,'/');
@@ -1526,11 +1533,11 @@ enumError exec_copy ( SuperFile_t * fi, Iterator_t * it )
 	    {
 		const int len = pathend - oname + 1;
 		memcpy(iobuf,oname,len);
-		strcpy(iobuf+len,fi->f.id6);
+		strcpy(iobuf+len,fi->f.id6_dest);
 		oname = iobuf;
 	    }
 	    else
-		oname = fi->f.id6;
+		oname = fi->f.id6_dest;
 	}
 	GenImageFileName(&fo.f,opt_dest,oname,oft);
 	SubstFileNameSF(&fo,fi,0);
@@ -1539,7 +1546,7 @@ enumError exec_copy ( SuperFile_t * fi, Iterator_t * it )
 	    return ERR_OK;
     }
 
-    const bool raw_mode = part_selector.whole_disc || !fi->f.id6[0];
+    const bool raw_mode = part_selector.whole_disc || !fi->f.id6_dest[0];
     fo.raw_mode = raw_mode;
 
     ccp job_mode = raw_mode
@@ -1617,10 +1624,51 @@ enumError exec_copy ( SuperFile_t * fi, Iterator_t * it )
 	    return ERR_OK;
 	}
 
+      if ( newmode >= 0 ) // [2do] remove old mode 2011-02-23
+      {
+	if (!OpenDiffSource(&diff,fi,&fo,true))
+	    return ERR_DIFFER;
+
 	err = !raw_mode && OptionUsed[OPT_FILES]
-		    ? DiffFilesSF( fi, &fo, it->long_count,
+		? DiffFilesSF( &diff, GetDefaultFilePattern(), prefix_mode )
+		: DiffSF( &diff, raw_mode );
+
+	if ( err == ERR_OK && !CloseDiffSource(&diff,print_sections>0) )
+	    err = ERR_DIFFER;
+
+	if ( err == ERR_DIFFER )
+	{
+	    it->diff_count++;
+	    err = ERR_OK;
+	    if ( verbose >= 0 && print_sections )
+		printf(	"[differ]\n"
+			"data-mode=%s\n"
+			"job-counter=%d\n"
+			"job-total=%d\n"
+			"source-path=%s\n"
+			"source-type=%s\n"
+			"dest-path=%s\n"
+			"dest-type=%s\n"
+			"\n"
+			,job_mode
+			,it->source_index+1
+			,it->source_list.used
+			,fi->f.fname
+			,oft_info[fi->iod.oft].name
+			,fo.f.fname
+			,oft_info[oft].name
+			);
+	}
+	it->done_count++;
+	ResetSF(&fo,0);
+	return err;
+      }
+      else
+      {
+	err = !raw_mode && OptionUsed[OPT_FILES]
+		    ? oldDiffFilesSF( fi, &fo, it->long_count,
 				    GetDefaultFilePattern(), prefix_mode )
-		    : DiffSF( fi, &fo, it->long_count, raw_mode );
+		    : oldDiffSF( fi, &fo, it->long_count, raw_mode );
 
 	if ( err == ERR_DIFFER )
 	{
@@ -1654,9 +1702,9 @@ enumError exec_copy ( SuperFile_t * fi, Iterator_t * it )
 	    }
 	}
 	it->done_count++;
-
 	ResetSF(&fo,0);
 	return err;
+      }
     }
 
 
@@ -1796,7 +1844,7 @@ enumError cmd_convert()
 
 enumError exec_edit ( SuperFile_t * fi, Iterator_t * it )
 {
-    if (!fi->f.id6[0])
+    if (!fi->f.id6_dest[0])
 	return ERR_OK;
     fflush(0);
 
@@ -1939,8 +1987,8 @@ enumError exec_move ( SuperFile_t * fi, Iterator_t * it )
     SetupIOD(&fo,fi->iod.oft,fi->iod.oft);
     fo.f.create_directory = opt_mkdir;
 
-    ccp oname = fi->iod.oft == OFT_WBFS && fi->f.id6[0]
-			? fi->f.id6
+    ccp oname = fi->iod.oft == OFT_WBFS && fi->f.id6_dest[0]
+			? fi->f.id6_dest
 			: fi->f.outname
 				? fi->f.outname
 				: fi->f.fname;
@@ -2119,7 +2167,7 @@ enumError exec_rename ( SuperFile_t * fi, Iterator_t * it )
     {
 	if ( !plus_param && param->selector[0] == '+' )
 	    plus_param = param;
-	else if ( !strcmp(param->selector,fi->f.id6) )
+	else if ( !strcmp(param->selector,fi->f.id6_src) )
 	    break;
     }
 
@@ -2208,7 +2256,7 @@ enumError exec_verify ( SuperFile_t * fi, Iterator_t * it )
 {
     ASSERT(fi);
     ASSERT(it);
-    if (!fi->f.id6[0])
+    if (!fi->f.id6_dest[0])
 	return ERR_OK;
     fflush(0);
 
@@ -2291,7 +2339,7 @@ enumError exec_skeletonize ( SuperFile_t * fi, Iterator_t * it )
 {
     ASSERT(fi);
     ASSERT(it);
-    if (!fi->f.id6[0])
+    if (!fi->f.id6_dest[0])
 	return ERR_OK;
     fflush(0);
 
@@ -2382,6 +2430,11 @@ enumError CheckOptions ( int argc, char ** argv, bool is_env )
 
 	case GO_TEST:		testmode++; break;
 
+#if OPT_OLD_NEW
+	case GO_OLD:		newmode = -1; break;
+	case GO_NEW:		newmode = +1; break;
+#endif
+
 	case GO_SOURCE:		AppendStringField(&source_list,optarg,false); break;
 	case GO_NO_EXPAND:	opt_no_expand = true; break;
 	case GO_RECURSE:	AppendStringField(&recurse_list,optarg,false); break;
@@ -2392,6 +2445,8 @@ enumError CheckOptions ( int argc, char ** argv, bool is_env )
 	case GO_EXCLUDE:	AtFileHelper(optarg,SEL_ID,SEL_FILE,AddExcludeID); break;
 	case GO_INCLUDE_PATH:	AtFileHelper(optarg,0,0,AddIncludePath); break;
 	case GO_EXCLUDE_PATH:	AtFileHelper(optarg,0,0,AddExcludePath); break;
+	case GO_INCLUDE_FIRST:	include_first = true; break;
+
 	case GO_ONE_JOB:	job_limit = 1; break;
 	case GO_IGNORE:		ignore_count++; break;
 	case GO_IGNORE_FST:	allow_fst = false; break;
@@ -2485,6 +2540,26 @@ enumError CheckOptions ( int argc, char ** argv, bool is_env )
 		    err++;
 		else
 		    opt_limit = limit;
+	    }
+	    break;
+
+	case GO_FILE_LIMIT:
+	    {
+		u32 file_limit;
+		if (ScanSizeOptU32(&file_limit,optarg,1,0,"fil-limit",0,INT_MAX,0,0,true))
+		    err++;
+		else
+		    opt_file_limit = file_limit;
+	    }
+	    break;
+
+	case GO_BLOCK_SIZE:
+	    {
+		u32 block_size;
+		if (ScanSizeOptU32(&block_size,optarg,1,0,"block-size",0,INT_MAX,0,0,true))
+		    err++;
+		else
+		    opt_block_size = block_size;
 	    }
 	    break;
 

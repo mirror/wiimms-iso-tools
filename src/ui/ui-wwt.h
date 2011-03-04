@@ -63,10 +63,11 @@ typedef enum enumOptions
 	OPT_RDEPTH,
 	OPT_PSEL,
 	OPT_RAW,
-	OPT_INCLUDE,
-	OPT_INCLUDE_PATH,
 	OPT_EXCLUDE,
 	OPT_EXCLUDE_PATH,
+	OPT_INCLUDE,
+	OPT_INCLUDE_PATH,
+	OPT_INCLUDE_FIRST,
 	OPT_ONE_JOB,
 	OPT_JOB_LIMIT,
 	OPT_IGNORE,
@@ -114,6 +115,7 @@ typedef enum enumOptions
 	OPT_NO_FREE,
 	OPT_UPDATE,
 	OPT_SYNC,
+	OPT_SYNC_ALL,
 	OPT_NEWER,
 	OPT_OVERWRITE,
 	OPT_REMOVE,
@@ -142,7 +144,7 @@ typedef enum enumOptions
 	OPT_SORT,
 	OPT_LIMIT,
 
-	OPT__N_SPECIFIC, // == 88 
+	OPT__N_SPECIFIC, // == 90 
 
 	//----- global options -----
 
@@ -162,9 +164,11 @@ typedef enum enumOptions
 	OPT_NO_UTF_8,
 	OPT_LANG,
 	OPT_TEST,
+	OPT_OLD,
+	OPT_NEW,
 	OPT_HOOK,
 
-	OPT__N_TOTAL // == 105
+	OPT__N_TOTAL // == 109
 
 } enumOptions;
 
@@ -188,10 +192,11 @@ typedef enum enumOptions
 //	OB_RDEPTH		= 1llu << OPT_RDEPTH,
 //	OB_PSEL			= 1llu << OPT_PSEL,
 //	OB_RAW			= 1llu << OPT_RAW,
-//	OB_INCLUDE		= 1llu << OPT_INCLUDE,
-//	OB_INCLUDE_PATH		= 1llu << OPT_INCLUDE_PATH,
 //	OB_EXCLUDE		= 1llu << OPT_EXCLUDE,
 //	OB_EXCLUDE_PATH		= 1llu << OPT_EXCLUDE_PATH,
+//	OB_INCLUDE		= 1llu << OPT_INCLUDE,
+//	OB_INCLUDE_PATH		= 1llu << OPT_INCLUDE_PATH,
+//	OB_INCLUDE_FIRST	= 1llu << OPT_INCLUDE_FIRST,
 //	OB_ONE_JOB		= 1llu << OPT_ONE_JOB,
 //	OB_JOB_LIMIT		= 1llu << OPT_JOB_LIMIT,
 //	OB_IGNORE		= 1llu << OPT_IGNORE,
@@ -239,6 +244,7 @@ typedef enum enumOptions
 //	OB_NO_FREE		= 1llu << OPT_NO_FREE,
 //	OB_UPDATE		= 1llu << OPT_UPDATE,
 //	OB_SYNC			= 1llu << OPT_SYNC,
+//	OB_SYNC_ALL		= 1llu << OPT_SYNC_ALL,
 //	OB_NEWER		= 1llu << OPT_NEWER,
 //	OB_OVERWRITE		= 1llu << OPT_OVERWRITE,
 //	OB_REMOVE		= 1llu << OPT_REMOVE,
@@ -285,17 +291,19 @@ typedef enum enumOptions
 //				| OB_IGNORE_SETUP
 //				| OB_LINKS,
 //
-//	OB_GRP_EXCLUDE		= OB_INCLUDE
-//				| OB_INCLUDE_PATH
-//				| OB_EXCLUDE
+//	OB_GRP_EXCLUDE		= OB_EXCLUDE
 //				| OB_EXCLUDE_PATH
+//				| OB_INCLUDE
+//				| OB_INCLUDE_PATH
+//				| OB_INCLUDE_FIRST
 //				| OB_ONE_JOB
 //				| OB_JOB_LIMIT,
 //
-//	OB_GRP_IGN_EXCLUDE	= OB_INCLUDE
-//				| OB_INCLUDE_PATH
-//				| OB_EXCLUDE
+//	OB_GRP_IGN_EXCLUDE	= OB_EXCLUDE
 //				| OB_EXCLUDE_PATH
+//				| OB_INCLUDE
+//				| OB_INCLUDE_PATH
+//				| OB_INCLUDE_FIRST
 //				| OB_ONE_JOB
 //				| OB_JOB_LIMIT
 //				| OB_IGNORE
@@ -466,7 +474,8 @@ typedef enum enumOptions
 //				| OB_GRP_PARTITIONS
 //				| OB_REMOVE
 //				| OB_TRUNC
-//				| OB_NEWER,
+//				| OB_NEWER
+//				| OB_SYNC_ALL,
 //
 //	OB_CMD_UPDATE		= OB_CMD_SYNC
 //				| OB_SYNC,
@@ -670,11 +679,14 @@ typedef enum enumGetOpt
 	GO_UTF_8,
 	GO_NO_UTF_8,
 	GO_LANG,
+	GO_OLD,
+	GO_NEW,
 	GO_SOURCE,
 	GO_NO_EXPAND,
 	GO_RDEPTH,
 	GO_PSEL,
 	GO_RAW,
+	GO_INCLUDE_FIRST,
 	GO_JOB_LIMIT,
 	GO_IGNORE_FST,
 	GO_IGNORE_SETUP,
@@ -713,6 +725,7 @@ typedef enum enumGetOpt
 	GO_NO_CHECK,
 	GO_REPAIR,
 	GO_NO_FREE,
+	GO_SYNC_ALL,
 	GO_WIA,
 	GO_FST,
 	GO_FILES,

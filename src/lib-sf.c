@@ -82,7 +82,8 @@ void CleanSF ( SuperFile_t * sf )
 
     if (sf->wbfs)
     {
-	TRACE("#S# close WBFS %s id=%s\n",sf->f.fname,sf->f.id6);
+	TRACE("#S# close WBFS %s id=%s=%s\n",
+		sf->f.fname, sf->f.id6_src, sf->f.id6_dest );
 	ResetWBFS(sf->wbfs);
 	free(sf->wbfs);
 	sf->wbfs = 0;
@@ -90,7 +91,8 @@ void CleanSF ( SuperFile_t * sf )
 
     if (sf->wia)
     {
-	TRACE("#S# close WIA %s id=%s\n",sf->f.fname,sf->f.id6);
+	TRACE("#S# close WIA %s id=%s=%s\n",
+		sf->f.fname, sf->f.id6_src, sf->f.id6_dest );
 	ResetWIA(sf->wia);
 	free(sf->wia);
 	sf->wia = 0;
@@ -98,7 +100,8 @@ void CleanSF ( SuperFile_t * sf )
 
     if (sf->fst)
     {
-	TRACE("#S# close FST %s id=%s\n",sf->f.fname,sf->f.id6);
+	TRACE("#S# close FST %s id=%s=%s\n",
+		sf->f.fname, sf->f.id6_src, sf->f.id6_dest );
 	ResetFST(sf->fst);
 	free(sf->fst);
 	sf->fst = 0;
@@ -259,8 +262,8 @@ enumError RemoveSF ( SuperFile_t * sf )
     {
 	if ( sf->wbfs->used_discs > 1 )
 	{
-	    TRACE(" - remove wdisc %s\n",sf->f.id6);
-	    RemoveWDisc(sf->wbfs,sf->f.id6,0,false);
+	    TRACE(" - remove wdisc %s,%s\n",sf->f.id6_src,sf->f.id6_dest);
+	    RemoveWDisc(sf->wbfs,sf->f.id6_src,0,false);
 	    return ResetSF(sf,0);
 	}
     }
@@ -313,6 +316,7 @@ enumOFT SetupIOD ( SuperFile_t * sf, enumOFT force, enumOFT def )
     {
 	case OFT_PLAIN:
 	    sf->iod.read_func		= ReadISO;
+	    sf->iod.data_block_func	= DataBlockStandard;	// standard function
 	    sf->iod.write_func		= WriteISO;
 	    sf->iod.write_sparse_func	= WriteSparseISO;
 	    sf->iod.write_zero_func	= WriteZeroISO;
@@ -321,6 +325,7 @@ enumOFT SetupIOD ( SuperFile_t * sf, enumOFT force, enumOFT def )
 
 	case OFT_WDF:
 	    sf->iod.read_func		= ReadWDF;
+	    sf->iod.data_block_func	= DataBlockWDF;
 	    sf->iod.write_func		= WriteWDF;
 	    sf->iod.write_sparse_func	= WriteSparseWDF;
 	    sf->iod.write_zero_func	= WriteZeroWDF;
@@ -329,6 +334,7 @@ enumOFT SetupIOD ( SuperFile_t * sf, enumOFT force, enumOFT def )
 
 	case OFT_WIA:
 	    sf->iod.read_func		= ReadWIA;
+	    sf->iod.data_block_func	= DataBlockWIA;
 	    sf->iod.write_func		= WriteWIA;
 	    sf->iod.write_sparse_func	= WriteSparseWIA;
 	    sf->iod.write_zero_func	= WriteZeroWIA;
@@ -337,6 +343,7 @@ enumOFT SetupIOD ( SuperFile_t * sf, enumOFT force, enumOFT def )
 
 	case OFT_CISO:
 	    sf->iod.read_func		= ReadCISO;
+	    sf->iod.data_block_func	= DataBlockCISO;
 	    sf->iod.write_func		= WriteCISO;
 	    sf->iod.write_sparse_func	= WriteSparseCISO;
 	    sf->iod.write_zero_func	= WriteZeroCISO;
@@ -345,6 +352,7 @@ enumOFT SetupIOD ( SuperFile_t * sf, enumOFT force, enumOFT def )
 
 	case OFT_WBFS:
 	    sf->iod.read_func		= ReadWBFS;
+	    sf->iod.data_block_func	= DataBlockWBFS;
 	    sf->iod.write_func		= WriteWBFS;
 	    sf->iod.write_sparse_func	= WriteWBFS;		// no sparse support
 	    sf->iod.write_zero_func	= WriteZeroWBFS;
@@ -353,6 +361,7 @@ enumOFT SetupIOD ( SuperFile_t * sf, enumOFT force, enumOFT def )
 
 	case OFT_FST:
 	    sf->iod.read_func		= ReadFST;
+	    sf->iod.data_block_func	= DataBlockStandard;	// standard function
 	    sf->iod.write_func		= WriteSwitchSF;	// not supported
 	    sf->iod.write_sparse_func	= WriteSparseSwitchSF;	// not supported
 	    sf->iod.write_zero_func	= WriteZeroSwitchSF;	// not supported
@@ -361,6 +370,7 @@ enumOFT SetupIOD ( SuperFile_t * sf, enumOFT force, enumOFT def )
 
 	default:
 	    sf->iod.read_func		= ReadSwitchSF;
+	    sf->iod.data_block_func	= DataBlockStandard;	// standard function
 	    sf->iod.write_func		= WriteSwitchSF;
 	    sf->iod.write_sparse_func	= WriteSparseSwitchSF;
 	    sf->iod.write_zero_func	= WriteZeroSwitchSF;
@@ -409,7 +419,7 @@ enumError SetupReadSF ( SuperFile_t * sf )
     if ( sf->f.ftype & FT_A_CISO )
 	return SetupReadCISO(sf);
 
-    if ( sf->f.ftype & FT_ID_WBFS && ( sf->f.slot >= 0 || sf->f.id6[0] ) )
+    if ( sf->f.ftype & FT_ID_WBFS && ( sf->f.slot >= 0 || sf->f.id6_src[0] ) )
 	return SetupReadWBFS(sf);
 
     sf->file_size = sf->f.st.st_size;
@@ -437,7 +447,8 @@ enumError SetupReadISO ( SuperFile_t * sf )
 enumError SetupReadWBFS ( SuperFile_t * sf )
 {
     ASSERT(sf);
-    TRACE("SetupReadWBFS(%p) id=%s, slot=%d\n",sf,sf->f.id6,sf->f.slot);
+    TRACE("SetupReadWBFS(%p) id=%s,%s, slot=%d\n",
+		sf, sf->f.id6_src, sf->f.id6_dest, sf->f.slot );
 
     if ( !sf || !sf->f.is_reading || sf->wbfs )
 	return ERROR0(ERR_INTERNAL,0);
@@ -452,7 +463,7 @@ enumError SetupReadWBFS ( SuperFile_t * sf )
 
     err = sf->f.slot >= 0
 		? OpenWDiscSlot(wbfs,sf->f.slot,false)
-		: OpenWDiscID6(wbfs,sf->f.id6);
+		: OpenWDiscID6(wbfs,sf->f.id6_src);
     if (err)
 	goto abort;
 
@@ -480,12 +491,12 @@ enumError SetupReadWBFS ( SuperFile_t * sf )
 
     //---- store data
 
-    TRACE("WBFS %s/%s opened.\n",sf->f.fname,sf->f.id6);
+    TRACE("WBFS %s/%s,%s opened.\n",sf->f.fname,sf->f.id6_src,sf->f.id6_dest);
     sf->wbfs = wbfs;
 
     wd_header_t * dh = (wd_header_t*)wbfs->disc->header;
     snprintf(iobuf,sizeof(iobuf),"%s [%s]",
-		GetTitle(sf->f.id6,(ccp)dh->disc_title), sf->f.id6 );
+		GetTitle(sf->f.id6_dest, (ccp)dh->disc_title), sf->f.id6_dest );
     FreeString(sf->f.outname);
     sf->f.outname = strdup(iobuf);
     SetupIOD(sf,OFT_WBFS,OFT_WBFS);
@@ -897,7 +908,7 @@ wd_disc_t * OpenDiscSF
 	&& wd_remove_disc_files(disc,IsFileSelected,pat,false) )
     {
 	files_dirty = true;
-	reloc  = 1;
+	reloc = 1;
     }
 
     pat = file_pattern + PAT_ZERO_FILES;
@@ -906,7 +917,7 @@ wd_disc_t * OpenDiscSF
 	&& wd_zero_disc_files(disc,IsFileSelected,pat,false) )
     {
 	files_dirty = true;
-	reloc  = 1;
+	reloc = 1;
     }
 
     if (files_dirty)
@@ -914,13 +925,15 @@ wd_disc_t * OpenDiscSF
 
     
     //----- reloc?
+    
+    const wd_trim_mode_t reloc_trim = wd_get_relococation_trim(opt_trim,0,0);
 
-    if (reloc)
+    if ( reloc || reloc_trim )
     {
-	PRINT("SETUP RELOC, enc=%04x->%04x->%d\n",
-		encoding, enc, !(enc&ENCODE_DECRYPT) );
+	PRINT("SETUP RELOC, enc=%04x->%04x->%d, trim=%x\n",
+		encoding, enc, !(enc&ENCODE_DECRYPT), reloc_trim );
 
-	wd_calc_relocation(disc,encrypt,true,0);
+	wd_calc_relocation(disc,encrypt,reloc_trim,opt_align_part,0,true);
 
 	if ( logging > 0 )
 	    wd_print_disc_patch(stdout,1,sf->disc1,true,logging>1);
@@ -930,7 +943,7 @@ wd_disc_t * OpenDiscSF
     }
 
     if (sf->disc2)
-	memcpy(sf->f.id6,&sf->disc2->dhead,6);
+	memcpy(sf->f.id6_dest,&sf->disc2->dhead,6);
     else
 	sf->disc2 = wd_dup_disc(sf->disc1);
 
@@ -981,7 +994,7 @@ int SubstFileNameBuf
 
     ccp disc_name = 0;
     char buf[HD_SECTOR_SIZE];
-    if (fi->f.id6[0])
+    if (fi->f.id6_dest[0])
     {
 	if (fi->disc2)
 	    disc_name = (ccp)fi->disc2->dhead.disc_title;
@@ -995,9 +1008,10 @@ int SubstFileNameBuf
 	}
     }
 
-    return SubstFileName ( fname_buf, fname_size,
-			fi->f.id6, disc_name, fi->f.path ? fi->f.path : fi->f.fname,
-			fname, dest_arg, oft );
+    return SubstFileName( fname_buf, fname_size,
+			  fi->f.id6_dest, disc_name,
+			  fi->f.path ? fi->f.path : fi->f.fname,
+			  fname, dest_arg, oft );
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -1288,6 +1302,90 @@ enumError ReadSF
 
 ///////////////////////////////////////////////////////////////////////////////
 
+enumError ReadDirectSF
+	( SuperFile_t * sf, off_t off, void * buf, size_t count )
+{
+    ASSERT(sf);
+    ASSERT(sf->std_read_func);
+    return sf->std_read_func(sf,off,buf,count);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+off_t DataBlockSF
+(
+    SuperFile_t		* sf,		// valid file
+    off_t		off,		// file offset
+    size_t		align,		// if >1: round results to multiple of 'align'
+    off_t		* block_size	// not null: return block size
+)
+{
+    ASSERT(sf);
+    ASSERT(sf->iod.data_block_func);
+    off = sf->iod.data_block_func(sf,off,align,block_size);
+
+    if ( align > 1 )
+    {
+	if (block_size)
+	{
+	    off_t end = (( off + *block_size - 1 ) / align + 1 ) * align;
+	    off = ( off / align ) * align;
+	    *block_size = end - off;
+	}
+	else
+	    off = ( off / align ) * align;
+    }
+    return off;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+off_t UnionDataBlockSF
+(
+    SuperFile_t		* sf1,		// first file
+    SuperFile_t		* sf2,		// second file
+    off_t		off,		// file offset
+    size_t		align,		// if >1: round results to multiple of 'align'
+    off_t		* block_size	// not null: return block size
+)
+{
+    ASSERT(sf1);
+    ASSERT(sf2);
+
+    off_t size1, size2;
+    const off_t off1 = DataBlockSF(sf1,off,align,&size1);
+    const off_t off2 = DataBlockSF(sf2,off,align,&size2);
+
+    if ( off1 + size1 <= off2 )
+    {
+	// blocks do not overlay
+	if (block_size)
+	    *block_size = size1;
+	return off1; 
+    }
+
+    if ( off2 + size2 <= off1 )
+    {
+	// blocks do not overlay
+	if (block_size)
+	    *block_size = size2;
+	return off2; 
+    }
+    
+    off = off1 < off2 ? off1 : off2;
+
+    if (block_size)
+    {
+	const off_t end1 = off1 + size1;
+	const off_t end2 = off2 + size2;
+	*block_size = ( end1 > end2 ? end1 : end2 ) - off;
+    }
+
+    return off;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
 enumError WriteSF
 	( SuperFile_t * sf, off_t off, const void * buf, size_t count )
 {
@@ -1465,6 +1563,16 @@ enumError WriteZeroISO ( SuperFile_t * sf, off_t off, size_t size )
 
 ///////////////////////////////////////////////////////////////////////////////
 
+off_t DataBlockStandard
+    ( SuperFile_t * sf, off_t off, size_t hint_align, off_t * block_size )
+{
+    if ( block_size )
+	*block_size = off < sf->file_size ? sf->file_size - off : GiB;
+    return off;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
 enumError FlushFile ( SuperFile_t * sf )
 {
     DASSERT(sf);
@@ -1585,6 +1693,45 @@ enumError ReadWBFS ( SuperFile_t * sf, off_t off, void * buf, size_t count )
     }
 
     return ERR_OK;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+off_t DataBlockWBFS
+	( SuperFile_t * sf, off_t off, size_t hint_align, off_t * block_size )
+{
+    ASSERT(sf->wbfs);
+    ASSERT(sf->wbfs->disc);
+    ASSERT(sf->wbfs->disc->header);
+    u16 * wlba_tab = sf->wbfs->disc->header->wlba_table;
+    ASSERT(wlba_tab);
+
+    wbfs_t * w = sf->wbfs->wbfs;
+    ASSERT(w);
+
+    u32 block = (u32)( off / w->wbfs_sec_sz );
+
+    for(;;)
+    {
+	if ( block >= w->n_wbfs_sec_per_disc )
+	    return DataBlockStandard(sf,off,hint_align,block_size);
+	if ( ntohs(wlba_tab[block]) )
+	    break;
+	block++;
+    }
+
+    const off_t off1 = block * w->wbfs_sec_sz;
+    if ( off < off1 )
+	 off = off1;
+
+    if (block_size)
+    {
+	while ( block < w->n_wbfs_sec_per_disc && ntohs(wlba_tab[block]) )
+	    block++;
+	*block_size = block * w->wbfs_sec_sz - off;
+    }
+ 
+    return off;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -1887,7 +2034,18 @@ void PrintProgressSF ( u64 p_done, u64 p_total, void * param )
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// missing void* support
+
+void ClearProgressLineSF ( SuperFile_t * sf )
+{
+    if ( sf && sf->show_progress && sf->progress_max_wd > 0 )
+    {
+	if (!print_sections)
+	    printf("%*s\r",sf->progress_max_wd,"");
+	sf->progress_max_wd = 0;
+    }
+}
+
+///////////////////////////////////////////////////////////////////////////////
 
 void PrintSummarySF ( SuperFile_t * sf )
 {
@@ -2020,7 +2178,7 @@ enumFileType AnalyzeFT ( File_t * f )
     ASSERT(f);
 
     TRACE("AnalyzeFT(%p) fd=%d, split=%d\n",f,GetFD(f),IsSplittedF(f));
-    f->id6[6] = 0;
+    f->id6_src[6] = f->id6_dest[6] = 0;
 
     if (!IsOpenF(f))
     {
@@ -2137,11 +2295,11 @@ enumFileType AnalyzeFT ( File_t * f )
 
 	    ResetFile(f,false);
 	    memcpy(f,&sf.f,sizeof(*f));
-	    CopyPatchedDiscId(f->id6,id6);
+	    SetPatchFileID(f,id6,6);
 	    memset(&sf.f,0,sizeof(sf.f));
 	    TRACE(" - WBFS/fname = %s\n",f->fname);
 	    TRACE(" - WBFS/path  = %s\n",f->path);
-	    TRACE(" - WBFS/id6   = %s\n",f->id6);
+	    TRACE(" - WBFS/id6   = %s -> %s\n",f->id6_src,f->id6_dest);
 	    switch(get_header_disc_type(&wdisk.dhead,0))
 	    {
 		case WD_DT_UNKNOWN:
@@ -2177,14 +2335,24 @@ enumFileType AnalyzeFT ( File_t * f )
     if (f->seek_allowed)
 	ft |= FT_A_SEEKABLE;
 
+    id6_t id6;
     if (S_ISDIR(f->st.st_mode))
-	return f->ftype = IsFST(f->fname,f->id6);
+    {
+	f->ftype = IsFST(f->fname,id6);
+	if ( f->ftype & FT_ID_FST )
+	{
+	    SetPatchFileID(f,id6,6);
+	    PRINT("FST found, id=%s,%s: %s\n", f->id6_src, f->id6_dest, f->fname );
+	}
+	return f->ftype;
+    }
 
     if (f->is_writing)
 	ft |= FT_A_WRITING;
 
     if (!f->is_reading)
 	return f->ftype;
+
 
     //----- now we must analyze the file contents
 
@@ -2205,9 +2373,11 @@ enumFileType AnalyzeFT ( File_t * f )
 	TRACELINE;
 	ft |= FT_ID_OTHER;
     }
-    else if (IsWIA(buf1,sizeof(buf1),f->id6,&disc_type,0))
+    else if (IsWIA(buf1,sizeof(buf1),id6,&disc_type,0))
     {
-	noPRINT("WIA found, dt=%d, id=%s: %s\n",disc_type,f->id6,f->fname);
+	SetPatchFileID(f,id6,6);
+	PRINT("WIA found, dt=%d, id=%s,%s: %s\n",
+		disc_type, f->id6_src, f->id6_dest, f->fname );
 	ft |= disc_type == WD_DT_GAMECUBE
 		? FT_ID_GC_ISO  | FT_A_ISO | FT_A_GC_ISO  | FT_A_WIA
 		: FT_ID_WII_ISO | FT_A_ISO | FT_A_WII_ISO | FT_A_WIA;
@@ -2330,7 +2500,7 @@ enumFileType AnalyzeFT ( File_t * f )
 				  ft |= FT_A_WDISC | FT_A_ISO | FT_A_WII_ISO;
 				  break;
 			      }
-			      CopyPatchedDiscId(f->id6,dinfo.id6);
+			      SetPatchFileID(f,dinfo.id6,6);
 			    }
 			    ResetWDiscInfo(&dinfo);
 			}
@@ -2341,7 +2511,7 @@ enumFileType AnalyzeFT ( File_t * f )
 
 	    case FT_ID_GC_ISO:
 		ft |= FT_ID_GC_ISO | FT_A_ISO | FT_A_GC_ISO;
-		CopyPatchedDiscId(f->id6,data_ptr);
+		SetPatchFileID(f,data_ptr,6);
 		if ( f->st.st_size < ISO_SPLIT_DETECT_SIZE )
 		    SetupSplitFile(f,OFT_PLAIN,0);
 		break;
@@ -2351,7 +2521,7 @@ enumFileType AnalyzeFT ( File_t * f )
 		if ( !(ft&FT_A_WDF) && !f->seek_allowed )
 		    DefineCachedAreaISO(f,false);
 
-		CopyPatchedDiscId(f->id6,data_ptr);
+		SetPatchFileID(f,data_ptr,6);
 		if ( f->st.st_size < ISO_SPLIT_DETECT_SIZE )
 		    SetupSplitFile(f,OFT_PLAIN,0);
 		break;
@@ -2359,7 +2529,7 @@ enumFileType AnalyzeFT ( File_t * f )
 	    case FT_ID_HEAD_BIN:
 	    case FT_ID_BOOT_BIN:
 		ft |= mt;
-		CopyPatchedDiscId(f->id6,data_ptr);
+		SetPatchFileID(f,data_ptr,6);
 		break;
 
 	    default:
@@ -2367,7 +2537,7 @@ enumFileType AnalyzeFT ( File_t * f )
 	}
     }
 
-    TRACE("ANALYZE FILETYPE: %04x [%s]\n",ft,f->id6);
+    TRACE("ANALYZE FILETYPE: %04x [%s,%s]\n",ft,f->id6_src,f->id6_dest);
 
     // restore warnings
     f->disable_errors = disable_errors;
@@ -2804,7 +2974,7 @@ enumError CopyImage
     SetupIOD(fo,oft,oft);
     fo->src = fi;
     fo->f.create_directory = opt_mkdir;
-    fo->raw_mode = part_selector.whole_disc || !fi->f.id6[0];
+    fo->raw_mode = part_selector.whole_disc || !fi->f.id6_dest[0];
 
     if (opt_direct)
     {
@@ -3454,10 +3624,1127 @@ enumError AppendZeroSF ( SuperFile_t * out, off_t count )
 
 //
 ///////////////////////////////////////////////////////////////////////////////
-///////////////                    diff functions               ///////////////
+///////////////			  diff functions		///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-static void PrintDiff ( off_t off, ccp iobuf1, ccp iobuf2, size_t iosize )
+void SetupDiff
+(
+    // use globals: verbose, print_sections,
+    //		    opt_limit, opt_file_limit, opt_block_size
+
+    Diff_t		* diff,		// diff structure to setup
+    int			long_count	// relevant long count
+)
+{
+    DASSERT(diff);
+    PRINT("DIFF: SetupDiff(%p,%d)\n",diff,long_count);
+
+    memset(diff,0,sizeof(*diff));
+    diff->block_size = opt_block_size <= 0 || opt_block_size > sizeof(diff->data1)
+				? opt_block_size
+				: sizeof(diff->data1);
+    diff->active_block_size = diff->block_size;
+
+    diff->verbose = verbose;
+    if ( diff->verbose < 0 )
+    {
+	diff->mismatch_limit = 1;
+	if ( diff->verbose < -1 )
+	    long_count = 0;
+    }
+    else
+    {
+	diff->mismatch_limit = opt_limit >= 0
+				? opt_limit
+				: long_count < 3
+					? 1
+					: long_count < 4
+						? 10
+						: 0;
+
+	if ( long_count <= 0 )
+	    long_count = diff->mismatch_limit > 1;
+    }
+    diff->file_differ_limit = opt_file_limit > 0 ? opt_file_limit : 0;
+    diff->info_level = diff->verbose < 0 ? 0 : long_count;
+
+    PRINT("DIFF: v=%d, i=%d, l=%d,%d,%d, bs=%d,%d\n",
+	diff->verbose, diff->info_level,
+	diff->source_differ_limit, diff->file_differ_limit, diff->mismatch_limit,
+	diff->active_block_size, diff->active_block_size );
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+bool OpenDiffSource
+(
+    Diff_t		* diff,		// valid diff structure
+    SuperFile_t		* f1,		// first file
+    SuperFile_t		* f2,		// second file
+    bool		diff_iso	// true: diff iso images
+)
+{
+    const bool stat = CloseDiffSource(diff,true);
+    PRINT("DIFF: OpenDiffSource(%p,%p,%p,%d)\n",diff,f1,f2,diff_iso);
+
+    f1->progress_verb = f2->progress_verb = "compared";
+    diff->f1 = f1;
+    diff->f2 = f2;
+
+    diff->source_differ	= false;
+    diff->diff_iso	= diff_iso;
+    diff->active_block_size = diff_iso && diff->block_size < 0
+				? WII_SECTOR_SIZE
+				: diff->block_size;
+
+    return stat;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+bool CloseDiffSource
+(
+    // returns true on *non* abort
+
+    Diff_t		* diff,		// valid diff structure
+    bool		silent		// true: suppress printing status messages
+)
+{
+    PRINT("DIFF: CloseDiffSource(%p,%d) -> %d,%d,%d\n",
+		diff, silent,
+		diff->source_differ_count,
+		diff->file_differ_count,
+		diff->mismatch_count );
+    DASSERT(diff);
+
+ #if HAVE_PRINT
+    bool print_stat = false;
+ #endif
+
+    CloseDiffFile(diff,silent);
+    if (diff->file_count)
+    {
+	diff->file_count = 0;
+	diff->source_count++;
+     #if HAVE_PRINT
+	print_stat = true;
+     #endif
+    }
+
+    if ( diff->file_differ_count || diff->file_differ )
+    {
+	diff->file_differ = false;
+	diff->file_differ_count = 0;
+	diff->source_differ_count++;
+	diff->source_differ = true;
+
+	if ( !silent
+		&& diff->verbose >= -1
+		//&& !diff->info_level
+		&& diff->f1
+		&& diff->f2 )
+	{
+	    // [2do] [diff] print only if differ || verbose >= 0
+	    ClearProgressLineSF(diff->f2);
+	    if (diff->diff_iso)
+		printf("! ISOs differ: %s:%s : %s:%s\n",
+			oft_info[diff->f1->iod.oft].name, diff->f1->f.fname,
+			oft_info[diff->f2->iod.oft].name, diff->f2->f.fname );
+	    else
+		printf("! Files differ: %s : %s\n",
+			diff->f1->f.fname, diff->f2->f.fname );
+	}
+    }
+    else if ( !silent && diff->verbose > 0 && diff->f1 && diff->f2 )
+    {
+	if (diff->diff_iso)
+	    printf("* ISOs identical: %s:%s : %s:%s\n",
+		    oft_info[diff->f1->iod.oft].name, diff->f1->f.fname,
+		    oft_info[diff->f2->iod.oft].name, diff->f2->f.fname );
+	else
+	    printf("* Files identical: %s : %s\n",
+		    diff->f1->f.fname, diff->f2->f.fname );
+    }
+
+    PRINT_IF(print_stat,
+		"DIFF: CLOSE/SRC:  %u:%u/%u | %u:%u/%u, %u:%u\n",
+		diff->source_count,
+		diff->source_differ_count,
+		diff->source_differ_limit,
+		diff->file_count,
+		diff->file_differ_count,
+		diff->file_differ_limit,
+		diff->total_file_count,
+		diff->total_file_differ_count );
+
+    if ( diff->f2 && ( diff->f2->show_progress || diff->f2->show_summary ))
+	PrintSummarySF(diff->f2);
+
+    diff->f1 = diff->f2 = 0;
+
+    return !diff->source_differ_limit
+	|| diff->source_differ_count < diff->source_differ_limit;
+};
+
+///////////////////////////////////////////////////////////////////////////////
+
+bool OpenDiffFile
+(
+    // returns true on *non* abort
+
+    Diff_t		* diff,		// valid diff structure
+    ccp			file_prefix,	// NULL or prefix of file_name
+    ccp			file_name	// file name
+)
+{
+    DASSERT(diff);
+    DASSERT(file_name);
+
+    const bool stat	= CloseDiffFile(diff,true);
+    diff->file_differ	= false;
+    diff->file_prefix	= file_prefix ? file_prefix : "";
+    diff->file_name	= file_name   ? file_name   : "";
+    return stat;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+bool CloseDiffFile
+(
+    // returns true on *non* abort
+
+    Diff_t		* diff,		// valid diff structure
+    bool		silent		// true: suppress printing status messages
+)
+{
+    DASSERT(diff);
+    DiffData(diff,0,0,0,0,1);
+
+ #if HAVE_PRINT
+    bool print_stat = false;
+ #endif
+
+    if (diff->chunk_count)
+    {
+	diff->chunk_count = 0;
+	diff->file_count++;
+     #if HAVE_PRINT
+	print_stat = true;
+     #endif
+    }
+
+    if ( diff->mismatch_count || diff->mismatch_marked )
+    {
+	diff->mismatch_count = 0;
+	diff->mismatch_marked = false;
+	diff->file_differ_count++;
+	diff->total_file_differ_count++;
+	diff->file_differ = true;
+
+	if ( !silent && diff->verbose >= 0 && !diff->info_level && diff->file_name )
+	{
+	    ClearProgressLineSF(diff->f2);
+	    if (print_sections)
+		printf(	"[mismatch:file]\nfile=%s%s\n\n",
+			diff->file_prefix, diff->file_name );
+	    else
+		printf("!   Files differ:     %s%s\n",
+		    diff->file_prefix, diff->file_name );
+	}
+    }
+
+    PRINT_IF(print_stat,
+		"DIFF: CLOSE/FILE: %u:%u/%u | %u:%u/%u, %u:%u\n",
+		diff->source_count,
+		diff->source_differ_count,
+		diff->source_differ_limit,
+		diff->file_count,
+		diff->file_differ_count,
+		diff->file_differ_limit,
+		diff->total_file_count,
+		diff->total_file_differ_count );
+
+    diff->file_prefix = 0;
+    diff->file_name = 0;
+
+    return !diff->file_differ_limit
+	|| diff->file_differ_count < diff->file_differ_limit;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+
+static int get_mismatch_size
+(
+    Diff_t		* diff,		// valid diff structure
+    off_t		data_off,	// offset of 'data*'
+    size_t		data_size,	// size of 'data*', NULL for terminatiing
+    s64			* blocknum,	// not NULL: store block number
+    off_t		* next_offset,	// not NULL: store next offset
+    bool		* incomplete	// not NULL: store incomplete status
+)
+{
+    DASSERT(diff);
+    bool incompl = data_size < sizeof(diff->data1);
+    uint mlen	 = incompl ? data_size : sizeof(diff->data1);
+
+    if ( diff->active_block_size < sizeof(diff->data1) )
+    {
+	// no blocks
+	if (blocknum)
+	    *blocknum = -1;
+	if (next_offset)
+	    *next_offset = data_off + mlen;
+    }
+    else
+    {
+	const off_t block = data_off / diff->active_block_size;
+	const off_t next_off = ( block + 1 ) * diff->active_block_size;
+	const off_t max_len = next_off - data_off;
+	if ( mlen > max_len )
+	{
+	    mlen = max_len;
+	    incompl = false;
+	}
+
+	if (blocknum)
+	    *blocknum = block;
+	if (next_offset)
+	    *next_offset = incompl ? data_off + mlen : next_off;
+
+	noPRINT("get_mismatch_size(off=%llx, siz=%zx) incompl=%d, next=%llx\n",
+		(u64)data_off, data_size,
+		incompl, (u64)(incompl ? data_off + mlen : next_off) );
+    }
+    
+    if (incomplete)
+	*incomplete = incompl;
+
+    return mlen;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+bool DiffData
+(
+    // returns true on *non* abort
+
+    Diff_t		* diff,		// valid diff structure
+    off_t		data_off,	// offset of 'data*'
+    size_t		data_size,	// size of 'data*', NULL for terminatiing
+    ccp			data1,		// first data
+    ccp			data2,		// second data
+    int			mode		// 0:in file, 1:term, 2:complete
+)
+{
+    DASSERT(diff);
+    DASSERT( diff->f1 || !data_size && !diff->data_size );
+    DASSERT( diff->f2 || !data_size && !diff->data_size );
+
+    diff->next_off = data_off + data_size;
+    if (data_size)
+	diff->chunk_count++;
+
+
+    //--- check cached data
+
+    if (diff->data_size)
+    {
+	DASSERT( diff->data_size < sizeof(diff->data1) );
+
+	uint total_len = diff->data_size;
+	if ( diff->data_off + total_len == data_off )
+	{
+	    uint add_len = sizeof(diff->data1) - diff->data_size;
+	    if ( add_len > data_size )
+		 add_len = data_size;
+	    memcpy( diff->data1 + diff->data_size, data1, add_len );
+	    memcpy( diff->data2 + diff->data_size, data2, add_len );
+
+	    bool incomplete;
+	    int mis_len = get_mismatch_size ( diff, diff->data_off,
+					total_len+add_len, 0, 0, &incomplete );
+
+	    if ( !mode && incomplete )
+	    {
+		diff->data_size = total_len + add_len;
+		return true;
+	    }
+
+	    total_len  = mis_len;
+	    mis_len   -= diff->data_size;
+	    data1     += mis_len;
+	    data2     += mis_len;
+	    data_off  += mis_len;
+	    data_size -= mis_len;
+	}
+	
+	diff->data_size = 0;
+	diff->chunk_count--; // this is not a chunk!
+	if (!DiffData(diff,diff->data_off,total_len,diff->data1,diff->data2,2))
+	    return false;
+    }
+
+    noPRINT_IF(data_size, "DIFF: DiffData(%p,%llx+%zx,%p,%p,%d)\n",
+		diff, (u64)data_off, data_size, data1, data2, mode );
+
+
+    //--- fast diff data
+    
+    if ( !data_size || !memcmp(data1,data2,data_size) )
+	return true;
+
+    if (!diff->info_level)
+    {
+	diff->mismatch_count++;
+	diff->total_mismatch_count++;
+	return false;
+    }
+
+
+    //--- data differ -> fine test
+
+    ccp src2 = data2;
+    ccp src1 = data1;
+    ccp end1 = data1 + data_size;
+    while ( src1 < end1
+	&& ( !diff->mismatch_limit || diff->mismatch_count < diff->mismatch_limit ))
+    {
+	while ( src1 < end1 && *src1 == *src2 )
+	    src1++, src2++;
+	if ( src1 == end1 )
+	    break;
+
+	s64 block;
+	off_t next_off;
+	bool incomplete;
+	const off_t doff = data_off + (src1-data1);
+	int mis_len = get_mismatch_size(diff,doff,end1-src1,
+					&block,&next_off,&incomplete);
+
+	if ( !mode && incomplete )
+	{
+	    const int dlen = end1 - src1;
+	    if ( dlen < sizeof(diff->data1) )
+	    {
+		memcpy(diff->data1,src1,dlen);
+		memcpy(diff->data2,src2,dlen);
+		diff->data_size = dlen;
+		diff->data_off = doff;
+		break;
+	    }
+	}
+
+	ClearProgressLineSF(diff->f2);
+	diff->mismatch_count++;
+	diff->total_mismatch_count++;
+
+	if (print_sections)
+	{
+	    printf("[mismatch:data]\n"
+		   "file=%s%s\n"
+		   "offset=0x%llx\n"
+		   "block=%lld\n"
+		   "block-size=%u\n"
+		   ,diff->file_prefix ? diff->file_prefix : ""
+		   ,diff->file_name ? diff->file_name : ""
+		   ,(u64)doff
+		   ,block
+		   ,diff->active_block_size > 0 ? diff->active_block_size : 0
+		   );
+	}
+	else
+	{
+	    printf("!   Differ at 0x%llx",(u64)doff);
+	    if ( block >= 0 )
+		printf(" [block %llu]",block);
+	    if (diff->file_name)
+		printf(": %s%s\n",diff->file_prefix,diff->file_name);
+	    else
+		putchar('\n');
+	}
+
+	if ( diff->next_off < next_off )
+	     diff->next_off = next_off;
+
+	if ( diff->info_level > 1 || print_sections )
+	{
+	    mis_len--;
+	    while ( mis_len >= 0 && src1[mis_len] == src2[mis_len] )
+		mis_len--;
+	    mis_len++;
+	    fputs( print_sections ? "hexdump1=" : "!     file 1:",stdout);
+	    HexDump(stdout,0,-1,0,sizeof(diff->data1),src1,mis_len);
+	    fputs( print_sections ? "hexdump2=" : "!     file 2:",stdout);
+	    HexDump(stdout,0,-1,0,sizeof(diff->data1),src2,mis_len);
+	    if (print_sections)
+		putchar('\n');
+	}
+
+	if ( mode > 1 )
+	    break;
+
+	const u32 delta = next_off - data_off;
+	src1 = data1 + delta;
+	src2 = data2 + delta;
+    }
+
+    return !diff->mismatch_limit || diff->mismatch_count < diff->mismatch_limit;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+static int DiffFile
+(
+    Diff_t		* diff		// valid diff structure
+)
+{
+    diff->total_mismatch_count++;
+    diff->file_differ_count++;
+    diff->total_file_differ_count++;
+
+    return verbose < 0
+	? -1
+	: !diff->file_differ_limit || diff->file_differ_count < diff->file_differ_limit;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+static int DiffOnlyPart
+(
+    Diff_t		* diff,		// valid diff structure
+    int			iso_index,	// 1 | 2
+    WiiFstPart_t	* part		// partition for reference
+)
+{
+    DASSERT(diff);
+    DASSERT(part);
+    CloseDiffFile(diff,true);
+
+    if ( verbose >= 0 )
+    {
+	ClearProgressLineSF(diff->f2);
+
+	const wd_part_t * wp = part->part;
+	DASSERT(wp);
+
+	if (print_sections)
+	    printf("[only-in:partition]\n"
+		   "image=%u\n"
+		   "part-index=%u\n"
+		   "part-type=0x%x\n"
+		   "part-name=%s\n"
+		   "\n"
+		   ,iso_index
+		   ,wp->index
+		   ,wp->part_type
+		   ,wd_get_part_name(wp->part_type,"")
+		   );
+	else
+	    printf("!   Only in image #%u: Partition #%u, type=%x %s\n",
+			iso_index, wp->index,
+			wp->part_type, wd_get_part_name(wp->part_type,"") );
+    }
+
+    return DiffFile(diff);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+static int DiffOnlyFile
+(
+    Diff_t		* diff,		// valid diff structure
+    int			iso_index,	// 1 | 2
+    WiiFstPart_t	* part1,	// first partition for reference
+    WiiFstPart_t	* part2,	// second partition for reference
+    ccp			path1,		// first part of file name, never NULL
+    ccp			path2		// second part of file name, never NULL
+)
+{
+    DASSERT(diff);
+    DASSERT(part1);
+    DASSERT(part2);
+    DASSERT(path1);
+    DASSERT(path2);
+
+    CloseDiffFile(diff,true);
+
+    if ( verbose >= 0 )
+    {
+	ClearProgressLineSF(diff->f2);
+
+	const wd_part_t * wp1 = part1->part;
+	const wd_part_t * wp2 = part2->part;
+	DASSERT(wp1);
+	DASSERT(wp2);
+
+	if (print_sections)
+	    printf("[only-in:file]\n"
+		   "image=%u\n"
+		   "part-1-index=%u\n"
+		   "part-1-type=0x%x\n"
+		   "part-1-name=%s\n"
+		   "part-2-index=%u\n"
+		   "part-2-type=0x%x\n"
+		   "part-2-name=%s\n"
+		   "file-name=%s%s\n"
+		   "\n"
+		   ,iso_index
+		   ,wp1->index
+		   ,wp1->part_type
+		   ,wd_get_part_name(wp1->part_type,"")
+		   ,wp2->index
+		   ,wp2->part_type
+		   ,wd_get_part_name(wp2->part_type,"")
+		   ,path1,path2
+		   );
+	else
+	    printf("!   Only in image #%u: %s%s\n", iso_index, path1, path2 );
+    }
+
+    return DiffFile(diff);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+static bool DiffCheckSize
+(
+    Diff_t		* diff,		// valid diff structure
+    u64			size1,		// size of first file
+    u64			size2		// size of second file
+)
+{
+    DASSERT(diff);
+
+    if ( size1 == size2 )
+	return true;
+
+    diff->mismatch_count++;
+    diff->total_mismatch_count++;
+
+    if ( diff->info_level < 0 || !diff->info_level && !diff->file_name )
+	return false;
+
+    ClearProgressLineSF(diff->f2);
+
+    if (print_sections)
+    {
+	if ( diff->file_name )
+	    printf("[mismatch:file-size]\nfile=%s%s\n",
+		diff->file_prefix, diff->file_name );
+	else
+	    printf("[mismatch:size]\n");
+	    
+	printf(	"size1=%llu\n"
+		"size2=%llu\n"
+		"\n"
+		,size1
+		,size2
+		);
+    }
+    else
+    {
+	fputs("!   File size differ: ",stdout);
+	ccp postfix = "";
+	if (diff->file_name)
+	{
+	    fputs(diff->file_prefix,stdout);
+	    fputs(diff->file_name,stdout);
+	    fputs(" [",stdout);
+	    postfix = "]";
+	}
+	printf("%llu%+lld=%llu%s\n", size1, size2-size1, size2, postfix );
+    }
+
+    return !diff->mismatch_limit || diff->mismatch_count < diff->mismatch_limit;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+bool DiffMarkMissmatch
+(
+    // returns true on *non* abort
+
+    Diff_t		* diff		// valid diff structure
+)
+{
+    DASSERT(diff);
+    diff->mismatch_marked = true;
+    if ( diff->info_level <= 0 )
+	return false;
+    ClearProgressLineSF(diff->f2);
+    return true;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+enumError GetDiffStatus
+(
+    Diff_t		* diff		// valid diff structure
+)
+{
+    DASSERT(diff);
+    return diff->source_differ || diff->file_differ ? ERR_DIFFER : ERR_OK;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+
+enumError DiffSF
+(
+    Diff_t		* diff,		// valid diff structure
+    bool		force_raw_mode	// true: force raw mode
+)
+{
+    PRINT("DIFF: DiffSF(%p,%d)\n",diff,force_raw_mode);
+    ASSERT(diff);
+
+    SuperFile_t *f1 = diff->f1;
+    SuperFile_t *f2 = diff->f2;
+    DASSERT(f1);
+    DASSERT(f2);
+    DASSERT(IsOpenSF(f1));
+    DASSERT(IsOpenSF(f2));
+    DASSERT(f1->f.is_reading);
+    DASSERT(f2->f.is_reading);
+
+    if ( force_raw_mode || part_selector.whole_disc )
+	return DiffRawSF(diff);
+
+    f1->progress_verb = f2->progress_verb = "compared";
+
+    wd_disc_t * disc1 = OpenDiscSF(f1,true,true);
+    wd_disc_t * disc2 = OpenDiscSF(f2,true,true);
+    if ( !disc1 || !disc2 )
+	return ERR_WDISC_NOT_FOUND;
+
+    diff->diff_iso = true;
+    diff->active_block_size = diff->block_size < 0 ? WII_SECTOR_SIZE : diff->block_size;
+
+    wd_filter_usage_table(disc1,wdisc_usage_tab,0);
+    wd_filter_usage_table(disc2,wdisc_usage_tab2,0);
+
+    int idx;
+    u64 pr_done = 0, pr_total = 0;
+
+    const bool have_mod_list = f1->modified_list.used || f2->modified_list.used;
+
+    for ( idx = 0; idx < sizeof(wdisc_usage_tab); idx++ )
+    {
+	if (   wd_usage_class_tab[wdisc_usage_tab [idx]]
+	    != wd_usage_class_tab[wdisc_usage_tab2[idx]] )
+	{
+	    if (!DiffMarkMissmatch(diff))
+		goto abort;
+	    wdisc_usage_tab[idx] = 1; // mark for future
+	}
+
+	if ( wdisc_usage_tab[idx] )
+	{
+	    pr_total++;
+
+	    if (have_mod_list)
+	    {
+		// mark blocks for delayed comparing
+		wdisc_usage_tab2[idx] = 0;
+		off_t off = (off_t)WII_SECTOR_SIZE * idx;
+		if (   FindMemMap(&f1->modified_list,off,WII_SECTOR_SIZE)
+		    || FindMemMap(&f2->modified_list,off,WII_SECTOR_SIZE) )
+		{
+		    TRACE("DIFF BLOCK #%u (off=%llx) delayed.\n",idx,(u64)off);
+		    wdisc_usage_tab[idx] = 0;
+		    wdisc_usage_tab2[idx] = 1;
+		}
+	    }
+	}
+    }
+
+    if ( f2->show_progress )
+    {
+	pr_total *= WII_SECTOR_SIZE;
+	PrintProgressSF(0,pr_total,f2);
+    }
+
+    ASSERT( sizeof(iobuf) >= 2*WII_SECTOR_SIZE );
+    char *iobuf1 = iobuf, *iobuf2 = iobuf + WII_SECTOR_SIZE;
+
+    const int ptab_index1 = wd_get_ptab_sector(disc1);
+    const int ptab_index2 = wd_get_ptab_sector(disc2);
+
+    int run = 0;
+    for(;;)
+    {
+	PRINT("DIFF: LOOP, run=%d, have_mod_list=%d\n",run,have_mod_list);
+	int next_idx = 0;
+	for ( idx = 0; idx < sizeof(wdisc_usage_tab); idx++ )
+	{
+	    if ( SIGINT_level > 1 )
+		return ERR_INTERRUPT;
+
+	    if ( ( idx >= next_idx || have_mod_list ) && wdisc_usage_tab[idx] )
+	    {
+		off_t off = (off_t)WII_SECTOR_SIZE * idx;
+		TRACE(" - DIFF BLOCK #%u (off=%llx).\n",idx,(u64)off);
+		enumError err = ReadSF(f1,off,iobuf1,WII_SECTOR_SIZE);
+		if (err)
+		    return err;
+
+		err = ReadSF(f2,off,iobuf2,WII_SECTOR_SIZE);
+		if (err)
+		    return err;
+
+		if ( idx >= next_idx )
+		{
+		    if ( idx == ptab_index1 )
+			wd_patch_ptab(disc1,iobuf1,true);
+
+		    if ( idx == ptab_index2 )
+			wd_patch_ptab(disc2,iobuf2,true);
+
+		    if (!DiffData(diff,off,WII_SECTOR_SIZE,iobuf1,iobuf2,0))
+			break;
+
+		    next_idx = diff->next_off / WII_SECTOR_SIZE;
+		}
+
+		if ( f2->show_progress )
+		{
+		    pr_done += WII_SECTOR_SIZE;
+		    PrintProgressSF(pr_done,pr_total,f2);
+		}
+	    }
+	}
+	if ( !have_mod_list || run++ )
+	    break;
+	    
+	memcpy(wdisc_usage_tab,wdisc_usage_tab2,sizeof(wdisc_usage_tab));
+	UpdateSignatureFST(f1->fst); // NULL allowed
+	UpdateSignatureFST(f2->fst); // NULL allowed
+    }
+
+ abort:
+    CloseDiffSource(diff,print_sections>0);
+    return GetDiffStatus(diff);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+enumError DiffRawSF
+(
+    Diff_t		* diff		// valid diff structure
+)
+{
+    DASSERT(diff);
+
+    SuperFile_t *f1 = diff->f1;
+    SuperFile_t *f2 = diff->f2;
+    DASSERT(f1);
+    DASSERT(f2);
+    DASSERT(IsOpenSF(f1));
+    DASSERT(IsOpenSF(f2));
+    DASSERT(f1->f.is_reading);
+    DASSERT(f2->f.is_reading);
+
+    off_t max_off;
+    const attribOFT attrib1 = oft_info[f1->iod.oft].attrib;
+    const attribOFT attrib2 = oft_info[f2->iod.oft].attrib;
+    if ( (attrib1|attrib2) & OFT_A_NOSIZE )
+    {
+	if ( attrib1 & OFT_A_NOSIZE )
+	    f2->f.read_behind_eof = 2;
+	if ( attrib2 & OFT_A_NOSIZE )
+	    f1->f.read_behind_eof = 2;
+	max_off = f1->file_size > f2->file_size
+		? f1->file_size : f2->file_size;
+    }
+    else
+    {
+	if (!DiffCheckSize(diff,f1->file_size,f2->file_size))
+	    goto abort;
+
+	max_off = f1->file_size < f2->file_size
+		? f1->file_size : f2->file_size;
+    }
+
+    const size_t io_size = sizeof(iobuf)/2;
+    ASSERT( (io_size&511) == 0 );
+    char *iobuf1 = iobuf, *iobuf2 = iobuf + io_size;
+
+    if ( f2->show_progress )
+	PrintProgressSF(0,max_off,f2);
+
+    off_t off = 0;
+    for(;;)
+    {
+	if (SIGINT_level>1)
+	    return ERR_INTERRUPT;
+
+	off = UnionDataBlockSF(f1,f2,off,HD_BLOCK_SIZE,0);
+	if ( off >= max_off )
+	    break;
+
+	const off_t  max_size = max_off - off;
+	const size_t cmp_size = io_size < max_size ? io_size : (size_t)max_size;
+
+	enumError err;
+	err = ReadSF(f1,off,iobuf1,cmp_size);
+	if (err)
+	    return err;
+	err = ReadSF(f2,off,iobuf2,cmp_size);
+	if (err)
+	    return err;
+
+	if (!DiffData(diff,off,cmp_size,iobuf1,iobuf2,0))
+	    break;
+
+	if ( f2->show_progress )
+	    PrintProgressSF(off,max_off,f2);
+	off = diff->next_off;
+    }
+
+abort:
+    CloseDiffSource(diff,print_sections>0);
+    return GetDiffStatus(diff);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+enumError DiffFilesSF
+(
+    Diff_t		* diff,		// valid diff structure
+    struct FilePattern_t * pat,		// NULL or file pattern
+    wd_ipm_t		pmode		// prefix mode
+)
+{
+    DASSERT(diff);
+
+    SuperFile_t *f1 = diff->f1;
+    SuperFile_t *f2 = diff->f2;
+    DASSERT(f1);
+    DASSERT(f2);
+    DASSERT(IsOpenSF(f1));
+    DASSERT(IsOpenSF(f2));
+    DASSERT(f1->f.is_reading);
+    DASSERT(f2->f.is_reading);
+
+
+    //----- setup fst
+
+    wd_disc_t * disc1 = OpenDiscSF(f1,true,true);
+    wd_disc_t * disc2 = OpenDiscSF(f2,true,true);
+    if ( !disc1 || !disc2 )
+	return ERR_WDISC_NOT_FOUND;
+
+    WiiFst_t fst1, fst2;
+    InitializeFST(&fst1);
+    InitializeFST(&fst2);
+
+    CollectFST(&fst1,disc1,GetDefaultFilePattern(),false,pmode,false);
+    CollectFST(&fst2,disc2,GetDefaultFilePattern(),false,pmode,false);
+
+    SortFST(&fst1,SORT_NAME,SORT_NAME);
+    SortFST(&fst2,SORT_NAME,SORT_NAME);
+
+
+    //----- define variables
+
+    enumError err = ERR_OK;
+
+    const int BUF_SIZE = sizeof(iobuf) / 2;
+    char * buf1 = iobuf;
+    char * buf2 = iobuf + BUF_SIZE;
+
+    u64 done_count = 0, total_count = 0;
+    f1->progress_verb = f2->progress_verb = "compared";
+
+
+    //----- first find solo partions
+
+    int ip1, ip2;
+    for ( ip1 = 0; ip1 < fst1.part_used; ip1++ )
+    {
+	WiiFstPart_t * p1 = fst1.part + ip1;
+	
+	// find a partition with equal type in fst2
+
+	WiiFstPart_t * p2 = 0;
+	for ( ip2 = 0; ip2 < fst2.part_used; ip2++ )
+	{
+	    WiiFstPart_t * p = fst2.part + ip2;
+	    if ( !p->done && p->part_type == p1->part_type )
+	    {
+		p2 = p;
+		p2->done++;
+		break;
+	    }
+	}
+
+	if (!p2)
+	{
+	    if ( DiffOnlyPart(diff,1,p1) <= 0 )
+		goto abort_source;
+	    continue;
+	}
+
+	ASSERT(p1);
+	ASSERT(p2);
+	total_count += p1->file_used + p2->file_used;
+    }
+
+    for ( ip2 = 0; ip2 < fst2.part_used; ip2++ )
+    {
+	WiiFstPart_t * p2 = fst2.part + ip2;
+	if (!p2->done)
+	{
+	    if ( DiffOnlyPart(diff,2,p2) <= 0 )
+		goto abort_source;
+	}
+	// reset done flag
+	p2->done = 0;
+    }
+
+
+    //----- compare files
+
+    if ( f2->show_progress )
+	PrintProgressSF(0,total_count,f2);
+
+    for ( ip1 = 0; ip1 < fst1.part_used; ip1++ )
+    {
+	WiiFstPart_t * p1 = fst1.part + ip1;
+	if (p1->done++)
+	    continue;
+	
+	// find a partition with equal type in fst2
+
+	WiiFstPart_t * p2 = 0;
+	for ( ip2 = 0; ip2 < fst2.part_used; ip2++ )
+	{
+	    WiiFstPart_t * p = fst2.part + ip2;
+	    if ( !p->done && p->part_type == p1->part_type )
+	    {
+		p2 = p;
+		break;
+	    }
+	}
+	if (!p2)
+	    continue;
+	p2->done++;
+
+	//----- compare files
+
+	ASSERT(p1);
+	ASSERT(p2);
+
+	const WiiFstFile_t *file1 = p1->file;
+	const WiiFstFile_t *end1  = file1 + p1->file_used;
+	const WiiFstFile_t *file2 = p2->file;
+	const WiiFstFile_t *end2  = file2 + p2->file_used;
+
+	while ( file1 < end1 && file2 < end2 )
+	{
+	    if (SIGINT_level>1)
+		return ERR_INTERRUPT;
+
+	    if ( f2->show_progress )
+		PrintProgressSF(done_count,total_count,f2);
+
+	    int stat = strcmp(file1->path,file2->path);
+	    if ( stat < 0 )
+	    {
+		if ( DiffOnlyFile(diff,1,p1,p2,p1->path,file1->path) <= 0 )
+		    goto abort_source;
+		file1++;
+		done_count++;
+		continue;
+	    }
+
+	    if ( stat > 0 )
+	    {	
+		if ( DiffOnlyFile(diff,2,p1,p2,p2->path,file2->path) <= 0 )
+		    goto abort_source;
+		file2++;
+		done_count++;
+		continue;
+	    }
+
+	    if ( file1->icm != file2->icm )
+	    {
+		// this should never happen, because '.../file' or '.../dir/'
+
+		const int diff_stat = DiffFile(diff);
+		if ( diff_stat >= 0 )
+		    printf("!   File types differ: %s%s\n", p1->path, file1->path );
+		if ( diff_stat <= 0 )
+		    goto abort_source;
+	    }
+	    else if ( file1->icm > WD_ICM_DIRECTORY )
+	    {
+		OpenDiffFile(diff,p1->path,file1->path);
+		u32 size = file1->size;
+		if ( file1->size != file2->size )
+		{
+		    if (!DiffCheckSize(diff,file1->size,file2->size))
+		    {
+			CloseDiffFile(diff,true);
+			goto abort_file;
+		    }
+		    if ( size > file2->size )
+			 size = file2->size;
+		}
+
+		u32 off  = 0;
+		while ( size > 0 )
+		{
+		    const u32 read_size = size < BUF_SIZE ? size : BUF_SIZE;
+		    if (   ReadFileFST(p1,file1,off,buf1,read_size)
+			|| ReadFileFST(p2,file2,off,buf2,read_size) )
+		    {
+			err = ERR_READ_FAILED;
+			goto abort_source;
+		    }
+
+		    if (!DiffData(diff,off,read_size,buf1,buf2,0))
+			break;
+		    size -= read_size;
+		    off  += read_size;
+		}
+		CloseDiffFile(diff,false);
+	    }
+	 abort_file:
+	    file1++;
+	    file2++;
+	    done_count += 2;
+	}
+
+	while ( file1 < end1 )
+	{
+	    if ( DiffOnlyFile(diff,1,p1,p2,p1->path,file1->path) <= 0 )
+		goto abort_source;
+	    file1++;
+	}
+
+	while ( file2 < end2 )
+	{
+	    if ( DiffOnlyFile(diff,2,p1,p2,p2->path,file2->path) <= 0 )
+		goto abort_source;
+	    file2++;
+	}
+    }
+
+abort_source:
+    CloseDiffSource(diff,print_sections>0);
+    ResetFST(&fst1);
+    ResetFST(&fst2);
+    return GetDiffStatus(diff);
+}
+
+//
+///////////////////////////////////////////////////////////////////////////////
+///////////////			old diff functions		///////////////
+///////////////////////////////////////////////////////////////////////////////
+
+static void oldPrintDiff ( off_t off, ccp iobuf1, ccp iobuf2, size_t iosize )
 {
     while ( iosize > 0 )
     {
@@ -3466,7 +4753,7 @@ static void PrintDiff ( off_t off, ccp iobuf1, ccp iobuf2, size_t iosize )
 	    const size_t bl = off/WII_SECTOR_SIZE;
 	    printf("! differ at ISO sector %6zu=0x%05zx, off=0x%09llx\n",
 				bl, bl, (u64)off );
-				
+
 	    if (verbose)
 	    {
 		printf("!"); HexDump(stdout,3,off,9,16,iobuf1,16);
@@ -3494,12 +4781,12 @@ static void PrintDiff ( off_t off, ccp iobuf1, ccp iobuf2, size_t iosize )
 
 ///////////////////////////////////////////////////////////////////////////////
 
-enumError DiffSF
+enumError oldDiffSF
 (
-	SuperFile_t	* f1,
-	SuperFile_t	* f2,
-	int		long_count,
-	bool		force_raw_mode
+    SuperFile_t		* f1,		// first file
+    SuperFile_t		* f2,		// second file
+    int			long_count,	// relevant long count
+    bool		force_raw_mode	// true: force raw mode
 )
 {
     ASSERT(f1);
@@ -3512,7 +4799,7 @@ enumError DiffSF
     f1->progress_verb = f2->progress_verb = "compared";
 
     if ( force_raw_mode || part_selector.whole_disc )
-	return DiffRawSF(f1,f2,long_count);
+	return oldDiffRawSF(f1,f2,long_count);
 
     wd_disc_t * disc1 = OpenDiscSF(f1,true,true);
     wd_disc_t * disc2 = OpenDiscSF(f2,true,true);
@@ -3602,7 +4889,7 @@ enumError DiffSF
 		{
 		    differ = true;
 		    if (long_count)
-			PrintDiff(off,iobuf1,iobuf2,WII_SECTOR_SIZE);
+			oldPrintDiff(off,iobuf1,iobuf2,WII_SECTOR_SIZE);
 		    if ( long_count < 2 )
 			break;
 		}
@@ -3632,7 +4919,7 @@ enumError DiffSF
 
 ///////////////////////////////////////////////////////////////////////////////
 
-enumError DiffRawSF
+enumError oldDiffRawSF
 (
 	SuperFile_t * f1,
 	SuperFile_t * f2,
@@ -3675,6 +4962,18 @@ enumError DiffRawSF
 	if (SIGINT_level>1)
 	    return ERR_INTERRUPT;
 
+ #if 1
+	off_t new_off = UnionDataBlockSF(f1,f2,off,HD_BLOCK_SIZE,0);
+	if ( off < new_off )
+	{
+	    const off_t delta = new_off - off;
+	    if ( size <= delta )
+		break;
+	    size -= delta;
+	    off = new_off;
+	}
+ #endif
+
 	const size_t cmp_size = io_size < size ? io_size : (size_t)size;
 
 	enumError err;
@@ -3689,7 +4988,7 @@ enumError DiffRawSF
 	{
 	    differ = true;
 	    if (long_count)
-		PrintDiff(off,iobuf1,iobuf2,cmp_size);
+		oldPrintDiff(off,iobuf1,iobuf2,cmp_size);
 	    if ( long_count < 2 )
 		break;
 	}
@@ -3709,7 +5008,7 @@ enumError DiffRawSF
 
 ///////////////////////////////////////////////////////////////////////////////
 
-enumError DiffFilesSF
+enumError oldDiffFilesSF
 (
 	SuperFile_t	* f1,
 	SuperFile_t	* f2,
@@ -3970,7 +5269,7 @@ abort:
 
 //
 ///////////////////////////////////////////////////////////////////////////////
-///////////////                  source iterator                ///////////////
+///////////////			source iterator			///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
 static StringField_t dir_done_list;
@@ -4212,7 +5511,7 @@ static enumError SourceIteratorHelper
 		&& sf.f.st.st_dev == it->open_dev
 		&& sf.f.st.st_ino == it->open_ino )
     {
-	if ( !it->wbfs || !*sf.f.id6 || !ExistsWDisc(it->wbfs,sf.f.id6) )
+	if ( !it->wbfs || !*sf.f.id6_dest || !ExistsWDisc(it->wbfs,sf.f.id6_dest) )
 	{
 	    if ( it->act_open == ACT_WARN )
 		printf(" - Ignore input=output: %s\n",path);
@@ -4322,7 +5621,7 @@ static enumError SourceIteratorHelper
 	    goto abort;
 	}
     }
-    else  if (!sf.f.id6[0])
+    else  if (!sf.f.id6_dest[0])
     {
 	const enumAction action = sf.f.ftype & FT_ID_WBFS
 				? it->act_wbfs : it->act_non_iso;
@@ -4335,7 +5634,7 @@ static enumError SourceIteratorHelper
     }
 
     if ( InsertStringField(&file_done_list,real_path,false)
-	&& ( !sf.f.id6[0] || !IsExcluded(sf.f.id6) ))
+	&& ( !sf.f.id6_src[0] || !IsExcluded(sf.f.id6_src) ))
     {
 	it->num_of_files++;
 	if (it->progress_enabled)
@@ -4344,7 +5643,7 @@ static enumError SourceIteratorHelper
 	{
 	    if ( !sf.f.fatt.mtime && it->newer && sf.f.ftype & FT_ID_FST )
 		SetupReadFST(&sf);
-	    InsertIdField(&it->source_list,sf.f.id6,0,sf.f.fatt.mtime,sf.f.fname);
+	    InsertIdField(&it->source_list,sf.f.id6_src,0,sf.f.fatt.mtime,sf.f.fname);
 	    err = ERR_OK;
 	}
 	else

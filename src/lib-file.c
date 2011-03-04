@@ -1112,10 +1112,10 @@ const OFT_info_t oft_info[OFT__N+1] =
     { OFT_WDF,	OFT_A_READ|OFT_A_WRITE|OFT_A_EXTEND|OFT_A_MODIFY, IOM_IS_IMAGE,
 	"WDF", "--wdf", ".wdf", 0, "Wii Disc Format" },
 
-    { OFT_CISO,	OFT_A_READ|OFT_A_WRITE|OFT_A_MODIFY, IOM_IS_IMAGE,
+    { OFT_CISO,	OFT_A_READ|OFT_A_WRITE|OFT_A_MODIFY|OFT_A_NOSIZE, IOM_IS_IMAGE,
 	"CISO", "--ciso", ".ciso", ".wbi", "Compact ISO" },
 
-    { OFT_WBFS,	OFT_A_READ|OFT_A_WRITE|OFT_A_EXTEND|OFT_A_MODIFY, IOM_IS_IMAGE,
+    { OFT_WBFS,	OFT_A_READ|OFT_A_WRITE|OFT_A_EXTEND|OFT_A_MODIFY|OFT_A_NOSIZE, IOM_IS_IMAGE,
 	"WBFS", "--wbfs", ".wbfs", 0, "Wii Backup File System" },
 
     { OFT_WIA,	OFT_A_READ|OFT_A_WRITE|OFT_A_COMPR, IOM_IS_WIA,
@@ -1785,7 +1785,8 @@ static FileCache_t * XCacheHelper ( XPARM File_t * f, off_t off, size_t count )
 	ASSERT(cptr->data);
 
 	TRACE(TRACE_RDWR_FORMAT, "#F# CACHE FOUND",
-		GetFD(f), GetFP(f), (u64)cptr->off, (u64)cptr->off+cptr->count, cptr->count, "" );
+		GetFD(f), GetFP(f), (u64)cptr->off,
+		(u64)cptr->off+cptr->count, cptr->count, "" );
     }
 
     return cptr;
@@ -1996,7 +1997,7 @@ enumError XSeekF ( XPARM File_t * f, off_t off )
 	{
 	    char buf[100];
 	    snprintf(buf,sizeof(buf),"ID=%s, OFF=%llx, SIZE=%x",
-		    f->id6, (u64)f->cache_info_off, (u32)f->cache_info_size );
+		    f->id6_src, (u64)f->cache_info_off, (u32)f->cache_info_size );
 	    fprintf(stderr,
 		    "\n"
 		    "************************************************************************\n"
@@ -2928,6 +2929,56 @@ enumError SaveFile ( ccp path1, ccp path2, bool create_dir,
     fclose(f);
 
     return err;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+
+void ClearFileID
+(
+    File_t		* f
+)
+{
+    DASSERT(f);
+    memset( f->id6_src,  0, sizeof(f->id6_src) );
+    memset( f->id6_dest, 0, sizeof(f->id6_dest) );
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+void SetFileID
+(
+    File_t		* f,
+    const void		* new_id,
+    int			id_length
+)
+{
+    DASSERT(f);
+    DASSERT(id_length>=0);
+
+    memset( f->id6_src, 0, sizeof(f->id6_src) );
+    memcpy( f->id6_src, new_id, id_length < 6 ? id_length : 6 );
+    memcpy( f->id6_dest, f->id6_src, sizeof(f->id6_dest) );
+    noPRINT("$$$ SetFileID: |%s|%s|\n",f->id6_src,f->id6_dest);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+bool SetPatchFileID
+(
+    File_t		* f,
+    const void		* new_id,
+    int			id_length
+)
+{
+    DASSERT(f);
+    DASSERT(id_length>=0);
+
+    memset( f->id6_src, 0, sizeof(f->id6_src) );
+    memcpy( f->id6_src, new_id, id_length < 6 ? id_length : 6 );
+    const bool stat = CopyPatchedDiscId( f->id6_dest, f->id6_src );
+    noPRINT("$$$ SetPatchFileID: |%s|%s| stat=%d\n",f->id6_src,f->id6_dest,stat);
+    return stat;
 }
 
 //
