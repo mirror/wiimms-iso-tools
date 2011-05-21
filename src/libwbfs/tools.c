@@ -756,7 +756,7 @@ void * MemDup ( const void * src, size_t copylen )
 
 ///////////////////////////////////////////////////////////////////////////////
 
-char * StringCopyE ( char * buf, char * buf_end, ccp src )
+char * StringCopyE ( char * buf, ccp buf_end, ccp src )
 {
     // RESULT: end of copied string pointing to NULL
     // 'src' may be a NULL pointer.
@@ -782,7 +782,7 @@ char * StringCopyS ( char * buf, size_t buf_size, ccp src )
 
 ///////////////////////////////////////////////////////////////////////////////
 
-char * StringCat2E ( char * buf, char * buf_end, ccp src1, ccp src2 )
+char * StringCat2E ( char * buf, ccp buf_end, ccp src1, ccp src2 )
 {
     // RESULT: end of copied string pointing to NULL
     // 'src*' may be a NULL pointer.
@@ -812,7 +812,7 @@ char * StringCat2S ( char * buf, size_t buf_size, ccp src1, ccp src2 )
 
 ///////////////////////////////////////////////////////////////////////////////
 
-char * StringCat3E ( char * buf, char * buf_end, ccp src1, ccp src2, ccp src3 )
+char * StringCat3E ( char * buf, ccp buf_end, ccp src1, ccp src2, ccp src3 )
 {
     // RESULT: end of copied string pointing to NULL
     // 'src*' may be a NULL pointer.
@@ -842,6 +842,41 @@ char * StringCat3E ( char * buf, char * buf_end, ccp src1, ccp src2, ccp src3 )
 char * StringCat3S ( char * buf, size_t buf_size, ccp src1, ccp src2, ccp src3 )
 {
     return StringCat3E(buf,buf+buf_size,src1,src2,src3);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+
+char * PrintVersion
+(
+    char		* buf,		// result buffer
+					// If NULL, a local circulary static buffer is used
+    size_t		buf_size,	// size of 'buf', ignored if buf==NULL
+    u32			version		// version number to print
+)
+{
+    if (!buf)
+	buf = GetCircBuf( buf_size = 20 );
+
+    version = htonl(version); // we use big endian here
+    const u8 * v = (const u8 *)&version;
+
+    if (v[2])
+    {
+	if ( !v[3] || v[3] == 0xff )
+	    snprintf(buf,buf_size,"%u.%02x.%02x",v[0],v[1],v[2]);
+	else
+	    snprintf(buf,buf_size,"%u.%02x.%02x.beta%u",v[0],v[1],v[2],v[3]);
+    }
+    else
+    {
+	if ( !v[3] || v[3] == 0xff )
+	    snprintf(buf,buf_size,"%u.%02x",v[0],v[1]);
+	else
+	    snprintf(buf,buf_size,"%u.%02x.beta%u",v[0],v[1],v[3]);
+    }
+
+    return buf;
 }
 
 //

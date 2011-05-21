@@ -29,6 +29,10 @@
 #define TIME		"@@TIME@@"
 #define DATETIME	"@@DATE@@ @@TIME@@"
 
+#define INSTALL_PATH	"@@INSTALL-PATH@@"
+#define SHARE_PATH	"@@SHARE-PATH@@"
+#define WIN_INSTALL_PATH "@@WIN-INSTALL-PATH@@"
+
 #define URI_REPOS	"@@URI-REPOS@@/"
 #define URI_VIEWVC	"@@URI-VIEWVC@@/"
 #define URI_HOME	"@@URI-HOME@@"

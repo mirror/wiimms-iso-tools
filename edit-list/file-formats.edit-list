@@ -5,5 +5,5 @@
 ../src/lib-file.[ch] ;
 @+all-source.edit-list
 -y   1 ../src/libwbfs/file-formats.c ;
--y  80 ../src/libwbfs/file-formats.h ;
+-y 920 ../src/libwbfs/file-formats.h ;
 -y   1 ../src/lib-std.c ;

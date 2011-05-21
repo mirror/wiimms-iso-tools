@@ -36,10 +36,7 @@
 ~ Highlights
 [size=12][color=#0000c0][b]Höhepunkte dieser Version:[/b][/color][/size]
 [list]
-[*] Ich habe das Benutzer-Interface für alle drei diff-Varianten (Raw, Scrubbed, Einzeldateien) überarbeitet. Die einzelnen Optionen zeigen nun bei allen drei Varianten identische Auswirkungen, was auch für die Ausgabeintensität von stumm bis Hexdump gilt.
-
-[*] Dieses Release ist das erste, welches einen Windows-Installer enthält. Das Script "windows-install.bat" kopiert alle Dateien in ein Unterverzeichnis von [i]Programme[/i] mit dem Namen [u]Wiimm\WIT[/u]. Außerdem werden Applikations-Pfade in der Registry definiert. Ich habe dieses aber nur unter Windows XP testen können. Selbstgemachte vorherige Installationen sollten deaktiviert und entfernt werden.
-[color=#800000]DIESER INSTALLER IST DEFINITIV BETA![/color]
+[*] Neues Kommando: wit+wwt GETTITLES: Aktualisierung der Titel-DB.
 [/list]
 
 [size=12][color=#0000c0][b]Letzte Änderungen:[/b][/color][/size]

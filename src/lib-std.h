@@ -140,7 +140,7 @@ enumError CheckEnvOptions ( ccp varname, check_opt_func );
  #define SetFileTime(f,s)	XSetFileTime	(__FUNCTION__,__FILE__,__LINE__,f,s)
  #define OpenFile(f,n,i)	XOpenFile	(__FUNCTION__,__FILE__,__LINE__,f,n,i)
  #define OpenFileModify(f,n,i)	XOpenFileModify	(__FUNCTION__,__FILE__,__LINE__,f,n,i)
- #define CheckCreated(f,d)	XCheckCreated	(__FUNCTION__,__FILE__,__LINE__,f,d)
+ #define CheckCreated(f,d,e)	XCheckCreated	(__FUNCTION__,__FILE__,__LINE__,f,d,e)
  #define CreateFile(f,n,i,o)	XCreateFile	(__FUNCTION__,__FILE__,__LINE__,f,n,i,o)
  #define OpenStreamFile(f)	XOpenStreamFile	(__FUNCTION__,__FILE__,__LINE__,f)
  #define SetupSplitFile(f,m,s)	XSetupSplitFile	(__FUNCTION__,__FILE__,__LINE__,f,m,s)
@@ -175,7 +175,7 @@ enumError CheckEnvOptions ( ccp varname, check_opt_func );
  #define SetFileTime(f,s)	XSetFileTime	(f,s)
  #define OpenFile(f,n,i)	XOpenFile	(f,n,i)
  #define OpenFileModify(f,n,i)	XOpenFileModify	(f,n,i)
- #define CheckCreated(f,d)	XCheckCreated	(f,d)
+ #define CheckCreated(f,d,e)	XCheckCreated	(f,d,e)
  #define CreateFile(f,n,i,o)	XCreateFile	(f,n,i,o)
  #define OpenStreamFile(f)	XOpenStreamFile	(f)
  #define SetupSplitFile(f,m,s)	XSetupSplitFile	(f,m,s)
@@ -407,6 +407,7 @@ void PrintMemMap ( MemMap_t * mm, FILE * f, int indent );
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////			file support			///////////////
 ///////////////////////////////////////////////////////////////////////////////
+// [2do] [ft-id]
 
 typedef enum enumFileType
 {
@@ -420,17 +421,22 @@ typedef enum enumFileType
 	FT_ID_GC_ISO	= 0x0008,  // file is a GC ISO image
 	FT_ID_WII_ISO	= 0x0010,  // file is a WII ISO image
 
-	FT_ID_DOL	= 0x0100,  // file is a DOL file
-	FT_ID_CERT_BIN	= 0x0200,  // 'cert.bin' like file
-	FT_ID_TIK_BIN	= 0x0400,  // 'ticket.bin' like file
-	FT_ID_TMD_BIN	= 0x0800,  // 'tmd.bin' like file
-	FT_ID_HEAD_BIN	= 0x1000,  // 'header.bin' like file
-	FT_ID_BOOT_BIN	= 0x2000,  // 'boot.bin' like file
-	FT_ID_FST_BIN	= 0x4000,  // 'fst.bin' like file
-	 FT__SPC_MASK	= 0x7f00,  // mask of all special files
+	// special files
 
-	FT_ID_OTHER	= 0x8000,  // unknown file
-	 FT__ID_MASK	= 0xff1f,  // mask of all 'FT_ID_' values
+	 FT__SPC_FILES	= 0x0020,  // [2do] [ft-id]
+
+	FT_ID_DOL	= 0x0020,  // file is a DOL file
+	FT_ID_CERT_BIN	= 0x0040,  // 'cert.bin' like file
+	FT_ID_TIK_BIN	= 0x0080,  // 'ticket.bin' like file
+	FT_ID_TMD_BIN	= 0x0100,  // 'tmd.bin' like file
+	FT_ID_HEAD_BIN	= 0x0200,  // 'header.bin' like file
+	FT_ID_BOOT_BIN	= 0x0400,  // 'boot.bin' like file
+	FT_ID_FST_BIN	= 0x0800,  // 'fst.bin' like file
+	FT_ID_PATCH	= 0x1000,  // wit patch file
+	FT_ID_OTHER	= 0x2000,  // unknown file
+
+	 FT__SPC_MASK	= 0x3fe0,  // mask of all special files
+	 FT__ID_MASK	= 0x3fff,  // mask of all 'FT_ID_' values
 
     // 2. attributes
 
@@ -557,6 +563,7 @@ typedef struct File_t
     bool	disable_errors;		// don't print error messages
     bool	create_directory;	// create direcotries automatically
     bool	allow_direct_io;	// allow the usage of O_DIRECT
+    int		already_created_mode;	// 0:ignore, 1:warn, 2:error+abort
 
 
     //--- error codes
@@ -631,7 +638,7 @@ enumError XSetFileTime	( XPARM File_t * f, FileAttrib_t * set_time );
 enumError XOpenFile       ( XPARM File_t * f, ccp fname, enumIOMode iomode );
 enumError XOpenFileModify ( XPARM File_t * f, ccp fname, enumIOMode iomode );
 enumError XCreateFile     ( XPARM File_t * f, ccp fname, enumIOMode iomode, int overwrite );
-enumError XCheckCreated   ( XPARM             ccp fname, bool disable_errors );
+enumError XCheckCreated   ( XPARM             ccp fname, bool disable_errors, enumError err_code );
 enumError XOpenStreamFile ( XPARM File_t * f );
 enumError XSetupSplitFile ( XPARM File_t *f, enumOFT oft, off_t file_size );
 enumError XCreateSplitFile( XPARM File_t *f, uint split_idx );
@@ -1230,11 +1237,13 @@ int ScanEscapeChar ( ccp arg );
 typedef struct SetupDef_t
 {
 	ccp	name;		// name of parameter, NULL=list terminator
-	u32	factor;		// alignment factor;, 0: text param
-	ccp	param;		// malloced text param
+	u32	factor;		// alignment factor; 0: text param
+	ccp	param;		// alloced text param
 	u64	value;		// numeric value of param
 
 } SetupDef_t;
+
+//-----------------------------------------------------------------------------
 
 size_t ResetSetup
 (
@@ -1349,6 +1358,15 @@ s64 ScanCommandListMask
 (
     ccp			arg,		// argument to scan
     const CommandTab_t	* cmd_tab	// valid pointer to command table
+);
+
+void PrintCommandError
+(
+    const CommandTab_t	* cmd_tab,	// NULL or pointer to command table
+    ccp			cmd_arg,	// analyzed command
+    int			cmd_stat,	// status of ScanCommand()
+    ccp			object		// NULL or object for error messages
+					//	default= 'command'
 );
 
 //
@@ -1468,7 +1486,7 @@ extern volatile int	logging;
 extern int		progress;
 extern bool		use_utf8;
 extern char		escape_char;
-extern ccp		opt_clone;
+extern ccp		opt_patch_file;
 extern int		testmode;
 extern int		newmode;
 extern ccp		opt_dest;

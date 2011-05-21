@@ -1119,10 +1119,7 @@ int main ( int argc, char ** argv )
     const CommandTab_t * cmd_ct = ScanCommand(&cmd_stat,argv[1],CommandTab);
     if (!cmd_ct)
     {
-	if ( cmd_stat > 0 )
-	    ERROR0(ERR_SYNTAX,"Command abbreviation is ambiguous: %s\n\n",argv[1]);
-	else
-	    ERROR0(ERR_SYNTAX,"Unknown command: %s\n\n",argv[1]);
+	PrintCommandError(CommandTab,argv[1],cmd_stat,0);
 	help_exit();
     }
 

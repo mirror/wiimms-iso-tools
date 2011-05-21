@@ -50,6 +50,11 @@
 	"wit TITLES [additional_title_file]...", \
 	"Dump the internal title database to standard output (stdout)." )
 
+#:def_cmd( "GETTITLES", "GETTITLES", \
+	"wit GETTITLES", \
+	"Call the script 'load-titles.sh' in the share folder to update the" \
+	" title database." )
+
 #:def_cmd( "CERT", "CERT", \
 	"wit CERT [additional_cert_file]...", \
 	"Collect certificates and eliminate multiple entires of the same" \
@@ -657,8 +662,8 @@
 
 #:def_opt( "UPDATE", "u|update", "C", \
 	"", \
-	"Copy only files that does not exist. Already existing files are" \
-	" ignored without warning." )
+	"Copy only files that do not exist. Already existing files are ignored" \
+	" without warning." )
 
 #:def_opt( "OVERWRITE", "o|overwrite", "C", \
 	"", \
@@ -701,7 +706,7 @@
 
 #:def_opt( "FILES", "F|files", "CMP", \
 	"ruleset", \
-	"Append a file select rules. This option can be used multiple times to" \
+	"Append file select rules. This option can be used multiple times to" \
 	" extend the rule list. Rules beginning with a '+' or a '-' are allow" \
 	" or deny rules rules. Rules beginning with a ':' are macros for" \
 	" predefined rule sets." )
@@ -823,6 +828,10 @@
 	" the entered number of files differ. This option is ignored in quiet" \
 	" mode." )
 
+#:def_opt( "PATCH_FILE", "patch-file|patchfile", "CP", \
+	"file", \
+	"Define a patch file." )
+
 #:def_cmd_opt( "VERSION", "SECTIONS", \
 	"", \
 	"" )
@@ -830,6 +839,10 @@
 #:def_cmd_opt( "VERSION", "LONG", \
 	"", \
 	"Print in long format. Ignored if option {--sections} is set." )
+
+#:def_cmd_opt( "HELP", "WIDTH", \
+	"", \
+	"" )
 
 #:def_cmd_opt( "INFO", "SECTIONS", \
 	"", \
@@ -2272,6 +2285,18 @@
 	"", \
 	"" )
 
+#:def_cmd_opt( "DIFF", "FILES", \
+	"", \
+	"Enter file mode (compare file by file) and append file select rules." \
+	" This option can be used multiple times to extend the rule list." \
+	" Rules beginning with a '+' or a '-' are allow or deny rules rules." \
+	" Rules beginning with a ':' are macros for predefined rule sets." )
+
+#:def_cmd_opt( "DIFF", "PATCH_FILE", \
+	"", \
+	"Enter file mode (compare file by file) and create a patch file. The" \
+	" options {--limit}, {--file-limit} and {--raw} are ignored." )
+
 #:def_cmd_opt( "DIFF", "TITLES", \
 	"", \
 	"" )
@@ -2368,10 +2393,6 @@
 	"", \
 	"" )
 
-#:def_cmd_opt( "DIFF", "FILES", \
-	"", \
-	"" )
-
 #:def_cmd_opt( "DIFF", "SNEEK", \
 	"", \
 	"" )
@@ -2464,6 +2485,18 @@
 #:def_cmd_opt( "FDIFF", "TEST", \
 	"", \
 	"" )
+
+#:def_cmd_opt( "FDIFF", "FILES", \
+	"", \
+	"Enter file mode (compare file by file) and append file select rules." \
+	" This option can be used multiple times to extend the rule list." \
+	" Rules beginning with a '+' or a '-' are allow or deny rules rules." \
+	" Rules beginning with a ':' are macros for predefined rule sets." )
+
+#:def_cmd_opt( "FDIFF", "PATCH_FILE", \
+	"", \
+	"Enter file mode (compare file by file) and create a patch file. The" \
+	" options {--limit}, {--file-limit} and {--raw} are ignored." )
 
 #:def_cmd_opt( "FDIFF", "TITLES", \
 	"", \
@@ -2558,10 +2591,6 @@
 	"" )
 
 #:def_cmd_opt( "FDIFF", "FLAT", \
-	"", \
-	"" )
-
-#:def_cmd_opt( "FDIFF", "FILES", \
 	"", \
 	"" )
 
@@ -4171,6 +4200,11 @@
 	"wwt TITLES [additional_title_file]", \
 	"Dump the internal title database to standard output (stdout)." )
 
+#:def_cmd( "GETTITLES", "GETTITLES", \
+	"wwt GETTITLES", \
+	"Call the script 'load-titles.sh' in the share folder to update the" \
+	" title database." )
+
 #:def_cmd( "FIND", "FIND|F", \
 	"wwt FIND [wbfs_partition]...", \
 	"Find WBFS partitions and optionally print some geometric values." )
@@ -4852,7 +4886,7 @@
 
 #:def_opt( "FILES", "files", "CO", \
 	"ruleset", \
-	"Append a file select rules. This option can be used multiple times to" \
+	"Append file select rules. This option can be used multiple times to" \
 	" extend the rule list. Rules beginning with a '+' or a '-' are allow" \
 	" or deny rules rules. Rules beginning with a ':' are macros for" \
 	" predefined rule sets." )
@@ -4943,6 +4977,10 @@
 	"" )
 
 #:def_cmd_opt( "VERSION", "LONG", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "HELP", "WIDTH", \
 	"", \
 	"" )
 
@@ -7821,6 +7859,10 @@
 #:def_cmd_opt( "VERSION", "LONG", \
 	"", \
 	"Print in long format." )
+
+#:def_cmd_opt( "HELP", "WIDTH", \
+	"", \
+	"" )
 
 #:def_cmd_opt( "PACK", "DEST", \
 	"", \

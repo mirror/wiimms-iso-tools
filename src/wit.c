@@ -64,6 +64,7 @@
 #include "crypt.h"
 
 #include "ui-wit.c"
+#include "logo.inc"
 
 //-----------------------------------------------------------------------------
 
@@ -370,10 +371,7 @@ enumError cmd_create()
     const CommandTab_t * cmd = ScanCommand(&cmd_stat,cmd_name,tab);
     if (!cmd)
     {
-	if ( cmd_stat > 0 )
-	    ERROR0(ERR_SYNTAX,"Sub command abbreviation is ambiguous: %s\n",cmd_name);
-	else
-	    ERROR0(ERR_SYNTAX,"Unknown sub command: %s\n",cmd_name);
+	PrintCommandError(tab,cmd_name,cmd_stat,"sub command");
 	hint_exit(ERR_SYNTAX);
     }
 
@@ -862,9 +860,13 @@ enumError exec_dump ( SuperFile_t * sf, Iterator_t * it )
     if ( sf->f.ftype & FT_ID_BOOT_BIN )
 	return Dump_BOOT_BIN(stdout,0,sf,it->real_path);
 
+    if ( sf->f.ftype & FT_ID_PATCH )
+	return Dump_PATCH(stdout,0,sf,it->real_path);
+
     return OptionUsed[OPT_IGNORE]
 		? ERR_OK
-		: ERROR0(ERR_INVALID_FILE,"Can't dump this file type: %s\n",sf->f.fname);
+		: ERROR0(ERR_INVALID_FILE,
+			"Can't dump this file type: %s\n",sf->f.fname);
 }
 
 //-----------------------------------------------------------------------------
@@ -1203,6 +1205,7 @@ enumError exec_files ( SuperFile_t * fi, Iterator_t * it )
     if ( fi->f.ftype & FT_ID_FST_BIN )
 	return Dump_FST_BIN(stdout,0,fi,it->real_path,it->show_mode&~SHOW_INTRO);
 
+// [2do] [ft-id]
     if ( fi->f.ftype & FT__SPC_MASK || !fi->f.id6_dest[0] )
 	return OptionUsed[OPT_IGNORE]
 		? ERR_OK
@@ -1351,6 +1354,7 @@ enumError cmd_diff ( bool file_level )
     {
 	it.func = exec_filetype;
 	enumError err = SourceIterator(&it,1,false,false);
+	CloseDiff(&diff);
 	ResetIterator(&it);
 	printf("DESTINATION: %s\n",opt_dest);
 	return err;
@@ -1369,8 +1373,9 @@ enumError cmd_diff ( bool file_level )
 
     if ( !err && it.diff_count )
 	err = ERR_DIFFER;
+    enumError err2 = CloseDiff(&diff);
     ResetIterator(&it);
-    return err;
+    return err > err2 ? err : err2;
 }
 
 //
@@ -1629,9 +1634,11 @@ enumError exec_copy ( SuperFile_t * fi, Iterator_t * it )
 	if (!OpenDiffSource(&diff,fi,&fo,true))
 	    return ERR_DIFFER;
 
-	err = !raw_mode && OptionUsed[OPT_FILES]
-		? DiffFilesSF( &diff, GetDefaultFilePattern(), prefix_mode )
-		: DiffSF( &diff, raw_mode );
+	err = opt_patch_file && *opt_patch_file
+		? DiffPatchSF( &diff, GetDefaultFilePattern(), prefix_mode )
+		: !raw_mode && OptionUsed[OPT_FILES]
+		    ? DiffFilesSF( &diff, GetDefaultFilePattern(), prefix_mode )
+		    : DiffSF( &diff, raw_mode );
 
 	if ( err == ERR_OK && !CloseDiffSource(&diff,print_sections>0) )
 	    err = ERR_DIFFER;
@@ -2008,7 +2015,7 @@ enumError exec_move ( SuperFile_t * fi, Iterator_t * it )
 	{
 	    ERROR0(ERR_CANT_CREATE,"File already exists: %s\n",fo.f.fname);
 	}
-	else if (!CheckCreated(fo.f.fname,false))
+	else if (!CheckCreated(fo.f.fname,false,ERR_CANT_CREATE))
 	{
 	    if ( testmode || verbose >= 0 )
 	    {
@@ -2477,6 +2484,7 @@ enumError CheckOptions ( int argc, char ** argv, bool is_env )
 	case GO_ALIGN_PART:	err += ScanOptAlignPart(optarg); break;
 	case GO_DISC_SIZE:	err += ScanOptDiscSize(optarg); break;
 	case GO_OVERLAY:	break;
+	case GO_PATCH_FILE:	opt_patch_file = optarg; break;
 	case GO_DEST:		SetDest(optarg,false); break;
 	case GO_DEST2:		SetDest(optarg,true); break;
 	case GO_SPLIT:		opt_split++; break;
@@ -2619,10 +2627,7 @@ enumError CheckCommand ( int argc, char ** argv )
     const CommandTab_t * cmd_ct = ScanCommand(&cmd_stat,argv[optind],CommandTab);
     if (!cmd_ct)
     {
-	if ( cmd_stat > 0 )
-	    ERROR0(ERR_SYNTAX,"Command abbreviation is ambiguous: %s\n",argv[optind]);
-	else
-	    ERROR0(ERR_SYNTAX,"Unknown command: %s\n",argv[optind]);
+	PrintCommandError(CommandTab,argv[optind],cmd_stat,0);
 	hint_exit(ERR_SYNTAX);
     }
 
@@ -2653,6 +2658,7 @@ enumError CheckCommand ( int argc, char ** argv )
 	case CMD_COMPR:		err = cmd_compr(); break;
 	case CMD_EXCLUDE:	err = cmd_exclude(); break;
 	case CMD_TITLES:	err = cmd_titles(); break;
+	case CMD_GETTITLES:	err = cmd_gettitles(); break;
 	case CMD_CERT:		err = cmd_cert(); break;
 	case CMD_CREATE:	err = cmd_create(); break;
 
@@ -2714,7 +2720,8 @@ int main ( int argc, char ** argv )
 
     if ( argc < 2 )
     {
-	printf("\n%s\nVisit %s%s for more info.\n\n",TITLE,URI_HOME,WIT_SHORT);
+	printf("\n%s\n%s\nVisit %s%s for more info.\n\n",
+		text_logo, TITLE, URI_HOME, WIT_SHORT );
 	hint_exit(ERR_OK);
     }
 

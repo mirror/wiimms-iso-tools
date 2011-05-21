@@ -115,6 +115,7 @@
 #define WIA_VERSION			0x01000000  // current writing version
 #define WIA_VERSION_COMPATIBLE		0x00090000  // down compatible
 #define WIA_VERSION_READ_COMPATIBLE	0x00080000  // read compatible
+#define PrintVersionWIA PrintVersion
 
 // the minimal size of holes in bytes that will be detected.
 #define WIA_MIN_HOLE_SIZE	0x400
@@ -144,12 +145,12 @@ typedef struct wia_file_head_t
     u32			version_compatible;	// 0x08: compatible down to
 
     u32			disc_size;		// 0x0c: size of wia_disc_t
-    sha1_hash		disc_hash;		// 0x10: hash of wia_disc_t
+    sha1_hash_t		disc_hash;		// 0x10: hash of wia_disc_t
 
     u64			iso_file_size;		// 0x24: size of ISO image
     u64			wia_file_size;		// 0x2c: size of WIA file
 
-    sha1_hash		file_head_hash;		// 0x34: hash of wia_file_head_t
+    sha1_hash_t		file_head_hash;		// 0x34: hash of wia_file_head_t
 
 } __attribute__ ((packed)) wia_file_head_t;	// 0x48 = 72 = sizeof(wia_file_head_t)
 
@@ -179,7 +180,7 @@ typedef struct wia_disc_t
     u32			n_part;			// 0x90: number or partitions
     u32			part_t_size;		// 0x94: size of 1 element of wia_part_t
     u64			part_off;		// 0x98: file offset wia_part_t[n_part]
-    sha1_hash		part_hash;		// 0xa0: hash of wia_part_t[n_part]
+    sha1_hash_t		part_hash;		// 0xa0: hash of wia_part_t[n_part]
 
     //--- raw data, compressed
 
@@ -284,7 +285,7 @@ typedef struct wia_exception_t
     // All values are stored in network byte order (big endian)
 
     u16			offset;			// 0x00: sector offset of hash
-    sha1_hash		hash;			// 0x02: hash value
+    sha1_hash_t		hash;			// 0x02: hash value
 
 } __attribute__ ((packed)) wia_exception_t;	// 0x16 = 22 = sizeof(wia_exception_t)
 
@@ -376,16 +377,6 @@ typedef struct wia_controller_t
 void ResetWIA
 (
     wia_controller_t	* wia		// NULL or valid pointer
-);
-
-//-----------------------------------------------------------------------------
-
-char * PrintVersionWIA
-(
-    char		* buf,		// result buffer
-					// If NULL, a local circulary static buffer is used
-    size_t		buf_size,	// size of 'buf', ignored if buf==NULL
-    u32			version		// version number to print
 );
 
 //-----------------------------------------------------------------------------

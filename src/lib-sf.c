@@ -399,6 +399,8 @@ enumError SetupReadSF ( SuperFile_t * sf )
     SetupIOD(sf,OFT_PLAIN,OFT_PLAIN);
     if ( sf->f.ftype == FT_UNKNOWN )
 	AnalyzeFT(&sf->f);
+    ASSERT( sf->f.ftype == FT_UNKNOWN
+		|| Count1Bits32(sf->f.ftype&FT__ID_MASK) == 1  ); // [2do] [ft-id]
 
     if ( sf->allow_fst && sf->f.ftype & FT_ID_FST )
 	return SetupReadFST(sf);
@@ -2245,6 +2247,9 @@ enumFileType AnalyzeFT ( File_t * f )
 	WDiscInfo_t wdisk;
 	InitializeWDiscInfo(&wdisk);
 
+	ASSERT( sf.f.ftype == FT_UNKNOWN
+		|| Count1Bits32(sf.f.ftype&FT__ID_MASK) == 1  ); // [2do] [ft-id]
+
 	if ( sf.f.ftype & FT_ID_WBFS )
 	{
 	    TRACE(" - f2=WBFS\n");
@@ -2542,6 +2547,7 @@ enumFileType AnalyzeFT ( File_t * f )
     // restore warnings
     f->disable_errors = disable_errors;
 
+    ASSERT( ft == FT_UNKNOWN || Count1Bits32(ft&FT__ID_MASK) == 1  ); // [2do] [ft-id]
     return f->ftype = ft;
 }
 
@@ -2554,6 +2560,17 @@ enumFileType AnalyzeMemFT ( const void * preload_buf, off_t file_size )
     ccp data = preload_buf;
     TRACE("AnalyzeMemFT(,%llx) id=%08x magic=%08x\n",
 		(u64)file_size, be32(data), be32(data+WII_MAGIC_OFF) );
+
+
+    //----- test WIT-PATCH
+
+    if (!memcmp(preload_buf,wpat_magic,sizeof(wpat_magic)))
+    {
+	const wpat_header_t * wpat = preload_buf;
+	if ( wpat->type_size.type == WPAT_HEADER )
+	    return FT_ID_PATCH;
+    }
+
 
     //----- test BOOT.BIN or ISO
 
@@ -2735,6 +2752,7 @@ enumError XPrintErrorFT ( XPARM File_t * f, enumFileType err_mask )
     if ( f->ftype == FT_UNKNOWN )
 	AnalyzeFT(f);
 
+// [2do] [ft-id]
     enumError stat = ERR_OK;
     enumFileType  and_mask = err_mask &  f->ftype;
     enumFileType nand_mask = err_mask & ~f->ftype;
@@ -2862,6 +2880,9 @@ ccp GetNameFT ( enumFileType ftype, int ignore )
 	case FT_ID_FST_BIN:
 	    return ignore > 1 ? 0 : ftype & FT_A_WDF ? "WDF/FST"  : "FST.BIN";
 
+	case FT_ID_PATCH:
+	    return ignore > 1 ? 0 : ftype & FT_A_WDF ? "WDF/WPAT" : "WITPATCH";
+
 	default:
 	    return ignore > 1
 			? 0
@@ -2872,7 +2893,6 @@ ccp GetNameFT ( enumFileType ftype, int ignore )
 					: "OTHER";
     }
 }
-
 
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -3624,7 +3644,7 @@ enumError AppendZeroSF ( SuperFile_t * out, off_t count )
 
 //
 ///////////////////////////////////////////////////////////////////////////////
-///////////////			  diff functions		///////////////
+///////////////			  diff helpers			///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
 void SetupDiff
@@ -3637,9 +3657,10 @@ void SetupDiff
 )
 {
     DASSERT(diff);
-    PRINT("DIFF: SetupDiff(%p,%d)\n",diff,long_count);
+    TRACE("DIFF: SetupDiff(%p,%d)\n",diff,long_count);
 
     memset(diff,0,sizeof(*diff));
+    diff->logfile = stdout;
     diff->block_size = opt_block_size <= 0 || opt_block_size > sizeof(diff->data1)
 				? opt_block_size
 				: sizeof(diff->data1);
@@ -3668,10 +3689,33 @@ void SetupDiff
     diff->file_differ_limit = opt_file_limit > 0 ? opt_file_limit : 0;
     diff->info_level = diff->verbose < 0 ? 0 : long_count;
 
-    PRINT("DIFF: v=%d, i=%d, l=%d,%d,%d, bs=%d,%d\n",
+    noPRINT("DIFF: v=%d, i=%d, l=%d,%d,%d, bs=%d,%d\n",
 	diff->verbose, diff->info_level,
 	diff->source_differ_limit, diff->file_differ_limit, diff->mismatch_limit,
 	diff->active_block_size, diff->active_block_size );
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+enumError CloseDiff
+(
+    // close files and free dynamic data structures
+
+    Diff_t		* diff		// NULL or diff structure to reset
+)
+{
+    enumError err = ERR_OK;
+
+    if (diff)
+    {
+	if (diff->patch)
+	{
+	    err = CloseWritePatch(diff->patch);
+	    free(diff->patch);
+	    diff->patch = 0;
+	}
+    }
+    return err;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -3685,7 +3729,7 @@ bool OpenDiffSource
 )
 {
     const bool stat = CloseDiffSource(diff,true);
-    PRINT("DIFF: OpenDiffSource(%p,%p,%p,%d)\n",diff,f1,f2,diff_iso);
+    TRACE("DIFF: OpenDiffSource(%p,%p,%p,%d)\n",diff,f1,f2,diff_iso);
 
     f1->progress_verb = f2->progress_verb = "compared";
     diff->f1 = f1;
@@ -3710,7 +3754,7 @@ bool CloseDiffSource
     bool		silent		// true: suppress printing status messages
 )
 {
-    PRINT("DIFF: CloseDiffSource(%p,%d) -> %d,%d,%d\n",
+    TRACE("DIFF: CloseDiffSource(%p,%d) -> %d,%d,%d\n",
 		diff, silent,
 		diff->source_differ_count,
 		diff->file_differ_count,
@@ -3747,22 +3791,26 @@ bool CloseDiffSource
 	    // [2do] [diff] print only if differ || verbose >= 0
 	    ClearProgressLineSF(diff->f2);
 	    if (diff->diff_iso)
-		printf("! ISOs differ: %s:%s : %s:%s\n",
+		fprintf(diff->logfile,
+			"! ISOs differ: %s:%s : %s:%s\n",
 			oft_info[diff->f1->iod.oft].name, diff->f1->f.fname,
 			oft_info[diff->f2->iod.oft].name, diff->f2->f.fname );
 	    else
-		printf("! Files differ: %s : %s\n",
+		fprintf(diff->logfile,
+			"! Files differ: %s : %s\n",
 			diff->f1->f.fname, diff->f2->f.fname );
 	}
     }
     else if ( !silent && diff->verbose > 0 && diff->f1 && diff->f2 )
     {
 	if (diff->diff_iso)
-	    printf("* ISOs identical: %s:%s : %s:%s\n",
+	    fprintf(diff->logfile,
+		    "* ISOs identical: %s:%s : %s:%s\n",
 		    oft_info[diff->f1->iod.oft].name, diff->f1->f.fname,
 		    oft_info[diff->f2->iod.oft].name, diff->f2->f.fname );
 	else
-	    printf("* Files identical: %s : %s\n",
+	    fprintf(diff->logfile, 
+		    "* Files identical: %s : %s\n",
 		    diff->f1->f.fname, diff->f2->f.fname );
     }
 
@@ -3845,15 +3893,17 @@ bool CloseDiffFile
 	{
 	    ClearProgressLineSF(diff->f2);
 	    if (print_sections)
-		printf(	"[mismatch:file]\nfile=%s%s\n\n",
+		fprintf(diff->logfile,
+			"[mismatch:file]\nfile=%s%s\n\n",
 			diff->file_prefix, diff->file_name );
 	    else
-		printf("!   Files differ:     %s%s\n",
-		    diff->file_prefix, diff->file_name );
+		fprintf(diff->logfile,
+			"!   Files differ:     %s%s\n",
+			diff->file_prefix, diff->file_name );
 	}
     }
 
-    PRINT_IF(print_stat,
+    noPRINT_IF(print_stat,
 		"DIFF: CLOSE/FILE: %u:%u/%u | %u:%u/%u, %u:%u\n",
 		diff->source_count,
 		diff->source_differ_count,
@@ -4041,7 +4091,8 @@ bool DiffData
 
 	if (print_sections)
 	{
-	    printf("[mismatch:data]\n"
+	    fprintf(diff->logfile,
+		   "[mismatch:data]\n"
 		   "file=%s%s\n"
 		   "offset=0x%llx\n"
 		   "block=%lld\n"
@@ -4055,11 +4106,11 @@ bool DiffData
 	}
 	else
 	{
-	    printf("!   Differ at 0x%llx",(u64)doff);
+	    fprintf(diff->logfile,"!   Differ at 0x%llx",(u64)doff);
 	    if ( block >= 0 )
-		printf(" [block %llu]",block);
+		fprintf(diff->logfile," [block %llu]",block);
 	    if (diff->file_name)
-		printf(": %s%s\n",diff->file_prefix,diff->file_name);
+		fprintf(diff->logfile,": %s%s\n",diff->file_prefix,diff->file_name);
 	    else
 		putchar('\n');
 	}
@@ -4073,10 +4124,10 @@ bool DiffData
 	    while ( mis_len >= 0 && src1[mis_len] == src2[mis_len] )
 		mis_len--;
 	    mis_len++;
-	    fputs( print_sections ? "hexdump1=" : "!     file 1:",stdout);
-	    HexDump(stdout,0,-1,0,sizeof(diff->data1),src1,mis_len);
-	    fputs( print_sections ? "hexdump2=" : "!     file 2:",stdout);
-	    HexDump(stdout,0,-1,0,sizeof(diff->data1),src2,mis_len);
+	    fputs( print_sections ? "hexdump1=" : "!     file 1:",diff->logfile);
+	    HexDump(diff->logfile,0,-1,0,sizeof(diff->data1),src1,mis_len);
+	    fputs( print_sections ? "hexdump2=" : "!     file 2:",diff->logfile);
+	    HexDump(diff->logfile,0,-1,0,sizeof(diff->data1),src2,mis_len);
 	    if (print_sections)
 		putchar('\n');
 	}
@@ -4129,7 +4180,8 @@ static int DiffOnlyPart
 	DASSERT(wp);
 
 	if (print_sections)
-	    printf("[only-in:partition]\n"
+	    fprintf(diff->logfile,
+		   "[only-in:partition]\n"
 		   "image=%u\n"
 		   "part-index=%u\n"
 		   "part-type=0x%x\n"
@@ -4141,7 +4193,8 @@ static int DiffOnlyPart
 		   ,wd_get_part_name(wp->part_type,"")
 		   );
 	else
-	    printf("!   Only in image #%u: Partition #%u, type=%x %s\n",
+	    fprintf(diff->logfile,
+			"!   Only in image #%u: Partition #%u, type=%x %s\n",
 			iso_index, wp->index,
 			wp->part_type, wd_get_part_name(wp->part_type,"") );
     }
@@ -4179,7 +4232,8 @@ static int DiffOnlyFile
 	DASSERT(wp2);
 
 	if (print_sections)
-	    printf("[only-in:file]\n"
+	    fprintf(diff->logfile,
+		   "[only-in:file]\n"
 		   "image=%u\n"
 		   "part-1-index=%u\n"
 		   "part-1-type=0x%x\n"
@@ -4199,7 +4253,8 @@ static int DiffOnlyFile
 		   ,path1,path2
 		   );
 	else
-	    printf("!   Only in image #%u: %s%s\n", iso_index, path1, path2 );
+	    fprintf(diff->logfile,
+			"!   Only in image #%u: %s%s\n", iso_index, path1, path2 );
     }
 
     return DiffFile(diff);
@@ -4230,12 +4285,14 @@ static bool DiffCheckSize
     if (print_sections)
     {
 	if ( diff->file_name )
-	    printf("[mismatch:file-size]\nfile=%s%s\n",
+	    fprintf(diff->logfile,
+		"[mismatch:file-size]\nfile=%s%s\n",
 		diff->file_prefix, diff->file_name );
 	else
-	    printf("[mismatch:size]\n");
+	    fprintf(diff->logfile,"[mismatch:size]\n");
 	    
-	printf(	"size1=%llu\n"
+	fprintf(diff->logfile,
+		"size1=%llu\n"
 		"size2=%llu\n"
 		"\n"
 		,size1
@@ -4244,16 +4301,17 @@ static bool DiffCheckSize
     }
     else
     {
-	fputs("!   File size differ: ",stdout);
+	fputs("!   File size differ: ",diff->logfile);
 	ccp postfix = "";
 	if (diff->file_name)
 	{
-	    fputs(diff->file_prefix,stdout);
-	    fputs(diff->file_name,stdout);
-	    fputs(" [",stdout);
+	    fputs(diff->file_prefix,diff->logfile);
+	    fputs(diff->file_name,diff->logfile);
+	    fputs(" [",diff->logfile);
 	    postfix = "]";
 	}
-	printf("%llu%+lld=%llu%s\n", size1, size2-size1, size2, postfix );
+	fprintf(diff->logfile,
+		"%llu%+lld=%llu%s\n", size1, size2-size1, size2, postfix );
     }
 
     return !diff->mismatch_limit || diff->mismatch_count < diff->mismatch_limit;
@@ -4287,7 +4345,9 @@ enumError GetDiffStatus
     return diff->source_differ || diff->file_differ ? ERR_DIFFER : ERR_OK;
 }
 
+//
 ///////////////////////////////////////////////////////////////////////////////
+///////////////			  DiffSF()			///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
 enumError DiffSF
@@ -4296,7 +4356,7 @@ enumError DiffSF
     bool		force_raw_mode	// true: force raw mode
 )
 {
-    PRINT("DIFF: DiffSF(%p,%d)\n",diff,force_raw_mode);
+    TRACE("DIFF: DiffSF(%p,%d)\n",diff,force_raw_mode);
     ASSERT(diff);
 
     SuperFile_t *f1 = diff->f1;
@@ -4374,7 +4434,7 @@ enumError DiffSF
     int run = 0;
     for(;;)
     {
-	PRINT("DIFF: LOOP, run=%d, have_mod_list=%d\n",run,have_mod_list);
+	TRACE("DIFF: LOOP, run=%d, have_mod_list=%d\n",run,have_mod_list);
 	int next_idx = 0;
 	for ( idx = 0; idx < sizeof(wdisc_usage_tab); idx++ )
 	{
@@ -4427,6 +4487,9 @@ enumError DiffSF
     return GetDiffStatus(diff);
 }
 
+//
+///////////////////////////////////////////////////////////////////////////////
+///////////////			  DiffRawSF()			///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
 enumError DiffRawSF
@@ -4507,6 +4570,9 @@ abort:
     return GetDiffStatus(diff);
 }
 
+//
+///////////////////////////////////////////////////////////////////////////////
+///////////////			  DiffFilesSF()			///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
 enumError DiffFilesSF
@@ -4674,7 +4740,8 @@ enumError DiffFilesSF
 
 		const int diff_stat = DiffFile(diff);
 		if ( diff_stat >= 0 )
-		    printf("!   File types differ: %s%s\n", p1->path, file1->path );
+		    fprintf(diff->logfile,
+				"!   File types differ: %s%s\n", p1->path, file1->path );
 		if ( diff_stat <= 0 )
 		    goto abort_source;
 	    }
@@ -4737,6 +4804,49 @@ abort_source:
     ResetFST(&fst1);
     ResetFST(&fst2);
     return GetDiffStatus(diff);
+}
+
+//
+///////////////////////////////////////////////////////////////////////////////
+///////////////			  DiffPatchSF()			///////////////
+///////////////////////////////////////////////////////////////////////////////
+
+enumError DiffPatchSF
+(
+    Diff_t		* diff,		// valid diff structure
+    struct FilePattern_t * pat,		// NULL or file pattern
+    wd_ipm_t		pmode		// prefix mode
+)
+{
+    DASSERT(diff);
+
+    //--- disable all limits
+
+    diff->source_differ_limit	= 0;
+    diff->file_differ_limit	= 0;
+    diff->mismatch_limit	= 0;
+
+    //--- setup patch data
+
+    diff->patch = malloc(sizeof(*diff->patch));
+    if (!diff->patch)
+	OUT_OF_MEMORY;
+    SetupWritePatch(diff->patch);
+    enumError err1 = CreateWritePatch(diff->patch,opt_patch_file);
+    if (err1)
+	return err1;
+
+    //--- diff
+
+    err1 = DiffFilesSF(diff,pat,pmode);
+
+    //--- close patch & return
+
+    enumError err2 = CloseWritePatch(diff->patch);
+    free(diff->patch);
+    diff->patch = 0;
+
+    return err1 > err2 ? err1 : err2;
 }
 
 //
@@ -5529,6 +5639,7 @@ static enumError SourceIteratorHelper
 	it->real_path = real_path = buf;
     }
 
+// [2do] [ft-id]
     if ( it->act_wbfs >= ACT_EXPAND
 	&& ( sf.f.ftype & (FT_ID_WBFS|FT_A_WDISC) ) == FT_ID_WBFS )
     {
@@ -5601,6 +5712,7 @@ static enumError SourceIteratorHelper
 	return err ? err : SIGINT_level ? ERR_INTERRUPT : ERR_OK;
     }
 
+// [2do] [ft-id]
     if ( sf.f.ftype & FT__SPC_MASK )
     {
 	const enumAction action = it->act_non_iso > it->act_known

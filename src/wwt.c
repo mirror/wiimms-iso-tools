@@ -59,6 +59,7 @@
 #include "wbfs-interface.h"
 
 #include "ui-wwt.c"
+#include "logo.inc"
 
 //
 ///////////////////////////////////////////////////////////////////////////////
@@ -3620,10 +3621,7 @@ enumError CheckCommand ( int argc, char ** argv )
     const CommandTab_t * cmd_ct = ScanCommand(&cmd_stat,argv[optind],CommandTab);
     if (!cmd_ct)
     {
-	if ( cmd_stat > 0 )
-	    ERROR0(ERR_SYNTAX,"Command abbreviation is ambiguous: %s\n",argv[optind]);
-	else
-	    ERROR0(ERR_SYNTAX,"Unknown command: %s\n",argv[optind]);
+	PrintCommandError(CommandTab,argv[optind],cmd_stat,0);
 	hint_exit(ERR_SYNTAX);
     }
 
@@ -3650,6 +3648,7 @@ enumError CheckCommand ( int argc, char ** argv )
 	case CMD_COMPR:		err = cmd_compr(); break;
 	case CMD_EXCLUDE:	err = cmd_exclude(); break;
 	case CMD_TITLES:	err = cmd_titles(); break;
+	case CMD_GETTITLES:	err = cmd_gettitles(); break;
 
 	case CMD_FIND:		err = cmd_find(); break;
 	case CMD_SPACE:		err = cmd_space(); break;
@@ -3710,7 +3709,8 @@ int main ( int argc, char ** argv )
 
     if ( argc < 2 )
     {
-	printf("\n%s\nVisit %s%s for more info.\n\n",TITLE,URI_HOME,WWT_SHORT);
+	printf("\n%s\n%s\nVisit %s%s for more info.\n\n",
+		text_logo, TITLE, URI_HOME, WWT_SHORT );
 	hint_exit(ERR_OK);
     }
 

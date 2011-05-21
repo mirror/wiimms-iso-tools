@@ -611,11 +611,9 @@ enumError Dump_ISO
 	else    
 	{
 	    const enumRegion reg = ntohl(disc->region.region);
-	    u8 * p8 = disc->region.region_info;
-	    fprintf(f,"%*sRegion setting:    "
-		      "%x [%s] / %02x %02x %02x %02x  %02x %02x %02x %02x\n",
+	    fprintf(f,"%*sRegion setting:    %x [%s] / %s\n",
 			indent,"", reg, GetRegionName(reg,"?"),
-			p8[0], p8[1], p8[2], p8[3], p8[4], p8[5], p8[6], p8[7] );
+			wd_print_age_rating(0,0,disc->region.age_rating) );
 
 	    if (disc)
 	    {
@@ -1390,6 +1388,63 @@ enumError Dump_FST_MEM
 	ResetFST(&fst);
     }
 
+    return ERR_OK;
+}
+
+//
+///////////////////////////////////////////////////////////////////////////////
+///////////////			Dump_PATCH()			///////////////
+///////////////////////////////////////////////////////////////////////////////
+
+enumError Dump_PATCH
+(
+    FILE		* f,		// valid output stream
+    int			indent,		// indent of output
+    SuperFile_t		* sf,		// file to dump
+    ccp			real_path	// NULL or pointer to real path
+)
+{
+    ASSERT(sf);
+    if (!f)
+	return ERR_OK;
+    indent = dump_header(f,indent,sf,0,real_path,0);
+
+    enumError err = OpenStreamFile(&sf->f);
+    if (err)
+	return err;
+
+    FILE * pf = sf->f.fp;
+    DASSERT(pf);
+    fseek(pf,0,SEEK_SET);
+
+    ReadPatch_t pat;
+    SetupReadPatch(&pat);
+    err = OpenReadPatchF(&pat,pf,sf->f.fname);
+    if (err)
+	return err;
+
+    fprintf(f,"%*sPatch version:     %s\n",
+			indent,"", PrintVersion(0,0,pat.version) );
+    fprintf(f,"%*sPatch compatible:  %s\n",
+			indent,"", PrintVersion(0,0,pat.compatible) );
+    fprintf(f,"%*sTool version:      %s\n",
+			indent,"", PrintVersion(0,0,WIT_PATCH_VERSION) );
+    fprintf(f,"%*sRead compatible:   %s\n",
+			indent,"", PrintVersion(0,0,WIT_PATCH_READ_COMPATIBLE) );
+    SupportedVersionReadPatch(&pat,false);
+
+    int recnum;
+    for ( recnum = 0; pat.cur_type; recnum++ )
+    {
+	// [2do] [patch]
+	printf("%3d: %02x %u\n",recnum,pat.cur_type,pat.cur_size);
+	enumError err = GetNextReadPatch(&pat);
+	if (err)
+	    return err;
+    }
+
+    pat.file = 0;
+    CloseReadPatch(&pat);
     return ERR_OK;
 }
 
@@ -2792,6 +2847,7 @@ enumError CreateFileFST ( WiiFstInfo_t *wfi, ccp dest_path, WiiFstFile_t * file 
     File_t fo;
     InitializeFile(&fo);
     fo.create_directory = true;
+    fo.already_created_mode = ignore_count < 1;
     enumError err = CreateFile( &fo, dest, IOM_NO_STREAM, wfi->overwrite );
     if (err)
     {
@@ -3675,7 +3731,7 @@ u64 GenPartFST
 	SetupDef_t * sdef = part_setup_def + PSUP_P_OFFSET;
 	if (sdef->param)
 	    good_off = sdef->value;
-	PRINT("SETUP.TXT: id=%s name=%.20s off=%llx\n",part_id,part_name,good_off);
+	TRACE("SETUP.TXT: id=%s name=%.20s off=%llx\n",part_id,part_name,good_off);
     }
 
 

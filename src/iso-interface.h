@@ -240,6 +240,16 @@ enumError Dump_FST_MEM
     wd_pfst_t		pfst		// print fst mode
 );
 
+//-----------------------------------------------------------------------------
+
+enumError Dump_PATCH
+(
+    FILE		* f,		// valid output stream
+    int			indent,		// indent of output
+    SuperFile_t		* sf,		// file to dump
+    ccp			real_path	// NULL or pointer to real path
+);
+
 //
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////                 source iterator                 ///////////////

@@ -74,8 +74,23 @@ int validate_file_format_sizes ( int trace_sizes )
 	TRACE_SIZEOF(wd_part_control_t);
 	TRACE_SIZEOF(wd_part_sector_t);
 	TRACE_SIZEOF(wd_fst_item_t);
+
 	TRACE_SIZEOF(wbfs_head_t);
 	TRACE_SIZEOF(wbfs_disc_info_t);
+
+	TRACE_SIZEOF(WIT_PATCH_MAGIC);
+	TRACE_SIZEOF(wpat_magic);
+	TRACE_SIZEOF(wpat_comment_t);
+	TRACE_SIZEOF(wpat_data_t);
+	TRACE_SIZEOF(wpat_filename_t);
+	TRACE_SIZEOF(wpat_filenames_t);
+	TRACE_SIZEOF(wpat_header_t);
+	TRACE_SIZEOF(wpat_patch_file_t);
+	TRACE_SIZEOF(wpat_size_t);
+	TRACE_SIZEOF(wpat_toc_file_t);
+	TRACE_SIZEOF(wpat_toc_header_t);
+	TRACE_SIZEOF(wpat_type_t);
+
 
      #ifdef DEBUG
 	wd_part_control_t pc, pc_saved;
@@ -549,6 +564,39 @@ wd_disc_type_t get_header_disc_type
 
 //
 ///////////////////////////////////////////////////////////////////////////////
+///////////////			enum wd_age_rating_t		///////////////
+///////////////////////////////////////////////////////////////////////////////
+
+ccp wd_print_age_rating
+(
+    char		* buf,		// result buffer
+					// If NULL, a local circulary static buffer is used
+    size_t		buf_size,	// size of 'buf', ignored if buf==NULL
+    u8			* age_rating	// valid buffer of 'WD_AGE__N' bytes
+)
+{
+    if (!buf)
+	buf = GetCircBuf( buf_size = 70 );
+
+    DASSERT( WD_AGE__N == 10 );
+    snprintf( buf, buf_size,
+		"Jap=%u USA=%u ?=%u Eur=%u,%u,%u,%u,%u,%u Kor=%u",
+		age_rating[WD_AGE_JAPAN],
+		age_rating[WD_AGE_USA],
+		age_rating[WD_AGE_UNKNOWN],
+		age_rating[WD_AGE_EUROPE1],
+		age_rating[WD_AGE_EUROPE2],
+		age_rating[WD_AGE_EUROPE3],
+		age_rating[WD_AGE_EUROPE4],
+		age_rating[WD_AGE_EUROPE5],
+		age_rating[WD_AGE_EUROPE6],
+		age_rating[WD_AGE_KOREA] );
+
+    return buf;
+}
+
+//
+///////////////////////////////////////////////////////////////////////////////
 ///////////////			struct wd_ticket_t		///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -961,6 +1009,58 @@ int part_control_is_fake_signed ( const wd_part_control_t * pc )
 {
     ASSERT(pc);
     return pc->is_valid && pc->tmd && tmd_is_fake_signed(pc->tmd,pc->tmd_size);
+}
+
+//
+///////////////////////////////////////////////////////////////////////////////
+///////////////			wit patch files			///////////////
+///////////////////////////////////////////////////////////////////////////////
+
+const char wpat_magic[12] = WIT_PATCH_MAGIC;
+
+///////////////////////////////////////////////////////////////////////////////
+
+ccp wpat_get_type_name ( wpat_type_t type, ccp return_if_invalid )
+{
+    static ccp tab[] =
+    {
+	0,
+	"TOC:HEADER",		// WPAT_HEADER
+	"TOC:COMMENT",		// WPAT_COMMENT
+	"TOC:DATA",		// WPAT_DATA
+	"TOC:DELETE-FILE",	// WPAT_DELETE_FILE
+	"TOC:CREATE-FILE",	// WPAT_CREATE_FILE
+	"TOC:MOVE-FILE",	// WPAT_MOVE_FILE
+	"TOC:COPY-FILE",	// WPAT_COPY_FILE
+	"TOC:LINK-FILE",	// WPAT_LINK_FILE
+	"TOC:PATCH-FILE",	// WPAT_PATCH_FILE
+    };
+
+    const unsigned id = type &= WPAT_M_ID;
+    ccp res = id < sizeof(tab)/sizeof(*tab) ? tab[id] : 0;
+
+    return !res
+	    ? return_if_invalid
+	    : type & WPAT_F_TOC
+		? res
+		: res + 4;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+u32 wpat_get_size ( wpat_size_t type_size )
+{
+    return ( ntohl(type_size.size4) & 0xffffff ) << 2;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+wpat_size_t wpat_calc_size ( wpat_type_t type, u32 size )
+{
+    wpat_size_t type_size;
+    type_size.size4 = htonl( size + 3 >> 2 );
+    type_size.type  = type;
+    return type_size;
 }
 
 //

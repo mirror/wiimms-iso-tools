@@ -43,6 +43,7 @@
 #include <ctype.h>
 
 #include "patch.h"
+#include "version.h"
 #include "lib-std.h"
 #include "lib-sf.h"
 #include "wbfs-interface.h"
@@ -794,6 +795,297 @@ enumError RewriteModifiedSF
     fo->wbfs = saved_wbfs;
     TRACE("--- RewriteModifiedSF() err=%u: END\n",err);
     return err;
+}
+
+//
+///////////////////////////////////////////////////////////////////////////////
+///////////////			write patch files		///////////////
+///////////////////////////////////////////////////////////////////////////////
+
+void SetupWritePatch
+(
+    WritePatch_t	* pat		// patch data structure
+)
+{
+    DASSERT(pat);
+    memset(pat,0,sizeof(*pat));
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+enumError CloseWritePatch
+(
+    WritePatch_t	* pat		// patch data structure
+)
+{
+    DASSERT(pat);
+
+    enumError err = ERR_OK;
+    if (pat->file)
+    {
+	wpat_toc_header_t thead;
+	memset(&thead,0,sizeof(thead));
+	thead.type_size = wpat_calc_size(WPAT_TOC_HEADER,sizeof(thead));
+	thead.entry_offset4 = htonl(ftell(pat->file)>>2);
+	memcpy(thead.magic,wpat_magic,sizeof(thead.magic));
+
+	int n_entires = 0;
+	// [2do] write toc files
+	thead.n_entires = htonl(n_entires);
+
+	if ( !err && fwrite(&thead,sizeof(thead),1,pat->file) != 1 )
+	    err = ERROR1(ERR_WRITE_FAILED,
+			"Writing patch toc header failed: %s",pat->fname);
+
+	fclose(pat->file);
+	pat->file = 0;
+    }
+
+    if (pat->fname)
+    {
+	FreeString(pat->fname);
+	pat->fname = 0;
+    }
+
+    // [2do] clear dynamic data (toc)
+
+    return err;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+enumError CreateWritePatch
+(
+    WritePatch_t	* pat,		// patch data structure
+    ccp			filename	// filename of output file
+)
+{
+    DASSERT(pat);
+    DASSERT(filename);
+
+    CloseWritePatch(pat);
+    FILE * f = fopen(filename,"wb");
+    if (!f)
+	return ERROR1(ERR_CANT_CREATE,
+		"Can't create patch file: %s\n",filename);
+    
+    return CreateWritePatchF(pat,f,filename);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+enumError CreateWritePatchF
+(
+    WritePatch_t	* pat,		// patch data structure
+    FILE		* file,		// open output file
+    ccp			filename	// NULL or known filename
+)
+{
+    DASSERT(pat);
+    DASSERT(file);
+
+    CloseWritePatch(pat);
+    SetupWritePatch(pat);
+    pat->file = file;
+    pat->fname = strdup( filename ? filename : "?" );
+    
+    //--- write patch header & creator comment
+
+    wpat_header_t hd;
+    memcpy(hd.magic,wpat_magic,sizeof(hd.magic));
+    hd.type_size	= wpat_calc_size(WPAT_HEADER,sizeof(hd)-sizeof(hd.magic));
+    hd.version		= htonl(WIT_PATCH_VERSION);
+    hd.compatible	= htonl(WIT_PATCH_COMPATIBLE);
+
+    if ( fwrite(&hd,sizeof(hd),1,pat->file) != 1 )
+	return ERROR1(ERR_WRITE_FAILED,
+		"Writing patch header failed: %s",pat->fname);
+
+    return WritePatchComment(pat,"%s",
+		"Creator: " TOOLSET_SHORT " v" VERSION " r" REVISION " " SYSTEM );
+}
+
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+
+enumError WritePatchComment
+(
+    WritePatch_t	* pat,		// patch data structure
+    ccp			format,		// format string
+    ...					// arguments for 'format'
+)
+{
+    DASSERT(pat);
+    DASSERT(pat->file);
+
+    struct obj_t
+    {
+	wpat_comment_t cm;
+	char comment[1000];
+    } obj;
+
+        
+    va_list arg;
+    va_start(arg,format);
+    const int comment_len = vsnprintf(obj.comment,sizeof(obj.comment),format,arg);
+    va_end(arg);
+
+    obj.cm.type_size = wpat_calc_size(WPAT_COMMENT,sizeof(wpat_comment_t)+comment_len);
+    if ( fwrite(&obj,wpat_get_size(obj.cm.type_size),1,pat->file) != 1 )
+	return ERROR1(ERR_WRITE_FAILED,
+		"Writing patch header failed: %s",pat->fname);
+    return ERR_OK;
+}
+
+//
+///////////////////////////////////////////////////////////////////////////////
+///////////////			read patch files		///////////////
+///////////////////////////////////////////////////////////////////////////////
+
+void SetupReadPatch
+(
+    ReadPatch_t		* pat		// patch data structure
+)
+{
+    DASSERT(pat);
+    memset(pat,0,sizeof(*pat));
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+enumError CloseReadPatch
+(
+    ReadPatch_t		* pat		// patch data structure
+)
+{
+    DASSERT(pat);
+
+    enumError err = ERR_OK;
+    if (pat->file)
+    {
+	fclose(pat->file);
+	pat->file = 0;
+    }
+
+    if (pat->fname)
+    {
+	FreeString(pat->fname);
+	pat->fname = 0;
+    }
+
+    // [2do] clear dynamic data (toc)
+
+    return err;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+enumError OpenReadPatch
+(
+    ReadPatch_t		* pat,		// patch data structure
+    ccp			filename	// filename of input file
+)
+{
+    DASSERT(pat);
+    DASSERT(filename);
+
+    CloseReadPatch(pat);
+    FILE * f = fopen(filename,"rb");
+    if (!f)
+	return ERROR1(ERR_CANT_OPEN,
+		"Can't open patch file: %s\n",filename);
+
+    return OpenReadPatchF(pat,f,filename);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+enumError OpenReadPatchF
+(
+    ReadPatch_t		* pat,		// patch data structure
+    FILE		* file,		// open input file
+    ccp			filename	// NULL or known filename
+)
+{
+    DASSERT(pat);
+    DASSERT(file);
+
+    CloseReadPatch(pat);
+    SetupReadPatch(pat);
+    pat->file = file;
+    pat->fname = strdup( filename ? filename : "?" );
+
+    int readlen = fread(pat->read_buf,1,sizeof(pat->read_buf),pat->file);
+    if ( readlen < sizeof(wpat_header_t) )
+	goto invalid;
+
+    const wpat_header_t * hd = (wpat_header_t*)pat->read_buf;
+    if (memcmp(hd->magic,wpat_magic,sizeof(hd->magic)))
+	goto invalid;
+
+    pat->cur_type   = hd->type_size.type;
+    pat->cur_size   = wpat_get_size(hd->type_size);
+    if ( pat->cur_type != WPAT_HEADER )
+	goto invalid;
+
+    pat->is_valid   = true;
+    pat->version    = ntohl(hd->version);
+    pat->compatible = ntohl(hd->compatible);
+    SupportedVersionReadPatch(pat,true);
+    return ERR_OK;
+
+ invalid:
+    return ERROR0(ERR_INVALID_FILE,"Invalid patch file: %s\n",pat->fname);
+    
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+enumError SupportedVersionReadPatch
+(
+    ReadPatch_t		* pat,		// patch data structure
+    bool		silent		// true: suppress error message
+)
+{
+    DASSERT(pat);
+    pat->is_compatible = WIT_PATCH_VERSION >= pat->compatible
+			&& pat->version >= WIT_PATCH_READ_COMPATIBLE;
+    if (!pat->is_compatible)
+    {
+	if (silent)
+	    return ERR_INVALID_VERSION;
+
+	if ( WIT_PATCH_READ_COMPATIBLE < WIT_PATCH_VERSION )
+	    return ERROR0(ERR_INVALID_VERSION,
+		"Patch version %s not supported (compatible %s .. %s): %s\n",
+		PrintVersion(0,0,pat->version),
+		PrintVersion(0,0,WIT_PATCH_READ_COMPATIBLE),
+		PrintVersion(0,0,WIT_PATCH_VERSION),
+		pat->fname );
+
+	return ERROR0(ERR_INVALID_VERSION,
+		"Patch version %s not supported (%s expected): %s\n",
+		PrintVersion(0,0,pat->version),
+		PrintVersion(0,0,WIT_PATCH_VERSION),
+		pat->fname );
+    }
+
+    return ERR_OK;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+
+enumError GetNextReadPatch
+(
+    ReadPatch_t		* pat		// patch data structure
+)
+{
+    DASSERT(pat);
+
+    pat->cur_type = 0;
+    pat->cur_size = 0;
+    return ERR_OK;
 }
 
 //
