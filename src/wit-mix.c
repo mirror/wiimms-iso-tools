@@ -1365,16 +1365,15 @@ static enumError create_wii_mix
 
     if ( testmode || verbose >= 0 )
     {
-	u8 * p8 = reg->region_info;
 	const u32 regnum = ntohl(reg->region);
 	printf("\n%sreate Wii disc [%.6s] %s:%s\n"
 		"  Title:  %.64s\n"
-		"  Region: %x [%s] / %02x %02x %02x %02x  %02x %02x %02x %02x\n\n",
+		"  Region: %x [%s] / %s\n\n",
 		testmode ? "WOULD c" : "C",
 		&dhead->disc_id, oft_info[oft].name,
 		mp->fo.f.fname, dhead->disc_title,
 		regnum, GetRegionName(regnum,"?"),
-		p8[0], p8[1], p8[2], p8[3], p8[4], p8[5], p8[6], p8[7] );
+		wd_print_age_rating(0,0,reg->age_rating) );
     }
 
     if (testmode)

@@ -111,6 +111,45 @@ enumError cmd_error()
 
 //
 ///////////////////////////////////////////////////////////////////////////////
+///////////////			    cmd_gettitles()		///////////////
+///////////////////////////////////////////////////////////////////////////////
+
+enumError cmd_gettitles()
+{
+    if (n_param)
+	return ERROR0(ERR_SYNTAX,"No parameters needed: %s%s\n",
+		first_param->arg, n_param > 1 ? " ..." : "" );
+
+ #ifdef __CYGWIN__
+
+    ccp progs = getenv("ProgramFiles");
+    if ( !progs || !*progs )
+	progs = "C:/Program Files";
+    char dirbuf[PATH_MAX], normbuf[PATH_MAX];
+    snprintf(dirbuf,sizeof(dirbuf),"%s/%s",progs,WIN_INSTALL_PATH);
+    NormalizeFilenameCygwin(normbuf,sizeof(normbuf),dirbuf);
+    PRINT("-> %s\n",dirbuf);
+    PRINT("-> %s\n",normbuf);
+    
+    if (chdir(normbuf))
+	return ERROR0(ERR_CANT_OPEN,"Can't change directory: %s\n",normbuf);
+
+    system("./load-titles.sh --cygwin");
+
+ #else
+
+    if (chdir(SHARE_PATH))
+	return ERROR0(ERR_CANT_OPEN,"Can't change directory: %s\n",SHARE_PATH);
+
+    system("./load-titles.sh");
+
+ #endif
+
+    return ERR_OK;
+}
+
+//
+///////////////////////////////////////////////////////////////////////////////
 ///////////////			    cmd_compr()			///////////////
 ///////////////////////////////////////////////////////////////////////////////
 

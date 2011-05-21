@@ -489,6 +489,38 @@ void hton_boot ( wd_boot_t * dest, const wd_boot_t * src );
 
 //
 ///////////////////////////////////////////////////////////////////////////////
+///////////////			enum wd_age_rating_t		///////////////
+///////////////////////////////////////////////////////////////////////////////
+
+typedef enum wd_age_rating_t
+{
+	WD_AGE_JAPAN,
+	WD_AGE_USA,
+	WD_AGE_UNKNOWN,
+	WD_AGE_EUROPE1,
+	WD_AGE_EUROPE2,
+	WD_AGE_EUROPE3,
+	WD_AGE_EUROPE4,
+	WD_AGE_EUROPE5,
+	WD_AGE_EUROPE6,
+	WD_AGE_KOREA,
+
+	WD_AGE__N
+
+} wd_age_rating_t;
+
+//-----------------------------------------------------------------------------
+
+ccp wd_print_age_rating
+(
+    char		* buf,		// result buffer
+					// If NULL, a local circulary static buffer is used
+    size_t		buf_size,	// size of 'buf', ignored if buf==NULL
+    u8			* age_rating	// valid buffer of 'WD_AGE__N' bytes
+);
+
+//
+///////////////////////////////////////////////////////////////////////////////
 ///////////////			struct wd_region_t		///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -496,8 +528,8 @@ typedef struct wd_region_t
 {
   /*    0 */	u32	region;
   /* 0x04 */	u8	padding1[12];
-  /* 0x10 */	u8	region_info[8];
-  /* 0x18 */	u8	padding2[8];
+  /* 0x10 */	u8	age_rating[WD_AGE__N];
+		u8	padding2[0x10-WD_AGE__N];
 }
 __attribute__ ((packed)) wd_region_t;
 
@@ -780,6 +812,227 @@ typedef struct wbfs_disc_info_t
 
 }
 __attribute__ ((packed)) wbfs_disc_info_t;
+
+//
+///////////////////////////////////////////////////////////////////////////////
+///////////////			wit patch files			///////////////
+///////////////////////////////////////////////////////////////////////////////
+
+// The data structure of a patch file is designed to allow reading
+// and writing streams (pipe support, no file seek needed).
+// The TOC (table of content) is placed at end of file and is only
+// needed for search and for fast list operations.
+
+// file layout:
+//
+//	+-----------------------+
+//	| patch header		|
+//	+-----------------------+
+//	| file manipulations	|
+//	+-----------------------+
+//	| toc file list		|
+//	+-----------------------+
+//	| toc header		|
+//	+-----------------------+
+
+///////////////////////////////////////////////////////////////////////////////
+
+#define WIT_PATCH_MAGIC			"WIT-PATCHER"
+
+//-----------------------------------------------------
+// Format of version number: AABBCCDD = A.BB | A.BB.CC
+// If D != 0x00 && D != 0xff => append: 'beta' D
+//-----------------------------------------------------
+
+#define WIT_PATCH_VERSION		0x00010000  // current writing version
+#define WIT_PATCH_COMPATIBLE		0x00010000  // down compatible
+#define WIT_PATCH_READ_COMPATIBLE	0x00010000  // read compatible
+
+extern const char wpat_magic[12];
+
+//
+///////////////////////////////////////////////////////////////////////////////
+///////////////			enum wpat_type_t		///////////////
+///////////////////////////////////////////////////////////////////////////////
+
+typedef enum wpat_type_t
+{
+    //--- patch file header
+
+	WPAT_HEADER	= 1,	// wpat_header_t
+
+    //--- data records
+
+	WPAT_COMMENT,		// wpat_comment_t
+	WPAT_DATA,		// wpat_data_t
+
+    //--- file manipulation records
+
+	WPAT_DELETE_FILE,	// wpat_filename_t
+	WPAT_CREATE_FILE,	// wpat_filename_t	-> wpat_data_t
+	WPAT_MOVE_FILE,		// wpat_filenames_t
+	WPAT_COPY_FILE,		// wpat_filenames_t
+	WPAT_LINK_FILE,		// wpat_filenames_t
+	WPAT_PATCH_FILE,	// wpat_patch_file_t	-> wpat_data_t
+
+    //--- masks and flags
+
+	WPAT_M_ID	= 0x3f,	// mask of ID bits
+	WPAT_F_TOC	= 0x40,	// toc marker
+
+    //--- toc records
+
+	WPAT_TOC_HEADER		= WPAT_F_TOC|WPAT_HEADER,	// wpat_toc_header_t
+	WPAT_TOC_DELETE_FILE	= WPAT_F_TOC|WPAT_DELETE_FILE,	// wpat_toc_file_t
+	WPAT_TOC_CREATE_FILE	= WPAT_F_TOC|WPAT_CREATE_FILE,	// wpat_toc_file_t
+	WPAT_TOC_MOVE_FILE	= WPAT_F_TOC|WPAT_MOVE_FILE,	// wpat_toc_file_t
+	WPAT_TOC_COPY_FILE	= WPAT_F_TOC|WPAT_COPY_FILE,	// wpat_toc_file_t
+	WPAT_TOC_LINK_FILE	= WPAT_F_TOC|WPAT_LINK_FILE,	// wpat_toc_file_t
+	WPAT_TOC_PATCH_FILE	= WPAT_F_TOC|WPAT_PATCH_FILE,	// wpat_toc_file_t
+}
+__attribute__ ((packed)) wpat_type_t;
+
+//-----------------------------------------------------------------------------
+
+ccp wpat_get_type_name ( wpat_type_t type, ccp return_if_invalid );
+
+//
+///////////////////////////////////////////////////////////////////////////////
+///////////////			union wpat_size_t		///////////////
+///////////////////////////////////////////////////////////////////////////////
+
+typedef union wpat_size_t
+{
+	wpat_type_t	type;	// type of patch record
+	u32		size4;	// size of record,
+				//  -> mask with 0xffffff, multiply with 4
+}
+__attribute__ ((packed)) wpat_size_t;
+
+//-----------------------------------------------------------------------------
+
+u32 wpat_get_size ( wpat_size_t type_size );
+wpat_size_t wpat_calc_size ( wpat_type_t type, u32 size );
+
+//
+///////////////////////////////////////////////////////////////////////////////
+///////////////			struct wpat_header_t		///////////////
+///////////////////////////////////////////////////////////////////////////////
+
+typedef struct wpat_header_t
+{
+    /* 0x00 */	u8		magic[12];	// always 'WIT_PATCH_MAGIC'
+						// magic is *not* counted in 'type_size'
+
+    /* 0x0c */	wpat_size_t	type_size;	// type (WPAT_HEADER) and record size
+    /* 0x10 */	u32		version;	// patch file version
+    /* 0x14 */	u32		compatible;	// patch file down compatible to version
+    /* 0x18 */	char		reserved[0];	// reserved for future extensions
+}
+__attribute__ ((packed)) wpat_header_t;
+
+//
+///////////////////////////////////////////////////////////////////////////////
+///////////////			struct wpat_comment_t		///////////////
+///////////////////////////////////////////////////////////////////////////////
+
+typedef struct wpat_comment_t
+{
+    /* 0x00 */	wpat_size_t	type_size;	// type (WPAT_COMMENT) and record size
+    /* 0x04 */	u8		comment[0];	// comment string
+}
+__attribute__ ((packed)) wpat_comment_t;
+
+//
+///////////////////////////////////////////////////////////////////////////////
+///////////////			struct wpat_data_t		///////////////
+///////////////////////////////////////////////////////////////////////////////
+
+typedef struct wpat_data_t
+{
+    /* 0x00 */	wpat_size_t	type_size;	// type (WPAT_DATA) and record size
+    /* 0x04 */	u32		file_offset;	// offset in files
+    /* 0x08 */	u32		data_size;	// used length of patch 'data'
+    /* 0x0c */	u8		data[0];	// patch or source data
+
+	// - WPAT_PATCH_FILE:
+	//	patch data is XORed with orig data
+	//	if >src_size: use cyclic 'src_hash' to XOR
+	// - WPAT_CRATE_FILE:
+	//	1:1 source data
+}
+__attribute__ ((packed)) wpat_data_t;
+
+//
+///////////////////////////////////////////////////////////////////////////////
+///////////////			struct wpat_filename_t		///////////////
+///////////////////////////////////////////////////////////////////////////////
+
+typedef struct wpat_filename_t
+{
+    /* 0x00 */	wpat_size_t	type_size;	// type and record size
+    /* 0x04 */	char		fname[0];	// filename, size always multiple of 4
+}
+__attribute__ ((packed)) wpat_filename_t;
+
+//
+///////////////////////////////////////////////////////////////////////////////
+///////////////			struct wpat_filenames_t		///////////////
+///////////////////////////////////////////////////////////////////////////////
+
+typedef struct wpat_filenames_t
+{
+    /* 0x00 */	wpat_size_t	type_size;	// type and record size
+    /* 0x04 */	u32		src_file_off;	// offset in 'fnames' of source filename
+    /* 0x08 */	char		fnames[0];	// 2 filenames, size always multiple of 4
+						//  -> dest_filname, src_filename
+}
+__attribute__ ((packed)) wpat_filenames_t;
+
+//
+///////////////////////////////////////////////////////////////////////////////
+///////////////			struct wpat_patch_file_t	///////////////
+///////////////////////////////////////////////////////////////////////////////
+
+typedef struct wpat_patch_file_t
+{
+    /* 0x00 */	wpat_size_t	type_size;	// type (WPAT_PATCH_FILE) and record size
+    /* 0x04 */	u32		src_file_size;	// size of source file, 0=new file
+    /* 0x08 */	u32		dest_file_size;	// size of destination file
+    /* 0x0c */	sha1_hash_t	src_hash;	// SHA1 hash of source file
+    /* 0x20 */	sha1_hash_t	dest_hash;	// SHA1 hash of destination file
+    /* 0x34 */	char		fname[0];	// filename, size always multiple of 4
+}
+__attribute__ ((packed)) wpat_patch_file_t;
+
+//
+///////////////////////////////////////////////////////////////////////////////
+///////////////			struct wpat_toc_header_t	///////////////
+///////////////////////////////////////////////////////////////////////////////
+
+typedef struct wpat_toc_header_t
+{
+    /* 0x00 */	wpat_size_t	type_size;	// type (WPAT_TOC_HEADER) and record size
+    /* 0x04 */	u32		entry_offset4;	// file offset/4 of first entry
+    /* 0x0c */	u32		n_entires;	// number of 'wpat_toc_file_t' entries
+    /* 0x10 */	u8		magic[12];	// always 'WIT_PATCH_MAGIC'
+    /* 0x1c */
+}
+__attribute__ ((packed)) wpat_toc_header_t;
+
+//
+///////////////////////////////////////////////////////////////////////////////
+///////////////			struct wpat_toc_file_t		///////////////
+///////////////////////////////////////////////////////////////////////////////
+
+typedef struct wpat_toc_file_t
+{
+    /* 0x00 */	wpat_size_t	type_size;	// type (WPAT_F_TOC set) and record size
+    /* 0x04 */	u32		item_offset4;	// file offset/4 of file item
+    /* 0x0c */	char		fname[0];	// filename, size always multiple of 4
+						// informative only
+}
+__attribute__ ((packed)) wpat_toc_file_t;
 
 //
 ///////////////////////////////////////////////////////////////////////////////

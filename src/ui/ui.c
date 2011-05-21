@@ -540,7 +540,7 @@ void PrintHelpCmd
 	fputs(info,f);
 	
     if (!cmd)
-	fprintf(f,"%*sMore help is available from %s%s\n\n",
+	fprintf(f,"%*sMore help is available at %s%s\n\n",
 		indent, "", URI_HOME, iu->tool_name );
     else if (!ic->hidden)
     {
@@ -550,7 +550,7 @@ void PrintHelpCmd
 	    *dest++ = *src == '_' ? '-' : tolower((int)*src);
 	*dest = 0;
 
-	fprintf(f,"%*sMore help is available from %scmd/%s/%s\n\n",
+	fprintf(f,"%*sMore help is available at %scmd/%s/%s\n\n",
 		indent, "", URI_HOME, iu->tool_name, iobuf );
     }
 }

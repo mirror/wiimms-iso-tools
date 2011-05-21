@@ -177,6 +177,14 @@ typedef struct info_t
 	"Print a summary line while extracting files." \
 	" If set at least twice, print a status line for each extracted files."
 
+#define TEXT_OPT_FILES \
+	" This option can be used multiple times to extend the rule list." \
+	" Rules beginning with a '+' or a '-' are allow or deny rules rules." \
+	" Rules beginning with a ':' are macros for predefined rule sets." \
+	"\1\n " \
+	" See http://wit.wiimm.de/info/file-filter.html" \
+	" for more details about file filters."
+
 ///////////////////////////////////////////////////////////////////////////////
 
 #define TEXT_DIFF_QUIET \
@@ -280,6 +288,11 @@ info_t info_tab[] =
   { T_DEF_CMD,	"TITLES",	"TITLES",
 		    "wit TITLES [additional_title_file]...",
 		"Dump the internal title database to standard output (stdout)." },
+
+  { T_DEF_CMD,	"GETTITLES",	"GETTITLES",
+		    "wit GETTITLES",
+		"Call the script 'load-titles.sh' in the share folder"
+		" to update the title database." },
 
   { T_DEF_CMD,	"CERT",		"CERT",
 		    "wit CERT [additional_cert_file]...",
@@ -1009,7 +1022,7 @@ info_t info_tab[] =
 
   { T_OPT_C,	"UPDATE",	"u|update",
 		0,
-		"Copy only files that does not exist."
+		"Copy only files that do not exist."
 		" Already existing files are ignored without warning." },
 
   { T_OPT_C,	"OVERWRITE",	"o|overwrite",
@@ -1051,13 +1064,8 @@ info_t info_tab[] =
 
   { T_OPT_CMP,	"FILES",	"F|files",
 		"ruleset",
-		"Append a file select rules."
-		" This option can be used multiple times to extend the rule list."
-		" Rules beginning with a '+' or a '-' are allow or deny rules rules."
-		" Rules beginning with a ':' are macros for predefined rule sets."
-		"\1\n "
-		" See http://wit.wiimm.de/info/file-filter.html"
-		" for more details about file filters." },
+		"Append file select rules."
+		TEXT_OPT_FILES },
 
   { T_SEP_OPT,	0,0,0,0 }, //----- separator -----
 
@@ -1184,6 +1192,10 @@ info_t info_tab[] =
   { T_OPT_CP,	"FILE_LIMIT",	"file-limit|filelimit",
 		"size",
 		TEXT_DIFF_FILE_LIMIT },
+
+  { T_OPT_CP,	"PATCH_FILE",	"patch-file|patchfile",
+		"file",
+		"Define a patch file." },
 
   //
   //---------- wit GROUP TITLES ----------
@@ -1358,6 +1370,7 @@ info_t info_tab[] =
 
   { T_CMD_BEG,	"HELP",		0,0,0 },
 
+  { T_COPT,	"WIDTH",	0,0,0 },
   { T_ALL_OPT,	0,		0,0,0 },
 
   //---------- COMMAND wit INFO ----------
@@ -1408,6 +1421,10 @@ info_t info_tab[] =
   { T_CMD_BEG,	"TITLES",	0,0,0 },
 
   { T_COPY_GRP,	"TITLES",	0,0,0 },
+
+  //---------- COMMAND wit GETTITLES ----------
+
+  { T_CMD_BEG,	"GETTITLES",	0,0,0 },
 
   //---------- COMMAND wit CERT ----------
 
@@ -1598,6 +1615,14 @@ info_t info_tab[] =
   { T_CMD_BEG,	"DIFF",		0,0,0 },
 
   { T_COPT_M,	"TEST",		0,0,0 },
+
+  { T_COPT_M,	"FILES",	0,0,
+		"Enter file mode (compare file by file) and append file select rules."
+		TEXT_OPT_FILES },
+
+  { T_COPT,	"PATCH_FILE",	0,0,
+		"Enter file mode (compare file by file) and create a patch file."
+		" The options {--limit}, {--file-limit} and {--raw} are ignored." },
 
   { T_SEP_OPT,	0,0,0,0 },
 
@@ -1934,6 +1959,10 @@ info_t info_tab[] =
 
   { T_DEF_CMD,	"TITLES",	"TITLES",
 		    "wwt TITLES [additional_title_file]",
+		0 /* copy of wit */ },
+
+  { T_DEF_CMD,	"GETTITLES",	"GETTITLES",
+		    "wwt GETTITLES",
 		0 /* copy of wit */ },
 
   { T_SEP_CMD,	0,0,0,0 }, //----- separator -----
@@ -2665,6 +2694,7 @@ info_t info_tab[] =
 
   { T_CMD_BEG,	"HELP",		0,0,0 },
 
+  { T_COPT,	"WIDTH",	0,0,0 },
   { T_ALL_OPT,	0,		0,0,0 },
 
   //---------- COMMAND wwt INFO ----------
@@ -2714,6 +2744,10 @@ info_t info_tab[] =
   { T_CMD_BEG,	"TITLES",	0,0,0 },
 
   { T_COPY_GRP,	"TITLES",	0,0,0 },
+
+  //---------- COMMAND wwt GETTITLES ----------
+
+  { T_CMD_BEG,	"GETTITLES",	0,0,0 },
 
   //---------- COMMAND wwt FIND ----------
 
@@ -3455,6 +3489,7 @@ info_t info_tab[] =
 
   { T_CMD_BEG,	"HELP",		0,0,0 },
 
+  { T_COPT,	"WIDTH",	0,0,0 },
   { T_ALL_OPT,	0,		0,0,0 },
 
   //---------- COMMAND wdf UNPACK ----------

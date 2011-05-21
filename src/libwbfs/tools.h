@@ -74,7 +74,7 @@ typedef u32 be32_t;
 typedef u64 be64_t;
 
 typedef char id6_t[7];
-typedef u8 sha1_hash[20];
+typedef u8 sha1_hash_t[20];
 
 //
 ///////////////////////////////////////////////////////////////////////////////
@@ -250,7 +250,7 @@ char * wd_print_size_1024
 
 int wd_normalize_indent
 (
-    int			indent		// base vlaue to normalize
+    int			indent		// base value to normalize
 );
 
 //-----------------------------------------------------------------------------
@@ -300,9 +300,24 @@ char * StringCopyS ( char * buf, size_t bufsize, ccp src );
 char * StringCat2S ( char * buf, size_t bufsize, ccp src1, ccp src2 );
 char * StringCat3S ( char * buf, size_t bufsize, ccp src1, ccp src2, ccp src3 );
 
-char * StringCopyE ( char * buf, char * buf_end, ccp src );
-char * StringCat2E ( char * buf, char * buf_end, ccp src1, ccp src2 );
-char * StringCat3E ( char * buf, char * buf_end, ccp src1, ccp src2, ccp src3 );
+char * StringCopyE ( char * buf, ccp buf_end, ccp src );
+char * StringCat2E ( char * buf, ccp buf_end, ccp src1, ccp src2 );
+char * StringCat3E ( char * buf, ccp buf_end, ccp src1, ccp src2, ccp src3 );
+
+//-----
+
+//-----------------------------------------------------
+// Format of version number: AABBCCDD = A.BB | A.BB.CC
+// If D != 0x00 && D != 0xff => append: 'beta' D
+//-----------------------------------------------------
+
+char * PrintVersion
+(
+    char		* buf,		// result buffer
+					// If NULL, a local circulary static buffer is used
+    size_t		buf_size,	// size of 'buf', ignored if buf==NULL
+    u32			version		// version number to print
+);
 
 //
 ///////////////////////////////////////////////////////////////////////////////

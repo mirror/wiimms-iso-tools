@@ -475,6 +475,8 @@ enumError AppendZeroSF	( SuperFile_t * out, off_t count );
 ///////////////			    diff			///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
+struct WritePatch_t;
+
 typedef struct Diff_t
 {
     //--- options
@@ -497,6 +499,11 @@ typedef struct Diff_t
     SuperFile_t	* f2;		// second file
     ccp	 file_prefix;		// NULL or prefix for 'file_name'
     ccp	 file_name;		// NULL or name of file in file mode
+
+    //--- output streams
+
+    FILE * logfile;		// file for diff messages, stdout is default
+    struct WritePatch_t *patch;	// NULL or patch data, must be closed & freed
 
     //--- source statistics
 
@@ -539,6 +546,15 @@ void SetupDiff
 
     Diff_t		* diff,		// diff structure to setup
     int			long_count	// relevant long count
+);
+
+//-----------------------------------------------------------------------------
+
+enumError CloseDiff
+(
+    // close files and free dynamic data structures
+
+    Diff_t		* diff		// NULL or diff structure to reset
 );
 
 //-----------------------------------------------------------------------------
@@ -624,6 +640,15 @@ enumError DiffRawSF
 
 struct FilePattern_t;
 enumError DiffFilesSF
+(
+    Diff_t		* diff,		// valid diff structure
+    struct FilePattern_t * pat,		// NULL or file pattern
+    wd_ipm_t		pmode		// prefix mode
+);
+
+//-----------------------------------------------------------------------------
+
+enumError DiffPatchSF
 (
     Diff_t		* diff,		// valid diff structure
     struct FilePattern_t * pat,		// NULL or file pattern

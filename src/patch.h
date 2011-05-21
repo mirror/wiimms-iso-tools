@@ -192,7 +192,143 @@ int ScanOptFile ( ccp arg, bool add );
 
 //
 ///////////////////////////////////////////////////////////////////////////////
-///////////////                        END                      ///////////////
+///////////////			write patch files		///////////////
+///////////////////////////////////////////////////////////////////////////////
+
+typedef struct WritePatch_t
+{
+    //--- file
+
+    ccp		fname;			// filename for error messages
+					//  => never NULL, is freed on closing
+    FILE	* file;			// output file
+
+} WritePatch_t;
+
+///////////////////////////////////////////////////////////////////////////////
+
+void SetupWritePatch
+(
+    WritePatch_t	* pat		// patch data structure
+);
+
+//-----------------------------------------------------------------------------
+
+enumError CloseWritePatch
+(
+    WritePatch_t	* pat		// patch data structure
+);
+
+//-----------------------------------------------------------------------------
+
+enumError CreateWritePatch
+(
+    WritePatch_t	* pat,		// patch data structure
+    ccp			filename	// filename of output file
+);
+
+//-----------------------------------------------------------------------------
+
+enumError CreateWritePatchF
+(
+    WritePatch_t	* pat,		// patch data structure
+    FILE		* file,		// open output file
+    ccp			filename	// NULL or known filename
+);
+
+///////////////////////////////////////////////////////////////////////////////
+
+enumError WritePatchComment
+(
+    WritePatch_t	* pat,		// patch data structure
+    ccp			format,		// format string
+    ...					// arguments for 'format'
+)
+__attribute__ ((__format__(__printf__,2,3)));
+
+//
+///////////////////////////////////////////////////////////////////////////////
+///////////////			read patch files		///////////////
+///////////////////////////////////////////////////////////////////////////////
+
+typedef struct ReadPatch_t
+{
+    //--- status
+    
+    bool	is_valid;		// until now source is a valid patch file
+    bool	is_compatible;		// source has supported format
+    u32		version;		// patch file version
+    u32		compatible;		// patch file down compatible to version
+
+    //--- file
+
+    ccp		fname;			// filename for error messages
+					//  => never NULL, is freed on closing
+    FILE	* file;			// input file
+
+    //--- read buffer
+
+    char	read_buf[1024];		// read chache
+    off_t	read_buf_off;		// file offset of first byte in 'read_buf'
+    int		read_buf_len;		// valid data of 'read_buf'
+
+    //--- current object in read_buf
+
+    wpat_type_t	cur_type;		// current object type
+    u32		cur_size;		// size of current object
+					// 'read_buf' is filled as much as possible
+
+} ReadPatch_t;
+
+///////////////////////////////////////////////////////////////////////////////
+
+void SetupReadPatch
+(
+    ReadPatch_t		* pat		// patch data structure
+);
+
+//-----------------------------------------------------------------------------
+
+enumError CloseReadPatch
+(
+    ReadPatch_t		* pat		// patch data structure
+);
+
+//-----------------------------------------------------------------------------
+
+enumError OpenReadPatch
+(
+    ReadPatch_t		* pat,		// patch data structure
+    ccp			filename	// filename of input file
+);
+
+//-----------------------------------------------------------------------------
+
+enumError OpenReadPatchF
+(
+    ReadPatch_t		* pat,		// patch data structure
+    FILE		* file,		// open input file
+    ccp			filename	// NULL or known filename
+);
+
+//-----------------------------------------------------------------------------
+
+enumError SupportedVersionReadPatch
+(
+    ReadPatch_t		* pat,		// patch data structure
+    bool		silent		// true: suppress error message
+);
+
+///////////////////////////////////////////////////////////////////////////////
+
+enumError GetNextReadPatch
+(
+    ReadPatch_t		* pat		// patch data structure
+);
+
+//
+///////////////////////////////////////////////////////////////////////////////
+///////////////				END			///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
 #endif // WIT_PATCH_H

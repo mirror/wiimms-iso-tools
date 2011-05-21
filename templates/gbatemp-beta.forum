@@ -14,7 +14,7 @@
 [*] [url=@@URI-DOWNLOAD-X86_64@@][b]@@DISTRIB-X86_64@@[/b][/url] : Linux/x86_64 version
 [*] [url=@@URI-DOWNLOAD-MAC@@][b]@@DISTRIB-MAC@@[/b][/url] : Mac OS universal binaries (ppc, i386 and x86-64)
 [*] [url=@@URI-DOWNLOAD-CYGWIN@@][b]@@DISTRIB-CYGWIN@@[/b][/url] : Cygwin (Windows) version
-[*] Other releases are available from [url=@@URI-HOME@@download.html][b]@@URI-HOME@@download.html[/b][/url].
+[*] Other releases are available at [url=@@URI-HOME@@download.html][b]@@URI-HOME@@download.html[/b][/url].
 [/list]
 
 [size="2"][color="#0000c0"][b]Highlights of this release:[/b][/color][/size]

@@ -1,24 +1,9 @@
 wit v@@VERSION@@ r@@REV-NEXT@@ - @@@@-@@-@@
 
- - wfuse --version: Print FUSE versions too.
- - New option: wfuse --create: If the mount point does not exist, create it
-   and remove it on unmount.
- - New option: wfuse --remount: If the mount point is already mounted, try
-   silently to unmount it first.
- - New option: --include-first: Include lists takes take precedence over
-   exclude lists.
- - New option: "wwt ADD --sync-all": Use include and exclude lists only for
-   creating the sync list.
- - "wit DIFF/FDIFF": The diff output was changed completly. The options
-   --quit, --verbose, --file-limit, --limit, --block-size and --long allow
-   fine control. The output is now homogeneously in all three modes RAW,
-   SCRUBBED and FILES. Option --section is supported for each log level.
-   Hidden option --OLD enables the old diff layout for compatibility.
- - New: "wdf +cmp": Compare WDF, CISO and WIA files with other sources.
- - wit DUMP: Print version of "System Menu" if update partition found.
- - There is now a Windows installer (BETA): windows-install.bat
-   Please remove old selfmade installations of WIT.
-
+ - Script 'load-titles.sh' will be copied on install into the share folder to
+   allow later and easy update of the title database.
+ - New command: wit+wwt GETTITLES: Change to the share folder an call script
+   'load-titles.sh' to update the title database.
 
 Known bugs:
 

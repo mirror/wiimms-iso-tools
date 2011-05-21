@@ -6471,10 +6471,9 @@ void wd_print_disc
     fprintf(f,"%*sID and title:       %.6s, %.64s\n", indent,"",
 		&disc->dhead.disc_id,  disc->dhead.disc_title );
 
-    u8 * p8 = disc->region.region_info;
-    fprintf(f,"%*sRegion setting:     %d / %02x %02x %02x %02x  %02x %02x %02x %02x\n",
+    fprintf(f,"%*sRegion setting:     %d / %s\n",
 		indent,"", ntohl(disc->region.region),
-		p8[0], p8[1], p8[2], p8[3], p8[4], p8[5], p8[6], p8[7] );
+		wd_print_age_rating(0,0,disc->region.age_rating) );
 
     int ipt;
     for ( ipt = 0; ipt < WII_MAX_PTAB; ipt++ )

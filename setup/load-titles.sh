@@ -31,7 +31,7 @@
 NEEDED="wit wget comm tr"
 
 BASE_PATH="@@INSTALL-PATH@@"
-SHARE_PATH="$BASE_PATH/share/wit"
+SHARE_PATH="@@SHARE-PATH@@"
 URI_TITLES=@@URI-TITLES@@
 LANGUAGES="@@LANGUAGES@@"
 
@@ -125,6 +125,9 @@ if (( !MAKE && !CYGWIN ))
 then
     echo "*** install titles to $SHARE_PATH"
     mkdir -p "$SHARE_PATH"
-    cp -p "$SHARE_DIR/titles*.txt" "$SHARE_PATH"
+    cp -p "$SHARE_DIR"/titles*.txt "$SHARE_PATH"
 fi
+
+# remove a possible temp dir in SHARE_PATH
+((CYGWIN)) || rm -rf "$SHARE_PATH/$SHARE_DIR"
 

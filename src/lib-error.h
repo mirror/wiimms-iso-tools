@@ -52,6 +52,7 @@ typedef enum enumError
 	ERR_WARNING,	// separator: below = real errors and not warnings
 
 	ERR_INVALID_FILE,
+	ERR_INVALID_VERSION,
 
 	ERR_NO_WDF,
 	ERR_WDF_VERSION,

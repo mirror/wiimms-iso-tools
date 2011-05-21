@@ -45,6 +45,7 @@
 #include "lib-sf.h"
 
 #include "ui-wdf.c"
+#include "logo.inc"
 
 //
 ///////////////////////////////////////////////////////////////////////////////
@@ -592,9 +593,10 @@ enumError cmd_cmp()
     OpenDiffSource(&diff,&f1,&f2,true);
     err = DiffRawSF(&diff);
     
+    enumError err2 = CloseDiff(&diff);
     ResetSF(&f1,0);
     ResetSF(&f2,0);
-    return err;
+    return err > err2 ? err : err2;
 }
 
 //
@@ -1197,10 +1199,7 @@ enumError CheckCommand ( int argc, char ** argv )
 	const CommandTab_t * cmd_ct = ScanCommand(&cmd_stat,*argv,CommandTab);
 	if (!cmd_ct)
 	{
-	    if ( cmd_stat > 0 )
-		ERROR0(ERR_SYNTAX,"Command abbreviation is ambiguous: %s\n",*argv);
-	    else
-		ERROR0(ERR_SYNTAX,"Unknown command: %s\n",*argv);
+	    PrintCommandError(CommandTab,*argv,cmd_stat,0);
 	    hint_exit(ERR_SYNTAX);
 	}
 
@@ -1328,7 +1327,8 @@ int main ( int argc, char ** argv )
 
     if ( argc < 2 )
     {
-	printf("\n%s%s\nVisit %s%s for more info.\n\n",progname,TITLE,URI_HOME,NAME);
+	printf("\n%s\n%s%s\nVisit %s%s for more info.\n\n",
+		text_logo, progname, TITLE, URI_HOME, NAME );
 	hint_exit(ERR_OK);
     }
 

@@ -269,6 +269,7 @@ void InitializeFile ( File_t * f )
     f->fname = EmptyString;
     f->split_fname_format = EmptyString;
     f->slot = -1;
+    f->already_created_mode = 2;
 
     // normalize 'opt_iomode'
     opt_iomode = opt_iomode & IOM__IS_MASK | IOM_FORCE_STREAM;
@@ -287,18 +288,20 @@ enumError XResetFile ( XPARM File_t * f, bool remove_file )
     enumError stat = XClearFile( XCALL f, remove_file );
 
     // save user settungs
-    const bool open_flags	= f->open_flags;
-    const bool disable_errors	= f->disable_errors;
-    const bool create_directory	= f->create_directory;
-    const bool allow_direct_io	= f->allow_direct_io;
+    const bool open_flags		= f->open_flags;
+    const bool disable_errors		= f->disable_errors;
+    const bool create_directory		= f->create_directory;
+    const bool allow_direct_io		= f->allow_direct_io;
+    const int  already_created_mode	= f->already_created_mode;
 
     InitializeFile(f);
 
     // restore user settings
-    f->open_flags	= open_flags;
-    f->disable_errors	= disable_errors;
-    f->create_directory	= create_directory;
-    f->allow_direct_io	= allow_direct_io;
+    f->open_flags		= open_flags;
+    f->disable_errors		= disable_errors;
+    f->create_directory		= create_directory;
+    f->allow_direct_io		= allow_direct_io;
+    f->already_created_mode	= already_created_mode;
 
     return stat;
 }
@@ -632,14 +635,15 @@ enumError XOpenFileModify ( XPARM File_t * f, ccp fname, enumIOMode iomode )
 
 ///////////////////////////////////////////////////////////////////////////////
 
-enumError XCheckCreated ( XPARM ccp fname, bool disable_errors )
+enumError XCheckCreated
+	( XPARM ccp fname, bool disable_errors, enumError err_code )
 {
     if (!InsertStringField(&created_files,fname,false))
     {
 	if (!disable_errors)
-	    PrintError( XERROR0, ERR_CANT_CREATE,
+	    PrintError( XERROR0, err_code,
 		"File already created: %s\n", fname );
-	return ERR_CANT_CREATE;
+	return err_code;
     }
     return ERR_OK;
 }
@@ -727,8 +731,13 @@ enumError XCreateFile
     }
     else
     {
-	if (XCheckCreated(XCALL fname,disable_errors))
-	    goto abort;
+	if ( f->already_created_mode > 1 )
+	{
+	    if (XCheckCreated(XCALL fname,disable_errors,ERR_CANT_CREATE))
+		goto abort;
+	}
+	else if ( f->already_created_mode > 0 )
+	    XCheckCreated(XCALL fname,disable_errors,ERR_WARNING);
 
 	f->rename = strdup(fname);
 
@@ -3323,6 +3332,7 @@ int AddCertFile ( ccp fname, int unused )
 		}
 	    }
 	}
+// [2do] [ft-id]
 	else if ( sf.f.ftype & (FT_ID_CERT_BIN|FT_ID_TIK_BIN|FT_ID_TMD_BIN) )
 	{
 	    const size_t load_size = sf.file_size < sizeof(iobuf)

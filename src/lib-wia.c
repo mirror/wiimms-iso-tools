@@ -307,40 +307,6 @@ int CalcDefaultSettingsWIA
 
 ///////////////////////////////////////////////////////////////////////////////
 
-char * PrintVersionWIA
-(
-    char		* buf,		// result buffer
-					// If NULL, a local circulary static buffer is used
-    size_t		buf_size,	// size of 'buf', ignored if buf==NULL
-    u32			version		// version number to print
-)
-{
-    if (!buf)
-	buf = GetCircBuf( buf_size = 20 );
-
-    version = htonl(version); // we need big endian here
-    const u8 * v = (const u8 *)&version;
-
-    if (v[2])
-    {
-	if ( !v[3] || v[3] == 0xff )
-	    snprintf(buf,buf_size,"%u.%02x.%02x",v[0],v[1],v[2]);
-	else
-	    snprintf(buf,buf_size,"%u.%02x.%02x.beta%u",v[0],v[1],v[2],v[3]);
-    }
-    else
-    {
-	if ( !v[3] || v[3] == 0xff )
-	    snprintf(buf,buf_size,"%u.%02x",v[0],v[1]);
-	else
-	    snprintf(buf,buf_size,"%u.%02x.beta%u",v[0],v[1],v[3]);
-    }
-
-    return buf;
-}
-
-///////////////////////////////////////////////////////////////////////////////
-
 bool IsWIA
 (
     const void		* data,		// data to check
@@ -356,7 +322,7 @@ bool IsWIA
     {
 	if (!memcmp(fhead->magic,WIA_MAGIC,sizeof(fhead->magic)))
 	{
-	    sha1_hash hash;
+	    sha1_hash_t hash;
 	    SHA1( (u8*)fhead, sizeof(*fhead)-sizeof(fhead->file_head_hash), hash );
 	    is_wia = !memcmp(hash,fhead->file_head_hash,sizeof(hash));
 	    //HEXDUMP(0,0,0,-WII_HASH_SIZE,hash,WII_HASH_SIZE);
@@ -546,7 +512,7 @@ static enumError read_data
 		"Invalid WIA data size: %s\n",sf->f.fname);
 		
 	file_data_size -= WII_HASH_SIZE;
-	sha1_hash hash;
+	sha1_hash_t hash;
 	SHA1(tempbuf,file_data_size,hash);
 	if (memcmp(hash,tempbuf+file_data_size,WII_HASH_SIZE))
 	{
@@ -1094,14 +1060,14 @@ enumError SetupReadWIA
     {
 	if ( WIA_VERSION_READ_COMPATIBLE < WIA_VERSION )
 	    return ERROR0(ERR_WIA_INVALID,
-		"Not supported WIA version %s (compatible %s .. %s): %s\n",
+		"WIA version %s is not supported (compatible %s .. %s): %s\n",
 		PrintVersionWIA(0,0,fhead->version),
 		PrintVersionWIA(0,0,WIA_VERSION_READ_COMPATIBLE),
 		PrintVersionWIA(0,0,WIA_VERSION),
 		sf->f.fname );
 	else
 	    return ERROR0(ERR_WIA_INVALID,
-		"Not supported WIA version %s (%s expected): %s\n",
+		"WIA version %s is not supported (%s expected): %s\n",
 		PrintVersionWIA(0,0,fhead->version),
 		PrintVersionWIA(0,0,WIA_VERSION),
 		sf->f.fname );
@@ -1129,7 +1095,7 @@ enumError SetupReadWIA
     if (err)
 	return err;
 
-    sha1_hash hash;
+    sha1_hash_t hash;
     SHA1(tempbuf,fhead->disc_size,hash);
     if (memcmp(hash,fhead->disc_hash,sizeof(hash)))
 	return ERROR0(ERR_WIA_INVALID,

@@ -1,5 +1,4 @@
 
-
 /***************************************************************************
  *                    __            __ _ ___________                       *
  *                    \ \          / /| |____   ____|                      *
@@ -54,6 +53,7 @@
 #include "wbfs-interface.h"
 
 #include "ui-wfuse.c"
+#include "logo.inc"
 
 //
 ///////////////////////////////////////////////////////////////////////////////
@@ -1941,7 +1941,8 @@ int main ( int argc, char ** argv )
 
     if ( argc < 2 )
     {
-	printf("\n%s\nVisit %s%s for more info.\n\n",TITLE,URI_HOME,WFUSE_SHORT);
+	printf("\n%s\n%s\nVisit %s%s for more info.\n\n",
+		text_logo, TITLE, URI_HOME, WFUSE_SHORT );
 	hint_exit(ERR_OK);
     }
 

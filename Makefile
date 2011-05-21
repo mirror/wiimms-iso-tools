@@ -42,7 +42,7 @@ WDF_LONG		= Wiimms WDF Tool
 WFUSE_SHORT		= wfuse
 WFUSE_LONG		= Wiimms FUSE Tool
 
-VERSION_NUM		= 1.28a
+VERSION_NUM		= 1.29a
 BETA_VERSION		= 0
 			# 0:off  -1:"beta"  >0:"beta#"
 
@@ -190,6 +190,11 @@ SETUP_FILES	=  version.h install.sh cygwin-copy.sh wit.def $(CYGWIN_SCRIPTS)
 DIR_LIST	+= $(SETUP_DIR)
 RM_FILES2	+= $(SETUP_FILES)
 
+TEXT_DIR	=  ./text-files
+TEXT_FILES	=  logo.inc ui-head.inc
+DIR_LIST	+= $(TEXT_DIR)
+RM_FILES2	+= $(TEXT_FILES)
+
 #-------------------------------------------------------------------------------
 # object files
 
@@ -219,12 +224,14 @@ ALL_SOURCES	= $(patsubst %.o,%.c,$(UI_OBJECTS) $(C_OBJECTS) $(ASM_OBJECTS))
 #-------------------------------------------------------------------------------
 
 INSTALL_PATH	= /usr/local
+SHARE_PATH	= $(INSTALL_PATH)/share/wit
 INSTALL_SCRIPTS	= install.sh load-titles.sh
 RM_FILES	+= $(INSTALL_SCRIPTS)
 SCRIPTS		= ./scripts
 TEMPLATES	= ./templates
 MODULES		= $(TEMPLATES)/module
 GEN_TEMPLATE	= ./gen-template.sh
+GEN_TEXT_FILE	= ./gen-text-file.sh
 UI		= ./src/ui
 DIR_LIST	+= $(SCRIPTS) $(TEMPLATES) $(MODULES)
 
@@ -273,7 +280,7 @@ BIN_FILES	= $(MAIN_TOOLS) $(EXTRA_TOOLS)
 SHARE_FILES	= $(TITLE_FILES) system-menu.txt
 
 CYGWIN_DIR	= /usr/bin
-CYGWIN_TOOLS	= bash comm cp mkdir realpath regtool sed stat tr wget
+CYGWIN_TOOLS	= bash comm cp diff mkdir mv realpath regtool rm sed stat tr wget
 CYGWIN_SCRIPTS	= load-titles.sh load-titles.bat windows-install.sh windows-install.bat
 WIN_INSTALL_PATH= Wiimm/WIT
 
@@ -334,7 +341,7 @@ $(UI_OBJECTS): %.o: %.c ui-%.c ui-%.h version.h Makefile
 
 #--------------------------
 
-$(C_OBJECTS): %.o: %.c version.h Makefile
+$(C_OBJECTS): %.o: %.c version.h Makefile $(TEXT_FILES)
 	@printf "$(LOGFORMAT)" object "$@" "$(MODE)"
 	@$(CC) $(CFLAGS) $(DEPFLAGS) $(DEFINES) -c $< -o $@
 
@@ -350,6 +357,13 @@ $(SETUP_FILES): templates.sed $(SETUP_DIR)/$@
 	@printf "$(LOGFORMAT)" create "$@" ""
 	@chmod 775 $(GEN_TEMPLATE)
 	@$(GEN_TEMPLATE) $@
+
+#--------------------------
+
+$(TEXT_FILES): $(GEN_TEXT_FILE) $(TEXT_DIR)/$@
+	@printf "$(LOGFORMAT)" create "$@" ""
+	@chmod 775 $(GEN_TEXT_FILE)
+	@$(GEN_TEXT_FILE) $(TEXT_DIR) $@
 
 #--------------------------
 
@@ -529,6 +543,21 @@ else
 
 endif
 
+#-----
+
+.PHONY : copy-distrib
+copy-distrib: distrib2
+	@printf "$(LOGFORMAT)" copy "$(DISTRIB_BASE).*" "-> $(DOWNLOAD_DIR)"
+	@[[ -s "$(DISTRIB_I386)" ]] \
+		&& cp --preserve=time "$(DISTRIB_I386)" "$(DOWNLOAD_DIR)" \
+		|| true
+	@[[ -s "$(DISTRIB_X86_64)" ]] \
+		&& cp --preserve=time "$(DISTRIB_X86_64)" "$(DOWNLOAD_DIR)" \
+		|| true
+	@[[ -s "$(DISTRIB_CYGWIN)" ]] \
+		&& cp --preserve=time "$(DISTRIB_CYGWIN)" "$(DOWNLOAD_DIR)" \
+		|| true
+
 #
 #--------------------------
 
@@ -637,6 +666,7 @@ templates.sed: Makefile
 		's|@@DATE@@|$(DATE)|g;\n' \
 		's|@@TIME@@|$(TIME)|g;\n' \
 		's|@@INSTALL-PATH@@|$(INSTALL_PATH)|g;\n' \
+		's|@@SHARE-PATH@@|$(SHARE_PATH)|g;\n' \
 		's|@@BIN-FILES@@|$(BIN_FILES)|g;\n' \
 		's|@@SHARE-FILES@@|$(SHARE_FILES)|g;\n' \
 		's|@@WDF-LINKS@@|$(WDF_LINKS)|g;\n' \

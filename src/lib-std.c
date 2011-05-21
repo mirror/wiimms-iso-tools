@@ -91,7 +91,7 @@ enumOFT		output_file_type	= OFT_UNKNOWN;
 int		opt_truncate		= 0;
 int		opt_split		= 0;
 u64		opt_split_size		= 0;
-ccp		opt_clone		= 0;
+ccp		opt_patch_file		= 0;
 int		testmode		= 0;
 int		newmode			= 0;
 ccp		opt_dest		= 0;
@@ -275,6 +275,7 @@ void SetupLib ( int argc, char ** argv, ccp p_progname, enumProgID prid )
     TRACE_SIZEOF(ParamList_t);
     TRACE_SIZEOF(PartitionInfo_t);
     TRACE_SIZEOF(PrintTime_t);
+    TRACE_SIZEOF(ReadPatch_t);
     TRACE_SIZEOF(RegionInfo_t);
     TRACE_SIZEOF(StringField_t);
     TRACE_SIZEOF(IdField_t);
@@ -294,6 +295,7 @@ void SetupLib ( int argc, char ** argv, ccp p_progname, enumProgID prid )
     TRACE_SIZEOF(WiiFstInfo_t);
     TRACE_SIZEOF(WiiFstPart_t);
     TRACE_SIZEOF(WiiFst_t);
+    TRACE_SIZEOF(WritePatch_t);
 
     // base types a-z
 
@@ -310,7 +312,7 @@ void SetupLib ( int argc, char ** argv, ccp p_progname, enumProgID prid )
     TRACE_SIZEOF(dcUnicodeTripel);
     TRACE_SIZEOF(dol_header_t);
     TRACE_SIZEOF(id6_t);
-    TRACE_SIZEOF(sha1_hash);
+    TRACE_SIZEOF(sha1_hash_t);
 
     TRACE_SIZEOF(wbfs_disc_info_t);
     TRACE_SIZEOF(wbfs_disc_t);
@@ -369,6 +371,19 @@ void SetupLib ( int argc, char ** argv, ccp p_progname, enumProgID prid )
     TRACE_SIZEOF(wia_part_t);
     TRACE_SIZEOF(wia_raw_data_t);
 
+    TRACE_SIZEOF(WIT_PATCH_MAGIC);
+    TRACE_SIZEOF(wpat_magic);
+    TRACE_SIZEOF(wpat_comment_t);
+    TRACE_SIZEOF(wpat_data_t);
+    TRACE_SIZEOF(wpat_filename_t);
+    TRACE_SIZEOF(wpat_filenames_t);
+    TRACE_SIZEOF(wpat_header_t);
+    TRACE_SIZEOF(wpat_patch_file_t);
+    TRACE_SIZEOF(wpat_size_t);
+    TRACE_SIZEOF(wpat_toc_file_t);
+    TRACE_SIZEOF(wpat_toc_header_t);
+    TRACE_SIZEOF(wpat_type_t);
+
     // assertions
 
     TRACE("-\n");
@@ -387,7 +402,9 @@ void SetupLib ( int argc, char ** argv, ccp p_progname, enumProgID prid )
     ASSERT(  79 == strlen(sep_79) );
     ASSERT( 200 == strlen(wd_sep_200) );
 
+    TRACE("- file formats:\n");
     validate_file_format_sizes(1);
+    TRACE("-\n");
 
     //----- setup textmode for cygwin stdout+stderr
 
@@ -667,7 +684,7 @@ enumError CheckEnvOptions ( ccp varname, check_opt_func func )
     enumError stat = func(argc,argv,true);
     if (stat)
 	fprintf(stderr,
-	    "Errors above while scanning the environment variable '%s'\n",varname);
+	    "Error while scanning the environment variable '%s'\n",varname);
 
     // don't free() because is's possible that there are pointers to arguments
     //free(argv);
@@ -693,6 +710,7 @@ ccp GetErrorName ( int stat )
 	case ERR_WARNING:		return "WARNING";
 
 	case ERR_INVALID_FILE:		return "INVALID FILE";
+	case ERR_INVALID_VERSION:	return "INVALID VERSION";
 
 	case ERR_NO_WDF:		return "NO WDF";
 	case ERR_WDF_VERSION:		return "WDF VERSION NOT SUPPORTED";
@@ -756,6 +774,7 @@ ccp GetErrorText ( int stat )
 	case ERR_WARNING:		return "Unspecific warning";
 
 	case ERR_INVALID_FILE:		return "File has invalid content";
+	case ERR_INVALID_VERSION:	return "File version not supported";
 
 	case ERR_NO_WDF:		return "File is not a WDF";
 	case ERR_WDF_VERSION:		return "WDF version not supported";
@@ -2511,9 +2530,9 @@ int ScanOptCompression
 	const int new_compr = ScanCompression(arg,false,&new_level,&new_chunk_size);
 	if ( new_compr == -1 )
 	    return 1;
-	opt_compr_method	 = new_compr;
-	opt_compr_level	 = new_level;
-	opt_compr_chunk_size = new_chunk_size;
+	opt_compr_method	= new_compr;
+	opt_compr_level		= new_level;
+	opt_compr_chunk_size	= new_chunk_size;
     }
     return 0;
 }
@@ -2806,6 +2825,76 @@ s64 ScanCommandListMask
 )
 {
     return ScanCommandList(arg,cmd_tab,ScanCommandListMaskHelper,false,0,0);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+void PrintCommandError
+(
+    const CommandTab_t	* cmd_tab,	// NULL or pointer to command table
+    ccp			cmd_arg,	// analyzed command
+    int			cmd_stat,	// status of ScanCommand()
+    ccp			object		// NULL or object for error messages
+					//	default= 'command'
+)
+{
+    DASSERT(cmd_arg);
+
+    if ( !object || !*object )
+	object = "command";
+
+    if ( cmd_stat <= 0 )
+    {
+	ERROR0(ERR_SYNTAX,"Unknown %s: %s\n",object,cmd_arg);
+	return;
+    }
+
+    char buf[100], *dest = buf;
+    if (cmd_tab)
+    {
+	int n = 0;
+	ccp buf_end = buf + sizeof(buf) - 2;
+	const int arg_len = strlen(cmd_arg);
+	const CommandTab_t *ct;
+	int last_id = -1;
+
+	for ( ct = cmd_tab; ct->name1 && dest < buf_end; ct++ )
+	{
+	    if ( ct->id != last_id )
+	    {
+		ccp ok = 0;
+		if (!strncasecmp(cmd_arg,ct->name1,arg_len))
+		    ok = ct->name1;
+		else if ( ct->name2 && !strncasecmp(cmd_arg,ct->name2,arg_len))
+		    ok = ct->name2;
+		if (ok)
+		{
+		    if (!n++)
+		    {
+			*dest++ = ' ';
+			*dest++ = '[';
+		    }
+		    else if ( n > 5 )
+		    {
+			dest = StringCopyE(dest,buf_end,",...");
+			break;
+		    }
+		    else
+			*dest++ = ',';
+		    dest = StringCopyE(dest,buf_end,ok);
+		    last_id = ct->id;
+		}
+	    }
+	}
+	if ( dest > buf+1 )
+	    *dest++ = ']';
+	else
+	    dest = buf;
+    }
+    *dest = 0;
+    
+    ERROR0(ERR_SYNTAX,"%c%s abbreviation is ambiguous: %s%s\n",
+		toupper((int)*object), object+1, cmd_arg, buf );
 }
 
 //
@@ -4204,7 +4293,7 @@ enumError ScanSetupFile
 	if (!*ptr)
 	    continue;
 
-	*ptr++ = 0;
+	char * name_end = ptr;
 
 	//----- skip spaces and check for '='
 
@@ -4213,6 +4302,8 @@ enumError ScanSetupFile
 
 	if ( *ptr != '=' )
 	    continue;
+
+	*name_end = 0;
 
 	//----- check if name is a known parameter
 

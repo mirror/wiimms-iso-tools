@@ -16,7 +16,7 @@
 [*] [url=@@URI-DOWNLOAD-X86_64@@][b]@@DISTRIB-X86_64@@[/b][/url] : Linux/x86_64 version
 [*] [url=@@URI-DOWNLOAD-MAC@@][b]@@DISTRIB-MAC@@[/b][/url] : Mac OS universal binaries (ppc, i386 and x86-64)
 [*] [url=@@URI-DOWNLOAD-CYGWIN@@][b]@@DISTRIB-CYGWIN@@[/b][/url] : Cygwin (Windows) version
-[*] Other releases are available from [url=@@URI-HOME@@download.html][b]@@URI-HOME@@download.html[/b][/url].
+[*] Other releases are available at [url=@@URI-HOME@@download.html][b]@@URI-HOME@@download.html[/b][/url].
 [/list]
 
 [size="2"][color="#0000c0"][b]There are also some GUI available:[/b][/color][/size]
@@ -35,11 +35,7 @@
 
 [size="2"][color="#0000c0"][b]Highlights of this release:[/b][/color][/size]
 [list]
-[*] I have rewritten the user interface of all diff variants (raw, scrubbed, file level). The meaning of the options is more homogeneously and all three variants supports different verbose levels from silent upto hexdump.
-[color=#ffffff].[/color]
-
-[*] This release is the first one with an installer for Windows. The script "windows-install.bat" will copy all files to a [i]programms[/i] subfolder [u]Wiimm\WIT[/u] and setup some apllication pathes in the windows registry. I have testet it only with Windows XP. To eneable it remove all previous selfmade installations.
-[color=#800000]THIS INSTALLER IS DEFINITELY BETA![/color]
+[*] New command: wit+wwt GETTITLES: Update the title database.
 [color=#ffffff].[/color]
 [/list]
 
