@@ -40,29 +40,38 @@
 #define _GNU_SOURCE 1
 
 #include <sys/types.h>
+#include <stdint.h>
 #include <limits.h>
 
 ///////////////////////////////////////////////////////////////////////////////
 
-typedef unsigned char		u8;
-typedef unsigned short		u16;
-typedef unsigned int		u32;
-typedef unsigned long long	u64;
+typedef uint8_t		u8;
+typedef uint16_t	u16;
+typedef uint32_t	u32;
+//typedef uint64_t	u64;	// is 'long unsigned' in 64 bit linux
+typedef long long unsigned u64;
 
-typedef signed char		s8;
-typedef signed short		s16;
-typedef signed int		s32;
-typedef signed long long	s64;
+typedef int8_t		s8;
+typedef int16_t		s16;
+typedef int32_t		s32;
+//typedef int64_t	s64;	// is 'long int' in 64 bit linux
+typedef long long int	s64;
+
+typedef u16		be16_t;
+typedef u32		be32_t;
+typedef u64		be64_t;
+
+typedef unsigned char	uchar;
+typedef unsigned int	uint;
+typedef unsigned long	ulong;
+
+typedef enum bool { false, true } __attribute__ ((packed)) bool;
 
 ///////////////////////////////////////////////////////////////////////////////
 
-typedef unsigned char		uchar;
-typedef unsigned int		uint;
-typedef unsigned long		ulong;
-
-typedef const char *		ccp;
-
-typedef enum bool { false, true } __attribute__ ((packed)) bool;
+typedef const char *	ccp;
+typedef char		id6_t[7];
+typedef u8		sha1_hash_t[20];
 
 ///////////////////////////////////////////////////////////////////////////////
 

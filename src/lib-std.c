@@ -223,7 +223,7 @@ void SetupLib ( int argc, char ** argv, ccp p_progname, enumProgID prid )
 
     // numeric types
 
-    TRACE("-\n");
+    TRACE("- int\n");
     TRACE_SIZEOF(bool);
     TRACE_SIZEOF(short);
     TRACE_SIZEOF(int);
@@ -231,6 +231,15 @@ void SetupLib ( int argc, char ** argv, ccp p_progname, enumProgID prid )
     TRACE_SIZEOF(long long);
     TRACE_SIZEOF(size_t);
     TRACE_SIZEOF(off_t);
+
+    TRACE_SIZEOF(int8_t);
+    TRACE_SIZEOF(int16_t);
+    TRACE_SIZEOF(int32_t);
+    TRACE_SIZEOF(int64_t);
+    TRACE_SIZEOF(uint8_t);
+    TRACE_SIZEOF(uint16_t);
+    TRACE_SIZEOF(uint32_t);
+    TRACE_SIZEOF(uint64_t);
 
     TRACE_SIZEOF(u8);
     TRACE_SIZEOF(u16);
@@ -240,6 +249,9 @@ void SetupLib ( int argc, char ** argv, ccp p_progname, enumProgID prid )
     TRACE_SIZEOF(s16);
     TRACE_SIZEOF(s32);
     TRACE_SIZEOF(s64);
+    TRACE_SIZEOF(be16_t);
+    TRACE_SIZEOF(be32_t);
+    TRACE_SIZEOF(be64_t);
 
     // base types A-Z
 
@@ -1874,7 +1886,7 @@ enumError ScanSizeOpt
 	err = ERR_SYNTAX;
 	if (print_err)
 	    ERROR0(ERR_SEMANTIC,
-			"--%s to small (must not <%llu): %s\n",
+			"Value of --%s to small (must not <%llu): %s\n",
 			opt_name, min, source );
     }
     else if ( max > 0 && d > max )
@@ -1882,7 +1894,7 @@ enumError ScanSizeOpt
 	err = ERR_SYNTAX;
 	if (print_err)
 	    ERROR0(ERR_SEMANTIC,
-			"--%s to large (must not >%llu): %s\n",
+			"Value of --%s to large (must not >%llu): %s\n",
 			opt_name, max, source );
     }
 
@@ -3250,7 +3262,7 @@ static IdItem_t ** InsertIdFieldHelper ( IdField_t * idf, int idx )
     if ( idf->used == idf->size )
     {
 	idf->size += 0x100;
-	idf->field = realloc(idf->field,idf->size*sizeof(ccp));
+	idf->field = realloc(idf->field,idf->size*sizeof(*idf->field));
 	if (!idf->field)
 	    OUT_OF_MEMORY;
     }
@@ -3391,7 +3403,7 @@ static ccp * InsertStringFieldHelper ( StringField_t * sf, int idx )
     if ( sf->used == sf->size )
     {
 	sf->size += 0x100;
-	sf->field = realloc(sf->field,sf->size*sizeof(ccp));
+	sf->field = realloc(sf->field,sf->size*sizeof(*sf->field));
 	if (!sf->field)
 	    OUT_OF_MEMORY;
     }
@@ -3486,7 +3498,7 @@ void AppendStringField ( StringField_t * sf, ccp key, bool move_key )
 	if ( sf->used == sf->size )
 	{
 	    sf->size += 0x100;
-	    sf->field = realloc(sf->field,sf->size*sizeof(ccp));
+	    sf->field = realloc(sf->field,sf->size*sizeof(*sf->field));
 	    if (!sf->field)
 		OUT_OF_MEMORY;
 	}
@@ -4002,7 +4014,7 @@ uint InsertMemMapIndex
     if ( mm->used == mm->size )
     {
 	mm->size += 64;
-	mm->field = realloc(mm->field,mm->size*sizeof(MemMapItem_t*));
+	mm->field = realloc(mm->field,mm->size*sizeof(*mm->field));
 	if (!mm->field)
 	    OUT_OF_MEMORY;
     }
@@ -4034,7 +4046,7 @@ MemMapItem_t * InsertMemMap
 )
 {
     const uint idx = InsertMemMapIndex(mm,off,size);
-    // a C sequence piunt is importand here
+    // a C sequence point is important here
     return mm->field[idx];
 }
 

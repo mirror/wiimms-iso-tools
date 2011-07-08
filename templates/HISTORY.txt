@@ -516,6 +516,18 @@ wit v1.28a r2336 - 2011-03-04
  - There is now a Windows installer (BETA): windows-install.bat
    Please remove old self made installations of WIT.
 
+wit v1.29a r2655 - 2011-05-21
+ - Script 'load-titles.sh' will be copied on install into the share folder to
+   allow later and easy update of the title database.
+ - New command: wit+wwt GETTITLES: Change to the share folder an call script
+   'load-titles.sh' to update the title database.
+
+ - Known bugs:
+    - The GameCube support is in development and EXPERIMENTAL!
+    - There are new problems while reading from non seekable sources (e.g.
+      pipes). The reason is the complete new and more intelligent wiidisc lib
+      which makes more lookups ==> The best is to use version 1.01c for pipes.
+
 @@MODULE(last-history.txt)@@
 
 

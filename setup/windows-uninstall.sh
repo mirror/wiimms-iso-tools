@@ -21,113 +21,87 @@
     ##                                                                 ##
     #####################################################################
     ##                                                                 ##
-    ##   This file loads the title files from WiiTDB.com               ##
+    ##   This file installs the distribution on a windows system.      ##
     ##                                                                 ##
     #####################################################################
 
 
 #------------------------------------------------------------------------------
+# simple cygwin check
 
-NEEDED="wit wget tr"
-
-BASE_PATH="@@INSTALL-PATH@@"
-SHARE_PATH="@@SHARE-PATH@@"
-URI_TITLES=@@URI-TITLES@@
-LANGUAGES="@@LANGUAGES@@"
-
-SHARE_DIR=./share
-
-#------------------------------------------------------------------------------
-
-CYGWIN=0
-if [[ $1 = --cygwin ]]
+if [[ $1 != --cygwin ]]
 then
-    shift
-    CYGWIN=1
-    SHARE_DIR=.
-    export PATH=".:$PATH"
+    echo "Option --cygwin not set => exit" >&2
+    exit 1
 fi
 
 #------------------------------------------------------------------------------
+# pre definitions
 
-MAKE=0
-if [[ $1 = --make ]]
-then
-    # it's called from make
-    shift
-    MAKE=1
-fi
+BIN_FILES="@@BIN-FILES@@"
+WDF_LINKS="@@WDF-LINKS@@"
+SHARE_FILES="@@SHARE-FILES@@"
+WIN_INSTALL_PATH="@@WIN-INSTALL-PATH@@"
 
 #------------------------------------------------------------------------------
+# setup
 
-function load_and_store()
-{
-    local URI="$1"
-    local DEST="$2"
-    local ADD="$3"
+echo "* setup"
 
-    echo "***    load $DEST from $URI"
+export PATH=".:$PATH"
 
-    if wget -q -O- "$URI" | wit titles / - >"$DEST.tmp" && test -s "$DEST.tmp"
+key="/machine/SOFTWARE/Microsoft/Windows/CurrentVersion/ProgramFilesDir"
+if ! WIN_PROG_PATH="$(regtool get "$key")" || [[ $WIN_PROG_PATH = "" ]]
+then
+    echo "Can't determine Windows program path => abort" >&2
+    exit 1
+fi
+CYGWIN_PROG_PATH="$( realpath "$WIN_PROG_PATH" )"
+
+WDEST="$WIN_PROG_PATH\\${WIN_INSTALL_PATH//\//\\}"
+CDEST="$CYGWIN_PROG_PATH/$WIN_INSTALL_PATH"
+
+#------------------------------------------------------------------------------
+# remove application pathes
+
+for tool in $BIN_FILES $WDF_LINKS
+do
+    key="/machine/SOFTWARE/Microsoft/Windows/CurrentVersion/App Paths/$tool.exe"
+    if regtool check "$key" >/dev/null 2>&1
     then
-	if [[ $ADD != "" ]]
-	then
-	    wit titles / "$ADD" "$DEST.tmp" >"$DEST.tmp.2"
-	    mv "$DEST.tmp.2" "$DEST.tmp"
-	fi
-
-	if [[ -s $DEST ]]
-	then
-	    grep -v ^TITLES "$DEST"     >"$DEST.tmp.1"
-	    grep -v ^TITLES "$DEST.tmp" >"$DEST.tmp.2"
-	    if ! diff -q "$DEST.tmp.1" "$DEST.tmp.2" >/dev/null
-	    then
-		#echo "            => content changed!"
-		mv "$DEST.tmp" "$DEST"
-	    fi
-	else
-	    mv "$DEST.tmp" "$DEST"
-	fi
+	echo "* remove application path for '$tool.exe'"
+	regtool unset "$key/" "${WDEST}\\${tool}.exe"
+	regtool unset "$key/Path" "${WDEST}\\"
+	regtool remove "$key"
     fi
-    rm -f "$DEST.tmp" "$DEST.tmp.1" "$DEST.tmp.2"
+done
+
+#------------------------------------------------------------------------------
+# remove WIT path to environment 'Path'
+
+echo "* remove WIT path from environment 'Path'"
+
+function set_path()
+{
+    local key="$1"
+
+    local p=
+    local count=0
+    local new_path=
+
+    # split at ';' & substitute ' ' temporary to ';' to be space save
+    for p in $( regtool --quiet get "$key" | tr '; ' '\n;' )
+    do
+	p="${p//;/ }"
+	#echo " -> |$p|"
+	[[ "$p" = "$WDEST" ]] || new_path="$new_path;$p"
+    done
+
+    [[ $new_path = "" ]] || regtool set "$key" "${new_path:1}"
 }
 
-#------------------------------------------------------------------------------
-
-errtool=
-for tool in $NEEDED
-do
-    ((CYGWIN)) && [[ -x $tool.exe ]] && continue
-    which $tool >/dev/null 2>&1 || errtool="$errtool $tool"
-done
-
-if [[ $errtool != "" ]]
-then
-    echo "missing tools in PATH:$errtool" >&2
-    exit 2
-fi
+set_path '/machine/SYSTEM/CurrentControlSet/Control/Session Manager/Environment/Path'
+set_path '/user/Environment/Path'
 
 #------------------------------------------------------------------------------
-
-mkdir -p "$SHARE_DIR"
-
-load_and_store "$URI_TITLES" "$SHARE_DIR/titles.txt"
-
-# load language specific title files
-
-for lang in $LANGUAGES
-do
-    LANG="$( echo $lang | tr '[a-z]' '[A-Z]' )"
-    load_and_store $URI_TITLES?LANG=$LANG "$SHARE_DIR/titles-$lang.txt" "$SHARE_DIR/titles.txt"
-done
-
-if (( !MAKE && !CYGWIN ))
-then
-    echo "*** install titles to $SHARE_PATH"
-    mkdir -p "$SHARE_PATH"
-    cp -p "$SHARE_DIR"/titles*.txt "$SHARE_PATH"
-fi
-
-# remove a possible temp dir in SHARE_PATH
-((CYGWIN)) || rm -rf "$SHARE_PATH/$SHARE_DIR"
 

@@ -287,15 +287,15 @@ are listed in alphabetic order:
 
    RM=a,b-c,...
    R=a,b-c,...
-      Remove disc in slot 'a' or the slot range of blocks 'b-c' from wbfs.
-      The slot is only marked as free, no blocks are freed. EDIT does not
-      allow undefined slot numbers.
+      Remove disc in slot 'a' or the slot range 'b-c' from wbfs. The slot is
+      only marked as free, no blocks are freed. EDIT does not allow undefined
+      slot numbers. The indices are null based.
 
    ACT=a,b-c,...
    A=a,b-c,...
-      Activate disc in slot 'a' or the slot range of blocks 'b-c' from wbfs.
-      The slot is only marked as activated without any tests. EDIT does not
-      allow undefined slot numbers.
+      Activate disc in slot 'a' or the slot range 'b-c' from wbfs. The slot 
+      is only marked as activated without any tests. EDIT does not allow
+      undefined slot numbers. The indices are null based.
 
    INV=a,b-c,...
    I=a,b-c,...

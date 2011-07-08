@@ -6006,6 +6006,7 @@ wd_reloc_t * wd_calc_relocation
 	disc->trim_mode = trim_mode;
 	disc->trim_align = trim_align;
 	force = true;
+	// [trim]  -> support for disc/part/file trimming -> below
     }
 
     if (select)

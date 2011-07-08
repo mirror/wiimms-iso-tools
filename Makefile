@@ -42,7 +42,7 @@ WDF_LONG		= Wiimms WDF Tool
 WFUSE_SHORT		= wfuse
 WFUSE_LONG		= Wiimms FUSE Tool
 
-VERSION_NUM		= 1.29a
+VERSION_NUM		= 2.00a
 BETA_VERSION		= 0
 			# 0:off  -1:"beta"  >0:"beta#"
 
@@ -280,8 +280,10 @@ BIN_FILES	= $(MAIN_TOOLS) $(EXTRA_TOOLS)
 SHARE_FILES	= $(TITLE_FILES) system-menu.txt
 
 CYGWIN_DIR	= /usr/bin
-CYGWIN_TOOLS	= bash comm cp diff mkdir mv realpath regtool rm sed stat tr wget
-CYGWIN_SCRIPTS	= load-titles.sh load-titles.bat windows-install.sh windows-install.bat
+CYGWIN_TOOLS	= bash cp diff grep mkdir mv realpath regtool rm stat tr wget
+CYGWIN_SCRIPTS	= load-titles.sh load-titles.bat \
+		  windows-install.sh windows-install.bat \
+		  windows-uninstall.sh windows-uninstall.bat
 WIN_INSTALL_PATH= Wiimm/WIT
 
 DIR_LIST_BIN	= $(SCRIPTS) bin
@@ -512,6 +514,7 @@ ifeq ($(SYSTEM),cygwin)
 	@cp -p gpl-2.0.txt $(DISTRIB_PATH)
 	@ln -f $(MAIN_TOOLS) $(WDF_LINKS) $(CYGWIN_SCRIPTS) $(DISTRIB_PATH)/bin
 	@ln -f windows-install.bat $(DISTRIB_PATH)
+	@ln -f windows-uninstall.bat $(DISTRIB_PATH)
 	@( cd share; cp $(SHARE_FILES) ../$(DISTRIB_PATH)/bin )
 	@cp -p $(DOC_FILES) $(DISTRIB_PATH)/doc
 	@rm -f $(DISTRIB_PATH)/doc/$(IGNORE_DOC_FILES)
