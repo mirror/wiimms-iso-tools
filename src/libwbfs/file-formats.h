@@ -319,7 +319,7 @@ typedef struct wbfs_inode_info_t
 	u8  head_padding;
 
 	// The version number of this data structure.
-	// I may be importand for future extensions
+	// I may be important for future extensions
 
 	be32_t info_version;	// == WBFS_INODE_INFO_VERSION
 

@@ -89,14 +89,42 @@ done
 #------------------------------------------------------------------------------
 # add WIT path to environment 'Path'
 
-key="/machine/SYSTEM/CurrentControlSet/Control/Session Manager/Environment/Path"
-winPath="$(regtool get "$key")"
+echo "* add WIT path to environment 'Path'"
 
-if [[ winPath != "" ]] && ! echo ";$winPath;" | grep -qF ";$WDEST;"
-then
-    echo "* add WIT path to environment 'Path'"
-    regtool set "$key" "$winPath;$WDEST"
-fi
+function set_path()
+{
+    local key="$1"
+
+    local p=
+    local count=0
+    local new_path=
+
+    # split at ';' & substitute ' ' temporary to ';' to be space save
+    for p in $( regtool --quiet get "$key" | tr '; ' '\n;' )
+    do
+	p="${p//;/ }"
+	#echo " -> |$p|"
+	if [[ "$p" == "$WDEST" ]]
+	then
+	    ((count++)) || new_path="$new_path;$p"
+	    #echo "$count $WDEST"
+	elif [[ $p != "" ]]
+	then
+	    new_path="$new_path;$p"
+	fi
+    done
+
+    if [[ $new_path != "" ]]
+    then
+	((count)) || new_path="$new_path;$WDEST"
+	#echo "count=$count"
+	#echo "new_path=${new_path:1}"
+	regtool set "$key" "${new_path:1}"
+    fi
+}
+
+set_path '/machine/SYSTEM/CurrentControlSet/Control/Session Manager/Environment/Path'
+set_path '/user/Environment/Path'
 
 #------------------------------------------------------------------------------
 

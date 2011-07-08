@@ -3455,12 +3455,12 @@ static u32 scan_part ( scan_data_t * sd )
 	    if (stat(sd->path,&st))
 		continue;
 
-	    count++;
-	    WiiFstFile_t * file = AppendFileFST(sd->part);
-	    ASSERT(file);
-
 	    if (S_ISDIR(st.st_mode))
 	    {
+		count++;
+		WiiFstFile_t * file = AppendFileFST(sd->part);
+		ASSERT(file);
+
 		sd->name_pool_size += strlen(name) + 1;
 		file->icm = WD_ICM_DIRECTORY;
 		*sd->path_dir++ = '/';
@@ -3478,6 +3478,10 @@ static u32 scan_part ( scan_data_t * sd )
 	    }
 	    else if (S_ISREG(st.st_mode))
 	    {
+		count++;
+		WiiFstFile_t * file = AppendFileFST(sd->part);
+		ASSERT(file);
+
 		sd->name_pool_size += strlen(name) + 1;
 		file->path = strdup(sd->path_part);
 		noTRACE("FILE: %s\n",path_dir);

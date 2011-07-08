@@ -405,9 +405,7 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 	" for ISO, CISO and WBFS file types. For other file types ALL is used"
 	" instead. Mode 'ALL' (the default) preallocate the whole destination"
 	" file. Because of the large holes in plain ISO images, the SMART mode"
-	" is used for ISOs instead.\n"
-	"  Mac ignores this option because the needed preallocation function"
-	" is not avaialable."
+	" is used for ISOs instead."
     },
 
     {	OPT_TRUNC, 0, "trunc",
@@ -490,10 +488,10 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 
     {	OPT_MEM, 0, "mem",
 	"size",
-	"This option defines a memory usage limit for compressing files. When"
-	" compressing a file with method MEM (see --compression) the the"
-	" compression method, level and chunk size are selected with respect"
-	" to this limit.\n"
+	"This option defines a memory usage limit for compressing files (in"
+	" MiB if no other unit is entered). When compressing a file with"
+	" method MEM (see --compression) the the compression method, level and"
+	" chunk size are selected with respect to this limit.\n"
 	"  If this option is not set or the value is 0, then the environment"
 	" WIT_MEM is tried to read instead. If this fails, the tool tries to"
 	" find out the total memory by reading /proc/meminfo. The limit is set"

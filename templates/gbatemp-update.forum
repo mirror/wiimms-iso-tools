@@ -35,7 +35,10 @@
 
 [size="2"][color="#0000c0"][b]Highlights of this release:[/b][/color][/size]
 [list]
-[*] New command: wit+wwt GETTITLES: Update the title database.
+[*] Because no bugs (exclude installing) reported since month my WIT tools seems to be perfect (or ready to use or something between). So it's time to increase the major version and to proclaim [b]v2.00a[/b]. I have written more than 100 000 code lines for this project.
+[color=#ffffff].[/color]
+
+[*] I don't know if this project is really finished or only paused. At the moment I work on my SZS Tools. But there are more ideas for WIT; see the "roadmap" section in the change log for details. 
 [color=#ffffff].[/color]
 [/list]
 

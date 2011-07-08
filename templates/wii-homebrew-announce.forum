@@ -27,11 +27,8 @@ Dieses ist das Ankündigungsthema für [url=@@URI-HOME@@][b]@@TOOLSET-SHORT@@[/b][
 [*] [url=@@URI-QTWITGUI@@][b]QtWitGui[/b], Bearbeitung einzelner Wii ISO discs.[/url]
     Dieses QT basierte GUI bietet Dinge rund um die Bearbeitung (Kopieren, modifizieren) von einzelnen WIi ISO discs.
 
-[*] [url=@@URI-WIIBAFU@@][b]Wii Backup Fusion[/b], ein WBFS und ISO manager.[/url]
-    WiiBaFu ist ein sehr junges QT basiertes GUI und noch voll in der Entwiklung.
-
-[*] [url=@@URI-WIIJMANAGER@@][b]WiiJManager Multiplatform[/b], ein WBFS-Manager[/url]
-    Dieses Java basierte GUI arbeitet wie andere WBFS-Manager. Umwandlung von einzelnen Wii ISO Dics ist auch möglich. Leider wurde die Entwicklung schon vor einiger Zeit eingestellt.
+[*] [url=@@URI-WIIBAFU@@][b]Wii Backup Fusion[/b], ein WBFS- und ISO-Manager.[/url]
+    WiiBaFu ist ein ausgereiftes GUI, welches auf QT basiert.
 [/list]
 
 [size=12][color=#0000c0][b]Letzte Änderungen:[/b][/color][/size]
