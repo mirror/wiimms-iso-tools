@@ -1,13 +1,10 @@
 wit v@@VERSION@@ r@@REV-NEXT@@ - @@@@-@@-@@
 
- - Because no bugs (exclude installing) reported since month my WIT tools
-   seems to be perfect (or ready to use or something between). So it's time
-   to increase the major version and to proclaim v2.00a. The whole project
-   consists about 250 000 code lines.
- - Bug fix for Windows install script: Remove duplicate WIT entries.
+ - Bug fix: If creating a Wii image and using hard links (option --links) the
+   offsets of some hard linked files are wrong for some special situations.
 
 
-Known bugs:
+ Known bugs:
 
  - The GameCube support is in development and EXPERIMENTAL!
  - There are new problems while reading from non seekable sources (e.g. pipes).
@@ -15,7 +12,7 @@ Known bugs:
    more lookups ==> The best is to use version 1.01c for pipes.
 
 
-Road map (for some point in the future):
+ Road map (for some point in the future):
 
  I have already stopped the development in favor of my SZS tools. But there
  are some already planned extensions:
@@ -25,7 +22,7 @@ Road map (for some point in the future):
    blocks table is managed in a total different way. Already implemented are:
     - WBFS access: While opening a WBFS the free blocks table is ignored.
       Instead of using the stored one an internal memory map of used blocks is
-      built. This needs only a part of a second. Some adavantages:
+      built. This needs only a part of a second. Some advantages:
        - Errors in the free blocks table are irrelevant.
        - Blocks overlaps and invalid block assignings are automatically
          detected and reported.
@@ -46,12 +43,12 @@ Road map (for some point in the future):
  - GameCube support is still incomplete.
 
  - There are already code fragments implemented to trim discs in three levels:
-    - Move partions as whole to eliminate disc holes.
-    - Move partion sectors to reduce partiton size (alternative for partition
-     scrubbing). Fake signing is necessary.
+    - Move partitions as whole to eliminate disc holes.
+    - Move partition  sectors to reduce partition size (alternative for
+      partition scrubbing). Fake signing is necessary.
     - Move files of partitons to optimize the step above.
-   For all trim levels aligment factors may be set and it shuld be possible
-   to set sapecial alignments for GameCube sound files.
+   For all trimming levels alignment factors may be set and it should be
+   possible to set special alignments for GameCube sound files.
 
  - On the fly patching: Create a new image a combination of 2 or more sources.
    Therefor trimming is needed.
