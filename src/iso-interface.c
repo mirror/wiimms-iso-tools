@@ -3489,8 +3489,11 @@ static u32 scan_part ( scan_data_t * sd )
 		file->size = st.st_size;
 		bool found = false;
 		if (opt_links)
+		{
 		    file->data = (u8*)InsertFileIndex(&sd->part->fidx,
 							&found,st.st_dev,st.st_ino);
+		    PRINT("SET LINK: %p = %s\n",file->data,name);
+		}
 		if (!found)
 		    sd->total_size += ALIGN32(file->size,4);
 		CopyFileAttribStat(&sd->part->max_fatt,&st,true);
@@ -3593,6 +3596,7 @@ u32 ScanPartFST
     u32 offset4 = cur_offset4;
 
     // iterate files and remove directories
+
     u32 idx = 1, file_count = 0;
     WiiFstFile_t *file_dest = part->file;
     WiiFstFile_t *file_end  = part->file + part->file_used;
@@ -3634,13 +3638,15 @@ u32 ScanPartFST
 		{
 		    ignore = true;
 		    ftab->offset4 = htonl(item->file->offset4);
-		    PRINT("COPY: %p %8x %s %s\n",
-			    item,item->file->offset4<<2,file->path,item->file->path);
+		    PRINT("COPY: %p %p %8x %s %s\n",
+				item, item->file, item->file->offset4<<2,
+				file->path, item->file->path );
 		}
 		else
 		{
-		    item->file = file;
-		    PRINT("NEW:  %p %8x %s\n",item,offset4<<2,file->path);
+		    item->file = file_dest;
+		    PRINT("NEW:  %p %p %8x %s\n",
+				item, item->file, offset4<<2, file->path );
 		}
 	    }
 
