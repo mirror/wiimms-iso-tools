@@ -1452,6 +1452,8 @@ int wd_iterate_files
     wd_disc_t		* disc,		// valid pointer to a disc
     wd_file_func_t	func,		// call back function
     void		* param,	// user defined parameter
+    int			ignore_files,	// >0: ignore all real files
+					// >1: ignore fst.bin + main.dol too
     wd_ipm_t		prefix_mode	// prefix mode
 );
 

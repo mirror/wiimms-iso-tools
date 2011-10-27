@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 myname="${0##*/}"
 base=add+extract

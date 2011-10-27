@@ -216,6 +216,8 @@ typedef struct wbfs_disc_t
     int			slot;		// disc slot, range= 0 .. wbfs_t::max_disc-1
     wd_disc_type_t	disc_type;	// disc type
     wd_disc_attrib_t	disc_attrib;	// disc attrib
+    uint		disc_blocks;	// >0: number of blocks
+    uint		n_fragments;	// >0: number of fragments
     bool		is_used;	// disc is marked as 'used'?
     bool		is_valid;	// disc has valid id and magic
     bool		is_deleted;	// disc has valid id and deleted_magic
@@ -316,10 +318,10 @@ u32 wbfs_calc_sect_size ( u64 total_size, u32 hd_sec_size );
 
 void wbfs_calc_geometry
 (
-	wbfs_t * p,		// pointer to wbfs_t, p->head must be NULL or valid
-	u32 n_hd_sec,		// total number of hd_sec in partition
-	u32 hd_sec_sz,		// size of a hd/partition sector
-	u32 wbfs_sec_sz		// size of a wbfs sector
+    wbfs_t		* p,		// pointer to wbfs_t, p->head must be NULL or valid
+    u32			n_hd_sec,	// total number of hd_sec in partition
+    u32			hd_sec_sz,	// size of a hd/partition sector
+    u32			wbfs_sec_sz	// size of a wbfs sector
 );
 
 //-----------------------------------------------------------------------------
@@ -346,6 +348,19 @@ wbfs_inode_info_t * wbfs_get_disc_inode_info ( wbfs_disc_t * d, int clear_mode )
 	// clear_mode == 0 : don't clear
 	// clear_mode == 1 : clear if invalid
 	// clear_mode == 2 : clear always
+
+uint wbfs_get_fragments
+(
+    const u16		* wlba_tab,	// valid wlba table in network byte order
+    uint		tab_length,	// length of 'wlba_tab'
+    uint		* disc_blocks	// not NULL: store number of disc blocks
+);
+
+uint wbfs_get_disc_fragments
+(
+    wbfs_disc_t		*d,		// valid wbfs disc
+    uint		* disc_blocks	// not NULL: store number of disc blocks
+);
 
 //-----------------------------------------------------------------------------
 
@@ -432,7 +447,8 @@ enumError wbfs_get_disc_info
     u32			* slot_found,	// not NULL: store slot of found disc
     wd_disc_type_t	* disc_type,	// not NULL: store disc type
     wd_disc_attrib_t	* disc_attrib,	// not NULL: store disc attrib
-    u32			* size4		// not NULL: store 'size>>2' of found disc
+    u32			* size4,	// not NULL: store 'size>>2' of found disc
+    u32			* n_fragments	// number of wbfs fragments
 );
 
 enumError wbfs_get_disc_info_by_slot
@@ -443,7 +459,8 @@ enumError wbfs_get_disc_info_by_slot
     int			header_size,	// size of 'header'
     wd_disc_type_t	* disc_type,	// not NULL: store disc type
     wd_disc_attrib_t	* disc_attrib,	// not NULL: store disc attrib
-    u32			* size4		// not NULL: store 'size>>2' of found disc
+    u32			* size4,	// not NULL: store 'size>>2' of found disc
+    u32			* n_fragments	// number of wbfs fragments
 );
 
 /*! get the number of unuseds block of the partition.

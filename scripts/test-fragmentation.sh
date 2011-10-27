@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 dev="$1"
 [[ $dev = "" ]] && dev=/dev/sdb2

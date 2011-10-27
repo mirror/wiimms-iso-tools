@@ -50,6 +50,10 @@
  #define TRACE(...)
 #endif
 
+#ifndef PRINT
+ #define PRINT(...)
+#endif
+
 #ifndef ASSERT
  #define ASSERT(cond)
 #endif
@@ -443,10 +447,10 @@ u32 wbfs_calc_sect_size ( u64 total_size, u32 hd_sec_size )
 
 void wbfs_calc_geometry
 (
-	wbfs_t * p,		// pointer to wbfs_t, p->head must be NULL or valid
-	u32 n_hd_sec,		// total number of hd_sec in partition
-	u32 hd_sec_sz,		// size of a hd/partition sector
-	u32 wbfs_sec_sz		// size of a wbfs sector
+    wbfs_t		* p,		// pointer to wbfs_t, p->head must be NULL or valid
+    u32			n_hd_sec,	// total number of hd_sec in partition
+    u32			hd_sec_sz,	// size of a hd/partition sector
+    u32			wbfs_sec_sz	// size of a wbfs sector
 )
 {
     ASSERT(p);
@@ -602,6 +606,8 @@ void wbfs_close ( wbfs_t * p )
     return;
 }
 
+//
+///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
 wbfs_disc_t * wbfs_open_disc_by_id6 ( wbfs_t* p, u8 * discid )
@@ -622,7 +628,7 @@ static wbfs_disc_t * wbfs_open_disc_by_info
     ASSERT( slot >= 0 );
     ASSERT(info);
 
-    wbfs_disc_t * d = wbfs_malloc(sizeof(*d));
+    wbfs_disc_t * d = wbfs_calloc(1,sizeof(*d));
     if (!d)
 	OUT_OF_MEMORY;
     d->p = p;
@@ -810,6 +816,55 @@ wbfs_inode_info_t * wbfs_get_disc_inode_info ( wbfs_disc_t * d, int clear_mode )
 }
 
 ///////////////////////////////////////////////////////////////////////////////
+
+uint wbfs_get_fragments
+(
+    const u16		* wlba_tab,	// valid wlba table in network byte order
+    uint		tab_length,	// length of 'wlba_tab'
+    uint		* disc_blocks	// not NULL: store number of disc blocks
+)
+{
+    int bl, next_block = -1, last_bl = 0, n_frag = 0;
+    for ( bl = 0; bl < tab_length; bl++ )
+    {
+	int block = ntohs(wlba_tab[bl]);
+	if (block)
+	{
+	    if ( block != next_block )
+		n_frag++;
+	    next_block = block + 1;
+	    last_bl = bl;
+	}
+    }
+    PRINT("WBFS-CALC-FRAG: %u, blocks = %u/%u\n", n_frag, last_bl+1, tab_length );
+
+    if (disc_blocks)
+	*disc_blocks = last_bl + 1;
+    return n_frag;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+uint wbfs_get_disc_fragments
+(
+    wbfs_disc_t		*d,		// valid wbfs disc
+    uint		* disc_blocks	// not NULL: store number of disc blocks
+)
+{
+    DASSERT(d);
+    DASSERT(d->p);
+    if ( !d->n_fragments && d->header )
+    {
+	d->n_fragments
+	    = wbfs_get_fragments( d->header->wlba_table,
+				d->p->n_wbfs_sec_per_disc, &d->disc_blocks );
+    }
+    if (disc_blocks)
+	*disc_blocks = d->disc_blocks;
+    return d->n_fragments;
+}
+
+///////////////////////////////////////////////////////////////////////////////
 // rename a disc
 
 int wbfs_rename_disc
@@ -992,7 +1047,8 @@ enumError wbfs_get_disc_info
     u32			* slot_found,	// not NULL: store slot of found disc
     wd_disc_type_t	* disc_type,	// not NULL: store disc type
     wd_disc_attrib_t	* disc_attrib,	// not NULL: store disc attrib
-    u32			* size4		// not NULL: store 'size>>2' of found disc
+    u32			* size4,	// not NULL: store 'size>>2' of found disc
+    u32			* n_fragments	// number of wbfs fragments
 )
 {
     u32 slot, count = 0;
@@ -1003,7 +1059,8 @@ enumError wbfs_get_disc_info
 		if (slot_found)
 		    *slot_found = slot;
 		return wbfs_get_disc_info_by_slot(p,slot,header,header_size,
-						disc_type,disc_attrib,size4);
+							disc_type,disc_attrib,
+							size4,n_fragments);
 	    }
     return ERR_WDISC_NOT_FOUND;
 }
@@ -1018,7 +1075,8 @@ enumError wbfs_get_disc_info_by_slot
     int			header_size,	// size of 'header'
     wd_disc_type_t	* disc_type,	// not NULL: store disc type
     wd_disc_attrib_t	* disc_attrib,	// not NULL: store disc attrib
-    u32			* size4		// not NULL: store 'size>>2' of found disc
+    u32			* size4,	// not NULL: store 'size>>2' of found disc
+    u32			* n_fragments	// number of wbfs fragments
 )
 {
     ASSERT(p);
@@ -1058,19 +1116,23 @@ enumError wbfs_get_disc_info_by_slot
 	    *disc_type = dt;
     }
 
-    if (size4)
+    if ( size4 || n_fragments )
     {
 	u32 sec_used;
-	u8 * header = wbfs_ioalloc(p->disc_info_sz);
+	wbfs_disc_info_t *header = wbfs_ioalloc(p->disc_info_sz);
 
 	p->read_hdsector (  p->callback_data,
 			    p->part_lba + 1 + slot * disc_info_sz_lba,
 			    disc_info_sz_lba,
 			    header );
 
-	sec_used = wbfs_sector_used(p,(wbfs_disc_info_t *)header);
+	sec_used = wbfs_sector_used(p,header);
+	if (size4)
+	    *size4 = sec_used << (p->wbfs_sec_sz_s-2);
+	if (n_fragments)
+	    *n_fragments = wbfs_get_fragments( header->wlba_table,
+						p->n_wbfs_sec_per_disc, 0 );
 	wbfs_iofree(header);
-	*size4 = sec_used << (p->wbfs_sec_sz_s-2);
     }
     return ERR_OK;
 }

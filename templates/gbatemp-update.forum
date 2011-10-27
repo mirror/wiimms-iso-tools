@@ -6,11 +6,11 @@
 
 [url=@@URI-HOME@@][b]@@TOOLSET-SHORT@@[/b][/url] (@@TOOLSET-LONG@@) is a set of [url=@@URI-HOME@@info/command-line.html]command line[/url] tools to manipulate Wii ISO images and WBFS containers. The two main tools are called [url=@@URI-HOME@@wit][b]@@WIT-SHORT@@[/b][/url] (@@WIT-LONG@@) and [url=@@URI-HOME@@wwt][b]@@WWT-SHORT@@[/b][/url] (@@WWT-LONG@@, the WBFS manager).
 
-[size="2"][color="#0000c0"][b]Feature overview:[/b][/color][/size]
+[size="3"][color="#0000c0"][b]Feature overview:[/b][/color][/size]
 @@MODULE(features-en.forum)@@
 
-[size="2"][color="#0000c0"][b]Download of the current version:[/b][/color][/size]
-~[size="2"][color="#0000c0"][b]Download[/b][/color] [color="#800000"][b]this EXPERIMENTAL release:[/b][/color][/size]
+[size="3"][color="#0000c0"][b]Download of the current version:[/b][/color][/size]
+~[size="3"][color="#0000c0"][b]Download[/b][/color] [color="#800000"][b]this EXPERIMENTAL release:[/b][/color][/size]
 [list]
 [*] [url=@@URI-DOWNLOAD-I386@@][b]@@DISTRIB-I386@@[/b][/url] : Linux/i386 version
 [*] [url=@@URI-DOWNLOAD-X86_64@@][b]@@DISTRIB-X86_64@@[/b][/url] : Linux/x86_64 version
@@ -19,30 +19,31 @@
 [*] Other releases are available at [url=@@URI-HOME@@download.html][b]@@URI-HOME@@download.html[/b][/url].
 [/list]
 
-[size="2"][color="#0000c0"][b]There are also some GUI available:[/b][/color][/size]
+[size="3"][color="#0000c0"][b]There are also some GUI available:[/b][/color][/size]
 [list]
 [*] [url=@@URI-QTWITGUI@@][b]QtWitGui[/b], manipulate and convert single ISO images.[/url]
     This QT based GUI focuses on manipulating single ISO images. It can do much more.
-[color=#ffffff].[/color]
 
 [*] [url=@@URI-WIIBAFU@@][b]Wii Backup Fusion[/b], a WBFS and ISO manager.[/url]
     This QT based GUI is a complete WBFS manager and ISO tool.
-[color=#ffffff].[/color]
 
 [*] [url=@@URI-WCDWM@@][b]Wii Covers Download & WBFS Manager for Windows[/b], a WBFS and ISO manager.[/url]
     This is a very young Java based WBFS manager. ([url="http://gbatemp.net/t274044-wcdwm-wii-covers-dowbload-wbfs-manager-v1-2"]GBA temp discussion[/url])
 [/list]
 
-[size="2"][color="#0000c0"][b]Highlights of this release:[/b][/color][/size]
+[size="3"][color="#0000c0"][b]Highlights of this release:[/b][/color][/size]
 [list]
-[*] Because no bugs (exclude installing) reported since month my WIT tools seems to be perfect (or ready to use or something between). So it's time to increase the major version and to proclaim [b]v2.00a[/b]. I have written more than 100 000 code lines for this project.
-[color=#ffffff].[/color]
+[*] There is a new option for GameCube extraction: --copy-gc
+If this option is set, the real files of GameCube images ('/files/...') are not extracted, but an image copy is done. This make wit compatible to DiscEx, but wit is much faster. wit also tries to create a hard link if the source image is in the correct format. This makes it horrible fast.
+[color=#800000][b]@XFlak: This feature is dedicated to ModMii[/b][/color]
 
-[*] I don't know if this project is really finished or only paused. At the moment I work on my SZS Tools. But there are more ideas for WIT; see the "roadmap" section in the change log for details. 
-[color=#ffffff].[/color]
+[*] Option --sneek is renamed to --neek, but the old name is also supported. --neek includes option --copy-gc
+For a DiscEx like extraction call: [color=#000080]wit extract --neek --dest %i IMAGE_LIST.ANY_FORMAT[/color]
+
+[*] The second new feature is a fragmentation list support (because of the last fragmentation discussions). If the new option --fragments is used with "wwt LIST", the number of WBFS fragments and a fragmentation ratio is printed. The new commands "wwt LIST-F" and "wwt LF" are short cuts for "wwt LIST --fragments".
 [/list]
 
-[size="2"][color="#0000c0"][b]Change log:[/b][/color][/size]
+[size="3"][color="#0000c0"][b]Change log:[/b][/color][/size]
 
 [code]
 @@MODULE(last-history.txt)@@

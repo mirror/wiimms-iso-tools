@@ -437,9 +437,22 @@
 	" and store all files in the same directory. This option sets the" \
 	" default for {--pmode} to @NONE@." )
 
-#:def_opt( "SNEEK", "sneek", "C", \
+#:def_opt( "COPY_GC", "copy-gc|copygc", "C", \
 	"", \
-	"Abbreviation of {--psel data --pmode none --files :sneek}." )
+	"If extracting a GameCube disc image, don't extract the real files to" \
+	" @'/files/...'@. Instead create a copy of the source image and store" \
+	" it as @'game.iso'@. If the source image is already in this format," \
+	" try to create a hard link and copy only if it fails." )
+
+#:def_opt( "NO_LINK", "no-link|nolink", "C", \
+	"", \
+	"Don't try to create a hard link if copying the image forced by the" \
+	" option --copy-gc." )
+
+#:def_opt( "NEEK", "neek|sneek", "C", \
+	"", \
+	"Abbreviation of {--psel data --pmode none --files :neek --copy-gc}." \
+	" The old name --sneek is accepted too." )
 
 #:def_opt( "ENC", "enc", "CP", \
 	"encoding", \
@@ -811,8 +824,8 @@
 	"list", \
 	"Define the sort mode for listings. The parameter is a comma separated" \
 	" list of the following keywords: @NONE, NAME, TITLE, FILE, SIZE," \
-	" OFFSET, REGION, WBFS, NPART, ITIME, MTIME, CTIME, ATIME, TIME =" \
-	" DATE, DEFAULT, ASCENDING, DESCENDING = REVERSE@." )
+	" OFFSET, REGION, WBFS, NPART, FRAGMENTS, ITIME, MTIME, CTIME, ATIME," \
+	" TIME = DATE, DEFAULT, ASCENDING, DESCENDING = REVERSE@." )
 
 #:def_opt( "LIMIT", "limit", "CP", \
 	"num", \
@@ -1280,7 +1293,15 @@
 	"", \
 	"" )
 
-#:def_cmd_opt( "DUMP", "SNEEK", \
+#:def_cmd_opt( "DUMP", "COPY_GC", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "DUMP", "NO_LINK", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "DUMP", "NEEK", \
 	"", \
 	"" )
 
@@ -2033,7 +2054,15 @@
 	"", \
 	"" )
 
-#:def_cmd_opt( "FILES", "SNEEK", \
+#:def_cmd_opt( "FILES", "COPY_GC", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "FILES", "NO_LINK", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "FILES", "NEEK", \
 	"", \
 	"" )
 
@@ -2143,7 +2172,15 @@
 	"", \
 	"" )
 
-#:def_cmd_opt( "FILES_L", "SNEEK", \
+#:def_cmd_opt( "FILES_L", "COPY_GC", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "FILES_L", "NO_LINK", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "FILES_L", "NEEK", \
 	"", \
 	"" )
 
@@ -2253,7 +2290,15 @@
 	"", \
 	"" )
 
-#:def_cmd_opt( "FILES_LL", "SNEEK", \
+#:def_cmd_opt( "FILES_LL", "COPY_GC", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "FILES_LL", "NO_LINK", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "FILES_LL", "NEEK", \
 	"", \
 	"" )
 
@@ -2391,7 +2436,15 @@
 	"", \
 	"" )
 
-#:def_cmd_opt( "DIFF", "SNEEK", \
+#:def_cmd_opt( "DIFF", "COPY_GC", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "DIFF", "NO_LINK", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "DIFF", "NEEK", \
 	"", \
 	"" )
 
@@ -2592,7 +2645,15 @@
 	"", \
 	"" )
 
-#:def_cmd_opt( "FDIFF", "SNEEK", \
+#:def_cmd_opt( "FDIFF", "COPY_GC", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "FDIFF", "NO_LINK", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "FDIFF", "NEEK", \
 	"", \
 	"" )
 
@@ -2785,7 +2846,15 @@
 	"", \
 	"" )
 
-#:def_cmd_opt( "EXTRACT", "SNEEK", \
+#:def_cmd_opt( "EXTRACT", "COPY_GC", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "EXTRACT", "NO_LINK", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "EXTRACT", "NEEK", \
 	"", \
 	"" )
 
@@ -2992,7 +3061,15 @@
 	"", \
 	"" )
 
-#:def_cmd_opt( "COPY", "SNEEK", \
+#:def_cmd_opt( "COPY", "COPY_GC", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "COPY", "NO_LINK", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "COPY", "NEEK", \
 	"", \
 	"" )
 
@@ -3904,8 +3981,8 @@
 
 #:def_cmd_opt( "VERIFY", "LIMIT", \
 	"", \
-	"Maximal printed errors of each partition. A zero means unlimitted." \
-	" The default is 10." )
+	"Maximal printed errors of each partition. A zero means unlimited. The" \
+	" default is 10." )
 
 #:def_cmd_opt( "VERIFY", "LOGGING", \
 	"", \
@@ -4254,6 +4331,11 @@
 	"List all discs of WBFS partitions in mixed view. 'LIST-U' is a" \
 	" shortcut for {LIST --long --long --unique}." )
 
+#:def_cmd( "LIST_F", "LIST-F|LF|LISTF", \
+	"wwt LIST-F [wbfs_partition]...", \
+	"List all discs of WBFS partitions and include fragmentation info." \
+	" 'LIST-F' is a shortcut for {LIST --fragments}." )
+
 #:def_cmd( "FORMAT", "FORMAT|INIT", \
 	"wwt FORMAT file|blockdev...", \
 	"Initialize (=format) WBFS partitions and files. Combine with" \
@@ -4278,10 +4360,18 @@
 	"Edit slot and block assignments. Dangerous! Read docu!" )
 
 #:def_cmd( "PHANTOM", "PHANTOM", \
-	"wwt PHANTOM [sub_command]...", \
-	"Add phantom discs. Phantom discs have no content and only a header is" \
-	" written. This makes adding discs very fast and this is good for" \
-	" testing." )
+	"wwt PHANTOM [RULE]...\n" \
+	" \n" \
+	"RULE     := [ NUM 'x' ] SIZE ['m'|'g']\n" \
+	"NUM,SIZE := UINT | UINT '-' UINT", \
+	"Add @NUM@ phantom discs with entered @SIZE@ (default unit 'g') with a" \
+	" generic ID6 ('PHT###' where '###' is the smallest not already used" \
+	" integer). If @NUM@ and/or @SIZE@ are ranges use random values from" \
+	" this range.\n" \
+	"  Phantom discs have no content and only a header is written. This" \
+	" makes adding discs very fast and this is good for testing. The" \
+	" creation process stops if the WBFS becomes full. In this case, the" \
+	" last added image may be shorter as planned." )
 
 #:def_cmd( "TRUNCATE", "TRUNCATE|TR", \
 	"wwt TRUNCATE [wbfs_partition]..", \
@@ -4568,9 +4658,22 @@
 	" and store all files in the same directory. This option sets the" \
 	" default for {--pmode} to @NONE@." )
 
-#:def_opt( "SNEEK", "sneek", "C", \
+#:def_opt( "COPY_GC", "copy-gc|copygc", "C", \
 	"", \
-	"Abbreviation of {--psel data --pmode none --files :sneek}." )
+	"If extracting a GameCube disc image, don't extract the real files to" \
+	" @'/files/...'@. Instead create a copy of the source image and store" \
+	" it as @'game.iso'@. If the source image is already in this format," \
+	" try to create a hard link and copy only if it fails." )
+
+#:def_opt( "NO_LINK", "no-link|nolink", "C", \
+	"", \
+	"Don't try to create a hard link if copying the image forced by the" \
+	" option --copy-gc." )
+
+#:def_opt( "NEEK", "neek|sneek", "C", \
+	"", \
+	"Abbreviation of {--psel data --pmode none --files :neek --copy-gc}." \
+	" The old name --sneek is accepted too." )
 
 #:def_opt( "ENC", "enc", "CP", \
 	"encoding", \
@@ -4693,11 +4796,6 @@
 #:def_opt( "TRUNC", "trunc", "C", \
 	"", \
 	"Truncate a $PLAIN ISO$ images to the needed size while creating." )
-
-#:def_opt( "FAST", "fast", "C", \
-	"", \
-	"Enables fast writing (disables searching for blocks with zeroed" \
-	" data). Don't use this option because it will be discontinued." )
 
 #:def_opt( "CHUNK_MODE", "chunk-mode|chunkmode|chm", "CP", \
 	"mode", \
@@ -4923,6 +5021,11 @@
 	"", \
 	"Print in long format. Multiple usage possible." )
 
+#:def_opt( "FRAGMENTS", "fragments|frag", "C", \
+	"", \
+	"Print fragmentation info instead of region info. --frag is a short" \
+	" cut." )
+
 #:def_opt( "NUMERIC", "numeric", "C", \
 	"", \
 	"Force numeric output instead of printing names." )
@@ -4961,8 +5064,8 @@
 	"list", \
 	"Define the sort mode for listings. The parameter is a comma separated" \
 	" list of the following keywords: @NONE, NAME, TITLE, FILE, SIZE," \
-	" OFFSET, REGION, WBFS, NPART, ITIME, MTIME, CTIME, ATIME, TIME =" \
-	" DATE, DEFAULT, ASCENDING, DESCENDING = REVERSE@." )
+	" OFFSET, REGION, WBFS, NPART, FRAGMENTS, ITIME, MTIME, CTIME, ATIME," \
+	" TIME = DATE, DEFAULT, ASCENDING, DESCENDING = REVERSE@." )
 
 #:def_opt( "LIMIT", "limit", "CP", \
 	"num", \
@@ -5288,6 +5391,10 @@
 	"If set the size in MiB and the region is printed too. If set twice at" \
 	" least on time columns is added." )
 
+#:def_cmd_opt( "LIST", "FRAGMENTS", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "LIST", "NO_HEADER", \
 	"", \
 	"" )
@@ -5388,6 +5495,10 @@
 	"", \
 	"If set the size in MiB and the region is printed too. If set twice at" \
 	" least on time columns is added." )
+
+#:def_cmd_opt( "LIST_L", "FRAGMENTS", \
+	"", \
+	"" )
 
 #:def_cmd_opt( "LIST_L", "NO_HEADER", \
 	"", \
@@ -5490,6 +5601,10 @@
 	"If set the size in MiB and the region is printed too. If set twice at" \
 	" least on time columns is added." )
 
+#:def_cmd_opt( "LIST_LL", "FRAGMENTS", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "LIST_LL", "NO_HEADER", \
 	"", \
 	"" )
@@ -5590,6 +5705,10 @@
 	"", \
 	"If set the size in MiB and the region is printed too. If set twice at" \
 	" least on time columns is added." )
+
+#:def_cmd_opt( "LIST_A", "FRAGMENTS", \
+	"", \
+	"" )
 
 #:def_cmd_opt( "LIST_A", "NO_HEADER", \
 	"", \
@@ -5692,6 +5811,10 @@
 	"If set the size in MiB and the region is printed too. If set twice at" \
 	" least on time columns is added." )
 
+#:def_cmd_opt( "LIST_M", "FRAGMENTS", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "LIST_M", "NO_HEADER", \
 	"", \
 	"" )
@@ -5793,11 +5916,120 @@
 	"If set the size in MiB and the region is printed too. If set twice at" \
 	" least on time columns is added." )
 
+#:def_cmd_opt( "LIST_U", "FRAGMENTS", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "LIST_U", "NO_HEADER", \
 	"", \
 	"" )
 
 #:def_cmd_opt( "LIST_U", "SECTIONS", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "LIST_F", "TITLES", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "LIST_F", "UTF_8", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "LIST_F", "NO_UTF_8", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "LIST_F", "LANG", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "LIST_F", "AUTO", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "LIST_F", "ALL", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "LIST_F", "PART", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "LIST_F", "EXCLUDE", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "LIST_F", "EXCLUDE_PATH", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "LIST_F", "INCLUDE", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "LIST_F", "INCLUDE_PATH", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "LIST_F", "INCLUDE_FIRST", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "LIST_F", "ONE_JOB", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "LIST_F", "JOB_LIMIT", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "LIST_F", "MIXED", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "LIST_F", "UNIQUE", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "LIST_F", "SORT", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "LIST_F", "ITIME", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "LIST_F", "MTIME", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "LIST_F", "CTIME", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "LIST_F", "ATIME", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "LIST_F", "TIME", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "LIST_F", "LONG", \
+	"", \
+	"If set the size in MiB and the region is printed too. If set twice at" \
+	" least on time columns is added." )
+
+#:def_cmd_opt( "LIST_F", "FRAGMENTS", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "LIST_F", "NO_HEADER", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "LIST_F", "SECTIONS", \
 	"", \
 	"" )
 
@@ -6890,7 +7122,15 @@
 	"", \
 	"" )
 
-#:def_cmd_opt( "EXTRACT", "SNEEK", \
+#:def_cmd_opt( "EXTRACT", "COPY_GC", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "EXTRACT", "NO_LINK", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "EXTRACT", "NEEK", \
 	"", \
 	"" )
 
@@ -6915,10 +7155,6 @@
 	"" )
 
 #:def_cmd_opt( "EXTRACT", "OVERWRITE", \
-	"", \
-	"" )
-
-#:def_cmd_opt( "EXTRACT", "FAST", \
 	"", \
 	"" )
 
@@ -7379,8 +7615,8 @@
 
 #:def_cmd_opt( "VERIFY", "LIMIT", \
 	"", \
-	"Maximal printed errors of each partition. A zero means unlimitted." \
-	" The default is 10." )
+	"Maximal printed errors of each partition. A zero means unlimited. The" \
+	" default is 10." )
 
 #:def_cmd_opt( "VERIFY", "TEST", \
 	"", \

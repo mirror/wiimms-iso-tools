@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 CYGWIN=0
 [[ $TERM = cygwin ]] && CYGWIN=1

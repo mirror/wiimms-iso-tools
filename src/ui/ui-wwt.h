@@ -78,7 +78,9 @@ typedef enum enumOptions
 	OPT_LINKS,
 	OPT_PMODE,
 	OPT_FLAT,
-	OPT_SNEEK,
+	OPT_COPY_GC,
+	OPT_NO_LINK,
+	OPT_NEEK,
 	OPT_ENC,
 	OPT_ID,
 	OPT_NAME,
@@ -135,6 +137,7 @@ typedef enum enumOptions
 	OPT_TIME,
 	OPT_SET_TIME,
 	OPT_LONG,
+	OPT_FRAGMENTS,
 	OPT_NUMERIC,
 	OPT_TECHNICAL,
 	OPT_INODE,
@@ -146,7 +149,7 @@ typedef enum enumOptions
 	OPT_SORT,
 	OPT_LIMIT,
 
-	OPT__N_SPECIFIC, // == 90 
+	OPT__N_SPECIFIC, // == 93 
 
 	//----- global options -----
 
@@ -170,7 +173,7 @@ typedef enum enumOptions
 	OPT_NEW,
 	OPT_HOOK,
 
-	OPT__N_TOTAL // == 109
+	OPT__N_TOTAL // == 112
 
 } enumOptions;
 
@@ -207,7 +210,9 @@ typedef enum enumOptions
 //	OB_LINKS		= 1llu << OPT_LINKS,
 //	OB_PMODE		= 1llu << OPT_PMODE,
 //	OB_FLAT			= 1llu << OPT_FLAT,
-//	OB_SNEEK		= 1llu << OPT_SNEEK,
+//	OB_COPY_GC		= 1llu << OPT_COPY_GC,
+//	OB_NO_LINK		= 1llu << OPT_NO_LINK,
+//	OB_NEEK			= 1llu << OPT_NEEK,
 //	OB_ENC			= 1llu << OPT_ENC,
 //	OB_ID			= 1llu << OPT_ID,
 //	OB_NAME			= 1llu << OPT_NAME,
@@ -264,6 +269,7 @@ typedef enum enumOptions
 //	OB_TIME			= 1llu << OPT_TIME,
 //	OB_SET_TIME		= 1llu << OPT_SET_TIME,
 //	OB_LONG			= 1llu << OPT_LONG,
+//	OB_FRAGMENTS		= 1llu << OPT_FRAGMENTS,
 //	OB_NUMERIC		= 1llu << OPT_NUMERIC,
 //	OB_TECHNICAL		= 1llu << OPT_TECHNICAL,
 //	OB_INODE		= 1llu << OPT_INODE,
@@ -336,7 +342,9 @@ typedef enum enumOptions
 //	OB_GRP_FST_SELECT	= OB_PMODE
 //				| OB_FLAT
 //				| OB_FILES
-//				| OB_SNEEK,
+//				| OB_COPY_GC
+//				| OB_NO_LINK
+//				| OB_NEEK,
 //
 //	OB_GRP_PATCH		= OB_ENC
 //				| OB_ID
@@ -420,6 +428,7 @@ typedef enum enumOptions
 //				| OB_SORT
 //				| OB_GRP_TIME
 //				| OB_LONG
+//				| OB_FRAGMENTS
 //				| OB_NO_HEADER
 //				| OB_SECTIONS,
 //
@@ -432,6 +441,8 @@ typedef enum enumOptions
 //	OB_CMD_LIST_M		= OB_CMD_LIST,
 //
 //	OB_CMD_LIST_U		= OB_CMD_LIST,
+//
+//	OB_CMD_LIST_F		= OB_CMD_LIST,
 //
 //	OB_CMD_FORMAT		= OB_GRP_TITLES
 //				| OB_SIZE
@@ -600,6 +611,7 @@ typedef enum enumCommands
 	CMD_LIST_A,
 	CMD_LIST_M,
 	CMD_LIST_U,
+	CMD_LIST_F,
 
 	CMD_FORMAT,
 	CMD_RECOVER,
@@ -622,7 +634,7 @@ typedef enum enumCommands
 
 	CMD_FILETYPE,
 
-	CMD__N // == 39
+	CMD__N // == 40
 
 } enumCommands;
 
@@ -698,7 +710,9 @@ typedef enum enumGetOpt
 	GO_LINKS,
 	GO_PMODE,
 	GO_FLAT,
-	GO_SNEEK,
+	GO_COPY_GC,
+	GO_NO_LINK,
+	GO_NEEK,
 	GO_HOOK,
 	GO_ENC,
 	GO_ID,
@@ -740,6 +754,7 @@ typedef enum enumGetOpt
 	GO_ATIME,
 	GO_TIME,
 	GO_SET_TIME,
+	GO_FRAGMENTS,
 	GO_NUMERIC,
 	GO_TECHNICAL,
 	GO_INODE,

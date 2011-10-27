@@ -106,6 +106,7 @@ static const struct macro_tab_t macro_tab[] =
     { 3, "wit",		"2+/h3.bin;1+/sys/fst.bin;+" },
     { 3, "wwt",		"2+/h3.bin;1+/sys/fst.bin;+" },
     { 7, "compose",	"+/cert.bin;3+/disc/;2+/*$;1+/sys/fst.bin;+" },
+    { 4, "neek",	"3+/setup.txt;2+/h3.bin;1+/disc/;+" },
     { 5, "sneek",	"3+/setup.txt;2+/h3.bin;1+/disc/;+" },
 
     {0,0,0}

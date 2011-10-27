@@ -33,9 +33,13 @@
 ~ Highlights
 [size=12][color=#0000c0][b]Höhepunkte dieser Version:[/b][/color][/size]
 [list]
-[*] Da meine WIT Tools nun schon seit langem ohne Bug-Meldung laufen (Ausnahme Windows-Installation) sieht es nach einem perfektem Programm (oder zumindest gebrauchsfähigen Programm oder irgendwas zwischen beiden) aus. Und so ist es an der Zeit, die Hauptversionsnummer zu erhöhen und [b]v2.00a[/b] auszurufen. Das ganze Projekt besteht übrigens aus mittlerweile mehr als 100.000 selbst geschriebenen Kodezeilen.
+[*] Ex existiert eine neue Option für die GameCube Extrahierung: --copy-gc
+Wenn diese Option gesetzt ist, dann werden die realen Dateien von GameCube-Images ('/files/...') nicht extrahiert. Stattdessen wird einen Kopie des Images als "game.iso" angelegt. Damit wird wit Kompatibel zu DiscEx, aber wit ist vuiel schneller. wit versucht auch, einen Hard-Link des Images anzulegen, wenn das Quellimage im richtigen Format vorliegt. Dieses macht meien Tools unfassbar schnell.
+[color=#800000][b]Dieses Erweiterung ist insbesondere für ModMii von @XFlak gedacht[/b][/color]
 
-[*] Ich bin mir nicht sicher, ob das WIT-Projekt nun beendet ist. Im Moment ruht es auf jeden Fall, da ich an meinen SZS Tools arbeite. Es gibt da aber noch ein paar Ideen; einfach mal den "roadmap"-Abschnitt im Change Log lesen. 
+[*] Die Option --sneek wurde zu --neek umbenannt, das alte --sneek ist aber weiterhin erlaubt. Die Option --copy-gc is implizit in --neek enthalten. Für eine Extrahierung gemäß DiscEx kann dieses Kommando verwendet werden: [color=#000080]wit extract --neek --dest %i IMAGE_LIST.ANY_FORMAT[/color]
+
+[*] Das 2. neue Feature ist die Anzeige von Fragmenten beim Auflisten der Spiele. Grund für die Erweiterungen waren diverse Fragmentierungs-Diskussionen. Falls die neue Option --fragments mit dem Kommando "wwt LIST" verwendet wird, dann wird die Anzahl der WBFS-Fragmente und eine Fragmentierungs-Rate ausgegeben. Die neuen Kommandos "wwt LIST-F" and "wwt LF" sind Kürzel für "wwt LIST --fragments".
 [/list]
 
 [size=12][color=#0000c0][b]Letzte Änderungen:[/b][/color][/size]

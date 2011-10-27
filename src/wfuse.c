@@ -438,7 +438,7 @@ static WiiFst_t * get_fst ( DiscFile_t * df )
 	    if (!fst)
 		OUT_OF_MEMORY;
 	    InitializeFST(fst);
-	    CollectFST(fst,df->disc,0,false,WD_IPM_SLASH,true);
+	    CollectFST(fst,df->disc,0,false,0,WD_IPM_SLASH,true);
 	    SortFST(fst,SORT_NAME,SORT_NAME);
 	    df->fst = fst;
 	}

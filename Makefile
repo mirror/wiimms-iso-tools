@@ -27,7 +27,8 @@
 #-------------------------------------------------------------------------------
 # global settings
 
-SHELL			= /bin/bash
+#SHELL			= /bin/bash
+SHELL			= /usr/bin/env bash
 
 AUTHOR			= Dirk Clemens
 TOOLSET_SHORT		= WIT
@@ -42,7 +43,7 @@ WDF_LONG		= Wiimms WDF Tool
 WFUSE_SHORT		= wfuse
 WFUSE_LONG		= Wiimms FUSE Tool
 
-VERSION_NUM		= 2.00b
+VERSION_NUM		= 2.01a
 BETA_VERSION		= 0
 			# 0:off  -1:"beta"  >0:"beta#"
 
@@ -70,6 +71,9 @@ URI_DOWNLOAD_X86_64	= $(URI_DOWNLOAD)/$(DISTRIB_X86_64)
 URI_DOWNLOAD_MAC	= $(URI_DOWNLOAD)/$(DISTRIB_MAC)
 URI_DOWNLOAD_CYGWIN	= $(URI_DOWNLOAD)/$(DISTRIB_CYGWIN)
 URI_TITLES		= http://wiitdb.com/titles.txt
+
+DOWNLOAD_DIR		= /cygdrive/n/www/wit.wiimm.de/download
+
 
 DUMMY			:= $(shell $(SHELL) ./setup.sh)
 include Makefile.setup
@@ -280,10 +284,11 @@ BIN_FILES	= $(MAIN_TOOLS) $(EXTRA_TOOLS)
 SHARE_FILES	= $(TITLE_FILES) system-menu.txt
 
 CYGWIN_DIR	= /usr/bin
-CYGWIN_TOOLS	= bash cp diff grep mkdir mv realpath regtool rm stat tr wget
+CYGWIN_TOOLS	= bash cp diff env grep mkdir mv realpath regtool rm stat tr wget
 CYGWIN_SCRIPTS	= load-titles.sh load-titles.bat \
-		  windows-install.sh windows-install.bat \
-		  windows-uninstall.sh windows-uninstall.bat
+		  windows-install.sh windows-uninstall.sh
+CYGWIN_INSTALLER= $(SETUP_DIR)/windows-install.exe
+
 WIN_INSTALL_PATH= Wiimm/WIT
 
 DIR_LIST_BIN	= $(SCRIPTS) bin
@@ -363,7 +368,7 @@ $(SETUP_FILES): templates.sed $(SETUP_DIR)/$@
 #--------------------------
 
 $(TEXT_FILES): $(GEN_TEXT_FILE) $(TEXT_DIR)/$@
-	@printf "$(LOGFORMAT)" create "$@" ""
+	@printf "$(LOGFORMAT)" text "$@" ""
 	@chmod 775 $(GEN_TEXT_FILE)
 	@$(GEN_TEXT_FILE) $(TEXT_DIR) $@
 
@@ -513,8 +518,10 @@ ifeq ($(SYSTEM),cygwin)
 	@printf '@cmd\r\n' >$(DISTRIB_PATH)/bin/wit-console.bat
 	@cp -p gpl-2.0.txt $(DISTRIB_PATH)
 	@ln -f $(MAIN_TOOLS) $(WDF_LINKS) $(CYGWIN_SCRIPTS) $(DISTRIB_PATH)/bin
-	@ln -f windows-install.bat $(DISTRIB_PATH)
-	@ln -f windows-uninstall.bat $(DISTRIB_PATH)
+	@ln -f $(CYGWIN_INSTALLER) $(DISTRIB_PATH)/windows-install.exe
+	@ln -f $(CYGWIN_INSTALLER) $(DISTRIB_PATH)/windows-uninstall.exe
+	@ln -f $(CYGWIN_INSTALLER) $(DISTRIB_PATH)/bin/windows-install.exe
+	@ln -f $(CYGWIN_INSTALLER) $(DISTRIB_PATH)/bin/windows-uninstall.exe
 	@( cd share; cp $(SHARE_FILES) ../$(DISTRIB_PATH)/bin )
 	@cp -p $(DOC_FILES) $(DISTRIB_PATH)/doc
 	@rm -f $(DISTRIB_PATH)/doc/$(IGNORE_DOC_FILES)
@@ -608,6 +615,24 @@ endif
 install+: clean+ all
 	@chmod a+x install.sh
 	@./install.sh --make
+
+#--------------------------
+
+.PHONY : install2
+install2:
+ifeq ($(SYSTEM_LINUX),1)
+
+	@printf "\n---------- BUILDING LINUX/I386 ----------\n\n"
+	@for t in $(ALL_TOOLS_X); do rm -f bin/$$t; done
+	@M32=1 $(MAKE) --no-print-directory clean+ install
+
+	@printf "\n---------- BUILDING LINUX/X86_64 ----------\n\n"
+	@for t in $(ALL_TOOLS_X); do rm -f bin/$$t; done
+	@$(MAKE) --no-print-directory clean+ install
+
+else
+	@$(MAKE) --no-print-directory clean+ install
+endif
 
 #
 #--------------------------
@@ -799,7 +824,7 @@ gen-wbfs: format-wbfs
 		| ./wwt -A -p @<(ls $(WBFS_FILE)) add @-
 	@echo
 	@./wwt f -l $(WBFS_FILES)
-	@./wwt ll $(WBFS_FILE) --mtime
+	@./wwt lf $(WBFS_FILE) --mtime
 
 #
 #--------------------------
@@ -817,7 +842,7 @@ gen-wbfs+: format-wbfs
 		| ./wwt -A -p @<(ls $(WBFS_FILES)) add @-
 	@echo
 	@./wwt f -l $(WBFS_FILES)
-	@./wwt ll $(WBFS_FILES)
+	@./wwt lf $(WBFS_FILES)
 	@echo "WBFS: this is not a wbfs file" >no.wbfs
 
 #

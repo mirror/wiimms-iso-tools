@@ -66,6 +66,11 @@
     #define EXTENDED_IO_FUNC 1		// 0 | 1
 #endif
 
+#if !HAVE_FALLOCATE && !HAVE_POSIX_FALLOCATE && !__APPLE__
+    #undef  NO_PREALLOC
+    #define NO_PREALLOC 1
+#endif
+
 ///////////////////////////////////////////////////////////////////////////////
 
 typedef enum enumProgID
@@ -763,6 +768,14 @@ bool SetPatchFileID
     int			id_length
 );
 
+//-----------------------------------------------------------------------------
+
+void mark_used ( ccp name, ... );
+#define MARK_USED(...) mark_used(0,__VA_ARGS__)
+
+void option_deprecated ( ccp name );
+void option_ignored ( ccp name );
+
 //
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////		    preallocation options		///////////////
@@ -789,6 +802,7 @@ int ScanPreallocMode ( ccp arg );
 
 ccp PathCatPP  ( char * buf, size_t bufsize, ccp path1, ccp path2 );
 ccp PathCatPPE ( char * buf, size_t bufsize, ccp path1, ccp path2, ccp ext );
+char * SetupDirPath ( char * buf, size_t bufsize, ccp src_path );
 
 //-----
 
@@ -919,6 +933,7 @@ typedef enum SortMode
 	SORT_REGION,
 	SORT_WBFS,
 	SORT_NPART,
+	SORT_FRAG,
 	 SORT_ITIME,
 	 SORT_MTIME,
 	 SORT_CTIME,
@@ -1487,6 +1502,8 @@ extern int		progress;
 extern bool		use_utf8;
 extern char		escape_char;
 extern ccp		opt_patch_file;
+extern bool		opt_copy_gc;
+extern bool		opt_no_link;
 extern int		testmode;
 extern int		newmode;
 extern ccp		opt_dest;

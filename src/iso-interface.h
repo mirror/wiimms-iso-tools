@@ -40,6 +40,7 @@
 #include "types.h"
 #include "lib-sf.h"
 #include "patch.h"
+#include "dclib-utf8.h"
 #include "match-pattern.h"
 #include "libwbfs/libwbfs.h"
 #include "libwbfs/rijndael.h"
@@ -65,6 +66,7 @@ typedef struct WDiscInfo_t
     u32			used_blocks;
     ccp			title;		// pointer to title DB
     u32			n_part;		// number of partitions
+    u32			wbfs_fragments;	// number of wbfs fragments
 
 } WDiscInfo_t;
 
@@ -80,7 +82,8 @@ typedef struct WDiscListItem_t
     ccp			title;		// ptr into title DB (not alloced)
     u16			part_index;	// WBFS partition index
     u16			n_part;		// number of partitions
-    s16			wbfs_slot;		// slot number
+    s16			wbfs_slot;	// slot number
+    u16			wbfs_fragments;	// number of wbfs fragments
     enumFileType	ftype;		// the type of the file
     ccp			fname;		// filename, alloced
     FileAttrib_t	fatt;		// file attributes: size, itime, mtime, ctime, atime
@@ -401,7 +404,7 @@ extern wd_ipm_t prefix_mode;
 extern int opt_flat;
 
 wd_ipm_t ScanPrefixMode ( ccp arg );
-void SetupSneekMode();
+void SetupNeekMode();
 
 //
 ///////////////////////////////////////////////////////////////////////////////
@@ -579,27 +582,23 @@ typedef struct WiiFstPart_t
 
 typedef struct WiiFst_t
 {
-	//----- wd interface
+	//--- wd interface
 
 	wd_disc_t	* disc;			// NULL or disc pointer
 
-	//----- partitions
+	//--- partitions
 
 	WiiFstPart_t	* part;			// partition infos
 	u32		part_used;		// number of used elements in 'part'
 	u32		part_size;		// number of allocated elements in 'part'
 	WiiFstPart_t	* part_active;		// active partition
 
-	// statistics
+	//--- statistics
 
 	u32		total_file_count;	// number of all files of all partition
 	u64		total_file_size;	// total size of all files of all partition
 
-	//----- options
-
-	bool		ignore_dir;		// if true: don't collect dir names
-
-	//----- file statistics
+	//--- file statistics
 	
 	u32		files_served;		// total number of files served
 	u32		dirs_served;		// total number of files served
@@ -607,7 +606,7 @@ typedef struct WiiFst_t
 	u32		fst_max_off4;		// maximal offset4 value of all files
 	u32		fst_max_size;		// maximal size value of all files
 
-	//----- generator data
+	//--- generator data
 
 	IsoMapping_t	im;			// iso mapping
 	wd_header_t	dhead;			// disc header
@@ -639,6 +638,8 @@ typedef struct WiiFstInfo_t
 
 	FileAttrib_t	* set_time;		// NULL or set time attrib
 	bool		overwrite;		// allow ovwerwriting
+	bool		copy_image;		// true: copy image to 'game.iso'
+	bool		link_image;		// true: try 'link' before 'copy'
 	int		verbose;		// the verbosity level
 
 } WiiFstInfo_t;
@@ -659,6 +660,8 @@ int CollectFST
     wd_disc_t		* disc,		// valid disc pointer
     FilePattern_t	* pat,		// NULL or a valid filter
     bool		ignore_dir,	// true: ignore directories
+    int			ignore_files,	// >0: ignore all real files
+					// >1: ignore fst.bin + main.dol too
     wd_ipm_t		prefix_mode,	// prefix mode
     bool		store_prefix	// true: store full path incl. prefix
 );

@@ -290,8 +290,7 @@ typedef struct dol_header_t
     /* 0xd8 */	u32 bss_addr;
     /* 0xdc */	u32 bss_size;
     /* 0xe0 */	u32 entry_addr;
-    /* 0xd4 */	u8  padding[DOL_HEADER_SIZE-0xe4];
-
+    /* 0xe4 */	u8  padding[DOL_HEADER_SIZE-0xe4];
 }
 __attribute__ ((packed)) dol_header_t;
 

@@ -608,7 +608,7 @@ ulong ScanUTF8AnsiChar ( ccp * p_str )
 	case DC_UTF8_2CHAR:
 	    if ( CheckUTF8Mode(*ptr) == DC_UTF8_CONT_ANY )
 	    {
-	    result = ( result & 0x1f ) << 6 | *ptr++ & 0x3f;
+		result = ( result & 0x1f ) << 6 | *ptr++ & 0x3f;
 	    }
 	    break;
 

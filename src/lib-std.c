@@ -92,6 +92,8 @@ int		opt_truncate		= 0;
 int		opt_split		= 0;
 u64		opt_split_size		= 0;
 ccp		opt_patch_file		= 0;
+bool		opt_copy_gc		= false;
+bool		opt_no_link		= false;
 int		testmode		= 0;
 int		newmode			= 0;
 ccp		opt_dest		= 0;
@@ -1164,6 +1166,27 @@ ccp PathCatPPE ( char * buf, size_t bufsize, ccp path1, ccp path2, ccp ext )
 	StringCopyE(ptr,buf+bufsize,ext);
 
     return buf;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+char * SetupDirPath ( char * buf, size_t bufsize, ccp src_path )
+{
+    DASSERT( buf );
+    DASSERT( bufsize > 10 );
+    bufsize--;
+
+    char * path_dest = StringCopyS(buf,bufsize,src_path);
+    if ( path_dest == buf )
+	path_dest = StringCopyS(buf,bufsize,"./");
+    else if ( path_dest[-1] != '/' )
+    {
+	*path_dest++ = '/';
+	*path_dest = 0;
+    }
+
+    TRACE(" - dir-path=%s\n",buf);
+    return path_dest;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -2929,6 +2952,7 @@ SortMode ScanSortMode ( ccp arg )
 	{ SORT_REGION,	"REGION",	"R",		SORT__MODE_MASK },
 	{ SORT_WBFS,	"WBFS",		0,		SORT__MODE_MASK },
 	{ SORT_NPART,	"NPART",	0,		SORT__MODE_MASK },
+	{ SORT_FRAG,	"FRAGMENTS",	0,		SORT__MODE_MASK },
 
 	{ SORT_ITIME,	"ITIME",	"IT",		SORT__MODE_MASK },
 	{ SORT_MTIME,	"MTIME",	"MT",		SORT__MODE_MASK },
@@ -4678,6 +4702,30 @@ char * AllocRealPath ( ccp source )
     char fname[PATH_MAX];
     realpath(source,fname);
     return strdup(fname);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+void mark_used ( ccp name, ... )
+{
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+void option_deprecated ( ccp name )
+{
+    ERROR0(ERR_WARNING,
+	"Option --%s is deprecated! Don't use it any longer!\n",
+	name);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+void option_ignored ( ccp name )
+{
+    ERROR0(ERR_WARNING,
+	"Option --%s is deprecated and ignored! Don't use it any longer!\n",
+	name);
 }
 
 //

@@ -469,27 +469,27 @@ enumError SetupReadWBFS ( SuperFile_t * sf )
     if (err)
 	goto abort;
 
-    //----- calc file size
+    //--- calc file size & fragments
 
     ASSERT(wbfs->disc);
     ASSERT(wbfs->disc->header);
-    u16 * wlba_tab = wbfs->disc->header->wlba_table;
-    ASSERT(wlba_tab);
+    ASSERT(wbfs->disc->header->wlba_table);
 
     wbfs_t *w = wbfs->wbfs;
     ASSERT(w);
 
-    int bl;
-    for ( bl = w->n_wbfs_sec_per_disc-1; bl > 0; bl-- )
-	if (ntohs(wlba_tab[bl]))
-	{
-	    bl++;
-	    break;
-	}
-    sf->file_size = (off_t)bl * w->wbfs_sec_sz;
+
+    //--- calc disc size & fragments
+
+    uint disc_blocks;
+    sf->wbfs_fragments = wbfs_get_disc_fragments(wbfs->disc,&disc_blocks);
+    sf->file_size = (off_t)disc_blocks * w->wbfs_sec_sz;
     const off_t single_size = WII_SECTORS_SINGLE_LAYER * (off_t)WII_SECTOR_SIZE;
+    PRINT("N-FRAG: %u, size = %llx,%llx\n",
+	sf->wbfs_fragments, sf->file_size, (u64)single_size );
     if ( sf->file_size < single_size )
 	sf->file_size = single_size;
+    
 
     //---- store data
 
@@ -2603,23 +2603,30 @@ enumFileType AnalyzeMemFT ( const void * preload_buf, off_t file_size )
 
     const dol_header_t * dol = preload_buf;
     bool ok = true;
-    u32 last_off = DOL_HEADER_SIZE;
+    //u32 last_off = DOL_HEADER_SIZE;
     for ( i = 0; ok && i < DOL_N_SECTIONS; i++ )
     {
 	u32 off  = ntohl(dol->sect_off[i]);
 	u32 size = ntohl(dol->sect_size[i]);
-	//printf(" %8x %8x %8x %08x\n",last_off,off,size,ntohl(dol->sect_addr[i]));
-	if (size)
+	u32 addr = ntohl(dol->sect_addr[i]);
+	PRINT(" %8x %8x %08x\n",off,size,addr);
+	if ( off || size || addr )
 	{
-	    if ( off < last_off )
+	    // if ( off < last_off )
+	    if (   off & 3
+		|| size & 3
+		|| addr & 3
+		|| off < DOL_HEADER_SIZE
+		|| file_size && off + size > file_size )
 	    {
 		ok = false;
 		break;
 	    }
-	    last_off = off+size;
+	    //last_off = off+size;
 	}
     }
-    if ( ok && last_off > DOL_HEADER_SIZE && last_off <= file_size )
+    //if ( ok && last_off > DOL_HEADER_SIZE && last_off <= file_size )
+    if (ok)
 	return FT_ID_DOL;
 
 
@@ -3058,6 +3065,31 @@ enumError CopyImage
 }
 
 ///////////////////////////////////////////////////////////////////////////////
+
+enumError CopyImageName
+(
+    SuperFile_t		* fi,		// valid input file
+    ccp			path1,		// NULL or part 1 of path
+    ccp			path2,		// NULL or part 2 of path
+    enumOFT		oft,		// oft, if 'OFT_UNKNOWN' it is detected automatically
+    int			overwrite,	// overwrite mode
+    bool		preserve,	// true: force preserve time
+    bool		remove_source	// true: remove source on success
+)
+{
+    DASSERT(fi);
+
+    SuperFile_t fo;
+    InitializeSF(&fo);
+    char path_buf[PATH_MAX];
+    ccp path = PathCatPP(path_buf,sizeof(path_buf),path1,path2);
+    fo.f.fname = strdup(path);
+    enumError err = CopyImage(fi,&fo,oft,overwrite,preserve,remove_source);
+    ResetSF(&fo,0);
+    return err;
+}
+
+///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
 enumError NormalizeExtractPath
@@ -3107,10 +3139,13 @@ enumError ExtractImage
     if (!disc)
 	return ERR_WDISC_NOT_FOUND;
 
+    const bool copy_image = disc->disc_type == WD_DT_GAMECUBE && opt_copy_gc;
+
     WiiFst_t fst;
     InitializeFST(&fst);
-    CollectFST(&fst,disc,GetDefaultFilePattern(),false,prefix_mode,false);
-    // to detect links the files must be sorted by offset
+    CollectFST( &fst, disc, GetDefaultFilePattern(), false,
+			copy_image ? 2 : 0, prefix_mode, false );
+    // to detect links the files must be sorted by offset (is also fastest)
     SortFST( &fst, opt_links ? SORT_OFFSET : sort_mode, SORT_OFFSET );
 
     WiiFstInfo_t wfi;
@@ -3120,6 +3155,8 @@ enumError ExtractImage
     wfi.set_time	= preserve ? &fi->f.fatt : 0;
     wfi.overwrite	= overwrite;
     wfi.verbose		= long_count > 0 ? long_count : verbose > 0 ? 1 : 0;
+    wfi.copy_image	= copy_image;
+    wfi.link_image	= copy_image && !opt_no_link;
 
     enumError err = CreateFST(&wfi,dest_dir);
 
@@ -4605,8 +4642,8 @@ enumError DiffFilesSF
     InitializeFST(&fst1);
     InitializeFST(&fst2);
 
-    CollectFST(&fst1,disc1,GetDefaultFilePattern(),false,pmode,false);
-    CollectFST(&fst2,disc2,GetDefaultFilePattern(),false,pmode,false);
+    CollectFST(&fst1,disc1,GetDefaultFilePattern(),false,0,pmode,false);
+    CollectFST(&fst2,disc2,GetDefaultFilePattern(),false,0,pmode,false);
 
     SortFST(&fst1,SORT_NAME,SORT_NAME);
     SortFST(&fst2,SORT_NAME,SORT_NAME);
@@ -5147,8 +5184,8 @@ enumError oldDiffFilesSF
     InitializeFST(&fst1);
     InitializeFST(&fst2);
 
-    CollectFST(&fst1,disc1,GetDefaultFilePattern(),false,pmode,false);
-    CollectFST(&fst2,disc2,GetDefaultFilePattern(),false,pmode,false);
+    CollectFST(&fst1,disc1,GetDefaultFilePattern(),false,0,pmode,false);
+    CollectFST(&fst2,disc2,GetDefaultFilePattern(),false,0,pmode,false);
 
     SortFST(&fst1,SORT_NAME,SORT_NAME);
     SortFST(&fst2,SORT_NAME,SORT_NAME);

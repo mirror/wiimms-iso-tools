@@ -538,6 +538,11 @@ wit v2.00a r2834 - 2011-07-08
  - Bug fix for Windows install script: Remove duplicate WIT entries.
 
 
+wit v2.00b r2855 - 2011-07-13
+ - Bug fix: If creating a Wii image and using hard links (option --links) the
+   offsets of some hard linked files are wrong for some special situations.
+
+
 Known bugs:
 
  - The GameCube support is in development and EXPERIMENTAL!

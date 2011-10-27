@@ -575,7 +575,74 @@ enumError cmd_id6()
 //
 ///////////////////////////////////////////////////////////////////////////////
 
-int print_list_mixed()
+typedef struct fragment_summary_t
+{
+    uint	n_images;	// number of relevant images
+    uint	n_frag_images;	// number of fragmented images
+    uint	n_fragments;	// number of fragments
+    u64		total_mib;	// total size of all images;
+ 
+} fragment_summary_t;
+
+//-----------------------------------------------------------------------------
+
+static ccp print_fragment
+(
+    fragment_summary_t	* sum,		// summary record
+    WDiscListItem_t	* witem,	// item to add
+    ccp			filler		// added to end of line
+)
+{
+    DASSERT(sum);
+    DASSERT(witem);
+    DASSERT(filler);
+    static char buf[20];
+
+    if (!witem->wbfs_fragments)
+	snprintf(buf,sizeof(buf),"  -   -  %s",filler);
+    else if (!witem->size_mib)
+	snprintf(buf,sizeof(buf),"%3u   -  %s", witem->wbfs_fragments,filler);
+    else
+    {
+	const double ratio = (witem->wbfs_fragments-1) * 1024.0 / witem->size_mib;
+	snprintf(buf,sizeof(buf),"%3u %5.2f%s", witem->wbfs_fragments, ratio, filler );
+	sum->n_images++;
+	if ( witem->wbfs_fragments > 1 )
+	    sum->n_frag_images++;
+	sum->n_fragments += witem->wbfs_fragments;
+	sum->total_mib   += witem->size_mib;
+    }
+    return buf;
+}
+
+//-----------------------------------------------------------------------------
+
+static void print_fragment_summary
+(
+    fragment_summary_t	* sum		// summary record
+)
+{
+    if ( !print_sections && sum->n_images > 0 )
+    {
+	if ( sum->n_frag_images > 0 )
+	{
+	    const uint n = sum->n_fragments - sum->n_images;
+	    const double ratio = n * 1024.0 / sum->total_mib;
+	    printf("       %u of %u disc%s %s fragmented, weighted ratio = %4.2f.\n",
+		sum->n_frag_images, sum->n_images,
+		sum->n_images > 1 ? "s" : "",
+		sum->n_frag_images > 1 ? "are" : "is",
+		ratio );
+	}
+	else
+	    printf("       %u unfragmented disc%s.\n",
+		sum->n_images, sum->n_images > 1 ? "s" : "" );
+    }
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+static int print_list_mixed()
 {
     ScanPartitionGames();
     SortWDiscList(&pi_wlist,sort_mode,SORT_TITLE, OptionUsed[OPT_UNIQUE] != 0 );
@@ -607,7 +674,9 @@ int print_list_mixed()
 	return ERR_OK;
     }
 
-    const bool print_header = !OptionUsed[OPT_NO_HEADER];
+    const bool print_fragments =  OptionUsed[OPT_FRAGMENTS] != 0;
+    const bool print_header    = !OptionUsed[OPT_NO_HEADER];
+
     if (print_header)
     {
 	if ( long_count > 1 )
@@ -643,13 +712,17 @@ int print_list_mixed()
 		pi_free_mib, (pi_free_mib+512)/1024 );
     }
 
+    fragment_summary_t fsum;
+    memset(&fsum,0,sizeof(fsum));
+
     if ( long_count > 1 )
     {
 	if (print_header)
 	{
 	    int n1, n2;
-	    printf("\nID6     MiB Reg.  WI  %n%d discs (%d GiB)%n\n",
-		    &n1, pi_wlist.used, (pi_wlist.total_size_mib+512)/1024, &n2 );
+	    printf("\nID6     MiB %s  WI  %n%d discs (%d GiB)%n\n",
+			print_fragments ? "fragments" : "Reg.",
+			&n1, pi_wlist.used, (pi_wlist.total_size_mib+512)/1024, &n2 );
 	    max_name_wd += n1;
 	    if ( max_name_wd < n2 )
 		max_name_wd = n2;
@@ -658,19 +731,22 @@ int print_list_mixed()
 	    printf("%.*s\n", max_name_wd, wd_sep_200);
 	}
 
- 	for ( i = pi_wlist.used, witem = pi_wlist.first_disc; i-- > 0; witem++ )
+	for ( i = pi_wlist.used, witem = pi_wlist.first_disc; i-- > 0; witem++ )
 	    printf("%s %4d %s %3d  %s\n",
-		    witem->id6, witem->size_mib,
-		    GetRegionInfo(witem->id6[3])->name4,
-		    witem->part_index,
-		    witem->title ? witem->title : witem->name64 );
+		witem->id6, witem->size_mib,
+		print_fragments
+			? print_fragment(&fsum,witem,"")
+			: GetRegionInfo(witem->id6[3])->name4,
+		witem->part_index,
+		witem->title ? witem->title : witem->name64 );
     }
     else if (long_count)
     {
 	if (print_header)
 	{
 	    int n1, n2;
-	    printf("\nID6     MiB Reg.  %n%d discs (%d GiB)%n\n",
+	    printf("\nID6     MiB %s  %n%d discs (%d GiB)%n\n",
+		    print_fragments ? "fragments" : "Reg.",
 		    &n1, pi_wlist.used, (pi_wlist.total_size_mib+512)/1024, &n2 );
 	    max_name_wd += n1;
 	    if ( max_name_wd < n2 )
@@ -682,9 +758,11 @@ int print_list_mixed()
 
 	for ( i = pi_wlist.used, witem = pi_wlist.first_disc; i-- > 0; witem++ )
 	    printf("%s %4d %s  %s\n",
-		    witem->id6, witem->size_mib,
-		    GetRegionInfo(witem->id6[3])->name4,
-		    witem->title ? witem->title : witem->name64 );
+		witem->id6, witem->size_mib,
+		print_fragments
+			? print_fragment(&fsum,witem,"")
+			: GetRegionInfo(witem->id6[3])->name4,
+		witem->title ? witem->title : witem->name64 );
     }
     else
     {
@@ -704,7 +782,12 @@ int print_list_mixed()
     }
 
     if (print_header)
-	printf("%.*s\n%s\n\n", max_name_wd, wd_sep_200, footer );
+    {
+	printf("%.*s\n%s\n", max_name_wd, wd_sep_200, footer );
+	if (print_fragments)
+	    print_fragment_summary(&fsum);
+	putchar('\n');
+    }
 
     return ERR_OK;
 }
@@ -718,6 +801,13 @@ enumError cmd_list ( int long_level )
     {
 	RegisterOptionByIndex(&InfoUI,OPT_LONG,long_level,false);
 	long_count += long_level;
+    }
+
+    const bool print_fragments = OptionUsed[OPT_FRAGMENTS] != 0;
+    if ( print_fragments && !long_count )
+    {
+	RegisterOptionByIndex(&InfoUI,OPT_LONG,1,false);
+	long_count++;
     }
 
     AddEnvPartitions();
@@ -790,6 +880,9 @@ enumError cmd_list ( int long_level )
 			wbfs.free_mib, (wbfs.free_mib+512)/1024 );
 	    }
 
+	    fragment_summary_t fsum;
+	    memset(&fsum,0,sizeof(fsum));
+
 	    if (print_sections)
 	    {
 		printf("\n[wbfs-%u]\n",wbfs_index++);
@@ -815,8 +908,9 @@ enumError cmd_list ( int long_level )
 		{
 		    int n1, n2;
 		    putchar('\n');
-		    printf("ID6   %s  MiB Reg. %n%d/%d discs (%d GiB)%n\n",
-				pt.head, &n1, wlist->used, wbfs.total_discs,
+		    printf("ID6   %s  MiB %s %n%d/%d discs (%d GiB)%n\n",
+				pt.head, print_fragments ? "fragments " : "Reg.",
+				&n1, wlist->used, wbfs.total_discs,
 				(wlist->total_size_mib+512)/1024, &n2 );
 		    noTRACE("N1=%d N2=%d max_name_wd=%d\n",n1,n2,max_name_wd);
 		    max_name_wd += n1;
@@ -827,11 +921,14 @@ enumError cmd_list ( int long_level )
 		    noTRACE(",%d\n",max_name_wd);
 		    printf("%.*s\n", max_name_wd, wd_sep_200);
 		}
+
 		for ( i = wlist->used, witem = wlist->first_disc; i-- > 0; witem++ )
 		    printf("%s%s %4d %s %s\n",
 				witem->id6, PrintTime(&pt,&witem->fatt),
 				witem->size_mib,
-				GetRegionInfo(witem->id6[3])->name4,
+				print_fragments
+					? print_fragment(&fsum,witem," ")
+					: GetRegionInfo(witem->id6[3])->name4,
 				witem->title ? witem->title : witem->name64 );
 	    }
 	    else
@@ -859,7 +956,12 @@ enumError cmd_list ( int long_level )
 	    }
 
 	    if (print_header)
-		printf("%.*s\n%s\n\n", max_name_wd, wd_sep_200, footer );
+	    {
+		printf("%.*s\n%s\n", max_name_wd, wd_sep_200, footer );
+		if (print_fragments)
+		    print_fragment_summary(&fsum);
+		putchar('\n');
+	    }
 
 	    gt_wbfs++;
 	    gt_disc	+= wlist->used;
@@ -904,6 +1006,14 @@ enumError cmd_list_u()
     RegisterOptionByIndex(&InfoUI,OPT_UNIQUE,1,false);
     opt_all++;
     return cmd_list(2);
+}
+
+//-----------------------------------------------------------------------------
+
+enumError cmd_list_f()
+{
+    RegisterOptionByIndex(&InfoUI,OPT_FRAGMENTS,1,false);
+    return cmd_list(0);
 }
 
 //
@@ -2480,9 +2590,7 @@ enumError cmd_extract()
 			}
 			else
 			{
-			    fo.src		= wbfs.sf;
-			    fo.enable_fast	= OptionUsed[OPT_FAST] != 0;
-
+			    fo.src = wbfs.sf;
 			    enumError err = CopyImage(wbfs.sf,&fo,oft,overwrite,false,false);
 			    if (!err)
 			    {
@@ -3418,7 +3526,9 @@ enumError CheckOptions ( int argc, char ** argv, bool is_env )
 	case GO_RAW:		part_selector.whole_disc
 					= part_selector.whole_part = true; break;
 	case GO_FLAT:		opt_flat++; break;
-	case GO_SNEEK:		SetupSneekMode(); break;
+	case GO_COPY_GC:	opt_copy_gc = true; break;
+	case GO_NO_LINK:	opt_no_link = true; break;
+	case GO_NEEK:		SetupNeekMode(); break;
 
 	case GO_INCLUDE:	AtFileHelper(optarg,SEL_ID,SEL_FILE,AddIncludeID); break;
 	case GO_EXCLUDE:	AtFileHelper(optarg,SEL_ID,SEL_FILE,AddExcludeID); break;
@@ -3457,7 +3567,7 @@ enumError CheckOptions ( int argc, char ** argv, bool is_env )
 	case GO_SPLIT_SIZE:	err += ScanOptSplitSize(optarg); break;
 	case GO_PREALLOC:	err += ScanPreallocMode(optarg); break;
 	case GO_TRUNC:		opt_truncate++; break;
-	case GO_FAST:		break;
+	case GO_FAST:		option_ignored("fast"); break;
 	case GO_CHUNK_MODE:	err += ScanChunkMode(optarg); break;
 	case GO_CHUNK_SIZE:	err += ScanChunkSize(optarg); break;
 	case GO_MAX_CHUNKS:	err += ScanMaxChunks(optarg); break;
@@ -3493,6 +3603,7 @@ enumError CheckOptions ( int argc, char ** argv, bool is_env )
 	case GO_MIXED:	    	break;
 	case GO_UNIQUE:	    	break;
 	case GO_NO_HEADER:	break;
+	case GO_FRAGMENTS:	break;
 	case GO_OLD_STYLE:	print_old_style++; break;
 	case GO_SECTIONS:	print_sections++; break;
 	//case GO_SHOW:		err += ScanOptShow(optarg); break;
@@ -3662,6 +3773,7 @@ enumError CheckCommand ( int argc, char ** argv )
 	case CMD_LIST_A:	err = cmd_list_a(); break;
 	case CMD_LIST_M:	err = cmd_list_m(); break;
 	case CMD_LIST_U:	err = cmd_list_u(); break;
+	case CMD_LIST_F:	err = cmd_list_f(); break;
 
 	case CMD_FORMAT:	err = cmd_format(); break;
 	case CMD_RECOVER:	err = cmd_recover(); break;

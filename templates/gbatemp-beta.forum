@@ -8,7 +8,7 @@
 
 [color="#800000"]For productive versions see the [url=http://wit.wiimm.de/r/gbatemp]main WIT thread[/url] or visit [url=@@URI-HOME@@][b]@@URI-HOME@@[/b][/url].[/color]
 
-[size="2"][color="#0000c0"][b]Download[/b][/color] [color="#800000"][b]this EXPERIMENTAL release:[/b][/color][/size]
+[size="3"][color="#0000c0"][b]Download[/b][/color] [color="#800000"][b]this EXPERIMENTAL release:[/b][/color][/size]
 [list]
 [*] [url=@@URI-DOWNLOAD-I386@@][b]@@DISTRIB-I386@@[/b][/url] : Linux/i386 version
 [*] [url=@@URI-DOWNLOAD-X86_64@@][b]@@DISTRIB-X86_64@@[/b][/url] : Linux/x86_64 version
@@ -17,7 +17,7 @@
 [*] Other releases are available at [url=@@URI-HOME@@download.html][b]@@URI-HOME@@download.html[/b][/url].
 [/list]
 
-[size="2"][color="#0000c0"][b]Highlights of this release:[/b][/color][/size]
+[size="3"][color="#0000c0"][b]Highlights of this release:[/b][/color][/size]
 [list]
 ~[color=#800000]Please test it![/color]
 ~[*] [color=#000080][b]GameCube support[/b][/color]
@@ -25,13 +25,12 @@
 ~
 ~[color=#800000][b]The GameCube support is experimental![/b][/color]
 ~Please use the thread [url=wit.wiimm.de/r/gamecube][b]"WIT GameCube disc support"[/b][/url] for WIT GameCube discussions.
-[color=#ffffff].[/color]
 [/list]
 
 ~[size="4"][color="#800000"][b]Please report positive and negative tests![/b][/color][/size]
 ~
 
-[size="2"][color="#0000c0"][b]Change log:[/b][/color][/size]
+[size="3"][color="#0000c0"][b]Change log:[/b][/color][/size]
 
 [code]
 @@MODULE(last-history.txt)@@
