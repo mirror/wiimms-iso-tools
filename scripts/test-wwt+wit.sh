@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # (c) Wiimm, 2011-01-21
 
 myname="${0##*/}"

@@ -538,6 +538,32 @@ wit v2.00a r2834 - 2011-07-08
  - Bug fix for Windows install script: Remove duplicate WIT entries.
 
 
+wit v2.00b r2855 - 2011-07-13
+ - Bug fix: If creating a Wii image and using hard links (option --links) the
+   offsets of some hard linked files are wrong for some special situations.
+
+
+wit v2.01a r3138 - 2011-10-27
+
+ - Windows version only: Update to Cygwin DLL 1.7.9-1
+ - Bug fix (thanx to fig2k4): Special characters in FST file names with code
+   >127 will now be translated into UTF-8 to list and create files correct.
+ - New option for "wwt LIST": --fragments: Print fragments and a ratio instead
+   of the region info. A summary line is printed too.
+ - New command: wwt LIST-F|LF: Short cut for "wwt LIST --fragments"
+ - Option --sort=fragments sort some listings by the number of wbfs fragments.
+ - Option --fast is ignored and will be removed in the near future.
+   Please don't use --fast any longer.
+ - New option: --copy-gc: If extracting a GameCube disc image, don't extract
+   the real files to '/files/...'. Instead create a copy of the source image
+   and store it as 'game.iso'. If the source image have the correct format and
+   option --no-link is not set, try a hard link first.
+ - Option --neek replaces the old --sneek, but --sneek is also accepted.
+   Option --neek includes now option --copy-gc.
+ - "wit extract --neek --dest %i": Extract like DiscEx (but faster!).
+   The only change is for GameCube discs because of implied --copy-gc.
+
+
 Known bugs:
 
  - The GameCube support is in development and EXPERIMENTAL!

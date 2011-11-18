@@ -1,57 +1,9 @@
 wit v@@VERSION@@ r@@REV-NEXT@@ - @@@@-@@-@@
 
- - Bug fix: If creating a Wii image and using hard links (option --links) the
-   offsets of some hard linked files are wrong for some special situations.
 
+Known bugs:
 
- Known bugs:
-
- - The GameCube support is in development and EXPERIMENTAL!
  - There are new problems while reading from non seekable sources (e.g. pipes).
    The reason is the complete new and more intelligent wiidisc lib which makes
    more lookups ==> The best is to use version 1.01c for pipes.
-
-
- Road map (for some point in the future):
-
- I have already stopped the development in favor of my SZS tools. But there
- are some already planned extensions:
-
- - Since many versions the code contains a WBFS extension, enabled by defining
-   the symbol NEW_WBFS_INTERFACE (set by "make new all"). If enabled, the free
-   blocks table is managed in a total different way. Already implemented are:
-    - WBFS access: While opening a WBFS the free blocks table is ignored.
-      Instead of using the stored one an internal memory map of used blocks is
-      built. This needs only a part of a second. Some advantages:
-       - Errors in the free blocks table are irrelevant.
-       - Blocks overlaps and invalid block assignings are automatically
-         detected and reported.
-       - If removing a discs with overlaps, the blocks are still marked used.
-       - Blocks, that are not handled by the free blocks tables (a result of a
-         calculation bug in the original libwbfs) can be used.
-      If closing, a new (and corrected) free blocks table will be written. This
-      makes the whole process compatible to other WBFS managers and loaders.
-    - wwt ADD: Before adding a disc it size is compared against the free size
-      of the WBFS. This allows an early "disc full" error message.
-    - wwt ADD: If adding a disc a continuous memory block is searched to
-      minimize the fragmentation.
-   Missing:
-    - Report errors while scanning the WBFS.
-    - The commands "wwt CHECK", "wwt REPAIR" and "wwt EDIT" must use the new
-      interface.
-
- - GameCube support is still incomplete.
-
- - There are already code fragments implemented to trim discs in three levels:
-    - Move partitions as whole to eliminate disc holes.
-    - Move partition  sectors to reduce partition size (alternative for
-      partition scrubbing). Fake signing is necessary.
-    - Move files of partitons to optimize the step above.
-   For all trimming levels alignment factors may be set and it should be
-   possible to set special alignments for GameCube sound files.
-
- - On the fly patching: Create a new image a combination of 2 or more sources.
-   Therefor trimming is needed.
-
- - A better (real) windows installer.
 

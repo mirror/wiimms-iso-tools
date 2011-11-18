@@ -938,8 +938,16 @@ enumError exec_collect ( SuperFile_t * sf, Iterator_t * it )
     wl->total_size_mib += item->size_mib;
 
     item->ftype = sf->f.ftype;
-    item->wbfs_slot = sf->f.ftype & FT_ID_WBFS && sf->wbfs && sf->wbfs->disc
-			? sf->wbfs->disc->slot : -1;
+    if ( sf->f.ftype & FT_ID_WBFS && sf->wbfs && sf->wbfs->disc )
+    {
+	item->wbfs_slot = sf->wbfs->disc->slot;
+	item->wbfs_fragments = wbfs_get_disc_fragments(sf->wbfs->disc,0);
+    }
+    else
+    {
+	item->wbfs_slot = -1;
+	item->wbfs_fragments = 0;
+    }
     CopyFileAttrib(&item->fatt,&sf->f.fatt);
 
     ResetWDiscInfo(&wdi);
@@ -1224,7 +1232,7 @@ enumError exec_files ( SuperFile_t * fi, Iterator_t * it )
 
     WiiFst_t fst;
     InitializeFST(&fst);
-    CollectFST(&fst,disc,GetDefaultFilePattern(),false,prefix_mode,true);
+    CollectFST(&fst,disc,GetDefaultFilePattern(),false,0,prefix_mode,true);
     SortFST(&fst,sort_mode,SORT_NAME);
     DumpFilesFST(stdout,0,&fst,ConvertShow2PFST(it->show_mode,0),prefix);
     ResetFST(&fst);
@@ -1602,10 +1610,11 @@ enumError exec_copy ( SuperFile_t * fi, Iterator_t * it )
 	    else
 		*split_buf = 0;
 
-	    printf( "* %s%s/%s %*u/%u %s%s:%s -> %s:%s\n",
+	    printf( "* %s%s/%s %*u/%u %s%s:%s %s %s:%s\n",
 		testmode ? "WOULD " : "", job, job_mode,
 		count_fw, it->source_index+1, it->source_list.used,
 		oft_info[fi->iod.oft].name, split_buf, fi->f.fname,
+		it->diff_it ? ":" : "->",
 		oft_info[oft].name, fo.f.fname );
 	}
 	fflush(0);
@@ -2464,7 +2473,9 @@ enumError CheckOptions ( int argc, char ** argv, bool is_env )
 	case GO_RAW:		part_selector.whole_disc
 					= part_selector.whole_part = true; break;
 	case GO_FLAT:		opt_flat++; break;
-	case GO_SNEEK:		SetupSneekMode(); break;
+	case GO_COPY_GC:	opt_copy_gc = true; break;
+	case GO_NO_LINK:	opt_no_link = true; break;
+	case GO_NEEK:		SetupNeekMode(); break;
 	case GO_HOOK:		opt_hook = 1; break;
 	case GO_ENC:		err += ScanOptEncoding(optarg); break;
 	case GO_REGION:		err += ScanOptRegion(optarg); break;

@@ -6,11 +6,11 @@
 
 [url=@@URI-HOME@@][b]@@TOOLSET-SHORT@@[/b][/url] (@@TOOLSET-LONG@@) is a set of [url=@@URI-HOME@@info/command-line.html]command line[/url] tools to manipulate Wii ISO images and WBFS containers. The two main tools are called [url=@@URI-HOME@@wit][b]@@WIT-SHORT@@[/b][/url] (@@WIT-LONG@@) and [url=@@URI-HOME@@wwt][b]@@WWT-SHORT@@[/b][/url] (@@WWT-LONG@@, the WBFS manager).
 
-[size="2"][color="#0000c0"][b]Feature overview:[/b][/color][/size]
+[size="3"][color="#0000c0"][b]Feature overview:[/b][/color][/size]
 @@MODULE(features-en.forum)@@
 
-[size="2"][color="#0000c0"][b]Download of the current version:[/b][/color][/size]
-~[size="2"][color="#0000c0"][b]Download[/b][/color] [color="#800000"][b]this EXPERIMENTAL release:[/b][/color][/size]
+[size="3"][color="#0000c0"][b]Download of the current version:[/b][/color][/size]
+~[size="3"][color="#0000c0"][b]Download[/b][/color] [color="#800000"][b]this EXPERIMENTAL release:[/b][/color][/size]
 [list]
 [*] [url=@@URI-DOWNLOAD-I386@@][b]@@DISTRIB-I386@@[/b][/url] : Linux/i386 version
 [*] [url=@@URI-DOWNLOAD-X86_64@@][b]@@DISTRIB-X86_64@@[/b][/url] : Linux/x86_64 version
@@ -19,21 +19,19 @@
 [*] Other releases are available at [url=@@URI-HOME@@download.html][b]@@URI-HOME@@download.html[/b][/url].
 [/list]
 
-[size="2"][color="#0000c0"][b]There are also some GUI available:[/b][/color][/size]
+[size="3"][color="#0000c0"][b]There are also some GUI available:[/b][/color][/size]
 [list]
 [*] [url=@@URI-QTWITGUI@@][b]QtWitGui[/b], manipulate and convert single ISO images.[/url]
     This QT based GUI focuses on manipulating single ISO images. It can do much more.
-[color=#ffffff].[/color]
 
 [*] [url=@@URI-WIIBAFU@@][b]Wii Backup Fusion[/b], a WBFS and ISO manager.[/url]
     This QT based GUI is a complete WBFS manager and ISO tool.
-[color=#ffffff].[/color]
 
-[*] [url=@@URI-WIIBAFU@@][b]Wii Covers Download & WBFS Manager for Windows[/b], a WBFS and ISO manager.[/url]
+[*] [url=@@URI-WCDWM@@][b]Wii Covers Download & WBFS Manager for Windows[/b], a WBFS and ISO manager.[/url]
     This is a very young Java based WBFS manager. ([url="http://gbatemp.net/t274044-wcdwm-wii-covers-dowbload-wbfs-manager-v1-2"]GBA temp discussion[/url])
 [/list]
 
-[size="2"][color="#0000c0"][b]Change log:[/b][/color][/size]
+[size="3"][color="#0000c0"][b]Change log:[/b][/color][/size]
 
 [code]
 @@MODULE(last-history.txt)@@

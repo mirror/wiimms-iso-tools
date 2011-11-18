@@ -745,8 +745,23 @@ info_t info_tab[] =
 		" and store all files in the same directory."
 		" This option sets the default for {--pmode} to @NONE@." },
 
-  { T_OPT_C,	"SNEEK",	"sneek",
-		0, "Abbreviation of {--psel data --pmode none --files :sneek}." },
+  { T_OPT_C,	"COPY_GC",	"copy-gc|copygc",
+		0,
+		"If extracting a GameCube disc image, don't extract the real files"
+		" to @'/files/...'@. Instead create a copy of the source image"
+		" and store it as @'game.iso'@."
+		" If the source image is already in this format,"
+		" try to create a hard link and copy only if it fails." },
+
+  { T_OPT_C,	"NO_LINK",	"no-link|nolink",
+		0,
+		"Don't try to create a hard link if copying the image"
+		" forced by the option --copy-gc." },
+
+  { T_OPT_C,	"NEEK",		"neek|sneek",
+		0,
+		"Abbreviation of {--psel data --pmode none --files :neek --copy-gc}."
+		" The old name --sneek is accepted too." },
 
   { H_OPT_G,	"HOOK",		"hook",
 		0,
@@ -1180,7 +1195,7 @@ info_t info_tab[] =
 		"Define the sort mode for listings."
 		" The parameter is a comma separated list of the following keywords:"
 		" @NONE, NAME, TITLE, FILE, SIZE, OFFSET, REGION, WBFS, NPART,"
-		" ITIME, MTIME, CTIME, ATIME, TIME = DATE, DEFAULT,"
+		" FRAGMENTS, ITIME, MTIME, CTIME, ATIME, TIME = DATE, DEFAULT,"
 		" ASCENDING, DESCENDING = REVERSE@." },
 
   { T_OPT_CP,	"LIMIT",	"limit",
@@ -1222,7 +1237,9 @@ info_t info_tab[] =
   { T_COPT,	"PMODE",	0,0,0 },
   { T_COPT,	"FLAT",		0,0,0 },
   { T_COPT_M,	"FILES",	0,0,0 },
-  { T_COPT,	"SNEEK",	0,0,0 },
+  { T_COPT,	"COPY_GC",	0,0,0 },
+  { T_COPT,	"NO_LINK",	0,0,0 },
+  { T_COPT,	"NEEK",		0,0,0 },
 
   //---------- wit GROUP SOURCE ----------
 
@@ -1847,7 +1864,7 @@ info_t info_tab[] =
   { T_COPT,	"PROGRESS",	0,0,0 },
   { T_COPT,	"LIMIT",	0,0,
 	"Maximal printed errors of each partition."
-	" A zero means unlimitted. The default is 10." },
+	" A zero means unlimited. The default is 10." },
   { T_COPT_M,	"LOGGING",	0,0,0 },
   { T_COPT_M,	"LONG",		0,0,
 	"On error print an additional line to localize the exact"
@@ -2018,6 +2035,11 @@ info_t info_tab[] =
 		"List all discs of WBFS partitions in mixed view."
 		" 'LIST-U' is a shortcut for {LIST --long --long --unique}." },
 
+  { T_DEF_CMD,	"LIST_F",	"LIST-F|LF|LISTF",
+		    "wwt LIST-F [wbfs_partition]...",
+		"List all discs of WBFS partitions and include fragmentation info."
+		" 'LIST-F' is a shortcut for {LIST --fragments}." },
+
   { T_SEP_CMD,	0,0,0,0 }, //----- separator -----
 
   { T_DEF_CMD,	"FORMAT",	"FORMAT|INIT",
@@ -2044,10 +2066,19 @@ info_t info_tab[] =
 		"Edit slot and block assignments. Dangerous! Read docu!" },
 
   { T_DEF_CMD,	"PHANTOM",	"PHANTOM",
-		    "wwt PHANTOM [sub_command]...",
-		"Add phantom discs."
+		    "wwt PHANTOM [RULE]...\n"
+		    " \n"
+		    "RULE     := [ NUM 'x' ] SIZE ['m'|'g']\n"
+		    "NUM,SIZE := UINT | UINT '-' UINT",
+		"Add @NUM@ phantom discs with entered @SIZE@ (default unit 'g')"
+		" with a generic ID6 ('PHT###' where '###' is the smallest"
+		" not already used integer)."
+		" If @NUM@ and/or @SIZE@ are ranges use random values from this range."
+		"\n "
 		" Phantom discs have no content and only a header is written."
-		" This makes adding discs very fast and this is good for testing." },
+		" This makes adding discs very fast and this is good for testing."
+		" The creation process stops if the WBFS becomes full."
+		" In this case, the last added image may be shorter as planned." },
 
   { T_DEF_CMD,	"TRUNCATE",	"TRUNCATE|TR",
 		    "wwt TRUNCATE [wbfs_partition]..",
@@ -2251,7 +2282,13 @@ info_t info_tab[] =
   { T_OPT_C,	"FLAT",		"flat",
 		0, 0 /* copy of wit */ },
 
-  { T_OPT_C,	"SNEEK",	"sneek",
+  { T_OPT_C,	"COPY_GC",	"copy-gc|copygc",
+		0, 0 /* copy of wit */ },
+
+  { T_OPT_C,	"NO_LINK",	"no-link|nolink",
+		0, 0 /* copy of wit */ },
+
+  { T_OPT_C,	"NEEK",		"neek|sneek",
 		0, 0 /* copy of wit */ },
 
   { H_OPT_G,	"HOOK",		"hook",
@@ -2323,11 +2360,10 @@ info_t info_tab[] =
   { T_OPT_C,	"TRUNC",	"trunc",
 		0, 0 /* copy of wit */ },
 
-  // [2do] [obsolte] hide after 2011-02, remove after 2011-07
-  { T_OPT_C,	"FAST",		"fast",
+  // [2do] [obsolte] hidden since 2011-10, remove it in 2012
+  { H_OPT_C,	"FAST",		"fast",
 		0,
-		"Enables fast writing (disables searching for blocks with zeroed data)."
-		" Don't use this option because it will be discontinued." },
+		"Ignored. Don't use this option because it will be discontinued." },
 
   { T_OPT_CP,	"CHUNK_MODE",	"chunk-mode|chunkmode|chm",
 		0, 0 /* copy of wit */ },
@@ -2470,6 +2506,11 @@ info_t info_tab[] =
 
   { T_OPT_CM,	"LONG",		"l|long",
 		0, 0 /* copy of wit */ },
+
+  { T_OPT_C,	"FRAGMENTS",	"fragments|frag",
+		0,
+		"Print fragmentation info instead of region info."
+		" --frag is a short cut." },
 
   { T_OPT_C,	"NUMERIC",	"numeric",
 		0, 0 /* copy of wit */ },
@@ -2636,7 +2677,9 @@ info_t info_tab[] =
   { T_COPT,	"PMODE",	0,0,0 },
   { T_COPT,	"FLAT",		0,0,0 },
   { T_COPT_M,	"FILES",	0,0,0 },
-  { T_COPT,	"SNEEK",	0,0,0 },
+  { T_COPT,	"COPY_GC",	0,0,0 },
+  { T_COPT,	"NO_LINK",	0,0,0 },
+  { T_COPT,	"NEEK",		0,0,0 },
 
   //---------- wwt GROUP PATCH ----------
 
@@ -2818,6 +2861,7 @@ info_t info_tab[] =
   { T_COPT_M,	"LONG",		0,0,
 	"If set the size in MiB and the region is printed too."
 	" If set twice at least on time columns is added." },
+  { T_COPT,	"FRAGMENTS",	0,0,0 },
   { T_COPT,	"NO_HEADER",	0,0,0 },
   { T_COPT,	"SECTIONS",	0,0,0 },
 
@@ -2844,6 +2888,11 @@ info_t info_tab[] =
   //---------- COMMAND wwt LIST-U ----------
 
   { T_CMD_BEG,	"LIST_U",	0,0,0 },
+  { T_COPY_CMD,	"LIST",		0,0,0 },
+
+  //---------- COMMAND wwt LIST-F ----------
+
+  { T_CMD_BEG,	"LIST_F",	0,0,0 },
   { T_COPY_CMD,	"LIST",		0,0,0 },
 
   //---------- COMMAND wwt FORMAT ----------
@@ -3048,7 +3097,7 @@ info_t info_tab[] =
   { T_COPT,	"UPDATE",	0,0,0 },
   { T_COPT,	"OVERWRITE",	0,0,0 },
   { T_COPT,	"TRUNC",	0,0,0 },
-  { T_COPT,	"FAST",		0,0,0 },
+  { H_COPT,	"FAST",		0,0,0 },
 
   //---------- COMMAND wwt REMOVE ----------
 
@@ -3139,7 +3188,7 @@ info_t info_tab[] =
   { T_COPT_M,	"LOGGING",	0,0,0 },
   { T_COPT,	"LIMIT",	0,0,
 	"Maximal printed errors of each partition."
-	" A zero means unlimitted. The default is 10." },
+	" A zero means unlimited. The default is 10." },
 
   { T_SEP_OPT,	0,0,0,0 },
 

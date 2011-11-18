@@ -203,6 +203,10 @@ static int dump_header
 	    snprintf(buf,sizeof(buf),"%s file size:",oft_info[sf->iod.oft].name);
 	    dump_size(f,indent,buf,real_size,virt_size,scrubbed_size,0);
 	}
+	if (sf->wbfs_fragments)
+	    fprintf(f,"%*sWBFS fragments:    1+%u = a ratio of %4.2f additional_fragments/GiB\n",
+			indent,"", sf->wbfs_fragments-1,
+			(sf->wbfs_fragments-1) * (double)(GiB) / scrubbed_size );
     }
     else
 	dump_size(f,indent,"File size:",real_size,0,0,0);
@@ -549,7 +553,7 @@ enumError Dump_ISO
     if (!disc)
 	return ERR_WDISC_NOT_FOUND;
 
-    const bool is_gc	  = disc->disc_type == WD_DT_GAMECUBE;
+    const bool is_gc = disc->disc_type == WD_DT_GAMECUBE;
 
     FilePattern_t * pat = GetDefaultFilePattern();
     indent = NormalizeIndent(indent) + 2;
@@ -1879,8 +1883,9 @@ wd_ipm_t ScanPrefixMode ( ccp arg )
 
 //-----------------------------------------------------------------------------
 
-void SetupSneekMode()
+void SetupNeekMode()
 {
+    opt_copy_gc = true;
     wd_reset_select(&part_selector);
     wd_append_select_item(&part_selector,WD_SM_ALLOW_PTYPE,0,WD_PART_DATA);
 
@@ -1888,7 +1893,7 @@ void SetupSneekMode()
 
     FilePattern_t * pat = file_pattern + PAT_DEFAULT;
     pat->rules.used = 0;
-    AddFilePattern(":sneek",PAT_DEFAULT);
+    AddFilePattern(":neek",PAT_DEFAULT);
     SetupFilePattern(pat);
 }
 
@@ -2486,6 +2491,8 @@ int CollectFST
     wd_disc_t		* disc,		// valid disc pointer
     FilePattern_t	* pat,		// NULL or a valid filter
     bool		ignore_dir,	// true: ignore directories
+    int			ignore_files,	// >0: ignore all real files
+					// >1: ignore fst.bin + main.dol too
     wd_ipm_t		prefix_mode,	// prefix mode
     bool		store_prefix	// true: store full path incl. prefix
 )
@@ -2508,10 +2515,10 @@ int CollectFST
     cf.pat		= pat && pat->match_all ? 0 : pat;
     cf.ignore_dir	= ignore_dir;
     cf.store_prefix	= store_prefix;
-    
+
     if ( opt_flat && ( prefix_mode == WD_IPM_AUTO || prefix_mode == WD_IPM_DEFAULT ))
 	prefix_mode = WD_IPM_NONE;
-    return wd_iterate_files(disc,CollectFST_helper,&cf,prefix_mode);
+    return wd_iterate_files(disc,CollectFST_helper,&cf,ignore_files,prefix_mode);
 }
 
 //-----------------------------------------------------------------------------
@@ -2629,6 +2636,45 @@ enumError CreateFST ( WiiFstInfo_t *wfi, ccp dest_path )
 	err = CreatePartFST(wfi,dest_path);
     wfi->part = 0;
 
+    if ( wfi->copy_image && wfi->sf && wfi->sf->disc1 )
+    {
+	DASSERT( wfi->sf->disc1->disc_type == WD_DT_GAMECUBE );
+	PathCatPP(iobuf,sizeof(iobuf),dest_path,"game.iso");
+
+	bool need_copy = true;
+	if ( wfi->link_image
+		&& wfi->sf->iod.oft == OFT_PLAIN	// ISO format
+		&& wfi->sf->disc1 == wfi->sf->disc2 )	// not patched
+	{
+	    unlink(iobuf);
+	    need_copy = link(wfi->sf->f.fname,iobuf) != 0;
+	}
+
+	if ( wfi->verbose > 0 )
+	{
+	    if (print_sections) // [sections]
+		printf(
+		    "[extract:%s-image]\n"
+		    "source-image=%s\n"
+		    "dest-image=%s\n"
+		    "\n"
+		    ,need_copy ? "copy" : "link"
+		    ,wfi->sf->f.fname
+		    ,iobuf
+		    );
+	    else
+		printf(" - %s image to %s\n", need_copy ? "copy" : "link", iobuf );
+	}
+
+	if (need_copy)
+	{
+	    enumError err = CopyImageName( wfi->sf, iobuf,0, OFT_PLAIN,
+					wfi->overwrite, wfi->set_time != 0, false );
+	    if (err)
+		wfi->not_created_count++;
+	}
+    }
+    
     if ( wfi->sf && ( wfi->sf->show_progress ||wfi->sf->show_summary ) )
 	PrintSummarySF(wfi->sf);
 
@@ -2649,13 +2695,8 @@ enumError CreatePartFST ( WiiFstInfo_t *wfi, ccp dest_path )
     //----- setup basic dest path
 
     char path[PATH_MAX];
+    char * path_dest = SetupDirPath(path,sizeof(path),dest_path);
     char * path_end = path + sizeof(path) - 1;
-    char * path_dest = StringCopyE(path,path_end,dest_path);
-    if ( path_dest == path )
-	path_dest = StringCopyE(path,path_end,"./");
-    else if ( path_dest[-1] != '/' )
-	*path_dest++ = '/';
-    TRACE(" - basepath=%s\n",path);
 
 
     //----- setup include list
@@ -3059,6 +3100,93 @@ static int sort_fst_by_path ( const void * va, const void * vb )
 
 //-----------------------------------------------------------------------------
 
+static int sort_fst_by_ipath ( const void * va, const void * vb )
+{
+    // try to sort in a nintendo like way
+    //  1.) ignoring case but sort carefully directories
+    //  2.) files before sub directories
+
+    static char transform[0x100] = {0,0};
+    if (!transform[1]) // ==> setup needed once!
+    {
+	// define some special characters
+
+	uint index = 1;
+	transform[(u8)'/'] = index++;
+	transform[(u8)'.'] = index++;
+	transform[(u8)'-'] = index++;
+
+	// define digits
+
+	uint i;
+	for ( i = '0'; i <= '9'; i++ )
+	    transform[i] = index++;
+
+	// define letters
+
+	for ( i = 'A'; i <= 'Z'; i++ )
+	    transform[i] = transform[i-'A'+'a'] = index++;
+
+	// define all other
+
+	for ( i = 1; i < sizeof(transform); i++ )
+	    if (!transform[i])
+		transform[i] = index++;
+
+	DASSERT( index <= sizeof(transform) );
+	//HexDump16(stderr,0,0,transform,sizeof(transform));
+    }
+
+    //--- setup
+
+    const WiiFstFile_t * a	= (const WiiFstFile_t *)va;
+    const WiiFstFile_t * b	= (const WiiFstFile_t *)vb;
+    const u8 * ap		= (u8*)a->path;
+    const u8 * bp		= (u8*)b->path;
+    const u8 * a_last_slash	= (u8*)strrchr(a->path,'/');
+    const u8 * b_last_slash	= (u8*)strrchr(b->path,'/');
+    const uint a_dir_len	= a_last_slash ? a_last_slash-ap+1 : 0;
+    const uint b_dir_len	= b_last_slash ? b_last_slash-bp+1 : 0;
+    const uint min_dir_len	= a_dir_len < b_dir_len ? a_dir_len : b_dir_len;
+    const u8 * a_end_dir_cmp	= ap + min_dir_len;
+
+    //--- first compare directory part
+
+    while ( ap < a_end_dir_cmp )
+    {
+	if ( transform[*ap] != transform[*bp] )
+	{
+	    const int stat = (int)(transform[*ap]) - (int)(transform[*bp]);
+	    return stat;
+	}
+	ap++, bp++;
+    }
+
+    if ( a_dir_len != b_dir_len )
+	return a_dir_len - b_dir_len;
+
+    int stat = strncmp(a->path,b->path,min_dir_len);
+    if (stat)
+	return stat;
+
+
+    //--- and now compare the file part
+
+    while ( *ap || *bp )
+    {
+	if ( transform[*ap] != transform[*bp] )
+	{
+	    const int stat = (int)(transform[*ap]) - (int)(transform[*bp]);
+	    return stat;
+	}
+	ap++, bp++;
+    }
+
+    return strcmp(a->path,b->path);
+}
+
+//-----------------------------------------------------------------------------
+
 static int sort_fst_by_offset ( const void * va, const void * vb )
 {
     const WiiFstFile_t * a = (const WiiFstFile_t *)va;
@@ -3150,12 +3278,15 @@ void SortPartFST ( WiiFstPart_t * part, SortMode sort_mode, SortMode default_sor
 	case SORT_OFFSET:	func = sort_fst_by_offset; break;
 
 	case SORT_ID:
+ #ifndef TEST // [[2do]]
 	case SORT_NAME:
+ #endif
 	case SORT_TITLE:
 	case SORT_FILE:
 	case SORT_REGION:
 	case SORT_WBFS:
 	case SORT_NPART:
+	case SORT_FRAG:
 	case SORT_ITIME:
 	case SORT_MTIME:
 	case SORT_CTIME:
@@ -3163,6 +3294,13 @@ void SortPartFST ( WiiFstPart_t * part, SortMode sort_mode, SortMode default_sor
 		sort_mode = SORT_NAME;
 		func = sort_fst_by_path;
 		break;
+
+ #ifdef TEST // [[2do]]
+	case SORT_NAME:
+		sort_mode = SORT_NAME;
+		func = sort_fst_by_ipath;
+		break;
+ #endif
 
 	default:
 		break;
@@ -3455,13 +3593,26 @@ static u32 scan_part ( scan_data_t * sd )
 	    if (stat(sd->path,&st))
 		continue;
 
+	    uint namesize;
+	    if (use_utf8)
+	    {
+		namesize = 1;
+		ccp nameptr = name;
+		while (ScanUTF8AnsiChar(&nameptr))
+		    namesize++;
+		PRINT_IF( namesize-1 != strlen(name),
+			    "NAME-LEN: %u,%zu: %s\n", namesize-1, strlen(name), name );
+	    }
+	    else
+		namesize = strlen(name) + 1;
+
 	    if (S_ISDIR(st.st_mode))
 	    {
 		count++;
 		WiiFstFile_t * file = AppendFileFST(sd->part);
 		ASSERT(file);
 
-		sd->name_pool_size += strlen(name) + 1;
+		sd->name_pool_size += namesize;
 		file->icm = WD_ICM_DIRECTORY;
 		*sd->path_dir++ = '/';
 		*sd->path_dir = 0;
@@ -3469,7 +3620,7 @@ static u32 scan_part ( scan_data_t * sd )
 		noTRACE("DIR:  %s\n",path_dir);
 		file->offset4 = sd->depth++;
 
-		// pointer 'file' becomes invalid if realloc() called => store index
+		// pointer 'file' becomes invalid if realloc() is called => store index
 		const int idx = file - sd->part->file; 
 		const u32 sub_count = scan_part(sd);
 		sd->part->file[idx].size = sub_count;
@@ -3482,7 +3633,7 @@ static u32 scan_part ( scan_data_t * sd )
 		WiiFstFile_t * file = AppendFileFST(sd->part);
 		ASSERT(file);
 
-		sd->name_pool_size += strlen(name) + 1;
+		sd->name_pool_size += namesize;
 		file->path = strdup(sd->path_part);
 		noTRACE("FILE: %s\n",path_dir);
 		file->icm  = WD_ICM_FILE;
@@ -3607,8 +3758,12 @@ u32 ScanPartFST
 	while (*ptr)
 	    if ( *ptr++ == '/' && *ptr )
 		name = ptr;
-	while (*name)
-	    *nameptr++ = *name++;
+	if (use_utf8)
+	    while (*name)
+		*nameptr++ = ScanUTF8AnsiChar(&name);
+	else
+	    while (*name)
+		*nameptr++ = *name++;
 
 	if ( file->icm == WD_ICM_DIRECTORY )
 	{
@@ -3626,7 +3781,7 @@ u32 ScanPartFST
 	else
 	{
 	    DASSERT(file->icm == WD_ICM_FILE);
-	    nameptr++;
+	    nameptr++; // remember calloc()
 	    ftab->size = htonl(file->size);
 	    ftab->offset4 = htonl(offset4);
 	    file->offset4 = offset4;

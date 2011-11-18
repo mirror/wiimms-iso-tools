@@ -230,7 +230,7 @@ void WAIT_ARG_FUNC ( const char * format, va_list arg );
 
 #else
 
-    #define HAVE_PRINT 0
+    #define HAVE_PRINT HAVE_TRACE
 
     #define PRINT	TRACE
     #define PRINT_IF	TRACE_IF

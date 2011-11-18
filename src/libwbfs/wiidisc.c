@@ -3405,6 +3405,8 @@ static int wd_iterate_fst_helper
     const wd_fst_item_t	*fst_base,	// NULL or pointer to FST data
     wd_file_func_t	func,		// call back function
     wd_part_t		* sys_files,	// not NULL: process sys files too
+    int			ignore_files,	// >0: ignore all real files
+					// >1: ignore fst.bin + main.dol too
     wd_file_func_t	exec_func,	// NULL or call back function
 					// that is called if func() returns 1
     bool		is_gc		// true if FST is GC formatted
@@ -3477,13 +3479,30 @@ static int wd_iterate_fst_helper
 	else if (stat)
 	    return stat;
 
-	if (sys_files->boot.dol_off4)
+	if ( ignore_files < 2 )
 	{
+	    if (sys_files->boot.dol_off4)
+	    {
+		DASSERT( it->icm == WD_ICM_FILE );
+		it->off4 = sys_files->boot.dol_off4;
+		it->size = sys_files->dol_size;
+		DASSERT(!it->data);
+		strcpy(it->fst_name,"sys/main.dol");
+		stat = func(it);
+		if ( stat == 1 && exec_func )
+		{
+		    mod = 1;
+		    exec_func(it);
+		}
+		else if (stat)
+		    return stat;
+	    }
+
 	    DASSERT( it->icm == WD_ICM_FILE );
-	    it->off4 = sys_files->boot.dol_off4;
-	    it->size = sys_files->dol_size;
+	    it->off4 = sys_files->boot.fst_off4;
+	    it->size = sys_files->boot.fst_size4 << 2;
 	    DASSERT(!it->data);
-	    strcpy(it->fst_name,"sys/main.dol");
+	    strcpy(it->fst_name,"sys/fst.bin");
 	    stat = func(it);
 	    if ( stat == 1 && exec_func )
 	    {
@@ -3493,12 +3512,35 @@ static int wd_iterate_fst_helper
 	    else if (stat)
 		return stat;
 	}
+    }
 
-	DASSERT( it->icm == WD_ICM_FILE );
-	it->off4 = sys_files->boot.fst_off4;
-	it->size = sys_files->boot.fst_size4 << 2;
+    if ( ignore_files < 1 )
+    {
+	
+	//----- setup stack
+
+	const int MAX_DEPTH = 25; // maximal supported directory depth
+	typedef struct stack_t
+	{
+	    const wd_fst_item_t * dir_end;
+	    char * path;
+	} stack_t;
+	stack_t stack_buf[MAX_DEPTH];
+	stack_t *stack = stack_buf;
+	stack_t *stack_max = stack_buf + MAX_DEPTH;
+
+
+	//----- setup path
+
+	const wd_fst_item_t *fst = fst_base;
+	const int n_fst = ntohl(fst->size);
+	char *path_end = it->path + sizeof(it->path) - MAX_DEPTH - 1;
+	it->icm  = WD_ICM_DIRECTORY;
+	it->off4 = 0;
+	it->size = n_fst-1;
 	DASSERT(!it->data);
-	strcpy(it->fst_name,"sys/fst.bin");
+	strcpy(it->fst_name,"files/");
+
 	stat = func(it);
 	if ( stat == 1 && exec_func )
 	{
@@ -3507,99 +3549,75 @@ static int wd_iterate_fst_helper
 	}
 	else if (stat)
 	    return stat;
-    }
-
-    //----- setup stack
-
-    const int MAX_DEPTH = 25; // maximal supported directory depth
-    typedef struct stack_t
-    {
-	const wd_fst_item_t * dir_end;
-	char * path;
-    } stack_t;
-    stack_t stack_buf[MAX_DEPTH];
-    stack_t *stack = stack_buf;
-    stack_t *stack_max = stack_buf + MAX_DEPTH;
 
 
-    //----- setup path
+	//----- main loop
 
-    const wd_fst_item_t *fst = fst_base;
-    const int n_fst = ntohl(fst->size);
-    char *path_end = it->path + sizeof(it->path) - MAX_DEPTH;
-    it->icm  = WD_ICM_DIRECTORY;
-    it->off4 = 0;
-    it->size = n_fst-1;
-    DASSERT(!it->data);
-    strcpy(it->fst_name,"files/");
+	const wd_fst_item_t *fst_end = fst + n_fst;
+	const wd_fst_item_t *dir_end = fst_end;
+	char * path_ptr = it->fst_name + 6;
 
-    stat = func(it);
-    if ( stat == 1 && exec_func )
-    {
-	mod = 1;
-	exec_func(it);
-    }
-    else if (stat)
-	return stat;
-
-
-    //----- main loop
-
-    const wd_fst_item_t *fst_end = fst + n_fst;
-    const wd_fst_item_t *dir_end = fst_end;
-    char * path_ptr = it->fst_name + 6;
-
-    stat = 0;
-    for ( fst++; fst < fst_end && !stat; fst++ )
-    {
-	while ( fst >= dir_end && stack > stack_buf )
+	stat = 0;
+	for ( fst++; fst < fst_end && !stat; fst++ )
 	{
-	    // leave a directory
-	    stack--;
-	    dir_end = stack->dir_end;
-	    path_ptr = stack->path;
-	}
-
-	ccp fname = (ccp)fst_end + (ntohl(fst->name_off)&0xffffff);
-	char * path_dest = path_ptr;
-	while ( path_dest < path_end && *fname )
-	    *path_dest++ = *fname++;
-
-	it->fst_item = (wd_fst_item_t*)fst;
-	if (fst->is_dir)
-	{
-	    *path_dest++ = '/';
-	    *path_dest = 0;
-
-	    ASSERT(stack<stack_max);
-	    if ( stack < stack_max )
+	    while ( fst >= dir_end && stack > stack_buf )
 	    {
-		stack->dir_end = dir_end;
-		stack->path = path_ptr;
-		stack++;
-		dir_end = fst_base + ntohl(fst->size);
-		path_ptr = path_dest;
+		// leave a directory
+		stack--;
+		dir_end = stack->dir_end;
+		path_ptr = stack->path;
 	    }
 
-	    it->icm  = WD_ICM_DIRECTORY;
-	    it->off4 = 0;
-	    it->size = dir_end-fst-1;
-	    stat = func(it);
-	}
-	else
-	{
-	    *path_dest = 0;
-	    it->icm  = WD_ICM_FILE;
-	    it->off4 = ntohl(fst->offset4);
-	    it->size = ntohl(fst->size);
-	    stat = func(it);
-	}
+	    ccp fname = (ccp)fst_end + (ntohl(fst->name_off)&0xffffff);
+	    char * path_dest = path_ptr;
+	    while ( path_dest < path_end && *fname )
+	    {
+		uchar ch = *fname++;
+		if ( ch < 0x80 )
+		    *path_dest++ = ch;
+		else
+		{
+		    *path_dest++ = ch >> 6   | 0xc0;
+		    *path_dest++ = ch & 0x3f | 0x80;
+		}
+	    }
 
-	if ( stat == 1 && exec_func )
-	{
-	    mod = 1;
-	    stat = 0;
-	    exec_func(it);
+	    it->fst_item = (wd_fst_item_t*)fst;
+	    if (fst->is_dir)
+	    {
+		*path_dest++ = '/';
+		*path_dest = 0;
+
+		ASSERT(stack<stack_max);
+		if ( stack < stack_max )
+		{
+		    stack->dir_end = dir_end;
+		    stack->path = path_ptr;
+		    stack++;
+		    dir_end = fst_base + ntohl(fst->size);
+		    path_ptr = path_dest;
+		}
+
+		it->icm  = WD_ICM_DIRECTORY;
+		it->off4 = 0;
+		it->size = dir_end-fst-1;
+		stat = func(it);
+	    }
+	    else
+	    {
+		*path_dest = 0;
+		it->icm  = WD_ICM_FILE;
+		it->off4 = ntohl(fst->offset4);
+		it->size = ntohl(fst->size);
+		stat = func(it);
+	    }
+
+	    if ( stat == 1 && exec_func )
+	    {
+		mod = 1;
+		stat = 0;
+		exec_func(it);
+	    }
 	}
     }
 
@@ -3618,10 +3636,12 @@ static int true_file_func ( wd_iterator_t *it )
 
 int wd_iterate_files
 (
-	wd_disc_t	* disc,		// valid pointer to a disc
-	wd_file_func_t	func,		// call back function
-	void		* param,	// user defined parameter
-	wd_ipm_t	prefix_mode	// prefix mode
+    wd_disc_t		* disc,		// valid pointer to a disc
+    wd_file_func_t	func,		// call back function
+    void		* param,	// user defined parameter
+    int			ignore_files,	// >0: ignore all real files
+					// >1: ignore fst.bin + main.dol too
+    wd_ipm_t		prefix_mode	// prefix mode
 )
 {
     DASSERT(disc);
@@ -3821,7 +3841,8 @@ int wd_iterate_files
 
 	//----- SYS + FST files
 
-	stat = wd_iterate_fst_helper(&it,part->fst,func,part,0,part->is_gc);
+	stat = wd_iterate_fst_helper( &it, part->fst, func,part,
+					ignore_files, 0, part->is_gc );
 	if (stat)
 	    break;
 
@@ -3856,7 +3877,7 @@ int wd_iterate_fst_files
     it.param = param;
     it.fst_name = it.path;
 
-    return wd_iterate_fst_helper(&it,fst_base,func,0,0,0);
+    return wd_iterate_fst_helper(&it,fst_base,func,0,0,0,0);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -3947,7 +3968,7 @@ int wd_remove_part_files
     it.fst_name	= it.path;
 
     const int stat
-	= wd_iterate_fst_helper(&it,part->fst,func,0,exec_mark_file,part->is_gc);
+	= wd_iterate_fst_helper(&it,part->fst,func,0,0,exec_mark_file,part->is_gc);
 
     if ( stat == 1 )
     {
@@ -4119,7 +4140,7 @@ int wd_zero_part_files
     it.fst_name	= it.path;
 
     const int stat
-	= wd_iterate_fst_helper(&it,part->fst,func,0,exec_zero_file,part->is_gc);
+	= wd_iterate_fst_helper(&it,part->fst,func,0,0,exec_zero_file,part->is_gc);
     if ( stat == 1 )
     {
 	wd_insert_patch_fst(part);
@@ -4239,7 +4260,7 @@ int wd_select_part_files
     it.param	= param;
     it.fst_name	= it.path;
 
-    return wd_iterate_fst_helper(&it,part->fst,func,0,exec_select_file,part->is_gc);
+    return wd_iterate_fst_helper(&it,part->fst,func,0,0,exec_select_file,part->is_gc);
 }
 
 //
@@ -4494,7 +4515,7 @@ void wd_print_fst
     if ( pfst_mode & WD_PFST_HEADER )
 	wd_print_fst_header(&pf,50);
 
-    wd_iterate_files(disc,wd_print_fst_item_wrapper,&pf,prefix_mode);
+    wd_iterate_files(disc,wd_print_fst_item_wrapper,&pf,0,prefix_mode);
 }
 
 //

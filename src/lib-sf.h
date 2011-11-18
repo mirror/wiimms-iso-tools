@@ -94,7 +94,6 @@ typedef struct SuperFile_t
 	// parameters, set by user
 
 	File_t f;			// file handling struct
-	bool enable_fast;		// true: enables fast prosessing
 	int  indent;			// indent of progress and summary
 	bool show_progress;		// true: show progress info
 	bool show_summary;		// true: show summary statistics
@@ -159,6 +158,7 @@ typedef struct SuperFile_t
 	// WBFS support (read only)
 
 	struct WBFS_t * wbfs;		// a WBFS
+	u32 wbfs_fragments;		// 0=unknown, >0:number if fragments
 
 	// FST support
 	
@@ -419,6 +419,17 @@ enumError CopyImage
 (
     SuperFile_t		* fi,		// valid input file
     SuperFile_t		* fo,		// valid output file
+    enumOFT		oft,		// oft, if 'OFT_UNKNOWN' it is detected automatically
+    int			overwrite,	// overwrite mode
+    bool		preserve,	// true: force preserve time
+    bool		remove_source	// true: remove source on success
+);
+
+enumError CopyImageName
+(
+    SuperFile_t		* fi,		// valid input file
+    ccp			path1,		// NULL or part 1 of path
+    ccp			path2,		// NULL or part 2 of path
     enumOFT		oft,		// oft, if 'OFT_UNKNOWN' it is detected automatically
     int			overwrite,	// overwrite mode
     bool		preserve,	// true: force preserve time

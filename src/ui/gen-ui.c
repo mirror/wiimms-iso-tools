@@ -1032,7 +1032,7 @@ static enumError Generate ( control_t * ctrl )
 	while ( len > 0 )
 	{
 	    const int now_len = len < 16 ? len : 16 - start % 16;
-	    fprintf(cf,"\t/*%02x*/\t %.*s\n",
+	    fprintf(cf,"\t/* 0x%02x   */\t %.*s\n",
 		    start,
 		    2*now_len + now_len/4,
 		    "0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0," );
@@ -1042,7 +1042,8 @@ static enumError Generate ( control_t * ctrl )
 	    
 	while ( i < OPT_INDEX_SIZE && opt_buf[i] )
 	{
-	    fprintf(cf,"\t/*%02x*/\tOPT_%s,\n",i,opt_buf[i]);
+	    fprintf(cf,"\t/* 0x%02x %c */\tOPT_%s,\n",
+		i, i > ' ' && i < 0x7f ? i : ' ', opt_buf[i]);
 	    i++;
 	}
     }

@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
     #####################################################################
     ##                 __            __ _ ___________                  ##
@@ -44,7 +44,7 @@ MACHINE="$(uname -m)"
 MACHINE="${MACHINE//[!a-zA-Z0-9_+-]/}"
 
 MBIN_PATH="$BIN_PATH-$MACHINE"
-if [[ -d $MBIN_PATH ]]
+if [[ $M32 != 1 && -d $MBIN_PATH ]]
 then
     HAVE_MBIN=1
     INPATH_MBIN=0

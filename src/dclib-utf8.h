@@ -87,21 +87,21 @@ typedef enum dcUTF8Mode
 extern const unsigned short TableUTF8Mode[256];
 dcUTF8Mode CheckUTF8Mode ( unsigned char ch );
 
-int	    GetUTF8CharLength ( ulong code );
-char *	NextUTF8Char ( ccp str );
-char *	NextUTF8CharE ( ccp str, ccp end );
-char *	PrevUTF8Char ( ccp str );
-char *  PrevUTF8CharB ( ccp str, ccp begin );
-ulong GetUTF8Char ( ccp str );
-ulong ScanUTF8Char ( ccp * str );
-ulong ScanUTF8CharE ( ccp * str, ccp end );
-ulong ScanUTF8CharInc ( ccp * str );
-ulong ScanUTF8CharIncE ( ccp * str, ccp end );
-ulong GetUTF8AnsiChar ( ccp str );
-ulong ScanUTF8AnsiChar ( ccp * str );
-ulong ScanUTF8AnsiCharE ( ccp * str, ccp end );
-int	    ScanUTF8Length ( ccp str, ccp end );
-char *	PrintUTF8Char ( char * buf, ulong code );
+int	GetUTF8CharLength	( ulong code );
+char *	NextUTF8Char		( ccp str );
+char *	NextUTF8CharE		( ccp str, ccp end );
+char *	PrevUTF8Char		( ccp str );
+char *  PrevUTF8CharB		( ccp str, ccp begin );
+ulong	GetUTF8Char		( ccp str );
+ulong	ScanUTF8Char		( ccp * str );
+ulong	ScanUTF8CharE		( ccp * str, ccp end );
+ulong	ScanUTF8CharInc		( ccp * str );
+ulong	ScanUTF8CharIncE	( ccp * str, ccp end );
+ulong	GetUTF8AnsiChar		( ccp str );
+ulong	ScanUTF8AnsiChar	( ccp * str );
+ulong	ScanUTF8AnsiCharE	( ccp * str, ccp end );
+int	ScanUTF8Length		( ccp str, ccp end );
+char *	PrintUTF8Char		( char * buf, ulong code );
 
 ///////////////////////////////////////////////////////////////////////////////
 

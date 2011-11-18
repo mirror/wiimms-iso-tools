@@ -77,7 +77,9 @@ typedef enum enumOptions
 	OPT_RAW,
 	OPT_PMODE,
 	OPT_FLAT,
-	OPT_SNEEK,
+	OPT_COPY_GC,
+	OPT_NO_LINK,
+	OPT_NEEK,
 	OPT_ENC,
 	OPT_ID,
 	OPT_NAME,
@@ -139,7 +141,7 @@ typedef enum enumOptions
 	OPT_FILE_LIMIT,
 	OPT_PATCH_FILE,
 
-	OPT__N_SPECIFIC, // == 83 
+	OPT__N_SPECIFIC, // == 85 
 
 	//----- global options -----
 
@@ -164,7 +166,7 @@ typedef enum enumOptions
 	OPT_NEW,
 	OPT_HOOK,
 
-	OPT__N_TOTAL // == 103
+	OPT__N_TOTAL // == 105
 
 } enumOptions;
 
@@ -200,7 +202,9 @@ typedef enum enumOptions
 //	OB_RAW			= 1llu << OPT_RAW,
 //	OB_PMODE		= 1llu << OPT_PMODE,
 //	OB_FLAT			= 1llu << OPT_FLAT,
-//	OB_SNEEK		= 1llu << OPT_SNEEK,
+//	OB_COPY_GC		= 1llu << OPT_COPY_GC,
+//	OB_NO_LINK		= 1llu << OPT_NO_LINK,
+//	OB_NEEK			= 1llu << OPT_NEEK,
 //	OB_ENC			= 1llu << OPT_ENC,
 //	OB_ID			= 1llu << OPT_ID,
 //	OB_NAME			= 1llu << OPT_NAME,
@@ -273,7 +277,9 @@ typedef enum enumOptions
 //	OB_GRP_FST_SELECT	= OB_PMODE
 //				| OB_FLAT
 //				| OB_FILES
-//				| OB_SNEEK,
+//				| OB_COPY_GC
+//				| OB_NO_LINK
+//				| OB_NEEK,
 //
 //	OB_GRP_SOURCE		= OB_SOURCE
 //				| OB_NO_EXPAND
@@ -676,7 +682,9 @@ typedef enum enumGetOpt
 	GO_RAW,
 	GO_PMODE,
 	GO_FLAT,
-	GO_SNEEK,
+	GO_COPY_GC,
+	GO_NO_LINK,
+	GO_NEEK,
 	GO_HOOK,
 	GO_ENC,
 	GO_ID,

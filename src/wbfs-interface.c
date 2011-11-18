@@ -1565,7 +1565,7 @@ uint GetIdWBFS ( WBFS_t * wbfs, IdField_t * idf )
 	const int slot_fw = snprintf(slot_name,sizeof(slot_name),"#%u",w->max_disc-1);
 	
 	for ( slot = 0; slot < w->max_disc; slot++ )
-	    if (!wbfs_get_disc_info_by_slot(w,slot,(u8*)&head,sizeof(head),0,0,0))
+	    if (!wbfs_get_disc_info_by_slot(w,slot,(u8*)&head,sizeof(head),0,0,0,0))
 	    {
 		const time_t mtime = wbfs_is_inode_info_valid(w,&head.iinfo)
 					? ntoh64(head.iinfo.mtime) : 0;
@@ -3138,7 +3138,8 @@ enumError GetWDiscInfo ( WBFS_t * w, WDiscInfo_t * dinfo, int disc_index )
     u32 slot, size4;
     const enumError err = wbfs_get_disc_info ( w->wbfs, disc_index,
 			    (u8*)&dinfo->dhead, sizeof(dinfo->dhead), &slot,
-			    &dinfo->disc_type, &dinfo->disc_attrib, &size4 );
+			    &dinfo->disc_type, &dinfo->disc_attrib,
+			    &size4, &dinfo->wbfs_fragments );
 
     if (err)
     {
@@ -3170,7 +3171,8 @@ enumError GetWDiscInfoBySlot ( WBFS_t * w, WDiscInfo_t * dinfo, u32 disc_slot )
     u32 size4;
     const enumError err = wbfs_get_disc_info_by_slot ( w->wbfs, disc_slot,
 			    (u8*)&dinfo->dhead, sizeof(dinfo->dhead),
-			    &dinfo->disc_type, &dinfo->disc_attrib, &size4 );
+			    &dinfo->disc_type, &dinfo->disc_attrib,
+			    &size4, &dinfo->wbfs_fragments );
 
     if (err)
     {
@@ -3298,6 +3300,7 @@ void CopyWDiscInfo ( WDiscListItem_t * item, WDiscInfo_t * dinfo )
     item->title		= dinfo->title;
     item->n_part	= dinfo->n_part;
     item->wbfs_slot	= dinfo->disc_index;
+    item->wbfs_fragments= dinfo->wbfs_fragments;
     item->ftype		= FT_ID_WBFS | FT_A_WDISC;
     item->used_blocks	= dinfo->used_blocks;
 
@@ -3641,6 +3644,17 @@ static int sort_by_npart ( const void * va, const void * vb )
     return stat ? stat : sort_by_title(va,vb);
 }
 
+//-----------------------------------------------------------------------------
+
+static int sort_by_frag ( const void * va, const void * vb )
+{
+    const WDiscListItem_t * a = (const WDiscListItem_t *)va;
+    const WDiscListItem_t * b = (const WDiscListItem_t *)vb;
+
+    const int stat = (int)a->wbfs_fragments - (int)b->wbfs_fragments;
+    return stat ? stat : sort_by_title(va,vb);
+}
+
 ///////////////////////////////////////////////////////////////////////////////
 
 void ReverseWDiscList ( WDiscList_t * wlist )
@@ -3700,6 +3714,7 @@ void SortWDiscList ( WDiscList_t * wlist,
 	case SORT_REGION:	func = sort_by_region;	umode = SORT_REGION; break;
 	case SORT_WBFS:		func = sort_by_wbfs;	break;
 	case SORT_NPART:	func = sort_by_npart;	break;
+	case SORT_FRAG:		func = sort_by_frag;	break;
 	case SORT_ITIME:	func = sort_by_itime;	break;
 	case SORT_MTIME:	func = sort_by_mtime;	break;
 	case SORT_CTIME:	func = sort_by_ctime;	break;
@@ -3775,6 +3790,7 @@ void PrintSectWDiscListItem ( FILE * f, WDiscListItem_t * witem, ccp def_fname )
     //fprintf(f,"size_mib=%u\n",witem->size_mib);
     if (witem->used_blocks)
 	fprintf(f,"used-blocks=%u\n",witem->used_blocks);
+
     print_sect_time(f,'i',witem->fatt.itime);
     print_sect_time(f,'m',witem->fatt.mtime);
     print_sect_time(f,'c',witem->fatt.ctime);
@@ -3794,6 +3810,9 @@ void PrintSectWDiscListItem ( FILE * f, WDiscListItem_t * witem, ccp def_fname )
     }
 
     fprintf(f,"wbfs_slot=%d\n",witem->wbfs_slot);
+    if (witem->wbfs_fragments)
+	fprintf(f,"wbfs-fragments=%u\n",witem->wbfs_fragments);
+
     ccp fname = witem->fname ? witem->fname : def_fname ? def_fname : "";
     fprintf(f,"filename=%s\n",fname);
     if ( *fname && witem->wbfs_slot >= 0 )
