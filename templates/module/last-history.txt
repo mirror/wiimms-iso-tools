@@ -1,5 +1,17 @@
 wit v@@VERSION@@ r@@REV-NEXT@@ - @@@@-@@-@@
 
+ - The default output filename for WBFS files changed from "ID6.wbfs" ("%+")
+   to "TITLE [ID6].wbfs" ("%X").
+ - The file order for composed files is now Nintendo like.
+ - If extracting an image, a new files called 'align-files.txt' is created. It
+   stores information about file alligning. If creating a new image and option
+   --align-files is set, this file is read to align files, that have a previous
+   aligning of >=0x8000 (Wii sector size). This fixes the bug for "Super Paper
+   Mario" and perhaps for some other games.
+ - wit FILES: If the file list is sorted by offset, than an 'unused' column is
+   added before the 'offset' column.
+ - wfuse for Mac is back again. It was lost because non installed FUSE package.
+
 
 Known bugs:
 

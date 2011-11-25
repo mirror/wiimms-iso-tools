@@ -693,6 +693,13 @@ char * AllocSplitFilename ( ccp path, enumOFT oft );
 
 char * NormalizeFileName ( char * buf, char * buf_end, ccp source, bool allow_slash );
 
+uint ReduceToPathAndType
+(
+    char	*buf,		// valid return buffer
+    uint	buf_size,	// size of 'buf'
+    ccp		fname		// source: file name
+);
+
 void SetFileName      ( File_t * f, ccp source, bool allow_slash );
 void GenFileName      ( File_t * f, ccp path, ccp name, ccp title, ccp id6, ccp ext );
 void GenDestFileName  ( File_t * f, ccp dest, ccp default_name, ccp ext, bool rm_std_ext );
@@ -803,6 +810,9 @@ int ScanPreallocMode ( ccp arg );
 ccp PathCatPP  ( char * buf, size_t bufsize, ccp path1, ccp path2 );
 ccp PathCatPPE ( char * buf, size_t bufsize, ccp path1, ccp path2, ccp ext );
 char * SetupDirPath ( char * buf, size_t bufsize, ccp src_path );
+
+int PathCMP ( ccp path1, ccp path2 );
+int NintendoCMP ( ccp path1, ccp path2 );
 
 //-----
 
@@ -927,6 +937,8 @@ typedef enum SortMode
 	SORT_ID,
 	SORT_NAME,
 	SORT_TITLE,
+	SORT_PATH,			// sort path stable with PathCMP()
+	SORT_NINTENDO,			// sort path stable with NintendoCMP()
 	SORT_FILE,
 	SORT_SIZE,
 	SORT_OFFSET,
@@ -939,7 +951,7 @@ typedef enum SortMode
 	 SORT_CTIME,
 	 SORT_ATIME,
 	 SORT_TIME,
-	SORT_DEFAULT,
+	SORT_DEFAULT,			// max value!
 	 SORT__MODE_MASK	= 0x1f,
 
 	SORT_REVERSE		= 0x20,
@@ -980,10 +992,11 @@ typedef enum ShowMode
 	SHOW_RELOCATE	= 0x00002000, // relocation table
 	SHOW_PATH	= 0x00004000, // full path
 
-	SHOW_OFFSET	= 0x00008000, // show offsets
-	SHOW_SIZE	= 0x00010000, // show size
+	SHOW_UNUSED	= 0x00008000, // show unused areas
+	SHOW_OFFSET	= 0x00010000, // show offsets
+	SHOW_SIZE	= 0x00020000, // show size
 	
-	SHOW__ALL	= 0x0001ffff,
+	SHOW__ALL	= 0x0003ffff,
 
 	//----- combinations
 
@@ -1150,7 +1163,9 @@ bool RemoveIdField ( IdField_t * idf, ccp key );
 // dump list
 void DumpIdField ( FILE *f, int indent, const IdField_t * idf );
 
+//
 ///////////////////////////////////////////////////////////////////////////////
+///////////////			struct StringField_t		///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
 typedef struct StringField_t
@@ -1183,9 +1198,87 @@ void AppendStringField ( StringField_t * sf, ccp key, bool move_key );
 uint FindStringFieldHelper ( StringField_t * sf, bool * found, ccp key );
 
 // file support
-enumError ReadStringField ( StringField_t * sf, bool sort, ccp filename, bool silent );
-enumError WriteStringField ( StringField_t * sf, ccp filename, bool rm_if_empty );
+enumError LoadStringField ( StringField_t * sf, bool sort, ccp filename, bool silent );
+enumError SaveStringField ( StringField_t * sf, ccp filename, bool rm_if_empty );
 
+//
+///////////////////////////////////////////////////////////////////////////////
+///////////////			struct ParamField_t		///////////////
+///////////////////////////////////////////////////////////////////////////////
+
+typedef enum ParamFieldType_t
+{
+    PFT_NONE,
+    PFT_ALIGN,
+
+} ParamFieldType_t;
+
+//-----------------------------------------------------------------------------
+
+typedef struct ParamFieldItem_t
+{
+    ccp			key;		// string key of object
+    uint		count;		// a free counter
+    uint		num;		// a free number
+
+} ParamFieldItem_t;
+
+//-----------------------------------------------------------------------------
+
+typedef struct ParamField_t
+{
+    ParamFieldItem_t	* list;		// pointer to the item list
+    uint		used;		// number of used elements of 'list'
+    uint		size;		// number of allocated  elements of 'list'
+    ParamFieldType_t	pft;		// type of list
+
+} ParamField_t;
+
+//-----------------------------------------------------------------------------
+
+void InitializeParamField ( ParamField_t * pf, ParamFieldType_t pft );
+void ResetParamField ( ParamField_t * pf );
+void MoveParamField ( ParamField_t * dest, ParamField_t * src );
+
+int FindParamFieldIndex ( const ParamField_t * pf, ccp key, int not_found_value );
+ParamFieldItem_t * FindParamField ( const ParamField_t * pf, ccp key );
+bool RemoveParamField ( ParamField_t * pf, ccp key ); // return: true if item deleted
+
+ParamFieldItem_t * InsertParamField
+(
+    ParamField_t	* pf,		// valid param field
+    ccp			key,		// key to insert
+    uint		num		// value
+);
+
+enumError LoadParamField
+(
+    ParamField_t	* pf,		// param field
+    ParamFieldType_t	init_pf,	// >0: initialize 'pf' with entered type
+    ccp			filename,	// filename of source file
+    bool		silent		// true: don't print open/read errors
+);
+
+enumError SaveParamField
+(
+    ParamField_t	* pf,		// valid param field
+    ccp			filename,	// filename of dest file
+    bool		rm_if_empty	// true: rm dest file if 'pf' is empty
+);
+
+enumError WriteParamField
+(
+    FILE		* f,		// open destination file
+    ccp			filename,	// NULL or filename (needed on write error)
+    ParamField_t	* pf,		// valid param field
+    ccp			line_prefix,	// not NULL: insert prefix before each line
+    ccp			key_prefix,	// not NULL: insert prefix before each key
+    ccp			eol		// end of line text (if NULL: use LF)
+);
+
+//
+///////////////////////////////////////////////////////////////////////////////
+///////////////			    some list			///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
 typedef struct StringList_t

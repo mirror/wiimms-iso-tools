@@ -73,7 +73,7 @@ void CleanSF ( SuperFile_t * sf )
     ASSERT(sf);
 
     if (sf->wc)
-	free(sf->wc);
+	FREE(sf->wc);
     sf->wc = 0;
     sf->wc_size = 0;
     sf->wc_used = 0;
@@ -85,7 +85,7 @@ void CleanSF ( SuperFile_t * sf )
 	TRACE("#S# close WBFS %s id=%s=%s\n",
 		sf->f.fname, sf->f.id6_src, sf->f.id6_dest );
 	ResetWBFS(sf->wbfs);
-	free(sf->wbfs);
+	FREE(sf->wbfs);
 	sf->wbfs = 0;
     }
 
@@ -94,7 +94,7 @@ void CleanSF ( SuperFile_t * sf )
 	TRACE("#S# close WIA %s id=%s=%s\n",
 		sf->f.fname, sf->f.id6_src, sf->f.id6_dest );
 	ResetWIA(sf->wia);
-	free(sf->wia);
+	FREE(sf->wia);
 	sf->wia = 0;
     }
 
@@ -103,7 +103,7 @@ void CleanSF ( SuperFile_t * sf )
 	TRACE("#S# close FST %s id=%s=%s\n",
 		sf->f.fname, sf->f.id6_src, sf->f.id6_dest );
 	ResetFST(sf->fst);
-	free(sf->fst);
+	FREE(sf->fst);
 	sf->fst = 0;
     }
 
@@ -285,9 +285,7 @@ bool IsOpenSF ( const SuperFile_t * sf )
 
 SuperFile_t * AllocSF()
 {
-    SuperFile_t * sf = malloc(sizeof(*sf));
-    if (!sf)
-	OUT_OF_MEMORY;
+    SuperFile_t * sf = MALLOC(sizeof(*sf));
     InitializeSF(sf);
     return sf;
 }
@@ -299,7 +297,7 @@ SuperFile_t * FreeSF ( SuperFile_t * sf )
     if (sf)
     {
 	CloseSF(sf,0);
-	free(sf);
+	FREE(sf);
     }
     return 0;
 }
@@ -455,9 +453,7 @@ enumError SetupReadWBFS ( SuperFile_t * sf )
     if ( !sf || !sf->f.is_reading || sf->wbfs )
 	return ERROR0(ERR_INTERNAL,0);
 
-    WBFS_t * wbfs = malloc(sizeof(*wbfs));
-    if (!wbfs)
-	OUT_OF_MEMORY;
+    WBFS_t * wbfs = MALLOC(sizeof(*wbfs));
     InitializeWBFS(wbfs);
     enumError err = SetupWBFS(wbfs,sf,true,0,false);
     if (err)
@@ -500,13 +496,13 @@ enumError SetupReadWBFS ( SuperFile_t * sf )
     snprintf(iobuf,sizeof(iobuf),"%s [%s]",
 		GetTitle(sf->f.id6_dest, (ccp)dh->disc_title), sf->f.id6_dest );
     FreeString(sf->f.outname);
-    sf->f.outname = strdup(iobuf);
+    sf->f.outname = STRDUP(iobuf);
     SetupIOD(sf,OFT_WBFS,OFT_WBFS);
     return ERR_OK;
 
  abort:
     ResetWBFS(wbfs);
-    free(wbfs);
+    FREE(wbfs);
     return err;
 }
 
@@ -690,9 +686,7 @@ enumError SetupWriteWBFS ( SuperFile_t * sf )
     if ( !sf || sf->f.is_reading || !sf->f.is_writing || sf->wbfs )
 	return ERROR0(ERR_INTERNAL,0);
 
-    WBFS_t * wbfs =  malloc(sizeof(*wbfs));
-    if (!wbfs)
-	OUT_OF_MEMORY;
+    WBFS_t * wbfs =  MALLOC(sizeof(*wbfs));
     InitializeWBFS(wbfs);
 
     const u64 size = ( WII_MAX_SECTORS *(u64)WII_SECTOR_SIZE / WBFS_MIN_SECTOR_SIZE + 2 )
@@ -3083,7 +3077,7 @@ enumError CopyImageName
     InitializeSF(&fo);
     char path_buf[PATH_MAX];
     ccp path = PathCatPP(path_buf,sizeof(path_buf),path1,path2);
-    fo.f.fname = strdup(path);
+    fo.f.fname = STRDUP(path);
     enumError err = CopyImage(fi,&fo,oft,overwrite,preserve,remove_source);
     ResetSF(&fo,0);
     return err;
@@ -3159,6 +3153,7 @@ enumError ExtractImage
     wfi.link_image	= copy_image && !opt_no_link;
 
     enumError err = CreateFST(&wfi,dest_dir);
+    ResetParamField(&wfi.align_info);
 
     if ( !err && wfi.not_created_count )
     {	
@@ -3529,11 +3524,7 @@ enumError CopyWBFSDisc ( SuperFile_t * in, SuperFile_t * out )
     if ( w->wbfs_sec_sz <= sizeof(iobuf) )
 	 copybuf = iobuf;
     else
-    {
-	copybuf = malloc(w->wbfs_sec_sz);
-	if (!copybuf)
-	    OUT_OF_MEMORY;
-    }
+	copybuf = MALLOC(w->wbfs_sec_sz);
 
     MarkMinSizeSF(out, opt_disc_size ? opt_disc_size : in->file_size );
     enumError err = ERR_OK;
@@ -3578,7 +3569,7 @@ enumError CopyWBFSDisc ( SuperFile_t * in, SuperFile_t * out )
 
  abort:
     if ( copybuf != iobuf )
-	free(copybuf);
+	FREE(copybuf);
     return err;
 }
 
@@ -3748,7 +3739,7 @@ enumError CloseDiff
 	if (diff->patch)
 	{
 	    err = CloseWritePatch(diff->patch);
-	    free(diff->patch);
+	    FREE(diff->patch);
 	    diff->patch = 0;
 	}
     }
@@ -4865,9 +4856,7 @@ enumError DiffPatchSF
 
     //--- setup patch data
 
-    diff->patch = malloc(sizeof(*diff->patch));
-    if (!diff->patch)
-	OUT_OF_MEMORY;
+    diff->patch = MALLOC(sizeof(*diff->patch));
     SetupWritePatch(diff->patch);
     enumError err1 = CreateWritePatch(diff->patch,opt_patch_file);
     if (err1)
@@ -4880,7 +4869,7 @@ enumError DiffPatchSF
     //--- close patch & return
 
     enumError err2 = CloseWritePatch(diff->patch);
-    free(diff->patch);
+    FREE(diff->patch);
     diff->patch = 0;
 
     return err1 > err2 ? err1 : err2;
@@ -5726,7 +5715,7 @@ static enumError SourceIteratorHelper
 	    u8 discbuf[512];
 	    u8 * disc_table = max_disc <= sizeof(discbuf)
 				? discbuf
-				: malloc(sizeof(discbuf));
+				: MALLOC(sizeof(discbuf));
 	    memcpy(disc_table,wbfs.wbfs->head->disc_table,max_disc);
 
 	    ResetWBFS(&wbfs);
@@ -5742,7 +5731,7 @@ static enumError SourceIteratorHelper
 	    }
 
 	    if ( disc_table != discbuf )
-		free(disc_table);
+		FREE(disc_table);
 	}
 	else
 	    ResetSF(&sf,0);

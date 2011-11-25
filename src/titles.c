@@ -86,19 +86,15 @@ int AddTitleFile ( ccp arg, int unused )
 	    {
 		StringList_t * sl = first_title_fname;
 		first_title_fname = sl->next;
-		free((char*)sl->str);
-		free(sl);
+		FREE((char*)sl->str);
+		FREE(sl);
 	    }
 	}
 	else
 	{
 	    TRACE("#T# append title file: %s\n",arg);
-	    StringList_t * sl = calloc(1,sizeof(StringList_t));
-	    if (!sl)
-		OUT_OF_MEMORY;
-	    sl->str = strdup(arg);
-	    if (!sl->str)
-		OUT_OF_MEMORY;
+	    StringList_t * sl = CALLOC(1,sizeof(StringList_t));
+	    sl->str = STRDUP(arg);
 
 	    *append_title_fname = sl;
 	    append_title_fname = &sl->next;
@@ -260,8 +256,8 @@ void InitializeTDB()
 	    StringList_t * sl = first_title_fname;
 	    LoadTitleFile(sl->str,true);
 	    first_title_fname = sl->next;
-	    free((char*)sl->str);
-	    free(sl);
+	    FREE((char*)sl->str);
+	    FREE(sl);
 	}
 
      #ifdef xxDEBUG
@@ -1011,9 +1007,7 @@ int InsertID ( ID_DB_t * db, ccp id, ccp title )
     if ( db->used == db->size )
     {
 	db->size += tdb_grow_size;
-	db->list = (ID_t**)realloc(db->list,db->size*sizeof(*db->list));
-	if (!db->list)
-	    OUT_OF_MEMORY;
+	db->list = (ID_t**)REALLOC(db->list,db->size*sizeof(*db->list));
     }
     ASSERT( db->list );
     ASSERT( idx >= 0 && idx <= db->used );
@@ -1026,9 +1020,7 @@ int InsertID ( ID_DB_t * db, ccp id, ccp title )
     ASSERT( db->used <= db->size );
 
     int tlen = title ? strlen(title) : 0;
-    ID_t * t = *elem = (ID_t*)malloc(sizeof(ID_t)+tlen);
-    if (!t)
-	OUT_OF_MEMORY;
+    ID_t * t = *elem = (ID_t*)MALLOC(sizeof(ID_t)+tlen);
 
     StringCopyS(t->id,sizeof(t->id),id);
     StringCopyS(t->title,tlen+1,title);
@@ -1069,7 +1061,7 @@ int RemoveID ( ID_DB_t * db, ccp id, bool remove_extended )
 	    for ( c = count; c > 0; c--, elem++ )
 	    {
 		xTRACE(" - remove %s = %s\n",(*elem)->id,(*elem)->title);
-		free(*elem);
+		FREE(*elem);
 	    }
 
 	    db->used -= count;
@@ -1158,9 +1150,7 @@ static void LoadSystemMenuTab()
 		const int len = snprintf(buf,sizeof(buf),"%u%c%s",vers,0,text) + 1;
 		noPRINT("SYS-MENU: %6u = '%s' [%u]\n",vers,buf+strlen(buf)+1,len);
 
-		char * dest = malloc(len);
-		if (!dest)
-		    OUT_OF_MEMORY;
+		char * dest = MALLOC(len);
 		memcpy(dest,buf,len);
 		InsertStringField(&system_menu,dest,true);
 	    }

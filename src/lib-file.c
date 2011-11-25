@@ -320,11 +320,11 @@ enumError XClearFile ( XPARM File_t * f, bool remove_file )
 	for ( end = ptr + f->split_used; ptr < end; ptr++ )
 	{
 	    enumError err1 = XClearFile( XCALL *ptr, remove_file );
-	    free(*ptr);
+	    FREE(*ptr);
 	    if ( err < err1 )
 		err = err1;
 	}
-	free(f->split_f);
+	FREE(f->split_f);
 	f->split_f = 0;
 	remove_file = false;
     };
@@ -606,10 +606,10 @@ enumError XOpenFile ( XPARM File_t * f, ccp fname, enumIOMode iomode )
     if (f->is_stdfile)
     {
 	f->fd    = dup(fileno(stdin));
-	f->fname = strdup("- (stdin)");
+	f->fname = STRDUP("- (stdin)");
     }
     else
-	f->fname = no_fname ? fname : strdup(fname);
+	f->fname = no_fname ? fname : STRDUP(fname);
 
     return XOpenFileHelper(XCALL f,iomode,O_RDONLY,O_RDONLY);
 }
@@ -629,7 +629,7 @@ enumError XOpenFileModify ( XPARM File_t * f, ccp fname, enumIOMode iomode )
 
     XResetFile( XCALL f, false );
 
-    f->fname = no_fname ? fname : strdup(fname);
+    f->fname = no_fname ? fname : STRDUP(fname);
     return XOpenFileHelper(XCALL f,iomode,O_RDWR,O_RDWR);
 }
 
@@ -670,7 +670,7 @@ enumError XCreateFile
     if (f->is_stdfile)
     {
 	f->fd    = dup(fileno(stdout));
-	f->fname = strdup("- (stdout)");
+	f->fname = STRDUP("- (stdout)");
 
 	return XOpenFileHelper(XCALL f, iomode, open_flags, force_flags );
     }
@@ -686,7 +686,7 @@ enumError XCreateFile
 		return PrintError( XERROR0, ERR_ALREADY_EXISTS,
 		    "Can't overwrite block device: %s\n", fname );
 
-	    f->fname = strdup(fname);
+	    f->fname = STRDUP(fname);
 	    return XOpenFileHelper(XCALL f, iomode, O_WRONLY, 0 );
 	}
 	else
@@ -708,7 +708,7 @@ enumError XCreateFile
     {
 	// no temp name possible
 
-	f->fname = strdup(fname);
+	f->fname = STRDUP(fname);
 	return XOpenFileHelper(XCALL f, iomode, open_flags, force_flags );
     }
 
@@ -739,7 +739,7 @@ enumError XCreateFile
 	else if ( f->already_created_mode > 0 )
 	    XCheckCreated(XCALL fname,disable_errors,ERR_WARNING);
 
-	f->rename = strdup(fname);
+	f->rename = STRDUP(fname);
 
 	ccp name = strrchr(fname,'/');
 	name = name ? name+1 : fname;
@@ -787,7 +787,7 @@ enumError XCreateFile
 	if ( err == ERR_OK || err == ERR_CANT_CREATE_DIR )
 	{
 	    noPRINT("#F# TEMP:   '%s'\n",fbuf);
-	    f->fname = strdup(fbuf);
+	    f->fname = STRDUP(fbuf);
 	    f->disable_errors = disable_errors;
 	    return f->last_error = f->max_error = err;
 	}
@@ -930,6 +930,37 @@ char * NormalizeFileName ( char * buf, char * end, ccp source, bool allow_slash 
 
 ///////////////////////////////////////////////////////////////////////////////
 
+uint ReduceToPathAndType
+(
+    char	*buf,		// valid return buffer
+    uint	buf_size,	// size of 'buf'
+    ccp		fname		// source: file name
+)
+{
+    DASSERT(buf);
+    DASSERT(buf_size>1);
+    DASSERT(fname);
+
+    StringCopyS(buf,buf_size,fname);
+    char *dest = strrchr(buf,'/');
+    dest = dest ? dest+1 : buf;
+    ccp src = strrchr(buf,'.');
+    if ( src && src > buf )
+    {
+	*dest++ = '*';
+	while ( ( *dest++ = *src++ ) != 0 )
+	    ;
+	DASSERT( dest < buf + buf_size );
+	*dest = 0;
+	return buf - dest;
+    }
+
+    *buf = 0;
+    return 0;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
 void SetFileName ( File_t * f, ccp source, bool allow_slash )
 {
     char fbuf[PATH_MAX];
@@ -942,9 +973,7 @@ void SetFileName ( File_t * f, ccp source, bool allow_slash )
 	f->fname = EmptyString;
     else
     {
-	dest = malloc(len);
-	if (!dest)
-	    OUT_OF_MEMORY;
+	dest = MALLOC(len);
 	memcpy(dest,fbuf,len);
 	f->fname = dest;
     }
@@ -1039,7 +1068,7 @@ void GenFileName ( File_t * f, ccp path, ccp name, ccp title, ccp id6, ccp ext )
     //----- term
 
     *dest = 0;
-    f->fname = strdup(fbuf);
+    f->fname = STRDUP(fbuf);
     TRACE("FNAME:      %s\n",fbuf);
 }
 
@@ -1178,6 +1207,7 @@ enumOFT CalcOFT ( enumOFT force, ccp fname_dest, ccp fname_src, enumOFT def )
 
 //
 ///////////////////////////////////////////////////////////////////////////////
+///////////////			split file support		///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
 static void ExtractSplitMap
@@ -1275,14 +1305,9 @@ enumError XSetupSplitFile ( XPARM File_t *f, enumOFT oft, off_t split_size )
 	noPRINT("SPLIT-FNAME: %s\n",f->split_fname_format);
     }
 
-    File_t ** list = calloc(MAX_SPLIT_FILES,sizeof(*list));
-    if (!list)
-	OUT_OF_MEMORY;
-
+    File_t ** list = CALLOC(MAX_SPLIT_FILES,sizeof(*list));
     File_t * first;
-    *list = first = malloc(sizeof(File_t));
-    if (!first)
-	OUT_OF_MEMORY;
+    *list = first = MALLOC(sizeof(File_t));
 
     // copy all but cache
     memcpy(first,f,sizeof(File_t));
@@ -1300,13 +1325,13 @@ enumError XSetupSplitFile ( XPARM File_t *f, enumOFT oft, off_t split_size )
     if (f->rename)
     {
 	// fname is only informative -> use the final name
-	f->fname = strdup(f->rename);
+	f->fname = STRDUP(f->rename);
 	f->rename = 0;
     }
     else
-	f->fname = strdup(f->fname);
+	f->fname = STRDUP(f->fname);
     if (f->path)
-	f->path = strdup(f->path);
+	f->path = STRDUP(f->path);
 
     if ( oft == OFT_PLAIN || oft == OFT_CISO || oft == OFT_WBFS )
     {
@@ -1358,19 +1383,17 @@ enumError XSetupSplitFile ( XPARM File_t *f, enumOFT oft, off_t split_size )
 	    if (stat(fname,&st))
 		break;
 
-	    File_t * fi = malloc(sizeof(*f));
-	    if (!fi)
-		OUT_OF_MEMORY;
+	    File_t * fi = MALLOC(sizeof(*f));
 	    InitializeFile(fi);
 	    fi->open_flags = f->active_open_flags;
-	    fi->fname = strdup(fname);
+	    fi->fname = STRDUP(fname);
 	    enumError err = XOpenFileHelper( XCALL fi,
 				have_stream ? IOM_FORCE_STREAM : IOM_NO_STREAM,
 				f->active_open_flags, f->active_open_flags );
 	    if (err)
 	    {
 		CloseFile(fi,false);
-		free(fi);
+		FREE(fi);
 		return err;
 	    }
 
@@ -1378,7 +1401,7 @@ enumError XSetupSplitFile ( XPARM File_t *f, enumOFT oft, off_t split_size )
 	    {
 		ASSERT(!fi->rename);
 		snprintf(fname,sizeof(fname),f->split_rename_format,idx);
-		fi->rename = strdup(fname);
+		fi->rename = STRDUP(fname);
 	    }
 
 	    fi->split_off = f->split_f[idx-1]->split_off
@@ -1455,13 +1478,11 @@ enumError XCreateSplitFile ( XPARM File_t *f, uint split_idx )
 	snprintf(fname,sizeof(fname),f->split_fname_format,f->split_used++);
 	TRACE("#S#%u# Create %s\n",f->split_used-1,fname);
 
-	File_t * f2 = malloc(sizeof(File_t));
-	if (!f2)
-	    OUT_OF_MEMORY;
+	File_t * f2 = MALLOC(sizeof(File_t));
 	InitializeFile(f2);
 	*ptr = f2;
 	const int flags = O_CREAT|O_WRONLY|O_TRUNC|O_EXCL|f->active_open_flags;
-	f2->fname = strdup(fname);
+	f2->fname = STRDUP(fname);
 	enumError err
 	    = XOpenFileHelper( XCALL f2,
 				prev && prev->fp ? IOM_FORCE_STREAM : IOM_NO_STREAM,
@@ -1477,7 +1498,7 @@ enumError XCreateSplitFile ( XPARM File_t *f, uint split_idx )
 	{
 	    ASSERT(!f2->rename);
 	    snprintf(fname,sizeof(fname),f->split_rename_format,f->split_used-1);
-	    f2->rename = strdup(fname);
+	    f2->rename = STRDUP(fname);
 	}
 	
 	ExtractSplitMap(f,f2);
@@ -1533,8 +1554,8 @@ void ClearCache	( File_t * f )
     {
 	FileCache_t * ptr = f->cache;
 	f->cache = ptr->next;
-	free((char*)ptr->data);
-	free(ptr);
+	FREE((char*)ptr->data);
+	FREE(ptr);
     }
     f->cur_cache = 0;
 }
@@ -1606,9 +1627,7 @@ void DefineCachedArea ( File_t * f, off_t off, size_t count )
     }
 
     // insert a new cache element
-    FileCache_t * ptr = calloc(1,sizeof(FileCache_t));
-    if (!ptr)
-	OUT_OF_MEMORY;
+    FileCache_t * ptr = CALLOC(1,sizeof(FileCache_t));
     ptr->off   = off;
     ptr->count = count;
     ptr->next  = *pptr;
@@ -1763,9 +1782,7 @@ static FileCache_t * XCacheHelper ( XPARM File_t * f, off_t off, size_t count )
 	if (!cptr->data)
 	{
 	    // cache must be filled
-	    char * data = malloc(cptr->count);
-	    if (!data)
-		OUT_OF_MEMORY;
+	    char * data = MALLOC(cptr->count);
 	    cptr->data = data;
 	    TRACE(TRACE_RDWR_FORMAT, "#F# FILL CACHE",
 		GetFD(f), GetFP(f), (u64)cptr->off,
@@ -2081,7 +2098,7 @@ enumError XSetSizeF ( XPARM File_t * f, off_t size )
 	    ptr++;
 	    ASSERT(*ptr);
 	    XCloseFile( XCALL *ptr, true );
-	    free(*ptr);
+	    FREE(*ptr);
 	    *ptr = 0;
 	}
 	return ERR_OK;
@@ -3191,7 +3208,7 @@ char * AllocSplitFilename ( ccp path, enumOFT oft )
 {
     char buf[2*PATH_MAX];
     CalcSplitFilename(buf,sizeof(buf),path,oft);
-    return strdup(buf);
+    return STRDUP(buf);
 }
 
 //
@@ -3278,9 +3295,7 @@ char * AllocSplitFilename ( ccp path, enumOFT oft )
  {
     char buf[PATH_MAX];
     const int len = NormalizeFilenameCygwin(buf,sizeof(buf),source);
-    char * result = malloc(len+1);
-    if (!result)
-	OUT_OF_MEMORY;
+    char * result = MALLOC(len+1);
     memcpy(result,buf,len+1);
     ASSERT(buf[len]==0);
     return result;

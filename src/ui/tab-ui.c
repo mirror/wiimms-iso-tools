@@ -271,8 +271,8 @@ info_t info_tab[] =
 
   { T_DEF_CMD,	"ERROR",	"ERROR|ERR",
 		    "wit ERROR [error_code]",
-		"Translate exit code to message or print a table"
-		" with all error messages if not exit code is given." },
+		"Translate an exit code to a message name."
+		" If no exit code is entered, print a table with all error messages." },
 
   { T_DEF_CMD,	"COMPR",	"COMPR",
 		    "wit COMPR [mode]...",
@@ -779,7 +779,7 @@ info_t info_tab[] =
 		"This $patching$ option changes the ID of the disc"
 		" to the given parameter. 1 to 6 characters are expected."
 		" Only defined characters not equal '.' are modified."
-		" The disc header, boot.bin, ticket.bin and tmd.bin are "
+		" The disc header, boot.bin, ticket.bin and tmd.bin are"
 		" objects to modify. The option {--modify} selects the objects."
 		"\1\n"
 		"See http://wit.wiimm.de/opt/id for more details." },
@@ -894,6 +894,12 @@ info_t info_tab[] =
 		" is set to an offset that is a multiple of the align size."
 		" Size must be a power of 2 and at least 32 KiB (=default)." },
 
+  { T_OPT_C,	"ALIGN_FILES",	"align-files|alignfiles",
+		0,
+		"If creating a partition the file 'align-files.txt' is read."
+		" Files listed with values >=0x8000 (Wii sector size)"
+		" are automatically aligned to 0x8000." },
+
   { T_OPT_CP,	"DEST",		"d|dest",
 		"path",
 		"Define a destination path (directory/file)."
@@ -912,7 +918,7 @@ info_t info_tab[] =
 		"sz",
 		"Enable output file splitting and define a split size."
 		" The parameter 'sz' is a floating point number followed"
-		" by an optional unit factor (one of 'cb' [=1] or "
+		" by an optional unit factor (one of 'cb' [=1] or"
 		" 'kmgtpe' [base=1000] or 'KMGTPE' [base=1024])."
 		" The default unit is 'G' (GiB)." },
 
@@ -957,7 +963,7 @@ info_t info_tab[] =
 		" This calculation also depends from option {--max-chunks}."
 		"\n "
 		" The parameter 'sz' is a floating point number followed"
-		" by an optional unit factor (one of 'cb' [=1] or "
+		" by an optional unit factor (one of 'cb' [=1] or"
 		" 'kmgtpe' [base=1000] or 'KMGTPE' [base=1024])."
 		" The default unit is 'M' (MiB)."
 		" If the number is prefixed with a @'='@ then options"
@@ -974,7 +980,7 @@ info_t info_tab[] =
 		"Define the maximal number of chunks if creating a CISO file."
 		" The default value is 8192 for {--chunk-mode ISO}"
 		" and 32760 (maximal value) for all other modes."
-		" If this value is set than the automatic calculation "
+		" If this value is set than the automatic calculation"
 		" of {--chunk-size} will be modified too."
 		"\n "
 		" @--mch@ is a shortcut for @--max-chunks@." },
@@ -994,7 +1000,7 @@ info_t info_tab[] =
 		" There are additional keywords: @DEFAULT@ (=@LZMA.5@@20@),"
 		" @FAST@ (=@BZIP2.3@@10@), @GOOD@ (=@LZMA.5@@20@) @BEST@ (=@LZMA.7@@50@),"
 		" and @MEM@ (use best mode in respect to memory limit set by {--mem})."
-		" Additionally the single digit modes @0@ (=@NONE@), "
+		" Additionally the single digit modes @0@ (=@NONE@),"
 		" @1@ (=fast @LZMA@) .. @9@ (=@BEST@)are defined."
 		" These additional keywords may change their meanings"
 		" if a new compression method is implemented."
@@ -1131,9 +1137,9 @@ info_t info_tab[] =
 		"list",
 		"This option allows fine control over the things that are to be printed."
 		" The parameter is a comma separated list of the"
-		" following keywords, case is ignored: "
+		" following keywords, case is ignored:"
 		" @NONE, INTRO, D-ID, P-ID, P-TAB, P-INFO, P-MAP, D-MAP, TICKET, TMD, USAGE,"
-		" PATCH, RELOCATE, FILES, OFFSET, SIZE, PATH@ and @ALL@."
+		" PATCH, RELOCATE, FILES, UNUSED, OFFSET, SIZE, PATH@ and @ALL@."
 		" There are some combined keys:"
 		" @ID := D-ID,P-ID@,"
 		" @PART := P-INFO,P-ID,P-MAP,TICKET,TMD@,"
@@ -1156,14 +1162,14 @@ info_t info_tab[] =
 		"list",
 		"This option set the output unit for sizes."
 		" The parameter is a comma separated list of the"
-		" following keywords, case is ignored: "
+		" following keywords, case is ignored:"
 		" @1000=10, 1024=2, BYTES, K, M, G, T, P, E,"
 		" KB, MB, GB, TB, PB, EB, KIB, MIB, GIB, TIB, PIB, EIB,"
 		" HDS, WDS, GAMECUBE=GC, WII, AUTO@ and @DEFAULT@."
 		"\n "
 		" The values @1000@ and @1024@ (=default base) set the base factor"
 		" and @BYTES, K, M, G, T, P, E@ the SI factor."
-		" @MB@ is a shortcut for @1000,M@ and @MIB@ for @1024,M@; "
+		" @MB@ is a shortcut for @1000,M@ and @MIB@ for @1024,M@;"
 		" this is also valid for the other SI factors."
 		" @AUTO@ selects a value dependent SI factor."
 		"\n "
@@ -1194,7 +1200,7 @@ info_t info_tab[] =
 		"list",
 		"Define the sort mode for listings."
 		" The parameter is a comma separated list of the following keywords:"
-		" @NONE, NAME, TITLE, FILE, SIZE, OFFSET, REGION, WBFS, NPART,"
+		" @NONE, NAME, TITLE, PATH, NINTENDO, FILE, SIZE, OFFSET, REGION, WBFS, NPART,"
 		" FRAGMENTS, ITIME, MTIME, CTIME, ATIME, TIME = DATE, DEFAULT,"
 		" ASCENDING, DESCENDING = REVERSE@." },
 
@@ -1356,6 +1362,7 @@ info_t info_tab[] =
   { H_COPT,	"TRIM",		0,0,0 },
   { H_COPT,	"ALIGN",	0,0,0 },
   { T_COPT,	"ALIGN_PART",	0,0,0 },
+  { T_COPT,	"ALIGN_FILES",	0,0,0 },
 
   //---------- wit GROUP SPLIT_CHUNK ----------
 
@@ -1407,7 +1414,7 @@ info_t info_tab[] =
   { T_COPT,	"SECTIONS",	0,0,0 },
   { T_COPT,	"NO_HEADER",	0,0,0 },
   { T_COPT,	"LONG",		0,0,
-	"Print extended message instead of error name." },
+	"Print a message text instead of a message name." },
 
   //---------- COMMAND wit COMPR ----------
 
@@ -1603,6 +1610,7 @@ info_t info_tab[] =
   { T_COPY_GRP,	"XXSOURCE",	0,0,0 },
   { T_COPY_GRP,	"PARTITIONS",	0,0,0 },
   { T_COPY_GRP,	"FST_SELECT",	0,0,0 },
+  { T_COPY_GRP,	"RELOCATE",	0,0,0 },
 
   { T_SEP_OPT,	0,0,0,0 },
 
@@ -2336,7 +2344,10 @@ info_t info_tab[] =
   { H_OPT_CP,	"ALIGN",	"align",
 		0, 0 /* copy of wit */ },
 
-  { T_OPT_CP,	"ALIGN_PART",	"part-align",
+  { T_OPT_CP,	"ALIGN_PART",	"align-part|alignpart",
+		0, 0 /* copy of wit */ },
+
+  { T_OPT_C,	"ALIGN_FILES",	"align-files|alignfiles",
 		0, 0 /* copy of wit */ },
 
   { T_OPT_CP,	"DEST",		"d|dest",
@@ -2391,7 +2402,7 @@ info_t info_tab[] =
 		"size",
 		"Define HD sector size."
 		" The parameter 'size' is a floating point number followed"
-		" by an optional unit factor (one of 'cb' [=1] or "
+		" by an optional unit factor (one of 'cb' [=1] or"
 		" 'kmgtpe' [base=1000] or 'KMGTPE' [base=1024])."
 		" Only power of 2 values larger or equal 512 are accepted."
 		" The default value is 512."  },
@@ -2400,14 +2411,14 @@ info_t info_tab[] =
 		"size",
 		"Define WBFS sector size."
 		" The parameter 'size' is a floating point number followed"
-		" by an optional unit factor (one of 'cb' [=1] or "
+		" by an optional unit factor (one of 'cb' [=1] or"
 		" 'kmgtpe' [base=1000] or 'KMGTPE' [base=1024])."
 		" Only power of 2 values larger or equal 1024 are accepted."
 		" If not set the WBFS sector size is calculated automatically." },
 
   { T_OPT_C,	"RECOVER",	"recover",
 		0,
-		"Format a WBFS in recover mode: "
+		"Format a WBFS in recover mode:"
 		" Write the WBFS sector, but don't reset the disc info area."
 		" Then look into each disc slot to find valid discs and restore them." },
 
@@ -2706,6 +2717,7 @@ info_t info_tab[] =
   { H_COPT,	"TRIM",		0,0,0 },
   { H_COPT,	"ALIGN",	0,0,0 },
   { T_COPT,	"ALIGN_PART",	0,0,0 },
+  { T_COPT,	"ALIGN_FILES",	0,0,0 },
 
   //---------- wwt GROUP SPLIT_CHUNK ----------
 
@@ -2757,7 +2769,7 @@ info_t info_tab[] =
   { T_COPT,	"SECTIONS",	0,0,0 },
   { T_COPT,	"NO_HEADER",	0,0,0 },
   { T_COPT,	"LONG",		0,0,
-	"Print extended message instead of error name." },
+	"Print a message text instead of a message name." },
 
   //---------- COMMAND wwt COMPR ----------
 

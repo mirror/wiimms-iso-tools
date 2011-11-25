@@ -1023,15 +1023,12 @@ enumError wdf_dump ( FILE *f, ccp fname )
 	return ERROR0(ERR_WDF_INVALID,"Wrong chunk table magic: %s\n",fname);
     }
 
-    WDF_Chunk_t *w, *wc = malloc(chunk_size);
-    if (!wc)
-	OUT_OF_MEMORY;
-
+    WDF_Chunk_t *w, *wc = MALLOC(chunk_size);
     err = ReadF(&df,wc,chunk_size);
     if (err)
     {
 	ResetFile(&df,false);
-	free(wc);
+	FREE(wc);
 	return ERROR0(ERR_READ_FAILED,"ReadF error: %s\n",fname);
     }
 

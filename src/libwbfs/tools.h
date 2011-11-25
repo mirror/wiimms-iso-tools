@@ -275,9 +275,6 @@ extern const char MinusString[]; // "-"
 // frees string if str is not EmptyString|MinusString
 void FreeString ( ccp str );
 
-// works like strdup();
-void * MemDup ( const void * src, size_t copylen );
-
 //-----
 
 // StringCopy(), StringCopyE(), StringCat*()

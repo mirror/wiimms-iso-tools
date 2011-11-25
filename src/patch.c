@@ -578,13 +578,14 @@ int ScanOptTrim
 
 //
 ///////////////////////////////////////////////////////////////////////////////
-///////////////			--align & --align-part		///////////////
+///////////////	    --align & --align-part & --align-files	///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-u32 opt_align1		= 0;
-u32 opt_align2		= 0;
-u32 opt_align3		= 0;
-u32 opt_align_part	= 0;
+u32  opt_align1		= 0;
+u32  opt_align2		= 0;
+u32  opt_align3		= 0;
+u32  opt_align_part	= 0;
+bool opt_align_files	= false;
 
 //-----------------------------------------------------------------------------
 
@@ -887,7 +888,7 @@ enumError CreateWritePatchF
     CloseWritePatch(pat);
     SetupWritePatch(pat);
     pat->file = file;
-    pat->fname = strdup( filename ? filename : "?" );
+    pat->fname = STRDUP( filename ? filename : "?" );
     
     //--- write patch header & creator comment
 
@@ -1013,7 +1014,7 @@ enumError OpenReadPatchF
     CloseReadPatch(pat);
     SetupReadPatch(pat);
     pat->file = file;
-    pat->fname = strdup( filename ? filename : "?" );
+    pat->fname = STRDUP( filename ? filename : "?" );
 
     int readlen = fread(pat->read_buf,1,sizeof(pat->read_buf),pat->file);
     if ( readlen < sizeof(wpat_header_t) )

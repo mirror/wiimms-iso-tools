@@ -1,32 +1,38 @@
 
 # optimize mac binaries and/or build universal binaries
 
-# to include this file
-#  => copy Makefile.local to main directory and remove appropriate comments
-
 #-----------------------------------------------------------------------------
 
-ifneq ($(wildcard /Developer/SDKs/MacOSX10.4u.sdk),)
-  SDKVERSION	= 10.4
-  SDKROOT	= /Developer/SDKs/MacOSX10.4u.sdk
-else
-  SDKVERSION	= 10.5
-  SDKROOT	= /Developer/SDKs/MacOSX10.5.sdk
-endif
+SDKROOT		= $(shell ls -d /Developer/SDKs/MacOSX* | tail -n1 )
+SDKVERSION	= $(shell echo "$(SDKROOT)" | sed -E 's/.*MacOSX//; s/([0-9]*\.[0-9*]).*/\1/g' )
 
 CC	 = "gcc-4.0"
 CFLAGS	+= -mmacosx-version-min=${SDKVERSION} -isysroot ${SDKROOT}
 LDFLAGS	+= -mmacosx-version-min=${SDKVERSION} -isysroot ${SDKROOT}
 
-
 #-----------------------------------------------------------------------------
 
-# build you own rule:
 .PHONY : mac-distrib
-mac-distrib: mac doc $(INSTALL_SCRIPTS) gen-mac-distrib
+mac-distrib: mac3 doc $(INSTALL_SCRIPTS) gen-mac-distrib
 
-.PHONY : mac
-mac: mac-ppc mac-i386 mac-x86_64
+.PHONY : mac2
+mac2: mac-i386 mac-x86_64
+
+	@echo
+	@echo "----- building universal binaries -----"
+	@for i in $(MAIN_TOOLS); do \
+	    lipo -create bin/i386/$${i} bin/x86_64/$${i} -output $${i}; \
+	    ln -f $${i} bin/$${i}; \
+	done;
+	@for i in $(WDF_LINKS); do \
+	    ln -f wdf $${i}; \
+	    ln -f wdf bin/$${i}; \
+	done;
+	@rm -rf bin/i386 bin/x86_64
+	@echo "done"
+
+.PHONY : mac3
+mac3: mac-i386 mac-x86_64 mac-ppc
 
 	@echo
 	@echo "----- building universal binaries -----"
@@ -93,3 +99,4 @@ gen-mac-distrib:
 	@chmod -R a+X $(DISTRIB_PATH)
 
 	@tar -czf $(DISTRIB_PATH).tar.gz $(DISTRIB_PATH)
+

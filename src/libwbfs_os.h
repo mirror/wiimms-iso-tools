@@ -55,13 +55,13 @@
 #define wbfs_warning(...) PrintError(__FUNCTION__,__FILE__,__LINE__,0,ERR_WARNING,__VA_ARGS__)
 
 // alloc and free memory space
-#define wbfs_malloc(s) malloc(s)
-#define wbfs_calloc(n,s) calloc(n,s)
-#define wbfs_free(x) free(x)
+#define wbfs_malloc(s) MALLOC(s)
+#define wbfs_calloc(n,s) CALLOC(n,s)
+#define wbfs_free(x) FREE(x)
 
 // alloc and free memory space suitable for disk io
-#define wbfs_ioalloc(x) malloc(x)
-#define wbfs_iofree(x) free(x)
+#define wbfs_ioalloc(x) MALLOC(x)
+#define wbfs_iofree(x) FREE(x)
 
 // endianess functions
 #define wbfs_ntohs(x)  ntohs(x)

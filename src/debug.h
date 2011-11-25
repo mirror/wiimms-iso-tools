@@ -37,7 +37,9 @@
 #ifndef WIT_DEBUG_H
 #define WIT_DEBUG_H 1
 
+//
 ///////////////////////////////////////////////////////////////////////////////
+///////////////			DEBUG and TRACING		///////////////
 ///////////////////////////////////////////////////////////////////////////////
 //
 //  -------------------
@@ -125,6 +127,8 @@ void WAIT_FUNC ( const char * format, ...)
 void WAIT_ARG_FUNC ( const char * format, va_list arg );
 
 ///////////////////////////////////////////////////////////////////////////////
+
+#undef TEST0 // never defined
 
 #ifdef TESTTRACE
 
@@ -219,6 +223,10 @@ void WAIT_ARG_FUNC ( const char * format, va_list arg );
 #undef PRINT
 #undef PRINT_IF
 #undef BINGO
+#undef HAVE_PRINT
+
+#undef HAVE_PRINT0	// always false
+#define HAVE_PRINT0 0
 
 #if defined(DEBUG) && defined(TEST)
 
@@ -230,7 +238,7 @@ void WAIT_ARG_FUNC ( const char * format, va_list arg );
 
 #else
 
-    #define HAVE_PRINT HAVE_TRACE
+    #define HAVE_PRINT	HAVE_TRACE
 
     #define PRINT	TRACE
     #define PRINT_IF	TRACE_IF
@@ -242,6 +250,7 @@ void WAIT_ARG_FUNC ( const char * format, va_list arg );
 
 #undef WAIT
 #undef WAIT_IF
+#undef HAVE_WAIT
 
 #if defined(WAIT_ENABLED)
 
@@ -263,6 +272,7 @@ void WAIT_ARG_FUNC ( const char * format, va_list arg );
 
 #undef DASSERT
 #undef DASSERT_MSG
+#undef HAVE_DASSERT
 
 #if defined(DEBUG) || defined(TEST)
 
@@ -323,6 +333,113 @@ void WAIT_ARG_FUNC ( const char * format, va_list arg );
 
 #endif
 
+//
+///////////////////////////////////////////////////////////////////////////////
+///////////////			alloc/free system		///////////////
+///////////////////////////////////////////////////////////////////////////////
+
+// define TRACE_ALLOC_MODE
+//
+//  0: standard malloc with out of memory detection
+//  1: like mode #0, but with source identification on out of memory
+//  2: like mode #1, but alloc debuging enabled
+
+// define ENABLE_MEM_CHECK
+//  0: disabled
+//  1: enable a watch point for a memory location
+
+#ifdef TEST
+    #define TRACE_ALLOC_MODE 2
+    #define ENABLE_MEM_CHECK 0
+#elif DEBUG
+    #define TRACE_ALLOC_MODE 1
+    #define ENABLE_MEM_CHECK 0
+#else
+    #define TRACE_ALLOC_MODE 1
+    #define ENABLE_MEM_CHECK 0
+#endif
+
+///////////////////////////////////////////////////////////////////////////////
+
+#if ENABLE_MEM_CHECK
+    extern void MemCheckSetup ( const void * ptr, unsigned int size );
+    extern void MemCheck ( const char * func, const char * file, unsigned int line );
+    #define MEM_CHECK_SETUP(p,s) MemCheckSetup(p,s)
+    #define MEM_CHECK MemCheck(__FUNCTION__,__FILE__,__LINE__)
+#else
+    #define MEM_CHECK_SETUP(p)
+    #define MEM_CHECK
+#endif
+
+///////////////////////////////////////////////////////////////////////////////
+
+void   my_free    ( void * ptr );
+void * my_calloc  ( size_t nmemb, size_t size );
+void * my_malloc  ( size_t size );
+void * my_realloc ( void * ptr, size_t size );
+char * my_strdup  ( const char * src );
+char * my_strdup2 ( const char * src1, const char * src2 );
+void * my_memdup  ( const void * src, size_t copylen );
+
+void   trace_free    ( const char * func, const char * file, unsigned int line,
+			void * ptr );
+void * trace_calloc  ( const char * func, const char * file, unsigned int line,
+			size_t nmemb, size_t size );
+void * trace_malloc  ( const char * func, const char * file, unsigned int line,
+			size_t size );
+void * trace_realloc ( const char * func, const char * file, unsigned int line,
+			void *ptr, size_t size );
+char * trace_strdup  ( const char * func, const char * file, unsigned int line,
+			const char * src );
+char * trace_strdup2 ( const char * func, const char * file, unsigned int line,
+			const char * src1, const char * src2 );
+void * trace_memdup ( const char * func, const char * file, unsigned int line,
+			const void * src, size_t copylen );
+
+#if TRACE_ALLOC_MODE > 1
+    void InitializeTraceAlloc();
+    int  CheckTraceAlloc ( const char * func, const char * file, unsigned int line );
+    void DumpTraceAlloc ( const char * func, const char * file, unsigned int line, FILE * f );
+#endif
+
+///////////////////////////////////////////////////////////////////////////////
+
+#if TRACE_ALLOC_MODE > 1
+    #define FREE(ptr) trace_free(__FUNCTION__,__FILE__,__LINE__,ptr)
+    #define CALLOC(nmemb,size) trace_calloc(__FUNCTION__,__FILE__,__LINE__,nmemb,size)
+    #define MALLOC(size) trace_malloc(__FUNCTION__,__FILE__,__LINE__,size)
+    #define REALLOC(ptr,size) trace_realloc(__FUNCTION__,__FILE__,__LINE__,ptr,size)
+    #define STRDUP(src) trace_strdup(__FUNCTION__,__FILE__,__LINE__,src)
+    #define STRDUP2(src1,src2) trace_strdup2(__FUNCTION__,__FILE__,__LINE__,src1,src2)
+    #define MEMDUP(src,size) trace_memdup(__FUNCTION__,__FILE__,__LINE__,src,size)
+    #define INIT_TRACE_ALLOC  InitializeTraceAlloc()
+    #define CHECK_TRACE_ALLOC CheckTraceAlloc(__FUNCTION__,__FILE__,__LINE__)
+    #define DUMP_TRACE_ALLOC(f)  DumpTraceAlloc(__FUNCTION__,__FILE__,__LINE__,f)
+#else
+    #define FREE(ptr) my_free(ptr)
+    #define CALLOC(nmemb,size) my_calloc(nmemb,size)
+    #define MALLOC(size) my_malloc(size)
+    #define REALLOC(ptr,size) my_realloc(ptr,size)
+    #define STRDUP(src) my_strdup(src)
+    #define STRDUP2(src1,src2) my_strdup2(src1,src2)
+    #define MEMDUP(src,size) my_memdup(src,size)
+    #define INIT_TRACE_ALLOC
+    #define CHECK_TRACE_ALLOC
+    #define DUMP_TRACE_ALLOC(f)
+#endif
+
+#ifndef WIT_DEBUG_C
+    #define free	do_not_use_free
+    #define calloc	do_not_use_calloc
+    #define malloc	do_not_use_malloc
+    #define realloc	do_not_use_realloc
+    #undef  strdup
+    #define strdup	do_not_use_strdup
+#endif
+
+//
+///////////////////////////////////////////////////////////////////////////////
+///////////////			    END				///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
 #endif // WIT_DEBUG_H

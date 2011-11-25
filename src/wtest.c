@@ -48,6 +48,7 @@
 #include <string.h>
 #include <stdarg.h>
 #include <limits.h>
+#include <ctype.h>
 
 #if defined(__CYGWIN__)
   #include <cygwin/fs.h>
@@ -532,6 +533,7 @@ static void test_open_disc ( int argc, char ** argv )
 	if (!strcmp(argv[i],"-m"))	print_mm = true;
 	if (!strcmp(argv[i],"-p"))	print_ptab = true;
 	if (!strcmp(argv[i],"-f"))	pfst |= WD_PFST__ALL;
+	if (!strcmp(argv[i],"-u"))	pfst |= WD_PFST_UNUSED|WD_PFST_HEADER;
 	if (!strcmp(argv[i],"-o"))	pfst |= WD_PFST_OFFSET|WD_PFST_HEADER;
 	if (!strcmp(argv[i],"-h"))	pfst |= WD_PFST_SIZE_HEX|WD_PFST_HEADER;
 	if (!strcmp(argv[i],"-d"))	pfst |= WD_PFST_SIZE_DEC|WD_PFST_HEADER;
@@ -791,7 +793,7 @@ typedef struct wd_disc_info_t
 wd_part_info_t * wd_get_part_info
 (
     wd_part_info_t	* pinfo,	// store info here.
-					// if NULL: allocate mem -> call free()
+					// if NULL: allocate mem -> call FREE()
     wd_part_t		* part		// valid partition pointer
 )
 {
@@ -800,11 +802,7 @@ wd_part_info_t * wd_get_part_info
     //----- prepare data structure
 
     if (!pinfo)
-    {
-	pinfo = malloc(sizeof(*pinfo));
-	if (!pinfo)
-	    OUT_OF_MEMORY;
-    }
+	pinfo = MALLOC(sizeof(*pinfo));
     memset(pinfo,0,sizeof(*pinfo));
 
 
@@ -862,7 +860,7 @@ void wd_print_part_info_section
 wd_disc_info_t * wd_get_disc_info
 (
     wd_disc_info_t	* dinfo,	// store info here.
-					// if NULL: allocate mem -> call free()
+					// if NULL: allocate mem -> call FREE()
     wd_disc_t		* disc,		// valid disc pointer
     int			pmode		// partition mode:
 					//   0: no partition info
@@ -885,9 +883,7 @@ wd_disc_info_t * wd_get_disc_info
     else
     {
 	alloced_part = used_part;
-	dinfo = malloc( sizeof(*dinfo) + alloced_part * sizeof(wd_part_info_t) );
-	if (!dinfo)
-	    OUT_OF_MEMORY;
+	dinfo = MALLOC( sizeof(*dinfo) + alloced_part * sizeof(wd_part_info_t) );
     }
     memset(dinfo,0,sizeof(*dinfo));
     dinfo->alloced_part = alloced_part;
@@ -957,44 +953,8 @@ void wd_print_disc_info_section
 ///////////////			develop()			///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-static enumError develop_x ( int argc, char ** argv )
+static enumError develop_sf ( int argc, char ** argv )
 {
-    PRINT(" %4zu == sizeof(wd_part_info_t)\n", sizeof(wd_part_info_t) );
-    PRINT(" %4zu == sizeof(wd_disc_info_t)\n", sizeof(wd_disc_info_t) );
-
-    SuperFile_t sf;
-    InitializeSF(&sf);
-    int i;
-    for ( i = 1; i < argc; i++ )
-    {
-	ResetSF(&sf,0);
-	if (OpenSF(&sf,argv[i],false,false))
-	    continue;
-
-	printf("*** %s\n",sf.f.fname);
-	wd_disc_t * disc = OpenDiscSF(&sf,false,true);
-	if (!disc)
-	{
-	    CloseSF(&sf,0);
-	    continue;
-	}
-
-	wd_disc_info_t * dinfo = wd_get_disc_info(0,disc,2);
-	wd_print_disc_info_section(stdout,dinfo,i,true);
-	free(dinfo);
-	
-	CloseSF(&sf,0);
-    }
-
-    return ERR_OK;
-}
-
-///////////////////////////////////////////////////////////////////////////////
-
-static enumError develop ( int argc, char ** argv )
-{
-    //logging = 1;
-
     SuperFile_t sf;
     InitializeSF(&sf);
     int i;
@@ -1005,18 +965,91 @@ static enumError develop ( int argc, char ** argv )
 	    continue;
 	printf("--- %s:%s\n",oft_info[sf.iod.oft].name,argv[i]);
 
-	static off_t tab[] = { 0x50000, 0x8000010, 0xf800010, 0xf820010, 0 };
-	off_t * ptr;
-	for ( ptr = tab; *ptr; ptr++ )
-	{
-	    off_t size;
-	    off_t off = DataBlockSF(&sf,*ptr,HD_BLOCK_SIZE,&size);
-	    printf("%9llx -> %9llx .. %9llx, %9llx\n",
-			(u64)*ptr, (u64)off, (u64)(off+size), (u64)size );
-	}
 
 	CloseSF(&sf,0);
     }
+
+    return ERR_OK;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+
+static int path_cmp_qsort ( const void * path1, const void * path2 )
+{
+    return PathCMP(*(ccp*)path1,*(ccp*)path2);
+}
+
+static int nintendo_cmp_qsort ( const void * path1, const void * path2 )
+{
+    return NintendoCMP(*(ccp*)path1,*(ccp*)path2);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+static enumError develop ( int argc, char ** argv )
+{
+
+    argc--;
+    argv++;
+
+    const int max = 100;
+    ccp list[max];
+    if ( argc > max )
+	 argc = max;
+
+    int i, j;
+
+    //---------------
+
+    printf("\n--> strcmp() strcasecmp() PathCMP() NintendoCMP()\n");
+
+    for ( i = 0; i < argc; i++ )
+    {
+	for ( j = 0; j < argc; j++ )
+	{
+	    int stat1 = strcmp(argv[i],argv[j]);
+	    int stat2 = strcasecmp(argv[i],argv[j]);
+	    int stat3 = PathCMP(argv[i],argv[j]);
+	    int stat4 = NintendoCMP(argv[i],argv[j]);
+	    printf("%5d %3d %3d %3d |%s| %c |%s|\n",
+		stat1, stat2, stat3, stat4, argv[i],
+		stat4 < 0 ? '<' : stat4 > 0 ? '>' : '=',
+		argv[j] );
+	}
+	putchar('\n');
+    }
+
+    //---------------
+
+    printf("\n--> sort by PathCMP()\n");
+
+    for ( i = 0; i < argc; i++ )
+	list[i] = argv[i];
+    qsort(list,argc,sizeof(*list),path_cmp_qsort);
+    for ( i = 0; i < argc; i++ )
+	printf("   |%s|\n",list[i]);
+
+    //---------------
+
+    printf("\n--> sort by NintendoCMP()\n");
+
+    for ( i = 0; i < argc; i++ )
+	list[i] = argv[i];
+    qsort(list,argc,sizeof(*list),nintendo_cmp_qsort);
+    for ( i = 0; i < argc; i++ )
+	printf("   |%s|\n",list[i]);
+
+    //---------------
+
+    //debug = 1;
+    putchar('\n');
+    //printf("TEST %d\n",PathCMP("aaa/aaa/xxy","aaa/aaa/xxx"));
+    //printf("TEST %d\n",PathCMP("aaa/aaa/xXy","aaa/aaa/xxx"));
+    //printf("TEST %d\n",PathCMP("aaa/aaa/xxx","aaa/aaa/xXy"));
+    printf("TEST %d\n",PathCMP("aaa/aaa/xxy","aaa/aaa/xXy"));
+    //printf("TEST %d\n",PathCMP("aaa/aaa/xXw","aaa/aaa/xxx"));
+    //printf("TEST %d\n",PathCMP("aaa/aaa/xXw","aaa/aaa/xXy"));
 
     return ERR_OK;
 }

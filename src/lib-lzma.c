@@ -217,7 +217,7 @@ u32 CalcMemoryUsageLZMA2
 static void * AllocLZMA ( void *p, size_t size )
 {
  #if LOG_ALLOC
-    void * ptr = malloc(size);
+    void * ptr = MALLOC(size);
     alloc_count++;
     alloc_size += size;
   #if LOG_ALLOC > 1
@@ -226,7 +226,7 @@ static void * AllocLZMA ( void *p, size_t size )
   #endif
     return ptr;
  #else   
-    return malloc(size);
+    return MALLOC(size);
  #endif   
 }
 
@@ -241,7 +241,7 @@ static void FreeLZMA ( void *p, void *ptr )
 		ptr, alloc_size, alloc_count, free_count, alloc_count-free_count );
     }
  #endif   
-    free(ptr);
+    FREE(ptr);
 }
 
 static ISzAlloc lzma_alloc = { AllocLZMA, FreeLZMA };

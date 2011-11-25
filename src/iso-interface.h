@@ -512,6 +512,7 @@ void DumpFileIndex ( FILE *f, int indent, const FileIndex_t * fidx );
 
 #define FST_SETUP_FILE   "setup.txt"
 #define FST_INCLUDE_FILE "include.fst"
+#define FST_ALIGN_FILE   "align-files.txt"
 
 enum // some const
 {
@@ -642,6 +643,8 @@ typedef struct WiiFstInfo_t
 	bool		link_image;		// true: try 'link' before 'copy'
 	int		verbose;		// the verbosity level
 
+	ParamField_t	align_info;		// store align infos here
+
 } WiiFstInfo_t;
 
 //-----------------------------------------------------------------------------
@@ -720,8 +723,8 @@ enumError ReadFileFST
 
 //-----------------------------------------------------------------------------
 
-void SortFST ( WiiFst_t * fst, SortMode sort_mode, SortMode default_sort_mode );
-void SortPartFST ( WiiFstPart_t * part, SortMode sort_mode, SortMode default_sort_mode );
+SortMode SortFST ( WiiFst_t * fst, SortMode sort_mode, SortMode default_sort_mode );
+SortMode SortPartFST ( WiiFstPart_t * part, SortMode sort_mode, SortMode default_sort_mode );
 void ReversePartFST ( WiiFstPart_t * part );
 
 //-----------------------------------------------------------------------------

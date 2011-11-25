@@ -739,19 +739,7 @@ void FreeString ( ccp str )
     noTRACE("FreeString(%p) EmptyString=%p MinusString=%p\n",
 	    str, EmptyString, MinusString );
     if ( str != EmptyString && str != MinusString )
-	free((char*)str);
-}
-
-///////////////////////////////////////////////////////////////////////////////
-
-void * MemDup ( const void * src, size_t copylen )
-{
-    char * dest = malloc(copylen+1);
-    if (!dest)
-	OUT_OF_MEMORY;
-    memcpy(dest,src,copylen);
-    dest[copylen] = 0;
-    return dest;
+	FREE((char*)str);
 }
 
 ///////////////////////////////////////////////////////////////////////////////

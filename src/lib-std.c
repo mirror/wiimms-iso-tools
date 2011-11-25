@@ -286,6 +286,9 @@ void SetupLib ( int argc, char ** argv, ccp p_progname, enumProgID prid )
     TRACE_SIZEOF(Iterator_t);
     TRACE_SIZEOF(MemMapItem_t);
     TRACE_SIZEOF(MemMap_t);
+    TRACE_SIZEOF(ParamField_t);
+    TRACE_SIZEOF(ParamFieldItem_t);
+    TRACE_SIZEOF(ParamFieldType_t);
     TRACE_SIZEOF(ParamList_t);
     TRACE_SIZEOF(PartitionInfo_t);
     TRACE_SIZEOF(PrintTime_t);
@@ -495,26 +498,20 @@ void SetupLib ( int argc, char ** argv, ccp p_progname, enumProgID prid )
 	    #ifdef TEST
 		// for development: append 'share' dir
 		StringCopyE(file_ptr,path+sizeof(path),"share/");
-		*sp = strdup(path);
-		if (!*sp)
-		    OUT_OF_MEMORY;
+		*sp = STRDUP(path);
 		TRACE("SEARCH_PATH[%zd] = %s\n",sp-search_path,*sp);
 		sp++;
 		*file_ptr = 0;
 	    #endif
 
-	    *sp = strdup(path);
-	    if (!*sp)
-		OUT_OF_MEMORY;
+	    *sp = STRDUP(path);
 	    TRACE("SEARCH_PATH[%zd] = %s\n",sp-search_path,*sp);
 	    sp++;
 
 	    if ( file_ptr-5 >= path && !memcmp(file_ptr-4,"/bin/",5) )
 	    {
 		StringCopyS(file_ptr-5,sizeof(path),share);
-		*sp = strdup(path);
-		if (!*sp)
-		    OUT_OF_MEMORY;
+		*sp = STRDUP(path);
 		TRACE("SEARCH_PATH[%zd] = %s\n",sp-search_path,*sp);
 		sp++;
 	    }
@@ -527,9 +524,7 @@ void SetupLib ( int argc, char ** argv, ccp p_progname, enumProgID prid )
 	;
     if ( sp2 == sp )
     {
-	*sp = strdup(local_share);
-	if (!*sp)
-	    OUT_OF_MEMORY;
+	*sp = STRDUP(local_share);
 	TRACE("SEARCH_PATH[%zd] = %s\n",sp-search_path,*sp);
 	sp++;
     }
@@ -541,9 +536,7 @@ void SetupLib ( int argc, char ** argv, ccp p_progname, enumProgID prid )
 	;
     if ( sp2 == sp )
     {
-	*sp = strdup("./");
-	if (!*sp)
-	    OUT_OF_MEMORY;
+	*sp = STRDUP("./");
 	TRACE("SEARCH_PATH[%zd] = %s\n",sp-search_path,*sp);
 	sp++;
     }
@@ -557,7 +550,7 @@ void SetupLib ( int argc, char ** argv, ccp p_progname, enumProgID prid )
     char * wit_lang = getenv("WIT_LANG");
     if ( wit_lang && *wit_lang )
     {
-	lang_info = strdup(wit_lang);
+	lang_info = STRDUP(wit_lang);
 	TRACE("LANG_INFO = %s [WIT_LANG]\n",lang_info);
     }
     else
@@ -571,9 +564,7 @@ void SetupLib ( int argc, char ** argv, ccp p_progname, enumProgID prid )
 	    const int len = lc_ctype_end - lc_ctype;
 	    if ( len > 0 )
 	    {
-		char * temp = malloc(len+1);
-		if (!temp)
-		    OUT_OF_MEMORY;
+		char * temp = MALLOC(len+1);
 		memcpy(temp,lc_ctype,len);
 		temp[len] = 0;
 		lang_info = temp;
@@ -584,7 +575,6 @@ void SetupLib ( int argc, char ** argv, ccp p_progname, enumProgID prid )
 
 
     //----- setup common key
-    
     {
 	static u8 key_base[] = "Wiimms WBFS Tool";
 	static u8 key_mask[WD_CKEY__N][WII_KEY_SIZE] =
@@ -655,9 +645,7 @@ enumError CheckEnvOptions ( ccp varname, check_opt_func func )
     TRACE("env[%s] = %s\n",varname,env);
 
     const int envlen = strlen(env);
-    char * buf = malloc(envlen+1);
-    if (!buf)
-	OUT_OF_MEMORY;
+    char * buf = MALLOC(envlen+1);
     char * dest = buf;
 
     int argc = 1; // argv[0] = progname
@@ -678,9 +666,7 @@ enumError CheckEnvOptions ( ccp varname, check_opt_func func )
     }
     TRACE("argc = %d\n",argc);
 
-    char ** argv = malloc((argc+1)*sizeof(*argv));
-    if (!argv)
-	OUT_OF_MEMORY;
+    char ** argv = MALLOC((argc+1)*sizeof(*argv));
     argv[0] = (char*)progname;
     argv[argc] = 0;
     dest = buf;
@@ -700,9 +686,9 @@ enumError CheckEnvOptions ( ccp varname, check_opt_func func )
 	fprintf(stderr,
 	    "Error while scanning the environment variable '%s'\n",varname);
 
-    // don't free() because is's possible that there are pointers to arguments
-    //free(argv);
-    //free(buf);
+    // don't FREE() because is's possible that there are pointers to arguments
+    //FREE(argv);
+    //FREE(buf);
 
     return stat;
 }
@@ -950,7 +936,6 @@ void HexDump ( FILE * f, int indent, u64 addr, int addr_fw, int row_len,
 
     const int MAX_LEN = 256;
     char buf[MAX_LEN+1];
-    
     const u8 * data = p_data;
 
     indent = NormalizeIndent(indent);
@@ -1189,6 +1174,127 @@ char * SetupDirPath ( char * buf, size_t bufsize, ccp src_path )
     return path_dest;
 }
 
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+
+int PathCMP ( ccp path1, ccp path2 )
+{
+    noPRINT("PathCMP( | %s | %s | )\n",path1,path2);
+
+    //--- eliminate equal characters
+
+    while ( *path1 == *path2 )
+    {
+	if (!*path1)
+	    return 0;
+	path1++;
+	path2++;
+    }
+
+    //--- start the case+path test
+
+    ccp p1 = path1;
+    ccp p2 = path2;
+    while ( *p1 || *p2 )
+    {
+	int ch1 = (uchar)tolower((int)*p1++);
+	int ch2 = (uchar)tolower((int)*p2++);
+	int stat = ch1 - ch2;
+	noPRINT("%02x,%02x,%c  %02x,%02x,%c -> %2d\n",
+		p1[-1], ch1, ch1, p2[-1], ch2, ch2, stat );
+	if (stat)
+	    return ch1 == '/' ? -1 : ch2 == '/' ? 1 : stat;
+
+	if ( ch1 == '/' )
+	    break;
+    }
+    return *path1 - *path2;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+int NintendoCMP ( ccp path1, ccp path2 )
+{
+    noPRINT("NintendoCMP( | %s | %s | )\n",path1,path2);
+
+    // try to sort in a nintendo like way
+    //  1.) ignoring case but sort carefully directories
+    //  2.) files before sub directories
+
+    static uchar transform[0x100] = {0,0};
+    if (!transform[1]) // ==> setup needed once!
+    {
+	// define some special characters
+
+	uint index = 1;
+	transform[(u8)'/'] = index++;
+	transform[(u8)'.'] = index++;
+
+	// define all characters until and excluding 'A'
+
+	uint i;
+	for ( i = 1; i < 'A'; i++ )
+	    if (!transform[i])
+		transform[i] = index++;
+
+	// define letters
+
+	for ( i = 'A'; i <= 'Z'; i++ )
+	    transform[i] = transform[i-'A'+'a'] = index++;
+
+	// define all other
+
+	for ( i = 1; i < sizeof(transform); i++ )
+	    if (!transform[i])
+		transform[i] = index++;
+
+	DASSERT( index <= sizeof(transform) );
+     #if defined(TEST) && defined(DEBUG)
+	//HexDump16(stderr,0,0,transform,sizeof(transform));
+     #endif
+    }
+
+
+    //--- eliminate equal characters
+
+    while ( *path1 == *path2 )
+    {
+	if (!*path1)
+	    return 0;
+	path1++;
+	path2++;
+    }
+
+    //--- start the case+path test
+
+    const uchar * p1 = (const uchar *)path1;
+    const uchar * p2 = (const uchar *)path2;
+    while ( *p1 || *p2 )
+    {
+	int ch1 = transform[*p1++];
+	int ch2 = transform[*p2++];
+	int stat = ch1 - ch2;
+	noPRINT("%02x,%02x,%c  %02x,%02x,%c -> %2d\n",
+		p1[-1], ch1, ch1, p2[-1], ch2, ch2, stat );
+	if (stat)
+	{
+	 #ifdef WSZST // special case for Wiimms SZS Tools
+	    // sort files before dirs
+	    const bool indir1 = strchr((ccp)p1-1,'/') != 0;
+	    const bool indir2 = strchr((ccp)p2-1,'/') != 0;
+	    return  indir1 != indir2 ? indir1 - indir2 : stat;
+	 #else
+	    return stat;
+	 #endif
+	}
+
+	if ( ch1 == 1 )
+	    break;
+    }
+    return *path1 - *path2;
+}
+
+///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
 int NormalizeIndent ( int indent )
@@ -2231,7 +2337,6 @@ char * ScanHexHelper
     DASSERT( buf );
     DASSERT( buf_size > 0 );
     DASSERT( arg );
-    
     u8 * dest = buf;
     memset(dest,0,buf_size);
 
@@ -2254,7 +2359,7 @@ char * ScanHexHelper
 	    *dest++ = hextab[*src++];
 	    read_count++;
 	}
-	
+
 	while ( src < end && read_count < buf_size )
 	{
 	    *dest    = hextab[*src++] << 4;
@@ -2262,7 +2367,6 @@ char * ScanHexHelper
 	    read_count++;
 	}
     }
-    
     // [2do] What 2do?? Is this a forgotten marker?
 
     while ( hextab[*src] == 50 )
@@ -2390,8 +2494,7 @@ static wd_compression_t ScanCompression_helper
 		    *chunk_size = ( num ? num : WIA_DEF_CHUNK_FACTOR ) * WII_GROUP_SIZE;
 		}
 	    }
-	    
-	    if (level)
+		    if (level)
 	    {
 		char * found = strchr(argbuf,'.');
 		if ( found && found[1] >= '0' && found[1] <= '9' && !found[2] )
@@ -2475,7 +2578,7 @@ static wd_compression_t ScanCompression_helper
 		}
 	    }
 	}
-	
+
 	if (opt)
 	{
 	    if ( level && *level < 1 )
@@ -2536,8 +2639,7 @@ wd_compression_t ScanCompression
 		*level = CalcCompressionLevelBZIP2(*level);
 	     #endif
 		break;
-	    
-	    case WD_COMPR_LZMA:
+		    case WD_COMPR_LZMA:
 	    case WD_COMPR_LZMA2:
 		*level = CalcCompressionLevelLZMA(*level);
 		break;
@@ -2557,7 +2659,6 @@ int ScanOptCompression
 {
     if (set_oft_wia)
 	output_file_type = OFT_WIA;
-    
     if (arg)
     {
 	int new_level = 0;
@@ -2764,7 +2865,7 @@ s64 ScanCommandList
 		cptr = &ct_num;
 	    }
 	}
-	
+
 	if ( !cptr || cptr->opt && prefix && prefix != '+' )
 	    return -1;
 
@@ -2927,7 +3028,6 @@ void PrintCommandError
 	    dest = buf;
     }
     *dest = 0;
-    
     ERROR0(ERR_SYNTAX,"%c%s abbreviation is ambiguous: %s%s\n",
 		toupper((int)*object), object+1, cmd_arg, buf );
 }
@@ -2946,6 +3046,8 @@ SortMode ScanSortMode ( ccp arg )
 	{ SORT_ID,	"ID",		0,		SORT__MODE_MASK },
 	{ SORT_NAME,	"NAME",		"N",		SORT__MODE_MASK },
 	{ SORT_TITLE,	"TITLE",	"T",		SORT__MODE_MASK },
+	{ SORT_PATH,	"PATH",		"P",		SORT__MODE_MASK },
+	{ SORT_NINTENDO,"NINTENDO",	"NIN",		SORT__MODE_MASK },
 	{ SORT_FILE,	"FILE",		"F",		SORT__MODE_MASK },
 	{ SORT_SIZE,	"SIZE",		"SZ",		SORT__MODE_MASK },
 	{ SORT_OFFSET,	"OFFSET",	"OF",		SORT__MODE_MASK },
@@ -3024,6 +3126,7 @@ ShowMode ScanShowMode ( ccp arg )
 	{ SHOW_RELOCATE,	"RELOCATE",	0,		0 },
 	{ SHOW_PATH,		"PATH",		0,		0 },
 
+	{ SHOW_UNUSED,		"UNUSED",	0,		0 },
 	{ SHOW_OFFSET,		"OFFSET",	0,		0 },
 	{ SHOW_SIZE,		"SIZE",		0,		0 },
 
@@ -3088,6 +3191,8 @@ int ConvertShow2PFST
     wd_pfst_t pfst = 0;
     if ( show_mode & SHOW_F_HEAD )
 	pfst |= WD_PFST_HEADER;
+    if ( show_mode & SHOW_UNUSED )
+	pfst |= WD_PFST_UNUSED;
     if ( show_mode & SHOW_OFFSET )
 	pfst |= WD_PFST_OFFSET;
     if ( show_mode & SHOW_SIZE )
@@ -3156,7 +3261,7 @@ wd_size_mode_t ScanUnit ( ccp arg )
 	{ WD_SIZE_WD_SECT,	"WDSS",	"WSS",	WD_SIZE_M_MODE },
 	{ WD_SIZE_GC,		"GAMECUBE","GC",WD_SIZE_M_MODE },
 	{ WD_SIZE_WII,		"WII",	0,	WD_SIZE_M_MODE },
-	
+
 	{ 0,0,0,0 }
     };
 
@@ -3234,8 +3339,8 @@ void ResetIdField ( IdField_t * idf )
     {
 	IdItem_t **ptr = idf->field, **end;
 	for ( end = ptr + idf->used; ptr < end; ptr++ )
-	    free(*ptr);
-	free(idf->field);
+	    FREE(*ptr);
+	FREE(idf->field);
     }
     InitializeIdField(idf);
 }
@@ -3286,9 +3391,7 @@ static IdItem_t ** InsertIdFieldHelper ( IdField_t * idf, int idx )
     if ( idf->used == idf->size )
     {
 	idf->size += 0x100;
-	idf->field = realloc(idf->field,idf->size*sizeof(*idf->field));
-	if (!idf->field)
-	    OUT_OF_MEMORY;
+	idf->field = REALLOC(idf->field,idf->size*sizeof(*idf->field));
     }
     DASSERT( idx <= idf->used );
     IdItem_t ** dest = idf->field + idx;
@@ -3317,16 +3420,14 @@ bool InsertIdField ( IdField_t * idf, void * id6, char flag, time_t mtime, ccp k
     {
 	DASSERT( idx < idf->used );
 	dest = idf->field + idx;
-	free((char*)*dest);
+	FREE((char*)*dest);
     }
     else
 	dest = InsertIdFieldHelper(idf,idx);
 
     const int key_len   = key ? strlen(key) : 0;
     const int item_size = sizeof(IdItem_t) + key_len + 1;
-    IdItem_t * item = malloc(item_size);
-    if (!item)
-	OUT_OF_MEMORY;
+    IdItem_t * item = MALLOC(item_size);
     *dest = item;
 
     memset(item,0,item_size);
@@ -3350,7 +3451,7 @@ bool RemoveIdField ( IdField_t * idf, ccp key )
 	idf->used--;
 	ASSERT( idx <= idf->used );
 	IdItem_t ** dest = idf->field + idx;
-	free(*dest);
+	FREE(*dest);
 	memmove(dest,dest+1,(idf->used-idx)*sizeof(ccp));
     }
     return found;
@@ -3376,7 +3477,7 @@ void DumpIdField ( FILE *f, int indent, const IdField_t * idf )
 	}
 	else
 	    strncpy(timbuf,"     -         -   ",sizeof(timbuf));
-	
+
 	fprintf(f,"%*s%-6s %02x %s %s\n",
 		indent, "", item->id6, item->flag, timbuf, item->arg );
     }
@@ -3403,8 +3504,8 @@ void ResetStringField ( StringField_t * sf )
 	ASSERT(sf->field);
 	ccp *ptr = sf->field, *end;
 	for ( end = ptr + sf->used; ptr < end; ptr++ )
-	    free((char*)*ptr);
-	free(sf->field);
+	    FREE((char*)*ptr);
+	FREE(sf->field);
     }
     InitializeStringField(sf);
 }
@@ -3427,9 +3528,7 @@ static ccp * InsertStringFieldHelper ( StringField_t * sf, int idx )
     if ( sf->used == sf->size )
     {
 	sf->size += 0x100;
-	sf->field = realloc(sf->field,sf->size*sizeof(*sf->field));
-	if (!sf->field)
-	    OUT_OF_MEMORY;
+	sf->field = REALLOC(sf->field,sf->size*sizeof(*sf->field));
     }
     DASSERT( idx <= sf->used );
     ccp * dest = sf->field + idx;
@@ -3450,12 +3549,12 @@ bool InsertStringField ( StringField_t * sf, ccp key, bool move_key )
     if (found)
     {
 	if (move_key)
-	    free((char*)key);
+	    FREE((char*)key);
     }
     else
     {
 	ccp * dest = InsertStringFieldHelper(sf,idx);
-	*dest = move_key ? key : strdup(key);
+	*dest = move_key ? key : STRDUP(key);
     }
 
     return !found;
@@ -3475,16 +3574,14 @@ IdItem_t * InsertStringID6 ( StringField_t * sf, void * id6, char flag, ccp arg 
     {
 	DASSERT( idx < sf->used );
 	dest = sf->field + idx;
-	free((char*)*dest);
+	FREE((char*)*dest);
     }
     else
 	dest = InsertStringFieldHelper(sf,idx);
 
     const int arg_len   = arg ? strlen(arg) : 0;
     const int item_size = sizeof(IdItem_t) + arg_len + 1;
-    IdItem_t * item = malloc(item_size);
-    if (!item)
-	OUT_OF_MEMORY;
+    IdItem_t * item = MALLOC(item_size);
 
     *dest = (ccp)item;
     memset(item,0,item_size);
@@ -3506,7 +3603,7 @@ bool RemoveStringField ( StringField_t * sf, ccp key )
 	sf->used--;
 	ASSERT( idx <= sf->used );
 	ccp * dest = sf->field + idx;
-	free((char*)dest);
+	FREE((char*)dest);
 	memmove(dest,dest+1,(sf->used-idx)*sizeof(ccp));
     }
     return found;
@@ -3522,13 +3619,11 @@ void AppendStringField ( StringField_t * sf, ccp key, bool move_key )
 	if ( sf->used == sf->size )
 	{
 	    sf->size += 0x100;
-	    sf->field = realloc(sf->field,sf->size*sizeof(*sf->field));
-	    if (!sf->field)
-		OUT_OF_MEMORY;
+	    sf->field = REALLOC(sf->field,sf->size*sizeof(*sf->field));
 	}
 	TRACE("AppendStringField(%s,%d) %d/%d\n",key,move_key,sf->used,sf->size);
 	ccp * dest = sf->field + sf->used++;
-	*dest = move_key ? key : strdup(key);
+	*dest = move_key ? key : STRDUP(key);
     }
 }
 
@@ -3571,14 +3666,14 @@ uint FindStringFieldHelper ( StringField_t * sf, bool * p_found, ccp key )
 
 ///////////////////////////////////////////////////////////////////////////////
 
-enumError ReadStringField
+enumError LoadStringField
 	( StringField_t * sf, bool keep_order, ccp filename, bool silent )
 {
     ASSERT(sf);
     ASSERT(filename);
     ASSERT(*filename);
 
-    TRACE("ReadStringField(%p,%d,%s,%d)\n",sf,keep_order,filename,silent);
+    TRACE("LoadStringField(%p,%d,%s,%d)\n",sf,keep_order,filename,silent);
 
     FILE * f = fopen(filename,"rb");
     if (!f)
@@ -3599,12 +3694,12 @@ enumError ReadStringField
 	    if ( ptr > iobuf && ptr[-1] == '\r' )
 		ptr--;
 	}
-	
+
 	if ( ptr > iobuf )
 	{
 	    *ptr++ = 0;
 	    const size_t len = ptr-iobuf;
-	    ptr = malloc(len);
+	    ptr = MALLOC(len);
 	    memcpy(ptr,iobuf,len);
 	    if (keep_order)
 		AppendStringField(sf,ptr,true);
@@ -3616,25 +3711,24 @@ enumError ReadStringField
     fclose(f);
     return ERR_OK;
 }
-	
+
 
 ///////////////////////////////////////////////////////////////////////////////
 
-enumError WriteStringField
+enumError SaveStringField
 	( StringField_t * sf, ccp filename, bool rm_if_empty )
 {
     ASSERT(sf);
     ASSERT(filename);
     ASSERT(*filename);
 
-    TRACE("WriteStringField(%p,%s,%d)\n",sf,filename,rm_if_empty);
+    TRACE("SaveStringField(%p,%s,%d)\n",sf,filename,rm_if_empty);
 
     if ( !sf->used && rm_if_empty )
     {
 	unlink(filename);
 	return ERR_OK;
     }
-    
     FILE * f = fopen(filename,"wb");
     if (!f)
 	return ERROR1(ERR_CANT_CREATE,"Can't create file: %s\n",filename);
@@ -3643,6 +3737,317 @@ enumError WriteStringField
     for ( end = ptr + sf->used; ptr < end; ptr++ )
 	fprintf(f,"%s\n",*ptr);
     fclose(f);
+    return ERR_OK;
+}
+
+//
+///////////////////////////////////////////////////////////////////////////////
+///////////////			ParamField_t			///////////////
+///////////////////////////////////////////////////////////////////////////////
+
+void InitializeParamField ( ParamField_t * pf, ParamFieldType_t pft )
+{
+    DASSERT(pf);
+    memset(pf,0,sizeof(*pf));
+    pf->pft = pft;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+void ResetParamField ( ParamField_t * pf )
+{
+    ASSERT(pf);
+    if ( pf && pf->used > 0 )
+    {
+	ASSERT(pf->list);
+	ParamFieldItem_t *ptr = pf->list, *end;
+	for ( end = ptr + pf->used; ptr < end; ptr++ )
+	    FreeString(ptr->key);
+	FREE(pf->list);
+    }
+    InitializeParamField(pf,pf->pft);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+void MoveParamField ( ParamField_t * dest, ParamField_t * src )
+{
+    DASSERT(src);
+    DASSERT(dest);
+    if ( src != dest )
+    {
+	ResetParamField(dest);
+	dest->list = src->list;
+	dest->used = src->used;
+	dest->size = src->size;
+	dest->pft  = src->pft;
+	InitializeParamField(src,src->pft);
+    }
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+static uint FindParamFieldHelper ( const ParamField_t * pf, bool * p_found, ccp key )
+{
+    ASSERT(pf);
+
+    int beg = 0;
+    if ( pf && key )
+    {
+	int end = pf->used - 1;
+	while ( beg <= end )
+	{
+	    uint idx = (beg+end)/2;
+	    int stat = strcmp(key,pf->list[idx].key);
+	    if ( stat < 0 )
+		end = idx - 1 ;
+	    else if ( stat > 0 )
+		beg = idx + 1;
+	    else
+	    {
+		TRACE("FindParamFieldHelper(%s) FOUND=%d/%d/%d\n",
+			key, idx, pf->used, pf->size );
+		if (p_found)
+		    *p_found = true;
+		return idx;
+	    }
+	}
+    }
+
+    TRACE("FindParamFieldHelper(%s) failed=%d/%d/%d\n",
+		key, beg, pf->used, pf->size );
+
+    if (p_found)
+	*p_found = false;
+    return beg;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+int FindParamFieldIndex ( const ParamField_t * pf, ccp key, int not_found_value )
+{
+    bool found;
+    const int idx = FindParamFieldHelper(pf,&found,key);
+    return found ? idx : not_found_value;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+ParamFieldItem_t * FindParamField ( const ParamField_t * pf, ccp key )
+{
+    bool found;
+    const int idx = FindParamFieldHelper(pf,&found,key);
+    return found ? pf->list + idx : 0;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+static ParamFieldItem_t * InsertParamFieldHelper ( ParamField_t * pf, int idx )
+{
+    DASSERT(pf);
+    DASSERT( pf->used <= pf->size );
+    noPRINT("+FF: %u/%u/%u\n",idx,pf->used,pf->size);
+    if ( pf->used == pf->size )
+    {
+	pf->size += 0x100;
+	pf->list = REALLOC(pf->list,pf->size*sizeof(*pf->list));
+    }
+    DASSERT( idx <= pf->used );
+    ParamFieldItem_t * dest = pf->list + idx;
+    memmove(dest+1,dest,(pf->used-idx)*sizeof(*dest));
+    pf->used++;
+    memset(dest,0,sizeof(*dest));
+    return dest;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+bool RemoveParamField ( ParamField_t * pf, ccp key )
+{
+    bool found;
+    uint idx = FindParamFieldHelper(pf,&found,key);
+    if (found)
+    {
+	pf->used--;
+	ASSERT( idx <= pf->used );
+	ParamFieldItem_t * dest = pf->list + idx;
+	FREE((char*)dest);
+	memmove(dest,dest+1,(pf->used-idx)*sizeof(*dest));
+    }
+    return found;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+ParamFieldItem_t * InsertParamField
+(
+    ParamField_t	* pf,		// valid param field
+    ccp			key,		// key to insert
+    uint		num		// value
+)
+{
+    if (!key)
+	return 0;
+
+    bool my_found;
+    const int idx = FindParamFieldHelper(pf,&my_found,key);
+
+    ParamFieldItem_t * item;
+    if (my_found)
+	item = pf->list + idx;
+    else
+    {
+	item = InsertParamFieldHelper(pf,idx);
+	item->key = STRDUP(key);
+    }
+
+    item->count++;
+
+    if ( pf->pft == PFT_ALIGN )
+	item->num |= num;
+    else
+	item->num = num;
+    return item;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+enumError LoadParamField
+(
+    ParamField_t	* pf,		// param field
+    ParamFieldType_t	init_pf,	// >0: initialize 'pf' with entered type
+    ccp			filename,	// filename of source file
+    bool		silent		// true: don't print open/read errors
+)
+{
+    ASSERT(pf);
+    ASSERT(filename);
+    ASSERT(*filename);
+
+    TRACE("LoadParamField(%p,%d,%s,%d)\n",pf,init_pf,filename,silent);
+
+    if (init_pf)
+	InitializeParamField(pf,init_pf);
+
+    FILE * f = fopen(filename,"rb");
+    if (!f)
+    {
+	if (!silent)
+	    ERROR1(ERR_CANT_OPEN,"Can't open file: %s\n",filename);
+	return ERR_CANT_OPEN;
+    }
+
+    while (fgets(iobuf,sizeof(iobuf)-1,f))
+    {
+	char *ptr = iobuf;
+
+	u32 stat, num;
+	ptr = ScanNumU32(ptr+1,&stat,&num,0,~(u32)0);
+	if (!stat)
+	    continue;
+
+	while ( *ptr > 0 && *ptr <= ' ' )
+	    ptr++;
+	if ( *ptr != '=' )
+	    continue;
+	ptr++;
+
+	while ( *ptr > 0 && *ptr <= ' ' )
+	    ptr++;
+	char *key = ptr;
+
+	while (*ptr)
+	    ptr++;
+	while ( ptr > key && (uchar)ptr[-1] <= ' ' )
+	    ptr--;
+
+	if ( key < ptr )
+	{
+	    *ptr = 0;
+	    InsertParamField(pf,key,num);
+	}
+    }
+
+    fclose(f);
+    return ERR_OK;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+enumError SaveParamField
+(
+    ParamField_t	* pf,		// valid param field
+    ccp			filename,	// filename of dest file
+    bool		rm_if_empty	// true: rm dest file if 'pf' is empty
+)
+{
+    ASSERT(pf);
+    ASSERT(filename);
+    ASSERT(*filename);
+
+    TRACE("SaveParamField(%p,%s,%d)\n",pf,filename,rm_if_empty);
+
+    if ( !pf->used && rm_if_empty )
+    {
+	unlink(filename);
+	return ERR_OK;
+    }
+
+    FILE * f = fopen(filename,"wb");
+    if (!f)
+	return ERROR1(ERR_CANT_CREATE,"Can't create file: %s\n",filename);
+
+    enumError err = WriteParamField(f,filename,pf,0,0,0);
+    fclose(f);
+    return err;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+enumError WriteParamField
+(
+    FILE		* f,		// open destination file
+    ccp			filename,	// NULL or filename (needed on write error)
+    ParamField_t	* pf,		// valid param field
+    ccp			line_prefix,	// not NULL: insert prefix before each line
+    ccp			key_prefix,	// not NULL: insert prefix before each key
+    ccp			eol		// end of line text (if NULL: use LF)
+)
+{
+    if (!key_prefix)
+	key_prefix = "";
+    if (!eol)
+	eol = "\n";
+
+    uint max_num = 0;
+    ParamFieldItem_t *ptr, *end = pf->list + pf->used;
+    for ( ptr = pf->list; ptr < end; ptr++ )
+    {
+	if ( ptr->num && pf->pft == PFT_ALIGN )
+	{
+	    uint num = 1;
+	    while (!( ptr->num & num ))
+		num <<= 1;
+	    ptr->num = num;
+	}
+
+	if ( max_num < ptr->num )
+	     max_num = ptr->num;
+    }
+
+    char buf[20];
+    if ( pf->pft == PFT_ALIGN )
+    {
+	uint num_fw = snprintf(buf,sizeof(buf),"%#x",max_num);
+	for ( ptr = pf->list; ptr < end; ptr++ )
+	    fprintf(f," %#*x = %s\n", num_fw, ptr->num, ptr->key );
+    }
+    else
+    {
+	uint num_fw = snprintf(buf,sizeof(buf),"%u",max_num);
+	for ( ptr = pf->list; ptr < end; ptr++ )
+	    fprintf(f," %*u = %s\n", num_fw, ptr->num, ptr->key );
+    }
     return ERR_OK;
 }
 
@@ -3722,9 +4127,7 @@ static ParamList_t* GetPoolParam()
     if (!n_pool)
     {
 	const int alloc_count = 100;
-	pool = (ParamList_t*) calloc(alloc_count,sizeof(ParamList_t));
-	if (!pool)
-	    OUT_OF_MEMORY;
+	pool = (ParamList_t*) CALLOC(alloc_count,sizeof(ParamList_t));
 	n_pool = alloc_count;
     }
 
@@ -3743,11 +4146,7 @@ ParamList_t * AppendParam ( ccp arg, int is_temp )
 
     ParamList_t * param = GetPoolParam();
     if (is_temp)
-    {
-	param->arg = strdup(arg);
-	if (!param->arg)
-	    OUT_OF_MEMORY;
-    }
+	param->arg = STRDUP(arg);
     else
 	param->arg = (char*)arg;
 
@@ -3823,7 +4222,7 @@ void AtExpandParam ( ParamList_t ** p_param )
 	    param = new_param;
 	    n_param++;
 	}
-	param->arg = strdup(buf);
+	param->arg = STRDUP(buf);
 	param->is_expanded = true;
     }
     fclose(f);
@@ -3867,12 +4266,18 @@ char * SubstString
     if (source)
 	while ( dest < end && *source )
 	{
-	    if ( *source != escape_char || *++source == escape_char )
+	    if ( *source != escape_char && *source != 1 )
 	    {
 		*dest++ = *source++;
 		continue;
 	    }
-	    ccp start = source - 1;
+	    if ( source[0] == source[1] )
+	    {
+		source++;
+		*dest++ = *source++;
+		continue;
+	    }
+	    ccp start = source++;
 
 	    u32 p1, p2, stat;
 	    source = ScanRangeU32(source,&stat,&p1,&p2,0,~(u32)0);
@@ -3990,8 +4395,8 @@ void ResetMemMap ( MemMap_t * mm )
     if (mm->field)
     {
 	for ( i = 0; i < mm->used; i++ )
-	    free(mm->field[i]);
-	free(mm->field);
+	    FREE(mm->field[i]);
+	FREE(mm->field);
     }
     memset(mm,0,sizeof(*mm));
 }
@@ -4003,7 +4408,6 @@ MemMapItem_t * FindMemMap ( MemMap_t * mm, off_t off, off_t size )
     ASSERT(mm);
 
     off_t off_end = off + size;
-    
     int beg = 0;
     int end = mm->used - 1;
     while ( beg <= end )
@@ -4038,9 +4442,7 @@ uint InsertMemMapIndex
     if ( mm->used == mm->size )
     {
 	mm->size += 64;
-	mm->field = realloc(mm->field,mm->size*sizeof(*mm->field));
-	if (!mm->field)
-	    OUT_OF_MEMORY;
+	mm->field = REALLOC(mm->field,mm->size*sizeof(*mm->field));
     }
 
     DASSERT( idx <= mm->used );
@@ -4048,9 +4450,7 @@ uint InsertMemMapIndex
     memmove(dest+1,dest,(mm->used-idx)*sizeof(MemMapItem_t*));
     mm->used++;
 
-    MemMapItem_t * mi = malloc(sizeof(MemMapItem_t));
-    if (!mi)
-	OUT_OF_MEMORY;
+    MemMapItem_t * mi = MALLOC(sizeof(MemMapItem_t));
     mi->off  = off;
     mi->size = size;
     mi->overlap = 0;
@@ -4095,7 +4495,7 @@ static bool TieMemMap
 	const off_t new_size = i2->off + i2->size - i1->off;
 	if ( i1->size < new_size )
 	     i1->size = new_size;
-	free(i2);
+	FREE(i2);
 	idx++;
 	mm->used--;
 	memmove( mm->field + idx,
@@ -4104,7 +4504,6 @@ static bool TieMemMap
 
 	return true;
     }
-    
     return false;
 }
 
@@ -4309,7 +4708,7 @@ enumError ScanSetupFile
 	    ERROR1(ERR_CANT_OPEN,"Can't open file: %s\n",path);
 	return ERR_CANT_OPEN;
     }
- 
+
     while (fgets(iobuf,sizeof(iobuf)-1,f))
     {
 	//----- skip spaces
@@ -4366,7 +4765,7 @@ enumError ScanSetupFile
 	    ptr--;
 	ptr[1] = 0;
 
-	item->param = strdup(param);
+	item->param = STRDUP(param);
 	if (item->factor)
 	{
 	    ScanSizeU64(&item->value,param,1,1,0);
@@ -4374,7 +4773,6 @@ enumError ScanSetupFile
 		item->value = item->value / item->factor * item->factor;
 	}
     }
-    
     fclose(f);
     return ERR_OK;
 }
@@ -4642,10 +5040,8 @@ size_t AllocTempBuffer ( size_t needed_size )
 		wd_print_size_1024(0,0,tempbuf_size,false),
 		wd_print_size_1024(0,0,needed_size,false) );
 	tempbuf_size = needed_size;
-	free(tempbuf);
-	tempbuf = malloc(needed_size);
-	if (!tempbuf)
-	    OUT_OF_MEMORY;
+	FREE(tempbuf);
+	tempbuf = MALLOC(needed_size);
     }
     return tempbuf_size;
 }
@@ -4701,7 +5097,7 @@ char * AllocRealPath ( ccp source )
 
     char fname[PATH_MAX];
     realpath(source,fname);
-    return strdup(fname);
+    return STRDUP(fname);
 }
 
 ///////////////////////////////////////////////////////////////////////////////

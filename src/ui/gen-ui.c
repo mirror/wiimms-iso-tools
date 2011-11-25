@@ -555,8 +555,8 @@ static enumError Generate ( control_t * ctrl )
     ASSERT(cf);
     ASSERT(hf);
 
-    free(ctrl->opt_allow_grp);
-    free(ctrl->opt_allow_cmd);
+    FREE(ctrl->opt_allow_grp);
+    FREE(ctrl->opt_allow_cmd);
     ctrl->opt_allow_grp = ctrl->opt_allow_cmd = 0;
 
     const info_t *info;
@@ -657,14 +657,8 @@ static enumError Generate ( control_t * ctrl )
 	noTRACE("opt_allowed = ( %2u + %2u ) * %2u\n",
 		ctrl->n_grp, ctrl->n_cmd, ctrl->n_opt_specific );
 	if (ctrl->n_grp)
-	{
-	    ctrl->opt_allow_grp = calloc(ctrl->n_grp,ctrl->n_opt_specific);
-	    if (!ctrl->opt_allow_grp)
-		OUT_OF_MEMORY;
-	}
-	ctrl->opt_allow_cmd = calloc(ctrl->n_cmd,ctrl->n_opt_specific);
-	if (!ctrl->opt_allow_cmd)
-	    OUT_OF_MEMORY;
+	    ctrl->opt_allow_grp = CALLOC(ctrl->n_grp,ctrl->n_opt_specific);
+	ctrl->opt_allow_cmd = CALLOC(ctrl->n_cmd,ctrl->n_opt_specific);
     }
 
 
