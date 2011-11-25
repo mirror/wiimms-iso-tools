@@ -101,14 +101,10 @@ PartitionInfo_t * CreatePartitionInfo ( ccp path, enumPartSource source )
     {
 	// new entry
 
-	PartitionInfo_t * info = malloc(sizeof(PartitionInfo_t));
-	if (!info)
-	    OUT_OF_MEMORY;
+	PartitionInfo_t * info = MALLOC(sizeof(PartitionInfo_t));
 	memset(info,0,sizeof(PartitionInfo_t));
-	info->path = strdup(path);
-	info->real_path = strdup(real_path);
-	if ( !info->path || !info->real_path )
-	    OUT_OF_MEMORY;
+	info->path = STRDUP(path);
+	info->real_path = STRDUP(real_path);
 	info->part_mode = PM_UNKNOWN;
 	info->source = source;
 	*append_partition_info = info;
@@ -120,10 +116,8 @@ PartitionInfo_t * CreatePartitionInfo ( ccp path, enumPartSource source )
 	// overrides previous definition
 
 	info->source = source;
-	free((char*)info->path);
-	info->path = strdup(path);
-	if (!info->path)
-	    OUT_OF_MEMORY;
+	FREE((char*)info->path);
+	info->path = STRDUP(path);
 	TRACE("PARTITION redefined: %s\n",real_path);
     }
     return info;
@@ -516,9 +510,7 @@ void ScanPartitionGames()
 	ResetWDiscList(&pi_wlist);
 	pi_wlist.sort_mode = SORT_NONE;
 	pi_wlist.used = pi_wlist.size = pi_disc_count;
-	pi_wlist.first_disc = calloc(pi_disc_count,sizeof(WDiscListItem_t));
-	if (!pi_wlist.first_disc)
-	    OUT_OF_MEMORY;
+	pi_wlist.first_disc = CALLOC(pi_disc_count,sizeof(WDiscListItem_t));
 
 	WDiscListItem_t * dest = pi_wlist.first_disc;
 	int i;
@@ -909,7 +901,7 @@ enumError ResetWBFS ( WBFS_t * w )
 	    if (w->sf_alloced)
 	    {
 		err = ResetSF(w->sf,0);
-		free(w->sf);
+		FREE(w->sf);
 	    }
 	}
     }
@@ -1100,9 +1092,7 @@ static enumError OpenWBFSHelper
     }
     CloseWBFSCache();
 
-    SuperFile_t * sf = malloc(sizeof(SuperFile_t));
-    if (!sf)
-	OUT_OF_MEMORY;
+    SuperFile_t * sf = MALLOC(sizeof(SuperFile_t));
     InitializeSF(sf);
     sf->f.disable_errors = !print_err;
     enumError err = OpenFileModify(&sf->f,filename,IOM_IS_WBFS_PART);
@@ -1123,7 +1113,7 @@ static enumError OpenWBFSHelper
  abort:
     ResetWBFS(w);
     ResetSF(sf,0);
-    free(sf);
+    FREE(sf);
     return err;
 }
 
@@ -1162,9 +1152,7 @@ enumError RecoverWBFS ( WBFS_t * wbfs, ccp fname, bool testmode )
     enumError err = ERR_OK;
 
     // load first wbfs sector
-    u8 * first_sector = malloc(w->wbfs_sec_sz);
-    if (!first_sector)
-	OUT_OF_MEMORY;
+    u8 * first_sector = MALLOC(w->wbfs_sec_sz);
     DASSERT(wbfs->sf);
     err = ReadSF(wbfs->sf,0,first_sector,w->wbfs_sec_sz);
     if (!err)
@@ -1274,7 +1262,7 @@ enumError RecoverWBFS ( WBFS_t * wbfs, ccp fname, bool testmode )
 	}
     }
 
-    free(first_sector);
+    FREE(first_sector);
     return err;
 }
 
@@ -1358,9 +1346,9 @@ enumError ReloadWBFS ( WBFS_t * wbfs )
     wbfs_t * w = wbfs->wbfs;
     if (w)
     {
-	free(w->freeblks);
+	FREE(w->freeblks);
 	w->freeblks = 0;
-	free(w->id_list);
+	FREE(w->id_list);
 	w->id_list = 0;
 	if ( w->head && wbfs->sf )
 	{
@@ -2386,16 +2374,13 @@ int AnalyzeWBFS ( AWData_t * awd, File_t * f )
 
     if ( f->st.st_size >= AW_BUF_SIZE )
     {
-	char * data = malloc(AW_BUF_SIZE);
-	if (!data)
-	    OUT_OF_MEMORY;
-
+	char * data = MALLOC(AW_BUF_SIZE);
 	if ( ReadAtF(f,0,data,AW_BUF_SIZE) == ERR_OK )
 	{
 	    AW_inodes(awd,f,data);
 	    AW_discs(awd,f,data);
 	}
-	free(data);
+	FREE(data);
     }
 
     //----- calculate geometry
@@ -2523,11 +2508,11 @@ void InitializeCheckWBFS ( CheckWBFS_t * ck )
 void ResetCheckWBFS ( CheckWBFS_t * ck )
 {
     ASSERT(ck);
-    free(ck->cur_fbt);
-    free(ck->good_fbt);
-    free(ck->ubl);
-    free(ck->blc);
-    free(ck->disc);
+    FREE(ck->cur_fbt);
+    FREE(ck->good_fbt);
+    FREE(ck->ubl);
+    FREE(ck->blc);
+    FREE(ck->disc);
     InitializeCheckWBFS(ck);
 }
 
@@ -2586,12 +2571,10 @@ enumError CheckWBFS
 
     //---------- alloctate data
 
-    u32 * fbt  = malloc(ck->fbt_size);
-    u8  * ubl  = calloc(ALLOC_SEC,1);
-    u8  * blc  = calloc(ALLOC_SEC,1);
-    CheckDisc_t * disc = calloc(w->max_disc,sizeof(*disc));
-    if ( !fbt || !ubl || !blc || !disc )
-	return OUT_OF_MEMORY;
+    u32 * fbt  = MALLOC(ck->fbt_size);
+    u8  * ubl  = CALLOC(ALLOC_SEC,1);
+    u8  * blc  = CALLOC(ALLOC_SEC,1);
+    CheckDisc_t * disc = CALLOC(w->max_disc,sizeof(*disc));
 
     ck->cur_fbt	= fbt;
     ck->ubl	= ubl;
@@ -2998,7 +2981,7 @@ enumError RepairWBFS ( CheckWBFS_t * ck, int testmode,
 		memcpy(ck->cur_fbt,ck->good_fbt,ck->fbt_size);
 		if (w->freeblks)
 		{
-		    free(w->freeblks);
+		    FREE(w->freeblks);
 		    w->freeblks = 0;
 		}
 		sync++;
@@ -3082,12 +3065,7 @@ bool CalcFBT ( CheckWBFS_t * ck )
 	return ERROR0(ERR_INTERNAL,0);
 
     if (!ck->good_fbt)
-    {
-	ck->good_fbt = malloc(ck->fbt_size);
-	if (!ck->good_fbt)
-	    OUT_OF_MEMORY;
-    }
-
+	ck->good_fbt = MALLOC(ck->fbt_size);
     memset(ck->good_fbt,0,ck->fbt_size);
 
     const u32 MAX_BL = ck->wbfs->wbfs->n_wbfs_sec - 2;
@@ -3378,12 +3356,8 @@ WDiscList_t * GenerateWDiscList ( WBFS_t * w, int part_index )
 	return 0;
     }
 
-    WDiscList_t * wlist = malloc(sizeof(WDiscList_t));
-    if (!wlist)
-	OUT_OF_MEMORY;
-    wlist->first_disc = calloc(w->used_discs,sizeof(WDiscListItem_t));
-    if (!wlist->first_disc)
-	OUT_OF_MEMORY;
+    WDiscList_t * wlist = MALLOC(sizeof(WDiscList_t));
+    wlist->first_disc = CALLOC(w->used_discs,sizeof(WDiscListItem_t));
     wlist->total_size_mib = 0;
 
     WDiscInfo_t dinfo;
@@ -3428,8 +3402,8 @@ void ResetWDiscList ( WDiscList_t * wlist )
 	WDiscListItem_t * ptr = wlist->first_disc;
 	WDiscListItem_t * end = ptr + wlist->used;
 	for ( ; ptr < end; ptr++ )
-	    free((char*)ptr->fname);
-	free(wlist->first_disc);
+	    FREE((char*)ptr->fname);
+	FREE(wlist->first_disc);
     }
     InitializeWDiscList(wlist);
 }
@@ -3443,10 +3417,8 @@ WDiscListItem_t * AppendWDiscList ( WDiscList_t * wlist, WDiscInfo_t * dinfo )
     if ( wlist->used == wlist->size )
     {
 	wlist->size += 200;
-	wlist->first_disc = realloc(wlist->first_disc,
+	wlist->first_disc = REALLOC(wlist->first_disc,
 				wlist->size*sizeof(*wlist->first_disc));
-	if (!wlist->first_disc)
-	    OUT_OF_MEMORY;
     }
     wlist->sort_mode = SORT_NONE;
     WDiscListItem_t * item = wlist->first_disc + wlist->used++;
@@ -3460,7 +3432,7 @@ void FreeWDiscList ( WDiscList_t * wlist )
 {
     ASSERT(wlist);
     ResetWDiscList(wlist);
-    free(wlist);
+    FREE(wlist);
 }
 
 //
@@ -3516,6 +3488,28 @@ static int sort_by_name ( const void * va, const void * vb )
     const WDiscListItem_t * b = (const WDiscListItem_t *)vb;
 
     const int stat = strcasecmp(a->name64,b->name64);
+    return stat ? stat : sort_by_title(va,vb);
+}
+
+//-----------------------------------------------------------------------------
+
+static int sort_by_path ( const void * va, const void * vb )
+{
+    const WDiscListItem_t * a = (const WDiscListItem_t *)va;
+    const WDiscListItem_t * b = (const WDiscListItem_t *)vb;
+
+    const int stat = PathCMP(a->name64,b->name64);
+    return stat ? stat : sort_by_title(va,vb);
+}
+
+//-----------------------------------------------------------------------------
+
+static int sort_by_nintendo ( const void * va, const void * vb )
+{
+    const WDiscListItem_t * a = (const WDiscListItem_t *)va;
+    const WDiscListItem_t * b = (const WDiscListItem_t *)vb;
+
+    const int stat = NintendoCMP(a->name64,b->name64);
     return stat ? stat : sort_by_title(va,vb);
 }
 
@@ -3708,6 +3702,8 @@ void SortWDiscList ( WDiscList_t * wlist,
 	case SORT_ID:		func = sort_by_id;	break;
 	case SORT_NAME:		func = sort_by_name;	umode = SORT_NAME; break;
 	case SORT_TITLE:	func = sort_by_title;	umode = SORT_TITLE; break;
+	case SORT_PATH:		func = sort_by_path;	umode = SORT_PATH; break;
+	case SORT_NINTENDO:	func = sort_by_nintendo;umode = SORT_NINTENDO; break;
 	case SORT_FILE:		func = sort_by_file;	break;
 	case SORT_SIZE:		func = sort_by_size;	umode = SORT_SIZE; break;
 	case SORT_OFFSET:	func = sort_by_offset;	break;
@@ -3744,7 +3740,7 @@ void SortWDiscList ( WDiscList_t * wlist,
 		prev = dest++;
 	    }
 	    else
-		free((char*)src->fname);
+		FREE((char*)src->fname);
 	}
 	wlist->used = dest - wlist->first_disc;
     }

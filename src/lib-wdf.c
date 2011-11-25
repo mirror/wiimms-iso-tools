@@ -285,9 +285,7 @@ WDF_Chunk_t * NeedChunkWDF ( SuperFile_t * sf, int index )
 		sf->wc_size, sf->wc_size+WC_GROW_SIZE, sf->wc_used );
 
 	sf->wc_size += WC_GROW_SIZE;
-	sf->wc = realloc(sf->wc,sf->wc_size*sizeof(*sf->wc));
-	if (!sf->wc)
-	    OUT_OF_MEMORY;
+	sf->wc = REALLOC(sf->wc,sf->wc_size*sizeof(*sf->wc));
     }
     ASSERT( sf->wc_used < sf->wc_size );
 
@@ -345,9 +343,7 @@ enumError SetupReadWDF ( SuperFile_t * sf )
 	goto invalid;
 
     const int chunk_tab_size = wh.chunk_n * sizeof(WDF_Chunk_t);
-    WDF_Chunk_t *wc = malloc(chunk_tab_size);
-    if (!wc)
-	OUT_OF_MEMORY;
+    WDF_Chunk_t *wc = MALLOC(chunk_tab_size);
 
     stat = ReadAtF(&sf->f,wh.chunk_off+WDF_MAGIC_SIZE,wc,chunk_tab_size);
     if (stat)

@@ -7,5 +7,5 @@
 ../src/lib-file.[ch] ;
 ../src/lib-error.[ch] ;
 @+all-source.edit-list
--y    1 ../src/iso-interface.h ;
--y 2640 ../src/iso-interface.c ;
+-y  100 ../src/iso-interface.h ;
+-y 3740 ../src/iso-interface.c ;

@@ -891,9 +891,7 @@ static void setup_sector_mix ( Mix_t * mix )
     DASSERT(!mix->used_free);
 
     const int uf_count = 2 * mix->n_blocks + 1;
-    u32 * uf = calloc(uf_count,sizeof(u32));
-    if (!uf)
-	OUT_OF_MEMORY;
+    u32 * uf = CALLOC(uf_count,sizeof(u32));
     mix->used_free = uf;
 
     wd_usage_t usage_id = mix->part->usage_id;
@@ -1636,7 +1634,7 @@ enumError cmd_mix()
 
     for ( mix = mp.mix; mix < mp.end_mix; mix++ )
     {
-	free(mix->used_free);
+	FREE(mix->used_free);
 	if (mix->free_data)
 	    FreeSF(mix->sf);
     }

@@ -127,12 +127,12 @@ typedef enum enumError
 ///////////////////////////////////////////////////////////////////////////////
 // alloc and free memory space
 
-#define wbfs_malloc(s) malloc(s)
-#define wbfs_calloc(n,s) calloc(n,s)
-#define wbfs_free(x) free(x)
+#define wbfs_malloc(s) MALLOC(s)
+#define wbfs_calloc(n,s) CALLOC(n,s)
+#define wbfs_free(x) FREE(x)
 
-#define wbfs_ioalloc(x) malloc(x)
-#define wbfs_iofree(x) free(x)
+#define wbfs_ioalloc(x) MALLOC(x)
+#define wbfs_iofree(x) FREE(x)
 
 ///////////////////////////////////////////////////////////////////////////////
 // endianess functions

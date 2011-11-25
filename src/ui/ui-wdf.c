@@ -173,7 +173,7 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 	"sz",
 	"Enable output file splitting and define a split size. The parameter"
 	" 'sz' is a floating point number followed by an optional unit factor"
-	" (one of 'cb' [=1] or  'kmgtpe' [base=1000] or 'KMGTPE' [base=1024])."
+	" (one of 'cb' [=1] or 'kmgtpe' [base=1000] or 'KMGTPE' [base=1024])."
 	" The default unit is 'G' (GiB)."
     },
 
@@ -214,7 +214,7 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 	" the next power of 2. This calculation also depends from option"
 	" --max-chunks.\n"
 	"  The parameter 'sz' is a floating point number followed by an"
-	" optional unit factor (one of 'cb' [=1] or  'kmgtpe' [base=1000] or"
+	" optional unit factor (one of 'cb' [=1] or 'kmgtpe' [base=1000] or"
 	" 'KMGTPE' [base=1024]). The default unit is 'M' (MiB). If the number"
 	" is prefixed with a '=' then options --chunk-mode and --max-chunks"
 	" are ignored and the given value is used without any rounding or"
@@ -229,7 +229,7 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 	"Define the maximal number of chunks if creating a CISO file. The"
 	" default value is 8192 for '--chunk-mode ISO' and 32760 (maximal"
 	" value) for all other modes. If this value is set than the automatic"
-	" calculation  of --chunk-size will be modified too.\n"
+	" calculation of --chunk-size will be modified too.\n"
 	"  --mch is a shortcut for --max-chunks."
     },
 
@@ -242,7 +242,7 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 	" keywords: DEFAULT (=LZMA.5@20), FAST (=BZIP2.3@10), GOOD"
 	" (=LZMA.5@20) BEST (=LZMA.7@50), and MEM (use best mode in respect to"
 	" memory limit set by --mem). Additionally the single digit modes 0"
-	" (=NONE),  1 (=fast LZMA) .. 9 (=BEST)are defined. These additional"
+	" (=NONE), 1 (=fast LZMA) .. 9 (=BEST)are defined. These additional"
 	" keywords may change their meanings if a new compression method is"
 	" implemented.\n"
 	"  '.level' is a point followed by one digit. It defines the"

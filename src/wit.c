@@ -919,7 +919,7 @@ enumError exec_collect ( SuperFile_t * sf, Iterator_t * it )
 	    if (slash)
 		len = slash - it->real_path;
 	}
-	item->fname = MemDup(it->real_path,len);
+	item->fname = MEMDUP(it->real_path,len);
     }
     else if ( it->real_filename && sf->f.path && *sf->f.path )
     {
@@ -1233,7 +1233,11 @@ enumError exec_files ( SuperFile_t * fi, Iterator_t * it )
     WiiFst_t fst;
     InitializeFST(&fst);
     CollectFST(&fst,disc,GetDefaultFilePattern(),false,0,prefix_mode,true);
-    SortFST(&fst,sort_mode,SORT_NAME);
+
+    sort_mode = SortFST(&fst,sort_mode,SORT_NAME);
+    if ( (sort_mode&SORT__MODE_MASK) != SORT_OFFSET )
+	it->show_mode &= ~SHOW_UNUSED;
+
     DumpFilesFST(stdout,0,&fst,ConvertShow2PFST(it->show_mode,0),prefix);
     ResetFST(&fst);
 
@@ -1532,12 +1536,13 @@ enumError exec_copy ( SuperFile_t * fi, Iterator_t * it )
     fo.src = fi;
 
     if (convert_it)
-	fo.f.fname = strdup(fname);
+	fo.f.fname = STRDUP(fname);
     else
     {
 	TRACE("COPY, mkdir=%d\n",opt_mkdir);
 	fo.f.create_directory = opt_mkdir;
 	ccp oname = fi->f.outname ? fi->f.outname : fname;
+ #if 0 // [[obsolete]] 2011-11
 	if ( oft == OFT_WBFS && fi->f.id6_dest[0] )
 	{
 	    // use ID6 as default filename
@@ -1552,6 +1557,7 @@ enumError exec_copy ( SuperFile_t * fi, Iterator_t * it )
 	    else
 		oname = fi->f.id6_dest;
 	}
+ #endif
 	GenImageFileName(&fo.f,opt_dest,oname,oft);
 	SubstFileNameSF(&fo,fi,0);
 
@@ -2493,6 +2499,7 @@ enumError CheckOptions ( int argc, char ** argv, bool is_env )
 	case GO_TRIM:		err += ScanOptTrim(optarg); break;
 	case GO_ALIGN:		err += ScanOptAlign(optarg); break;
 	case GO_ALIGN_PART:	err += ScanOptAlignPart(optarg); break;
+	case GO_ALIGN_FILES:	opt_align_files = true; break;
 	case GO_DISC_SIZE:	err += ScanOptDiscSize(optarg); break;
 	case GO_OVERLAY:	break;
 	case GO_PATCH_FILE:	opt_patch_file = optarg; break;

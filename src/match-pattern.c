@@ -175,7 +175,7 @@ int AddFilePattern ( ccp arg, int pattern_index )
 	else
 	{
 	    const size_t len = arg - start;
-	    char * pattern = malloc(len+1);
+	    char * pattern = MALLOC(len+1);
 	    memcpy(pattern,start,len);
 	    pattern[len] = 0;
 	    TRACE(" - ADD |%s|\n",pattern);

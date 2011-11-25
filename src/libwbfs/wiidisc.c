@@ -1413,9 +1413,7 @@ static wd_disc_t * wd_open_gc_disc
 
 	WDPRINT("MULTIBOOT '%.6s', N=%d, dvd9=%d\n",&disc->dhead.disc_id,n_part,dvd9);
 
-	wd_part_t * part = calloc(n_part,sizeof(*disc->part));
-	if (!part)
-	    OUT_OF_MEMORY;
+	wd_part_t * part = CALLOC(n_part,sizeof(*disc->part));
 	disc->part = part;
 
 	//----- check primary partition
@@ -1462,9 +1460,7 @@ static wd_disc_t * wd_open_gc_disc
 	//----- setup the data partition of a standard gamecube disc
 
 	disc->n_part = 1;
-	wd_part_t * part = calloc(1,sizeof(*disc->part));
-	if (!part)
-	    OUT_OF_MEMORY;
+	wd_part_t * part = CALLOC(1,sizeof(*disc->part));
 	disc->part = part;
 
 	wd_initialize_part(disc,0);
@@ -1501,9 +1497,7 @@ wd_disc_t * wd_open_disc
 
     //----- setup
 
-    wd_disc_t * disc = malloc(sizeof(*disc));
-    if (!disc)
-	OUT_OF_MEMORY;
+    wd_disc_t * disc = MALLOC(sizeof(*disc));
     memset(disc,0,sizeof(*disc));
     disc->cache_sector = ~(u32)0;
 
@@ -1567,10 +1561,8 @@ wd_disc_t * wd_open_disc
 	     n_part = WII_MAX_PARTITIONS;
 	disc->n_part = n_part;
 
-	disc->ptab_entry = calloc(n_part,sizeof(*disc->ptab_entry));
-	disc->part = calloc(n_part,sizeof(*disc->part));
-	if ( !disc->ptab_entry || !disc->part )
-	    OUT_OF_MEMORY;
+	disc->ptab_entry = CALLOC(n_part,sizeof(*disc->ptab_entry));
+	disc->part = CALLOC(n_part,sizeof(*disc->part));
 
 	disc->n_ptab = 0;
 	for ( n_part = ipt = 0; ipt < WII_MAX_PTAB && !err; ipt++ )
@@ -1710,18 +1702,18 @@ void wd_close_disc
 	    {
 		wd_reset_memmap(&part->patch);
 		cert_reset(&part->cert_chain);
-		free(part->tmd);
-		free(part->cert);
-		free(part->h3);
-		free(part->setup_txt);
-		free(part->fst);
+		FREE(part->tmd);
+		FREE(part->cert);
+		FREE(part->h3);
+		FREE(part->setup_txt);
+		FREE(part->fst);
 	    } 
-	    free(disc->part);
+	    FREE(disc->part);
 	} 
-	free(disc->ptab_entry);
-	free(disc->reloc);
-	free(disc->group_cache);
-	free(disc);
+	FREE(disc->ptab_entry);
+	FREE(disc->reloc);
+	FREE(disc->group_cache);
+	FREE(disc);
     }
 }
 
@@ -1969,10 +1961,10 @@ enumError wd_load_part
 	part->is_valid  = false;
 	part->disc->invalid_part++;
 
-	free(part->tmd);  part->tmd  = 0;
-	free(part->cert); part->cert = 0;
-	free(part->h3);   part->h3   = 0;
-	free(part->fst);  part->fst  = 0;
+	FREE(part->tmd);  part->tmd  = 0;
+	FREE(part->cert); part->cert = 0;
+	FREE(part->h3);   part->h3   = 0;
+	FREE(part->fst);  part->fst  = 0;
 
 
 	//----- scan partition header
@@ -2031,9 +2023,7 @@ enumError wd_load_part
 		return ERR_WPART_INVALID;
 	    }
 
-	    wd_tmd_t * tmd = malloc(ph->tmd_size);
-	    if (!tmd)
-		OUT_OF_MEMORY;
+	    wd_tmd_t * tmd = MALLOC(ph->tmd_size);
 	    part->tmd = tmd;
 	    err = wd_read_part_raw( part, ph->tmd_off4, tmd, ph->tmd_size, true );
 	    if (err)
@@ -2103,7 +2093,7 @@ enumError wd_load_part
 			,boot->dhead.disc_title
 			,(u64)part->part_off4 << 2
 			);
-	part->setup_txt = strdup((char*)disc->temp_buf);
+	part->setup_txt = STRDUP((char*)disc->temp_buf);
 
 
 	//----- calculate size of main.dol
@@ -2192,9 +2182,7 @@ enumError wd_load_part
 		fst_size <<= 2;
 	    TRACE("fst_size=%x\n",fst_size);
 
-	    wd_fst_item_t * fst = malloc(fst_size);
-	    if (!fst)
-		OUT_OF_MEMORY;
+	    wd_fst_item_t * fst = MALLOC(fst_size);
 	    part->fst = fst;
 	    err = wd_read_part(part,boot->fst_off4,fst,fst_size,true);
 	    if (err)
@@ -2366,9 +2354,7 @@ enumError wd_load_part
 	{
 	    if ( !part->cert && load_cert )
 	    {
-		part->cert = malloc(ph->cert_size);
-		if (!part->cert)
-		    OUT_OF_MEMORY;
+		part->cert = MALLOC(ph->cert_size);
 		wd_read_part_raw( part, ph->cert_off4, part->cert,
 					ph->cert_size, true );
 	    }
@@ -2380,9 +2366,7 @@ enumError wd_load_part
 	{
 	    if ( !part->h3 && load_h3 )
 	    {
-		part->h3 = malloc(WII_H3_SIZE);
-		if (!part->h3)
-		    OUT_OF_MEMORY;
+		part->h3 = MALLOC(WII_H3_SIZE);
 		wd_read_part_raw( part, ph->h3_off4, part->h3, WII_H3_SIZE, true );
 	    }
 	    else if (load_now)
@@ -2764,7 +2748,7 @@ void wd_reset_select
 )
 {
     DASSERT(select);
-    free(select->list);
+    FREE(select->list);
     memset(select,0,sizeof(*select));
 }
 
@@ -2782,9 +2766,7 @@ wd_select_item_t * wd_append_select_item
     if ( select->used == select->size )
     {
 	select->size += 10;
-	select->list = realloc(select->list, select->size*sizeof(*select->list));
-	if (!select->list)
-	    OUT_OF_MEMORY;
+	select->list = REALLOC(select->list, select->size*sizeof(*select->list));
     }
     
     DASSERT( select->used < select->size );
@@ -2813,9 +2795,7 @@ void wd_copy_select
 	if (dest->size)
 	{
 	    const int list_size = dest->size * sizeof(*dest->list);
-	    dest->list = malloc(list_size);
-	    if (!dest->list)
-		OUT_OF_MEMORY;
+	    dest->list = MALLOC(list_size);
 	    memcpy(dest->list,source->list,list_size);
 	}
     }
@@ -3099,7 +3079,7 @@ u8 * wd_calc_usage_table
 u8 * wd_filter_usage_table
 (
     wd_disc_t		* disc,		// valid disc pointer
-    u8			* usage_table,	// NULL or result. If NULL -> malloc()
+    u8			* usage_table,	// NULL or result. If NULL -> MALLOC()
     const wd_select_t	* select	// NULL or a new selector
 )
 {
@@ -3111,12 +3091,7 @@ u8 * wd_filter_usage_table
     wd_calc_usage_table(disc);
 
     if (!usage_table)
-    {
-	usage_table = malloc(WII_MAX_SECTORS);
-	if (!usage_table)
-	    OUT_OF_MEMORY;
-    }
-    DASSERT(usage_table);
+	usage_table = MALLOC(WII_MAX_SECTORS);
 
     memcpy(usage_table,disc->usage_table,WII_MAX_SECTORS);
 
@@ -4294,11 +4269,15 @@ void wd_initialize_print_fst
     pf->mode		= mode;
 
     char buf[50];
+    const int fw_offset =  max_off4 > 0
+				? snprintf(buf,sizeof(buf),"%llx",(u64)max_off4<<2)
+				: 9;
+
+    if ( mode & WD_PFST_UNUSED )
+	pf->fw_unused = fw_offset;
 
     if ( mode & WD_PFST_OFFSET )
-	pf->fw_offset = max_off4 > 0
-			? snprintf(buf,sizeof(buf),"%llx",(u64)max_off4<<2)
-			: 9;
+	pf->fw_offset = fw_offset;
 
     if ( mode & WD_PFST_SIZE_HEX )
 	pf->fw_size_hex = max_size > 0
@@ -4331,6 +4310,14 @@ void wd_print_fst_header
 
     fprintf(pf->f,"%*s",pf->indent,"");
 
+    if ( pf->fw_unused )
+    {
+	if ( pf->fw_unused < 6 )
+	     pf->fw_unused = 6;
+	fprintf(pf->f,"%*s ",pf->fw_unused,"unused");
+	max_name_len += 1 + pf->fw_unused;
+    }
+
     if ( pf->fw_offset )
     {
 	if ( pf->fw_offset < 6 )
@@ -4359,6 +4346,9 @@ void wd_print_fst_header
 
     fprintf(pf->f,"\n%*s",pf->indent,"");
 
+    if ( pf->fw_unused )
+	fprintf(pf->f,"%*s ",pf->fw_unused,"hex");
+
     if ( pf->fw_offset )
 	fprintf(pf->f,"%*s  ",pf->fw_offset,"hex");
 
@@ -4369,7 +4359,7 @@ void wd_print_fst_header
 	fprintf(pf->f,"%*s ",pf->fw_size_dec,"dec");
 
     ccp sep = "";
-    if ( pf->fw_offset || pf->fw_size_hex || pf->fw_size_dec )
+    if ( pf->fw_unused || pf->fw_offset || pf->fw_size_hex || pf->fw_size_dec )
     {
 	sep = " ";
 	max_name_len++;
@@ -4398,7 +4388,7 @@ void wd_print_fst_item
     DASSERT(pf->f);
 
     char buf[200];
-    ccp sep = pf->fw_offset || pf->fw_size_hex || pf->fw_size_dec ? " " : "";
+    ccp sep = pf->fw_unused || pf->fw_offset || pf->fw_size_hex || pf->fw_size_dec ? " " : "";
 
     switch (icm)
     {
@@ -4406,6 +4396,8 @@ void wd_print_fst_item
 	    if ( pf->mode & WD_PFST_PART && part && !part->is_gc )
 	    {
 		int indent = pf->indent;
+		if (pf->fw_unused)
+		    indent += 1 + pf->fw_unused;
 		if (pf->fw_offset)
 		    indent += 2 + pf->fw_offset;
 		if (pf->fw_size_hex)
@@ -4421,6 +4413,8 @@ void wd_print_fst_item
 
 	case WD_ICM_DIRECTORY:
 	    fprintf(pf->f,"%*s",pf->indent,"");
+	    if (pf->fw_unused)
+		fprintf(pf->f,"%*s ",pf->fw_unused,"-");
 	    if (pf->fw_offset)
 		fprintf(pf->f,"%*s  ",pf->fw_offset,"-");
 	    if (pf->fw_size_dec)
@@ -4438,25 +4432,35 @@ void wd_print_fst_item
 	case WD_ICM_COPY:
 	case WD_ICM_DATA:
 	    fprintf(pf->f,"%*s",pf->indent,"");
-	    if (pf->fw_offset)
+
+	    u64 offset = offset4;
+	    if ( !part || !part->is_gc )
+		offset <<= 2;
+
+	    if (pf->fw_unused)
 	    {
-		u64 offset = offset4;
-		if ( !part || !part->is_gc )
-		    offset <<= 2;
+		if ( pf->last_icm == icm && offset > pf->last_end )
+		    fprintf(pf->f,"%*llx ", pf->fw_unused, offset-pf->last_end );
+		else
+		    fprintf(pf->f,"%*s ",pf->fw_unused,"-");
+	    }
+	    if (pf->fw_offset)
 		fprintf(pf->f,"%*llx%c ",
 			pf->fw_offset, offset, icm == WD_ICM_FILE ? '+' : ' ' );
-	    }
 	    if (pf->fw_size_hex)
 		fprintf(pf->f,"%*x ", pf->fw_size_hex, size);
 	    if (pf->fw_size_dec)
 		fprintf(pf->f,"%*u ", pf->fw_size_dec, size);
 	    fprintf(pf->f,"%s%s%s\n", sep, fname1 ? fname1 : "", fname2 ? fname2 : "" );
+
+	    pf->last_end = offset + size;
+	    pf->last_icm = icm;
 	    break;
 
 	case WD_ICM_CLOSE_PART:
 	    break;
     }
-}
+}    
 
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -4499,7 +4503,7 @@ void wd_print_fst
 
     //----- setup pf and calc fw
 
-    if ( pfst_mode & (WD_PFST_OFFSET|WD_PFST_SIZE_HEX|WD_PFST_SIZE_DEC) )
+    if ( pfst_mode & WD_PFST__OFF_SIZE )
     {
 	wd_load_all_part(disc,false,false,false);
 	wd_calc_fst_statistics(disc,false);
@@ -4537,9 +4541,9 @@ void wd_reset_memmap
 	    {
 		wd_memmap_item_t * item = mm->item + idx;
 		if (item->data_alloced)
-		    free(item->data);
+		    FREE(item->data);
 	    }
-	    free(mm->item);
+	    FREE(mm->item);
 	}
 	memset(mm,0,sizeof(*mm));
     }
@@ -4598,9 +4602,7 @@ wd_memmap_item_t * wd_find_memmap
     if ( mm->used == mm->size )
     {
 	mm->size += 10;
-	mm->item = realloc(mm->item,mm->size*sizeof(*mm->item));
-	if (!mm->item)
-	    OUT_OF_MEMORY;
+	mm->item = REALLOC(mm->item,mm->size*sizeof(*mm->item));
     }
 
     bool found;
@@ -4624,9 +4626,7 @@ wd_memmap_item_t * wd_insert_memmap
     if ( mm->used == mm->size )
     {
 	mm->size += 10;
-	mm->item = realloc(mm->item,mm->size*sizeof(*mm->item));
-	if (!mm->item)
-	    OUT_OF_MEMORY;
+	mm->item = REALLOC(mm->item,mm->size*sizeof(*mm->item));
     }
 
     bool found;
@@ -4642,7 +4642,7 @@ wd_memmap_item_t * wd_insert_memmap
     }
     else if (item->data_alloced)
     {
-	free(item->data);
+	FREE(item->data);
 	item->data = 0;
 	item->data_alloced = 0;
     }
@@ -4666,9 +4666,7 @@ wd_memmap_item_t * wd_insert_memmap_alloc
     wd_memmap_item_t * item = wd_insert_memmap(mm,mode,offset,size);
     DASSERT(!item->data_alloced);
     item->data_alloced = true;
-    item->data = malloc(size);
-    if (!item->data)
-	OUT_OF_MEMORY;
+    item->data = MALLOC(size);
     memset(item->data,0,size);
     return item;
 }
@@ -5112,9 +5110,7 @@ static enumError wd_rap_part_sectors
     if (!disc->group_cache)
     {
 	// space for cache and an extra sector (no inplace decryption possible)
-	disc->group_cache = malloc(WII_GROUP_SIZE+WII_SECTOR_SIZE);
-	if (!disc->group_cache)
-	    OUT_OF_MEMORY;
+	disc->group_cache = MALLOC(WII_GROUP_SIZE+WII_SECTOR_SIZE);
     }
     else if ( disc->group_cache_sector == sector )
 	return ERR_OK;
@@ -6038,11 +6034,7 @@ wd_reloc_t * wd_calc_relocation
 
     const size_t reloc_size = WII_MAX_SECTORS * sizeof(*disc->reloc);
     if (!disc->reloc)
-    {
-	disc->reloc = malloc(reloc_size);
-	if (!disc->reloc)
-	    OUT_OF_MEMORY;
-    }
+	disc->reloc = MALLOC(reloc_size);
     else if (!force)
 	return disc->reloc;
 
@@ -6334,11 +6326,7 @@ wd_file_list_t * wd_initialize_file_list
 )
 {
     if (!fl)
-    {
-	fl = malloc(sizeof(*fl));
-	if (!fl)
-	    OUT_OF_MEMORY;
-    }
+	fl = MALLOC(sizeof(*fl));
     
     memset(fl,0,sizeof(*fl));
     return fl;
@@ -6349,7 +6337,7 @@ wd_file_list_t * wd_initialize_file_list
 void wd_reset_file_list
 (
     wd_file_list_t	* fl,		// NULL or working file list to reset (free data)
-    bool		free_fl		// true: call 'free(fl)'
+    bool		free_fl		// true: call 'FREE(fl)'
 )
 {
     if (fl)
@@ -6359,13 +6347,13 @@ void wd_reset_file_list
 	wd_file_t * file_end  = file + fl->used;
 	for ( ; file < file_end; file++ )
 	{
-	    free((char*)file->iso_path);
-	    free((char*)file->file_path);
+	    FREE((char*)file->iso_path);
+	    FREE((char*)file->file_path);
 	}
 
-	free(fl->file);
+	FREE(fl->file);
 	if (free_fl)
-	    free(fl);
+	    FREE(fl);
 	else
 	    memset(fl,0,sizeof(*fl));
     }

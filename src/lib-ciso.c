@@ -284,9 +284,7 @@ enumError SetupCISO ( CISO_Info_t * ci, CISO_Head_t * ch )
     if (ci->needed_blocks)
     {
 	ci->map_size = ci->needed_blocks;
-	ci->map = malloc( ci->map_size * sizeof(*ci->map) );
-	if (!ci->map)
-	    OUT_OF_MEMORY;
+	ci->map = MALLOC( ci->map_size * sizeof(*ci->map) );
 
 	CISO_Map_t * mptr = ci->map; u16 mcount = 0;
 	bend = ch->map + ci->map_size;
@@ -304,7 +302,7 @@ void ResetCISO ( CISO_Info_t * ci )
     ASSERT(ci);
 
     if (ci->map)
-	free(ci->map);
+	FREE(ci->map);
     memset(ci,0,sizeof(*ci));
 }
 
@@ -470,9 +468,7 @@ enumError SetupWriteCISO ( SuperFile_t * sf )
     //---- setup map
 
     ci->map_size = CISO_MAP_SIZE;
-    ci->map = malloc( ci->map_size * sizeof(*ci->map) );
-    if (!ci->map)
-	OUT_OF_MEMORY;
+    ci->map = MALLOC( ci->map_size * sizeof(*ci->map) );
 
     int i;
     for ( i = 0; i < ci->map_size; i++ )

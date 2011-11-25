@@ -542,7 +542,7 @@ cert_item_t * cert_append_item
 	    item = cc->cert + i;
 	    if (!strcmp(name,item->name))
 	    {
-		free((void*)item->head);
+		FREE((void*)item->head);
 		goto found;
 	    }
 	}
@@ -551,9 +551,7 @@ cert_item_t * cert_append_item
     if ( cc->used == cc->size )
     {
 	cc->size = 2 * cc->size + 5;
-	cc->cert = realloc(cc->cert,cc->size*sizeof(*cc->cert));
-	if (!cc->cert)
-	    OUT_OF_MEMORY;
+	cc->cert = REALLOC(cc->cert,cc->size*sizeof(*cc->cert));
     }
 
     item = cc->cert + cc->used++;
@@ -600,12 +598,7 @@ cert_chain_t * cert_initialize
 )
 {
     if (!cc)
-    {
-	cc = malloc(sizeof(*cc));
-	if (!cc)
-	    OUT_OF_MEMORY;
-    }
-    
+	cc = MALLOC(sizeof(*cc));
     memset(cc,0,sizeof(*cc));
     return cc;
 }
@@ -620,8 +613,8 @@ void cert_reset
     DASSERT(cc);
     int i;
     for ( i = 0; i < cc->used; i++ )
-	free((void*)cc->cert[i].head);
-    free(cc->cert);
+	FREE((void*)cc->cert[i].head);
+    FREE(cc->cert);
     cert_initialize(cc);
 }
 
@@ -669,7 +662,7 @@ int cert_append_data
 	    item->data_size	= ptr - (u8*)data;
 	    item->cert_size	= ptr - start;
 
-	    const u8 * raw	= MemDup(start,item->cert_size);
+	    const u8 * raw	= MEMDUP(start,item->cert_size);
 	    item->head		= (cert_head_t*)raw;
 	    item->data		= (cert_data_t*)( raw + ( (u8*)data - start ));
 

@@ -184,8 +184,6 @@ wbfs_t * wbfs_open_partition_param ( wbfs_param_t * par )
     int hd_sector_size	= par->hd_sector_size ? par->hd_sector_size : 512;
     wbfs_head_t *head	= wbfs_ioalloc(hd_sector_size);
     wbfs_t	*p	= wbfs_malloc(sizeof(wbfs_t));
-    if ( !p || !head )
-	OUT_OF_MEMORY;
 
     memset(p,0,sizeof(*p));
 
@@ -292,8 +290,6 @@ wbfs_t * wbfs_open_partition_param ( wbfs_param_t * par )
     //----- etc
 
     p->tmp_buffer = wbfs_ioalloc(p->hd_sec_sz);
-    if (!p->tmp_buffer)
-	OUT_OF_MEMORY;
 
     if ( par->reset > 0 )
     {
@@ -303,8 +299,6 @@ wbfs_t * wbfs_open_partition_param ( wbfs_param_t * par )
 
 	    const int disc_info_sz_lba =  p->disc_info_sz >> p->hd_sec_sz_s;
 	    wbfs_disc_info_t * info = wbfs_ioalloc(p->disc_info_sz);
-	    if (!info)
-		OUT_OF_MEMORY;
 	    memset(info,0,p->disc_info_sz);
 	    wbfs_inode_info_t * iinfo = wbfs_get_inode_info(p,info,0);
 	    wbfs_setup_inode_info(p,&par->iinfo,0,0);
@@ -326,8 +320,6 @@ wbfs_t * wbfs_open_partition_param ( wbfs_param_t * par )
 
 	    const int disc_info_sz_lba =  p->disc_info_sz >> p->hd_sec_sz_s;
 	    wbfs_disc_info_t * info = wbfs_ioalloc(p->disc_info_sz);
-	    if (!info)
-		OUT_OF_MEMORY;
 
 	    int slot;
 	    for ( slot = 0; slot < p->max_disc; slot++ )
@@ -629,8 +621,6 @@ static wbfs_disc_t * wbfs_open_disc_by_info
     ASSERT(info);
 
     wbfs_disc_t * d = wbfs_calloc(1,sizeof(*d));
-    if (!d)
-	OUT_OF_MEMORY;
     d->p = p;
     d->slot = slot;
     d->header = info;
@@ -674,8 +664,6 @@ wbfs_disc_t * wbfs_open_disc_by_slot ( wbfs_t * p, u32 slot, int force_open )
 	return 0;
 
     wbfs_disc_info_t * info = wbfs_ioalloc(p->disc_info_sz);
-    if (!info)
-	OUT_OF_MEMORY;
 
     const u32 disc_info_sz_lba = p->disc_info_sz >> p->hd_sec_sz_s;
     if ( p->read_hdsector (
@@ -737,8 +725,6 @@ wbfs_disc_t * wbfs_create_disc
     p->is_dirty = true;
 
     wbfs_disc_info_t * info = wbfs_ioalloc(p->disc_info_sz);
-    if (!info)
-	OUT_OF_MEMORY;
     memset(info,0,p->disc_info_sz);
     wd_header_t * dhead = (wd_header_t*)info->dhead;
     dhead->wii_magic = htonl(WII_MAGIC);
@@ -1159,8 +1145,6 @@ id6_t * wbfs_load_id_list ( wbfs_t * p, int force_reload )
 	TRACE("MALLOC id_list = %d * (%d+1) = %d\n",
 		id_item_size, p->max_disc, id_list_size );
 	p->id_list = wbfs_malloc(id_list_size);
-	if (!p->id_list)
-	    OUT_OF_MEMORY;
     }
     memset(p->id_list,0,id_list_size);
 
@@ -1287,9 +1271,6 @@ u32 * wbfs_load_freeblocks ( wbfs_t * p )
     if ( !p->freeblks && p->freeblks_lba_count )
     {
 	p->freeblks = wbfs_ioalloc( p->freeblks_lba_count * p->hd_sec_sz );
-	if (!p->freeblks)
-	    OUT_OF_MEMORY;
-
 	p->read_hdsector( p->callback_data,
 			  p->part_lba + p->freeblks_lba,
 			  p->freeblks_lba_count,
@@ -1332,15 +1313,12 @@ int wbfs_calc_used_blocks
 
     const size_t used_size = p->n_wbfs_sec + 32;
     if (!p->used_block)
-	p->used_block = malloc(used_size);
+	p->used_block = MALLOC(used_size);
     u8 * used = p->used_block;
 
     const size_t id_list_size = (p->max_disc+1) * sizeof(*p->id_list);
     if (!p->id_list)
 	p->id_list = wbfs_malloc(id_list_size);
-
-    if ( !block0 || !used || !p->id_list )
-	OUT_OF_MEMORY;
 
     memset(used,0,used_size);
     memset(p->id_list,0,id_list_size);
@@ -1877,8 +1855,6 @@ u32 wbfs_add_disc_param ( wbfs_t *p, wbfs_param_t * par )
     int disc_info_sz_lba;
 
     u8 * used = wbfs_malloc(p->n_wii_sec_per_disc);
-    if (!used)
-	OUT_OF_MEMORY;
 
 
     //----- open source disc
@@ -1942,8 +1918,6 @@ u32 wbfs_add_disc_param ( wbfs_t *p, wbfs_param_t * par )
 
     // build disc info
     info = wbfs_ioalloc(p->disc_info_sz);
-    if (!info)
-	OUT_OF_MEMORY;
     memset(info,0,p->disc_info_sz);
     // [2do] use wd_read_and_patch()
     par->read_src_wii_disc(par->callback_data, 0, 0x100, info->dhead);
@@ -2110,8 +2084,6 @@ u32 wbfs_add_phantom ( wbfs_t *p, const char * phantom_id, u32 wii_sectors )
 
     // build disc info
     info = wbfs_ioalloc(p->disc_info_sz);
-    if (!info)
-	OUT_OF_MEMORY;
     memset(info,0,p->disc_info_sz);
     memcpy(info->dhead,phantom_id,6);
     snprintf( (char*)info->dhead + WII_TITLE_OFF,

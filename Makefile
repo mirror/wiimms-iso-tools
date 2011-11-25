@@ -43,7 +43,7 @@ WDF_LONG		= Wiimms WDF Tool
 WFUSE_SHORT		= wfuse
 WFUSE_LONG		= Wiimms FUSE Tool
 
-VERSION_NUM		= 2.01a
+VERSION_NUM		= 2.02a
 BETA_VERSION		= 0
 			# 0:off  -1:"beta"  >0:"beta#"
 
@@ -243,7 +243,7 @@ VPATH		+= src src/libwbfs src/lzma src/crypto $(UI) work
 DIR_LIST	+= src src/libwbfs src/lzma src/crypto $(UI) work
 
 DEFINES1	+= -DLARGE_FILES -D_FILE_OFFSET_BITS=64
-DEFINES1	+= -DWIT		# enable WIT specific modifications in libwbfs
+DEFINES1	+= -DWIT		# compile wit tools (for shared sources (e.g. libwbfs))
 DEFINES1	+= -DDEBUG_ASSERT	# enable ASSERTions in release version too
 DEFINES1	+= -DEXTENDED_ERRORS=1	# enable extended error messages (function,line,file)
 DEFINES1	+= -D_7ZIP_ST=1		# disable 7zip multi threading

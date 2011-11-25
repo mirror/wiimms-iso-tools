@@ -201,11 +201,17 @@ typedef enum wd_pfst_t // print-fst mode
 {
     WD_PFST_HEADER	= 0x01,  // print table header
     WD_PFST_PART	= 0x02,  // print partition intro
-    WD_PFST_OFFSET	= 0x04,  // print offset
-    WD_PFST_SIZE_HEX	= 0x08,  // print size in hex
-    WD_PFST_SIZE_DEC	= 0x10,  // print size in dec
+    WD_PFST_UNUSED	= 0x04,  // print unused area
+    WD_PFST_OFFSET	= 0x08,  // print offset
+    WD_PFST_SIZE_HEX	= 0x10,  // print size in hex
+    WD_PFST_SIZE_DEC	= 0x20,  // print size in dec
 
-    WD_PFST__ALL	= 0x1f
+    WD_PFST__ALL	= 0x3f,
+
+    WD_PFST__OFF_SIZE	= WD_PFST_UNUSED
+			| WD_PFST_OFFSET
+			| WD_PFST_SIZE_HEX
+			| WD_PFST_SIZE_DEC,
 
 } wd_pfst_t;
 
@@ -767,11 +773,15 @@ typedef struct wd_print_fst_t
 	int		indent;		// indention of the output
 	wd_pfst_t	mode;		// print mode
 
-	//----- field widthes
+	//----- field widths and opther helper data
 
+	int		fw_unused;	// field width or 0 if hidden
 	int		fw_offset;	// field width or 0 if hidden
 	int		fw_size_dec;	// field width or 0 if hidden
 	int		fw_size_hex;	// field width or 0 if hidden
+
+	u64		last_end;	// 'offset + size' of last printed element
+	wd_icm_t	last_icm;	// 'icm' of last printed element
 
 	//----- filter function, used by wd_print_fst_item_wrapper()
 
@@ -1367,7 +1377,7 @@ u8 * wd_calc_usage_table
 u8 * wd_filter_usage_table
 (
     wd_disc_t		* disc,		// valid disc pointer
-    u8			* usage_table,	// NULL or result. If NULL -> malloc()
+    u8			* usage_table,	// NULL or result. If NULL -> MALLOC()
     const wd_select_t	* select	// NULL or a new selector
 );
 
@@ -1925,7 +1935,7 @@ wd_file_list_t * wd_initialize_file_list
 void wd_reset_file_list
 (
     wd_file_list_t	* fl,		// NULL or working file list to reset (free data)
-    bool		free_fl		// true: call 'free(fl)'
+    bool		free_fl		// true: call 'FREE(fl)'
 );
 
 //-----------------------------------------------------------------------------

@@ -104,10 +104,10 @@ void ResetWIA
     if (wia)
     {
 	wd_close_disc(wia->wdisc);
-	free(wia->part);
-	free(wia->raw_data);
-	free(wia->group);
-	free(wia->gdata);
+	FREE(wia->part);
+	FREE(wia->raw_data);
+	FREE(wia->group);
+	FREE(wia->gdata);
 	wd_reset_memmap(&wia->memmap);
 
 	memset(wia,0,sizeof(*wia));
@@ -149,7 +149,7 @@ static u32 AllocBufferWIA
     if (calc_only)
     {
 	wia->gdata_size = chunk_size;
-	free(wia->gdata);
+	FREE(wia->gdata);
 	wia->gdata = 0;
     }
     else
@@ -165,10 +165,8 @@ static u32 AllocBufferWIA
 	if ( !wia->gdata || wia->gdata_size != chunk_size )
 	{
 	    wia->gdata_size = chunk_size;
-	    free(wia->gdata);
-	    wia->gdata = malloc(wia->gdata_size);
-	    if (!wia->gdata)
-		OUT_OF_MEMORY;
+	    FREE(wia->gdata);
+	    wia->gdata = MALLOC(wia->gdata_size);
 	}
     }
 
@@ -1033,9 +1031,7 @@ enumError SetupReadWIA
 
     //----- setup controller
 
-    wia_controller_t * wia = calloc(1,sizeof(*wia));
-    if (!wia)
-	return OUT_OF_MEMORY;
+    wia_controller_t * wia = CALLOC(1,sizeof(*wia));
     sf->wia = wia;
     wia->gdata_group = wia->gdata_part = -1;  // reset gdata
     wia->encrypt = encoding & ENCODE_ENCRYPT || !( encoding & ENCODE_DECRYPT );
@@ -1128,9 +1124,7 @@ enumError SetupReadWIA
 	return ERROR0(ERR_WIA_INVALID,
 	    "Hash error for partition header: %s\n",sf->f.fname);
 
-    wia->part = calloc(disc->n_part,sizeof(wia_part_t));
-    if (!wia->part)
-	OUT_OF_MEMORY;
+    wia->part = CALLOC(disc->n_part,sizeof(wia_part_t));
 
     int ip;
     const u8 * src = tempbuf;
@@ -1192,9 +1186,7 @@ enumError SetupReadWIA
     {
 	wia->raw_data_used = disc->n_raw_data;
 	const u32 raw_data_len = wia->raw_data_used * sizeof(wia_raw_data_t);
-	wia->raw_data = malloc(raw_data_len);
-	if (!wia->raw_data)
-	    OUT_OF_MEMORY;
+	wia->raw_data = MALLOC(raw_data_len);
 
 	err = read_data( sf, disc->raw_data_off, disc->raw_data_size,
 			 0, wia->raw_data, raw_data_len );
@@ -1214,9 +1206,7 @@ enumError SetupReadWIA
     {
 	wia->group_used = disc->n_groups;
 	const u32 group_len = wia->group_used * sizeof(wia_group_t);
-	wia->group = malloc(group_len);
-	if (!wia->group)
-	    OUT_OF_MEMORY;
+	wia->group = MALLOC(group_len);
 
 	err = read_data( sf, disc->group_off, disc->group_size,
 			 0, wia->group, group_len );
@@ -2117,9 +2107,7 @@ static wia_raw_data_t * need_raw_data
 	wia->raw_data_size += grow_size;
 	noPRINT("ALLOC %u RAW_DATA\n",wia->raw_data_size);
 	wia->raw_data
-	    = realloc( wia->raw_data, wia->raw_data_size * sizeof(*wia->raw_data) );
-	if (!wia->raw_data)
-	    OUT_OF_MEMORY;
+	    = REALLOC( wia->raw_data, wia->raw_data_size * sizeof(*wia->raw_data) );
     }
 
     wia_raw_data_t * rdata = wia->raw_data + wia->raw_data_used++;
@@ -2236,9 +2224,7 @@ static enumError FinishSetupWriteWIA
     {
 	wia->group_size = wia->group_used;
 	PRINT("ALLOC %u GROUPS\n",wia->group_size);
-	wia->group = calloc(wia->group_size,sizeof(*wia->group));
-	if (!wia->group)
-	    OUT_OF_MEMORY;
+	wia->group = CALLOC(wia->group_size,sizeof(*wia->group));
 	wia->memory_usage += wia->group_size * sizeof(*wia->group);
 	sf->progress_add_total += wia->group_size * sizeof(*wia->group);
     }
@@ -2300,9 +2286,7 @@ static void setup_dynamic_mem
     if ( item->mode == WIA_MM_CACHED_DATA )
     {
 	PRINT("ALLOC PART HEADER #%u, size=%llx\n",item->index,item->size);
-	item->data = calloc(1,item->size);
-	if (!item->data)
-	    OUT_OF_MEMORY;
+	item->data = CALLOC(1,item->size);
 	item->data_alloced = true;
 
 	wia_controller_t * wia = param;
@@ -2341,9 +2325,7 @@ enumError SetupWriteWIA
 
     //----- setup controller
 
-    wia_controller_t * wia = calloc(1,sizeof(*wia));
-    if (!wia)
-	return OUT_OF_MEMORY;
+    wia_controller_t * wia = CALLOC(1,sizeof(*wia));
     sf->wia = wia;
     wia->is_writing = true;
     wia->gdata_group = wia->gdata_part = -1;  // reset gdata
@@ -2473,9 +2455,7 @@ enumError SetupWriteWIA
     disc->n_part = wdisc->n_part;
     memcpy(&disc->dhead,&wdisc->dhead,sizeof(disc->dhead));
 
-    wia_part_t * part = calloc(disc->n_part,sizeof(wia_part_t));
-    if (!part )
-	OUT_OF_MEMORY;
+    wia_part_t * part = CALLOC(disc->n_part,sizeof(wia_part_t));
     wia->part = part;
 
     for ( ip = 0; ip < wdisc->n_part; ip++, part++ )

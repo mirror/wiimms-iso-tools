@@ -1,0 +1,4 @@
+../src/debug.[ch] ;
+@lib-std.edit-list
+-y  160 ../src/debug.c ;
+-y  343 ../src/debug.h ;

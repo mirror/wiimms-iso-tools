@@ -565,7 +565,8 @@ enumError cmd_id6()
     //PRINT("N=%d,%d -> %d\n", select_list.used, id6_list.used, print_list->used );
     int i;
     for ( i = 0; i < print_list->used; i++ )
-	printf("%s\n",print_list->field[i]);
+	if (!IsExcluded(print_list->field[i]))
+	    printf("%s\n",print_list->field[i]);
 
     ResetStringField(&select_list);
     ResetStringField(&id6_list);
@@ -1414,7 +1415,7 @@ enumError cmd_edit()
     enum { DO_RM = -5, DO_ACT, DO_INV, DO_FREE, DO_USED };
     ASSERT( DO_USED < 0 );
 
-    CommandTab_t * ctab = calloc(6+wbfs.used_discs,sizeof(*ctab));
+    CommandTab_t * ctab = CALLOC(6+wbfs.used_discs,sizeof(*ctab));
     CommandTab_t * cptr = ctab;
 
     cptr->id	= DO_RM;
@@ -1448,7 +1449,7 @@ enumError cmd_edit()
 	if ( GetWDiscInfo(&wbfs,&dinfo,i) == ERR_OK )
 	{
 	    cptr->id	= i;
-	    cptr->name1	= strdup(dinfo.id6);
+	    cptr->name1	= STRDUP(dinfo.id6);
 	    cptr++;
 	}
 
@@ -2399,7 +2400,7 @@ enumError cmd_extract()
 
     //----- dest path
 
-    ccp dest_path, default_fname = "%+";
+    ccp dest_path, default_fname = "\1X";
     char dest_buf[PATH_MAX];
     if ( !opt_dest || !*opt_dest )
 	dest_path = "";
@@ -3562,6 +3563,7 @@ enumError CheckOptions ( int argc, char ** argv, bool is_env )
 	case GO_TRIM:		err += ScanOptTrim(optarg); break;
 	case GO_ALIGN:		err += ScanOptAlign(optarg); break;
 	case GO_ALIGN_PART:	err += ScanOptAlignPart(optarg); break;
+	case GO_ALIGN_FILES:	opt_align_files = true; break;
 	case GO_DISC_SIZE:	err += ScanOptDiscSize(optarg); break;
 	case GO_SPLIT:		opt_split++; break;
 	case GO_SPLIT_SIZE:	err += ScanOptSplitSize(optarg); break;

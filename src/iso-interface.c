@@ -671,7 +671,7 @@ enumError Dump_ISO
 
 	wd_print_fst( f, indent+2, disc,
 		prefix_mode == WD_IPM_DEFAULT ? WD_IPM_PART_NAME : prefix_mode,
-		ConvertShow2PFST(show_mode,SHOW__ALL) | WD_PFST_PART,
+		ConvertShow2PFST(show_mode,SHOW__ALL&~SHOW_UNUSED) | WD_PFST_PART,
 		pat->match_all ? 0 : MatchFilePatternFST, pat );
     }
 
@@ -824,9 +824,7 @@ enumError Dump_CERT_BIN
 
     indent = dump_header(f,indent,sf,0,real_path,0);
 
-    u8 * buf = malloc(sf->file_size);
-    if (!buf)
-	OUT_OF_MEMORY;
+    u8 * buf = MALLOC(sf->file_size);
 
     enumError err = ReadSF(sf,0,buf,sf->file_size);
     if (!err)
@@ -834,7 +832,7 @@ enumError Dump_CERT_BIN
 	putc('\n',f);
 	Dump_CERT_MEM(f,indent,buf,sf->file_size,true);
     }
-    free(buf);
+    FREE(buf);
     return err;
 }
 
@@ -1337,9 +1335,7 @@ enumError Dump_FST_BIN
 
     //----- setup fst
 
-    wd_fst_item_t * ftab_data = malloc(sf->file_size);
-    if (!ftab_data)
-	OUT_OF_MEMORY;
+    wd_fst_item_t * ftab_data = MALLOC(sf->file_size);
 
     enumError err = ReadSF(sf,0,ftab_data,sf->file_size);
     if (!err)
@@ -1350,7 +1346,7 @@ enumError Dump_FST_BIN
 	    ERROR0(err,"fst.bin is invalid: %s\n",sf->f.fname);
     }
 
-    free(ftab_data);
+    FREE(ftab_data);
     return err;
 }
 
@@ -1387,7 +1383,9 @@ enumError Dump_FST_MEM
 	WiiFst_t fst;
 	InitializeFST(&fst);
 	CollectFST_BIN(&fst,ftab_data,GetDefaultFilePattern(),false);
-	SortFST(&fst,sort_mode,SORT_NAME);
+	sort_mode = SortFST(&fst,sort_mode,SORT_NAME);
+	if ( (sort_mode&SORT__MODE_MASK) != SORT_OFFSET )
+	    pfst &= ~WD_PFST_UNUSED;
 	DumpFilesFST(f,indent,&fst,pfst,0);
 	ResetFST(&fst);
     }
@@ -1919,8 +1917,8 @@ void ResetIM ( IsoMapping_t * im )
 	IsoMappingItem_t *imi, *imi_end = im->field  + im->used;
 	for ( imi = im->field; imi < imi_end; imi++ )
 	    if (imi->data_alloced)
-		free(imi->data);
-	free(im->field);
+		FREE(imi->data);
+	FREE(im->field);
     }
     memset(im,0,sizeof(*im));
 }
@@ -1962,9 +1960,7 @@ IsoMappingItem_t * InsertIM
     if ( im->used == im->size )
     {
 	im->size += 10;
-	im->field = realloc(im->field,im->size*sizeof(*im->field));
-	if (!im->field)
-	    OUT_OF_MEMORY;
+	im->field = REALLOC(im->field,im->size*sizeof(*im->field));
     }
 
     u32 idx = InsertHelperIM(im,offset,size);
@@ -2059,9 +2055,9 @@ void ResetFileIndex ( FileIndex_t * fidx )
     {
 	FileIndexData_t * ptr = fidx->data;
 	fidx->data = ptr->next;
-	free(ptr);
+	FREE(ptr);
     }
-    free(fidx->sort);
+    FREE(fidx->sort);
     memset(fidx,0,sizeof(*fidx));
 }
 
@@ -2128,18 +2124,14 @@ FileIndexItem_t * InsertFileIndex
     if ( fidx->used == fidx->size )
     {
 	fidx->size = 2 * fidx->size + 0x100;
-	fidx->sort  = realloc(fidx->sort, fidx->size*sizeof(*fidx->sort));
-	if (!fidx->sort)
-	    OUT_OF_MEMORY;
+	fidx->sort  = REALLOC(fidx->sort, fidx->size*sizeof(*fidx->sort));
     }
     
     if ( !fidx->data || !fidx->data->unused )
     {
 	const int count = 0x1000;
 	FileIndexData_t * data
-	    = malloc( sizeof(FileIndexData_t) + count * sizeof(FileIndexItem_t) );
-	if (!data)
-	    OUT_OF_MEMORY;
+	    = MALLOC( sizeof(FileIndexData_t) + count * sizeof(FileIndexItem_t) );
 	data->unused = count;
 	data->next   = fidx->data;
 	fidx->data   = data;
@@ -2214,10 +2206,10 @@ void ResetFST ( WiiFst_t * fst )
 	WiiFstPart_t *part, *part_end = fst->part + fst->part_used;
 	for ( part = fst->part; part < part_end; part++ )
 	    ResetPartFST(part);
-	free(fst->part);
+	FREE(fst->part);
     }
     ResetIM(&fst->im);
-    free(fst->cache);
+    FREE(fst->cache);
     
     wd_close_disc(fst->disc);
 
@@ -2238,14 +2230,14 @@ void ResetPartFST ( WiiFstPart_t * part )
 	WiiFstFile_t *file, *file_end = part->file + part->file_used;
 	for ( file = part->file; file < file_end; file++ )
 	    FreeString(file->path);
-	free(part->file);
+	FREE(part->file);
     }
 
     FreeString(part->path);
     ResetStringField(&part->include_list);
     ResetIM(&part->im);
-    free(part->ftab);
-    free(part->pc);
+    FREE(part->ftab);
+    FREE(part->pc);
     ResetFileIndex(&part->fidx);
 
     memset(part,0,sizeof(*part));
@@ -2263,9 +2255,7 @@ WiiFstPart_t * AppendPartFST ( WiiFst_t * fst )
     if ( fst->part_used == fst->part_size )
     {
 	fst->part_size += 10;
-	fst->part = realloc(fst->part,fst->part_size*sizeof(*fst->part));
-	if (!fst->part)
-	    OUT_OF_MEMORY;
+	fst->part = REALLOC(fst->part,fst->part_size*sizeof(*fst->part));
     }
 
     WiiFstPart_t * part = fst->part + fst->part_used++;
@@ -2287,11 +2277,9 @@ WiiFstFile_t * AppendFileFST ( WiiFstPart_t * part )
     if ( part->file_used == part->file_size )
     {
 	part->file_size += part->file_size/4 + 1000;
-	part->file = realloc(part->file,part->file_size*sizeof(*part->file));
+	part->file = REALLOC(part->file,part->file_size*sizeof(*part->file));
 	TRACE("REALLOC(part->file): %u (size=%zu) -> %p\n",
 		part->file_size,part->file_size*sizeof(*part->file),part->file);
-	if (!part->file)
-	    OUT_OF_MEMORY;
     }
 
     part->sort_mode = SORT_NONE;
@@ -2433,14 +2421,14 @@ static int CollectFST_helper
 	    {
 		char fname[sizeof(it->path)];
 		StringCat2S(fname,sizeof(fname),it->prefix,src);
-		wff->path = strdup(fname);
+		wff->path = STRDUP(fname);
 	    }
 	    else
-		wff->path = strdup(src);
+		wff->path = STRDUP(src);
 	}
 	else
 	{
-	    wff->path = strdup( cf->store_prefix ? it->path : it->fst_name );
+	    wff->path = STRDUP( cf->store_prefix ? it->path : it->fst_name );
 	    if ( it->icm == WD_ICM_DIRECTORY && it->prefix_mode == WD_IPM_SLASH )
 	    {
 		const int plen = strlen(wff->path) - 1;
@@ -2455,7 +2443,7 @@ static int CollectFST_helper
 	    part			= AppendPartFST(fst);
 	    fst->part_active		= part;
 	    part->part			= it->part;
-	    part->path			= strdup(it->path);
+	    part->path			= STRDUP(it->path);
 	    part->part_type		= it->part->part_type;
 	    part->part_off		= (u64) it->part->part_off4 << 2;
 
@@ -2688,6 +2676,8 @@ enumError CreatePartFST ( WiiFstInfo_t *wfi, ccp dest_path )
     TRACE("CreatePartFST(%p)\n",wfi);
     ASSERT(wfi);
 
+    ResetParamField(&wfi->align_info);
+    wfi->align_info.pft = PFT_ALIGN;
     WiiFstPart_t * part = wfi->part;
     ASSERT(part);
 
@@ -2702,7 +2692,7 @@ enumError CreatePartFST ( WiiFstInfo_t *wfi, ccp dest_path )
     //----- setup include list
 
     StringCat2E(path_dest,path_end,part->path,FST_INCLUDE_FILE);
-    ReadStringField(&part->include_list,false,path,true);
+    LoadStringField(&part->include_list,false,path,true);
 
 
     //----- create all files but WD_ICM_COPY
@@ -2733,7 +2723,13 @@ enumError CreatePartFST ( WiiFstInfo_t *wfi, ccp dest_path )
     //----- write include.list
     
     StringCat2E(path_dest,path_end,part->path,FST_INCLUDE_FILE);
-    WriteStringField(&part->include_list,path,true);
+    SaveStringField(&part->include_list,path,true);
+
+
+    //----- write align.list
+
+    StringCat2E(path_dest,path_end,part->path,FST_ALIGN_FILE);
+    SaveParamField(&wfi->align_info,path,true);
 
     return err;
 }
@@ -2813,6 +2809,18 @@ enumError CreateFileFST ( WiiFstInfo_t *wfi, ccp dest_path, WiiFstFile_t * file 
 	return 0;
 
 
+    //----- alignment statstistics
+
+    char source[PATH_MAX];
+    if ( file->icm == WD_ICM_FILE
+	&& !memcmp(file->path,"files/",6)
+	&& ReduceToPathAndType(source,sizeof(source),file->path) )
+    {
+	noPRINT("ALIGN: %s\n",source);
+	InsertParamField(&wfi->align_info,source,file->offset4<<2);
+    }
+
+
     //----- detect links
 
     if ( opt_links && file->icm == WD_ICM_FILE )
@@ -2820,7 +2828,6 @@ enumError CreateFileFST ( WiiFstInfo_t *wfi, ccp dest_path, WiiFstFile_t * file 
 	WiiFstFile_t * last = wfi->last_file;
 	if ( last && last->offset4 == file->offset4 && last->size == file->size )
 	{
-	    char source[PATH_MAX];
 	    char * source_end = source + sizeof(source);
 	    char * source_part = StringCat2E(source,source_end,dest_path,part->path);
 	    StringCopyE(source_part,source_end,last->path);
@@ -3083,12 +3090,12 @@ typedef int (*compare_func) (const void *, const void *);
 
 //-----------------------------------------------------------------------------
 
-static int sort_fst_by_path ( const void * va, const void * vb )
+static int sort_fst_by_nintendo ( const void * va, const void * vb )
 {
     const WiiFstFile_t * a = (const WiiFstFile_t *)va;
     const WiiFstFile_t * b = (const WiiFstFile_t *)vb;
 
-    const int stat = strcmp(a->path,b->path);
+    const int stat = NintendoCMP(a->path,b->path);
     if (stat)
 	return stat;
 
@@ -3100,89 +3107,19 @@ static int sort_fst_by_path ( const void * va, const void * vb )
 
 //-----------------------------------------------------------------------------
 
-static int sort_fst_by_ipath ( const void * va, const void * vb )
+static int sort_fst_by_path ( const void * va, const void * vb )
 {
-    // try to sort in a nintendo like way
-    //  1.) ignoring case but sort carefully directories
-    //  2.) files before sub directories
+    const WiiFstFile_t * a = (const WiiFstFile_t *)va;
+    const WiiFstFile_t * b = (const WiiFstFile_t *)vb;
 
-    static char transform[0x100] = {0,0};
-    if (!transform[1]) // ==> setup needed once!
-    {
-	// define some special characters
-
-	uint index = 1;
-	transform[(u8)'/'] = index++;
-	transform[(u8)'.'] = index++;
-	transform[(u8)'-'] = index++;
-
-	// define digits
-
-	uint i;
-	for ( i = '0'; i <= '9'; i++ )
-	    transform[i] = index++;
-
-	// define letters
-
-	for ( i = 'A'; i <= 'Z'; i++ )
-	    transform[i] = transform[i-'A'+'a'] = index++;
-
-	// define all other
-
-	for ( i = 1; i < sizeof(transform); i++ )
-	    if (!transform[i])
-		transform[i] = index++;
-
-	DASSERT( index <= sizeof(transform) );
-	//HexDump16(stderr,0,0,transform,sizeof(transform));
-    }
-
-    //--- setup
-
-    const WiiFstFile_t * a	= (const WiiFstFile_t *)va;
-    const WiiFstFile_t * b	= (const WiiFstFile_t *)vb;
-    const u8 * ap		= (u8*)a->path;
-    const u8 * bp		= (u8*)b->path;
-    const u8 * a_last_slash	= (u8*)strrchr(a->path,'/');
-    const u8 * b_last_slash	= (u8*)strrchr(b->path,'/');
-    const uint a_dir_len	= a_last_slash ? a_last_slash-ap+1 : 0;
-    const uint b_dir_len	= b_last_slash ? b_last_slash-bp+1 : 0;
-    const uint min_dir_len	= a_dir_len < b_dir_len ? a_dir_len : b_dir_len;
-    const u8 * a_end_dir_cmp	= ap + min_dir_len;
-
-    //--- first compare directory part
-
-    while ( ap < a_end_dir_cmp )
-    {
-	if ( transform[*ap] != transform[*bp] )
-	{
-	    const int stat = (int)(transform[*ap]) - (int)(transform[*bp]);
-	    return stat;
-	}
-	ap++, bp++;
-    }
-
-    if ( a_dir_len != b_dir_len )
-	return a_dir_len - b_dir_len;
-
-    int stat = strncmp(a->path,b->path,min_dir_len);
+    const int stat = PathCMP(a->path,b->path);
     if (stat)
 	return stat;
 
+    if ( a->offset4 != b->offset4 )
+	return a->offset4 < b->offset4 ? -1 : 1;
 
-    //--- and now compare the file part
-
-    while ( *ap || *bp )
-    {
-	if ( transform[*ap] != transform[*bp] )
-	{
-	    const int stat = (int)(transform[*ap]) - (int)(transform[*bp]);
-	    return stat;
-	}
-	ap++, bp++;
-    }
-
-    return strcmp(a->path,b->path);
+    return a->size < b->size ? -1 : a->size > b->size;
 }
 
 //-----------------------------------------------------------------------------
@@ -3235,23 +3172,24 @@ static int sort_fst_by_size ( const void * va, const void * vb )
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-void SortFST ( WiiFst_t * fst, SortMode sort_mode, SortMode default_sort_mode )
+SortMode SortFST ( WiiFst_t * fst, SortMode sort_mode, SortMode default_sort_mode )
 {
     if (fst)
     {
 	WiiFstPart_t *part, *part_end = fst->part + fst->part_used;
 	for ( part = fst->part; part < part_end; part++ )
-	    SortPartFST(part,sort_mode,default_sort_mode);
+	    sort_mode = SortPartFST(part,sort_mode,default_sort_mode);
     }
+    return sort_mode;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 
-void SortPartFST ( WiiFstPart_t * part, SortMode sort_mode, SortMode default_sort_mode )
+SortMode SortPartFST ( WiiFstPart_t * part, SortMode sort_mode, SortMode default_sort_mode )
 {
     TRACE("SortPartFST(%p,%d,%d=\n",part,sort_mode,default_sort_mode);
     if (!part)
-	return;
+	return sort_mode;
 
     TRACE("SortFST(%p, s=%d,%d) prev=%d\n",
 		part, sort_mode, default_sort_mode, part->sort_mode );
@@ -3263,13 +3201,6 @@ void SortPartFST ( WiiFstPart_t * part, SortMode sort_mode, SortMode default_sor
 			: default_sort_mode | sort_mode & SORT_REVERSE;
     }
 
-    if ( part->file_used < 2 )
-    {
-	// zero or one element is sorted!
-	part->sort_mode = sort_mode;
-	return;
-    }
-
     compare_func func = 0;
     SortMode smode = sort_mode & SORT__MODE_MASK;
     switch(smode)
@@ -3278,10 +3209,9 @@ void SortPartFST ( WiiFstPart_t * part, SortMode sort_mode, SortMode default_sor
 	case SORT_OFFSET:	func = sort_fst_by_offset; break;
 
 	case SORT_ID:
- #ifndef TEST // [[2do]]
 	case SORT_NAME:
- #endif
 	case SORT_TITLE:
+	case SORT_NINTENDO:
 	case SORT_FILE:
 	case SORT_REGION:
 	case SORT_WBFS:
@@ -3291,28 +3221,32 @@ void SortPartFST ( WiiFstPart_t * part, SortMode sort_mode, SortMode default_sor
 	case SORT_MTIME:
 	case SORT_CTIME:
 	case SORT_ATIME:
-		sort_mode = SORT_NAME;
-		func = sort_fst_by_path;
+		smode = SORT_NINTENDO;
+		func = sort_fst_by_nintendo;
 		break;
 
- #ifdef TEST // [[2do]]
-	case SORT_NAME:
-		sort_mode = SORT_NAME;
-		func = sort_fst_by_ipath;
+	case SORT_PATH:
+		smode = SORT_PATH;
+		func = sort_fst_by_path;
 		break;
- #endif
 
 	default:
 		break;
     }
+    smode |= sort_mode & SORT_REVERSE;
 
-    if ( func && part->sort_mode != sort_mode )
+    if ( func && part->sort_mode != smode )
     {
-	part->sort_mode = sort_mode;
-	qsort(part->file,part->file_used,sizeof(*part->file),func);
-	if ( sort_mode & SORT_REVERSE )
-	    ReversePartFST(part);
+	part->sort_mode = smode;
+	if ( part->file_used > 1 )
+	{
+	    qsort(part->file,part->file_used,sizeof(*part->file),func);
+	    if ( smode & SORT_REVERSE )
+		ReversePartFST(part);
+	}
     }
+
+    return smode;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -3616,11 +3550,11 @@ static u32 scan_part ( scan_data_t * sd )
 		file->icm = WD_ICM_DIRECTORY;
 		*sd->path_dir++ = '/';
 		*sd->path_dir = 0;
-		file->path = strdup(sd->path_part);
+		file->path = STRDUP(sd->path_part);
 		noTRACE("DIR:  %s\n",path_dir);
 		file->offset4 = sd->depth++;
 
-		// pointer 'file' becomes invalid if realloc() is called => store index
+		// pointer 'file' becomes invalid if REALLOC() is called => store index
 		const int idx = file - sd->part->file; 
 		const u32 sub_count = scan_part(sd);
 		sd->part->file[idx].size = sub_count;
@@ -3634,7 +3568,7 @@ static u32 scan_part ( scan_data_t * sd )
 		ASSERT(file);
 
 		sd->name_pool_size += namesize;
-		file->path = strdup(sd->path_part);
+		file->path = STRDUP(sd->path_part);
 		noTRACE("FILE: %s\n",path_dir);
 		file->icm  = WD_ICM_FILE;
 		file->size = st.st_size;
@@ -3675,20 +3609,28 @@ u32 ScanPartFST
     sd.path_part = StringCat2S(sd.path,sizeof(sd.path),base_path,"/");
 
     StringCopyE(sd.path_part,sd.path+sizeof(sd.path),FST_INCLUDE_FILE);
-    ReadStringField(&part->include_list,false,sd.path,true);
+    LoadStringField(&part->include_list,false,sd.path,true);
+
+    ParamField_t align_info;
+    InitializeParamField(&align_info,PFT_ALIGN);
+    if (opt_align_files)
+    {
+	StringCopyE(sd.path_part,sd.path+sizeof(sd.path),FST_ALIGN_FILE);
+	LoadParamField(&align_info,0,sd.path,true);
+	PRINT("LOAD-ALIGN, N=%u: %s\n",align_info.used,sd.path);
+    }
 
     sd.path_dir = StringCopyE(sd.path_part,sd.path+sizeof(sd.path),"files/");
     WiiFstFile_t * file = AppendFileFST(sd.part);
     ASSERT(file);
     ASSERT( file == part->file );
     file->icm  = WD_ICM_DIRECTORY;
-    file->path = strdup(sd.path_part);
+    file->path = STRDUP(sd.path_part);
     noTRACE("DIR:  %s\n",sd.path_dir);
-
 
     //----- scan files
 
-    // pointer 'file' and 'part->file' becomes invalid if realloc() called
+    // pointer 'file' and 'part->file' becomes invalid if REALLOC() called
     // store the size first and then assign it (cross a sequence point)
     const u32 size = scan_part(&sd);
     ASSERT_MSG( size + 1 == part->file_used,
@@ -3706,9 +3648,7 @@ u32 ScanPartFST
     // alloc buffer
     sd.name_pool_size = ALIGN32(sd.name_pool_size,4);
     part->ftab_size = sizeof(wd_fst_item_t) * part->file_used + sd.name_pool_size;
-    part->ftab = calloc(part->ftab_size,1);
-    if (!part->ftab)
-	OUT_OF_MEMORY;
+    part->ftab = CALLOC(part->ftab_size,1);
     wd_fst_item_t * ftab = (wd_fst_item_t*)part->ftab;
     char *namebase = (char*)(ftab + part->file_used);
     char *nameptr = namebase;
@@ -3781,7 +3721,7 @@ u32 ScanPartFST
 	else
 	{
 	    DASSERT(file->icm == WD_ICM_FILE);
-	    nameptr++; // remember calloc()
+	    nameptr++; // remember CALLOC()
 	    ftab->size = htonl(file->size);
 	    ftab->offset4 = htonl(offset4);
 	    file->offset4 = offset4;
@@ -3807,6 +3747,18 @@ u32 ScanPartFST
 
 	    if (!ignore)
 	    {
+		char path[2000];
+		if ( align_info.used && ReduceToPathAndType(path,sizeof(path),file->path) )
+		{
+		    const ParamFieldItem_t *par = FindParamField(&align_info,path);
+		    if ( par && par->num >= WII_SECTOR_SIZE )
+		    {
+			offset4 = ALIGN32(offset4,WII_SECTOR_SIZE4);
+			ftab->offset4 = htonl(offset4);
+			file->offset4 = offset4;
+		    }
+		}
+
 		offset4 += file->size + 3 >> 2;
 		memcpy(file_dest,file,sizeof(*file_dest));
 		file_dest++;
@@ -3833,7 +3785,9 @@ u32 ScanPartFST
 	DumpFileIndex(stdout,3,&part->fidx);
     }
  #endif
+
     ResetFileIndex(&part->fidx);
+    ResetParamField(&align_info);
 
  #ifdef DEBUG
     {
@@ -3922,9 +3876,7 @@ u64 GenPartFST
     const u32 boot_size = WII_BOOT_SIZE + WII_BI2_SIZE;
     imi = InsertIM(&part->im,IMT_DATA,0,boot_size);
     imi->part = part;
-    imi->data = malloc(boot_size);
-    if (!imi->data)
-	OUT_OF_MEMORY;
+    imi->data = MALLOC(boot_size);
     imi->data_alloced = true;
     u32 cur_offset4 = ALIGN32(boot_size>>2,good_align);
 
@@ -4003,7 +3955,7 @@ u64 GenPartFST
     imi = InsertIM(&part->im,IMT_FILE,WII_APL_OFF,(u64)app_fsize4<<2);
     imi->part = part;
     StringCopyS(imi->info,sizeof(imi->info),"apploader.img");
-    imi->data = strdup(fpath);
+    imi->data = STRDUP(fpath);
     imi->data_alloced = true;
 
     cur_offset4 = ( WII_APL_OFF >> 2 ) + app_fsize4;
@@ -4022,7 +3974,7 @@ u64 GenPartFST
     imi = InsertIM(&part->im,IMT_FILE,(u64)cur_offset4<<2,(u64)dol_fsize4<<2);
     imi->part = part;
     StringCopyS(imi->info,sizeof(imi->info),"main.dol");
-    imi->data = strdup(fpath);
+    imi->data = STRDUP(fpath);
     imi->data_alloced = true;
 
     cur_offset4	+= dol_fsize4;
@@ -4061,9 +4013,7 @@ u64 GenPartFST
     if (use_std_cert_chain)
 	cert_size = sizeof(std_cert_chain);
 
-    wd_part_control_t *pc = malloc(sizeof(wd_part_control_t));
-    if (!pc)
-	OUT_OF_MEMORY;
+    wd_part_control_t *pc = MALLOC(sizeof(wd_part_control_t));
     part->pc = pc;
  
     if (clear_part_control(pc, WII_TMD_GOOD_SIZE, cert_size,
@@ -4166,9 +4116,7 @@ enumError SetupReadFST ( SuperFile_t * sf )
     PRINT("SetupReadFST() -> %x %s\n",sf->f.ftype,sf->f.fname);
 
     SetupIOD(sf,OFT_FST,OFT_FST);
-    WiiFst_t * fst = malloc(sizeof(*fst));
-    if (!fst)
-	OUT_OF_MEMORY;
+    WiiFst_t * fst = MALLOC(sizeof(*fst));
     sf->fst = fst;
     InitializeFST(fst);
 
@@ -4218,7 +4166,7 @@ enumError SetupReadFST ( SuperFile_t * sf )
 	data_part->part_type = WD_PART_DATA;
 	data_size = GenPartFST(sf,data_part,sf->f.fname,data_off,min_offset);
 	data_off  = data_part->part_off;
-	data_part->path = strdup(sf->f.fname);
+	data_part->path = STRDUP(sf->f.fname);
 	min_offset	= data_off
 			+ WII_PARTITION_BIN_SIZE
 			+ data_size;
@@ -4245,7 +4193,7 @@ enumError SetupReadFST ( SuperFile_t * sf )
 	    min_offset	= update_off
 			+ WII_PARTITION_BIN_SIZE
 			+ update_size;
-	    update_part->path = strdup(path);
+	    update_part->path = STRDUP(path);
 	}
 
 	min_offset = wd_align_part(min_offset,opt_align_part,false);
@@ -4257,7 +4205,7 @@ enumError SetupReadFST ( SuperFile_t * sf )
 	min_offset	= data_off
 			+ WII_PARTITION_BIN_SIZE
 			+ data_size;
-	data_part->path = strdup(path);
+	data_part->path = STRDUP(path);
 
 	if ( stat & CHANNEL_PART_FOUND )
 	{
@@ -4270,7 +4218,7 @@ enumError SetupReadFST ( SuperFile_t * sf )
 	    min_offset	= channel_off
 			+ WII_PARTITION_BIN_SIZE
 			+ channel_size;
-	    channel_part->path = strdup(path);
+	    channel_part->path = STRDUP(path);
 	}
     }
     ASSERT(data_part);
@@ -4289,9 +4237,7 @@ enumError SetupReadFST ( SuperFile_t * sf )
     IsoMappingItem_t * imi;
     imi = InsertIM(&fst->im,IMT_DATA,WII_PTAB_REF_OFF,part_tab_size);
     StringCopyS(imi->info,sizeof(imi->info),"partition tables");
-    imi->data = calloc(1,part_tab_size);
-    if (!imi->data)
-	OUT_OF_MEMORY;
+    imi->data = CALLOC(1,part_tab_size);
     imi->data_alloced = true;
 
     wd_ptab_info_t * pcount = imi->data;
@@ -4320,9 +4266,7 @@ enumError SetupReadFST ( SuperFile_t * sf )
 
     ASSERT(!fst->cache);
     ASSERT(!fst->cache_part);
-    fst->cache = malloc(WII_GROUP_SIZE);
-    if (!fst->cache)
-	OUT_OF_MEMORY;
+    fst->cache = MALLOC(WII_GROUP_SIZE);
     TRACE("CACHE= %x/hex = %u bytes\n",WII_GROUP_SIZE,WII_GROUP_SIZE);
 
 
@@ -5385,14 +5329,11 @@ static enumError skel_load_part
 
     //--- calculate disc offset
 
-    u8 * data = malloc(data_size);
-    if (!data)
-	OUT_OF_MEMORY;
-
+    u8 * data = MALLOC(data_size);
     const enumError err = wd_read_part(part,data_offset4,data,data_size,false);
     if (err)
     {
-	free(data);
+	FREE(data);
 	return err;
     }
 

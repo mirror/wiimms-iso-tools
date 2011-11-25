@@ -169,10 +169,11 @@ int ScanOptTrim
 
 //-----------------------------------------------------------------------------
 
-extern u32 opt_align1;
-extern u32 opt_align2;
-extern u32 opt_align3;
-extern u32 opt_align_part;
+extern u32  opt_align1;
+extern u32  opt_align2;
+extern u32  opt_align3;
+extern u32  opt_align_part;
+extern bool opt_align_files;
 
 int ScanOptAlign ( ccp arg );
 int ScanOptAlignPart ( ccp arg );

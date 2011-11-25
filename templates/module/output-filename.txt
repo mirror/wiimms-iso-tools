@@ -25,9 +25,9 @@
 
     Examples:
         '%4I.%E'    : Store the disc with ID4 as name.
-        '%1uT/%+'   : Store the disc into a subdirectory named with the
+        '%1uT/%X'   : Store the disc into a subdirectory named with the
                       first character (upper case) of the title.
-        '%3-4lI/%+' : Store the disc into aa subdirectory named with the
+        '%3-4lI/%X' : Store the disc into aa subdirectory named with the
                       language code of the ID using the lower case letter.
         '%P/%X'     : Store the disc into the directory of the source
                       with the extended filename.

@@ -328,10 +328,10 @@ static DiscFile_t * get_disc_file ( uint slot )
 		WiiFst_t * fst = (WiiFst_t*)df->fst; // avoid volatile warnings
 	        df->fst = 0;
 	        ResetFST(fst);
-	        free(fst);
+	        FREE(fst);
 	    }
 	    ResetWBFS(df->wbfs);
-	    free(df->wbfs);
+	    FREE(df->wbfs);
 	    memset(df,0,sizeof(df));
 	    n_dfile--;
 	}
@@ -345,7 +345,7 @@ static DiscFile_t * get_disc_file ( uint slot )
     if (found_df)
     {
 	memset(found_df,0,sizeof(found_df));
-	WBFS_t * wbfs = malloc(sizeof(*wbfs));
+	WBFS_t * wbfs = MALLOC(sizeof(*wbfs));
 	InitializeWBFS(wbfs);
 	enumError err = OpenWBFS(wbfs,source_file,true,0);
 	wbfs->cache_candidate = false;
@@ -361,7 +361,7 @@ static DiscFile_t * get_disc_file ( uint slot )
 	if (!disc)
 	{
 	    ResetWBFS(wbfs);
-	    free(wbfs);
+	    FREE(wbfs);
 	    found_df = 0;
 	}
 	else
@@ -434,9 +434,7 @@ static WiiFst_t * get_fst ( DiscFile_t * df )
 	fst = (WiiFst_t*)df->fst;
 	if (!fst)
 	{
-	    fst = malloc(sizeof(*fst));
-	    if (!fst)
-		OUT_OF_MEMORY;
+	    fst = MALLOC(sizeof(*fst));
 	    InitializeFST(fst);
 	    CollectFST(fst,df->disc,0,false,0,WD_IPM_SLASH,true);
 	    SortFST(fst,SORT_NAME,SORT_NAME);
@@ -2034,9 +2032,7 @@ int main ( int argc, char ** argv )
 	}
 
 	n_slots = w->max_disc;
-	slot_info = calloc(sizeof(*slot_info),n_slots);
-	if (!slot_info)
-	    OUT_OF_MEMORY;
+	slot_info = CALLOC(sizeof(*slot_info),n_slots);
 	int slot;
 	for ( slot = 0; slot < n_slots; slot++ )
 	{
@@ -2047,7 +2043,7 @@ int main ( int argc, char ** argv )
 		memcpy(si->id6,id_list[slot],6);
 		ccp title = GetTitle(si->id6,(ccp)d->header->dhead+WII_TITLE_OFF);
 		NormalizeFileName(buf,buf+sizeof(buf)-1,title,false)[0] = 0;
-		si->fname = strdup(buf);
+		si->fname = STRDUP(buf);
 
 		si->atime = main_sf.f.st.st_atime;
 		si->mtime = main_sf.f.st.st_mtime;
