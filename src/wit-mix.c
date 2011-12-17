@@ -159,7 +159,7 @@ static enumError verify_mix
     memset(utab,WD_USAGE_UNUSED,sizeof(utab));
     if (mp->is_gc)
     {
-	// [2do] [gc]
+	// [[2do]] [gc]
     }
     else
     {
@@ -844,7 +844,7 @@ static void permutate_mix ( MixParam_t * mp )
 	source[pdepth] = src;
 	insert_mix(mp,pdepth++,src-1);
 
-	// [2do] : insert part
+	// [[2do]] : insert part
 
 	if ( pdepth < n_perm )
 	{

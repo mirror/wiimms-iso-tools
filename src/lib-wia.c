@@ -45,7 +45,7 @@
 
 
 	//////////////////////////////////
-	//  [2do]:
+	//  [[2do]]:
 	//	- WIA_MM_GROWING
 	//	- raw data not 4-aligned
 	//////////////////////////////////
@@ -971,7 +971,7 @@ enumError ReadWIA
 off_t DataBlockWIA
 	( SuperFile_t * sf, off_t off, size_t hint_align, off_t * block_size )
 {
-    // [2do] [datablock] : analyze chunks
+    // [[2do]] [datablock] : analyze chunks
 
     ASSERT(sf);
     ASSERT(sf->wia);
@@ -997,7 +997,7 @@ off_t DataBlockWIA
 	item_end--;
 	while ( item < item_end )
 	{
-	    // [2do] this loops ends always with item==item_end
+	    // [[2do]] this loops ends always with item==item_end
 	    if ( item[1].offset - (item->offset + item->size) >= hint_align )
 		break;
 	    item++;
@@ -1904,7 +1904,7 @@ enumError WriteWIA
 
 	 case WIA_MM_GROWING:
 	    return ERROR0(ERR_INTERNAL,0);
-	    break; // [2do]
+	    break; // [[2do]]
 
 	    // ... fall through ...
 
@@ -2296,7 +2296,7 @@ static void setup_dynamic_mem
      #if HAVE_ASSERT
 	wia_raw_data_t * rdata = need_raw_data(wia,0x20,item->offset,item->size,0);
 	ASSERT(rdata);
-	ASSERT( ntohl(rdata->n_groups) == 1 ); // [2do] really needed?
+	ASSERT( ntohl(rdata->n_groups) == 1 ); // [[2do]] really needed?
      #endif
     }
 }

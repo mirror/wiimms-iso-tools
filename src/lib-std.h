@@ -412,7 +412,7 @@ void PrintMemMap ( MemMap_t * mm, FILE * f, int indent );
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////			file support			///////////////
 ///////////////////////////////////////////////////////////////////////////////
-// [2do] [ft-id]
+// [[2do]] [ft-id]
 
 typedef enum enumFileType
 {
@@ -428,7 +428,7 @@ typedef enum enumFileType
 
 	// special files
 
-	 FT__SPC_FILES	= 0x0020,  // [2do] [ft-id]
+	 FT__SPC_FILES	= 0x0020,  // [[2do]] [ft-id]
 
 	FT_ID_DOL	= 0x0020,  // file is a DOL file
 	FT_ID_CERT_BIN	= 0x0040,  // 'cert.bin' like file
@@ -977,26 +977,31 @@ typedef enum ShowMode
 	SHOW__NONE	= 0,
 
 	SHOW_INTRO	= 0x00000001, // introduction
-	SHOW_D_ID	= 0x00000002, // disc ID
-	SHOW_P_ID	= 0x00000004, // partition IDs
-	SHOW_P_TAB	= 0x00000008, // partition table
-	SHOW_P_INFO	= 0x00000010, // partition info
-	SHOW_P_MAP	= 0x00000020, // memory map of partitions
-	SHOW_D_MAP	= 0x00000040, // memory map of discs
-	SHOW_CERT	= 0x00000080, // certificates info
-	SHOW_TICKET	= 0x00000100, // ticket info
-	SHOW_TMD	= 0x00000200, // tmd info
-	SHOW_USAGE	= 0x00000400, // usage table
-	SHOW_FILES	= 0x00000800, // file list
-	SHOW_PATCH	= 0x00001000, // patching table
-	SHOW_RELOCATE	= 0x00002000, // relocation table
-	SHOW_PATH	= 0x00004000, // full path
+	SHOW_FHEADER	= 0x00000002, // file header
+	SHOW_SLOT	= 0x00000004, // slot info
+	SHOW_GEOMETRY	= 0x00000008, // geometry data
+	SHOW_D_ID	= 0x00000010, // disc ID
+	SHOW_P_ID	= 0x00000020, // partition IDs
+	SHOW_P_TAB	= 0x00000040, // partition table
+	SHOW_P_INFO	= 0x00000080, // partition info
+	SHOW_P_MAP	= 0x00000100, // memory map of partitions
+	SHOW_D_MAP	= 0x00000200, // memory map of discs
+	SHOW_W_MAP	= 0x00000400, // memory map of WBFS
+	SHOW_CERT	= 0x00000800, // certificates info
+	SHOW_TICKET	= 0x00001000, // ticket info
+	SHOW_TMD	= 0x00002000, // tmd info
+	SHOW_USAGE	= 0x00004000, // usage table
+	SHOW_FILES	= 0x00008000, // file list
+	SHOW_PATCH	= 0x00010000, // patching table
+	SHOW_RELOCATE	= 0x00020000, // relocation table
+	SHOW_PATH	= 0x00040000, // full path
+	SHOW_CHECK	= 0x00080000, // integrity check
 
-	SHOW_UNUSED	= 0x00008000, // show unused areas
-	SHOW_OFFSET	= 0x00010000, // show offsets
-	SHOW_SIZE	= 0x00020000, // show size
+	SHOW_UNUSED	= 0x00100000, // show unused areas
+	SHOW_OFFSET	= 0x00200000, // show offsets
+	SHOW_SIZE	= 0x00400000, // show size
 	
-	SHOW__ALL	= 0x0003ffff,
+	SHOW__ALL	= 0x007fffff,
 
 	//----- combinations
 
@@ -1010,19 +1015,23 @@ typedef enum ShowMode
 			| SHOW_TICKET
 			| SHOW_TMD,
 
-	SHOW__MAP	= SHOW_P_MAP
+	SHOW__DISC	= SHOW_FILES
 			| SHOW_D_MAP,
+
+	SHOW__MAP	= SHOW_P_MAP
+			| SHOW_D_MAP
+			| SHOW_W_MAP,
 
 	//----- flags
 
-	SHOW_F_DEC1	= 0x00100000, // prefer DEC, only one of DEC1,HEX1 is set
-	SHOW_F_HEX1	= 0x00200000, // prefer HEX, only one of DEC1,HEX1 is set
-	SHOW_F_DEC	= 0x00400000, // prefer DEC
-	SHOW_F_HEX	= 0x00800000, // prefer HEX,
-	SHOW_F__NUM	= 0x00f00000,
+	SHOW_F_DEC1	= 0x01000000, // prefer DEC, only one of DEC1,HEX1 is set
+	SHOW_F_HEX1	= 0x02000000, // prefer HEX, only one of DEC1,HEX1 is set
+	SHOW_F_DEC	= 0x04000000, // prefer DEC
+	SHOW_F_HEX	= 0x08000000, // prefer HEX,
+	SHOW_F__NUM	= 0x0f000000,
 
-	SHOW_F_HEAD	= 0x00100000, // print header lines
-	SHOW_F_PRIMARY	= 0x00200000, // print primary (unpatched) disc
+	SHOW_F_HEAD	= 0x01000000, // print header lines
+	SHOW_F_PRIMARY	= 0x02000000, // print primary (unpatched) disc
 
 	//----- etc
 

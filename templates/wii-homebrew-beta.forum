@@ -19,7 +19,7 @@ v@@VERSION@@ - @@@@-@@-@@[/b][/color][/size]
 ~ Highlights
 [size=12][color=#0000c0][b]Höhepunkte dieser Version:[/b][/color][/size]
 [list]
-[*]
+[*] I habe ein neues WBFS-Interface entwickelt. Damit lassen sich schnell und einfach einige übliche WBFS Fehler entdecken und vermeiden. Der häufigste Fehler ist z.B. eine fehlerhafte [i]free blocks table[/i]. Anstatt die gespeicherte zu verwenden, bauen meine Tools nun im Bruchteil einer Sekunde eine neue auf. Für weitere Details einfach das [i]change log[/i] lesen.
 [color=#800000]Bitte testet es![/color]
 [/list]
 

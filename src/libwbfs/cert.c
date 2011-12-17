@@ -644,7 +644,7 @@ int cert_append_data
 	const u8 * end = ptr + data_size;
 	while ( ptr < end )
 	{
-	    // [2do]
+	    // [[2do]]
 	    const u8 * start = ptr;
 	    const cert_head_t * head = (cert_head_t*)ptr;
 	    const cert_data_t * data = cert_get_data(head);

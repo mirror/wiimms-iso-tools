@@ -151,6 +151,7 @@ int  AddExcludePath ( ccp arg, int unused );
 void SetupExcludeDB();
 void DefineExcludePath ( ccp path, int max_dir_depth );
 
+bool IsExcludeActive();
 bool IsExcluded ( ccp id6 );
 void DumpExcludeDB();
 

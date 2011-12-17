@@ -73,7 +73,7 @@ enumIOMode opt_iomode = IOM__IS_DEFAULT | IOM_FORCE_STREAM;
 
 void ScanIOMode ( ccp arg )
 {
-    const enumIOMode new_io = strtol(optarg,0,0); // [2do] error handling
+    const enumIOMode new_io = strtol(optarg,0,0); // [[2do]] error handling
     opt_iomode = new_io & IOM__IS_MASK;
     if ( verbose > 0 || opt_iomode != new_io )
 	printf("IO mode set to %#0x.\n",opt_iomode);
@@ -532,7 +532,7 @@ static enumError XOpenFileHelper
      #ifdef __CYGWIN__
 	char * temp = AllocNormalizedFilenameCygwin(f->fname);
 	TRACE("open %p %p %s\n",f->fname,temp,temp);
-	//FreeString(f->fname); // [2do] [memleak] -> forces a core dump -- mhhm
+	//FreeString(f->fname); // [[2do]] [memleak] -> forces a core dump -- mhhm
 	f->fname = temp;
      #endif
 	f->fd = open( f->fname, f->active_open_flags, 0666 );
@@ -2107,7 +2107,7 @@ enumError XSetSizeF ( XPARM File_t * f, off_t size )
     //--------------------------------------------------
 
     if (f->fp)
-	fflush(f->fp); // [2do] ? error handling
+	fflush(f->fp); // [[2do]] ? error handling
 
     if ( !f->seek_allowed && f->cur_off <= size )
     {
@@ -2872,7 +2872,7 @@ enumError LoadFile
     bool		fatt_max	// true: store max values to 'fatt'
 )
 {
-    // [2do] error handling
+    // [[2do]] error handling
 
     ASSERT(data);
     if ( fatt && !fatt_max )
@@ -3347,7 +3347,7 @@ int AddCertFile ( ccp fname, int unused )
 		}
 	    }
 	}
-// [2do] [ft-id]
+// [[2do]] [ft-id]
 	else if ( sf.f.ftype & (FT_ID_CERT_BIN|FT_ID_TIK_BIN|FT_ID_TMD_BIN) )
 	{
 	    const size_t load_size = sf.file_size < sizeof(iobuf)

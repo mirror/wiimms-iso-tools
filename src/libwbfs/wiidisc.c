@@ -921,6 +921,11 @@ u64 wd_calc_disc_offset
 )
 {
     DASSERT(part);
+
+    if (part->is_gc) // GC: non shifted offsets
+	return (u64)part->part_off4 + data_offset4;
+	//return (u64)( part->part_off4 + data_offset4 ) << 2;
+
     const u32 offset_in_block = data_offset4 % WII_SECTOR_DATA_SIZE4;
     const u32 block = data_offset4 / WII_SECTOR_DATA_SIZE4;
     return (u64)( part->data_sector + block ) * WII_SECTOR_SIZE
@@ -942,7 +947,7 @@ wd_sector_status_t wd_get_part_sector_status
 {
     DASSERT(part);
     DASSERT(part->disc);
-    TRACE("wd_get_part_sector_status(%p,%d)\n",part,block_num);
+    PRINT("wd_get_part_sector_status(%p,%d,%d)\n",part,block_num,silent);
 
 
     //----- setup
@@ -1061,7 +1066,7 @@ wd_sector_status_t wd_get_disc_sector_status
 )
 {
     DASSERT(disc);
-    noPRINT("wd_get_disc_sector_status(%p,%d)\n",disc,block_num);
+    PRINT("wd_get_disc_sector_status(%p,%d,%d)\n",disc,block_num,silent);
 
     if ( block_num >= WII_MAX_SECTORS )
 	return WD_SS_INVALID_SECTOR;
@@ -1649,7 +1654,7 @@ wd_disc_t * wd_open_disc
     if (error_code)
 	*error_code = err;
 
-#if 0 && defined(TEST) && defined(DEBUG) // [2do]
+#if 0 && defined(TEST) && defined(DEBUG) // [[2do]]
     if (disc)
     {
 	static int tab[] = { 0, 4, 7935, 7936, 7940, 7941, -1 };
@@ -2060,6 +2065,17 @@ enumError wd_load_part
 	    return ERR_WPART_INVALID;
 	}
 
+	if (part->is_gc)
+	{
+	    const uint ssm = sizeof(skeleton_marker);
+	    const uint off = WII_BI2_OFF + WII_BI2_SIZE - ssm;
+	    if ( !memcmp( disc->temp_buf + off, skeleton_marker, ssm ))
+	    {
+		part->sector_stat |= WD_SS_F_SKELETON;
+		PRINT("*** wd_load_part() SKELETON ***\n");
+	    }
+	}
+
 	wd_boot_t * boot = &part->boot;
 	ntoh_boot(boot,(wd_boot_t*)disc->temp_buf);
 	part->region = be32(disc->temp_buf+WII_BI2_OFF+WII_BI2_REGION_OFF);
@@ -2079,7 +2095,7 @@ enumError wd_load_part
 
 	//----- setup setup_txt
 
-	// [2do] "setup.txt"
+	// [[2do]] "setup.txt"
 	part->setup_txt_len
 	    = snprintf((char*)disc->temp_buf,sizeof(disc->temp_buf),
 			"# setup.txt : scanned by wit+wwt while composing a disc.\n"
@@ -2334,7 +2350,7 @@ enumError wd_load_part
 	    }
 	}
 
-     #if 0 && defined(TEST) && defined(DEBUG) // [2do]
+     #if 0 && defined(TEST) && defined(DEBUG) // [[2do]]
 	{
 	    int i;
 	    for ( i = -1; i < 10; i += 1 )
@@ -3733,7 +3749,7 @@ int wd_iterate_files
 	if (stat)
 	    break;
 
-	// [2do] "setup.txt"
+	// [[2do]] "setup.txt"
 	it.icm  = WD_ICM_DATA;
 	it.off4 = 0;
 	it.size = part->setup_txt_len;
@@ -6374,7 +6390,7 @@ wd_file_list_t * wd_create_file_list
     else
 	fl = wd_initialize_file_list(0);
 
-    // [2do]
+    // [[2do]]
 
     return fl;
 }
@@ -6389,7 +6405,7 @@ wd_file_t * wd_insert_file
     ccp			file_path	// valid filename
 )
 {
-    // [2do]
+    // [[2do]]
     return 0;
 }
 
@@ -6401,7 +6417,7 @@ wd_file_t * wd_insert_directory
     ccp			dir_path	// valid directory name
 )
 {
-    // [2do]
+    // [[2do]]
     return 0;
 }
 
@@ -6424,7 +6440,7 @@ wd_fst_item_t * wd_create_file_list_fst
 {
     DASSERT(fl);
     
-    // [2do]
+    // [[2do]]
 
     return 0;
 }

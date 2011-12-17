@@ -173,6 +173,29 @@ wbfs_t * wbfs_open_partition
 
 #endif // !WIT 
 ///////////////////////////////////////////////////////////////////////////////
+#if NEW_WBFS_INTERFACE
+
+void wbfs_setup_lists
+(
+    wbfs_t		* p		// valid WBFS descriptor
+)
+{
+    DASSERT(p);
+
+    const size_t used_size = p->n_wbfs_sec + 32;
+    if (!p->used_block)
+	p->used_block = MALLOC(used_size);
+    memset(p->used_block,0,used_size);
+    p->used_block[0] = 0xff;
+
+    const size_t id_list_size = (p->max_disc+1) * sizeof(*p->id_list);
+    if (!p->id_list)
+	p->id_list = MALLOC(id_list_size);
+    memset(p->id_list,0,id_list_size);
+}
+
+#endif // NEW_WBFS_INTERFACE
+///////////////////////////////////////////////////////////////////////////////
 
 wbfs_t * wbfs_open_partition_param ( wbfs_param_t * par )
 {
@@ -194,6 +217,7 @@ wbfs_t * wbfs_open_partition_param ( wbfs_param_t * par )
     p->read_hdsector	= par->read_hdsector;
     p->write_hdsector	= par->write_hdsector;
     p->callback_data	= par->callback_data;
+    p->balloc_mode	= par->balloc_mode;
 
     //----- init/load partition header
 
@@ -257,13 +281,13 @@ wbfs_t * wbfs_open_partition_param ( wbfs_param_t * par )
 		1 << head->wbfs_sec_sz_s );
 
 
+#if !NEW_WBFS_INTERFACE
     //----- load/setup free block table
 
     noTRACE("FB: size4=%x=%u, mask=%x=%u\n",
 		p->freeblks_size4, p->freeblks_size4,
 		p->freeblks_mask, p->freeblks_mask );
 
-#if !NEW_WBFS_INTERFACE
     if ( par->reset <= 0 )
     {
 	// table will alloc and read only if needed
@@ -346,36 +370,29 @@ wbfs_t * wbfs_open_partition_param ( wbfs_param_t * par )
     }
 
 
-#if NEW_WBFS_INTERFACE
-
-    //---- check free blocks table and find invalid discs
-
-    PRINT("NEW WBFS INTERFACE: +++ check free blocks table and find invalid discs\n");
-    TRACE("NEW WBFS INTERFACE: +++ check free blocks table and find invalid discs\n");
-
-    if (wbfs_calc_used_blocks(p,true,false))
-	goto error;
-
- #ifdef DEBUG
-    TRACE("NEW WBFS INTERFACE: --- free blocks table ready\n");
-    PRINT("NEW WBFS INTERFACE: --- free blocks table ready\n");
-    wbfs_print_block_usage(stdout,3,p,false);
- #endif
-
-#endif // NEW_WBFS_INTERFACE
-
-
     //----- all done, terminate
 
     if ( par->reset > 0 )
     {
-#if NEW_WBFS_INTERFACE
+     #if NEW_WBFS_INTERFACE
+	wbfs_setup_lists(p);
 	p->is_dirty = p->used_block_dirty = true;
-#else
+     #else
 	p->is_dirty = true;
-#endif    
+     #endif    
 	wbfs_sync(p);
     }
+ #if NEW_WBFS_INTERFACE
+    else
+    {
+	if ( wbfs_calc_used_blocks(p,true,false,0,0) )
+	    goto error;
+
+     #if 0 && defined(DEBUG) && defined(TEST)
+	wbfs_print_block_usage(stdout,3,p,false);
+     #endif
+    }
+ #endif    
 
     return p;
 
@@ -539,7 +556,7 @@ void wbfs_sync ( wbfs_t * p )
 {
     // writes wbfs header and free blocks to hardisk
 
-    TRACE("LIBWBFS: +wbfs_sync(%p) wr_hds=%p, head=%p, freeblks=%p\n",
+    PRINT("LIBWBFS: +wbfs_sync(%p) wr_hds=%p, head=%p, freeblks=%p\n",
 		p, p->write_hdsector, p->head, p->freeblks );
 
     if (p->write_hdsector)
@@ -973,15 +990,15 @@ void wbfs_print_block_usage
 
 const char wbfs_usage_name_tab[256] =
 {
-	".#23456789ABCDEFGHIJKLMNOPQRSTUV"
-	"WXYZabcdefghijklmnopqrstuvwxyz++"
+	".x23456789ABCDEFGHIJKLMNOPQRSTUV"
+	"WXYZ++++++++++++++++++++++++++++"
 	"++++++++++++++++++++++++++++++++"
 	"+++++++++++++++++++++++++++++++*"
 
 	"0123456789ABCDEFGHIJKLMNOPQRSTUV"
-	"WXYZabcdefghijklmnopqrstuvwxyz++"
+	"WXYZ++++++++++++++++++++++++++++"
 	"++++++++++++++++++++++++++++++++"
-	"+++++++++++++++++++++++++++++++$"
+	"+++++++++++++++++++++++++++++++h"
 };
 
 //-----------------------------------------------------------------------------
@@ -1290,13 +1307,16 @@ u32 * wbfs_load_freeblocks ( wbfs_t * p )
 
 int wbfs_calc_used_blocks
 (
-    wbfs_t	* p,		// valid WBFS descriptor
-    bool	force_reload,	// true: definitely reload block #0
-    bool	store_block0	// true: don't free block0
+    wbfs_t		* p,		// valid WBFS descriptor
+    bool		force_reload,	// true: definitely reload block #0
+    bool		store_block0,	// true: don't free block0
+    wbfs_check_func	func,		// call back function for errors
+    void		* param		// user defined parameter
 )
 {
     DASSERT(p);
-    
+    char msg[100];    
+
     //------ setup
 
     u8 * block0;
@@ -1311,17 +1331,9 @@ int wbfs_calc_used_blocks
 	force_reload = true;
     }
 
-    const size_t used_size = p->n_wbfs_sec + 32;
-    if (!p->used_block)
-	p->used_block = MALLOC(used_size);
-    u8 * used = p->used_block;
-
-    const size_t id_list_size = (p->max_disc+1) * sizeof(*p->id_list);
-    if (!p->id_list)
-	p->id_list = wbfs_malloc(id_list_size);
-
-    memset(used,0,used_size);
-    memset(p->id_list,0,id_list_size);
+    wbfs_setup_lists(p);
+    u8 *used = p->used_block;
+    DASSERT(used);
 
     p->new_slot_err = p->all_slot_err = 0;
 
@@ -1346,6 +1358,8 @@ int wbfs_calc_used_blocks
 
     //----- scan free blocks table and mark free blocks with 0x80
 
+    const u8 FREE_MARK = 0x80;
+    
     u32 * fbt0 = (u32*)( block0 + ( p->part_lba + p->freeblks_lba ) * p->hd_sec_sz );
     u32 * fbt = fbt0;
     PRINT("block0=%p..%p, fbt=%p [%zx]\n",
@@ -1354,7 +1368,7 @@ int wbfs_calc_used_blocks
     u32 i;
     for ( i = 0; i < p->freeblks_size4; i++ )
     {
-	DASSERT( dest - used <= used_size - 32 );
+	DASSERT( dest - used <= p->n_wbfs_sec );
 	u32 v = wbfs_ntohl(*fbt++);
 	noPRINT("  %05x,%08x -> %04zx\n",i,v,dest-used);
 	if ( v == 0 )
@@ -1365,16 +1379,18 @@ int wbfs_calc_used_blocks
 	else if ( v == ~(u32)0 )
 	{
 	    // 32 free blocks
-	    memset(dest,0x80,32);
+	    memset(dest,FREE_MARK,32);
 	    dest += 32;
 	}
 	else
 	{
 	    u32 j;
 	    for ( j = 0; j < 32; j++, v >>= 1 )
-		*dest++ = (v&1) ? 0x80 : 0x00;
+		*dest++ = (v&1) ? FREE_MARK : 0x00;
 	}
     }
+    //HEXDUMP16(4,0,used,16);
+    //HEXDUMP16(4,0x400,used+0x400,16);
 
 
     //----- scan discs, pass 1/2
@@ -1396,7 +1412,9 @@ int wbfs_calc_used_blocks
 	    else
 		slot_info = WBFS_SLOT_VALID;
 
-	    memcpy(p->id_list[slot],info,6);
+	    char * id6 = p->id_list[slot];
+	    memcpy(id6,info,6);
+	    
 	    noPRINT("NEW WBFS INTERFACE: check slot %u: stat=%x, off=%zx, id=%s\n",
 			slot, slot_info, (u8*)info - block0,
 			wd_print_id(info,6,0) );
@@ -1408,20 +1426,35 @@ int wbfs_calc_used_blocks
 		const u32 wlba = wbfs_ntohs(wlba_tab[bl]);
 		if ( wlba >= p->n_wbfs_sec )
 		{
-		    PRINT("!!! NEW WBFS INTERFACE: invalid slot %u.%u\n",slot,bl);
+		    PRINT_IF(!func,"!!! NEW WBFS INTERFACE: invalid block %u.%u\n",slot,bl);
 		    slot_info = slot_info & ~WBFS_SLOT_VALID | WBFS_SLOT_INVALID;
 		    p->new_slot_err |= WBFS_SLOT_INVALID;
+		    if (func)
+		    {
+			const uint msg_len = snprintf(msg,sizeof(msg),
+				"Invalid WBFS block (%u>%u) at slot #%u [%s].",
+				wlba, p->n_wbfs_sec-1, slot, id6 );
+			func(p,WBFS_CHK_INVALID_BLOCK,slot,id6,wlba,0,msg,msg_len,param);
+		    }
 		}
 		else if ( wlba > 0 )
 		{
 		    bl_count++;
 		    
-		    if ( used[wlba] & 0x80 )
+		    if ( used[wlba] & FREE_MARK )
 		    {
-			PRINT("!!! NEW WBFS INTERFACE: slot %u.%x used free block #%x [%02x]\n",
-				slot, bl, wlba,  used[wlba] );
+			PRINT_IF(!func,
+				"!!! NEW WBFS INTERFACE: slot %u.%x used free block #%x [%02x]\n",
+				slot, bl, wlba, used[wlba] );
 			slot_info |= WBFS_SLOT_F_FREED;
 			p->new_slot_err |= WBFS_SLOT_F_FREED;
+			if (func)
+			{
+			    const uint msg_len = snprintf(msg,sizeof(msg),
+				"WBFS block #%u marked free, but used by slot #%u [%s].",
+				wlba, slot, id6 );
+			    func(p,WBFS_CHK_FREE_BLOCK_USED,slot,id6,wlba,0,msg,msg_len,param);
+			}
 		    }
 
 		    if ( ( used[wlba] & 0x7f ) < 0x7f )
@@ -1431,7 +1464,8 @@ int wbfs_calc_used_blocks
 
 	    if (!bl_count)
 	    {
-		PRINT("!!! NEW WBFS INTERFACE: disc @ slot %u does'n have any block\n",slot);
+		PRINT_IF(!func,
+		    "!!! NEW WBFS INTERFACE: disc @ slot %u does'n have any block\n",slot);
 		slot_info |= WBFS_SLOT_INVALID;
 		p->new_slot_err |= WBFS_SLOT_INVALID;
 	    }
@@ -1451,13 +1485,35 @@ int wbfs_calc_used_blocks
     int count = 32;
     bool pass2_needed = false;
 
+    //HEXDUMP16(4,0,used,16);
+    //HEXDUMP16(4,0x400,used+0x400,16);
+
     for ( i = 1; i < p->n_wbfs_sec; i++ )
     {
-	const u8 ucnt = used[i] &= 0x7f;
+	const u8 ucnt = used[i] & ~FREE_MARK;
 	if (!ucnt)
+	{
 	    v |= 1 << (i-1&31);
+	    if ( func && !used[i] )
+	    {
+		const uint msg_len = snprintf(msg,sizeof(msg),
+			"WBFS block #%u marked used, but is not used by any slot.",i);
+		func(p,WBFS_CHK_UNUSED_BLOCK,-1,0,i,0,msg,msg_len,param);
+	    }
+	}
 	else if ( ucnt > 1 )
+	{
+	    PRINT_IF(!func,
+		"!!! NEW WBFS INTERFACE: block %u* used: #%x [%02x]\n", ucnt, i, used[i] );
 	    pass2_needed = true;
+	    if (func)
+	    {
+		const uint msg_len = snprintf(msg,sizeof(msg),
+			"WBFS block #%u used %u times.",i,ucnt);
+		func(p,WBFS_CHK_MULTIUSED_BLOCK,-1,0,i,ucnt,msg,msg_len,param);
+	    }
+	}
+	used[i] = ucnt;
 
 	if ( !--count && fbt < fbt_end )
 	{
@@ -1496,10 +1552,19 @@ int wbfs_calc_used_blocks
 		    const u32 wlba = wbfs_ntohs(wlba_tab[bl]);
 		    if ( wlba > 0 && wlba < p->n_wbfs_sec && used[wlba] > 1 )
 		    {
-			PRINT("!!! NEW WBFS INTERFACE: slot %u.%x shares block #%x [%02x]\n",
-				slot, bl, wlba, used[wlba] );
+			PRINT_IF(!func,
+			    "!!! NEW WBFS INTERFACE: slot %u.%x shares block #%x [%02x]\n",
+			    slot, bl, wlba, used[wlba] );
 			slot_info |= WBFS_SLOT_F_SHARED;
 			p->new_slot_err |= WBFS_SLOT_F_SHARED;
+			if (func)
+			{
+			    const uint msg_len = snprintf(msg,sizeof(msg),
+				"Disc at slot #%u [%s] use shared block %u (used %u* total).",
+				slot, p->id_list[slot], wlba, used[wlba] );
+			    func(p, WBFS_CHK_SHARED_BLOCK, slot, p->id_list[slot],
+						bl, used[wlba], msg, msg_len, param );
+			}
 		    }
 		}
 	    }
@@ -1563,7 +1628,7 @@ u32 wbfs_find_free_blocks
 	for ( p2++; p2 < end && *p2; p2++ )
 	    ;
 	if ( p2 >= end )
-	break;
+	    break;
 
 	if ( p2 - p1 < range )
 	{
@@ -1612,37 +1677,6 @@ u32 wbfs_get_free_block_count ( wbfs_t * p )
     return count;
 
  #endif
-}
-
-///////////////////////////////////////////////////////////////////////////////
-// [2do] [obsolete] since 2010-10-26
-//	==> replace it in 2011 by direct call to wd_is_block_used()
-
-static bool old_is_block_used
-(
-    const u8		* used,		// valid pointer to usage table
-    u32			i,		// index of block
-    u32			wblk_sz		// if >1: number of sectors per block
-)
-{
-    u32 k;
-    i *= wblk_sz;
-    for ( k = 0; k < wblk_sz; k++ )
-	if ( i + k < WII_MAX_SECTORS && used[i+k] )
-	    return 1;
-    return 0;
-}
-
-static bool is_block_used
-(
-    const u8		* usage_table,	// valid pointer to usage table
-    u32			block_index,	// index of block
-    u32			block_size	// if >1: number of sectors per block
-)
-{
-    const bool res = wd_is_block_used(usage_table,block_index,block_size);
-    ASSERT( res == old_is_block_used(usage_table,block_index,block_size) );
-    return res;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -1749,10 +1783,14 @@ void wbfs_free_block ( wbfs_t *p, u32 bl )
     DASSERT(p);
     DASSERT(p->used_block);
 
-    if ( bl > 0 && bl < p->n_wbfs_sec && p->used_block[bl] )
+    if	(  bl > 0
+	&& bl < p->n_wbfs_sec
+	&& p->used_block[bl] > 0
+	&& p->used_block[bl] < 254
+	)
     {
-	p->used_block[bl] = 0;
-	p->used_block_dirty = p->is_dirty = true;
+	if (!--p->used_block[bl])
+	    p->used_block_dirty = p->is_dirty = true;
     }
 
  #else
@@ -1881,7 +1919,7 @@ u32 wbfs_add_disc_param ( wbfs_t *p, wbfs_param_t * par )
     u32 total_blocks  = 0;
 
     for ( i = 0; i < p->n_wbfs_sec_per_disc; i++ )
-	if ( copy_1_1 || is_block_used(used, i, wii_sec_per_wbfs_sect) )
+	if ( copy_1_1 || wd_is_block_used(used, i, wii_sec_per_wbfs_sect) )
 	    total_blocks++;
 
     const u32 free_blocks = wbfs_get_free_block_count(p);
@@ -1919,7 +1957,7 @@ u32 wbfs_add_disc_param ( wbfs_t *p, wbfs_param_t * par )
     // build disc info
     info = wbfs_ioalloc(p->disc_info_sz);
     memset(info,0,p->disc_info_sz);
-    // [2do] use wd_read_and_patch()
+    // [[2do]] use wd_read_and_patch()
     par->read_src_wii_disc(par->callback_data, 0, 0x100, info->dhead);
 
     copy_buffer = wbfs_ioalloc(p->wbfs_sec_sz);
@@ -1945,7 +1983,7 @@ u32 wbfs_add_disc_param ( wbfs_t *p, wbfs_param_t * par )
     for ( i = 0; i < p->n_wbfs_sec_per_disc; i++ )
     {
 	info->wlba_table[i] = wbfs_htons(0);
-	if (copy_1_1 || is_block_used(used, i, wii_sec_per_wbfs_sect))
+	if (copy_1_1 || wd_is_block_used(used, i, wii_sec_per_wbfs_sect))
 	{
 	    bl = wbfs_alloc_block(p,bl);
 	    if ( bl == WBFS_NO_BLOCK )
@@ -1978,7 +2016,7 @@ u32 wbfs_add_disc_param ( wbfs_t *p, wbfs_param_t * par )
 		    while ( wiiend < wiimax && used[wiiend] )
 			wiiend++;
 		    const u32 size = ( wiiend - wiisec ) * p->wii_sec_sz;
-		    // [2do] use wd_read_and_patch()
+		    // [[2do]] use wd_read_and_patch()
 		    if (par->read_src_wii_disc(par->callback_data,
 				wiisec * (p->wii_sec_sz>>2), size, dest ))
 			WBFS_ERROR("error reading disc");
@@ -2049,7 +2087,7 @@ error:
 
 ///////////////////////////////////////////////////////////////////////////////
 
-u32 wbfs_add_phantom ( wbfs_t *p, const char * phantom_id, u32 wii_sectors )
+u32 wbfs_add_phantom ( wbfs_t *p, ccp phantom_id, u32 wii_sectors )
 {
     ASSERT(p);
     TRACE("LIBWBFS: +wbfs_add_phantom(%p,%s,%u)\n",
@@ -2094,6 +2132,16 @@ u32 wbfs_add_phantom ( wbfs_t *p, const char * phantom_id, u32 wii_sectors )
     TRACE(" - add %u wbfs sectors to slot %u\n",max_wbfs_sect,slot);
 
     u32 bl = 0;
+#if NEW_WBFS_INTERFACE
+    if ( p->balloc_mode == WBFS_BA_AVOID_FRAG
+	|| p->balloc_mode == WBFS_BA_AUTO
+		&& p->hd_sec_sz * (u64)p->n_hd_sec >= 20*(u64)GiB )
+    {
+	bl = wbfs_find_free_blocks(p,max_wbfs_sect);
+	PRINT("WBFS: AVOID FRAG, first block=%u\n",bl);
+    }
+#endif
+
     int i;
     for ( i = 0; i < max_wbfs_sect; i++)
     {

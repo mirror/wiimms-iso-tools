@@ -356,7 +356,7 @@ info_t info_tab[] =
 
   { T_SEP_CMD,	0,0,0,0 }, //----- separator -----
 
-	// [2do] old name 'ILIST' is obsolete since 2010-08-15
+	// [[2do]] old name 'ILIST' is obsolete since 2010-08-15
 
   { T_DEF_CMD,	"FILES",	"FILES|F|ILIST|IL",  
 		    "wit FILES [source]...",
@@ -902,7 +902,7 @@ info_t info_tab[] =
 
   { T_OPT_CP,	"DEST",		"d|dest",
 		"path",
-		"Define a destination path (directory/file)."
+		"Define a destination path (directory or file)."
 		" The destination path is scanned for escape sequences"
 		" (see option {--esc}) to allow generic paths." },
 
@@ -1133,17 +1133,19 @@ info_t info_tab[] =
   { T_OPT_C,	"REALPATH",	"real-path|realpath",
 		0, "Print real path instead of entered path." },
 
-  { T_OPT_CP,	"SHOW",		"show",
+  { T_OPT_CP,	"SHOW",		"+|show",
 		"list",
 		"This option allows fine control over the things that are to be printed."
 		" The parameter is a comma separated list of the"
 		" following keywords, case is ignored:"
-		" @NONE, INTRO, D-ID, P-ID, P-TAB, P-INFO, P-MAP, D-MAP, TICKET, TMD, USAGE,"
+		" @NONE, INTRO, HEADER, SLOTS, GEOMETRY,"
+		" D-ID, P-ID, P-TAB, P-INFO, P-MAP, D-MAP, W-MAP, TICKET, TMD, USAGE,"
 		" PATCH, RELOCATE, FILES, UNUSED, OFFSET, SIZE, PATH@ and @ALL@."
 		" There are some combined keys:"
 		" @ID := D-ID,P-ID@,"
 		" @PART := P-INFO,P-ID,P-MAP,TICKET,TMD@,"
-		" @MAP := P-MAP,D-MAP@."
+		" @DISC := FILES,D-ID,D-MAP@,"
+		" @MAP := P-MAP,D-MAP,W_MAP@."
 		"\n "
 		" All keywords can be prefixed by '+' to enable that option,"
 		" by a '-' to disable it or"
@@ -2070,7 +2072,15 @@ info_t info_tab[] =
 		" 'REPAIR' is a shortcut for {CHECK --repair standard}." },
 
   { T_DEF_CMD,	"EDIT",		"EDIT",
-		    "wwt EDIT [sub_command]...",
+		    "wwt EDIT [JOB]...\n"
+		    " \n"
+		    "JOB     := REMOVE | ACTIVE | INVALID | FREE | USE | ID6\n"
+		    "REMOVE  := RM=a,b-c,...\n"
+		    "ACTIVE  := ACT=a,b-c,...\n"
+		    "INVALID := INV=a,b-c,...\n"
+		    "FREE    := FREE=a,b-c,...\n"
+		    "USE     := USE=a,b-c,...\n"
+		    "ID6     := ID6=a:b,c-d:e,...",
 		"Edit slot and block assignments. Dangerous! Read docu!" },
 
   { T_DEF_CMD,	"PHANTOM",	"PHANTOM",
@@ -2112,6 +2122,13 @@ info_t info_tab[] =
 		" Images, WBFS partitions and directories are accepted as source."
 		" 'SYNC' is a shortcut for {ADD --sync}." },
 
+  { T_DEF_CMD,	"DUP",		"DUP",
+		    "wwt DUP [source_wbfs]... [-d|-D] dest_file",
+		"Duplicate source WBFS files or partitions and create new WBFS files."
+		" If multiple sources entered, the destination must be a directory."
+		" All used WBFS blocks are copied 1:1 to the destination file"
+		" and unused blocks are skipped and stored as sparse blocks." },
+
   { T_DEF_CMD,	"EXTRACT",	"EXTRACT|X",
 		    "wwt EXTRACT id6[=dest]...",
 		"Extract discs from WBFS partitions and store them"
@@ -2139,7 +2156,7 @@ info_t info_tab[] =
 		" to find bad dumps." },
 
   { T_DEF_CMD,	"SKELETON",	"SKELETON|SKEL",
-		    "wit SKELETON [id6]...",
+		    "wwt SKELETON [id6]...",
 		"Create very small skeletons of ISO images."
 		" A skeleton contains only disc and partiton headers for further"
 		" analysis and is not playable because all files are zeroed."
@@ -2227,7 +2244,7 @@ info_t info_tab[] =
 
   { T_OPT_CMP,	"PART",		"p|part",
 		"part",
-		"Define a primary WBFS partition. Multiple usage possible." },
+		"Define a primary WBFS file or partition. Multiple usage possible." },
 
   { T_OPT_CMP,	"SOURCE",	"source",
 		0, 0 /* copy of wit */ },
@@ -2246,6 +2263,15 @@ info_t info_tab[] =
 
   { T_OPT_C,	"RAW",		"raw",
 		0, 0 /* copy of wit */ },
+
+  { T_OPT_CP,	"WBFS_ALLOC",	"wbfs-alloc|wbfsalloc",
+		"mode",
+		"Select one WBFS block allocation modus:"
+		"\n "
+		" @FIRST@: Use always the first free WBFS block."
+		" @NO-FRAG@: Find large blocks to minimize fragmentation."
+		" @AUTO@ (=default): Use modus @NO-FRAG@ for partitions >=20GiB"
+		" and modus @FIRST@ for partitions <20GiB and for files." },
 
   { T_SEP_OPT,	0,0,0,0 }, //----- separator -----
 
@@ -2371,7 +2397,7 @@ info_t info_tab[] =
   { T_OPT_C,	"TRUNC",	"trunc",
 		0, 0 /* copy of wit */ },
 
-  // [2do] [obsolte] hidden since 2011-10, remove it in 2012
+  // [[2do]] [obsolte] hidden since 2011-10, remove it in 2012
   { H_OPT_C,	"FAST",		"fast",
 		0,
 		"Ignored. Don't use this option because it will be discontinued." },
@@ -2518,6 +2544,9 @@ info_t info_tab[] =
   { T_OPT_CM,	"LONG",		"l|long",
 		0, 0 /* copy of wit */ },
 
+  { T_OPT_CP,	"SHOW",		"+|show",
+		0, 0 /* copy of wit */ },
+
   { T_OPT_C,	"FRAGMENTS",	"fragments|frag",
 		0,
 		"Print fragmentation info instead of region info."
@@ -2584,9 +2613,14 @@ info_t info_tab[] =
   { T_COPT,	"AUTO",		0,0,0 },
   { T_COPT,	"ALL",		0,0,0 },
   { T_COPT_M,	"PART",		0,0,0 },
+ #if NEW_WBFS_INTERFACE
+  { T_COPT,	"FORCE",	0,0,
+	"This option is not longer needed because of the new WBFS interface." },
+ #else
   { T_COPT,	"FORCE",	0,0,
 	"If the automatic check finds problematic errors,"
 	" then the report is printed but the operation is *not* canceled." },
+ #endif
   { T_COPT,	"NO_CHECK",	0,0,
 	"Disable automatic check of WBFS before modifications." },
 
@@ -2846,10 +2880,14 @@ info_t info_tab[] =
   { T_COPY_GRP,	"READ_WBFS",	0,0,0 },
   { T_COPT,	"INODE",	0,0,0 },
   { T_COPT_M,	"LONG",		0,0,
-	"If set then print a status for each valid disc within WBFS."
-	" If set twice print a memory map for each shown disc too."
-	" If set three times print an additional memory map for the whole WBFS."
-	" If set four times activate {--inode} too." },
+	"If set then print a status for each valid disc within WBFS"
+	" ({--show=FILES})."
+	" If set twice print a memory map for each disc is printed"
+	" too ({--show=D-MAP})."
+	" If set three times print an additional memory map for the"
+	" whole WBFS ({--show=W-MAP})."
+	" If set four times print an usabe table ({--show=USAGE})." },
+  { T_COPT,	"SHOW",		0,0,0 },
 
   //---------- COMMAND wwt ID6 ----------
 
@@ -3003,6 +3041,7 @@ info_t info_tab[] =
   { T_CMD_BEG,	"PHANTOM",	0,0,0 },
 
   { T_COPY_GRP,	"MOD_WBFS",	0,0,0 },
+  { T_COPT,	"WBFS_ALLOC",	0,0,0 },
   { T_COPT,	"QUIET",	0,0,0 },
   { T_COPT,	"VERBOSE",	0,0,
 	"Print a status line for each added disc." },
@@ -3022,6 +3061,7 @@ info_t info_tab[] =
 
   { T_COPY_GRP,	"TITLES",	0,0,0 },
   { T_COPY_GRP,	"MOD_WBFS",	0,0,0 },
+  { T_COPT,	"WBFS_ALLOC",	0,0,0 },
 
   { T_COPT_M,	"SOURCE",	0,0,0 },
   { T_COPT,	"NO_EXPAND",	0,0,0 },
@@ -3065,6 +3105,30 @@ info_t info_tab[] =
   { T_COPT,	"UPDATE",	0,0,0 },
   { T_COPT,	"OVERWRITE",	0,0,
 	"Overwrite already existing discs." },
+
+  //---------- COMMAND wwt DUP ----------
+
+  { T_CMD_BEG,	"DUP",	0,0,0 },
+
+  { T_COPY_GRP,	"TITLES",	0,0,0 },
+  { T_COPY_GRP,	"READ_WBFS",	0,0,0 },
+
+  { T_COPT,	"NO_CHECK",	0,0,
+	"Disable automatic check of WBFS before reading." },
+  { T_COPT,	"QUIET",	0,0,0 },
+  { T_COPT_M,	"LOGGING",	0,0,0 },
+
+  { T_SEP_OPT,	0,0,0,0 },
+
+  { T_COPT_M,	"DEST",		0,0,
+	"Define the path to the destination file."
+	" If not set, the last parameter is used as destination." },
+  { T_COPT_M,	"DEST2",	0,0,0 },
+  { T_COPT,	"OVERWRITE",	0,0,0 },
+
+  { T_SEP_OPT,	0,0,0,0 },
+
+  { T_COPT,	"TEST",		0,0,0 },
 
   //---------- COMMAND wwt EXTRACT ----------
 

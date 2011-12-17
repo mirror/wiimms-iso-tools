@@ -615,7 +615,7 @@ enumError DecLZMA_File2Buf // open + read + close lzma stream
     LzmaDec_Init(&lzma);
     for(;;)
     {
-	// [2do] [progress]
+	// [[2do]] [progress]
 
 	//--- fill input buffer
 
@@ -966,7 +966,7 @@ enumError DecLZMA2_File2Buf // open + read + close lzma stream
     Lzma2Dec_Init(&lzma);
     for(;;)
     {
-	// [2do] [progress]
+	// [[2do]] [progress]
 
 	//--- fill input buffer
 

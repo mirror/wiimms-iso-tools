@@ -398,7 +398,7 @@ enumError SetupReadSF ( SuperFile_t * sf )
     if ( sf->f.ftype == FT_UNKNOWN )
 	AnalyzeFT(&sf->f);
     ASSERT( sf->f.ftype == FT_UNKNOWN
-		|| Count1Bits32(sf->f.ftype&FT__ID_MASK) == 1  ); // [2do] [ft-id]
+		|| Count1Bits32(sf->f.ftype&FT__ID_MASK) == 1  ); // [[2do]] [ft-id]
 
     if ( sf->allow_fst && sf->f.ftype & FT_ID_FST )
 	return SetupReadFST(sf);
@@ -576,7 +576,7 @@ enumError PreallocateSF
     u32			min_hole_size	// the minimal allowed hole size in 32K sectors
 )
 {
-    // [2do] is 'min_hole_size' obsolete?
+    // [[2do]] is 'min_hole_size' obsolete?
 
     DASSERT(sf);
     if ( !sf->src || prealloc_mode == PREALLOC_OFF )
@@ -1542,7 +1542,7 @@ enumError WriteSparseISO
 
 enumError WriteZeroISO ( SuperFile_t * sf, off_t off, size_t size )
 {
-    // [2do] [zero] optimization
+    // [[2do]] [zero] optimization
 
     while ( size > 0 )
     {
@@ -1822,7 +1822,7 @@ enumError WriteWBFS
 
 enumError WriteZeroWBFS ( SuperFile_t * sf, off_t off, size_t size )
 {
-    // [2do] [zero] optimization
+    // [[2do]] [zero] optimization
 
     while ( size > 0 )
     {
@@ -2242,7 +2242,7 @@ enumFileType AnalyzeFT ( File_t * f )
 	InitializeWDiscInfo(&wdisk);
 
 	ASSERT( sf.f.ftype == FT_UNKNOWN
-		|| Count1Bits32(sf.f.ftype&FT__ID_MASK) == 1  ); // [2do] [ft-id]
+		|| Count1Bits32(sf.f.ftype&FT__ID_MASK) == 1  ); // [[2do]] [ft-id]
 
 	if ( sf.f.ftype & FT_ID_WBFS )
 	{
@@ -2541,7 +2541,7 @@ enumFileType AnalyzeFT ( File_t * f )
     // restore warnings
     f->disable_errors = disable_errors;
 
-    ASSERT( ft == FT_UNKNOWN || Count1Bits32(ft&FT__ID_MASK) == 1  ); // [2do] [ft-id]
+    ASSERT( ft == FT_UNKNOWN || Count1Bits32(ft&FT__ID_MASK) == 1  ); // [[2do]] [ft-id]
     return f->ftype = ft;
 }
 
@@ -2753,7 +2753,7 @@ enumError XPrintErrorFT ( XPARM File_t * f, enumFileType err_mask )
     if ( f->ftype == FT_UNKNOWN )
 	AnalyzeFT(f);
 
-// [2do] [ft-id]
+// [[2do]] [ft-id]
     enumError stat = ERR_OK;
     enumFileType  and_mask = err_mask &  f->ftype;
     enumFileType nand_mask = err_mask & ~f->ftype;
@@ -3026,7 +3026,7 @@ enumError CopyImage
     if ( err || SIGINT_level > 1 )
 	goto abort;
 
-#if 0 && defined(TEST)  // [2do]
+#if 0 && defined(TEST)  // [[2do]]
 
     fo->src = 0;
     if ( fi->disc1 == fi->disc2 )
@@ -3209,7 +3209,7 @@ enumError CopySF ( SuperFile_t * in, SuperFile_t * out )
 		PrintProgressSF(0,pr_total,out);
 	    }
 
- #if defined(TEST) && 0 // [2do] scheint nutzlos zu sein (test mit linux64)
+ #if defined(TEST) && 0 // [[2do]] scheint nutzlos zu sein (test mit linux64)
 	    const int max_sect = sizeof(iobuf) / WII_SECTOR_SIZE;
 	    idx = 0;
 	    while ( idx < sizeof(wdisc_usage_tab) )
@@ -3490,12 +3490,12 @@ enumError CopyWIA ( SuperFile_t * in, SuperFile_t * out )
     // fall back to CopyRaw()
     return CopyRaw(in,out);
 
- #if 0 // [2do] [wia]
+ #if 0 // [[2do]] [wia]
     enumError err = MarkMinSizeSF(out, opt_disc_size ? opt_disc_size : in->file_size );
     if (err)
 	return err;
 
-    // [2do] [wia]
+    // [[2do]] [wia]
     return ERROR0(ERR_NOT_IMPLEMENTED,"WIA is not supported yet.\n");
  #endif
 }
@@ -3621,7 +3621,7 @@ enumError AppendSparseF
 
 	noPRINT(" - %9llx -> %9llx, size=%8x/%9zx\n",
 		in_off, out->max_virt_off, size, count );
-	//err = WriteSparseSF(out,out->max_virt_off,iobuf,size); // [wdf-cat] [obsolete]
+	//err = WriteSparseSF(out,out->max_virt_off,iobuf,size); // [wdf-cat] [[obsolete]]
 	err = WriteSparseSF(out,out->file_size,iobuf,size);
 	if (err)
 	    return err;
@@ -3816,7 +3816,7 @@ bool CloseDiffSource
 		&& diff->f1
 		&& diff->f2 )
 	{
-	    // [2do] [diff] print only if differ || verbose >= 0
+	    // [[2do]] [diff] print only if differ || verbose >= 0
 	    ClearProgressLineSF(diff->f2);
 	    if (diff->diff_iso)
 		fprintf(diff->logfile,
@@ -5665,7 +5665,7 @@ static enumError SourceIteratorHelper
 	it->real_path = real_path = buf;
     }
 
-// [2do] [ft-id]
+// [[2do]] [ft-id]
     if ( it->act_wbfs >= ACT_EXPAND
 	&& ( sf.f.ftype & (FT_ID_WBFS|FT_A_WDISC) ) == FT_ID_WBFS )
     {
@@ -5738,7 +5738,7 @@ static enumError SourceIteratorHelper
 	return err ? err : SIGINT_level ? ERR_INTERRUPT : ERR_OK;
     }
 
-// [2do] [ft-id]
+// [[2do]] [ft-id]
     if ( sf.f.ftype & FT__SPC_MASK )
     {
 	const enumAction action = it->act_non_iso > it->act_known

@@ -643,7 +643,7 @@ enumError WriteSparseCISO
 
 enumError WriteZeroCISO ( SuperFile_t * sf, off_t off, size_t size )
 {
-    // [2do] [zero] optimization
+    // [[2do]] [zero] optimization
 
     while ( size > 0 )
     {
