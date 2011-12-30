@@ -59,13 +59,6 @@ wit v2.02a r3240 - 2011-11-25
  - wfuse for Mac is back again. It was lost because non installed FUSE package.
 
 
-Known bugs:
-
- - There are new problems while reading from non seekable sources (e.g. pipes).
-   The reason is the complete new and more intelligent wiidisc lib which makes
-   more lookups ==> The best is to use version 1.01c for pipes.
-
-
 Road map (for some point in the future):
 
  I have already stopped the development in favor of my SZS tools. But there

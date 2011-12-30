@@ -1786,7 +1786,7 @@ void wbfs_free_block ( wbfs_t *p, u32 bl )
     if	(  bl > 0
 	&& bl < p->n_wbfs_sec
 	&& p->used_block[bl] > 0
-	&& p->used_block[bl] < 254
+	&& p->used_block[bl] < 127
 	)
     {
 	if (!--p->used_block[bl])

@@ -19,9 +19,9 @@
 
 [size="3"][color="#0000c0"][b]Highlights of this release:[/b][/color][/size]
 [list]
-[*] I have implmented a new WBFS interface to detect and reduce WBFS errors. Most common are errors in the [i]free blocks table[/i]. Instead of using the stored one an internal memory map of used blocks is built. This needs only a part of a second. See change log for more details.
+[*]
 
-[*][color=#800000]Please test it![/color]
+~[*][color=#800000]Please test it![/color]
 ~[*] [color=#000080][b]GameCube support[/b][/color]
 ~I'm still working at GameCube support. Reading of GameCube (standard and multiboot) works. Reading means, that the wit commands COPY, EXTRACT, DUMP, LIST, FILES, MOVE, RENAME and some more works fine. "wit MIX" is able to create a multiboot disc without a special boot partition, but the qualifier "boot" will mark one source partition as boot partition.
 ~

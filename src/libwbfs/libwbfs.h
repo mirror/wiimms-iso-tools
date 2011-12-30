@@ -174,8 +174,9 @@ typedef struct wbfs_t
 					//    0: unused			==> OK
 					//    1: normal (=single) usage	==> OK
 					//   >1: shared by #N discs	==> BAD!
-					//  254: shared by >=254 discs	==> BAD!
-					//  255: bad used marker	==> BAD!
+					//  127: shared by >=127 discs	==> BAD!
+					// >128: reserved for internal usage
+					//  255: header block #0
     bool	used_block_dirty;	// true: 'used_block' must be written to disc
     wbfs_slot_mode_t	new_slot_err;	// new detected errors
     wbfs_slot_mode_t	all_slot_err;	// all detected errros
