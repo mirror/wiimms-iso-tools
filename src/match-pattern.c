@@ -569,7 +569,7 @@ static bool MatchPatternHelper
 				    return false;
 				break;
 
-			    case '[': // [2do] forgotten marker?
+			    case '[': // [[2do]] forgotten marker?
 				pattern = AnalyseBrackets(pattern,0,0,0);
 				break;
 			}
@@ -603,7 +603,7 @@ static bool MatchPatternHelper
 				skip_depth--;
 				break;
 
-			    case '[': // [2do] forgotten marker?
+			    case '[': // [[2do]] forgotten marker?
 				pattern = AnalyseBrackets(pattern,0,0,0);
 				break;
 			}

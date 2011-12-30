@@ -217,6 +217,11 @@ typedef struct CheckWBFS_t
 
 } CheckWBFS_t;
 
+///////////////////////////////////////////////////////////////////////////////
+
+extern wbfs_balloc_mode_t opt_wbfs_alloc;
+int ScanOptWbfsAlloc ( ccp arg );
+
 //
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////			   Analyze WBFS			///////////////
@@ -373,8 +378,16 @@ void LogCloseWBFS
 uint      CountWBFS	();
 uint	  GetIdWBFS	( WBFS_t * w, IdField_t * idf );
 
-enumError DumpWBFS	( WBFS_t * w, FILE * f, int indent,
-			  int dump_level, int view_invalid_discs, CheckWBFS_t * ck );
+enumError DumpWBFS
+(
+    WBFS_t	* wbfs,			// valid WBFS
+    FILE	* f,			// valid output file
+    int		indent,			// indention of output
+    ShowMode	show_mode,		// what should be printed
+    int		dump_level,		// dump level: 0..3, ignored if show_mode is set
+    int		view_invalid_discs,	// view invalid discs too
+    CheckWBFS_t	* ck			// not NULL: dump only discs with errors
+);
 
 extern StringField_t wbfs_part_list;
 u32 FindWBFSPartitions();
@@ -384,7 +397,7 @@ u32 FindWBFSPartitions();
 void InitializeCheckWBFS ( CheckWBFS_t * ck );
 void ResetCheckWBFS	 ( CheckWBFS_t * ck );
 enumError CheckWBFS	 ( CheckWBFS_t * ck, WBFS_t * w, int verbose, FILE * f, int indent );
-enumError AutoCheckWBFS	 ( WBFS_t * w, bool ignore_check );
+enumError AutoCheckWBFS	 ( WBFS_t * w, bool ignore_check, int indent );
 
 enumError PrintCheckedWBFS ( CheckWBFS_t * ck, FILE * f, int indent );
 

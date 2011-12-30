@@ -2367,7 +2367,7 @@ char * ScanHexHelper
 	    read_count++;
 	}
     }
-    // [2do] What 2do?? Is this a forgotten marker?
+    // [[2do]] What 2do?? Is this a forgotten marker?
 
     while ( hextab[*src] == 50 )
 	src++;
@@ -2590,7 +2590,7 @@ static wd_compression_t ScanCompression_helper
 	return compr;
     }
 
-#if 0 // [obsolete]
+#if 0 // [[obsolete]]
     char * end;
     u32 val = strtoul(scan_arg,&end,10);
  #ifdef TEST
@@ -3111,12 +3111,16 @@ ShowMode ScanShowMode ( ccp arg )
 	{ SHOW__ALL,		"ALL",		0,		0 },
 
 	{ SHOW_INTRO,		"INTRO",	0,		0 },
+	{ SHOW_FHEADER,		"FHEADER",	0,		0 },
+	{ SHOW_SLOT,		"SLOTS",	0,		0 },
+	{ SHOW_GEOMETRY,	"GEOMETRY",	0,		0 },
 	{ SHOW_D_ID,		"D-ID",		"DID",		0 },
 	{ SHOW_P_ID,		"P-IDS",	"PIDS",		0 },
 	{ SHOW_P_TAB,		"P-TAB",	"PTAB",		0 },
 	{ SHOW_P_INFO,		"P-INFO",	"PINFO",	0 },
 	{ SHOW_P_MAP,		"P-MAP",	"PMAP",		0 },
 	{ SHOW_D_MAP,		"D-MAP",	"DMAP",		0 },
+	{ SHOW_W_MAP,		"W-MAP",	"WMAP",		0 },
 	{ SHOW_CERT,		"CERTIFICATES",	0,		0 },
 	{ SHOW_TICKET,		"TICKET",	"TIK",		0 },
 	{ SHOW_TMD,		"TMD",		0,		0 },
@@ -3125,6 +3129,7 @@ ShowMode ScanShowMode ( ccp arg )
 	{ SHOW_PATCH,		"PATCH",	0,		0 },
 	{ SHOW_RELOCATE,	"RELOCATE",	0,		0 },
 	{ SHOW_PATH,		"PATH",		0,		0 },
+	{ SHOW_CHECK,		"CHECK",	0,		0 },
 
 	{ SHOW_UNUSED,		"UNUSED",	0,		0 },
 	{ SHOW_OFFSET,		"OFFSET",	0,		0 },
@@ -3132,6 +3137,7 @@ ShowMode ScanShowMode ( ccp arg )
 
 	{ SHOW__ID,		"IDS",		0,		0 },
 	{ SHOW__PART,		"PART",		0,		0 },
+	{ SHOW__DISC,		"DISC",		0,		0 },
 	{ SHOW__MAP,		"MAP",		0,		0 },
 
 	{ DEC_ALL,		"DEC",		0,		SHOW_F_HEX1 },

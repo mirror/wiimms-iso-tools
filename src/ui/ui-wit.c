@@ -386,8 +386,8 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 
     {	OPT_DEST, 'd', "dest",
 	"path",
-	"Define a destination path (directory/file). The destination path is"
-	" scanned for escape sequences (see option --esc) to allow generic"
+	"Define a destination path (directory or file). The destination path"
+	" is scanned for escape sequences (see option --esc) to allow generic"
 	" paths."
     },
 
@@ -644,14 +644,16 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 	"Print real path instead of entered path."
     },
 
-    {	OPT_SHOW, 0, "show",
+    {	OPT_SHOW, '+', "show",
 	"list",
 	"This option allows fine control over the things that are to be"
 	" printed. The parameter is a comma separated list of the following"
-	" keywords, case is ignored: NONE, INTRO, D-ID, P-ID, P-TAB, P-INFO,"
-	" P-MAP, D-MAP, TICKET, TMD, USAGE, PATCH, RELOCATE, FILES, UNUSED,"
-	" OFFSET, SIZE, PATH and ALL. There are some combined keys: ID :="
-	" D-ID,P-ID, PART := P-INFO,P-ID,P-MAP,TICKET,TMD, MAP := P-MAP,D-MAP.\n"
+	" keywords, case is ignored: NONE, INTRO, HEADER, SLOTS, GEOMETRY,"
+	" D-ID, P-ID, P-TAB, P-INFO, P-MAP, D-MAP, W-MAP, TICKET, TMD, USAGE,"
+	" PATCH, RELOCATE, FILES, UNUSED, OFFSET, SIZE, PATH and ALL. There"
+	" are some combined keys: ID := D-ID,P-ID, PART :="
+	" P-INFO,P-ID,P-MAP,TICKET,TMD, DISC := FILES,D-ID,D-MAP, MAP :="
+	" P-MAP,D-MAP,W_MAP.\n"
 	"  All keywords can be prefixed by '+' to enable that option, by a '-'"
 	" to disable it or by a '=' to enable that option and disable all"
 	" others.\n"
@@ -1175,7 +1177,7 @@ const CommandTab_t CommandTab[] =
 ///////////////            OptionShort & OptionLong             ///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-const char OptionShort[] = "VhqvPLE:T:ts:r:ax:X:n:N:1id:D:zZ:puoRWICBF:lUHS:";
+const char OptionShort[] = "VhqvPLE:T:ts:r:ax:X:n:N:1id:D:zZ:puoRWICBF:l+:UHS:";
 
 const struct option OptionLong[] =
 {
@@ -1318,7 +1320,7 @@ const struct option OptionLong[] =
 	 { "tech",		0, 0, GO_TECHNICAL },
 	{ "real-path",		0, 0, GO_REALPATH },
 	 { "realpath",		0, 0, GO_REALPATH },
-	{ "show",		1, 0, GO_SHOW },
+	{ "show",		1, 0, '+' },
 	{ "unit",		1, 0, GO_UNIT },
 	{ "unique",		0, 0, 'U' },
 	{ "no-header",		0, 0, 'H' },
@@ -1347,8 +1349,9 @@ const u8 OptionIndex[OPT_INDEX_SIZE] =
 {
 	/* 0x00   */	 0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0,
 	/* 0x10   */	 0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0,
-	/* 0x20   */	 0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0,
-	/* 0x30   */	 0,
+	/* 0x20   */	 0,0,0,0, 0,0,0,0, 0,0,0,
+	/* 0x2b + */	OPT_SHOW,
+	/* 0x2c   */	 0,0,0,0, 0,
 	/* 0x31 1 */	OPT_ONE_JOB,
 	/* 0x32   */	 0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,
 	/* 0x40   */	 0,0,
@@ -1463,14 +1466,13 @@ const u8 OptionIndex[OPT_INDEX_SIZE] =
 	/* 0xbc   */	OPT_NUMERIC,
 	/* 0xbd   */	OPT_TECHNICAL,
 	/* 0xbe   */	OPT_REALPATH,
-	/* 0xbf   */	OPT_SHOW,
-	/* 0xc0   */	OPT_UNIT,
-	/* 0xc1   */	OPT_OLD_STYLE,
-	/* 0xc2   */	OPT_SECTIONS,
-	/* 0xc3   */	OPT_LIMIT,
-	/* 0xc4   */	OPT_FILE_LIMIT,
-	/* 0xc5   */	OPT_PATCH_FILE,
-	/* 0xc6   */	 0,0,0,0, 0,0,0,0, 0,0,
+	/* 0xbf   */	OPT_UNIT,
+	/* 0xc0   */	OPT_OLD_STYLE,
+	/* 0xc1   */	OPT_SECTIONS,
+	/* 0xc2   */	OPT_LIMIT,
+	/* 0xc3   */	OPT_FILE_LIMIT,
+	/* 0xc4   */	OPT_PATCH_FILE,
+	/* 0xc5   */	 0,0,0,0, 0,0,0,0, 0,0,0,
 	/* 0xd0   */	 0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0,
 	/* 0xe0   */	 0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0,
 	/* 0xf0   */	 0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0,

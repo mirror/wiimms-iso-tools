@@ -625,7 +625,7 @@ enumError TermWriteWDF ( SuperFile_t * sf )
     const u64 last_pos = wc->file_pos + wc->data_size;
     if ( sf->file_size < last_pos )
     {
-	// correction for double layer discs [2do]
+	// correction for double layer discs [[2do]]
 	sf->file_size = last_pos;
     }
     else if ( sf->file_size > last_pos )

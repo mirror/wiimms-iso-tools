@@ -19,7 +19,9 @@
 
 [size="3"][color="#0000c0"][b]Highlights of this release:[/b][/color][/size]
 [list]
-~[color=#800000]Please test it![/color]
+[*]
+
+~[*][color=#800000]Please test it![/color]
 ~[*] [color=#000080][b]GameCube support[/b][/color]
 ~I'm still working at GameCube support. Reading of GameCube (standard and multiboot) works. Reading means, that the wit commands COPY, EXTRACT, DUMP, LIST, FILES, MOVE, RENAME and some more works fine. "wit MIX" is able to create a multiboot disc without a special boot partition, but the qualifier "boot" will mark one source partition as boot partition.
 ~

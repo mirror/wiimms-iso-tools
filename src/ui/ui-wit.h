@@ -624,6 +624,8 @@ typedef enum enumCommands
 
 typedef enum enumGetOpt
 {
+	GO_SHOW			= '+',
+
 	GO_ONE_JOB		= '1',
 
 	GO__ERR			= '?',
@@ -727,7 +729,6 @@ typedef enum enumGetOpt
 	GO_NUMERIC,
 	GO_TECHNICAL,
 	GO_REALPATH,
-	GO_SHOW,
 	GO_UNIT,
 	GO_OLD_STYLE,
 	GO_SECTIONS,

@@ -56,20 +56,6 @@ extern "C"
 
 ///////////////////////////////////////////////////////////////////////////////
 
-#ifdef NEW_FEATURES // [2do] [obsolete]
-
-    // 0: disable new interface
-    // 1: enable new interface
-    // 2: enable new interface && disable old interface
-
-    #define NEW_WBFS_INTERFACE 1
-
-#else
-    #define NEW_WBFS_INTERFACE 0
-#endif
-
-///////////////////////////////////////////////////////////////////////////////
-
 //  WBFS first wbfs_sector structure:
 //
 //  -----------
@@ -188,8 +174,9 @@ typedef struct wbfs_t
 					//    0: unused			==> OK
 					//    1: normal (=single) usage	==> OK
 					//   >1: shared by #N discs	==> BAD!
-					//  254: shared by >=254 discs	==> BAD!
-					//  255: bad used marker	==> BAD!
+					//  127: shared by >=127 discs	==> BAD!
+					// >128: reserved for internal usage
+					//  255: header block #0
     bool	used_block_dirty;	// true: 'used_block' must be written to disc
     wbfs_slot_mode_t	new_slot_err;	// new detected errors
     wbfs_slot_mode_t	all_slot_err;	// all detected errros
@@ -270,6 +257,7 @@ typedef struct wbfs_param_t // function parameters
 	// call back data
 	wd_read_func_t		read_src_wii_disc;	// read wit sector [obsolete?]
 	progress_callback_t	spinner;		// progress callback
+	wbfs_balloc_mode_t	balloc_mode;		// block allocation mode
 
   //----- parameters for wbfs_add_disc_param()
 
@@ -410,11 +398,43 @@ void wbfs_print_usage_tab
 
 //-----------------------------------------------------------------------------
 
+typedef enum wbfs_check_t
+{
+    WBFS_CHK_DONE = 0,			// finish message
+
+    WBFS_CHK_UNUSED_BLOCK,		// block marked used, but is not used [block]
+    WBFS_CHK_MULTIUSED_BLOCK,		// block used multiple times [block,count]
+
+    WBFS_CHK_INVALID_BLOCK,		// invalid block number [slot,id6,block]
+    WBFS_CHK_FREE_BLOCK_USED,		// block marked free but used [slot,id6,block]
+    WBFS_CHK_SHARED_BLOCK,		// usage of a shared block by [slot,id6,block,count]
+
+} wbfs_check_t;
+
+//-----------------------------------------------------------------------------
+
+typedef void (*wbfs_check_func)
+(
+    wbfs_t		* p,		// valid WBFS descriptor
+    wbfs_check_t	check_mode,	// modus
+    int			slot,		// -1 or related slot index
+    ccp			id6,		// NULL or pointer to disc ID6
+    int			block,		// -1 or related block number
+    uint		count,		// block usage count
+    ccp			msg,		// clear text message
+    uint		msg_len,	// strlen(msg)
+    void		* param		// user defined paramater
+);
+
+//-----------------------------------------------------------------------------
+
 int wbfs_calc_used_blocks
 (
-    wbfs_t	* p,		// valid WBFS descriptor
-    bool	force_reload,	// true: definitely reload block #0
-    bool	store_block0	// true: don't free block0
+    wbfs_t		* p,		// valid WBFS descriptor
+    bool		force_reload,	// true: definitely reload block #0
+    bool		store_block0,	// true: don't free block0
+    wbfs_check_func	func,		// call back function for errors
+    void		* param		// user defined parameter
 );
 
 //-----------------------------------------------------------------------------
@@ -497,7 +517,7 @@ u32 wbfs_add_disc
 
 u32 wbfs_add_disc_param ( wbfs_t * p, wbfs_param_t * par );
 
-u32 wbfs_add_phantom ( wbfs_t * p, const char * phantom_id, u32 wii_sector_count );
+u32 wbfs_add_phantom ( wbfs_t *p, ccp phantom_id, u32 wii_sectors );
 
 // remove a disc from partition
 u32 wbfs_rm_disc

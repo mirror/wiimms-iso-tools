@@ -44,11 +44,19 @@ wit v2.01a r3138 - 2011-10-27
    The only change is for GameCube discs because of implied --copy-gc.
 
 
-Known bugs:
+wit v2.02a r3240 - 2011-11-25
 
- - There are new problems while reading from non seekable sources (e.g. pipes).
-   The reason is the complete new and more intelligent wiidisc lib which makes
-   more lookups ==> The best is to use version 1.01c for pipes.
+ - The default output filename for WBFS files changed from "ID6.wbfs" ("%+")
+   to "TITLE [ID6].wbfs" ("%X").
+ - The file order for composed files is now Nintendo like.
+ - If extracting an image, a new files called 'align-files.txt' is created. It
+   stores information about file alligning. If creating a new image and option
+   --align-files is set, this file is read to align files, that have a previous
+   aligning of >=0x8000 (Wii sector size). This fixes the bug for "Super Paper
+   Mario" and perhaps for some other games.
+ - wit FILES: If the file list is sorted by offset, than an 'unused' column is
+   added before the 'offset' column.
+ - wfuse for Mac is back again. It was lost because non installed FUSE package.
 
 
 Road map (for some point in the future):
@@ -56,32 +64,8 @@ Road map (for some point in the future):
  I have already stopped the development in favor of my SZS tools. But there
  are some already planned extensions:
 
- - Since many versions the code contains a WBFS extension, enabled by defining
-   the symbol NEW_WBFS_INTERFACE (set by "make new all"). If enabled, the free
-   blocks table is managed in a total different way. Already implemented are:
-    - WBFS access: While opening a WBFS the free blocks table is ignored.
-      Instead of using the stored one an internal memory map of used blocks is
-      built. This needs only a part of a second. Some advantages:
-       - Errors in the free blocks table are irrelevant.
-       - Blocks overlaps and invalid block assignings are automatically
-         detected and reported.
-       - If removing a discs with overlaps, the blocks are still marked used.
-       - Blocks, that are not handled by the free blocks tables (a result of a
-         calculation bug in the original libwbfs) can be used.
-      If closing, a new (and corrected) free blocks table will be written. This
-      makes the whole process compatible to other WBFS managers and loaders.
-    - wwt ADD: Before adding a disc it size is compared against the free size
-      of the WBFS. This allows an early "disc full" error message.
-    - wwt ADD: If adding a disc a continuous memory block is searched to
-      minimize the (non existent) fragmentation.
-   Missing:
-    - Report errors while scanning the WBFS.
-    - The commands "wwt CHECK", "wwt REPAIR" and "wwt EDIT" must use the new
-      interface.
-
  - GameCube support is still incomplete.
     - Creation of GameCube disc is not possible.
-    - Skeleton support missed.
 
  - There are already code fragments implemented to trim discs in three levels:
     - Move partitions as whole to eliminate disc holes.
@@ -91,8 +75,8 @@ Road map (for some point in the future):
    For all trimming levels alignment factors may be set and it should be
    possible to set special alignments for GameCube sound files.
 
- - On the fly patching: Create a new image a combination of 2 or more sources.
-   Therefor trimming is needed.
+ - On the fly patching: Create a new image as combination of 2 or more sources.
+   Therefor trimming (sector or file level) is needed.
 
 
 @@MODULE(last-history.txt)@@

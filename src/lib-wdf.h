@@ -53,7 +53,7 @@
 #define WDF_MAGIC_SIZE		8
 
 #ifdef NEW_FEATURES
- #define WDF2_ENABLED		1	// [2do]
+ #define WDF2_ENABLED		1	// [[2do]]
  #define WDF_VERSION		2
  #define WDF_COMPATIBLE		1
 #else

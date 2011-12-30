@@ -43,7 +43,7 @@ WDF_LONG		= Wiimms WDF Tool
 WFUSE_SHORT		= wfuse
 WFUSE_LONG		= Wiimms FUSE Tool
 
-VERSION_NUM		= 2.02a
+VERSION_NUM		= 2.03a
 BETA_VERSION		= 0
 			# 0:off  -1:"beta"  >0:"beta#"
 
@@ -650,6 +650,19 @@ new:
 #
 #--------------------------
 
+.PHONY : old
+old:
+	@printf "$(LOGFORMAT)" enable old "-> define -DOLD_FEATURES"
+	@rm -f *.o $(ALL_TOOLS_X)
+	@echo "-DOLD_FEATURES" >>$(MODE_FILE)
+	@sort $(MODE_FILE) | uniq > $(MODE_FILE).tmp
+# 2 steps to bypass a cygwin mv failure
+	@cp $(MODE_FILE).tmp $(MODE_FILE)
+	@rm -f $(MODE_FILE).tmp
+
+#
+#--------------------------
+
 .PHONY : predef
 predef:
 	@gcc -E -dM none.c | sort
@@ -894,6 +907,7 @@ help:
 	@echo  " make debug	enable '-DDEBUG'"
 	@echo  " make test	enable '-DTEST'"
 	@echo  " make new	enable '-DNEW_FEATURES'"
+	@echo  " make old	enable '-DOLD_FEATURES'"
 	@echo  " make wait	enable '-DWAIT'"
 	@echo  " make testtrace	enable '-DTESTTRACE'"
 	@echo  " make flags	print DEFINES, CFLAGS and LDFLAGS"

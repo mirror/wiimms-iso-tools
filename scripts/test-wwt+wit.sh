@@ -347,7 +347,8 @@ function test_suite()
 	#diff -rq "$dest/1" "$dest/2"
 	((OPT_TEST)) || find "$dest" -name tmd.bin	-type f -exec rm {} \;
 	((OPT_TEST)) || find "$dest" -name ticket.bin	-type f -exec rm {} \;
-	find "$dest" -name setup.txt	-type f -exec rm {} \;
+	find "$dest" -name setup.txt -type f -exec rm {} \;
+	find "$dest" -name align-files.txt -type f -exec rm {} \;
 
 	test_function "DIF-FST2" "DIFF fst/1 fst/2" \
 	    diff -rq "$dest/1" "$dest/2" \

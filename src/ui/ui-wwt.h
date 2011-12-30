@@ -65,6 +65,7 @@ typedef enum enumOptions
 	OPT_RDEPTH,
 	OPT_PSEL,
 	OPT_RAW,
+	OPT_WBFS_ALLOC,
 	OPT_EXCLUDE,
 	OPT_EXCLUDE_PATH,
 	OPT_INCLUDE,
@@ -138,6 +139,7 @@ typedef enum enumOptions
 	OPT_TIME,
 	OPT_SET_TIME,
 	OPT_LONG,
+	OPT_SHOW,
 	OPT_FRAGMENTS,
 	OPT_NUMERIC,
 	OPT_TECHNICAL,
@@ -150,7 +152,7 @@ typedef enum enumOptions
 	OPT_SORT,
 	OPT_LIMIT,
 
-	OPT__N_SPECIFIC, // == 94 
+	OPT__N_SPECIFIC, // == 96 
 
 	//----- global options -----
 
@@ -174,7 +176,7 @@ typedef enum enumOptions
 	OPT_NEW,
 	OPT_HOOK,
 
-	OPT__N_TOTAL // == 113
+	OPT__N_TOTAL // == 115
 
 } enumOptions;
 
@@ -198,6 +200,7 @@ typedef enum enumOptions
 //	OB_RDEPTH		= 1llu << OPT_RDEPTH,
 //	OB_PSEL			= 1llu << OPT_PSEL,
 //	OB_RAW			= 1llu << OPT_RAW,
+//	OB_WBFS_ALLOC		= 1llu << OPT_WBFS_ALLOC,
 //	OB_EXCLUDE		= 1llu << OPT_EXCLUDE,
 //	OB_EXCLUDE_PATH		= 1llu << OPT_EXCLUDE_PATH,
 //	OB_INCLUDE		= 1llu << OPT_INCLUDE,
@@ -271,6 +274,7 @@ typedef enum enumOptions
 //	OB_TIME			= 1llu << OPT_TIME,
 //	OB_SET_TIME		= 1llu << OPT_SET_TIME,
 //	OB_LONG			= 1llu << OPT_LONG,
+//	OB_SHOW			= 1llu << OPT_SHOW,
 //	OB_FRAGMENTS		= 1llu << OPT_FRAGMENTS,
 //	OB_NUMERIC		= 1llu << OPT_NUMERIC,
 //	OB_TECHNICAL		= 1llu << OPT_TECHNICAL,
@@ -418,7 +422,8 @@ typedef enum enumOptions
 //	OB_CMD_DUMP		= OB_GRP_TITLES
 //				| OB_GRP_READ_WBFS
 //				| OB_INODE
-//				| OB_LONG,
+//				| OB_LONG
+//				| OB_SHOW,
 //
 //	OB_CMD_ID6		= OB_GRP_READ_WBFS
 //				| OB_GRP_EXCLUDE,
@@ -474,12 +479,14 @@ typedef enum enumOptions
 //				| OB_PART
 //				| OB_FORCE,
 //
-//	OB_CMD_PHANTOM		= OB_GRP_MOD_WBFS,
+//	OB_CMD_PHANTOM		= OB_GRP_MOD_WBFS
+//				| OB_WBFS_ALLOC,
 //
 //	OB_CMD_TRUNCATE		= OB_GRP_MOD_WBFS,
 //
 //	OB_CMD_SYNC		= OB_GRP_TITLES
 //				| OB_GRP_MOD_WBFS
+//				| OB_WBFS_ALLOC
 //				| OB_SOURCE
 //				| OB_NO_EXPAND
 //				| OB_RECURSE
@@ -500,6 +507,13 @@ typedef enum enumOptions
 //
 //	OB_CMD_ADD		= OB_CMD_UPDATE
 //				| OB_UPDATE
+//				| OB_OVERWRITE,
+//
+//	OB_CMD_DUP		= OB_GRP_TITLES
+//				| OB_GRP_READ_WBFS
+//				| OB_NO_CHECK
+//				| OB_DEST
+//				| OB_DEST2
 //				| OB_OVERWRITE,
 //
 //	OB_CMD_EXTRACT		= OB_GRP_TITLES
@@ -627,6 +641,7 @@ typedef enum enumCommands
 	CMD_ADD,
 	CMD_UPDATE,
 	CMD_SYNC,
+	CMD_DUP,
 	CMD_EXTRACT,
 	CMD_REMOVE,
 	CMD_RENAME,
@@ -637,7 +652,7 @@ typedef enum enumCommands
 
 	CMD_FILETYPE,
 
-	CMD__N // == 40
+	CMD__N // == 41
 
 } enumCommands;
 
@@ -648,6 +663,8 @@ typedef enum enumCommands
 
 typedef enum enumGetOpt
 {
+	GO_SHOW			= '+',
+
 	GO_ONE_JOB		= '1',
 
 	GO__ERR			= '?',
@@ -706,6 +723,7 @@ typedef enum enumGetOpt
 	GO_RDEPTH,
 	GO_PSEL,
 	GO_RAW,
+	GO_WBFS_ALLOC,
 	GO_INCLUDE_FIRST,
 	GO_JOB_LIMIT,
 	GO_IGNORE_FST,

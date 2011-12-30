@@ -479,7 +479,7 @@ static int get_fst_pointer // return relevant subpath length; -1 on error
 	    if ( part == fst_part->part )
 	    {
 		noTRACE("PART-FOUND:\n");
-		// [2do] binary search
+		// [[2do]] binary search
 
 		int slen = strlen(subpath);
 		WiiFstFile_t * ptr = fst_part->file;

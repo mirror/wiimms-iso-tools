@@ -202,7 +202,7 @@ enumError cmd_test()
 	}
     }
     return ERR_OK;
-    
+
  #elif 0 && defined __CYGWIN__ // test AllocNormalizedFilenameCygwin
 
     ParamList_t * param;
@@ -267,7 +267,7 @@ enumError cmd_find()
 
     if ( verbose < 0 )
 	return AnalyzePartitions(0,true,true);
-    
+
     const enumError err = AnalyzePartitions(stderr,true,true);
     if ( err || verbose < 0 )
     {
@@ -278,7 +278,7 @@ enumError cmd_find()
     if (print_sections)
     {
 	int n_wbfs = 0, n_total = 0;
-	
+
 	PartitionInfo_t * info;
 	for ( info = first_partition_info; info; info = info->next )
 	{
@@ -299,7 +299,7 @@ enumError cmd_find()
 	    ,n_wbfs
 	    ,long_count ? n_total : n_wbfs
 	    );
-	    
+
 	int count = 0;
 	for ( info = first_partition_info; info; info = info->next )
 	{
@@ -517,7 +517,7 @@ enumError cmd_dump()
 	  err = GetNextWBFS(&wbfs,&info) )
     {
 	printf("\nDUMP of %s\n\n",info->path);
-	DumpWBFS(&wbfs,stdout,2,long_count,invalid,0);
+	DumpWBFS(&wbfs,stdout,2,opt_show_mode,long_count,invalid,0);
     }
     return ResetWBFS(&wbfs);
 }
@@ -582,7 +582,7 @@ typedef struct fragment_summary_t
     uint	n_frag_images;	// number of fragmented images
     uint	n_fragments;	// number of fragments
     u64		total_mib;	// total size of all images;
- 
+
 } fragment_summary_t;
 
 //-----------------------------------------------------------------------------
@@ -1345,7 +1345,7 @@ enumError cmd_repair()
 {
     if (!OptionUsed[OPT_REPAIR])
     {
-    	RegisterOptionByIndex(&InfoUI,OPT_REPAIR,1,false);
+	RegisterOptionByIndex(&InfoUI,OPT_REPAIR,1,false);
 	repair_mode = REPAIR_DEFAULT;
     }
     return cmd_check();
@@ -1642,7 +1642,7 @@ enumError cmd_phantom()
 	if ( !info->is_checked && check_it )
 	{
 	    info->is_checked = true;
-	    if ( AutoCheckWBFS(&wbfs,ignore_check) > ERR_WARNING )
+	    if ( AutoCheckWBFS(&wbfs,ignore_check,1) > ERR_WARNING )
 	    {
 		ERROR0(ERR_WBFS_INVALID,"Ignore invalid WBFS: %s\n\n",info->path);
 		ResetWBFS(&wbfs);
@@ -1820,7 +1820,7 @@ enumError cmd_truncate()
 	if ( !info->is_checked && check_it )
 	{
 	    info->is_checked = true;
-	    if ( AutoCheckWBFS(&wbfs,ignore_check) > ERR_WARNING )
+	    if ( AutoCheckWBFS(&wbfs,ignore_check,1) > ERR_WARNING )
 	    {
 		ERROR0(ERR_WBFS_INVALID,"Ignore invalid WBFS: %s\n\n",info->path);
 		ResetWBFS(&wbfs);
@@ -2000,7 +2000,7 @@ enumError exec_add ( SuperFile_t * sf, Iterator_t * it )
     if (SIGINT_level)
 	return ERR_INTERRUPT;
 
-    // [2do] [rewrite] count_jobs() does most decicions
+    // [[2do]] [rewrite] count_jobs() does most decicions
 
     enumFileType ft_test = FT_A_ISO|FT_A_SEEKABLE;
     if ( !(sf->f.ftype&FT_A_WDF) && !sf->f.seek_allowed )
@@ -2032,7 +2032,7 @@ enumError exec_add ( SuperFile_t * sf, Iterator_t * it )
 
     const int fw_counter = snprintf(iobuf,sizeof(iobuf),"%u",it->job_total);
     ccp title = GetTitle(sf->f.id6_dest,"");
-    
+
     if ( exists>0 || exists < 0 && !ExistsWDisc(it->wbfs,sf->f.id6_dest))
     {
 	if (update)
@@ -2140,7 +2140,7 @@ enumError cmd_add()
 	return ERROR0(ERR_MISSING_PARAM,"missing parameters\n");
 
     if ( OptionUsed[OPT_SYNC] )
-    	RegisterOptionByIndex(&InfoUI,OPT_UPDATE,1,false);
+	RegisterOptionByIndex(&InfoUI,OPT_UPDATE,1,false);
 
     encoding |= ENCODE_F_ENCRYPT; // hint: encrypten and any signing wanted
 
@@ -2179,7 +2179,7 @@ enumError cmd_add()
     it.func = exec_add;
 
     //---------------
-    
+
     uint copy_count = 0, rm_count = 0, wbfs_count = 0, wbfs_mod_count = 0;
 
     const bool check_it	    = OptionUsed[OPT_NO_CHECK] == 0;
@@ -2199,7 +2199,7 @@ enumError cmd_add()
 	    if ( !info->is_checked && check_it )
 	    {
 		info->is_checked = true;
-		if ( AutoCheckWBFS(&wbfs,ignore_check) > ERR_WARNING )
+		if ( AutoCheckWBFS(&wbfs,ignore_check,1) > ERR_WARNING )
 		{
 		    ERROR0(ERR_WBFS_INVALID,"Ignore invalid WBFS: %s\n\n",info->path);
 		    ResetWBFS(&wbfs);
@@ -2223,7 +2223,7 @@ enumError cmd_add()
 	if ( !info->is_checked && check_it )
 	{
 	    info->is_checked = true;
-	    if ( AutoCheckWBFS(&wbfs,ignore_check) > ERR_WARNING )
+	    if ( AutoCheckWBFS(&wbfs,ignore_check,1) > ERR_WARNING )
 	    {
 		ERROR0(ERR_WBFS_INVALID,"Ignore invalid WBFS: %s\n\n",info->path);
 		ResetWBFS(&wbfs);
@@ -2340,7 +2340,7 @@ enumError cmd_add()
 		    wbfs_mod_count++;
 	    }
 	}
-	// [2do] missing: totals if n_wbfs > 1
+	// [[2do]] missing: totals if n_wbfs > 1
     }
     max_error = SourceIteratorWarning(&it,max_error,false);
 
@@ -2373,6 +2373,202 @@ enumError cmd_sync()
 {
     RegisterOptionByIndex(&InfoUI,OPT_SYNC,1,false);
     return cmd_add();
+}
+
+//
+///////////////////////////////////////////////////////////////////////////////
+
+enumError cmd_dup()
+{
+ #if NEW_WBFS_INTERFACE
+
+    //--- extract destination from param list
+
+    if (!opt_dest)
+    {
+	if (!first_param)
+	    return ERROR0(ERR_MISSING_PARAM, "Missing destination parameter\n" );
+
+	ParamList_t * param;
+	for ( param = first_param; param->next; param = param->next )
+	    ;
+	DASSERT(param);
+	DASSERT(!param->next);
+	SetDest(param->arg,false);
+	param->arg = 0;
+    }
+
+    const bool dest_is_dir = IsDirectory(opt_dest,false);
+
+
+    //--- find sources
+
+    opt_all++;
+    if (n_param)
+    {
+	opt_part++;
+	ParamList_t * param;
+	for ( param = first_param; param; param = param->next )
+	    if (param->arg)
+		CreatePartitionInfo(param->arg,PS_PARAM);
+    }
+
+    enumError err = AnalyzePartitions(stdout,false,false);
+    if (err)
+	return err;
+
+    const uint n_wbfs = CountWBFS();
+    if ( n_wbfs > 1 && !dest_is_dir )
+	return ERROR0(ERR_SEMANTIC,
+		"There are %u (>1) sources => destination must be a directory.",n_wbfs);
+
+
+    //--- execute job
+
+    char path_buf[PATH_MAX];
+    int wbfs_count = 0;
+    const bool check_it	= OptionUsed[OPT_NO_CHECK] == 0;
+
+    WBFS_t wbfs;
+    InitializeWBFS(&wbfs);
+    PartitionInfo_t * info;
+    for ( err = GetFirstWBFS(&wbfs,&info);
+	  !err && !SIGINT_level && wbfs_count < job_limit;
+	  err = GetNextWBFS(&wbfs,&info) )
+    {
+	wbfs_count++;
+
+	if (verbose>=0)
+	    LogOpenedWBFS(&wbfs,wbfs_count,n_wbfs,info->path);
+
+	//--- destination
+
+	ccp dest = opt_dest;
+	if (dest_is_dir)
+	{
+	    ccp fname = strrchr(info->path,'/');
+	    fname = fname ? fname+1 : info->path;
+	    PathCatPP(path_buf,sizeof(path_buf),opt_dest,fname);
+	    dest = path_buf;
+	}
+
+	if ( testmode || verbose >= 0 || progress > 0 )
+	{
+	    TRACE("%sDUP %s ->%s\n", testmode ? "WOULD " : "", info->path, dest );
+	    if (print_sections)
+		printf(
+		    "[DUP]\n"
+		    "testmode=%d\n"
+		    "job-count=%d\n"
+		    "total-count=%d\n"
+		    "source-path=%s\n"
+		    "dest-path=%s\n"
+		    "\n"
+		    ,testmode
+		    ,wbfs_count
+		    ,n_wbfs
+		    ,info->path
+		    ,dest
+		    );
+	    else
+		printf(" - %sDUP %u/%u %s -> %s\n",
+		    testmode ? "WOULD " : "",
+		    wbfs_count, n_wbfs, info->path, dest );
+	    fflush(stdout);
+
+	    if (testmode)
+		continue;
+	}
+	DASSERT(!testmode);
+
+	if ( !info->is_checked && check_it )
+	{
+	    info->is_checked = true;
+	    AutoCheckWBFS(&wbfs,true,4);
+	}
+
+	SuperFile_t fo;
+	InitializeSF(&fo);
+	err = CreateSF(&fo,dest,OFT_PLAIN,IOM_IS_IMAGE,OptionUsed[OPT_OVERWRITE]);
+	if (err)
+	    break;
+
+	fo.indent			= 5;
+	fo.show_progress		= verbose > 1 || progress;
+	fo.show_summary			= verbose > 0 || progress;
+	fo.show_msec			= verbose > 2;
+	fo.progress_trigger		= 1;
+	fo.progress_trigger_init	= 1;
+	fo.progress_start_time		= GetTimerMSec();
+	fo.progress_last_view_sec	= 0;
+	fo.progress_max_wd		= 0;
+
+	wbfs_t * w = wbfs.wbfs;
+	DASSERT(w);
+	const u8 *used_block = w->used_block;
+	DASSERT(used_block);
+
+	uint i;
+	u64 done = 0, total = 0;
+	const u64 blocksize = w->wbfs_sec_sz;
+	DASSERT(blocksize>0);
+	SetSizeSF(&fo,blocksize*w->n_wbfs_sec);
+
+	for ( i = 0; i < w->n_wbfs_sec; i++ )
+	    if (used_block[i])
+		total += blocksize;
+	if (fo.show_progress)
+	    PrintProgressSF(0,total,&fo);
+	
+	SuperFile_t *fi = wbfs.sf;
+	DASSERT(fi);
+
+	for ( i = 0; !err && i < w->n_wbfs_sec && SIGINT_level < 2; i++ )
+	{
+	    if (!used_block[i])
+		continue;
+
+	    uint copysize = blocksize;
+	    off_t off = i * blocksize;
+	    while (copysize)
+	    {
+		const uint tfersize = copysize < sizeof(iobuf) ? copysize : sizeof(iobuf);
+		err = ReadSF(fi,off,iobuf,tfersize);
+		if (err)
+		    break;
+		err = WriteSparseSF(&fo,off,iobuf,tfersize);
+		if (err)
+		    break;
+		copysize -= tfersize;
+		done     += tfersize;
+		off      += tfersize;
+
+		if (fo.show_summary)
+		    PrintProgressSF(done,total,&fo);
+	    }
+	}
+
+	if (fo.show_summary)
+	    PrintSummarySF(&fo);
+
+	if (err)
+	{
+	    RemoveSF(&fo);
+	    break;
+	}
+	ResetSF(&fo,&fi->f.fatt);
+    }
+    ResetWBFS(&wbfs);
+
+    return ERR_OK;
+
+ #else // !NEW_WBFS_INTERFACE
+
+    return ERROR0(ERR_NOT_IMPLEMENTED,
+	"This version of wwt is compiled with the old WBFS interface,"
+	" but command 'DUP' needs the new interface.");
+
+ #endif
 }
 
 //
@@ -2457,14 +2653,14 @@ enumError cmd_extract()
 	  err = GetNextWBFS(&wbfs,&info) )
     {
 	wbfs_count++;
-	
+
 	if (verbose>=0)
 	    LogOpenedWBFS(&wbfs,wbfs_count,n_wbfs,info->path);
 
 	if ( !info->is_checked && check_it )
 	{
 	    info->is_checked = true;
-	    if ( AutoCheckWBFS(&wbfs,ignore_check) > ERR_WARNING )
+	    if ( AutoCheckWBFS(&wbfs,ignore_check,1) > ERR_WARNING )
 	    {
 		ERROR0(ERR_WBFS_INVALID,"Ignore invalid WBFS: %s\n\n",info->path);
 		ResetWBFS(&wbfs);
@@ -2528,7 +2724,7 @@ enumError cmd_extract()
 		    }
 		    else
 			fname = fo.f.fname;
-		    
+
 		    if (print_sections)
 		    {
 			printf(
@@ -2719,7 +2915,7 @@ enumError cmd_remove()
 	if ( !info->is_checked && check_it )
 	{
 	    info->is_checked = true;
-	    if ( AutoCheckWBFS(&wbfs,ignore_check) > ERR_WARNING )
+	    if ( AutoCheckWBFS(&wbfs,ignore_check,1) > ERR_WARNING )
 	    {
 		ERROR0(ERR_WBFS_INVALID,"Ignore invalid WBFS: %s\n\n",info->path);
 		ResetWBFS(&wbfs);
@@ -2729,7 +2925,7 @@ enumError cmd_remove()
 
 	int wbfs_rm_count = 0;
 	bool wbfs_go = true;
-	
+
 	int slot;
 	for ( slot = 0;
 	     slot < wbfs.wbfs->max_disc && wbfs_go && !SIGINT_level;
@@ -2775,7 +2971,7 @@ enumError cmd_remove()
 		    wbfs_rm_count++;
 	    }
 	}
-    
+
 	if (wbfs_rm_count)
 	{
 	    wbfs_mod_count++;
@@ -2866,7 +3062,7 @@ enumError cmd_rename ( bool rename_id )
 	if ( !info->is_checked && check_it )
 	{
 	    info->is_checked = true;
-	    if ( AutoCheckWBFS(&wbfs,ignore_check) > ERR_WARNING )
+	    if ( AutoCheckWBFS(&wbfs,ignore_check,1) > ERR_WARNING )
 	    {
 		ERROR0(ERR_WBFS_INVALID,"Ignore invalid WBFS: %s\n\n",info->path);
 		ResetWBFS(&wbfs);
@@ -3014,7 +3210,7 @@ enumError cmd_touch()
 
     if ( !itime && !mtime && !ctime && !atime )
 	itime = mtime = ctime = atime = set_time;
-    
+
     //----- touch discs
 
     const bool check_it		= 0 == OptionUsed[OPT_NO_CHECK];
@@ -3035,7 +3231,7 @@ enumError cmd_touch()
 	if ( !info->is_checked && check_it )
 	{
 	    info->is_checked = true;
-	    if ( AutoCheckWBFS(&wbfs,ignore_check) > ERR_WARNING )
+	    if ( AutoCheckWBFS(&wbfs,ignore_check,1) > ERR_WARNING )
 	    {
 		ERROR0(ERR_WBFS_INVALID,"Ignore invalid WBFS: %s\n\n",info->path);
 		ResetWBFS(&wbfs);
@@ -3140,7 +3336,7 @@ enumError cmd_verify()
 	if ( !info->is_checked && check_it )
 	{
 	    info->is_checked = true;
-	    if ( AutoCheckWBFS(&wbfs,ignore_check) > ERR_WARNING )
+	    if ( AutoCheckWBFS(&wbfs,ignore_check,1) > ERR_WARNING )
 	    {
 		ERROR0(ERR_WBFS_INVALID,"Ignore invalid WBFS: %s\n\n",info->path);
 		ResetWBFS(&wbfs);
@@ -3155,7 +3351,7 @@ enumError cmd_verify()
 	     slot++ )
 	{
 	    if (CheckParamSlot(&wbfs,slot,false,0,0))
-	    	disc_count++;
+		disc_count++;
 	}
     }
 
@@ -3209,15 +3405,15 @@ enumError cmd_verify()
 			if (!ver.verbose)
 			    ver.verbose = 1;
 		    }
-		    
+
 		    SetupIOD(sf,OFT_WBFS,OFT_WBFS);
 		    sf->wbfs = &wbfs;
 		    const enumError stat = VerifyDisc(&ver);
-		    
+
 		    SetupIOD(sf,OFT_PLAIN,OFT_PLAIN);
 		    sf->wbfs = 0;
 		    ResetVerify(&ver);
-		    
+
 		    if ( stat == ERR_DIFFER )
 		    {
 			wbfs_fail_count++;
@@ -3326,7 +3522,7 @@ enumError cmd_skeletonize()
 	if ( !info->is_checked && check_it )
 	{
 	    info->is_checked = true;
-	    if ( AutoCheckWBFS(&wbfs,ignore_check) > ERR_WARNING )
+	    if ( AutoCheckWBFS(&wbfs,ignore_check,1) > ERR_WARNING )
 	    {
 		ERROR0(ERR_WBFS_INVALID,"Ignore invalid WBFS: %s\n\n",info->path);
 		ResetWBFS(&wbfs);
@@ -3341,12 +3537,12 @@ enumError cmd_skeletonize()
 	     slot++ )
 	{
 	    if (CheckParamSlot(&wbfs,slot,false,0,0))
-	    	disc_count++;
+		disc_count++;
 	}
     }
 
 
-    //----- verify discs
+    //----- skeletonize discs
 
     int disc_index = 0, wbfs_count = 0;
     const uint n_wbfs = CountWBFS();
@@ -3519,6 +3715,7 @@ enumError CheckOptions ( int argc, char ** argv, bool is_env )
 
 	case GO_ALL:		opt_all++; break;
 	case GO_PART:		AtFileHelper(optarg,0,0,AddPartition); break;
+	case GO_WBFS_ALLOC:	err += ScanOptWbfsAlloc(optarg); break;
 	case GO_SOURCE:		AppendStringField(&source_list,optarg,false); break;
 	case GO_NO_EXPAND:	opt_no_expand = true; break;
 	case GO_RECURSE:	AppendStringField(&recurse_list,optarg,false); break;
@@ -3608,7 +3805,7 @@ enumError CheckOptions ( int argc, char ** argv, bool is_env )
 	case GO_FRAGMENTS:	break;
 	case GO_OLD_STYLE:	print_old_style++; break;
 	case GO_SECTIONS:	print_sections++; break;
-	//case GO_SHOW:		err += ScanOptShow(optarg); break;
+	case GO_SHOW:		err += ScanOptShow(optarg); break;
 	case GO_SORT:		err += ScanOptSort(optarg); break;
 
 	case GO_AUTO:
@@ -3788,6 +3985,7 @@ enumError CheckCommand ( int argc, char ** argv )
 	case CMD_ADD:		err = cmd_add(); break;
 	case CMD_UPDATE:	err = cmd_update(); break;
 	case CMD_SYNC:		err = cmd_sync(); break;
+	case CMD_DUP:		err = cmd_dup(); break;
 	case CMD_EXTRACT:	err = cmd_extract(); break;
 	case CMD_REMOVE:	err = cmd_remove(); break;
 	case CMD_RENAME:	err = cmd_rename(true); break;

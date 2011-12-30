@@ -831,7 +831,7 @@ enumError CloseWritePatch
 	memcpy(thead.magic,wpat_magic,sizeof(thead.magic));
 
 	int n_entires = 0;
-	// [2do] write toc files
+	// [[2do]] write toc files
 	thead.n_entires = htonl(n_entires);
 
 	if ( !err && fwrite(&thead,sizeof(thead),1,pat->file) != 1 )
@@ -848,7 +848,7 @@ enumError CloseWritePatch
 	pat->fname = 0;
     }
 
-    // [2do] clear dynamic data (toc)
+    // [[2do]] clear dynamic data (toc)
 
     return err;
 }
@@ -974,7 +974,7 @@ enumError CloseReadPatch
 	pat->fname = 0;
     }
 
-    // [2do] clear dynamic data (toc)
+    // [[2do]] clear dynamic data (toc)
 
     return err;
 }

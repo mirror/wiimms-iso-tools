@@ -33,13 +33,7 @@
 ~ Highlights
 [size=12][color=#0000c0][b]Höhepunkte dieser Version:[/b][/color][/size]
 [list]
-[*] Ex existiert eine neue Option für die GameCube Extrahierung: --copy-gc
-Wenn diese Option gesetzt ist, dann werden die realen Dateien von GameCube-Images ('/files/...') nicht extrahiert. Stattdessen wird einen Kopie des Images als "game.iso" angelegt. Damit wird wit Kompatibel zu DiscEx, aber wit ist vuiel schneller. wit versucht auch, einen Hard-Link des Images anzulegen, wenn das Quellimage im richtigen Format vorliegt. Dieses macht meien Tools unfassbar schnell.
-[color=#800000][b]Dieses Erweiterung ist insbesondere für ModMii von @XFlak gedacht[/b][/color]
-
-[*] Die Option --sneek wurde zu --neek umbenannt, das alte --sneek ist aber weiterhin erlaubt. Die Option --copy-gc is implizit in --neek enthalten. Für eine Extrahierung gemäß DiscEx kann dieses Kommando verwendet werden: [color=#000080]wit extract --neek --dest %i IMAGE_LIST.ANY_FORMAT[/color]
-
-[*] Das 2. neue Feature ist die Anzeige von Fragmenten beim Auflisten der Spiele. Grund für die Erweiterungen waren diverse Fragmentierungs-Diskussionen. Falls die neue Option --fragments mit dem Kommando "wwt LIST" verwendet wird, dann wird die Anzahl der WBFS-Fragmente und eine Fragmentierungs-Rate ausgegeben. Die neuen Kommandos "wwt LIST-F" and "wwt LF" sind Kürzel für "wwt LIST --fragments".
+[*] Ich habe ein neues WBFS-Interface entwickelt. Damit lassen sich schnell und einfach einige übliche WBFS Fehler entdecken und vermeiden. Der häufigste Fehler ist eine fehlerhafte [i]free blocks table[/i]. Anstatt die gespeicherte zu verwenden, bauen meine Tools nun im Bruchteil einer Sekunde eine neue auf. Für weitere Details einfach das [i]change log[/i] lesen.
 [/list]
 
 [size=12][color=#0000c0][b]Letzte Änderungen:[/b][/color][/size]

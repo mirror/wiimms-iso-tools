@@ -1213,7 +1213,7 @@ enumError exec_files ( SuperFile_t * fi, Iterator_t * it )
     if ( fi->f.ftype & FT_ID_FST_BIN )
 	return Dump_FST_BIN(stdout,0,fi,it->real_path,it->show_mode&~SHOW_INTRO);
 
-// [2do] [ft-id]
+// [[2do]] [ft-id]
     if ( fi->f.ftype & FT__SPC_MASK || !fi->f.id6_dest[0] )
 	return OptionUsed[OPT_IGNORE]
 		? ERR_OK
@@ -1644,7 +1644,7 @@ enumError exec_copy ( SuperFile_t * fi, Iterator_t * it )
 	    return ERR_OK;
 	}
 
-      if ( newmode >= 0 ) // [2do] remove old mode 2011-02-23
+      if ( newmode >= 0 ) // [[2do]] remove old mode 2011-02-23
       {
 	if (!OpenDiffSource(&diff,fi,&fo,true))
 	    return ERR_DIFFER;
@@ -2268,7 +2268,7 @@ enumError cmd_rename ( bool rename_id )
     ResetIterator(&it);
     return err;
 
-    // [2do]: not found
+    // [[2do]]: not found
 }
 
 //
@@ -2384,7 +2384,7 @@ enumError cmd_skeletonize()
     InitializeIterator(&it);
     it.act_non_iso	= OptionUsed[OPT_IGNORE] ? ACT_IGNORE : ACT_WARN;
     it.act_wbfs		= ACT_EXPAND;
-    it.act_gc		= ACT_WARN;
+    it.act_gc		= ACT_ALLOW;
     it.act_fst		= allow_fst ? ACT_EXPAND : ACT_IGNORE;
     it.long_count	= long_count;
 

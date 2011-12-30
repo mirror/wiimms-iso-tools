@@ -451,7 +451,7 @@ enumError AnalyzePartitions ( FILE * outfile, bool non_found_is_ok, bool scan_wb
     }
     else if ( return_stat )
     {
-	// [2do] ??? never reached
+	// [[2do]] ??? never reached
 	if (!print_sections)
 	    fprintf(outfile,"%d WBFS partition%s found\n",
 			wbfs_count, wbfs_count == 1 ? "" : "s" );
@@ -561,7 +561,7 @@ enumError ScanParamID6
 		default:  *rule = '+';
 	    }
 
-	    // [2do] ScanArgID() verwenden!
+	    // [[2do]] ScanArgID() verwenden!
 
 	    ccp start = arg;
 	    int err = 0, wildcards = 0;
@@ -842,7 +842,9 @@ enumError CheckParamRename ( bool rename_id, bool allow_plus, bool allow_index )
 
 static WBFS_t wbfs_cache;
 static bool wbfs_cache_valid = false;
-bool wbfs_cache_enabled = true;	 // [2do] is 'wbfs_cache_enabled' [obsolete] ?
+bool wbfs_cache_enabled = true;	 // [[2do]] is 'wbfs_cache_enabled' [[obsolete]] ?
+
+wbfs_balloc_mode_t opt_wbfs_alloc = WBFS_BA_AUTO;
 
 //-----------------------------------------------------------------------------
 
@@ -924,6 +926,7 @@ enumError OpenParWBFS
     ResetWBFS(w);
     w->sf = sf;
 
+    wbfs_balloc_mode_t balloc_mode = opt_wbfs_alloc;
     if (S_ISREG(sf->f.st.st_mode))
     {
 	char format[2*PATH_MAX], fname[PATH_MAX];
@@ -932,6 +935,8 @@ enumError OpenParWBFS
 	struct stat st;
 	if (!stat(fname,&st))
 	    SetupSplitFile(&sf->f,OFT_WBFS,0);
+	if ( balloc_mode == WBFS_BA_AUTO )
+	    balloc_mode = WBFS_BA_FIRST; // better because of sparse effect
     }
 
     TRACELINE;
@@ -966,6 +971,9 @@ enumError OpenParWBFS
     par->write_hdsector	= WrapperWriteSector;
     par->callback_data	= sf;
     par->part_lba	= 0;
+ #if NEW_WBFS_INTERFACE
+    par->balloc_mode	= balloc_mode;
+ #endif
 
     w->wbfs = wbfs_open_partition_param(par);
 
@@ -989,7 +997,7 @@ enumError OpenParWBFS
 
  #ifdef DEBUG
     TRACE("WBFS %s\n\n",sf->f.fname);
-    DumpWBFS(w,TRACE_FILE,15,0,0,0);
+    DumpWBFS(w,TRACE_FILE,15,SHOW_INTRO,0,0,0);
  #endif
 
     return ERR_OK;
@@ -1600,8 +1608,15 @@ u32 FindWBFSPartitions()
 ///////////////////////////////////////////////////////////////////////////////
 
 enumError DumpWBFS
-	( WBFS_t * wbfs, FILE * f, int indent,
-		int dump_level, int view_invalid_discs, CheckWBFS_t * ck )
+(
+    WBFS_t	* wbfs,			// valid WBFS
+    FILE	* f,			// valid output file
+    int		indent,			// indention of output
+    ShowMode	show_mode,		// what should be printed
+    int		dump_level,		// dump level: 0..3, ignored if show_mode is set
+    int		view_invalid_discs,	// !=0: view invalid discs too
+    CheckWBFS_t	* ck			// not NULL: dump only discs with errors
+)
 {
     ASSERT(wbfs);
     char buf[100];
@@ -1609,130 +1624,183 @@ enumError DumpWBFS
     if ( !f || !wbfs )
 	return ERROR0(ERR_INTERNAL,0);
 
-    const bool check_it = dump_level >= 999;
-    if ( dump_level >= 999 )
-	dump_level -= 1000;
-
     wbfs_t * w = wbfs->wbfs;
     if (!w)
 	return ERR_NO_WBFS_FOUND;
 
+
+    //----- options --show and --long
+
+    if ( show_mode & SHOW__DEFAULT )
+    {
+	show_mode = SHOW__ALL;
+	switch (dump_level)
+	{
+	    case 0:  
+		show_mode &= ~SHOW_FILES;
+		// fall through
+
+	    case 1:
+		show_mode &= ~SHOW_D_MAP;
+		// fall through
+
+	    case 2:  
+		show_mode &= ~SHOW_W_MAP;
+		// fall through
+
+	    case 3:
+		show_mode &= ~SHOW_USAGE;
+		break;
+	}
+    }
+
+    if ( show_mode & SHOW_INTRO )
+	show_mode |= SHOW_FHEADER | SHOW_SLOT | SHOW_GEOMETRY;
+
+    if ( view_invalid_discs )
+	show_mode |= SHOW_FILES;
+
+
+    //--- print WBFS header
+
     indent = NormalizeIndent(indent);
     wbfs_head_t * head = w->head;
-    if (head)
+    if ( head && show_mode&(SHOW_FHEADER|SHOW_SLOT) )
     {
 	fprintf(f,"%*sWBFS-Header:\n", indent,"");
-	ccp magic = (ccp)&head->magic;
-	fprintf(f,"%*s  WBFS MAGIC: %10x %02x %02x %02x =         '%s'\n",
-			indent,"",
-			magic[0], magic[1], magic[2], magic[3],
-			wd_print_id(magic,4,0) );
-
-	fprintf(f,"%*s  WBFS VERSION:     %#13x =%15u\n", indent,"",
-			head->wbfs_version, head->wbfs_version );
-
-	fprintf(f,"%*s  hd sectors:       %#13x =%15u\n", indent,"",
-			(u32)htonl(head->n_hd_sec), (u32)htonl(head->n_hd_sec) );
-	u32 n = 1 << head->hd_sec_sz_s;
-	fprintf(f,"%*s  hd sector size:     %#11x =%15u =    2^%u\n", indent,"",
-			n, n, head->hd_sec_sz_s );
-	n = 1 << head->wbfs_sec_sz_s;
-	fprintf(f,"%*s  WBFS sector size:   %#11x =%15u =    2^%u\n\n", indent,"",
-			n, n, head->wbfs_sec_sz_s );
-
-	ASSERT(sizeof(buf)>=60);
-	fprintf(f,"%*s  Disc table (slot usage):\n", indent,"" );
-	u8 * dt = head->disc_table;
-	int count = w->max_disc, idx = 0;
-	while ( count > 0 )
+	if ( show_mode & SHOW_FHEADER )
 	{
-	    const int max = 50;
-	    int i, n = count < max ? count : max;
-	    char * dest = buf;
-	    for ( i = 0; i < n; i++ )
+	    ccp magic = (ccp)&head->magic;
+	    fprintf(f,"%*s  WBFS MAGIC: %10x %02x %02x %02x =         '%s'\n",
+			    indent,"",
+			    magic[0], magic[1], magic[2], magic[3],
+			    wd_print_id(magic,4,0) );
+
+	    fprintf(f,"%*s  WBFS VERSION:     %#13x =%15u\n", indent,"",
+			    head->wbfs_version, head->wbfs_version );
+
+	    fprintf(f,"%*s  hd sectors:       %#13x =%15u\n", indent,"",
+			    (u32)htonl(head->n_hd_sec), (u32)htonl(head->n_hd_sec) );
+	    u32 n = 1 << head->hd_sec_sz_s;
+	    fprintf(f,"%*s  hd sector size:     %#11x =%15u =    2^%u\n", indent,"",
+			    n, n, head->hd_sec_sz_s );
+	    n = 1 << head->wbfs_sec_sz_s;
+	    fprintf(f,"%*s  WBFS sector size:   %#11x =%15u =    2^%u\n\n", indent,"",
+			    n, n, head->wbfs_sec_sz_s );
+	}
+
+	if ( show_mode & SHOW_SLOT )
+	{
+	    DASSERT(sizeof(buf)>=60);
+	    fprintf(f,"%*s  Disc table (slot usage):\n", indent,"" );
+	    u8 * dt = head->disc_table;
+	    int count = w->max_disc, idx = 0;
+	    while ( count > 0 )
 	    {
-		if (!(i%10))
-		    *dest++ = ' ';
-		*dest++ = wbfs_slot_mode_info[ *dt++ & WBFS_SLOT__MASK ];
+		const int max = 50;
+		int i, n = count < max ? count : max;
+		char * dest = buf;
+		for ( i = 0; i < n; i++ )
+		{
+		    if (!(i%10))
+			*dest++ = ' ';
+		    *dest++ = wbfs_slot_mode_info[ *dt++ & WBFS_SLOT__MASK ];
+		}
+		*dest = 0;
+		fprintf( f, "%*s    %3d..%3d:%s\n", indent,"", idx, idx+n-1, buf );
+		idx += n;
+		count -= n;
 	    }
-	    *dest = 0;
-	    fprintf( f, "%*s    %3d..%3d:%s\n", indent,"", idx, idx+n-1, buf );
-	    idx += n;
-	    count -= n;
 	}
 	fputc('\n',f);
     }
-    else
+    else if (!head)
 	fprintf(f,"%*s!! NO WBFS HEADER DEFINED !!\n\n", indent,"");
 
-    fprintf(f,"%*shd sector size:       %#11x =%15u =    2^%u\n", indent,"",
+
+    //--- some calculations
+
+    const u32 NSEC		= w->n_wbfs_sec;
+    const u32 NSEC2		= w->n_wbfs_sec / 2;
+
+    const u32 used_blocks	= NSEC - wbfs->free_blocks;
+    const u32 used_perc		= NSEC ? ( 100 * used_blocks       + NSEC2 ) / NSEC : 0;
+    const u32 free_perc		= NSEC ? ( 100 * wbfs->free_blocks + NSEC2 ) / NSEC : 0;
+
+    const u64 wbfs_used		= (u64)w->wbfs_sec_sz * used_blocks;
+    const u64 wbfs_free		= (u64)w->wbfs_sec_sz * wbfs->free_blocks;
+    const u64 wbfs_total	= (u64)w->wbfs_sec_sz * NSEC;
+
+    const u32 used_mib		= ( wbfs_used  + MiB/2 ) / MiB;
+    const u32 free_mib		= ( wbfs_free  + MiB/2 ) / MiB;
+    const u32 total_mib		= ( wbfs_total + MiB/2 ) / MiB;
+
+    const u64 hd_total		= (u64)w->hd_sec_sz * w->n_hd_sec;
+
+
+    //--- print WBFS geometry
+
+    if ( show_mode & SHOW_GEOMETRY )
+    {
+	fprintf(f,"%*shd sector size:       %#11x =%15u =    2^%u\n", indent,"",
 		w->hd_sec_sz, w->hd_sec_sz, w->hd_sec_sz_s );
-    fprintf(f,"%*shd num of sectors:    %#11x =%15u\n", indent,"",
+	fprintf(f,"%*shd num of sectors:    %#11x =%15u\n", indent,"",
 		w->n_hd_sec, w->n_hd_sec );
-    u64 hd_total = (u64)w->hd_sec_sz * w->n_hd_sec;
-    fprintf(f,"%*shd total size:    %#15llx =%15llu =%8llu MiB\n\n", indent,"",
+	fprintf(f,"%*shd total size:    %#15llx =%15llu =%8llu MiB\n\n", indent,"",
 		hd_total, hd_total, ( hd_total + MiB/2 ) / MiB  );
 
-    fprintf(f,"%*swii sector size:      %#11x =%15u =    2^%u\n", indent,"",
+	fprintf(f,"%*swii sector size:      %#11x =%15u =    2^%u\n", indent,"",
 		w->wii_sec_sz, w->wii_sec_sz, w->wii_sec_sz_s );
-    fprintf(f,"%*swii sectors/disc:     %#11x =%15u\n", indent,"",
+	fprintf(f,"%*swii sectors/disc:     %#11x =%15u\n", indent,"",
 		w->n_wii_sec_per_disc, w->n_wii_sec_per_disc  );
-    fprintf(f,"%*swii num of sectors:   %#11x =%15u\n", indent,"",
+	fprintf(f,"%*swii num of sectors:   %#11x =%15u\n", indent,"",
 		w->n_wii_sec, w->n_wii_sec );
-    u64 wii_total =(u64)w->wii_sec_sz * w->n_wii_sec;
-    fprintf(f,"%*swii total size:   %#15llx =%15llu =%8llu MiB\n\n", indent,"",
+	u64 wii_total =(u64)w->wii_sec_sz * w->n_wii_sec;
+	fprintf(f,"%*swii total size:   %#15llx =%15llu =%8llu MiB\n\n", indent,"",
 		wii_total, wii_total, ( wii_total + MiB/2 ) / MiB  );
 
-     const u32 NSEC  = w->n_wbfs_sec;
-     const u32 NSEC2 = w->n_wbfs_sec / 2;
-    const u32 used_blocks = NSEC - wbfs->free_blocks;
-    const u32 used_perc   = NSEC ? ( 100 * used_blocks       + NSEC2 ) / NSEC : 0;
-    const u32 free_perc   = NSEC ? ( 100 * wbfs->free_blocks + NSEC2 ) / NSEC : 0;
-     const u64 wbfs_used  = (u64)w->wbfs_sec_sz * used_blocks;
-     const u64 wbfs_free  = (u64)w->wbfs_sec_sz * wbfs->free_blocks;
-     const u64 wbfs_total = (u64)w->wbfs_sec_sz * NSEC;
-    const u32 used_mib    = ( wbfs_used  + MiB/2 ) / MiB;
-    const u32 free_mib    = ( wbfs_free  + MiB/2 ) / MiB;
-    const u32 total_mib   = ( wbfs_total + MiB/2 ) / MiB;
-
-    fprintf(f,"%*swbfs block size:      %#11x =%15u =    2^%u\n", indent,"",
+	fprintf(f,"%*swbfs block size:      %#11x =%15u =    2^%u\n", indent,"",
 		w->wbfs_sec_sz, w->wbfs_sec_sz, w->wbfs_sec_sz_s );
-    fprintf(f,"%*swbfs blocks/disc:     %#11x =%15u\n", indent,"",
+	fprintf(f,"%*swbfs blocks/disc:     %#11x =%15u\n", indent,"",
 		w->n_wbfs_sec_per_disc, w->n_wbfs_sec_per_disc );
-    fprintf(f,"%*swbfs free blocks:     %#11x =%15u =%8u MiB = %3u%%\n", indent,"",
+	fprintf(f,"%*swbfs free blocks:     %#11x =%15u =%8u MiB = %3u%%\n", indent,"",
 		wbfs->free_blocks, wbfs->free_blocks, free_mib, free_perc );
-    fprintf(f,"%*swbfs used blocks:     %#11x =%15u =%8u MiB = %3u%%\n", indent,"",
+	fprintf(f,"%*swbfs used blocks:     %#11x =%15u =%8u MiB = %3u%%\n", indent,"",
 		used_blocks, used_blocks, used_mib, used_perc );
-    fprintf(f,"%*swbfs total blocks:    %#11x =%15u =%8u MiB = 100%%\n", indent,"",
+	fprintf(f,"%*swbfs total blocks:    %#11x =%15u =%8u MiB = 100%%\n", indent,"",
 		w->n_wbfs_sec, w->n_wbfs_sec, total_mib );
-    fprintf(f,"%*swbfs total size:  %#15llx =%15llu =%8u MiB\n\n", indent,"",
+	fprintf(f,"%*swbfs total size:  %#15llx =%15llu =%8u MiB\n\n", indent,"",
 		wbfs_total, wbfs_total, total_mib  );
 
-    fprintf(f,"%*spartition lba:        %#11x =%15u\n", indent,"",
+	fprintf(f,"%*spartition lba:        %#11x =%15u\n", indent,"",
 		w->part_lba, w->part_lba );
-    fprintf(f,"%*sfree blocks lba:      %#11x =%15u\n", indent,"",
+	fprintf(f,"%*sfree blocks lba:      %#11x =%15u\n", indent,"",
 		w->freeblks_lba, w->freeblks_lba );
-    const u32 fb_lb_size = w->freeblks_lba_count * w->hd_sec_sz;
-    fprintf(f,"%*sfree blocks lba size: %#11x =%15u =%8u block%s\n", indent,"",
+	const u32 fb_lb_size = w->freeblks_lba_count * w->hd_sec_sz;
+	fprintf(f,"%*sfree blocks lba size: %#11x =%15u =%8u block%s\n", indent,"",
 		fb_lb_size, fb_lb_size,
 		w->freeblks_lba_count, w->freeblks_lba_count == 1 ? "" : "s" );
-    fprintf(f,"%*sfree blocks size:     %#11x =%15u\n", indent,"",
+	fprintf(f,"%*sfree blocks size:     %#11x =%15u\n", indent,"",
 		w->freeblks_size4 * 4, w->freeblks_size4 * 4 );
-    fprintf(f,"%*sfb last u32 mask:     %#11x =%15u\n", indent,"",
+	fprintf(f,"%*sfb last u32 mask:     %#11x =%15u\n", indent,"",
 		w->freeblks_mask, w->freeblks_mask );
-    fprintf(f,"%*sdisc info size:       %#11x =%15u\n\n", indent,"",
+	fprintf(f,"%*sdisc info size:       %#11x =%15u\n\n", indent,"",
 		w->disc_info_sz, w->disc_info_sz );
 
-    fprintf(f,"%*sused slots (wii discs):  %8u =%14u%%\n", indent,"",
+	fprintf(f,"%*sused slots (wii discs):  %8u =%14u%%\n", indent,"",
 		wbfs->used_discs, 100 * wbfs->used_discs / w->max_disc );
-    fprintf(f,"%*stotal slots (wii discs): %8u =%14u%%\n", indent,"",
-		 w->max_disc, 100 );
+	fprintf(f,"%*stotal slots (wii discs): %8u =%14u%%\n", indent,"",
+		w->max_disc, 100 );
+    }
+
+
+    //--- print disc list
 
     MemMap_t mm;
     MemMapItem_t * mi;
     InitializeMemMap(&mm);
 
-    if ( dump_level > 0 || view_invalid_discs )
+    if ( show_mode & (SHOW_W_MAP|SHOW_D_MAP|SHOW_FILES) )
     {
 	ASSERT(w);
 	const u32 sec_per_disc = w->n_wbfs_sec_per_disc;
@@ -1761,7 +1829,7 @@ enumError DumpWBFS
 		if ( !view_invalid_discs
 		    || ( view_invalid_discs < 2 && !d->is_valid && !d->is_deleted ) )
 		{
-		    if (!view_invalid_discs)
+		    if ( !view_invalid_discs && show_mode &SHOW_FILES )
 			fprintf(f,"\n%*s!! NO INFO ABOUT DISC #%d AVAILABLE !!\n",indent,"",slot);
 		    wbfs_close_disc(d);
 		    continue;
@@ -1772,25 +1840,30 @@ enumError DumpWBFS
 		CalcWDiscInfo(&dinfo,0);
 	    }
 
-	    fprintf(f,"\n%*sDump of %sWii disc at slot #%d of %d:\n",
-			indent,"", d->is_used ? "" : "*DELETED* ", slot, w->max_disc );
-	    DumpWDiscInfo( &dinfo, d->is_used ? &ihead : 0, f, indent+2 );
-	    if ( w->head->disc_table[slot] & WBFS_SLOT_INVALID )
-		fprintf(f,"%*s>>> DISC MARKED AS INVALID! <<<\n",indent,"");
- #if NEW_WBFS_INTERFACE
-	    else
+	    if ( show_mode & (SHOW_FILES|SHOW_D_MAP) )
 	    {
-		if ( w->head->disc_table[slot] & WBFS_SLOT_F_SHARED )
-		    fprintf(f,"%*s>>> DISC IS/WAS SHARING BLOCKS WITH OTHER DISCS! <<<\n",indent,"");
-		if ( w->head->disc_table[slot] & WBFS_SLOT_F_FREED )
-		    fprintf(f,"%*s>>> DISC IS/WAS USING FREE BLOCKS! <<<\n",indent,"");
+		fprintf(f,"\n%*sDump of %sWii disc at slot #%d of %d:\n",
+			    indent,"", d->is_used ? "" : "*DELETED* ", slot, w->max_disc );
+		if ( show_mode & SHOW_FILES )
+		    DumpWDiscInfo( &dinfo, d->is_used ? &ihead : 0, f, indent+2 );
+		if ( w->head->disc_table[slot] & WBFS_SLOT_INVALID )
+		    fprintf(f,"%*s>>> DISC MARKED AS INVALID! <<<\n",indent,"");
+	     #if NEW_WBFS_INTERFACE
+		else
+		{
+		    if ( w->head->disc_table[slot] & WBFS_SLOT_F_SHARED )
+			fprintf(f,"%*s>>> DISC IS/WAS SHARING BLOCKS WITH OTHER DISCS! <<<\n",indent,"");
+		    if ( w->head->disc_table[slot] & WBFS_SLOT_F_FREED )
+			fprintf(f,"%*s>>> DISC IS/WAS USING FREE BLOCKS! <<<\n",indent,"");
+		}
+	     #endif
 	    }
- #endif
 
-	    if ( dump_level > 1 )
+	    if ( show_mode & (SHOW_D_MAP|SHOW_W_MAP) )
 	    {
 		int ind = indent + 3;
-		fprintf(f,"\n%*sWii disc memory mapping:\n\n"
+		if ( show_mode & SHOW_D_MAP )
+		  fprintf(f,"\n%*sWii disc memory mapping:\n\n"
 		    "%*s   mapping index :    wbfs blocks :      disc offset range :     size\n"
 		    "%*s----------------------------------------------------------------------\n",
 		    ind-1,"", ind,"", ind,"" );
@@ -1821,6 +1894,9 @@ enumError DumpWBFS
 			idx++;
 		    }
 
+		    if ( !( show_mode & SHOW_D_MAP ))
+			continue;
+
 		    off_t off  = start * wii_sec_per_wbfs_sect * (u64)WII_SECTOR_SIZE;
 		    off_t size = (idx-start) * wii_sec_per_wbfs_sect * (u64)WII_SECTOR_SIZE;
 
@@ -1844,7 +1920,7 @@ enumError DumpWBFS
 			    (u64)size );
 		}
 
-		if ( dump_level > 2 && d->is_used )
+		if ( show_mode & SHOW_W_MAP && d->is_used )
 		{
 		    mi = InsertMemMap(&mm, w->hd_sec_sz+slot*w->disc_info_sz,
 				sizeof(d->header->dhead)
@@ -1881,7 +1957,7 @@ enumError DumpWBFS
     }
     fputc('\n',f);
 
-    if ( dump_level > 2 )
+    if ( show_mode & SHOW_W_MAP )
     {
 	mi = InsertMemMap(&mm,0,sizeof(wbfs_head_t));
 	StringCopyS(mi->info,sizeof(mi->info),"WBFS header");
@@ -1938,15 +2014,15 @@ enumError DumpWBFS
 
 
  #if NEW_WBFS_INTERFACE
-    if ( dump_level > 3 )
+    if ( show_mode & SHOW_USAGE )
     {
 	fprintf(f,"\f\n%*sWBFS Memory Usage:\n\n", indent,"" );
-	wbfs_print_block_usage(stdout,3,w,false);
+	wbfs_print_block_usage(stdout,indent+1,w,false);
 	fputc('\n',f);
     }
  #endif
 
-    if ( check_it && isatty(fileno(f)) )
+    if ( show_mode & SHOW_CHECK ) // && isatty(fileno(f))
     {
 	CheckWBFS_t ck;
 	InitializeCheckWBFS(&ck);
@@ -1956,6 +2032,29 @@ enumError DumpWBFS
     }
 
     return ERR_OK;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+int ScanOptWbfsAlloc ( ccp arg )
+{
+    static const CommandTab_t tab[] =
+    {
+	{ WBFS_BA_AUTO,		"AUTO",		"DEFAULT",	0 },
+	{ WBFS_BA_FIRST,	"FIRST",	"FRAG",		0 },
+	{ WBFS_BA_AVOID_FRAG,	"NO-FRAG",	"NOFRAG",	0 },
+	{0,0,0,0}
+    };
+    
+    const CommandTab_t * cmd = ScanCommand(0,arg,tab);
+    if (cmd)
+    {
+	opt_wbfs_alloc = cmd->id;
+	return 0;
+    }
+
+    ERROR0(ERR_SYNTAX,"Illegal WBFS block allocation mode (option --wbfs-allocv): '%s'\n",arg);
+    return 1;
 }
 
 //
@@ -2518,6 +2617,28 @@ void ResetCheckWBFS ( CheckWBFS_t * ck )
 
 ///////////////////////////////////////////////////////////////////////////////
 
+#if NEW_WBFS_INTERFACE & defined(TEST)
+
+static void check_func
+(
+    wbfs_t		* p,		// valid WBFS descriptor
+    wbfs_check_t	check_mode,	// modus
+    int			slot,		// -1 or related slot index
+    ccp			id6,		// NULL or pointer to disc ID6
+    int			block,		// -1 or related block number
+    uint		count,		// block usage count
+    ccp			msg,		// clear text message
+    uint		msg_len,	// strlen(msg)
+    void		* param		// user defined paramater
+)
+{
+    printf("%2u: %3d [%s] %d,%d %s\n",check_mode,slot,id6?id6:"-",block,count,msg);
+}
+
+#endif
+
+///////////////////////////////////////////////////////////////////////////////
+
 enumError CheckWBFS
 	( CheckWBFS_t * ck, WBFS_t * wbfs, int verbose, FILE * f, int indent )
 {
@@ -2539,6 +2660,11 @@ enumError CheckWBFS
 
     ck->fbt_off  = ( w->part_lba + w->freeblks_lba ) * w->hd_sec_sz;
     ck->fbt_size = w->freeblks_lba_count * w->hd_sec_sz;
+
+ #if NEW_WBFS_INTERFACE & defined(TEST) // [[2do]]
+    if (logging)
+	wbfs_calc_used_blocks(w,true,true,check_func,ck);
+ #endif
 
     //---------- calculate number of sectors
 
@@ -2634,7 +2760,6 @@ enumError CheckWBFS
     u32 total_err_no_blocks = 0;
     u32 invalid_disc_count  = 0;
     u32 no_iinfo_count      = 0;
-    bool sync = false;
 
     for ( slot = 0; slot < w->max_disc; slot++ )
     {
@@ -2715,11 +2840,10 @@ enumError CheckWBFS
 	{
 	    invalid_disc_count += invalid_game;
 	    ASSERT(w->head);
-	    if ( !(w->head->disc_table[slot] & WBFS_SLOT_INVALID) )
-	    {
-		w->head->disc_table[slot] |= WBFS_SLOT_INVALID;
-		sync = true;
-	    }
+
+	    // we mark it, but don't set the dirty flag
+	    //  ==> the marker is only written on an external sync()
+	    w->head->disc_table[slot] |= WBFS_SLOT_INVALID;
 	}
 
 	wbfs_close_disc(d);
@@ -2782,7 +2906,8 @@ enumError CheckWBFS
 		    fprintf(f,"%*s  - Free WBFS sector #%u marked as 'used'!\n",
 				indent,"", bl );
 		if ( wbfs0_count && !total_err_fbt_free_wbfs0 )
-		    fprintf(f,"%*sNote: Free sectors >= #%u are marked 'used' because a bug in libwbfs v0.\n",
+		    fprintf(f,"%*sNote: Free sectors >= #%u are marked 'used'"
+				" because a bug in libwbfs v0.\n",
 				indent+6,"", WBFS0_SEC );
 	    }
 
@@ -2792,8 +2917,6 @@ enumError CheckWBFS
 	    bl++;
     }
 
-    if (sync)
-	wbfs_sync(w);
 
     //---------- summary
 
@@ -2812,16 +2935,21 @@ enumError CheckWBFS
 		  + total_err_overlap
 		  + total_err_invalid;
 
+ #if NEW_WBFS_INTERFACE
+    // with the new wbfs interface all errors are harmless
+    ck->err = ck->err_total ? ERR_WARNING : ERR_OK;
+ #else
     ck->err = ck->err_fbt_used || ck->err_bl_overlap
 		? ERR_WBFS_INVALID
 		: ck->err_total
 			? ERR_WARNING
 			: ERR_OK;
+ #endif
 
     if ( ck->err_total && verbose >= PRINT_DUMP )
     {
 	printf("\f\nWBFS DUMP:\n\n");
-	DumpWBFS(wbfs,f,indent,
+	DumpWBFS(wbfs,f,indent,SHOW__DEFAULT,
 		verbose >= PRINT_FULL_DUMP ? 3 : 2,
 		verbose >= PRINT_FULL_DUMP,
 		verbose >= PRINT_EXT_DUMP  ? 0 : ck );
@@ -2838,7 +2966,7 @@ enumError CheckWBFS
 
 ///////////////////////////////////////////////////////////////////////////////
 
-enumError AutoCheckWBFS	( WBFS_t * wbfs, bool ignore_check )
+enumError AutoCheckWBFS	( WBFS_t * wbfs, bool ignore_check, int indent )
 {
     ASSERT(wbfs);
     ASSERT(wbfs->wbfs);
@@ -2848,7 +2976,7 @@ enumError AutoCheckWBFS	( WBFS_t * wbfs, bool ignore_check )
     enumError err = CheckWBFS(&ck,wbfs,-1,0,0);
     if (err)
     {
-	PrintCheckedWBFS(&ck,stdout,1);
+	PrintCheckedWBFS(&ck,stdout,indent);
 	if ( !ignore_check && err > ERR_WARNING )
 	    printf("!>> To avoid this automatic check use the option --no-check.\n"
 		   "!>> To ignore the results of this check use option --force.\n"
@@ -2963,7 +3091,6 @@ enumError RepairWBFS ( CheckWBFS_t * ck, int testmode,
     TRACELINE;
     if ( rm & REPAIR_FBT )
     {
-	TRACELINE;
 	if ( CalcFBT(ck) )
 	{
 	    TRACELINE;
@@ -2979,11 +3106,13 @@ enumError RepairWBFS ( CheckWBFS_t * ck, int testmode,
 		if (err)
 		    return err;
 		memcpy(ck->cur_fbt,ck->good_fbt,ck->fbt_size);
+ #if !NEW_WBFS_INTERFACE
 		if (w->freeblks)
 		{
 		    FREE(w->freeblks);
 		    w->freeblks = 0;
 		}
+ #endif
 		sync++;
 	    }
 	    repair_count++;
@@ -3022,6 +3151,10 @@ enumError RepairWBFS ( CheckWBFS_t * ck, int testmode,
     }
 
     TRACELINE;
+ #if NEW_WBFS_INTERFACE
+    if (repair_count)
+	wbfs_calc_used_blocks(w,true,false,0,0);
+ #endif
     if (sync)
 	wbfs_sync(w);
 
@@ -3085,7 +3218,7 @@ bool CalcFBT ( CheckWBFS_t * ck )
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////			   WDiscInfo_t			///////////////
 ///////////////////////////////////////////////////////////////////////////////
-// is WDiscInfo_t obsolete? [wiidisc] [obsolete]
+// is WDiscInfo_t obsolete? [wiidisc] [[obsolete]]
 
 void InitializeWDiscInfo ( WDiscInfo_t * dinfo )
 {
@@ -3129,7 +3262,7 @@ enumError GetWDiscInfo ( WBFS_t * w, WDiscInfo_t * dinfo, int disc_index )
     dinfo->disc_index	= disc_index;
     dinfo->slot		= slot;
     dinfo->size		= (u64)size4 * 4;
-    dinfo->used_blocks	= dinfo->size / WII_SECTOR_SIZE; // [2do] not exact
+    dinfo->used_blocks	= dinfo->size / WII_SECTOR_SIZE; // [[2do]] not exact
 
     return dinfo->disc_type == WD_DT_UNKNOWN ? ERR_WARNING : ERR_OK;
 }
@@ -3162,7 +3295,7 @@ enumError GetWDiscInfoBySlot ( WBFS_t * w, WDiscInfo_t * dinfo, u32 disc_slot )
     dinfo->disc_index	= disc_slot;
     dinfo->slot		= disc_slot;
     dinfo->size		= (u64)size4 * 4;
-    dinfo->used_blocks	= dinfo->size / WII_SECTOR_SIZE; // [2do] not exact
+    dinfo->used_blocks	= dinfo->size / WII_SECTOR_SIZE; // [[2do]] not exact
 
     w->disc_slot = disc_slot;
     return dinfo->disc_type == WD_DT_UNKNOWN ? ERR_WARNING : ERR_OK;
@@ -3172,7 +3305,7 @@ enumError GetWDiscInfoBySlot ( WBFS_t * w, WDiscInfo_t * dinfo, u32 disc_slot )
 
 enumError FindWDiscInfo ( WBFS_t * w, WDiscInfo_t * dinfo, ccp id6 )
 {
-    // [2do] the wbfs subsystem can find ids!
+    // [[2do]] the wbfs subsystem can find ids!
 
     ASSERT(w);
     ASSERT(dinfo);
@@ -3883,7 +4016,7 @@ enumError OpenWDiscSF ( WBFS_t * w )
     SuperFile_t * sf = w->sf;
     sf->wbfs = w;
     SetupIOD(sf,OFT_WBFS,OFT_WBFS);
-    SetPatchFileID(&sf->f,w->disc->header,6); // [2do] SetFileID() ?
+    SetPatchFileID(&sf->f,w->disc->header,6); // [[2do]] SetFileID() ?
     w->disc_sf_opened = true;
 
     CopyFileAttribStat( &sf->f.fatt, &sf->f.st, false );
@@ -3986,7 +4119,7 @@ enumError AddWDisc ( WBFS_t * w, SuperFile_t * sf, const wd_select_t * psel )
 
     wbfs_param_t par;
     memset(&par,0,sizeof(par));
-    par.read_src_wii_disc	= WrapperReadSF; // [2do] [obsolete]? (both: param and func)
+    par.read_src_wii_disc	= WrapperReadSF; // [[2do]] [[obsolete]]? (both: param and func)
     par.callback_data		= sf;
     par.spinner			= sf->show_progress ? PrintProgressSF : 0;
     par.psel			= psel;
@@ -4069,8 +4202,13 @@ enumError RemoveWDisc
 		id6, w->sf->f.fname );
     }
 
+ #if NEW_WBFS_INTERFACE && defined(TEST) && defined(DEBUG)
+    if (logging)
+	DumpWBFS(w,stdout,3,SHOW_USAGE,0,0,0);
+ #endif
+
  #ifdef DEBUG
-    DumpWBFS(w,TRACE_FILE,15,0,0,0);
+    DumpWBFS(w,TRACE_FILE,3,SHOW__DEFAULT,0,0,0);
  #endif
 
     // check if the disc is really removed

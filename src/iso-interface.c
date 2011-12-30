@@ -1438,7 +1438,7 @@ enumError Dump_PATCH
     int recnum;
     for ( recnum = 0; pat.cur_type; recnum++ )
     {
-	// [2do] [patch]
+	// [[2do]] [patch]
 	printf("%3d: %02x %u\n",recnum,pat.cur_type,pat.cur_size);
 	enumError err = GetNextReadPatch(&pat);
 	if (err)
@@ -2907,7 +2907,7 @@ enumError CreateFileFST ( WiiFstInfo_t *wfi, ccp dest_path, WiiFstFile_t * file 
     if ( file->size > sizeof(iobuf) )
 	PreallocateF(&fo,0,file->size);
 
- #if 0 && defined(TEST) // test ReadFileFST4() [obsolete]
+ #if 0 && defined(TEST) // test ReadFileFST4() [[obsolete]]
     if ( file->icm == WD_ICM_DATA ) 
 	err = WriteF(&fo,file->data,file->size);
     else
@@ -4148,7 +4148,7 @@ enumError SetupReadFST ( SuperFile_t * sf )
     PRINT("ENCODING: %04x -> %04x\n",encoding,fst->encoding);
 
 
-    //----- setup partitions --> [2do] use part_selector
+    //----- setup partitions --> [[2do]] use part_selector
 
     u64 min_offset	= WII_PART_OFF;
     u64 update_off	= WII_PART_OFF;
@@ -4776,7 +4776,7 @@ void EncryptSectorGroup
 ///////////////			    Verify			///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-#ifdef TEST // [obsolete] [2do]
+#ifdef TEST // [[obsolete]] [[2do]]
   #define NEW_VERIFY_UI 1
 #else
   #define NEW_VERIFY_UI 0
@@ -5338,8 +5338,9 @@ static enumError skel_load_part
     }
 
     u64 disc_off_begin = wd_calc_disc_offset(part,data_offset4);
-    u64 disc_off_end   = wd_calc_disc_offset(part,data_offset4+(data_size+3>>2));
-    noPRINT("P: %llx+%x -> %llx..%llx: %s\n",
+    const u32 calc_size = part->is_gc ? data_size : data_size + 3 >> 2;
+    u64 disc_off_end   = wd_calc_disc_offset(part,data_offset4+calc_size);
+    PRINT("P: %llx+%x -> %llx..%llx: %s\n",
 		data_offset4, data_size,
 		disc_off_begin, disc_off_end, info );
 
@@ -5347,7 +5348,7 @@ static enumError skel_load_part
     while ( disc_off_begin < disc_off_end )
     {
 	u64 end = ( disc_off_begin / WII_SECTOR_SIZE + 1 ) * WII_SECTOR_SIZE;
-	if ( end > disc_off_end )
+	if ( part->is_gc || end > disc_off_end )
 	     end = disc_off_end;
 
 	const u32 chunk_size = end - disc_off_begin;
@@ -5370,6 +5371,174 @@ static enumError skel_load_part
 	disc_off_begin += chunk_size + WII_SECTOR_HASH_SIZE;
     }
     
+    return ERR_OK;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+static enumError SkeletonizeWii
+(
+    SuperFile_t		* fi,		// valid input file
+    wd_disc_t		* disc,		// valid disc pointer
+    wd_memmap_t		* mm		// valid memory map
+)
+{
+    DASSERT(fi);
+    DASSERT(disc);
+    DASSERT( disc->disc_type == WD_DT_WII );
+    DASSERT(mm);
+
+    //--- collect data
+
+    wd_memmap_item_t * mi = wd_insert_memmap_alloc(mm,0,0,WII_PART_OFF);
+    DASSERT( mi && mi->data );
+    snprintf(mi->info,sizeof(mi->info),"Disc header of %s",fi->f.id6_dest);
+    enumError err = ReadSF(fi,0,mi->data,WII_PART_OFF);
+    if (err)
+	return err;
+
+    int ip;
+    for ( ip = 0; ip < disc->n_part; ip++ )
+    {
+	wd_part_t * part = wd_get_part_by_index(disc,ip,2);
+	if (!part)
+	    continue;
+
+	skel_copy_phead( mm, &part->ph,
+			(u64)part->part_off4<<2,
+			sizeof(part->ph), "ticket", WII_TICKET_ID4_OFF );
+
+	skel_copy_phead( mm, part->tmd,
+			(u64)(part->part_off4+part->ph.tmd_off4)<<2,
+			part->ph.tmd_size, "tmd", WII_TMD_ID4_OFF );
+
+	skel_copy_phead( mm, part->cert,
+			(u64)(part->part_off4+part->ph.cert_off4)<<2,
+			part->ph.cert_size, "cert", 0 );
+
+	const size_t ssm = sizeof(skeleton_marker);
+	mi = wd_insert_memmap_alloc(mm,0,
+			wd_calc_disc_offset(part,0)-ssm,ssm);
+	DASSERT(mi);
+	memcpy(mi->data,skeleton_marker,ssm);
+	snprintf(mi->info,sizeof(mi->info),"Marker '%s'",skeleton_marker);
+
+	err = skel_load_part( mm, part,
+			WII_BOOT_OFF>>2, WII_BOOT_SIZE,
+			"boot.bin", false );
+	if (err)
+	    return err;
+
+	err = skel_load_part( mm, part,
+			WII_BI2_OFF>>2, WII_BI2_SIZE,
+			"bi2.bin", false );
+	if (err)
+	    return err;
+
+	err = skel_load_part( mm, part,
+			part->boot.fst_off4,
+			part->boot.fst_size4<<2,
+			"fst.bin", false );
+	if (err)
+	    return err;
+
+	err = skel_load_part( mm, part,
+			part->boot.dol_off4,
+			DOL_HEADER_SIZE,
+			"main.dol/header", false );
+	if (err)
+	    return err;
+
+	err = skel_load_part( mm, part,
+			WII_APL_OFF >> 2,
+			0x20,
+			"apploader/header", false );
+	if (err)
+	    return err;
+
+	hton_part_header(&part->ph,&part->ph); // inplace because values not longer needed
+    }
+
+    return ERR_OK;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+static enumError SkeletonizeGC
+(
+    SuperFile_t		* fi,		// valid input file
+    wd_disc_t		* disc,		// valid disc pointer
+    wd_memmap_t		* mm		// valid memory map
+)
+{
+    DASSERT(fi);
+    DASSERT(disc);
+    DASSERT( disc->disc_type == WD_DT_GAMECUBE );
+    DASSERT(mm);
+
+ #ifndef TEST
+    return ERROR0(ERR_WRONG_FILE_TYPE,
+		"SKELETON: GameCube not supported: %s\n",fi->f.fname);
+ #endif
+
+ #if 0
+    if ( disc->disc_attrib & WD_DA_GC_MULTIBOOT )
+	return ERROR0(ERR_WRONG_FILE_TYPE,
+		"SKELETON: GameCube multiboot discs not supported: %s\n",fi->f.fname);
+ #endif
+
+    // GC: non shifted offsets
+
+    int ip;
+    for ( ip = 0; ip < disc->n_part; ip++ )
+    {
+	wd_part_t * part = wd_get_part_by_index(disc,ip,2);
+	if (!part)
+	    continue;
+
+	enumError err = skel_load_part( mm, part,
+			WII_BOOT_OFF>>2, WII_BOOT_SIZE,
+			"boot.bin", true );
+	if (err)
+	    return err;
+
+	const size_t ssm = sizeof(skeleton_marker);
+	err = skel_load_part( mm, part,
+			WII_BI2_OFF, WII_BI2_SIZE - ssm,
+			"bi2.bin", true );
+	if (err)
+	    return err;
+
+	wd_memmap_item_t * mi
+	    = wd_insert_memmap_alloc(mm,0, WII_BI2_OFF + WII_BI2_SIZE - ssm, ssm );
+	DASSERT(mi);
+	memcpy(mi->data,skeleton_marker,ssm);
+	snprintf(mi->info,sizeof(mi->info),"Marker '%s'",skeleton_marker);
+
+	err = skel_load_part( mm, part,
+			part->boot.fst_off4,
+			part->boot.fst_size4<<2,
+			"fst.bin", false );
+	if (err)
+	    return err;
+
+	err = skel_load_part( mm, part,
+			part->boot.dol_off4,
+			DOL_HEADER_SIZE,
+			"main.dol/header", false );
+	if (err)
+	    return err;
+
+	err = skel_load_part( mm, part,
+			WII_APL_OFF,
+			0x20,
+			"apploader/header", false );
+	if (err)
+	    return err;
+
+	hton_part_header(&part->ph,&part->ph); // inplace because values not longer needed
+    }
+
     return ERR_OK;
 }
 
@@ -5403,80 +5572,22 @@ enumError Skeletonize
 	goto abort;
     }
 
-    const enumOFT oft = CalcOFT(output_file_type,0,0,OFT__DEFAULT);
+    switch (disc->disc_type)
+    {
+	case WD_DT_GAMECUBE:
+	    err = SkeletonizeGC(fi,disc,&mm);
+	    break;
+	
+	case WD_DT_WII:
+	    err = SkeletonizeWii(fi,disc,&mm);
+	    break;
 
-
-    //--- collect data
-
-    wd_memmap_item_t * mi = wd_insert_memmap_alloc(&mm,0,0,WII_PART_OFF);
-    DASSERT( mi && mi->data );
-    snprintf(mi->info,sizeof(mi->info),"Disc header of %s",fi->f.id6_dest);
-    err = ReadSF(fi,0,mi->data,WII_PART_OFF);
+	default:
+	    err = ERROR0(ERR_WRONG_FILE_TYPE,
+		"SKELETON: Disk type not supported: %s\n",fi->f.fname);
+    }
     if (err)
 	goto abort;
-
-    int ip;
-    for ( ip = 0; ip < disc->n_part; ip++ )
-    {
-	wd_part_t * part = wd_get_part_by_index(disc,ip,2);
-	if (!part)
-	    continue;
-
-	skel_copy_phead( &mm, &part->ph,
-			(u64)part->part_off4<<2,
-			sizeof(part->ph), "ticket", WII_TICKET_ID4_OFF );
-
-	skel_copy_phead( &mm, part->tmd,
-			(u64)(part->part_off4+part->ph.tmd_off4)<<2,
-			part->ph.tmd_size, "tmd", WII_TMD_ID4_OFF );
-
-	skel_copy_phead( &mm, part->cert,
-			(u64)(part->part_off4+part->ph.cert_off4)<<2,
-			part->ph.cert_size, "cert", 0 );
-
-	const size_t ssm = sizeof(skeleton_marker);
-	mi = wd_insert_memmap_alloc(&mm,0,
-			wd_calc_disc_offset(part,0)-ssm,ssm);
-	DASSERT(mi);
-	memcpy(mi->data,skeleton_marker,ssm);
-	snprintf(mi->info,sizeof(mi->info),"Marker '%s'",skeleton_marker);
-
-	err = skel_load_part( &mm, part,
-			WII_BOOT_OFF>>2, WII_BOOT_SIZE,
-			"boot.bin", true );
-	if (err)
-	    goto abort;
-
-	err = skel_load_part( &mm, part,
-			WII_BI2_OFF>>2, WII_BI2_SIZE,
-			"bi2.bin", false );
-	if (err)
-	    goto abort;
-
-	err = skel_load_part( &mm, part,
-			part->boot.fst_off4,
-			part->boot.fst_size4<<2,
-			"fst.bin", false );
-	if (err)
-	    goto abort;
-
-	err = skel_load_part( &mm, part,
-			part->boot.dol_off4,
-			DOL_HEADER_SIZE,
-			"main.dol/header", false );
-	if (err)
-	    goto abort;
-
-	const u32 apl_off4 = part->is_gc ? WII_APL_OFF : WII_APL_OFF >> 2;
-	err = skel_load_part( &mm, part,
-			apl_off4,
-			0x20,
-			"apploader/header", false );
-	if (err)
-	    goto abort;
-
-	hton_part_header(&part->ph,&part->ph); // values are not longer needed
-    }
 
 
     //--- calc sha1 + fname
@@ -5490,6 +5601,7 @@ enumError Skeletonize
     }
     
     char fname[PATH_MAX];
+    const enumOFT oft = CalcOFT(output_file_type,0,0,OFT__DEFAULT);
     
     {
 	WIT_SHA_CTX ctx;

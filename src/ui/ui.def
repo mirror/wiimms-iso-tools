@@ -550,9 +550,9 @@
 
 #:def_opt( "DEST", "d|dest", "CP", \
 	"path", \
-	"Define a destination path (directory/file). The destination path is" \
-	" scanned for escape sequences (see option {--esc}) to allow generic" \
-	" paths." )
+	"Define a destination path (directory or file). The destination path" \
+	" is scanned for escape sequences (see option {--esc}) to allow" \
+	" generic paths." )
 
 #:def_opt( "DEST2", "D|DEST", "CP", \
 	"path", \
@@ -773,15 +773,16 @@
 	"", \
 	"Print real path instead of entered path." )
 
-#:def_opt( "SHOW", "show", "CP", \
+#:def_opt( "SHOW", "+|show", "CP", \
 	"list", \
 	"This option allows fine control over the things that are to be" \
 	" printed. The parameter is a comma separated list of the following" \
-	" keywords, case is ignored: @NONE, INTRO, D-ID, P-ID, P-TAB, P-INFO," \
-	" P-MAP, D-MAP, TICKET, TMD, USAGE, PATCH, RELOCATE, FILES, UNUSED," \
-	" OFFSET, SIZE, PATH@ and @ALL@. There are some combined keys: @ID :=" \
-	" D-ID,P-ID@, @PART := P-INFO,P-ID,P-MAP,TICKET,TMD@, @MAP :=" \
-	" P-MAP,D-MAP@.\n" \
+	" keywords, case is ignored: @NONE, INTRO, HEADER, SLOTS, GEOMETRY," \
+	" D-ID, P-ID, P-TAB, P-INFO, P-MAP, D-MAP, W-MAP, TICKET, TMD, USAGE," \
+	" PATCH, RELOCATE, FILES, UNUSED, OFFSET, SIZE, PATH@ and @ALL@. There" \
+	" are some combined keys: @ID := D-ID,P-ID@, @PART :=" \
+	" P-INFO,P-ID,P-MAP,TICKET,TMD@, @DISC := FILES,D-ID,D-MAP@, @MAP :=" \
+	" P-MAP,D-MAP,W_MAP@.\n" \
 	"  All keywords can be prefixed by '+' to enable that option, by a '-'" \
 	" to disable it or by a '=' to enable that option and disable all" \
 	" others.\n" \
@@ -4414,7 +4415,15 @@
 	" {CHECK --repair standard}." )
 
 #:def_cmd( "EDIT", "EDIT", \
-	"wwt EDIT [sub_command]...", \
+	"wwt EDIT [JOB]...\n" \
+	" \n" \
+	"JOB     := REMOVE | ACTIVE | INVALID | FREE | USE | ID6\n" \
+	"REMOVE  := RM=a,b-c,...\n" \
+	"ACTIVE  := ACT=a,b-c,...\n" \
+	"INVALID := INV=a,b-c,...\n" \
+	"FREE    := FREE=a,b-c,...\n" \
+	"USE     := USE=a,b-c,...\n" \
+	"ID6     := ID6=a:b,c-d:e,...", \
 	"Edit slot and block assignments. Dangerous! Read docu!" )
 
 #:def_cmd( "PHANTOM", "PHANTOM", \
@@ -4453,6 +4462,13 @@
 	" directories are accepted as source. 'SYNC' is a shortcut for {ADD" \
 	" --sync}." )
 
+#:def_cmd( "DUP", "DUP", \
+	"wwt DUP [source_wbfs]... [-d|-D] dest_file", \
+	"Duplicate source WBFS files or partitions and create new WBFS files." \
+	" If multiple sources entered, the destination must be a directory." \
+	" All used WBFS blocks are copied 1:1 to the destination file and" \
+	" unused blocks are skipped and stored as sparse blocks." )
+
 #:def_cmd( "EXTRACT", "EXTRACT|X", \
 	"wwt EXTRACT id6[=dest]...", \
 	"Extract discs from WBFS partitions and store them as Wii or GameCube" \
@@ -4480,7 +4496,7 @@
 	" find bad dumps." )
 
 #:def_cmd( "SKELETON", "SKELETON|SKEL", \
-	"wit SKELETON [id6]...", \
+	"wwt SKELETON [id6]...", \
 	"Create very small skeletons of ISO images. A skeleton contains only" \
 	" disc and partiton headers for further analysis and is not playable" \
 	" because all files are zeroed." )
@@ -4572,7 +4588,7 @@
 
 #:def_opt( "PART", "p|part", "CMP", \
 	"part", \
-	"Define a primary WBFS partition. Multiple usage possible." )
+	"Define a primary WBFS file or partition. Multiple usage possible." )
 
 #:def_opt( "SOURCE", "source", "CMP", \
 	"path", \
@@ -4623,6 +4639,14 @@
 #:def_opt( "RAW", "raw", "C", \
 	"", \
 	"Abbreviation of {--psel RAW}." )
+
+#:def_opt( "WBFS_ALLOC", "wbfs-alloc|wbfsalloc", "CP", \
+	"mode", \
+	"Select one WBFS block allocation modus:\n" \
+	"  @FIRST@: Use always the first free WBFS block. @NO-FRAG@: Find" \
+	" large blocks to minimize fragmentation. @AUTO@ (=default): Use modus" \
+	" @NO-FRAG@ for partitions >=20GiB and modus @FIRST@ for partitions" \
+	" <20GiB and for files." )
 
 #:def_opt( "EXCLUDE", "x|exclude", "CMP", \
 	"id", \
@@ -4818,9 +4842,9 @@
 
 #:def_opt( "DEST", "d|dest", "CP", \
 	"path", \
-	"Define a destination path (directory/file). The destination path is" \
-	" scanned for escape sequences (see option {--esc}) to allow generic" \
-	" paths." )
+	"Define a destination path (directory or file). The destination path" \
+	" is scanned for escape sequences (see option {--esc}) to allow" \
+	" generic paths." )
 
 #:def_opt( "DEST2", "D|DEST", "CP", \
 	"path", \
@@ -5085,6 +5109,26 @@
 	"", \
 	"Print in long format. Multiple usage possible." )
 
+#:def_opt( "SHOW", "+|show", "CP", \
+	"list", \
+	"This option allows fine control over the things that are to be" \
+	" printed. The parameter is a comma separated list of the following" \
+	" keywords, case is ignored: @NONE, INTRO, HEADER, SLOTS, GEOMETRY," \
+	" D-ID, P-ID, P-TAB, P-INFO, P-MAP, D-MAP, W-MAP, TICKET, TMD, USAGE," \
+	" PATCH, RELOCATE, FILES, UNUSED, OFFSET, SIZE, PATH@ and @ALL@. There" \
+	" are some combined keys: @ID := D-ID,P-ID@, @PART :=" \
+	" P-INFO,P-ID,P-MAP,TICKET,TMD@, @DISC := FILES,D-ID,D-MAP@, @MAP :=" \
+	" P-MAP,D-MAP,W_MAP@.\n" \
+	"  All keywords can be prefixed by '+' to enable that option, by a '-'" \
+	" to disable it or by a '=' to enable that option and disable all" \
+	" others.\n" \
+	"  The additional keywords @DEC@ and @HEX@ can be used to set a" \
+	" prefered number format. @-HEADER@ suppresses the output of header" \
+	" lines.\n" \
+	"  The commands recognize only some of these keywords and ignore the" \
+	" others. If @--show@ is set, option {--long} is ignored for selecting" \
+	" output elements." )
+
 #:def_opt( "FRAGMENTS", "fragments|frag", "C", \
 	"", \
 	"Print fragmentation info instead of region info. --frag is a short" \
@@ -5318,10 +5362,15 @@
 
 #:def_cmd_opt( "DUMP", "LONG", \
 	"", \
-	"If set then print a status for each valid disc within WBFS. If set" \
-	" twice print a memory map for each shown disc too. If set three times" \
-	" print an additional memory map for the whole WBFS. If set four times" \
-	" activate {--inode} too." )
+	"If set then print a status for each valid disc within WBFS" \
+	" ({--show=FILES}). If set twice print a memory map for each disc is" \
+	" printed too ({--show=D-MAP}). If set three times print an additional" \
+	" memory map for the whole WBFS ({--show=W-MAP}). If set four times" \
+	" print an usabe table ({--show=USAGE})." )
+
+#:def_cmd_opt( "DUMP", "SHOW", \
+	"", \
+	"" )
 
 #:def_cmd_opt( "ID6", "AUTO", \
 	"", \
@@ -6334,12 +6383,15 @@
 
 #:def_cmd_opt( "PHANTOM", "FORCE", \
 	"", \
-	"If the automatic check finds problematic errors, then the report is" \
-	" printed but the operation is *not* canceled." )
+	"This option is not longer needed because of the new WBFS interface." )
 
 #:def_cmd_opt( "PHANTOM", "NO_CHECK", \
 	"", \
 	"Disable automatic check of WBFS before modifications." )
+
+#:def_cmd_opt( "PHANTOM", "WBFS_ALLOC", \
+	"", \
+	"" )
 
 #:def_cmd_opt( "PHANTOM", "QUIET", \
 	"", \
@@ -6367,8 +6419,7 @@
 
 #:def_cmd_opt( "TRUNCATE", "FORCE", \
 	"", \
-	"If the automatic check finds problematic errors, then the report is" \
-	" printed but the operation is *not* canceled." )
+	"This option is not longer needed because of the new WBFS interface." )
 
 #:def_cmd_opt( "TRUNCATE", "NO_CHECK", \
 	"", \
@@ -6412,12 +6463,15 @@
 
 #:def_cmd_opt( "ADD", "FORCE", \
 	"", \
-	"If the automatic check finds problematic errors, then the report is" \
-	" printed but the operation is *not* canceled." )
+	"This option is not longer needed because of the new WBFS interface." )
 
 #:def_cmd_opt( "ADD", "NO_CHECK", \
 	"", \
 	"Disable automatic check of WBFS before modifications." )
+
+#:def_cmd_opt( "ADD", "WBFS_ALLOC", \
+	"", \
+	"" )
 
 #:def_cmd_opt( "ADD", "SOURCE", \
 	"", \
@@ -6619,12 +6673,15 @@
 
 #:def_cmd_opt( "UPDATE", "FORCE", \
 	"", \
-	"If the automatic check finds problematic errors, then the report is" \
-	" printed but the operation is *not* canceled." )
+	"This option is not longer needed because of the new WBFS interface." )
 
 #:def_cmd_opt( "UPDATE", "NO_CHECK", \
 	"", \
 	"Disable automatic check of WBFS before modifications." )
+
+#:def_cmd_opt( "UPDATE", "WBFS_ALLOC", \
+	"", \
+	"" )
 
 #:def_cmd_opt( "UPDATE", "SOURCE", \
 	"", \
@@ -6818,12 +6875,15 @@
 
 #:def_cmd_opt( "SYNC", "FORCE", \
 	"", \
-	"If the automatic check finds problematic errors, then the report is" \
-	" printed but the operation is *not* canceled." )
+	"This option is not longer needed because of the new WBFS interface." )
 
 #:def_cmd_opt( "SYNC", "NO_CHECK", \
 	"", \
 	"Disable automatic check of WBFS before modifications." )
+
+#:def_cmd_opt( "SYNC", "WBFS_ALLOC", \
+	"", \
+	"" )
 
 #:def_cmd_opt( "SYNC", "SOURCE", \
 	"", \
@@ -6983,6 +7043,63 @@
 	"", \
 	"" )
 
+#:def_cmd_opt( "DUP", "TITLES", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "DUP", "UTF_8", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "DUP", "NO_UTF_8", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "DUP", "LANG", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "DUP", "AUTO", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "DUP", "ALL", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "DUP", "PART", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "DUP", "NO_CHECK", \
+	"", \
+	"Disable automatic check of WBFS before reading." )
+
+#:def_cmd_opt( "DUP", "QUIET", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "DUP", "LOGGING", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "DUP", "DEST", \
+	"", \
+	"Define the path to the destination file. If not set, the last" \
+	" parameter is used as destination." )
+
+#:def_cmd_opt( "DUP", "DEST2", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "DUP", "OVERWRITE", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "DUP", "TEST", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "EXTRACT", "TITLES", \
 	"", \
 	"" )
@@ -7013,8 +7130,7 @@
 
 #:def_cmd_opt( "EXTRACT", "FORCE", \
 	"", \
-	"If the automatic check finds problematic errors, then the report is" \
-	" printed but the operation is *not* canceled." )
+	"This option is not longer needed because of the new WBFS interface." )
 
 #:def_cmd_opt( "EXTRACT", "NO_CHECK", \
 	"", \
@@ -7265,8 +7381,7 @@
 
 #:def_cmd_opt( "REMOVE", "FORCE", \
 	"", \
-	"If the automatic check finds problematic errors, then the report is" \
-	" printed but the operation is *not* canceled." )
+	"This option is not longer needed because of the new WBFS interface." )
 
 #:def_cmd_opt( "REMOVE", "NO_CHECK", \
 	"", \
@@ -7364,8 +7479,7 @@
 
 #:def_cmd_opt( "RENAME", "FORCE", \
 	"", \
-	"If the automatic check finds problematic errors, then the report is" \
-	" printed but the operation is *not* canceled." )
+	"This option is not longer needed because of the new WBFS interface." )
 
 #:def_cmd_opt( "RENAME", "NO_CHECK", \
 	"", \
@@ -7452,8 +7566,7 @@
 
 #:def_cmd_opt( "SETTITLE", "FORCE", \
 	"", \
-	"If the automatic check finds problematic errors, then the report is" \
-	" printed but the operation is *not* canceled." )
+	"This option is not longer needed because of the new WBFS interface." )
 
 #:def_cmd_opt( "SETTITLE", "NO_CHECK", \
 	"", \
@@ -7540,8 +7653,7 @@
 
 #:def_cmd_opt( "TOUCH", "FORCE", \
 	"", \
-	"If the automatic check finds problematic errors, then the report is" \
-	" printed but the operation is *not* canceled." )
+	"This option is not longer needed because of the new WBFS interface." )
 
 #:def_cmd_opt( "TOUCH", "NO_CHECK", \
 	"", \
@@ -7637,8 +7749,7 @@
 
 #:def_cmd_opt( "VERIFY", "FORCE", \
 	"", \
-	"If the automatic check finds problematic errors, then the report is" \
-	" printed but the operation is *not* canceled." )
+	"This option is not longer needed because of the new WBFS interface." )
 
 #:def_cmd_opt( "VERIFY", "NO_CHECK", \
 	"", \
@@ -7767,8 +7878,7 @@
 
 #:def_cmd_opt( "SKELETON", "FORCE", \
 	"", \
-	"If the automatic check finds problematic errors, then the report is" \
-	" printed but the operation is *not* canceled." )
+	"This option is not longer needed because of the new WBFS interface." )
 
 #:def_cmd_opt( "SKELETON", "NO_CHECK", \
 	"", \

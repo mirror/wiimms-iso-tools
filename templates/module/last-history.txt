@@ -1,21 +1,36 @@
 wit v@@VERSION@@ r@@REV-NEXT@@ - @@@@-@@-@@
 
- - The default output filename for WBFS files changed from "ID6.wbfs" ("%+")
-   to "TITLE [ID6].wbfs" ("%X").
- - The file order for composed files is now Nintendo like.
- - If extracting an image, a new files called 'align-files.txt' is created. It
-   stores information about file alligning. If creating a new image and option
-   --align-files is set, this file is read to align files, that have a previous
-   aligning of >=0x8000 (Wii sector size). This fixes the bug for "Super Paper
-   Mario" and perhaps for some other games.
- - wit FILES: If the file list is sorted by offset, than an 'unused' column is
-   added before the 'offset' column.
- - wfuse for Mac is back again. It was lost because non installed FUSE package.
+ - wit+wwt SKELETON: Support of GameCube images.
+ - New command: wwt DUP: Duplicate an existing WBFS to a new file including
+   block assigning errors. The idea is to have a command, that can duplicate
+   a defect WBFS for tests.
+ - Command "wwt DUMP" accept now --show for a fine control of printed data.
+   The dump may now contain also a usage table and a integrity check report.
 
+ - For a long time the code contains a WBFS extension. Now I have ompleted,
+   enabled and tested it. With this extension the WBFS "free blocks table" is
+   managed in a total different way:
+    - WBFS access: While opening a WBFS the free blocks table is ignored.
+      Instead of using the stored one an internal memory map of used blocks is
+      built. This needs only a part of a second. Some advantages:
+       - Errors in the free blocks table are irrelevant.
+       - Blocks overlaps and invalid block assignings are automatically
+         detected, reported, and fixed for internal usage.
+       - If removing a discs with overlaps, the blocks are still marked used.
+       - Blocks, that are not handled by the free blocks tables (the table is
+         sometiems to small -> a result of a calculation bug in the original
+         libwbfs) can be used. If closing, a new and fixed free blocks table
+         will be written. This makes the whole process compatible to other
+         WBFS managers and USB loaders.
+    - wwt ADD: Before adding a disc its size is compared against the free size
+      of the WBFS. This allows an early "disc full" error message.
+    - wwt ADD: If adding a disc to a partition a continuous memory block is
+      searched to minimize the (non existent) fragmentation. This disabled for
+      WBFS files by default because a file itself can be fragmented. 
+    - wwt ADD+PHANTOM --wbfs-alloc=mode: Set the WBFS block allocation mode.
+    - The commands "wwt CHECK", "wwt REPAIR" and "wwt EDIT" have been modified
+      to work with the new interface.
 
-Known bugs:
-
- - There are new problems while reading from non seekable sources (e.g. pipes).
-   The reason is the complete new and more intelligent wiidisc lib which makes
-   more lookups ==> The best is to use version 1.01c for pipes.
-
+~
+~Known bugs:
+~

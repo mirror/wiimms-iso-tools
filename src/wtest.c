@@ -808,7 +808,7 @@ wd_part_info_t * wd_get_part_info
 
     //-----  fill partiton data
 
-    // [2do]
+    // [[2do]]
 
     return pinfo;
 }
@@ -891,7 +891,7 @@ wd_disc_info_t * wd_get_disc_info
 
     //----- fill disc data
 
-    // [2do]
+    // [[2do]]
 
 
     //-----  fill partiton data

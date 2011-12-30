@@ -33,14 +33,7 @@
 
 [size="3"][color="#0000c0"][b]Highlights of this release:[/b][/color][/size]
 [list]
-[*] There is a new option for GameCube extraction: --copy-gc
-If this option is set, the real files of GameCube images ('/files/...') are not extracted, but an image copy is done. This make wit compatible to DiscEx, but wit is much faster. wit also tries to create a hard link if the source image is in the correct format. This makes it horrible fast.
-[color=#800000][b]@XFlak: This feature is dedicated to ModMii[/b][/color]
-
-[*] Option --sneek is renamed to --neek, but the old name is also supported. --neek includes option --copy-gc
-For a DiscEx like extraction call: [color=#000080]wit extract --neek --dest %i IMAGE_LIST.ANY_FORMAT[/color]
-
-[*] The second new feature is a fragmentation list support (because of the last fragmentation discussions). If the new option --fragments is used with "wwt LIST", the number of WBFS fragments and a fragmentation ratio is printed. The new commands "wwt LIST-F" and "wwt LF" are short cuts for "wwt LIST --fragments".
+[*] I have implmented a new WBFS interface to detect and reduce WBFS errors. Most common are errors in the [i]free blocks table[/i]. Instead of using the stored one an internal memory map of used blocks is built. This needs only a part of a second. See change log for more details.
 [/list]
 
 [size="3"][color="#0000c0"][b]Change log:[/b][/color][/size]
