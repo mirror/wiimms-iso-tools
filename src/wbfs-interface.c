@@ -16,7 +16,7 @@
  *   This file is part of the WIT project.                                 *
  *   Visit http://wit.wiimm.de/ for project details and sources.           *
  *                                                                         *
- *   Copyright (c) 2009-2011 by Dirk Clemens <wiimm@wiimm.de>              *
+ *   Copyright (c) 2009-2012 by Dirk Clemens <wiimm@wiimm.de>              *
  *                                                                         *
  ***************************************************************************
  *                                                                         *
@@ -638,7 +638,6 @@ int AppendWListID6 // returns number of inserted ids
 )
 {
     DASSERT(id6_list);
-    DASSERT(select_list);
     DASSERT(wlist);
 
     const int count = id6_list->used;
@@ -646,7 +645,7 @@ int AppendWListID6 // returns number of inserted ids
     WDiscListItem_t * ptr = wlist->first_disc;
     WDiscListItem_t * end = ptr + wlist->used;
     for ( ; ptr < end; ptr++ )
-	if (MatchRulesetID(select_list,ptr->id6))
+	if ( !select_list || MatchRulesetID(select_list,ptr->id6) )
 	{
 	    InsertStringField(id6_list,ptr->id6,false);
 	    if ( add_to_title_db && !GetTitle(ptr->id6,0) )
@@ -4060,17 +4059,23 @@ enumError CloseWDisc ( WBFS_t * w )
     DASSERT(w);
 
     CloseWDiscSF(w);
+    SuperFile_t *sf = w->sf;
 
     if (w->disc)
     {
-	if ( !w->sf || !IsOpenSF(w->sf) )
+	if ( !sf || !IsOpenSF(sf) )
 	    w->disc->is_dirty = false;
+	if ( sf && sf->f.is_writing && w->disc->header ) // [[id+]]
+	    CopyPatchWbfsId( (char*)w->disc->header->dhead,
+				*sf->wbfs_id6
+					? sf->wbfs_id6
+					: (ccp)w->disc->header->dhead );
 	wbfs_close_disc(w->disc);
 	w->disc = 0;
     }
 
-    if (w->sf)
-	CloseDiscSF(w->sf);
+    if (sf)
+	CloseDiscSF(sf);
 
     return ERR_OK;
 }
@@ -4084,7 +4089,10 @@ enumError ExistsWDisc ( WBFS_t * w, ccp id6 )
     if ( !w || !w->wbfs || !id6 || strlen(id6) != 6 )
 	return ERROR0(ERR_INTERNAL,0);
 
-    return wbfs_find_slot(w->wbfs,(u8*)id6) < 0
+    char patched_id6[7];
+    CopyPatchWbfsId(patched_id6,id6);
+
+    return wbfs_find_slot(w->wbfs,(u8*)patched_id6) < 0
 		? ERR_WDISC_NOT_FOUND
 		: ERR_OK;
 }
@@ -4134,6 +4142,11 @@ enumError AddWDisc ( WBFS_t * w, SuperFile_t * sf, const wd_select_t * psel )
 	if (ntoh64(iinfo->mtime))
 	    par.iinfo.mtime = iinfo->mtime;
     }
+
+    if (*sf->wbfs_id6)
+	CopyPatchWbfsId( par.wbfs_id6, sf->wbfs_id6 );
+    else if (par.wd_disc)
+	CopyPatchWbfsId( par.wbfs_id6, &par.wd_disc->dhead.disc_id );
 
     const int wbfs_stat = wbfs_add_disc_param(w->wbfs,&par);
 

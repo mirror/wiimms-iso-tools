@@ -16,7 +16,7 @@
  *   This file is part of the WIT project.                                 *
  *   Visit http://wit.wiimm.de/ for project details and sources.           *
  *                                                                         *
- *   Copyright (c) 2009-2011 by Dirk Clemens <wiimm@wiimm.de>              *
+ *   Copyright (c) 2009-2012 by Dirk Clemens <wiimm@wiimm.de>              *
  *                                                                         *
  ***************************************************************************
  *                                                                         *
@@ -469,7 +469,6 @@ enumError RenameWDisc	( WBFS_t * w, ccp new_id6, ccp new_title,
 
 int RenameISOHeader ( void * data, ccp fname,
 	ccp new_id6, ccp new_title, int verbose, int testmode );
-
 
 //
 ///////////////////////////////////////////////////////////////////////////////

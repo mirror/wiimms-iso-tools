@@ -16,7 +16,7 @@
  *   This file is part of the WIT project.                                 *
  *   Visit http://wit.wiimm.de/ for project details and sources.           *
  *                                                                         *
- *   Copyright (c) 2009-2011 by Dirk Clemens <wiimm@wiimm.de>              *
+ *   Copyright (c) 2009-2012 by Dirk Clemens <wiimm@wiimm.de>              *
  *                                                                         *
  ***************************************************************************
  *                                                                         *
@@ -841,7 +841,11 @@ enumError cmd_list ( int long_level )
     PrintTime_t pt;
     int opt_time = opt_print_time;
     if ( long_count > 1 )
+    {
 	opt_time = EnablePrintTime(opt_time);
+	if ( long_count > 2 )
+	    opt_time = SetPrintTimeMode(opt_time,PT_PRINT_SEC);
+    }
     SetupPrintTime(&pt,opt_time);
 
     WBFS_t wbfs;
@@ -1036,7 +1040,7 @@ enumError cmd_format()
 	print_title(stdout);
 
     if (!n_param)
-	return ERROR0(ERR_MISSING_PARAM,"missing parameters => abort.\n");
+	return ERROR0(ERR_MISSING_PARAM,"Missing partitions/file to init => abort!\n");
 
     int error_count = 0, create_count = 0, format_count = 0;
     const u32 create_size_gib = (opt_size+GiB/2)/GiB;
@@ -1799,7 +1803,7 @@ enumError cmd_truncate()
 	return err;
 
     if (!n_param)
-	return ERROR0(ERR_MISSING_PARAM,"missing parameters\n");
+	return ERROR0(ERR_MISSING_PARAM,"Missing parameters\n");
 
     int wbfs_count = 0, wbfs_mod_count = 0;
     const bool check_it	    = OptionUsed[OPT_NO_CHECK] == 0;
@@ -1941,8 +1945,11 @@ static void count_jobs ( WBFS_t * w, Iterator_t * it, bool count_it )
 	    continue;
 	}
 
+	id6_t patched_id6;
+	CopyPatchWbfsId(patched_id6,item->id6);
+
 	item->flag = 0;
-	if (IsExcluded(item->id6))
+	if (IsExcluded(patched_id6))
 	    continue;
 
 	//---- find id
@@ -1954,7 +1961,7 @@ static void count_jobs ( WBFS_t * w, Iterator_t * it, bool count_it )
 	{
 	    IdItem_t *witem = *wptr++;
 	    DASSERT(witem);
-	    if (!memcmp(witem->id6,item->id6,6))
+	    if (!memcmp(witem->id6,patched_id6,6))
 	    {
 		noPRINT("FOUND: %s\n",witem->id6);
 		wfound = witem;
@@ -1975,7 +1982,7 @@ static void count_jobs ( WBFS_t * w, Iterator_t * it, bool count_it )
 	    if (wfound)
 		wfound->mtime = item->mtime;
 	    else
-		InsertIdField(&id_wbfs,item->id6,0,item->mtime,item->arg);
+		InsertIdField(&id_wbfs,patched_id6,0,item->mtime,item->arg);
 	}
 	else if ( !it->update && !it->newer )
 	{
@@ -1999,6 +2006,8 @@ enumError exec_add ( SuperFile_t * sf, Iterator_t * it )
 
     if (SIGINT_level)
 	return ERR_INTERRUPT;
+
+    CopyPatchWbfsId(sf->f.id6_dest,sf->f.id6_dest);
 
     // [[2do]] [rewrite] count_jobs() does most decicions
 
@@ -2137,7 +2146,7 @@ enumError cmd_add()
 	AppendStringField(&source_list,param->arg,true);
 
     if ( !source_list.used && !recurse_list.used )
-	return ERROR0(ERR_MISSING_PARAM,"missing parameters\n");
+	return ERROR0(ERR_MISSING_PARAM,"Missing files to add!\n");
 
     if ( OptionUsed[OPT_SYNC] )
 	RegisterOptionByIndex(&InfoUI,OPT_UPDATE,1,false);
@@ -3032,7 +3041,7 @@ enumError cmd_rename ( bool rename_id )
 	return err;
 
     if (!n_param)
-	return ERROR0(ERR_MISSING_PARAM,"missing parameters\n");
+	return ERROR0(ERR_MISSING_PARAM,"Missing renaming parameters\n");
 
     err = CheckParamRename(rename_id,!rename_id,true);
     if (err)
@@ -3748,9 +3757,14 @@ enumError CheckOptions ( int argc, char ** argv, bool is_env )
 	case GO_REGION:		err += ScanOptRegion(optarg); break;
 	case GO_COMMON_KEY:	err += ScanOptCommonKey(optarg); break;
 	case GO_IOS:		err += ScanOptIOS(optarg); break;
-	case GO_ID:		err += ScanOptId(optarg); break;
-	case GO_NAME:		err += ScanOptName(optarg); break;
 	case GO_MODIFY:		err += ScanOptModify(optarg); break;
+	case GO_NAME:		err += ScanOptName(optarg); break;
+	case GO_ID:		err += ScanOptId(optarg); break;
+	case GO_DISC_ID:	err += ScanOptDiscId(optarg); break;
+	case GO_BOOT_ID:	err += ScanOptBootId(optarg); break;
+	case GO_TICKET_ID:	err += ScanOptTicketId(optarg); break;
+	case GO_TMD_ID:		err += ScanOptTmdId(optarg); break;
+	case GO_WBFS_ID:	err += ScanOptWbfsId(optarg); break;
 	case GO_FILES:		err += ScanRule(optarg,PAT_FILES); break;
 	case GO_RM_FILES:	err += ScanRule(optarg,PAT_RM_FILES); break;
 	case GO_ZERO_FILES:	err += ScanRule(optarg,PAT_ZERO_FILES); break;
@@ -3773,7 +3787,7 @@ enumError CheckOptions ( int argc, char ** argv, bool is_env )
 	case GO_COMPRESSION:	err += ScanOptCompression(false,optarg); break;
 	case GO_MEM:		err += ScanOptMem(optarg,true); break;
 	case GO_RECOVER:	break;
-	case GO_FORCE:		break;
+	case GO_FORCE:		opt_force++; break;
 	case GO_NO_CHECK:	break;
 	case GO_NO_FREE:	break;
 
@@ -3890,6 +3904,7 @@ enumError CheckOptions ( int argc, char ** argv, bool is_env )
 	//	=> compiler checks the existence of all enum values
       }
     }
+    NormalizeIdOptions();
     if ( OptionUsed[OPT_NO_HEADER] )
 	opt_show_mode &= ~SHOW_F_HEAD;
 
@@ -3969,6 +3984,7 @@ enumError CheckCommand ( int argc, char ** argv )
 	case CMD_LIST:		err = cmd_list(0); break;
 	case CMD_LIST_L:	err = cmd_list(1); break;
 	case CMD_LIST_LL:	err = cmd_list(2); break;
+	case CMD_LIST_LLL:	err = cmd_list(3); break;
 	case CMD_LIST_A:	err = cmd_list_a(); break;
 	case CMD_LIST_M:	err = cmd_list_m(); break;
 	case CMD_LIST_U:	err = cmd_list_u(); break;

@@ -16,7 +16,7 @@
  *   This file is part of the WIT project.                                 *
  *   Visit http://wit.wiimm.de/ for project details and sources.           *
  *                                                                         *
- *   Copyright (c) 2009-2011 by Dirk Clemens <wiimm@wiimm.de>              *
+ *   Copyright (c) 2009-2012 by Dirk Clemens <wiimm@wiimm.de>              *
  *                                                                         *
  ***************************************************************************
  *                                                                         *
@@ -634,6 +634,7 @@ typedef struct wd_disc_t
     void		* read_data;	// data pointer for read function
     u64			iso_size;	// size of file, 0=unknown
     int			open_count;	// open counter
+    int			force;		// >0: force opening even if invalid
 
     //----- errror support
 
@@ -1068,6 +1069,7 @@ wd_disc_t * wd_open_disc
     void		* read_data,	// data pointer for read function
     u64			iso_size,	// size of iso file, unknown if 0
     ccp			file_name,	// used for error messages if not NULL
+    int			force,		// force level
     enumError		* error_code	// store error code if not NULL
 );
 
@@ -1854,8 +1856,11 @@ bool wd_patch_common_key // result = true if something changed
 bool wd_patch_part_id // result = true if something changed
 (
     wd_part_t		* part,		// valid pointer to a disc partition
-    ccp			new_id,		// NULL or new ID / '.': don't change
-    wd_modify_t		modify		// objects to modify
+    wd_modify_t		modify,		// objects to modify
+    ccp			new_disc_id,	// NULL or new disc ID / '.': don't change
+    ccp			new_boot_id,	// NULL or new boot ID / '.': don't change
+    ccp			new_ticket_id,	// NULL or new ticket ID / '.': don't change
+    ccp			new_tmd_id	// NULL or new tmd ID / '.': don't change
 );
 
 //-----------------------------------------------------------------------------

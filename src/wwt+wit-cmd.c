@@ -16,7 +16,7 @@
  *   This file is part of the WIT project.                                 *
  *   Visit http://wit.wiimm.de/ for project details and sources.           *
  *                                                                         *
- *   Copyright (c) 2009-2011 by Dirk Clemens <wiimm@wiimm.de>              *
+ *   Copyright (c) 2009-2012 by Dirk Clemens <wiimm@wiimm.de>              *
  *                                                                         *
  ***************************************************************************
  *                                                                         *
@@ -430,10 +430,20 @@ enumError cmd_test_options()
     }
 
     printf("  modify:      %16x = %12d\n",opt_modify,opt_modify);
-    if (modify_id)
-	printf("  modify id:   '%s'\n",modify_id);
     if (modify_name)
 	printf("  modify name: '%s'\n",modify_name);
+    if (modify_id)
+	printf("  modify id:        '%s'\n",modify_id);
+    if (modify_disc_id)
+	printf("  modify disc id:   '%s'\n",modify_disc_id);
+    if (modify_boot_id)
+	printf("  modify boot id:   '%s'\n",modify_boot_id);
+    if (modify_ticket_id)
+	printf("  modify ticket id: '%s'\n",modify_ticket_id);
+    if (modify_tmd_id)
+	printf("  modify tmd id:    '%s'\n",modify_tmd_id);
+    if (modify_wbfs_id)
+	printf("  modify wbfs id:   '%s'\n",modify_wbfs_id);
 
  #if IS_WWT
     char buf_set_time[20];

@@ -16,7 +16,7 @@
  *   This file is part of the WIT project.                                 *
  *   Visit http://wit.wiimm.de/ for project details and sources.           *
  *                                                                         *
- *   Copyright (c) 2009-2011 by Dirk Clemens <wiimm@wiimm.de>              *
+ *   Copyright (c) 2009-2012 by Dirk Clemens <wiimm@wiimm.de>              *
  *                                                                         *
  ***************************************************************************
  *                                                                         *
@@ -480,6 +480,7 @@ enumError SetupReadWBFS ( SuperFile_t * sf )
     uint disc_blocks;
     sf->wbfs_fragments = wbfs_get_disc_fragments(wbfs->disc,&disc_blocks);
     sf->file_size = (off_t)disc_blocks * w->wbfs_sec_sz;
+    CopyPatchWbfsId(sf->wbfs_id6,wbfs->disc->header->dhead);
     const off_t single_size = WII_SECTORS_SINGLE_LAYER * (off_t)WII_SECTOR_SIZE;
     PRINT("N-FRAG: %u, size = %llx,%llx\n",
 	sf->wbfs_fragments, sf->file_size, (u64)single_size );
@@ -698,7 +699,19 @@ enumError SetupWriteWBFS ( SuperFile_t * sf )
 
     if (!err)
     {
+#if 0 // [[id+]]
+	ccp force_id6 = 0;
+	id6_t patched_id6;
+	if (sf->src)
+	{
+	    CopyPatchWbfsId(patched_id6,sf->src->f.id6_dest);
+	    force_id6 = patched_id6;
+	}
+
+	wbfs_disc_t * disc = wbfs_create_disc(sf->wbfs->wbfs,0,force_id6);
+#else
 	wbfs_disc_t * disc = wbfs_create_disc(sf->wbfs->wbfs,0,0);
+#endif
 	if (disc)
 	    wbfs->disc = disc;
 	else
@@ -782,7 +795,7 @@ wd_disc_t * OpenDiscSF
     const u64 file_size = sf->f.seek_allowed ? sf->file_size : 0;
 
     if ( IsOpenSF(sf) && sf->f.is_reading )
-	disc = wd_open_disc(WrapperReadDirectSF,sf,file_size,sf->f.fname,0);
+	disc = wd_open_disc(WrapperReadDirectSF,sf,file_size,sf->f.fname,opt_force,0);
 	
     if (!disc)
     {
@@ -805,7 +818,7 @@ wd_disc_t * OpenDiscSF
     //----- select partitions
 
     wd_select(disc,&part_selector);
-    wd_part_t * main_part = disc->main_part;
+    wd_part_t *main_part = disc->main_part;
 
 
     //----- check for patching
@@ -828,8 +841,9 @@ wd_disc_t * OpenDiscSF
     {
 	if (main_part)
 	{
-	    if (modify_id)
-		reloc |= wd_patch_part_id(main_part,modify_id,modify);
+	    reloc |= wd_patch_part_id(main_part,modify,
+				modify_disc_id, modify_boot_id,
+				modify_ticket_id, modify_tmd_id );
 	    if (modify_name)
 		reloc |= wd_patch_part_name(main_part,modify_name,modify);
 	    if (opt_ios_valid)
@@ -935,7 +949,9 @@ wd_disc_t * OpenDiscSF
 	    wd_print_disc_patch(stdout,1,sf->disc1,true,logging>1);
 
 	sf->iod.read_func = ReadDiscWrapper;
-	sf->disc2 = wd_open_disc(WrapperReadSF,sf,file_size,sf->f.fname,0);
+	sf->disc2 = wd_open_disc(WrapperReadSF,sf,file_size,sf->f.fname,opt_force,0);
+	if (load_part_data)
+	    wd_load_all_part(sf->disc2,false,false,false);
     }
 
     if (sf->disc2)
@@ -2996,6 +3012,10 @@ enumError CopyImage
     fo->src = fi;
     fo->f.create_directory = opt_mkdir;
     fo->raw_mode = part_selector.whole_disc || !fi->f.id6_dest[0];
+
+    // [[id+]]
+    if (*fi->wbfs_id6)
+	CopyPatchWbfsId(fo->wbfs_id6,fi->wbfs_id6);
 
     if (opt_direct)
     {
@@ -5963,11 +5983,11 @@ enumError SourceIteratorWarning ( Iterator_t * it, enumError max_err, bool silen
 	    max_err = ERR_NO_SOURCE_FOUND;
 	else if ( it->num_empty_dirs > 1 )
 	    max_err = ERROR0(ERR_NO_SOURCE_FOUND,
-			"%u directories without valid source files found.\n",
+			"%u directories scanned, but no valid source files found.\n",
 			it->num_empty_dirs);
 	else
 	    max_err = ERROR0(ERR_NO_SOURCE_FOUND,
-			"A directory without valid source files found.\n");
+			"One directory scanned, but no valid source files found.\n");
     }
 
     if ( !it->num_of_files && max_err < ERR_NOTHING_TO_DO )

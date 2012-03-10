@@ -16,7 +16,7 @@
  *   This file is part of the WIT project.                                 *
  *   Visit http://wit.wiimm.de/ for project details and sources.           *
  *                                                                         *
- *   Copyright (c) 2009-2011 by Dirk Clemens <wiimm@wiimm.de>              *
+ *   Copyright (c) 2009-2012 by Dirk Clemens <wiimm@wiimm.de>              *
  *                                                                         *
  ***************************************************************************
  *                                                                         *
@@ -1603,6 +1603,7 @@ extern volatile int	logging;
 extern int		progress;
 extern bool		use_utf8;
 extern char		escape_char;
+extern int		opt_force;
 extern ccp		opt_patch_file;
 extern bool		opt_copy_gc;
 extern bool		opt_no_link;

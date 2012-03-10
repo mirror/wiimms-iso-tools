@@ -16,7 +16,7 @@
  *   This file is part of the WIT project.                                 *
  *   Visit http://wit.wiimm.de/ for project details and sources.           *
  *                                                                         *
- *   Copyright (c) 2009-2011 by Dirk Clemens <wiimm@wiimm.de>              *
+ *   Copyright (c) 2009-2012 by Dirk Clemens <wiimm@wiimm.de>              *
  *                                                                         *
  ***************************************************************************
  *                                                                         *
@@ -377,53 +377,11 @@ int ScanOptModify ( ccp arg )
 
 //
 ///////////////////////////////////////////////////////////////////////////////
-///////////////			--id & --name			///////////////
+///////////////			    --name			///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-ccp modify_id		= 0;
-ccp modify_name		= 0;
-
-static char modify_id_buf[7];
+ccp modify_name = 0;
 static char modify_name_buf[WII_TITLE_SIZE];
-
-//-----------------------------------------------------------------------------
-
-int ScanOptId ( ccp arg )
-{
-    if ( !arg || !*arg )
-    {
-	modify_id = 0;
-	return 0;
-    }
-
-    const size_t max_len = sizeof(modify_id_buf) - 1;
-    size_t len = strlen(arg);
-    if ( len > max_len )
-    {
-	ERROR0(ERR_SYNTAX,"option --id: id is %zu characters to long: %s\n",
-		len - max_len, arg);
-	return 1;
-    }
-
-    memset(modify_id_buf,0,sizeof(modify_id_buf));
-    char *dest = modify_id_buf;
-    while ( *arg )
-    {
-	if ( *arg == '.' || *arg == '_' )
-	    *dest++ = *arg++;
-	else if ( isalnum((int)*arg) )
-	    *dest++ = toupper((int)*arg++);
-	else
-	{
-	    ERROR0(ERR_SYNTAX,"option --id: illegal character at index #%u: %s\n",
-			(int)(dest - modify_id_buf), arg);
-	    return 1;
-	}
-    }
-    modify_id = modify_id_buf;
-
-    return 0;
-}
 
 //-----------------------------------------------------------------------------
 
@@ -452,36 +410,221 @@ int ScanOptName ( ccp arg )
     return 0;
 }
 
+//
+///////////////////////////////////////////////////////////////////////////////
+///////////////			--id  &  --xxx-id		///////////////
+///////////////////////////////////////////////////////////////////////////////
+
+ccp modify_id		= 0;
+ccp modify_disc_id	= 0;
+ccp modify_boot_id	= 0;
+ccp modify_ticket_id	= 0;
+ccp modify_tmd_id	= 0;
+ccp modify_wbfs_id	= 0;
+
+static char modify_id_buf	[7];
+static char modify_disc_id_buf	[7];
+static char modify_boot_id_buf	[7];
+static char modify_ticket_id_buf[5];
+static char modify_tmd_id_buf	[5];
+static char modify_wbfs_id_buf	[7];
+
 //-----------------------------------------------------------------------------
 
-bool PatchId ( void * id, int skip, int maxlen, wd_modify_t condition )
+int ScanOptIdHelper ( ccp arg, ccp opt_name, ccp *id_ptr, char *buf, int max_len )
 {
-    ASSERT(id);
-    if ( !modify_id || maxlen < 1 || !(opt_modify & condition) )
+    DASSERT(opt_name);
+    DASSERT(id_ptr);
+    DASSERT(buf);
+    DASSERT( max_len == 4 || max_len == 6 );
+
+    if ( !arg || !*arg )
+    {
+	*id_ptr = 0;
+	return 0;
+    }
+
+    size_t len = strlen(arg);
+    if ( len > max_len )
+    {
+	ERROR0(ERR_SYNTAX,"Option --%s: ID is %zu characters to long: %s\n",
+		opt_name, len - max_len, arg );
+	return 1;
+    }
+
+    memset(buf,0,max_len+1);
+    char *dest = buf;
+    while ( *arg )
+    {
+	if ( *arg == '.' || *arg == '_' )
+	    *dest++ = *arg++;
+	else if ( isalnum((int)*arg) )
+	    *dest++ = toupper((int)*arg++);
+	else
+	{
+	    ERROR0(ERR_SYNTAX,"Option --%s: Illegal character at index #%u: %s\n",
+			opt_name, (int)(dest-buf), arg);
+	    return 1;
+	}
+    }
+    *id_ptr = buf;
+    return 0;
+}
+
+//-----------------------------------------------------------------------------
+
+int ScanOptId ( ccp arg )
+{
+    return ScanOptIdHelper( arg, "id", &modify_id,
+			modify_id_buf, sizeof(modify_id_buf)-1 );
+}
+
+int ScanOptDiscId ( ccp arg )
+{
+    return ScanOptIdHelper( arg, "disc-id", &modify_disc_id,
+			modify_disc_id_buf, sizeof(modify_disc_id_buf)-1 );
+}
+
+int ScanOptBootId ( ccp arg )
+{
+    return ScanOptIdHelper( arg, "boot-id", &modify_boot_id,
+			modify_boot_id_buf, sizeof(modify_boot_id_buf)-1 );
+}
+
+int ScanOptTicketId ( ccp arg )
+{
+    return ScanOptIdHelper( arg, "ticket-id", &modify_ticket_id,
+			modify_ticket_id_buf, sizeof(modify_ticket_id_buf)-1 );
+}
+
+int ScanOptTmdId ( ccp arg )
+{
+    return ScanOptIdHelper( arg, "tmd-id", &modify_tmd_id,
+			modify_tmd_id_buf, sizeof(modify_tmd_id_buf)-1 );
+}
+
+int ScanOptWbfsId ( ccp arg )
+{
+    return ScanOptIdHelper( arg, "wbfs-id", &modify_wbfs_id,
+			modify_wbfs_id_buf, sizeof(modify_wbfs_id_buf)-1 );
+}
+
+//-----------------------------------------------------------------------------
+
+static void NormID ( wd_modify_t condition, ccp *id_ptr, char *buf, int max_len )
+{
+    ccp src = modify_id;
+    char * dest = buf;
+
+    if ( src && condition & opt_modify )
+    {
+	for ( ; max_len-- > 0 && *src && *dest; src++, dest++ )
+	    if ( *dest == '.' )
+		*dest = *src;
+
+	while ( max_len-- > 0 && *src )
+	    *dest++ = *src++;
+    }
+
+    while ( max_len-- > 0 && *dest )
+	dest++;
+
+    while ( dest > buf && dest[-1] == '.' )
+	dest--;
+    *dest = 0;
+    *id_ptr = dest == buf ? 0 : buf;
+}
+
+void NormalizeIdOptions()
+{
+    NormID( WD_MODIFY__AUTO|WD_MODIFY_DISC, &modify_disc_id,
+		modify_disc_id_buf, sizeof(modify_disc_id_buf)-1 );
+    NormID( WD_MODIFY__AUTO|WD_MODIFY_BOOT, &modify_boot_id,
+		modify_boot_id_buf, sizeof(modify_boot_id_buf)-1 );
+    NormID( WD_MODIFY__AUTO|WD_MODIFY_TICKET, &modify_ticket_id,
+		modify_ticket_id_buf, sizeof(modify_ticket_id_buf)-1 );
+    NormID( WD_MODIFY__AUTO|WD_MODIFY_TMD,  &modify_tmd_id,
+		modify_tmd_id_buf,  sizeof(modify_tmd_id_buf)-1 );
+    NormID( WD_MODIFY__AUTO|WD_MODIFY_WBFS, &modify_wbfs_id,
+		modify_wbfs_id_buf, sizeof(modify_wbfs_id_buf)-1 );
+}
+
+//-----------------------------------------------------------------------------
+
+bool PatchId
+(
+    void	*dest_id,	// destination with 'maxlen' byte
+    ccp		patch_id,	// NULL or patch string
+    int		skip,		// 'patch_id' starts at index 'skip'
+    int		maxlen		// length of destination ID
+)
+{
+    ASSERT(dest_id);
+    if ( !patch_id || maxlen < 1 )
 	return false;
 
-    TRACE("PATCH ID: %.*s -> %.*s\n",maxlen,(ccp)id,maxlen,modify_id);
+    PRINT("PATCH ID: %.*s -> %.*s\n",maxlen,(ccp)dest_id,maxlen,patch_id);
 
-    ccp src = modify_id;
-    while ( skip-- > 0 && *src )
-	src++;
+    while ( skip-- > 0 && *patch_id )
+	patch_id++;
 
     char *dest;
-    for ( dest = id; *src && maxlen > 0; src++, dest++, maxlen-- )
+    for ( dest = dest_id; *patch_id && maxlen > 0; patch_id++, dest++, maxlen-- )
     {
-	if ( *src != '.' )
-	    *dest = *src;
+	if ( *patch_id != '.' )
+	    *dest = *patch_id;
     }
     return true;
 }
 
 //-----------------------------------------------------------------------------
 
-bool CopyPatchedDiscId ( void * dest, const void * src )
+bool CopyPatchId
+(
+    void	*dest,		// destination with 'maxlen' byte
+    const void	*src,		// source of ID. If NULL or empty: clear dest
+    ccp		patch_id,	// NULL or patch string
+    int		maxlen,		// length of destination ID
+    bool	null_term	// true: Add an additional 0 byte to end of dest
+)
 {
-    memcpy(dest,src,6);
-    ((char*)dest)[6] = 0;
-    return opt_hook >= 0 && PatchId(dest,0,6,WD_MODIFY_DISC|WD_MODIFY__AUTO);
+    DASSERT(dest);
+    DASSERT( maxlen>0 && maxlen <= 6 );
+
+    if ( src && *(u8*)src )
+    {
+	memcpy(dest,src,maxlen);
+	if (null_term)
+	    ((u8*)dest)[maxlen] = 0;
+	return PatchId(dest,patch_id,0,maxlen);
+    }
+
+    if (null_term)
+	maxlen++;
+    memset(dest,0,maxlen);
+    return false;
+}
+
+//-----------------------------------------------------------------------------
+
+bool CopyPatchWbfsId ( char *dest_id6, const void * source_id6 )
+{
+    return CopyPatchId(dest_id6,source_id6,modify_wbfs_id,6,true);
+}
+
+//-----------------------------------------------------------------------------
+
+bool CopyPatchDiscId ( char *dest_id6, const void * source_id6 )
+{
+    return opt_hook >= 0
+	&& CopyPatchId(dest_id6,source_id6,modify_disc_id,6,true);
+}
+
+//-----------------------------------------------------------------------------
+
+bool PatchIdCond ( void * id, int skip, int maxlen, wd_modify_t condition )
+{
+    return ( opt_modify & condition ) && PatchId(id,modify_id,skip,maxlen);
 }
 
 //-----------------------------------------------------------------------------

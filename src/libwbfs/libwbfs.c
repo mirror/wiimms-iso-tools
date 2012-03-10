@@ -17,7 +17,7 @@
  *   Visit http://wit.wiimm.de/ for project details and sources.           *
  *                                                                         *
  *   Copyright (c) 2009 Kwiirk                                             *
- *   Copyright (c) 2009-2011 by Dirk Clemens <wiimm@wiimm.de>              *
+ *   Copyright (c) 2009-2012 by Dirk Clemens <wiimm@wiimm.de>              *
  *                                                                         *
  ***************************************************************************
  *                                                                         *
@@ -556,7 +556,7 @@ void wbfs_sync ( wbfs_t * p )
 {
     // writes wbfs header and free blocks to hardisk
 
-    PRINT("LIBWBFS: +wbfs_sync(%p) wr_hds=%p, head=%p, freeblks=%p\n",
+    TRACE("LIBWBFS: +wbfs_sync(%p) wr_hds=%p, head=%p, freeblks=%p\n",
 		p, p->write_hdsector, p->head, p->freeblks );
 
     if (p->write_hdsector)
@@ -839,7 +839,7 @@ uint wbfs_get_fragments
 	    last_bl = bl;
 	}
     }
-    PRINT("WBFS-CALC-FRAG: %u, blocks = %u/%u\n", n_frag, last_bl+1, tab_length );
+    TRACE("WBFS-CALC-FRAG: %u, blocks = %u/%u\n", n_frag, last_bl+1, tab_length );
 
     if (disc_blocks)
 	*disc_blocks = last_bl + 1;
@@ -1255,7 +1255,7 @@ u32 * wbfs_load_freeblocks ( wbfs_t * p )
 
     if ( p->freeblks && dirty )
     {
-	PRINT("WBFS: CALC FBT\n");
+	TRACE("WBFS: CALC FBT\n");
 
 	// fill complete array with zeros == mark all blocks as used
 	wbfs_memset(p->freeblks,0,fb_memsize);
@@ -1342,7 +1342,7 @@ int wbfs_calc_used_blocks
 
     if (force_reload)
     {
-	PRINT("READ BLOCK0\n");
+	TRACE("READ BLOCK0\n");
 	int read_stat = p->read_hdsector( p->callback_data,
 					p->part_lba,
 					p->wbfs_sec_sz / p->hd_sec_sz,
@@ -1362,7 +1362,7 @@ int wbfs_calc_used_blocks
     
     u32 * fbt0 = (u32*)( block0 + ( p->part_lba + p->freeblks_lba ) * p->hd_sec_sz );
     u32 * fbt = fbt0;
-    PRINT("block0=%p..%p, fbt=%p [%zx]\n",
+    TRACE("block0=%p..%p, fbt=%p [%zx]\n",
 		block0,block0+p->wbfs_sec_sz,fbt,(ccp)fbt-(ccp)block0);
     u8 * dest = used + 1;
     u32 i;
@@ -1585,7 +1585,7 @@ int wbfs_calc_used_blocks
 	wbfs_iofree(block0);
 
     p->all_slot_err |= p->new_slot_err;
-    PRINT("SLOT-STAT: %02x/%02x\n",p->new_slot_err,p->all_slot_err);
+    TRACE("SLOT-STAT: %02x/%02x\n",p->new_slot_err,p->all_slot_err);
     return 0;    
 }
 
@@ -1617,7 +1617,7 @@ u32 wbfs_find_free_blocks
     if ( count > 0 )
 	return WBFS_NO_BLOCK;
 
-    PRINT("found: %5zd..%5zd [%5zd]\n",p1-p->used_block,p2-p->used_block,p2-p1);
+    TRACE("found: %5zd..%5zd [%5zd]\n",p1-p->used_block,p2-p->used_block,p2-p1);
     u8 *found = p1;
     u32 range = p2 - p1;
 
@@ -1632,7 +1632,7 @@ u32 wbfs_find_free_blocks
 
 	if ( p2 - p1 < range )
 	{
-	    PRINT("found: %5zd..%5zd [%5zd]\n",p1-p->used_block,p2-p->used_block,p2-p1);
+	    TRACE("found: %5zd..%5zd [%5zd]\n",p1-p->used_block,p2-p->used_block,p2-p1);
 	    found = p1;
 	    range = p2 - p1;
 	}
@@ -1904,6 +1904,7 @@ u32 wbfs_add_disc_param ( wbfs_t *p, wbfs_param_t * par )
 				par->callback_data,
 				par->iso_size,
 				0,
+				0,
 				0 );
 	if (!disc)
 	    WBFS_ERROR("unable to open wii disc");
@@ -1959,6 +1960,8 @@ u32 wbfs_add_disc_param ( wbfs_t *p, wbfs_param_t * par )
     memset(info,0,p->disc_info_sz);
     // [[2do]] use wd_read_and_patch()
     par->read_src_wii_disc(par->callback_data, 0, 0x100, info->dhead);
+    if (par->wbfs_id6[0])
+	memcpy(info->dhead,par->wbfs_id6,6);
 
     copy_buffer = wbfs_ioalloc(p->wbfs_sec_sz);
     if (!copy_buffer)
@@ -1976,7 +1979,7 @@ u32 wbfs_add_disc_param ( wbfs_t *p, wbfs_param_t * par )
 		&& p->hd_sec_sz * (u64)p->n_hd_sec >= 20*(u64)GiB )
     {
 	bl = wbfs_find_free_blocks(p,total_blocks);
-	PRINT("WBFS: AVOID FRAG, first block=%u\n",bl);
+	TRACE("WBFS: AVOID FRAG, first block=%u\n",bl);
     }
 #endif
 
@@ -2138,7 +2141,7 @@ u32 wbfs_add_phantom ( wbfs_t *p, ccp phantom_id, u32 wii_sectors )
 		&& p->hd_sec_sz * (u64)p->n_hd_sec >= 20*(u64)GiB )
     {
 	bl = wbfs_find_free_blocks(p,max_wbfs_sect);
-	PRINT("WBFS: AVOID FRAG, first block=%u\n",bl);
+	TRACE("WBFS: AVOID FRAG, first block=%u\n",bl);
     }
 #endif
 

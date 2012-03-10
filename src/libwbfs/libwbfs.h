@@ -17,7 +17,7 @@
  *   Visit http://wit.wiimm.de/ for project details and sources.           *
  *                                                                         *
  *   Copyright (c) 2009 Kwiirk                                             *
- *   Copyright (c) 2009-2011 by Dirk Clemens <wiimm@wiimm.de>              *
+ *   Copyright (c) 2009-2012 by Dirk Clemens <wiimm@wiimm.de>              *
  *                                                                         *
  ***************************************************************************
  *                                                                         *
@@ -264,6 +264,7 @@ typedef struct wbfs_param_t // function parameters
 	u64			iso_size;		// size of iso image in bytes
 	wd_disc_t		*wd_disc;		// NULL or the source disc
 	const wd_select_t	* psel;			// partition selector
+	id6_t			wbfs_id6;		// not NULL: use this ID for inode
 
   //----- multi use parameters
 

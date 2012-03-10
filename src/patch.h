@@ -16,7 +16,7 @@
  *   This file is part of the WIT project.                                 *
  *   Visit http://wit.wiimm.de/ for project details and sources.           *
  *                                                                         *
- *   Copyright (c) 2009-2011 by Dirk Clemens <wiimm@wiimm.de>              *
+ *   Copyright (c) 2009-2012 by Dirk Clemens <wiimm@wiimm.de>              *
  *                                                                         *
  ***************************************************************************
  *                                                                         *
@@ -141,14 +141,44 @@ int ScanOptModify ( ccp arg );
 
 //-----------------------------------------------------------------------------
 
-extern ccp modify_id;
 extern ccp modify_name;
+extern ccp modify_id;
+extern ccp modify_disc_id;
+extern ccp modify_boot_id;
+extern ccp modify_ticket_id;
+extern ccp modify_tmd_id;
+extern ccp modify_wbfs_id;
 
-int ScanOptId ( ccp arg );
 int ScanOptName ( ccp arg );
+int ScanOptId ( ccp arg );
+int ScanOptDiscId ( ccp arg );
+int ScanOptBootId ( ccp arg );
+int ScanOptTicketId ( ccp arg );
+int ScanOptTmdId ( ccp arg );
+int ScanOptWbfsId ( ccp arg );
+void NormalizeIdOptions();
 
-bool PatchId ( void * id, int skip, int maxlen, wd_modify_t condition );
-bool CopyPatchedDiscId ( void * dest, const void * src );
+bool PatchId
+(
+    void	*dest_id,	// destination with 'maxlen' byte
+    ccp		patch_id,	// NULL or patch string
+    int		skip,		// 'patch_id' starts at index 'skip'
+    int		maxlen		// length of destination ID
+);
+
+bool CopyPatchId
+(
+    void	*dest,		// destination with 'maxlen' byte
+    const void	*src,		// source of ID. If NULL or empty: clear dest
+    ccp		patch_id,	// NULL or patch string
+    int		maxlen,		// length of destination ID
+    bool	null_term	// true: Add an additional 0 byte to end of dest
+);
+
+bool CopyPatchWbfsId ( char *dest_id6, const void * source_id6 );
+bool CopyPatchDiscId ( char *dest_id6, const void * source_id6 );
+
+bool PatchIdCond ( void * id, int skip, int maxlen, wd_modify_t condition );
 bool PatchName ( void * name, wd_modify_t condition );
 bool PatchDiscHeader ( void * dhead, const void * patch_id, const void * patch_name );
 

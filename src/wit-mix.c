@@ -1584,7 +1584,11 @@ enumError cmd_mix()
     if (mp.source_dhead)
     {
 	memcpy(&dhead,mp.source_dhead,sizeof(dhead));
-	PatchId(&dhead,0,6,WD_MODIFY__ALWAYS);
+#if 1 // [[id+]]
+	PatchId(&dhead,modify_disc_id,0,6);
+#else
+	PatchIdCond(&dhead,0,6,WD_MODIFY__ALWAYS);
+#endif
     }
     else if ( mp.n_mix == 1 )
 	memcpy(&dhead,&mp.mix->disc->dhead,sizeof(dhead));

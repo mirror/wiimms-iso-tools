@@ -16,7 +16,7 @@
  *   This file is part of the WIT project.                                 *
  *   Visit http://wit.wiimm.de/ for project details and sources.           *
  *                                                                         *
- *   Copyright (c) 2009-2011 by Dirk Clemens <wiimm@wiimm.de>              *
+ *   Copyright (c) 2009-2012 by Dirk Clemens <wiimm@wiimm.de>              *
  *                                                                         *
  ***************************************************************************
  *                                                                         *
@@ -81,9 +81,14 @@ typedef enum enumOptions
 	OPT_NO_LINK,
 	OPT_NEEK,
 	OPT_ENC,
-	OPT_ID,
-	OPT_NAME,
 	OPT_MODIFY,
+	OPT_NAME,
+	OPT_ID,
+	OPT_DISC_ID,
+	OPT_BOOT_ID,
+	OPT_TICKET_ID,
+	OPT_TMD_ID,
+	OPT_WBFS_ID,
 	OPT_REGION,
 	OPT_COMMON_KEY,
 	OPT_IOS,
@@ -142,7 +147,7 @@ typedef enum enumOptions
 	OPT_FILE_LIMIT,
 	OPT_PATCH_FILE,
 
-	OPT__N_SPECIFIC, // == 86 
+	OPT__N_SPECIFIC, // == 91 
 
 	//----- global options -----
 
@@ -156,6 +161,7 @@ typedef enum enumOptions
 	OPT_LOGGING,
 	OPT_ESC,
 	OPT_IO,
+	OPT_FORCE,
 	OPT_DIRECT,
 	OPT_TITLES,
 	OPT_UTF_8,
@@ -167,7 +173,7 @@ typedef enum enumOptions
 	OPT_NEW,
 	OPT_HOOK,
 
-	OPT__N_TOTAL // == 106
+	OPT__N_TOTAL // == 112
 
 } enumOptions;
 
@@ -207,9 +213,14 @@ typedef enum enumOptions
 //	OB_NO_LINK		= 1llu << OPT_NO_LINK,
 //	OB_NEEK			= 1llu << OPT_NEEK,
 //	OB_ENC			= 1llu << OPT_ENC,
-//	OB_ID			= 1llu << OPT_ID,
-//	OB_NAME			= 1llu << OPT_NAME,
 //	OB_MODIFY		= 1llu << OPT_MODIFY,
+//	OB_NAME			= 1llu << OPT_NAME,
+//	OB_ID			= 1llu << OPT_ID,
+//	OB_DISC_ID		= 1llu << OPT_DISC_ID,
+//	OB_BOOT_ID		= 1llu << OPT_BOOT_ID,
+//	OB_TICKET_ID		= 1llu << OPT_TICKET_ID,
+//	OB_TMD_ID		= 1llu << OPT_TMD_ID,
+//	OB_WBFS_ID		= 1llu << OPT_WBFS_ID,
 //	OB_REGION		= 1llu << OPT_REGION,
 //	OB_COMMON_KEY		= 1llu << OPT_COMMON_KEY,
 //	OB_IOS			= 1llu << OPT_IOS,
@@ -327,9 +338,14 @@ typedef enum enumOptions
 //				| OB_RAW,
 //
 //	OB_GRP_PATCH		= OB_ENC
-//				| OB_ID
-//				| OB_NAME
 //				| OB_MODIFY
+//				| OB_NAME
+//				| OB_ID
+//				| OB_DISC_ID
+//				| OB_BOOT_ID
+//				| OB_TICKET_ID
+//				| OB_TMD_ID
+//				| OB_WBFS_ID
 //				| OB_REGION
 //				| OB_COMMON_KEY
 //				| OB_IOS
@@ -651,6 +667,7 @@ typedef enum enumGetOpt
 
 	GO_AUTO			= 'a',
 	GO_DEST			= 'd',
+	GO_FORCE		= 'f',
 	GO_HELP			= 'h',
 	GO_IGNORE		= 'i',
 	GO_LONG			= 'l',
@@ -693,9 +710,14 @@ typedef enum enumGetOpt
 	GO_NEEK,
 	GO_HOOK,
 	GO_ENC,
-	GO_ID,
-	GO_NAME,
 	GO_MODIFY,
+	GO_NAME,
+	GO_ID,
+	GO_DISC_ID,
+	GO_BOOT_ID,
+	GO_TICKET_ID,
+	GO_TMD_ID,
+	GO_WBFS_ID,
 	GO_REGION,
 	GO_COMMON_KEY,
 	GO_IOS,

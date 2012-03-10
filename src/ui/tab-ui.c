@@ -16,7 +16,7 @@
  *   This file is part of the WIT project.                                 *
  *   Visit http://wit.wiimm.de/ for project details and sources.           *
  *                                                                         *
- *   Copyright (c) 2009-2011 by Dirk Clemens <wiimm@wiimm.de>              *
+ *   Copyright (c) 2009-2012 by Dirk Clemens <wiimm@wiimm.de>              *
  *                                                                         *
  ***************************************************************************
  *                                                                         *
@@ -305,7 +305,7 @@ info_t info_tab[] =
   { T_DEF_CMD,	"CREATE",	"CREATE",
 		    "wit CREATE TICKET outfile [--id id] [title_id] [decrypted_key]\n"
 		    "wit CREATE TMD outfile [--id id] [--ios ios] [hash_val]",
-		"Create a system file." },
+		"Create a system file (TICKET or TMD)." },
 
   { T_SEP_CMD,	0,0,0,0 }, //----- separator -----
 
@@ -331,9 +331,8 @@ info_t info_tab[] =
 		" The file type is detected automatically by analyzing the content." },
 
   { T_DEF_CMD,	"ID6",		"ID6|ID",
-		    "wit ID6 [id]...",
-		"Print ID6 of all found ISO files."
-		" If the ID list is set use it as selector." },
+		    "wit ID6 [source]...",
+		"Print ID6 of all found ISO files as simple list." },
 
   { T_DEF_CMD,	"LIST",		"LIST|LS",
 		"wit LIST [source]...",
@@ -341,17 +340,18 @@ info_t info_tab[] =
 
   { T_DEF_CMD,	"LIST_L",	"LIST-L|LL|LISTL",
 		    "wit LIST-L [source]...",
-		"List all found ISO files."
+		"List all found ISO files with size and region."
 		" 'LIST-L' is a shortcut for {LIST --long}." },
 
   { T_DEF_CMD,	"LIST_LL",	"LIST-LL|LLL|LISTLL",
 		    "wit LIST-LL [source]...",
-		"List all found ISO files."
+		"List all found ISO files with date, size and region."
 		" 'LIST-LL' is a shortcut for {LIST --long --long}." },
 
   { T_DEF_CMD,	"LIST_LLL",	"LIST-LLL|LLLL|LISTLLL",
 		    "wit LIST-LLL [source]...",
-		"List all found ISO files."
+		"List all found ISO files with date, size and region"
+		" and add a second status line with more info."
 		" 'LIST-LLL' is a shortcut for {LIST --long --long --long}." },
 
   { T_SEP_CMD,	0,0,0,0 }, //----- separator -----
@@ -518,6 +518,9 @@ info_t info_tab[] =
 		" The value '2' defines the same for ISO files"
 		" and value '4' for WIA files."
 		" You can combine the values by adding them." },
+
+  { T_OPT_G,	"FORCE",	"f|force",
+		0, "Force operation." },
 
   { H_OPT_G,	"DIRECT",	"direct",
 		0,
@@ -774,6 +777,24 @@ info_t info_tab[] =
 		" The case of the keywords is ignored."
 		" The default mode is 'AUTO'." },
 
+  { T_OPT_CP,	"MODIFY",	"modify",
+		"list",
+		" This $patching$ defines the impact of the options {--name}"
+		" and {--id}. It expects a comma separated list"
+		" of the following keywords (case ignored) as parameter:"
+		" @NONE, DISC, BOOT, TICKET, TMD, WBFS, ALL@ and @AUTO@ (default)."
+		"\n "
+		" All keywords can be prefixed by @'+'@ to enable that option,"
+		" by a @'-'@ to disable it or"
+		" by a @'='@ to enable that option and disable all others." },
+
+  { T_OPT_CP,	"NAME",		"name",
+		"name",
+		"This $patching$ option changes the name (disc title) of the disc"
+		" to the given parameter. Up to 63 characters are expected."
+		" The disc header and boot.bin are objects to modify."
+		" The option {--modify} selects the objects." },
+
   { T_OPT_CP,	"ID",		"id",
 		"id",
 		"This $patching$ option changes the ID of the disc"
@@ -784,22 +805,52 @@ info_t info_tab[] =
 		"\1\n"
 		"See http://wit.wiimm.de/opt/id for more details." },
 
-  { T_OPT_CP,	"NAME",		"name",
-		"name",
-		"This $patching$ option changes the name (disc title) of the disc"
-		" to the given parameter. Up to 63 characters are expected."
-		" The disc header and boot.bin are objects to modify."
-		" The option {--modify} selects the objects." },
+  { T_OPT_CP,	"DISC_ID",	"disc-id|discid",
+		"id",
+		"This $patching$ option changes the ID of the disc header"
+		" to the given parameter. 1 to 6 characters are expected."
+		" Only defined characters not equal '.' are modified."
+		" The modification is done after patching with {--id}."
+		"\1\n"
+		"See http://wit.wiimm.de/opt/id for more details." },
 
-  { T_OPT_CP,	"MODIFY",	"modify",
-		"list",
-		" This $patching$ option expects a comma separated list"
-		" of the following keywords (case ignored) as parameter:"
-		" @NONE, DISC, BOOT, TICKET, TMD, WBFS, ALL@ and @AUTO@ (default)."
-		"\n "
-		" All keywords can be prefixed by @'+'@ to enable that option,"
-		" by a @'-'@ to disable it or"
-		" by a @'='@ to enable that option and disable all others." },
+  { T_OPT_CP,	"BOOT_ID",	"boot-id|bootid",
+		"id",
+		"This $patching$ option changes the ID of boot.bin"
+		" to the given parameter. 1 to 6 characters are expected."
+		" Only defined characters not equal '.' are modified."
+		" The modification is done after patching with {--id}."
+		"\1\n"
+		"See http://wit.wiimm.de/opt/id for more details." },
+
+  { T_OPT_CP,	"TICKET_ID",	"ticket-id|ticketid",
+		"id",
+		"This $patching$ option changes the ID of ticket.bin"
+		" to the given parameter. 1 to 4 characters are expected."
+		" Only defined characters not equal '.' are modified."
+		" The modification is done after patching with {--id}."
+		"\1\n"
+		"See http://wit.wiimm.de/opt/id for more details." },
+
+  { T_OPT_CP,	"TMD_ID",	"tmd-id|tmdid",
+		"id",
+		"This $patching$ option changes the ID of tmd.bin"
+		" to the given parameter. 1 to 4 characters are expected."
+		" Only defined characters not equal '.' are modified."
+		" The modification is done after patching with {--id}."
+		"\1\n"
+		"See http://wit.wiimm.de/opt/id for more details." },
+
+  { T_OPT_CP,	"WBFS_ID",	"wbfs-id|wbfsid",
+		"id",
+		"This $patching$ option changes the ID of the WBFS header"
+		" to the given parameter if adding a file to a WBFS"
+		" or if creating a WBFS file. 1 to 6 characters are expected."
+		" The already patched disc ID of the source is used as base"
+		" and only defined characters not equal '.' are modified."
+		" The modification is done after patching with {--id}."
+		"\1\n"
+		"See http://wit.wiimm.de/opt/id for more details." },
 
   { T_OPT_CP,	"REGION",	"region",
 		"region",
@@ -1145,7 +1196,7 @@ info_t info_tab[] =
 		" @ID := D-ID,P-ID@,"
 		" @PART := P-INFO,P-ID,P-MAP,TICKET,TMD@,"
 		" @DISC := FILES,D-ID,D-MAP@,"
-		" @MAP := P-MAP,D-MAP,W_MAP@."
+		" @MAP := P-MAP,D-MAP,W-MAP@."
 		"\n "
 		" All keywords can be prefixed by '+' to enable that option,"
 		" by a '-' to disable it or"
@@ -1345,9 +1396,14 @@ info_t info_tab[] =
 
   { H_COPT,	"HOOK",		0,0,0 },
   { T_COPT,	"ENC",		0,0,0 },
-  { T_COPT,	"ID",		0,0,0 },
-  { T_COPT,	"NAME",		0,0,0 },
   { T_COPT,	"MODIFY",	0,0,0 },
+  { T_COPT,	"NAME",		0,0,0 },
+  { T_COPT,	"ID",		0,0,0 },
+  { T_COPT,	"DISC_ID",	0,0,0 },
+  { T_COPT,	"BOOT_ID",	0,0,0 },
+  { T_COPT,	"TICKET_ID",	0,0,0 },
+  { T_COPT,	"TMD_ID",	0,0,0 },
+  { T_COPT,	"WBFS_ID",	0,0,0 },
   { T_COPT,	"REGION",	0,0,0 },
   { T_COPT,	"COMMON_KEY",	0,0,0 },
   { T_COPT,	"IOS",		0,0,0 },
@@ -1559,7 +1615,9 @@ info_t info_tab[] =
 
   { T_COPT_M,	"LOGGING",	0,0,0 },
   { T_COPT_M,	"LONG",		0,0,
-	"If set, the disc name of the title db is printed too." },
+	"If set, a table with 5 IDs (DISC, BOOT, TICKET, TMD and WBFS) is printed."
+	" BOOT, TICKET and TMD IDs are taken from the main partition."
+	" If set twice, all IDs of all partitions are printed." },
 
   //---------- COMMAND wit LIST ----------
 
@@ -1577,9 +1635,9 @@ info_t info_tab[] =
   { T_COPT,	"SECTIONS",	0,0,0 },
   { T_COPT,	"NO_HEADER",	0,0,0 },
   { T_COPT_M,	"LONG",		0,0,
-	"If set the size in MiB and the region is printed too."
-	" If set twice at least on time columns is added."
-	" If set three times a second line with number or partitions,"
+	"If set, the size in MiB and the region is printed too."
+	" If set twice, a date columns is added."
+	" If set three times, a second line with number or partitions,"
 	" file type and real path is added." },
   { T_COPT,	"REALPATH",	0,0,0 },
   { T_COPT_M,	"UNIT",		0,0,0 },
@@ -2022,13 +2080,18 @@ info_t info_tab[] =
 
   { T_DEF_CMD,	"LIST_L",	"LIST-L|LL|LISTL",
 		    "wwt LIST-L [wbfs_partition]...",
-		"List all discs of WBFS partitions."
+		"List all discs of WBFS partitions with size and region."
 		" 'LIST-L' is a shortcut for {LIST --long}." },
 
   { T_DEF_CMD,	"LIST_LL",	"LIST-LL|LLL|LISTLL",
 		    "wwt LIST-LL [wbfs_partition]...",
-		"List all discs of WBFS partitions."
+		"List all discs of WBFS partitions with date, size and region."
 		" 'LIST-LL' is a shortcut for {LIST --long --long}." },
+
+  { T_DEF_CMD,	"LIST_LLL",	"LIST-LLL|LLLL|LISTLLL",
+		    "wwt LIST-LLL [wbfs_partition]...",
+		"List all discs of WBFS partitions with date, time, size and region."
+		" 'LIST-LLL' is a shortcut for {LIST --long --long --long}." },
 
   { T_DEF_CMD,	"LIST_A",	"LIST-A|LA|LISTA",
 		    "wwt LIST-A [wbfs_partition]...",
@@ -2331,13 +2394,28 @@ info_t info_tab[] =
   { T_OPT_CP,	"ENC",		"enc",
 		0, 0 /* copy of wit */ },
 
-  { T_OPT_CP,	"ID",		"id",
+  { T_OPT_CP,	"MODIFY",	"modify",
 		0, 0 /* copy of wit */ },
 
   { T_OPT_CP,	"NAME",		"name",
 		0, 0 /* copy of wit */ },
 
-  { T_OPT_CP,	"MODIFY",	"modify",
+  { T_OPT_CP,	"ID",		"id",
+		0, 0 /* copy of wit */ },
+
+  { H_OPT_CP,	"DISC_ID",	"disc-id|discid",
+		0, 0 /* copy of wit */ },
+
+  { H_OPT_CP,	"BOOT_ID",	"boot-id|bootid",
+		0, 0 /* copy of wit */ },
+
+  { H_OPT_CP,	"TICKET_ID",	"ticket-id|ticketid",
+		0, 0 /* copy of wit */ },
+
+  { H_OPT_CP,	"TMD_ID",	"tmd-id|tmdid",
+		0, 0 /* copy of wit */ },
+
+  { H_OPT_CP,	"WBFS_ID",	"wbfs-id|wbfsid",
 		0, 0 /* copy of wit */ },
 
   { T_OPT_CP,	"REGION",	"region",
@@ -2448,7 +2526,7 @@ info_t info_tab[] =
 		" Write the WBFS sector, but don't reset the disc info area."
 		" Then look into each disc slot to find valid discs and restore them." },
 
-  { T_OPT_C,	"FORCE",	"f|force",
+  { T_OPT_G,	"FORCE",	"f|force",
 		0, "Force operation." },
 
   { T_OPT_C,	"NO_CHECK",	"no-check|nocheck",
@@ -2732,9 +2810,14 @@ info_t info_tab[] =
 
   { H_COPT,	"HOOK",		0,0,0 },
   { T_COPT,	"ENC",		0,0,0 },
-  { T_COPT,	"ID",		0,0,0 },
-  { T_COPT,	"NAME",		0,0,0 },
   { T_COPT,	"MODIFY",	0,0,0 },
+  { T_COPT,	"NAME",		0,0,0 },
+  { T_COPT,	"ID",		0,0,0 },
+  { T_COPT,	"DISC_ID",	0,0,0 },
+  { T_COPT,	"BOOT_ID",	0,0,0 },
+  { T_COPT,	"TICKET_ID",	0,0,0 },
+  { T_COPT,	"TMD_ID",	0,0,0 },
+  { T_COPT,	"WBFS_ID",	0,0,0 },
   { T_COPT,	"REGION",	0,0,0 },
   { T_COPT,	"COMMON_KEY",	0,0,0 },
   { T_COPT,	"IOS",		0,0,0 },
@@ -2909,8 +2992,9 @@ info_t info_tab[] =
   { T_COPT,	"SORT",		0,0,0 },
   { T_COPY_GRP,	"TIME",		0,0,0 },
   { T_COPT_M,	"LONG",		0,0,
-	"If set the size in MiB and the region is printed too."
-	" If set twice at least on time columns is added." },
+	"If set, the size in MiB and the region is printed too."
+	" If set twice, a date column is added."
+	" If set three times, a date and a time column is added." },
   { T_COPT,	"FRAGMENTS",	0,0,0 },
   { T_COPT,	"NO_HEADER",	0,0,0 },
   { T_COPT,	"SECTIONS",	0,0,0 },
@@ -2923,6 +3007,11 @@ info_t info_tab[] =
   //---------- COMMAND wwt LIST-LL ----------
 
   { T_CMD_BEG,	"LIST_LL",	0,0,0 },
+  { T_COPY_CMD,	"LIST",		0,0,0 },
+
+  //---------- COMMAND wwt LIST-LLL ----------
+
+  { T_CMD_BEG,	"LIST_LLL",	0,0,0 },
   { T_COPY_CMD,	"LIST",		0,0,0 },
 
   //---------- COMMAND wwt LIST-A ----------
