@@ -486,37 +486,42 @@
 	"id", \
 	"This $patching$ option changes the ID of the disc to the given" \
 	" parameter. 1 to 6 characters are expected. Only defined characters" \
-	" not equal '.' are modified. The disc header, boot.bin, ticket.bin" \
-	" and tmd.bin are objects to modify. The option {--modify} selects the" \
-	" objects." )
+	" not equal '.' are modified. The plus sign '+' is a wildcard for" \
+	" multiple '.' to fill the complete entered ID to 6 characters. The" \
+	" disc header, boot.bin, ticket.bin and tmd.bin are objects to modify." \
+	" The option {--modify} selects the objects." )
 
 #:def_opt( "DISC_ID", "disc-id|discid", "CP", \
 	"id", \
 	"This $patching$ option changes the ID of the disc header to the given" \
 	" parameter. 1 to 6 characters are expected. Only defined characters" \
-	" not equal '.' are modified. The modification is done after patching" \
-	" with {--id}." )
+	" not equal '.' are modified. The plus sign '+' is a wildcard for" \
+	" multiple '.' to fill the complete entered ID to 6 characters. The" \
+	" modification is done after patching with {--id}." )
 
 #:def_opt( "BOOT_ID", "boot-id|bootid", "CP", \
 	"id", \
 	"This $patching$ option changes the ID of boot.bin to the given" \
 	" parameter. 1 to 6 characters are expected. Only defined characters" \
-	" not equal '.' are modified. The modification is done after patching" \
-	" with {--id}." )
+	" not equal '.' are modified. The plus sign '+' is a wildcard for" \
+	" multiple '.' to fill the complete entered ID to 6 characters. The" \
+	" modification is done after patching with {--id}." )
 
 #:def_opt( "TICKET_ID", "ticket-id|ticketid", "CP", \
 	"id", \
 	"This $patching$ option changes the ID of ticket.bin to the given" \
 	" parameter. 1 to 4 characters are expected. Only defined characters" \
-	" not equal '.' are modified. The modification is done after patching" \
-	" with {--id}." )
+	" not equal '.' are modified. The plus sign '+' is a wildcard for" \
+	" multiple '.' to fill the complete entered ID to 4 characters. The" \
+	" modification is done after patching with {--id}." )
 
 #:def_opt( "TMD_ID", "tmd-id|tmdid", "CP", \
 	"id", \
 	"This $patching$ option changes the ID of tmd.bin to the given" \
 	" parameter. 1 to 4 characters are expected. Only defined characters" \
-	" not equal '.' are modified. The modification is done after patching" \
-	" with {--id}." )
+	" not equal '.' are modified. The plus sign '+' is a wildcard for" \
+	" multiple '.' to fill the complete entered ID to 4 characters. The" \
+	" modification is done after patching with {--id}." )
 
 #:def_opt( "WBFS_ID", "wbfs-id|wbfsid", "CP", \
 	"id", \
@@ -524,7 +529,9 @@
 	" parameter if adding a file to a WBFS or if creating a WBFS file. 1" \
 	" to 6 characters are expected. The already patched disc ID of the" \
 	" source is used as base and only defined characters not equal '.' are" \
-	" modified. The modification is done after patching with {--id}." )
+	" modified. The plus sign '+' is a wildcard for multiple '.' to fill" \
+	" the complete entered ID to 6 characters. The modification is done" \
+	" after patching with {--id}." )
 
 #:def_opt( "REGION", "region", "CP", \
 	"region", \
@@ -1508,6 +1515,34 @@
 	"If set, a table with 5 IDs (DISC, BOOT, TICKET, TMD and WBFS) is" \
 	" printed. BOOT, TICKET and TMD IDs are taken from the main partition." \
 	" If set twice, all IDs of all partitions are printed." )
+
+#:def_cmd_opt( "ID6", "MODIFY", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "ID6", "ID", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "ID6", "DISC_ID", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "ID6", "BOOT_ID", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "ID6", "TICKET_ID", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "ID6", "TMD_ID", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "ID6", "WBFS_ID", \
+	"", \
+	"" )
 
 #:def_cmd_opt( "LIST", "TITLES", \
 	"", \
@@ -4933,9 +4968,10 @@
 	"id", \
 	"This $patching$ option changes the ID of the disc to the given" \
 	" parameter. 1 to 6 characters are expected. Only defined characters" \
-	" not equal '.' are modified. The disc header, boot.bin, ticket.bin" \
-	" and tmd.bin are objects to modify. The option {--modify} selects the" \
-	" objects." )
+	" not equal '.' are modified. The plus sign '+' is a wildcard for" \
+	" multiple '.' to fill the complete entered ID to 6 characters. The" \
+	" disc header, boot.bin, ticket.bin and tmd.bin are objects to modify." \
+	" The option {--modify} selects the objects." )
 
 #:def_opt( "REGION", "region", "CP", \
 	"region", \

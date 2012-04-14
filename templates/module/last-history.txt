@@ -1,17 +1,11 @@
 wit v@@VERSION@@ r@@REV-NEXT@@ - @@@@-@@-@@
 
- - New option: wit --force: Ignore partition size errors and allow access to
-   damaged partitions. "wwt --force" works similar.
- - New options: --disc-id=id, --boot-id=id, --ticket-id=id, --tmd-id=id and
-   --wbfs-id=id: Patch only the specific ID. These options are handled after
-   the --id and --modify options. pathcing the WBFS ID while adding a game is
-   now also possible.
- - New implementation of command "wit ID6": It generates an ID6 list of all
-   sources. This is similar as before, only the meaning of the parameters
-   changed. If option --long is set, a table with 5 IDs (DISC, BOOT, TICKET,
-   TMD and WBFS) is printed. BOOT, TICKET and TMD IDs are taken from the main
-   partition. If --long is set twice, all IDs of all partitions are printed.
- - wwt LLLL: List contains date and time (in seconds) columns.
+ - "wit VERIFY" will now ignore extracted file systems.
+ - wit --id=.....X: ID change failed if only the sixt character was modified.
+ - All ID patching options (--id, --disc-id, ...) accept now a plus sign '+' as
+   wildcard for multiple '.' to fill the complete entered ID to 4/6 characters.
+ - The listing command "wit ID6" accepts now all ID patching options to test
+   the effect of them.
 
 ~
 ~Known bugs:

@@ -970,9 +970,7 @@ enumError OpenParWBFS
     par->write_hdsector	= WrapperWriteSector;
     par->callback_data	= sf;
     par->part_lba	= 0;
- #if NEW_WBFS_INTERFACE
     par->balloc_mode	= balloc_mode;
- #endif
 
     w->wbfs = wbfs_open_partition_param(par);
 
@@ -1766,10 +1764,21 @@ enumError DumpWBFS
 		wbfs->free_blocks, wbfs->free_blocks, free_mib, free_perc );
 	fprintf(f,"%*swbfs used blocks:     %#11x =%15u =%8u MiB = %3u%%\n", indent,"",
 		used_blocks, used_blocks, used_mib, used_perc );
-	fprintf(f,"%*swbfs total blocks:    %#11x =%15u =%8u MiB = 100%%\n", indent,"",
+	fprintf(f,"%*swbfs total blocks:    %#11x =%15u =%8u MiB = 100%%\n\n", indent,"",
 		w->n_wbfs_sec, w->n_wbfs_sec, total_mib );
-	fprintf(f,"%*swbfs total size:  %#15llx =%15llu =%8u MiB\n\n", indent,"",
+
+	const u64 wbfs_max  = (u64)w->wbfs_sec_sz * WBFS_MAX_SECTORS;
+	const u64 wbfs_trim = (u64)w->wbfs_sec_sz * (wbfs_find_last_used_block(w)+1);
+	const u32 max_mib   = ( wbfs_max  + MiB/2 ) / MiB;
+	const u32 trim_mib  = ( wbfs_trim + MiB/2 ) / MiB;
+	fprintf(f,"%*swbfs min possible:%#15llx =%15llu =%8u MiB =%4llu%%\n", indent,"",
+		wbfs_used, wbfs_used, used_mib, 100*wbfs_used/wbfs_total );
+	fprintf(f,"%*swbfs trimmed size:%#15llx =%15llu =%8u MiB =%4llu%%\n", indent,"",
+		wbfs_trim, wbfs_trim, trim_mib, 100*wbfs_trim/wbfs_total );
+	fprintf(f,"%*swbfs total size:  %#15llx =%15llu =%8u MiB = 100%%\n", indent,"",
 		wbfs_total, wbfs_total, total_mib  );
+	fprintf(f,"%*swbfs max possible:%#15llx =%15llu =%8u MiB =%4llu%%\n\n", indent,"",
+		wbfs_max, wbfs_max, max_mib, 100*wbfs_max/wbfs_total );
 
 	fprintf(f,"%*spartition lba:        %#11x =%15u\n", indent,"",
 		w->part_lba, w->part_lba );
@@ -1847,7 +1856,6 @@ enumError DumpWBFS
 		    DumpWDiscInfo( &dinfo, d->is_used ? &ihead : 0, f, indent+2 );
 		if ( w->head->disc_table[slot] & WBFS_SLOT_INVALID )
 		    fprintf(f,"%*s>>> DISC MARKED AS INVALID! <<<\n",indent,"");
-	     #if NEW_WBFS_INTERFACE
 		else
 		{
 		    if ( w->head->disc_table[slot] & WBFS_SLOT_F_SHARED )
@@ -1855,7 +1863,6 @@ enumError DumpWBFS
 		    if ( w->head->disc_table[slot] & WBFS_SLOT_F_FREED )
 			fprintf(f,"%*s>>> DISC IS/WAS USING FREE BLOCKS! <<<\n",indent,"");
 		}
-	     #endif
 	    }
 
 	    if ( show_mode & (SHOW_D_MAP|SHOW_W_MAP) )
@@ -1868,7 +1875,7 @@ enumError DumpWBFS
 		    ind-1,"", ind,"", ind,"" );
 		u16 * tab = d->header->wlba_table;
 
-		u8 used[0x10000];
+		u8 used[WBFS_MAX_SECTORS];
 		memset(used,0,sizeof(used));
 		ASSERT( sec_per_disc < sizeof(used) );
 
@@ -2011,15 +2018,12 @@ enumError DumpWBFS
     }
     ResetMemMap(&mm);
 
-
- #if NEW_WBFS_INTERFACE
     if ( show_mode & SHOW_USAGE )
     {
 	fprintf(f,"\f\n%*sWBFS Memory Usage:\n\n", indent,"" );
 	wbfs_print_block_usage(stdout,indent+1,w,false);
 	fputc('\n',f);
     }
- #endif
 
     if ( show_mode & SHOW_CHECK ) // && isatty(fileno(f))
     {
@@ -2616,7 +2620,7 @@ void ResetCheckWBFS ( CheckWBFS_t * ck )
 
 ///////////////////////////////////////////////////////////////////////////////
 
-#if NEW_WBFS_INTERFACE & defined(TEST)
+#if defined(TEST)
 
 static void check_func
 (
@@ -2660,7 +2664,7 @@ enumError CheckWBFS
     ck->fbt_off  = ( w->part_lba + w->freeblks_lba ) * w->hd_sec_sz;
     ck->fbt_size = w->freeblks_lba_count * w->hd_sec_sz;
 
- #if NEW_WBFS_INTERFACE & defined(TEST) // [[2do]]
+ #if 0 && defined(TEST) // [[2do]]
     if (logging)
 	wbfs_calc_used_blocks(w,true,true,check_func,ck);
  #endif
@@ -2934,16 +2938,8 @@ enumError CheckWBFS
 		  + total_err_overlap
 		  + total_err_invalid;
 
- #if NEW_WBFS_INTERFACE
     // with the new wbfs interface all errors are harmless
     ck->err = ck->err_total ? ERR_WARNING : ERR_OK;
- #else
-    ck->err = ck->err_fbt_used || ck->err_bl_overlap
-		? ERR_WBFS_INVALID
-		: ck->err_total
-			? ERR_WARNING
-			: ERR_OK;
- #endif
 
     if ( ck->err_total && verbose >= PRINT_DUMP )
     {
@@ -3105,13 +3101,6 @@ enumError RepairWBFS ( CheckWBFS_t * ck, int testmode,
 		if (err)
 		    return err;
 		memcpy(ck->cur_fbt,ck->good_fbt,ck->fbt_size);
- #if !NEW_WBFS_INTERFACE
-		if (w->freeblks)
-		{
-		    FREE(w->freeblks);
-		    w->freeblks = 0;
-		}
- #endif
 		sync++;
 	    }
 	    repair_count++;
@@ -3150,10 +3139,8 @@ enumError RepairWBFS ( CheckWBFS_t * ck, int testmode,
     }
 
     TRACELINE;
- #if NEW_WBFS_INTERFACE
     if (repair_count)
 	wbfs_calc_used_blocks(w,true,false,0,0);
- #endif
     if (sync)
 	wbfs_sync(w);
 
@@ -4215,7 +4202,7 @@ enumError RemoveWDisc
 		id6, w->sf->f.fname );
     }
 
- #if NEW_WBFS_INTERFACE && defined(TEST) && defined(DEBUG)
+ #if defined(TEST) && defined(DEBUG)
     if (logging)
 	DumpWBFS(w,stdout,3,SHOW_USAGE,0,0,0);
  #endif

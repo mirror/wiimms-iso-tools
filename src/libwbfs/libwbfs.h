@@ -52,8 +52,6 @@ extern "C"
 #define WBFS_VERSION 1
 #define WBFS_NO_BLOCK (~(u32)0)
 
-#define WBFS_MAX_SECT		    0x10000
-
 ///////////////////////////////////////////////////////////////////////////////
 
 //  WBFS first wbfs_sector structure:
@@ -167,8 +165,6 @@ typedef struct wbfs_t
     u32		freeblks_mask;		// mask for last used u32 of freeblks
     u32		* freeblks;		// if not NULL: copy of free blocks table
 
- #if NEW_WBFS_INTERFACE
-
     u8		* block0;		// NULL or copy of wbfs block #0
     u8		* used_block;		// For each WBFS block 1 byte, N='n_wbfs_sec'
 					//    0: unused			==> OK
@@ -181,8 +177,6 @@ typedef struct wbfs_t
     wbfs_slot_mode_t	new_slot_err;	// new detected errors
     wbfs_slot_mode_t	all_slot_err;	// all detected errros
     wbfs_balloc_mode_t	balloc_mode;	// block allocation mode
-
- #endif
 
     u16		disc_info_sz;
 
@@ -498,6 +492,7 @@ u32 * wbfs_free_freeblocks	( wbfs_t * p );
 u32 * wbfs_load_freeblocks	( wbfs_t * p );
 void wbfs_free_block		( wbfs_t * p, u32 bl );
 void wbfs_use_block		( wbfs_t * p, u32 bl );
+u32 wbfs_find_last_used_block	( wbfs_t * p );
 
 /*! add a wii dvd inside the partition
   @param read_src_wii_disc: a callback to access the wii dvd. offsets are in 32bit, len in bytes!

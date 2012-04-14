@@ -849,18 +849,22 @@ wd_disc_t * OpenDiscSF
 	    if (opt_ios_valid)
 		reloc |= wd_patch_part_system(main_part,opt_ios);
 	}
+ #if 1 // [[id+]]
+	else if (modify_disc_id)
+	    reloc |= wd_patch_disc_header(disc,modify_disc_id,modify_name);
+ #else
 	else if (modify & (WD_MODIFY_DISC|WD_MODIFY__AUTO) )
 	    reloc |= wd_patch_disc_header(disc,modify_id,modify_name);
-
+ #endif
 
 	if ( opt_region < REGION__AUTO )
 	    reloc |= wd_patch_region(disc,opt_region);
-	else if ( modify_id
-		    && strlen(modify_id) > 3
-		    && modify_id[3] != '.'
-		    && modify_id[3] != disc->dhead.region_code )
+	else if ( modify_id /* [[id]] */
+		    && strlen(modify_id /* [[id]] */) > 3
+		    && modify_id /* [[id]] */[3] != '.'
+		    && modify_id /* [[id]] */[3] != disc->dhead.region_code )
 	{
-	    const enumRegion region = GetRegionInfo(modify_id[3])->reg;
+	    const enumRegion region = GetRegionInfo(modify_id /* [[id]] */[3])->reg;
 	    reloc |= wd_patch_region(disc,region);
 	}
 

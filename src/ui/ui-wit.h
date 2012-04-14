@@ -337,6 +337,14 @@ typedef enum enumOptions
 //	OB_GRP_PARTITIONS	= OB_PSEL
 //				| OB_RAW,
 //
+//	OB_GRP_PATCH_ID		= OB_MODIFY
+//				| OB_ID
+//				| OB_DISC_ID
+//				| OB_BOOT_ID
+//				| OB_TICKET_ID
+//				| OB_TMD_ID
+//				| OB_WBFS_ID,
+//
 //	OB_GRP_PATCH		= OB_ENC
 //				| OB_MODIFY
 //				| OB_NAME
@@ -438,7 +446,8 @@ typedef enum enumOptions
 //	OB_CMD_ID6		= OB_AUTO
 //				| OB_GRP_XSOURCE
 //				| OB_GRP_FST_OPTIONS
-//				| OB_LONG,
+//				| OB_LONG
+//				| OB_GRP_PATCH_ID,
 //
 //	OB_CMD_LIST		= OB_GRP_TITLES
 //				| OB_AUTO

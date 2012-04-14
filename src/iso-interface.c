@@ -3487,11 +3487,7 @@ enumFileType IsFSTPart ( ccp base_path, char * id6_result )
 	    if (part_id)
 		wd_patch_id(id6_result,id6_result,part_id,6);
 	}
-#if 1 // [[id+]]
 	PatchId(id6_result,modify_disc_id,0,6);
-#else
-	PatchIdCond(id6_result,0,6,WD_MODIFY_DISC|WD_MODIFY__AUTO);
-#endif
     }
 
 
@@ -3933,11 +3929,7 @@ u64 GenPartFST
 
     if ( part->part_type == WD_PART_DATA )
     {
-#if 1 // [[id+]]
 	PatchId(imi->data,modify_boot_id,0,6);
-#else
-	PatchIdCond(imi->data,0,6,WD_MODIFY_BOOT|WD_MODIFY__AUTO);
-#endif
 	PatchName(title,WD_MODIFY_BOOT|WD_MODIFY__AUTO);
     }
     snprintf(imi->info,sizeof(imi->info),"boot.bin [%.6s] + bi2.bin",(ccp)imi->data);
@@ -3962,11 +3954,7 @@ u64 GenPartFST
 			&fst->dhead, sizeof(fst->dhead), true,
 			&part->max_fatt, true);
 	PatchDiscHeader(&fst->dhead,part_id,part_name);
-#if 1 // [[id+]]
 	PatchId(&fst->dhead.disc_id,modify_disc_id,0,6);
-#else
-	PatchIdCond(&fst->dhead.disc_id,0,6,WD_MODIFY_DISC|WD_MODIFY__AUTO);
-#endif
 	PatchName(fst->dhead.disc_title,WD_MODIFY_DISC|WD_MODIFY__AUTO);
     }
 
@@ -4102,13 +4090,8 @@ u64 GenPartFST
 
     if ( part->part_type == WD_PART_DATA )
     {
-#if 1 // [[id+]]
 	PatchId(pc->head->ticket.title_id+4,modify_ticket_id,0,4);
 	PatchId(pc->tmd->title_id+4,modify_tmd_id,0,4);
-#else
-	PatchIdCond(pc->head->ticket.title_id+4,0,4,WD_MODIFY_TICKET|WD_MODIFY__AUTO);
-	PatchIdCond(pc->tmd->title_id+4,0,4,WD_MODIFY_TMD|WD_MODIFY__AUTO);
-#endif
 	if (opt_ios_valid)
 	    pc->tmd->sys_version = hton64(opt_ios);
     }

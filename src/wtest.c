@@ -381,7 +381,6 @@ static int test_wbfs_free_blocks ( int argc, char ** argv )
 	if (!OpenWBFS(&w,argv[i],true,0))
 	{
 	    printf("\n*** %s ***\n",argv[i]);
-	 #if NEW_WBFS_INTERFACE
 	    int i;
 	    for ( i = 1; ; i *= 2 )
 	    {
@@ -390,7 +389,6 @@ static int test_wbfs_free_blocks ( int argc, char ** argv )
 		if ( bl == WBFS_NO_BLOCK )
 		    break;
 	    }
-	 #endif
 	}
 	ResetWBFS(&w);
     }

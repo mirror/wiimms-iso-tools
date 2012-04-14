@@ -415,7 +415,7 @@ int ScanOptName ( ccp arg )
 ///////////////			--id  &  --xxx-id		///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-ccp modify_id		= 0;
+ccp modify_id /* [[id]] */		= 0;
 ccp modify_disc_id	= 0;
 ccp modify_boot_id	= 0;
 ccp modify_ticket_id	= 0;
@@ -431,18 +431,17 @@ static char modify_wbfs_id_buf	[7];
 
 //-----------------------------------------------------------------------------
 
-int ScanOptIdHelper ( ccp arg, ccp opt_name, ccp *id_ptr, char *buf, int max_len )
+static int ScanOptIdHelper
+	( ccp arg, ccp opt_name, ccp *id_ptr, char *buf, int max_len )
 {
     DASSERT(opt_name);
     DASSERT(id_ptr);
     DASSERT(buf);
     DASSERT( max_len == 4 || max_len == 6 );
 
-    if ( !arg || !*arg )
-    {
 	*id_ptr = 0;
+    if ( !arg || !*arg )
 	return 0;
-    }
 
     size_t len = strlen(arg);
     if ( len > max_len )
@@ -452,14 +451,24 @@ int ScanOptIdHelper ( ccp arg, ccp opt_name, ccp *id_ptr, char *buf, int max_len
 	return 1;
     }
 
+    ccp plus = 0;
     memset(buf,0,max_len+1);
     char *dest = buf;
     while ( *arg )
     {
-	if ( *arg == '.' || *arg == '_' )
+	if ( *arg == '.'  || *arg == '_' )
+	{
 	    *dest++ = *arg++;
-	else if ( isalnum((int)*arg) )
+	}
+	else if ( *arg == '+' && !plus )
+	{
+	    plus = dest;
+	    arg++;
+	}
+	else if ( isalnum((int)*arg))
+	{
 	    *dest++ = toupper((int)*arg++);
+	}
 	else
 	{
 	    ERROR0(ERR_SYNTAX,"Option --%s: Illegal character at index #%u: %s\n",
@@ -467,6 +476,16 @@ int ScanOptIdHelper ( ccp arg, ccp opt_name, ccp *id_ptr, char *buf, int max_len
 	    return 1;
 	}
     }
+
+    if (plus)
+    {
+	char *dest2 = buf + max_len;
+	while ( dest > plus )
+	    *--dest2 = *--dest;
+	while ( dest2 > plus )
+	    *--dest2 = '.';
+    }
+
     *id_ptr = buf;
     return 0;
 }
@@ -475,7 +494,7 @@ int ScanOptIdHelper ( ccp arg, ccp opt_name, ccp *id_ptr, char *buf, int max_len
 
 int ScanOptId ( ccp arg )
 {
-    return ScanOptIdHelper( arg, "id", &modify_id,
+    return ScanOptIdHelper( arg, "id", &modify_id /* [[id]] */,
 			modify_id_buf, sizeof(modify_id_buf)-1 );
 }
 
@@ -511,18 +530,20 @@ int ScanOptWbfsId ( ccp arg )
 
 //-----------------------------------------------------------------------------
 
-static void NormID ( wd_modify_t condition, ccp *id_ptr, char *buf, int max_len )
+static void NormID
+	( wd_modify_t condition, ccp *id_ptr, char *buf, int max_len )
 {
+    noPRINT("NormID() cond=%03x, len=%u, src=%s\n",condition,max_len,modify_id);
     ccp src = modify_id;
     char * dest = buf;
 
     if ( src && condition & opt_modify )
     {
-	for ( ; max_len-- > 0 && *src && *dest; src++, dest++ )
+	for ( ; max_len > 0 && *src && *dest; src++, dest++, max_len-- )
 	    if ( *dest == '.' )
 		*dest = *src;
 
-	while ( max_len-- > 0 && *src )
+	for ( ; max_len > 0 && *src; max_len-- )
 	    *dest++ = *src++;
     }
 
@@ -533,6 +554,7 @@ static void NormID ( wd_modify_t condition, ccp *id_ptr, char *buf, int max_len 
 	dest--;
     *dest = 0;
     *id_ptr = dest == buf ? 0 : buf;
+    noPRINT(" -> new-id=%s\n",*id_ptr);
 }
 
 void NormalizeIdOptions()
@@ -624,7 +646,7 @@ bool CopyPatchDiscId ( char *dest_id6, const void * source_id6 )
 
 bool PatchIdCond ( void * id, int skip, int maxlen, wd_modify_t condition )
 {
-    return ( opt_modify & condition ) && PatchId(id,modify_id,skip,maxlen);
+    return ( opt_modify & condition ) && PatchId(id,modify_id /* [[id]] */,skip,maxlen);
 }
 
 //-----------------------------------------------------------------------------

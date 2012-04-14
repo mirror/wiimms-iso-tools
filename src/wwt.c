@@ -2389,8 +2389,6 @@ enumError cmd_sync()
 
 enumError cmd_dup()
 {
- #if NEW_WBFS_INTERFACE
-
     //--- extract destination from param list
 
     if (!opt_dest)
@@ -2570,14 +2568,6 @@ enumError cmd_dup()
     ResetWBFS(&wbfs);
 
     return ERR_OK;
-
- #else // !NEW_WBFS_INTERFACE
-
-    return ERROR0(ERR_NOT_IMPLEMENTED,
-	"This version of wwt is compiled with the old WBFS interface,"
-	" but command 'DUP' needs the new interface.");
-
- #endif
 }
 
 //

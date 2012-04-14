@@ -800,6 +800,8 @@ info_t info_tab[] =
 		"This $patching$ option changes the ID of the disc"
 		" to the given parameter. 1 to 6 characters are expected."
 		" Only defined characters not equal '.' are modified."
+		" The plus sign '+' is a wildcard for multiple '.'"
+		" to fill the complete entered ID to 6 characters."
 		" The disc header, boot.bin, ticket.bin and tmd.bin are"
 		" objects to modify. The option {--modify} selects the objects."
 		"\1\n"
@@ -810,6 +812,8 @@ info_t info_tab[] =
 		"This $patching$ option changes the ID of the disc header"
 		" to the given parameter. 1 to 6 characters are expected."
 		" Only defined characters not equal '.' are modified."
+		" The plus sign '+' is a wildcard for multiple '.'"
+		" to fill the complete entered ID to 6 characters."
 		" The modification is done after patching with {--id}."
 		"\1\n"
 		"See http://wit.wiimm.de/opt/id for more details." },
@@ -819,6 +823,8 @@ info_t info_tab[] =
 		"This $patching$ option changes the ID of boot.bin"
 		" to the given parameter. 1 to 6 characters are expected."
 		" Only defined characters not equal '.' are modified."
+		" The plus sign '+' is a wildcard for multiple '.'"
+		" to fill the complete entered ID to 6 characters."
 		" The modification is done after patching with {--id}."
 		"\1\n"
 		"See http://wit.wiimm.de/opt/id for more details." },
@@ -828,6 +834,8 @@ info_t info_tab[] =
 		"This $patching$ option changes the ID of ticket.bin"
 		" to the given parameter. 1 to 4 characters are expected."
 		" Only defined characters not equal '.' are modified."
+		" The plus sign '+' is a wildcard for multiple '.'"
+		" to fill the complete entered ID to 4 characters."
 		" The modification is done after patching with {--id}."
 		"\1\n"
 		"See http://wit.wiimm.de/opt/id for more details." },
@@ -837,6 +845,8 @@ info_t info_tab[] =
 		"This $patching$ option changes the ID of tmd.bin"
 		" to the given parameter. 1 to 4 characters are expected."
 		" Only defined characters not equal '.' are modified."
+		" The plus sign '+' is a wildcard for multiple '.'"
+		" to fill the complete entered ID to 4 characters."
 		" The modification is done after patching with {--id}."
 		"\1\n"
 		"See http://wit.wiimm.de/opt/id for more details." },
@@ -848,6 +858,8 @@ info_t info_tab[] =
 		" or if creating a WBFS file. 1 to 6 characters are expected."
 		" The already patched disc ID of the source is used as base"
 		" and only defined characters not equal '.' are modified."
+		" The plus sign '+' is a wildcard for multiple '.'"
+		" to fill the complete entered ID to 6 characters."
 		" The modification is done after patching with {--id}."
 		"\1\n"
 		"See http://wit.wiimm.de/opt/id for more details." },
@@ -1390,6 +1402,18 @@ info_t info_tab[] =
   { T_COPT,	"PSEL",		0,0,0 },
   { T_COPT,	"RAW",		0,0,0 },
 
+  //---------- wit GROUP PATCH_ID ----------
+
+  { T_GRP_BEG,	"PATCH_ID",	0,0,0 },
+
+  { T_COPT,	"MODIFY",	0,0,0 },
+  { T_COPT,	"ID",		0,0,0 },
+  { T_COPT,	"DISC_ID",	0,0,0 },
+  { T_COPT,	"BOOT_ID",	0,0,0 },
+  { T_COPT,	"TICKET_ID",	0,0,0 },
+  { T_COPT,	"TMD_ID",	0,0,0 },
+  { T_COPT,	"WBFS_ID",	0,0,0 },
+
   //---------- wit GROUP PATCH ----------
 
   { T_GRP_BEG,	"PATCH",	0,0,0 },
@@ -1618,6 +1642,9 @@ info_t info_tab[] =
 	"If set, a table with 5 IDs (DISC, BOOT, TICKET, TMD and WBFS) is printed."
 	" BOOT, TICKET and TMD IDs are taken from the main partition."
 	" If set twice, all IDs of all partitions are printed." },
+
+  { T_SEP_OPT,	0,0,0,0 },
+  { T_COPY_GRP,	"PATCH_ID",	0,0,0 },
 
   //---------- COMMAND wit LIST ----------
 
@@ -2691,14 +2718,8 @@ info_t info_tab[] =
   { T_COPT,	"AUTO",		0,0,0 },
   { T_COPT,	"ALL",		0,0,0 },
   { T_COPT_M,	"PART",		0,0,0 },
- #if NEW_WBFS_INTERFACE
   { T_COPT,	"FORCE",	0,0,
 	"This option is not longer needed because of the new WBFS interface." },
- #else
-  { T_COPT,	"FORCE",	0,0,
-	"If the automatic check finds problematic errors,"
-	" then the report is printed but the operation is *not* canceled." },
- #endif
   { T_COPT,	"NO_CHECK",	0,0,
 	"Disable automatic check of WBFS before modifications." },
 

@@ -1584,16 +1584,12 @@ enumError cmd_mix()
     if (mp.source_dhead)
     {
 	memcpy(&dhead,mp.source_dhead,sizeof(dhead));
-#if 1 // [[id+]]
 	PatchId(&dhead,modify_disc_id,0,6);
-#else
-	PatchIdCond(&dhead,0,6,WD_MODIFY__ALWAYS);
-#endif
     }
     else if ( mp.n_mix == 1 )
 	memcpy(&dhead,&mp.mix->disc->dhead,sizeof(dhead));
     else
-	header_setup(&dhead,modify_id,iobuf,mp.is_gc);
+	header_setup(&dhead,modify_id /* [[id]] */,iobuf,mp.is_gc);
     PatchName(dhead.disc_title,WD_MODIFY__ALWAYS);
 
 

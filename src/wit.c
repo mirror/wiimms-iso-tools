@@ -434,7 +434,7 @@ static enumError cmd_create()
       case SC_TICKET:
 	{
 	    wd_ticket_t tik;
-	    ticket_setup(&tik,modify_id);
+	    ticket_setup(&tik,modify_id /* [[id]] */);
 
 	    if (param)
 	    {
@@ -478,7 +478,7 @@ static enumError cmd_create()
 	{
 	    char tmd_buf[WII_TMD_GOOD_SIZE];
 	    wd_tmd_t * tmd = (wd_tmd_t*)tmd_buf;
-	    tmd_setup(tmd,sizeof(tmd_buf),modify_id);
+	    tmd_setup(tmd,sizeof(tmd_buf),modify_id /* [[id]] */);
 
 	    if (opt_ios_valid)
 		tmd->sys_version = hton64(opt_ios);
@@ -1853,7 +1853,7 @@ static enumError cmd_copy()
     if (!opt_dest)
     {
 	if (!first_param)
-	    return ERROR0(ERR_MISSING_PARAM, "Missing destination parameter\n" );
+	    return ERROR0(ERR_MISSING_PARAM, "Missing destination parameter!\n" );
 
 	ParamList_t * param;
 	for ( param = first_param; param->next; param = param->next )
@@ -2425,7 +2425,7 @@ static enumError cmd_verify()
     it.act_non_iso	= OptionUsed[OPT_IGNORE] ? ACT_IGNORE : ACT_WARN;
     it.act_wbfs		= ACT_EXPAND;
     it.act_gc		= ACT_WARN;
-    it.act_fst		= allow_fst ? ACT_EXPAND : ACT_IGNORE;
+    it.act_fst		= ACT_IGNORE;
     it.long_count	= long_count;
 
     if ( testmode > 1 )

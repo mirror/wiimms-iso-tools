@@ -279,9 +279,10 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 	"id",
 	"This patching option changes the ID of the disc to the given"
 	" parameter. 1 to 6 characters are expected. Only defined characters"
-	" not equal '.' are modified. The disc header, boot.bin, ticket.bin"
-	" and tmd.bin are objects to modify. The option --modify selects the"
-	" objects.\n"
+	" not equal '.' are modified. The plus sign '+' is a wildcard for"
+	" multiple '.' to fill the complete entered ID to 6 characters. The"
+	" disc header, boot.bin, ticket.bin and tmd.bin are objects to modify."
+	" The option --modify selects the objects.\n"
 	"See http://wit.wiimm.de/opt/id for more details."
     },
 
@@ -289,8 +290,9 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 	"id",
 	"This patching option changes the ID of the disc header to the given"
 	" parameter. 1 to 6 characters are expected. Only defined characters"
-	" not equal '.' are modified. The modification is done after patching"
-	" with --id.\n"
+	" not equal '.' are modified. The plus sign '+' is a wildcard for"
+	" multiple '.' to fill the complete entered ID to 6 characters. The"
+	" modification is done after patching with --id.\n"
 	"See http://wit.wiimm.de/opt/id for more details."
     },
 
@@ -298,8 +300,9 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 	"id",
 	"This patching option changes the ID of boot.bin to the given"
 	" parameter. 1 to 6 characters are expected. Only defined characters"
-	" not equal '.' are modified. The modification is done after patching"
-	" with --id.\n"
+	" not equal '.' are modified. The plus sign '+' is a wildcard for"
+	" multiple '.' to fill the complete entered ID to 6 characters. The"
+	" modification is done after patching with --id.\n"
 	"See http://wit.wiimm.de/opt/id for more details."
     },
 
@@ -307,8 +310,9 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 	"id",
 	"This patching option changes the ID of ticket.bin to the given"
 	" parameter. 1 to 4 characters are expected. Only defined characters"
-	" not equal '.' are modified. The modification is done after patching"
-	" with --id.\n"
+	" not equal '.' are modified. The plus sign '+' is a wildcard for"
+	" multiple '.' to fill the complete entered ID to 4 characters. The"
+	" modification is done after patching with --id.\n"
 	"See http://wit.wiimm.de/opt/id for more details."
     },
 
@@ -316,8 +320,9 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 	"id",
 	"This patching option changes the ID of tmd.bin to the given"
 	" parameter. 1 to 4 characters are expected. Only defined characters"
-	" not equal '.' are modified. The modification is done after patching"
-	" with --id.\n"
+	" not equal '.' are modified. The plus sign '+' is a wildcard for"
+	" multiple '.' to fill the complete entered ID to 4 characters. The"
+	" modification is done after patching with --id.\n"
 	"See http://wit.wiimm.de/opt/id for more details."
     },
 
@@ -327,7 +332,9 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 	" parameter if adding a file to a WBFS or if creating a WBFS file. 1"
 	" to 6 characters are expected. The already patched disc ID of the"
 	" source is used as base and only defined characters not equal '.' are"
-	" modified. The modification is done after patching with --id.\n"
+	" modified. The plus sign '+' is a wildcard for multiple '.' to fill"
+	" the complete entered ID to 6 characters. The modification is done"
+	" after patching with --id.\n"
 	"See http://wit.wiimm.de/opt/id for more details."
     },
 
@@ -1677,8 +1684,8 @@ static u8 option_allowed_cmd_DUMP[91] = // cmd #15
 
 static u8 option_allowed_cmd_ID6[91] = // cmd #16
 {
-    0,1,1,1,1, 1,1,1,1,1,  1,1,1,0,0, 1,1,1,0,0,  0,0,0,0,0, 0,0,0,0,0,
-    0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,
+    0,1,1,1,1, 1,1,1,1,1,  1,1,1,0,0, 1,1,1,0,0,  0,0,0,0,0, 0,1,0,1,1,
+    1,1,1,1,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,
     0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,1,0,0,  0,0,0,0,0, 0,0,0,0,0,
     0
 };
@@ -2155,6 +2162,16 @@ static const InfoOption_t * option_tab_cmd_ID6[] =
 	OptionInfo + OPT_LINKS,
 	OptionInfo + OPT_LOGGING,
 	&option_cmd_ID6_LONG,
+
+	OptionInfo + OPT_NONE, // separator
+
+	OptionInfo + OPT_MODIFY,
+	OptionInfo + OPT_ID,
+	OptionInfo + OPT_DISC_ID,
+	OptionInfo + OPT_BOOT_ID,
+	OptionInfo + OPT_TICKET_ID,
+	OptionInfo + OPT_TMD_ID,
+	OptionInfo + OPT_WBFS_ID,
 
 	0
 };
@@ -3494,7 +3511,7 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	"ID",
 	"wit ID6 [source]...",
 	"Print ID6 of all found ISO files as simple list.",
-	17,
+	24,
 	option_tab_cmd_ID6,
 	option_allowed_cmd_ID6
     },

@@ -173,7 +173,6 @@ wbfs_t * wbfs_open_partition
 
 #endif // !WIT 
 ///////////////////////////////////////////////////////////////////////////////
-#if NEW_WBFS_INTERFACE
 
 void wbfs_setup_lists
 (
@@ -194,7 +193,6 @@ void wbfs_setup_lists
     memset(p->id_list,0,id_list_size);
 }
 
-#endif // NEW_WBFS_INTERFACE
 ///////////////////////////////////////////////////////////////////////////////
 
 wbfs_t * wbfs_open_partition_param ( wbfs_param_t * par )
@@ -281,36 +279,6 @@ wbfs_t * wbfs_open_partition_param ( wbfs_param_t * par )
 		1 << head->wbfs_sec_sz_s );
 
 
-#if !NEW_WBFS_INTERFACE
-    //----- load/setup free block table
-
-    noTRACE("FB: size4=%x=%u, mask=%x=%u\n",
-		p->freeblks_size4, p->freeblks_size4,
-		p->freeblks_mask, p->freeblks_mask );
-
-    if ( par->reset <= 0 )
-    {
-	// table will alloc and read only if needed
-	p->freeblks = 0;
-    }
-    else
-    {
-	const size_t fb_memsize = p->freeblks_lba_count * p->hd_sec_sz;
-
-	// init with all free blocks
-	p->freeblks = wbfs_ioalloc(fb_memsize);
-
-	// fill complete array with zeros
-	wbfs_memset(p->freeblks,0,fb_memsize);
-
-	// fill used area with 0xff
-	wbfs_memset(p->freeblks,0xff,p->freeblks_size4*4);
-
-	// fix the last entry
-	p->freeblks[p->freeblks_size4-1] = wbfs_htonl(p->freeblks_mask);
-    }
-#endif
-
     //----- etc
 
     p->tmp_buffer = wbfs_ioalloc(p->hd_sec_sz);
@@ -374,15 +342,10 @@ wbfs_t * wbfs_open_partition_param ( wbfs_param_t * par )
 
     if ( par->reset > 0 )
     {
-     #if NEW_WBFS_INTERFACE
 	wbfs_setup_lists(p);
 	p->is_dirty = p->used_block_dirty = true;
-     #else
-	p->is_dirty = true;
-     #endif    
 	wbfs_sync(p);
     }
- #if NEW_WBFS_INTERFACE
     else
     {
 	if ( wbfs_calc_used_blocks(p,true,false,0,0) )
@@ -392,7 +355,6 @@ wbfs_t * wbfs_open_partition_param ( wbfs_param_t * par )
 	wbfs_print_block_usage(stdout,3,p,false);
      #endif
     }
- #endif    
 
     return p;
 
@@ -436,7 +398,7 @@ int wbfs_calc_size_shift
 	)
     {
 	// ensure that wbfs_sec_sz is big enough to address every blocks using 16 bits
-	if ( n_wii_sec < (u32)WBFS_MAX_SECT << shift_count )
+	if ( n_wii_sec < (u32)WBFS_MAX_SECTORS << shift_count )
 	    break;
     }
 
@@ -523,7 +485,8 @@ void wbfs_calc_geometry
 
     p->n_wii_sec	= p->n_hd_sec / ( p->wii_sec_sz / p->hd_sec_sz );
     const u32 n_wbfs_sec= p->n_wii_sec >> ( p->wbfs_sec_sz_s - p->wii_sec_sz_s );
-    p->n_wbfs_sec	= n_wbfs_sec < WBFS_MAX_SECT ? n_wbfs_sec : WBFS_MAX_SECT;
+    p->n_wbfs_sec	= n_wbfs_sec < WBFS_MAX_SECTORS
+			? n_wbfs_sec : WBFS_MAX_SECTORS;
 
     //----- calculate and fix the needed space for free blocks table
 
@@ -563,8 +526,6 @@ void wbfs_sync ( wbfs_t * p )
     {
 	p->write_hdsector ( p->callback_data, p->part_lba, 1, p->head );
 
- #if NEW_WBFS_INTERFACE
-
 	if ( p->used_block && p->used_block_dirty )
 	{
 	    wbfs_load_freeblocks(p);
@@ -575,14 +536,6 @@ void wbfs_sync ( wbfs_t * p )
 				   p->freeblks );
 	    p->used_block_dirty = false;
 	}
-	
- #else
-	if (p->freeblks)
-	    p->write_hdsector ( p->callback_data,
-				p->part_lba + p->freeblks_lba,
-				p->freeblks_lba_count,
-				p->freeblks );
- #endif
 
 	p->is_dirty = false;
     }
@@ -602,10 +555,8 @@ void wbfs_close ( wbfs_t * p )
 	wbfs_sync(p);
 
     wbfs_free_freeblocks(p);
- #if NEW_WBFS_INTERFACE
     wbfs_iofree(p->block0);
     wbfs_free(p->used_block);
- #endif
     wbfs_free(p->id_list);
     wbfs_iofree(p->head);
     wbfs_iofree(p->tmp_buffer);
@@ -979,11 +930,9 @@ void wbfs_print_block_usage
 )
 {
     DASSERT(p);
- #if NEW_WBFS_INTERFACE
     DASSERT(p->used_block);
     wbfs_print_usage_tab( f, indent, p->used_block, p->n_wbfs_sec,
 				p->wbfs_sec_sz, print_all );
- #endif
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -1211,7 +1160,6 @@ u32 * wbfs_free_freeblocks ( wbfs_t * p )
 {
     DASSERT(p);
 
- #if NEW_WBFS_INTERFACE
     if (p->block0)
     {
 	if ( p->freeblks && ( (u8*)p->freeblks < p->block0
@@ -1223,7 +1171,6 @@ u32 * wbfs_free_freeblocks ( wbfs_t * p )
 				+ ( p->part_lba + p->freeblks_lba ) * p->hd_sec_sz );
 	return p->freeblks;
     }
- #endif // NEW_WBFS_INTERFACE
 
     if (p->freeblks)
     {
@@ -1239,8 +1186,6 @@ u32 * wbfs_free_freeblocks ( wbfs_t * p )
 u32 * wbfs_load_freeblocks ( wbfs_t * p )
 {
     DASSERT(p);
-
- #if NEW_WBFS_INTERFACE
 
     if (p->block0)
 	wbfs_free_freeblocks(p); // setup 'freeblks' pointer from block0
@@ -1282,28 +1227,9 @@ u32 * wbfs_load_freeblocks ( wbfs_t * p )
     }
 
     return p->freeblks;
-
- #else // !NEW_WBFS_INTERFACE
-
-    if ( !p->freeblks && p->freeblks_lba_count )
-    {
-	p->freeblks = wbfs_ioalloc( p->freeblks_lba_count * p->hd_sec_sz );
-	p->read_hdsector( p->callback_data,
-			  p->part_lba + p->freeblks_lba,
-			  p->freeblks_lba_count,
-			  p->freeblks );
-
-	// fix the last entry
-	p->freeblks[p->freeblks_size4-1] &= wbfs_htonl(p->freeblks_mask);
-    }
-
-    return p->freeblks;
-
- #endif
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-#if NEW_WBFS_INTERFACE
 
 int wbfs_calc_used_blocks
 (
@@ -1589,9 +1515,7 @@ int wbfs_calc_used_blocks
     return 0;    
 }
 
-#endif // NEW_WBFS_INTERFACE
 ///////////////////////////////////////////////////////////////////////////////
-#if NEW_WBFS_INTERFACE
 
 u32 wbfs_find_free_blocks
 (
@@ -1641,13 +1565,10 @@ u32 wbfs_find_free_blocks
     return found - p->used_block;
 }
 
-#endif // NEW_WBFS_INTERFACE
 ///////////////////////////////////////////////////////////////////////////////
 
 u32 wbfs_get_free_block_count ( wbfs_t * p )
 {
- #if NEW_WBFS_INTERFACE
-
     DASSERT(p);
     DASSERT(p->used_block);
 
@@ -1657,26 +1578,6 @@ u32 wbfs_get_free_block_count ( wbfs_t * p )
 	if (!*ptr)
 	    count++;
     return count;
-
- #else
-
-    u32 i, j, count = 0;
-
-    wbfs_load_freeblocks(p);
-
-    for ( i = 0; i < p->freeblks_size4; i++ )
-    {
-	u32 v = wbfs_ntohl(p->freeblks[i]);
-	if (v == ~(u32)0)
-	    count+=32;
-	else if (v!=0)
-	    for (j=0; j<32; j++)
-		if (v & (1<<j))
-		    count++;
-    }
-    return count;
-
- #endif
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -1687,8 +1588,6 @@ u32 wbfs_alloc_block
     u32			start_block	// >0: start search at this block
 )
 {
- #if NEW_WBFS_INTERFACE
-
     DASSERT(p);
     DASSERT(p->used_block);
 
@@ -1712,37 +1611,12 @@ u32 wbfs_alloc_block
     } while ( bl != start_block );
 
     return WBFS_NO_BLOCK;
-    
- #else
-
-    u32 i;
-    for ( i = 0; i < p->freeblks_size4; i++ )
-    {
-	u32 v = wbfs_ntohl(p->freeblks[i]);
-	if ( v != 0 )
-	{
-	    u32 j;
-	    for ( j = 0; j < 32; j++ )
-		if ( v & 1<<j )
-		{
-		    p->is_dirty = true;
-		    p->freeblks[i] = wbfs_htonl( v & ~(1<<j) );
-		    noPRINT("wbfs_alloc_block(%p,%u) -> %d\n",p,start_block,i*32 + j + 1);
-		    return i*32 + j + 1;
-		}
-	}
-    }
-    return WBFS_NO_BLOCK;
-
- #endif
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 
-static u32 find_last_used_block ( wbfs_t * p )
+u32 wbfs_find_last_used_block ( wbfs_t * p )
 {
- #if NEW_WBFS_INTERFACE
-
     DASSERT(p);
     DASSERT(p->used_block);
     ASSERT( p->used_block[0] == 0xff );
@@ -1751,35 +1625,12 @@ static u32 find_last_used_block ( wbfs_t * p )
     while (!*ptr)
 	ptr--;
     return ptr - p->used_block;
-
- #else
-
-    int i;
-    for ( i = p->freeblks_size4 - 1; i >= 0; i-- )
-    {
-	u32 v = wbfs_ntohl(p->freeblks[i]);
-	if ( i == p->freeblks_size4 - 1 )
-	    v |= ~p->freeblks_mask;
-
-	if ( v != ~(u32)0 )
-	{
-	    int j;
-	    for ( j = 31; j >= 0; j-- )
-		if ( !(v & 1<<j) )
-		    return i*32 + j + 1;
-	}
-    }
-    return 0;
-
- #endif
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 
 void wbfs_free_block ( wbfs_t *p, u32 bl )
 {
- #if NEW_WBFS_INTERFACE
-
     DASSERT(p);
     DASSERT(p->used_block);
 
@@ -1792,33 +1643,12 @@ void wbfs_free_block ( wbfs_t *p, u32 bl )
 	if (!--p->used_block[bl])
 	    p->used_block_dirty = p->is_dirty = true;
     }
-
- #else
-
-    noTRACE("wbfs_free_block(%u)\n",bl);
-    if ( bl > 0 && bl < p->n_wbfs_sec )
-    {
-	const u32 i = (bl-1) / 32;
-	const u32 j = (bl-1) & 31;
-	const u32 v = wbfs_ntohl(p->freeblks[i]);
-	const u32 w = v | 1 << j;
-	if ( w != v )
-	{
-	    p->freeblks[i] = wbfs_htonl(w);
-	    p->is_dirty = true;
-	    noTRACE(" i=%u j=%u v=%x -> %x\n",i,j,v,p->freeblks[i]);
-	}
-    }
-
- #endif
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 
 void wbfs_use_block ( wbfs_t *p, u32 bl )
 {
- #if NEW_WBFS_INTERFACE
-
     DASSERT(p);
     DASSERT(p->used_block);
 
@@ -1827,18 +1657,6 @@ void wbfs_use_block ( wbfs_t *p, u32 bl )
 	p->used_block[bl] = 1;
 	p->used_block_dirty = p->is_dirty = true;
     }
-
- #else
-
-    if ( bl > 0 && bl < p->n_wbfs_sec )
-    {
-	const u32 i = (bl-1) / 32;
-	const u32 j = (bl-1) & 31;
-	const u32 v = wbfs_ntohl(p->freeblks[i]);
-	p->freeblks[i] = wbfs_htonl( v & ~(1<<j) );
-    }
-
- #endif
 }
 
 //
@@ -1951,10 +1769,6 @@ u32 wbfs_add_disc_param ( wbfs_t *p, wbfs_param_t * par )
     p->head->disc_table[i] = WBFS_SLOT_VALID;
     slot = i;
 
-#if !NEW_WBFS_INTERFACE
-    wbfs_load_freeblocks(p);
-#endif
-
     // build disc info
     info = wbfs_ioalloc(p->disc_info_sz);
     memset(info,0,p->disc_info_sz);
@@ -1973,7 +1787,6 @@ u32 wbfs_add_disc_param ( wbfs_t *p, wbfs_param_t * par )
  #endif
 
     u32 bl = 0;
-#if NEW_WBFS_INTERFACE
     if ( p->balloc_mode == WBFS_BA_AVOID_FRAG
 	|| p->balloc_mode == WBFS_BA_AUTO
 		&& p->hd_sec_sz * (u64)p->n_hd_sec >= 20*(u64)GiB )
@@ -1981,7 +1794,6 @@ u32 wbfs_add_disc_param ( wbfs_t *p, wbfs_param_t * par )
 	bl = wbfs_find_free_blocks(p,total_blocks);
 	TRACE("WBFS: AVOID FRAG, first block=%u\n",bl);
     }
-#endif
 
     for ( i = 0; i < p->n_wbfs_sec_per_disc; i++ )
     {
@@ -2119,9 +1931,6 @@ u32 wbfs_add_phantom ( wbfs_t *p, ccp phantom_id, u32 wii_sectors )
     }
 
     p->head->disc_table[slot] = WBFS_SLOT_VALID;
-#if !NEW_WBFS_INTERFACE
-    wbfs_load_freeblocks(p);
-#endif
 
     // build disc info
     info = wbfs_ioalloc(p->disc_info_sz);
@@ -2135,7 +1944,6 @@ u32 wbfs_add_phantom ( wbfs_t *p, ccp phantom_id, u32 wii_sectors )
     TRACE(" - add %u wbfs sectors to slot %u\n",max_wbfs_sect,slot);
 
     u32 bl = 0;
-#if NEW_WBFS_INTERFACE
     if ( p->balloc_mode == WBFS_BA_AVOID_FRAG
 	|| p->balloc_mode == WBFS_BA_AUTO
 		&& p->hd_sec_sz * (u64)p->n_hd_sec >= 20*(u64)GiB )
@@ -2143,7 +1951,6 @@ u32 wbfs_add_phantom ( wbfs_t *p, ccp phantom_id, u32 wii_sectors )
 	bl = wbfs_find_free_blocks(p,max_wbfs_sect);
 	TRACE("WBFS: AVOID FRAG, first block=%u\n",bl);
     }
-#endif
 
     int i;
     for ( i = 0; i < max_wbfs_sect; i++)
@@ -2215,9 +2022,6 @@ u32 wbfs_rm_disc
 
     if (!free_slot_only)
     {
-#if !NEW_WBFS_INTERFACE
-	wbfs_load_freeblocks(p);
-#endif
 	int i;
 	for ( i=0; i< p->n_wbfs_sec_per_disc; i++)
 	{
@@ -2255,32 +2059,15 @@ u32 wbfs_rm_disc
 
 u32 wbfs_trim ( wbfs_t * p ) // trim the file-system to its minimum size
 {
- #if NEW_WBFS_INTERFACE
-
     DASSERT(p);
     DASSERT(p->used_block);
     DASSERT( p->wbfs_sec_sz_s >= p->hd_sec_sz_s );
 
-    const u32 max_block = find_last_used_block(p) + 1;
+    const u32 max_block = wbfs_find_last_used_block(p) + 1;
     wbfs_calc_geometry( p, max_block << p->wbfs_sec_sz_s - p->hd_sec_sz_s,
 			p->hd_sec_sz, p->wbfs_sec_sz );
     p->used_block_dirty = p->is_dirty = true;
     wbfs_sync(p);
-
- #else    
-
-    u32 max_block = find_last_used_block(p) + 1;
-    p->n_hd_sec = max_block << p->wbfs_sec_sz_s - p->hd_sec_sz_s;
-    p->head->n_hd_sec = wbfs_htonl(p->n_hd_sec);
-
-    TRACE("max_block=%u, n_hd_sec=%u\n",max_block,p->n_hd_sec);
-
-    // mark all blocks 'used'
-    wbfs_load_freeblocks(p);
-    memset(p->freeblks,0,p->freeblks_size4*4);
-    wbfs_sync(p);
-
- #endif
 
     // os layer will truncate the file.
     TRACE("LIBWBFS: -wbfs_trim() return=%u\n",max_block);

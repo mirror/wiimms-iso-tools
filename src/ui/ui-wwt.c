@@ -289,9 +289,10 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 	"id",
 	"This patching option changes the ID of the disc to the given"
 	" parameter. 1 to 6 characters are expected. Only defined characters"
-	" not equal '.' are modified. The disc header, boot.bin, ticket.bin"
-	" and tmd.bin are objects to modify. The option --modify selects the"
-	" objects.\n"
+	" not equal '.' are modified. The plus sign '+' is a wildcard for"
+	" multiple '.' to fill the complete entered ID to 6 characters. The"
+	" disc header, boot.bin, ticket.bin and tmd.bin are objects to modify."
+	" The option --modify selects the objects.\n"
 	"See http://wit.wiimm.de/opt/id for more details."
     },
 
@@ -299,8 +300,9 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 	"id",
 	"This patching option changes the ID of the disc header to the given"
 	" parameter. 1 to 6 characters are expected. Only defined characters"
-	" not equal '.' are modified. The modification is done after patching"
-	" with --id.\n"
+	" not equal '.' are modified. The plus sign '+' is a wildcard for"
+	" multiple '.' to fill the complete entered ID to 6 characters. The"
+	" modification is done after patching with --id.\n"
 	"See http://wit.wiimm.de/opt/id for more details."
     },
 
@@ -308,8 +310,9 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 	"id",
 	"This patching option changes the ID of boot.bin to the given"
 	" parameter. 1 to 6 characters are expected. Only defined characters"
-	" not equal '.' are modified. The modification is done after patching"
-	" with --id.\n"
+	" not equal '.' are modified. The plus sign '+' is a wildcard for"
+	" multiple '.' to fill the complete entered ID to 6 characters. The"
+	" modification is done after patching with --id.\n"
 	"See http://wit.wiimm.de/opt/id for more details."
     },
 
@@ -317,8 +320,9 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 	"id",
 	"This patching option changes the ID of ticket.bin to the given"
 	" parameter. 1 to 4 characters are expected. Only defined characters"
-	" not equal '.' are modified. The modification is done after patching"
-	" with --id.\n"
+	" not equal '.' are modified. The plus sign '+' is a wildcard for"
+	" multiple '.' to fill the complete entered ID to 4 characters. The"
+	" modification is done after patching with --id.\n"
 	"See http://wit.wiimm.de/opt/id for more details."
     },
 
@@ -326,8 +330,9 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 	"id",
 	"This patching option changes the ID of tmd.bin to the given"
 	" parameter. 1 to 4 characters are expected. Only defined characters"
-	" not equal '.' are modified. The modification is done after patching"
-	" with --id.\n"
+	" not equal '.' are modified. The plus sign '+' is a wildcard for"
+	" multiple '.' to fill the complete entered ID to 4 characters. The"
+	" modification is done after patching with --id.\n"
 	"See http://wit.wiimm.de/opt/id for more details."
     },
 
@@ -337,7 +342,9 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 	" parameter if adding a file to a WBFS or if creating a WBFS file. 1"
 	" to 6 characters are expected. The already patched disc ID of the"
 	" source is used as base and only defined characters not equal '.' are"
-	" modified. The modification is done after patching with --id.\n"
+	" modified. The plus sign '+' is a wildcard for multiple '.' to fill"
+	" the complete entered ID to 6 characters. The modification is done"
+	" after patching with --id.\n"
 	"See http://wit.wiimm.de/opt/id for more details."
     },
 
