@@ -432,38 +432,39 @@ static char modify_wbfs_id_buf	[7];
 //-----------------------------------------------------------------------------
 
 static int ScanOptIdHelper
-	( ccp arg, ccp opt_name, ccp *id_ptr, char *buf, int max_len )
+	( ccp p_arg, ccp opt_name, ccp *id_ptr, char *buf, int max_len )
 {
     DASSERT(opt_name);
     DASSERT(id_ptr);
     DASSERT(buf);
-    DASSERT( max_len == 4 || max_len == 6 );
+    DASSERT( max_len == 4 || max_len == 6 ); // not really needed
 
-	*id_ptr = 0;
-    if ( !arg || !*arg )
+    *id_ptr = 0;
+    memset(buf,0,max_len+1);
+    if ( !p_arg || !*p_arg )
 	return 0;
 
-    size_t len = strlen(arg);
-    if ( len > max_len )
-    {
-	ERROR0(ERR_SYNTAX,"Option --%s: ID is %zu characters to long: %s\n",
-		opt_name, len - max_len, arg );
-	return 1;
-    }
-
-    ccp plus = 0;
-    memset(buf,0,max_len+1);
+    ccp plus = 0, arg = p_arg;
     char *dest = buf;
     while ( *arg )
     {
-	if ( *arg == '.'  || *arg == '_' )
-	{
-	    *dest++ = *arg++;
-	}
-	else if ( *arg == '+' && !plus )
+	if ( *arg == '+' && !plus )
 	{
 	    plus = dest;
 	    arg++;
+	    continue;
+	}
+
+	if ( dest >= buf + max_len )
+	{
+	    ERROR0(ERR_SYNTAX,"Option --%s: ID is %zu characters to long: %s\n",
+		    opt_name, strlen(arg), p_arg );
+	    return 1;
+	}
+
+	if ( *arg == '.'  || *arg == '_' )
+	{
+	    *dest++ = *arg++;
 	}
 	else if ( isalnum((int)*arg))
 	{
@@ -471,8 +472,8 @@ static int ScanOptIdHelper
 	}
 	else
 	{
-	    ERROR0(ERR_SYNTAX,"Option --%s: Illegal character at index #%u: %s\n",
-			opt_name, (int)(dest-buf), arg);
+	    ERROR0(ERR_SYNTAX,"Option --%s: Illegal character '%c' at index #%u: %s\n",
+			opt_name, *arg, (int)(arg-p_arg), p_arg );
 	    return 1;
 	}
     }
@@ -534,10 +535,12 @@ static void NormID
 	( wd_modify_t condition, ccp *id_ptr, char *buf, int max_len )
 {
     noPRINT("NormID() cond=%03x, len=%u, src=%s\n",condition,max_len,modify_id);
-    ccp src = modify_id;
-    char * dest = buf;
+    DASSERT(id_ptr);
 
-    if ( src && condition & opt_modify )
+    ccp src = modify_id;
+    char *dest = buf;
+
+    if ( !*id_ptr && src && condition & opt_modify )
     {
 	for ( ; max_len > 0 && *src && *dest; src++, dest++, max_len-- )
 	    if ( *dest == '.' )

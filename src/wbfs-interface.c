@@ -1152,6 +1152,8 @@ enumError RecoverWBFS ( WBFS_t * wbfs, ccp fname, bool testmode )
     ASSERT(w);
     ASSERT(w->head);
     ASSERT(w->head->disc_table);
+
+    wbfs_load_freeblocks(w);
     ASSERT(w->freeblks);
 
     enumError err = ERR_OK;

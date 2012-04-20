@@ -1,11 +1,6 @@
 wit v@@VERSION@@ r@@REV-NEXT@@ - @@@@-@@-@@
 
- - "wit VERIFY" will now ignore extracted file systems.
- - wit --id=.....X: ID change failed if only the sixt character was modified.
- - All ID patching options (--id, --disc-id, ...) accept now a plus sign '+' as
-   wildcard for multiple '.' to fill the complete entered ID to 4/6 characters.
- - The listing command "wit ID6" accepts now all ID patching options to test
-   the effect of them.
+ - Bug fix for assertion failure in "wwt RECOVER".
 
 ~
 ~Known bugs:

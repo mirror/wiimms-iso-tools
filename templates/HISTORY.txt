@@ -109,6 +109,16 @@ wit v2.04a r3554 - 2012-03-10
  - wwt LLLL: List contains date and time (in seconds) columns.
 
 
+wit v2.05a r3591 - 2012-04-14
+
+ - "wit VERIFY" will now ignore extracted file systems.
+ - wit --id=.....X: ID change failed if only the sixt character was modified.
+ - All ID patching options (--id, --disc-id, ...) accept now a plus sign '+' as
+   wildcard for multiple '.' to fill the complete entered ID to 4/6 characters.
+ - The listing command "wit ID6" accepts now all ID patching options to test
+   the effect of them.
+
+
 @@MODULE(last-history.txt)@@
 
 Road map (for some point in the future):

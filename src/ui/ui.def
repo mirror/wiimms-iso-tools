@@ -496,32 +496,32 @@
 	"This $patching$ option changes the ID of the disc header to the given" \
 	" parameter. 1 to 6 characters are expected. Only defined characters" \
 	" not equal '.' are modified. The plus sign '+' is a wildcard for" \
-	" multiple '.' to fill the complete entered ID to 6 characters. The" \
-	" modification is done after patching with {--id}." )
+	" multiple '.' to fill the complete entered ID to 6 characters. Option" \
+	" --disc-id overrides the definition of option {--id}." )
 
 #:def_opt( "BOOT_ID", "boot-id|bootid", "CP", \
 	"id", \
 	"This $patching$ option changes the ID of boot.bin to the given" \
 	" parameter. 1 to 6 characters are expected. Only defined characters" \
 	" not equal '.' are modified. The plus sign '+' is a wildcard for" \
-	" multiple '.' to fill the complete entered ID to 6 characters. The" \
-	" modification is done after patching with {--id}." )
+	" multiple '.' to fill the complete entered ID to 6 characters. Option" \
+	" --boot-id overrides the definition of option {--id}." )
 
 #:def_opt( "TICKET_ID", "ticket-id|ticketid", "CP", \
 	"id", \
 	"This $patching$ option changes the ID of ticket.bin to the given" \
 	" parameter. 1 to 4 characters are expected. Only defined characters" \
 	" not equal '.' are modified. The plus sign '+' is a wildcard for" \
-	" multiple '.' to fill the complete entered ID to 4 characters. The" \
-	" modification is done after patching with {--id}." )
+	" multiple '.' to fill the complete entered ID to 4 characters. Option" \
+	" --ticket-id overrides the definition of option {--id}." )
 
 #:def_opt( "TMD_ID", "tmd-id|tmdid", "CP", \
 	"id", \
 	"This $patching$ option changes the ID of tmd.bin to the given" \
 	" parameter. 1 to 4 characters are expected. Only defined characters" \
 	" not equal '.' are modified. The plus sign '+' is a wildcard for" \
-	" multiple '.' to fill the complete entered ID to 4 characters. The" \
-	" modification is done after patching with {--id}." )
+	" multiple '.' to fill the complete entered ID to 4 characters. Option" \
+	" --tmd-id overrides the definition of option {--id}." )
 
 #:def_opt( "WBFS_ID", "wbfs-id|wbfsid", "CP", \
 	"id", \
@@ -530,8 +530,8 @@
 	" to 6 characters are expected. The already patched disc ID of the" \
 	" source is used as base and only defined characters not equal '.' are" \
 	" modified. The plus sign '+' is a wildcard for multiple '.' to fill" \
-	" the complete entered ID to 6 characters. The modification is done" \
-	" after patching with {--id}." )
+	" the complete entered ID to 6 characters. Option --wbfs-id overrides" \
+	" the definition of option {--id}." )
 
 #:def_opt( "REGION", "region", "CP", \
 	"region", \

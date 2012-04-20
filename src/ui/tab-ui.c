@@ -814,9 +814,9 @@ info_t info_tab[] =
 		" Only defined characters not equal '.' are modified."
 		" The plus sign '+' is a wildcard for multiple '.'"
 		" to fill the complete entered ID to 6 characters."
-		" The modification is done after patching with {--id}."
+		" Option --disc-id overrides the definition of option {--id}."
 		"\1\n"
-		"See http://wit.wiimm.de/opt/id for more details." },
+		"See http://wit.wiimm.de/opt/disc-id for more details." },
 
   { T_OPT_CP,	"BOOT_ID",	"boot-id|bootid",
 		"id",
@@ -825,9 +825,9 @@ info_t info_tab[] =
 		" Only defined characters not equal '.' are modified."
 		" The plus sign '+' is a wildcard for multiple '.'"
 		" to fill the complete entered ID to 6 characters."
-		" The modification is done after patching with {--id}."
+		" Option --boot-id overrides the definition of option {--id}."
 		"\1\n"
-		"See http://wit.wiimm.de/opt/id for more details." },
+		"See http://wit.wiimm.de/opt/boot-id for more details." },
 
   { T_OPT_CP,	"TICKET_ID",	"ticket-id|ticketid",
 		"id",
@@ -836,9 +836,9 @@ info_t info_tab[] =
 		" Only defined characters not equal '.' are modified."
 		" The plus sign '+' is a wildcard for multiple '.'"
 		" to fill the complete entered ID to 4 characters."
-		" The modification is done after patching with {--id}."
+		" Option --ticket-id overrides the definition of option {--id}."
 		"\1\n"
-		"See http://wit.wiimm.de/opt/id for more details." },
+		"See http://wit.wiimm.de/opt/ticket-id for more details." },
 
   { T_OPT_CP,	"TMD_ID",	"tmd-id|tmdid",
 		"id",
@@ -847,9 +847,9 @@ info_t info_tab[] =
 		" Only defined characters not equal '.' are modified."
 		" The plus sign '+' is a wildcard for multiple '.'"
 		" to fill the complete entered ID to 4 characters."
-		" The modification is done after patching with {--id}."
+		" Option --tmd-id overrides the definition of option {--id}."
 		"\1\n"
-		"See http://wit.wiimm.de/opt/id for more details." },
+		"See http://wit.wiimm.de/opt/tmd-id for more details." },
 
   { T_OPT_CP,	"WBFS_ID",	"wbfs-id|wbfsid",
 		"id",
@@ -860,9 +860,9 @@ info_t info_tab[] =
 		" and only defined characters not equal '.' are modified."
 		" The plus sign '+' is a wildcard for multiple '.'"
 		" to fill the complete entered ID to 6 characters."
-		" The modification is done after patching with {--id}."
+		" Option --wbfs-id overrides the definition of option {--id}."
 		"\1\n"
-		"See http://wit.wiimm.de/opt/id for more details." },
+		"See http://wit.wiimm.de/opt/wbfs-id for more details." },
 
   { T_OPT_CP,	"REGION",	"region",
 		"region",
