@@ -192,7 +192,7 @@
 #:def_cmd( "SKELETON", "SKELETON|SKEL", \
 	"wit SKELETON [source]...", \
 	"Create very small skeletons of ISO images. A skeleton contains only" \
-	" disc and partiton headers for further analysis and is not playable" \
+	" disc and partition headers for further analysis and is not playable" \
 	" because all files are zeroed." )
 
 #:def_cmd( "MIX", "MIX", \
@@ -295,7 +295,7 @@
 	"  Directories are expanded to all containing files but hidden files" \
 	" (file names begins with a point) are ignored. If a command needs" \
 	" only images then non image files of the directory are ignored" \
-	" without notification. The option {--no-expand} supresses the" \
+	" without notification. The option {--no-expand} suppress the" \
 	" directory expansion." )
 
 #:def_opt( "NO_EXPAND", "no-expand|noexpand", "C", \
@@ -387,7 +387,7 @@
 #:def_opt( "FAKE_SIGN", "fake-sign|fakesign", "CP", \
 	"ruleset", \
 	"Add a certificate selection rule. All certificates that matches the" \
-	" ruleset will be fake signed." )
+	" rule set will be fake signed." )
 
 #:def_opt( "IGNORE", "i|ignore", "CM", \
 	"", \
@@ -627,13 +627,13 @@
 	"This option enables or disables the disc space preallocation. If" \
 	" enabled the tools try to allocate disc space for the new files" \
 	" before writing the data. This reduces the fragmentation but also" \
-	" disables the sparse effect for prealocated areas.\n" \
+	" disables the sparse effect for preallocated areas.\n" \
 	"  The optional parameter decides the preallocation mode: @OFF@ (or" \
 	" @0@), @SMART@ (or @1@), @ALL@ (or @2@). If no parameter is set," \
 	" @ALL@ is used.\n" \
 	"  Mode @'OFF'@ disables the preallocation. Mode @'SMART'@ looks into" \
 	" the source disc to find out the writing areas. @SMART@ is only" \
-	" avalable for $ISO$, $CISO$ and $WBFS$ file types. For other file" \
+	" available for $ISO$, $CISO$ and $WBFS$ file types. For other file" \
 	" types @ALL@ is used instead. Mode @'ALL'@ (the default) preallocate" \
 	" the whole destination file. Because of the large holes in plain ISO" \
 	" images, the @SMART@ mode is used for ISOs instead." )
@@ -1001,8 +1001,13 @@
 
 #:def_cmd_opt( "CERT", "VERBOSE", \
 	"", \
-	"Dump the content of all certificates to standard output. This is the" \
-	" default if neiter --dest nor --DEST are set." )
+	"Print the content of all certificates to standard output. This is the" \
+	" default if neither --dest nor --DEST are set." )
+
+#:def_cmd_opt( "CERT", "LONG", \
+	"", \
+	"If printing, print the complete key as hex dump, not only the first" \
+	" bytes. If set twice, print BASE64 encoded." )
 
 #:def_cmd_opt( "CREATE", "TEST", \
 	"", \
@@ -1163,9 +1168,9 @@
 
 #:def_cmd_opt( "FILETYPE", "LONG", \
 	"", \
-	"If set at least once or twide additional columns with ID6 (1x) or" \
-	" ther region (2x) are enabled. If set three or more times the real" \
-	" path instead of given path is printed." )
+	"If set at least once or twice additional columns with ID6 (1x) or the" \
+	" region (2x) are enabled. If set three or more times the real path" \
+	" instead of given path is printed." )
 
 #:def_cmd_opt( "ISOSIZE", "AUTO", \
 	"", \
@@ -2626,7 +2631,7 @@
 #:def_cmd_opt( "DIFF", "LONG", \
 	"", \
 	"If set, a status line with the offset is printed for each found" \
-	" mismatch. If set twice, an additonal hexdump of the first bytes is" \
+	" mismatch. If set twice, an additional hex dump of the first bytes is" \
 	" printed. If set 3 or 4 times, the limit is set to 10 or unlimited if" \
 	" option {--limit} is not already set. This option is ignored in quiet" \
 	" mode." )
@@ -2835,7 +2840,7 @@
 #:def_cmd_opt( "FDIFF", "LONG", \
 	"", \
 	"If set, a status line with the offset is printed for each found" \
-	" mismatch. If set twice, an additonal hexdump of the first bytes is" \
+	" mismatch. If set twice, an additional hex dump of the first bytes is" \
 	" printed. If set 3 or 4 times, the limit is set to 10 or unlimited if" \
 	" option {--limit} is not already set. This option is ignored in quiet" \
 	" mode." )
@@ -4229,7 +4234,7 @@
 #:def_cmd_opt( "VERIFY", "LONG", \
 	"", \
 	"On error print an additional line to localize the exact position" \
-	" where the error is found. If set twice a hexdump of the hash values" \
+	" where the error is found. If set twice a hex dump of the hash values" \
 	" is printed too." )
 
 #:def_cmd_opt( "VERIFY", "TECHNICAL", \
@@ -4608,7 +4613,7 @@
 	"FREE    := FREE=a,b-c,...\n" \
 	"USE     := USE=a,b-c,...\n" \
 	"ID6     := ID6=a:b,c-d:e,...", \
-	"Edit slot and block assignments. Dangerous! Read docu!" )
+	"Edit slot and block assignments. Dangerous! Read the documentation!" )
 
 #:def_cmd( "PHANTOM", "PHANTOM", \
 	"wwt PHANTOM [RULE]...\n" \
@@ -4682,7 +4687,7 @@
 #:def_cmd( "SKELETON", "SKELETON|SKEL", \
 	"wwt SKELETON [id6]...", \
 	"Create very small skeletons of ISO images. A skeleton contains only" \
-	" disc and partiton headers for further analysis and is not playable" \
+	" disc and partition headers for further analysis and is not playable" \
 	" because all files are zeroed." )
 
 #:def_cmd( "FILETYPE", "FILETYPE|FTYPE", \
@@ -4780,7 +4785,7 @@
 	"  Directories are expanded to all containing files but hidden files" \
 	" (file names begins with a point) are ignored. If a command needs" \
 	" only images then non image files of the directory are ignored" \
-	" without notification. The option {--no-expand} supresses the" \
+	" without notification. The option {--no-expand} suppress the" \
 	" directory expansion." )
 
 #:def_opt( "NO_EXPAND", "no-expand|noexpand", "C", \
@@ -5056,13 +5061,13 @@
 	"This option enables or disables the disc space preallocation. If" \
 	" enabled the tools try to allocate disc space for the new files" \
 	" before writing the data. This reduces the fragmentation but also" \
-	" disables the sparse effect for prealocated areas.\n" \
+	" disables the sparse effect for preallocated areas.\n" \
 	"  The optional parameter decides the preallocation mode: @OFF@ (or" \
 	" @0@), @SMART@ (or @1@), @ALL@ (or @2@). If no parameter is set," \
 	" @ALL@ is used.\n" \
 	"  Mode @'OFF'@ disables the preallocation. Mode @'SMART'@ looks into" \
 	" the source disc to find out the writing areas. @SMART@ is only" \
-	" avalable for $ISO$, $CISO$ and $WBFS$ file types. For other file" \
+	" available for $ISO$, $CISO$ and $WBFS$ file types. For other file" \
 	" types @ALL@ is used instead. Mode @'ALL'@ (the default) preallocate" \
 	" the whole destination file. Because of the large holes in plain ISO" \
 	" images, the @SMART@ mode is used for ISOs instead." )
@@ -5454,7 +5459,7 @@
 
 #:def_cmd_opt( "FIND", "QUIET", \
 	"", \
-	"Be absoulte quiet and report the find status as exit code only." )
+	"Be absolute quiet and report the find status as exit code only." )
 
 #:def_cmd_opt( "FIND", "NO_HEADER", \
 	"", \
@@ -5552,7 +5557,7 @@
 	" ({--show=FILES}). If set twice print a memory map for each disc is" \
 	" printed too ({--show=D-MAP}). If set three times print an additional" \
 	" memory map for the whole WBFS ({--show=W-MAP}). If set four times" \
-	" print an usabe table ({--show=USAGE})." )
+	" print an usage table ({--show=USAGE})." )
 
 #:def_cmd_opt( "DUMP", "SHOW", \
 	"", \
@@ -6493,7 +6498,7 @@
 #:def_cmd_opt( "FORMAT", "INODE", \
 	"", \
 	"Force creating inode infos with predefined timestamps. The timestamps" \
-	" reduce effect of sparce files. This option is set for devices" \
+	" reduce effect of sparse files. This option is set for devices" \
 	" automatically." )
 
 #:def_cmd_opt( "FORMAT", "TEST", \
@@ -6571,7 +6576,7 @@
 #:def_cmd_opt( "CHECK", "VERBOSE", \
 	"", \
 	"Be verbose. If set once then more details are printed. If set twice a" \
-	" info dump of all coruppted discs is included. If set three times a" \
+	" info dump of all corrupted discs is included. If set three times a" \
 	" info dump of all discs is included if a error is found. If set four" \
 	" times a full memory map is included." )
 
@@ -6629,7 +6634,7 @@
 #:def_cmd_opt( "REPAIR", "VERBOSE", \
 	"", \
 	"Be verbose. If set once then more details are printed. If set twice a" \
-	" info dump of all coruppted discs is included. If set three times a" \
+	" info dump of all corrupted discs is included. If set three times a" \
 	" info dump of all discs is included if a error is found. If set four" \
 	" times a full memory map is included." )
 
@@ -8220,7 +8225,7 @@
 #:def_cmd_opt( "VERIFY", "LONG", \
 	"", \
 	"On error print an additional line to localize the exact position" \
-	" where the error is found. If set twice a hexdump of the hash values" \
+	" where the error is found. If set twice a hex dump of the hash values" \
 	" is printed too." )
 
 #:def_cmd_opt( "VERIFY", "TECHNICAL", \
@@ -8564,13 +8569,13 @@
 	"This option enables or disables the disc space preallocation. If" \
 	" enabled the tools try to allocate disc space for the new files" \
 	" before writing the data. This reduces the fragmentation but also" \
-	" disables the sparse effect for prealocated areas.\n" \
+	" disables the sparse effect for preallocated areas.\n" \
 	"  The optional parameter decides the preallocation mode: @OFF@ (or" \
 	" @0@), @SMART@ (or @1@), @ALL@ (or @2@). If no parameter is set," \
 	" @ALL@ is used.\n" \
 	"  Mode @'OFF'@ disables the preallocation. Mode @'SMART'@ looks into" \
 	" the source disc to find out the writing areas. @SMART@ is only" \
-	" avalable for $ISO$, $CISO$ and $WBFS$ file types. For other file" \
+	" available for $ISO$, $CISO$ and $WBFS$ file types. For other file" \
 	" types @ALL@ is used instead. Mode @'ALL'@ (the default) preallocate" \
 	" the whole destination file. Because of the large holes in plain ISO" \
 	" images, the @SMART@ mode is used for ISOs instead." )
@@ -8832,7 +8837,7 @@
 #:def_cmd_opt( "CMP", "LONG", \
 	"", \
 	"If set, a status line with the offset is printed for each found" \
-	" mismatch. If set twice, an additonal hexdump of the first bytes is" \
+	" mismatch. If set twice, an additional hex dump of the first bytes is" \
 	" printed. If set 3 or 4 times, the limit is set to 10 or unlimited if" \
 	" option {--limit} is not already set. This option is ignored in quiet" \
 	" mode." )
@@ -8875,7 +8880,7 @@
 	"wfuse [option]... source mountdir\n" \
 	"wfuse --umount mountdir...", \
 	"Mount a Wii or GameCube image or a WBFS file or partition to a mount" \
-	" point using FUSE (Filesystem in Userspace). Use @'wfuse --umount" \
+	" point using FUSE (Filesystem in USErspace). Use @'wfuse --umount" \
 	" mountdir'@ for unmounting." )
 
 #:def_opt( "VERSION", "V|version", "G", \
@@ -8929,9 +8934,9 @@
 
 #:def_opt( "LAZY", "l|lazy", "G", \
 	"", \
-	"Lazy unmount: Detach the filesystem from the filesystem hierarchy" \
-	" now, and cleanup all references to the filesystem as soon as it is" \
-	" not busy anymore." )
+	"Lazy unmount: Detach the mounted file system from the file system" \
+	" hierarchy now, and cleanup all references to the file system as soon" \
+	" as it is not busy anymore." )
 
 
 ##

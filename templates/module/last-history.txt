@@ -1,6 +1,8 @@
 wit v@@VERSION@@ r@@REV-NEXT@@ - @@@@-@@-@@
 
- - Bug fix for assertion failure in "wwt RECOVER".
+ - Windows version only: Update to Cygwin DLL 1.7.15-1
+ - wit CERT --long: Print keys and signatures as hex or base64 dump.
+
 
 ~
 ~Known bugs:

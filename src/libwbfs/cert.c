@@ -911,6 +911,319 @@ u32 cert_fake_sign
 
 //
 ///////////////////////////////////////////////////////////////////////////////
+///////////////			    base64			///////////////
+///////////////////////////////////////////////////////////////////////////////
+
+const char TableEncode64[64] =
+{
+	'A','B','C','D','E','F','G','H','I','J','K','L','M',
+	'N','O','P','Q','R','S','T','U','V','W','X','Y','Z',
+	'a','b','c','d','e','f','g','h','i','j','k','l','m',
+	'n','o','p','q','r','s','t','u','v','w','x','y','z',
+	'0','1','2','3','4','5','6','7','8','9',
+	'+','/'
+};
+
+///////////////////////////////////////////////////////////////////////////////
+
+#define xN BASE64_NULL
+#define xC BASE64_CONTROL
+#define xL BASE64_EOL
+#define xS BASE64_SPACE
+#define xP BASE64_SEPARATE
+#define xX BASE64_OTHER
+
+const char TableDecode64[256] =
+{
+	xN, xC, xC, xC,  xC, xC, xC, xC,  xC, xS, xL, xC,  xS, xL, xC, xC,
+	xC, xC, xC, xC,  xC, xC, xC, xC,  xC, xC, xC, xC,  xC, xC, xC, xC,
+	xS, xX, xX, xX,  xX, xX, xX, xX,  xX, xX, xX, 62,  xP, xX, xX, 63,
+	52, 53, 54, 55,  56, 57, 58, 59,  60, 61, xX, xP,  xX, xX, xX, xX,
+
+	xX,  0,  1,  2,   3,  4,  5,  6,   7,  8,  9, 10,  11, 12, 13, 14,
+	15, 16, 17, 18,  19, 20, 21, 22,  23, 24, 25, xX,  xX, xX, xX, xX,
+	xX, 26, 27, 28,  29, 30, 31, 32,  33, 34, 35, 36,  37, 38, 39, 40,
+	41, 42, 43, 44,  45, 46, 47, 48,  49, 50, 51, xX,  xX, xX, xX, xX,
+
+	xX, xX, xX, xX,  xX, xX, xX, xX,  xX, xX, xX, xX,  xX, xX, xX, xX,
+	xX, xX, xX, xX,  xX, xX, xX, xX,  xX, xX, xX, xX,  xX, xX, xX, xX,
+	xX, xX, xX, xX,  xX, xX, xX, xX,  xX, xX, xX, xX,  xX, xX, xX, xX,
+	xX, xX, xX, xX,  xX, xX, xX, xX,  xX, xX, xX, xX,  xX, xX, xX, xX,
+
+	xX, xX, xX, xX,  xX, xX, xX, xX,  xX, xX, xX, xX,  xX, xX, xX, xX,
+	xX, xX, xX, xX,  xX, xX, xX, xX,  xX, xX, xX, xX,  xX, xX, xX, xX,
+	xX, xX, xX, xX,  xX, xX, xX, xX,  xX, xX, xX, xX,  xX, xX, xX, xX,
+	xX, xX, xX, xX,  xX, xX, xX, xX,  xX, xX, xX, xX,  xX, xX, xX, xX
+};
+
+///////////////////////////////////////////////////////////////////////////////
+
+uint CalcEncode64len
+(
+    // returns the needed buflen inclusive 0-Term
+
+    uint	source_len,		// size of source data
+    int		indent,			// >0: indent each line with spaces
+    int		max_line_length,	// >0: force line breaks
+    uint	*tupel_per_line		// not NULL: store num of tupel per line
+)
+{
+    int dest_len = (( source_len + 2 ) / 3 ) * 4;
+    int lines = 1;
+    int max_tupel = INT_MAX;
+    if ( max_line_length > 0 )
+    {
+	max_tupel = max_line_length / 4;
+	if ( max_tupel < 1 )
+	    max_tupel = 1;
+	if (dest_len)
+	{
+	    lines = ( dest_len - 1 ) / ( 4 * max_tupel ) + 1;
+	    dest_len += lines;
+	}
+    }
+
+    if (tupel_per_line)
+	*tupel_per_line = max_tupel;
+
+    if ( indent > 0 )
+	dest_len += lines * indent;
+    return dest_len + 1; // add 0-term
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+int Encode64buf
+(
+    // returns -1 if dest buffer is to small
+    // otherwise it returns the number of written characters
+
+    char	*buf,			// valid destination buffer
+    uint	buf_size,		// size of buffer
+    const void	*source,		// pointer to source data
+    uint	source_len,		// size of source data
+    int		indent,			// >0: indent each line with spaces
+    int		max_line_length		// >0: force line breaks
+)
+{
+    DASSERT(buf);
+    DASSERT(source);
+
+    if ( indent < 0 )
+	indent = 0;
+    else if ( indent > 100 )
+	indent = 100;
+
+    uint tupel_per_line;
+    uint dest_len = CalcEncode64len(source_len,indent,max_line_length,&tupel_per_line);
+    if ( dest_len > buf_size )
+	return -1;
+
+    int printed_tupel = 0;
+    int indent_now = indent;
+
+    const u8 *ptr = (const u8 *)source;
+    const u8 *end = ptr + source_len;
+    char *dest = buf;
+
+    while ( ptr < end )
+    {
+	++printed_tupel;
+
+	if ( indent_now > 0 )
+	{
+	    while ( indent_now-- > 0 )
+		*dest++ = ' ';
+	}
+
+	//----- start: no old bits
+
+	uchar ch1 = *ptr++;
+	*dest++ = TableEncode64 [ ch1 & 63 ];
+	ch1 >>= 6;
+	DASSERT( (ch1 & ~0x03) == 0 );
+	if ( ptr == end )
+	{
+	    *dest++ = TableEncode64[ch1];
+	    *dest++ = '=';
+	    *dest++ = '=';
+	    break;
+	}
+
+	//----- ch1 holds 2 remaining bits
+
+	uchar ch2 = *ptr++;
+	*dest++ = TableEncode64 [ ch1 | ch2 << 2 & 63 ];
+	ch2 >>= 4;
+	DASSERT( (ch2 & ~0x0f) == 0 );
+	if ( ptr == end )
+	{
+	    *dest++ = TableEncode64[ch2];
+	    *dest++ = '=';
+	    break;
+	}
+
+	//----- ch2 holds 4 remaining bits
+
+	ch1 = *ptr++;
+	*dest++ = TableEncode64 [ ch2 | ch1 << 4 & 63 ];
+	ch1 >>= 2;
+	DASSERT( (ch1 & ~0x3f) == 0 );
+
+	//----- ch1 holds 6 remaining bits
+
+	*dest++ = TableEncode64[ch1];
+
+	//----- all done for the current tupel
+
+	if ( printed_tupel >= tupel_per_line )
+	{
+	    *dest++ = '\n';
+	    printed_tupel = 0;
+	    indent_now = indent;
+	}
+    }
+    if ( printed_tupel && max_line_length )
+	*dest++ = '\n';
+
+    noPRINT("DEST=%zu, BUFSIZE=%u/%u\n",dest-buf,dest_len,buf_size);
+    DASSERT( dest < buf + buf_size );
+    DASSERT( dest = buf + dest_len-1 );
+    *dest = 0;
+    return dest - buf;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+char * Encode64
+(
+    // returns a null terminated string (alloced)
+
+    const void	*source,		// pointer to source data
+    uint	source_len,		// size of source data
+    int		indent,			// >0: indent each line with spaces
+    int		max_line_length,	// >0: force line breaks
+    uint	*return_len		// not NULL: store strlen(result)
+)
+{
+    const uint dest_len = CalcEncode64len(source_len,indent,max_line_length,0);
+    DASSERT(dest_len>0);
+    char *dest = MALLOC(dest_len);
+    uint ret_len = Encode64buf(dest,dest_len,source,source_len,indent,max_line_length);
+    if (return_len)
+	*return_len = ret_len;
+    return dest;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+uint PrintEncode64
+(
+    // returns a null terminated string (alloced)
+
+    FILE	*f,			// destination file
+    const void	*source,		// pointer to source data
+    uint	source_len,		// size of source data
+    int		indent,			// >0: indent each line with spaces
+    int		max_line_length		// >0: force line breaks
+)
+{
+    DASSERT(f);
+
+    char tempbuf[4000];
+    const uint dest_len = CalcEncode64len(source_len,indent,max_line_length,0);
+    DASSERT(dest_len>0);
+    char *dest = dest_len <= sizeof(tempbuf) ? tempbuf : MALLOC(dest_len);
+    uint ret_len = Encode64buf(dest,dest_len,source,source_len,indent,max_line_length);
+    fwrite(dest,1,ret_len,f);
+    if ( dest != tempbuf )
+	FREE(tempbuf);
+    return ret_len;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+#if 0
+
+dcString & dcString::Decode64 ( const dcText source, bool allow_white_spaces )
+{
+    //--------------- init
+
+    const int bufsize = GoodTempBufferSize;
+    const int addsize = 10;
+    char buf[bufsize+addsize];
+    char * bufptr  = buf;
+    char * bufmark = buf + bufsize;
+
+    dcString collect;
+
+    uccp src = (uccp)source.str;
+    uccp end = src + source.len;
+    int ch1, ch2;
+
+    //--------------- the big loop
+
+    while ( src < end )
+    {
+	if ( bufptr >= bufmark )
+	{
+	    // static buffer almost full -> use dynamic memory
+	    collect.Append(dcText(buf,bufptr-buf));
+	    bufptr = buf;
+	}
+
+	do ch1 = TableDecode64[*src++];
+	  while ( allow_white_spaces
+		    && ( ch1 == NUMBER_SPACE || ch1 == NUMBER_LINE )
+		    && src < end );
+	if ( ch1 < 0 || src == end )
+	    break;
+
+	do ch2 = TableDecode64[*src++];
+	  while ( allow_white_spaces
+		    && ( ch2 == NUMBER_SPACE || ch2 == NUMBER_LINE )
+		    && src < end );
+	if ( ch2 < 0 )
+	    break;
+
+	*bufptr++ = ch1 | ch2 << 6;
+	if ( src == end )
+	    break;
+
+	ch2 >>= 2;
+	do ch1 = TableDecode64[*src++];
+	  while ( allow_white_spaces
+		    && ( ch1 == NUMBER_SPACE || ch1 == NUMBER_LINE )
+		    && src < end );
+	if ( ch1 < 0 )
+	    break;
+
+	*bufptr++ = ch2 | ch1 << 4;
+	if ( src == end )
+	    break;
+
+	ch1 >>= 4;
+	do ch2 = TableDecode64[*src++];
+	  while ( allow_white_spaces
+		    && ( ch2 == NUMBER_SPACE || ch2 == NUMBER_LINE )
+		    && src < end );
+	if ( ch2 < 0 )
+	    break;
+
+	*bufptr++ = ch1 | ch2 << 2;
+    }
+    dcASSERTLINE ( src  <= end );
+
+    //--------------- term
+
+    Move(collect,dcText(buf,bufptr-buf));
+    return *this;
+}
+
+#endif
+
+//
+///////////////////////////////////////////////////////////////////////////////
 ///////////////			    END				///////////////
 ///////////////////////////////////////////////////////////////////////////////
 

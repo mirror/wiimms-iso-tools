@@ -408,7 +408,8 @@ typedef enum enumOptions
 //	OB_CMD_CERT		= OB_FILES
 //				| OB_FAKE_SIGN
 //				| OB_DEST
-//				| OB_DEST2,
+//				| OB_DEST2
+//				| OB_LONG,
 //
 //	OB_CMD_FILELIST		= OB_AUTO
 //				| OB_GRP_XXSOURCE

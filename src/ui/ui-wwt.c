@@ -75,7 +75,7 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 	"  Directories are expanded to all containing files but hidden files"
 	" (file names begins with a point) are ignored. If a command needs"
 	" only images then non image files of the directory are ignored"
-	" without notification. The option --no-expand supresses the directory"
+	" without notification. The option --no-expand suppress the directory"
 	" expansion."
     },
 
@@ -471,11 +471,11 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 	"This option enables or disables the disc space preallocation. If"
 	" enabled the tools try to allocate disc space for the new files"
 	" before writing the data. This reduces the fragmentation but also"
-	" disables the sparse effect for prealocated areas.\n"
+	" disables the sparse effect for preallocated areas.\n"
 	"  The optional parameter decides the preallocation mode: OFF (or 0),"
 	" SMART (or 1), ALL (or 2). If no parameter is set, ALL is used.\n"
 	"  Mode 'OFF' disables the preallocation. Mode 'SMART' looks into the"
-	" source disc to find out the writing areas. SMART is only avalable"
+	" source disc to find out the writing areas. SMART is only available"
 	" for ISO, CISO and WBFS file types. For other file types ALL is used"
 	" instead. Mode 'ALL' (the default) preallocate the whole destination"
 	" file. Because of the large holes in plain ISO images, the SMART mode"
@@ -927,12 +927,12 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 
     {	OPT_OLD, 0, "OLD",
 	0,
-	"Use old implemenation if available."
+	"Use old implementation if available."
     },
 
     {	OPT_NEW, 0, "NEW",
 	0,
-	"Use new implemenation if available."
+	"Use new implementation if available."
     },
 
     {	OPT_HOOK, 0, "hook",
@@ -997,7 +997,7 @@ const InfoOption_t option_cmd_COMPR_VERBOSE =
 const InfoOption_t option_cmd_FIND_QUIET =
     {	OPT_QUIET, 'q', "quiet",
 	0,
-	"Be absoulte quiet and report the find status as exit code only."
+	"Be absolute quiet and report the find status as exit code only."
     };
 
 const InfoOption_t option_cmd_FIND_LONG =
@@ -1031,7 +1031,7 @@ const InfoOption_t option_cmd_DUMP_LONG =
 	" (--show=FILES). If set twice print a memory map for each disc is"
 	" printed too (--show=D-MAP). If set three times print an additional"
 	" memory map for the whole WBFS (--show=W-MAP). If set four times"
-	" print an usabe table (--show=USAGE)."
+	" print an usage table (--show=USAGE)."
     };
 
 const InfoOption_t option_cmd_LIST_LONG =
@@ -1052,7 +1052,7 @@ const InfoOption_t option_cmd_FORMAT_INODE =
     {	OPT_INODE, 0, "inode",
 	0,
 	"Force creating inode infos with predefined timestamps. The timestamps"
-	" reduce effect of sparce files. This option is set for devices"
+	" reduce effect of sparse files. This option is set for devices"
 	" automatically."
     };
 
@@ -1072,7 +1072,7 @@ const InfoOption_t option_grp_CHECK_VERBOSE =
     {	OPT_VERBOSE, 'v', "verbose",
 	0,
 	"Be verbose. If set once then more details are printed. If set twice a"
-	" info dump of all coruppted discs is included. If set three times a"
+	" info dump of all corrupted discs is included. If set three times a"
 	" info dump of all discs is included if a error is found. If set four"
 	" times a full memory map is included."
     };
@@ -1267,7 +1267,7 @@ const InfoOption_t option_cmd_VERIFY_LONG =
     {	OPT_LONG, 'l', "long",
 	0,
 	"On error print an additional line to localize the exact position"
-	" where the error is found. If set twice a hexdump of the hash values"
+	" where the error is found. If set twice a hex dump of the hash values"
 	" is printed too."
     };
 
@@ -3707,7 +3707,7 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	"FREE    := FREE=a,b-c,...\n"
 	"USE     := USE=a,b-c,...\n"
 	"ID6     := ID6=a:b,c-d:e,...",
-	"Edit slot and block assignments. Dangerous! Read docu!",
+	"Edit slot and block assignments. Dangerous! Read the documentation!",
 	4,
 	option_tab_cmd_EDIT,
 	option_allowed_cmd_EDIT
@@ -3885,7 +3885,7 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	"SKEL",
 	"wwt SKELETON [id6]...",
 	"Create very small skeletons of ISO images. A skeleton contains only"
-	" disc and partiton headers for further analysis and is not playable"
+	" disc and partition headers for further analysis and is not playable"
 	" because all files are zeroed. Read http://wit.wiimm.de/cmd/wwt/skel"
 	" for more details.",
 	28,

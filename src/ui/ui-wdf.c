@@ -182,11 +182,11 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 	"This option enables or disables the disc space preallocation. If"
 	" enabled the tools try to allocate disc space for the new files"
 	" before writing the data. This reduces the fragmentation but also"
-	" disables the sparse effect for prealocated areas.\n"
+	" disables the sparse effect for preallocated areas.\n"
 	"  The optional parameter decides the preallocation mode: OFF (or 0),"
 	" SMART (or 1), ALL (or 2). If no parameter is set, ALL is used.\n"
 	"  Mode 'OFF' disables the preallocation. Mode 'SMART' looks into the"
-	" source disc to find out the writing areas. SMART is only avalable"
+	" source disc to find out the writing areas. SMART is only available"
 	" for ISO, CISO and WBFS file types. For other file types ALL is used"
 	" instead. Mode 'ALL' (the default) preallocate the whole destination"
 	" file. Because of the large holes in plain ISO images, the SMART mode"
@@ -335,12 +335,12 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 
     {	OPT_OLD, 0, "OLD",
 	0,
-	"Use old implemenation if available."
+	"Use old implementation if available."
     },
 
     {	OPT_NEW, 0, "NEW",
 	0,
-	"Use new implemenation if available."
+	"Use new implementation if available."
     },
 
     {0,0,0,0,0} // OPT__N_TOTAL == 38
@@ -389,7 +389,7 @@ const InfoOption_t option_cmd_CMP_LONG =
     {	OPT_LONG, 'l', "long",
 	0,
 	"If set, a status line with the offset is printed for each found"
-	" mismatch. If set twice, an additonal hexdump of the first bytes is"
+	" mismatch. If set twice, an additional hex dump of the first bytes is"
 	" printed. If set 3 or 4 times, the limit is set to 10 or unlimited if"
 	" option --limit is not already set. This option is ignored in quiet"
 	" mode."
@@ -818,7 +818,7 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	"  The standard is to compare two source files. If --dest or --DEST is"
 	" set, than all source files are compared against files in the"
 	" destination path with equal names. If the second source file is"
-	" mising then standard input (stdin) is used instead.\n"
+	" missing then standard input (stdin) is used instead.\n"
 	"  This is the default command, when the program name contains the sub"
 	" string 'diff' or 'cmp' in any case.",
 	6,

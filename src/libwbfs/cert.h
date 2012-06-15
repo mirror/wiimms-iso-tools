@@ -303,6 +303,84 @@ cert_stat_t cert_check_tmd
 
 //
 ///////////////////////////////////////////////////////////////////////////////
+///////////////			    base64			///////////////
+///////////////////////////////////////////////////////////////////////////////
+
+typedef enum Base64Mode_t
+{
+	BASE64_NULL = -10,	// ASCII NUL
+	BASE64_CONTROL,		// a control character
+	BASE64_EOL,		// EOL (CR,LF)
+	BASE64_SPACE,		// space, tabs
+	BASE64_SEPARATE,	// separation characterts (comma,semicolon)
+	BASE64_OTHER,		// other charatcers
+
+	BASE64_MIN =  0,	// minimal digit value
+	BASE64_MAX = 63,	// maximal digit value
+
+} Base64Mode_t;
+
+///////////////////////////////////////////////////////////////////////////////
+
+extern const char TableEncode64[64];
+extern const char TableDecode64[256];
+
+///////////////////////////////////////////////////////////////////////////////
+
+uint CalcEncode64len
+(
+    // returns the needed buflen inclusive 0-Term
+
+    uint	source_len,		// size of source data
+    int		indent,			// >0: indent each line with spaces
+    int		max_line_length,	// >0: force line breaks
+    uint	*tupel_per_line		// not NULL: store num of tupel per line
+);
+
+//-----------------------------------------------------------------------------
+
+int Encode64buf
+(
+    // returns -1 if dest buffer is to small
+    // otherwise it returns the number of written characters
+
+    char	*buf,			// valid destination buffer
+    uint	buf_size,		// size of buffer
+    const void	*source,		// pointer to source data
+    uint	source_len,		// size of source data
+    int		indent,			// >0: indent each line with spaces
+    int		max_line_length		// >0: force line breaks
+);
+
+//-----------------------------------------------------------------------------
+
+char * Encode64
+(
+    // returns a null terminated string (alloced)
+
+    const void	*source,		// pointer to source data
+    uint	source_len,		// size of source data
+    int		indent,			// >0: indent each line with spaces
+    int		max_line_length,	// >0: force line breaks
+    uint	*return_len		// not NULL: store strlen(result)
+);
+
+//-----------------------------------------------------------------------------
+
+uint PrintEncode64
+(
+    // returns a null terminated string (alloced)
+
+    FILE	*f,			// destination file
+    const void	*source,		// pointer to source data
+    uint	source_len,		// size of source data
+    int		indent,			// >0: indent each line with spaces
+    int		max_line_length		// >0: force line breaks
+)
+;
+
+//
+///////////////////////////////////////////////////////////////////////////////
 ///////////////			    etc				///////////////
 ///////////////////////////////////////////////////////////////////////////////
 

@@ -125,9 +125,9 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 
     {	OPT_LAZY, 'l', "lazy",
 	0,
-	"Lazy unmount: Detach the filesystem from the filesystem hierarchy"
-	" now, and cleanup all references to the filesystem as soon as it is"
-	" not busy anymore."
+	"Lazy unmount: Detach the mounted file system from the file system"
+	" hierarchy now, and cleanup all references to the file system as soon"
+	" as it is not busy anymore."
     },
 
     {0,0,0,0,0} // OPT__N_TOTAL == 15
@@ -253,7 +253,7 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	"wfuse [option]... source mountdir\n"
 	"wfuse --umount mountdir...",
 	"Mount a Wii or GameCube image or a WBFS file or partition to a mount"
-	" point using FUSE (Filesystem in Userspace). Use 'wfuse --umount"
+	" point using FUSE (Filesystem in USErspace). Use 'wfuse --umount"
 	" mountdir' for unmounting.",
 	12,
 	option_tab_tool,

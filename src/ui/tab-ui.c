@@ -67,7 +67,7 @@ typedef enum enumType
 	T_ALL_OPT	=    0x0800,  // allow all options
 
 	//----- option flags
-	
+
 	F_OPT_COMMAND	=  0x010000,  // option is command specific
 	F_OPT_GLOBAL	=  0x020000,  // option is global
 	F_OPT_MULTIUSE	=  0x040000,  // multiple usage of option possible
@@ -85,7 +85,7 @@ typedef enum enumType
 
 
 	//----- option combinations
-	
+
 	T_OPT_C		= T_DEF_OPT | F_OPT_COMMAND,
 	T_OPT_CM	= T_DEF_OPT | F_OPT_COMMAND | F_OPT_MULTIUSE,
 	T_OPT_CP	= T_DEF_OPT | F_OPT_COMMAND                  | F_OPT_PARAM,
@@ -142,7 +142,7 @@ typedef struct info_t
 	ccp help;		// help text
 
 	int index;		// calculated index
-	
+
 } info_t;
 
 //
@@ -214,7 +214,7 @@ typedef struct info_t
 
 #define TEXT_DIFF_LONG \
 	"If set, a status line with the offset is printed for each found mismatch." \
-	" If set twice, an additonal hexdump of the first bytes is printed." \
+	" If set twice, an additional hex dump of the first bytes is printed." \
 	" If set 3 or 4 times, the limit is set to 10 or unlimited" \
 	" if option {--limit} is not already set." \
 	" This option is ignored in quiet mode."
@@ -447,7 +447,7 @@ info_t info_tab[] =
   { T_DEF_CMD,	"SKELETON",	"SKELETON|SKEL",
 		    "wit SKELETON [source]...",
 		"Create very small skeletons of ISO images."
-		" A skeleton contains only disc and partiton headers for further"
+		" A skeleton contains only disc and partition headers for further"
 		" analysis and is not playable because all files are zeroed."
 		"\1 Read http://wit.wiimm.de/cmd/wit/skel for more details." },
 
@@ -566,11 +566,11 @@ info_t info_tab[] =
  #if OPT_OLD_NEW
   { H_OPT_GM,	"OLD",		"OLD",
 		0,
-		"Use old implemenation if available." },
+		"Use old implementation if available." },
 
   { H_OPT_GM,	"NEW",		"NEW",
 		0,
-		"Use new implemenation if available." },
+		"Use new implementation if available." },
  #endif
 
   { T_SEP_OPT,	0,0,0,0 }, //----- separator -----
@@ -583,7 +583,7 @@ info_t info_tab[] =
 		" but hidden files (file names begins with a point) are ignored."
 		" If a command needs only images then non image files"
 		" of the directory are ignored without notification."
-		" The option {--no-expand} supresses the directory expansion." },
+		" The option {--no-expand} suppress the directory expansion." },
 
   { T_OPT_C,	"NO_EXPAND",	"no-expand|noexpand",
 		0,
@@ -681,7 +681,7 @@ info_t info_tab[] =
   { T_OPT_CP,	"FAKE_SIGN",	"fake-sign|fakesign",
 		"ruleset",
 		"Add a certificate selection rule."
-		" All certificates that matches the ruleset will be fake signed."
+		" All certificates that matches the rule set will be fake signed."
 		"\1\n "
 		" See http://wit.wiimm.de/info/file-filter.html"
 		" for more details about filters." },
@@ -994,7 +994,7 @@ info_t info_tab[] =
 		"This option enables or disables the disc space preallocation."
 		" If enabled the tools try to allocate disc space for the new files"
 		" before writing the data. This reduces the fragmentation but also"
-		" disables the sparse effect for prealocated areas."
+		" disables the sparse effect for preallocated areas."
 		"\n "
 		" The optional parameter decides the preallocation mode:"
 		" @OFF@ (or @0@), @SMART@ (or @1@), @ALL@ (or @2@)."
@@ -1002,7 +1002,7 @@ info_t info_tab[] =
 		"\n "
 		" Mode @'OFF'@ disables the preallocation."
 		" Mode @'SMART'@ looks into the source disc to find out the writing areas."
-		" @SMART@ is only avalable for $ISO$, $CISO$ and $WBFS$ file types."
+		" @SMART@ is only available for $ISO$, $CISO$ and $WBFS$ file types."
 		" For other file types @ALL@ is used instead."
 		" Mode @'ALL'@ (the default) preallocate the whole destination file."
 		" Because of the large holes in plain ISO images,"
@@ -1244,7 +1244,7 @@ info_t info_tab[] =
 		" as multiple of the single layer ISO images size of the given type."
 		"\n "
 		" @DEFAULT@ allows the command to select a adequate size unit." },
- 
+
   { T_OPT_C,	"UNIQUE",	"U|unique",
 		0, "Eliminate multiple entries with same ID6." },
 
@@ -1547,9 +1547,11 @@ info_t info_tab[] =
 	" All selected certificates are written to this new created file." },
   { T_COPT,	"DEST2",	0,0,0 },
   { T_COPT,	"VERBOSE",	0,0,
-	"Dump the content of all certificates to standard output."
-	" This is the default if neiter --dest nor --DEST are set." },
-
+	"Print the content of all certificates to standard output."
+	" This is the default if neither --dest nor --DEST are set." },
+  { T_COPT,	"LONG",		0,0,
+	"If printing, print the complete key as hex dump, not only the first bytes."
+	" If set twice, print BASE64 encoded."},
 
   //---------- COMMAND wit FILELIST ----------
 
@@ -1568,8 +1570,8 @@ info_t info_tab[] =
   { T_COPY_GRP,	"XXSOURCE",	0,0,0 },
   { T_COPT,	"NO_HEADER",	0,0,0 },
   { T_COPT_M,	"LONG",		0,0,
-	"If set at least once or twide additional columns with ID6 (1x)"
-	" or ther region (2x) are enabled."
+	"If set at least once or twice additional columns with ID6 (1x)"
+	" or the region (2x) are enabled."
 	" If set three or more times the real path instead of given path"
 	" is printed." },
 
@@ -1964,7 +1966,7 @@ info_t info_tab[] =
   { T_COPT_M,	"LONG",		0,0,
 	"On error print an additional line to localize the exact"
 	" position where the error is found."
-	" If set twice a hexdump of the hash values is printed too." },
+	" If set twice a hex dump of the hash values is printed too." },
   { T_COPT_M,	"TECHNICAL",	0,0,0 },
 
   //---------- COMMAND wit SKELETON ----------
@@ -2171,7 +2173,7 @@ info_t info_tab[] =
 		    "FREE    := FREE=a,b-c,...\n"
 		    "USE     := USE=a,b-c,...\n"
 		    "ID6     := ID6=a:b,c-d:e,...",
-		"Edit slot and block assignments. Dangerous! Read docu!" },
+		"Edit slot and block assignments. Dangerous! Read the documentation!" },
 
   { T_DEF_CMD,	"PHANTOM",	"PHANTOM",
 		    "wwt PHANTOM [RULE]...\n"
@@ -2248,7 +2250,7 @@ info_t info_tab[] =
   { T_DEF_CMD,	"SKELETON",	"SKELETON|SKEL",
 		    "wwt SKELETON [id6]...",
 		"Create very small skeletons of ISO images."
-		" A skeleton contains only disc and partiton headers for further"
+		" A skeleton contains only disc and partition headers for further"
 		" analysis and is not playable because all files are zeroed."
 		"\1 Read http://wit.wiimm.de/cmd/wwt/skel for more details." },
 
@@ -2946,7 +2948,7 @@ info_t info_tab[] =
 
   { T_COPY_GRP,	"READ_WBFS",	0,0,0 },
   { T_COPT,	"QUIET",	0,0,
-	"Be absoulte quiet and report the find status as exit code only." },
+	"Be absolute quiet and report the find status as exit code only." },
   { T_COPT,	"NO_HEADER",	0,0,0 },
   { T_COPT_M,	"LONG",		0,0,
 	"Without @--long@ only partition names of WBFS partitions are printed."
@@ -2990,7 +2992,7 @@ info_t info_tab[] =
 	" too ({--show=D-MAP})."
 	" If set three times print an additional memory map for the"
 	" whole WBFS ({--show=W-MAP})."
-	" If set four times print an usabe table ({--show=USAGE})." },
+	" If set four times print an usage table ({--show=USAGE})." },
   { T_COPT,	"SHOW",		0,0,0 },
 
   //---------- COMMAND wwt ID6 ----------
@@ -3071,7 +3073,7 @@ info_t info_tab[] =
   { T_COPT,	"RECOVER",	0,0,0 },
   { T_COPT,	"INODE",	0,0,
 	"Force creating inode infos with predefined timestamps."
-	" The timestamps reduce effect of sparce files."
+	" The timestamps reduce effect of sparse files."
 	" This option is set for devices automatically." },
 
   { T_SEP_OPT,	0,0,0,0 },
@@ -3100,7 +3102,7 @@ info_t info_tab[] =
   { T_COPT,	"VERBOSE",	0,0,
 	"Be verbose."
 	" If set once then more details are printed."
-	" If set twice a info dump of all coruppted discs is included."
+	" If set twice a info dump of all corrupted discs is included."
 	" If set three times a info dump of all discs is included if a error is found."
 	" If set four times a full memory map is included." },
 
@@ -3117,7 +3119,7 @@ info_t info_tab[] =
 	TEXT_WWT_OPT_REPAIR " The default is 'NONE'." },
 
   { T_SEP_OPT,	0,0,0,0 },
-   
+
   { T_COPT,	"TEST",		0,0,0 },
 
   //---------- COMMAND wwt REPAIR ----------
@@ -3129,7 +3131,7 @@ info_t info_tab[] =
 	TEXT_WWT_OPT_REPAIR " The default is 'STANDARD' (FBT,INODES)." },
 
   { T_SEP_OPT,	0,0,0,0 },
-   
+
   { T_COPT,	"TEST",		0,0,0 },
 
   //---------- COMMAND wwt EDIT ----------
@@ -3140,7 +3142,7 @@ info_t info_tab[] =
   { T_COPT,	"PART",		0,0,0 },
 
   { T_SEP_OPT,	0,0,0,0 },
-	
+
   { T_COPT,	"TEST",		0,0,
 	"Force test mode and ignore {--force}." },
   { T_COPT,	"FORCE",	0,0,
@@ -3391,7 +3393,7 @@ info_t info_tab[] =
   { T_COPT_M,	"LONG",		0,0,
 	"On error print an additional line to localize the exact"
 	" position where the error is found."
-	" If set twice a hexdump of the hash values is printed too." },
+	" If set twice a hex dump of the hash values is printed too." },
   { T_COPT_M,	"TECHNICAL",	0,0,0 },
 
 
@@ -3494,7 +3496,7 @@ info_t info_tab[] =
 		" The standard is to compare two source files."
 		" If {--dest} or {--DEST} is set, than all source files"
 		" are compared against files in the destination path with equal names."
-		" If the second source file is mising then standard input"
+		" If the second source file is missing then standard input"
 		" (stdin) is used instead."
 		"\n "
 		" This is the default command, when the program name"
@@ -3778,7 +3780,7 @@ info_t info_tab[] =
 		"wfuse [option]... source mountdir\n"
 		"wfuse --umount mountdir...",
 		"Mount a Wii or GameCube image or a WBFS file or partition"
-		" to a mount point using FUSE (Filesystem in Userspace)."
+		" to a mount point using FUSE (Filesystem in USErspace)."
 		" Use @'wfuse --umount mountdir'@ for unmounting." },
 
   //---------- list of all options ----------
@@ -3838,8 +3840,8 @@ info_t info_tab[] =
   { T_OPT_G,	"LAZY",		"l|lazy",
 		0,
 		"Lazy unmount:"
-		" Detach the filesystem from the filesystem hierarchy now,"
-		" and cleanup all references to the filesystem"
+		" Detach the mounted file system from the file system hierarchy now,"
+		" and cleanup all references to the file system"
 		" as soon as it is not busy anymore." },
 
   //

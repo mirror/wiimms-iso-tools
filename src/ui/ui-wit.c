@@ -59,7 +59,7 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 	"  Directories are expanded to all containing files but hidden files"
 	" (file names begins with a point) are ignored. If a command needs"
 	" only images then non image files of the directory are ignored"
-	" without notification. The option --no-expand supresses the directory"
+	" without notification. The option --no-expand suppress the directory"
 	" expansion."
     },
 
@@ -161,7 +161,7 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
     {	OPT_FAKE_SIGN, 0, "fake-sign",
 	"ruleset",
 	"Add a certificate selection rule. All certificates that matches the"
-	" ruleset will be fake signed.\n"
+	" rule set will be fake signed.\n"
 	"  See http://wit.wiimm.de/info/file-filter.html for more details"
 	" about filters."
     },
@@ -473,11 +473,11 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 	"This option enables or disables the disc space preallocation. If"
 	" enabled the tools try to allocate disc space for the new files"
 	" before writing the data. This reduces the fragmentation but also"
-	" disables the sparse effect for prealocated areas.\n"
+	" disables the sparse effect for preallocated areas.\n"
 	"  The optional parameter decides the preallocation mode: OFF (or 0),"
 	" SMART (or 1), ALL (or 2). If no parameter is set, ALL is used.\n"
 	"  Mode 'OFF' disables the preallocation. Mode 'SMART' looks into the"
-	" source disc to find out the writing areas. SMART is only avalable"
+	" source disc to find out the writing areas. SMART is only available"
 	" for ISO, CISO and WBFS file types. For other file types ALL is used"
 	" instead. Mode 'ALL' (the default) preallocate the whole destination"
 	" file. Because of the large holes in plain ISO images, the SMART mode"
@@ -897,12 +897,12 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 
     {	OPT_OLD, 0, "OLD",
 	0,
-	"Use old implemenation if available."
+	"Use old implementation if available."
     },
 
     {	OPT_NEW, 0, "NEW",
 	0,
-	"Use new implemenation if available."
+	"Use new implementation if available."
     },
 
     {	OPT_HOOK, 0, "hook",
@@ -964,8 +964,15 @@ const InfoOption_t option_cmd_CERT_DEST =
 const InfoOption_t option_cmd_CERT_VERBOSE =
     {	OPT_VERBOSE, 'v', "verbose",
 	0,
-	"Dump the content of all certificates to standard output. This is the"
-	" default if neiter --dest nor --DEST are set."
+	"Print the content of all certificates to standard output. This is the"
+	" default if neither --dest nor --DEST are set."
+    };
+
+const InfoOption_t option_cmd_CERT_LONG =
+    {	OPT_LONG, 'l', "long",
+	0,
+	"If printing, print the complete key as hex dump, not only the first"
+	" bytes. If set twice, print BASE64 encoded."
     };
 
 const InfoOption_t option_cmd_FILELIST_LONG =
@@ -977,9 +984,9 @@ const InfoOption_t option_cmd_FILELIST_LONG =
 const InfoOption_t option_cmd_FILETYPE_LONG =
     {	OPT_LONG, 'l', "long",
 	0,
-	"If set at least once or twide additional columns with ID6 (1x) or"
-	" ther region (2x) are enabled. If set three or more times the real"
-	" path instead of given path is printed."
+	"If set at least once or twice additional columns with ID6 (1x) or the"
+	" region (2x) are enabled. If set three or more times the real path"
+	" instead of given path is printed."
     };
 
 const InfoOption_t option_cmd_ISOSIZE_LONG =
@@ -1089,7 +1096,7 @@ const InfoOption_t option_cmd_DIFF_LONG =
     {	OPT_LONG, 'l', "long",
 	0,
 	"If set, a status line with the offset is printed for each found"
-	" mismatch. If set twice, an additonal hexdump of the first bytes is"
+	" mismatch. If set twice, an additional hex dump of the first bytes is"
 	" printed. If set 3 or 4 times, the limit is set to 10 or unlimited if"
 	" option --limit is not already set. This option is ignored in quiet"
 	" mode."
@@ -1143,7 +1150,7 @@ const InfoOption_t option_cmd_VERIFY_LONG =
     {	OPT_LONG, 'l', "long",
 	0,
 	"On error print an additional line to localize the exact position"
-	" where the error is found. If set twice a hexdump of the hash values"
+	" where the error is found. If set twice a hex dump of the hash values"
 	" is printed too."
     };
 
@@ -1638,7 +1645,7 @@ static u8 option_allowed_cmd_CERT[91] = // cmd #10
 {
     0,0,0,0,0, 0,0,0,0,0,  0,0,0,1,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,
     0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,1,1,0,  0,0,0,0,0, 0,0,0,0,0,
-    0,0,0,0,0, 0,0,0,0,0,  0,1,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,
+    0,0,0,0,0, 0,0,0,0,0,  0,1,0,0,0, 0,0,1,0,0,  0,0,0,0,0, 0,0,0,0,0,
     0
 };
 
@@ -1958,6 +1965,7 @@ static const InfoOption_t * option_tab_cmd_CERT[] =
 	&option_cmd_CERT_DEST,
 	OptionInfo + OPT_DEST2,
 	&option_cmd_CERT_VERBOSE,
+	&option_cmd_CERT_LONG,
 
 	0
 };
@@ -3435,7 +3443,7 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	" certificate. Dump all collected certificates to standard output"
 	" (stdout) and/or write the certificate to a new binary cert file. The"
 	" optional parameters are handled like parameters of option --cert.",
-	6,
+	7,
 	option_tab_cmd_CERT,
 	option_allowed_cmd_CERT
     },
@@ -3758,7 +3766,7 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	"SKEL",
 	"wit SKELETON [source]...",
 	"Create very small skeletons of ISO images. A skeleton contains only"
-	" disc and partiton headers for further analysis and is not playable"
+	" disc and partition headers for further analysis and is not playable"
 	" because all files are zeroed. Read http://wit.wiimm.de/cmd/wit/skel"
 	" for more details.",
 	31,

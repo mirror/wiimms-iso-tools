@@ -518,7 +518,7 @@ static void dump_wii_part
 	}
 
 	if ( show_mode & SHOW_CERT )
-	    Dump_CERT(f,indent+2,wd_load_cert_chain(part,true),false);
+	    Dump_CERT(f,indent+2,wd_load_cert_chain(part,true),0);
 
 	if ( show_mode & SHOW_TICKET )
 	{
@@ -822,7 +822,11 @@ enumError Dump_CERT_BIN
     FILE		* f,		// valid output stream
     int			indent,		// indent of output
     SuperFile_t		* sf,		// file to dump
-    ccp			real_path	// NULL or pointer to real path
+    ccp			real_path,	// NULL or pointer to real path
+    int			print_ext	// 0: off
+					// 1: print extended version
+					// 2:  + hexdump the keys
+					// 3:  + base64 the keys
 )
 {
     ASSERT(sf);
@@ -837,7 +841,7 @@ enumError Dump_CERT_BIN
     if (!err)
     {
 	putc('\n',f);
-	Dump_CERT_MEM(f,indent,buf,sf->file_size,true);
+	Dump_CERT_MEM(f,indent,buf,sf->file_size,print_ext);
     }
     FREE(buf);
     return err;
@@ -851,7 +855,10 @@ enumError Dump_CERT_MEM
     int			indent,		// indent of output
     const u8		* cert_data,	// valid pointer to cert data
     size_t		cert_size,	// size of 'cert_data'
-    bool		print_ext	// true: print extended version
+    int			print_ext	// 0: off
+					// 1: print extended version
+					// 2:  + hexdump the keys
+					// 3:  + base64 the keys
 )
 {
     ASSERT(f);
@@ -874,7 +881,10 @@ enumError Dump_CERT
     FILE		* f,		// valid output stream
     int			indent,		// indent of output
     const cert_chain_t	* cc,		// valid pinter to cert chain
-    bool		print_ext	// true: print extended version
+    int			print_ext	// 0: off
+					// 1: print extended version
+					// 2:  + hexdump the keys
+					// 3:  + base64 the keys
 )
 {
     DASSERT(f);
@@ -904,7 +914,10 @@ void Dump_CERT_Item
     int			indent,		// normalized indent of output
     const cert_item_t	* item,		// valid item pointer
     int			cert_index,	// >=0: print title with certificate index
-    bool		print_ext,	// true: print extended version
+    int			print_ext,	// 0: off
+					// 1: print extended version
+					// 2:  + hexdump the keys
+					// 3:  + base64 the keys
     const cert_chain_t	* cc		// not NULL: verify signature
 )
 {
@@ -930,13 +943,35 @@ void Dump_CERT_Item
 	const u32 pub_exp = be32(item->data->public_key+item->key_size);
 	fprintf(f,"%*sPublic exponent: %11x/hex =%11u\n",indent,"",pub_exp,pub_exp);
 
-	fprintf(f,"%*sPublic key:        ",indent,"");
-	dump_hex(f,item->data->public_key,16,0," ...\n");
+	if (print_ext>1)
+	{
+	    fprintf(f,"%*sPublic key:\n",indent,"");
+	    if ( print_ext > 2 )
+		PrintEncode64(f,item->data->public_key,item->key_size,indent+5,70);
+	    else
+		HexDump(f,indent+4,0,4,-16,item->data->public_key,item->key_size);
+	}
+	else
+	{
+	    fprintf(f,"%*sPublic key:        ",indent,"");
+	    dump_hex(f,item->data->public_key,16,0," ...\n");
+	}
 
 	if (item->head)
 	{
-	    fprintf(f,"%*sSignature:         ",indent,"");
-	    dump_hex(f,item->head->sig_data,16,0," ...\n");
+	    if (print_ext>1)
+	    {
+		fprintf(f,"%*sSignature:\n",indent,"");
+		if ( print_ext > 2 )
+		    PrintEncode64(f,item->head->sig_data,item->sig_size,indent+5,70);
+		else
+		    HexDump(f,indent+4,0,4,-16,item->head->sig_data,item->sig_size);
+	    }
+	    else
+	    {
+		fprintf(f,"%*sSignature:         ",indent,"");
+		dump_hex(f,item->head->sig_data,16,0," ...\n");
+	    }
 	}
     }
 
@@ -1020,7 +1055,7 @@ enumError Dump_TIK_BIN
 	    if ( sizeof(wd_ticket_t) < load_size )
 	    {
 		putc('\n',f);
-		Dump_CERT(f,indent,&cc,false);
+		Dump_CERT(f,indent,&cc,0);
 	    }
 	    cert_reset(&cc);
 	}
@@ -1131,7 +1166,7 @@ enumError Dump_TMD_BIN
 	    if ( tmd_size < load_size )
 	    {
 		putc('\n',f);
-		Dump_CERT(f,indent,&cc,false);
+		Dump_CERT(f,indent,&cc,0);
 	    }
 	    cert_reset(&cc);
 	}

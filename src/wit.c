@@ -325,7 +325,7 @@ static enumError cmd_cert()
 
 	    if ( !f || verbose > 0 )
 	    {
-		Dump_CERT_Item(stdout,0,item,i,true,&global_cert);
+		Dump_CERT_Item(stdout,0,item,i,long_count+1,&global_cert);
 		fputc('\n',stdout);
 	    }
 
@@ -858,7 +858,7 @@ enumError exec_dump ( SuperFile_t * sf, Iterator_t * it )
 	return Dump_FST_BIN(stdout,0,sf,it->real_path,opt_show_mode);
 
     if ( sf->f.ftype & FT_ID_CERT_BIN )
-	return Dump_CERT_BIN(stdout,0,sf,it->real_path);
+	return Dump_CERT_BIN(stdout,0,sf,it->real_path,1);
 
     if ( sf->f.ftype & FT_ID_TIK_BIN )
 	return Dump_TIK_BIN(stdout,0,sf,it->real_path);

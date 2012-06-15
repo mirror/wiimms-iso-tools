@@ -1,2 +1,4 @@
 ../src/libwbfs/cert.[ch] ;
 @wiidisc.edit-list
+-y 300 ../src/libwbfs/cert.c
+-y 100 ../src/libwbfs/cert.h

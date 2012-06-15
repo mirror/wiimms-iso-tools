@@ -119,6 +119,11 @@ wit v2.05a r3591 - 2012-04-14
    the effect of them.
 
 
+wit v2.05b r3611 - 2012-04-20
+
+ - Bug fix for assertion failure in "wwt RECOVER".
+
+
 @@MODULE(last-history.txt)@@
 
 Road map (for some point in the future):
