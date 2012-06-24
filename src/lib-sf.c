@@ -3014,7 +3014,8 @@ enumError CopyImage
 	oft = CalcOFT(output_file_type,opt_dest,fo->f.fname,fo->iod.oft);
     SetupIOD(fo,oft,oft);
     fo->src = fi;
-    fo->f.create_directory = opt_mkdir;
+    if (opt_mkdir)
+	fo->f.create_directory = true;
     fo->raw_mode = part_selector.whole_disc || !fi->f.id6_dest[0];
 
     // [[id+]]

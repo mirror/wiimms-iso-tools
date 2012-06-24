@@ -56,7 +56,8 @@ then
     echo "Can't determine Windows program path => abort" >&2
     exit 1
 fi
-CYGWIN_PROG_PATH="$( realpath "$WIN_PROG_PATH" )"
+#CYGWIN_PROG_PATH="$( realpath "$WIN_PROG_PATH" )"
+CYGWIN_PROG_PATH="${WIN_PROG_PATH//\\//}"
 
 WDEST="$WIN_PROG_PATH\\${WIN_INSTALL_PATH//\//\\}"
 CDEST="$CYGWIN_PROG_PATH/$WIN_INSTALL_PATH"

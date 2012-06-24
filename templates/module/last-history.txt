@@ -1,7 +1,8 @@
 wit v@@VERSION@@ r@@REV-NEXT@@ - @@@@-@@-@@
 
- - Windows version only: Update to Cygwin DLL 1.7.15-1
- - wit CERT --long: Print keys and signatures as hex or base64 dump.
+ - Bug fix: The automatic directory creation if using %-escapes in destination
+   file names was gone and is now back again.
+ - Because of compiler warnings: Switched from utime() to utimes().
 
 
 ~

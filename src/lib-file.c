@@ -460,9 +460,10 @@ enumError XSetFileTime ( XPARM File_t * f, FileAttrib_t * set_time )
     {
 	err = XCloseFile( XCALL f, false );
 
-	struct utimbuf ubuf;
-	ubuf.actime  = set_time->atime ? set_time->atime : set_time->mtime;
-	ubuf.modtime = set_time->mtime;
+	struct timeval tval[2];
+	tval[0].tv_sec = set_time->atime ? set_time->atime : set_time->mtime;
+	tval[1].tv_sec = set_time->mtime;
+	tval[0].tv_usec = tval[1].tv_usec = 0;
 
 	if (f->split_f)
 	{
@@ -470,13 +471,13 @@ enumError XSetFileTime ( XPARM File_t * f, FileAttrib_t * set_time )
 	    for ( end = ptr + f->split_used; ptr < end; ptr++ )
 	    {
 		TRACE("XSetFileTime(%p,%p) fname=%s\n",f,set_time,(*ptr)->fname);
-		utime((*ptr)->fname,&ubuf);
+		utimes((*ptr)->fname,tval);
 	    }
 	}
 	else
 	{
 	    TRACE("XSetFileTime(%p,%p) fname=%s\n",f,set_time,f->fname);
-	    utime(f->fname,&ubuf);
+	    utimes(f->fname,tval);
 	}
     }
     return err;

@@ -124,6 +124,12 @@ wit v2.05b r3611 - 2012-04-20
  - Bug fix for assertion failure in "wwt RECOVER".
 
 
+wit v2.06a r3832 - 2012-06-15
+
+ - Windows version only: Update to Cygwin DLL 1.7.15-1
+ - wit CERT --long: Print keys and signatures as hex or base64 dump.
+
+
 @@MODULE(last-history.txt)@@
 
 Road map (for some point in the future):
