@@ -172,6 +172,39 @@ static void hint_exit ( enumError stat )
     exit(stat);
 }
 
+///////////////////////////////////////////////////////////////////////////////
+
+#define SYNTAX_ERROR syntax_error(__FUNCTION__,__FILE__,__LINE__)
+
+static void syntax_error ( ccp func, ccp file, uint line )
+{
+    if ( current_command
+	&& current_command->id >= 0
+	&& current_command->id < InfoUI.n_cmd )
+    {
+	const InfoCommand_t *ic = InfoUI.cmd_info + current_command->id;
+	if (strchr(ic->syntax,'\n'))
+	{
+	    ccp src = ic->syntax;
+	    char *dest = iobuf;
+	    while (*src)
+		if ( (*dest++ = *src++) == '\n' )
+		{
+		    *dest++ = ' ';
+		    *dest++ = ' ';
+		    *dest++ = ' ';
+		}
+	    *dest = 0;
+	    PrintError(func,file,line,0,ERR_SYNTAX,"Syntax:\n   %s\n",iobuf);
+	}
+	else
+	    PrintError(func,file,line,0,ERR_SYNTAX,"Syntax: %s\n",ic->syntax);
+    }
+    else
+	PrintError(func,file,line,0,ERR_SYNTAX,"Syntax Error!\n");
+    exit(ERR_SYNTAX);
+}
+
 //
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////			command TEST			///////////////
@@ -248,7 +281,7 @@ static enumError cmd_test()
 	HEXDUMP16(0,0,buf,sizeof(buf));
     }
     return ERR_OK;
-    
+
  #elif 1
 
     {
@@ -271,7 +304,7 @@ static enumError cmd_test()
 	printf("%05x %-6s %s\n",ftype,id6,param->arg);
     }
     return ERR_OK;
-    
+
  #else
 
     int i, max = 5;
@@ -310,7 +343,7 @@ static enumError cmd_cert()
 
     FilePattern_t * pat_select   = file_pattern + PAT_FILES;
     FilePattern_t * pat_fakesign = file_pattern + PAT_FAKE_SIGN;
-    
+
     int i;
     for ( i = 0; i < global_cert.used; i++ )
     {
@@ -405,7 +438,7 @@ static enumError cmd_create()
 	    *dest++ = tolower((int)*src++);
 	DASSERT( dest < namebuf + sizeof(namebuf) );
 	*dest = 0;
-	
+
 	path = PathCatPP(pbuf2,sizeof(pbuf2),path,namebuf);
     }
 
@@ -920,9 +953,9 @@ enumError exec_print_id ( SuperFile_t * sf, Iterator_t * it )
     if (!disc)
 	return ERR_OK;
 
-    wd_part_t *part = it->long_count > 1 ? disc->part : disc->part;
+    wd_part_t *part = it->long_count > 1 ? disc->part : disc->main_part;
 
-    if (!part)
+    if ( !part || !disc->n_part )
 	printf("%6s  --   --    --  ", wd_print_id(&disc->dhead,6,0));
     else
     {
@@ -1241,7 +1274,7 @@ static enumError cmd_list ( int long_level )
 	{
 	    const u64 size = witem->fatt.size
 				? (u64)witem->fatt.size : witem->size_mib*(u64)MiB;
- 	    printf("%s%s %*s %s  %s\n",
+	    printf("%s%s %*s %s  %s\n",
 		    witem->id6, PrintTime(&pt,&witem->fatt),
 		    size_fw,
 		    wd_print_size(0,0,size,false,column_unit),
@@ -1433,9 +1466,16 @@ static enumError cmd_diff ( bool file_level )
     if (SetupFilePattern(pat))
 	encoding |= ENCODE_F_FAST; // hint: no encryption needed
 
+    int done_count = 0;
     ParamList_t * param;
     for ( param = first_param; param; param = param->next )
-	AppendStringField(&source_list,param->arg,true);
+	if (param->arg)
+	{
+	    done_count++;
+	    AppendStringField(&source_list,param->arg,true);
+	}
+    if (!done_count)
+	SYNTAX_ERROR;
 
     Iterator_t it;
     InitializeIterator(&it);
@@ -1482,7 +1522,7 @@ static enumError cmd_diff ( bool file_level )
 enumError exec_extract ( SuperFile_t * fi, Iterator_t * it )
 {
     ASSERT(fi);
-
+    PRINT("exec_extract(%s)\n",fi->f.fname);
     if (!fi->f.id6_dest[0])
 	return ERR_OK;
     fflush(0);
@@ -1570,9 +1610,16 @@ static enumError cmd_extract()
 	param->arg = 0;
     }
 
+    int done_count = 0;
     ParamList_t * param;
     for ( param = first_param; param; param = param->next )
-	AppendStringField(&source_list,param->arg,true);
+	if (param->arg)
+	{
+	    done_count++;
+	    AppendStringField(&source_list,param->arg,true);
+	}
+    if (!done_count)
+	SYNTAX_ERROR;
 
     encoding |= ENCODE_F_FAST; // hint: no encryption needed
 
@@ -1603,6 +1650,8 @@ static enumError cmd_extract()
 
 enumError exec_copy ( SuperFile_t * fi, Iterator_t * it )
 {
+    ASSERT(fi);
+    PRINT("exec_copy(%s)\n",fi->f.fname);
     if (!fi->f.id6_dest[0])
 	return ERR_OK;
     fflush(0);
@@ -1864,9 +1913,16 @@ static enumError cmd_copy()
 	param->arg = 0;
     }
 
+    int done_count = 0;
     ParamList_t * param;
     for ( param = first_param; param; param = param->next )
-	AppendStringField(&source_list,param->arg,true);
+	if (param->arg)
+	{
+	    done_count++;
+	    AppendStringField(&source_list,param->arg,true);
+	}
+    if (!done_count)
+	SYNTAX_ERROR;
 
     Iterator_t it;
     InitializeIterator(&it);
@@ -2021,7 +2077,7 @@ enumError exec_edit ( SuperFile_t * fi, Iterator_t * it )
 
     OpenDiscSF(fi,true,true);
     wd_disc_t * disc = fi->disc1;
-    
+
     enumError err = ERR_OK;
     if ( disc && disc->reloc )
     {
@@ -2404,7 +2460,7 @@ enumError exec_verify ( SuperFile_t * fi, Iterator_t * it )
 
     const enumError err = VerifyDisc(&ver);
     if ( err == ERR_DIFFER )
-        it->diff_count++;
+	it->diff_count++;
     ResetVerify(&ver);
     return err;
 }

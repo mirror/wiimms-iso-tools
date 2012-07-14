@@ -2817,6 +2817,7 @@ enumError CreateFileFST ( WiiFstInfo_t *wfi, ccp dest_path, WiiFstFile_t * file 
 	}
     }
 
+
     //----- directory handling
 
     if ( file->icm == WD_ICM_DIRECTORY )

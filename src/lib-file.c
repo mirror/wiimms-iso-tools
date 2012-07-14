@@ -945,8 +945,8 @@ uint ReduceToPathAndType
     StringCopyS(buf,buf_size,fname);
     char *dest = strrchr(buf,'/');
     dest = dest ? dest+1 : buf;
-    ccp src = strrchr(buf,'.');
-    if ( src && src > buf )
+    ccp src = strrchr(fname,'.');
+    if ( src && src > fname )
     {
 	*dest++ = '*';
 	while ( ( *dest++ = *src++ ) != 0 )

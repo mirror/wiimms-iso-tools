@@ -143,10 +143,11 @@ typedef struct WBFS_t
     // handles
 
 	SuperFile_t * sf;	// attached super file
-	bool sf_alloced;	// true if 'sf' is alloced
-	bool is_growing;	// true if wbfs is of type growing
-	bool disc_sf_opened;	// true if OpenWDiscSF() opened a disc
-	bool cache_candidate;	// true if wbfs is a cache candidate
+	bool sf_alloced;	// true: 'sf' is alloced
+	bool is_growing;	// true: wbfs is of type growing
+	bool disc_sf_opened;	// true: OpenWDiscSF() opened a disc
+	bool cache_candidate;	// true: wbfs is a cache candidate
+	bool is_wbfs_file;	// true: is a wbfs file (exact 1 disc at slot #0)
 	wbfs_t * wbfs;		// the pure wbfs handle
 	wbfs_disc_t * disc;	// the wbfs disc handle
 	int disc_slot;		// >=0: last opened slot

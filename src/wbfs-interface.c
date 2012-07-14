@@ -617,7 +617,7 @@ int AppendListID6 // returns number of inserted ids
     wbfs_t * w = wbfs->wbfs;
     if (w)
     {
-	id6_t * id_list = wbfs_load_id_list(w,false);
+	id6_t *id_list = wbfs_load_id_list(w,false);
 	DASSERT(id_list);
 	for ( ; **id_list; id_list++ )
 	    if (MatchRulesetID(select_list,*id_list))
@@ -925,9 +925,11 @@ enumError OpenParWBFS
     ResetWBFS(w);
     w->sf = sf;
 
+    bool maybe_wbfs_file = false;
     wbfs_balloc_mode_t balloc_mode = opt_wbfs_alloc;
     if (S_ISREG(sf->f.st.st_mode))
     {
+	maybe_wbfs_file = true;
 	char format[2*PATH_MAX], fname[PATH_MAX];
 	CalcSplitFilename(format,sizeof(format),sf->f.fname,OFT_WBFS);
 	snprintf(fname,sizeof(fname),format,1);
@@ -989,8 +991,14 @@ enumError OpenParWBFS
     }
 
     TRACELINE;
-    wbfs_load_id_list(w->wbfs,1);
+    id6_t *id_list = wbfs_load_id_list(w->wbfs,1);
     CalcWBFSUsage(w);
+
+    if ( maybe_wbfs_file && id_list[0][0] && wbfs_count_discs(w->wbfs) == 1 )
+    {
+	PRINT("A WBFS FILE\n");
+    	w->is_wbfs_file = true;
+    }
 
  #ifdef DEBUG
     TRACE("WBFS %s\n\n",sf->f.fname);
@@ -4054,11 +4062,20 @@ enumError CloseWDisc ( WBFS_t * w )
     {
 	if ( !sf || !IsOpenSF(sf) )
 	    w->disc->is_dirty = false;
-	if ( sf && sf->f.is_writing && w->disc->header ) // [[id+]]
-	    CopyPatchWbfsId( (char*)w->disc->header->dhead,
+
+	if ( sf
+		&& sf->f.is_writing
+		&& w->disc->header
+		&& w->is_wbfs_file
+		&& CopyPatchWbfsId( (char*)w->disc->header->dhead,
 				*sf->wbfs_id6
 					? sf->wbfs_id6
-					: (ccp)w->disc->header->dhead );
+					: (ccp)w->disc->header->dhead )
+	   ) // [[id+]]
+	{
+	    w->disc->is_dirty = true;
+	}
+
 	wbfs_close_disc(w->disc);
 	w->disc = 0;
     }

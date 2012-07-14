@@ -165,7 +165,7 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
     },
 
     {	OPT_INCLUDE_PATH, 'N', "include-path",
-	0,
+	"file_or_dir",
 	"Scan the ID of the source and add it to the include list. If the"
 	" source is a directory then scan all images of the directory. Only"
 	" images with the given ID are included into the operation. Each use"
@@ -1351,7 +1351,7 @@ const CommandTab_t CommandTab[] =
 ///////////////            OptionShort & OptionLong             ///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-const char OptionShort[] = "VhqvPLE:T:taAp:r:x:X:n:N1id:D:zZ:s:fuyeoRWICBl+:MUHS:";
+const char OptionShort[] = "VhqvPLE:T:taAp:r:x:X:n:N:1id:D:zZ:s:fuyeoRWICBl+:MUHS:";
 
 const struct option OptionLong[] =
 {
@@ -1392,8 +1392,8 @@ const struct option OptionLong[] =
 	{ "exclude-path",	1, 0, 'X' },
 	 { "excludepath",	1, 0, 'X' },
 	{ "include",		1, 0, 'n' },
-	{ "include-path",	0, 0, 'N' },
-	 { "includepath",	0, 0, 'N' },
+	{ "include-path",	1, 0, 'N' },
+	 { "includepath",	1, 0, 'N' },
 	{ "include-first",	0, 0, GO_INCLUDE_FIRST },
 	 { "includefirst",	0, 0, GO_INCLUDE_FIRST },
 	{ "one-job",		0, 0, '1' },

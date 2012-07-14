@@ -4865,7 +4865,7 @@
 	" option expands the include list. See {--include-first} for" \
 	" precedence issues." )
 
-#:def_opt( "INCLUDE_PATH", "N|include-path|includepath", "C", \
+#:def_opt( "INCLUDE_PATH", "N|include-path|includepath", "CMP", \
 	"file_or_dir", \
 	"Scan the ID of the source and add it to the include list. If the" \
 	" source is a directory then scan all images of the directory. Only" \

@@ -2376,7 +2376,7 @@ info_t info_tab[] =
   { T_OPT_CMP,	"INCLUDE",	"n|include",
 		0, 0 /* copy of wit */ },
 
-  { T_OPT_C,	"INCLUDE_PATH","N|include-path|includepath",
+  { T_OPT_CMP,	"INCLUDE_PATH","N|include-path|includepath",
 		0, 0 /* copy of wit */ },
 
   { T_OPT_C,	"INCLUDE_FIRST","include-first|includefirst",

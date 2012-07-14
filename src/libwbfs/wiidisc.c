@@ -2496,7 +2496,7 @@ enumError wd_calc_fst_statistics
 	disc->main_part = disc->update_part;
     else if (disc->channel_part)
 	disc->main_part = disc->channel_part;
-    TRACE("*_PART= %zd %zd %zd %zd\n",
+    TRACE("D_PART=%2zd U_PART=%2zd C_PART=%2zd M_PART=%2zd\n",
 	disc->data_part	   ? disc->data_part    - disc->part : -1,
 	disc->update_part  ? disc->update_part  - disc->part : -1,
 	disc->channel_part ? disc->channel_part - disc->part : -1,

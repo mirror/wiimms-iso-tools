@@ -74,7 +74,7 @@ typedef struct InfoCommand_t
     bool		separator;	// true: print a separator above
     ccp			name1;		// main name
     ccp			name2;		// NULL or alternative name
-    ccp			param;		// NULL or parameter name
+    ccp			syntax;		// NULL or syntax string
     ccp			help;		// help text
     int			n_opt;		// number of options == elements of 'opt'
     const InfoOption_t	** opt;		// field with option info

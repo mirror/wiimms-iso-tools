@@ -406,7 +406,7 @@ void PrintHelpCmd
     PutLines(f,indent+len,fw,len,0,ic->help);
 
     len = fprintf(f,"\n%*sSyntax: ", indent, "" ) - 1;
-    PutLines(f,indent+len,fw,len,0,ic->param);
+    PutLines(f,indent+len,fw,len,0,ic->syntax);
     fputc('\n',f);
 
     if ( !cmd && iu->n_cmd )
