@@ -16,7 +16,7 @@
  *   This file is part of the WIT project.                                 *
  *   Visit http://wit.wiimm.de/ for project details and sources.           *
  *                                                                         *
- *   Copyright (c) 2009-2011 by Dirk Clemens <wiimm@wiimm.de>              *
+ *   Copyright (c) 2009-2012 by Dirk Clemens <wiimm@wiimm.de>              *
  *                                                                         *
  ***************************************************************************
  *                                                                         *
@@ -460,9 +460,10 @@ enumError XSetFileTime ( XPARM File_t * f, FileAttrib_t * set_time )
     {
 	err = XCloseFile( XCALL f, false );
 
-	struct utimbuf ubuf;
-	ubuf.actime  = set_time->atime ? set_time->atime : set_time->mtime;
-	ubuf.modtime = set_time->mtime;
+	struct timeval tval[2];
+	tval[0].tv_sec = set_time->atime ? set_time->atime : set_time->mtime;
+	tval[1].tv_sec = set_time->mtime;
+	tval[0].tv_usec = tval[1].tv_usec = 0;
 
 	if (f->split_f)
 	{
@@ -470,13 +471,13 @@ enumError XSetFileTime ( XPARM File_t * f, FileAttrib_t * set_time )
 	    for ( end = ptr + f->split_used; ptr < end; ptr++ )
 	    {
 		TRACE("XSetFileTime(%p,%p) fname=%s\n",f,set_time,(*ptr)->fname);
-		utime((*ptr)->fname,&ubuf);
+		utimes((*ptr)->fname,tval);
 	    }
 	}
 	else
 	{
 	    TRACE("XSetFileTime(%p,%p) fname=%s\n",f,set_time,f->fname);
-	    utime(f->fname,&ubuf);
+	    utimes(f->fname,tval);
 	}
     }
     return err;
@@ -944,8 +945,8 @@ uint ReduceToPathAndType
     StringCopyS(buf,buf_size,fname);
     char *dest = strrchr(buf,'/');
     dest = dest ? dest+1 : buf;
-    ccp src = strrchr(buf,'.');
-    if ( src && src > buf )
+    ccp src = strrchr(fname,'.');
+    if ( src && src > fname )
     {
 	*dest++ = '*';
 	while ( ( *dest++ = *src++ ) != 0 )
@@ -1859,19 +1860,19 @@ static void PreallocHelper ( File_t *f )
 		    break;
 
 	#ifdef HAVE_FALLOCATE
-		PRINT("CALL fallocate(%d,0,%9llx,%9llx [%s])\n",
+		noPRINT("CALL fallocate(%d,0,%9llx,%9llx [%s])\n",
 			    f->fd, (u64)found->off, (u64)found->size,
 			    wd_print_size_1024(0,0,found->size,true) );
 		fallocate(f->fd,0,found->off,found->size);
-		PRINT("TERM fallocate()\n");
+		noPRINT("TERM fallocate()\n");
 	#elif HAVE_POSIX_FALLOCATE
-		PRINT("CALL posix_fallocate(%d,%9llx,%9llx [%s])\n",
+		noPRINT("CALL posix_fallocate(%d,%9llx,%9llx [%s])\n",
 			    f->fd, (u64)found->off, (u64)found->size,
 			    wd_print_size_1024(0,0,found->size,true) );
 		posix_fallocate(f->fd,found->off,found->size);
-		PRINT("TERM posix_fallocate()\n");
+		noPRINT("TERM posix_fallocate()\n");
 	#elif __APPLE__
-		PRINT("CALL fcntl(%d,F_PREALLOCATE,%9llx,%9llx [%s])\n",
+		noPRINT("CALL fcntl(%d,F_PREALLOCATE,%9llx,%9llx [%s])\n",
 			    f->fd, (u64)found->off, (u64)found->size,
 			    wd_print_size_1024(0,0,found->size,true) );
 		fstore_t fst;
@@ -1881,7 +1882,7 @@ static void PreallocHelper ( File_t *f )
 		fst.fst_length	= found->size;
 		fst.fst_bytesalloc = 0;
 		fcntl( f->fd, F_PREALLOCATE, &fst );
-		PRINT("TERM fcntl()\n");
+		noPRINT("TERM fcntl()\n");
 	#else
 		#error "no preallocation support -> use -DNO_PREALLOC"
 	#endif
@@ -2146,7 +2147,7 @@ enumError XPreallocateF
     enumError err = ERR_OK;
     if ( size && prealloc_mode > PREALLOC_OFF )
     {
-	PRINT("PREALLOC/FILE fd=%d, %llx+%llx max=%llx: %s\n",
+	noPRINT("PREALLOC/FILE fd=%d, %llx+%llx max=%llx: %s\n",
 		f->fd, (u64)off, (u64)size, (u64)f->max_off, f->fname );
 
 	const off_t max = off + size;
@@ -3002,7 +3003,7 @@ bool SetPatchFileID
 
     memset( f->id6_src, 0, sizeof(f->id6_src) );
     memcpy( f->id6_src, new_id, id_length < 6 ? id_length : 6 );
-    const bool stat = CopyPatchedDiscId( f->id6_dest, f->id6_src );
+    const bool stat = CopyPatchDiscId( f->id6_dest, f->id6_src );
     noPRINT("$$$ SetPatchFileID: |%s|%s| stat=%d\n",f->id6_src,f->id6_dest,stat);
     return stat;
 }
@@ -3347,7 +3348,7 @@ int AddCertFile ( ccp fname, int unused )
 		}
 	    }
 	}
-// [[2do]] [ft-id]
+// [[2do]] [[ft-id]]
 	else if ( sf.f.ftype & (FT_ID_CERT_BIN|FT_ID_TIK_BIN|FT_ID_TMD_BIN) )
 	{
 	    const size_t load_size = sf.file_size < sizeof(iobuf)

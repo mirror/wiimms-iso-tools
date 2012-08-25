@@ -16,7 +16,7 @@
  *   This file is part of the WIT project.                                 *
  *   Visit http://wit.wiimm.de/ for project details and sources.           *
  *                                                                         *
- *   Copyright (c) 2009-2011 by Dirk Clemens <wiimm@wiimm.de>              *
+ *   Copyright (c) 2009-2012 by Dirk Clemens <wiimm@wiimm.de>              *
  *                                                                         *
  ***************************************************************************
  *                                                                         *
@@ -44,16 +44,6 @@
 
 #include "libwbfs_os.h"		// os dependent definitions
 #include "libwbfs_defaults.h"	// default settings
-
-///////////////////////////////////////////////////////////////////////////////
-
-#ifdef NEW_FEATURES // [[2do]] [[obsolete]]
-    #define NEW_WBFS_INTERFACE 1
-#elif defined(OLD_FEATURES)
-    #define NEW_WBFS_INTERFACE 0
-#else
-    #define NEW_WBFS_INTERFACE 1
-#endif
 
 //
 ///////////////////////////////////////////////////////////////////////////////

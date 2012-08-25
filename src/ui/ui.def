@@ -65,7 +65,7 @@
 #:def_cmd( "CREATE", "CREATE", \
 	"wit CREATE TICKET outfile [--id id] [title_id] [decrypted_key]\n" \
 	"wit CREATE TMD outfile [--id id] [--ios ios] [hash_val]", \
-	"Create a system file." )
+	"Create a system file (TICKET or TMD)." )
 
 #:def_cmd( "FILELIST", "FILELIST|FLIST", \
 	"wit FILELIST [source]...", \
@@ -87,9 +87,8 @@
 	" by analyzing the content." )
 
 #:def_cmd( "ID6", "ID6|ID", \
-	"wit ID6 [id]...", \
-	"Print ID6 of all found ISO files. If the ID list is set use it as" \
-	" selector." )
+	"wit ID6 [source]...", \
+	"Print ID6 of all found ISO files as simple list." )
 
 #:def_cmd( "LIST", "LIST|LS", \
 	"wit LIST [source]...", \
@@ -97,17 +96,19 @@
 
 #:def_cmd( "LIST_L", "LIST-L|LL|LISTL", \
 	"wit LIST-L [source]...", \
-	"List all found ISO files. 'LIST-L' is a shortcut for {LIST --long}." )
+	"List all found ISO files with size and region. 'LIST-L' is a shortcut" \
+	" for {LIST --long}." )
 
 #:def_cmd( "LIST_LL", "LIST-LL|LLL|LISTLL", \
 	"wit LIST-LL [source]...", \
-	"List all found ISO files. 'LIST-LL' is a shortcut for {LIST --long" \
-	" --long}." )
+	"List all found ISO files with date, size and region. 'LIST-LL' is a" \
+	" shortcut for {LIST --long --long}." )
 
 #:def_cmd( "LIST_LLL", "LIST-LLL|LLLL|LISTLLL", \
 	"wit LIST-LLL [source]...", \
-	"List all found ISO files. 'LIST-LLL' is a shortcut for {LIST --long" \
-	" --long --long}." )
+	"List all found ISO files with date, size and region and add a second" \
+	" status line with more info. 'LIST-LLL' is a shortcut for {LIST" \
+	" --long --long --long}." )
 
 #:def_cmd( "FILES", "FILES|F|ILIST|IL", \
 	"wit FILES [source]...", \
@@ -169,6 +170,18 @@
 	"Edit an existing Wii and GameCube ISO image and patch some values." \
 	" Images, WBFS partitions and directories are accepted as source." )
 
+#:def_cmd( "IMGFILES", "IMGFILES|IF", \
+	"wit IMGFILES source\n" \
+	"wit IMGFILES [[--source] source]... [--recurse source]...", \
+	"Print a list of all image files including their associated split" \
+	" files. Each file is printed on a separate line for further batch" \
+	" processing." )
+
+#:def_cmd( "REMOVE", "REMOVE|RM", \
+	"wit REMOVE source\n" \
+	"wit REMOVE [[--source] source]... [--recurse source]...", \
+	"Remove images including their associated split files." )
+
 #:def_cmd( "MOVE", "MOVE|MV", \
 	"wit MOVE source dest\n" \
 	"wit MOVE [[--source] source]... [--recurse source]... [-d|-D] dest", \
@@ -191,7 +204,7 @@
 #:def_cmd( "SKELETON", "SKELETON|SKEL", \
 	"wit SKELETON [source]...", \
 	"Create very small skeletons of ISO images. A skeleton contains only" \
-	" disc and partiton headers for further analysis and is not playable" \
+	" disc and partition headers for further analysis and is not playable" \
 	" because all files are zeroed." )
 
 #:def_cmd( "MIX", "MIX", \
@@ -256,6 +269,10 @@
 	" fopen() function. The value '2' defines the same for ISO files and" \
 	" value '4' for WIA files. You can combine the values by adding them." )
 
+#:def_opt( "FORCE", "f|force", "G", \
+	"", \
+	"Force operation." )
+
 #:def_opt( "TITLES", "T|titles", "GMP", \
 	"file", \
 	"Read file for disc titles. -T0 disables titles lookup." )
@@ -290,7 +307,7 @@
 	"  Directories are expanded to all containing files but hidden files" \
 	" (file names begins with a point) are ignored. If a command needs" \
 	" only images then non image files of the directory are ignored" \
-	" without notification. The option {--no-expand} supresses the" \
+	" without notification. The option {--no-expand} suppress the" \
 	" directory expansion." )
 
 #:def_opt( "NO_EXPAND", "no-expand|noexpand", "C", \
@@ -382,7 +399,7 @@
 #:def_opt( "FAKE_SIGN", "fake-sign|fakesign", "CP", \
 	"ruleset", \
 	"Add a certificate selection rule. All certificates that matches the" \
-	" ruleset will be fake signed." )
+	" rule set will be fake signed." )
 
 #:def_opt( "IGNORE", "i|ignore", "CM", \
 	"", \
@@ -403,6 +420,11 @@
 	"Detect soft and hard linked source files while composing or" \
 	" extracting discs and try to create hard links instead of independent" \
 	" copies on the destination file system." )
+
+#:def_opt( "NULL", "0|null", "C", \
+	"Terminate each output line with a NUL (ASCII 0) character instead" \
+	" with a line feed (LF, ASCII 10).", \
+	"" )
 
 #:def_opt( "PSEL", "psel", "CP", \
 	"list", \
@@ -460,13 +482,15 @@
 	" ENCRYPT, SIGN or AUTO. The case of the keywords is ignored. The" \
 	" default mode is 'AUTO'." )
 
-#:def_opt( "ID", "id", "CP", \
-	"id", \
-	"This $patching$ option changes the ID of the disc to the given" \
-	" parameter. 1 to 6 characters are expected. Only defined characters" \
-	" not equal '.' are modified. The disc header, boot.bin, ticket.bin" \
-	" and tmd.bin are objects to modify. The option {--modify} selects the" \
-	" objects." )
+#:def_opt( "MODIFY", "modify", "CP", \
+	"list", \
+	" This $patching$ defines the impact of the options {--name} and" \
+	" {--id}. It expects a comma separated list of the following keywords" \
+	" (case ignored) as parameter: @NONE, DISC, BOOT, TICKET, TMD, WBFS," \
+	" ALL@ and @AUTO@ (default).\n" \
+	"  All keywords can be prefixed by @'+'@ to enable that option, by a" \
+	" @'-'@ to disable it or by a @'='@ to enable that option and disable" \
+	" all others." )
 
 #:def_opt( "NAME", "name", "CP", \
 	"name", \
@@ -475,14 +499,56 @@
 	" header and boot.bin are objects to modify. The option {--modify}" \
 	" selects the objects." )
 
-#:def_opt( "MODIFY", "modify", "CP", \
-	"list", \
-	" This $patching$ option expects a comma separated list of the" \
-	" following keywords (case ignored) as parameter: @NONE, DISC, BOOT," \
-	" TICKET, TMD, WBFS, ALL@ and @AUTO@ (default).\n" \
-	"  All keywords can be prefixed by @'+'@ to enable that option, by a" \
-	" @'-'@ to disable it or by a @'='@ to enable that option and disable" \
-	" all others." )
+#:def_opt( "ID", "id", "CP", \
+	"id", \
+	"This $patching$ option changes the ID of the disc to the given" \
+	" parameter. 1 to 6 characters are expected. Only defined characters" \
+	" not equal '.' are modified. The plus sign '+' is a wildcard for" \
+	" multiple '.' to fill the complete entered ID to 6 characters. The" \
+	" disc header, boot.bin, ticket.bin and tmd.bin are objects to modify." \
+	" The option {--modify} selects the objects." )
+
+#:def_opt( "DISC_ID", "disc-id|discid", "CP", \
+	"id", \
+	"This $patching$ option changes the ID of the disc header to the given" \
+	" parameter. 1 to 6 characters are expected. Only defined characters" \
+	" not equal '.' are modified. The plus sign '+' is a wildcard for" \
+	" multiple '.' to fill the complete entered ID to 6 characters. Option" \
+	" --disc-id overrides the definition of option {--id}." )
+
+#:def_opt( "BOOT_ID", "boot-id|bootid", "CP", \
+	"id", \
+	"This $patching$ option changes the ID of boot.bin to the given" \
+	" parameter. 1 to 6 characters are expected. Only defined characters" \
+	" not equal '.' are modified. The plus sign '+' is a wildcard for" \
+	" multiple '.' to fill the complete entered ID to 6 characters. Option" \
+	" --boot-id overrides the definition of option {--id}." )
+
+#:def_opt( "TICKET_ID", "ticket-id|ticketid", "CP", \
+	"id", \
+	"This $patching$ option changes the ID of ticket.bin to the given" \
+	" parameter. 1 to 4 characters are expected. Only defined characters" \
+	" not equal '.' are modified. The plus sign '+' is a wildcard for" \
+	" multiple '.' to fill the complete entered ID to 4 characters. Option" \
+	" --ticket-id overrides the definition of option {--id}." )
+
+#:def_opt( "TMD_ID", "tmd-id|tmdid", "CP", \
+	"id", \
+	"This $patching$ option changes the ID of tmd.bin to the given" \
+	" parameter. 1 to 4 characters are expected. Only defined characters" \
+	" not equal '.' are modified. The plus sign '+' is a wildcard for" \
+	" multiple '.' to fill the complete entered ID to 4 characters. Option" \
+	" --tmd-id overrides the definition of option {--id}." )
+
+#:def_opt( "WBFS_ID", "wbfs-id|wbfsid", "CP", \
+	"id", \
+	"This $patching$ option changes the ID of the WBFS header to the given" \
+	" parameter if adding a file to a WBFS or if creating a WBFS file. 1" \
+	" to 6 characters are expected. The already patched disc ID of the" \
+	" source is used as base and only defined characters not equal '.' are" \
+	" modified. The plus sign '+' is a wildcard for multiple '.' to fill" \
+	" the complete entered ID to 6 characters. Option --wbfs-id overrides" \
+	" the definition of option {--id}." )
 
 #:def_opt( "REGION", "region", "CP", \
 	"region", \
@@ -578,13 +644,13 @@
 	"This option enables or disables the disc space preallocation. If" \
 	" enabled the tools try to allocate disc space for the new files" \
 	" before writing the data. This reduces the fragmentation but also" \
-	" disables the sparse effect for prealocated areas.\n" \
+	" disables the sparse effect for preallocated areas.\n" \
 	"  The optional parameter decides the preallocation mode: @OFF@ (or" \
 	" @0@), @SMART@ (or @1@), @ALL@ (or @2@). If no parameter is set," \
 	" @ALL@ is used.\n" \
 	"  Mode @'OFF'@ disables the preallocation. Mode @'SMART'@ looks into" \
 	" the source disc to find out the writing areas. @SMART@ is only" \
-	" avalable for $ISO$, $CISO$ and $WBFS$ file types. For other file" \
+	" available for $ISO$, $CISO$ and $WBFS$ file types. For other file" \
 	" types @ALL@ is used instead. Mode @'ALL'@ (the default) preallocate" \
 	" the whole destination file. Because of the large holes in plain ISO" \
 	" images, the @SMART@ mode is used for ISOs instead." )
@@ -782,7 +848,7 @@
 	" PATCH, RELOCATE, FILES, UNUSED, OFFSET, SIZE, PATH@ and @ALL@. There" \
 	" are some combined keys: @ID := D-ID,P-ID@, @PART :=" \
 	" P-INFO,P-ID,P-MAP,TICKET,TMD@, @DISC := FILES,D-ID,D-MAP@, @MAP :=" \
-	" P-MAP,D-MAP,W_MAP@.\n" \
+	" P-MAP,D-MAP,W-MAP@.\n" \
 	"  All keywords can be prefixed by '+' to enable that option, by a '-'" \
 	" to disable it or by a '=' to enable that option and disable all" \
 	" others.\n" \
@@ -952,8 +1018,13 @@
 
 #:def_cmd_opt( "CERT", "VERBOSE", \
 	"", \
-	"Dump the content of all certificates to standard output. This is the" \
-	" default if neiter --dest nor --DEST are set." )
+	"Print the content of all certificates to standard output. This is the" \
+	" default if neither --dest nor --DEST are set." )
+
+#:def_cmd_opt( "CERT", "LONG", \
+	"", \
+	"If printing, print the complete key as hex dump, not only the first" \
+	" bytes. If set twice, print BASE64 encoded." )
 
 #:def_cmd_opt( "CREATE", "TEST", \
 	"", \
@@ -1114,9 +1185,9 @@
 
 #:def_cmd_opt( "FILETYPE", "LONG", \
 	"", \
-	"If set at least once or twide additional columns with ID6 (1x) or" \
-	" ther region (2x) are enabled. If set three or more times the real" \
-	" path instead of given path is printed." )
+	"If set at least once or twice additional columns with ID6 (1x) or the" \
+	" region (2x) are enabled. If set three or more times the real path" \
+	" instead of given path is printed." )
 
 #:def_cmd_opt( "ISOSIZE", "AUTO", \
 	"", \
@@ -1329,7 +1400,7 @@
 	"", \
 	"" )
 
-#:def_cmd_opt( "DUMP", "ID", \
+#:def_cmd_opt( "DUMP", "MODIFY", \
 	"", \
 	"" )
 
@@ -1337,7 +1408,27 @@
 	"", \
 	"" )
 
-#:def_cmd_opt( "DUMP", "MODIFY", \
+#:def_cmd_opt( "DUMP", "ID", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "DUMP", "DISC_ID", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "DUMP", "BOOT_ID", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "DUMP", "TICKET_ID", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "DUMP", "TMD_ID", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "DUMP", "WBFS_ID", \
 	"", \
 	"" )
 
@@ -1443,7 +1534,37 @@
 
 #:def_cmd_opt( "ID6", "LONG", \
 	"", \
-	"If set, the disc name of the title db is printed too." )
+	"If set, a table with 5 IDs (DISC, BOOT, TICKET, TMD and WBFS) is" \
+	" printed. BOOT, TICKET and TMD IDs are taken from the main partition." \
+	" If set twice, all IDs of all partitions are printed." )
+
+#:def_cmd_opt( "ID6", "MODIFY", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "ID6", "ID", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "ID6", "DISC_ID", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "ID6", "BOOT_ID", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "ID6", "TICKET_ID", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "ID6", "TMD_ID", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "ID6", "WBFS_ID", \
+	"", \
+	"" )
 
 #:def_cmd_opt( "LIST", "TITLES", \
 	"", \
@@ -1543,9 +1664,9 @@
 
 #:def_cmd_opt( "LIST", "LONG", \
 	"", \
-	"If set the size in MiB and the region is printed too. If set twice at" \
-	" least on time columns is added. If set three times a second line" \
-	" with number or partitions, file type and real path is added." )
+	"If set, the size in MiB and the region is printed too. If set twice," \
+	" a date columns is added. If set three times, a second line with" \
+	" number or partitions, file type and real path is added." )
 
 #:def_cmd_opt( "LIST", "REALPATH", \
 	"", \
@@ -1677,9 +1798,9 @@
 
 #:def_cmd_opt( "LIST_L", "LONG", \
 	"", \
-	"If set the size in MiB and the region is printed too. If set twice at" \
-	" least on time columns is added. If set three times a second line" \
-	" with number or partitions, file type and real path is added." )
+	"If set, the size in MiB and the region is printed too. If set twice," \
+	" a date columns is added. If set three times, a second line with" \
+	" number or partitions, file type and real path is added." )
 
 #:def_cmd_opt( "LIST_L", "REALPATH", \
 	"", \
@@ -1811,9 +1932,9 @@
 
 #:def_cmd_opt( "LIST_LL", "LONG", \
 	"", \
-	"If set the size in MiB and the region is printed too. If set twice at" \
-	" least on time columns is added. If set three times a second line" \
-	" with number or partitions, file type and real path is added." )
+	"If set, the size in MiB and the region is printed too. If set twice," \
+	" a date columns is added. If set three times, a second line with" \
+	" number or partitions, file type and real path is added." )
 
 #:def_cmd_opt( "LIST_LL", "REALPATH", \
 	"", \
@@ -1945,9 +2066,9 @@
 
 #:def_cmd_opt( "LIST_LLL", "LONG", \
 	"", \
-	"If set the size in MiB and the region is printed too. If set twice at" \
-	" least on time columns is added. If set three times a second line" \
-	" with number or partitions, file type and real path is added." )
+	"If set, the size in MiB and the region is printed too. If set twice," \
+	" a date columns is added. If set three times, a second line with" \
+	" number or partitions, file type and real path is added." )
 
 #:def_cmd_opt( "LIST_LLL", "REALPATH", \
 	"", \
@@ -2527,7 +2648,7 @@
 #:def_cmd_opt( "DIFF", "LONG", \
 	"", \
 	"If set, a status line with the offset is printed for each found" \
-	" mismatch. If set twice, an additonal hexdump of the first bytes is" \
+	" mismatch. If set twice, an additional hex dump of the first bytes is" \
 	" printed. If set 3 or 4 times, the limit is set to 10 or unlimited if" \
 	" option {--limit} is not already set. This option is ignored in quiet" \
 	" mode." )
@@ -2736,7 +2857,7 @@
 #:def_cmd_opt( "FDIFF", "LONG", \
 	"", \
 	"If set, a status line with the offset is printed for each found" \
-	" mismatch. If set twice, an additonal hexdump of the first bytes is" \
+	" mismatch. If set twice, an additional hex dump of the first bytes is" \
 	" printed. If set 3 or 4 times, the limit is set to 10 or unlimited if" \
 	" option {--limit} is not already set. This option is ignored in quiet" \
 	" mode." )
@@ -2944,7 +3065,7 @@
 	"", \
 	"" )
 
-#:def_cmd_opt( "EXTRACT", "ID", \
+#:def_cmd_opt( "EXTRACT", "MODIFY", \
 	"", \
 	"" )
 
@@ -2952,7 +3073,27 @@
 	"", \
 	"" )
 
-#:def_cmd_opt( "EXTRACT", "MODIFY", \
+#:def_cmd_opt( "EXTRACT", "ID", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "EXTRACT", "DISC_ID", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "EXTRACT", "BOOT_ID", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "EXTRACT", "TICKET_ID", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "EXTRACT", "TMD_ID", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "EXTRACT", "WBFS_ID", \
 	"", \
 	"" )
 
@@ -3163,7 +3304,7 @@
 	"", \
 	"" )
 
-#:def_cmd_opt( "COPY", "ID", \
+#:def_cmd_opt( "COPY", "MODIFY", \
 	"", \
 	"" )
 
@@ -3171,7 +3312,27 @@
 	"", \
 	"" )
 
-#:def_cmd_opt( "COPY", "MODIFY", \
+#:def_cmd_opt( "COPY", "ID", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "COPY", "DISC_ID", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "COPY", "BOOT_ID", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "COPY", "TICKET_ID", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "COPY", "TMD_ID", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "COPY", "WBFS_ID", \
 	"", \
 	"" )
 
@@ -3411,7 +3572,7 @@
 	"", \
 	"" )
 
-#:def_cmd_opt( "CONVERT", "ID", \
+#:def_cmd_opt( "CONVERT", "MODIFY", \
 	"", \
 	"" )
 
@@ -3419,7 +3580,27 @@
 	"", \
 	"" )
 
-#:def_cmd_opt( "CONVERT", "MODIFY", \
+#:def_cmd_opt( "CONVERT", "ID", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "CONVERT", "DISC_ID", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "CONVERT", "BOOT_ID", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "CONVERT", "TICKET_ID", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "CONVERT", "TMD_ID", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "CONVERT", "WBFS_ID", \
 	"", \
 	"" )
 
@@ -3615,7 +3796,7 @@
 	"", \
 	"" )
 
-#:def_cmd_opt( "EDIT", "ID", \
+#:def_cmd_opt( "EDIT", "MODIFY", \
 	"", \
 	"" )
 
@@ -3623,7 +3804,27 @@
 	"", \
 	"" )
 
-#:def_cmd_opt( "EDIT", "MODIFY", \
+#:def_cmd_opt( "EDIT", "ID", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "EDIT", "DISC_ID", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "EDIT", "BOOT_ID", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "EDIT", "TICKET_ID", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "EDIT", "TMD_ID", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "EDIT", "WBFS_ID", \
 	"", \
 	"" )
 
@@ -3644,6 +3845,158 @@
 	"" )
 
 #:def_cmd_opt( "EDIT", "ZERO_FILES", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "IMGFILES", "TITLES", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "IMGFILES", "UTF_8", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "IMGFILES", "NO_UTF_8", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "IMGFILES", "LANG", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "IMGFILES", "SOURCE", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "IMGFILES", "NO_EXPAND", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "IMGFILES", "RECURSE", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "IMGFILES", "RDEPTH", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "IMGFILES", "EXCLUDE", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "IMGFILES", "EXCLUDE_PATH", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "IMGFILES", "INCLUDE", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "IMGFILES", "INCLUDE_PATH", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "IMGFILES", "INCLUDE_FIRST", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "IMGFILES", "ONE_JOB", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "IMGFILES", "JOB_LIMIT", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "IMGFILES", "IGNORE", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "IMGFILES", "QUIET", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "IMGFILES", "SECTIONS", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "IMGFILES", "NULL", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "REMOVE", "TEST", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "REMOVE", "TITLES", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "REMOVE", "UTF_8", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "REMOVE", "NO_UTF_8", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "REMOVE", "LANG", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "REMOVE", "SOURCE", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "REMOVE", "NO_EXPAND", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "REMOVE", "RECURSE", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "REMOVE", "RDEPTH", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "REMOVE", "EXCLUDE", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "REMOVE", "EXCLUDE_PATH", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "REMOVE", "INCLUDE", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "REMOVE", "INCLUDE_PATH", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "REMOVE", "INCLUDE_FIRST", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "REMOVE", "ONE_JOB", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "REMOVE", "JOB_LIMIT", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "REMOVE", "IGNORE", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "REMOVE", "QUIET", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "REMOVE", "SECTIONS", \
 	"", \
 	"" )
 
@@ -4050,7 +4403,7 @@
 #:def_cmd_opt( "VERIFY", "LONG", \
 	"", \
 	"On error print an additional line to localize the exact position" \
-	" where the error is found. If set twice a hexdump of the hash values" \
+	" where the error is found. If set twice a hex dump of the hash values" \
 	" is printed too." )
 
 #:def_cmd_opt( "VERIFY", "TECHNICAL", \
@@ -4367,13 +4720,18 @@
 
 #:def_cmd( "LIST_L", "LIST-L|LL|LISTL", \
 	"wwt LIST-L [wbfs_partition]...", \
-	"List all discs of WBFS partitions. 'LIST-L' is a shortcut for {LIST" \
-	" --long}." )
+	"List all discs of WBFS partitions with size and region. 'LIST-L' is a" \
+	" shortcut for {LIST --long}." )
 
 #:def_cmd( "LIST_LL", "LIST-LL|LLL|LISTLL", \
 	"wwt LIST-LL [wbfs_partition]...", \
-	"List all discs of WBFS partitions. 'LIST-LL' is a shortcut for {LIST" \
-	" --long --long}." )
+	"List all discs of WBFS partitions with date, size and region." \
+	" 'LIST-LL' is a shortcut for {LIST --long --long}." )
+
+#:def_cmd( "LIST_LLL", "LIST-LLL|LLLL|LISTLLL", \
+	"wwt LIST-LLL [wbfs_partition]...", \
+	"List all discs of WBFS partitions with date, time, size and region." \
+	" 'LIST-LLL' is a shortcut for {LIST --long --long --long}." )
 
 #:def_cmd( "LIST_A", "LIST-A|LA|LISTA", \
 	"wwt LIST-A [wbfs_partition]...", \
@@ -4424,7 +4782,7 @@
 	"FREE    := FREE=a,b-c,...\n" \
 	"USE     := USE=a,b-c,...\n" \
 	"ID6     := ID6=a:b,c-d:e,...", \
-	"Edit slot and block assignments. Dangerous! Read docu!" )
+	"Edit slot and block assignments. Dangerous! Read the documentation!" )
 
 #:def_cmd( "PHANTOM", "PHANTOM", \
 	"wwt PHANTOM [RULE]...\n" \
@@ -4498,7 +4856,7 @@
 #:def_cmd( "SKELETON", "SKELETON|SKEL", \
 	"wwt SKELETON [id6]...", \
 	"Create very small skeletons of ISO images. A skeleton contains only" \
-	" disc and partiton headers for further analysis and is not playable" \
+	" disc and partition headers for further analysis and is not playable" \
 	" because all files are zeroed." )
 
 #:def_cmd( "FILETYPE", "FILETYPE|FTYPE", \
@@ -4596,7 +4954,7 @@
 	"  Directories are expanded to all containing files but hidden files" \
 	" (file names begins with a point) are ignored. If a command needs" \
 	" only images then non image files of the directory are ignored" \
-	" without notification. The option {--no-expand} supresses the" \
+	" without notification. The option {--no-expand} suppress the" \
 	" directory expansion." )
 
 #:def_opt( "NO_EXPAND", "no-expand|noexpand", "C", \
@@ -4676,7 +5034,7 @@
 	" option expands the include list. See {--include-first} for" \
 	" precedence issues." )
 
-#:def_opt( "INCLUDE_PATH", "N|include-path|includepath", "C", \
+#:def_opt( "INCLUDE_PATH", "N|include-path|includepath", "CMP", \
 	"file_or_dir", \
 	"Scan the ID of the source and add it to the include list. If the" \
 	" source is a directory then scan all images of the directory. Only" \
@@ -4763,13 +5121,15 @@
 	" ENCRYPT, SIGN or AUTO. The case of the keywords is ignored. The" \
 	" default mode is 'AUTO'." )
 
-#:def_opt( "ID", "id", "CP", \
-	"id", \
-	"This $patching$ option changes the ID of the disc to the given" \
-	" parameter. 1 to 6 characters are expected. Only defined characters" \
-	" not equal '.' are modified. The disc header, boot.bin, ticket.bin" \
-	" and tmd.bin are objects to modify. The option {--modify} selects the" \
-	" objects." )
+#:def_opt( "MODIFY", "modify", "CP", \
+	"list", \
+	" This $patching$ defines the impact of the options {--name} and" \
+	" {--id}. It expects a comma separated list of the following keywords" \
+	" (case ignored) as parameter: @NONE, DISC, BOOT, TICKET, TMD, WBFS," \
+	" ALL@ and @AUTO@ (default).\n" \
+	"  All keywords can be prefixed by @'+'@ to enable that option, by a" \
+	" @'-'@ to disable it or by a @'='@ to enable that option and disable" \
+	" all others." )
 
 #:def_opt( "NAME", "name", "CP", \
 	"name", \
@@ -4778,14 +5138,14 @@
 	" header and boot.bin are objects to modify. The option {--modify}" \
 	" selects the objects." )
 
-#:def_opt( "MODIFY", "modify", "CP", \
-	"list", \
-	" This $patching$ option expects a comma separated list of the" \
-	" following keywords (case ignored) as parameter: @NONE, DISC, BOOT," \
-	" TICKET, TMD, WBFS, ALL@ and @AUTO@ (default).\n" \
-	"  All keywords can be prefixed by @'+'@ to enable that option, by a" \
-	" @'-'@ to disable it or by a @'='@ to enable that option and disable" \
-	" all others." )
+#:def_opt( "ID", "id", "CP", \
+	"id", \
+	"This $patching$ option changes the ID of the disc to the given" \
+	" parameter. 1 to 6 characters are expected. Only defined characters" \
+	" not equal '.' are modified. The plus sign '+' is a wildcard for" \
+	" multiple '.' to fill the complete entered ID to 6 characters. The" \
+	" disc header, boot.bin, ticket.bin and tmd.bin are objects to modify." \
+	" The option {--modify} selects the objects." )
 
 #:def_opt( "REGION", "region", "CP", \
 	"region", \
@@ -4870,13 +5230,13 @@
 	"This option enables or disables the disc space preallocation. If" \
 	" enabled the tools try to allocate disc space for the new files" \
 	" before writing the data. This reduces the fragmentation but also" \
-	" disables the sparse effect for prealocated areas.\n" \
+	" disables the sparse effect for preallocated areas.\n" \
 	"  The optional parameter decides the preallocation mode: @OFF@ (or" \
 	" @0@), @SMART@ (or @1@), @ALL@ (or @2@). If no parameter is set," \
 	" @ALL@ is used.\n" \
 	"  Mode @'OFF'@ disables the preallocation. Mode @'SMART'@ looks into" \
 	" the source disc to find out the writing areas. @SMART@ is only" \
-	" avalable for $ISO$, $CISO$ and $WBFS$ file types. For other file" \
+	" available for $ISO$, $CISO$ and $WBFS$ file types. For other file" \
 	" types @ALL@ is used instead. Mode @'ALL'@ (the default) preallocate" \
 	" the whole destination file. Because of the large holes in plain ISO" \
 	" images, the @SMART@ mode is used for ISOs instead." )
@@ -4984,7 +5344,7 @@
 	" the disc info area. Then look into each disc slot to find valid" \
 	" discs and restore them." )
 
-#:def_opt( "FORCE", "f|force", "C", \
+#:def_opt( "FORCE", "f|force", "G", \
 	"", \
 	"Force operation." )
 
@@ -5118,7 +5478,7 @@
 	" PATCH, RELOCATE, FILES, UNUSED, OFFSET, SIZE, PATH@ and @ALL@. There" \
 	" are some combined keys: @ID := D-ID,P-ID@, @PART :=" \
 	" P-INFO,P-ID,P-MAP,TICKET,TMD@, @DISC := FILES,D-ID,D-MAP@, @MAP :=" \
-	" P-MAP,D-MAP,W_MAP@.\n" \
+	" P-MAP,D-MAP,W-MAP@.\n" \
 	"  All keywords can be prefixed by '+' to enable that option, by a '-'" \
 	" to disable it or by a '=' to enable that option and disable all" \
 	" others.\n" \
@@ -5268,7 +5628,7 @@
 
 #:def_cmd_opt( "FIND", "QUIET", \
 	"", \
-	"Be absoulte quiet and report the find status as exit code only." )
+	"Be absolute quiet and report the find status as exit code only." )
 
 #:def_cmd_opt( "FIND", "NO_HEADER", \
 	"", \
@@ -5366,7 +5726,7 @@
 	" ({--show=FILES}). If set twice print a memory map for each disc is" \
 	" printed too ({--show=D-MAP}). If set three times print an additional" \
 	" memory map for the whole WBFS ({--show=W-MAP}). If set four times" \
-	" print an usabe table ({--show=USAGE})." )
+	" print an usage table ({--show=USAGE})." )
 
 #:def_cmd_opt( "DUMP", "SHOW", \
 	"", \
@@ -5502,8 +5862,9 @@
 
 #:def_cmd_opt( "LIST", "LONG", \
 	"", \
-	"If set the size in MiB and the region is printed too. If set twice at" \
-	" least on time columns is added." )
+	"If set, the size in MiB and the region is printed too. If set twice," \
+	" a date column is added. If set three times, a date and a time column" \
+	" is added." )
 
 #:def_cmd_opt( "LIST", "FRAGMENTS", \
 	"", \
@@ -5607,8 +5968,9 @@
 
 #:def_cmd_opt( "LIST_L", "LONG", \
 	"", \
-	"If set the size in MiB and the region is printed too. If set twice at" \
-	" least on time columns is added." )
+	"If set, the size in MiB and the region is printed too. If set twice," \
+	" a date column is added. If set three times, a date and a time column" \
+	" is added." )
 
 #:def_cmd_opt( "LIST_L", "FRAGMENTS", \
 	"", \
@@ -5712,8 +6074,9 @@
 
 #:def_cmd_opt( "LIST_LL", "LONG", \
 	"", \
-	"If set the size in MiB and the region is printed too. If set twice at" \
-	" least on time columns is added." )
+	"If set, the size in MiB and the region is printed too. If set twice," \
+	" a date column is added. If set three times, a date and a time column" \
+	" is added." )
 
 #:def_cmd_opt( "LIST_LL", "FRAGMENTS", \
 	"", \
@@ -5724,6 +6087,112 @@
 	"" )
 
 #:def_cmd_opt( "LIST_LL", "SECTIONS", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "LIST_LLL", "TITLES", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "LIST_LLL", "UTF_8", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "LIST_LLL", "NO_UTF_8", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "LIST_LLL", "LANG", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "LIST_LLL", "AUTO", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "LIST_LLL", "ALL", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "LIST_LLL", "PART", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "LIST_LLL", "EXCLUDE", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "LIST_LLL", "EXCLUDE_PATH", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "LIST_LLL", "INCLUDE", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "LIST_LLL", "INCLUDE_PATH", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "LIST_LLL", "INCLUDE_FIRST", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "LIST_LLL", "ONE_JOB", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "LIST_LLL", "JOB_LIMIT", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "LIST_LLL", "MIXED", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "LIST_LLL", "UNIQUE", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "LIST_LLL", "SORT", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "LIST_LLL", "ITIME", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "LIST_LLL", "MTIME", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "LIST_LLL", "CTIME", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "LIST_LLL", "ATIME", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "LIST_LLL", "TIME", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "LIST_LLL", "LONG", \
+	"", \
+	"If set, the size in MiB and the region is printed too. If set twice," \
+	" a date column is added. If set three times, a date and a time column" \
+	" is added." )
+
+#:def_cmd_opt( "LIST_LLL", "FRAGMENTS", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "LIST_LLL", "NO_HEADER", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "LIST_LLL", "SECTIONS", \
 	"", \
 	"" )
 
@@ -5817,8 +6286,9 @@
 
 #:def_cmd_opt( "LIST_A", "LONG", \
 	"", \
-	"If set the size in MiB and the region is printed too. If set twice at" \
-	" least on time columns is added." )
+	"If set, the size in MiB and the region is printed too. If set twice," \
+	" a date column is added. If set three times, a date and a time column" \
+	" is added." )
 
 #:def_cmd_opt( "LIST_A", "FRAGMENTS", \
 	"", \
@@ -5922,8 +6392,9 @@
 
 #:def_cmd_opt( "LIST_M", "LONG", \
 	"", \
-	"If set the size in MiB and the region is printed too. If set twice at" \
-	" least on time columns is added." )
+	"If set, the size in MiB and the region is printed too. If set twice," \
+	" a date column is added. If set three times, a date and a time column" \
+	" is added." )
 
 #:def_cmd_opt( "LIST_M", "FRAGMENTS", \
 	"", \
@@ -6027,8 +6498,9 @@
 
 #:def_cmd_opt( "LIST_U", "LONG", \
 	"", \
-	"If set the size in MiB and the region is printed too. If set twice at" \
-	" least on time columns is added." )
+	"If set, the size in MiB and the region is printed too. If set twice," \
+	" a date column is added. If set three times, a date and a time column" \
+	" is added." )
 
 #:def_cmd_opt( "LIST_U", "FRAGMENTS", \
 	"", \
@@ -6132,8 +6604,9 @@
 
 #:def_cmd_opt( "LIST_F", "LONG", \
 	"", \
-	"If set the size in MiB and the region is printed too. If set twice at" \
-	" least on time columns is added." )
+	"If set, the size in MiB and the region is printed too. If set twice," \
+	" a date column is added. If set three times, a date and a time column" \
+	" is added." )
 
 #:def_cmd_opt( "LIST_F", "FRAGMENTS", \
 	"", \
@@ -6194,7 +6667,7 @@
 #:def_cmd_opt( "FORMAT", "INODE", \
 	"", \
 	"Force creating inode infos with predefined timestamps. The timestamps" \
-	" reduce effect of sparce files. This option is set for devices" \
+	" reduce effect of sparse files. This option is set for devices" \
 	" automatically." )
 
 #:def_cmd_opt( "FORMAT", "TEST", \
@@ -6272,7 +6745,7 @@
 #:def_cmd_opt( "CHECK", "VERBOSE", \
 	"", \
 	"Be verbose. If set once then more details are printed. If set twice a" \
-	" info dump of all coruppted discs is included. If set three times a" \
+	" info dump of all corrupted discs is included. If set three times a" \
 	" info dump of all discs is included if a error is found. If set four" \
 	" times a full memory map is included." )
 
@@ -6330,7 +6803,7 @@
 #:def_cmd_opt( "REPAIR", "VERBOSE", \
 	"", \
 	"Be verbose. If set once then more details are printed. If set twice a" \
-	" info dump of all coruppted discs is included. If set three times a" \
+	" info dump of all corrupted discs is included. If set three times a" \
 	" info dump of all discs is included if a error is found. If set four" \
 	" times a full memory map is included." )
 
@@ -6563,7 +7036,7 @@
 	"", \
 	"" )
 
-#:def_cmd_opt( "ADD", "ID", \
+#:def_cmd_opt( "ADD", "MODIFY", \
 	"", \
 	"" )
 
@@ -6571,7 +7044,27 @@
 	"", \
 	"" )
 
-#:def_cmd_opt( "ADD", "MODIFY", \
+#:def_cmd_opt( "ADD", "ID", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "ADD", "DISC_ID", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "ADD", "BOOT_ID", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "ADD", "TICKET_ID", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "ADD", "TMD_ID", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "ADD", "WBFS_ID", \
 	"", \
 	"" )
 
@@ -6773,7 +7266,7 @@
 	"", \
 	"" )
 
-#:def_cmd_opt( "UPDATE", "ID", \
+#:def_cmd_opt( "UPDATE", "MODIFY", \
 	"", \
 	"" )
 
@@ -6781,7 +7274,27 @@
 	"", \
 	"" )
 
-#:def_cmd_opt( "UPDATE", "MODIFY", \
+#:def_cmd_opt( "UPDATE", "ID", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "UPDATE", "DISC_ID", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "UPDATE", "BOOT_ID", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "UPDATE", "TICKET_ID", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "UPDATE", "TMD_ID", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "UPDATE", "WBFS_ID", \
 	"", \
 	"" )
 
@@ -6975,7 +7488,7 @@
 	"", \
 	"" )
 
-#:def_cmd_opt( "SYNC", "ID", \
+#:def_cmd_opt( "SYNC", "MODIFY", \
 	"", \
 	"" )
 
@@ -6983,7 +7496,27 @@
 	"", \
 	"" )
 
-#:def_cmd_opt( "SYNC", "MODIFY", \
+#:def_cmd_opt( "SYNC", "ID", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "SYNC", "DISC_ID", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "SYNC", "BOOT_ID", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "SYNC", "TICKET_ID", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "SYNC", "TMD_ID", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "SYNC", "WBFS_ID", \
 	"", \
 	"" )
 
@@ -7239,7 +7772,7 @@
 	"", \
 	"" )
 
-#:def_cmd_opt( "EXTRACT", "ID", \
+#:def_cmd_opt( "EXTRACT", "MODIFY", \
 	"", \
 	"" )
 
@@ -7247,7 +7780,27 @@
 	"", \
 	"" )
 
-#:def_cmd_opt( "EXTRACT", "MODIFY", \
+#:def_cmd_opt( "EXTRACT", "ID", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "EXTRACT", "DISC_ID", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "EXTRACT", "BOOT_ID", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "EXTRACT", "TICKET_ID", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "EXTRACT", "TMD_ID", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "EXTRACT", "WBFS_ID", \
 	"", \
 	"" )
 
@@ -7841,7 +8394,7 @@
 #:def_cmd_opt( "VERIFY", "LONG", \
 	"", \
 	"On error print an additional line to localize the exact position" \
-	" where the error is found. If set twice a hexdump of the hash values" \
+	" where the error is found. If set twice a hex dump of the hash values" \
 	" is printed too." )
 
 #:def_cmd_opt( "VERIFY", "TECHNICAL", \
@@ -8185,13 +8738,13 @@
 	"This option enables or disables the disc space preallocation. If" \
 	" enabled the tools try to allocate disc space for the new files" \
 	" before writing the data. This reduces the fragmentation but also" \
-	" disables the sparse effect for prealocated areas.\n" \
+	" disables the sparse effect for preallocated areas.\n" \
 	"  The optional parameter decides the preallocation mode: @OFF@ (or" \
 	" @0@), @SMART@ (or @1@), @ALL@ (or @2@). If no parameter is set," \
 	" @ALL@ is used.\n" \
 	"  Mode @'OFF'@ disables the preallocation. Mode @'SMART'@ looks into" \
 	" the source disc to find out the writing areas. @SMART@ is only" \
-	" avalable for $ISO$, $CISO$ and $WBFS$ file types. For other file" \
+	" available for $ISO$, $CISO$ and $WBFS$ file types. For other file" \
 	" types @ALL@ is used instead. Mode @'ALL'@ (the default) preallocate" \
 	" the whole destination file. Because of the large holes in plain ISO" \
 	" images, the @SMART@ mode is used for ISOs instead." )
@@ -8453,7 +9006,7 @@
 #:def_cmd_opt( "CMP", "LONG", \
 	"", \
 	"If set, a status line with the offset is printed for each found" \
-	" mismatch. If set twice, an additonal hexdump of the first bytes is" \
+	" mismatch. If set twice, an additional hex dump of the first bytes is" \
 	" printed. If set 3 or 4 times, the limit is set to 10 or unlimited if" \
 	" option {--limit} is not already set. This option is ignored in quiet" \
 	" mode." )
@@ -8496,7 +9049,7 @@
 	"wfuse [option]... source mountdir\n" \
 	"wfuse --umount mountdir...", \
 	"Mount a Wii or GameCube image or a WBFS file or partition to a mount" \
-	" point using FUSE (Filesystem in Userspace). Use @'wfuse --umount" \
+	" point using FUSE (Filesystem in USErspace). Use @'wfuse --umount" \
 	" mountdir'@ for unmounting." )
 
 #:def_opt( "VERSION", "V|version", "G", \
@@ -8550,9 +9103,9 @@
 
 #:def_opt( "LAZY", "l|lazy", "G", \
 	"", \
-	"Lazy unmount: Detach the filesystem from the filesystem hierarchy" \
-	" now, and cleanup all references to the filesystem as soon as it is" \
-	" not busy anymore." )
+	"Lazy unmount: Detach the mounted file system from the file system" \
+	" hierarchy now, and cleanup all references to the file system as soon" \
+	" as it is not busy anymore." )
 
 
 ##

@@ -16,7 +16,7 @@
  *   This file is part of the WIT project.                                 *
  *   Visit http://wit.wiimm.de/ for project details and sources.           *
  *                                                                         *
- *   Copyright (c) 2009-2011 by Dirk Clemens <wiimm@wiimm.de>              *
+ *   Copyright (c) 2009-2012 by Dirk Clemens <wiimm@wiimm.de>              *
  *                                                                         *
  ***************************************************************************
  *                                                                         *
@@ -403,13 +403,10 @@ void wd_join_sectors
 ///////////////			names, ids, titles, ...		///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-const char * wd_part_name[]
-	= { "DATA", "UPDATE", "CHANNEL", 0 };
-
 const char * wd_disc_type_name[]
 	= { "unknown", "GameCube", "Wii", 0 };
 
-///////////////////////////////////////////////////////////////////////////////
+//-----------------------------------------------------------------------------
 
 const char * wd_get_disc_type_name
 (
@@ -423,6 +420,11 @@ const char * wd_get_disc_type_name
 }
 
 ///////////////////////////////////////////////////////////////////////////////
+
+const char * wd_part_name[]
+	= { "DATA", "UPDATE", "CHANNEL", 0 };
+
+//-----------------------------------------------------------------------------
 
 const char * wd_get_part_name
 (
@@ -947,7 +949,7 @@ wd_sector_status_t wd_get_part_sector_status
 {
     DASSERT(part);
     DASSERT(part->disc);
-    PRINT("wd_get_part_sector_status(%p,%d,%d)\n",part,block_num,silent);
+    TRACE("wd_get_part_sector_status(%p,%d,%d)\n",part,block_num,silent);
 
 
     //----- setup
@@ -1493,12 +1495,14 @@ wd_disc_t * wd_open_disc
     void		* read_data,	// data pointer for read function
     u64			iso_size,	// size of iso file, unknown if 0
     ccp			file_name,	// used for error messages if not NULL
+    int			force,		// force level
     enumError		* error_code	// store error code if not NULL
 )
 {
     DASSERT(read_func);
-    TRACE("wd_open_disc(%p,%p,%llx=%llu,%s,%p)\n",
-		read_func, read_data, iso_size, iso_size, file_name, error_code );
+    TRACE("wd_open_disc(%p,%p,%llx=%llu,%s,%d,%p)\n",
+		read_func, read_data, iso_size, iso_size,
+		file_name, force, error_code );
 
     //----- setup
 
@@ -1509,6 +1513,7 @@ wd_disc_t * wd_open_disc
     disc->read_func = read_func;
     disc->read_data = read_data;
     disc->iso_size  = iso_size;
+    disc->force     = force;
     disc->open_count = 1;
 
 
@@ -1909,10 +1914,10 @@ static enumError wd_check_part_offset
 	{
 	    if (!silent)
 		WD_ERROR(ERR_WPART_INVALID,
-		    "Partition %s: Offset of %s (%llx) behind end of file (%llx)%s",
+		    "Partition %s: Offset of %s (%#llx) behind end of file (%#llx)%s",
 		    wd_print_part_name(0,0,part->part_type,WD_PNAME_NUM_INFO),
 		    name, off, iso_size, part->disc->error_term );
-	    return ERR_WPART_INVALID;
+	    return part->disc->force > 0 ? ERR_WARNING : ERR_WPART_INVALID;
 	}
 
 	off += size;
@@ -1920,10 +1925,10 @@ static enumError wd_check_part_offset
 	{
 	    if (!silent)
 		WD_ERROR(ERR_WPART_INVALID,
-		    "Partition %s: End of %s (%llx) behind end of file (%llx)%s",
+		    "Partition %s: End of %s (%#llx) behind end of file (%#llx)%s",
 		    wd_print_part_name(0,0,part->part_type,WD_PNAME_NUM_INFO),
 		    name, off, iso_size, part->disc->error_term );
-	    return ERR_WPART_INVALID;
+	    return part->disc->force > 0 ? ERR_WARNING : ERR_WPART_INVALID;
 	}
     }
 
@@ -2012,7 +2017,7 @@ enumError wd_load_part
 	    //----- file size tests
 
 	    if (wd_check_part_offset(part, part_off+((u64)ph->data_off4<<2),
-			(u64)ph->data_size4<<2, "data", silent ))
+			(u64)ph->data_size4<<2, "data", silent ) > ERR_WARNING )
 		return ERR_WPART_INVALID;
 
 
@@ -2095,16 +2100,19 @@ enumError wd_load_part
 
 	//----- setup setup_txt
 
-	// [[2do]] "setup.txt"
+	// setup 'setup_txt' for FST_SETUP_FILE
 	part->setup_txt_len
 	    = snprintf((char*)disc->temp_buf,sizeof(disc->temp_buf),
 			"# setup.txt : scanned by wit+wwt while composing a disc.\n"
-			"# remove the '!' before name to activate the parameter.\n"
+			"# remove the '!' before names to activate parameters.\n"
+			"\n"
+			"disc-type = %s\n"
 			"\n"
 			"!part-id = %.6s\n"
 			"!part-name = %.64s\n"
 			"!part-offset = 0x%llx\n"
 			"\n"
+			,wd_get_disc_type_name(disc->disc_type,"?")
 			,wd_print_id(&boot->dhead.disc_id,6,0)
 			,boot->dhead.disc_title
 			,(u64)part->part_off4 << 2
@@ -2115,7 +2123,7 @@ enumError wd_load_part
 	//----- calculate size of main.dol
 
 	u32 fst_n		= 0;
-	u32 fst_dir_count	= part->is_gc ? SYS_DIR_COUNT_GC : SYS_DIR_COUNT;
+	u32 fst_dir_count	= part->is_gc ? SYS_DIR_COUNT_GC  : SYS_DIR_COUNT;
 	u32 fst_file_count	= part->is_gc ? SYS_FILE_COUNT_GC : SYS_FILE_COUNT;
 	u32 fst_max_off4	= part->data_off4;
 	u32 fst_max_size	= WII_H3_SIZE;
@@ -2285,7 +2293,7 @@ enumError wd_load_part
 			part->max_marked, disc->iso_size );
 			
 	    if (wd_check_part_offset( part, (u64)part->data_off4<<2,
-					part->part_size, "PART", silent ))
+				part->part_size, "PART", silent ) > ERR_WARNING )
 		return ERR_WPART_INVALID;
 	}
 	else
@@ -2488,7 +2496,7 @@ enumError wd_calc_fst_statistics
 	disc->main_part = disc->update_part;
     else if (disc->channel_part)
 	disc->main_part = disc->channel_part;
-    TRACE("*_PART= %zd %zd %zd %zd\n",
+    TRACE("D_PART=%2zd U_PART=%2zd C_PART=%2zd M_PART=%2zd\n",
 	disc->data_part	   ? disc->data_part    - disc->part : -1,
 	disc->update_part  ? disc->update_part  - disc->part : -1,
 	disc->channel_part ? disc->channel_part - disc->part : -1,
@@ -5833,8 +5841,11 @@ bool wd_patch_common_key // result = true if something changed
 bool wd_patch_part_id // result = true if something changed
 (
     wd_part_t		* part,		// valid pointer to a disc partition
-    ccp			new_id,		// NULL or new ID / '.': don't change
-    wd_modify_t		modify		// objects to modify
+    wd_modify_t		modify,		// objects to modify
+    ccp			new_disc_id,	// NULL or new disc ID / '.': don't change
+    ccp			new_boot_id,	// NULL or new boot ID / '.': don't change
+    ccp			new_ticket_id,	// NULL or new ticket ID / '.': don't change
+    ccp			new_tmd_id	// NULL or new tmd ID / '.': don't change
 )
 {
     DASSERT(part);
@@ -5845,14 +5856,14 @@ bool wd_patch_part_id // result = true if something changed
 
     bool stat = false;
 
-    if ( modify & WD_MODIFY_DISC )
-	stat = wd_patch_disc_header(part->disc,new_id,0);
+    if ( new_disc_id && modify & WD_MODIFY_DISC )
+	stat = wd_patch_disc_header(part->disc,new_disc_id,0);
 
     char id6[6];
-    if ( modify & WD_MODIFY_TICKET && wd_part_has_ticket(part) )
+    if ( new_ticket_id && modify & WD_MODIFY_TICKET && wd_part_has_ticket(part) )
     {
 	u8 * src = part->ph.ticket.title_id+4;
-	if (wd_patch_id(id6,src,new_id,4))
+	if (wd_patch_id(id6,src,new_ticket_id,4))
 	{
 	    memcpy(src,id6,4);
 	    wd_insert_patch_ticket(part);
@@ -5860,10 +5871,10 @@ bool wd_patch_part_id // result = true if something changed
 	}
     }
 
-    if ( modify & WD_MODIFY_TMD && part->tmd && wd_part_has_tmd(part) )
+    if ( new_tmd_id && modify & WD_MODIFY_TMD && part->tmd && wd_part_has_tmd(part) )
     {
 	u8 * src = part->tmd->title_id+4;
-	if (wd_patch_id(id6,src,new_id,4))
+	if (wd_patch_id(id6,src,new_tmd_id,4))
 	{
 	    memcpy(src,id6,4);
 	    wd_insert_patch_tmd(part);
@@ -5871,10 +5882,10 @@ bool wd_patch_part_id // result = true if something changed
 	}
     }
 
-    if ( modify & WD_MODIFY_BOOT )
+    if ( new_boot_id && modify & WD_MODIFY_BOOT )
     {
 	ccp src = &part->boot.dhead.disc_id;
-	if (wd_patch_id(id6,src,new_id,6))
+	if (wd_patch_id(id6,src,new_boot_id,6))
 	{
 	    wd_memmap_item_t * item
 		= wd_insert_memmap_alloc( &part->patch, WD_PAT_DATA, WII_BOOT_OFF, 6 );

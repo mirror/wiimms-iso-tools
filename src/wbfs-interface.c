@@ -16,7 +16,7 @@
  *   This file is part of the WIT project.                                 *
  *   Visit http://wit.wiimm.de/ for project details and sources.           *
  *                                                                         *
- *   Copyright (c) 2009-2011 by Dirk Clemens <wiimm@wiimm.de>              *
+ *   Copyright (c) 2009-2012 by Dirk Clemens <wiimm@wiimm.de>              *
  *                                                                         *
  ***************************************************************************
  *                                                                         *
@@ -617,7 +617,7 @@ int AppendListID6 // returns number of inserted ids
     wbfs_t * w = wbfs->wbfs;
     if (w)
     {
-	id6_t * id_list = wbfs_load_id_list(w,false);
+	id6_t *id_list = wbfs_load_id_list(w,false);
 	DASSERT(id_list);
 	for ( ; **id_list; id_list++ )
 	    if (MatchRulesetID(select_list,*id_list))
@@ -638,7 +638,6 @@ int AppendWListID6 // returns number of inserted ids
 )
 {
     DASSERT(id6_list);
-    DASSERT(select_list);
     DASSERT(wlist);
 
     const int count = id6_list->used;
@@ -646,7 +645,7 @@ int AppendWListID6 // returns number of inserted ids
     WDiscListItem_t * ptr = wlist->first_disc;
     WDiscListItem_t * end = ptr + wlist->used;
     for ( ; ptr < end; ptr++ )
-	if (MatchRulesetID(select_list,ptr->id6))
+	if ( !select_list || MatchRulesetID(select_list,ptr->id6) )
 	{
 	    InsertStringField(id6_list,ptr->id6,false);
 	    if ( add_to_title_db && !GetTitle(ptr->id6,0) )
@@ -926,9 +925,11 @@ enumError OpenParWBFS
     ResetWBFS(w);
     w->sf = sf;
 
+    bool maybe_wbfs_file = false;
     wbfs_balloc_mode_t balloc_mode = opt_wbfs_alloc;
     if (S_ISREG(sf->f.st.st_mode))
     {
+	maybe_wbfs_file = true;
 	char format[2*PATH_MAX], fname[PATH_MAX];
 	CalcSplitFilename(format,sizeof(format),sf->f.fname,OFT_WBFS);
 	snprintf(fname,sizeof(fname),format,1);
@@ -971,9 +972,7 @@ enumError OpenParWBFS
     par->write_hdsector	= WrapperWriteSector;
     par->callback_data	= sf;
     par->part_lba	= 0;
- #if NEW_WBFS_INTERFACE
     par->balloc_mode	= balloc_mode;
- #endif
 
     w->wbfs = wbfs_open_partition_param(par);
 
@@ -992,8 +991,14 @@ enumError OpenParWBFS
     }
 
     TRACELINE;
-    wbfs_load_id_list(w->wbfs,1);
+    id6_t *id_list = wbfs_load_id_list(w->wbfs,1);
     CalcWBFSUsage(w);
+
+    if ( maybe_wbfs_file && id_list[0][0] && wbfs_count_discs(w->wbfs) == 1 )
+    {
+	PRINT("A WBFS FILE\n");
+    	w->is_wbfs_file = true;
+    }
 
  #ifdef DEBUG
     TRACE("WBFS %s\n\n",sf->f.fname);
@@ -1155,6 +1160,8 @@ enumError RecoverWBFS ( WBFS_t * wbfs, ccp fname, bool testmode )
     ASSERT(w);
     ASSERT(w->head);
     ASSERT(w->head->disc_table);
+
+    wbfs_load_freeblocks(w);
     ASSERT(w->freeblks);
 
     enumError err = ERR_OK;
@@ -1767,10 +1774,21 @@ enumError DumpWBFS
 		wbfs->free_blocks, wbfs->free_blocks, free_mib, free_perc );
 	fprintf(f,"%*swbfs used blocks:     %#11x =%15u =%8u MiB = %3u%%\n", indent,"",
 		used_blocks, used_blocks, used_mib, used_perc );
-	fprintf(f,"%*swbfs total blocks:    %#11x =%15u =%8u MiB = 100%%\n", indent,"",
+	fprintf(f,"%*swbfs total blocks:    %#11x =%15u =%8u MiB = 100%%\n\n", indent,"",
 		w->n_wbfs_sec, w->n_wbfs_sec, total_mib );
-	fprintf(f,"%*swbfs total size:  %#15llx =%15llu =%8u MiB\n\n", indent,"",
+
+	const u64 wbfs_max  = (u64)w->wbfs_sec_sz * WBFS_MAX_SECTORS;
+	const u64 wbfs_trim = (u64)w->wbfs_sec_sz * (wbfs_find_last_used_block(w)+1);
+	const u32 max_mib   = ( wbfs_max  + MiB/2 ) / MiB;
+	const u32 trim_mib  = ( wbfs_trim + MiB/2 ) / MiB;
+	fprintf(f,"%*swbfs min possible:%#15llx =%15llu =%8u MiB =%4llu%%\n", indent,"",
+		wbfs_used, wbfs_used, used_mib, 100*wbfs_used/wbfs_total );
+	fprintf(f,"%*swbfs trimmed size:%#15llx =%15llu =%8u MiB =%4llu%%\n", indent,"",
+		wbfs_trim, wbfs_trim, trim_mib, 100*wbfs_trim/wbfs_total );
+	fprintf(f,"%*swbfs total size:  %#15llx =%15llu =%8u MiB = 100%%\n", indent,"",
 		wbfs_total, wbfs_total, total_mib  );
+	fprintf(f,"%*swbfs max possible:%#15llx =%15llu =%8u MiB =%4llu%%\n\n", indent,"",
+		wbfs_max, wbfs_max, max_mib, 100*wbfs_max/wbfs_total );
 
 	fprintf(f,"%*spartition lba:        %#11x =%15u\n", indent,"",
 		w->part_lba, w->part_lba );
@@ -1848,7 +1866,6 @@ enumError DumpWBFS
 		    DumpWDiscInfo( &dinfo, d->is_used ? &ihead : 0, f, indent+2 );
 		if ( w->head->disc_table[slot] & WBFS_SLOT_INVALID )
 		    fprintf(f,"%*s>>> DISC MARKED AS INVALID! <<<\n",indent,"");
-	     #if NEW_WBFS_INTERFACE
 		else
 		{
 		    if ( w->head->disc_table[slot] & WBFS_SLOT_F_SHARED )
@@ -1856,7 +1873,6 @@ enumError DumpWBFS
 		    if ( w->head->disc_table[slot] & WBFS_SLOT_F_FREED )
 			fprintf(f,"%*s>>> DISC IS/WAS USING FREE BLOCKS! <<<\n",indent,"");
 		}
-	     #endif
 	    }
 
 	    if ( show_mode & (SHOW_D_MAP|SHOW_W_MAP) )
@@ -1869,7 +1885,7 @@ enumError DumpWBFS
 		    ind-1,"", ind,"", ind,"" );
 		u16 * tab = d->header->wlba_table;
 
-		u8 used[0x10000];
+		u8 used[WBFS_MAX_SECTORS];
 		memset(used,0,sizeof(used));
 		ASSERT( sec_per_disc < sizeof(used) );
 
@@ -2012,15 +2028,12 @@ enumError DumpWBFS
     }
     ResetMemMap(&mm);
 
-
- #if NEW_WBFS_INTERFACE
     if ( show_mode & SHOW_USAGE )
     {
 	fprintf(f,"\f\n%*sWBFS Memory Usage:\n\n", indent,"" );
 	wbfs_print_block_usage(stdout,indent+1,w,false);
 	fputc('\n',f);
     }
- #endif
 
     if ( show_mode & SHOW_CHECK ) // && isatty(fileno(f))
     {
@@ -2617,7 +2630,7 @@ void ResetCheckWBFS ( CheckWBFS_t * ck )
 
 ///////////////////////////////////////////////////////////////////////////////
 
-#if NEW_WBFS_INTERFACE & defined(TEST)
+#if defined(TEST)
 
 static void check_func
 (
@@ -2661,7 +2674,7 @@ enumError CheckWBFS
     ck->fbt_off  = ( w->part_lba + w->freeblks_lba ) * w->hd_sec_sz;
     ck->fbt_size = w->freeblks_lba_count * w->hd_sec_sz;
 
- #if NEW_WBFS_INTERFACE & defined(TEST) // [[2do]]
+ #if 0 && defined(TEST) // [[2do]]
     if (logging)
 	wbfs_calc_used_blocks(w,true,true,check_func,ck);
  #endif
@@ -2935,16 +2948,8 @@ enumError CheckWBFS
 		  + total_err_overlap
 		  + total_err_invalid;
 
- #if NEW_WBFS_INTERFACE
     // with the new wbfs interface all errors are harmless
     ck->err = ck->err_total ? ERR_WARNING : ERR_OK;
- #else
-    ck->err = ck->err_fbt_used || ck->err_bl_overlap
-		? ERR_WBFS_INVALID
-		: ck->err_total
-			? ERR_WARNING
-			: ERR_OK;
- #endif
 
     if ( ck->err_total && verbose >= PRINT_DUMP )
     {
@@ -3106,13 +3111,6 @@ enumError RepairWBFS ( CheckWBFS_t * ck, int testmode,
 		if (err)
 		    return err;
 		memcpy(ck->cur_fbt,ck->good_fbt,ck->fbt_size);
- #if !NEW_WBFS_INTERFACE
-		if (w->freeblks)
-		{
-		    FREE(w->freeblks);
-		    w->freeblks = 0;
-		}
- #endif
 		sync++;
 	    }
 	    repair_count++;
@@ -3151,10 +3149,8 @@ enumError RepairWBFS ( CheckWBFS_t * ck, int testmode,
     }
 
     TRACELINE;
- #if NEW_WBFS_INTERFACE
     if (repair_count)
 	wbfs_calc_used_blocks(w,true,false,0,0);
- #endif
     if (sync)
 	wbfs_sync(w);
 
@@ -4060,17 +4056,32 @@ enumError CloseWDisc ( WBFS_t * w )
     DASSERT(w);
 
     CloseWDiscSF(w);
+    SuperFile_t *sf = w->sf;
 
     if (w->disc)
     {
-	if ( !w->sf || !IsOpenSF(w->sf) )
+	if ( !sf || !IsOpenSF(sf) )
 	    w->disc->is_dirty = false;
+
+	if ( sf
+		&& sf->f.is_writing
+		&& w->disc->header
+		&& w->is_wbfs_file
+		&& CopyPatchWbfsId( (char*)w->disc->header->dhead,
+				*sf->wbfs_id6
+					? sf->wbfs_id6
+					: (ccp)w->disc->header->dhead )
+	   ) // [[id+]]
+	{
+	    w->disc->is_dirty = true;
+	}
+
 	wbfs_close_disc(w->disc);
 	w->disc = 0;
     }
 
-    if (w->sf)
-	CloseDiscSF(w->sf);
+    if (sf)
+	CloseDiscSF(sf);
 
     return ERR_OK;
 }
@@ -4084,7 +4095,10 @@ enumError ExistsWDisc ( WBFS_t * w, ccp id6 )
     if ( !w || !w->wbfs || !id6 || strlen(id6) != 6 )
 	return ERROR0(ERR_INTERNAL,0);
 
-    return wbfs_find_slot(w->wbfs,(u8*)id6) < 0
+    char patched_id6[7];
+    CopyPatchWbfsId(patched_id6,id6);
+
+    return wbfs_find_slot(w->wbfs,(u8*)patched_id6) < 0
 		? ERR_WDISC_NOT_FOUND
 		: ERR_OK;
 }
@@ -4134,6 +4148,11 @@ enumError AddWDisc ( WBFS_t * w, SuperFile_t * sf, const wd_select_t * psel )
 	if (ntoh64(iinfo->mtime))
 	    par.iinfo.mtime = iinfo->mtime;
     }
+
+    if (*sf->wbfs_id6)
+	CopyPatchWbfsId( par.wbfs_id6, sf->wbfs_id6 );
+    else if (par.wd_disc)
+	CopyPatchWbfsId( par.wbfs_id6, &par.wd_disc->dhead.disc_id );
 
     const int wbfs_stat = wbfs_add_disc_param(w->wbfs,&par);
 
@@ -4202,7 +4221,7 @@ enumError RemoveWDisc
 		id6, w->sf->f.fname );
     }
 
- #if NEW_WBFS_INTERFACE && defined(TEST) && defined(DEBUG)
+ #if defined(TEST) && defined(DEBUG)
     if (logging)
 	DumpWBFS(w,stdout,3,SHOW_USAGE,0,0,0);
  #endif

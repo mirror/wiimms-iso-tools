@@ -16,7 +16,7 @@
  *   This file is part of the WIT project.                                 *
  *   Visit http://wit.wiimm.de/ for project details and sources.           *
  *                                                                         *
- *   Copyright (c) 2009-2011 by Dirk Clemens <wiimm@wiimm.de>              *
+ *   Copyright (c) 2009-2012 by Dirk Clemens <wiimm@wiimm.de>              *
  *                                                                         *
  ***************************************************************************
  *                                                                         *
@@ -135,7 +135,11 @@ enumError Dump_CERT_BIN
     FILE		* f,		// valid output stream
     int			indent,		// indent of output
     SuperFile_t		* sf,		// file to dump
-    ccp			real_path	// NULL or pointer to real path
+    ccp			real_path,	// NULL or pointer to real path
+    int			print_ext	// 0: off
+					// 1: print extended version
+					// 2:  + hexdump the keys
+					// 3:  + base64 the keys
 );
 
 enumError Dump_CERT_MEM
@@ -144,7 +148,10 @@ enumError Dump_CERT_MEM
     int			indent,		// indent of output
     const u8		* cert_data,	// valid pointer to cert data
     size_t		cert_size,	// size of 'cert_data'
-    bool		print_ext	// true: print extended version
+    int			print_ext	// 0: off
+					// 1: print extended version
+					// 2:  + hexdump the keys
+					// 3:  + base64 the keys
 );
 
 enumError Dump_CERT
@@ -152,7 +159,10 @@ enumError Dump_CERT
     FILE		* f,		// valid output stream
     int			indent,		// indent of output
     const cert_chain_t	* cc,		// valid pinter to cert chain
-    bool		print_ext	// true: print extended version
+    int			print_ext	// 0: off
+					// 1: print extended version
+					// 2:  + hexdump the keys
+					// 3:  + base64 the keys
 );
 
 void Dump_CERT_Item
@@ -161,7 +171,10 @@ void Dump_CERT_Item
     int			indent,		// normalized indent of output
     const cert_item_t	* item,		// valid item pointer
     int			cert_index,	// >=0: print title with certificate index
-    bool		print_ext,	// true: print extended version
+    int			print_ext,	// 0: off
+					// 1: print extended version
+					// 2:  + hexdump the keys
+					// 3:  + base64 the keys
     const cert_chain_t	* cc		// not NULL: verify signature
 );
 
@@ -266,10 +279,10 @@ extern int opt_source_auto;
 
 typedef enum enumAction
 {
-	ACT_WARN,	// ignore with message
+	ACT_WARN,	// ignore with message, default
 	ACT_IGNORE,	// ignore without message
-	ACT_ALLOW,	// allow
-	ACT_EXPAND,	// allow and expand (wbfs+sft only)
+	ACT_ALLOW,	// allow, default for 'act_wbfs_disc'
+	ACT_EXPAND,	// allow and expand (wbfs+fst only)
 
 } enumAction;
 
@@ -291,6 +304,7 @@ typedef struct Iterator_t
 	enumAction	act_non_iso;	// action for non iso files
 	enumAction	act_known;	// action for non iso files but well known files
 	enumAction	act_wbfs;	// action for wbfs files with n(disc) != 1
+	enumAction	act_wbfs_disc;	// action for a wbfs disc (selector used), default=ALLOW
 	enumAction	act_fst;	// action for fst
 	enumAction	act_gc;		// action for GameCube discs
 	enumAction	act_open;	// action for open output files

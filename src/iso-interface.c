@@ -16,7 +16,7 @@
  *   This file is part of the WIT project.                                 *
  *   Visit http://wit.wiimm.de/ for project details and sources.           *
  *                                                                         *
- *   Copyright (c) 2009-2011 by Dirk Clemens <wiimm@wiimm.de>              *
+ *   Copyright (c) 2009-2012 by Dirk Clemens <wiimm@wiimm.de>              *
  *                                                                         *
  ***************************************************************************
  *                                                                         *
@@ -135,31 +135,38 @@ static void dump_id
 (
     FILE		* f,		// output stream
     int			indent,		// indent
-    ccp			id6,		// NULL or id6
+    ccp			disc_id6,	// NULL or disc id
+    ccp			wbfs_id6,	// NULL or wbfs id
     wd_part_t		* part,		// not NULL: retrieve IDs from partition
     int			title_fw	// field width of title
 )
 {
+    PRINT("dump_id() id=%s,%s, part=%p\n",disc_id6,wbfs_id6,part);
+
+    char wbfs[20] = {0};
+    if ( wbfs_id6 && *wbfs_id6 )
+	snprintf(wbfs,sizeof(wbfs),", wbfs=%s",wd_print_id(wbfs_id6,6,0));
+    
     if (part)
     {
-	if ( id6 && *id6 )
-	    fprintf(f,"%*s%-*sdisc=%s, ticket=%s, tmd=%s, boot=%s\n",
+	if ( disc_id6 && *disc_id6 )
+	    fprintf(f,"%*s%-*sdisc=%s, ticket=%s, tmd=%s, boot=%s%s\n",
 		indent,"", title_fw, "Disc & part IDs: ",
-		wd_print_id(id6,6,0),
+		wd_print_id(disc_id6,6,0),
 		wd_print_id(part->ph.ticket.title_id+4,4,0),
 		part->tmd ? wd_print_id(part->tmd->title_id+4,4,0) : "-",
-		wd_print_id(&part->boot,6,0) );
+		wd_print_id(&part->boot,6,0), wbfs );
 	else
-	    fprintf(f,"%*s%-*sticket=%s, tmd=%s, boot=%s\n",
+	    fprintf(f,"%*s%-*sticket=%s, tmd=%s, boot=%s%s\n",
 		indent,"", title_fw, "Partition IDs: ",
 		wd_print_id(part->ph.ticket.title_id+4,4,0),
 		part->tmd ? wd_print_id(part->tmd->title_id+4,4,0) : "-",
-		wd_print_id(&part->boot,6,0) );
+		wd_print_id(&part->boot,6,0), wbfs );
     }
-    else if ( id6 && *id6 )
-	fprintf(f,"%*s%-*s%s\n",
+    else if ( disc_id6 && *disc_id6 )
+	fprintf(f,"%*s%-*s%s%s\n",
 		indent,"",  title_fw, "Disc ID: ",
-		wd_print_id(id6,6,0) );
+		wd_print_id(disc_id6,6,0), wbfs );
 }
 
 //-----------------------------------------------------------------------------
@@ -236,7 +243,7 @@ static int dump_header
 
 	if ( !id6 && sf )
 	    id6 = sf->f.id6_dest;
-	dump_id(f,indent,id6,disc->main_part,19);
+	dump_id(f,indent,id6,sf->wbfs_id6,disc->main_part,19);
     }
     else
 	fprintf(f,"%*sFile type:         %s%s\n",
@@ -487,7 +494,7 @@ static void dump_wii_part
 
 	    if ( !(show_mode & SHOW_F_PRIMARY) )
 	    {
-		dump_id(f,indent+2,0,part,18);
+		dump_id(f,indent+2,0,0,part,18);
 		fprintf(f,"%*s  boot.bin, title:  %.64s\n",
 			indent, "", part->boot.dhead.disc_title);
 		if ( !(show_mode & SHOW_TMD) && part->tmd )
@@ -498,7 +505,7 @@ static void dump_wii_part
 	    fprintf(f,"%*s  Files:         %7u\n",indent,"",part->fst_file_count);
 	}
 	else if ( show_mode & SHOW_P_ID )
-	    dump_id(f,indent+2,0,part,18);
+	    dump_id(f,indent+2,0,0,part,18);
 
 	if ( show_mode & SHOW_P_MAP )
 	{
@@ -511,7 +518,7 @@ static void dump_wii_part
 	}
 
 	if ( show_mode & SHOW_CERT )
-	    Dump_CERT(f,indent+2,wd_load_cert_chain(part,true),false);
+	    Dump_CERT(f,indent+2,wd_load_cert_chain(part,true),0);
 
 	if ( show_mode & SHOW_TICKET )
 	{
@@ -642,7 +649,7 @@ enumError Dump_ISO
     {
 	fprintf(f,"\n%*sDump of file %s\n",indent-2,"",sf->f.fname);
 	if ( show_mode & SHOW_D_ID )
-	    dump_id(f,indent,&disc->dhead.disc_id,disc->main_part,19);
+	    dump_id(f,indent,&disc->dhead.disc_id,sf->wbfs_id6,disc->main_part,19);
     }
 
 
@@ -815,7 +822,11 @@ enumError Dump_CERT_BIN
     FILE		* f,		// valid output stream
     int			indent,		// indent of output
     SuperFile_t		* sf,		// file to dump
-    ccp			real_path	// NULL or pointer to real path
+    ccp			real_path,	// NULL or pointer to real path
+    int			print_ext	// 0: off
+					// 1: print extended version
+					// 2:  + hexdump the keys
+					// 3:  + base64 the keys
 )
 {
     ASSERT(sf);
@@ -830,7 +841,7 @@ enumError Dump_CERT_BIN
     if (!err)
     {
 	putc('\n',f);
-	Dump_CERT_MEM(f,indent,buf,sf->file_size,true);
+	Dump_CERT_MEM(f,indent,buf,sf->file_size,print_ext);
     }
     FREE(buf);
     return err;
@@ -844,7 +855,10 @@ enumError Dump_CERT_MEM
     int			indent,		// indent of output
     const u8		* cert_data,	// valid pointer to cert data
     size_t		cert_size,	// size of 'cert_data'
-    bool		print_ext	// true: print extended version
+    int			print_ext	// 0: off
+					// 1: print extended version
+					// 2:  + hexdump the keys
+					// 3:  + base64 the keys
 )
 {
     ASSERT(f);
@@ -867,7 +881,10 @@ enumError Dump_CERT
     FILE		* f,		// valid output stream
     int			indent,		// indent of output
     const cert_chain_t	* cc,		// valid pinter to cert chain
-    bool		print_ext	// true: print extended version
+    int			print_ext	// 0: off
+					// 1: print extended version
+					// 2:  + hexdump the keys
+					// 3:  + base64 the keys
 )
 {
     DASSERT(f);
@@ -897,7 +914,10 @@ void Dump_CERT_Item
     int			indent,		// normalized indent of output
     const cert_item_t	* item,		// valid item pointer
     int			cert_index,	// >=0: print title with certificate index
-    bool		print_ext,	// true: print extended version
+    int			print_ext,	// 0: off
+					// 1: print extended version
+					// 2:  + hexdump the keys
+					// 3:  + base64 the keys
     const cert_chain_t	* cc		// not NULL: verify signature
 )
 {
@@ -923,13 +943,35 @@ void Dump_CERT_Item
 	const u32 pub_exp = be32(item->data->public_key+item->key_size);
 	fprintf(f,"%*sPublic exponent: %11x/hex =%11u\n",indent,"",pub_exp,pub_exp);
 
-	fprintf(f,"%*sPublic key:        ",indent,"");
-	dump_hex(f,item->data->public_key,16,0," ...\n");
+	if (print_ext>1)
+	{
+	    fprintf(f,"%*sPublic key:\n",indent,"");
+	    if ( print_ext > 2 )
+		PrintEncode64(f,item->data->public_key,item->key_size,indent+5,70);
+	    else
+		HexDump(f,indent+4,0,4,-16,item->data->public_key,item->key_size);
+	}
+	else
+	{
+	    fprintf(f,"%*sPublic key:        ",indent,"");
+	    dump_hex(f,item->data->public_key,16,0," ...\n");
+	}
 
 	if (item->head)
 	{
-	    fprintf(f,"%*sSignature:         ",indent,"");
-	    dump_hex(f,item->head->sig_data,16,0," ...\n");
+	    if (print_ext>1)
+	    {
+		fprintf(f,"%*sSignature:\n",indent,"");
+		if ( print_ext > 2 )
+		    PrintEncode64(f,item->head->sig_data,item->sig_size,indent+5,70);
+		else
+		    HexDump(f,indent+4,0,4,-16,item->head->sig_data,item->sig_size);
+	    }
+	    else
+	    {
+		fprintf(f,"%*sSignature:         ",indent,"");
+		dump_hex(f,item->head->sig_data,16,0," ...\n");
+	    }
 	}
     }
 
@@ -1013,7 +1055,7 @@ enumError Dump_TIK_BIN
 	    if ( sizeof(wd_ticket_t) < load_size )
 	    {
 		putc('\n',f);
-		Dump_CERT(f,indent,&cc,false);
+		Dump_CERT(f,indent,&cc,0);
 	    }
 	    cert_reset(&cc);
 	}
@@ -1124,7 +1166,7 @@ enumError Dump_TMD_BIN
 	    if ( tmd_size < load_size )
 	    {
 		putc('\n',f);
-		Dump_CERT(f,indent,&cc,false);
+		Dump_CERT(f,indent,&cc,0);
 	    }
 	    cert_reset(&cc);
 	}
@@ -1438,7 +1480,7 @@ enumError Dump_PATCH
     int recnum;
     for ( recnum = 0; pat.cur_type; recnum++ )
     {
-	// [[2do]] [patch]
+	// [[2do]] [[patch]]
 	printf("%3d: %02x %u\n",recnum,pat.cur_type,pat.cur_size);
 	enumError err = GetNextReadPatch(&pat);
 	if (err)
@@ -2775,6 +2817,7 @@ enumError CreateFileFST ( WiiFstInfo_t *wfi, ccp dest_path, WiiFstFile_t * file 
 	}
     }
 
+
     //----- directory handling
 
     if ( file->icm == WD_ICM_DIRECTORY )
@@ -3274,6 +3317,7 @@ void ReversePartFST ( WiiFstPart_t * part )
 
 enum
 {
+	PSUP_D_TYPE,
 	PSUP_P_ID,
 	PSUP_P_NAME,
 	PSUP_P_OFFSET,
@@ -3283,12 +3327,43 @@ enum
 
 static SetupDef_t part_setup_def[] =
 {
+	{ "disc-type",		0 },
 	{ "part-id",		0 },
 	{ "part-name",		0 },
 	{ "part-offset",	0x10000 },
 	{0,0}
 };
 
+///////////////////////////////////////////////////////////////////////////////
+
+static enumError ScanSetupDef
+(
+	ccp path,		// filename of text file, part 1
+				// part 2 := FST_SETUP_FILE
+	bool silent		// true: suppress error message if file not found
+)
+{
+    enumError err = ScanSetupFile(part_setup_def,path,FST_SETUP_FILE,silent);
+
+    static const CommandTab_t tab[] =
+    {
+	{ WD_DT_GAMECUBE,	"GAMECUBE",	"GC",	0 },
+	{ WD_DT_WII,		"WII",		0,	0 },
+	{ 0,0,0,0 }
+    };
+    SetupDef_t *dtype = part_setup_def + PSUP_D_TYPE;
+    if (dtype->param)
+    {
+	const CommandTab_t * cmd = ScanCommand(0,dtype->param,tab);
+	dtype->value = cmd ? cmd->id : WD_DT_UNKNOWN;
+    }
+    PRINT("Scan %s: disc-type = %lld [%s]\n",
+		FST_SETUP_FILE, dtype->value,
+		wd_get_disc_type_name(dtype->value,"?") );
+    return err;
+}
+
+///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
 enumFileType IsFST ( ccp base_path, char * id6_result )
@@ -3443,12 +3518,12 @@ enumFileType IsFSTPart ( ccp base_path, char * id6_result )
     {
 	if (!ignore_setup)
 	{
-	    ScanSetupFile(part_setup_def,base_path,FST_SETUP_FILE,true);
+	    ScanSetupDef(base_path,true);
 	    ccp part_id = part_setup_def[PSUP_P_ID].param;
 	    if (part_id)
 		wd_patch_id(id6_result,id6_result,part_id,6);
 	}
-	PatchId(id6_result,0,6,WD_MODIFY_DISC|WD_MODIFY__AUTO);
+	PatchId(id6_result,modify_disc_id,0,6);
     }
 
 
@@ -3842,8 +3917,7 @@ u64 GenPartFST
     ccp part_name = 0;
     if (!ignore_setup)
     {
-	ScanSetupFile(part_setup_def,path,FST_SETUP_FILE,true);
-
+	ScanSetupDef(path,true);
 	part_id   = part_setup_def[PSUP_P_ID].param;
 	part_name = part_setup_def[PSUP_P_NAME].param;
 
@@ -3891,7 +3965,7 @@ u64 GenPartFST
 
     if ( part->part_type == WD_PART_DATA )
     {
-	PatchId(imi->data,0,6,WD_MODIFY_BOOT|WD_MODIFY__AUTO);
+	PatchId(imi->data,modify_boot_id,0,6);
 	PatchName(title,WD_MODIFY_BOOT|WD_MODIFY__AUTO);
     }
     snprintf(imi->info,sizeof(imi->info),"boot.bin [%.6s] + bi2.bin",(ccp)imi->data);
@@ -3916,7 +3990,7 @@ u64 GenPartFST
 			&fst->dhead, sizeof(fst->dhead), true,
 			&part->max_fatt, true);
 	PatchDiscHeader(&fst->dhead,part_id,part_name);
-	PatchId(&fst->dhead.disc_id,0,6,WD_MODIFY_DISC|WD_MODIFY__AUTO);
+	PatchId(&fst->dhead.disc_id,modify_disc_id,0,6);
 	PatchName(fst->dhead.disc_title,WD_MODIFY_DISC|WD_MODIFY__AUTO);
     }
 
@@ -4052,9 +4126,8 @@ u64 GenPartFST
 
     if ( part->part_type == WD_PART_DATA )
     {
-	PatchId(pc->head->ticket.title_id+4,0,4,WD_MODIFY_TICKET|WD_MODIFY__AUTO);
-	PatchId(pc->tmd->title_id+4,0,4,WD_MODIFY_TMD|WD_MODIFY__AUTO);
-
+	PatchId(pc->head->ticket.title_id+4,modify_ticket_id,0,4);
+	PatchId(pc->tmd->title_id+4,modify_tmd_id,0,4);
 	if (opt_ios_valid)
 	    pc->tmd->sys_version = hton64(opt_ios);
     }
@@ -4411,9 +4484,10 @@ enumError ReadFST ( SuperFile_t * sf, off_t off, void * buf, size_t count )
 	const size_t copy_count = count < max_size ? count : max_size;
 	switch(imi->imt)
 	{
-	    case IMT_ID:
+	    case IMT_ID: // [[2do]] [[obsolete?]] is IMT_ID needed?
+		DASSERT(0);
 		TRACE(">ID %zx=%zu\n",copy_count,copy_count);
-		PatchId(dest,delta,copy_count,WD_MODIFY__ALWAYS);
+		PatchIdCond(dest,delta,copy_count,WD_MODIFY__ALWAYS);
 		break;
 
 	    case IMT_DATA:
@@ -4599,10 +4673,11 @@ enumError ReadPartGroupFST ( SuperFile_t * sf, WiiFstPart_t * part,
 
 	switch(imi->imt)
 	{
-	    case IMT_ID:
+	    case IMT_ID: // [[2do]] [[obsolete?]] is IMT_ID needed?
+		DASSERT(0);
 		noTRACE("IMT_ID: %x %x -> %zx (%s)\n",
 			skip_count, max_copy, dest-src, imi->info );
-		PatchId(dest,skip_count,max_copy,WD_MODIFY__ALWAYS);
+		PatchIdCond(dest,skip_count,max_copy,WD_MODIFY__ALWAYS);
 		break;
 
 	    case IMT_DATA:

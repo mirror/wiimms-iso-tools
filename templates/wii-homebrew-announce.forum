@@ -6,7 +6,7 @@
 
 Dieses ist das Ankündigungsthema für [url=@@URI-HOME@@][b]@@TOOLSET-SHORT@@[/b][/url] (@@TOOLSET-LONG@@). [url=@@URI-HOME@@]@@URI-HOME@@[/url] gibt es eine ausführlichere Übersicht über die Möglichkeiten, allerdings in englisch.
 
-[b]wit+wwt[/b] sind [url=@@URI-HOME@@info/command-line.html]Kommandozeilen-Tools[/url]. Das bedeutet, dass man zur Ausführung vorher ein Kommandofenster aufmachen muss und dann die Kommandos einzugeben. Dieses hat aber den Vorteil, dass man sich Batch-Dateien für immer wiederkehrende Aufgaben schreiben kann. Zum Ansprechen der Laufwerke (WBFS Platten) muss das Kommandofenster im Admin-Modus arbeiten. Die Syntax der Kommandos ist stark an Unix angelehnt, da die Programme auch unter Linux entwickelt werden.
+[b]wit+wwt[/b] sind [url=@@URI-HOME@@info/command-line.html]Kommandozeilen-Tools[/url]. Das bedeutet, dass man zur Ausführung vorher ein Kommandofenster aufmacht um dann die Kommandos einzugeben. Dieses hat aber den Vorteil, dass man sich Batch-Dateien für immer wiederkehrende Aufgaben schreiben kann. Zum Ansprechen der Laufwerke (WBFS Platten) muss das Kommandofenster im Admin-Modus arbeiten. Die Syntax der Kommandos ist stark an Unix angelehnt, da die Programme auch unter Linux entwickelt werden.
 
 [color=#0000c0][size=12][b]Eigenschaften:[/b][/size]
 (Die Links zeigen auf die englischsprachige Website)[/color]
@@ -22,7 +22,7 @@ Dieses ist das Ankündigungsthema für [url=@@URI-HOME@@][b]@@TOOLSET-SHORT@@[/b][
 [*] Weitere Versionen sind unter [url=@@URI-HOME@@download.html][b]@@URI-HOME@@download.html[/b][/url] verfügbar.
 [/list]
 
-[size=12][color=#0000c0][b]Es existieren auch drei graphische Oberflächen (GUI) zur Bedienung von WIT:[/b][/color][/size]
+[size=12][color=#0000c0][b]Es existieren auch mehrere graphische Oberflächen (GUI) zur Bedienung von WIT. Die beiden wichtigsten sind:[/b][/color][/size]
 [list]
 [*] [url=@@URI-QTWITGUI@@][b]QtWitGui[/b], Bearbeitung einzelner Wii ISO discs.[/url]
     Dieses QT basierte GUI bietet Dinge rund um die Bearbeitung (Kopieren, modifizieren) von einzelnen WIi ISO discs.

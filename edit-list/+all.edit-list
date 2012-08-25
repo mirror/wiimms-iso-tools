@@ -1,6 +1,7 @@
 @+all-source.edit-list
 @+doc.edit-list
 @+templates.edit-list
+@+text-files.edit-list
 @+scripts.edit-list
 @+makefiles.edit-list
 @+editlists.edit-list

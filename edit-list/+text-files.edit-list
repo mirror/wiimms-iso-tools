@@ -1,0 +1,3 @@
+../text-files/*.inc ;
+../text-files/*.inc/*.inc ;
+../gen-text-file.sh ;

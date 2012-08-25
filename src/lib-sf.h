@@ -16,7 +16,7 @@
  *   This file is part of the WIT project.                                 *
  *   Visit http://wit.wiimm.de/ for project details and sources.           *
  *                                                                         *
- *   Copyright (c) 2009-2011 by Dirk Clemens <wiimm@wiimm.de>              *
+ *   Copyright (c) 2009-2012 by Dirk Clemens <wiimm@wiimm.de>              *
  *                                                                         *
  ***************************************************************************
  *                                                                         *
@@ -159,6 +159,7 @@ typedef struct SuperFile_t
 
 	struct WBFS_t * wbfs;		// a WBFS
 	u32 wbfs_fragments;		// 0=unknown, >0:number if fragments
+	id6_t wbfs_id6;			// ID6 of wbfs inode
 
 	// FST support
 	

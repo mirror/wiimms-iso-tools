@@ -16,7 +16,7 @@
  *   This file is part of the WIT project.                                 *
  *   Visit http://wit.wiimm.de/ for project details and sources.           *
  *                                                                         *
- *   Copyright (c) 2009-2011 by Dirk Clemens <wiimm@wiimm.de>              *
+ *   Copyright (c) 2009-2012 by Dirk Clemens <wiimm@wiimm.de>              *
  *                                                                         *
  ***************************************************************************
  *                                                                         *
@@ -172,9 +172,42 @@ static void hint_exit ( enumError stat )
     exit(stat);
 }
 
+///////////////////////////////////////////////////////////////////////////////
+
+#define SYNTAX_ERROR syntax_error(__FUNCTION__,__FILE__,__LINE__)
+
+static void syntax_error ( ccp func, ccp file, uint line )
+{
+    if ( current_command
+	&& current_command->id >= 0
+	&& current_command->id < InfoUI.n_cmd )
+    {
+	const InfoCommand_t *ic = InfoUI.cmd_info + current_command->id;
+	if (strchr(ic->syntax,'\n'))
+	{
+	    ccp src = ic->syntax;
+	    char *dest = iobuf;
+	    while (*src)
+		if ( (*dest++ = *src++) == '\n' )
+		{
+		    *dest++ = ' ';
+		    *dest++ = ' ';
+		    *dest++ = ' ';
+		}
+	    *dest = 0;
+	    PrintError(func,file,line,0,ERR_SYNTAX,"Syntax:\n   %s\n",iobuf);
+	}
+	else
+	    PrintError(func,file,line,0,ERR_SYNTAX,"Syntax: %s\n",ic->syntax);
+    }
+    else
+	PrintError(func,file,line,0,ERR_SYNTAX,"Syntax Error!\n");
+    exit(ERR_SYNTAX);
+}
+
 //
 ///////////////////////////////////////////////////////////////////////////////
-///////////////                     commands                    ///////////////
+///////////////			command TEST			///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
 // common commands of 'wwt' and 'wit'
@@ -183,7 +216,7 @@ static void hint_exit ( enumError stat )
 
 ///////////////////////////////////////////////////////////////////////////////
 
-enumError cmd_test()
+static enumError cmd_test()
 {
  #if 1 || !defined(TEST) // test options
 
@@ -248,7 +281,7 @@ enumError cmd_test()
 	HEXDUMP16(0,0,buf,sizeof(buf));
     }
     return ERR_OK;
-    
+
  #elif 1
 
     {
@@ -271,7 +304,7 @@ enumError cmd_test()
 	printf("%05x %-6s %s\n",ftype,id6,param->arg);
     }
     return ERR_OK;
-    
+
  #else
 
     int i, max = 5;
@@ -287,8 +320,10 @@ enumError cmd_test()
 
 //
 ///////////////////////////////////////////////////////////////////////////////
+///////////////			command CERT			///////////////
+///////////////////////////////////////////////////////////////////////////////
 
-enumError cmd_cert()
+static enumError cmd_cert()
 {
     ParamList_t * param;
     for ( param = first_param; param; param = param->next )
@@ -308,7 +343,7 @@ enumError cmd_cert()
 
     FilePattern_t * pat_select   = file_pattern + PAT_FILES;
     FilePattern_t * pat_fakesign = file_pattern + PAT_FAKE_SIGN;
-    
+
     int i;
     for ( i = 0; i < global_cert.used; i++ )
     {
@@ -323,7 +358,7 @@ enumError cmd_cert()
 
 	    if ( !f || verbose > 0 )
 	    {
-		Dump_CERT_Item(stdout,0,item,i,true,&global_cert);
+		Dump_CERT_Item(stdout,0,item,i,long_count+1,&global_cert);
 		fputc('\n',stdout);
 	    }
 
@@ -339,8 +374,10 @@ enumError cmd_cert()
 
 //
 ///////////////////////////////////////////////////////////////////////////////
+///////////////			command CREATE			///////////////
+///////////////////////////////////////////////////////////////////////////////
 
-enumError cmd_create()
+static enumError cmd_create()
 {
     if ( n_param < 1 )
     {
@@ -401,7 +438,7 @@ enumError cmd_create()
 	    *dest++ = tolower((int)*src++);
 	DASSERT( dest < namebuf + sizeof(namebuf) );
 	*dest = 0;
-	
+
 	path = PathCatPP(pbuf2,sizeof(pbuf2),path,namebuf);
     }
 
@@ -430,7 +467,7 @@ enumError cmd_create()
       case SC_TICKET:
 	{
 	    wd_ticket_t tik;
-	    ticket_setup(&tik,modify_id);
+	    ticket_setup(&tik,modify_id /* [[id]] */);
 
 	    if (param)
 	    {
@@ -474,7 +511,7 @@ enumError cmd_create()
 	{
 	    char tmd_buf[WII_TMD_GOOD_SIZE];
 	    wd_tmd_t * tmd = (wd_tmd_t*)tmd_buf;
-	    tmd_setup(tmd,sizeof(tmd_buf),modify_id);
+	    tmd_setup(tmd,sizeof(tmd_buf),modify_id /* [[id]] */);
 
 	    if (opt_ios_valid)
 		tmd->sys_version = hton64(opt_ios);
@@ -511,6 +548,8 @@ enumError cmd_create()
 
 //
 ///////////////////////////////////////////////////////////////////////////////
+///////////////			command FILELIST		///////////////
+///////////////////////////////////////////////////////////////////////////////
 
 enumError exec_filelist ( SuperFile_t * sf, Iterator_t * it )
 {
@@ -523,7 +562,7 @@ enumError exec_filelist ( SuperFile_t * sf, Iterator_t * it )
 
 //-----------------------------------------------------------------------------
 
-enumError cmd_filelist()
+static enumError cmd_filelist()
 {
     ParamList_t * param;
     for ( param = first_param; param; param = param->next )
@@ -545,6 +584,8 @@ enumError cmd_filelist()
 }
 
 //
+///////////////////////////////////////////////////////////////////////////////
+///////////////			command FILETYPE		///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
 enumError exec_filetype ( SuperFile_t * sf, Iterator_t * it )
@@ -615,7 +656,7 @@ enumError exec_filetype ( SuperFile_t * sf, Iterator_t * it )
 
 //-----------------------------------------------------------------------------
 
-enumError cmd_filetype()
+static enumError cmd_filetype()
 {
     ParamList_t * param;
     for ( param = first_param; param; param = param->next )
@@ -642,6 +683,8 @@ enumError cmd_filetype()
 }
 
 //
+///////////////////////////////////////////////////////////////////////////////
+///////////////			command ISOSIZE			///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
 enumError exec_isosize ( SuperFile_t * sf, Iterator_t * it )
@@ -750,7 +793,7 @@ enumError exec_isosize ( SuperFile_t * sf, Iterator_t * it )
 
 //-----------------------------------------------------------------------------
 
-enumError cmd_isosize()
+static enumError cmd_isosize()
 {
     ParamList_t * param;
     for ( param = first_param; param; param = param->next )
@@ -818,6 +861,8 @@ enumError cmd_isosize()
 
 //
 ///////////////////////////////////////////////////////////////////////////////
+///////////////			command DUMP			///////////////
+///////////////////////////////////////////////////////////////////////////////
 
 static void dump_data ( off_t base, u32 off4, off_t size, ccp text )
 {
@@ -846,7 +891,7 @@ enumError exec_dump ( SuperFile_t * sf, Iterator_t * it )
 	return Dump_FST_BIN(stdout,0,sf,it->real_path,opt_show_mode);
 
     if ( sf->f.ftype & FT_ID_CERT_BIN )
-	return Dump_CERT_BIN(stdout,0,sf,it->real_path);
+	return Dump_CERT_BIN(stdout,0,sf,it->real_path,1);
 
     if ( sf->f.ftype & FT_ID_TIK_BIN )
 	return Dump_TIK_BIN(stdout,0,sf,it->real_path);
@@ -871,7 +916,7 @@ enumError exec_dump ( SuperFile_t * sf, Iterator_t * it )
 
 //-----------------------------------------------------------------------------
 
-enumError cmd_dump()
+static enumError cmd_dump()
 {
     ParamList_t * param;
     for ( param = first_param; param; param = param->next )
@@ -896,6 +941,84 @@ enumError cmd_dump()
 }
 
 //
+///////////////////////////////////////////////////////////////////////////////
+///////////////		    command ID6 --long			///////////////
+///////////////////////////////////////////////////////////////////////////////
+
+enumError exec_print_id ( SuperFile_t * sf, Iterator_t * it )
+{
+    DASSERT(sf);
+
+    wd_disc_t * disc = OpenDiscSF(sf,true,true);
+    if (!disc)
+	return ERR_OK;
+
+    wd_part_t *part = it->long_count > 1 ? disc->part : disc->main_part;
+
+    if ( !part || !disc->n_part )
+	printf("%6s  --   --    --  ", wd_print_id(&disc->dhead,6,0));
+    else
+    {
+	const u32 *tick_id = (u32*)(part->ph.ticket.title_id+4);
+	printf("%6s %4s %4s %6s",
+		wd_print_id(&disc->dhead,6,0),
+		tick_id[0] ? wd_print_id(tick_id,4,0) : "-- ",
+		part->tmd ? wd_print_id(part->tmd->title_id+4,4,0) : "-- ",
+		wd_print_id(&part->boot,6,0) );
+    }
+
+    printf(" %-6s %s  %s\n",
+	sf->wbfs_id6[0] ? sf->wbfs_id6 : "  --",
+	wd_print_part_name(0,0,part->part_type,WD_PNAME_NAME_NUM_9),
+	sf->f.fname );
+
+    if ( it->long_count < 2 )
+	return ERR_OK;
+
+    int pi;
+    for ( pi = 1; pi < disc->n_part; pi++ )
+    {
+	part = wd_get_part_by_index(disc,pi,0);
+	const u32 *tick_id = (u32*)(part->ph.ticket.title_id+4);
+	printf("     > %4s %4s %-13s %s\n",
+		tick_id[0] ? wd_print_id(tick_id,4,0) : "-- ",
+		part->tmd ? wd_print_id(part->tmd->title_id+4,4,0) : "-",
+		wd_print_id(&part->boot,6,0),
+		wd_print_part_name(0,0,part->part_type,WD_PNAME_NAME_NUM_9) );
+    }
+
+    return ERR_OK;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+static enumError cmd_id6_long()
+{
+    const bool print_header = !OptionUsed[OPT_NO_HEADER];
+    if (print_header)
+	printf(	"\n"
+		" DISC TICKET TMD  BOOT   WBFS\n"
+		"  ID    ID   ID    ID     ID   Partition  File\n"
+		"%.79s\n", sep_79);
+
+    Iterator_t it;
+    InitializeIterator(&it);
+    it.func		= exec_print_id;
+    it.act_wbfs		= ACT_EXPAND;
+    it.act_gc		= ACT_ALLOW;
+    it.act_fst		= allow_fst ? ACT_EXPAND : ACT_IGNORE;
+    it.long_count	= long_count;
+
+    enumError err = SourceIterator(&it,0,true,false);
+    ResetIterator(&it);
+    if (print_header)
+	putchar('\n');
+    return err;
+}
+
+//
+///////////////////////////////////////////////////////////////////////////////
+///////////////			commands ID6			///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
 enumError exec_collect ( SuperFile_t * sf, Iterator_t * it )
@@ -956,64 +1079,54 @@ enumError exec_collect ( SuperFile_t * sf, Iterator_t * it )
 
 //-----------------------------------------------------------------------------
 
-enumError cmd_id6()
+static enumError cmd_id6()
 {
-    StringField_t select_list, id6_list, *print_list = &select_list;
-    InitializeStringField(&select_list);
-    InitializeStringField(&id6_list);
-    enumError err = ScanParamID6(&select_list,first_param);
-    if (err)
-	return err;
+    ParamList_t * param;
+    for ( param = first_param; param; param = param->next )
+	AppendStringField(&source_list,param->arg,true);
 
-    if ( testmode < 2 )
-    {
-	WDiscList_t wlist;
-	InitializeWDiscList(&wlist);
-
-	Iterator_t it;
-	InitializeIterator(&it);
-	it.func		= exec_collect;
-	it.act_wbfs	= ACT_EXPAND;
-	it.act_gc	= ACT_ALLOW;
-	it.act_fst	= allow_fst ? ACT_EXPAND : ACT_IGNORE;
-	it.long_count	= long_count;
-	it.wlist	= &wlist;
-
-	enumError err = SourceIterator(&it,0,true,false);
-	ResetIterator(&it);
-	if ( err > ERR_WARNING )
-	    return err;
-
-	AppendWListID6(&id6_list,&select_list,&wlist,long_count>0);
-	ResetWDiscList(&wlist);
-
-	print_list = &id6_list;
-    }
+    encoding |= ENCODE_F_FAST; // hint: no encryption needed
 
     if (long_count)
-    {
-	int i;
-	for ( i = 0; i < print_list->used; i++ )
-	    printf("%s  %s\n",
-		print_list->field[i],
-		GetTitle(print_list->field[i],"?") );
-    }
-    else
-    {
-	int i;
-	for ( i = 0; i < print_list->used; i++ )
-	    printf("%s\n",print_list->field[i]);
-    }
+	return cmd_id6_long();
 
-    ResetStringField(&select_list);
+    StringField_t id6_list;
+    InitializeStringField(&id6_list);
+
+    WDiscList_t wlist;
+    InitializeWDiscList(&wlist);
+
+    Iterator_t it;
+    InitializeIterator(&it);
+    it.func		= exec_collect;
+    it.act_wbfs		= ACT_EXPAND;
+    it.act_gc		= ACT_ALLOW;
+    it.act_fst		= allow_fst ? ACT_EXPAND : ACT_IGNORE;
+    it.long_count	= long_count;
+    it.wlist		= &wlist;
+
+    enumError err = SourceIterator(&it,0,true,false);
+    ResetIterator(&it);
+    if ( err > ERR_WARNING )
+	return err;
+
+    AppendWListID6(&id6_list,0,&wlist,long_count>0);
+    ResetWDiscList(&wlist);
+
+    int i;
+    for ( i = 0; i < id6_list.used; i++ )
+	printf("%s\n",id6_list.field[i]);
+
     ResetStringField(&id6_list);
     return ERR_OK;
 }
 
 //
 ///////////////////////////////////////////////////////////////////////////////
+///////////////			command LIST			///////////////
+///////////////////////////////////////////////////////////////////////////////
 
-enumError cmd_list ( int long_level )
+static enumError cmd_list ( int long_level )
 {
     if ( long_level > 0 )
     {
@@ -1161,7 +1274,7 @@ enumError cmd_list ( int long_level )
 	{
 	    const u64 size = witem->fatt.size
 				? (u64)witem->fatt.size : witem->size_mib*(u64)MiB;
- 	    printf("%s%s %*s %s  %s\n",
+	    printf("%s%s %*s %s  %s\n",
 		    witem->id6, PrintTime(&pt,&witem->fatt),
 		    size_fw,
 		    wd_print_size(0,0,size,false,column_unit),
@@ -1206,6 +1319,8 @@ enumError cmd_list ( int long_level )
 
 //
 ///////////////////////////////////////////////////////////////////////////////
+///////////////			command FILES			///////////////
+///////////////////////////////////////////////////////////////////////////////
 
 enumError exec_files ( SuperFile_t * fi, Iterator_t * it )
 {
@@ -1213,7 +1328,7 @@ enumError exec_files ( SuperFile_t * fi, Iterator_t * it )
     if ( fi->f.ftype & FT_ID_FST_BIN )
 	return Dump_FST_BIN(stdout,0,fi,it->real_path,it->show_mode&~SHOW_INTRO);
 
-// [[2do]] [ft-id]
+// [[2do]] [[ft-id]]
     if ( fi->f.ftype & FT__SPC_MASK || !fi->f.id6_dest[0] )
 	return OptionUsed[OPT_IGNORE]
 		? ERR_OK
@@ -1246,7 +1361,7 @@ enumError exec_files ( SuperFile_t * fi, Iterator_t * it )
 
 //-----------------------------------------------------------------------------
 
-enumError cmd_files ( int long_level )
+static enumError cmd_files ( int long_level )
 {
     if ( long_level > 0 )
     {
@@ -1299,10 +1414,12 @@ enumError cmd_files ( int long_level )
 
 //
 ///////////////////////////////////////////////////////////////////////////////
+///////////////			command DIFF			///////////////
+///////////////////////////////////////////////////////////////////////////////
 
 static Diff_t diff = {0};
 
-enumError cmd_diff ( bool file_level )
+static enumError cmd_diff ( bool file_level )
 {
     if ( verbose > 0 )
 	print_title(stdout);
@@ -1349,9 +1466,16 @@ enumError cmd_diff ( bool file_level )
     if (SetupFilePattern(pat))
 	encoding |= ENCODE_F_FAST; // hint: no encryption needed
 
+    int done_count = 0;
     ParamList_t * param;
     for ( param = first_param; param; param = param->next )
-	AppendStringField(&source_list,param->arg,true);
+	if (param->arg)
+	{
+	    done_count++;
+	    AppendStringField(&source_list,param->arg,true);
+	}
+    if (!done_count)
+	SYNTAX_ERROR;
 
     Iterator_t it;
     InitializeIterator(&it);
@@ -1392,11 +1516,13 @@ enumError cmd_diff ( bool file_level )
 
 //
 ///////////////////////////////////////////////////////////////////////////////
+///////////////			command EXTRACT			///////////////
+///////////////////////////////////////////////////////////////////////////////
 
 enumError exec_extract ( SuperFile_t * fi, Iterator_t * it )
 {
     ASSERT(fi);
-
+    PRINT("exec_extract(%s)\n",fi->f.fname);
     if (!fi->f.id6_dest[0])
 	return ERR_OK;
     fflush(0);
@@ -1465,7 +1591,7 @@ enumError exec_extract ( SuperFile_t * fi, Iterator_t * it )
 
 //-----------------------------------------------------------------------------
 
-enumError cmd_extract()
+static enumError cmd_extract()
 {
     if ( verbose >= 0 )
 	print_title(stdout);
@@ -1484,9 +1610,16 @@ enumError cmd_extract()
 	param->arg = 0;
     }
 
+    int done_count = 0;
     ParamList_t * param;
     for ( param = first_param; param; param = param->next )
-	AppendStringField(&source_list,param->arg,true);
+	if (param->arg)
+	{
+	    done_count++;
+	    AppendStringField(&source_list,param->arg,true);
+	}
+    if (!done_count)
+	SYNTAX_ERROR;
 
     encoding |= ENCODE_F_FAST; // hint: no encryption needed
 
@@ -1512,9 +1645,13 @@ enumError cmd_extract()
 
 //
 ///////////////////////////////////////////////////////////////////////////////
+///////////////			command COPY			///////////////
+///////////////////////////////////////////////////////////////////////////////
 
 enumError exec_copy ( SuperFile_t * fi, Iterator_t * it )
 {
+    ASSERT(fi);
+    PRINT("exec_copy(%s)\n",fi->f.fname);
     if (!fi->f.id6_dest[0])
 	return ERR_OK;
     fflush(0);
@@ -1754,13 +1891,10 @@ enumError exec_copy ( SuperFile_t * fi, Iterator_t * it )
 
 //-----------------------------------------------------------------------------
 
-enumError cmd_copy()
+static enumError cmd_copy()
 {
     if ( OptionUsed[OPT_FST] )
-    {
-	enumError cmd_extract();
 	return cmd_extract();
-    }
 
     if ( verbose >= 0 )
 	print_title(stdout);
@@ -1768,7 +1902,7 @@ enumError cmd_copy()
     if (!opt_dest)
     {
 	if (!first_param)
-	    return ERROR0(ERR_MISSING_PARAM, "Missing destination parameter\n" );
+	    return ERROR0(ERR_MISSING_PARAM, "Missing destination parameter!\n" );
 
 	ParamList_t * param;
 	for ( param = first_param; param->next; param = param->next )
@@ -1781,7 +1915,10 @@ enumError cmd_copy()
 
     ParamList_t * param;
     for ( param = first_param; param; param = param->next )
-	AppendStringField(&source_list,param->arg,true);
+	if (param->arg)
+	    AppendStringField(&source_list,param->arg,true);
+    if (!source_list.used)
+	SYNTAX_ERROR;
 
     Iterator_t it;
     InitializeIterator(&it);
@@ -1821,8 +1958,10 @@ enumError cmd_copy()
 
 //
 ///////////////////////////////////////////////////////////////////////////////
+///////////////			command CONVERT			///////////////
+///////////////////////////////////////////////////////////////////////////////
 
-enumError cmd_convert()
+static enumError cmd_convert()
 {
     if ( verbose >= 0 )
 	print_title(stdout);
@@ -1862,6 +2001,8 @@ enumError cmd_convert()
 }
 
 //
+///////////////////////////////////////////////////////////////////////////////
+///////////////			command EDIT			///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
 enumError exec_edit ( SuperFile_t * fi, Iterator_t * it )
@@ -1932,7 +2073,7 @@ enumError exec_edit ( SuperFile_t * fi, Iterator_t * it )
 
     OpenDiscSF(fi,true,true);
     wd_disc_t * disc = fi->disc1;
-    
+
     enumError err = ERR_OK;
     if ( disc && disc->reloc )
     {
@@ -1963,7 +2104,7 @@ enumError exec_edit ( SuperFile_t * fi, Iterator_t * it )
 
 ///////////////////////////////////////////////////////////////////////////////
 
-enumError cmd_edit()
+static enumError cmd_edit()
 {
     if ( verbose >= 0 )
 	print_title(stdout);
@@ -2001,9 +2142,145 @@ enumError cmd_edit()
 
 //
 ///////////////////////////////////////////////////////////////////////////////
+///////////////			command IMGFILES		///////////////
+///////////////////////////////////////////////////////////////////////////////
+
+enumError exec_imgfiles ( SuperFile_t * fi, Iterator_t * it )
+{
+    DASSERT(fi);
+    DASSERT(it);
+    PRINT("IMGFILES [%u,%x] %s\n",fi->f.split_used,fi->f.ftype&FT_A_WDISC,fi->f.fname);
+    if ( fi->f.ftype & FT_A_WDISC )
+	return 0;
+
+    char eol = OptionUsed[OPT_NULL] ? 0 : '\n';
+    int n = fi->f.split_used;
+    if (n)
+    {
+	File_t **f = fi->f.split_f;
+	while ( n-- > 0 )
+	{
+	    printf("%s%c",(*f)->fname,eol);
+	    f++;
+	}
+    }
+    else
+	printf("%s%c",fi->f.fname,eol);
+
+    return ERR_OK;
+}
+
+//-----------------------------------------------------------------------------
+
+static enumError cmd_imgfiles()
+{
+    ParamList_t * param;
+    for ( param = first_param; param; param = param->next )
+	AppendStringField(&source_list,param->arg,true);
+
+    encoding |= ENCODE_F_FAST; // hint: no encryption needed
+
+    Iterator_t it;
+    InitializeIterator(&it);
+    it.act_non_iso	= OptionUsed[OPT_IGNORE] ? ACT_IGNORE : ACT_WARN;
+    it.act_wbfs_disc	= it.act_non_iso;
+    it.act_wbfs		= ACT_ALLOW;
+    it.act_gc		= ACT_ALLOW;
+
+    enumError err = SourceIterator(&it,0,false,true);
+    if ( err <= ERR_WARNING )
+    {
+	it.func = exec_imgfiles;
+	err = SourceIteratorCollected(&it,0,2,false);
+    }
+    ResetIterator(&it);
+    return err;
+}
+
+//
+///////////////////////////////////////////////////////////////////////////////
+///////////////			command REMOVE			///////////////
+///////////////////////////////////////////////////////////////////////////////
+
+enumError exec_remove ( SuperFile_t * fi, Iterator_t * it )
+{
+    DASSERT(fi);
+    DASSERT(it);
+    PRINT("REMOVE [%u] %s\n",fi->f.split_used,fi->f.fname);
+    if ( fi->f.ftype & FT_A_WDISC )
+	return 0;
+
+    int n = fi->f.split_used;
+
+    char split_buf[10];
+    const int count_fw
+	= snprintf(split_buf,sizeof(split_buf),"%u",it->source_list.used );
+    if ( fi->f.split_used > 1 )
+	snprintf(split_buf,sizeof(split_buf),"*%u",n);
+    else
+	*split_buf = 0;
+
+    printf(" - %sREMOVE %*u/%u %s%s:%s\n",
+	testmode ? "WOULD " : "",
+	count_fw, it->source_index+1, it->source_list.used,
+	oft_info[fi->iod.oft].name, split_buf, fi->f.fname );
+
+    if (!testmode)
+	RemoveSF(fi);
+
+    return ERR_OK;
+}
+
+//-----------------------------------------------------------------------------
+
+static enumError cmd_remove()
+{
+    if ( verbose >= 0 )
+	print_title(stdout);
+
+    ParamList_t * param;
+    for ( param = first_param; param; param = param->next )
+	AppendStringField(&source_list,param->arg,true);
+
+    encoding |= ENCODE_F_FAST; // hint: no encryption needed
+
+    Iterator_t it;
+    InitializeIterator(&it);
+    it.act_non_iso	= OptionUsed[OPT_IGNORE] ? ACT_IGNORE : ACT_WARN;
+    it.act_wbfs_disc	= it.act_non_iso;
+    it.act_wbfs		= ACT_ALLOW;
+    it.act_gc		= ACT_ALLOW;
+
+    if ( testmode > 1 )
+    {
+	it.func = exec_filetype;
+	enumError err = SourceIterator(&it,1,false,false);
+	ResetIterator(&it);
+	return err;
+    }
+
+    enumError err = SourceIterator(&it,0,false,true);
+    if ( err <= ERR_WARNING )
+    {
+	it.func = exec_remove;
+	err = SourceIteratorCollected(&it,0,2,false);
+    }
+    ResetIterator(&it);
+    return err;
+}
+
+//
+///////////////////////////////////////////////////////////////////////////////
+///////////////			command MOVE			///////////////
+///////////////////////////////////////////////////////////////////////////////
 
 enumError exec_move ( SuperFile_t * fi, Iterator_t * it )
 {
+    DASSERT(fi);
+    DASSERT(it);
+    if ( fi->f.ftype & FT_A_WDISC )
+	return 0;
+
     SuperFile_t fo;
     InitializeSF(&fo);
     SetupIOD(&fo,fi->iod.oft,fi->iod.oft);
@@ -2128,7 +2405,7 @@ enumError exec_move ( SuperFile_t * fi, Iterator_t * it )
 
 //-----------------------------------------------------------------------------
 
-enumError cmd_move()
+static enumError cmd_move()
 {
     if ( verbose >= 0 )
 	print_title(stdout);
@@ -2157,6 +2434,7 @@ enumError cmd_move()
     InitializeIterator(&it);
     it.act_non_iso	= OptionUsed[OPT_IGNORE] ? ACT_IGNORE : ACT_WARN;
     it.act_wbfs		= it.act_non_iso;
+    it.act_wbfs_disc	= it.act_non_iso;
     it.act_gc		= ACT_ALLOW;
     it.overwrite	= OptionUsed[OPT_OVERWRITE] ? 1 : 0;
 
@@ -2180,6 +2458,8 @@ enumError cmd_move()
 }
 
 //
+///////////////////////////////////////////////////////////////////////////////
+///////////////			command RENAME			///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
 enumError exec_rename ( SuperFile_t * fi, Iterator_t * it )
@@ -2232,7 +2512,7 @@ enumError exec_rename ( SuperFile_t * fi, Iterator_t * it )
 
 //-----------------------------------------------------------------------------
 
-enumError cmd_rename ( bool rename_id )
+static enumError cmd_rename ( bool rename_id )
 {
     if ( verbose >= 0 )
 	print_title(stdout);
@@ -2273,6 +2553,8 @@ enumError cmd_rename ( bool rename_id )
 
 //
 ///////////////////////////////////////////////////////////////////////////////
+///////////////			command VERIFY			///////////////
+///////////////////////////////////////////////////////////////////////////////
 
 enumError exec_verify ( SuperFile_t * fi, Iterator_t * it )
 {
@@ -2309,14 +2591,14 @@ enumError exec_verify ( SuperFile_t * fi, Iterator_t * it )
 
     const enumError err = VerifyDisc(&ver);
     if ( err == ERR_DIFFER )
-        it->diff_count++;
+	it->diff_count++;
     ResetVerify(&ver);
     return err;
 }
 
 //-----------------------------------------------------------------------------
 
-enumError cmd_verify()
+static enumError cmd_verify()
 {
     if ( verbose >= 0 )
 	print_title(stdout);
@@ -2330,7 +2612,7 @@ enumError cmd_verify()
     it.act_non_iso	= OptionUsed[OPT_IGNORE] ? ACT_IGNORE : ACT_WARN;
     it.act_wbfs		= ACT_EXPAND;
     it.act_gc		= ACT_WARN;
-    it.act_fst		= allow_fst ? ACT_EXPAND : ACT_IGNORE;
+    it.act_fst		= ACT_IGNORE;
     it.long_count	= long_count;
 
     if ( testmode > 1 )
@@ -2356,6 +2638,8 @@ enumError cmd_verify()
 
 //
 ///////////////////////////////////////////////////////////////////////////////
+///////////////		    command SKELETONIZE			///////////////
+///////////////////////////////////////////////////////////////////////////////
 
 enumError exec_skeletonize ( SuperFile_t * fi, Iterator_t * it )
 {
@@ -2371,7 +2655,7 @@ enumError exec_skeletonize ( SuperFile_t * fi, Iterator_t * it )
 
 //-----------------------------------------------------------------------------
 
-enumError cmd_skeletonize()
+static enumError cmd_skeletonize()
 {
     if ( verbose >= 0 )
 	print_title(stdout);
@@ -2441,6 +2725,7 @@ enumError CheckOptions ( int argc, char ** argv, bool is_env )
 	case GO_LOGGING:	logging++; break;
 	case GO_ESC:		err += ScanEscapeChar(optarg) < 0; break;
 	case GO_IO:		ScanIOMode(optarg); break;
+	case GO_FORCE:		opt_force++; break;
 	case GO_DIRECT:		opt_direct++; break;
 
 	case GO_TITLES:		AtFileHelper(optarg,0,0,AddTitleFile); break;
@@ -2487,9 +2772,14 @@ enumError CheckOptions ( int argc, char ** argv, bool is_env )
 	case GO_REGION:		err += ScanOptRegion(optarg); break;
 	case GO_COMMON_KEY:	err += ScanOptCommonKey(optarg); break;
 	case GO_IOS:		err += ScanOptIOS(optarg); break;
-	case GO_ID:		err += ScanOptId(optarg); break;
-	case GO_NAME:		err += ScanOptName(optarg); break;
 	case GO_MODIFY:		err += ScanOptModify(optarg); break;
+	case GO_NAME:		err += ScanOptName(optarg); break;
+	case GO_ID:		err += ScanOptId(optarg); break;
+	case GO_DISC_ID:	err += ScanOptDiscId(optarg); break;
+	case GO_BOOT_ID:	err += ScanOptBootId(optarg); break;
+	case GO_TICKET_ID:	err += ScanOptTicketId(optarg); break;
+	case GO_TMD_ID:		err += ScanOptTmdId(optarg); break;
+	case GO_WBFS_ID:	err += ScanOptWbfsId(optarg); break;
 	case GO_FILES:		err += ScanRule(optarg,PAT_FILES); break;
 	case GO_RM_FILES:	err += ScanRule(optarg,PAT_RM_FILES); break;
 	case GO_ZERO_FILES:	err += ScanRule(optarg,PAT_ZERO_FILES); break;
@@ -2538,6 +2828,7 @@ enumError CheckOptions ( int argc, char ** argv, bool is_env )
 	case GO_REALPATH:	break;
 	case GO_UNIQUE:	    	break;
 	case GO_NO_HEADER:	break;
+	case GO_NULL:		break;
 	case GO_OLD_STYLE:	print_old_style++; break;
 	case GO_SECTIONS:	print_sections++; break;
 	case GO_SHOW:		err += ScanOptShow(optarg); break;
@@ -2604,6 +2895,7 @@ enumError CheckOptions ( int argc, char ** argv, bool is_env )
 
       }
     }
+    NormalizeIdOptions();
     if ( OptionUsed[OPT_NO_HEADER] )
 	opt_show_mode &= ~SHOW_F_HEAD;
 
@@ -2701,6 +2993,8 @@ enumError CheckCommand ( int argc, char ** argv )
 	case CMD_COPY:		err = cmd_copy(); break;
 	case CMD_CONVERT:	err = cmd_convert(); break;
 	case CMD_EDIT:		err = cmd_edit(); break;
+	case CMD_IMGFILES:	err = cmd_imgfiles(); break;
+	case CMD_REMOVE:	err = cmd_remove(); break;
 	case CMD_MOVE:		err = cmd_move(); break;
 	case CMD_RENAME:	err = cmd_rename(true); break;
 	case CMD_SETTITLE:	err = cmd_rename(false); break;

@@ -17,7 +17,7 @@
     ##   This file is part of the WIT project.                         ##
     ##   Visit http://wit.wiimm.de/ for project details and sources.   ##
     ##                                                                 ##
-    ##   Copyright (c) 2009-2011 by Dirk Clemens <wiimm@wiimm.de>      ##
+    ##   Copyright (c) 2009-2012 by Dirk Clemens <wiimm@wiimm.de>      ##
     ##                                                                 ##
     #####################################################################
     ##                                                                 ##
@@ -56,7 +56,8 @@ then
     echo "Can't determine Windows program path => abort" >&2
     exit 1
 fi
-CYGWIN_PROG_PATH="$( realpath "$WIN_PROG_PATH" )"
+#CYGWIN_PROG_PATH="$( realpath "$WIN_PROG_PATH" )"
+CYGWIN_PROG_PATH="${WIN_PROG_PATH//\\//}"
 
 WDEST="$WIN_PROG_PATH\\${WIN_INSTALL_PATH//\//\\}"
 CDEST="$CYGWIN_PROG_PATH/$WIN_INSTALL_PATH"

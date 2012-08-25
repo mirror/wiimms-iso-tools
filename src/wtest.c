@@ -16,7 +16,7 @@
  *   This file is part of the WIT project.                                 *
  *   Visit http://wit.wiimm.de/ for project details and sources.           *
  *                                                                         *
- *   Copyright (c) 2009-2011 by Dirk Clemens <wiimm@wiimm.de>              *
+ *   Copyright (c) 2009-2012 by Dirk Clemens <wiimm@wiimm.de>              *
  *                                                                         *
  ***************************************************************************
  *                                                                         *
@@ -381,7 +381,6 @@ static int test_wbfs_free_blocks ( int argc, char ** argv )
 	if (!OpenWBFS(&w,argv[i],true,0))
 	{
 	    printf("\n*** %s ***\n",argv[i]);
-	 #if NEW_WBFS_INTERFACE
 	    int i;
 	    for ( i = 1; ; i *= 2 )
 	    {
@@ -390,7 +389,6 @@ static int test_wbfs_free_blocks ( int argc, char ** argv )
 		if ( bl == WBFS_NO_BLOCK )
 		    break;
 	    }
-	 #endif
 	}
 	ResetWBFS(&w);
     }
@@ -548,7 +546,8 @@ static void test_open_disc ( int argc, char ** argv )
 	{
 	    printf("*** %s\n",sf.f.fname);
 	    enumError err;
-	    wd_disc_t * disc = wd_open_disc(WrapperReadDirectSF,&sf,sf.file_size,sf.f.fname,&err);
+	    wd_disc_t * disc = wd_open_disc(WrapperReadDirectSF,&sf,sf.file_size,
+						sf.f.fname,opt_force,&err);
 	    if (disc)
 	    {
 		putchar('\n');

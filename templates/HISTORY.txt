@@ -59,6 +59,90 @@ wit v2.02a r3240 - 2011-11-25
  - wfuse for Mac is back again. It was lost because non installed FUSE package.
 
 
+wit v2.03a r3309 - 2011-12-30
+
+ - wit+wwt SKELETON: Support of GameCube images.
+ - New command: wwt DUP: Duplicate an existing WBFS to a new file including
+   block assigning errors. The idea is to have a command, that can duplicate
+   a defect WBFS for tests.
+ - Command "wwt DUMP" accept now --show for a fine control of printed data.
+   The dump may now contain also a usage table and a integrity check report.
+
+ - For a long time the code contains a WBFS extension. Now I have ompleted,
+   enabled and tested it. With this extension the WBFS "free blocks table" is
+   managed in a total different way:
+    - WBFS access: While opening a WBFS the free blocks table is ignored.
+      Instead of using the stored one an internal memory map of used blocks is
+      built. This needs only a part of a second. Some advantages:
+       - Errors in the free blocks table are irrelevant.
+       - Blocks overlaps and invalid block assignings are automatically
+         detected, reported, and fixed for internal usage.
+       - If removing a discs with overlaps, the blocks are still marked used.
+       - Blocks, that are not handled by the free blocks tables (the table is
+         sometiems to small -> a result of a calculation bug in the original
+         libwbfs) can be used. If closing, a new and fixed free blocks table
+         will be written. This makes the whole process compatible to other
+         WBFS managers and USB loaders.
+    - wwt ADD: Before adding a disc its size is compared against the free size
+      of the WBFS. This allows an early "disc full" error message.
+    - wwt ADD: If adding a disc to a partition a continuous memory block is
+      searched to minimize the (non existent) fragmentation. This disabled for
+      WBFS files by default because a file itself can be fragmented. 
+    - wwt ADD+PHANTOM --wbfs-alloc=mode: Set the WBFS block allocation mode.
+    - The commands "wwt CHECK", "wwt REPAIR" and "wwt EDIT" have been modified
+      to work with the new interface.
+
+
+wit v2.04a r3554 - 2012-03-10
+
+ - New option: wit --force: Ignore partition size errors and allow access to
+   damaged partitions. "wwt --force" works similar.
+ - New options: --disc-id=id, --boot-id=id, --ticket-id=id, --tmd-id=id and
+   --wbfs-id=id: Patch only the specific ID. These options are handled after
+   the --id and --modify options. Patching the WBFS ID while adding a game is
+   now also possible.
+ - New implementation of command "wit ID6": It generates an ID6 list of all
+   sources. This is similar as before, only the meaning of the parameters
+   changed. If option --long is set, a table with 5 IDs (DISC, BOOT, TICKET,
+   TMD and WBFS) is printed. BOOT, TICKET and TMD IDs are taken from the main
+   partition. If --long is set twice, all IDs of all partitions are printed.
+ - wwt LLLL: List contains date and time (in seconds) columns.
+
+
+wit v2.05a r3591 - 2012-04-14
+
+ - "wit VERIFY" will now ignore extracted file systems.
+ - wit --id=.....X: ID change failed if only the sixt character was modified.
+ - All ID patching options (--id, --disc-id, ...) accept now a plus sign '+' as
+   wildcard for multiple '.' to fill the complete entered ID to 4/6 characters.
+ - The listing command "wit ID6" accepts now all ID patching options to test
+   the effect of them.
+
+
+wit v2.05b r3611 - 2012-04-20
+
+ - Bug fix for assertion failure in "wwt RECOVER".
+
+
+wit v2.06a r3832 - 2012-06-15
+
+ - Windows version only: Update to Cygwin DLL 1.7.15-1
+ - wit CERT --long: Print keys and signatures as hex or base64 dump.
+
+
+wit v2.07a r3955 - 2012-07-14
+
+ - Bug fix: The automatic directory creation if using %-escapes in destination
+   file names was gone and is now back again.
+ - Bug fix: Extrating files of directories beginning with '.' fails sometimes.
+ - Bug fix: "wit edit --id=... a.wbfs" may now change the WBFS id too.
+ - Bug fix: wwt (but not wit) ignored the parameter of option --include-path.
+ - Because of compiler warnings: Switched from utime() to utimes().
+
+
+@@MODULE(last-history.txt)@@
+
+
 Road map (for some point in the future):
 
  I have already stopped the development in favor of my SZS tools. But there
@@ -77,9 +161,6 @@ Road map (for some point in the future):
 
  - On the fly patching: Create a new image as combination of 2 or more sources.
    Therefor trimming (sector or file level) is needed.
-
-
-@@MODULE(last-history.txt)@@
 
 
 *******************************************************************************

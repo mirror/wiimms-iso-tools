@@ -17,7 +17,7 @@
  *   Visit http://wit.wiimm.de/ for project details and sources.           *
  *                                                                         *
  *   Copyright (c) 2009 Kwiirk                                             *
- *   Copyright (c) 2009-2011 by Dirk Clemens <wiimm@wiimm.de>              *
+ *   Copyright (c) 2009-2012 by Dirk Clemens <wiimm@wiimm.de>              *
  *                                                                         *
  ***************************************************************************
  *                                                                         *
@@ -51,8 +51,6 @@ extern "C"
 #define WBFS_MAGIC ( 'W'<<24 | 'B'<<16 | 'F'<<8 | 'S' )
 #define WBFS_VERSION 1
 #define WBFS_NO_BLOCK (~(u32)0)
-
-#define WBFS_MAX_SECT		    0x10000
 
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -167,8 +165,6 @@ typedef struct wbfs_t
     u32		freeblks_mask;		// mask for last used u32 of freeblks
     u32		* freeblks;		// if not NULL: copy of free blocks table
 
- #if NEW_WBFS_INTERFACE
-
     u8		* block0;		// NULL or copy of wbfs block #0
     u8		* used_block;		// For each WBFS block 1 byte, N='n_wbfs_sec'
 					//    0: unused			==> OK
@@ -181,8 +177,6 @@ typedef struct wbfs_t
     wbfs_slot_mode_t	new_slot_err;	// new detected errors
     wbfs_slot_mode_t	all_slot_err;	// all detected errros
     wbfs_balloc_mode_t	balloc_mode;	// block allocation mode
-
- #endif
 
     u16		disc_info_sz;
 
@@ -264,6 +258,7 @@ typedef struct wbfs_param_t // function parameters
 	u64			iso_size;		// size of iso image in bytes
 	wd_disc_t		*wd_disc;		// NULL or the source disc
 	const wd_select_t	* psel;			// partition selector
+	id6_t			wbfs_id6;		// not NULL: use this ID for inode
 
   //----- multi use parameters
 
@@ -497,6 +492,7 @@ u32 * wbfs_free_freeblocks	( wbfs_t * p );
 u32 * wbfs_load_freeblocks	( wbfs_t * p );
 void wbfs_free_block		( wbfs_t * p, u32 bl );
 void wbfs_use_block		( wbfs_t * p, u32 bl );
+u32 wbfs_find_last_used_block	( wbfs_t * p );
 
 /*! add a wii dvd inside the partition
   @param read_src_wii_disc: a callback to access the wii dvd. offsets are in 32bit, len in bytes!

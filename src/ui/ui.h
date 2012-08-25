@@ -16,7 +16,7 @@
  *   This file is part of the WIT project.                                 *
  *   Visit http://wit.wiimm.de/ for project details and sources.           *
  *                                                                         *
- *   Copyright (c) 2009-2011 by Dirk Clemens <wiimm@wiimm.de>              *
+ *   Copyright (c) 2009-2012 by Dirk Clemens <wiimm@wiimm.de>              *
  *                                                                         *
  ***************************************************************************
  *                                                                         *
@@ -74,7 +74,7 @@ typedef struct InfoCommand_t
     bool		separator;	// true: print a separator above
     ccp			name1;		// main name
     ccp			name2;		// NULL or alternative name
-    ccp			param;		// NULL or parameter name
+    ccp			syntax;		// NULL or syntax string
     ccp			help;		// help text
     int			n_opt;		// number of options == elements of 'opt'
     const InfoOption_t	** opt;		// field with option info

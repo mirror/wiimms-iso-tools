@@ -16,7 +16,7 @@
  *   This file is part of the WIT project.                                 *
  *   Visit http://wit.wiimm.de/ for project details and sources.           *
  *                                                                         *
- *   Copyright (c) 2009-2011 by Dirk Clemens <wiimm@wiimm.de>              *
+ *   Copyright (c) 2009-2012 by Dirk Clemens <wiimm@wiimm.de>              *
  *                                                                         *
  ***************************************************************************
  *                                                                         *
@@ -86,6 +86,7 @@ ShowMode	opt_show_mode		= SHOW__DEFAULT;
 wd_size_mode_t	opt_unit		= WD_SIZE_DEFAULT;
 RepairMode	repair_mode		= REPAIR_NONE;
 char		escape_char		= '%';
+int		opt_force		= 0;
 bool		use_utf8		= true;
 enumOFT		output_file_type	= OFT_UNKNOWN;
 int		opt_truncate		= 0;
