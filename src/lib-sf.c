@@ -397,8 +397,7 @@ enumError SetupReadSF ( SuperFile_t * sf )
     SetupIOD(sf,OFT_PLAIN,OFT_PLAIN);
     if ( sf->f.ftype == FT_UNKNOWN )
 	AnalyzeFT(&sf->f);
-    ASSERT( sf->f.ftype == FT_UNKNOWN
-		|| Count1Bits32(sf->f.ftype&FT__ID_MASK) == 1  ); // [[2do]] [ft-id]
+    ASSERT( Count1Bits32(sf->f.ftype&FT__ID_MASK) <= 1  ); // [[2do]] [[ft-id]]
 
     if ( sf->allow_fst && sf->f.ftype & FT_ID_FST )
 	return SetupReadFST(sf);
@@ -849,22 +848,17 @@ wd_disc_t * OpenDiscSF
 	    if (opt_ios_valid)
 		reloc |= wd_patch_part_system(main_part,opt_ios);
 	}
- #if 1 // [[id+]]
 	else if (modify_disc_id)
 	    reloc |= wd_patch_disc_header(disc,modify_disc_id,modify_name);
- #else
-	else if (modify & (WD_MODIFY_DISC|WD_MODIFY__AUTO) )
-	    reloc |= wd_patch_disc_header(disc,modify_id,modify_name);
- #endif
 
 	if ( opt_region < REGION__AUTO )
 	    reloc |= wd_patch_region(disc,opt_region);
-	else if ( modify_id /* [[id]] */
-		    && strlen(modify_id /* [[id]] */) > 3
-		    && modify_id /* [[id]] */[3] != '.'
-		    && modify_id /* [[id]] */[3] != disc->dhead.region_code )
+	else if ( modify_id
+		    && strlen(modify_id) > 3
+		    && modify_id[3] != '.'
+		    && modify_id[3] != disc->dhead.region_code )
 	{
-	    const enumRegion region = GetRegionInfo(modify_id /* [[id]] */[3])->reg;
+	    const enumRegion region = GetRegionInfo(modify_id[3])->reg;
 	    reloc |= wd_patch_region(disc,region);
 	}
 
@@ -2261,8 +2255,7 @@ enumFileType AnalyzeFT ( File_t * f )
 	WDiscInfo_t wdisk;
 	InitializeWDiscInfo(&wdisk);
 
-	ASSERT( sf.f.ftype == FT_UNKNOWN
-		|| Count1Bits32(sf.f.ftype&FT__ID_MASK) == 1  ); // [[2do]] [ft-id]
+	ASSERT( Count1Bits32(sf.f.ftype&FT__ID_MASK) <= 1  ); // [[2do]] [[ft-id]]
 
 	if ( sf.f.ftype & FT_ID_WBFS )
 	{
@@ -2561,7 +2554,9 @@ enumFileType AnalyzeFT ( File_t * f )
     // restore warnings
     f->disable_errors = disable_errors;
 
-    ASSERT( ft == FT_UNKNOWN || Count1Bits32(ft&FT__ID_MASK) == 1  ); // [[2do]] [ft-id]
+    // [[2do]] [[ft-id]]
+    ASSERT_MSG( Count1Bits32(ft&FT__ID_MASK) <= 1,
+		"ft =%x, nbits = %u\n", ft, Count1Bits32(ft&FT__ID_MASK) );
     return f->ftype = ft;
 }
 
@@ -2773,7 +2768,7 @@ enumError XPrintErrorFT ( XPARM File_t * f, enumFileType err_mask )
     if ( f->ftype == FT_UNKNOWN )
 	AnalyzeFT(f);
 
-// [[2do]] [ft-id]
+// [[2do]] [[ft-id]]
     enumError stat = ERR_OK;
     enumFileType  and_mask = err_mask &  f->ftype;
     enumFileType nand_mask = err_mask & ~f->ftype;
@@ -2787,6 +2782,10 @@ enumError XPrintErrorFT ( XPARM File_t * f, enumFileType err_mask )
     else if ( and_mask & FT_ID_DIR )
 	stat = PrintError( XERROR0, ERR_WRONG_FILE_TYPE,
 		"Is a directory: %s\n", f->fname );
+
+    else if ( and_mask & FT_A_WDISC )
+	stat = PrintError( XERROR0, ERR_WRONG_FILE_TYPE,
+		"Single images of a WBFS not allowed: %s\n", f->fname );
 
     else if ( nand_mask & FT_A_SEEKABLE )
 	stat = PrintError( XERROR0, ERR_WRONG_FILE_TYPE,
@@ -3018,7 +3017,6 @@ enumError CopyImage
 	fo->f.create_directory = true;
     fo->raw_mode = part_selector.whole_disc || !fi->f.id6_dest[0];
 
-    // [[id+]]
     if (*fi->wbfs_id6)
 	CopyPatchWbfsId(fo->wbfs_id6,fi->wbfs_id6);
 
@@ -5444,6 +5442,7 @@ void InitializeIterator ( Iterator_t * it )
     ASSERT(it);
     memset(it,0,sizeof(*it));
     InitializeIdField(&it->source_list);
+    it->act_wbfs_disc = ACT_ALLOW;
     it->show_mode = opt_show_mode;
     it->progress_enabled = verbose > 1 || progress;
 }
@@ -5454,13 +5453,42 @@ void ResetIterator ( Iterator_t * it )
 {
     ASSERT(it);
     ResetIdField(&it->source_list);
-    memset(it,0,sizeof(*it));
+    InitializeIterator(it);
 }
 
 //-----------------------------------------------------------------------------
 
-static void IteratorProgress ( Iterator_t * it, bool last_message )
+static void IteratorProgress
+	( Iterator_t * it, bool last_message, SuperFile_t *sf )
 {
+    static bool active = false;
+
+    if ( sf && scan_progress > 0 )
+    {
+	if (print_sections)
+	{
+	    printf(
+		"[progress:found]\n"
+		"type=%s\n"
+		"path=%s\n"
+		"\n"
+		,oft_info[sf->iod.oft].name
+		,sf->f.fname
+		);
+	}
+	else
+	{
+	    if (active)
+	    {
+		active = false;
+		printf("%70s\r","");
+	    }
+	    printf(">IMAGE FOUND: %s:%s\n",oft_info[sf->iod.oft].name,sf->f.fname);
+	}
+    }
+
+    //--------------------------------------------------
+
     if ( it->progress_enabled && ( it->num_of_scans || last_message ))
     {
 	const u32 sec = GetTimerMSec() / 1000 + 1;
@@ -5514,6 +5542,7 @@ static void IteratorProgress ( Iterator_t * it, bool last_message )
 		    term = " found";
 		}
 		printf("%s%s", term, last_message ? ".   \n" : " ... \r" );
+		active = !last_message;
 	    }
 	    fflush(stdout);
 	}
@@ -5587,7 +5616,7 @@ static enumError SourceIteratorHelper
 	{
 	    it->num_of_dirs++;
 	    if (it->progress_enabled)
-		IteratorProgress(it,false);
+		IteratorProgress(it,false,0);
 	    DIR * dir = opendir(path);
 	    if (dir)
 	    {
@@ -5652,8 +5681,7 @@ static enumError SourceIteratorHelper
 	if ( it->act_non_exist >= ACT_ALLOW )
 	{
 	    it->num_of_files++;
-	    if (it->progress_enabled)
-		IteratorProgress(it,false);
+	    IteratorProgress(it,false,&sf);
 	    if (collect_fnames)
 	    {
 		InsertIdField(&it->source_list,0,0,0,sf.f.fname);
@@ -5688,9 +5716,16 @@ static enumError SourceIteratorHelper
 	snprintf(buf2,sizeof(buf2),"/#%u",sf.wbfs->disc->slot);
 	StringCat2S(buf,sizeof(buf),it->real_path,buf2);
 	it->real_path = real_path = buf;
+
+	if ( it->act_wbfs_disc < ACT_ALLOW )
+	{
+	    if ( it->act_wbfs_disc == ACT_WARN )
+		PrintErrorFT(&sf.f,FT_A_WDISC);
+	    goto abort;
+	}
     }
 
-// [[2do]] [ft-id]
+// [[2do]] [[ft-id]]
     if ( it->act_wbfs >= ACT_EXPAND
 	&& ( sf.f.ftype & (FT_ID_WBFS|FT_A_WDISC) ) == FT_ID_WBFS )
     {
@@ -5728,7 +5763,7 @@ static enumError SourceIteratorHelper
 		    }
 		}
 		if (it->progress_enabled)
-		    IteratorProgress(it,false);
+		    IteratorProgress(it,false,0);
 
 		ResetWDiscInfo(&wdisk);
 		ResetWBFS(&wbfs);
@@ -5763,7 +5798,7 @@ static enumError SourceIteratorHelper
 	return err ? err : SIGINT_level ? ERR_INTERRUPT : ERR_OK;
     }
 
-// [[2do]] [ft-id]
+// [[2do]] [[ft-id]]
     if ( sf.f.ftype & FT__SPC_MASK )
     {
 	const enumAction action = it->act_non_iso > it->act_known
@@ -5800,8 +5835,7 @@ static enumError SourceIteratorHelper
 	&& ( !sf.f.id6_src[0] || !IsExcluded(sf.f.id6_src) ))
     {
 	it->num_of_files++;
-	if (it->progress_enabled)
-	    IteratorProgress(it,false);
+	IteratorProgress(it,false,&sf);
 	if (collect_fnames)
 	{
 	    if ( !sf.f.fatt.mtime && it->newer && sf.f.ftype & FT_ID_FST )
@@ -5914,7 +5948,7 @@ enumError SourceIterator
     }
 
     if (it->progress_enabled)
-	IteratorProgress(it,true);
+	IteratorProgress(it,true,0);
 
     ResetStringField(&dir_done_list);
     ResetStringField(&file_done_list);

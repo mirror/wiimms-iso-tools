@@ -167,6 +167,7 @@ typedef enum enumOptions
 	OPT_QUIET,
 	OPT_VERBOSE,
 	OPT_PROGRESS,
+	OPT_SCAN_PROGRESS,
 	OPT_LOGGING,
 	OPT_ESC,
 	OPT_IO,
@@ -181,7 +182,7 @@ typedef enum enumOptions
 	OPT_HOOK,
 	OPT_FORCE,
 
-	OPT__N_TOTAL // == 120
+	OPT__N_TOTAL // == 121
 
 } enumOptions;
 
@@ -725,6 +726,7 @@ typedef enum enumGetOpt
 
 	GO_XHELP		= 0x80,
 	GO_WIDTH,
+	GO_SCAN_PROGRESS,
 	GO_IO,
 	GO_DIRECT,
 	GO_UTF_8,

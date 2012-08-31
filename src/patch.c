@@ -415,7 +415,7 @@ int ScanOptName ( ccp arg )
 ///////////////			--id  &  --xxx-id		///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-ccp modify_id /* [[id]] */		= 0;
+ccp modify_id		= 0;
 ccp modify_disc_id	= 0;
 ccp modify_boot_id	= 0;
 ccp modify_ticket_id	= 0;
@@ -495,7 +495,7 @@ static int ScanOptIdHelper
 
 int ScanOptId ( ccp arg )
 {
-    return ScanOptIdHelper( arg, "id", &modify_id /* [[id]] */,
+    return ScanOptIdHelper( arg, "id", &modify_id,
 			modify_id_buf, sizeof(modify_id_buf)-1 );
 }
 
@@ -649,7 +649,7 @@ bool CopyPatchDiscId ( char *dest_id6, const void * source_id6 )
 
 bool PatchIdCond ( void * id, int skip, int maxlen, wd_modify_t condition )
 {
-    return ( opt_modify & condition ) && PatchId(id,modify_id /* [[id]] */,skip,maxlen);
+    return ( opt_modify & condition ) && PatchId(id,modify_id,skip,maxlen);
 }
 
 //-----------------------------------------------------------------------------

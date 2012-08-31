@@ -73,6 +73,7 @@ typedef enum enumOptions
 	OPT_IGNORE_FST,
 	OPT_IGNORE_SETUP,
 	OPT_LINKS,
+	OPT_NULL,
 	OPT_PSEL,
 	OPT_RAW,
 	OPT_PMODE,
@@ -147,7 +148,7 @@ typedef enum enumOptions
 	OPT_FILE_LIMIT,
 	OPT_PATCH_FILE,
 
-	OPT__N_SPECIFIC, // == 91 
+	OPT__N_SPECIFIC, // == 92 
 
 	//----- global options -----
 
@@ -158,6 +159,7 @@ typedef enum enumOptions
 	OPT_QUIET,
 	OPT_VERBOSE,
 	OPT_PROGRESS,
+	OPT_SCAN_PROGRESS,
 	OPT_LOGGING,
 	OPT_ESC,
 	OPT_IO,
@@ -173,7 +175,7 @@ typedef enum enumOptions
 	OPT_NEW,
 	OPT_HOOK,
 
-	OPT__N_TOTAL // == 112
+	OPT__N_TOTAL // == 114
 
 } enumOptions;
 
@@ -205,6 +207,7 @@ typedef enum enumOptions
 //	OB_IGNORE_FST		= 1llu << OPT_IGNORE_FST,
 //	OB_IGNORE_SETUP		= 1llu << OPT_IGNORE_SETUP,
 //	OB_LINKS		= 1llu << OPT_LINKS,
+//	OB_NULL			= 1llu << OPT_NULL,
 //	OB_PSEL			= 1llu << OPT_PSEL,
 //	OB_RAW			= 1llu << OPT_RAW,
 //	OB_PMODE		= 1llu << OPT_PMODE,
@@ -542,6 +545,17 @@ typedef enum enumOptions
 //				| OB_GRP_PARTITIONS
 //				| OB_GRP_PATCH,
 //
+//	OB_CMD_IMGFILES		= OB_GRP_TITLES
+//				| OB_GRP_XSOURCE
+//				| OB_IGNORE
+//				| OB_SECTIONS
+//				| OB_NULL,
+//
+//	OB_CMD_REMOVE		= OB_GRP_TITLES
+//				| OB_GRP_XSOURCE
+//				| OB_IGNORE
+//				| OB_SECTIONS,
+//
 //	OB_CMD_MOVE		= OB_GRP_TITLES
 //				| OB_GRP_XSOURCE
 //				| OB_IGNORE
@@ -631,6 +645,8 @@ typedef enum enumCommands
 	CMD_COPY,
 	CMD_CONVERT,
 	CMD_EDIT,
+	CMD_IMGFILES,
+	CMD_REMOVE,
 	CMD_MOVE,
 	CMD_RENAME,
 	CMD_SETTITLE,
@@ -639,7 +655,7 @@ typedef enum enumCommands
 	CMD_SKELETON,
 	CMD_MIX,
 
-	CMD__N // == 36
+	CMD__N // == 38
 
 } enumCommands;
 
@@ -652,6 +668,7 @@ typedef enum enumGetOpt
 {
 	GO_SHOW			= '+',
 
+	GO_NULL			= '0',
 	GO_ONE_JOB		= '1',
 
 	GO__ERR			= '?',
@@ -695,6 +712,7 @@ typedef enum enumGetOpt
 
 	GO_XHELP		= 0x80,
 	GO_WIDTH,
+	GO_SCAN_PROGRESS,
 	GO_IO,
 	GO_DIRECT,
 	GO_UTF_8,

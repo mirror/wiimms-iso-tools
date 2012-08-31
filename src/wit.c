@@ -1328,7 +1328,7 @@ enumError exec_files ( SuperFile_t * fi, Iterator_t * it )
     if ( fi->f.ftype & FT_ID_FST_BIN )
 	return Dump_FST_BIN(stdout,0,fi,it->real_path,it->show_mode&~SHOW_INTRO);
 
-// [[2do]] [ft-id]
+// [[2do]] [[ft-id]]
     if ( fi->f.ftype & FT__SPC_MASK || !fi->f.id6_dest[0] )
 	return OptionUsed[OPT_IGNORE]
 		? ERR_OK
@@ -1913,15 +1913,11 @@ static enumError cmd_copy()
 	param->arg = 0;
     }
 
-    int done_count = 0;
     ParamList_t * param;
     for ( param = first_param; param; param = param->next )
 	if (param->arg)
-	{
-	    done_count++;
 	    AppendStringField(&source_list,param->arg,true);
-	}
-    if (!done_count)
+    if (!source_list.used)
 	SYNTAX_ERROR;
 
     Iterator_t it;
@@ -2146,11 +2142,145 @@ static enumError cmd_edit()
 
 //
 ///////////////////////////////////////////////////////////////////////////////
+///////////////			command IMGFILES		///////////////
+///////////////////////////////////////////////////////////////////////////////
+
+enumError exec_imgfiles ( SuperFile_t * fi, Iterator_t * it )
+{
+    DASSERT(fi);
+    DASSERT(it);
+    PRINT("IMGFILES [%u,%x] %s\n",fi->f.split_used,fi->f.ftype&FT_A_WDISC,fi->f.fname);
+    if ( fi->f.ftype & FT_A_WDISC )
+	return 0;
+
+    char eol = OptionUsed[OPT_NULL] ? 0 : '\n';
+    int n = fi->f.split_used;
+    if (n)
+    {
+	File_t **f = fi->f.split_f;
+	while ( n-- > 0 )
+	{
+	    printf("%s%c",(*f)->fname,eol);
+	    f++;
+	}
+    }
+    else
+	printf("%s%c",fi->f.fname,eol);
+
+    return ERR_OK;
+}
+
+//-----------------------------------------------------------------------------
+
+static enumError cmd_imgfiles()
+{
+    ParamList_t * param;
+    for ( param = first_param; param; param = param->next )
+	AppendStringField(&source_list,param->arg,true);
+
+    encoding |= ENCODE_F_FAST; // hint: no encryption needed
+
+    Iterator_t it;
+    InitializeIterator(&it);
+    it.act_non_iso	= OptionUsed[OPT_IGNORE] ? ACT_IGNORE : ACT_WARN;
+    it.act_wbfs_disc	= it.act_non_iso;
+    it.act_wbfs		= ACT_ALLOW;
+    it.act_gc		= ACT_ALLOW;
+
+    enumError err = SourceIterator(&it,0,false,true);
+    if ( err <= ERR_WARNING )
+    {
+	it.func = exec_imgfiles;
+	err = SourceIteratorCollected(&it,0,2,false);
+    }
+    ResetIterator(&it);
+    return err;
+}
+
+//
+///////////////////////////////////////////////////////////////////////////////
+///////////////			command REMOVE			///////////////
+///////////////////////////////////////////////////////////////////////////////
+
+enumError exec_remove ( SuperFile_t * fi, Iterator_t * it )
+{
+    DASSERT(fi);
+    DASSERT(it);
+    PRINT("REMOVE [%u] %s\n",fi->f.split_used,fi->f.fname);
+    if ( fi->f.ftype & FT_A_WDISC )
+	return 0;
+
+    int n = fi->f.split_used;
+
+    char split_buf[10];
+    const int count_fw
+	= snprintf(split_buf,sizeof(split_buf),"%u",it->source_list.used );
+    if ( fi->f.split_used > 1 )
+	snprintf(split_buf,sizeof(split_buf),"*%u",n);
+    else
+	*split_buf = 0;
+
+    printf(" - %sREMOVE %*u/%u %s%s:%s\n",
+	testmode ? "WOULD " : "",
+	count_fw, it->source_index+1, it->source_list.used,
+	oft_info[fi->iod.oft].name, split_buf, fi->f.fname );
+
+    if (!testmode)
+	RemoveSF(fi);
+
+    return ERR_OK;
+}
+
+//-----------------------------------------------------------------------------
+
+static enumError cmd_remove()
+{
+    if ( verbose >= 0 )
+	print_title(stdout);
+
+    ParamList_t * param;
+    for ( param = first_param; param; param = param->next )
+	AppendStringField(&source_list,param->arg,true);
+
+    encoding |= ENCODE_F_FAST; // hint: no encryption needed
+
+    Iterator_t it;
+    InitializeIterator(&it);
+    it.act_non_iso	= OptionUsed[OPT_IGNORE] ? ACT_IGNORE : ACT_WARN;
+    it.act_wbfs_disc	= it.act_non_iso;
+    it.act_wbfs		= ACT_ALLOW;
+    it.act_gc		= ACT_ALLOW;
+
+    if ( testmode > 1 )
+    {
+	it.func = exec_filetype;
+	enumError err = SourceIterator(&it,1,false,false);
+	ResetIterator(&it);
+	return err;
+    }
+
+    enumError err = SourceIterator(&it,0,false,true);
+    if ( err <= ERR_WARNING )
+    {
+	it.func = exec_remove;
+	err = SourceIteratorCollected(&it,0,2,false);
+    }
+    ResetIterator(&it);
+    return err;
+}
+
+//
+///////////////////////////////////////////////////////////////////////////////
 ///////////////			command MOVE			///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
 enumError exec_move ( SuperFile_t * fi, Iterator_t * it )
 {
+    DASSERT(fi);
+    DASSERT(it);
+    if ( fi->f.ftype & FT_A_WDISC )
+	return 0;
+
     SuperFile_t fo;
     InitializeSF(&fo);
     SetupIOD(&fo,fi->iod.oft,fi->iod.oft);
@@ -2304,6 +2434,7 @@ static enumError cmd_move()
     InitializeIterator(&it);
     it.act_non_iso	= OptionUsed[OPT_IGNORE] ? ACT_IGNORE : ACT_WARN;
     it.act_wbfs		= it.act_non_iso;
+    it.act_wbfs_disc	= it.act_non_iso;
     it.act_gc		= ACT_ALLOW;
     it.overwrite	= OptionUsed[OPT_OVERWRITE] ? 1 : 0;
 
@@ -2591,6 +2722,7 @@ enumError CheckOptions ( int argc, char ** argv, bool is_env )
 	case GO_QUIET:		verbose = verbose > -1 ? -1 : verbose - 1; break;
 	case GO_VERBOSE:	verbose = verbose <  0 ?  0 : verbose + 1; break;
 	case GO_PROGRESS:	progress++; break;
+	case GO_SCAN_PROGRESS:	scan_progress++; break;
 	case GO_LOGGING:	logging++; break;
 	case GO_ESC:		err += ScanEscapeChar(optarg) < 0; break;
 	case GO_IO:		ScanIOMode(optarg); break;
@@ -2697,6 +2829,7 @@ enumError CheckOptions ( int argc, char ** argv, bool is_env )
 	case GO_REALPATH:	break;
 	case GO_UNIQUE:	    	break;
 	case GO_NO_HEADER:	break;
+	case GO_NULL:		break;
 	case GO_OLD_STYLE:	print_old_style++; break;
 	case GO_SECTIONS:	print_sections++; break;
 	case GO_SHOW:		err += ScanOptShow(optarg); break;
@@ -2861,6 +2994,8 @@ enumError CheckCommand ( int argc, char ** argv )
 	case CMD_COPY:		err = cmd_copy(); break;
 	case CMD_CONVERT:	err = cmd_convert(); break;
 	case CMD_EDIT:		err = cmd_edit(); break;
+	case CMD_IMGFILES:	err = cmd_imgfiles(); break;
+	case CMD_REMOVE:	err = cmd_remove(); break;
 	case CMD_MOVE:		err = cmd_move(); break;
 	case CMD_RENAME:	err = cmd_rename(true); break;
 	case CMD_SETTITLE:	err = cmd_rename(false); break;

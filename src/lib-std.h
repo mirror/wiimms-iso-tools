@@ -412,13 +412,13 @@ void PrintMemMap ( MemMap_t * mm, FILE * f, int indent );
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////			file support			///////////////
 ///////////////////////////////////////////////////////////////////////////////
-// [[2do]] [ft-id]
+// [[2do]] [[ft-id]]
 
 typedef enum enumFileType
 {
     // 1. file types
 
-	FT_UNKNOWN	= 0,     // not analyzed yet
+	FT_UNKNOWN	=      0,  // not analyzed yet
 
 	FT_ID_DIR	= 0x0001,  // is a directory
 	FT_ID_FST	= 0x0002,  // is a directory with a FST
@@ -427,8 +427,6 @@ typedef enum enumFileType
 	FT_ID_WII_ISO	= 0x0010,  // file is a WII ISO image
 
 	// special files
-
-	 FT__SPC_FILES	= 0x0020,  // [[2do]] [ft-id]
 
 	FT_ID_DOL	= 0x0020,  // file is a DOL file
 	FT_ID_CERT_BIN	= 0x0040,  // 'cert.bin' like file
@@ -445,11 +443,11 @@ typedef enum enumFileType
 
     // 2. attributes
 
-	FT_A_ISO	= 0x00010000,  // file is some kind of a ISO image
+	FT_A_ISO	= 0x00010000,  // file is some kind of an ISO image
 	FT_A_GC_ISO	= 0x00020000,  // file is some kind of a GC ISO image
 	FT_A_WII_ISO	= 0x00040000,  // file is some kind of a WII ISO image
 
-	FT_A_WDISC	= 0x00100000,  // flag: specific disc of an WBFS file
+	FT_A_WDISC	= 0x00100000,  // flag: specific disc of a WBFS file
 	FT_A_WDF	= 0x00200000,  // flag: file is a packed WDF
 	FT_A_WIA	= 0x00400000,  // flag: file is a packed WIA
 	FT_A_CISO	= 0x00800000,  // flag: file is a packed CISO
@@ -459,11 +457,12 @@ typedef enum enumFileType
 	FT_A_SEEKABLE	= 0x08000000,  // flag: using of seek() is possible
 	FT_A_WRITING	= 0x10000000,  // is opened for writing
 	FT_A_PART_DIR	= 0x20000000,  // FST is a partition
-	FT__A_MASK	= 0x3ff70000,  // mask of all 'FT_F_' values
+
+	 FT__A_MASK	= 0x3ff70000,  // mask of all 'FT_A_' values
 
     // 3. mask of all 'FT_ values
 
-	FT__MASK	= FT__ID_MASK | FT__A_MASK,
+	 FT__MASK	= FT__ID_MASK | FT__A_MASK,
 
 } enumFileType;
 
@@ -1601,6 +1600,7 @@ extern volatile int	SIGINT_level;
 extern volatile int	verbose;
 extern volatile int	logging;
 extern int		progress;
+extern int		scan_progress;
 extern bool		use_utf8;
 extern char		escape_char;
 extern int		opt_force;

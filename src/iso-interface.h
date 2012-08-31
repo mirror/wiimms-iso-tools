@@ -279,10 +279,10 @@ extern int opt_source_auto;
 
 typedef enum enumAction
 {
-	ACT_WARN,	// ignore with message
+	ACT_WARN,	// ignore with message, default
 	ACT_IGNORE,	// ignore without message
-	ACT_ALLOW,	// allow
-	ACT_EXPAND,	// allow and expand (wbfs+sft only)
+	ACT_ALLOW,	// allow, default for 'act_wbfs_disc'
+	ACT_EXPAND,	// allow and expand (wbfs+fst only)
 
 } enumAction;
 
@@ -304,6 +304,7 @@ typedef struct Iterator_t
 	enumAction	act_non_iso;	// action for non iso files
 	enumAction	act_known;	// action for non iso files but well known files
 	enumAction	act_wbfs;	// action for wbfs files with n(disc) != 1
+	enumAction	act_wbfs_disc;	// action for a wbfs disc (selector used), default=ALLOW
 	enumAction	act_fst;	// action for fst
 	enumAction	act_gc;		// action for GameCube discs
 	enumAction	act_open;	// action for open output files

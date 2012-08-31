@@ -1712,8 +1712,7 @@ u32 wbfs_add_disc_param ( wbfs_t *p, wbfs_param_t * par )
     wbfs_disc_info_t *info = 0;
     u8* copy_buffer = 0;
     int disc_info_sz_lba;
-
-    u8 * used = wbfs_malloc(p->n_wii_sec_per_disc);
+    u8 * used = wbfs_malloc(WII_MAX_SECTORS);
 
 
     //----- open source disc
@@ -1732,8 +1731,11 @@ u32 wbfs_add_disc_param ( wbfs_t *p, wbfs_param_t * par )
     }
 
     wd_filter_usage_table(disc,used,par->psel);
-    const bool copy_1_1 = disc->whole_disc;
 
+    #if HAVE_PRINT0
+	//wd_print_usage_tab(stdout,2,used,disc->iso_size,false);
+	wd_print_usage_tab(stdout,2,used,WII_MAX_DISC_SIZE,false);
+    #endif
 
     //----- count total number of blocks to write
 
@@ -1741,8 +1743,12 @@ u32 wbfs_add_disc_param ( wbfs_t *p, wbfs_param_t * par )
     u32 total_blocks  = 0;
 
     for ( i = 0; i < p->n_wbfs_sec_per_disc; i++ )
-	if ( copy_1_1 || wd_is_block_used(used, i, wii_sec_per_wbfs_sect) )
+	if ( wd_is_block_used(used, i, wii_sec_per_wbfs_sect) )
 	    total_blocks++;
+
+    PRINT("ADD, TOTAL BLOCKS= %u*%u*%u = %llu\n",
+		total_blocks, wii_sec_per_wbfs_sect, WII_SECTOR_SIZE,
+		(u64)total_blocks * wii_sec_per_wbfs_sect * WII_SECTOR_SIZE );
 
     const u32 free_blocks = wbfs_get_free_block_count(p);
     if ( total_blocks > free_blocks )
@@ -1757,8 +1763,6 @@ u32 wbfs_add_disc_param ( wbfs_t *p, wbfs_param_t * par )
 
     if (par->spinner)
 	par->spinner(0,total_blocks,par->callback_data);
-
-
 
  // [codeview]
 
@@ -1801,7 +1805,7 @@ u32 wbfs_add_disc_param ( wbfs_t *p, wbfs_param_t * par )
     for ( i = 0; i < p->n_wbfs_sec_per_disc; i++ )
     {
 	info->wlba_table[i] = wbfs_htons(0);
-	if (copy_1_1 || wd_is_block_used(used, i, wii_sec_per_wbfs_sect))
+	if ( wd_is_block_used(used, i, wii_sec_per_wbfs_sect))
 	{
 	    bl = wbfs_alloc_block(p,bl);
 	    if ( bl == WBFS_NO_BLOCK )

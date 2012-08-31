@@ -48,7 +48,6 @@
 #include <dirent.h>
 #include <time.h>
 
-
 #include "debug.h"
 #include "wbfs-interface.h"
 #include "titles.h"
@@ -4140,6 +4139,8 @@ enumError AddWDisc ( WBFS_t * w, SuperFile_t * sf, const wd_select_t * psel )
     par.iinfo.mtime		= hton64(sf->f.fatt.mtime);
     par.iso_size		= sf->file_size;
     par.wd_disc			= OpenDiscSF(sf,false,true);
+
+    PRINT("iso_size=%llu\n",par.iso_size);
 
     // try to copy mtime from WBFS source disc
     if ( sf->wbfs && sf->wbfs->disc )

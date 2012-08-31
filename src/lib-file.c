@@ -3348,7 +3348,7 @@ int AddCertFile ( ccp fname, int unused )
 		}
 	    }
 	}
-// [[2do]] [ft-id]
+// [[2do]] [[ft-id]]
 	else if ( sf.f.ftype & (FT_ID_CERT_BIN|FT_ID_TIK_BIN|FT_ID_TMD_BIN) )
 	{
 	    const size_t load_size = sf.file_size < sizeof(iobuf)

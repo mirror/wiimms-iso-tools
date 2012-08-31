@@ -170,6 +170,18 @@
 	"Edit an existing Wii and GameCube ISO image and patch some values." \
 	" Images, WBFS partitions and directories are accepted as source." )
 
+#:def_cmd( "IMGFILES", "IMGFILES|IF", \
+	"wit IMGFILES source\n" \
+	"wit IMGFILES [[--source] source]... [--recurse source]...", \
+	"Print a list of all image files including their associated split" \
+	" files. Each file is printed on a separate line for further batch" \
+	" processing." )
+
+#:def_cmd( "REMOVE", "REMOVE|RM", \
+	"wit REMOVE source\n" \
+	"wit REMOVE [[--source] source]... [--recurse source]...", \
+	"Remove images including their associated split files." )
+
 #:def_cmd( "MOVE", "MOVE|MV", \
 	"wit MOVE source dest\n" \
 	"wit MOVE [[--source] source]... [--recurse source]... [-d|-D] dest", \
@@ -238,6 +250,10 @@
 #:def_opt( "PROGRESS", "P|progress", "G", \
 	"", \
 	"Print progress counter independent of verbose level." )
+
+#:def_opt( "SCAN_PROGRESS", "scan-progress|scanprogress", "G", \
+	"", \
+	"Print a message for each found image while scanning the file system." )
 
 #:def_opt( "LOGGING", "L|logging", "GM", \
 	"", \
@@ -408,6 +424,11 @@
 	"Detect soft and hard linked source files while composing or" \
 	" extracting discs and try to create hard links instead of independent" \
 	" copies on the destination file system." )
+
+#:def_opt( "NULL", "0|null", "C", \
+	"Terminate each output line with a NUL (ASCII 0) character instead" \
+	" with a line feed (LF, ASCII 10).", \
+	"" )
 
 #:def_opt( "PSEL", "psel", "CP", \
 	"list", \
@@ -1663,6 +1684,10 @@
 	"", \
 	"" )
 
+#:def_cmd_opt( "LIST", "SCAN_PROGRESS", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "LIST", "ITIME", \
 	"", \
 	"" )
@@ -1794,6 +1819,10 @@
 	"" )
 
 #:def_cmd_opt( "LIST_L", "PROGRESS", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "LIST_L", "SCAN_PROGRESS", \
 	"", \
 	"" )
 
@@ -1931,6 +1960,10 @@
 	"", \
 	"" )
 
+#:def_cmd_opt( "LIST_LL", "SCAN_PROGRESS", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "LIST_LL", "ITIME", \
 	"", \
 	"" )
@@ -2062,6 +2095,10 @@
 	"" )
 
 #:def_cmd_opt( "LIST_LLL", "PROGRESS", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "LIST_LLL", "SCAN_PROGRESS", \
 	"", \
 	"" )
 
@@ -2617,6 +2654,10 @@
 	"", \
 	"" )
 
+#:def_cmd_opt( "DIFF", "SCAN_PROGRESS", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "DIFF", "FILE_LIMIT", \
 	"", \
 	"" )
@@ -2823,6 +2864,10 @@
 	" counter is printed too." )
 
 #:def_cmd_opt( "FDIFF", "PROGRESS", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "FDIFF", "SCAN_PROGRESS", \
 	"", \
 	"" )
 
@@ -3037,6 +3082,10 @@
 	"" )
 
 #:def_cmd_opt( "EXTRACT", "PROGRESS", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "EXTRACT", "SCAN_PROGRESS", \
 	"", \
 	"" )
 
@@ -3276,6 +3325,10 @@
 	"" )
 
 #:def_cmd_opt( "COPY", "PROGRESS", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "COPY", "SCAN_PROGRESS", \
 	"", \
 	"" )
 
@@ -3544,6 +3597,10 @@
 	"" )
 
 #:def_cmd_opt( "CONVERT", "PROGRESS", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "CONVERT", "SCAN_PROGRESS", \
 	"", \
 	"" )
 
@@ -3828,6 +3885,158 @@
 	"" )
 
 #:def_cmd_opt( "EDIT", "ZERO_FILES", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "IMGFILES", "TITLES", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "IMGFILES", "UTF_8", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "IMGFILES", "NO_UTF_8", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "IMGFILES", "LANG", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "IMGFILES", "SOURCE", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "IMGFILES", "NO_EXPAND", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "IMGFILES", "RECURSE", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "IMGFILES", "RDEPTH", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "IMGFILES", "EXCLUDE", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "IMGFILES", "EXCLUDE_PATH", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "IMGFILES", "INCLUDE", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "IMGFILES", "INCLUDE_PATH", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "IMGFILES", "INCLUDE_FIRST", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "IMGFILES", "ONE_JOB", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "IMGFILES", "JOB_LIMIT", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "IMGFILES", "IGNORE", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "IMGFILES", "QUIET", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "IMGFILES", "SECTIONS", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "IMGFILES", "NULL", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "REMOVE", "TEST", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "REMOVE", "TITLES", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "REMOVE", "UTF_8", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "REMOVE", "NO_UTF_8", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "REMOVE", "LANG", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "REMOVE", "SOURCE", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "REMOVE", "NO_EXPAND", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "REMOVE", "RECURSE", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "REMOVE", "RDEPTH", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "REMOVE", "EXCLUDE", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "REMOVE", "EXCLUDE_PATH", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "REMOVE", "INCLUDE", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "REMOVE", "INCLUDE_PATH", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "REMOVE", "INCLUDE_FIRST", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "REMOVE", "ONE_JOB", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "REMOVE", "JOB_LIMIT", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "REMOVE", "IGNORE", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "REMOVE", "QUIET", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "REMOVE", "SECTIONS", \
 	"", \
 	"" )
 
@@ -4219,6 +4428,10 @@
 	"" )
 
 #:def_cmd_opt( "VERIFY", "PROGRESS", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "VERIFY", "SCAN_PROGRESS", \
 	"", \
 	"" )
 
@@ -4726,6 +4939,10 @@
 #:def_opt( "PROGRESS", "P|progress", "G", \
 	"", \
 	"Print progress counter independent of verbose level." )
+
+#:def_opt( "SCAN_PROGRESS", "scan-progress|scanprogress", "G", \
+	"", \
+	"Print a message for each found image while scanning the file system." )
 
 #:def_opt( "LOGGING", "L|logging", "G", \
 	"", \
@@ -6851,6 +7068,10 @@
 	"", \
 	"" )
 
+#:def_cmd_opt( "ADD", "SCAN_PROGRESS", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "ADD", "SECTIONS", \
 	"", \
 	"" )
@@ -7081,6 +7302,10 @@
 	"", \
 	"" )
 
+#:def_cmd_opt( "UPDATE", "SCAN_PROGRESS", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "UPDATE", "SECTIONS", \
 	"", \
 	"" )
@@ -7300,6 +7525,10 @@
 	" detailed." )
 
 #:def_cmd_opt( "SYNC", "PROGRESS", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "SYNC", "SCAN_PROGRESS", \
 	"", \
 	"" )
 
@@ -7539,6 +7768,10 @@
 	" detailed." )
 
 #:def_cmd_opt( "EXTRACT", "PROGRESS", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "EXTRACT", "SCAN_PROGRESS", \
 	"", \
 	"" )
 
@@ -7810,6 +8043,10 @@
 	" detailed." )
 
 #:def_cmd_opt( "REMOVE", "PROGRESS", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "REMOVE", "SCAN_PROGRESS", \
 	"", \
 	"" )
 
@@ -8178,6 +8415,10 @@
 	" detailed." )
 
 #:def_cmd_opt( "VERIFY", "PROGRESS", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "VERIFY", "SCAN_PROGRESS", \
 	"", \
 	"" )
 

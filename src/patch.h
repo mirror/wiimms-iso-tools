@@ -142,7 +142,7 @@ int ScanOptModify ( ccp arg );
 //-----------------------------------------------------------------------------
 
 extern ccp modify_name;
-extern ccp modify_id /* [[id]] */;
+extern ccp modify_id;
 extern ccp modify_disc_id;
 extern ccp modify_boot_id;
 extern ccp modify_ticket_id;

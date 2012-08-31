@@ -423,6 +423,17 @@ info_t info_tab[] =
 		" and patch some values."
 		" Images, WBFS partitions and directories are accepted as source." },
 
+  { T_DEF_CMD,	"IMGFILES",	"IMGFILES|IF",
+		    "wit IMGFILES source\n"
+		    "wit IMGFILES [[--source] source]... [--recurse source]...",
+		"Print a list of all image files including their associated split files."
+		" Each file is printed on a separate line for further batch processing." },
+
+  { T_DEF_CMD,	"REMOVE",	"REMOVE|RM",
+		    "wit REMOVE source\n"
+		    "wit REMOVE [[--source] source]... [--recurse source]...",
+		"Remove images including their associated split files." },
+
   { T_DEF_CMD,	"MOVE",		"MOVE|MV",
 		    "wit MOVE source dest\n"
 		    "wit MOVE [[--source] source]... [--recurse source]... [-d|-D] dest",
@@ -497,7 +508,13 @@ info_t info_tab[] =
 		" The impact of the other verbose levels are command dependent." },
 
   { T_OPT_G,	"PROGRESS",	"P|progress",
-		0, "Print progress counter independent of verbose level." },
+		0,
+		"Print progress counter independent of verbose level." },
+
+  { T_OPT_G,	"SCAN_PROGRESS","scan-progress|scanprogress",
+		0,
+		"Print a message for each found image"
+		" while scanning the file system." },
 
   { T_OPT_GM,	"LOGGING",	"L|logging",
 		0,
@@ -705,6 +722,10 @@ info_t info_tab[] =
 		"Detect soft and hard linked source files while composing"
 		" or extracting discs and try to create hard links instead"
 		" of independent copies on the destination file system." },
+
+  { T_OPT_C,	"NULL",		"0|null",
+		"Terminate each output line with a NUL (ASCII 0) character"
+		" instead with a line feed (LF, ASCII 10)." },
 
   { T_SEP_OPT,	0,0,0,0 }, //----- separator -----
 
@@ -1671,6 +1692,7 @@ info_t info_tab[] =
   { T_COPT,	"REALPATH",	0,0,0 },
   { T_COPT_M,	"UNIT",		0,0,0 },
   { T_COPT,	"PROGRESS",	0,0,0 },
+  { T_COPT,	"SCAN_PROGRESS",0,0,0 },
 
   { T_SEP_OPT,	0,0,0,0 },
 
@@ -1749,6 +1771,7 @@ info_t info_tab[] =
   { T_COPT,	"QUIET",	0,0, TEXT_DIFF_QUIET },
   { T_COPT_M,	"VERBOSE",	0,0, TEXT_DIFF_VERBOSE },
   { T_COPT,	"PROGRESS",	0,0,0 },
+  { T_COPT,	"SCAN_PROGRESS",0,0,0 },
   { T_COPT_M,	"FILE_LIMIT",	0,0,0 },
   { T_COPT_M,	"LIMIT",	0,0, TEXT_DIFF_LIMIT },
   { T_COPT_M,	"LONG",		0,0, TEXT_DIFF_LONG },
@@ -1794,6 +1817,7 @@ info_t info_tab[] =
   { T_COPT_M,	"LONG",		0,0, TEXT_EXTRACT_LONG },
   { T_COPT_M,	"LOGGING",	0,0,0 },
   { T_COPT,	"PROGRESS",	0,0,0 },
+  { T_COPT,	"SCAN_PROGRESS",0,0,0 },
   { T_COPT,	"SECTIONS",	0,0,0 },
 
   { T_SEP_OPT,	0,0,0,0 },
@@ -1844,6 +1868,7 @@ info_t info_tab[] =
   { T_COPT_M,	"VERBOSE",	0,0,0 },
   { T_COPT_M,	"LOGGING",	0,0,0 },
   { T_COPT,	"PROGRESS",	0,0,0 },
+  { T_COPT,	"SCAN_PROGRESS",0,0,0 },
   { T_COPT,	"SECTIONS",	0,0,0 },
 
   { T_SEP_OPT,	0,0,0,0 },
@@ -1882,6 +1907,30 @@ info_t info_tab[] =
   { T_COPY_GRP,	"PARTITIONS",	0,0,0 },
   { T_COPY_GRP,	"PATCH",	0,0,0 },
 
+  //---------- COMMAND wit IMGFILES ----------
+
+  { T_CMD_BEG,	"IMGFILES",	0,0,0 },
+
+  { T_COPY_GRP,	"TITLES",	0,0,0 },
+  { T_COPY_GRP,	"XSOURCE",	0,0,0 },
+  { T_COPT,	"IGNORE",	0,0,0 },
+  { T_COPT,	"QUIET",	0,0,0 },
+  { T_COPT,	"SECTIONS",	0,0,0 },
+  { T_COPT,	"NULL",		0,0,0 },
+
+  //---------- COMMAND wit REMOVE ----------
+
+  { T_CMD_BEG,	"REMOVE",	0,0,0 },
+
+  { T_COPT_M,	"TEST",		0,0,0 },
+
+  { T_SEP_OPT,	0,0,0,0 },
+
+  { T_COPY_GRP,	"TITLES",	0,0,0 },
+  { T_COPY_GRP,	"XSOURCE",	0,0,0 },
+  { T_COPT,	"IGNORE",	0,0,0 },
+  { T_COPT,	"QUIET",	0,0,0 },
+  { T_COPT,	"SECTIONS",	0,0,0 },
 
   //---------- COMMAND wit MOVE ----------
 
@@ -1959,6 +2008,7 @@ info_t info_tab[] =
 	" then wit will print nothing and only the exit status is set." },
   { T_COPT_M,	"VERBOSE",	0,0,0 },
   { T_COPT,	"PROGRESS",	0,0,0 },
+  { T_COPT,	"SCAN_PROGRESS",0,0,0 },
   { T_COPT,	"LIMIT",	0,0,
 	"Maximal printed errors of each partition."
 	" A zero means unlimited. The default is 10." },
@@ -2282,6 +2332,9 @@ info_t info_tab[] =
 		0, 0 /* copy of wit */ },
 
   { T_OPT_G,	"PROGRESS",	"P|progress",
+		0, 0 /* copy of wit */ },
+
+  { T_OPT_G,	"SCAN_PROGRESS","scan-progress|scanprogress",
 		0, 0 /* copy of wit */ },
 
   { T_OPT_G,	"LOGGING",	"L|logging",
@@ -2775,6 +2828,7 @@ info_t info_tab[] =
 	" If set twice enable progress information."
 	" If set three times the progress information is more detailed." },
   { T_COPT,	"PROGRESS",	0,0,0 },
+  { T_COPT,	"SCAN_PROGRESS",0,0,0 },
 
   //---------- wwt GROUP XTIME ----------
 

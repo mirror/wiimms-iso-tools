@@ -1480,7 +1480,7 @@ enumError Dump_PATCH
     int recnum;
     for ( recnum = 0; pat.cur_type; recnum++ )
     {
-	// [[2do]] [patch]
+	// [[2do]] [[patch]]
 	printf("%3d: %02x %u\n",recnum,pat.cur_type,pat.cur_size);
 	enumError err = GetNextReadPatch(&pat);
 	if (err)
