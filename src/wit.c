@@ -1074,6 +1074,15 @@ enumError exec_collect ( SuperFile_t * sf, Iterator_t * it )
     CopyFileAttrib(&item->fatt,&sf->f.fatt);
 
     ResetWDiscInfo(&wdi);
+
+    if ( print_sections && scan_progress > 0 && !it->scan_progress )
+    {
+	printf("[progress:found]\n");
+	PrintSectWDiscListItem(stdout,item,0);
+	putchar('\n');
+	fflush(stdout);
+    }
+
     return ERR_OK;
 }
 
@@ -1157,6 +1166,10 @@ static enumError cmd_list ( int long_level )
     it.wlist		= &wlist;
     it.progress_t_file	= "disc";
     it.progress_t_files	= "discs";
+    if (print_sections)
+	it.scan_progress = false;
+
+    it.scan_progress	= false;
 
     enumError err = SourceIterator(&it,1,true,false);
     ResetIterator(&it);
@@ -1917,7 +1930,7 @@ static enumError cmd_copy()
     for ( param = first_param; param; param = param->next )
 	if (param->arg)
 	    AppendStringField(&source_list,param->arg,true);
-    if (!source_list.used)
+    if ( !source_list.used || !recurse_list.used )
 	SYNTAX_ERROR;
 
     Iterator_t it;
@@ -2423,7 +2436,7 @@ static enumError cmd_move()
 	SetDest(param->arg,false);
 	param->arg = 0;
     }
-
+    
     ParamList_t * param;
     for ( param = first_param; param; param = param->next )
 	AppendStringField(&source_list,param->arg,true);
@@ -2433,8 +2446,8 @@ static enumError cmd_move()
     Iterator_t it;
     InitializeIterator(&it);
     it.act_non_iso	= OptionUsed[OPT_IGNORE] ? ACT_IGNORE : ACT_WARN;
-    it.act_wbfs		= it.act_non_iso;
     it.act_wbfs_disc	= it.act_non_iso;
+    it.act_wbfs		= ACT_ALLOW; //HaveEscapeChar(opt_dest) ? it.act_non_iso : ACT_ALLOW;
     it.act_gc		= ACT_ALLOW;
     it.overwrite	= OptionUsed[OPT_OVERWRITE] ? 1 : 0;
 

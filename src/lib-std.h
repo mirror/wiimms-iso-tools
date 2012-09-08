@@ -1344,6 +1344,7 @@ typedef struct SubstString_t
 char * SubstString
 	( char * buf, size_t bufsize, SubstString_t * tab, ccp source, int * count );
 int ScanEscapeChar ( ccp arg );
+bool HaveEscapeChar ( ccp string );
 
 //
 ///////////////////////////////////////////////////////////////////////////////

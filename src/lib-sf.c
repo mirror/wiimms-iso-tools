@@ -1052,6 +1052,18 @@ int SubstFileName
 	    fname = temp+1;
     }
 
+    char pure_name[PATH_MAX];
+    ccp ext = strrchr(fname,'.');
+    if (ext)
+    {
+	int len = ext - fname + 1;
+	if ( len > sizeof(pure_name) )
+	     len = sizeof(pure_name);
+	StringCopyS(pure_name,len,fname);
+    }
+    else
+	StringCopyS(pure_name,sizeof(pure_name),fname);
+
     char src_path[PATH_MAX];
     StringCopyS(src_path,sizeof(src_path),src_file);
     char * temp = strrchr(src_path,'/');
@@ -1060,8 +1072,8 @@ int SubstFileName
     else
 	*src_path = 0;
 
-    if (!disc_name)
-	disc_name = id6;
+    if ( !disc_name || !*disc_name )
+	disc_name = id6 && *id6 ? id6 : pure_name;
     ccp title = GetTitle(id6,disc_name);
 
     char x_buf[1000];
@@ -1091,6 +1103,8 @@ int SubstFileName
 	{ 'e', 'E', 0, oft_info[oft].ext1+1 },
 	{ 'p', 'P', 1, src_path },
 	{ 'f', 'F', 1, fname },
+	{ 'g', 'G', 1, pure_name },
+	{ 'h', 'H', 1, ext },
 	{ 'x', 'X', 0, x_buf },
 	{ 'y', 'Y', 0, y_buf },
 	{ '+', '+', 0, plus_name },
@@ -2187,7 +2201,7 @@ enumFileType AnalyzeFT ( File_t * f )
 {
     ASSERT(f);
 
-    TRACE("AnalyzeFT(%p) fd=%d, split=%d\n",f,GetFD(f),IsSplittedF(f));
+    PRINT("AnalyzeFT(%p) fd=%d, split=%d\n",f,GetFD(f),IsSplittedF(f));
     f->id6_src[6] = f->id6_dest[6] = 0;
 
     if (!IsOpenF(f))
@@ -2267,10 +2281,12 @@ enumFileType AnalyzeFT ( File_t * f )
 		switch(mode)
 		{
 		    case IS_ID6:
+BINGO;
 			ok = !FindWDiscInfo(&wbfs,&wdisk,id6);
 			break;
 
 		    case IS_INDEX:
+BINGO;
 			if (!GetWDiscInfo(&wbfs,&wdisk,idx))
 			{
 			    memcpy(id6,wdisk.id6,6);
@@ -2279,6 +2295,7 @@ enumFileType AnalyzeFT ( File_t * f )
 			break;
 
 		    case IS_SLOT:
+BINGO;
 			if (!GetWDiscInfoBySlot(&wbfs,&wdisk,idx))
 			{
 			    memcpy(id6,wdisk.id6,6);
@@ -2296,6 +2313,7 @@ enumFileType AnalyzeFT ( File_t * f )
 
 	if (ok)
 	{
+BINGO;
 	    TRACE(" - WBFS/%s found, slot=%d\n",id6,wdisk.slot);
 	    sf.f.disable_errors = f->disable_errors;
 	    ASSERT(!sf.f.path);
@@ -2368,6 +2386,7 @@ enumFileType AnalyzeFT ( File_t * f )
 
     //----- now we must analyze the file contents
 
+BINGO;
     // disable warnings
     const bool disable_errors = f->disable_errors;
     f->disable_errors = true;
@@ -2505,11 +2524,11 @@ enumFileType AnalyzeFT ( File_t * f )
 				  break;
 
 				case WD_DT_GAMECUBE:
-				  ft |= FT_A_WDISC | FT_A_ISO | FT_A_GC_ISO;
+				  ft |= FT_A_ISO | FT_A_GC_ISO;
 				  break;
 				
 				case WD_DT_WII:
-				  ft |= FT_A_WDISC | FT_A_ISO | FT_A_WII_ISO;
+				  ft |= FT_A_ISO | FT_A_WII_ISO;
 				  break;
 			      }
 			      SetPatchFileID(f,dinfo.id6,6);
@@ -5445,6 +5464,7 @@ void InitializeIterator ( Iterator_t * it )
     it->act_wbfs_disc = ACT_ALLOW;
     it->show_mode = opt_show_mode;
     it->progress_enabled = verbose > 1 || progress;
+    it->scan_progress = scan_progress > 0;
 }
 
 //-----------------------------------------------------------------------------
@@ -5462,8 +5482,9 @@ static void IteratorProgress
 	( Iterator_t * it, bool last_message, SuperFile_t *sf )
 {
     static bool active = false;
+    bool flush = false;
 
-    if ( sf && scan_progress > 0 )
+    if ( sf && it->scan_progress )
     {
 	if (print_sections)
 	{
@@ -5471,9 +5492,11 @@ static void IteratorProgress
 		"[progress:found]\n"
 		"type=%s\n"
 		"path=%s\n"
+		"size=%llu\n"
 		"\n"
 		,oft_info[sf->iod.oft].name
 		,sf->f.fname
+		,(u64)sf->f.st.st_size
 		);
 	}
 	else
@@ -5483,8 +5506,10 @@ static void IteratorProgress
 		active = false;
 		printf("%70s\r","");
 	    }
-	    printf(">IMAGE FOUND: %s:%s\n",oft_info[sf->iod.oft].name,sf->f.fname);
+	    printf("> %s found: %s:%s\n",
+		it->progress_t_file, oft_info[sf->iod.oft].name, sf->f.fname );
 	}
+	flush = true;
     }
 
     //--------------------------------------------------
@@ -5544,9 +5569,12 @@ static void IteratorProgress
 		printf("%s%s", term, last_message ? ".   \n" : " ... \r" );
 		active = !last_message;
 	    }
-	    fflush(stdout);
+	    flush = true;
 	}
     }
+
+    if (flush)
+	fflush(stdout);
 }
 
 //-----------------------------------------------------------------------------
