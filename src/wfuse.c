@@ -347,7 +347,7 @@ static DiscFile_t * get_disc_file ( uint slot )
 	memset(found_df,0,sizeof(found_df));
 	WBFS_t * wbfs = MALLOC(sizeof(*wbfs));
 	InitializeWBFS(wbfs);
-	enumError err = OpenWBFS(wbfs,source_file,true,0);
+	enumError err = OpenWBFS(wbfs,source_file,true,true,0); // unsure modify mode
 	wbfs->cache_candidate = false;
 	if (!err)
 	{

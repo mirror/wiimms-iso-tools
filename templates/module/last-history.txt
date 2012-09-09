@@ -1,13 +1,7 @@
 wit v@@VERSION@@ r@@REV-NEXT@@ - @@@@-@@-@@
 
- - Option --scan-progress prints more info and flush every log output.
- - Bug fix: "wit MOVE a.wbfs ..." will work now.
- - New escapes for output files: The old '%f' is the source filename without
-   path (like 'name.ext'). Now we have also '%g' and '%h' as split of '%f':
-   '%g' is file name without extension ('name') and '%h' is the extension
-   ('.ext').
- - Bug fix: "wit COPY --recurse a --dest b" threw an error, because the tool
-   thought, that no source was defined (same as with --source before).
+ - Bug fix: Because of the --recurse bug fix of v2.08a, "wit COPY" failed.
+
 
 ~
 ~Known bugs:

@@ -510,15 +510,15 @@ enumError SetupReadWBFS ( SuperFile_t * sf )
 
 enumError OpenSF
 (
-	SuperFile_t * sf,
-	ccp fname,
-	bool allow_non_iso,
-	bool open_modify
+    SuperFile_t	* sf,
+    ccp		fname,
+    bool	allow_non_iso,
+    bool	open_modify
 )
 {
     ASSERT(sf);
     CloseSF(sf,0);
-    TRACE("#S# OpenSF(%p,%s,%d,%d)\n",sf,fname,allow_non_iso,open_modify);
+    PRINT("#S# OpenSF(%p,%s,%d,%d)\n",sf,fname,allow_non_iso,open_modify);
 
     const bool disable_errors = sf->f.disable_errors;
     sf->f.disable_errors = true;
@@ -2281,12 +2281,10 @@ enumFileType AnalyzeFT ( File_t * f )
 		switch(mode)
 		{
 		    case IS_ID6:
-BINGO;
 			ok = !FindWDiscInfo(&wbfs,&wdisk,id6);
 			break;
 
 		    case IS_INDEX:
-BINGO;
 			if (!GetWDiscInfo(&wbfs,&wdisk,idx))
 			{
 			    memcpy(id6,wdisk.id6,6);
@@ -2295,7 +2293,6 @@ BINGO;
 			break;
 
 		    case IS_SLOT:
-BINGO;
 			if (!GetWDiscInfoBySlot(&wbfs,&wdisk,idx))
 			{
 			    memcpy(id6,wdisk.id6,6);
@@ -2313,7 +2310,6 @@ BINGO;
 
 	if (ok)
 	{
-BINGO;
 	    TRACE(" - WBFS/%s found, slot=%d\n",id6,wdisk.slot);
 	    sf.f.disable_errors = f->disable_errors;
 	    ASSERT(!sf.f.path);
@@ -2386,7 +2382,6 @@ BINGO;
 
     //----- now we must analyze the file contents
 
-BINGO;
     // disable warnings
     const bool disable_errors = f->disable_errors;
     f->disable_errors = true;
@@ -2508,7 +2503,7 @@ BINGO;
 		{
 		    WBFS_t wbfs;
 		    InitializeWBFS(&wbfs);
-		    if (!OpenWBFS(&wbfs,f->fname,false,0))
+		    if (!OpenWBFS(&wbfs,f->fname,false,false,0))
 		    {
 			ft |= FT_ID_WBFS;
 			if ( wbfs.used_discs == 1 )

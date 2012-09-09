@@ -839,13 +839,10 @@ int wbfs_rename_disc
     wbfs_inode_info_t * iinfo = wbfs_get_disc_inode_info(d,1);
     const be64_t now = wbfs_setup_inode_info(p,iinfo,d->is_valid,0);
 
-BINGO;
-PRINT("RENAME: [%d] |%s|%s|\n",chg_wbfs_head,new_id,new_title);
     int do_sync = 0;
     if ( chg_wbfs_head
 	&& wd_rename(d->header->dhead,new_id,new_title) )
     {
-BINGO;
 	iinfo->ctime = iinfo->atime = now;
 	do_sync++;
     }

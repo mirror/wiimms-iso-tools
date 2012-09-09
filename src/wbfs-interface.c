@@ -1085,12 +1085,20 @@ enumError CreateGrowingWBFS ( WBFS_t * w, SuperFile_t * sf, off_t size, int sect
 ///////////////////////////////////////////////////////////////////////////////
 
 static enumError OpenWBFSHelper
-	( WBFS_t * w, ccp filename, bool print_err, 
-	  wbfs_param_t * par, int sector_size, bool recover )
+(
+	WBFS_t		* w,
+	ccp		filename,
+	bool		open_modify,	// true: open read+write
+	bool		print_err, 
+	wbfs_param_t	*par,
+	int		sector_size,
+	bool		recover
+)
 {
     ASSERT(w);
-    TRACE("OpenFileWBFS(%s,%d,%d,%d)\n",
-		filename, print_err, sector_size, recover );
+    PRINT("OpenWBFSHelper(%s,rw=%d,pe=%d,ss=%d,recover=%d)\n",
+		filename, open_modify, print_err, sector_size, recover );
+    PRINT(" -> is_growing=%d, is_wbfs_file=%d", w->is_growing, w->is_wbfs_file );
 
     if ( wbfs_cache_valid
 	&& IsOpenSF(wbfs_cache.sf)
@@ -1107,7 +1115,13 @@ static enumError OpenWBFSHelper
     SuperFile_t * sf = MALLOC(sizeof(SuperFile_t));
     InitializeSF(sf);
     sf->f.disable_errors = !print_err;
+ #ifdef TEST
+    enumError err = open_modify
+			? OpenFileModify(&sf->f,filename,IOM_IS_WBFS_PART)
+			: OpenFile(&sf->f,filename,IOM_IS_WBFS_PART);
+ #else
     enumError err = OpenFileModify(&sf->f,filename,IOM_IS_WBFS_PART);
+ #endif
     if (err)
 	goto abort;
     sf->f.disable_errors = false;
@@ -1131,9 +1145,16 @@ static enumError OpenWBFSHelper
 
 ///////////////////////////////////////////////////////////////////////////////
 
-enumError OpenWBFS ( WBFS_t * w, ccp filename, bool print_err, wbfs_param_t * par )
+enumError OpenWBFS
+(
+	WBFS_t		*w,		// valid data structure
+	ccp		filename,	// filename to open
+	bool		open_modify,	// true: open read+write
+	bool		print_err,	// true: pprint error messages
+	wbfs_param_t	*par		// NULL or parameter record
+)
 {
-    return OpenWBFSHelper(w,filename,print_err,par,0,false);
+    return OpenWBFSHelper(w,filename,open_modify,print_err,par,0,false);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -1144,7 +1165,7 @@ enumError FormatWBFS
 {
     if ( sector_size < HD_SECTOR_SIZE )
 	sector_size = HD_SECTOR_SIZE;
-    return OpenWBFSHelper(w,filename,print_err,par,sector_size,recover);
+    return OpenWBFSHelper(w,filename,true,print_err,par,sector_size,recover);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -1385,8 +1406,8 @@ enumError OpenPartWBFS ( WBFS_t * w, PartitionInfo_t * info )
 	return ERR_NO_WBFS_FOUND;
     }
 
-    const enumError err
-	= OpenWBFSHelper(w,info->real_path,info->source==PS_PARAM,0,0,0);
+    const enumError err // modify mode unsure
+	= OpenWBFSHelper(w,info->real_path,true,info->source==PS_PARAM,0,0,0);
     if (err)
     {
 	info->part_mode = PM_WBFS_INVALID;

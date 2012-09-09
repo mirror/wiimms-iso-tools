@@ -1488,7 +1488,7 @@ static enumError cmd_diff ( bool file_level )
 	    AppendStringField(&source_list,param->arg,true);
 	}
     if (!done_count)
-	SYNTAX_ERROR;
+	SYNTAX_ERROR; // no return
 
     Iterator_t it;
     InitializeIterator(&it);
@@ -1632,7 +1632,7 @@ static enumError cmd_extract()
 	    AppendStringField(&source_list,param->arg,true);
 	}
     if (!done_count)
-	SYNTAX_ERROR;
+	SYNTAX_ERROR; // no return
 
     encoding |= ENCODE_F_FAST; // hint: no encryption needed
 
@@ -1930,8 +1930,8 @@ static enumError cmd_copy()
     for ( param = first_param; param; param = param->next )
 	if (param->arg)
 	    AppendStringField(&source_list,param->arg,true);
-    if ( !source_list.used || !recurse_list.used )
-	SYNTAX_ERROR;
+    if ( !source_list.used && !recurse_list.used )
+	SYNTAX_ERROR; // no return
 
     Iterator_t it;
     InitializeIterator(&it);
@@ -2531,7 +2531,8 @@ static enumError cmd_rename ( bool rename_id )
 	print_title(stdout);
 
     if ( !source_list.used && !recurse_list.used )
-	return ERROR0( ERR_MISSING_PARAM, "Missing source files.\n");
+	SYNTAX_ERROR; // no return
+	//return ERROR0( ERR_MISSING_PARAM, "Missing source files.\n");
 
     enumError err = CheckParamRename(rename_id,!rename_id,false);
     if (err)

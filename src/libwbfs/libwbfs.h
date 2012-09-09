@@ -253,12 +253,14 @@ typedef struct wbfs_param_t // function parameters
 	progress_callback_t	spinner;		// progress callback
 	wbfs_balloc_mode_t	balloc_mode;		// block allocation mode
 
+
   //----- parameters for wbfs_add_disc_param()
 
 	u64			iso_size;		// size of iso image in bytes
 	wd_disc_t		*wd_disc;		// NULL or the source disc
-	const wd_select_t	* psel;			// partition selector
+	const wd_select_t	*psel;			// partition selector
 	id6_t			wbfs_id6;		// not NULL: use this ID for inode
+
 
   //----- multi use parameters
 
@@ -267,6 +269,7 @@ typedef struct wbfs_param_t // function parameters
 
 	// inode info
 	wbfs_inode_info_t	iinfo;			// additional infos
+
 
   //----- infos (output of wbfs framework)
 
