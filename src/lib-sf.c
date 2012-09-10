@@ -283,6 +283,13 @@ bool IsOpenSF ( const SuperFile_t * sf )
 
 ///////////////////////////////////////////////////////////////////////////////
 
+bool IsWritableSF ( const SuperFile_t * sf )
+{
+    return sf && sf->f.is_writing && IsOpenF(&sf->f);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
 SuperFile_t * AllocSF()
 {
     SuperFile_t * sf = MALLOC(sizeof(*sf));
@@ -510,15 +517,15 @@ enumError SetupReadWBFS ( SuperFile_t * sf )
 
 enumError OpenSF
 (
-	SuperFile_t * sf,
-	ccp fname,
-	bool allow_non_iso,
-	bool open_modify
+    SuperFile_t	* sf,
+    ccp		fname,
+    bool	allow_non_iso,
+    bool	open_modify
 )
 {
     ASSERT(sf);
     CloseSF(sf,0);
-    TRACE("#S# OpenSF(%p,%s,%d,%d)\n",sf,fname,allow_non_iso,open_modify);
+    PRINT("#S# OpenSF(%p,%s,%d,%d)\n",sf,fname,allow_non_iso,open_modify);
 
     const bool disable_errors = sf->f.disable_errors;
     sf->f.disable_errors = true;
@@ -1052,6 +1059,18 @@ int SubstFileName
 	    fname = temp+1;
     }
 
+    char pure_name[PATH_MAX];
+    ccp ext = strrchr(fname,'.');
+    if (ext)
+    {
+	int len = ext - fname + 1;
+	if ( len > sizeof(pure_name) )
+	     len = sizeof(pure_name);
+	StringCopyS(pure_name,len,fname);
+    }
+    else
+	StringCopyS(pure_name,sizeof(pure_name),fname);
+
     char src_path[PATH_MAX];
     StringCopyS(src_path,sizeof(src_path),src_file);
     char * temp = strrchr(src_path,'/');
@@ -1060,8 +1079,8 @@ int SubstFileName
     else
 	*src_path = 0;
 
-    if (!disc_name)
-	disc_name = id6;
+    if ( !disc_name || !*disc_name )
+	disc_name = id6 && *id6 ? id6 : pure_name;
     ccp title = GetTitle(id6,disc_name);
 
     char x_buf[1000];
@@ -1091,6 +1110,8 @@ int SubstFileName
 	{ 'e', 'E', 0, oft_info[oft].ext1+1 },
 	{ 'p', 'P', 1, src_path },
 	{ 'f', 'F', 1, fname },
+	{ 'g', 'G', 1, pure_name },
+	{ 'h', 'H', 1, ext },
 	{ 'x', 'X', 0, x_buf },
 	{ 'y', 'Y', 0, y_buf },
 	{ '+', '+', 0, plus_name },
@@ -2187,7 +2208,7 @@ enumFileType AnalyzeFT ( File_t * f )
 {
     ASSERT(f);
 
-    TRACE("AnalyzeFT(%p) fd=%d, split=%d\n",f,GetFD(f),IsSplittedF(f));
+    PRINT("AnalyzeFT(%p) fd=%d, split=%d\n",f,GetFD(f),IsSplittedF(f));
     f->id6_src[6] = f->id6_dest[6] = 0;
 
     if (!IsOpenF(f))
@@ -2246,7 +2267,7 @@ enumFileType AnalyzeFT ( File_t * f )
 	SuperFile_t sf;
 	InitializeSF(&sf);
 	sf.f.disable_errors = true;
-	if (OpenFileModify(&sf.f,fname,IOM_IS_WBFS_PART))
+	if (OpenFile(&sf.f,fname,IOM_IS_WBFS_PART))
 	    return f->ftype;
 
 	AnalyzeFT(&sf.f);
@@ -2489,7 +2510,7 @@ enumFileType AnalyzeFT ( File_t * f )
 		{
 		    WBFS_t wbfs;
 		    InitializeWBFS(&wbfs);
-		    if (!OpenWBFS(&wbfs,f->fname,false,0))
+		    if (!OpenWBFS(&wbfs,f->fname,false,false,0))
 		    {
 			ft |= FT_ID_WBFS;
 			if ( wbfs.used_discs == 1 )
@@ -2505,11 +2526,11 @@ enumFileType AnalyzeFT ( File_t * f )
 				  break;
 
 				case WD_DT_GAMECUBE:
-				  ft |= FT_A_WDISC | FT_A_ISO | FT_A_GC_ISO;
+				  ft |= FT_A_ISO | FT_A_GC_ISO;
 				  break;
 				
 				case WD_DT_WII:
-				  ft |= FT_A_WDISC | FT_A_ISO | FT_A_WII_ISO;
+				  ft |= FT_A_ISO | FT_A_WII_ISO;
 				  break;
 			      }
 			      SetPatchFileID(f,dinfo.id6,6);
@@ -5445,6 +5466,7 @@ void InitializeIterator ( Iterator_t * it )
     it->act_wbfs_disc = ACT_ALLOW;
     it->show_mode = opt_show_mode;
     it->progress_enabled = verbose > 1 || progress;
+    it->scan_progress = scan_progress > 0;
 }
 
 //-----------------------------------------------------------------------------
@@ -5458,8 +5480,42 @@ void ResetIterator ( Iterator_t * it )
 
 //-----------------------------------------------------------------------------
 
-static void IteratorProgress ( Iterator_t * it, bool last_message )
+static void IteratorProgress
+	( Iterator_t * it, bool last_message, SuperFile_t *sf )
 {
+    static bool active = false;
+    bool flush = false;
+
+    if ( sf && it->scan_progress )
+    {
+	if (print_sections)
+	{
+	    printf(
+		"[progress:found]\n"
+		"type=%s\n"
+		"path=%s\n"
+		"size=%llu\n"
+		"\n"
+		,oft_info[sf->iod.oft].name
+		,sf->f.fname
+		,(u64)sf->f.st.st_size
+		);
+	}
+	else
+	{
+	    if (active)
+	    {
+		active = false;
+		printf("%70s\r","");
+	    }
+	    printf("> %s found: %s:%s\n",
+		it->progress_t_file, oft_info[sf->iod.oft].name, sf->f.fname );
+	}
+	flush = true;
+    }
+
+    //--------------------------------------------------
+
     if ( it->progress_enabled && ( it->num_of_scans || last_message ))
     {
 	const u32 sec = GetTimerMSec() / 1000 + 1;
@@ -5513,10 +5569,14 @@ static void IteratorProgress ( Iterator_t * it, bool last_message )
 		    term = " found";
 		}
 		printf("%s%s", term, last_message ? ".   \n" : " ... \r" );
+		active = !last_message;
 	    }
-	    fflush(stdout);
+	    flush = true;
 	}
     }
+
+    if (flush)
+	fflush(stdout);
 }
 
 //-----------------------------------------------------------------------------
@@ -5586,7 +5646,7 @@ static enumError SourceIteratorHelper
 	{
 	    it->num_of_dirs++;
 	    if (it->progress_enabled)
-		IteratorProgress(it,false);
+		IteratorProgress(it,false,0);
 	    DIR * dir = opendir(path);
 	    if (dir)
 	    {
@@ -5651,8 +5711,7 @@ static enumError SourceIteratorHelper
 	if ( it->act_non_exist >= ACT_ALLOW )
 	{
 	    it->num_of_files++;
-	    if (it->progress_enabled)
-		IteratorProgress(it,false);
+	    IteratorProgress(it,false,&sf);
 	    if (collect_fnames)
 	    {
 		InsertIdField(&it->source_list,0,0,0,sf.f.fname);
@@ -5734,7 +5793,7 @@ static enumError SourceIteratorHelper
 		    }
 		}
 		if (it->progress_enabled)
-		    IteratorProgress(it,false);
+		    IteratorProgress(it,false,0);
 
 		ResetWDiscInfo(&wdisk);
 		ResetWBFS(&wbfs);
@@ -5806,8 +5865,7 @@ static enumError SourceIteratorHelper
 	&& ( !sf.f.id6_src[0] || !IsExcluded(sf.f.id6_src) ))
     {
 	it->num_of_files++;
-	if (it->progress_enabled)
-	    IteratorProgress(it,false);
+	IteratorProgress(it,false,&sf);
 	if (collect_fnames)
 	{
 	    if ( !sf.f.fatt.mtime && it->newer && sf.f.ftype & FT_ID_FST )
@@ -5920,7 +5978,7 @@ enumError SourceIterator
     }
 
     if (it->progress_enabled)
-	IteratorProgress(it,true);
+	IteratorProgress(it,true,0);
 
     ResetStringField(&dir_done_list);
     ResetStringField(&file_done_list);

@@ -324,6 +324,7 @@ typedef struct Iterator_t
 
 	// progress
 
+	bool	scan_progress;		// true: log each found image
 	bool	progress_enabled;	// true: show progress info
 	u32	progress_last_sec;	// time of last progress viewing
 	ccp	progress_t_file;	// text, default = 'supported file'
@@ -344,7 +345,7 @@ typedef struct Iterator_t
 	uint		rm_count;	// remove counter
 	uint		done_count;	// done counter
 	uint		diff_count;	// diff counter
-	uint		exists_count;	// 'file alread exists' counter
+	uint		exists_count;	// 'file already exists' counter
 	u64		sum;		// any summary value
 	WDiscList_t	* wlist;	// pointer to WDiscList_t to collect data
 	struct WBFS_t	* wbfs;		// open WBFS

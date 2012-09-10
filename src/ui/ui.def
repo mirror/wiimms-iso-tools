@@ -251,6 +251,10 @@
 	"", \
 	"Print progress counter independent of verbose level." )
 
+#:def_opt( "SCAN_PROGRESS", "scan-progress|scanprogress", "G", \
+	"", \
+	"Print a message for each found image while scanning the file system." )
+
 #:def_opt( "LOGGING", "L|logging", "GM", \
 	"", \
 	"This debug option enables the logging of internal memory maps. If set" \
@@ -1680,6 +1684,10 @@
 	"", \
 	"" )
 
+#:def_cmd_opt( "LIST", "SCAN_PROGRESS", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "LIST", "ITIME", \
 	"", \
 	"" )
@@ -1811,6 +1819,10 @@
 	"" )
 
 #:def_cmd_opt( "LIST_L", "PROGRESS", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "LIST_L", "SCAN_PROGRESS", \
 	"", \
 	"" )
 
@@ -1948,6 +1960,10 @@
 	"", \
 	"" )
 
+#:def_cmd_opt( "LIST_LL", "SCAN_PROGRESS", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "LIST_LL", "ITIME", \
 	"", \
 	"" )
@@ -2079,6 +2095,10 @@
 	"" )
 
 #:def_cmd_opt( "LIST_LLL", "PROGRESS", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "LIST_LLL", "SCAN_PROGRESS", \
 	"", \
 	"" )
 
@@ -2634,6 +2654,10 @@
 	"", \
 	"" )
 
+#:def_cmd_opt( "DIFF", "SCAN_PROGRESS", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "DIFF", "FILE_LIMIT", \
 	"", \
 	"" )
@@ -2840,6 +2864,10 @@
 	" counter is printed too." )
 
 #:def_cmd_opt( "FDIFF", "PROGRESS", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "FDIFF", "SCAN_PROGRESS", \
 	"", \
 	"" )
 
@@ -3054,6 +3082,10 @@
 	"" )
 
 #:def_cmd_opt( "EXTRACT", "PROGRESS", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "EXTRACT", "SCAN_PROGRESS", \
 	"", \
 	"" )
 
@@ -3293,6 +3325,10 @@
 	"" )
 
 #:def_cmd_opt( "COPY", "PROGRESS", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "COPY", "SCAN_PROGRESS", \
 	"", \
 	"" )
 
@@ -3561,6 +3597,10 @@
 	"" )
 
 #:def_cmd_opt( "CONVERT", "PROGRESS", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "CONVERT", "SCAN_PROGRESS", \
 	"", \
 	"" )
 
@@ -4391,6 +4431,10 @@
 	"", \
 	"" )
 
+#:def_cmd_opt( "VERIFY", "SCAN_PROGRESS", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "VERIFY", "LIMIT", \
 	"", \
 	"Maximal printed errors of each partition. A zero means unlimited. The" \
@@ -4895,6 +4939,10 @@
 #:def_opt( "PROGRESS", "P|progress", "G", \
 	"", \
 	"Print progress counter independent of verbose level." )
+
+#:def_opt( "SCAN_PROGRESS", "scan-progress|scanprogress", "G", \
+	"", \
+	"Print a message for each found image while scanning the file system." )
 
 #:def_opt( "LOGGING", "L|logging", "G", \
 	"", \
@@ -7020,6 +7068,10 @@
 	"", \
 	"" )
 
+#:def_cmd_opt( "ADD", "SCAN_PROGRESS", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "ADD", "SECTIONS", \
 	"", \
 	"" )
@@ -7250,6 +7302,10 @@
 	"", \
 	"" )
 
+#:def_cmd_opt( "UPDATE", "SCAN_PROGRESS", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "UPDATE", "SECTIONS", \
 	"", \
 	"" )
@@ -7469,6 +7525,10 @@
 	" detailed." )
 
 #:def_cmd_opt( "SYNC", "PROGRESS", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "SYNC", "SCAN_PROGRESS", \
 	"", \
 	"" )
 
@@ -7708,6 +7768,10 @@
 	" detailed." )
 
 #:def_cmd_opt( "EXTRACT", "PROGRESS", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "EXTRACT", "SCAN_PROGRESS", \
 	"", \
 	"" )
 
@@ -7979,6 +8043,10 @@
 	" detailed." )
 
 #:def_cmd_opt( "REMOVE", "PROGRESS", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "REMOVE", "SCAN_PROGRESS", \
 	"", \
 	"" )
 
@@ -8347,6 +8415,10 @@
 	" detailed." )
 
 #:def_cmd_opt( "VERIFY", "PROGRESS", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "VERIFY", "SCAN_PROGRESS", \
 	"", \
 	"" )
 

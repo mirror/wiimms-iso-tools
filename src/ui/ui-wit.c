@@ -833,6 +833,11 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 	"Print progress counter independent of verbose level."
     },
 
+    {	OPT_SCAN_PROGRESS, 0, "scan-progress",
+	0,
+	"Print a message for each found image while scanning the file system."
+    },
+
     {	OPT_LOGGING, 'L', "logging",
 	0,
 	"This debug option enables the logging of internal memory maps. If set"
@@ -915,7 +920,7 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 	"Force relocation hook while reading iso images."
     },
 
-    {0,0,0,0,0} // OPT__N_TOTAL == 113
+    {0,0,0,0,0} // OPT__N_TOTAL == 114
 
 };
 
@@ -1263,6 +1268,8 @@ const struct option OptionLong[] =
 	{ "quiet",		0, 0, 'q' },
 	{ "verbose",		0, 0, 'v' },
 	{ "progress",		0, 0, 'P' },
+	{ "scan-progress",	0, 0, GO_SCAN_PROGRESS },
+	 { "scanprogress",	0, 0, GO_SCAN_PROGRESS },
 	{ "logging",		0, 0, 'L' },
 	{ "esc",		1, 0, 'E' },
 	{ "io",			1, 0, GO_IO },
@@ -1495,79 +1502,80 @@ const u8 OptionIndex[OPT_INDEX_SIZE] =
 	/* 0x7b   */	 0,0,0,0, 0,
 	/* 0x80   */	OPT_XHELP,
 	/* 0x81   */	OPT_WIDTH,
-	/* 0x82   */	OPT_IO,
-	/* 0x83   */	OPT_DIRECT,
-	/* 0x84   */	OPT_UTF_8,
-	/* 0x85   */	OPT_NO_UTF_8,
-	/* 0x86   */	OPT_LANG,
-	/* 0x87   */	OPT_CERT,
-	/* 0x88   */	OPT_OLD,
-	/* 0x89   */	OPT_NEW,
-	/* 0x8a   */	OPT_NO_EXPAND,
-	/* 0x8b   */	OPT_RDEPTH,
-	/* 0x8c   */	OPT_INCLUDE_FIRST,
-	/* 0x8d   */	OPT_JOB_LIMIT,
-	/* 0x8e   */	OPT_FAKE_SIGN,
-	/* 0x8f   */	OPT_IGNORE_FST,
-	/* 0x90   */	OPT_IGNORE_SETUP,
-	/* 0x91   */	OPT_LINKS,
-	/* 0x92   */	OPT_PSEL,
-	/* 0x93   */	OPT_RAW,
-	/* 0x94   */	OPT_PMODE,
-	/* 0x95   */	OPT_FLAT,
-	/* 0x96   */	OPT_COPY_GC,
-	/* 0x97   */	OPT_NO_LINK,
-	/* 0x98   */	OPT_NEEK,
-	/* 0x99   */	OPT_HOOK,
-	/* 0x9a   */	OPT_ENC,
-	/* 0x9b   */	OPT_MODIFY,
-	/* 0x9c   */	OPT_NAME,
-	/* 0x9d   */	OPT_ID,
-	/* 0x9e   */	OPT_DISC_ID,
-	/* 0x9f   */	OPT_BOOT_ID,
-	/* 0xa0   */	OPT_TICKET_ID,
-	/* 0xa1   */	OPT_TMD_ID,
-	/* 0xa2   */	OPT_WBFS_ID,
-	/* 0xa3   */	OPT_REGION,
-	/* 0xa4   */	OPT_COMMON_KEY,
-	/* 0xa5   */	OPT_IOS,
-	/* 0xa6   */	OPT_RM_FILES,
-	/* 0xa7   */	OPT_ZERO_FILES,
-	/* 0xa8   */	OPT_OVERLAY,
-	/* 0xa9   */	OPT_REPL_FILE,
-	/* 0xaa   */	OPT_ADD_FILE,
-	/* 0xab   */	OPT_IGNORE_FILES,
-	/* 0xac   */	OPT_TRIM,
-	/* 0xad   */	OPT_ALIGN,
-	/* 0xae   */	OPT_ALIGN_PART,
-	/* 0xaf   */	OPT_ALIGN_FILES,
-	/* 0xb0   */	OPT_DISC_SIZE,
-	/* 0xb1   */	OPT_PREALLOC,
-	/* 0xb2   */	OPT_TRUNC,
-	/* 0xb3   */	OPT_CHUNK_MODE,
-	/* 0xb4   */	OPT_CHUNK_SIZE,
-	/* 0xb5   */	OPT_MAX_CHUNKS,
-	/* 0xb6   */	OPT_BLOCK_SIZE,
-	/* 0xb7   */	OPT_COMPRESSION,
-	/* 0xb8   */	OPT_MEM,
-	/* 0xb9   */	OPT_DIFF,
-	/* 0xba   */	OPT_WIA,
-	/* 0xbb   */	OPT_FST,
-	/* 0xbc   */	OPT_ITIME,
-	/* 0xbd   */	OPT_MTIME,
-	/* 0xbe   */	OPT_CTIME,
-	/* 0xbf   */	OPT_ATIME,
-	/* 0xc0   */	OPT_TIME,
-	/* 0xc1   */	OPT_NUMERIC,
-	/* 0xc2   */	OPT_TECHNICAL,
-	/* 0xc3   */	OPT_REALPATH,
-	/* 0xc4   */	OPT_UNIT,
-	/* 0xc5   */	OPT_OLD_STYLE,
-	/* 0xc6   */	OPT_SECTIONS,
-	/* 0xc7   */	OPT_LIMIT,
-	/* 0xc8   */	OPT_FILE_LIMIT,
-	/* 0xc9   */	OPT_PATCH_FILE,
-	/* 0xca   */	 0,0,0,0, 0,0,
+	/* 0x82   */	OPT_SCAN_PROGRESS,
+	/* 0x83   */	OPT_IO,
+	/* 0x84   */	OPT_DIRECT,
+	/* 0x85   */	OPT_UTF_8,
+	/* 0x86   */	OPT_NO_UTF_8,
+	/* 0x87   */	OPT_LANG,
+	/* 0x88   */	OPT_CERT,
+	/* 0x89   */	OPT_OLD,
+	/* 0x8a   */	OPT_NEW,
+	/* 0x8b   */	OPT_NO_EXPAND,
+	/* 0x8c   */	OPT_RDEPTH,
+	/* 0x8d   */	OPT_INCLUDE_FIRST,
+	/* 0x8e   */	OPT_JOB_LIMIT,
+	/* 0x8f   */	OPT_FAKE_SIGN,
+	/* 0x90   */	OPT_IGNORE_FST,
+	/* 0x91   */	OPT_IGNORE_SETUP,
+	/* 0x92   */	OPT_LINKS,
+	/* 0x93   */	OPT_PSEL,
+	/* 0x94   */	OPT_RAW,
+	/* 0x95   */	OPT_PMODE,
+	/* 0x96   */	OPT_FLAT,
+	/* 0x97   */	OPT_COPY_GC,
+	/* 0x98   */	OPT_NO_LINK,
+	/* 0x99   */	OPT_NEEK,
+	/* 0x9a   */	OPT_HOOK,
+	/* 0x9b   */	OPT_ENC,
+	/* 0x9c   */	OPT_MODIFY,
+	/* 0x9d   */	OPT_NAME,
+	/* 0x9e   */	OPT_ID,
+	/* 0x9f   */	OPT_DISC_ID,
+	/* 0xa0   */	OPT_BOOT_ID,
+	/* 0xa1   */	OPT_TICKET_ID,
+	/* 0xa2   */	OPT_TMD_ID,
+	/* 0xa3   */	OPT_WBFS_ID,
+	/* 0xa4   */	OPT_REGION,
+	/* 0xa5   */	OPT_COMMON_KEY,
+	/* 0xa6   */	OPT_IOS,
+	/* 0xa7   */	OPT_RM_FILES,
+	/* 0xa8   */	OPT_ZERO_FILES,
+	/* 0xa9   */	OPT_OVERLAY,
+	/* 0xaa   */	OPT_REPL_FILE,
+	/* 0xab   */	OPT_ADD_FILE,
+	/* 0xac   */	OPT_IGNORE_FILES,
+	/* 0xad   */	OPT_TRIM,
+	/* 0xae   */	OPT_ALIGN,
+	/* 0xaf   */	OPT_ALIGN_PART,
+	/* 0xb0   */	OPT_ALIGN_FILES,
+	/* 0xb1   */	OPT_DISC_SIZE,
+	/* 0xb2   */	OPT_PREALLOC,
+	/* 0xb3   */	OPT_TRUNC,
+	/* 0xb4   */	OPT_CHUNK_MODE,
+	/* 0xb5   */	OPT_CHUNK_SIZE,
+	/* 0xb6   */	OPT_MAX_CHUNKS,
+	/* 0xb7   */	OPT_BLOCK_SIZE,
+	/* 0xb8   */	OPT_COMPRESSION,
+	/* 0xb9   */	OPT_MEM,
+	/* 0xba   */	OPT_DIFF,
+	/* 0xbb   */	OPT_WIA,
+	/* 0xbc   */	OPT_FST,
+	/* 0xbd   */	OPT_ITIME,
+	/* 0xbe   */	OPT_MTIME,
+	/* 0xbf   */	OPT_CTIME,
+	/* 0xc0   */	OPT_ATIME,
+	/* 0xc1   */	OPT_TIME,
+	/* 0xc2   */	OPT_NUMERIC,
+	/* 0xc3   */	OPT_TECHNICAL,
+	/* 0xc4   */	OPT_REALPATH,
+	/* 0xc5   */	OPT_UNIT,
+	/* 0xc6   */	OPT_OLD_STYLE,
+	/* 0xc7   */	OPT_SECTIONS,
+	/* 0xc8   */	OPT_LIMIT,
+	/* 0xc9   */	OPT_FILE_LIMIT,
+	/* 0xca   */	OPT_PATCH_FILE,
+	/* 0xcb   */	 0,0,0,0, 0,
 	/* 0xd0   */	 0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0,
 	/* 0xe0   */	 0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0,
 	/* 0xf0   */	 0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0,
@@ -1889,6 +1897,7 @@ const InfoOption_t * option_tab_tool[] =
 	OptionInfo + OPT_QUIET,
 	OptionInfo + OPT_VERBOSE,
 	OptionInfo + OPT_PROGRESS,
+	OptionInfo + OPT_SCAN_PROGRESS,
 	OptionInfo + OPT_LOGGING,
 	OptionInfo + OPT_ESC,
 	OptionInfo + OPT_IO,
@@ -2248,6 +2257,7 @@ static const InfoOption_t * option_tab_cmd_LIST[] =
 	OptionInfo + OPT_REALPATH,
 	OptionInfo + OPT_UNIT,
 	OptionInfo + OPT_PROGRESS,
+	OptionInfo + OPT_SCAN_PROGRESS,
 
 	OptionInfo + OPT_NONE, // separator
 
@@ -2299,6 +2309,7 @@ static const InfoOption_t * option_tab_cmd_LIST_L[] =
 	OptionInfo + OPT_REALPATH,
 	OptionInfo + OPT_UNIT,
 	OptionInfo + OPT_PROGRESS,
+	OptionInfo + OPT_SCAN_PROGRESS,
 
 	OptionInfo + OPT_NONE, // separator
 
@@ -2350,6 +2361,7 @@ static const InfoOption_t * option_tab_cmd_LIST_LL[] =
 	OptionInfo + OPT_REALPATH,
 	OptionInfo + OPT_UNIT,
 	OptionInfo + OPT_PROGRESS,
+	OptionInfo + OPT_SCAN_PROGRESS,
 
 	OptionInfo + OPT_NONE, // separator
 
@@ -2401,6 +2413,7 @@ static const InfoOption_t * option_tab_cmd_LIST_LLL[] =
 	OptionInfo + OPT_REALPATH,
 	OptionInfo + OPT_UNIT,
 	OptionInfo + OPT_PROGRESS,
+	OptionInfo + OPT_SCAN_PROGRESS,
 
 	OptionInfo + OPT_NONE, // separator
 
@@ -2604,6 +2617,7 @@ static const InfoOption_t * option_tab_cmd_DIFF[] =
 	&option_cmd_DIFF_QUIET,
 	&option_cmd_DIFF_VERBOSE,
 	OptionInfo + OPT_PROGRESS,
+	OptionInfo + OPT_SCAN_PROGRESS,
 	OptionInfo + OPT_FILE_LIMIT,
 	&option_cmd_DIFF_LIMIT,
 	&option_cmd_DIFF_LONG,
@@ -2676,6 +2690,7 @@ static const InfoOption_t * option_tab_cmd_FDIFF[] =
 	&option_cmd_DIFF_QUIET,
 	&option_cmd_DIFF_VERBOSE,
 	OptionInfo + OPT_PROGRESS,
+	OptionInfo + OPT_SCAN_PROGRESS,
 	OptionInfo + OPT_FILE_LIMIT,
 	&option_cmd_DIFF_LIMIT,
 	&option_cmd_DIFF_LONG,
@@ -2751,6 +2766,7 @@ static const InfoOption_t * option_tab_cmd_EXTRACT[] =
 	&option_cmd_EXTRACT_LONG,
 	OptionInfo + OPT_LOGGING,
 	OptionInfo + OPT_PROGRESS,
+	OptionInfo + OPT_SCAN_PROGRESS,
 	OptionInfo + OPT_SECTIONS,
 
 	OptionInfo + OPT_NONE, // separator
@@ -2837,6 +2853,7 @@ static const InfoOption_t * option_tab_cmd_COPY[] =
 	&option_cmd_EXTRACT_LONG,
 	OptionInfo + OPT_LOGGING,
 	OptionInfo + OPT_PROGRESS,
+	OptionInfo + OPT_SCAN_PROGRESS,
 	OptionInfo + OPT_SECTIONS,
 
 	OptionInfo + OPT_NONE, // separator
@@ -2934,6 +2951,7 @@ static const InfoOption_t * option_tab_cmd_CONVERT[] =
 	OptionInfo + OPT_VERBOSE,
 	OptionInfo + OPT_LOGGING,
 	OptionInfo + OPT_PROGRESS,
+	OptionInfo + OPT_SCAN_PROGRESS,
 	OptionInfo + OPT_SECTIONS,
 
 	OptionInfo + OPT_NONE, // separator
@@ -3292,6 +3310,7 @@ static const InfoOption_t * option_tab_cmd_VERIFY[] =
 	&option_cmd_VERIFY_QUIET,
 	OptionInfo + OPT_VERBOSE,
 	OptionInfo + OPT_PROGRESS,
+	OptionInfo + OPT_SCAN_PROGRESS,
 	&option_cmd_VERIFY_LIMIT,
 	OptionInfo + OPT_LOGGING,
 	&option_cmd_VERIFY_LONG,
@@ -3408,7 +3427,7 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	"Wiimms ISO Tool : It can list, analyze, verify, convert, split, join,"
 	" patch, mix, extract, compose, rename and compare Wii and GameCube"
 	" discs. It can create and dump different other Wii file formats.",
-	17,
+	18,
 	option_tab_tool,
 	0
     },
@@ -3627,7 +3646,7 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	"LS",
 	"wit LIST [source]...",
 	"List all found ISO files.",
-	33,
+	34,
 	option_tab_cmd_LIST,
 	option_allowed_cmd_LIST
     },
@@ -3640,7 +3659,7 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	"wit LIST-L [source]...",
 	"List all found ISO files with size and region. 'LIST-L' is a shortcut"
 	" for 'LIST --long'.",
-	33,
+	34,
 	option_tab_cmd_LIST_L,
 	option_allowed_cmd_LIST_L
     },
@@ -3653,7 +3672,7 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	"wit LIST-LL [source]...",
 	"List all found ISO files with date, size and region. 'LIST-LL' is a"
 	" shortcut for 'LIST --long --long'.",
-	33,
+	34,
 	option_tab_cmd_LIST_LL,
 	option_allowed_cmd_LIST_LL
     },
@@ -3667,7 +3686,7 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	"List all found ISO files with date, size and region and add a second"
 	" status line with more info. 'LIST-LLL' is a shortcut for 'LIST"
 	" --long --long --long'.",
-	33,
+	34,
 	option_tab_cmd_LIST_LLL,
 	option_allowed_cmd_LIST_LLL
     },
@@ -3720,7 +3739,7 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	"DIFF compares ISO images in scrubbed or raw mode or on file level."
 	" Images, WBFS partitions and directories are accepted as source. DIFF"
 	" works like COPY but comparing source and destination.",
-	48,
+	49,
 	option_tab_cmd_DIFF,
 	option_allowed_cmd_DIFF
     },
@@ -3735,7 +3754,7 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	"FDIFF compares ISO images on file level. Images, WBFS partitions and"
 	" directories are accepted as source. 'FDIFF' is a shortcut for 'DIFF"
 	" --files +'.",
-	48,
+	49,
 	option_tab_cmd_FDIFF,
 	option_allowed_cmd_FDIFF
     },
@@ -3749,7 +3768,7 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	"wit EXTRACT [[--source] source]... [--recurse source]... [-d|-D] dest",
 	"Extract all files from the source discs. Images, WBFS partitions and"
 	" directories are accepted as source.",
-	59,
+	60,
 	option_tab_cmd_EXTRACT,
 	option_allowed_cmd_EXTRACT
     },
@@ -3764,7 +3783,7 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	"Copy, scrub, convert, join, split, compose, extract, patch, encrypt"
 	" and decrypt Wii and GameCube disc images. Images, WBFS partitions"
 	" and directories are accepted as source.",
-	77,
+	78,
 	option_tab_cmd_COPY,
 	option_allowed_cmd_COPY
     },
@@ -3785,7 +3804,7 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	" implemented as replacement of the SCRUB command of other tools. 'wit"
 	" CONVERT does more than only scrubbing and therefor it was renamed"
 	" from 'SCRUB' to 'CONVERT'.",
-	60,
+	61,
 	option_tab_cmd_CONVERT,
 	option_allowed_cmd_CONVERT
     },
@@ -3878,7 +3897,7 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	"wit VERIFY [source]...",
 	"Verify ISO images (calculate and compare SHA1 check sums) to find bad"
 	" dumps.",
-	31,
+	32,
 	option_tab_cmd_VERIFY,
 	option_allowed_cmd_VERIFY
     },

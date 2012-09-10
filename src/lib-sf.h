@@ -201,6 +201,7 @@ enumError RemoveSF ( SuperFile_t * sf );
 
 // status
 bool IsOpenSF ( const SuperFile_t * sf );
+bool IsWritableSF ( const SuperFile_t * sf );
 
 // dynamic SF
 SuperFile_t * AllocSF();

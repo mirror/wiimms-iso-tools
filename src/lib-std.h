@@ -1344,6 +1344,7 @@ typedef struct SubstString_t
 char * SubstString
 	( char * buf, size_t bufsize, SubstString_t * tab, ccp source, int * count );
 int ScanEscapeChar ( ccp arg );
+bool HaveEscapeChar ( ccp string );
 
 //
 ///////////////////////////////////////////////////////////////////////////////
@@ -1600,6 +1601,7 @@ extern volatile int	SIGINT_level;
 extern volatile int	verbose;
 extern volatile int	logging;
 extern int		progress;
+extern int		scan_progress;
 extern bool		use_utf8;
 extern char		escape_char;
 extern int		opt_force;

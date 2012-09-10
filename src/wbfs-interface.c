@@ -48,7 +48,6 @@
 #include <dirent.h>
 #include <time.h>
 
-
 #include "debug.h"
 #include "wbfs-interface.h"
 #include "titles.h"
@@ -417,7 +416,7 @@ enumError AnalyzePartitions ( FILE * outfile, bool non_found_is_ok, bool scan_wb
 
 	    if (scan_wbfs)
 	    {
-		OpenPartWBFS(&wbfs,info);
+		OpenPartWBFS(&wbfs,info,false);
 		ResetWBFS(&wbfs);
 	    }
 
@@ -486,7 +485,9 @@ void ScanPartitionGames()
     InitializeWBFS(&wbfs);
     PartitionInfo_t * info;
     enumError stat;
-    for ( stat = GetFirstWBFS(&wbfs,&info); !stat; stat = GetNextWBFS(&wbfs,&info) )
+    for ( stat = GetFirstWBFS(&wbfs,&info,false);
+	  !stat;
+	  stat = GetNextWBFS(&wbfs,&info,false) )
     {
 	if ( !info->part_index || !info->wlist )
 	{
@@ -996,7 +997,7 @@ enumError OpenParWBFS
 
     if ( maybe_wbfs_file && id_list[0][0] && wbfs_count_discs(w->wbfs) == 1 )
     {
-	PRINT("A WBFS FILE\n");
+	noPRINT("A WBFS FILE\n");
     	w->is_wbfs_file = true;
     }
 
@@ -1086,18 +1087,26 @@ enumError CreateGrowingWBFS ( WBFS_t * w, SuperFile_t * sf, off_t size, int sect
 ///////////////////////////////////////////////////////////////////////////////
 
 static enumError OpenWBFSHelper
-	( WBFS_t * w, ccp filename, bool print_err, 
-	  wbfs_param_t * par, int sector_size, bool recover )
+(
+	WBFS_t		* w,
+	ccp		filename,
+	bool		open_modify,	// true: open read+write
+	bool		print_err, 
+	wbfs_param_t	*par,
+	int		sector_size,
+	bool		recover
+)
 {
     ASSERT(w);
-    TRACE("OpenFileWBFS(%s,%d,%d,%d)\n",
-		filename, print_err, sector_size, recover );
+    PRINT("OpenWBFSHelper(%s,rw=%d,pe=%d,ss=%d,recover=%d)\n",
+		filename, open_modify, print_err, sector_size, recover );
 
     if ( wbfs_cache_valid
 	&& IsOpenSF(wbfs_cache.sf)
+	&& ( !open_modify || IsWritableSF(wbfs_cache.sf) )
 	&& !strcmp(wbfs_cache.sf->f.fname,filename) )
     {
-	TRACE("WBFS: USE CACHE: %s\n",wbfs_cache.sf->f.fname);
+	PRINT("WBFS: USE CACHE: %s\n",wbfs_cache.sf->f.fname);
 	wbfs_cache_valid = false;
 	ResetWBFS(w);
 	memcpy(w,&wbfs_cache,sizeof(*w));
@@ -1108,7 +1117,9 @@ static enumError OpenWBFSHelper
     SuperFile_t * sf = MALLOC(sizeof(SuperFile_t));
     InitializeSF(sf);
     sf->f.disable_errors = !print_err;
-    enumError err = OpenFileModify(&sf->f,filename,IOM_IS_WBFS_PART);
+    enumError err = open_modify
+			? OpenFileModify(&sf->f,filename,IOM_IS_WBFS_PART)
+			: OpenFile(&sf->f,filename,IOM_IS_WBFS_PART);
     if (err)
 	goto abort;
     sf->f.disable_errors = false;
@@ -1132,9 +1143,16 @@ static enumError OpenWBFSHelper
 
 ///////////////////////////////////////////////////////////////////////////////
 
-enumError OpenWBFS ( WBFS_t * w, ccp filename, bool print_err, wbfs_param_t * par )
+enumError OpenWBFS
+(
+	WBFS_t		*w,		// valid data structure
+	ccp		filename,	// filename to open
+	bool		open_modify,	// true: open read+write
+	bool		print_err,	// true: pprint error messages
+	wbfs_param_t	*par		// NULL or parameter record
+)
 {
-    return OpenWBFSHelper(w,filename,print_err,par,0,false);
+    return OpenWBFSHelper(w,filename,open_modify,print_err,par,0,false);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -1145,7 +1163,7 @@ enumError FormatWBFS
 {
     if ( sector_size < HD_SECTOR_SIZE )
 	sector_size = HD_SECTOR_SIZE;
-    return OpenWBFSHelper(w,filename,print_err,par,sector_size,recover);
+    return OpenWBFSHelper(w,filename,true,print_err,par,sector_size,recover);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -1377,7 +1395,7 @@ enumError ReloadWBFS ( WBFS_t * wbfs )
 
 ///////////////////////////////////////////////////////////////////////////////
 
-enumError OpenPartWBFS ( WBFS_t * w, PartitionInfo_t * info )
+enumError OpenPartWBFS ( WBFS_t * w, PartitionInfo_t * info, bool open_modify )
 {
     ASSERT(info);
     if ( !info || info->part_mode < PM_WBFS_MAGIC_FOUND )
@@ -1386,8 +1404,8 @@ enumError OpenPartWBFS ( WBFS_t * w, PartitionInfo_t * info )
 	return ERR_NO_WBFS_FOUND;
     }
 
-    const enumError err
-	= OpenWBFSHelper(w,info->real_path,info->source==PS_PARAM,0,0,0);
+    const enumError err	= OpenWBFSHelper( w, info->real_path, open_modify,
+					info->source==PS_PARAM, 0, 0, 0 );
     if (err)
     {
 	info->part_mode = PM_WBFS_INVALID;
@@ -1401,7 +1419,8 @@ enumError OpenPartWBFS ( WBFS_t * w, PartitionInfo_t * info )
 
 ///////////////////////////////////////////////////////////////////////////////
 
-static enumError GetWBFSHelper ( WBFS_t * w, PartitionInfo_t ** p_info )
+static enumError GetWBFSHelper
+	( WBFS_t * w, PartitionInfo_t ** p_info, bool open_modify )
 {
     ResetWBFS(w);
 
@@ -1409,7 +1428,7 @@ static enumError GetWBFSHelper ( WBFS_t * w, PartitionInfo_t ** p_info )
     {
 	PartitionInfo_t * info;
 	for ( info = *p_info; info; info = info->next )
-	    if ( !info->ignore && OpenPartWBFS(w,info) == ERR_OK )
+	    if ( !info->ignore && OpenPartWBFS(w,info,open_modify) == ERR_OK )
 	    {
 		*p_info = info;
 		return ERR_OK;
@@ -1421,20 +1440,20 @@ static enumError GetWBFSHelper ( WBFS_t * w, PartitionInfo_t ** p_info )
 
 //-----------------------------------------------------------------------------
 
-enumError GetFirstWBFS ( WBFS_t * w, PartitionInfo_t ** info )
+enumError GetFirstWBFS ( WBFS_t * w, PartitionInfo_t ** info, bool open_modify )
 {
     if (info)
 	*info = first_partition_info;
-    return GetWBFSHelper(w,info);
+    return GetWBFSHelper(w,info,open_modify);
 }
 
 //-----------------------------------------------------------------------------
 
-enumError GetNextWBFS ( WBFS_t * w, PartitionInfo_t ** info )
+enumError GetNextWBFS ( WBFS_t * w, PartitionInfo_t ** info, bool open_modify )
 {
     if ( info && *info )
 	*info = (*info)->next;
-    return GetWBFSHelper(w,info);
+    return GetWBFSHelper(w,info,open_modify);
 }
 
 //-----------------------------------------------------------------------------
@@ -1599,9 +1618,9 @@ u32 FindWBFSPartitions()
 	enumError err = ERR_OK;
 	InitializeStringField(&wbfs_part_list);
 	PartitionInfo_t * info;
-	for ( err = GetFirstWBFS(&wbfs,&info);
+	for ( err = GetFirstWBFS(&wbfs,&info,false);
 	      !err && !SIGINT_level;
-	      err = GetNextWBFS(&wbfs,&info) )
+	      err = GetNextWBFS(&wbfs,&info,false) )
 	{
 	    noPRINT("ADD WBFS PARTITION: %s,%d\n",info->path,info->part_mode);
 	    AppendStringField(&wbfs_part_list,info->path,false);
@@ -4140,6 +4159,8 @@ enumError AddWDisc ( WBFS_t * w, SuperFile_t * sf, const wd_select_t * psel )
     par.iinfo.mtime		= hton64(sf->f.fatt.mtime);
     par.iso_size		= sf->file_size;
     par.wd_disc			= OpenDiscSF(sf,false,true);
+
+    PRINT("iso_size=%llu\n",par.iso_size);
 
     // try to copy mtime from WBFS source disc
     if ( sf->wbfs && sf->wbfs->disc )

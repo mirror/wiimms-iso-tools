@@ -3167,6 +3167,11 @@ u8 * wd_filter_usage_table
     for ( ptr = usage_table; ptr < end; ptr++ )
 	*ptr = transform[*ptr];
 
+    #if HAVE_PRINT0
+	//wd_print_usage_tab(stdout,2,usage_table,disc->iso_size,false);
+	//wd_print_usage_tab(stdout,2,usage_table,WII_MAX_DISC_SIZE,false);
+    #endif
+
     return usage_table;
 }
 

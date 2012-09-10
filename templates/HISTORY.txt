@@ -134,10 +134,41 @@ wit v2.07a r3955 - 2012-07-14
 
  - Bug fix: The automatic directory creation if using %-escapes in destination
    file names was gone and is now back again.
- - Bug fix: Extrating files of directories beginning with '.' fails sometimes.
+ - Bug fix: Extracting files of directories beginning with '.' fails sometimes.
  - Bug fix: "wit edit --id=... a.wbfs" may now change the WBFS id too.
  - Bug fix: wwt (but not wit) ignored the parameter of option --include-path.
  - Because of compiler warnings: Switched from utime() to utimes().
+
+
+wit v2.08a r4027 - 2012-08-31
+
+ - New command: wit IMGFILES: Print a list (1 file per line) with all image
+   files inlcuding their associated split files. If option --null (-0) is set,
+   the list is NULL terminated to support all possible file names.
+ - New command: wit REMOVE: Removes the image files including their associated
+   split files.
+ - New option --scan-progress: Print a log message is printed for each found
+   image while scanning the local file system.
+ - Bug fix: "wit COPY --source a --dest b" threw an error, because the tool
+   thought, that no source was defined.
+ - Bug fix for "wwt ADD --raw": wwt copied to large (double layer) images.
+
+
+wit v2.09a r4047 - 2012-09-08
+
+ - Option --scan-progress prints more info and flush every log output.
+ - Bug fix: "wit MOVE a.wbfs ..." will work now.
+ - New escapes for output files: The old '%f' is the source filename without
+   path (like 'name.ext'). Now we have also '%g' and '%h' as split of '%f':
+   '%g' is file name without extension ('name') and '%h' is the extension
+   ('.ext').
+ - Bug fix: "wit COPY --recurse a --dest b" threw an error, because the tool
+   thought, that no source was defined (same as with --source before).
+
+
+wit v2.09b r4053 - 2012-09-09
+
+ - Bug fix: Because of the --recurse bug fix of v2.08a, "wit COPY" failed.
 
 
 @@MODULE(last-history.txt)@@

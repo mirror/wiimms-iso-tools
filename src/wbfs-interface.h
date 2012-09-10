@@ -340,7 +340,16 @@ enumError SetupWBFS	( WBFS_t * w, SuperFile_t * sf, bool print_err,
 			  int sector_size, bool recover );
 enumError CreateGrowingWBFS
 			( WBFS_t * w, SuperFile_t * sf, off_t size, int sector_size );
-enumError OpenWBFS	( WBFS_t * w, ccp filename, bool print_err, wbfs_param_t * par );
+
+enumError OpenWBFS
+(
+	WBFS_t		*w,		// valid data structure
+	ccp		filename,	// filename to open
+	bool		open_modify,	// true: open read+write
+	bool		print_err,	// true: pprint error messages
+	wbfs_param_t	*par		// NULL or parameter record
+);
+
 enumError FormatWBFS	( WBFS_t * w, ccp filename, bool print_err,
 			  wbfs_param_t * par, int sector_size, bool recover );
 enumError RecoverWBFS	( WBFS_t * w, ccp fname, bool testmode );
@@ -350,9 +359,9 @@ enumError CalcWBFSUsage	( WBFS_t * w );
 enumError SyncWBFS	( WBFS_t * w, bool force_sync );
 enumError ReloadWBFS	( WBFS_t * w );
 
-enumError OpenPartWBFS	( WBFS_t * w, struct PartitionInfo_t *  info );
-enumError GetFirstWBFS	( WBFS_t * w, struct PartitionInfo_t ** info );
-enumError GetNextWBFS	( WBFS_t * w, struct PartitionInfo_t ** info );
+enumError OpenPartWBFS	( WBFS_t * w, struct PartitionInfo_t *  info, bool open_modify );
+enumError GetFirstWBFS	( WBFS_t * w, struct PartitionInfo_t ** info, bool open_modify );
+enumError GetNextWBFS	( WBFS_t * w, struct PartitionInfo_t ** info, bool open_modify );
 
 void LogOpenedWBFS
 (

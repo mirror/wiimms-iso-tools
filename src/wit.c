@@ -1074,6 +1074,15 @@ enumError exec_collect ( SuperFile_t * sf, Iterator_t * it )
     CopyFileAttrib(&item->fatt,&sf->f.fatt);
 
     ResetWDiscInfo(&wdi);
+
+    if ( print_sections && scan_progress > 0 && !it->scan_progress )
+    {
+	printf("[progress:found]\n");
+	PrintSectWDiscListItem(stdout,item,0);
+	putchar('\n');
+	fflush(stdout);
+    }
+
     return ERR_OK;
 }
 
@@ -1157,6 +1166,10 @@ static enumError cmd_list ( int long_level )
     it.wlist		= &wlist;
     it.progress_t_file	= "disc";
     it.progress_t_files	= "discs";
+    if (print_sections)
+	it.scan_progress = false;
+
+    it.scan_progress	= false;
 
     enumError err = SourceIterator(&it,1,true,false);
     ResetIterator(&it);
@@ -1475,7 +1488,7 @@ static enumError cmd_diff ( bool file_level )
 	    AppendStringField(&source_list,param->arg,true);
 	}
     if (!done_count)
-	SYNTAX_ERROR;
+	SYNTAX_ERROR; // no return
 
     Iterator_t it;
     InitializeIterator(&it);
@@ -1619,7 +1632,7 @@ static enumError cmd_extract()
 	    AppendStringField(&source_list,param->arg,true);
 	}
     if (!done_count)
-	SYNTAX_ERROR;
+	SYNTAX_ERROR; // no return
 
     encoding |= ENCODE_F_FAST; // hint: no encryption needed
 
@@ -1917,8 +1930,8 @@ static enumError cmd_copy()
     for ( param = first_param; param; param = param->next )
 	if (param->arg)
 	    AppendStringField(&source_list,param->arg,true);
-    if (!source_list.used)
-	SYNTAX_ERROR;
+    if ( !source_list.used && !recurse_list.used )
+	SYNTAX_ERROR; // no return
 
     Iterator_t it;
     InitializeIterator(&it);
@@ -2423,7 +2436,7 @@ static enumError cmd_move()
 	SetDest(param->arg,false);
 	param->arg = 0;
     }
-
+    
     ParamList_t * param;
     for ( param = first_param; param; param = param->next )
 	AppendStringField(&source_list,param->arg,true);
@@ -2433,8 +2446,8 @@ static enumError cmd_move()
     Iterator_t it;
     InitializeIterator(&it);
     it.act_non_iso	= OptionUsed[OPT_IGNORE] ? ACT_IGNORE : ACT_WARN;
-    it.act_wbfs		= it.act_non_iso;
     it.act_wbfs_disc	= it.act_non_iso;
+    it.act_wbfs		= ACT_ALLOW; //HaveEscapeChar(opt_dest) ? it.act_non_iso : ACT_ALLOW;
     it.act_gc		= ACT_ALLOW;
     it.overwrite	= OptionUsed[OPT_OVERWRITE] ? 1 : 0;
 
@@ -2518,7 +2531,8 @@ static enumError cmd_rename ( bool rename_id )
 	print_title(stdout);
 
     if ( !source_list.used && !recurse_list.used )
-	return ERROR0( ERR_MISSING_PARAM, "Missing source files.\n");
+	SYNTAX_ERROR; // no return
+	//return ERROR0( ERR_MISSING_PARAM, "Missing source files.\n");
 
     enumError err = CheckParamRename(rename_id,!rename_id,false);
     if (err)
@@ -2722,6 +2736,7 @@ enumError CheckOptions ( int argc, char ** argv, bool is_env )
 	case GO_QUIET:		verbose = verbose > -1 ? -1 : verbose - 1; break;
 	case GO_VERBOSE:	verbose = verbose <  0 ?  0 : verbose + 1; break;
 	case GO_PROGRESS:	progress++; break;
+	case GO_SCAN_PROGRESS:	scan_progress++; break;
 	case GO_LOGGING:	logging++; break;
 	case GO_ESC:		err += ScanEscapeChar(optarg) < 0; break;
 	case GO_IO:		ScanIOMode(optarg); break;

@@ -43,7 +43,7 @@ WDF_LONG		= Wiimms WDF Tool
 WFUSE_SHORT		= wfuse
 WFUSE_LONG		= Wiimms FUSE Tool
 
-VERSION_NUM		= 2.08a
+VERSION_NUM		= 2.10a
 BETA_VERSION		= 1
 			# 0:off  -1:"beta"  >0:"beta#"
 
@@ -63,8 +63,9 @@ URI_WDF			= http://wit.wiimm.de/r/wdf
 URI_CISO		= http://wit.wiimm.de/r/ciso
 URI_QTWITGUI		= http://wit.wiimm.de/r/qtwitgui
 URI_WIIBAFU		= http://wit.wiimm.de/r/wiibafu
-URI_WCDWM		= http://wit.wiimm.de/r/wcdwm
-URI_WIIJMANAGER		= http://wit.wiimm.de/r/wiijman
+#URI_WCDWM		= http://wit.wiimm.de/r/wcdwm
+#URI_WIIJMANAGER	= http://wit.wiimm.de/r/wiijman
+URI_MACWITGUI		= http://wit.wiimm.de/r/mac-witgui
 URI_GBATEMP		= http://gbatemp.net/index.php?showtopic=182236\#entry2286365
 URI_DOWNLOAD_I386	= $(URI_DOWNLOAD)/$(DISTRIB_I386)
 URI_DOWNLOAD_X86_64	= $(URI_DOWNLOAD)/$(DISTRIB_X86_64)
@@ -729,8 +730,7 @@ templates.sed: Makefile
 		's|@@URI-CISO@@|$(URI_CISO)|g;\n' \
 		's|@@URI-QTWITGUI@@|$(URI_QTWITGUI)|g;\n' \
 		's|@@URI-WIIBAFU@@|$(URI_WIIBAFU)|g;\n' \
-		's|@@URI-WCDWM@@|$(URI_WCDWM)|g;\n' \
-		's|@@URI-WIIJMANAGER@@|$(URI_WIIJMANAGER)|g;\n' \
+		's|@@URI-MACWITGUI@@|$(URI_MACWITGUI)|g;\n' \
 		's|@@URI-GBATEMP@@|$(URI_GBATEMP)|g;\n' \
 		's|@@URI-DOWNLOAD-I386@@|$(URI_DOWNLOAD_I386)|g;\n' \
 		's|@@URI-DOWNLOAD-X86_64@@|$(URI_DOWNLOAD_X86_64)|g;\n' \

@@ -378,7 +378,7 @@ static int test_wbfs_free_blocks ( int argc, char ** argv )
     {
 	WBFS_t w;
 	InitializeWBFS(&w);
-	if (!OpenWBFS(&w,argv[i],true,0))
+	if (!OpenWBFS(&w,argv[i],false,true,0))
 	{
 	    printf("\n*** %s ***\n",argv[i]);
 	    int i;
@@ -433,7 +433,7 @@ static int test_open_wdisk ( int argc, char ** argv )
     {
 	WBFS_t wbfs;
 	InitializeWBFS(&wbfs);
-	enumError err = OpenWBFS(&wbfs,argv[i],true,0);
+	enumError err = OpenWBFS(&wbfs,argv[i],false,true,0);
 	dump_wbfs(&wbfs,err,"Open WBFS");
 
 	err = OpenWDiscSlot(&wbfs,0,false);

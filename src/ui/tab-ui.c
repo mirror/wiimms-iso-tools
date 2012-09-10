@@ -508,7 +508,13 @@ info_t info_tab[] =
 		" The impact of the other verbose levels are command dependent." },
 
   { T_OPT_G,	"PROGRESS",	"P|progress",
-		0, "Print progress counter independent of verbose level." },
+		0,
+		"Print progress counter independent of verbose level." },
+
+  { T_OPT_G,	"SCAN_PROGRESS","scan-progress|scanprogress",
+		0,
+		"Print a message for each found image"
+		" while scanning the file system." },
 
   { T_OPT_GM,	"LOGGING",	"L|logging",
 		0,
@@ -1686,6 +1692,7 @@ info_t info_tab[] =
   { T_COPT,	"REALPATH",	0,0,0 },
   { T_COPT_M,	"UNIT",		0,0,0 },
   { T_COPT,	"PROGRESS",	0,0,0 },
+  { T_COPT,	"SCAN_PROGRESS",0,0,0 },
 
   { T_SEP_OPT,	0,0,0,0 },
 
@@ -1764,6 +1771,7 @@ info_t info_tab[] =
   { T_COPT,	"QUIET",	0,0, TEXT_DIFF_QUIET },
   { T_COPT_M,	"VERBOSE",	0,0, TEXT_DIFF_VERBOSE },
   { T_COPT,	"PROGRESS",	0,0,0 },
+  { T_COPT,	"SCAN_PROGRESS",0,0,0 },
   { T_COPT_M,	"FILE_LIMIT",	0,0,0 },
   { T_COPT_M,	"LIMIT",	0,0, TEXT_DIFF_LIMIT },
   { T_COPT_M,	"LONG",		0,0, TEXT_DIFF_LONG },
@@ -1809,6 +1817,7 @@ info_t info_tab[] =
   { T_COPT_M,	"LONG",		0,0, TEXT_EXTRACT_LONG },
   { T_COPT_M,	"LOGGING",	0,0,0 },
   { T_COPT,	"PROGRESS",	0,0,0 },
+  { T_COPT,	"SCAN_PROGRESS",0,0,0 },
   { T_COPT,	"SECTIONS",	0,0,0 },
 
   { T_SEP_OPT,	0,0,0,0 },
@@ -1859,6 +1868,7 @@ info_t info_tab[] =
   { T_COPT_M,	"VERBOSE",	0,0,0 },
   { T_COPT_M,	"LOGGING",	0,0,0 },
   { T_COPT,	"PROGRESS",	0,0,0 },
+  { T_COPT,	"SCAN_PROGRESS",0,0,0 },
   { T_COPT,	"SECTIONS",	0,0,0 },
 
   { T_SEP_OPT,	0,0,0,0 },
@@ -1998,6 +2008,7 @@ info_t info_tab[] =
 	" then wit will print nothing and only the exit status is set." },
   { T_COPT_M,	"VERBOSE",	0,0,0 },
   { T_COPT,	"PROGRESS",	0,0,0 },
+  { T_COPT,	"SCAN_PROGRESS",0,0,0 },
   { T_COPT,	"LIMIT",	0,0,
 	"Maximal printed errors of each partition."
 	" A zero means unlimited. The default is 10." },
@@ -2321,6 +2332,9 @@ info_t info_tab[] =
 		0, 0 /* copy of wit */ },
 
   { T_OPT_G,	"PROGRESS",	"P|progress",
+		0, 0 /* copy of wit */ },
+
+  { T_OPT_G,	"SCAN_PROGRESS","scan-progress|scanprogress",
 		0, 0 /* copy of wit */ },
 
   { T_OPT_G,	"LOGGING",	"L|logging",
@@ -2814,6 +2828,7 @@ info_t info_tab[] =
 	" If set twice enable progress information."
 	" If set three times the progress information is more detailed." },
   { T_COPT,	"PROGRESS",	0,0,0 },
+  { T_COPT,	"SCAN_PROGRESS",0,0,0 },
 
   //---------- wwt GROUP XTIME ----------
 

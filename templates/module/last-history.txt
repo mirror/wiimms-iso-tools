@@ -1,12 +1,7 @@
 wit v@@VERSION@@ r@@REV-NEXT@@ - @@@@-@@-@@
 
- - New command: wit IMGFILES: Print a list (1 file per line) with all image
-   files inlcuding their associated split files. If option --null (-0) is set,
-   the list is NULL terminated to support all possible file names.
- - New command: wit REMOVE: Removes the image files including their associated
-   split files.
- - Bug fix: "wit COPY --source a --dest b" threw an error, because the tool
-   thought, that no source was defined.
+ - Write privileges are not longer needed, if a WBFS file or partiton is only
+   read.
 
 ~
 ~Known bugs:

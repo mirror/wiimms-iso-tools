@@ -81,6 +81,7 @@ volatile int	SIGINT_level		= 0;
 volatile int	verbose			= 0;
 volatile int	logging			= 0;
 int		progress		= 0;
+int		scan_progress		= 0;
 SortMode	sort_mode		= SORT_DEFAULT;
 ShowMode	opt_show_mode		= SHOW__DEFAULT;
 wd_size_mode_t	opt_unit		= WD_SIZE_DEFAULT;
@@ -4379,6 +4380,20 @@ int ScanEscapeChar ( ccp arg )
 
     escape_char = arg ? *arg : 0;
     return (unsigned char)escape_char;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+bool HaveEscapeChar ( ccp string )
+{
+    if (string)
+	while(*string)
+	{
+	    const char ch = *string++;
+	    if ( ch == escape_char || ch == '\1' )
+		return true;
+	}
+    return false;
 }
 
 //
