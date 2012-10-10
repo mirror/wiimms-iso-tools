@@ -933,6 +933,13 @@ enumError wdf_dump ( FILE *f, ccp fname )
     }
     
     ConvertToHostWH(&wh,&wh);
+    if ( wh.wdf_version == 1 )
+    {
+	wh.wdf_compatible	= 1;
+	wh.wdf_head_size	= WDF_VERSION1_SIZE;
+	wh.align_factor		= 0;
+	wh.chunk_size_factor	= 0;
+    }
     AnalyzeWH(&df,&wh,false); // needed for splitting support!
 
     fprintf(f,"\n  Header:\n\n");
@@ -956,27 +963,16 @@ enumError wdf_dump ( FILE *f, ccp fname )
     #define PRINT32(a) fprintf(f,"    %-18s: %10x/hex =%11d\n",#a,wh.a,wh.a)
     #define PRINT64(a) fprintf(f,"    %-18s: %10llx/hex =%11lld\n",#a,wh.a,wh.a)
 
- #if WDF2_ENABLED
     PRINT32(wdf_version);
     PRINT32(wdf_compatible);
     PRINT32(wdf_head_size);
     PRINT32(align_factor);
- #else
-    fprintf(f,"    %-18s: %10x/hex =%11d%s\n",
-		"wdf_version", wh.wdf_version, wh.wdf_version,
-		 head_size == WDF_VERSION1_SIZE ? "" : "+" );
-    fprintf(f,"    %-18s: %10x/hex =%11d\n"," - header size",head_size,head_size);
- #endif
-
-    PRINT32(split_file_id);
-    PRINT32(split_file_index);
-    PRINT32(split_file_num_of);
     PRINT64(file_size);
     fprintf(f,"    %-18s: %10llx/hex =%11lld  %4.2f%%\n",
 		" - WDF file size ",
 		(u64)df.st.st_size, (u64)df.st.st_size,  100.0 * df.st.st_size / wh.file_size );
     PRINT64(data_size);
-    PRINT32(chunk_split_file);
+    PRINT32(chunk_size_factor);
     PRINT32(chunk_n);
     PRINT64(chunk_off);
 
@@ -1116,6 +1112,12 @@ enumError CheckOptions ( int argc, char ** argv )
 	case GO_CISO:		file_mode = FMODE_CISO; break;
 	case GO_WBI:		file_mode = FMODE_WBI; break;
 	case GO_SUFFIX:		opt_suffix = optarg; break;
+
+    #if WDF2_ENABLED > 1
+	case GO_WDF1:		file_mode = FMODE_WDF; SetWDF2Mode(1,0); break;
+	case GO_WDF2:		file_mode = FMODE_WDF; SetWDF2Mode(2,optarg); break;
+	case GO_WDF_ALIGN:	err += ScanOptWDFAlign(optarg); break;
+    #endif
 
 	case GO_DEST:		SetDest(optarg,false); break;
 	case GO_DEST2:		SetDest(optarg,true); break;

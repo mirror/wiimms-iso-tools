@@ -446,6 +446,32 @@ off_t DataBlockCISO
     return off;
 }
 
+///////////////////////////////////////////////////////////////////////////////
+
+void FileMapCISO ( SuperFile_t * sf, FileMap_t *fm )
+{
+    DASSERT(sf);
+    DASSERT(fm);
+    DASSERT(!fm->used);
+
+    CISO_Info_t *ci = &sf->ciso;
+    DASSERT(ci->map);
+    DASSERT(ci->block_size);
+
+    const u64 ciso_block_size = ci->block_size;
+    u64 ciso_off = CISO_HEAD_SIZE;
+
+    uint block;
+    for ( block = 0; block < ci->map_size; block++ )
+    {
+	if ( ci->map[block] != CISO_UNUSED_BLOCK )
+	{
+	    AppendFileMap(fm,block*ciso_block_size,ciso_off,ciso_block_size);
+	    ciso_off += ciso_block_size;
+	}
+    }
+}
+
 //
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////			    write CISO			///////////////

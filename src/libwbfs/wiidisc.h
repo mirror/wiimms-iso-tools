@@ -108,9 +108,9 @@ typedef enum wd_select_mode_t // modes of selection
 
     WD_SM_F_DENY = 0x100,	// this bit is set for DENY modes
     WD_SM_M_MODE = 0x0ff,	// mask for base modes
-    
+
     //--- deny modes
-    
+
     WD_SM_DENY_PTYPE		= WD_SM_F_DENY | WD_SM_ALLOW_PTYPE,
     WD_SM_DENY_PTAB		= WD_SM_F_DENY | WD_SM_ALLOW_PTAB,
     WD_SM_DENY_INDEX		= WD_SM_F_DENY | WD_SM_ALLOW_INDEX,
@@ -120,7 +120,7 @@ typedef enum wd_select_mode_t // modes of selection
     WD_SM_DENY_ID		= WD_SM_F_DENY | WD_SM_ALLOW_ID,
     WD_SM_DENY_GC_BOOT		= WD_SM_F_DENY | WD_SM_ALLOW_GC_BOOT,
     WD_SM_DENY_ALL		= WD_SM_F_DENY | WD_SM_ALLOW_ALL,
-    
+
 } wd_select_mode_t;
 
 //
@@ -291,7 +291,7 @@ typedef enum wd_usage_t // usage table values
     WD_USAGE_UNUSED,		// block is not used, always = 0
     WD_USAGE_DISC,		// block is used for disc managment
     WD_USAGE_PART_0,		// index for first partition
-    
+
     WD_USAGE__MASK	= 0x7f,	// mask for codes above
     WD_USAGE_F_CRYPT	= 0x80,	// flag: encryption candidate
 
@@ -381,7 +381,7 @@ typedef enum wd_modify_t // objects to modify
     WD_MODIFY_BOOT	= 0x002,  // modify boot.bin
     WD_MODIFY_TICKET	= 0x004,  // modify ticket.bin
     WD_MODIFY_TMD	= 0x008,  // modify tmd.bin
-    
+
     //--- for external extensions
 
     WD_MODIFY_WBFS	= 0x010,  // modify WBFS inode [obsolete?]
@@ -460,7 +460,7 @@ typedef struct wd_select_item_t // a select sub item
     wd_select_mode_t	mode;		// select mode
     u32			table;		// partition table
     u32			part;		// partition type or index
-    
+
 } wd_select_item_t;
 
 //
@@ -476,7 +476,7 @@ typedef struct wd_select_t // a selector
     u32			used;		// number of used elements in list
     u32			size;		// number of alloced elements in list
     wd_select_item_t	* list;		// list of select items
-    
+
 } wd_select_t;
 
 //
@@ -587,7 +587,7 @@ typedef struct wd_part_t
 
 
     //----- partition data, only valid if 'is_valid' is true
-    
+
     wd_part_header_t	ph		// partition header (incl. ticket), host endian
 	    __attribute__ ((aligned(4)));
     wd_tmd_t		* tmd;		// NULL or pointer to tmd, size = ph.tmd_size
@@ -719,7 +719,7 @@ typedef struct wd_disc_t
     wd_part_t	* group_cache_part;	// parttion of 'group_cache'
     u32		  group_cache_sector;	// sector number of 'group_cache'
     u8		* group_cache;		// cache for sector groups
-    
+
 
 } wd_disc_t;
 
@@ -737,14 +737,14 @@ typedef struct wd_iterator_t
     wd_part_t		* part;		// valid disc partition pointer
 
     //----- settings
-    
+
     bool		select_mode;	// true: run in select mode
 					//   func() return 0: don't select
 					//   func() return 1: select and mark
 					//   func() return other: abort
 
     //----- file specific parameters
-    
+
     wd_icm_t		icm;		// iterator call mode
     u32			off4;		// offset/4 to read (GC: offset/1)
     u32			size;		// size of object
@@ -906,7 +906,7 @@ char * wd_print_part_name
 
 //-----------------------------------------------------------------------------
 // returns a pointer to a printable ID, teminated with 0
-	
+
 char * wd_print_id
 (
     const void		* id,		// ID to convert in printable format
@@ -1485,7 +1485,7 @@ int wd_remove_disc_files
     // Call wd_remove_part_files() for each enabled partition.
     // Returns 0 if nothing is removed, 1 if at least one file is removed
     // Other values are abort codes from func()
-    
+
     wd_disc_t		* disc,		// valid pointer to a disc
     wd_file_func_t	func,		// call back function
 					//   return 0 for don't touch file
@@ -1506,7 +1506,7 @@ int wd_remove_part_files
     // is removed the new FST.BIN is added to the patching map.
     // Returns 0 if nothing is removed, 1 if at least one file is removed
     // Other values are abort codes from func()
-    
+
     wd_part_t		* part,		// valid pointer to a partition
     wd_file_func_t	func,		// call back function
 					//   return 0 for don't touch file
@@ -1545,7 +1545,7 @@ int wd_zero_part_files
     // If at least 1 file is zeroed the new FST.BIN is added to the patching map.
     // Returns 0 if nothing is removed, 1 if at least one file is removed
     // Other values are abort codes from func()
- 
+
     wd_part_t		* part,		// valid pointer to a partition
     wd_file_func_t	func,		// call back function
 					//   return 0 for don't touch file

@@ -327,12 +327,21 @@ int test_copy_to_wbfs ( int argc, char ** argv )
 
 int test_print_size ( int argc, char ** argv )
 {
- #if 0
-    u64 i;
-    for ( i = 1; i; i <<= 10 )
-    {
-	printf("%21llu |%s|%s|\n", i,
+ #if 1
+
+    u64 i = 0;
+    printf("%21llu |%s|%s|  |%s|\t|%s|\n", i,
+		wd_print_size_1000(0,0,i,true),
 		wd_print_size_1024(0,0,i,true),
+		wd_print_size_1000(0,0,i,false),
+		wd_print_size_1024(0,0,i,false) );
+
+    for ( i = 1; i; i <<= 5 )
+    {
+	printf("%21llu |%s|%s|  |%s|\t|%s|\n", i,
+		wd_print_size_1000(0,0,i,true),
+		wd_print_size_1024(0,0,i,true),
+		wd_print_size_1000(0,0,i,false),
 		wd_print_size_1024(0,0,i,false) );
     }
 
@@ -340,15 +349,20 @@ int test_print_size ( int argc, char ** argv )
     for ( i = 1; i > prev; i *= 10 )
     {
 	prev = i;
-	printf("%21llu |%s|%s|\n", i,
+	printf("%21llu |%s|%s|  |%s|\t|%s|\n", i,
+		wd_print_size_1000(0,0,i,true),
 		wd_print_size_1024(0,0,i,true),
+		wd_print_size_1000(0,0,i,false),
 		wd_print_size_1024(0,0,i,false) );
     }
 
     i = ~(u64)0;
-    printf("%21llu |%s|%s|\n", i,
+    printf("%21llu |%s|%s|  |%s|\t|%s|\n", i,
+		wd_print_size_1000(0,0,i,true),
 		wd_print_size_1024(0,0,i,true),
+		wd_print_size_1000(0,0,i,false),
 		wd_print_size_1024(0,0,i,false) );
+
  #else
  
     u64 size = 1000000000;
@@ -466,9 +480,9 @@ int test ( int argc, char ** argv )
     //test_create_sparse_file();
     //test_splitted_file();
     //test_copy_to_wbfs(argc,argv);
-    //test_print_size(argc,argv);
+    test_print_size(argc,argv);
     //test_wbfs_free_blocks(argc,argv);
-    test_open_wdisk(argc,argv);
+    //test_open_wdisk(argc,argv);
    
     return 0;
 }
@@ -1132,6 +1146,13 @@ int main ( int argc, char ** argv )
     SetupLib(argc,argv,NAME,PROG_UNKNOWN);
 
     printf("term width = %d\n",GetTermWidth(80,0));
+
+ #ifdef HAVE_FIEMAP
+    printf("* HAVE_FIEMAP defined!\n");
+ #endif
+ #ifdef FS_IOC_FIEMAP
+    printf("* FS_IOC_FIEMAP defined!\n");
+ #endif
 
  #if defined(TEST) && defined(DEBUG)
     if (0)

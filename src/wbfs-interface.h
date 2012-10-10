@@ -359,9 +359,9 @@ enumError CalcWBFSUsage	( WBFS_t * w );
 enumError SyncWBFS	( WBFS_t * w, bool force_sync );
 enumError ReloadWBFS	( WBFS_t * w );
 
-enumError OpenPartWBFS	( WBFS_t * w, struct PartitionInfo_t *  info );
-enumError GetFirstWBFS	( WBFS_t * w, struct PartitionInfo_t ** info );
-enumError GetNextWBFS	( WBFS_t * w, struct PartitionInfo_t ** info );
+enumError OpenPartWBFS	( WBFS_t * w, struct PartitionInfo_t *  info, bool open_modify );
+enumError GetFirstWBFS	( WBFS_t * w, struct PartitionInfo_t ** info, bool open_modify );
+enumError GetNextWBFS	( WBFS_t * w, struct PartitionInfo_t ** info, bool open_modify );
 
 void LogOpenedWBFS
 (

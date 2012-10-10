@@ -1,7 +1,18 @@
 wit v@@VERSION@@ r@@REV-NEXT@@ - @@@@-@@-@@
 
- - Bug fix: Because of the --recurse bug fix of v2.08a, "wit COPY" failed.
-
+ - Write privileges are not longer needed, if a WBFS file or partiton is only
+   read.
+ - New command: wit ANAID (ANAlyze ID): Analyze the entered IDs and print one
+   line for each ID with 3 columns: HEX_ID, ASCII_ID, Game title.
+ - Little (compatible) changes for WDF v1.
+ - New command: wit FRAGMENTS: Print the image fragments and, if possible,
+   their filesystem mapping. Add option --brief (-b) to print only a summary
+   with the fragment counts. Add option --long (-l) to print additonally
+   alignment infos.
+   *NOTE: Filesystem mapping is only supported on real linux systems (yet),
+          but neither for Mac nor for Cygwin.
+ - The image builder search now the file 'exclude.fst' to exclude files from
+   the composing. See http://wit.wiimm.de/info/composing.html#part for details.
 
 ~
 ~Known bugs:

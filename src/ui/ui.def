@@ -42,6 +42,11 @@
 	" table with all available compression modes and alternative mode" \
 	" names." )
 
+#:def_cmd( "ANAID", "ANAID", \
+	"wit ANAID [id]...", \
+	"Analyze the entered IDs and print one line for each ID with 3" \
+	" columns: HEX_ID, ASCII_ID, Game title." )
+
 #:def_cmd( "EXCLUDE", "EXCLUDE", \
 	"wit EXCLUDE [additional_excludes]...", \
 	"Dump the internal exclude database to standard output (stdout)." )
@@ -89,6 +94,12 @@
 #:def_cmd( "ID6", "ID6|ID", \
 	"wit ID6 [source]...", \
 	"Print ID6 of all found ISO files as simple list." )
+
+#:def_cmd( "FRAGMENTS", "FRAGMENTS", \
+	"wit FRAGMENTS [source]...", \
+	"Print the image fragments and, if possible, their file system" \
+	" mapping. The Mac and Cygwin versions can only detect the file system" \
+	" mapping for WBFS partitions." )
 
 #:def_cmd( "LIST", "LIST|LS", \
 	"wit LIST [source]...", \
@@ -830,6 +841,10 @@
 	"", \
 	"Print in long format. Multiple usage possible." )
 
+#:def_opt( "BRIEF", "b|brief", "C", \
+	"", \
+	"Print only a summary." )
+
 #:def_opt( "NUMERIC", "numeric", "C", \
 	"", \
 	"Force numeric output instead of printing names." )
@@ -971,6 +986,10 @@
 	" suppress these values if not explicitly set." )
 
 #:def_cmd_opt( "COMPR", "NUMERIC", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "ANAID", "NO_HEADER", \
 	"", \
 	"" )
 
@@ -1569,6 +1588,84 @@
 #:def_cmd_opt( "ID6", "WBFS_ID", \
 	"", \
 	"" )
+
+#:def_cmd_opt( "FRAGMENTS", "AUTO", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "FRAGMENTS", "SOURCE", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "FRAGMENTS", "NO_EXPAND", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "FRAGMENTS", "RECURSE", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "FRAGMENTS", "RDEPTH", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "FRAGMENTS", "EXCLUDE", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "FRAGMENTS", "EXCLUDE_PATH", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "FRAGMENTS", "INCLUDE", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "FRAGMENTS", "INCLUDE_PATH", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "FRAGMENTS", "INCLUDE_FIRST", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "FRAGMENTS", "ONE_JOB", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "FRAGMENTS", "JOB_LIMIT", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "FRAGMENTS", "IGNORE_FST", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "FRAGMENTS", "IGNORE_SETUP", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "FRAGMENTS", "LINKS", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "FRAGMENTS", "LOGGING", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "FRAGMENTS", "VERBOSE", \
+	"", \
+	"Print up to 3 tables: @virtual->file@, @file->filesystem@ and" \
+	" @virtual->filesystem@." )
+
+#:def_cmd_opt( "FRAGMENTS", "LONG", \
+	"", \
+	"Print aligning infos too. If set twice and --brief is not set, print" \
+	" them as hex values." )
+
+#:def_cmd_opt( "FRAGMENTS", "BRIEF", \
+	"", \
+	"Ignore --verbose and print only a summary with the fragment counts." )
 
 #:def_cmd_opt( "LIST", "TITLES", \
 	"", \

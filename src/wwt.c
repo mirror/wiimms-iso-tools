@@ -423,9 +423,9 @@ enumError cmd_space()
     WBFS_t wbfs;
     InitializeWBFS(&wbfs);
     PartitionInfo_t * info;
-    for ( err = GetFirstWBFS(&wbfs,&info);
+    for ( err = GetFirstWBFS(&wbfs,&info,false);
 	  !err && !SIGINT_level;
-	  err = GetNextWBFS(&wbfs,&info) )
+	  err = GetNextWBFS(&wbfs,&info,false) )
     {
 	printf("%7d %7d %3d%% %7d %4d/%-4d  %s\n",
 		wbfs.total_mib,
@@ -512,9 +512,9 @@ enumError cmd_dump()
     WBFS_t wbfs;
     InitializeWBFS(&wbfs);
     PartitionInfo_t * info;
-    for ( err = GetFirstWBFS(&wbfs,&info);
+    for ( err = GetFirstWBFS(&wbfs,&info,false);
 	  !err && !SIGINT_level;
-	  err = GetNextWBFS(&wbfs,&info) )
+	  err = GetNextWBFS(&wbfs,&info,false) )
     {
 	printf("\nDUMP of %s\n\n",info->path);
 	DumpWBFS(&wbfs,stdout,2,opt_show_mode,long_count,invalid,0);
@@ -550,9 +550,9 @@ enumError cmd_id6()
 	WBFS_t wbfs;
 	InitializeWBFS(&wbfs);
 	PartitionInfo_t * info;
-	for ( err = GetFirstWBFS(&wbfs,&info);
+	for ( err = GetFirstWBFS(&wbfs,&info,false);
 	      !err && !SIGINT_level;
-	      err = GetNextWBFS(&wbfs,&info) )
+	      err = GetNextWBFS(&wbfs,&info,false) )
 	{
 	    AppendListID6(&id6_list,&select_list,&wbfs);
 	}
@@ -852,9 +852,9 @@ enumError cmd_list ( int long_level )
     int wbfs_index = 0;
     InitializeWBFS(&wbfs);
     PartitionInfo_t * info;
-    for ( err = GetFirstWBFS(&wbfs,&info);
+    for ( err = GetFirstWBFS(&wbfs,&info,false);
 	  !err && !SIGINT_level;
-	  err = GetNextWBFS(&wbfs,&info) )
+	  err = GetNextWBFS(&wbfs,&info,false) )
     {
 	WDiscList_t * wlist = GenerateWDiscList(&wbfs,0);
 	if (wlist)
@@ -1259,9 +1259,9 @@ enumError cmd_recover()
     PartitionInfo_t * info;
     int err_count = 0;
 
-    for ( err = GetFirstWBFS(&wbfs,&info);
+    for ( err = GetFirstWBFS(&wbfs,&info,true);
 	  !err && !SIGINT_level;
-	  err = GetNextWBFS(&wbfs,&info) )
+	  err = GetNextWBFS(&wbfs,&info,true) )
     {
 	printf("%sRECOVER %s\n\n",testmode ? "WOULD " : "", info->path);
 	RecoverWBFS(&wbfs,info->path,testmode);
@@ -1309,9 +1309,9 @@ enumError cmd_check()
     InitializeWBFS(&wbfs);
     PartitionInfo_t * info;
     int err_count = 0;
-    for ( err = GetFirstWBFS(&wbfs,&info);
+    for ( err = GetFirstWBFS(&wbfs,&info,repair_mode);
 	  !err && !SIGINT_level;
-	  err = GetNextWBFS(&wbfs,&info) )
+	  err = GetNextWBFS(&wbfs,&info,repair_mode) )
     {
 	if ( verbose >= 0 )
 	    printf("%sCHECK %s\n", verbose>0 ? "\n" : "", info->path );
@@ -1398,7 +1398,7 @@ enumError cmd_edit()
     WBFS_t wbfs;
     InitializeWBFS(&wbfs);
     PartitionInfo_t * info;
-    err = GetFirstWBFS(&wbfs,&info);
+    err = GetFirstWBFS(&wbfs,&info,true);
     if (err)
 	return err;
     wbfs_t * w = wbfs.wbfs;
@@ -1632,9 +1632,9 @@ enumError cmd_phantom()
     WBFS_t wbfs;
     InitializeWBFS(&wbfs);
     PartitionInfo_t * info;
-    for ( err = GetFirstWBFS(&wbfs,&info);
+    for ( err = GetFirstWBFS(&wbfs,&info,true);
 	  !err && !SIGINT_level;
-	  err = GetNextWBFS(&wbfs,&info) )
+	  err = GetNextWBFS(&wbfs,&info,true) )
     {
 	wbfs_t * w = wbfs.wbfs;
 	ASSERT(w);
@@ -1815,9 +1815,9 @@ enumError cmd_truncate()
     WBFS_t wbfs;
     InitializeWBFS(&wbfs);
     PartitionInfo_t * info;
-    for ( err = GetFirstWBFS(&wbfs,&info);
+    for ( err = GetFirstWBFS(&wbfs,&info,true);
 	  !err && !SIGINT_level;
-	  err = GetNextWBFS(&wbfs,&info) )
+	  err = GetNextWBFS(&wbfs,&info,true) )
     {
 	wbfs_count++;
 
@@ -2201,9 +2201,9 @@ enumError cmd_add()
     const uint n_wbfs = CountWBFS();
     if ( n_wbfs > 1 )
     {
-	for ( err = GetFirstWBFS(&wbfs,&info);
+	for ( err = GetFirstWBFS(&wbfs,&info,true);
 		!err && !SIGINT_level;
-		err = GetNextWBFS(&wbfs,&info) )
+		err = GetNextWBFS(&wbfs,&info,true) )
 	{
 	    if ( !info->is_checked && check_it )
 	    {
@@ -2221,9 +2221,9 @@ enumError cmd_add()
 	}
     }
 
-    for ( err = GetFirstWBFS(&wbfs,&info);
+    for ( err = GetFirstWBFS(&wbfs,&info,true);
 	  !err && !SIGINT_level;
-	  err = GetNextWBFS(&wbfs,&info) )
+	  err = GetNextWBFS(&wbfs,&info,true) )
     {
 	wbfs_count++;
 	if ( verbose >= 0 )
@@ -2439,9 +2439,9 @@ enumError cmd_dup()
     WBFS_t wbfs;
     InitializeWBFS(&wbfs);
     PartitionInfo_t * info;
-    for ( err = GetFirstWBFS(&wbfs,&info);
+    for ( err = GetFirstWBFS(&wbfs,&info,false);
 	  !err && !SIGINT_level && wbfs_count < job_limit;
-	  err = GetNextWBFS(&wbfs,&info) )
+	  err = GetNextWBFS(&wbfs,&info,false) )
     {
 	wbfs_count++;
 
@@ -2647,9 +2647,9 @@ enumError cmd_extract()
     WBFS_t wbfs;
     InitializeWBFS(&wbfs);
     PartitionInfo_t * info;
-    for ( err = GetFirstWBFS(&wbfs,&info);
+    for ( err = GetFirstWBFS(&wbfs,&info,false);
 	  !err && !SIGINT_level && extract_count < job_limit;
-	  err = GetNextWBFS(&wbfs,&info) )
+	  err = GetNextWBFS(&wbfs,&info,false) )
     {
 	wbfs_count++;
 
@@ -2903,9 +2903,9 @@ enumError cmd_remove()
     WBFS_t wbfs;
     InitializeWBFS(&wbfs);
     PartitionInfo_t * info;
-    for ( err = GetFirstWBFS(&wbfs,&info);
+    for ( err = GetFirstWBFS(&wbfs,&info,true);
 	  !err && !SIGINT_level;
-	  err = GetNextWBFS(&wbfs,&info) )
+	  err = GetNextWBFS(&wbfs,&info,true) )
     {
 	wbfs_count++;
 	if (verbose>=0)
@@ -3050,9 +3050,9 @@ enumError cmd_rename ( bool rename_id )
     WBFS_t wbfs;
     InitializeWBFS(&wbfs);
     PartitionInfo_t * info;
-    for ( err = GetFirstWBFS(&wbfs,&info);
+    for ( err = GetFirstWBFS(&wbfs,&info,true);
 	  !err && !SIGINT_level;
-	  err = GetNextWBFS(&wbfs,&info) )
+	  err = GetNextWBFS(&wbfs,&info,true) )
     {
 	wbfs_count++;
 	if (verbose>=0)
@@ -3219,9 +3219,9 @@ enumError cmd_touch()
     WBFS_t wbfs;
     InitializeWBFS(&wbfs);
     PartitionInfo_t * info;
-    for ( err = GetFirstWBFS(&wbfs,&info);
+    for ( err = GetFirstWBFS(&wbfs,&info,true);
 	  !err && !SIGINT_level;
-	  err = GetNextWBFS(&wbfs,&info) )
+	  err = GetNextWBFS(&wbfs,&info,true) )
     {
 	wbfs_count++;
 	if (verbose>=0)
@@ -3320,6 +3320,7 @@ enumError cmd_verify()
 
     //----- count discs
 
+    const bool remove		= OptionUsed[OPT_REMOVE]  != 0;
     const bool check_it		= 0 == OptionUsed[OPT_NO_CHECK];
     const bool ignore_check	= 0 != OptionUsed[OPT_FORCE];
 
@@ -3328,9 +3329,9 @@ enumError cmd_verify()
     WBFS_t wbfs;
     InitializeWBFS(&wbfs);
     PartitionInfo_t * info;
-    for ( err = GetFirstWBFS(&wbfs,&info);
+    for ( err = GetFirstWBFS(&wbfs,&info,remove);
 	  !err && !SIGINT_level;
-	  err = GetNextWBFS(&wbfs,&info) )
+	  err = GetNextWBFS(&wbfs,&info,remove) )
     {
 	if ( !info->is_checked && check_it )
 	{
@@ -3359,15 +3360,14 @@ enumError cmd_verify()
 
     int disc_index = 0, verify_count = 0, fail_count = 0, wbfs_count = 0;
 
-    const bool remove		= OptionUsed[OPT_REMOVE]  != 0;
     const bool free_slot_only	= OptionUsed[OPT_NO_FREE] != 0;
     const uint n_wbfs		= CountWBFS();
     ccp fail_verb = !remove ? "found" : free_slot_only ? "dropped" : "removed";
     char fail_buf[100];
 
-    for ( err = GetFirstWBFS(&wbfs,&info);
+    for ( err = GetFirstWBFS(&wbfs,&info,remove);
 	  !err && !SIGINT_level;
-	  err = GetNextWBFS(&wbfs,&info) )
+	  err = GetNextWBFS(&wbfs,&info,remove) )
     {
 	wbfs_count++;
 	if (verbose>=0)
@@ -3514,9 +3514,9 @@ enumError cmd_skeletonize()
     WBFS_t wbfs;
     InitializeWBFS(&wbfs);
     PartitionInfo_t * info;
-    for ( err = GetFirstWBFS(&wbfs,&info);
+    for ( err = GetFirstWBFS(&wbfs,&info,false);
 	  !err && !SIGINT_level;
-	  err = GetNextWBFS(&wbfs,&info) )
+	  err = GetNextWBFS(&wbfs,&info,false) )
     {
 	if ( !info->is_checked && check_it )
 	{
@@ -3546,9 +3546,9 @@ enumError cmd_skeletonize()
     int disc_index = 0, wbfs_count = 0;
     const uint n_wbfs = CountWBFS();
 
-    for ( err = GetFirstWBFS(&wbfs,&info);
+    for ( err = GetFirstWBFS(&wbfs,&info,false);
 	  !err && !SIGINT_level;
-	  err = GetNextWBFS(&wbfs,&info) )
+	  err = GetNextWBFS(&wbfs,&info,false) )
     {
 	wbfs_count++;
 	if (verbose>=0)
@@ -3796,10 +3796,16 @@ enumError CheckOptions ( int argc, char ** argv, bool is_env )
 	case GO_WBFS:		output_file_type = OFT_WBFS; break;
 	case GO_FST:		output_file_type = OFT_FST; break;
 
-	case GO_ITIME:	    	SetTimeOpt(PT_USE_ITIME|PT_F_ITIME); break;
-	case GO_MTIME:	    	SetTimeOpt(PT_USE_MTIME|PT_F_MTIME); break;
-	case GO_CTIME:	    	SetTimeOpt(PT_USE_CTIME|PT_F_CTIME); break;
-	case GO_ATIME:	    	SetTimeOpt(PT_USE_ATIME|PT_F_ATIME); break;
+    #if WDF2_ENABLED > 1
+	case GO_WDF1:		SetWDF2Mode(1,0); break;
+	case GO_WDF2:		err += SetWDF2Mode(2,optarg); break;
+	case GO_WDF_ALIGN:	err += ScanOptWDFAlign(optarg); break;
+    #endif
+
+	case GO_ITIME:		SetTimeOpt(PT_USE_ITIME|PT_F_ITIME); break;
+	case GO_MTIME:		SetTimeOpt(PT_USE_MTIME|PT_F_MTIME); break;
+	case GO_CTIME:		SetTimeOpt(PT_USE_CTIME|PT_F_CTIME); break;
+	case GO_ATIME:		SetTimeOpt(PT_USE_ATIME|PT_F_ATIME); break;
 
 	case GO_LONG:		long_count++; break;
 	case GO_NUMERIC:	break;

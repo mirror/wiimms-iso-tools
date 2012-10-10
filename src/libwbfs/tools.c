@@ -247,6 +247,42 @@ u64 wd_align_part
 ///////////////			print size			///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
+ccp wd_size_tab_1000[WD_SIZE_N_MODES+1] =
+{
+    0,		// WD_SIZE_DEFAULT
+    0,		// WD_SIZE_AUTO
+
+    "B",	// WD_SIZE_BYTES
+    "kB",	// WD_SIZE_K
+    "MB",	// WD_SIZE_M
+    "GB",	// WD_SIZE_G
+    "TB",	// WD_SIZE_T
+    "PB",	// WD_SIZE_P
+    "EB",	// WD_SIZE_E
+
+    0		// all others
+};
+
+//-----------------------------------------------------------------------------
+
+ccp wd_size_tab_1024[WD_SIZE_N_MODES+1] =
+{
+    0,		// WD_SIZE_DEFAULT
+    0,		// WD_SIZE_AUTO
+
+    "B",	// WD_SIZE_BYTES
+    "KiB",	// WD_SIZE_K
+    "MiB",	// WD_SIZE_M
+    "GiB",	// WD_SIZE_G
+    "TiB",	// WD_SIZE_T
+    "PiB",	// WD_SIZE_P
+    "EiB",	// WD_SIZE_E
+
+    0		// all others
+};
+
+///////////////////////////////////////////////////////////////////////////////
+
 ccp wd_get_size_unit // get a unit for column headers
 (
     wd_size_mode_t	mode,		// print mode
@@ -461,8 +497,8 @@ char * wd_print_size_1000
     if (!buf)
 	buf = GetCircBuf( buf_size = 20 );
 
-    ccp unit;
     u64 num;
+    wd_size_mode_t unit;
 
     u64 mb = (size+MB_SI/2)/MB_SI; // maybe an overflow => extra if
     if ( mb < 10000 && size < EB_SI )
@@ -470,18 +506,18 @@ char * wd_print_size_1000
 	u64 kb = (size+KB_SI/2)/KB_SI;
 	if ( kb < 10 )
 	{
-	    num = size;
-	    unit = "B";
+	    num  = size;
+	    unit = WD_SIZE_BYTES;
 	}
 	else if ( kb < 10000 )
 	{
-	    num = kb;
-	    unit = "kB";
+	    num  = kb;
+	    unit = WD_SIZE_K;
 	}
 	else
 	{
-	    num = mb;
-	    unit = "MB";
+	    num  = mb;
+	    unit = WD_SIZE_M;
 	}
     }
     else
@@ -492,13 +528,13 @@ char * wd_print_size_1000
 	{
 	    if ( tb < 10 )
 	    {
-		num = (mb+KB_SI/2)/KB_SI;
-		unit = "GB";
+		num  = (mb+KB_SI/2)/KB_SI;
+		unit = WD_SIZE_G;
 	    }
 	    else
 	    {
-		num = tb;
-		unit = "TB";
+		num  = tb;
+		unit = WD_SIZE_T;
 	    }
 	}
 	else
@@ -506,21 +542,27 @@ char * wd_print_size_1000
 	    u64 pb = (mb+GB_SI/2)/GB_SI;
 	    if ( pb < 10000 )
 	    {
-		num = pb;
-		unit = "PB";
+		num  = pb;
+		unit = WD_SIZE_P;
 	    }
 	    else
 	    {
-		num = (mb+TB_SI/2)/TB_SI;
-		unit = "EB";
+		num  = (mb+TB_SI/2)/TB_SI;
+		unit = WD_SIZE_E;
 	    }
 	}
     }
 
+    if ( num && !( num % 1000 ) && wd_size_tab_1000[unit+1] )
+    {
+	unit++;
+	num /= 1000;
+    }
+
     if (aligned)
-	snprintf(buf,buf_size,"%4llu %-3s",num,unit);
+	snprintf(buf,buf_size,"%4llu %-3s",num,wd_size_tab_1000[unit]);
     else
-	snprintf(buf,buf_size,"%llu %s",num,unit);
+	snprintf(buf,buf_size,"%llu %s",num,wd_size_tab_1000[unit]);
 
     return buf;
 };
@@ -539,8 +581,8 @@ char * wd_print_size_1024
     if (!buf)
 	buf = GetCircBuf( buf_size = 20 );
 
-    ccp unit;
     u64 num;
+    wd_size_mode_t unit;
 
     u64 mib = (size+MiB/2)/MiB; // maybe an overflow => extra if
     if ( mib < 10000 && size < EiB )
@@ -548,18 +590,18 @@ char * wd_print_size_1024
 	u64 kib = (size+KiB/2)/KiB;
 	if ( kib < 10 )
 	{
-	    num = size;
-	    unit = "B";
+	    num  = size;
+	    unit = WD_SIZE_BYTES;
 	}
 	else if ( kib < 10000 )
 	{
-	    num = kib;
-	    unit = "KiB";
+	    num  = kib;
+	    unit = WD_SIZE_K;
 	}
 	else
 	{
-	    num = mib;
-	    unit = "MiB";
+	    num  = mib;
+	    unit = WD_SIZE_M;
 	}
     }
     else
@@ -570,13 +612,13 @@ char * wd_print_size_1024
 	{
 	    if ( tib < 10 )
 	    {
-		num = (mib+KiB/2)/KiB;
-		unit = "GiB";
+		num  = (mib+KiB/2)/KiB;
+		unit = WD_SIZE_G;
 	    }
 	    else
 	    {
-		num = tib;
-		unit = "TiB";
+		num  = tib;
+		unit = WD_SIZE_T;
 	    }
 	}
 	else
@@ -584,21 +626,27 @@ char * wd_print_size_1024
 	    u64 pib = (mib+GiB/2)/GiB;
 	    if ( pib < 10000 )
 	    {
-		num = pib;
-		unit = "PiB";
+		num  = pib;
+		unit = WD_SIZE_P;
 	    }
 	    else
 	    {
-		num = (mib+TiB/2)/TiB;
-		unit = "EiB";
+		num  = (mib+TiB/2)/TiB;
+		unit = WD_SIZE_E;
 	    }
 	}
     }
 
+    if ( num && !( num & 0x3ff ) && wd_size_tab_1024[unit+1] )
+    {
+	unit++;
+	num /= 0x400;
+    }
+
     if (aligned)
-	snprintf(buf,buf_size,"%4llu %-3s",num,unit);
+	snprintf(buf,buf_size,"%4llu %-3s",num,wd_size_tab_1024[unit]);
     else
-	snprintf(buf,buf_size,"%llu %s",num,unit);
+	snprintf(buf,buf_size,"%llu %s",num,wd_size_tab_1024[unit]);
 
     return buf;
 };

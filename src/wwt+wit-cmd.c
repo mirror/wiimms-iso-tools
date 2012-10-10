@@ -375,6 +375,16 @@ enumError cmd_test_options()
     u64 opt_size = 0;
  #endif
 
+    *iobuf = 0;
+    if (output_file_type)
+	snprintf(iobuf,sizeof(iobuf)," = %s",oft_info[output_file_type].name);
+    print_val( "output-mode:",	output_file_type, iobuf );
+
+ #if WDF2_ENABLED
+    print_val( "wdf-version:",	opt_wdf_version, 0 );
+    print_val( "wdf-align:",	opt_wdf_align, 0 );
+ #endif
+
     print_val( "chunk-mode:",	opt_chunk_mode,	0 );
     print_val( "chunk-size:",	opt_chunk_size,	force_chunk_size ? " FORCE!" : "" );
     print_val( "max-chunks:",	opt_max_chunks,	0 );

@@ -359,7 +359,7 @@ void wd_split_sectors
 	memcpy( hash, src, WII_SECTOR_HASH_SIZE );
 	hash += WII_SECTOR_HASH_SIZE;
 	src  += WII_SECTOR_HASH_SIZE;
-	
+
 	memmove( data, src, WII_SECTOR_DATA_SIZE );
 	data += WII_SECTOR_DATA_SIZE;
 	src  += WII_SECTOR_DATA_SIZE;
@@ -655,7 +655,7 @@ enumError wd_read_raw
 
 	    noTRACE("WD-READ/PRE:  %9llx %5x -> %5zx %5x, skip=%x,%x\n",
 			(u64)off1<<2, HD_SECTOR_SIZE, dest-(u8*)dest_buf, copy_len, skip,skip4 );
-	    
+
 	    memcpy(dest,hd_buf+skip,copy_len);
 	    dest    += copy_len;
 	    len	    -= copy_len;
@@ -756,7 +756,7 @@ enumError wd_read_part_block
     enumError err = ERR_OK;
     if ( disc->block_part != part || disc->block_num != block_num )
     {
-	
+
 	err = wd_read_raw(	part->disc,
 				part->data_off4 + block_num * WII_SECTOR_SIZE4,
 				disc->temp_buf,
@@ -772,7 +772,7 @@ enumError wd_read_part_block
 	{
 	    disc->block_part = part;
 	    disc->block_num  = block_num;
-	    
+
 	    if (part->is_encrypted)
 	    {
 		if ( disc->akey_part != part )
@@ -794,7 +794,7 @@ enumError wd_read_part_block
 			WII_SECTOR_DATA_SIZE );
 	}
     }
-    
+
     memcpy( block, disc->block_buf, WII_SECTOR_DATA_SIZE );
     return err;
 }
@@ -1080,7 +1080,7 @@ wd_sector_status_t wd_get_disc_sector_status
     if (!usage)
     {
 	//--- find partition
-	
+
 	const u64 block_off = block_num * (u64)WII_SECTOR_SIZE;
 
 	int pi;
@@ -1106,7 +1106,7 @@ wd_sector_status_t wd_get_disc_sector_status
     }
 
     //----- if partiton found -> ...
- 
+
     if (part)
 	return wd_load_part(part,false,false,silent)
 		? WD_SS_READ_ERROR
@@ -1531,7 +1531,7 @@ wd_disc_t * wd_open_disc
     }
     else
 	snprintf(disc->error_term,sizeof(disc->error_term),".\n");
-    
+
 
     //----- read disc header
 
@@ -1561,7 +1561,7 @@ wd_disc_t * wd_open_disc
     if (!err)
 	err = wd_read_raw( disc, WII_PTAB_REF_OFF>>2,
 				&disc->ptab_info, sizeof(disc->ptab_info), WD_USAGE_DISC );
-    
+
     if (!err)
     {
 	u32 n_part = 0, ipt;
@@ -1821,7 +1821,7 @@ wd_part_t * wd_get_part_by_index
 
     if ( load_data > 0 )
 	wd_load_part( part, load_data > 1, load_data > 2, false );
-    
+
     return part;
 }
 
@@ -2133,7 +2133,7 @@ enumError wd_load_part
 	else
 	{
 	    dol_header_t * dol = (dol_header_t*) disc->temp_buf;
-	    
+
 	    err = wd_read_part(part,boot->dol_off4,dol,DOL_HEADER_SIZE,true);
 	    if (err)
 	    {
@@ -2168,7 +2168,7 @@ enumError wd_load_part
 	    part->dol_size = dol_size;
 	    if ( fst_max_size < dol_size )
 		 fst_max_size = dol_size;
-	    
+
 	    wd_mark_part(part,boot->dol_off4,dol_size);
 	}
 
@@ -2291,7 +2291,7 @@ enumError wd_load_part
 			part->data_sector, part->end_sector,
 			(u64)part->data_off4<<2, part->part_size,
 			part->max_marked, disc->iso_size );
-			
+
 	    if (wd_check_part_offset( part, (u64)part->data_off4<<2,
 				part->part_size, "PART", silent ) > ERR_WARNING )
 		return ERR_WPART_INVALID;
@@ -2301,9 +2301,9 @@ enumError wd_load_part
 	    const u32 last_sect = part->data_sector + ph->data_size4 / WII_SECTOR_SIZE4;
 	    noPRINT("last_sect=%x, end_sector=%x\n",last_sect,part->end_sector);
 	    if ( part->end_sector < last_sect )
-	         part->end_sector = last_sect;
+		 part->end_sector = last_sect;
 	}
-	 
+
 	if ( part->end_sector > WII_MAX_SECTORS )
 	     part->end_sector = WII_MAX_SECTORS;
 
@@ -2369,7 +2369,7 @@ enumError wd_load_part
 	    }
 	}
      #endif
-	
+
     }
 
     if (part->is_valid)
@@ -2792,7 +2792,7 @@ wd_select_item_t * wd_append_select_item
 	select->size += 10;
 	select->list = REALLOC(select->list, select->size*sizeof(*select->list));
     }
-    
+
     DASSERT( select->used < select->size );
     wd_select_item_t * item = select->list + select->used++;
     item->mode	= mode;
@@ -3010,7 +3010,7 @@ bool wd_is_part_selected
 		return allow;
 	}
     }
-    
+
     return !allow;
 }
 
@@ -3327,7 +3327,7 @@ u32 wd_count_used_blocks
     if ( block_size > 1 )
     {
 	//----- find last used sector
-	
+
 	end_tab--;
 	while ( end_tab >= usage_table && !*end_tab )
 	    end_tab--;
@@ -3368,7 +3368,7 @@ u32 wd_count_used_blocks
 	    if ( *usage_table++ )
 		count++;
     }
-	
+
     return count;
 }
 
@@ -3390,7 +3390,7 @@ bool wd_is_block_used
     u32 end = block_index + block_size;
     if ( end > WII_MAX_SECTORS )
 	 end = WII_MAX_SECTORS;
-    
+
     while ( block_index < end )
 	if ( usage_table[block_index++] )
 	    return true;
@@ -3520,7 +3520,7 @@ static int wd_iterate_fst_helper
 
     if ( ignore_files < 1 )
     {
-	
+
 	//----- setup stack
 
 	const int MAX_DEPTH = 25; // maximal supported directory depth
@@ -3892,7 +3892,7 @@ int wd_remove_disc_files
     // Call wd_remove_part_files() for each enabled partition.
     // Returns 0 if nothing is removed, 1 if at least one file is removed
     // Other values are abort codes from func()
-    
+
     wd_disc_t		* disc,		// valid pointer to a disc
     wd_file_func_t	func,		// call back function
 					//   return 0 for don't touch file
@@ -3937,7 +3937,7 @@ static int exec_mark_file ( wd_iterator_t *it )
 	it->fst_item->is_dir |= 0x40;
     return 0;
 };
- 
+
 ///////////////////////////////////////////////////////////////////////////////
 
 int wd_remove_part_files
@@ -3947,7 +3947,7 @@ int wd_remove_part_files
     // is removed the new FST.BIN is added to the patching map.
     // Returns 0 if nothing is removed, 1 if at least one file is removed
     // Other values are abort codes from func()
-    
+
     wd_part_t		* part,		// valid pointer to a partition
     wd_file_func_t	func,		// call back function
 					//   return 0 for don't touch file
@@ -4000,7 +4000,7 @@ int wd_remove_part_files
 		WDPRINT("#%zu: N=%u/%u [%02x]\n",fst-part->fst,count,n,fst->is_dir);
 		fst->size = count;
 	    }
-	
+
 	//----- 2. loop: move data
 
 	u32 name_delta = ( n_fst - part->fst->size - 1 ) * sizeof(*fst);
@@ -4015,11 +4015,11 @@ int wd_remove_part_files
 
 	    WDPRINT("COPY %zu -> %zu size=%zu\n",fst-part->fst,dest-part->fst,sizeof(*dest));
 	    memcpy(dest,fst,sizeof(*dest));
-	    
+
 	    WDPRINT("NAME-OFF: %x -> %x\n",
 		ntohl(dest->name_off) & 0xffffff,
 		( ntohl(dest->name_off) & 0xffffff ) + name_delta );
-	    
+
 	    dest->name_off = htonl( ( ntohl(dest->name_off) & 0xffffff ) + name_delta );
 	    if ( is_dir )
 	    {
@@ -4110,7 +4110,7 @@ static int exec_zero_file ( wd_iterator_t *it )
 
     return 0;
 };
- 
+
 ///////////////////////////////////////////////////////////////////////////////
 
 int wd_zero_part_files
@@ -4119,7 +4119,7 @@ int wd_zero_part_files
     // If at least 1 file is zeroed the new FST.BIN is added to the patching map.
     // Returns 0 if nothing is removed, 1 if at least one file is removed
     // Other values are abort codes from func()
- 
+
     wd_part_t		* part,		// valid pointer to a partition
     wd_file_func_t	func,		// call back function
 					//   return 0 for don't touch file
@@ -4192,7 +4192,7 @@ int wd_select_disc_files
 	    }
 	}
     }
-    
+
     return stat ? stat : mod;
 }
 
@@ -4256,7 +4256,7 @@ int wd_select_part_files
 
 
     //----- call iterator for files/...
-    
+
     wd_iterator_t it;
     memset(&it,0,sizeof(it));
     it.disc	= part->disc;
@@ -4724,7 +4724,7 @@ int wd_insert_memmap_disc_part
     DASSERT(disc);
 
     wd_load_all_part(disc,false,false,false);
-    
+
     int ip, count = 0;
     for ( ip = 0; ip < disc->n_part; ip++ )
     {
@@ -4781,7 +4781,7 @@ int wd_insert_memmap_part
 	snprintf( intro, sizeof(intro), "P.%u.%u, %s",
 			part->ptab_index, part->ptab_part_index,
 			wd_print_part_name(0,0,part->part_type,WD_PNAME_NUM_INFO) );
-	
+
 	if ( wii_head_mode != WD_PAT_IGNORE )
 	{
 	    WDPRINT("INSERT WII PART-HEAD PATCH %u\n",wii_head_mode);
@@ -5196,7 +5196,7 @@ static enumError wd_rap_part_sectors
 
 
     //----- decrypt
-    
+
     bool is_splitted = false;
     DASSERT( sizeof(disc->temp_buf) >= WII_GROUP_SECTORS * WII_SECTOR_HASH_SIZE );
     u8 * hash_buf = patch ? disc->temp_buf : 0;
@@ -5210,7 +5210,7 @@ static enumError wd_rap_part_sectors
 	buf = disc->group_cache;
 	is_splitted = hash_buf != 0;
     }
-    
+
 
     //----- patching
 
@@ -5372,7 +5372,7 @@ static enumError wd_rap_sectors
 	    }
 	}
 
- 	const u32 start = sector;
+	const u32 start = sector;
 	rel &= WD_RELOC_M_DISCLOAD;
 	u32 or_rel = 0;
 	while ( sector < end_sector && (reloc[sector] & WD_RELOC_M_DISCLOAD) == rel )
@@ -5381,7 +5381,7 @@ static enumError wd_rap_sectors
 	const u32 count = sector - start;
 	const u64 size  = count * (u64)WII_SECTOR_SIZE;
 	DASSERT(count);
- 
+
 	u32 src = start + ( rel & WD_RELOC_M_DELTA );
 	if ( src > WII_MAX_SECTORS )
 	    src -= WII_MAX_SECTORS;
@@ -5565,7 +5565,7 @@ enumError wd_read_and_patch
 	}
 	memcpy(dest,disc->cache,count);
     }
-    
+
     return ERR_OK;
 }
 
@@ -5600,7 +5600,7 @@ bool wd_patch_ptab // result = true if something changed
     DASSERT(sector_data);
 
     wd_load_all_part(disc,false,false,false);
-    
+
     if (!force_patch)
     {
 	// test if any partitions is invalid or disabled
@@ -5617,7 +5617,7 @@ bool wd_patch_ptab // result = true if something changed
 	if (!force_patch)
 	    return false;
     }
- 
+
     if ( disc->disc_type == WD_DT_GAMECUBE )
     {
 	memcpy( sector_data, &disc->dhead,
@@ -5787,7 +5787,7 @@ bool wd_patch_region // result = true if something changed
 )
 {
     DASSERT(disc);
-    
+
     if ( disc->disc_type == WD_DT_GAMECUBE )
     {
 	const u32 be_region = htonl(new_region);
@@ -6117,7 +6117,7 @@ wd_reloc_t * wd_calc_relocation
 
 
     //---- setup tables
-    
+
     u8 usage_table[WII_MAX_SECTORS];
     wd_filter_usage_table(disc,usage_table,0);
 
@@ -6243,7 +6243,7 @@ void wd_print_relocation
 	"%*s   offset     dest blocks : n(b) :  source blocks : partition and flags\n"
 	"%*s%.79s\n",
 	indent, "", indent, "", wd_sep_200 );
-	
+
     const wd_reloc_t *rel = reloc, *end = reloc + WII_MAX_SECTORS;
     while ( rel < end )
     {
@@ -6261,7 +6261,7 @@ void wd_print_relocation
 	const u32 val = *rel;
 	while ( rel < end && val == *rel )
 	    rel++;
-	
+
 	const int dest = start - reloc;
 	int src = dest + ( val & WD_RELOC_M_DELTA );
 	if ( src > WII_MAX_SECTORS )
@@ -6359,7 +6359,7 @@ wd_file_list_t * wd_initialize_file_list
 {
     if (!fl)
 	fl = MALLOC(sizeof(*fl));
-    
+
     memset(fl,0,sizeof(*fl));
     return fl;
 }
@@ -6455,7 +6455,7 @@ wd_fst_item_t * wd_create_file_list_fst
 )
 {
     DASSERT(fl);
-    
+
     // [[2do]]
 
     return 0;
@@ -6857,7 +6857,7 @@ void wd_print_mem
 	    func(param,off,np*sizeof(wd_ptab_entry_t),msg);
 	}
     }
-	
+
 
     //----- region settings
 
@@ -6929,7 +6929,7 @@ void wd_print_mem
 		snprintf( dest, msgsize, "cert" );
 		func(param,(u64)(part->part_off4+ph->cert_off4)<<2,ph->cert_size,msg);
 	    }
-	    
+
 	    //--- h3
 
 	    if (ph->h3_off4)

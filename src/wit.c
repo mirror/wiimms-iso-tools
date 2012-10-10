@@ -320,6 +320,54 @@ static enumError cmd_test()
 
 //
 ///////////////////////////////////////////////////////////////////////////////
+///////////////			command ANAID			///////////////
+///////////////////////////////////////////////////////////////////////////////
+
+static enumError cmd_anaid()
+{
+    const bool print_header = !OptionUsed[OPT_NO_HEADER];
+    if (print_header)
+	printf(	"\n"
+		" HEX       ASCII   Game Title\n"
+		"%s\n",
+		sep_79);
+
+    ParamList_t * param;
+    for ( param = first_param; param; param = param->next )
+    {
+	id6_t id6;
+	memset(id6,0,sizeof(id6));
+	bool valid = false;
+	uint alen = strlen(param->arg);
+
+	if ( alen >= 8 )
+	    valid = ScanHexSilent( id6, 4, param->arg + alen - 8) == ERR_OK;
+	else if ( alen >= 1 && alen <= 6 )
+	{
+	    ccp src = param->arg;
+	    char *dest = id6;
+	    while (*src)
+		*dest++ = toupper((int)*src++);
+	    valid = true;
+	}
+
+
+	if (valid)
+	    printf(" %02x%02x%02x%02x  %-6s  %s\n",
+		(uchar)id6[0], (uchar)id6[1], (uchar)id6[2], (uchar)id6[3],
+		id6, GetTitle(id6,"?") );
+	else
+	    printf("? %s\n",param->arg);
+    }
+
+    if (print_header)
+	putchar('\n');
+
+    return ERR_OK;
+}
+
+//
+///////////////////////////////////////////////////////////////////////////////
 ///////////////			command CERT			///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -1018,7 +1066,7 @@ static enumError cmd_id6_long()
 
 //
 ///////////////////////////////////////////////////////////////////////////////
-///////////////			commands ID6			///////////////
+///////////////			command ID6			///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
 enumError exec_collect ( SuperFile_t * sf, Iterator_t * it )
@@ -1128,6 +1176,246 @@ static enumError cmd_id6()
 
     ResetStringField(&id6_list);
     return ERR_OK;
+}
+
+//
+///////////////////////////////////////////////////////////////////////////////
+///////////////			command MAPPING			///////////////
+///////////////////////////////////////////////////////////////////////////////
+
+static void print_fragments
+    ( SuperFile_t * sf, FileMap_t *fm, ccp title, ccp off1, ccp off2 )
+{
+    uint i;
+    u64 max1a = 0x1000000, max1b = 0x1000;
+    u64 max2a =    0x1000, max2b = 0x1000, max_s = 0x1000;
+    u64 align1a = 0, align1b = 0, align2a = 0, align2b = 0, align_s = 0;
+    for ( i = 0; i < fm->used; i++ )
+    {
+	const FileMapItem_t *mi = fm->field + i;
+
+	align1a |= mi->src_off;
+	if ( max1a < mi->src_off )
+	     max1a = mi->src_off;
+
+	u64 temp = mi->src_off + mi->size;
+	align1b |= temp;
+	if ( max1b < temp )
+	     max1b = temp;
+
+	align2a |= mi->dest_off;
+	if ( max2a < mi->dest_off )
+	     max2a = mi->dest_off;
+
+	temp = mi->dest_off + mi->size;
+	align2b |= temp;
+	if ( max2b < temp )
+	     max2b = temp;
+
+	align_s |= mi->size;
+	if ( max_s < mi->size )
+	     max_s = mi->size;
+    }
+
+    char buf[50];
+    const uint fw_1a = snprintf(buf,sizeof(buf),"%llx",max1a);
+    const uint fw_1b = snprintf(buf,sizeof(buf),"%llx",max1b-1);
+    const uint fw_2a = snprintf(buf,sizeof(buf),"%llx",max2a);
+    const uint fw_2b = snprintf(buf,sizeof(buf),"%llx",max2b-1);
+    const uint fw_s  = snprintf(buf,sizeof(buf),"%llx",max_s);
+
+    const uint fw_h1  = fw_1a + 4 + fw_1b;
+    const uint fw_h1b = fw_h1/2 + 3;
+    const uint fw_h1a = fw_h1 - fw_h1b;
+
+    const uint fw_h2  = fw_2a + 4 + fw_2b;
+    const uint fw_h2b = fw_h2/2 + 3;
+    const uint fw_h2a = fw_h2 - fw_h2b;
+
+    const uint fw_sep = fw_h1 + fw_h2 + fw_s + 16;
+
+    printf(
+	"\n"
+	"%s of %s:%s\n"
+	"\n"
+	"          %*s%-*s -> %*s%-*s : %*s\n"
+	"   index  %*s%-*s -> %*s%-*s : %*s\n"
+	"  %.*s\n",
+	title, oft_info[sf->iod.oft].name, sf->f.fname,
+	fw_h1a, "", fw_h1b, off1,
+	fw_h2a, "", fw_h2b, off2,
+	fw_s, "chunk",
+	fw_h1a, "", fw_h1b, "offset",
+	fw_h2a, "", fw_h2b, "offset",
+	fw_s, "size",
+	fw_sep, wd_sep_200 );
+
+    for ( i = 0; i < fm->used; i++ )
+    {
+	const FileMapItem_t *mi = fm->field + i;
+	printf("%7d.  %*llx .. %*llx -> %*llx .. %*llx : %*llx\n",
+		i+1,
+		fw_1a, mi->src_off,  fw_1b, mi->src_off + mi->size - 1,
+		fw_2a, mi->dest_off, fw_2b, mi->dest_off + mi->size - 1,
+		fw_s, mi->size );
+    }
+
+    if (long_count)
+    {
+	printf("  %.*s\n",fw_sep,wd_sep_200);
+
+	if ( long_count != 1 )
+	    printf(
+		"   align: %*llx    %*llx    %*llx    %*llx   %*llx\n",
+		fw_1a, GetAlign64(align1a), fw_1b, GetAlign64(align1b),
+		fw_2a, GetAlign64(align2a), fw_2b, GetAlign64(align2b),
+		fw_s,  GetAlign64(align_s) );
+
+	if ( long_count != 2 )
+	    printf(
+		"   align:%*s %*s %*s %*s %*s\n",
+		fw_1a + 1, wd_print_size_1024(0,0,GetAlign64(align1a),false),
+		fw_1b + 3, wd_print_size_1024(0,0,GetAlign64(align1b),false),
+		fw_2a + 3, wd_print_size_1024(0,0,GetAlign64(align2a),false),
+		fw_2b + 3, wd_print_size_1024(0,0,GetAlign64(align2b),false),
+		fw_s  + 2, wd_print_size_1024(0,0,GetAlign64(align_s),false) );
+    }
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+static enumError exec_fragments ( SuperFile_t * sf, Iterator_t * it )
+{
+    DASSERT(sf);
+    DASSERT(it);
+
+    if ( !it->done_count++ && brief_count && !OptionUsed[OPT_NO_HEADER] )
+	printf(	"\n"
+		"image filesys real\n"
+		"_____fragments____ %s type file\n"
+		"%s\n",
+		long_count ? "aligning " : "", sep_79);
+
+    const bool is_reg = S_ISREG(sf->f.st.st_mode);
+    FileMap_t fm1, fm2, fm3, *fm0 = is_reg ? &fm1 : &fm3;
+    
+    if (!GetFileMapSF(sf,fm0,true))
+    {
+	if (brief_count)
+	    printf("%4s %6s %6s %s %-4s %s\n",
+		"-", "-", "-",
+		long_count ? "    -    " : "",
+		oft_info[sf->iod.oft].name, sf->f.fname );
+	else
+	    printf("\n* No file map for %s:%s\n",
+		oft_info[sf->iod.oft].name, sf->f.fname );
+	ResetFileMap(fm0);
+	return 0;
+    }
+
+    bool have_system_map;
+    if (is_reg)
+    {
+	have_system_map = GetFileSystemMap(&fm2,true,&sf->f) == ERR_OK;
+	if (have_system_map)
+	    CombineFileMaps(&fm3,true,&fm1,&fm2);
+	else
+	    InitializeFileMap(&fm3);
+    }
+    else
+    {
+	have_system_map = true;
+	InitializeFileMap(&fm1);
+	InitializeFileMap(&fm2);
+    }
+
+    if (brief_count)
+    {
+	char buf[20];
+	if (long_count)
+	{
+	    const FileMap_t *fm = have_system_map ? &fm3 : &fm1;
+	    uint i;
+	    u64 align = 0;
+	    for ( i = 0; i < fm->used; i++ )
+	    {
+		const FileMapItem_t *mi = fm->field + i;
+		align |= mi->src_off | mi->dest_off | mi->size;
+	    }
+	    wd_print_size( buf, sizeof(buf), GetAlign64(align),
+				true, WD_SIZE_AUTO|WD_SIZE_F_SMALL_VAL );
+	}
+	else
+	    *buf = 0;
+
+	if (!is_reg)
+	    printf("%4s %6s %6u %s %-4s %s\n",
+		"-", "-", fm3.used, buf,
+		oft_info[sf->iod.oft].name, sf->f.fname );
+	else if (have_system_map)
+	    printf("%4u %6u %6u %s %-4s %s\n",
+		fm1.used, fm2.used, fm3.used, buf,
+		oft_info[sf->iod.oft].name, sf->f.fname );
+	else
+	    printf("%4u %6s %6s %s %-4s %s\n",
+		fm1.used, "-", "-", buf,
+		oft_info[sf->iod.oft].name, sf->f.fname );
+    }
+    else
+    {
+	if (have_system_map)
+	{
+	    if ( verbose > 0 && is_reg )
+	    {
+		print_fragments(sf,&fm1,"Image fragments","virtual","image");
+		print_fragments(sf,&fm2,"Filesystem fragments","image","filesystem");
+	    }
+	    print_fragments(sf,&fm3,"Fragments","virtual","filesystem");
+	    if ( verbose > 0 )
+		putchar('\n');
+	}
+	else
+	    print_fragments(sf,&fm1,"Image fragments [NO FS-MAP]","virtual","image");
+	putchar('\n');
+    }
+
+    ResetFileMap(&fm1);
+    ResetFileMap(&fm2);
+    ResetFileMap(&fm3);
+    return 0;
+}
+
+//-----------------------------------------------------------------------------
+
+static enumError cmd_fragments()
+{
+    if (!HaveFileSystemMapSupport())
+	ERROR0(ERR_WARNING,
+	    "This version of %s can determine the file system mapping"
+	    " only for WBFS partitions.",
+	    progname);
+
+    ParamList_t * param;
+    for ( param = first_param; param; param = param->next )
+	AppendStringField(&source_list,param->arg,true);
+
+    encoding |= ENCODE_F_FAST; // hint: no encryption needed
+
+    Iterator_t it;
+    InitializeIterator(&it);
+    it.func		= exec_fragments;
+    it.act_wbfs		= ACT_EXPAND;
+    it.act_gc		= ACT_ALLOW;
+    it.act_fst		= allow_fst ? ACT_EXPAND : ACT_IGNORE;
+    it.long_count	= long_count;
+    it.progress_enabled	= 0;
+
+    enumError err = SourceIterator(&it,0,true,false);
+    if ( it.done_count++ && brief_count && !OptionUsed[OPT_NO_HEADER] )
+	putchar('\n');
+    ResetIterator(&it);
+
+    return err;
 }
 
 //
@@ -2436,7 +2724,7 @@ static enumError cmd_move()
 	SetDest(param->arg,false);
 	param->arg = 0;
     }
-    
+
     ParamList_t * param;
     for ( param = first_param; param; param = param->next )
 	AppendStringField(&source_list,param->arg,true);
@@ -2832,12 +3120,19 @@ enumError CheckOptions ( int argc, char ** argv, bool is_env )
 	case GO_WBFS:		output_file_type = OFT_WBFS; break;
 	case GO_FST:		output_file_type = OFT_FST; break;
 
-	case GO_ITIME:	    	SetTimeOpt(PT_USE_ITIME|PT_F_ITIME); break;
-	case GO_MTIME:	    	SetTimeOpt(PT_USE_MTIME|PT_F_MTIME); break;
-	case GO_CTIME:	    	SetTimeOpt(PT_USE_CTIME|PT_F_CTIME); break;
-	case GO_ATIME:	    	SetTimeOpt(PT_USE_ATIME|PT_F_ATIME); break;
+    #if WDF2_ENABLED > 1
+	case GO_WDF1:		SetWDF2Mode(1,0); break;
+	case GO_WDF2:		err += SetWDF2Mode(2,optarg); break;
+	case GO_WDF_ALIGN:	err += ScanOptWDFAlign(optarg); break;
+    #endif
+
+	case GO_ITIME:		SetTimeOpt(PT_USE_ITIME|PT_F_ITIME); break;
+	case GO_MTIME:		SetTimeOpt(PT_USE_MTIME|PT_F_MTIME); break;
+	case GO_CTIME:		SetTimeOpt(PT_USE_CTIME|PT_F_CTIME); break;
+	case GO_ATIME:		SetTimeOpt(PT_USE_ATIME|PT_F_ATIME); break;
 
 	case GO_LONG:		long_count++; break;
+	case GO_BRIEF:		brief_count++; break;
 	case GO_NUMERIC:	break;
 	case GO_TECHNICAL:	opt_technical++; break;
 	case GO_REALPATH:	break;
@@ -2981,6 +3276,7 @@ enumError CheckCommand ( int argc, char ** argv )
 	case CMD_TEST:		err = cmd_test(); break;
 	case CMD_ERROR:		err = cmd_error(); break;
 	case CMD_COMPR:		err = cmd_compr(); break;
+	case CMD_ANAID:		err = cmd_anaid(); break;
 	case CMD_EXCLUDE:	err = cmd_exclude(); break;
 	case CMD_TITLES:	err = cmd_titles(); break;
 	case CMD_GETTITLES:	err = cmd_gettitles(); break;
@@ -2993,6 +3289,7 @@ enumError CheckCommand ( int argc, char ** argv )
 
 	case CMD_DUMP:		err = cmd_dump(); break;
 	case CMD_ID6:		err = cmd_id6(); break;
+	case CMD_FRAGMENTS:	err = cmd_fragments(); break;
 	case CMD_LIST:		err = cmd_list(0); break;
 	case CMD_LIST_L:	err = cmd_list(1); break;
 	case CMD_LIST_LL:	err = cmd_list(2); break;

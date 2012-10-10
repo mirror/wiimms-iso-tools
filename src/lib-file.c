@@ -61,6 +61,24 @@
 #include "lib-sf.h"
 #include "wbfs-interface.h"
 
+///////////////////////////////////////////////////////////////////////////////
+
+#if defined(HAVE_FIEMAP) && defined(FS_IOC_FIEMAP)
+  #undef HAVE_FIEMAP
+  #define HAVE_FIEMAP 1
+  #include <linux/fiemap.h>
+#else
+  #undef HAVE_FIEMAP
+  #define HAVE_FIEMAP 0
+#endif
+
+#undef HAVE_FIBMAP
+#if defined(FIGETBSZ) && defined(FIGETBSZ)
+  #define HAVE_FIBMAP 1
+#else
+  #define HAVE_FIBMAP 0
+#endif
+
 //
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////                   file support                  ///////////////
@@ -95,7 +113,7 @@ u32 GetHSS ( int fd, u32 default_value )
 	}
     }
  #endif
-    
+
  #ifdef BLKSSZGET
     TRACE(" - try BLKSSZGET\n");
     {
@@ -1166,7 +1184,7 @@ const OFT_info_t oft_info[OFT__N+1] =
     { OFT__N, 0, IOM__IS_DEFAULT,
 	0, 0, 0, 0, 0 },
 };
- 
+
 ///////////////////////////////////////////////////////////////////////////////
 
 enumOFT CalcOFT ( enumOFT force, ccp fname_dest, ccp fname_src, enumOFT def )
@@ -1408,7 +1426,7 @@ enumError XSetupSplitFile ( XPARM File_t *f, enumOFT oft, off_t split_size )
 	    fi->split_off = f->split_f[idx-1]->split_off
 			  + f->split_f[idx-1]->split_filesize;
 	    fi->split_filesize = fi->st.st_size;
-	    
+
 	    PRINT("#S#%u# Open %s, soff=%llx, ssize=%llx\n",
 			idx, fname, (u64)fi->split_off, (u64)fi->split_filesize );
 	    f->st.st_size += fi->st.st_size;
@@ -1501,7 +1519,7 @@ enumError XCreateSplitFile ( XPARM File_t *f, uint split_idx )
 	    snprintf(fname,sizeof(fname),f->split_rename_format,f->split_used-1);
 	    f2->rename = STRDUP(fname);
 	}
-	
+
 	ExtractSplitMap(f,f2);
     }
     return ERR_OK;
@@ -1699,21 +1717,6 @@ enumError XAnalyzeWH ( XPARM File_t * f, WDF_Head_t * wh, bool print_err )
 		: ERR_WDF_VERSION;
     }
 
-    if ( wh->split_file_index >= wh->split_file_num_of )
-    {
-	TRACE(" - invalid 'split_file_index'\n");
-	goto invalid;
-    }
-
-    if ( wh->split_file_num_of != 1 )
-    {
-	TRACE(" - split files not supported\n");
-	return print_err
-		? PrintError( XERROR0, ERR_WDF_SPLIT,
-			"Splitted WDF files not supported yet.\n" )
-		: ERR_WDF_SPLIT;
-    }
-
     const u32 chunk_tab_size = wh->chunk_n * sizeof(WDF_Chunk_t);
     if ( f->st.st_size < wh->chunk_off + WDF_MAGIC_SIZE + chunk_tab_size )
     {
@@ -1732,7 +1735,7 @@ enumError XAnalyzeWH ( XPARM File_t * f, WDF_Head_t * wh, bool print_err )
 		(u64)wh->chunk_off, WDF_MAGIC_SIZE, chunk_tab_size,
 		(u64)wh->chunk_off + WDF_MAGIC_SIZE + chunk_tab_size,
 		(u64)f->st.st_size );
-     invalid:
+
 	return print_err
 		? PrintError( XERROR0, ERR_WDF_INVALID, "Invalid WDF file: %s\n",f->fname )
 		: ERR_WDF_INVALID;
@@ -1886,7 +1889,7 @@ static void PreallocHelper ( File_t *f )
 	#else
 		#error "no preallocation support -> use -DNO_PREALLOC"
 	#endif
-  
+
 		found->size = 0;
 	    }
 	}
@@ -2576,7 +2579,7 @@ enumError XZeroAtF ( XPARM File_t * f, off_t off, size_t count )
 	const enumError err = XSetSizeF( XCALL f, last_off );
 	if ( err || off >= max_off )
 	    return err;
-	   
+
 	ASSERT( count > last_off - max_off );
 	count -= last_off - max_off;
 	last_off = max_off;
@@ -2615,10 +2618,10 @@ enumError XZeroAtF ( XPARM File_t * f, off_t off, size_t count )
 	    return err;
 
 	//--- iterate read data
-	
+
 	char * ptr = buf;
 	char * end = buf + rsize;
-	
+
 	while ( ptr < end )
 	{
 	    //--- find begining of non zero data
@@ -2630,7 +2633,7 @@ enumError XZeroAtF ( XPARM File_t * f, off_t off, size_t count )
 
 	    size_t start = ((ptr-buf)/blocksize)*blocksize;
 	    ptr = buf + start + blocksize;
-	    
+
 	    //--- find zero block
 
 	    while ( ptr < end )
@@ -2644,7 +2647,7 @@ enumError XZeroAtF ( XPARM File_t * f, off_t off, size_t count )
 		    break;
 		ptr = bl_end;
 	    }
-	    
+
 	    if ( ptr > end )
 		ptr = end;
 
@@ -2855,7 +2858,7 @@ s64 GetFileSize
 
     if (fatt)
 	CopyFileAttribStat(fatt,&st,fatt_max);
-    
+
     return st.st_size;
 }
 
@@ -2893,7 +2896,7 @@ enumError LoadFile
 	    ERROR1(ERR_CANT_OPEN,"Can't open file: %s\n",path);
 	return ERR_CANT_OPEN;
     }
-    
+
     if (fatt)
     {
 	struct stat st;
@@ -2936,7 +2939,7 @@ enumError SaveFile ( ccp path1, ccp path2, bool create_dir,
 	    CreatePath(path);
 	    f = fopen(path,"wb");
 	}
-	
+
 	if (!f)
 	{
 	    if (!silent)
@@ -3044,7 +3047,7 @@ FileAttrib_t * NormalizeFileAttrib
 
     if (!fa->atime)
 	fa->atime = fa->itime > fa->ctime ? fa->itime : fa->ctime;
-	
+
     return fa;
 }
 
@@ -3210,6 +3213,195 @@ char * AllocSplitFilename ( ccp path, enumOFT oft )
     char buf[2*PATH_MAX];
     CalcSplitFilename(buf,sizeof(buf),path,oft);
     return STRDUP(buf);
+}
+
+//
+///////////////////////////////////////////////////////////////////////////////
+///////////////			GetFileSystemMap()		///////////////
+///////////////////////////////////////////////////////////////////////////////
+#if HAVE_FIEMAP
+///////////////////////////////////////////////////////////////////////////////
+
+ static enumError GetFileMapHelper_FIEMAP
+ (
+    FileMap_t		* fm,		// file map
+    File_t		* file,		// file to analyze
+    struct fiemap	* fmap,		// valid fiemap structure
+    uint		n_elem		// number of 'fmap->fm_extents' elements
+ )
+ {
+    DASSERT(fm);
+    DASSERT(file);
+    DASSERT(fmap);
+    DASSERT(n_elem>0);
+
+    memset(fmap,0,sizeof(fmap));
+
+    u64 last_off = 0;
+    while ( last_off < file->st.st_size )
+    {
+	fmap->fm_start	  = last_off;
+	fmap->fm_length	  = file->st.st_size - last_off;
+	fmap->fm_flags	  = FIEMAP_FLAG_SYNC;
+	fmap->fm_extent_count = n_elem;
+	int stat = ioctl(file->fd,FS_IOC_FIEMAP,fmap);
+	if ( stat < 0 )
+	    return ERROR1(ERR_READ_FAILED,
+		    "Can't read file mapping (FIEMAP): %s\n",file->fname);
+
+	PRINT("STAT=%d, N=%d\n",stat,fmap->fm_mapped_extents);
+	if (!fmap->fm_mapped_extents)
+	    break;
+
+	const struct fiemap_extent *fe = fmap->fm_extents;
+	const struct fiemap_extent *fe_end = fe + fmap->fm_mapped_extents;
+	for ( ; fe < fe_end; fe++ )
+	{
+	    AppendFileMap( fm, fe->fe_logical + file->split_off,
+				fe->fe_physical, fe->fe_length);
+	    noPRINT("   -> %9llx %9llx %9llx\n",
+			fe->fe_logical, fe->fe_physical, fe->fe_length );
+	}
+	if ( fe[-1].fe_flags & FIEMAP_EXTENT_LAST )
+	    break;
+	last_off = fe[-1].fe_logical + fe[-1].fe_length;
+    }
+
+    return ERR_OK;
+ }
+
+ //////////////////////////////////////////////////////////////////////////////
+
+ static enumError GetFileSystemMap_FIEMAP
+ (
+    FileMap_t		* fm,		// file map
+    File_t		* file		// file to analyze
+ )
+ {
+    DASSERT(fm);
+    DASSERT(file);
+
+    struct fiemap *fmap;
+    const uint MAX_ELEM = 1024;
+    const uint ALLOC_SIZE = sizeof(*fmap) + sizeof(*fmap->fm_extents) * MAX_ELEM;
+    PRINT("ALLOC FIEMAP: %zu + %zu * %u = %u\n",
+		sizeof(*fmap), sizeof(*fmap->fm_extents), MAX_ELEM, ALLOC_SIZE );
+    fmap = MALLOC(ALLOC_SIZE);
+
+    enumError err = ERR_OK;
+    if (file->split_f)
+    {
+	File_t **end, **ptr = file->split_f;
+	for ( end = ptr + file->split_used; err == ERR_OK && ptr < end; ptr++ )
+	    err = GetFileMapHelper_FIEMAP(fm,*ptr,fmap,MAX_ELEM);
+    }
+    else
+	err = GetFileMapHelper_FIEMAP(fm,file,fmap,MAX_ELEM);
+
+    FREE(fmap);
+    return err;
+ }
+
+///////////////////////////////////////////////////////////////////////////////
+#endif // HAVE_FIEMAP
+///////////////////////////////////////////////////////////////////////////////
+#if HAVE_FIBMAP
+///////////////////////////////////////////////////////////////////////////////
+
+ static enumError GetFileSystemMap_FIBMAP
+ (
+    FileMap_t		* fm,		// file map
+    File_t		* file		// file to analyze
+ )
+ {
+    DASSERT(fm);
+    DASSERT(file);
+
+    if (file->split_f)
+    {
+	File_t **end, **ptr = file->split_f;
+	for ( end = ptr + file->split_used; ptr < end; ptr++ )
+	{
+	    enumError err = GetFileSystemMap_FIBMAP(fm,*ptr);
+	    if (err)
+		return err;
+	}
+	return ERR_OK;
+    }
+
+    int blocksize;
+    if ( ioctl(file->fd,FIGETBSZ,&blocksize) < 0 )
+	return ERROR1(ERR_READ_FAILED,
+		"Can't read block size (FIGETBSZ): %s\n",file->fname);
+
+    uint block, n_blocks = ( file->st.st_size + blocksize - 1 ) / blocksize;
+    PRINT("FIBMAP: %u blocks * %u bytes\n",n_blocks,blocksize);
+
+    for ( block = 0; block < n_blocks; block++ )
+    {
+	uint param = block;
+	if ( ioctl(file->fd,FIBMAP,&param) < 0 )
+	    return ERROR1(ERR_READ_FAILED,
+		"Can't read file mapping (FIBMAP): %s\n",file->fname);
+
+	AppendFileMap( fm, block * (u64)blocksize + file->split_off,
+				param * (u64)blocksize, blocksize );
+    }
+
+    return ERR_OK;
+ }
+
+///////////////////////////////////////////////////////////////////////////////
+#endif // HAVE_FIBMAP
+///////////////////////////////////////////////////////////////////////////////
+
+bool HaveFileSystemMapSupport()
+{
+ #if HAVE_FIEMAP || HAVE_FIBMAP
+    return true;
+ #else
+    return false;
+ #endif
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+enumError GetFileSystemMap
+(
+    FileMap_t		* fm,		// file map
+    bool		init_fm,	// true: initialize 'fm', false: reset 'fm'
+    File_t		* file		// file to analyze
+)
+{
+    DASSERT(fm);
+    DASSERT(file);
+    if (init_fm)
+	InitializeFileMap(fm);
+    else
+	ResetFileMap(fm);
+
+    enumError stat = ERR_JOB_IGNORED;
+    if (S_ISREG(file->st.st_mode))
+    {
+
+     #if HAVE_FIEMAP
+
+	// first, we try FIEMAP
+	stat = GetFileSystemMap_FIEMAP(fm,file);
+	if (!stat)
+	    return ERR_OK;
+     #endif
+
+     #if HAVE_FIBMAP
+
+	// if failed, we try FIBMAP
+	stat = GetFileSystemMap_FIBMAP(fm,file);
+	if (!stat)
+	    return ERR_OK;
+     #endif
+
+    }
+    return stat;
 }
 
 //

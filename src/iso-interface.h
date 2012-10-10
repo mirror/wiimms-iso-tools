@@ -330,7 +330,7 @@ typedef struct Iterator_t
 	ccp	progress_t_file;	// text, default = 'supported file'
 	ccp	progress_t_files;	// text, default = 'supported files'
 
-	// user defined parameters, ignores by SourceIterator()
+	// user defined parameters, ignored by SourceIterator()
 
 	ShowMode	show_mode;	// active show mode, initialized by opt_show_mode
 	bool		diff_it;	// DIFF instead of COPY/CONVERT
@@ -526,6 +526,7 @@ void DumpFileIndex ( FILE *f, int indent, const FileIndex_t * fidx );
 ///////////////////////////////////////////////////////////////////////////////
 
 #define FST_SETUP_FILE   "setup.txt"
+#define FST_EXCLUDE_FILE "exclude.fst"
 #define FST_INCLUDE_FILE "include.fst"
 #define FST_ALIGN_FILE   "align-files.txt"
 
@@ -577,6 +578,7 @@ typedef struct WiiFstPart_t
     u32			file_used;		// number of used elements in 'file'
     u32			file_size;		// number of allocated elements in 'file'
     SortMode		sort_mode;		// current sort mode
+    StringField_t	exclude_list;		// exclude this files on composing
     StringField_t	include_list;		// list of files with trailing '.'
     FileAttrib_t	max_fatt;		// max file attributes
     u64			total_file_size;	// total size of all files

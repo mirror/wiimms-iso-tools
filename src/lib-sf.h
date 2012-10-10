@@ -55,6 +55,9 @@ typedef enumError (*ReadFunc)
 typedef off_t (*DataBlockFunc)
 	( struct SuperFile_t * sf, off_t off, size_t hint_align, off_t * block_size );
 
+typedef void (*FileMapFunc)
+	( struct SuperFile_t * sf, FileMap_t *fm );
+
 typedef enumError (*WriteFunc)
 	( struct SuperFile_t * sf, off_t off, const void * buf, size_t count );
 
@@ -75,6 +78,7 @@ typedef struct IOData_t
 
     ReadFunc	read_func;		// read function
     DataBlockFunc data_block_func;	// get next data block
+    FileMapFunc	file_map_func;		// create a file map
 
     WriteFunc	write_func;		// write function
     WriteFunc	write_sparse_func;	// sparse write function
@@ -201,6 +205,7 @@ enumError RemoveSF ( SuperFile_t * sf );
 
 // status
 bool IsOpenSF ( const SuperFile_t * sf );
+bool IsWritableSF ( const SuperFile_t * sf );
 
 // dynamic SF
 SuperFile_t * AllocSF();
@@ -329,6 +334,7 @@ enumError SetMinSizeSF	( SuperFile_t * sf, off_t off );
 enumError MarkMinSizeSF ( SuperFile_t * sf, off_t off );
 u64       GetGoodMinSize( bool is_gc );
 
+//-----------------------------------------------------------------------------
 // data block functions
 
 off_t DataBlockStandard
@@ -364,7 +370,29 @@ off_t UnionDataBlockSF
     off_t		* block_size	// not null: return block size
 );
 
+uint GetFileMapSF
+(
+    SuperFile_t		* sf,		// valid super files
+    FileMap_t		* mm,		// memory list
+    bool		init_mm		// true: initialize 'mm', false: reset 'mm'
+);
 
+//-----------------------------------------------------------------------------
+// mem list functions
+
+uint GetFileMapSF
+(
+    SuperFile_t		* sf,		// valid super files
+    FileMap_t		* mm,		// memory list
+    bool		init_mm		// true: initialize 'mm', false: reset 'mm'
+);
+
+void FileMapISO  ( SuperFile_t * sf, FileMap_t *fm );
+void FileMapWDF  ( SuperFile_t * sf, FileMap_t *fm );
+void FileMapWBFS ( SuperFile_t * sf, FileMap_t *fm );
+void FileMapCISO ( SuperFile_t * sf, FileMap_t *fm );
+
+//-----------------------------------------------------------------------------
 // standard read and write wrappers
 
 enumError ReadSwitchSF		( SuperFile_t * sf, off_t off, void * buf, size_t count );

@@ -166,6 +166,11 @@ wit v2.09a r4047 - 2012-09-08
    thought, that no source was defined (same as with --source before).
 
 
+wit v2.09b r4053 - 2012-09-09
+
+ - Bug fix: Because of the --recurse bug fix of v2.08a, "wit COPY" failed.
+
+
 @@MODULE(last-history.txt)@@
 
 

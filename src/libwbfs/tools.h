@@ -145,18 +145,19 @@ u64 wd_align_part
 
 typedef enum wd_size_mode_t
 {
-    //----- modes
+    //----- modes => used as index for wd_size_tab_1000[] & wd_size_tab_1024[]
 
     WD_SIZE_DEFAULT	= 0,	// special default value, fall back to AUTO
     WD_SIZE_AUTO,		// select unit automatically
 
     WD_SIZE_BYTES,		// force output in bytes
-    WD_SIZE_K,			// force output in KB or KiB
-    WD_SIZE_M,			// force output in MB or MiB
-    WD_SIZE_G,			// force output in GB or GiB
-    WD_SIZE_T,			// force output in TB or TiB
-    WD_SIZE_P,			// force output in PB or PiB
-    WD_SIZE_E,			// force output in EB or EiB
+    WD_SIZE_K,			// force output in KB or KiB (kilo,kibi)
+    WD_SIZE_M,			// force output in MB or MiB (mega,mebi)
+    WD_SIZE_G,			// force output in GB or GiB (giga,gibi)
+    WD_SIZE_T,			// force output in TB or TiB (tera,tebi)
+    WD_SIZE_P,			// force output in PB or PiB (peta,pebi)
+    WD_SIZE_E,			// force output in EB or EiB (exa, exbi)
+				// zetta/zebi & yotta/yobi not supported because >2^64
 
     WD_SIZE_HD_SECT,		// force output as multiples of HD sector size (=512)
     WD_SIZE_WD_SECT,		// force output as multiples of WD sector size (=32768)
@@ -167,18 +168,24 @@ typedef enum wd_size_mode_t
 
     //----- flags
 
-    WD_SIZE_F_1000	= 0x10,	// force output in SI units (kB=1000, MB=1000000,...)
-    WD_SIZE_F_1024	= 0x20,	// force output in IEC units (KiB=1024, MiB=1024*1024,...)
-    WD_SIZE_F_AUTO_UNIT	= 0x40,	// suppress output of unit for non AUTO mode
-    WD_SIZE_F_NO_UNIT	= 0x80,	// suppress allways output of unit
+    WD_SIZE_F_1000	= 0x010,  // force output in SI units (kB=1000, MB=1000000,...)
+    WD_SIZE_F_1024	= 0x020,  // force output in IEC units (KiB=1024, MiB=1024*1024,...)
+    WD_SIZE_F_AUTO_UNIT	= 0x040,  // suppress output of unit for non AUTO mode
+    WD_SIZE_F_NO_UNIT	= 0x080,  // suppress allways output of unit
+    WD_SIZE_F_SMALL_VAL	= 0x100,  // try to find a small numbe rand large unit
 
     //----- masks
 
-    WD_SIZE_M_MODE	= 0x0f,	// mask for modes
-    WD_SIZE_M_BASE	= 0x30,	// mask for base
-    WD_SIZE_M_ALL	= 0xff,	// all relevant bits
+    WD_SIZE_M_MODE	= 0x00f,  // mask for modes
+    WD_SIZE_M_BASE	= 0x030,  // mask for base
+    WD_SIZE_M_ALL	= 0x1ff,  // all relevant bits
 
 } wd_size_mode_t;
+
+//-----------------------------------------------------------------------------
+
+extern ccp wd_size_tab_1000[WD_SIZE_N_MODES+1];
+extern ccp wd_size_tab_1024[WD_SIZE_N_MODES+1];
 
 //-----------------------------------------------------------------------------
 
