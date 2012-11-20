@@ -134,6 +134,7 @@ typedef enum enumOptions
 	OPT_ATIME,
 	OPT_TIME,
 	OPT_LONG,
+	OPT_BRIEF,
 	OPT_NUMERIC,
 	OPT_TECHNICAL,
 	OPT_REALPATH,
@@ -148,7 +149,7 @@ typedef enum enumOptions
 	OPT_FILE_LIMIT,
 	OPT_PATCH_FILE,
 
-	OPT__N_SPECIFIC, // == 92 
+	OPT__N_SPECIFIC, // == 93 
 
 	//----- global options -----
 
@@ -175,7 +176,7 @@ typedef enum enumOptions
 	OPT_NEW,
 	OPT_HOOK,
 
-	OPT__N_TOTAL // == 114
+	OPT__N_TOTAL // == 115
 
 } enumOptions;
 
@@ -268,6 +269,7 @@ typedef enum enumOptions
 //	OB_ATIME		= 1llu << OPT_ATIME,
 //	OB_TIME			= 1llu << OPT_TIME,
 //	OB_LONG			= 1llu << OPT_LONG,
+//	OB_BRIEF		= 1llu << OPT_BRIEF,
 //	OB_NUMERIC		= 1llu << OPT_NUMERIC,
 //	OB_TECHNICAL		= 1llu << OPT_TECHNICAL,
 //	OB_REALPATH		= 1llu << OPT_REALPATH,
@@ -401,6 +403,8 @@ typedef enum enumOptions
 //				| OB_LONG
 //				| OB_NUMERIC,
 //
+//	OB_CMD_ANAID		= OB_NO_HEADER,
+//
 //	OB_CMD_EXCLUDE		= OB_EXCLUDE
 //				| OB_EXCLUDE_PATH,
 //
@@ -435,6 +439,8 @@ typedef enum enumOptions
 //				| OB_ID
 //				| OB_IOS,
 //
+//	OB_CMD_CODE		= 0,
+//
 //	OB_CMD_DUMP		= OB_GRP_TITLES
 //				| OB_AUTO
 //				| OB_GRP_XSOURCE
@@ -452,6 +458,12 @@ typedef enum enumOptions
 //				| OB_GRP_FST_OPTIONS
 //				| OB_LONG
 //				| OB_GRP_PATCH_ID,
+//
+//	OB_CMD_FRAGMENTS	= OB_AUTO
+//				| OB_GRP_XSOURCE
+//				| OB_GRP_FST_OPTIONS
+//				| OB_LONG
+//				| OB_BRIEF,
 //
 //	OB_CMD_LIST		= OB_GRP_TITLES
 //				| OB_AUTO
@@ -618,11 +630,13 @@ typedef enum enumCommands
 	CMD_TEST,
 	CMD_ERROR,
 	CMD_COMPR,
+	CMD_ANAID,
 	CMD_EXCLUDE,
 	CMD_TITLES,
 	CMD_GETTITLES,
 	CMD_CERT,
 	CMD_CREATE,
+	CMD_CODE,
 
 	CMD_FILELIST,
 	CMD_FILETYPE,
@@ -630,6 +644,7 @@ typedef enum enumCommands
 
 	CMD_DUMP,
 	CMD_ID6,
+	CMD_FRAGMENTS,
 	CMD_LIST,
 	CMD_LIST_L,
 	CMD_LIST_LL,
@@ -655,7 +670,7 @@ typedef enum enumCommands
 	CMD_SKELETON,
 	CMD_MIX,
 
-	CMD__N // == 38
+	CMD__N // == 41
 
 } enumCommands;
 
@@ -693,6 +708,7 @@ typedef enum enumGetOpt
 	GO_SPLIT_SIZE		= 'Z',
 
 	GO_AUTO			= 'a',
+	GO_BRIEF		= 'b',
 	GO_DEST			= 'd',
 	GO_FORCE		= 'f',
 	GO_HELP			= 'h',

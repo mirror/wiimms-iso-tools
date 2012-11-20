@@ -1,5 +1,8 @@
 ../src/wtest.c ;
-../work/wtest+.c ;
+../src/lib-bzip2.[ch] ;
 ../src/lib-std.c ;
+../work/wtest+.c ;
 @+all-source.edit-list
--y 1000 ../src/wtest.c ;
+-y 750 ../src/wtest.c ;
+-y 320 ../src/lib-bzip2.c ;
+-y 150 ../src/lib-bzip2.h ;

@@ -34,7 +34,7 @@
  *                                                                         *
  ***************************************************************************/
 
-#define WIT_DEBUG_C 1
+#define SZS_DEBUG_C 1
 #include "debug.h"
 
 #include <stdio.h>
@@ -54,7 +54,7 @@ unsigned GetTimerMSec();
 
 ///////////////////////////////////////////////////////////////////////////////
 
-static void trace_helper ( int print_stderr, const char * format, va_list arg )
+static void trace_helper ( int print_stderr, ccp  format, va_list arg )
 {
     if (!TRACE_FILE)
     {
@@ -88,7 +88,7 @@ static void trace_helper ( int print_stderr, const char * format, va_list arg )
 
 #undef TRACE_ARG_FUNC
 
-void TRACE_ARG_FUNC ( const char * format, va_list arg )
+void TRACE_ARG_FUNC ( ccp format, va_list arg )
 {
     trace_helper(0,format,arg);
 }
@@ -97,7 +97,7 @@ void TRACE_ARG_FUNC ( const char * format, va_list arg )
 
 #undef TRACE_FUNC
 
-void TRACE_FUNC ( const char * format, ... )
+void TRACE_FUNC ( ccp format, ... )
 {
     va_list arg;
     va_start(arg,format);
@@ -109,7 +109,7 @@ void TRACE_FUNC ( const char * format, ... )
 
 #undef PRINT_ARG_FUNC
 
-void PRINT_ARG_FUNC ( const char * format, va_list arg )
+void PRINT_ARG_FUNC ( ccp format, va_list arg )
 {
     trace_helper(1,format,arg);
 }
@@ -118,7 +118,7 @@ void PRINT_ARG_FUNC ( const char * format, va_list arg )
 
 #undef PRINT_FUNC
 
-void PRINT_FUNC ( const char * format, ... )
+void PRINT_FUNC ( ccp format, ... )
 {
     va_list arg;
     va_start(arg,format);
@@ -130,7 +130,7 @@ void PRINT_FUNC ( const char * format, ... )
 
 #undef WAIT_ARG_FUNC
 
-void WAIT_ARG_FUNC ( const char * format, va_list arg )
+void WAIT_ARG_FUNC ( ccp format, va_list arg )
 {
     if ( format && *format )
 	trace_helper(1,format,arg);
@@ -142,7 +142,7 @@ void WAIT_ARG_FUNC ( const char * format, va_list arg )
 
 #undef WAIT_FUNC
 
-void WAIT_FUNC ( const char * format, ... )
+void WAIT_FUNC ( ccp format, ... )
 {
     va_list arg;
     va_start(arg,format);
@@ -155,11 +155,23 @@ void WAIT_FUNC ( const char * format, ... )
 ///////////////			alloc/free system		///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-#if TRACE_ALLOC_MODE > 1
+#if TRACE_ALLOC_MODE > 2
     #define MEM_FILLER_SIZE 8
     static u8 mem_filler[MEM_FILLER_SIZE];
 #else
     #define MEM_FILLER_SIZE 0
+#endif
+
+#if TRACE_ALLOC_MODE > 1
+    #define MPARAM ccp func, ccp file, uint line,
+    #define MCALL  func,file,line,
+    #define PRINT_OOM(...) \
+	PrintError(func,file,line,0,ERR_OUT_OF_MEMORY,__VA_ARGS__)
+#else
+    #define MPARAM
+    #define MCALL
+    #define PRINT_OOM(...) \
+	PrintError(__FUNCTION__,__FILE__,__LINE__,0,ERR_OUT_OF_MEMORY,__VA_ARGS__)
 #endif
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -170,51 +182,49 @@ void my_free ( void * ptr )
 }
 
 ///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
 
-void * my_calloc  ( size_t nmemb, size_t size )
+void * my_calloc ( MPARAM size_t nmemb, size_t size )
 {
     void * res = calloc(nmemb,size);
     if (!res)
-	PrintError(__FUNCTION__,__FILE__,__LINE__,0,ERR_OUT_OF_MEMORY,
-		"Out of memory while calloc() %zu bytes (%zu*%zu=0x%zx)\n",
+	PRINT_OOM("Out of memory while calloc() %zu bytes (%zu*%zu=0x%zx)\n",
 		nmemb*size, nmemb, size, nmemb*size );
     return res;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 
-void * my_malloc ( size_t size )
+void * my_malloc ( MPARAM size_t size )
 {
     void * res = malloc(size);
     if (!res)
-	PrintError(__FUNCTION__,__FILE__,__LINE__,0,ERR_OUT_OF_MEMORY,
-		"Out of memory while malloc() %zu bytes (0x%zx)\n",
+	PRINT_OOM("Out of memory while malloc() %zu bytes (0x%zx)\n",
 		size, size );
     return res;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 
-void * my_realloc ( void * ptr, size_t size )
+void * my_realloc ( MPARAM void * ptr, size_t size )
 {
     void * res = realloc(ptr,size);
     if (!res)
-	PrintError(__FUNCTION__,__FILE__,__LINE__,0,ERR_OUT_OF_MEMORY,
-		"Out of memory while realloc() %zu bytes (0x%zx)\n",
+	PRINT_OOM("Out of memory while realloc() %zu bytes (0x%zx)\n",
 		size, size );
     return res;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
 
-char * my_strdup  ( ccp src )
+char * my_strdup  ( MPARAM ccp src )
 {
     char * res = strdup(src);
     if (!res)
     {
 	const uint size = src ? strlen(src)+1 : 0;
-	PrintError(__FUNCTION__,__FILE__,__LINE__,0,ERR_OUT_OF_MEMORY,
-		"Out of memory while strdup() %u bytes (0x%x)\n",
+	PRINT_OOM("Out of memory while strdup() %u bytes (0x%x)\n",
 		size, size );
     }
     return res;
@@ -222,11 +232,11 @@ char * my_strdup  ( ccp src )
 
 ///////////////////////////////////////////////////////////////////////////////
 
-char * my_strdup2 ( ccp src1, ccp src2 )
+char * my_strdup2 ( MPARAM ccp src1, ccp src2 )
 {
     const uint len1 = src1 ? strlen(src1) : 0;
     const uint len2 = src2 ? strlen(src2) : 0;
-    char * res = my_malloc(len1+len2+1);
+    char * res = my_malloc( MCALL len1+len2+1 );
     if (len1)
 	memcpy(res,src1,len1);
     if (len2)
@@ -237,9 +247,37 @@ char * my_strdup2 ( ccp src1, ccp src2 )
 
 ///////////////////////////////////////////////////////////////////////////////
 
-void * my_memdup ( const void * src, size_t copylen )
+char * my_strdup3 ( MPARAM ccp src1, ccp src2, ccp src3 )
 {
-    char * dest = my_malloc(copylen+1);
+    const uint len1 = src1 ? strlen(src1) : 0;
+    const uint len2 = src2 ? strlen(src2) : 0;
+    const uint len3 = src3 ? strlen(src3) : 0;
+    char * res = my_malloc( MCALL len1+len2+len3+1 );
+    char * dest = res;
+    if (len1)
+    {
+	memcpy(dest,src1,len1);
+	dest += len1;
+    }
+    if (len2)
+    {
+	memcpy(dest,src2,len2);
+	dest += len2;
+    }
+    if (len3)
+    {
+	memcpy(dest,src3,len3);
+	dest += len3;
+    }
+    *dest = 0;
+    return res;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+void * my_memdup ( MPARAM const void * src, size_t copylen )
+{
+    char * dest = my_malloc( MCALL copylen+1);
     memcpy(dest,src,copylen);
     dest[copylen] = 0;
     return dest;
@@ -248,7 +286,7 @@ void * my_memdup ( const void * src, size_t copylen )
 //
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
-#if TRACE_ALLOC_MODE > 1
+#if TRACE_ALLOC_MODE > 2
 ///////////////////////////////////////////////////////////////////////////////
 
 typedef struct mem_info_t
@@ -285,15 +323,19 @@ static FILE * OpenMemLog()
 
 ///////////////////////////////////////////////////////////////////////////////
 
-static void MemLog ( ccp func, ccp file, uint line, ccp info, u8 * ptr )
+static void MemLog
+    ( ccp func, ccp file, uint line, ccp info, u8 * ptr, bool no_stderr )
 {
-    fprintf(stderr,"MEM-ERR[%s,%p] %s @ %s#%u\n",
+    if (!no_stderr)
+    {
+	fprintf(stderr,"MEM-ERR[%s,%p] %s() @ %s#%u\n",
 		info, ptr, func, file, line );
-    fflush(stderr);
+	fflush(stderr);
+    }
 
     if (OpenMemLog())
     {
-	fprintf(mem_log,"[%s,%p] %s @ %s#%u\n\n",
+	fprintf(mem_log,"[%s,%p] %s() @ %s#%u\n",
 		info, ptr, func, file, line );
 	fflush(mem_log);
     }
@@ -304,18 +346,18 @@ static void MemLog ( ccp func, ccp file, uint line, ccp info, u8 * ptr )
 static void MemLogItem ( ccp func, ccp file, uint line, ccp info, const mem_info_t * mi )
 {
     if (func)
-	fprintf(stderr,"MEM-ERR[%s] %s @ %s#%u\n",
+	fprintf(stderr,"MEM-ERR[%s] %s() @ %s#%u\n",
 		info, func, file, line );
-    fprintf(stderr,"MEM-ERR[%s,%u] %s @ %s#%u\n",
+    fprintf(stderr,"MEM-ERR[%s,%u] %s() @ %s#%u\n",
 		info, mi->seqnum, mi->func, mi->file, mi->line );
     fflush(stderr);
 
     if (OpenMemLog())
     {
 	if (func)
-	    fprintf(mem_log,"[%s] %s @ %s#%u\n",
+	    fprintf(mem_log,"[%s] %s() @ %s#%u\n",
 		    info, func, file, line );
-	fprintf(mem_log,"[%s,%u] %s @ %s#%u\n",
+	fprintf(mem_log,"[%s,%u] %s() @ %s#%u\n",
 		    info, mi->seqnum, mi->func, mi->file, mi->line );
 	HexDump16( mem_log, 10, 0, mi->data - MEM_FILLER_SIZE, 2*MEM_FILLER_SIZE );
 	HexDump16( mem_log, 10, mi->size + MEM_FILLER_SIZE,
@@ -364,6 +406,7 @@ void InitializeTraceAlloc()
     static bool done = false;
     if (done)
 	return;
+    done = true;
 
     OpenMemLog();
 
@@ -398,13 +441,13 @@ int CheckTraceAlloc ( ccp func, ccp file, uint line )
 
     if (count)
     {
-	fprintf(stderr,"MEM-ERR: %u errors found -> %s @ %s#%u\n",
+	fprintf(stderr,"MEM-ERR: %u errors found -> %s() @ %s#%u\n",
 		count, func, file, line );
 	fflush(stderr);
 
 	if (OpenMemLog())
 	{
-	    fprintf(mem_log,"--- %u errors found -> %s @ %s#%u\n\n",
+	    fprintf(mem_log,"--- %u errors found -> %s() @ %s#%u\n\n",
 		count, func, file, line );
 	    fflush(mem_log);
 	}
@@ -439,7 +482,7 @@ void DumpTraceAlloc ( ccp func, ccp file, uint line, FILE * f )
 static mem_info_t * RegisterAlloc
 	( ccp func, ccp file, uint line, u8 * data, uint size )
 {
-    if (! mem_seqnum)
+    if (!mem_seqnum)
 	InitializeTraceAlloc();
 
     uint idx = FindMemInfoHelper(data,size);
@@ -451,8 +494,7 @@ static mem_info_t * RegisterAlloc
 	const uint alloc_size = mem_size * sizeof(*mem_list);
 	mem_list = realloc(mem_list,alloc_size);
 	if (!mem_list)
-	    PrintError(__FUNCTION__,__FILE__,__LINE__,0,ERR_OUT_OF_MEMORY,
-		"Out of memory while RegisterAlloc() %u bytes (0x%x)\n",
+	    PRINT_OOM("Out of memory while RegisterAlloc() %u bytes (0x%x)\n",
 		alloc_size, alloc_size );
     }
 
@@ -467,18 +509,22 @@ static mem_info_t * RegisterAlloc
     mi->data	= data;
     mi->size	= size;
     mi->seqnum	= mem_seqnum++;
+
+ #if TRACE_ALLOC_MODE > 3
+    MemLog(func,file,line,"ALLOCED",data,true);
+ #endif
     return mi;
 }
 
 //
 ///////////////////////////////////////////////////////////////////////////////
-#endif // TRACE_ALLOC_MODE > 1
+#endif // TRACE_ALLOC_MODE > 2
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
 static void * UnregisterAlloc ( ccp func, ccp file, uint line, u8 * data )
 {
- #if TRACE_ALLOC_MODE > 1
+ #if TRACE_ALLOC_MODE > 2
     if (!data)
 	return 0;
 
@@ -494,6 +540,10 @@ static void * UnregisterAlloc ( ccp func, ccp file, uint line, u8 * data )
 	    beg = idx + 1;
 	else
 	{
+	 #if TRACE_ALLOC_MODE > 3
+	    MemLog(func,file,line,"FREE",data,true);
+	 #endif
+
 	    if (memcmp(data-MEM_FILLER_SIZE,mem_filler,sizeof(mem_filler)))
 		MemLogItem(func,file,line,"BEG",mi);
 
@@ -504,7 +554,7 @@ static void * UnregisterAlloc ( ccp func, ccp file, uint line, u8 * data )
 	    return data - MEM_FILLER_SIZE;
 	}
     }
-    MemLog(func,file,line,"NOT FOUND",data);
+    MemLog(func,file,line,"NOT FOUND",data,false);
  #endif
     return data;
 }
@@ -522,11 +572,10 @@ void * trace_malloc  ( ccp func, ccp file, uint line, size_t size )
 {
     u8 * res = malloc( size + 2 * MEM_FILLER_SIZE );
     if (!res)
-	PrintError(func,file,line,0,ERR_OUT_OF_MEMORY,
-		"Out of memory while allocate %zu+%u bytes (0x%zx)\n",
+	PRINT_OOM("Out of memory while allocate %zu+%u bytes (0x%zx)\n",
 		size, 2 * MEM_FILLER_SIZE, size + 2 * MEM_FILLER_SIZE );
 
- #if TRACE_ALLOC_MODE > 1
+ #if TRACE_ALLOC_MODE > 2
     memcpy(res,mem_filler,MEM_FILLER_SIZE);
     res += MEM_FILLER_SIZE;
     memcpy(res+size,mem_filler,MEM_FILLER_SIZE);
@@ -553,11 +602,10 @@ void * trace_realloc ( ccp func, ccp file, uint line, void *ptr, size_t size )
     ptr = UnregisterAlloc(func,file,line,ptr);
     void * res = realloc( ptr, size + 2 * MEM_FILLER_SIZE );
     if (!res)
-	PrintError(func,file,line,0,ERR_OUT_OF_MEMORY,
-		"Out of memory while re allocate %zu+%u bytes (0x%zx)\n",
+	PRINT_OOM("Out of memory while re allocate %zu+%u bytes (0x%zx)\n",
 		size, 2 * MEM_FILLER_SIZE, size + 2 * MEM_FILLER_SIZE );
 
- #if TRACE_ALLOC_MODE > 1
+ #if TRACE_ALLOC_MODE > 2
     memcpy(res,mem_filler,MEM_FILLER_SIZE);
     res += MEM_FILLER_SIZE;
     memcpy(res+size,mem_filler,MEM_FILLER_SIZE);
@@ -589,6 +637,34 @@ char * trace_strdup2 ( ccp func, ccp file, uint line, ccp src1, ccp src2 )
     if (len2)
 	memcpy(res+len1,src2,len2);
     res[len1+len2] = 0;
+    return res;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+char * trace_strdup3 ( ccp func, ccp file, uint line, ccp src1, ccp src2, ccp src3 )
+{
+    const uint len1 = src1 ? strlen(src1) : 0;
+    const uint len2 = src2 ? strlen(src2) : 0;
+    const uint len3 = src3 ? strlen(src3) : 0;
+    char * res = trace_malloc(func,file,line,len1+len2+len3+1);
+    char * dest = res;
+    if (len1)
+    {
+	memcpy(dest,src1,len1);
+	dest += len1;
+    }
+    if (len2)
+    {
+	memcpy(dest,src2,len2);
+	dest += len2;
+    }
+    if (len3)
+    {
+	memcpy(dest,src3,len3);
+	dest += len3;
+    }
+    *dest = 0;
     return res;
 }
 

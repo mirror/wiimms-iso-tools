@@ -182,7 +182,7 @@ static enumError CloseHelperSF
 		SetFileTime(&sf->f,set_time_ref);
 	}
     }
-	
+
     if (sf->progress_summary)
     {
 	sf->progress_summary = false;
@@ -322,6 +322,7 @@ enumOFT SetupIOD ( SuperFile_t * sf, enumOFT force, enumOFT def )
 	case OFT_PLAIN:
 	    sf->iod.read_func		= ReadISO;
 	    sf->iod.data_block_func	= DataBlockStandard;	// standard function
+	    sf->iod.file_map_func	= FileMapISO;
 	    sf->iod.write_func		= WriteISO;
 	    sf->iod.write_sparse_func	= WriteSparseISO;
 	    sf->iod.write_zero_func	= WriteZeroISO;
@@ -331,6 +332,7 @@ enumOFT SetupIOD ( SuperFile_t * sf, enumOFT force, enumOFT def )
 	case OFT_WDF:
 	    sf->iod.read_func		= ReadWDF;
 	    sf->iod.data_block_func	= DataBlockWDF;
+	    sf->iod.file_map_func	= FileMapWDF;
 	    sf->iod.write_func		= WriteWDF;
 	    sf->iod.write_sparse_func	= WriteSparseWDF;
 	    sf->iod.write_zero_func	= WriteZeroWDF;
@@ -340,6 +342,7 @@ enumOFT SetupIOD ( SuperFile_t * sf, enumOFT force, enumOFT def )
 	case OFT_WIA:
 	    sf->iod.read_func		= ReadWIA;
 	    sf->iod.data_block_func	= DataBlockWIA;
+	    sf->iod.file_map_func	= 0;			// not supported
 	    sf->iod.write_func		= WriteWIA;
 	    sf->iod.write_sparse_func	= WriteSparseWIA;
 	    sf->iod.write_zero_func	= WriteZeroWIA;
@@ -349,6 +352,7 @@ enumOFT SetupIOD ( SuperFile_t * sf, enumOFT force, enumOFT def )
 	case OFT_CISO:
 	    sf->iod.read_func		= ReadCISO;
 	    sf->iod.data_block_func	= DataBlockCISO;
+	    sf->iod.file_map_func	= FileMapCISO;
 	    sf->iod.write_func		= WriteCISO;
 	    sf->iod.write_sparse_func	= WriteSparseCISO;
 	    sf->iod.write_zero_func	= WriteZeroCISO;
@@ -358,6 +362,7 @@ enumOFT SetupIOD ( SuperFile_t * sf, enumOFT force, enumOFT def )
 	case OFT_WBFS:
 	    sf->iod.read_func		= ReadWBFS;
 	    sf->iod.data_block_func	= DataBlockWBFS;
+	    sf->iod.file_map_func	= FileMapWBFS;
 	    sf->iod.write_func		= WriteWBFS;
 	    sf->iod.write_sparse_func	= WriteWBFS;		// no sparse support
 	    sf->iod.write_zero_func	= WriteZeroWBFS;
@@ -367,6 +372,7 @@ enumOFT SetupIOD ( SuperFile_t * sf, enumOFT force, enumOFT def )
 	case OFT_FST:
 	    sf->iod.read_func		= ReadFST;
 	    sf->iod.data_block_func	= DataBlockStandard;	// standard function
+	    sf->iod.file_map_func	= 0;			// not supported
 	    sf->iod.write_func		= WriteSwitchSF;	// not supported
 	    sf->iod.write_sparse_func	= WriteSparseSwitchSF;	// not supported
 	    sf->iod.write_zero_func	= WriteZeroSwitchSF;	// not supported
@@ -376,6 +382,7 @@ enumOFT SetupIOD ( SuperFile_t * sf, enumOFT force, enumOFT def )
 	default:
 	    sf->iod.read_func		= ReadSwitchSF;
 	    sf->iod.data_block_func	= DataBlockStandard;	// standard function
+	    sf->iod.file_map_func	= 0;			// not supported
 	    sf->iod.write_func		= WriteSwitchSF;
 	    sf->iod.write_sparse_func	= WriteSparseSwitchSF;
 	    sf->iod.write_zero_func	= WriteZeroSwitchSF;
@@ -492,7 +499,7 @@ enumError SetupReadWBFS ( SuperFile_t * sf )
 	sf->wbfs_fragments, sf->file_size, (u64)single_size );
     if ( sf->file_size < single_size )
 	sf->file_size = single_size;
-    
+
 
     //---- store data
 
@@ -802,7 +809,7 @@ wd_disc_t * OpenDiscSF
 
     if ( IsOpenSF(sf) && sf->f.is_reading )
 	disc = wd_open_disc(WrapperReadDirectSF,sf,file_size,sf->f.fname,opt_force,0);
-	
+
     if (!disc)
     {
 	if (print_err)
@@ -938,9 +945,9 @@ wd_disc_t * OpenDiscSF
     if (files_dirty)
 	wd_select_disc_files(disc,0,0);
 
-    
+
     //----- reloc?
-    
+
     const wd_trim_mode_t reloc_trim = wd_get_relococation_trim(opt_trim,0,0);
 
     if ( reloc || reloc_trim )
@@ -1050,7 +1057,7 @@ int SubstFileName
 
     if ( !src_file || !*src_file )
 	src_file = "./";
-	
+
     if (!fname)
     {
 	fname = src_file;
@@ -1224,7 +1231,7 @@ enumError SparseHelper
 
 
     //----- check if buf is well aligend
-    
+
     DASSERT( Count1Bits32(sizeof(WDF_Hole_t)) == 1 );
     const size_t align_mask = sizeof(WDF_Hole_t) - 1;
 
@@ -1402,7 +1409,7 @@ off_t UnionDataBlockSF
 	    *block_size = size2;
 	return off2; 
     }
-    
+
     off = off1 < off2 ? off1 : off2;
 
     if (block_size)
@@ -1413,6 +1420,28 @@ off_t UnionDataBlockSF
     }
 
     return off;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+uint GetFileMapSF
+(
+    SuperFile_t		* sf,		// valid super files
+    FileMap_t		* fm,		// file map
+    bool		init_fm		// true: initialize 'fm', false: reset 'fm'
+)
+{
+    DASSERT(sf);
+    DASSERT(fm);
+    if (init_fm)
+	InitializeFileMap(fm);
+    else
+	ResetFileMap(fm);
+
+    if (sf->iod.file_map_func)
+	sf->iod.file_map_func(sf,fm);
+
+    return fm->used;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -1604,6 +1633,17 @@ off_t DataBlockStandard
 
 ///////////////////////////////////////////////////////////////////////////////
 
+void FileMapISO ( SuperFile_t * sf, FileMap_t *fm )
+{
+    DASSERT(sf);
+    DASSERT(fm);
+    DASSERT(!fm->used);
+
+    AppendFileMap(fm,0,0,sf->file_size);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
 enumError FlushFile ( SuperFile_t * sf )
 {
     DASSERT(sf);
@@ -1682,14 +1722,14 @@ enumError ReadWBFS ( SuperFile_t * sf, off_t off, void * buf, size_t count )
     TRACE(TRACE_RDWR_FORMAT, "#B# ReadWBFS()",
 		GetFD(&sf->f), GetFP(&sf->f), (u64)off, (u64)off+count, count, "" );
 
-    ASSERT(sf->wbfs);
-    ASSERT(sf->wbfs->disc);
-    ASSERT(sf->wbfs->disc->header);
+    DASSERT(sf->wbfs);
+    DASSERT(sf->wbfs->disc);
+    DASSERT(sf->wbfs->disc->header);
     u16 * wlba_tab = sf->wbfs->disc->header->wlba_table;
-    ASSERT(wlba_tab);
+    DASSERT(wlba_tab);
 
     wbfs_t * w = sf->wbfs->wbfs;
-    ASSERT(w);
+    DASSERT(w);
 
     u32 bl = (u32)( off / w->wbfs_sec_sz );
     u32 bl_off = (u32)( off - (u64)bl * w->wbfs_sec_sz );
@@ -1731,14 +1771,14 @@ enumError ReadWBFS ( SuperFile_t * sf, off_t off, void * buf, size_t count )
 off_t DataBlockWBFS
 	( SuperFile_t * sf, off_t off, size_t hint_align, off_t * block_size )
 {
-    ASSERT(sf->wbfs);
-    ASSERT(sf->wbfs->disc);
-    ASSERT(sf->wbfs->disc->header);
+    DASSERT(sf->wbfs);
+    DASSERT(sf->wbfs->disc);
+    DASSERT(sf->wbfs->disc->header);
     u16 * wlba_tab = sf->wbfs->disc->header->wlba_table;
-    ASSERT(wlba_tab);
+    DASSERT(wlba_tab);
 
     wbfs_t * w = sf->wbfs->wbfs;
-    ASSERT(w);
+    DASSERT(w);
 
     u32 block = (u32)( off / w->wbfs_sec_sz );
 
@@ -1761,8 +1801,39 @@ off_t DataBlockWBFS
 	    block++;
 	*block_size = block * w->wbfs_sec_sz - off;
     }
- 
+
     return off;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+void FileMapWBFS ( SuperFile_t * sf, FileMap_t *fm )
+{
+    DASSERT(sf);
+    DASSERT(fm);
+    DASSERT(!fm->used);
+
+    ASSERT(sf->wbfs);
+    ASSERT(sf->wbfs->disc);
+    ASSERT(sf->wbfs->disc->header);
+    u16 * wlba_tab = sf->wbfs->disc->header->wlba_table;
+    ASSERT(wlba_tab);
+
+    wbfs_t * w = sf->wbfs->wbfs;
+    ASSERT(w);
+
+    const u64 block_size = w->wbfs_sec_sz;
+
+    uint block;
+    for ( block = 0; block < w->n_wbfs_sec_per_disc; block++ )
+    {
+	const uint src_block = ntohs(wlba_tab[block]);
+	if (src_block)
+	    AppendFileMap( fm,
+			block_size * block,
+			block_size * src_block,
+			block_size );
+    }
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -2126,7 +2197,7 @@ void PrintSummarySF ( SuperFile_t * sf )
 	    if (*ratebuf)
 		printf("compression-percent=%4.2f\n",
 			100.0 * (double)sf->f.max_off / sf->source_size);
-	    
+
 	    putchar('\n');
 	}
 	else if (total)
@@ -2452,7 +2523,16 @@ enumFileType AnalyzeFT ( File_t * f )
 	{
 	    TRACE(" - WDF found -> load first chunk\n");
 	    ft |= FT_A_WDF;
-	    data_ptr += sizeof(WDF_Head_t);
+
+	#if WDF2_ENABLED
+	    const WDF_Head_t *wh = (WDF_Head_t*)data_ptr;
+	    data_ptr += wh1->wdf_version == 1
+				? WDF_VERSION1_SIZE
+				: WDF_VERSION2_SIZE;
+	#else
+	    data_ptr += WDF_VERSION1_SIZE;
+	#endif
+
 	    if ( f->seek_allowed
 		&& !ReadAtF(f,wh.chunk_off,&buf2,WDF_MAGIC_SIZE+sizeof(WDF_Chunk_t))
 		&& !memcmp(buf2,WDF_MAGIC,WDF_MAGIC_SIZE) )
@@ -2460,8 +2540,7 @@ enumFileType AnalyzeFT ( File_t * f )
 		TRACE(" - WDF chunk loaded\n");
 		WDF_Chunk_t *wc = (WDF_Chunk_t*)(buf2+WDF_MAGIC_SIZE);
 		ConvertToHostWC(wc,wc);
-		if ( wh.split_file_index == wc->split_file_index
-		    && wc->data_size >= 6 )
+		if ( wc->data_size >= 6 )
 		{
 		    // save param before clear buffer
 		    const off_t off = wc->data_off;
@@ -2528,7 +2607,7 @@ enumFileType AnalyzeFT ( File_t * f )
 				case WD_DT_GAMECUBE:
 				  ft |= FT_A_ISO | FT_A_GC_ISO;
 				  break;
-				
+
 				case WD_DT_WII:
 				  ft |= FT_A_ISO | FT_A_WII_ISO;
 				  break;
@@ -2624,7 +2703,7 @@ enumFileType AnalyzeMemFT ( const void * preload_buf, off_t file_size )
 
     if (!memcmp(data,"WBFS",4))
 	return FT_ID_WBFS;
-    
+
     int i;
     const u32 check_size = HD_SECTOR_SIZE < file_size ? HD_SECTOR_SIZE : file_size;
 
@@ -3141,7 +3220,7 @@ enumError NormalizeExtractPath
     DASSERT(dest_dir);
     DASSERT(dest_dir_size > 100 );
     DASSERT(source_dest);
-    
+
     char * dest = StringCopyS(dest_dir,dest_dir_size-1,source_dest);
     if ( dest == dest_dir || dest[-1] != '/' )
     {
@@ -3172,7 +3251,7 @@ enumError ExtractImage
     DASSERT(fi);
     DASSERT(dest_dir);
     DASSERT( strlen(dest_dir) && dest_dir[strlen(dest_dir)-1] == '/' );
-    
+
     wd_disc_t * disc = OpenDiscSF(fi,true,true);
     if (!disc)
 	return ERR_WDISC_NOT_FOUND;
@@ -3275,7 +3354,7 @@ enumError CopySF ( SuperFile_t * in, SuperFile_t * out )
 		    idx++;
 
 		noPRINT("COPY: %5x .. %5x / %5x, n=%2x\n",idx_begin,idx,idx_end,idx-idx_begin);
-		
+
 		const off_t off = (off_t)WII_SECTOR_SIZE * idx_begin;
 		const size_t size = (size_t)( idx - idx_begin ) * WII_SECTOR_SIZE;
 		DASSERT( size <= sizeof(iobuf) );
@@ -3301,7 +3380,7 @@ enumError CopySF ( SuperFile_t * in, SuperFile_t * out )
 		{
 		    if ( SIGINT_level > 1 )
 			return ERR_INTERRUPT;
-    
+
 		    noPRINT("COPY: %5x\n",idx);
 
 		    off_t off = (off_t)WII_SECTOR_SIZE * idx;
@@ -4038,7 +4117,7 @@ static int get_mismatch_size
 		(u64)data_off, data_size,
 		incompl, (u64)(incompl ? data_off + mlen : next_off) );
     }
-    
+
     if (incomplete)
 	*incomplete = incompl;
 
@@ -4100,7 +4179,7 @@ bool DiffData
 	    data_off  += mis_len;
 	    data_size -= mis_len;
 	}
-	
+
 	diff->data_size = 0;
 	diff->chunk_count--; // this is not a chunk!
 	if (!DiffData(diff,diff->data_off,total_len,diff->data1,diff->data2,2))
@@ -4112,7 +4191,7 @@ bool DiffData
 
 
     //--- fast diff data
-    
+
     if ( !data_size || !memcmp(data1,data2,data_size) )
 	return true;
 
@@ -4362,7 +4441,7 @@ static bool DiffCheckSize
 		diff->file_prefix, diff->file_name );
 	else
 	    fprintf(diff->logfile,"[mismatch:size]\n");
-	    
+
 	fprintf(diff->logfile,
 		"size1=%llu\n"
 		"size2=%llu\n"
@@ -4548,7 +4627,7 @@ enumError DiffSF
 	}
 	if ( !have_mod_list || run++ )
 	    break;
-	    
+
 	memcpy(wdisc_usage_tab,wdisc_usage_tab2,sizeof(wdisc_usage_tab));
 	UpdateSignatureFST(f1->fst); // NULL allowed
 	UpdateSignatureFST(f2->fst); // NULL allowed
@@ -4702,7 +4781,7 @@ enumError DiffFilesSF
     for ( ip1 = 0; ip1 < fst1.part_used; ip1++ )
     {
 	WiiFstPart_t * p1 = fst1.part + ip1;
-	
+
 	// find a partition with equal type in fst2
 
 	WiiFstPart_t * p2 = 0;
@@ -4752,7 +4831,7 @@ enumError DiffFilesSF
 	WiiFstPart_t * p1 = fst1.part + ip1;
 	if (p1->done++)
 	    continue;
-	
+
 	// find a partition with equal type in fst2
 
 	WiiFstPart_t * p2 = 0;
@@ -5083,7 +5162,7 @@ enumError oldDiffSF
 	}
 	if ( !have_mod_list || run++ )
 	    break;
-	    
+
 	memcpy(wdisc_usage_tab,wdisc_usage_tab2,sizeof(wdisc_usage_tab));
 	UpdateSignatureFST(f1->fst); // NULL allowed
 	UpdateSignatureFST(f2->fst); // NULL allowed
@@ -5243,7 +5322,7 @@ enumError oldDiffFilesSF
     for ( ip1 = 0; ip1 < fst1.part_used; ip1++ )
     {
 	WiiFstPart_t * p1 = fst1.part + ip1;
-	
+
 	// find a partition with equal type in fst2
 
 	WiiFstPart_t * p2 = 0;
@@ -5300,7 +5379,7 @@ enumError oldDiffFilesSF
 	WiiFstPart_t * p1 = fst1.part + ip1;
 	if (p1->done++)
 	    continue;
-	
+
 	// find a partition with equal type in fst2
 
 	WiiFstPart_t * p2 = 0;
@@ -5664,7 +5743,7 @@ static enumError SourceIteratorHelper
 		it->act_non_exist = it->act_non_iso = ACT_IGNORE;
 		if ( it->act_gc == ACT_WARN )
 		     it->act_gc = ACT_IGNORE;
-		     
+
 		while ( !err && SIGINT_level < 2 && it->num_of_files < job_limit )
 		{
 		    struct dirent * dent = readdir(dir);
@@ -5690,13 +5769,13 @@ static enumError SourceIteratorHelper
     }
 
     //----- file part
- 
+
  check_file:
     sf.f.disable_errors = it->act_non_exist != ACT_WARN;
     err = OpenSF(&sf,path,it->act_non_iso||it->act_wbfs>=ACT_ALLOW,it->open_modify);
     if ( err != ERR_OK && err != ERR_CANT_OPEN )
     {
-    	ResetSF(&sf,0);
+	ResetSF(&sf,0);
 	return ERR_OK;
     }
     sf.f.disable_errors = false;
@@ -5892,7 +5971,7 @@ static enumError SourceIteratorStarter
     const u32 num_of_dirs  = it->num_of_dirs;
 
     const enumError err = SourceIteratorHelper(it,path,collect_fnames);
-    
+
     if ( it->num_of_dirs > num_of_dirs && it->num_of_files == num_of_files )
 	it->num_empty_dirs++;
 

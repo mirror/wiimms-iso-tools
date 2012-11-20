@@ -1,7 +1,15 @@
 ../src/ui/tab-ui.c ;
+../src/ui/tab-wit.inc ;
+../src/ui/tab-wwt.inc ;
+../src/ui/tab-wdf.inc ;
+../src/ui/tab-*.inc ;
 ../src/ui/gen-ui.c ;
 ../src/ui/ui.[ch] ;
 ../src/ui/*.[ch] ;
 ../ui-*.tmp ;
 @+all-source.edit-list
 -y 185 ../src/ui/tab-ui.c ;
+-y   48 ../src/ui/tab-wit.inc ;
+-y   48 ../src/ui/tab-wwt.inc ;
+-y   48 ../src/ui/tab-wdf.inc ;
+-y   48 ../src/ui/tab-wfuse.inc ;

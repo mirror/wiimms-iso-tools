@@ -66,6 +66,7 @@
 #include "lib-std.h"
 #include "match-pattern.h"
 #include "crypt.h"
+#include "lib-bzip2.h"
 #include "lib-lzma.h"
 #include "titles.h"
 #include "iso-interface.h"
@@ -327,12 +328,21 @@ int test_copy_to_wbfs ( int argc, char ** argv )
 
 int test_print_size ( int argc, char ** argv )
 {
- #if 0
-    u64 i;
-    for ( i = 1; i; i <<= 10 )
-    {
-	printf("%21llu |%s|%s|\n", i,
+ #if 1
+
+    u64 i = 0;
+    printf("%21llu |%s|%s|  |%s|\t|%s|\n", i,
+		wd_print_size_1000(0,0,i,true),
 		wd_print_size_1024(0,0,i,true),
+		wd_print_size_1000(0,0,i,false),
+		wd_print_size_1024(0,0,i,false) );
+
+    for ( i = 1; i; i <<= 5 )
+    {
+	printf("%21llu |%s|%s|  |%s|\t|%s|\n", i,
+		wd_print_size_1000(0,0,i,true),
+		wd_print_size_1024(0,0,i,true),
+		wd_print_size_1000(0,0,i,false),
 		wd_print_size_1024(0,0,i,false) );
     }
 
@@ -340,15 +350,20 @@ int test_print_size ( int argc, char ** argv )
     for ( i = 1; i > prev; i *= 10 )
     {
 	prev = i;
-	printf("%21llu |%s|%s|\n", i,
+	printf("%21llu |%s|%s|  |%s|\t|%s|\n", i,
+		wd_print_size_1000(0,0,i,true),
 		wd_print_size_1024(0,0,i,true),
+		wd_print_size_1000(0,0,i,false),
 		wd_print_size_1024(0,0,i,false) );
     }
 
     i = ~(u64)0;
-    printf("%21llu |%s|%s|\n", i,
+    printf("%21llu |%s|%s|  |%s|\t|%s|\n", i,
+		wd_print_size_1000(0,0,i,true),
 		wd_print_size_1024(0,0,i,true),
+		wd_print_size_1000(0,0,i,false),
 		wd_print_size_1024(0,0,i,false) );
+
  #else
  
     u64 size = 1000000000;
@@ -466,9 +481,9 @@ int test ( int argc, char ** argv )
     //test_create_sparse_file();
     //test_splitted_file();
     //test_copy_to_wbfs(argc,argv);
-    //test_print_size(argc,argv);
+    test_print_size(argc,argv);
     //test_wbfs_free_blocks(argc,argv);
-    test_open_wdisk(argc,argv);
+    //test_open_wdisk(argc,argv);
    
     return 0;
 }
@@ -713,6 +728,66 @@ void test_sha1()
 }
 
 #endif // HAVE_OPENSSL
+//
+///////////////////////////////////////////////////////////////////////////////
+///////////////			test_bzip2()			///////////////
+///////////////////////////////////////////////////////////////////////////////
+#ifndef NO_BZIP2
+
+static void test_bzip2 ( int argc, char ** argv )
+{
+    uint i;
+    for ( i = 1; i < argc; i++ )
+    {
+	s64 fsize = GetFileSize(argv[i],0,0,0,0);
+	if (!fsize)
+	    continue;
+
+	printf("* Load %s\n",argv[i]);
+	char *fdata = MALLOC(fsize);
+	{
+	    enumError err = LoadFile(argv[i],0, 0,fdata,fsize, false,0,0);
+	    if (err)
+		goto abort;
+
+	    printf("  - Encode\n");
+	    uint csize;
+	    u8 *cdata;
+	    err = EncBZIP2(&cdata,&csize,true,fdata,fsize,9);
+	    if (err)
+		goto abort;
+
+	    char fname[PATH_MAX];
+	    PathCatPPE(fname,sizeof(fname),0,argv[i],".enc");
+	    printf("  - Save %u bytes to %s\n",csize,fname);
+	    err = SaveFile(fname,0,false,cdata,csize,false);
+	    if (err)
+		goto abort;
+
+	    printf("  - Decode\n");
+	    uint dsize;
+	    u8 *ddata;
+	    err = DecBZIP2(&ddata,&dsize,cdata,csize);
+	    if (err)
+		goto abort;
+
+	    PathCatPPE(fname,sizeof(fname),0,argv[i],".dec");
+	    printf("  - Save %u bytes to %s\n",dsize,fname);
+	    err = SaveFile(fname,0,false,ddata,dsize,false);
+	    if (err)
+		goto abort;
+
+	    if ( dsize != fsize || memcmp(fdata,ddata,dsize) )
+		printf("!!! DATA DIFFER !!!\n");
+	    else
+		printf("  => OK\n");
+	}
+	abort:
+	FREE(fdata);
+    }
+}
+
+#endif // !NO_BZIP2
 //
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////			 disc info			///////////////
@@ -988,7 +1063,6 @@ static int nintendo_cmp_qsort ( const void * path1, const void * path2 )
 
 static enumError develop ( int argc, char ** argv )
 {
-
     argc--;
     argv++;
 
@@ -1068,6 +1142,7 @@ enum
     CMD_HEXDUMP,		// test_hexdump(argc,argv);
 
     CMD_SHA1,			// test_sha1();
+    CMD_BZIP2,			// test_bzip2(argc,argv);
     CMD_WIIMM,			// test_wiimm(argc,argv);
 
     CMD_DEVELOP,		// develop(argc,argv);
@@ -1089,6 +1164,9 @@ static const CommandTab_t CommandTab[] =
 
  #ifdef HAVE_OPENSSL
 	{ CMD_SHA1,		"SHA1",		0,		0 },
+ #endif
+ #ifndef NO_BZIP2
+	{ CMD_BZIP2,		"BZIP2",	0,		0 },
  #endif
  #ifdef HAVE_WORK_DIR
 	{ CMD_WIIMM,		"WIIMM",	"W",		0 },
@@ -1133,6 +1211,13 @@ int main ( int argc, char ** argv )
 
     printf("term width = %d\n",GetTermWidth(80,0));
 
+ #ifdef HAVE_FIEMAP
+    printf("* HAVE_FIEMAP defined!\n");
+ #endif
+ #ifdef FS_IOC_FIEMAP
+    printf("* FS_IOC_FIEMAP defined!\n");
+ #endif
+
  #if defined(TEST) && defined(DEBUG)
     if (0)
     {
@@ -1170,6 +1255,9 @@ int main ( int argc, char ** argv )
 
  #ifdef HAVE_OPENSSL
 	case CMD_SHA1:			test_sha1(); break;
+ #endif
+ #ifndef NO_BZIP2
+	case CMD_BZIP2:			test_bzip2(argc,argv); break;
  #endif
  #ifdef HAVE_WORK_DIR
 	case CMD_WIIMM:			test_wiimm(argc,argv); break;

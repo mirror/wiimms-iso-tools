@@ -43,7 +43,7 @@ WDF_LONG		= Wiimms WDF Tool
 WFUSE_SHORT		= wfuse
 WFUSE_LONG		= Wiimms FUSE Tool
 
-VERSION_NUM		= 2.10a
+VERSION_NUM		= 2.11a
 BETA_VERSION		= 1
 			# 0:off  -1:"beta"  >0:"beta#"
 
@@ -71,7 +71,7 @@ URI_DOWNLOAD_I386	= $(URI_DOWNLOAD)/$(DISTRIB_I386)
 URI_DOWNLOAD_X86_64	= $(URI_DOWNLOAD)/$(DISTRIB_X86_64)
 URI_DOWNLOAD_MAC	= $(URI_DOWNLOAD)/$(DISTRIB_MAC)
 URI_DOWNLOAD_CYGWIN	= $(URI_DOWNLOAD)/$(DISTRIB_CYGWIN)
-URI_TITLES		= http://wiitdb.com/titles.txt
+URI_TITLES		= http://gametdb.com/titles.txt
 
 DOWNLOAD_DIR		= /cygdrive/n/www/wit.wiimm.de/download
 
@@ -190,6 +190,8 @@ UI_FILES	= ui.def
 UI_FILES	+= $(patsubst %,ui-%.c,$(MAIN_TOOLS) $(EXTRA_TOOLS))
 UI_FILES	+= $(patsubst %,ui-%.h,$(MAIN_TOOLS) $(EXTRA_TOOLS))
 
+UI_TABS		= $(patsubst %,tab-%.inc,$(MAIN_TOOLS) $(EXTRA_TOOLS))
+
 SETUP_DIR	=  ./setup
 SETUP_FILES	=  version.h install.sh cygwin-copy.sh wit.def $(CYGWIN_SCRIPTS)
 DIR_LIST	+= $(SETUP_DIR)
@@ -282,7 +284,7 @@ TITLE_FILES	= titles.txt $(patsubst %,titles-%.txt,$(LANGUAGES))
 LANGUAGES	= de es fr it ja ko nl pt ru zhcn zhtw
 
 BIN_FILES	= $(MAIN_TOOLS) $(EXTRA_TOOLS)
-SHARE_FILES	= $(TITLE_FILES) system-menu.txt
+SHARE_FILES	= $(TITLE_FILES) system-menu.txt magic.txt
 
 CYGWIN_DIR	= /usr/bin
 CYGWIN_TOOLS	= bash cp diff env grep mkdir mv realpath regtool rm stat tr wget
@@ -330,7 +332,7 @@ $(ALL_TOOLS_X): %: %.o $(ALL_OBJECTS) $(TOBJ_ALL) Makefile | $(HELPER_TOOLS)
 
 #--------------------------
 
-$(HELPER_TOOLS): %: %.o $(ALL_OBJECTS) Makefile
+$(HELPER_TOOLS): %: %.o $(ALL_OBJECTS) $(UI_TABS) Makefile
 	@printf "$(LOGFORMAT)" helper "$@ $(TOBJ_$@)" "$(MODE)"
 	@$(CC) $(CFLAGS) $(DEFINES) $(LDFLAGS) $@.o \
 		$(ALL_OBJECTS) $(TOBJ_$@) $(LIBS) -o $@
@@ -375,7 +377,7 @@ $(TEXT_FILES): $(GEN_TEXT_FILE) $(TEXT_DIR)/$@
 
 #--------------------------
 
-$(UI_FILES): gen-ui.c tab-ui.c ui.h | gen-ui
+$(UI_FILES): gen-ui.c tab-ui.c ui.h $(UI_TABS) | gen-ui
 	@printf "$(LOGFORMAT)" run gen-ui ""
 	@./gen-ui
 

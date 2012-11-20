@@ -1,8 +1,5 @@
 wit v@@VERSION@@ r@@REV-NEXT@@ - @@@@-@@-@@
 
- - Write privileges are not longer needed, if a WBFS file or partiton is only
-   read.
-
 ~
 ~Known bugs:
 ~

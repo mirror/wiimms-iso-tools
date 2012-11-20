@@ -74,12 +74,35 @@ void InitializeWH ( WDF_Head_t * wh )
     memset(wh,0,sizeof(*wh));
     memcpy(wh->magic,WDF_MAGIC,sizeof(wh->magic));
 
-    wh->wdf_version = WDF_VERSION;
-    wh->split_file_num_of = 1;
  #if WDF2_ENABLED
-    wh->wdf_compatible = WDF_COMPATIBLE;
-    wh->wdf_head_size  = sizeof(WDF_Head_t);
-    wh->align_factor   = 1;
+
+    wh->split_file_num_of = 1;
+
+    if ( opt_wdf_version < 2 )
+    {
+	wh->wdf_version		= 1;
+	wh->wdf_compatible	= 1;
+	wh->wdf_head_size	= WDF_VERSION1_SIZE;
+	//wh->align_factor	= 0;
+	//wh->chunk_size_factor	= 0;
+    }
+    else
+    {
+	wh->wdf_version		= opt_wdf_version;
+	wh->wdf_compatible	= WDF_COMPATIBLE;
+	wh->wdf_head_size	= WDF_VERSION2_SIZE;
+	wh->align_factor	= opt_wdf_align;
+	wh->chunk_size_factor	= opt_wdf_align;	// [[2do]]
+    }
+
+ #else
+
+    wh->wdf_version		= WDF_VERSION;
+    wh->wdf_compatible		= WDF_COMPATIBLE;
+    wh->wdf_head_size		= WDF_VERSION1_SIZE;
+    //wh->align_factor		= 0;
+    //wh->chunk_size_factor	= 0;
+
  #endif
 }
 
@@ -114,28 +137,17 @@ void ConvertToNetworkWH ( WDF_Head_t * dest, const WDF_Head_t * src )
     // initialize this again before exporting
     memcpy(dest->magic,WDF_MAGIC,sizeof(dest->magic));
 
- #if WDF2_ENABLED
-    CONV32(wdf_compatible);
- #else
     CONV32(wdf_version);
- #endif
-
-    CONV32(split_file_id);
-    CONV32(split_file_index);
-    CONV32(split_file_num_of);
+    CONV32(wdf_head_size);
+    CONV32(align_factor);
+    CONV32(wdf_compatible);
 
     CONV64(file_size);
     CONV64(data_size);
 
-    CONV32(chunk_split_file);
+    CONV32(chunk_size_factor);
     CONV32(chunk_n);
     CONV64(chunk_off);
-
- #if WDF2_ENABLED
-    CONV32(wdf_version);
-    CONV32(wdf_head_size);
-    CONV32(align_factor);
- #endif
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -145,7 +157,7 @@ void ConvertToNetworkWC ( WDF_Chunk_t * dest, const WDF_Chunk_t * src )
     ASSERT(dest);
     ASSERT(src);
 
-    CONV32(split_file_index);
+    CONV32(ignored_split_file_index);
     CONV64(file_pos);
     CONV64(data_off);
     CONV64(data_size);
@@ -176,28 +188,17 @@ void ConvertToHostWH ( WDF_Head_t * dest, const WDF_Head_t * src )
 
     memcpy(dest->magic,src->magic,sizeof(dest->magic));
 
- #if WDF2_ENABLED
-    CONV32(wdf_compatible);
- #else
     CONV32(wdf_version);
- #endif
-
-    CONV32(split_file_id);
-    CONV32(split_file_index);
-    CONV32(split_file_num_of);
+    CONV32(wdf_head_size);
+    CONV32(align_factor);
+    CONV32(wdf_compatible);
 
     CONV64(file_size);
     CONV64(data_size);
 
-    CONV32(chunk_split_file);
+    CONV32(chunk_size_factor);
     CONV32(chunk_n);
     CONV64(chunk_off);
-
- #if WDF2_ENABLED
-    CONV32(wdf_version);
-    CONV32(wdf_head_size);
-    CONV32(align_factor);
- #endif
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -207,7 +208,7 @@ void ConvertToHostWC ( WDF_Chunk_t * dest, const WDF_Chunk_t * src )
     ASSERT(dest);
     ASSERT(src);
 
-    CONV32(split_file_index);
+    CONV32(ignored_split_file_index);
     CONV64(file_pos);
     CONV64(data_off);
     CONV64(data_size);
@@ -325,9 +326,19 @@ enumError SetupReadWDF ( SuperFile_t * sf )
 	return stat;
     TRACE("#W#  - header read\n");
 
-    //----- test header
+    //----- fix old style header (WDF v1)
 
     ConvertToHostWH(&wh,&wh);
+    if ( wh.wdf_version == 1 )
+    {
+	wh.wdf_compatible	= 1;
+	wh.wdf_head_size	= WDF_VERSION1_SIZE;
+	wh.align_factor		= 0;
+	wh.chunk_size_factor	= 0;
+    }
+
+    //----- test header
+
     stat = AnalyzeWH(&sf->f,&wh,true);
     if (stat)
 	return stat;
@@ -357,8 +368,6 @@ enumError SetupReadWDF ( SuperFile_t * sf )
     for ( idx = 0; idx < wh.chunk_n; idx++, wc++ )
     {
 	ConvertToHostWC(wc,wc);
-	if ( wc->split_file_index )
-	    goto invalid;
 	if ( idx && wc->file_pos < wc[-1].file_pos + wc[-1].data_size )
 	    goto invalid;
     }
@@ -563,6 +572,20 @@ off_t DataBlockWDF
     return off;
 }
 
+///////////////////////////////////////////////////////////////////////////////
+
+void FileMapWDF ( SuperFile_t * sf, FileMap_t *fm )
+{
+    DASSERT(sf);
+    DASSERT(fm);
+    DASSERT(!fm->used);
+
+    const WDF_Chunk_t *wc = sf->wc;
+    const WDF_Chunk_t *end = wc + sf->wc_used;
+    for ( ; wc < end; wc++ )
+	AppendFileMap(fm,wc->file_pos,wc->data_off,wc->data_size);
+}
+
 //
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////                     write WDF                   ///////////////
@@ -574,6 +597,12 @@ enumError SetupWriteWDF ( SuperFile_t * sf )
     TRACE("#W# SetupWriteWDF(%p)\n",sf);
 
     InitializeWH(&sf->wh);
+
+ #if WDF2_ENABLED
+    const uint head_size = sf->wh.wdf_head_size;
+ #else
+    const uint head_size = WDF_VERSION1_SIZE;
+ #endif
 
     if (sf->src)
     {
@@ -589,7 +618,7 @@ enumError SetupWriteWDF ( SuperFile_t * sf )
 
 	if (size)
 	{
-	    const enumError err = PreallocateF(&sf->f,0,size+sizeof(WDF_Head_t));
+	    const enumError err = PreallocateF(&sf->f,0,size+head_size);
 	    if (err)
 	    {
 		TRACE("#W# SetupWriteWDF() returns %d\n",err);
@@ -601,7 +630,7 @@ enumError SetupWriteWDF ( SuperFile_t * sf )
     SetupIOD(sf,OFT_WDF,OFT_WDF);
     sf->max_virt_off = 0;
     sf->wh.magic[0] = '-'; // write a 'not complete' indicator
-    const enumError err = WriteAtF(&sf->f,0,&sf->wh,sizeof(WDF_Head_t));
+    const enumError err = WriteAtF(&sf->f,0,&sf->wh,head_size);
 
     sf->wc_used = 0;
 
@@ -639,10 +668,16 @@ enumError TermWriteWDF ( SuperFile_t * sf )
     for ( wc = sf->wc; i < sf->wc_used; i++, wc++ )
 	ConvertToNetworkWC(wc,wc);
 
+ #if WDF2_ENABLED
+    const uint head_size = sf->wh.wdf_head_size;
+ #else
+    const uint head_size = WDF_VERSION1_SIZE;
+ #endif
+
     sf->wh.chunk_n	= sf->wc_used;
     sf->wh.chunk_off	= sf->f.max_off;
     sf->wh.file_size	= sf->file_size;
-    sf->wh.data_size	= sf->wh.chunk_off - sizeof(WDF_Head_t);
+    sf->wh.data_size	= sf->wh.chunk_off - head_size;
 
     WDF_Head_t wh;
     ConvertToNetworkWH(&wh,&sf->wh);
@@ -652,11 +687,11 @@ enumError TermWriteWDF ( SuperFile_t * sf )
 
     // write the chunk table
     if (!stat)
-	stat = WriteF( &sf->f, sf->wc, sf->wh.chunk_n*sizeof(*sf->wc) );
+	stat = WriteF( &sf->f, sf->wc, sf->wh.chunk_n * sizeof(*sf->wc) );
 
     // write the header
     if (!stat)
-	stat = WriteAtF( &sf->f, 0, &wh, sizeof(wh) );
+	stat = WriteAtF( &sf->f, 0, &wh, head_size );
 
     TRACE("#W# TermWriteWDF() returns %d\n",stat);
     return stat;
@@ -888,6 +923,53 @@ enumError WriteZeroWDF ( SuperFile_t * sf, off_t off, size_t count )
 	}
     }
     return ERR_OK;
+}
+
+//
+///////////////////////////////////////////////////////////////////////////////
+///////////////				etc			///////////////
+///////////////////////////////////////////////////////////////////////////////
+
+int SetWDF2Mode ( uint vers, ccp align )
+{
+    output_file_type = OFT_WDF;
+    const int stat = ScanOptWDFAlign(align);
+    opt_wdf_version = vers;
+    return stat;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+int ScanOptWDFAlign ( ccp arg )
+{
+    if (!arg)
+	return 0;
+
+    u32 align;
+    enumError stat = ScanSizeOptU32(
+		&align,			// u32 * num
+		arg,			// ccp source
+		1,			// default_factor1
+		0,			// int force_base
+		"wdf-align",		// ccp opt_name
+		0,			// u64 min
+		WDF_MAX_ALIGN,		// u64 max
+		0,			// u32 multiple
+		1,			// u32 pow2
+		true			// bool print_err
+		) != ERR_OK;
+
+    if (!stat)
+    {
+	if (align)
+	{
+	    opt_wdf_version = 2;
+	    opt_wdf_align   = align;
+	}
+	else
+	    opt_wdf_version = 1;
+    }
+    return stat;
 }
 
 //

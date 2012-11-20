@@ -146,6 +146,59 @@ enumError DecBZIP2_Close
 
 //
 ///////////////////////////////////////////////////////////////////////////////
+///////////////		    BZIP2 memory conversions		///////////////
+///////////////////////////////////////////////////////////////////////////////
+
+enumError EncBZIP2buf
+(
+    void		*dest,		// valid destination buffer
+    uint		dest_size,	// size of 'dest'
+    uint		*dest_written,	// store num bytes written to 'dest', never NULL
+
+    const void		*src,		// source buffer
+    uint		src_size,	// size of source buffer
+
+    int			compr_level	// valid are 1..9 / 0: use default value
+);
+
+//-----------------------------------------------------------------------------
+
+enumError EncBZIP2
+(
+    u8			**dest_ptr,	// result: store destination buffer addr
+    uint		*dest_written,	// store num bytes written to 'dest', never NULL
+    bool		use_iobuf,	// true: allow thhe usage of 'iobuf'
+
+    const void		*src,		// source buffer
+    uint		src_size,	// size of source buffer
+
+    int			compr_level	// valid are 1..9 / 0: use default value
+);
+
+//-----------------------------------------------------------------------------
+
+enumError DecBZIP2buf
+(
+    void		*dest,		// valid destination buffer
+    uint		dest_size,	// size of 'dest'
+    uint		*dest_written,	// store num bytes written to 'dest', never NULL
+
+    const void		*src,		// source buffer
+    uint		src_size	// size of source buffer
+);
+
+//-----------------------------------------------------------------------------
+
+enumError DecBZIP2
+(
+    u8			**dest_ptr,	// result: store destination buffer addr
+    uint		*dest_written,	// store num bytes written to 'dest', never NULL
+    const void		*src,		// source buffer
+    uint		src_size	// size of source buffer
+);
+
+//
+///////////////////////////////////////////////////////////////////////////////
 ///////////////				END			///////////////
 ///////////////////////////////////////////////////////////////////////////////
 

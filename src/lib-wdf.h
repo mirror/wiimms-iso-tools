@@ -51,20 +51,11 @@
 
 #define WDF_MAGIC		"WII\1DISC"
 #define WDF_MAGIC_SIZE		8
-
-#ifdef NEW_FEATURES
- #define WDF2_ENABLED		1	// [[2do]]
- #define WDF_VERSION		2
- #define WDF_COMPATIBLE		1
-#else
- #define WDF2_ENABLED		0
- #define WDF_VERSION		1
- #define WDF_COMPATIBLE		1
-#endif
+#define WDF_COMPATIBLE		1
 
 // WDF head sizes
 
-#define WDF_VERSION1_SIZE	56
+#define WDF_VERSION1_SIZE	sizeof(WDF_Head_t)
 #define WDF_VERSION2_SIZE	sizeof(WDF_Head_t)
 
 // the minimal size of holes in bytes that will be detected.
@@ -76,26 +67,30 @@ typedef u32 WDF_Hole_t;
 
 //
 ///////////////////////////////////////////////////////////////////////////////
-///////////////                 struct WDF_Head_t               ///////////////
+///////////////			struct WDF_Head_t		///////////////
 ///////////////////////////////////////////////////////////////////////////////
-// This is the header of a WDF.
+// This is the header of a WDF v1.
 // Remember: Within a file the data is stored in network byte order (big endian)
 
-typedef struct WDF_Head_t
+typedef struct WDF_Head_t // split param repalced by others, 2012-09
 {
 	// magic and version number
 	char magic[WDF_MAGIC_SIZE];	// WDF_MAGIC, what else!
-
- #if WDF2_ENABLED
-	u32 wdf_compatible;		// this file is compatible down to version #
- #else
 	u32 wdf_version;		// WDF_VERSION
- #endif
 
-	// split file support (not used, values are 0,0,1)
+    #if 0 // first head definition, WDF v1 before 2012-09
+	// split file support (not used, values are *,0,1)
 	u32 split_file_id;		// for plausibility checks
 	u32 split_file_index;		// zero based index ot this file
 	u32 split_file_num_of;		// number of split files
+    #else
+	u32 wdf_head_size;		// size of version related WDF_Head_t
+					// (WDF v1: ignored)
+	u32 align_factor;		// info: all data is aligned with a multiple of #
+					// (WDF v1: always 0, ignored)
+	u32 wdf_compatible;		// this file is compatible down to version #
+					// (WDF v1: always 1)
+    #endif
 
 	// virtual file infos
 	u64 file_size;			// the size of the virtual file
@@ -104,17 +99,14 @@ typedef struct WDF_Head_t
 	u64 data_size;			// the ISO data size in this file
 					// (without header and chunk table)
 	// chunks
+    #if 0 // first head definition, WDF v1 before 2012-09
 	u32 chunk_split_file;		// which split file contains the chunk table
+    #else
+	u32 chunk_size_factor;		// info: all chunk sizes are multiple of #
+					// (WDF v1: always 0, ignored)
+    #endif
 	u32 chunk_n;			// total number of data chunks
 	u64 chunk_off;			// the 'MAGIC + chunk_table' file offset
-
-	//---------- here ends the header of WDF version 1 ----------
-
- #if WDF2_ENABLED
-	u32 wdf_version;		// WDF_VERSION
-	u32 wdf_head_size;		// size of WDF_Head_t
-	u32 align_factor;		// all data is aligned with a multiple of #
- #endif
 
 } __attribute__ ((packed)) WDF_Head_t;
 
@@ -127,7 +119,9 @@ typedef struct WDF_Head_t
 
 typedef struct WDF_Chunk_t
 {
-	u32 split_file_index;		// which split file conatins that chunk
+	// split_file_index is obsolete in WDF v2
+	u32 ignored_split_file_index;	// which split file contains that chunk
+					// (WDF v1: always 0, ignored)
 	u64 file_pos;			// the virtual ISO file position
 	u64 data_off;			// the data file offset
 	u64 data_size;			// the data size
@@ -186,6 +180,14 @@ enumError WriteZeroWDF	( SUPERFILE * sf, off_t off, size_t size );
 WDF_Chunk_t * NeedChunkWDF ( SUPERFILE * sf, int at_index );
 
 #undef SUPERFILE
+
+//
+///////////////////////////////////////////////////////////////////////////////
+///////////////				etc			///////////////
+///////////////////////////////////////////////////////////////////////////////
+
+int SetWDF2Mode ( uint c, ccp align );
+int ScanOptWDFAlign ( ccp arg );
 
 //
 ///////////////////////////////////////////////////////////////////////////////

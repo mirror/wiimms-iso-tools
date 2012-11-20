@@ -90,6 +90,8 @@ char		escape_char		= '%';
 int		opt_force		= 0;
 bool		use_utf8		= true;
 enumOFT		output_file_type	= OFT_UNKNOWN;
+uint		opt_wdf_version		= WDF_VERSION;
+uint		opt_wdf_align		= WDF_ALIGN;
 int		opt_truncate		= 0;
 int		opt_split		= 0;
 u64		opt_split_size		= 0;
@@ -106,6 +108,7 @@ int		opt_block_size		= -1;
 int		print_old_style		= 0;
 int		print_sections		= 0;
 int		long_count		= 0;
+int		brief_count		= 0;
 int		ignore_count		= 0;
 int		opt_technical		= 0;
 u32		job_limit		= ~(u32)0;
@@ -276,6 +279,8 @@ void SetupLib ( int argc, char ** argv, ccp p_progname, enumProgID prid )
     TRACE_SIZEOF(FileIndex_t);
     TRACE_SIZEOF(FileIndexData_t);
     TRACE_SIZEOF(FileIndexItem_t);
+    TRACE_SIZEOF(FileMapItem_t);
+    TRACE_SIZEOF(FileMap_t);
     TRACE_SIZEOF(FilePattern_t);
     TRACE_SIZEOF(ID_DB_t);
     TRACE_SIZEOF(ID_t);
@@ -2073,7 +2078,7 @@ enumError ScanSizeOptU64
     else
 	val = d;
 
-    if ( err == ERR_OK && pow2 > 0 )
+    if ( err == ERR_OK && pow2 > 0 && val )
     {
 	int shift_count = 0;
 	u64 shift_val = val;
@@ -2401,6 +2406,21 @@ enumError ScanHex
 {
     int count;
     arg = ScanHexHelper(buf,buf_size,&count,arg,99);
+
+    return count == buf_size && !*arg ? ERR_OK : ERR_SYNTAX;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+enumError ScanHexSilent
+(
+    void	* buf,		// valid pointer to result buf
+    int		buf_size,	// number of byte to read
+    ccp		arg		// source string
+)
+{
+    int count;
+    arg = ScanHexHelper(buf,buf_size,&count,arg,0);
 
     return count == buf_size && !*arg ? ERR_OK : ERR_SYNTAX;
 }
@@ -2792,6 +2812,10 @@ const CommandTab_t * ScanCommand
 	    cmd_ct = ct;
 	    break;
 	}
+
+	if ( *cmd_buf == '_' ) // no abbreviations for commands beginning with '_'
+	    continue;
+
 	if ( !memcmp(ct->name1,cmd_buf,cmd_len)
 		|| ct->name2 && !memcmp(ct->name2,cmd_buf,cmd_len) )
 	{
@@ -4403,7 +4427,7 @@ bool HaveEscapeChar ( ccp string )
 
 void InitializeMemMap ( MemMap_t * mm )
 {
-    ASSERT(mm);
+    DASSERT(mm);
     memset(mm,0,sizeof(*mm));
 }
 
@@ -4411,7 +4435,7 @@ void InitializeMemMap ( MemMap_t * mm )
 
 void ResetMemMap ( MemMap_t * mm )
 {
-    ASSERT(mm);
+    DASSERT(mm);
 
     uint i;
     if (mm->field)
@@ -4427,7 +4451,7 @@ void ResetMemMap ( MemMap_t * mm )
 
 MemMapItem_t * FindMemMap ( MemMap_t * mm, off_t off, off_t size )
 {
-    ASSERT(mm);
+    DASSERT(mm);
 
     off_t off_end = off + size;
     int beg = 0;
@@ -4460,7 +4484,7 @@ uint InsertMemMapIndex
     DASSERT(mm);
     uint idx = FindMemMapHelper(mm,off,size);
 
-    ASSERT( mm->used <= mm->size );
+    DASSERT( mm->used <= mm->size );
     if ( mm->used == mm->size )
     {
 	mm->size += 64;
@@ -4562,7 +4586,7 @@ void InsertMemMapWrapper
 )
 {
     noTRACE("InsertMemMapWrapper(%p,%llx,%llx,%s)\n",param,offset,size,info);
-    ASSERT(param);
+    DASSERT(param);
     MemMapItem_t * mi = InsertMemMap(param,offset,size);
     StringCopyS(mi->info,sizeof(mi->info),info);
 }
@@ -4585,7 +4609,7 @@ void InsertDiscMemMap
 
 uint FindMemMapHelper ( MemMap_t * mm, off_t off, off_t size )
 {
-    ASSERT(mm);
+    DASSERT(mm);
 
     int beg = 0;
     int end = mm->used - 1;
@@ -4618,7 +4642,7 @@ uint FindMemMapHelper ( MemMap_t * mm, off_t off, off_t size )
 
 uint CalCoverlapMemMap ( MemMap_t * mm )
 {
-    ASSERT(mm);
+    DASSERT(mm);
 
     uint i, count = 0;
     MemMapItem_t * prev = 0;
@@ -4641,7 +4665,7 @@ uint CalCoverlapMemMap ( MemMap_t * mm )
 
 void PrintMemMap ( MemMap_t * mm, FILE * f, int indent )
 {
-    ASSERT(mm);
+    DASSERT(mm);
     if ( !f || !mm->used )
 	return;
 
@@ -4681,6 +4705,164 @@ void PrintMemMap ( MemMap_t * mm, FILE * f, int indent )
 	if ( max_end < end )
 	    max_end = end;
     }
+}
+
+//
+///////////////////////////////////////////////////////////////////////////////
+///////////////			   File Map			///////////////
+///////////////////////////////////////////////////////////////////////////////
+
+void InitializeFileMap ( FileMap_t * mm )
+{
+    DASSERT(mm);
+    memset(mm,0,sizeof(*mm));
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+void ResetFileMap ( FileMap_t * mm )
+{
+    DASSERT(mm);
+    FREE(mm->field);
+    memset(mm,0,sizeof(*mm));
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+const FileMapItem_t * AppendFileMap
+(
+    // returns the modified or appended item
+
+    FileMap_t	* fm,		// file map pointer
+    u64		src_off,	// offset of source
+    u64		dest_off,	// offset of dest
+    u64		size		// size
+)
+{
+    DASSERT(fm);
+    if (!size)
+	return 0;
+
+    if (fm->used)
+    {
+	FileMapItem_t *mi = fm->field + fm->used - 1;
+	if (   mi->src_off  + mi->size == src_off
+	    && mi->dest_off + mi->size == dest_off )
+	{
+	    mi->size += size;
+	    return mi;
+	}
+    }
+
+    DASSERT( fm->used <= fm->size );
+    if ( fm->used == fm->size )
+    {
+	fm->size += fm->size/2 + 50;
+	fm->field = REALLOC(fm->field,fm->size*sizeof(*fm->field));
+    }
+    DASSERT( fm->used < fm->size );
+
+    FileMapItem_t *mi = fm->field + fm->used++;
+    mi->src_off  = src_off;
+    mi->dest_off = dest_off;
+    mi->size     = size;
+    return mi;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+uint CombineFileMaps
+(
+    FileMap_t		*fm,	 // resulting filemap
+    bool		init_fm, // true: initialize 'fm', false: reset 'fm'
+    const FileMap_t	*fm1,	 // first source filemap
+    const FileMap_t	*fm2	 // second source filemap
+)
+{
+    DASSERT(fm);
+    DASSERT(fm1);
+    DASSERT(fm2);
+
+    if (init_fm)
+	InitializeFileMap(fm);
+    else
+	ResetFileMap(fm);
+
+
+    const FileMapItem_t *i1 = fm1->field;
+    const FileMapItem_t *e1 = i1 + fm1->used;
+
+    const FileMapItem_t *i2 = fm2->field;
+    const FileMapItem_t *e2 = i2 + fm2->used;
+
+    u64 fm2_off1 = 0;
+    u64 fm2_off2 = 0;
+    u64 fm2_size = 0;
+
+    while ( i1 < e1 )
+    {
+	u64 fm1_off1 = i1->src_off;
+	u64 fm1_off2 = i1->dest_off;
+	u64 fm1_size = i1->size;
+	i1++;
+	noPRINT("%4zu %9llx %11llx %9llx | %4zu %9llx %11llx %9llx | NEXT FM-1\n",
+		i1-fm1->field, fm1_off1, fm1_off2, fm1_size,
+		i2-fm2->field, fm2_off1, fm2_off2, fm2_size );
+
+	while ( fm1_size )
+	{
+	    while ( fm1_off2 >= fm2_off1 + fm2_size )
+	    {
+		if ( i2 == e2 )
+		    return fm->used;
+
+		fm2_off1 = i2->src_off;
+		fm2_off2 = i2->dest_off;
+		fm2_size = i2->size;
+		i2++;
+		noPRINT("%4zu %9llx %11llx %9llx | %4zu %9llx %11llx %9llx | NEXT FM-2\n",
+			i1-fm1->field, fm1_off1, fm1_off2, fm1_size,
+			i2-fm2->field, fm2_off1, fm2_off2, fm2_size );
+	    }
+	    DASSERT( fm1_off2 < fm2_off1 + fm2_size );
+	    noPRINT("%9llx + %9llx = %9llx < %9llx\n",
+		fm1_off2, fm1_size, fm1_off2 + fm1_size, fm2_off1 );
+	    if ( fm1_off2 + fm1_size < fm2_off1 )
+		break;
+
+	    if ( fm1_off2 < fm2_off1 )
+	    {
+		const u64 delta = fm2_off1 - fm1_off2;
+		DASSERT( delta <= fm1_size );
+		fm1_off1 += delta;
+		fm1_off2 += delta;
+		fm1_size -= delta;
+	    }
+	    else
+	    {
+		const u64 delta = fm1_off2 - fm2_off1;
+		DASSERT( delta <= fm2_size );
+		fm2_off1 += delta;
+		fm2_off2 += delta;
+		fm2_size -= delta;
+	    }
+	    DASSERT( fm1_off2 == fm2_off1 );
+
+	    const u64 size = fm1_size < fm2_size ? fm1_size : fm2_size;
+	    AppendFileMap(fm,fm1_off1,fm2_off2,size);
+	    fm1_off1 += size;
+	    fm1_off2 += size;
+	    fm1_size -= size;
+	    fm2_off1 += size;
+	    fm2_off2 += size;
+	    fm2_size -= size;
+	    noPRINT("%4zu %9llx %11llx %9llx | %4zu %9llx %11llx %9llx | ADD %llx\n",
+		i1-fm1->field, fm1_off1, fm1_off2, fm1_size,
+		i2-fm2->field, fm2_off1, fm2_off2, fm2_size,
+		size );
+	}
+    }
+    return fm->used;
 }
 
 //
@@ -5040,6 +5222,27 @@ uint Count1Bits64 ( u64 data )
 	 + TableBitCount[d[5]]
 	 + TableBitCount[d[6]]
 	 + TableBitCount[d[7]];
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+int FindLowest1Bit64 ( u64 data )
+{
+    if (!data)
+	return -1;
+
+    uint index;
+    for ( index = 0; !(data&1); data >>= 1, index++ )
+	;
+    return index;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+u64 GetAlign64 ( u64 data )
+{
+    const int index = FindLowest1Bit64 (data);
+    return index < 0 ? 0 : 1 << index;
 }
 
 //

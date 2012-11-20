@@ -3796,10 +3796,16 @@ enumError CheckOptions ( int argc, char ** argv, bool is_env )
 	case GO_WBFS:		output_file_type = OFT_WBFS; break;
 	case GO_FST:		output_file_type = OFT_FST; break;
 
-	case GO_ITIME:	    	SetTimeOpt(PT_USE_ITIME|PT_F_ITIME); break;
-	case GO_MTIME:	    	SetTimeOpt(PT_USE_MTIME|PT_F_MTIME); break;
-	case GO_CTIME:	    	SetTimeOpt(PT_USE_CTIME|PT_F_CTIME); break;
-	case GO_ATIME:	    	SetTimeOpt(PT_USE_ATIME|PT_F_ATIME); break;
+    #if WDF2_ENABLED > 1
+	case GO_WDF1:		SetWDF2Mode(1,0); break;
+	case GO_WDF2:		err += SetWDF2Mode(2,optarg); break;
+	case GO_WDF_ALIGN:	err += ScanOptWDFAlign(optarg); break;
+    #endif
+
+	case GO_ITIME:		SetTimeOpt(PT_USE_ITIME|PT_F_ITIME); break;
+	case GO_MTIME:		SetTimeOpt(PT_USE_MTIME|PT_F_MTIME); break;
+	case GO_CTIME:		SetTimeOpt(PT_USE_CTIME|PT_F_CTIME); break;
+	case GO_ATIME:		SetTimeOpt(PT_USE_ATIME|PT_F_ATIME); break;
 
 	case GO_LONG:		long_count++; break;
 	case GO_NUMERIC:	break;

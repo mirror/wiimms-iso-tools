@@ -2276,6 +2276,7 @@ void ResetPartFST ( WiiFstPart_t * part )
     }
 
     FreeString(part->path);
+    ResetStringField(&part->exclude_list);
     ResetStringField(&part->include_list);
     ResetIM(&part->im);
     FREE(part->ftab);
@@ -2302,6 +2303,7 @@ WiiFstPart_t * AppendPartFST ( WiiFst_t * fst )
 
     WiiFstPart_t * part = fst->part + fst->part_used++;
     memset(part,0,sizeof(*part));
+    InitializeStringField(&part->exclude_list);
     InitializeStringField(&part->include_list);
     InitializeIM(&part->im);
 
@@ -3590,6 +3592,8 @@ static u32 scan_part ( scan_data_t * sd )
 
 	    ccp name = dent->d_name;
 	    sd->path_dir = StringCopyE(path_dir,path_end,name);
+	    if (FindStringField(&sd->part->exclude_list,sd->path_part))
+		    continue;
 	    if ( *name == '.' )
 	    {
 		if ( !name[1] || name[1] == '.' && !name[2] )
@@ -3683,6 +3687,8 @@ u32 ScanPartFST
     sd.part = part;
     sd.path_part = StringCat2S(sd.path,sizeof(sd.path),base_path,"/");
 
+    StringCopyE(sd.path_part,sd.path+sizeof(sd.path),FST_EXCLUDE_FILE);
+    LoadStringField(&part->exclude_list,false,sd.path,true);
     StringCopyE(sd.path_part,sd.path+sizeof(sd.path),FST_INCLUDE_FILE);
     LoadStringField(&part->include_list,false,sd.path,true);
 

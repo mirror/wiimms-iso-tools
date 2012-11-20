@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# (c) Wiimm, 2011-01-21
+# (c) Wiimm, 2012-10-08
 
 myname="${0##*/}"
 base=wwt+wit
@@ -34,8 +34,8 @@ then
 	  --no-verify  : disable verify tests
 	  --fst        : enable  "EXTRACT FST" tests (default)
 	  --no-fst     : disable "EXTRACT FST" tests
-	  --pipe       : enable  pipe tests (default)
-	  --no-pipe    : disable pipe tests (default for cygwin)
+	  --pipe       : enable  pipe tests
+	  --no-pipe    : disable pipe tests (default)
 	  --wia        : enable WIA compression tests (default)
 	  --no-wia     : disable WIA compression tests
 	  --raw        : enable raw mode
@@ -157,13 +157,12 @@ FAST_BASEMODE="wdf"
 
 NOVERIFY=0
 NOFST=0
-NOPIPE=0
+NOPIPE=1
 NOWIA=0
 RAW=
 IO=
 OPT_TEST=0
 OPT_TEST_MODES=0
-[[ $TERM = cygwin ]] && NOPIPE=1
 
 FST_OPT="--psel data,update,channel,ptab0"
 

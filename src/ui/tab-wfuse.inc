@@ -34,50 +34,80 @@
  *                                                                         *
  ***************************************************************************/
 
-#ifndef WIT_TYPES_H
-#define WIT_TYPES_H 1
-
-#define _GNU_SOURCE 1
-
-#include <sys/types.h>
-#include <stdint.h>
-#include <limits.h>
-
+//
+///////////////////////////////////////////////////////////////////////////////
+/////////////			  TOOL wfuse			///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-typedef uint8_t		u8;
-typedef uint16_t	u16;
-typedef uint32_t	u32;
-//typedef uint64_t	u64;	// is 'long unsigned' in 64 bit linux
-typedef long long unsigned u64;
+  { T_DEF_TOOL,	"wfuse", 0,
+		"wfuse [option]... source mountdir\n"
+		"wfuse --umount mountdir...",
+		"Mount a Wii or GameCube image or a WBFS file or partition"
+		" to a mount point using FUSE (Filesystem in USErspace)."
+		" Use @'wfuse --umount mountdir'@ for unmounting." },
 
-typedef int8_t		s8;
-typedef int16_t		s16;
-typedef int32_t		s32;
-//typedef int64_t	s64;	// is 'long int' in 64 bit linux
-typedef long long int	s64;
+  //---------- list of all options ----------
 
-typedef u16		be16_t;
-typedef u32		be32_t;
-typedef u64		be64_t;
+  { T_OPT_S,	"VERSION",	"V|version",
+		0, 0 /* copy of wit */ },
 
-typedef enum bool { false, true } __attribute__ ((packed)) bool;
+  { T_OPT_S,	"HELP",		"h|help",
+		0, 0 /* copy of wit */ },
 
+  { T_OPT_S,	"XHELP",	"xhelp",
+		0, "Same as {--help}." },
+
+  { T_OPT_S,	"HELP_FUSE",	"H|help-fuse|helpfuse",
+		0,
+		"Stop parsing the command line and print a FUSE help message." },
+
+  { T_OPT_GP,	"WIDTH",	"width",
+		0, 0 /* copy of wit */ },
+
+  { T_OPT_GM,	"QUIET",	"q|quiet",
+		0,
+		"Be quiet and print only error messages." },
+
+  { H_OPT_GM,	"VERBOSE",	"v|verbose",
+		0,
+		"Be verbose and print more progress information." },
+
+  { H_OPT_GP,	"IO",		"io",
+		0, 0 /* copy of wit */ },
+
+  { T_SEP_OPT,	0,0,0,0 }, //----- separator -----
+
+  { T_OPT_GP,	"OPTION",	"o|option",
+		"param",
+		"This option is forwarded to FUSE command line scanner as @'-o param'@." },
+
+  { T_OPT_GP,	"PARAM",	"p|param",
+		"param",
+		"The parameter is forwarded to the FUSE command line scanner." },
+
+  { T_OPT_G,	"CREATE",	"c|create",
+		0,
+		"If the mount point does not exist, create it and remove it on unmount." },
+
+  { T_OPT_G,	"REMOUNT",	"r|remount",
+		0,
+		"If the mount point is already mounted, try silently to unmount it first." },
+
+  { T_SEP_OPT,	0,0,0,0 }, //----- separator -----
+
+  { T_OPT_G,	"UMOUNT",	"u|umount|unmount",
+		0,
+		"Enter 'unmount mode' and unmount each entered directory by calling"
+		" @'fusermount -u mountdir'@ or alternatively @'umount mountdir'@." },
+
+  { T_OPT_G,	"LAZY",		"l|lazy",
+		0,
+		"Lazy unmount:"
+		" Detach the mounted file system from the file system hierarchy now,"
+		" and cleanup all references to the file system"
+		" as soon as it is not busy anymore." },
+
+//
 ///////////////////////////////////////////////////////////////////////////////
-
-
-#ifndef WIIMM_BASIC_TYPES
-  #define WIIMM_BASIC_TYPES 1
-  typedef const char *  ccp;
-  typedef unsigned char uchar;
-  typedef unsigned int  uint;
-  typedef unsigned long ulong;
-#endif
-
-typedef char		id6_t[7];
-typedef u8		sha1_hash_t[20];
-
+///////////////			    E N D			///////////////
 ///////////////////////////////////////////////////////////////////////////////
-
-#endif // WIT_TYPES_H
-

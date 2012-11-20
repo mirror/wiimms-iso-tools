@@ -73,6 +73,24 @@
 
 ///////////////////////////////////////////////////////////////////////////////
 
+#ifdef NEW_FEATURES // [[2do]]
+ #define WDF2_ENABLED		  2	// 0:off, 1:read only, 2:write support
+ #define WDF_VERSION		  1	// default version
+ #define WDF_ALIGN		  1	// default alignment for WDF v2
+ #define WDF_ALIGN_TEXT		"1"
+ #define WDF_MAX_ALIGN		GiB	// max allowed WDF alignment
+ #define WDF_MAX_ALIGN_TEXT	"1 GiB"
+#else
+ #define WDF2_ENABLED		  0
+ #define WDF_VERSION		  1	// default version
+ #define WDF_ALIGN		  1	// default alignment for WDF v2
+ #define WDF_ALIGN_TEXT		"1"
+ #define WDF_MAX_ALIGN		GiB	// max allowed WDF alignment
+ #define WDF_MAX_ALIGN_TEXT	"1 GiB"
+#endif
+
+///////////////////////////////////////////////////////////////////////////////
+
 typedef enum enumProgID
 {
 	PROG_UNKNOWN,
@@ -306,13 +324,15 @@ typedef struct OFT_info_t
 
 extern const OFT_info_t oft_info[OFT__N+1];
 extern enumOFT output_file_type;
+extern uint opt_wdf_version;
+extern uint opt_wdf_align;
 extern int opt_truncate;
 
 enumOFT CalcOFT ( enumOFT force, ccp fname_dest, ccp fname_src, enumOFT def );
 
 //
 ///////////////////////////////////////////////////////////////////////////////
-///////////////                   Memory Maps                   ///////////////
+///////////////			Memory Map			///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
 typedef struct MemMapItem_t
@@ -407,6 +427,52 @@ uint CalCoverlapMemMap ( MemMap_t * mm );
 
 // Print out memory map
 void PrintMemMap ( MemMap_t * mm, FILE * f, int indent );
+
+//
+///////////////////////////////////////////////////////////////////////////////
+///////////////			   File Map			///////////////
+///////////////////////////////////////////////////////////////////////////////
+
+typedef struct FileMapItem_t
+{
+    u64		src_off;	// offset of source
+    u64		dest_off;	// offset of dest
+    u64		size;		// size
+
+} FileMapItem_t;
+
+//-----------------------------------------------------------------------------
+
+typedef struct FileMap_t
+{
+    FileMapItem_t * field;	// pointer to the item field
+    uint	used;		// number of used titles in the item field
+    uint	size;		// number of allocated pointer in 'field'
+
+} FileMap_t;
+
+//-----------------------------------------------------------------------------
+
+void InitializeFileMap ( FileMap_t * mm );
+void ResetFileMap ( FileMap_t * mm );
+
+const FileMapItem_t * AppendFileMap
+(
+    // returns the modified or appended item
+
+    FileMap_t	*fm,		// file map pointer
+    u64		src_off,	// offset of source
+    u64		dest_off,	// offset of dest
+    u64		size		// size
+);
+
+uint CombineFileMaps
+(
+    FileMap_t		*fm,	 // resulting filemap
+    bool		init_fm, // true: initialize 'fm', false: reset 'fm'
+    const FileMap_t	*fm1,	 // first source filemap
+    const FileMap_t	*fm2	 // second source filemap
+);
 
 //
 ///////////////////////////////////////////////////////////////////////////////
@@ -782,6 +848,17 @@ void mark_used ( ccp name, ... );
 void option_deprecated ( ccp name );
 void option_ignored ( ccp name );
 
+//-----------------------------------------------------------------------------
+
+bool HaveFileSystemMapSupport();
+
+enumError GetFileSystemMap
+(
+    FileMap_t		* fm,		// file map
+    bool		init_fm,	// true: initialize 'fm', false: reset 'fm'
+    File_t		* file		// file to analyze
+);
+
 //
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////		    preallocation options		///////////////
@@ -878,7 +955,18 @@ char * ScanHexHelper
 				//	>= 3: msg if arg contains more characters
 );
 
+//-----------------------------------------------------------------------------
+
 enumError ScanHex
+(
+    void	* buf,		// valid pointer to result buf
+    int		buf_size,	// number of byte to read
+    ccp		arg		// source string
+);
+
+//-----------------------------------------------------------------------------
+
+enumError ScanHexSilent
 (
     void	* buf,		// valid pointer to result buf
     int		buf_size,	// number of byte to read
@@ -1578,6 +1666,9 @@ uint Count1Bits16 ( u16 data );
 uint Count1Bits32 ( u32 data );
 uint Count1Bits64 ( u64 data );
 
+int FindLowest1Bit64 ( u64 data );
+u64 GetAlign64 ( u64 data );
+
 //
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////			    etc				///////////////
@@ -1618,6 +1709,7 @@ extern int		opt_block_size;
 extern int		print_old_style;
 extern int		print_sections;
 extern int		long_count;
+extern int		brief_count;
 extern int		ignore_count;
 extern int		opt_technical;
 extern u32		job_limit;

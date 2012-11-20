@@ -42,6 +42,10 @@ fi
 	&& grep -qw posix_fallocate /usr/include/fcntl.h \
 	&& defines="$defines -DHAVE_POSIX_FALLOCATE=1"
 
+[[ -r /usr/include/linux/fiemap.h ]] \
+	&& grep -qw fiemap_extent /usr/include/linux/fiemap.h \
+	&& defines="$defines -DHAVE_FIEMAP=1"
+
 [[ $STATIC = 1 ]] || STATIC=0
 
 cat <<- ---EOT--- >Makefile.setup

@@ -293,6 +293,153 @@ enumError DecBZIP2_Close
 
 //
 ///////////////////////////////////////////////////////////////////////////////
+///////////////		    BZIP2 memory conversions		///////////////
+///////////////////////////////////////////////////////////////////////////////
+
+enumError EncBZIP2buf
+(
+    void		*dest,		// valid destination buffer
+    uint		dest_size,	// size of 'dest'
+    uint		*dest_written,	// store num bytes written to 'dest', never NULL
+
+    const void		*src,		// source buffer
+    uint		src_size,	// size of source buffer
+
+    int			compr_level	// valid are 1..9 / 0: use default value
+)
+{
+    // http://www.bzip.org/1.0.3/html/util-fns.html#bzbufftobuffcompress
+
+    DASSERT(dest);
+    DASSERT( dest_size > sizeof(u32) );
+    DASSERT(dest_written);
+    DASSERT(src);
+
+    compr_level = CalcCompressionLevelBZIP2(compr_level);
+    PRINT("EncBZIP2buf() %u bytes, level = %u\n",src_size,compr_level);
+
+    *(u32*)dest = htonl(src_size);
+    *dest_written = dest_size - sizeof(u32);
+    int bzerror = BZ2_bzBuffToBuffCompress ( dest+sizeof(u32), dest_written,
+				(char*)src, src_size, compr_level, 0, 0 );
+    *dest_written += 4;
+
+    if ( bzerror != BZ_OK )
+	return ERROR0(ERR_BZIP2,
+		"Error while compressing data.\n-> bzip2 error: %s\n",
+		GetMessageBZIP2(bzerror,"?") );
+
+    return ERR_OK;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+enumError EncBZIP2
+(
+    u8			**dest_ptr,	// result: store destination buffer addr
+    uint		*dest_written,	// store num bytes written to 'dest', never NULL
+    bool		use_iobuf,	// true: allow thhe usage of 'iobuf'
+
+    const void		*src,		// source buffer
+    uint		src_size,	// size of source buffer
+
+    int			compr_level	// valid are 1..9 / 0: use default value
+)
+{
+    DASSERT(dest_ptr);
+    DASSERT(dest_written);
+    DASSERT(src);
+
+    char *dest;
+    uint dest_size = src_size + src_size/100 + 600 + 20;
+    if ( dest_size <= sizeof(iobuf) && use_iobuf )
+    {
+	dest = iobuf;
+	dest_size = sizeof(iobuf);
+    }
+    else
+	dest = MALLOC(dest_size);
+
+    enumError err = EncBZIP2buf(dest,dest_size,dest_written,src,src_size,compr_level);
+    if (err)
+    {
+	if ( dest != iobuf )
+	    FREE(dest);
+	*dest_ptr = 0;
+	*dest_written = 0;
+    }
+    else if ( dest == iobuf )
+	*dest_ptr = MEMDUP(iobuf,*dest_written);
+    else
+	*dest_ptr = REALLOC(dest,*dest_written);
+    return err;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+
+enumError DecBZIP2buf
+(
+    void		*dest,		// valid destination buffer
+    uint		dest_size,	// size of 'dest'
+    uint		*dest_written,	// store num bytes written to 'dest', never NULL
+
+    const void		*src,		// source buffer
+    uint		src_size	// size of source buffer
+)
+{
+    // http://www.bzip.org/1.0.3/html/util-fns.html#bzbufftobuffdecompress
+
+    DASSERT(dest);
+    DASSERT( dest_size >= sizeof(u32) );
+    DASSERT(dest_written);
+    DASSERT(src);
+
+    uint dest_need = ntohl(*(u32*)src);
+    *dest_written = dest_need;
+    PRINT("DecBZIP2buf() %u -> %u,%u bytes\n",src_size,dest_size,dest_need);
+
+    int bzerror = BZ2_bzBuffToBuffDecompress ( (char*)dest, dest_written,
+				(char*)src+4, src_size-4, 0, 0 );
+
+    if ( bzerror != BZ_OK )
+	return ERROR0(ERR_BZIP2,
+		"Error while decompressing data.\n-> bzip2 error: %s\n",
+		GetMessageBZIP2(bzerror,"?") );
+
+    return ERR_OK;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+enumError DecBZIP2
+(
+    u8			**dest_ptr,	// result: store destination buffer addr
+    uint		*dest_written,	// store num bytes written to 'dest', never NULL
+    const void		*src,		// source buffer
+    uint		src_size	// size of source buffer
+)
+{
+    DASSERT(dest_ptr);
+    DASSERT(dest_written);
+    DASSERT(src);
+    DASSERT( src_size >= sizeof(u32) );
+
+    uint dest_size = ntohl(*(u32*)src);
+    *dest_ptr = MALLOC(dest_size);
+
+    enumError err = DecBZIP2buf(*dest_ptr,dest_size,dest_written,src,src_size);
+    if (err)
+    {
+	FREE(*dest_ptr);
+	*dest_ptr = 0;
+	*dest_written = 0;
+    }
+    return err;
+}
+
+//
+///////////////////////////////////////////////////////////////////////////////
 ///////////////			    END				///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
