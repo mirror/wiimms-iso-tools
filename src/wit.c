@@ -16,7 +16,7 @@
  *   This file is part of the WIT project.                                 *
  *   Visit http://wit.wiimm.de/ for project details and sources.           *
  *                                                                         *
- *   Copyright (c) 2009-2012 by Dirk Clemens <wiimm@wiimm.de>              *
+ *   Copyright (c) 2009-2013 by Dirk Clemens <wiimm@wiimm.de>              *
  *                                                                         *
  ***************************************************************************
  *                                                                         *
@@ -591,6 +591,39 @@ static enumError cmd_create()
 	break;
     }
 
+    return ERR_OK;
+}
+
+//
+///////////////////////////////////////////////////////////////////////////////
+///////////////			command _CODE			///////////////
+///////////////////////////////////////////////////////////////////////////////
+
+static enumError cmd_code()
+{
+    if (!n_param)
+	AddParam("-",false);
+
+    ParamList_t * param;
+    for ( param = first_param; param; param = param->next )
+    {
+	if (verbose)
+	    fprintf(stderr,"CODE %s\n",param->arg);
+	File_t F;
+	InitializeFile(&F);
+	if (!OpenFile(&F,param->arg,IOM_FORCE_STREAM))
+	{
+	    while ( !feof(F.fp) && !ferror(F.fp) )
+	    {
+		uint size = fread(iobuf,1,sizeof(iobuf),F.fp);
+		u8 *src = (u8*)iobuf, *end = src + size;
+		while ( src < end )
+		    *src++ ^= 0xdc;
+		fwrite(iobuf,1,size,stdout);
+	    }
+	}
+	ResetFile(&F,false);
+    }
     return ERR_OK;
 }
 
@@ -1343,7 +1376,7 @@ static enumError exec_fragments ( SuperFile_t * sf, Iterator_t * it )
 		align |= mi->src_off | mi->dest_off | mi->size;
 	    }
 	    wd_print_size( buf, sizeof(buf), GetAlign64(align),
-				true, WD_SIZE_AUTO|WD_SIZE_F_SMALL_VAL );
+				true, WD_SIZE_AUTO );
 	}
 	else
 	    *buf = 0;
@@ -3282,6 +3315,7 @@ enumError CheckCommand ( int argc, char ** argv )
 	case CMD_GETTITLES:	err = cmd_gettitles(); break;
 	case CMD_CERT:		err = cmd_cert(); break;
 	case CMD_CREATE:	err = cmd_create(); break;
+	case CMD_CODE:		err = cmd_code(); break;
 
 	case CMD_FILELIST:	err = cmd_filelist(); break;
 	case CMD_FILETYPE:	err = cmd_filetype(); break;

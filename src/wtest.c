@@ -16,7 +16,7 @@
  *   This file is part of the WIT project.                                 *
  *   Visit http://wit.wiimm.de/ for project details and sources.           *
  *                                                                         *
- *   Copyright (c) 2009-2012 by Dirk Clemens <wiimm@wiimm.de>              *
+ *   Copyright (c) 2009-2013 by Dirk Clemens <wiimm@wiimm.de>              *
  *                                                                         *
  ***************************************************************************
  *                                                                         *
@@ -66,6 +66,7 @@
 #include "lib-std.h"
 #include "match-pattern.h"
 #include "crypt.h"
+#include "lib-bzip2.h"
 #include "lib-lzma.h"
 #include "titles.h"
 #include "iso-interface.h"
@@ -729,6 +730,66 @@ void test_sha1()
 #endif // HAVE_OPENSSL
 //
 ///////////////////////////////////////////////////////////////////////////////
+///////////////			test_bzip2()			///////////////
+///////////////////////////////////////////////////////////////////////////////
+#ifndef NO_BZIP2
+
+static void test_bzip2 ( int argc, char ** argv )
+{
+    uint i;
+    for ( i = 1; i < argc; i++ )
+    {
+	s64 fsize = GetFileSize(argv[i],0,0,0,0);
+	if (!fsize)
+	    continue;
+
+	printf("* Load %s\n",argv[i]);
+	char *fdata = MALLOC(fsize);
+	{
+	    enumError err = LoadFile(argv[i],0, 0,fdata,fsize, false,0,0);
+	    if (err)
+		goto abort;
+
+	    printf("  - Encode\n");
+	    uint csize;
+	    u8 *cdata;
+	    err = EncBZIP2(&cdata,&csize,true,fdata,fsize,9);
+	    if (err)
+		goto abort;
+
+	    char fname[PATH_MAX];
+	    PathCatPPE(fname,sizeof(fname),0,argv[i],".enc");
+	    printf("  - Save %u bytes to %s\n",csize,fname);
+	    err = SaveFile(fname,0,false,cdata,csize,false);
+	    if (err)
+		goto abort;
+
+	    printf("  - Decode\n");
+	    uint dsize;
+	    u8 *ddata;
+	    err = DecBZIP2(&ddata,&dsize,cdata,csize);
+	    if (err)
+		goto abort;
+
+	    PathCatPPE(fname,sizeof(fname),0,argv[i],".dec");
+	    printf("  - Save %u bytes to %s\n",dsize,fname);
+	    err = SaveFile(fname,0,false,ddata,dsize,false);
+	    if (err)
+		goto abort;
+
+	    if ( dsize != fsize || memcmp(fdata,ddata,dsize) )
+		printf("!!! DATA DIFFER !!!\n");
+	    else
+		printf("  => OK\n");
+	}
+	abort:
+	FREE(fdata);
+    }
+}
+
+#endif // !NO_BZIP2
+//
+///////////////////////////////////////////////////////////////////////////////
 ///////////////			 disc info			///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -1002,7 +1063,6 @@ static int nintendo_cmp_qsort ( const void * path1, const void * path2 )
 
 static enumError develop ( int argc, char ** argv )
 {
-
     argc--;
     argv++;
 
@@ -1082,6 +1142,7 @@ enum
     CMD_HEXDUMP,		// test_hexdump(argc,argv);
 
     CMD_SHA1,			// test_sha1();
+    CMD_BZIP2,			// test_bzip2(argc,argv);
     CMD_WIIMM,			// test_wiimm(argc,argv);
 
     CMD_DEVELOP,		// develop(argc,argv);
@@ -1103,6 +1164,9 @@ static const CommandTab_t CommandTab[] =
 
  #ifdef HAVE_OPENSSL
 	{ CMD_SHA1,		"SHA1",		0,		0 },
+ #endif
+ #ifndef NO_BZIP2
+	{ CMD_BZIP2,		"BZIP2",	0,		0 },
  #endif
  #ifdef HAVE_WORK_DIR
 	{ CMD_WIIMM,		"WIIMM",	"W",		0 },
@@ -1191,6 +1255,9 @@ int main ( int argc, char ** argv )
 
  #ifdef HAVE_OPENSSL
 	case CMD_SHA1:			test_sha1(); break;
+ #endif
+ #ifndef NO_BZIP2
+	case CMD_BZIP2:			test_bzip2(argc,argv); break;
  #endif
  #ifdef HAVE_WORK_DIR
 	case CMD_WIIMM:			test_wiimm(argc,argv); break;

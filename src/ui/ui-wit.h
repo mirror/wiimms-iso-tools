@@ -16,7 +16,7 @@
  *   This file is part of the WIT project.                                 *
  *   Visit http://wit.wiimm.de/ for project details and sources.           *
  *                                                                         *
- *   Copyright (c) 2009-2012 by Dirk Clemens <wiimm@wiimm.de>              *
+ *   Copyright (c) 2009-2013 by Dirk Clemens <wiimm@wiimm.de>              *
  *                                                                         *
  ***************************************************************************
  *                                                                         *
@@ -439,6 +439,8 @@ typedef enum enumOptions
 //				| OB_ID
 //				| OB_IOS,
 //
+//	OB_CMD_CODE		= 0,
+//
 //	OB_CMD_DUMP		= OB_GRP_TITLES
 //				| OB_AUTO
 //				| OB_GRP_XSOURCE
@@ -634,6 +636,7 @@ typedef enum enumCommands
 	CMD_GETTITLES,
 	CMD_CERT,
 	CMD_CREATE,
+	CMD_CODE,
 
 	CMD_FILELIST,
 	CMD_FILETYPE,
@@ -667,7 +670,7 @@ typedef enum enumCommands
 	CMD_SKELETON,
 	CMD_MIX,
 
-	CMD__N // == 40
+	CMD__N // == 41
 
 } enumCommands;
 

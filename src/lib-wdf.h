@@ -16,7 +16,7 @@
  *   This file is part of the WIT project.                                 *
  *   Visit http://wit.wiimm.de/ for project details and sources.           *
  *                                                                         *
- *   Copyright (c) 2009-2012 by Dirk Clemens <wiimm@wiimm.de>              *
+ *   Copyright (c) 2009-2013 by Dirk Clemens <wiimm@wiimm.de>              *
  *                                                                         *
  ***************************************************************************
  *                                                                         *
@@ -72,7 +72,7 @@ typedef u32 WDF_Hole_t;
 // This is the header of a WDF v1.
 // Remember: Within a file the data is stored in network byte order (big endian)
 
-typedef struct WDF_Head_t // split param repalced by others, 2012-09
+typedef struct WDF_Head_t // split param replaced by others, 2012-09
 {
 	// magic and version number
 	char magic[WDF_MAGIC_SIZE];	// WDF_MAGIC, what else!

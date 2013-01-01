@@ -114,6 +114,11 @@
 		    "wit CREATE TMD outfile [--id id] [--ios ios] [hash_val]",
 		"Create a system file (TICKET or TMD)." },
 
+  { H_DEF_CMD,	"CODE",		"_CODE",
+		    "wit _CODE [files]",
+		"All bytes of all input files are xored with 0xDC and copied to stdout."
+		" If no source file is given, stdin is read." },
+
   { T_SEP_CMD,	0,0,0,0 }, //----- separator -----
 
   { T_DEF_CMD,	"FILELIST",	"FILELIST|FLIST",
@@ -1480,6 +1485,10 @@
 	"Define an ID for the TICKET or TMD." },
   { T_COPT,	"IOS",		0,0,
 	"Define an IOS/SYS-VERSION for the TMD." },
+
+  //---------- COMMAND wit _CODE ----------
+
+  { T_CMD_BEG,	"CODE",	0,0,0 },
 
   //---------- COMMAND wit DUMP ----------
 

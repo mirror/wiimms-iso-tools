@@ -16,7 +16,7 @@
  *   This file is part of the WIT project.                                 *
  *   Visit http://wit.wiimm.de/ for project details and sources.           *
  *                                                                         *
- *   Copyright (c) 2009-2012 by Dirk Clemens <wiimm@wiimm.de>              *
+ *   Copyright (c) 2009-2013 by Dirk Clemens <wiimm@wiimm.de>              *
  *                                                                         *
  ***************************************************************************
  *                                                                         *
@@ -3325,7 +3325,7 @@ enumError FindWDiscInfo ( WBFS_t * w, WDiscInfo_t * dinfo, ccp id6 )
     ASSERT(w);
     ASSERT(dinfo);
     ASSERT(id6);
-    if ( !w || !w->wbfs || !dinfo || !id6 || strlen(id6) != 6 )
+    if ( !w || !w->wbfs || !dinfo || !id6 )
 	return ERROR0(ERR_INTERNAL,0);
 
     w->disc_slot = -1;
@@ -3975,7 +3975,7 @@ enumError OpenWDiscID6 ( WBFS_t * w, ccp id6 )
     ASSERT(w);
     CloseWDisc(w);
 
-    if ( !w || !w->wbfs || !id6 || strlen(id6) != 6 )
+    if ( !w || !w->wbfs || !id6 )
 	return ERROR0(ERR_INTERNAL,0);
 
     w->disc = wbfs_open_disc_by_id6(w->wbfs,(u8*)id6);
@@ -4111,7 +4111,7 @@ enumError ExistsWDisc ( WBFS_t * w, ccp id6 )
 {
     ASSERT(w);
 
-    if ( !w || !w->wbfs || !id6 || strlen(id6) != 6 )
+    if ( !w || !w->wbfs || !id6 )
 	return ERROR0(ERR_INTERNAL,0);
 
     char patched_id6[7];

@@ -249,11 +249,11 @@ To manage the disc only the first 128 bytes of the ISO header copy are needed.
 The second half is unused memory. Up from wwt v0.33a I use this area for
 additional information.
 
-This are definitons and data structure of the INODE INFO (extract of libwbfs.h):
+The following are definitons and data structure of the INODE INFO:
 
-@@EXEC(grep 'define WBFS_INODE_INFO_' src/libwbfs/libwbfs.h)@@
+@@EXEC(grep -E '^ *WBFS_INODE_INFO_' ./src/libwbfs/file-formats.h)@@
 
-@@EXEC(sed -n '/wbfs_inode_info_s/,/}/ p' src/libwbfs/libwbfs.h)@@
+@@EXEC(sed -n '/^typedef struct wbfs_inode_info_t/,/^}/ p' ./src/libwbfs/file-formats.h)@@
 
 The first 10 bytes can be used to check the existence of a valid inode info.
 This data is also good for recovering. Because of this validation check this

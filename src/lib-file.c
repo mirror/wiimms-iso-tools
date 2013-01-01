@@ -16,7 +16,7 @@
  *   This file is part of the WIT project.                                 *
  *   Visit http://wit.wiimm.de/ for project details and sources.           *
  *                                                                         *
- *   Copyright (c) 2009-2012 by Dirk Clemens <wiimm@wiimm.de>              *
+ *   Copyright (c) 2009-2013 by Dirk Clemens <wiimm@wiimm.de>              *
  *                                                                         *
  ***************************************************************************
  *                                                                         *
@@ -2954,7 +2954,7 @@ enumError SaveFile ( ccp path1, ccp path2, bool create_dir,
     {
 	err = ERR_WRITE_FAILED;
 	if (!silent)
-	    ERROR1(err,"Writo to file failed: %s\n",path);
+	    ERROR1(err,"Write to file failed: %s\n",path);
     }
     fclose(f);
 
