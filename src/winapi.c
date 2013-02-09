@@ -34,83 +34,103 @@
  *                                                                         *
  ***************************************************************************/
 
-#ifndef WIT_MATCH_PATTERN_H
-#define WIT_MATCH_PATTERN_H 1
+#define _GNU_SOURCE 1
 
-#include "types.h"
-#include "wiidisc.h"
+#include "winapi.h"
+#include "debug.h"
+#include "io.h"
+#include <w32api/windows.h>
+//#include <w32api/winioctl.h>
 
+//
+///////////////////////////////////////////////////////////////////////////////
+///////////////			get file mapping		///////////////
+///////////////////////////////////////////////////////////////////////////////
+// FSCTL_GET_RETRIEVAL_POINTERS
+//	http://msdn.microsoft.com/en-us/library/aa364572%28v=vs.85%29.aspx
 ///////////////////////////////////////////////////////////////////////////////
 
-typedef struct FilePattern_t
+int GetWinFileMap
+(
+    struct FileMap_t	*fm,		// valid pointer to to map
+    int			fd,		// file descriptor
+    u64			split_off,	// base offset of split file
+    u64			file_size	// file size
+)
 {
-	StringField_t rules;	// rules db
+    long handle = get_osfhandle(fd);
+    PRINT("FD: %d -> %ld\n",fd,handle);
 
-	bool is_active;		// true if at least one pattern set
-	bool is_dirty;		// true if setup is needed
-	bool match_all;		// true if all files allowed
-	bool match_none;	// true if no files allowed
+    STARTING_VCN_INPUT_BUFFER start;
+    memset(&start,0,sizeof(start));
 
-	bool macro_negate;	// true if macro ':negate' was called
-	bool user_negate;	// user defined negation
-	bool active_negate;	// := macro_negate != user_negate
+    u8 rawbuf[100000];
+    RETRIEVAL_POINTERS_BUFFER *buf = (RETRIEVAL_POINTERS_BUFFER*)rawbuf;
 
-} FilePattern_t;
+    DWORD written;
+    int stat = DeviceIoControl( (HANDLE)handle,
+				FSCTL_GET_RETRIEVAL_POINTERS,
+				&start, sizeof(start),
+				&rawbuf, sizeof(rawbuf),
+				&written, 0 );
+    int last_err = GetLastError();
+    PRINT("stat=%d,%d [moredata=%ld], wr=%ld, size=%zu\n",
+	stat,last_err,ERROR_MORE_DATA, written,sizeof(rawbuf));
 
+    if ( !stat && last_err == ERROR_MORE_DATA )
+    {
+	uint bufsize = 1000000;
+	for(;;)
+	{
+	    buf = MALLOC(bufsize);
+	    stat = DeviceIoControl( (HANDLE)handle,
+					FSCTL_GET_RETRIEVAL_POINTERS,
+					&start, sizeof(start),
+					buf, bufsize,
+					&written, 0 );
+	    last_err = GetLastError();
+	    PRINT("stat=%d,%d [moredata=%ld], wr=%ld, size=%zu\n",
+		stat,last_err,ERROR_MORE_DATA, written, bufsize);
+
+	    if ( stat || last_err != ERROR_MORE_DATA )
+		break;
+	    FREE(buf);
+	    bufsize *= 2;
+	}
+    }
+
+    int err = 1;
+    if ( stat && buf->ExtentCount )
+    {
+	err = 0;
+	uint blocksize = file_size / buf->Extents[buf->ExtentCount-1].NextVcn.QuadPart;
+	PRINT("file size=%lld, last_cluster = %lld, cluster_size = %d\n",
+		file_size, buf->Extents[buf->ExtentCount-1].NextVcn.QuadPart,
+		blocksize );
+
+	uint i;
+	u64 block = 0;
+	for ( i = 0; i < buf->ExtentCount; i++ )
+	{
+	    noPRINT("%15lld %11lld\n",
+		    buf->Extents[i].NextVcn.QuadPart,
+		    buf->Extents[i].Lcn.QuadPart );
+
+	    const u64 next_block = buf->Extents[i].NextVcn.QuadPart;
+	    AppendFileMap( fm, block * blocksize + split_off,
+				buf->Extents[i].Lcn.QuadPart * blocksize,
+				( next_block - block ) *  blocksize );
+	    block = next_block;
+	}
+    }
+
+    if ( (u8*)buf != rawbuf )
+	FREE(buf);
+    return err;
+}
+
+//
 ///////////////////////////////////////////////////////////////////////////////
-
-typedef enum enumPattern
-{
-	PAT_FILES,		// ruleset of option --files
-	PAT_RM_FILES,		// ruleset of option --rm-files
-	PAT_ZERO_FILES,		// ruleset of option --zero-files
-	PAT_IGNORE_FILES,	// ruleset of option --ignore-files
-	PAT_FAKE_SIGN,		// ruleset of option --fake-sign
-	PAT_DEFAULT,		// default ruleset if PAT_FILES is empty
-	PAT_PARAM,		// file pattern for parameters
-
-	PAT__N,			// number of patterns
-
-} enumPattern;
-
-extern FilePattern_t file_pattern[PAT__N];
-
+///////////////				END			///////////////
 ///////////////////////////////////////////////////////////////////////////////
-// pattern db
-
-void InitializeFilePattern ( FilePattern_t * pat );
-void ResetFilePattern ( FilePattern_t * pat );
-void InitializeAllFilePattern();
-int  AddFilePattern ( ccp arg, int pattern_index );
-int ScanRule ( ccp arg, enumPattern pattern_index );
-FilePattern_t * GetDefaultFilePattern();
-void DefineNegatePattern ( FilePattern_t * pat, bool negate );
-void MoveParamPattern ( FilePattern_t * dest_pat );
-bool SetupFilePattern ( FilePattern_t * pat );
-
-bool MatchFilePattern
-(
-    FilePattern_t	* pat,		// filter rules
-    ccp			text,		// text to check
-    char		path_sep	// path separator character, standard is '/'
-);
-
-int MatchFilePatternFST
-(
-	struct wd_iterator_t *it	// iterator struct with all infos
-);
-
-///////////////////////////////////////////////////////////////////////////////
-// low level match pattern function
-
-bool MatchPattern
-(
-    ccp		pattern,	// pattern text
-    ccp		text,		// raw text
-    char	path_sep	// path separator character, standard is '/'
-);
-
-///////////////////////////////////////////////////////////////////////////////
-
-#endif // WIT_MATCH_PATTERN_H
 

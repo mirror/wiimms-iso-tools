@@ -34,49 +34,45 @@
  *                                                                         *
  ***************************************************************************/
 
-#ifndef LIBWBFS_OS_H
-#define LIBWBFS_OS_H
+#ifndef WIT_WINAPI_H
+#define WIT_WINAPI_H 1
 
-// system includes
-#include <arpa/inet.h>
-#include <string.h>
-#include <stdlib.h>
-#include <time.h>
-
-// project dependent includes
 #include "types.h"
-#include "debug.h"
-#include "lib-error.h"
-#include "crypt.h"
 
-// error messages
-#define wbfs_fatal(...) PrintError(__FUNCTION__,__FILE__,__LINE__,0,ERR_FATAL,__VA_ARGS__)
-#define wbfs_error(...) PrintError(__FUNCTION__,__FILE__,__LINE__,0,ERR_WBFS,__VA_ARGS__)
-#define wbfs_warning(...) PrintError(__FUNCTION__,__FILE__,__LINE__,0,ERR_WARNING,__VA_ARGS__)
+//
+///////////////////////////////////////////////////////////////////////////////
+///////////////			wit definitions			///////////////
+///////////////////////////////////////////////////////////////////////////////
 
-// alloc and free memory space
-#define wbfs_malloc(s) MALLOC(s)
-#define wbfs_calloc(n,s) CALLOC(n,s)
-#define wbfs_free(x) FREE(x)
+struct FileMapItem_t;
+struct FileMap_t;
 
-// alloc and free memory space suitable for disk io
-#define wbfs_ioalloc(x) MALLOC(x)
-#define wbfs_iofree(x) FREE(x)
+const struct FileMapItem_t * AppendFileMap
+(
+    // returns the modified or appended item
 
-// endianess functions
-#define wbfs_ntohs(x)  ntohs(x)
-#define wbfs_ntohl(x)  ntohl(x)
-#define wbfs_ntoh64(x) ntoh64(x)
-#define wbfs_htons(x)  htons(x)
-#define wbfs_htonl(x)  htonl(x)
-#define wbfs_hton64(x) hton64(x)
+    struct FileMap_t	*fm,		// file map pointer
+    u64			src_off,	// offset of source
+    u64			dest_off,	// offset of dest
+    u64			size		// size
+);
 
-// memory functions
-#define wbfs_memcmp(x,y,z) memcmp(x,y,z)
-#define wbfs_memcpy(x,y,z) memcpy(x,y,z)
-#define wbfs_memset(x,y,z) memset(x,y,z)
+//
+///////////////////////////////////////////////////////////////////////////////
+///////////////			get file mapping		///////////////
+///////////////////////////////////////////////////////////////////////////////
 
-// time function
-#define wbfs_time() ((u64)time(0))
+int GetWinFileMap
+(
+    struct FileMap_t	*fm,		// valid pointer to to map
+    int			fd,		// file descriptor
+    u64			split_off,	// base offset of split file
+    u64			file_size	// file size
+);
 
-#endif // LIBWBFS_OS_H
+//
+///////////////////////////////////////////////////////////////////////////////
+///////////////				END			///////////////
+///////////////////////////////////////////////////////////////////////////////
+
+#endif // WIT_WINAPI_H

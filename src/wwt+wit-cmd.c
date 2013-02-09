@@ -16,7 +16,7 @@
  *   This file is part of the WIT project.                                 *
  *   Visit http://wit.wiimm.de/ for project details and sources.           *
  *                                                                         *
- *   Copyright (c) 2009-2012 by Dirk Clemens <wiimm@wiimm.de>              *
+ *   Copyright (c) 2009-2013 by Dirk Clemens <wiimm@wiimm.de>              *
  *                                                                         *
  ***************************************************************************
  *                                                                         *
@@ -534,7 +534,7 @@ static void info_file_formats()
 			"info=%s\n"
 			"option=%s\n"
 			"extensions=%s %s\n"
-			"attributes=%s%s%s%s%s%s%s\n"
+			"attributes=%s%s%s%s%s%s%s%s\n"
 			,info->name
 			,info->name
 			,info->info
@@ -547,7 +547,8 @@ static void info_file_formats()
 			,info->attrib & OFT_A_EXTEND	? "extend " : ""
 			,info->attrib & OFT_A_FST	? "fst "    : ""
 			,info->attrib & OFT_A_COMPR	? "compr "  : ""
-			,info->attrib & OFT_A_NOSIZE	? "nosize "  : ""
+			,info->attrib & OFT_A_NOSIZE    ? "nosize " : ""
+			,info->attrib & OFT_A_LOADER	? "loader " : ""
 			);
 	}
 	return;
@@ -581,11 +582,12 @@ static void info_file_formats()
 		i->ext2 && *i->ext2 ? i->ext2 : " -",
 		i->attrib & OFT_A_READ		? "read"   : "-  ",
 		i->attrib & OFT_A_WRITE		? "write"  : "-    ",
-		i->attrib & OFT_A_MODIFY	? "modify" : "-     ",
-		i->attrib & OFT_A_EXTEND	? "extend" : "-     ",
-		i->attrib & OFT_A_FST		? "fst"
-		: i->attrib & OFT_A_COMPR	? "compr"
-		: i->attrib & OFT_A_NOSIZE	? "nosize" : "-" );
+		i->attrib & OFT_A_EXTEND	? "extend"
+		: i->attrib & OFT_A_MODIFY	? "modify" : "-     ",
+		i->attrib & OFT_A_FST		? "fst   "
+		: i->attrib & OFT_A_COMPR	? "compr "
+		: i->attrib & OFT_A_NOSIZE	? "nosize" : "-     ",
+		i->attrib & OFT_A_LOADER	? "loader" : "-" );
     }
 }
 

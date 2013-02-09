@@ -16,7 +16,7 @@
  *   This file is part of the WIT project.                                 *
  *   Visit http://wit.wiimm.de/ for project details and sources.           *
  *                                                                         *
- *   Copyright (c) 2009-2012 by Dirk Clemens <wiimm@wiimm.de>              *
+ *   Copyright (c) 2009-2013 by Dirk Clemens <wiimm@wiimm.de>              *
  *                                                                         *
  ***************************************************************************
  *                                                                         *
@@ -51,6 +51,7 @@
 #if defined(__CYGWIN__)
   #include <cygwin/fs.h>
   #include <io.h>
+  #include "winapi.h"
 #elif defined(__APPLE__)
   #include <sys/disk.h>
 #elif defined(__linux__)
@@ -1160,28 +1161,44 @@ const OFT_info_t oft_info[OFT__N+1] =
     // { oft, attrib, iom,
     //     name, option, ext1, ext2, info },
 
-    { OFT_UNKNOWN, 0, IOM__IS_DEFAULT,
+    { OFT_UNKNOWN,
+	0,
+	IOM__IS_DEFAULT,
 	"?", 0, "\0", 0, "unkown file format" },
 
-    { OFT_PLAIN, OFT_A_READ|OFT_A_WRITE|OFT_A_EXTEND|OFT_A_MODIFY, IOM_IS_IMAGE,
+    { OFT_PLAIN,
+	OFT_A_READ|OFT_A_WRITE|OFT_A_EXTEND|OFT_A_MODIFY|OFT_A_LOADER,
+	IOM_IS_IMAGE,
 	"ISO", "--iso", ".iso", 0, "plain file" },
 
-    { OFT_WDF,	OFT_A_READ|OFT_A_WRITE|OFT_A_EXTEND|OFT_A_MODIFY, IOM_IS_IMAGE,
+    { OFT_WDF,
+	OFT_A_READ|OFT_A_WRITE|OFT_A_EXTEND|OFT_A_MODIFY,
+	IOM_IS_IMAGE,
 	"WDF", "--wdf", ".wdf", 0, "Wii Disc Format" },
 
-    { OFT_CISO,	OFT_A_READ|OFT_A_WRITE|OFT_A_MODIFY|OFT_A_NOSIZE, IOM_IS_IMAGE,
+    { OFT_CISO,
+	OFT_A_READ|OFT_A_WRITE|OFT_A_MODIFY|OFT_A_NOSIZE|OFT_A_LOADER,
+	IOM_IS_IMAGE,
 	"CISO", "--ciso", ".ciso", ".wbi", "Compact ISO" },
 
-    { OFT_WBFS,	OFT_A_READ|OFT_A_WRITE|OFT_A_EXTEND|OFT_A_MODIFY|OFT_A_NOSIZE, IOM_IS_IMAGE,
+    { OFT_WBFS,
+	OFT_A_READ|OFT_A_WRITE|OFT_A_EXTEND|OFT_A_MODIFY|OFT_A_NOSIZE|OFT_A_LOADER,
+	IOM_IS_IMAGE,
 	"WBFS", "--wbfs", ".wbfs", 0, "Wii Backup File System" },
 
-    { OFT_WIA,	OFT_A_READ|OFT_A_WRITE|OFT_A_COMPR, IOM_IS_WIA,
+    { OFT_WIA,
+	OFT_A_READ|OFT_A_WRITE|OFT_A_COMPR,
+	IOM_IS_WIA,
 	"WIA", "--wia", ".wia", 0, "compressed Wii ISO Archive" },
 
-    { OFT_FST,	OFT_A_READ|OFT_A_WRITE|OFT_A_FST, IOM__IS_DEFAULT,
+    { OFT_FST,
+	OFT_A_READ|OFT_A_WRITE|OFT_A_FST,
+	IOM__IS_DEFAULT,
 	"FST", "--fst", "\0", 0, "extracted File System" },
 
-    { OFT__N, 0, IOM__IS_DEFAULT,
+    { OFT__N,
+	0,
+	IOM__IS_DEFAULT,
 	0, 0, 0, 0, 0 },
 };
 
@@ -3246,8 +3263,7 @@ char * AllocSplitFilename ( ccp path, enumOFT oft )
 	fmap->fm_extent_count = n_elem;
 	int stat = ioctl(file->fd,FS_IOC_FIEMAP,fmap);
 	if ( stat < 0 )
-	    return ERROR1(ERR_READ_FAILED,
-		    "Can't read file mapping (FIEMAP): %s\n",file->fname);
+	    return ERR_WARNING; // delayed error message
 
 	PRINT("STAT=%d, N=%d\n",stat,fmap->fm_mapped_extents);
 	if (!fmap->fm_mapped_extents)
@@ -3341,8 +3357,7 @@ char * AllocSplitFilename ( ccp path, enumOFT oft )
     {
 	uint param = block;
 	if ( ioctl(file->fd,FIBMAP,&param) < 0 )
-	    return ERROR1(ERR_READ_FAILED,
-		"Can't read file mapping (FIBMAP): %s\n",file->fname);
+	    return ERR_WARNING; // delayed error message
 
 	AppendFileMap( fm, block * (u64)blocksize + file->split_off,
 				param * (u64)blocksize, blocksize );
@@ -3357,7 +3372,7 @@ char * AllocSplitFilename ( ccp path, enumOFT oft )
 
 bool HaveFileSystemMapSupport()
 {
- #if HAVE_FIEMAP || HAVE_FIBMAP
+ #if HAVE_FIEMAP || HAVE_FIBMAP || defined(__CYGWIN__) && defined(TEST)
     return true;
  #else
     return false;
@@ -3380,10 +3395,11 @@ enumError GetFileSystemMap
     else
 	ResetFileMap(fm);
 
+ #if HAVE_FIEMAP || HAVE_FIBMAP
+
     enumError stat = ERR_JOB_IGNORED;
     if (S_ISREG(file->st.st_mode))
     {
-
      #if HAVE_FIEMAP
 
 	// first, we try FIEMAP
@@ -3400,8 +3416,43 @@ enumError GetFileSystemMap
 	    return ERR_OK;
      #endif
 
+	if ( stat == ERR_WARNING )
+	{
+	 #if HAVE_FIEMAP && HAVE_FIBMAP
+	    return ERROR1(ERR_READ_FAILED,
+		"Can't read file mapping (FIEMAP+FIBMAP failed): %s\n",file->fname);
+	 #elif HAVE_FIEMAP
+	    return ERROR1(ERR_READ_FAILED,
+		"Can't read file mapping (FIEMAP failed): %s\n",file->fname);
+	 #elif HAVE_FIBMAP
+	    return ERROR1(ERR_READ_FAILED,
+		"Can't read file mapping (FIBMAP failed): %s\n",file->fname);
+	 #endif
+	}
     }
     return stat;
+
+ #elif defined(__CYGWIN__)
+
+    enumError err = ERR_OK;
+    if (file->split_f)
+    {
+	File_t **end, **ptr = file->split_f;
+	for ( end = ptr + file->split_used; err == ERR_OK && ptr < end; ptr++ )
+	    if (GetWinFileMap(fm,(*ptr)->fd,(*ptr)->split_off,(*ptr)->st.st_size))
+		err = ERR_READ_FAILED;
+    }
+    else
+	if (GetWinFileMap(fm,file->fd,file->split_off,file->st.st_size))
+	    err = ERR_READ_FAILED;
+
+    return err
+	? ERROR0(err,"Can't read file mapping: %s\n",file->fname)
+	: ERR_OK;
+
+ #else
+    return ERR_JOB_IGNORED;
+ #endif
 }
 
 //

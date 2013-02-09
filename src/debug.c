@@ -16,7 +16,7 @@
  *   This file is part of the WIT project.                                 *
  *   Visit http://wit.wiimm.de/ for project details and sources.           *
  *                                                                         *
- *   Copyright (c) 2009-2012 by Dirk Clemens <wiimm@wiimm.de>              *
+ *   Copyright (c) 2009-2013 by Dirk Clemens <wiimm@wiimm.de>              *
  *                                                                         *
  ***************************************************************************
  *                                                                         *
@@ -34,7 +34,7 @@
  *                                                                         *
  ***************************************************************************/
 
-#define SZS_DEBUG_C 1
+#define WIIMM_DEBUG_C 1
 #include "debug.h"
 
 #include <stdio.h>
@@ -485,6 +485,9 @@ static mem_info_t * RegisterAlloc
     if (!mem_seqnum)
 	InitializeTraceAlloc();
 
+    memcpy(data-MEM_FILLER_SIZE,mem_filler,MEM_FILLER_SIZE);
+    memcpy(data+size,mem_filler,MEM_FILLER_SIZE);
+
     uint idx = FindMemInfoHelper(data,size);
 
     ASSERT( mem_used <= mem_size );
@@ -575,13 +578,10 @@ void * trace_malloc  ( ccp func, ccp file, uint line, size_t size )
 	PRINT_OOM("Out of memory while allocate %zu+%u bytes (0x%zx)\n",
 		size, 2 * MEM_FILLER_SIZE, size + 2 * MEM_FILLER_SIZE );
 
- #if TRACE_ALLOC_MODE > 2
-    memcpy(res,mem_filler,MEM_FILLER_SIZE);
     res += MEM_FILLER_SIZE;
-    memcpy(res+size,mem_filler,MEM_FILLER_SIZE);
+ #if TRACE_ALLOC_MODE > 2
     RegisterAlloc(func,file,line,res,size);
  #endif
-
     return res;
 }
 
@@ -600,18 +600,15 @@ void * trace_calloc  ( ccp func, ccp file, uint line, size_t nmemb, size_t size 
 void * trace_realloc ( ccp func, ccp file, uint line, void *ptr, size_t size )
 {
     ptr = UnregisterAlloc(func,file,line,ptr);
-    void * res = realloc( ptr, size + 2 * MEM_FILLER_SIZE );
+    u8 * res = realloc( ptr, size + 2 * MEM_FILLER_SIZE );
     if (!res)
 	PRINT_OOM("Out of memory while re allocate %zu+%u bytes (0x%zx)\n",
 		size, 2 * MEM_FILLER_SIZE, size + 2 * MEM_FILLER_SIZE );
 
- #if TRACE_ALLOC_MODE > 2
-    memcpy(res,mem_filler,MEM_FILLER_SIZE);
     res += MEM_FILLER_SIZE;
-    memcpy(res+size,mem_filler,MEM_FILLER_SIZE);
+ #if TRACE_ALLOC_MODE > 2
     RegisterAlloc(func,file,line,res,size);
  #endif
-
     return res;
 }
 

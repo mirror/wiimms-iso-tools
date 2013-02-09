@@ -17,7 +17,7 @@
  *   Visit http://wit.wiimm.de/ for project details and sources.           *
  *                                                                         *
  *   Copyright (c) 2009 Kwiirk                                             *
- *   Copyright (c) 2009-2012 by Dirk Clemens <wiimm@wiimm.de>              *
+ *   Copyright (c) 2009-2013 by Dirk Clemens <wiimm@wiimm.de>              *
  *                                                                         *
  ***************************************************************************
  *                                                                         *

@@ -16,7 +16,7 @@
  *   This file is part of the WIT project.                                 *
  *   Visit http://wit.wiimm.de/ for project details and sources.           *
  *                                                                         *
- *   Copyright (c) 2009-2012 by Dirk Clemens <wiimm@wiimm.de>              *
+ *   Copyright (c) 2009-2013 by Dirk Clemens <wiimm@wiimm.de>              *
  *                                                                         *
  ***************************************************************************
  *                                                                         *
@@ -172,13 +172,12 @@ typedef enum wd_size_mode_t
     WD_SIZE_F_1024	= 0x020,  // force output in IEC units (KiB=1024, MiB=1024*1024,...)
     WD_SIZE_F_AUTO_UNIT	= 0x040,  // suppress output of unit for non AUTO mode
     WD_SIZE_F_NO_UNIT	= 0x080,  // suppress allways output of unit
-    WD_SIZE_F_SMALL_VAL	= 0x100,  // try to find a small numbe rand large unit
 
     //----- masks
 
     WD_SIZE_M_MODE	= 0x00f,  // mask for modes
     WD_SIZE_M_BASE	= 0x030,  // mask for base
-    WD_SIZE_M_ALL	= 0x1ff,  // all relevant bits
+    WD_SIZE_M_ALL	= 0x0ff,  // all relevant bits
 
 } wd_size_mode_t;
 

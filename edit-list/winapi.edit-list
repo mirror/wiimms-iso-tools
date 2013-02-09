@@ -1,0 +1,7 @@
+../src/winapi.[ch] ;
+../src/lib-file.[ch] ;
+../src/lib-std.[ch] ;
+@+all-source.edit-list
+-y  100 ../src/winapi.c ;
+-y  120 ../src/winapi.h ;
+-y 3420 ../src/lib-file.c ;

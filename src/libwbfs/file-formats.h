@@ -16,7 +16,7 @@
  *   This file is part of the WIT project.                                 *
  *   Visit http://wit.wiimm.de/ for project details and sources.           *
  *                                                                         *
- *   Copyright (c) 2009-2012 by Dirk Clemens <wiimm@wiimm.de>              *
+ *   Copyright (c) 2009-2013 by Dirk Clemens <wiimm@wiimm.de>              *
  *                                                                         *
  ***************************************************************************
  *                                                                         *
@@ -179,6 +179,8 @@ enum // some constants
     WBFS_INODE_INFO_CMP_SIZE	=   10,
     WBFS_INODE_INFO_OFF		= 0x80,
     WBFS_INODE_INFO_SIZE	= 0x100 - WBFS_INODE_INFO_OFF,
+
+    LOADER_MAX_FRAGMENTS	= 20000,
 };
 
 #define WII_MAX_DISC_SIZE ((u64)WII_MAX_SECTORS*(u64)WII_SECTOR_SIZE)

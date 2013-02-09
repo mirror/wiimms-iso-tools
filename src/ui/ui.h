@@ -16,7 +16,7 @@
  *   This file is part of the WIT project.                                 *
  *   Visit http://wit.wiimm.de/ for project details and sources.           *
  *                                                                         *
- *   Copyright (c) 2009-2012 by Dirk Clemens <wiimm@wiimm.de>              *
+ *   Copyright (c) 2009-2013 by Dirk Clemens <wiimm@wiimm.de>              *
  *                                                                         *
  ***************************************************************************
  *                                                                         *
@@ -144,30 +144,6 @@ enumError RegisterOptionByName
 enumError VerifySpecificOptions ( const InfoUI_t * iu, const CommandTab_t * cmd );
 int GetOptionCount ( const InfoUI_t * iu, int option );
 void DumpUsedOptions ( const InfoUI_t * iu, FILE * f, int indent );
-
-///////////////////////////////////////////////////////////////////////////////
-
-void PutLines
-(
-    FILE	* f,		// valid output stream
-    int		indent,		// indent of output
-    int		fw,		// field width of output
-    int		first_line,	// length without prefix of already printed first line 
-    ccp		prefix,		// NULL or prefix for each line
-    ccp		text		// text to print
-);
-
-void PrintLines
-(
-    FILE	* f,		// valid output stream
-    int		indent,		// indent of output
-    int		fw,		// field width of output
-    int		first_line,	// length without prefix of already printed first line 
-    ccp		prefix,		// NULL or prefix for each line
-    ccp		format,		// format string for vsnprintf()
-    ...				// arguments for 'vsnprintf(format,...)'
-
-)  __attribute__ ((__format__(__printf__,6,7)));
 
 ///////////////////////////////////////////////////////////////////////////////
 

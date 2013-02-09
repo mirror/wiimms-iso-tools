@@ -16,7 +16,7 @@
  *   This file is part of the WIT project.                                 *
  *   Visit http://wit.wiimm.de/ for project details and sources.           *
  *                                                                         *
- *   Copyright (c) 2009-2012 by Dirk Clemens <wiimm@wiimm.de>              *
+ *   Copyright (c) 2009-2013 by Dirk Clemens <wiimm@wiimm.de>              *
  *                                                                         *
  ***************************************************************************
  *                                                                         *
@@ -462,7 +462,7 @@ void * trace_memdup  ( ccp,ccp,uint, const void * src, size_t copylen );
     #define DUMP_TRACE_ALLOC(f)
 #endif
 
-#ifndef SZS_DEBUG_C
+#ifndef WIIMM_DEBUG_C
     #define free	do_not_use_free
     #define calloc	do_not_use_calloc
     #define malloc	do_not_use_malloc

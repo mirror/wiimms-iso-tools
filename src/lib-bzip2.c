@@ -16,7 +16,7 @@
  *   This file is part of the WIT project.                                 *
  *   Visit http://wit.wiimm.de/ for project details and sources.           *
  *                                                                         *
- *   Copyright (c) 2009-2012 by Dirk Clemens <wiimm@wiimm.de>              *
+ *   Copyright (c) 2009-2013 by Dirk Clemens <wiimm@wiimm.de>              *
  *                                                                         *
  ***************************************************************************
  *                                                                         *
@@ -41,7 +41,7 @@
 /******************/
 
 //#include <bzlib.h>
-#include "src/libbz2/bzlib.h"
+#include "libbz2/bzlib.h"
 #include "lib-bzip2.h"
 
 /************************************************************************

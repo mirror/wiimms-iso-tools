@@ -16,7 +16,7 @@
  *   This file is part of the WIT project.                                 *
  *   Visit http://wit.wiimm.de/ for project details and sources.           *
  *                                                                         *
- *   Copyright (c) 2009-2012 by Dirk Clemens <wiimm@wiimm.de>              *
+ *   Copyright (c) 2009-2013 by Dirk Clemens <wiimm@wiimm.de>              *
  *                                                                         *
  ***************************************************************************
  *                                                                         *
@@ -61,7 +61,9 @@ typedef u16		be16_t;
 typedef u32		be32_t;
 typedef u64		be64_t;
 
-typedef enum bool { false, true } __attribute__ ((packed)) bool;
+#ifndef  __cplusplus
+  typedef enum bool { false, true } __attribute__ ((packed)) bool;
+#endif
 
 ///////////////////////////////////////////////////////////////////////////////
 

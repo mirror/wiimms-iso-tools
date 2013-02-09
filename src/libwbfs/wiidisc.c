@@ -16,7 +16,7 @@
  *   This file is part of the WIT project.                                 *
  *   Visit http://wit.wiimm.de/ for project details and sources.           *
  *                                                                         *
- *   Copyright (c) 2009-2012 by Dirk Clemens <wiimm@wiimm.de>              *
+ *   Copyright (c) 2009-2013 by Dirk Clemens <wiimm@wiimm.de>              *
  *                                                                         *
  ***************************************************************************
  *                                                                         *
@@ -2023,7 +2023,8 @@ enumError wd_load_part
 
 	    //----- load tmd
 
-	    if ( ph->tmd_size < sizeof(wd_tmd_t) )
+	    if ( ph->tmd_size < sizeof(wd_tmd_t)
+		|| ((u64)ph->tmd_off4<<2) + ph->tmd_size > ((u64)ph->data_off4<<2) )
 	    {
 		if (!silent)
 		    WD_ERROR(ERR_WPART_INVALID,"Invalid TMD size (0x%x) in partition '%s'%s",

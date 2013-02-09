@@ -16,7 +16,7 @@
  *   This file is part of the WIT project.                                 *
  *   Visit http://wit.wiimm.de/ for project details and sources.           *
  *                                                                         *
- *   Copyright (c) 2009-2012 by Dirk Clemens <wiimm@wiimm.de>              *
+ *   Copyright (c) 2009-2013 by Dirk Clemens <wiimm@wiimm.de>              *
  *                                                                         *
  ***************************************************************************
  *                                                                         *
@@ -212,124 +212,6 @@ void DumpUsedOptions ( const InfoUI_t * iu, FILE * f, int indent )
 			i, iu->opt_info[i].long_name );
     }
 };
-
-//
-///////////////////////////////////////////////////////////////////////////////
-///////////////			 text helpers			///////////////
-///////////////////////////////////////////////////////////////////////////////
-
-void PutLines
-(
-    FILE	* f,		// valid output stream
-    int		indent,		// indent of output
-    int		fw,		// field width of output
-    int		first_line,	// length without prefix of already printed first line 
-    ccp		prefix,		// NULL or prefix for each line
-    ccp		text		// text to print
-)
-{
-    DASSERT(f);
-    DASSERT( indent >= 0 );
-
-    if (!prefix)
-	prefix = "";
-    TRACE("PutLines(,%d,%d,%d,%.10s,%.20s)\n",indent,fw,first_line,prefix,text);
-    fw -= strlen(prefix);
-    if ( fw < 10 )
-	fw = 10;
-
-    ccp prefix1 = "";
-    int indent1, fw1;
-    if (  indent > first_line )
-    {
-	indent1 = indent - first_line;
-	fw1 = fw - indent;
-    }
-    else
-    {
-	indent1 = 0;
-	fw1 = fw - first_line;
-    }
-
-    fw -= indent;
-    if ( fw < 20 )
-	fw = 20;
-
-    if ( fw1 < 20 )
-    {
-	fputc('\n',f);
-	indent1 = indent;
-	fw1 = fw;
-	prefix1 = prefix;
-    }
-    
-    while ( *text )
-    {
-	// skip blank and control
-	if ( *text == '\n' )
-	{
-	    // don't skip spaces behind a LF ==> needed for tables
-	    while ( *text > 0 && *text < ' ' )
-		text++;
-	}
-	else
-	{
-	    // but ignore spaces on an automatic line break
-	    while ( *text > 0 && *text <= ' ' )
-		text++;
-	}
-
-	// setup
-	ccp start = text, last_blank = text;
-	ccp max = text + fw1;
-
-	while ( text < max && *text && *text != '\n' )
-	{
-	    if ( *text > 0 && *text <= ' ' )
-		last_blank = text;
-	    text++;
-	}
-
-	// set back to last blank
-	if ( last_blank > start && (u8)*text > ' ' )
-	    text = last_blank;
-
-	// print out
-	if ( *text || text > start )
-	    fprintf(f,"%s%*s%.*s\n", prefix1, indent1, "", (int)(text-start), start );
-
-	// use standard values for next lines
-	indent1 = indent;
-	fw1 = fw;
-	prefix1 = prefix;
-    }
-}
-
-///////////////////////////////////////////////////////////////////////////////
-
-void PrintLines
-(
-    FILE	* f,		// valid output stream
-    int		indent,		// indent of output
-    int		fw,		// field width of output
-    int		first_line,	// length without prefix of already printed first line 
-    ccp		prefix,		// NULL or prefix for each line
-    ccp		format,		// format string for vsnprintf()
-    ...				// arguments for 'vsnprintf(format,...)'
-)
-{
-    DASSERT(f);
-    DASSERT(format);
-
-    char msg[5000];
-
-    va_list arg;
-    va_start(arg,format);
-    vsnprintf(msg,sizeof(msg),format,arg);
-    va_end(arg);
-
-    PutLines(f,indent,fw,first_line,prefix,msg);
-}
 
 //
 ///////////////////////////////////////////////////////////////////////////////

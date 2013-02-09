@@ -16,7 +16,7 @@
  *   This file is part of the WIT project.                                 *
  *   Visit http://wit.wiimm.de/ for project details and sources.           *
  *                                                                         *
- *   Copyright (c) 2009-2012 by Dirk Clemens <wiimm@wiimm.de>              *
+ *   Copyright (c) 2009-2013 by Dirk Clemens <wiimm@wiimm.de>              *
  *                                                                         *
  ***************************************************************************
  *                                                                         *
@@ -301,6 +301,7 @@ typedef enum attribOFT // OFT attributes
     OFT_A_FST		= 0x10,		// format is an extracted file system
     OFT_A_COMPR		= 0x20,		// format uses compression
     OFT_A_NOSIZE	= 0x40,		// format has no file size info
+    OFT_A_LOADER	= 0x80,		// used by USB/SD loaders
 
 } attribOFT;
 
@@ -973,6 +974,31 @@ enumError ScanHexSilent
     ccp		arg		// source string
 );
 
+//-----------------------------------------------------------------------------
+
+void PutLines
+(
+    FILE	* f,		// valid output stream
+    int		indent,		// indent of output
+    int		fw,		// field width of output
+    int		first_line,	// length without prefix of already printed first line 
+    ccp		prefix,		// NULL or prefix for each line
+    ccp		text		// text to print
+);
+
+void PrintLines
+(
+    FILE	* f,		// valid output stream
+    int		indent,		// indent of output
+    int		fw,		// field width of output
+    int		first_line,	// length without prefix of already printed first line 
+    ccp		prefix,		// NULL or prefix for each line
+    ccp		format,		// format string for vsnprintf()
+    ...				// arguments for 'vsnprintf(format,...)'
+
+)  __attribute__ ((__format__(__printf__,6,7)));
+
+//
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////                     scan size                   ///////////////
 ///////////////////////////////////////////////////////////////////////////////
