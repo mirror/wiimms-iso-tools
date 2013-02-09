@@ -3769,9 +3769,10 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	"FRAGMENTS",
 	0,
 	"wit FRAGMENTS [source]...",
-	"Print the image fragments and, if possible, their file system"
-	" mapping. The Mac and Cygwin versions can only detect the file system"
-	" mapping for WBFS partitions.",
+	"Print the image fragments and, if possible, their file system mapping"
+	" and fragments. If option --brief is set, only the fragment counts"
+	" are printed. The Mac version can only detect the file system mapping"
+	" for WBFS partitions.",
 	19,
 	option_tab_cmd_FRAGMENTS,
 	option_allowed_cmd_FRAGMENTS

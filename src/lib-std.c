@@ -49,7 +49,6 @@
 #if defined(__CYGWIN__)
   #include <cygwin/fs.h>
   #include <io.h>
-  //#include <locale.h>
 #elif defined(__APPLE__)
   #include <sys/disk.h>
 #elif defined(__linux__)
@@ -283,9 +282,9 @@ void SetupLib ( int argc, char ** argv, ccp p_progname, enumProgID prid )
     TRACE_SIZEOF(FilePattern_t);
     TRACE_SIZEOF(ID_DB_t);
     TRACE_SIZEOF(ID_t);
-    TRACE_SIZEOF(InfoCommand_t);
-    TRACE_SIZEOF(InfoOption_t);
-    TRACE_SIZEOF(InfoUI_t);
+    //TRACE_SIZEOF(InfoCommand_t);
+    //TRACE_SIZEOF(InfoOption_t);
+    //TRACE_SIZEOF(InfoUI_t);
     TRACE_SIZEOF(IOData_t);
     TRACE_SIZEOF(IsoMappingItem_t);
     TRACE_SIZEOF(IsoMapping_t);

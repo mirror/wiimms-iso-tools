@@ -1324,8 +1324,8 @@ static enumError exec_fragments ( SuperFile_t * sf, Iterator_t * it )
 
     if ( !it->done_count++ && brief_count && !OptionUsed[OPT_NO_HEADER] )
 	printf(	"\n"
-		"image filesys real\n"
-		"_____fragments____ %s type file\n"
+		"_____fragments_____\n"
+		"image filesys real  %s type file\n"
 		"%s\n",
 		long_count ? "aligning " : "", sep_79);
 
@@ -1382,16 +1382,22 @@ static enumError exec_fragments ( SuperFile_t * sf, Iterator_t * it )
 	    *buf = 0;
 
 	if (!is_reg)
-	    printf("%4s %6s %6u %s %-4s %s\n",
+	    printf("%4s %6s %6u  %s %-4s %s\n",
 		"-", "-", fm3.used, buf,
 		oft_info[sf->iod.oft].name, sf->f.fname );
 	else if (have_system_map)
-	    printf("%4u %6u %6u %s %-4s %s\n",
-		fm1.used, fm2.used, fm3.used, buf,
+	    printf("%4u %6u %6u%c %s %-4s %s\n",
+		fm1.used, fm2.used, fm3.used,
+		oft_info[sf->iod.oft].attrib & OFT_A_LOADER
+			&& fm3.used > LOADER_MAX_FRAGMENTS ? '!' : ' ',
+		buf,
 		oft_info[sf->iod.oft].name, sf->f.fname );
 	else
-	    printf("%4u %6s %6s %s %-4s %s\n",
-		fm1.used, "-", "-", buf,
+	    printf("%4u%c%6s %6s %s %-4s %s\n",
+		fm1.used,
+		oft_info[sf->iod.oft].attrib & OFT_A_LOADER
+			&& fm1.used > LOADER_MAX_FRAGMENTS ? '!' : ' ',
+		"-", "-", buf,
 		oft_info[sf->iod.oft].name, sf->f.fname );
     }
     else

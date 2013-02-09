@@ -1,6 +1,9 @@
 wit v@@VERSION@@ r@@REV-NEXT@@ - @@@@-@@-@@
 
- - Bug fix: wrong TMD size is now detected.
+ - Windows version only: Update to Cygwin v1.7.17
+ - Bug fix: A wrong TMD size is now detected while scnning image partitions.
+ - Command 'wit FRAGMENTS' will now scan and print the filesystem mapping for
+   Linux (like before) and Windows (that's new). Mac is still not suported.
 
 ~
 ~Known bugs:

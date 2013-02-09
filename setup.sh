@@ -48,6 +48,43 @@ fi
 
 [[ $STATIC = 1 ]] || STATIC=0
 
+#--------------------------------------------------
+
+INSTALL_PATH=/usr/local
+
+if [[ -d $INSTALL_PATH/bin ]]
+then
+    HAVE_INSTBIN=1
+    INSTBIN=$INSTALL_PATH/bin
+else
+    HAVE_INSTBIN=0
+    INSTBIN=/tmp
+fi
+
+if [[ -d $INSTALL_PATH/bin32 ]]
+then
+    HAVE_INSTBIN_32=1
+    INSTBIN_32=$INSTALL_PATH/bin32
+else
+    HAVE_INSTBIN_32=0
+    INSTBIN_32=/tmp
+fi
+
+if [[ -d $INSTALL_PATH/bin64 ]]
+then
+    HAVE_INSTBIN_64=1
+    INSTBIN_64=$INSTALL_PATH/bin64
+elif [[ -d $INSTALL_PATH/bin-x86_64 ]]
+then
+    HAVE_INSTBIN_64=1
+    INSTBIN_64=$INSTALL_PATH/bin-x86_64
+else
+    HAVE_INSTBIN_64=0
+    INSTBIN_64=/tmp
+fi
+
+#--------------------------------------------------
+
 cat <<- ---EOT--- >Makefile.setup
 	REVISION	:= $revision
 	REVISION_NUM	:= $revision_num
@@ -61,6 +98,15 @@ cat <<- ---EOT--- >Makefile.setup
 	STATIC		:= $STATIC
 	XFLAGS		+= $xflags
 	DEFINES1	:= $defines
+
+	HAVE_INSTBIN	:= $HAVE_INSTBIN
+	HAVE_INSTBIN_32	:= $HAVE_INSTBIN_32
+	HAVE_INSTBIN_64	:= $HAVE_INSTBIN_64
+
+	INSTALL_PATH	:= $INSTALL_PATH
+	INSTBIN		:= $INSTBIN
+	INSTBIN_32	:= $INSTBIN_32
+	INSTBIN_64	:= $INSTBIN_64
 
 	---EOT---
 

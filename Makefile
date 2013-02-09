@@ -44,7 +44,7 @@ WFUSE_SHORT		= wfuse
 WFUSE_LONG		= Wiimms FUSE Tool
 
 VERSION_NUM		= 2.11a
-BETA_VERSION		= 2
+BETA_VERSION		= 0
 			# 0:off  -1:"beta"  >0:"beta#"
 
 URI_HOME		= http://wit.wiimm.de/
@@ -219,6 +219,10 @@ WIT_O		:= debug.o lib-std.o lib-file.o lib-sf.o \
 LIBWBFS_O	:= tools.o file-formats.o libwbfs.o wiidisc.o cert.o rijndael.o
 LZMA_O		:= LzmaDec.o LzmaEnc.o LzFind.o Lzma2Dec.o Lzma2Enc.o
 
+ifeq ($(SYSTEM),cygwin)
+WIT_O		+= winapi.o
+endif
+
 # object groups
 UI_OBJECTS	:= $(sort $(MAIN_TOOLS_OBJ))
 C_OBJECTS	:= $(sort $(OTHER_TOOLS_OBJ) $(WIT_O) $(LIBWBFS_O) $(LZMA_O) $(TOBJ_ALL))
@@ -230,7 +234,6 @@ ALL_SOURCES	= $(patsubst %.o,%.c,$(UI_OBJECTS) $(C_OBJECTS) $(ASM_OBJECTS))
 
 #-------------------------------------------------------------------------------
 
-INSTALL_PATH	= /usr/local
 SHARE_PATH	= $(INSTALL_PATH)/share/wit
 INSTALL_SCRIPTS	= install.sh load-titles.sh
 RM_FILES	+= $(INSTALL_SCRIPTS)
@@ -629,9 +632,23 @@ ifeq ($(SYSTEM_LINUX),1)
 	@for t in $(ALL_TOOLS_X); do rm -f bin/$$t; done
 	@M32=1 $(MAKE) --no-print-directory clean+ install
 
+ifeq ($(HAVE_INSTBIN_32),1)
+	@printf "$(LOGFORMAT)" copy "$(INSTBIN)/* to $(INSTBIN_32)"
+	@for f in $(BIN_FILES); do [[ -f $(INSTBIN)/$$f ]] \
+		&& cp -p $(INSTBIN)/$$f $(INSTBIN_32); done; true
+	@for f in $(WDF_LINKS); do ln -f $(INSTBIN_32)/wdf $(INSTBIN_32)/$$f; done
+endif
+
 	@printf "\n---------- BUILDING LINUX/X86_64 ----------\n\n"
 	@for t in $(ALL_TOOLS_X); do rm -f bin/$$t; done
 	@$(MAKE) --no-print-directory clean+ install
+
+ifeq ($(HAVE_INSTBIN_64),1)
+	@printf "$(LOGFORMAT)" copy "$(INSTBIN)/* to $(INSTBIN_64)"
+	@for f in $(BIN_FILES); do [[ -f $(INSTBIN)/$$f ]] \
+		&& cp -p $(INSTBIN)/$$f $(INSTBIN_64); done; true
+	@for f in $(WDF_LINKS); do ln -f $(INSTBIN_64)/wdf $(INSTBIN_64)/$$f; done
+endif
 
 else
 	@$(MAKE) --no-print-directory clean+ install
@@ -783,6 +800,17 @@ gen-titles:
 
 .PHONY : tools
 tools: $(ALL_TOOLS)
+
+#
+#--------------------------
+
+.PHONY : up
+up: clean++ do_up ch+
+
+.PHONY : do_up
+do_up: clean
+	@printf "$(LOGFORMAT)" svn update
+	@svn update
 
 #
 #--------------------------

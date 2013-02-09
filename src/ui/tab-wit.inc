@@ -149,8 +149,9 @@
   { T_DEF_CMD,	"FRAGMENTS",	"FRAGMENTS",
 		    "wit FRAGMENTS [source]...",
 		"Print the image fragments and, if possible,"
-		" their file system mapping."
-		" The Mac and Cygwin versions can only detect"
+		" their file system mapping and fragments."
+		" If option --brief is set, only the fragment counts are printed."
+		" The Mac version can only detect"
 		" the file system mapping for WBFS partitions." },
 
   { T_DEF_CMD,	"LIST",		"LIST|LS",

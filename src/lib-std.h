@@ -301,6 +301,7 @@ typedef enum attribOFT // OFT attributes
     OFT_A_FST		= 0x10,		// format is an extracted file system
     OFT_A_COMPR		= 0x20,		// format uses compression
     OFT_A_NOSIZE	= 0x40,		// format has no file size info
+    OFT_A_LOADER	= 0x80,		// used by USB/SD loaders
 
 } attribOFT;
 
