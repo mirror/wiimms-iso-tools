@@ -250,6 +250,12 @@ wd_disc_t * OpenDiscSF
     bool		print_err	// true: print error message if open fails
 );
 
+enumError PatchSF
+(
+    SuperFile_t		* sf,		// valid file pointer
+    enumError		err_on_patch	// error message if patched
+);
+
 enumError RewriteModifiedSF
 (
     SuperFile_t		* fi,		// valid input file

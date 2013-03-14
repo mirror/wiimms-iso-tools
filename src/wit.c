@@ -2411,33 +2411,7 @@ enumError exec_edit ( SuperFile_t * fi, Iterator_t * it )
 	printf( "%s: EDIT %s:%s\n", progname, oinfo->name, fi->f.fname );
 #endif
 
-    OpenDiscSF(fi,true,true);
-    wd_disc_t * disc = fi->disc1;
-
-    enumError err = ERR_OK;
-    if ( disc && disc->reloc )
-    {
-	PRINT("EDIT PHASE I\n");
-	const wd_reloc_t * reloc = disc->reloc;
-	u32 idx;
-	for ( idx = 0; idx < WII_MAX_SECTORS && !err; idx++, reloc++ )
-	    if ( *reloc & (WD_RELOC_F_PATCH|WD_RELOC_F_HASH)
-		&& !( *reloc & WD_RELOC_F_LAST ) )
-	    {
-		TRACE(" - WRITE SECTOR %x, off %llx\n",idx,idx*(u64)WII_SECTOR_SIZE);
-		err = CopyRawData(fi,fi,idx*(u64)WII_SECTOR_SIZE,WII_SECTOR_SIZE);
-	    }
-
-	PRINT("EDIT PHASE II\n");
-	reloc = disc->reloc;
-	for ( idx = 0; idx < WII_MAX_SECTORS && !err; idx++, reloc++ )
-	    if ( *reloc & WD_RELOC_F_LAST )
-	    {
-		TRACE(" - WRITE SECTOR %x, off %llx\n",idx,idx*(u64)WII_SECTOR_SIZE);
-		err = CopyRawData(fi,fi,idx*(u64)WII_SECTOR_SIZE,WII_SECTOR_SIZE);
-	    }
-    }
-
+    enumError err = PatchSF(fi,ERR_OK);
     ResetSF( fi, !err && OptionUsed[OPT_PRESERVE] ? &fi->f.fatt : 0 );
     return err;
 }

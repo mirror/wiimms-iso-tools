@@ -153,8 +153,8 @@
 #:def_cmd( "EXTRACT", "EXTRACT|X", \
 	"wit EXTRACT source dest\n" \
 	"wit EXTRACT [[--source] source]... [--recurse source]... [-d|-D] dest", \
-	"Extract all files from the source discs. Images, WBFS partitions and" \
-	" directories are accepted as source." )
+	"Extract all files of each source to new directory structures. Images," \
+	" WBFS partitions and directories are accepted as source." )
 
 #:def_cmd( "COPY", "COPY|CP", \
 	"wit COPY source dest\n" \
@@ -4917,14 +4917,15 @@
 #:def_cmd( "EDIT", "EDIT", \
 	"wwt EDIT [JOB]...\n" \
 	" \n" \
-	"JOB     := REMOVE | ACTIVE | INVALID | FREE | USE | ID6\n" \
-	"REMOVE  := RM=a,b-c,...\n" \
-	"ACTIVE  := ACT=a,b-c,...\n" \
-	"INVALID := INV=a,b-c,...\n" \
-	"FREE    := FREE=a,b-c,...\n" \
-	"USE     := USE=a,b-c,...\n" \
-	"ID6     := ID6=a:b,c-d:e,...", \
-	"Edit slot and block assignments. Dangerous! Read the documentation!" )
+	"JOB      := REMOVE | ACTIVATE | INVALID | FREE | USE | ID6\n" \
+	"REMOVE   := RM=a,b-c,...\n" \
+	"ACTIVATE := ACT=a,b-c,...\n" \
+	"INVALID  := INV=a,b-c,...\n" \
+	"FREE     := FREE=a,b-c,...\n" \
+	"USE      := USE=a,b-c,...\n" \
+	"ID6      := ID6=a:b,c-d:e,...", \
+	"Low level edit of slot and block assignments. Dangerous! Read the" \
+	" documentation!" )
 
 #:def_cmd( "PHANTOM", "PHANTOM", \
 	"wwt PHANTOM [RULE]...\n" \
@@ -4973,6 +4974,10 @@
 	"wwt EXTRACT id6[=dest]...", \
 	"Extract discs from WBFS partitions and store them as Wii or GameCube" \
 	" images." )
+
+#:def_cmd( "SCRUB", "SCRUB", \
+	"wwt SCRUB id6[=dest]...", \
+	"Scrub discs of WBFS partitions and rewrite the block map." )
 
 #:def_cmd( "REMOVE", "REMOVE|RM", \
 	"wwt REMOVE id6...", \
@@ -7000,10 +7005,6 @@
 	"", \
 	"" )
 
-#:def_cmd_opt( "PHANTOM", "FORCE", \
-	"", \
-	"This option is not longer needed because of the new WBFS interface." )
-
 #:def_cmd_opt( "PHANTOM", "NO_CHECK", \
 	"", \
 	"Disable automatic check of WBFS before modifications." )
@@ -7035,10 +7036,6 @@
 #:def_cmd_opt( "TRUNCATE", "PART", \
 	"", \
 	"" )
-
-#:def_cmd_opt( "TRUNCATE", "FORCE", \
-	"", \
-	"This option is not longer needed because of the new WBFS interface." )
 
 #:def_cmd_opt( "TRUNCATE", "NO_CHECK", \
 	"", \
@@ -7079,10 +7076,6 @@
 #:def_cmd_opt( "ADD", "PART", \
 	"", \
 	"" )
-
-#:def_cmd_opt( "ADD", "FORCE", \
-	"", \
-	"This option is not longer needed because of the new WBFS interface." )
 
 #:def_cmd_opt( "ADD", "NO_CHECK", \
 	"", \
@@ -7314,10 +7307,6 @@
 	"", \
 	"" )
 
-#:def_cmd_opt( "UPDATE", "FORCE", \
-	"", \
-	"This option is not longer needed because of the new WBFS interface." )
-
 #:def_cmd_opt( "UPDATE", "NO_CHECK", \
 	"", \
 	"Disable automatic check of WBFS before modifications." )
@@ -7539,10 +7528,6 @@
 #:def_cmd_opt( "SYNC", "PART", \
 	"", \
 	"" )
-
-#:def_cmd_opt( "SYNC", "FORCE", \
-	"", \
-	"This option is not longer needed because of the new WBFS interface." )
 
 #:def_cmd_opt( "SYNC", "NO_CHECK", \
 	"", \
@@ -7819,10 +7804,6 @@
 	"", \
 	"" )
 
-#:def_cmd_opt( "EXTRACT", "FORCE", \
-	"", \
-	"This option is not longer needed because of the new WBFS interface." )
-
 #:def_cmd_opt( "EXTRACT", "NO_CHECK", \
 	"", \
 	"Disable automatic check of WBFS before modifications." )
@@ -8066,6 +8047,161 @@
 	"", \
 	"" )
 
+#:def_cmd_opt( "SCRUB", "TITLES", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "SCRUB", "UTF_8", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "SCRUB", "NO_UTF_8", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "SCRUB", "LANG", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "SCRUB", "AUTO", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "SCRUB", "ALL", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "SCRUB", "PART", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "SCRUB", "NO_CHECK", \
+	"", \
+	"Disable automatic check of WBFS before modifications." )
+
+#:def_cmd_opt( "SCRUB", "EXCLUDE", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "SCRUB", "EXCLUDE_PATH", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "SCRUB", "INCLUDE", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "SCRUB", "INCLUDE_PATH", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "SCRUB", "INCLUDE_FIRST", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "SCRUB", "ONE_JOB", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "SCRUB", "JOB_LIMIT", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "SCRUB", "QUIET", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "SCRUB", "VERBOSE", \
+	"", \
+	"Show a runtime summary for each job. If set twice enable progress" \
+	" information. If set three times the progress information is more" \
+	" detailed." )
+
+#:def_cmd_opt( "SCRUB", "PROGRESS", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "SCRUB", "SCAN_PROGRESS", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "SCRUB", "LONG", \
+	"", \
+	"Print a summary line while extracting files. If set at least twice," \
+	" print a status line for each extracted files." )
+
+#:def_cmd_opt( "SCRUB", "SECTIONS", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "SCRUB", "TEST", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "SCRUB", "ENC", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "SCRUB", "MODIFY", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "SCRUB", "NAME", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "SCRUB", "ID", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "SCRUB", "DISC_ID", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "SCRUB", "BOOT_ID", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "SCRUB", "TICKET_ID", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "SCRUB", "TMD_ID", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "SCRUB", "WBFS_ID", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "SCRUB", "REGION", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "SCRUB", "COMMON_KEY", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "SCRUB", "IOS", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "SCRUB", "RM_FILES", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "SCRUB", "ZERO_FILES", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "SCRUB", "PSEL", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "SCRUB", "RAW", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "REMOVE", "TITLES", \
 	"", \
 	"" )
@@ -8093,10 +8229,6 @@
 #:def_cmd_opt( "REMOVE", "PART", \
 	"", \
 	"" )
-
-#:def_cmd_opt( "REMOVE", "FORCE", \
-	"", \
-	"This option is not longer needed because of the new WBFS interface." )
 
 #:def_cmd_opt( "REMOVE", "NO_CHECK", \
 	"", \
@@ -8196,10 +8328,6 @@
 	"", \
 	"" )
 
-#:def_cmd_opt( "RENAME", "FORCE", \
-	"", \
-	"This option is not longer needed because of the new WBFS interface." )
-
 #:def_cmd_opt( "RENAME", "NO_CHECK", \
 	"", \
 	"Disable automatic check of WBFS before modifications." )
@@ -8283,10 +8411,6 @@
 	"", \
 	"" )
 
-#:def_cmd_opt( "SETTITLE", "FORCE", \
-	"", \
-	"This option is not longer needed because of the new WBFS interface." )
-
 #:def_cmd_opt( "SETTITLE", "NO_CHECK", \
 	"", \
 	"Disable automatic check of WBFS before modifications." )
@@ -8369,10 +8493,6 @@
 #:def_cmd_opt( "TOUCH", "PART", \
 	"", \
 	"" )
-
-#:def_cmd_opt( "TOUCH", "FORCE", \
-	"", \
-	"This option is not longer needed because of the new WBFS interface." )
 
 #:def_cmd_opt( "TOUCH", "NO_CHECK", \
 	"", \
@@ -8465,10 +8585,6 @@
 #:def_cmd_opt( "VERIFY", "PART", \
 	"", \
 	"" )
-
-#:def_cmd_opt( "VERIFY", "FORCE", \
-	"", \
-	"This option is not longer needed because of the new WBFS interface." )
 
 #:def_cmd_opt( "VERIFY", "NO_CHECK", \
 	"", \
@@ -8598,10 +8714,6 @@
 #:def_cmd_opt( "SKELETON", "PART", \
 	"", \
 	"" )
-
-#:def_cmd_opt( "SKELETON", "FORCE", \
-	"", \
-	"This option is not longer needed because of the new WBFS interface." )
 
 #:def_cmd_opt( "SKELETON", "NO_CHECK", \
 	"", \
@@ -8739,18 +8851,28 @@
 
 #:def_cmd( "UNPACK", "+UNPACK|+U", \
 	"wdf +UNPACK [option]... files...", \
-	"Unpack WDF and CISO archives.\n" \
+	"Unpack WDF, WIA and CISO archives.\n" \
 	"  This is the default command, when the program name starts with the" \
 	" two letters @'un'@ in any case." )
 
 #:def_cmd( "CAT", "+CAT|+C", \
 	"wdf +CAT [option]... files...", \
-	"Concatenate files and print on the standard output. WDF and CISO" \
+	"Concatenate files and print on the standard output. WDF, WIA and CISO" \
 	" files are extracted before printing, all other files are copied byte" \
 	" by byte.\n" \
 	"  This is the default command, when the program name contains the sub" \
 	" string @'cat'@ in any case. {wdf +CAT} replaces the old tool" \
 	" @wdf-cat@." )
+
+#:def_cmd( "CMP", "+DIFF|+CMP", \
+	"wdf +DIFF [option]... files...", \
+	"Compare files and unpack WDF, WIA and CISO while comparing.\n" \
+	"  The standard is to compare two source files. If {--dest} or" \
+	" {--DEST} is set, than all source files are compared against files in" \
+	" the destination path with equal names. If the second source file is" \
+	" missing then standard input (stdin) is used instead.\n" \
+	"  This is the default command, when the program name contains the sub" \
+	" string @'diff'@ or @'cmp'@ in any case." )
 
 #:def_cmd( "DUMP", "+DUMP|+D", \
 	"wdf +DUMP [option]... files...", \
@@ -9247,14 +9369,20 @@
 	"", \
 	"Be quiet and print only error messages." )
 
+#:def_opt( "PARAM", "p|param", "GP", \
+	"param", \
+	"The parameter is forwarded to the FUSE command line scanner." )
+
 #:def_opt( "OPTION", "o|option", "GP", \
 	"param", \
 	"This option is forwarded to FUSE command line scanner as @'-o" \
 	" param'@." )
 
-#:def_opt( "PARAM", "p|param", "GP", \
-	"param", \
-	"The parameter is forwarded to the FUSE command line scanner." )
+#:def_opt( "ALLOW_OTHER", "O|allow-other|allowother", "G", \
+	"", \
+	"This option is a short cut for @'-o allow_other'@. It enables" \
+	" reexporting of the mounted file system for example by a samba" \
+	" server." )
 
 #:def_opt( "CREATE", "c|create", "G", \
 	"", \

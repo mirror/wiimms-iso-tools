@@ -552,6 +552,15 @@ typedef enum enumOptions
 //				| OB_TRUNC
 //				| OB_FAST,
 //
+//	OB_CMD_SCRUB		= OB_GRP_TITLES
+//				| OB_GRP_MOD_WBFS
+//				| OB_GRP_EXCLUDE
+//				| OB_GRP_VERBOSE
+//				| OB_LONG
+//				| OB_SECTIONS
+//				| OB_GRP_PATCH
+//				| OB_GRP_PARTITIONS,
+//
 //	OB_CMD_REMOVE		= OB_GRP_TITLES
 //				| OB_GRP_MOD_WBFS
 //				| OB_GRP_EXCLUDE
@@ -658,6 +667,7 @@ typedef enum enumCommands
 	CMD_SYNC,
 	CMD_DUP,
 	CMD_EXTRACT,
+	CMD_SCRUB,
 	CMD_REMOVE,
 	CMD_RENAME,
 	CMD_SETTITLE,
@@ -667,7 +677,7 @@ typedef enum enumCommands
 
 	CMD_FILETYPE,
 
-	CMD__N // == 42
+	CMD__N // == 43
 
 } enumCommands;
 

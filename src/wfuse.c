@@ -202,6 +202,7 @@ static enumError CheckOptions ( int argc, char ** argv )
 
 	case GO_HELP_FUSE:	help_fuse_exit();
 	case GO_OPTION:		add_arg("-o",optarg); break;
+	case GO_ALLOW_OTHER:	add_arg("-o","allow_other"); break;
 	case GO_PARAM:		add_arg(optarg,0); break;
 	case GO_UMOUNT:		opt_umount = true; break;
 	case GO_LAZY:		opt_lazy = true; break;

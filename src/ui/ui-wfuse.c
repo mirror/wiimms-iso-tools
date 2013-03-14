@@ -95,14 +95,21 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 	" value '4' for WIA files. You can combine the values by adding them."
     },
 
+    {	OPT_PARAM, 'p', "param",
+	"param",
+	"The parameter is forwarded to the FUSE command line scanner."
+    },
+
     {	OPT_OPTION, 'o', "option",
 	"param",
 	"This option is forwarded to FUSE command line scanner as '-o param'."
     },
 
-    {	OPT_PARAM, 'p', "param",
-	"param",
-	"The parameter is forwarded to the FUSE command line scanner."
+    {	OPT_ALLOW_OTHER, 'O', "allow-other",
+	0,
+	"This option is a short cut for '-o allow_other'. It enables"
+	" reexporting of the mounted file system for example by a samba"
+	" server."
     },
 
     {	OPT_CREATE, 'c', "create",
@@ -130,7 +137,7 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 	" as it is not busy anymore."
     },
 
-    {0,0,0,0,0} // OPT__N_TOTAL == 15
+    {0,0,0,0,0} // OPT__N_TOTAL == 16
 
 };
 
@@ -139,7 +146,7 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 ///////////////            OptionShort & OptionLong             ///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-const char OptionShort[] = "VhHqvo:p:crul";
+const char OptionShort[] = "VhHqvp:o:Ocrul";
 
 const struct option OptionLong[] =
 {
@@ -152,8 +159,10 @@ const struct option OptionLong[] =
 	{ "quiet",		0, 0, 'q' },
 	{ "verbose",		0, 0, 'v' },
 	{ "io",			1, 0, GO_IO },
-	{ "option",		1, 0, 'o' },
 	{ "param",		1, 0, 'p' },
+	{ "option",		1, 0, 'o' },
+	{ "allow-other",	0, 0, 'O' },
+	 { "allowother",	0, 0, 'O' },
 	{ "create",		0, 0, 'c' },
 	{ "remount",		0, 0, 'r' },
 	{ "umount",		0, 0, 'u' },
@@ -178,7 +187,9 @@ const u8 OptionIndex[OPT_INDEX_SIZE] =
 	/* 0x30   */	 0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0,
 	/* 0x40   */	 0,0,0,0, 0,0,0,0, 
 	/* 0x48 H */	OPT_HELP_FUSE,
-	/* 0x49   */	 0,0,0,0, 0,0,0,0, 0,0,0,0, 0,
+	/* 0x49   */	 0,0,0,0, 0,0,
+	/* 0x4f O */	OPT_ALLOW_OTHER,
+	/* 0x50   */	 0,0,0,0, 0,0,
 	/* 0x56 V */	OPT_VERSION,
 	/* 0x57   */	 0,0,0,0, 0,0,0,0, 0,0,0,0, 
 	/* 0x63 c */	OPT_CREATE,
@@ -224,8 +235,9 @@ const InfoOption_t * option_tab_tool[] =
 
 	OptionInfo + OPT_NONE, // separator
 
-	OptionInfo + OPT_OPTION,
 	OptionInfo + OPT_PARAM,
+	OptionInfo + OPT_OPTION,
+	OptionInfo + OPT_ALLOW_OTHER,
 	OptionInfo + OPT_CREATE,
 	OptionInfo + OPT_REMOUNT,
 
@@ -255,7 +267,7 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	"Mount a Wii or GameCube image or a WBFS file or partition to a mount"
 	" point using FUSE (Filesystem in USErspace). Use 'wfuse --umount"
 	" mountdir' for unmounting.",
-	12,
+	13,
 	option_tab_tool,
 	0
     },

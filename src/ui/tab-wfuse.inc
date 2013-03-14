@@ -77,13 +77,19 @@
 
   { T_SEP_OPT,	0,0,0,0 }, //----- separator -----
 
+  { T_OPT_GP,	"PARAM",	"p|param",
+		"param",
+		"The parameter is forwarded to the FUSE command line scanner." },
+
   { T_OPT_GP,	"OPTION",	"o|option",
 		"param",
 		"This option is forwarded to FUSE command line scanner as @'-o param'@." },
 
-  { T_OPT_GP,	"PARAM",	"p|param",
-		"param",
-		"The parameter is forwarded to the FUSE command line scanner." },
+  { T_OPT_G,	"ALLOW_OTHER",	"O|allow-other|allowother",
+		0,
+		"This option is a short cut for @'-o allow_other'@."
+		" It enables reexporting of the mounted file system"
+		" for example by a samba server." },
 
   { T_OPT_G,	"CREATE",	"c|create",
 		0,

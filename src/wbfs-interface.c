@@ -1152,6 +1152,7 @@ enumError OpenWBFS
 	wbfs_param_t	*par		// NULL or parameter record
 )
 {
+    PRINT("OpenWBFS(rw=%d,pr-err=%d)\n",open_modify,print_err);
     return OpenWBFSHelper(w,filename,open_modify,print_err,par,0,false);
 }
 

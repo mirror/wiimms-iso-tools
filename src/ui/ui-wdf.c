@@ -784,7 +784,7 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	"+UNPACK",
 	"+U",
 	"wdf +UNPACK [option]... files...",
-	"Unpack WDF and CISO archives.\n"
+	"Unpack WDF, WIA and CISO archives.\n"
 	"  This is the default command, when the program name starts with the"
 	" two letters 'un' in any case.",
 	14,
@@ -798,7 +798,7 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	"+CAT",
 	"+C",
 	"wdf +CAT [option]... files...",
-	"Concatenate files and print on the standard output. WDF and CISO"
+	"Concatenate files and print on the standard output. WDF, WIA and CISO"
 	" files are extracted before printing, all other files are copied byte"
 	" by byte.\n"
 	"  This is the default command, when the program name contains the sub"
@@ -809,12 +809,12 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
     },
 
     {	CMD_CMP,
-	true,
+	false,
 	false,
 	"+DIFF",
 	"+CMP",
 	"wdf +DIFF [option]... files...",
-	"Compare files and unpack WDF and CISO while comparing.\n"
+	"Compare files and unpack WDF, WIA and CISO while comparing.\n"
 	"  The standard is to compare two source files. If --dest or --DEST is"
 	" set, than all source files are compared against files in the"
 	" destination path with equal names. If the second source file is"
