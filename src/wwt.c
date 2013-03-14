@@ -2873,6 +2873,203 @@ enumError cmd_extract()
 //
 ///////////////////////////////////////////////////////////////////////////////
 
+enumError cmd_scrub()
+{
+    if ( verbose >= 0 && testmode < 2 )
+	print_title(stdout);
+
+    enumError err = AnalyzePartitions(stdout,false,false);
+    if (err)
+	return err;
+
+    if (!SetupParamDB(0,!OptionUsed[OPT_IGNORE],true))
+	return OptionUsed[OPT_IGNORE] ? ERR_OK : ERR_MISSING_PARAM;
+
+    if ( testmode > 1 )
+    {
+	DumpParamDB(SEL_ALL,false);
+	return ERR_OK;
+    }
+
+
+    //----- scrub images
+
+    int scrub_count = 0;
+    int wbfs_count = 0, wbfs_modified_count = 0;
+
+    const bool check_it	    = OptionUsed[OPT_NO_CHECK] == 0;
+    const bool ignore_check = OptionUsed[OPT_FORCE]    != 0;
+    const uint n_wbfs	    = CountWBFS();
+    const u16 wlba_null	    = htons(0);
+
+    WBFS_t wbfs;
+    InitializeWBFS(&wbfs);
+    PartitionInfo_t * info;
+    for ( err = GetFirstWBFS(&wbfs,&info,true);
+	  !err && !SIGINT_level && scrub_count < job_limit;
+	  err = GetNextWBFS(&wbfs,&info,true) )
+    {
+	wbfs_count++;
+
+	if (verbose>=0)
+	    LogOpenedWBFS(&wbfs,wbfs_count,n_wbfs,info->path);
+
+	if ( !info->is_checked && check_it )
+	{
+	    info->is_checked = true;
+	    if ( AutoCheckWBFS(&wbfs,ignore_check,1) > ERR_WARNING )
+	    {
+		ERROR0(ERR_WBFS_INVALID,"Ignore invalid WBFS: %s\n\n",info->path);
+		ResetWBFS(&wbfs);
+		continue;
+	    }
+	}
+
+	int wbfs_scrub_count = 0;
+	bool wbfs_go = true;
+
+	int slot;
+	for ( slot = 0;
+	      slot < wbfs.wbfs->max_disc
+			&& scrub_count < job_limit
+			&& wbfs_go
+			&& !SIGINT_level;
+	      slot++ )
+	{
+	    ccp id6, title;
+	    const IdItem_t * item = CheckParamSlot(&wbfs,slot,true,&id6,&title);
+	    if (item)
+	    {
+		DASSERT( id6 && *id6 && title );
+		wd_header_t * dhead = GetWDiscHeader(&wbfs);
+		if (dhead)
+		{
+		    if (print_sections)
+		    {
+			printf(
+			    "[SCRUB]\n"
+			    "test-mode=%d\n"
+			    "job-counter=%d\n"
+			    "wbfs-slot=%u\n"
+			    "id=%s\n"
+			    "title=%s\n"
+			    "\n"
+			    ,testmode>0
+			    ,scrub_count+1
+			    ,slot
+			    ,id6
+			    ,title
+			    );
+			fflush(stdout);
+		    }
+
+		    if (testmode)
+		    {
+			if (!print_sections)
+			{
+			    printf(" - WOULD SCRUB %s : %s\n", id6, title );
+			    fflush(stdout);
+			}
+			wbfs_scrub_count++;
+			scrub_count++;
+		    }
+		    else
+		    {
+			if ( !print_sections && ( verbose >= 0 || progress > 0 ))
+			{
+			    printf(" - SCRUB %s : %s\n", id6, title );
+			    fflush(stdout);
+			}
+
+			OpenWDiscSF(&wbfs);
+			wd_disc_t *disc = OpenDiscSF(wbfs.sf,true,true);
+			bool modified = PatchSF(wbfs.sf,ERR_DIFFER) == ERR_DIFFER;
+			wd_calc_usage_table(disc);
+
+		    #if HAVE_PRINT0
+			wd_print_usage_tab(stdout,2,disc->usage_table,WII_MAX_DISC_SIZE,false);
+		    #endif
+	
+			wbfs_t *w = wbfs.wbfs;
+			DASSERT(w);
+			u16 * wlba_tab = wbfs.disc->header->wlba_table;
+			DASSERT(wlba_tab);
+
+			const u32 wii_sec_per_wbfs_sect 
+				= 1 << (w->wbfs_sec_sz_s - w->wii_sec_sz_s);
+
+			uint i;
+			for ( i = 0; i < w->n_wbfs_sec_per_disc; i++ )
+			    if ( wlba_tab[i] != wlba_null
+				&& !wd_is_block_used(disc->usage_table,i,wii_sec_per_wbfs_sect))
+			    {
+				wlba_tab[i] = wlba_null;
+				modified = true;
+			    }
+
+			if (modified)
+			{
+			    wbfs.disc->is_dirty = true;
+			    wbfs_scrub_count++;
+			    scrub_count++;
+			}
+		    }
+		}
+		CloseWDisc(&wbfs);
+	    }
+	}
+
+	if ( wbfs_scrub_count )
+	{
+	    if (wbfs_scrub_count)
+		wbfs_modified_count++;
+
+	    if ( verbose >= 0 )
+	    {
+		if (print_sections)
+		{
+		    LogCloseWBFS(&wbfs,wbfs_count,n_wbfs,info->path);
+		    printf(
+			"n-scrubbed=%u\n"
+			"\n"
+			,wbfs_scrub_count
+			);
+		}
+		else
+		{
+		    printf("* WBFS #%d: %d disc%s scrubbed/patched.\n",
+			wbfs_count, wbfs_scrub_count,
+			wbfs_scrub_count==1 ? "" : "s" );
+		}
+	    }
+	}
+    }
+    ResetWBFS(&wbfs);
+
+    if ( verbose >= 1 )
+	printf("\n");
+
+    if ( !OptionUsed[OPT_IGNORE] && !SIGINT_level )
+	DumpParamDB(SEL_UNUSED,true);
+
+    if ( verbose >= 0 )
+    {
+	if ( wbfs_count > 1 && !print_sections )
+	{
+	    printf("** %d disc%s scrubbed, %d of %d WBFS modified.\n",
+			scrub_count, scrub_count==1 ? "" : "s",
+			wbfs_modified_count, wbfs_count );
+	}
+	if ( verbose >= 1 )
+	    printf("\n");
+    }
+
+    return max_error;
+}
+
+//
+///////////////////////////////////////////////////////////////////////////////
+
 enumError cmd_remove()
 {
     if ( verbose >= 0 && testmode < 2 )
@@ -4000,6 +4197,7 @@ enumError CheckCommand ( int argc, char ** argv )
 	case CMD_SYNC:		err = cmd_sync(); break;
 	case CMD_DUP:		err = cmd_dup(); break;
 	case CMD_EXTRACT:	err = cmd_extract(); break;
+	case CMD_SCRUB:		err = cmd_scrub(); break;
 	case CMD_REMOVE:	err = cmd_remove(); break;
 	case CMD_RENAME:	err = cmd_rename(true); break;
 	case CMD_SETTITLE:	err = cmd_rename(false); break;

@@ -1175,6 +1175,13 @@ const InfoOption_t option_cmd_EXTRACT_IGNORE =
 	"Ignore non existing discs without any warning."
     };
 
+const InfoOption_t option_cmd_SCRUB_LONG =
+    {	OPT_LONG, 'l', "long",
+	0,
+	"Print a summary line while extracting files. If set at least twice,"
+	" print a status line for each extracted files."
+    };
+
 const InfoOption_t option_cmd_REMOVE_UNIQUE =
     {	OPT_UNIQUE, 'U', "unique",
 	0,
@@ -1340,6 +1347,7 @@ const CommandTab_t CommandTab[] =
     { CMD_SYNC,		"SYNC",		0,		0 },
     { CMD_DUP,		"DUP",		0,		0 },
     { CMD_EXTRACT,	"EXTRACT",	"X",		0 },
+    { CMD_SCRUB,	"SCRUB",	0,		0 },
     { CMD_REMOVE,	"REMOVE",	"RM",		0 },
     { CMD_RENAME,	"RENAME",	"REN",		0 },
     { CMD_SETTITLE,	"SETTITLE",	"ST",		0 },
@@ -1970,7 +1978,15 @@ static u8 option_allowed_cmd_EXTRACT[100] = // cmd #34
     0,0,0,0,1, 0,0,1,0,0
 };
 
-static u8 option_allowed_cmd_REMOVE[100] = // cmd #35
+static u8 option_allowed_cmd_SCRUB[100] = // cmd #35
+{
+    0,1,1,1,0, 0,0,0,1,1,  0,1,1,1,1, 1,1,1,0,0,  0,0,0,0,0, 0,0,1,1,1,
+    1,1,1,1,1, 1,1,1,1,1,  1,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,
+    0,0,0,0,0, 1,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,1,0,0,
+    0,0,0,0,0, 0,0,1,0,0
+};
+
+static u8 option_allowed_cmd_REMOVE[100] = // cmd #36
 {
     0,1,1,1,0, 0,0,0,0,0,  0,1,1,1,1, 1,1,1,1,0,  0,0,0,0,0, 0,0,0,0,0,
     0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,
@@ -1978,7 +1994,7 @@ static u8 option_allowed_cmd_REMOVE[100] = // cmd #35
     0,0,0,0,1, 0,0,1,0,0
 };
 
-static u8 option_allowed_cmd_RENAME[100] = // cmd #36
+static u8 option_allowed_cmd_RENAME[100] = // cmd #37
 {
     0,1,1,1,0, 0,0,0,0,0,  0,1,1,1,1, 1,1,1,1,0,  0,0,0,0,0, 0,0,0,0,0,
     0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,
@@ -1986,7 +2002,7 @@ static u8 option_allowed_cmd_RENAME[100] = // cmd #36
     0,0,0,0,0, 0,0,0,0,0
 };
 
-static u8 option_allowed_cmd_SETTITLE[100] = // cmd #37
+static u8 option_allowed_cmd_SETTITLE[100] = // cmd #38
 {
     0,1,1,1,0, 0,0,0,0,0,  0,1,1,1,1, 1,1,1,1,0,  0,0,0,0,0, 0,0,0,0,0,
     0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,
@@ -1994,7 +2010,7 @@ static u8 option_allowed_cmd_SETTITLE[100] = // cmd #37
     0,0,0,0,0, 0,0,0,0,0
 };
 
-static u8 option_allowed_cmd_TOUCH[100] = // cmd #38
+static u8 option_allowed_cmd_TOUCH[100] = // cmd #39
 {
     0,1,1,1,0, 0,0,0,0,0,  0,1,1,1,1, 1,1,1,1,0,  0,0,0,0,0, 0,0,0,0,0,
     0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,
@@ -2002,7 +2018,7 @@ static u8 option_allowed_cmd_TOUCH[100] = // cmd #38
     0,0,0,0,1, 0,0,0,0,0
 };
 
-static u8 option_allowed_cmd_VERIFY[100] = // cmd #39
+static u8 option_allowed_cmd_VERIFY[100] = // cmd #40
 {
     0,1,1,1,0, 0,0,0,1,1,  0,1,1,1,1, 1,1,1,1,0,  0,0,0,0,0, 0,0,0,0,0,
     0,0,0,0,0, 0,0,0,0,0,  0,0,0,1,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,
@@ -2010,7 +2026,7 @@ static u8 option_allowed_cmd_VERIFY[100] = // cmd #39
     0,1,0,0,1, 0,0,0,0,1
 };
 
-static u8 option_allowed_cmd_SKELETON[100] = // cmd #40
+static u8 option_allowed_cmd_SKELETON[100] = // cmd #41
 {
     0,1,1,1,0, 0,0,0,1,1,  0,1,1,1,1, 1,1,1,1,0,  0,0,0,0,0, 0,0,0,0,0,
     0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,1,1,  0,0,0,0,0, 0,0,0,0,0,
@@ -2018,7 +2034,7 @@ static u8 option_allowed_cmd_SKELETON[100] = // cmd #40
     0,0,0,0,0, 0,0,0,0,0
 };
 
-static u8 option_allowed_cmd_FILETYPE[100] = // cmd #41
+static u8 option_allowed_cmd_FILETYPE[100] = // cmd #42
 {
     0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,1,1,  1,1,0,0,0, 0,0,0,0,0,
     0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,
@@ -2667,7 +2683,6 @@ static const InfoOption_t * option_tab_cmd_PHANTOM[] =
 	OptionInfo + OPT_AUTO,
 	OptionInfo + OPT_ALL,
 	OptionInfo + OPT_PART,
-	&option_grp_MOD_WBFS_FORCE,
 	&option_grp_MOD_WBFS_NO_CHECK,
 
 	OptionInfo + OPT_NONE, // separator
@@ -2685,7 +2700,6 @@ static const InfoOption_t * option_tab_cmd_TRUNCATE[] =
 	OptionInfo + OPT_AUTO,
 	OptionInfo + OPT_ALL,
 	OptionInfo + OPT_PART,
-	&option_grp_MOD_WBFS_FORCE,
 	&option_grp_MOD_WBFS_NO_CHECK,
 
 	OptionInfo + OPT_NONE, // separator
@@ -2708,7 +2722,6 @@ static const InfoOption_t * option_tab_cmd_ADD[] =
 	OptionInfo + OPT_AUTO,
 	OptionInfo + OPT_ALL,
 	OptionInfo + OPT_PART,
-	&option_grp_MOD_WBFS_FORCE,
 	&option_grp_MOD_WBFS_NO_CHECK,
 
 	OptionInfo + OPT_NONE, // separator
@@ -2790,7 +2803,6 @@ static const InfoOption_t * option_tab_cmd_UPDATE[] =
 	OptionInfo + OPT_AUTO,
 	OptionInfo + OPT_ALL,
 	OptionInfo + OPT_PART,
-	&option_grp_MOD_WBFS_FORCE,
 	&option_grp_MOD_WBFS_NO_CHECK,
 
 	OptionInfo + OPT_NONE, // separator
@@ -2870,7 +2882,6 @@ static const InfoOption_t * option_tab_cmd_SYNC[] =
 	OptionInfo + OPT_AUTO,
 	OptionInfo + OPT_ALL,
 	OptionInfo + OPT_PART,
-	&option_grp_MOD_WBFS_FORCE,
 	&option_grp_MOD_WBFS_NO_CHECK,
 
 	OptionInfo + OPT_NONE, // separator
@@ -2981,7 +2992,6 @@ static const InfoOption_t * option_tab_cmd_EXTRACT[] =
 	OptionInfo + OPT_AUTO,
 	OptionInfo + OPT_ALL,
 	OptionInfo + OPT_PART,
-	&option_grp_MOD_WBFS_FORCE,
 	&option_grp_MOD_WBFS_NO_CHECK,
 
 	OptionInfo + OPT_NONE, // separator
@@ -3067,6 +3077,65 @@ static const InfoOption_t * option_tab_cmd_EXTRACT[] =
 	0
 };
 
+static const InfoOption_t * option_tab_cmd_SCRUB[] =
+{
+	OptionInfo + OPT_TITLES,
+	OptionInfo + OPT_UTF_8,
+	OptionInfo + OPT_NO_UTF_8,
+	OptionInfo + OPT_LANG,
+
+	OptionInfo + OPT_NONE, // separator
+
+	OptionInfo + OPT_AUTO,
+	OptionInfo + OPT_ALL,
+	OptionInfo + OPT_PART,
+	&option_grp_MOD_WBFS_NO_CHECK,
+
+	OptionInfo + OPT_NONE, // separator
+
+	OptionInfo + OPT_EXCLUDE,
+	OptionInfo + OPT_EXCLUDE_PATH,
+	OptionInfo + OPT_INCLUDE,
+	OptionInfo + OPT_INCLUDE_PATH,
+	OptionInfo + OPT_INCLUDE_FIRST,
+	OptionInfo + OPT_ONE_JOB,
+	OptionInfo + OPT_JOB_LIMIT,
+
+	OptionInfo + OPT_NONE, // separator
+
+	OptionInfo + OPT_QUIET,
+	&option_grp_VERBOSE_VERBOSE,
+	OptionInfo + OPT_PROGRESS,
+	OptionInfo + OPT_SCAN_PROGRESS,
+	&option_cmd_SCRUB_LONG,
+	OptionInfo + OPT_SECTIONS,
+
+	OptionInfo + OPT_NONE, // separator
+
+	OptionInfo + OPT_TEST,
+
+	OptionInfo + OPT_NONE, // separator
+
+	OptionInfo + OPT_ENC,
+	OptionInfo + OPT_MODIFY,
+	OptionInfo + OPT_NAME,
+	OptionInfo + OPT_ID,
+	OptionInfo + OPT_DISC_ID,
+	OptionInfo + OPT_BOOT_ID,
+	OptionInfo + OPT_TICKET_ID,
+	OptionInfo + OPT_TMD_ID,
+	OptionInfo + OPT_WBFS_ID,
+	OptionInfo + OPT_REGION,
+	OptionInfo + OPT_COMMON_KEY,
+	OptionInfo + OPT_IOS,
+	OptionInfo + OPT_RM_FILES,
+	OptionInfo + OPT_ZERO_FILES,
+	OptionInfo + OPT_PSEL,
+	OptionInfo + OPT_RAW,
+
+	0
+};
+
 static const InfoOption_t * option_tab_cmd_REMOVE[] =
 {
 	OptionInfo + OPT_TITLES,
@@ -3079,7 +3148,6 @@ static const InfoOption_t * option_tab_cmd_REMOVE[] =
 	OptionInfo + OPT_AUTO,
 	OptionInfo + OPT_ALL,
 	OptionInfo + OPT_PART,
-	&option_grp_MOD_WBFS_FORCE,
 	&option_grp_MOD_WBFS_NO_CHECK,
 
 	OptionInfo + OPT_NONE, // separator
@@ -3125,7 +3193,6 @@ static const InfoOption_t * option_tab_cmd_RENAME[] =
 	OptionInfo + OPT_AUTO,
 	OptionInfo + OPT_ALL,
 	OptionInfo + OPT_PART,
-	&option_grp_MOD_WBFS_FORCE,
 	&option_grp_MOD_WBFS_NO_CHECK,
 
 	OptionInfo + OPT_NONE, // separator
@@ -3164,7 +3231,6 @@ static const InfoOption_t * option_tab_cmd_SETTITLE[] =
 	OptionInfo + OPT_AUTO,
 	OptionInfo + OPT_ALL,
 	OptionInfo + OPT_PART,
-	&option_grp_MOD_WBFS_FORCE,
 	&option_grp_MOD_WBFS_NO_CHECK,
 
 	OptionInfo + OPT_NONE, // separator
@@ -3203,7 +3269,6 @@ static const InfoOption_t * option_tab_cmd_TOUCH[] =
 	OptionInfo + OPT_AUTO,
 	OptionInfo + OPT_ALL,
 	OptionInfo + OPT_PART,
-	&option_grp_MOD_WBFS_FORCE,
 	&option_grp_MOD_WBFS_NO_CHECK,
 
 	OptionInfo + OPT_NONE, // separator
@@ -3248,7 +3313,6 @@ static const InfoOption_t * option_tab_cmd_VERIFY[] =
 	OptionInfo + OPT_AUTO,
 	OptionInfo + OPT_ALL,
 	OptionInfo + OPT_PART,
-	&option_grp_MOD_WBFS_FORCE,
 	&option_grp_MOD_WBFS_NO_CHECK,
 
 	OptionInfo + OPT_NONE, // separator
@@ -3301,7 +3365,6 @@ static const InfoOption_t * option_tab_cmd_SKELETON[] =
 	OptionInfo + OPT_AUTO,
 	OptionInfo + OPT_ALL,
 	OptionInfo + OPT_PART,
-	&option_grp_MOD_WBFS_FORCE,
 	&option_grp_MOD_WBFS_NO_CHECK,
 
 	OptionInfo + OPT_NONE, // separator
@@ -3714,14 +3777,15 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	0,
 	"wwt EDIT [JOB]...\n"
 	" \n"
-	"JOB     := REMOVE | ACTIVE | INVALID | FREE | USE | ID6\n"
-	"REMOVE  := RM=a,b-c,...\n"
-	"ACTIVE  := ACT=a,b-c,...\n"
-	"INVALID := INV=a,b-c,...\n"
-	"FREE    := FREE=a,b-c,...\n"
-	"USE     := USE=a,b-c,...\n"
-	"ID6     := ID6=a:b,c-d:e,...",
-	"Edit slot and block assignments. Dangerous! Read the documentation!",
+	"JOB      := REMOVE | ACTIVATE | INVALID | FREE | USE | ID6\n"
+	"REMOVE   := RM=a,b-c,...\n"
+	"ACTIVATE := ACT=a,b-c,...\n"
+	"INVALID  := INV=a,b-c,...\n"
+	"FREE     := FREE=a,b-c,...\n"
+	"USE      := USE=a,b-c,...\n"
+	"ID6      := ID6=a:b,c-d:e,...",
+	"Low level edit of slot and block assignments. Dangerous! Read the"
+	" documentation!",
 	4,
 	option_tab_cmd_EDIT,
 	option_allowed_cmd_EDIT
@@ -3744,7 +3808,7 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	" makes adding discs very fast and this is good for testing. The"
 	" creation process stops if the WBFS becomes full. In this case, the"
 	" last added image may be shorter as planned.",
-	9,
+	8,
 	option_tab_cmd_PHANTOM,
 	option_allowed_cmd_PHANTOM
     },
@@ -3756,7 +3820,7 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	"TR",
 	"wwt TRUNCATE [wbfs_partition]..",
 	"Truncate WBFS partitions to the really used size.",
-	7,
+	6,
 	option_tab_cmd_TRUNCATE,
 	option_allowed_cmd_TRUNCATE
     },
@@ -3769,7 +3833,7 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	"wwt ADD [[--source] source]... [--recurse source]...",
 	"Add Wii and GameCube ISO discs to WBFS partitions. Images, WBFS"
 	" partitions and directories are accepted as source.",
-	58,
+	57,
 	option_tab_cmd_ADD,
 	option_allowed_cmd_ADD
     },
@@ -3783,7 +3847,7 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	"Add missing Wii and GameCube ISO discs to WBFS partitions. Images,"
 	" WBFS partitions and directories are accepted as source. 'UPDATE' is"
 	" a shortcut for 'ADD --update'.",
-	56,
+	55,
 	option_tab_cmd_UPDATE,
 	option_allowed_cmd_UPDATE
     },
@@ -3798,7 +3862,7 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	" same discs as all sources together. Images, WBFS partitions and"
 	" directories are accepted as source. 'SYNC' is a shortcut for 'ADD"
 	" --sync'.",
-	55,
+	54,
 	option_tab_cmd_SYNC,
 	option_allowed_cmd_SYNC
     },
@@ -3826,9 +3890,23 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	"wwt EXTRACT id6[=dest]...",
 	"Extract discs from WBFS partitions and store them as Wii or GameCube"
 	" images.",
-	68,
+	67,
 	option_tab_cmd_EXTRACT,
 	option_allowed_cmd_EXTRACT
+    },
+
+    {	CMD_SCRUB,
+	false,
+	false,
+	"SCRUB",
+	0,
+	"wwt SCRUB id6...",
+	"Scrub discs of WBFS partitions and rewrite (repair) the WBFS block"
+	" map. Use '+' as ID6 to scrub all images of the WBFS partitions. Use"
+	" option --psel=list to remove image partitions.",
+	38,
+	option_tab_cmd_SCRUB,
+	option_allowed_cmd_SCRUB
     },
 
     {	CMD_REMOVE,
@@ -3838,7 +3916,7 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	"RM",
 	"wwt REMOVE id6...",
 	"Remove discs from WBFS partitions.",
-	25,
+	24,
 	option_tab_cmd_REMOVE,
 	option_allowed_cmd_REMOVE
     },
@@ -3850,7 +3928,7 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	"REN",
 	"wwt RENAME id6=[new][,title]...",
 	"Rename the ID6 of WBFS discs. Disc title can also be set.",
-	21,
+	20,
 	option_tab_cmd_RENAME,
 	option_allowed_cmd_RENAME
     },
@@ -3862,7 +3940,7 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	"ST",
 	"wwt SETTITLE id6=title...",
 	"Set the disc title of WBFS discs.",
-	21,
+	20,
 	option_tab_cmd_SETTITLE,
 	option_allowed_cmd_SETTITLE
     },
@@ -3874,7 +3952,7 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	0,
 	"wwt TOUCH id6...",
 	"Set time stamps of WBFS discs.",
-	24,
+	23,
 	option_tab_cmd_TOUCH,
 	option_allowed_cmd_TOUCH
     },
@@ -3887,7 +3965,7 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	"wwt VERIFY [id6]...",
 	"Verify all discs of WBFS (calculate and compare SHA1 check sums) to"
 	" find bad dumps.",
-	32,
+	31,
 	option_tab_cmd_VERIFY,
 	option_allowed_cmd_VERIFY
     },
@@ -3902,7 +3980,7 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	" disc and partition headers for further analysis and is not playable"
 	" because all files are zeroed. Read http://wit.wiimm.de/cmd/wwt/skel"
 	" for more details.",
-	28,
+	27,
 	option_tab_cmd_SKELETON,
 	option_allowed_cmd_SKELETON
     },

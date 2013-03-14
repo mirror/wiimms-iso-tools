@@ -532,7 +532,7 @@ enumError OpenSF
 {
     ASSERT(sf);
     CloseSF(sf,0);
-    PRINT("#S# OpenSF(%p,%s,%d,%d)\n",sf,fname,allow_non_iso,open_modify);
+    PRINT("#S# OpenSF(%p,%s,non-iso=%d,rw=%d)\n",sf,fname,allow_non_iso,open_modify);
 
     const bool disable_errors = sf->f.disable_errors;
     sf->f.disable_errors = true;
@@ -1128,6 +1128,51 @@ int SubstFileName
     int conv_count;
     SubstString(fname_buf,fname_size,subst_tab,dest_arg,&conv_count);
     return conv_count;
+}
+
+//
+///////////////////////////////////////////////////////////////////////////////
+///////////////			sparse helper			///////////////
+///////////////////////////////////////////////////////////////////////////////
+
+enumError PatchSF
+(
+    SuperFile_t		* sf,		// valid file pointer
+    enumError		err_on_patch	// error message if patched
+)
+{
+    DASSERT(sf);
+
+    OpenDiscSF(sf,true,true);
+    wd_disc_t * disc = sf->disc1;
+
+    enumError err = ERR_OK;
+    if ( disc && disc->reloc )
+    {
+	err = err_on_patch;
+
+	PRINT("EDIT PHASE I\n");
+	const wd_reloc_t * reloc = disc->reloc;
+	u32 idx;
+	for ( idx = 0; idx < WII_MAX_SECTORS && !err; idx++, reloc++ )
+	    if ( *reloc & (WD_RELOC_F_PATCH|WD_RELOC_F_HASH)
+		&& !( *reloc & WD_RELOC_F_LAST ) )
+	    {
+		TRACE(" - WRITE SECTOR %x, off %llx\n",idx,idx*(u64)WII_SECTOR_SIZE);
+		err = CopyRawData(sf,sf,idx*(u64)WII_SECTOR_SIZE,WII_SECTOR_SIZE);
+	    }
+
+	PRINT("EDIT PHASE II\n");
+	reloc = disc->reloc;
+	for ( idx = 0; idx < WII_MAX_SECTORS && !err; idx++, reloc++ )
+	    if ( *reloc & WD_RELOC_F_LAST )
+	    {
+		TRACE(" - WRITE SECTOR %x, off %llx\n",idx,idx*(u64)WII_SECTOR_SIZE);
+		err = CopyRawData(sf,sf,idx*(u64)WII_SECTOR_SIZE,WII_SECTOR_SIZE);
+	    }
+    }
+
+    return err;
 }
 
 //
@@ -2279,7 +2324,8 @@ enumFileType AnalyzeFT ( File_t * f )
 {
     ASSERT(f);
 
-    PRINT("AnalyzeFT(%p) fd=%d, split=%d\n",f,GetFD(f),IsSplittedF(f));
+    PRINT("AnalyzeFT(%p) fd=%d, split=%d, rd=%d, wr=%d\n",
+	f, GetFD(f), IsSplittedF(f), f->is_reading, f->is_writing );
     f->id6_src[6] = f->id6_dest[6] = 0;
 
     if (!IsOpenF(f))
@@ -2338,8 +2384,16 @@ enumFileType AnalyzeFT ( File_t * f )
 	SuperFile_t sf;
 	InitializeSF(&sf);
 	sf.f.disable_errors = true;
-	if (OpenFile(&sf.f,fname,IOM_IS_WBFS_PART))
-	    return f->ftype;
+	if (f->is_writing)
+	{
+	    if (OpenFileModify(&sf.f,fname,IOM_IS_WBFS_PART))
+		return f->ftype;
+	}
+	else
+	{
+	    if (OpenFile(&sf.f,fname,IOM_IS_WBFS_PART))
+		return f->ftype;
+	}
 
 	AnalyzeFT(&sf.f);
 

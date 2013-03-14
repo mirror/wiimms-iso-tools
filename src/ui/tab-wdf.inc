@@ -74,7 +74,7 @@
 
   { T_DEF_CMD,	"UNPACK",	"+UNPACK|+U",
 		    "wdf +UNPACK [option]... files...",
-		"Unpack WDF and CISO archives."
+		"Unpack WDF, WIA and CISO archives."
 		"\n "
 		" This is the default command, when the program name"
 		" starts with the two letters @'un'@ in any case." },
@@ -82,16 +82,16 @@
   { T_DEF_CMD,	"CAT",		"+CAT|+C",
 		    "wdf +CAT [option]... files...",
 		"Concatenate files and print on the standard output."
-		" WDF and CISO files are extracted before printing,"
+		" WDF, WIA and CISO files are extracted before printing,"
 		" all other files are copied byte by byte."
 		"\n "
 		" This is the default command, when the program name"
 		" contains the sub string @'cat'@ in any case."
 		" {wdf +CAT} replaces the old tool @wdf-cat@." },
 
-  { H_DEF_CMD,	"CMP",		"+DIFF|+CMP",
+  { T_DEF_CMD,	"CMP",		"+DIFF|+CMP",
 		    "wdf +DIFF [option]... files...",
-		"Compare files and unpack WDF and CISO while comparing."
+		"Compare files and unpack WDF, WIA and CISO while comparing."
 		"\n "
 		" The standard is to compare two source files."
 		" If {--dest} or {--DEST} is set, than all source files"

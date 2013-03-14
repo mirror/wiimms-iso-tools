@@ -43,7 +43,7 @@ WDF_LONG		= Wiimms WDF Tool
 WFUSE_SHORT		= wfuse
 WFUSE_LONG		= Wiimms FUSE Tool
 
-VERSION_NUM		= 2.11a
+VERSION_NUM		= 2.12a
 BETA_VERSION		= 0
 			# 0:off  -1:"beta"  >0:"beta#"
 

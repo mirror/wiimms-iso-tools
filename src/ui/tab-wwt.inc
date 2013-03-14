@@ -174,14 +174,15 @@
   { T_DEF_CMD,	"EDIT",		"EDIT",
 		    "wwt EDIT [JOB]...\n"
 		    " \n"
-		    "JOB     := REMOVE | ACTIVE | INVALID | FREE | USE | ID6\n"
-		    "REMOVE  := RM=a,b-c,...\n"
-		    "ACTIVE  := ACT=a,b-c,...\n"
-		    "INVALID := INV=a,b-c,...\n"
-		    "FREE    := FREE=a,b-c,...\n"
-		    "USE     := USE=a,b-c,...\n"
-		    "ID6     := ID6=a:b,c-d:e,...",
-		"Edit slot and block assignments. Dangerous! Read the documentation!" },
+		    "JOB      := REMOVE | ACTIVATE | INVALID | FREE | USE | ID6\n"
+		    "REMOVE   := RM=a,b-c,...\n"
+		    "ACTIVATE := ACT=a,b-c,...\n"
+		    "INVALID  := INV=a,b-c,...\n"
+		    "FREE     := FREE=a,b-c,...\n"
+		    "USE      := USE=a,b-c,...\n"
+		    "ID6      := ID6=a:b,c-d:e,...",
+		"Low level edit of slot and block assignments."
+		" Dangerous! Read the documentation!" },
 
   { T_DEF_CMD,	"PHANTOM",	"PHANTOM",
 		    "wwt PHANTOM [RULE]...\n"
@@ -233,6 +234,12 @@
 		    "wwt EXTRACT id6[=dest]...",
 		"Extract discs from WBFS partitions and store them"
 		" as Wii or GameCube images." },
+
+  { T_DEF_CMD,	"SCRUB",	"SCRUB",
+		    "wwt SCRUB id6...",
+		"Scrub discs of WBFS partitions and rewrite (repair) the WBFS block map."
+		" Use '+' as ID6 to scrub all images of the WBFS partitions."
+		" Use option {--psel=list} to remove image partitions." },
 
   { T_DEF_CMD,	"REMOVE",	"REMOVE|RM",
 		    "wwt REMOVE id6...",
@@ -744,7 +751,7 @@
   { T_COPT,	"AUTO",		0,0,0 },
   { T_COPT,	"ALL",		0,0,0 },
   { T_COPT_M,	"PART",		0,0,0 },
-  { T_COPT,	"FORCE",	0,0,
+  { H_COPT,	"FORCE",	0,0,
 	"This option is not longer needed because of the new WBFS interface." },
   { T_COPT,	"NO_CHECK",	0,0,
 	"Disable automatic check of WBFS before modifications." },
@@ -1272,6 +1279,7 @@
 
   { T_COPT,	"TEST",		0,0,0 },
 
+
   //---------- COMMAND wwt EXTRACT ----------
 
   { T_CMD_BEG,	"EXTRACT",	0,0,0 },
@@ -1316,6 +1324,30 @@
   { T_COPT,	"OVERWRITE",	0,0,0 },
   { T_COPT,	"TRUNC",	0,0,0 },
   { H_COPT,	"FAST",		0,0,0 },
+
+
+  //---------- COMMAND wwt SCRUB ----------
+
+  { T_CMD_BEG,	"SCRUB",	0,0,0 },
+
+  { T_COPY_GRP,	"TITLES",	0,0,0 },
+  { T_COPY_GRP,	"MOD_WBFS",	0,0,0 },
+  { T_COPY_GRP,	"EXCLUDE",	0,0,0 },
+  { T_COPY_GRP,	"VERBOSE",	0,0,0 },
+  { T_COPT_M,	"LONG",		0,0, TEXT_EXTRACT_LONG },
+  { T_COPT,	"SECTIONS",	0,0,0 },
+
+  { T_SEP_OPT,	0,0,0,0 },
+
+  { T_COPT,	"TEST",		0,0,0 },
+
+  { T_SEP_OPT,	0,0,0,0 },
+
+  { T_SEP_OPT,	0,0,0,0 },
+
+  { T_COPY_GRP,	"PATCH",	0,0,0 },
+  { T_COPY_GRP,	"PARTITIONS",	0,0,0 },
+
 
   //---------- COMMAND wwt REMOVE ----------
 

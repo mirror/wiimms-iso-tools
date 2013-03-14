@@ -211,7 +211,7 @@
   { T_DEF_CMD,	"EXTRACT",	"EXTRACT|X",
 		    "wit EXTRACT source dest\n"
 		    "wit EXTRACT [[--source] source]... [--recurse source]... [-d|-D] dest",
-		"Extract all files from the source discs."
+		"Extract all files of each source to new directory structures."
 		" Images, WBFS partitions and directories are accepted as source."  },
 
   { T_DEF_CMD,	"COPY",		"COPY|CP",

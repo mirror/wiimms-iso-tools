@@ -188,6 +188,14 @@ wit v2.10a r4118 - 2012-10-10
    the composing. See http://wit.wiimm.de/info/composing.html#part for details.
 
 
+wit v2.11a r4233 - 2013-02-09
+
+ - Windows version only: Update to Cygwin v1.7.17
+ - Bug fix: A wrong TMD size is now detected while scanning image partitions.
+ - Command 'wit FRAGMENTS' will now scan and print the filesystem mapping for
+   Linux (like before) and Windows (that's new). Mac is still not supported.
+
+
 @@MODULE(last-history.txt)@@
 
 

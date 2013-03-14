@@ -62,14 +62,15 @@ typedef enum enumOptions
 	OPT_QUIET,
 	OPT_VERBOSE,
 	OPT_IO,
-	OPT_OPTION,
 	OPT_PARAM,
+	OPT_OPTION,
+	OPT_ALLOW_OTHER,
 	OPT_CREATE,
 	OPT_REMOUNT,
 	OPT_UMOUNT,
 	OPT_LAZY,
 
-	OPT__N_TOTAL // == 15
+	OPT__N_TOTAL // == 16
 
 } enumOptions;
 
@@ -95,6 +96,7 @@ typedef enum enumGetOpt
 	GO__ERR			= '?',
 
 	GO_HELP_FUSE		= 'H',
+	GO_ALLOW_OTHER		= 'O',
 	GO_VERSION		= 'V',
 
 	GO_CREATE		= 'c',

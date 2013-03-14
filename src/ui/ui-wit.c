@@ -3905,8 +3905,8 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	"X",
 	"wit EXTRACT source dest\n"
 	"wit EXTRACT [[--source] source]... [--recurse source]... [-d|-D] dest",
-	"Extract all files from the source discs. Images, WBFS partitions and"
-	" directories are accepted as source.",
+	"Extract all files of each source to new directory structures. Images,"
+	" WBFS partitions and directories are accepted as source.",
 	60,
 	option_tab_cmd_EXTRACT,
 	option_allowed_cmd_EXTRACT
