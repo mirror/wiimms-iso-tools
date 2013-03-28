@@ -28,7 +28,7 @@
 >>0x20		string	x			%.64s
 
 #------------------------------------------------------------------------------
-# WBFS == Wii Backup System
+# WBFS == Wii Backup File System
 # Created by: Wiimm, www.wiimm.de, 2012-09-19
 
 0		string	WBFS			WBFS

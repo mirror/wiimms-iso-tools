@@ -2213,6 +2213,7 @@ enumError exec_copy ( SuperFile_t * fi, Iterator_t * it )
 				it->overwrite,
 				OptionUsed[OPT_PRESERVE] != 0,
 				it->remove_source );
+    noPRINT("COPY-STATUS: %3d : %s() @ %s #%u\n",err,__FUNCTION__,__FILE__,__LINE__);
     if ( err == ERR_ALREADY_EXISTS )
     {
 	it->exists_count++;

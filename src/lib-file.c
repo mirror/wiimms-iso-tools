@@ -2389,28 +2389,29 @@ enumError XReadF ( XPARM File_t * f, void * iobuf, size_t count )
 			"Read failed [%c=%d,%llu+%zu]: %s\n",
 			GetFT(f), GetFD(f),
 			(u64)f->file_off, count, f->fname );
-	f->last_error = ERR_READ_FAILED;
-	if ( f->max_error < f->last_error )
-	     f->max_error = f->last_error;
-	f->file_off = (off_t)-1;
-    }
-    else
-    {
-	f->read_count++;
-	f->bytes_read += read_count;
-	f->file_off += read_count;
-	if ( f->max_off < f->file_off )
-	    f->max_off = f->file_off;
-	if ( read_count < count )
-	{
-	    if (!f->st.st_size)
-		f->st.st_size = f->file_off;
-	    f->cur_off = f->file_off;
-	    return XReadAtF(XCALL f,f->file_off,iobuf,count-read_count);
-	}
+
+	f->cur_off = f->file_off = (off_t)-1ll;
+
+	if ( f->max_error < ERR_READ_FAILED )
+	     f->max_error = ERR_READ_FAILED;
+	return f->last_error = ERR_READ_FAILED;
     }
 
+    f->read_count++;
+    f->bytes_read += read_count;
+    f->file_off += read_count;
     f->cur_off = f->file_off;
+    if ( f->max_off < f->file_off )
+	f->max_off = f->file_off;
+
+    if ( read_count < count )
+    {
+	if (!f->st.st_size)
+	    f->st.st_size = f->file_off;
+	f->cur_off = f->file_off;
+	return XReadAtF(XCALL f,f->file_off,iobuf,count-read_count);
+    }
+
     return ERR_OK;
 }
 
@@ -2446,7 +2447,8 @@ enumError XWriteF ( XPARM File_t * f, const void * iobuf, size_t count )
 	    File_t *cur = *ptr;
 	    ASSERT(cur);
 	    TRACE("#S#%zd# off=%llx cur_of=%llx count=%zx fsize=%llx\n",
-			ptr-f->split_f, (u64)off, (u64)f->cur_off, count, (u64)cur->split_filesize );
+			ptr-f->split_f, (u64)off, (u64)f->cur_off,
+			count, (u64)cur->split_filesize );
 
 	    if ( off < cur->split_filesize )
 	    {
@@ -2513,23 +2515,22 @@ enumError XWriteF ( XPARM File_t * f, const void * iobuf, size_t count )
     {
 	if ( !f->disable_errors && f->last_error != ERR_WRITE_FAILED )
 	    PrintError( XERROR1, ERR_WRITE_FAILED,
-			"Write failed [%c=%d,%llu+%zu]: %s\n",
-			GetFT(f), GetFD(f),
-			(u64)f->file_off, count, f->fname );
-	f->last_error = ERR_WRITE_FAILED;
-	if ( f->max_error < f->last_error )
-	    f->max_error = f->last_error;
-	f->file_off = (off_t)-1;
-    }
-    else
-    {
-	f->write_count++;
-	f->bytes_written += count;
-	f->file_off += count;
-	if ( f->max_off < f->file_off )
-	    f->max_off = f->file_off;
+				"Write failed [%c=%d,%llu+%zu]: %s\n",
+				GetFT(f), GetFD(f),
+				(u64)f->file_off, count, f->fname );
+
+	f->cur_off = f->file_off = (off_t)-1ll;
+
+	if ( f->max_error < ERR_WRITE_FAILED )
+	     f->max_error = ERR_WRITE_FAILED;
+	return f->last_error = ERR_WRITE_FAILED;
     }
 
+    f->write_count++;
+    f->bytes_written += count;
+    f->file_off += count;
+    if ( f->max_off < f->file_off )
+	f->max_off = f->file_off;
     f->cur_off = f->file_off;
     return ERR_OK;
 }

@@ -196,6 +196,18 @@ wit v2.11a r4233 - 2013-02-09
    Linux (like before) and Windows (that's new). Mac is still not supported.
 
 
+wit v2.12a r4272 - 2013-03-14
+
+ - Bug fix: "wit EDIT" failed on WBFS files since v2.10a (Write privileges
+   not longer needed for WBFS files).
+ - New command: wwt SCRUB: Scrubs an image and free unused WBFS blocks. It can
+   be combined with --psel= to clear unwanted image partitions. This command
+   may help to repair wrong WBFS block maps.
+ - New wfuse option: --allow-other (-O): This option is a short cut for
+   '-o allow_other'. It enables re-exporting of the mounted file system for
+   example by a samba server.
+
+
 @@MODULE(last-history.txt)@@
 
 

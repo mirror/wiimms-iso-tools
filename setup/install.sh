@@ -27,6 +27,27 @@
 
 
 #------------------------------------------------------------------------------
+# sudo?
+
+try_sudo=1
+if [[ $1 = --no-sudo ]]
+then
+    try_sudo=0
+    shift
+else
+    uid="$(id -u 2>/dev/null)" || try_sudo=0
+    [[ $uid = 0 ]] && try_sudo=0
+fi
+
+if ((try_sudo))
+then
+    echo "*** need root privileges to install => try sudo ***"
+    sudo "$0" --no-sudo "$@"
+    exit $?
+fi
+
+#------------------------------------------------------------------------------
+# settings
 
 BASE_PATH="@@INSTALL-PATH@@"
 BIN_PATH="$BASE_PATH/bin"
@@ -39,6 +60,7 @@ SHARE_FILES="@@SHARE-FILES@@"
 INST_FLAGS="-p"
 
 #------------------------------------------------------------------------------
+# make?
 
 make=0
 if [[ $1 = --make ]]
@@ -49,7 +71,6 @@ then
 fi
 
 #------------------------------------------------------------------------------
-
 echo "*** install binaries to $BIN_PATH"
 
 for f in $BIN_FILES
@@ -60,7 +81,6 @@ do
 done
 
 #------------------------------------------------------------------------------
-
 echo "*** create wdf links"
 
 for f in $WDF_LINKS
@@ -69,7 +89,6 @@ do
 done
 
 #------------------------------------------------------------------------------
-
 echo "*** install share files to $SHARE_PATH"
 
 for f in $SHARE_FILES
@@ -85,5 +104,11 @@ then
 fi
 
 #------------------------------------------------------------------------------
+# load titles
 
 ((make)) || ./load-titles.sh
+
+#------------------------------------------------------------------------------
+
+exit 0
+

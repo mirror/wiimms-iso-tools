@@ -621,7 +621,7 @@ enumError SetupWriteWDF ( SuperFile_t * sf )
 	    const enumError err = PreallocateF(&sf->f,0,size+head_size);
 	    if (err)
 	    {
-		TRACE("#W# SetupWriteWDF() returns %d\n",err);
+		noPRINT("#W# SetupWriteWDF() returns %d\n",err);
 		return err;
 	    }
 	}
@@ -638,7 +638,7 @@ enumError SetupWriteWDF ( SuperFile_t * sf )
     WDF_Chunk_t * wc = NeedChunkWDF(sf,0);
     wc->data_off = sf->f.file_off;
 
-    TRACE("#W# SetupWriteWDF() returns %d\n",err);
+    noPRINT("#W# SetupWriteWDF() returns %d\n",err);
     return err;
 }
 

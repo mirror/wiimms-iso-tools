@@ -27,6 +27,9 @@ awkprog='
  { print $0 }
 '
 
+CRLF=0
+uname -s | grep -q CYGWIN && CRLF=1
+
 for fname in $list
 do
     src="setup/$fname"
@@ -37,8 +40,10 @@ do
 	ext="${dest##*.}"
 	#[[ $ext == edit-list ]] && continue
 	[[ $ext = "sh" || $ext = "bat" || $ext = "h" ]] && dest="$fname"
+	[[ $fname = "INSTALL.txt" ]] && dest="$fname"
 	#echo "|$src|$dest|"
-	if [[ $ext = "bat" ]]
+
+	if ((CRLF)) && [[ $ext = bat || $ext = txt ]]
 	then
 	    awk "$awkprog" $src | sed -f templates.sed | sed 's/$/\r/' >$dest
 	else

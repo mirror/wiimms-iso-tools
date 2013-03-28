@@ -43,7 +43,7 @@ WDF_LONG		= Wiimms WDF Tool
 WFUSE_SHORT		= wfuse
 WFUSE_LONG		= Wiimms FUSE Tool
 
-VERSION_NUM		= 2.12a
+VERSION_NUM		= 2.13a
 BETA_VERSION		= 0
 			# 0:off  -1:"beta"  >0:"beta#"
 
@@ -193,7 +193,9 @@ UI_FILES	+= $(patsubst %,ui-%.h,$(MAIN_TOOLS) $(EXTRA_TOOLS))
 UI_TABS		= $(patsubst %,tab-%.inc,$(MAIN_TOOLS) $(EXTRA_TOOLS))
 
 SETUP_DIR	=  ./setup
-SETUP_FILES	=  version.h install.sh cygwin-copy.sh wit.def $(CYGWIN_SCRIPTS)
+SETUP_INFO	=  INSTALL.txt
+SETUP_FILES	=  version.h install.sh cygwin-copy.sh wit.def \
+		   $(SETUP_INFO) $(CYGWIN_SCRIPTS)
 DIR_LIST	+= $(SETUP_DIR)
 RM_FILES2	+= $(SETUP_FILES)
 
@@ -279,7 +281,7 @@ DISTRIB_I386	= $(DISTRIB_BASE)-i386.tar.gz
 DISTRIB_X86_64	= $(DISTRIB_BASE)-x86_64.tar.gz
 DISTRIB_MAC	= $(DISTRIB_BASE)-mac.tar.gz
 DISTRIB_CYGWIN	= $(DISTRIB_BASE)-cygwin.zip
-DISTRIB_FILES	= gpl-2.0.txt $(INSTALL_SCRIPTS)
+DISTRIB_FILES	= gpl-2.0.txt $(INSTALL_SCRIPTS) $(SETUP_INFO)
 
 DOC_FILES	= doc/*.txt
 IGNORE_DOC_FILES= HISTORY-v*.txt
@@ -402,7 +404,7 @@ $(LIBBZ2_OBJ): %.o: %.c Makefile
 # specific rules in alphabetic order
 
 .PHONY : all
-all: $(HELPER_TOOLS) $(ALL_TOOLS) $(WDF_LINKS) $(INSTALL_SCRIPTS)
+all: $(HELPER_TOOLS) $(ALL_TOOLS) $(WDF_LINKS) $(INSTALL_SCRIPTS) $(SETUP_INFO)
 
 .PHONY : all+
 all+: clean+ all distrib
@@ -522,7 +524,7 @@ ifeq ($(SYSTEM),cygwin)
 	@mkdir -p $(DISTRIB_PATH)/bin $(DISTRIB_PATH)/doc
 	@./cygwin-copy.sh
 	@printf '@cmd\r\n' >$(DISTRIB_PATH)/bin/wit-console.bat
-	@cp -p gpl-2.0.txt $(DISTRIB_PATH)
+	@cp -p gpl-2.0.txt $(SETUP_INFO) $(DISTRIB_PATH)
 	@ln -f $(MAIN_TOOLS) $(WDF_LINKS) $(CYGWIN_SCRIPTS) $(DISTRIB_PATH)/bin
 	@ln -f $(CYGWIN_INSTALLER) $(DISTRIB_PATH)/windows-install.exe
 	@ln -f $(CYGWIN_INSTALLER) $(DISTRIB_PATH)/windows-uninstall.exe
