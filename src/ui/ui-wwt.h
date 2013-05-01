@@ -519,6 +519,8 @@ typedef enum enumOptions
 //	OB_CMD_UPDATE		= OB_CMD_SYNC
 //				| OB_SYNC,
 //
+//	OB_CMD_NEW		= OB_CMD_UPDATE,
+//
 //	OB_CMD_ADD		= OB_CMD_UPDATE
 //				| OB_UPDATE
 //				| OB_OVERWRITE,
@@ -664,6 +666,7 @@ typedef enum enumCommands
 
 	CMD_ADD,
 	CMD_UPDATE,
+	CMD_NEW,
 	CMD_SYNC,
 	CMD_DUP,
 	CMD_EXTRACT,
@@ -677,7 +680,7 @@ typedef enum enumCommands
 
 	CMD_FILETYPE,
 
-	CMD__N // == 43
+	CMD__N // == 44
 
 } enumCommands;
 

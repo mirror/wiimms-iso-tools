@@ -1344,6 +1344,7 @@ const CommandTab_t CommandTab[] =
     { CMD_TRUNCATE,	"TRUNCATE",	"TR",		0 },
     { CMD_ADD,		"ADD",		"A",		0 },
     { CMD_UPDATE,	"UPDATE",	"U",		0 },
+    { CMD_NEW,		"NEW",		"N",		0 },
     { CMD_SYNC,		"SYNC",		0,		0 },
     { CMD_DUP,		"DUP",		0,		0 },
     { CMD_EXTRACT,	"EXTRACT",	"X",		0 },
@@ -1954,7 +1955,15 @@ static u8 option_allowed_cmd_UPDATE[100] = // cmd #31
     0,0,0,0,0, 0,0,1,0,0
 };
 
-static u8 option_allowed_cmd_SYNC[100] = // cmd #32
+static u8 option_allowed_cmd_NEW[100] = // cmd #32
+{
+    0,1,1,1,1, 1,1,1,1,1,  1,1,1,1,1, 1,1,1,1,1,  1,1,0,0,0, 0,0,1,1,1,
+    1,1,1,1,1, 1,1,1,1,1,  1,1,1,1,1, 1,1,1,0,0,  0,0,0,0,1, 0,0,0,0,0,
+    0,0,0,0,0, 1,0,0,0,1,  1,1,0,1,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,
+    0,0,0,0,0, 0,0,1,0,0
+};
+
+static u8 option_allowed_cmd_SYNC[100] = // cmd #33
 {
     0,1,1,1,1, 1,1,1,1,1,  1,1,1,1,1, 1,1,1,1,1,  1,1,0,0,0, 0,0,1,1,1,
     1,1,1,1,1, 1,1,1,1,1,  1,1,1,1,1, 1,1,1,0,0,  0,0,0,0,1, 0,0,0,0,0,
@@ -1962,7 +1971,7 @@ static u8 option_allowed_cmd_SYNC[100] = // cmd #32
     0,0,0,0,0, 0,0,1,0,0
 };
 
-static u8 option_allowed_cmd_DUP[100] = // cmd #33
+static u8 option_allowed_cmd_DUP[100] = // cmd #34
 {
     0,1,1,1,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,
     0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,1,1,  0,0,0,0,0, 0,0,0,0,0,
@@ -1970,7 +1979,7 @@ static u8 option_allowed_cmd_DUP[100] = // cmd #33
     0,0,0,0,0, 0,0,0,0,0
 };
 
-static u8 option_allowed_cmd_EXTRACT[100] = // cmd #34
+static u8 option_allowed_cmd_EXTRACT[100] = // cmd #35
 {
     0,1,1,1,0, 0,0,0,1,1,  0,1,1,1,1, 1,1,1,1,0,  0,1,1,1,1, 1,1,1,1,1,
     1,1,1,1,1, 1,1,1,1,1,  1,0,0,0,0, 0,0,0,1,1,  1,1,1,1,1, 1,1,1,1,1,
@@ -1978,7 +1987,7 @@ static u8 option_allowed_cmd_EXTRACT[100] = // cmd #34
     0,0,0,0,1, 0,0,1,0,0
 };
 
-static u8 option_allowed_cmd_SCRUB[100] = // cmd #35
+static u8 option_allowed_cmd_SCRUB[100] = // cmd #36
 {
     0,1,1,1,0, 0,0,0,1,1,  0,1,1,1,1, 1,1,1,0,0,  0,0,0,0,0, 0,0,1,1,1,
     1,1,1,1,1, 1,1,1,1,1,  1,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,
@@ -1986,7 +1995,7 @@ static u8 option_allowed_cmd_SCRUB[100] = // cmd #35
     0,0,0,0,0, 0,0,1,0,0
 };
 
-static u8 option_allowed_cmd_REMOVE[100] = // cmd #36
+static u8 option_allowed_cmd_REMOVE[100] = // cmd #37
 {
     0,1,1,1,0, 0,0,0,0,0,  0,1,1,1,1, 1,1,1,1,0,  0,0,0,0,0, 0,0,0,0,0,
     0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,
@@ -1994,7 +2003,7 @@ static u8 option_allowed_cmd_REMOVE[100] = // cmd #36
     0,0,0,0,1, 0,0,1,0,0
 };
 
-static u8 option_allowed_cmd_RENAME[100] = // cmd #37
+static u8 option_allowed_cmd_RENAME[100] = // cmd #38
 {
     0,1,1,1,0, 0,0,0,0,0,  0,1,1,1,1, 1,1,1,1,0,  0,0,0,0,0, 0,0,0,0,0,
     0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,
@@ -2002,7 +2011,7 @@ static u8 option_allowed_cmd_RENAME[100] = // cmd #37
     0,0,0,0,0, 0,0,0,0,0
 };
 
-static u8 option_allowed_cmd_SETTITLE[100] = // cmd #38
+static u8 option_allowed_cmd_SETTITLE[100] = // cmd #39
 {
     0,1,1,1,0, 0,0,0,0,0,  0,1,1,1,1, 1,1,1,1,0,  0,0,0,0,0, 0,0,0,0,0,
     0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,
@@ -2010,7 +2019,7 @@ static u8 option_allowed_cmd_SETTITLE[100] = // cmd #38
     0,0,0,0,0, 0,0,0,0,0
 };
 
-static u8 option_allowed_cmd_TOUCH[100] = // cmd #39
+static u8 option_allowed_cmd_TOUCH[100] = // cmd #40
 {
     0,1,1,1,0, 0,0,0,0,0,  0,1,1,1,1, 1,1,1,1,0,  0,0,0,0,0, 0,0,0,0,0,
     0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,
@@ -2018,7 +2027,7 @@ static u8 option_allowed_cmd_TOUCH[100] = // cmd #39
     0,0,0,0,1, 0,0,0,0,0
 };
 
-static u8 option_allowed_cmd_VERIFY[100] = // cmd #40
+static u8 option_allowed_cmd_VERIFY[100] = // cmd #41
 {
     0,1,1,1,0, 0,0,0,1,1,  0,1,1,1,1, 1,1,1,1,0,  0,0,0,0,0, 0,0,0,0,0,
     0,0,0,0,0, 0,0,0,0,0,  0,0,0,1,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,
@@ -2026,7 +2035,7 @@ static u8 option_allowed_cmd_VERIFY[100] = // cmd #40
     0,1,0,0,1, 0,0,0,0,1
 };
 
-static u8 option_allowed_cmd_SKELETON[100] = // cmd #41
+static u8 option_allowed_cmd_SKELETON[100] = // cmd #42
 {
     0,1,1,1,0, 0,0,0,1,1,  0,1,1,1,1, 1,1,1,1,0,  0,0,0,0,0, 0,0,0,0,0,
     0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,1,1,  0,0,0,0,0, 0,0,0,0,0,
@@ -2034,7 +2043,7 @@ static u8 option_allowed_cmd_SKELETON[100] = // cmd #41
     0,0,0,0,0, 0,0,0,0,0
 };
 
-static u8 option_allowed_cmd_FILETYPE[100] = // cmd #42
+static u8 option_allowed_cmd_FILETYPE[100] = // cmd #43
 {
     0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,1,1,  1,1,0,0,0, 0,0,0,0,0,
     0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,
@@ -2792,6 +2801,85 @@ static const InfoOption_t * option_tab_cmd_ADD[] =
 };
 
 static const InfoOption_t * option_tab_cmd_UPDATE[] =
+{
+	OptionInfo + OPT_TITLES,
+	OptionInfo + OPT_UTF_8,
+	OptionInfo + OPT_NO_UTF_8,
+	OptionInfo + OPT_LANG,
+
+	OptionInfo + OPT_NONE, // separator
+
+	OptionInfo + OPT_AUTO,
+	OptionInfo + OPT_ALL,
+	OptionInfo + OPT_PART,
+	&option_grp_MOD_WBFS_NO_CHECK,
+
+	OptionInfo + OPT_NONE, // separator
+
+	OptionInfo + OPT_WBFS_ALLOC,
+	OptionInfo + OPT_SOURCE,
+	OptionInfo + OPT_NO_EXPAND,
+	OptionInfo + OPT_RECURSE,
+	OptionInfo + OPT_RDEPTH,
+	OptionInfo + OPT_EXCLUDE,
+	OptionInfo + OPT_EXCLUDE_PATH,
+	OptionInfo + OPT_INCLUDE,
+	OptionInfo + OPT_INCLUDE_PATH,
+	OptionInfo + OPT_INCLUDE_FIRST,
+	OptionInfo + OPT_ONE_JOB,
+	OptionInfo + OPT_JOB_LIMIT,
+	OptionInfo + OPT_IGNORE,
+	OptionInfo + OPT_IGNORE_FST,
+	OptionInfo + OPT_IGNORE_SETUP,
+	OptionInfo + OPT_LINKS,
+
+	OptionInfo + OPT_NONE, // separator
+
+	OptionInfo + OPT_QUIET,
+	&option_grp_VERBOSE_VERBOSE,
+	OptionInfo + OPT_PROGRESS,
+	OptionInfo + OPT_SCAN_PROGRESS,
+	OptionInfo + OPT_SECTIONS,
+	OptionInfo + OPT_LOGGING,
+
+	OptionInfo + OPT_NONE, // separator
+
+	OptionInfo + OPT_TEST,
+
+	OptionInfo + OPT_NONE, // separator
+
+	OptionInfo + OPT_ENC,
+	OptionInfo + OPT_MODIFY,
+	OptionInfo + OPT_NAME,
+	OptionInfo + OPT_ID,
+	OptionInfo + OPT_DISC_ID,
+	OptionInfo + OPT_BOOT_ID,
+	OptionInfo + OPT_TICKET_ID,
+	OptionInfo + OPT_TMD_ID,
+	OptionInfo + OPT_WBFS_ID,
+	OptionInfo + OPT_REGION,
+	OptionInfo + OPT_COMMON_KEY,
+	OptionInfo + OPT_IOS,
+	OptionInfo + OPT_RM_FILES,
+	OptionInfo + OPT_ZERO_FILES,
+	OptionInfo + OPT_IGNORE_FILES,
+	OptionInfo + OPT_ALIGN_PART,
+	OptionInfo + OPT_ALIGN_FILES,
+	OptionInfo + OPT_PSEL,
+	OptionInfo + OPT_RAW,
+
+	OptionInfo + OPT_NONE, // separator
+
+	OptionInfo + OPT_REMOVE,
+	&option_cmd_SYNC_TRUNC,
+	OptionInfo + OPT_NEWER,
+	OptionInfo + OPT_SYNC_ALL,
+	OptionInfo + OPT_SYNC,
+
+	0
+};
+
+static const InfoOption_t * option_tab_cmd_NEW[] =
 {
 	OptionInfo + OPT_TITLES,
 	OptionInfo + OPT_UTF_8,
@@ -3850,6 +3938,20 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	55,
 	option_tab_cmd_UPDATE,
 	option_allowed_cmd_UPDATE
+    },
+
+    {	CMD_NEW,
+	false,
+	false,
+	"NEW",
+	"N",
+	"wwt NEW [[--source] source]... [--recurse source]...",
+	"Add missing and newer Wii and GameCube ISO discs to WBFS partitions."
+	" Images, WBFS partitions and directories are accepted as source."
+	" 'NEW' is a shortcut for 'ADD --update --newer'.",
+	55,
+	option_tab_cmd_NEW,
+	option_allowed_cmd_NEW
     },
 
     {	CMD_SYNC,

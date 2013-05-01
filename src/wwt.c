@@ -2378,6 +2378,16 @@ enumError cmd_update()
 //
 ///////////////////////////////////////////////////////////////////////////////
 
+enumError cmd_new()
+{
+    RegisterOptionByIndex(&InfoUI,OPT_NEWER,1,false);
+    RegisterOptionByIndex(&InfoUI,OPT_UPDATE,1,false);
+    return cmd_add();
+}
+
+//
+///////////////////////////////////////////////////////////////////////////////
+
 enumError cmd_sync()
 {
     RegisterOptionByIndex(&InfoUI,OPT_SYNC,1,false);
@@ -4194,6 +4204,7 @@ enumError CheckCommand ( int argc, char ** argv )
 
 	case CMD_ADD:		err = cmd_add(); break;
 	case CMD_UPDATE:	err = cmd_update(); break;
+	case CMD_NEW:		err = cmd_new(); break;
 	case CMD_SYNC:		err = cmd_sync(); break;
 	case CMD_DUP:		err = cmd_dup(); break;
 	case CMD_EXTRACT:	err = cmd_extract(); break;
