@@ -88,7 +88,7 @@
   { T_OPT_G,	"ALLOW_OTHER",	"O|allow-other|allowother",
 		0,
 		"This option is a short cut for @'-o allow_other'@."
-		" It enables reexporting of the mounted file system"
+		" It enables re-exporting of the mounted file system"
 		" for example by a samba server." },
 
   { T_OPT_G,	"CREATE",	"c|create",

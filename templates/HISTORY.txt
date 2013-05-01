@@ -196,28 +196,52 @@ wit v2.11a r4233 - 2013-02-09
    Linux (like before) and Windows (that's new). Mac is still not supported.
 
 
+wit v2.12a r4272 - 2013-03-14
+
+ - Bug fix: "wit EDIT" failed on WBFS files since v2.10a (Write privileges
+   not longer needed for WBFS files).
+ - New command: wwt SCRUB: Scrubs an image and free unused WBFS blocks. It can
+   be combined with --psel= to clear unwanted image partitions. This command
+   may help to repair wrong WBFS block maps.
+ - New wfuse option: --allow-other (-O): This option is a short cut for
+   '-o allow_other'. It enables re-exporting of the mounted file system for
+   example by a samba server.
+
+
+wit v2.13a r4298 - 2013-03-28
+
+ - New docu file: INSTALL.txt
+ - Mac+Linux+Unix: Script 'install.sh' will call itself with 'sudo' if not
+   started by user 'root'. Read INSTALL.txt for details.
+ - Windows: Cygwin updated.
+ - Bug fix: If writing an image failed ('disc full' for example), the tools
+   didn't aborted and, if option --remove was set, deleted the source image.
+   This bug arrived with the implementation of preallocation, because of a
+   lost error status.
+
+
 @@MODULE(last-history.txt)@@
 
-
-Road map (for some point in the future):
-
- I have already stopped the development in favor of my SZS tools. But there
- are some already planned extensions:
-
- - GameCube support is still incomplete.
-    - Creation of GameCube disc is not possible.
-
- - There are already code fragments implemented to trim discs in three levels:
-    - Move partitions as whole to eliminate disc holes.
-    - Move partition sectors to reduce partition size (alternative for
-      partition scrubbing). Fake signing is necessary.
-    - Move files of partitons to optimize the step above a little.
-   For all trimming levels alignment factors may be set and it should be
-   possible to set special alignments for GameCube sound files.
-
- - On the fly patching: Create a new image as combination of 2 or more sources.
-   Therefor trimming (sector or file level) is needed.
-
+~
+~Road map (for some point in the future):
+~
+~ I have already stopped the development in favor of my SZS tools. But there
+~ are some already planned extensions:
+~
+~ - GameCube support is still incomplete.
+~    - Creation of GameCube disc is not possible.
+~
+~ - There are already code fragments implemented to trim discs in three levels:
+~    - Move partitions as whole to eliminate disc holes.
+~    - Move partition sectors to reduce partition size (alternative for
+~      partition scrubbing). Fake signing is necessary.
+~    - Move files of partitons to optimize the step above a little.
+~   For all trimming levels alignment factors may be set and it should be
+~   possible to set special alignments for GameCube sound files.
+~
+~ - On the fly patching: Create a new image as combination of 2 or more sources.
+~   Therefor trimming (sector or file level) is needed.
+~
 
 *******************************************************************************
 *******                              END                                *******

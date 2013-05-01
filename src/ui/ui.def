@@ -4956,6 +4956,12 @@
 	" WBFS partitions and directories are accepted as source. 'UPDATE' is" \
 	" a shortcut for {ADD --update}." )
 
+#:def_cmd( "NEW", "NEW|N", \
+	"wwt NEW [[--source] source]... [--recurse source]...", \
+	"Add missing and newer Wii and GameCube ISO discs to WBFS partitions." \
+	" Images, WBFS partitions and directories are accepted as source." \
+	" 'NEW' is a shortcut for {ADD --update --newer}." )
+
 #:def_cmd( "SYNC", "SYNC", \
 	"wwt SYNC [[--source] source]... [--recurse source]...", \
 	"Modify primary WBFS (REMOVE and ADD) until it contains exactly the" \
@@ -4976,8 +4982,10 @@
 	" images." )
 
 #:def_cmd( "SCRUB", "SCRUB", \
-	"wwt SCRUB id6[=dest]...", \
-	"Scrub discs of WBFS partitions and rewrite the block map." )
+	"wwt SCRUB id6...", \
+	"Scrub discs of WBFS partitions and rewrite (repair) the WBFS block" \
+	" map. Use '+' as ID6 to scrub all images of the WBFS partitions. Use" \
+	" option {--psel=list} to remove image partitions." )
 
 #:def_cmd( "REMOVE", "REMOVE|RM", \
 	"wwt REMOVE id6...", \
@@ -7501,6 +7509,228 @@
 	"", \
 	"" )
 
+#:def_cmd_opt( "NEW", "TITLES", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "NEW", "UTF_8", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "NEW", "NO_UTF_8", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "NEW", "LANG", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "NEW", "AUTO", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "NEW", "ALL", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "NEW", "PART", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "NEW", "NO_CHECK", \
+	"", \
+	"Disable automatic check of WBFS before modifications." )
+
+#:def_cmd_opt( "NEW", "WBFS_ALLOC", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "NEW", "SOURCE", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "NEW", "NO_EXPAND", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "NEW", "RECURSE", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "NEW", "RDEPTH", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "NEW", "EXCLUDE", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "NEW", "EXCLUDE_PATH", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "NEW", "INCLUDE", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "NEW", "INCLUDE_PATH", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "NEW", "INCLUDE_FIRST", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "NEW", "ONE_JOB", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "NEW", "JOB_LIMIT", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "NEW", "IGNORE", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "NEW", "IGNORE_FST", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "NEW", "IGNORE_SETUP", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "NEW", "LINKS", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "NEW", "QUIET", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "NEW", "VERBOSE", \
+	"", \
+	"Show a runtime summary for each job. If set twice enable progress" \
+	" information. If set three times the progress information is more" \
+	" detailed." )
+
+#:def_cmd_opt( "NEW", "PROGRESS", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "NEW", "SCAN_PROGRESS", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "NEW", "SECTIONS", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "NEW", "LOGGING", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "NEW", "TEST", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "NEW", "ENC", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "NEW", "MODIFY", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "NEW", "NAME", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "NEW", "ID", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "NEW", "DISC_ID", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "NEW", "BOOT_ID", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "NEW", "TICKET_ID", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "NEW", "TMD_ID", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "NEW", "WBFS_ID", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "NEW", "REGION", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "NEW", "COMMON_KEY", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "NEW", "IOS", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "NEW", "RM_FILES", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "NEW", "ZERO_FILES", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "NEW", "IGNORE_FILES", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "NEW", "ALIGN_PART", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "NEW", "ALIGN_FILES", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "NEW", "PSEL", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "NEW", "RAW", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "NEW", "REMOVE", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "NEW", "TRUNC", \
+	"", \
+	"Truncate WBFS until operation finished." )
+
+#:def_cmd_opt( "NEW", "NEWER", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "NEW", "SYNC_ALL", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "NEW", "SYNC", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "SYNC", "TITLES", \
 	"", \
 	"" )
@@ -9381,7 +9611,7 @@
 #:def_opt( "ALLOW_OTHER", "O|allow-other|allowother", "G", \
 	"", \
 	"This option is a short cut for @'-o allow_other'@. It enables" \
-	" reexporting of the mounted file system for example by a samba" \
+	" re-exporting of the mounted file system for example by a samba" \
 	" server." )
 
 #:def_opt( "CREATE", "c|create", "G", \

@@ -3220,6 +3220,7 @@ enumError CopyImage
 
 #else
 
+    noPRINT("COPY-STATUS: %3d : %s() @ %s #%u\n",err,__FUNCTION__,__FILE__,__LINE__);
     fo->src = 0;
     FileAttrib_t fatt;
     memcpy(&fatt,&fi->f.fatt,sizeof(fatt));
@@ -3231,6 +3232,7 @@ enumError CopyImage
 #endif
 
  abort:
+    noPRINT("COPY-STATUS: %3d : %s() @ %s #%u\n",err,__FUNCTION__,__FILE__,__LINE__);
     RemoveSF(fo);
     return err;
 }

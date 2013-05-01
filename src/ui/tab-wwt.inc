@@ -216,6 +216,12 @@
 		" Images, WBFS partitions and directories are accepted as source."
 		" 'UPDATE' is a shortcut for {ADD --update}." },
 
+  { T_DEF_CMD,	"NEW",		"NEW|N",
+		    "wwt NEW [[--source] source]... [--recurse source]...",
+		"Add missing and newer Wii and GameCube ISO discs to WBFS partitions."
+		" Images, WBFS partitions and directories are accepted as source."
+		" 'NEW' is a shortcut for {ADD --update --newer}." },
+
   { T_DEF_CMD,	"SYNC",		"SYNC",
 		    "wwt SYNC [[--source] source]... [--recurse source]...",
 		"Modify primary WBFS (REMOVE and ADD)"
@@ -236,8 +242,10 @@
 		" as Wii or GameCube images." },
 
   { T_DEF_CMD,	"SCRUB",	"SCRUB",
-		    "wwt SCRUB id6[=dest]...",
-		"Scrub discs of WBFS partitions and rewrite the block map." },
+		    "wwt SCRUB id6...",
+		"Scrub discs of WBFS partitions and rewrite (repair) the WBFS block map."
+		" Use '+' as ID6 to scrub all images of the WBFS partitions."
+		" Use option {--psel=list} to remove image partitions." },
 
   { T_DEF_CMD,	"REMOVE",	"REMOVE|RM",
 		    "wwt REMOVE id6...",
@@ -1243,6 +1251,12 @@
 
   { T_COPY_CMD,	"SYNC",		0,0,0 },
   { T_COPT,	"SYNC",		0,0,0 },
+
+  //---------- COMMAND wwt NEWER ----------
+
+  { T_CMD_BEG,	"NEW",		0,0,0 },
+
+  { T_COPY_CMD,	"UPDATE",	0,0,0 },
 
   //---------- COMMAND wwt ADD ----------
 

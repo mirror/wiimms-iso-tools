@@ -108,7 +108,7 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
     {	OPT_ALLOW_OTHER, 'O', "allow-other",
 	0,
 	"This option is a short cut for '-o allow_other'. It enables"
-	" reexporting of the mounted file system for example by a samba"
+	" re-exporting of the mounted file system for example by a samba"
 	" server."
     },
 
