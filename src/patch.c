@@ -901,7 +901,7 @@ enumError RewriteModifiedSF
     if ( logging > 2 )
     {
 	printf("\n Rewrite:\n\n");
-	PrintMemMap(&fi->modified_list,stdout,3);
+	PrintMemMap(&fi->modified_list,stdout,3,0);
 	if ( disc && disc->reloc )
 	    wd_print_relocation(stdout,3,disc->reloc,true);
 	putchar('\n');
@@ -909,7 +909,7 @@ enumError RewriteModifiedSF
 
  #ifdef DEBUG
     fprintf(TRACE_FILE,"Rewrite:\n");
-    PrintMemMap(&fi->modified_list,TRACE_FILE,3);
+    PrintMemMap(&fi->modified_list,TRACE_FILE,3,0);
  #endif
 
     IOData_t saved_iod;

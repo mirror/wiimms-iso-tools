@@ -574,7 +574,7 @@ static void test_open_disc ( int argc, char ** argv )
 		    InitializeMemMap(&mm);
 		    InsertDiscMemMap(&mm,disc);
 		    printf("\nMemory map:\n\n");
-		    PrintMemMap(&mm,stdout,3);
+		    PrintMemMap(&mm,stdout,3,0);
 		    ResetMemMap(&mm);
 		}
 

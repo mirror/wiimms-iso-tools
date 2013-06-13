@@ -72,6 +72,18 @@
 	"wit CREATE TMD outfile [--id id] [--ios ios] [hash_val]", \
 	"Create a system file (TICKET or TMD)." )
 
+#:def_cmd( "DOLPATCH", "DOLPATCH", \
+	"wit DOLPATCH dolfile riiv_xml_file [sub_commands]...", \
+	"Patch a dol file. If 'riiv_xml_file' is a single point ('.'), it is" \
+	" ignored. Otherwise a Riivolution XML file is expected. It is scanned" \
+	" for '<memory ../>' tags as patch rules, all others are ignored.\n" \
+	"  Each sub-command is a simple 'offset=hexstring#cond' statement and" \
+	" 'hexstring' are any number of hex digits. The optional '#cond'" \
+	" defines a hex string condition like the 'original=' attribute in the" \
+	" XML file. The patch is only applied, if the condition match the" \
+	" source. Bytes of the hex strings can be separated by spaces or" \
+	" points." )
+
 #:def_cmd( "FILELIST", "FILELIST|FLIST", \
 	"wit FILELIST [source]...", \
 	"List all source files in a table." )
@@ -173,8 +185,9 @@
 	"  {wit CONVERT} is like {wit COPY} but removes the source and replace" \
 	" it with the new file if copying is successful. It have been" \
 	" implemented as replacement of the @SCRUB@ command of other tools." \
-	" {wit CONVERT does more than only scrubbing and therefor it was" \
-	" renamed from @'SCRUB'@ to @'CONVERT'@." )
+	" {wit CONVERT} does more than only scrubbing and therefor it was" \
+	" renamed from @'SCRUB'@ to @'CONVERT'@, but the old command name is" \
+	" still allowed." )
 
 #:def_cmd( "EDIT", "EDIT|ED", \
 	"wit EDIT source\n" \
@@ -1071,6 +1084,19 @@
 	"", \
 	"Define an IOS/SYS-VERSION for the TMD." )
 
+#:def_cmd_opt( "DOLPATCH", "TEST", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "DOLPATCH", "DEST", \
+	"", \
+	"Define a destination path (directory/file). If not set, the source" \
+	" file is repalced." )
+
+#:def_cmd_opt( "DOLPATCH", "DEST2", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "FILELIST", "AUTO", \
 	"", \
 	"" )
@@ -1413,8 +1439,11 @@
 
 #:def_cmd_opt( "DUMP", "LONG", \
 	"", \
-	"If set at least once a memory map for each partition is printed. If" \
-	" set twice or more a memory map for whole ISO image is printed." )
+	"Images: If set at least once a memory map for each partition is" \
+	" printed. If set twice or more a memory map for whole ISO image is" \
+	" printed.\n" \
+	" DOL files: If set, a third table with delta values between the" \
+	" virtual address and the file offset is printed." )
 
 #:def_cmd_opt( "DUMP", "SHOW", \
 	"", \

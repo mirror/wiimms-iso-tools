@@ -427,7 +427,7 @@ uint FindMemMapHelper ( MemMap_t * mm, off_t off, off_t size );
 uint CalCoverlapMemMap ( MemMap_t * mm );
 
 // Print out memory map
-void PrintMemMap ( MemMap_t * mm, FILE * f, int indent );
+void PrintMemMap ( MemMap_t * mm, FILE * f, int indent, ccp info_head );
 
 //
 ///////////////////////////////////////////////////////////////////////////////
@@ -817,6 +817,20 @@ enumError LoadFile
     bool		fatt_max	// true: store max values to 'fatt'
 );
 
+enumError LoadFileAlloc
+(
+    ccp			path1,		// NULL or part #1 of path
+    ccp			path2,		// NULL or part #2 of path
+    size_t		skip,		// skip num of bytes before reading
+    u8			** res_data,	// result: free existing data, store ptr to alloc data
+					// always one more byte is alloced and set to NULL
+    size_t		*  res_size,	// result: size of 'res_data'
+    size_t		max_size,	// >0: a file size limit
+    bool		silent,		// true: suppress printing of error messages
+    FileAttrib_t	* fatt,		// not NULL: store file attributes
+    bool		fatt_max	// true: store max values to 'fatt'
+);
+
 enumError SaveFile ( ccp path1, ccp path2, bool create_dir,
 		     void * data, size_t size, bool silent );
 
@@ -943,6 +957,8 @@ char * ScanRangeU32 ( ccp arg, u32 * p_stat, u32 * p_n1, u32 * p_n2, u32 min, u3
 
 //-----
 
+extern const u8 HexTab[256];
+
 char * ScanHexHelper
 (
     void	* buf,		// valid pointer to result buf
@@ -997,6 +1013,43 @@ void PrintLines
     ...				// arguments for 'vsnprintf(format,...)'
 
 )  __attribute__ ((__format__(__printf__,6,7)));
+
+//
+///////////////////////////////////////////////////////////////////////////////
+///////////////			    scan number			///////////////
+///////////////////////////////////////////////////////////////////////////////
+
+char * ScanS32
+(
+    // return 'source' on error
+
+    s32		*res_num,		// not NULL: store result (only on success)
+    ccp		source,			// NULL or source text
+    uint	default_base		// base for numbers without '0x' prefix
+					//  0: C like with octal support
+					// 10: standard value for decimal numbers
+					// 16: standard value for hex numbers
+);
+
+static inline char * ScanU32 ( u32 *res_num, ccp source, uint default_base )
+	{ return ScanS32((s32*)res_num,source,default_base); }
+
+//-----------------------------------------------------------------------------
+
+char * ScanS64
+(
+    // return 'source' on error
+
+    s64		*res_num,		// not NULL: store result (only on success)
+    ccp		source,			// NULL or source text
+    uint	default_base		// base for numbers without '0x' prefix
+					//  0: C like with octal support
+					// 10: standard value for decimal numbers
+					// 16: standard value for hex numbers
+);
+
+static inline char * ScanU64 ( u64 *res_num, ccp source, uint default_base )
+	{ return ScanS64((s64*)res_num,source,default_base); }
 
 //
 ///////////////////////////////////////////////////////////////////////////////

@@ -114,6 +114,21 @@
 		    "wit CREATE TMD outfile [--id id] [--ios ios] [hash_val]",
 		"Create a system file (TICKET or TMD)." },
 
+  { T_DEF_CMD,	"DOLPATCH",	"DOLPATCH",
+		    "wit DOLPATCH dolfile riiv_xml_file [sub_commands]...",
+		"Patch a dol file."
+		" If 'riiv_xml_file' is a single point ('.'), it is ignored."
+		" Otherwise a Riivolution XML file is expected."
+		" It is scanned for '<memory ../>' tags as patch rules,"
+		" all others are ignored."
+		"\n "
+		" Each sub-command is a simple 'offset=hexstring#cond' statement"
+		" and 'hexstring' are any number of hex digits."
+		" The optional '#cond' defines a hex string condition"
+		" like the 'original=' attribute in the XML file."
+		" The patch is only applied, if the condition match the source."
+		" Bytes of the hex strings can be separated by spaces or points." },
+
   { H_DEF_CMD,	"CODE",		"_CODE",
 		    "wit _CODE [files]",
 		"All bytes of all input files are xored with 0xDC and copied to stdout."
@@ -233,8 +248,9 @@
 		" {wit CONVERT} is like {wit COPY} but removes the source"
 		" and replace it with the new file if copying is successful."
 		" It have been implemented as replacement of the @SCRUB@ command"
-		" of other tools. {wit CONVERT does more than only scrubbing"
-		" and therefor it was renamed from @'SCRUB'@ to @'CONVERT'@." },
+		" of other tools. {wit CONVERT} does more than only scrubbing"
+		" and therefor it was renamed from @'SCRUB'@ to @'CONVERT'@,"
+		" but the old command name is still allowed." },
 
   { T_DEF_CMD,	"EDIT",		"EDIT|ED",
 		    "wit EDIT source\n"
@@ -1487,6 +1503,15 @@
   { T_COPT,	"IOS",		0,0,
 	"Define an IOS/SYS-VERSION for the TMD." },
 
+  //---------- COMMAND wit DOLPATCH ----------
+
+  { T_CMD_BEG,	"DOLPATCH",	0,0,0 },
+  { T_COPT_M,	"TEST",		0,0,0 },
+  { T_COPT,	"DEST",		0,0,
+	"Define a destination path (directory/file)."
+	" If not set, the source file is repalced." },
+  { T_COPT,	"DEST2",	0,0,0 },
+
   //---------- COMMAND wit _CODE ----------
 
   { T_CMD_BEG,	"CODE",	0,0,0 },
@@ -1506,8 +1531,11 @@
 
   { T_COPT_M,	"LOGGING",	0,0,0 },
   { T_COPT_M,	"LONG",		0,0,
-	"If set at least once a memory map for each partition is printed."
-	" If set twice or more a memory map for whole ISO image is printed." },
+	"Images: If set at least once a memory map for each partition is printed."
+	" If set twice or more a memory map for whole ISO image is printed."
+	"\n "
+	"DOL files: If set, a third table with delta values between"
+	" the virtual address and the file offset is printed." },
   { T_COPT,	"SHOW",		0,0,0 },
 
   { T_SEP_OPT,	0,0,0,0 },

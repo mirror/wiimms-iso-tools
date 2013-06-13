@@ -2108,12 +2108,14 @@ enumError wd_load_part
 			"# remove the '!' before names to activate parameters.\n"
 			"\n"
 			"disc-type = %s\n"
+			"image-type = %s\n"
 			"\n"
 			"!part-id = %.6s\n"
 			"!part-name = %.64s\n"
 			"!part-offset = 0x%llx\n"
 			"\n"
 			,wd_get_disc_type_name(disc->disc_type,"?")
+			,disc->image_type ? disc->image_type : "?"
 			,wd_print_id(&boot->dhead.disc_id,6,0)
 			,boot->dhead.disc_title
 			,(u64)part->part_off4 << 2

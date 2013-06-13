@@ -146,7 +146,7 @@ static void dump_id
     char wbfs[20] = {0};
     if ( wbfs_id6 && *wbfs_id6 )
 	snprintf(wbfs,sizeof(wbfs),", wbfs=%s",wd_print_id(wbfs_id6,6,0));
-    
+
     if (part)
     {
 	if ( disc_id6 && *disc_id6 )
@@ -400,14 +400,14 @@ static void dump_wii_part
     int i;
     u32 nt = disc->n_ptab;
     u32 np = disc->n_part;
- 
+
     char pname[100];
-   
+
     if ( show_mode & SHOW_P_TAB && wd_disc_has_ptab(disc) )
     {
 	ccp sep = "  -------------------------------------------"
 		  "---------------------------------------------";
-	
+
 	fprintf(f,"\n%*s%d partition table%s with %d partition%s%s:\n\n"
 	    "%*s  index      type    offset ..   end off   size/hex =   size/dec =  MiB  status\n"
 	    "%*s%s\n",
@@ -479,7 +479,7 @@ static void dump_wii_part
 	{
 	    if (part->is_overlay)
 		fprintf(f,"%*s  Partition overlays other partitions.\n", indent,"" );
-		
+
 	    if ( tmd_is_marked_not_encrypted(part->tmd) )
 		fprintf(f,"%*s  Partition is marked as 'not encrypted'.\n", indent,"" );
 	    else
@@ -701,7 +701,7 @@ enumError Dump_ISO
 	InitializeMemMap(&mm);
 	InsertDiscMemMap(&mm,disc);
 	fprintf(f,"\n\n%*sISO Memory Map:\n\n",indent,"");
-	PrintMemMap(&mm,f,indent+2);
+	PrintMemMap(&mm,f,indent+2,0);
 	ResetMemMap(&mm);
     }
 
@@ -750,13 +750,22 @@ enumError Dump_DOL
     FILE		* f,		// valid output stream
     int			indent,		// indent of output
     SuperFile_t		* sf,		// file to dump
-    ccp			real_path	// NULL or pointer to real path
+    ccp			real_path,	// NULL or pointer to real path
+    uint		dump_mode	// bit field:
+					//  1: print header
+					//  2: print file position table
+					//  4: print virtual position table
+					//  8: print virtual-to-file translation table
 )
 {
     ASSERT(sf);
     if (!f)
 	return ERR_OK;
-    indent = dump_header(f,indent,sf,0,real_path,0);
+
+    if ( dump_mode & 1 )
+	indent = dump_header(f,indent,sf,0,real_path,0);
+    else
+	indent = NormalizeIndent(indent);
 
     dol_header_t dol;
     enumError err = ReadSF(sf,0,&dol,sizeof(dol));
@@ -764,9 +773,10 @@ enumError Dump_DOL
     {
 	ntoh_dol_header(&dol,&dol);
 
-	MemMap_t mm1, mm2;
+	MemMap_t mm1, mm2, mm3;
 	InitializeMemMap(&mm1);
 	InitializeMemMap(&mm2);
+	InitializeMemMap(&mm3);
 	MemMapItem_t * mi = InsertMemMap(&mm1,0,sizeof(dol_header_t));
 	StringCopyS(mi->info,sizeof(mi->info),"DOL header");
 	mi = InsertMemMap(&mm1,sf->file_size,0);
@@ -778,35 +788,60 @@ enumError Dump_DOL
 	    const u32 size = dol.sect_size[i];
 	    if (size)
 	    {
-		char buf[sizeof(mi->info)];
-		if ( i < DOL_N_TEXT_SECTIONS )
-		    snprintf(buf,sizeof(buf),"text section #%u",i);
-		else
-		    snprintf(buf,sizeof(buf),"data section #%u",i-DOL_N_TEXT_SECTIONS);
-
 		const u32 off  = dol.sect_off[i];
 		const u32 addr = dol.sect_addr[i];
+
+		char buf[sizeof(mi->info)], buf3[sizeof(mi->info)];
+		if ( i < DOL_N_TEXT_SECTIONS )
+		{
+		    snprintf(buf,sizeof(buf),"text section #%u",i);
+		    snprintf(buf3,sizeof(buf3),"%8x : text #%u",addr-off,i);
+		}
+		else
+		{
+		    const int j = i - DOL_N_TEXT_SECTIONS;
+		    snprintf(buf,sizeof(buf),"data section #%u",j);
+		    snprintf(buf3,sizeof(buf3),"%8x : data #%u",addr-off,j);
+		}
 
 		mi = InsertMemMap(&mm1,off,size);
 		strcpy(mi->info,buf);
 		mi = InsertMemMap(&mm2,addr,size);
 		strcpy(mi->info,buf);
+		mi = InsertMemMap(&mm3,addr,size);
+		strcpy(mi->info,buf3);
 	    }
 	}
-		
-	fprintf(f,"\n%*sMemory map of DOL file:\n\n",indent,"");
-	PrintMemMap(&mm1,f,indent+3);
-	ResetMemMap(&mm1);
 
-	mi = InsertMemMap(&mm2,dol.bss_addr,dol.bss_size);
-	snprintf(mi->info,sizeof(mi->info),"bss section");
-	mi = InsertMemMap(&mm2,dol.entry_addr,0);
-	snprintf(mi->info,sizeof(mi->info),"entry point");
+	if ( dump_mode & 2 )
+	{
+	    fprintf(f,"\n%*sMemory map of DOL file:\n\n",indent,"");
+	    PrintMemMap(&mm1,f,indent+3,"section");
+	}
 
-	fprintf(f,"\n%*sMemory map of DOL image:\n\n",indent,"");
-	mm2.begin = 0xffffffff;
-	PrintMemMap(&mm2,f,indent+3);
+	if ( dump_mode & 4 )
+	{
+	    mi = InsertMemMap(&mm2,dol.bss_addr,dol.bss_size);
+	    snprintf(mi->info,sizeof(mi->info),"bss section");
+	    mi = InsertMemMap(&mm2,dol.entry_addr,0);
+	    snprintf(mi->info,sizeof(mi->info),"entry point");
+
+	    fprintf(f,"\n%*sMemory map of DOL image:\n\n",indent,"");
+	    mm2.begin = 0xffffffff;
+	    PrintMemMap(&mm2,f,indent+3,"section");
+	}
+
+	if ( dump_mode & 8 )
+	{
+	    mm3.begin = 0xffffffff;
+	    fprintf(f,"\n%*sDelta between file offset and virtual address:\n\n",
+			indent,"" );
+	    PrintMemMap(&mm3,f,indent+3,"   delta : section");
+	}
+
 	ResetMemMap(&mm1);
+	ResetMemMap(&mm2);
+	ResetMemMap(&mm3);
     }
     putc('\n',f);
     return err;
@@ -1137,7 +1172,7 @@ enumError Dump_TMD_BIN
     char buf[10000];
     const size_t load_size = sf->file_size < sizeof(buf) ? sf->file_size : sizeof(buf);
     enumError err = ReadSF(sf,0,buf,load_size);
-    
+
     wd_tmd_t * tmd = (wd_tmd_t*)buf;
     if (!err)
 	SetFileID(&sf->f,tmd->title_id+4,4);
@@ -1419,7 +1454,7 @@ enumError Dump_FST_MEM
 	    ERROR0(ERR_INVALID_FILE,"fst.bin is invalid: %s\n",fname);
 	return ERR_INVALID_FILE;
     }
- 
+
     if (f)
     {
 	WiiFst_t fst;
@@ -1715,7 +1750,7 @@ static s64 PartSelectorFunc
 		}
 		return ERR_OK;
 	    }
-	    
+
 	    if ( *end == '.' && num1 < WII_MAX_PTAB && !mode2 )
 	    {
 		ptr = end + 1;
@@ -1785,7 +1820,7 @@ enumError ScanPartSelector
     memset(&scan_select,0,sizeof(scan_select));
     scan_select.err_text_extend	= err_text_extend;
     scan_select.select		= select;
-    
+
     const enumError err
 	= ScanCommandListFunc(arg,tab,PartSelectorFunc,&scan_select,true);
     if ( err && !scan_select.err_printed )
@@ -1865,7 +1900,7 @@ enumError ScanPartTabAndType
 			"Not a valid partition table%s: %.20s\n",
 			err_text_extend, arg );
 	arg = sep + 1;
-	
+
     }
 
     u32 ptype = 0;
@@ -2062,7 +2097,7 @@ void PrintFstIM
     if (title)
 	fprintf(f,"\n%*s%s disc:\n",indent,"",title);
     PrintIM(&fst->im,f,indent+2);
-    
+
     if (print_part)
     {
 	WiiFstPart_t *part, *part_end = fst->part + fst->part_used;
@@ -2168,7 +2203,7 @@ FileIndexItem_t * InsertFileIndex
 	fidx->size = 2 * fidx->size + 0x100;
 	fidx->sort  = REALLOC(fidx->sort, fidx->size*sizeof(*fidx->sort));
     }
-    
+
     if ( !fidx->data || !fidx->data->unused )
     {
 	const int count = 0x1000;
@@ -2252,7 +2287,7 @@ void ResetFST ( WiiFst_t * fst )
     }
     ResetIM(&fst->im);
     FREE(fst->cache);
-    
+
     wd_close_disc(fst->disc);
 
     memset(fst,0,sizeof(*fst));
@@ -2366,7 +2401,7 @@ WiiFstFile_t * FindFileFST ( WiiFstPart_t * part, u32 offset4 )
 
 	u64 off;
 	WiiFstFile_t * f;
-	
+
 	if ( beg > 0 )
 	{
 	    f = part->file + beg - 1;
@@ -2598,7 +2633,7 @@ void DumpFilesFST
     wd_initialize_print_fst(&pf,pfst,f,indent,fst->fst_max_off4,fst->fst_max_size);
     if ( pfst & WD_PFST_HEADER )
 	wd_print_fst_header(&pf,fst->max_path_len+prefix_len);
-    
+
     WiiFstPart_t *part, *part_end = fst->part + fst->part_used;
     for ( part = fst->part; part < part_end; part++ )
     {
@@ -2706,7 +2741,7 @@ enumError CreateFST ( WiiFstInfo_t *wfi, ccp dest_path )
 		wfi->not_created_count++;
 	}
     }
-    
+
     if ( wfi->sf && ( wfi->sf->show_progress ||wfi->sf->show_summary ) )
 	PrintSummarySF(wfi->sf);
 
@@ -2765,7 +2800,7 @@ enumError CreatePartFST ( WiiFstInfo_t *wfi, ccp dest_path )
 
 
     //----- write include.list
-    
+
     StringCat2E(path_dest,path_end,part->path,FST_INCLUDE_FILE);
     SaveStringField(&part->include_list,path,true);
 
@@ -2791,7 +2826,7 @@ enumError CreateFileFST ( WiiFstInfo_t *wfi, ccp dest_path, WiiFstFile_t * file 
     DASSERT(part);
 
     wfi->done_count++;
- 
+
 
     //----- setup path
 
@@ -3107,7 +3142,7 @@ enumError ReadFileFST
     DASSERT(part->part->disc);
     DASSERT(file);
     DASSERT(buf);
-    
+
     TRACE("ReadFileFST(off=%llx,sz=%x) icm=%x, off=%x, sz=%x\n",
 		off, size, file->icm, file->offset4<<2, file->size );
 
@@ -3118,7 +3153,7 @@ enumError ReadFileFST
 
     uint pre_read = 4 - skip;
     if ( pre_read > size )
-         pre_read = size;
+	 pre_read = size;
     DASSERT( pre_read > 0 && pre_read < sizeof(temp) );
 
     memcpy(buf,temp+skip,pre_read);
@@ -3409,7 +3444,7 @@ int SearchPartitionsFST
 
     bool data_found = false, update_found = false, channel_found = false;
     char path[PATH_MAX];
-    
+
     DIR * dir = opendir(base_path);
     if (dir)
     {
@@ -3500,7 +3535,7 @@ enumFileType IsFSTPart ( ccp base_path, char * id6_result )
     const int fd = open(path,O_RDONLY);
     if ( fd == -1 )
 	return FT_ID_DIR;
-    
+
     if ( fstat(fd,&st)
 	|| !S_ISREG(st.st_mode)
 	|| st.st_size != WII_BOOT_SIZE
@@ -3515,7 +3550,7 @@ enumFileType IsFSTPart ( ccp base_path, char * id6_result )
 
 
     //----- patch id
-    
+
     if (id6_result)
     {
 	if (!ignore_setup)
@@ -3530,7 +3565,7 @@ enumFileType IsFSTPart ( ccp base_path, char * id6_result )
 
 
     //----- more required files
-    
+
     ccp * fname;
     for ( fname = SpecialRequiredFilesFST; *fname; fname++ )
     {
@@ -3539,7 +3574,7 @@ enumFileType IsFSTPart ( ccp base_path, char * id6_result )
 	if ( stat(path,&st) || !S_ISREG(st.st_mode) )
 	    return FT_ID_DIR;
     }
- 
+
     TRACE(" => FST found, id=%s\n",id6_result?id6_result:"");
     return FT_ID_FST | FT_A_PART_DIR | FT_A_ISO | FT_A_WII_ISO;
 }
@@ -3673,7 +3708,7 @@ static u32 scan_part ( scan_data_t * sd )
 }
 
 //-----------------------------------------------------------------------------
- 
+
 u32 ScanPartFST
 	( WiiFstPart_t * part, ccp base_path, u32 cur_offset4, wd_boot_t * boot )
 {
@@ -4002,7 +4037,7 @@ u64 GenPartFST
 
 
     //----- disc/region.bin
-    
+
     if ( part->part_type == WD_PART_DATA )
     {
 	enumRegion reg = opt_region;
@@ -4039,7 +4074,7 @@ u64 GenPartFST
     imi->data_alloced = true;
 
     cur_offset4 = ( WII_APL_OFF >> 2 ) + app_fsize4;
-    
+
 
     //----- main.dol
 
@@ -4048,7 +4083,7 @@ u64 GenPartFST
     if ( good_off4 >= cur_offset4 && good_off4 <= cur_offset4 + max_skip )
 	 cur_offset4 = good_off4;
     boot->dol_off4 = htonl(cur_offset4);
-    
+
     fpath = PathCatPP(pathbuf,sizeof(pathbuf),path,"sys/main.dol");
     const u32 dol_fsize4 = GetFileSize(fpath,0,0,&part->max_fatt,true) + 3 >> 2;
     imi = InsertIM(&part->im,IMT_FILE,(u64)cur_offset4<<2,(u64)dol_fsize4<<2);
@@ -4095,7 +4130,7 @@ u64 GenPartFST
 
     wd_part_control_t *pc = MALLOC(sizeof(wd_part_control_t));
     part->pc = pc;
- 
+
     if (clear_part_control(pc, WII_TMD_GOOD_SIZE, cert_size,
 					(u64)blocks*WII_SECTOR_SIZE) )
 	return ERROR0(ERR_INVALID_FILE,"Content of file 'cert.bin' wrong!\n");
@@ -4123,7 +4158,7 @@ u64 GenPartFST
     if (use_std_cert_chain)
     {
 	DASSERT( pc->cert_size == sizeof(std_cert_chain) );
-    	setup_cert_data();
+	setup_cert_data();
 	memcpy(pc->cert,std_cert_chain,pc->cert_size);
     }
     else
@@ -4141,7 +4176,7 @@ u64 GenPartFST
     //----- setup
 
     InsertMemMap(&sf->modified_list,good_off,sizeof(pc->part_bin));
-    
+
     if ( fst->encoding & ENCODE_CALC_HASH )
     {
 	tmd_clear_encryption(pc->tmd,0);
@@ -4629,14 +4664,14 @@ enumError ReadPartGroupFST ( SuperFile_t * sf, WiiFstPart_t * part,
 
     const u32 delta = n_groups * WII_SECTOR_HASH_SIZE  * WII_GROUP_SECTORS;
     const u32 dsize = n_groups * WII_GROUP_DATA_SIZE;
-          u64 off   = group_no * (u64)WII_GROUP_DATA_SIZE;
+	  u64 off   = group_no * (u64)WII_GROUP_DATA_SIZE;
     const u64 max   = n_groups * (u64)WII_GROUP_DATA_SIZE + off;
     TRACE("delta=%x, dsize=%x, off=%llx..%llx\n",delta,dsize,off,max);
 
     char * dest = (char*)buf + delta, *src = dest;
     memset(dest,0,dsize);
     noPRINT("CACHE=%p, buf=%p, dest=%p, delta=%x\n",sf->fst->cache,buf,dest,delta);
-    
+
     const IsoMappingItem_t * imi = part->im.field;
     const IsoMappingItem_t * imi_end = imi + part->im.used;
 
@@ -4652,7 +4687,7 @@ enumError ReadPartGroupFST ( SuperFile_t * sf, WiiFstPart_t * part,
 	TRACE("imi-idx=%zu imt=%u, off=%llx size=%llx\n",
 		imi - part->im.field, imi->imt, imi->offset, imi->size );
 	TRACE("off=%llx..%llx  dest=%p+%zx\n",off,max,buf,dest-src);
-	
+
 	if ( imi == imi_end || max <= imi->offset )
 	    break;
 
@@ -4745,7 +4780,7 @@ enumError ReadPartGroupFST ( SuperFile_t * sf, WiiFstPart_t * part,
 	off  += max_copy;
 	dest += max_copy;
     }
-    
+
     //----- move data into blocks
 
     dest = buf;
@@ -4819,7 +4854,7 @@ void EncryptSectorGroup
     for ( i = 0; i < n_sectors; i++, sect++ )
 	for ( j = 0; j < WII_N_ELEMENTS_H0; j++ )
 	    SHA1(sect->data[j],WII_H0_DATA_SIZE,sect->h0[j]);
-    
+
     //----- calc SHA-1 for each H0 hash and copy to others
 
     for ( sect = sect0; sect < max_sect; )
@@ -5100,7 +5135,7 @@ enumError VerifyPartition ( Verify_t * ver )
 
 
     //----- more setup
-    
+
     DASSERT(part->h3);
     const u8  usage_tab_marker = part->usage_id | WD_USAGE_F_CRYPT;
     const int max_differ_count = ver->verbose <= 0
@@ -5315,7 +5350,7 @@ enumError VerifyDisc ( Verify_t * ver )
 	ver->usage_tab = local_usage_tab;
 	wd_filter_usage_table(disc,local_usage_tab,ver->psel);
     }
-    
+
 
     //----- iterate partitions
 
@@ -5451,7 +5486,7 @@ static enumError skel_load_part
 	data += chunk_size;
 	disc_off_begin += chunk_size + WII_SECTOR_HASH_SIZE;
     }
-    
+
     return ERR_OK;
 }
 
@@ -5658,7 +5693,7 @@ enumError Skeletonize
 	case WD_DT_GAMECUBE:
 	    err = SkeletonizeGC(fi,disc,&mm);
 	    break;
-	
+
 	case WD_DT_WII:
 	    err = SkeletonizeWii(fi,disc,&mm);
 	    break;
@@ -5680,10 +5715,10 @@ enumError Skeletonize
 	local_mkdir = true;
 	local_dest  = "./.skel";
     }
-    
+
     char fname[PATH_MAX];
     const enumOFT oft = CalcOFT(output_file_type,0,0,OFT__DEFAULT);
-    
+
     {
 	WIT_SHA_CTX ctx;
 	if (!WIT_SHA1_Init(&ctx))

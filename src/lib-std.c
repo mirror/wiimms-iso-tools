@@ -1797,6 +1797,89 @@ time_t ScanTime ( ccp arg )
 
 //
 ///////////////////////////////////////////////////////////////////////////////
+///////////////			    scan number			///////////////
+///////////////////////////////////////////////////////////////////////////////
+
+char * ScanS32
+(
+    // return 'source' on error
+
+    s32		*res_num,		// not NULL: store result (only on success)
+    ccp		source,			// NULL or source text
+    uint	default_base		// base for numbers without '0x' prefix
+					//  0: C like with octal support
+					// 10: standard value for decimal numbers
+					// 16: standard value for hex numbers
+)
+{
+    ccp src = source;
+    while ( *src > 0 && *src <= ' ' )
+	src++;
+
+    ccp test = src;
+    if ( *test == '-' || *test == '+' )
+    {
+	test++;
+	while ( *test > 0 && *test <= ' ' )
+	    test++;
+    }
+    const uint base = test[0] == '0' && ( test[1] == 'x' || test[1] == 'X' )
+			? 16 : default_base;
+
+    char *end;
+    s32 num = strtol( src, &end, base );
+    if ( (ccp)end > src )
+    {
+	if (res_num)
+	    *res_num = num;
+	return end;
+    }
+
+    return (char*)source;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+char * ScanS64
+(
+    // return 'source' on error
+
+    s64		*res_num,		// not NULL: store result (only on success)
+    ccp		source,			// NULL or source text
+    uint	default_base		// base for numbers without '0x' prefix
+					//  0: C like with octal support
+					// 10: standard value for decimal numbers
+					// 16: standard value for hex numbers
+)
+{
+    ccp src = source;
+    while ( *src > 0 && *src <= ' ' )
+	src++;
+
+    ccp test = src;
+    if ( *test == '-' || *test == '+' )
+    {
+	test++;
+	while ( *test > 0 && *test <= ' ' )
+	    test++;
+    }
+    const uint base = test[0] == '0' && ( test[1] == 'x' || test[1] == 'X' )
+			? 16 : default_base;
+
+    char *end;
+    s64 num = strtoll( src, &end, base );
+    if ( (ccp)end > src )
+    {
+	if (res_num)
+	    *res_num = num;
+	return end;
+    }
+
+    return (char*)source;
+}
+
+//
+///////////////////////////////////////////////////////////////////////////////
 ///////////////			    scan size			///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -2306,11 +2389,11 @@ char * ScanRangeU32 ( ccp arg, u32 * p_stat, u32 * p_n1, u32 * p_n2, u32 min, u3
 ///////////////////////////////////////////////////////////////////////////////
 
 // 0..15 : hex digit
-//    50 : spaces and cotnrol charactzers
+//    50 : spaces and control charactzers
 //    51 : allowed separators
 //    99 : invalid char
 
-static u8 hextab[256] =
+const u8 HexTab[256] =
 {
    99,50,50,50, 50,50,50,50, 50,50,50,50, 50,50,50,50, // 0x00 .. 0x0f
    50,50,50,50, 50,50,50,50, 50,50,50,50, 50,50,50,50, // 0x10 .. 0x1f
@@ -2355,34 +2438,34 @@ char * ScanHexHelper
 
     const u8 * src = (const u8*)arg;
     int read_count = 0;
-    while ( hextab[*src] < 99 && read_count < buf_size )
+    while ( HexTab[*src] < 99 && read_count < buf_size )
     {
-	while ( hextab[*src] >= 50 && hextab[*src] <= 99 )
+	while ( HexTab[*src] >= 50 && HexTab[*src] <= 99 )
 	    src++;
 
 	if ( *src == '0' && ( src[1] == 'x' || src[1] == 'X' ))
 	    src += 2;
 
 	const u8 * end = src;
-	while ( hextab[*end] < 16 )
+	while ( HexTab[*end] < 16 )
 	    end++;
 
 	if ( (end-src) & 1 )
 	{
-	    *dest++ = hextab[*src++];
+	    *dest++ = HexTab[*src++];
 	    read_count++;
 	}
 
 	while ( src < end && read_count < buf_size )
 	{
-	    *dest    = hextab[*src++] << 4;
-	    *dest++ |= hextab[*src++];
+	    *dest    = HexTab[*src++] << 4;
+	    *dest++ |= HexTab[*src++];
 	    read_count++;
 	}
     }
     // [[2do]] What 2do?? Is this a forgotten marker?
 
-    while ( hextab[*src] == 50 )
+    while ( HexTab[*src] == 50 )
 	src++;
 
     if ( err_level > 0 )
@@ -4785,7 +4868,7 @@ uint CalCoverlapMemMap ( MemMap_t * mm )
 
 ///////////////////////////////////////////////////////////////////////////////
 
-void PrintMemMap ( MemMap_t * mm, FILE * f, int indent )
+void PrintMemMap ( MemMap_t * mm, FILE * f, int indent, ccp info_head )
 {
     DASSERT(mm);
     if ( !f || !mm->used )
@@ -4796,7 +4879,9 @@ void PrintMemMap ( MemMap_t * mm, FILE * f, int indent )
 
     static char ovl[][3] = { "  ", "!.", ".!", "!!" };
 
-    int i, max_ilen = 4;
+    if (!info_head)
+	info_head = "info";
+    int i, max_ilen = strlen(info_head);
     for ( i = 0; i < mm->used; i++ )
     {
 	MemMapItem_t * ptr = mm->field[i];
@@ -4806,8 +4891,9 @@ void PrintMemMap ( MemMap_t * mm, FILE * f, int indent )
 	    max_ilen = ilen;
     }
 
-    fprintf(f,"%*s      unused :  off(beg) ..  off(end) :      size : info\n%*s%.*s\n",
-	    indent, "", indent, "", max_ilen+52, wd_sep_200 );
+    fprintf(f,"%*s      unused :  off(beg) ..  off(end) :      size : %s\n%*s%.*s\n",
+	    indent, "", info_head,
+	    indent, "", max_ilen+52, wd_sep_200 );
 
     off_t max_end = mm->begin;
     for ( i = 0; i < mm->used; i++ )

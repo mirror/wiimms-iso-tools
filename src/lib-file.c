@@ -1859,7 +1859,7 @@ static void PreallocHelper ( File_t *f )
 	    if ( logging > 0 )
 	    {
 		printf("\n Preallocation table:\n");
-		PrintMemMap(&f->prealloc_map,stdout,3);
+		PrintMemMap(&f->prealloc_map,stdout,3,0);
 		putchar('\n');
 	    }
 
@@ -2936,6 +2936,71 @@ enumError LoadFile
 	memset((char*)data+read_stat,0,size-read_stat);
 
     return ERR_WARNING;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+enumError LoadFileAlloc
+(
+    ccp			path1,		// NULL or part #1 of path
+    ccp			path2,		// NULL or part #2 of path
+    size_t		skip,		// skip num of bytes before reading
+    u8			** res_data,	// result: free existing data, store ptr to alloc data
+					// always one more byte is alloced and set to NULL
+    size_t		*  res_size,	// result: size of 'res_data'
+    size_t		max_size,	// >0: a file size limit
+    bool		silent,		// true: suppress printing of error messages
+    FileAttrib_t	* fatt,		// not NULL: store file attributes
+    bool		fatt_max	// true: store max values to 'fatt'
+)
+{
+    DASSERT(res_data);
+    DASSERT(res_size);
+
+    //--- clear return data
+
+    if (res_data)
+	*res_data = 0;
+
+    if (res_size)
+	*res_size = 0;
+
+    if ( fatt && !fatt_max )
+	memset(fatt,0,sizeof(*fatt));
+
+
+    //--- get file size
+
+    char pathbuf[PATH_MAX];
+    ccp path = PathCatPP(pathbuf,sizeof(pathbuf),path1,path2);
+
+    const s64 size = GetFileSize(path,0,-1,0,0);
+    if ( size == -1 )
+	return ERROR0(ERR_SYNTAX,"File not found: %s\n",path);
+
+    if ( max_size && size > max_size )
+	return ERROR0(ERR_SYNTAX,"File to large: %s\n",path);
+
+    u8 *data = MALLOC(size+1);
+    enumError err = LoadFile(path,0,skip,data,size,silent,fatt,fatt_max);
+    if (err)
+    {
+	FREE(data);
+	return err;
+    }
+    
+    if (res_data)
+    {
+	data[size] = 0;
+	*res_data = data;
+    }
+    else
+	FREE(data);
+    
+    if (res_size)
+	*res_size = size;
+
+    return err;
 }
 
 ///////////////////////////////////////////////////////////////////////////////

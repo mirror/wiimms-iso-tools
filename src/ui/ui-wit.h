@@ -439,6 +439,9 @@ typedef enum enumOptions
 //				| OB_ID
 //				| OB_IOS,
 //
+//	OB_CMD_DOLPATCH		= OB_DEST
+//				| OB_DEST2,
+//
 //	OB_CMD_CODE		= 0,
 //
 //	OB_CMD_DUMP		= OB_GRP_TITLES
@@ -636,6 +639,7 @@ typedef enum enumCommands
 	CMD_GETTITLES,
 	CMD_CERT,
 	CMD_CREATE,
+	CMD_DOLPATCH,
 	CMD_CODE,
 
 	CMD_FILELIST,
@@ -670,7 +674,7 @@ typedef enum enumCommands
 	CMD_SKELETON,
 	CMD_MIX,
 
-	CMD__N // == 41
+	CMD__N // == 42
 
 } enumCommands;
 

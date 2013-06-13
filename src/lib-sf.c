@@ -816,6 +816,7 @@ wd_disc_t * OpenDiscSF
 	    ERROR0(ERR_WDISC_NOT_FOUND,"Can't open Wii disc: %s\n",sf->f.fname);
 	return 0;
     }
+    disc->image_type = oft_info[sf->iod.oft].name;
     sf->disc1 = disc;
 
     if (load_part_data)
@@ -967,7 +968,10 @@ wd_disc_t * OpenDiscSF
     }
 
     if (sf->disc2)
+    {
+	sf->disc2->image_type = oft_info[sf->iod.oft].name;
 	memcpy(sf->f.id6_dest,&sf->disc2->dhead,6);
+    }
     else
 	sf->disc2 = wd_dup_disc(sf->disc1);
 

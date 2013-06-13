@@ -652,6 +652,10 @@ typedef struct wd_disc_t
     wd_ptab_entry_t	*ptab_entry;	// collected copy of all partion entries
     u32			magic2;		// second magic @ WII_MAGIC2_OFF
 
+    //----- user data
+
+    ccp			image_type;	// NULL or string of image type
+
     //----- patching data
 
     bool		whole_disc;	// selection flag: copy whole disc (raw mode)
