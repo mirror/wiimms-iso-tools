@@ -1817,22 +1817,21 @@ char * ScanS32
     while ( *src > 0 && *src <= ' ' )
 	src++;
 
-    ccp test = src;
-    if ( *test == '-' || *test == '+' )
+    const bool minus = *src == '-';
+    if ( minus || *src == '+' )
     {
-	test++;
-	while ( *test > 0 && *test <= ' ' )
-	    test++;
+	src++;
+	while ( *src > 0 && *src <= ' ' )
+	    src++;
     }
-    const uint base = test[0] == '0' && ( test[1] == 'x' || test[1] == 'X' )
+    const uint base = src[0] == '0' && ( src[1] == 'x' || src[1] == 'X' )
 			? 16 : default_base;
-
     char *end;
-    s32 num = strtol( src, &end, base );
+    const s32 num = strtoul( src, &end, base );
     if ( (ccp)end > src )
     {
 	if (res_num)
-	    *res_num = num;
+	    *res_num = minus ? -num : num;
 	return end;
     }
 
@@ -1857,22 +1856,21 @@ char * ScanS64
     while ( *src > 0 && *src <= ' ' )
 	src++;
 
-    ccp test = src;
-    if ( *test == '-' || *test == '+' )
+    const bool minus = *src == '-';
+    if ( minus || *src == '+' )
     {
-	test++;
-	while ( *test > 0 && *test <= ' ' )
-	    test++;
+	src++;
+	while ( *src > 0 && *src <= ' ' )
+	    src++;
     }
-    const uint base = test[0] == '0' && ( test[1] == 'x' || test[1] == 'X' )
+    const uint base = src[0] == '0' && ( src[1] == 'x' || src[1] == 'X' )
 			? 16 : default_base;
-
     char *end;
-    s64 num = strtoll( src, &end, base );
+    const s64 num = strtoull( src, &end, base );
     if ( (ccp)end > src )
     {
 	if (res_num)
-	    *res_num = num;
+	    *res_num = minus ? -num : num;
 	return end;
     }
 

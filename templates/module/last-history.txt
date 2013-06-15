@@ -1,26 +1,6 @@
 wit v@@VERSION@@ r@@REV-NEXT@@ - @@@@-@@-@@
 
- - The default image format switched from WDF to WBFS. This is only relevant,
-   if no image type is specified by source, option or file extension, for
-   example for the command "wwt EXTRACT".
- - wit DUMP --long: If dumping a DOL file, a third table with delta values
-   between the virtual address and the file offset is printed.
- - New command: wit DOLPATCH: Patch a DOL file by reading a Riivolution XML
-   file and scanning all memory tags.
-   -> Read http://wit.wiimm.de/cmd/wit/dolpatch for details.
- - If extracting an image, the file 'setup.txt' contains now a new parameter:
-   "image-type = TYPE". It shows the image type of the source image.
-   If cretaing an image and file 'setup.txt' contains this paramater with a
-   valid image type, this image type is used as default for the new created
-   image. The default is superseded by format options and file extensions.
-     This feature is dedicated to patching scripts. If an original image is
-   extracted with "wit extract -1n ANYID6 . WORKDIR --psel data" and then
-   patched, an image with identical image type as the original can be created
-   by the command: wit copy WORKDIR %x --id NEWID6 --name "new title of game"
- - For easier script/batch support, the files "setup.sh" and "setup.bat" are
-   created for extracted images. They contain similar info as "setup.txt", but
-   can be directly included by ". ./PATH/setup.sh" or  "CALL ./PATH/setup.bat"
-   to get the settings as script variables.
+ - Bug fix: wit DOLPATCH: Reading offset failed on 32 bit systems.
 
 ~
 ~Known bugs:

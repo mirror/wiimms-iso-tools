@@ -35,11 +35,7 @@
 ~ Highlights
 [size=12][color=#0000c0][b]Höhepunkte dieser Version:[/b][/color][/size]
 [list]
-[*] Eigentlich wollte ich nichts mehr für WIT machen, eigentlich! Und dann kam [i]NEWER SMBW[/i].
-
-Schon vor Jahren plante ich, ein Riivolution-Setup direkt zum Patchen eines Images verwenden zu können. Damals baute ich auch schon einen ersten DOL support ein. In einem versteckten Teil meines SVN-Repositories hatte ich dann auch schon Code zum Patchen der DOL-Dateien.
-
-Und mit dem Erscheinen von [i]NEWER SMBW[/i] benötgte ich dieses auf einmal. Und so habe ich das neue Kommando [URL=http://wit.wiimm.de/cmd/wit/dolpatch]DOLPATCH[/url] implementiert und dann auch gleich ein paar andere Kleinigkeiten eingebaut.
+[*]
 [/list]
 
 [size=12][color=#0000c0][b]Letzte Änderungen:[/b][/color][/size]
