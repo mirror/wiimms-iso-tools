@@ -70,7 +70,6 @@ ccp  opt_suffix		= 0;
 bool opt_chunk		= false;
 int  opt_minus1		= 0;
 bool opt_preserve	= false;
-bool opt_overwrite	= false;
 bool opt_keep		= false;
 
 ccp progname0		= 0;

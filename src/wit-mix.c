@@ -1547,7 +1547,7 @@ enumError cmd_mix()
     if (logging)
     {
 	printf("Partition layout of new mixed disc:\n\n");
-	PrintMemMap(&mp.mm,stdout,3);
+	PrintMemMap(&mp.mm,stdout,3,0);
 	putchar('\n');
     }
 

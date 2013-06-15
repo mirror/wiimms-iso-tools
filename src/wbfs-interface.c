@@ -2042,7 +2042,7 @@ enumError DumpWBFS
 	StringCopyS(mi->info,sizeof(mi->info),"-- end of WBFS device/file --");
 
 	fprintf(f,"\f\n%*sWBFS Memory Map:\n\n", indent,"" );
-	PrintMemMap(&mm,f,indent+1);
+	PrintMemMap(&mm,f,indent+1,0);
 
 	fputc('\n',f);
     }

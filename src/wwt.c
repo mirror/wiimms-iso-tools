@@ -3993,7 +3993,7 @@ enumError CheckOptions ( int argc, char ** argv, bool is_env )
 	case GO_SYNC:		break;
 	case GO_SYNC_ALL:	break;
 	case GO_NEWER:		break;
-	case GO_OVERWRITE:	break;
+	case GO_OVERWRITE:	opt_overwrite = true; break;
 	case GO_REMOVE:		break;
 
 	case GO_WDF:		output_file_type = OFT_WDF; break;

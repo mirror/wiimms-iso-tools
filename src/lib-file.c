@@ -1204,6 +1204,19 @@ const OFT_info_t oft_info[OFT__N+1] =
 
 ///////////////////////////////////////////////////////////////////////////////
 
+const CommandTab_t ImageTypeTab[] =
+{
+    { OFT_PLAIN,	"ISO",	"PLAIN",	0 },
+    { OFT_WDF,		"WDF",	0,		0 },
+    { OFT_CISO,		"CISO",	0,		0 },
+    { OFT_WBFS,		"WBFS",	0,		0 },
+    { OFT_WIA,		"ISO",	0,		0 },
+    { OFT_FST,		"FST",	0,		1 },
+    { 0,0,0,0 }
+};
+
+///////////////////////////////////////////////////////////////////////////////
+
 enumOFT CalcOFT ( enumOFT force, ccp fname_dest, ccp fname_src, enumOFT def )
 {
     if ( force > OFT_UNKNOWN && force < OFT__N )
@@ -1859,7 +1872,7 @@ static void PreallocHelper ( File_t *f )
 	    if ( logging > 0 )
 	    {
 		printf("\n Preallocation table:\n");
-		PrintMemMap(&f->prealloc_map,stdout,3);
+		PrintMemMap(&f->prealloc_map,stdout,3,0);
 		putchar('\n');
 	    }
 
@@ -2940,14 +2953,158 @@ enumError LoadFile
 
 ///////////////////////////////////////////////////////////////////////////////
 
-enumError SaveFile ( ccp path1, ccp path2, bool create_dir,
-		     void * data, size_t size, bool silent )
+enumError LoadFileAlloc
+(
+    ccp			path1,		// NULL or part #1 of path
+    ccp			path2,		// NULL or part #2 of path
+    size_t		skip,		// skip num of bytes before reading
+    u8			** res_data,	// result: free existing data, store ptr to alloc data
+					// always one more byte is alloced and set to NULL
+    size_t		*  res_size,	// result: size of 'res_data'
+    size_t		max_size,	// >0: a file size limit
+    bool		silent,		// true: suppress printing of error messages
+    FileAttrib_t	* fatt,		// not NULL: store file attributes
+    bool		fatt_max	// true: store max values to 'fatt'
+)
+{
+    DASSERT(res_data);
+    DASSERT(res_size);
+
+    //--- clear return data
+
+    if (res_data)
+	*res_data = 0;
+
+    if (res_size)
+	*res_size = 0;
+
+    if ( fatt && !fatt_max )
+	memset(fatt,0,sizeof(*fatt));
+
+
+    //--- get file size
+
+    char pathbuf[PATH_MAX];
+    ccp path = PathCatPP(pathbuf,sizeof(pathbuf),path1,path2);
+
+    const s64 size = GetFileSize(path,0,-1,0,0);
+    if ( size == -1 )
+    {
+	if (!silent)
+	    ERROR0(ERR_SYNTAX,"File not found: %s\n",path);
+	return ERR_SYNTAX;
+    }
+
+    if ( max_size && size > max_size )
+    {
+	if (!silent)
+	    ERROR0(ERR_INVALID_FILE,"File to large: %s\n",path);
+	return ERR_INVALID_FILE;
+    }
+
+    u8 *data = MALLOC(size+1);
+    enumError err = LoadFile(path,0,skip,data,size,silent,fatt,fatt_max);
+    if (err)
+    {
+	FREE(data);
+	return err;
+    }
+
+    if (res_data)
+    {
+	data[size] = 0;
+	*res_data = data;
+    }
+    else
+	FREE(data);
+
+    if (res_size)
+	*res_size = size;
+
+    return err;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+enumError CheckCreateFile
+(
+    // returns:
+    //   ERR_WARNING:		source is "-" (stdout) => 'st' is zeroed
+    //   ERR_ALREADY_EXISTS:	file already exists
+    //   ERR_WRONG_FILE_TYPE:	file exists and file type is wrong
+    //   ERR_OK:		file not exist or can be overwritten
+
+    ccp		fname,		// filename to open
+    bool	detect_stdout,	// true: detect "-" as stdout
+    bool	overwrite,	// true: overwriting is allowed
+    bool	silent,		// true: suppress error messages
+    struct stat	*st		// not NULL: store file status here
+)
+{
+
+    if ( detect_stdout && fname[0] == '-' && !fname[1] )
+    {
+	if (st)
+	    memset(st,0,sizeof(*st));
+	return ERR_WARNING;
+    }
+
+    struct stat local_st;
+    if (!st)
+	st = &local_st;
+
+    if (!stat(fname,st))
+    {
+	if ( S_ISBLK(st->st_mode) || S_ISCHR(st->st_mode) )
+	{
+	    if (!silent)
+		ERROR0( ERR_ALREADY_EXISTS,
+			"Can't write to %s device: %s\n",
+			S_ISBLK(st->st_mode) ? "block" : "character", fname );
+	    return ERR_WRONG_FILE_TYPE;
+	}
+
+	if (!S_ISREG(st->st_mode))
+	{
+	    if (!silent)
+		ERROR0( ERR_WRONG_FILE_TYPE,
+		    "Not a plain file: %s\n", fname );
+	    return ERR_WRONG_FILE_TYPE;
+	}
+
+	if (!overwrite)
+	{
+	    if (!silent)
+		ERROR0( ERR_ALREADY_EXISTS,
+		    "File already exists: %s\n", fname );
+	    return ERR_ALREADY_EXISTS;
+	}
+    }
+    return ERR_OK;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+enumError SaveFile
+(
+    ccp			path1,		// NULL or part #1 of path
+    ccp			path2,		// NULL or part #2 of path
+    bool		overwrite,	// true: overwrite existing files
+    bool		create_dir,	// true: create path automatically
+    const void		* data,		// pointer to data
+    size_t		size,		// size of 'data'
+    bool		silent		// true: suppress error messages
+)
 {
     ASSERT(data);
 
     char pathbuf[PATH_MAX];
     ccp path = PathCatPP(pathbuf,sizeof(pathbuf),path1,path2);
     TRACE("SaveFile(%s,%zx,%d)\n",path,size,silent);
+
+    enumError err = CheckCreateFile(path,false,overwrite,silent,0);
+    if (err)
+	return err;
 
     FILE * f = fopen(path,"wb");
     if (!f)
@@ -2966,7 +3123,6 @@ enumError SaveFile ( ccp path1, ccp path2, bool create_dir,
 	}
     }
 
-    enumError err = ERR_OK;
     size_t stat = fwrite(data,1,size,f);
     if ( stat != size )
     {

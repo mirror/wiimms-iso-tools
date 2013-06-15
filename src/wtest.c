@@ -574,7 +574,7 @@ static void test_open_disc ( int argc, char ** argv )
 		    InitializeMemMap(&mm);
 		    InsertDiscMemMap(&mm,disc);
 		    printf("\nMemory map:\n\n");
-		    PrintMemMap(&mm,stdout,3);
+		    PrintMemMap(&mm,stdout,3,0);
 		    ResetMemMap(&mm);
 		}
 
@@ -760,7 +760,7 @@ static void test_bzip2 ( int argc, char ** argv )
 	    char fname[PATH_MAX];
 	    PathCatPPE(fname,sizeof(fname),0,argv[i],".enc");
 	    printf("  - Save %u bytes to %s\n",csize,fname);
-	    err = SaveFile(fname,0,false,cdata,csize,false);
+	    err = SaveFile(fname,0,true,false,cdata,csize,false);
 	    if (err)
 		goto abort;
 
@@ -773,7 +773,7 @@ static void test_bzip2 ( int argc, char ** argv )
 
 	    PathCatPPE(fname,sizeof(fname),0,argv[i],".dec");
 	    printf("  - Save %u bytes to %s\n",dsize,fname);
-	    err = SaveFile(fname,0,false,ddata,dsize,false);
+	    err = SaveFile(fname,0,true,false,ddata,dsize,false);
 	    if (err)
 		goto abort;
 

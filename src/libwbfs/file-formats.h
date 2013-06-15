@@ -287,9 +287,9 @@ ccp wd_print_compression
 
 typedef struct dol_header_t
 {
-    /* 0x00 */	u32 sect_off [DOL_N_SECTIONS];
-    /* 0x48 */	u32 sect_addr[DOL_N_SECTIONS];
-    /* 0x90 */	u32 sect_size[DOL_N_SECTIONS];
+    /* 0x00 */	u32 sect_off [DOL_N_SECTIONS];	// file offset
+    /* 0x48 */	u32 sect_addr[DOL_N_SECTIONS];	// virtual address
+    /* 0x90 */	u32 sect_size[DOL_N_SECTIONS];	// section size
     /* 0xd8 */	u32 bss_addr;
     /* 0xdc */	u32 bss_size;
     /* 0xe0 */	u32 entry_addr;
@@ -299,6 +299,34 @@ __attribute__ ((packed)) dol_header_t;
 
 void ntoh_dol_header ( dol_header_t * dest, const dol_header_t * src );
 void hton_dol_header ( dol_header_t * dest, const dol_header_t * src );
+
+//-----------------------------------------------------------------------------
+
+typedef struct dol_record_t
+{
+    u32			addr;		// virtual address of data
+    u32			size;		// size of data
+    u32			xsize;		// extended size
+    u32			delta;		// file_offset := 'addr' - 'delta'
+    char		name[4];	// section name
+}
+dol_record_t;
+
+uint calc_dol_records
+(
+    dol_record_t	*rec,		// pointer to at least DOL_N_SECTIONS records
+    bool		term_null,	// true: add a NULL record at end of list
+    const dol_header_t	*dol_head	// source DOL header
+);
+
+const dol_record_t * search_dol_record
+(
+    dol_record_t	*rec,		// pointer to at least records
+    uint		n_rec,		// number of records, set it to DOL_N_SECTIONS
+					//   if record lsit is NULL termianted
+    u32			addr,		// address to search
+    u32			size		// size of object, if NULL, ignore it
+);
 
 //
 ///////////////////////////////////////////////////////////////////////////////

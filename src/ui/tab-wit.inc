@@ -114,6 +114,12 @@
 		    "wit CREATE TMD outfile [--id id] [--ios ios] [hash_val]",
 		"Create a system file (TICKET or TMD)." },
 
+  { T_DEF_CMD,	"DOLPATCH",	"DOLPATCH",
+		    "wit DOLPATCH dolfile [sub_command]...",
+		"Patch a dol file."
+		" A sub-command is either 'XML=filname' or 'addr=patch#cond'."
+		"\1 Read http://wit.wiimm.de/cmd/wit/dolpatch for more details." },
+
   { H_DEF_CMD,	"CODE",		"_CODE",
 		    "wit _CODE [files]",
 		"All bytes of all input files are xored with 0xDC and copied to stdout."
@@ -233,8 +239,9 @@
 		" {wit CONVERT} is like {wit COPY} but removes the source"
 		" and replace it with the new file if copying is successful."
 		" It have been implemented as replacement of the @SCRUB@ command"
-		" of other tools. {wit CONVERT does more than only scrubbing"
-		" and therefor it was renamed from @'SCRUB'@ to @'CONVERT'@." },
+		" of other tools. {wit CONVERT} does more than only scrubbing"
+		" and therefor it was renamed from @'SCRUB'@ to @'CONVERT'@,"
+		" but the old command name is still allowed." },
 
   { T_DEF_CMD,	"EDIT",		"EDIT|ED",
 		    "wit EDIT source\n"
@@ -1479,6 +1486,7 @@
 	"Define a destination path (directory/file)."
 	" This path is concatenated with the @outfile@." },
   { T_COPT,	"DEST2",	0,0,0 },
+  { T_COPT,	"OVERWRITE",	0,0,0 },
 
   { T_SEP_OPT,	0,0,0,0 },
 
@@ -1486,6 +1494,31 @@
 	"Define an ID for the TICKET or TMD." },
   { T_COPT,	"IOS",		0,0,
 	"Define an IOS/SYS-VERSION for the TMD." },
+
+  //---------- COMMAND wit DOLPATCH ----------
+
+  { T_CMD_BEG,	"DOLPATCH",	0,0,0 },
+  { T_COPT_M,	"TEST",		0,0,0 },
+  { T_COPT_M,	"LONG",		0,0,
+	"If set, a address to file offset translation table is printed." },
+  { T_COPT_M,	"VERBOSE",	0,0,
+	"Normally, only applied patches and warnings are printed."
+	" If verbose is set, also logs about already patched and"
+	" ignored patches because of a wrong condition are printed." },
+  { T_COPT_M,	"QUIET",	0,0,
+	"Suppress logging and print only warnings."
+	" If set twice, warnings are also suppressed and only reported"
+	" as status message." },
+  { T_COPT,	"SOURCE",	0,0,
+	"Define a search path for source files (e.g. 'valuefile=' attribute)."
+	" If the source is a directory, it is used for every searched file."
+	" Otherwise it is a file path and only used for files with the"
+	" same file name (case ignored)." },
+  { T_COPT,	"DEST",		0,0,
+	"Define a destination path (directory or file)."
+	" If not set, the source file is replaced by the patched version." },
+  { T_COPT,	"DEST2",	0,0,0 },
+  { T_COPT,	"OVERWRITE",	0,0,0 },
 
   //---------- COMMAND wit _CODE ----------
 
@@ -1506,8 +1539,11 @@
 
   { T_COPT_M,	"LOGGING",	0,0,0 },
   { T_COPT_M,	"LONG",		0,0,
-	"If set at least once a memory map for each partition is printed."
-	" If set twice or more a memory map for whole ISO image is printed." },
+	"Images: If set at least once a memory map for each partition is printed."
+	" If set twice or more a memory map for whole ISO image is printed."
+	"\n "
+	"DOL files: If set, a third table with delta values between"
+	" the virtual address and the file offset is printed." },
   { T_COPT,	"SHOW",		0,0,0 },
 
   { T_SEP_OPT,	0,0,0,0 },

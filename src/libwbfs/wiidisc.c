@@ -1716,6 +1716,8 @@ void wd_close_disc
 		FREE(part->cert);
 		FREE(part->h3);
 		FREE(part->setup_txt);
+		FREE(part->setup_sh);
+		FREE(part->setup_bat);
 		FREE(part->fst);
 	    } 
 	    FREE(disc->part);
@@ -2099,26 +2101,81 @@ enumError wd_load_part
 	}
 
 
-	//----- setup setup_txt
+	//----- setup "setup.txt", "setup.sh", "setup.bat"
 
-	// setup 'setup_txt' for FST_SETUP_FILE
+	// get data
+
+	ccp disc_type	= wd_get_disc_type_name(disc->disc_type,"?");
+	ccp image_type	= disc->image_type ? disc->image_type : "?";
+	ccp image_ext	= disc->image_ext ? disc->image_ext : "";
+	ccp part_id	= wd_print_id(&boot->dhead.disc_id,6,0);
+	ccp part_title	= boot->dhead.disc_title;
+
+	char norm_title[WII_TITLE_SIZE+1];
+	{
+	    ccp src = part_title;
+	    ccp end = part_title + WII_TITLE_SIZE;
+	    char *dest = norm_title;
+	    while ( src < end && *src )
+	    {
+		uchar ch = *src++;
+		*dest++ = ch < ' ' || ch == '"' ? ' ' : ch;
+	    }
+	    *dest = 0;
+	}
+
+	// "setup.txt"
 	part->setup_txt_len
 	    = snprintf((char*)disc->temp_buf,sizeof(disc->temp_buf),
 			"# setup.txt : scanned by wit+wwt while composing a disc.\n"
 			"# remove the '!' before names to activate parameters.\n"
 			"\n"
 			"disc-type = %s\n"
+			"image-type = %s\n"
 			"\n"
 			"!part-id = %.6s\n"
 			"!part-name = %.64s\n"
 			"!part-offset = 0x%llx\n"
 			"\n"
-			,wd_get_disc_type_name(disc->disc_type,"?")
-			,wd_print_id(&boot->dhead.disc_id,6,0)
-			,boot->dhead.disc_title
+			,disc_type
+			,image_type
+			,part_id
+			,part_title
 			,(u64)part->part_off4 << 2
 			);
-	part->setup_txt = STRDUP((char*)disc->temp_buf);
+	part->setup_txt = MEMDUP(disc->temp_buf,part->setup_txt_len);
+
+	// "setup.sh"
+	part->setup_sh_len
+	    = snprintf((char*)disc->temp_buf,sizeof(disc->temp_buf),
+			"DISC_TYPE=\"%s\"\n"
+			"IMAGE_TYPE=\"%s\"\n"
+			"IMAGE_EXT=\"%s\"\n"
+			"PART_ID=\"%.6s\"\n"
+			"PART_NAME=\"%s\"\n"
+			,disc_type
+			,image_type
+			,image_ext
+			,part_id
+			,norm_title
+			);
+	part->setup_sh = MEMDUP(disc->temp_buf,part->setup_sh_len);
+
+	// "setup.bat"
+	part->setup_bat_len
+	    = snprintf((char*)disc->temp_buf,sizeof(disc->temp_buf),
+			"set DISC_TYPE=%s\r\n"
+			"set IMAGE_TYPE=%s\r\n"
+			"set IMAGE_EXT=%s\r\n"
+			"set PART_ID=%.6s\r\n"
+			"set PART_NAME=%s\r\n"
+			,disc_type
+			,image_type
+			,image_ext
+			,part_id
+			,norm_title
+			);
+	part->setup_bat = MEMDUP(disc->temp_buf,part->setup_bat_len);
 
 
 	//----- calculate size of main.dol
@@ -3763,12 +3820,25 @@ int wd_iterate_files
 	if (stat)
 	    break;
 
-	// [[2do]] "setup.txt"
 	it.icm  = WD_ICM_DATA;
 	it.off4 = 0;
 	it.size = part->setup_txt_len;
 	it.data = part->setup_txt;
 	strcpy(it.fst_name,"setup.txt");
+	stat = func(&it);
+	if (stat)
+	    break;
+
+	it.size = part->setup_sh_len;
+	it.data = part->setup_sh;
+	strcpy(it.fst_name,"setup.sh");
+	stat = func(&it);
+	if (stat)
+	    break;
+
+	it.size = part->setup_bat_len;
+	it.data = part->setup_bat;
+	strcpy(it.fst_name,"setup.bat");
 	stat = func(&it);
 	if (stat)
 	    break;

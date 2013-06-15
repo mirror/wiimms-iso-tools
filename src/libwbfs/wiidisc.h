@@ -593,8 +593,13 @@ typedef struct wd_part_t
     wd_tmd_t		* tmd;		// NULL or pointer to tmd, size = ph.tmd_size
     u8			* cert;		// NULL or pointer to cert, size = ph.cert_size
     u8			* h3;		// NULL or pointer to h3, size = WII_H3_SIZE
+
     char		* setup_txt;	// NULL or pointer to content of file setup.txt
     u32			setup_txt_len;	// = strlen(setup_txt)
+    char		* setup_sh;	// NULL or pointer to content of file setup.sh
+    u32			setup_sh_len;	// = strlen(setup_sh)
+    char		* setup_bat;	// NULL or pointer to content of file setup.bat
+    u32			setup_bat_len;	// = strlen(setup_bat)
 
     cert_chain_t	cert_chain;	// list of ceritificates
     cert_stat_t		cert_tik_stat;	// certificate state of ticket, NULL=not set
@@ -651,6 +656,11 @@ typedef struct wd_disc_t
 					// copy of partion table info
     wd_ptab_entry_t	*ptab_entry;	// collected copy of all partion entries
     u32			magic2;		// second magic @ WII_MAGIC2_OFF
+
+    //----- user data
+
+    ccp			image_type;	// NULL or string of image type
+    ccp			image_ext;	// NULL or recommended image extension
 
     //----- patching data
 

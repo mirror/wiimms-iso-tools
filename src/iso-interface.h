@@ -125,7 +125,12 @@ enumError Dump_DOL
     FILE		* f,		// valid output stream
     int			indent,		// indent of output
     SuperFile_t		* sf,		// file to dump
-    ccp			real_path	// NULL or pointer to real path
+    ccp			real_path,	// NULL or pointer to real path
+    uint		dump_mode	// bit field:
+					//  1: print header
+					//  2: print file position table
+					//  4: print virtual position table
+					//  8: print virtual-to-file translation table
 );
 
 //-----------------------------------------------------------------------------
@@ -567,6 +572,7 @@ typedef struct WiiFstPart_t
 
     u32			part_type;		// partition type
     u64			part_off;		// offset of partition relative to disc start
+    enumOFT		image_type;		// image type, read from setup
     u8			key[WII_KEY_SIZE];	// partition key
     aes_key_t		akey;			// partition aes key
     ccp			path;			// prefix path to partition

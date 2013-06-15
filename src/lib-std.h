@@ -251,6 +251,73 @@ off_t GetBlockDevSize ( int fd );
 
 //
 ///////////////////////////////////////////////////////////////////////////////
+///////////////			commands			///////////////
+///////////////////////////////////////////////////////////////////////////////
+
+#define COMMAND_NAME_MAX 100
+
+typedef struct CommandTab_t
+{
+    s64			id;		// id
+    ccp			name1;		// first name
+    ccp			name2;		// NULL or second name
+    s64			opt;		// option
+
+} CommandTab_t;
+
+typedef s64 (*CommandCallbackFunc)
+(
+    void		* param,	// NULL or user defined parameter
+    ccp			name,		// normalized name of option
+    const CommandTab_t	* cmd_tab,	// valid pointer to command table
+    const CommandTab_t	* cmd,		// valid pointer to found command
+    char		prefix,		// 0 | '-' | '+' | '='
+    s64			result		// current value of result
+);
+
+const CommandTab_t * ScanCommand
+(
+    int			* res_abbrev,	// NULL or pointer to result 'abbrev_count'
+    ccp			arg,		// argument to scan
+    const CommandTab_t	* cmd_tab	// valid pointer to command table
+);
+
+s64 ScanCommandList
+(
+    ccp			arg,		// argument to scan
+    const CommandTab_t	* cmd_tab,	// valid pointer to command table
+    CommandCallbackFunc	func,		// NULL or calculation function
+    bool		allow_prefix,	// allow '-' | '+' | '=' as prefix
+    u32			max_number,	// allow numbers < 'max_number' (0=disabled)
+    s64			result		// start value for result
+);
+
+enumError ScanCommandListFunc
+(
+    ccp			arg,		// argument to scan
+    const CommandTab_t	* cmd_tab,	// valid pointer to command table
+    CommandCallbackFunc	func,		// calculation function
+    void		* param,	// used define parameter for 'func'
+    bool		allow_prefix	// allow '-' | '+' | '=' as prefix
+);
+
+s64 ScanCommandListMask
+(
+    ccp			arg,		// argument to scan
+    const CommandTab_t	* cmd_tab	// valid pointer to command table
+);
+
+void PrintCommandError
+(
+    const CommandTab_t	* cmd_tab,	// NULL or pointer to command table
+    ccp			cmd_arg,	// analyzed command
+    int			cmd_stat,	// status of ScanCommand()
+    ccp			object		// NULL or object for error messages
+					//	default= 'command'
+);
+
+//
+///////////////////////////////////////////////////////////////////////////////
 ///////////////			Open File Mode			///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -286,7 +353,7 @@ typedef enum enumOFT // open file mode
     OFT_FST,			// file system
 
     OFT__N,			// number of variants
-    OFT__DEFAULT = OFT_WDF	// default value
+    OFT__DEFAULT = OFT_WBFS	// default value
 
 } enumOFT;
 
@@ -324,6 +391,7 @@ typedef struct OFT_info_t
 //-----------------------------------------------------------------------------
 
 extern const OFT_info_t oft_info[OFT__N+1];
+extern const CommandTab_t ImageTypeTab[];
 extern enumOFT output_file_type;
 extern uint opt_wdf_version;
 extern uint opt_wdf_align;
@@ -427,7 +495,7 @@ uint FindMemMapHelper ( MemMap_t * mm, off_t off, off_t size );
 uint CalCoverlapMemMap ( MemMap_t * mm );
 
 // Print out memory map
-void PrintMemMap ( MemMap_t * mm, FILE * f, int indent );
+void PrintMemMap ( MemMap_t * mm, FILE * f, int indent, ccp info_head );
 
 //
 ///////////////////////////////////////////////////////////////////////////////
@@ -817,8 +885,45 @@ enumError LoadFile
     bool		fatt_max	// true: store max values to 'fatt'
 );
 
-enumError SaveFile ( ccp path1, ccp path2, bool create_dir,
-		     void * data, size_t size, bool silent );
+enumError LoadFileAlloc
+(
+    ccp			path1,		// NULL or part #1 of path
+    ccp			path2,		// NULL or part #2 of path
+    size_t		skip,		// skip num of bytes before reading
+    u8			** res_data,	// result: free existing data, store ptr to alloc data
+					// always one more byte is alloced and set to NULL
+    size_t		*  res_size,	// result: size of 'res_data'
+    size_t		max_size,	// >0: a file size limit
+    bool		silent,		// true: suppress printing of error messages
+    FileAttrib_t	* fatt,		// not NULL: store file attributes
+    bool		fatt_max	// true: store max values to 'fatt'
+);
+
+enumError CheckCreateFile
+(
+    // returns:
+    //   ERR_WARNING:		source is "-" (stdout) => 'st' is zeroed
+    //   ERR_ALREADY_EXISTS:	file already exists
+    //   ERR_WRONG_FILE_TYPE:	file exists and file type is wrong
+    //   ERR_OK:		file not exist or can be overwritten
+
+    ccp		fname,		// filename to open
+    bool	detect_stdout,	// true: detect "-" as stdout
+    bool	overwrite,	// true: overwriting is allowed
+    bool	silent,		// true: suppress error messages
+    struct stat	*st		// not NULL: store file status here
+);
+
+enumError SaveFile
+(
+    ccp			path1,		// NULL or part #1 of path
+    ccp			path2,		// NULL or part #2 of path
+    bool		overwrite,	// true: overwrite existing files
+    bool		create_dir,	// true: create path automatically
+    const void		* data,		// pointer to data
+    size_t		size,		// size of 'data'
+    bool		silent		// true: suppress error messages
+);
 
 //-----------------------------------------------------------------------------
 
@@ -943,6 +1048,8 @@ char * ScanRangeU32 ( ccp arg, u32 * p_stat, u32 * p_n1, u32 * p_n2, u32 min, u3
 
 //-----
 
+extern const u8 HexTab[256];
+
 char * ScanHexHelper
 (
     void	* buf,		// valid pointer to result buf
@@ -997,6 +1104,43 @@ void PrintLines
     ...				// arguments for 'vsnprintf(format,...)'
 
 )  __attribute__ ((__format__(__printf__,6,7)));
+
+//
+///////////////////////////////////////////////////////////////////////////////
+///////////////			    scan number			///////////////
+///////////////////////////////////////////////////////////////////////////////
+
+char * ScanS32
+(
+    // return 'source' on error
+
+    s32		*res_num,		// not NULL: store result (only on success)
+    ccp		source,			// NULL or source text
+    uint	default_base		// base for numbers without '0x' prefix
+					//  0: C like with octal support
+					// 10: standard value for decimal numbers
+					// 16: standard value for hex numbers
+);
+
+static inline char * ScanU32 ( u32 *res_num, ccp source, uint default_base )
+	{ return ScanS32((s32*)res_num,source,default_base); }
+
+//-----------------------------------------------------------------------------
+
+char * ScanS64
+(
+    // return 'source' on error
+
+    s64		*res_num,		// not NULL: store result (only on success)
+    ccp		source,			// NULL or source text
+    uint	default_base		// base for numbers without '0x' prefix
+					//  0: C like with octal support
+					// 10: standard value for decimal numbers
+					// 16: standard value for hex numbers
+);
+
+static inline char * ScanU64 ( u64 *res_num, ccp source, uint default_base )
+	{ return ScanS64((s64*)res_num,source,default_base); }
 
 //
 ///////////////////////////////////////////////////////////////////////////////
@@ -1535,73 +1679,6 @@ u64 GetMemLimit();
 
 //
 ///////////////////////////////////////////////////////////////////////////////
-///////////////			commands			///////////////
-///////////////////////////////////////////////////////////////////////////////
-
-#define COMMAND_NAME_MAX 100
-
-typedef struct CommandTab_t
-{
-    s64			id;		// id
-    ccp			name1;		// first name
-    ccp			name2;		// NULL or second name
-    s64			opt;		// option
-
-} CommandTab_t;
-
-typedef s64 (*CommandCallbackFunc)
-(
-    void		* param,	// NULL or user defined parameter
-    ccp			name,		// normalized name of option
-    const CommandTab_t	* cmd_tab,	// valid pointer to command table
-    const CommandTab_t	* cmd,		// valid pointer to found command
-    char		prefix,		// 0 | '-' | '+' | '='
-    s64			result		// current value of result
-);
-
-const CommandTab_t * ScanCommand
-(
-    int			* res_abbrev,	// NULL or pointer to result 'abbrev_count'
-    ccp			arg,		// argument to scan
-    const CommandTab_t	* cmd_tab	// valid pointer to command table
-);
-
-s64 ScanCommandList
-(
-    ccp			arg,		// argument to scan
-    const CommandTab_t	* cmd_tab,	// valid pointer to command table
-    CommandCallbackFunc	func,		// NULL or calculation function
-    bool		allow_prefix,	// allow '-' | '+' | '=' as prefix
-    u32			max_number,	// allow numbers < 'max_number' (0=disabled)
-    s64			result		// start value for result
-);
-
-enumError ScanCommandListFunc
-(
-    ccp			arg,		// argument to scan
-    const CommandTab_t	* cmd_tab,	// valid pointer to command table
-    CommandCallbackFunc	func,		// calculation function
-    void		* param,	// used define parameter for 'func'
-    bool		allow_prefix	// allow '-' | '+' | '=' as prefix
-);
-
-s64 ScanCommandListMask
-(
-    ccp			arg,		// argument to scan
-    const CommandTab_t	* cmd_tab	// valid pointer to command table
-);
-
-void PrintCommandError
-(
-    const CommandTab_t	* cmd_tab,	// NULL or pointer to command table
-    ccp			cmd_arg,	// analyzed command
-    int			cmd_stat,	// status of ScanCommand()
-    ccp			object		// NULL or object for error messages
-					//	default= 'command'
-);
-
-//
-///////////////////////////////////////////////////////////////////////////////
 ///////////////			data area & list		///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -1728,6 +1805,7 @@ extern bool		opt_no_link;
 extern int		testmode;
 extern int		newmode;
 extern ccp		opt_dest;
+extern bool		opt_overwrite;
 extern bool		opt_mkdir;
 extern int		opt_limit;
 extern int		opt_file_limit;

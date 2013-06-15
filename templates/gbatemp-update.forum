@@ -31,10 +31,13 @@
     This is a graphical user interface for wit available for Mac OS X.
 [/list]
 
-~[size="3"][color="#0000c0"][b]Highlights of this release:[/b][/color][/size]
-[size="3"][color="#0000c0"][b]Last Release:[/b][/color][/size]
+[size="3"][color="#0000c0"][b]Highlights of this release:[/b][/color][/size]
 [list]
-[*] After 4 years development this version should be the last release of the WIT-Tools until further notice; with exception of bug fix releases. I will discontinue adding new features. That's the reason for the little version jump to v2.20a.
+[*] I had stopped the WIT development, but then [i]NEWER SMBW[/i] appeared!
+
+Years ago I planed to use a Riivolution setup to patch a Wii image. So I implemented a first DOL support. I had also implemented first steps to patch a DOL; this code was hidden in a private area of my SVN repository.
+
+And with [i]NEWER SMBW[/i] there was a need to activate the code. Therefore I have implemented the new command [URL=http://wit.wiimm.de/cmd/wit/dolpatch]DOLPATCH[/url] together with some more little extensions.
 [/list]
 
 [size="3"][color="#0000c0"][b]Change log:[/b][/color][/size]

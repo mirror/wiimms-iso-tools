@@ -547,7 +547,7 @@ static enumError cmd_create()
 		Dump_TIK_MEM(stdout,2,&tik,0);
 	    if (!testmode)
 	    {
-		const enumError err = SaveFile(path,0,opt_mkdir,
+		const enumError err = SaveFile(path,0,opt_overwrite,opt_mkdir,
 						&tik,sizeof(tik),false);
 		if (!err)
 		    return err;
@@ -582,7 +582,7 @@ static enumError cmd_create()
 		Dump_TMD_MEM(stdout,2,tmd,1,0);
 	    if (!testmode)
 	    {
-		const enumError err = SaveFile(path,0,opt_mkdir,
+		const enumError err = SaveFile(path,0,opt_overwrite,opt_mkdir,
 						tmd,sizeof(tmd_buf),false);
 		if (!err)
 		    return err;
@@ -592,6 +592,507 @@ static enumError cmd_create()
     }
 
     return ERR_OK;
+}
+
+//
+///////////////////////////////////////////////////////////////////////////////
+///////////////			command DOLPATCH		///////////////
+///////////////////////////////////////////////////////////////////////////////
+
+typedef struct dol_patch_t
+{
+    u8			*data;		// alloced data of dol file
+    size_t		size;		// size of 'data'
+    FileAttrib_t	fatt;		// file attributes
+
+    uint		n_rec;		// number of valid records
+    dol_record_t	rec[DOL_N_SECTIONS];
+					// records
+
+    int			term_wd;	// terminal width
+    uint		patch_count;	// number of applied patches
+    uint		cond_count;	// number of condintions not match
+    uint		ok_count;	// number of already patched
+    uint		warn_count;	// number of warnings
+}
+dol_patch_t;
+
+//-----------------------------------------------------------------------------
+
+typedef struct hex_patch_t
+{
+    uint		addr;		// virtual address of patch
+
+    u8			cmp[1000];	// buffer for original values to compare
+    uint		n_cmp;		// number of valid bytes in 'cmp'
+
+    u8			patch[1000];	// buffer with patch data
+    u8			*patch_data;	// not NULL: alloced data, supersede 'patch'
+    uint		n_patch;	// number of valid bytes in 'patch'
+}
+hex_patch_t; 
+
+///////////////////////////////////////////////////////////////////////////////
+
+static char * ScanHexString
+(
+    u8		*buf,		// destination buffer
+    uint	bufsize,	// size of 'buf'
+    uint	*n_read,	// not NULL: store number of scanned bytes
+    ccp		src		// source pointer
+)
+{
+    DASSERT(buf);
+    DASSERT(src);
+
+    uint count;
+    for ( count = 0; count < bufsize; )
+    {
+	//--- skip spaces & controls
+	while ( *src && *src <= ' ' || *src == '.' )
+	    src++;
+	uint num = HexTab[*(uchar*)src];
+	if ( num >= 16 )
+	    break;
+	uint num2 = HexTab[*(uchar*)++src];
+	if ( num2 <= 16 )
+	{
+	    src++;
+	    num = num << 4 | num2;
+	}
+	*buf++ = num;
+	count++;
+    }
+
+    if (n_read)
+	*n_read = count;
+    return (char*)src;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+static enumError PatchDol ( dol_patch_t *dol, hex_patch_t *hex )
+{
+    DASSERT(dol);
+    DASSERT(hex);
+
+    const uint size = hex->n_cmp > hex->n_patch ? hex->n_cmp : hex->n_patch;
+    if ( !size || !hex->addr || !hex->n_patch )
+	return false;
+
+    const dol_record_t *rec = search_dol_record(dol->rec,dol->n_rec,hex->addr,size);
+    if (!rec)
+    {
+	if ( verbose >= -1 )
+	    printf("!Can't patch: Range outside dol: addr %08x+%02x\n",
+			hex->addr, hex->n_patch );
+	dol->warn_count++;
+	return ERR_WARNING;
+    }
+
+    const ccp plus = hex->addr + size > rec->addr + rec->size ? "+" : "";
+    uint offset = hex->addr - rec->delta;
+    if ( offset > dol->size
+	|| offset + size > dol->size // 2 steps because of possible overflow
+	|| hex->addr + size > rec->addr + rec->xsize )
+    {
+	// can only happen on invalid dol
+	if ( verbose >= -1 )
+	    printf("!Can't patch: Range outside dol: [%s%s] addr %08x+%02x, offset %7x\n",
+			rec->name, plus, hex->addr, hex->n_patch, offset );
+	dol->warn_count++;
+	return ERR_WARNING;
+    }
+    u8 *ptr = dol->data + offset;
+
+    ccp reason = 0;
+    enumError err = ERR_OK;
+    if ( !memcmp(ptr,hex->patch,hex->n_patch ) )
+    {
+	reason = "Already patched:";
+	dol->ok_count++;
+    }
+    else if ( hex->n_cmp && memcmp(ptr,hex->cmp,hex->n_cmp ) )
+    {
+	reason = "Original differ:";
+	err = ERR_DIFFER;
+	dol->cond_count++;
+    }
+
+    if (reason)
+    {
+	if ( verbose >= 1 )
+	{
+	    int len = printf("-%-17s[%s%s] addr %08x+%02x, offset %7x:",
+		    reason, rec->name, plus, hex->addr, hex->n_patch, offset );
+
+	    int n = ( dol->term_wd  - len - 3 ) / 3;
+	    if ( n < 1 )
+		n = 1;
+	    ccp pts = "";
+	    if ( n < size )
+	    {
+		pts = "...";
+		if ( n > 1 )
+		    n--;
+	    }
+	    else
+		n = size;
+
+	    int i;
+	    const u8 *d = ptr;
+	    for ( i = 0; i < n; i++ )
+		printf(" %02x",*d++);
+	    printf("%s\n",pts);
+	}
+
+	return err;
+    }
+
+
+    //--- now we can patch
+
+    if ( verbose >= 0 )
+    {
+	int len = printf("+Patched:         [%s%s] addr %08x+%02x, offset %7x:",
+		rec->name, plus, hex->addr, hex->n_patch, offset );
+	int n = ( dol->term_wd  - len - 3 ) / 6;
+
+	if ( n < 1 )
+	    n = 1;
+	ccp pts = "";
+	if ( n < hex->n_patch )
+	{
+	    pts = "...";
+	    if ( n > 1 )
+		n--;
+	}
+	else
+	    n = hex->n_patch;
+
+	int i;
+	const u8 *d = ptr;
+	for ( i = 0; i < n; i++ )
+	    printf(" %02x",*d++);
+	printf("%s ->",pts);
+
+	memcpy(ptr,hex->patch,hex->n_patch);
+	d = ptr;
+	for ( i = 0; i < n; i++ )
+	    printf(" %02x",*d++);
+	printf("%s\n",pts);
+    }
+    else
+	memcpy(ptr,hex->patch,hex->n_patch);
+
+    dol->patch_count++;
+    return true;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+static enumError ScanXML ( dol_patch_t *dol, ccp fname )
+{
+    DASSERT(dol);
+    DASSERT(fname);
+
+    if ( !fname || !*fname )
+	return ERR_NOTHING_TO_DO;
+
+    char path_buf[PATH_MAX];
+    u8 *is_dir = 0;
+
+    u8 *xml;
+    size_t xml_size;
+    enumError err = LoadFileAlloc( fname, 0, 0, &xml, &xml_size,
+					10*MiB, false, 0, false );
+    if (err)
+	return err;
+
+    u8 *ptr = xml, *end = ptr + xml_size;
+    while ( ptr < end )
+    {
+	//--- find next tag
+	while ( ptr < end && *ptr != '<' )
+	    ptr++;
+	ptr++;
+	while ( ptr < end && *ptr <= ' ' )
+	    ptr++;
+
+	if ( !memcmp(ptr,"memory",6) && ptr[6] <= ' ' )
+	{
+	    ptr += 6;
+	    noPRINT("MEMORY FOUND: %.30s\n",ptr);
+
+	    hex_patch_t hex;
+	    memset(&hex,0,sizeof(hex));
+
+	    //--- scan attributes
+
+	    for(;;)
+	    {
+		while ( ptr < end && *ptr <= ' ' )
+		    ptr++;
+		char *beg_name = (char*)ptr;
+		while ( ptr < end && isalnum((int)*ptr) )
+		    ptr++;
+		char *end_name = (char*)ptr;
+		if ( beg_name == end_name )
+		    break;
+
+		while ( ptr < end && *ptr <= ' ' )
+		    ptr++;
+		if ( *ptr == '=' )
+		{
+		    ptr++;
+		    while ( ptr < end && *ptr <= ' ' )
+			ptr++;
+		    if ( *ptr != '"' )
+			break;
+
+		    char *beg_par = (char*)++ptr;
+		    while ( ptr < end && *ptr != '"' )
+			ptr++;
+		    if ( *ptr != '"' )
+			break;
+		    char *end_par = (char*)ptr++;
+
+		    *end_name = *end_par = 0;
+
+		    noPRINT("ATT: %s = %s\n",beg_name,beg_par);
+		    if (!strcmp(beg_name,"offset"))
+			ScanU32(&hex.addr,beg_par,10);
+		    else if (!strcmp(beg_name,"original"))
+			ScanHexString(hex.cmp,sizeof(hex.cmp),&hex.n_cmp,beg_par);
+		    else if (!strcmp(beg_name,"value"))
+			ScanHexString(hex.patch,sizeof(hex.patch),&hex.n_patch,beg_par);
+		    else if (!strcmp(beg_name,"valuefile"))
+		    {
+			if (source_list.used)
+			{
+			    if (!is_dir)
+				is_dir = CALLOC(source_list.used,1);
+			    uint i;
+			    for ( i = 0; i < source_list.used; i++ )
+			    {
+				ccp fname, src = source_list.field[i];
+				if (!is_dir[i])
+				    is_dir[i] = IsDirectory(src,0)+1;
+				if (is_dir[i]>1)
+				{
+				    fname = PathCatPP(path_buf,sizeof(path_buf),
+							src,beg_par);
+				}
+				else
+				{
+				    fname = strrchr(src,'/');
+				    fname = fname ? fname+1 : src;
+				    fname = strcasecmp(fname,beg_par) ? 0 : src;
+				}
+				size_t size;
+				if ( fname && !LoadFileAlloc(fname, 0, 0,
+					&hex.patch_data, &size, 10*MiB, true, 0, false ))
+				{
+				    hex.n_patch = size;
+				    break;
+				}
+			    }
+			}
+			
+			if (!hex.patch_data)
+			{
+			    StringCopyS(path_buf,sizeof(path_buf),fname);
+			    char *slash = strrchr(path_buf,'/');
+			    if (slash)
+				*slash = 0;
+			    ccp fname = PathCatPP(path_buf,sizeof(path_buf),path_buf,beg_par);
+			    size_t size;
+			    if (!LoadFileAlloc(fname, 0, 0,
+					&hex.patch_data, &size, 1000000, false, 0, false ))
+			    {
+				hex.n_patch = size;
+			    }
+			}
+		    }
+		}
+	    }
+
+	    PatchDol(dol,&hex);
+	    FREE(hex.patch_data);
+	}
+
+	//--- find end of tag
+	while ( ptr < end && *ptr != '>' )
+	    ptr++;
+    }
+    FREE(xml);
+    FREE(is_dir);
+    return ERR_OK;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+static enumError cmd_dolpatch()
+{
+    TRACE_SIZEOF(dol_patch_t);
+    TRACE_SIZEOF(hex_patch_t);
+
+    //--- load dol file    
+
+    ParamList_t * param = first_param;
+    if ( !param || !param->arg || !*param->arg )
+    {
+	ERROR0(ERR_SYNTAX,"Missing filename for DOL file!\n");
+	hint_exit(ERR_SYNTAX);
+    }
+    ccp dol_fname = param->arg;
+    param = param->next;
+
+    dol_patch_t dol;
+    memset(&dol,0,sizeof(dol));
+    dol.term_wd = GetTermWidth(80,40) - 1;
+    enumError err = LoadFileAlloc( dol_fname, 0, 0,
+					&dol.data, &dol.size, 100*MiB,
+					false, &dol.fatt, false );
+    if (err)
+	return err;
+
+    enumFileType ftype = AnalyzeMemFT(dol.data,dol.size);
+    if ( (ftype&FT__ID_MASK) != FT_ID_DOL )
+	return ERROR0(ERR_INVALID_FILE,"Not a DOL file: %s\n",dol_fname);
+
+
+    //--- setup dol records
+
+    dol.n_rec = calc_dol_records(dol.rec,false,(dol_header_t*)dol.data);
+    if ( long_count > 0 )
+    {
+	printf("\n section   address    size x-size     delta\n"
+		 "--------------------------------------------\n");
+
+	dol_record_t *rec = dol.rec + dol.n_rec - 1;
+	uint i;
+	for ( i = 0; i < dol.n_rec; i++, rec-- )
+	    printf("%3u.  %s  %8x  %6x %6x  %8x\n",
+		i+1, rec->name, rec->addr, rec->size, rec->xsize, rec->delta );
+
+	putchar('\n');
+    }
+
+
+    //--- analysze commands
+
+    for ( ; param; param = param->next )
+    {
+	if ( !param->arg || !*param->arg )
+	    continue;
+
+	u32 addr;
+	ccp ptr = param->arg;
+	while ( *ptr && *ptr <= ' ' )
+	    ptr++;
+
+	const bool have_xml = !strncasecmp(ptr,"xml",3);
+	if (have_xml)
+	    ptr += 3;
+	else
+	{
+	    ccp start = ptr;
+	    ptr = ScanU32(&addr,ptr,16);
+	    if ( ptr == start )
+	    {
+		ERROR0(ERR_WARNING,"Offset expected: %s\n",start);
+		dol.warn_count++;
+		continue;
+	    }
+	}
+
+	while ( *ptr && *ptr <= ' ' )
+	    ptr++;
+	if ( *ptr != '=' )
+	{
+	    ERROR0(ERR_WARNING,"Missing '=': %s\n",param->arg);
+	    dol.warn_count++;
+	    continue;
+	}
+
+	if (have_xml)
+	{
+	    ptr++;
+	    while ( *ptr && *ptr <= ' ' )
+		ptr++;
+	    ScanXML(&dol,ptr);
+	}
+	else
+	{
+	    hex_patch_t hex;
+	    memset(&hex,0,sizeof(hex));
+	    hex.addr = addr;
+	    ptr = ScanHexString(hex.patch,sizeof(hex.patch),&hex.n_patch,ptr+1);
+	    if ( *ptr == '#' )
+		ScanHexString(hex.cmp,sizeof(hex.cmp),&hex.n_cmp,ptr+1);
+	    PatchDol(&dol,&hex);
+	}
+    }
+
+
+    //--- save dol file    
+
+    char path_buf[PATH_MAX];
+    ccp dest_fname = dol_fname;
+    if ( opt_dest && *opt_dest )
+    {
+	if (IsDirectory(opt_dest,0))
+	{
+	    ccp slash = strrchr(dol_fname,'/');
+	    dest_fname = PathCatPP(path_buf,sizeof(path_buf),opt_dest,
+					slash ? slash+1 : dol_fname );
+	}
+	else
+	    dest_fname = opt_dest;
+    }
+
+    bool create = false;
+    if (dol.patch_count)
+    {
+	create = true;
+	if ( verbose >= 0 )
+	    printf("* %save patched DOL to: %s\n",
+		testmode ? "Would s" : "S", dest_fname );
+    }
+    else if (strcmp(dest_fname,dol_fname))
+    {
+	create = true;
+	if ( verbose >= 0 )
+	    printf("* DOL not modified, %scopy to: %s\n",
+		testmode ? "would " : "", dest_fname );
+    }
+    else
+    {
+	if ( verbose >= 0 )
+	    printf("* DOL not modified: %s\n",dest_fname);
+    }
+
+    if (create)
+    {
+	const bool overwrite = opt_overwrite || !opt_dest || !*opt_dest;
+	if (!testmode)
+	    err = SaveFile(dest_fname,0,overwrite,opt_mkdir,dol.data,dol.size,false);
+	else
+	    CheckCreateFile(dest_fname,false,overwrite,false,0);
+    }
+
+
+    //--- terminate
+
+    FREE(dol.data);
+    return err
+	    ? err
+	    : dol.warn_count
+		? ERR_WARNING
+		: dol.cond_count
+		    ? ERR_DIFFER
+		    : ERR_OK;
 }
 
 //
@@ -966,7 +1467,7 @@ enumError exec_dump ( SuperFile_t * sf, Iterator_t * it )
 	return Dump_ISO(stdout,0,sf,it->real_path,opt_show_mode,it->long_count);
 
     if ( sf->f.ftype & FT_ID_DOL )
-	return Dump_DOL(stdout,0,sf,it->real_path);
+	return Dump_DOL(stdout,0,sf,it->real_path, it->long_count > 0 ? 15 : 7 );
 
     if ( sf->f.ftype & FT_ID_FST_BIN )
 	return Dump_FST_BIN(stdout,0,sf,it->real_path,opt_show_mode);
@@ -1331,7 +1832,7 @@ static enumError exec_fragments ( SuperFile_t * sf, Iterator_t * it )
 
     const bool is_reg = S_ISREG(sf->f.st.st_mode);
     FileMap_t fm1, fm2, fm3, *fm0 = is_reg ? &fm1 : &fm3;
-    
+
     if (!GetFileMapSF(sf,fm0,true))
     {
 	if (brief_count)
@@ -3123,7 +3624,7 @@ enumError CheckOptions ( int argc, char ** argv, bool is_env )
 	case GO_MEM:		err += ScanOptMem(optarg,true); break;
 	case GO_PRESERVE:	break;
 	case GO_UPDATE:		break;
-	case GO_OVERWRITE:	break;
+	case GO_OVERWRITE:	opt_overwrite = true; break;
 	case GO_DIFF:		break;
 	case GO_REMOVE:		break;
 
@@ -3296,6 +3797,7 @@ enumError CheckCommand ( int argc, char ** argv )
 	case CMD_GETTITLES:	err = cmd_gettitles(); break;
 	case CMD_CERT:		err = cmd_cert(); break;
 	case CMD_CREATE:	err = cmd_create(); break;
+	case CMD_DOLPATCH:	err = cmd_dolpatch(); break;
 	case CMD_CODE:		err = cmd_code(); break;
 
 	case CMD_FILELIST:	err = cmd_filelist(); break;

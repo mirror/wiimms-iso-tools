@@ -59,6 +59,7 @@ int validate_file_format_sizes ( int trace_sizes )
 	TRACE_SIZEOF(be64_t);
 
 	TRACE_SIZEOF(dol_header_t);
+	TRACE_SIZEOF(dol_record_t);
 	TRACE_SIZEOF(wbfs_inode_info_t);
 	TRACE_SIZEOF(wd_header_128_t);
 	TRACE_SIZEOF(wd_header_t);
@@ -345,6 +346,102 @@ void hton_inode_info ( wbfs_inode_info_t * dest, const wbfs_inode_info_t * src )
     dest->ctime		= hton64(src->ctime);
     dest->atime		= hton64(src->atime);
     dest->dtime		= hton64(src->dtime);
+}
+
+//
+///////////////////////////////////////////////////////////////////////////////
+///////////////			struct dol_record_t		///////////////
+///////////////////////////////////////////////////////////////////////////////
+
+uint calc_dol_records
+(
+    dol_record_t	*rec,		// pointer to at least DOL_N_SECTIONS records
+    bool		term_null,	// true: add a NULL record at end of list
+    const dol_header_t	*dol_head	// source DOL header
+)
+{
+    DASSERT(rec);
+    DASSERT(dol_head);
+
+    dol_header_t dh;
+    ntoh_dol_header(&dh,dol_head);
+    dol_record_t *dest = rec;
+    u32 last_addr = 0xffffffff;
+
+    for(;;)
+    {
+	u32 max_addr = 0;
+	int i, found = -1;
+	for ( i = 0; i < DOL_N_SECTIONS; i++ )
+	{
+	    if (   dh.sect_off[i]
+		&& dh.sect_size[i]
+		&& dh.sect_addr[i] < last_addr
+		&& dh.sect_addr[i] > max_addr )
+	    {
+		found = i;
+		max_addr = dh.sect_addr[i];
+	    }
+	}
+	if ( found < 0 )
+	    break;
+
+	memset(dest,0,sizeof(*dest));
+	dest->addr	= dh.sect_addr[found];
+	dest->size	= dh.sect_size[found];
+	dest->xsize	= dest->size;
+	dest->delta	= dest->addr - dh.sect_off[found];
+
+	if ( found < DOL_N_TEXT_SECTIONS )
+	{
+	    dest->name[0] = 'T';
+	    dest->name[1] = found+'0';
+	}
+	else
+	{
+	    dest->name[0] = 'D';
+	    dest->name[1] = found-DOL_N_TEXT_SECTIONS+'0';
+	}
+
+	if ( dest > rec
+	    && dest[-1].delta == dest->delta
+	    && dest->addr + dest->size == dest[-1].addr )
+	{
+	    dest->xsize += dest[-1].xsize;
+	}
+	last_addr = dest->addr;
+	dest++;
+    }
+
+    if (term_null)
+	memset(dest,0,sizeof(*dest));
+    return dest - rec;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+
+const dol_record_t * search_dol_record
+(
+    dol_record_t	*rec,		// pointer to at least records
+    uint		n_rec,		// number of records, set it to DOL_N_SECTIONS
+					//   if record lsit is NULL termianted
+    u32			addr,		// address to search
+    u32			size		// size of object, if NULL, ignore it
+)
+{
+    DASSERT(rec);
+
+    while ( n_rec-- > 0 )
+    {
+	if (!rec->size)
+	    break;
+	    
+	if ( addr >= rec->addr && addr+size <= rec->addr+rec->xsize )
+	    return rec;
+	rec++;
+    }
+    return 0;
 }
 
 //
