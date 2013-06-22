@@ -33,12 +33,8 @@
 
 [size="3"][color="#0000c0"][b]Highlights of this release:[/b][/color][/size]
 [list]
-[*] Command [url=http://wit.wiimm.de/cmd/wit/dolpatch][color="#000080"][b]wit DOLPATCH[/b][/color][/url] is now able to create new sections.
+[*]
 [color=#ffffff].[/color]
-
-[*] If TICKET and TMD ID differ, the game freeze after loading. So it make sense, to change both with only one option: [url=http://wit.wiimm.de/opt/tt-id][color="#000080"][b]--tt-id[/b][/color][/url]
-[color=#ffffff].[/color]
-
 [/list]
 
 [size="3"][color="#0000c0"][b]Change log:[/b][/color][/size]

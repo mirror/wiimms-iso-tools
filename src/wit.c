@@ -886,10 +886,11 @@ static enumError PatchDol ( dol_patch_t *dol, hex_patch_t *hex )
 	return ERR_WARNING;
     }
     u8 *ptr = dol->data + offset;
+    const u8 *patch = hex->patch_data ? hex->patch_data : hex->patch;
 
     ccp reason = 0;
     enumError err = ERR_OK;
-    if ( !memcmp(ptr,hex->patch,hex->n_patch ) )
+    if ( !memcmp(ptr,patch,hex->n_patch ) )
     {
 	reason = "Already patched:";
 	dol->ok_count++;
@@ -958,14 +959,14 @@ static enumError PatchDol ( dol_patch_t *dol, hex_patch_t *hex )
 	    printf(" %02x",*d++);
 	printf("%s ->",pts);
 
-	memcpy(ptr,hex->patch,hex->n_patch);
+	memcpy(ptr,patch,hex->n_patch);
 	d = ptr;
 	for ( i = 0; i < n; i++ )
 	    printf(" %02x",*d++);
 	printf("%s\n",pts);
     }
     else
-	memcpy(ptr,hex->patch,hex->n_patch);
+	memcpy(ptr,patch,hex->n_patch);
 
     dol->patch_count++;
     return true;
@@ -1134,7 +1135,13 @@ static enumError ScanXML ( dol_patch_t *dol, ccp fname )
 		    else if (!strcmp(beg_name,"original"))
 			ScanHexString(hex.cmp,sizeof(hex.cmp),&hex.n_cmp,beg_par);
 		    else if (!strcmp(beg_name,"value"))
-			ScanHexString(hex.patch,sizeof(hex.patch),&hex.n_patch,beg_par);
+		    {
+			ScanHexString((u8*)iobuf,sizeof(iobuf),&hex.n_patch,beg_par);
+			if ( hex.n_patch <= sizeof(hex.patch) )
+			    memcpy(hex.patch,iobuf,hex.n_patch);
+			else
+			    hex.patch_data = MEMDUP(iobuf,hex.n_patch);
+		    }
 		    else if (!strcmp(beg_name,"valuefile"))
 			LoadPatchFile(dol,&hex,beg_par,fname);
 		}
@@ -1261,7 +1268,11 @@ static enumError cmd_dolpatch()
 	    hex_patch_t hex;
 	    memset(&hex,0,sizeof(hex));
 	    hex.addr = addr;
-	    ptr = ScanHexString(hex.patch,sizeof(hex.patch),&hex.n_patch,ptr);
+	    ScanHexString((u8*)iobuf,sizeof(iobuf),&hex.n_patch,ptr);
+	    if ( hex.n_patch <= sizeof(hex.patch) )
+		memcpy(hex.patch,iobuf,hex.n_patch);
+	    else
+		hex.patch_data = MEMDUP(iobuf,hex.n_patch);
 	    if ( *ptr == '#' )
 		ScanHexString(hex.cmp,sizeof(hex.cmp),&hex.n_cmp,ptr+1);
 	    PatchDol(&dol,&hex);

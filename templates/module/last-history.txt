@@ -1,13 +1,9 @@
 wit v@@VERSION@@ r@@REV-NEXT@@ - @@@@-@@-@@
 
- - Command "wit DOLPATCH" accepts now more commands and is able to create new
-   TEXT and DATA sections.
-   -> Read http://wit.wiimm.de/cmd/wit/dolpatch for details.
- - New option: --tt-id=ID: This is a short cut for `--ticket=ID --tmd=ID´.
-   If TICKET and TMD differ, the game will freeze after loading. So it make
-   sense to change only TICKET and TMD IDs together.
- - Bug fix, if using "wit COPY --name discname" and the destination is %X or
-   similar: The new discname is now used to create the filename.
+ - Command "wit DOLPATCH":
+    - Bug fix: If loading a file, wrong data was used.
+    - Tag 'memory', attribute 'value': 4 MiB data are accepted now.
+    - Sub command 'address=hexstring': 4 MiB data are accepted now.
 
 ~
 ~Known bugs:
