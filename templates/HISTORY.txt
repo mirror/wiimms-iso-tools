@@ -258,6 +258,11 @@ wit v2.21a r4489 - 2013-06-15
  - Title data base updated.
 
 
+wit v2.21b r4492 - 2013-06-15
+
+ - Bug fix: wit DOLPATCH: Reading 'offset' failed on 32 bit systems.
+
+
 @@MODULE(last-history.txt)@@
 
 ~

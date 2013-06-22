@@ -35,7 +35,9 @@
 ~ Highlights
 [size=12][color=#0000c0][b]Höhepunkte dieser Version:[/b][/color][/size]
 [list]
-[*]
+[*] Das Kommando [url=http://wit.wiimm.de/cmd/wit/dolpatch][color=#000080][b]wit DOLPATCH[/b][/color][/url] kann nun auch neue Sections in einer DOL-Datei erzeugen.
+
+[*] Wenn TICKET und TMD ID sich unterscheiden, dann friert ein Spiel nach dem Laden ein. Daher ist es sinnvoll, beide IDs gemeinsam zu verändern. Und hierfür gibt es nun die neue [url=http://wit.wiimm.de/opt/tt-id][color=#000080][b]Option --tt-id[/b][/color][/url]
 [/list]
 
 [size=12][color=#0000c0][b]Letzte Änderungen:[/b][/color][/size]

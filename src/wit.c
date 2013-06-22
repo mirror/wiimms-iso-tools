@@ -609,6 +609,9 @@ typedef struct dol_patch_t
     dol_record_t	rec[DOL_N_SECTIONS];
 					// records
 
+    bool		auto_section;	// true: auto section defined
+    bool		auto_data;	// true: auto section is data
+
     int			term_wd;	// terminal width
     uint		patch_count;	// number of applied patches
     uint		cond_count;	// number of condintions not match
@@ -631,6 +634,24 @@ typedef struct hex_patch_t
     uint		n_patch;	// number of valid bytes in 'patch'
 }
 hex_patch_t; 
+
+///////////////////////////////////////////////////////////////////////////////
+
+static void DumpDolRec ( dol_patch_t *dol )
+{
+    DASSERT(dol);
+
+    printf("\n section   address    size x-size     delta\n"
+	     "--------------------------------------------\n");
+
+    dol_record_t *rec = dol->rec + dol->n_rec - 1;
+    uint i;
+    for ( i = 0; i < dol->n_rec; i++, rec-- )
+	printf("%3u.  %s  %8x  %6x %6x  %8x\n",
+	    i+1, rec->name, rec->addr, rec->size, rec->xsize, rec->delta );
+
+    putchar('\n');
+}
 
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -671,6 +692,157 @@ static char * ScanHexString
 
 ///////////////////////////////////////////////////////////////////////////////
 
+static enumError CreateSection
+    ( dol_patch_t *dol, bool is_data, u32 addr, u32 size )
+{
+    // align addr and size
+    size = ( size + 3 & ~3 ) + ( addr & 3 );
+    addr &= ~3;
+    if ( !addr || !size )
+	return ERR_WARNING;
+
+
+    // search an empty section
+
+    dol_header_t *dh = (dol_header_t*)dol->data;
+
+    ccp section_name;
+    uint base_idx, sect_idx, max_idx;
+    if (is_data)
+    {
+	section_name = "DATA";
+	base_idx = DOL_N_TEXT_SECTIONS;
+	max_idx  = DOL_N_SECTIONS;
+    }
+    else
+    {
+	section_name = "TEXT";
+	base_idx = 0;
+	max_idx  = DOL_N_TEXT_SECTIONS;
+    }
+    for ( sect_idx = base_idx; sect_idx < max_idx; sect_idx++ )
+	if (!ntohl(dh->sect_off[sect_idx]))
+	    break;
+
+    if ( sect_idx == max_idx )
+    {
+	if ( verbose >= -1 )
+	    printf("!Can't create %s section, because DOL is full.\n",
+			section_name );
+	dol->warn_count++;
+	return ERR_WARNING;
+    }
+
+    u32 offset = ALIGN32(dol->size,4);
+    if ( verbose >= 0 )
+    {
+	if ( long_count > 1 )
+	    putchar('\n');
+	printf("CREATE %s section '%c%u': %x +%x, offset=%x\n",
+		section_name, *section_name, sect_idx-base_idx, addr, size, offset );
+    }
+
+    dh->sect_off [sect_idx] = htonl(offset);
+    dh->sect_addr[sect_idx] = htonl(addr);
+    dh->sect_size[sect_idx] = htonl(size);
+
+    const uint newsize = offset + size;
+    dol->data = REALLOC(dol->data,newsize);
+    memset(dol->data+dol->size,0,newsize-dol->size);
+    dol->size = newsize;
+
+    dol->n_rec = calc_dol_records(dol->rec,false,(dol_header_t*)dol->data);
+    if ( long_count > 1 )
+	DumpDolRec(dol);
+
+    return ERR_OK;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+static enumError ScanNewSection ( dol_patch_t *dol, ccp src )
+{
+    DASSERT(dol);
+    DASSERT(src);
+
+    //--- check 'TEXT' or 'DATA' or any abbreviation
+
+    while ( *src && *src <= ' ' )
+	src++;
+    ccp ptr  = src;
+    while (isalnum((int)*ptr))
+	ptr++;
+    if ( ptr == src )
+	goto syntax;
+    const bool is_data = !strncasecmp(src,"data",ptr-src);
+    if ( !is_data && strncasecmp(src,"text",ptr-src) )
+	goto syntax;
+    noPRINT("DATA=%u: |%s|\n",is_data,ptr);
+
+
+    //--- check ','
+
+    while ( *ptr && *ptr <= ' ' )
+	ptr++;
+    if ( *ptr != ',' )
+	goto syntax;
+    ptr++;
+
+
+    //--- check 'AUTO'
+
+    while ( *ptr && *ptr <= ' ' )
+	ptr++;
+    ccp beg = ptr;
+    while (isalnum((int)*ptr))
+	ptr++;
+    const bool is_auto = !strncasecmp(beg,"auto",ptr-beg);
+    noPRINT("AUTO=%u: |%.*s|%s|\n",is_auto, (int)(ptr-beg),beg, ptr);
+
+    u32 addr = 0, size = 0;
+    if (!is_auto)
+    {
+	ptr = ScanU32(&addr,beg,16);
+	noPRINT("OFF=%x: |%s|\n",addr,ptr);
+
+	while ( *ptr && *ptr <= ' ' )
+	    ptr++;
+	if ( *ptr != ',' )
+	    goto syntax;
+	ptr++;
+
+	ptr = ScanU32(&size,ptr,16);
+	noPRINT("SIZE=%x: |%s|\n",size,ptr);
+
+	if (!addr || !size )
+	    goto syntax;
+    }
+
+    while ( *ptr && *ptr <= ' ' )
+	ptr++;
+    if (*ptr)
+	goto syntax;
+
+    if (is_auto)
+    {
+	PRINT("AUTO %s section defined!\n", is_data ? "DATA" : "TEXT" );
+	dol->auto_section = true;
+	dol->auto_data = is_data;
+    }
+    else
+	return CreateSection(dol,is_data,addr,size);
+
+    return ERR_OK;
+
+ syntax:
+    dol->warn_count++;
+    return ERROR0(ERR_WARNING,"Syntax for 'NEW': type,AUTO | type,addr,size: %s\n",src);
+}
+
+//
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+
 static enumError PatchDol ( dol_patch_t *dol, hex_patch_t *hex )
 {
     DASSERT(dol);
@@ -683,11 +855,21 @@ static enumError PatchDol ( dol_patch_t *dol, hex_patch_t *hex )
     const dol_record_t *rec = search_dol_record(dol->rec,dol->n_rec,hex->addr,size);
     if (!rec)
     {
-	if ( verbose >= -1 )
-	    printf("!Can't patch: Range outside dol: addr %08x+%02x\n",
-			hex->addr, hex->n_patch );
-	dol->warn_count++;
-	return ERR_WARNING;
+	if ( dol->auto_section && !hex->n_cmp )
+	{
+	    dol->auto_section = false;
+	    CreateSection(dol,dol->auto_data,hex->addr,hex->n_patch);
+	    rec = search_dol_record(dol->rec,dol->n_rec,hex->addr,size);
+	}
+
+	if (!rec)
+	{
+	    if ( verbose >= -1 )
+		printf("!Can't patch: Range outside dol: addr %08x+%02x\n",
+			    hex->addr, hex->n_patch );
+	    dol->warn_count++;
+	    return ERR_WARNING;
+	}
     }
 
     const ccp plus = hex->addr + size > rec->addr + rec->size ? "+" : "";
@@ -791,6 +973,95 @@ static enumError PatchDol ( dol_patch_t *dol, hex_patch_t *hex )
 
 ///////////////////////////////////////////////////////////////////////////////
 
+static void LoadPatchFile
+	( dol_patch_t *dol, hex_patch_t *hex, ccp param, ccp src_path )
+{
+    DASSERT(dol);
+    DASSERT(hex);
+    DASSERT(param);
+
+    const uint MAX_SIZE = 10*MiB;
+
+    FREE(hex->patch_data);
+    hex->patch_data = 0;
+
+    noPRINT("LOAD FILE: %x |%s|%s|\n",hex->addr,param,src_path);
+
+    char path_buf[PATH_MAX];
+    static u8 *is_dir = 0;
+
+    if (!src_path)
+    {
+	size_t size;
+	if ( !LoadFileAlloc(param, 0, 0,
+		&hex->patch_data, &size, 10*MiB, true, 0, false ))
+	{
+	    noPRINT(" -> |%s|\n",param);
+	    hex->n_patch = size;
+	    return;
+	}
+    }
+
+    if (source_list.used)
+    {
+	if (!is_dir)
+	    is_dir = CALLOC(source_list.used,1);
+
+	uint i;
+	for ( i = 0; i < source_list.used; i++ )
+	{
+	    ccp fname, src = source_list.field[i];
+	    if (!is_dir[i])
+		is_dir[i] = IsDirectory(src,0)+1;
+	    if (is_dir[i]>1)
+	    {
+		fname = PathCatPP(path_buf,sizeof(path_buf),src,param);
+	    }
+	    else
+	    {
+		fname = strrchr(src,'/');
+		fname = fname ? fname+1 : src;
+		fname = strcasecmp(fname,param) ? 0 : src;
+	    }
+
+	    size_t size;
+	    if ( fname && !LoadFileAlloc(fname, 0, 0,
+		    &hex->patch_data, &size, MAX_SIZE, true, 0, false ))
+	    {
+		if ( verbose >= 1 )
+		    printf("+File loaded [%zu bytes]: %s\n",size,fname);
+		hex->n_patch = size;
+		break;
+	    }
+	}
+    }
+
+    if (!hex->patch_data)
+    {
+	if (src_path)
+	{
+	    StringCopyS(path_buf,sizeof(path_buf),src_path);
+	    char *slash = strrchr(path_buf,'/');
+	    if (slash)
+		*slash = 0;
+	}
+	else
+	    *path_buf = 0;
+	ccp fname = PathCatPP(path_buf,sizeof(path_buf),path_buf,param);
+
+	size_t size;
+	if (!LoadFileAlloc(fname, 0, 0,
+		    &hex->patch_data, &size, MAX_SIZE, false, 0, false ))
+	{
+	    if ( verbose >= 1 )
+		printf("+File loaded [%zu bytes]: %s\n",size,fname);
+	    hex->n_patch = size;
+	}
+    }
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
 static enumError ScanXML ( dol_patch_t *dol, ccp fname )
 {
     DASSERT(dol);
@@ -799,8 +1070,6 @@ static enumError ScanXML ( dol_patch_t *dol, ccp fname )
     if ( !fname || !*fname )
 	return ERR_NOTHING_TO_DO;
 
-    char path_buf[PATH_MAX];
-    u8 *is_dir = 0;
 
     u8 *xml;
     size_t xml_size;
@@ -867,53 +1136,7 @@ static enumError ScanXML ( dol_patch_t *dol, ccp fname )
 		    else if (!strcmp(beg_name,"value"))
 			ScanHexString(hex.patch,sizeof(hex.patch),&hex.n_patch,beg_par);
 		    else if (!strcmp(beg_name,"valuefile"))
-		    {
-			if (source_list.used)
-			{
-			    if (!is_dir)
-				is_dir = CALLOC(source_list.used,1);
-			    uint i;
-			    for ( i = 0; i < source_list.used; i++ )
-			    {
-				ccp fname, src = source_list.field[i];
-				if (!is_dir[i])
-				    is_dir[i] = IsDirectory(src,0)+1;
-				if (is_dir[i]>1)
-				{
-				    fname = PathCatPP(path_buf,sizeof(path_buf),
-							src,beg_par);
-				}
-				else
-				{
-				    fname = strrchr(src,'/');
-				    fname = fname ? fname+1 : src;
-				    fname = strcasecmp(fname,beg_par) ? 0 : src;
-				}
-				size_t size;
-				if ( fname && !LoadFileAlloc(fname, 0, 0,
-					&hex.patch_data, &size, 10*MiB, true, 0, false ))
-				{
-				    hex.n_patch = size;
-				    break;
-				}
-			    }
-			}
-			
-			if (!hex.patch_data)
-			{
-			    StringCopyS(path_buf,sizeof(path_buf),fname);
-			    char *slash = strrchr(path_buf,'/');
-			    if (slash)
-				*slash = 0;
-			    ccp fname = PathCatPP(path_buf,sizeof(path_buf),path_buf,beg_par);
-			    size_t size;
-			    if (!LoadFileAlloc(fname, 0, 0,
-					&hex.patch_data, &size, 1000000, false, 0, false ))
-			    {
-				hex.n_patch = size;
-			    }
-			}
-		    }
+			LoadPatchFile(dol,&hex,beg_par,fname);
 		}
 	    }
 
@@ -926,7 +1149,6 @@ static enumError ScanXML ( dol_patch_t *dol, ccp fname )
 	    ptr++;
     }
     FREE(xml);
-    FREE(is_dir);
     return ERR_OK;
 }
 
@@ -966,18 +1188,7 @@ static enumError cmd_dolpatch()
 
     dol.n_rec = calc_dol_records(dol.rec,false,(dol_header_t*)dol.data);
     if ( long_count > 0 )
-    {
-	printf("\n section   address    size x-size     delta\n"
-		 "--------------------------------------------\n");
-
-	dol_record_t *rec = dol.rec + dol.n_rec - 1;
-	uint i;
-	for ( i = 0; i < dol.n_rec; i++, rec-- )
-	    printf("%3u.  %s  %8x  %6x %6x  %8x\n",
-		i+1, rec->name, rec->addr, rec->size, rec->xsize, rec->delta );
-
-	putchar('\n');
-    }
+	DumpDolRec(&dol);
 
 
     //--- analysze commands
@@ -992,8 +1203,12 @@ static enumError cmd_dolpatch()
 	while ( *ptr && *ptr <= ' ' )
 	    ptr++;
 
-	const bool have_xml = !strncasecmp(ptr,"xml",3);
-	if (have_xml)
+	const bool have_load = !strncasecmp(ptr,"load",4);
+	const bool have_new  = !strncasecmp(ptr,"new",3);
+	const bool have_xml  = !strncasecmp(ptr,"xml",3);
+	if ( have_load)
+	    ptr += 4;
+	else if ( have_new || have_xml )
 	    ptr += 3;
 	else
 	{
@@ -1015,20 +1230,38 @@ static enumError cmd_dolpatch()
 	    dol.warn_count++;
 	    continue;
 	}
-
-	if (have_xml)
-	{
+	ptr++;
+	while ( *ptr && *ptr <= ' ' )
 	    ptr++;
+
+	if (have_load)
+	{
+	    hex_patch_t hex;
+	    memset(&hex,0,sizeof(hex));
+	    ptr = ScanU32(&hex.addr,ptr,16);
 	    while ( *ptr && *ptr <= ' ' )
 		ptr++;
-	    ScanXML(&dol,ptr);
+	    if ( *ptr != ',' )
+	    {
+		ERROR0(ERR_WARNING,"Missing ',' behind offset: %s\n",param->arg);
+		dol.warn_count++;
+		continue;
+	    }
+	    ptr++;
+	    LoadPatchFile(&dol,&hex,ptr,0);
+	    PatchDol(&dol,&hex);
+	    FREE(hex.patch_data);
 	}
+	else if (have_new)
+	    ScanNewSection(&dol,ptr);
+	else if (have_xml)
+	    ScanXML(&dol,ptr);
 	else
 	{
 	    hex_patch_t hex;
 	    memset(&hex,0,sizeof(hex));
 	    hex.addr = addr;
-	    ptr = ScanHexString(hex.patch,sizeof(hex.patch),&hex.n_patch,ptr+1);
+	    ptr = ScanHexString(hex.patch,sizeof(hex.patch),&hex.n_patch,ptr);
 	    if ( *ptr == '#' )
 		ScanHexString(hex.cmp,sizeof(hex.cmp),&hex.n_cmp,ptr+1);
 	    PatchDol(&dol,&hex);
@@ -3597,6 +3830,8 @@ enumError CheckOptions ( int argc, char ** argv, bool is_env )
 	case GO_BOOT_ID:	err += ScanOptBootId(optarg); break;
 	case GO_TICKET_ID:	err += ScanOptTicketId(optarg); break;
 	case GO_TMD_ID:		err += ScanOptTmdId(optarg); break;
+	case GO_TT_ID:		err += ScanOptTicketId(optarg);
+				err += ScanOptTmdId(optarg); break;
 	case GO_WBFS_ID:	err += ScanOptWbfsId(optarg); break;
 	case GO_FILES:		err += ScanRule(optarg,PAT_FILES); break;
 	case GO_RM_FILES:	err += ScanRule(optarg,PAT_RM_FILES); break;

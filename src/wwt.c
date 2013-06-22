@@ -3962,6 +3962,8 @@ enumError CheckOptions ( int argc, char ** argv, bool is_env )
 	case GO_BOOT_ID:	err += ScanOptBootId(optarg); break;
 	case GO_TICKET_ID:	err += ScanOptTicketId(optarg); break;
 	case GO_TMD_ID:		err += ScanOptTmdId(optarg); break;
+	case GO_TT_ID:		err += ScanOptTicketId(optarg);
+				err += ScanOptTmdId(optarg); break;
 	case GO_WBFS_ID:	err += ScanOptWbfsId(optarg); break;
 	case GO_FILES:		err += ScanRule(optarg,PAT_FILES); break;
 	case GO_RM_FILES:	err += ScanRule(optarg,PAT_RM_FILES); break;

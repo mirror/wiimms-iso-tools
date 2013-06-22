@@ -117,7 +117,10 @@
   { T_DEF_CMD,	"DOLPATCH",	"DOLPATCH",
 		    "wit DOLPATCH dolfile [sub_command]...",
 		"Patch a dol file."
-		" A sub-command is either 'XML=filname' or 'addr=patch#cond'."
+		" A sub-command is either (upper case are keywords)"
+		" 'XML=filname' or 'NEW=type,addr,size'"
+		" or 'NEW=type,AUTO ' or 'LOAD=addr,filename' or 'addr=patch[#cond]',"
+		" and 'type' is either 'TEXT' or 'DATA'."
 		"\1 Read http://wit.wiimm.de/cmd/wit/dolpatch for more details." },
 
   { H_DEF_CMD,	"CODE",		"_CODE",
@@ -698,6 +701,12 @@
 		" Option --tmd-id overrides the definition of option {--id}."
 		"\1\n"
 		"See http://wit.wiimm.de/opt/tmd-id for more details." },
+
+  { T_OPT_CP,	"TT_ID",	"tt-id|ttid",
+		"id",
+		"This is a short cut for {--ticket id --tmd id}."
+		" If TICKET and TMD differ, the game will freeze after loading."
+		" So it make sense to change only TICKET and TMD IDs together." },
 
   { T_OPT_CP,	"WBFS_ID",	"wbfs-id|wbfsid",
 		"id",
@@ -1294,6 +1303,7 @@
   { T_COPT,	"BOOT_ID",	0,0,0 },
   { T_COPT,	"TICKET_ID",	0,0,0 },
   { T_COPT,	"TMD_ID",	0,0,0 },
+  { T_COPT,	"TT_ID",	0,0,0 },
   { T_COPT,	"WBFS_ID",	0,0,0 },
 
   //---------- wit GROUP PATCH ----------
@@ -1309,6 +1319,7 @@
   { T_COPT,	"BOOT_ID",	0,0,0 },
   { T_COPT,	"TICKET_ID",	0,0,0 },
   { T_COPT,	"TMD_ID",	0,0,0 },
+  { T_COPT,	"TT_ID",	0,0,0 },
   { T_COPT,	"WBFS_ID",	0,0,0 },
   { T_COPT,	"REGION",	0,0,0 },
   { T_COPT,	"COMMON_KEY",	0,0,0 },

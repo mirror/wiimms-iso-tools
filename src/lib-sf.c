@@ -1030,6 +1030,7 @@ int SubstFileNameBuf
     char buf[HD_SECTOR_SIZE];
     if (fi->f.id6_dest[0])
     {
+	OpenDiscSF(fi,false,false);
 	if (fi->disc2)
 	    disc_name = (ccp)fi->disc2->dhead.disc_title;
 	else

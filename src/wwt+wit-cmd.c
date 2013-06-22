@@ -495,9 +495,13 @@ enumError PrintErrorStat ( enumError err, ccp cmdname )
 			progname, cmdname, err, GetErrorName(err), GetErrorText(err) );
     }
 
-    if ( err && verbose > 0 || err == ERR_NOT_IMPLEMENTED )
+    if (   verbose > 0 && err >= ERR_WARNING
+	|| verbose > 1 && err
+	|| err == ERR_NOT_IMPLEMENTED )
+    {
 	fprintf(stderr,"%s: Command '%s' returns with status #%d [%s]\n",
 			progname, cmdname, err, GetErrorName(err) );
+    }
 
     return err;
 }

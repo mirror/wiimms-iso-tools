@@ -90,6 +90,7 @@ typedef enum enumOptions
 	OPT_BOOT_ID,
 	OPT_TICKET_ID,
 	OPT_TMD_ID,
+	OPT_TT_ID,
 	OPT_WBFS_ID,
 	OPT_REGION,
 	OPT_COMMON_KEY,
@@ -156,7 +157,7 @@ typedef enum enumOptions
 	OPT_SORT,
 	OPT_LIMIT,
 
-	OPT__N_SPECIFIC, // == 100 
+	OPT__N_SPECIFIC, // == 101 
 
 	//----- global options -----
 
@@ -182,7 +183,7 @@ typedef enum enumOptions
 	OPT_HOOK,
 	OPT_FORCE,
 
-	OPT__N_TOTAL // == 121
+	OPT__N_TOTAL // == 122
 
 } enumOptions;
 
@@ -231,6 +232,7 @@ typedef enum enumOptions
 //	OB_BOOT_ID		= 1llu << OPT_BOOT_ID,
 //	OB_TICKET_ID		= 1llu << OPT_TICKET_ID,
 //	OB_TMD_ID		= 1llu << OPT_TMD_ID,
+//	OB_TT_ID		= 1llu << OPT_TT_ID,
 //	OB_WBFS_ID		= 1llu << OPT_WBFS_ID,
 //	OB_REGION		= 1llu << OPT_REGION,
 //	OB_COMMON_KEY		= 1llu << OPT_COMMON_KEY,
@@ -369,6 +371,7 @@ typedef enum enumOptions
 //				| OB_BOOT_ID
 //				| OB_TICKET_ID
 //				| OB_TMD_ID
+//				| OB_TT_ID
 //				| OB_WBFS_ID
 //				| OB_REGION
 //				| OB_COMMON_KEY
@@ -772,6 +775,7 @@ typedef enum enumGetOpt
 	GO_BOOT_ID,
 	GO_TICKET_ID,
 	GO_TMD_ID,
+	GO_TT_ID,
 	GO_WBFS_ID,
 	GO_REGION,
 	GO_COMMON_KEY,

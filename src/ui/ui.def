@@ -74,8 +74,10 @@
 
 #:def_cmd( "DOLPATCH", "DOLPATCH", \
 	"wit DOLPATCH dolfile [sub_command]...", \
-	"Patch a dol file. A sub-command is either 'XML=filname' or" \
-	" 'addr=patch#cond'." )
+	"Patch a dol file. A sub-command is either (upper case are keywords)" \
+	" 'XML=filname' or 'NEW=type,addr,size' or 'NEW=type,AUTO ' or" \
+	" 'LOAD=addr,filename' or 'addr=patch[#cond]', and 'type' is either" \
+	" 'TEXT' or 'DATA'." )
 
 #:def_cmd( "FILELIST", "FILELIST|FLIST", \
 	"wit FILELIST [source]...", \
@@ -561,6 +563,12 @@
 	" not equal '.' are modified. The plus sign '+' is a wildcard for" \
 	" multiple '.' to fill the complete entered ID to 4 characters. Option" \
 	" --tmd-id overrides the definition of option {--id}." )
+
+#:def_opt( "TT_ID", "tt-id|ttid", "CP", \
+	"id", \
+	"This is a short cut for {--ticket id --tmd id}. If TICKET and TMD" \
+	" differ, the game will freeze after loading. So it make sense to" \
+	" change only TICKET and TMD IDs together." )
 
 #:def_opt( "WBFS_ID", "wbfs-id|wbfsid", "CP", \
 	"id", \
@@ -1504,6 +1512,10 @@
 	"", \
 	"" )
 
+#:def_cmd_opt( "DUMP", "TT_ID", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "DUMP", "WBFS_ID", \
 	"", \
 	"" )
@@ -1635,6 +1647,10 @@
 	"" )
 
 #:def_cmd_opt( "ID6", "TMD_ID", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "ID6", "TT_ID", \
 	"", \
 	"" )
 
@@ -3275,6 +3291,10 @@
 	"", \
 	"" )
 
+#:def_cmd_opt( "EXTRACT", "TT_ID", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "EXTRACT", "WBFS_ID", \
 	"", \
 	"" )
@@ -3515,6 +3535,10 @@
 	"" )
 
 #:def_cmd_opt( "COPY", "TMD_ID", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "COPY", "TT_ID", \
 	"", \
 	"" )
 
@@ -3790,6 +3814,10 @@
 	"", \
 	"" )
 
+#:def_cmd_opt( "CONVERT", "TT_ID", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "CONVERT", "WBFS_ID", \
 	"", \
 	"" )
@@ -4011,6 +4039,10 @@
 	"" )
 
 #:def_cmd_opt( "EDIT", "TMD_ID", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "EDIT", "TT_ID", \
 	"", \
 	"" )
 
@@ -5357,6 +5389,54 @@
 	" multiple '.' to fill the complete entered ID to 6 characters. The" \
 	" disc header, boot.bin, ticket.bin and tmd.bin are objects to modify." \
 	" The option {--modify} selects the objects." )
+
+#:def_opt( "DISC_ID", "disc-id|discid", "CP", \
+	"id", \
+	"This $patching$ option changes the ID of the disc header to the given" \
+	" parameter. 1 to 6 characters are expected. Only defined characters" \
+	" not equal '.' are modified. The plus sign '+' is a wildcard for" \
+	" multiple '.' to fill the complete entered ID to 6 characters. Option" \
+	" --disc-id overrides the definition of option {--id}." )
+
+#:def_opt( "BOOT_ID", "boot-id|bootid", "CP", \
+	"id", \
+	"This $patching$ option changes the ID of boot.bin to the given" \
+	" parameter. 1 to 6 characters are expected. Only defined characters" \
+	" not equal '.' are modified. The plus sign '+' is a wildcard for" \
+	" multiple '.' to fill the complete entered ID to 6 characters. Option" \
+	" --boot-id overrides the definition of option {--id}." )
+
+#:def_opt( "TICKET_ID", "ticket-id|ticketid", "CP", \
+	"id", \
+	"This $patching$ option changes the ID of ticket.bin to the given" \
+	" parameter. 1 to 4 characters are expected. Only defined characters" \
+	" not equal '.' are modified. The plus sign '+' is a wildcard for" \
+	" multiple '.' to fill the complete entered ID to 4 characters. Option" \
+	" --ticket-id overrides the definition of option {--id}." )
+
+#:def_opt( "TMD_ID", "tmd-id|tmdid", "CP", \
+	"id", \
+	"This $patching$ option changes the ID of tmd.bin to the given" \
+	" parameter. 1 to 4 characters are expected. Only defined characters" \
+	" not equal '.' are modified. The plus sign '+' is a wildcard for" \
+	" multiple '.' to fill the complete entered ID to 4 characters. Option" \
+	" --tmd-id overrides the definition of option {--id}." )
+
+#:def_opt( "TT_ID", "tt-id|ttid", "CP", \
+	"id", \
+	"This is a short cut for {--ticket id --tmd id}. If TICKET and TMD" \
+	" differ, the game will freeze after loading. So it make sense to" \
+	" change only TICKET and TMD IDs together." )
+
+#:def_opt( "WBFS_ID", "wbfs-id|wbfsid", "CP", \
+	"id", \
+	"This $patching$ option changes the ID of the WBFS header to the given" \
+	" parameter if adding a file to a WBFS or if creating a WBFS file. 1" \
+	" to 6 characters are expected. The already patched disc ID of the" \
+	" source is used as base and only defined characters not equal '.' are" \
+	" modified. The plus sign '+' is a wildcard for multiple '.' to fill" \
+	" the complete entered ID to 6 characters. Option --wbfs-id overrides" \
+	" the definition of option {--id}." )
 
 #:def_opt( "REGION", "region", "CP", \
 	"region", \
@@ -7267,6 +7347,10 @@
 	"", \
 	"" )
 
+#:def_cmd_opt( "ADD", "TT_ID", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "ADD", "WBFS_ID", \
 	"", \
 	"" )
@@ -7497,6 +7581,10 @@
 	"", \
 	"" )
 
+#:def_cmd_opt( "UPDATE", "TT_ID", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "UPDATE", "WBFS_ID", \
 	"", \
 	"" )
@@ -7719,6 +7807,10 @@
 	"", \
 	"" )
 
+#:def_cmd_opt( "NEW", "TT_ID", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "NEW", "WBFS_ID", \
 	"", \
 	"" )
@@ -7938,6 +8030,10 @@
 	"" )
 
 #:def_cmd_opt( "SYNC", "TMD_ID", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "SYNC", "TT_ID", \
 	"", \
 	"" )
 
@@ -8225,6 +8321,10 @@
 	"", \
 	"" )
 
+#:def_cmd_opt( "EXTRACT", "TT_ID", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "EXTRACT", "WBFS_ID", \
 	"", \
 	"" )
@@ -8449,6 +8549,10 @@
 	"" )
 
 #:def_cmd_opt( "SCRUB", "TMD_ID", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "SCRUB", "TT_ID", \
 	"", \
 	"" )
 

@@ -456,19 +456,22 @@
   { T_OPT_CP,	"ID",		"id",
 		0, 0 /* copy of wit */ },
 
-  { H_OPT_CP,	"DISC_ID",	"disc-id|discid",
+  { T_OPT_CP,	"DISC_ID",	"disc-id|discid",
 		0, 0 /* copy of wit */ },
 
-  { H_OPT_CP,	"BOOT_ID",	"boot-id|bootid",
+  { T_OPT_CP,	"BOOT_ID",	"boot-id|bootid",
 		0, 0 /* copy of wit */ },
 
-  { H_OPT_CP,	"TICKET_ID",	"ticket-id|ticketid",
+  { T_OPT_CP,	"TICKET_ID",	"ticket-id|ticketid",
 		0, 0 /* copy of wit */ },
 
-  { H_OPT_CP,	"TMD_ID",	"tmd-id|tmdid",
+  { T_OPT_CP,	"TMD_ID",	"tmd-id|tmdid",
 		0, 0 /* copy of wit */ },
 
-  { H_OPT_CP,	"WBFS_ID",	"wbfs-id|wbfsid",
+  { T_OPT_CP,	"TT_ID",	"tt-id|ttid",
+		0, 0 /* copy of wit */ },
+
+  { T_OPT_CP,	"WBFS_ID",	"wbfs-id|wbfsid",
 		0, 0 /* copy of wit */ },
 
   { T_OPT_CP,	"REGION",	"region",
@@ -883,6 +886,7 @@
   { T_COPT,	"BOOT_ID",	0,0,0 },
   { T_COPT,	"TICKET_ID",	0,0,0 },
   { T_COPT,	"TMD_ID",	0,0,0 },
+  { T_COPT,	"TT_ID",	0,0,0 },
   { T_COPT,	"WBFS_ID",	0,0,0 },
   { T_COPT,	"REGION",	0,0,0 },
   { T_COPT,	"COMMON_KEY",	0,0,0 },
