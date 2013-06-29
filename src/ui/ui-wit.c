@@ -71,7 +71,7 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 
     {	OPT_RECURSE, 'r', "recurse",
 	"path",
-	" If path is not a directory then it is used as a simple source file"
+	" If path is not a directory, then it is used as a simple source file"
 	" like --source.\n"
 	"  Directories are scanned for source files recursively. The option"
 	" --rdepth limits the search depth. Hidden files and hidden sub"
@@ -192,7 +192,8 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 
     {	OPT_NULL, '0', "null",
 	0,
-	""
+	"Terminate each output line with a NUL (ASCII 0) character instead"
+	" with a line feed (LF, ASCII 10)."
     },
 
     {	OPT_PSEL, 0, "psel",
@@ -860,7 +861,7 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 	"char",
 	"Define an alternative escape character for destination files. The"
 	" default is '%'. For Windows (CYGWIN) it is a good choice to set"
-	" '-E$'."
+	" '-E$' to avoid conflicts with command shell variables."
     },
 
     {	OPT_IO, 0, "io",

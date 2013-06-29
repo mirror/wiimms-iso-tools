@@ -1,9 +1,6 @@
 wit v@@VERSION@@ r@@REV-NEXT@@ - @@@@-@@-@@
 
- - Command "wit DOLPATCH":
-    - Bug fix: If loading a file, wrong data was used.
-    - Tag 'memory', attribute 'value': 4 MiB data are accepted now.
-    - Sub command 'address=hexstring': 4 MiB data are accepted now.
+ - Bug fix: wit DOLPATCH: Conditions were ignored.
 
 ~
 ~Known bugs:

@@ -275,6 +275,14 @@ wit v2.22a r4516 - 2013-06-22
    similar: The new discname is now used to create the filename.
 
 
+wit v2.22b r4520 - 2013-06-22
+
+ - Command "wit DOLPATCH":
+    - Bug fix: If loading a file, wrong data was used.
+    - Tag 'memory', attribute 'value': 4 MiB data are accepted now.
+    - Sub command 'address=hexstring': 4 MiB data are accepted now.
+
+
 @@MODULE(last-history.txt)@@
 
 ~

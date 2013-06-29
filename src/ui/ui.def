@@ -284,7 +284,7 @@
 	"char", \
 	"Define an alternative escape character for destination files. The" \
 	" default is '%'. For Windows (CYGWIN) it is a good choice to set" \
-	" @'-E$$'@." )
+	" @'-E$$'@ to avoid conflicts with command shell variables." )
 
 #:def_opt( "IO", "io", "GP", \
 	"flags", \
@@ -341,8 +341,8 @@
 
 #:def_opt( "RECURSE", "r|recurse", "CMP", \
 	"path", \
-	" If @path@ is not a directory then it is used as a simple source file" \
-	" like {--source}.\n" \
+	" If @path@ is not a directory, then it is used as a simple source" \
+	" file like {--source}.\n" \
 	"  Directories are scanned for source files recursively. The option" \
 	" {--rdepth} limits the search depth. Hidden files and hidden sub" \
 	" directories (file names begins with a point) and files with non" \
@@ -446,9 +446,9 @@
 	" copies on the destination file system." )
 
 #:def_opt( "NULL", "0|null", "C", \
+	"", \
 	"Terminate each output line with a NUL (ASCII 0) character instead" \
-	" with a line feed (LF, ASCII 10).", \
-	"" )
+	" with a line feed (LF, ASCII 10)." )
 
 #:def_opt( "PSEL", "psel", "CP", \
 	"list", \
@@ -5148,7 +5148,7 @@
 	"char", \
 	"Define an alternative escape character for destination files. The" \
 	" default is '%'. For Windows (CYGWIN) it is a good choice to set" \
-	" @'-E$$'@." )
+	" @'-E$$'@ to avoid conflicts with command shell variables." )
 
 #:def_opt( "IO", "io", "GP", \
 	"flags", \
@@ -5207,8 +5207,8 @@
 
 #:def_opt( "RECURSE", "r|recurse", "CMP", \
 	"path", \
-	" If @path@ is not a directory then it is used as a simple source file" \
-	" like {--source}.\n" \
+	" If @path@ is not a directory, then it is used as a simple source" \
+	" file like {--source}.\n" \
 	"  Directories are scanned for source files recursively. The option" \
 	" {--rdepth} limits the search depth. Hidden files and hidden sub" \
 	" directories (file names begins with a point) and files with non" \

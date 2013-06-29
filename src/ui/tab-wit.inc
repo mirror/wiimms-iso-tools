@@ -355,7 +355,8 @@
 		"char",
 		"Define an alternative escape character for destination files."
 		" The default is '%'."
-		" For Windows (CYGWIN) it is a good choice to set @'-E$$'@." },
+		" For Windows (CYGWIN) it is a good choice to set @'-E$$'@"
+		" to avoid conflicts with command shell variables." },
 
   { T_OPT_GP,	"IO",		"io",
 		"flags",
@@ -439,7 +440,7 @@
 
   { T_OPT_CMP,	"RECURSE",	"r|recurse",
 		"path",
-		" If @path@ is not a directory then it is used as a simple"
+		" If @path@ is not a directory, then it is used as a simple"
 		" source file like {--source}."
 		"\n "
 		" Directories are scanned for source files recursively."
@@ -554,6 +555,7 @@
 		" of independent copies on the destination file system." },
 
   { T_OPT_C,	"NULL",		"0|null",
+		0,
 		"Terminate each output line with a NUL (ASCII 0) character"
 		" instead with a line feed (LF, ASCII 10)." },
 

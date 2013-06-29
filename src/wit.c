@@ -1268,7 +1268,7 @@ static enumError cmd_dolpatch()
 	    hex_patch_t hex;
 	    memset(&hex,0,sizeof(hex));
 	    hex.addr = addr;
-	    ScanHexString((u8*)iobuf,sizeof(iobuf),&hex.n_patch,ptr);
+	    ptr = ScanHexString((u8*)iobuf,sizeof(iobuf),&hex.n_patch,ptr);
 	    if ( hex.n_patch <= sizeof(hex.patch) )
 		memcpy(hex.patch,iobuf,hex.n_patch);
 	    else

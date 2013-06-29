@@ -5111,7 +5111,9 @@ enumError VerifyPartition ( Verify_t * ver )
 			& wd_get_cert_tmd_stat(ver->part,true) )))
     {
 	PrintVerifyMessage(ver,">scan");
-	printf("%-*s%s\n", ver->info_indent+8, ">info",
+	printf("%*s%-*s%s\n",
+		ver->indent, "",
+		ver->info_indent+8-ver->indent, ">info",
 		wd_print_sig_status(0,0,ver->part,true,true) );
     }
     else if ( ver->verbose > 1 )
