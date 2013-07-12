@@ -177,7 +177,7 @@ typedef struct info_t
 	"Print a summary line while extracting files." \
 	" If set at least twice, print a status line for each extracted files."
 
-#define TEXT_OPT_FILES \
+#define TEXT_FILE_FILTER \
 	" This option can be used multiple times to extend the rule list." \
 	" Rules beginning with a '+' or a '-' are allow or deny rules rules." \
 	" Rules beginning with a ':' are macros for predefined rule sets." \

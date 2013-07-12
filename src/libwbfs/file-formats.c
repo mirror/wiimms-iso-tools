@@ -502,38 +502,37 @@ ccp wd_print_compression
     }
 
 
-    int len;
     mode &= 3;
     if ( mode == 1 )
     {
 	if ( compr_method == WD_COMPR__N )
-	    len = snprintf(buf,buf_size,"-");
+	    snprintf(buf,buf_size,"-");
 	else if (compr_level)
-	    len = snprintf(buf,buf_size,"%u.%u%s",compr_method,compr_level,cbuf);
+	    snprintf(buf,buf_size,"%u.%u%s",compr_method,compr_level,cbuf);
 	else
-	    len = snprintf(buf,buf_size,"%u%s",compr_method,cbuf);
+	    snprintf(buf,buf_size,"%u%s",compr_method,cbuf);
     }
     else if ( mode == 2 )
     {
 	ccp name = wd_get_compression_name(compr_method,"-");
 	if ( compr_method == WD_COMPR__N )
-	    len = snprintf(buf,buf_size,"-");
+	    snprintf(buf,buf_size,"-");
 	else if (compr_level)
-	    len = snprintf(buf,buf_size,"%s.%u%s",name,compr_level,cbuf);
+	    snprintf(buf,buf_size,"%s.%u%s",name,compr_level,cbuf);
 	else
-	    len = snprintf(buf,buf_size,"%s%s",name,cbuf);
+	    snprintf(buf,buf_size,"%s%s",name,cbuf);
     }
     else
     {
 	ccp name = wd_get_compression_name(compr_method,"-");
 	if ( compr_method == WD_COMPR__N )
-	    len = snprintf(buf,buf_size,"- -");
+	    snprintf(buf,buf_size,"- -");
 	else if (compr_level)
-	    len = snprintf(buf,buf_size,"%u.%u%s %s.%u%s",
+	    snprintf(buf,buf_size,"%u.%u%s %s.%u%s",
 			compr_method, compr_level, cbuf,
 			name, compr_level, cbuf );
 	else
-	    len = snprintf(buf,buf_size,"%u%s %s%s",
+	    snprintf(buf,buf_size,"%u%s %s%s",
 			compr_method, cbuf, name, cbuf );
     }
 

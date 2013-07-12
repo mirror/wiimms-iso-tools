@@ -1029,7 +1029,7 @@
   { T_OPT_CMP,	"FILES",	"F|files",
 		"ruleset",
 		"Append file select rules."
-		TEXT_OPT_FILES },
+		TEXT_FILE_FILTER },
 
   { T_SEP_OPT,	0,0,0,0 }, //----- separator -----
 
@@ -1165,7 +1165,7 @@
 		"size",
 		TEXT_DIFF_FILE_LIMIT },
 
-  { T_OPT_CP,	"PATCH_FILE",	"patch-file|patchfile",
+  { H_OPT_CP,	"PATCH_FILE",	"patch-file|patchfile",
 		"file",
 		"Define a patch file." },
 
@@ -1683,9 +1683,9 @@
 
   { T_COPT_M,	"FILES",	0,0,
 		"Enter file mode (compare file by file) and append file select rules."
-		TEXT_OPT_FILES },
+		TEXT_FILE_FILTER },
 
-  { T_COPT,	"PATCH_FILE",	0,0,
+  { H_COPT,	"PATCH_FILE",	0,0,
 		"Enter file mode (compare file by file) and create a patch file."
 		" The options {--limit}, {--file-limit} and {--raw} are ignored." },
 

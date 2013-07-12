@@ -946,10 +946,6 @@
 	" the entered number of files differ. This option is ignored in quiet" \
 	" mode." )
 
-#:def_opt( "PATCH_FILE", "patch-file|patchfile", "CP", \
-	"file", \
-	"Define a patch file." )
-
 #:def_cmd_opt( "VERSION", "SECTIONS", \
 	"", \
 	"" )
@@ -2689,11 +2685,6 @@
 	" Rules beginning with a '+' or a '-' are allow or deny rules rules." \
 	" Rules beginning with a ':' are macros for predefined rule sets." )
 
-#:def_cmd_opt( "DIFF", "PATCH_FILE", \
-	"", \
-	"Enter file mode (compare file by file) and create a patch file. The" \
-	" options {--limit}, {--file-limit} and {--raw} are ignored." )
-
 #:def_cmd_opt( "DIFF", "TITLES", \
 	"", \
 	"" )
@@ -2901,11 +2892,6 @@
 	" This option can be used multiple times to extend the rule list." \
 	" Rules beginning with a '+' or a '-' are allow or deny rules rules." \
 	" Rules beginning with a ':' are macros for predefined rule sets." )
-
-#:def_cmd_opt( "FDIFF", "PATCH_FILE", \
-	"", \
-	"Enter file mode (compare file by file) and create a patch file. The" \
-	" options {--limit}, {--file-limit} and {--raw} are ignored." )
 
 #:def_cmd_opt( "FDIFF", "TITLES", \
 	"", \

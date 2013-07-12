@@ -1,6 +1,11 @@
 wit v@@VERSION@@ r@@REV-NEXT@@ - @@@@-@@-@@
 
  - Bug fix: wit DOLPATCH: Conditions were ignored.
+   (Already fixed in inofficial v2.22c)
+ - Built-in docu.
+ - Title data base updated.
+ - Windows only: Cygwin update to v1.7.20 2013-06-07.
+ - Some makefile changes because of a new Cygwin compiler.
 
 ~
 ~Known bugs:

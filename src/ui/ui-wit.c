@@ -2746,7 +2746,6 @@ static const InfoOption_t * option_tab_cmd_DIFF[] =
 {
 	OptionInfo + OPT_TEST,
 	&option_cmd_DIFF_FILES,
-	&option_cmd_DIFF_PATCH_FILE,
 
 	OptionInfo + OPT_NONE, // separator
 
@@ -2819,7 +2818,6 @@ static const InfoOption_t * option_tab_cmd_FDIFF[] =
 {
 	OptionInfo + OPT_TEST,
 	&option_cmd_DIFF_FILES,
-	&option_cmd_DIFF_PATCH_FILE,
 
 	OptionInfo + OPT_NONE, // separator
 
@@ -3975,7 +3973,7 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	"DIFF compares ISO images in scrubbed or raw mode or on file level."
 	" Images, WBFS partitions and directories are accepted as source. DIFF"
 	" works like COPY but comparing source and destination.",
-	49,
+	48,
 	option_tab_cmd_DIFF,
 	option_allowed_cmd_DIFF
     },
@@ -3990,7 +3988,7 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	"FDIFF compares ISO images on file level. Images, WBFS partitions and"
 	" directories are accepted as source. 'FDIFF' is a shortcut for 'DIFF"
 	" --files +'.",
-	49,
+	48,
 	option_tab_cmd_FDIFF,
 	option_allowed_cmd_FDIFF
     },

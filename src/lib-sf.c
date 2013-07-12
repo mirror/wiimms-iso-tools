@@ -5021,7 +5021,7 @@ abort_source:
     CloseDiffSource(diff,print_sections>0);
     ResetFST(&fst1);
     ResetFST(&fst2);
-    return GetDiffStatus(diff);
+    return err >= ERR_ERROR ? err : GetDiffStatus(diff);
 }
 
 //

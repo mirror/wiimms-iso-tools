@@ -858,7 +858,7 @@ enumError CloseWBFSCache()
 	wbfs_cache.cache_candidate = false;
 	err = ResetWBFS(&wbfs_cache);
     }
-    return ERR_OK;
+    return err;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -2313,7 +2313,7 @@ static void AW_discs ( AWData_t * awd, File_t * f, ccp data )
     int sec, level, total_count = 0;
     
     // hss vars
-    int first_sec_found = 0, first_iso_sect = 0, max_level = 0;
+    int first_sec_found = 0, max_level = 0;
     u32 sec_count[SEC_LEVEL];
     memset(sec_count,0,sizeof(sec_count));
 
@@ -2342,7 +2342,7 @@ static void AW_discs ( AWData_t * awd, File_t * f, ccp data )
 		    if (!first_sec_found)
 		    {
 			first_sec_found = sec;
-			first_iso_sect  = ntohs(*(u16*)(wd+1));
+			//first_iso_sect  = ntohs(*(u16*)(wd+1));
 			max_level = level;
 		    }
 		    break;

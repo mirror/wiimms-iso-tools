@@ -43,7 +43,7 @@ WDF_LONG		= Wiimms WDF Tool
 WFUSE_SHORT		= wfuse
 WFUSE_LONG		= Wiimms FUSE Tool
 
-VERSION_NUM		= 2.22c
+VERSION_NUM		= 2.23a
 BETA_VERSION		= 0
 			# 0:off  -1:"beta"  >0:"beta#"
 
@@ -178,10 +178,21 @@ TOBJ_ALL	:= $(TOBJ_wit) $(TOBJ_wwt) $(TOBJ_wdf) $(TOBJ_wfuse)
 LIBBZ2_SRC	= $(shell echo src/libbz2/*.c)
 LIBBZ2_OBJ	= $(patsubst %.c,%.o,$(LIBBZ2_SRC))
 
+# lzma
+LZMA_SRC	= $(shell echo src/lzma/*.c)
+LZMA_OBJ	= $(patsubst %.c,%.o,$(LZMA_SRC))
+
+ifeq ($(SYSTEM),cygwin)
+  LZMA_FLAGS	= -Wno-unused-but-set-variable
+else
+  LZMA_FLAGS	=
+endif
+
 # lib summary
-LIB_LIST	+= libbz2
-LIB_OBJECTS	+= $(LIBBZ2_OBJ)
+LIB_LIST	+= libbz2 lzma
+LIB_OBJECTS	+= $(LIBBZ2_OBJ) $(LZMA_OBJ)
 RM_FILES	+= $(foreach l,$(LIB_LIST),src/$(l)/*.{d,o})
+
 
 #-------------------------------------------------------------------------------
 # source files
@@ -219,7 +230,6 @@ WIT_O		:= debug.o lib-std.o lib-file.o lib-sf.o \
 		   titles.o match-pattern.o dclib-utf8.o \
 		   sha1dgst.o sha1_one.o
 LIBWBFS_O	:= tools.o file-formats.o libwbfs.o wiidisc.o cert.o rijndael.o
-LZMA_O		:= LzmaDec.o LzmaEnc.o LzFind.o Lzma2Dec.o Lzma2Enc.o
 
 ifeq ($(SYSTEM),cygwin)
 WIT_O		+= winapi.o
@@ -227,11 +237,13 @@ endif
 
 # object groups
 UI_OBJECTS	:= $(sort $(MAIN_TOOLS_OBJ))
-C_OBJECTS	:= $(sort $(OTHER_TOOLS_OBJ) $(WIT_O) $(LIBWBFS_O) $(LZMA_O) $(TOBJ_ALL))
+#C_OBJECTS	:= $(sort $(OTHER_TOOLS_OBJ) $(WIT_O) $(LIBWBFS_O) $(LZMA_O) $(TOBJ_ALL))
+C_OBJECTS	:= $(sort $(OTHER_TOOLS_OBJ) $(WIT_O) $(LIBWBFS_O) $(TOBJ_ALL))
 ASM_OBJECTS	:= ssl-asm.o
 
 # all objects + sources
-ALL_OBJECTS	= $(sort $(WIT_O) $(LIBWBFS_O) $(LZMA_O) $(ASM_OBJECTS) $(LIB_OBJECTS))
+#ALL_OBJECTS	= $(sort $(WIT_O) $(LIBWBFS_O) $(LZMA_O) $(ASM_OBJECTS) $(LIB_OBJECTS))
+ALL_OBJECTS	= $(sort $(WIT_O) $(LIBWBFS_O) $(ASM_OBJECTS) $(LIB_OBJECTS))
 ALL_SOURCES	= $(patsubst %.o,%.c,$(UI_OBJECTS) $(C_OBJECTS) $(ASM_OBJECTS))
 
 #-------------------------------------------------------------------------------
@@ -247,8 +259,10 @@ GEN_TEXT_FILE	= ./gen-text-file.sh
 UI		= ./src/ui
 DIR_LIST	+= $(SCRIPTS) $(TEMPLATES) $(MODULES)
 
-VPATH		+= src src/libwbfs src/lzma src/crypto $(UI) work
-DIR_LIST	+= src src/libwbfs src/lzma src/crypto $(UI) work
+#VPATH		+= src src/libwbfs src/lzma src/crypto $(UI) work
+#DIR_LIST	+= src src/libwbfs src/lzma src/crypto $(UI) work
+VPATH		+= src src/libwbfs src/crypto $(UI) work
+DIR_LIST	+= src src/libwbfs src/crypto $(UI) work
 
 DEFINES1	+= -DLARGE_FILES -D_FILE_OFFSET_BITS=64
 DEFINES1	+= -DWIT		# compile wit tools (for shared sources (e.g. libwbfs))
@@ -260,7 +274,8 @@ DEFINES		=  $(strip $(DEFINES1) $(MODE) $(XDEF))
 
 CFLAGS		+= -fomit-frame-pointer -fno-strict-aliasing -funroll-loops
 CFLAGS		+= -Wall -Wno-parentheses -Wno-unused-function
-CFLAGS		+= -O3 -Isrc/libwbfs -Isrc/lzma -Isrc -I$(UI) -I. -Iwork
+#CFLAGS		+= -O3 -Isrc/libwbfs -Isrc/lzma -Isrc -I$(UI) -I. -Iwork
+CFLAGS		+= -O3 -Isrc/libwbfs -Isrc -I$(UI) -I. -Iwork
 ifeq ($(SYSTEM),mac)
  CFLAGS		+= -I/usr/local/include
 endif
@@ -398,6 +413,10 @@ ui : gen-ui
 $(LIBBZ2_OBJ): %.o: %.c Makefile
 	@printf "$(LOGFORMAT)" object "$(subst src/libbz2/,,$@)" "$(MODE) [libbz2]"
 	@$(CC) $(CFLAGS) $(DEPFLAGS) $(DEFINES) -c $< -o $@
+
+$(LZMA_OBJ): %.o: %.c Makefile
+	@printf "$(LOGFORMAT)" object "$(subst src/lzma/,,$@)" "$(MODE) [lzma]"
+	@$(CC) $(CFLAGS) $(DEPFLAGS) $(LZMA_FLAGS) $(DEFINES) -c $< -o $@
 
 #
 ###############################################################################
@@ -602,6 +621,10 @@ flags:
 	@echo  "LDFLAGS: $(LDFLAGS)"
 	@echo  ""
 	@echo  "LIBS: $(LIBS)"
+	@echo  ""
+	@echo  "LIBBZ2_OBJ: $(LIBBZ2_OBJ)"
+	@echo  ""
+	@echo  "LZMA_OBJ: $(LZMA_OBJ)"
 	@echo  ""
 	@echo  "C_OBJECTS: $(C_OBJECTS)"
 	@echo  ""

@@ -2190,7 +2190,7 @@ static enumError FinishSetupWriteWIA
 		    if ( size > max_size )
 			 size = max_size;
 		}
-		u32 n_sect;
+		u32 n_sect = 0;
 		wia_raw_data_t * rdata
 		    = need_raw_data( wia, 0x20, last_off, size, &n_sect );
 
