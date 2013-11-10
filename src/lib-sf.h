@@ -136,6 +136,7 @@ typedef struct SuperFile_t
 	// read and write support
 
 	IOData_t iod;			// open file mode & read+write functions
+	enumOFT oft_orig;		// OFT of original source if source is FST
 	ReadFunc std_read_func;		// standard read function
 
 	// Wii disc support

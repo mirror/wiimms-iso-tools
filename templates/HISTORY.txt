@@ -283,6 +283,16 @@ wit v2.22b r4520 - 2013-06-22
     - Sub command 'address=hexstring': 4 MiB data are accepted now.
 
 
+wit v2.23a r4534 - 2013-07-12
+
+ - Bug fix: wit DOLPATCH: Conditions were ignored.
+   (Already fixed in unofficial v2.22c)
+ - Built-in docu.
+ - Title data base updated.
+ - Windows only: Cygwin update to v1.7.20 2013-06-07.
+ - Some makefile changes because of a new Cygwin compiler.
+
+
 @@MODULE(last-history.txt)@@
 
 ~

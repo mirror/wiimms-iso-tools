@@ -315,7 +315,7 @@ enumOFT SetupIOD ( SuperFile_t * sf, enumOFT force, enumOFT def )
 {
     ASSERT(sf);
     sf->iod.oft = CalcOFT(force,sf->f.fname,0,def);
-    TRACE("SetupIOD(%p,%u,%u) OFT := %u\n",sf,force,def,sf->iod.oft);
+    PRINT("SetupIOD(%p,%u,%u) OFT := %u\n",sf,force,def,sf->iod.oft);
 
     switch (sf->iod.oft)
     {
@@ -2777,16 +2777,14 @@ enumFileType AnalyzeMemFT ( const void * preload_buf, off_t file_size )
 
     const dol_header_t * dol = preload_buf;
     bool ok = true;
-    //u32 last_off = DOL_HEADER_SIZE;
     for ( i = 0; ok && i < DOL_N_SECTIONS; i++ )
     {
-	u32 off  = ntohl(dol->sect_off[i]);
-	u32 size = ntohl(dol->sect_size[i]);
-	u32 addr = ntohl(dol->sect_addr[i]);
+	const u32 off  = ntohl(dol->sect_off[i]);
+	const u32 size = ntohl(dol->sect_size[i]);
+	const u32 addr = ntohl(dol->sect_addr[i]);
 	PRINT(" %8x %8x %08x\n",off,size,addr);
 	if ( off || size || addr )
 	{
-	    // if ( off < last_off )
 	    if (   off & 3
 		|| size & 3
 		|| addr & 3
@@ -2796,10 +2794,8 @@ enumFileType AnalyzeMemFT ( const void * preload_buf, off_t file_size )
 		ok = false;
 		break;
 	    }
-	    //last_off = off+size;
 	}
     }
-    //if ( ok && last_off > DOL_HEADER_SIZE && last_off <= file_size )
     if (ok)
 	return FT_ID_DOL;
 

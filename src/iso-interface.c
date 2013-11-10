@@ -794,14 +794,14 @@ enumError Dump_DOL
 		char buf[sizeof(mi->info)], buf3[sizeof(mi->info)];
 		if ( i < DOL_N_TEXT_SECTIONS )
 		{
-		    snprintf(buf,sizeof(buf),"text section #%u",i);
-		    snprintf(buf3,sizeof(buf3),"%8x : text #%u",addr-off,i);
+		    snprintf(buf,sizeof(buf),"text section T%u",i);
+		    snprintf(buf3,sizeof(buf3),"%8x : T%u",addr-off,i);
 		}
 		else
 		{
 		    const int j = i - DOL_N_TEXT_SECTIONS;
-		    snprintf(buf,sizeof(buf),"data section #%u",j);
-		    snprintf(buf3,sizeof(buf3),"%8x : data #%u",addr-off,j);
+		    snprintf(buf,sizeof(buf),"data section D%u",j);
+		    snprintf(buf3,sizeof(buf3),"%8x : D%u",addr-off,j);
 		}
 
 		mi = InsertMemMap(&mm1,off,size);
@@ -4299,7 +4299,7 @@ enumError SetupReadFST ( SuperFile_t * sf )
 	min_offset	= data_off
 			+ WII_PARTITION_BIN_SIZE
 			+ data_size;
-	sf->iod.oft = data_part->image_type;
+	sf->oft_orig = data_part->image_type;
     }
     else
     {
@@ -4336,7 +4336,7 @@ enumError SetupReadFST ( SuperFile_t * sf )
 			+ WII_PARTITION_BIN_SIZE
 			+ data_size;
 	data_part->path = STRDUP(path);
-	sf->iod.oft = data_part->image_type;
+	sf->oft_orig = data_part->image_type;
 
 	if ( stat & CHANNEL_PART_FOUND )
 	{

@@ -83,8 +83,8 @@ do
     echo "* define application path for '$tool.exe'"
     key="/machine/SOFTWARE/Microsoft/Windows/CurrentVersion/App Paths/$tool.exe"
     regtool add "$key"
-    regtool set "$key/" "${WDEST}\\${tool}.exe"
-    regtool set "$key/Path" "${WDEST}\\"
+    regtool set -s "$key/" "${WDEST}\\${tool}.exe"
+    regtool set -s "$key/Path" "${WDEST}\\"
 done
 
 #------------------------------------------------------------------------------
@@ -120,7 +120,7 @@ function set_path()
 	((count)) || new_path="$new_path;$WDEST"
 	#echo "count=$count"
 	#echo "new_path=${new_path:1}"
-	regtool set "$key" "${new_path:1}"
+	regtool set -e "$key" "${new_path:1}"
     fi
 }
 

@@ -213,7 +213,7 @@ enumError CloseInOut ( SuperFile_t * fi, SuperFile_t * fo,
 	if ( prev_err < err )
 	     prev_err = err;
     }
-    
+
     TRACE("CloseInOut() returns %d\n",prev_err);
     return prev_err;
 }
@@ -255,7 +255,7 @@ enumError CatRaw ( SuperFile_t * fi, SuperFile_t * fo,
     TRACE("CatRaw()\n");
     DASSERT(fi);
     DASSERT( fo || out_fname );
-    
+
     enumError err = ERR_OK;
     SuperFile_t fo_local;
 
@@ -485,7 +485,7 @@ enumError cmd_cat ( bool ignore_raw )
     SuperFile_t out;
     InitializeSF(&out);
     enumError err = OpenOutput(&out,0,0,"CONCATENATE files:");
-    
+
     ParamList_t * param;
     for ( param = first_param; !err && param; param = param->next )
 	err = CatWDF(param->arg,&out,0,ignore_raw,false);
@@ -591,7 +591,7 @@ enumError cmd_cmp()
     SetupDiff(&diff,long_count);
     OpenDiffSource(&diff,&f1,&f2,true);
     err = DiffRawSF(&diff);
-    
+
     enumError err2 = CloseDiff(&diff);
     ResetSF(&f1,0);
     ResetSF(&f2,0);
@@ -658,7 +658,7 @@ enumError ciso_dump ( FILE *f, CISO_Head_t * ch, File_t *df, ccp fname )
 				? iso_file_usage : min_file_size;
 
     //----- print header
-    
+
     u8 * m = (u8*)ch->magic;
     fprintf(f,"  %-18s:         \"%s\" = %02x-%02x-%02x-%02x\n",
 		"Magic", wd_print_id(m,4,0), m[0], m[1], m[2], m[3] );
@@ -930,7 +930,7 @@ enumError wdf_dump ( FILE *f, ccp fname )
 	ResetFile(&df,false);
 	return err;
     }
-    
+
     ConvertToHostWH(&wh,&wh);
     if ( wh.wdf_version == 1 )
     {
@@ -983,7 +983,7 @@ enumError wdf_dump ( FILE *f, ccp fname )
     prev_val = 0;
 
     const int chunk_size = wh.chunk_n*sizeof(WDF_Chunk_t);
-    
+
     ec += print_range(f, "Header",	head_size,			head_size );
     ec += print_range(f, "Data",	wh.chunk_off,			wh.data_size );
     ec += print_range(f, "Chunk-Magic",	wh.chunk_off+WDF_MAGIC_SIZE,	WDF_MAGIC_SIZE );
@@ -1062,7 +1062,7 @@ enumError cmd_dump()
     SuperFile_t sf;
     InitializeSF(&sf);
     enumError err = OpenOutput(&sf,0,0,"DUMP WDF and CISO data strutures:");
-    
+
     ParamList_t * param;
     for ( param = first_param; !err && param; param = param->next )
 	err = wdf_dump(sf.f.fp,param->arg);
@@ -1190,7 +1190,7 @@ enumError CheckCommand ( int argc, char ** argv )
     argv += optind;
 
     TRACE("CheckCommand(%d,) optind=%d\n",argc+optind,optind);
-    
+
     if ( argc > 0 && **argv == '+' )
     {
 	int cmd_stat;

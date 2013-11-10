@@ -647,7 +647,7 @@ static void DumpDolRec ( dol_patch_t *dol )
     dol_record_t *rec = dol->rec + dol->n_rec - 1;
     uint i;
     for ( i = 0; i < dol->n_rec; i++, rec-- )
-	printf("%3u.  %s  %8x  %6x %6x  %8x\n",
+	printf("%3u.  %-3s %8x  %6x %6x  %8x\n",
 	    i+1, rec->name, rec->addr, rec->size, rec->xsize, rec->delta );
 
     putchar('\n');
@@ -696,7 +696,7 @@ static enumError CreateSection
     ( dol_patch_t *dol, bool is_data, u32 addr, u32 size )
 {
     // align addr and size
-    size = ( size + 3 & ~3 ) + ( addr & 3 );
+    size = ( size + ( addr & 3 ) + 3 & ~3 );
     addr &= ~3;
     if ( !addr || !size )
 	return ERR_WARNING;
@@ -1198,7 +1198,7 @@ static enumError cmd_dolpatch()
 	DumpDolRec(&dol);
 
 
-    //--- analysze commands
+    //--- analyse commands
 
     for ( ; param; param = param->next )
     {
@@ -1210,13 +1210,17 @@ static enumError cmd_dolpatch()
 	while ( *ptr && *ptr <= ' ' )
 	    ptr++;
 
-	const bool have_load = !strncasecmp(ptr,"load",4);
-	const bool have_new  = !strncasecmp(ptr,"new",3);
-	const bool have_xml  = !strncasecmp(ptr,"xml",3);
-	if ( have_load)
+	const bool have_load  = !strncasecmp(ptr,"load",4);
+	const bool have_new   = !strncasecmp(ptr,"new",3);
+	const bool have_xml   = !strncasecmp(ptr,"xml",3);
+	const bool have_entry = !strncasecmp(ptr,"entry",5);
+
+	if (have_load)
 	    ptr += 4;
 	else if ( have_new || have_xml )
 	    ptr += 3;
+	else if (have_entry)
+	    ptr += 5;
 	else
 	{
 	    ccp start = ptr;
@@ -1263,6 +1267,22 @@ static enumError cmd_dolpatch()
 	    ScanNewSection(&dol,ptr);
 	else if (have_xml)
 	    ScanXML(&dol,ptr);
+	else if (have_entry)
+	{
+	    u32 addr;
+	    ptr = ScanU32(&addr,ptr,16);
+	    dol_header_t dh;
+	    ntoh_dol_header(&dh,(dol_header_t*)dol.data);
+	    if ( addr != dh.entry_addr )
+	    {
+		if ( verbose >= 0 )
+		    printf("+Patched:         [ENTRY POINT] addr %08x -> %08x\n",
+			dh.entry_addr, addr );
+		dh.entry_addr = addr;
+		hton_dol_header((dol_header_t*)dol.data,&dh);
+		dol.patch_count++;
+	    }
+	}
 	else
 	{
 	    hex_patch_t hex;
@@ -2736,7 +2756,7 @@ static enumError cmd_extract()
 enumError exec_copy ( SuperFile_t * fi, Iterator_t * it )
 {
     ASSERT(fi);
-    PRINT("exec_copy(%s)\n",fi->f.fname);
+    PRINT("exec_copy(%s) oft=%d\n",fi->f.fname,fi->iod.oft);
     if (!fi->f.id6_dest[0])
 	return ERR_OK;
     fflush(0);
@@ -2748,9 +2768,11 @@ enumError exec_copy ( SuperFile_t * fi, Iterator_t * it )
 			|| output_file_type == fi->iod.oft );
 
     ccp fname = fi->f.path ? fi->f.path : fi->f.fname;
+    if (!fi->oft_orig)
+	 fi->oft_orig = fi->iod.oft == OFT_FST ? OFT__DEFAULT : fi->iod.oft;
     const enumOFT oft = convert_it
-			? fi->iod.oft
-			: CalcOFT(output_file_type,opt_dest,fname,fi->iod.oft);
+			? fi->oft_orig
+			: CalcOFT(output_file_type,opt_dest,fname,fi->oft_orig);
 
     SuperFile_t fo;
     InitializeSF(&fo);

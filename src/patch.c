@@ -343,6 +343,7 @@ wd_modify_t ScanModify ( ccp arg )
 	{ WD_MODIFY__NONE,	"NONE",		"-",	WD_MODIFY__ALL },
 	{ WD_MODIFY__ALL,	"ALL",		0,	WD_MODIFY__ALL },
 	{ WD_MODIFY__AUTO,	"AUTO",		0,	WD_MODIFY__ALL },
+	{ WD_MODIFY__TT,	"TT",		0,	0 },
 
 	{ WD_MODIFY_DISC,	"DISC",		0,	0 },
 	{ WD_MODIFY_BOOT,	"BOOT",		0,	0 },

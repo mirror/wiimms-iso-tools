@@ -394,7 +394,8 @@ typedef enum wd_modify_t // objects to modify
 
     //--- summary
 
-    WD_MODIFY__ALL	= 0x01f,  // modify all
+    WD_MODIFY__TT	= WD_MODIFY_TICKET|WD_MODIFY_TMD,
+    WD_MODIFY__ALL	= 0x01f, // modify all
     WD_MODIFY__MASK	= WD_MODIFY__ALL | WD_MODIFY__AUTO | WD_MODIFY__ALWAYS,
 
 } wd_modify_t;

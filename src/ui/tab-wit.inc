@@ -632,10 +632,10 @@
 
   { T_OPT_CP,	"MODIFY",	"modify",
 		"list",
-		" This $patching$ defines the impact of the options {--name}"
+		" This $patching$ option defines the impact of the options {--name}"
 		" and {--id}. It expects a comma separated list"
 		" of the following keywords (case ignored) as parameter:"
-		" @NONE, DISC, BOOT, TICKET, TMD, WBFS, ALL@ and @AUTO@ (default)."
+		" @NONE, DISC, BOOT, TICKET, TMD, WBFS, TT, ALL@ and @AUTO@ (default)."
 		"\n "
 		" All keywords can be prefixed by @'+'@ to enable that option,"
 		" by a @'-'@ to disable it or"

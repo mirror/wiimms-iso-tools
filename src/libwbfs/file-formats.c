@@ -403,6 +403,12 @@ uint calc_dol_records
 	    dest->name[1] = found-DOL_N_TEXT_SECTIONS+'0';
 	}
 
+	if ( dest->name[1] > '9' )
+	{
+	    dest->name[2] = dest->name[1] - 10;
+	    dest->name[1] = '1';
+	}
+
 	if ( dest > rec
 	    && dest[-1].delta == dest->delta
 	    && dest->addr + dest->size == dest[-1].addr )

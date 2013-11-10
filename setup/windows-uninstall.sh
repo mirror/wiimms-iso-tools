@@ -98,7 +98,7 @@ function set_path()
 	[[ "$p" = "$WDEST" ]] || new_path="$new_path;$p"
     done
 
-    [[ $new_path = "" ]] || regtool set "$key" "${new_path:1}"
+    [[ $new_path = "" ]] || regtool set -e "$key" "${new_path:1}"
 }
 
 set_path '/machine/SYSTEM/CurrentControlSet/Control/Session Manager/Environment/Path'
