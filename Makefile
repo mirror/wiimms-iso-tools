@@ -174,18 +174,19 @@ TOBJ_ALL	:= $(TOBJ_wit) $(TOBJ_wwt) $(TOBJ_wdf) $(TOBJ_wfuse)
 #-------------------------------------------------------------------------------
 # sub libs
 
-# libbz2
+# libbz2 & lzma
 LIBBZ2_SRC	= $(shell echo src/libbz2/*.c)
 LIBBZ2_OBJ	= $(patsubst %.c,%.o,$(LIBBZ2_SRC))
 
-# lzma
 LZMA_SRC	= $(shell echo src/lzma/*.c)
 LZMA_OBJ	= $(patsubst %.c,%.o,$(LZMA_SRC))
 
 ifeq ($(SYSTEM),cygwin)
   LZMA_FLAGS	= -Wno-unused-but-set-variable
+  BZIP2_FLAGS	= -Wno-maybe-uninitialized
 else
   LZMA_FLAGS	=
+  BZIP2_FLAGS	=
 endif
 
 # lib summary
@@ -412,7 +413,7 @@ ui : gen-ui
 
 $(LIBBZ2_OBJ): %.o: %.c Makefile
 	@printf "$(LOGFORMAT)" object "$(subst src/libbz2/,,$@)" "$(MODE) [libbz2]"
-	@$(CC) $(CFLAGS) $(DEPFLAGS) $(DEFINES) -c $< -o $@
+	@$(CC) $(CFLAGS) $(DEPFLAGS) $(BZIP2_FLAGS) $(DEFINES) -c $< -o $@
 
 $(LZMA_OBJ): %.o: %.c Makefile
 	@printf "$(LOGFORMAT)" object "$(subst src/lzma/,,$@)" "$(MODE) [lzma]"

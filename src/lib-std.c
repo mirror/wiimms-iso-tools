@@ -2219,7 +2219,7 @@ enumError ScanSizeOptU32
     if ( !max || max > ~(u32)0 )
 	max = ~(u32)0;
 
-    u64 val;
+    u64 val = 0;
     enumError err = ScanSizeOptU64( &val, source, default_factor1, force_base,
 				opt_name, min, max, multiple, pow2, print_err );
 

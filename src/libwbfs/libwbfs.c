@@ -438,7 +438,7 @@ void wbfs_calc_geometry
 
     if (p->head)
     {
-	memset(p->head,0,sizeof(p->head));
+	memset(p->head,0,sizeof(*p->head));
 	p->head->magic		= wbfs_htonl(WBFS_MAGIC);
 	p->head->n_hd_sec	= wbfs_htonl(n_hd_sec);
 	p->head->hd_sec_sz_s	= hd_sec_sz_s;
