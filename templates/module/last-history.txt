@@ -1,11 +1,14 @@
 wit v@@VERSION@@ r@@REV-NEXT@@ - @@@@-@@-@@
 
- - The Windows installer will now force type REG_EXPAND_SZ for path variables.
- - wit DOLPATCH: Wrong calculation for address aligning fixed.
- - New sub command for "wit DOLPATCH": ENTRY=address: Define a new entry point.
- - Title data base updated.
- - Windows version only: Update to Cygwin v1.7.25. I hope that it fixes the
-   bug that occurred during creation of MKW-Fun 2013-10 with Windows 8.1.
+ - New option --auto-split: If set, the tools try to find out, if an image
+   split is needed. The split size is then either below 4 or 2 GiB. Auto-Split
+   base on tests with fseek() and works fine under Linux, but it don't work
+   with Cygwin. Mac is unknown. In future versions --auto-split is enabled by
+   default. It is disabled by any other split option.
+ - New option --no-split: Disable file splitting at all. At the moment and in
+   old versions of the tools, this is the default.
+ - wwt CHECK+REPAIR: Support for option --sections.
+ - Windows only: Cygwin update to v1.7.27 2013-12-09.
 
 ~
 ~Known bugs:

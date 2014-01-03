@@ -654,6 +654,18 @@
 	"path", \
 	"Like {--dest}, but create the directory path automatically." )
 
+#:def_opt( "AUTO_SPLIT", "auto-split|autosplit", "C", \
+	"", \
+	"Enable auto split modus: Split only if necessary and determine the" \
+	" split size automatically.\n" \
+	"  THIS OPTION IS EXPERIMENTAL. In future versions it becomes the" \
+	" default." )
+
+#:def_opt( "NO_SPLIT", "no-split|nosplit", "C", \
+	"", \
+	"Disable output file splitting. This is the default, but in future" \
+	" versions, the new option {--auto-split} becomes the default." )
+
 #:def_opt( "SPLIT", "z|split", "C", \
 	"", \
 	"Enable output file splitting. The default split size is 4 GB." )
@@ -3596,6 +3608,14 @@
 	"", \
 	"" )
 
+#:def_cmd_opt( "COPY", "AUTO_SPLIT", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "COPY", "NO_SPLIT", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "COPY", "SPLIT", \
 	"", \
 	"" )
@@ -3837,6 +3857,14 @@
 	"" )
 
 #:def_cmd_opt( "CONVERT", "ALIGN_FILES", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "CONVERT", "AUTO_SPLIT", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "CONVERT", "NO_SPLIT", \
 	"", \
 	"" )
 
@@ -4767,6 +4795,14 @@
 	"", \
 	"" )
 
+#:def_cmd_opt( "MIX", "AUTO_SPLIT", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "MIX", "NO_SPLIT", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "MIX", "SPLIT", \
 	"", \
 	"" )
@@ -5486,6 +5522,18 @@
 #:def_opt( "DEST2", "D|DEST", "CP", \
 	"path", \
 	"Like {--dest}, but create the directory path automatically." )
+
+#:def_opt( "AUTO_SPLIT", "auto-split|autosplit", "C", \
+	"", \
+	"Enable auto split modus: Split only if necessary and determine the" \
+	" split size automatically.\n" \
+	"  THIS OPTION IS EXPERIMENTAL. In future versions it becomes the" \
+	" default." )
+
+#:def_opt( "NO_SPLIT", "no-split|nosplit", "C", \
+	"", \
+	"Disable output file splitting. This is the default, but in future" \
+	" versions, the new option {--auto-split} becomes the default." )
 
 #:def_opt( "SPLIT", "z|split", "C", \
 	"", \
@@ -7015,6 +7063,10 @@
 	"", \
 	"" )
 
+#:def_cmd_opt( "CHECK", "SECTIONS", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "CHECK", "QUIET", \
 	"", \
 	"" )
@@ -7070,6 +7122,10 @@
 	"" )
 
 #:def_cmd_opt( "REPAIR", "PART", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "REPAIR", "SECTIONS", \
 	"", \
 	"" )
 
@@ -8243,6 +8299,14 @@
 	"", \
 	"" )
 
+#:def_cmd_opt( "EXTRACT", "AUTO_SPLIT", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "EXTRACT", "NO_SPLIT", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "EXTRACT", "SPLIT", \
 	"", \
 	"" )
@@ -9386,6 +9450,18 @@
 	"Preserve file times (atime+mtime) while copying an image. This option" \
 	" is enabled by default if an unmodified disc image is copied." )
 
+#:def_opt( "AUTO_SPLIT", "auto-split|autosplit", "C", \
+	"", \
+	"Enable auto split modus: Split only if necessary and determine the" \
+	" split size automatically.\n" \
+	"  THIS OPTION IS EXPERIMENTAL. In future versions it becomes the" \
+	" default." )
+
+#:def_opt( "NO_SPLIT", "no-split|nosplit", "C", \
+	"", \
+	"Disable output file splitting. This is the default, but in future" \
+	" versions, the new option {--auto-split} becomes the default." )
+
 #:def_opt( "SPLIT", "z|split", "C", \
 	"", \
 	"Enable output file splitting. The default split size is 4 GB." )
@@ -9510,6 +9586,14 @@
 	"", \
 	"" )
 
+#:def_cmd_opt( "PACK", "AUTO_SPLIT", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "PACK", "NO_SPLIT", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "PACK", "SPLIT", \
 	"", \
 	"" )
@@ -9583,6 +9667,14 @@
 	"" )
 
 #:def_cmd_opt( "UNPACK", "OVERWRITE", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "UNPACK", "AUTO_SPLIT", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "UNPACK", "NO_SPLIT", \
 	"", \
 	"" )
 

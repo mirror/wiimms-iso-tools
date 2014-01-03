@@ -16,7 +16,7 @@
  *   This file is part of the WIT project.                                 *
  *   Visit http://wit.wiimm.de/ for project details and sources.           *
  *                                                                         *
- *   Copyright (c) 2009-2013 by Dirk Clemens <wiimm@wiimm.de>              *
+ *   Copyright (c) 2009-2014 by Dirk Clemens <wiimm@wiimm.de>              *
  *                                                                         *
  ***************************************************************************
  *                                                                         *
@@ -164,6 +164,20 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 	" is enabled by default if an unmodified disc image is copied."
     },
 
+    {	OPT_AUTO_SPLIT, 0, "auto-split",
+	0,
+	"Enable auto split modus: Split only if necessary and determine the"
+	" split size automatically.\n"
+	"  THIS OPTION IS EXPERIMENTAL. In future versions it becomes the"
+	" default."
+    },
+
+    {	OPT_NO_SPLIT, 0, "no-split",
+	0,
+	"Disable output file splitting. This is the default, but in future"
+	" versions, the new option --auto-split becomes the default."
+    },
+
     {	OPT_SPLIT, 'z', "split",
 	0,
 	"Enable output file splitting. The default split size is 4 GB."
@@ -270,7 +284,7 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 	" to 80% of the total memory minus 50 MiB."
     },
 
-    {0,0,0,0,0}, // OPT__N_SPECIFIC == 26
+    {0,0,0,0,0}, // OPT__N_SPECIFIC == 28
 
     //----- global options -----
 
@@ -343,7 +357,7 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 	"Use new implementation if available."
     },
 
-    {0,0,0,0,0} // OPT__N_TOTAL == 38
+    {0,0,0,0,0} // OPT__N_TOTAL == 40
 
 };
 
@@ -458,6 +472,10 @@ const struct option OptionLong[] =
 	{ "keep",		0, 0, 'k' },
 	{ "overwrite",		0, 0, 'o' },
 	{ "preserve",		0, 0, 'p' },
+	{ "auto-split",		0, 0, GO_AUTO_SPLIT },
+	 { "autosplit",		0, 0, GO_AUTO_SPLIT },
+	{ "no-split",		0, 0, GO_NO_SPLIT },
+	 { "nosplit",		0, 0, GO_NO_SPLIT },
 	{ "split",		0, 0, 'z' },
 	{ "split-size",		1, 0, 'Z' },
 	 { "splitsize",		1, 0, 'Z' },
@@ -536,15 +554,17 @@ const u8 OptionIndex[OPT_INDEX_SIZE] =
 	/* 0x87   */	OPT_BLOCK_SIZE,
 	/* 0x88   */	OPT_WIA,
 	/* 0x89   */	OPT_WBI,
-	/* 0x8a   */	OPT_PREALLOC,
-	/* 0x8b   */	OPT_CHUNK_MODE,
-	/* 0x8c   */	OPT_CHUNK_SIZE,
-	/* 0x8d   */	OPT_MAX_CHUNKS,
-	/* 0x8e   */	OPT_COMPRESSION,
-	/* 0x8f   */	OPT_MEM,
-	/* 0x90   */	OPT_OLD,
-	/* 0x91   */	OPT_NEW,
-	/* 0x92   */	 0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,
+	/* 0x8a   */	OPT_AUTO_SPLIT,
+	/* 0x8b   */	OPT_NO_SPLIT,
+	/* 0x8c   */	OPT_PREALLOC,
+	/* 0x8d   */	OPT_CHUNK_MODE,
+	/* 0x8e   */	OPT_CHUNK_SIZE,
+	/* 0x8f   */	OPT_MAX_CHUNKS,
+	/* 0x90   */	OPT_COMPRESSION,
+	/* 0x91   */	OPT_MEM,
+	/* 0x92   */	OPT_OLD,
+	/* 0x93   */	OPT_NEW,
+	/* 0x94   */	 0,0,0,0, 0,0,0,0, 0,0,0,0, 
 	/* 0xa0   */	 0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0,
 	/* 0xb0   */	 0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0,
 	/* 0xc0   */	 0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0,
@@ -558,39 +578,39 @@ const u8 OptionIndex[OPT_INDEX_SIZE] =
 ///////////////                opt_allowed_cmd_*                ///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-static u8 option_allowed_cmd_VERSION[26] = // cmd #1
+static u8 option_allowed_cmd_VERSION[28] = // cmd #1
 {
-    0,0,1,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0
+    0,0,1,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0
 };
 
-static u8 option_allowed_cmd_HELP[26] = // cmd #2
+static u8 option_allowed_cmd_HELP[28] = // cmd #2
 {
-    1,1,1,1,1, 1,1,1,1,1,  1,1,1,1,1, 1,1,1,1,1,  1,1,1,1,1, 1
+    1,1,1,1,1, 1,1,1,1,1,  1,1,1,1,1, 1,1,1,1,1,  1,1,1,1,1, 1,1,1
 };
 
-static u8 option_allowed_cmd_PACK[26] = // cmd #3
+static u8 option_allowed_cmd_PACK[28] = // cmd #3
 {
-    0,0,0,0,0, 0,0,1,1,1,  1,1,1,1,1, 1,1,1,1,1,  1,1,1,1,1, 1
+    0,0,0,0,0, 0,0,1,1,1,  1,1,1,1,1, 1,1,1,1,1,  1,1,1,1,1, 1,1,1
 };
 
-static u8 option_allowed_cmd_UNPACK[26] = // cmd #4
+static u8 option_allowed_cmd_UNPACK[28] = // cmd #4
 {
-    0,0,0,0,0, 0,0,0,0,0,  0,0,1,1,1, 1,1,1,1,1,  1,1,1,1,1, 1
+    0,0,0,0,0, 0,0,0,0,0,  0,0,1,1,1, 1,1,1,1,1,  1,1,1,1,1, 1,1,1
 };
 
-static u8 option_allowed_cmd_CAT[26] = // cmd #5
+static u8 option_allowed_cmd_CAT[28] = // cmd #5
 {
-    0,0,0,0,0, 0,0,0,0,0,  0,0,1,1,0, 0,1,0,0,0,  0,0,0,0,0, 0
+    0,0,0,0,0, 0,0,0,0,0,  0,0,1,1,0, 0,1,0,0,0,  0,0,0,0,0, 0,0,0
 };
 
-static u8 option_allowed_cmd_CMP[26] = // cmd #6
+static u8 option_allowed_cmd_CMP[28] = // cmd #6
 {
-    0,0,1,0,1, 1,1,0,0,0,  0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0
+    0,0,1,0,1, 1,1,0,0,0,  0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0
 };
 
-static u8 option_allowed_cmd_DUMP[26] = // cmd #7
+static u8 option_allowed_cmd_DUMP[28] = // cmd #7
 {
-    0,1,1,1,0, 0,0,0,0,0,  0,0,1,1,0, 0,1,0,0,0,  0,0,0,0,0, 0
+    0,1,1,1,0, 0,0,0,0,0,  0,0,1,1,0, 0,1,0,0,0,  0,0,0,0,0, 0,0,0
 };
 
 
@@ -639,6 +659,8 @@ static const InfoOption_t * option_tab_cmd_PACK[] =
 	OptionInfo + OPT_DEST,
 	OptionInfo + OPT_DEST2,
 	OptionInfo + OPT_OVERWRITE,
+	OptionInfo + OPT_AUTO_SPLIT,
+	OptionInfo + OPT_NO_SPLIT,
 	OptionInfo + OPT_SPLIT,
 	OptionInfo + OPT_SPLIT_SIZE,
 	OptionInfo + OPT_PREALLOC,
@@ -667,6 +689,8 @@ static const InfoOption_t * option_tab_cmd_UNPACK[] =
 	OptionInfo + OPT_DEST,
 	OptionInfo + OPT_DEST2,
 	OptionInfo + OPT_OVERWRITE,
+	OptionInfo + OPT_AUTO_SPLIT,
+	OptionInfo + OPT_NO_SPLIT,
 	OptionInfo + OPT_SPLIT,
 	OptionInfo + OPT_SPLIT_SIZE,
 	OptionInfo + OPT_PREALLOC,
@@ -773,7 +797,7 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	"+P",
 	"wdf +PACK [option]... files...",
 	"Pack sources into WDF or CISO archives. This is the general default.",
-	19,
+	21,
 	option_tab_cmd_PACK,
 	option_allowed_cmd_PACK
     },
@@ -787,7 +811,7 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	"Unpack WDF, WIA and CISO archives.\n"
 	"  This is the default command, when the program name starts with the"
 	" two letters 'un' in any case.",
-	14,
+	16,
 	option_tab_cmd_UNPACK,
 	option_allowed_cmd_UNPACK
     },

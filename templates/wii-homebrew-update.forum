@@ -35,6 +35,13 @@
 ~ Highlights
 [size=12][color=#0000c0][b]Höhepunkte dieser Version:[/b][/color][/size]
 [list]
+[*] Die new (aber experimentelle) Option --auto-split aktiviert eine Automatische Erkennung, ob ein neues Image auf mehrere Dateien aufgeteilt werden muss. Ich hoffe, dass diese Erkennung keine Nachteile bei der Ausführung haben wird.
+
+Die Erkennung basiert auf Tests mit fseek(). Die Tests unter Linux verliefen alle erfolgreich. Cygwin liefert aber bei jedem fseek()-Aufruf "ERFOLG", so dass es für die Bestimmung der maximalen Dateigröße nicht zu gebrauchen ist. Mac-Tests konnte ich leider nicht durchführen.
+
+Für zukünftige Versionen ist es geplant, dass --auto-split standardmäßig gesetzt ist. Dieses könnt ihr aber auch schon jetzt erreichen, indem ihr die [url=http://wit.wiimm.de/info/environ.html]Umgebungs-Variablen[/url] [b]WIT_OPT[/b] und [b]WWT_OPT[/b] auf [b]--auto-split[b] setzt.
+
+Falls ihr [b]--auto-split[b] nutzt, dann meldet doch bitte, dass ihr es genutzt habt und ob ihr Nachteile feststellen konntet.
 [/list]
 
 [size=12][color=#0000c0][b]Letzte Änderungen:[/b][/color][/size]

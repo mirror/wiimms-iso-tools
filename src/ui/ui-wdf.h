@@ -16,7 +16,7 @@
  *   This file is part of the WIT project.                                 *
  *   Visit http://wit.wiimm.de/ for project details and sources.           *
  *                                                                         *
- *   Copyright (c) 2009-2013 by Dirk Clemens <wiimm@wiimm.de>              *
+ *   Copyright (c) 2009-2014 by Dirk Clemens <wiimm@wiimm.de>              *
  *                                                                         *
  ***************************************************************************
  *                                                                         *
@@ -73,6 +73,8 @@ typedef enum enumOptions
 	OPT_KEEP,
 	OPT_OVERWRITE,
 	OPT_PRESERVE,
+	OPT_AUTO_SPLIT,
+	OPT_NO_SPLIT,
 	OPT_SPLIT,
 	OPT_SPLIT_SIZE,
 	OPT_PREALLOC,
@@ -82,7 +84,7 @@ typedef enum enumOptions
 	OPT_COMPRESSION,
 	OPT_MEM,
 
-	OPT__N_SPECIFIC, // == 26 
+	OPT__N_SPECIFIC, // == 28 
 
 	//----- global options -----
 
@@ -99,7 +101,7 @@ typedef enum enumOptions
 	OPT_OLD,
 	OPT_NEW,
 
-	OPT__N_TOTAL // == 38
+	OPT__N_TOTAL // == 40
 
 } enumOptions;
 
@@ -131,6 +133,8 @@ typedef enum enumOptions
 //	OB_KEEP			= 1llu << OPT_KEEP,
 //	OB_OVERWRITE		= 1llu << OPT_OVERWRITE,
 //	OB_PRESERVE		= 1llu << OPT_PRESERVE,
+//	OB_AUTO_SPLIT		= 1llu << OPT_AUTO_SPLIT,
+//	OB_NO_SPLIT		= 1llu << OPT_NO_SPLIT,
 //	OB_SPLIT		= 1llu << OPT_SPLIT,
 //	OB_SPLIT_SIZE		= 1llu << OPT_SPLIT_SIZE,
 //	OB_PREALLOC		= 1llu << OPT_PREALLOC,
@@ -149,6 +153,8 @@ typedef enum enumOptions
 //				| OB_OVERWRITE,
 //
 //	OB_GRP_DEST_PLUS	= OB_GRP_DEST
+//				| OB_AUTO_SPLIT
+//				| OB_NO_SPLIT
 //				| OB_SPLIT
 //				| OB_SPLIT_SIZE
 //				| OB_PREALLOC
@@ -253,6 +259,8 @@ typedef enum enumGetOpt
 	GO_BLOCK_SIZE,
 	GO_WIA,
 	GO_WBI,
+	GO_AUTO_SPLIT,
+	GO_NO_SPLIT,
 	GO_PREALLOC,
 	GO_CHUNK_MODE,
 	GO_CHUNK_SIZE,

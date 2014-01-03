@@ -6,4 +6,4 @@
 ../src/lib-error.[ch] ;
 @+all-source.edit-list
 -y  100 ../src/wbfs-interface.h ;
--y 4060 ../src/wbfs-interface.c ;
+-y 2700 ../src/wbfs-interface.c ;

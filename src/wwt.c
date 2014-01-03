@@ -16,7 +16,7 @@
  *   This file is part of the WIT project.                                 *
  *   Visit http://wit.wiimm.de/ for project details and sources.           *
  *                                                                         *
- *   Copyright (c) 2009-2013 by Dirk Clemens <wiimm@wiimm.de>              *
+ *   Copyright (c) 2009-2014 by Dirk Clemens <wiimm@wiimm.de>              *
  *                                                                         *
  ***************************************************************************
  *                                                                         *
@@ -1313,12 +1313,14 @@ enumError cmd_check()
 	  !err && !SIGINT_level;
 	  err = GetNextWBFS(&wbfs,&info,repair_mode) )
     {
-	if ( verbose >= 0 )
+	if (print_sections)
+	    printf("[check]\nwbfs-file=%s\n",info->path);
+	else if ( verbose >= 0 )
 	    printf("%sCHECK %s\n", verbose>0 ? "\n" : "", info->path );
 
 	CheckWBFS_t ck;
 	InitializeCheckWBFS(&ck);
-	if (   CheckWBFS(&ck,&wbfs,verbose,stdout,1)
+	if (   CheckWBFS(&ck,&wbfs,print_sections,verbose,stdout,1)
 	    || repair_mode & REPAIR_FBT && wbfs.wbfs->head->wbfs_version < WBFS_VERSION
 	    || repair_mode & REPAIR_INODES && ck.no_iinfo_count
 	   )
@@ -1336,7 +1338,7 @@ enumError cmd_check()
     }
     ResetWBFS(&wbfs);
 
-    if ( verbose > 0 )
+    if ( verbose > 0 && !print_sections )
 	putchar('\n');
 
     return err_count ? ERR_WBFS_INVALID : max_error;
@@ -1599,7 +1601,7 @@ enumError cmd_edit()
 
     CheckWBFS_t ck;
     InitializeCheckWBFS(&ck);
-    if (CheckWBFS(&ck,&wbfs,0,stdout,0))
+    if (CheckWBFS(&ck,&wbfs,0,0,stdout,0))
 	putchar('\n');
     ResetCheckWBFS(&ck);
     ResetWBFS(&wbfs);
@@ -1646,7 +1648,7 @@ enumError cmd_phantom()
 	if ( !info->is_checked && check_it )
 	{
 	    info->is_checked = true;
-	    if ( AutoCheckWBFS(&wbfs,ignore_check,1) > ERR_WARNING )
+	    if ( AutoCheckWBFS(&wbfs,ignore_check,1,0) > ERR_WARNING )
 	    {
 		ERROR0(ERR_WBFS_INVALID,"Ignore invalid WBFS: %s\n\n",info->path);
 		ResetWBFS(&wbfs);
@@ -1824,7 +1826,7 @@ enumError cmd_truncate()
 	if ( !info->is_checked && check_it )
 	{
 	    info->is_checked = true;
-	    if ( AutoCheckWBFS(&wbfs,ignore_check,1) > ERR_WARNING )
+	    if ( AutoCheckWBFS(&wbfs,ignore_check,1,0) > ERR_WARNING )
 	    {
 		ERROR0(ERR_WBFS_INVALID,"Ignore invalid WBFS: %s\n\n",info->path);
 		ResetWBFS(&wbfs);
@@ -2208,7 +2210,7 @@ enumError cmd_add()
 	    if ( !info->is_checked && check_it )
 	    {
 		info->is_checked = true;
-		if ( AutoCheckWBFS(&wbfs,ignore_check,1) > ERR_WARNING )
+		if ( AutoCheckWBFS(&wbfs,ignore_check,1,0) > ERR_WARNING )
 		{
 		    ERROR0(ERR_WBFS_INVALID,"Ignore invalid WBFS: %s\n\n",info->path);
 		    ResetWBFS(&wbfs);
@@ -2232,7 +2234,7 @@ enumError cmd_add()
 	if ( !info->is_checked && check_it )
 	{
 	    info->is_checked = true;
-	    if ( AutoCheckWBFS(&wbfs,ignore_check,1) > ERR_WARNING )
+	    if ( AutoCheckWBFS(&wbfs,ignore_check,1,0) > ERR_WARNING )
 	    {
 		ERROR0(ERR_WBFS_INVALID,"Ignore invalid WBFS: %s\n\n",info->path);
 		ResetWBFS(&wbfs);
@@ -2501,7 +2503,7 @@ enumError cmd_dup()
 	if ( !info->is_checked && check_it )
 	{
 	    info->is_checked = true;
-	    AutoCheckWBFS(&wbfs,true,4);
+	    AutoCheckWBFS(&wbfs,true,4,0);
 	}
 
 	SuperFile_t fo;
@@ -2669,7 +2671,7 @@ enumError cmd_extract()
 	if ( !info->is_checked && check_it )
 	{
 	    info->is_checked = true;
-	    if ( AutoCheckWBFS(&wbfs,ignore_check,1) > ERR_WARNING )
+	    if ( AutoCheckWBFS(&wbfs,ignore_check,1,0) > ERR_WARNING )
 	    {
 		ERROR0(ERR_WBFS_INVALID,"Ignore invalid WBFS: %s\n\n",info->path);
 		ResetWBFS(&wbfs);
@@ -2927,7 +2929,7 @@ enumError cmd_scrub()
 	if ( !info->is_checked && check_it )
 	{
 	    info->is_checked = true;
-	    if ( AutoCheckWBFS(&wbfs,ignore_check,1) > ERR_WARNING )
+	    if ( AutoCheckWBFS(&wbfs,ignore_check,1,0) > ERR_WARNING )
 	    {
 		ERROR0(ERR_WBFS_INVALID,"Ignore invalid WBFS: %s\n\n",info->path);
 		ResetWBFS(&wbfs);
@@ -3121,7 +3123,7 @@ enumError cmd_remove()
 	if ( !info->is_checked && check_it )
 	{
 	    info->is_checked = true;
-	    if ( AutoCheckWBFS(&wbfs,ignore_check,1) > ERR_WARNING )
+	    if ( AutoCheckWBFS(&wbfs,ignore_check,1,0) > ERR_WARNING )
 	    {
 		ERROR0(ERR_WBFS_INVALID,"Ignore invalid WBFS: %s\n\n",info->path);
 		ResetWBFS(&wbfs);
@@ -3268,7 +3270,7 @@ enumError cmd_rename ( bool rename_id )
 	if ( !info->is_checked && check_it )
 	{
 	    info->is_checked = true;
-	    if ( AutoCheckWBFS(&wbfs,ignore_check,1) > ERR_WARNING )
+	    if ( AutoCheckWBFS(&wbfs,ignore_check,1,0) > ERR_WARNING )
 	    {
 		ERROR0(ERR_WBFS_INVALID,"Ignore invalid WBFS: %s\n\n",info->path);
 		ResetWBFS(&wbfs);
@@ -3437,7 +3439,7 @@ enumError cmd_touch()
 	if ( !info->is_checked && check_it )
 	{
 	    info->is_checked = true;
-	    if ( AutoCheckWBFS(&wbfs,ignore_check,1) > ERR_WARNING )
+	    if ( AutoCheckWBFS(&wbfs,ignore_check,1,0) > ERR_WARNING )
 	    {
 		ERROR0(ERR_WBFS_INVALID,"Ignore invalid WBFS: %s\n\n",info->path);
 		ResetWBFS(&wbfs);
@@ -3543,7 +3545,7 @@ enumError cmd_verify()
 	if ( !info->is_checked && check_it )
 	{
 	    info->is_checked = true;
-	    if ( AutoCheckWBFS(&wbfs,ignore_check,1) > ERR_WARNING )
+	    if ( AutoCheckWBFS(&wbfs,ignore_check,1,0) > ERR_WARNING )
 	    {
 		ERROR0(ERR_WBFS_INVALID,"Ignore invalid WBFS: %s\n\n",info->path);
 		ResetWBFS(&wbfs);
@@ -3728,7 +3730,7 @@ enumError cmd_skeletonize()
 	if ( !info->is_checked && check_it )
 	{
 	    info->is_checked = true;
-	    if ( AutoCheckWBFS(&wbfs,ignore_check,1) > ERR_WARNING )
+	    if ( AutoCheckWBFS(&wbfs,ignore_check,1,0) > ERR_WARNING )
 	    {
 		ERROR0(ERR_WBFS_INVALID,"Ignore invalid WBFS: %s\n\n",info->path);
 		ResetWBFS(&wbfs);
@@ -3976,6 +3978,8 @@ enumError CheckOptions ( int argc, char ** argv, bool is_env )
 	case GO_ALIGN_PART:	err += ScanOptAlignPart(optarg); break;
 	case GO_ALIGN_FILES:	opt_align_files = true; break;
 	case GO_DISC_SIZE:	err += ScanOptDiscSize(optarg); break;
+	case GO_AUTO_SPLIT:	opt_auto_split = 2; opt_split = 0; break;
+	case GO_NO_SPLIT:	opt_auto_split = opt_split = 0; break;
 	case GO_SPLIT:		opt_split++; break;
 	case GO_SPLIT_SIZE:	err += ScanOptSplitSize(optarg); break;
 	case GO_PREALLOC:	err += ScanPreallocMode(optarg); break;

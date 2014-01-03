@@ -293,6 +293,16 @@ wit v2.23a r4534 - 2013-07-12
  - Some makefile changes because of a new Cygwin compiler.
 
 
+wit v2.24a r4723 - 2013-11-10
+
+ - The Windows installer will now force type REG_EXPAND_SZ for path variables.
+ - wit DOLPATCH: Wrong calculation for address aligning fixed.
+ - New sub command for "wit DOLPATCH": ENTRY=address: Define a new entry point.
+ - Title data base updated.
+ - Windows version only: Update to Cygwin v1.7.25. I hope that it fixes the
+   bug that occurred during creation of MKW-Fun 2013-10 with Windows 8.1.
+
+
 @@MODULE(last-history.txt)@@
 
 ~

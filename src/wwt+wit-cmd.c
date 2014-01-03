@@ -16,7 +16,7 @@
  *   This file is part of the WIT project.                                 *
  *   Visit http://wit.wiimm.de/ for project details and sources.           *
  *                                                                         *
- *   Copyright (c) 2009-2013 by Dirk Clemens <wiimm@wiimm.de>              *
+ *   Copyright (c) 2009-2014 by Dirk Clemens <wiimm@wiimm.de>              *
  *                                                                         *
  ***************************************************************************
  *                                                                         *
@@ -402,6 +402,8 @@ enumError cmd_test_options()
 	}
     }
 
+    printf("  auto-split:  %16x = %12d\n",opt_auto_split,opt_auto_split);
+    printf("  split:       %16x = %12d\n",opt_split,opt_split);
     print_val( "split-size:",	opt_split_size, 0 );
     printf("  compression: %16x = %12d = %s (level=%d)\n",
 		opt_compr_method, opt_compr_method,

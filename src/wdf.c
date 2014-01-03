@@ -16,7 +16,7 @@
  *   This file is part of the WIT project.                                 *
  *   Visit http://wit.wiimm.de/ for project details and sources.           *
  *                                                                         *
- *   Copyright (c) 2009-2013 by Dirk Clemens <wiimm@wiimm.de>              *
+ *   Copyright (c) 2009-2014 by Dirk Clemens <wiimm@wiimm.de>              *
  *                                                                         *
  ***************************************************************************
  *                                                                         *
@@ -1125,6 +1125,8 @@ enumError CheckOptions ( int argc, char ** argv )
 	case GO_OVERWRITE:	opt_overwrite = true; break;
 	case GO_PRESERVE:	opt_preserve = true; break;
 
+	case GO_AUTO_SPLIT:	opt_auto_split = 2; opt_split = 0; break;
+	case GO_NO_SPLIT:	opt_auto_split = opt_split = 0; break;
 	case GO_SPLIT:		opt_split++; break;
 	case GO_SPLIT_SIZE:	err += ScanOptSplitSize(optarg); break;
 	case GO_PREALLOC:	err += ScanPreallocMode(optarg); break;

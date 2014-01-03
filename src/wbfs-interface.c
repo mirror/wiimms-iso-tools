@@ -16,7 +16,7 @@
  *   This file is part of the WIT project.                                 *
  *   Visit http://wit.wiimm.de/ for project details and sources.           *
  *                                                                         *
- *   Copyright (c) 2009-2013 by Dirk Clemens <wiimm@wiimm.de>              *
+ *   Copyright (c) 2009-2014 by Dirk Clemens <wiimm@wiimm.de>              *
  *                                                                         *
  ***************************************************************************
  *                                                                         *
@@ -1223,7 +1223,7 @@ enumError RecoverWBFS ( WBFS_t * wbfs, ccp fname, bool testmode )
 	CheckWBFS_t ck;
 	InitializeCheckWBFS(&ck);
 	TRACELINE;
-	if (CheckWBFS(&ck,wbfs,-1,0,0))
+	if (CheckWBFS(&ck,wbfs,0,-1,0,0))
 	{
 	    err = ERR_DIFFER;
 	    ASSERT(ck.disc);
@@ -1273,7 +1273,7 @@ enumError RecoverWBFS ( WBFS_t * wbfs, ccp fname, bool testmode )
 		{
 		    ResetCheckWBFS(&ck);
 		    SyncWBFS(wbfs,true);
-		    CheckWBFS(&ck,wbfs,-1,0,0);
+		    CheckWBFS(&ck,wbfs,0,-1,0,0);
 		}
 
 		TRACELINE;
@@ -1281,7 +1281,7 @@ enumError RecoverWBFS ( WBFS_t * wbfs, ccp fname, bool testmode )
 		TRACELINE;
 		ResetCheckWBFS(&ck);
 		SyncWBFS(wbfs,true);
-		if (CheckWBFS(&ck,wbfs,1,stdout,1))
+		if (CheckWBFS(&ck,wbfs,0,1,stdout,1))
 		    printf(" *** Run REPAIR %s ***\n\n", fname ? fname : wbfs->sf->f.fname );
 		else
 		    putchar('\n');
@@ -1657,6 +1657,13 @@ enumError DumpWBFS
 
 
     //----- options --show and --long
+
+    const int prt_sections = show_mode & SHOW_F_SECTIONS;
+    if (prt_sections)
+    {
+	indent = 2;
+	fprintf(f,"[check:info]\n\n");
+    }
 
     if ( show_mode & SHOW__DEFAULT )
     {
@@ -2059,7 +2066,7 @@ enumError DumpWBFS
     {
 	CheckWBFS_t ck;
 	InitializeCheckWBFS(&ck);
-	if (CheckWBFS(&ck,wbfs,0,f,1))
+	if (CheckWBFS(&ck,wbfs,prt_sections,0,f,1))
 	    fprintf(f,"   -> use command \"CHECK -vv\" for a verbose report!\n\n");
 	ResetCheckWBFS(&ck);
     }
@@ -2672,8 +2679,8 @@ static void check_func
 
 ///////////////////////////////////////////////////////////////////////////////
 
-enumError CheckWBFS
-	( CheckWBFS_t * ck, WBFS_t * wbfs, int verbose, FILE * f, int indent )
+enumError CheckWBFS ( CheckWBFS_t * ck, WBFS_t * wbfs,
+			int prt_sections, int verbose, FILE * f, int indent )
 {
     ASSERT(ck);
     ASSERT(wbfs);
@@ -2760,7 +2767,14 @@ enumError CheckWBFS
 
     //---------- scan discs
 
-    if ( verbose >= SHOW_DETAILS )
+    if (prt_sections)
+	fprintf(f,
+		"n-slots=%u\n"
+		"n-disc=%u\n"
+		,w->max_disc
+		,wbfs->used_discs
+		);
+    else if ( verbose >= SHOW_DETAILS )
 	fprintf(f,"%*s* Scan %d discs in %d slots.\n",
 			indent,"", wbfs->used_discs, w->max_disc );
     u32 slot;
@@ -2786,13 +2800,17 @@ enumError CheckWBFS
 
     //---------- check for disc errors
 
-    if ( verbose >= SHOW_DETAILS )
+    if ( !prt_sections && verbose >= SHOW_DETAILS )
 	fprintf(f,"%*s* Check for disc block errors.\n", indent,"" );
 
     u32 total_err_invalid   = 0;
     u32 total_err_no_blocks = 0;
     u32 invalid_disc_count  = 0;
     u32 no_iinfo_count      = 0;
+
+    if (prt_sections)
+	fprintf(f,
+	    "column-header=           slot _id6__ index wbfs-block count\n");
 
     for ( slot = 0; slot < w->max_disc; slot++ )
     {
@@ -2824,13 +2842,22 @@ enumError CheckWBFS
 	for ( bl = 0; bl < w->n_wbfs_sec_per_disc; bl++ )
 	{
 	    const u32 wlba = ntohs(wlba_tab[bl]);
+ #ifdef TEST0
+	    if ( wlba >= N_SEC || wlba == 5 )
+ #else
 	    if ( wlba >= N_SEC )
+ #endif
 	    {
 		invalid_game = 1;
 		g->err_count++;
 		g->bl_invalid++;
 		total_err_invalid++;
-		if ( verbose >= SHOW_DETAILS )
+
+		if (prt_sections)
+		    fprintf(f,"err-invalid-block-ref=%7u %s %5u %7u\n"
+			,slot, wd_print_id(g->id6,6,0), bl, wlba
+			);
+		else if ( verbose >= SHOW_DETAILS )
 		    fprintf(f,"%*s  - #%d=%s/%u: invalid WBFS block #%u for block!\n",
 				indent,"", slot, g->id6, bl, wlba );
 	    }
@@ -2842,7 +2869,11 @@ enumError CheckWBFS
 		    invalid_game = 1;
 		    g->err_count++;
 		    g->bl_fbt++;
-		    if ( verbose >= SHOW_DETAILS )
+		    if (prt_sections)
+			fprintf(f,"err-block-marked-free=%7u %s %5u %7u\n"
+				,slot, wd_print_id(g->id6,6,0), bl, wlba
+				);
+		    else if ( verbose >= SHOW_DETAILS )
 			fprintf(f,"%*s  - #%d=%s/%u: WBFS block #%u marked as free!\n",
 				    indent,"", slot, g->id6, bl, wlba );
 		}
@@ -2852,20 +2883,32 @@ enumError CheckWBFS
 		    invalid_game = 1;
 		    g->err_count++;
 		    g->bl_overlap++;
-		    if ( verbose >= SHOW_DETAILS )
+		    if (prt_sections)
+			fprintf(f,"err-block-multi-usage=%7u %s %5u %7u %7u\n"
+				,slot, wd_print_id(g->id6,6,0), bl, wlba, blc[wlba]
+				);
+		    else if ( verbose >= SHOW_DETAILS )
 			fprintf(f,"%*s  - #%d=%s/%u: WBFS block #%u is used %u times!\n",
 				    indent,"", slot, g->id6, bl, wlba, blc[wlba] );
 		}
 	    }
 	}
-    
+
+#ifdef TEST0
+	if (!block_count || slot == 2 )
+#else    
 	if (!block_count)
+#endif
 	{
 	    invalid_game = 1;
 	    g->no_blocks = 1;
 	    g->err_count++;
 	    total_err_no_blocks++;
-	    if ( verbose >= SHOW_DETAILS )
+	    if (prt_sections)
+		fprintf(f,"err-disc-without-blocks=%5u %s\n"
+			,slot, wd_print_id(g->id6,6,0)
+			);
+	    else if ( verbose >= SHOW_DETAILS )
 		fprintf(f,"%*s  - #%d=%s: no valid WBFS block!\n", indent,"", slot, g->id6 );
 	}
 
@@ -2884,7 +2927,7 @@ enumError CheckWBFS
 
     //---------- check free blocks table.
 
-    if ( verbose >= SHOW_DETAILS )
+    if ( verbose >= SHOW_DETAILS && !prt_sections )
 	fprintf(f,"%*s* Check free blocks table.\n", indent,"" );
 
     u32 total_err_overlap  = 0;
@@ -2905,7 +2948,7 @@ enumError CheckWBFS
 		bl++;
 	    const int count = bl - start_bl;
 	    total_err_fbt_used += count;
-	    if ( verbose >= SHOW_DETAILS )
+	    if ( verbose >= SHOW_DETAILS && !prt_sections )
 	    {
 		if ( count > 1 )
 		    fprintf(f,"%*s  - %d used WBFS sectors #%u .. #%u marked as 'free'!\n",
@@ -2930,7 +2973,7 @@ enumError CheckWBFS
 		wbfs0_count = count < max ? count : max;
 	    }
 
-	    if ( verbose >= SHOW_DETAILS )
+	    if ( verbose >= SHOW_DETAILS && !prt_sections )
 	    {
 		if ( count > 1 )
 		    fprintf(f,"%*s  - %d free WBFS sectors #%u .. #%u marked as 'used'!\n",
@@ -2974,16 +3017,21 @@ enumError CheckWBFS
     if ( ck->err_total && verbose >= PRINT_DUMP )
     {
 	printf("\f\nWBFS DUMP:\n\n");
-	DumpWBFS(wbfs,f,indent,SHOW__DEFAULT,
-		verbose >= PRINT_FULL_DUMP ? 3 : 2,
+	ShowMode show_mode = SHOW__ALL & ~(SHOW_USAGE|SHOW_CHECK);
+	if ( verbose < PRINT_FULL_DUMP )
+	    show_mode &= ~SHOW_W_MAP;
+	if (prt_sections)
+	    show_mode |= SHOW_F_SECTIONS;
+	DumpWBFS(wbfs,f,indent,show_mode,0,
 		verbose >= PRINT_FULL_DUMP,
 		verbose >= PRINT_EXT_DUMP  ? 0 : ck );
     }
 
     if ( ck->err_total && verbose >= SHOW_SUM || verbose >= SHOW_DETAILS )
     {
-	printf("\f\n");
-	PrintCheckedWBFS(ck,f,indent);
+	if (!prt_sections)
+	    printf("\f\n");
+	PrintCheckedWBFS(ck,f,indent,prt_sections);
     }
 
     return ck->err;
@@ -2991,17 +3039,17 @@ enumError CheckWBFS
 
 ///////////////////////////////////////////////////////////////////////////////
 
-enumError AutoCheckWBFS	( WBFS_t * wbfs, bool ignore_check, int indent )
+enumError AutoCheckWBFS	( WBFS_t * wbfs, bool ignore_check, int indent, int prt_sections )
 {
     ASSERT(wbfs);
     ASSERT(wbfs->wbfs);
 
     CheckWBFS_t ck;
     InitializeCheckWBFS(&ck);
-    enumError err = CheckWBFS(&ck,wbfs,-1,0,0);
+    enumError err = CheckWBFS(&ck,wbfs,0,-1,0,0);
     if (err)
     {
-	PrintCheckedWBFS(&ck,stdout,indent);
+	PrintCheckedWBFS(&ck,stdout,indent,prt_sections);
 	if ( !ignore_check && err > ERR_WARNING )
 	    printf("!>> To avoid this automatic check use the option --no-check.\n"
 		   "!>> To ignore the results of this check use option --force.\n"
@@ -3013,7 +3061,7 @@ enumError AutoCheckWBFS	( WBFS_t * wbfs, bool ignore_check, int indent )
 
 ///////////////////////////////////////////////////////////////////////////////
 
-enumError PrintCheckedWBFS ( CheckWBFS_t * ck, FILE * f, int indent )
+enumError PrintCheckedWBFS ( CheckWBFS_t * ck, FILE * f, int indent, int prt_sections )
 {
     ASSERT(ck);
     if ( !ck->wbfs || !ck->cur_fbt || !f )
@@ -3021,7 +3069,28 @@ enumError PrintCheckedWBFS ( CheckWBFS_t * ck, FILE * f, int indent )
 
     indent = NormalizeIndent(indent);
 
-    if ( ck->err_total )
+    if ( prt_sections )
+    {
+	fprintf(f,
+		"\n"
+		"[check:summary]\n"
+		"err-blocks-marked-free=%u\n"
+		"err-blocks-marked-used=%u\n"
+		"err-blocks-multi-usage=%u\n"
+		"err-blocks-invalid-reference=%u\n"
+		"err-discs-without-blocks=%u\n"
+		"total-errors=%u\n"
+		"total-invalid-discs=%u\n"
+		,ck->err_fbt_used
+		,ck->err_fbt_free
+		,ck->err_bl_overlap
+		,ck->err_bl_invalid
+		,ck->err_no_blocks
+		,ck->err_total
+		,ck->invalid_disc_count
+		);
+    }
+    else if ( ck->err_total )
     {
 	fprintf(f,"%*s* Summary of WBFS Check: %u error%s found:\n",
 		indent,"", ck->err_total, ck->err_total == 1 ? "" : "s" );
@@ -3191,7 +3260,7 @@ enumError CheckRepairWBFS ( WBFS_t * wbfs, int testmode,
 
     CheckWBFS_t ck;
     InitializeCheckWBFS(&ck);
-    enumError err = CheckWBFS(&ck,wbfs,-1,0,0);
+    enumError err = CheckWBFS(&ck,wbfs,0,-1,0,0);
     if ( err == ERR_WARNING || err == ERR_WBFS_INVALID )
 	err = RepairWBFS(&ck,testmode,rm,verbose,f,indent);
     ResetCheckWBFS(&ck);

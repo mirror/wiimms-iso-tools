@@ -16,7 +16,7 @@
  *   This file is part of the WIT project.                                 *
  *   Visit http://wit.wiimm.de/ for project details and sources.           *
  *                                                                         *
- *   Copyright (c) 2009-2013 by Dirk Clemens <wiimm@wiimm.de>              *
+ *   Copyright (c) 2009-2014 by Dirk Clemens <wiimm@wiimm.de>              *
  *                                                                         *
  ***************************************************************************
  *                                                                         *
@@ -166,6 +166,7 @@ enumError CheckEnvOptions ( ccp varname, check_opt_func );
  #define CheckCreated(f,d,e)	XCheckCreated	(__FUNCTION__,__FILE__,__LINE__,f,d,e)
  #define CreateFile(f,n,i,o)	XCreateFile	(__FUNCTION__,__FILE__,__LINE__,f,n,i,o)
  #define OpenStreamFile(f)	XOpenStreamFile	(__FUNCTION__,__FILE__,__LINE__,f)
+ #define SetupAutoSplit(f,m)	XSetupAutoSplit	(__FUNCTION__,__FILE__,__LINE__,f,m)
  #define SetupSplitFile(f,m,s)	XSetupSplitFile	(__FUNCTION__,__FILE__,__LINE__,f,m,s)
  #define CreateSplitFile(f,i)	XCreateSplitFile(__FUNCTION__,__FILE__,__LINE__,f,i)
  #define FindSplitFile(f,i,o)	XFindSplitFile	(__FUNCTION__,__FILE__,__LINE__,f,i,o)
@@ -201,6 +202,7 @@ enumError CheckEnvOptions ( ccp varname, check_opt_func );
  #define CheckCreated(f,d,e)	XCheckCreated	(f,d,e)
  #define CreateFile(f,n,i,o)	XCreateFile	(f,n,i,o)
  #define OpenStreamFile(f)	XOpenStreamFile	(f)
+ #define SetupAutoSplit(f,m)	XSetupAutoSplit	(f,m)
  #define SetupSplitFile(f,m,s)	XSetupSplitFile	(f,m,s)
  #define CreateSplitFile(f,i)	XCreateSplitFile(f,i)
  #define FindSplitFile(f,i,o)	XFindSplitFile	(f,i,o)
@@ -779,7 +781,8 @@ enumError XOpenFileModify ( XPARM File_t * f, ccp fname, enumIOMode iomode );
 enumError XCreateFile     ( XPARM File_t * f, ccp fname, enumIOMode iomode, int overwrite );
 enumError XCheckCreated   ( XPARM             ccp fname, bool disable_errors, enumError err_code );
 enumError XOpenStreamFile ( XPARM File_t * f );
-enumError XSetupSplitFile ( XPARM File_t *f, enumOFT oft, off_t file_size );
+enumError XSetupAutoSplit ( XPARM File_t *f, enumOFT oft );
+enumError XSetupSplitFile ( XPARM File_t *f, enumOFT oft, off_t split_size );
 enumError XCreateSplitFile( XPARM File_t *f, uint split_idx );
 enumError XFindSplitFile  ( XPARM File_t *f, uint * index, off_t * off );
 
@@ -809,6 +812,8 @@ enumError XReadAtF	 ( XPARM File_t * f, off_t off,       void * iobuf, size_t co
 enumError XWriteAtF	 ( XPARM File_t * f, off_t off, const void * iobuf, size_t count );
 enumError XWriteZeroAtF	 ( XPARM File_t * f, off_t off,                     size_t count );
 enumError XZeroAtF	 ( XPARM File_t * f, off_t off,                     size_t count );
+
+enumError ExecSeekF ( File_t * f, off_t off );
 
 //-----------------------------------------------------------------------------
 // wrapper functions
@@ -1176,7 +1181,8 @@ enumError ScanSizeOptU32
 
 //-----------------------------------------------------------------------------
 
-extern int opt_split;
+extern int opt_auto_split;	// 0:off, 1:default, 2:enabled
+extern int opt_split;		// >0: spilt enabled
 extern u64 opt_split_size;
 
 // returns '1' on error, '0' else
@@ -1257,7 +1263,7 @@ typedef enum ShowMode
 	SHOW_UNUSED	= 0x00100000, // show unused areas
 	SHOW_OFFSET	= 0x00200000, // show offsets
 	SHOW_SIZE	= 0x00400000, // show size
-	
+
 	SHOW__ALL	= 0x007fffff,
 
 	//----- combinations
@@ -1287,8 +1293,10 @@ typedef enum ShowMode
 	SHOW_F_HEX	= 0x08000000, // prefer HEX,
 	SHOW_F__NUM	= 0x0f000000,
 
-	SHOW_F_HEAD	= 0x01000000, // print header lines
-	SHOW_F_PRIMARY	= 0x02000000, // print primary (unpatched) disc
+	SHOW_F_HEAD	= 0x10000000, // print header lines
+	SHOW_F_PRIMARY	= 0x20000000, // print primary (unpatched) disc
+
+	SHOW_F_SECTIONS	= 0x40000000, // print as sections if possible
 
 	//----- etc
 

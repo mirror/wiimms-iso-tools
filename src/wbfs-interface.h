@@ -16,7 +16,7 @@
  *   This file is part of the WIT project.                                 *
  *   Visit http://wit.wiimm.de/ for project details and sources.           *
  *                                                                         *
- *   Copyright (c) 2009-2013 by Dirk Clemens <wiimm@wiimm.de>              *
+ *   Copyright (c) 2009-2014 by Dirk Clemens <wiimm@wiimm.de>              *
  *                                                                         *
  ***************************************************************************
  *                                                                         *
@@ -406,10 +406,11 @@ u32 FindWBFSPartitions();
 
 void InitializeCheckWBFS ( CheckWBFS_t * ck );
 void ResetCheckWBFS	 ( CheckWBFS_t * ck );
-enumError CheckWBFS	 ( CheckWBFS_t * ck, WBFS_t * w, int verbose, FILE * f, int indent );
-enumError AutoCheckWBFS	 ( WBFS_t * w, bool ignore_check, int indent );
+enumError CheckWBFS ( CheckWBFS_t * ck, WBFS_t * wbfs,
+			int prt_sections, int verbose, FILE * f, int indent );
+enumError AutoCheckWBFS	 ( WBFS_t * w, bool ignore_check, int indent, int prt_sections );
 
-enumError PrintCheckedWBFS ( CheckWBFS_t * ck, FILE * f, int indent );
+enumError PrintCheckedWBFS ( CheckWBFS_t * ck, FILE * f, int indent, int prt_sections );
 
 enumError RepairWBFS
 	( CheckWBFS_t * ck, int testmode, RepairMode rm, int verbose, FILE * f, int indent );

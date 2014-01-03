@@ -33,7 +33,13 @@
 
 [size="3"][color="#0000c0"][b]Highlights of this release:[/b][/color][/size]
 [list]
-[*]
+[*] The new (but experimental) option --auto-split enables a feature to detect, if an new image must be split. I hope, that it doesn't slow down the image creation under any circumstances.
+
+The feature is based on testst with fseek(). First test with Linux are fine. Cygwin reports always SUCCESS, so that the maximum file size can't be estimated. On Macs I had no chance to test it.
+
+It is planned to enable --auto-split by default in furture versions of the tools. You can do it by setting the [url=http://wit.wiimm.de/info/environ.html]environment variables[/url] [b]WIT_OPT[/b] and [b]WWT_OPT[/b] to [b]--auto-split[b].
+
+If you used [b]--auto-split[b], then please tell it me (in this thread). And please tell also, if you found any disadvantages.
 [color=#ffffff].[/color]
 [/list]
 

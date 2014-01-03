@@ -16,7 +16,7 @@
  *   This file is part of the WIT project.                                 *
  *   Visit http://wit.wiimm.de/ for project details and sources.           *
  *                                                                         *
- *   Copyright (c) 2009-2013 by Dirk Clemens <wiimm@wiimm.de>              *
+ *   Copyright (c) 2009-2014 by Dirk Clemens <wiimm@wiimm.de>              *
  *                                                                         *
  ***************************************************************************
  *                                                                         *
@@ -91,6 +91,11 @@ enumOFT		output_file_type	= OFT_UNKNOWN;
 uint		opt_wdf_version		= WDF_VERSION;
 uint		opt_wdf_align		= WDF_ALIGN;
 int		opt_truncate		= 0;
+#if defined(TEST) || defined(WIIMM)					// [[split]]
+ int		opt_auto_split		= 1;
+#else
+ int		opt_auto_split		= 0;
+#endif
 int		opt_split		= 0;
 u64		opt_split_size		= 0;
 ccp		opt_patch_file		= 0;
@@ -2232,6 +2237,7 @@ enumError ScanSizeOptU32
 
 int ScanOptSplitSize ( ccp source )
 {
+    opt_auto_split = 0;
     opt_split++;
     return ERR_OK != ScanSizeOptU64(
 			&opt_split_size,	// u64 * num

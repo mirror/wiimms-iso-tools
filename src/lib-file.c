@@ -16,7 +16,7 @@
  *   This file is part of the WIT project.                                 *
  *   Visit http://wit.wiimm.de/ for project details and sources.           *
  *                                                                         *
- *   Copyright (c) 2009-2013 by Dirk Clemens <wiimm@wiimm.de>              *
+ *   Copyright (c) 2009-2014 by Dirk Clemens <wiimm@wiimm.de>              *
  *                                                                         *
  ***************************************************************************
  *                                                                         *
@@ -1296,6 +1296,70 @@ static void ExtractSplitMap
 }
 
 ///////////////////////////////////////////////////////////////////////////////
+// [[split]]
+
+static int split_seek ( File_t *f, off_t off )
+{
+    // returns:
+    //	 0: success
+    //	 1: failure
+    //   2: to big
+
+    enumError err = ExecSeekF(f,off);
+    PRINT("split_seek(%llx) err=%d, errno=%d\n",(u64)off,err,errno);
+    if (!err)
+	return 0;
+
+    const int syserr = errno;
+    return syserr == EINVAL || syserr == EFBIG ? 2 : 1;
+}
+
+//-----------------------------------------------------------------------------
+
+enumError XSetupAutoSplit ( XPARM File_t *f, enumOFT oft )
+{
+    // [[2do]] : seek() doesn't work on Cygwin!
+
+    ASSERT(f);
+    if ( !opt_auto_split || f->split_f || f->fd == -1 || !S_ISREG(f->st.st_mode) )
+	return ERR_OK;
+
+    const off_t off = 0x100000000l;
+    int stat = split_seek(f,off);
+    split_seek(f,0);
+    if ( stat < 2 )
+	return ERR_OK;
+
+    off_t split_size;
+    uint split_factor;
+    if ( oft == OFT_PLAIN || oft == OFT_CISO || oft == OFT_WBFS )
+    {
+	split_size   = DEF_SPLIT_SIZE_ISO;
+	split_factor = DEF_SPLIT_FACTOR_ISO;
+    }
+    else
+    {
+	split_size   = DEF_SPLIT_SIZE;
+	split_factor = DEF_SPLIT_FACTOR;
+    }
+
+    stat = split_seek(f,off/2);
+    split_seek(f,0);
+    if ( stat > 0 )
+	split_size /= 2;
+
+    if ( split_factor > 0 )
+	split_size &= ~(split_factor-1);
+
+    PRINT("AUTO-SPLIT: %llx\n",(u64)split_size);
+    if ( verbose > 1 )
+	printf("   - Auto split at offset %llu (0x%llx)\n",
+		(u64)split_size, (u64)split_size );
+
+    return SetupSplitFile(f,oft,split_size);
+}
+
+///////////////////////////////////////////////////////////////////////////////
 
 enumError XSetupSplitFile ( XPARM File_t *f, enumOFT oft, off_t split_size )
 {
@@ -1394,7 +1458,7 @@ enumError XSetupSplitFile ( XPARM File_t *f, enumOFT oft, off_t split_size )
     }
     else
     {
-	f->split_filesize  = split_size ? split_size : DEF_SPLIT_SIZE;
+	f->split_filesize = split_size ? split_size : DEF_SPLIT_SIZE;
 	if ( DEF_SPLIT_FACTOR > 0 )
 	{
 	    f->split_filesize &= ~(DEF_SPLIT_FACTOR-1);
@@ -1969,6 +2033,31 @@ enumError XTellF ( XPARM File_t * f )
 
 ///////////////////////////////////////////////////////////////////////////////
 
+enumError ExecSeekF ( File_t * f, off_t off )
+{
+    bool failed;
+    if (f->fp)
+    {
+	const int stat = fseeko(f->fp,off,SEEK_SET);
+	failed = stat != 0;
+	PRINT("ExecSeekF(%llx)/fseeko() -> stat=%d, errno=%d, failed=%d\n",
+		(u64)off, stat, errno, failed);
+    }
+    else if (f->fd)
+    {
+	const off_t res = lseek(f->fd,off,SEEK_SET);
+	failed = res != off;
+	PRINT("ExecSeekF(%llx)/lseek() -> off=%llx, errno=%d, failed=%d\n",
+		(u64)off, (u64)res, errno, failed );
+    }
+    else
+	failed = true;
+
+    return !failed ? ERR_OK : f->is_writing ? ERR_WRITE_FAILED : ERR_READ_FAILED;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
 enumError XSeekF ( XPARM File_t * f, off_t off )
 {
     ASSERT(f);
@@ -2072,14 +2161,9 @@ enumError XSeekF ( XPARM File_t * f, off_t off )
     TRACE(TRACE_SEEK_FORMAT, "#F# SeekF()",
 		GetFD(f), GetFP(f), (u64)off, off < f->max_off ? " <" : "" );
 
-    const bool failed = f->fp
-			? fseeko(f->fp,off,SEEK_SET) == (off_t)-1
-			: f->fd == -1 || lseek(f->fd,off,SEEK_SET) == (off_t)-1;
-
-    enumError err;
-    if (failed)
+    enumError err = ExecSeekF(f,off);
+    if (err)
     {
-	err = f->is_writing ? ERR_WRITE_FAILED : ERR_READ_FAILED;
 	f->last_error = err;
 	if ( f->max_error < f->last_error )
 	    f->max_error = f->last_error;
@@ -2091,7 +2175,6 @@ enumError XSeekF ( XPARM File_t * f, off_t off )
     }
     else
     {
-	err = ERR_OK;
 	f->seek_count++;
 	if ( f->max_off < f->file_off )
 	    f->max_off = f->file_off;

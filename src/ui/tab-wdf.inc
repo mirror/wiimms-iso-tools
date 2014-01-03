@@ -255,6 +255,12 @@
   { T_OPT_C,	"PRESERVE",	"p|preserve",
 		0, 0 /* copy of wit */ },
 
+  { T_OPT_C,	"AUTO_SPLIT",	"auto-split|autosplit",
+		0, 0 /* copy of wit */ },
+
+  { T_OPT_C,	"NO_SPLIT",	"no-split|nosplit",
+		0, 0 /* copy of wit */ },
+
   { T_OPT_C,	"SPLIT",	"z|split",
 		0, 0 /* copy of wit */ },
 
@@ -313,6 +319,8 @@
   { T_GRP_BEG,	"DEST_PLUS",	0,0,0 },
 
   { T_COPY_GRP,	"DEST",		0,0,0 },
+  { T_COPT,	"AUTO_SPLIT",	0,0,0 },
+  { T_COPT,	"NO_SPLIT",	0,0,0 },
   { T_COPT,	"SPLIT",	0,0,0 },
   { T_COPT,	"SPLIT_SIZE",	0,0,0 },
   { T_COPT,	"PREALLOC",	0,0,0 },

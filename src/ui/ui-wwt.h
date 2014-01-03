@@ -16,7 +16,7 @@
  *   This file is part of the WIT project.                                 *
  *   Visit http://wit.wiimm.de/ for project details and sources.           *
  *                                                                         *
- *   Copyright (c) 2009-2013 by Dirk Clemens <wiimm@wiimm.de>              *
+ *   Copyright (c) 2009-2014 by Dirk Clemens <wiimm@wiimm.de>              *
  *                                                                         *
  ***************************************************************************
  *                                                                         *
@@ -106,6 +106,8 @@ typedef enum enumOptions
 	OPT_ALIGN_FILES,
 	OPT_DEST,
 	OPT_DEST2,
+	OPT_AUTO_SPLIT,
+	OPT_NO_SPLIT,
 	OPT_SPLIT,
 	OPT_SPLIT_SIZE,
 	OPT_DISC_SIZE,
@@ -157,7 +159,7 @@ typedef enum enumOptions
 	OPT_SORT,
 	OPT_LIMIT,
 
-	OPT__N_SPECIFIC, // == 101 
+	OPT__N_SPECIFIC, // == 103 
 
 	//----- global options -----
 
@@ -183,7 +185,7 @@ typedef enum enumOptions
 	OPT_HOOK,
 	OPT_FORCE,
 
-	OPT__N_TOTAL // == 122
+	OPT__N_TOTAL // == 124
 
 } enumOptions;
 
@@ -248,6 +250,8 @@ typedef enum enumOptions
 //	OB_ALIGN_FILES		= 1llu << OPT_ALIGN_FILES,
 //	OB_DEST			= 1llu << OPT_DEST,
 //	OB_DEST2		= 1llu << OPT_DEST2,
+//	OB_AUTO_SPLIT		= 1llu << OPT_AUTO_SPLIT,
+//	OB_NO_SPLIT		= 1llu << OPT_NO_SPLIT,
 //	OB_SPLIT		= 1llu << OPT_SPLIT,
 //	OB_SPLIT_SIZE		= 1llu << OPT_SPLIT_SIZE,
 //	OB_DISC_SIZE		= 1llu << OPT_DISC_SIZE,
@@ -387,7 +391,9 @@ typedef enum enumOptions
 //				| OB_ALIGN_PART
 //				| OB_ALIGN_FILES,
 //
-//	OB_GRP_SPLIT_CHUNK	= OB_SPLIT
+//	OB_GRP_SPLIT_CHUNK	= OB_AUTO_SPLIT
+//				| OB_NO_SPLIT
+//				| OB_SPLIT
 //				| OB_SPLIT_SIZE
 //				| OB_DISC_SIZE
 //				| OB_PREALLOC
@@ -485,6 +491,7 @@ typedef enum enumOptions
 //
 //	OB_GRP_CHECK		= OB_GRP_TITLES
 //				| OB_GRP_READ_WBFS
+//				| OB_SECTIONS
 //				| OB_LONG,
 //
 //	OB_CMD_CHECK		= OB_GRP_CHECK
@@ -789,6 +796,8 @@ typedef enum enumGetOpt
 	GO_ALIGN,
 	GO_ALIGN_PART,
 	GO_ALIGN_FILES,
+	GO_AUTO_SPLIT,
+	GO_NO_SPLIT,
 	GO_DISC_SIZE,
 	GO_PREALLOC,
 	GO_TRUNC,

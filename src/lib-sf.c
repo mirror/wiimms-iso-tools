@@ -16,7 +16,7 @@
  *   This file is part of the WIT project.                                 *
  *   Visit http://wit.wiimm.de/ for project details and sources.           *
  *                                                                         *
- *   Copyright (c) 2009-2013 by Dirk Clemens <wiimm@wiimm.de>              *
+ *   Copyright (c) 2009-2014 by Dirk Clemens <wiimm@wiimm.de>              *
  *                                                                         *
  ***************************************************************************
  *                                                                         *
@@ -42,6 +42,7 @@
 #include <ctype.h>
 #include <arpa/inet.h>
 #include <dirent.h>
+#include <errno.h>
 
 #include "debug.h"
 #include "libwbfs.h"
@@ -666,6 +667,7 @@ enumError SetupWriteSF
 	return ERROR0(ERR_INTERNAL,0);
 
     SetupIOD(sf,oft,OFT__DEFAULT);
+    SetupAutoSplit(&sf->f,sf->iod.oft);
     switch(sf->iod.oft)
     {
 	case OFT_PLAIN:
@@ -4084,6 +4086,7 @@ bool CloseDiffFile
 
  #if HAVE_PRINT
     bool print_stat = false;
+    MARK_USED(print_stat);
  #endif
 
     if (diff->chunk_count)

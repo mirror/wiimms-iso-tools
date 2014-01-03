@@ -832,6 +832,20 @@
 		"path",
 		"Like {--dest}, but create the directory path automatically." },
 
+  { T_OPT_C,	"AUTO_SPLIT",	"auto-split|autosplit",		// [[split]]
+		0,
+		"Enable auto split modus:"
+		" Split only if necessary and determine the split size automatically."
+		"\n "
+		" THIS OPTION IS EXPERIMENTAL."
+		" In future versions it becomes the default." },
+
+  { T_OPT_C,	"NO_SPLIT",	"no-split|nosplit",		// [[split]]
+		0,
+		"Disable output file splitting."
+		" This is the default, but in future versions,"
+		" the new option {--auto-split} becomes the default." },
+
   { T_OPT_C,	"SPLIT",	"z|split",
 		0,
 		"Enable output file splitting. The default split size is 4 GB." },
@@ -1345,6 +1359,8 @@
 
   { T_GRP_BEG,	"SPLIT_CHUNK",	0,0,0 },
 
+  { T_COPT,	"AUTO_SPLIT",	0,0,0 },
+  { T_COPT,	"NO_SPLIT",	0,0,0 },
   { T_COPT,	"SPLIT",	0,0,0 },
   { T_COPT,	"SPLIT_SIZE",	0,0,0 },
   { T_COPT,	"DISC_SIZE",	0,0,0 },

@@ -516,6 +516,12 @@
   { T_OPT_CP,	"DEST2",	"D|DEST",
 		0, 0 /* copy of wit */ },
 
+  { T_OPT_C,	"AUTO_SPLIT",	"auto-split|autosplit",
+		0, 0 /* copy of wit */ },
+
+  { T_OPT_C,	"NO_SPLIT",	"no-split|nosplit",
+		0, 0 /* copy of wit */ },
+
   { T_OPT_C,	"SPLIT",	"z|split",
 		0, 0 /* copy of wit */ },
 
@@ -910,6 +916,8 @@
 
   { T_GRP_BEG,	"SPLIT_CHUNK",	0,0,0 },
 
+  { T_COPT,	"AUTO_SPLIT",	0,0,0 },
+  { T_COPT,	"NO_SPLIT",	0,0,0 },
   { T_COPT,	"SPLIT",	0,0,0 },
   { T_COPT,	"SPLIT_SIZE",	0,0,0 },
   { T_COPT,	"DISC_SIZE",	0,0,0 },
@@ -1145,6 +1153,7 @@
   { T_COPY_GRP,	"TITLES",	0,0,0 },
   { T_COPY_GRP,	"READ_WBFS",	0,0,0 },
 
+  { T_COPT,	"SECTIONS",	0,0,0 },
   { T_COPT,	"QUIET",	0,0,0 },
   { T_COPT,	"VERBOSE",	0,0,
 	"Be verbose."

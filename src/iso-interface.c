@@ -16,7 +16,7 @@
  *   This file is part of the WIT project.                                 *
  *   Visit http://wit.wiimm.de/ for project details and sources.           *
  *                                                                         *
- *   Copyright (c) 2009-2013 by Dirk Clemens <wiimm@wiimm.de>              *
+ *   Copyright (c) 2009-2014 by Dirk Clemens <wiimm@wiimm.de>              *
  *                                                                         *
  ***************************************************************************
  *                                                                         *
@@ -2719,7 +2719,7 @@ enumError CreateFST ( WiiFstInfo_t *wfi, ccp dest_path )
 
 	if ( wfi->verbose > 0 )
 	{
-	    if (print_sections) // [sections]
+	    if (print_sections)
 		printf(
 		    "[extract:%s-image]\n"
 		    "source-image=%s\n"
