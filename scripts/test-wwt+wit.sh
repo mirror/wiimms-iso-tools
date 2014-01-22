@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# (c) Wiimm, 2012-10-08
+# (c) Wiimm, 2013-01-22
 
 myname="${0##*/}"
 base=wwt+wit
@@ -13,17 +13,17 @@ then
     cat <<- ---EOT---
 
 	This script expect as parameters names of ISO files. ISO files are PLAIN,
-	CISO, WBFS, WDF or WIA. Each source file is subject of this test suite.
+	CISO, WBFS, WDF, WIA or GCZ. Each source file is subject of this test suite.
 
 	Tests:
 
 	  * wwt ADD and EXTRACT
 	    - WBFS-files with different sector sizes: 512, 1024, 2048, 4096
-	    - ADD to and EXTRACT from PLAIN ISO, CISO, WDF, WIA, WBFS
+	    - ADD to and EXTRACT from PLAIN ISO, CISO, WDF, WIA, GCZ, WBFS
 	    - ADD from PIPE
 	
 	  * wit COPY
-	    - convert to PLAIN ISO, CISO, WDF, WIA, WBFS
+	    - convert to PLAIN ISO, CISO, WDF, WIA, GCZ, WBFS
 
 	Usage:  $myname [option]... iso_file...
 
@@ -38,6 +38,8 @@ then
 	  --no-pipe    : disable pipe tests (default)
 	  --wia        : enable WIA compression tests (default)
 	  --no-wia     : disable WIA compression tests
+	  --gcz        : enable GCZ compression tests (default)
+	  --no-gcz     : disable GCZ compression tests
 	  --raw        : enable raw mode
 	  --no-raw     : disable raw mode (default)
 
@@ -149,7 +151,7 @@ WBFS_FILE=a.wbfs
 WBFS="$tempdir/$WBFS_FILE"
 
 WIALIST=$(echo $($WIT compr | sed 's/^/wia-/'))
-MODELIST="iso wdf $WIALIST ciso wbfs"
+MODELIST="iso wdf $WIALIST ciso gcz wbfs"
 BASEMODE="wdf"
 
 FAST_MODELIST="wdf"
@@ -159,6 +161,7 @@ NOVERIFY=0
 NOFST=0
 NOPIPE=1
 NOWIA=0
+NOGCZ=0
 RAW=
 IO=
 OPT_TEST=0
@@ -247,6 +250,7 @@ function test_suite()
 	mode="${xmode%%-*}"
 	#echo "|$mode|$xmode|"
 	[[ $mode = wia ]] && continue
+	[[ $mode = gcz ]] && ((NOGCZ)) && continue
 
 	dest="$tempdir/image.$mode"
 	test_function "EXT-$mode" "wwt EXTRACT to $mode" \
@@ -280,6 +284,7 @@ function test_suite()
 	mode="${xmode%%-*}"
 	[[ $xmode = ${xmode/-} ]] && compr="" || compr="--compr ${xmode#*-}"
 	[[ $mode = wia ]] && ((NOWIA)) && continue
+	[[ $mode = gcz ]] && ((NOGCZ)) && continue
 	[[ $mode = wbfs && $RAW != "" ]] && continue
 
 	dest="$tempdir/copy.$xmode.$mode"
@@ -489,6 +494,22 @@ do
 	NOWIA=1
 	((opts++)) || printf "\n"
 	printf "## ---no-wia : compress WIA tests disabled\n"
+	continue
+    fi
+
+    if [[ $src == --gcz ]]
+    then
+	NOGCZ=0
+	((opts++)) || printf "\n"
+	printf "## --gcz : compress GCZ tests enabled\n"
+	continue
+    fi
+
+    if [[ $src == --no-gcz ]]
+    then
+	NOGCZ=1
+	((opts++)) || printf "\n"
+	printf "## ---no-gcz : compress GCZ tests disabled\n"
 	continue
     fi
 

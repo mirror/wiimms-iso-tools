@@ -303,6 +303,19 @@ wit v2.24a r4723 - 2013-11-10
    bug that occurred during creation of MKW-Fun 2013-10 with Windows 8.1.
 
 
+wit v2.25a r4825 - 2014-01-03
+
+ - New option --auto-split: If set, the tools try to find out, if an image
+   split is needed. The split size is then either below 4 or 2 GiB. Auto-Split
+   base on tests with fseek() and works fine under Linux, but it don't work
+   with Cygwin. Mac is unknown. In future versions --auto-split is enabled by
+   default. It is disabled by any other split option.
+ - New option --no-split: Disable file splitting at all. At the moment and in
+   old versions of the tools, this is the default.
+ - wwt CHECK+REPAIR: Support for option --sections.
+ - Windows only: Cygwin update to v1.7.27 2013-12-09.
+
+
 @@MODULE(last-history.txt)@@
 
 ~

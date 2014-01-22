@@ -17,21 +17,28 @@ revision_next=$revision_num
 [[ $revision = $revision_num ]] || let revision_next++
 
 tim=($(date '+%s %Y-%m-%d %T'))
+defines=
 
 have_fuse=0
 [[ $NO_FUSE != 1 && -r /usr/include/fuse.h || -r /usr/local/include/fuse.h ]] \
 	&& have_fuse=1
+
+have_zlib=0
+if [[ $NO_ZLIB != 1 && -r /usr/include/zlib.h || -r /usr/local/include/zlib.h ]]
+then
+    have_zlib=1
+    defines="$defines -DHAVE_ZLIB=1"
+fi
 
 if [[ $M32 = 1 ]]
 then
     force_m32=1
     have_fuse=0
     xflags="-m32"
-    defines=-DFORCE_M32=1
+    defines="$defines -DFORCE_M32=1"
 else
     force_m32=0
     xflags=
-    defines=
 fi
 
 [[ -r /usr/include/bits/fcntl.h ]] \
@@ -95,6 +102,7 @@ cat <<- ---EOT--- >Makefile.setup
 
 	FORCE_M32	:= $force_m32
 	HAVE_FUSE	:= $have_fuse
+	HAVE_ZLIB	:= $have_zlib
 	STATIC		:= $STATIC
 	XFLAGS		+= $xflags
 	DEFINES1	:= $defines

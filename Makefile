@@ -43,7 +43,7 @@ WDF_LONG		= Wiimms WDF Tool
 WFUSE_SHORT		= wfuse
 WFUSE_LONG		= Wiimms FUSE Tool
 
-VERSION_NUM		= 2.25a
+VERSION_NUM		= 2.26a
 BETA_VERSION		= 0
 			# 0:off  -1:"beta"  >0:"beta#"
 
@@ -226,7 +226,7 @@ OTHER_TOOLS_OBJ	:= $(patsubst %,%.o,$(TEST_TOOLS) $(HELPER_TOOLS))
 # other objects
 WIT_O		:= debug.o lib-std.o lib-file.o lib-sf.o \
 		   lib-bzip2.o lib-lzma.o \
-		   lib-wdf.o lib-wia.o lib-ciso.o \
+		   lib-wdf.o lib-wia.o lib-ciso.o lib-gcz.o \
 		   ui.o iso-interface.o wbfs-interface.o patch.o \
 		   titles.o match-pattern.o dclib-utf8.o \
 		   sha1dgst.o sha1_one.o
@@ -288,6 +288,9 @@ DEPFLAGS	+= -MMD
 LDFLAGS		+= -static-libgcc
 LDFLAGS		:= $(strip $(LDFLAGS))
 
+ifeq ($(HAVE_ZLIB),1)
+ LIBS		+= -lz
+endif
 LIBS		+= $(XLIBS)
 
 DISTRIB_RM	= ./wit-v$(VERSION)-r

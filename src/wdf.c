@@ -57,6 +57,7 @@
 
 ///////////////////////////////////////////////////////////////////////////////
 
+// [[2do]] [[GCZ]] unsure, if tool wdf should support GCZ
 typedef enum FileMode { FMODE_WDF, FMODE_WIA, FMODE_CISO, FMODE_WBI } FileMode;
 ccp file_mode_name[] = { ".wdf", ".wia", ".ciso", ".wbi", 0 };
 enumOFT file_mode_oft[] = { OFT_WDF, OFT_WIA, OFT_CISO, OFT_CISO, 0 };

@@ -129,6 +129,7 @@ typedef enum enumOptions
 	OPT_CISO,
 	OPT_WBFS,
 	OPT_WIA,
+	OPT_GCZ,
 	OPT_FST,
 	OPT_FILES,
 	OPT_ITIME,
@@ -152,7 +153,7 @@ typedef enum enumOptions
 	OPT_FILE_LIMIT,
 	OPT_PATCH_FILE,
 
-	OPT__N_SPECIFIC, // == 96 
+	OPT__N_SPECIFIC, // == 97 
 
 	//----- global options -----
 
@@ -179,7 +180,7 @@ typedef enum enumOptions
 	OPT_NEW,
 	OPT_HOOK,
 
-	OPT__N_TOTAL // == 118
+	OPT__N_TOTAL // == 119
 
 } enumOptions;
 
@@ -267,6 +268,7 @@ typedef enum enumOptions
 //	OB_CISO			= 1llu << OPT_CISO,
 //	OB_WBFS			= 1llu << OPT_WBFS,
 //	OB_WIA			= 1llu << OPT_WIA,
+//	OB_GCZ			= 1llu << OPT_GCZ,
 //	OB_FST			= 1llu << OPT_FST,
 //	OB_FILES		= 1llu << OPT_FILES,
 //	OB_ITIME		= 1llu << OPT_ITIME,
@@ -332,7 +334,8 @@ typedef enum enumOptions
 //				| OB_WBFS,
 //
 //	OB_GRP_OUTMODE		= OB_GRP_OUTMODE_EDIT
-//				| OB_WIA,
+//				| OB_WIA
+//				| OB_GCZ,
 //
 //	OB_GRP_OUTMODE_FST	= OB_GRP_OUTMODE
 //				| OB_FST,
@@ -399,7 +402,8 @@ typedef enum enumOptions
 //
 //	OB_CMD_HELP		= ~(u64)0,
 //
-//	OB_CMD_INFO		= OB_SECTIONS,
+//	OB_CMD_INFO		= OB_SECTIONS
+//				| OB_LONG,
 //
 //	OB_CMD_TEST		= ~(u64)0,
 //
@@ -711,6 +715,7 @@ typedef enum enumGetOpt
 	GO_DEST2		= 'D',
 	GO_ESC			= 'E',
 	GO_FILES		= 'F',
+	GO_GCZ			= 'G',
 	GO_NO_HEADER		= 'H',
 	GO_ISO			= 'I',
 	GO_LOGGING		= 'L',

@@ -309,7 +309,8 @@ WDF_Chunk_t * NeedChunkWDF ( SuperFile_t * sf, int index )
 
 enumError SetupReadWDF ( SuperFile_t * sf )
 {
-    TRACE("#W# SetupReadWDF(%p) wc=%p wbfs=%p\n",sf,sf->wc,sf->wbfs);
+    TRACE("#W# SetupReadWDF(%p) wc=%p wbfs=%p, fp=%p, fd=%d\n",
+		sf,sf->wc,sf->wbfs,sf->f.fp,sf->f.fd);
     if ( sf->wc || sf->wbfs )
 	return ERR_OK;
 
@@ -395,9 +396,9 @@ enumError SetupReadWDF ( SuperFile_t * sf )
 
 enumError ReadWDF ( SuperFile_t * sf, off_t off, void * buf, size_t count )
 {
-    ASSERT(sf);
-    ASSERT(sf->wc);
-    ASSERT(sf->wc_used);
+    DASSERT(sf);
+    DASSERT(sf->wc);
+    DASSERT(sf->wc_used);
 
     TRACE("#W# -----\n");
     TRACE(TRACE_RDWR_FORMAT, "#W# ReadWDF()",

@@ -4104,6 +4104,10 @@ enumError OpenWDiscSF ( WBFS_t * w )
     SetPatchFileID(&sf->f,w->disc->header,6); // [[2do]] SetFileID() ?
     w->disc_sf_opened = true;
 
+    uint disc_blocks;
+    sf->wbfs_fragments = wbfs_get_disc_fragments(w->disc,&disc_blocks);
+    sf->file_size = (off_t)disc_blocks * w->wbfs->wbfs_sec_sz;
+
     CopyFileAttribStat( &sf->f.fatt, &sf->f.st, false );
     if ( w->disc->header && w->disc->header->dhead )
     {

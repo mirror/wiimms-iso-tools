@@ -44,8 +44,8 @@
 		"Wiimms ISO Tool :"
 		" It can list, analyze, verify, convert, split, join,"
 		" patch, mix, extract, compose, rename and compare"
-		" Wii and GameCube discs."
-		" It can create and dump different other Wii file formats." },
+		" Wii and GameCube images."
+		" It also can create and dump different other Wii file formats." },
 
   //
   //---------- list of all wit commands ----------
@@ -997,17 +997,17 @@
 
   { T_OPT_C,	"WDF",		"W|wdf",
 		0,
-		"Set ISO output file type to WDF (Wii Disc Format, default)" },
+		"Set image output file type to WDF (Wii Disc Format)" },
 
  #if WDF2_ENABLED > 1
 
   { T_OPT_C,	"WDF1",		"wdf1",
 		0,
-		"Set ISO output file type to WDF and force version 1." },
+		"Set image output file type to WDF and force version 1." },
 
   { T_OPT_CO,	"WDF2",		"wdf2",
 		"[=align]",
-		"Set ISO output file type to WDF and force version 2."
+		"Set image output file type to WDF and force version 2."
 		" {--wdf2=align} is a shortcut for {--wdf2 --wdf-align=align}." },
 
   { T_OPT_GP,	"WDF_ALIGN",	"wdf-align|wdfalign",
@@ -1022,23 +1022,32 @@
  #endif // WDF2_ENABLED > 1
 
   { T_OPT_C,	"ISO",		"I|iso",
-		0, "Set ISO output file type to PLAIN ISO." },
+		0,
+		"Set image output file type to PLAIN ISO." },
 
   { T_OPT_C,	"CISO",		"C|ciso",
-		0, "Set ISO output file type to CISO (Compact ISO, same as WBI)." },
+		0,
+		"Set image output file type to CISO (Compact ISO, same as WBI)." },
 
   { T_OPT_C,	"WBFS",		"B|wbfs",
-		0, "Set ISO output file type to WBFS (Wii Backup File System) container." },
+		0,
+		"Set image output file type to WBFS (Wii Backup File System, default)." },
 
   { T_OPT_CO,	"WIA",		"wia",
 		"[=compr]",
-		"Set ISO output file type to WIA (Wii ISO Archive)."
+		"Set image output file type to WIA (Wii ISO Archive)."
 		" The optional parameter is a compression mode and"
 		" {--wia=mode} is a shortcut for {--wia --compression mode}." },
 
+  { T_OPT_C,	"GCZ",		"G|gcz",
+		0,
+		"Set image output file type to GCZ (Dolphins GameCube Zip)."
+		"\n "
+		" GCZ support is EXPERIMENTAL!" }, // [[gcz]]
+
   { T_OPT_C,	"FST",		"fst",
 		0,
-		"Set ISO output mode to 'file system' (extracted ISO)." },
+		"Set image output mode to 'file system' (extracted ISO)." },
 
   { T_OPT_CMP,	"FILES",	"F|files",
 		"ruleset",
@@ -1277,6 +1286,7 @@
 
   { T_COPY_GRP,	"OUTMODE_EDIT",	0,0,0 },
   { T_COPT,	"WIA",		0,0,0 },
+  { T_COPT,	"GCZ",		0,0,0 },
 
   //---------- wit GROUP OUTMODE_FST ----------
 
@@ -1393,6 +1403,8 @@
   { T_CMD_BEG,	"INFO",		0,0,0 },
 
   { T_COPT,	"SECTIONS",	0,0,0 },
+  { T_COPT,	"LONG",		0,0,
+	"Print a list, that explains the attributes." },
 
   //---------- COMMAND wit TEST ----------
 

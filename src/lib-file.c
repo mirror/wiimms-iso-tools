@@ -1164,37 +1164,42 @@ const OFT_info_t oft_info[OFT__N+1] =
     { OFT_UNKNOWN,
 	0,
 	IOM__IS_DEFAULT,
-	"?", 0, "\0", 0, "unkown file format" },
+	"?", 0, "\0", 0, "Unkown file format" },
 
     { OFT_PLAIN,
-	OFT_A_READ|OFT_A_WRITE|OFT_A_EXTEND|OFT_A_MODIFY|OFT_A_LOADER,
+	OFT_A_READ|OFT_A_CREATE|OFT_A_EXTEND|OFT_A_MODIFY|OFT_A_LOADER,
 	IOM_IS_IMAGE,
-	"ISO", "--iso", ".iso", 0, "plain file" },
+	"ISO", "--iso", ".iso", 0, "Plain file" },
 
     { OFT_WDF,
-	OFT_A_READ|OFT_A_WRITE|OFT_A_EXTEND|OFT_A_MODIFY,
+	OFT_A_READ|OFT_A_CREATE|OFT_A_EXTEND|OFT_A_MODIFY,
 	IOM_IS_IMAGE,
 	"WDF", "--wdf", ".wdf", 0, "Wii Disc Format" },
 
     { OFT_CISO,
-	OFT_A_READ|OFT_A_WRITE|OFT_A_MODIFY|OFT_A_NOSIZE|OFT_A_LOADER,
+	OFT_A_READ|OFT_A_CREATE|OFT_A_MODIFY|OFT_A_NOSIZE|OFT_A_LOADER,
 	IOM_IS_IMAGE,
 	"CISO", "--ciso", ".ciso", ".wbi", "Compact ISO" },
 
     { OFT_WBFS,
-	OFT_A_READ|OFT_A_WRITE|OFT_A_EXTEND|OFT_A_MODIFY|OFT_A_NOSIZE|OFT_A_LOADER,
+	OFT_A_READ|OFT_A_CREATE|OFT_A_EXTEND|OFT_A_MODIFY|OFT_A_NOSIZE|OFT_A_LOADER,
 	IOM_IS_IMAGE,
 	"WBFS", "--wbfs", ".wbfs", 0, "Wii Backup File System" },
 
     { OFT_WIA,
-	OFT_A_READ|OFT_A_WRITE|OFT_A_COMPR,
+	OFT_A_READ|OFT_A_CREATE|OFT_A_COMPR,
 	IOM_IS_WIA,
-	"WIA", "--wia", ".wia", 0, "compressed Wii ISO Archive" },
+	"WIA", "--wia", ".wia", 0, "Compressed Wii ISO Archive" },
+
+    { OFT_GCZ,
+	OFT_A_READ|OFT_A_CREATE|OFT_A_COMPR,
+	IOM_IS_IMAGE,
+	"GCZ", "--gcz", ".gcz", 0, "Dolphins GameCube Zip" },
 
     { OFT_FST,
-	OFT_A_READ|OFT_A_WRITE|OFT_A_FST,
+	OFT_A_READ|OFT_A_CREATE|OFT_A_FST|OFT_A_DEST_EDIT,
 	IOM__IS_DEFAULT,
-	"FST", "--fst", "\0", 0, "extracted File System" },
+	"FST", "--fst", "\0", 0, "Extracted File System" },
 
     { OFT__N,
 	0,
@@ -1210,7 +1215,8 @@ const CommandTab_t ImageTypeTab[] =
     { OFT_WDF,		"WDF",	0,		0 },
     { OFT_CISO,		"CISO",	0,		0 },
     { OFT_WBFS,		"WBFS",	0,		0 },
-    { OFT_WIA,		"ISO",	0,		0 },
+    { OFT_WIA,		"WIA",	0,		0 },
+    { OFT_GCZ,		"GCZ",	"DOLPHIN",	0 },
     { OFT_FST,		"FST",	0,		1 },
     { 0,0,0,0 }
 };
@@ -1233,6 +1239,9 @@ enumOFT CalcOFT ( enumOFT force, ccp fname_dest, ccp fname_src, enumOFT def )
 
 	    if ( !strcasecmp(fname+len-4,".wia") )
 		return OFT_WIA;
+
+	    if ( !strcasecmp(fname+len-4,".gcz") )
+		return OFT_GCZ;
 
 	    if ( !strcasecmp(fname+len-4,".iso") )
 		return OFT_PLAIN;
@@ -2039,15 +2048,15 @@ enumError ExecSeekF ( File_t * f, off_t off )
     if (f->fp)
     {
 	const int stat = fseeko(f->fp,off,SEEK_SET);
-	failed = stat != 0;
-	PRINT("ExecSeekF(%llx)/fseeko() -> stat=%d, errno=%d, failed=%d\n",
+	failed = stat == -1;
+	noPRINT("ExecSeekF(%llx)/fseeko() -> stat=%d, errno=%d, failed=%d\n",
 		(u64)off, stat, errno, failed);
     }
-    else if (f->fd)
+    else if ( f->fd != -1 )
     {
 	const off_t res = lseek(f->fd,off,SEEK_SET);
 	failed = res != off;
-	PRINT("ExecSeekF(%llx)/lseek() -> off=%llx, errno=%d, failed=%d\n",
+	noPRINT("ExecSeekF(%llx)/lseek() -> off=%llx, errno=%d, failed=%d\n",
 		(u64)off, (u64)res, errno, failed );
     }
     else

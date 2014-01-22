@@ -134,6 +134,7 @@ typedef enum enumOptions
 	OPT_REMOVE,
 	OPT_WDF,
 	OPT_WIA,
+	OPT_GCZ,
 	OPT_ISO,
 	OPT_CISO,
 	OPT_WBFS,
@@ -159,7 +160,7 @@ typedef enum enumOptions
 	OPT_SORT,
 	OPT_LIMIT,
 
-	OPT__N_SPECIFIC, // == 103 
+	OPT__N_SPECIFIC, // == 104 
 
 	//----- global options -----
 
@@ -185,7 +186,7 @@ typedef enum enumOptions
 	OPT_HOOK,
 	OPT_FORCE,
 
-	OPT__N_TOTAL // == 124
+	OPT__N_TOTAL // == 125
 
 } enumOptions;
 
@@ -278,6 +279,7 @@ typedef enum enumOptions
 //	OB_REMOVE		= 1llu << OPT_REMOVE,
 //	OB_WDF			= 1llu << OPT_WDF,
 //	OB_WIA			= 1llu << OPT_WIA,
+//	OB_GCZ			= 1llu << OPT_GCZ,
 //	OB_ISO			= 1llu << OPT_ISO,
 //	OB_CISO			= 1llu << OPT_CISO,
 //	OB_WBFS			= 1llu << OPT_WBFS,
@@ -355,6 +357,7 @@ typedef enum enumOptions
 //
 //	OB_GRP_OUTMODE		= OB_GRP_OUTMODE_EDIT
 //				| OB_WIA
+//				| OB_GCZ
 //				| OB_FST,
 //
 //	OB_GRP_PARTITIONS	= OB_PSEL
@@ -409,7 +412,8 @@ typedef enum enumOptions
 //
 //	OB_CMD_HELP		= ~(u64)0,
 //
-//	OB_CMD_INFO		= OB_SECTIONS,
+//	OB_CMD_INFO		= OB_SECTIONS
+//				| OB_LONG,
 //
 //	OB_CMD_TEST		= ~(u64)0,
 //
@@ -815,6 +819,7 @@ typedef enum enumGetOpt
 	GO_NO_FREE,
 	GO_SYNC_ALL,
 	GO_WIA,
+	GO_GCZ,
 	GO_FST,
 	GO_FILES,
 	GO_ITIME,

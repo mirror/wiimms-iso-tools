@@ -286,6 +286,8 @@ void SetupLib ( int argc, char ** argv, ccp p_progname, enumProgID prid )
     TRACE_SIZEOF(FileMapItem_t);
     TRACE_SIZEOF(FileMap_t);
     TRACE_SIZEOF(FilePattern_t);
+    TRACE_SIZEOF(GCZ_t);
+    TRACE_SIZEOF(GCZ_Head_t);
     TRACE_SIZEOF(ID_DB_t);
     TRACE_SIZEOF(ID_t);
     //TRACE_SIZEOF(InfoCommand_t);
@@ -728,8 +730,11 @@ ccp GetErrorName ( int stat )
 	case ERR_WDF_SPLIT:		return "SPLITTED WDF NOT SUPPORTED";
 	case ERR_WDF_INVALID:		return "INVALID WDF";
 
-	case ERR_NO_CISO:		return "NO WDF";
-	case ERR_CISO_INVALID:		return "INVALID WDF";
+	case ERR_NO_CISO:		return "NO CISO";
+	case ERR_CISO_INVALID:		return "INVALID CISO";
+
+	case ERR_NO_GCZ:		return "NO GCZ";
+	case ERR_GCZ_INVALID:		return "INVALID GCZ";
 
 	case ERR_WPART_INVALID:		return "INVALID WII PARTITION";
 	case ERR_WDISC_INVALID:		return "INVALID WII DISC";
@@ -794,6 +799,9 @@ ccp GetErrorText ( int stat )
 
 	case ERR_NO_CISO:		return "File is not a CISO";
 	case ERR_CISO_INVALID:		return "File is an invalid CISO";
+
+	case ERR_NO_GCZ:		return "File is not a GCZ";
+	case ERR_GCZ_INVALID:		return "File is an invalid GCZ";
 
 	case ERR_WPART_INVALID:		return "Invalid Wii partition";
 	case ERR_WDISC_INVALID:		return "Invalid Wii disc";

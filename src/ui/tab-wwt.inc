@@ -657,6 +657,9 @@
   { T_OPT_CO,	"WIA",		"wia",
 		0, 0 /* copy of wit */ },
 
+  { H_OPT_C,	"GCZ",		"gcz",
+		0, 0 /* copy of wit */ },
+
   { T_OPT_C,	"ISO",		"I|iso",
 		0, 0 /* copy of wit */ },
 
@@ -859,6 +862,7 @@
 
   { T_COPY_GRP,	"OUTMODE_EDIT",	0,0,0 },
   { T_COPT,	"WIA",		0,0,0 },
+  { H_COPT,	"GCZ",		0,0,0 },
   { T_COPT,	"FST",		0,0,0 },
 
   //---------- wwt GROUP PARTITIONS ----------
@@ -950,6 +954,8 @@
   { T_CMD_BEG,	"INFO",		0,0,0 },
 
   { T_COPT,	"SECTIONS",	0,0,0 },
+  { T_COPT,	"LONG",		0,0,
+	"Print a list, that explains the attributes." },
 
   //---------- COMMAND wwt TEST ----------
 

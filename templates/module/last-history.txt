@@ -1,14 +1,18 @@
 wit v@@VERSION@@ r@@REV-NEXT@@ - @@@@-@@-@@
 
- - New option --auto-split: If set, the tools try to find out, if an image
-   split is needed. The split size is then either below 4 or 2 GiB. Auto-Split
-   base on tests with fseek() and works fine under Linux, but it don't work
-   with Cygwin. Mac is unknown. In future versions --auto-split is enabled by
-   default. It is disabled by any other split option.
- - New option --no-split: Disable file splitting at all. At the moment and in
-   old versions of the tools, this is the default.
- - wwt CHECK+REPAIR: Support for option --sections.
- - Windows only: Cygwin update to v1.7.27 2013-12-09.
+ - Bug fix: Because of a bug after implementing the auto split detection,
+   reading source images failed, if using stdin for parameters.
+ - Support for Dolphins file format GCZ (GameCube Zip):
+    - All commands detect and accept GCZ files as input file.
+    - Creating of GCZ files is also supported, but EXPERIMENTAL until final
+      tests have been done.
+    - New option --gcz force GCZ output.
+    - Patching of GCZ files is not possible, because the GCZ file structure
+      doesn't allow modifications (size of compressed data must not change).
+    - Composing an image to a GCZ file is not possible, because it needs
+      patching checksums and header after writing the complete image.
+   The GCZ support is very new, so please use it only with backups of your
+   images and don't be anger, if it destroy something.
 
 ~
 ~Known bugs:

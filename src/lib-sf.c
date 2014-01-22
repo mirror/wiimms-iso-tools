@@ -99,6 +99,15 @@ void CleanSF ( SuperFile_t * sf )
 	sf->wia = 0;
     }
 
+    if (sf->gcz)
+    {
+	TRACE("#S# close GCZ %s id=%s=%s\n",
+		sf->f.fname, sf->f.id6_src, sf->f.id6_dest );
+	ResetGCZ(sf->gcz);
+	FREE(sf->gcz);
+	sf->gcz = 0;
+    }
+
     if (sf->fst)
     {
 	TRACE("#S# close FST %s id=%s=%s\n",
@@ -166,6 +175,9 @@ static enumError CloseHelperSF
 
 	    if (sf->wia)
 		err = TermWriteWIA(sf);
+
+	    if (sf->gcz)
+		err = TermWriteGCZ(sf);
 	}
 
 	if ( err == ERR_OK && remove_sf )
@@ -350,6 +362,16 @@ enumOFT SetupIOD ( SuperFile_t * sf, enumOFT force, enumOFT def )
 	    sf->iod.flush_func		= FlushWIA;
 	    break;
 
+	case OFT_GCZ:
+	    sf->iod.read_func		= ReadGCZ;
+	    sf->iod.data_block_func	= DataBlockGCZ;
+	    sf->iod.file_map_func	= 0;			// not supported
+	    sf->iod.write_func		= WriteGCZ;
+	    sf->iod.write_sparse_func	= WriteGCZ;		// no special sparse handling
+	    sf->iod.write_zero_func	= WriteZeroGCZ;
+	    sf->iod.flush_func		= FlushGCZ;
+	    break;
+
 	case OFT_CISO:
 	    sf->iod.read_func		= ReadCISO;
 	    sf->iod.data_block_func	= DataBlockCISO;
@@ -432,6 +454,9 @@ enumError SetupReadSF ( SuperFile_t * sf )
 
     if ( sf->f.ftype & FT_A_CISO )
 	return SetupReadCISO(sf);
+
+    if ( sf->f.ftype & FT_A_GCZ )
+	return SetupReadGCZ(sf);
 
     if ( sf->f.ftype & FT_ID_WBFS && ( sf->f.slot >= 0 || sf->f.id6_src[0] ) )
 	return SetupReadWBFS(sf);
@@ -679,6 +704,9 @@ enumError SetupWriteSF
 
 	case OFT_WIA:
 	    return SetupWriteWIA(sf,0);
+
+	case OFT_GCZ:
+	    return SetupWriteGCZ(sf,0);
 
 	case OFT_CISO:
 	    return SetupWriteCISO(sf);
@@ -1551,6 +1579,7 @@ enumError ReadSwitchSF
     {
 	case OFT_WDF:	return ReadWDF(sf,off,buf,count);
 	case OFT_WIA:	return ReadWIA(sf,off,buf,count);
+	case OFT_GCZ:	return ReadGCZ(sf,off,buf,count);
 	case OFT_CISO:	return ReadCISO(sf,off,buf,count);
 	case OFT_WBFS:	return ReadWBFS(sf,off,buf,count);
 	case OFT_FST:	return ReadFST(sf,off,buf,count);
@@ -1570,6 +1599,7 @@ enumError WriteSwitchSF
 	case OFT_PLAIN:	return WriteISO(sf,off,buf,count);
 	case OFT_WDF:	return WriteWDF(sf,off,buf,count);
 	case OFT_WIA:	return WriteWIA(sf,off,buf,count);
+	case OFT_GCZ:	return WriteGCZ(sf,off,buf,count);
 	case OFT_CISO:	return WriteCISO(sf,off,buf,count);
 	case OFT_WBFS:	return WriteWBFS(sf,off,buf,count);
 	default:	return ERROR0(ERR_INTERNAL,0);
@@ -1588,6 +1618,7 @@ enumError WriteSparseSwitchSF
 	case OFT_PLAIN:	return WriteSparseISO(sf,off,buf,count);
 	case OFT_WDF:	return WriteSparseWDF(sf,off,buf,count);
 	case OFT_WIA:	return WriteSparseWIA(sf,off,buf,count);
+	case OFT_GCZ:	return WriteGCZ(sf,off,buf,count);
 	case OFT_CISO:	return WriteSparseCISO(sf,off,buf,count);
 	case OFT_WBFS:	return WriteWBFS(sf,off,buf,count); // no sparse support
 	default:	return ERROR0(ERR_INTERNAL,0);
@@ -1605,6 +1636,7 @@ enumError WriteZeroSwitchSF ( SuperFile_t * sf, off_t off, size_t count )
 	case OFT_PLAIN:	return WriteZeroISO(sf,off,count);
 	case OFT_WDF:	return WriteZeroWDF(sf,off,count);
 	case OFT_WIA:	return WriteZeroWIA(sf,off,count);
+	case OFT_GCZ:	return WriteZeroGCZ(sf,off,count);
 	case OFT_CISO:	return WriteZeroCISO(sf,off,count);
 	case OFT_WBFS:	return WriteZeroWBFS(sf,off,count);
 	default:	return ERROR0(ERR_INTERNAL,0);
@@ -1726,6 +1758,7 @@ enumError SetSizeSF ( SuperFile_t * sf, off_t off )
 	case OFT_PLAIN:	return opt_truncate ? ERR_OK : SetSizeF(&sf->f,off);
 	case OFT_WDF:	return ERR_OK;
 	case OFT_WIA:	return ERR_OK;
+	case OFT_GCZ:	return ERR_OK;
 	case OFT_CISO:	return ERR_OK;
 	case OFT_WBFS:	return ERR_OK;
 	default:	return ERROR0(ERR_INTERNAL,0);
@@ -2638,6 +2671,16 @@ enumFileType AnalyzeFT ( File_t * f )
 	    ResetCISO(&ci);
 	}
 
+	if (IsValidGCZ(data_ptr,sizeof(buf1),f->st.st_size,0))
+	{
+	    ft |= FT_A_GCZ;
+
+	    GCZ_t gcz;
+	    if ( !LoadHeadGCZ(&gcz,f) && !LoadDataGCZ(&gcz,f,0,buf2,sizeof(buf2)) )
+		data_ptr = buf2;
+	    ResetGCZ(&gcz);
+	}
+
 	TRACE("ISO ID6+MAGIC:  \"%c%c%c%c%c%c\"    %02x %02x %02x %02x %02x %02x / %08x\n",
 		data_ptr[0]>=' ' && data_ptr[0]<0x7f ? data_ptr[0] : '.',
 		data_ptr[1]>=' ' && data_ptr[1]<0x7f ? data_ptr[1] : '.',
@@ -2986,6 +3029,10 @@ enumError XPrintErrorFT ( XPARM File_t * f, enumFileType err_mask )
 	stat = PrintError( XERROR0, ERR_WRONG_FILE_TYPE,
 		"CISO expected: %s\n", f->fname );
 
+    else if ( nand_mask & FT_A_GCZ )
+	stat = PrintError( XERROR0, ERR_WRONG_FILE_TYPE,
+		"GCZ expected: %s\n", f->fname );
+
     f->last_error = stat;
     if ( f->max_error < stat )
 	 f->max_error = stat;
@@ -3024,22 +3071,18 @@ ccp GetNameFT ( enumFileType ftype, int ignore )
 					: "WBFS";
 
 	case FT_ID_GC_ISO:
-	    return ftype & FT_A_WDF
-			? "WDF/GC"
-			: ftype & FT_A_WIA
-				? "WIA/GC"
-					: ftype & FT_A_CISO
-					? "CISO/GC"
-					: "ISO/GC";
+	    return ftype & FT_A_WDF  ? "WDF/GC"
+		 : ftype & FT_A_WIA  ? "WIA/GC"
+		 : ftype & FT_A_CISO ? "CISO/GC"
+		 : ftype & FT_A_GCZ  ? "GCZ/GC"
+		 : "ISO/GC";
 
 	case FT_ID_WII_ISO:
-	    return ftype & FT_A_WDF
-			? "WDF/WII"
-			: ftype & FT_A_WIA
-				? "WIA/WII"
-					: ftype & FT_A_CISO
-					? "CISO/WII"
-					: "ISO/WII";
+	    return ftype & FT_A_WDF  ? "WDF/WII"
+		 : ftype & FT_A_WIA  ? "WIA/WII"
+		 : ftype & FT_A_CISO ? "CISO/WII"
+		 : ftype & FT_A_GCZ  ? "GCZ/WII"
+		 : "ISO/WII";
 
 	case FT_ID_DOL:
 	    return ignore > 1 ? 0 : ftype & FT_A_WDF ? "WDF/DOL"  : "DOL";
@@ -3067,13 +3110,12 @@ ccp GetNameFT ( enumFileType ftype, int ignore )
 	    return ignore > 1 ? 0 : ftype & FT_A_WDF ? "WDF/WPAT" : "WITPATCH";
 
 	default:
-	    return ignore > 1
-			? 0
-			: ftype & FT_A_WDF
-				? "WDF/*"
-				: ftype & FT_A_CISO
-					? "CiSO/*"
-					: "OTHER";
+	    return ignore > 1 ? 0
+		: ftype & FT_A_WDF  ? "WDF/*"
+		: ftype & FT_A_WIA  ? "WIA/*"
+		: ftype & FT_A_CISO ? "CISO/*"
+		: ftype & FT_A_GCZ  ? "GCZ/*"
+		: "OTHER";
     }
 }
 
@@ -3094,6 +3136,9 @@ enumOFT FileType2OFT ( enumFileType ftype )
 
     if ( ftype & FT_A_WIA )
 	return OFT_WIA;
+
+    if ( ftype & FT_A_GCZ )
+	return OFT_GCZ;
 
     if ( ftype & FT_A_CISO )
 	return OFT_CISO;
@@ -3475,6 +3520,7 @@ enumError CopySF ( SuperFile_t * in, SuperFile_t * out )
     {
 	case OFT_WDF:	return CopyWDF(in,out);
 	case OFT_WIA:	return CopyWIA(in,out);
+// [[2do]] [[GCZ]] unsure
 	case OFT_WBFS:	return CopyWBFSDisc(in,out);
 	default:	return CopyRaw(in,out);
     }

@@ -8,7 +8,8 @@
 	"wit [option]... command [option|parameter|@file]...", \
 	"Wiimms ISO Tool : It can list, analyze, verify, convert, split, join," \
 	" patch, mix, extract, compose, rename and compare Wii and GameCube" \
-	" discs. It can create and dump different other Wii file formats." )
+	" images. It also can create and dump different other Wii file" \
+	" formats." )
 
 #:def_cmd( "VERSION", "VERSION", \
 	"wit VERSION [ignored]...", \
@@ -805,29 +806,34 @@
 
 #:def_opt( "WDF", "W|wdf", "C", \
 	"", \
-	"Set ISO output file type to WDF (Wii Disc Format, default)" )
+	"Set image output file type to WDF (Wii Disc Format)" )
 
 #:def_opt( "ISO", "I|iso", "C", \
 	"", \
-	"Set ISO output file type to PLAIN ISO." )
+	"Set image output file type to PLAIN ISO." )
 
 #:def_opt( "CISO", "C|ciso", "C", \
 	"", \
-	"Set ISO output file type to CISO (Compact ISO, same as WBI)." )
+	"Set image output file type to CISO (Compact ISO, same as WBI)." )
 
 #:def_opt( "WBFS", "B|wbfs", "C", \
 	"", \
-	"Set ISO output file type to WBFS (Wii Backup File System) container." )
+	"Set image output file type to WBFS (Wii Backup File System, default)." )
 
 #:def_opt( "WIA", "wia", "CO", \
 	"[=compr]", \
-	"Set ISO output file type to WIA (Wii ISO Archive). The optional" \
+	"Set image output file type to WIA (Wii ISO Archive). The optional" \
 	" parameter is a compression mode and {--wia=mode} is a shortcut for" \
 	" {--wia --compression mode}." )
 
+#:def_opt( "GCZ", "G|gcz", "C", \
+	"", \
+	"Set image output file type to GCZ (Dolphins GameCube Zip).\n" \
+	"  GCZ support is EXPERIMENTAL!" )
+
 #:def_opt( "FST", "fst", "C", \
 	"", \
-	"Set ISO output mode to 'file system' (extracted ISO)." )
+	"Set image output mode to 'file system' (extracted ISO)." )
 
 #:def_opt( "FILES", "F|files", "CMP", \
 	"ruleset", \
@@ -973,6 +979,10 @@
 #:def_cmd_opt( "INFO", "SECTIONS", \
 	"", \
 	"" )
+
+#:def_cmd_opt( "INFO", "LONG", \
+	"", \
+	"Print a list, that explains the attributes." )
 
 #:def_cmd_opt( "ERROR", "SECTIONS", \
 	"", \
@@ -2890,6 +2900,10 @@
 	"", \
 	"" )
 
+#:def_cmd_opt( "DIFF", "GCZ", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "DIFF", "FST", \
 	"", \
 	"" )
@@ -3095,6 +3109,10 @@
 	"" )
 
 #:def_cmd_opt( "FDIFF", "WIA", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "FDIFF", "GCZ", \
 	"", \
 	"" )
 
@@ -3672,6 +3690,10 @@
 	"", \
 	"" )
 
+#:def_cmd_opt( "COPY", "GCZ", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "COPY", "FST", \
 	"", \
 	"" )
@@ -3929,6 +3951,10 @@
 	"" )
 
 #:def_cmd_opt( "CONVERT", "WIA", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "CONVERT", "GCZ", \
 	"", \
 	"" )
 
@@ -5727,29 +5753,29 @@
 
 #:def_opt( "WDF", "W|wdf", "C", \
 	"", \
-	"Set ISO output file type to WDF (Wii Disc Format, default)" )
+	"Set image output file type to WDF (Wii Disc Format)" )
 
 #:def_opt( "WIA", "wia", "CO", \
 	"[=compr]", \
-	"Set ISO output file type to WIA (Wii ISO Archive). The optional" \
+	"Set image output file type to WIA (Wii ISO Archive). The optional" \
 	" parameter is a compression mode and {--wia=mode} is a shortcut for" \
 	" {--wia --compression mode}." )
 
 #:def_opt( "ISO", "I|iso", "C", \
 	"", \
-	"Set ISO output file type to PLAIN ISO." )
+	"Set image output file type to PLAIN ISO." )
 
 #:def_opt( "CISO", "C|ciso", "C", \
 	"", \
-	"Set ISO output file type to CISO (Compact ISO, same as WBI)." )
+	"Set image output file type to CISO (Compact ISO, same as WBI)." )
 
 #:def_opt( "WBFS", "B|wbfs", "C", \
 	"", \
-	"Set ISO output file type to WBFS (Wii Backup File System) container." )
+	"Set image output file type to WBFS (Wii Backup File System, default)." )
 
 #:def_opt( "FST", "fst", "CO", \
 	"", \
-	"Set ISO output mode to 'file system' (extracted ISO)." )
+	"Set image output mode to 'file system' (extracted ISO)." )
 
 #:def_opt( "FILES", "files", "CO", \
 	"ruleset", \
@@ -5880,6 +5906,10 @@
 #:def_cmd_opt( "INFO", "SECTIONS", \
 	"", \
 	"" )
+
+#:def_cmd_opt( "INFO", "LONG", \
+	"", \
+	"Print a list, that explains the attributes." )
 
 #:def_cmd_opt( "ERROR", "SECTIONS", \
 	"", \

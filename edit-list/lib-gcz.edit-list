@@ -1,0 +1,12 @@
+../src/lib-gcz.[ch] ;
+../src/lib-wia.[ch] ;
+../src/lib-wdf.[ch] ;
+../src/lib-sf.[ch] ;
+../src/lib-std.[ch] ;
+../src/lib-file.[ch] ;
+../src/lib-ciso.[ch] ;
+@+all-source.edit-list
+-y  520 ../src/lib-gcz.c ;
+-y  100 ../src/lib-gcz.h ;
+-y  100 ../src/lib-wia.c ;
+-y  100 ../src/lib-wdf.c ;

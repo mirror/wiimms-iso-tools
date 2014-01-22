@@ -128,6 +128,11 @@ typedef enum enumRevID
 #define DEF_RECURSE_DEPTH	 10
 #define MAX_RECURSE_DEPTH	100
 
+///////////////////////////////////////////////////////////////////////////////
+
+#define M1(a) ( (typeof(a))~0 )
+#define IS_M1(a) ( (a) == (typeof(a))~0 )
+
 //
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////                       Setup                     ///////////////
@@ -352,6 +357,7 @@ typedef enum enumOFT // open file mode
     OFT_CISO,			// CISO file
     OFT_WBFS,			// WBFS disc
     OFT_WIA,			// WIA file
+    OFT_GCZ,			// GCZ file
     OFT_FST,			// file system
 
     OFT__N,			// number of variants
@@ -363,14 +369,15 @@ typedef enum enumOFT // open file mode
 
 typedef enum attribOFT // OFT attributes
 {
-    OFT_A_READ		= 0x01,		// format can be read
-    OFT_A_WRITE		= 0x02,		// format can be written
-    OFT_A_MODIFY	= 0x04,		// format can be modified
-    OFT_A_EXTEND	= 0x08,		// format can be extended
-    OFT_A_FST		= 0x10,		// format is an extracted file system
-    OFT_A_COMPR		= 0x20,		// format uses compression
-    OFT_A_NOSIZE	= 0x40,		// format has no file size info
-    OFT_A_LOADER	= 0x80,		// used by USB/SD loaders
+    OFT_A_READ		= 0x001,  // format can be read
+    OFT_A_CREATE	= 0x002,  // format can be written
+    OFT_A_MODIFY	= 0x004,  // format can be modified
+    OFT_A_EXTEND	= 0x008,  // format can be extended
+    OFT_A_FST		= 0x010,  // format is an extracted file system
+    OFT_A_COMPR		= 0x020,  // format uses compression
+    OFT_A_NOSIZE	= 0x040,  // format has no file size info
+    OFT_A_LOADER	= 0x080,  // used by USB/SD loaders
+    OFT_A_DEST_EDIT	= 0x100,  // if source, dest needs edit right
 
 } attribOFT;
 
@@ -588,12 +595,13 @@ typedef enum enumFileType
 	FT_A_WDF	= 0x00200000,  // flag: file is a packed WDF
 	FT_A_WIA	= 0x00400000,  // flag: file is a packed WIA
 	FT_A_CISO	= 0x00800000,  // flag: file is a packed CISO
-	FT_A_REGFILE	= 0x01000000,  // flag: file is a regular file
-	FT_A_BLOCKDEV	= 0x02000000,  // flag: file is a block device
-	FT_A_CHARDEV	= 0x04000000,  // flag: file is a block device
-	FT_A_SEEKABLE	= 0x08000000,  // flag: using of seek() is possible
-	FT_A_WRITING	= 0x10000000,  // is opened for writing
-	FT_A_PART_DIR	= 0x20000000,  // FST is a partition
+	FT_A_GCZ	= 0x01000000,  // flag: file is a packed GCZ
+	FT_A_REGFILE	= 0x02000000,  // flag: file is a regular file
+	FT_A_BLOCKDEV	= 0x04000000,  // flag: file is a block device
+	FT_A_CHARDEV	= 0x08000000,  // flag: file is a block device
+	FT_A_SEEKABLE	= 0x10000000,  // flag: using of seek() is possible
+	FT_A_WRITING	= 0x20000000,  // is opened for writing
+	FT_A_PART_DIR	= 0x40000000,  // FST is a partition
 
 	 FT__A_MASK	= 0x3ff70000,  // mask of all 'FT_A_' values
 

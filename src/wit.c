@@ -2774,6 +2774,16 @@ enumError exec_copy ( SuperFile_t * fi, Iterator_t * it )
 			? fi->oft_orig
 			: CalcOFT(output_file_type,opt_dest,fname,fi->oft_orig);
 
+    const OFT_info_t * iinfo = oft_info + fi->iod.oft;
+    if ( iinfo->attrib & OFT_A_DEST_EDIT )
+    {
+	const OFT_info_t * oinfo = oft_info + oft;
+	if ( !(oinfo->attrib & OFT_A_MODIFY) )
+	return ERROR0(ERR_CANT_CREATE,
+		"%s source needs editable output file type, but '%s' isn't: %s\n",
+		iinfo->name, oinfo->name, fi->f.fname );
+    }
+
     SuperFile_t fo;
     InitializeSF(&fo);
     SetupIOD(&fo,oft,oft);
@@ -2786,22 +2796,6 @@ enumError exec_copy ( SuperFile_t * fi, Iterator_t * it )
 	TRACE("COPY, mkdir=%d\n",opt_mkdir);
 	fo.f.create_directory = opt_mkdir;
 	ccp oname = fi->f.outname ? fi->f.outname : fname;
- #if 0 // [[obsolete]] 2011-11
-	if ( oft == OFT_WBFS && fi->f.id6_dest[0] )
-	{
-	    // use ID6 as default filename
-	    ccp pathend = strrchr(oname,'/');
-	    if (pathend)
-	    {
-		const int len = pathend - oname + 1;
-		memcpy(iobuf,oname,len);
-		strcpy(iobuf+len,fi->f.id6_dest);
-		oname = iobuf;
-	    }
-	    else
-		oname = fi->f.id6_dest;
-	}
- #endif
 	GenImageFileName(&fo.f,opt_dest,oname,oft);
 	SubstFileNameSF(&fo,fi,0);
 
@@ -3904,6 +3898,7 @@ enumError CheckOptions ( int argc, char ** argv, bool is_env )
 	case GO_ISO:		output_file_type = OFT_PLAIN; break;
 	case GO_CISO:		output_file_type = OFT_CISO; break;
 	case GO_WBFS:		output_file_type = OFT_WBFS; break;
+	case GO_GCZ:		output_file_type = OFT_GCZ; break;
 	case GO_FST:		output_file_type = OFT_FST; break;
 
     #if WDF2_ENABLED > 1

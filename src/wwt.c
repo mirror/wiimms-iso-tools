@@ -2725,6 +2725,7 @@ enumError cmd_extract()
 		    noTRACE("|%s|%s|\n",dpath,fbuf);
 		    SetFileName(&fo.f,fbuf,true);
 		    fo.f.create_directory = conv_count || opt_mkdir;
+		    //fo.src = wbfs.sf;
 
 		    ccp fname;
 		    char dest_dir[PATH_MAX];
@@ -4007,6 +4008,7 @@ enumError CheckOptions ( int argc, char ** argv, bool is_env )
 	case GO_ISO:		output_file_type = OFT_PLAIN; break;
 	case GO_CISO:		output_file_type = OFT_CISO; break;
 	case GO_WBFS:		output_file_type = OFT_WBFS; break;
+	case GO_GCZ:		output_file_type = OFT_GCZ; break;
 	case GO_FST:		output_file_type = OFT_FST; break;
 
     #if WDF2_ENABLED > 1

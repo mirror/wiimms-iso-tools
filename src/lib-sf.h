@@ -40,6 +40,7 @@
 #include "lib-wdf.h"
 #include "lib-wia.h"
 #include "lib-ciso.h"
+#include "lib-gcz.h"
 #include "libwbfs.h"
 
 //
@@ -92,6 +93,7 @@ typedef struct IOData_t
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////			struct SuperFile_t		///////////////
 ///////////////////////////////////////////////////////////////////////////////
+// [[SuperFile_t]]
 
 typedef struct SuperFile_t
 {
@@ -163,8 +165,12 @@ typedef struct SuperFile_t
 	// WBFS support (read only)
 
 	struct WBFS_t * wbfs;		// a WBFS
-	u32 wbfs_fragments;		// 0=unknown, >0:number if fragments
+	u32 wbfs_fragments;		// 0=unknown, >0:number of fragments
 	id6_t wbfs_id6;			// ID6 of wbfs inode
+
+	// GCZ support
+
+	GCZ_t * gcz;			// GCT header
 
 	// FST support
 	

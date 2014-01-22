@@ -540,21 +540,22 @@ static void info_file_formats()
 			"info=%s\n"
 			"option=%s\n"
 			"extensions=%s %s\n"
-			"attributes=%s%s%s%s%s%s%s%s\n"
+			"attributes=%s%s%s%s%s%s%s%s%s\n"
 			,info->name
 			,info->name
 			,info->info
 			,info->option
 			,info->ext1 ? info->ext1 : ""
 			,info->ext2 ? info->ext2 : ""
-			,info->attrib & OFT_A_READ	? "read "   : ""
-			,info->attrib & OFT_A_WRITE	? "write "  : ""
-			,info->attrib & OFT_A_MODIFY	? "modify " : ""
-			,info->attrib & OFT_A_EXTEND	? "extend " : ""
-			,info->attrib & OFT_A_FST	? "fst "    : ""
-			,info->attrib & OFT_A_COMPR	? "compr "  : ""
-			,info->attrib & OFT_A_NOSIZE    ? "nosize " : ""
-			,info->attrib & OFT_A_LOADER	? "loader " : ""
+			,info->attrib & OFT_A_READ	? "read "	: ""
+			,info->attrib & OFT_A_CREATE	? "create "	: ""
+			,info->attrib & OFT_A_MODIFY	? "modify "	: ""
+			,info->attrib & OFT_A_EXTEND	? "extend "	: ""
+			,info->attrib & OFT_A_FST	? "fst "	: ""
+			,info->attrib & OFT_A_COMPR	? "compr "	: ""
+			,info->attrib & OFT_A_NOSIZE    ? "nosize "	: ""
+			,info->attrib & OFT_A_LOADER	? "loader "	: ""
+			,info->attrib & OFT_A_DEST_EDIT	? "destedit "	: ""
 			);
 	}
 	return;
@@ -576,7 +577,7 @@ static void info_file_formats()
 	   "  name  %-*s  option  extensions  attributes\n"
 	   " %.*s\n",
 	   info_fw, "description",
-	   info_fw+61, wd_sep_200 );
+	   info_fw+64, wd_sep_200 );
 
     for ( oft = 1; oft < OFT__N; oft++ )
     {
@@ -586,15 +587,29 @@ static void info_file_formats()
 		i->option ? i->option : "  -",
 		i->ext1 && *i->ext1 ? i->ext1 : " -",
 		i->ext2 && *i->ext2 ? i->ext2 : " -",
-		i->attrib & OFT_A_READ		? "read"   : "-  ",
-		i->attrib & OFT_A_WRITE		? "write"  : "-    ",
+		i->attrib & OFT_A_READ		? "read" : "-   ",
+		i->attrib & OFT_A_CREATE	? "create"  : "-     ",
 		i->attrib & OFT_A_EXTEND	? "extend"
 		: i->attrib & OFT_A_MODIFY	? "modify" : "-     ",
 		i->attrib & OFT_A_FST		? "fst   "
 		: i->attrib & OFT_A_COMPR	? "compr "
 		: i->attrib & OFT_A_NOSIZE	? "nosize" : "-     ",
-		i->attrib & OFT_A_LOADER	? "loader" : "-" );
+		i->attrib & OFT_A_DEST_EDIT	? "destedit"
+		: i->attrib & OFT_A_LOADER	? "loader" : "-" );
     }
+
+    if (long_count)
+	fputs("\n Attributes:\n"
+	    "   read     : Image format can be read.\n"
+	    "   create   : Image format can be created.\n"
+	    "   modify   : Image format can be created and modified.\n"
+	    "   extend   : Image format can be created, modified and extended.\n"
+	    "   fst      : Image is an extracted file system.\n"
+	    "   compr    : Image format supports compressed data (bzip2,7z,zip).\n"
+	    "   nosize   : Info about the image size is not available.\n"
+	    "   destedit : If using as source, the destination must be modifiable.\n"
+	    "   loader   : Image format can be used by USB loaders.\n"
+	    ,stdout);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
