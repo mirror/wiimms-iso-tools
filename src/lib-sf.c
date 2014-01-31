@@ -2612,8 +2612,8 @@ enumFileType AnalyzeFT ( File_t * f )
 
 	ccp data_ptr = buf1;
 
-	WDF_Head_t wh;
-	ConvertToHostWH(&wh,(WDF_Head_t*)buf1);
+	WDF_Header_t wh;
+	ConvertToHostWH(&wh,(WDF_Header_t*)buf1);
 
 	err = AnalyzeWH(f,&wh,false);
 	if ( err != ERR_NO_WDF )
@@ -2625,21 +2625,18 @@ enumFileType AnalyzeFT ( File_t * f )
 	    ft |= FT_A_WDF;
 
 	#if WDF2_ENABLED
-	    const WDF_Head_t *wh = (WDF_Head_t*)data_ptr;
-	    data_ptr += wh1->wdf_version == 1
-				? WDF_VERSION1_SIZE
-				: WDF_VERSION2_SIZE;
+	    data_ptr += wh.head_size;
 	#else
 	    data_ptr += WDF_VERSION1_SIZE;
 	#endif
 
 	    if ( f->seek_allowed
-		&& !ReadAtF(f,wh.chunk_off,&buf2,WDF_MAGIC_SIZE+sizeof(WDF_Chunk_t))
+		&& !ReadAtF(f,wh.chunk_off,&buf2,WDF_MAGIC_SIZE+sizeof(WDF1_Chunk_t))
 		&& !memcmp(buf2,WDF_MAGIC,WDF_MAGIC_SIZE) )
 	    {
 		TRACE(" - WDF chunk loaded\n");
-		WDF_Chunk_t *wc = (WDF_Chunk_t*)(buf2+WDF_MAGIC_SIZE);
-		ConvertToHostWC(wc,wc);
+		WDF2_Chunk_t *wc = (WDF2_Chunk_t*)(buf2+WDF_MAGIC_SIZE);
+		ConvertToHostWC(wc,wc,wh.wdf_version,1);
 		if ( wc->data_size >= 6 )
 		{
 		    // save param before clear buffer
@@ -3520,7 +3517,6 @@ enumError CopySF ( SuperFile_t * in, SuperFile_t * out )
     {
 	case OFT_WDF:	return CopyWDF(in,out);
 	case OFT_WIA:	return CopyWIA(in,out);
-// [[2do]] [[GCZ]] unsure
 	case OFT_WBFS:	return CopyWBFSDisc(in,out);
 	default:	return CopyRaw(in,out);
     }
@@ -3664,7 +3660,7 @@ enumError CopyWDF ( SuperFile_t * in, SuperFile_t * out )
     int i;
     for ( i = 0; i < in->wc_used; i++ )
     {
-	WDF_Chunk_t *wc = in->wc + i;
+	WDF2_Chunk_t *wc = in->wc + i;
 	if ( wc->data_size )
 	{
 	    u64 dest_off = wc->file_pos;

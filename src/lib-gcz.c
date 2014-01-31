@@ -43,6 +43,41 @@
 #include "debug.h"
 #include "lib-gcz.h"
 #include "lib-sf.h"
+#include "patch.h"
+
+//
+///////////////////////////////////////////////////////////////////////////////
+///////////////			    options			///////////////
+///////////////////////////////////////////////////////////////////////////////
+
+bool opt_gcz_zip	= false;
+u32  opt_gcz_block_size	= GCZ_DEF_BLOCK_SIZE;
+
+///////////////////////////////////////////////////////////////////////////////
+
+int ScanOptGCZBlock ( ccp arg )
+{
+    if (!arg)
+	return 0;
+
+    u32 block_size;
+    enumError stat = ScanSizeOptU32(
+		&block_size,		// u32 * num
+		arg,			// ccp source
+		1,			// default_factor1
+		0,			// int force_base
+		"gcz-block",		// ccp opt_name
+		256,			// u64 min
+		16*MiB,			// u64 max
+		0,			// u32 multiple
+		0,			// u32 pow2
+		true			// bool print_err
+		) != ERR_OK;
+
+    if (!stat)
+	opt_gcz_block_size = block_size;
+    return stat;
+}
 
 //
 ///////////////////////////////////////////////////////////////////////////////
@@ -439,8 +474,7 @@ enumError SetupReadGCZ
     if (err)
 	return ERROR0(ERR_GCZ_INVALID,"Invalid GCZ file: %s\n",sf->f.fname);
 
-    sf->file_size = sf->max_virt_off
-	= sf->gcz->head.block_size * (u64)sf->gcz->head.num_blocks;
+    sf->file_size = sf->max_virt_off = sf->gcz->head.image_size;
     SetupIOD(sf,OFT_GCZ,OFT_GCZ);
     return ERR_OK;
 }
@@ -520,15 +554,14 @@ off_t DataBlockGCZ
     {
 	if (!sf->f.disable_errors)
 	    ERROR0(ERR_WRITE_FAILED,
-		    "GCZ files can't grow (block %u/%u): %s\n",
-		    gcz->block, gcz->head.num_blocks, sf->f.fname );
+			"GCZ files can't grow (block %u/%u): %s\n",
+			gcz->block, gcz->head.num_blocks, sf->f.fname );
 	return ERR_WRITE_FAILED;
     }
 
-    off_t off = gcz->data_offset + gcz->head.compr_size;
-    u8 *data = gcz->data;
-    uint size = gcz->head.block_size;
-    u64 flag = 0x8000000000000000ull;
+    u8 *data;
+    uint size;
+    u64 flag;
     u32 checksum;
 
     if ( is_zero && gcz->zero_data )
@@ -540,27 +573,48 @@ off_t DataBlockGCZ
     }
     else
     {
+	data = gcz->data;
+	size = gcz->head.block_size;
+	flag = 0x8000000000000000ull;
+
 	//--- try compression
 
-	z_stream zs;
-	memset(&zs,0,sizeof(zs));
-	zs.next_in	= data;
-	zs.avail_in	= size;
-	zs.next_out	= gcz->cdata;
-	zs.avail_out	= gcz->head.block_size;
-	zs.zalloc	= Z_NULL;
-	zs.zfree	= Z_NULL;
-	zs.opaque	= Z_NULL;
-
-	if ( deflateInit(&zs,9) == Z_OK
-	    && deflate(&zs,Z_FINISH) == Z_STREAM_END
-	    && zs.avail_out > gcz->head.block_size/32 )
+	bool try_zip = true;
+	if (gcz->fast)
 	{
-	    data = gcz->cdata;
-	    size = gcz->head.block_size - zs.avail_out;
-	    flag = 0;
+	    DASSERT(gcz->disc);
+	    uint wii_sector = gcz->block * (u64)gcz->head.block_size / WII_SECTOR_SIZE;
+	    if ( wii_sector < WII_MAX_SECTORS
+		&& gcz->disc->usage_table[wii_sector] & WD_USAGE_F_CRYPT )
+	    {
+		//PRINT("SKIP ZIP: %u -> %u\n",gcz->block,wii_sector);
+		try_zip = false;
+	    }
 	}
-	deflateEnd(&zs);
+
+	if (try_zip)
+	{
+	    z_stream zs;
+	    memset(&zs,0,sizeof(zs));
+	    zs.next_in   = data;
+	    zs.avail_in  = size;
+	    zs.next_out  = gcz->cdata;
+	    zs.avail_out = gcz->head.block_size;
+	    zs.zalloc    = Z_NULL;
+	    zs.zfree     = Z_NULL;
+	    zs.opaque    = Z_NULL;
+
+	    if ( deflateInit(&zs,9) == Z_OK
+		&& deflate(&zs,Z_FINISH) == Z_STREAM_END
+		&& zs.avail_out > gcz->head.block_size/64 )
+	    {
+		data = gcz->cdata;
+		size = gcz->head.block_size - zs.avail_out;
+		flag = 0;
+	    }
+	    deflateEnd(&zs);
+	}
+
 	checksum = CalcAdler32(data,size);
     }
 
@@ -571,6 +625,8 @@ off_t DataBlockGCZ
 		gcz->block,flag!=0,data==gcz->zero_data,is_zero,size);
     write_le32( gcz->checksum + gcz->block, checksum );
     write_le64( gcz->offset + gcz->block, gcz->head.compr_size|flag );
+
+    const off_t off = gcz->data_offset + gcz->head.compr_size;
     enumError err = WriteAtF(&sf->f,off,data,size);
     if (err)
 	return err;
@@ -615,7 +671,7 @@ static enumError flush_block
 			sf->f.fname );
 	    return ERR_WRITE_FAILED;
 	}
-    
+
 	enumError err = write_block(sf,false);
 	if (err)
 	    return err;
@@ -659,6 +715,8 @@ enumError SetupWriteGCZ
     if (sf->gcz)
 	return ERROR0(ERR_INTERNAL,0);
 
+    //--- retrieve image size
+
     u64 image_size = 0;
     if (sf->src)
 	image_size = sf->src->file_size;
@@ -676,9 +734,12 @@ enumError SetupWriteGCZ
 	}
     }
 
+
+    //--- create GCZ_t
+
     GCZ_t *gcz = CALLOC(1,sizeof(*gcz));
     sf->gcz = gcz;
-    gcz->head.block_size = GCZ_DEF_BLOCK_SIZE;
+    gcz->head.block_size = opt_gcz_block_size;
     gcz->head.num_blocks = ( image_size + gcz->head.block_size - 1 )
 			 / gcz->head.block_size;
     gcz->head.image_size = gcz->head.num_blocks * (u64)gcz->head.block_size;
@@ -692,8 +753,31 @@ enumError SetupWriteGCZ
     gcz->data  = MALLOC(2*gcz->head.block_size);
     gcz->cdata = gcz->data + gcz->head.block_size;
 
+
+    //--- source disc support
+
+    if (sf->src)
+    {
+	gcz->disc = OpenDiscSF(sf->src,false,true);
+	if (  gcz->disc
+	   && gcz->disc->disc_attrib & WD_DA_WII
+	   && !opt_gcz_zip
+	   && gcz->head.block_size <= WII_SECTOR_SIZE
+	   )
+	{
+	    enumEncoding enc = SetEncoding(encoding,0,0);
+	    if (!( enc & ENCODE_DECRYPT ))
+	    {
+		gcz->fast = true;
+	     #if HAVE_PRINT
+		wd_print_usage_tab(stdout,2,gcz->disc->usage_table,gcz->disc->iso_size,false);
+	     #endif
+	    }
+	}
+    }
+
     PRINT("GCZ/SETUP-WRITE: blocks: %u * 0x%x\n",
-	gcz->head.num_blocks, gcz->head.block_size );
+		gcz->head.num_blocks, gcz->head.block_size );
     return ERR_OK;
 
  #endif

@@ -72,22 +72,23 @@
 #endif
 
 ///////////////////////////////////////////////////////////////////////////////
+// [[WDF2_ENABLED]]
 
-#ifdef NEW_FEATURES // [[2do]]
- #define WDF2_ENABLED		  2	// 0:off, 1:read only, 2:write support
- #define WDF_VERSION		  1	// default version
- #define WDF_ALIGN		  1	// default alignment for WDF v2
- #define WDF_ALIGN_TEXT		"1"
- #define WDF_MAX_ALIGN		GiB	// max allowed WDF alignment
- #define WDF_MAX_ALIGN_TEXT	"1 GiB"
+#if defined(NOWDF2)
+  #define WDF2_ENABLED		 1	// 0:off, 1:read only, 2:write support
+#elif defined(WDF2) || defined(WIIMM)
+  #define WDF2_ENABLED		 2	// 0:off, 1:read only, 2:write support
 #else
- #define WDF2_ENABLED		  0
- #define WDF_VERSION		  1	// default version
- #define WDF_ALIGN		  1	// default alignment for WDF v2
- #define WDF_ALIGN_TEXT		"1"
- #define WDF_MAX_ALIGN		GiB	// max allowed WDF alignment
- #define WDF_MAX_ALIGN_TEXT	"1 GiB"
+  #define WDF2_ENABLED		 1	// 0:off, 1:read only, 2:write support
 #endif
+
+#define WDF_DEF_VERSION		 1	// default version
+#define WDF_MAX_VERSION		 2	// max supported version
+
+#define WDF_DEF_ALIGN		 4	// default alignment for WDF v2 and above
+#define WDF_DEF_ALIGN_TEXT	"4"
+#define WDF_MAX_ALIGN		GiB	// max allowed WDF alignment
+#define WDF_MAX_ALIGN_TEXT	"1 GiB"
 
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -332,7 +333,7 @@ typedef enum enumIOMode
 {
 	IOM_IS_WBFS_PART	= 0x01, // is a WBFS partition
 	IOM_IS_IMAGE		= 0x02, // is a disc image (PLAIN, WDF, CISO, ...)
-	IOM_IS_WIA		= 0x04, // is a WIA file
+	IOM_IS_COMPRESSED	= 0x04, // is a WIA or GCZ file
 
 	IOM__IS_MASK		= 0x07,
 	IOM__IS_DEFAULT		= 0,
@@ -402,8 +403,6 @@ typedef struct OFT_info_t
 extern const OFT_info_t oft_info[OFT__N+1];
 extern const CommandTab_t ImageTypeTab[];
 extern enumOFT output_file_type;
-extern uint opt_wdf_version;
-extern uint opt_wdf_align;
 extern int opt_truncate;
 
 enumOFT CalcOFT ( enumOFT force, ccp fname_dest, ccp fname_src, enumOFT def );
@@ -490,7 +489,7 @@ void InsertMemMapWrapper
 struct wd_disc_t;
 void InsertDiscMemMap
 (
-    MemMap_t		* mm,		// valid memore map pointer
+    MemMap_t		* mm,		// valid memory map pointer
     struct wd_disc_t	* disc		// valid disc pointer
 );
 
@@ -802,8 +801,8 @@ void ClearCache		 ( File_t * f );
 void DefineCachedArea    ( File_t * f, off_t off, size_t count );
 void DefineCachedAreaISO ( File_t * f, bool head_only );
 
-struct WDF_Head_t;
-enumError XAnalyzeWH ( XPARM File_t * f, struct WDF_Head_t * wh, bool print_err );
+struct WDF_Header_t;
+enumError XAnalyzeWH ( XPARM File_t * f, struct WDF_Header_t * wh, bool print_err );
 
 enumError StatFile ( struct stat * st, ccp fname, int fd );
 

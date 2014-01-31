@@ -70,7 +70,11 @@
 		0 /* copy of wit */ },
 
   { T_DEF_CMD,	"COMPR",	"COMPR",
-		    "wwt ERROR [error_code]",
+		    "wwt COMPR [error_code]",
+		0 /* copy of wit */ },
+
+  { T_DEF_CMD,	"FEATURES",	"FEATURES",
+		    "wwt FEATURES [error_code]",
 		0 /* copy of wit */ },
 
   { T_DEF_CMD,	"EXCLUDE",	"EXCLUDE",
@@ -537,11 +541,6 @@
   { T_OPT_C,	"TRUNC",	"trunc",
 		0, 0 /* copy of wit */ },
 
-  // [[2do]] [obsolte] hidden since 2011-10, remove it in 2012
-  { H_OPT_C,	"FAST",		"fast",
-		0,
-		"Ignored. Don't use this option because it will be discontinued." },
-
   { T_OPT_CP,	"CHUNK_MODE",	"chunk-mode|chunkmode|chm",
 		0, 0 /* copy of wit */ },
 
@@ -641,23 +640,25 @@
   { T_OPT_C,	"WDF",		"W|wdf",
 		0, 0 /* copy of wit */ },
 
- #if WDF2_ENABLED > 1
-
-  { T_OPT_C,	"WDF1",		"wdf1",
+  { H_OPT_CO,	"WDF1",		"wdf1",			// [[wdf2]]
 		0, 0 /* copy of wit */ },
 
-  { T_OPT_CO,	"WDF2",		"wdf2",
+  { H_OPT_CO,	"WDF2",		"wdf2",			// [[wdf2]]
 		0, 0 /* copy of wit */ },
 
-  { T_OPT_GP,	"WDF_ALIGN",	"wdf-align|wdfalign",
+  { H_OPT_GP,	"WDF_ALIGN",	"wdf-align|wdfalign",	// [[wdf2]]
 		0, 0 /* copy of wit */ },
-
- #endif // WDF2_ENABLED > 1
 
   { T_OPT_CO,	"WIA",		"wia",
 		0, 0 /* copy of wit */ },
 
-  { H_OPT_C,	"GCZ",		"gcz",
+  { T_OPT_C,	"GCZ",		"gcz",
+		0, 0 /* copy of wit */ },
+
+  { T_OPT_C,	"GCZ_ZIP",	"gcz-zip|gczzip|gczip",
+		0, 0 /* copy of wit */ },
+
+  { T_OPT_GP,	"GCZ_BLOCK",	"gcz-block|gczblock",
 		0, 0 /* copy of wit */ },
 
   { T_OPT_C,	"ISO",		"I|iso",
@@ -847,11 +848,9 @@
   { T_GRP_BEG,	"OUTMODE_EDIT",	0,0,0 },
 
   { T_COPT,	"WDF",		0,0,0 },
-#if WDF2_ENABLED > 1
-  { T_COPT,	"WDF1",		0,0,0 },
-  { T_COPT,	"WDF2",		0,0,0 },
-  { T_COPT,	"WDF_ALIGN",	0,0,0 },
-#endif
+  { H_COPT,	"WDF1",		0,0,0 }, // [[wdf2]]
+  { H_COPT,	"WDF2",		0,0,0 }, // [[wdf2]]
+  { H_COPT,	"WDF_ALIGN",	0,0,0 }, // [[wdf2]]
   { T_COPT,	"ISO",		0,0,0 },
   { T_COPT,	"CISO",		0,0,0 },
   { T_COPT,	"WBFS",		0,0,0 },
@@ -862,7 +861,9 @@
 
   { T_COPY_GRP,	"OUTMODE_EDIT",	0,0,0 },
   { T_COPT,	"WIA",		0,0,0 },
-  { H_COPT,	"GCZ",		0,0,0 },
+  { T_COPT,	"GCZ",		0,0,0 },
+  { T_COPT,	"GCZ_ZIP",	0,0,0 },
+  { T_COPT,	"GCZ_BLOCK",	0,0,0 },
   { T_COPT,	"FST",		0,0,0 },
 
   //---------- wwt GROUP PARTITIONS ----------
@@ -954,8 +955,7 @@
   { T_CMD_BEG,	"INFO",		0,0,0 },
 
   { T_COPT,	"SECTIONS",	0,0,0 },
-  { T_COPT,	"LONG",		0,0,
-	"Print a list, that explains the attributes." },
+  { T_COPT,	"LONG",		0,0, CMD_INFO_LONG },
 
   //---------- COMMAND wwt TEST ----------
 
@@ -985,6 +985,17 @@
 	"Print always compression level and chunk size factor."
 	" Standard is to suppress these values if not explicitly set." },
   { T_COPT,	"NUMERIC",	0,0,0 },
+
+  //---------- COMMAND wwt FEATURES ----------
+
+  { T_CMD_BEG,	"FEATURES",	0,0,0 },
+
+  { T_COPT,	"QUIET",	0,0,
+	"If set, suppress messages about the single features."
+	" If set twice, suppress also the summary message." },
+  { T_COPT,	"VERBOSE",	0,0,
+	"Normally, a status line for each supported feature is printed."
+	" If set, print an info line for each requested feature." },
 
   //---------- COMMAND wwt EXCLUDE ----------
 
@@ -1354,7 +1365,6 @@
   { T_COPT,	"UPDATE",	0,0,0 },
   { T_COPT,	"OVERWRITE",	0,0,0 },
   { T_COPT,	"TRUNC",	0,0,0 },
-  { H_COPT,	"FAST",		0,0,0 },
 
 
   //---------- COMMAND wwt SCRUB ----------

@@ -113,7 +113,6 @@ typedef enum enumOptions
 	OPT_DISC_SIZE,
 	OPT_PREALLOC,
 	OPT_TRUNC,
-	OPT_FAST,
 	OPT_CHUNK_MODE,
 	OPT_CHUNK_SIZE,
 	OPT_MAX_CHUNKS,
@@ -133,8 +132,11 @@ typedef enum enumOptions
 	OPT_OVERWRITE,
 	OPT_REMOVE,
 	OPT_WDF,
+	OPT_WDF1,
+	OPT_WDF2,
 	OPT_WIA,
 	OPT_GCZ,
+	OPT_GCZ_ZIP,
 	OPT_ISO,
 	OPT_CISO,
 	OPT_WBFS,
@@ -160,7 +162,7 @@ typedef enum enumOptions
 	OPT_SORT,
 	OPT_LIMIT,
 
-	OPT__N_SPECIFIC, // == 104 
+	OPT__N_SPECIFIC, // == 106 
 
 	//----- global options -----
 
@@ -185,8 +187,10 @@ typedef enum enumOptions
 	OPT_NEW,
 	OPT_HOOK,
 	OPT_FORCE,
+	OPT_WDF_ALIGN,
+	OPT_GCZ_BLOCK,
 
-	OPT__N_TOTAL // == 125
+	OPT__N_TOTAL // == 129
 
 } enumOptions;
 
@@ -258,7 +262,6 @@ typedef enum enumOptions
 //	OB_DISC_SIZE		= 1llu << OPT_DISC_SIZE,
 //	OB_PREALLOC		= 1llu << OPT_PREALLOC,
 //	OB_TRUNC		= 1llu << OPT_TRUNC,
-//	OB_FAST			= 1llu << OPT_FAST,
 //	OB_CHUNK_MODE		= 1llu << OPT_CHUNK_MODE,
 //	OB_CHUNK_SIZE		= 1llu << OPT_CHUNK_SIZE,
 //	OB_MAX_CHUNKS		= 1llu << OPT_MAX_CHUNKS,
@@ -278,8 +281,11 @@ typedef enum enumOptions
 //	OB_OVERWRITE		= 1llu << OPT_OVERWRITE,
 //	OB_REMOVE		= 1llu << OPT_REMOVE,
 //	OB_WDF			= 1llu << OPT_WDF,
+//	OB_WDF1			= 1llu << OPT_WDF1,
+//	OB_WDF2			= 1llu << OPT_WDF2,
 //	OB_WIA			= 1llu << OPT_WIA,
 //	OB_GCZ			= 1llu << OPT_GCZ,
+//	OB_GCZ_ZIP		= 1llu << OPT_GCZ_ZIP,
 //	OB_ISO			= 1llu << OPT_ISO,
 //	OB_CISO			= 1llu << OPT_CISO,
 //	OB_WBFS			= 1llu << OPT_WBFS,
@@ -351,6 +357,8 @@ typedef enum enumOptions
 //				| OB_TIME,
 //
 //	OB_GRP_OUTMODE_EDIT	= OB_WDF
+//				| OB_WDF1
+//				| OB_WDF2
 //				| OB_ISO
 //				| OB_CISO
 //				| OB_WBFS,
@@ -358,6 +366,7 @@ typedef enum enumOptions
 //	OB_GRP_OUTMODE		= OB_GRP_OUTMODE_EDIT
 //				| OB_WIA
 //				| OB_GCZ
+//				| OB_GCZ_ZIP
 //				| OB_FST,
 //
 //	OB_GRP_PARTITIONS	= OB_PSEL
@@ -425,6 +434,8 @@ typedef enum enumOptions
 //				| OB_NO_HEADER
 //				| OB_LONG
 //				| OB_NUMERIC,
+//
+//	OB_CMD_FEATURES		= 0,
 //
 //	OB_CMD_EXCLUDE		= OB_EXCLUDE
 //				| OB_EXCLUDE_PATH,
@@ -565,8 +576,7 @@ typedef enum enumOptions
 //				| OB_REMOVE
 //				| OB_UPDATE
 //				| OB_OVERWRITE
-//				| OB_TRUNC
-//				| OB_FAST,
+//				| OB_TRUNC,
 //
 //	OB_CMD_SCRUB		= OB_GRP_TITLES
 //				| OB_GRP_MOD_WBFS
@@ -651,6 +661,7 @@ typedef enum enumCommands
 	CMD_TEST,
 	CMD_ERROR,
 	CMD_COMPR,
+	CMD_FEATURES,
 	CMD_EXCLUDE,
 	CMD_TITLES,
 	CMD_GETTITLES,
@@ -694,7 +705,7 @@ typedef enum enumCommands
 
 	CMD_FILETYPE,
 
-	CMD__N // == 44
+	CMD__N // == 45
 
 } enumCommands;
 
@@ -805,7 +816,6 @@ typedef enum enumGetOpt
 	GO_DISC_SIZE,
 	GO_PREALLOC,
 	GO_TRUNC,
-	GO_FAST,
 	GO_CHUNK_MODE,
 	GO_CHUNK_SIZE,
 	GO_MAX_CHUNKS,
@@ -818,8 +828,13 @@ typedef enum enumGetOpt
 	GO_REPAIR,
 	GO_NO_FREE,
 	GO_SYNC_ALL,
+	GO_WDF1,
+	GO_WDF2,
+	GO_WDF_ALIGN,
 	GO_WIA,
 	GO_GCZ,
+	GO_GCZ_ZIP,
+	GO_GCZ_BLOCK,
 	GO_FST,
 	GO_FILES,
 	GO_ITIME,

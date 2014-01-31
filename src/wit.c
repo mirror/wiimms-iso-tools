@@ -3894,18 +3894,18 @@ enumError CheckOptions ( int argc, char ** argv, bool is_env )
 	case GO_REMOVE:		break;
 
 	case GO_WDF:		output_file_type = OFT_WDF; break;
+	case GO_WDF1:		err += SetWDF2Mode(1,optarg); break;
+	case GO_WDF2:		err += SetWDF2Mode(2,optarg); break;
+	case GO_WDF_ALIGN:	err += ScanOptWDFAlign(optarg); break;
+
 	case GO_WIA:		err += ScanOptCompression(true,optarg); break;
 	case GO_ISO:		output_file_type = OFT_PLAIN; break;
 	case GO_CISO:		output_file_type = OFT_CISO; break;
 	case GO_WBFS:		output_file_type = OFT_WBFS; break;
 	case GO_GCZ:		output_file_type = OFT_GCZ; break;
+	case GO_GCZ_ZIP:	opt_gcz_zip = true; break;
+	case GO_GCZ_BLOCK:	err += ScanOptGCZBlock(optarg); break;
 	case GO_FST:		output_file_type = OFT_FST; break;
-
-    #if WDF2_ENABLED > 1
-	case GO_WDF1:		SetWDF2Mode(1,0); break;
-	case GO_WDF2:		err += SetWDF2Mode(2,optarg); break;
-	case GO_WDF_ALIGN:	err += ScanOptWDFAlign(optarg); break;
-    #endif
 
 	case GO_ITIME:		SetTimeOpt(PT_USE_ITIME|PT_F_ITIME); break;
 	case GO_MTIME:		SetTimeOpt(PT_USE_MTIME|PT_F_MTIME); break;
@@ -4057,6 +4057,7 @@ enumError CheckCommand ( int argc, char ** argv )
 	case CMD_TEST:		err = cmd_test(); break;
 	case CMD_ERROR:		err = cmd_error(); break;
 	case CMD_COMPR:		err = cmd_compr(); break;
+	case CMD_FEATURES:	return cmd_features(); break;
 	case CMD_ANAID:		err = cmd_anaid(); break;
 	case CMD_EXCLUDE:	err = cmd_exclude(); break;
 	case CMD_TITLES:	err = cmd_titles(); break;

@@ -63,6 +63,8 @@ typedef enum enumOptions
 	OPT_FILE_LIMIT,
 	OPT_BLOCK_SIZE,
 	OPT_WDF,
+	OPT_WDF1,
+	OPT_WDF2,
 	OPT_WIA,
 	OPT_CISO,
 	OPT_WBI,
@@ -84,7 +86,7 @@ typedef enum enumOptions
 	OPT_COMPRESSION,
 	OPT_MEM,
 
-	OPT__N_SPECIFIC, // == 28 
+	OPT__N_SPECIFIC, // == 30 
 
 	//----- global options -----
 
@@ -97,11 +99,12 @@ typedef enum enumOptions
 	OPT_LOGGING,
 	OPT_IO,
 	OPT_DIRECT,
+	OPT_WDF_ALIGN,
 	OPT_TEST,
 	OPT_OLD,
 	OPT_NEW,
 
-	OPT__N_TOTAL // == 40
+	OPT__N_TOTAL // == 43
 
 } enumOptions;
 
@@ -123,6 +126,8 @@ typedef enum enumOptions
 //	OB_FILE_LIMIT		= 1llu << OPT_FILE_LIMIT,
 //	OB_BLOCK_SIZE		= 1llu << OPT_BLOCK_SIZE,
 //	OB_WDF			= 1llu << OPT_WDF,
+//	OB_WDF1			= 1llu << OPT_WDF1,
+//	OB_WDF2			= 1llu << OPT_WDF2,
 //	OB_WIA			= 1llu << OPT_WIA,
 //	OB_CISO			= 1llu << OPT_CISO,
 //	OB_WBI			= 1llu << OPT_WBI,
@@ -165,6 +170,8 @@ typedef enum enumOptions
 //				| OB_MEM,
 //
 //	OB_GRP_FILETYPE		= OB_WDF
+//				| OB_WDF1
+//				| OB_WDF2
 //				| OB_WIA
 //				| OB_CISO
 //				| OB_WBI
@@ -257,6 +264,9 @@ typedef enum enumGetOpt
 	GO_LIMIT,
 	GO_FILE_LIMIT,
 	GO_BLOCK_SIZE,
+	GO_WDF1,
+	GO_WDF2,
+	GO_WDF_ALIGN,
 	GO_WIA,
 	GO_WBI,
 	GO_AUTO_SPLIT,

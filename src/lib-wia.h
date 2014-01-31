@@ -236,7 +236,7 @@ typedef struct wia_part_t
 
     wia_part_data_t	pd[2];			// 0x10: 2 partition data segments
 						//   segment 0 is small and defined
-						//   for managment data (boot .. fst).
+						//   for management data (boot .. fst).
 						//   segment 1 takes the remaining data
 
 } __attribute__ ((packed)) wia_part_t;		// 0x30 = 48 = sizeof(wia_part_t)

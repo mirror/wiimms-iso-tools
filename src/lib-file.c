@@ -1188,12 +1188,12 @@ const OFT_info_t oft_info[OFT__N+1] =
 
     { OFT_WIA,
 	OFT_A_READ|OFT_A_CREATE|OFT_A_COMPR,
-	IOM_IS_WIA,
+	IOM_IS_COMPRESSED,
 	"WIA", "--wia", ".wia", 0, "Compressed Wii ISO Archive" },
 
     { OFT_GCZ,
 	OFT_A_READ|OFT_A_CREATE|OFT_A_COMPR,
-	IOM_IS_IMAGE,
+	IOM_IS_COMPRESSED,
 	"GCZ", "--gcz", ".gcz", 0, "Dolphins GameCube Zip" },
 
     { OFT_FST,
@@ -1333,7 +1333,7 @@ enumError XSetupAutoSplit ( XPARM File_t *f, enumOFT oft )
     if ( !opt_auto_split || f->split_f || f->fd == -1 || !S_ISREG(f->st.st_mode) )
 	return ERR_OK;
 
-    const off_t off = 0x100000000l;
+    const off_t off = 0x100000000ull;
     int stat = split_seek(f,off);
     split_seek(f,0);
     if ( stat < 2 )
@@ -1776,12 +1776,12 @@ void DefineCachedAreaISO ( File_t * f, bool head_only )
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-enumError XAnalyzeWH ( XPARM File_t * f, WDF_Head_t * wh, bool print_err )
+enumError XAnalyzeWH ( XPARM File_t * f, WDF_Header_t * wh0, bool print_err )
 {
-    ASSERT(wh);
+    DASSERT(wh0);
     TRACE("AnalyzeWH()\n");
 
-    if (memcmp(wh->magic,WDF_MAGIC,WDF_MAGIC_SIZE))
+    if (memcmp(wh0->magic,WDF_MAGIC,WDF_MAGIC_SIZE))
     {
 	TRACE(" - magic failed\n");
 	return ERR_NO_WDF;
@@ -1796,47 +1796,45 @@ enumError XAnalyzeWH ( XPARM File_t * f, WDF_Head_t * wh, bool print_err )
 		: ERR_WRONG_FILE_TYPE;
     }
 
-    const size_t wdf_head_size = AdjustHeaderWDF(wh);
+    WDF_Header_t wh;
+    FixHeaderWDF(&wh,wh0,false);
 
- #if WDF2_ENABLED
-    if ( !wh->wdf_version || wh->wdf_compatible > WDF_VERSION )
- #else
-    if ( !wh->wdf_version || wh->wdf_version > WDF_VERSION )
- #endif
+    if ( !wh.wdf_version
+	|| wh.wdf_version > WDF_MAX_VERSION && wh.wdf_compatible > WDF_MAX_VERSION )
     {
+	PRINT(" - wrong WDF version: %u,%u\n",wh.wdf_version,wh.wdf_compatible);
      #if WDF2_ENABLED
-	PRINT(" - wrong WDF version: %u,%u\n",wh->wdf_version,wh->wdf_compatible);
-     #else
-	PRINT(" - wrong WDF version: %u\n",wh->wdf_version);
-     #endif
 	return print_err
 		? PrintError( XERROR0, ERR_WDF_VERSION,
- #if WDF2_ENABLED
-			"Only WDF version 1..%u supported but not version %u.\n",
- #else
-			"Only WDF version %u supported but not version %u.\n",
- #endif
-			WDF_VERSION, wh->wdf_version )
+			"Only WDF versions 1..%u are supported but not version %u.\n",
+			WDF_MAX_VERSION, wh.wdf_version )
 		: ERR_WDF_VERSION;
+     #else
+	return print_err
+		? PrintError( XERROR0, ERR_WDF_VERSION,
+			"Only WDF version %u is supported but not version %u.\n",
+			WDF_MAX_VERSION, wh.wdf_version )
+		: ERR_WDF_VERSION;
+     #endif
     }
 
-    const u32 chunk_tab_size = wh->chunk_n * sizeof(WDF_Chunk_t);
-    if ( f->st.st_size < wh->chunk_off + WDF_MAGIC_SIZE + chunk_tab_size )
+    const u32 chunk_tab_size = wh.chunk_n * GetChunkSizeWDF(wh.wdf_version);
+    if ( f->st.st_size < wh.chunk_off + WDF_MAGIC_SIZE + chunk_tab_size )
     {
 	// file size to short -> maybe a splitted file
 	XSetupSplitFile(XCALL f,OFT_UNKNOWN,0);
     }
 
-    if ( wh->chunk_off != wh->data_size + wdf_head_size
-	|| wh->chunk_off + WDF_MAGIC_SIZE + chunk_tab_size != f->st.st_size )
+    if ( wh.chunk_off != wh.data_size + wh.head_size
+	|| wh.chunk_off + WDF_MAGIC_SIZE + chunk_tab_size != f->st.st_size )
     {
 	PRINT(" - file size error\n");
-	PRINT("   - %llx ? %llx = %llx + %zx\n",
-		(u64)wh->chunk_off, wh->data_size + wdf_head_size,
-		wh->data_size, wdf_head_size );
+	PRINT("   - %llx ? %llx = %llx + %x\n",
+		(u64)wh.chunk_off, wh.data_size + wh.head_size,
+		wh.data_size, wh.head_size );
 	PRINT("   - %llx + %x + %x = %llx ? %llx\n",
-		(u64)wh->chunk_off, WDF_MAGIC_SIZE, chunk_tab_size,
-		(u64)wh->chunk_off + WDF_MAGIC_SIZE + chunk_tab_size,
+		(u64)wh.chunk_off, WDF_MAGIC_SIZE, chunk_tab_size,
+		(u64)wh.chunk_off + WDF_MAGIC_SIZE + chunk_tab_size,
 		(u64)f->st.st_size );
 
 	return print_err

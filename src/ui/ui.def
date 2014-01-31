@@ -23,9 +23,8 @@
 #:def_cmd( "INFO", "INFO", \
 	"wit INFO [keyword]...", \
 	"Print some internal information about the keywords. If the keyword" \
-	" @ALL@ is set or no keyword is entered information for all possible" \
-	" keywords are printed. Possible keywords are: @FILE-FORMAT@ and" \
-	" @ALL@." )
+	" @ALL@ is set or no keyword is entered, then all informations are" \
+	" printed. Possible keywords are: @IMAGE-FORMAT@ and @ALL@." )
 
 #:def_cmd( "TEST", "TEST", \
 	"wit TEST [ignored]...", \
@@ -42,6 +41,13 @@
 	" {--compression} for syntax details. If no mode is given than print a" \
 	" table with all available compression modes and alternative mode" \
 	" names." )
+
+#:def_cmd( "FEATURES", "FEATURES", \
+	"wit FEATURES [feature]...", \
+	"Check, if the requested features are available. All keywords are" \
+	" possible. If no keyword is used, all supported features are printed." \
+	" The exit status is 0 for 'all features supported', 1 for 'some" \
+	" features supported' and 2 for 'no feature supported'." )
 
 #:def_cmd( "ANAID", "ANAID", \
 	"wit ANAID [id]...", \
@@ -806,7 +812,7 @@
 
 #:def_opt( "WDF", "W|wdf", "C", \
 	"", \
-	"Set image output file type to WDF (Wii Disc Format)" )
+	"Set image output file type to WDF (Wii Disc Format)." )
 
 #:def_opt( "ISO", "I|iso", "C", \
 	"", \
@@ -828,8 +834,23 @@
 
 #:def_opt( "GCZ", "G|gcz", "C", \
 	"", \
-	"Set image output file type to GCZ (Dolphins GameCube Zip).\n" \
-	"  GCZ support is EXPERIMENTAL!" )
+	"Set image output file type to GCZ (Dolphins GameCube Zip)." )
+
+#:def_opt( "GCZ_ZIP", "gcz-zip|gczzip|gczip", "G", \
+	"", \
+	"If creating a GCZ image, a blockwise z-compression is tried. If the" \
+	" compressed data is larger than 98.5%, the uncompressed data is" \
+	" stored. Encrypted blocks are stored directly as uncompressed data," \
+	" because the 98.5% test fails all the time.\n" \
+	"  Option --gcz-zip disables this optimization for encrypted data and" \
+	" makes the creation process slower." )
+
+#:def_opt( "GCZ_BLOCK", "gcz-block|gczblock", "GP", \
+	"size", \
+	"The value defines the block size, if creating a GCZ image. The" \
+	" default is 16K (also Dolphins default). Smaller values enlarge the" \
+	" managment data and reduce the compression ratio. Use the option with" \
+	" caution!" )
 
 #:def_opt( "FST", "fst", "C", \
 	"", \
@@ -982,7 +1003,8 @@
 
 #:def_cmd_opt( "INFO", "LONG", \
 	"", \
-	"Print a list, that explains the attributes." )
+	"Print additional infos, if available. For @IMAGE-FORMAT@: Print a" \
+	" list, that explains the attributes." )
 
 #:def_cmd_opt( "ERROR", "SECTIONS", \
 	"", \
@@ -1021,6 +1043,16 @@
 #:def_cmd_opt( "COMPR", "NUMERIC", \
 	"", \
 	"" )
+
+#:def_cmd_opt( "FEATURES", "QUIET", \
+	"", \
+	"If set, suppress messages about the single features. If set twice," \
+	" suppress also the summary message." )
+
+#:def_cmd_opt( "FEATURES", "VERBOSE", \
+	"", \
+	"Normally, a status line for each supported feature is printed. If" \
+	" set, print an info line for each requested feature." )
 
 #:def_cmd_opt( "ANAID", "NO_HEADER", \
 	"", \
@@ -2904,6 +2936,14 @@
 	"", \
 	"" )
 
+#:def_cmd_opt( "DIFF", "GCZ_ZIP", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "DIFF", "GCZ_BLOCK", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "DIFF", "FST", \
 	"", \
 	"" )
@@ -3113,6 +3153,14 @@
 	"" )
 
 #:def_cmd_opt( "FDIFF", "GCZ", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "FDIFF", "GCZ_ZIP", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "FDIFF", "GCZ_BLOCK", \
 	"", \
 	"" )
 
@@ -3694,6 +3742,14 @@
 	"", \
 	"" )
 
+#:def_cmd_opt( "COPY", "GCZ_ZIP", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "COPY", "GCZ_BLOCK", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "COPY", "FST", \
 	"", \
 	"" )
@@ -3955,6 +4011,14 @@
 	"" )
 
 #:def_cmd_opt( "CONVERT", "GCZ", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "CONVERT", "GCZ_ZIP", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "CONVERT", "GCZ_BLOCK", \
 	"", \
 	"" )
 
@@ -4933,9 +4997,8 @@
 #:def_cmd( "INFO", "INFO", \
 	"wit INFO [keyword]...", \
 	"Print some internal information about the keywords. If the keyword" \
-	" @ALL@ is set or no keyword is entered information for all possible" \
-	" keywords are printed. Possible keywords are: @FILE-FORMAT@ and" \
-	" @ALL@." )
+	" @ALL@ is set or no keyword is entered, then all informations are" \
+	" printed. Possible keywords are: @IMAGE-FORMAT@ and @ALL@." )
 
 #:def_cmd( "TEST", "TEST", \
 	"wwt TEST [ignored]...", \
@@ -4947,11 +5010,18 @@
 	" print a table with all error messages." )
 
 #:def_cmd( "COMPR", "COMPR", \
-	"wwt ERROR [error_code]", \
+	"wwt COMPR [error_code]", \
 	"Scan compression modes and print the normalized names. See option" \
 	" {--compression} for syntax details. If no mode is given than print a" \
 	" table with all available compression modes and alternative mode" \
 	" names." )
+
+#:def_cmd( "FEATURES", "FEATURES", \
+	"wwt FEATURES [error_code]", \
+	"Check, if the requested features are available. All keywords are" \
+	" possible. If no keyword is used, all supported features are printed." \
+	" The exit status is 0 for 'all features supported', 1 for 'some" \
+	" features supported' and 2 for 'no feature supported'." )
 
 #:def_cmd( "EXCLUDE", "EXCLUDE", \
 	"wwt EXCLUDE [additional_excludes]...", \
@@ -5753,13 +5823,33 @@
 
 #:def_opt( "WDF", "W|wdf", "C", \
 	"", \
-	"Set image output file type to WDF (Wii Disc Format)" )
+	"Set image output file type to WDF (Wii Disc Format)." )
 
 #:def_opt( "WIA", "wia", "CO", \
 	"[=compr]", \
 	"Set image output file type to WIA (Wii ISO Archive). The optional" \
 	" parameter is a compression mode and {--wia=mode} is a shortcut for" \
 	" {--wia --compression mode}." )
+
+#:def_opt( "GCZ", "gcz", "C", \
+	"", \
+	"Set image output file type to GCZ (Dolphins GameCube Zip)." )
+
+#:def_opt( "GCZ_ZIP", "gcz-zip|gczzip|gczip", "C", \
+	"", \
+	"If creating a GCZ image, a blockwise z-compression is tried. If the" \
+	" compressed data is larger than 98.5%, the uncompressed data is" \
+	" stored. Encrypted blocks are stored directly as uncompressed data," \
+	" because the 98.5% test fails all the time.\n" \
+	"  Option --gcz-zip disables this optimization for encrypted data and" \
+	" makes the creation process slower." )
+
+#:def_opt( "GCZ_BLOCK", "gcz-block|gczblock", "GP", \
+	"size", \
+	"The value defines the block size, if creating a GCZ image. The" \
+	" default is 16K (also Dolphins default). Smaller values enlarge the" \
+	" managment data and reduce the compression ratio. Use the option with" \
+	" caution!" )
 
 #:def_opt( "ISO", "I|iso", "C", \
 	"", \
@@ -5909,7 +5999,8 @@
 
 #:def_cmd_opt( "INFO", "LONG", \
 	"", \
-	"Print a list, that explains the attributes." )
+	"Print additional infos, if available. For @IMAGE-FORMAT@: Print a" \
+	" list, that explains the attributes." )
 
 #:def_cmd_opt( "ERROR", "SECTIONS", \
 	"", \
@@ -5944,6 +6035,16 @@
 #:def_cmd_opt( "COMPR", "NUMERIC", \
 	"", \
 	"" )
+
+#:def_cmd_opt( "FEATURES", "QUIET", \
+	"", \
+	"If set, suppress messages about the single features. If set twice," \
+	" suppress also the summary message." )
+
+#:def_cmd_opt( "FEATURES", "VERBOSE", \
+	"", \
+	"Normally, a status line for each supported feature is printed. If" \
+	" set, print an info line for each requested feature." )
 
 #:def_cmd_opt( "EXCLUDE", "EXCLUDE", \
 	"", \
@@ -8457,6 +8558,18 @@
 	"", \
 	"" )
 
+#:def_cmd_opt( "EXTRACT", "GCZ", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "EXTRACT", "GCZ_ZIP", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "EXTRACT", "GCZ_BLOCK", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "EXTRACT", "FST", \
 	"", \
 	"" )
@@ -9294,11 +9407,12 @@
 
 #:def_tool( "wdf", \
 	"wdf [options]... [+command] [options]... files...", \
-	"wdf is a support tool for WDF, WIA and CISO archives. It convert" \
-	" (pack and unpack), compare and dump WDF, WIA (dump and cat only) and" \
-	" CISO archives. The default command depends on the program file name" \
-	" (see command descriptions). Usual names are @wdf@, @unwdf@," \
-	" @wdf-cat@, @wdf-cmp@ and @wdf-dump@ (with or without minus signs).\n" \
+	"wdf is a support tool for WDF, WIA, CISO and GCZ images. It converts" \
+	" (packs and unpacks), compares and dumps WDF and CISO images." \
+	" Additionally it dumps WIA and GCT image and unpacks WIA images. The" \
+	" default command depends on the program file name (see command" \
+	" descriptions). Usual names are @wdf@, @unwdf@, @wdf-cat@, @wdf-cmp@" \
+	" and @wdf-dump@ (with or without minus signs).\n" \
 	"  {wdf +CAT} replaces the old tool @wdf-cat@ and {wdf +DUMP} the old" \
 	" tool @wdf-dump@." )
 
@@ -9313,11 +9427,11 @@
 
 #:def_cmd( "PACK", "+PACK|+P", \
 	"wdf +PACK [option]... files...", \
-	"Pack sources into WDF or CISO archives. This is the general default." )
+	"Pack sources into WDF or CISO images. This is the general default." )
 
 #:def_cmd( "UNPACK", "+UNPACK|+U", \
 	"wdf +UNPACK [option]... files...", \
-	"Unpack WDF, WIA and CISO archives.\n" \
+	"Unpack WDF, WIA and CISO images.\n" \
 	"  This is the default command, when the program name starts with the" \
 	" two letters @'un'@ in any case." )
 
@@ -9342,7 +9456,7 @@
 
 #:def_cmd( "DUMP", "+DUMP|+D", \
 	"wdf +DUMP [option]... files...", \
-	"Dump the data structure of WDF, WIA and CISO archives and ignore" \
+	"Dump the data structure of WDF, WIA, CISO and GCZ images and ignore" \
 	" other files.\n" \
 	"  This is the default command, when the program contains the sub" \
 	" string @'dump'@ in any case. {wdf +DUMP} replaces the old tool" \

@@ -63,9 +63,13 @@
   { T_DEF_CMD,	"INFO",		"INFO",
 		    "wit INFO [keyword]...",
 		"Print some internal information about the keywords."
-		" If the keyword @ALL@ is set or no keyword is entered"
-		" information for all possible keywords are printed."
-		" Possible keywords are: @FILE-FORMAT@ and @ALL@." },
+		" If the keyword @ALL@ is set or no keyword is entered,"
+		" then all informations are printed."
+		" Possible keywords are: @IMAGE-FORMAT@ and @ALL@." },
+
+  #define CMD_INFO_LONG \
+		"Print additional infos, if available." \
+		" For @IMAGE-FORMAT@: Print a list, that explains the attributes."
 
   { T_DEF_CMD,	"TEST",		"TEST",
 		    "wit TEST [ignored]...",
@@ -82,6 +86,14 @@
 		" See option {--compression} for syntax details."
 		" If no mode is given than print a table"
 		" with all available compression modes and alternative mode names." },
+
+  { T_DEF_CMD,	"FEATURES",	"FEATURES",
+		    "wit FEATURES [feature]...",
+		"Check, if the requested features are available."
+		" All keywords are possible."
+		" If no keyword is used, all supported features are printed."
+		" The exit status is 0 for 'all features supported',"
+		" 1 for 'some features supported' and 2 for 'no feature supported'." },
 
   { T_DEF_CMD,	"ANAID",	"ANAID",
 		    "wit ANAID [id]...",
@@ -997,29 +1009,27 @@
 
   { T_OPT_C,	"WDF",		"W|wdf",
 		0,
-		"Set image output file type to WDF (Wii Disc Format)" },
+		"Set image output file type to WDF (Wii Disc Format)." },
+		//" WDF v1 is the default." },				// [[wdf2]]
 
- #if WDF2_ENABLED > 1
+  { H_OPT_CO,	"WDF1",		"wdf1",					// [[wdf2]]
+		"[=align]",
+		"Set image output file type to WDF and force version 1."
+		" {--wdf1=align} is a shortcut for {--wdf1 --wdf-align=align}." },
 
-  { T_OPT_C,	"WDF1",		"wdf1",
-		0,
-		"Set image output file type to WDF and force version 1." },
-
-  { T_OPT_CO,	"WDF2",		"wdf2",
+  { H_OPT_CO,	"WDF2",		"wdf2",					// [[wdf2]]
 		"[=align]",
 		"Set image output file type to WDF and force version 2."
 		" {--wdf2=align} is a shortcut for {--wdf2 --wdf-align=align}." },
 
-  { T_OPT_GP,	"WDF_ALIGN",	"wdf-align|wdfalign",
+  { H_OPT_GP,	"WDF_ALIGN",	"wdf-align|wdfalign",			// [[wdf2]]
 		"align",
-		"Set the default WDF output version and align factor."
-		" @mode@ must be a power of 2 and smaller or equal than "
-		WDF_MAX_ALIGN_TEXT ". The default WDF alignment is "
-		WDF_ALIGN_TEXT "."
-		" Usual values are 1, 512, 4K and 32K."
-		" Mode 0 set WDF v1, all other modes WDF v2." },
-
- #endif // WDF2_ENABLED > 1
+		"Define the aligning factor for new WDF images."
+		" @align@ must be a power of 2 and smaller or equal than "
+		WDF_MAX_ALIGN_TEXT "."
+		" The default WDF alignment is 1 for WDF v1 and "
+		WDF_DEF_ALIGN_TEXT " for WDF v2 and above."
+		" Usual values are 1, 512, 4K and 32K." },
 
   { T_OPT_C,	"ISO",		"I|iso",
 		0,
@@ -1041,9 +1051,26 @@
 
   { T_OPT_C,	"GCZ",		"G|gcz",
 		0,
-		"Set image output file type to GCZ (Dolphins GameCube Zip)."
+		"Set image output file type to GCZ (Dolphins GameCube Zip)." },
+
+  { T_OPT_G,	"GCZ_ZIP",	"gcz-zip|gczzip|gczip",
+		0,
+		"If creating a GCZ image, a blockwise z-compression is tried."
+		" If the compressed data is larger than 98.5%,"
+		" the uncompressed data is stored."
+		" Encrypted blocks are stored directly as uncompressed data,"
+		" because the 98.5% test fails all the time."
 		"\n "
-		" GCZ support is EXPERIMENTAL!" }, // [[gcz]]
+		" Option --gcz-zip disables this optimization for encrypted data"
+		" and makes the creation process slower." },
+
+  { T_OPT_GP,	"GCZ_BLOCK",	"gcz-block|gczblock",
+		"size",
+		"The value defines the block size, if creating a GCZ image."
+		" The default is 16K (also Dolphins default)."
+		" Smaller values enlarge the managment data and"
+		" reduce the compression ratio."
+		" Use the option with caution!" },
 
   { T_OPT_C,	"FST",		"fst",
 		0,
@@ -1271,11 +1298,9 @@
   { T_GRP_BEG,	"OUTMODE_EDIT",	0,0,0 },
 
   { T_COPT,	"WDF",		0,0,0 },
-#if WDF2_ENABLED > 1
-  { T_COPT,	"WDF1",		0,0,0 },
-  { T_COPT,	"WDF2",		0,0,0 },
-  { T_COPT,	"WDF_ALIGN",	0,0,0 },
-#endif
+  { H_COPT,	"WDF1",		0,0,0 }, // [[wdf2]]
+  { H_COPT,	"WDF2",		0,0,0 }, // [[wdf2]]
+  { H_COPT,	"WDF_ALIGN",	0,0,0 }, // [[wdf2]]
   { T_COPT,	"ISO",		0,0,0 },
   { T_COPT,	"CISO",		0,0,0 },
   { T_COPT,	"WBFS",		0,0,0 },
@@ -1287,6 +1312,8 @@
   { T_COPY_GRP,	"OUTMODE_EDIT",	0,0,0 },
   { T_COPT,	"WIA",		0,0,0 },
   { T_COPT,	"GCZ",		0,0,0 },
+  { T_COPT,	"GCZ_ZIP",	0,0,0 },
+  { T_COPT,	"GCZ_BLOCK",	0,0,0 },
 
   //---------- wit GROUP OUTMODE_FST ----------
 
@@ -1403,8 +1430,7 @@
   { T_CMD_BEG,	"INFO",		0,0,0 },
 
   { T_COPT,	"SECTIONS",	0,0,0 },
-  { T_COPT,	"LONG",		0,0,
-	"Print a list, that explains the attributes." },
+  { T_COPT,	"LONG",		0,0, CMD_INFO_LONG },
 
   //---------- COMMAND wit TEST ----------
 
@@ -1435,6 +1461,17 @@
 	"Print always compression level and chunk size factor."
 	" Standard is to suppress these values if not explicitly set." },
   { T_COPT,	"NUMERIC",	0,0,0 },
+
+  //---------- COMMAND wit FEATURES ----------
+
+  { T_CMD_BEG,	"FEATURES",	0,0,0 },
+
+  { T_COPT,	"QUIET",	0,0,
+	"If set, suppress messages about the single features."
+	" If set twice, suppress also the summary message." },
+  { T_COPT,	"VERBOSE",	0,0,
+	"Normally, a status line for each supported feature is printed."
+	" If set, print an info line for each requested feature." },
 
   //---------- COMMAND wit ANAID ----------
 

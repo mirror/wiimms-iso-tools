@@ -316,6 +316,23 @@ wit v2.25a r4825 - 2014-01-03
  - Windows only: Cygwin update to v1.7.27 2013-12-09.
 
 
+wit v2.26a r4863 - 2014-01-22
+
+ - Bug fix: Because of a bug after implementing the auto split detection,
+   reading source images failed, if using stdin for parameters.
+ - Support for Dolphins file format GCZ (GameCube Zip):
+    - All commands detect and accept GCZ files as input file.
+    - Creating of GCZ files is also supported, but EXPERIMENTAL until final
+      tests have been done.
+    - New option --gcz force GCZ output.
+    - Patching of GCZ files is not possible, because the GCZ file structure
+      doesn't allow modifications (size of compressed data must not change).
+    - Composing an image to a GCZ file is not possible, because it needs
+      patching checksums and header after writing the complete image.
+   The GCZ support is very new, so please use it only with backups of your
+   images and don't be anger, if it destroy something.
+
+
 @@MODULE(last-history.txt)@@
 
 ~

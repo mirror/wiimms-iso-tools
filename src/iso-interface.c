@@ -211,7 +211,8 @@ static int dump_header
 	    dump_size(f,indent,buf,real_size,virt_size,scrubbed_size,0);
 	}
 	if (sf->wbfs_fragments)
-	    fprintf(f,"%*sWBFS fragments:    1+%u = a ratio of %4.2f additional_fragments/GiB\n",
+	    fprintf(f,"%*sWBFS fragments:    1+%u"
+			" = a ratio of %4.2f additional_fragments/GiB\n",
 			indent,"", sf->wbfs_fragments-1,
 			(sf->wbfs_fragments-1) * (double)(GiB) / scrubbed_size );
     }
@@ -3038,7 +3039,10 @@ enumError CreateFileFST ( WiiFstInfo_t *wfi, ccp dest_path, WiiFstFile_t * file 
 		break;
 
 	    size -= read_size;
-	    off4 += read_size>>2;
+	    if (part->part->is_gc)
+		off4 += read_size;
+	    else
+		off4 += read_size >> 2;
 
 	    //----- progress
 

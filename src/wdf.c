@@ -57,7 +57,6 @@
 
 ///////////////////////////////////////////////////////////////////////////////
 
-// [[2do]] [[GCZ]] unsure, if tool wdf should support GCZ
 typedef enum FileMode { FMODE_WDF, FMODE_WIA, FMODE_CISO, FMODE_WBI } FileMode;
 ccp file_mode_name[] = { ".wdf", ".wia", ".ciso", ".wbi", 0 };
 enumOFT file_mode_oft[] = { OFT_WDF, OFT_WIA, OFT_CISO, OFT_CISO, 0 };
@@ -424,6 +423,8 @@ enumError CatWDF ( ccp fname, SuperFile_t * fo, ccp out_fname,
 	return ERR_OK;
     }
 
+    //--- wdf
+
     SuperFile_t fo_local;
     if ( !err && !fo )
     {
@@ -446,7 +447,7 @@ enumError CatWDF ( ccp fname, SuperFile_t * fo, ccp out_fname,
 		break;
 	    }
 
-	    WDF_Chunk_t *wc = fi.wc + i;
+	    WDF2_Chunk_t *wc = fi.wc + i;
 	    u64 zero_count = wc->file_pos - last_off;
 	    if ( zero_count > 0 )
 	    {
@@ -880,6 +881,113 @@ enumError wia_dump ( FILE *f, File_t *df, ccp fname )
 
 ///////////////////////////////////////////////////////////////////////////////
 
+enumError gcz_dump ( FILE *f, GCZ_Head_t * gh1, File_t *df, ccp fname )
+{
+    ASSERT(gh1);
+    ASSERT(df);
+    ASSERT(fname);
+
+    if (testmode)
+    {
+	fprintf(f," - WOULD dump GCZ %s\n",fname);
+	ResetFile(df,false);
+	return ERR_OK;
+    }
+
+    GCZ_Head_t gh;
+    const bool valid = IsValidGCZ(gh1,sizeof(*gh1),df->st.st_size,&gh);
+
+    fprintf(f,"\nGCZ dump of file %s\n\n",fname);
+    if (!valid)
+	fprintf(f,"  ** Invalid image! **\n\n");
+    else if ( gh.block_size != GCZ_DEF_BLOCK_SIZE )
+	fprintf(f,"  ** Not standard block size (%s)! **\n\n",
+		wd_print_size_1024(0,0,gh.block_size,false) );
+
+    fprintf(f,
+	"  Magic:             %08x\n"
+	"  GCZ type:        %10u\n"
+	"  Compressed size: %10llu = %9llx/hex\n"
+	"  Image size:      %10llu = %9llx/hex\n"
+	"  Block size:      %10u = %9x/hex\n"
+	"  Number of blocks:%10u = %9x/hex\n"
+	,gh.magic
+	,gh.sub_type
+	,gh.compr_size ,gh.compr_size
+	,gh.image_size ,gh.image_size
+	,gh.block_size ,gh.block_size
+	,gh.num_blocks ,gh.num_blocks
+	);
+
+    const uint list_size = 12 * gh.num_blocks;
+    u64 *offset = MALLOC(list_size);
+    //u32 *checksum = (u32*)(offset+gh.num_blocks);
+    enumError stat = ReadAtF(df,sizeof(gh),offset,list_size);
+    if (stat)
+	return stat;
+
+    u64 compr_size = 0;
+    uint blk, n_compr = 0, n_zero = 0;
+    for ( blk = 0; blk < gh.num_blocks; blk++ )
+    {
+	s64 blk_off  = le64(offset+blk);
+	u32 blk_size = ( blk == gh.num_blocks - 1
+				? gh.compr_size
+				: le64(offset+blk+1) ) - blk_off;
+
+	if ( blk_size == 39 && gh.block_size == GCZ_DEF_BLOCK_SIZE )
+	{
+	    n_zero++;
+	    //printf("zero: %5x %u\n",blk,blk_size);
+	}
+	else if ( blk_off >= 0 )
+	{
+	    n_compr++;
+	    compr_size += blk_size;
+	    //printf("compr: %5x\n",blk);
+	}
+    }
+
+    uint n_uncompr = gh.num_blocks - n_compr - n_zero;
+    uint ave = n_compr ? compr_size /  n_compr : 0;
+    fprintf(f,"     uncompressed: %10u = %9x/hex\n",n_uncompr,n_uncompr);
+    if (n_zero)
+	fprintf(f,"     zero filled:  %10u = %9x/hex\n",n_zero,n_zero);
+    fprintf(f,
+	"     compressed:   %10u = %9x/hex\n"
+	"  Average compr.size:%8u = %9x/hex\n"
+	"\n"
+	,n_compr ,n_compr
+	,ave, ave
+	);
+
+    ResetFile(df,false);
+    return ERR_OK;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+
+static u64 PrintAlignWC ( FILE *f, ccp title, u64 num )
+{
+    uint m;
+    if ( num)
+    {
+	m = 1;
+	while (!(num&m))
+	    m <<= 1;
+    }
+    else
+	m = 0;
+
+    fprintf(f,"    %-17s : %s\n",
+		title,
+		m ? wd_print_size_1024(0,0,m,true) : "   0" );
+    return m;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
 enumError wdf_dump ( FILE *f, ccp fname )
 {
     ASSERT(fname);
@@ -890,7 +998,7 @@ enumError wdf_dump ( FILE *f, ccp fname )
     if (err)
 	return err;
 
-    WDF_Head_t wh;
+    WDF_Header_t wh;
     const int CISO_MAGIC_SIZE = 4;
     ASSERT( CISO_MAGIC_SIZE < sizeof(wh) );
     err = ReadAtF(&df,0,&wh,CISO_MAGIC_SIZE);
@@ -913,6 +1021,20 @@ enumError wdf_dump ( FILE *f, ccp fname )
 	return ciso_dump(f,&ch,&df,fname);
     }
 
+    if ( le32(&wh) == GCZ_MAGIC_NUM )
+    {
+	GCZ_Head_t gh;
+	const uint magic_size = 4;
+	memcpy(&gh,&wh,magic_size);
+	err = ReadAtF(&df,magic_size,(char*)&gh+magic_size,sizeof(gh)-magic_size);
+	if (err)
+	{
+	    ResetFile(&df,false);
+	    return err;
+	}
+	return gcz_dump(f,&gh,&df,fname);
+    }
+
     if (!memcmp(&wh,WIA_MAGIC,WIA_MAGIC_SIZE))
 	return wia_dump(f,&df,fname);
 
@@ -923,26 +1045,25 @@ enumError wdf_dump ( FILE *f, ccp fname )
 	return ERR_OK;
     }
 
+    //---------------
+
     fprintf(f,"\nWDF dump of file %s\n",fname);
 
-    err = ReadAtF(&df,CISO_MAGIC_SIZE,(char*)&wh+CISO_MAGIC_SIZE,sizeof(wh)-CISO_MAGIC_SIZE);
+    err = ReadAtF(&df,CISO_MAGIC_SIZE,(char*)&wh+CISO_MAGIC_SIZE,
+			sizeof(wh)-CISO_MAGIC_SIZE);
     if (err)
     {
 	ResetFile(&df,false);
 	return err;
     }
 
+    WDF_Header_t wh_fixed;
     ConvertToHostWH(&wh,&wh);
-    if ( wh.wdf_version == 1 )
-    {
-	wh.wdf_compatible	= 1;
-	wh.wdf_head_size	= WDF_VERSION1_SIZE;
-	wh.align_factor		= 0;
-	wh.chunk_size_factor	= 0;
-    }
+    const bool fixed = FixHeaderWDF(&wh_fixed,&wh,true);
     AnalyzeWH(&df,&wh,false); // needed for splitting support!
 
-    fprintf(f,"\n  Header:\n\n");
+    fprintf(f,"\n  File header:\n");
+
     u8 * m = (u8*)wh.magic;
     fprintf(f,"    %-18s: \"%s\"  %02x %02x %02x %02x  %02x %02x %02x %02x\n",
 		"Magic",
@@ -955,41 +1076,63 @@ enumError wdf_dump ( FILE *f, ccp fname )
 	return ERROR0(ERR_WDF_INVALID,"Wrong magic: %s\n",fname);
     }
 
-    const int head_size = AdjustHeaderWDF(&wh);
-
     #undef PRINT32
     #undef PRINT64
-    #undef RANGE
-    #define PRINT32(a) fprintf(f,"    %-18s: %10x/hex =%11d\n",#a,wh.a,wh.a)
-    #define PRINT64(a) fprintf(f,"    %-18s: %10llx/hex =%11lld\n",#a,wh.a,wh.a)
+    #undef PRINT32F
+    #define PRINT32(a,t) fprintf(f,"    %-18s: %10x/hex =%11d\n",t,wh.a,wh.a)
+    #define PRINT64(a,t) fprintf(f,"    %-18s: %10llx/hex =%11lld\n",t,wh.a,wh.a)
+    #define PRINT32F(a,t) if (wh_fixed.a!=wh.a) \
+		fprintf(f,"    %-18s: %10x/hex =%11d\n",t,wh_fixed.a,wh_fixed.a)
 
-    PRINT32(wdf_version);
-    PRINT32(wdf_compatible);
-    PRINT32(wdf_head_size);
-    PRINT32(align_factor);
-    PRINT64(file_size);
+    PRINT32(wdf_version,	"WDF version");
+    PRINT32(wdf_compatible,	"WDF compatible");
+    PRINT32(head_size,		"Head size");
+    PRINT32(align_factor,	"Alignment factor");
+    PRINT64(file_size,		"Image size");
     fprintf(f,"    %-18s: %10llx/hex =%11lld  %4.2f%%\n",
-		" - WDF file size ",
-		(u64)df.st.st_size, (u64)df.st.st_size,  100.0 * df.st.st_size / wh.file_size );
-    PRINT64(data_size);
-    PRINT32(chunk_size_factor);
-    PRINT32(chunk_n);
-    PRINT64(chunk_off);
+		"  WDF file size ",
+		(u64)df.st.st_size, (u64)df.st.st_size,
+		100.0 * df.st.st_size / wh.file_size );
+    PRINT64(data_size,	"Data size");
+    PRINT32(reserved,	"-reserved-");
+    PRINT32(chunk_n,	"Number of chunks");
+    PRINT64(chunk_off,	"Chunk data offset");
+
+    const uint chunk_entry_size = GetChunkSizeWDF(wh.wdf_version);
+    const uint chunk_table_size = chunk_entry_size * wh.chunk_n;
+
+    fprintf(f,"    %-18s: %10x/hex =%11d\n",
+		" Chunk entry size", chunk_entry_size, chunk_entry_size );
+    fprintf(f,"    %-18s: %10x/hex =%11d\n",
+		" Chunk table size", chunk_table_size, chunk_table_size );
 
     //--------------------------------------------------
 
-    fprintf(f,"\n  File Parts:\n\n");
+    if (fixed)
+    {
+	fprintf(f,"\n  Auto fixed header:\n");
+
+	PRINT32F(wdf_version,	"WDF version");
+	PRINT32F(wdf_compatible,"WDF compatible");
+	PRINT32F(head_size,	"Head size");
+	PRINT32F(align_factor,	"Alignment factor");
+	PRINT32F(reserved,	"-reserved-");
+
+	memcpy(&wh,&wh_fixed,sizeof(wh));
+    }
+
+    //--------------------------------------------------
+
+    fprintf(f,"\n  Memory map of file:\n");
 
     int ec = 0; // error count
     prev_val = 0;
 
-    const int chunk_size = wh.chunk_n*sizeof(WDF_Chunk_t);
-
-    ec += print_range(f, "Header",	head_size,			head_size );
+    ec += print_range(f, "Header",	wh.head_size,			wh.head_size );
     ec += print_range(f, "Data",	wh.chunk_off,			wh.data_size );
-    ec += print_range(f, "Chunk-Magic",	wh.chunk_off+WDF_MAGIC_SIZE,	WDF_MAGIC_SIZE );
-    ec += print_range(f, "Chunk-Table",	df.st.st_size,			chunk_size );
-    fprintf(f,"\n");
+    ec += print_range(f, "Chunk magic",	wh.chunk_off+WDF_MAGIC_SIZE,	WDF_MAGIC_SIZE );
+    ec += print_range(f, "Chunk table",	df.st.st_size,			chunk_table_size );
+    fputc('\n',f);
 
     if (ec)
     {
@@ -1000,7 +1143,7 @@ enumError wdf_dump ( FILE *f, ccp fname )
     if ( wh.chunk_n > 1000000 )
     {
 	ResetFile(&df,false);
-	return ERROR0(ERR_INTERNAL,"Too much chunk enties: %s\n",fname);
+	return ERROR0(ERR_INTERNAL,"Too many chunk entries: %s\n",fname);
     }
 
     //--------------------------------------------------
@@ -1019,26 +1162,52 @@ enumError wdf_dump ( FILE *f, ccp fname )
 	return ERROR0(ERR_WDF_INVALID,"Wrong chunk table magic: %s\n",fname);
     }
 
-    WDF_Chunk_t *w, *wc = MALLOC(chunk_size);
-    err = ReadF(&df,wc,chunk_size);
+    u8 *wc_data =  MALLOC(chunk_table_size);
+    err = ReadF(&df,wc_data,chunk_table_size);
     if (err)
     {
 	ResetFile(&df,false);
-	FREE(wc);
-	return ERROR0(ERR_READ_FAILED,"ReadF error: %s\n",fname);
+	FREE(wc_data);
+	return ERROR0(ERR_READ_FAILED,"Can't read chunk table: %s\n",fname);
     }
+
+    WDF2_Chunk_t *wc = (WDF2_Chunk_t*)wc_data;
+    ConvertToHostWC(wc,wc_data,wh.wdf_version,wh.chunk_n);
+
+    u64 align_data_off = 0, align_data_size = 0, align_file_pos = 0;
+    int idx;
+    WDF2_Chunk_t *w;
+    for ( idx = 0, w = wc; idx < wh.chunk_n; idx++, w++ )
+    {
+	align_data_off  |= w->data_off;
+	align_data_size |= w->data_size;
+	align_file_pos  |= w->file_pos;
+    }
+
+    //--------------------------------------------------
+
+    fprintf(f,"  Data alignments:\n");
+
+    PrintAlignWC(f,"WDF header",	wh.align_factor);
+    PrintAlignWC(f,"Calculated",	align_data_off | align_data_size | align_file_pos );
+    PrintAlignWC(f," Data offset+size",	align_data_off | align_data_size );
+    PrintAlignWC(f,"  Data offset",	align_data_off );
+    PrintAlignWC(f,"  Data size",	align_data_size  );
+    PrintAlignWC(f," File offset+size",	align_file_pos | align_data_size );
+    PrintAlignWC(f,"  File offset",	align_file_pos );
+    fputc('\n',f);
+
+    //--------------------------------------------------
 
     if (opt_chunk)
     {
 	fprintf(f,
-	    "  Chunk Table:\n\n"
+	    "  Chunk Table (hex values):\n\n"
 	    "    idx        WDF file offset  data len     virtual ISO offset  hole size\n"
 	    "   ------------------------------------------------------------------------\n");
 
 	int idx;
-	for ( idx = 0, w = wc; idx < wh.chunk_n; idx++, w++ )
-	    ConvertToHostWC(w,w);
-
+	WDF2_Chunk_t *w;
 	for ( idx = 0, w = wc; idx < wh.chunk_n; idx++, w++ )
 	{
 	    fprintf(f,"%6d. %10llx..%10llx %9llx %10llx..%10llx  %9llx\n",
@@ -1046,12 +1215,13 @@ enumError wdf_dump ( FILE *f, ccp fname )
 		    w->data_off, w->data_off + w->data_size-opt_minus1,
 		    w->data_size,
 		    w->file_pos, w->file_pos + w->data_size - opt_minus1,
-		    idx+1 < wh.chunk_n ? w[1].file_pos - w->file_pos - w->data_size : 0llu );
+		    idx+1 < wh.chunk_n
+			    ? w[1].file_pos - w->file_pos - w->data_size : 0llu );
 	}
-
 	putchar('\n');
     }
 
+    FREE(wc_data);
     ResetFile(&df,false);
     return ERR_OK;
 }
@@ -1106,18 +1276,16 @@ enumError CheckOptions ( int argc, char ** argv )
 	case GO_MINUS1:		opt_minus1 = 1; break;
 
 	case GO_WDF:		file_mode = FMODE_WDF; break;
+	case GO_WDF1:		file_mode = FMODE_WDF; SetWDF2Mode(1,optarg); break;
+	case GO_WDF2:		file_mode = FMODE_WDF; SetWDF2Mode(2,optarg); break;
+	case GO_WDF_ALIGN:	err += ScanOptWDFAlign(optarg); break;
+
 	case GO_WIA:		file_mode = FMODE_WIA;
 					err += ScanOptCompression(false,optarg);
 					break;
 	case GO_CISO:		file_mode = FMODE_CISO; break;
 	case GO_WBI:		file_mode = FMODE_WBI; break;
 	case GO_SUFFIX:		opt_suffix = optarg; break;
-
-    #if WDF2_ENABLED > 1
-	case GO_WDF1:		file_mode = FMODE_WDF; SetWDF2Mode(1,0); break;
-	case GO_WDF2:		file_mode = FMODE_WDF; SetWDF2Mode(2,optarg); break;
-	case GO_WDF_ALIGN:	err += ScanOptWDFAlign(optarg); break;
-    #endif
 
 	case GO_DEST:		SetDest(optarg,false); break;
 	case GO_DEST2:		SetDest(optarg,true); break;

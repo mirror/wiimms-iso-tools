@@ -41,9 +41,9 @@
 
   { T_DEF_TOOL,	"wdf", 0,
 		"wdf [options]... [+command] [options]... files...",
-		"wdf is a support tool for WDF, WIA and CISO archives."
-		" It convert (pack and unpack), compare"
-		" and dump WDF, WIA (dump and cat only) and CISO archives."
+		"wdf is a support tool for WDF, WIA, CISO and GCZ images."
+		" It converts (packs and unpacks), compares and dumps WDF and CISO images."
+		" Additionally it dumps WIA and GCT image and unpacks WIA images."
 		" The default command depends on the program file name"
 		" (see command descriptions). Usual names are"
 		" @wdf@, @unwdf@, @wdf-cat@, @wdf-cmp@ and @wdf-dump@"
@@ -69,12 +69,12 @@
 
   { T_DEF_CMD,	"PACK",		"+PACK|+P",
 		    "wdf +PACK [option]... files...",
-		"Pack sources into WDF or CISO archives."
+		"Pack sources into WDF or CISO images."
 		" This is the general default." },
 
   { T_DEF_CMD,	"UNPACK",	"+UNPACK|+U",
 		    "wdf +UNPACK [option]... files...",
-		"Unpack WDF, WIA and CISO archives."
+		"Unpack WDF, WIA and CISO images."
 		"\n "
 		" This is the default command, when the program name"
 		" starts with the two letters @'un'@ in any case." },
@@ -104,7 +104,7 @@
 
   { T_DEF_CMD,	"DUMP",		"+DUMP|+D",
 		    "wdf +DUMP [option]... files...",
-		"Dump the data structure of WDF, WIA and CISO archives"
+		"Dump the data structure of WDF, WIA, CISO and GCZ images"
 		" and ignore other files."
 		"\n "
 		" This is the default command, when the program"
@@ -178,25 +178,21 @@
 		" and set the default suffix to @'.wdf'@."
 		" This is the general default." },
 
- #if WDF2_ENABLED > 1
-
-  { T_OPT_C,	"WDF1",		"wdf1",
-		0,
-		"Force WDF output mode if packing, use WDF v1,"
-		" and set the default suffix to @'.wdf'@." },
-
-  { T_OPT_CO,	"WDF2",		"wdf2",
+  { H_OPT_CO,	"WDF1",		"wdf1",					// [[wdf2]]
 		"[=align]",
-		"Force WDF output mode if packing,"
-		" use WDF v2 with align factor 1,"
-		" and set the default suffix to @'.wdf'@."
+		"Force WDF v1 output mode, if packing."
+		" Set the default suffix to @'.wdf'@."
+		" {--wdf1=align} is a shortcut for {--wdf1 --wdf-align=align}." },
+
+  { H_OPT_CO,	"WDF2",		"wdf2",					// [[wdf2]]
+		"[=align]",
+		"Force WDF v2 output mode, if packing."
+		" Set the default suffix to @'.wdf'@."
 		" {--wdf2=align} is a shortcut for {--wdf2 --wdf-align=align}." },
 
-  { T_OPT_GP,	"WDF_ALIGN",	"wdf-align|wdfalign",
+  { H_OPT_GP,	"WDF_ALIGN",	"wdf-align|wdfalign",			// [[wdf2]]
 		0, 0 /* copy of wit */ },
 		
- #endif // WDF2_ENABLED > 1
-
   { T_OPT_CO,	"WIA",		"wia",
 		"[=compr]",
 		"Force WIA output mode if packing"
@@ -335,11 +331,9 @@
   { T_GRP_BEG,	"FILETYPE",	0,0,0 },
 
   { T_COPT,	"WDF",		0,0,0 },
-#if WDF2_ENABLED > 1
-  { T_COPT,	"WDF1",		0,0,0 },
-  { T_COPT,	"WDF2",		0,0,0 },
-  { T_COPT,	"WDF_ALIGN",	0,0,0 },
-#endif
+  { H_COPT,	"WDF1",		0,0,0 }, // [[wdf2]]
+  { H_COPT,	"WDF2",		0,0,0 }, // [[wdf2]]
+  { H_COPT,	"WDF_ALIGN",	0,0,0 }, // [[wdf2]]
   { T_COPT,	"WIA",		0,0,0 },
   { T_COPT,	"CISO",		0,0,0 },
   { T_COPT,	"WBI",		0,0,0 },

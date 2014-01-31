@@ -331,6 +331,7 @@ are listed in alphabetic order:
     WDF+ISO  : A ISO image shrinked with WDF.
     WDF      : Any other WDF file (not WBFS or ISO)
     WIA      : A ISO image packed into the WIA (Wii ISO Archive). 
+    GCZ      : Dolphins GameCup-Zip images.
     OTHER    : Any other file
 
  Remark: The test for WBFS is poor and must be improved.

@@ -150,12 +150,14 @@ tempdir="$(mktemp -d ./.$base.tmp.XXXXXX)" || exit 1
 WBFS_FILE=a.wbfs
 WBFS="$tempdir/$WBFS_FILE"
 
-WIALIST=$(echo $($WIT compr | sed 's/^/wia-/'))
-MODELIST="iso wdf $WIALIST ciso gcz wbfs"
-BASEMODE="wdf"
+#WIALIST=$(echo $($WIT compr | sed 's/^/wia-/'))
+WIALIST=$($WIT compr | sed 's/^/wia-/')
+WDFLIST=$($WIT features wdf1 wdf2 | awk '/^+/ {print $2}' | tr 'A-Z' 'a-z')
+MODELIST="iso $WDFLIST $WIALIST ciso gcz wbfs"
+BASEMODE="wdf1"
 
-FAST_MODELIST="wdf"
-FAST_BASEMODE="wdf"
+FAST_MODELIST="$WDFLIST"
+FAST_BASEMODE="wdf1"
 
 NOVERIFY=0
 NOFST=0

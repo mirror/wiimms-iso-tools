@@ -1,18 +1,21 @@
 wit v@@VERSION@@ r@@REV-NEXT@@ - @@@@-@@-@@
 
- - Bug fix: Because of a bug after implementing the auto split detection,
-   reading source images failed, if using stdin for parameters.
- - Support for Dolphins file format GCZ (GameCube Zip):
-    - All commands detect and accept GCZ files as input file.
-    - Creating of GCZ files is also supported, but EXPERIMENTAL until final
-      tests have been done.
-    - New option --gcz force GCZ output.
-    - Patching of GCZ files is not possible, because the GCZ file structure
-      doesn't allow modifications (size of compressed data must not change).
-    - Composing an image to a GCZ file is not possible, because it needs
-      patching checksums and header after writing the complete image.
-   The GCZ support is very new, so please use it only with backups of your
-   images and don't be anger, if it destroy something.
+ - Bug fix: If extracting a GameCube image, files larger than 4 MiB are
+   damaged at beginning of this 4 MiB offset.
+ - New feature: If creating a GCZ image, a blockwise z-compression is tried.
+   If the compressed data is larger than 98.5%, the uncompressed data is
+   stored. New is, that encrypted blocks are stored directly as uncompressed
+   data, because encrypted are very bad compression candidates and the 98.5%
+   test fails all the time. This makes GCZ creation faster. The new option
+   --gcz-zip disables this optimization for encrypted data.
+ - New option: --gcz-block=size: Define the block size for GCZ creation. The
+   default size is 16K (also Dolphins default).
+ - Tool 'wdf' supports info dumps of GCZ files to verify the GCZ creation.
+ - New command for wit+wwt: FEATURES: Print a list of supported features. The
+   output is machine readable. Scripts may use "wit features -qq" and check
+   the exit status.
+~ - Reading support for the comming WDF v2. Details: http://wit.wiimm.de/WDF
+~   Writing support will follow, if EDIT is implemented too.
 
 ~
 ~Known bugs:

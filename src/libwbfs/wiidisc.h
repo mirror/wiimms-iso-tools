@@ -224,9 +224,9 @@ typedef enum wd_sector_status_t
 {
     //----- cleared status
 
-    WD_SS_HASH_CLEARED		= 0x0001,   // hash area cleard with any constant
-    WD_SS_DATA_CLEARED		= 0x0002,   // data area cleard with any constant
-    WD_SS_SECTOR_CLEARED	= 0x0004,   // complete sector cleard with any constant
+    WD_SS_HASH_CLEARED		= 0x0001,   // hash area cleared with any constant
+    WD_SS_DATA_CLEARED		= 0x0002,   // data area cleared with any constant
+    WD_SS_SECTOR_CLEARED	= 0x0004,   // complete sector cleared with any constant
 					    // if set: WD_SS_HASH_CLEARED
 					    //	     & WD_SS_DATA_CLEARED are set too
 
@@ -289,7 +289,7 @@ typedef enum wd_scrubbed_t // scrubbing mode
 typedef enum wd_usage_t // usage table values
 {
     WD_USAGE_UNUSED,		// block is not used, always = 0
-    WD_USAGE_DISC,		// block is used for disc managment
+    WD_USAGE_DISC,		// block is used for disc management
     WD_USAGE_PART_0,		// index for first partition
 
     WD_USAGE__MASK	= 0x7f,	// mask for codes above
@@ -567,6 +567,7 @@ typedef struct wd_part_t
     struct wd_disc_t	* disc;		// pointer to disc
     wd_memmap_t		patch;		// patching data
 
+
     //----- partition status
 
     bool		is_loaded;	// true if this partition info was loaded
@@ -579,6 +580,7 @@ typedef struct wd_part_t
 
     wd_sector_status_t	sector_stat;	// sector status: OR'ed for different sectors
     bool		scrub_test_done;// true if scrubbing test already done
+
 
     //----- to do status
 
@@ -947,7 +949,7 @@ enumError wd_read_raw
     u32			disc_offset4,	// disc offset/4
     void		* dest_buf,	// destination buffer
     u32			read_size,	// number of bytes to read 
-    wd_usage_t		usage_id	// not 0: mark usage usage_tab with this value
+    wd_usage_t		usage_id	// not 0: mark usage usage_table with this value
 );
 
 //-----------------------------------------------------------------------------

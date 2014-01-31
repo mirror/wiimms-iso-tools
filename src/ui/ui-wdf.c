@@ -99,6 +99,18 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 	" '.wdf'. This is the general default."
     },
 
+    {	OPT_WDF1, 0, "wdf1",
+	"[=align]",
+	"Force WDF v1 output mode, if packing. Set the default suffix to"
+	" '.wdf'. --wdf1=align is a shortcut for '--wdf1 --wdf-align=align'."
+    },
+
+    {	OPT_WDF2, 0, "wdf2",
+	"[=align]",
+	"Force WDF v2 output mode, if packing. Set the default suffix to"
+	" '.wdf'. --wdf2=align is a shortcut for '--wdf2 --wdf-align=align'."
+    },
+
     {	OPT_WIA, 0, "wia",
 	"[=compr]",
 	"Force WIA output mode if packing and set the default suffix to"
@@ -284,7 +296,7 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 	" to 80% of the total memory minus 50 MiB."
     },
 
-    {0,0,0,0,0}, // OPT__N_SPECIFIC == 28
+    {0,0,0,0,0}, // OPT__N_SPECIFIC == 30
 
     //----- global options -----
 
@@ -341,6 +353,14 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 	">>> DIRECT IO IS EXPERIMENTAL! <<<"
     },
 
+    {	OPT_WDF_ALIGN, 0, "wdf-align",
+	"align",
+	"Define the aligning factor for new WDF images. align must be a power"
+	" of 2 and smaller or equal than 1 GiB. The default WDF alignment is 1"
+	" for WDF v1 and 4 for WDF v2 and above. Usual values are 1, 512, 4K"
+	" and 32K."
+    },
+
     {	OPT_TEST, 't', "test",
 	0,
 	"Run in test mode, modify nothing.\n"
@@ -357,7 +377,7 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 	"Use new implementation if available."
     },
 
-    {0,0,0,0,0} // OPT__N_TOTAL == 40
+    {0,0,0,0,0} // OPT__N_TOTAL == 43
 
 };
 
@@ -462,6 +482,10 @@ const struct option OptionLong[] =
 	{ "block-size",		1, 0, GO_BLOCK_SIZE },
 	 { "blocksize",		1, 0, GO_BLOCK_SIZE },
 	{ "wdf",		0, 0, 'W' },
+	{ "wdf1",		2, 0, GO_WDF1 },
+	{ "wdf2",		2, 0, GO_WDF2 },
+	{ "wdf-align",		1, 0, GO_WDF_ALIGN },
+	 { "wdfalign",		1, 0, GO_WDF_ALIGN },
 	{ "wia",		2, 0, GO_WIA },
 	{ "ciso",		0, 0, 'C' },
 	{ "wbi",		0, 0, GO_WBI },
@@ -552,19 +576,22 @@ const u8 OptionIndex[OPT_INDEX_SIZE] =
 	/* 0x85   */	OPT_LIMIT,
 	/* 0x86   */	OPT_FILE_LIMIT,
 	/* 0x87   */	OPT_BLOCK_SIZE,
-	/* 0x88   */	OPT_WIA,
-	/* 0x89   */	OPT_WBI,
-	/* 0x8a   */	OPT_AUTO_SPLIT,
-	/* 0x8b   */	OPT_NO_SPLIT,
-	/* 0x8c   */	OPT_PREALLOC,
-	/* 0x8d   */	OPT_CHUNK_MODE,
-	/* 0x8e   */	OPT_CHUNK_SIZE,
-	/* 0x8f   */	OPT_MAX_CHUNKS,
-	/* 0x90   */	OPT_COMPRESSION,
-	/* 0x91   */	OPT_MEM,
-	/* 0x92   */	OPT_OLD,
-	/* 0x93   */	OPT_NEW,
-	/* 0x94   */	 0,0,0,0, 0,0,0,0, 0,0,0,0, 
+	/* 0x88   */	OPT_WDF1,
+	/* 0x89   */	OPT_WDF2,
+	/* 0x8a   */	OPT_WDF_ALIGN,
+	/* 0x8b   */	OPT_WIA,
+	/* 0x8c   */	OPT_WBI,
+	/* 0x8d   */	OPT_AUTO_SPLIT,
+	/* 0x8e   */	OPT_NO_SPLIT,
+	/* 0x8f   */	OPT_PREALLOC,
+	/* 0x90   */	OPT_CHUNK_MODE,
+	/* 0x91   */	OPT_CHUNK_SIZE,
+	/* 0x92   */	OPT_MAX_CHUNKS,
+	/* 0x93   */	OPT_COMPRESSION,
+	/* 0x94   */	OPT_MEM,
+	/* 0x95   */	OPT_OLD,
+	/* 0x96   */	OPT_NEW,
+	/* 0x97   */	 0,0,0,0, 0,0,0,0, 0,
 	/* 0xa0   */	 0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0,
 	/* 0xb0   */	 0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0,
 	/* 0xc0   */	 0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0,
@@ -578,39 +605,39 @@ const u8 OptionIndex[OPT_INDEX_SIZE] =
 ///////////////                opt_allowed_cmd_*                ///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-static u8 option_allowed_cmd_VERSION[28] = // cmd #1
+static u8 option_allowed_cmd_VERSION[30] = // cmd #1
 {
-    0,0,1,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0
+    0,0,1,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0
 };
 
-static u8 option_allowed_cmd_HELP[28] = // cmd #2
+static u8 option_allowed_cmd_HELP[30] = // cmd #2
 {
-    1,1,1,1,1, 1,1,1,1,1,  1,1,1,1,1, 1,1,1,1,1,  1,1,1,1,1, 1,1,1
+    1,1,1,1,1, 1,1,1,1,1,  1,1,1,1,1, 1,1,1,1,1,  1,1,1,1,1, 1,1,1,1,1
 };
 
-static u8 option_allowed_cmd_PACK[28] = // cmd #3
+static u8 option_allowed_cmd_PACK[30] = // cmd #3
 {
-    0,0,0,0,0, 0,0,1,1,1,  1,1,1,1,1, 1,1,1,1,1,  1,1,1,1,1, 1,1,1
+    0,0,0,0,0, 0,0,1,1,1,  1,1,1,1,1, 1,1,1,1,1,  1,1,1,1,1, 1,1,1,1,1
 };
 
-static u8 option_allowed_cmd_UNPACK[28] = // cmd #4
+static u8 option_allowed_cmd_UNPACK[30] = // cmd #4
 {
-    0,0,0,0,0, 0,0,0,0,0,  0,0,1,1,1, 1,1,1,1,1,  1,1,1,1,1, 1,1,1
+    0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,1, 1,1,1,1,1,  1,1,1,1,1, 1,1,1,1,1
 };
 
-static u8 option_allowed_cmd_CAT[28] = // cmd #5
+static u8 option_allowed_cmd_CAT[30] = // cmd #5
 {
-    0,0,0,0,0, 0,0,0,0,0,  0,0,1,1,0, 0,1,0,0,0,  0,0,0,0,0, 0,0,0
+    0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,1, 1,0,0,1,0,  0,0,0,0,0, 0,0,0,0,0
 };
 
-static u8 option_allowed_cmd_CMP[28] = // cmd #6
+static u8 option_allowed_cmd_CMP[30] = // cmd #6
 {
-    0,0,1,0,1, 1,1,0,0,0,  0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0
+    0,0,1,0,1, 1,1,0,0,0,  0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0
 };
 
-static u8 option_allowed_cmd_DUMP[28] = // cmd #7
+static u8 option_allowed_cmd_DUMP[30] = // cmd #7
 {
-    0,1,1,1,0, 0,0,0,0,0,  0,0,1,1,0, 0,1,0,0,0,  0,0,0,0,0, 0,0,0
+    0,1,1,1,0, 0,0,0,0,0,  0,0,0,0,1, 1,0,0,1,0,  0,0,0,0,0, 0,0,0,0,0
 };
 
 
@@ -753,11 +780,12 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	"wdf",
 	0,
 	"wdf [options]... [+command] [options]... files...",
-	"wdf is a support tool for WDF, WIA and CISO archives. It convert"
-	" (pack and unpack), compare and dump WDF, WIA (dump and cat only) and"
-	" CISO archives. The default command depends on the program file name"
-	" (see command descriptions). Usual names are wdf, unwdf, wdf-cat,"
-	" wdf-cmp and wdf-dump (with or without minus signs).\n"
+	"wdf is a support tool for WDF, WIA, CISO and GCZ images. It converts"
+	" (packs and unpacks), compares and dumps WDF and CISO images."
+	" Additionally it dumps WIA and GCT image and unpacks WIA images. The"
+	" default command depends on the program file name (see command"
+	" descriptions). Usual names are wdf, unwdf, wdf-cat, wdf-cmp and"
+	" wdf-dump (with or without minus signs).\n"
 	"  'wdf +CAT' replaces the old tool wdf-cat and 'wdf +DUMP' the old"
 	" tool wdf-dump.",
 	9,
@@ -796,7 +824,7 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	"+PACK",
 	"+P",
 	"wdf +PACK [option]... files...",
-	"Pack sources into WDF or CISO archives. This is the general default.",
+	"Pack sources into WDF or CISO images. This is the general default.",
 	21,
 	option_tab_cmd_PACK,
 	option_allowed_cmd_PACK
@@ -808,7 +836,7 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	"+UNPACK",
 	"+U",
 	"wdf +UNPACK [option]... files...",
-	"Unpack WDF, WIA and CISO archives.\n"
+	"Unpack WDF, WIA and CISO images.\n"
 	"  This is the default command, when the program name starts with the"
 	" two letters 'un' in any case.",
 	16,
@@ -856,7 +884,7 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	"+DUMP",
 	"+D",
 	"wdf +DUMP [option]... files...",
-	"Dump the data structure of WDF, WIA and CISO archives and ignore"
+	"Dump the data structure of WDF, WIA, CISO and GCZ images and ignore"
 	" other files.\n"
 	"  This is the default command, when the program contains the sub"
 	" string 'dump' in any case. 'wdf +DUMP' replaces the old tool"

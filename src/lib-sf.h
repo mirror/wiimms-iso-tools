@@ -120,7 +120,7 @@ typedef struct SuperFile_t
 	u32  progress_max_wd;		// max width used for progress output
 	ccp  progress_verb;		// default is "copied"
 	bool progress_summary;		// print summary (delayed) on closing
-	u64  progress_add_total;	// add this value to the total (managment data)
+	u64  progress_add_total;	// add this value to the total (management data)
 
 	u64  progress_last_done;	// last p_done value of PrintProgressSF() call
 	u64  progress_last_total;	// last p_total value of PrintProgressSF() call
@@ -149,8 +149,8 @@ typedef struct SuperFile_t
 
 	// WDF support
 
-	WDF_Head_t   wh;		// the WDF header
-	WDF_Chunk_t *wc;		// field with 'wc_size' elements
+	WDF_Header_t  wh;		// the WDF header
+	WDF2_Chunk_t *wc;		// field with 'wc_size' elements
 	int wc_size;			// number of elements in 'wc'
 	int wc_used;			// number of used elements in 'wc'
 

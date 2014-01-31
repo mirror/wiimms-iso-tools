@@ -88,12 +88,19 @@ __attribute__ ((packed)) GCZ_Head_t;
 ///////////////			    GCZ_t			///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
+struct wd_disc_t;
+
 typedef struct GCZ_t // little endian
 {
     GCZ_Head_t		head;		// GCT header
     u64			*offset;	// offset list, alloced
     u32			*checksum;	// checksum list, *NOT* alloced
     u64			data_offset;	// offset of data in file
+
+    //--- source disc support
+
+    struct wd_disc_t	*disc;		// NULL or pointer to source disc
+    bool		fast;		// enable fast mode, only true if 'disc' avaialable
 
     //--- current block and data
 
@@ -114,6 +121,12 @@ GCZ_t;
 ///////////////			    Interface			///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
+extern bool opt_gcz_zip;
+extern u32  opt_gcz_block_size;
+int ScanOptGCZBlock ( ccp arg );
+
+///////////////////////////////////////////////////////////////////////////////
+
 bool IsValidGCZ
 (
     const void		*data,		// valid pointer to data
@@ -124,7 +137,7 @@ bool IsValidGCZ
 
 ///////////////////////////////////////////////////////////////////////////////
 
-void ResetGCZ( GCZ_t *gcz );
+void ResetGCZ ( GCZ_t *gcz );
 
 //
 ///////////////////////////////////////////////////////////////////////////////

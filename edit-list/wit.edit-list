@@ -1,11 +1,11 @@
+../src/wwt+wit-cmd.c ;
 ../src/wit.c ;
 ../src/wit-mix.c ;
-../src/wwt+wit-cmd.c ;
 ../src/iso-interface.[ch] ;
 ../src/wwt.c ;
 @+all-source.edit-list
 @+doc.edit-list
 -y  680 ../src/wit.c ;
--y    1 ../src/wwt.c ;
--y    1 ../src/wit-mix.c ;
--y    1 ../src/wwt+wit-cmd.c ;
+-y  100 ../src/wwt.c ;
+-y  100 ../src/wit-mix.c ;
+-y  320 ../src/wwt+wit-cmd.c ;

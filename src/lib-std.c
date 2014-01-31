@@ -88,8 +88,6 @@ char		escape_char		= '%';
 int		opt_force		= 0;
 bool		use_utf8		= true;
 enumOFT		output_file_type	= OFT_UNKNOWN;
-uint		opt_wdf_version		= WDF_VERSION;
-uint		opt_wdf_align		= WDF_ALIGN;
 int		opt_truncate		= 0;
 #if defined(TEST) || defined(WIIMM)					// [[split]]
  int		opt_auto_split		= 1;
@@ -316,8 +314,9 @@ void SetupLib ( int argc, char ** argv, ccp p_progname, enumProgID prid )
     TRACE_SIZEOF(TDBfind_t);
     TRACE_SIZEOF(Verify_t);
     TRACE_SIZEOF(WBFS_t);
-    TRACE_SIZEOF(WDF_Chunk_t);
-    TRACE_SIZEOF(WDF_Head_t);
+    TRACE_SIZEOF(WDF_Header_t);
+    TRACE_SIZEOF(WDF1_Chunk_t);
+    TRACE_SIZEOF(WDF2_Chunk_t);
     TRACE_SIZEOF(WDiscInfo_t);
     TRACE_SIZEOF(WDiscListItem_t);
     TRACE_SIZEOF(WDiscList_t);

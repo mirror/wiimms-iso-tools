@@ -125,6 +125,8 @@ typedef enum enumOptions
 	OPT_DIFF,
 	OPT_REMOVE,
 	OPT_WDF,
+	OPT_WDF1,
+	OPT_WDF2,
 	OPT_ISO,
 	OPT_CISO,
 	OPT_WBFS,
@@ -153,7 +155,7 @@ typedef enum enumOptions
 	OPT_FILE_LIMIT,
 	OPT_PATCH_FILE,
 
-	OPT__N_SPECIFIC, // == 97 
+	OPT__N_SPECIFIC, // == 99 
 
 	//----- global options -----
 
@@ -179,8 +181,11 @@ typedef enum enumOptions
 	OPT_OLD,
 	OPT_NEW,
 	OPT_HOOK,
+	OPT_WDF_ALIGN,
+	OPT_GCZ_ZIP,
+	OPT_GCZ_BLOCK,
 
-	OPT__N_TOTAL // == 119
+	OPT__N_TOTAL // == 124
 
 } enumOptions;
 
@@ -264,6 +269,8 @@ typedef enum enumOptions
 //	OB_DIFF			= 1llu << OPT_DIFF,
 //	OB_REMOVE		= 1llu << OPT_REMOVE,
 //	OB_WDF			= 1llu << OPT_WDF,
+//	OB_WDF1			= 1llu << OPT_WDF1,
+//	OB_WDF2			= 1llu << OPT_WDF2,
 //	OB_ISO			= 1llu << OPT_ISO,
 //	OB_CISO			= 1llu << OPT_CISO,
 //	OB_WBFS			= 1llu << OPT_WBFS,
@@ -329,6 +336,8 @@ typedef enum enumOptions
 //				| OB_GRP_FST_OPTIONS,
 //
 //	OB_GRP_OUTMODE_EDIT	= OB_WDF
+//				| OB_WDF1
+//				| OB_WDF2
 //				| OB_ISO
 //				| OB_CISO
 //				| OB_WBFS,
@@ -416,6 +425,8 @@ typedef enum enumOptions
 //				| OB_NO_HEADER
 //				| OB_LONG
 //				| OB_NUMERIC,
+//
+//	OB_CMD_FEATURES		= 0,
 //
 //	OB_CMD_ANAID		= OB_NO_HEADER,
 //
@@ -651,6 +662,7 @@ typedef enum enumCommands
 	CMD_TEST,
 	CMD_ERROR,
 	CMD_COMPR,
+	CMD_FEATURES,
 	CMD_ANAID,
 	CMD_EXCLUDE,
 	CMD_TITLES,
@@ -692,7 +704,7 @@ typedef enum enumCommands
 	CMD_SKELETON,
 	CMD_MIX,
 
-	CMD__N // == 42
+	CMD__N // == 43
 
 } enumCommands;
 
@@ -811,7 +823,12 @@ typedef enum enumGetOpt
 	GO_COMPRESSION,
 	GO_MEM,
 	GO_DIFF,
+	GO_WDF1,
+	GO_WDF2,
+	GO_WDF_ALIGN,
 	GO_WIA,
+	GO_GCZ_ZIP,
+	GO_GCZ_BLOCK,
 	GO_FST,
 	GO_ITIME,
 	GO_MTIME,

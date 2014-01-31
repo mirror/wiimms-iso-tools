@@ -612,7 +612,7 @@ enumError wd_read_raw
     u32			disc_offset4,	// disc offset/4
     void		* dest_buf,	// destination buffer
     u32			read_size,	// number of bytes to read 
-    wd_usage_t		usage_id	// not 0: mark usage usage_tab with this value
+    wd_usage_t		usage_id	// not 0: mark usage usage_table with this value
 )
 {
     DASSERT(disc);

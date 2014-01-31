@@ -281,6 +281,7 @@ COMMANDS:
     WDF+ISO  : A ISO image shrinked with WDF.
     WDF      : Any other WDF file (not WBFS or ISO)
     WIA      : A ISO image packed with WIA.
+    GCZ      : Dolphins GameCup-Zip images.
     OTHER    : Any other file
 
 
