@@ -217,34 +217,34 @@
 
   { T_DEF_CMD,	"DIFF",		"DIFF|CMP",
 		    "wit DIFF source dest\n"
-		    "wit DIFF [[--source] source]... [--recurse source]... [-d|-D] dest",
+		    "wit DIFF [[--source|--recurse] source]... [-d|-D] dest",
 		"DIFF compares ISO images in scrubbed or raw mode or on file level."
 		" Images, WBFS partitions and directories are accepted as source."
 		" DIFF works like {COPY} but comparing source and destination." },
 
   { T_DEF_CMD,	"FDIFF",	"FDIFF|FCMP",
 		    "wit FDIFF source dest\n"
-		    "wit FDIFF [[--source] source]... [--recurse source]... [-d|-D] dest",
+		    "wit FDIFF [[--source|--recurse] source]... [-d|-D] dest",
 		"FDIFF compares ISO images on file level."
 		" Images, WBFS partitions and directories are accepted as source."
 		" 'FDIFF' is a shortcut for {DIFF --files +}." },
 
   { T_DEF_CMD,	"EXTRACT",	"EXTRACT|X",
 		    "wit EXTRACT source dest\n"
-		    "wit EXTRACT [[--source] source]... [--recurse source]... [-d|-D] dest",
+		    "wit EXTRACT [[--source|--recurse] source]... [-d|-D] dest",
 		"Extract all files of each source to new directory structures."
 		" Images, WBFS partitions and directories are accepted as source."  },
 
   { T_DEF_CMD,	"COPY",		"COPY|CP",
 		    "wit COPY source dest\n"
-		    "wit COPY [[--source] source]... [--recurse source]... [-d|-D] dest",
+		    "wit COPY [[--source|--recurse] source]... [-d|-D] dest",
 		"Copy, scrub, convert, join, split, compose, extract,"
 		" patch, encrypt and decrypt Wii and GameCube disc images."
 		" Images, WBFS partitions and directories are accepted as source." },
 
   { T_DEF_CMD,	"CONVERT",	"CONVERT|CV|SCRUB|SB",
 		    "wit CONVERT source\n"
-		    "wit CONVERT [[--source] source]... [--recurse source]...",
+		    "wit CONVERT [[--source|--recurse] source]...",
 		"Convert, scrub, join, split, compose, extract,"
 		" patch, encrypt and decrypt Wii and GameCube disc images"
 		" and replace the source with the result."
@@ -260,25 +260,25 @@
 
   { T_DEF_CMD,	"EDIT",		"EDIT|ED",
 		    "wit EDIT source\n"
-		    "wit EDIT [[--source] source]... [--recurse source]...",
+		    "wit EDIT [[--source|--recurse] source]...",
 		"Edit an existing Wii and GameCube ISO image"
 		" and patch some values."
 		" Images, WBFS partitions and directories are accepted as source." },
 
   { T_DEF_CMD,	"IMGFILES",	"IMGFILES|IF",
 		    "wit IMGFILES source\n"
-		    "wit IMGFILES [[--source] source]... [--recurse source]...",
+		    "wit IMGFILES [[--source|--recurse] source]...",
 		"Print a list of all image files including their associated split files."
 		" Each file is printed on a separate line for further batch processing." },
 
   { T_DEF_CMD,	"REMOVE",	"REMOVE|RM",
 		    "wit REMOVE source\n"
-		    "wit REMOVE [[--source] source]... [--recurse source]...",
+		    "wit REMOVE [[--source|--recurse] source]...",
 		"Remove images including their associated split files." },
 
   { T_DEF_CMD,	"MOVE",		"MOVE|MV",
 		    "wit MOVE source dest\n"
-		    "wit MOVE [[--source] source]... [--recurse source]... [-d|-D] dest",
+		    "wit MOVE [[--source|--recurse] source]... [-d|-D] dest",
 		"Move and rename Wii and GameCube ISO images."
 		" Images, WBFS partitions and directories are accepted as source." },
 
@@ -1007,29 +1007,38 @@
 
   { T_SEP_OPT,	0,0,0,0 }, //----- separator -----
 
-  { T_OPT_C,	"WDF",		"W|wdf",
-		0,
-		"Set image output file type to WDF (Wii Disc Format)." },
-		//" WDF v1 is the default." },				// [[wdf2]]
+		// [[wdf2]] use WDFv2 as default.
+  { T_OPT_CO,	"WDF",		"W|wdf",
+		"[=param]",
+		"Set the image output file type to WDF (Wii Disc Format)."
+		" The output format is either WDFv1 or WDFv2."
+		" It depends of the input file format and of the aligning."
+		" {--wdf=param} is a short cut for {--wdf --align-wdf=param}." },
 
-  { H_OPT_CO,	"WDF1",		"wdf1",					// [[wdf2]]
-		"[=align]",
+  { T_OPT_CO,	"WDF1",		"wdf1",
+		"[=param]",
 		"Set image output file type to WDF and force version 1."
-		" {--wdf1=align} is a shortcut for {--wdf1 --wdf-align=align}." },
+		" {--wdf1=param} is a short cut for {--wdf1 --align-wdf=param}." },
 
-  { H_OPT_CO,	"WDF2",		"wdf2",					// [[wdf2]]
-		"[=align]",
+  { T_OPT_CO,	"WDF2",		"wdf2",
+		"[=param]",
 		"Set image output file type to WDF and force version 2."
-		" {--wdf2=align} is a shortcut for {--wdf2 --wdf-align=align}." },
+		" {--wdf2=param} is a short cut for {--wdf2 --align-wdf=param}." },
 
-  { H_OPT_GP,	"WDF_ALIGN",	"wdf-align|wdfalign",			// [[wdf2]]
-		"align",
-		"Define the aligning factor for new WDF images."
-		" @align@ must be a power of 2 and smaller or equal than "
+		// [[2do]] 2014-01: wdf-align is obsolete at 2014-07
+  { T_OPT_GP,	"ALIGN_WDF",	"align-wdf|alignwdf|wdf-align|wdfalign",
+		"[align][,minhole]",
+		"Parameter @align@ defines the aligning factor for new WDF images."
+		" It must be a power of 2 and smaller or equal than "
 		WDF_MAX_ALIGN_TEXT "."
 		" The default WDF alignment is 1 for WDF v1 and "
-		WDF_DEF_ALIGN_TEXT " for WDF v2 and above."
-		" Usual values are 1, 512, 4K and 32K." },
+		WDF_DEF_ALIGN_TEXT " for WDF v2."
+		" Usual values are 1, 512, 4K and 32K."
+		"\n "
+		" The optional parameter @minhole@ defines the minimal hole size,"
+		" before a new chunk is created."
+		" If NULL, an internal value is used to minimize the total file size."
+		" @minhole@ can't be smaller than @align@." },
 
   { T_OPT_C,	"ISO",		"I|iso",
 		0,
@@ -1298,9 +1307,9 @@
   { T_GRP_BEG,	"OUTMODE_EDIT",	0,0,0 },
 
   { T_COPT,	"WDF",		0,0,0 },
-  { H_COPT,	"WDF1",		0,0,0 }, // [[wdf2]]
-  { H_COPT,	"WDF2",		0,0,0 }, // [[wdf2]]
-  { H_COPT,	"WDF_ALIGN",	0,0,0 }, // [[wdf2]]
+  { T_COPT,	"WDF1",		0,0,0 },
+  { T_COPT,	"WDF2",		0,0,0 },
+  { T_COPT,	"ALIGN_WDF",	0,0,0 },
   { T_COPT,	"ISO",		0,0,0 },
   { T_COPT,	"CISO",		0,0,0 },
   { T_COPT,	"WBFS",		0,0,0 },
@@ -1902,6 +1911,12 @@
 
   { T_COPY_GRP,	"PARTITIONS",	0,0,0 },
   { T_COPY_GRP,	"PATCH",	0,0,0 },
+  { T_COPT,	"WDF1",		0,0,
+	"If the image format is WDF, then force WDF version 1."
+	" The optional aligning factor is ignored." },
+  { T_COPT,	"WDF2",		0,0,
+	"If the image format is WDF, then force WDF version 2."
+	" The optional aligning factor is ignored." },
 
   //---------- COMMAND wit IMGFILES ----------
 

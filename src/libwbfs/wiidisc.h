@@ -1145,6 +1145,18 @@ bool wd_part_has_h3
     wd_part_t		*part		// valid disc partition pointer
 );
 
+//-----------------------------------------------------------------------------
+
+uint wd_disc_is_encrypted
+(
+    // return
+    //    0: no partition is encrypted
+    //    N: some (=N) partitions are encrypted, but not all
+    // 1000: all partitions are encrypted
+    
+    wd_disc_t		* disc		// disc to check, valid
+);
+
 //
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////		    interface: get partition		///////////////

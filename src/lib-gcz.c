@@ -457,8 +457,8 @@ enumError SetupReadGCZ
 )
 {
     DASSERT(sf);
-    PRINT("#G# SetupReadGCZ(%p) wc=%p wbfs=%p, fp=%p, fd=%d\n",
-		sf,sf->wc,sf->wbfs,sf->f.fp,sf->f.fd);
+    PRINT("#G# SetupReadGCZ(%p) gcz=%p, wbfs=%p, fp=%p, fd=%d\n",
+		sf, sf->gcz, sf->wbfs, sf->f.fp, sf->f.fd );
 
     if ( sf->gcz || sf->wbfs )
 	return ERR_OK;
@@ -709,8 +709,8 @@ enumError SetupWriteGCZ
  #else
 
     DASSERT(sf);
-    PRINT("#G# SetupWriteGCZ(%p) wc=%p wbfs=%p, fp=%p, fd=%d\n",
-		sf,sf->wc,sf->wbfs,sf->f.fp,sf->f.fd);
+    PRINT("#G# SetupWriteGCZ(%p) gcz=%p wbfs=%p, fp=%p, fd=%d\n",
+		sf, sf->gcz, sf->wbfs, sf->f.fp, sf->f.fd );
 
     if (sf->gcz)
 	return ERROR0(ERR_INTERNAL,0);
@@ -766,9 +766,13 @@ enumError SetupWriteGCZ
 	   )
 	{
 	    enumEncoding enc = SetEncoding(encoding,0,0);
-	    if (!( enc & ENCODE_DECRYPT ))
+	    PRINT("enc=%x, DECRYPT=%x, ENCRYPT=%x, is_enc=%u\n",
+		enc,ENCODE_DECRYPT,ENCODE_ENCRYPT,wd_disc_is_encrypted(gcz->disc));
+	    if ( !( enc & ENCODE_DECRYPT )
+		&& ( enc & ENCODE_ENCRYPT || wd_disc_is_encrypted(gcz->disc) == 1000 ))
 	    {
 		gcz->fast = true;
+
 	     #if HAVE_PRINT
 		wd_print_usage_tab(stdout,2,gcz->disc->usage_table,gcz->disc->iso_size,false);
 	     #endif

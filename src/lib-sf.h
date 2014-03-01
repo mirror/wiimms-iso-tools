@@ -149,10 +149,7 @@ typedef struct SuperFile_t
 
 	// WDF support
 
-	WDF_Header_t  wh;		// the WDF header
-	WDF2_Chunk_t *wc;		// field with 'wc_size' elements
-	int wc_size;			// number of elements in 'wc'
-	int wc_used;			// number of used elements in 'wc'
+	wdf_controller_t * wdf;		// WDF controller
 
 	// WIA support
 

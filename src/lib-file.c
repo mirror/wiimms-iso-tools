@@ -1171,10 +1171,15 @@ const OFT_info_t oft_info[OFT__N+1] =
 	IOM_IS_IMAGE,
 	"ISO", "--iso", ".iso", 0, "Plain file" },
 
-    { OFT_WDF,
-	OFT_A_READ|OFT_A_CREATE|OFT_A_EXTEND|OFT_A_MODIFY,
+    { OFT_WDF1,
+	OFT_A_READ|OFT_A_CREATE|OFT_A_EXTEND|OFT_A_MODIFY|OFT_A_WDF,
 	IOM_IS_IMAGE,
-	"WDF", "--wdf", ".wdf", 0, "Wii Disc Format" },
+	"WDF1", "--wdf1", ".wdf", ".wdf1", "Wii Disc Format v1" },
+
+    { OFT_WDF2,
+	OFT_A_READ|OFT_A_CREATE|OFT_A_EXTEND|OFT_A_MODIFY|OFT_A_WDF,
+	IOM_IS_IMAGE,
+	"WDF2", "--wdf2", ".wdf", ".wdf2", "Wii Disc Format v2" },
 
     { OFT_CISO,
 	OFT_A_READ|OFT_A_CREATE|OFT_A_MODIFY|OFT_A_NOSIZE|OFT_A_LOADER,
@@ -1212,7 +1217,9 @@ const OFT_info_t oft_info[OFT__N+1] =
 const CommandTab_t ImageTypeTab[] =
 {
     { OFT_PLAIN,	"ISO",	"PLAIN",	0 },
-    { OFT_WDF,		"WDF",	0,		0 },
+    { OFT__WDF_DEF,	"WDF",	0,		0 },
+    { OFT_WDF1,		"WDF1",	"WDFV1",	0 },
+    { OFT_WDF2,		"WDF2",	"WDFV2",	0 },
     { OFT_CISO,		"CISO",	0,		0 },
     { OFT_WBFS,		"WBFS",	0,		0 },
     { OFT_WIA,		"WIA",	0,		0 },
@@ -1226,7 +1233,7 @@ const CommandTab_t ImageTypeTab[] =
 enumOFT CalcOFT ( enumOFT force, ccp fname_dest, ccp fname_src, enumOFT def )
 {
     if ( force > OFT_UNKNOWN && force < OFT__N )
-	return force;
+	return force == OFT__WDF_DEF ? ProposeOFT_WDF(def) : force;
 
     ccp fname = IsDirectory(fname_dest,true) ? fname_src : fname_dest;
     if (fname)
@@ -1235,7 +1242,7 @@ enumOFT CalcOFT ( enumOFT force, ccp fname_dest, ccp fname_src, enumOFT def )
 	if ( len >= 4 )
 	{
 	    if ( !strcasecmp(fname+len-4,".wdf") )
-		return OFT_WDF;
+		return ProposeOFT_WDF(def);
 
 	    if ( !strcasecmp(fname+len-4,".wia") )
 		return OFT_WIA;
@@ -1251,6 +1258,12 @@ enumOFT CalcOFT ( enumOFT force, ccp fname_dest, ccp fname_src, enumOFT def )
 
 	    if ( len >= 5 )
 	    {
+		if ( !strcasecmp(fname+len-5,".wdf1") )
+		    return OFT_WDF1;
+
+		if ( !strcasecmp(fname+len-5,".wdf2") )
+		    return OFT_WDF2;
+
 		if ( !strcasecmp(fname+len-5,".wbfs") )
 		    return OFT_WBFS;
 
@@ -1776,7 +1789,7 @@ void DefineCachedAreaISO ( File_t * f, bool head_only )
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-enumError XAnalyzeWH ( XPARM File_t * f, WDF_Header_t * wh0, bool print_err )
+enumError XAnalyzeWH ( XPARM File_t * f, wdf_header_t * wh0, bool print_err )
 {
     DASSERT(wh0);
     TRACE("AnalyzeWH()\n");
@@ -1796,35 +1809,29 @@ enumError XAnalyzeWH ( XPARM File_t * f, WDF_Header_t * wh0, bool print_err )
 		: ERR_WRONG_FILE_TYPE;
     }
 
-    WDF_Header_t wh;
+    wdf_header_t wh;
     FixHeaderWDF(&wh,wh0,false);
 
     if ( !wh.wdf_version
 	|| wh.wdf_version > WDF_MAX_VERSION && wh.wdf_compatible > WDF_MAX_VERSION )
     {
 	PRINT(" - wrong WDF version: %u,%u\n",wh.wdf_version,wh.wdf_compatible);
-     #if WDF2_ENABLED
 	return print_err
 		? PrintError( XERROR0, ERR_WDF_VERSION,
 			"Only WDF versions 1..%u are supported but not version %u.\n",
 			WDF_MAX_VERSION, wh.wdf_version )
 		: ERR_WDF_VERSION;
-     #else
-	return print_err
-		? PrintError( XERROR0, ERR_WDF_VERSION,
-			"Only WDF version %u is supported but not version %u.\n",
-			WDF_MAX_VERSION, wh.wdf_version )
-		: ERR_WDF_VERSION;
-     #endif
     }
 
     const u32 chunk_tab_size = wh.chunk_n * GetChunkSizeWDF(wh.wdf_version);
-    if ( f->st.st_size < wh.chunk_off + WDF_MAGIC_SIZE + chunk_tab_size )
+    const u64 chunk_end = wh.chunk_off + WDF_MAGIC_SIZE + chunk_tab_size;
+    if ( chunk_end > f->st.st_size )
     {
 	// file size to short -> maybe a splitted file
 	XSetupSplitFile(XCALL f,OFT_UNKNOWN,0);
     }
 
+ #if 0
     if ( wh.chunk_off != wh.data_size + wh.head_size
 	|| wh.chunk_off + WDF_MAGIC_SIZE + chunk_tab_size != f->st.st_size )
     {
@@ -1841,6 +1848,7 @@ enumError XAnalyzeWH ( XPARM File_t * f, WDF_Header_t * wh0, bool print_err )
 		? PrintError( XERROR0, ERR_WDF_INVALID, "Invalid WDF file: %s\n",f->fname )
 		: ERR_WDF_INVALID;
     }
+ #endif
 
     TRACE(" - OK\n");
     return ERR_OK;
@@ -3434,10 +3442,13 @@ int CalcSplitFilename ( char * buf, size_t buf_size, ccp path, enumOFT oft )
 
     if (!path)
 	path = "";
-    TRACE("CalcSplitFilename(%s,%d)\n",path,oft);
 
     size_t plen = strlen(path);
-    if ( plen > 0 && oft == OFT_WBFS )
+    const bool suppress_point = oft == OFT_WBFS
+		|| oft == OFT_PLAIN && plen >= 6 && !strcasecmp(path+plen-6,".part0");
+    PRINT("CalcSplitFilename(%s,%d) suppress_point=%d\n",path,oft,suppress_point);
+    
+    if ( plen > 0 && suppress_point )
 	plen--;
     if ( plen > max_path_len )
 	plen = max_path_len;
@@ -3459,7 +3470,7 @@ int CalcSplitFilename ( char * buf, size_t buf_size, ccp path, enumOFT oft )
 		*dest++	= *path++;
 	}
 
-	if ( oft != OFT_WBFS )
+	if (!suppress_point)
 	    *dest++ = '.';
 	*dest++ = '%';
 	*dest++ = '0';

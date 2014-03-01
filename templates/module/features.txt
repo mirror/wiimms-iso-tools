@@ -7,8 +7,7 @@ Features:
  - wdf (Wiimms WDF Tool) is a little tool to manage WDF, CISO and WIA files.
  - wfuse (Wiimms FUSE Tool) mounts Wii and GameCube images and WBFS files and
    partitions using FUSE.
- - WIT supports 7 Wii disc file types (ISO, CISO, WDF, WIA, WBFS, GCZ and FST)
-   and can read from pipes (indirect RAR/ZIP/7Z support).
+ - WIT supports 7 Wii disc file types (ISO, CISO, WDF, WIA, WBFS, GCZ and FST).
  - wit can verify and compare (diff) Wii and GameCube ISO images.
  - wit can extract and compose Wii ISO images.
  - wit can patch Wii and GameCube ISO images while copying.

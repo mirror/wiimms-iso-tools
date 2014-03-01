@@ -630,20 +630,23 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
     },
 
     {	OPT_WDF, 'W', "wdf",
-	0,
-	"Set image output file type to WDF (Wii Disc Format)."
+	"[=param]",
+	"Set the image output file type to WDF (Wii Disc Format). The output"
+	" format is either WDFv1 or WDFv2. It depends of the input file format"
+	" and of the aligning. --wdf=param is a short cut for '--wdf"
+	" --align-wdf=param'."
     },
 
     {	OPT_WDF1, 0, "wdf1",
-	"[=align]",
-	"Set image output file type to WDF and force version 1. --wdf1=align"
-	" is a shortcut for '--wdf1 --wdf-align=align'."
+	"[=param]",
+	"Set image output file type to WDF and force version 1. --wdf1=param"
+	" is a short cut for '--wdf1 --align-wdf=param'."
     },
 
     {	OPT_WDF2, 0, "wdf2",
-	"[=align]",
-	"Set image output file type to WDF and force version 2. --wdf2=align"
-	" is a shortcut for '--wdf2 --wdf-align=align'."
+	"[=param]",
+	"Set image output file type to WDF and force version 2. --wdf2=param"
+	" is a short cut for '--wdf2 --align-wdf=param'."
     },
 
     {	OPT_ISO, 'I', "iso",
@@ -964,12 +967,15 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 	"Force relocation hook while reading iso images."
     },
 
-    {	OPT_WDF_ALIGN, 0, "wdf-align",
-	"align",
-	"Define the aligning factor for new WDF images. align must be a power"
-	" of 2 and smaller or equal than 1 GiB. The default WDF alignment is 1"
-	" for WDF v1 and 4 for WDF v2 and above. Usual values are 1, 512, 4K"
-	" and 32K."
+    {	OPT_ALIGN_WDF, 0, "align-wdf",
+	"[align][,minhole]",
+	"Parameter align defines the aligning factor for new WDF images. It"
+	" must be a power of 2 and smaller or equal than 1 GiB. The default"
+	" WDF alignment is 1 for WDF v1 and 4 for WDF v2. Usual values are 1,"
+	" 512, 4K and 32K.\n"
+	"  The optional parameter minhole defines the minimal hole size,"
+	" before a new chunk is created. If NULL, an internal value is used to"
+	" minimize the total file size. minhole can't be smaller than align."
     },
 
     {	OPT_GCZ_ZIP, 0, "gcz-zip",
@@ -1278,6 +1284,20 @@ const InfoOption_t option_cmd_EXTRACT_LONG =
 	" print a status line for each extracted files."
     };
 
+const InfoOption_t option_cmd_EDIT_WDF1 =
+    {	OPT_WDF1, 0, "wdf1",
+	"[=param]",
+	"If the image format is WDF, then force WDF version 1. The optional"
+	" aligning factor is ignored."
+    };
+
+const InfoOption_t option_cmd_EDIT_WDF2 =
+    {	OPT_WDF2, 0, "wdf2",
+	"[=param]",
+	"If the image format is WDF, then force WDF version 2. The optional"
+	" aligning factor is ignored."
+    };
+
 const InfoOption_t option_cmd_RENAME_ISO =
     {	OPT_ISO, 'I', "iso",
 	0,
@@ -1413,7 +1433,7 @@ const CommandTab_t CommandTab[] =
 ///////////////            OptionShort & OptionLong             ///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-const char OptionShort[] = "VhqvPLE:fT:ts:r:ax:X:n:N:1i0d:D:zZ:puoRWICBGF:lb+:UHS:";
+const char OptionShort[] = "VhqvPLE:fT:ts:r:ax:X:n:N:1i0d:D:zZ:puoRW::ICBGF:lb+:UHS:";
 
 const struct option OptionLong[] =
 {
@@ -1558,11 +1578,13 @@ const struct option OptionLong[] =
 	{ "overwrite",		0, 0, 'o' },
 	{ "diff",		0, 0, GO_DIFF },
 	{ "remove",		0, 0, 'R' },
-	{ "wdf",		0, 0, 'W' },
+	{ "wdf",		2, 0, 'W' },
 	{ "wdf1",		2, 0, GO_WDF1 },
 	{ "wdf2",		2, 0, GO_WDF2 },
-	{ "wdf-align",		1, 0, GO_WDF_ALIGN },
-	 { "wdfalign",		1, 0, GO_WDF_ALIGN },
+	{ "align-wdf",		1, 0, GO_ALIGN_WDF },
+	 { "alignwdf",		1, 0, GO_ALIGN_WDF },
+	 { "wdf-align",		1, 0, GO_ALIGN_WDF },
+	 { "wdfalign",		1, 0, GO_ALIGN_WDF },
 	{ "iso",		0, 0, 'I' },
 	{ "ciso",		0, 0, 'C' },
 	{ "wbfs",		0, 0, 'B' },
@@ -1738,7 +1760,7 @@ const u8 OptionIndex[OPT_INDEX_SIZE] =
 	/* 0xbd   */	OPT_DIFF,
 	/* 0xbe   */	OPT_WDF1,
 	/* 0xbf   */	OPT_WDF2,
-	/* 0xc0   */	OPT_WDF_ALIGN,
+	/* 0xc0   */	OPT_ALIGN_WDF,
 	/* 0xc1   */	OPT_WIA,
 	/* 0xc2   */	OPT_GCZ_ZIP,
 	/* 0xc3   */	OPT_GCZ_BLOCK,
@@ -2035,7 +2057,7 @@ static u8 option_allowed_cmd_EDIT[99] = // cmd #34
 {
     0,1,1,1,1, 0,1,1,1,1,  1,1,1,0,1, 0,0,0,0,1,  1,0,0,0,0, 0,1,1,1,1,
     1,1,1,1,1, 1,1,1,1,1,  1,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,
-    0,0,0,0,1, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,
+    0,0,0,0,1, 0,0,0,0,0,  1,1,0,0,0, 0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0,
     0,0,0,0,1, 0,0,0,0
 };
 
@@ -2138,6 +2160,7 @@ const InfoOption_t * option_tab_tool[] =
 
 	OptionInfo + OPT_NONE, // separator
 
+	OptionInfo + OPT_ALIGN_WDF,
 	OptionInfo + OPT_GCZ_ZIP,
 	OptionInfo + OPT_GCZ_BLOCK,
 
@@ -2926,6 +2949,9 @@ static const InfoOption_t * option_tab_cmd_DIFF[] =
 	OptionInfo + OPT_DEST2,
 	OptionInfo + OPT_ESC,
 	OptionInfo + OPT_WDF,
+	OptionInfo + OPT_WDF1,
+	OptionInfo + OPT_WDF2,
+	OptionInfo + OPT_ALIGN_WDF,
 	OptionInfo + OPT_ISO,
 	OptionInfo + OPT_CISO,
 	OptionInfo + OPT_WBFS,
@@ -3001,6 +3027,9 @@ static const InfoOption_t * option_tab_cmd_FDIFF[] =
 	OptionInfo + OPT_DEST2,
 	OptionInfo + OPT_ESC,
 	OptionInfo + OPT_WDF,
+	OptionInfo + OPT_WDF1,
+	OptionInfo + OPT_WDF2,
+	OptionInfo + OPT_ALIGN_WDF,
 	OptionInfo + OPT_ISO,
 	OptionInfo + OPT_CISO,
 	OptionInfo + OPT_WBFS,
@@ -3203,6 +3232,9 @@ static const InfoOption_t * option_tab_cmd_COPY[] =
 	OptionInfo + OPT_NONE, // separator
 
 	OptionInfo + OPT_WDF,
+	OptionInfo + OPT_WDF1,
+	OptionInfo + OPT_WDF2,
+	OptionInfo + OPT_ALIGN_WDF,
 	OptionInfo + OPT_ISO,
 	OptionInfo + OPT_CISO,
 	OptionInfo + OPT_WBFS,
@@ -3298,6 +3330,9 @@ static const InfoOption_t * option_tab_cmd_CONVERT[] =
 	OptionInfo + OPT_MEM,
 	OptionInfo + OPT_PRESERVE,
 	OptionInfo + OPT_WDF,
+	OptionInfo + OPT_WDF1,
+	OptionInfo + OPT_WDF2,
+	OptionInfo + OPT_ALIGN_WDF,
 	OptionInfo + OPT_ISO,
 	OptionInfo + OPT_CISO,
 	OptionInfo + OPT_WBFS,
@@ -3367,6 +3402,8 @@ static const InfoOption_t * option_tab_cmd_EDIT[] =
 	OptionInfo + OPT_IOS,
 	OptionInfo + OPT_RM_FILES,
 	OptionInfo + OPT_ZERO_FILES,
+	&option_cmd_EDIT_WDF1,
+	&option_cmd_EDIT_WDF2,
 
 	0
 };
@@ -3676,6 +3713,9 @@ static const InfoOption_t * option_tab_cmd_SKELETON[] =
 	OptionInfo + OPT_NONE, // separator
 
 	OptionInfo + OPT_WDF,
+	OptionInfo + OPT_WDF1,
+	OptionInfo + OPT_WDF2,
+	OptionInfo + OPT_ALIGN_WDF,
 	OptionInfo + OPT_ISO,
 	OptionInfo + OPT_CISO,
 	OptionInfo + OPT_WBFS,
@@ -3712,6 +3752,9 @@ static const InfoOption_t * option_tab_cmd_MIX[] =
 	OptionInfo + OPT_NONE, // separator
 
 	OptionInfo + OPT_WDF,
+	OptionInfo + OPT_WDF1,
+	OptionInfo + OPT_WDF2,
+	OptionInfo + OPT_ALIGN_WDF,
 	OptionInfo + OPT_ISO,
 	OptionInfo + OPT_CISO,
 	OptionInfo + OPT_WBFS,
@@ -3744,7 +3787,7 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	" patch, mix, extract, compose, rename and compare Wii and GameCube"
 	" images. It also can create and dump different other Wii file"
 	" formats.",
-	20,
+	21,
 	option_tab_tool,
 	0
     },
@@ -4124,11 +4167,11 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	"DIFF",
 	"CMP",
 	"wit DIFF source dest\n"
-	"wit DIFF [[--source] source]... [--recurse source]... [-d|-D] dest",
+	"wit DIFF [[--source|--recurse] source]... [-d|-D] dest",
 	"DIFF compares ISO images in scrubbed or raw mode or on file level."
 	" Images, WBFS partitions and directories are accepted as source. DIFF"
 	" works like COPY but comparing source and destination.",
-	51,
+	54,
 	option_tab_cmd_DIFF,
 	option_allowed_cmd_DIFF
     },
@@ -4139,11 +4182,11 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	"FDIFF",
 	"FCMP",
 	"wit FDIFF source dest\n"
-	"wit FDIFF [[--source] source]... [--recurse source]... [-d|-D] dest",
+	"wit FDIFF [[--source|--recurse] source]... [-d|-D] dest",
 	"FDIFF compares ISO images on file level. Images, WBFS partitions and"
 	" directories are accepted as source. 'FDIFF' is a shortcut for 'DIFF"
 	" --files +'.",
-	51,
+	54,
 	option_tab_cmd_FDIFF,
 	option_allowed_cmd_FDIFF
     },
@@ -4154,7 +4197,7 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	"EXTRACT",
 	"X",
 	"wit EXTRACT source dest\n"
-	"wit EXTRACT [[--source] source]... [--recurse source]... [-d|-D] dest",
+	"wit EXTRACT [[--source|--recurse] source]... [-d|-D] dest",
 	"Extract all files of each source to new directory structures. Images,"
 	" WBFS partitions and directories are accepted as source.",
 	61,
@@ -4168,11 +4211,11 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	"COPY",
 	"CP",
 	"wit COPY source dest\n"
-	"wit COPY [[--source] source]... [--recurse source]... [-d|-D] dest",
+	"wit COPY [[--source|--recurse] source]... [-d|-D] dest",
 	"Copy, scrub, convert, join, split, compose, extract, patch, encrypt"
 	" and decrypt Wii and GameCube disc images. Images, WBFS partitions"
 	" and directories are accepted as source.",
-	84,
+	87,
 	option_tab_cmd_COPY,
 	option_allowed_cmd_COPY
     },
@@ -4183,7 +4226,7 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	"CONVERT",
 	"CV",
 	"wit CONVERT source\n"
-	"wit CONVERT [[--source] source]... [--recurse source]...",
+	"wit CONVERT [[--source|--recurse] source]...",
 	"Convert, scrub, join, split, compose, extract, patch, encrypt and"
 	" decrypt Wii and GameCube disc images and replace the source with the"
 	" result. Images, WBFS partitions and directories are accepted as"
@@ -4194,7 +4237,7 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	" CONVERT' does more than only scrubbing and therefor it was renamed"
 	" from 'SCRUB' to 'CONVERT', but the old command name is still"
 	" allowed.",
-	67,
+	70,
 	option_tab_cmd_CONVERT,
 	option_allowed_cmd_CONVERT
     },
@@ -4205,10 +4248,10 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	"EDIT",
 	"ED",
 	"wit EDIT source\n"
-	"wit EDIT [[--source] source]... [--recurse source]...",
+	"wit EDIT [[--source|--recurse] source]...",
 	"Edit an existing Wii and GameCube ISO image and patch some values."
 	" Images, WBFS partitions and directories are accepted as source.",
-	38,
+	40,
 	option_tab_cmd_EDIT,
 	option_allowed_cmd_EDIT
     },
@@ -4219,7 +4262,7 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	"IMGFILES",
 	"IF",
 	"wit IMGFILES source\n"
-	"wit IMGFILES [[--source] source]... [--recurse source]...",
+	"wit IMGFILES [[--source|--recurse] source]...",
 	"Print a list of all image files including their associated split"
 	" files. Each file is printed on a separate line for further batch"
 	" processing.",
@@ -4234,7 +4277,7 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	"REMOVE",
 	"RM",
 	"wit REMOVE source\n"
-	"wit REMOVE [[--source] source]... [--recurse source]...",
+	"wit REMOVE [[--source|--recurse] source]...",
 	"Remove images including their associated split files.",
 	19,
 	option_tab_cmd_REMOVE,
@@ -4247,7 +4290,7 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	"MOVE",
 	"MV",
 	"wit MOVE source dest\n"
-	"wit MOVE [[--source] source]... [--recurse source]... [-d|-D] dest",
+	"wit MOVE [[--source|--recurse] source]... [-d|-D] dest",
 	"Move and rename Wii and GameCube ISO images. Images, WBFS partitions"
 	" and directories are accepted as source.",
 	23,
@@ -4302,7 +4345,7 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	" disc and partition headers for further analysis and is not playable"
 	" because all files are zeroed. Read http://wit.wiimm.de/cmd/wit/skel"
 	" for more details.",
-	31,
+	34,
 	option_tab_cmd_SKELETON,
 	option_allowed_cmd_SKELETON
     },
@@ -4322,7 +4365,7 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	"Read http://wit.wiimm.de/cmd/wit/mix for more details.",
 	"Mix the partitions from different sources into one new Wii or"
 	" GameCube disc.",
-	26,
+	29,
 	option_tab_cmd_MIX,
 	option_allowed_cmd_MIX
     },

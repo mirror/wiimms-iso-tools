@@ -3893,10 +3893,11 @@ enumError CheckOptions ( int argc, char ** argv, bool is_env )
 	case GO_DIFF:		break;
 	case GO_REMOVE:		break;
 
-	case GO_WDF:		output_file_type = OFT_WDF; break;
-	case GO_WDF1:		err += SetWDF2Mode(1,optarg); break;
-	case GO_WDF2:		err += SetWDF2Mode(2,optarg); break;
-	case GO_WDF_ALIGN:	err += ScanOptWDFAlign(optarg); break;
+	//case GO_WDF:		output_file_type = OFT__WDF_DEF; break; // [[wdf2]]
+	case GO_WDF:		err += SetModeWDF(0,optarg); break;
+	case GO_WDF1:		err += SetModeWDF(1,optarg); break;
+	case GO_WDF2:		err += SetModeWDF(2,optarg); break;
+	case GO_ALIGN_WDF:	err += ScanOptAlignWDF(optarg,0); break;
 
 	case GO_WIA:		err += ScanOptCompression(true,optarg); break;
 	case GO_ISO:		output_file_type = OFT_PLAIN; break;

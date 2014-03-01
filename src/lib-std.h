@@ -72,25 +72,6 @@
 #endif
 
 ///////////////////////////////////////////////////////////////////////////////
-// [[WDF2_ENABLED]]
-
-#if defined(NOWDF2)
-  #define WDF2_ENABLED		 1	// 0:off, 1:read only, 2:write support
-#elif defined(WDF2) || defined(WIIMM)
-  #define WDF2_ENABLED		 2	// 0:off, 1:read only, 2:write support
-#else
-  #define WDF2_ENABLED		 1	// 0:off, 1:read only, 2:write support
-#endif
-
-#define WDF_DEF_VERSION		 1	// default version
-#define WDF_MAX_VERSION		 2	// max supported version
-
-#define WDF_DEF_ALIGN		 4	// default alignment for WDF v2 and above
-#define WDF_DEF_ALIGN_TEXT	"4"
-#define WDF_MAX_ALIGN		GiB	// max allowed WDF alignment
-#define WDF_MAX_ALIGN_TEXT	"1 GiB"
-
-///////////////////////////////////////////////////////////////////////////////
 
 typedef enum enumProgID
 {
@@ -354,7 +335,8 @@ typedef enum enumOFT // open file mode
     OFT_UNKNOWN,		// not specified yet
 
     OFT_PLAIN,			// plain (ISO) file
-    OFT_WDF,			// WDF file
+    OFT_WDF1,			// WDFv1 file
+    OFT_WDF2,			// WDFv2 file
     OFT_CISO,			// CISO file
     OFT_WBFS,			// WBFS disc
     OFT_WIA,			// WIA file
@@ -362,7 +344,8 @@ typedef enum enumOFT // open file mode
     OFT_FST,			// file system
 
     OFT__N,			// number of variants
-    OFT__DEFAULT = OFT_WBFS	// default value
+    OFT__DEFAULT = OFT_WBFS,	// default value
+    OFT__WDF_DEF = OFT_WDF1	// default WDF value
 
 } enumOFT;
 
@@ -370,15 +353,17 @@ typedef enum enumOFT // open file mode
 
 typedef enum attribOFT // OFT attributes
 {
-    OFT_A_READ		= 0x001,  // format can be read
-    OFT_A_CREATE	= 0x002,  // format can be written
-    OFT_A_MODIFY	= 0x004,  // format can be modified
-    OFT_A_EXTEND	= 0x008,  // format can be extended
-    OFT_A_FST		= 0x010,  // format is an extracted file system
-    OFT_A_COMPR		= 0x020,  // format uses compression
-    OFT_A_NOSIZE	= 0x040,  // format has no file size info
-    OFT_A_LOADER	= 0x080,  // used by USB/SD loaders
-    OFT_A_DEST_EDIT	= 0x100,  // if source, dest needs edit right
+    OFT_A_READ		= 0x0001,  // format can be read
+    OFT_A_CREATE	= 0x0002,  // format can be written
+    OFT_A_MODIFY	= 0x0004,  // format can be modified
+    OFT_A_EXTEND	= 0x0008,  // format can be extended
+    OFT_A_FST		= 0x0010,  // format is an extracted file system
+    OFT_A_COMPR		= 0x0020,  // format uses compression
+    OFT_A_NOSIZE	= 0x0040,  // format has no file size info
+    OFT_A_LOADER	= 0x0080,  // used by USB/SD loaders
+    OFT_A_DEST_EDIT	= 0x0100,  // if source, dest needs edit right
+
+    OFT_A_WDF		= 0x1000,  // is a WDF version
 
 } attribOFT;
 
@@ -500,7 +485,7 @@ void InsertDiscMemMap
 uint FindMemMapHelper ( MemMap_t * mm, off_t off, off_t size );
 
 // Calculate overlaps. Return number of items with overlap.
-uint CalCoverlapMemMap ( MemMap_t * mm );
+uint CalcOverlapMemMap ( MemMap_t * mm );
 
 // Print out memory map
 void PrintMemMap ( MemMap_t * mm, FILE * f, int indent, ccp info_head );
@@ -559,7 +544,7 @@ uint CombineFileMaps
 
 typedef enum enumFileType
 {
-    // 1. file types
+	//--- basic file types
 
 	FT_UNKNOWN	=      0,  // not analyzed yet
 
@@ -569,7 +554,7 @@ typedef enum enumFileType
 	FT_ID_GC_ISO	= 0x0008,  // file is a GC ISO image
 	FT_ID_WII_ISO	= 0x0010,  // file is a WII ISO image
 
-	// special files
+	//--- special files
 
 	FT_ID_DOL	= 0x0020,  // file is a DOL file
 	FT_ID_CERT_BIN	= 0x0040,  // 'cert.bin' like file
@@ -584,14 +569,15 @@ typedef enum enumFileType
 	 FT__SPC_MASK	= 0x3fe0,  // mask of all special files
 	 FT__ID_MASK	= 0x3fff,  // mask of all 'FT_ID_' values
 
-    // 2. attributes
+	//--- attributes
 
 	FT_A_ISO	= 0x00010000,  // file is some kind of an ISO image
 	FT_A_GC_ISO	= 0x00020000,  // file is some kind of a GC ISO image
 	FT_A_WII_ISO	= 0x00040000,  // file is some kind of a WII ISO image
 
-	FT_A_WDISC	= 0x00100000,  // flag: specific disc of a WBFS file
-	FT_A_WDF	= 0x00200000,  // flag: file is a packed WDF
+	FT_A_WDISC	= 0x00080000,  // flag: specific disc of a WBFS file
+	FT_A_WDF1	= 0x00100000,  // flag: file is a packed WDF
+	FT_A_WDF2	= 0x00200000,  // flag: file is a packed WDF
 	FT_A_WIA	= 0x00400000,  // flag: file is a packed WIA
 	FT_A_CISO	= 0x00800000,  // flag: file is a packed CISO
 	FT_A_GCZ	= 0x01000000,  // flag: file is a packed GCZ
@@ -602,11 +588,9 @@ typedef enum enumFileType
 	FT_A_WRITING	= 0x20000000,  // is opened for writing
 	FT_A_PART_DIR	= 0x40000000,  // FST is a partition
 
-	 FT__A_MASK	= 0x3ff70000,  // mask of all 'FT_A_' values
+	//--- special combinations
 
-    // 3. mask of all 'FT_ values
-
-	 FT__MASK	= FT__ID_MASK | FT__A_MASK,
+	FT_M_WDF	= FT_A_WDF1 | FT_A_WDF2
 
 } enumFileType;
 
@@ -671,6 +655,7 @@ FileAttrib_t * CopyFileAttribInode
 
 
 //-----------------------------------------------------------------------------
+// [[File_t]]
 
 typedef struct File_t
 {
@@ -801,8 +786,8 @@ void ClearCache		 ( File_t * f );
 void DefineCachedArea    ( File_t * f, off_t off, size_t count );
 void DefineCachedAreaISO ( File_t * f, bool head_only );
 
-struct WDF_Header_t;
-enumError XAnalyzeWH ( XPARM File_t * f, struct WDF_Header_t * wh, bool print_err );
+struct wdf_header_t;
+enumError XAnalyzeWH ( XPARM File_t * f, struct wdf_header_t * wh, bool print_err );
 
 enumError StatFile ( struct stat * st, ccp fname, int fd );
 

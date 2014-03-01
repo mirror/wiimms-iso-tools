@@ -1018,9 +1018,9 @@ enumError SetupReadWIA
     struct SuperFile_t	* sf		// file to setup
 )
 {
-    PRINT("#W# SetupReadWIA(%p) file=%d/%p, wc=%p wbfs=%p v=%s/%s\n",
+    PRINT("#W# SetupReadWIA(%p) file=%d/%p, wia=%p wbfs=%p v=%s/%s\n",
 		sf, GetFD(&sf->f), GetFP(&sf->f),
-		sf->wc, sf->wbfs,
+		sf->wia, sf->wbfs,
 		PrintVersionWIA(0,0,WIA_VERSION_READ_COMPATIBLE),
 		PrintVersionWIA(0,0,WIA_VERSION) );
     ASSERT(sf);

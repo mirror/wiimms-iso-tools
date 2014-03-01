@@ -129,6 +129,8 @@ enum // some constants
     WII_TITLE_OFF		= 0x20,
     WII_TITLE_SIZE		= 0x40,
 
+    WII_HEAD_INFO_SIZE		= 0x60,		// size of relevant info data in the header
+
     WII_KEY_SIZE		=   16,
     WII_FILE_PATH_SIZE		= 1000,
 
@@ -195,7 +197,7 @@ typedef enum wd_disc_type_t
     //**********************************************************************
     //***  never change this values, because they are used in archives!  ***
     //**********************************************************************
- 
+
     WD_DT_UNKNOWN	= 0,	// unknown disc type
     WD_DT_GAMECUBE,		// GameCube disc
     WD_DT_WII,			// Wii disc
@@ -215,7 +217,7 @@ typedef enum wd_disc_attrib_t
 
     WD_DA_GAMECUBE	= 1 << WD_DT_GAMECUBE,
     WD_DA_WII		= 1 << WD_DT_WII,
-    
+
 
     //--- real attributes, detected by get_header_disc_type()
 
@@ -419,9 +421,9 @@ typedef struct wd_header_128_t
 
   /* 0x20 */	char	disc_title[WII_TITLE_SIZE];	// off=WII_TITLE_OFF
 
-  /* 0x60 */	u8	diable_hash;
-  /* 0x61 */	u8	diable_encryption;
-  
+  /* 0x60 */	u8	disable_hash;
+  /* 0x61 */	u8	disable_encryption;
+
   /* 0x62 */	u8	padding[0x1e];
 
 } __attribute__ ((packed)) wd_header_128_t;
@@ -472,7 +474,7 @@ typedef struct wd_header_t
 
   /* 0x60 */	u8	diable_hash;
   /* 0x61 */	u8	diable_encryption;
-  
+
   /* 0x62 */	u8	padding[0x1e];
 
   /* 0x80 */	wbfs_inode_info_t iinfo;		// off=WBFS_INODE_INFO_OFF

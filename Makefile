@@ -43,7 +43,7 @@ WDF_LONG		= Wiimms WDF Tool
 WFUSE_SHORT		= wfuse
 WFUSE_LONG		= Wiimms FUSE Tool
 
-VERSION_NUM		= 2.27a
+VERSION_NUM		= 2.28a
 BETA_VERSION		= 0
 			# 0:off  -1:"beta"  >0:"beta#"
 
@@ -272,12 +272,6 @@ DEFINES1	+= -DEXTENDED_ERRORS=1	# enable extended error messages (function,line,
 DEFINES1	+= -D_7ZIP_ST=1		# disable 7zip multi threading
 DEFINES1	+= -D_LZMA_PROB32=1	# LZMA option
 DEFINES		=  $(strip $(DEFINES1) $(MODE) $(XDEF))
-ifeq ($(WDF2),1)
- DEFINES	+= -DWDF2=1
-endif
-ifeq ($(NOWDF2),1)
- DEFINES	+= -DNOWDF2=1
-endif
 
 CFLAGS		+= -fomit-frame-pointer -fno-strict-aliasing -funroll-loops
 CFLAGS		+= -Wall -Wno-parentheses -Wno-unused-function

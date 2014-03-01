@@ -21,7 +21,7 @@ then
 	    - WBFS-files with different sector sizes: 512, 1024, 2048, 4096
 	    - ADD to and EXTRACT from PLAIN ISO, CISO, WDF, WIA, GCZ, WBFS
 	    - ADD from PIPE
-	
+
 	  * wit COPY
 	    - convert to PLAIN ISO, CISO, WDF, WIA, GCZ, WBFS
 
@@ -29,13 +29,17 @@ then
 
 	Options:
 	  --fast       : Enter fast mode
-	               => do only WDF tests and skip verify+fst+pipe tests
+		       => do only WDF tests and skip verify+fst+pipe+edit tests
+
 	  --verify     : enable  verify tests (default)
 	  --no-verify  : disable verify tests
 	  --fst        : enable  "EXTRACT FST" tests (default)
 	  --no-fst     : disable "EXTRACT FST" tests
 	  --pipe       : enable  pipe tests
 	  --no-pipe    : disable pipe tests (default)
+	  --edit       : enable edit tests (default)
+	  --no-edit    : disable edit tests
+
 	  --wia        : enable WIA compression tests (default)
 	  --no-wia     : disable WIA compression tests
 	  --gcz        : enable GCZ compression tests (default)
@@ -55,13 +59,13 @@ fi
 
 WWT=wwt
 WIT=wit
-WDFCAT=wdf-cat
+WDF=wdf
 [[ -f ./wwt && -x ./wwt ]] && WWT=./wwt
 [[ -f ./wit && -x ./wit ]] && WIT=./wit
-[[ -f ./wdf-cat && -x ./wdf-cat ]] && WDFCAT=./wdf-cat
+[[ -f ./wdf && -x ./wdf ]] && WDF=./wdf
 
 errtool=
-for tool in $WWT $WIT $WDFCAT cmp
+for tool in $WWT $WIT $WDF diff cmp
 do
     which $tool >/dev/null 2>&1 || errtool="$errtool $tool"
 done
@@ -124,19 +128,19 @@ function f_abort()
 {
     echo
     {
-        msg="###  ${myname} CANCELED  ###"
-        sep="############################"
-        sep="$sep$sep$sep$sep"
-        sep="${sep:1:${#msg}}"
-        echo ""
-        echo "$sep"
-        echo "$msg"
-        echo "$sep"
-        echo ""
-        echo "remove tempdir: $tempdir"
-        rm -rf "$tempdir"
-        sync
-        echo ""
+	msg="###  ${myname} CANCELED  ###"
+	sep="############################"
+	sep="$sep$sep$sep$sep"
+	sep="${sep:1:${#msg}}"
+	echo ""
+	echo "$sep"
+	echo "$msg"
+	echo "$sep"
+	echo ""
+	echo "remove tempdir: $tempdir"
+	rm -rf "$tempdir"
+	sync
+	echo ""
     } >&2
 
     sleep 1
@@ -152,7 +156,7 @@ WBFS="$tempdir/$WBFS_FILE"
 
 #WIALIST=$(echo $($WIT compr | sed 's/^/wia-/'))
 WIALIST=$($WIT compr | sed 's/^/wia-/')
-WDFLIST=$($WIT features wdf1 wdf2 | awk '/^+/ {print $2}' | tr 'A-Z' 'a-z')
+WDFLIST=$($WIT features wdf1 wdf2 | awk '/^+/ {print $2}' | tr 'A-Z\n' 'a-z ')
 MODELIST="iso $WDFLIST $WIALIST ciso gcz wbfs"
 BASEMODE="wdf1"
 
@@ -162,6 +166,7 @@ FAST_BASEMODE="wdf1"
 NOVERIFY=0
 NOFST=0
 NOPIPE=1
+NOEDIT=0
 NOWIA=0
 NOGCZ=0
 RAW=
@@ -375,7 +380,7 @@ function test_suite()
 	    || return $ERROR
 
 	ref="ADD pipe"
-	if ! $WDFCAT "$tempdir/image.$BASEMODE" |
+	if ! $WDF +cat "$tempdir/image.$BASEMODE" |
 	    test_function "ADD-pipe" "wwt ADD $BASEMODE from pipe" \
 		$WWT_ADD -p "$WBFS" - --psel=DATA
 	then
@@ -388,6 +393,45 @@ function test_suite()
 	    || return $STAT_DIFF
 
     fi
+
+    #----- test EDIT
+
+    if (( !NOEDIT && !OPT_TEST ))
+    then
+	src="$tempdir/image.$BASEMODE"
+	opt="--id KKK"
+
+	test_function "PATCH-WBFS" "wit PATCH to WBFS" \
+	    $WIT -ql $opt COPY "$src" "$tempdir/pat.wbfs" \
+	    || return $STAT_DIFF
+
+	test_function "PATCH-WBFS" "wit PATCH/ALIGN to WDF2" \
+	    $WIT -ql $opt COPY --align-wdf 1m "$src" "$tempdir/pat.wdf2" \
+	    || return $STAT_DIFF
+
+	test_function "CMP-PATCH" "wit CMP patch" \
+	    $WIT -ql CMP "$tempdir/pat.wbfs" "$tempdir/pat.wdf2" \
+	    || return $STAT_DIFF
+
+	#---
+
+	test_function "COPY-WDF2" "wit COPY to WDF2" \
+	    $WIT -ql COPY "$src" "$tempdir/edit.wdf2" \
+	    || return $STAT_DIFF
+
+	test_function "EDIT-WDF2" "wit EDIT WDF2" \
+	    $WIT -q EDIT "$tempdir/edit.wdf2" $opt \
+	    || return $STAT_DIFF
+
+	test_function "CMP-EDIT" "wit CMP EDIT" \
+	    $WIT -ql CMP "$tempdir/pat.wdf2" "$tempdir/edit.wdf2" \
+	    || return $STAT_DIFF
+
+	test_function "WDF-CMP-EDIT" "wdf CMP EDIT" \
+	    $WDF +cmp "$tempdir/pat.wdf2" "$tempdir/edit.wdf2" \
+	    || return $STAT_DIFF
+    fi
+
 
     #----- all tests done
 
@@ -406,7 +450,7 @@ function test_suite()
     echo
     $WWT --version
     $WIT --version
-    $WDFCAT --version
+    $WDF --version
     echo
     echo "PARAM: $*"
     echo
@@ -428,10 +472,11 @@ do
 	NOVERIFY=1
 	NOFST=1
 	NOPIPE=1
+	NOEDIT=1
 	MODELIST="$FAST_MODELIST"
 	BASEMODE="$FAST_BASEMODE"
 	((opts++)) || printf "\n"
-	printf "## --fast : check only %s, --no-fst --no-pipe\n" "$MODELIST"
+	printf "## --fast : check only %s, --no-fst --no-pipe --no-edit\n" "$MODELIST"
 	continue
     fi
 
@@ -480,6 +525,22 @@ do
 	NOPIPE=1
 	((opts++)) || printf "\n"
 	printf "## --no-pipe : pipe tests disabled\n"
+	continue
+    fi
+
+    if [[ $src == --edit ]]
+    then
+	NOEDIT=0
+	((opts++)) || printf "\n"
+	printf "## --edit : edit tests enabled\n"
+	continue
+    fi
+
+    if [[ $src == --no-edit || $src == --noedit ]]
+    then
+	NOEDIT=1
+	((opts++)) || printf "\n"
+	printf "## --no-edit : edit tests disabled\n"
 	continue
     fi
 

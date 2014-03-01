@@ -61,13 +61,22 @@
     #define WC_GROW_SIZE 500
 #endif
 
+///////////////////////////////////////////////////////////////////////////////
+// [[NEW_WDF_ALGORITHM]]
+
+#if NEW_FEATURES
+  #define NEW_WDF_ALGORITHM 1
+#else
+  #define NEW_WDF_ALGORITHM 0
+#endif
+
 //
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////                      Setup data                 ///////////////
 ///////////////////////////////////////////////////////////////////////////////
 // initialize WH
 
-void InitializeWH ( WDF_Header_t * wh )
+void InitializeWH ( wdf_header_t * wh )
 {
     DASSERT(wh);
 
@@ -78,6 +87,41 @@ void InitializeWH ( WDF_Header_t * wh )
     wh->wdf_version  = use_wdf_version;
     wh->align_factor = use_wdf_align;
     FixHeaderWDF(wh,0,true);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+void InitializeWDF ( wdf_controller_t * wdf )
+{
+    DASSERT(wdf);
+    memset(wdf,0,sizeof(*wdf));
+    InitializeWH(&wdf->head);
+
+    wdf->align = use_wdf_align;
+
+    wdf->min_hole_size	= GetChunkSizeWDF(wdf->head.wdf_version)
+			+ sizeof(WDF_Hole_t);
+    if ( wdf->min_hole_size < opt_wdf_min_holesize )
+	 wdf->min_hole_size = opt_wdf_min_holesize;
+    if ( wdf->min_hole_size < wdf->align )
+	 wdf->min_hole_size = wdf->align;
+
+    wdf->max_data_off = GetHeaderSizeWDF(wdf->head.wdf_version);
+    if ( wdf->max_data_off < wdf->align )
+	 wdf->max_data_off = wdf->align;
+    wdf->min_data_off = wdf->max_data_off;
+
+    PRINT("InitializeWDF(), align=0x%x, min-hole=0x%x, data-off=0x%llx\n",
+		wdf->align, wdf->min_hole_size, wdf->max_data_off );
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+void ResetWDF ( wdf_controller_t * wdf )
+{
+    DASSERT(wdf);
+    FREE(wdf->chunk);
+    memset(wdf,0,sizeof(*wdf));
 }
 
 //
@@ -92,7 +136,7 @@ void InitializeWH ( WDF_Header_t * wh )
 
 ///////////////////////////////////////////////////////////////////////////////
 
-void ConvertToNetworkWH ( WDF_Header_t * dest, const WDF_Header_t * src )
+void ConvertToNetworkWH ( wdf_header_t * dest, const wdf_header_t * src )
 {
     ASSERT(dest);
     ASSERT(src);
@@ -115,7 +159,7 @@ void ConvertToNetworkWH ( WDF_Header_t * dest, const WDF_Header_t * src )
 
 ///////////////////////////////////////////////////////////////////////////////
 
-void ConvertToNetworkWC1 ( WDF1_Chunk_t * dest, const WDF1_Chunk_t * src )
+void ConvertToNetworkWC1 ( wdf1_chunk_t * dest, const wdf1_chunk_t * src )
 {
     ASSERT(dest);
     ASSERT(src);
@@ -127,9 +171,8 @@ void ConvertToNetworkWC1 ( WDF1_Chunk_t * dest, const WDF1_Chunk_t * src )
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-#if WDF2_ENABLED
 
-void ConvertToNetworkWC2 ( WDF2_Chunk_t * dest, const WDF2_Chunk_t * src )
+void ConvertToNetworkWC2 ( wdf2_chunk_t * dest, const wdf2_chunk_t * src )
 {
     ASSERT(dest);
     ASSERT(src);
@@ -139,13 +182,12 @@ void ConvertToNetworkWC2 ( WDF2_Chunk_t * dest, const WDF2_Chunk_t * src )
     CONV64(data_size);
 }
 
-#endif // WDF2_ENABLED
 ///////////////////////////////////////////////////////////////////////////////
 
 void ConvertToNetworkWC1n
 (
-    WDF1_Chunk_t	*dest,		// dest data, must not overlay 'src'
-    const WDF2_Chunk_t	*src,		// source data, network byte order
+    wdf1_chunk_t	*dest,		// dest data, must not overlay 'src'
+    const wdf2_chunk_t	*src,		// source data, network byte order
     uint		n_elem		// number of elements to convert
 )
 {
@@ -165,8 +207,8 @@ void ConvertToNetworkWC1n
 
 void ConvertToNetworkWC2n
 (
-    WDF2_Chunk_t	*dest,		// dest data, may overlay 'src'
-    const WDF2_Chunk_t	*src,		// source data, network byte order
+    wdf2_chunk_t	*dest,		// dest data, may overlay 'src'
+    const wdf2_chunk_t	*src,		// source data, network byte order
     uint		n_elem		// number of elements to convert
 )
 {
@@ -199,7 +241,7 @@ void ConvertToNetworkWC2n
 
 ///////////////////////////////////////////////////////////////////////////////
 
-void ConvertToHostWH ( WDF_Header_t * dest, const WDF_Header_t * src )
+void ConvertToHostWH ( wdf_header_t * dest, const wdf_header_t * src )
 {
     ASSERT(dest);
     ASSERT(src);
@@ -221,7 +263,7 @@ void ConvertToHostWH ( WDF_Header_t * dest, const WDF_Header_t * src )
 
 ///////////////////////////////////////////////////////////////////////////////
 
-void ConvertToHostWC1 ( WDF1_Chunk_t * dest, const WDF1_Chunk_t * src )
+void ConvertToHostWC1 ( wdf1_chunk_t * dest, const wdf1_chunk_t * src )
 {
     ASSERT(dest);
     ASSERT(src);
@@ -233,9 +275,8 @@ void ConvertToHostWC1 ( WDF1_Chunk_t * dest, const WDF1_Chunk_t * src )
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-#if WDF2_ENABLED
 
-void ConvertToHostWC2 ( WDF2_Chunk_t * dest, const WDF2_Chunk_t * src )
+void ConvertToHostWC2 ( wdf2_chunk_t * dest, const wdf2_chunk_t * src )
 {
     ASSERT(dest);
     ASSERT(src);
@@ -245,12 +286,11 @@ void ConvertToHostWC2 ( WDF2_Chunk_t * dest, const WDF2_Chunk_t * src )
     CONV64(data_size);
 }
 
-#endif // WDF2_ENABLED
 ///////////////////////////////////////////////////////////////////////////////
 
 void ConvertToHostWC
 (
-    WDF2_Chunk_t	*dest,		// dest data, may overlay 'src_data'
+    wdf2_chunk_t	*dest,		// dest data, may overlay 'src_data'
     const void		*src_data,	// source data, network byte order
     uint		wdf_version,	// related wdf version
     uint		n_elem		// number of elements to convert
@@ -261,7 +301,7 @@ void ConvertToHostWC
 
     if ( wdf_version == 1 )
     {
-	const WDF1_Chunk_t *src;
+	const wdf1_chunk_t *src;
 	for ( src = src_data; n_elem-- > 0; src++, dest++ )
 	{
 	    CONV64(file_pos);
@@ -271,7 +311,7 @@ void ConvertToHostWC
     }
     else if ( ntoh64(0x123456789abcdef0ull) != 0x123456789abcdef0ull )
     {
-	const WDF2_Chunk_t *src;
+	const wdf2_chunk_t *src;
 	for ( src = src_data; n_elem-- > 0; src++, dest++ )
 	{
 	    CONV64(file_pos);
@@ -292,7 +332,7 @@ void ConvertToHostWC
 ///////////////                     WDF: helpers                ///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-bool FixHeaderWDF ( WDF_Header_t * wh, const WDF_Header_t *wh_src, bool setup )
+bool FixHeaderWDF ( wdf_header_t * wh, const wdf_header_t *wh_src, bool setup )
 {
     DASSERT(wh);
     if ( wh_src && wh_src != wh )
@@ -301,7 +341,7 @@ bool FixHeaderWDF ( WDF_Header_t * wh, const WDF_Header_t *wh_src, bool setup )
     if ( !setup && wh->wdf_version != 1 )
 	return false;
 
-    WDF_Header_t save;
+    wdf_header_t save;
     memcpy(&save,wh,sizeof(save));
 
     wh->reserved = 0;
@@ -341,37 +381,212 @@ bool FixHeaderWDF ( WDF_Header_t * wh, const WDF_Header_t *wh_src, bool setup )
 }
 
 ///////////////////////////////////////////////////////////////////////////////
+
+bool UpdateVersionWDF
+(
+    const wdf_controller_t * wdf_in,	// NULL or input file
+    wdf_controller_t	   * wdf_out	// NULL or output file
+)
+{
+    noPRINT("opt=%d, wdf=%d,%d, vers=%d,%d\n",
+	opt_wdf_version, wdf_in!=0, wdf_out!=0,
+	wdf_in  ? wdf_in->head.wdf_version : -1,
+	wdf_out ? wdf_out->head.wdf_version : -1 );
+
+    if ( !opt_wdf_version
+	&& wdf_in
+	&& wdf_out
+	&& wdf_in->head.wdf_version >  wdf_out->head.wdf_version
+	&& wdf_in->head.wdf_version <= WDF_MAX_VERSION
+    )
+    {
+	PRINT("CHANGE WDF v%u -> v%u\n",
+		wdf_out->head.wdf_version, wdf_in->head.wdf_version );
+	wdf_out->head.wdf_version = wdf_in->head.wdf_version;
+	FixHeaderWDF(&wdf_out->head,0,true);
+	return true;
+    }
+
+    return false;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+enumOFT ProposeOFT_WDF ( enumOFT src_oft )
+{
+    if ( !opt_wdf_version && oft_info[src_oft].attrib & OFT_A_WDF )
+	return src_oft;
+
+    SetupOptionsWDF();
+    return use_wdf_version > 1 ? OFT_WDF2 : OFT_WDF1;
+}
+
+///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 // chunk management
 
-WDF2_Chunk_t * NeedChunkWDF ( SuperFile_t * sf, int index )
+static wdf2_chunk_t * FindChunkWDF
+(
+    wdf_controller_t	*wdf,	// valid controller object
+    u64			offset	// wanted offset
+)
 {
-    ASSERT(sf);
-    ASSERT( index >= 0 );
-    ASSERT( index <= sf->wc_used );
-    ASSERT( sf->wc_used <= sf->wc_size );
+    DASSERT(wdf);
 
-    if ( sf->wc_used == sf->wc_size )
+    if ( !wdf || !wdf->chunk_used )
+	return 0;
+
+    wdf2_chunk_t *wc;
+    if ( wdf->chunk_used < 8 )
+	wc = wdf->chunk;
+    else
+    {
+	// use a binary search
+	const int n1 = (int)wdf->chunk_used - 1;
+	int beg = 0, end = n1;
+	while ( beg < end )
+	{
+	    int idx = (beg+end)/2;
+	    wc = wdf->chunk + idx;
+	    if ( offset < wc->file_pos )
+		end = idx - 1;
+	    else if ( idx < n1 && offset >= wc[1].file_pos )
+		beg = idx + 1;
+	    else
+		beg = end = idx;
+	}
+	wc = wdf->chunk + beg;
+    }
+
+    wdf2_chunk_t *end = wdf->chunk + wdf->chunk_used;
+    while ( offset >= wc->file_pos + wc->data_size )
+	if ( ++wc >= end )
+	    return 0;
+
+    noPRINT("CHUNK FOUND, off %llx: %u/%u/%u: %llx %llx %llx\n",
+		offset, (int)(wc-wdf->chunk), wdf->chunk_used, wdf->chunk_size,
+		wc->file_pos, wc->data_off, wc->data_size );
+    return wc;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+static wdf2_chunk_t * NewChunkWDF
+(
+    wdf_controller_t	*wdf,		// valid controller object
+    int			index,		// >=0: index, where to insert the new chunk
+					// <0:  unknown,
+    u64			offset,		// wanted offset to insert
+    u64			size,		// wanted size of new chunk
+    u64			*res_delta	// not NULL: store the delta between 'offset'
+					//           and the new chunk offset here
+)
+{
+    DASSERT(wdf);
+    DASSERT( index <= wdf->chunk_used );
+    DASSERT( wdf->chunk_used <= wdf->chunk_size );
+
+
+    //--- calc chunk offset and size
+
+    const u64 src_end = offset + size;
+    if ( wdf->image_size < src_end )
+	 wdf->image_size = src_end;
+
+    u64 delta, ch_file_pos, ch_data_size;
+    if ( wdf->align > 1 )
+    {
+	delta = offset & wdf->align - 1;
+	ch_file_pos  = offset - delta;
+	ch_data_size = ALIGN64( size+delta, wdf->align );
+    }
+    else
+    {
+	delta = 0;
+	ch_file_pos  = offset;
+	ch_data_size = size;
+    }
+
+    const u64 ch_file_end = ch_file_pos + ch_data_size;
+    if ( wdf->max_virt_off < ch_file_end )
+	 wdf->max_virt_off = ch_file_end;
+
+
+    //--- can we extend the last chunk?
+
+    if (wdf->chunk_used)
+    {
+	wdf2_chunk_t *wc = wdf->chunk + wdf->chunk_used - 1;
+	noPRINT(" %llx = %llx / %llx < %llx\n",
+		wc->data_off + wc->data_size, wdf->max_data_off,
+		ch_file_pos, wc->file_pos + wc->data_size + wdf->min_hole_size );
+
+	if ( wc->data_off + wc->data_size == wdf->max_data_off
+	    && ch_file_pos >= wc->file_pos
+	    && ch_file_pos <  wc->file_pos + wc->data_size + wdf->min_hole_size )
+	{
+	    wc->data_size = ch_file_end - wc->file_pos;
+	    wdf->max_data_off = wc->data_off + wc->data_size;
+	    if (res_delta)
+		*res_delta = offset - wc->file_pos;
+
+	    PRINT("#W# GROW CHUNK [idx=%zd/%d/%d] %llx+%llx -> %llx, d=%llx\n",
+		wc-wdf->chunk, wdf->chunk_used, wdf->chunk_size,
+		wc->data_off, wc->data_size, wc->file_pos, delta );
+
+	    return wc;
+	}
+    }
+
+
+    //--- get a correct index
+
+    if ( index < 0 )
+    {
+	wdf2_chunk_t * wc = FindChunkWDF(wdf,offset);
+	index = wc ? wc - wdf->chunk : wdf->chunk_used;
+
+	DASSERT( index >= 0 );
+	DASSERT( index <= wdf->chunk_used );
+    }
+
+
+    //--- must we extend the chunk list?
+
+    if ( wdf->chunk_used == wdf->chunk_size )
     {
 	// grow the field
 
-	TRACE("#W# NeedChunkWDF() GROW %d ->%d [use3d=%d]\n",
-		sf->wc_size, sf->wc_size+WC_GROW_SIZE, sf->wc_used );
+	PRINT("#W# NewChunkWDF() GROW LIST %d ->%d [used=%d]\n",
+		wdf->chunk_size, wdf->chunk_size+WC_GROW_SIZE, wdf->chunk_used );
 
-	sf->wc_size += WC_GROW_SIZE;
-	sf->wc = REALLOC(sf->wc,sf->wc_size*sizeof(*sf->wc));
+	wdf->chunk_size += WC_GROW_SIZE;
+	wdf->chunk = REALLOC(wdf->chunk,wdf->chunk_size*sizeof(*wdf->chunk));
     }
-    ASSERT( sf->wc_used < sf->wc_size );
+    DASSERT( wdf->chunk_used < wdf->chunk_size );
 
-    WDF2_Chunk_t * wc = sf->wc + index;
 
-    if ( index < sf->wc_used )
-	memmove( wc+1, wc, (sf->wc_used-index)*sizeof(*wc) );
+    //--- insert new chunk
 
-    sf->wc_used++;
-    TRACE("#W# NeedChunkWDF() return %p [idx=%zd/%d/%d]\n",
-		wc, wc-sf->wc, sf->wc_used, sf->wc_size );
-    memset(wc,0,sizeof(*wc));
+    wdf2_chunk_t *wc = wdf->chunk + index;
+    if ( index < wdf->chunk_used )
+	memmove( wc+1, wc, (wdf->chunk_used-index)*sizeof(*wc) );
+    wdf->chunk_used++;
+
+
+    //--- assign chunk values
+
+    wc->file_pos  = ch_file_pos;
+    wc->data_size = ch_data_size;
+    wc->data_off  = wdf->max_data_off;
+    wdf->max_data_off += wc->data_size;
+    if (res_delta)
+	*res_delta = delta;
+
+    PRINT("#W#  NEW CHUNK [idx=%zd/%d/%d] %llx+%llx -> %llx, d=%llx\n",
+		wc-wdf->chunk, wdf->chunk_used, wdf->chunk_size,
+		wc->data_off, wc->data_size, wc->file_pos, delta );
+
     return wc;
 }
 
@@ -382,34 +597,39 @@ WDF2_Chunk_t * NeedChunkWDF ( SuperFile_t * sf, int index )
 
 enumError SetupReadWDF ( SuperFile_t * sf )
 {
-    TRACE("#W# SetupReadWDF(%p) wc=%p wbfs=%p, fp=%p, fd=%d\n",
-		sf,sf->wc,sf->wbfs,sf->f.fp,sf->f.fd);
-    if ( sf->wc || sf->wbfs )
+    PRINT("#W# SetupReadWDF(%p) wdf=%p wbfs=%p, fp=%p, fd=%d\n",
+		sf, sf->wdf, sf->wbfs, sf->f.fp, sf->f.fd );
+    DASSERT(sf);
+    if ( sf->wdf || sf->wbfs )
 	return ERR_OK;
 
-    ASSERT(sf);
     CleanSF(sf);
-    InitializeWH(&sf->wh); // reset data
+    wdf_controller_t *wdf = MALLOC(sizeof(*wdf));
+    sf->wdf = wdf;
+    InitializeWDF(wdf); // reset data
 
-    if ( sf->f.seek_allowed && sf->f.st.st_size < sizeof(WDF_Header_t) )
+    if ( sf->f.seek_allowed && sf->f.st.st_size < sizeof(wdf_header_t) )
 	return ERR_NO_WDF;
 
-    WDF_Header_t wh;
+    wdf_header_t wh;
     enumError stat = ReadAtF(&sf->f,0,&wh,sizeof(wh));
     if (stat)
 	return stat;
     TRACE("#W#  - header read\n");
+
 
     //----- fix old style header (WDF v1)
 
     ConvertToHostWH(&wh,&wh);
     FixHeaderWDF(&wh,0,false);
 
+
     //----- test header
 
     stat = AnalyzeWH(&sf->f,&wh,true);
     if (stat)
 	return stat;
+
 
     //----- test chunk table magic
 
@@ -419,45 +639,83 @@ enumError SetupReadWDF ( SuperFile_t * sf )
 	return stat;
 
     if (memcmp(magic,WDF_MAGIC,WDF_MAGIC_SIZE))
-	goto invalid;
+	return ERROR0(ERR_WDF_INVALID,"Invalid WDF magic: %s\n",sf->f.fname);
 
     const uint chunk_tab_size = wh.chunk_n * GetChunkSizeWDF(wh.wdf_version);
-    WDF2_Chunk_t *wc = MALLOC(chunk_tab_size);
+    wdf2_chunk_t *wc = MALLOC(chunk_tab_size);
+
+
+    //--- load and check chunc table
 
     stat = ReadAtF(&sf->f,wh.chunk_off+WDF_MAGIC_SIZE,wc,chunk_tab_size);
     if (stat)
 	return stat;
+    wdf->filesize_on_open = sf->f.cur_off;
     TRACE("#W#  - chunk table read\n");
 
-    sf->wc = wc;
-    sf->wc_used = wh.chunk_n;
-    sf->wc_size = chunk_tab_size / sizeof(*wc);
+    wdf->chunk = wc;
+    wdf->chunk_used = wh.chunk_n;
+    wdf->chunk_size = chunk_tab_size / sizeof(*wc);
     ConvertToHostWC(wc,wc,wh.wdf_version,wh.chunk_n);
 
     int idx;
+    u32 align_mask = wdf->head.align_factor | wdf->align;
+    u64 max_data_off = wdf->head.head_size;
+    u64 min_data_off = wdf->min_data_off;
+    u64 max_virt_off = 0;
     for ( idx = 0; idx < wh.chunk_n; idx++, wc++ )
     {
+	align_mask |= wc->file_pos | wc->data_off | wc->data_size;
 	if ( idx && wc->file_pos < wc[-1].file_pos + wc[-1].data_size )
-	    goto invalid;
+	    return ERROR0(ERR_WDF_INVALID,"WDF chunk table corrupted: %s\n",sf->f.fname);
+
+	if ( !idx || min_data_off > wc->data_off )
+	     min_data_off = wc->data_off;
+
+	u64 end_off = wc->data_off + wc->data_size;
+	if ( max_data_off < end_off )
+	     max_data_off = end_off;
+
+	end_off = wc->file_pos + wc->data_size;
+	if ( max_virt_off < end_off )
+	     max_virt_off = end_off;
     }
-    PRINT("#W#  - chunk loop exits with ok [n=%u/%u]\n",sf->wc_used,sf->wc_size);
 
-    // check last chunk
-    wc = sf->wc + sf->wc_used - 1;
-    if ( wc->file_pos + wc->data_size != wh.file_size )
-	    goto invalid;
+    const u64 chunk_end = wdf->head.chunk_off + WDF_MAGIC_SIZE + chunk_tab_size;
+    if ( chunk_end > min_data_off && wh.chunk_off < max_data_off )
+	return ERROR0(ERR_WDF_INVALID,
+			"Chunk table overlaps with data: %s\n",sf->f.fname);
 
-    memcpy(&sf->wh,&wh,sizeof(sf->wh));
-    sf->file_size	= sf->wh.file_size;
-    sf->f.max_off	= sf->wh.chunk_off;
-    sf->max_virt_off	= sf->wh.file_size;
-    SetupIOD(sf,OFT_WDF,OFT_WDF);
+    wdf->image_size   = wdf->head.file_size;
+    wdf->max_virt_off = max_virt_off;
+    wdf->max_data_off = wdf->align
+		? ALIGN64(max_data_off,wdf->align) : max_data_off;
+
+    if ( wdf->head.align_factor )
+    {
+	u32 align = 1;
+	while (!(align_mask&align))
+	    align <<= 1;
+	wdf->align = wdf->head.align_factor = align;
+    }
+
+    PRINT("#W#  - chunk loop exits [n=%u/%u], max_off=%llx, align=%x\n",
+		wdf->chunk_used, wdf->chunk_size,
+		wdf->max_data_off, wdf->align );
+
+
+    //--- last assignments
+
+    memcpy(&wdf->head,&wh,sizeof(wdf->head));
+    sf->file_size	= wdf->head.file_size;
+    sf->f.max_off	= wdf->head.chunk_off;
+    sf->max_virt_off	= wdf->max_virt_off;
+
+    const enumOFT oft_wdf = wdf->head.wdf_version > 1 ? OFT_WDF2 : OFT_WDF1;
+    SetupIOD(sf,oft_wdf,oft_wdf);
 
     TRACE("#W# WDF FOUND!\n");
     return ERR_OK;
-
- invalid:
-    return ERROR0(ERR_WDF_INVALID,"Invalid WDF file: %s\n",sf->f.fname);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -465,14 +723,17 @@ enumError SetupReadWDF ( SuperFile_t * sf )
 enumError ReadWDF ( SuperFile_t * sf, off_t off, void * buf, size_t count )
 {
     DASSERT(sf);
-    DASSERT(sf->wc);
-    DASSERT(sf->wc_used);
+    wdf_controller_t *wdf = sf->wdf;
+    if (!wdf)
+	ERROR0(ERR_INTERNAL,0);
+    DASSERT(wdf->chunk);
+    DASSERT(wdf->chunk_used);
 
     TRACE("#W# -----\n");
     TRACE(TRACE_RDWR_FORMAT, "#W# ReadWDF()",
 		GetFD(&sf->f), GetFP(&sf->f), (u64)off, (u64)off+count, count, "" );
 
-    if ( off + count > sf->wh.file_size )
+    if ( off + count > wdf->head.file_size )
     {
 	if (!sf->f.read_behind_eof)
 	{
@@ -483,8 +744,8 @@ enumError ReadWDF ( SuperFile_t * sf, off_t off, void * buf, size_t count )
 	    return ERR_READ_FAILED;
 	}
 
-	const off_t max_read = sf->wh.file_size > off
-					? sf->wh.file_size - off
+	const off_t max_read = wdf->head.file_size > off
+					? wdf->head.file_size - off
 					: 0;
 	ASSERT( count > max_read );
 
@@ -506,14 +767,14 @@ enumError ReadWDF ( SuperFile_t * sf, off_t off, void * buf, size_t count )
     }
 
     // find chunk header
-    WDF2_Chunk_t * wc = sf->wc;
-    const int used_m1 = sf->wc_used - 1;
+    wdf2_chunk_t * wc = wdf->chunk;
+    const int used_m1 = wdf->chunk_used - 1;
     int beg = 0, end = used_m1;
     ASSERT( beg <= end );
     while ( beg < end )
     {
 	int idx = (beg+end)/2;
-	wc = sf->wc + idx;
+	wc = wdf->chunk + idx;
 	if ( off < wc->file_pos )
 	    end = idx-1;
 	else if ( idx < used_m1 && off >= wc[1].file_pos )
@@ -521,7 +782,7 @@ enumError ReadWDF ( SuperFile_t * sf, off_t off, void * buf, size_t count )
 	else
 	    beg = end = idx;
     }
-    wc = sf->wc + beg;
+    wc = wdf->chunk + beg;
 
     noTRACE("#W#  - FOUND #%03d: off=%09llx ds=%llx, off=%09llx\n",
 	    beg, wc->file_pos, wc->data_size, (u64)off );
@@ -532,7 +793,7 @@ enumError ReadWDF ( SuperFile_t * sf, off_t off, void * buf, size_t count )
     while ( count > 0 )
     {
 	noTRACE("#W# %d/%d count=%zd off=%llx,%llx \n",
-		beg, sf->wc_used, count, (u64)off, (u64)wc->file_pos );
+		beg, wdf->chunk_used, count, (u64)off, (u64)wc->file_pos );
 
 	if ( off < wc->file_pos )
 	{
@@ -567,7 +828,7 @@ enumError ReadWDF ( SuperFile_t * sf, off_t off, void * buf, size_t count )
 	}
 
 	wc++;
-	if ( ++beg >= sf->wc_used )
+	if ( ++beg >= wdf->chunk_used )
 	{
 	    TRACE("ERR_WDF_INVALID\n");
 	    return ERR_WDF_INVALID;
@@ -584,19 +845,25 @@ enumError ReadWDF ( SuperFile_t * sf, off_t off, void * buf, size_t count )
 off_t DataBlockWDF
 	( SuperFile_t * sf, off_t off, size_t hint_align, off_t * block_size )
 {
-    if ( off >= sf->wh.file_size )
+    DASSERT(sf);
+    wdf_controller_t *wdf = sf->wdf;
+    if (!wdf)
+	ERROR0(ERR_INTERNAL,0);
+
+    if ( off >= wdf->head.file_size )
 	return DataBlockStandard(sf,off,hint_align,block_size);
 
     //--- find chunk header
+    // [[align]] optimize using FindChunkWDF()
 
-    WDF2_Chunk_t * wc = sf->wc;
-    const int used_m1 = sf->wc_used - 1;
+    wdf2_chunk_t * wc = wdf->chunk;
+    const int used_m1 = wdf->chunk_used - 1;
     int beg = 0, end = used_m1;
     ASSERT( beg <= end );
     while ( beg < end )
     {
 	int idx = (beg+end)/2;
-	wc = sf->wc + idx;
+	wc = wdf->chunk + idx;
 	if ( off < wc->file_pos )
 	    end = idx-1;
 	else if ( idx < used_m1 && off >= wc[1].file_pos )
@@ -604,11 +871,11 @@ off_t DataBlockWDF
 	else
 	    beg = end = idx;
     }
-    wc = sf->wc + beg;
+    wc = wdf->chunk + beg;
 
     while ( off >= wc->file_pos + wc->data_size )
     {
-	if ( ++beg >= sf->wc_used )
+	if ( ++beg >= wdf->chunk_used )
 	    return DataBlockStandard(sf,off,hint_align,block_size);
 	wc++;
     }
@@ -627,7 +894,7 @@ off_t DataBlockWDF
 
 	for (;;)
 	{
-	    if ( ++beg >= sf->wc_used
+	    if ( ++beg >= wdf->chunk_used
 		    || wc[1].file_pos - (wc->file_pos+wc->data_size) >= hint_align )
 		break;
 	    wc++;
@@ -645,12 +912,15 @@ off_t DataBlockWDF
 
 void FileMapWDF ( SuperFile_t * sf, FileMap_t *fm )
 {
-    DASSERT(sf);
     DASSERT(fm);
     DASSERT(!fm->used);
 
-    const WDF2_Chunk_t *wc = sf->wc;
-    const WDF2_Chunk_t *end = wc + sf->wc_used;
+    DASSERT(sf);
+    wdf_controller_t *wdf = sf->wdf;
+    if (!wdf)
+	ERROR0(ERR_INTERNAL,0);
+    const wdf2_chunk_t *wc = wdf->chunk;
+    const wdf2_chunk_t *end = wc + wdf->chunk_used;
     for ( ; wc < end; wc++ )
 	AppendFileMap(fm,wc->file_pos,wc->data_off,wc->data_size);
 }
@@ -662,16 +932,12 @@ void FileMapWDF ( SuperFile_t * sf, FileMap_t *fm )
 
 enumError SetupWriteWDF ( SuperFile_t * sf )
 {
-    ASSERT(sf);
-    TRACE("#W# SetupWriteWDF(%p)\n",sf);
+    PRINT("#W# SetupWriteWDF(%p)\n",sf);
+    DASSERT(sf);
 
-    InitializeWH(&sf->wh);
-
- #if WDF2_ENABLED
-    const uint head_size = sf->wh.head_size;
- #else
-    const uint head_size = WDF_VERSION1_SIZE;
- #endif
+    wdf_controller_t *wdf = MALLOC(sizeof(*wdf));
+    sf->wdf = wdf;
+    InitializeWDF(wdf); // reset data
 
     if (sf->src)
     {
@@ -687,7 +953,7 @@ enumError SetupWriteWDF ( SuperFile_t * sf )
 
 	if (size)
 	{
-	    const enumError err = PreallocateF(&sf->f,0,size+head_size);
+	    const enumError err = PreallocateF(&sf->f,0,size+wdf->head.head_size);
 	    if (err)
 	    {
 		noPRINT("#W# SetupWriteWDF() returns %d\n",err);
@@ -696,18 +962,14 @@ enumError SetupWriteWDF ( SuperFile_t * sf )
 	}
     }
 
-    SetupIOD(sf,OFT_WDF,OFT_WDF);
+    const enumOFT oft_wdf = wdf->head.wdf_version > 1 ? OFT_WDF2 : OFT_WDF1;
+    SetupIOD(sf,oft_wdf,oft_wdf);
+
     sf->max_virt_off = 0;
-    sf->wh.magic[0] = '-'; // write a 'not complete' indicator
-    const enumError err = WriteAtF(&sf->f,0,&sf->wh,head_size);
+    wdf->head.magic[0] = '-'; // write a 'not complete' indicator
+    const enumError err = WriteAtF(&sf->f,0,&wdf->head,wdf->head.head_size);
 
-    sf->wc_used = 0;
-
-    // first chunk with file_pos=0, count=0, off=x
-    WDF2_Chunk_t * wc = NeedChunkWDF(sf,0);
-    wc->data_off = sf->f.file_off;
-
-    noPRINT("#W# SetupWriteWDF() returns %d\n",err);
+    PRINT("#W# SetupWriteWDF() returns %d\n",err);
     return err;
 }
 
@@ -715,62 +977,96 @@ enumError SetupWriteWDF ( SuperFile_t * sf )
 
 enumError TermWriteWDF ( SuperFile_t * sf )
 {
-    ASSERT(sf);
-    ASSERT(sf->wc);
-    TRACE("#W# TermWriteWDF(%p)\n",sf);
+    DASSERT(sf);
+    wdf_controller_t *wdf = sf->wdf;
+    if (!wdf)
+	ERROR0(ERR_INTERNAL,0);
+    DASSERT(wdf->chunk);
+    PRINT("#W# TermWriteWDF(%p) v%u [%u,%u]\n",
+		sf, wdf->head.wdf_version, opt_wdf_version, use_wdf_version );
 
-    WDF2_Chunk_t * wc = sf->wc + sf->wc_used - 1;
-    const u64 last_pos = wc->file_pos + wc->data_size;
-    if ( sf->file_size < last_pos )
+    if ( opt_wdf_version && opt_wdf_version == use_wdf_version )
+    {
+	wdf->head.wdf_version = opt_wdf_version;
+	FixHeaderWDF(&wdf->head,0,true);
+    }
+
+    if ( sf->file_size < wdf->image_size )
     {
 	// correction for double layer discs [[2do]]
-	sf->file_size = last_pos;
+	sf->file_size = wdf->image_size;
     }
-    else if ( sf->file_size > last_pos )
+    else if ( sf->file_size > wdf->image_size )
     {
-	wc = NeedChunkWDF(sf,sf->wc_used);
-	wc->file_pos = sf->file_size;
-	wc->data_off = sf->f.max_off;
+	// insert a last empty chunk
+	NewChunkWDF(wdf,wdf->chunk_used,sf->file_size,0,0);
     }
 
- #if WDF2_ENABLED
-    const uint head_size = sf->wh.head_size;
- #else
-    const uint head_size = WDF_VERSION1_SIZE;
- #endif
+    wdf->head.chunk_n	= wdf->chunk_used;
+    wdf->head.file_size	= wdf->image_size;
+    wdf->head.data_size	= wdf->max_data_off - wdf->min_data_off;
 
-    sf->wh.chunk_n	= sf->wc_used;
-    sf->wh.chunk_off	= sf->f.max_off;
-    sf->wh.file_size	= sf->file_size;
-    sf->wh.data_size	= sf->wh.chunk_off - head_size;
 
-    WDF_Header_t wh;
-    ConvertToNetworkWH(&wh,&sf->wh);
+    //--- calc chunk offset
+
+    u32 chunk_size;
+    u64 eof = wdf->max_data_off;
+    bool force_set_size = false;
+
+    if ( wdf->head.wdf_version < 2 )
+    {
+	wdf->head.chunk_off = eof;
+	chunk_size = wdf->head.chunk_n * sizeof(wdf1_chunk_t);
+	eof += WDF_MAGIC_SIZE + chunk_size;
+    }
+    else
+    {
+	chunk_size = wdf->head.chunk_n * sizeof(wdf2_chunk_t);
+	u32 chunk_size2 = chunk_size + WDF_MAGIC_SIZE;
+	if ( chunk_size2 > wdf->min_data_off - sizeof(wdf_header_t) )
+	{
+	    wdf->head.chunk_off = eof;
+	    eof += chunk_size2;
+	}
+	else
+	{
+	    wdf->head.chunk_off = sizeof(wdf_header_t);
+	    force_set_size = true;
+	}
+    }
+
+
+    //--- write magic & chunk list
 
     // write the magic behind the data (use header)
-    int stat = WriteAtF( &sf->f, sf->wh.chunk_off, &wh.magic, sizeof(wh.magic) );
+    int stat = WriteAtF( &sf->f, wdf->head.chunk_off, WDF_MAGIC, WDF_MAGIC_SIZE );
 
     // write the chunk table
     if (!stat)
     {
-	if ( sf->wh.wdf_version < 2 )
+	if ( wdf->head.wdf_version < 2 )
 	{
-	    const uint c_size = sf->wh.chunk_n * sizeof(WDF1_Chunk_t);
-	    WDF1_Chunk_t *wc = MALLOC(c_size);
-	    ConvertToNetworkWC1n(wc,sf->wc,sf->wh.chunk_n);
-	    stat = WriteF( &sf->f, wc, c_size );
+	    wdf1_chunk_t *wc = MALLOC(chunk_size);
+	    ConvertToNetworkWC1n(wc,wdf->chunk,wdf->head.chunk_n);
+	    stat = WriteF( &sf->f, wc, chunk_size );
 	    FREE(wc);
 	}
 	else
 	{
-	    ConvertToNetworkWC2n(sf->wc,sf->wc,sf->wh.chunk_n);
-	    stat = WriteF( &sf->f, sf->wc, sf->wh.chunk_n * sizeof(*sf->wc) );
+	    ConvertToNetworkWC2n(wdf->chunk,wdf->chunk,wdf->head.chunk_n);
+	    stat = WriteF( &sf->f, wdf->chunk, chunk_size );
+	}
+
+	if (!stat)
+	{
+	    // write the header
+	    wdf_header_t wh;
+	    ConvertToNetworkWH(&wh,&wdf->head);
+	    stat = WriteAtF(&sf->f,0,&wh,wdf->head.head_size);
+	    if ( !stat && ( eof < wdf->filesize_on_open || force_set_size ) )
+		SetSizeF(&sf->f,eof);
 	}
     }
-
-    // write the header
-    if (!stat)
-	stat = WriteAtF( &sf->f, 0, &wh, head_size );
 
     TRACE("#W# TermWriteWDF() returns %d\n",stat);
     return stat;
@@ -780,8 +1076,10 @@ enumError TermWriteWDF ( SuperFile_t * sf )
 
 enumError WriteWDF ( SuperFile_t * sf, off_t off, const void * buf, size_t count )
 {
-    ASSERT(sf);
-    ASSERT(sf->wc);
+    DASSERT(sf);
+    wdf_controller_t *wdf = sf->wdf;
+    if (!wdf)
+	ERROR0(ERR_INTERNAL,0);
 
     TRACE("#W# -----\n");
     TRACE(TRACE_RDWR_FORMAT, "#W# WriteWDF()",
@@ -793,116 +1091,92 @@ enumError WriteWDF ( SuperFile_t * sf, off_t off, const void * buf, size_t count
     if (!count)
 	return ERR_OK;
 
-    // adjust the file size
-    const off_t data_end = off + count;
-    if ( sf->file_size < data_end )
-	 sf->file_size = data_end;
 
-    ASSERT( sf->wc_used > 0 );
-    const int used_m1 = sf->wc_used - 1;
+    //--- append?
 
-    if ( off >= sf->max_virt_off )
+    if ( off >= wdf->max_virt_off )
     {
 	// SPECIAL CASE:
 	//    the current virtual file will be extended
-	//    -> no need to search chunks
+	//    -> no need to find a related chunk
 
-	if ( off <= sf->max_virt_off + WDF_MIN_HOLE_SIZE )
-	{
-	    // maybe an extend of the last chunk -> get the last chunk
-	    WDF2_Chunk_t * wc = sf->wc + used_m1;
-	    if ( wc->data_off + wc->data_size == sf->f.max_off )
-	    {
-		// yes, it is the last written chunk
-		const u32 skip = off - sf->max_virt_off;
-
-		// adjust max_virt_off
-		sf->max_virt_off = off + count;
-
-		const enumError err
-		    = WriteAtF(&sf->f,skip+wc->data_off+wc->data_size,buf,count);
-		wc->data_size += skip + count;
-		return err;
-	    }
-	}
-
-	// adjust max_virt_off
-	sf->max_virt_off = off + count;
-
-	// create a new chunk at end of file
-	WDF2_Chunk_t * wc = NeedChunkWDF(sf,sf->wc_used);
-	wc->file_pos  = off;
-	wc->data_off  = sf->f.max_off;
-	wc->data_size = count;
-	return WriteAtF(&sf->f,wc->data_off,buf,count);
+	u64 delta;
+	wdf2_chunk_t *wc = NewChunkWDF(wdf,wdf->chunk_used,off,count,&delta);
+	DASSERT(wc);
+	return WriteAtF(&sf->f,wc->data_off+delta,buf,count);
     }
 
-    // search chunk header with a binary search
-    WDF2_Chunk_t * wc = sf->wc;
-    int beg = 0, end = used_m1;
-    ASSERT( beg <= end );
-    while ( beg < end )
-    {
-	int idx = (beg+end)/2;
-	wc = sf->wc + idx;
-	if ( off < wc->file_pos )
-	    end = idx-1;
-	else if ( idx < used_m1 && off >= wc[1].file_pos )
-	    beg = idx + 1;
-	else
-	    beg = end = idx;
-    }
-    wc = sf->wc + beg;
+
+    //--- search chunk element
+
+    wdf2_chunk_t * wc = FindChunkWDF(wdf,off);
+    if (!wc)
+	ERROR0(ERR_INTERNAL,0);
 
     TRACE("#W#  - FOUND #%03d: off=%09llx ds=%llx, off=%09llx\n",
-	    beg, wc->file_pos, wc->data_size, (u64)off );
-    ASSERT( off >= wc->file_pos );
-    ASSERT( beg == used_m1 || off < wc[1].file_pos );
+	    (int)(wc-wdf->chunk), wc->file_pos, wc->data_size, (u64)off );
+    //DASSERT_MSG( off >= wc->file_pos, "%llx %llx\n", (u64)off, wc->file_pos );
+
+
+    //--- main loop
 
     ccp src = buf;
     while ( count > 0 )
     {
 	TRACE("#W# %d/%d count=%zd off=%llx,%llx \n",
-		beg, sf->wc_used, count, (u64)off, wc->file_pos );
+		(int)(wc-wdf->chunk), wdf->chunk_used, count, (u64)off, wc->file_pos );
+
+	//--- test, if offset is in space between to chunks
 
 	if ( off < wc->file_pos )
 	{
 	    const u64 max_size = wc->file_pos - off;
-	    const u32 wr_size = max_size < count ? (u32)max_size : count;
+	    u32 wr_size = max_size < count ? (u32)max_size : count;
 
-	    TRACE("#W# >CREATE#%02d    %p +%8zx = %10llx .. +%4x\n",
-			beg, buf, src-(ccp)buf, (u64)off, wr_size );
+	    //--- skip all leading zeros
 
-	    // create a new chunk
-	    wc = NeedChunkWDF(sf,beg);
-	    wc->file_pos   = off;
-	    wc->data_off  = sf->f.max_off;
-	    wc->data_size = wr_size;
+	    while ( wr_size >= 4 && !*(u32*)src )
+	    {
+		off     += 4;
+		src     += 4;
+		wr_size -= 4;
+		count   -= 4;
+	    }
 
-	    // write data & return
-	    const enumError stat = WriteAtF(&sf->f,wc->data_off,src,wr_size);
-	    if (stat)
-		return stat;
+	    if ( wr_size)
+	    {
+		TRACE("#W# >CREATE#%02d    %p +%8zx = %10llx .. +%4x\n",
+			(int)(wc-wdf->chunk), buf, src-(ccp)buf, (u64)off, wr_size );
 
-	    wc++;
-	    beg++;
+		//--- create a new chunk
 
-	    count -= wr_size;
-	    off  += wr_size;
-	    src += wr_size;
+		u64 delta;
+		wc = NewChunkWDF(wdf,wc-wdf->chunk,off,wr_size,&delta);
+		const enumError stat = WriteAtF(&sf->f,wc->data_off+delta,src,wr_size);
+		if (stat)
+		    return stat;
+		wc++;
+
+		count -= wr_size;
+		off   += wr_size;
+		src   += wr_size;
+	    }
 	    if (!count)
 		break;
 	}
 
+
+	//--- modify existing chunk
+
 	if ( off >= wc->file_pos && off < wc->file_pos + wc->data_size )
 	{
 	    // we want a part of this
-	    const u64 delta     = off - wc->file_pos;
-	    const u64 max_size  = wc->data_size - delta;
-	    const u32 wr_size = max_size < count ? (u32)max_size : count;
+	    const u64 delta	= off - wc->file_pos;
+	    const u64 max_size	= wc->data_size - delta;
+	    const u32 wr_size	= max_size < count ? (u32)max_size : count;
 
 	    TRACE("#W# >OVERWRITE#%02d %p +%8zx = %10llx .. +%4x, delta=%lld\n",
-			beg, buf, src-(ccp)buf, (u64)off, wr_size, delta );
+			(int)(wc-wdf->chunk), buf, src-(ccp)buf, (u64)off, wr_size, delta );
 
 	    const enumError stat = WriteAtF(&sf->f,wc->data_off+delta,src,wr_size);
 	    if (stat)
@@ -915,9 +1189,8 @@ enumError WriteWDF ( SuperFile_t * sf, off_t off, const void * buf, size_t count
 		break;
 	}
 
-	wc++;
-	if ( ++beg >= sf->wc_used )
-	    return WriteWDF(sf,off,src,count);
+	if ( ++wc >= wdf->chunk + wdf->chunk_used )
+	    return WriteWDF(sf,off,src,count); // fall back to 'append'
     }
     return ERR_OK;
 }
@@ -927,15 +1200,19 @@ enumError WriteWDF ( SuperFile_t * sf, off_t off, const void * buf, size_t count
 enumError WriteSparseWDF
 	( SuperFile_t * sf, off_t off, const void * buf, size_t count )
 {
-    return SparseHelper(sf,off,buf,count,WriteWDF,WDF_MIN_HOLE_SIZE);
+    DASSERT(sf->wdf);
+    return SparseHelper(sf,off,buf,count,WriteWDF,sf->wdf->min_hole_size);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 
 enumError WriteZeroWDF ( SuperFile_t * sf, off_t off, size_t count )
 {
-    ASSERT(sf);
-    ASSERT(sf->wc);
+    DASSERT(sf);
+    wdf_controller_t *wdf = sf->wdf;
+    if (!wdf)
+	ERROR0(ERR_INTERNAL,0);
+    DASSERT(wdf->chunk);
 
     TRACE("#W# -----\n");
     TRACE(TRACE_RDWR_FORMAT, "#W# WriteZeroWDF()",
@@ -952,20 +1229,21 @@ enumError WriteZeroWDF ( SuperFile_t * sf, off_t off, size_t count )
     if ( sf->file_size < data_end )
 	sf->file_size = data_end;
 
-    ASSERT( sf->wc_used > 0 );
-    const int used_m1 = sf->wc_used - 1;
+    ASSERT( wdf->chunk_used > 0 );
+    const int used_m1 = wdf->chunk_used - 1;
 
     if ( off >= sf->max_virt_off )
 	return ERR_OK;
 
+    // [[align]] optimize using FindChunkWDF()
     // search chunk header with a binary search
-    WDF2_Chunk_t * wc = sf->wc;
+    wdf2_chunk_t * wc = wdf->chunk;
     int beg = 0, end = used_m1;
     ASSERT( beg <= end );
     while ( beg < end )
     {
 	int idx = (beg+end)/2;
-	wc = sf->wc + idx;
+	wc = wdf->chunk + idx;
 	if ( off < wc->file_pos )
 	    end = idx-1;
 	else if ( idx < used_m1 && off >= wc[1].file_pos )
@@ -973,14 +1251,14 @@ enumError WriteZeroWDF ( SuperFile_t * sf, off_t off, size_t count )
 	else
 	    beg = end = idx;
     }
-    wc = sf->wc + beg;
+    wc = wdf->chunk + beg;
 
     TRACE("#W#  - FOUND #%03d: off=%09llx ds=%llx, off=%09llx\n",
 	    beg, wc->file_pos, wc->data_size, (u64)off );
     ASSERT( off >= wc->file_pos );
     ASSERT( beg == used_m1 || off < wc[1].file_pos );
 
-    WDF2_Chunk_t * last_wc = sf->wc + sf->wc_used;
+    wdf2_chunk_t * last_wc = wdf->chunk + wdf->chunk_used;
     for ( ; wc < last_wc || wc->file_pos < data_end; wc++ )
     {
 	off_t end = wc->file_pos + wc->data_size;
@@ -1009,10 +1287,12 @@ enumError WriteZeroWDF ( SuperFile_t * sf, off_t off, size_t count )
 ///////////////			    options			///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-uint opt_wdf_version	= 0;
-uint opt_wdf_align	= 0;
-uint use_wdf_version	= WDF_DEF_VERSION;
-uint use_wdf_align	= WDF_DEF_ALIGN;
+uint opt_wdf_version		= 0;
+uint opt_wdf_align		= 0;
+uint opt_wdf_min_holesize	= 0;
+
+uint use_wdf_version		= WDF_DEF_VERSION;
+uint use_wdf_align		= WDF_DEF_ALIGN;
 
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -1027,40 +1307,73 @@ void SetupOptionsWDF()
     else
 	use_wdf_align = 0;
 
- #if WDF2_ENABLED < 2
-    use_wdf_version = 1;
+ #if WDF_DEF_VERSION == WDF_MAX_VERSION // [[wdf2]]
+    use_wdf_version = opt_wdf_version && opt_wdf_version <= WDF_MAX_VERSION
+			? opt_wdf_version : WDF_MAX_VERSION;
  #else
     use_wdf_version = opt_wdf_version ? opt_wdf_version
-		    : use_wdf_align > 1 ? 2 : 1;
+		    : use_wdf_align >= 0x80 ? 2 : WDF_DEF_VERSION;
     if ( use_wdf_version > WDF_MAX_VERSION )
-	use_wdf_version = WDF_MAX_VERSION;
+	 use_wdf_version = WDF_MAX_VERSION;
  #endif
+
+    opt_wdf_min_holesize = opt_wdf_min_holesize + 3 & ~3;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 
-int SetWDF2Mode ( uint vers, ccp align )
+int SetModeWDF ( uint vers, ccp align )
 {
-    output_file_type = OFT_WDF;
-    const int stat = ScanOptWDFAlign(align);
-    opt_wdf_version = vers;
+    if (vers)
+    {
+	opt_wdf_version = vers;
+	output_file_type = vers > 1 ? OFT_WDF2 : OFT_WDF1;
+    }
+    else if ( !(oft_info[output_file_type].attrib & OFT_A_WDF) )
+	output_file_type = OFT__WDF_DEF;
+
+    char opt_buf[10], *opt_name = "wdf";
+    if (vers)
+    {
+	snprintf(opt_buf,sizeof(opt_buf),"wdf%u",vers);
+	opt_name = opt_buf;
+    }
+
+    const int stat = ScanOptAlignWDF(align,opt_name);
     return stat;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 
-int ScanOptWDFAlign ( ccp arg )
+int ScanOptAlignWDF ( ccp arg, ccp opt_name )
 {
     if (!arg)
 	return 0;
 
-    u32 align;
-    enumError stat = ScanSizeOptU32(
+    if (!opt_name)
+	opt_name = "align-wdf";
+
+    ccp minhole = strchr(arg,',');
+    char buf[1000];
+    if ( minhole && minhole - arg < sizeof(buf) )
+    {
+	StringCopyS(buf,sizeof(buf),arg);
+	buf[ minhole - arg ] = 0;
+	arg = buf;
+	minhole++;
+    }
+    else
+	minhole = 0;
+
+    u32 align = 0;
+    enumError stat = !*arg
+	? 0
+	: ScanSizeOptU32(
 		&align,			// u32 * num
 		arg,			// ccp source
 		1,			// default_factor1
 		0,			// int force_base
-		"wdf-align",		// ccp opt_name
+		opt_name,		// ccp opt_name
 		0,			// u64 min
 		WDF_MAX_ALIGN,		// u64 max
 		0,			// u32 multiple
@@ -1069,7 +1382,30 @@ int ScanOptWDFAlign ( ccp arg )
 		) != ERR_OK;
 
     if (!stat)
+    {
 	opt_wdf_align = align;
+	opt_wdf_min_holesize = 0;
+
+	if ( minhole && *minhole )
+	{
+	    u32 value;
+	    stat = ScanSizeOptU32(
+		&value,			// u32 * num
+		minhole,		// ccp source
+		1,			// default_factor1
+		0,			// int force_base
+		opt_name,		// ccp opt_name
+		0,			// u64 min
+		WDF_MAX_ALIGN,		// u64 max
+		0,			// u32 multiple
+		0,			// u32 pow2
+		true			// bool print_err
+		) != ERR_OK;
+
+	    if (!stat)
+		opt_wdf_min_holesize = value + 3 & ~3;
+	}
+    }
     return stat;
 }
 

@@ -2014,7 +2014,7 @@ enumError exec_add ( SuperFile_t * sf, Iterator_t * it )
     // [[2do]] [rewrite] count_jobs() does most decicions
 
     enumFileType ft_test = FT_A_ISO|FT_A_SEEKABLE;
-    if ( !(sf->f.ftype&FT_A_WDF) && !sf->f.seek_allowed )
+    if ( !(sf->f.ftype&FT_M_WDF) && !sf->f.seek_allowed )
 	ft_test = FT_A_ISO;
 
     if ( IsExcluded(sf->f.id6_src) || PrintErrorFT(&sf->f,ft_test) )
@@ -4002,10 +4002,11 @@ enumError CheckOptions ( int argc, char ** argv, bool is_env )
 	case GO_OVERWRITE:	opt_overwrite = true; break;
 	case GO_REMOVE:		break;
 
-	case GO_WDF:		output_file_type = OFT_WDF; break;
-	case GO_WDF1:		err += SetWDF2Mode(1,optarg); break;
-	case GO_WDF2:		err += SetWDF2Mode(2,optarg); break;
-	case GO_WDF_ALIGN:	err += ScanOptWDFAlign(optarg); break;
+	//case GO_WDF:		output_file_type = OFT__WDF_DEF; break; // [[wdf2]]
+	case GO_WDF:		err += SetModeWDF(0,optarg); break;
+	case GO_WDF1:		err += SetModeWDF(1,optarg); break;
+	case GO_WDF2:		err += SetModeWDF(2,optarg); break;
+	case GO_ALIGN_WDF:	err += ScanOptAlignWDF(optarg,0); break;
 
 	case GO_WIA:		err += ScanOptCompression(true,optarg); break;
 	case GO_ISO:		output_file_type = OFT_PLAIN; break;

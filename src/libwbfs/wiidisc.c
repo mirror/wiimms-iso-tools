@@ -1798,6 +1798,35 @@ bool wd_part_has_h3
     return !part->is_gc && part->ph.h3_off4;
 }
 
+///////////////////////////////////////////////////////////////////////////////
+
+uint wd_disc_is_encrypted
+(
+    // return
+    //    0: no partition is encrypted
+    //    N: some (=N) partitions are encrypted, but not all
+    // 1000: all partitions are encrypted
+    
+    wd_disc_t		* disc		// disc to check, valid
+)
+{
+    DASSERT(disc);
+
+    int pi, n_encrypted = 0, n_total = 0;
+    for ( pi = 0; pi < disc->n_part; pi++ )
+    {
+	wd_part_t *part = disc->part + pi;
+	const enumError err = wd_load_part(part,false,false,true);
+	if (err)
+	    continue;
+	n_total++;
+	if ( part->is_encrypted)
+	    n_encrypted++;
+    }
+
+    return !n_encrypted ? 0 : n_encrypted == n_total ? 1000 : n_encrypted;
+}
+
 //
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////			get partition data		///////////////

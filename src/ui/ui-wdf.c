@@ -94,21 +94,22 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
     },
 
     {	OPT_WDF, 'W', "wdf",
-	0,
+	"[=param]",
 	"Force WDF output mode if packing and set the default suffix to"
-	" '.wdf'. This is the general default."
+	" '.wdf'. This is the general default. --wdf=param is a short cut for"
+	" '--wdf --align-wdf=param'."
     },
 
     {	OPT_WDF1, 0, "wdf1",
-	"[=align]",
+	"[=param]",
 	"Force WDF v1 output mode, if packing. Set the default suffix to"
-	" '.wdf'. --wdf1=align is a shortcut for '--wdf1 --wdf-align=align'."
+	" '.wdf'. --wdf1=param is a short cut for '--wdf1 --align-wdf=param'."
     },
 
     {	OPT_WDF2, 0, "wdf2",
-	"[=align]",
+	"[=param]",
 	"Force WDF v2 output mode, if packing. Set the default suffix to"
-	" '.wdf'. --wdf2=align is a shortcut for '--wdf2 --wdf-align=align'."
+	" '.wdf'. --wdf2=param is a short cut for '--wdf2 --align-wdf=param'."
     },
 
     {	OPT_WIA, 0, "wia",
@@ -353,12 +354,15 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 	">>> DIRECT IO IS EXPERIMENTAL! <<<"
     },
 
-    {	OPT_WDF_ALIGN, 0, "wdf-align",
-	"align",
-	"Define the aligning factor for new WDF images. align must be a power"
-	" of 2 and smaller or equal than 1 GiB. The default WDF alignment is 1"
-	" for WDF v1 and 4 for WDF v2 and above. Usual values are 1, 512, 4K"
-	" and 32K."
+    {	OPT_ALIGN_WDF, 0, "align-wdf",
+	"[align][,minhole]",
+	"Parameter align defines the aligning factor for new WDF images. It"
+	" must be a power of 2 and smaller or equal than 1 GiB. The default"
+	" WDF alignment is 1 for WDF v1 and 4 for WDF v2. Usual values are 1,"
+	" 512, 4K and 32K.\n"
+	"  The optional parameter minhole defines the minimal hole size,"
+	" before a new chunk is created. If NULL, an internal value is used to"
+	" minimize the total file size. minhole can't be smaller than align."
     },
 
     {	OPT_TEST, 't', "test",
@@ -459,7 +463,7 @@ const CommandTab_t CommandTab[] =
 ///////////////            OptionShort & OptionLong             ///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-const char OptionShort[] = "VhqvLl1WCs:d:D:ckopzZ:t";
+const char OptionShort[] = "VhqvLl1W::Cs:d:D:ckopzZ:t";
 
 const struct option OptionLong[] =
 {
@@ -481,11 +485,13 @@ const struct option OptionLong[] =
 	 { "filelimit",		1, 0, GO_FILE_LIMIT },
 	{ "block-size",		1, 0, GO_BLOCK_SIZE },
 	 { "blocksize",		1, 0, GO_BLOCK_SIZE },
-	{ "wdf",		0, 0, 'W' },
+	{ "wdf",		2, 0, 'W' },
 	{ "wdf1",		2, 0, GO_WDF1 },
 	{ "wdf2",		2, 0, GO_WDF2 },
-	{ "wdf-align",		1, 0, GO_WDF_ALIGN },
-	 { "wdfalign",		1, 0, GO_WDF_ALIGN },
+	{ "align-wdf",		1, 0, GO_ALIGN_WDF },
+	 { "alignwdf",		1, 0, GO_ALIGN_WDF },
+	 { "wdf-align",		1, 0, GO_ALIGN_WDF },
+	 { "wdfalign",		1, 0, GO_ALIGN_WDF },
 	{ "wia",		2, 0, GO_WIA },
 	{ "ciso",		0, 0, 'C' },
 	{ "wbi",		0, 0, GO_WBI },
@@ -578,7 +584,7 @@ const u8 OptionIndex[OPT_INDEX_SIZE] =
 	/* 0x87   */	OPT_BLOCK_SIZE,
 	/* 0x88   */	OPT_WDF1,
 	/* 0x89   */	OPT_WDF2,
-	/* 0x8a   */	OPT_WDF_ALIGN,
+	/* 0x8a   */	OPT_ALIGN_WDF,
 	/* 0x8b   */	OPT_WIA,
 	/* 0x8c   */	OPT_WBI,
 	/* 0x8d   */	OPT_AUTO_SPLIT,
@@ -662,6 +668,10 @@ const InfoOption_t * option_tab_tool[] =
 
 	OptionInfo + OPT_NONE, // separator
 
+	OptionInfo + OPT_ALIGN_WDF,
+
+	OptionInfo + OPT_NONE, // separator
+
 	OptionInfo + OPT_TEST,
 
 	0
@@ -703,6 +713,9 @@ static const InfoOption_t * option_tab_cmd_PACK[] =
 	OptionInfo + OPT_NONE, // separator
 
 	OptionInfo + OPT_WDF,
+	OptionInfo + OPT_WDF1,
+	OptionInfo + OPT_WDF2,
+	OptionInfo + OPT_ALIGN_WDF,
 	OptionInfo + OPT_WIA,
 	OptionInfo + OPT_CISO,
 	OptionInfo + OPT_WBI,
@@ -788,7 +801,7 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	" wdf-dump (with or without minus signs).\n"
 	"  'wdf +CAT' replaces the old tool wdf-cat and 'wdf +DUMP' the old"
 	" tool wdf-dump.",
-	9,
+	10,
 	option_tab_tool,
 	0
     },
@@ -825,7 +838,7 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	"+P",
 	"wdf +PACK [option]... files...",
 	"Pack sources into WDF or CISO images. This is the general default.",
-	21,
+	24,
 	option_tab_cmd_PACK,
 	option_allowed_cmd_PACK
     },
@@ -870,7 +883,7 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	"  The standard is to compare two source files. If --dest or --DEST is"
 	" set, than all source files are compared against files in the"
 	" destination path with equal names. If the second source file is"
-	" missing then standard input (stdin) is used instead.\n"
+	" missed, then standard input (stdin) is used instead.\n"
 	"  This is the default command, when the program name contains the sub"
 	" string 'diff' or 'cmp' in any case.",
 	6,

@@ -152,34 +152,34 @@
 
 #:def_cmd( "DIFF", "DIFF|CMP", \
 	"wit DIFF source dest\n" \
-	"wit DIFF [[--source] source]... [--recurse source]... [-d|-D] dest", \
+	"wit DIFF [[--source|--recurse] source]... [-d|-D] dest", \
 	"DIFF compares ISO images in scrubbed or raw mode or on file level." \
 	" Images, WBFS partitions and directories are accepted as source. DIFF" \
 	" works like {COPY} but comparing source and destination." )
 
 #:def_cmd( "FDIFF", "FDIFF|FCMP", \
 	"wit FDIFF source dest\n" \
-	"wit FDIFF [[--source] source]... [--recurse source]... [-d|-D] dest", \
+	"wit FDIFF [[--source|--recurse] source]... [-d|-D] dest", \
 	"FDIFF compares ISO images on file level. Images, WBFS partitions and" \
 	" directories are accepted as source. 'FDIFF' is a shortcut for {DIFF" \
 	" --files +}." )
 
 #:def_cmd( "EXTRACT", "EXTRACT|X", \
 	"wit EXTRACT source dest\n" \
-	"wit EXTRACT [[--source] source]... [--recurse source]... [-d|-D] dest", \
+	"wit EXTRACT [[--source|--recurse] source]... [-d|-D] dest", \
 	"Extract all files of each source to new directory structures. Images," \
 	" WBFS partitions and directories are accepted as source." )
 
 #:def_cmd( "COPY", "COPY|CP", \
 	"wit COPY source dest\n" \
-	"wit COPY [[--source] source]... [--recurse source]... [-d|-D] dest", \
+	"wit COPY [[--source|--recurse] source]... [-d|-D] dest", \
 	"Copy, scrub, convert, join, split, compose, extract, patch, encrypt" \
 	" and decrypt Wii and GameCube disc images. Images, WBFS partitions" \
 	" and directories are accepted as source." )
 
 #:def_cmd( "CONVERT", "CONVERT|CV|SCRUB|SB", \
 	"wit CONVERT source\n" \
-	"wit CONVERT [[--source] source]... [--recurse source]...", \
+	"wit CONVERT [[--source|--recurse] source]...", \
 	"Convert, scrub, join, split, compose, extract, patch, encrypt and" \
 	" decrypt Wii and GameCube disc images and replace the source with the" \
 	" result. Images, WBFS partitions and directories are accepted as" \
@@ -193,25 +193,25 @@
 
 #:def_cmd( "EDIT", "EDIT|ED", \
 	"wit EDIT source\n" \
-	"wit EDIT [[--source] source]... [--recurse source]...", \
+	"wit EDIT [[--source|--recurse] source]...", \
 	"Edit an existing Wii and GameCube ISO image and patch some values." \
 	" Images, WBFS partitions and directories are accepted as source." )
 
 #:def_cmd( "IMGFILES", "IMGFILES|IF", \
 	"wit IMGFILES source\n" \
-	"wit IMGFILES [[--source] source]... [--recurse source]...", \
+	"wit IMGFILES [[--source|--recurse] source]...", \
 	"Print a list of all image files including their associated split" \
 	" files. Each file is printed on a separate line for further batch" \
 	" processing." )
 
 #:def_cmd( "REMOVE", "REMOVE|RM", \
 	"wit REMOVE source\n" \
-	"wit REMOVE [[--source] source]... [--recurse source]...", \
+	"wit REMOVE [[--source|--recurse] source]...", \
 	"Remove images including their associated split files." )
 
 #:def_cmd( "MOVE", "MOVE|MV", \
 	"wit MOVE source dest\n" \
-	"wit MOVE [[--source] source]... [--recurse source]... [-d|-D] dest", \
+	"wit MOVE [[--source|--recurse] source]... [-d|-D] dest", \
 	"Move and rename Wii and GameCube ISO images. Images, WBFS partitions" \
 	" and directories are accepted as source." )
 
@@ -810,9 +810,33 @@
 	"Remove source files/discs if operation is successful. If the source" \
 	" is an extracted file systems (FST) it isn't removed." )
 
-#:def_opt( "WDF", "W|wdf", "C", \
-	"", \
-	"Set image output file type to WDF (Wii Disc Format)." )
+#:def_opt( "WDF", "W|wdf", "CO", \
+	"[=param]", \
+	"Set the image output file type to WDF (Wii Disc Format). The output" \
+	" format is either WDFv1 or WDFv2. It depends of the input file format" \
+	" and of the aligning. {--wdf=param} is a short cut for {--wdf" \
+	" --align-wdf=param}." )
+
+#:def_opt( "WDF1", "wdf1", "CO", \
+	"[=param]", \
+	"Set image output file type to WDF and force version 1. {--wdf1=param}" \
+	" is a short cut for {--wdf1 --align-wdf=param}." )
+
+#:def_opt( "WDF2", "wdf2", "CO", \
+	"[=param]", \
+	"Set image output file type to WDF and force version 2. {--wdf2=param}" \
+	" is a short cut for {--wdf2 --align-wdf=param}." )
+
+#:def_opt( "ALIGN_WDF", "align-wdf|alignwdf|wdf-align|wdfalign", "GP", \
+	"[align][,minhole]", \
+	"Parameter @align@ defines the aligning factor for new WDF images. It" \
+	" must be a power of 2 and smaller or equal than 1 GiB. The default" \
+	" WDF alignment is 1 for WDF v1 and 4 for WDF v2. Usual values are 1," \
+	" 512, 4K and 32K.\n" \
+	"  The optional parameter @minhole@ defines the minimal hole size," \
+	" before a new chunk is created. If NULL, an internal value is used to" \
+	" minimize the total file size. @minhole@ can't be smaller than" \
+	" @align@." )
 
 #:def_opt( "ISO", "I|iso", "C", \
 	"", \
@@ -2916,6 +2940,18 @@
 	"", \
 	"" )
 
+#:def_cmd_opt( "DIFF", "WDF1", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "DIFF", "WDF2", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "DIFF", "ALIGN_WDF", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "DIFF", "ISO", \
 	"", \
 	"" )
@@ -3133,6 +3169,18 @@
 	"" )
 
 #:def_cmd_opt( "FDIFF", "WDF", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "FDIFF", "WDF1", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "FDIFF", "WDF2", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "FDIFF", "ALIGN_WDF", \
 	"", \
 	"" )
 
@@ -3722,6 +3770,18 @@
 	"", \
 	"" )
 
+#:def_cmd_opt( "COPY", "WDF1", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "COPY", "WDF2", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "COPY", "ALIGN_WDF", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "COPY", "ISO", \
 	"", \
 	"" )
@@ -3994,6 +4054,18 @@
 	"", \
 	"" )
 
+#:def_cmd_opt( "CONVERT", "WDF1", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "CONVERT", "WDF2", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "CONVERT", "ALIGN_WDF", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "CONVERT", "ISO", \
 	"", \
 	"" )
@@ -4173,6 +4245,16 @@
 #:def_cmd_opt( "EDIT", "ZERO_FILES", \
 	"", \
 	"" )
+
+#:def_cmd_opt( "EDIT", "WDF1", \
+	"", \
+	"If the image format is WDF, then force WDF version 1. The optional" \
+	" aligning factor is ignored." )
+
+#:def_cmd_opt( "EDIT", "WDF2", \
+	"", \
+	"If the image format is WDF, then force WDF version 2. The optional" \
+	" aligning factor is ignored." )
 
 #:def_cmd_opt( "IMGFILES", "TITLES", \
 	"", \
@@ -4844,6 +4926,18 @@
 	"", \
 	"" )
 
+#:def_cmd_opt( "SKELETON", "WDF1", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "SKELETON", "WDF2", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "SKELETON", "ALIGN_WDF", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "SKELETON", "ISO", \
 	"", \
 	"" )
@@ -4941,6 +5035,18 @@
 	" partition is aligned." )
 
 #:def_cmd_opt( "MIX", "WDF", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "MIX", "WDF1", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "MIX", "WDF2", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "MIX", "ALIGN_WDF", \
 	"", \
 	"" )
 
@@ -5148,24 +5254,24 @@
 	"Truncate WBFS partitions to the really used size." )
 
 #:def_cmd( "ADD", "ADD|A", \
-	"wwt ADD [[--source] source]... [--recurse source]...", \
+	"wwt ADD [[--source|--recurse] source]...", \
 	"Add Wii and GameCube ISO discs to WBFS partitions. Images, WBFS" \
 	" partitions and directories are accepted as source." )
 
 #:def_cmd( "UPDATE", "UPDATE|U", \
-	"wwt UPDATE [[--source] source]... [--recurse source]...", \
+	"wwt UPDATE [[--source|--recurse] source]...", \
 	"Add missing Wii and GameCube ISO discs to WBFS partitions. Images," \
 	" WBFS partitions and directories are accepted as source. 'UPDATE' is" \
 	" a shortcut for {ADD --update}." )
 
 #:def_cmd( "NEW", "NEW|N", \
-	"wwt NEW [[--source] source]... [--recurse source]...", \
+	"wwt NEW [[--source|--recurse] source]...", \
 	"Add missing and newer Wii and GameCube ISO discs to WBFS partitions." \
 	" Images, WBFS partitions and directories are accepted as source." \
 	" 'NEW' is a shortcut for {ADD --update --newer}." )
 
 #:def_cmd( "SYNC", "SYNC", \
-	"wwt SYNC [[--source] source]... [--recurse source]...", \
+	"wwt SYNC [[--source|--recurse] source]...", \
 	"Modify primary WBFS (REMOVE and ADD) until it contains exactly the" \
 	" same discs as all sources together. Images, WBFS partitions and" \
 	" directories are accepted as source. 'SYNC' is a shortcut for {ADD" \
@@ -5821,9 +5927,33 @@
 	"Remove source files/discs if operation is successful. If the source" \
 	" is an extracted file systems (FST) it isn't removed." )
 
-#:def_opt( "WDF", "W|wdf", "C", \
-	"", \
-	"Set image output file type to WDF (Wii Disc Format)." )
+#:def_opt( "WDF", "W|wdf", "CO", \
+	"[=param]", \
+	"Set the image output file type to WDF (Wii Disc Format). The output" \
+	" format is either WDFv1 or WDFv2. It depends of the input file format" \
+	" and of the aligning. {--wdf=param} is a short cut for {--wdf" \
+	" --align-wdf=param}." )
+
+#:def_opt( "WDF1", "wdf1", "CO", \
+	"[=param]", \
+	"Set image output file type to WDF and force version 1. {--wdf1=param}" \
+	" is a short cut for {--wdf1 --align-wdf=param}." )
+
+#:def_opt( "WDF2", "wdf2", "CO", \
+	"[=param]", \
+	"Set image output file type to WDF and force version 2. {--wdf2=param}" \
+	" is a short cut for {--wdf2 --align-wdf=param}." )
+
+#:def_opt( "ALIGN_WDF", "align-wdf|alignwdf|wdf-align|wdfalign", "GP", \
+	"[align][,minhole]", \
+	"Parameter @align@ defines the aligning factor for new WDF images. It" \
+	" must be a power of 2 and smaller or equal than 1 GiB. The default" \
+	" WDF alignment is 1 for WDF v1 and 4 for WDF v2. Usual values are 1," \
+	" 512, 4K and 32K.\n" \
+	"  The optional parameter @minhole@ defines the minimal hole size," \
+	" before a new chunk is created. If NULL, an internal value is used to" \
+	" minimize the total file size. @minhole@ can't be smaller than" \
+	" @align@." )
 
 #:def_opt( "WIA", "wia", "CO", \
 	"[=compr]", \
@@ -9450,7 +9580,7 @@
 	"  The standard is to compare two source files. If {--dest} or" \
 	" {--DEST} is set, than all source files are compared against files in" \
 	" the destination path with equal names. If the second source file is" \
-	" missing then standard input (stdin) is used instead.\n" \
+	" missed, then standard input (stdin) is used instead.\n" \
 	"  This is the default command, when the program name contains the sub" \
 	" string @'diff'@ or @'cmp'@ in any case." )
 
@@ -9534,10 +9664,34 @@
 	" default value is @32K@ (Wii sector size). This option is ignored in" \
 	" quiet mode." )
 
-#:def_opt( "WDF", "W|wdf", "C", \
-	"", \
+#:def_opt( "WDF", "W|wdf", "CO", \
+	"[=param]", \
 	"Force WDF output mode if packing and set the default suffix to" \
-	" @'.wdf'@. This is the general default." )
+	" @'.wdf'@. This is the general default. {--wdf=param} is a short cut" \
+	" for {--wdf --align-wdf=param}." )
+
+#:def_opt( "WDF1", "wdf1", "CO", \
+	"[=param]", \
+	"Force WDF v1 output mode, if packing. Set the default suffix to" \
+	" @'.wdf'@. {--wdf1=param} is a short cut for {--wdf1" \
+	" --align-wdf=param}." )
+
+#:def_opt( "WDF2", "wdf2", "CO", \
+	"[=param]", \
+	"Force WDF v2 output mode, if packing. Set the default suffix to" \
+	" @'.wdf'@. {--wdf2=param} is a short cut for {--wdf2" \
+	" --align-wdf=param}." )
+
+#:def_opt( "ALIGN_WDF", "align-wdf|alignwdf|wdf-align|wdfalign", "GP", \
+	"[align][,minhole]", \
+	"Parameter @align@ defines the aligning factor for new WDF images. It" \
+	" must be a power of 2 and smaller or equal than 1 GiB. The default" \
+	" WDF alignment is 1 for WDF v1 and 4 for WDF v2. Usual values are 1," \
+	" 512, 4K and 32K.\n" \
+	"  The optional parameter @minhole@ defines the minimal hole size," \
+	" before a new chunk is created. If NULL, an internal value is used to" \
+	" minimize the total file size. @minhole@ can't be smaller than" \
+	" @align@." )
 
 #:def_opt( "WIA", "wia", "CO", \
 	"[=compr]", \
@@ -9783,6 +9937,18 @@
 	"" )
 
 #:def_cmd_opt( "PACK", "WDF", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "PACK", "WDF1", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "PACK", "WDF2", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "PACK", "ALIGN_WDF", \
 	"", \
 	"" )
 

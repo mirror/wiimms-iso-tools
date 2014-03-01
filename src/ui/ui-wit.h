@@ -181,7 +181,7 @@ typedef enum enumOptions
 	OPT_OLD,
 	OPT_NEW,
 	OPT_HOOK,
-	OPT_WDF_ALIGN,
+	OPT_ALIGN_WDF,
 	OPT_GCZ_ZIP,
 	OPT_GCZ_BLOCK,
 
@@ -587,7 +587,9 @@ typedef enum enumOptions
 //				| OB_SECTIONS
 //				| OB_PRESERVE
 //				| OB_GRP_PARTITIONS
-//				| OB_GRP_PATCH,
+//				| OB_GRP_PATCH
+//				| OB_WDF1
+//				| OB_WDF2,
 //
 //	OB_CMD_IMGFILES		= OB_GRP_TITLES
 //				| OB_GRP_XSOURCE
@@ -825,7 +827,7 @@ typedef enum enumGetOpt
 	GO_DIFF,
 	GO_WDF1,
 	GO_WDF2,
-	GO_WDF_ALIGN,
+	GO_ALIGN_WDF,
 	GO_WIA,
 	GO_GCZ_ZIP,
 	GO_GCZ_BLOCK,

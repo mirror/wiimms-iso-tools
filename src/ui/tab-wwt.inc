@@ -210,24 +210,24 @@
   { T_SEP_CMD,	0,0,0,0 }, //----- separator -----
 
   { T_DEF_CMD,	"ADD",		"ADD|A",
-		    "wwt ADD [[--source] source]... [--recurse source]...",
+		    "wwt ADD [[--source|--recurse] source]...",
 		"Add Wii and GameCube ISO discs to WBFS partitions."
 		" Images, WBFS partitions and directories are accepted as source." },
 
   { T_DEF_CMD,	"UPDATE",	"UPDATE|U",
-		    "wwt UPDATE [[--source] source]... [--recurse source]...",
+		    "wwt UPDATE [[--source|--recurse] source]...",
 		"Add missing Wii and GameCube ISO discs to WBFS partitions."
 		" Images, WBFS partitions and directories are accepted as source."
 		" 'UPDATE' is a shortcut for {ADD --update}." },
 
   { T_DEF_CMD,	"NEW",		"NEW|N",
-		    "wwt NEW [[--source] source]... [--recurse source]...",
+		    "wwt NEW [[--source|--recurse] source]...",
 		"Add missing and newer Wii and GameCube ISO discs to WBFS partitions."
 		" Images, WBFS partitions and directories are accepted as source."
 		" 'NEW' is a shortcut for {ADD --update --newer}." },
 
   { T_DEF_CMD,	"SYNC",		"SYNC",
-		    "wwt SYNC [[--source] source]... [--recurse source]...",
+		    "wwt SYNC [[--source|--recurse] source]...",
 		"Modify primary WBFS (REMOVE and ADD)"
 		" until it contains exactly the same discs as all sources together."
 		" Images, WBFS partitions and directories are accepted as source."
@@ -637,16 +637,17 @@
 
   { T_SEP_OPT,	0,0,0,0 }, //----- separator -----
 
-  { T_OPT_C,	"WDF",		"W|wdf",
+  { T_OPT_CO,	"WDF",		"W|wdf",
 		0, 0 /* copy of wit */ },
 
-  { H_OPT_CO,	"WDF1",		"wdf1",			// [[wdf2]]
+  { T_OPT_CO,	"WDF1",		"wdf1",
 		0, 0 /* copy of wit */ },
 
-  { H_OPT_CO,	"WDF2",		"wdf2",			// [[wdf2]]
+  { T_OPT_CO,	"WDF2",		"wdf2",
 		0, 0 /* copy of wit */ },
 
-  { H_OPT_GP,	"WDF_ALIGN",	"wdf-align|wdfalign",	// [[wdf2]]
+		// [[2do]] 2014-01: wdf-align is obsolete at 2014-07
+  { T_OPT_GP,	"ALIGN_WDF",	"align-wdf|alignwdf|wdf-align|wdfalign",
 		0, 0 /* copy of wit */ },
 
   { T_OPT_CO,	"WIA",		"wia",
@@ -848,9 +849,9 @@
   { T_GRP_BEG,	"OUTMODE_EDIT",	0,0,0 },
 
   { T_COPT,	"WDF",		0,0,0 },
-  { H_COPT,	"WDF1",		0,0,0 }, // [[wdf2]]
-  { H_COPT,	"WDF2",		0,0,0 }, // [[wdf2]]
-  { H_COPT,	"WDF_ALIGN",	0,0,0 }, // [[wdf2]]
+  { H_COPT,	"WDF1",		0,0,0 },
+  { H_COPT,	"WDF2",		0,0,0 },
+  { H_COPT,	"ALIGN_WDF",	0,0,0 },
   { T_COPT,	"ISO",		0,0,0 },
   { T_COPT,	"CISO",		0,0,0 },
   { T_COPT,	"WBFS",		0,0,0 },

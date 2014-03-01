@@ -187,7 +187,7 @@ typedef enum enumOptions
 	OPT_NEW,
 	OPT_HOOK,
 	OPT_FORCE,
-	OPT_WDF_ALIGN,
+	OPT_ALIGN_WDF,
 	OPT_GCZ_BLOCK,
 
 	OPT__N_TOTAL // == 129
@@ -830,7 +830,7 @@ typedef enum enumGetOpt
 	GO_SYNC_ALL,
 	GO_WDF1,
 	GO_WDF2,
-	GO_WDF_ALIGN,
+	GO_ALIGN_WDF,
 	GO_WIA,
 	GO_GCZ,
 	GO_GCZ_ZIP,

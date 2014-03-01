@@ -314,9 +314,10 @@ void SetupLib ( int argc, char ** argv, ccp p_progname, enumProgID prid )
     TRACE_SIZEOF(TDBfind_t);
     TRACE_SIZEOF(Verify_t);
     TRACE_SIZEOF(WBFS_t);
-    TRACE_SIZEOF(WDF_Header_t);
-    TRACE_SIZEOF(WDF1_Chunk_t);
-    TRACE_SIZEOF(WDF2_Chunk_t);
+    TRACE_SIZEOF(wdf_header_t);
+    TRACE_SIZEOF(wdf1_chunk_t);
+    TRACE_SIZEOF(wdf2_chunk_t);
+    TRACE_SIZEOF(wdf_controller_t);
     TRACE_SIZEOF(WDiscInfo_t);
     TRACE_SIZEOF(WDiscListItem_t);
     TRACE_SIZEOF(WDiscList_t);
@@ -4857,7 +4858,7 @@ uint FindMemMapHelper ( MemMap_t * mm, off_t off, off_t size )
 
 ///////////////////////////////////////////////////////////////////////////////
 
-uint CalCoverlapMemMap ( MemMap_t * mm )
+uint CalcOverlapMemMap ( MemMap_t * mm )
 {
     DASSERT(mm);
 
@@ -4886,7 +4887,7 @@ void PrintMemMap ( MemMap_t * mm, FILE * f, int indent, ccp info_head )
     if ( !f || !mm->used )
 	return;
 
-    CalCoverlapMemMap(mm);
+    CalcOverlapMemMap(mm);
     indent = NormalizeIndent(indent);
 
     static char ovl[][3] = { "  ", "!.", ".!", "!!" };

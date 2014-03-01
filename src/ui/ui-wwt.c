@@ -677,20 +677,23 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
     },
 
     {	OPT_WDF, 'W', "wdf",
-	0,
-	"Set image output file type to WDF (Wii Disc Format)."
+	"[=param]",
+	"Set the image output file type to WDF (Wii Disc Format). The output"
+	" format is either WDFv1 or WDFv2. It depends of the input file format"
+	" and of the aligning. --wdf=param is a short cut for '--wdf"
+	" --align-wdf=param'."
     },
 
     {	OPT_WDF1, 0, "wdf1",
-	"[=align]",
-	"Set image output file type to WDF and force version 1. --wdf1=align"
-	" is a shortcut for '--wdf1 --wdf-align=align'."
+	"[=param]",
+	"Set image output file type to WDF and force version 1. --wdf1=param"
+	" is a short cut for '--wdf1 --align-wdf=param'."
     },
 
     {	OPT_WDF2, 0, "wdf2",
-	"[=align]",
-	"Set image output file type to WDF and force version 2. --wdf2=align"
-	" is a shortcut for '--wdf2 --wdf-align=align'."
+	"[=param]",
+	"Set image output file type to WDF and force version 2. --wdf2=param"
+	" is a short cut for '--wdf2 --align-wdf=param'."
     },
 
     {	OPT_WIA, 0, "wia",
@@ -993,12 +996,15 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 	"Force operation."
     },
 
-    {	OPT_WDF_ALIGN, 0, "wdf-align",
-	"align",
-	"Define the aligning factor for new WDF images. align must be a power"
-	" of 2 and smaller or equal than 1 GiB. The default WDF alignment is 1"
-	" for WDF v1 and 4 for WDF v2 and above. Usual values are 1, 512, 4K"
-	" and 32K."
+    {	OPT_ALIGN_WDF, 0, "align-wdf",
+	"[align][,minhole]",
+	"Parameter align defines the aligning factor for new WDF images. It"
+	" must be a power of 2 and smaller or equal than 1 GiB. The default"
+	" WDF alignment is 1 for WDF v1 and 4 for WDF v2. Usual values are 1,"
+	" 512, 4K and 32K.\n"
+	"  The optional parameter minhole defines the minimal hole size,"
+	" before a new chunk is created. If NULL, an internal value is used to"
+	" minimize the total file size. minhole can't be smaller than align."
     },
 
     {	OPT_GCZ_BLOCK, 0, "gcz-block",
@@ -1446,7 +1452,7 @@ const CommandTab_t CommandTab[] =
 ///////////////            OptionShort & OptionLong             ///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-const char OptionShort[] = "VhqvPLE:T:taAp:r:x:X:n:N:1id:D:zZ:s:fuyeoRWICBl+:MUHS:";
+const char OptionShort[] = "VhqvPLE:T:taAp:r:x:X:n:N:1id:D:zZ:s:fuyeoRW::ICBl+:MUHS:";
 
 const struct option OptionLong[] =
 {
@@ -1602,11 +1608,13 @@ const struct option OptionLong[] =
 	 { "new",		0, 0, 'e' },
 	{ "overwrite",		0, 0, 'o' },
 	{ "remove",		0, 0, 'R' },
-	{ "wdf",		0, 0, 'W' },
+	{ "wdf",		2, 0, 'W' },
 	{ "wdf1",		2, 0, GO_WDF1 },
 	{ "wdf2",		2, 0, GO_WDF2 },
-	{ "wdf-align",		1, 0, GO_WDF_ALIGN },
-	 { "wdfalign",		1, 0, GO_WDF_ALIGN },
+	{ "align-wdf",		1, 0, GO_ALIGN_WDF },
+	 { "alignwdf",		1, 0, GO_ALIGN_WDF },
+	 { "wdf-align",		1, 0, GO_ALIGN_WDF },
+	 { "wdfalign",		1, 0, GO_ALIGN_WDF },
 	{ "wia",		2, 0, GO_WIA },
 	{ "gcz",		0, 0, GO_GCZ },
 	{ "gcz-zip",		0, 0, GO_GCZ_ZIP },
@@ -1781,7 +1789,7 @@ const u8 OptionIndex[OPT_INDEX_SIZE] =
 	/* 0xc1   */	OPT_SYNC_ALL,
 	/* 0xc2   */	OPT_WDF1,
 	/* 0xc3   */	OPT_WDF2,
-	/* 0xc4   */	OPT_WDF_ALIGN,
+	/* 0xc4   */	OPT_ALIGN_WDF,
 	/* 0xc5   */	OPT_WIA,
 	/* 0xc6   */	OPT_GCZ,
 	/* 0xc7   */	OPT_GCZ_ZIP,
@@ -2200,6 +2208,7 @@ const InfoOption_t * option_tab_tool[] =
 
 	OptionInfo + OPT_NONE, // separator
 
+	OptionInfo + OPT_ALIGN_WDF,
 	OptionInfo + OPT_GCZ_BLOCK,
 
 	0
@@ -3659,7 +3668,7 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	"Wiimms WBFS Tool (WBFS manager) : It can create, check, repair,"
 	" verify and clone WBFS files and partitions. It can list, add,"
 	" extract, remove, rename and recover ISO images as part of a WBFS.",
-	18,
+	19,
 	option_tab_tool,
 	0
     },
@@ -4071,7 +4080,7 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	true,
 	"ADD",
 	"A",
-	"wwt ADD [[--source] source]... [--recurse source]...",
+	"wwt ADD [[--source|--recurse] source]...",
 	"Add Wii and GameCube ISO discs to WBFS partitions. Images, WBFS"
 	" partitions and directories are accepted as source.",
 	58,
@@ -4084,7 +4093,7 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	false,
 	"UPDATE",
 	"U",
-	"wwt UPDATE [[--source] source]... [--recurse source]...",
+	"wwt UPDATE [[--source|--recurse] source]...",
 	"Add missing Wii and GameCube ISO discs to WBFS partitions. Images,"
 	" WBFS partitions and directories are accepted as source. 'UPDATE' is"
 	" a shortcut for 'ADD --update'.",
@@ -4098,7 +4107,7 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	false,
 	"NEW",
 	"N",
-	"wwt NEW [[--source] source]... [--recurse source]...",
+	"wwt NEW [[--source|--recurse] source]...",
 	"Add missing and newer Wii and GameCube ISO discs to WBFS partitions."
 	" Images, WBFS partitions and directories are accepted as source."
 	" 'NEW' is a shortcut for 'ADD --update --newer'.",
@@ -4112,7 +4121,7 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	false,
 	"SYNC",
 	0,
-	"wwt SYNC [[--source] source]... [--recurse source]...",
+	"wwt SYNC [[--source|--recurse] source]...",
 	"Modify primary WBFS (REMOVE and ADD) until it contains exactly the"
 	" same discs as all sources together. Images, WBFS partitions and"
 	" directories are accepted as source. 'SYNC' is a shortcut for 'ADD"

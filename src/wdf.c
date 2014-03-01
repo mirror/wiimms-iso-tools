@@ -59,7 +59,7 @@
 
 typedef enum FileMode { FMODE_WDF, FMODE_WIA, FMODE_CISO, FMODE_WBI } FileMode;
 ccp file_mode_name[] = { ".wdf", ".wia", ".ciso", ".wbi", 0 };
-enumOFT file_mode_oft[] = { OFT_WDF, OFT_WIA, OFT_CISO, OFT_CISO, 0 };
+enumOFT file_mode_oft[] = { OFT__WDF_DEF, OFT_WIA, OFT_CISO, OFT_CISO, 0 };
 
 enumCommands the_cmd	= CMD_PACK;
 FileMode file_mode	= FMODE_WDF;
@@ -437,9 +437,15 @@ enumError CatWDF ( ccp fname, SuperFile_t * fo, ccp out_fname,
 
     if (!err)
     {
+	// [[wdf]] [[wdf2]] optimization like c++ example
+
+	wdf_controller_t *wdf = fi.wdf;
+	if (!wdf)
+	    ERROR0(ERR_INTERNAL,0);
+
 	int i;
 	u64 last_off = 0;
-	for ( i=0; i < fi.wc_used; i++ )
+	for ( i=0; i < wdf->chunk_used; i++ )
 	{
 	    if ( SIGINT_level > 1 )
 	    {
@@ -447,7 +453,7 @@ enumError CatWDF ( ccp fname, SuperFile_t * fo, ccp out_fname,
 		break;
 	    }
 
-	    WDF2_Chunk_t *wc = fi.wc + i;
+	    wdf2_chunk_t *wc = wdf->chunk + i;
 	    u64 zero_count = wc->file_pos - last_off;
 	    if ( zero_count > 0 )
 	    {
@@ -558,7 +564,7 @@ enumError cmd_pack()
 ///////////////			   cmd cmp			///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-enumError cmd_cmp()
+enumError cmd_cmp() // cmd_diff()
 {
     if ( n_param < 1 )
 	return ERROR0(ERR_SYNTAX,"Missing source file!");
@@ -970,8 +976,8 @@ enumError gcz_dump ( FILE *f, GCZ_Head_t * gh1, File_t *df, ccp fname )
 
 static u64 PrintAlignWC ( FILE *f, ccp title, u64 num )
 {
-    uint m;
-    if ( num)
+    u64 m;
+    if (num)
     {
 	m = 1;
 	while (!(num&m))
@@ -998,7 +1004,7 @@ enumError wdf_dump ( FILE *f, ccp fname )
     if (err)
 	return err;
 
-    WDF_Header_t wh;
+    wdf_header_t wh;
     const int CISO_MAGIC_SIZE = 4;
     ASSERT( CISO_MAGIC_SIZE < sizeof(wh) );
     err = ReadAtF(&df,0,&wh,CISO_MAGIC_SIZE);
@@ -1057,7 +1063,7 @@ enumError wdf_dump ( FILE *f, ccp fname )
 	return err;
     }
 
-    WDF_Header_t wh_fixed;
+    wdf_header_t wh_fixed;
     ConvertToHostWH(&wh,&wh);
     const bool fixed = FixHeaderWDF(&wh_fixed,&wh,true);
     AnalyzeWH(&df,&wh,false); // needed for splitting support!
@@ -1123,7 +1129,9 @@ enumError wdf_dump ( FILE *f, ccp fname )
 
     //--------------------------------------------------
 
-    fprintf(f,"\n  Memory map of file:\n");
+ #if 0
+    fprintf(f,"\n  Memory map of file:%21s%18s\n","offset range","[ data size]");
+
 
     int ec = 0; // error count
     prev_val = 0;
@@ -1139,6 +1147,7 @@ enumError wdf_dump ( FILE *f, ccp fname )
 	ResetFile(&df,false);
 	return ERROR0(ERR_WDF_INVALID,"Invalid data: %s\n",fname);
     }
+ #endif
 
     if ( wh.chunk_n > 1000000 )
     {
@@ -1148,6 +1157,11 @@ enumError wdf_dump ( FILE *f, ccp fname )
 
     //--------------------------------------------------
 
+    MemMap_t mm;
+    InitializeMemMap(&mm);
+    MemMapItem_t *mi = InsertMemMap(&mm,0,wh.head_size);
+    snprintf(mi->info,sizeof(mi->info),"WDF header v%u",wh.wdf_version);
+
     char magic[WDF_MAGIC_SIZE];
     err = ReadAtF(&df,wh.chunk_off,magic,sizeof(magic));
     if (err)
@@ -1155,6 +1169,8 @@ enumError wdf_dump ( FILE *f, ccp fname )
 	ResetFile(&df,false);
 	return ERROR0(ERR_READ_FAILED,"ReadF error: %s\n",fname);
     }
+    mi = InsertMemMap(&mm,wh.chunk_off,sizeof(magic));
+    StringCopyS(mi->info,sizeof(mi->info),"magic of chunk list");
 
     if (memcmp(magic,WDF_MAGIC,WDF_MAGIC_SIZE))
     {
@@ -1170,24 +1186,61 @@ enumError wdf_dump ( FILE *f, ccp fname )
 	FREE(wc_data);
 	return ERROR0(ERR_READ_FAILED,"Can't read chunk table: %s\n",fname);
     }
+    mi = InsertMemMap(&mm,wh.chunk_off+sizeof(magic),chunk_table_size);
+    snprintf(mi->info,sizeof(mi->info),"%u chunk elements",wh.chunk_n);
+    u64 eof = mi->off + mi->size;
 
-    WDF2_Chunk_t *wc = (WDF2_Chunk_t*)wc_data;
+    wdf2_chunk_t *wc = (wdf2_chunk_t*)wc_data;
     ConvertToHostWC(wc,wc_data,wh.wdf_version,wh.chunk_n);
 
     u64 align_data_off = 0, align_data_size = 0, align_file_pos = 0;
+    u64 max_data = wh.head_size, min_data = wh.head_size;
     int idx;
-    WDF2_Chunk_t *w;
+    wdf2_chunk_t *w;
     for ( idx = 0, w = wc; idx < wh.chunk_n; idx++, w++ )
     {
 	align_data_off  |= w->data_off;
 	align_data_size |= w->data_size;
 	align_file_pos  |= w->file_pos;
+	
+	if ( !idx || min_data > w->data_off )
+	     min_data = w->data_off;
+	const u64 data_end = w->data_off + w->data_size;
+	if ( max_data < data_end )
+	     max_data = data_end;
     }
+    mi = InsertMemMap(&mm,min_data,max_data-min_data);
+    snprintf(mi->info,sizeof(mi->info),"%u chunk data blocks",wh.chunk_n);
+
+    //--------------------------------------------------
+    // split file?
+
+    if ( eof < max_data )
+	eof = max_data;
+
+    if ( eof > df.st.st_size )
+	SetupSplitFile(&df,OFT_WDF2,eof);
+
+    char ch;
+    err = ReadAtF(&df,max_data-1,&ch,1);
+    if (err)
+    {
+	ResetFile(&df,false);
+	FREE(wc_data);
+	return ERROR0(ERR_READ_FAILED,"Can't read last data byte: %s\n",fname);
+    }
+
+    mi = InsertMemMap(&mm,df.st.st_size,0);
+    if ( df.split_used > 1 )
+	snprintf(mi->info,sizeof(mi->info),
+	    "-- end of %u joined files --", df.split_used );
+    else
+	StringCopyS(mi->info,sizeof(mi->info),"-- end of file --");
+
 
     //--------------------------------------------------
 
-    fprintf(f,"  Data alignments:\n");
-
+    fprintf(f,"\n  Data alignments:\n");
     PrintAlignWC(f,"WDF header",	wh.align_factor);
     PrintAlignWC(f,"Calculated",	align_data_off | align_data_size | align_file_pos );
     PrintAlignWC(f," Data offset+size",	align_data_off | align_data_size );
@@ -1195,6 +1248,11 @@ enumError wdf_dump ( FILE *f, ccp fname )
     PrintAlignWC(f,"  Data size",	align_data_size  );
     PrintAlignWC(f," File offset+size",	align_file_pos | align_data_size );
     PrintAlignWC(f,"  File offset",	align_file_pos );
+
+    uint n_overlap = CalcOverlapMemMap(&mm);
+    fprintf(f,"\n  Memory map of file (hex values)%s:\n\n",
+		n_overlap ? " => INVALID!" : "" );
+    PrintMemMap(&mm,f,4,0);
     fputc('\n',f);
 
     //--------------------------------------------------
@@ -1207,7 +1265,7 @@ enumError wdf_dump ( FILE *f, ccp fname )
 	    "   ------------------------------------------------------------------------\n");
 
 	int idx;
-	WDF2_Chunk_t *w;
+	wdf2_chunk_t *w;
 	for ( idx = 0, w = wc; idx < wh.chunk_n; idx++, w++ )
 	{
 	    fprintf(f,"%6d. %10llx..%10llx %9llx %10llx..%10llx  %9llx\n",
@@ -1218,7 +1276,7 @@ enumError wdf_dump ( FILE *f, ccp fname )
 		    idx+1 < wh.chunk_n
 			    ? w[1].file_pos - w->file_pos - w->data_size : 0llu );
 	}
-	putchar('\n');
+	fputc('\n',f);
     }
 
     FREE(wc_data);
@@ -1275,10 +1333,11 @@ enumError CheckOptions ( int argc, char ** argv )
 	case GO_LONG:		opt_chunk = true; long_count++; break;
 	case GO_MINUS1:		opt_minus1 = 1; break;
 
-	case GO_WDF:		file_mode = FMODE_WDF; break;
-	case GO_WDF1:		file_mode = FMODE_WDF; SetWDF2Mode(1,optarg); break;
-	case GO_WDF2:		file_mode = FMODE_WDF; SetWDF2Mode(2,optarg); break;
-	case GO_WDF_ALIGN:	err += ScanOptWDFAlign(optarg); break;
+	//case GO_WDF:		file_mode = FMODE_WDF; break; // [[wdf2]]
+	case GO_WDF:		file_mode = FMODE_WDF; SetModeWDF(0,optarg); break;
+	case GO_WDF1:		file_mode = FMODE_WDF; SetModeWDF(1,optarg); break;
+	case GO_WDF2:		file_mode = FMODE_WDF; SetModeWDF(2,optarg); break;
+	case GO_ALIGN_WDF:	err += ScanOptAlignWDF(optarg,0); break;
 
 	case GO_WIA:		file_mode = FMODE_WIA;
 					err += ScanOptCompression(false,optarg);

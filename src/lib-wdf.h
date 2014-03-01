@@ -52,28 +52,30 @@
 #define WDF_MAGIC		"WII\1DISC"
 #define WDF_MAGIC_SIZE		8
 
-//--- these tools are compatible to >=version
-#define WDF_COMPATIBLE		1
+#define WDF_DEF_VERSION		1	// default version
+#define WDF_MAX_VERSION		2	// max supported version
+
+#define WDF_DEF_ALIGN		4	// default alignment for WDF v2 and above
+#define WDF_DEF_ALIGN_TEXT	"4"
+#define WDF_MAX_ALIGN		GiB	// max allowed WDF alignment
+#define WDF_MAX_ALIGN_TEXT	"1 GiB"
 
 //--- WDF head sizes
-#define WDF_VERSION1_SIZE	sizeof(WDF_Header_t)
-#define WDF_VERSION2_SIZE	sizeof(WDF_Header_t)
-#define WDF_VERSION3_SIZE	sizeof(WDF_Header_t)
-
-//--- the minimal size of holes in bytes that will be detected.
-#define WDF_MIN_HOLE_SIZE	(sizeof(WDF1_Chunk_t)+sizeof(WDF_Hole_t))
+#define WDF_VERSION1_SIZE	sizeof(wdf_header_t)
+#define WDF_VERSION2_SIZE	sizeof(wdf_header_t)
+#define WDF_VERSION3_SIZE	sizeof(wdf_header_t)
 
 //--- WDF hole detection type
 typedef u32 WDF_Hole_t;
 
 //
 ///////////////////////////////////////////////////////////////////////////////
-///////////////			struct WDF_Header_t		///////////////
+///////////////			struct wdf_header_t		///////////////
 ///////////////////////////////////////////////////////////////////////////////
 // This is the header of a WDF v1.
 // Remember: Within a file the data is stored in network byte order (big endian)
 
-typedef struct WDF_Header_t
+typedef struct wdf_header_t
 {
 	char magic[WDF_MAGIC_SIZE];	// WDF_MAGIC, what else!
 
@@ -88,7 +90,7 @@ typedef struct WDF_Header_t
 
     #else
 
-	u32 head_size;			// size of version related WDF_Header_t
+	u32 head_size;			// size of version related wdf_header_t
 
 	u32 align_factor;		// info: Alignment forced on creation
 					//	 Number is always power of 2
@@ -113,7 +115,7 @@ typedef struct WDF_Header_t
 
 	u64 chunk_off;			// the 'MAGIC + chunk_table' file offset
 }
-__attribute__ ((packed)) WDF_Header_t;
+__attribute__ ((packed)) wdf_header_t;
 
 //
 ///////////////////////////////////////////////////////////////////////////////
@@ -122,7 +124,7 @@ __attribute__ ((packed)) WDF_Header_t;
 // This is the chunk info of WDF.
 // Remember: Within a file the data is stored in network byte order (big endian)
 
-typedef struct WDF1_Chunk_t
+typedef struct wdf1_chunk_t
 {
 	// split_file_index is obsolete in WDF v2
 	u32 ignored_split_file_index;	// which split file contains that chunk
@@ -131,83 +133,120 @@ typedef struct WDF1_Chunk_t
 	u64 data_off;			// the data file offset
 	u64 data_size;			// the data size
 
-} __attribute__ ((packed)) WDF1_Chunk_t;
+} __attribute__ ((packed)) wdf1_chunk_t;
 
 //-----------------------------------------------------------------------------
 
-typedef struct WDF2_Chunk_t
+typedef struct wdf2_chunk_t
 {
 	u64 file_pos;			// the virtual ISO file position
 	u64 data_off;			// the data file offset
 	u64 data_size;			// the data size
 
-} __attribute__ ((packed)) WDF2_Chunk_t;
+} __attribute__ ((packed)) wdf2_chunk_t;
 
 //
 ///////////////////////////////////////////////////////////////////////////////
-///////////////		    interface for WDF_Header_t		///////////////
+///////////////		    interface for wdf_header_t		///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-// initialize WH
-void InitializeWH ( WDF_Header_t * wh );
+void InitializeWH ( wdf_header_t * wh );
 
 // convert WH data, src + dest may point to same structure
-void ConvertToNetworkWH ( WDF_Header_t * dest, const WDF_Header_t * src );
-void ConvertToHostWH    ( WDF_Header_t * dest, const WDF_Header_t * src );
+void ConvertToNetworkWH ( wdf_header_t * dest, const wdf_header_t * src );
+void ConvertToHostWH    ( wdf_header_t * dest, const wdf_header_t * src );
 
 // helpers
 bool FixHeaderWDF
 (
-    WDF_Header_t	*wh,	    // dest header
-    const WDF_Header_t	*wh_src,    // src header, maybe NULL
+    wdf_header_t	*wh,	    // dest header
+    const wdf_header_t	*wh_src,    // src header, maybe NULL
     bool		setup	    // true: setup all paramaters
 );
 
 static inline uint GetHeaderSizeWDF ( uint vers )
-	{ return sizeof(WDF_Header_t); }
+	{ return sizeof(wdf_header_t); }
 
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////		    interface for WDF*_Chunk_t		///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
 // convert WC.v1 data, src + dest may point to same structure
-void ConvertToNetworkWC1 ( WDF1_Chunk_t * dest, const WDF1_Chunk_t * src );
-void ConvertToHostWC1    ( WDF1_Chunk_t * dest, const WDF1_Chunk_t * src );
+void ConvertToNetworkWC1 ( wdf1_chunk_t * dest, const wdf1_chunk_t * src );
+void ConvertToHostWC1    ( wdf1_chunk_t * dest, const wdf1_chunk_t * src );
 
 static inline uint GetChunkSizeWDF ( uint vers )
-	{ return vers < 2 ? sizeof(WDF1_Chunk_t) : sizeof(WDF2_Chunk_t); }
+	{ return vers < 2 ? sizeof(wdf1_chunk_t) : sizeof(wdf2_chunk_t); }
 
 //-----------------------------------------------------------------------------
-#if WDF2_ENABLED
 
 // convert WC.v2 data, src + dest may point to same structure
-void ConvertToNetworkWC2 ( WDF2_Chunk_t * dest, const WDF2_Chunk_t * src );
-void ConvertToHostWC2    ( WDF2_Chunk_t * dest, const WDF2_Chunk_t * src );
+void ConvertToNetworkWC2 ( wdf2_chunk_t * dest, const wdf2_chunk_t * src );
+void ConvertToHostWC2    ( wdf2_chunk_t * dest, const wdf2_chunk_t * src );
 
-#endif // WDF2_ENABLED
 //-----------------------------------------------------------------------------
 
 void ConvertToNetworkWC1n
 (
-    WDF1_Chunk_t	*dest,		// dest data, must not overlay 'src'
-    const WDF2_Chunk_t	*src,		// source data, network byte order
+    wdf1_chunk_t	*dest,		// dest data, must not overlay 'src'
+    const wdf2_chunk_t	*src,		// source data, network byte order
     uint		n_elem		// number of elements to convert
 );
 
 void ConvertToNetworkWC2n
 (
-    WDF2_Chunk_t	*dest,		// dest data, may overlay 'src'
-    const WDF2_Chunk_t	*src,		// source data, network byte order
+    wdf2_chunk_t	*dest,		// dest data, may overlay 'src'
+    const wdf2_chunk_t	*src,		// source data, network byte order
     uint		n_elem		// number of elements to convert
 );
 
 void ConvertToHostWC
 (
-    WDF2_Chunk_t	*dest,		// dest data, may overlay 'src'
+    wdf2_chunk_t	*dest,		// dest data, may overlay 'src'
     const void		*src_data,	// source data, network byte order
     uint		wdf_version,	// related wdf version
     uint		n_elem		// number of elements to convert
 );
+
+//
+///////////////////////////////////////////////////////////////////////////////
+///////////////		    struct wdf_controller_t		///////////////
+///////////////////////////////////////////////////////////////////////////////
+
+typedef struct wdf_controller_t
+{
+    //--- base data
+
+    wdf_header_t head;		// the WDF header
+
+    wdf2_chunk_t *chunk;	// field with 'chunk_size' elements
+    int chunk_size;		// number of elements in 'chunk'
+    int chunk_used;		// number of used elements in 'chunk'
+
+    //--- parameters
+
+    u64 filesize_on_open;	// file size on start
+    u64 min_data_off;		// min used data offset
+    u64 max_data_off;		// max used data offset
+    u64 max_virt_off;		// max virtual file offset
+    u64 image_size;		// current image size
+    u32 align;			// not NULL: force this align
+    u32 min_hole_size;		// minimal size of an hole
+}
+wdf_controller_t;
+
+//-----------------------------------------------------------------------------
+
+void InitializeWDF ( wdf_controller_t * wdf );
+void ResetWDF ( wdf_controller_t * wdf );
+
+bool UpdateVersionWDF
+(
+    const wdf_controller_t * wdf_in,	// NULL or input file
+    wdf_controller_t	   * wdf_out	// NULL or output file
+);
+
+enumOFT ProposeOFT_WDF ( enumOFT src_oft );
 
 //
 ///////////////////////////////////////////////////////////////////////////////
@@ -231,7 +270,7 @@ enumError WriteSparseWDF( SUPERFILE * sf, off_t off, const void * buf, size_t si
 enumError WriteZeroWDF	( SUPERFILE * sf, off_t off, size_t size );
 
 // chunk management
-WDF2_Chunk_t * NeedChunkWDF ( SUPERFILE * sf, int at_index );
+wdf2_chunk_t * NeedChunkWDF ( SUPERFILE * sf, int at_index );
 
 #undef SUPERFILE
 
@@ -242,12 +281,13 @@ WDF2_Chunk_t * NeedChunkWDF ( SUPERFILE * sf, int at_index );
 
 extern uint opt_wdf_version;
 extern uint opt_wdf_align;
+extern uint opt_wdf_min_holesize;
 extern uint use_wdf_version;
 extern uint use_wdf_align;
 
 void SetupOptionsWDF();
-int SetWDF2Mode ( uint c, ccp align );
-int ScanOptWDFAlign ( ccp arg );
+int SetModeWDF ( uint c, ccp align );
+int ScanOptAlignWDF ( ccp arg, ccp opt_name );
 
 //
 ///////////////////////////////////////////////////////////////////////////////

@@ -96,8 +96,8 @@
 		" The standard is to compare two source files."
 		" If {--dest} or {--DEST} is set, than all source files"
 		" are compared against files in the destination path with equal names."
-		" If the second source file is missing then standard input"
-		" (stdin) is used instead."
+		" If the second source file is missed,"
+		" then standard input (stdin) is used instead."
 		"\n "
 		" This is the default command, when the program name"
 		" contains the sub string @'diff'@ or @'cmp'@ in any case." },
@@ -172,25 +172,27 @@
 
   { T_SEP_OPT,	0,0,0,0 }, //----- separator -----
 
-  { T_OPT_C,	"WDF",		"W|wdf",
-		0,
+  { T_OPT_CO,	"WDF",		"W|wdf",
+		"[=param]",
 		"Force WDF output mode if packing"
 		" and set the default suffix to @'.wdf'@."
-		" This is the general default." },
+		" This is the general default."
+		" {--wdf=param} is a short cut for {--wdf --align-wdf=param}." },
 
-  { H_OPT_CO,	"WDF1",		"wdf1",					// [[wdf2]]
-		"[=align]",
+  { T_OPT_CO,	"WDF1",		"wdf1",
+		"[=param]",
 		"Force WDF v1 output mode, if packing."
 		" Set the default suffix to @'.wdf'@."
-		" {--wdf1=align} is a shortcut for {--wdf1 --wdf-align=align}." },
+		" {--wdf1=param} is a short cut for {--wdf1 --align-wdf=param}." },
 
-  { H_OPT_CO,	"WDF2",		"wdf2",					// [[wdf2]]
-		"[=align]",
+  { T_OPT_CO,	"WDF2",		"wdf2",
+		"[=param]",
 		"Force WDF v2 output mode, if packing."
 		" Set the default suffix to @'.wdf'@."
-		" {--wdf2=align} is a shortcut for {--wdf2 --wdf-align=align}." },
+		" {--wdf2=param} is a short cut for {--wdf2 --align-wdf=param}." },
 
-  { H_OPT_GP,	"WDF_ALIGN",	"wdf-align|wdfalign",			// [[wdf2]]
+		// [[2do]] 2014-01: wdf-align is obsolete at 2014-07
+  { T_OPT_GP,	"ALIGN_WDF",	"align-wdf|alignwdf|wdf-align|wdfalign",
 		0, 0 /* copy of wit */ },
 		
   { T_OPT_CO,	"WIA",		"wia",
@@ -331,9 +333,9 @@
   { T_GRP_BEG,	"FILETYPE",	0,0,0 },
 
   { T_COPT,	"WDF",		0,0,0 },
-  { H_COPT,	"WDF1",		0,0,0 }, // [[wdf2]]
-  { H_COPT,	"WDF2",		0,0,0 }, // [[wdf2]]
-  { H_COPT,	"WDF_ALIGN",	0,0,0 }, // [[wdf2]]
+  { T_COPT,	"WDF1",		0,0,0 },
+  { T_COPT,	"WDF2",		0,0,0 },
+  { T_COPT,	"ALIGN_WDF",	0,0,0 },
   { T_COPT,	"WIA",		0,0,0 },
   { T_COPT,	"CISO",		0,0,0 },
   { T_COPT,	"WBI",		0,0,0 },

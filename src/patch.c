@@ -201,7 +201,7 @@ static const RegionInfo_t RegionTable[] =
 	/*B*/ { REGION_EUR,  0, "-?- ", "-?-" },
 	/*C*/ { REGION_EUR,  0, "-?- ", "-?-" },
 	/*D*/ { REGION_EUR, 1,  "GERM", "German" },
-	/*E*/ { REGION_USA, 1,  "NTSC", "NTSC" },
+	/*E*/ { REGION_USA, 1,  "USA ", "NTSC/USA" },
 	/*F*/ { REGION_EUR, 1,  "FREN", "French" },
 	/*G*/ { REGION_EUR,  0, "-?- ", "-?-" },
 	/*H*/ { REGION_EUR,  0, "NL  ", "Netherlands" },	// ??
@@ -214,7 +214,7 @@ static const RegionInfo_t RegionTable[] =
 	/*O*/ { REGION_EUR,  0, "-?- ", "-?-" },
 	/*P*/ { REGION_EUR, 1,  "PAL ", "PAL" },
 	/*Q*/ { REGION_KOR, 1,  "KO/J", "Korea (japanese)" },
-	/*R*/ { REGION_EUR,  0, "RUS ", "Russia" },		// ??
+	/*R*/ { REGION_EUR, 1,  "RUS ", "Russia" },
 	/*S*/ { REGION_EUR, 1,  "SPAN", "Spanish" },
 	/*T*/ { REGION_KOR, 1,  "KO/E", "Korea (english)" },
 	/*U*/ { REGION_EUR,  0, "AUS ", "Australia" },		// ??

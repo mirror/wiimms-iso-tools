@@ -340,14 +340,14 @@ static const CommandTab_t feature_tab[] =
 {
     //--- image formats
 
-    { FEAT_ISO,		"ISO",		0, 0 },
-    { FEAT_WDF,		"WDF",		0, 0 },
-    { FEAT_WDF1,	"WDF1",		0, 0 },
-    { FEAT_WDF2,	"WDF2",		0, 0 },
-    { FEAT_CISO,	"CISO",		"WBI", 0 },
-    { FEAT_WBFS,	"WBFS",		0, 0 },
-    { FEAT_WIA,		"WIA",		0, 0 },
-    { FEAT_GCZ,		"GCZ",		0, 0 },
+    { FEAT_ISO,		"ISO",		0,		0 },
+    { FEAT_WDF,		"WDF",		0,		0 },
+    { FEAT_WDF1,	"WDF1",		"WDFV1",	0 },
+    { FEAT_WDF2,	"WDF2",		"WDFV2",	0 },
+    { FEAT_CISO,	"CISO",		"WBI",		0 },
+    { FEAT_WBFS,	"WBFS",		0,		0 },
+    { FEAT_WIA,		"WIA",		0,		0 },
+    { FEAT_GCZ,		"GCZ",		0,		0 },
 
     //--- misc
 
@@ -371,13 +371,7 @@ static bool check_feature ( uint feat )
 	case FEAT_ISO:		stat = 1; msg = "Image format ISO"; break;
 	case FEAT_WDF:		stat = 1; msg = "Image format WDF"; break;
 	case FEAT_WDF1:		stat = 1; msg = "Image format WDF v1"; break;
-
-     #if WDF2_ENABLED > 1
 	case FEAT_WDF2:		stat = 1; msg = "Image format WDF v2"; break;
-     #else
-     	case FEAT_WDF2:		stat = 0; msg = "Image format WDF v2"; break;
-     #endif
-
 	case FEAT_CISO:		stat = 1; msg = "Image format CISO"; break;
 	case FEAT_WBFS:		stat = 1; msg = "Image format WBFS"; break;
 	case FEAT_WIA:		stat = 1; msg = "Image format WIA"; break;
@@ -566,9 +560,7 @@ enumError cmd_test_options()
     print_val( "output-mode:",	output_file_type, iobuf );
 
     SetupOptionsWDF();
- #if WDF2_ENABLED < 2 // [[wdf2]]
-    if ( opt_wdf_version || opt_wdf_align )
- #endif
+    if ( opt_wdf_version || opt_wdf_align || opt_wdf_min_holesize )
     {
 	if ( use_wdf_version != opt_wdf_version )
 	    snprintf(iobuf,sizeof(iobuf)," => use v%d",use_wdf_version);
@@ -581,12 +573,15 @@ enumError cmd_test_options()
 		use_wdf_align, wd_print_size_1024(0,0,use_wdf_align,false) );
 	else
 	    *iobuf = 0;
-	print_val( "wdf-align:",	opt_wdf_align, iobuf );
+	print_val( "align-wdf:",	opt_wdf_align, iobuf );
+
+	print_val( "minhole-wdf",	opt_wdf_min_holesize, 0 );
     }
 
     print_val( "chunk-mode:",	opt_chunk_mode,	0 );
     print_val( "chunk-size:",	opt_chunk_size,	force_chunk_size ? " FORCE!" : "" );
     print_val( "max-chunks:",	opt_max_chunks,	0 );
+
  #ifdef TEST
     {
 	u64 filesize[] = { 100ull*MiB, 1ull*GiB, 10ull*GiB, opt_size, 0 };
