@@ -889,6 +889,8 @@ wd_disc_t * OpenDiscSF
     }
     else
     {
+	reloc |= patch_main(disc);
+
 	if (main_part)
 	{
 	    reloc |= wd_patch_part_id(main_part,modify,

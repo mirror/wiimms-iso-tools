@@ -135,6 +135,13 @@ int ScanOptIOS ( ccp arg );
 
 //-----------------------------------------------------------------------------
 
+extern bool opt_http;
+extern ccp  opt_domain;
+int ScanOptDomain ( bool http, ccp domain );
+int patch_main ( wd_disc_t * disc );
+
+//-----------------------------------------------------------------------------
+
 extern wd_modify_t opt_modify;
 wd_modify_t ScanModify ( ccp arg );
 int ScanOptModify ( ccp arg );

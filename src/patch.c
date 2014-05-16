@@ -333,6 +333,165 @@ int ScanOptIOS ( ccp arg )
 
 //
 ///////////////////////////////////////////////////////////////////////////////
+///////////////		    --http --domain --wiimmfi		///////////////
+///////////////////////////////////////////////////////////////////////////////
+
+bool opt_http = false;
+ccp opt_domain = 0;
+
+static const char nin_wifi_net[] = "nintendowifi.net";
+static uint nin_wifi_net_len = sizeof(nin_wifi_net) - 1;
+
+///////////////////////////////////////////////////////////////////////////////
+// [[domain]]
+
+int ScanOptDomain ( bool http, ccp domain )
+{
+    if (http)
+	opt_http = true;
+
+    if ( domain && *domain )
+    {
+	if ( strlen(domain) > nin_wifi_net_len )
+	    return ERROR0(ERR_SEMANTIC,"Domain '%s' is to long.",domain);
+	opt_domain = domain;
+    }
+    return 0;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+// [[domain]]
+
+static uint patch_main_helper ( u8 *data, uint size, ccp title )
+{
+    ASSERT(data);
+    ASSERT( !opt_domain || strlen(opt_domain) <= nin_wifi_net_len );
+
+    uint stat = 0;
+    char *end = (char*)data + size;
+
+    char *next_h = memchr(data+1,'h',size-1);
+    if (!next_h)
+	next_h = end;
+
+    char *next_n = memchr(data+1,'n',size-1);
+    if (!next_n)
+	next_n = end;
+
+    while ( next_h < end || next_n < end )
+    {
+      ccp found = 0, info = 0;
+
+      if ( next_h < next_n )
+      {
+	if ( opt_http && !memcmp(next_h,"https",5) )
+	{
+	    uint mode	= !memcmp(next_h+5,"://naswii.",10) ? 2
+			: !next_h[-1] || !memcmp(next_h+5,"://",3) ? 1
+			: 0;
+	    if (mode)
+	    {
+		stat |= 1;
+		found = next_h;
+		info  = "HTTPS:";
+
+		next_h += 4;
+		char *dest = next_h++;
+		if ( mode == 2 )
+		{
+		    strcpy(dest,"://nas.");
+		    dest += 7;
+		    next_h += 10;
+		}
+		while (*next_h)
+		    *dest++ = *next_h++;
+		while ( dest < next_h )
+		    *dest++ = 0;
+
+		if ( next_n < next_h )
+		{
+		    // recalc next_n, because position moved
+		    next_n = memchr(found,'n',end-found);
+		    if (!next_n)
+			next_n = end;
+		}
+	    }
+	}
+
+	next_h++;
+	next_h = memchr(next_h,'h',end-next_h);
+	if (!next_h)
+	    next_h = end;
+      }
+      else
+      {
+	if ( opt_domain
+		&& next_n[-1] == '.'
+		&& !memcmp(next_n,nin_wifi_net,nin_wifi_net_len) )
+	{
+	    const char ch = next_n[nin_wifi_net_len];
+	    if ( !ch || ch == '/' )
+	    {
+		stat |= 2;
+		found = next_n;
+		info  = "DOMAIN:";
+
+		char *dest = StringCopyS(next_n,nin_wifi_net_len,opt_domain);
+		next_n += nin_wifi_net_len;
+		while (*next_n)
+		    *dest++ = *next_n++;
+		while ( dest < next_n )
+		    *dest++ = 0;
+	    }
+	}
+
+	next_n++;
+	next_n = memchr(next_n,'n',end-next_n);
+	if (!next_n)
+	    next_n = end;
+      }
+
+      if ( found && verbose > 2 )
+      {
+	ccp beg = found - 1;
+	while ( *beg > ' ' && *beg < 0x7f )
+	    beg--;
+	beg++;
+	printf("PATCHED %s/%-7s %6zx  %s\n",title,info,beg-(ccp)data,beg);
+      }
+    }
+
+    return stat;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+int patch_main ( wd_disc_t * disc )
+{
+    DASSERT(disc);
+
+    if ( !opt_http && !opt_domain )
+	return 0;
+
+    wd_patch_main_t pm;
+    wd_patch_main(&pm,disc,true,true);
+
+    if ( !pm.main && !pm.staticr )
+	return 0;
+
+    uint stat = 0;
+    if ( pm.main )
+	stat |= patch_main_helper(pm.main->data,pm.main->size,"MAIN");
+    if ( pm.staticr )
+	stat |= patch_main_helper(pm.staticr->data,pm.staticr->size,"SREL");
+
+    PRINT("patch_main(), stat=%x\n",stat);
+    return stat;
+}
+
+//
+///////////////////////////////////////////////////////////////////////////////
 ///////////////			--modify			///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -887,7 +1046,7 @@ enumError RewriteModifiedSF
 	fo = wbfs->sf;
     ASSERT(fo);
     ASSERT(fo->f.is_writing);
-    TRACE("+++ RewriteModifiedSF(%p,%p,%p,%llx), oft=%d,%d\n",
+    PRINT("+++ RewriteModifiedSF(%p,%p,%p,%llx), oft=%d,%d\n",
 		fi,fo,wbfs,off,fi->iod.oft,fo->iod.oft);
 
     wd_disc_t * disc = fi->disc1;

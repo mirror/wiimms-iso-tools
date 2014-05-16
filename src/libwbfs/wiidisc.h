@@ -979,7 +979,7 @@ enumError wd_read_part
 (
     wd_part_t		* part,		// valid pointer to a disc partition
     u32			data_offset4,	// partition data offset/4
-    void		* dest_buf,	// estination buffer
+    void		* dest_buf,	// destination buffer
     u32			read_size,	// number of bytes to read 
     bool		mark_block	// true: mark block in 'usage_table'
 );
@@ -1903,6 +1903,29 @@ bool wd_patch_part_system // result = true if something changed
 (
     wd_part_t		* part,		// valid pointer to a disc partition
     u64			system		// new system id (IOS)
+);
+
+///////////////////////////////////////////////////////////////////////////////
+
+typedef struct wd_patch_main_t
+{
+    wd_disc_t	*disc;		// valid pointer to disc
+    wd_part_t	*part;		// valid pointer to partition, if file found
+
+    bool	patch_main;	// true: patch 'sys/main.dol'
+    bool	patch_staticr;	// true: patch 'files/rel/staticr.rel'
+
+    wd_memmap_item_t *main;	// NULL or found 'sys/main.dol'
+    wd_memmap_item_t *staticr;	// NULL or found 'files/rel/staticr.rel'
+}
+wd_patch_main_t;
+
+int wd_patch_main
+(
+    wd_patch_main_t	*pm,		// result only, will be initialized
+    wd_disc_t		*disc,		// valid disc
+    bool		patch_main,	// true: patch 'sys/main.dol'
+    bool		patch_staticr	// true: patch 'files/rel/staticr.rel'
 );
 
 //

@@ -94,6 +94,9 @@ typedef enum enumOptions
 	OPT_REGION,
 	OPT_COMMON_KEY,
 	OPT_IOS,
+	OPT_HTTP,
+	OPT_DOMAIN,
+	OPT_WIIMMFI,
 	OPT_RM_FILES,
 	OPT_ZERO_FILES,
 	OPT_OVERLAY,
@@ -155,7 +158,7 @@ typedef enum enumOptions
 	OPT_FILE_LIMIT,
 	OPT_PATCH_FILE,
 
-	OPT__N_SPECIFIC, // == 99 
+	OPT__N_SPECIFIC, // == 102 
 
 	//----- global options -----
 
@@ -185,7 +188,7 @@ typedef enum enumOptions
 	OPT_GCZ_ZIP,
 	OPT_GCZ_BLOCK,
 
-	OPT__N_TOTAL // == 124
+	OPT__N_TOTAL // == 127
 
 } enumOptions;
 
@@ -238,6 +241,9 @@ typedef enum enumOptions
 //	OB_REGION		= 1llu << OPT_REGION,
 //	OB_COMMON_KEY		= 1llu << OPT_COMMON_KEY,
 //	OB_IOS			= 1llu << OPT_IOS,
+//	OB_HTTP			= 1llu << OPT_HTTP,
+//	OB_DOMAIN		= 1llu << OPT_DOMAIN,
+//	OB_WIIMMFI		= 1llu << OPT_WIIMMFI,
 //	OB_RM_FILES		= 1llu << OPT_RM_FILES,
 //	OB_ZERO_FILES		= 1llu << OPT_ZERO_FILES,
 //	OB_OVERLAY		= 1llu << OPT_OVERLAY,
@@ -382,6 +388,9 @@ typedef enum enumOptions
 //				| OB_REGION
 //				| OB_COMMON_KEY
 //				| OB_IOS
+//				| OB_HTTP
+//				| OB_DOMAIN
+//				| OB_WIIMMFI
 //				| OB_RM_FILES
 //				| OB_ZERO_FILES,
 //
@@ -803,6 +812,9 @@ typedef enum enumGetOpt
 	GO_REGION,
 	GO_COMMON_KEY,
 	GO_IOS,
+	GO_HTTP,
+	GO_DOMAIN,
+	GO_WIIMMFI,
 	GO_RM_FILES,
 	GO_ZERO_FILES,
 	GO_OVERLAY,

@@ -487,6 +487,15 @@
   { T_OPT_CP,	"IOS",		"ios",
 		0, 0 /* copy of wit */ },
 
+  { T_OPT_C,	"HTTP",		"http",
+		0, 0 /* copy of wit */ },
+
+  { T_OPT_CP,	"DOMAIN",	"domain",
+		0, 0 /* copy of wit */ },
+
+  { T_OPT_C,	"WIIMMFI",	"wiimmfi",
+		0, 0 /* copy of wit */ },
+
   { T_OPT_CP,	"RM_FILES",	"rm-files|rm-file|rmfiles|rmfile",
 		0, 0 /* copy of wit */ },
 
@@ -903,6 +912,9 @@
   { T_COPT,	"REGION",	0,0,0 },
   { T_COPT,	"COMMON_KEY",	0,0,0 },
   { T_COPT,	"IOS",		0,0,0 },
+  { T_COPT,	"HTTP",		0,0,0 },
+  { T_COPT,	"DOMAIN",	0,0,0 },
+  { T_COPT,	"WIIMMFI",	0,0,0 },
   { T_COPT,	"RM_FILES",	0,0,0 },
   { T_COPT,	"ZERO_FILES",	0,0,0 },
 

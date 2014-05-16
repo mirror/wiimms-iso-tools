@@ -530,7 +530,7 @@ static wdf2_chunk_t * NewChunkWDF
 	    if (res_delta)
 		*res_delta = offset - wc->file_pos;
 
-	    PRINT("#W# GROW CHUNK [idx=%zd/%d/%d] %llx+%llx -> %llx, d=%llx\n",
+	    noPRINT("#W# GROW CHUNK [idx=%zd/%d/%d] %llx+%llx -> %llx, d=%llx\n",
 		wc-wdf->chunk, wdf->chunk_used, wdf->chunk_size,
 		wc->data_off, wc->data_size, wc->file_pos, delta );
 
@@ -557,7 +557,7 @@ static wdf2_chunk_t * NewChunkWDF
     {
 	// grow the field
 
-	PRINT("#W# NewChunkWDF() GROW LIST %d ->%d [used=%d]\n",
+	noPRINT("#W# NewChunkWDF() GROW LIST %d ->%d [used=%d]\n",
 		wdf->chunk_size, wdf->chunk_size+WC_GROW_SIZE, wdf->chunk_used );
 
 	wdf->chunk_size += WC_GROW_SIZE;
@@ -583,7 +583,7 @@ static wdf2_chunk_t * NewChunkWDF
     if (res_delta)
 	*res_delta = delta;
 
-    PRINT("#W#  NEW CHUNK [idx=%zd/%d/%d] %llx+%llx -> %llx, d=%llx\n",
+    noPRINT("#W#  NEW CHUNK [idx=%zd/%d/%d] %llx+%llx -> %llx, d=%llx\n",
 		wc-wdf->chunk, wdf->chunk_used, wdf->chunk_size,
 		wc->data_off, wc->data_size, wc->file_pos, delta );
 

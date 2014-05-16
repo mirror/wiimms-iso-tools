@@ -1,20 +1,11 @@
 wit v@@VERSION@@ r@@REV-NEXT@@ - @@@@-@@-@@
 
- - Full WDF version 2 support:
-    - WDFv2 files are a little bit smaller and support alignment.
-    - Parts of the WDF library have been rewritten to support WDFv2 and
-      alignment. A side effect is a more compact code and a better chunk
-      management if modifiying WDF files.
-    - Option --wdf forces WDF output, the version is definied automatically.
-    - Option --wdf1 forces WDFv1 output.
-    - Option --wdf2 forces WDFv2 output.
-    - Option --align-wdf defines an alignment between 1 and 1GiB (power of 2)
-      and optional the minimal hole size before creating a new chunk.
-    - 'wit EDIT' supports --wdf1 and --wdf2 to allow version conversions.
-   For technical details about WDF see: http://wit.wiimm.de/WDF
- - Support of split files of CleanRip: If reading a plain ISO file named
-   '*.part0', the other parts are detected as continuation files.
- - Windows only: Cygwin update to v1.7.28 2014-02-09.
+ - New patching options to support the new custom server:
+   - Option --http: Replace 'https' request to 'http' in the files 'main.dol'
+     and 'rel/StaticR.rel'.
+   - Option --domain=dom: Replace 'nintendowifi.net' by the new domain.
+   - Option --wiimmfi: Patch the images for the new custom server. It is a
+     short cut for: --http --domain=wiimmfi.de
 
 ~
 ~Known bugs:

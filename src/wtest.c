@@ -1027,7 +1027,43 @@ void wd_print_disc_info_section
 ///////////////			develop()			///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-static enumError develop_sf ( int argc, char ** argv )
+int patch_server
+(
+    struct wd_iterator_t	*it	// iterator struct with all infos
+)
+{
+    if ( !it->part
+	|| it->icm != WD_ICM_FILE
+	|| strcmp(it->path,"DATA/sys/main.dol")
+	&& strcasecmp(it->path,"DATA/files/rel/StaticR.rel") )
+    {
+	return 0;
+    }
+
+    printf("-> [%u] %s\n",it->size,it->path);
+
+    wd_memmap_item_t * item
+	= wd_insert_memmap_alloc( &it->disc->patch, WD_PAT_DATA,
+					it->off4<<2, it->size );
+    StringCopyS(item->info,sizeof(item->info),it->path+5);
+
+    enumError err = wd_read_part(it->part,it->off4,item->data,it->size,false);
+    if (err)
+    {
+	return ERROR0(ERR_ERROR,"abort\n");
+    }
+    
+    printf("SAVE main.dol.tmp\n");
+    SaveFile("main.dol.tmp",0,true,false,item->data,it->size,false);
+
+    wd_print_memmap(stdout,0,&it->disc->patch);
+
+    return 0;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+static enumError develop ( int argc, char ** argv )
 {
     SuperFile_t sf;
     InitializeSF(&sf);
@@ -1039,7 +1075,30 @@ static enumError develop_sf ( int argc, char ** argv )
 	    continue;
 	printf("--- %s:%s\n",oft_info[sf.iod.oft].name,argv[i]);
 
+	wd_disc_t *disc = OpenDiscSF(&sf,false,true);
+	if (disc)
+	{
+	    //wd_iterate_files(disc,patch_server,0,0,WD_IPM_PART_NAME);
+	    wd_patch_main_t pm;
+	    wd_patch_main(&pm,disc,true,true);
+	    wd_print_memmap(stdout,0,&disc->patch);
 
+	    printf("main=%p, staticr=%p\n",pm.main,pm.staticr);
+
+	    if (pm.main)
+		memcpy(pm.main->data,"MAIN",5);
+	    if (pm.staticr)
+		memcpy(pm.staticr->data,"STATICR",8);
+	}
+
+	SuperFile_t fo;
+	InitializeSF(&fo);
+	SetupIOD(&fo,OFT_WDF2,OFT_WDF2);
+	fo.src = &sf;
+	fo.f.fname = STRDUP("pool/a.tmp");
+
+	CopyImage(&sf,&fo,OFT_WDF2,true,false,false);
+	ResetSF(&fo,0);
 	CloseSF(&sf,0);
     }
 
@@ -1061,7 +1120,7 @@ static int nintendo_cmp_qsort ( const void * path1, const void * path2 )
 
 ///////////////////////////////////////////////////////////////////////////////
 
-static enumError develop ( int argc, char ** argv )
+static enumError develop_cmp ( int argc, char ** argv )
 {
     argc--;
     argv++;

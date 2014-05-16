@@ -655,6 +655,12 @@ enumError cmd_test_options()
     if (modify_wbfs_id)
 	printf("  modify wbfs id:   '%s'\n",modify_wbfs_id);
 
+    if ( opt_http || opt_domain )
+    {
+	printf("  http:             %s\n", opt_http ? "enabled" : "disabled" );
+	printf("  domain:           '%s'\n",opt_domain);
+    }
+
  #if IS_WWT
     char buf_set_time[20];
     if (opt_set_time)

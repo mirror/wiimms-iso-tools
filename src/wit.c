@@ -3851,6 +3851,9 @@ enumError CheckOptions ( int argc, char ** argv, bool is_env )
 	case GO_COMMON_KEY:	err += ScanOptCommonKey(optarg); break;
 	case GO_IOS:		err += ScanOptIOS(optarg); break;
 	case GO_MODIFY:		err += ScanOptModify(optarg); break;
+	case GO_HTTP:		err += ScanOptDomain(1,0); break;
+	case GO_DOMAIN:		err += ScanOptDomain(0,optarg); break;
+	case GO_WIIMMFI:	err += ScanOptDomain(1,"wiimmfi.de"); break;
 	case GO_NAME:		err += ScanOptName(optarg); break;
 	case GO_ID:		err += ScanOptId(optarg); break;
 	case GO_DISC_ID:	err += ScanOptDiscId(optarg); break;

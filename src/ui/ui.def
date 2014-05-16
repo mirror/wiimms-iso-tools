@@ -604,6 +604,23 @@
 	" within TMD. The format is @'HIGH:LOW'@ or @'HIGH-LOW'@ or @'LOW'@." \
 	" If only @LOW@ is set than @HIGH@ is assumed as 1 (standard IOS)." )
 
+#:def_opt( "HTTP", "http", "C", \
+	"", \
+	"This $patching$ option replaces 'https' request to 'http' in the" \
+	" files 'main.dol' and 'rel/StaticR.rel', if the files exist. It also" \
+	" replaces the sub-domain 'naswii' to 'nas'." )
+
+#:def_opt( "DOMAIN", "domain", "CP", \
+	"domain", \
+	"This $patching$ replaces the domain 'nintendowifi.net' by the new" \
+	" domain. The length of the new domain must not be larger than the old" \
+	" length." )
+
+#:def_opt( "WIIMMFI", "wiimmfi", "C", \
+	"", \
+	"Patch the images for the new custom server. It is a short cut for" \
+	" {--http --domain wiimmfi.de}." )
+
 #:def_opt( "RM_FILES", "rm-files|rm-file|rmfiles|rmfile", "CP", \
 	"ruleset", \
 	"This patching option defines filter rules to remove real files and" \
@@ -1603,6 +1620,18 @@
 	"" )
 
 #:def_cmd_opt( "DUMP", "IOS", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "DUMP", "HTTP", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "DUMP", "DOMAIN", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "DUMP", "WIIMMFI", \
 	"", \
 	"" )
 
@@ -3423,6 +3452,18 @@
 	"", \
 	"" )
 
+#:def_cmd_opt( "EXTRACT", "HTTP", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "EXTRACT", "DOMAIN", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "EXTRACT", "WIIMMFI", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "EXTRACT", "RM_FILES", \
 	"", \
 	"" )
@@ -3667,6 +3708,18 @@
 	"" )
 
 #:def_cmd_opt( "COPY", "IOS", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "COPY", "HTTP", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "COPY", "DOMAIN", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "COPY", "WIIMMFI", \
 	"", \
 	"" )
 
@@ -3978,6 +4031,18 @@
 	"", \
 	"" )
 
+#:def_cmd_opt( "CONVERT", "HTTP", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "CONVERT", "DOMAIN", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "CONVERT", "WIIMMFI", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "CONVERT", "RM_FILES", \
 	"", \
 	"" )
@@ -4235,6 +4300,18 @@
 	"" )
 
 #:def_cmd_opt( "EDIT", "IOS", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "EDIT", "HTTP", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "EDIT", "DOMAIN", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "EDIT", "WIIMMFI", \
 	"", \
 	"" )
 
@@ -5678,6 +5755,23 @@
 	"This $patching$ option defines the system version (IOS to load)" \
 	" within TMD. The format is @'HIGH:LOW'@ or @'HIGH-LOW'@ or @'LOW'@." \
 	" If only @LOW@ is set than @HIGH@ is assumed as 1 (standard IOS)." )
+
+#:def_opt( "HTTP", "http", "C", \
+	"", \
+	"This $patching$ option replaces 'https' request to 'http' in the" \
+	" files 'main.dol' and 'rel/StaticR.rel', if the files exist. It also" \
+	" replaces the sub-domain 'naswii' to 'nas'." )
+
+#:def_opt( "DOMAIN", "domain", "CP", \
+	"domain", \
+	"This $patching$ replaces the domain 'nintendowifi.net' by the new" \
+	" domain. The length of the new domain must not be larger than the old" \
+	" length." )
+
+#:def_opt( "WIIMMFI", "wiimmfi", "C", \
+	"", \
+	"Patch the images for the new custom server. It is a short cut for" \
+	" {--http --domain wiimmfi.de}." )
 
 #:def_opt( "RM_FILES", "rm-files|rm-file|rmfiles|rmfile", "CP", \
 	"ruleset", \
@@ -7670,6 +7764,18 @@
 	"", \
 	"" )
 
+#:def_cmd_opt( "ADD", "HTTP", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "ADD", "DOMAIN", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "ADD", "WIIMMFI", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "ADD", "RM_FILES", \
 	"", \
 	"" )
@@ -7904,6 +8010,18 @@
 	"", \
 	"" )
 
+#:def_cmd_opt( "UPDATE", "HTTP", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "UPDATE", "DOMAIN", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "UPDATE", "WIIMMFI", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "UPDATE", "RM_FILES", \
 	"", \
 	"" )
@@ -8130,6 +8248,18 @@
 	"", \
 	"" )
 
+#:def_cmd_opt( "NEW", "HTTP", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "NEW", "DOMAIN", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "NEW", "WIIMMFI", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "NEW", "RM_FILES", \
 	"", \
 	"" )
@@ -8353,6 +8483,18 @@
 	"" )
 
 #:def_cmd_opt( "SYNC", "IOS", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "SYNC", "HTTP", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "SYNC", "DOMAIN", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "SYNC", "WIIMMFI", \
 	"", \
 	"" )
 
@@ -8652,6 +8794,18 @@
 	"", \
 	"" )
 
+#:def_cmd_opt( "EXTRACT", "HTTP", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "EXTRACT", "DOMAIN", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "EXTRACT", "WIIMMFI", \
+	"", \
+	"" )
+
 #:def_cmd_opt( "EXTRACT", "RM_FILES", \
 	"", \
 	"" )
@@ -8892,6 +9046,18 @@
 	"" )
 
 #:def_cmd_opt( "SCRUB", "IOS", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "SCRUB", "HTTP", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "SCRUB", "DOMAIN", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "SCRUB", "WIIMMFI", \
 	"", \
 	"" )
 

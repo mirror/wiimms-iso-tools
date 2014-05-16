@@ -754,6 +754,23 @@
 		" within TMD. The format is @'HIGH:LOW'@ or @'HIGH-LOW'@ or @'LOW'@."
 		" If only @LOW@ is set than @HIGH@ is assumed as 1 (standard IOS)." },
 
+  { T_OPT_C,	"HTTP",		"http",
+		0,
+		"This $patching$ option replaces 'https' request to 'http'"
+		" in the files 'main.dol' and 'rel/StaticR.rel', if the files exist."
+		" It also replaces the sub-domain 'naswii' to 'nas'." },
+
+  { T_OPT_CP,	"DOMAIN",	"domain",
+		"domain",
+		"This $patching$ replaces the domain 'nintendowifi.net'"
+		" by the new domain."
+		" The length of the new domain must not be larger than the old length." },
+
+  { T_OPT_C,	"WIIMMFI",	"wiimmfi",
+		0,
+		"Patch the images for the new custom server."
+		" It is a short cut for {--http --domain wiimmfi.de}." },
+
   { T_OPT_CP,	"RM_FILES",	"rm-files|rm-file|rmfiles|rmfile",
 		"ruleset",
 		"This patching option defines filter rules to remove real files"
@@ -1386,6 +1403,9 @@
   { T_COPT,	"REGION",	0,0,0 },
   { T_COPT,	"COMMON_KEY",	0,0,0 },
   { T_COPT,	"IOS",		0,0,0 },
+  { T_COPT,	"HTTP",		0,0,0 },
+  { T_COPT,	"DOMAIN",	0,0,0 },
+  { T_COPT,	"WIIMMFI",	0,0,0 },
   { T_COPT,	"RM_FILES",	0,0,0 },
   { T_COPT,	"ZERO_FILES",	0,0,0 },
 

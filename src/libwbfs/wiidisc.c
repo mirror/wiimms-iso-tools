@@ -805,7 +805,7 @@ enumError wd_read_part
 (
     wd_part_t		* part,		// valid pointer to a disc partition
     u32			data_offset4,	// partition data offset/4
-    void		* dest_buf,	// estination buffer
+    void		* dest_buf,	// destination buffer
     u32			read_size,	// number of bytes to read 
     bool		mark_block	// true: mark block in 'usage_table'
 )
@@ -5246,6 +5246,7 @@ static enumError wd_rap_part_sectors
     disc->group_cache_sector = sector;
     u8 * buf = disc->group_cache;
 
+
     //----- reloc check
 
     wd_reloc_t * reloc = disc->reloc;
@@ -6068,6 +6069,78 @@ bool wd_patch_part_system // result = true if something changed
     return stat;
 }
 
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+
+static int wd_patch_main_iterator
+(
+    struct wd_iterator_t	*it	// iterator struct with all infos
+)
+{
+    if ( !it->part || it->icm != WD_ICM_FILE )
+	return 0;
+
+    wd_patch_main_t *pm = it->param;
+    DASSERT(pm);
+
+    wd_memmap_item_t ** item_ptr;
+    if ( pm->patch_main && !pm->main
+	&& !strcmp(it->path,"DATA/sys/main.dol") )
+    {
+	PRINT("-> PATCH MAIN [%u] %s\n",it->size,it->path);
+	item_ptr = &pm->main;
+    }
+    else if ( pm->patch_staticr && !pm->staticr
+	&& !strcasecmp(it->path,"DATA/files/rel/StaticR.rel") )
+    {
+	PRINT("-> PATCH STATIC [%u] %s\n",it->size,it->path);
+	item_ptr = &pm->staticr;
+    }
+    else
+	return 0;
+
+    wd_memmap_item_t * item
+	= wd_insert_memmap_alloc( &it->part->patch, WD_PAT_DATA,
+					it->off4<<2, it->size );
+    item->index = it->part->index;
+    StringCopyS(item->info,sizeof(item->info),it->path+5);
+
+    enumError err = wd_read_part(it->part,it->off4,item->data,it->size,false);
+    if (err)
+    {
+	return ERROR0(ERR_ERROR,"abort\n");
+    }
+
+    *item_ptr = item;
+    pm->part = it->part;
+    it->part->sign_tmd = true;
+
+    return 0;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// [[domain]]
+
+int wd_patch_main
+(
+    wd_patch_main_t	*pm,		// result only, will be initialized
+    wd_disc_t		*disc,		// valid disc
+    bool		patch_main,	// true: patch 'sys/main.dol'
+    bool		patch_staticr	// true: patch 'files/rel/staticr.rel'
+)
+{
+    DASSERT(pm);
+    DASSERT(disc);
+
+    memset(pm,0,sizeof(*pm));
+    pm->disc		= disc;
+    pm->patch_main	= patch_main;
+    pm->patch_staticr	= patch_staticr;
+
+    return wd_iterate_files( disc, wd_patch_main_iterator, pm,
+			patch_staticr ? 0 : 1, WD_IPM_PART_NAME );
+}
+
 //
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////			    relocation			///////////////
@@ -6111,6 +6184,9 @@ static void wd_mark_part_reloc
     wd_reloc_t		flags		// flags to set
 )
 {
+    WDPRINT("##### wd_mark_part_reloc() P=%u, off=%llx, size=%llx, fl=%x\n",
+		part->index, off, size, flags );
+
     u64 end = off + size;
     u32 idx = off / WII_SECTOR_DATA_SIZE + part->data_off4 / WII_SECTOR_SIZE4;
 
@@ -6118,8 +6194,11 @@ static void wd_mark_part_reloc
     {
 	DASSERT( idx < WII_MAX_SECTORS );
 	reloc[idx] |= flags;
-	off = ++idx * (u64)WII_SECTOR_DATA_SIZE;
+	noPRINT("reloc[%x] = %x [off=%llx/%llx]\n",idx,reloc[idx],off,end);
+	//off = ++idx * (u64)WII_SECTOR_DATA_SIZE;
+	off = ( off / WII_SECTOR_DATA_SIZE + 1 ) * WII_SECTOR_DATA_SIZE;
     }
+    noPRINT("[off=%llx/%llx]\n",off,end);
 
     while ( off < end )
     {
@@ -6128,6 +6207,7 @@ static void wd_mark_part_reloc
 	if ( off <= end && flags & WD_RELOC_F_PATCH )
 	    reloc[idx] &= ~WD_RELOC_F_COPY;
 	reloc[idx++] |= flags;
+	noPRINT("reloc[%x] = %x [off=%llx/%llx]\n",idx-1,reloc[idx-1],off,end);
     }
 }
 

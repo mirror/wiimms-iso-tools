@@ -43,7 +43,7 @@ WDF_LONG		= Wiimms WDF Tool
 WFUSE_SHORT		= wfuse
 WFUSE_LONG		= Wiimms FUSE Tool
 
-VERSION_NUM		= 2.28a
+VERSION_NUM		= 2.29a
 BETA_VERSION		= 0
 			# 0:off  -1:"beta"  >0:"beta#"
 
@@ -670,7 +670,7 @@ endif
 
 	@printf "\n---------- BUILDING LINUX/X86_64 ----------\n\n"
 	@for t in $(ALL_TOOLS_X); do rm -f bin/$$t; done
-	@$(MAKE) --no-print-directory clean+ install
+	@$(MAKE) --no-print-directory clean+ install doc info
 
 ifeq ($(HAVE_INSTBIN_64),1)
 	@printf "$(LOGFORMAT)" copy "$(INSTBIN)/* to $(INSTBIN_64)"
