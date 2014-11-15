@@ -2898,7 +2898,10 @@ enumError CreateFileFST ( WiiFstInfo_t *wfi, ccp dest_path, WiiFstFile_t * file 
 	&& ReduceToPathAndType(source,sizeof(source),file->path) )
     {
 	noPRINT("ALIGN: %s\n",source);
-	InsertParamField(&wfi->align_info,source,file->offset4<<2);
+	uint off = file->offset4;
+	if (!part->part->is_gc)
+	    off <<= 2;
+	InsertParamField(&wfi->align_info,source,off);
     }
 
 
@@ -5616,10 +5619,10 @@ static enumError SkeletonizeGC
     DASSERT( disc->disc_type == WD_DT_GAMECUBE );
     DASSERT(mm);
 
- #ifndef TEST
-    return ERROR0(ERR_WRONG_FILE_TYPE,
-		"SKELETON: GameCube not supported: %s\n",fi->f.fname);
- #endif
+//DEL	 #ifndef TEST
+//DEL	    return ERROR0(ERR_WRONG_FILE_TYPE,
+//DEL			"SKELETON: GameCube not supported: %s\n",fi->f.fname);
+//DEL	 #endif
 
  #if 0
     if ( disc->disc_attrib & WD_DA_GC_MULTIBOOT )
@@ -5741,7 +5744,7 @@ enumError Skeletonize
     }
 
     char fname[PATH_MAX];
-    const enumOFT oft = CalcOFT(output_file_type,0,0,OFT__DEFAULT);
+    const enumOFT oft = CalcOFT(output_file_type,0,0,OFT__WDF_DEF);
 
     {
 	WIT_SHA_CTX ctx;

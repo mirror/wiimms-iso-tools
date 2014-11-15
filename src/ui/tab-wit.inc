@@ -294,7 +294,7 @@
 
   { T_DEF_CMD,	"VERIFY",	"VERIFY|V",
 		    "wit VERIFY [source]...",
-		"Verify ISO images (calculate and compare SHA1 check sums)"
+		"Verify ISO images (calculate and compare SHA1 checksums)"
 		" to find bad dumps." },
 
   { T_DEF_CMD,	"SKELETON",	"SKELETON|SKEL",
@@ -720,7 +720,7 @@
 		"id",
 		"This is a short cut for {--ticket id --tmd id}."
 		" If TICKET and TMD differ, the game will freeze after loading."
-		" So it make sense to change only TICKET and TMD IDs together." },
+		" So it makes only sense to change TICKET and TMD IDs together." },
 
   { T_OPT_CP,	"WBFS_ID",	"wbfs-id|wbfsid",
 		"id",
@@ -770,6 +770,11 @@
 		0,
 		"Patch the images for the new custom server."
 		" It is a short cut for {--http --domain wiimmfi.de}." },
+
+  { H_OPT_C,	"TWIIMMFI",	"twiimmfi",
+		0,
+		"Patch the images for the test custom server."
+		" It is a short cut for {--http --domain test.wiimmfi.de}." },
 
   { T_OPT_CP,	"RM_FILES",	"rm-files|rm-file|rmfiles|rmfile",
 		"ruleset",
@@ -824,7 +829,7 @@
 		" $Fake signing$ is not necessary, but the partition becomes invalid,"
 		" because the content of some files is not copied."
 		" If such file is accessed the Wii will halt immediately,"
-		" because the verification of the check sum calculation fails."
+		" because the verification of the checksum calculation fails."
 		" The processing order of file options is:"
 		" {--rm-files --zero-files --ignore-files}."
 		"\1\n "
@@ -1406,6 +1411,7 @@
   { T_COPT,	"HTTP",		0,0,0 },
   { T_COPT,	"DOMAIN",	0,0,0 },
   { T_COPT,	"WIIMMFI",	0,0,0 },
+  { H_COPT,	"TWIIMMFI",	0,0,0 },
   { T_COPT,	"RM_FILES",	0,0,0 },
   { T_COPT,	"ZERO_FILES",	0,0,0 },
 
@@ -1443,6 +1449,9 @@
 
   { T_CMD_BEG,	"VERSION",	0,0,0 },
 
+  { T_COPT,	"BRIEF",	0,0,
+	"Print only the version number, revision and system."
+	" If set twice, print only the version number." },
   { T_COPT,	"SECTIONS",	0,0,0 },
   { T_COPT,	"LONG",		0,0,
 	"Print in long format. Ignored if option {--sections} is set." },

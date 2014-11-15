@@ -52,7 +52,7 @@
 #define WDF_MAGIC		"WII\1DISC"
 #define WDF_MAGIC_SIZE		8
 
-#define WDF_DEF_VERSION		1	// default version
+#define WDF_DEF_VERSION		2	// default version
 #define WDF_MAX_VERSION		2	// max supported version
 
 #define WDF_DEF_ALIGN		4	// default alignment for WDF v2 and above

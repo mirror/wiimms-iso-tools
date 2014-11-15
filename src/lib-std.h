@@ -345,7 +345,7 @@ typedef enum enumOFT // open file mode
 
     OFT__N,			// number of variants
     OFT__DEFAULT = OFT_WBFS,	// default value
-    OFT__WDF_DEF = OFT_WDF1	// default WDF value
+    OFT__WDF_DEF = OFT_WDF2	// default WDF value
 
 } enumOFT;
 

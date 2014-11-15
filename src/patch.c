@@ -458,7 +458,7 @@ static uint patch_main_helper ( u8 *data, uint size, ccp title )
 	while ( *beg > ' ' && *beg < 0x7f )
 	    beg--;
 	beg++;
-	printf("PATCHED %s/%-7s %6zx  %s\n",title,info,beg-(ccp)data,beg);
+	printf("PATCHED %s/%-7s %6x  %s\n",title,info,(int)(beg-(ccp)data),beg);
       }
     }
 

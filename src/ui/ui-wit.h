@@ -97,6 +97,7 @@ typedef enum enumOptions
 	OPT_HTTP,
 	OPT_DOMAIN,
 	OPT_WIIMMFI,
+	OPT_TWIIMMFI,
 	OPT_RM_FILES,
 	OPT_ZERO_FILES,
 	OPT_OVERLAY,
@@ -158,7 +159,7 @@ typedef enum enumOptions
 	OPT_FILE_LIMIT,
 	OPT_PATCH_FILE,
 
-	OPT__N_SPECIFIC, // == 102 
+	OPT__N_SPECIFIC, // == 103 
 
 	//----- global options -----
 
@@ -188,7 +189,7 @@ typedef enum enumOptions
 	OPT_GCZ_ZIP,
 	OPT_GCZ_BLOCK,
 
-	OPT__N_TOTAL // == 127
+	OPT__N_TOTAL // == 128
 
 } enumOptions;
 
@@ -244,6 +245,7 @@ typedef enum enumOptions
 //	OB_HTTP			= 1llu << OPT_HTTP,
 //	OB_DOMAIN		= 1llu << OPT_DOMAIN,
 //	OB_WIIMMFI		= 1llu << OPT_WIIMMFI,
+//	OB_TWIIMMFI		= 1llu << OPT_TWIIMMFI,
 //	OB_RM_FILES		= 1llu << OPT_RM_FILES,
 //	OB_ZERO_FILES		= 1llu << OPT_ZERO_FILES,
 //	OB_OVERLAY		= 1llu << OPT_OVERLAY,
@@ -391,6 +393,7 @@ typedef enum enumOptions
 //				| OB_HTTP
 //				| OB_DOMAIN
 //				| OB_WIIMMFI
+//				| OB_TWIIMMFI
 //				| OB_RM_FILES
 //				| OB_ZERO_FILES,
 //
@@ -415,7 +418,8 @@ typedef enum enumOptions
 //				| OB_COMPRESSION
 //				| OB_MEM,
 //
-//	OB_CMD_VERSION		= OB_SECTIONS
+//	OB_CMD_VERSION		= OB_BRIEF
+//				| OB_SECTIONS
 //				| OB_LONG,
 //
 //	OB_CMD_HELP		= ~(u64)0,
@@ -815,6 +819,7 @@ typedef enum enumGetOpt
 	GO_HTTP,
 	GO_DOMAIN,
 	GO_WIIMMFI,
+	GO_TWIIMMFI,
 	GO_RM_FILES,
 	GO_ZERO_FILES,
 	GO_OVERLAY,

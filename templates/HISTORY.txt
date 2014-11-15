@@ -372,6 +372,15 @@ wit v2.28a r4980 - 2014-03-01
  - Windows only: Cygwin update to v1.7.28 2014-02-09.
 
 
+wit v2.29a r5186 - 2014-05-16
+ - New patching options to support the new custom server:
+   - Option --http: Replace 'https' request to 'http' in the files 'main.dol'
+     and 'rel/StaticR.rel'.
+   - Option --domain=dom: Replace 'nintendowifi.net' by the new domain.
+   - Option --wiimmfi: Patch the images for the new custom server. It is a
+     short cut for: --http --domain=wiimmfi.de
+
+
 @@MODULE(last-history.txt)@@
 
 ~

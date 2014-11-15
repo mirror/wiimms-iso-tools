@@ -123,7 +123,11 @@ static void print_version_section ( bool print_header )
 
 static void version_exit()
 {
-    if (print_sections)
+    if ( brief_count > 1 )
+	fputs( VERSION "\n", stdout );
+    else if (brief_count)
+	fputs( VERSION " r" REVISION " " SYSTEM "\n", stdout );
+    else if (print_sections)
 	print_version_section(true);
     else if (long_count)
 	print_version_section(false);
@@ -3962,6 +3966,7 @@ enumError CheckOptions ( int argc, char ** argv, bool is_env )
 	case GO_HTTP:		err += ScanOptDomain(1,0); break;
 	case GO_DOMAIN:		err += ScanOptDomain(0,optarg); break;
 	case GO_WIIMMFI:	err += ScanOptDomain(1,"wiimmfi.de"); break;
+	case GO_TWIIMMFI:	err += ScanOptDomain(1,"test.wiimmfi.de"); break;
 	case GO_NAME:		err += ScanOptName(optarg); break;
 	case GO_ID:		err += ScanOptId(optarg); break;
 	case GO_DISC_ID:	err += ScanOptDiscId(optarg); break;

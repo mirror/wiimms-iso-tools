@@ -123,9 +123,14 @@ static void help_exit ( bool xmode )
 
 static void version_exit()
 {
-    printf("%s%s\n%.*s",
-	progname, TITLE,
-	(int)strlen(default_settings)-1, default_settings );
+    if ( brief_count > 1 )
+	fputs( VERSION "\n", stdout );
+    else if (brief_count)
+	fputs( VERSION " r" REVISION " " SYSTEM "\n", stdout );
+    else 
+	printf("%s%s\n%.*s",
+		progname, TITLE,
+		(int)strlen(default_settings)-1, default_settings );
     exit(ERR_OK);
 }
 

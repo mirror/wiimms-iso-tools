@@ -98,6 +98,7 @@ typedef enum enumOptions
 	OPT_HTTP,
 	OPT_DOMAIN,
 	OPT_WIIMMFI,
+	OPT_TWIIMMFI,
 	OPT_RM_FILES,
 	OPT_ZERO_FILES,
 	OPT_REPL_FILE,
@@ -165,7 +166,7 @@ typedef enum enumOptions
 	OPT_SORT,
 	OPT_LIMIT,
 
-	OPT__N_SPECIFIC, // == 109 
+	OPT__N_SPECIFIC, // == 110 
 
 	//----- global options -----
 
@@ -193,7 +194,7 @@ typedef enum enumOptions
 	OPT_ALIGN_WDF,
 	OPT_GCZ_BLOCK,
 
-	OPT__N_TOTAL // == 132
+	OPT__N_TOTAL // == 133
 
 } enumOptions;
 
@@ -250,6 +251,7 @@ typedef enum enumOptions
 //	OB_HTTP			= 1llu << OPT_HTTP,
 //	OB_DOMAIN		= 1llu << OPT_DOMAIN,
 //	OB_WIIMMFI		= 1llu << OPT_WIIMMFI,
+//	OB_TWIIMMFI		= 1llu << OPT_TWIIMMFI,
 //	OB_RM_FILES		= 1llu << OPT_RM_FILES,
 //	OB_ZERO_FILES		= 1llu << OPT_ZERO_FILES,
 //	OB_REPL_FILE		= 1llu << OPT_REPL_FILE,
@@ -401,6 +403,7 @@ typedef enum enumOptions
 //				| OB_HTTP
 //				| OB_DOMAIN
 //				| OB_WIIMMFI
+//				| OB_TWIIMMFI
 //				| OB_RM_FILES
 //				| OB_ZERO_FILES,
 //
@@ -814,6 +817,7 @@ typedef enum enumGetOpt
 	GO_HTTP,
 	GO_DOMAIN,
 	GO_WIIMMFI,
+	GO_TWIIMMFI,
 	GO_RM_FILES,
 	GO_ZERO_FILES,
 	GO_REPL_FILE,

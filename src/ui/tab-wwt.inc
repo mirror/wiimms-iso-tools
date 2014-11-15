@@ -269,7 +269,7 @@
 
   { T_DEF_CMD,	"VERIFY",	"VERIFY|V",
 		    "wwt VERIFY [id6]...",
-		"Verify all discs of WBFS (calculate and compare SHA1 check sums)"
+		"Verify all discs of WBFS (calculate and compare SHA1 checksums)"
 		" to find bad dumps." },
 
   { T_DEF_CMD,	"SKELETON",	"SKELETON|SKEL",
@@ -494,6 +494,9 @@
 		0, 0 /* copy of wit */ },
 
   { T_OPT_C,	"WIIMMFI",	"wiimmfi",
+		0, 0 /* copy of wit */ },
+
+  { H_OPT_C,	"TWIIMMFI",	"twiimmfi",
 		0, 0 /* copy of wit */ },
 
   { T_OPT_CP,	"RM_FILES",	"rm-files|rm-file|rmfiles|rmfile",
@@ -915,6 +918,7 @@
   { T_COPT,	"HTTP",		0,0,0 },
   { T_COPT,	"DOMAIN",	0,0,0 },
   { T_COPT,	"WIIMMFI",	0,0,0 },
+  { H_COPT,	"TWIIMMFI",	0,0,0 },
   { T_COPT,	"RM_FILES",	0,0,0 },
   { T_COPT,	"ZERO_FILES",	0,0,0 },
 

@@ -225,7 +225,7 @@
 
 #:def_cmd( "VERIFY", "VERIFY|V", \
 	"wit VERIFY [source]...", \
-	"Verify ISO images (calculate and compare SHA1 check sums) to find bad" \
+	"Verify ISO images (calculate and compare SHA1 checksums) to find bad" \
 	" dumps." )
 
 #:def_cmd( "SKELETON", "SKELETON|SKEL", \
@@ -574,8 +574,8 @@
 #:def_opt( "TT_ID", "tt-id|ttid", "CP", \
 	"id", \
 	"This is a short cut for {--ticket id --tmd id}. If TICKET and TMD" \
-	" differ, the game will freeze after loading. So it make sense to" \
-	" change only TICKET and TMD IDs together." )
+	" differ, the game will freeze after loading. So it makes only sense" \
+	" to change TICKET and TMD IDs together." )
 
 #:def_opt( "WBFS_ID", "wbfs-id|wbfsid", "CP", \
 	"id", \
@@ -652,7 +652,7 @@
 	" the DATA partition. $Fake signing$ is not necessary, but the" \
 	" partition becomes invalid, because the content of some files is not" \
 	" copied. If such file is accessed the Wii will halt immediately," \
-	" because the verification of the check sum calculation fails. The" \
+	" because the verification of the checksum calculation fails. The" \
 	" processing order of file options is: {--rm-files --zero-files" \
 	" --ignore-files}." )
 
@@ -1025,6 +1025,11 @@
 	" greater than comparison is aborted for the current source image if" \
 	" the entered number of files differ. This option is ignored in quiet" \
 	" mode." )
+
+#:def_cmd_opt( "VERSION", "BRIEF", \
+	"", \
+	"Print only the version number, revision and system. If set twice," \
+	" print only the version number." )
 
 #:def_cmd_opt( "VERSION", "SECTIONS", \
 	"", \
@@ -5390,7 +5395,7 @@
 
 #:def_cmd( "VERIFY", "VERIFY|V", \
 	"wwt VERIFY [id6]...", \
-	"Verify all discs of WBFS (calculate and compare SHA1 check sums) to" \
+	"Verify all discs of WBFS (calculate and compare SHA1 checksums) to" \
 	" find bad dumps." )
 
 #:def_cmd( "SKELETON", "SKELETON|SKEL", \
@@ -5726,8 +5731,8 @@
 #:def_opt( "TT_ID", "tt-id|ttid", "CP", \
 	"id", \
 	"This is a short cut for {--ticket id --tmd id}. If TICKET and TMD" \
-	" differ, the game will freeze after loading. So it make sense to" \
-	" change only TICKET and TMD IDs together." )
+	" differ, the game will freeze after loading. So it makes only sense" \
+	" to change TICKET and TMD IDs together." )
 
 #:def_opt( "WBFS_ID", "wbfs-id|wbfsid", "CP", \
 	"id", \
@@ -5793,7 +5798,7 @@
 	" the DATA partition. $Fake signing$ is not necessary, but the" \
 	" partition becomes invalid, because the content of some files is not" \
 	" copied. If such file is accessed the Wii will halt immediately," \
-	" because the verification of the check sum calculation fails. The" \
+	" because the verification of the checksum calculation fails. The" \
 	" processing order of file options is: {--rm-files --zero-files" \
 	" --ignore-files}." )
 

@@ -157,10 +157,17 @@ static void help_fuse_exit()
 
 static void version_exit()
 {
-    fputs( TITLE "\n", stdout );
-    add_arg("--version",0);
-    static struct fuse_operations wfuse_oper = {0};
-    fuse_main(wbfuse_argc,wbfuse_argv,&wfuse_oper);
+    if ( brief_count > 1 )
+	fputs( VERSION "\n", stdout );
+    else if (brief_count)
+	fputs( VERSION " r" REVISION " " SYSTEM "\n", stdout );
+    else
+    {
+	fputs( TITLE "\n", stdout );
+	add_arg("--version",0);
+	static struct fuse_operations wfuse_oper = {0};
+	fuse_main(wbfuse_argc,wbfuse_argv,&wfuse_oper);
+    }
     exit(ERR_OK);
 }
 
