@@ -1,14 +1,9 @@
 wit v@@VERSION@@ r@@REV-NEXT@@ - @@@@-@@-@@
 
- - Bug fix for GameCube extracts: The alignments in file 'align-files.txt'
-   were too large by a factor of 4.
- - WDF version 2 is now the default WDF version. Use --wdf1 to force v1.
- - With v2.21a (June 2013) the default output file format was switched from
-   WDF to WBFS. Since that command SKELETON used this new default by mistake.
-   Now the much more efficient WDFv2 is used as default for skeletons.
- - Command SKELETON supports now GameCube images.
- - Windows only: Cygwin update to v1.7.32 2014-08-13.
-
+ - Some minor text edits.
+ - Title database updated.
+ - Windows only: Cygwin update to v1.7.34-6 2015-02-04.
+ 
 ~
 ~Known bugs:
 ~

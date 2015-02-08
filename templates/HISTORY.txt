@@ -373,12 +373,25 @@ wit v2.28a r4980 - 2014-03-01
 
 
 wit v2.29a r5186 - 2014-05-16
+
  - New patching options to support the new custom server:
    - Option --http: Replace 'https' request to 'http' in the files 'main.dol'
      and 'rel/StaticR.rel'.
    - Option --domain=dom: Replace 'nintendowifi.net' by the new domain.
    - Option --wiimmfi: Patch the images for the new custom server. It is a
      short cut for: --http --domain=wiimmfi.de
+
+
+wit v2.30a r5771 - 2014-11-15
+
+ - Bug fix for GameCube extracts: The alignments in file 'align-files.txt'
+   were too large by a factor of 4.
+ - WDF version 2 is now the default WDF version. Use --wdf1 to force v1.
+ - With v2.21a (June 2013) the default output file format was switched from
+   WDF to WBFS. Since that command SKELETON used this new default by mistake.
+   Now the much more efficient WDFv2 is used as default for skeletons.
+ - Command SKELETON supports now GameCube images.
+ - Windows only: Cygwin update to v1.7.32 2014-08-13.
 
 
 @@MODULE(last-history.txt)@@
