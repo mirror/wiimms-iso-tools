@@ -1,9 +1,12 @@
 wit v@@VERSION@@ r@@REV-NEXT@@ - @@@@-@@-@@
 
- - Some minor text edits.
+ - Title database: Definitions without titles (e.g. "RMCP =") will remove the
+   related title from the internal title database. If the ID is followed by
+   a star (e.g. "RMC* ="), then all titles beginning with the ID are removed.
+ - New command: wit ID8: Print ID6 + 2 next bytes as disc and version number.
  - Title database updated.
- - Windows only: Cygwin update to v1.7.34-6 2015-02-04.
- 
+ - Some minor text edits.
+
 ~
 ~Known bugs:
 ~

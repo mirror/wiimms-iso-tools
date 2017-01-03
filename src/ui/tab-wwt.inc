@@ -256,8 +256,9 @@
 		"Remove discs from WBFS partitions." },
 
   { T_DEF_CMD,	"RENAME",	"RENAME|REN",
-		    "wwt RENAME id6=[new][,title]...",
-		"Rename the ID6 of WBFS discs. Disc title can also be set." },
+		    "wwt RENAME SELECTOR=[new_id6][,new_title]...\n"
+		    "SELECTOR := ID6 | '#'SLOT | INDEX",
+		"Rename the ID6 and/or the disc title of WBFS discs." },
 
   { T_DEF_CMD,	"SETTITLE",	"SETTITLE|ST",
 		    "wwt SETTITLE id6=title...",

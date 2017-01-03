@@ -109,6 +109,11 @@
 	"wit ID6 [source]...", \
 	"Print ID6 of all found ISO files as simple list." )
 
+#:def_cmd( "ID8", "ID8", \
+	"wit ID8 [source]...", \
+	"Print ID6 + 2 next bytes as disc and version number of all found ISO" \
+	" files as simple list." )
+
 #:def_cmd( "FRAGMENTS", "FRAGMENTS", \
 	"wit FRAGMENTS [source]...", \
 	"Print the image fragments and, if possible, their file system mapping" \
@@ -306,7 +311,8 @@
 
 #:def_opt( "TITLES", "T|titles", "GMP", \
 	"file", \
-	"Read file for disc titles. -T0 disables titles lookup." )
+	"Read file for disc titles. @-T/@ disables automatic search for title" \
+	" files." )
 
 #:def_opt( "UTF_8", "utf-8|utf8", "G", \
 	"", \
@@ -612,14 +618,14 @@
 
 #:def_opt( "DOMAIN", "domain", "CP", \
 	"domain", \
-	"This $patching$ replaces the domain 'nintendowifi.net' by the new" \
-	" domain. The length of the new domain must not be larger than the old" \
-	" length." )
+	"This $patching$ option replaces the domain 'nintendowifi.net' by the" \
+	" new domain. The length of the new domain must not be larger than the" \
+	" old length (16 characters)." )
 
 #:def_opt( "WIIMMFI", "wiimmfi", "C", \
 	"", \
-	"Patch the images for the new custom server. It is a short cut for" \
-	" {--http --domain wiimmfi.de}." )
+	"Patch the images for $Wiimmfi$, the new custom server. It is a short" \
+	" cut for {--http --domain wiimmfi.de}." )
 
 #:def_opt( "RM_FILES", "rm-files|rm-file|rmfiles|rmfile", "CP", \
 	"ruleset", \
@@ -723,7 +729,8 @@
 
 #:def_opt( "TRUNC", "trunc", "C", \
 	"", \
-	"Truncate a $PLAIN ISO$ images to the needed size while creating." )
+	"Truncate $PLAIN ISO$ and $WBFS$ images after creating or copying to" \
+	" the minimal needed size with respect to the block size." )
 
 #:def_opt( "CHUNK_MODE", "chunk-mode|chunkmode|chm", "CP", \
 	"mode", \
@@ -1763,6 +1770,108 @@
 	"" )
 
 #:def_cmd_opt( "ID6", "WBFS_ID", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "ID8", "AUTO", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "ID8", "SOURCE", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "ID8", "NO_EXPAND", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "ID8", "RECURSE", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "ID8", "RDEPTH", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "ID8", "EXCLUDE", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "ID8", "EXCLUDE_PATH", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "ID8", "INCLUDE", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "ID8", "INCLUDE_PATH", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "ID8", "INCLUDE_FIRST", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "ID8", "ONE_JOB", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "ID8", "JOB_LIMIT", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "ID8", "IGNORE_FST", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "ID8", "IGNORE_SETUP", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "ID8", "LINKS", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "ID8", "LOGGING", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "ID8", "LONG", \
+	"", \
+	"If set, a table with 5 IDs (DISC, BOOT, TICKET, TMD and WBFS) is" \
+	" printed. BOOT, TICKET and TMD IDs are taken from the main partition." \
+	" If set twice, all IDs of all partitions are printed." )
+
+#:def_cmd_opt( "ID8", "MODIFY", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "ID8", "ID", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "ID8", "DISC_ID", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "ID8", "BOOT_ID", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "ID8", "TICKET_ID", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "ID8", "TMD_ID", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "ID8", "TT_ID", \
+	"", \
+	"" )
+
+#:def_cmd_opt( "ID8", "WBFS_ID", \
 	"", \
 	"" )
 
@@ -5382,8 +5491,9 @@
 	"Remove discs from WBFS partitions." )
 
 #:def_cmd( "RENAME", "RENAME|REN", \
-	"wwt RENAME id6=[new][,title]...", \
-	"Rename the ID6 of WBFS discs. Disc title can also be set." )
+	"wwt RENAME SELECTOR=[new_id6][,new_title]...\n" \
+	"SELECTOR := ID6 | '#'SLOT | INDEX", \
+	"Rename the ID6 and/or the disc title of WBFS discs." )
 
 #:def_cmd( "SETTITLE", "SETTITLE|ST", \
 	"wwt SETTITLE id6=title...", \
@@ -5465,7 +5575,8 @@
 
 #:def_opt( "TITLES", "T|titles", "GMP", \
 	"file", \
-	"Read file for disc titles. -T0 disables titles lookup." )
+	"Read file for disc titles. @-T/@ disables automatic search for title" \
+	" files." )
 
 #:def_opt( "UTF_8", "utf-8|utf8", "G", \
 	"", \
@@ -5769,14 +5880,14 @@
 
 #:def_opt( "DOMAIN", "domain", "CP", \
 	"domain", \
-	"This $patching$ replaces the domain 'nintendowifi.net' by the new" \
-	" domain. The length of the new domain must not be larger than the old" \
-	" length." )
+	"This $patching$ option replaces the domain 'nintendowifi.net' by the" \
+	" new domain. The length of the new domain must not be larger than the" \
+	" old length (16 characters)." )
 
 #:def_opt( "WIIMMFI", "wiimmfi", "C", \
 	"", \
-	"Patch the images for the new custom server. It is a short cut for" \
-	" {--http --domain wiimmfi.de}." )
+	"Patch the images for $Wiimmfi$, the new custom server. It is a short" \
+	" cut for {--http --domain wiimmfi.de}." )
 
 #:def_opt( "RM_FILES", "rm-files|rm-file|rmfiles|rmfile", "CP", \
 	"ruleset", \
@@ -5869,7 +5980,8 @@
 
 #:def_opt( "TRUNC", "trunc", "C", \
 	"", \
-	"Truncate a $PLAIN ISO$ images to the needed size while creating." )
+	"Truncate $PLAIN ISO$ and $WBFS$ images after creating or copying to" \
+	" the minimal needed size with respect to the block size." )
 
 #:def_opt( "CHUNK_MODE", "chunk-mode|chunkmode|chm", "CP", \
 	"mode", \

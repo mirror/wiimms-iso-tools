@@ -16,7 +16,7 @@
  *   This file is part of the WIT project.                                 *
  *   Visit http://wit.wiimm.de/ for project details and sources.           *
  *                                                                         *
- *   Copyright (c) 2009-2015 by Dirk Clemens <wiimm@wiimm.de>              *
+ *   Copyright (c) 2009-2017 by Dirk Clemens <wiimm@wiimm.de>              *
  *                                                                         *
  ***************************************************************************
  *                                                                         *
@@ -598,7 +598,7 @@ enumError WriteCISO ( SuperFile_t * sf, off_t off, const void * buf, size_t coun
 	{
 	    if ( !sf->f.disable_errors && sf->f.last_error != ERR_WRITE_FAILED )
 		ERROR1 ( ERR_WRITE_FAILED,
-			"File to large [%c=%d, block=%u/%u]: %s\n",
+			"File too large [%c=%d, block=%u/%u]: %s\n",
 			GetFT(&sf->f), GetFD(&sf->f),
 			block, ci->map_size, sf->f.fname );
 	    return sf->f.last_error = ERR_WRITE_FAILED;

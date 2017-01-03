@@ -16,7 +16,7 @@
  *   This file is part of the WIT project.                                 *
  *   Visit http://wit.wiimm.de/ for project details and sources.           *
  *                                                                         *
- *   Copyright (c) 2009-2015 by Dirk Clemens <wiimm@wiimm.de>              *
+ *   Copyright (c) 2009-2017 by Dirk Clemens <wiimm@wiimm.de>              *
  *                                                                         *
  ***************************************************************************
  *                                                                         *
@@ -36,6 +36,8 @@
 
 #ifndef SZS_DEBUG_H
 #define SZS_DEBUG_H 1
+
+#include <stdlib.h>
 
 //
 ///////////////////////////////////////////////////////////////////////////////
@@ -247,6 +249,7 @@ void WAIT_ARG_FUNC ( ccp format, va_list arg );
     #define PRINT(...) PRINT_FUNC(__VA_ARGS__)
     #define PRINT_IF(cond,...) if (cond) PRINT_FUNC(__VA_ARGS__)
     #define BINGO PRINT_FUNC("BINGO! %s() #%d @ %s\n",__FUNCTION__,__LINE__,__FILE__)
+    #define xBINGO PRINT_FUNC("BINGO! %s() #%d @ %s\n",__FUNCTION__,__LINE__,__FILE__)
 
 #else
 
@@ -255,6 +258,7 @@ void WAIT_ARG_FUNC ( ccp format, va_list arg );
     #define PRINT	TRACE
     #define PRINT_IF	TRACE_IF
     #define BINGO	TRACELINE
+    #define xBINGO fprintf(stderr,"BINGO! %s() #%d @ %s\n",__FUNCTION__,__LINE__,__FILE__)
 
 #endif
 
@@ -384,6 +388,8 @@ void WAIT_ARG_FUNC ( ccp format, va_list arg );
     #define MEM_CHECK_SETUP(p,s)
     #define MEM_CHECK
 #endif
+
+static inline void orig_free ( void *ptr ) { free(ptr); }
 
 ///////////////////////////////////////////////////////////////////////////////
 

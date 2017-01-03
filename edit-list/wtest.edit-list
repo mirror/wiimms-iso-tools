@@ -3,6 +3,6 @@
 ../src/lib-std.c ;
 ../work/wtest+.c ;
 @+all-source.edit-list
--y 1050 ../src/wtest.c ;
+-y  630 ../src/wtest.c ;
 -y 2216 ../src/libwbfs/wiidisc.c ;
 -y    1 ../src/libwbfs/wiidisc.h ;

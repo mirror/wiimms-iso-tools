@@ -16,7 +16,7 @@
  *   This file is part of the WIT project.                                 *
  *   Visit http://wit.wiimm.de/ for project details and sources.           *
  *                                                                         *
- *   Copyright (c) 2009-2015 by Dirk Clemens <wiimm@wiimm.de>              *
+ *   Copyright (c) 2009-2017 by Dirk Clemens <wiimm@wiimm.de>              *
  *                                                                         *
  ***************************************************************************
  *                                                                         *
@@ -1795,7 +1795,7 @@ static enumError cmd_dump()
 ///////////////		    command ID6 --long			///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-enumError exec_print_id ( SuperFile_t * sf, Iterator_t * it )
+enumError exec_print_id6 ( SuperFile_t * sf, Iterator_t * it )
 {
     DASSERT(sf);
 
@@ -1842,18 +1842,87 @@ enumError exec_print_id ( SuperFile_t * sf, Iterator_t * it )
 
 ///////////////////////////////////////////////////////////////////////////////
 
-static enumError cmd_id6_long()
+enumError exec_print_id8 ( SuperFile_t * sf, Iterator_t * it )
 {
-    const bool print_header = !OptionUsed[OPT_NO_HEADER];
+    DASSERT(sf);
+
+    wd_disc_t * disc = OpenDiscSF(sf,true,true);
+    if (!disc)
+	return ERR_OK;
+
+    if ( it->long_count < 1 )
+    {
+	printf("%6s %02x.%02x\n",
+		wd_print_id(&disc->dhead,6,0),
+		disc->dhead.disc_number, disc->dhead.disc_version );
+	return ERR_OK;
+    }
+
+    wd_part_t *part = it->long_count > 1 ? disc->part : disc->main_part;
+
+    if ( !part || !disc->n_part )
+	printf("%6s %02x.%02x  --   --    --  ",
+		wd_print_id(&disc->dhead,6,0),
+		disc->dhead.disc_number, disc->dhead.disc_version );
+    else
+    {
+	const u32 *tick_id = (u32*)(part->ph.ticket.title_id+4);
+	printf("%6s %02x.%02x %4s %4s %6s %02x.%02x",
+		wd_print_id(&disc->dhead,6,0),
+		disc->dhead.disc_number, disc->dhead.disc_version,
+		tick_id[0] ? wd_print_id(tick_id,4,0) : "-- ",
+		part->tmd ? wd_print_id(part->tmd->title_id+4,4,0) : "-- ",
+		wd_print_id(&part->boot,6,0),
+		part->boot.dhead.disc_number, part->boot.dhead.disc_version );
+    }
+
+    printf(" %-6s %s  %s\n",
+	sf->wbfs_id6[0] ? sf->wbfs_id6 : "  --",
+	wd_print_part_name(0,0,part->part_type,WD_PNAME_NAME_NUM_9),
+	sf->f.fname );
+
+    if ( it->long_count < 2 )
+	return ERR_OK;
+
+    int pi;
+    for ( pi = 1; pi < disc->n_part; pi++ )
+    {
+	part = wd_get_part_by_index(disc,pi,0);
+	const u32 *tick_id = (u32*)(part->ph.ticket.title_id+4);
+	printf("           > %4s %4s %6s %02x.%02x %16s\n",
+		tick_id[0] ? wd_print_id(tick_id,4,0) : "-- ",
+		part->tmd ? wd_print_id(part->tmd->title_id+4,4,0) : "-",
+		wd_print_id(&part->boot,6,0),
+		part->boot.dhead.disc_number, part->boot.dhead.disc_version,
+		wd_print_part_name(0,0,part->part_type,WD_PNAME_NAME_NUM_9) );
+    }
+
+    return ERR_OK;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+static enumError cmd_id_long ( uint mode )
+{
+    const bool print_header = !OptionUsed[OPT_NO_HEADER] && long_count > 0;
     if (print_header)
-	printf(	"\n"
-		" DISC TICKET TMD  BOOT   WBFS\n"
-		"  ID    ID   ID    ID     ID   Partition  File\n"
+    {
+	if ( mode == 8 )
+	    printf(	"\n"
+		" DISC  DISC  TICK TMD   BOOT  BOOT   WBFS\n"
+		" ID6   VERS  ID4  ID4   ID6   VERS   ID6   Partition  File\n"
 		"%.79s\n", sep_79);
+	else
+	    printf(	"\n"
+		" DISC  TICK TMD   BOOT   WBFS\n"
+		" ID6   ID4  ID4   ID6    ID6   Partition  File\n"
+		"%.79s\n", sep_79);
+    }
 
     Iterator_t it;
     InitializeIterator(&it);
-    it.func		= exec_print_id;
+    it.func		= mode == 8 ? exec_print_id8 : exec_print_id6;
+    it.user_mode	= mode;
     it.act_wbfs		= ACT_EXPAND;
     it.act_gc		= ACT_ALLOW;
     it.act_fst		= allow_fst ? ACT_EXPAND : ACT_IGNORE;
@@ -1938,7 +2007,7 @@ enumError exec_collect ( SuperFile_t * sf, Iterator_t * it )
 
 //-----------------------------------------------------------------------------
 
-static enumError cmd_id6()
+static enumError cmd_id ( uint mode )
 {
     ParamList_t * param;
     for ( param = first_param; param; param = param->next )
@@ -1946,8 +2015,8 @@ static enumError cmd_id6()
 
     encoding |= ENCODE_F_FAST; // hint: no encryption needed
 
-    if (long_count)
-	return cmd_id6_long();
+    if ( long_count || mode == 8 )
+	return cmd_id_long(mode);
 
     StringField_t id6_list;
     InitializeStringField(&id6_list);
@@ -1958,6 +2027,7 @@ static enumError cmd_id6()
     Iterator_t it;
     InitializeIterator(&it);
     it.func		= exec_collect;
+    it.user_mode	= mode;
     it.act_wbfs		= ACT_EXPAND;
     it.act_gc		= ACT_ALLOW;
     it.act_fst		= allow_fst ? ACT_EXPAND : ACT_IGNORE;
@@ -2845,7 +2915,7 @@ enumError exec_copy ( SuperFile_t * fi, Iterator_t * it )
 		,oft_info[fi->iod.oft].name
 		,fi->f.split_used
 		,fo.f.fname
-		,oft_info[oft].name
+		,it->diff_it ? "?" : oft_info[oft].name
 		);
 	}
 	else
@@ -2863,7 +2933,7 @@ enumError exec_copy ( SuperFile_t * fi, Iterator_t * it )
 		count_fw, it->source_index+1, it->source_list.used,
 		oft_info[fi->iod.oft].name, split_buf, fi->f.fname,
 		it->diff_it ? ":" : "->",
-		oft_info[oft].name, fo.f.fname );
+		it->diff_it ? "?" : oft_info[oft].name, fo.f.fname );
 	}
 	fflush(0);
 
@@ -4081,7 +4151,8 @@ enumError CheckCommand ( int argc, char ** argv )
 	case CMD_ISOSIZE:	err = cmd_isosize(); break;
 
 	case CMD_DUMP:		err = cmd_dump(); break;
-	case CMD_ID6:		err = cmd_id6(); break;
+	case CMD_ID6:		err = cmd_id(6); break;
+	case CMD_ID8:		err = cmd_id(8); break;
 	case CMD_FRAGMENTS:	err = cmd_fragments(); break;
 	case CMD_LIST:		err = cmd_list(0); break;
 	case CMD_LIST_L:	err = cmd_list(1); break;

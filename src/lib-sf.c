@@ -16,7 +16,7 @@
  *   This file is part of the WIT project.                                 *
  *   Visit http://wit.wiimm.de/ for project details and sources.           *
  *                                                                         *
- *   Copyright (c) 2009-2015 by Dirk Clemens <wiimm@wiimm.de>              *
+ *   Copyright (c) 2009-2017 by Dirk Clemens <wiimm@wiimm.de>              *
  *                                                                         *
  ***************************************************************************
  *                                                                         *
@@ -579,6 +579,25 @@ enumError OpenSF
 
 ///////////////////////////////////////////////////////////////////////////////
 
+static void CheckDirectSF
+(
+    SuperFile_t		* sf,		// file to setup
+    enumOFT		oft		// output file mode
+)
+{
+    if (opt_direct)
+    {
+	switch((int)oft)
+	{
+	    case OFT_WBFS:
+		PRINT("ENABLE allow_direct_io\n");
+		sf->f.allow_direct_io = true;
+	};
+    }
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
 enumError CreateSF
 (
     SuperFile_t		* sf,		// file to setup
@@ -592,16 +611,7 @@ enumError CreateSF
     CloseSF(sf,0);
     TRACE("#S# CreateSF(%p,%s,%x,%x,%x)\n",sf,fname,oft,iomode,overwrite);
 
-    if (opt_direct)
-    {
-	switch((int)oft)
-	{
-	    case OFT_WBFS:
-		PRINT("ENABLE allow_direct_io\n");
-		sf->f.allow_direct_io = true;
-	};
-    }
-
+    CheckDirectSF(sf,oft);
     const enumError err = CreateFile(&sf->f,fname,iomode,overwrite);
     return err ? err : SetupWriteSF(sf,oft);
 }
@@ -3236,16 +3246,7 @@ enumError CopyImage
     if (*fi->wbfs_id6)
 	CopyPatchWbfsId(fo->wbfs_id6,fi->wbfs_id6);
 
-    if (opt_direct)
-    {
-	switch((int)oft)
-	{
-	    case OFT_WBFS:
-		PRINT("ENABLE allow_direct_io\n");
-		fo->f.allow_direct_io = true;
-	};
-    }
-
+    CheckDirectSF(fo,oft);
     enumError err = CreateFile( &fo->f, 0, oft_info[oft].iom, overwrite );
     if ( err || SIGINT_level > 1 )
 	goto abort;

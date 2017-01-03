@@ -16,7 +16,7 @@
  *   This file is part of the WIT project.                                 *
  *   Visit http://wit.wiimm.de/ for project details and sources.           *
  *                                                                         *
- *   Copyright (c) 2009-2015 by Dirk Clemens <wiimm@wiimm.de>              *
+ *   Copyright (c) 2009-2017 by Dirk Clemens <wiimm@wiimm.de>              *
  *                                                                         *
  ***************************************************************************
  *                                                                         *
@@ -69,6 +69,12 @@
 #if !HAVE_FALLOCATE && !HAVE_POSIX_FALLOCATE && !__APPLE__
     #undef  NO_PREALLOC
     #define NO_PREALLOC 1
+#endif
+
+#ifdef TEST
+ #define SUPPORT_DIRECT 2	// 0=off, 1:on, 2=on+logs
+#else
+ #define SUPPORT_DIRECT 0
 #endif
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -173,6 +179,9 @@ enumError CheckEnvOptions ( ccp varname, check_opt_func );
  #define CloseOutFile(o,s)	XCloseOutFile	(__FUNCTION__,__FILE__,__LINE__,o,s)
  #define RemoveOutFile(o)	XRemoveOutFile	(__FUNCTION__,__FILE__,__LINE__,o)
 
+ #define WriteDirectAtF(f,o,b,c,d,s) \
+				XWriteDirectAtF	(__FUNCTION__,__FILE__,__LINE__,f,o,b,c,d,s)
+
 #else
 
  #define XPARM
@@ -208,6 +217,8 @@ enumError CheckEnvOptions ( ccp varname, check_opt_func );
  #define CreateOutFile(o,f,m,w)	XCreateOutFile	(o,f,m,w)
  #define CloseOutFile(o,s)	XCloseOutFile	(o,s)
  #define RemoveOutFile(o)	XRemoveOutFile	(o)
+
+ #define WriteDirectAtF(f,o,b,c,d,s) XWriteDirectAtF(f,o,b,c,d,s)
 
 #endif
 
@@ -380,7 +391,7 @@ typedef struct OFT_info_t
     ccp			ext1;	// standard file extension (maybe an empty string)
     ccp			ext2;	// NULL or alternative file extension
     ccp			info;	// short text info
-    
+
 } OFT_info_t;
 
 //-----------------------------------------------------------------------------
@@ -690,7 +701,7 @@ typedef struct File_t
 					// outname is without path/directory
 					// or extension
 
-    //--- options set by user, not resetted by ResetFile()
+    //--- options set by user, not reset by ResetFile()
 
     int		open_flags;		// proposed open flags; if zero then ignore
     bool	disable_errors;		// don't print error messages
@@ -728,6 +739,11 @@ typedef struct File_t
 
     bool	prealloc_done;		// true if preallocation was done
     MemMap_t	prealloc_map;		// store prealloc areas until first write
+
+
+    //--- O_DIRECT support
+
+    u32		direct_block_size;	// ioctl(BLKSSZGET)
 
 
     //--- split file support
@@ -804,6 +820,18 @@ enumError XReadAtF	 ( XPARM File_t * f, off_t off,       void * iobuf, size_t co
 enumError XWriteAtF	 ( XPARM File_t * f, off_t off, const void * iobuf, size_t count );
 enumError XWriteZeroAtF	 ( XPARM File_t * f, off_t off,                     size_t count );
 enumError XZeroAtF	 ( XPARM File_t * f, off_t off,                     size_t count );
+
+enumError XWriteDirectAtF
+(
+    XPARM				// XPARM
+    File_t		*f,		// file to write (and read for partial blocks)
+    off_t		off,		// offset to write
+    const void		*io_buf,	// data to write
+    size_t		io_size,	// size of data to write
+    void		*d_buf,		// aligned direct buffer
+					// if NULL: malloc temporary buffer of 'd_size'
+    size_t		d_size		// size of 'd_buf' or size to alloc
+);
 
 enumError ExecSeekF ( File_t * f, off_t off );
 
@@ -1100,7 +1128,7 @@ void PrintLines
     ccp		format,		// format string for vsnprintf()
     ...				// arguments for 'vsnprintf(format,...)'
 
-)  __attribute__ ((__format__(__printf__,6,7)));
+) __attribute__ ((__format__(__printf__,6,7)));
 
 //
 ///////////////////////////////////////////////////////////////////////////////
@@ -1738,7 +1766,7 @@ typedef enum RepairMode
 	 REPAIR_RM_ALL		= 0x0f0, // remove all discs with errors
 
 	REPAIR_ALL		= 0x0f3, // repair all
-	
+
 	REPAIR__ERROR		= -1 // not a mode but an error message
 
 } RepairMode;
@@ -1824,8 +1852,22 @@ extern u32		opt_recurse_depth;
 extern StringField_t	source_list;
 extern StringField_t	recurse_list;
 extern StringField_t	created_files;
-extern       char	iobuf [0x400000];	// global io buffer
-extern const char	zerobuf[0x40000];	// global zero buffer
+
+//-----------------------------------
+
+#define IOBUF_SIZE	0x400000
+#define ZEROBUF_SIZE	0x40000
+#define DIRECTBUF_SIZE	0x4000
+#define DIRECTBUF_ALIGN	0x1000
+
+extern       char	iobuf[IOBUF_SIZE];		// global io buffer
+extern const char	zerobuf[ZEROBUF_SIZE];		// global zero buffer
+
+#if SUPPORT_DIRECT
+ extern char		directbuf[DIRECTBUF_SIZE];	// global direct-io buffer
+#endif
+
+//-----------------------------------
 
 // 'tempbuf' is only for short usage
 //	==> don't call other functions while using tempbuf

@@ -16,7 +16,7 @@
  *   This file is part of the WIT project.                                 *
  *   Visit http://wit.wiimm.de/ for project details and sources.           *
  *                                                                         *
- *   Copyright (c) 2009-2015 by Dirk Clemens <wiimm@wiimm.de>              *
+ *   Copyright (c) 2009-2017 by Dirk Clemens <wiimm@wiimm.de>              *
  *                                                                         *
  ***************************************************************************
  *                                                                         *
@@ -772,7 +772,7 @@ enumError CheckParamRename ( bool rename_id, bool allow_plus, bool allow_index )
 	if ( index > 99999 )
 	{
 	    ERROR0(ERR_SEMANTIC,
-		"Slot or disc index to large: %s\n", param->arg );
+		"Slot or disc index too large: %s\n", param->arg );
 	    semantic_count++;
 	    continue;
 	}
@@ -953,6 +953,7 @@ enumError OpenParWBFS
     {
 	TRACELINE;
 	char buf[HD_SECTOR_SIZE];
+	//char buf[HD_BLOCK_SIZE];
 	enumError err = ReadAtF(&sf->f,0,&buf,sizeof(buf));
 	if (err)
 	    return err;

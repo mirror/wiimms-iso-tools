@@ -16,7 +16,7 @@
  *   This file is part of the WIT project.                                 *
  *   Visit http://wit.wiimm.de/ for project details and sources.           *
  *                                                                         *
- *   Copyright (c) 2009-2015 by Dirk Clemens <wiimm@wiimm.de>              *
+ *   Copyright (c) 2009-2017 by Dirk Clemens <wiimm@wiimm.de>              *
  *                                                                         *
  ***************************************************************************
  *                                                                         *
@@ -204,7 +204,7 @@ typedef enum {			// all values are well orders
 
 	IDB_NOT_FOUND,		// id not found
 	IDB_ABBREV_FOUND,	// id not found but an abbreviation
-	IDB_ID_FOUND,		// if found
+	IDB_ID_FOUND,		// id found
 	IDB_EXTENSION_FOUND,	// id not found but an extended version
 
 } TDBfind_t;

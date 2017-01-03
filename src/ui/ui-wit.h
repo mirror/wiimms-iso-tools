@@ -504,6 +504,12 @@ typedef enum enumOptions
 //				| OB_LONG
 //				| OB_GRP_PATCH_ID,
 //
+//	OB_CMD_ID8		= OB_AUTO
+//				| OB_GRP_XSOURCE
+//				| OB_GRP_FST_OPTIONS
+//				| OB_LONG
+//				| OB_GRP_PATCH_ID,
+//
 //	OB_CMD_FRAGMENTS	= OB_AUTO
 //				| OB_GRP_XSOURCE
 //				| OB_GRP_FST_OPTIONS
@@ -693,6 +699,7 @@ typedef enum enumCommands
 
 	CMD_DUMP,
 	CMD_ID6,
+	CMD_ID8,
 	CMD_FRAGMENTS,
 	CMD_LIST,
 	CMD_LIST_L,
@@ -719,7 +726,7 @@ typedef enum enumCommands
 	CMD_SKELETON,
 	CMD_MIX,
 
-	CMD__N // == 43
+	CMD__N // == 44
 
 } enumCommands;
 

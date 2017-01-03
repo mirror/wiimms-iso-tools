@@ -16,7 +16,7 @@
  *   This file is part of the WIT project.                                 *
  *   Visit http://wit.wiimm.de/ for project details and sources.           *
  *                                                                         *
- *   Copyright (c) 2009-2015 by Dirk Clemens <wiimm@wiimm.de>              *
+ *   Copyright (c) 2009-2017 by Dirk Clemens <wiimm@wiimm.de>              *
  *                                                                         *
  ***************************************************************************
  *                                                                         *
@@ -49,6 +49,7 @@
 #include <stdarg.h>
 #include <limits.h>
 #include <ctype.h>
+#include <errno.h>
 
 #if defined(__CYGWIN__)
   #include <cygwin/fs.h>
@@ -365,7 +366,7 @@ int test_print_size ( int argc, char ** argv )
 		wd_print_size_1024(0,0,i,false) );
 
  #else
- 
+
     u64 size = 1000000000;
     wd_size_mode_t mode;
     for ( mode = 0; mode < WD_SIZE_N_MODES; mode++ )
@@ -459,7 +460,7 @@ static int test_open_wdisk ( int argc, char ** argv )
 
 	err = CloseWDisc(&wbfs);
 	dump_wbfs(&wbfs,err,"Close Disc");
-	
+
 	err = ResetWBFS(&wbfs);
 	dump_wbfs(&wbfs,err,"Close WBFS");
     }
@@ -484,7 +485,7 @@ int test ( int argc, char ** argv )
     test_print_size(argc,argv);
     //test_wbfs_free_blocks(argc,argv);
     //test_open_wdisk(argc,argv);
-   
+
     return 0;
 }
 
@@ -611,6 +612,639 @@ static void test_open_disc ( int argc, char ** argv )
 		printf("\t==> FAILED, err=%x=%d!\n\n",err,err);
 	    CloseSF(&sf,0);
 	}
+    }
+}
+
+//
+///////////////////////////////////////////////////////////////////////////////
+///////////////			struct AlignedIO_t		///////////////
+///////////////////////////////////////////////////////////////////////////////
+// [[AlignedIO_t]]
+
+typedef struct AlignedIO_t
+{
+    //--- real file
+    int		fd;		// file descriptor
+    uint	block_size;	// block size of 'fd'
+    s64		file_size;	// total (known) file size, may grow
+    s64		file_pos;	// current file position of real file, info only
+    bool	eof;		// true: eof reached
+    bool	dirty;		// true: write buffer to file for next load
+
+    //--- virtual file
+    s64		virt_pos;	// current file position of virtual file
+
+    //--- buffer
+    u8		*buf;		// NULL or io buffer, alloced, aligned(block_size)
+    uint	buf_used;	// num of valid bytes of 'buf'
+    uint	buf_size;	// size of 'buf'
+    u64		buf_pos;	// file position for 'buf[0]'
+
+    //--- errors and debugging
+    enumError	last_error;	// last error
+    int		last_errno;	// last 'errno' related to 'last_error'
+    int		debug;		// >0: debug level
+}
+AlignedIO_t;
+
+enumError FlushAlignedIO ( AlignedIO_t *ai );
+
+///////////////////////////////////////////////////////////////////////////////
+
+u32 GetBlocksizeOfFD ( int fd, u32 default_value )
+{
+ #ifdef DKIOCGETBLOCKSIZE
+    PRINT(" - try DKIOCGETBLOCKSIZE\n");
+    {
+	unsigned long size32 = 0;
+	if ( ioctl(fd, DKIOCGETBLOCKSIZE, &size32 ) >= 0 && size32 )
+	{
+	    PRINT("GetBlocksizeOfFD(%d) DKIOCGETBLOCKSIZE := 0x%x = %u\n",
+			fd, size32, size32 );
+	    return size32;
+	}
+    }
+ #endif
+
+ #ifdef BLKSSZGET
+    PRINT(" - try BLKSSZGET\n");
+    {
+	unsigned long size32 = 0;
+	if ( ioctl(fd, BLKSSZGET, &size32 ) >= 0 && size32 )
+	{
+	    PRINT("GetBlocksizeOfFD(%d) BLKSSZGET := 0x%lx = %lu\n",
+			fd, size32, size32 );
+	    return size32;
+	}
+    }
+ #endif
+
+    PRINT("GetBlocksizeOfFD(%d) default_value := 0x%x = %u\n",
+		fd, default_value, default_value );
+    return default_value;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+void DumpAlignedIO ( FILE *f, int indent, AlignedIO_t *ai, ccp format, ... )
+__attribute__ ((__format__(__printf__,4,5)));
+
+void DumpAlignedIO ( FILE *f, int indent, AlignedIO_t *ai, ccp format, ... )
+{
+    if ( !f || !ai )
+	return;
+
+    char info[2000];
+    if (format)
+    {
+	va_list arg;
+	va_start(arg,format);
+	vsnprintf(info,sizeof(info),format,arg);
+	va_end(arg);
+    }
+    else
+	*info = 0;
+
+    indent = NormalizeIndent(indent);
+    fprintf(f,
+	"%*s#AIO(%d) bs:%x, eof=%d, err=%d,%d, fpos:%llx/%llx, vpos:%llx,"
+	" buf-pos:%llx..%llx, buf-used:%04x/%04x%s%s\n",
+	indent,"",
+	ai->fd, ai->block_size, ai->eof, ai->last_error, ai->last_errno,
+	ai->file_pos, ai->file_size, ai->virt_pos,
+	ai->buf_pos, ai->buf_pos+ai->buf_used, ai->buf_used, ai->buf_size,
+	*info ? " : " : "", info );
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+void InitializeAlignedIO ( AlignedIO_t *ai, int fd, uint block_size )
+{
+    PRINT("InitializeAlignedIO(fd=%d)\n",fd);
+
+    DASSERT(ai);
+    memset(ai,0,sizeof(*ai));
+    ai->fd		= fd;
+
+    uint min_block_size = 0x200;
+    struct stat st;
+    if (!fstat(fd,&st))
+    {
+	ai->file_size = st.st_size;
+	printf("bs:%x, size=%llx\n",(uint)st.st_blksize,ai->file_size);
+	if ( st.st_blksize > 0 )
+	    min_block_size = st.st_blksize;
+    }
+
+    if (!block_size)
+	block_size = GetBlocksizeOfFD(fd,min_block_size);
+
+    ai->block_size	= block_size > min_block_size ? block_size : min_block_size;
+    ai->buf_size	= ALIGN32(0x4000,ai->block_size);
+    void *buf;
+    posix_memalign(&buf,ai->block_size,ai->buf_size);
+    ai->buf		= buf;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+void ResetAlignedIO ( AlignedIO_t *ai, bool close_fd )
+{
+    if (ai)
+    {
+	FlushAlignedIO(ai);
+	if ( close_fd && ai->fd != -1 )
+	{
+	    close(ai->fd);
+	    ai->fd = -1;
+	}
+
+	orig_free(ai->buf);
+	ai->buf = 0;
+	ai->buf_size = 0;
+	ai->last_error = ai->last_errno = 0;
+    }
+}
+
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+
+s64 TellFileAlignedIO ( AlignedIO_t *ai )
+{
+    DASSERT(ai);
+    off_t fpos = lseek(ai->fd,0,SEEK_CUR);
+    if (IS_M1(fpos))
+    {
+	ai->last_errno = errno;
+	ai->last_error = ERR_READ_FAILED;
+	return -1;
+    }
+
+    ai->last_error = ai->last_errno = 0;
+    return ai->file_pos = fpos;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+enumError SeekFileAlignedIO ( AlignedIO_t *ai, u64 fpos )
+{
+    DASSERT(ai);
+
+    off_t new_pos = lseek(ai->fd,fpos,SEEK_SET);
+    if (IS_M1(new_pos))
+    {
+	ai->last_errno = errno;
+	if ( ai->debug > 0 )
+	    DumpAlignedIO(stderr,0,ai,
+		    "lseek to 0x%llx failed [stat=%lld,errno=%d]\n",
+		    fpos, (s64)new_pos, ai->last_errno );
+	return ai->last_error = ERR_READ_FAILED;
+    }
+    ai->file_pos = new_pos;
+    return new_pos == fpos ? ERR_OK : ERR_WARNING;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+static inline u64 TellAlignedIO ( AlignedIO_t *ai )
+{
+    DASSERT(ai);
+    ai->last_error = ai->last_errno = 0;
+    return ai->file_pos;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+s64 SeekAlignedIO ( AlignedIO_t *ai, u64 fpos, int whence )
+{
+    DASSERT(ai);
+    ai->last_error = ai->last_errno = 0;
+    switch(whence)
+    {
+	case SEEK_SET:
+	    ai->virt_pos = fpos;
+	    break;
+
+	case SEEK_CUR:
+	    ai->virt_pos += fpos;
+	    if ( ai->virt_pos < 0 )
+		ai->virt_pos = 0;
+	    break;
+
+	case SEEK_END:
+	    ai->virt_pos = ai->file_size + fpos;
+	    if ( ai->virt_pos < 0 )
+		ai->virt_pos = 0;
+	    break;
+
+	default:
+	    ai->last_error = ERR_SEMANTIC;
+	    return -1ll;
+    }
+
+    return ai->virt_pos;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+
+static uint ReadAlignedIOAvail ( AlignedIO_t *ai, void *dest, uint size )
+{
+    DASSERT(ai);
+    DASSERT(dest||!size);
+
+    s64 delta = ai->virt_pos - ai->buf_pos;
+    if ( delta >= 0 && delta < ai->buf_used )
+    {
+	uint avail = ai->buf_used - (uint)delta;
+
+	if ( avail > size )
+	    avail = size;
+
+	if ( avail > 0 )
+	{
+	    memcpy(dest,ai->buf+delta,avail);
+	    ai->virt_pos += avail;
+	    if ( ai->debug > 1 )
+		DumpAlignedIO(stderr,0,ai,"read avail");
+	    return avail;
+	}
+    }
+    return 0;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+enumError FlushAlignedIO ( AlignedIO_t *ai )
+{
+    DASSERT(ai);
+    if ( ai->dirty && ai->buf_used )
+    {
+	const enumError err = SeekFileAlignedIO(ai,ai->buf_pos);
+	if (err)
+	    return err;
+
+	DASSERT( ai->buf_pos == ai->file_pos );
+	ssize_t stat = write(ai->fd,ai->buf,ai->buf_used);
+	if ( stat != ai->buf_used )
+	{
+	    ai->last_errno = stat == -1 ? errno : 0;
+	    if ( ai->debug > 0 )
+		DumpAlignedIO(stderr,0,ai,
+			"flush of 0x%x bytes failed [stat=%lld,errno=%d]",
+			ai->buf_used, (s64)stat, ai->last_errno );
+	    return ai->last_error = ERR_WRITE_FAILED;
+	}
+
+	if ( ai->debug > 1 )
+	    DumpAlignedIO(stderr,0,ai,
+		"0x%x bytes @ 0x%llx flushed",
+		ai->buf_used, ai->buf_pos );
+    }
+    ai->dirty = false;
+    return ERR_OK;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+enumError LoadAlignedIO ( AlignedIO_t *ai, bool load_single_block )
+{
+    DASSERT(ai);
+    if (ai->dirty)
+	FlushAlignedIO(ai);
+
+    const u64 load_pos = ai->virt_pos / ai->block_size * ai->block_size; 
+    const enumError err = SeekFileAlignedIO(ai,load_pos);
+    if (err)
+	return err;
+    DASSERT( load_pos == ai->file_pos );
+
+    uint load_size;
+    if (load_single_block)
+    {
+	DASSERT( ai->buf_size >= ai->block_size );
+	load_size = ai->block_size;
+	memset(ai->buf,0,load_size);
+    }
+    else
+	load_size = ai->buf_size;
+
+    ssize_t stat = read(ai->fd,ai->buf,load_size);
+    if ( stat < 0 )
+    {
+	ai->last_errno = errno;
+	ai->buf_used = 0;
+	if ( ai->debug > 0 )
+	    DumpAlignedIO(stderr,0,ai,
+			"read failed [stat=%lld,errno=%d]",
+			(s64)stat, ai->last_errno );
+	return ai->last_error = ERR_READ_FAILED;
+    }
+
+    if (!stat)
+	ai->eof = true;
+
+    if ( load_single_block && stat < load_size )
+	stat = load_size;
+
+    ai->buf_pos   = ai->file_pos;
+    ai->file_pos += stat;
+    ai->buf_used  = stat;
+    if ( ai->debug > 0 )
+	DumpAlignedIO(stderr,0,ai,"raw read");
+
+    ai->last_errno = 0;
+    return ai->last_error = ERR_OK;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+ssize_t ReadAlignedIO ( AlignedIO_t *ai, void *p_dest, uint size )
+{
+    DASSERT(ai);
+    DASSERT(p_dest||!size);
+
+    u8 *dest = p_dest;
+    uint total_count = 0;
+
+    while ( size > 0 )
+    {
+	const uint count = ReadAlignedIOAvail(ai,dest,size);
+	total_count	+= count;
+	dest		+= count;
+	size		-= count;
+	if ( !size || ai->eof )
+	    break;
+
+	if ( LoadAlignedIO(ai,false) != ERR_OK )
+	    return M1(ssize_t);
+    }
+
+    return total_count;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+ssize_t ReadAtAlignedIO ( AlignedIO_t *ai, u64 fpos, void *dest, uint size )
+{
+    DASSERT(ai);
+    ai->virt_pos = fpos;
+    return ReadAlignedIO(ai,dest,size);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+ssize_t WriteAlignedIO ( AlignedIO_t *ai, const void *buf, size_t size )
+{
+    DASSERT(ai);
+    const u8 *src = buf;
+
+    u64 fpos = ai->virt_pos / ai->block_size * ai->block_size;
+    if ( fpos < ai->virt_pos )
+    {
+	const uint delta = ai->virt_pos - fpos;
+	ai->virt_pos = fpos;
+
+	if ( fpos != ai->buf_pos || ai->buf_used < ai->block_size )
+	{
+	    LoadAlignedIO(ai,true);
+	    if ( fpos != ai->buf_pos || ai->buf_used < ai->block_size )
+	    {
+		ai->last_errno = 0;
+		ai->last_error = ERR_READ_FAILED;
+		return -1;
+	    }
+	}
+
+	uint copy_size = ai->block_size - delta;
+	if ( copy_size > size )
+	    copy_size = size;
+	memcpy( ai->buf + delta, src, copy_size );
+	src  += copy_size;
+	size -= copy_size;
+	ai->dirty = true;
+	FlushAlignedIO(ai);
+	ai->virt_pos += delta + copy_size;
+    }
+
+    size_t write_size = size / ai->block_size * ai->block_size;
+    if ( write_size > 0 )
+    {
+	size -= write_size;
+
+	if ( (uintptr_t)src % ai->block_size )
+	{
+	    while ( write_size > 0 )
+	    {
+		size_t chunk_size = ai->buf_size;
+		if ( chunk_size > write_size )
+		    chunk_size = write_size;
+
+		// ??? write data
+		// ??? check for errors
+		xBINGO;
+
+		write_size -= chunk_size;
+		src += chunk_size;
+		ai->virt_pos += chunk_size;
+	    }
+	}
+	else
+	{
+	    ssize_t stat = write(ai->fd,src,write_size);
+	    if ( stat != write_size )
+	    {
+		ai->last_errno = stat == -1 ? errno : 0;
+		if ( ai->debug > 0 )
+		    DumpAlignedIO(stderr,0,ai,
+			    "write of 0x%llx bytes failed [stat=%lld]",
+			    (u64)write_size, (s64)stat );
+		return ai->last_error = ERR_WRITE_FAILED;
+	    }
+
+	    src  += write_size;
+	    ai->virt_pos += write_size;
+
+	    if ( ai->debug > 1 )
+		DumpAlignedIO(stderr,0,ai,"0x%llx bytes written",(u64)write_size );
+	}
+    }
+ 
+    if ( size > 0 )
+    {
+	DASSERT( size < ai->block_size );
+	LoadAlignedIO(ai,true);
+
+	memcpy( ai->buf, src, size );
+	ai->dirty = true;
+	ai->virt_pos += size;
+    }
+
+    return ERR_OK;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+ssize_t WriteAtAlignedIO ( AlignedIO_t *ai, u64 fpos, const void *buf, uint size )
+{
+    DASSERT(ai);
+    ai->virt_pos = fpos;
+    return WriteAlignedIO(ai,buf,size);
+}
+
+//
+///////////////////////////////////////////////////////////////////////////////
+///////////////			test_aligned_io()		///////////////
+///////////////////////////////////////////////////////////////////////////////
+
+static void test_aligned_io_open ( AlignedIO_t *ai, ccp fname, int flags, ccp info )
+{
+    int fd = open(fname,flags,0666);
+    if ( fd == -1 )
+	perror(fname);
+
+    InitializeAlignedIO(ai,fd,0);
+    ai->debug = 2;
+    printf("%s[0x%x] %s -> %d, bs=0x%x=%u, buf=0x%x,%p\n",
+	info, flags, fname,
+	ai->fd, ai->block_size, ai->block_size,
+	ai->buf_size, ai->buf );
+    DumpAlignedIO(stderr,0,ai,"SETUP");
+    fflush(stdout);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+static void test_aligned_io_basics ( ccp fname )
+{
+    AlignedIO_t ai;
+    test_aligned_io_open(&ai,fname,O_RDONLY|O_DIRECT,"BASIC");
+    ResetAlignedIO(&ai,true);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+static void test_aligned_io_read_lines
+	( AlignedIO_t *ai, u64 fpos, bool dump_read )
+{
+    DASSERT(ai);
+
+    char buf[100];
+    fpos = fpos / sizeof(buf) * sizeof(buf);
+    printf("----- pos %llu = 0x%llx\n",fpos,fpos);
+
+    ReadAtAlignedIO(ai,fpos,buf,sizeof(buf));
+    if (dump_read)
+	fwrite(buf,1,sizeof(buf),stdout);
+    ReadAlignedIO(ai,buf,sizeof(buf));
+    if (dump_read)
+	fwrite(buf,1,sizeof(buf),stdout);
+
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+static void test_aligned_io_read ( ccp fname, bool dump_read )
+{
+    AlignedIO_t ai;
+    test_aligned_io_open(&ai,fname,O_RDONLY,"READ");
+
+    test_aligned_io_read_lines( &ai, 0,			dump_read );
+    test_aligned_io_read_lines( &ai, ai.buf_size - 1,	dump_read );
+    test_aligned_io_read_lines( &ai, 1024950,		dump_read );
+
+    printf("----- reset\n");
+    ResetAlignedIO(&ai,true);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+static void test_aligned_io_write ( ccp fname, bool dump_read )
+{
+    AlignedIO_t ai;
+    test_aligned_io_open(&ai,fname,O_CREAT|O_RDWR,"RD+WR");
+
+    char buf[50000];
+    memset(buf,'.',sizeof(buf));
+    uint i;
+    for ( i = 49; i < sizeof(buf); i+= 50 )
+	buf[i] = '\n';
+
+    for ( i = 0; i < 4; i++ )
+	WriteAlignedIO(&ai,buf,sizeof(buf));
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+static void test_aligned_io ( int argc, char ** argv )
+{
+    if ( argc < 2 )
+    {
+	printf("\nDIRECTIO ( file  +'t' '+r' '+w' '+a' )...\n"
+		" '+t' : Standard test modus for following files (default)\n"
+		" '+r' : Read tests for following files\n"
+		" '+R' : Read tests for following files + dump content\n"
+		" '+w' : Write tests for following files\n"
+		" '+W' : Write tests for following files + dump content\n"
+		"\n");
+	return;
+    }
+
+    putchar('\n');
+
+    bool read_tests = false, write_tests = false, dump_data = false;
+    int i;
+    for ( i = 1; i < argc; i++ )
+    {
+	ccp arg = argv[i];
+	if ( *arg == '+' )
+	{
+	    switch (arg[1])
+	    {	
+		case 'r':
+		    read_tests	= true;
+		    write_tests = false;
+		    dump_data	= false;
+		    break;
+
+		case 'R':
+		    read_tests	= true;
+		    write_tests = false;
+		    dump_data	= true;
+		    break;
+
+		case 'w':
+		    read_tests	= true;
+		    write_tests	= true;
+		    dump_data	= false;
+		    break;
+
+		case 'W':
+		    read_tests	= true;
+		    write_tests	= true;
+		    dump_data	= true;
+		    break;
+
+		default:
+		    read_tests	= false;
+		    write_tests	= false;
+		    dump_data	= false;
+		    break;
+	    }
+
+	    printf(">>> READ tests %sabled, WRITE tests %sabled, DUMPS %sabled.\n",
+			read_tests  ? "en" : "dis",
+			write_tests ? "en" : "dis",
+			dump_data   ? "en" : "dis" );
+	    continue;
+	}
+
+	if (write_tests)
+	    test_aligned_io_write(arg,dump_data);
+	else if (read_tests)
+	    test_aligned_io_read(arg,dump_data);
+	else
+	    test_aligned_io_basics(arg);
     }
 }
 
@@ -947,7 +1581,7 @@ wd_disc_info_t * wd_get_disc_info
     //----- prepare data structure
 
     int alloced_part, used_part = pmode < 1 ? 0 : pmode < 2 ? 1 : disc->n_part;
-    
+
     if (dinfo)
     {
 	alloced_part = dinfo->alloced_part;
@@ -1052,7 +1686,7 @@ int patch_server
     {
 	return ERROR0(ERR_ERROR,"abort\n");
     }
-    
+
     printf("SAVE main.dol.tmp\n");
     SaveFile("main.dol.tmp",0,true,false,item->data,it->size,false);
 
@@ -1198,6 +1832,7 @@ enum
     CMD_FILENAME,		// test_filename(argc,argv);
     CMD_MATCH_PATTERN,		// test_match_pattern(argc,argv);
     CMD_OPEN_DISC,		// test_open_disc(argc,argv);
+    CMD_ALIGNED_IO,		// test_aligned_io(argc,argv);
     CMD_HEXDUMP,		// test_hexdump(argc,argv);
 
     CMD_SHA1,			// test_sha1();
@@ -1219,6 +1854,7 @@ static const CommandTab_t CommandTab[] =
 	{ CMD_FILENAME,		"FILENAME",	"FN",		0 },
 	{ CMD_MATCH_PATTERN,	"MATCH",	0,		0 },
 	{ CMD_OPEN_DISC,	"OPENDISC",	"ODISC",	0 },
+	{ CMD_ALIGNED_IO,	"ALIGNEDIO",	"AIO",		0 },
 	{ CMD_HEXDUMP,		"HEXDUMP",	0,		0 },
 
  #ifdef HAVE_OPENSSL
@@ -1310,6 +1946,7 @@ int main ( int argc, char ** argv )
 	case CMD_FILENAME:		test_filename(argc,argv); break;
 	case CMD_MATCH_PATTERN:		test_match_pattern(argc,argv); break;
 	case CMD_OPEN_DISC:		test_open_disc(argc,argv); break;
+	case CMD_ALIGNED_IO:		test_aligned_io(argc,argv); break;
 	case CMD_HEXDUMP:		test_hexdump(argc,argv); break;
 
  #ifdef HAVE_OPENSSL

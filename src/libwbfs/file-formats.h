@@ -16,7 +16,7 @@
  *   This file is part of the WIT project.                                 *
  *   Visit http://wit.wiimm.de/ for project details and sources.           *
  *                                                                         *
- *   Copyright (c) 2009-2015 by Dirk Clemens <wiimm@wiimm.de>              *
+ *   Copyright (c) 2009-2017 by Dirk Clemens <wiimm@wiimm.de>              *
  *                                                                         *
  ***************************************************************************
  *                                                                         *
@@ -761,7 +761,7 @@ wd_part_control_t; // packing not needed
 
 //----- setup
 
-// 0:ok, 1:error, sizes to large
+// 0:ok, 1:error, sizes too large
 int clear_part_control
 	( wd_part_control_t * pc, u32 tmd_size, u32 cert_size, u64 data_size );
 

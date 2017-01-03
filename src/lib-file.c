@@ -16,7 +16,7 @@
  *   This file is part of the WIT project.                                 *
  *   Visit http://wit.wiimm.de/ for project details and sources.           *
  *                                                                         *
- *   Copyright (c) 2009-2015 by Dirk Clemens <wiimm@wiimm.de>              *
+ *   Copyright (c) 2009-2017 by Dirk Clemens <wiimm@wiimm.de>              *
  *                                                                         *
  ***************************************************************************
  *                                                                         *
@@ -78,6 +78,15 @@
   #define HAVE_FIBMAP 1
 #else
   #define HAVE_FIBMAP 0
+#endif
+
+#if SUPPORT_DIRECT && !defined(O_DIRECT) // [[DIRECT]]
+  #undef SUPPORT_DIRECT
+  #define SUPPORT_DIRECT 0
+#endif
+
+#ifndef O_DIRECT
+  #define O_DIRECT 0
 #endif
 
 //
@@ -518,11 +527,41 @@ static enumError XOpenFileHelper
     force_flags |= O_LARGEFILE;
  #endif
 
- #ifdef O_DIRECT
-    TRACE("FORCE O_DIRECT = %d,%d\n",opt_direct,f->allow_direct_io);
-    if ( opt_direct && f->allow_direct_io )
-	force_flags |= O_DIRECT;
+ #if SUPPORT_DIRECT > 2
+    fprintf(stderr,"FORCE O_DIRECT = %d && %d, flags=%x[%s,%s]\n",
+		opt_direct, f->allow_direct_io, force_flags,
+		force_flags & O_DIRECT ? "DIRECT" : "",
+		force_flags & O_SYNC ? "SYNC" : "" );
+ #else
+    PRINT("FORCE O_DIRECT = %d && %d, flags=%x[%s,%s]\n",
+		opt_direct, f->allow_direct_io, force_flags,
+		force_flags & O_DIRECT ? "DIRECT" : "",
+		force_flags & O_SYNC ? "SYNC" : "" );
  #endif
+
+ #if SUPPORT_DIRECT // [[DIRECT]]
+    bool direct_io_enabled = false;
+    if ( opt_direct && f->allow_direct_io && f->fd == -1 )
+    {
+	force_flags |= O_DIRECT;
+	direct_io_enabled = true;
+    }
+    else
+	f->allow_direct_io = false;
+ #endif
+
+ #if SUPPORT_DIRECT > 1
+    fprintf(stderr,"FORCE O_DIRECT = %d && %d, flags=%x[%s,%s]\n",
+		opt_direct, f->allow_direct_io, force_flags,
+		force_flags & O_DIRECT ? "DIRECT" : "",
+		force_flags & O_SYNC ? "SYNC" : "" );
+ #else
+    PRINT("FORCE O_DIRECT = %d && %d, flags=%x[%s,%s]\n",
+		opt_direct, f->allow_direct_io, force_flags,
+		force_flags & O_DIRECT ? "DIRECT" : "",
+		force_flags & O_SYNC ? "SYNC" : "" );
+ #endif
+
 
     f->active_open_flags = ( f->open_flags ? f->open_flags : default_flags )
 			 | force_flags;
@@ -537,6 +576,10 @@ static enumError XOpenFileHelper
     else if ( mode == O_WRONLY )
     {
 	f->is_writing = true;
+     #if SUPPORT_DIRECT // [[DIRECT]]
+	if ( f->active_open_flags & O_DIRECT )
+	    f->active_open_flags = f->active_open_flags & ~O_WRONLY | O_RDWR;
+     #endif
     }
     else
     {
@@ -563,6 +606,20 @@ static enumError XOpenFileHelper
 		return err;
 	    f->fd = open( f->fname, f->active_open_flags, 0666 );
 	}
+
+ #if SUPPORT_DIRECT // [[DIRECT]]
+	if ( f->fd != -1 && direct_io_enabled )
+	{
+	    int block_size;
+	    if (!ioctl(f->fd,BLKSSZGET,&block_size))
+	    {
+		f->direct_block_size = block_size;
+	     #if SUPPORT_DIRECT > 1
+		fprintf(stderr,"DIRECT: BLK_SIZE = %u\n",f->direct_block_size);
+	     #endif
+	    }
+	}
+ #endif
     }
     TRACE("#F# OpenFile '%s' fd=%d, dis=%d\n", f->fname, f->fd, f->disable_errors );
 
@@ -603,6 +660,7 @@ static enumError XOpenFileHelper
     TRACE("#F# OpenFileHelper(%p) returns %d, fd=%d, fp=%p, seek-allowed=%d, rw=%d,%d\n",
 		f, f->last_error, GetFD(f), GetFP(f), f->seek_allowed,
 		f->is_reading, f->is_writing );
+
     return f->last_error;
 }
 
@@ -648,6 +706,17 @@ enumError XOpenFileModify ( XPARM File_t * f, ccp fname, enumIOMode iomode )
     }
 
     XResetFile( XCALL f, false );
+
+ #if SUPPORT_DIRECT // [[DIRECT]]
+    if ( iomode == IOM_IS_WBFS_PART )
+    {
+	if ( !stat(fname,&f->st)
+		&& ( S_ISBLK(f->st.st_mode) || S_ISCHR(f->st.st_mode) ) )
+	{
+    	    f->allow_direct_io = true;
+	}
+    }
+ #endif
 
     f->fname = no_fname ? fname : STRDUP(fname);
     return XOpenFileHelper(XCALL f,iomode,O_RDWR,O_RDWR);
@@ -707,6 +776,9 @@ enumError XCreateFile
 		    "Can't overwrite block device: %s\n", fname );
 
 	    f->fname = STRDUP(fname);
+	 #if SUPPORT_DIRECT // [[DIRECT]]
+	    f->allow_direct_io = true;
+	 #endif
 	    return XOpenFileHelper(XCALL f, iomode, O_WRONLY, 0 );
 	}
 	else
@@ -839,7 +911,7 @@ enumError XOpenStreamFile ( XPARM File_t * f )
     TRACE("#F# OpenStreamFile(%p) fd=%d, fp=%p\n",f,f->fd,f->fp);
 
     f->last_error = 0;
-    if ( f->fd != -1 || !f->fp )
+    if ( f->fd != -1 && !f->fp && !(f->active_open_flags & O_DIRECT) )
     {
 	// flag 'b' is set for compatibilitiy only, linux ignores it
 	ccp mode = !f->is_writing ? "rb" : f->is_reading ? "r+b" : "wb";
@@ -2386,7 +2458,8 @@ enumError XReadF ( XPARM File_t * f, void * iobuf, size_t count )
 	    File_t *cur = *ptr;
 	    ASSERT(cur);
 	    TRACE("#S#%zd# off=%llx cur_of=%llx count=%zx fsize=%llx\n",
-			ptr-f->split_f, (u64)off, (u64)f->cur_off, count, (u64)cur->split_filesize );
+			ptr-f->split_f, (u64)off, (u64)f->cur_off,
+			count, (u64)cur->split_filesize );
 
 	    if ( off < cur->split_filesize )
 	    {
@@ -2481,9 +2554,15 @@ enumError XReadF ( XPARM File_t * f, void * iobuf, size_t count )
 	size_t size = count;
 	while (size)
 	{
+#if SUPPORT_DIRECT > 2
+ fprintf(stderr,"iobuf:%p, size:%zx\n",iobuf,size);
+#endif
 	    ssize_t rstat = read(f->fd,iobuf,size);
 	    if ( rstat <= 0 )
 	    {
+#if SUPPORT_DIRECT > 1
+ fprintf(stderr,"errno=%d\n",errno);
+#endif
 		err = rstat < 0;
 		break;
 	    }
@@ -2524,6 +2603,84 @@ enumError XReadF ( XPARM File_t * f, void * iobuf, size_t count )
     }
 
     return ERR_OK;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+enumError XWriteDirectAtF
+(
+    XPARM				// XPARM
+    File_t		*f,		// file to write (and read for partial blocks)
+    off_t		off,		// offset to write
+    const void		*io_buf,	// data to write
+    size_t		io_size,	// size of data to write
+    void		*d_buf,		// aligned direct buffer
+					// if NULL: malloc temporary buffer of 'd_size'
+    size_t		d_size		// size of 'd_buf' or size to alloc
+)
+{
+    DASSERT(f);
+    if ( !io_size || !( (off|(uintptr_t)iobuf|io_size) & DIRECTBUF_ALIGN-1 ))
+    {
+	// all well aligned
+	const enumError stat = XSeekF(XCALL f,off);
+	return stat ? stat : XWriteF(XCALL f,io_buf,io_size);
+    }
+
+    //--- get aligned buffer
+
+    d_size = d_size / DIRECTBUF_ALIGN * DIRECTBUF_ALIGN;
+
+    u8 *alloced_mem, *dbuf;
+    if ( !d_buf || d_size < DIRECTBUF_ALIGN )
+    {
+	if ( d_size < DIRECTBUF_ALIGN )
+	    d_size = DIRECTBUF_ALIGN;
+
+	alloced_mem = MALLOC(d_size+DIRECTBUF_ALIGN-1);
+	dbuf = (u8*)(((uintptr_t)alloced_mem+DIRECTBUF_ALIGN-1) & ~(DIRECTBUF_ALIGN-1));
+
+     #if SUPPORT_DIRECT>1
+	fprintf(stderr,"DIRECT_BUF: %p %p [0x%zx] size=0x%zx\n",
+		alloced_mem, dbuf, dbuf-alloced_mem, d_size );
+     #endif
+    }
+    else
+    {
+	alloced_mem = 0;
+	dbuf = d_buf;
+    }
+
+
+    //--- write beginning fraction
+
+    enumError err = ERR_OK;
+    if ( off & DIRECTBUF_ALIGN-1 )
+    {
+	MARK_USED(dbuf);
+xBINGO;
+    }
+
+    //--- write aligned part
+    if ( !ERR_OK && io_size > DIRECTBUF_ALIGN )
+    {
+xBINGO;
+    }
+
+
+    //--- write end fraction
+
+    if ( !ERR_OK && io_size )
+    {
+	err = ERR_ERROR;
+xBINGO;
+    }
+
+
+    if (alloced_mem)
+	FREE(alloced_mem);
+
+    return err;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -2602,18 +2759,27 @@ enumError XWriteF ( XPARM File_t * f, const void * iobuf, size_t count )
 	err = count && fwrite(iobuf,count,1,f->fp) != 1;
     else if ( f->fd != -1 )
     {
-	err = false;
-	size_t size = count;
-	while (size)
+     #if SUPPORT_DIRECT
+	if ( f->active_open_flags & O_DIRECT )
+	    err = XWriteDirectAtF(XCALL f,f->file_off,
+			iobuf,count,directbuf,sizeof(directbuf)) != 0;
+	else
+     #endif // SUPPORT_DIRECT
 	{
-	    ssize_t wstat = write(f->fd,iobuf,size);
-	    if ( wstat <= 0 )
+	    err = false;
+	    size_t size = count;
+	    while (size)
 	    {
-		err = true;
-		break;
+		ssize_t wstat = write(f->fd,iobuf,size);
+		if ( wstat <= 0 )
+		{
+		    err = true;
+		    break;
+		}
+		size -= wstat;
+		iobuf = (void*)( (char*)iobuf + wstat );
+		//fsync(f->fd); // to slow
 	    }
-	    size -= wstat;
-	    iobuf = (void*)( (char*)iobuf + wstat );
 	}
     }
     else
@@ -2626,9 +2792,11 @@ enumError XWriteF ( XPARM File_t * f, const void * iobuf, size_t count )
     {
 	if ( !f->disable_errors && f->last_error != ERR_WRITE_FAILED )
 	    PrintError( XERROR1, ERR_WRITE_FAILED,
-				"Write failed [%c=%d,%llu+%zu]: %s\n",
+				"Write failed [%c=%d,%llu+%zu%s]: %s\n",
 				GetFT(f), GetFD(f),
-				(u64)f->file_off, count, f->fname );
+				(u64)f->file_off, count,
+				f->active_open_flags & O_DIRECT ? ",DIRECT" : "",
+				f->fname );
 
 	f->cur_off = f->file_off = (off_t)-1ll;
 
@@ -2651,7 +2819,7 @@ enumError XWriteF ( XPARM File_t * f, const void * iobuf, size_t count )
 enumError XReadAtF ( XPARM File_t * f, off_t off, void * iobuf, size_t count )
 {
     ASSERT(f);
-    noTRACE("#F# ReadAtF(fd=%d,o=%llx,%p,n=%zx)\n",f->fd,(u64)off,iobuf,count);
+    noTRACE("#F# ReadAtF(fd=%d,o:%llx,%p,n:%zx)\n",f->fd,(u64)off,iobuf,count);
     f->cache_info_off  = off;
     f->cache_info_size = count;
     const enumError stat = XSeekF(XCALL f,off);
@@ -2664,6 +2832,12 @@ enumError XWriteAtF ( XPARM File_t * f, off_t off, const void * iobuf, size_t co
 {
     ASSERT(f);
     noTRACE("#F# WriteAtF(fd=%d,o=%llx,%p,n=%zx)\n",f->fd,(u64)off,iobuf,count);
+
+ #if SUPPORT_DIRECT
+    if ( f->active_open_flags & O_DIRECT )
+	return XWriteDirectAtF(XCALL f,off,iobuf,count,directbuf,sizeof(directbuf));
+ #endif
+
     const enumError stat = XSeekF(XCALL f,off);
     return stat ? stat : XWriteF(XCALL f,iobuf,count);
 }
@@ -3096,7 +3270,7 @@ enumError LoadFileAlloc
     if ( max_size && size > max_size )
     {
 	if (!silent)
-	    ERROR0(ERR_INVALID_FILE,"File to large: %s\n",path);
+	    ERROR0(ERR_INVALID_FILE,"File too large: %s\n",path);
 	return ERR_INVALID_FILE;
     }
 
@@ -3510,7 +3684,7 @@ char * AllocSplitFilename ( ccp path, enumOFT oft )
     DASSERT(fmap);
     DASSERT(n_elem>0);
 
-    memset(fmap,0,sizeof(fmap));
+    memset(fmap,0,sizeof(*fmap));
 
     u64 last_off = 0;
     while ( last_off < file->st.st_size )

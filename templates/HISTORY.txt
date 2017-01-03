@@ -68,7 +68,7 @@ wit v2.03a r3309 - 2011-12-30
  - Command "wwt DUMP" accept now --show for a fine control of printed data.
    The dump may now contain also a usage table and a integrity check report.
 
- - For a long time the code contains a WBFS extension. Now I have ompleted,
+ - For a long time the code contains a WBFS extension. Now I have xompleted,
    enabled and tested it. With this extension the WBFS "free blocks table" is
    managed in a total different way:
     - WBFS access: While opening a WBFS the free blocks table is ignored.
@@ -79,11 +79,11 @@ wit v2.03a r3309 - 2011-12-30
          detected, reported, and fixed for internal usage.
        - If removing a discs with overlaps, the blocks are still marked used.
        - Blocks, that are not handled by the free blocks tables (the table is
-         sometiems to small -> a result of a calculation bug in the original
-         libwbfs) can be used. If closing, a new and fixed free blocks table
-         will be written. This makes the whole process compatible to other
-         WBFS managers and USB loaders.
-    - wwt ADD: Before adding a disc its size is compared against the free size
+         sometimes too small; a result of a calculation bug in the original
+         libwbfs) can be used. If closing a WBFS, a new and fixed free blocks
+         table will be written. This makes the whole process compatible and
+         transparent to other WBFS managers and USB loaders.
+    - wwt ADD: Before adding a disc, its size is compared against the free size
       of the WBFS. This allows an early "disc full" error message.
     - wwt ADD: If adding a disc to a partition a continuous memory block is
       searched to minimize the (non existent) fragmentation. This is disabled
@@ -151,7 +151,7 @@ wit v2.08a r4027 - 2012-08-31
    image while scanning the local file system.
  - Bug fix: "wit COPY --source a --dest b" threw an error, because the tool
    thought, that no source was defined.
- - Bug fix for "wwt ADD --raw": wwt copied to large (double layer) images.
+ - Bug fix for "wwt ADD --raw": wwt copied too large (double layer) images.
 
 
 wit v2.09a r4047 - 2012-09-08
@@ -392,6 +392,13 @@ wit v2.30a r5771 - 2014-11-15
    Now the much more efficient WDFv2 is used as default for skeletons.
  - Command SKELETON supports now GameCube images.
  - Windows only: Cygwin update to v1.7.32 2014-08-13.
+
+
+wit v2.31a r6005 - 2015-02-08
+
+ - Some minor text edits.
+ - Title database updated.
+ - Windows only: Cygwin update to v1.7.34-6 2015-02-04.
 
 
 @@MODULE(last-history.txt)@@

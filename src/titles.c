@@ -16,7 +16,7 @@
  *   This file is part of the WIT project.                                 *
  *   Visit http://wit.wiimm.de/ for project details and sources.           *
  *                                                                         *
- *   Copyright (c) 2009-2015 by Dirk Clemens <wiimm@wiimm.de>              *
+ *   Copyright (c) 2009-2017 by Dirk Clemens <wiimm@wiimm.de>              *
  *                                                                         *
  ***************************************************************************
  *                                                                         *
@@ -166,15 +166,20 @@ static int LoadTitleFile ( ccp fname, bool warn )
 	    ptr++;
 
 	const int idtype = CountIDChars(ptr,false,false);
-	if ( idtype != 4 && idtype != 6 )
-	    continue;
-
-	char * id = (char*)ptr;
+	char *id = (char*)ptr;
 	ptr += idtype;
 
-	// skip blanks and find '='
+	// skip blanks and find '*'
 	while ( *ptr > 0 && *ptr <= ' ' )
 	    ptr++;
+	const bool have_star = *ptr == '*';
+	if (have_star)
+	{
+	    ptr++;
+	    while ( *ptr > 0 && *ptr <= ' ' )
+		ptr++;
+	}
+
 	if ( *ptr != '=' )
 	    continue;
 	ptr++;
@@ -216,7 +221,14 @@ static int LoadTitleFile ( ccp fname, bool warn )
 	    }
 	}
 	*dest = 0;
-	if (*title_buf)
+
+	noPRINT("-> |%s| = |%s|\n",id,title_buf);
+	if (!*title_buf)
+	{
+	    PRINT("RM %s\n",id);
+	    RemoveID(&title_db,id,have_star);
+	}
+	else if ( idtype == 4 || idtype == 6 )
 	    InsertID(&title_db,id,title_buf);
     }
 
@@ -933,7 +945,7 @@ IdItem_t * CheckParamSlot
 
 ///////////////////////////////////////////////////////////////////////////////
 
-int FindID ( ID_DB_t * db, ccp id, TDBfind_t * p_stat, int * p_num )
+int FindID ( ID_DB_t *db, ccp id, TDBfind_t *p_stat, int * p_num )
 {
     ASSERT(db);
     if ( !db || !db->used )
@@ -956,14 +968,16 @@ int FindID ( ID_DB_t * db, ccp id, TDBfind_t * p_stat, int * p_num )
 	int idx = (beg+end)/2;
 	elem = db->list[idx];
 	const int cmp_stat = memcmp(id,elem->id,id_len);
-	noTRACE(" - check: %d..%d..%d: %d = %s\n",beg,idx,end,cmp_stat,elem->id);
+	noPRINT(" - check: %d..%d..%d: %d = %s\n",beg,idx,end,cmp_stat,elem->id);
 	if ( cmp_stat < 0 )
-	    end = idx-1;
+	    end = idx - 1;
 	else if ( cmp_stat > 0 )
 	    beg = idx + 1;
 	else
 	{
 	    beg = idx;
+	    while ( beg > 0 && !memcmp(id,db->list[beg-1]->id,id_len) )
+		beg--;
 	    break;
 	}
     }
@@ -1058,24 +1072,38 @@ int RemoveID ( ID_DB_t * db, ccp id, bool remove_extended )
     switch(stat)
     {
 	case IDB_NOT_FOUND:
+	    noPRINT_IF(!memcmp(id,"RMCE9",5),
+			"#T# RemoveID(%p,%s,%d) NOT-FOUND idx=%d, count=%d\n",
+			db, id, remove_extended, idx, count );
 	    break;
 
 	case IDB_ABBREV_FOUND:
+	    noPRINT_IF(!memcmp(id,"RMCE9",5),
+			"#T# RemoveID(%p,%s,%d) ABBREV-FOUND idx=%d, count=%d\n",
+			db, id, remove_extended, idx, count );
 	    idx++;
 	    break;
 
 	case IDB_ID_FOUND:
 	case IDB_EXTENSION_FOUND:
-	    xTRACE("#T# RemoveID(%p,%s,%d) idx=%d, count=%d\n",
+	    noPRINT("#T# RemoveID(%p,%s,%d) FOUND idx=%d, count=%d\n",
 			db, id, remove_extended, idx, count );
 	    ASSERT(count>0);
 	    ASSERT(db->used>=count);
+
 	    ID_t ** elem = db->list + idx;
-	    int c;
-	    for ( c = count; c > 0; c--, elem++ )
+	    if (!remove_extended)
 	    {
-		xTRACE(" - remove %s = %s\n",(*elem)->id,(*elem)->title);
-		FREE(*elem);
+		if (strcmp(elem[0]->id,id))
+		    break;
+		count = 1;
+	    }
+
+	    int c;
+	    for ( c = 0; c < count; c++ )
+	    {
+		noPRINT(" - remove %s = %s\n",elem[c]->id,elem[c]->title);
+		FREE(elem[c]);
 	    }
 
 	    db->used -= count;

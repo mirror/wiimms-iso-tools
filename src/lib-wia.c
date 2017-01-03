@@ -16,7 +16,7 @@
  *   This file is part of the WIT project.                                 *
  *   Visit http://wit.wiimm.de/ for project details and sources.           *
  *                                                                         *
- *   Copyright (c) 2009-2015 by Dirk Clemens <wiimm@wiimm.de>              *
+ *   Copyright (c) 2009-2017 by Dirk Clemens <wiimm@wiimm.de>              *
  *                                                                         *
  ***************************************************************************
  *                                                                         *
@@ -468,7 +468,7 @@ static enumError read_data
 
     if ( file_data_size > 2 * tempbuf_size )
 	return ERROR0(ERR_WIA_INVALID,
-	    "WIA chunk size to large: %s\n",sf->f.fname);
+	    "WIA chunk size too large: %s\n",sf->f.fname);
 
     bool align_except = false;
     u32 data_bytes_read = 0;
@@ -487,7 +487,7 @@ static enumError read_data
 
 	if ( file_data_size > dest_size )
 	    return ERROR0(ERR_WIA_INVALID,
-		"WIA chunk size to large: %s\n",sf->f.fname);
+		"WIA chunk size too large: %s\n",sf->f.fname);
 
 	enumError err = ReadAtF( &sf->f, file_offset, dest, file_data_size );
 	if (err)
@@ -1113,7 +1113,7 @@ enumError SetupReadWIA
     const u32 load_part_size = disc->part_t_size * disc->n_part;
     if ( load_part_size > tempbuf_size )
 	return ERROR0(ERR_WIA_INVALID,
-	    "Total partition header size to large: %s\n",sf->f.fname);
+	    "Total partition header size too large: %s\n",sf->f.fname);
 
     ReadAtF(&sf->f,disc->part_off,tempbuf,load_part_size);
     if (err)

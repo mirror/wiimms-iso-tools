@@ -16,7 +16,7 @@
  *   This file is part of the WIT project.                                 *
  *   Visit http://wit.wiimm.de/ for project details and sources.           *
  *                                                                         *
- *   Copyright (c) 2009-2015 by Dirk Clemens <wiimm@wiimm.de>              *
+ *   Copyright (c) 2009-2017 by Dirk Clemens <wiimm@wiimm.de>              *
  *                                                                         *
  ***************************************************************************
  *                                                                         *
@@ -73,10 +73,19 @@ typedef enum wd_part_type_t // known partition types
 ///////////////			enum wd_ckey_index_t		///////////////
 ///////////////////////////////////////////////////////////////////////////////
 
+#ifdef TEST
+  #define SUPPORT_CKEY_DEVELOP 1
+#else
+  #define SUPPORT_CKEY_DEVELOP 0
+#endif
+
 typedef enum wd_ckey_index_t // known partition types
 {
     WD_CKEY_STANDARD,		// standard common key
     WD_CKEY_KOREA,		// common key for korea
+ #ifdef SUPPORT_CKEY_DEVELOP
+    WD_CKEY_DEVELOPER,		// common key type 'developer'
+ #endif
     WD_CKEY__N			// number of common keys
 
 } wd_ckey_index_t;

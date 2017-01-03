@@ -167,6 +167,11 @@
 		    "wit ID6 [source]...",
 		"Print ID6 of all found ISO files as simple list." },
 
+  { T_DEF_CMD,	"ID8",		"ID8",
+		    "wit ID8 [source]...",
+		"Print ID6 + 2 next bytes as disc and version number"
+		" of all found ISO files as simple list." },
+
   { T_DEF_CMD,	"FRAGMENTS",	"FRAGMENTS",
 		    "wit FRAGMENTS [source]...",
 		"Print the image fragments and, if possible,"
@@ -393,7 +398,9 @@
   { T_SEP_OPT,	0,0,0,0 }, //----- separator -----
 
   { T_OPT_GMP,	"TITLES",	"T|titles",
-		"file", "Read file for disc titles. -T0 disables titles lookup." },
+		"file",
+		"Read file for disc titles."
+		" @-T/@ disables automatic search for title files." },
 
   { T_OPT_G,	"UTF_8",	"utf-8|utf8",
 		0,
@@ -762,13 +769,13 @@
 
   { T_OPT_CP,	"DOMAIN",	"domain",
 		"domain",
-		"This $patching$ replaces the domain 'nintendowifi.net'"
-		" by the new domain."
-		" The length of the new domain must not be larger than the old length." },
+		"This $patching$ option replaces the domain 'nintendowifi.net'"
+		" by the new domain. The length of the new domain must not be"
+		" larger than the old length (16 characters)." },
 
   { T_OPT_C,	"WIIMMFI",	"wiimmfi",
 		0,
-		"Patch the images for the new custom server."
+		"Patch the images for $Wiimmfi$, the new custom server."
 		" It is a short cut for {--http --domain wiimmfi.de}." },
 
   { H_OPT_C,	"TWIIMMFI",	"twiimmfi",
@@ -916,7 +923,9 @@
 		" the @SMART@ mode is used for ISOs instead." },
 
   { T_OPT_C,	"TRUNC",	"trunc",
-		0, "Truncate a $PLAIN ISO$ images to the needed size while creating." },
+		0,
+		"Truncate $PLAIN ISO$ and $WBFS$ images after creating or copying"
+		" to the minimal needed size with respect to the block size." },
 
   { T_OPT_CP,	"CHUNK_MODE",	"chunk-mode|chunkmode|chm",
 		"mode", TEXT_OPT_CHUNK_MODE("ISO") },
@@ -1671,6 +1680,23 @@
   //---------- COMMAND wit ID6 ----------
 
   { T_CMD_BEG,	"ID6",		0,0,0 },
+
+  { T_COPT,	"AUTO",		0,0,0 },
+  { T_COPY_GRP,	"XSOURCE",	0,0,0 },
+  { T_COPY_GRP,	"FST_OPTIONS",	0,0,0 },
+
+  { T_COPT_M,	"LOGGING",	0,0,0 },
+  { T_COPT_M,	"LONG",		0,0,
+	"If set, a table with 5 IDs (DISC, BOOT, TICKET, TMD and WBFS) is printed."
+	" BOOT, TICKET and TMD IDs are taken from the main partition."
+	" If set twice, all IDs of all partitions are printed." },
+
+  { T_SEP_OPT,	0,0,0,0 },
+  { T_COPY_GRP,	"PATCH_ID",	0,0,0 },
+
+  //---------- COMMAND wit ID8 ----------
+
+  { T_CMD_BEG,	"ID8",		0,0,0 },
 
   { T_COPT,	"AUTO",		0,0,0 },
   { T_COPY_GRP,	"XSOURCE",	0,0,0 },

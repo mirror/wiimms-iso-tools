@@ -16,7 +16,7 @@
  *   This file is part of the WIT project.                                 *
  *   Visit http://wit.wiimm.de/ for project details and sources.           *
  *                                                                         *
- *   Copyright (c) 2009-2015 by Dirk Clemens <wiimm@wiimm.de>              *
+ *   Copyright (c) 2009-2017 by Dirk Clemens <wiimm@wiimm.de>              *
  *                                                                         *
  ***************************************************************************
  *                                                                         *
@@ -58,7 +58,11 @@
 // Only the first WII_KEY_SIZE bytes of 'common_key' are used.
 
 static u8 common_key_templ[WII_KEY_SIZE] = "common key unset";
+#ifdef SUPPORT_CKEY_DEVELOP
+static u8 common_key[WD_CKEY__N][WII_KEY_SIZE] = {"","",""};
+#else
 static u8 common_key[WD_CKEY__N][WII_KEY_SIZE] = {"",""};
+#endif
 
 static const u8 iv0[WII_KEY_SIZE] = {0}; // always NULL
 
@@ -106,8 +110,10 @@ const u8 * wd_set_common_key
     if (new_key)
     {
 	memcpy(ckey,new_key,WII_KEY_SIZE);
-	TRACE("new common key[%d]:\n",ckey_index);
-	TRACE_HEXDUMP16(8,0,ckey,WII_KEY_SIZE);
+ #ifdef TEST
+	PRINT("new common key[%d]:\n",ckey_index);
+	HEXDUMP16(8,0,ckey,WII_KEY_SIZE);
+ #endif
     }
     return ckey;
 }

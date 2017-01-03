@@ -17,7 +17,7 @@
  *   Visit http://wit.wiimm.de/ for project details and sources.           *
  *                                                                         *
  *   Copyright (c) 2009 Kwiirk                                             *
- *   Copyright (c) 2009-2015 by Dirk Clemens <wiimm@wiimm.de>              *
+ *   Copyright (c) 2009-2017 by Dirk Clemens <wiimm@wiimm.de>              *
  *                                                                         *
  ***************************************************************************
  *                                                                         *
@@ -386,7 +386,7 @@ int wbfs_calc_size_shift
     // ensure that wbfs_sec_sz is big enough to address every blocks using 16 bits
     // choose minimum wblk_sz that fits this partition size
     // the max value chooses the maximal supported partition size
-    //   - start_value < 6 ==> n_wbfs_sec_per_disc becomes to large
+    //   - start_value < 6 ==> n_wbfs_sec_per_disc becomes too large
 
     DASSERT( ( 1 << WII_SECTOR_SIZE_SHIFT + WBFS_MIN_SECTOR_SHIFT ) == WBFS_MIN_SECTOR_SIZE );
     DASSERT( ( 1 << WII_SECTOR_SIZE_SHIFT + WBFS_MAX_SECTOR_SHIFT ) == WBFS_MAX_SECTOR_SIZE );

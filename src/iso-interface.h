@@ -16,7 +16,7 @@
  *   This file is part of the WIT project.                                 *
  *   Visit http://wit.wiimm.de/ for project details and sources.           *
  *                                                                         *
- *   Copyright (c) 2009-2015 by Dirk Clemens <wiimm@wiimm.de>              *
+ *   Copyright (c) 2009-2017 by Dirk Clemens <wiimm@wiimm.de>              *
  *                                                                         *
  ***************************************************************************
  *                                                                         *
@@ -292,6 +292,7 @@ typedef enum enumAction
 } enumAction;
 
 //-----------------------------------------------------------------------------
+// [[Iterator_t]]
 
 typedef struct Iterator_t
 {
@@ -345,6 +346,7 @@ typedef struct Iterator_t
 	bool		remove_source;	// remove option set
 	int		real_filename;	// set real filename without any selector
 	int		long_count;	// long counter for output
+	int		user_mode;	// any user mode
 	uint		job_count;	// job counter
 	uint		job_total;	// total jobs
 	uint		rm_count;	// remove counter

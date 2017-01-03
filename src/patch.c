@@ -16,7 +16,7 @@
  *   This file is part of the WIT project.                                 *
  *   Visit http://wit.wiimm.de/ for project details and sources.           *
  *                                                                         *
- *   Copyright (c) 2009-2015 by Dirk Clemens <wiimm@wiimm.de>              *
+ *   Copyright (c) 2009-2017 by Dirk Clemens <wiimm@wiimm.de>              *
  *                                                                         *
  ***************************************************************************
  *                                                                         *
@@ -199,12 +199,12 @@ static const RegionInfo_t RegionTable[] =
 
 	/*A*/ { REGION_EUR,  0, "ALL ", "All" },
 	/*B*/ { REGION_EUR,  0, "-?- ", "-?-" },
-	/*C*/ { REGION_EUR,  0, "-?- ", "-?-" },
+	/*C*/ { REGION_EUR,  0, "CHIN", "Chinese" },
 	/*D*/ { REGION_EUR, 1,  "GERM", "German" },
 	/*E*/ { REGION_USA, 1,  "USA ", "NTSC/USA" },
 	/*F*/ { REGION_EUR, 1,  "FREN", "French" },
 	/*G*/ { REGION_EUR,  0, "-?- ", "-?-" },
-	/*H*/ { REGION_EUR,  0, "NL  ", "Netherlands" },	// ??
+	/*H*/ { REGION_EUR,  0, "NL  ", "Netherlands" },
 	/*I*/ { REGION_EUR, 1,  "ITAL", "Italian" },
 	/*J*/ { REGION_JAP, 1,  "JAPA", "Japan" },
 	/*K*/ { REGION_KOR, 1,  "KORE", "Korea" },
@@ -217,12 +217,12 @@ static const RegionInfo_t RegionTable[] =
 	/*R*/ { REGION_EUR, 1,  "RUS ", "Russia" },
 	/*S*/ { REGION_EUR, 1,  "SPAN", "Spanish" },
 	/*T*/ { REGION_KOR, 1,  "KO/E", "Korea (english)" },
-	/*U*/ { REGION_EUR,  0, "AUS ", "Australia" },		// ??
-	/*V*/ { REGION_EUR,  0, "SCAN", "Scandinavian" },	// ??
-	/*W*/ { REGION_EUR,  0, "CHIN", "China" },		// ??
-	/*X*/ { REGION_EUR, 1,  "RF  ", "Region free" },
-	/*Y*/ { REGION_EUR,  0, "-?- ", "-?-" },
-	/*Z*/ { REGION_EUR,  0, "-?- ", "-?-" },
+	/*U*/ { REGION_EUR,  0, "AUS ", "Australia" },
+	/*V*/ { REGION_EUR,  0, "SCAN", "Scandinavian" },
+	/*W*/ { REGION_EUR,  0, "TAIW", "Taiwan" },
+	/*X*/ { REGION_EUR, 1,  "EURO", "Almost Europe" },
+	/*Y*/ { REGION_EUR,  0, "EURO", "Almost Europe" },
+	/*Z*/ { REGION_EUR,  0, "ANY ", "PAL or US" },
 
 	/*?*/ { REGION_EUR,  0, "-?- ", "-?-" } // illegal region_code
 };
@@ -248,6 +248,9 @@ wd_ckey_index_t ScanCommonKey ( ccp arg )
     {
 	{ WD_CKEY_STANDARD,	"STANDARD",	0,		0 },
 	{ WD_CKEY_KOREA,	"KOREAN",	0,		0 },
+ #ifdef SUPPORT_CKEY_DEVELOP
+	{ WD_CKEY_DEVELOPER,	"DEVELOPER",	0,		0 },
+ #endif
 	{ WD_CKEY__N,		"AUTO",		0,		0 },
 
 	{ 0,0,0,0 }
@@ -276,6 +279,9 @@ int ScanOptCommonKey ( ccp arg )
     const wd_ckey_index_t new_common_key = ScanCommonKey(arg);
     if ( new_common_key == -1 )
 	return 1;
+ #ifdef TEST
+    printf("COMMON-KEY: %d -> %d\n",opt_common_key,new_common_key);
+ #endif
     opt_common_key = new_common_key;
     return 0;
 }

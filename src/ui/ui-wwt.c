@@ -384,15 +384,15 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 
     {	OPT_DOMAIN, 0, "domain",
 	"domain",
-	"This patching replaces the domain 'nintendowifi.net' by the new"
-	" domain. The length of the new domain must not be larger than the old"
-	" length."
+	"This patching option replaces the domain 'nintendowifi.net' by the"
+	" new domain. The length of the new domain must not be larger than the"
+	" old length (16 characters)."
     },
 
     {	OPT_WIIMMFI, 0, "wiimmfi",
 	0,
-	"Patch the images for the new custom server. It is a short cut for"
-	" '--http --domain wiimmfi.de'."
+	"Patch the images for Wiimmfi, the new custom server. It is a short"
+	" cut for '--http --domain wiimmfi.de'."
     },
 
     {	OPT_TWIIMMFI, 0, "twiimmfi",
@@ -531,7 +531,8 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 
     {	OPT_TRUNC, 0, "trunc",
 	0,
-	"Truncate a PLAIN ISO images to the needed size while creating."
+	"Truncate PLAIN ISO and WBFS images after creating or copying to the"
+	" minimal needed size with respect to the block size."
     },
 
     {	OPT_CHUNK_MODE, 0, "chunk-mode",
@@ -978,7 +979,8 @@ const InfoOption_t OptionInfo[OPT__N_TOTAL+1] =
 
     {	OPT_TITLES, 'T', "titles",
 	"file",
-	"Read file for disc titles. -T0 disables titles lookup."
+	"Read file for disc titles. -T/ disables automatic search for title"
+	" files."
     },
 
     {	OPT_UTF_8, 0, "utf-8",
@@ -4242,8 +4244,9 @@ const InfoCommand_t CommandInfo[CMD__N+1] =
 	false,
 	"RENAME",
 	"REN",
-	"wwt RENAME id6=[new][,title]...",
-	"Rename the ID6 of WBFS discs. Disc title can also be set.",
+	"wwt RENAME SELECTOR=[new_id6][,new_title]...\n"
+	"SELECTOR := ID6 | '#'SLOT | INDEX",
+	"Rename the ID6 and/or the disc title of WBFS discs.",
 	20,
 	option_tab_cmd_RENAME,
 	option_allowed_cmd_RENAME

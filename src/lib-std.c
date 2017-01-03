@@ -16,7 +16,7 @@
  *   This file is part of the WIT project.                                 *
  *   Visit http://wit.wiimm.de/ for project details and sources.           *
  *                                                                         *
- *   Copyright (c) 2009-2015 by Dirk Clemens <wiimm@wiimm.de>              *
+ *   Copyright (c) 2009-2017 by Dirk Clemens <wiimm@wiimm.de>              *
  *                                                                         *
  ***************************************************************************
  *                                                                         *
@@ -122,8 +122,22 @@ PreallocMode	prealloc_mode		= PREALLOC_DEFAULT;
 StringField_t	source_list;
 StringField_t	recurse_list;
 StringField_t	created_files;
-char		iobuf [0x400000];		// global io buffer
-const char	zerobuf[0x40000]	= {0};	// global zero buffer
+
+#if SUPPORT_DIRECT
+
+ char		iobuf [IOBUF_SIZE]			// global io buffer
+ __attribute__((aligned(DIRECTBUF_ALIGN)));
+
+ const char	zerobuf[ZEROBUF_SIZE]			// global zero buffer
+ __attribute__((aligned(DIRECTBUF_ALIGN))) = {0};
+
+ char		directbuf [DIRECTBUF_SIZE]		// global direct-io buffer
+ __attribute__((aligned(DIRECTBUF_ALIGN)));
+
+#else
+ char		iobuf [IOBUF_SIZE];			// global io buffer
+ const char	zerobuf[ZEROBUF_SIZE]	= {0};		// global zero buffer
+#endif
 
 // 'tempbuf' is only for short usage
 //	==> don't call other functions while using tempbuf
@@ -600,6 +614,12 @@ void SetupLib ( int argc, char ** argv, ccp p_progname, enumProgID prid )
 		0xad, 0x5c, 0x95, 0x84,  0x80, 0xda, 0x93, 0xd5,
 		0x58, 0x06, 0xfe, 0x77,  0xf9, 0xe7, 0x69, 0x22
 	    },
+ #ifdef SUPPORT_CKEY_DEVELOP
+            {
+                0x6f, 0x84, 0xf4, 0x5a,  0x05, 0x98, 0x68, 0xd2,
+                0xe5, 0x7f, 0xec, 0xbe,  0x8b, 0xbd, 0x0e, 0xf6
+            },
+ #endif
 	};
 
 	u8 h1[WII_HASH_SIZE], h2[WII_HASH_SIZE], key[WII_KEY_SIZE];
@@ -2123,7 +2143,7 @@ enumError ScanSizeOpt
 	err = ERR_SYNTAX;
 	if (print_err)
 	    ERROR0(ERR_SEMANTIC,
-			"Value of --%s to small (must not <%llu): %s\n",
+			"Value of --%s too small (must not <%llu): %s\n",
 			opt_name, min, source );
     }
     else if ( max > 0 && d > max )
@@ -2131,7 +2151,7 @@ enumError ScanSizeOpt
 	err = ERR_SYNTAX;
 	if (print_err)
 	    ERROR0(ERR_SEMANTIC,
-			"Value of --%s to large (must not >%llu): %s\n",
+			"Value of --%s too large (must not >%llu): %s\n",
 			opt_name, max, source );
     }
 
