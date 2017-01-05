@@ -1,11 +1,14 @@
 wit v@@VERSION@@ r@@REV-NEXT@@ - @@@@-@@-@@
 
- - Title database: Definitions without titles (e.g. "RMCP =") will remove the
-   related title from the internal title database. If the ID is followed by
-   a star (e.g. "RMC* ="), then all titles beginning with the ID are removed.
+ - This will be the last release of v2.* series. I plan to reorganize the code
+   and to use my own C source library and to integrate Wii U support.
  - New command: wit ID8: Print ID6 + 2 next bytes as disc and version number.
+ - Title database: Definitions without titles (e.g. "RMCP =") will remove the
+   related title from the internal title database. If a ID is followed by a
+   star (e.g. "RMC* ="), then all titles beginning with the ID are removed.
  - Title database updated.
  - Some minor text edits.
+ - Windows only: Cygwin update to v2.6.1 2016-12-16.
 
 ~
 ~Known bugs:

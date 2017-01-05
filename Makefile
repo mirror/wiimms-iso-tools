@@ -16,7 +16,7 @@
 ##   This file is part of the WIT project.                         ##
 ##   Visit http://wit.wiimm.de/ for project details and sources.   ##
 ##                                                                 ##
-##   Copyright (c) 2009-2015 by Dirk Clemens <wiimm@wiimm.de>      ##
+##   Copyright (c) 2009-2017 by Dirk Clemens <wiimm@wiimm.de>      ##
 ##                                                                 ##
 #####################################################################
 
@@ -26,6 +26,8 @@
 
 #-------------------------------------------------------------------------------
 # global settings
+
+MYMAKE			:= $(lastword $(MAKEFILE_LIST))
 
 #SHELL			= /bin/bash
 SHELL			= /usr/bin/env bash
@@ -43,8 +45,8 @@ WDF_LONG		= Wiimms WDF Tool
 WFUSE_SHORT		= wfuse
 WFUSE_LONG		= Wiimms FUSE Tool
 
-VERSION_NUM		= 2.32a
-BETA_VERSION		= 1
+VERSION_NUM		= 2.40a
+BETA_VERSION		= 0
 			# 0:off  -1:"beta"  >0:"beta#"
 
 URI_HOME		= http://wit.wiimm.de/
@@ -184,6 +186,9 @@ LZMA_OBJ	= $(patsubst %.c,%.o,$(LZMA_SRC))
 ifeq ($(SYSTEM),cygwin)
   LZMA_FLAGS	= -Wno-unused-but-set-variable
   BZIP2_FLAGS	= -Wno-maybe-uninitialized
+else ifeq ($(SYSTEM),mac)
+  LZMA_FLAGS	= 
+  BZIP2_FLAGS	= 
 else
   LZMA_FLAGS	= -Wno-unused-but-set-variable
   BZIP2_FLAGS	= -Wno-maybe-uninitialized
@@ -988,6 +993,10 @@ help:
 	@echo  ""
 	@echo  " make help	print this help"
 	@echo  ""
+	@echo  "-------------------------------------------------------------------------------"
+	@awk -F: '/^.PHONY/ { gsub(/[[:blank:]]*/,"",$$2); print $$2}' $(MYMAKE) \
+		| sort | pr -5T -w80
+	@echo  "-------------------------------------------------------------------------------"
 
 #
 ###############################################################################

@@ -741,7 +741,7 @@ void InitializeAlignedIO ( AlignedIO_t *ai, int fd, uint block_size )
 
     ai->block_size	= block_size > min_block_size ? block_size : min_block_size;
     ai->buf_size	= ALIGN32(0x4000,ai->block_size);
-    void *buf;
+    void *buf = 0;
     posix_memalign(&buf,ai->block_size,ai->buf_size);
     ai->buf		= buf;
 }
@@ -1095,6 +1095,17 @@ ssize_t WriteAtAlignedIO ( AlignedIO_t *ai, u64 fpos, const void *buf, uint size
 //
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////			test_aligned_io()		///////////////
+///////////////////////////////////////////////////////////////////////////////
+
+#if SUPPORT_DIRECT && !defined(O_DIRECT) // [[DIRECT]]
+  #undef SUPPORT_DIRECT
+  #define SUPPORT_DIRECT 0
+#endif
+
+#ifndef O_DIRECT
+  #define O_DIRECT 0
+#endif
+
 ///////////////////////////////////////////////////////////////////////////////
 
 static void test_aligned_io_open ( AlignedIO_t *ai, ccp fname, int flags, ccp info )

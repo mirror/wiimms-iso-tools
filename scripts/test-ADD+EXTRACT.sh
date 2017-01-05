@@ -326,15 +326,15 @@ function test_it()
 
 	#------------ JOB: ADD ISO --io=0 pipe
 
-	ref="init"
-	print_stat " > %s $sector_size" "$ref"; start=$(get_msec)
-	$WWT -q init $sector_size --force "$wbfs" --size 12 || return $ERROR
-	stop=$(get_msec); print_timer $start $stop
-
-	ref="AI0p"
-	print_stat " > %-4s add iso --io=0 pipe" "$ref"; start=$(get_msec)
-	cat "$tempdir/ref.iso" | $WWT -q -p "$wbfs" add --io=0 - || return $ERROR
-	stop=$(get_msec); print_timer $start $stop $ref
+#DEL	ref="init"
+#DEL	print_stat " > %s $sector_size" "$ref"; start=$(get_msec)
+#DEL	$WWT -q init $sector_size --force "$wbfs" --size 12 || return $ERROR
+#DEL	stop=$(get_msec); print_timer $start $stop
+#DEL
+#DEL	ref="AI0p"
+#DEL	print_stat " > %-4s add iso --io=0 pipe" "$ref"; start=$(get_msec)
+#DEL	cat "$tempdir/ref.iso" | $WWT -q -p "$wbfs" add --io=0 - || return $ERROR
+#DEL	stop=$(get_msec); print_timer $start $stop $ref
 
 	#----- no job, just extract and compare
 
@@ -348,15 +348,15 @@ function test_it()
 
 	#------------ JOB: ADD ISO --io=3 pipe
 
-	ref="init"
-	print_stat " > %s $sector_size" "$ref"; start=$(get_msec)
-	$WWT -q init $sector_size --force "$wbfs" --size 12 || return $ERROR
-	stop=$(get_msec); print_timer $start $stop
-
-	ref="AI3p"
-	print_stat " > %-4s add iso --io=3 pipe" "$ref"; start=$(get_msec)
-	cat "$tempdir/ref.iso" | $WWT -q -p "$wbfs" add --io=3 - || return $ERROR
-	stop=$(get_msec); print_timer $start $stop $ref
+#DEL	ref="init"
+#DEL	print_stat " > %s $sector_size" "$ref"; start=$(get_msec)
+#DEL	$WWT -q init $sector_size --force "$wbfs" --size 12 || return $ERROR
+#DEL	stop=$(get_msec); print_timer $start $stop
+#DEL
+#DEL	ref="AI3p"
+#DEL	print_stat " > %-4s add iso --io=3 pipe" "$ref"; start=$(get_msec)
+#DEL	cat "$tempdir/ref.iso" | $WWT -q -p "$wbfs" add --io=3 - || return $ERROR
+#DEL	stop=$(get_msec); print_timer $start $stop $ref
 
 	#----- no job, just extract and compare
 

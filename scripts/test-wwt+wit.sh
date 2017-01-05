@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# (c) Wiimm, 2013-01-22
+# (c) Wiimm, 2017-01-04
 
 myname="${0##*/}"
 base=wwt+wit
@@ -358,8 +358,9 @@ function test_suite()
 	#diff -rq "$dest/1" "$dest/2"
 	((OPT_TEST)) || find "$dest" -name tmd.bin	-type f -exec rm {} \;
 	((OPT_TEST)) || find "$dest" -name ticket.bin	-type f -exec rm {} \;
-	find "$dest" -name setup.txt -type f -exec rm {} \;
-	find "$dest" -name align-files.txt -type f -exec rm {} \;
+	find "$dest" -regextype posix-egrep \
+		-regex '.*(setup.(txt|sh|bat)|align-files.txt)' \
+		-type f -exec rm {} \;
 
 	test_function "DIF-FST2" "DIFF fst/1 fst/2" \
 	    diff -rq "$dest/1" "$dest/2" \
